@@ -122,6 +122,30 @@ class LLMClient:
             target = "Waterloo"
         elif "paris" in command_lower:
             target = "Paris"
+        elif "paris" in command_lower:
+            target = "Paris"
+
+        # Add more region names for move commands
+        elif "lyon" in command_lower:
+            target = "Lyon"
+        elif "brittany" in command_lower:
+            target = "Brittany"
+        elif "bordeaux" in command_lower:
+            target = "Bordeaux"
+        elif "rhine" in command_lower:
+            target = "Rhine"
+        elif "bavaria" in command_lower:
+            target = "Bavaria"
+        elif "vienna" in command_lower:
+            target = "Vienna"
+        elif "milan" in command_lower:
+            target = "Milan"
+        elif "marseille" in command_lower:
+            target = "Marseille"
+        elif "geneva" in command_lower:
+            target = "Geneva"
+        elif "netherlands" in command_lower:
+            target = "Netherlands"
         # For reinforce commands, check for friendly marshal names as targets
         if target is None and action == "reinforce":
             # Check for marshal names that aren't the commanding marshal
