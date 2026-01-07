@@ -99,6 +99,12 @@ class LLMClient:
             action = "move"
         elif "scout" in command_lower or "reconnaissance" in command_lower:
             action = "scout"
+        elif "scout" in command_lower or "reconnaissance" in command_lower:
+            action = "scout"
+        elif "reinforce" in command_lower or "support" in command_lower:
+            action = "reinforce"
+        elif "recruit" in command_lower or "raise" in command_lower or "conscript" in command_lower:
+            action = "recruit"
 
         # Extract target (can be None)
         target = None
@@ -116,7 +122,15 @@ class LLMClient:
             target = "Waterloo"
         elif "paris" in command_lower:
             target = "Paris"
-
+        # For reinforce commands, check for friendly marshal names as targets
+        if target is None and action == "reinforce":
+            # Check for marshal names that aren't the commanding marshal
+            if "ney" in command_lower and marshal != "Ney":
+                target = "Ney"
+            elif "davout" in command_lower and marshal != "Davout":
+                target = "Davout"
+            elif "grouchy" in command_lower and marshal != "Grouchy":
+                target = "Grouchy"
         # Return parsed command
         return {
             "marshal": marshal,

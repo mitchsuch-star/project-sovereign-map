@@ -1,4 +1,10 @@
+"""
+Command Executor for Project Sovereign
+Executes parsed commands against game state
+"""
+
 from typing import Dict, List
+from backend.models.world_state import WorldState
 
 
 class CommandExecutor:
@@ -29,6 +35,11 @@ class CommandExecutor:
         """
         command = parsed_command.get("command", {})
         command_type = command.get("type", "specific")
+        action = command.get("action")
+        if action == "reinforce":
+            return self._execute_reinforce(command, game_state)
+        elif action == "recruit":
+            return self._execute_recruit(command, game_state)
 
         # Route to appropriate handler
         if command_type == "specific":
@@ -126,45 +137,197 @@ class CommandExecutor:
             "message": "All forces ordered to defensive positions!",
             "new_state": game_state  # No changes yet (stub)
         }
+    def _execute_recruit(self, command: Dict, game_state: Dict) -> Dict:
+        """
+        Recruit new troops - assigns to marshal closest to recruitment location.
+        Now uses REAL proximity calculation!
+
+        Examples:
+        - "Ney, recruit" → +10,000 to Ney at his current location
+        - "Recruit in Belgium" → +10,000 to marshal closest to Belgium
+        - "Recruit" → +10,000 to marshal closest to capital
+
+        Cost: 200 gold per recruitment
+        Effect: +10,000 strength to determined marshal
+        """
+        marshal_specified = command.get("marshal")
+        location_specified = command.get("target")
+
+        # Get world state
+        world: WorldState = game_state.get("world")
+
+        if not world:
+            return {
+                "success": False,
+                "message": "Error: No world state available"
+            }
+
+        # Check if player has enough gold
+        if world.gold < 200:
+            return {
+                "success": False,
+                "message": f"Insufficient gold! Need 200 gold, have {world.gold} gold",
+                "suggestion": "Wait for more income or conquer more regions"
+            }
+
+        # Determine which marshal gets the troops
+        if marshal_specified:
+            # Marshal named directly
+            marshal = world.get_marshal(marshal_specified)
+            if not marshal:
+                return {
+                    "success": False,
+                    "message": f"Marshal {marshal_specified} not found"
+                }
+
+            recipient = marshal.name
+            recruitment_location = marshal.location
+            message = f"{marshal.name} recruits 10,000 troops at {marshal.location}"
+
+        elif location_specified:
+            # Location specified - find nearest marshal
+            result = world.find_nearest_marshal_to_region(location_specified)
+
+            if not result:
+                return {
+                    "success": False,
+                    "message": f"No marshals available to recruit in {location_specified}"
+                }
+
+            marshal, distance = result
+            recipient = marshal.name
+            recruitment_location = location_specified
+            message = f"{marshal.name} recruits 10,000 troops for {location_specified} ({distance} regions away)"
+
+        else:
+            # Neither specified - find marshal nearest to capital
+            result = world.find_nearest_marshal_to_region("Paris")
+
+            if not result:
+                return {
+                    "success": False,
+                    "message": "No marshals available for recruitment"
+                }
+
+            marshal, distance = result
+            recipient = marshal.name
+            recruitment_location = "Paris"
+            message = f"{marshal.name} recruits 10,000 troops (nearest to capital)"
+
+        # Execute recruitment
+        marshal = world.get_marshal(recipient)
+        marshal.add_troops(10000)
+        world.gold -= 200
+
+        return {
+            "success": True,
+            "message": f"{message} - Cost: 200 gold",
+            "events": [{
+                "type": "recruit",
+                "marshal": recipient,
+                "location": recruitment_location,
+                "troops_added": 10000,
+                "gold_cost": 200,
+                "new_strength": marshal.strength,
+                "description": f"+10,000 troops for {recipient}"
+            }],
+            "new_state": game_state
+        }
 
 
-def calculate_turn_income(self, game_state: Dict) -> Dict:
-    """
-    Calculate automatic income for this turn.
-    Called at start of each turn (not a player command).
+    def _execute_reinforce(self, command: Dict, game_state: Dict) -> Dict:
+        """
+        Reinforce another marshal - move to support them.
+        Now uses REAL world state for validation!
 
-    Formula: (regions_controlled × 100) + capital_bonus
+        Example: "Davout, reinforce Ney"
+        """
+        marshal_name = command.get("marshal")
+        target_name = command.get("target")
 
-    TODO (Week 1 Day 2 - when building world_state.py):
-    - Get list of regions player controls
-    - Count them
-    - Check if Paris is controlled (capital bonus +200)
-    - Return income amount
+        # Get world state
+        world: WorldState = game_state.get("world")
 
-    Example:
-    - Control 3 regions: 300 gold/turn
-    - Control 3 regions + Paris: 500 gold/turn
-    - Control 8 regions + Paris: 1,000 gold/turn
-    """
-    # Placeholder - real implementation in world_state.py
-    regions_controlled = game_state.get("regions_controlled", 3)  # Default: 3
-    controlled_region_list = game_state.get("controlled_regions", ["Paris", "Belgium", "Rhine"])
-    has_capital = "Paris" in controlled_region_list
+        if not world:
+            return {
+                "success": False,
+                "message": "Error: No world state available"
+            }
 
-    base_income = regions_controlled * 100
-    capital_bonus = 200 if has_capital else 0
-    total_income = base_income + capital_bonus
+        # Get marshals
+        marshal = world.get_marshal(marshal_name)
+        target_marshal = world.get_marshal(target_name)
 
-    return {
-        "income": total_income,
-        "breakdown": {
-            "regions": regions_controlled,
-            "base_income": base_income,
-            "capital_bonus": capital_bonus,
-            "total": total_income
-        },
-        "message": f"Turn income: {total_income} gold ({regions_controlled} regions)"
-    }
+        if not marshal:
+            return {
+                "success": False,
+                "message": f"Marshal {marshal_name} not found"
+            }
+
+        if not target_marshal:
+            return {
+                "success": False,
+                "message": f"Target marshal {target_name} not found"
+            }
+
+        # Calculate distance
+        distance = world.get_distance(marshal.location, target_marshal.location)
+
+        if distance == 0:
+            return {
+                "success": True,
+                "message": f"{marshal.name} is already with {target_marshal.name} at {marshal.location}",
+                "events": [{
+                    "type": "reinforce",
+                    "marshal": marshal.name,
+                    "target": target_marshal.name,
+                    "already_together": True
+                }],
+                "new_state": game_state
+            }
+
+        # Move marshal to target's location
+        marshal.move_to(target_marshal.location)
+
+        return {
+            "success": True,
+            "message": f"{marshal.name} moves to reinforce {target_marshal.name} at {target_marshal.location} ({distance} regions)",
+            "events": [{
+                "type": "reinforce",
+                "marshal": marshal.name,
+                "target": target_marshal.name,
+                "from_location": marshal.location,
+                "to_location": target_marshal.location,
+                "distance": distance
+            }],
+            "new_state": game_state
+        }
+    def calculate_turn_income(self, game_state: Dict) -> Dict:
+        """
+        Calculate income for the current turn.
+        Now uses REAL world state!
+
+        Args:
+            game_state: Dictionary containing "world" key with WorldState instance
+
+        Returns:
+            Income breakdown dictionary
+        """
+        # Get world state instance
+        world: WorldState = game_state.get("world")
+
+        if not world:
+            # Fallback if no world state provided (shouldn't happen)
+            return {
+                "income": 0,
+                "breakdown": {"error": "No world state provided"},
+                "message": "Error: No world state"
+            }
+
+        # Use real calculation from world state
+        return world.calculate_turn_income()
+
+
 # Test code
 if __name__ == "__main__":
     """
@@ -190,71 +353,7 @@ if __name__ == "__main__":
     }
 
 
-    def _execute_recruit(self, command: Dict, game_state: Dict) -> Dict:
-        """
-        Recruit new troops - assigns to marshal closest to recruitment location.
 
-        Examples:
-        - "Ney, recruit" → +10,000 to Ney at his current location
-        - "Recruit in Belgium" → +10,000 to marshal closest to Belgium
-        - "Recruit" → +10,000 to marshal closest to capital
-
-        Cost: 200 gold per recruitment
-        Effect: +10,000 strength to determined marshal
-
-        Design: NO garrison system for MVP.
-        Troops always assigned to nearest marshal to recruitment location.
-        This maintains high-level abstraction (no free-floating troops).
-
-        TODO (Week 1 Day 4-5):
-        - Check player has enough gold (need gold >= 200)
-        - Deduct 200 gold from treasury
-        - Find marshal closest to recruitment location
-        - Add 10,000 to that marshal's strength
-        """
-        marshal_specified = command.get("marshal")
-        location_specified = command.get("target")
-
-        # Determine which marshal gets the troops
-        if marshal_specified:
-            # Clear case: marshal named directly
-            recipient = marshal_specified
-            recruitment_location = "current position"
-            message = f"{marshal_specified} recruits 10,000 troops at their position"
-            assignment_method = "specified"
-
-        elif location_specified:
-            # Location specified - find marshal closest to that location
-            # TODO (Week 1 Day 4): Implement proximity system
-            # For now, stub response
-            recipient = "nearest_marshal"  # Placeholder
-            recruitment_location = location_specified
-            message = f"Recruiting 10,000 troops in {location_specified} - assigning to nearest marshal"
-            assignment_method = "proximity_to_location"
-
-        else:
-            # Neither specified - default to capital region
-            # Find marshal closest to capital
-            # TODO (Week 1 Day 4): Find marshal nearest to Paris
-            recipient = "nearest_to_capital"  # Placeholder
-            recruitment_location = "Paris"
-            message = f"Recruiting 10,000 troops - assigning to marshal nearest capital"
-            assignment_method = "default_capital"
-
-        return {
-            "success": True,
-            "message": f"{message} - Cost: 200 gold",
-            "events": [{
-                "type": "recruit",
-                "marshal": recipient,
-                "location": recruitment_location,
-                "troops_added": 10000,
-                "gold_cost": 200,
-                "assignment_method": assignment_method,
-                "description": f"+10,000 troops for {recipient} (closest to {recruitment_location})"
-            }],
-            "new_state": game_state  # TODO: Deduct gold, add troops to marshal
-        }
     # Test commands
     test_commands = [
         {
