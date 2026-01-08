@@ -48,10 +48,10 @@ class TurnManager:
 
     def end_turn(self) -> Dict:
         """
-        End the current turn and advance to next.
+        End turn and advance.
 
-        Returns:
-            End turn summary
+        TODO (Post-MVP): Add _process_enemy_turns() here
+        Enemy nations should take actions before turn advances.
         """
         # Advance turn counter
         self.world.advance_turn()

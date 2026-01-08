@@ -1,4 +1,3 @@
-
 """
 LLM Client for Project Sovereign
 Handles both mock (free, instant) and real (Claude API) command parsing
@@ -99,8 +98,6 @@ class LLMClient:
             action = "move"
         elif "scout" in command_lower or "reconnaissance" in command_lower:
             action = "scout"
-        elif "scout" in command_lower or "reconnaissance" in command_lower:
-            action = "scout"
         elif "reinforce" in command_lower or "support" in command_lower:
             action = "reinforce"
         elif "recruit" in command_lower or "raise" in command_lower or "conscript" in command_lower:
@@ -108,6 +105,8 @@ class LLMClient:
 
         # Extract target (can be None)
         target = None
+
+        # Enemy commanders
         if "wellington" in command_lower:
             target = "Wellington"
         elif "blucher" in command_lower or "blücher" in command_lower:
@@ -116,16 +115,14 @@ class LLMClient:
             target = "Prussians"
         elif "british" in command_lower:
             target = "British"
+
+        # Regions
         elif "belgium" in command_lower:
             target = "Belgium"
         elif "waterloo" in command_lower:
             target = "Waterloo"
         elif "paris" in command_lower:
             target = "Paris"
-        elif "paris" in command_lower:
-            target = "Paris"
-
-        # Add more region names for move commands
         elif "lyon" in command_lower:
             target = "Lyon"
         elif "brittany" in command_lower:
@@ -146,6 +143,7 @@ class LLMClient:
             target = "Geneva"
         elif "netherlands" in command_lower:
             target = "Netherlands"
+
         # For reinforce commands, check for friendly marshal names as targets
         if target is None and action == "reinforce":
             # Check for marshal names that aren't the commanding marshal
@@ -155,6 +153,7 @@ class LLMClient:
                 target = "Davout"
             elif "grouchy" in command_lower and marshal != "Grouchy":
                 target = "Grouchy"
+
         # Return parsed command
         return {
             "marshal": marshal,
@@ -208,8 +207,3 @@ if __name__ == "__main__":
     print("=" * 50)
     print("TEST COMPLETE!")
     print("=" * 50)
-
-
-## 🧪 TEST IT!
-
-### Run the Test

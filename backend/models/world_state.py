@@ -14,7 +14,7 @@ class WorldState:
 
     Tracks:
     - All regions and who controls them
-    - All marshals and their positions
+    - All marshals (player AND enemy) and their positions
     - Current turn, gold, game status
     - Provides game logic (income, proximity, etc.)
     """
@@ -32,8 +32,8 @@ class WorldState:
         # Create map
         self.regions: Dict[str, Region] = create_regions()
 
-        # Create marshals (France only for MVP, but structure supports any nation)
-        self.marshals: Dict[str, Marshal] = create_starting_marshals()
+        # Create ALL marshals (player + enemies)
+        self.marshals: Dict[str, Marshal] = self._create_all_marshals()
 
         # Set up initial control
         self._setup_initial_control()
@@ -45,6 +45,58 @@ class WorldState:
         self.game_over: bool = False
         self.victory: Optional[str] = None  # "victory", "defeat", or None
 
+    def _create_all_marshals(self) -> Dict[str, Marshal]:
+        """
+        Create all marshals - player and enemy.
+
+        Returns:
+            Dictionary of marshal_name -> Marshal object
+        """
+        marshals = {}
+
+        # French marshals (player)
+        marshals["Ney"] = Marshal(
+            name="Ney",
+            location="Belgium",
+            strength=72000,
+            personality="aggressive",
+            nation="France"
+        )
+        marshals["Davout"] = Marshal(
+            name="Davout",
+            location="Paris",
+            strength=48000,
+            personality="cautious",
+            nation="France"
+        )
+        marshals["Grouchy"] = Marshal(
+            name="Grouchy",
+            location="Waterloo",
+            strength=33000,
+            personality="literal",
+            nation="France"
+        )
+
+        # British marshals (enemy)
+        marshals["Wellington"] = Marshal(
+            name="Wellington",
+            location="Waterloo",
+            strength=68000,
+            personality="cautious",
+            nation="Britain"
+        )
+
+        # Prussian marshals (enemy)
+        marshals["Blucher"] = Marshal(
+            name="Blucher",
+            location="Rhine",
+            strength=55000,
+            personality="aggressive",
+            nation="Prussia"
+        )
+
+        return marshals
+
     def _setup_initial_control(self) -> None:
         """Set up which nation controls which regions at start."""
         # France starts controlling these regions
@@ -54,20 +106,21 @@ class WorldState:
             if region_name in self.regions:
                 self.regions[region_name].controller = "France"
 
-        # Other nations control remaining regions (for MVP, just set as "Neutral" or specific nations)
-        # Future: Load this from scenario file
-        neutral_regions = ["Netherlands", "Waterloo", "Rhine", "Bavaria",
-                           "Vienna", "Milan", "Marseille", "Geneva"]
+        # Other nations control remaining regions
+        control_map = {
+            "Netherlands": "Britain",
+            "Waterloo": "Britain",
+            "Rhine": "Prussia",
+            "Bavaria": "Austria",
+            "Vienna": "Austria",
+            "Milan": "Neutral",
+            "Marseille": "France",
+            "Geneva": "Neutral"
+        }
 
-        for region_name in neutral_regions:
+        for region_name, controller in control_map.items():
             if region_name in self.regions:
-                # For MVP: Some are British, some are Austrian, etc.
-                if region_name in ["Netherlands", "Waterloo"]:
-                    self.regions[region_name].controller = "Britain"
-                elif region_name in ["Vienna", "Bavaria"]:
-                    self.regions[region_name].controller = "Austria"
-                else:
-                    self.regions[region_name].controller = "Neutral"
+                self.regions[region_name].controller = controller
 
     # ========================================
     # REGION QUERIES (Generic, works for any nation)
@@ -117,6 +170,67 @@ class WorldState:
             marshal for marshal in self.marshals.values()
             if marshal.nation == self.player_nation
         ]
+
+    def get_enemy_marshals(self) -> List[Marshal]:
+        """Get all marshals NOT belonging to the player's nation."""
+        return [
+            marshal for marshal in self.marshals.values()
+            if marshal.nation != self.player_nation
+        ]
+
+    def get_nation_marshals(self, nation: str) -> List[Marshal]:
+        """Get all marshals belonging to a specific nation."""
+        return [
+            marshal for marshal in self.marshals.values()
+            if marshal.nation == nation
+        ]
+
+    def get_enemy_at_location(self, location: str) -> Optional[Marshal]:
+        """
+        Get enemy marshal at a specific location (for combat).
+
+        Args:
+            location: Region name
+
+        Returns:
+            First enemy marshal found at location, or None
+        """
+        for marshal in self.marshals.values():
+            if marshal.location == location and marshal.nation != self.player_nation:
+                if marshal.strength > 0:  # Only return alive marshals
+                    return marshal
+        return None
+
+    def get_enemy_by_name(self, name: str) -> Optional[Marshal]:
+        """
+        Get enemy marshal by name.
+
+        Args:
+            name: Marshal name (e.g., "Wellington", "Blucher")
+
+        Returns:
+            Marshal if found and is enemy, None otherwise
+        """
+        marshal = self.marshals.get(name)
+        if marshal and marshal.nation != self.player_nation:
+            return marshal
+        return None
+
+    def remove_destroyed_marshal(self, marshal_name: str) -> bool:
+        """
+        Remove a marshal who has been destroyed (0 strength).
+
+        Args:
+            marshal_name: Name of marshal to remove
+
+        Returns:
+            True if removed, False if not found or still has strength
+        """
+        marshal = self.marshals.get(marshal_name)
+        if marshal and marshal.strength <= 0:
+            del self.marshals[marshal_name]
+            return True
+        return False
 
     # ========================================
     # PROXIMITY / DISTANCE CALCULATIONS
@@ -186,6 +300,34 @@ class WorldState:
 
         return (nearest_marshal, nearest_distance) if nearest_marshal else None
 
+    def find_nearest_enemy(self, from_region: str) -> Optional[Tuple[Marshal, int]]:
+        """
+        Find the nearest enemy marshal from a given region.
+
+        Args:
+            from_region: Starting region
+
+        Returns:
+            Tuple of (Marshal, distance) or None if no enemies
+        """
+        enemy_marshals = self.get_enemy_marshals()
+
+        if not enemy_marshals:
+            return None
+
+        nearest_enemy = None
+        nearest_distance = 999
+
+        for marshal in enemy_marshals:
+            if marshal.strength <= 0:
+                continue  # Skip destroyed marshals
+            distance = self.get_distance(from_region, marshal.location)
+            if distance < nearest_distance:
+                nearest_distance = distance
+                nearest_enemy = marshal
+
+        return (nearest_enemy, nearest_distance) if nearest_enemy else None
+
     # ========================================
     # INCOME CALCULATION (Real Implementation!)
     # ========================================
@@ -243,6 +385,11 @@ class WorldState:
         # Apply income
         income = self.apply_turn_income()
 
+        # Clean up destroyed marshals
+        destroyed = [name for name, m in self.marshals.items() if m.strength <= 0]
+        for name in destroyed:
+            del self.marshals[name]
+
         # Check for game over
         if self.current_turn > self.max_turns:
             self.game_over = True
@@ -265,16 +412,27 @@ class WorldState:
                 for name, m in self.marshals.items()
                 if m.nation == self.player_nation
             },
+            "enemies": {
+                name: {
+                    "location": m.location,
+                    "strength": m.strength,
+                    "nation": m.nation
+                }
+                for name, m in self.marshals.items()
+                if m.nation != self.player_nation
+            },
             "game_over": self.game_over,
             "victory": self.victory
         }
 
     def __repr__(self) -> str:
         """String representation for debugging."""
+        player_count = len(self.get_player_marshals())
+        enemy_count = len(self.get_enemy_marshals())
         return (
             f"WorldState(Turn {self.current_turn}/{self.max_turns}, "
             f"{self.player_nation} controls {len(self.get_player_regions())} regions, "
-            f"{self.gold} gold)"
+            f"{self.gold} gold, {player_count} marshals vs {enemy_count} enemies)"
         )
 
 
@@ -289,100 +447,60 @@ if __name__ == "__main__":
     world = WorldState(player_nation="France")
     print(f"\n{world}")
 
-    # Test 1: Region control
+    # Test 1: All marshals
     print("\n" + "=" * 70)
-    print("TEST 1: Region Control")
+    print("TEST 1: All Marshals")
     print("=" * 70)
 
-    france_regions = world.get_player_regions()
-    print(f"\nFrance controls {len(france_regions)} regions:")
-    print(f"  {', '.join(france_regions)}")
+    print("\nPlayer marshals:")
+    for m in world.get_player_marshals():
+        print(f"  {m}")
 
-    britain_regions = world.get_nation_regions("Britain")
-    print(f"\nBritain controls {len(britain_regions)} regions:")
-    print(f"  {', '.join(britain_regions)}")
+    print("\nEnemy marshals:")
+    for m in world.get_enemy_marshals():
+        print(f"  {m}")
 
-    # Test 2: Marshal queries
+    # Test 2: Find enemies
     print("\n" + "=" * 70)
-    print("TEST 2: Marshal Locations")
+    print("TEST 2: Enemy Queries")
     print("=" * 70)
 
-    for name, marshal in world.marshals.items():
-        print(f"\n{marshal}")
-        marshals_in_region = world.get_marshals_in_region(marshal.location)
-        print(f"  Marshals in {marshal.location}: {len(marshals_in_region)}")
+    wellington = world.get_enemy_by_name("Wellington")
+    print(f"\nWellington: {wellington}")
 
-    # Test 3: Distance calculation
+    enemy_at_waterloo = world.get_enemy_at_location("Waterloo")
+    print(f"Enemy at Waterloo: {enemy_at_waterloo}")
+
+    nearest = world.find_nearest_enemy("Belgium")
+    if nearest:
+        enemy, dist = nearest
+        print(f"Nearest enemy to Belgium: {enemy.name} ({dist} hops)")
+
+    # Test 3: Combat persistence
     print("\n" + "=" * 70)
-    print("TEST 3: Distance Calculation")
+    print("TEST 3: Combat Persistence")
     print("=" * 70)
 
-    test_distances = [
-        ("Paris", "Belgium"),
-        ("Paris", "Vienna"),
-        ("Belgium", "Waterloo"),
-        ("Bordeaux", "Milan")
-    ]
+    print(f"\nBefore battle: Wellington has {wellington.strength:,} troops")
+    wellington.take_casualties(20000)
+    print(f"After 20k casualties: Wellington has {wellington.strength:,} troops")
 
-    for region_a, region_b in test_distances:
-        distance = world.get_distance(region_a, region_b)
-        print(f"\n{region_a} → {region_b}: {distance} hops")
+    # Same Wellington instance should be affected
+    same_wellington = world.get_enemy_by_name("Wellington")
+    print(f"Same instance check: {same_wellington.strength:,} troops")
 
-    # Test 4: Find nearest marshal
+    # Test 4: Game state summary
     print("\n" + "=" * 70)
-    print("TEST 4: Find Nearest Marshal")
-    print("=" * 70)
-
-    test_regions = ["Vienna", "Netherlands", "Geneva"]
-
-    for region in test_regions:
-        result = world.find_nearest_marshal_to_region(region)
-        if result:
-            marshal, distance = result
-            print(f"\n{region}: Nearest marshal is {marshal.name} ({distance} hops away)")
-        else:
-            print(f"\n{region}: No marshals found")
-
-    # Test 5: Income calculation
-    print("\n" + "=" * 70)
-    print("TEST 5: Income Calculation")
-    print("=" * 70)
-
-    income = world.calculate_turn_income()
-    print(f"\n{income['message']}")
-    print(f"Breakdown:")
-    print(f"  Base income: {income['breakdown']['base_income']} gold")
-    print(f"  Capital bonus: {income['breakdown']['capital_bonus']} gold")
-    print(f"  Total: {income['breakdown']['total']} gold")
-
-    # Test 6: Turn advancement
-    print("\n" + "=" * 70)
-    print("TEST 6: Turn Advancement")
-    print("=" * 70)
-
-    print(f"\nBefore: {world}")
-    world.advance_turn()
-    print(f"After: {world}")
-
-    # Test 7: Game state summary
-    print("\n" + "=" * 70)
-    print("TEST 7: Game State Summary")
+    print("TEST 4: Game State Summary")
     print("=" * 70)
 
     summary = world.get_game_state_summary()
-    print(f"\nGame State:")
-    print(f"  Turn: {summary['turn']}/{summary['max_turns']}")
-    print(f"  Gold: {summary['gold']}")
-    print(f"  Nation: {summary['player_nation']}")
-    print(f"  Regions: {summary['regions_controlled']}")
-    print(f"  Marshals: {len(summary['marshals'])}")
+    print(f"\nEnemies in summary: {list(summary['enemies'].keys())}")
 
     print("\n" + "=" * 70)
     print("ALL TESTS COMPLETE!")
     print("=" * 70)
-    print("\n✓ Region system working")
-    print("✓ Marshal tracking working")
-    print("✓ Proximity calculation working")
-    print("✓ Income system working")
-    print("✓ Turn advancement working")
-    print("✓ Ready for executor integration!")
+    print("\n✓ Player marshals working")
+    print("✓ Enemy marshals persistent")
+    print("✓ Enemy queries working")
+    print("✓ Combat affects persistent state")

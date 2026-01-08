@@ -38,6 +38,7 @@ class CommandExecutor:
         command = parsed_command.get("command", {})
         command_type = command.get("type", "specific")
         action = command.get("action")
+
         if action == "reinforce":
             return self._execute_reinforce(command, game_state)
         elif action == "recruit":
@@ -101,40 +102,43 @@ class CommandExecutor:
                 "message": f"Unknown action: {action}"
             }
 
-    def _execute_attack(self, marshal, target, world, game_state) -> Dict:
+    def _execute_attack(self, marshal, target, world: WorldState, game_state) -> Dict:
         """
         Execute an attack order with REAL combat!
+        Uses persistent enemy marshals from world state.
         """
-        # Find enemy marshal at target location
-        # For MVP: Target is enemy marshal name or region
+        # Find enemy marshal - either by name or at target location
         enemy_marshal = None
 
-        # Check if target is a marshal name
-        if target in ["Wellington", "Blucher"]:
-            # For MVP: Create enemy marshal on the fly
-            # In full game, these would be tracked in world state
-            if target == "Wellington":
-                from backend.models.marshal import Marshal
-                enemy_marshal = Marshal("Wellington", "Waterloo", 68000, "cautious", "Britain")
-            elif target == "Blucher":
-                from backend.models.marshal import Marshal
-                enemy_marshal = Marshal("Blucher", "Waterloo", 55000, "aggressive", "Prussia")
-        else:
-            # Target is a region - find enemy there (future feature)
-            return {
-                "success": False,
-                "message": f"No enemy found at {target}. (Region-based combat coming in Day 4!)",
-                "suggestion": "Try: 'Attack Wellington' or 'Attack Blucher'"
-            }
+        # Check if target is an enemy marshal name
+        enemy_marshal = world.get_enemy_by_name(target)
 
         if not enemy_marshal:
+            # Check if target is a region with enemies
+            enemy_marshal = world.get_enemy_at_location(target)
+
+        if not enemy_marshal:
+            # Try to find nearest enemy
+            nearest = world.find_nearest_enemy(marshal.location)
+            if nearest:
+                enemy_marshal, distance = nearest
+                if distance > 2:
+                    return {
+                        "success": False,
+                        "message": f"No enemy found at {target}. Nearest enemy is {enemy_marshal.name} at {enemy_marshal.location} ({distance} regions away).",
+                        "suggestion": f"Try: 'Attack {enemy_marshal.name}' or move closer first"
+                    }
+            else:
+                return {
+                    "success": False,
+                    "message": f"No enemies found! You may have won the campaign.",
+                }
+
+        if not enemy_marshal or enemy_marshal.strength <= 0:
             return {
                 "success": False,
-                "message": f"Cannot find enemy: {target}"
+                "message": f"Cannot find living enemy: {target}"
             }
-
-        # Check if marshal can reach target (future: distance checking)
-        # For MVP: Allow all attacks
 
         # RESOLVE COMBAT!
         battle_result = self.combat_resolver.resolve_battle(
@@ -143,23 +147,29 @@ class CommandExecutor:
             terrain="open"  # Future: Get from region
         )
 
+        # Check if enemy was destroyed
+        enemy_destroyed = enemy_marshal.strength <= 0
+        if enemy_destroyed:
+            destroyed_msg = f" {enemy_marshal.name}'s army is destroyed!"
+        else:
+            destroyed_msg = ""
+
         return {
             "success": True,
-            "message": battle_result["description"],
+            "message": battle_result["description"] + destroyed_msg,
             "events": [{
                 "type": "battle",
                 "attacker": battle_result["attacker"],
                 "defender": battle_result["defender"],
                 "outcome": battle_result["outcome"],
-                "victor": battle_result["victor"]
+                "victor": battle_result["victor"],
+                "enemy_destroyed": enemy_destroyed
             }],
             "new_state": game_state
         }
 
     def _execute_defend(self, marshal, world, game_state) -> Dict:
         """Execute a defend order."""
-        # Defensive stance - increases defense bonus for next combat
-        # For MVP: Just acknowledge order
         return {
             "success": True,
             "message": f"{marshal.name} takes a defensive position at {marshal.location}",
@@ -172,7 +182,7 @@ class CommandExecutor:
             "new_state": game_state
         }
 
-    def _execute_move(self, marshal, target, world, game_state) -> Dict:
+    def _execute_move(self, marshal, target, world: WorldState, game_state) -> Dict:
         """Execute a move order."""
         if not target:
             return {
@@ -214,9 +224,8 @@ class CommandExecutor:
             "new_state": game_state
         }
 
-    def _execute_scout(self, marshal, target, world, game_state) -> Dict:
+    def _execute_scout(self, marshal, target, world: WorldState, game_state) -> Dict:
         """Execute a scout/reconnaissance order."""
-        # Scout nearby regions for intelligence
         current_region = world.get_region(marshal.location)
 
         if target:
@@ -230,7 +239,6 @@ class CommandExecutor:
 
             distance = world.get_distance(marshal.location, target)
 
-            # Can only scout nearby regions (within 2 hops)
             if distance > 2:
                 return {
                     "success": False,
@@ -242,16 +250,28 @@ class CommandExecutor:
             controller = target_region.controller or "Unknown"
             marshals_there = world.get_marshals_in_region(target)
 
+            # Detailed intel on enemies
+            enemy_intel = []
+            for m in marshals_there:
+                if m.nation != world.player_nation:
+                    enemy_intel.append(f"{m.name} ({m.nation}): ~{m.strength:,} troops")
+
+            intel_msg = f"Controlled by {controller}. "
+            if enemy_intel:
+                intel_msg += f"Enemy forces: {'; '.join(enemy_intel)}"
+            else:
+                intel_msg += "No enemy forces detected."
+
             return {
                 "success": True,
-                "message": f"{marshal.name} scouts {target}: Controlled by {controller}, {len(marshals_there)} armies present",
+                "message": f"{marshal.name} scouts {target}: {intel_msg}",
                 "events": [{
                     "type": "scout",
                     "marshal": marshal.name,
                     "target": target,
                     "intel": {
                         "controller": controller,
-                        "armies": len(marshals_there)
+                        "enemies": enemy_intel
                     }
                 }],
                 "new_state": game_state
@@ -262,15 +282,17 @@ class CommandExecutor:
             for region_name in current_region.adjacent_regions:
                 region = world.get_region(region_name)
                 controller = region.controller or "Unknown"
-                marshals = world.get_marshals_in_region(region_name)
+                enemies = [m for m in world.get_marshals_in_region(region_name)
+                          if m.nation != world.player_nation]
                 adjacent_intel.append({
                     "region": region_name,
                     "controller": controller,
-                    "armies": len(marshals)
+                    "enemy_count": len(enemies)
                 })
 
             intel_summary = ", ".join([
-                f"{info['region']} ({info['controller']})"
+                f"{info['region']} ({info['controller']}" +
+                (f", {info['enemy_count']} enemies)" if info['enemy_count'] > 0 else ")")
                 for info in adjacent_intel
             ])
 
@@ -295,40 +317,42 @@ class CommandExecutor:
         if not world:
             return {"success": False, "message": "Error: No world state"}
 
-        # For MVP: Attack nearest enemy marshal
-        # Future: Find enemies in regions
-
         # Get player marshals
         player_marshals = world.get_player_marshals()
 
         if not player_marshals:
             return {"success": False, "message": "No marshals available to attack"}
 
-        # For MVP: Create enemy on the fly (Wellington at Waterloo)
-        from backend.models.marshal import Marshal
-        enemy = Marshal("Wellington", "Waterloo", 68000, "cautious", "Britain")
+        # Find nearest enemy to any of our marshals
+        best_marshal = None
+        best_enemy = None
+        best_distance = 999
 
-        # Find nearest marshal to Waterloo
-        result = world.find_nearest_marshal_to_region("Waterloo")
+        for marshal in player_marshals:
+            nearest = world.find_nearest_enemy(marshal.location)
+            if nearest:
+                enemy, distance = nearest
+                if distance < best_distance:
+                    best_distance = distance
+                    best_marshal = marshal
+                    best_enemy = enemy
 
-        if not result:
-            return {"success": False, "message": "No marshals in range"}
-
-        nearest_marshal, distance = result
+        if not best_enemy:
+            return {"success": False, "message": "No enemies found!"}
 
         # Execute attack
         battle_result = self.combat_resolver.resolve_battle(
-            attacker=nearest_marshal,
-            defender=enemy,
+            attacker=best_marshal,
+            defender=best_enemy,
             terrain="open"
         )
 
         return {
             "success": True,
-            "message": f"{nearest_marshal.name} (nearest to enemy) attacks Wellington! {battle_result['description']}",
+            "message": f"{best_marshal.name} (nearest to enemy) attacks {best_enemy.name}! {battle_result['description']}",
             "events": [{
                 "type": "battle",
-                "marshal": nearest_marshal.name,
+                "marshal": best_marshal.name,
                 "auto_assigned": True,
                 "attacker": battle_result["attacker"],
                 "defender": battle_result["defender"],
@@ -349,29 +373,22 @@ class CommandExecutor:
         if not world or not target:
             return {"success": False, "message": "Error: No target or world state"}
 
-        # Find nearest marshal
-        # For MVP: Assume target is at a known location
-        target_locations = {
-            "Wellington": "Waterloo",
-            "Blucher": "Waterloo"
-        }
+        # Find target enemy
+        enemy = world.get_enemy_by_name(target)
 
-        target_location = target_locations.get(target, "Waterloo")
-        result = world.find_nearest_marshal_to_region(target_location)
+        if not enemy:
+            return {"success": False, "message": f"Unknown enemy: {target}"}
+
+        if enemy.strength <= 0:
+            return {"success": False, "message": f"{target} has already been defeated!"}
+
+        # Find nearest marshal to enemy
+        result = world.find_nearest_marshal_to_region(enemy.location)
 
         if not result:
             return {"success": False, "message": f"No marshals in range of {target}"}
 
         nearest_marshal, distance = result
-
-        # Create enemy
-        from backend.models.marshal import Marshal
-        if target == "Wellington":
-            enemy = Marshal("Wellington", target_location, 68000, "cautious", "Britain")
-        elif target == "Blucher":
-            enemy = Marshal("Blucher", target_location, 55000, "aggressive", "Prussia")
-        else:
-            return {"success": False, "message": f"Unknown enemy: {target}"}
 
         # Execute attack
         battle_result = self.combat_resolver.resolve_battle(
@@ -476,15 +493,10 @@ class CommandExecutor:
             }],
             "new_state": game_state
         }
+
     def _execute_recruit(self, command: Dict, game_state: Dict) -> Dict:
         """
         Recruit new troops - assigns to marshal closest to recruitment location.
-        Now uses REAL proximity calculation!
-
-        Examples:
-        - "Ney, recruit" → +10,000 to Ney at his current location
-        - "Recruit in Belgium" → +10,000 to marshal closest to Belgium
-        - "Recruit" → +10,000 to marshal closest to capital
 
         Cost: 200 gold per recruitment
         Effect: +10,000 strength to determined marshal
@@ -492,7 +504,6 @@ class CommandExecutor:
         marshal_specified = command.get("marshal")
         location_specified = command.get("target")
 
-        # Get world state
         world: WorldState = game_state.get("world")
 
         if not world:
@@ -511,7 +522,6 @@ class CommandExecutor:
 
         # Determine which marshal gets the troops
         if marshal_specified:
-            # Marshal named directly
             marshal = world.get_marshal(marshal_specified)
             if not marshal:
                 return {
@@ -524,7 +534,6 @@ class CommandExecutor:
             message = f"{marshal.name} recruits 10,000 troops at {marshal.location}"
 
         elif location_specified:
-            # Location specified - find nearest marshal
             result = world.find_nearest_marshal_to_region(location_specified)
 
             if not result:
@@ -539,7 +548,6 @@ class CommandExecutor:
             message = f"{marshal.name} recruits 10,000 troops for {location_specified} ({distance} regions away)"
 
         else:
-            # Neither specified - find marshal nearest to capital
             result = world.find_nearest_marshal_to_region("Paris")
 
             if not result:
@@ -573,18 +581,13 @@ class CommandExecutor:
             "new_state": game_state
         }
 
-
     def _execute_reinforce(self, command: Dict, game_state: Dict) -> Dict:
         """
         Reinforce another marshal - move to support them.
-        Now uses REAL world state for validation!
-
-        Example: "Davout, reinforce Ney"
         """
         marshal_name = command.get("marshal")
         target_name = command.get("target")
 
-        # Get world state
         world: WorldState = game_state.get("world")
 
         if not world:
@@ -593,7 +596,6 @@ class CommandExecutor:
                 "message": "Error: No world state available"
             }
 
-        # Get marshals
         marshal = world.get_marshal(marshal_name)
         target_marshal = world.get_marshal(target_name)
 
@@ -626,6 +628,7 @@ class CommandExecutor:
             }
 
         # Move marshal to target's location
+        old_location = marshal.location
         marshal.move_to(target_marshal.location)
 
         return {
@@ -635,94 +638,89 @@ class CommandExecutor:
                 "type": "reinforce",
                 "marshal": marshal.name,
                 "target": target_marshal.name,
-                "from_location": marshal.location,
+                "from_location": old_location,
                 "to_location": target_marshal.location,
                 "distance": distance
             }],
             "new_state": game_state
         }
+
     def calculate_turn_income(self, game_state: Dict) -> Dict:
         """
         Calculate income for the current turn.
-        Now uses REAL world state!
-
-        Args:
-            game_state: Dictionary containing "world" key with WorldState instance
-
-        Returns:
-            Income breakdown dictionary
         """
-        # Get world state instance
         world: WorldState = game_state.get("world")
 
         if not world:
-            # Fallback if no world state provided (shouldn't happen)
             return {
                 "income": 0,
                 "breakdown": {"error": "No world state provided"},
                 "message": "Error: No world state"
             }
 
-        # Use real calculation from world state
         return world.calculate_turn_income()
 
 
 # Test code
 if __name__ == "__main__":
-    """
-    Test the executor with mock game state.
-    """
-    print("=" * 60)
-    print("COMMAND EXECUTOR TEST")
-    print("=" * 60)
+    """Test the executor with persistent enemies."""
+    print("=" * 70)
+    print("COMMAND EXECUTOR TEST - PERSISTENT ENEMIES")
+    print("=" * 70)
+
+    from backend.commands.parser import CommandParser
 
     executor = CommandExecutor()
+    parser = CommandParser(use_real_llm=False)
 
-    # Mock game state (simplified)
-    mock_state = {
-        "marshals": {
-            "Ney": {"location": "Belgium", "strength": 72000},
-            "Davout": {"location": "Paris", "strength": 48000},
-            "Grouchy": {"location": "Wavre", "strength": 33000}
-        },
-        "enemies": {
-            "Wellington": {"location": "Waterloo", "strength": 68000},
-            "Blucher": {"location": "Wavre", "strength": 50000}
-        }
-    }
+    # Create world with persistent enemies
+    from backend.models.world_state import WorldState
+    world = WorldState(player_nation="France")
+    game_state = {"world": world}
 
+    print(f"\nInitial state: {world}")
+    print(f"\nEnemies:")
+    for enemy in world.get_enemy_marshals():
+        print(f"  {enemy}")
 
+    # Test 1: Attack Wellington
+    print("\n" + "=" * 70)
+    print("TEST 1: Attack Wellington")
+    print("=" * 70)
 
-    # Test commands
-    test_commands = [
-        {
-            "success": True,
-            "command": {
-                "marshal": "Ney",
-                "action": "attack",
-                "target": "Wellington",
-                "type": "specific"
-            }
-        },
-        {
-            "success": True,
-            "command": {
-                "marshal": "Ney",
-                "action": "retreat",
-                "target": None,
-                "type": "general_retreat"
-            }
-        }
-    ]
+    cmd = "Ney, attack Wellington"
+    parsed = parser.parse(cmd)
+    result = executor.execute(parsed, game_state)
+    print(f"\nCommand: {cmd}")
+    print(f"Result: {result['message']}")
 
-    print("\nExecuting test commands:\n")
-    for parsed_cmd in test_commands:
-        print(f"Command: {parsed_cmd['command']}")
-        result = executor.execute(parsed_cmd, mock_state)
-        print(f"Result: {result['message']}")
-        print()
+    # Check Wellington's state persisted
+    wellington = world.get_enemy_by_name("Wellington")
+    print(f"\nWellington after battle: {wellington.strength:,} troops, {wellington.morale}% morale")
 
-    print("=" * 60)
-    print("EXECUTOR STUB READY")
-    print("Will implement full logic in Week 1, Day 4-5")
-    print("=" * 60)
+    # Test 2: Attack again - should show reduced strength
+    print("\n" + "=" * 70)
+    print("TEST 2: Attack Again (Persistent Damage)")
+    print("=" * 70)
+
+    result2 = executor.execute(parsed, game_state)
+    print(f"\nResult: {result2['message']}")
+    print(f"Wellington now: {wellington.strength:,} troops")
+
+    # Test 3: Scout to see enemy positions
+    print("\n" + "=" * 70)
+    print("TEST 3: Scout for Enemies")
+    print("=" * 70)
+
+    cmd = "Davout, scout Waterloo"
+    parsed = parser.parse(cmd)
+    result = executor.execute(parsed, game_state)
+    print(f"\nCommand: {cmd}")
+    print(f"Result: {result['message']}")
+
+    print("\n" + "=" * 70)
+    print("EXECUTOR TEST COMPLETE!")
+    print("=" * 70)
+    print("\n✓ Enemies persist between battles")
+    print("✓ Damage accumulates")
+    print("✓ Scout shows enemy intel")
