@@ -4,6 +4,7 @@ Handles both mock (free, instant) and real (Claude API) command parsing
 """
 
 import os
+import re
 from typing import Dict, Optional
 from dotenv import load_dotenv
 
@@ -62,28 +63,34 @@ class LLMClient:
         """
         command_lower = command_text.lower()
 
-        # Extract marshal name
+        # Extract marshal name - find the FIRST mentioned marshal
         marshal = None  # Start with None for general orders
 
-        # Check for known marshals first
-        if "ney" in command_lower:
-            marshal = "Ney"
-        elif "davout" in command_lower:
-            marshal = "Davout"
-        elif "grouchy" in command_lower:
-            marshal = "Grouchy"
-        elif "murat" in command_lower:
-            marshal = "Murat"
-        elif "soult" in command_lower:
-            marshal = "Soult"
-        elif "lannes" in command_lower:
-            marshal = "Lannes"
-        elif "marshal" in command_lower:
-            # Look for "Marshal [Name]"
-            import re
-            match = re.search(r'marshal\s+([A-Z][a-z]+)', command_text)
-            if match:
+        # Known marshals with their search patterns
+        known_marshals = [
+            ("ney", "Ney"),
+            ("davout", "Davout"),
+            ("grouchy", "Grouchy"),
+            ("murat", "Murat"),
+            ("soult", "Soult"),
+            ("lannes", "Lannes"),
+        ]
+
+        # Find which marshal appears FIRST in the command
+        first_position = len(command_lower) + 1
+        for pattern, name in known_marshals:
+            pos = command_lower.find(pattern)
+            if pos != -1 and pos < first_position:
+                first_position = pos
+                marshal = name
+
+        # Also check for "Marshal [Name]" pattern
+        match = re.search(r'marshal\s+([A-Z][a-z]+)', command_text)
+        if match:
+            match_pos = command_lower.find("marshal")
+            if match_pos != -1 and match_pos < first_position:
                 marshal = match.group(1)
+
         # If still None, that's OK - means general order
 
         # Extract action (ALWAYS set a value)
@@ -145,14 +152,21 @@ class LLMClient:
             target = "Netherlands"
 
         # For reinforce commands, check for friendly marshal names as targets
+        # Find the SECOND marshal mentioned (the one being reinforced)
         if target is None and action == "reinforce":
-            # Check for marshal names that aren't the commanding marshal
-            if "ney" in command_lower and marshal != "Ney":
-                target = "Ney"
-            elif "davout" in command_lower and marshal != "Davout":
-                target = "Davout"
-            elif "grouchy" in command_lower and marshal != "Grouchy":
-                target = "Grouchy"
+            second_marshal = None
+            second_position = len(command_lower) + 1
+
+            for pattern, name in known_marshals:
+                pos = command_lower.find(pattern)
+                if pos != -1 and name != marshal:  # Not the commanding marshal
+                    if second_marshal is None or pos < second_position:
+                        # Find this marshal's position (should be after the first)
+                        second_position = pos
+                        second_marshal = name
+
+            if second_marshal:
+                target = second_marshal
 
         # Return parsed command
         return {
