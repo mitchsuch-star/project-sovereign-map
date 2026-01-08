@@ -138,6 +138,35 @@ def create_starting_marshals() -> dict[str, Marshal]:
     return marshals
 
 
+def create_enemy_marshals() -> dict[str, Marshal]:
+    """
+    Create the enemy marshals (persistent across turns).
+
+    These marshals exist in the world from game start and:
+    - Defend their regions when attacked
+    - Persist casualties and morale between battles
+    - Can be completely destroyed
+
+    Returns:
+        Dictionary of marshal_name -> Marshal object
+    """
+    enemies = {
+        "Wellington": Marshal(
+            name="Wellington",
+            location="Waterloo",
+            strength=68000,
+            personality="cautious",
+            nation="Britain"
+        ),
+        "Blucher": Marshal(
+            name="Blucher",
+            location="Netherlands",
+            strength=55000,
+            personality="aggressive",
+            nation="Prussia"
+        )
+    }
+    return enemies
 # Test code
 if __name__ == "__main__":
     """Quick test of marshal system."""

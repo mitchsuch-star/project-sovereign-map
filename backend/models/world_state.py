@@ -5,7 +5,7 @@ The main game state - ties regions, marshals, and game logic together
 
 from typing import Dict, List, Optional, Tuple
 from backend.models.region import Region, create_regions
-from backend.models.marshal import Marshal, create_starting_marshals
+from backend.models.marshal import Marshal, create_starting_marshals, create_enemy_marshals
 
 
 class WorldState:
@@ -33,8 +33,10 @@ class WorldState:
         self.regions: Dict[str, Region] = create_regions()
 
         # Create ALL marshals (player + enemies)
-        self.marshals: Dict[str, Marshal] = self._create_all_marshals()
-
+        # Create ALL marshals (player + enemy) in single dict
+        self.marshals: Dict[str, Marshal] = {}
+        self.marshals.update(create_starting_marshals())  # Add French marshals
+        self.marshals.update(create_enemy_marshals())  # Add enemy marshals
         # Set up initial control
         self._setup_initial_control()
 
@@ -45,57 +47,7 @@ class WorldState:
         self.game_over: bool = False
         self.victory: Optional[str] = None  # "victory", "defeat", or None
 
-    def _create_all_marshals(self) -> Dict[str, Marshal]:
-        """
-        Create all marshals - player and enemy.
 
-        Returns:
-            Dictionary of marshal_name -> Marshal object
-        """
-        marshals = {}
-
-        # French marshals (player)
-        marshals["Ney"] = Marshal(
-            name="Ney",
-            location="Belgium",
-            strength=72000,
-            personality="aggressive",
-            nation="France"
-        )
-        marshals["Davout"] = Marshal(
-            name="Davout",
-            location="Paris",
-            strength=48000,
-            personality="cautious",
-            nation="France"
-        )
-        marshals["Grouchy"] = Marshal(
-            name="Grouchy",
-            location="Waterloo",
-            strength=33000,
-            personality="literal",
-            nation="France"
-        )
-
-        # British marshals (enemy)
-        marshals["Wellington"] = Marshal(
-            name="Wellington",
-            location="Waterloo",
-            strength=68000,
-            personality="cautious",
-            nation="Britain"
-        )
-
-        # Prussian marshals (enemy)
-        marshals["Blucher"] = Marshal(
-            name="Blucher",
-            location="Rhine",
-            strength=55000,
-            personality="aggressive",
-            nation="Prussia"
-        )
-
-        return marshals
 
     def _setup_initial_control(self) -> None:
         """Set up which nation controls which regions at start."""
@@ -171,6 +123,67 @@ class WorldState:
             if marshal.nation == self.player_nation
         ]
 
+    def get_enemy_marshal(self, marshal_name: str) -> Optional[Marshal]:
+        """Get a specific enemy marshal by name."""
+        return self.enemy_marshals.get(marshal_name)
+
+    def get_all_marshals_in_region(self, region_name: str) -> List[Marshal]:
+        """
+        Get ALL marshals (player and enemy) in a specific region.
+
+        Args:
+            region_name: Region to check
+
+        Returns:
+            List of all marshals in that region
+        """
+        marshals = []
+
+        # Check player marshals
+        for marshal in self.marshals.values():
+            if marshal.location == region_name:
+                marshals.append(marshal)
+
+        # Check enemy marshals
+        for marshal in self.enemy_marshals.values():
+            if marshal.location == region_name and marshal.strength > 0:
+                marshals.append(marshal)
+
+        return marshals
+
+    def get_enemy_marshals_in_region(self, region_name: str) -> List[Marshal]:
+        """
+        Get enemy marshals defending a specific region.
+
+        Args:
+            region_name: Region to check
+
+        Returns:
+            List of enemy marshals in that region (with strength > 0)
+        """
+        defenders = []
+        for marshal in self.enemy_marshals.values():
+            if marshal.location == region_name and marshal.strength > 0:
+                defenders.append(marshal)
+        return defenders
+
+    def capture_region(self, region_name: str, capturing_nation: str) -> bool:
+        """
+        Capture a region (change controller).
+
+        Args:
+            region_name: Region to capture
+            capturing_nation: Nation capturing it
+
+        Returns:
+            True if captured, False if region doesn't exist
+        """
+        region = self.get_region(region_name)
+        if not region:
+            return False
+
+        region.controller = capturing_nation
+        return True
     def get_enemy_marshals(self) -> List[Marshal]:
         """Get all marshals NOT belonging to the player's nation."""
         return [
