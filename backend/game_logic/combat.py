@@ -30,24 +30,24 @@ class CombatResolver:
             defender: Marshal,
             terrain: str = "open"
     ) -> Dict:
-        """
-        Resolve a battle between two marshals.
+        """Resolve a battle between two marshals."""
 
-        Args:
-            attacker: Attacking marshal
-            defender: Defending marshal
-            terrain: Terrain type ("open", "fortified", "mountain")
+        #print(f"\n⚔️ BATTLE: {attacker.name} vs {defender.name}")
+        #print(f"   Attacker: {attacker.strength:,} troops, {attacker.morale}% morale")
+        #print(f"   Defender: {defender.strength:,} troops, {defender.morale}% morale")
 
-        Returns:
-            Battle result dictionary with outcomes
-        """
         # Calculate effective strengths
         attacker_effective = self._calculate_effective_strength(attacker, is_attacker=True)
         defender_effective = self._calculate_effective_strength(defender, is_attacker=False)
 
+        #print(f"   Attacker effective: {attacker_effective:,.0f}")
+        #print(f"   Defender effective: {defender_effective:,.0f}")
+
         # Apply terrain modifiers
         terrain_bonus = self._get_terrain_bonus(terrain)
         defender_effective *= (1 + terrain_bonus)
+
+        #print(f"   Defender after terrain: {defender_effective:,.0f}")
 
         # Calculate casualties
         attacker_casualties = self._calculate_casualties(
@@ -62,13 +62,10 @@ class CombatResolver:
             defender_effective
         )
 
-        # Apply casualties
-        attacker.take_casualties(attacker_casualties)
-        defender.take_casualties(defender_casualties)
-
+        #print(f"   💀 Casualties: {attacker.name} {attacker_casualties:,}, {defender.name} {defender_casualties:,}")
         # Determine victor
         if attacker.strength <= 0 and defender.strength <= 0:
-            victor = None  # Mutual destruction
+            victor = None
             outcome = "mutual_destruction"
         elif attacker.strength <= 0:
             victor = defender
@@ -102,6 +99,7 @@ class CombatResolver:
                 attacker.adjust_morale(-5)
                 defender.adjust_morale(-5)
 
+        # THIS RETURN MUST BE HERE!
         return {
             "outcome": outcome,
             "victor": victor.name if victor else None,
@@ -122,6 +120,7 @@ class CombatResolver:
                 attacker, defender, outcome, attacker_casualties, defender_casualties
             )
         }
+        # ... rest of existing code ...
 
     def _calculate_effective_strength(self, marshal: Marshal, is_attacker: bool) -> float:
         """Calculate effective combat strength considering morale."""

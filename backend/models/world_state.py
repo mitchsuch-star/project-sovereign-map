@@ -46,7 +46,26 @@ class WorldState:
         self.gold: int = 1200
         self.game_over: bool = False
         self.victory: Optional[str] = None  # "victory", "defeat", or None
+        # ============================================================
+        # ACTION ECONOMY SYSTEM
+        # ============================================================
 
+        # MVP Configuration (simple)
+        self.max_actions_per_turn: int = 4
+        self.actions_remaining: int = 4
+
+        # Future expansion hooks (not used in MVP)
+        self._action_bonuses: Dict[str, int] = {}  # For leader/tech/morale bonuses
+        self._action_costs: Dict[str, float] = {  # For variable costs
+            "attack": 1,
+            "move": 1,
+            "scout": 1,
+            "recruit": 1,
+            "defend": 1,
+            "reinforce": 1,
+            "end_turn": 0  # Free action
+
+        }
 
 
     def _setup_initial_control(self) -> None:
@@ -391,22 +410,6 @@ class WorldState:
     # GAME STATE MANAGEMENT
     # ========================================
 
-    def advance_turn(self) -> None:
-        """Advance to next turn and apply income."""
-        self.current_turn += 1
-
-        # Apply income
-        income = self.apply_turn_income()
-
-        # Clean up destroyed marshals
-        destroyed = [name for name, m in self.marshals.items() if m.strength <= 0]
-        for name in destroyed:
-            del self.marshals[name]
-
-        # Check for game over
-        if self.current_turn > self.max_turns:
-            self.game_over = True
-            self.victory = "defeat"  # Ran out of time
 
     def get_game_state_summary(self) -> Dict:
         """Get a summary of current game state for API responses."""
@@ -438,6 +441,156 @@ class WorldState:
             "victory": self.victory
         }
 
+    def get_action_cost(self, action: str) -> int:
+        """
+        Get the action point cost for a specific action.
+
+        MVP: All actions cost 1 (except end_turn = 0)
+        Future: Variable costs (attack=2, scout=1, etc.)
+
+        Args:
+            action: Action type ("attack", "move", etc.)
+
+        Returns:
+            Action point cost (for MVP, always 1 or 0)
+        """
+        # MVP: Use configured costs (all 1 for now)
+        return int(self._action_costs.get(action, 1))
+
+    def calculate_max_actions(self) -> int:
+        """
+        Calculate maximum actions for current turn.
+
+        MVP: Always returns 4
+        Future: 4 + leader bonus + morale bonus + tech bonus
+
+        Returns:
+            Maximum actions this turn
+        """
+        base_actions = 4
+
+        # FUTURE: Add bonuses here
+        # bonus_total = 0
+        #
+        # # Leader bonus
+        # if "napoleon_commanding" in self._action_bonuses:
+        #     bonus_total += 1
+        #
+        # # High morale bonus
+        # if self.get_average_morale() > 80:
+        #     bonus_total += 1
+        #
+        # # Tech bonuses
+        # if "rapid_deployment" in self.researched_tech:
+        #     bonus_total += 1
+        #
+        # return base_actions + bonus_total
+
+        # MVP: Just return base
+        return base_actions
+
+    def use_action(self, action_type: str = "generic") -> Dict:
+        """Use action points for an action."""
+
+        # print(f"🎯 use_action() called:")
+        # print(f"   Action type: {action_type}")
+        # print(f"   Actions BEFORE: {self.actions_remaining}/{self.max_actions_per_turn}")
+
+        if self.actions_remaining <= 0:
+            print(f"   ❌ No actions remaining!")
+            return {
+                "success": False,
+                "message": "No actions remaining this turn",
+                "actions_remaining": 0,
+                "turn_advanced": False
+            }
+
+        cost = self.get_action_cost(action_type)
+        print(f"   Cost: {cost}")
+
+        self.actions_remaining = max(0, self.actions_remaining - cost)
+        print(f"   Actions AFTER: {self.actions_remaining}/{self.max_actions_per_turn}")
+
+        turn_advanced = False
+        if self.actions_remaining <= 0:
+            print(f"   🔄 Turn advancing...")
+            self._advance_turn_internal()
+            turn_advanced = True
+            print(f"   ✅ Now turn {self.current_turn} with {self.actions_remaining} actions")
+
+        return {
+            "success": True,
+            "action_cost": cost,
+            "actions_remaining": self.actions_remaining,
+            "turn_advanced": turn_advanced,
+            "new_turn": self.current_turn if turn_advanced else None
+        }
+    def _advance_turn_internal(self) -> None:
+        """
+        Internal method: Advance turn and reset actions.
+        Called automatically when actions reach 0.
+        """
+        old_turn = self.current_turn
+        self.current_turn += 1
+
+        # Apply income
+        income_data = self.calculate_turn_income()
+        self.gold += income_data["income"]
+
+        # Reset actions (recalculate in case bonuses changed)
+        self.max_actions_per_turn = self.calculate_max_actions()
+        self.actions_remaining = self.max_actions_per_turn
+
+        # Check for game over
+        if self.current_turn > self.max_turns:
+            self.game_over = True
+            player_regions = len(self.get_player_regions())
+            if player_regions >= 8:
+                self.victory = "victory"
+            else:
+                self.victory = "defeat"
+
+    def force_end_turn(self) -> Dict:
+        """
+        Force end turn early (for "end turn" command).
+
+        Returns:
+            Turn advancement info
+        """
+        skipped_actions = self.actions_remaining
+        old_turn = self.current_turn
+
+        self.actions_remaining = 0
+        self._advance_turn_internal()
+
+        income = self.calculate_turn_income()
+
+        return {
+            "success": True,
+            "old_turn": old_turn,
+            "new_turn": self.current_turn,
+            "actions_skipped": skipped_actions,
+            "income": income["income"],
+            "gold": self.gold
+        }
+
+    def get_action_summary(self) -> Dict:
+        """
+        Get action economy summary for UI display.
+
+        Returns:
+            Action state dictionary
+        """
+        return {
+            "actions_remaining": int(self.actions_remaining),
+            "max_actions": int(self.max_actions_per_turn),
+            "turn": int(self.current_turn),
+            "max_turns": int(self.max_turns),
+
+            # FUTURE: Add these when implemented
+            # "action_bonuses": self._action_bonuses,
+            # "next_turn_actions": self.calculate_max_actions(),
+        }
     def __repr__(self) -> str:
         """String representation for debugging."""
         player_count = len(self.get_player_marshals())

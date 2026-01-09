@@ -18,42 +18,121 @@ class CommandExecutor:
         self.combat_resolver = CombatResolver()
         print("Command Executor initialized")
 
+    def _execute_end_turn(self, command: Dict, game_state: Dict) -> Dict:
+        """End turn early, skipping remaining actions."""
+        world: WorldState = game_state.get("world")
+
+        if not world:
+            return {"success": False, "message": "Error: No world state"}
+
+        turn_result = world.force_end_turn()
+
+        return {
+            "success": True,
+            "message": f"Turn {turn_result['old_turn']} ended. Turn {turn_result['new_turn']} begins! Income: +{turn_result['income']} gold (Total: {turn_result['gold']})",
+            "events": [{
+                "type": "turn_end",
+                "old_turn": turn_result['old_turn'],
+                "new_turn": turn_result['new_turn'],
+                "actions_skipped": turn_result['actions_skipped'],
+                "income": turn_result['income']
+            }],
+            "new_state": game_state
+        }
     def execute(self, parsed_command: Dict, game_state: Dict) -> Dict:
-        """
-        Execute a command against the current game state.
+        """Execute a command against the current game state."""
+        world: WorldState = game_state.get("world")
 
-        Args:
-            parsed_command: Output from CommandParser
-            game_state: Current world state
-
-        Returns:
-            Execution result with success, message, events
-        """
-        command = parsed_command.get("command", {})
-        command_type = command.get("type", "specific")
-        action = command.get("action")
-
-        if action == "reinforce":
-            return self._execute_reinforce(command, game_state)
-        elif action == "recruit":
-            return self._execute_recruit(command, game_state)
-
-        # Route to appropriate handler
-        if command_type == "specific":
-            return self._execute_specific(command, game_state)
-        elif command_type == "general_attack":
-            return self._execute_general_attack(command, game_state)
-        elif command_type == "auto_assign_attack":
-            return self._execute_auto_assign_attack(command, game_state)
-        elif command_type == "general_retreat":
-            return self._execute_general_retreat(command, game_state)
-        elif command_type == "general_defensive":
-            return self._execute_general_defensive(command, game_state)
-        else:
+        if not world:
             return {
+                "success": False,
+                "message": "Error: No world state available"
+            }
+
+        command = parsed_command.get("command", {})
+        action = command.get("action", "unknown")
+
+        # ============================================================
+        # ACTION ECONOMY: Check if player has actions remaining
+        # ============================================================
+
+        # Actions don't apply to status queries or help
+        free_actions = ["status", "help", "end_turn", "unknown"]
+
+
+        if action not in free_actions:
+            # Check if actions available
+            if world.actions_remaining <= 0:
+                return {
+                    "success": False,
+                    "message": "No actions remaining this turn! Turn will advance automatically.",
+                    "actions_remaining": 0,
+                    "action_summary": world.get_action_summary()
+                }
+
+            # Use an action
+            action_result = world.use_action(action)
+
+            if not action_result["success"]:
+                return {
+                    "success": False,
+                    "message": action_result["message"],
+                    "actions_remaining": world.actions_remaining,
+                    "action_summary": world.get_action_summary()
+                }
+        else:
+            # Free action - no cost
+            action_result = {
+                "success": True,
+                "action_cost": 0,
+                "actions_remaining": world.actions_remaining,
+                "turn_advanced": False
+            }
+
+        # ============================================================
+        # Continue with normal command routing
+        # ============================================================
+
+        command_type = command.get("type", "specific")
+
+        # Handle special actions first
+        if action == "reinforce":
+            result = self._execute_reinforce(command, game_state)
+        elif action == "recruit":
+            result = self._execute_recruit(command, game_state)
+        elif action == "end_turn":
+            result = self._execute_end_turn(command, game_state)
+        # Route to appropriate handler
+        elif command_type == "specific":
+            result = self._execute_specific(command, game_state)
+        elif command_type == "general_attack":
+            result = self._execute_general_attack(command, game_state)
+        elif command_type == "auto_assign_attack":
+            result = self._execute_auto_assign_attack(command, game_state)
+        elif command_type == "general_retreat":
+            result = self._execute_general_retreat(command, game_state)
+        elif command_type == "general_defensive":
+            result = self._execute_general_defensive(command, game_state)
+        else:
+            result = {
                 "success": False,
                 "message": f"Unknown command type: {command_type}"
             }
+
+        # ============================================================
+        # ACTION ECONOMY: Add action info to result
+        # ============================================================
+
+        result["action_info"] = {
+            "cost": action_result.get("action_cost", 0),
+            "remaining": world.actions_remaining,
+            "turn_advanced": action_result.get("turn_advanced", False),
+            "new_turn": action_result.get("new_turn")
+        }
+
+        result["action_summary"] = world.get_action_summary()
+
+        return result
 
     def _execute_specific(self, command: Dict, game_state: Dict) -> Dict:
         """Execute a specific order (marshal and action both specified)."""
