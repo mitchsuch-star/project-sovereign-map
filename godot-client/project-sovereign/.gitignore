@@ -1,0 +1,10 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+# Godot - IGNORE THESE!
+godot-client/.godot/
+godot-client/.import/
+*.import
+godot-client/export/
+
+
