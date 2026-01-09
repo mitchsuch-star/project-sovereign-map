@@ -96,6 +96,7 @@ class CommandExecutor:
         Execute an attack order with combat and region conquest.
 
         If attacking a region, will capture it after defeating all defenders.
+        Handles undefended regions with instant capture.
         """
         # Find enemy marshal - either by name or at target location
         enemy_marshal = None
@@ -108,7 +109,39 @@ class CommandExecutor:
             enemy_marshal = world.get_enemy_at_location(target)
 
         if not enemy_marshal:
-            # Try to find nearest enemy
+            # No enemy found - check if target is an undefended region
+            target_region = world.get_region(target)
+
+            if target_region:
+                # Check if already controlled
+                if target_region.controller == world.player_nation:
+                    return {
+                        "success": False,
+                        "message": f"{target} is already controlled by France"
+                    }
+
+                # Check for any defenders
+                defenders = [e for e in world.get_enemy_marshals()
+                            if e.location == target and e.strength > 0]
+
+                if not defenders:
+                    # UNDEFENDED - Instant capture!
+                    old_controller = target_region.controller
+                    world.capture_region(target, world.player_nation)
+
+                    return {
+                        "success": True,
+                        "message": f"{marshal.name} marches into {target} unopposed! Captured: {old_controller} → France",
+                        "events": [{
+                            "type": "conquest",
+                            "marshal": marshal.name,
+                            "region": target,
+                            "unopposed": True
+                        }],
+                        "new_state": game_state
+                    }
+
+            # Try to find nearest enemy as last resort
             nearest = world.find_nearest_enemy(marshal.location)
             if nearest:
                 enemy_marshal, distance = nearest
@@ -144,7 +177,7 @@ class CommandExecutor:
         else:
             destroyed_msg = ""
 
-        # ===== REGION CONQUEST LOGIC (NEW!) =====
+        # ===== REGION CONQUEST LOGIC =====
         conquered = False
         conquest_msg = ""
 
@@ -370,51 +403,134 @@ class CommandExecutor:
         }
 
     def _execute_auto_assign_attack(self, command: Dict, game_state: Dict) -> Dict:
-        """Execute attack with auto-assigned marshal (e.g., 'Attack Wellington')."""
+        """
+        Execute attack with auto-assigned marshal.
+        Example: "Attack Wellington" or "Attack Rhine"
+        Handles both enemy marshals and regions (defended or undefended).
+        """
         target = command.get("target")
         world: WorldState = game_state.get("world")
 
         if not world or not target:
             return {"success": False, "message": "Error: No target or world state"}
 
-        # Find target enemy
+        # FIRST: Try to find target as enemy marshal name
         enemy = world.get_enemy_by_name(target)
 
-        if not enemy:
-            return {"success": False, "message": f"Unknown enemy: {target}"}
+        if enemy:
+            # Found enemy marshal by name - attack at their location
+            result = world.find_nearest_marshal_to_region(enemy.location)
 
-        if enemy.strength <= 0:
-            return {"success": False, "message": f"{target} has already been defeated!"}
+            if not result:
+                return {"success": False, "message": f"No marshals in range of {target}"}
 
-        # Find nearest marshal to enemy
-        result = world.find_nearest_marshal_to_region(enemy.location)
+            nearest_marshal, distance = result
+
+            # Execute attack
+            battle_result = self.combat_resolver.resolve_battle(
+                attacker=nearest_marshal,
+                defender=enemy,
+                terrain="open"
+            )
+
+            enemy_destroyed = enemy.strength <= 0
+
+            return {
+                "success": True,
+                "message": f"{nearest_marshal.name} (auto-assigned) attacks {target}! {battle_result['description']}",
+                "events": [{
+                    "type": "battle",
+                    "marshal": nearest_marshal.name,
+                    "auto_assigned": True,
+                    "attacker": battle_result["attacker"],
+                    "defender": battle_result["defender"],
+                    "outcome": battle_result["outcome"],
+                    "victor": battle_result["victor"],
+                    "enemy_destroyed": enemy_destroyed
+                }],
+                "new_state": game_state
+            }
+
+        # SECOND: Check if target is a region name
+        target_region = world.get_region(target)
+
+        if not target_region:
+            return {"success": False, "message": f"Unknown target: {target}"}
+
+        # Find nearest marshal to this region
+        result = world.find_nearest_marshal_to_region(target)
 
         if not result:
             return {"success": False, "message": f"No marshals in range of {target}"}
 
         nearest_marshal, distance = result
 
-        # Execute attack
-        battle_result = self.combat_resolver.resolve_battle(
-            attacker=nearest_marshal,
-            defender=enemy,
-            terrain="open"
-        )
+        # Check for defenders in the region
+        enemies_there = [e for e in world.get_enemy_marshals()
+                         if e.location == target and e.strength > 0]
 
-        enemy_destroyed = enemy.strength <= 0
+        if enemies_there:
+            # DEFENDED - Fight the first enemy
+            enemy = enemies_there[0]
+
+            battle_result = self.combat_resolver.resolve_battle(
+                attacker=nearest_marshal,
+                defender=enemy,
+                terrain="open"
+            )
+
+            # Check for conquest after battle
+            conquered = False
+            conquest_msg = ""
+
+            if enemy.strength <= 0:
+                # Check if there are more defenders
+                remaining_defenders = [e for e in world.get_enemy_marshals()
+                                      if e.location == target and e.strength > 0]
+
+                if not remaining_defenders:
+                    world.capture_region(target, world.player_nation)
+                    conquered = True
+                    conquest_msg = f" {target} captured!"
+
+            return {
+                "success": True,
+                "message": f"{nearest_marshal.name} attacks {enemy.name} at {target}! {battle_result['description']}{conquest_msg}",
+                "events": [{
+                    "type": "battle",
+                    "marshal": nearest_marshal.name,
+                    "auto_assigned": True,
+                    "attacker": battle_result["attacker"],
+                    "defender": battle_result["defender"],
+                    "outcome": battle_result["outcome"],
+                    "victor": battle_result["victor"],
+                    "region_conquered": conquered
+                }],
+                "new_state": game_state
+            }
+
+        # UNDEFENDED - Instant capture!
+        if target_region.controller == world.player_nation:
+            return {
+                "success": True,
+                "message": f"{target} is already controlled by France",
+                "events": [],
+                "new_state": game_state
+            }
+
+        # Capture undefended region!
+        old_controller = target_region.controller
+        world.capture_region(target, world.player_nation)
 
         return {
             "success": True,
-            "message": f"{nearest_marshal.name} (auto-assigned) attacks {target}! {battle_result['description']}",
+            "message": f"{nearest_marshal.name} marches into {target} unopposed! Captured: {old_controller} → France",
             "events": [{
-                "type": "battle",
+                "type": "conquest",
                 "marshal": nearest_marshal.name,
-                "auto_assigned": True,
-                "attacker": battle_result["attacker"],
-                "defender": battle_result["defender"],
-                "outcome": battle_result["outcome"],
-                "victor": battle_result["victor"],
-                "enemy_destroyed": enemy_destroyed
+                "region": target,
+                "previous_controller": old_controller,
+                "unopposed": True
             }],
             "new_state": game_state
         }
