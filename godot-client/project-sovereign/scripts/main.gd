@@ -1,78 +1,119 @@
 extends Control
 
-# UI References
-@onready var output_display = $VBoxContainer/OutputDisplay
-@onready var command_input = $VBoxContainer/CommandInput
-@onready var send_button = $VBoxContainer/SendButton
+# =============================================================================
+# PROJECT SOVEREIGN - Main UI Controller
+# =============================================================================
+# Handles command input, output display, and status updates
+# Color scheme: Dark blue background, gold accents, cream text
+# =============================================================================
+
+# UI References - Header Status
+@onready var turn_value = $MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/TurnDisplay/TurnValue
+@onready var actions_value = $MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ActionsDisplay/ActionsValue
+@onready var gold_value = $MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/GoldDisplay/GoldValue
+
+# UI References - Main Interface  
+@onready var output_scroll = $MainMargin/MainLayout/OutputScroll
+@onready var output_display = $MainMargin/MainLayout/OutputScroll/OutputDisplay
+@onready var command_input = $MainMargin/MainLayout/InputSection/CommandInput
+@onready var send_button = $MainMargin/MainLayout/InputSection/SendButton
 
 # API Client
 var api_client = null
 
-# Action economy tracking
+# Game state tracking
 var actions_remaining = 4
 var max_actions = 4
 var current_turn = 1
 var max_turns = 40
+var gold = 1200
+
+# Color palette (Napoleonic theme)
+const COLOR_GOLD = "d9c08c"        # Gold for titles, important text
+const COLOR_COMMAND = "7eb8da"     # Light blue for player commands
+const COLOR_SUCCESS = "8fbc8f"     # Soft green for success
+const COLOR_ERROR = "cd6b6b"       # Muted red for errors
+const COLOR_BATTLE = "daa06d"      # Orange/amber for battle results
+const COLOR_INFO = "a0a0a8"        # Gray for system info
+const COLOR_MARSHAL = "c9b8e0"     # Lavender for marshal responses
+const COLOR_CONQUEST = "90d890"    # Bright green for conquests
+
+# Message history limit (prevents infinite growth)
+const MAX_MESSAGES = 100
+var message_count = 0
 
 func _ready():
-	# Get references to UI nodes
-	output_display = $VBoxContainer/OutputDisplay
-	command_input = $VBoxContainer/CommandInput
-	send_button = $VBoxContainer/SendButton
-	
 	# Create API client
 	api_client = load("res://scripts/api_client.gd").new()
 	add_child(api_client)
 	
-	# Connect signals ONLY if not already connected
+	# Connect signals
 	if not send_button.pressed.is_connected(_on_send_button_pressed):
 		send_button.pressed.connect(_on_send_button_pressed)
 	
 	if not command_input.text_submitted.is_connected(_on_command_submitted):
 		command_input.text_submitted.connect(_on_command_submitted)
 	
-	# Start disabled
+	# Start disabled until connected
 	set_input_enabled(false)
 	
 	# Welcome message
-	add_output("[b]PROJECT SOVEREIGN: Napoleonic Wars[/b]")
-	add_output("[color=gray]Turn-based strategy with action economy[/color]")
-	add_output("")
+	_show_welcome()
 	
-	# Test connection after a brief delay
+	# Test connection after brief delay
 	await get_tree().create_timer(0.5).timeout
 	test_connection()
 
+func _show_welcome():
+	"""Display welcome message with proper formatting."""
+	add_output("")
+	add_output("[color=#" + COLOR_GOLD + "][b]═══════════════════════════════════════[/b][/color]")
+	add_output("[color=#" + COLOR_GOLD + "][b]        IMPERIAL HEADQUARTERS[/b][/color]")
+	add_output("[color=#" + COLOR_GOLD + "][b]═══════════════════════════════════════[/b][/color]")
+	add_output("")
+	add_output("[color=#" + COLOR_INFO + "]June 1815 — The Hundred Days Campaign[/color]")
+	add_output("[color=#" + COLOR_INFO + "]You are Napoleon Bonaparte.[/color]")
+	add_output("")
+
 func test_connection():
 	"""Test if backend is running."""
-	add_output("Testing connection to Python backend...")
-	api_client.test_connection(_on_connection_test)  
+	add_output("[color=#" + COLOR_INFO + "]Establishing connection to headquarters...[/color]")
+	api_client.test_connection(_on_connection_test)
 
 func _on_connection_test(response):
 	"""Handle connection test response."""
 	if response.success:
-		add_output("[color=green]✓ Backend connected![/color]")
+		add_output("[color=#" + COLOR_SUCCESS + "]✓ Communications established![/color]")
 		add_output("")
 		
-		# Get initial game state
+		# Update status from server
 		if response.has("action_summary"):
-			_update_action_display(response.action_summary)
+			_update_status(response.action_summary)
+		if response.has("gold"):
+			gold = int(response.gold)
+			_update_gold_display()
 		
-		add_output("Type commands to control your marshals.")
-		add_output("[color=gray]Examples: 'Ney, attack Wellington' or 'scout Rhine'[/color]")
-		add_output("[color=gray]Type 'end turn' to skip remaining actions[/color]\n")
+		# Show instructions
+		add_output("[color=#" + COLOR_INFO + "]Your marshals await your orders, Sire.[/color]")
+		add_output("")
+		add_output("[color=#" + COLOR_INFO + "]Commands:[/color]")
+		add_output("[color=#" + COLOR_INFO + "]  • \"Ney, attack Wellington\"[/color]")
+		add_output("[color=#" + COLOR_INFO + "]  • \"scout Rhine\" or \"move to Belgium\"[/color]")
+		add_output("[color=#" + COLOR_INFO + "]  • \"recruit\" or \"end turn\"[/color]")
+		add_output("")
+		_add_separator()
 		
 		set_input_enabled(true)
 	else:
-		add_output("[color=red]✗ Backend not running![/color]")
-		add_output("Start the Python server first:")
-		add_output("[color=gray]python backend/main.py[/color]\n")
+		add_output("[color=#" + COLOR_ERROR + "]✗ Cannot reach headquarters![/color]")
+		add_output("[color=#" + COLOR_INFO + "]Start the Python server: python backend/main.py[/color]")
+		add_output("")
 
 func _on_send_button_pressed():
 	"""Handle send button click."""
 	_execute_command()
 
-func _on_command_submitted(text: String):
+func _on_command_submitted(_text: String):
 	"""Handle enter key in command input."""
 	_execute_command()
 
@@ -83,8 +124,9 @@ func _execute_command():
 	if command.is_empty():
 		return
 	
-	# Display command
-	add_output("[color=cyan]> " + command + "[/color]")
+	# Display player command with prompt styling
+	add_output("")
+	add_output("[color=#" + COLOR_COMMAND + "]► " + command + "[/color]")
 	
 	# Clear input
 	command_input.text = ""
@@ -101,48 +143,121 @@ func _on_command_result(response):
 	set_input_enabled(true)
 	
 	if response.success:
-		# Update action economy
+		# Update status displays
 		if response.has("action_summary"):
-			_update_action_display(response.action_summary)
+			_update_status(response.action_summary)
 		
-		# Display result
-		add_output(response.message)
+		if response.has("game_state") and response.game_state.has("gold"):
+			gold = int(response.game_state.gold)
+			_update_gold_display()
 		
-		# Show action info
-		if response.has("action_info"):
-			var action_info = response.action_info
-			
-			if action_info.has("turn_advanced") and action_info.turn_advanced:
-				var turn_text = "═══ TURN %d BEGINS ═══" % int(action_info.new_turn)
-				add_output("[color=yellow]" + turn_text + "[/color]")
-				var available_text = "%d actions available" % int(max_actions)
-				add_output("[color=green]" + available_text + "[/color]")
-			else:
-				if action_info.has("cost") and action_info.cost > 0:
-					var actions_text = "Action used. %d/%d remaining" % [int(actions_remaining), int(max_actions)]
-					add_output("[color=gray]" + actions_text + "[/color]")
+		# Format and display result based on event type
+		_display_result(response)
 		
-		# Show events if any
-		if response.has("events") and response.events.size() > 0:
-			for event in response.events:
-				if event.has("type"):
-					add_output("[color=gray]  [" + event.type + "][/color]")
-		
-		add_output("")  # Blank line
 	else:
-		add_output("[color=red]Error: " + response.message + "[/color]")
-		
-		# Still update action display on error
-		if response.has("action_summary"):
-			_update_action_display(response.action_summary)
-		
-		add_output("")
+		add_output("[color=#" + COLOR_ERROR + "]" + response.message + "[/color]")
+	
+	add_output("")
 	
 	# Auto-focus input
 	command_input.grab_focus()
 
-func _update_action_display(action_summary):
-	"""Update action economy variables from server response."""
+func _display_result(response):
+	"""Display result with appropriate formatting based on event type."""
+	var message = response.message
+	var events = response.get("events", [])
+	var action_info = response.get("action_info", {})
+	
+	# Determine event type for coloring
+	var event_type = ""
+	if events.size() > 0:
+		event_type = events[0].get("type", "")
+	
+	# Color based on event type
+	match event_type:
+		"battle":
+			_display_battle_result(message, events[0], action_info)
+		"conquest":
+			add_output("[color=#" + COLOR_CONQUEST + "]⚑ " + message + "[/color]")
+			_show_action_cost(action_info)
+		"move":
+			add_output("[color=#" + COLOR_SUCCESS + "]→ " + message + "[/color]")
+			_show_action_cost(action_info)
+		"scout":
+			add_output("[color=#" + COLOR_INFO + "]👁 " + message + "[/color]")
+			_show_action_cost(action_info)
+		"recruit":
+			add_output("[color=#" + COLOR_SUCCESS + "]+ " + message + "[/color]")
+			_show_action_cost(action_info)
+		"defend":
+			add_output("[color=#" + COLOR_SUCCESS + "]⛨ " + message + "[/color]")
+			_show_action_cost(action_info)
+		"turn_end":
+			_display_turn_change(events[0])
+		_:
+			add_output("[color=#" + COLOR_SUCCESS + "]" + message + "[/color]")
+			_show_action_cost(action_info)
+	
+	# Check for turn advancement
+	if action_info.get("turn_advanced", false):
+		_display_turn_advance(action_info)
+
+func _display_battle_result(message: String, event: Dictionary, action_info: Dictionary):
+	"""Display battle results with dramatic formatting."""
+	var outcome = event.get("outcome", "")
+	var victor = event.get("victor", "")
+	var enemy_destroyed = event.get("enemy_destroyed", false)
+	var region_conquered = event.get("region_conquered", false)
+	
+	# Battle header
+	add_output("[color=#" + COLOR_BATTLE + "]⚔ BATTLE ⚔[/color]")
+	
+	# Main result
+	add_output("[color=#" + COLOR_BATTLE + "]" + message + "[/color]")
+	
+	# Special notifications
+	if enemy_destroyed:
+		add_output("[color=#" + COLOR_CONQUEST + "]   ★ Enemy army destroyed! ★[/color]")
+	
+	if region_conquered:
+		var region_name = event.get("region_name", "territory")
+		add_output("[color=#" + COLOR_CONQUEST + "]   ⚑ " + region_name + " captured! ⚑[/color]")
+	
+	_show_action_cost(action_info)
+
+func _display_turn_change(event: Dictionary):
+	"""Display turn end notification."""
+	var old_turn = event.get("old_turn", 0)
+	var new_turn = event.get("new_turn", 0)
+	var income = event.get("income", 0)
+	
+	add_output("")
+	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("[color=#" + COLOR_GOLD + "]         TURN " + str(new_turn) + " BEGINS[/color]")
+	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("[color=#" + COLOR_SUCCESS + "]Treasury: +" + str(income) + " gold[/color]")
+	add_output("[color=#" + COLOR_SUCCESS + "]Actions refreshed: " + str(max_actions) + "/" + str(max_actions) + "[/color]")
+	add_output("")
+
+func _display_turn_advance(action_info: Dictionary):
+	"""Display automatic turn advancement when actions run out."""
+	var new_turn = action_info.get("new_turn", current_turn + 1)
+	add_output("")
+	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("[color=#" + COLOR_GOLD + "]  Actions exhausted — Turn " + str(new_turn) + " begins[/color]")
+	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("")
+
+func _show_action_cost(action_info: Dictionary):
+	"""Show action point usage."""
+	var cost = action_info.get("cost", 0)
+	var remaining = action_info.get("remaining", actions_remaining)
+	
+	if cost > 0:
+		add_output("[color=#" + COLOR_INFO + "]   [" + str(remaining) + "/" + str(max_actions) + " actions remaining][/color]")
+
+func _update_status(action_summary: Dictionary):
+	"""Update header status displays."""
 	if action_summary.has("actions_remaining"):
 		actions_remaining = int(action_summary.actions_remaining)
 	
@@ -155,12 +270,68 @@ func _update_action_display(action_summary):
 	if action_summary.has("max_turns"):
 		max_turns = int(action_summary.max_turns)
 	
-	# Update window title (shows current state)
-	get_tree().root.title = "Project Sovereign - Turn" + str(current_turn) + " - " + str(actions_remaining) + "/" + str(max_actions) + " actions"
+	# Update displays
+	turn_value.text = str(current_turn) + "/" + str(max_turns)
+	
+	# Color actions based on remaining
+	if actions_remaining <= 1:
+		actions_value.add_theme_color_override("font_color", Color(0.8, 0.4, 0.4))  # Red when low
+	elif actions_remaining <= 2:
+		actions_value.add_theme_color_override("font_color", Color(0.9, 0.7, 0.3))  # Yellow when medium
+	else:
+		actions_value.add_theme_color_override("font_color", Color(0.4, 0.8, 0.4))  # Green when good
+	
+	actions_value.text = str(actions_remaining) + "/" + str(max_actions)
+
+func _update_gold_display():
+	"""Update treasury display with formatting."""
+	gold_value.text = _format_number(gold)
+
+func _format_number(num: int) -> String:
+	"""Format number with comma separators."""
+	var s = str(num)
+	var result = ""
+	var count = 0
+	for i in range(s.length() - 1, -1, -1):
+		if count > 0 and count % 3 == 0:
+			result = "," + result
+		result = s[i] + result
+		count += 1
+	return result
+
+func _add_separator():
+	"""Add a visual separator line."""
+	add_output("[color=#" + COLOR_INFO + "]─────────────────────────────────────[/color]")
 
 func add_output(text: String):
-	"""Add text to output display with BBCode support."""
+	"""Add text to output display with message limit."""
+	message_count += 1
+	
+	# Trim old messages if over limit
+	if message_count > MAX_MESSAGES:
+		_trim_old_messages()
+	
 	output_display.append_text(text + "\n")
+	
+	# Ensure scroll to bottom
+	await get_tree().process_frame
+	output_scroll.scroll_vertical = output_scroll.get_v_scroll_bar().max_value
+
+func _trim_old_messages():
+	"""Remove oldest messages to prevent infinite growth."""
+	var current_text = output_display.get_parsed_text()
+	var lines = current_text.split("\n")
+	
+	# Keep last 75% of messages
+	var keep_from = int(lines.size() * 0.25)
+	var new_lines = lines.slice(keep_from)
+	
+	output_display.clear()
+	output_display.append_text("[color=#" + COLOR_INFO + "][...earlier messages trimmed...][/color]\n\n")
+	for line in new_lines:
+		output_display.append_text(line + "\n")
+	
+	message_count = new_lines.size()
 
 func set_input_enabled(enabled: bool):
 	"""Enable or disable command input."""
