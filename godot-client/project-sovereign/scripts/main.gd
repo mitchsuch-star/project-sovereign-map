@@ -8,15 +8,15 @@ extends Control
 # =============================================================================
 
 # UI References - Header Status
-@onready var turn_value = $MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/TurnDisplay/TurnValue
-@onready var actions_value = $MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ActionsDisplay/ActionsValue
-@onready var gold_value = $MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/GoldDisplay/GoldValue
+@onready var turn_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/TurnDisplay/TurnValue
+@onready var actions_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ActionsDisplay/ActionsValue
+@onready var gold_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/GoldDisplay/GoldValue
 
 # UI References - Main Interface  
-@onready var output_scroll = $MainMargin/MainLayout/OutputScroll
-@onready var output_display = $MainMargin/MainLayout/OutputScroll/OutputDisplay
-@onready var command_input = $MainMargin/MainLayout/InputSection/CommandInput
-@onready var send_button = $MainMargin/MainLayout/InputSection/SendButton
+@onready var output_scroll = $BottomLeftUI/MainMargin/MainLayout/OutputScroll
+@onready var output_display = $BottomLeftUI/MainMargin/MainLayout/OutputScroll/OutputDisplay
+@onready var command_input = $BottomLeftUI/MainMargin/MainLayout/InputSection/CommandInput
+@onready var send_button = $BottomLeftUI/MainMargin/MainLayout/InputSection/SendButton
 
 # API Client
 var api_client = null
@@ -227,34 +227,34 @@ func _display_battle_result(message: String, event: Dictionary, action_info: Dic
 
 func _display_turn_change(event: Dictionary):
 	"""Display turn end notification."""
-	var old_turn = event.get("old_turn", 0)
-	var new_turn = event.get("new_turn", 0)
-	var income = event.get("income", 0)
+	var old_turn = int(event.get("old_turn", 0))
+	var new_turn = int(event.get("new_turn", 0))
+	var income = int(event.get("income", 0))
 	
 	add_output("")
 	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("[color=#" + COLOR_GOLD + "]         TURN " + str(new_turn) + " BEGINS[/color]")
+	add_output("[color=#" + COLOR_GOLD + "]         TURN " + str(int(new_turn)) + " BEGINS[/color]")
 	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("[color=#" + COLOR_SUCCESS + "]Treasury: +" + str(income) + " gold[/color]")
-	add_output("[color=#" + COLOR_SUCCESS + "]Actions refreshed: " + str(max_actions) + "/" + str(max_actions) + "[/color]")
+	add_output("[color=#" + COLOR_SUCCESS + "]Treasury: +" + str(int(income)) + " gold[/color]")
+	add_output("[color=#" + COLOR_SUCCESS + "]Actions refreshed: " + str(int(max_actions)) + "/" + str(int(max_actions)) + "[/color]")
 	add_output("")
 
 func _display_turn_advance(action_info: Dictionary):
 	"""Display automatic turn advancement when actions run out."""
-	var new_turn = action_info.get("new_turn", current_turn + 1)
+	var new_turn = int(action_info.get("new_turn", current_turn + 1))
 	add_output("")
 	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("[color=#" + COLOR_GOLD + "]  Actions exhausted — Turn " + str(new_turn) + " begins[/color]")
+	add_output("[color=#" + COLOR_GOLD + "]  Actions exhausted — Turn " + str(int(new_turn)) + " begins[/color]")
 	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 	add_output("")
 
 func _show_action_cost(action_info: Dictionary):
 	"""Show action point usage."""
-	var cost = action_info.get("cost", 0)
-	var remaining = action_info.get("remaining", actions_remaining)
+	var cost = int(action_info.get("cost", 0))
+	var remaining = int(action_info.get("remaining", actions_remaining))
 	
 	if cost > 0:
-		add_output("[color=#" + COLOR_INFO + "]   [" + str(remaining) + "/" + str(max_actions) + " actions remaining][/color]")
+		add_output("[color=#" + COLOR_INFO + "]   [" + str(int(remaining)) + "/" + str(int(max_actions)) + " actions remaining][/color]")
 
 func _update_status(action_summary: Dictionary):
 	"""Update header status displays."""
@@ -270,8 +270,8 @@ func _update_status(action_summary: Dictionary):
 	if action_summary.has("max_turns"):
 		max_turns = int(action_summary.max_turns)
 	
-	# Update displays
-	turn_value.text = str(current_turn) + "/" + str(max_turns)
+	# Update displays - force integer conversion in strings
+	turn_value.text = str(int(current_turn)) + "/" + str(int(max_turns))
 	
 	# Color actions based on remaining
 	if actions_remaining <= 1:
@@ -281,7 +281,7 @@ func _update_status(action_summary: Dictionary):
 	else:
 		actions_value.add_theme_color_override("font_color", Color(0.4, 0.8, 0.4))  # Green when good
 	
-	actions_value.text = str(actions_remaining) + "/" + str(max_actions)
+	actions_value.text = str(int(actions_remaining)) + "/" + str(int(max_actions))
 
 func _update_gold_display():
 	"""Update treasury display with formatting."""

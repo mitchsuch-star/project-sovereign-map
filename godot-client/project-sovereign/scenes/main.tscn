@@ -11,25 +11,153 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_o5qli")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="MapArea" type="ColorRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+color = Color(0.15, 0.18, 0.25, 1)
 
-[node name="OutputDisplay" type="RichTextLabel" parent="VBoxContainer"]
+[node name="MapPlaceholder" type="Label" parent="MapArea"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -100.0
+offset_top = -14.0
+offset_right = 100.0
+offset_bottom = 14.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_color = Color(0.4, 0.4, 0.45, 1)
+theme_override_font_sizes/font_size = 20
+text = "[ MAP AREA - Strategic View ]"
+horizontal_alignment = 1
+
+[node name="BottomLeftUI" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = -280.0
+offset_right = 410.0
+offset_bottom = -10.0
+grow_vertical = 0
+
+[node name="MainMargin" type="MarginContainer" parent="BottomLeftUI"]
 layout_mode = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="MainLayout" type="VBoxContainer" parent="BottomLeftUI/MainMargin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Header" type="PanelContainer" parent="BottomLeftUI/MainMargin/MainLayout"]
+layout_mode = 2
+
+[node name="HeaderMargin" type="MarginContainer" parent="BottomLeftUI/MainMargin/MainLayout/Header"]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 6
+
+[node name="HeaderContent" type="VBoxContainer" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.75, 0.55, 1)
+theme_override_font_sizes/font_size = 14
+text = "⚔ IMPERIAL COMMAND ⚔"
+horizontal_alignment = 1
+
+[node name="StatusSection" type="HBoxContainer" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="TurnDisplay" type="HBoxContainer" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="TurnLabel" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/TurnDisplay"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.75, 1)
+theme_override_font_sizes/font_size = 12
+text = "Turn:"
+
+[node name="TurnValue" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/TurnDisplay"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.85, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+text = "1/40"
+
+[node name="ActionsDisplay" type="HBoxContainer" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ActionsLabel" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ActionsDisplay"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.75, 1)
+theme_override_font_sizes/font_size = 12
+text = "Actions:"
+
+[node name="ActionsValue" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ActionsDisplay"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.4, 0.8, 0.4, 1)
+theme_override_font_sizes/font_size = 12
+text = "4/4"
+
+[node name="GoldDisplay" type="HBoxContainer" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="GoldLabel" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/GoldDisplay"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.75, 1)
+theme_override_font_sizes/font_size = 12
+text = "Gold:"
+
+[node name="GoldValue" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/GoldDisplay"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.75, 0.3, 1)
+theme_override_font_sizes/font_size = 12
+text = "1,200"
+
+[node name="OutputScroll" type="ScrollContainer" parent="BottomLeftUI/MainMargin/MainLayout"]
+custom_minimum_size = Vector2(0, 140)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="OutputDisplay" type="RichTextLabel" parent="BottomLeftUI/MainMargin/MainLayout/OutputScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_font_sizes/normal_font_size = 11
 bbcode_enabled = true
 fit_content = true
+scroll_following = true
 
-[node name="CommandInput" type="LineEdit" parent="VBoxContainer"]
+[node name="InputSection" type="HBoxContainer" parent="BottomLeftUI/MainMargin/MainLayout"]
 layout_mode = 2
-placeholder_text = "Type command here..."
+theme_override_constants/separation = 6
 
-[node name="SendButton" type="Button" parent="VBoxContainer"]
+[node name="CommandInput" type="LineEdit" parent="BottomLeftUI/MainMargin/MainLayout/InputSection"]
 layout_mode = 2
-size_flags_horizontal = 0
-text = "Execute Command"
-alignment = 0
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+placeholder_text = "Type command..."
+
+[node name="SendButton" type="Button" parent="BottomLeftUI/MainMargin/MainLayout/InputSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+text = "Execute"
