@@ -246,19 +246,28 @@ class CommandExecutor:
         battle_result = self.combat_resolver.resolve_battle(
             attacker=marshal,
             defender=enemy_marshal,
-            terrain="open"  # Future: Get from region
+            terrain="open"
         )
 
         # Check if enemy was destroyed
         enemy_destroyed = enemy_marshal.strength <= 0
+        # Check if enemy was destroyed
+        enemy_destroyed = enemy_marshal.strength <= 0
         if enemy_destroyed:
             destroyed_msg = f" {enemy_marshal.name}'s army is destroyed!"
+            print(f"🪦 REMOVING: {enemy_marshal.name}")
+            world.marshals.pop(enemy_marshal.name, None)
         else:
             destroyed_msg = ""
 
+        # ALSO check if attacker was destroyed
+        if marshal.strength <= 0:
+            print(f"💀 REMOVING ALLY: {marshal.name} from world state")
+            world.marshals.pop(marshal.name, None)
+
         # ===== REGION CONQUEST LOGIC =====
-        conquered = False
-        conquest_msg = ""
+        conquered = False  # INITIALIZE HERE!
+        conquest_msg = ""  # INITIALIZE HERE!
 
         # Check if we're attacking a region (not just a marshal name)
         target_region = world.get_region(target)
@@ -439,35 +448,83 @@ class CommandExecutor:
         if not player_marshals:
             return {"success": False, "message": "No marshals available to attack"}
 
-        # Find nearest enemy to any of our marshals
+        # Find STRONGEST combat-ready marshal (not just nearest)
         best_marshal = None
         best_enemy = None
         best_distance = 999
 
+        # Track filtered marshals for explanation
+        filtered_out = []
+
         for marshal in player_marshals:
+            # Filter out dead/weak marshals and track why
+            if marshal.strength <= 0:
+                filtered_out.append(f"{marshal.name} (eliminated)")
+                continue
+            elif marshal.strength < 1000:
+                filtered_out.append(f"{marshal.name} ({marshal.strength:,} troops - too weak)")
+                continue
+
             nearest = world.find_nearest_enemy(marshal.location)
             if nearest:
                 enemy, distance = nearest
+                # Skip dead enemies
+                if enemy.strength <= 0:
+                    continue
                 if distance < best_distance:
                     best_distance = distance
                     best_marshal = marshal
                     best_enemy = enemy
 
-        if not best_enemy:
-            return {"success": False, "message": "No enemies found!"}
+        # Check if we found a valid attacker and enemy
+        if not best_marshal:
+            return {
+                "success": False,
+                "message": "No combat-ready marshals available!"
+            }
 
-        # Execute attack
+        if not best_enemy:
+            return {
+                "success": False,
+                "message": "No enemies found! You may have won the campaign."
+            }
+
+        # BUILD EXPLANATION MESSAGE FOR PLAYER
+        explanation = ""
+
+        # If marshals were filtered out, explain why
+        if filtered_out:
+            explanation = f"⚠️  {', '.join(filtered_out)} - "
+
+        # Add who's attacking
+        explanation += f"{best_marshal.name} ({best_marshal.strength:,} troops) now attacking!\n\n"
+
+        # Resolve battle
         battle_result = self.combat_resolver.resolve_battle(
             attacker=best_marshal,
             defender=best_enemy,
             terrain="open"
         )
 
+        # Check for destroyed armies
         enemy_destroyed = best_enemy.strength <= 0
+        attacker_destroyed = best_marshal.strength <= 0
+
+        # Remove destroyed marshals
+        if enemy_destroyed:
+            print(f"🪦 REMOVING ENEMY: {best_enemy.name}")
+            world.marshals.pop(best_enemy.name, None)
+
+        if attacker_destroyed:
+            print(f"💀 REMOVING ALLY: {best_marshal.name}")
+            world.marshals.pop(best_marshal.name, None)
+
+        # Combine explanation with battle result
+        full_message = explanation + battle_result["description"]
 
         return {
             "success": True,
-            "message": f"{best_marshal.name} attacks {best_enemy.name}! {battle_result['description']}",
+            "message": full_message,
             "events": [{
                 "type": "battle",
                 "marshal": best_marshal.name,
@@ -476,11 +533,12 @@ class CommandExecutor:
                 "defender": battle_result["defender"],
                 "outcome": battle_result["outcome"],
                 "victor": battle_result["victor"],
-                "enemy_destroyed": enemy_destroyed
+                "enemy_destroyed": enemy_destroyed,
+                "marshal_switched": len(filtered_out) > 0,  # NEW: Flag for UI
+                "explanation": explanation.strip()  # NEW: Explanation text
             }],
             "new_state": game_state
         }
-
     def _execute_auto_assign_attack(self, command: Dict, game_state: Dict) -> Dict:
         """
         Execute attack with auto-assigned marshal.
@@ -497,6 +555,13 @@ class CommandExecutor:
         enemy = world.get_enemy_by_name(target)
 
         if enemy:
+            # Check if already destroyed
+            if enemy.strength <= 0:
+                return {
+                    "success": False,
+                    "message": f"{target} has already been destroyed!"
+                }
+
             # Found enemy marshal by name - attack at their location
             result = world.find_nearest_marshal_to_region(enemy.location)
 
@@ -510,10 +575,17 @@ class CommandExecutor:
                 attacker=nearest_marshal,
                 defender=enemy,
                 terrain="open"
+
             )
 
             enemy_destroyed = enemy.strength <= 0
 
+            # Remove dead enemy
+            if enemy_destroyed:
+                print(f"🪦 REMOVING: {enemy.name} from world state")
+                world.marshals.pop(enemy.name, None)
+            if nearest_marshal.strength <= 0:
+                world.marshals.pop(nearest_marshal.name, None)
             return {
                 "success": True,
                 "message": f"{nearest_marshal.name} (auto-assigned) attacks {target}! {battle_result['description']}",
@@ -558,20 +630,25 @@ class CommandExecutor:
                 terrain="open"
             )
 
-            # Check for conquest after battle
+            # Check for destroyed armies
+            enemy_destroyed = enemy.strength <= 0
+            attacker_destroyed = nearest_marshal.strength <= 0
+
+            # CRITICAL: Remove destroyed marshals immediately
+            if enemy_destroyed:
+                print(f"🪦 REMOVING ENEMY: {enemy.name} from world state")
+                world.marshals.pop(enemy.name, None)
+
+            if attacker_destroyed:
+                world.marshals.pop(nearest_marshal.name, None)
+
+            # ADD THESE 2 LINES HERE:
             conquered = False
             conquest_msg = ""
 
-            if enemy.strength <= 0:
-                # Check if there are more defenders
-                remaining_defenders = [e for e in world.get_enemy_marshals()
-                                      if e.location == target and e.strength > 0]
-
-                if not remaining_defenders:
-                    world.capture_region(target, world.player_nation)
-                    conquered = True
-                    conquest_msg = f" {target} captured!"
-
+            # NOW check for conquest
+            if enemy_destroyed:  # ← Also fix: check enemy_destroyed, not attacker
+                remaining_defenders = [...]
             return {
                 "success": True,
                 "message": f"{nearest_marshal.name} attacks {enemy.name} at {target}! {battle_result['description']}{conquest_msg}",
@@ -583,7 +660,8 @@ class CommandExecutor:
                     "defender": battle_result["defender"],
                     "outcome": battle_result["outcome"],
                     "victor": battle_result["victor"],
-                    "region_conquered": conquered
+                    "region_conquered": conquered,
+                    "enemy_destroyed": enemy_destroyed
                 }],
                 "new_state": game_state
             }

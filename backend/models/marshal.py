@@ -25,27 +25,20 @@ class Marshal:
             personality: str,
             nation: str = "France"
     ):
-        """
-        Initialize a marshal.
-
-        Args:
-            name: Marshal's name (e.g., "Ney", "Davout")
-            location: Current region (e.g., "Belgium")
-            strength: Army strength (number of troops)
-            personality: Personality type ("aggressive", "cautious", "literal")
-            nation: Which nation this marshal serves (default: France)
-        """
+        """Initialize a marshal."""
         self.name = name
         self.location = location
         self.strength = strength
+        self.starting_strength = strength  # NEW: Track original strength
         self.personality = personality
         self.nation = nation
 
         # Game state (changes during play)
-        self.morale: int = 100  # 0-100, affects combat effectiveness
-        self.orders_overridden: int = 0  # Track player forcing orders
+        self.morale: int = 100
+        self.orders_overridden: int = 0
         self.battles_won: int = 0
         self.battles_lost: int = 0
+        self.just_retreated: bool = False  # NEW: Vulnerable after retreat
 
     def move_to(self, new_location: str) -> None:
         """Move marshal to a new region."""
@@ -58,7 +51,9 @@ class Marshal:
     def take_casualties(self, amount: int) -> None:
         """Remove troops due to combat losses."""
         self.strength = max(0, self.strength - amount)
-
+        if self.strength < 50:
+            print(f"💀 {self.name} reduced to rubble ({self.strength} → 0)")
+            self.strength = 0
     def adjust_morale(self, change: int) -> None:
         """Adjust morale (victories increase, defeats decrease)."""
         self.morale = max(0, min(100, self.morale + change))
@@ -167,6 +162,32 @@ def create_enemy_marshals() -> dict[str, Marshal]:
         )
     }
     return enemies
+
+
+def should_retreat(self) -> bool:
+    """Retreat only when morale < 30% - NOT based on army size!"""
+    if self.morale < 30:
+        return True
+    return False
+
+
+def get_combat_effectiveness(self) -> float:
+    """
+    Calculate combat effectiveness multiplier.
+
+    Returns:
+        Float multiplier (0.25 to 1.5)
+        - Just retreated: 0.5x (vulnerable!)
+        - High morale: 1.5x effective
+        - Normal morale: 1.0x effective
+        - Low morale: 0.5x effective
+    """
+    # PENALTY: Just retreated = vulnerable
+    if self.just_retreated:
+        return 0.5
+
+    # Normal morale calculation
+    return 0.5 + (self.morale / 100.0)
 # Test code
 if __name__ == "__main__":
     """Quick test of marshal system."""

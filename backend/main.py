@@ -97,6 +97,29 @@ def get_status():
     return world.get_game_state_summary()
 
 
+def _get_map_data(world: WorldState) -> dict:
+    """Get map visualization data."""
+    map_data = {}
+
+    for region_name, region in world.regions.items():
+        # Find marshals in this region
+        marshals_here = [
+            m.name for m in world.get_marshals_in_region(region_name)
+            if m.nation == world.player_nation
+        ]
+
+        controller = region.controller or "Neutral"
+        map_data[region_name] = {
+            "controller": controller,
+            "marshal": marshals_here[0] if marshals_here else ""
+        }
+
+        # Debug: Show captured regions
+        if controller == "France" and region_name in ["Waterloo", "Netherlands", "Bavaria", "Vienna"]:
+            print(f"🚩 {region_name} is now controlled by France!")
+
+    return map_data
+
 if __name__ == "__main__":
     import uvicorn
 

@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://dtnggwknbevpq"]
+[gd_scene load_steps=3 format=3 uid="uid://dtnggwknbevpq"]
 
 [ext_resource type="Script" uid="uid://da850in6tytof" path="res://scripts/main.gd" id="1_o5qli"]
+[ext_resource type="Script" uid="uid://cokv8mfurgw45" path="res://scenes/map.gd" id="2_0wfyh"]
 
 [node name="Control" type="Control"]
 layout_mode = 3
@@ -11,32 +12,14 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_o5qli")
 
-[node name="MapArea" type="ColorRect" parent="."]
+[node name="MapArea" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.15, 0.18, 0.25, 1)
-
-[node name="MapPlaceholder" type="Label" parent="MapArea"]
-layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -100.0
-offset_top = -14.0
-offset_right = 100.0
-offset_bottom = 14.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_colors/font_color = Color(0.4, 0.4, 0.45, 1)
-theme_override_font_sizes/font_size = 20
-text = "[ MAP AREA - Strategic View ]"
-horizontal_alignment = 1
+script = ExtResource("2_0wfyh")
 
 [node name="BottomLeftUI" type="PanelContainer" parent="."]
 layout_mode = 1

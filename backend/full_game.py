@@ -143,6 +143,9 @@ class CommandExecutor:
             destroyed_msg = f" {enemy_marshal.name}'s army is destroyed!"
         else:
             destroyed_msg = ""
+        # NEW: Check for retreats after combat
+
+        retreat_events = world.check_and_execute_retreats()
 
         # ===== REGION CONQUEST LOGIC (NEW!) =====
         conquered = False

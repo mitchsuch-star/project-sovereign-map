@@ -62,7 +62,16 @@ class CombatResolver:
             defender_effective
         )
 
-        #print(f"   💀 Casualties: {attacker.name} {attacker_casualties:,}, {defender.name} {defender_casualties:,}")
+        print(f"   💀 Casualties: {attacker.name} {attacker_casualties:,}, {defender.name} {defender_casualties:,}")
+
+        # Apply casualties FIRST (this was missing!)
+        print(f"   BEFORE: {attacker.name}={attacker.strength:,}, {defender.name}={defender.strength:,}")
+        attacker.take_casualties(attacker_casualties)
+        defender.take_casualties(defender_casualties)
+        print(f"   AFTER: {attacker.name}={attacker.strength:,}, {defender.name}={defender.strength:,}")
+
+        # Determine victor (AFTER applying casualties)
+
         # Determine victor
         if attacker.strength <= 0 and defender.strength <= 0:
             victor = None

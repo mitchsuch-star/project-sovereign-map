@@ -197,24 +197,106 @@ class WorldState:
 
         return 999  # Not reachable
 
+    # ============================================================================
+    # PATCH 2 CORRECTED: backend/models/world_state.py
+    # ============================================================================
+
+    # FIND find_nearest_marshal_to_region() method (around line 200)
+
+    # REPLACE ENTIRE METHOD WITH:
+
+    # ============================================================================
+    # ENHANCED find_nearest_marshal_to_region() WITH LOGGING
+    # Add this to backend/models/world_state.py
+    # ============================================================================
+
     def find_nearest_marshal_to_region(self, region_name: str) -> Optional[Tuple[Marshal, int]]:
-        """Find the player's marshal nearest to a specific region."""
+        """
+        Find the player's STRONGEST combat-ready marshal nearest to a region.
+
+        Filters out:
+        - Dead marshals (strength <= 0)
+        - Weak marshals (strength < 1000)
+
+        Returns:
+            Tuple of (Marshal, distance) or None if no marshals available
+        """
+        if region_name not in self.regions:
+            return None
+
         player_marshals = self.get_player_marshals()
 
         if not player_marshals:
             return None
 
-        nearest_marshal = None
-        nearest_distance = 999
+        # Filter for LIVING, COMBAT-READY marshals
+        ready_marshals = []
+        filtered_out = []
 
-        for marshal in player_marshals:
+        for m in player_marshals:
+            if m.strength <= 0:
+                filtered_out.append(f"{m.name} (dead)")
+            elif m.strength < 1000:
+                filtered_out.append(f"{m.name} ({m.strength:,} troops - too weak)")
+            else:
+                ready_marshals.append(m)
+
+        # Log filtering results
+        if filtered_out:
+            print(f"   ⚠️  FILTERED OUT: {', '.join(filtered_out)}")
+
+        if not ready_marshals:
+            print(f"   ❌ NO COMBAT-READY MARSHALS AVAILABLE!")
+            return None
+
+        # Find distance for each ready marshal
+        marshal_distances = []
+        for marshal in ready_marshals:
             distance = self.get_distance(marshal.location, region_name)
-            if distance < nearest_distance:
-                nearest_distance = distance
-                nearest_marshal = marshal
+            marshal_distances.append((marshal, distance))
 
-        return (nearest_marshal, nearest_distance) if nearest_marshal else None
+        # Sort by STRENGTH (strongest first), then by distance
+        marshal_distances.sort(key=lambda x: (-x[0].strength, x[1]))
 
+        strongest_marshal, distance = marshal_distances[0]
+
+        # EXPLANATORY LOGGING
+        print(f"   🎯 MARSHAL SELECTED: {strongest_marshal.name}")
+        print(f"      Strength: {strongest_marshal.strength:,} troops")
+        print(f"      Distance to {region_name}: {distance} hops")
+
+        # Show alternatives if any
+        if len(marshal_distances) > 1:
+            alternatives = [f"{m.name} ({m.strength:,})" for m, d in marshal_distances[1:]]
+            print(f"      Alternatives: {', '.join(alternatives)}")
+
+        return (strongest_marshal, distance)
+
+    # ============================================================================
+    # EXAMPLE OUTPUT WITH THIS LOGGING:
+    # ============================================================================
+
+    # Turn 1-5: Grouchy attacking
+    # ✅ Parsed: attack
+    #    🎯 MARSHAL SELECTED: Grouchy
+    #       Strength: 33,000 troops
+    #       Distance to Waterloo: 1 hops
+    #       Alternatives: Ney (72,000), Davout (48,000)
+
+    # Turn 6: Grouchy becomes too weak, switch happens!
+    # ✅ Parsed: attack
+    #    ⚠️  FILTERED OUT: Grouchy (636 troops - too weak)
+    #    🎯 MARSHAL SELECTED: Ney
+    #       Strength: 72,000 troops
+    #       Distance to Waterloo: 2 hops
+    #       Alternatives: Davout (48,000)
+
+    # ============================================================================
+    # This clearly shows:
+    # 1. WHY Grouchy was selected initially (nearest)
+    # 2. WHY Grouchy stopped attacking (too weak)
+    # 3. WHO took over and why (Ney - strongest remaining)
+    # ============================================================================
     def find_nearest_enemy(self, from_region: str) -> Optional[Tuple[Marshal, int]]:
         """Find the nearest enemy marshal from a given region."""
         enemy_marshals = self.get_enemy_marshals()
@@ -415,6 +497,64 @@ class WorldState:
             "turn": int(self.current_turn),
             "max_turns": int(self.max_turns),
         }
+
+    def check_and_execute_retreats(self) -> List[Dict]:
+        """
+        Check all player marshals and execute retreats if needed.
+
+        Returns:
+            List of retreat events
+        """
+        retreat_events = []
+
+        for marshal in self.get_player_marshals():
+            if marshal.should_retreat():
+                # Find nearest friendly region
+                retreat_to = self._find_retreat_destination(marshal)
+
+                if retreat_to:
+                    old_location = marshal.location
+                    marshal.location = retreat_to
+                    marshal.just_retreated = True  # Mark as vulnerable
+
+                    retreat_events.append({
+                        "type": "retreat",
+                        "marshal": marshal.name,
+                        "from": old_location,
+                        "to": retreat_to,
+                        "reason": f"Morale: {marshal.morale}%, Strength: {marshal.strength:,}",
+                        "vulnerable": True
+                    })
+
+                    print(f"🏃 RETREAT: {marshal.name} flees {old_location} → {retreat_to}")
+
+        return retreat_events
+
+    def _find_retreat_destination(self, marshal: Marshal) -> Optional[str]:
+        """Find safest adjacent region to retreat to."""
+        current_region = self.get_region(marshal.location)
+
+        if not current_region:
+            return None
+
+        # Find adjacent friendly regions
+        safe_regions = []
+        for adj_name in current_region.adjacent_regions:
+            adj_region = self.get_region(adj_name)
+            if adj_region.controller == self.player_nation:
+                # Check if enemies present
+                enemies_there = [e for e in self.get_enemy_marshals()
+                                 if e.location == adj_name and e.strength > 0]
+                if not enemies_there:
+                    safe_regions.append(adj_name)
+
+        if not safe_regions:
+            return None  # Surrounded! No retreat possible
+
+        # Retreat toward Paris (capital)
+        closest_to_paris = min(safe_regions,
+                               key=lambda r: self.get_distance(r, "Paris"))
+        return closest_to_paris
 
     def __repr__(self) -> str:
         """String representation for debugging."""

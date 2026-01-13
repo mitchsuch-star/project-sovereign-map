@@ -171,7 +171,15 @@ func _display_result(response):
 	# Determine event type for coloring
 	var event_type = ""
 	if events.size() > 0:
-		event_type = events[0].get("type", "")
+		var event = events[0]
+		if event.get("marshal_switched", false):
+			# Split message at double newline
+			var parts = message.split("\n\n", true, 1)
+			if parts.size() == 2:
+				 # Color explanation differently
+				add_output("[color=#" + COLOR_INFO + "]" + parts[0] + "[/color]")
+				add_output("")
+				message = parts[1]  # Rest of message
 	
 	# Color based on event type
 	match event_type:
