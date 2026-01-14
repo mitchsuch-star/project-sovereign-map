@@ -141,24 +141,30 @@ func _on_command_result(response):
 	"""Handle command execution result."""
 	# Re-enable input
 	set_input_enabled(true)
-	
+
 	if response.success:
 		# Update status displays
 		if response.has("action_summary"):
 			_update_status(response.action_summary)
-		
+
 		if response.has("game_state") and response.game_state.has("gold"):
 			gold = int(response.game_state.gold)
 			_update_gold_display()
-		
+
 		# Format and display result based on event type
 		_display_result(response)
-		
+
+		# Check for game over
+		if response.has("game_state") and response.game_state.has("game_over"):
+			if response.game_state.game_over:
+				_show_game_over_screen(response.game_state)
+				return  # Don't auto-focus input
+
 	else:
 		add_output("[color=#" + COLOR_ERROR + "]" + response.message + "[/color]")
-	
+
 	add_output("")
-	
+
 	# Auto-focus input
 	command_input.grab_focus()
 
@@ -254,6 +260,81 @@ func _display_turn_advance(action_info: Dictionary):
 	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 	add_output("[color=#" + COLOR_GOLD + "]  Actions exhausted — Turn " + str(int(new_turn)) + " begins[/color]")
 	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("")
+
+func _show_game_over_screen(game_state: Dictionary):
+	"""Display dramatic game over screen with final statistics."""
+	# Disable input permanently
+	set_input_enabled(false)
+
+	# Add spacing for dramatic effect
+	add_output("")
+	add_output("")
+
+	# Dramatic separator
+	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("")
+
+	# Victory or defeat title
+	var victory_status = game_state.get("victory", "defeat")
+	if victory_status == "victory":
+		add_output("[center][color=#" + COLOR_GOLD + "][b][font_size=28]⚜ VICTOIRE! ⚜[/font_size][/b][/color][/center]")
+		add_output("")
+		add_output("[center][color=#" + COLOR_SUCCESS + "]The Empire Triumphant![/color][/center]")
+		add_output("")
+		add_output("[color=#" + COLOR_INFO + "]Europe bends the knee before the French Eagle.[/color]")
+		add_output("[color=#" + COLOR_INFO + "]Your marshals have conquered all who opposed them.[/color]")
+		add_output("[color=#" + COLOR_INFO + "]History will remember this as the height of Imperial glory![/color]")
+	else:
+		add_output("[center][color=#" + COLOR_ERROR + "][b][font_size=28]⚔ DÉFAITE ⚔[/font_size][/b][/color][/center]")
+		add_output("")
+		add_output("[center][color=#" + COLOR_ERROR + "]The Empire Has Fallen[/color][/center]")
+		add_output("")
+		add_output("[color=#" + COLOR_INFO + "]The enemies of France have prevailed.[/color]")
+		add_output("[color=#" + COLOR_INFO + "]Your marshals fought bravely, but it was not enough.[/color]")
+		add_output("[color=#" + COLOR_INFO + "]The eagles are furled. The Grande Armée is no more.[/color]")
+
+	add_output("")
+	add_output("[color=#" + COLOR_GOLD + "]─────────────────────────────────────[/color]")
+	add_output("[color=#" + COLOR_GOLD + "]         FINAL STATISTICS[/color]")
+	add_output("[color=#" + COLOR_GOLD + "]─────────────────────────────────────[/color]")
+
+	# Display final statistics
+	var final_turn = int(game_state.get("turn", current_turn))
+	var regions_controlled = int(game_state.get("regions_controlled", 0))
+	var total_regions = int(game_state.get("total_regions", 13))
+	var final_gold = int(game_state.get("gold", gold))
+
+	add_output("[color=#" + COLOR_INFO + "]Campaign Duration: " + str(final_turn) + " turns[/color]")
+	add_output("[color=#" + COLOR_INFO + "]Regions Controlled: " + str(regions_controlled) + "/" + str(total_regions) + "[/color]")
+	add_output("[color=#" + COLOR_INFO + "]Imperial Treasury: " + _format_number(final_gold) + " gold[/color]")
+
+	# Marshal status if available
+	if game_state.has("player_marshals"):
+		var marshals = game_state.player_marshals
+		add_output("")
+		add_output("[color=#" + COLOR_MARSHAL + "]Marshal Status:[/color]")
+		for marshal_name in marshals:
+			var marshal = marshals[marshal_name]
+			var strength = int(marshal.get("strength", 0))
+			var location = marshal.get("location", "Unknown")
+			if strength > 0:
+				add_output("[color=#" + COLOR_INFO + "]  • " + marshal_name + ": " + _format_number(strength) + " troops at " + location + "[/color]")
+			else:
+				add_output("[color=#" + COLOR_ERROR + "]  • " + marshal_name + ": Destroyed[/color]")
+
+	add_output("")
+	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("")
+
+	# Closing message
+	if victory_status == "victory":
+		add_output("[center][color=#" + COLOR_GOLD + "]Vive l'Empereur![/color][/center]")
+	else:
+		add_output("[center][color=#" + COLOR_INFO + "]The game is over, but the legend endures...[/color][/center]")
+
 	add_output("")
 
 func _show_action_cost(action_info: Dictionary):
