@@ -12,11 +12,14 @@ extends Control
 @onready var actions_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ActionsDisplay/ActionsValue
 @onready var gold_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/GoldDisplay/GoldValue
 
-# UI References - Main Interface  
+# UI References - Main Interface
 @onready var output_scroll = $BottomLeftUI/MainMargin/MainLayout/OutputScroll
 @onready var output_display = $BottomLeftUI/MainMargin/MainLayout/OutputScroll/OutputDisplay
 @onready var command_input = $BottomLeftUI/MainMargin/MainLayout/InputSection/CommandInput
 @onready var send_button = $BottomLeftUI/MainMargin/MainLayout/InputSection/SendButton
+
+# Map reference
+@onready var map_area = $MapArea
 
 # API Client
 var api_client = null
@@ -85,14 +88,24 @@ func _on_connection_test(response):
 	if response.success:
 		add_output("[color=#" + COLOR_SUCCESS + "]✓ Communications established![/color]")
 		add_output("")
-		
+
 		# Update status from server
 		if response.has("action_summary"):
 			_update_status(response.action_summary)
 		if response.has("gold"):
 			gold = int(response.gold)
 			_update_gold_display()
-		
+
+		# Update map with initial state
+		if response.has("game_state") and response.game_state.has("map_data"):
+			print("MAIN: Connection test - map_data found, updating map")
+			print("MAIN: map_data keys: ", response.game_state.map_data.keys())
+			map_area.update_all_regions(response.game_state.map_data)
+		else:
+			print("⚠️  MAIN: Connection test - NO map_data in response!")
+			if response.has("game_state"):
+				print("     game_state keys: ", response.game_state.keys())
+
 		# Show instructions
 		add_output("[color=#" + COLOR_INFO + "]Your marshals await your orders, Sire.[/color]")
 		add_output("")
@@ -150,6 +163,16 @@ func _on_command_result(response):
 		if response.has("game_state") and response.game_state.has("gold"):
 			gold = int(response.game_state.gold)
 			_update_gold_display()
+
+		# Update map with latest state
+		if response.has("game_state") and response.game_state.has("map_data"):
+			print("MAIN: Command result - map_data found, updating map")
+			print("MAIN: Received map_data with ", response.game_state.map_data.keys().size(), " regions")
+			map_area.update_all_regions(response.game_state.map_data)
+		else:
+			print("⚠️  MAIN: Command result - NO map_data in response!")
+			if response.has("game_state"):
+				print("     game_state keys: ", response.game_state.keys())
 
 		# Format and display result based on event type
 		_display_result(response)

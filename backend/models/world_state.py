@@ -368,6 +368,13 @@ class WorldState:
             "gold": int(self.gold),
             "player_nation": self.player_nation,
             "regions_controlled": len(self.get_player_regions()),
+            "total_regions": len(self.regions),
+            "map_data": {
+                region_name: {
+                    "controller": region.controller
+                }
+                for region_name, region in self.regions.items()
+            },
             "marshals": {
                 name: {
                     "location": m.location,

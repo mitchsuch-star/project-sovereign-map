@@ -39,7 +39,8 @@ def test_connection():
         "message": "Backend is running",
         "turn": int(world.current_turn),
         "gold": int(world.gold),
-        "action_summary": world.get_action_summary()
+        "action_summary": world.get_action_summary(),
+        "game_state": world.get_game_state_summary()
     }
 
 

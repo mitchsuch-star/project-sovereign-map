@@ -36,8 +36,9 @@ const REGION_CONNECTIONS = {
 
 # Color scheme
 const COLORS = {
-	"France": Color(0.255, 0.412, 0.882),  # Royal Blue
+	"France": Color(0.255, 0.412, 0.882),   # Royal Blue
 	"Britain": Color(0.863, 0.078, 0.235),  # Crimson
+	"Prussia": Color(0.2, 0.2, 0.2),        # Dark Gray (Prussian Iron)
 	"Austria": Color(1.0, 0.843, 0.0),      # Gold
 	"Neutral": Color(0.565, 0.933, 0.565),  # Light Green
 	"connection": Color(0.6, 0.6, 0.6)      # Gray
@@ -54,22 +55,9 @@ func _ready():
 
 func _initialize_map():
 	"""Set up initial region ownership."""
-	# Starting controllers (from backend)
-	region_controllers = {
-		"Paris": "France",
-		"Belgium": "France",
-		"Lyon": "France",
-		"Marseille": "France",
-		"Brittany": "France",
-		"Bordeaux": "France",
-		"Rhine": "France",
-		"Netherlands": "Britain",
-		"Waterloo": "Britain",
-		"Bavaria": "Austria",
-		"Vienna": "Austria",
-		"Milan": "Neutral",
-		"Geneva": "Neutral"
-	}
+	# Start with empty state - backend data is source of truth
+	region_controllers = {}
+	region_marshals = {}
 
 func _draw():
 	"""Draw the entire map."""
@@ -104,8 +92,16 @@ func _draw_regions():
 	for region_name in REGION_POSITIONS:
 		var pos = REGION_POSITIONS[region_name]
 		var controller = region_controllers.get(region_name, "Neutral")
-		var color = COLORS.get(controller, COLORS["Neutral"])
-		
+
+		# DEBUG: Print controller for each region
+		print("Drawing region ", region_name, ": controller = ", controller)
+
+		# Get color with fallback warning
+		var color = COLORS.get(controller)
+		if color == null:
+			print("⚠️  WARNING: Unknown nation '", controller, "' for region ", region_name, " - using magenta")
+			color = Color(1.0, 0.0, 1.0)  # Magenta for debugging
+
 		# Draw circle
 		draw_circle(pos, 30, color)
 		
@@ -156,10 +152,26 @@ func update_region(region_name: String, controller: String, marshal: String = ""
 
 func update_all_regions(map_data: Dictionary):
 	"""Update all regions from backend map data."""
+	print("═══════════════════════════════════════")
+	print("MAP: update_all_regions() called")
+	print("Received ", map_data.keys().size(), " regions")
+	print("═══════════════════════════════════════")
+
 	for region_name in map_data:
 		var data = map_data[region_name]
+		# Handle null controller (backend sends null for neutral regions)
+		var controller = data.get("controller", "Neutral")
+		if controller == null:
+			controller = "Neutral"
+
+		print("Map updating region ", region_name, ": controller = ", controller)
+
 		update_region(
 			region_name,
-			data.get("controller", "Neutral"),
+			controller,
 			data.get("marshal", "")
 		)
+
+	print("═══════════════════════════════════════")
+	print("MAP: Update complete, triggering redraw")
+	print("═══════════════════════════════════════")
