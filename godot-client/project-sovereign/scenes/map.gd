@@ -118,6 +118,46 @@ func _draw_regions():
 		var text_size = font.get_string_size(region_name, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
 		draw_string(font, pos - Vector2(text_size.x / 2, -5), region_name, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size, Color.WHITE if controller != "Neutral" else Color.BLACK)
 
+		# Draw marshal icons
+		if region_name in region_marshals:
+			var marshals = region_marshals[region_name]
+			_draw_marshal_icons(pos, marshals)
+
+func _draw_marshal_icons(region_pos: Vector2, marshals: Array):
+	"""Draw marshal icons above a region."""
+	var icon_size = Vector2(16, 16)
+	var icon_y_offset = -50  # Above region circle
+	var font = ThemeDB.fallback_font
+	var name_font_size = 11
+
+	# Calculate horizontal spacing for multiple marshals
+	var num_marshals = marshals.size()
+	var total_width = num_marshals * icon_size.x + (num_marshals - 1) * 8  # 8px spacing between icons
+	var start_x = -total_width / 2.0
+
+	for i in range(num_marshals):
+		var marshal = marshals[i]
+		var marshal_name = marshal.get("name", "?")
+		var marshal_nation = marshal.get("nation", "Neutral")
+
+		# Calculate icon position
+		var icon_x_offset = start_x + i * (icon_size.x + 8)
+		var icon_pos = region_pos + Vector2(icon_x_offset, icon_y_offset)
+
+		# Get nation color
+		var nation_color = COLORS.get(marshal_nation, Color(1.0, 0.0, 1.0))  # Magenta if unknown
+
+		# Draw icon background (filled rectangle)
+		draw_rect(Rect2(icon_pos, icon_size), nation_color)
+
+		# Draw icon border
+		draw_rect(Rect2(icon_pos, icon_size), Color.BLACK, false, 2.0)
+
+		# Draw marshal name above icon
+		var name_text_size = font.get_string_size(marshal_name, HORIZONTAL_ALIGNMENT_CENTER, -1, name_font_size)
+		var name_pos = icon_pos + Vector2(icon_size.x / 2.0 - name_text_size.x / 2.0, -4)
+		draw_string(font, name_pos, marshal_name, HORIZONTAL_ALIGNMENT_LEFT, -1, name_font_size, Color.WHITE)
+
 func _gui_input(event):
 	"""Handle clicks on regions."""
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
@@ -159,18 +199,26 @@ func update_all_regions(map_data: Dictionary):
 
 	for region_name in map_data:
 		var data = map_data[region_name]
+
 		# Handle null controller (backend sends null for neutral regions)
 		var controller = data.get("controller", "Neutral")
 		if controller == null:
 			controller = "Neutral"
 
-		print("Map updating region ", region_name, ": controller = ", controller)
+		# Update controller
+		region_controllers[region_name] = controller
 
-		update_region(
-			region_name,
-			controller,
-			data.get("marshal", "")
-		)
+		# Update marshals (array of {name, nation})
+		var marshals = data.get("marshals", [])
+		if marshals.size() > 0:
+			region_marshals[region_name] = marshals
+			print("Map updating region ", region_name, ": controller = ", controller, ", marshals = ", marshals)
+		else:
+			region_marshals.erase(region_name)
+			print("Map updating region ", region_name, ": controller = ", controller, ", no marshals")
+
+	# Trigger redraw
+	queue_redraw()
 
 	print("═══════════════════════════════════════")
 	print("MAP: Update complete, triggering redraw")

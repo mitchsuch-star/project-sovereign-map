@@ -362,6 +362,24 @@ class WorldState:
 
     def get_game_state_summary(self) -> Dict:
         """Get a summary of current game state for API responses."""
+        # Build map_data with marshals
+        map_data = {}
+        for region_name, region in self.regions.items():
+            # Get all alive marshals in this region
+            marshals_here = self.get_marshals_in_region(region_name)
+            alive_marshals = [m for m in marshals_here if m.strength > 0]
+
+            map_data[region_name] = {
+                "controller": region.controller,
+                "marshals": [
+                    {
+                        "name": m.name,
+                        "nation": m.nation
+                    }
+                    for m in alive_marshals
+                ]
+            }
+
         return {
             "turn": int(self.current_turn),  # Explicit int cast
             "max_turns": int(self.max_turns),
@@ -369,12 +387,7 @@ class WorldState:
             "player_nation": self.player_nation,
             "regions_controlled": len(self.get_player_regions()),
             "total_regions": len(self.regions),
-            "map_data": {
-                region_name: {
-                    "controller": region.controller
-                }
-                for region_name, region in self.regions.items()
-            },
+            "map_data": map_data,
             "marshals": {
                 name: {
                     "location": m.location,
