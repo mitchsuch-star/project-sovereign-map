@@ -23,7 +23,8 @@ class Marshal:
             location: str,
             strength: int,
             personality: str,
-            nation: str = "France"
+            nation: str = "France",
+            movement_range: int = 1
     ):
         """Initialize a marshal."""
         self.name = name
@@ -32,6 +33,7 @@ class Marshal:
         self.starting_strength = strength  # NEW: Track original strength
         self.personality = personality
         self.nation = nation
+        self.movement_range = movement_range  # Attack range (cavalry=2, infantry=1)
 
         # Game state (changes during play)
         self.morale: int = 100
@@ -74,7 +76,8 @@ class Marshal:
 
     def __repr__(self) -> str:
         """String representation for debugging."""
-        return f"Marshal({self.name}, {self.strength:,} troops at {self.location}, morale: {self.morale}%)"
+        unit_type = "cavalry" if self.movement_range == 2 else "infantry"
+        return f"Marshal({self.name}, {self.strength:,} troops at {self.location}, morale: {self.morale}%, {unit_type})"
 
 
 # Personality traits for AI behavior (used in executor)
@@ -113,21 +116,24 @@ def create_starting_marshals() -> dict[str, Marshal]:
             location="Belgium",
             strength=72000,
             personality="aggressive",
-            nation="France"
+            nation="France",
+            movement_range=2  # Cavalry commander - can attack 2 regions away
         ),
         "Davout": Marshal(
             name="Davout",
             location="Paris",
             strength=48000,
             personality="cautious",
-            nation="France"
+            nation="France",
+            movement_range=1  # Infantry commander
         ),
         "Grouchy": Marshal(
             name="Grouchy",
             location="Waterloo",
             strength=33000,
             personality="literal",
-            nation="France"
+            nation="France",
+            movement_range=1  # Infantry commander
         )
     }
     return marshals

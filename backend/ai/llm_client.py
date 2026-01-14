@@ -95,7 +95,11 @@ class LLMClient:
 
         # Extract action (ALWAYS set a value)
         action = "unknown"  # Default
-        if "attack" in command_lower:
+        if "help" in command_lower or command_lower.strip() == "?":
+            action = "help"
+        elif "end turn" in command_lower or "end_turn" in command_lower or "next turn" in command_lower:
+            action = "end_turn"
+        elif "attack" in command_lower:
             action = "attack"
         elif "defend" in command_lower or "hold" in command_lower:
             action = "defend"

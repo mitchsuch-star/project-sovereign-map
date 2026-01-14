@@ -217,6 +217,7 @@ class WorldState:
         Filters out:
         - Dead marshals (strength <= 0)
         - Weak marshals (strength < 1000)
+        - Marshals out of attack range (distance > movement_range)
 
         Returns:
             Tuple of (Marshal, distance) or None if no marshals available
@@ -229,45 +230,44 @@ class WorldState:
         if not player_marshals:
             return None
 
-        # Filter for LIVING, COMBAT-READY marshals
+        # Filter for LIVING, COMBAT-READY marshals within range
         ready_marshals = []
         filtered_out = []
 
         for m in player_marshals:
+            distance = self.get_distance(m.location, region_name)
+
             if m.strength <= 0:
                 filtered_out.append(f"{m.name} (dead)")
             elif m.strength < 1000:
                 filtered_out.append(f"{m.name} ({m.strength:,} troops - too weak)")
+            elif distance > m.movement_range:
+                filtered_out.append(f"{m.name} (out of range - {distance} regions away, range {m.movement_range})")
             else:
-                ready_marshals.append(m)
+                ready_marshals.append((m, distance))
 
         # Log filtering results
         if filtered_out:
             print(f"   ⚠️  FILTERED OUT: {', '.join(filtered_out)}")
 
         if not ready_marshals:
-            print(f"   ❌ NO COMBAT-READY MARSHALS AVAILABLE!")
+            print(f"   ❌ NO COMBAT-READY MARSHALS IN RANGE!")
             return None
 
-        # Find distance for each ready marshal
-        marshal_distances = []
-        for marshal in ready_marshals:
-            distance = self.get_distance(marshal.location, region_name)
-            marshal_distances.append((marshal, distance))
-
         # Sort by STRENGTH (strongest first), then by distance
-        marshal_distances.sort(key=lambda x: (-x[0].strength, x[1]))
+        ready_marshals.sort(key=lambda x: (-x[0].strength, x[1]))
 
-        strongest_marshal, distance = marshal_distances[0]
+        strongest_marshal, distance = ready_marshals[0]
 
         # EXPLANATORY LOGGING
         print(f"   🎯 MARSHAL SELECTED: {strongest_marshal.name}")
         print(f"      Strength: {strongest_marshal.strength:,} troops")
         print(f"      Distance to {region_name}: {distance} hops")
+        print(f"      Attack range: {strongest_marshal.movement_range}")
 
         # Show alternatives if any
-        if len(marshal_distances) > 1:
-            alternatives = [f"{m.name} ({m.strength:,})" for m, d in marshal_distances[1:]]
+        if len(ready_marshals) > 1:
+            alternatives = [f"{m.name} ({m.strength:,}, range {m.movement_range})" for m, d in ready_marshals[1:]]
             print(f"      Alternatives: {', '.join(alternatives)}")
 
         return (strongest_marshal, distance)

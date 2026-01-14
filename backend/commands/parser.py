@@ -28,7 +28,7 @@ class CommandParser:
         # Valid actions
         self.valid_actions = [
             "attack", "defend", "retreat", "move", "scout",
-            "reinforce", "recruit"
+            "reinforce", "recruit", "help", "end_turn"
         ]
 
         print(f"Command Parser initialized with {'REAL' if use_real_llm else 'MOCK'} LLM")

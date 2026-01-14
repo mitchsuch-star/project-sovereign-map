@@ -39,6 +39,58 @@ class CommandExecutor:
             }],
             "new_state": game_state
         }
+
+    def _execute_help(self, command: Dict, game_state: Dict) -> Dict:
+        """Display help text with available commands and examples."""
+        help_text = """═══════════════════════════════════════
+           COMMAND REFERENCE
+═══════════════════════════════════════
+
+MILITARY COMMANDS:
+  attack     - Engage enemy forces or capture territory
+               Examples: "Ney, attack Wellington"
+                        "attack Rhine" (auto-assigns marshal)
+                        "attack" (find nearest enemy)
+
+  defend     - Take defensive position (+30% bonus)
+               Examples: "Davout, defend"
+                        "defend" (all forces)
+
+  move       - Move to adjacent region
+               Example: "Grouchy, move to Belgium"
+
+  recruit    - Raise 10,000 troops (costs 200 gold)
+               Examples: "recruit"
+                        "Ney, recruit"
+
+INTELLIGENCE:
+  scout      - Reconnaissance of nearby regions
+               Examples: "scout Rhine"
+                        "Davout, scout"
+
+SPECIAL COMMANDS:
+  help       - Display this help text (free action)
+  end turn   - Skip remaining actions and advance turn
+               Example: "end turn"
+
+TIPS:
+  • Commands are case-insensitive
+  • Use "?" as shortcut for help
+  • Free actions: help, end turn
+  • Most actions cost 1 action point
+
+═══════════════════════════════════════"""
+
+        return {
+            "success": True,
+            "message": help_text,
+            "events": [{
+                "type": "help",
+                "command": "help"
+            }],
+            "new_state": game_state
+        }
+
     def execute(self, parsed_command: Dict, game_state: Dict) -> Dict:
         """Execute a command against the current game state."""
         world: WorldState = game_state.get("world")
@@ -96,7 +148,9 @@ class CommandExecutor:
         command_type = command.get("type", "specific")
 
         # Handle special actions first
-        if action == "reinforce":
+        if action == "help":
+            result = self._execute_help(command, game_state)
+        elif action == "reinforce":
             result = self._execute_reinforce(command, game_state)
         elif action == "recruit":
             result = self._execute_recruit(command, game_state)
@@ -177,6 +231,58 @@ class CommandExecutor:
         If attacking a region, will capture it after defeating all defenders.
         Handles undefended regions with instant capture.
         """
+        # ============================================================
+        # RANGE CHECK: Verify target is within marshal's attack range
+        # ============================================================
+
+        # First, determine target location
+        target_location = None
+
+        # Check if target is an enemy marshal name
+        enemy_by_name = world.get_enemy_by_name(target)
+        if enemy_by_name:
+            target_location = enemy_by_name.location
+        else:
+            # Check if target is a region name
+            target_region = world.get_region(target)
+            if target_region:
+                target_location = target
+
+        # If we found a valid target location, check range
+        if target_location:
+            distance = world.get_distance(marshal.location, target_location)
+
+            if distance > marshal.movement_range:
+                # OUT OF RANGE - Provide helpful error message
+                marshal_type = "cavalry" if marshal.movement_range == 2 else "infantry"
+
+                # Find closer targets within range
+                nearby_targets = []
+                for enemy in world.get_enemy_marshals():
+                    if enemy.strength > 0:
+                        enemy_distance = world.get_distance(marshal.location, enemy.location)
+                        if enemy_distance <= marshal.movement_range:
+                            nearby_targets.append(f"{enemy.name} at {enemy.location} ({enemy_distance} region{'s' if enemy_distance != 1 else ''} away)")
+
+                error_msg = f"{marshal.name} cannot reach {target} from {marshal.location}! "
+                error_msg += f"Range: {marshal.movement_range}, Distance: {distance}"
+
+                suggestion = None
+                if nearby_targets:
+                    suggestion = f"Targets in range: {', '.join(nearby_targets)}"
+                else:
+                    suggestion = f"No enemies within range. Try 'move to {target_location}' to get closer first"
+
+                return {
+                    "success": False,
+                    "message": error_msg,
+                    "suggestion": suggestion
+                }
+
+        # ============================================================
+        # NORMAL ATTACK LOGIC (Range check passed)
+        # ============================================================
+
         # Find enemy marshal - either by name or at target location
         enemy_marshal = None
 
@@ -470,6 +576,10 @@ class CommandExecutor:
                 enemy, distance = nearest
                 # Skip dead enemies
                 if enemy.strength <= 0:
+                    continue
+                # Skip enemies out of range
+                if distance > marshal.movement_range:
+                    filtered_out.append(f"{marshal.name} (no enemies in range {marshal.movement_range})")
                     continue
                 if distance < best_distance:
                     best_distance = distance
