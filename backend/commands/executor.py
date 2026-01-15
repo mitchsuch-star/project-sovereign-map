@@ -467,11 +467,29 @@ TIPS:
                 "message": f"Cannot find living enemy: {resolved_target}"
             }
 
-        # RESOLVE COMBAT!
+        # ============================================================
+        # FLANKING SYSTEM (Phase 2.5): Record attack origin BEFORE combat
+        # ============================================================
+        origin_region = marshal.location  # Capture origin BEFORE any movement
+        target_location = enemy_marshal.location
+
+        # Record this attack for flanking calculation
+        world.record_attack(marshal.name, origin_region, target_location)
+
+        # Calculate flanking bonus based on all attacks this turn
+        flanking_info = world.calculate_flanking_bonus(target_location)
+        flanking_bonus = flanking_info["bonus"]
+
+        # Generate flanking message if applicable
+        flanking_message = world.get_flanking_message(marshal.name, origin_region, target_location)
+
+        # RESOLVE COMBAT with flanking bonus!
         battle_result = self.combat_resolver.resolve_battle(
             attacker=marshal,
             defender=enemy_marshal,
-            terrain="open"
+            terrain="open",
+            flanking_bonus=flanking_bonus,
+            flanking_message=flanking_message
         )
 
         # Check if enemy was destroyed
@@ -505,9 +523,14 @@ TIPS:
                 conquered = True
                 conquest_msg = f" {resolved_target} has been captured!"
 
+        # Build message with flanking info if applicable
+        flanking_prefix = ""
+        if flanking_message:
+            flanking_prefix = f"\n{flanking_message}\n"
+
         return {
             "success": True,
-            "message": battle_result["description"] + destroyed_msg + conquest_msg,
+            "message": flanking_prefix + battle_result["description"] + destroyed_msg + conquest_msg,
             "events": [{
                 "type": "battle",
                 "attacker": battle_result["attacker"],
@@ -516,7 +539,9 @@ TIPS:
                 "victor": battle_result["victor"],
                 "enemy_destroyed": enemy_destroyed,
                 "region_conquered": conquered,
-                "region_name": resolved_target if conquered else None
+                "region_name": resolved_target if conquered else None,
+                "flanking_bonus": flanking_bonus,
+                "flanking_origins": list(flanking_info["unique_origins"]) if flanking_info["unique_origins"] else []
             }],
             "new_state": game_state
         }
@@ -720,16 +745,29 @@ TIPS:
 
         # If marshals were filtered out, explain why
         if filtered_out:
-            explanation = f"⚠️  {', '.join(filtered_out)} - "
+            explanation = f"[WARNING] {', '.join(filtered_out)} - "
 
         # Add who's attacking
         explanation += f"{best_marshal.name} ({best_marshal.strength:,} troops) now attacking!\n\n"
 
-        # Resolve battle
+        # ============================================================
+        # FLANKING SYSTEM (Phase 2.5): Record attack and calculate bonus
+        # ============================================================
+        origin_region = best_marshal.location
+        target_location = best_enemy.location
+
+        world.record_attack(best_marshal.name, origin_region, target_location)
+        flanking_info = world.calculate_flanking_bonus(target_location)
+        flanking_bonus = flanking_info["bonus"]
+        flanking_message = world.get_flanking_message(best_marshal.name, origin_region, target_location)
+
+        # Resolve battle with flanking
         battle_result = self.combat_resolver.resolve_battle(
             attacker=best_marshal,
             defender=best_enemy,
-            terrain="open"
+            terrain="open",
+            flanking_bonus=flanking_bonus,
+            flanking_message=flanking_message
         )
 
         # Check for destroyed armies
@@ -745,8 +783,11 @@ TIPS:
             print(f"💀 REMOVING ALLY: {best_marshal.name}")
             world.marshals.pop(best_marshal.name, None)
 
-        # Combine explanation with battle result
-        full_message = explanation + battle_result["description"]
+        # Combine explanation with battle result (add flanking message if applicable)
+        flanking_prefix = ""
+        if flanking_message:
+            flanking_prefix = f"\n{flanking_message}\n"
+        full_message = explanation + flanking_prefix + battle_result["description"]
 
         return {
             "success": True,
@@ -761,7 +802,9 @@ TIPS:
                 "victor": battle_result["victor"],
                 "enemy_destroyed": enemy_destroyed,
                 "marshal_switched": len(filtered_out) > 0,  # NEW: Flag for UI
-                "explanation": explanation.strip()  # NEW: Explanation text
+                "explanation": explanation.strip(),  # NEW: Explanation text
+                "flanking_bonus": flanking_bonus,
+                "flanking_origins": list(flanking_info["unique_origins"]) if flanking_info["unique_origins"] else []
             }],
             "new_state": game_state
         }
@@ -796,25 +839,43 @@ TIPS:
 
             nearest_marshal, distance = result
 
-            # Execute attack
+            # ============================================================
+            # FLANKING SYSTEM (Phase 2.5): Record attack and calculate bonus
+            # ============================================================
+            origin_region = nearest_marshal.location
+            target_location = enemy.location
+
+            world.record_attack(nearest_marshal.name, origin_region, target_location)
+            flanking_info = world.calculate_flanking_bonus(target_location)
+            flanking_bonus = flanking_info["bonus"]
+            flanking_message = world.get_flanking_message(nearest_marshal.name, origin_region, target_location)
+
+            # Execute attack with flanking
             battle_result = self.combat_resolver.resolve_battle(
                 attacker=nearest_marshal,
                 defender=enemy,
-                terrain="open"
-
+                terrain="open",
+                flanking_bonus=flanking_bonus,
+                flanking_message=flanking_message
             )
 
             enemy_destroyed = enemy.strength <= 0
 
             # Remove dead enemy
             if enemy_destroyed:
-                print(f"🪦 REMOVING: {enemy.name} from world state")
+                print(f"[REMOVED] {enemy.name} from world state")
                 world.marshals.pop(enemy.name, None)
             if nearest_marshal.strength <= 0:
                 world.marshals.pop(nearest_marshal.name, None)
+
+            # Build message with flanking info
+            flanking_prefix = ""
+            if flanking_message:
+                flanking_prefix = f"\n{flanking_message}\n"
+
             return {
                 "success": True,
-                "message": f"{nearest_marshal.name} (auto-assigned) attacks {target}! {battle_result['description']}",
+                "message": f"{nearest_marshal.name} (auto-assigned) attacks {target}!{flanking_prefix} {battle_result['description']}",
                 "events": [{
                     "type": "battle",
                     "marshal": nearest_marshal.name,
@@ -823,7 +884,9 @@ TIPS:
                     "defender": battle_result["defender"],
                     "outcome": battle_result["outcome"],
                     "victor": battle_result["victor"],
-                    "enemy_destroyed": enemy_destroyed
+                    "enemy_destroyed": enemy_destroyed,
+                    "flanking_bonus": flanking_bonus,
+                    "flanking_origins": list(flanking_info["unique_origins"]) if flanking_info["unique_origins"] else []
                 }],
                 "new_state": game_state
             }
@@ -853,10 +916,23 @@ TIPS:
             # DEFENDED - Fight the first enemy
             enemy = enemies_there[0]
 
+            # ============================================================
+            # FLANKING SYSTEM (Phase 2.5): Record attack and calculate bonus
+            # ============================================================
+            origin_region = nearest_marshal.location
+            target_location = target_name
+
+            world.record_attack(nearest_marshal.name, origin_region, target_location)
+            flanking_info = world.calculate_flanking_bonus(target_location)
+            flanking_bonus = flanking_info["bonus"]
+            flanking_message = world.get_flanking_message(nearest_marshal.name, origin_region, target_location)
+
             battle_result = self.combat_resolver.resolve_battle(
                 attacker=nearest_marshal,
                 defender=enemy,
-                terrain="open"
+                terrain="open",
+                flanking_bonus=flanking_bonus,
+                flanking_message=flanking_message
             )
 
             # Check for destroyed armies
@@ -865,22 +941,33 @@ TIPS:
 
             # CRITICAL: Remove destroyed marshals immediately
             if enemy_destroyed:
-                print(f"🪦 REMOVING ENEMY: {enemy.name} from world state")
+                print(f"[REMOVED] {enemy.name} from world state")
                 world.marshals.pop(enemy.name, None)
 
             if attacker_destroyed:
                 world.marshals.pop(nearest_marshal.name, None)
 
-            # ADD THESE 2 LINES HERE:
+            # Check for conquest
             conquered = False
             conquest_msg = ""
 
-            # NOW check for conquest
-            if enemy_destroyed:  # ← Also fix: check enemy_destroyed, not attacker
-                remaining_defenders = [...]
+            # Check for region conquest after enemy destroyed
+            if enemy_destroyed:
+                remaining_defenders = [e for e in world.get_enemy_marshals()
+                                     if e.location == target_name and e.strength > 0]
+                if not remaining_defenders:
+                    world.capture_region(target_name, world.player_nation)
+                    conquered = True
+                    conquest_msg = f" {target_name} has been captured!"
+
+            # Build message with flanking info
+            flanking_prefix = ""
+            if flanking_message:
+                flanking_prefix = f"\n{flanking_message}\n"
+
             return {
                 "success": True,
-                "message": f"{nearest_marshal.name} attacks {enemy.name} at {target_name}! {battle_result['description']}{conquest_msg}",
+                "message": f"{nearest_marshal.name} attacks {enemy.name} at {target_name}!{flanking_prefix} {battle_result['description']}{conquest_msg}",
                 "events": [{
                     "type": "battle",
                     "marshal": nearest_marshal.name,
@@ -890,7 +977,9 @@ TIPS:
                     "outcome": battle_result["outcome"],
                     "victor": battle_result["victor"],
                     "region_conquered": conquered,
-                    "enemy_destroyed": enemy_destroyed
+                    "enemy_destroyed": enemy_destroyed,
+                    "flanking_bonus": flanking_bonus,
+                    "flanking_origins": list(flanking_info["unique_origins"]) if flanking_info["unique_origins"] else []
                 }],
                 "new_state": game_state
             }

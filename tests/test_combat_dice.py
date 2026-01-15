@@ -46,15 +46,16 @@ class TestDiceRolling:
             assert roll['skill_bonus'] == expected_bonus, f"Skill {skill} should give bonus {expected_bonus}"
 
     def test_modified_roll_cap(self):
-        """Modified roll should cap at 12."""
+        """Modified roll should cap at 14 (allows flanking bonus)."""
         combat = CombatResolver()
         # High skill marshal
         marshal = Marshal("Genius", "Paris", 10000, "cautious", tactical_skill=12)
 
         # Roll many times to ensure we'd hit high natural rolls
+        # Cap is 14 (not 12) to allow flanking bonuses (+1 to +3) to matter
         for _ in range(100):
             roll = combat.roll_combat_dice(marshal)
-            assert roll['modified'] <= 12, "Modified roll must cap at 12"
+            assert roll['modified'] <= 14, "Modified roll must cap at 14 (allows flanking bonus)"
 
     def test_multiplier_calculation(self):
         """Multiplier should be 0.85 + (modified * 0.025)."""

@@ -30,27 +30,30 @@ class CombatResolver:
         self.defender_bonus = 0.2  # +20% for defender
         self.variance = 0.1  # ±10% random variance
 
-    def roll_combat_dice(self, marshal: Marshal) -> Dict:
+    def roll_combat_dice(self, marshal: Marshal, flanking_bonus: int = 0) -> Dict:
         """
-        Roll 2d6 for combat with skill modifiers.
+        Roll 2d6 for combat with skill and flanking modifiers.
 
         Formula:
         - Roll 2d6 (natural roll: 2-12)
         - Add skill bonus: tactical_skill // 3
-        - Cap modified roll at 12
+        - Add flanking bonus: 0-3 from coordinated attacks
+        - Cap modified roll at 14 (allows flanking to exceed normal cap)
         - Calculate multiplier: 0.85 + (modified * 0.025)
 
         Args:
             marshal: The marshal rolling dice
+            flanking_bonus: Bonus from attacking from multiple directions (0-3)
 
         Returns:
             Dict with:
             - natural: int (2-12, unmodified 2d6 roll)
-            - modified: int (natural + skill bonus, capped at 12)
+            - modified: int (natural + skill bonus + flanking, capped at 14)
             - is_critical_success: bool (natural 12)
             - is_critical_failure: bool (natural 2)
-            - multiplier: float (0.85 to 1.15)
+            - multiplier: float (0.85 to 1.20 with flanking)
             - skill_bonus: int (tactical_skill // 3)
+            - flanking_bonus: int (0-3)
         """
         # Roll 2d6
         die1 = random.randint(1, 6)
@@ -65,8 +68,8 @@ class CombatResolver:
 
         skill_bonus = tactical_skill // 3  # 0-3 for skill 1-10
 
-        # Modified roll (capped at 12)
-        modified_roll = min(12, natural_roll + skill_bonus)
+        # Modified roll with flanking (cap at 14 to allow flanking benefits beyond 12)
+        modified_roll = min(14, natural_roll + skill_bonus + int(flanking_bonus))
 
         # Detect criticals (based on NATURAL roll only)
         is_critical_success = (natural_roll == 12)
@@ -82,23 +85,35 @@ class CombatResolver:
             "is_critical_success": is_critical_success,
             "is_critical_failure": is_critical_failure,
             "multiplier": multiplier,
-            "skill_bonus": int(skill_bonus)
+            "skill_bonus": int(skill_bonus),
+            "flanking_bonus": int(flanking_bonus)
         }
 
     def resolve_battle(
             self,
             attacker: Marshal,
             defender: Marshal,
-            terrain: str = "open"
+            terrain: str = "open",
+            flanking_bonus: int = 0,
+            flanking_message: str = None
     ) -> Dict:
-        """Resolve a battle between two marshals using 2d6 dice system."""
+        """
+        Resolve a battle between two marshals using 2d6 dice system.
 
-        #print(f"\n⚔️ BATTLE: {attacker.name} vs {defender.name}")
+        Args:
+            attacker: The attacking marshal
+            defender: The defending marshal
+            terrain: Terrain type (affects defender bonus)
+            flanking_bonus: Coordination bonus from attacking from multiple directions (0-3)
+            flanking_message: Message describing the flanking situation
+        """
+
+        #print(f"\n BATTLE: {attacker.name} vs {defender.name}")
         #print(f"   Attacker: {attacker.strength:,} troops, {attacker.morale}% morale")
         #print(f"   Defender: {defender.strength:,} troops, {defender.morale}% morale")
 
-        # Roll combat dice for attacker
-        attacker_roll = self.roll_combat_dice(attacker)
+        # Roll combat dice for attacker (flanking bonus adds to roll)
+        attacker_roll = self.roll_combat_dice(attacker, flanking_bonus=int(flanking_bonus))
 
         # Calculate effective strengths
         attacker_effective = self._calculate_effective_strength(attacker, is_attacker=True)
@@ -231,6 +246,8 @@ class CombatResolver:
             "terrain": terrain,
             "attacker_roll": attacker_roll,
             "ability_triggered": ability_message,  # Phase 2.3: Signature abilities
+            "flanking_bonus": int(flanking_bonus),  # Phase 2.5: Flanking system
+            "flanking_message": flanking_message,
             "description": self._generate_description(
                 attacker, defender, outcome, attacker_casualties, defender_casualties, attacker_roll
             )

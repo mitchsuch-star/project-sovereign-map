@@ -69,6 +69,14 @@ class WorldState:
             "end_turn": 0  # Free action
         }
 
+        # ============================================================
+        # FLANKING SYSTEM (Phase 2.5) - Track attacks for coordination bonuses
+        # ============================================================
+        # Records attack origins this turn for flanking bonus calculation
+        # Key: target_region, Value: list of attack records
+        self.attacks_this_turn: Dict[str, List[Dict]] = {}
+        self._action_counter: int = 0  # Track action order for timestamps
+
     def _setup_initial_control(self) -> None:
         """Set up which nation controls which regions at start."""
         # France starts controlling these regions
@@ -481,6 +489,9 @@ class WorldState:
         self.max_actions_per_turn = int(self.calculate_max_actions())
         self.actions_remaining = int(self.max_actions_per_turn)
 
+        # Reset attack tracking for flanking system (Phase 2.5)
+        self.reset_attack_tracking()
+
         # Check for game over
         if self.current_turn > self.max_turns:
             self.game_over = True
@@ -578,6 +589,131 @@ class WorldState:
         closest_to_paris = min(safe_regions,
                                key=lambda r: self.get_distance(r, "Paris"))
         return closest_to_paris
+
+    # ========================================
+    # FLANKING SYSTEM (Phase 2.5)
+    # ========================================
+
+    def record_attack(self, attacker_name: str, origin_region: str, target_region: str) -> Dict:
+        """
+        Record an attack for flanking bonus calculation.
+        MUST be called BEFORE marshal moves to target.
+
+        Args:
+            attacker_name: Name of attacking marshal
+            origin_region: Where the attacker is BEFORE moving
+            target_region: Where the attack is directed
+
+        Returns:
+            Dict with attack record info
+        """
+        self._action_counter += 1
+
+        attack_record = {
+            "attacker": attacker_name,
+            "origin": origin_region,
+            "timestamp": int(self._action_counter)
+        }
+
+        # Initialize target list if needed
+        if target_region not in self.attacks_this_turn:
+            self.attacks_this_turn[target_region] = []
+
+        self.attacks_this_turn[target_region].append(attack_record)
+
+        return attack_record
+
+    def calculate_flanking_bonus(self, target_region: str) -> Dict:
+        """
+        Calculate flanking bonus based on UNIQUE attack origins.
+
+        True flanking requires attacks from DIFFERENT adjacent regions,
+        not just multiple attacks from the same direction.
+
+        Args:
+            target_region: The region being attacked
+
+        Returns:
+            Dict with:
+            - bonus: int (0-3 based on unique directions)
+            - unique_origins: set of origin region names
+            - message: str describing the flanking situation
+        """
+        if target_region not in self.attacks_this_turn:
+            return {
+                "bonus": 0,
+                "unique_origins": set(),
+                "num_origins": 0,
+                "message": None
+            }
+
+        attacks = self.attacks_this_turn[target_region]
+        origins = set()
+
+        for attack in attacks:
+            origins.add(attack["origin"])
+
+        unique_directions = len(origins)
+
+        # Calculate bonus based on unique attack directions
+        if unique_directions >= 4:
+            bonus = 3  # Surrounded from all sides
+            message = "Complete encirclement!"
+        elif unique_directions == 3:
+            bonus = 2  # Triple pincer
+            message = "Triple pincer attack!"
+        elif unique_directions == 2:
+            bonus = 1  # Classic flanking
+            message = "Flanking maneuver!"
+        else:
+            bonus = 0  # All attacks from same direction
+            message = None
+
+        return {
+            "bonus": int(bonus),
+            "unique_origins": origins,
+            "num_origins": int(unique_directions),
+            "message": message
+        }
+
+    def get_flanking_message(self, attacker_name: str, origin: str, target_region: str) -> Optional[str]:
+        """
+        Generate appropriate flanking message for THIS attack based on previous attacks.
+
+        Args:
+            attacker_name: Name of current attacker
+            origin: Origin region of current attacker
+            target_region: Target region being attacked
+
+        Returns:
+            Flanking message string or None if no flanking bonus
+        """
+        flanking_info = self.calculate_flanking_bonus(target_region)
+
+        if flanking_info["bonus"] == 0:
+            return None
+
+        origins = flanking_info["unique_origins"]
+        other_origins = [o for o in origins if o != origin]
+
+        if flanking_info["bonus"] == 1:
+            # Classic flanking
+            if other_origins:
+                return f"{attacker_name} flanks from {origin} while allies attack from {other_origins[0]}! (+1 coordination)"
+        elif flanking_info["bonus"] == 2:
+            # Triple pincer
+            if len(other_origins) >= 2:
+                return f"{attacker_name} completes the encirclement from {origin}! (+2 coordination)"
+        elif flanking_info["bonus"] == 3:
+            # Complete encirclement
+            return f"{attacker_name} seals the encirclement from {origin}! (+3 coordination)"
+
+        return None
+
+    def reset_attack_tracking(self) -> None:
+        """Reset attack tracking at the start of a new turn."""
+        self.attacks_this_turn = {}
+        self._action_counter = 0
 
     def __repr__(self) -> str:
         """String representation for debugging."""
