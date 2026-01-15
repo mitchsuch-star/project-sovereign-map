@@ -374,7 +374,10 @@ class WorldState:
                 "marshals": [
                     {
                         "name": m.name,
-                        "nation": m.nation
+                        "nation": m.nation,
+                        "strength": int(m.strength),
+                        "morale": int(m.morale),
+                        "movement_range": int(m.movement_range)
                     }
                     for m in alive_marshals
                 ]

@@ -48,6 +48,10 @@ const COLORS = {
 var region_controllers = {}
 var region_marshals = {}
 
+# Mouse tracking for hover tooltips
+var mouse_position: Vector2 = Vector2.ZERO
+var hovered_marshal: Dictionary = {}  # Stores marshal data when hovering
+
 func _ready():
 	# Initialize with starting state
 	_initialize_map()
@@ -61,11 +65,18 @@ func _initialize_map():
 
 func _draw():
 	"""Draw the entire map."""
+	# Reset hovered marshal at start of each frame
+	hovered_marshal = {}
+
 	# Draw connections first (so they're behind regions)
 	_draw_connections()
-	
+
 	# Draw regions
 	_draw_regions()
+
+	# Draw tooltip last (on top of everything)
+	if hovered_marshal.size() > 0:
+		_draw_tooltip()
 
 func _draw_connections():
 	"""Draw lines showing region adjacencies."""
@@ -153,21 +164,35 @@ func _draw_marshal_icons(region_pos: Vector2, marshals: Array):
 		# Draw icon border
 		draw_rect(Rect2(icon_pos, icon_size), Color.BLACK, false, 2.0)
 
-		# Draw marshal name above icon
+		# VERTICAL NAME STACKING - Fix overlap
+		# First marshal at -4, each additional stacks below at -4 - (index * 14)
+		var name_y_offset = -4 - (i * 14)
 		var name_text_size = font.get_string_size(marshal_name, HORIZONTAL_ALIGNMENT_CENTER, -1, name_font_size)
-		var name_pos = icon_pos + Vector2(icon_size.x / 2.0 - name_text_size.x / 2.0, -4)
+		var name_pos = icon_pos + Vector2(icon_size.x / 2.0 - name_text_size.x / 2.0, name_y_offset)
 		draw_string(font, name_pos, marshal_name, HORIZONTAL_ALIGNMENT_LEFT, -1, name_font_size, Color.WHITE)
 
+		# HOVER DETECTION - Check if mouse is over this icon
+		var icon_rect = Rect2(icon_pos, icon_size)
+		if icon_rect.has_point(mouse_position):
+			# Store hovered marshal data for tooltip
+			hovered_marshal = marshal
+
 func _gui_input(event):
-	"""Handle clicks on regions."""
+	"""Handle clicks and mouse motion."""
+	# Track mouse position for hover detection
+	if event is InputEventMouseMotion:
+		mouse_position = event.position
+		queue_redraw()  # Redraw to update tooltip
+
+	# Handle region clicks
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		var click_pos = event.position
-		
+
 		# Check which region was clicked
 		for region_name in REGION_POSITIONS:
 			var region_pos = REGION_POSITIONS[region_name]
 			var distance = click_pos.distance_to(region_pos)
-			
+
 			if distance <= 30:  # Within region circle
 				_on_region_clicked(region_name)
 				break
@@ -177,6 +202,71 @@ func _on_region_clicked(region_name: String):
 	print("Clicked region: ", region_name)
 	# TODO: Emit signal to main script
 	# emit_signal("region_selected", region_name)
+
+func _draw_tooltip():
+	"""Draw tooltip panel showing marshal details."""
+	# Tooltip dimensions
+	var tooltip_size = Vector2(200, 120)
+	var tooltip_pos = mouse_position + Vector2(15, 15)  # Offset from cursor
+	var padding = 10
+
+	# Draw semi-transparent dark panel
+	var panel_color = Color(0.1, 0.1, 0.15, 0.95)
+	draw_rect(Rect2(tooltip_pos, tooltip_size), panel_color)
+
+	# Draw white border
+	draw_rect(Rect2(tooltip_pos, tooltip_size), Color.WHITE, false, 2.0)
+
+	# Get marshal data
+	var marshal_name = hovered_marshal.get("name", "Unknown")
+	var marshal_nation = hovered_marshal.get("nation", "Neutral")
+	var strength = hovered_marshal.get("strength", 0)
+	var morale = hovered_marshal.get("morale", 0)
+	var movement_range = hovered_marshal.get("movement_range", 1)
+
+	# Font setup
+	var font = ThemeDB.fallback_font
+	var line_spacing = 16
+	var text_x = tooltip_pos.x + padding
+	var text_y = tooltip_pos.y + padding
+
+	# Line 1: Marshal name (size 14, white)
+	draw_string(font, Vector2(text_x, text_y + 14), marshal_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
+	text_y += line_spacing + 4  # Extra spacing after name
+
+	# Line 2: Nation (size 11, gray)
+	draw_string(font, Vector2(text_x, text_y + 11), marshal_nation, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.7, 0.7, 0.7))
+	text_y += line_spacing + 4  # Extra spacing before stats
+
+	# Line 3: Troops (formatted with commas)
+	var troops_text = "Troops: " + _format_number(strength)
+	draw_string(font, Vector2(text_x, text_y + 11), troops_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
+	text_y += line_spacing
+
+	# Line 4: Morale
+	var morale_text = "Morale: " + str(morale) + "%"
+	draw_string(font, Vector2(text_x, text_y + 11), morale_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
+	text_y += line_spacing
+
+	# Line 5: Movement range
+	var movement_text = "Movement: Range " + str(movement_range)
+	draw_string(font, Vector2(text_x, text_y + 11), movement_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
+
+func _format_number(num: int) -> String:
+	"""Format number with comma separators (72000 → 72,000)."""
+	var num_str = str(num)
+	var result = ""
+	var count = 0
+
+	# Process string from right to left
+	for i in range(num_str.length() - 1, -1, -1):
+		if count == 3:
+			result = "," + result
+			count = 0
+		result = num_str[i] + result
+		count += 1
+
+	return result
 
 func update_region(region_name: String, controller: String, marshal: String = ""):
 	"""Update a region's state (called from backend response)."""
