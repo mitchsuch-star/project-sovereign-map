@@ -57,8 +57,13 @@ class CombatResolver:
         die2 = random.randint(1, 6)
         natural_roll = die1 + die2  # Range: 2-12
 
-        # Calculate skill bonus
-        skill_bonus = marshal.tactical_skill // 3  # 0-4 for skill 0-12
+        # Calculate skill bonus from tactical skill (use skills dict if available)
+        if hasattr(marshal, 'skills') and 'tactical' in marshal.skills:
+            tactical_skill = marshal.skills['tactical']
+        else:
+            tactical_skill = marshal.tactical_skill  # Fallback for backward compatibility
+
+        skill_bonus = tactical_skill // 3  # 0-3 for skill 1-10
 
         # Modified roll (capped at 12)
         modified_roll = min(12, natural_roll + skill_bonus)
@@ -108,20 +113,58 @@ class CombatResolver:
 
         #print(f"   Defender after terrain: {defender_effective:,.0f}")
 
-        # Calculate casualties with dice multiplier
+        # Calculate casualties with dice multiplier and skills
         # Attacker's roll affects how much damage they deal to defender
-        attacker_casualties = self._calculate_casualties(
+
+        # Base casualties before skill modifiers
+        base_attacker_casualties = self._calculate_casualties(
             attacker.strength,
             defender_effective,
             attacker_effective
         )
 
-        # Apply attacker's dice multiplier to defender casualties
-        defender_casualties = int(self._calculate_casualties(
+        base_defender_casualties = self._calculate_casualties(
             defender.strength,
             attacker_effective,
             defender_effective
-        ) * attacker_roll['multiplier'])
+        )
+
+        # Apply SHOCK skill to attacker damage (increases damage dealt to defender)
+        # Higher shock = more casualties inflicted
+        # shock_skill / 20 gives 0.05 to 0.50 bonus (5% to 50% more damage)
+        attacker_shock = attacker.skills.get("shock", 5)
+
+        # SIGNATURE ABILITY: Ney's "Bravest of the Brave" (Phase 2.3)
+        # When attacking, Ney gets +2 Shock
+        ability_message = None
+        if hasattr(attacker, 'ability') and attacker.ability.get("trigger") == "when_attacking":
+            # Check if this is an attack-triggering ability (currently only Ney has this)
+            if attacker.ability.get("name") == "Bravest of the Brave":
+                attacker_shock += 2
+                ability_message = f"{attacker.name}'s '{attacker.ability['name']}' inspires the assault!"
+
+        shock_multiplier = 1.0 + (attacker_shock / 20.0)
+
+        # Apply DEFENSE skill to defender protection (reduces casualties taken)
+        # Higher defense = fewer casualties taken
+        # defense_skill // 2 gives 0 to 5 percentage points of protection
+        defender_defense = defender.skills.get("defense", 5)
+        defense_bonus = defender_defense / 20.0  # 0.05 to 0.50 (5% to 50% reduction)
+        defense_multiplier = 1.0 - defense_bonus
+
+        # Calculate final casualties
+        # Attacker takes casualties (reduced by their defense skill)
+        attacker_defense = attacker.skills.get("defense", 5)
+        attacker_defense_mult = 1.0 - (attacker_defense / 20.0)
+        attacker_casualties = int(base_attacker_casualties * attacker_defense_mult)
+
+        # Defender takes casualties (increased by attacker shock, reduced by defender defense, affected by dice roll)
+        defender_casualties = int(
+            base_defender_casualties
+            * shock_multiplier          # Attacker's shock increases damage
+            * defense_multiplier        # Defender's defense reduces damage
+            * attacker_roll['multiplier']  # Dice roll affects damage
+        )
 
         #print(f"   💀 Casualties: {attacker.name} {attacker_casualties:,}, {defender.name} {defender_casualties:,}")
 
@@ -187,6 +230,7 @@ class CombatResolver:
             },
             "terrain": terrain,
             "attacker_roll": attacker_roll,
+            "ability_triggered": ability_message,  # Phase 2.3: Signature abilities
             "description": self._generate_description(
                 attacker, defender, outcome, attacker_casualties, defender_casualties, attacker_roll
             )

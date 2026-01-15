@@ -3,7 +3,7 @@ Marshal Model for Project Sovereign
 Represents a marshal (commander) with personality and army
 """
 
-from typing import Optional
+from typing import Optional, Dict
 
 
 class Marshal:
@@ -25,7 +25,9 @@ class Marshal:
             personality: str,
             nation: str = "France",
             movement_range: int = 1,
-            tactical_skill: int = 5
+            tactical_skill: int = 5,
+            skills: Optional[dict] = None,
+            ability: Optional[dict] = None
     ):
         """Initialize a marshal."""
         self.name = name
@@ -36,6 +38,46 @@ class Marshal:
         self.nation = nation
         self.movement_range = movement_range  # Attack range (cavalry=2, infantry=1)
         self.tactical_skill = tactical_skill  # Tactical skill rating (0-12, affects dice rolls)
+
+        # 6-Skill System (Phase 2.2)
+        # Skills range 1-10 (10 = best)
+        if skills is None:
+            # Default skills if not provided (backward compatibility)
+            skills = {
+                "tactical": tactical_skill,  # Use tactical_skill for backward compat
+                "shock": 5,
+                "defense": 5,
+                "logistics": 5,
+                "administration": 5,
+                "command": 5
+            }
+
+        self.skills: Dict[str, int] = {
+            "tactical": int(skills.get("tactical", 5)),      # Combat rolls, flanking bonuses
+            "shock": int(skills.get("shock", 5)),            # Attack damage, pursuit effectiveness
+            "defense": int(skills.get("defense", 5)),        # Defender bonus, retreat casualties
+            "logistics": int(skills.get("logistics", 5)),    # Supply range (Phase 5), attrition resistance
+            "administration": int(skills.get("administration", 5)),  # Recruitment speed, desertion prevention
+            "command": int(skills.get("command", 5))         # Morale management, discipline, looting prevention
+        }
+
+        # Signature Ability System (Phase 2.3)
+        # Each marshal has a unique ability that triggers in specific situations
+        if ability is None:
+            # Default no ability (backward compatibility)
+            ability = {
+                "name": "None",
+                "description": "No special ability",
+                "trigger": "never",
+                "effect": "none"
+            }
+
+        self.ability: Dict[str, str] = {
+            "name": str(ability.get("name", "None")),
+            "description": str(ability.get("description", "No special ability")),
+            "trigger": str(ability.get("trigger", "never")),
+            "effect": str(ability.get("effect", "none"))
+        }
 
         # Game state (changes during play)
         self.morale: int = 100
@@ -120,7 +162,21 @@ def create_starting_marshals() -> dict[str, Marshal]:
             personality="aggressive",
             nation="France",
             movement_range=2,  # Cavalry commander - can attack 2 regions away
-            tactical_skill=8  # Brave and inspiring, but sometimes reckless
+            tactical_skill=8,  # Brave and inspiring, but sometimes reckless
+            skills={
+                "tactical": 7,      # Good tactician, not brilliant
+                "shock": 9,         # "The Bravest of the Brave" - devastating attacker
+                "defense": 4,       # Poor defender, too aggressive
+                "logistics": 5,     # Average logistics
+                "administration": 4,  # Not great at administration
+                "command": 8        # Inspiring leader, men would follow him anywhere
+            },
+            ability={
+                "name": "Bravest of the Brave",
+                "description": "Ney's aggressive leadership inspires devastating attacks",
+                "trigger": "when_attacking",
+                "effect": "+2 Shock skill when attacking (not defending)"
+            }
         ),
         "Davout": Marshal(
             name="Davout",
@@ -129,7 +185,21 @@ def create_starting_marshals() -> dict[str, Marshal]:
             personality="cautious",
             nation="France",
             movement_range=1,  # Infantry commander
-            tactical_skill=10  # "The Iron Marshal" - Napoleon's best tactician
+            tactical_skill=10,  # "The Iron Marshal" - Napoleon's best tactician
+            skills={
+                "tactical": 9,      # Brilliant tactician
+                "shock": 7,         # Strong attacker but not reckless
+                "defense": 8,       # Excellent defender
+                "logistics": 8,     # Outstanding logistics
+                "administration": 8,  # Excellent administrator
+                "command": 9        # Iron discipline, feared and respected
+            },
+            ability={
+                "name": "Iron Marshal",
+                "description": "Davout's iron discipline keeps his army steady under pressure",
+                "trigger": "morale_drops_below_50",
+                "effect": "Prevents first morale drop below 50% (TODO: Phase 2.4 morale system)"
+            }
         ),
         "Grouchy": Marshal(
             name="Grouchy",
@@ -138,7 +208,21 @@ def create_starting_marshals() -> dict[str, Marshal]:
             personality="literal",
             nation="France",
             movement_range=1,  # Infantry commander
-            tactical_skill=6  # Competent but unlucky
+            tactical_skill=6,  # Competent but unlucky
+            skills={
+                "tactical": 5,      # Average tactician
+                "shock": 5,         # Average attacker
+                "defense": 5,       # Average defender
+                "logistics": 6,     # Slightly better at logistics
+                "administration": 5,  # Average administrator
+                "command": 5        # Average leader
+            },
+            ability={
+                "name": "Literal Obedience",
+                "description": "Grouchy follows orders exactly, never taking initiative",
+                "trigger": "receiving_orders",
+                "effect": "Never questions orders, always obeys exactly (TODO: Phase 2.4 order delay system)"
+            }
         )
     }
     return marshals
@@ -163,7 +247,21 @@ def create_enemy_marshals() -> dict[str, Marshal]:
             strength=68000,
             personality="cautious",
             nation="Britain",
-            tactical_skill=10  # Defensive genius, never lost a battle
+            tactical_skill=10,  # Defensive genius, never lost a battle
+            skills={
+                "tactical": 9,      # Brilliant tactician
+                "shock": 4,         # Poor attacker, defensive-minded
+                "defense": 10,      # Best defender in Europe
+                "logistics": 8,     # Excellent logistics (Peninsular War)
+                "administration": 7,  # Good administrator
+                "command": 9        # Respected and competent leader
+            },
+            ability={
+                "name": "Reverse Slope Defense",
+                "description": "Wellington masters defensive terrain, hiding troops behind hills",
+                "trigger": "defending_in_hills_or_forest",
+                "effect": "+2 Defense skill when defending on Hills or Forest terrain (TODO: Terrain system)"
+            }
         ),
         "Blucher": Marshal(
             name="Blucher",
@@ -171,7 +269,21 @@ def create_enemy_marshals() -> dict[str, Marshal]:
             strength=55000,
             personality="aggressive",
             nation="Prussia",
-            tactical_skill=7  # Aggressive and determined, but impetuous
+            tactical_skill=7,  # Aggressive and determined, but impetuous
+            skills={
+                "tactical": 6,      # Good but not brilliant tactician
+                "shock": 8,         # "Marshal Forward" - aggressive attacker
+                "defense": 5,       # Average defender, prefers attack
+                "logistics": 5,     # Average logistics
+                "administration": 4,  # Poor administrator, soldier's soldier
+                "command": 7        # Inspirational leader, loved by troops
+            },
+            ability={
+                "name": "Vorwärts!",
+                "description": "Blücher's aggressive pursuit inflicts extra casualties on retreating enemies",
+                "trigger": "after_winning_battle",
+                "effect": "+1 pursuit damage to retreating enemies (TODO: Phase 2.6 pursuit system)"
+            }
         )
     }
     return enemies
