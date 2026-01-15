@@ -5,6 +5,7 @@ Converts natural language commands into validated, executable orders
 
 from typing import Dict, List, Optional
 from backend.ai.llm_client import LLMClient
+from backend.utils.fuzzy_matcher import FuzzyMatcher
 
 
 class CommandParser:
@@ -21,6 +22,7 @@ class CommandParser:
             use_real_llm: If True, use real Claude API. If False, use mock.
         """
         self.llm = LLMClient(use_real_api=use_real_llm)
+        self.fuzzy_matcher = FuzzyMatcher()
 
         # Valid marshals (will expand this later)
         self.valid_marshals = ["Ney", "Davout", "Grouchy", "Murat"]
@@ -31,7 +33,128 @@ class CommandParser:
             "reinforce", "recruit", "help", "end_turn"
         ]
 
+        # Known regions for fuzzy matching
+        self.known_regions = [
+            "Paris", "Belgium", "Netherlands", "Waterloo", "Rhine",
+            "Bavaria", "Vienna", "Lyon", "Milan", "Marseille",
+            "Geneva", "Brittany", "Bordeaux"
+        ]
+
+        # Known enemy marshals
+        self.known_enemies = ["Wellington", "Blucher"]
+
         print(f"Command Parser initialized with {'REAL' if use_real_llm else 'MOCK'} LLM")
+
+    def _apply_fuzzy_matching(self, llm_result: Dict, command_text: str) -> tuple:
+        """
+        Apply fuzzy matching to correct typos in marshal and target names.
+
+        Args:
+            llm_result: The result from LLM parsing
+            command_text: Original command text
+
+        Returns:
+            Tuple of (updated llm_result, error_dict or None)
+            error_dict is set if an invalid marshal name was detected
+        """
+        # Fuzzy match marshal name if LLM extracted one
+        if llm_result.get("marshal"):
+            marshal_result = self.fuzzy_matcher.match_with_context(
+                llm_result["marshal"],
+                self.valid_marshals
+            )
+            if marshal_result["action"] in ["exact", "auto_correct"]:
+                llm_result["marshal"] = marshal_result["match"]
+            elif marshal_result["action"] == "suggest":
+                # Medium confidence match - suggest to user
+                return (llm_result, {
+                    "error": f"Did you mean '{marshal_result['match']}'? ('{llm_result['marshal']}' not found)",
+                    "suggestion": f"Try: '{marshal_result['match']}' or one of: {', '.join(self.valid_marshals)}"
+                })
+            else:  # action == "error"
+                # No good match - return error with suggestions
+                suggestions = marshal_result.get("suggestions", self.valid_marshals[:3])
+                return (llm_result, {
+                    "error": f"Marshal '{llm_result['marshal']}' not found",
+                    "suggestion": f"Available marshals: {', '.join(suggestions)}"
+                })
+        # If marshal is None, try to extract from command text with fuzzy matching
+        elif not llm_result.get("marshal"):
+            words = command_text.split()
+            for word in words:
+                # Skip very short words and common words
+                if len(word) < 2 or word.lower() in ["to", "the", "at", "in", "on", "and", "or", "attack", "defend", "move", "scout"]:
+                    continue
+
+                marshal_result = self.fuzzy_matcher.match_with_context(
+                    word,
+                    self.valid_marshals
+                )
+                if marshal_result["action"] in ["exact", "auto_correct"]:
+                    llm_result["marshal"] = marshal_result["match"]
+                    break
+                elif marshal_result["action"] == "suggest":
+                    # Found a word that looks like a marshal but medium confidence
+                    # Suggest to user instead of auto-assigning
+                    return (llm_result, {
+                        "error": f"Did you mean '{marshal_result['match']}'? ('{word}' not found)",
+                        "suggestion": f"Try: '{marshal_result['match']}' or one of: {', '.join(self.valid_marshals)}"
+                    })
+                elif marshal_result["action"] == "error":
+                    # Word doesn't match any marshal well. Check if it's a valid target.
+                    # If it's not a target either, it's probably a bad marshal name.
+                    all_targets = self.known_regions + self.known_enemies
+                    target_check = self.fuzzy_matcher.match_with_context(word, all_targets)
+
+                    # If this word also doesn't match any target, it's likely a bad marshal attempt
+                    if target_check["action"] == "error":
+                        suggestions = marshal_result.get("suggestions", self.valid_marshals[:3])
+                        return (llm_result, {
+                            "error": f"Marshal '{word}' not found",
+                            "suggestion": f"Available marshals: {', '.join(suggestions)}"
+                        })
+                    # Otherwise, skip this word - it might be a target, not a marshal
+
+        # Fuzzy match target name
+        if llm_result.get("target"):
+            # Try matching against regions first
+            target_result = self.fuzzy_matcher.match_with_context(
+                llm_result["target"],
+                self.known_regions
+            )
+
+            # If no good region match, try enemies
+            if target_result["action"] == "error":
+                target_result = self.fuzzy_matcher.match_with_context(
+                    llm_result["target"],
+                    self.known_enemies
+                )
+
+            # Apply correction if found
+            if target_result["action"] in ["exact", "auto_correct"]:
+                llm_result["target"] = target_result["match"]
+
+        # If target is still None, try to extract it from command text
+        elif not llm_result.get("target"):
+            # Extract potential target words from command (words after action)
+            words = command_text.split()
+            for word in words:
+                # Skip common words
+                if word.lower() in ["to", "the", "at", "in", "on", "and", "or"]:
+                    continue
+
+                # Try matching against all targets
+                all_targets = self.known_regions + self.known_enemies
+                target_result = self.fuzzy_matcher.match_with_context(
+                    word,
+                    all_targets
+                )
+
+                if target_result["action"] in ["exact", "auto_correct"]:
+                    llm_result["target"] = target_result["match"]
+                    break
+
+        return (llm_result, None)
 
     def parse(self, command_text: str, game_state: Optional[Dict] = None) -> Dict:
         """
@@ -48,10 +171,22 @@ class CommandParser:
             # Step 1: Use LLM to parse natural language
             llm_result = self.llm.parse_command(command_text, game_state)
 
-            # Step 2: Validate the parsed command
+            # Step 2: Apply fuzzy matching to correct typos
+            llm_result, fuzzy_error = self._apply_fuzzy_matching(llm_result, command_text)
+
+            # If fuzzy matching found an invalid marshal/target, return error immediately
+            if fuzzy_error:
+                return {
+                    "success": False,
+                    "error": fuzzy_error["error"],
+                    "suggestion": fuzzy_error.get("suggestion"),
+                    "raw_input": command_text
+                }
+
+            # Step 3: Validate the parsed command
             validation_result = self._validate_command(llm_result, game_state)
 
-            # Step 3: Return complete result
+            # Step 4: Return complete result
             if validation_result.get("valid"):
                 # Classify command type
                 command_type = self._classify_command(llm_result, command_text)
@@ -129,7 +264,7 @@ class CommandParser:
         Classify the type of command.
 
         Args:
-            parsed_command: The parsed command dict from LLM
+            parsed_command: The parsed command dict from LLM (AFTER fuzzy matching)
             raw_input: The original command text
 
         Returns:
@@ -137,24 +272,24 @@ class CommandParser:
         """
         action = parsed_command.get("action", "")
         target = parsed_command.get("target")
+        marshal = parsed_command.get("marshal")
 
-        # Check if marshal name was actually mentioned in the command
-        raw_lower = raw_input.lower()
-        marshal_mentioned = any(name in raw_lower for name in ["ney", "davout", "grouchy", "marshal"])
+        # If a marshal is set (after fuzzy matching), it's a specific order
+        if marshal is not None:
+            return "specific"
 
-        # If no specific marshal mentioned, it's a general order
-        if not marshal_mentioned:
-            if action == "attack":
-                if not target:
-                    return "general_attack"  # "attack" alone
-                else:
-                    return "auto_assign_attack"  # "attack Wellington" - find closest marshal
-            elif action == "retreat":
-                return "general_retreat"  # All forces retreat
-            elif action == "defend":
-                return "general_defensive"  # All forces defend
+        # No marshal specified - classify as general order based on action
+        if action == "attack":
+            if not target:
+                return "general_attack"  # "attack" alone - find nearest enemy
+            else:
+                return "auto_assign_attack"  # "attack Wellington" - find closest marshal to target
+        elif action == "retreat":
+            return "general_retreat"  # All forces retreat
+        elif action == "defend":
+            return "general_defensive"  # All forces defend
 
-        # Default: directed at specific marshal
+        # Default fallback
         return "specific"
     def parse_multiple(self, command_text: str, game_state: Optional[Dict] = None) -> List[Dict]:
         """

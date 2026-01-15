@@ -260,7 +260,7 @@ class WorldState:
         strongest_marshal, distance = ready_marshals[0]
 
         # EXPLANATORY LOGGING
-        print(f"   🎯 MARSHAL SELECTED: {strongest_marshal.name}")
+        print(f"   [MARSHAL SELECTED]: {strongest_marshal.name}")
         print(f"      Strength: {strongest_marshal.strength:,} troops")
         print(f"      Distance to {region_name}: {distance} hops")
         print(f"      Attack range: {strongest_marshal.movement_range}")
