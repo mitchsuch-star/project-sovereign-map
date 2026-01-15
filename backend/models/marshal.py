@@ -24,7 +24,8 @@ class Marshal:
             strength: int,
             personality: str,
             nation: str = "France",
-            movement_range: int = 1
+            movement_range: int = 1,
+            tactical_skill: int = 5
     ):
         """Initialize a marshal."""
         self.name = name
@@ -34,6 +35,7 @@ class Marshal:
         self.personality = personality
         self.nation = nation
         self.movement_range = movement_range  # Attack range (cavalry=2, infantry=1)
+        self.tactical_skill = tactical_skill  # Tactical skill rating (0-12, affects dice rolls)
 
         # Game state (changes during play)
         self.morale: int = 100
@@ -117,7 +119,8 @@ def create_starting_marshals() -> dict[str, Marshal]:
             strength=72000,
             personality="aggressive",
             nation="France",
-            movement_range=2  # Cavalry commander - can attack 2 regions away
+            movement_range=2,  # Cavalry commander - can attack 2 regions away
+            tactical_skill=8  # Brave and inspiring, but sometimes reckless
         ),
         "Davout": Marshal(
             name="Davout",
@@ -125,7 +128,8 @@ def create_starting_marshals() -> dict[str, Marshal]:
             strength=48000,
             personality="cautious",
             nation="France",
-            movement_range=1  # Infantry commander
+            movement_range=1,  # Infantry commander
+            tactical_skill=10  # "The Iron Marshal" - Napoleon's best tactician
         ),
         "Grouchy": Marshal(
             name="Grouchy",
@@ -133,7 +137,8 @@ def create_starting_marshals() -> dict[str, Marshal]:
             strength=33000,
             personality="literal",
             nation="France",
-            movement_range=1  # Infantry commander
+            movement_range=1,  # Infantry commander
+            tactical_skill=6  # Competent but unlucky
         )
     }
     return marshals
@@ -157,14 +162,16 @@ def create_enemy_marshals() -> dict[str, Marshal]:
             location="Waterloo",
             strength=68000,
             personality="cautious",
-            nation="Britain"
+            nation="Britain",
+            tactical_skill=10  # Defensive genius, never lost a battle
         ),
         "Blucher": Marshal(
             name="Blucher",
             location="Netherlands",
             strength=55000,
             personality="aggressive",
-            nation="Prussia"
+            nation="Prussia",
+            tactical_skill=7  # Aggressive and determined, but impetuous
         )
     }
     return enemies

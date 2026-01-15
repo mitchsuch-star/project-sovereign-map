@@ -19,7 +19,7 @@ const REGION_POSITIONS = {
 
 # Region adjacencies (from region.py)
 const REGION_CONNECTIONS = {
-	"Paris": ["Belgium", "Brittany", "Lyon"],
+	"Paris": ["Belgium", "Waterloo", "Brittany", "Lyon"],
 	"Belgium": ["Paris", "Netherlands", "Waterloo", "Rhine"],
 	"Netherlands": ["Belgium"],
 	"Waterloo": ["Belgium", "Paris"],
@@ -52,9 +52,33 @@ var region_marshals = {}
 var mouse_position: Vector2 = Vector2.ZERO
 var hovered_marshal: Dictionary = {}  # Stores marshal data when hovering
 
+# Camera/zoom control variables
+var zoom_level: float = 1.0
+var target_zoom: float = 1.0
+var min_zoom: float = 0.5
+var max_zoom: float = 2.0
+var pan_offset: Vector2 = Vector2.ZERO
+var is_panning: bool = false
+var pan_start_pos: Vector2 = Vector2.ZERO
+var zoom_tween: Tween = null
+var is_zooming: bool = false
+
+# Pan speeds
+const PAN_SPEED_KEYS: float = 300.0  # pixels per second with arrow keys
+const ZOOM_SPEED: float = 0.1  # zoom increment per wheel notch
+const ZOOM_DURATION: float = 0.2  # seconds for smooth zoom transition
+
 func _ready():
 	# Initialize with starting state
 	_initialize_map()
+
+	# Center camera on map
+	# Map bounds approximately: x(200-950), y(150-650)
+	var map_center = Vector2(575, 400)
+	var viewport_size = size
+	if viewport_size.x > 0 and viewport_size.y > 0:
+		pan_offset = (viewport_size / 2) - map_center
+
 	queue_redraw()
 
 func _initialize_map():
@@ -63,10 +87,41 @@ func _initialize_map():
 	region_controllers = {}
 	region_marshals = {}
 
+func _get_map_mouse_position() -> Vector2:
+	"""Convert screen mouse position to map coordinates accounting for zoom and pan."""
+	return (mouse_position - pan_offset) / zoom_level
+
+func _process(delta: float):
+	"""Handle arrow key panning and continuous zoom redraws."""
+	# Redraw continuously during zoom animation
+	if is_zooming:
+		queue_redraw()
+
+	# Arrow key panning
+	var pan_input = Vector2.ZERO
+
+	# Check arrow key inputs
+	if Input.is_action_pressed("ui_left"):
+		pan_input.x += 1
+	if Input.is_action_pressed("ui_right"):
+		pan_input.x -= 1
+	if Input.is_action_pressed("ui_up"):
+		pan_input.y += 1
+	if Input.is_action_pressed("ui_down"):
+		pan_input.y -= 1
+
+	# Apply panning
+	if pan_input != Vector2.ZERO:
+		pan_offset += pan_input * PAN_SPEED_KEYS * delta
+		queue_redraw()
+
 func _draw():
 	"""Draw the entire map."""
 	# Reset hovered marshal at start of each frame
 	hovered_marshal = {}
+
+	# Apply camera transformations (pan and zoom)
+	draw_set_transform(pan_offset, 0.0, Vector2(zoom_level, zoom_level))
 
 	# Draw connections first (so they're behind regions)
 	_draw_connections()
@@ -74,7 +129,10 @@ func _draw():
 	# Draw regions
 	_draw_regions()
 
-	# Draw tooltip last (on top of everything)
+	# Reset transform for UI elements (tooltip in screen space)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+	# Draw tooltip last (on top of everything, in screen space)
 	if hovered_marshal.size() > 0:
 		_draw_tooltip()
 
@@ -173,25 +231,55 @@ func _draw_marshal_icons(region_pos: Vector2, marshals: Array):
 
 		# HOVER DETECTION - Check if mouse is over this icon
 		var icon_rect = Rect2(icon_pos, icon_size)
-		if icon_rect.has_point(mouse_position):
+		var map_mouse_pos = _get_map_mouse_position()
+		if icon_rect.has_point(map_mouse_pos):
 			# Store hovered marshal data for tooltip
 			hovered_marshal = marshal
 
 func _gui_input(event):
-	"""Handle clicks and mouse motion."""
+	"""Handle clicks, mouse motion, zoom, and pan."""
 	# Track mouse position for hover detection
 	if event is InputEventMouseMotion:
 		mouse_position = event.position
-		queue_redraw()  # Redraw to update tooltip
+
+		# Handle middle mouse drag for panning
+		if is_panning:
+			var delta = event.position - pan_start_pos
+			pan_offset += delta
+			pan_start_pos = event.position
+
+		queue_redraw()  # Redraw to update tooltip/pan
+
+	# Handle mouse button events
+	if event is InputEventMouseButton and event.pressed:
+		# Mouse wheel zoom
+		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			_zoom_at_point(event.position, 1 + ZOOM_SPEED)
+			return
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_zoom_at_point(event.position, 1 - ZOOM_SPEED)
+			return
+
+		# Middle mouse button for panning
+		elif event.button_index == MOUSE_BUTTON_MIDDLE:
+			is_panning = true
+			pan_start_pos = event.position
+			return
+
+	# Handle mouse button release
+	if event is InputEventMouseButton and not event.pressed:
+		if event.button_index == MOUSE_BUTTON_MIDDLE:
+			is_panning = false
+			return
 
 	# Handle region clicks
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		var click_pos = event.position
+		var map_click_pos = _get_map_mouse_position()
 
 		# Check which region was clicked
 		for region_name in REGION_POSITIONS:
 			var region_pos = REGION_POSITIONS[region_name]
-			var distance = click_pos.distance_to(region_pos)
+			var distance = map_click_pos.distance_to(region_pos)
 
 			if distance <= 30:  # Within region circle
 				_on_region_clicked(region_name)
@@ -202,6 +290,39 @@ func _on_region_clicked(region_name: String):
 	print("Clicked region: ", region_name)
 	# TODO: Emit signal to main script
 	# emit_signal("region_selected", region_name)
+
+func _zoom_at_point(point: Vector2, zoom_factor: float):
+	"""Zoom smoothly at a specific point (keeps point under cursor)."""
+	var new_zoom = clamp(zoom_level * zoom_factor, min_zoom, max_zoom)
+
+	if new_zoom == zoom_level:
+		return  # Already at limit
+
+	# Calculate the point in map coordinates before zoom
+	var map_point_before = (point - pan_offset) / zoom_level
+
+	# Kill existing zoom tween
+	if zoom_tween:
+		zoom_tween.kill()
+
+	# Set zooming flag for continuous redraws
+	is_zooming = true
+
+	# Create smooth zoom transition
+	zoom_tween = create_tween()
+	zoom_tween.set_parallel(true)
+
+	# Animate zoom
+	zoom_tween.tween_property(self, "zoom_level", new_zoom, ZOOM_DURATION).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+	# Adjust pan to keep the point under cursor
+	var map_point_after = (point - pan_offset) / new_zoom
+	var pan_adjustment = (map_point_after - map_point_before) * new_zoom
+	var new_pan = pan_offset + pan_adjustment
+	zoom_tween.tween_property(self, "pan_offset", new_pan, ZOOM_DURATION).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+	# Clear zooming flag when finished
+	zoom_tween.finished.connect(func(): is_zooming = false)
 
 func _draw_tooltip():
 	"""Draw tooltip panel showing marshal details."""

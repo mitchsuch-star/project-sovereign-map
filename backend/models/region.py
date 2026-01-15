@@ -38,7 +38,7 @@ class Region:
 # Map data: 12 regions of Western Europe
 REGIONS_DATA = {
     "Paris": {
-        "adjacent": ["Belgium", "Brittany", "Lyon"],
+        "adjacent": ["Belgium", "Waterloo", "Brittany", "Lyon"],
         "income": 100,
         "is_capital": True
     },

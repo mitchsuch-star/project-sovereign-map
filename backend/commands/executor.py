@@ -111,9 +111,11 @@ TIPS:
         # Actions don't apply to status queries or help
         free_actions = ["status", "help", "end_turn", "unknown"]
 
+        # Check if action costs points
+        action_costs_point = action not in free_actions
 
-        if action not in free_actions:
-            # Check if actions available
+        if action_costs_point:
+            # Check if actions available (but DON'T consume yet)
             if world.actions_remaining <= 0:
                 return {
                     "success": False,
@@ -121,25 +123,6 @@ TIPS:
                     "actions_remaining": 0,
                     "action_summary": world.get_action_summary()
                 }
-
-            # Use an action
-            action_result = world.use_action(action)
-
-            if not action_result["success"]:
-                return {
-                    "success": False,
-                    "message": action_result["message"],
-                    "actions_remaining": world.actions_remaining,
-                    "action_summary": world.get_action_summary()
-                }
-        else:
-            # Free action - no cost
-            action_result = {
-                "success": True,
-                "action_cost": 0,
-                "actions_remaining": world.actions_remaining,
-                "turn_advanced": False
-            }
 
         # ============================================================
         # Continue with normal command routing
@@ -174,9 +157,19 @@ TIPS:
             }
 
         # ============================================================
-        # ACTION ECONOMY: Add action info to result
+        # ACTION ECONOMY: Consume action ONLY if command succeeded
         # ============================================================
 
+        # Only consume action if:
+        # 1. Command succeeded
+        # 2. Action costs a point (not free)
+        action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
+
+        if result.get("success", False) and action_costs_point:
+            # NOW consume the action (after validation passed)
+            action_result = world.use_action(action)
+
+        # Add action info to result
         result["action_info"] = {
             "cost": action_result.get("action_cost", 0),
             "remaining": world.actions_remaining,

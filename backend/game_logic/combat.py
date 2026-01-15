@@ -1,6 +1,12 @@
 """
 Combat System for Project Sovereign
 Handles battle resolution between armies
+
+Features:
+- 2d6 dice-based combat with skill modifiers
+- Critical success/failure on natural 12/2
+- Skill-based advantage for better marshals
+- Variance while maintaining tactical superiority
 """
 
 from typing import Dict, Tuple, Optional
@@ -24,17 +30,70 @@ class CombatResolver:
         self.defender_bonus = 0.2  # +20% for defender
         self.variance = 0.1  # ±10% random variance
 
+    def roll_combat_dice(self, marshal: Marshal) -> Dict:
+        """
+        Roll 2d6 for combat with skill modifiers.
+
+        Formula:
+        - Roll 2d6 (natural roll: 2-12)
+        - Add skill bonus: tactical_skill // 3
+        - Cap modified roll at 12
+        - Calculate multiplier: 0.85 + (modified * 0.025)
+
+        Args:
+            marshal: The marshal rolling dice
+
+        Returns:
+            Dict with:
+            - natural: int (2-12, unmodified 2d6 roll)
+            - modified: int (natural + skill bonus, capped at 12)
+            - is_critical_success: bool (natural 12)
+            - is_critical_failure: bool (natural 2)
+            - multiplier: float (0.85 to 1.15)
+            - skill_bonus: int (tactical_skill // 3)
+        """
+        # Roll 2d6
+        die1 = random.randint(1, 6)
+        die2 = random.randint(1, 6)
+        natural_roll = die1 + die2  # Range: 2-12
+
+        # Calculate skill bonus
+        skill_bonus = marshal.tactical_skill // 3  # 0-4 for skill 0-12
+
+        # Modified roll (capped at 12)
+        modified_roll = min(12, natural_roll + skill_bonus)
+
+        # Detect criticals (based on NATURAL roll only)
+        is_critical_success = (natural_roll == 12)
+        is_critical_failure = (natural_roll == 2)
+
+        # Calculate damage multiplier
+        # Range: 0.85 (roll 2) to 1.15 (roll 12)
+        multiplier = 0.85 + (modified_roll * 0.025)
+
+        return {
+            "natural": int(natural_roll),
+            "modified": int(modified_roll),
+            "is_critical_success": is_critical_success,
+            "is_critical_failure": is_critical_failure,
+            "multiplier": multiplier,
+            "skill_bonus": int(skill_bonus)
+        }
+
     def resolve_battle(
             self,
             attacker: Marshal,
             defender: Marshal,
             terrain: str = "open"
     ) -> Dict:
-        """Resolve a battle between two marshals."""
+        """Resolve a battle between two marshals using 2d6 dice system."""
 
         #print(f"\n⚔️ BATTLE: {attacker.name} vs {defender.name}")
         #print(f"   Attacker: {attacker.strength:,} troops, {attacker.morale}% morale")
         #print(f"   Defender: {defender.strength:,} troops, {defender.morale}% morale")
+
+        # Roll combat dice for attacker
+        attacker_roll = self.roll_combat_dice(attacker)
 
         # Calculate effective strengths
         attacker_effective = self._calculate_effective_strength(attacker, is_attacker=True)
@@ -49,26 +108,28 @@ class CombatResolver:
 
         #print(f"   Defender after terrain: {defender_effective:,.0f}")
 
-        # Calculate casualties
+        # Calculate casualties with dice multiplier
+        # Attacker's roll affects how much damage they deal to defender
         attacker_casualties = self._calculate_casualties(
             attacker.strength,
             defender_effective,
             attacker_effective
         )
 
-        defender_casualties = self._calculate_casualties(
+        # Apply attacker's dice multiplier to defender casualties
+        defender_casualties = int(self._calculate_casualties(
             defender.strength,
             attacker_effective,
             defender_effective
-        )
+        ) * attacker_roll['multiplier'])
 
-        print(f"   💀 Casualties: {attacker.name} {attacker_casualties:,}, {defender.name} {defender_casualties:,}")
+        #print(f"   💀 Casualties: {attacker.name} {attacker_casualties:,}, {defender.name} {defender_casualties:,}")
 
         # Apply casualties FIRST (this was missing!)
-        print(f"   BEFORE: {attacker.name}={attacker.strength:,}, {defender.name}={defender.strength:,}")
+        #print(f"   BEFORE: {attacker.name}={attacker.strength:,}, {defender.name}={defender.strength:,}")
         attacker.take_casualties(attacker_casualties)
         defender.take_casualties(defender_casualties)
-        print(f"   AFTER: {attacker.name}={attacker.strength:,}, {defender.name}={defender.strength:,}")
+        #print(f"   AFTER: {attacker.name}={attacker.strength:,}, {defender.name}={defender.strength:,}")
 
         # Determine victor (AFTER applying casualties)
 
@@ -114,19 +175,20 @@ class CombatResolver:
             "victor": victor.name if victor else None,
             "attacker": {
                 "name": attacker.name,
-                "casualties": attacker_casualties,
-                "remaining": attacker.strength,
-                "morale": attacker.morale
+                "casualties": int(attacker_casualties),
+                "remaining": int(attacker.strength),
+                "morale": int(attacker.morale)
             },
             "defender": {
                 "name": defender.name,
-                "casualties": defender_casualties,
-                "remaining": defender.strength,
-                "morale": defender.morale
+                "casualties": int(defender_casualties),
+                "remaining": int(defender.strength),
+                "morale": int(defender.morale)
             },
             "terrain": terrain,
+            "attacker_roll": attacker_roll,
             "description": self._generate_description(
-                attacker, defender, outcome, attacker_casualties, defender_casualties
+                attacker, defender, outcome, attacker_casualties, defender_casualties, attacker_roll
             )
         }
         # ... rest of existing code ...
@@ -186,42 +248,95 @@ class CombatResolver:
 
         return casualties
 
+    def _get_combat_narrative(self, attacker_name: str, roll_modified: int, is_critical_success: bool, is_critical_failure: bool) -> str:
+        """Generate narrative description based on roll quality."""
+        import random
+
+        if is_critical_success:
+            narratives = [
+                f"{attacker_name} executes a brilliant maneuver!",
+                f"{attacker_name} launches a devastating assault!",
+                f"{attacker_name}'s forces strike with perfect coordination!"
+            ]
+        elif is_critical_failure:
+            narratives = [
+                f"{attacker_name}'s attack falters disastrously!",
+                f"{attacker_name}'s assault collapses into chaos!",
+                f"{attacker_name}'s forces stumble badly!"
+            ]
+        elif roll_modified >= 9:  # High roll (9-12)
+            narratives = [
+                f"{attacker_name} launches a decisive assault.",
+                f"{attacker_name} attacks with overwhelming force.",
+                f"{attacker_name}'s forces press forward aggressively."
+            ]
+        elif roll_modified >= 6:  # Medium roll (6-8)
+            narratives = [
+                f"{attacker_name} delivers an effective strike.",
+                f"{attacker_name} engages in solid combat.",
+                f"{attacker_name}'s forces advance steadily."
+            ]
+        else:  # Low roll (2-5)
+            narratives = [
+                f"{attacker_name} struggles in a costly engagement.",
+                f"{attacker_name} faces a difficult fight.",
+                f"{attacker_name}'s attack meets fierce resistance."
+            ]
+
+        return random.choice(narratives)
+
     def _generate_description(
             self,
             attacker: Marshal,
             defender: Marshal,
             outcome: str,
             atk_casualties: int,
-            def_casualties: int
+            def_casualties: int,
+            attacker_roll: Dict
     ) -> str:
-        """Generate narrative description of battle."""
+        """Generate narrative description of battle without exposing dice mechanics."""
+        # Get narrative based on roll quality (no numbers shown)
+        narrative = self._get_combat_narrative(
+            attacker.name,
+            attacker_roll['modified'],
+            attacker_roll['is_critical_success'],
+            attacker_roll['is_critical_failure']
+        )
+
+        # Build outcome description with narrative
         descriptions = {
             "attacker_victory": (
+                f"{narrative} "
                 f"{attacker.name} decisively defeats {defender.name}! "
                 f"{defender.name}'s army is destroyed. "
                 f"{attacker.name} suffered {atk_casualties:,} casualties."
             ),
             "defender_victory": (
-                f"{defender.name} repels {attacker.name}'s assault! "
+                f"{narrative} "
+                f"{defender.name} repels the assault! "
                 f"{attacker.name}'s army is shattered. "
                 f"{defender.name} suffered {def_casualties:,} casualties."
             ),
             "attacker_tactical_victory": (
+                f"{narrative} "
                 f"{attacker.name} gains the advantage over {defender.name}. "
                 f"Casualties: {attacker.name} {atk_casualties:,}, {defender.name} {def_casualties:,}. "
                 f"Both armies remain in the field."
             ),
             "defender_tactical_victory": (
-                f"{defender.name} holds against {attacker.name}. "
+                f"{narrative} "
+                f"{defender.name} holds the line. "
                 f"Casualties: {attacker.name} {atk_casualties:,}, {defender.name} {def_casualties:,}. "
                 f"Both armies remain in the field."
             ),
             "stalemate": (
+                f"{narrative} "
                 f"Brutal stalemate between {attacker.name} and {defender.name}. "
                 f"Heavy casualties on both sides: {attacker.name} {atk_casualties:,}, "
                 f"{defender.name} {def_casualties:,}."
             ),
             "mutual_destruction": (
+                f"{narrative} "
                 f"Catastrophic battle! Both {attacker.name} and {defender.name} "
                 f"annihilate each other. No survivors."
             )
