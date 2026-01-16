@@ -197,6 +197,28 @@ COMPROMISE_RULES = {
     # Attack vs Move - move is the middle ground
     ('attack', 'move'): 'move',
     ('move', 'attack'): 'move',
+
+    # ════════════════════════════════════════════════════════════
+    # TACTICAL ACTION COMPROMISES (Phase 2.6)
+    # ════════════════════════════════════════════════════════════
+
+    # Fortify conflicts (aggressive marshals hate digging in)
+    ('fortify', 'attack'): 'defend',  # Hold position but stay mobile
+    ('fortify', 'move'): 'defend',    # Stay and hold, but don't dig in
+    ('fortify', 'drill'): 'drill',    # Drill is active preparation - compromise toward marshal
+    ('attack', 'fortify'): 'defend',  # If cautious wants fortify, settle for defend
+
+    # Drill conflicts
+    ('drill', 'attack'): 'defend',    # Hold position, prepare
+    ('drill', 'move'): 'defend',      # Stay put, hold ground
+    ('drill', 'defend'): 'defend',    # Defend is already similar
+    ('attack', 'drill'): 'defend',    # Middle ground
+
+    # Retreat conflicts (when marshal wants to retreat but player doesn't)
+    ('retreat', 'defend'): 'defend',  # Hold but don't retreat
+    ('retreat', 'attack'): 'defend',  # Middle ground - neither attack nor flee
+    ('defend', 'retreat'): 'defend',  # If player orders defend, marshal wants retreat - hold
+    ('attack', 'retreat'): 'defend',  # If player orders attack, marshal wants retreat - hold
 }
 
 
@@ -233,11 +255,21 @@ OBJECTION_TEMPLATES = {
         ],
     },
     'literal': {
-        # TODO: 'ambiguous' situation detection not yet implemented in personality.py analyze_order_situation().
-        # Currently this template is never used. Need to add proper ambiguous order detection.
+        # TODO Phase 3: 'ambiguous' situation detection not yet implemented in personality.py analyze_order_situation().
+        # Currently this template is never used. Need LLM to detect unclear commands.
         'ambiguous': [
             "{name} looks confused. \"Sire, which enemy do you mean? There are several possibilities.\"",
             "\"Your orders are... unclear,\" {name} says hesitantly. \"Should I await clarification?\"",
+        ],
+        # TODO Phase 3: 'contradictory' requires order history tracking to detect conflicting orders
+        'contradictory': [
+            "{name} frowns at the dispatch. \"But Sire, this contradicts what you ordered before...\"",
+            "\"I... do not understand,\" {name} says slowly. \"First you said one thing, now another?\"",
+        ],
+        # TODO Phase 3: 'change_of_plans' requires order history to detect frequent changes
+        'change_of_plans': [
+            "{name} hesitates. \"Another change of orders, Sire? The men grow confused.\"",
+            "\"We have already begun the previous maneuver,\" {name} reports. \"Changing now will cause disorder.\"",
         ],
     },
     'balanced': {
@@ -248,6 +280,18 @@ OBJECTION_TEMPLATES = {
         'suicidal': [
             "{name} meets your eyes. \"I will follow this order if you insist, but you should know - we will not return.\"",
             "\"This order means death for my men,\" {name} says quietly. \"I ask you to reconsider.\"",
+        ],
+        # TODO Phase 3: 'abandon_allies' requires ally tracking system
+        'abandon_allies': [
+            "{name} looks troubled. \"If we leave now, our allies will be surrounded. Is that your intention?\"",
+            "\"Sire, Marshal {ally} depends on our support,\" {name} warns. \"Abandoning them now could be catastrophic.\"",
+        ],
+    },
+    # TODO Phase 3: LOYAL personality templates for 'betray_emperor' (political intrigue system)
+    'loyal': {
+        'betray_emperor': [
+            "{name}'s face hardens. \"This order would harm the Emperor's cause. I cannot comply.\"",
+            "\"I have sworn my life to Napoleon,\" {name} says firmly. \"What you ask is treason.\"",
         ],
     },
 }
@@ -349,28 +393,50 @@ class DisobedienceSystem:
         message = self._generate_objection_message(marshal, order, alternative=alternative)
         compromise = self._find_compromise(marshal, order, alternative, game_state)
 
+        # Calculate trust changes for display
+        # Note: Actual changes happen in handle_response(), these are estimates
+        trust_value = marshal.trust.value if hasattr(marshal, 'trust') else 70
+        trust_gain_trust = 2   # Base trust gain when trusting
+        trust_loss_insist = -2  # Base trust loss when insisting (may be -15 if disobeys)
+        trust_gain_compromise = 1  # Small trust gain for compromise
+
+        # Get marshal's alternative action description
+        alt_desc = self._describe_order(alternative) if alternative else "take an alternative approach"
+        orig_desc = self._describe_order(order)
+
         options = [
             {
                 'id': 'trust',
-                'text': f"Trust {marshal.name}'s judgment",
-                'description': f"Follow the alternative: {self._describe_order(alternative)}",
-                'effect': 'Marshal gains trust, you lose some authority',
+                'header': "TRUST MARSHAL'S JUDGMENT",
+                'text': f"Accept {marshal.name}'s alternative",
+                'description': f"{marshal.name} will {alt_desc} instead",
+                'effect': f'Trust +{trust_gain_trust}',
+                'trust_change': trust_gain_trust,
+                'result': alternative,
             },
             {
                 'id': 'insist',
-                'text': "Proceed as ordered",
-                'description': f"Insist on original order: {self._describe_order(order)}",
-                'effect': 'Marshal loses trust, your authority depends on outcome',
+                'header': "INSIST ON ORDER",
+                'text': "Force execution of original order",
+                'description': f"Command {marshal.name} to {orig_desc} as ordered",
+                'effect': f'Trust {trust_loss_insist} (may disobey at low trust)',
+                'trust_change': trust_loss_insist,
+                'may_disobey': trust_value < 40,  # Marshal may refuse at low trust
+                'result': order,
             },
         ]
 
         # Add compromise option if available
         if compromise:
+            comp_desc = self._describe_order(compromise)
             options.append({
                 'id': 'compromise',
+                'header': "COMPROMISE",
                 'text': "Find middle ground",
-                'description': f"Compromise: {self._describe_order(compromise)}",
-                'effect': 'Both gain modest trust, shared responsibility',
+                'description': f"Meet halfway: {marshal.name} will {comp_desc}",
+                'effect': f'Trust +{trust_gain_compromise}',
+                'trust_change': trust_gain_compromise,
+                'result': compromise,
             })
 
         return {
@@ -597,18 +663,20 @@ class DisobedienceSystem:
         target = order.get('target', '')
 
         descriptions = {
-            'attack': f"Attack {target}",
-            'defend': f"Defend at {target}",
-            'move': f"Move to {target}",
-            'hold': f"Hold position at {target}",
-            'wait': "Wait for further orders",
-            'retreat': f"Retreat from current position",
-            'probe': f"Probe enemy at {target}",
-            'scout': f"Scout toward {target}",
-            'patrol': f"Patrol the area",
-            'fortify': "Fortify current position",
-            'advance': f"Advance toward {target}",
-            'clarify': "Await clearer orders",
+            'attack': f"attack {target}",
+            'defend': f"defend at {target}",
+            'move': f"move to {target}",
+            'hold': f"hold position at {target}",
+            'wait': "wait for further orders",
+            'retreat': "retreat from current position",
+            'probe': f"probe enemy at {target}",
+            'scout': f"scout toward {target}",
+            'patrol': "patrol the area",
+            'fortify': "fortify current position",
+            'drill': "conduct drill training",
+            'unfortify': "abandon fortifications and prepare to move",
+            'advance': f"advance toward {target}",
+            'clarify': "await clearer orders",
         }
 
         return descriptions.get(action, f"{action} {target}")
@@ -665,7 +733,7 @@ class DisobedienceSystem:
             if marshal and hasattr(marshal, 'trust'):
                 trust_mod = authority.get_trust_gain_modifier() if authority else 1.0
                 trust_change = int(2 * trust_mod)
-                marshal.trust.modify(trust_change)
+                marshal.modify_trust(trust_change)
 
         elif choice == 'insist':
             # ════════════════════════════════════════════════════════════
@@ -694,7 +762,7 @@ class DisobedienceSystem:
 
                     # Extra trust penalty for disobedience
                     trust_change = -15
-                    marshal.trust.modify(trust_change)
+                    marshal.modify_trust(trust_change)
                 else:
                     # Marshal obeys reluctantly
                     final_order = objection['original_order']
@@ -702,7 +770,7 @@ class DisobedienceSystem:
 
                     # Normal trust penalty
                     trust_change = -2
-                    marshal.trust.modify(trust_change)
+                    marshal.modify_trust(trust_change)
             else:
                 final_order = objection['original_order']
                 message = f"You insist on the original order. {marshal_name} complies reluctantly."
@@ -720,7 +788,7 @@ class DisobedienceSystem:
             # Small trust bonus
             if marshal and hasattr(marshal, 'trust'):
                 trust_change = 1
-                marshal.trust.modify(trust_change)
+                marshal.modify_trust(trust_change)
 
         else:
             # Invalid choice, default to insist

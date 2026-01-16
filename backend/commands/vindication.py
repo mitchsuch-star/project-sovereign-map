@@ -178,7 +178,7 @@ class VindicationTracker:
             if trust_change > 0:
                 trust_change = int(trust_change * trust_modifier)
 
-            actual_trust_change = marshal.trust.modify(trust_change)
+            actual_trust_change = marshal.modify_trust(trust_change)
         else:
             actual_trust_change = 0
 

@@ -335,6 +335,14 @@ class TestVindicationTracker:
                 self.vindication_score = 0
                 self.recent_battles = []
                 self.recent_overrides = []
+                self.redemption_pending = False
+
+            def modify_trust(self, delta):
+                """Mock modify_trust that wraps trust.modify and clears redemption_pending."""
+                actual = self.trust.modify(delta)
+                if self.redemption_pending and self.trust.value > 20:
+                    self.redemption_pending = False
+                return actual
 
         class MockWorld:
             def __init__(self):
@@ -366,6 +374,14 @@ class TestVindicationTracker:
                 self.vindication_score = 0
                 self.recent_battles = []
                 self.recent_overrides = []
+                self.redemption_pending = False
+
+            def modify_trust(self, delta):
+                """Mock modify_trust that wraps trust.modify and clears redemption_pending."""
+                actual = self.trust.modify(delta)
+                if self.redemption_pending and self.trust.value > 20:
+                    self.redemption_pending = False
+                return actual
 
         class MockAuthority:
             def __init__(self):

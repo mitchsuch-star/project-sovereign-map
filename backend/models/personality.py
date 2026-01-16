@@ -87,27 +87,27 @@ PERSONALITY_TRIGGERS: Dict[Personality, Dict[str, float]] = {
     Personality.CAUTIOUS: {
         'attack_outnumbered_2to1': 0.70,      # Strong objection to suicidal attacks
         'attack_outnumbered_1_5to1': 0.50,    # Moderate objection to risky attacks
-        'attack_without_intel': 0.55,         # Objects to blind attacks
+        'attack_without_intel': 0.55,         # TODO Phase 3: Requires fog of war system to detect unknown enemy strength
         'attack_fortified': 0.60,             # Objects to attacking fortifications
         'forced_march': 0.45,                 # Mild objection to exhausting troops
     },
 
     Personality.LITERAL: {
-        'ambiguous_order': 0.50,              # Confused by vague orders
-        'contradictory_orders': 0.60,         # Really confused by contradictions
-        'change_of_plans': 0.35,              # Mild objection to sudden changes
+        'ambiguous_order': 0.50,              # TODO Phase 3: Implement in analyze_order_situation() - LLM will detect unclear commands
+        'contradictory_orders': 0.60,         # TODO Phase 3: Requires order history tracking to detect conflicting orders
+        'change_of_plans': 0.35,              # TODO Phase 3: Requires order history to detect frequent changes
     },
 
     Personality.BALANCED: {
         'expose_capital': 0.55,               # Objects to leaving capital undefended
-        'suicidal_order': 0.65,               # Objects to guaranteed death
+        'suicidal_order': 0.65,               # TODO Phase 3: Currently uses 3:1+ ratio. Expand to other suicidal scenarios
         'attack_outnumbered_3to1': 0.60,      # Objects to very bad odds
-        'abandon_allies': 0.50,               # Objects to leaving allies to die
+        'abandon_allies': 0.50,               # TODO Phase 3: Requires ally tracking system - detect when order leaves ally exposed
     },
 
     Personality.LOYAL: {
-        'suicidal_order': 0.40,               # Will follow even suicidal orders
-        'betray_emperor': 0.95,               # Only objects to actual treason
+        'suicidal_order': 0.40,               # TODO Phase 3: Same as balanced - expand suicidal definition
+        'betray_emperor': 0.95,               # TODO Phase 3 (1805): Political intrigue system - detect orders harming Napoleon's interests
         'expose_capital': 0.35,               # Mild concern but trusts Emperor
     },
 }
@@ -151,6 +151,20 @@ def analyze_order_situation(order: Dict, marshal, game_state) -> Optional[str]:
 
     This function examines the order and game context to identify
     which personality trigger (if any) applies.
+
+    Currently implemented:
+    - defend, wait, wait_with_enemy_nearby, hold_position, retreat, fortify
+    - attack_outnumbered_2to1, attack_outnumbered_1_5to1, attack_outnumbered_3to1
+    - attack_fortified, forced_march, expose_capital
+
+    TODO Phase 3 - Not yet implemented:
+    - ambiguous_order: Requires LLM to detect unclear commands
+    - contradictory_orders: Requires order history tracking
+    - change_of_plans: Requires order history tracking
+    - attack_without_intel: Requires fog of war system
+    - suicidal_order (expanded): Currently only checks ratios
+    - abandon_allies: Requires ally position tracking
+    - betray_emperor: Requires political intrigue system (1805)
 
     Args:
         order: Order dict with 'action', 'target', etc.

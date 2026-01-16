@@ -1953,6 +1953,23 @@ TIPS:
                 result = {"success": False, "message": f"Marshal {marshal_name} not found"}
         elif action == "recruit":
             result = self._execute_recruit(command, game_state)
+        # ════════════════════════════════════════════════════════════
+        # TACTICAL ACTIONS (Phase 2.6) - Must work via objection Insist
+        # ════════════════════════════════════════════════════════════
+        elif action == "fortify":
+            result = self._execute_fortify(command, game_state)
+        elif action == "drill":
+            result = self._execute_drill(command, game_state)
+        elif action == "unfortify":
+            result = self._execute_unfortify(command, game_state)
+        elif action == "retreat":
+            marshal = world.get_marshal(marshal_name)
+            if marshal:
+                result = self._execute_retreat_action(marshal, world, game_state)
+            else:
+                result = {"success": False, "message": f"Marshal {marshal_name} not found"}
+        elif action == "reinforce":
+            result = self._execute_reinforce(command, game_state)
         else:
             result = {"success": False, "message": f"Unknown action: {action}"}
 

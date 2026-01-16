@@ -147,6 +147,24 @@ class Marshal:
         """Adjust morale (victories increase, defeats decrease)."""
         self.morale = max(0, min(100, self.morale + change))
 
+    def modify_trust(self, delta: int) -> int:
+        """
+        Modify trust and handle redemption_pending flag clearing.
+
+        Args:
+            delta: Amount to change trust (+/-)
+
+        Returns:
+            Actual change applied (may be less if capped)
+        """
+        actual_change = self.trust.modify(delta)
+
+        # Clear redemption_pending if trust recovered above threshold (>20)
+        if self.redemption_pending and self.trust.value > 20:
+            self.redemption_pending = False
+
+        return actual_change
+
     def get_combat_effectiveness(self) -> float:
         """
         Calculate combat effectiveness multiplier.
