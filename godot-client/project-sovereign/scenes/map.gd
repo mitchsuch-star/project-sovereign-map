@@ -326,6 +326,11 @@ func _zoom_at_point(point: Vector2, zoom_factor: float):
 
 func _draw_tooltip():
 	"""Draw tooltip panel showing marshal details with debug info."""
+	# DEBUG: Print hovered marshal data to verify what we're receiving
+	print("TOOLTIP DEBUG: hovered_marshal keys = ", hovered_marshal.keys())
+	if hovered_marshal.has("tactical_state"):
+		print("TOOLTIP DEBUG: tactical_state = ", hovered_marshal.get("tactical_state"))
+
 	# Get marshal data
 	var marshal_name = hovered_marshal.get("name", "Unknown")
 	var marshal_nation = hovered_marshal.get("nation", "Neutral")
@@ -340,6 +345,29 @@ func _draw_tooltip():
 	var vindication = hovered_marshal.get("vindication", 0)
 	var has_pending = hovered_marshal.get("has_pending_vindication", false)
 
+	# TACTICAL STATES (only for player marshals)
+	var tactical_state = hovered_marshal.get("tactical_state", {})
+	var drilling = tactical_state.get("drilling", false)
+	var drilling_locked = tactical_state.get("drilling_locked", false)
+	var shock_bonus = tactical_state.get("shock_bonus", 0)
+	var drill_complete_turn = tactical_state.get("drill_complete_turn", -1)
+	var fortified = tactical_state.get("fortified", false)
+	var defense_bonus = tactical_state.get("defense_bonus", 0)
+	var fortify_expires_turn = tactical_state.get("fortify_expires_turn", -1)
+	var retreating = tactical_state.get("retreating", false)
+	var retreat_recovery = tactical_state.get("retreat_recovery", 0)
+
+	# Count tactical state lines to display
+	var tactical_lines = 0
+	if drilling or drilling_locked:
+		tactical_lines += 1
+	if shock_bonus > 0:
+		tactical_lines += 1
+	if fortified:
+		tactical_lines += 1
+	if retreating:
+		tactical_lines += 1
+
 	# Calculate tooltip height based on whether we have debug info
 	var base_lines = 5  # Name, nation, troops, morale, movement
 	var debug_lines = 0
@@ -349,9 +377,11 @@ func _draw_tooltip():
 	var line_spacing = 16
 	var extra_spacing = 8  # After name and nation sections
 	var padding = 10
-	var tooltip_height = padding * 2 + (base_lines * line_spacing) + (debug_lines * line_spacing) + (extra_spacing * 2)
+	var tooltip_height = padding * 2 + (base_lines * line_spacing) + (debug_lines * line_spacing) + (tactical_lines * line_spacing) + (extra_spacing * 2)
 	if debug_lines > 0:
 		tooltip_height += extra_spacing  # Extra spacing before debug section
+	if tactical_lines > 0:
+		tooltip_height += extra_spacing  # Extra spacing before tactical section
 
 	# Tooltip dimensions
 	var tooltip_size = Vector2(240, tooltip_height)
@@ -439,6 +469,52 @@ func _draw_tooltip():
 		draw_string(font, Vector2(text_x, text_y + 11), vindication_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, vindication_color)
 		text_y += line_spacing
 
+	# ═══════════════════════════════════════════════════════════
+	# TACTICAL STATES (Player marshals only)
+	# ═══════════════════════════════════════════════════════════
+	if tactical_lines > 0:
+		text_y += extra_spacing  # Extra spacing before tactical section
+
+		# Drill state
+		if drilling or drilling_locked:
+			var drill_text = ""
+			var drill_color = Color(0.9, 0.7, 0.3)  # Orange/gold
+			if drilling_locked:
+				drill_text = "DRILLING (Locked) - Ready turn " + str(drill_complete_turn)
+				drill_color = Color(0.9, 0.5, 0.3)  # Darker orange for locked
+			else:
+				drill_text = "DRILLING - Will lock next turn"
+			draw_string(font, Vector2(text_x, text_y + 11), drill_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, drill_color)
+			text_y += line_spacing
+
+		# Shock bonus (from completed drill)
+		if shock_bonus > 0:
+			var shock_text = "SHOCK READY: +" + str(shock_bonus * 10) + "% attack bonus"
+			var shock_color = Color(0.3, 0.9, 0.3)  # Bright green
+			draw_string(font, Vector2(text_x, text_y + 11), shock_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, shock_color)
+			text_y += line_spacing
+
+		# Fortified state
+		if fortified:
+			var fort_percent = int(defense_bonus * 10)
+			var fort_text = "FORTIFIED: +" + str(fort_percent) + "% defense"
+			if fort_percent >= 15:
+				fort_text += " (MAX)"
+			else:
+				fort_text += " (grows +2%/turn)"
+			var fort_color = Color(0.5, 0.7, 0.9)  # Blue
+			draw_string(font, Vector2(text_x, text_y + 11), fort_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, fort_color)
+			text_y += line_spacing
+
+		# Retreating state
+		if retreating:
+			var retreat_penalties = {0: "-45%", 1: "-30%", 2: "-15%", 3: "0%"}
+			var penalty = retreat_penalties.get(retreat_recovery, "?")
+			var retreat_text = "RETREATING: " + penalty + " effectiveness (stage " + str(retreat_recovery) + "/3)"
+			var retreat_color = Color(0.9, 0.5, 0.5)  # Red/pink
+			draw_string(font, Vector2(text_x, text_y + 11), retreat_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, retreat_color)
+			text_y += line_spacing
+
 func _format_number(num: int) -> String:
 	"""Format number with comma separators (72000 → 72,000)."""
 	var num_str = str(num)
@@ -485,11 +561,13 @@ func update_all_regions(map_data: Dictionary):
 		# Update controller
 		region_controllers[region_name] = controller
 
-		# Update marshals (array of {name, nation})
+		# Update marshals (array of {name, nation, strength, ...})
 		var marshals = data.get("marshals", [])
 		if marshals.size() > 0:
 			region_marshals[region_name] = marshals
-			print("Map updating region ", region_name, ": controller = ", controller, ", marshals = ", marshals)
+			print("Map updating region ", region_name, ": controller = ", controller)
+			for m in marshals:
+				print("  Marshal ", m.get("name"), " keys: ", m.keys())
 		else:
 			region_marshals.erase(region_name)
 			print("Map updating region ", region_name, ": controller = ", controller, ", no marshals")

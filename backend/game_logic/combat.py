@@ -186,7 +186,8 @@ class CombatResolver:
         defender_fortify_bonus = getattr(defender, 'defense_bonus', 0)
         if defender_fortify_bonus > 0:
             defender_defense += defender_fortify_bonus
-            fortify_bonus_message = f"{defender.name}'s fortified position provides +{defender_fortify_bonus * 10}% defense!"
+            fortify_percent = int(defender_fortify_bonus * 10)
+            fortify_bonus_message = f"{defender.name}'s fortified position provides +{fortify_percent}% defense!"
             # Fortification persists (doesn't clear on first use)
 
         # ════════════════════════════════════════════════════════════

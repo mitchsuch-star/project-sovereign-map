@@ -393,25 +393,55 @@ class WorldState:
 
     def get_game_state_summary(self) -> Dict:
         """Get a summary of current game state for API responses."""
-        # Build map_data with marshals
+        # Build map_data with marshals (including debug info for player marshals)
         map_data = {}
         for region_name, region in self.regions.items():
             # Get all alive marshals in this region
             marshals_here = self.get_marshals_in_region(region_name)
             alive_marshals = [m for m in marshals_here if m.strength > 0]
 
+            marshals_data = []
+            for m in alive_marshals:
+                marshal_data = {
+                    "name": m.name,
+                    "nation": m.nation,
+                    "strength": int(m.strength),
+                    "morale": int(m.morale),
+                    "movement_range": int(m.movement_range)
+                }
+
+                # Add debug info for player marshals
+                if m.nation == self.player_nation:
+                    marshal_data["personality"] = m.personality
+                    marshal_data["trust"] = int(m.trust.value) if hasattr(m, 'trust') else 70
+                    marshal_data["trust_label"] = m.trust.get_label() if hasattr(m, 'trust') else "Unknown"
+
+                    # Get vindication data
+                    vindication_data = self.vindication_tracker.get_vindication_data(m.name)
+                    marshal_data["vindication"] = vindication_data.get("score", 0)
+                    marshal_data["has_pending_vindication"] = self.vindication_tracker.has_pending(m.name)
+
+                    # Tactical states for hover info
+                    marshal_data["tactical_state"] = {
+                        # Drill state
+                        "drilling": bool(getattr(m, 'drilling', False)),
+                        "drilling_locked": bool(getattr(m, 'drilling_locked', False)),
+                        "shock_bonus": int(getattr(m, 'shock_bonus', 0)),
+                        "drill_complete_turn": int(getattr(m, 'drill_complete_turn', -1)),
+                        # Fortify state
+                        "fortified": bool(getattr(m, 'fortified', False)),
+                        "defense_bonus": int(getattr(m, 'defense_bonus', 0)),
+                        "fortify_expires_turn": int(getattr(m, 'fortify_expires_turn', -1)),
+                        # Retreat state
+                        "retreating": bool(getattr(m, 'retreating', False)),
+                        "retreat_recovery": int(getattr(m, 'retreat_recovery', 0)),
+                    }
+
+                marshals_data.append(marshal_data)
+
             map_data[region_name] = {
                 "controller": region.controller,
-                "marshals": [
-                    {
-                        "name": m.name,
-                        "nation": m.nation,
-                        "strength": int(m.strength),
-                        "morale": int(m.morale),
-                        "movement_range": int(m.movement_range)
-                    }
-                    for m in alive_marshals
-                ]
+                "marshals": marshals_data
             }
 
         return {
@@ -496,11 +526,26 @@ class WorldState:
             "new_turn": int(self.current_turn) if turn_advanced else None
         }
 
+    def advance_turn(self) -> None:
+        """
+        Public method to advance turn counter.
+        Used by TurnManager after processing tactical states.
+        """
+        self._advance_turn_internal()
+
     def _advance_turn_internal(self) -> None:
         """
         Internal method: Advance turn and reset actions.
         ALL values forced to integers.
+
+        IMPORTANT: Processes tactical states BEFORE advancing turn counter.
         """
+        # ════════════════════════════════════════════════════════════
+        # PROCESS TACTICAL STATES (before turn counter advances!)
+        # ════════════════════════════════════════════════════════════
+        tactical_events = self._process_tactical_states()
+        self._last_tactical_events = tactical_events  # Store for retrieval
+
         old_turn = self.current_turn
         self.current_turn = int(self.current_turn + 1)
 
@@ -526,6 +571,138 @@ class WorldState:
                 self.victory = "victory"
             else:
                 self.victory = "defeat"
+
+    def _process_tactical_states(self) -> list:
+        """
+        Process tactical state changes at end of turn (before turn counter advances).
+
+        Handles:
+        - DRILL: drilling -> drilling_locked -> shock_bonus ready
+        - FORTIFY: Grows +2% per turn (max 15%), no expiration
+        - RETREAT: Advance recovery stage
+        - SHOCK BONUS REMINDER: Notify if marshals have shock ready
+
+        Returns:
+            List of tactical state events
+        """
+        events = []
+        current_turn = self.current_turn
+
+        # Track marshals who just got shock bonus (to avoid duplicate reminders)
+        just_completed_drill = set()
+
+        for marshal in self.marshals.values():
+            # Skip non-player marshals for now
+            if marshal.nation != self.player_nation:
+                continue
+
+            # ════════════════════════════════════════════════════════════
+            # DRILL STATE PROGRESSION
+            # ════════════════════════════════════════════════════════════
+            # Turn N: drilling = True -> Turn N+1: drilling_locked = True
+            # Turn N+1: drilling_locked = True -> Turn N+2: shock_bonus ready
+            if getattr(marshal, 'drilling', False) and not getattr(marshal, 'drilling_locked', False):
+                # Transition from drilling to drilling_locked
+                marshal.drilling_locked = True
+                print(f"  [TACTICAL] DRILL: {marshal.name} now locked in training")
+                events.append({
+                    "type": "drill_locked",
+                    "marshal": marshal.name,
+                    "message": f"{marshal.name} is now locked in intensive drill. Cannot receive orders until training completes.",
+                    "complete_turn": int(marshal.drill_complete_turn)
+                })
+
+            elif getattr(marshal, 'drilling_locked', False):
+                # Check if drill is complete
+                if current_turn >= marshal.drill_complete_turn:
+                    # Drill complete - grant shock bonus
+                    marshal.drilling = False
+                    marshal.drilling_locked = False
+                    marshal.shock_bonus = 2  # +20% attack bonus
+                    just_completed_drill.add(marshal.name)
+                    print(f"  [TACTICAL] DRILL COMPLETE: {marshal.name} gains +20% shock bonus!")
+                    events.append({
+                        "type": "drill_complete",
+                        "marshal": marshal.name,
+                        "message": f"DRILL COMPLETE: {marshal.name}'s training is finished! +20% attack bonus ready for next battle.",
+                        "shock_bonus": 2
+                    })
+
+            # ════════════════════════════════════════════════════════════
+            # FORTIFY GROWTH (+2% per turn, max 15%)
+            # ════════════════════════════════════════════════════════════
+            if getattr(marshal, 'fortified', False):
+                current_bonus = getattr(marshal, 'defense_bonus', 0.2)
+                max_bonus = 1.5  # 15% max
+
+                if current_bonus < max_bonus:
+                    # Grow defense by +2% (0.2)
+                    new_bonus = min(current_bonus + 0.2, max_bonus)
+                    marshal.defense_bonus = new_bonus
+                    old_percent = int(current_bonus * 10)
+                    new_percent = int(new_bonus * 10)
+                    print(f"  [TACTICAL] FORTIFY: {marshal.name} defense {old_percent}% -> {new_percent}%")
+                    events.append({
+                        "type": "fortify_strengthened",
+                        "marshal": marshal.name,
+                        "defense_bonus": new_percent,
+                        "message": f"{marshal.name}'s fortifications strengthen: +{new_percent}% defense" +
+                                  (" (MAX)" if new_bonus >= max_bonus else f" (max 15%)")
+                    })
+
+            # ════════════════════════════════════════════════════════════
+            # RETREAT RECOVERY PROGRESSION
+            # ════════════════════════════════════════════════════════════
+            # Stage 0: -45%, Stage 1: -30%, Stage 2: -15%, Stage 3: 0% (recovered)
+            if getattr(marshal, 'retreating', False):
+                recovery_stage = getattr(marshal, 'retreat_recovery', 0)
+                if recovery_stage < 3:
+                    # Advance recovery
+                    marshal.retreat_recovery = recovery_stage + 1
+                    new_stage = marshal.retreat_recovery
+                    penalties = {0: "-45%", 1: "-30%", 2: "-15%", 3: "0% (recovered)"}
+                    print(f"  [TACTICAL] RETREAT RECOVERY: {marshal.name} stage {recovery_stage} -> {new_stage}")
+                    events.append({
+                        "type": "retreat_recovery",
+                        "marshal": marshal.name,
+                        "stage": new_stage,
+                        "penalty": penalties.get(new_stage, "0%"),
+                        "message": f"{marshal.name}'s army is recovering. Effectiveness penalty: {penalties.get(new_stage, '0%')}"
+                    })
+
+                    # Check if fully recovered
+                    if new_stage >= 3:
+                        marshal.retreating = False
+                        marshal.retreat_recovery = 0
+                        print(f"  [TACTICAL] FULLY RECOVERED: {marshal.name} combat ready")
+                        events.append({
+                            "type": "retreat_recovered",
+                            "marshal": marshal.name,
+                            "message": f"{marshal.name}'s army has fully recovered and is combat ready."
+                        })
+
+        # ════════════════════════════════════════════════════════════
+        # SHOCK BONUS REMINDERS (for marshals who already have it)
+        # ════════════════════════════════════════════════════════════
+        for marshal in self.marshals.values():
+            if marshal.nation != self.player_nation:
+                continue
+
+            shock = getattr(marshal, 'shock_bonus', 0)
+            if shock > 0 and marshal.name not in just_completed_drill:
+                # Marshal has shock bonus from a previous turn - remind player
+                events.append({
+                    "type": "shock_ready_reminder",
+                    "marshal": marshal.name,
+                    "shock_bonus": shock,
+                    "message": f"REMINDER: {marshal.name} has +{shock * 10}% shock bonus ready - use it in your next attack!"
+                })
+
+        return events
+
+    def get_last_tactical_events(self) -> list:
+        """Get tactical events from the last turn advance."""
+        return getattr(self, '_last_tactical_events', [])
 
     def force_end_turn(self) -> Dict:
         """Force end turn early (for "end turn" command)."""

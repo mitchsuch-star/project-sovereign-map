@@ -437,6 +437,22 @@ def _get_map_data(world: WorldState) -> dict:
                 marshal_data["vindication"] = vindication_data.get("score", 0)
                 marshal_data["has_pending_vindication"] = world.vindication_tracker.has_pending(m.name)
 
+                # Tactical states for hover info
+                marshal_data["tactical_state"] = {
+                    # Drill state
+                    "drilling": bool(getattr(m, 'drilling', False)),
+                    "drilling_locked": bool(getattr(m, 'drilling_locked', False)),
+                    "shock_bonus": int(getattr(m, 'shock_bonus', 0)),
+                    "drill_complete_turn": int(getattr(m, 'drill_complete_turn', -1)),
+                    # Fortify state
+                    "fortified": bool(getattr(m, 'fortified', False)),
+                    "defense_bonus": int(getattr(m, 'defense_bonus', 0)),
+                    "fortify_expires_turn": int(getattr(m, 'fortify_expires_turn', -1)),
+                    # Retreat state
+                    "retreating": bool(getattr(m, 'retreating', False)),
+                    "retreat_recovery": int(getattr(m, 'retreat_recovery', 0)),
+                }
+
             marshals_data.append(marshal_data)
 
         controller = region.controller or "Neutral"

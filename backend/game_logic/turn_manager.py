@@ -53,18 +53,24 @@ class TurnManager:
         TODO (Post-MVP): Add _process_enemy_turns() here
         Enemy nations should take actions before turn advances.
         """
+        old_turn = self.world.current_turn
+
         # ════════════════════════════════════════════════════════════
         # AUTONOMY COUNTDOWN: Process autonomous marshals
         # ════════════════════════════════════════════════════════════
         autonomy_events = self._process_autonomy_countdown()
 
         # ════════════════════════════════════════════════════════════
-        # TACTICAL STATES: Process drill/fortify/retreat states
+        # ADVANCE TURN (includes tactical state processing!)
+        # WorldState._advance_turn_internal() now handles:
+        # - Tactical states (drill/fortify/retreat)
+        # - Income application
+        # - Action reset
         # ════════════════════════════════════════════════════════════
-        tactical_events = self._process_tactical_states()
-
-        # Advance turn counter
         self.world.advance_turn()
+
+        # Get tactical events that were processed during advance
+        tactical_events = self.world.get_last_tactical_events()
 
         # Check victory/defeat conditions
         victory_check = self._check_victory_conditions()
@@ -74,10 +80,10 @@ class TurnManager:
             self.world.victory = victory_check["result"]
 
         result = {
-            "turn_ended": self.world.current_turn - 1,
+            "turn_ended": old_turn,
             "next_turn": self.world.current_turn,
             "victory_check": victory_check,
-            "message": f"Turn {self.world.current_turn - 1} complete"
+            "message": f"Turn {old_turn} complete"
         }
 
         # Combine all events
@@ -150,107 +156,6 @@ class TurnManager:
                     "turns_remaining": marshal.autonomy_turns,
                     "message": f"{marshal.name} continues acting autonomously. {marshal.autonomy_turns} turn{'s' if marshal.autonomy_turns != 1 else ''} remaining."
                 })
-
-        return events
-
-    def _process_tactical_states(self) -> List[Dict]:
-        """
-        Process tactical state changes at end of turn.
-
-        Handles:
-        - DRILL: drilling → drilling_locked → shock_bonus ready
-        - FORTIFY: Check expiration
-        - RETREAT: Advance recovery stage
-
-        Returns:
-            List of tactical state events
-        """
-        events = []
-        current_turn = self.world.current_turn
-
-        for marshal in self.world.marshals.values():
-            # Skip non-player marshals for now
-            if marshal.nation != self.world.player_nation:
-                continue
-
-            # ════════════════════════════════════════════════════════════
-            # DRILL STATE PROGRESSION
-            # ════════════════════════════════════════════════════════════
-            # Turn N: drilling = True → Turn N+1: drilling_locked = True
-            # Turn N+1: drilling_locked = True → Turn N+2: shock_bonus ready
-            if getattr(marshal, 'drilling', False) and not getattr(marshal, 'drilling_locked', False):
-                # Transition from drilling to drilling_locked
-                marshal.drilling_locked = True
-                print(f"  🎯 DRILL: {marshal.name} now locked in training")
-                events.append({
-                    "type": "drill_locked",
-                    "marshal": marshal.name,
-                    "message": f"{marshal.name} is locked in intensive drill. Cannot receive orders until turn {marshal.drill_complete_turn}.",
-                    "complete_turn": int(marshal.drill_complete_turn)
-                })
-
-            elif getattr(marshal, 'drilling_locked', False):
-                # Check if drill is complete
-                if current_turn >= marshal.drill_complete_turn:
-                    # Drill complete - grant shock bonus
-                    marshal.drilling = False
-                    marshal.drilling_locked = False
-                    marshal.shock_bonus = 2  # +20% attack bonus
-                    print(f"  ✅ DRILL COMPLETE: {marshal.name} gains +20% shock bonus")
-                    events.append({
-                        "type": "drill_complete",
-                        "marshal": marshal.name,
-                        "message": f"{marshal.name}'s drill training is complete! +20% attack bonus ready for next battle.",
-                        "shock_bonus": 2
-                    })
-
-            # ════════════════════════════════════════════════════════════
-            # FORTIFY EXPIRATION
-            # ════════════════════════════════════════════════════════════
-            if getattr(marshal, 'fortified', False):
-                expire_turn = getattr(marshal, 'fortify_expires_turn', -1)
-                if current_turn >= expire_turn and expire_turn > 0:
-                    # Fortification expires
-                    marshal.fortified = False
-                    marshal.defense_bonus = 0
-                    marshal.fortify_expires_turn = -1
-                    print(f"  🏰 FORTIFY EXPIRED: {marshal.name} position degraded")
-                    events.append({
-                        "type": "fortify_expired",
-                        "marshal": marshal.name,
-                        "message": f"{marshal.name}'s fortifications have degraded. Army is now mobile but unfortified.",
-                    })
-
-            # ════════════════════════════════════════════════════════════
-            # RETREAT RECOVERY PROGRESSION
-            # ════════════════════════════════════════════════════════════
-            # Stage 0: -45%, Stage 1: -30%, Stage 2: -15%, Stage 3: 0% (recovered)
-            if getattr(marshal, 'retreating', False):
-                recovery_stage = getattr(marshal, 'retreat_recovery', 0)
-                if recovery_stage < 3:
-                    # Advance recovery
-                    marshal.retreat_recovery = recovery_stage + 1
-                    new_stage = marshal.retreat_recovery
-                    penalties = {0: "-45%", 1: "-30%", 2: "-15%", 3: "0% (recovered)"}
-                    print(f"  🏃 RETREAT RECOVERY: {marshal.name} stage {recovery_stage} → {new_stage}")
-                    events.append({
-                        "type": "retreat_recovery",
-                        "marshal": marshal.name,
-                        "stage": new_stage,
-                        "penalty": penalties.get(new_stage, "0%"),
-                        "message": f"{marshal.name}'s army is recovering. Effectiveness penalty: {penalties.get(new_stage, '0%')}"
-                    })
-
-                    # Check if fully recovered
-                    if new_stage >= 3:
-                        marshal.retreating = False
-                        marshal.retreat_recovery = 0
-                        print(f"  ✅ FULLY RECOVERED: {marshal.name} combat ready")
-                        events.append({
-                            "type": "retreat_recovered",
-                            "marshal": marshal.name,
-                            "message": f"{marshal.name}'s army has fully recovered and is combat ready."
-                        })
 
         return events
 

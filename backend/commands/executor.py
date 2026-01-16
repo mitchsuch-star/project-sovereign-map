@@ -10,6 +10,7 @@ Includes Disobedience System (Phase 2):
 from typing import Dict, List, Optional, Tuple
 from backend.models.world_state import WorldState
 from backend.game_logic.combat import CombatResolver
+from backend.game_logic.turn_manager import TurnManager
 from backend.utils.fuzzy_matcher import FuzzyMatcher
 
 
@@ -120,24 +121,36 @@ class CommandExecutor:
             })
 
     def _execute_end_turn(self, command: Dict, game_state: Dict) -> Dict:
-        """End turn early, skipping remaining actions."""
+        """End turn early, skipping remaining actions. Uses TurnManager to process tactical states."""
         world: WorldState = game_state.get("world")
 
         if not world:
             return {"success": False, "message": "Error: No world state"}
 
-        turn_result = world.force_end_turn()
+        # Use TurnManager to properly process tactical states (drill, fortify, retreat)
+        turn_manager = TurnManager(world)
+        turn_result = turn_manager.end_turn()
+
+        # Build message with tactical events
+        message = f"Turn {turn_result['turn_ended']} ended. Turn {turn_result['next_turn']} begins!"
+
+        # Add tactical event messages
+        tactical_messages = []
+        for event in turn_result.get("events", []):
+            if event.get("type") in ["drill_locked", "drill_complete", "fortify_expired", "retreat_recovery"]:
+                tactical_messages.append(event.get("message", ""))
+
+        if tactical_messages:
+            message += "\n\n" + "\n".join(tactical_messages)
+
+        # Get income info
+        income_data = world.calculate_turn_income()
 
         return {
             "success": True,
-            "message": f"Turn {turn_result['old_turn']} ended. Turn {turn_result['new_turn']} begins! Income: +{turn_result['income']} gold (Total: {turn_result['gold']})",
-            "events": [{
-                "type": "turn_end",
-                "old_turn": turn_result['old_turn'],
-                "new_turn": turn_result['new_turn'],
-                "actions_skipped": turn_result['actions_skipped'],
-                "income": turn_result['income']
-            }],
+            "message": message,
+            "events": turn_result.get("events", []),
+            "tactical_events": tactical_messages,
             "new_state": game_state
         }
 
@@ -425,6 +438,24 @@ TIPS:
             result["message"] = mild_message + result.get("message", "")
             result["mild_objection"] = True
 
+        # ════════════════════════════════════════════════════════════
+        # TACTICAL EVENTS: Add to message when turn advances
+        # This shows drill completion, fortify expiration, etc.
+        # ════════════════════════════════════════════════════════════
+        if action_result.get("turn_advanced", False):
+            tactical_events = world.get_last_tactical_events()
+            if tactical_events:
+                tactical_messages = []
+                for event in tactical_events:
+                    event_msg = event.get("message", "")
+                    if event_msg:
+                        tactical_messages.append(event_msg)
+
+                if tactical_messages:
+                    # Add tactical events to message
+                    result["message"] = result.get("message", "") + "\n\n--- TURN EVENTS ---\n" + "\n".join(tactical_messages)
+                    result["tactical_events"] = tactical_events
+
         return result
 
     def _execute_specific(self, command: Dict, game_state: Dict) -> Dict:
@@ -473,9 +504,27 @@ TIPS:
         """
         Execute an attack order with combat and region conquest.
 
-        If attacking a region, will capture it after defeating all defenders.
+        If attacking a region, will capture it after defeated all defenders.
         Handles undefended regions with instant capture.
         """
+        # ════════════════════════════════════════════════════════════
+        # DRILL STATE CHECK: Handle drilling marshal trying to attack
+        # ════════════════════════════════════════════════════════════
+        drill_cancelled_message = ""
+        if getattr(marshal, 'drilling', False):
+            if getattr(marshal, 'drilling_locked', False):
+                # Turn 2: Locked in drill, cannot attack
+                return {
+                    "success": False,
+                    "message": f"{marshal.name} is locked in drill formation and cannot attack. Only RETREAT is allowed.",
+                    "drilling_locked": True
+                }
+            else:
+                # Turn 1: Can attack but drill is cancelled
+                marshal.drilling = False
+                marshal.drill_complete_turn = -1
+                drill_cancelled_message = f"⚠️ DRILL CANCELLED: {marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
+
         # Handle None target
         if not target:
             return {
@@ -584,9 +633,13 @@ TIPS:
                     old_controller = target_region.controller
                     world.capture_region(resolved_target, world.player_nation)
 
+                    capture_message = f"{marshal.name} marches into {resolved_target} unopposed! Captured: {old_controller} → France"
+                    if drill_cancelled_message:
+                        capture_message = drill_cancelled_message + capture_message
+
                     return {
                         "success": True,
-                        "message": f"{marshal.name} marches into {resolved_target} unopposed! Captured: {old_controller} → France",
+                        "message": capture_message,
                         "events": [{
                             "type": "conquest",
                             "marshal": marshal.name,
@@ -710,9 +763,14 @@ TIPS:
             if vindication_result:
                 vindication_msg = f"\n\n📜 {vindication_result['message']}"
 
+        # Build final message with optional drill cancellation prefix
+        battle_message = flanking_prefix + battle_result["description"] + destroyed_msg + conquest_msg + vindication_msg
+        if drill_cancelled_message:
+            battle_message = drill_cancelled_message + battle_message
+
         return {
             "success": True,
-            "message": flanking_prefix + battle_result["description"] + destroyed_msg + conquest_msg + vindication_msg,
+            "message": battle_message,
             "events": [{
                 "type": "battle",
                 "attacker": battle_result["attacker"],
@@ -731,20 +789,71 @@ TIPS:
 
     def _execute_defend(self, marshal, world, game_state) -> Dict:
         """Execute a defend order."""
+        # ════════════════════════════════════════════════════════════
+        # DRILL STATE CHECK: Handle drilling marshal trying to defend
+        # ════════════════════════════════════════════════════════════
+        drill_cancelled_message = ""
+        if getattr(marshal, 'drilling', False):
+            if getattr(marshal, 'drilling_locked', False):
+                # Turn 2: Locked in drill, cannot defend
+                return {
+                    "success": False,
+                    "message": f"{marshal.name} is locked in drill formation and cannot change to defensive stance. Only RETREAT is allowed.",
+                    "drilling_locked": True
+                }
+            else:
+                # Turn 1: Can defend but drill is cancelled
+                marshal.drilling = False
+                marshal.drill_complete_turn = -1
+                drill_cancelled_message = f"⚠️ DRILL CANCELLED: {marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
+
+        defend_message = f"{marshal.name} takes a defensive position at {marshal.location}"
+        if drill_cancelled_message:
+            defend_message = drill_cancelled_message + defend_message
+
+        events = [{
+            "type": "defend",
+            "marshal": marshal.name,
+            "location": marshal.location,
+            "effect": "Next battle at this location gets +30% defender bonus"
+        }]
+
+        # Add drill_cancelled event if drill was interrupted
+        if drill_cancelled_message:
+            events.insert(0, {
+                "type": "drill_cancelled",
+                "marshal": marshal.name,
+                "reason": "defend"
+            })
+
         return {
             "success": True,
-            "message": f"{marshal.name} takes a defensive position at {marshal.location}",
-            "events": [{
-                "type": "defend",
-                "marshal": marshal.name,
-                "location": marshal.location,
-                "effect": "Next battle at this location gets +30% defender bonus"
-            }],
+            "message": defend_message,
+            "drill_cancelled": bool(drill_cancelled_message),
+            "events": events,
             "new_state": game_state
         }
 
     def _execute_move(self, marshal, target, world: WorldState, game_state) -> Dict:
         """Execute a move order."""
+        # ════════════════════════════════════════════════════════════
+        # DRILL STATE CHECK: Handle drilling marshal trying to move
+        # ════════════════════════════════════════════════════════════
+        drill_cancelled_message = ""
+        if getattr(marshal, 'drilling', False):
+            if getattr(marshal, 'drilling_locked', False):
+                # Turn 2: Locked in drill, cannot move
+                return {
+                    "success": False,
+                    "message": f"{marshal.name} is locked in drill formation and cannot move. Only RETREAT is allowed.",
+                    "drilling_locked": True
+                }
+            else:
+                # Turn 1: Can move but drill is cancelled
+                marshal.drilling = False
+                marshal.drill_complete_turn = -1
+                drill_cancelled_message = f"⚠️ DRILL CANCELLED: {marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
+
         if not target:
             return {
                 "success": False,
@@ -771,15 +880,30 @@ TIPS:
         old_location = marshal.location
         marshal.move_to(target_name)
 
+        move_message = f"{marshal.name} moves from {old_location} to {target_name}"
+        if drill_cancelled_message:
+            move_message = drill_cancelled_message + move_message
+
+        events = [{
+            "type": "move",
+            "marshal": marshal.name,
+            "from": old_location,
+            "to": target_name
+        }]
+
+        # Add drill_cancelled event if drill was interrupted
+        if drill_cancelled_message:
+            events.insert(0, {
+                "type": "drill_cancelled",
+                "marshal": marshal.name,
+                "reason": "move"
+            })
+
         return {
             "success": True,
-            "message": f"{marshal.name} moves from {old_location} to {target_name}",
-            "events": [{
-                "type": "move",
-                "marshal": marshal.name,
-                "from": old_location,
-                "to": target
-            }],
+            "message": move_message,
+            "drill_cancelled": bool(drill_cancelled_message),
+            "events": events,
             "new_state": game_state
         }
 
@@ -1465,33 +1589,55 @@ TIPS:
                 "message": f"{marshal.name} is recovering from retreat and cannot drill yet."
             }
 
+        # Check for enemies at current location (can't drill with enemy present)
+        enemy_at_location = world.get_enemy_at_location(marshal.location)
+        if enemy_at_location and enemy_at_location.strength > 0:
+            return {
+                "success": False,
+                "message": f"{marshal.name} cannot drill with enemy forces ({enemy_at_location.name}) present at {marshal.location}!"
+            }
+
+        # Check for enemies in adjacent regions (too risky to drill)
+        current_region = world.get_region(marshal.location)
+        if current_region:
+            for adj_name in current_region.adjacent_regions:
+                for enemy in world.get_enemy_marshals():
+                    if enemy.location == adj_name and enemy.strength > 0:
+                        return {
+                            "success": False,
+                            "message": f"{marshal.name} cannot drill with enemy forces nearby! "
+                                      f"{enemy.name} is at {adj_name}, just one region away."
+                        }
+
         # Start drilling - will be locked next turn
         marshal.drilling = True
         marshal.drilling_locked = False  # Not locked yet (locked on turn advance)
-        marshal.drill_complete_turn = world.current_turn + 2  # Ready in 2 turns
+        # Timeline: Turn N order → End N locks → Turn N+1 locked → End N+1 completes → Turn N+2 ready
+        marshal.drill_complete_turn = world.current_turn + 1  # Completes at end of NEXT turn
 
         return {
             "success": True,
             "message": f"{marshal.name} begins intensive drill exercises at {marshal.location}. "
-                      f"The troops will be locked in training next turn. "
-                      f"Bonus ready on turn {marshal.drill_complete_turn}.",
+                      f"Troops will be locked in training next turn, "
+                      f"bonus ready turn {marshal.drill_complete_turn + 1}.",
             "events": [{
                 "type": "drill_started",
                 "marshal": marshal.name,
                 "location": marshal.location,
-                "complete_turn": int(marshal.drill_complete_turn)
+                "complete_turn": int(marshal.drill_complete_turn),
+                "ready_turn": int(marshal.drill_complete_turn + 1)
             }],
             "new_state": game_state
         }
 
     def _execute_fortify(self, command: Dict, game_state: Dict) -> Dict:
         """
-        Execute fortify order - Defensive lockdown with +10% defense bonus.
+        Execute fortify order - Defensive lockdown with growing defense bonus.
 
         While fortified:
         - Cannot move or attack
-        - +1 defense_bonus (+10% defender effectiveness)
-        - Lasts until ordered to un-fortify or 5 turns (auto-expire)
+        - Starts at +2% defense, grows +2% per turn (max 15%)
+        - Permanent until ordered to un-fortify
         """
         marshal_name = command.get("marshal")
         world: WorldState = game_state.get("world")
@@ -1506,9 +1652,10 @@ TIPS:
 
         # Check if already fortified
         if getattr(marshal, 'fortified', False):
+            current_bonus = int(getattr(marshal, 'defense_bonus', 0) * 10)
             return {
                 "success": False,
-                "message": f"{marshal.name} is already fortified at {marshal.location}."
+                "message": f"{marshal.name} is already fortified at {marshal.location} (+{current_bonus}% defense)."
             }
 
         # Check if drilling (can't fortify while drilling)
@@ -1527,20 +1674,19 @@ TIPS:
 
         # Enter fortified state
         marshal.fortified = True
-        marshal.defense_bonus = 1  # +10% defense
-        marshal.fortify_expires_turn = world.current_turn + 5  # Auto-expire in 5 turns
+        marshal.defense_bonus = 0.2  # Start at +2% defense
+        marshal.fortify_expires_turn = -1  # No expiration (permanent until unfortified)
 
         return {
             "success": True,
             "message": f"{marshal.name} fortifies position at {marshal.location}. "
-                      f"Defense bonus: +10%. Cannot move or attack while fortified. "
-                      f"(Expires turn {marshal.fortify_expires_turn})",
+                      f"Defense bonus: +2% (grows +2% per turn, max 15%). "
+                      f"Cannot move or attack while fortified. Use 'unfortify' to become mobile.",
             "events": [{
                 "type": "fortified",
                 "marshal": marshal.name,
                 "location": marshal.location,
-                "defense_bonus": int(marshal.defense_bonus),
-                "expires_turn": int(marshal.fortify_expires_turn)
+                "defense_bonus": 2  # Display as percentage
             }],
             "new_state": game_state
         }
@@ -1627,6 +1773,9 @@ TIPS:
         old_location = marshal.location
         marshal.move_to(best_region)
 
+        # Track if drill was cancelled for message
+        drill_was_active = getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False)
+
         # Enter retreat recovery state
         marshal.just_retreated = False  # FIX: Clear legacy flag to use new retreat system
         marshal.retreating = True
@@ -1635,13 +1784,18 @@ TIPS:
         # Clear any offensive states
         marshal.drilling = False
         marshal.drilling_locked = False
+        marshal.drill_complete_turn = -1
         marshal.shock_bonus = 0
+
+        # Build message with optional drill cancellation note
+        retreat_message = f"{marshal.name} retreats from {old_location} to {best_region}. "
+        if drill_was_active:
+            retreat_message += "Drill cancelled. "
+        retreat_message += f"Army begins recovery (currently at -45% effectiveness). Will recover over 3 turns."
 
         return {
             "success": True,
-            "message": f"{marshal.name} retreats from {old_location} to {best_region}. "
-                      f"Army begins recovery (currently at -45% effectiveness). "
-                      f"Will recover over 3 turns.",
+            "message": retreat_message,
             "events": [{
                 "type": "retreat",
                 "marshal": marshal.name,
@@ -1985,6 +2139,22 @@ TIPS:
             "turn_advanced": action_result.get("turn_advanced", False),
             "new_turn": action_result.get("new_turn")
         }
+
+        # ════════════════════════════════════════════════════════════
+        # TACTICAL EVENTS: Add to message when turn advances
+        # ════════════════════════════════════════════════════════════
+        if action_result.get("turn_advanced", False):
+            tactical_events = world.get_last_tactical_events()
+            if tactical_events:
+                tactical_messages = []
+                for event in tactical_events:
+                    event_msg = event.get("message", "")
+                    if event_msg:
+                        tactical_messages.append(event_msg)
+
+                if tactical_messages:
+                    result["message"] = result.get("message", "") + "\n\n--- TURN EVENTS ---\n" + "\n".join(tactical_messages)
+                    result["tactical_events"] = tactical_events
 
         return result
 
