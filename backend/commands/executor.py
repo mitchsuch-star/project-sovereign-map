@@ -223,7 +223,8 @@ TIPS:
         # ============================================================
 
         # Actions don't apply to status queries or help
-        free_actions = ["status", "help", "end_turn", "unknown"]
+        # retreat is FREE (costs 0 actions - strategic withdrawal)
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat"]
 
         # Check if action costs points
         action_costs_point = action not in free_actions
@@ -242,12 +243,16 @@ TIPS:
         # DISOBEDIENCE SYSTEM: Check for marshal objection
         # ============================================================
 
+        # Track mild objections to prepend to result message
+        mild_message = None
+
         # Only check objection for orders that involve a marshal
         marshal_name = command.get("marshal")
         command_type = command.get("type", "specific")
 
         # Determine if this order should trigger objection check
-        objection_actions = ["attack", "defend", "move", "scout", "recruit"]
+        # Note: fortify added for aggressive marshals who object to defensive preparation
+        objection_actions = ["attack", "defend", "move", "scout", "recruit", "fortify"]
         should_check_objection = (
             action in objection_actions and
             marshal_name is not None
@@ -268,6 +273,30 @@ TIPS:
                         "message": f"{marshal_name} is acting on their own judgment. {marshal.autonomy_turns} turn{'s' if marshal.autonomy_turns != 1 else ''} remaining.",
                         "autonomous": True,
                         "autonomy_turns": marshal.autonomy_turns
+                    }
+
+                # ═══════════════════════════════════════════════════════════
+                # DRILLING LOCKED CHECK: Cannot order while in drill lock
+                # ═══════════════════════════════════════════════════════════
+                if getattr(marshal, 'drilling_locked', False):
+                    return {
+                        "success": False,
+                        "message": f"{marshal_name} is locked in drill exercises and cannot receive orders. "
+                                  f"Training completes turn {marshal.drill_complete_turn}.",
+                        "drilling_locked": True,
+                        "complete_turn": int(marshal.drill_complete_turn)
+                    }
+
+                # ═══════════════════════════════════════════════════════════
+                # FORTIFIED CHECK: Cannot move or attack while fortified
+                # ═══════════════════════════════════════════════════════════
+                if getattr(marshal, 'fortified', False) and action in ['attack', 'move']:
+                    return {
+                        "success": False,
+                        "message": f"{marshal_name} is fortified at {marshal.location} and cannot {action}. "
+                                  f"Order 'unfortify' first to make the army mobile.",
+                        "fortified": True,
+                        "suggestion": f"Try: '{marshal_name}, unfortify' to abandon fortified position"
                     }
 
                 # ═══════════════════════════════════════════════════════════
@@ -342,6 +371,15 @@ TIPS:
             result = self._execute_recruit(command, game_state)
         elif action == "end_turn":
             result = self._execute_end_turn(command, game_state)
+        # ════════════════════════════════════════════════════════════
+        # TACTICAL STATE ACTIONS (Phase 2.6)
+        # ════════════════════════════════════════════════════════════
+        elif action == "drill":
+            result = self._execute_drill(command, game_state)
+        elif action == "fortify":
+            result = self._execute_fortify(command, game_state)
+        elif action == "unfortify":
+            result = self._execute_unfortify(command, game_state)
         # Route to appropriate handler
         elif command_type == "specific":
             result = self._execute_specific(command, game_state)
@@ -382,6 +420,11 @@ TIPS:
 
         result["action_summary"] = world.get_action_summary()
 
+        # FIX: Prepend mild objection message if there was one
+        if mild_message and result.get("success"):
+            result["message"] = mild_message + result.get("message", "")
+            result["mild_objection"] = True
+
         return result
 
     def _execute_specific(self, command: Dict, game_state: Dict) -> Dict:
@@ -412,6 +455,14 @@ TIPS:
             return self._execute_move(marshal, target, world, game_state)
         elif action == "scout":
             return self._execute_scout(marshal, target, world, game_state)
+        elif action == "retreat":
+            return self._execute_retreat_action(marshal, world, game_state)
+        elif action == "drill":
+            return self._execute_drill(command, game_state)
+        elif action == "fortify":
+            return self._execute_fortify(command, game_state)
+        elif action == "unfortify":
+            return self._execute_unfortify(command, game_state)
         else:
             return {
                 "success": False,
@@ -1368,6 +1419,240 @@ TIPS:
             "new_state": game_state
         }
 
+    # ========================================
+    # TACTICAL STATE ACTIONS (Phase 2.6)
+    # ========================================
+
+    def _execute_drill(self, command: Dict, game_state: Dict) -> Dict:
+        """
+        Execute drill order - 2-turn commitment for +20% attack bonus.
+
+        Turn N: Order drill → drilling = True
+        Turn N+1: Locked (drilling_locked = True, cannot receive orders)
+        Turn N+2+: drill_complete_turn reached → shock_bonus = 2 (+20% attack)
+
+        The bonus persists until the marshal enters combat (first attack clears it).
+        """
+        marshal_name = command.get("marshal")
+        world: WorldState = game_state.get("world")
+
+        if not world:
+            return {"success": False, "message": "Error: No world state available"}
+
+        # Use fuzzy matching for marshal lookup
+        marshal, error = self._fuzzy_match_marshal(marshal_name, world)
+        if error:
+            return error
+
+        # Check if already drilling
+        if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+            return {
+                "success": False,
+                "message": f"{marshal.name} is already engaged in drill exercises."
+            }
+
+        # Check if fortified (can't drill while fortified)
+        if getattr(marshal, 'fortified', False):
+            return {
+                "success": False,
+                "message": f"{marshal.name} is fortified and cannot drill. Abandon fortification first."
+            }
+
+        # Check if retreating (can't drill while recovering)
+        if getattr(marshal, 'retreating', False):
+            return {
+                "success": False,
+                "message": f"{marshal.name} is recovering from retreat and cannot drill yet."
+            }
+
+        # Start drilling - will be locked next turn
+        marshal.drilling = True
+        marshal.drilling_locked = False  # Not locked yet (locked on turn advance)
+        marshal.drill_complete_turn = world.current_turn + 2  # Ready in 2 turns
+
+        return {
+            "success": True,
+            "message": f"{marshal.name} begins intensive drill exercises at {marshal.location}. "
+                      f"The troops will be locked in training next turn. "
+                      f"Bonus ready on turn {marshal.drill_complete_turn}.",
+            "events": [{
+                "type": "drill_started",
+                "marshal": marshal.name,
+                "location": marshal.location,
+                "complete_turn": int(marshal.drill_complete_turn)
+            }],
+            "new_state": game_state
+        }
+
+    def _execute_fortify(self, command: Dict, game_state: Dict) -> Dict:
+        """
+        Execute fortify order - Defensive lockdown with +10% defense bonus.
+
+        While fortified:
+        - Cannot move or attack
+        - +1 defense_bonus (+10% defender effectiveness)
+        - Lasts until ordered to un-fortify or 5 turns (auto-expire)
+        """
+        marshal_name = command.get("marshal")
+        world: WorldState = game_state.get("world")
+
+        if not world:
+            return {"success": False, "message": "Error: No world state available"}
+
+        # Use fuzzy matching for marshal lookup
+        marshal, error = self._fuzzy_match_marshal(marshal_name, world)
+        if error:
+            return error
+
+        # Check if already fortified
+        if getattr(marshal, 'fortified', False):
+            return {
+                "success": False,
+                "message": f"{marshal.name} is already fortified at {marshal.location}."
+            }
+
+        # Check if drilling (can't fortify while drilling)
+        if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+            return {
+                "success": False,
+                "message": f"{marshal.name} is engaged in drill exercises and cannot fortify."
+            }
+
+        # Check if retreating (can't fortify while recovering)
+        if getattr(marshal, 'retreating', False):
+            return {
+                "success": False,
+                "message": f"{marshal.name} is recovering from retreat and cannot fortify yet."
+            }
+
+        # Enter fortified state
+        marshal.fortified = True
+        marshal.defense_bonus = 1  # +10% defense
+        marshal.fortify_expires_turn = world.current_turn + 5  # Auto-expire in 5 turns
+
+        return {
+            "success": True,
+            "message": f"{marshal.name} fortifies position at {marshal.location}. "
+                      f"Defense bonus: +10%. Cannot move or attack while fortified. "
+                      f"(Expires turn {marshal.fortify_expires_turn})",
+            "events": [{
+                "type": "fortified",
+                "marshal": marshal.name,
+                "location": marshal.location,
+                "defense_bonus": int(marshal.defense_bonus),
+                "expires_turn": int(marshal.fortify_expires_turn)
+            }],
+            "new_state": game_state
+        }
+
+    def _execute_unfortify(self, command: Dict, game_state: Dict) -> Dict:
+        """Remove fortification from a marshal."""
+        marshal_name = command.get("marshal")
+        world: WorldState = game_state.get("world")
+
+        if not world:
+            return {"success": False, "message": "Error: No world state available"}
+
+        marshal, error = self._fuzzy_match_marshal(marshal_name, world)
+        if error:
+            return error
+
+        if not getattr(marshal, 'fortified', False):
+            return {
+                "success": False,
+                "message": f"{marshal.name} is not currently fortified."
+            }
+
+        # Remove fortification
+        marshal.fortified = False
+        marshal.defense_bonus = 0
+        marshal.fortify_expires_turn = -1
+
+        return {
+            "success": True,
+            "message": f"{marshal.name} abandons fortified position at {marshal.location}. "
+                      f"Army is now mobile.",
+            "events": [{
+                "type": "unfortified",
+                "marshal": marshal.name,
+                "location": marshal.location
+            }],
+            "new_state": game_state
+        }
+
+    def _execute_retreat_action(self, marshal, world: WorldState, game_state: Dict) -> Dict:
+        """
+        Execute retreat order - FREE ACTION, initiates recovery from combat penalty.
+
+        Retreat is a strategic withdrawal that:
+        - Moves marshal 1 region toward friendly territory (Paris)
+        - Initiates recovery state (3-turn recovery from -45% to 0%)
+        - Costs 0 actions (free to order retreat)
+
+        Recovery stages:
+        - Stage 0: -45% effectiveness
+        - Stage 1: -30% effectiveness
+        - Stage 2: -15% effectiveness
+        - Stage 3: 0% (recovered, state cleared)
+        """
+        # Find retreat destination (toward Paris)
+        current_region = world.get_region(marshal.location)
+        if not current_region:
+            return {"success": False, "message": f"Invalid location: {marshal.location}"}
+
+        # Already at Paris? Can't retreat further
+        if marshal.location == "Paris":
+            return {
+                "success": False,
+                "message": f"{marshal.name} is at Paris and cannot retreat further."
+            }
+
+        # Find adjacent region closest to Paris
+        best_region = None
+        best_distance = 999
+
+        for adj in current_region.adjacent_regions:
+            distance = world.get_distance(adj, "Paris")
+            if distance < best_distance:
+                best_distance = distance
+                best_region = adj
+
+        if not best_region:
+            return {
+                "success": False,
+                "message": f"{marshal.name} has no valid retreat route."
+            }
+
+        # Execute retreat
+        old_location = marshal.location
+        marshal.move_to(best_region)
+
+        # Enter retreat recovery state
+        marshal.just_retreated = False  # FIX: Clear legacy flag to use new retreat system
+        marshal.retreating = True
+        marshal.retreat_recovery = 0  # Intentional: retreating again resets recovery progress
+
+        # Clear any offensive states
+        marshal.drilling = False
+        marshal.drilling_locked = False
+        marshal.shock_bonus = 0
+
+        return {
+            "success": True,
+            "message": f"{marshal.name} retreats from {old_location} to {best_region}. "
+                      f"Army begins recovery (currently at -45% effectiveness). "
+                      f"Will recover over 3 turns.",
+            "events": [{
+                "type": "retreat",
+                "marshal": marshal.name,
+                "from": old_location,
+                "to": best_region,
+                "recovery_stage": 0,
+                "penalty": "-45%"
+            }],
+            "new_state": game_state
+        }
+
     def _execute_reinforce(self, command: Dict, game_state: Dict) -> Dict:
         """Reinforce another marshal by moving to their location."""
         marshal_name = command.get("marshal")
@@ -1628,7 +1913,8 @@ TIPS:
         action = command.get("action", "unknown")
 
         # Check action economy
-        free_actions = ["status", "help", "end_turn", "unknown"]
+        # FIX: Added "retreat" - must match main execute() free_actions list
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat"]
         action_costs_point = action not in free_actions
 
         if action_costs_point:

@@ -103,6 +103,31 @@ class Marshal:
         # When trust hits critical low, player can grant autonomy
         self.autonomous: bool = False  # Marshal acting independently
         self.autonomy_turns: int = 0   # Turns remaining in autonomy
+        self.redemption_pending: bool = False  # FIX: Track if redemption event already triggered
+
+        # ════════════════════════════════════════════════════════════
+        # TACTICAL STATE SYSTEM (Phase 2.6)
+        # ════════════════════════════════════════════════════════════
+
+        # DRILL State: 2-turn commitment for +20% shock bonus
+        # Turn N: Order drill → drilling = True
+        # Turn N+1: Locked (drilling_locked = True, can't be ordered)
+        # Turn N+2+: Bonus active (shock_bonus = 2)
+        self.drilling: bool = False          # Currently drilling (Turn N)
+        self.drilling_locked: bool = False   # Locked in drill (Turn N+1)
+        self.drill_complete_turn: int = -1   # Turn when drill completes
+        self.shock_bonus: int = 0            # +2 = +20% attack (from drill)
+
+        # FORTIFY State: Defensive lockdown, +10% defense, can't move/attack
+        self.fortified: bool = False         # Currently fortified
+        self.fortify_expires_turn: int = -1  # Turn when fortification expires
+        self.defense_bonus: int = 0          # +1 = +10% defense (from fortify)
+
+        # RETREAT State: Recovery from combat penalty
+        # Starts at -45% effectiveness, recovers over 3 turns
+        self.retreating: bool = False        # Currently in retreat recovery
+        self.retreat_recovery: int = 0       # 0-3, current recovery stage
+        # Recovery stages: 0 = -45%, 1 = -30%, 2 = -15%, 3 = 0% (recovered)
 
     def move_to(self, new_location: str) -> None:
         """Move marshal to a new region."""
@@ -127,14 +152,31 @@ class Marshal:
         Calculate combat effectiveness multiplier.
 
         Returns:
-            Float multiplier (0.5 to 1.5)
+            Float multiplier (0.25 to 1.5)
+            - Just retreated (just_retreated): 0.5x (vulnerable!)
+            - Retreating recovery: Varies by stage
             - High morale: 1.5x effective
             - Normal morale: 1.0x effective
             - Low morale: 0.5x effective
         """
-        # Morale affects effectiveness
+        # PENALTY: Just retreated = vulnerable (legacy flag)
+        if self.just_retreated:
+            return 0.5
+
+        # PENALTY: Retreat recovery stages
+        # Stage 0: -45%, Stage 1: -30%, Stage 2: -15%, Stage 3: 0% (recovered)
+        retreat_penalty = 0.0
+        if getattr(self, 'retreating', False):
+            recovery_stage = getattr(self, 'retreat_recovery', 0)
+            retreat_penalties = {0: 0.45, 1: 0.30, 2: 0.15, 3: 0.0}
+            retreat_penalty = retreat_penalties.get(recovery_stage, 0.0)
+
+        # Normal morale calculation
         # 100 morale = 1.5x, 50 morale = 1.0x, 0 morale = 0.5x
-        return 0.5 + (self.morale / 100.0)
+        base_effectiveness = 0.5 + (self.morale / 100.0)
+
+        # Apply retreat penalty
+        return max(0.25, base_effectiveness * (1.0 - retreat_penalty))
 
     def __repr__(self) -> str:
         """String representation for debugging."""
@@ -313,30 +355,6 @@ def create_enemy_marshals() -> dict[str, Marshal]:
     return enemies
 
 
-def should_retreat(self) -> bool:
-    """Retreat only when morale < 30% - NOT based on army size!"""
-    if self.morale < 30:
-        return True
-    return False
-
-
-def get_combat_effectiveness(self) -> float:
-    """
-    Calculate combat effectiveness multiplier.
-
-    Returns:
-        Float multiplier (0.25 to 1.5)
-        - Just retreated: 0.5x (vulnerable!)
-        - High morale: 1.5x effective
-        - Normal morale: 1.0x effective
-        - Low morale: 0.5x effective
-    """
-    # PENALTY: Just retreated = vulnerable
-    if self.just_retreated:
-        return 0.5
-
-    # Normal morale calculation
-    return 0.5 + (self.morale / 100.0)
 # Test code
 if __name__ == "__main__":
     """Quick test of marshal system."""

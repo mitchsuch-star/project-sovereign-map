@@ -103,7 +103,7 @@ class LLMClient:
             action = "attack"
         elif "defend" in command_lower or "hold" in command_lower:
             action = "defend"
-        elif "retreat" in command_lower or "fall back" in command_lower:
+        elif "retreat" in command_lower or "fall back" in command_lower or "withdraw" in command_lower:
             action = "retreat"
         elif "move" in command_lower or "march" in command_lower:
             action = "move"
@@ -113,6 +113,13 @@ class LLMClient:
             action = "reinforce"
         elif "recruit" in command_lower or "raise" in command_lower or "conscript" in command_lower:
             action = "recruit"
+        # Tactical state actions (Phase 2.6)
+        elif "unfortify" in command_lower or "abandon fortif" in command_lower or "leave fortif" in command_lower:
+            action = "unfortify"  # Must check before fortify to avoid false positives
+        elif "fortify" in command_lower or "dig in" in command_lower or "entrench" in command_lower:
+            action = "fortify"
+        elif "drill" in command_lower or "train" in command_lower or "exercise" in command_lower:
+            action = "drill"
 
         # Extract target (can be None)
         target = None

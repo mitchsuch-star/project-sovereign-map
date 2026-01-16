@@ -158,12 +158,53 @@ class CombatResolver:
                 attacker_shock += 2
                 ability_message = f"{attacker.name}'s '{attacker.ability['name']}' inspires the assault!"
 
+        # ════════════════════════════════════════════════════════════
+        # DRILL BONUS (Phase 2.6): +2 shock from drill training
+        # ════════════════════════════════════════════════════════════
+        drill_bonus_message = None
+        attacker_drill_bonus = getattr(attacker, 'shock_bonus', 0)
+        if attacker_drill_bonus > 0:
+            attacker_shock += attacker_drill_bonus
+            drill_bonus_message = f"{attacker.name}'s drilled troops attack with +{attacker_drill_bonus * 10}% effectiveness!"
+            # Clear drill bonus after first use (one-time bonus)
+            attacker.shock_bonus = 0
+            attacker.drilling = False
+            attacker.drilling_locked = False
+            attacker.drill_complete_turn = -1
+
         shock_multiplier = 1.0 + (attacker_shock / 20.0)
 
         # Apply DEFENSE skill to defender protection (reduces casualties taken)
         # Higher defense = fewer casualties taken
         # defense_skill // 2 gives 0 to 5 percentage points of protection
         defender_defense = defender.skills.get("defense", 5)
+
+        # ════════════════════════════════════════════════════════════
+        # FORTIFY BONUS (Phase 2.6): +1 defense from fortified position
+        # ════════════════════════════════════════════════════════════
+        fortify_bonus_message = None
+        defender_fortify_bonus = getattr(defender, 'defense_bonus', 0)
+        if defender_fortify_bonus > 0:
+            defender_defense += defender_fortify_bonus
+            fortify_bonus_message = f"{defender.name}'s fortified position provides +{defender_fortify_bonus * 10}% defense!"
+            # Fortification persists (doesn't clear on first use)
+
+        # ════════════════════════════════════════════════════════════
+        # DRILLING PENALTY (Phase 2.6): -25% defense when caught drilling
+        # When a marshal is drilling, they're focused on training, not defense!
+        # ════════════════════════════════════════════════════════════
+        drilling_penalty_message = None
+        is_drilling = getattr(defender, 'drilling', False) or getattr(defender, 'drilling_locked', False)
+        if is_drilling:
+            # Apply -25% defense penalty (equivalent to -5 defense skill)
+            defender_defense = max(0, defender_defense - 5)
+            drilling_penalty_message = f"{defender.name}'s drill was interrupted by the attack! (-25% defense)"
+            # Cancel drill - they lose all progress
+            defender.drilling = False
+            defender.drilling_locked = False
+            defender.drill_complete_turn = -1
+            defender.shock_bonus = 0  # Clear any pending bonus
+
         defense_bonus = defender_defense / 20.0  # 0.05 to 0.50 (5% to 50% reduction)
         defense_multiplier = 1.0 - defense_bonus
 
@@ -227,6 +268,22 @@ class CombatResolver:
                 attacker.adjust_morale(-5)
                 defender.adjust_morale(-5)
 
+        # Build description with tactical state messages
+        base_description = self._generate_description(
+            attacker, defender, outcome, attacker_casualties, defender_casualties, attacker_roll
+        )
+
+        # Prepend tactical state messages if applicable
+        tactical_prefix = ""
+        if drill_bonus_message:
+            tactical_prefix += f"\n⚔️ {drill_bonus_message}"
+        if fortify_bonus_message:
+            tactical_prefix += f"\n🏰 {fortify_bonus_message}"
+        if drilling_penalty_message:
+            tactical_prefix += f"\n⚠️ {drilling_penalty_message}"
+        if tactical_prefix:
+            tactical_prefix += "\n"
+
         # THIS RETURN MUST BE HERE!
         return {
             "outcome": outcome,
@@ -246,11 +303,12 @@ class CombatResolver:
             "terrain": terrain,
             "attacker_roll": attacker_roll,
             "ability_triggered": ability_message,  # Phase 2.3: Signature abilities
+            "drill_bonus_triggered": drill_bonus_message,  # Phase 2.6: Drill bonus
+            "fortify_bonus_triggered": fortify_bonus_message,  # Phase 2.6: Fortify bonus
+            "drilling_penalty_triggered": drilling_penalty_message,  # Phase 2.6: Drilling penalty
             "flanking_bonus": int(flanking_bonus),  # Phase 2.5: Flanking system
             "flanking_message": flanking_message,
-            "description": self._generate_description(
-                attacker, defender, outcome, attacker_casualties, defender_casualties, attacker_roll
-            )
+            "description": tactical_prefix + base_description
         }
         # ... rest of existing code ...
 

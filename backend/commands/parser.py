@@ -30,7 +30,9 @@ class CommandParser:
         # Valid actions
         self.valid_actions = [
             "attack", "defend", "retreat", "move", "scout",
-            "reinforce", "recruit", "help", "end_turn"
+            "reinforce", "recruit", "help", "end_turn",
+            # Tactical state actions (Phase 2.6)
+            "drill", "fortify", "unfortify"
         ]
 
         # Known regions for fuzzy matching

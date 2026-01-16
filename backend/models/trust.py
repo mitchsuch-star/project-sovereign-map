@@ -124,40 +124,8 @@ def calculate_obedience_chance(trust_value: int) -> float:
         return 0.20 + trust_value * 0.01
 
 
-def get_trust_change_for_action(action: str, outcome: str) -> int:
-    """
-    Get trust change for a specific action and outcome.
-
-    Args:
-        action: What the player did ('trust', 'insist', 'compromise')
-        outcome: Result ('victory', 'defeat', 'draw')
-
-    Returns:
-        Trust change amount
-    """
-    # Trust changes based on action and outcome
-    trust_changes = {
-        # Trusting marshal's judgment
-        'trust': {
-            'victory': 5,   # Marshal was right, good call
-            'defeat': -3,   # Marshal was wrong, but player trusted
-            'draw': 1,      # Slight positive for trusting
-        },
-        # Insisting on original order
-        'insist': {
-            'victory': -2,  # Player was right, marshal might resent being overridden
-            'defeat': -5,   # Player was wrong AND overrode marshal
-            'draw': -1,     # Slight negative for overriding
-        },
-        # Finding middle ground
-        'compromise': {
-            'victory': 3,   # Both contributed
-            'defeat': -2,   # Shared responsibility
-            'draw': 2,      # Good collaboration
-        },
-    }
-
-    return int(trust_changes.get(action, {}).get(outcome, 0))
+# NOTE: get_trust_change_for_action() was removed as dead code (never called).
+# The trust change logic is handled directly in disobedience.py handle_response().
 
 
 # Test code
@@ -188,16 +156,6 @@ if __name__ == "__main__":
     for tv in test_values:
         chance = calculate_obedience_chance(tv)
         print(f"Trust {tv:3d}: {chance:.1%} obedience")
-
-    print("\n" + "=" * 60)
-    print("TRUST CHANGES BY ACTION/OUTCOME")
-    print("=" * 60)
-
-    for action in ['trust', 'insist', 'compromise']:
-        print(f"\n{action.upper()}:")
-        for outcome in ['victory', 'defeat', 'draw']:
-            change = get_trust_change_for_action(action, outcome)
-            print(f"  {outcome}: {change:+d}")
 
     print("\n" + "=" * 60)
     print("TEST COMPLETE!")

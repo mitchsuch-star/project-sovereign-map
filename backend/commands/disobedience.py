@@ -36,6 +36,9 @@ MAX_MAJOR_OBJECTIONS_PER_TURN = 2
 
 def get_enemies_in_range(marshal, game_state) -> List:
     """Get all enemy marshals within this marshal's attack range."""
+    if game_state is None:
+        return []
+
     enemies = []
     movement_range = getattr(marshal, 'movement_range', 2)
 
@@ -53,6 +56,9 @@ def get_enemies_in_range(marshal, game_state) -> List:
 
 def get_adjacent_regions(marshal_location: str, game_state) -> List[str]:
     """Get all adjacent regions the marshal can move to."""
+    if game_state is None:
+        return []
+
     region = game_state.regions.get(marshal_location)
     if region:
         return list(region.adjacent_regions)
@@ -63,10 +69,14 @@ def get_valid_actions(marshal, game_state) -> List[Dict]:
     """
     Return all actions this marshal can currently take.
 
-    Always includes:
+    Always includes (based on state):
     - defend (current location)
-    - attack (each enemy in range)
-    - move (each adjacent region)
+    - attack (each enemy in range) - blocked if fortified
+    - move (each adjacent region) - blocked if fortified
+    - drill (if not already drilling/fortified/retreating)
+    - fortify (if not already fortified/drilling/retreating)
+    - unfortify (if fortified)
+    - retreat (if not already retreating, always valid)
 
     FUTURE EXTENSIBILITY:
     - scout: Move toward enemy but don't engage
@@ -75,6 +85,11 @@ def get_valid_actions(marshal, game_state) -> List[Dict]:
     """
     valid = []
 
+    # Check current tactical state
+    is_drilling = getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False)
+    is_fortified = getattr(marshal, 'fortified', False)
+    is_retreating = getattr(marshal, 'retreating', False)
+
     # Defend is always valid
     valid.append({
         "action": "defend",
@@ -82,22 +97,60 @@ def get_valid_actions(marshal, game_state) -> List[Dict]:
         "description": f"Defend at {marshal.location}"
     })
 
-    # Attack targets in range
-    enemies_in_range = get_enemies_in_range(marshal, game_state)
-    for enemy in enemies_in_range:
+    # Attack targets in range (blocked if fortified)
+    if not is_fortified:
+        enemies_in_range = get_enemies_in_range(marshal, game_state)
+        for enemy in enemies_in_range:
+            valid.append({
+                "action": "attack",
+                "target": enemy.name,
+                "description": f"Attack {enemy.name}"
+            })
+
+    # Move destinations (blocked if fortified)
+    if not is_fortified:
+        adjacent = get_adjacent_regions(marshal.location, game_state)
+        for region in adjacent:
+            valid.append({
+                "action": "move",
+                "target": region,
+                "description": f"Move to {region}"
+            })
+
+    # ════════════════════════════════════════════════════════════
+    # TACTICAL STATE ACTIONS (Phase 2.6)
+    # ════════════════════════════════════════════════════════════
+
+    # Drill: Available if not already drilling/fortified/retreating
+    if not is_drilling and not is_fortified and not is_retreating:
         valid.append({
-            "action": "attack",
-            "target": enemy.name,
-            "description": f"Attack {enemy.name}"
+            "action": "drill",
+            "target": marshal.location,
+            "description": f"Drill troops at {marshal.location} (2-turn commitment, +20% attack)"
         })
 
-    # Move destinations
-    adjacent = get_adjacent_regions(marshal.location, game_state)
-    for region in adjacent:
+    # Fortify: Available if not already fortified/drilling/retreating
+    if not is_fortified and not is_drilling and not is_retreating:
         valid.append({
-            "action": "move",
-            "target": region,
-            "description": f"Move to {region}"
+            "action": "fortify",
+            "target": marshal.location,
+            "description": f"Fortify position at {marshal.location} (+10% defense, cannot move/attack)"
+        })
+
+    # Unfortify: Only available if currently fortified
+    if is_fortified:
+        valid.append({
+            "action": "unfortify",
+            "target": marshal.location,
+            "description": f"Abandon fortified position at {marshal.location}"
+        })
+
+    # Retreat: Always available (free action) unless already retreating or at Paris
+    if not is_retreating and marshal.location != "Paris":
+        valid.append({
+            "action": "retreat",
+            "target": "toward_paris",
+            "description": f"Retreat toward Paris (free, -45% effectiveness, recovers over 3 turns)"
         })
 
     # ════════════════════════════════════════════════════════════
@@ -163,6 +216,11 @@ OBJECTION_TEMPLATES = {
             "{name}'s face goes red. \"Retreat? I have never retreated in my life! Give me one more chance!\"",
             "\"The Bravest of the Brave does not retreat,\" {name} says coldly. \"Find another to flee.\"",
         ],
+        'fortify': [
+            "{name} stares at you in disbelief. \"Dig trenches? You want me to dig trenches like a coward?!\"",
+            "\"I did not earn my marshal's baton by cowering behind earthworks,\" {name} says coldly.",
+            "\"Fortifications are for those who fear battle,\" {name} declares. \"Let me attack instead!\"",
+        ],
     },
     'cautious': {
         'attack_outnumbered': [
@@ -175,6 +233,8 @@ OBJECTION_TEMPLATES = {
         ],
     },
     'literal': {
+        # TODO: 'ambiguous' situation detection not yet implemented in personality.py analyze_order_situation().
+        # Currently this template is never used. Need to add proper ambiguous order detection.
         'ambiguous': [
             "{name} looks confused. \"Sire, which enemy do you mean? There are several possibilities.\"",
             "\"Your orders are... unclear,\" {name} says hesitantly. \"Should I await clarification?\"",
@@ -352,6 +412,13 @@ class DisobedienceSystem:
                 # No valid aggressive alternative
                 return {'action': 'defend', 'target': marshal.location}
 
+            # FIX: Aggressive marshal ordered to fortify - suggest attack or drill
+            if action == 'fortify':
+                if attack_target:
+                    return {'action': 'attack', 'target': attack_target}
+                # If no enemy nearby, suggest drill (at least it leads to +Shock)
+                return {'action': 'drill', 'target': marshal.location}
+
         # ════════════════════════════════════════════════════════════
         # CAUTIOUS: Prefers defense over attack
         # ════════════════════════════════════════════════════════════
@@ -452,6 +519,9 @@ class DisobedienceSystem:
 
     def _get_move_toward_enemy(self, marshal, game_state) -> Optional[str]:
         """Find adjacent region that moves toward nearest enemy."""
+        if game_state is None:
+            return None
+
         result = game_state.find_nearest_enemy(marshal.location)
         if not result:
             return None
@@ -510,8 +580,7 @@ class DisobedienceSystem:
 
         # Select template
         if template_list:
-            import random
-            template = random.choice(template_list)
+            template = random.choice(template_list)  # FIX: Removed duplicate import (already at top)
             message = template.format(name=marshal.name)
         else:
             # Generic fallback
@@ -669,14 +738,17 @@ class DisobedienceSystem:
 
         # ════════════════════════════════════════════════════════════
         # BUG FIX: Check for redemption event at trust ≤ 20
+        # FIX: Only trigger once per marshal (check redemption_pending)
         # ════════════════════════════════════════════════════════════
         redemption_event = None
         if marshal and hasattr(marshal, 'trust'):
             current_trust = marshal.trust.value
+            already_pending = getattr(marshal, 'redemption_pending', False)
             print(f"  📊 TRUST CHECK: {marshal_name} at {current_trust}, " +
-                  f"redemption_triggered={'YES' if current_trust <= 20 else 'NO'}")
+                  f"redemption_triggered={'YES' if current_trust <= 20 and not already_pending else 'NO'}")
 
-            if current_trust <= 20:
+            if current_trust <= 20 and not already_pending:
+                marshal.redemption_pending = True  # FIX: Mark as pending to prevent re-trigger
                 redemption_event = self._create_redemption_event(marshal)
 
         result = {
@@ -760,6 +832,9 @@ class DisobedienceSystem:
         marshal = world.get_marshal(marshal_name)
         if not marshal:
             return {'success': False, 'message': f'Marshal {marshal_name} not found'}
+
+        # FIX: Clear redemption_pending flag now that we're resolving it
+        marshal.redemption_pending = False
 
         if choice == 'grant_autonomy':
             # Set marshal as autonomous

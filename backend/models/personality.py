@@ -81,6 +81,7 @@ PERSONALITY_TRIGGERS: Dict[Personality, Dict[str, float]] = {
         'wait_with_enemy_nearby': 0.65,  # Really hates waiting when enemy is close
         'retreat': 0.70,             # Strongly objects to retreat
         'hold_position': 0.45,       # Mild objection to holding
+        'fortify': 0.55,             # "You want me to dig trenches like a coward?!"
     },
 
     Personality.CAUTIOUS: {
@@ -192,6 +193,10 @@ def analyze_order_situation(order: Dict, marshal, game_state) -> Optional[str]:
     if action == 'retreat':
         return 'retreat'
 
+    # Check for fortify (aggressive trigger)
+    if action == 'fortify':
+        return 'fortify'
+
     # Check for capital exposure (balanced trigger)
     if action == 'move' and _exposes_capital(marshal, target, game_state):
         return 'expose_capital'
@@ -216,7 +221,7 @@ def _enemy_nearby(marshal, game_state) -> bool:
     if not current_region:
         return False
 
-    for adj_name in current_region.adjacent:
+    for adj_name in current_region.adjacent_regions:  # FIX: was .adjacent (wrong attribute)
         for m in world.marshals.values():
             if m.location == adj_name and m.nation != marshal.nation:
                 return True
