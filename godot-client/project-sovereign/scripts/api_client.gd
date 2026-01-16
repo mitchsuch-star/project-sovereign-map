@@ -27,6 +27,34 @@ func send_command(command: String, callback: Callable):
 	if error != OK:
 		print("ERROR: HTTP request failed with code: ", error)
 
+func send_objection_response(choice: String, callback: Callable):
+	"""Send player's response to a marshal objection."""
+	pending_callback = callback
+	var url = API_URL + "/respond_to_objection"
+	var headers = ["Content-Type: application/json"]
+	var body = JSON.stringify({"choice": choice})
+	var error = http_request.request(url, headers, HTTPClient.METHOD_POST, body)
+	if error != OK:
+		print("ERROR: HTTP request failed with code: ", error)
+
+func send_redemption_response(choice: String, callback: Callable):
+	"""Send player's response to a redemption event (trust at critical low)."""
+	pending_callback = callback
+	var url = API_URL + "/respond_to_redemption"
+	var headers = ["Content-Type: application/json"]
+	var body = JSON.stringify({"choice": choice})
+	var error = http_request.request(url, headers, HTTPClient.METHOD_POST, body)
+	if error != OK:
+		print("ERROR: HTTP request failed with code: ", error)
+
+func get_marshal_trust(marshal_name: String, callback: Callable):
+	"""Get trust and vindication info for a specific marshal."""
+	pending_callback = callback
+	var url = API_URL + "/marshal_trust/" + marshal_name
+	var error = http_request.request(url)
+	if error != OK:
+		print("ERROR: HTTP request failed with code: ", error)
+
 func _on_request_completed(result, response_code, headers, body):
 	var response_text = body.get_string_from_utf8()
 	

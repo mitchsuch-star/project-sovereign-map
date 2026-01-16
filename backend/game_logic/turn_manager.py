@@ -53,6 +53,11 @@ class TurnManager:
         TODO (Post-MVP): Add _process_enemy_turns() here
         Enemy nations should take actions before turn advances.
         """
+        # ════════════════════════════════════════════════════════════
+        # AUTONOMY COUNTDOWN: Process autonomous marshals
+        # ════════════════════════════════════════════════════════════
+        autonomy_events = self._process_autonomy_countdown()
+
         # Advance turn counter
         self.world.advance_turn()
 
@@ -63,12 +68,78 @@ class TurnManager:
             self.world.game_over = True
             self.world.victory = victory_check["result"]
 
-        return {
+        result = {
             "turn_ended": self.world.current_turn - 1,
             "next_turn": self.world.current_turn,
             "victory_check": victory_check,
             "message": f"Turn {self.world.current_turn - 1} complete"
         }
+
+        # Add autonomy events if any
+        if autonomy_events:
+            result["autonomy_events"] = autonomy_events
+            result["events"] = autonomy_events
+
+        return result
+
+    def _process_autonomy_countdown(self) -> List[Dict]:
+        """
+        Process autonomous marshals at end of turn.
+
+        For each autonomous marshal:
+        - Decrement autonomy_turns
+        - If hits 0, restore to normal with trust = 50
+
+        TODO: Once AI decision tree is set up, autonomous marshals will
+        take their own actions here using that system (attack nearby enemies,
+        defend strategic positions, etc. based on personality). For now,
+        they just count down turns without taking actions.
+
+        Returns:
+            List of autonomy events (ended, continuing)
+        """
+        events = []
+
+        for marshal in self.world.marshals.values():
+            # Skip non-player marshals
+            if marshal.nation != self.world.player_nation:
+                continue
+
+            # Check if autonomous
+            if not getattr(marshal, 'autonomous', False):
+                continue
+
+            # Decrement turns
+            marshal.autonomy_turns -= 1
+
+            print(f"  ⏱️ AUTONOMY: {marshal.name} - {marshal.autonomy_turns} turns remaining")
+
+            if marshal.autonomy_turns <= 0:
+                # Autonomy ended - restore relationship
+                marshal.autonomous = False
+                marshal.autonomy_turns = 0
+
+                # Reset trust to 50 (restored relationship)
+                if hasattr(marshal, 'trust'):
+                    marshal.trust.set(50)
+
+                events.append({
+                    "type": "autonomy_ended",
+                    "marshal": marshal.name,
+                    "message": f"{marshal.name} returns to your command. The relationship has been restored.",
+                    "new_trust": 50
+                })
+
+                print(f"  ✅ AUTONOMY ENDED: {marshal.name} returns to command (trust=50)")
+            else:
+                events.append({
+                    "type": "autonomy_continuing",
+                    "marshal": marshal.name,
+                    "turns_remaining": marshal.autonomy_turns,
+                    "message": f"{marshal.name} continues acting autonomously. {marshal.autonomy_turns} turn{'s' if marshal.autonomy_turns != 1 else ''} remaining."
+                })
+
+        return events
 
     def _generate_situation_report(self) -> Dict:
         """Generate situation report for player."""

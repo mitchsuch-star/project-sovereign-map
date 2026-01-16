@@ -2,11 +2,19 @@
 World State for Project Sovereign
 The main game state - ties regions, marshals, and game logic together
 INTEGER FIX: All action economy values guaranteed to be integers
+
+Includes Disobedience System (Phase 2):
+- AuthorityTracker: Tracks Napoleon's perceived authority
+- VindicationTracker: Tracks objection outcomes
+- DisobedienceSystem: Handles marshal objections
 """
 
 from typing import Dict, List, Optional, Tuple
 from backend.models.region import Region, create_regions
 from backend.models.marshal import Marshal, create_starting_marshals, create_enemy_marshals
+from backend.models.authority import AuthorityTracker
+from backend.commands.vindication import VindicationTracker
+from backend.commands.disobedience import DisobedienceSystem
 
 
 class WorldState:
@@ -76,6 +84,21 @@ class WorldState:
         # Key: target_region, Value: list of attack records
         self.attacks_this_turn: Dict[str, List[Dict]] = {}
         self._action_counter: int = 0  # Track action order for timestamps
+
+        # ============================================================
+        # DISOBEDIENCE SYSTEM (Phase 2) - Marshal objections
+        # ============================================================
+        self.authority_tracker: AuthorityTracker = AuthorityTracker()
+        self.vindication_tracker: VindicationTracker = VindicationTracker()
+        self.disobedience_system: DisobedienceSystem = DisobedienceSystem()
+
+        # Pending objection state - holds major objection awaiting player response
+        # None when no objection pending, Dict when awaiting player choice
+        self.pending_objection: Optional[Dict] = None
+
+        # Pending redemption state - holds redemption event when trust hits critical low
+        # None when no redemption pending, Dict when awaiting player choice
+        self.pending_redemption: Optional[Dict] = None
 
     def _setup_initial_control(self) -> None:
         """Set up which nation controls which regions at start."""
@@ -491,6 +514,9 @@ class WorldState:
 
         # Reset attack tracking for flanking system (Phase 2.5)
         self.reset_attack_tracking()
+
+        # Reset disobedience system for new turn (Phase 2)
+        self.disobedience_system.reset_turn()
 
         # Check for game over
         if self.current_turn > self.max_turns:

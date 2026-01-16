@@ -1,6 +1,11 @@
 """
 Command Executor for Project Sovereign
 Executes parsed commands against game state with region conquest
+
+Includes Disobedience System (Phase 2):
+- Checks for marshal objections before executing orders
+- Handles major objections by pausing execution for player choice
+- Updates vindication tracker after battles
 """
 from typing import Dict, List, Optional, Tuple
 from backend.models.world_state import WorldState
@@ -197,6 +202,19 @@ TIPS:
                 "message": "Error: No world state available"
             }
 
+        # ============================================================
+        # DISOBEDIENCE CHECK: Is there a pending objection?
+        # ============================================================
+
+        if world.pending_objection is not None:
+            return {
+                "success": False,
+                "message": "A marshal is awaiting your response! Use /respond_to_objection to continue.",
+                "awaiting_response": True,
+                "objection": world.pending_objection,
+                "choices": ["trust", "insist", "compromise"] if world.pending_objection.get("alternative") else ["trust", "insist"]
+            }
+
         command = parsed_command.get("command", {})
         action = command.get("action", "unknown")
 
@@ -221,10 +239,99 @@ TIPS:
                 }
 
         # ============================================================
-        # Continue with normal command routing
+        # DISOBEDIENCE SYSTEM: Check for marshal objection
         # ============================================================
 
+        # Only check objection for orders that involve a marshal
+        marshal_name = command.get("marshal")
         command_type = command.get("type", "specific")
+
+        # Determine if this order should trigger objection check
+        objection_actions = ["attack", "defend", "move", "scout", "recruit"]
+        should_check_objection = (
+            action in objection_actions and
+            marshal_name is not None
+        )
+
+        if should_check_objection:
+            marshal = world.get_marshal(marshal_name)
+            if marshal and marshal.nation == world.player_nation:
+                # ═══════════════════════════════════════════════════════════
+                # AUTONOMOUS CHECK: Cannot command autonomous marshals
+                # TODO: Once AI decision tree is set up, autonomous marshals
+                # will make their own decisions each turn using that system.
+                # For now, they just block commands with a message.
+                # ═══════════════════════════════════════════════════════════
+                if getattr(marshal, 'autonomous', False):
+                    return {
+                        "success": False,
+                        "message": f"{marshal_name} is acting on their own judgment. {marshal.autonomy_turns} turn{'s' if marshal.autonomy_turns != 1 else ''} remaining.",
+                        "autonomous": True,
+                        "autonomy_turns": marshal.autonomy_turns
+                    }
+
+                # ═══════════════════════════════════════════════════════════
+                # DEBUG: Print objection evaluation details
+                # ═══════════════════════════════════════════════════════════
+                print(f"\n{'='*60}")
+                print(f"🔍 OBJECTION CHECK: {marshal_name}")
+                print(f"{'='*60}")
+                print(f"  Personality: {marshal.personality}")
+                print(f"  Trust: {marshal.trust.value} ({marshal.trust.get_label()})")
+                print(f"  Action: {action} → {command.get('target', 'N/A')}")
+
+                # Evaluate the order for objection
+                objection = world.disobedience_system.evaluate_order(
+                    marshal=marshal,
+                    order=command,
+                    game_state=world
+                )
+
+                if objection:
+                    severity = objection.get("severity", 0.0)
+                    objection_type = objection["type"]
+                    print(f"  ⚠️  OBJECTION TRIGGERED!")
+                    print(f"     Type: {objection_type}")
+                    print(f"     Severity: {severity:.2f}")
+                    print(f"     Trigger: {objection.get('trigger', 'unknown')}")
+
+                    # BUG FIX: disobedience.py returns 'major_objection', not 'major'
+                    if objection_type == "major_objection":
+                        print(f"  🛑 MAJOR - Awaiting player choice")
+                        print(f"{'='*60}\n")
+
+                        # MAJOR OBJECTION: Pause for player choice
+                        world.pending_objection = objection
+                        return {
+                            "success": True,  # Changed to True so frontend processes it
+                            "awaiting_response": True,
+                            "state": "awaiting_player_choice",  # CRITICAL for frontend detection
+                            "message": objection["message"],
+                            "objection": objection,
+                            "choices": ["trust", "insist", "compromise"] if objection.get("suggested_alternative") else ["trust", "insist"],
+                            "marshal": marshal_name,
+                            "severity": severity,
+                            "trust": int(marshal.trust.value),
+                            "trust_label": marshal.trust.get_label(),
+                            "vindication": world.vindication_tracker.get_vindication_data(marshal_name).get("score", 0),
+                            "authority": int(world.authority_tracker.authority),
+                            "suggested_alternative": objection.get("suggested_alternative"),
+                            "compromise": objection.get("compromise")
+                        }
+                    else:
+                        # MILD OBJECTION: Auto-resolve with trust, continue execution
+                        # The marshal grumbles but obeys
+                        print(f"  ℹ️  MILD objection (type={objection_type}) - proceeding anyway")
+                        print(f"{'='*60}\n")
+                        mild_message = f"[{marshal_name} hesitates but obeys: {objection.get('message', 'minor concerns')}]\n"
+                        # Continue with execution, will prepend message later
+                else:
+                    print(f"  ✓ No objection (severity below threshold)")
+                    print(f"{'='*60}\n")
+
+        # ============================================================
+        # Continue with normal command routing
+        # ============================================================
 
         # Handle special actions first
         if action == "help":
@@ -528,9 +635,33 @@ TIPS:
         if flanking_message:
             flanking_prefix = f"\n{flanking_message}\n"
 
+        # ============================================================
+        # VINDICATION SYSTEM: Resolve post-battle trust/authority
+        # ============================================================
+        vindication_msg = ""
+        vindication_result = None
+
+        # Determine battle outcome for vindication
+        if battle_result["victor"] == marshal.name:
+            battle_outcome = "victory"
+        elif battle_result["victor"] == enemy_marshal.name:
+            battle_outcome = "defeat"
+        else:
+            battle_outcome = "draw"
+
+        # Call vindication tracker if there was a pending vindication for this marshal
+        if world.vindication_tracker.has_pending(marshal.name):
+            vindication_result = world.vindication_tracker.resolve_battle(
+                marshal_name=marshal.name,
+                result=battle_outcome,
+                game_state=world
+            )
+            if vindication_result:
+                vindication_msg = f"\n\n📜 {vindication_result['message']}"
+
         return {
             "success": True,
-            "message": flanking_prefix + battle_result["description"] + destroyed_msg + conquest_msg,
+            "message": flanking_prefix + battle_result["description"] + destroyed_msg + conquest_msg + vindication_msg,
             "events": [{
                 "type": "battle",
                 "attacker": battle_result["attacker"],
@@ -541,7 +672,8 @@ TIPS:
                 "region_conquered": conquered,
                 "region_name": resolved_target if conquered else None,
                 "flanking_bonus": flanking_bonus,
-                "flanking_origins": list(flanking_info["unique_origins"]) if flanking_info["unique_origins"] else []
+                "flanking_origins": list(flanking_info["unique_origins"]) if flanking_info["unique_origins"] else [],
+                "vindication": vindication_result
             }],
             "new_state": game_state
         }
@@ -787,7 +919,32 @@ TIPS:
         flanking_prefix = ""
         if flanking_message:
             flanking_prefix = f"\n{flanking_message}\n"
-        full_message = explanation + flanking_prefix + battle_result["description"]
+
+        # ============================================================
+        # VINDICATION SYSTEM: Resolve post-battle trust/authority
+        # ============================================================
+        vindication_msg = ""
+        vindication_result = None
+
+        # Determine battle outcome for vindication
+        if battle_result["victor"] == best_marshal.name:
+            battle_outcome = "victory"
+        elif battle_result["victor"] == best_enemy.name:
+            battle_outcome = "defeat"
+        else:
+            battle_outcome = "draw"
+
+        # Call vindication tracker if there was a pending vindication
+        if world.vindication_tracker.has_pending(best_marshal.name):
+            vindication_result = world.vindication_tracker.resolve_battle(
+                marshal_name=best_marshal.name,
+                result=battle_outcome,
+                game_state=world
+            )
+            if vindication_result:
+                vindication_msg = f"\n\n📜 {vindication_result['message']}"
+
+        full_message = explanation + flanking_prefix + battle_result["description"] + vindication_msg
 
         return {
             "success": True,
@@ -801,13 +958,15 @@ TIPS:
                 "outcome": battle_result["outcome"],
                 "victor": battle_result["victor"],
                 "enemy_destroyed": enemy_destroyed,
-                "marshal_switched": len(filtered_out) > 0,  # NEW: Flag for UI
-                "explanation": explanation.strip(),  # NEW: Explanation text
+                "marshal_switched": len(filtered_out) > 0,
+                "explanation": explanation.strip(),
                 "flanking_bonus": flanking_bonus,
-                "flanking_origins": list(flanking_info["unique_origins"]) if flanking_info["unique_origins"] else []
+                "flanking_origins": list(flanking_info["unique_origins"]) if flanking_info["unique_origins"] else [],
+                "vindication": vindication_result
             }],
             "new_state": game_state
         }
+
     def _execute_auto_assign_attack(self, command: Dict, game_state: Dict) -> Dict:
         """
         Execute attack with auto-assigned marshal.
@@ -873,9 +1032,31 @@ TIPS:
             if flanking_message:
                 flanking_prefix = f"\n{flanking_message}\n"
 
+            # ============================================================
+            # VINDICATION SYSTEM: Resolve post-battle trust/authority
+            # ============================================================
+            vindication_msg = ""
+            vindication_result = None
+
+            if battle_result["victor"] == nearest_marshal.name:
+                battle_outcome = "victory"
+            elif battle_result["victor"] == enemy.name:
+                battle_outcome = "defeat"
+            else:
+                battle_outcome = "draw"
+
+            if world.vindication_tracker.has_pending(nearest_marshal.name):
+                vindication_result = world.vindication_tracker.resolve_battle(
+                    marshal_name=nearest_marshal.name,
+                    result=battle_outcome,
+                    game_state=world
+                )
+                if vindication_result:
+                    vindication_msg = f"\n\n📜 {vindication_result['message']}"
+
             return {
                 "success": True,
-                "message": f"{nearest_marshal.name} (auto-assigned) attacks {target}!{flanking_prefix} {battle_result['description']}",
+                "message": f"{nearest_marshal.name} (auto-assigned) attacks {target}!{flanking_prefix} {battle_result['description']}{vindication_msg}",
                 "events": [{
                     "type": "battle",
                     "marshal": nearest_marshal.name,
@@ -886,7 +1067,8 @@ TIPS:
                     "victor": battle_result["victor"],
                     "enemy_destroyed": enemy_destroyed,
                     "flanking_bonus": flanking_bonus,
-                    "flanking_origins": list(flanking_info["unique_origins"]) if flanking_info["unique_origins"] else []
+                    "flanking_origins": list(flanking_info["unique_origins"]) if flanking_info["unique_origins"] else [],
+                    "vindication": vindication_result
                 }],
                 "new_state": game_state
             }
@@ -965,9 +1147,31 @@ TIPS:
             if flanking_message:
                 flanking_prefix = f"\n{flanking_message}\n"
 
+            # ============================================================
+            # VINDICATION SYSTEM: Resolve post-battle trust/authority
+            # ============================================================
+            vindication_msg = ""
+            vindication_result = None
+
+            if battle_result["victor"] == nearest_marshal.name:
+                battle_outcome = "victory"
+            elif battle_result["victor"] == enemy.name:
+                battle_outcome = "defeat"
+            else:
+                battle_outcome = "draw"
+
+            if world.vindication_tracker.has_pending(nearest_marshal.name):
+                vindication_result = world.vindication_tracker.resolve_battle(
+                    marshal_name=nearest_marshal.name,
+                    result=battle_outcome,
+                    game_state=world
+                )
+                if vindication_result:
+                    vindication_msg = f"\n\n📜 {vindication_result['message']}"
+
             return {
                 "success": True,
-                "message": f"{nearest_marshal.name} attacks {enemy.name} at {target_name}!{flanking_prefix} {battle_result['description']}{conquest_msg}",
+                "message": f"{nearest_marshal.name} attacks {enemy.name} at {target_name}!{flanking_prefix} {battle_result['description']}{conquest_msg}{vindication_msg}",
                 "events": [{
                     "type": "battle",
                     "marshal": nearest_marshal.name,
@@ -979,7 +1183,8 @@ TIPS:
                     "region_conquered": conquered,
                     "enemy_destroyed": enemy_destroyed,
                     "flanking_bonus": flanking_bonus,
-                    "flanking_origins": list(flanking_info["unique_origins"]) if flanking_info["unique_origins"] else []
+                    "flanking_origins": list(flanking_info["unique_origins"]) if flanking_info["unique_origins"] else [],
+                    "vindication": vindication_result
                 }],
                 "new_state": game_state
             }
@@ -1216,3 +1421,289 @@ TIPS:
             }],
             "new_state": game_state
         }
+
+    # ========================================
+    # DISOBEDIENCE SYSTEM (Phase 2)
+    # ========================================
+
+    def handle_objection_response(self, choice: str, game_state: Dict) -> Dict:
+        """
+        Handle player's response to a marshal objection.
+
+        Args:
+            choice: 'trust', 'insist', or 'compromise'
+            game_state: Current game state dict with 'world' key
+
+        Returns:
+            Result dict with execution outcome or error
+        """
+        world: WorldState = game_state.get("world")
+
+        if not world:
+            return {
+                "success": False,
+                "message": "Error: No world state available"
+            }
+
+        # Check if there's a pending objection
+        if world.pending_objection is None:
+            return {
+                "success": False,
+                "message": "No objection pending. Issue a command first."
+            }
+
+        objection = world.pending_objection
+        marshal_name = objection.get("marshal")
+
+        # Get alternative (disobedience.py uses 'suggested_alternative')
+        alternative = objection.get("suggested_alternative") or objection.get("alternative")
+        compromise = objection.get("compromise")
+
+        # Validate choice
+        valid_choices = ["trust", "insist"]
+        if alternative or compromise:
+            valid_choices.append("compromise")
+
+        if choice not in valid_choices:
+            return {
+                "success": False,
+                "message": f"Invalid choice: '{choice}'. Valid choices: {', '.join(valid_choices)}"
+            }
+
+        # Process the choice through disobedience system
+        response_result = world.disobedience_system.handle_response(
+            objection=objection,
+            choice=choice,
+            game_state=world,
+            vindication_tracker=world.vindication_tracker
+        )
+
+        # Clear the pending objection
+        world.pending_objection = None
+
+        # ════════════════════════════════════════════════════════════
+        # BUG FIX #1: Check for DISOBEY - execute ALTERNATIVE instead
+        # ════════════════════════════════════════════════════════════
+        if response_result.get("disobeyed"):
+            print(f"  🛑 DISOBEY - Marshal executes their alternative instead!")
+
+            # Marshal does what THEY wanted, not what player ordered
+            disobey_order = alternative if alternative else None
+
+            if disobey_order:
+                # Execute the marshal's preferred action
+                parsed_command = {
+                    "success": True,
+                    "command": disobey_order
+                }
+                execution_result = self._execute_post_objection(parsed_command, game_state, marshal_name)
+
+                # Build message showing what marshal did instead
+                disobey_msg = response_result["message"]
+                action_desc = f"{disobey_order.get('action', 'act')} {disobey_order.get('target', '')}"
+                final_message = f"{disobey_msg}\n\n{marshal_name} instead chooses to {action_desc}."
+
+                if execution_result.get("success"):
+                    final_message += f"\n\n{execution_result.get('message', '')}"
+
+                result = {
+                    "success": True,
+                    "message": final_message,
+                    "objection_resolved": True,
+                    "choice": choice,
+                    "disobeyed": True,
+                    "executed_alternative": True,
+                    "trust_change": response_result.get("trust_change", 0),
+                    "authority_change": response_result.get("authority_change", 0),
+                    "events": execution_result.get("events", []),
+                    "action_info": execution_result.get("action_info", {"remaining": world.actions_remaining}),
+                    "action_summary": world.get_action_summary(),
+                    "new_state": game_state
+                }
+            else:
+                # No alternative available - marshal simply refuses
+                print(f"  ⚠️ No alternative available - marshal refuses entirely")
+                result = {
+                    "success": True,
+                    "message": response_result["message"] + f"\n\n{marshal_name} stands firm and takes no action.",
+                    "objection_resolved": True,
+                    "choice": choice,
+                    "disobeyed": True,
+                    "executed_alternative": False,
+                    "trust_change": response_result.get("trust_change", 0),
+                    "authority_change": response_result.get("authority_change", 0),
+                    "events": [],
+                    "action_info": {"remaining": world.actions_remaining},
+                    "action_summary": world.get_action_summary(),
+                    "new_state": game_state
+                }
+
+            # Check for redemption event even on disobey
+            if response_result.get("redemption_event"):
+                result["redemption_event"] = response_result["redemption_event"]
+                result["state"] = "awaiting_redemption_choice"
+                print(f"  🚨 REDEMPTION EVENT attached to disobey response")
+
+            return result
+
+        # ════════════════════════════════════════════════════════════
+        # BUG FIX #2: Check for REDEMPTION EVENT - return with event
+        # ════════════════════════════════════════════════════════════
+        if response_result.get("redemption_event"):
+            print(f"  🚨 REDEMPTION EVENT - returning before order execution")
+            # Still execute the order, but include redemption event in response
+            # (Trust dropped to critical AFTER the order would execute)
+
+        # Get the order to execute (original or alternative)
+        if choice == "trust" and alternative:
+            # Execute the marshal's suggested alternative
+            order_to_execute = alternative
+            execute_msg = f"{marshal_name} executes their alternative plan."
+        elif choice == "compromise" and compromise:
+            # Execute compromise action
+            order_to_execute = compromise
+            execute_msg = f"{marshal_name} executes the compromise plan."
+        else:
+            # Execute original order (insist or trust with no alternative)
+            order_to_execute = objection["original_order"]
+            execute_msg = f"{marshal_name} follows your orders."
+
+        # Build result message
+        result_message = f"{response_result['message']}\n\n{execute_msg}"
+
+        # Now execute the order
+        # Create a parsed command structure from the order
+        parsed_command = {
+            "success": True,
+            "command": order_to_execute
+        }
+
+        # Execute the command (this will bypass objection check since we just resolved it)
+        # Temporarily mark this as a post-objection execution
+        execution_result = self._execute_post_objection(parsed_command, game_state, marshal_name)
+
+        # Combine messages
+        if execution_result.get("success"):
+            final_message = f"{result_message}\n\n{execution_result.get('message', '')}"
+        else:
+            final_message = f"{result_message}\n\nExecution failed: {execution_result.get('message', 'Unknown error')}"
+
+        result = {
+            "success": execution_result.get("success", False),
+            "message": final_message,
+            "objection_resolved": True,
+            "choice": choice,
+            "disobeyed": False,
+            "trust_change": response_result.get("trust_change", 0),
+            "authority_change": response_result.get("authority_change", 0),
+            "events": execution_result.get("events", []),
+            "action_info": execution_result.get("action_info", {}),
+            "action_summary": world.get_action_summary(),
+            "new_state": game_state
+        }
+
+        # Add redemption event if triggered (trust dropped to critical after executing)
+        if response_result.get("redemption_event"):
+            result["redemption_event"] = response_result["redemption_event"]
+            result["state"] = "awaiting_redemption_choice"
+            print(f"  🚨 REDEMPTION EVENT attached to response")
+
+        return result
+
+    def _execute_post_objection(self, parsed_command: Dict, game_state: Dict, marshal_name: str) -> Dict:
+        """
+        Execute a command after objection has been resolved.
+        Bypasses the objection check since we just handled it.
+
+        Args:
+            parsed_command: The parsed command to execute
+            game_state: Current game state
+            marshal_name: Name of the marshal executing
+
+        Returns:
+            Execution result dict
+        """
+        world: WorldState = game_state.get("world")
+        command = parsed_command.get("command", {})
+        action = command.get("action", "unknown")
+
+        # Check action economy
+        free_actions = ["status", "help", "end_turn", "unknown"]
+        action_costs_point = action not in free_actions
+
+        if action_costs_point:
+            if world.actions_remaining <= 0:
+                return {
+                    "success": False,
+                    "message": "No actions remaining this turn!"
+                }
+
+        # Route to appropriate handler based on action type
+        command_type = command.get("type", "specific")
+
+        if action == "attack":
+            marshal = world.get_marshal(marshal_name)
+            if marshal:
+                result = self._execute_attack(marshal, command.get("target"), world, game_state)
+            else:
+                result = {"success": False, "message": f"Marshal {marshal_name} not found"}
+        elif action == "defend":
+            marshal = world.get_marshal(marshal_name)
+            if marshal:
+                result = self._execute_defend(marshal, world, game_state)
+            else:
+                result = {"success": False, "message": f"Marshal {marshal_name} not found"}
+        elif action == "move":
+            marshal = world.get_marshal(marshal_name)
+            if marshal:
+                result = self._execute_move(marshal, command.get("target"), world, game_state)
+            else:
+                result = {"success": False, "message": f"Marshal {marshal_name} not found"}
+        elif action == "scout":
+            marshal = world.get_marshal(marshal_name)
+            if marshal:
+                result = self._execute_scout(marshal, command.get("target"), world, game_state)
+            else:
+                result = {"success": False, "message": f"Marshal {marshal_name} not found"}
+        elif action == "recruit":
+            result = self._execute_recruit(command, game_state)
+        else:
+            result = {"success": False, "message": f"Unknown action: {action}"}
+
+        # Consume action if successful
+        action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
+        if result.get("success", False) and action_costs_point:
+            action_result = world.use_action(action)
+
+        # Add action info to result
+        result["action_info"] = {
+            "cost": action_result.get("action_cost", 0),
+            "remaining": world.actions_remaining,
+            "turn_advanced": action_result.get("turn_advanced", False),
+            "new_turn": action_result.get("new_turn")
+        }
+
+        return result
+
+    def resolve_battle_vindication(self, marshal_name: str, result: str, game_state: Dict) -> Optional[Dict]:
+        """
+        Call vindication tracker after a battle to update trust/authority.
+
+        Args:
+            marshal_name: Name of marshal who fought
+            result: 'victory', 'defeat', or 'draw'
+            game_state: Current game state
+
+        Returns:
+            Vindication result dict or None if no pending vindication
+        """
+        world: WorldState = game_state.get("world")
+
+        if not world:
+            return None
+
+        return world.vindication_tracker.resolve_battle(
+            marshal_name=marshal_name,
+            result=result,
+            game_state=world
+        )

@@ -21,6 +21,12 @@ extends Control
 # Map reference
 @onready var map_area = $MapArea
 
+# Objection Dialog
+var objection_dialog = null
+
+# Redemption Dialog
+var redemption_dialog = null
+
 # API Client
 var api_client = null
 
@@ -30,6 +36,7 @@ var max_actions = 4
 var current_turn = 1
 var max_turns = 40
 var gold = 1200
+var pending_redemption = false  # True when awaiting redemption choice
 
 # Color palette (Napoleonic theme)
 const COLOR_GOLD = "d9c08c"        # Gold for titles, important text
@@ -49,20 +56,58 @@ func _ready():
 	# Create API client
 	api_client = load("res://scripts/api_client.gd").new()
 	add_child(api_client)
-	
+
+	# Load and setup Objection Dialog
+	print("🔧 Loading ObjectionDialog scene...")
+	var dialog_scene = load("res://scenes/objection_dialog.tscn")
+	if dialog_scene == null:
+		push_error("❌ FAILED to load objection_dialog.tscn!")
+		print("❌ FAILED to load objection_dialog.tscn!")
+	else:
+		print("✓ Scene loaded, instantiating...")
+		objection_dialog = dialog_scene.instantiate()
+		if objection_dialog == null:
+			push_error("❌ FAILED to instantiate ObjectionDialog!")
+			print("❌ FAILED to instantiate ObjectionDialog!")
+		else:
+			print("✓ Dialog instantiated, adding to tree...")
+			add_child(objection_dialog)
+			objection_dialog.choice_made.connect(_on_objection_choice_made)
+			print("✓ ObjectionDialog ready! Node: ", objection_dialog.name)
+			print("  In tree: ", objection_dialog.is_inside_tree())
+			print("  Visible: ", objection_dialog.visible)
+
+	# Load and setup Redemption Dialog
+	print("🔧 Loading RedemptionDialog scene...")
+	var redemption_scene = load("res://scenes/redemption_dialog.tscn")
+	if redemption_scene == null:
+		push_error("❌ FAILED to load redemption_dialog.tscn!")
+		print("❌ FAILED to load redemption_dialog.tscn!")
+	else:
+		print("✓ Redemption scene loaded, instantiating...")
+		redemption_dialog = redemption_scene.instantiate()
+		if redemption_dialog == null:
+			push_error("❌ FAILED to instantiate RedemptionDialog!")
+			print("❌ FAILED to instantiate RedemptionDialog!")
+		else:
+			print("✓ Redemption dialog instantiated, adding to tree...")
+			add_child(redemption_dialog)
+			redemption_dialog.choice_made.connect(_on_redemption_choice_made)
+			print("✓ RedemptionDialog ready!")
+
 	# Connect signals
 	if not send_button.pressed.is_connected(_on_send_button_pressed):
 		send_button.pressed.connect(_on_send_button_pressed)
-	
+
 	if not command_input.text_submitted.is_connected(_on_command_submitted):
 		command_input.text_submitted.connect(_on_command_submitted)
-	
+
 	# Start disabled until connected
 	set_input_enabled(false)
-	
+
 	# Welcome message
 	_show_welcome()
-	
+
 	# Test connection after brief delay
 	await get_tree().create_timer(0.5).timeout
 	test_connection()
@@ -133,25 +178,64 @@ func _on_command_submitted(_text: String):
 func _execute_command():
 	"""Execute the command in the input field."""
 	var command = command_input.text.strip_edges()
-	
+
 	if command.is_empty():
 		return
-	
+
 	# Display player command with prompt styling
 	add_output("")
 	add_output("[color=#" + COLOR_COMMAND + "]► " + command + "[/color]")
-	
+
 	# Clear input
 	command_input.text = ""
-	
+
+	# ════════════════════════════════════════════════════════════
+	# CHECK FOR REDEMPTION COMMAND: Handle redemption choices
+	# ════════════════════════════════════════════════════════════
+	var redemption_choices = ["grant_autonomy", "dismiss", "demand_obedience"]
+	if command.to_lower() in redemption_choices:
+		print("REDEMPTION COMMAND DETECTED: ", command)
+		set_input_enabled(false)
+		api_client.send_redemption_response(command.to_lower(), _on_redemption_response)
+		return
+
 	# Disable input while processing
 	set_input_enabled(false)
-	
+
 	# Send to backend
 	api_client.send_command(command, _on_command_result)
 
 func _on_command_result(response):
 	"""Handle command execution result."""
+	# ═══════════════════════════════════════════════════════════
+	# DEBUG TRACE: Exact step-by-step debugging
+	# ═══════════════════════════════════════════════════════════
+	print("\n" + "=".repeat(60))
+	print("1. GOT RESPONSE: ", response)
+	print("=".repeat(60))
+	print("2. HAS 'state' key: ", response.has("state"))
+	print("2b. HAS 'awaiting_player_choice' key: ", response.has("awaiting_player_choice"))
+	if response.has("state"):
+		print("3. STATE VALUE: ", response.state)
+		print("3b. STATE == 'awaiting_player_choice': ", response.state == "awaiting_player_choice")
+	print("3c. response.success: ", response.get("success", false))
+	print("=".repeat(60) + "\n")
+
+	# Check for marshal objection FIRST (before re-enabling input)
+	# The backend returns state: "awaiting_player_choice"
+	var is_objection = response.get("success", false) and response.has("state") and response.state == "awaiting_player_choice"
+	print("4. IS_OBJECTION CHECK RESULT: ", is_objection)
+
+	if is_objection:
+		print("5. OBJECTION DETECTED - About to show dialog")
+		print("6. DIALOG NODE: ", objection_dialog)
+		print("7. DIALOG IN TREE: ", objection_dialog.is_inside_tree() if objection_dialog else "NULL")
+		print("8. DIALOG VISIBLE BEFORE: ", objection_dialog.visible if objection_dialog else "NULL")
+		_show_objection_dialog(response)
+		return  # Don't re-enable input or continue processing
+	else:
+		print("5. No objection - continuing normal flow")
+
 	# Re-enable input
 	set_input_enabled(true)
 
@@ -449,6 +533,276 @@ func set_input_enabled(enabled: bool):
 	"""Enable or disable command input."""
 	command_input.editable = enabled
 	send_button.disabled = not enabled
-	
+
 	if enabled:
 		command_input.grab_focus()
+
+func _show_objection_dialog(response):
+	"""Display objection dialog when marshal objects."""
+	print("9. _show_objection_dialog() CALLED")
+
+	add_output("")
+	add_output("[color=#" + COLOR_MARSHAL + "]⚠ Marshal " + response.get("marshal", "Unknown") + " raises concerns...[/color]")
+	add_output("")
+
+	# Prepare objection data for dialog
+	var objection_data = {
+		"marshal": response.get("marshal", "Marshal"),
+		"message": response.get("message", "I have concerns about this order, Sire."),
+		"trust": response.get("trust", 70),
+		"trust_label": response.get("trust_label", "Unknown"),
+		"vindication": response.get("vindication", 0),
+		"authority": response.get("authority", 100),
+		"suggested_alternative": response.get("suggested_alternative"),
+		"compromise": response.get("compromise")
+	}
+
+	print("10. OBJECTION DATA: ", objection_data)
+
+	# CHECK: Is dialog null?
+	if objection_dialog == null:
+		print("11. ❌ ERROR: objection_dialog is NULL!")
+		push_error("objection_dialog is NULL! Cannot show dialog.")
+		add_output("[color=#" + COLOR_ERROR + "]ERROR: Dialog not loaded![/color]")
+		set_input_enabled(true)
+		return
+
+	print("11. Dialog exists, calling show_objection()")
+	print("12. BEFORE show_objection - visible: ", objection_dialog.visible)
+
+	# Show the dialog
+	objection_dialog.show_objection(objection_data)
+
+	print("13. AFTER show_objection - visible: ", objection_dialog.visible)
+
+func _on_objection_choice_made(choice: String):
+	"""Handle player's choice in objection dialog."""
+	# Disable input while processing
+	set_input_enabled(false)
+
+	# Display player choice
+	var choice_text = ""
+	match choice:
+		"trust":
+			choice_text = "You decide to trust your marshal's judgment."
+		"insist":
+			choice_text = "You insist the order be carried out as given."
+		"compromise":
+			choice_text = "You seek a middle ground with your marshal."
+
+	add_output("[color=#" + COLOR_COMMAND + "]► " + choice_text + "[/color]")
+	add_output("")
+
+	# Send choice to backend
+	api_client.send_objection_response(choice, _on_objection_response)
+
+func _on_objection_response(response):
+	"""Handle backend response after player makes objection choice."""
+	print("\n" + "=".repeat(60))
+	print("OBJECTION RESPONSE RECEIVED:")
+	print("  success: ", response.get("success", false))
+	print("  disobeyed: ", response.get("disobeyed", false))
+	print("  has redemption_event: ", response.has("redemption_event"))
+	print("  state: ", response.get("state", "none"))
+	print("=".repeat(60) + "\n")
+
+	# ════════════════════════════════════════════════════════════
+	# CHECK FOR DISOBEY: Marshal refused to obey
+	# ════════════════════════════════════════════════════════════
+	if response.get("disobeyed", false):
+		add_output("[color=#" + COLOR_ERROR + "]⚠ DISOBEDIENCE![/color]")
+		add_output("[color=#" + COLOR_MARSHAL + "]" + response.message + "[/color]")
+		add_output("")
+
+		# Update status even on disobey
+		if response.has("action_summary"):
+			_update_status(response.action_summary)
+
+		# Check for redemption event triggered by disobey
+		if response.has("redemption_event"):
+			print("🚨 REDEMPTION EVENT after disobey - showing dialog")
+			_show_redemption_dialog(response.redemption_event)
+			return  # Don't re-enable input until redemption resolved
+
+		set_input_enabled(true)
+		command_input.grab_focus()
+		return
+
+	# ════════════════════════════════════════════════════════════
+	# CHECK FOR REDEMPTION EVENT: Trust at critical low
+	# ════════════════════════════════════════════════════════════
+	if response.has("redemption_event"):
+		print("🚨 REDEMPTION EVENT detected - showing dialog")
+
+		# First show the normal result
+		if response.success:
+			if response.has("action_summary"):
+				_update_status(response.action_summary)
+			if response.has("game_state") and response.game_state.has("gold"):
+				gold = int(response.game_state.gold)
+				_update_gold_display()
+			if response.has("game_state") and response.game_state.has("map_data"):
+				map_area.update_all_regions(response.game_state.map_data)
+			_display_result(response)
+
+		# Then show redemption dialog
+		_show_redemption_dialog(response.redemption_event)
+		return  # Don't re-enable input until redemption resolved
+
+	# Re-enable input (normal flow)
+	set_input_enabled(true)
+
+	if response.success:
+		# Update status displays
+		if response.has("action_summary"):
+			_update_status(response.action_summary)
+
+		if response.has("game_state") and response.game_state.has("gold"):
+			gold = int(response.game_state.gold)
+			_update_gold_display()
+
+		# Update map with latest state
+		if response.has("game_state") and response.game_state.has("map_data"):
+			map_area.update_all_regions(response.game_state.map_data)
+
+		# Display result
+		_display_result(response)
+
+		# Check for game over
+		if response.has("game_state") and response.game_state.has("game_over"):
+			if response.game_state.game_over:
+				_show_game_over_screen(response.game_state)
+				return
+	else:
+		add_output("[color=#" + COLOR_ERROR + "]" + response.message + "[/color]")
+
+	add_output("")
+	command_input.grab_focus()
+
+
+func _show_redemption_dialog(redemption_event: Dictionary):
+	"""Display redemption popup dialog when trust hits critical low."""
+	print("REDEMPTION DIALOG - showing popup for event: ", redemption_event)
+
+	var marshal_name = redemption_event.get("marshal", "Marshal")
+
+	# Show brief notification in log
+	add_output("")
+	add_output("[color=#" + COLOR_ERROR + "]⚠ " + marshal_name + " requests an urgent audience...[/color]")
+	add_output("")
+
+	# Check if dialog exists
+	if redemption_dialog == null:
+		print("❌ ERROR: redemption_dialog is NULL!")
+		push_error("redemption_dialog is NULL! Cannot show dialog.")
+		add_output("[color=#" + COLOR_ERROR + "]ERROR: Redemption dialog not loaded![/color]")
+		# Fallback to text commands
+		_show_redemption_text_fallback(redemption_event)
+		return
+
+	# Show the popup dialog
+	redemption_dialog.show_redemption(redemption_event)
+	pending_redemption = true
+
+
+func _show_redemption_text_fallback(redemption_event: Dictionary):
+	"""Fallback text display if dialog fails to load."""
+	var options = redemption_event.get("options", [])
+
+	add_output("[color=#" + COLOR_INFO + "]You must decide how to handle this:[/color]")
+	for opt in options:
+		add_output("[color=#" + COLOR_INFO + "]  • " + opt.get("id", "?") + ": " + opt.get("text", "Unknown") + "[/color]")
+
+	add_output("")
+	add_output("[color=#" + COLOR_GOLD + "]Type: 'grant_autonomy', 'dismiss', or 'demand_obedience'[/color]")
+	add_output("")
+
+	pending_redemption = true
+	set_input_enabled(true)
+	command_input.grab_focus()
+
+
+func _on_redemption_choice_made(choice: String):
+	"""Handle player's choice in redemption dialog."""
+	print("REDEMPTION CHOICE MADE: ", choice)
+
+	# Disable input while processing
+	set_input_enabled(false)
+
+	# Display player choice in log
+	var choice_text = ""
+	match choice:
+		"grant_autonomy":
+			choice_text = "You grant the marshal autonomy to act independently."
+		"dismiss":
+			choice_text = "You dismiss the marshal from command."
+		"demand_obedience":
+			choice_text = "You demand continued obedience despite the broken trust."
+
+	add_output("[color=#" + COLOR_COMMAND + "]► " + choice_text + "[/color]")
+	add_output("")
+
+	# Send choice to backend
+	api_client.send_redemption_response(choice, _on_redemption_response)
+
+
+func _on_redemption_response(response):
+	"""Handle backend response after player makes redemption choice."""
+	print("\n" + "=".repeat(60))
+	print("REDEMPTION RESPONSE RECEIVED:")
+	print("  success: ", response.get("success", false))
+	print("  choice: ", response.get("choice", "unknown"))
+	print("  autonomous: ", response.get("autonomous", false))
+	print("  dismissed: ", response.get("dismissed", false))
+	print("=".repeat(60) + "\n")
+
+	pending_redemption = false
+
+	if response.success:
+		# Update status displays
+		if response.has("action_summary"):
+			_update_status(response.action_summary)
+
+		if response.has("game_state") and response.game_state.has("gold"):
+			gold = int(response.game_state.gold)
+			_update_gold_display()
+
+		# Update map
+		if response.has("game_state") and response.game_state.has("map_data"):
+			map_area.update_all_regions(response.game_state.map_data)
+
+		# Display result based on choice
+		var choice = response.get("choice", "")
+		add_output("")
+
+		if choice == "grant_autonomy":
+			add_output("[color=#" + COLOR_SUCCESS + "]═══════════════════════════════════════[/color]")
+			add_output("[color=#" + COLOR_SUCCESS + "]   AUTONOMY GRANTED[/color]")
+			add_output("[color=#" + COLOR_SUCCESS + "]═══════════════════════════════════════[/color]")
+			add_output("[color=#" + COLOR_MARSHAL + "]" + response.message + "[/color]")
+			var turns = response.get("autonomy_turns", 3)
+			add_output("[color=#" + COLOR_INFO + "]The marshal will act independently for " + str(turns) + " turns.[/color]")
+
+		elif choice == "dismiss":
+			add_output("[color=#" + COLOR_ERROR + "]═══════════════════════════════════════[/color]")
+			add_output("[color=#" + COLOR_ERROR + "]   MARSHAL DISMISSED[/color]")
+			add_output("[color=#" + COLOR_ERROR + "]═══════════════════════════════════════[/color]")
+			add_output("[color=#" + COLOR_MARSHAL + "]" + response.message + "[/color]")
+
+		elif choice == "demand_obedience":
+			add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+			add_output("[color=#" + COLOR_GOLD + "]   OBEDIENCE DEMANDED[/color]")
+			add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+			add_output("[color=#" + COLOR_MARSHAL + "]" + response.message + "[/color]")
+			add_output("[color=#" + COLOR_INFO + "]Warning: High chance of future disobedience.[/color]")
+
+		else:
+			add_output("[color=#" + COLOR_SUCCESS + "]" + response.message + "[/color]")
+
+		add_output("")
+	else:
+		add_output("[color=#" + COLOR_ERROR + "]" + response.message + "[/color]")
+		add_output("")
+
+	set_input_enabled(true)
+	command_input.grab_focus()

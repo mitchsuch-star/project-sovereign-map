@@ -325,11 +325,37 @@ func _zoom_at_point(point: Vector2, zoom_factor: float):
 	zoom_tween.finished.connect(func(): is_zooming = false)
 
 func _draw_tooltip():
-	"""Draw tooltip panel showing marshal details."""
-	# Tooltip dimensions
-	var tooltip_size = Vector2(200, 120)
-	var tooltip_pos = mouse_position + Vector2(15, 15)  # Offset from cursor
+	"""Draw tooltip panel showing marshal details with debug info."""
+	# Get marshal data
+	var marshal_name = hovered_marshal.get("name", "Unknown")
+	var marshal_nation = hovered_marshal.get("nation", "Neutral")
+	var strength = hovered_marshal.get("strength", 0)
+	var morale = hovered_marshal.get("morale", 0)
+	var movement_range = hovered_marshal.get("movement_range", 1)
+
+	# DEBUG INFO (only for player marshals)
+	var personality = hovered_marshal.get("personality", "")
+	var trust = hovered_marshal.get("trust", 0)
+	var trust_label = hovered_marshal.get("trust_label", "")
+	var vindication = hovered_marshal.get("vindication", 0)
+	var has_pending = hovered_marshal.get("has_pending_vindication", false)
+
+	# Calculate tooltip height based on whether we have debug info
+	var base_lines = 5  # Name, nation, troops, morale, movement
+	var debug_lines = 0
+	if personality != "":
+		debug_lines = 3  # Personality, trust, vindication
+
+	var line_spacing = 16
+	var extra_spacing = 8  # After name and nation sections
 	var padding = 10
+	var tooltip_height = padding * 2 + (base_lines * line_spacing) + (debug_lines * line_spacing) + (extra_spacing * 2)
+	if debug_lines > 0:
+		tooltip_height += extra_spacing  # Extra spacing before debug section
+
+	# Tooltip dimensions
+	var tooltip_size = Vector2(240, tooltip_height)
+	var tooltip_pos = mouse_position + Vector2(15, 15)  # Offset from cursor
 
 	# Draw semi-transparent dark panel
 	var panel_color = Color(0.1, 0.1, 0.15, 0.95)
@@ -338,16 +364,8 @@ func _draw_tooltip():
 	# Draw white border
 	draw_rect(Rect2(tooltip_pos, tooltip_size), Color.WHITE, false, 2.0)
 
-	# Get marshal data
-	var marshal_name = hovered_marshal.get("name", "Unknown")
-	var marshal_nation = hovered_marshal.get("nation", "Neutral")
-	var strength = hovered_marshal.get("strength", 0)
-	var morale = hovered_marshal.get("morale", 0)
-	var movement_range = hovered_marshal.get("movement_range", 1)
-
 	# Font setup
 	var font = ThemeDB.fallback_font
-	var line_spacing = 16
 	var text_x = tooltip_pos.x + padding
 	var text_y = tooltip_pos.y + padding
 
@@ -358,6 +376,10 @@ func _draw_tooltip():
 	# Line 2: Nation (size 11, gray)
 	draw_string(font, Vector2(text_x, text_y + 11), marshal_nation, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.7, 0.7, 0.7))
 	text_y += line_spacing + 4  # Extra spacing before stats
+
+	# ═══════════════════════════════════════════════════════════
+	# BASIC STATS
+	# ═══════════════════════════════════════════════════════════
 
 	# Line 3: Troops (formatted with commas)
 	var troops_text = "Troops: " + _format_number(strength)
@@ -372,6 +394,50 @@ func _draw_tooltip():
 	# Line 5: Movement range
 	var movement_text = "Movement: Range " + str(movement_range)
 	draw_string(font, Vector2(text_x, text_y + 11), movement_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
+	text_y += line_spacing
+
+	# ═══════════════════════════════════════════════════════════
+	# DEBUG INFO (Player marshals only)
+	# ═══════════════════════════════════════════════════════════
+
+	if personality != "":
+		text_y += extra_spacing  # Extra spacing before debug section
+
+		# Personality
+		var personality_text = "Type: " + personality.capitalize()
+		draw_string(font, Vector2(text_x, text_y + 11), personality_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.85, 0.85, 0.5))  # Yellow
+		text_y += line_spacing
+
+		# Trust
+		var trust_color = Color(0.5, 0.85, 0.5)  # Green
+		if trust < 40:
+			trust_color = Color(0.85, 0.5, 0.5)  # Red
+		elif trust < 60:
+			trust_color = Color(0.85, 0.75, 0.5)  # Orange
+
+		var trust_text = "Trust: " + str(trust) + " (" + trust_label + ")"
+		draw_string(font, Vector2(text_x, text_y + 11), trust_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, trust_color)
+		text_y += line_spacing
+
+		# Vindication
+		var vindication_text = "Track record: "
+		if vindication >= 3:
+			vindication_text += "Often right +" + str(vindication)
+		elif vindication >= 1:
+			vindication_text += "Good +" + str(vindication)
+		elif vindication <= -3:
+			vindication_text += "Often wrong " + str(vindication)
+		elif vindication <= -1:
+			vindication_text += "Mixed " + str(vindication)
+		else:
+			vindication_text += "Neutral"
+
+		if has_pending:
+			vindication_text += " [Pending]"
+
+		var vindication_color = Color(0.7, 0.7, 0.9)  # Lavender
+		draw_string(font, Vector2(text_x, text_y + 11), vindication_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, vindication_color)
+		text_y += line_spacing
 
 func _format_number(num: int) -> String:
 	"""Format number with comma separators (72000 → 72,000)."""

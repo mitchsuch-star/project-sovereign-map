@@ -1,9 +1,15 @@
 """
 Marshal Model for Project Sovereign
 Represents a marshal (commander) with personality and army
+
+Includes Disobedience System (Phase 2):
+- Trust: How much the marshal trusts the player
+- Vindication: Track record of marshal vs player being right
+- Recent battles/overrides for objection severity modifiers
 """
 
-from typing import Optional, Dict
+from typing import Optional, Dict, List
+from backend.models.trust import Trust
 
 
 class Marshal:
@@ -27,7 +33,8 @@ class Marshal:
             movement_range: int = 1,
             tactical_skill: int = 5,
             skills: Optional[dict] = None,
-            ability: Optional[dict] = None
+            ability: Optional[dict] = None,
+            starting_trust: int = 70
     ):
         """Initialize a marshal."""
         self.name = name
@@ -86,6 +93,17 @@ class Marshal:
         self.battles_lost: int = 0
         self.just_retreated: bool = False  # NEW: Vulnerable after retreat
 
+        # Disobedience System (Phase 2)
+        self.trust: Trust = Trust(int(starting_trust))
+        self.vindication_score: int = 0  # -5 to +5, affects objection boldness
+        self.recent_battles: List[str] = []  # Last 3 battle results
+        self.recent_overrides: List[bool] = []  # Last 5 override events
+
+        # Autonomy System (Phase 2.1 - Redemption)
+        # When trust hits critical low, player can grant autonomy
+        self.autonomous: bool = False  # Marshal acting independently
+        self.autonomy_turns: int = 0   # Turns remaining in autonomy
+
     def move_to(self, new_location: str) -> None:
         """Move marshal to a new region."""
         self.location = new_location
@@ -121,7 +139,8 @@ class Marshal:
     def __repr__(self) -> str:
         """String representation for debugging."""
         unit_type = "cavalry" if self.movement_range == 2 else "infantry"
-        return f"Marshal({self.name}, {self.strength:,} troops at {self.location}, morale: {self.morale}%, {unit_type})"
+        trust_label = self.trust.get_label() if hasattr(self, 'trust') else "?"
+        return f"Marshal({self.name}, {self.strength:,} troops at {self.location}, morale: {self.morale}%, trust: {trust_label}, {unit_type})"
 
 
 # Personality traits for AI behavior (used in executor)
@@ -176,7 +195,8 @@ def create_starting_marshals() -> dict[str, Marshal]:
                 "description": "Ney's aggressive leadership inspires devastating attacks",
                 "trigger": "when_attacking",
                 "effect": "+2 Shock skill when attacking (not defending)"
-            }
+            },
+            starting_trust=75  # Loyal but headstrong, starts slightly above average
         ),
         "Davout": Marshal(
             name="Davout",
@@ -199,7 +219,8 @@ def create_starting_marshals() -> dict[str, Marshal]:
                 "description": "Davout's iron discipline keeps his army steady under pressure",
                 "trigger": "morale_drops_below_50",
                 "effect": "Prevents first morale drop below 50% (TODO: Phase 2.4 morale system)"
-            }
+            },
+            starting_trust=85  # Most trusted marshal, proven record
         ),
         "Grouchy": Marshal(
             name="Grouchy",
@@ -222,7 +243,8 @@ def create_starting_marshals() -> dict[str, Marshal]:
                 "description": "Grouchy follows orders exactly, never taking initiative",
                 "trigger": "receiving_orders",
                 "effect": "Never questions orders, always obeys exactly (TODO: Phase 2.4 order delay system)"
-            }
+            },
+            starting_trust=65  # Newly promoted, unproven, follows orders literally
         )
     }
     return marshals
@@ -261,7 +283,8 @@ def create_enemy_marshals() -> dict[str, Marshal]:
                 "description": "Wellington masters defensive terrain, hiding troops behind hills",
                 "trigger": "defending_in_hills_or_forest",
                 "effect": "+2 Defense skill when defending on Hills or Forest terrain (TODO: Terrain system)"
-            }
+            },
+            starting_trust=80  # Wellington trusts his government
         ),
         "Blucher": Marshal(
             name="Blucher",
@@ -283,7 +306,8 @@ def create_enemy_marshals() -> dict[str, Marshal]:
                 "description": "Blücher's aggressive pursuit inflicts extra casualties on retreating enemies",
                 "trigger": "after_winning_battle",
                 "effect": "+1 pursuit damage to retreating enemies (TODO: Phase 2.6 pursuit system)"
-            }
+            },
+            starting_trust=70  # Blucher trusts Prussia's king
         )
     }
     return enemies
