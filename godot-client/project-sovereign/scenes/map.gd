@@ -345,8 +345,16 @@ func _draw_tooltip():
 	var vindication = hovered_marshal.get("vindication", 0)
 	var has_pending = hovered_marshal.get("has_pending_vindication", false)
 
+	# COMBAT SKILLS (only for player marshals)
+	var skills = hovered_marshal.get("skills", {})
+	var shock_skill = skills.get("shock", 0)
+	var defense_skill = skills.get("defense", 0)
+	var tactical_skill = skills.get("tactical", 0)
+
 	# TACTICAL STATES (only for player marshals)
 	var tactical_state = hovered_marshal.get("tactical_state", {})
+	# BUG-007 FIX: Added stance display
+	var stance = tactical_state.get("stance", "neutral")
 	var drilling = tactical_state.get("drilling", false)
 	var drilling_locked = tactical_state.get("drilling_locked", false)
 	var shock_bonus = tactical_state.get("shock_bonus", 0)
@@ -359,6 +367,9 @@ func _draw_tooltip():
 
 	# Count tactical state lines to display
 	var tactical_lines = 0
+	# BUG-007 FIX: Always show stance if we have tactical_state (player marshal)
+	if tactical_state.size() > 0:
+		tactical_lines += 1  # Stance line
 	if drilling or drilling_locked:
 		tactical_lines += 1
 	if shock_bonus > 0:
@@ -370,6 +381,9 @@ func _draw_tooltip():
 
 	# Calculate tooltip height based on whether we have debug info
 	var base_lines = 5  # Name, nation, troops, morale, movement
+	var skills_lines = 0
+	if skills.size() > 0:
+		skills_lines = 1  # Single line for shock/defense/tactical
 	var debug_lines = 0
 	if personality != "":
 		debug_lines = 3  # Personality, trust, vindication
@@ -377,7 +391,9 @@ func _draw_tooltip():
 	var line_spacing = 16
 	var extra_spacing = 8  # After name and nation sections
 	var padding = 10
-	var tooltip_height = padding * 2 + (base_lines * line_spacing) + (debug_lines * line_spacing) + (tactical_lines * line_spacing) + (extra_spacing * 2)
+	var tooltip_height = padding * 2 + (base_lines * line_spacing) + (skills_lines * line_spacing) + (debug_lines * line_spacing) + (tactical_lines * line_spacing) + (extra_spacing * 2)
+	if skills_lines > 0:
+		tooltip_height += extra_spacing  # Extra spacing before skills section
 	if debug_lines > 0:
 		tooltip_height += extra_spacing  # Extra spacing before debug section
 	if tactical_lines > 0:
@@ -427,6 +443,21 @@ func _draw_tooltip():
 	text_y += line_spacing
 
 	# ═══════════════════════════════════════════════════════════
+	# COMBAT SKILLS (Player marshals only)
+	# ═══════════════════════════════════════════════════════════
+	if skills.size() > 0:
+		text_y += extra_spacing  # Extra spacing before skills section
+
+		# Skills on one line: Shock/Defense/Tactical
+		var skills_text = "Skills: "
+		skills_text += "Shock " + str(shock_skill)
+		skills_text += " | Def " + str(defense_skill)
+		skills_text += " | Tac " + str(tactical_skill)
+		var skills_color = Color(0.6, 0.8, 0.6)  # Light green
+		draw_string(font, Vector2(text_x, text_y + 11), skills_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, skills_color)
+		text_y += line_spacing
+
+	# ═══════════════════════════════════════════════════════════
 	# DEBUG INFO (Player marshals only)
 	# ═══════════════════════════════════════════════════════════
 
@@ -474,6 +505,21 @@ func _draw_tooltip():
 	# ═══════════════════════════════════════════════════════════
 	if tactical_lines > 0:
 		text_y += extra_spacing  # Extra spacing before tactical section
+
+		# BUG-007 FIX: Stance display (always shown for player marshals)
+		if tactical_state.size() > 0:
+			var stance_text = "Stance: "
+			var stance_color = Color(0.7, 0.7, 0.7)  # Gray for neutral
+			if stance == "aggressive":
+				stance_text += "AGGRESSIVE (+15% atk, -10% def)"
+				stance_color = Color(0.9, 0.4, 0.3)  # Red/orange
+			elif stance == "defensive":
+				stance_text += "DEFENSIVE (-10% atk, +15% def)"
+				stance_color = Color(0.4, 0.6, 0.9)  # Blue
+			else:
+				stance_text += "NEUTRAL"
+			draw_string(font, Vector2(text_x, text_y + 11), stance_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, stance_color)
+			text_y += line_spacing
 
 		# Drill state
 		if drilling or drilling_locked:

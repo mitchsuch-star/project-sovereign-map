@@ -497,8 +497,8 @@ class TestEdgeCases:
             delattr(marshal, 'trust')
 
         modifier = get_trust_modifier(marshal)
-        # Default trust 70 = Reliable range = 0.9 modifier
-        assert modifier == 0.9
+        # Default trust 70 = Neutral range (40-79) = 1.0 modifier (4-tier steep curve)
+        assert modifier == 1.0
 
     def test_vindication_no_pending(self):
         """Resolving battle with no pending vindication."""

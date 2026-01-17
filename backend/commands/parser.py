@@ -28,12 +28,22 @@ class CommandParser:
         self.valid_marshals = ["Ney", "Davout", "Grouchy", "Murat"]
 
         # Valid actions
+        # NOTE: Do NOT add new actions without explicit approval - actions must be
+        # coordinated across parser, executor, llm_client, and personality triggers.
         self.valid_actions = [
             "attack", "defend", "retreat", "move", "scout",
             "reinforce", "recruit", "help", "end_turn",
             # Tactical state actions (Phase 2.6)
-            "drill", "fortify", "unfortify"
+            "drill", "fortify", "unfortify",
+            # Stance system (Phase 2.7)
+            "stance_change",
+            # Hold/Wait actions
+            "hold",  # Alias for defend - same mechanics
+            "wait",  # Free action (0 cost) - pass turn for this marshal
         ]
+
+        # Valid stances for stance_change command (Phase 2.7)
+        self.valid_stances = ["neutral", "defensive", "aggressive"]
 
         # Known regions for fuzzy matching
         self.known_regions = [
@@ -82,10 +92,23 @@ class CommandParser:
                 })
         # If marshal is None, try to extract from command text with fuzzy matching
         elif not llm_result.get("marshal"):
+            # BUG-002 FIX: Skip fuzzy marshal matching for meta/help commands
+            meta_actions = ["help", "end_turn", "status", "unknown"]
+            if llm_result.get("action") in meta_actions:
+                return (llm_result, None)  # Don't try to find a marshal
+
             words = command_text.split()
             for word in words:
-                # Skip very short words and common words
-                if len(word) < 2 or word.lower() in ["to", "the", "at", "in", "on", "and", "or", "attack", "defend", "move", "scout"]:
+                # Skip very short words, common words, and action keywords
+                # BUG-002 FIX: Added help, wait, hold, retreat, fortify, drill, etc.
+                skip_words = [
+                    "to", "the", "at", "in", "on", "and", "or",
+                    "attack", "defend", "move", "scout", "retreat",
+                    "help", "wait", "hold", "fortify", "drill", "recruit",
+                    "reinforce", "unfortify", "stance", "aggressive", "defensive", "neutral",
+                    "go", "take", "be", "switch", "adopt", "return"  # Stance command verbs
+                ]
+                if len(word) < 2 or word.lower() in skip_words:
                     continue
 
                 marshal_result = self.fuzzy_matcher.match_with_context(
@@ -193,15 +216,21 @@ class CommandParser:
                 # Classify command type
                 command_type = self._classify_command(llm_result, command_text)
 
+                command_dict = {
+                    "marshal": llm_result.get("marshal"),  # Can be None for general orders
+                    "action": llm_result["action"],
+                    "target": llm_result.get("target"),
+                    "confidence": llm_result.get("confidence", 0.9),
+                    "type": command_type
+                }
+
+                # BUG-005 FIX: Preserve target_stance for stance_change action
+                if llm_result["action"] == "stance_change" and llm_result.get("target_stance"):
+                    command_dict["target_stance"] = llm_result["target_stance"]
+
                 result = {
                     "success": True,
-                    "command": {
-                        "marshal": llm_result.get("marshal"),  # Can be None for general orders
-                        "action": llm_result["action"],
-                        "target": llm_result.get("target"),
-                        "confidence": llm_result.get("confidence", 0.9),
-                        "type": command_type
-                    },
+                    "command": command_dict,
                     "raw_input": command_text
                 }
 

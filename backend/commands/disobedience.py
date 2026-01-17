@@ -154,6 +154,35 @@ def get_valid_actions(marshal, game_state) -> List[Dict]:
         })
 
     # ════════════════════════════════════════════════════════════
+    # STANCE CHANGES (Phase 2.7)
+    # ════════════════════════════════════════════════════════════
+    from backend.models.marshal import Stance
+    current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
+
+    # Can always change to a different stance (unless drilling/retreating)
+    if not is_drilling and not is_retreating:
+        if current_stance != Stance.NEUTRAL:
+            valid.append({
+                "action": "stance_change",
+                "target": "neutral",
+                "description": f"Return to NEUTRAL stance (FREE, balanced posture)"
+            })
+        if current_stance != Stance.DEFENSIVE:
+            cost = "1 action" if current_stance == Stance.NEUTRAL else "2 actions"
+            valid.append({
+                "action": "stance_change",
+                "target": "defensive",
+                "description": f"Adopt DEFENSIVE stance ({cost}, -10% atk, +15% def)"
+            })
+        if current_stance != Stance.AGGRESSIVE:
+            cost = "1 action" if current_stance == Stance.NEUTRAL else "2 actions"
+            valid.append({
+                "action": "stance_change",
+                "target": "aggressive",
+                "description": f"Adopt AGGRESSIVE stance ({cost}, +15% atk, -10% def)"
+            })
+
+    # ════════════════════════════════════════════════════════════
     # FUTURE: Ability hooks
     # ════════════════════════════════════════════════════════════
     # for ability in getattr(marshal, 'abilities', []):
@@ -219,6 +248,19 @@ COMPROMISE_RULES = {
     ('retreat', 'attack'): 'defend',  # Middle ground - neither attack nor flee
     ('defend', 'retreat'): 'defend',  # If player orders defend, marshal wants retreat - hold
     ('attack', 'retreat'): 'defend',  # If player orders attack, marshal wants retreat - hold
+
+    # ════════════════════════════════════════════════════════════
+    # STANCE CHANGE COMPROMISES (Phase 2.7)
+    # Keys use consistent naming: 'defensive_stance', 'aggressive_stance', 'neutral_stance'
+    # ════════════════════════════════════════════════════════════
+
+    # Aggressive marshal ordered to defensive stance - compromise is neutral
+    ('defensive_stance', 'aggressive_stance'): 'neutral_stance',
+    ('defensive_stance', 'attack'): 'neutral_stance',  # Player wants defensive, marshal wants attack
+
+    # Cautious marshal ordered to aggressive stance - compromise is neutral
+    ('aggressive_stance', 'defensive_stance'): 'neutral_stance',
+    ('aggressive_stance', 'defend'): 'neutral_stance',  # Player wants aggressive, marshal wants defend
 }
 
 
@@ -243,6 +285,16 @@ OBJECTION_TEMPLATES = {
             "\"I did not earn my marshal's baton by cowering behind earthworks,\" {name} says coldly.",
             "\"Fortifications are for those who fear battle,\" {name} declares. \"Let me attack instead!\"",
         ],
+        # STANCE TRIGGERS (Phase 2.7)
+        'defensive_stance': [
+            "{name}'s eyes widen. \"A defensive posture? You want me to adopt the stance of a coward?!\"",
+            "\"Sire, a defensive stance is for those who have already lost,\" {name} declares hotly.",
+            "{name} grips his sword hilt. \"I am a warrior, not a turtle! Let me fight as one!\"",
+        ],
+        'neutral_stance_from_aggressive': [
+            "{name} frowns. \"Stand down from aggressive posture? But Sire, the enemy is right there!\"",
+            "\"You ask me to cool my blood when victory is within grasp?\" {name} protests.",
+        ],
     },
     'cautious': {
         'attack_outnumbered': [
@@ -252,6 +304,16 @@ OBJECTION_TEMPLATES = {
         'attack_fortified': [
             "{name} shakes his head. \"Those walls have withstood sieges before. We need artillery support first.\"",
             "\"A frontal assault on fortifications?\" {name} frowns. \"That is not how I win battles, Sire.\"",
+        ],
+        # STANCE TRIGGERS (Phase 2.7)
+        'aggressive_stance': [
+            "{name} raises an eyebrow. \"Aggressive posture? That exposes us unnecessarily, Sire.\"",
+            "\"A defensive stance would be more prudent,\" {name} suggests. \"We should not invite attack.\"",
+        ],
+        'aggressive_stance_outnumbered': [
+            "{name} looks alarmed. \"Aggressive stance while outnumbered? Sire, that is... unwise.\"",
+            "\"We are outnumbered, and you want me to be MORE aggressive?\" {name} asks incredulously.",
+            "{name} shakes his head firmly. \"This is reckless. We should fortify, not expose ourselves.\"",
         ],
     },
     'literal': {
@@ -396,9 +458,9 @@ class DisobedienceSystem:
         # Calculate trust changes for display
         # Note: Actual changes happen in handle_response(), these are estimates
         trust_value = marshal.trust.value if hasattr(marshal, 'trust') else 70
-        trust_gain_trust = 2   # Base trust gain when trusting
-        trust_loss_insist = -2  # Base trust loss when insisting (may be -15 if disobeys)
-        trust_gain_compromise = 1  # Small trust gain for compromise
+        trust_gain_trust = 12   # Trust gained when trusting marshal
+        trust_loss_insist = -10  # Trust lost when insisting (or -15 if disobeys)
+        trust_gain_compromise = 3  # Trust gained for finding middle ground
 
         # Get marshal's alternative action description
         alt_desc = self._describe_order(alternative) if alternative else "take an alternative approach"
@@ -486,10 +548,30 @@ class DisobedienceSystem:
                 return {'action': 'drill', 'target': marshal.location}
 
         # ════════════════════════════════════════════════════════════
-        # CAUTIOUS: Prefers defense over attack
+        # CAUTIOUS: Context-aware alternatives based on odds
         # ════════════════════════════════════════════════════════════
         elif personality == Personality.CAUTIOUS:
             if action == 'attack':
+                # Check odds to provide context-aware alternative
+                strength_ratio = self._get_strength_ratio_for_alternative(marshal, order.get('target'), game_state)
+
+                if strength_ratio is not None:
+                    if strength_ratio <= 0.33:  # 3:1+ outnumbered - RETREAT (too dangerous to hold)
+                        is_retreating = getattr(marshal, 'retreating', False)
+                        if not is_retreating and marshal.location != "Paris":
+                            return {'action': 'retreat', 'target': 'toward_paris'}
+                        return {'action': 'defend', 'target': marshal.location}
+                    elif strength_ratio <= 0.5:  # 2:1 outnumbered - FORTIFY (dig in for maximum defense)
+                        is_fortified = getattr(marshal, 'fortified', False)
+                        is_drilling = getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False)
+                        is_retreating = getattr(marshal, 'retreating', False)
+                        if not is_fortified and not is_drilling and not is_retreating:
+                            return {'action': 'fortify', 'target': marshal.location}
+                        return {'action': 'defend', 'target': marshal.location}
+                    else:  # 1.5:1 - DEFENSIVE STANCE (careful posture, not full fortification)
+                        return {'action': 'stance_change', 'target': 'defensive', 'target_stance': 'defensive'}
+
+                # Default: defend
                 return {'action': 'defend', 'target': marshal.location}
 
         # ════════════════════════════════════════════════════════════
@@ -605,6 +687,33 @@ class DisobedienceSystem:
 
         return None
 
+    def _get_strength_ratio_for_alternative(self, marshal, target, game_state) -> Optional[float]:
+        """
+        Get strength ratio for context-aware alternative generation.
+
+        Returns marshal.strength / enemy.strength
+        Returns None if cannot determine.
+        """
+        if game_state is None or target is None:
+            return None
+
+        world = getattr(game_state, 'world', game_state)
+        if not hasattr(world, 'marshals'):
+            return None
+
+        # Find enemy by name or location
+        enemy = None
+        for m in world.marshals.values():
+            if m.name == target or m.location == target:
+                if m.nation != marshal.nation:
+                    enemy = m
+                    break
+
+        if enemy is None or enemy.strength == 0:
+            return None
+
+        return marshal.strength / enemy.strength
+
     def _generate_objection_message(
         self,
         marshal,
@@ -633,16 +742,37 @@ class DisobedienceSystem:
                 template_list = templates.get('wait', [])
             elif action == 'retreat':
                 template_list = templates.get('retreat', [])
+            elif action == 'fortify':
+                template_list = templates.get('fortify', [])
+            # STANCE TRIGGERS (Phase 2.7)
+            elif action == 'stance_change':
+                target_stance = order.get('target_stance', '').lower()
+                if target_stance in ('defensive', 'defense'):
+                    template_list = templates.get('defensive_stance', [])
+                elif target_stance == 'neutral':
+                    template_list = templates.get('neutral_stance_from_aggressive', [])
 
         elif personality == 'cautious':
             if action == 'attack':
                 template_list = templates.get('attack_outnumbered', [])
+            # STANCE TRIGGERS (Phase 2.7)
+            elif action == 'stance_change':
+                target_stance = order.get('target_stance', '').lower()
+                if target_stance in ('aggressive', 'attack', 'offense'):
+                    template_list = templates.get('aggressive_stance', [])
+                    # Check if outnumbered for more specific template
+                    if template_list and 'outnumbered' in str(order.get('situation', '')):
+                        template_list = templates.get('aggressive_stance_outnumbered', []) or template_list
 
         elif personality == 'literal':
             template_list = templates.get('ambiguous', [])
 
         elif personality == 'balanced':
             template_list = templates.get('expose_capital', []) or templates.get('suicidal', [])
+
+        elif personality == 'loyal':
+            # LOYAL marshals rarely object, but when they do it's for good reason
+            template_list = templates.get('betray_emperor', [])
 
         # Select template
         if template_list:
@@ -677,6 +807,11 @@ class DisobedienceSystem:
             'unfortify': "abandon fortifications and prepare to move",
             'advance': f"advance toward {target}",
             'clarify': "await clearer orders",
+            # STANCE CHANGES (Phase 2.7) - consistent naming
+            'stance_change': f"adopt {target.upper()} stance" if target else "change stance",
+            'neutral_stance': "return to NEUTRAL stance",
+            'defensive_stance': "adopt DEFENSIVE stance",
+            'aggressive_stance': "adopt AGGRESSIVE stance",
         }
 
         return descriptions.get(action, f"{action} {target}")
@@ -729,10 +864,10 @@ class DisobedienceSystem:
             final_order = objection['suggested_alternative']
             message = f"You defer to {marshal_name}'s judgment."
 
-            # Trust bonus (modified by authority)
+            # Trust bonus: +12 for trusting marshal's judgment
+            # Per design spec: Trust +12, Authority -3
             if marshal and hasattr(marshal, 'trust'):
-                trust_mod = authority.get_trust_gain_modifier() if authority else 1.0
-                trust_change = int(2 * trust_mod)
+                trust_change = 12
                 marshal.modify_trust(trust_change)
 
         elif choice == 'insist':
@@ -768,8 +903,9 @@ class DisobedienceSystem:
                     final_order = objection['original_order']
                     message = f"You insist on the original order. {marshal_name} complies reluctantly."
 
-                    # Normal trust penalty
-                    trust_change = -2
+                    # Trust penalty: -10 for overriding marshal who obeys
+                    # Per design spec: Trust -10, Authority +2
+                    trust_change = -10
                     marshal.modify_trust(trust_change)
             else:
                 final_order = objection['original_order']
@@ -785,9 +921,10 @@ class DisobedienceSystem:
             final_order = objection['compromise']
             message = f"You find middle ground with {marshal_name}."
 
-            # Small trust bonus
+            # Compromise trust bonus: +3 for finding middle ground
+            # Per design spec: Trust +3, Authority -1
             if marshal and hasattr(marshal, 'trust'):
-                trust_change = 1
+                trust_change = 3
                 marshal.modify_trust(trust_change)
 
         else:

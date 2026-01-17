@@ -172,7 +172,24 @@ class CombatResolver:
             attacker.drilling_locked = False
             attacker.drill_complete_turn = -1
 
+        # ════════════════════════════════════════════════════════════
+        # STANCE MODIFIER (Phase 2.7): Apply stance-based attack modifier
+        # ════════════════════════════════════════════════════════════
+        attacker_stance_message = None
+        attacker_stance_modifier = 1.0
+        if hasattr(attacker, 'get_attack_modifier'):
+            attacker_stance_modifier = attacker.get_attack_modifier()
+            if attacker_stance_modifier != 1.0:
+                from backend.models.marshal import Stance
+                current_stance = getattr(attacker, 'stance', Stance.NEUTRAL)
+                if current_stance == Stance.AGGRESSIVE:
+                    attacker_stance_message = f"{attacker.name}'s AGGRESSIVE stance drives the assault! (+15% attack)"
+                elif current_stance == Stance.DEFENSIVE:
+                    attacker_stance_message = f"{attacker.name}'s DEFENSIVE stance hampers offensive operations (-10% attack)"
+
         shock_multiplier = 1.0 + (attacker_shock / 20.0)
+        # Apply stance modifier to shock
+        shock_multiplier *= attacker_stance_modifier
 
         # Apply DEFENSE skill to defender protection (reduces casualties taken)
         # Higher defense = fewer casualties taken
@@ -206,8 +223,25 @@ class CombatResolver:
             defender.drill_complete_turn = -1
             defender.shock_bonus = 0  # Clear any pending bonus
 
+        # ════════════════════════════════════════════════════════════
+        # STANCE MODIFIER (Phase 2.7): Apply stance-based defense modifier
+        # ════════════════════════════════════════════════════════════
+        defender_stance_message = None
+        defender_stance_modifier = 1.0
+        if hasattr(defender, 'get_defense_modifier'):
+            defender_stance_modifier = defender.get_defense_modifier()
+            if defender_stance_modifier != 1.0 and not is_drilling:  # Don't double message if drilling
+                from backend.models.marshal import Stance
+                current_stance = getattr(defender, 'stance', Stance.NEUTRAL)
+                if current_stance == Stance.DEFENSIVE:
+                    defender_stance_message = f"{defender.name}'s DEFENSIVE stance strengthens the line! (+15% defense)"
+                elif current_stance == Stance.AGGRESSIVE:
+                    defender_stance_message = f"{defender.name}'s AGGRESSIVE stance leaves flanks exposed (-10% defense)"
+
         defense_bonus = defender_defense / 20.0  # 0.05 to 0.50 (5% to 50% reduction)
-        defense_multiplier = 1.0 - defense_bonus
+        # Apply stance modifier to defense - note: higher modifier = better defense (reduces casualties MORE)
+        # defender_stance_modifier > 1 means better defense (e.g., 1.15 for defensive stance)
+        defense_multiplier = (1.0 - defense_bonus) / defender_stance_modifier
 
         # Calculate final casualties
         # Attacker takes casualties (reduced by their defense skill)
@@ -276,6 +310,10 @@ class CombatResolver:
 
         # Prepend tactical state messages if applicable
         tactical_prefix = ""
+        if attacker_stance_message:
+            tactical_prefix += f"\n⚔️ {attacker_stance_message}"
+        if defender_stance_message:
+            tactical_prefix += f"\n🛡️ {defender_stance_message}"
         if drill_bonus_message:
             tactical_prefix += f"\n⚔️ {drill_bonus_message}"
         if fortify_bonus_message:
@@ -307,6 +345,8 @@ class CombatResolver:
             "drill_bonus_triggered": drill_bonus_message,  # Phase 2.6: Drill bonus
             "fortify_bonus_triggered": fortify_bonus_message,  # Phase 2.6: Fortify bonus
             "drilling_penalty_triggered": drilling_penalty_message,  # Phase 2.6: Drilling penalty
+            "attacker_stance_triggered": attacker_stance_message,  # Phase 2.7: Stance system
+            "defender_stance_triggered": defender_stance_message,  # Phase 2.7: Stance system
             "flanking_bonus": int(flanking_bonus),  # Phase 2.5: Flanking system
             "flanking_message": flanking_message,
             "description": tactical_prefix + base_description

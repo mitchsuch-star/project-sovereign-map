@@ -103,11 +103,11 @@ def get_trust_modifier(marshal) -> float:
     Low trust = marshal more likely to object (higher severity)
     High trust = marshal trusts player judgment (lower severity)
 
-    Trust 80+: 0.8x (very trusting)
-    Trust 60-79: 0.9x (trusting)
-    Trust 40-59: 1.0x (neutral)
-    Trust 20-39: 1.2x (distrustful)
-    Trust <20: 1.4x (very distrustful)
+    4-tier steep curve per design spec:
+    Trust 80+: 0.7x (very trusting, much less likely to object)
+    Trust 40-79: 1.0x (neutral baseline)
+    Trust 20-39: 1.3x (distrustful, more likely to object)
+    Trust <20: 1.6x (very distrustful, much more likely to object)
     """
     # Get trust value
     if hasattr(marshal, 'trust'):
@@ -116,15 +116,13 @@ def get_trust_modifier(marshal) -> float:
         trust_value = 70  # Default
 
     if trust_value >= 80:
-        return 0.8
-    elif trust_value >= 60:
-        return 0.9
+        return 0.7
     elif trust_value >= 40:
         return 1.0
     elif trust_value >= 20:
-        return 1.2
+        return 1.3
     else:
-        return 1.4
+        return 1.6
 
 
 def get_vindication_modifier(marshal) -> float:
@@ -134,21 +132,19 @@ def get_vindication_modifier(marshal) -> float:
     Positive vindication = marshal proven right before = more bold in objecting
     Negative vindication = marshal proven wrong = less bold
 
-    Vindication -5 to -3: 0.8x (been wrong, less bold)
-    Vindication -2 to 0: 1.0x (neutral)
-    Vindication 1 to 3: 1.1x (been right, bolder)
-    Vindication 4 to 5: 1.25x (frequently right, very bold)
+    Simplified 3-tier system per design spec:
+    Vindication ≤-2: 0.85x (been proven wrong, less bold)
+    Vindication -1 to +2: 1.0x (neutral)
+    Vindication ≥+3: 1.15x (been proven right, bolder)
     """
     vindication = getattr(marshal, 'vindication_score', 0)
 
-    if vindication <= -3:
-        return 0.8
-    elif vindication <= 0:
+    if vindication <= -2:
+        return 0.85
+    elif vindication <= 2:
         return 1.0
-    elif vindication <= 3:
-        return 1.1
     else:
-        return 1.25
+        return 1.15
 
 
 def get_performance_modifier(marshal) -> float:

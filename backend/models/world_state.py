@@ -421,8 +421,17 @@ class WorldState:
                     marshal_data["vindication"] = vindication_data.get("score", 0)
                     marshal_data["has_pending_vindication"] = self.vindication_tracker.has_pending(m.name)
 
+                    # Combat skills for hover display
+                    marshal_data["skills"] = {
+                        "shock": int(m.skills.get("shock", 5)) if hasattr(m, 'skills') else 5,
+                        "defense": int(m.skills.get("defense", 5)) if hasattr(m, 'skills') else 5,
+                        "tactical": int(m.skills.get("tactical", 5)) if hasattr(m, 'skills') else 5,
+                    }
+
                     # Tactical states for hover info
                     marshal_data["tactical_state"] = {
+                        # Stance (BUG-007 FIX: Added stance to tactical_state)
+                        "stance": m.stance.value if hasattr(m, 'stance') else "neutral",
                         # Drill state
                         "drilling": bool(getattr(m, 'drilling', False)),
                         "drilling_locked": bool(getattr(m, 'drilling_locked', False)),

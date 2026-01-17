@@ -5,7 +5,9 @@
       "Bash(python:*)",
       "Bash(pip install:*)",
       "Bash(git add:*)",
-      "Bash(set PYTHONIOENCODING=utf-8:*)"
+      "Bash(set PYTHONIOENCODING=utf-8:*)",
+      "Bash(set PYTHONPATH=%PYTHONPATH%)",
+      "Bash(C:UsersUserPycharmProjectsproject-sovereign-map)"
     ]
   }
 }

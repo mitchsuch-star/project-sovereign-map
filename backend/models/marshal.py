@@ -6,10 +6,23 @@ Includes Disobedience System (Phase 2):
 - Trust: How much the marshal trusts the player
 - Vindication: Track record of marshal vs player being right
 - Recent battles/overrides for objection severity modifiers
+
+Includes Stance System (Phase 2.7):
+- NEUTRAL: Balanced posture (default)
+- DEFENSIVE: -10% attack, +15% defense
+- AGGRESSIVE: +15% attack, -10% defense
 """
 
+from enum import Enum
 from typing import Optional, Dict, List
 from backend.models.trust import Trust
+
+
+class Stance(Enum):
+    """Marshal stance affecting combat modifiers."""
+    NEUTRAL = "neutral"
+    DEFENSIVE = "defensive"
+    AGGRESSIVE = "aggressive"
 
 
 class Marshal:
@@ -129,9 +142,78 @@ class Marshal:
         self.retreat_recovery: int = 0       # 0-3, current recovery stage
         # Recovery stages: 0 = -45%, 1 = -30%, 2 = -15%, 3 = 0% (recovered)
 
+        # ════════════════════════════════════════════════════════════
+        # STANCE SYSTEM (Phase 2.7)
+        # ════════════════════════════════════════════════════════════
+        # NEUTRAL: 0% attack, 0% defense (default)
+        # DEFENSIVE: -10% attack, +15% defense
+        # AGGRESSIVE: +15% attack, -10% defense
+        self.stance: Stance = Stance.NEUTRAL
+
     def move_to(self, new_location: str) -> None:
         """Move marshal to a new region."""
         self.location = new_location
+
+    # ════════════════════════════════════════════════════════════
+    # STANCE MODIFIER METHODS
+    # ════════════════════════════════════════════════════════════
+
+    def get_attack_modifier(self) -> float:
+        """
+        Get attack modifier from stance (and other sources like drill).
+
+        Returns:
+            Float multiplier (e.g., 1.15 = +15% attack)
+        """
+        modifier = 1.0
+
+        # Stance modifiers
+        if self.stance == Stance.AGGRESSIVE:
+            modifier *= 1.15  # +15%
+        elif self.stance == Stance.DEFENSIVE:
+            modifier *= 0.90  # -10%
+
+        # Drill/shock bonus (from completed drill training)
+        shock = getattr(self, 'shock_bonus', 0)
+        if shock > 0:
+            modifier *= (1.0 + shock * 0.10)  # shock_bonus=2 → +20%
+
+        return modifier
+
+    def get_defense_modifier(self) -> float:
+        """
+        Get defense modifier from stance, fortify, and drill status.
+
+        Returns:
+            Float multiplier (e.g., 1.15 = +15% defense)
+        """
+        modifier = 1.0
+
+        # Stance modifiers
+        if self.stance == Stance.DEFENSIVE:
+            modifier *= 1.15  # +15%
+        elif self.stance == Stance.AGGRESSIVE:
+            modifier *= 0.90  # -10%
+
+        # Fortify bonus (grows +2% per turn, max 15%)
+        defense_bonus = getattr(self, 'defense_bonus', 0)
+        if defense_bonus > 0:
+            modifier *= (1.0 + defense_bonus * 0.10)  # defense_bonus=1.5 → +15%
+
+        # Drilling penalty (caught drilling = vulnerable)
+        if getattr(self, 'drilling', False) or getattr(self, 'drilling_locked', False):
+            modifier *= 0.75  # -25%
+
+        return modifier
+
+    def get_stance_display(self) -> str:
+        """Get display string for current stance with modifiers."""
+        if self.stance == Stance.AGGRESSIVE:
+            return "AGGRESSIVE (+15% atk, -10% def)"
+        elif self.stance == Stance.DEFENSIVE:
+            return "DEFENSIVE (-10% atk, +15% def)"
+        else:
+            return "NEUTRAL"
 
     def add_troops(self, amount: int) -> None:
         """Add troops to this marshal's army (recruitment)."""

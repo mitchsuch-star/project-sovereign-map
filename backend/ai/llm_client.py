@@ -95,13 +95,18 @@ class LLMClient:
 
         # Extract action (ALWAYS set a value)
         action = "unknown"  # Default
-        if "help" in command_lower or command_lower.strip() == "?":
+        # BUG-002 FIX: Added "commands" and "what can i do" as help aliases
+        if "help" in command_lower or command_lower.strip() == "?" or "commands" in command_lower or "what can i do" in command_lower:
             action = "help"
         elif "end turn" in command_lower or "end_turn" in command_lower or "next turn" in command_lower:
             action = "end_turn"
         elif "attack" in command_lower:
             action = "attack"
-        elif "defend" in command_lower or "hold" in command_lower:
+        elif "wait" in command_lower or "stand by" in command_lower or "pass" in command_lower:
+            action = "wait"  # Free action - marshal passes turn
+        elif "hold" in command_lower:
+            action = "hold"  # Alias for defend - will be converted in executor
+        elif "defend" in command_lower:
             action = "defend"
         elif "retreat" in command_lower or "fall back" in command_lower or "withdraw" in command_lower:
             action = "retreat"
@@ -120,9 +125,42 @@ class LLMClient:
             action = "fortify"
         elif "drill" in command_lower or "train" in command_lower or "exercise" in command_lower:
             action = "drill"
+        # Stance system (Phase 2.7) - Check for stance-related commands
+        # Supports: "Ney aggressive", "go aggressive", "aggressive stance", "be aggressive", etc.
+        elif any(kw in command_lower for kw in ["aggressive stance", "go aggressive", "adopt aggressive",
+                                                  "be aggressive", "attack stance", "offensive stance",
+                                                  "take aggressive", "switch to aggressive"]):
+            action = "stance_change"
+        elif any(kw in command_lower for kw in ["defensive stance", "go defensive", "adopt defensive",
+                                                  "be defensive", "defense stance", "take defensive",
+                                                  "switch to defensive"]):
+            action = "stance_change"
+        elif any(kw in command_lower for kw in ["neutral stance", "go neutral", "adopt neutral",
+                                                  "stand down", "return to neutral", "take neutral",
+                                                  "switch to neutral"]):
+            action = "stance_change"
+        # Simple stance words - "Ney aggressive", "aggressive", "Davout defensive"
+        # Must check these AFTER compound phrases to avoid partial matches
+        elif re.search(r'\baggressive\b', command_lower) and "attack" not in command_lower:
+            action = "stance_change"
+        elif re.search(r'\bdefensive\b', command_lower):
+            action = "stance_change"
+        elif re.search(r'\bneutral\b', command_lower) and "stance" not in command_lower:
+            # "neutral" alone (but "neutral stance" already caught above)
+            action = "stance_change"
 
         # Extract target (can be None)
         target = None
+
+        # STANCE TARGET (Phase 2.7) - Extract target stance for stance_change action
+        target_stance = None
+        if action == "stance_change":
+            if any(kw in command_lower for kw in ["aggressive", "attack", "offensive"]):
+                target_stance = "aggressive"
+            elif any(kw in command_lower for kw in ["defensive", "defense"]):
+                target_stance = "defensive"
+            elif any(kw in command_lower for kw in ["neutral", "stand down"]):
+                target_stance = "neutral"
 
         # Enemy commanders
         if "wellington" in command_lower:
@@ -180,7 +218,7 @@ class LLMClient:
                 target = second_marshal
 
         # Return parsed command
-        return {
+        result = {
             "marshal": marshal,
             "action": action,
             "target": target,
@@ -188,6 +226,12 @@ class LLMClient:
             "raw_command": command_text,
             "mode": "mock"
         }
+
+        # Add target_stance for stance_change action (Phase 2.7)
+        if action == "stance_change" and target_stance:
+            result["target_stance"] = target_stance
+
+        return result
 
     def _parse_with_claude(self, command_text: str, game_state: Optional[Dict] = None) -> Dict:
         """

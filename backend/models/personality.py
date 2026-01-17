@@ -77,19 +77,28 @@ PERSONALITY_DESCRIPTIONS = {
 PERSONALITY_TRIGGERS: Dict[Personality, Dict[str, float]] = {
     Personality.AGGRESSIVE: {
         'defend': 0.60,              # Hates defensive orders
-        'wait': 0.55,                # Hates waiting around
+        'wait': 0.50,                # Hates waiting around (fixed from 0.55)
         'wait_with_enemy_nearby': 0.65,  # Really hates waiting when enemy is close
         'retreat': 0.70,             # Strongly objects to retreat
-        'hold_position': 0.45,       # Mild objection to holding
+        'hold_position': 0.60,       # Major objection to holding (same as defend)
         'fortify': 0.55,             # "You want me to dig trenches like a coward?!"
+        'drill_enemy_nearby': 0.45,  # Mild objection: "We should attack, not drill!"
+        # STANCE TRIGGERS (Phase 2.7)
+        'defensive_stance': 0.55,    # Objects to defensive posture
+        'neutral_stance_from_aggressive': 0.35,  # Mild objection to backing off
     },
 
     Personality.CAUTIOUS: {
-        'attack_outnumbered_2to1': 0.70,      # Strong objection to suicidal attacks
+        'certain_death': 0.80,                # 5:1+ odds - very strong objection
+        'attack_outnumbered_3to1': 0.70,      # Very bad odds - strong objection
+        'attack_outnumbered_2to1': 0.60,      # Bad odds objection (fixed from 0.70)
         'attack_outnumbered_1_5to1': 0.50,    # Moderate objection to risky attacks
         'attack_without_intel': 0.55,         # TODO Phase 3: Requires fog of war system to detect unknown enemy strength
         'attack_fortified': 0.60,             # Objects to attacking fortifications
         'forced_march': 0.45,                 # Mild objection to exhausting troops
+        # STANCE TRIGGERS (Phase 2.7)
+        'aggressive_stance': 0.40,   # Objects to aggressive posture (fixed from 0.50)
+        'aggressive_stance_outnumbered': 0.60,  # Strongly objects when outnumbered (fixed from 0.65)
     },
 
     Personality.LITERAL: {
@@ -99,6 +108,7 @@ PERSONALITY_TRIGGERS: Dict[Personality, Dict[str, float]] = {
     },
 
     Personality.BALANCED: {
+        'certain_death': 0.70,                # 5:1+ odds - strong objection
         'expose_capital': 0.55,               # Objects to leaving capital undefended
         'suicidal_order': 0.65,               # TODO Phase 3: Currently uses 3:1+ ratio. Expand to other suicidal scenarios
         'attack_outnumbered_3to1': 0.60,      # Objects to very bad odds
@@ -107,6 +117,7 @@ PERSONALITY_TRIGGERS: Dict[Personality, Dict[str, float]] = {
 
     Personality.LOYAL: {
         'suicidal_order': 0.40,               # TODO Phase 3: Same as balanced - expand suicidal definition
+        'certain_death': 0.55,                # Even loyal marshals object to impossible odds (5:1+)
         'betray_emperor': 0.95,               # TODO Phase 3 (1805): Political intrigue system - detect orders harming Napoleon's interests
         'expose_capital': 0.35,               # Mild concern but trusts Emperor
     },
@@ -177,21 +188,31 @@ def analyze_order_situation(order: Dict, marshal, game_state) -> Optional[str]:
     action = order.get('action', '').lower()
     target = order.get('target')
 
-    # Check for defend/wait situations (aggressive triggers)
+    # Check for defend/wait/hold situations (aggressive triggers)
     if action == 'defend':
         return 'defend'
-    if action in ('wait', 'hold'):
-        # Check if enemy is nearby
+
+    # Hold = "hold the line" - similar to defend but milder objection
+    # This is distinct from wait - hold is an alias for defend mechanics
+    if action == 'hold':
+        # Check if enemy is nearby - more urgent "hold the line" situation
+        if _enemy_nearby(marshal, game_state):
+            return 'hold_position'  # Mild objection even with enemy nearby
+        return 'hold_position'
+
+    # Wait = pass turn, do nothing (free action)
+    if action == 'wait':
+        # Check if enemy is nearby - aggressive marshals HATE waiting with enemy close
         if _enemy_nearby(marshal, game_state):
             return 'wait_with_enemy_nearby'
         return 'wait'
-    if action == 'hold':
-        return 'hold_position'
 
     # Check for attack situations (cautious triggers)
     if action == 'attack':
         strength_ratio = _get_strength_ratio(marshal, target, game_state)
         if strength_ratio is not None:
+            if strength_ratio <= 0.20:  # 5:1+ outnumbered - certain death
+                return 'certain_death'
             if strength_ratio <= 0.33:  # 3:1 outnumbered
                 return 'attack_outnumbered_3to1'
             if strength_ratio <= 0.5:   # 2:1 outnumbered
@@ -211,6 +232,11 @@ def analyze_order_situation(order: Dict, marshal, game_state) -> Optional[str]:
     if action == 'fortify':
         return 'fortify'
 
+    # Check for drill with enemy nearby (aggressive trigger)
+    if action == 'drill':
+        if _enemy_nearby(marshal, game_state):
+            return 'drill_enemy_nearby'
+
     # Check for capital exposure (balanced trigger)
     if action == 'move' and _exposes_capital(marshal, target, game_state):
         return 'expose_capital'
@@ -218,6 +244,30 @@ def analyze_order_situation(order: Dict, marshal, game_state) -> Optional[str]:
     # Check for forced march
     if action == 'forced_march':
         return 'forced_march'
+
+    # ════════════════════════════════════════════════════════════
+    # STANCE CHANGE TRIGGERS (Phase 2.7)
+    # ════════════════════════════════════════════════════════════
+    if action == 'stance_change':
+        target_stance = order.get('target_stance', '').lower()
+        current_stance = getattr(marshal, 'stance', None)
+        current_stance_str = current_stance.value if current_stance else 'neutral'
+
+        # Aggressive marshal ordered to defensive stance
+        if target_stance in ('defensive', 'defense', 'defend'):
+            return 'defensive_stance'
+
+        # Aggressive marshal ordered from aggressive back to neutral
+        if target_stance == 'neutral' and current_stance_str == 'aggressive':
+            return 'neutral_stance_from_aggressive'
+
+        # Cautious marshal ordered to aggressive stance
+        if target_stance in ('aggressive', 'attack', 'offense'):
+            # Check if outnumbered
+            strength_ratio = _get_enemy_strength_ratio(marshal, game_state)
+            if strength_ratio is not None and strength_ratio < 0.67:
+                return 'aggressive_stance_outnumbered'
+            return 'aggressive_stance'
 
     return None
 
@@ -302,6 +352,37 @@ def _exposes_capital(marshal, target, game_state) -> bool:
 
     # Moving away from capital with no other defender
     return True
+
+
+def _get_enemy_strength_ratio(marshal, game_state) -> Optional[float]:
+    """
+    Get strength ratio against nearest enemy.
+
+    Returns marshal.strength / nearest_enemy.strength
+    Returns None if no enemy nearby.
+    """
+    if game_state is None:
+        return None
+
+    world = getattr(game_state, 'world', game_state)
+    if not hasattr(world, 'marshals') or not hasattr(world, 'regions'):
+        return None
+
+    # Find nearest enemy
+    nearest_enemy = None
+    min_distance = float('inf')
+
+    for m in world.marshals.values():
+        if m.nation != marshal.nation and m.strength > 0:
+            dist = world.get_distance(marshal.location, m.location) if hasattr(world, 'get_distance') else 999
+            if dist < min_distance:
+                min_distance = dist
+                nearest_enemy = m
+
+    if nearest_enemy is None or nearest_enemy.strength == 0:
+        return None
+
+    return marshal.strength / nearest_enemy.strength
 
 
 # Test code

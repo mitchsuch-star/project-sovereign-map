@@ -9,6 +9,7 @@ Includes Disobedience System (Phase 2):
 """
 from typing import Dict, List, Optional, Tuple
 from backend.models.world_state import WorldState
+from backend.models.marshal import Stance
 from backend.game_logic.combat import CombatResolver
 from backend.game_logic.turn_manager import TurnManager
 from backend.utils.fuzzy_matcher import FuzzyMatcher
@@ -265,7 +266,8 @@ TIPS:
 
         # Determine if this order should trigger objection check
         # Note: fortify added for aggressive marshals who object to defensive preparation
-        objection_actions = ["attack", "defend", "move", "scout", "recruit", "fortify"]
+        # Note: stance_change added for personality conflicts with stance orders
+        objection_actions = ["attack", "defend", "move", "scout", "recruit", "fortify", "stance_change"]
         should_check_objection = (
             action in objection_actions and
             marshal_name is not None
@@ -289,16 +291,28 @@ TIPS:
                     }
 
                 # ═══════════════════════════════════════════════════════════
-                # DRILLING LOCKED CHECK: Cannot order while in drill lock
+                # DRILLING CHECK: Cannot order while drilling/drill-locked
+                # Also blocks stance_change during any drilling state
                 # ═══════════════════════════════════════════════════════════
-                if getattr(marshal, 'drilling_locked', False):
-                    return {
-                        "success": False,
-                        "message": f"{marshal_name} is locked in drill exercises and cannot receive orders. "
-                                  f"Training completes turn {marshal.drill_complete_turn}.",
-                        "drilling_locked": True,
-                        "complete_turn": int(marshal.drill_complete_turn)
-                    }
+                is_drilling = getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False)
+                if is_drilling:
+                    # Drilling-locked blocks ALL orders
+                    if getattr(marshal, 'drilling_locked', False):
+                        return {
+                            "success": False,
+                            "message": f"{marshal_name} is locked in drill exercises and cannot receive orders. "
+                                      f"Training completes turn {marshal.drill_complete_turn}.",
+                            "drilling_locked": True,
+                            "complete_turn": int(marshal.drill_complete_turn)
+                        }
+                    # Regular drilling blocks stance_change
+                    if action == 'stance_change':
+                        return {
+                            "success": False,
+                            "message": f"{marshal_name} is engaged in drill exercises and cannot change stance.",
+                            "drilling": True,
+                            "suggestion": f"Wait for drill to complete, or cancel with different orders."
+                        }
 
                 # ═══════════════════════════════════════════════════════════
                 # FORTIFIED CHECK: Cannot move or attack while fortified
@@ -313,14 +327,60 @@ TIPS:
                     }
 
                 # ═══════════════════════════════════════════════════════════
-                # DEBUG: Print objection evaluation details
+                # BUG-001 FIX: RETREATING CHECK - Validation BEFORE objection
+                # Cannot fortify, drill, or change to aggressive while retreating
                 # ═══════════════════════════════════════════════════════════
-                print(f"\n{'='*60}")
-                print(f"🔍 OBJECTION CHECK: {marshal_name}")
-                print(f"{'='*60}")
-                print(f"  Personality: {marshal.personality}")
-                print(f"  Trust: {marshal.trust.value} ({marshal.trust.get_label()})")
-                print(f"  Action: {action} → {command.get('target', 'N/A')}")
+                if getattr(marshal, 'retreating', False):
+                    blocked_while_retreating = ['fortify', 'drill']
+                    if action in blocked_while_retreating:
+                        recovery_turns = getattr(marshal, 'retreat_recovery_turns', 3)
+                        return {
+                            "success": False,
+                            "message": f"{marshal_name} is recovering from retreat and cannot {action}. "
+                                      f"Recovery: {recovery_turns} turn(s) remaining.",
+                            "retreating": True,
+                            "recovery_turns": recovery_turns,
+                            "suggestion": f"Wait for {marshal_name} to recover, or issue different orders."
+                        }
+                    # Special case: stance_change to aggressive while retreating
+                    if action == 'stance_change':
+                        target_stance = command.get('target_stance', '').lower()
+                        if target_stance in ['aggressive', 'attack', 'offense']:
+                            recovery_turns = getattr(marshal, 'retreat_recovery_turns', 3)
+                            return {
+                                "success": False,
+                                "message": f"{marshal_name} is recovering from retreat and cannot adopt aggressive stance. "
+                                          f"Recovery: {recovery_turns} turn(s) remaining.",
+                                "retreating": True,
+                                "recovery_turns": recovery_turns,
+                                "suggestion": f"Try: '{marshal_name} defensive' or wait for recovery."
+                            }
+
+                # ═══════════════════════════════════════════════════════════
+                # AGGRESSIVE STANCE CHECK - Validation BEFORE objection
+                # Cannot fortify or drill while in aggressive stance
+                # ═══════════════════════════════════════════════════════════
+                current_stance = getattr(marshal, 'stance', None)
+                if current_stance and current_stance.value == "aggressive":
+                    blocked_while_aggressive = ['fortify', 'drill']
+                    if action in blocked_while_aggressive:
+                        return {
+                            "success": False,
+                            "message": f"{marshal_name} cannot {action} while in AGGRESSIVE stance. "
+                                      f"The troops are ready to attack, not dig trenches!",
+                            "stance": "aggressive",
+                            "suggestion": f"Change stance first: '{marshal_name} defensive' or '{marshal_name} neutral'"
+                        }
+
+                # ═══════════════════════════════════════════════════════════
+                # DEBUG: Print objection evaluation details (commented out)
+                # ═══════════════════════════════════════════════════════════
+                # print(f"\n{'='*60}")
+                # print(f"OBJECTION CHECK: {marshal_name}")
+                # print(f"{'='*60}")
+                # print(f"  Personality: {marshal.personality}")
+                # print(f"  Trust: {marshal.trust.value} ({marshal.trust.get_label()})")
+                # print(f"  Action: {action} -> {command.get('target', 'N/A')}")
 
                 # Evaluate the order for objection
                 objection = world.disobedience_system.evaluate_order(
@@ -332,15 +392,16 @@ TIPS:
                 if objection:
                     severity = objection.get("severity", 0.0)
                     objection_type = objection["type"]
-                    print(f"  ⚠️  OBJECTION TRIGGERED!")
-                    print(f"     Type: {objection_type}")
-                    print(f"     Severity: {severity:.2f}")
-                    print(f"     Trigger: {objection.get('trigger', 'unknown')}")
+                    # Debug output commented out to avoid encoding issues
+                    # print(f"  OBJECTION TRIGGERED!")
+                    # print(f"     Type: {objection_type}")
+                    # print(f"     Severity: {severity:.2f}")
+                    # print(f"     Trigger: {objection.get('trigger', 'unknown')}")
 
                     # BUG FIX: disobedience.py returns 'major_objection', not 'major'
                     if objection_type == "major_objection":
-                        print(f"  🛑 MAJOR - Awaiting player choice")
-                        print(f"{'='*60}\n")
+                        # print(f"  MAJOR - Awaiting player choice")
+                        # print(f"{'='*60}\n")
 
                         # MAJOR OBJECTION: Pause for player choice
                         world.pending_objection = objection
@@ -363,13 +424,14 @@ TIPS:
                     else:
                         # MILD OBJECTION: Auto-resolve with trust, continue execution
                         # The marshal grumbles but obeys
-                        print(f"  ℹ️  MILD objection (type={objection_type}) - proceeding anyway")
-                        print(f"{'='*60}\n")
+                        # print(f"  MILD objection (type={objection_type}) - proceeding anyway")
+                        # print(f"{'='*60}\n")
                         mild_message = f"[{marshal_name} hesitates but obeys: {objection.get('message', 'minor concerns')}]\n"
                         # Continue with execution, will prepend message later
                 else:
-                    print(f"  ✓ No objection (severity below threshold)")
-                    print(f"{'='*60}\n")
+                    pass
+                    # print(f"  No objection (severity below threshold)")
+                    # print(f"{'='*60}\n")
 
         # ============================================================
         # Continue with normal command routing
@@ -393,6 +455,11 @@ TIPS:
             result = self._execute_fortify(command, game_state)
         elif action == "unfortify":
             result = self._execute_unfortify(command, game_state)
+        # ════════════════════════════════════════════════════════════
+        # STANCE SYSTEM (Phase 2.7)
+        # ════════════════════════════════════════════════════════════
+        elif action == "stance_change":
+            result = self._execute_stance_change(command, game_state)
         # Route to appropriate handler
         elif command_type == "specific":
             result = self._execute_specific(command, game_state)
@@ -420,8 +487,19 @@ TIPS:
         action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
 
         if result.get("success", False) and action_costs_point:
-            # NOW consume the action (after validation passed)
-            action_result = world.use_action(action)
+            # Check for variable action cost (stance_change returns this)
+            variable_cost = result.get("variable_action_cost")
+            if variable_cost is not None:
+                # Stance changes have variable costs (0, 1, or 2)
+                if variable_cost > 0:
+                    for _ in range(variable_cost):
+                        action_result = world.use_action(action)
+                else:
+                    # Free transition (returning to neutral)
+                    action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
+            else:
+                # NOW consume the action (after validation passed)
+                action_result = world.use_action(action)
 
         # Add action info to result
         result["action_info"] = {
@@ -482,6 +560,12 @@ TIPS:
             return self._execute_attack(marshal, target, world, game_state)
         elif action == "defend":
             return self._execute_defend(marshal, world, game_state)
+        elif action == "hold":
+            # Hold is an alias for defend - same mechanics, different flavor
+            return self._execute_hold(marshal, world, game_state)
+        elif action == "wait":
+            # Wait is a free action - marshal passes turn
+            return self._execute_wait(marshal, world, game_state)
         elif action == "move":
             return self._execute_move(marshal, target, world, game_state)
         elif action == "scout":
@@ -494,6 +578,8 @@ TIPS:
             return self._execute_fortify(command, game_state)
         elif action == "unfortify":
             return self._execute_unfortify(command, game_state)
+        elif action == "stance_change":
+            return self._execute_stance_change(command, game_state)
         else:
             return {
                 "success": False,
@@ -788,7 +874,18 @@ TIPS:
         }
 
     def _execute_defend(self, marshal, world, game_state) -> Dict:
-        """Execute a defend order."""
+        """
+        Smart defend - context-aware defensive behavior.
+
+        Maps "defend" to appropriate action based on current stance:
+        - If NEUTRAL → change to DEFENSIVE stance (1 action)
+        - If DEFENSIVE and not fortified → execute fortify
+        - If DEFENSIVE and already fortified → return info message
+        - If AGGRESSIVE → change to DEFENSIVE stance (2 actions)
+
+        This makes "defend" an intuitive command that always moves
+        the marshal toward a more defensive posture.
+        """
         # ════════════════════════════════════════════════════════════
         # DRILL STATE CHECK: Handle drilling marshal trying to defend
         # ════════════════════════════════════════════════════════════
@@ -807,15 +904,73 @@ TIPS:
                 marshal.drill_complete_turn = -1
                 drill_cancelled_message = f"⚠️ DRILL CANCELLED: {marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
 
-        defend_message = f"{marshal.name} takes a defensive position at {marshal.location}"
+        # ════════════════════════════════════════════════════════════
+        # SMART DEFEND: Context-aware routing based on stance
+        # ════════════════════════════════════════════════════════════
+        current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
+
+        # Case 1: Already in DEFENSIVE stance
+        if current_stance == Stance.DEFENSIVE:
+            # Check if already fortified
+            if getattr(marshal, 'fortified', False):
+                current_bonus = int(getattr(marshal, 'defense_bonus', 0) * 10)
+                return {
+                    "success": True,
+                    "message": f"{marshal.name} is already in defensive stance and fortified at {marshal.location} (+{current_bonus}% defense). "
+                              f"Position is as secure as possible.",
+                    "events": [{
+                        "type": "defend_info",
+                        "marshal": marshal.name,
+                        "status": "already_fortified",
+                        "defense_bonus": current_bonus
+                    }],
+                    "new_state": game_state,
+                    "variable_action_cost": 0  # Free - just info
+                }
+
+            # Not fortified yet - execute fortify
+            command = {"marshal": marshal.name}
+            fortify_result = self._execute_fortify(command, game_state)
+
+            # Prepend drill cancelled message if applicable
+            if drill_cancelled_message and fortify_result.get("success"):
+                fortify_result["message"] = drill_cancelled_message + fortify_result.get("message", "")
+                fortify_result["drill_cancelled"] = True
+
+            return fortify_result
+
+        # Case 2: In NEUTRAL or AGGRESSIVE stance - change to DEFENSIVE
+        action_cost = self._get_stance_change_cost(current_stance, Stance.DEFENSIVE)
+
+        # Check if player has enough actions
+        if action_cost > 0 and world.actions_remaining < action_cost:
+            return {
+                "success": False,
+                "message": f"Switching {marshal.name} to defensive stance requires {action_cost} action(s), "
+                          f"but only {world.actions_remaining} remaining."
+            }
+
+        # Execute the stance change
+        old_stance = current_stance
+        marshal.stance = Stance.DEFENSIVE
+
+        # Build message
+        if old_stance == Stance.AGGRESSIVE:
+            defend_message = f"{marshal.name} abandons aggressive posture and shifts to DEFENSIVE stance. "
+            defend_message += f"Effect: -10% attack, +15% defense. (Cost: {action_cost} actions)"
+        else:
+            defend_message = f"{marshal.name} shifts to DEFENSIVE stance at {marshal.location}. "
+            defend_message += f"Effect: -10% attack, +15% defense."
+
         if drill_cancelled_message:
             defend_message = drill_cancelled_message + defend_message
 
         events = [{
-            "type": "defend",
+            "type": "stance_change",
             "marshal": marshal.name,
-            "location": marshal.location,
-            "effect": "Next battle at this location gets +30% defender bonus"
+            "from_stance": old_stance.value,
+            "to_stance": "defensive",
+            "action_cost": action_cost
         }]
 
         # Add drill_cancelled event if drill was interrupted
@@ -830,7 +985,82 @@ TIPS:
             "success": True,
             "message": defend_message,
             "drill_cancelled": bool(drill_cancelled_message),
+            "variable_action_cost": action_cost,  # Variable cost based on stance transition
             "events": events,
+            "new_state": game_state
+        }
+
+    def _execute_hold(self, marshal, world, game_state) -> Dict:
+        """
+        Execute a hold order - alias for defend with different flavor text.
+
+        "Hold" means the same thing as "defend" mechanically:
+        - Changes to defensive stance if not already
+        - Fortifies if already defensive
+        - Same action costs
+
+        The distinction is purely for player expression - some prefer
+        "hold the line" to "defend".
+        """
+        # Delegate to defend - hold IS defend, just different wording
+        result = self._execute_defend(marshal, world, game_state)
+
+        # Adjust message to use "hold" terminology if successful
+        if result.get("success") and result.get("message"):
+            # Replace "defend" terminology with "hold" in message
+            original_msg = result["message"]
+            # Keep the message mostly the same - the mechanics message is fine
+            # Just prepend a "holding" flavor if stance changed
+            if "shifts to DEFENSIVE stance" in original_msg:
+                result["message"] = original_msg.replace(
+                    "shifts to DEFENSIVE stance",
+                    "holds position, shifting to DEFENSIVE stance"
+                )
+
+        # Update event type if present
+        if result.get("events"):
+            for event in result["events"]:
+                if event.get("type") == "stance_change":
+                    event["command"] = "hold"  # Mark that this came from hold command
+
+        return result
+
+    def _execute_wait(self, marshal, world, game_state) -> Dict:
+        """
+        Execute a wait order - free action (costs 0 actions).
+
+        "Wait" means the marshal passes their turn without acting.
+        This is useful when:
+        - Conserving actions for other marshals
+        - Waiting for a better tactical moment
+        - Maintaining position without committing
+
+        Unlike defend/hold, wait does NOT change stance or provide bonuses.
+        The marshal simply does nothing this action.
+
+        NOTE: In future updates, "wait" may support conditional orders like
+        "wait for Davout to attack, then move to support" but for now it's
+        a simple pass action.
+        """
+        # Wait is always successful and costs nothing
+        wait_message = f"{marshal.name} holds position at {marshal.location}, awaiting further orders."
+
+        # Add context about current stance
+        current_stance = getattr(marshal, 'stance', None)
+        if current_stance:
+            stance_name = current_stance.value if hasattr(current_stance, 'value') else str(current_stance)
+            wait_message += f" (Current stance: {stance_name})"
+
+        return {
+            "success": True,
+            "message": wait_message,
+            "variable_action_cost": 0,  # FREE ACTION - costs nothing
+            "events": [{
+                "type": "wait",
+                "marshal": marshal.name,
+                "location": marshal.location,
+                "action_cost": 0
+            }],
             "new_state": game_state
         }
 
@@ -1391,7 +1621,12 @@ TIPS:
         }
 
     def _execute_general_retreat(self, command: Dict, game_state: Dict) -> Dict:
-        """Execute general retreat (all forces fall back toward Paris)."""
+        """
+        Execute general retreat - retreat ALL marshals adjacent to enemies.
+
+        BUG-003 FIX: Only retreats marshals that have enemies nearby, not all marshals.
+        Uses proper retreat action (sets retreating state with recovery).
+        """
         world: WorldState = game_state.get("world")
 
         if not world:
@@ -1402,41 +1637,61 @@ TIPS:
         if not player_marshals:
             return {"success": False, "message": "No marshals to retreat"}
 
-        retreated = []
+        # Find marshals adjacent to enemies
+        marshals_near_enemies = []
         for marshal in player_marshals:
             if marshal.location == "Paris":
                 continue
+            if getattr(marshal, 'retreating', False):
+                continue  # Already retreating
 
-            current = world.get_region(marshal.location)
-            best_region = None
-            best_distance = 999
+            # Check if any enemy is in same region OR adjacent
+            has_enemy_in_range = False
+            current_region = world.get_region(marshal.location)
 
-            for adj in current.adjacent_regions:
-                distance = world.get_distance(adj, "Paris")
-                if distance < best_distance:
-                    best_distance = distance
-                    best_region = adj
+            for enemy in world.get_enemy_marshals():
+                if enemy.strength <= 0:
+                    continue
+                # Enemy in same region = definitely in attack range
+                if enemy.location == marshal.location:
+                    has_enemy_in_range = True
+                    break
+                # Enemy in adjacent region = can attack next turn
+                if current_region and enemy.location in current_region.adjacent_regions:
+                    has_enemy_in_range = True
+                    break
 
-            if best_region:
-                old_loc = marshal.location
-                marshal.move_to(best_region)
-                retreated.append(f"{marshal.name}: {old_loc} → {best_region}")
+            if has_enemy_in_range:
+                marshals_near_enemies.append(marshal)
+
+        if not marshals_near_enemies:
+            return {
+                "success": False,
+                "message": "No marshals adjacent to enemies to retreat.",
+                "suggestion": "Use 'Ney retreat' to retreat a specific marshal."
+            }
+
+        # Execute retreat for each marshal near enemies
+        retreated = []
+        for marshal in marshals_near_enemies:
+            result = self._execute_retreat_action(marshal, world, game_state)
+            if result.get("success"):
+                retreated.append(f"{marshal.name} falling back!")
 
         if not retreated:
             return {
-                "success": True,
-                "message": "All marshals already at capital",
-                "events": [],
-                "new_state": game_state
+                "success": False,
+                "message": "Could not retreat any marshals.",
+                "events": []
             }
 
         return {
             "success": True,
-            "message": f"General retreat! {', '.join(retreated)}",
+            "message": f"General retreat ordered! {' '.join(retreated)}",
             "events": [{
-                "type": "retreat",
+                "type": "general_retreat",
                 "affected_marshals": len(retreated),
-                "movements": retreated
+                "retreating": [m.name for m in marshals_near_enemies]
             }],
             "new_state": game_state
         }
@@ -1634,6 +1889,11 @@ TIPS:
         """
         Execute fortify order - Defensive lockdown with growing defense bonus.
 
+        REQUIRES DEFENSIVE STANCE:
+        - If AGGRESSIVE: Block with error message
+        - If NEUTRAL: Auto-transition to DEFENSIVE first (+1 action cost)
+        - If DEFENSIVE: Execute fortify
+
         While fortified:
         - Cannot move or attack
         - Starts at +2% defense, grows +2% per turn (max 15%)
@@ -1672,24 +1932,81 @@ TIPS:
                 "message": f"{marshal.name} is recovering from retreat and cannot fortify yet."
             }
 
+        # ════════════════════════════════════════════════════════════
+        # STANCE CHECK: Fortify requires defensive stance
+        # ════════════════════════════════════════════════════════════
+        current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
+        stance_transition_cost = 0
+        stance_message = ""
+
+        if current_stance == Stance.AGGRESSIVE:
+            # Block - aggressive marshals cannot fortify
+            return {
+                "success": False,
+                "message": f"{marshal.name} is in AGGRESSIVE stance and cannot fortify! "
+                          f"An aggressive posture is incompatible with defensive preparations. "
+                          f"Use 'defend' to switch to defensive stance first.",
+                "suggestion": f"Try: '{marshal.name}, defend' to change stance, then fortify"
+            }
+        elif current_stance == Stance.NEUTRAL:
+            # Auto-transition to defensive (costs 1 extra action)
+            stance_transition_cost = 1
+            total_cost = 1 + stance_transition_cost  # fortify + stance change
+
+            # Check if player has enough actions
+            if world.actions_remaining < total_cost:
+                return {
+                    "success": False,
+                    "message": f"Fortifying from neutral stance requires {total_cost} actions "
+                              f"(1 for stance change + 1 for fortify), but only {world.actions_remaining} remaining."
+                }
+
+            # Execute stance change first
+            marshal.stance = Stance.DEFENSIVE
+            stance_message = f"[Auto-shifted to DEFENSIVE stance first] "
+
         # Enter fortified state
         marshal.fortified = True
         marshal.defense_bonus = 0.2  # Start at +2% defense
         marshal.fortify_expires_turn = -1  # No expiration (permanent until unfortified)
 
-        return {
-            "success": True,
-            "message": f"{marshal.name} fortifies position at {marshal.location}. "
-                      f"Defense bonus: +2% (grows +2% per turn, max 15%). "
-                      f"Cannot move or attack while fortified. Use 'unfortify' to become mobile.",
-            "events": [{
-                "type": "fortified",
+        # Build message
+        message = stance_message + f"{marshal.name} fortifies position at {marshal.location}. "
+        message += f"Defense bonus: +2% (grows +2% per turn, max 15%). "
+        message += f"Cannot move or attack while fortified. Use 'unfortify' to become mobile."
+
+        events = [{
+            "type": "fortified",
+            "marshal": marshal.name,
+            "location": marshal.location,
+            "defense_bonus": 2  # Display as percentage
+        }]
+
+        # Add stance change event if transitioned
+        if stance_transition_cost > 0:
+            events.insert(0, {
+                "type": "stance_change",
                 "marshal": marshal.name,
-                "location": marshal.location,
-                "defense_bonus": 2  # Display as percentage
-            }],
+                "from_stance": "neutral",
+                "to_stance": "defensive",
+                "action_cost": stance_transition_cost,
+                "auto_transition": True
+            })
+
+        # Return with variable action cost if stance transition occurred
+        result = {
+            "success": True,
+            "message": message,
+            "events": events,
             "new_state": game_state
         }
+
+        if stance_transition_cost > 0:
+            # Total cost = fortify (1) + stance change (1) = 2
+            # But main execute() will add 1 for fortify, so we signal extra 1
+            result["variable_action_cost"] = 1 + stance_transition_cost
+
+        return result
 
     def _execute_unfortify(self, command: Dict, game_state: Dict) -> Dict:
         """Remove fortification from a marshal."""
@@ -1726,17 +2043,170 @@ TIPS:
             "new_state": game_state
         }
 
+    # ========================================
+    # STANCE SYSTEM (Phase 2.7)
+    # ========================================
+
+    def _get_stance_change_cost(self, current_stance: Stance, target_stance: Stance) -> int:
+        """
+        Calculate action cost for stance transition.
+
+        Action Costs:
+        - Any → Neutral: FREE (0 actions)
+        - Neutral → Defensive: 1 action
+        - Neutral → Aggressive: 1 action
+        - Defensive ↔ Aggressive: 2 actions (must go through neutral mentally)
+
+        Args:
+            current_stance: Marshal's current stance
+            target_stance: Target stance to transition to
+
+        Returns:
+            Action cost (0, 1, or 2)
+        """
+        if current_stance == target_stance:
+            return 0  # No change needed
+
+        # Returning to neutral is always free
+        if target_stance == Stance.NEUTRAL:
+            return 0
+
+        # From neutral to any stance costs 1
+        if current_stance == Stance.NEUTRAL:
+            return 1
+
+        # Direct transition between defensive and aggressive costs 2
+        # (Defensive ↔ Aggressive without going through neutral)
+        return 2
+
+    def _execute_stance_change(self, command: Dict, game_state: Dict) -> Dict:
+        """
+        Execute stance change order.
+
+        Stance transitions affect combat modifiers:
+        - NEUTRAL: 0% attack, 0% defense (default)
+        - DEFENSIVE: -10% attack, +15% defense
+        - AGGRESSIVE: +15% attack, -10% defense
+
+        The action cost is calculated dynamically:
+        - Any → Neutral: FREE
+        - Neutral → Def/Agg: 1 action
+        - Def ↔ Agg: 2 actions
+        """
+        marshal_name = command.get("marshal")
+        target_stance_str = command.get("target_stance", "neutral").lower()
+        world: WorldState = game_state.get("world")
+
+        if not world:
+            return {"success": False, "message": "Error: No world state available"}
+
+        # Use fuzzy matching for marshal lookup
+        marshal, error = self._fuzzy_match_marshal(marshal_name, world)
+        if error:
+            return error
+
+        # Parse target stance
+        stance_map = {
+            "neutral": Stance.NEUTRAL,
+            "defensive": Stance.DEFENSIVE,
+            "defense": Stance.DEFENSIVE,
+            "defend": Stance.DEFENSIVE,
+            "aggressive": Stance.AGGRESSIVE,
+            "attack": Stance.AGGRESSIVE,
+            "offense": Stance.AGGRESSIVE,
+        }
+        target_stance = stance_map.get(target_stance_str)
+
+        if not target_stance:
+            return {
+                "success": False,
+                "message": f"Unknown stance: '{target_stance_str}'. Valid stances: neutral, defensive, aggressive"
+            }
+
+        current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
+
+        # Check if already in target stance
+        if current_stance == target_stance:
+            return {
+                "success": False,
+                "message": f"{marshal.name} is already in {target_stance.value.upper()} stance."
+            }
+
+        # Check if drilling (can't change stance while drilling)
+        if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+            return {
+                "success": False,
+                "message": f"{marshal.name} is engaged in drill exercises and cannot change stance."
+            }
+
+        # Check if retreating (can't change to aggressive while recovering)
+        if getattr(marshal, 'retreating', False) and target_stance == Stance.AGGRESSIVE:
+            return {
+                "success": False,
+                "message": f"{marshal.name} is recovering from retreat and cannot adopt aggressive stance."
+            }
+
+        # Calculate action cost
+        action_cost = self._get_stance_change_cost(current_stance, target_stance)
+
+        # Check if player has enough actions (for non-free transitions)
+        if action_cost > 0 and world.actions_remaining < action_cost:
+            return {
+                "success": False,
+                "message": f"Stance change requires {action_cost} action(s), but only {world.actions_remaining} remaining."
+            }
+
+        # Execute the stance change
+        old_stance = current_stance
+        marshal.stance = target_stance
+
+        # Build descriptive message
+        stance_effects = {
+            Stance.NEUTRAL: "balanced posture (no modifiers)",
+            Stance.DEFENSIVE: "-10% attack, +15% defense",
+            Stance.AGGRESSIVE: "+15% attack, -10% defense"
+        }
+
+        message = f"{marshal.name} shifts from {old_stance.value.upper()} to {target_stance.value.upper()} stance. "
+        message += f"Effect: {stance_effects[target_stance]}."
+
+        if action_cost == 0:
+            message += " (Free action)"
+        elif action_cost == 2:
+            message += f" (Cost: {action_cost} actions - major tactical shift)"
+
+        # NOTE: Action consumption is handled by the main execute() method
+        # We return a special flag to indicate variable action cost
+        return {
+            "success": True,
+            "message": message,
+            "variable_action_cost": action_cost,  # Special: variable cost
+            "events": [{
+                "type": "stance_change",
+                "marshal": marshal.name,
+                "from_stance": old_stance.value,
+                "to_stance": target_stance.value,
+                "action_cost": action_cost
+            }],
+            "new_state": game_state
+        }
+
     def _execute_retreat_action(self, marshal, world: WorldState, game_state: Dict) -> Dict:
         """
         Execute retreat order - FREE ACTION, initiates recovery from combat penalty.
 
         Retreat is a strategic withdrawal that:
         - Moves marshal 1 region toward friendly territory (Paris)
-        - Initiates recovery state (3-turn recovery from -45% to 0%)
+        - Initiates recovery state (recovery from penalty to 0%)
         - Costs 0 actions (free to order retreat)
 
-        Recovery stages:
-        - Stage 0: -45% effectiveness
+        STANCE-BASED PENALTIES:
+        - AGGRESSIVE: -55% initial, PLUS 5% troop loss (caught overextended!)
+        - NEUTRAL: -45% initial (standard)
+        - DEFENSIVE: -35% initial (orderly withdrawal)
+
+        Recovery stages (all stances recover same rate):
+        - Stage 0: Initial penalty (varies by stance)
         - Stage 1: -30% effectiveness
         - Stage 2: -15% effectiveness
         - Stage 3: 0% (recovered, state cleared)
@@ -1754,6 +2224,20 @@ TIPS:
             }
 
         # Find adjacent region closest to Paris
+        # TODO (BUG-004): Smart retreat pathfinding
+        # Current implementation: Simple BFS to Paris - picks adjacent region with shortest
+        # distance to capital, regardless of enemy positions.
+        #
+        # DESIRED BEHAVIOR:
+        # 1. Prefer friendly-controlled regions over neutral/enemy
+        # 2. Avoid regions containing enemies (unless no other option)
+        # 3. If surrounded, pick least dangerous route (smallest enemy force)
+        # 4. Consider terrain modifiers (future: rivers, mountains slow retreating army)
+        #
+        # IMPLEMENTATION NOTES:
+        # - Use weighted pathfinding: enemy presence adds cost
+        # - world.get_enemy_marshals() to check enemy positions
+        # - Fall back to current behavior if all routes dangerous
         best_region = None
         best_distance = 999
 
@@ -1768,6 +2252,30 @@ TIPS:
                 "success": False,
                 "message": f"{marshal.name} has no valid retreat route."
             }
+
+        # ════════════════════════════════════════════════════════════
+        # STANCE-BASED RETREAT PENALTIES
+        # ════════════════════════════════════════════════════════════
+        current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
+        troop_loss = 0
+        troop_loss_msg = ""
+        stance_penalty_msg = ""
+
+        if current_stance == Stance.AGGRESSIVE:
+            # Aggressive retreat is costly - caught overextended!
+            initial_penalty = "-55%"
+            troop_loss_percent = 0.05  # 5% troop loss
+            troop_loss = int(marshal.strength * troop_loss_percent)
+            marshal.take_casualties(troop_loss)
+            troop_loss_msg = f" Lost {troop_loss:,} troops in the chaotic withdrawal!"
+            stance_penalty_msg = " (Aggressive stance made retreat costly)"
+        elif current_stance == Stance.DEFENSIVE:
+            # Defensive retreat is more orderly
+            initial_penalty = "-35%"
+            stance_penalty_msg = " (Defensive stance enabled orderly withdrawal)"
+        else:
+            # Neutral - standard retreat
+            initial_penalty = "-45%"
 
         # Execute retreat
         old_location = marshal.location
@@ -1787,11 +2295,16 @@ TIPS:
         marshal.drill_complete_turn = -1
         marshal.shock_bonus = 0
 
+        # Reset stance to NEUTRAL on retreat (can't maintain aggressive/defensive while retreating)
+        old_stance_value = current_stance.value
+        marshal.stance = Stance.NEUTRAL
+
         # Build message with optional drill cancellation note
-        retreat_message = f"{marshal.name} retreats from {old_location} to {best_region}. "
+        retreat_message = f"{marshal.name} retreats from {old_location} to {best_region}.{troop_loss_msg} "
         if drill_was_active:
             retreat_message += "Drill cancelled. "
-        retreat_message += f"Army begins recovery (currently at -45% effectiveness). Will recover over 3 turns."
+        retreat_message += f"Army begins recovery (currently at {initial_penalty} effectiveness).{stance_penalty_msg} "
+        retreat_message += "Will recover over 3 turns."
 
         return {
             "success": True,
@@ -1802,7 +2315,9 @@ TIPS:
                 "from": old_location,
                 "to": best_region,
                 "recovery_stage": 0,
-                "penalty": "-45%"
+                "penalty": initial_penalty,
+                "previous_stance": old_stance_value,
+                "troop_loss": troop_loss
             }],
             "new_state": game_state
         }
@@ -2124,6 +2639,9 @@ TIPS:
                 result = {"success": False, "message": f"Marshal {marshal_name} not found"}
         elif action == "reinforce":
             result = self._execute_reinforce(command, game_state)
+        # BUG-005 FIX: Handle stance_change in post-objection execution
+        elif action == "stance_change":
+            result = self._execute_stance_change(command, game_state)
         else:
             result = {"success": False, "message": f"Unknown action: {action}"}
 
