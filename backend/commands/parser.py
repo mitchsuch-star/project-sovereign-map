@@ -28,8 +28,13 @@ class CommandParser:
         self.valid_marshals = ["Ney", "Davout", "Grouchy", "Murat"]
 
         # Valid actions
-        # NOTE: Do NOT add new actions without explicit approval - actions must be
-        # coordinated across parser, executor, llm_client, and personality triggers.
+        # NOTE: When adding new actions, update ALL of these locations:
+        # 1. executor.py: Add _execute_* method
+        # 2. executor.py: Update help_text in _execute_help()
+        # 3. executor.py: Add to objection_actions if personality can object
+        # 4. llm_client.py: Add keyword detection for mock parser
+        # 5. personality.py: Add triggers if marshals can object to it
+        # 6. CLAUDE.md: Update Disobedience System documentation
         self.valid_actions = [
             "attack", "defend", "retreat", "move", "scout",
             "reinforce", "recruit", "help", "end_turn",
@@ -40,6 +45,8 @@ class CommandParser:
             # Hold/Wait actions
             "hold",  # Alias for defend - same mechanics
             "wait",  # Free action (0 cost) - pass turn for this marshal
+            # Debug commands (Phase 2.8)
+            "debug",  # For testing abilities: /debug counter_punch Davout
         ]
 
         # Valid stances for stance_change command (Phase 2.7)
@@ -161,11 +168,26 @@ class CommandParser:
 
         # If target is still None, try to extract it from command text
         elif not llm_result.get("target"):
+            # Build skip list: common words + action words + marshal name
+            skip_words = [
+                "to", "the", "at", "in", "on", "and", "or", "a", "an",
+                # Action words - don't match these to targets
+                "attack", "defend", "move", "scout", "retreat", "recruit",
+                "reinforce", "help", "wait", "hold", "fortify", "drill",
+                "unfortify", "stance", "aggressive", "defensive", "neutral",
+            ]
+            # Also skip the marshal name if identified
+            if llm_result.get("marshal"):
+                skip_words.append(llm_result["marshal"].lower())
+
             # Extract potential target words from command (words after action)
             words = command_text.split()
             for word in words:
-                # Skip common words
-                if word.lower() in ["to", "the", "at", "in", "on", "and", "or"]:
+                # Skip common/action words and marshal name
+                if word.lower() in skip_words:
+                    continue
+                # Skip very short words (likely not valid targets)
+                if len(word) < 3:
                     continue
 
                 # Try matching against all targets

@@ -2,6 +2,29 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Quick Reference (Read This First!)
+
+```
+MOST IMPORTANT FILES:
+├── backend/models/marshal.py        ← Combat modifiers calculated HERE ONLY
+├── backend/game_logic/combat.py     ← Combat resolution, messages (not modifiers!)
+├── backend/commands/executor.py     ← Action handlers (_execute_*)
+├── backend/models/world_state.py    ← Game state, turn processing
+└── backend/commands/disobedience.py ← Objection system, trust values
+
+GOLDEN RULES:
+1. Combat modifiers: SINGLE SOURCE OF TRUTH in marshal.py
+2. All numbers to Godot: wrap with int()
+3. All marshals in ONE dict: world.marshals (not separate player/enemy)
+4. State clearing: AFTER reading the value, not before
+
+CURRENT PHASE: MVP (85% complete)
+- Implemented: combat, disobedience, cavalry limits, drill/fortify
+- Not implemented: diplomacy, AI nations, supply lines (marked CONCEPTUAL)
+```
+
+---
+
 ## Project Overview
 
 Project Sovereign is a strategic turn-based military conquest game set in Napoleonic Western Europe. Players control France and manage marshals (Ney, Davout, Grouchy) to conquer 13 regions while managing an action economy system. Features natural language command parsing via Claude API (with mock fallback) and a Godot 4 frontend with FastAPI backend.
@@ -52,11 +75,464 @@ User Input → LLMClient → CommandParser → CommandExecutor → WorldState
 - **CombatResolver** (`combat.py`): Deterministic battle system with morale multipliers, terrain modifiers, defender bonus (+20%)
 - **TurnManager** (`turn_manager.py`): Turn progression, victory conditions (≥8 regions by turn 40 or all 13)
 
+### Disobedience System (`backend/commands/disobedience.py`, `backend/models/personality.py`)
+
+Marshals can object to orders based on their personality. This is the core innovation of the game.
+
+**Personality Types:**
+| Type | Objection Triggers | Examples |
+|------|-------------------|----------|
+| AGGRESSIVE | defend, wait, hold, retreat, fortify, drill (with enemy nearby), defensive stance | Ney, Murat |
+| CAUTIOUS | risky attacks (outnumbered), aggressive stance, attacking fortified positions | Davout, Wellington |
+| LITERAL | ambiguous orders, contradictory orders (Phase 3) | Grouchy |
+| BALANCED | suicidal orders (3:1+ odds), exposing capital | Soult |
+| LOYAL | only extreme cases (5:1+ odds, betraying emperor) | Lannes |
+
+**Objection Actions:** Only these actions trigger objection checks:
+```python
+objection_actions = ["attack", "defend", "move", "scout", "recruit", "fortify",
+                     "stance_change", "retreat", "drill", "wait", "hold"]
+```
+
+**Context-Aware Objections:**
+- Retreat: Aggressive marshals object UNLESS outnumbered 2:1+ AND morale ≤40%
+- Wait/Hold: Objection severity increases if enemy is nearby
+- Attack: Cautious marshals' objection scales with odds (1.5:1, 2:1, 3:1, 5:1+)
+
+**Retreat Recovery State:**
+When a marshal retreats (forced or ordered), they enter recovery:
+- **Blocked actions:** attack, fortify, drill, scout, aggressive_stance
+- **Allowed actions:** move, wait, recruit, defend, defensive_stance, neutral_stance
+- **No objections during recovery** - marshals are demoralized and compliant
+- Recovery lasts 3 turns (decrements each turn)
+
+**Forced Retreats:** Happen automatically when morale drops to 25% in combat. These bypass the objection system entirely since they're not player-ordered.
+
+### Disobedience Decision Flowchart
+
+```
+Player issues command
+        │
+        ▼
+┌───────────────────────┐
+│ Is action in          │
+│ objection_actions[]?  │
+└───────────────────────┘
+        │
+   NO   │   YES
+   ▼    │    ▼
+Execute │  ┌───────────────────────┐
+directly│  │ Is marshal in         │
+        │  │ retreat_recovery?     │
+        │  └───────────────────────┘
+        │          │
+        │     YES  │  NO
+        │      ▼   │   ▼
+        │   Execute│  ┌───────────────────────┐
+        │   (no    │  │ Calculate objection   │
+        │   check) │  │ probability:          │
+        │          │  │ base_rate × personality│
+        │          │  │ × context × (1-auth%) │
+        │          │  └───────────────────────┘
+        │          │           │
+        │          │           ▼
+        │          │  ┌───────────────────────┐
+        │          │  │ Roll vs probability   │
+        │          │  └───────────────────────┘
+        │          │      │           │
+        │          │  PASS│       FAIL│
+        │          │      ▼           ▼
+        │          │   Execute    ┌───────────────────────┐
+        │          │              │ Marshal OBJECTS       │
+        │          │              │ Player chooses:       │
+        │          │              │ • Accept (+12 trust)  │
+        │          │              │ • Insist (-10/-15)    │
+        │          │              │ • Compromise (+3)     │
+        │          │              └───────────────────────┘
+```
+
+**Key insight:** Authority reduces objection PROBABILITY, it never makes objection impossible. Even at 100 authority, there's still a small chance.
+
+### Marshal State Machine
+
+```
+                    ┌─────────────────────────────────────────────────────────┐
+                    │                    MARSHAL STATES                        │
+                    │  (Multiple states can be active simultaneously)          │
+                    └─────────────────────────────────────────────────────────┘
+
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   STANCE    │     │  TACTICAL   │     │  RECOVERY   │     │   COMBAT    │
+│  (1 of 3)   │     │  (flags)    │     │  (blocking) │     │  (temp)     │
+├─────────────┤     ├─────────────┤     ├─────────────┤     ├─────────────┤
+│ AGGRESSIVE  │     │ fortified   │     │ retreat_    │     │ broken      │
+│ NEUTRAL     │     │ drilling    │     │ recovery=N  │     │ (morale<25%)│
+│ DEFENSIVE   │     │ drilling_   │     │ (blocks     │     │             │
+│             │     │   locked    │     │  attack,    │     │ Triggers    │
+│ Affects:    │     │ holding_    │     │  fortify,   │     │ forced      │
+│ -attack mod │     │   position  │     │  drill,     │     │ retreat     │
+│ -defense mod│     │             │     │  scout,     │     │             │
+│             │     │ Affects:    │     │  aggr.stance│     │             │
+│             │     │ -defense    │     │             │     │             │
+│             │     │ -attack     │     │ Decrements  │     │             │
+│             │     │ -mobility   │     │ each turn   │     │             │
+└─────────────┘     └─────────────┘     └─────────────┘     └─────────────┘
+
+CAVALRY-SPECIFIC COUNTERS (only for cavalry=True marshals):
+┌─────────────────────────────────────────────────────────────────────────┐
+│ turns_in_defensive_stance: 0→1→2→3 (triggers auto-switch, -3 trust)    │
+│ turns_fortified: 0→1→2→3 (triggers auto-unfortify, -3 trust)           │
+│ Reset on: move(), stance change to non-defensive, unfortify            │
+└─────────────────────────────────────────────────────────────────────────┘
+
+STATE INTERACTIONS:
+• retreat_recovery BLOCKS: fortify, drill, attack, scout, aggressive_stance
+• drilling_locked BLOCKS: attack, move (until drill completes)
+• fortified + move = lose fortify bonus
+• broken → forced retreat → retreat_recovery=3
+```
+
+### Marshal Personality Abilities (Phase 2.8)
+
+Each marshal has combat modifiers and unique abilities based on their personality. These are defined in `backend/models/personality_modifiers.py` and integrated into `marshal.py` and `combat.py`.
+
+**NEY (Aggressive) - "Bravest of the Brave"**
+| Modifier | Value | Condition |
+|----------|-------|-----------|
+| Base attack bonus | +15% | Always |
+| Aggressive stance attack | +5% additional | In aggressive stance (total +20%) |
+| Drill synergy | +5% additional | After drill completes |
+| Aggressive stance defense | -5% | In aggressive stance |
+| Defensive stance defense | -5% off bonus | Gets +10% not +15% |
+| Max fortify | 10% | Capped (impatient) |
+
+**Unique Abilities:**
+- **Cavalry Charge**: Can attack enemies 2 regions away (movement_range=2)
+- **Fighting Retreat**: When retreating, can attack with +10% bonus (retreat_attack_bonus)
+- **Cavalry Limits**: See [Cavalry Limits System](#cavalry-limits-system) - cannot hold defensive positions for long
+
+**DAVOUT (Cautious) - "Iron Marshal"**
+| Modifier | Value | Condition |
+|----------|-------|-----------|
+| Defensive stance defense | +5% additional | In defensive stance (total +20%) |
+| Outnumbered defense | +10% | When strength < attacker strength |
+| Aggressive stance attack | -5% | Hesitant in aggressive stance |
+| Bad odds attack | -10% | When strength ratio < 1:1 |
+| Fortify rate | +3%/turn | Instead of +2%/turn |
+| Max fortify | 20% | Instead of 15% |
+| Instant fortify | +5% | On first fortify turn |
+| Scout range | +1 region | Extended reconnaissance |
+
+**Unique Abilities:**
+- **Free Unfortify**: Unfortify costs 0 actions (efficient camp breaking)
+- **Counter-Punch**: After successfully defending, next attack is FREE (requires enemy AI to trigger naturally; use `/debug counter_punch Davout` to test)
+
+**GROUCHY (Literal)**
+| Modifier | Value | Condition |
+|----------|-------|-----------|
+| Hold position defense | +15% | When holding_position=True |
+
+**Unique Abilities:**
+- **Immovable**: Use `hold` command to set holding_position=True, grants +15% defense at that location. Lost when moving.
+
+**State Tracking Fields (in Marshal class):**
+```python
+self.cavalry: bool = False                    # Enables 2-tile attacks, Fighting Retreat, cavalry limits
+self.turns_in_defensive_stance: int = 0       # Cavalry: turns in defensive stance (triggers at 3)
+self.turns_fortified: int = 0                 # Cavalry: turns fortified (triggers at 3)
+self.turns_defensive: int = 0                 # Legacy counter (kept for compatibility)
+self.counter_punch_available: bool = False    # Davout free attack flag
+self.holding_position: bool = False           # Grouchy Immovable active
+self.hold_region: str = ""                    # Region where Grouchy is holding
+```
+
+**Debug Commands:**
+```
+/debug counter_punch <marshal>  - Set counter_punch_available=True
+/debug restless <marshal>       - Set turns_defensive=5 (trigger restlessness)
+/debug cavalry <marshal>        - Toggle cavalry status
+/debug hold <marshal>           - Set holding_position=True
+```
+
+**Turn Processing:**
+- **Turn Start**: Cavalry limits check - auto-switch stance or unfortify after 3 turns (deterministic, -3 trust each)
+- **Turn End**: Cavalry counters increment for cavalry units in defensive stance/fortified
+- **Turn End**: Unused counter_punch expires
+
 ### API Endpoints
 - `GET /test` - Connection test
 - `POST /command` - Execute player commands
 - `GET /status` - Current game state
 - `GET /docs` - Interactive API docs
+
+---
+
+## Combat System Architecture
+
+### Single-Source-of-Truth Pattern (CRITICAL!)
+
+Combat modifiers are calculated in ONE place only. This prevents bugs where bonuses apply twice.
+
+```
+marshal.py                          combat.py
+───────────────────────────────     ─────────────────────────────────
+get_attack_modifier()               Uses marshal's modifier
+  - Personality base bonus          Generates messages about bonuses
+  - Stance modifier                 Handles state changes (drill consumed)
+  - Drill/shock bonus               DOES NOT recalculate modifiers
+  - Returns final multiplier
+
+get_defense_modifier()              Uses marshal's modifier
+  - Personality base bonus          Generates messages about bonuses
+  - Stance modifier                 DOES NOT recalculate modifiers
+  - Fortify bonus
+  - Outnumbered bonus (Davout)
+  - Returns final multiplier
+```
+
+**Why this matters:** Previous bugs had fortify bonus calculated in BOTH marshal.py AND combat.py, resulting in 1.6% bonus instead of 16%.
+
+### Combat Modifier Reference Table
+
+| Modifier | Value | Calculated In | Condition |
+|----------|-------|---------------|-----------|
+| **NEY (Aggressive)** |
+| Base attack | +15% | marshal.py:266 | Always |
+| Aggressive stance attack | +5% | marshal.py:270 | stance == AGGRESSIVE |
+| Drill synergy | +5% | marshal.py:275 | shock_bonus > 0 |
+| Aggressive stance defense | -5% | marshal.py:285 | stance == AGGRESSIVE |
+| Defensive stance defense | +10% | marshal.py:291 | stance == DEFENSIVE (reduced from +15%) |
+| Max fortify cap | 10% | personality_modifiers.py | Capped |
+| **DAVOUT (Cautious)** |
+| Defensive stance defense | +20% | marshal.py:291 | stance == DEFENSIVE (+5% extra) |
+| Outnumbered defense | +10% | marshal.py:295 | strength < attacker_strength |
+| Aggressive stance attack | -5% | marshal.py:270 | stance == AGGRESSIVE |
+| Bad odds attack | -10% | marshal.py:275 | strength_ratio < 1.0 |
+| Max fortify cap | 20% | personality_modifiers.py | Higher cap |
+| Fortify rate | +3%/turn | executor.py | Instead of +2%/turn |
+| **FORTIFY BONUS** |
+| Defense bonus | +X% | marshal.py:277 | fortify_bonus stored as decimal (0.16 = 16%) |
+| Display | X% | combat.py | `int(fortify_bonus * 100)` for display |
+| **DRILL/SHOCK BONUS** |
+| Attack bonus | +50% | marshal.py:275 | shock_bonus > 0, consumed after use |
+
+### Key Implementation Pattern
+
+```python
+# CORRECT - combat.py reads modifier, generates message, handles state
+def resolve_combat(attacker, defender, ...):
+    # Get modifier from marshal (single source of truth)
+    attack_modifier = attacker.get_attack_modifier()
+
+    # Generate message BEFORE clearing state
+    attacker_drill_bonus = getattr(attacker, 'shock_bonus', 0)
+    if attacker_drill_bonus > 0:
+        drill_message = f"+{int(attacker_drill_bonus * 100)}% shock bonus!"
+
+    # Use modifier in calculations
+    attacker_power = attacker.strength * attack_modifier
+
+    # Clear state AFTER modifier calculation
+    if attacker_drill_bonus > 0:
+        attacker.shock_bonus = 0
+        attacker.drilling = False
+
+# WRONG - recalculating modifier in combat.py
+def resolve_combat_BAD(attacker, defender, ...):
+    attack_modifier = attacker.get_attack_modifier()
+    # BAD: Adding drill bonus again here!
+    if attacker.shock_bonus > 0:
+        attack_modifier *= 1.5  # DUPLICATE!
+```
+
+---
+
+## Cavalry Limits System
+
+Cavalry units (like Ney) cannot hold defensive positions for extended periods. Horses need to move.
+
+### Mechanics
+
+| Counter | Triggers At | Effect | Trust Penalty |
+|---------|-------------|--------|---------------|
+| `turns_in_defensive_stance` | 3 turns | Auto-switch to AGGRESSIVE | -3 |
+| `turns_fortified` | 3 turns | Auto-unfortify | -3 |
+
+**Maximum penalty per turn:** -6 (if both trigger simultaneously)
+
+### Turn Flow
+
+```
+TURN START
+    │
+    ├─► _check_cavalry_limits()
+    │       │
+    │       ├─► If cavalry in defensive stance for 3+ turns:
+    │       │       - Switch to AGGRESSIVE
+    │       │       - Reset turns_in_defensive_stance = 0
+    │       │       - trust.modify(-3)
+    │       │       - Return "cavalry_stance_forced" event
+    │       │
+    │       └─► If cavalry fortified for 3+ turns:
+    │               - Set fortified = False
+    │               - Reset defense_bonus = 0
+    │               - Reset turns_fortified = 0
+    │               - trust.modify(-3)
+    │               - Return "cavalry_fortify_forced" event
+    │
+    └─► Events shown in tactical messages at turn start
+
+TURN END (in _process_tactical_states)
+    │
+    └─► For cavalry in defensive stance:
+            turns_in_defensive_stance += 1
+        For cavalry that is fortified:
+            turns_fortified += 1
+```
+
+### Movement Resets
+
+When a cavalry unit moves, both counters reset:
+```python
+# marshal.py move_to()
+if getattr(self, 'cavalry', False):
+    self.turns_in_defensive_stance = 0
+    self.turns_fortified = 0
+```
+
+### Event Types
+
+| Event Type | Message Example |
+|------------|-----------------|
+| `cavalry_stance_forced` | "🐴 Ney's cavalry is too restless! Auto-switched to AGGRESSIVE. Trust -3" |
+| `cavalry_fortify_forced` | "🐴 Ney's horses cannot stay still! Auto-unfortified. Trust -3" |
+| `cavalry_restless_warning` | "🐴 Warning: Ney's cavalry growing restless (turn 3 of 3)..." |
+
+---
+
+## Trust and Authority System
+
+### Trust Values (from disobedience.py)
+
+| Player Action | Trust Change | Context |
+|---------------|--------------|---------|
+| Accept marshal's objection | +12 | Player listens to marshal's concerns |
+| Insist (override objection) | -10 to -15 | Player forces order against marshal's judgment |
+| Compromise | +3 | Player finds middle ground |
+| Cavalry auto-switch/unfortify | -3 each | Marshal acts without orders (misuse of cavalry) |
+
+### Authority Interaction
+
+Authority affects the probability of marshal compliance:
+- **High authority** → Higher chance marshal follows orders without objection
+- **Low authority** → More frequent objections and potential disobedience
+
+The disobedience system uses odds-based calculations where authority modifies thresholds:
+```python
+# From disobedience.py - simplified concept
+base_objection_chance = get_personality_objection_rate(marshal, action)
+modified_chance = base_objection_chance * (1 - (authority / 100))
+```
+
+---
+
+## Key Implementation Files
+
+### Core Systems
+
+| File | Purpose | Key Functions |
+|------|---------|---------------|
+| `backend/models/marshal.py` | Marshal state, combat modifiers | `get_attack_modifier()`, `get_defense_modifier()`, `move_to()` |
+| `backend/game_logic/combat.py` | Combat resolution, messages | `resolve_combat()` |
+| `backend/commands/executor.py` | Action execution | `_execute_attack()`, `_execute_fortify()`, `_execute_drill()` |
+| `backend/models/world_state.py` | Game state, turn processing | `_check_cavalry_limits()`, `_process_tactical_states()` |
+| `backend/commands/disobedience.py` | Objection system | `check_objection()`, trust/authority calculations |
+| `backend/models/personality.py` | Personality types | `PersonalityType` enum, objection triggers |
+| `backend/models/personality_modifiers.py` | Combat bonuses by personality | Modifier definitions per personality |
+
+### Disobedience System Reference
+
+**Location:** `backend/commands/disobedience.py`
+
+This file contains the core marshal objection logic:
+- When marshals object to orders
+- Trust modification values
+- Authority calculations
+- Compromise system
+
+**Key patterns to maintain:**
+1. All trust modifications go through `marshal.trust.modify(value)`
+2. Authority affects objection probability, not elimination
+3. Cavalry limits bypass objection (automatic, not player-ordered)
+
+---
+
+## Before Modifying: Required Reading
+
+**STOP! Before changing code, read the relevant files first.**
+
+| If you're modifying... | You MUST read these files first |
+|------------------------|--------------------------------|
+| Combat damage/modifiers | `marshal.py` (get_attack_modifier, get_defense_modifier), `combat.py` (resolve_combat) |
+| Marshal abilities | `personality_modifiers.py`, `marshal.py`, `combat.py` |
+| Fortify/Drill mechanics | `executor.py` (_execute_fortify, _execute_drill), `marshal.py` (state fields), `world_state.py` (_process_tactical_states) |
+| Disobedience/Trust | `disobedience.py`, `personality.py`, `marshal.py` (Trust class) |
+| Cavalry limits | `world_state.py` (_check_cavalry_limits), `marshal.py` (cavalry counters, move_to) |
+| Turn processing | `world_state.py` (advance_turn, _process_tactical_states), `executor.py` (_execute_end_turn) |
+| Adding new actions | `executor.py`, `parser.py` (valid_actions), `world_state.py` (_action_costs) |
+| Retreat/Broken state | `combat.py` (forced retreat logic), `marshal.py` (retreat_recovery), `executor.py` (_execute_retreat) |
+
+### Common Modification Patterns
+
+**Adding a new combat modifier:**
+```
+1. Add state field to marshal.py __init__
+2. Apply modifier in marshal.py get_attack_modifier() or get_defense_modifier()
+3. Add message generation in combat.py (DO NOT recalculate modifier)
+4. Add state clearing in combat.py if consumable (AFTER get_*_modifier call)
+```
+
+**Adding a new action:**
+```
+1. Add _execute_[action]() method in executor.py
+2. Add action name to valid_actions in parser.py
+3. Add action cost to _action_costs in world_state.py
+4. Add keywords to mock parser in llm_client.py
+5. If it can trigger objections, add to objection_actions in disobedience.py
+```
+
+**Adding a new marshal state:**
+```
+1. Add field to marshal.py __init__
+2. Add state processing in world_state.py _process_tactical_states() if it changes per turn
+3. Add blocking logic if it prevents certain actions
+4. Update executor.py to check state before executing blocked actions
+5. Document in Marshal State Machine diagram above
+```
+
+---
+
+## Implementation Status
+
+**IMPLEMENTED (working code exists):**
+- Core combat system, modifiers, morale
+- Disobedience/objection system with trust
+- Cavalry limits (3-turn defensive/fortify caps)
+- Drill/Fortify mechanics with personality caps
+- Retreat recovery blocking
+- Action economy (4 actions/turn)
+- 13-region map with adjacency
+
+**CONCEPTUAL (design only, no code):**
+- Sections marked with "(CONCEPTUAL)" or "(Future)"
+- Nation AI decision trees
+- Diplomacy system
+- Supply/Logistics
+- Coalition triggers
+- Weather/Seasons
+- Token monetization
+
+When reading CLAUDE.md, skip CONCEPTUAL sections unless planning future features.
 
 ---
 
@@ -2256,3 +2732,41 @@ For detailed design decisions and architecture:
 | Port connection failed | Verify port 8005 in both backend and frontend |
 | Command not recognized | Add to `valid_actions` in parser.py |
 | Marshal selection wrong | Check `find_nearest_marshal_to_region()` filtering |
+| Fortify bonus too small | Check modifier uses `(1.0 + bonus)` not `(1.0 + bonus * 0.10)` |
+| Modifier applied twice | Search for duplicate calculations in marshal.py AND combat.py |
+| Drill bonus not applying | Ensure state cleared AFTER `get_attack_modifier()` call |
+| Display shows wrong % | Check using `* 100` not `* 10` for percentage display |
+| Cavalry not resetting | Verify `move_to()` resets `turns_in_defensive_stance` and `turns_fortified` |
+
+---
+
+## Combat Debugging Checklist
+
+When combat modifiers seem wrong, check:
+
+1. **Single source of truth**: Is the modifier calculated in only ONE place?
+   - Attack: `marshal.get_attack_modifier()` only
+   - Defense: `marshal.get_defense_modifier()` only
+
+2. **Order of operations**: Are states cleared AFTER reading them?
+   ```python
+   # CORRECT order:
+   bonus = getattr(marshal, 'shock_bonus', 0)
+   modifier = marshal.get_attack_modifier()  # Uses shock_bonus
+   marshal.shock_bonus = 0                    # Clear AFTER
+
+   # WRONG order:
+   marshal.shock_bonus = 0                    # Cleared too early!
+   modifier = marshal.get_attack_modifier()  # Gets 0
+   ```
+
+3. **Display math**: Is the display using the right multiplier?
+   - Stored as decimal: `0.16` = 16%
+   - Display: `int(value * 100)` = "16%"
+
+4. **Test with known values**:
+   ```python
+   # Sanity check expectations:
+   # Ney aggressive + drill = 1.15 * 1.05 * 1.50 = 1.81 (rounded to 1.75-1.85)
+   # Davout defensive + 16% fortify = 1.20 * 1.16 = 1.39 (rounds to 1.40)
+   ```

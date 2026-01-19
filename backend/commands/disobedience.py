@@ -435,6 +435,7 @@ class DisobedienceSystem:
         return {
             'type': 'mild_objection',
             'marshal': marshal.name,
+            'personality': marshal.personality,  # Phase 2.8: Added for UI display
             'severity': severity,
             'order': order,
             'message': message,
@@ -504,6 +505,7 @@ class DisobedienceSystem:
         return {
             'type': 'major_objection',
             'marshal': marshal.name,
+            'personality': marshal.personality,  # Phase 2.8: Added for UI display
             'severity': severity,
             'original_order': order,
             'suggested_alternative': alternative,
@@ -520,6 +522,17 @@ class DisobedienceSystem:
         Uses get_valid_actions() to ensure only executable actions are suggested.
         ONLY uses: attack, defend, move (the 3 core actions)
         """
+        # ════════════════════════════════════════════════════════════
+        # RETREAT STATE: Force RECRUIT as alternative (no nonsense suggestions)
+        # Marshals recovering from retreat should focus on rebuilding
+        # ════════════════════════════════════════════════════════════
+        if getattr(marshal, 'retreating', False):
+            return {
+                'action': 'recruit',
+                'target': marshal.location,
+                'retreat_recovery': True
+            }
+
         action = order.get('action', '').lower()
         personality = get_personality(marshal.personality)
 

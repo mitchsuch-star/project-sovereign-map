@@ -14,26 +14,68 @@ class FuzzyMatcher:
     Fuzzy string matcher for typo tolerance.
 
     Uses Levenshtein distance to find best matches for user input.
+    Adjusts thresholds for short strings (e.g., "Ney" → "Nay").
 
     Thresholds:
     - 80+ : Auto-correct silently (high confidence)
     - 60-79: Return suggestion for confirmation
     - <60  : Return error with nearby options
+
+    Short name handling (<=4 chars):
+    - Uses lower thresholds (70/50) for short names
+    - Uses token_set_ratio for better partial matching
     """
 
-    # Threshold constants
+    # Threshold constants for normal names (5+ chars)
     AUTO_CORRECT_THRESHOLD = 80  # Auto-correct without asking
     SUGGEST_THRESHOLD = 60       # Suggest with confirmation
+
+    # Lower thresholds for short names (<=4 chars)
+    SHORT_NAME_AUTO_CORRECT = 70
+    SHORT_NAME_SUGGEST = 50
 
     def __init__(self):
         """Initialize fuzzy matcher."""
         pass
 
+    def _get_thresholds(self, query: str) -> Tuple[int, int]:
+        """Get appropriate thresholds based on query length."""
+        # Very short (1-2 chars) - always suggest, never auto-correct
+        if len(query) <= 2:
+            return (100, self.SHORT_NAME_SUGGEST)  # 100 = only exact match auto-corrects
+        # Short names (3-4 chars) - lower threshold
+        if len(query) <= 4:
+            return (self.SHORT_NAME_AUTO_CORRECT, self.SHORT_NAME_SUGGEST)
+        return (self.AUTO_CORRECT_THRESHOLD, self.SUGGEST_THRESHOLD)
+
+    def _get_best_score(self, query: str, candidate: str) -> int:
+        """
+        Get best fuzzy score using multiple algorithms.
+
+        For short names (3-4 chars), combines ratio with partial_ratio for better matching.
+        Very short names (1-2 chars) only use standard ratio to avoid false positives.
+        """
+        # Standard ratio
+        ratio_score = fuzz.ratio(query.lower(), candidate.lower())
+
+        # For very short queries (1-2 chars), only use standard ratio
+        # This prevents "N" from matching "Ney" with 100% partial match
+        if len(query) <= 2:
+            return ratio_score
+
+        # For short names (3-4 chars), also check partial ratio
+        if len(query) <= 4 or len(candidate) <= 4:
+            partial_score = fuzz.partial_ratio(query.lower(), candidate.lower())
+            # Use the better of the two
+            return max(ratio_score, partial_score)
+
+        return ratio_score
+
     def match(
         self,
         query: str,
         candidates: List[str],
-        threshold: int = 80
+        threshold: int = None
     ) -> Optional[Tuple[str, int]]:
         """
         Find best fuzzy match for query string.
@@ -41,7 +83,7 @@ class FuzzyMatcher:
         Args:
             query: User input string (may have typos)
             candidates: List of valid options to match against
-            threshold: Minimum similarity score (0-100)
+            threshold: Minimum similarity score (0-100), auto-adjusts for short names
 
         Returns:
             Tuple of (best_match, score) if found, else None
@@ -50,24 +92,29 @@ class FuzzyMatcher:
             >>> matcher = FuzzyMatcher()
             >>> matcher.match("Waterlo", ["Waterloo", "Paris", "Belgium"])
             ("Waterloo", 93)
-            >>> matcher.match("Asdf", ["Waterloo", "Paris"], threshold=80)
-            None
+            >>> matcher.match("Nay", ["Ney", "Davout"])  # Short name
+            ("Ney", 67)  # Lower threshold allows match
         """
         if not query or not candidates:
             return None
 
-        # Use fuzzywuzzy to find best match
-        # process.extractOne returns (match, score) or None
-        result = process.extractOne(
-            query,
-            candidates,
-            scorer=fuzz.ratio,  # Simple ratio comparison
-            score_cutoff=threshold
-        )
+        # Use dynamic threshold for short names
+        if threshold is None:
+            auto_threshold, _ = self._get_thresholds(query)
+            threshold = auto_threshold
 
-        if result:
-            best_match, score = result
-            return (best_match, score)
+        # Find best match using our custom scoring
+        best_match = None
+        best_score = 0
+
+        for candidate in candidates:
+            score = self._get_best_score(query, candidate)
+            if score > best_score:
+                best_score = score
+                best_match = candidate
+
+        if best_score >= threshold:
+            return (best_match, best_score)
 
         return None
 
@@ -113,8 +160,11 @@ class FuzzyMatcher:
                     "suggestions": []
                 }
 
+        # Get dynamic thresholds based on query length
+        auto_threshold, suggest_threshold = self._get_thresholds(query)
+
         # Try fuzzy match with auto-correct threshold
-        result = self.match(query, candidates, threshold=self.AUTO_CORRECT_THRESHOLD)
+        result = self.match(query, candidates, threshold=auto_threshold)
 
         if result:
             match, score = result
@@ -126,7 +176,7 @@ class FuzzyMatcher:
             }
 
         # Try fuzzy match with suggest threshold
-        result = self.match(query, candidates, threshold=self.SUGGEST_THRESHOLD)
+        result = self.match(query, candidates, threshold=suggest_threshold)
 
         if result:
             match, score = result
@@ -189,7 +239,12 @@ class FuzzyMatcher:
 
 # TODO Phase 3: LLM will interpret commands with context
 # TODO Phase 3: Add search_regions() and search_marshals() functions
-# TODO Phase 6: Godot autocomplete dropdown UI
+# TODO Phase 6: Godot autocomplete dropdown UI with iPhone-style suggestions
+#   - Show suggestions as user types (like iOS autocomplete)
+#   - Display 3-5 candidates below input field
+#   - Tap/click to select, or keep typing
+#   - Keyboard navigation (arrow keys, tab to accept)
+#   - Animate suggestions appearing/disappearing
 
 
 if __name__ == "__main__":

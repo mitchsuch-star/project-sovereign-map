@@ -198,6 +198,248 @@ class WorldState:
         return True
 
     # ========================================
+    # DANGER / THREAT ZONE CALCULATIONS (BUG-008/009/010)
+    # ========================================
+
+    def is_in_danger(self, marshal_name: str) -> bool:
+        """
+        Check if a marshal is in danger and should be allowed to retreat.
+
+        A marshal is "in danger" if:
+        - Any enemy marshal is adjacent (1 region away), OR
+        - Any enemy marshal with movement_range >= 2 is within 2 regions
+
+        Args:
+            marshal_name: Name of the marshal to check
+
+        Returns:
+            True if marshal is in danger, False otherwise
+        """
+        marshal = self.marshals.get(marshal_name)
+        if not marshal:
+            return False
+
+        threatening = self.get_threatening_enemies(marshal_name)
+        return len(threatening) > 0
+
+    def get_threatening_enemies(self, marshal_name: str) -> List[Marshal]:
+        """
+        Get list of enemy marshals threatening a marshal.
+
+        Threats include:
+        - Enemies in the SAME region (distance 0) - most dangerous!
+        - Adjacent enemies (1 region away)
+        - Enemies with movement_range >= 2 within 2 regions
+
+        Args:
+            marshal_name: Name of the marshal to check
+
+        Returns:
+            List of threatening enemy marshals
+        """
+        marshal = self.marshals.get(marshal_name)
+        if not marshal:
+            return []
+
+        marshal_region = marshal.location
+        threatening = []
+
+        for enemy in self.get_enemy_marshals():
+            if enemy.strength <= 0:
+                continue  # Skip dead enemies
+
+            distance = self.get_distance(marshal_region, enemy.location)
+
+            # Enemy in SAME region = immediate threat!
+            if distance == 0:
+                threatening.append(enemy)
+            # Adjacent enemy = threat
+            elif distance == 1:
+                threatening.append(enemy)
+            # Enemy with extended range within 2 regions = threat
+            elif distance == 2 and getattr(enemy, 'movement_range', 1) >= 2:
+                threatening.append(enemy)
+
+        return threatening
+
+    def get_safe_retreat_destination(self, marshal_name: str) -> Optional[str]:
+        """
+        Find a safe retreat destination for a marshal.
+
+        Uses marshal's movement_range (cavalry=2, infantry=1) to search for options.
+
+        Priority order:
+        1. Friendly region (not threatened) - closer to Paris preferred
+        2. Neutral region (not threatened)
+        3. Enemy territory (not threatened) - LAST RESORT only
+        4. None = surrounded (all options threatened)
+
+        Args:
+            marshal_name: Name of the marshal retreating
+
+        Returns:
+            Region name to retreat to, or None if surrounded
+        """
+        marshal = self.marshals.get(marshal_name)
+        if not marshal:
+            return None
+
+        current_region = self.get_region(marshal.location)
+        if not current_region:
+            return None
+
+        # Get marshal's movement range (cavalry=2, infantry=1)
+        move_range = getattr(marshal, 'movement_range', 1)
+
+        # Collect safe regions by category
+        friendly_safe = []
+        neutral_safe = []
+        enemy_safe = []  # Last resort only
+
+        # Get all regions within movement range
+        candidates = self._get_regions_within_range(marshal.location, move_range)
+
+        for candidate_name in candidates:
+            if self._region_is_threatened(candidate_name):
+                continue  # Skip threatened regions
+
+            candidate_region = self.get_region(candidate_name)
+            if not candidate_region:
+                continue
+
+            # For 2-range moves, verify valid path exists
+            distance = self.get_distance(marshal.location, candidate_name)
+            if distance == 2:
+                if not self._has_valid_path(marshal.location, candidate_name):
+                    continue  # No valid path through intermediate region
+
+            controller = candidate_region.controller
+            dist_to_paris = self.get_distance(candidate_name, "Paris")
+
+            entry = {"name": candidate_name, "distance": dist_to_paris, "retreat_dist": distance}
+
+            if controller == self.player_nation:
+                friendly_safe.append(entry)
+            elif controller is None:
+                neutral_safe.append(entry)
+            else:
+                enemy_safe.append(entry)
+
+        # Return best option by priority: friendly > neutral > enemy (last resort)
+        # Sort by distance to Paris (prefer closer to capital)
+        if friendly_safe:
+            friendly_safe.sort(key=lambda r: r["distance"])
+            return friendly_safe[0]["name"]
+
+        if neutral_safe:
+            neutral_safe.sort(key=lambda r: r["distance"])
+            return neutral_safe[0]["name"]
+
+        if enemy_safe:
+            # Last resort: retreat to enemy territory (contested retreat)
+            enemy_safe.sort(key=lambda r: r["distance"])
+            return enemy_safe[0]["name"]
+
+        return None  # Truly surrounded - no safe retreat possible
+
+    def _get_regions_within_range(self, start: str, max_range: int) -> List[str]:
+        """
+        Get all regions within a certain distance from start.
+
+        Args:
+            start: Starting region name
+            max_range: Maximum distance (1 or 2)
+
+        Returns:
+            List of region names within range (excluding start)
+        """
+        regions = set()
+        start_region = self.get_region(start)
+        if not start_region:
+            return []
+
+        # Add all adjacent regions (distance 1)
+        for adj_name in start_region.adjacent_regions:
+            regions.add(adj_name)
+
+            # If range is 2, add regions adjacent to adjacent
+            if max_range >= 2:
+                adj_region = self.get_region(adj_name)
+                if adj_region:
+                    for adj2_name in adj_region.adjacent_regions:
+                        if adj2_name != start:  # Don't include starting region
+                            regions.add(adj2_name)
+
+        return list(regions)
+
+    def _has_valid_path(self, start: str, end: str) -> bool:
+        """
+        Check if there's a valid path from start to end (for 2-tile moves).
+
+        A valid path means there's an intermediate region that connects them.
+
+        Args:
+            start: Starting region name
+            end: Ending region name
+
+        Returns:
+            True if valid path exists, False otherwise
+        """
+        start_region = self.get_region(start)
+        end_region = self.get_region(end)
+
+        if not start_region or not end_region:
+            return False
+
+        # Check if any adjacent region of start is also adjacent to end
+        for adj_name in start_region.adjacent_regions:
+            adj_region = self.get_region(adj_name)
+            if adj_region and end in adj_region.adjacent_regions:
+                return True
+
+        return False
+
+    def _region_is_threatened(self, region_name: str) -> bool:
+        """
+        Check if a region is in an enemy's threat zone.
+
+        A region is threatened if:
+        - Any enemy marshal is IN the region, OR
+        - Any enemy marshal is adjacent to it (distance 1), OR
+        - Any CAVALRY enemy is within 2 regions (extended threat)
+
+        Args:
+            region_name: Name of the region to check
+
+        Returns:
+            True if region is threatened, False otherwise
+        """
+        region = self.get_region(region_name)
+        if not region:
+            return True  # Unknown region = unsafe
+
+        for enemy in self.get_enemy_marshals():
+            if enemy.strength <= 0:
+                continue
+
+            distance = self.get_distance(region_name, enemy.location)
+
+            # Enemy in the region = threatened
+            if distance == 0:
+                return True
+
+            # Enemy adjacent = threatened
+            if distance == 1:
+                return True
+
+            # Cavalry enemy within 2 regions = threatened (extended range)
+            enemy_range = getattr(enemy, 'movement_range', 1)
+            if distance == 2 and enemy_range >= 2:
+                return True
+
+        return False
+
+    # ========================================
     # PROXIMITY / DISTANCE CALCULATIONS
     # ========================================
 
@@ -439,11 +681,20 @@ class WorldState:
                         "drill_complete_turn": int(getattr(m, 'drill_complete_turn', -1)),
                         # Fortify state
                         "fortified": bool(getattr(m, 'fortified', False)),
-                        "defense_bonus": int(getattr(m, 'defense_bonus', 0)),
+                        "defense_bonus": int(getattr(m, 'defense_bonus', 0) * 100),  # Convert 0.02 -> 2%
                         "fortify_expires_turn": int(getattr(m, 'fortify_expires_turn', -1)),
                         # Retreat state
                         "retreating": bool(getattr(m, 'retreating', False)),
                         "retreat_recovery": int(getattr(m, 'retreat_recovery', 0)),
+                        # Personality ability states (Phase 2.8)
+                        "cavalry": bool(getattr(m, 'cavalry', False)),
+                        "turns_defensive": int(getattr(m, 'turns_defensive', 0)),
+                        "counter_punch_available": bool(getattr(m, 'counter_punch_available', False)),
+                        "holding_position": bool(getattr(m, 'holding_position', False)),
+                        "hold_region": str(getattr(m, 'hold_region', '')),
+                        # Broken army state (surrounded + forced retreat)
+                        "broken": bool(getattr(m, 'broken', False)),
+                        "broken_recovery": int(getattr(m, 'broken_recovery', 0)),
                     }
 
                 marshals_data.append(marshal_data)
@@ -572,6 +823,14 @@ class WorldState:
         # Reset disobedience system for new turn (Phase 2)
         self.disobedience_system.reset_turn()
 
+        # ════════════════════════════════════════════════════════════
+        # CAVALRY LIMITS CHECK (Phase 2.8) - Turn Start
+        # Cavalry cannot hold defensive positions - auto-switch after 3 turns
+        # ════════════════════════════════════════════════════════════
+        cavalry_events = self._check_cavalry_limits()
+        if cavalry_events:
+            tactical_events.extend(cavalry_events)
+
         # Check for game over
         if self.current_turn > self.max_turns:
             self.game_over = True
@@ -638,25 +897,40 @@ class WorldState:
                     })
 
             # ════════════════════════════════════════════════════════════
-            # FORTIFY GROWTH (+2% per turn, max 15%)
+            # FORTIFY GROWTH (personality-specific rates and caps)
+            # Phase 2.8: Davout +3%/turn, max 20% | Ney max 10% | Others +2%/turn, max 15%
             # ════════════════════════════════════════════════════════════
             if getattr(marshal, 'fortified', False):
-                current_bonus = getattr(marshal, 'defense_bonus', 0.2)
-                max_bonus = 1.5  # 15% max
+                from backend.models.personality_modifiers import get_max_fortify_bonus, get_fortify_rate
 
-                if current_bonus < max_bonus:
-                    # Grow defense by +2% (0.2)
-                    new_bonus = min(current_bonus + 0.2, max_bonus)
+                personality = getattr(marshal, 'personality', 'unknown')
+                max_bonus_rate = get_max_fortify_bonus(personality)  # 0.10-0.20 depending on personality
+                fortify_rate = get_fortify_rate(personality)  # 0.02-0.03 depending on personality
+
+                current_bonus = getattr(marshal, 'defense_bonus', 0.02)
+
+                if current_bonus < max_bonus_rate:
+                    # Grow defense by personality-specific rate
+                    new_bonus = min(current_bonus + fortify_rate, max_bonus_rate)
                     marshal.defense_bonus = new_bonus
-                    old_percent = int(current_bonus * 10)
-                    new_percent = int(new_bonus * 10)
-                    print(f"  [TACTICAL] FORTIFY: {marshal.name} defense {old_percent}% -> {new_percent}%")
+                    old_percent = int(current_bonus * 100)
+                    new_percent = int(new_bonus * 100)
+                    max_percent = int(max_bonus_rate * 100)
+
+                    # Add personality-specific message
+                    personality_note = ""
+                    if personality == "cautious":
+                        personality_note = " (Iron Marshal: faster fortification)"
+                    elif personality == "aggressive":
+                        personality_note = " (Aggressive: limited fortification)"
+
+                    print(f"  [TACTICAL] FORTIFY: {marshal.name} defense {old_percent}% -> {new_percent}%{personality_note}")
                     events.append({
                         "type": "fortify_strengthened",
                         "marshal": marshal.name,
                         "defense_bonus": new_percent,
                         "message": f"{marshal.name}'s fortifications strengthen: +{new_percent}% defense" +
-                                  (" (MAX)" if new_bonus >= max_bonus else f" (max 15%)")
+                                  (" (MAX)" if new_bonus >= max_bonus_rate else f" (max {max_percent}%)")
                     })
 
             # ════════════════════════════════════════════════════════════
@@ -690,6 +964,81 @@ class WorldState:
                             "message": f"{marshal.name}'s army has fully recovered and is combat ready."
                         })
 
+            # ════════════════════════════════════════════════════════════
+            # BROKEN ARMY RECOVERY PROGRESSION
+            # ════════════════════════════════════════════════════════════
+            # Broken armies take 4 turns to recover (can only recruit during recovery)
+            # Stage 0-3: Broken (recruit only), Stage 4: Recovered
+            if getattr(marshal, 'broken', False):
+                recovery_stage = getattr(marshal, 'broken_recovery', 0)
+                if recovery_stage < 4:
+                    # Advance recovery
+                    marshal.broken_recovery = recovery_stage + 1
+                    new_stage = marshal.broken_recovery
+                    turns_left = 4 - new_stage
+                    print(f"  [TACTICAL] BROKEN RECOVERY: {marshal.name} stage {recovery_stage} -> {new_stage}")
+                    events.append({
+                        "type": "broken_recovery",
+                        "marshal": marshal.name,
+                        "stage": new_stage,
+                        "turns_left": turns_left,
+                        "message": f"💀 {marshal.name}'s shattered army is rebuilding. {turns_left} turns until combat ready."
+                    })
+
+                    # Check if fully recovered
+                    if new_stage >= 4:
+                        marshal.broken = False
+                        marshal.broken_recovery = 0
+                        print(f"  [TACTICAL] BROKEN RECOVERED: {marshal.name} combat ready")
+                        events.append({
+                            "type": "broken_recovered",
+                            "marshal": marshal.name,
+                            "message": f"🎉 {marshal.name}'s army has been rebuilt and is combat ready!"
+                        })
+
+            # ════════════════════════════════════════════════════════════
+            # CAVALRY DEFENSIVE TRACKING (Phase 2.8)
+            # Cavalry units cannot hold defensive positions for long
+            # Track stance and fortify separately - each has 3-turn limit
+            # ════════════════════════════════════════════════════════════
+            is_cavalry = getattr(marshal, 'cavalry', False)
+            if is_cavalry:
+                from backend.models.marshal import Stance
+                current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
+                is_fortified = getattr(marshal, 'fortified', False)
+
+                # Track defensive stance turns
+                if current_stance == Stance.DEFENSIVE:
+                    old_turns = getattr(marshal, 'turns_in_defensive_stance', 0)
+                    marshal.turns_in_defensive_stance = old_turns + 1
+                    print(f"  [CAVALRY] {marshal.name} defensive stance for {marshal.turns_in_defensive_stance} turns")
+
+                    if marshal.turns_in_defensive_stance == 3:
+                        events.append({
+                            "type": "cavalry_restless_warning",
+                            "marshal": marshal.name,
+                            "turns": 3,
+                            "message": f"⚠️ {marshal.name}'s horses grow restless in defensive stance (3 turns - will auto-switch next turn)"
+                        })
+                else:
+                    marshal.turns_in_defensive_stance = 0  # Reset if not in defensive stance
+
+                # Track fortify turns separately
+                if is_fortified:
+                    old_turns = getattr(marshal, 'turns_fortified', 0)
+                    marshal.turns_fortified = old_turns + 1
+                    print(f"  [CAVALRY] {marshal.name} fortified for {marshal.turns_fortified} turns")
+
+                    if marshal.turns_fortified == 3:
+                        events.append({
+                            "type": "cavalry_restless_warning",
+                            "marshal": marshal.name,
+                            "turns": 3,
+                            "message": f"⚠️ {marshal.name}'s cavalry cannot hold fortifications (3 turns - will auto-unfortify next turn)"
+                        })
+                else:
+                    marshal.turns_fortified = 0  # Reset if not fortified
+
         # ════════════════════════════════════════════════════════════
         # SHOCK BONUS REMINDERS (for marshals who already have it)
         # ════════════════════════════════════════════════════════════
@@ -707,11 +1056,97 @@ class WorldState:
                     "message": f"REMINDER: {marshal.name} has +{shock * 10}% shock bonus ready - use it in your next attack!"
                 })
 
+        # ════════════════════════════════════════════════════════════
+        # COUNTER-PUNCH EXPIRATION (Phase 2.8): Davout's free attack expires
+        # Counter-Punch must be used the turn after defending, or it's lost
+        # ════════════════════════════════════════════════════════════
+        for marshal in self.marshals.values():
+            if marshal.nation != self.player_nation:
+                continue
+
+            counter_punch = getattr(marshal, 'counter_punch_available', False)
+            if counter_punch:
+                # Counter-punch wasn't used this turn - it expires
+                marshal.counter_punch_available = False
+                print(f"  [COUNTER-PUNCH EXPIRED] {marshal.name}'s counter-punch opportunity has passed")
+                events.append({
+                    "type": "counter_punch_expired",
+                    "marshal": marshal.name,
+                    "message": f"⚠️ {marshal.name}'s Counter-Punch opportunity has expired! (Must use immediately after defending)"
+                })
+
         return events
 
     def get_last_tactical_events(self) -> list:
         """Get tactical events from the last turn advance."""
         return getattr(self, '_last_tactical_events', [])
+
+    def _check_cavalry_limits(self) -> list:
+        """
+        Check cavalry defensive limits at turn start.
+
+        Cavalry units (horses) cannot hold defensive positions for long:
+        - After 3 turns in defensive stance → auto-switch to aggressive (-3 trust)
+        - After 3 turns fortified → auto-unfortify (-3 trust)
+        - Both can trigger on same turn for -6 total trust
+
+        This is deterministic, not probability-based. Cavalry simply cannot
+        maintain defensive positions - it's a unit type limitation.
+        """
+        events = []
+
+        for marshal in self.marshals.values():
+            if marshal.nation != self.player_nation:
+                continue
+
+            is_cavalry = getattr(marshal, 'cavalry', False)
+            if not is_cavalry:
+                continue
+
+            from backend.models.marshal import Stance
+            current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
+            is_fortified = getattr(marshal, 'fortified', False)
+
+            # Check defensive stance limit (triggers at turn 4, after 3 full turns)
+            turns_defensive = getattr(marshal, 'turns_in_defensive_stance', 0)
+            if current_stance == Stance.DEFENSIVE and turns_defensive >= 3:
+                # Auto-switch to aggressive
+                marshal.stance = Stance.AGGRESSIVE
+                marshal.turns_in_defensive_stance = 0
+                marshal.trust.modify(-3)
+
+                events.append({
+                    "type": "cavalry_stance_forced",
+                    "marshal": marshal.name,
+                    "action": "stance_change",
+                    "from_stance": "defensive",
+                    "to_stance": "aggressive",
+                    "message": f"🐴 {marshal.name}'s horses are too restless! Cavalry cannot hold defensive positions.\n"
+                              f"(Auto-switched to AGGRESSIVE stance. Trust: -3 for misusing cavalry)"
+                })
+
+                print(f"  [CAVALRY LIMIT] {marshal.name}: forced stance change after {turns_defensive} turns")
+
+            # Check fortify limit (triggers at turn 4, after 3 full turns)
+            turns_fortified = getattr(marshal, 'turns_fortified', 0)
+            if is_fortified and turns_fortified >= 3:
+                # Auto-unfortify
+                marshal.fortified = False
+                marshal.defense_bonus = 0
+                marshal.turns_fortified = 0
+                marshal.trust.modify(-3)
+
+                events.append({
+                    "type": "cavalry_fortify_forced",
+                    "marshal": marshal.name,
+                    "action": "unfortify",
+                    "message": f"🐴 {marshal.name}'s cavalry abandons fortifications! Horses cannot dig trenches.\n"
+                              f"(Auto-unfortified. Trust: -3 for misusing cavalry)"
+                })
+
+                print(f"  [CAVALRY LIMIT] {marshal.name}: forced unfortify after {turns_fortified} turns")
+
+        return events
 
     def force_end_turn(self) -> Dict:
         """Force end turn early (for "end turn" command)."""

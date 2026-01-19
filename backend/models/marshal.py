@@ -47,7 +47,9 @@ class Marshal:
             tactical_skill: int = 5,
             skills: Optional[dict] = None,
             ability: Optional[dict] = None,
-            starting_trust: int = 70
+            starting_trust: int = 70,
+            cavalry: bool = False,
+            spawn_location: str = None  # Capital/respawn location when broken
     ):
         """Initialize a marshal."""
         self.name = name
@@ -56,6 +58,10 @@ class Marshal:
         self.starting_strength = strength  # NEW: Track original strength
         self.personality = personality
         self.nation = nation
+        # Spawn location: where marshal respawns when army is broken
+        # For France: Paris (capital)
+        # For enemies: their starting region (TODO: use actual capitals in future)
+        self.spawn_location = spawn_location if spawn_location else location
         self.movement_range = movement_range  # Attack range (cavalry=2, infantry=1)
         self.tactical_skill = tactical_skill  # Tactical skill rating (0-12, affects dice rolls)
 
@@ -142,6 +148,15 @@ class Marshal:
         self.retreat_recovery: int = 0       # 0-3, current recovery stage
         # Recovery stages: 0 = -45%, 1 = -30%, 2 = -15%, 3 = 0% (recovered)
 
+        # BROKEN State: Army shattered from surrounded forced retreat
+        # When surrounded and forced to retreat, army is "broken":
+        # - Teleports to capital with 3-10% of original strength
+        # - Takes 4 turns to recover (longer than normal retreat)
+        # - Can ONLY use recruit action during recovery
+        self.broken: bool = False            # Army is broken (shattered)
+        self.broken_recovery: int = 0        # 0-4, current recovery stage
+        # Recovery stages: 0-3 = broken (recruit only), 4 = recovered
+
         # ════════════════════════════════════════════════════════════
         # STANCE SYSTEM (Phase 2.7)
         # ════════════════════════════════════════════════════════════
@@ -150,24 +165,75 @@ class Marshal:
         # AGGRESSIVE: +15% attack, -10% defense
         self.stance: Stance = Stance.NEUTRAL
 
+        # ════════════════════════════════════════════════════════════
+        # PERSONALITY ABILITY STATE (Phase 2.8)
+        # ════════════════════════════════════════════════════════════
+        # Unit type tag for cavalry-specific abilities
+        self.cavalry: bool = cavalry  # True for cavalry commanders (Ney), False for infantry
+
+        # CAVALRY DEFENSIVE LIMITS - Horses can't hold defensive positions
+        # After 3 turns in defensive stance → auto-switch to aggressive (-3 trust)
+        # After 3 turns fortified → auto-unfortify (-3 trust)
+        # Tracked separately so both can trigger (-6 total if both)
+        self.turns_in_defensive_stance: int = 0  # Resets when leaving defensive stance
+        self.turns_fortified: int = 0            # Resets when unfortifying
+        self.turns_defensive: int = 0            # Legacy - kept for compatibility
+
+        # DAVOUT (Cautious) - Counter-Punch tracking
+        # Set True after successfully defending against attack
+        # Clears at turn END if not used, or after first attack
+        self.counter_punch_available: bool = False
+
+        # GROUCHY (Literal) - Immovable tracking
+        # Set True when given hold/defend order
+        # Provides +15% defense while holding position
+        # Breaks (resets to False) if Grouchy moves or attacks
+        self.holding_position: bool = False
+        self.hold_region: str = ""  # Region where Grouchy is holding
+
     def move_to(self, new_location: str) -> None:
-        """Move marshal to a new region."""
+        """
+        Move marshal to a new region.
+
+        Also handles ability state resets:
+        - Cavalry: Resets defensive tracking (moving breaks defensive posture)
+        - Grouchy: Clears holding_position (moving breaks Immovable)
+        """
+        old_location = self.location
         self.location = new_location
+
+        # Only reset if actually moving to a different region
+        if old_location != new_location:
+            # CAVALRY: Moving resets defensive counters
+            if getattr(self, 'cavalry', False):
+                self.turns_in_defensive_stance = 0
+                self.turns_fortified = 0
+            self.turns_defensive = 0  # Legacy compatibility
+
+            # GROUCHY: Moving breaks Immovable
+            if self.holding_position:
+                self.holding_position = False
+                self.hold_region = ""
 
     # ════════════════════════════════════════════════════════════
     # STANCE MODIFIER METHODS
     # ════════════════════════════════════════════════════════════
 
-    def get_attack_modifier(self) -> float:
+    def get_attack_modifier(self, strength_ratio: float = None) -> float:
         """
-        Get attack modifier from stance (and other sources like drill).
+        Get attack modifier from stance, personality, and other sources.
+
+        Args:
+            strength_ratio: Our strength / enemy strength (for bad odds check)
 
         Returns:
             Float multiplier (e.g., 1.15 = +15% attack)
         """
+        from backend.models.personality_modifiers import get_attack_modifier_for_personality
+
         modifier = 1.0
 
-        # Stance modifiers
+        # Stance modifiers (base)
         if self.stance == Stance.AGGRESSIVE:
             modifier *= 1.15  # +15%
         elif self.stance == Stance.DEFENSIVE:
@@ -175,34 +241,60 @@ class Marshal:
 
         # Drill/shock bonus (from completed drill training)
         shock = getattr(self, 'shock_bonus', 0)
-        if shock > 0:
+        has_drill_bonus = shock > 0
+        if has_drill_bonus:
             modifier *= (1.0 + shock * 0.10)  # shock_bonus=2 → +20%
+
+        # Personality-specific attack modifiers
+        personality_mod = get_attack_modifier_for_personality(
+            self.personality,
+            self.stance.value,
+            has_drill_bonus,
+            strength_ratio
+        )
+        modifier *= personality_mod
 
         return modifier
 
-    def get_defense_modifier(self) -> float:
+    def get_defense_modifier(self, is_outnumbered: bool = False) -> float:
         """
-        Get defense modifier from stance, fortify, and drill status.
+        Get defense modifier from stance, personality, fortify, and drill status.
+
+        Args:
+            is_outnumbered: Whether marshal is outnumbered (for Davout bonus)
 
         Returns:
             Float multiplier (e.g., 1.15 = +15% defense)
         """
+        from backend.models.personality_modifiers import get_defense_modifier_for_personality
+
         modifier = 1.0
 
-        # Stance modifiers
+        # Stance modifiers (base)
         if self.stance == Stance.DEFENSIVE:
             modifier *= 1.15  # +15%
         elif self.stance == Stance.AGGRESSIVE:
             modifier *= 0.90  # -10%
 
-        # Fortify bonus (grows +2% per turn, max 15%)
-        defense_bonus = getattr(self, 'defense_bonus', 0)
-        if defense_bonus > 0:
-            modifier *= (1.0 + defense_bonus * 0.10)  # defense_bonus=1.5 → +15%
+        # Fortify bonus (grows per turn, max varies by personality)
+        # defense_bonus is stored as decimal (0.16 = 16%), applied directly as multiplier
+        fortify_bonus = getattr(self, 'defense_bonus', 0)
+        if fortify_bonus > 0:
+            modifier *= (1.0 + fortify_bonus)  # 0.16 → 1.16x (16% reduction)
 
         # Drilling penalty (caught drilling = vulnerable)
         if getattr(self, 'drilling', False) or getattr(self, 'drilling_locked', False):
             modifier *= 0.75  # -25%
+
+        # Personality-specific defense modifiers
+        is_holding = getattr(self, 'holding_position', False)
+        personality_mod = get_defense_modifier_for_personality(
+            self.personality,
+            self.stance.value,
+            is_outnumbered,
+            is_holding
+        )
+        modifier *= personality_mod
 
         return modifier
 
@@ -280,7 +372,7 @@ class Marshal:
 
     def __repr__(self) -> str:
         """String representation for debugging."""
-        unit_type = "cavalry" if self.movement_range == 2 else "infantry"
+        unit_type = "cavalry" if getattr(self, 'cavalry', False) else "infantry"
         trust_label = self.trust.get_label() if hasattr(self, 'trust') else "?"
         return f"Marshal({self.name}, {self.strength:,} troops at {self.location}, morale: {self.morale}%, trust: {trust_label}, {unit_type})"
 
@@ -338,7 +430,9 @@ def create_starting_marshals() -> dict[str, Marshal]:
                 "trigger": "when_attacking",
                 "effect": "+2 Shock skill when attacking (not defending)"
             },
-            starting_trust=75  # Loyal but headstrong, starts slightly above average
+            starting_trust=75,  # Loyal but headstrong, starts slightly above average
+            cavalry=True,  # Cavalry commander - enables Fighting Retreat and 2-tile attacks
+            spawn_location="Paris"  # French capital - respawn location when broken
         ),
         "Davout": Marshal(
             name="Davout",
@@ -362,7 +456,8 @@ def create_starting_marshals() -> dict[str, Marshal]:
                 "trigger": "morale_drops_below_50",
                 "effect": "Prevents first morale drop below 50% (TODO: Phase 2.4 morale system)"
             },
-            starting_trust=85  # Most trusted marshal, proven record
+            starting_trust=85,  # Most trusted marshal, proven record
+            spawn_location="Paris"  # French capital - respawn location when broken
         ),
         "Grouchy": Marshal(
             name="Grouchy",
@@ -386,7 +481,8 @@ def create_starting_marshals() -> dict[str, Marshal]:
                 "trigger": "receiving_orders",
                 "effect": "Never questions orders, always obeys exactly (TODO: Phase 2.4 order delay system)"
             },
-            starting_trust=65  # Newly promoted, unproven, follows orders literally
+            starting_trust=65,  # Newly promoted, unproven, follows orders literally
+            spawn_location="Paris"  # French capital - respawn location when broken
         )
     }
     return marshals
@@ -404,6 +500,11 @@ def create_enemy_marshals() -> dict[str, Marshal]:
     Returns:
         Dictionary of marshal_name -> Marshal object
     """
+    # NOTE: Enemy spawn_location is currently their starting region.
+    # TODO: In future, enemies should spawn at their nation's capital:
+    # - Wellington → London (Britain capital)
+    # - Blucher → Berlin (Prussia capital)
+    # For now, they respawn at their starting positions.
     enemies = {
         "Wellington": Marshal(
             name="Wellington",
@@ -426,7 +527,8 @@ def create_enemy_marshals() -> dict[str, Marshal]:
                 "trigger": "defending_in_hills_or_forest",
                 "effect": "+2 Defense skill when defending on Hills or Forest terrain (TODO: Terrain system)"
             },
-            starting_trust=80  # Wellington trusts his government
+            starting_trust=80,  # Wellington trusts his government
+            spawn_location="Waterloo"  # TODO: Change to London (Britain capital) when map expanded
         ),
         "Blucher": Marshal(
             name="Blucher",
@@ -449,7 +551,8 @@ def create_enemy_marshals() -> dict[str, Marshal]:
                 "trigger": "after_winning_battle",
                 "effect": "+1 pursuit damage to retreating enemies (TODO: Phase 2.6 pursuit system)"
             },
-            starting_trust=70  # Blucher trusts Prussia's king
+            starting_trust=70,  # Blucher trusts Prussia's king
+            spawn_location="Netherlands"  # TODO: Change to Berlin (Prussia capital) when map expanded
         )
     }
     return enemies

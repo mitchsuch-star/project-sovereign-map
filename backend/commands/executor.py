@@ -6,6 +6,12 @@ Includes Disobedience System (Phase 2):
 - Checks for marshal objections before executing orders
 - Handles major objections by pausing execution for player choice
 - Updates vindication tracker after battles
+
+TODO (Future): Multi-Army Battles
+- Support 3+ marshals vs 2+ enemies in same region
+- Multi-step commands (e.g., "Ney and Davout, attack Wellington")
+- Combined strength calculations with command bonuses
+- Coordinated attacks with flanking bonuses
 """
 from typing import Dict, List, Optional, Tuple
 from backend.models.world_state import WorldState
@@ -121,6 +127,53 @@ class CommandExecutor:
                 "suggestions": result["suggestions"]
             })
 
+    def _fuzzy_match_enemy(self, enemy_name: str, world: WorldState) -> Tuple[Optional[object], Optional[Dict]]:
+        """
+        Try to find enemy marshal with fuzzy matching for typo tolerance.
+
+        Returns:
+            Tuple of (marshal_object, error_dict)
+            - If exact match or auto-correct: (marshal, None)
+            - If suggestion or error: (None, error_dict)
+        """
+        # Try exact match first
+        enemy = world.get_enemy_by_name(enemy_name)
+        if enemy:
+            return (enemy, None)
+
+        # Get all enemy marshal names for fuzzy matching
+        all_enemies = [m.name for m in world.get_enemy_marshals() if m.strength > 0]
+
+        if not all_enemies:
+            return (None, {
+                "success": False,
+                "message": "No enemies available"
+            })
+
+        # Try fuzzy match
+        result = self.fuzzy_matcher.match_with_context(enemy_name, all_enemies)
+
+        if result["action"] == "exact" or result["action"] == "auto_correct":
+            # Exact match or high confidence - use corrected name
+            enemy = world.get_enemy_by_name(result["match"])
+            return (enemy, None)
+        elif result["action"] == "suggest":
+            # Medium confidence - ask for confirmation
+            return (None, {
+                "success": False,
+                "message": f"Enemy '{enemy_name}' not found. Did you mean '{result['match']}'?",
+                "suggestion": result["match"],
+                "score": result["score"]
+            })
+        else:
+            # Low confidence - show suggestions
+            suggestions_text = ", ".join(result["suggestions"][:3]) if result["suggestions"] else "none"
+            return (None, {
+                "success": False,
+                "message": f"Enemy '{enemy_name}' not found. Available: {suggestions_text}",
+                "suggestions": result["suggestions"]
+            })
+
     def _execute_end_turn(self, command: Dict, game_state: Dict) -> Dict:
         """End turn early, skipping remaining actions. Uses TurnManager to process tactical states."""
         world: WorldState = game_state.get("world")
@@ -138,7 +191,8 @@ class CommandExecutor:
         # Add tactical event messages
         tactical_messages = []
         for event in turn_result.get("events", []):
-            if event.get("type") in ["drill_locked", "drill_complete", "fortify_expired", "retreat_recovery"]:
+            if event.get("type") in ["drill_locked", "drill_complete", "fortify_expired", "retreat_recovery",
+                                     "cavalry_stance_forced", "cavalry_fortify_forced", "cavalry_restless_warning"]:
                 tactical_messages.append(event.get("message", ""))
 
         if tactical_messages:
@@ -156,43 +210,100 @@ class CommandExecutor:
         }
 
     def _execute_help(self, command: Dict, game_state: Dict) -> Dict:
-        """Display help text with available commands and examples."""
+        """
+        Display help text with available commands and examples.
+
+        MAINTENANCE NOTE: When adding new actions to parser.py valid_actions,
+        update this help text to document them! Keep help in sync with:
+        - parser.py: valid_actions list
+        - executor.py: _execute_* methods
+        - personality.py: PERSONALITY_TRIGGERS (for objection info)
+        """
         help_text = """═══════════════════════════════════════
            COMMAND REFERENCE
 ═══════════════════════════════════════
 
 MILITARY COMMANDS:
-  attack     - Engage enemy forces or capture territory
-               Examples: "Ney, attack Wellington"
-                        "attack Rhine" (auto-assigns marshal)
-                        "attack" (find nearest enemy)
+  attack     - Engage enemy forces or capture region
+               "Ney, attack Wellington" / "attack" (nearest)
 
   defend     - Take defensive position (+30% bonus)
-               Examples: "Davout, defend"
-                        "defend" (all forces)
+               "Davout, defend" / "hold" (alias)
 
   move       - Move to adjacent region
-               Example: "Grouchy, move to Belgium"
+               "Grouchy, move to Belgium"
+
+  retreat    - Fall back toward Paris (FREE action)
+               "Ney, retreat" - Aggressive marshals may object!
 
   recruit    - Raise 10,000 troops (costs 200 gold)
-               Examples: "recruit"
-                        "Ney, recruit"
+               "recruit" / "Ney, recruit"
 
-INTELLIGENCE:
+  reinforce  - Move to join an allied marshal
+               "Ney, reinforce Davout"
+
+TACTICAL COMMANDS:
+  fortify    - Dig in for +50% defense (2 turns)
+               "Davout, fortify" - Cannot move/attack while fortified
+
+  unfortify  - Abandon fortifications (immediate)
+               "Davout, unfortify" - Lose defense bonus
+
+  drill      - Train troops for +1 Shock skill (2 turns)
+               "Ney, drill" - Locked on turn 2, cannot receive orders
+
   scout      - Reconnaissance of nearby regions
-               Examples: "scout Rhine"
-                        "Davout, scout"
+               "scout Rhine" / "Davout, scout" (area scan)
 
-SPECIAL COMMANDS:
-  help       - Display this help text (free action)
-  end turn   - Skip remaining actions and advance turn
-               Example: "end turn"
+STANCE COMMANDS:
+  aggressive - +15% attack, -10% defense
+               "Ney, aggressive" / "Ney, go aggressive"
 
-TIPS:
-  • Commands are case-insensitive
-  • Use "?" as shortcut for help
-  • Free actions: help, end turn
-  • Most actions cost 1 action point
+  defensive  - -10% attack, +15% defense
+               "Davout, defensive" / "Davout, be defensive"
+
+  neutral    - Balanced (default, FREE to return)
+               "Ney, neutral" / "Ney, return to neutral"
+
+FREE ACTIONS (cost 0):
+  help       - Display this help text
+  end turn   - Skip remaining actions, advance turn
+  wait       - Marshal passes turn (no action taken)
+  retreat    - Fall back toward friendly territory
+  hold       - Alias for defend
+
+MARSHAL ABILITIES (Phase 2.8):
+
+  NEY (Aggressive):
+    • +15% attack always, +5% more in aggressive stance
+    • Cavalry Charge: Attack enemies 2 regions away
+    • Fighting Retreat: Attack during retreat (+10% bonus)
+    • Restlessness: Objects after 3+ turns defensive
+    • Fortify capped at 10% (impatient)
+
+  DAVOUT (Cautious, "Iron Marshal"):
+    • +20% defense in defensive stance
+    • Free Unfortify: Break camp at no action cost
+    • Counter-Punch: Free attack after defending*
+    • Fortify: +3%/turn (max 20%), +5% instant
+    • Scout Range: +1 region
+    * Requires enemy AI (use /debug counter_punch Davout to test)
+
+  GROUCHY (Literal):
+    • Immovable: +15% defense when holding position
+    • Use "hold" command to activate
+    • Lost when Grouchy moves
+
+DEBUG COMMANDS (for testing):
+  /debug counter_punch <marshal> - Enable free attack
+  /debug restless <marshal>      - Trigger restlessness
+  /debug cavalry <marshal>       - Toggle 2-tile attacks
+  /debug hold <marshal>          - Enable Immovable
+
+RETREAT RECOVERY (3 turns):
+  After retreating, marshals are demoralized.
+  BLOCKED: attack, fortify, drill, scout
+  ALLOWED: move, recruit, defend, wait, change stance
 
 ═══════════════════════════════════════"""
 
@@ -238,7 +349,8 @@ TIPS:
 
         # Actions don't apply to status queries or help
         # retreat is FREE (costs 0 actions - strategic withdrawal)
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat"]
+        # debug is FREE (for testing abilities)
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug"]
 
         # Check if action costs points
         action_costs_point = action not in free_actions
@@ -267,7 +379,9 @@ TIPS:
         # Determine if this order should trigger objection check
         # Note: fortify added for aggressive marshals who object to defensive preparation
         # Note: stance_change added for personality conflicts with stance orders
-        objection_actions = ["attack", "defend", "move", "scout", "recruit", "fortify", "stance_change"]
+        # Note: retreat added for aggressive marshals who object to fleeing
+        # Note: drill, wait, hold added - aggressive marshals object to these (especially with enemy nearby)
+        objection_actions = ["attack", "defend", "move", "scout", "recruit", "fortify", "stance_change", "retreat", "drill", "wait", "hold"]
         should_check_objection = (
             action in objection_actions and
             marshal_name is not None
@@ -327,34 +441,71 @@ TIPS:
                     }
 
                 # ═══════════════════════════════════════════════════════════
-                # BUG-001 FIX: RETREATING CHECK - Validation BEFORE objection
-                # Cannot fortify, drill, or change to aggressive while retreating
+                # RETREAT STATE: Simplified - No personality objections during recovery
+                # Certain actions blocked, others allowed without objection dialog
                 # ═══════════════════════════════════════════════════════════
                 if getattr(marshal, 'retreating', False):
-                    blocked_while_retreating = ['fortify', 'drill']
-                    if action in blocked_while_retreating:
-                        recovery_turns = getattr(marshal, 'retreat_recovery_turns', 3)
-                        return {
-                            "success": False,
-                            "message": f"{marshal_name} is recovering from retreat and cannot {action}. "
-                                      f"Recovery: {recovery_turns} turn(s) remaining.",
-                            "retreating": True,
-                            "recovery_turns": recovery_turns,
-                            "suggestion": f"Wait for {marshal_name} to recover, or issue different orders."
-                        }
-                    # Special case: stance_change to aggressive while retreating
+                    recovery_turns = getattr(marshal, 'retreat_recovery_turns', 3)
+
+                    # Actions allowed during retreat (no objections, just execute)
+                    allowed_during_retreat = ['move', 'wait', 'recruit', 'retreat']
+
+                    # Stance changes: defensive/neutral allowed, aggressive blocked
                     if action == 'stance_change':
                         target_stance = command.get('target_stance', '').lower()
                         if target_stance in ['aggressive', 'attack', 'offense']:
-                            recovery_turns = getattr(marshal, 'retreat_recovery_turns', 3)
                             return {
                                 "success": False,
                                 "message": f"{marshal_name} is recovering from retreat and cannot adopt aggressive stance. "
                                           f"Recovery: {recovery_turns} turn(s) remaining.",
                                 "retreating": True,
-                                "recovery_turns": recovery_turns,
-                                "suggestion": f"Try: '{marshal_name} defensive' or wait for recovery."
+                                "recovery_turns": recovery_turns
                             }
+                        # Defensive/neutral stance allowed - skip objection check
+                        should_check_objection = False
+
+                    # Block attack, fortify, drill, scout during retreat
+                    elif action in ['attack', 'fortify', 'drill', 'scout']:
+                        action_display = action.replace('_', ' ')
+                        return {
+                            "success": False,
+                            "message": f"{marshal_name} is recovering from retreat and cannot {action_display}. "
+                                      f"Recovery: {recovery_turns} turn(s) remaining.",
+                            "retreating": True,
+                            "recovery_turns": recovery_turns
+                        }
+
+                    # Defend action during retreat - convert to defensive posture, no objection
+                    elif action == 'defend':
+                        # Allow defend but skip objection - marshal is already in survival mode
+                        should_check_objection = False
+
+                    # All other allowed actions - skip objection check entirely
+                    elif action in allowed_during_retreat:
+                        should_check_objection = False
+
+                # ═══════════════════════════════════════════════════════════
+                # BROKEN STATE: Army shattered from surrounded forced retreat
+                # Can ONLY recruit - all other actions blocked for 4 turns
+                # ═══════════════════════════════════════════════════════════
+                if getattr(marshal, 'broken', False):
+                    recovery_stage = getattr(marshal, 'broken_recovery', 0)
+                    turns_remaining = 4 - recovery_stage  # 4 turns total recovery
+
+                    # ONLY recruit is allowed when broken
+                    if action != 'recruit':
+                        return {
+                            "success": False,
+                            "message": f"💀 {marshal_name}'s army is BROKEN and scattered! "
+                                      f"Only recruitment is possible while rebuilding. "
+                                      f"Recovery: {turns_remaining} turn(s) remaining.",
+                            "broken": True,
+                            "broken_recovery": recovery_stage,
+                            "turns_remaining": turns_remaining
+                        }
+                    else:
+                        # Recruit is allowed - skip objection check
+                        should_check_objection = False
 
                 # ═══════════════════════════════════════════════════════════
                 # AGGRESSIVE STANCE CHECK - Validation BEFORE objection
@@ -373,65 +524,77 @@ TIPS:
                         }
 
                 # ═══════════════════════════════════════════════════════════
-                # DEBUG: Print objection evaluation details (commented out)
+                # RETREAT DANGER CHECK - Validation BEFORE objection (BUG-010)
+                # Cannot retreat if not actually in danger
                 # ═══════════════════════════════════════════════════════════
-                # print(f"\n{'='*60}")
-                # print(f"OBJECTION CHECK: {marshal_name}")
-                # print(f"{'='*60}")
-                # print(f"  Personality: {marshal.personality}")
-                # print(f"  Trust: {marshal.trust.value} ({marshal.trust.get_label()})")
-                # print(f"  Action: {action} -> {command.get('target', 'N/A')}")
-
-                # Evaluate the order for objection
-                objection = world.disobedience_system.evaluate_order(
-                    marshal=marshal,
-                    order=command,
-                    game_state=world
-                )
-
-                if objection:
-                    severity = objection.get("severity", 0.0)
-                    objection_type = objection["type"]
-                    # Debug output commented out to avoid encoding issues
-                    # print(f"  OBJECTION TRIGGERED!")
-                    # print(f"     Type: {objection_type}")
-                    # print(f"     Severity: {severity:.2f}")
-                    # print(f"     Trigger: {objection.get('trigger', 'unknown')}")
-
-                    # BUG FIX: disobedience.py returns 'major_objection', not 'major'
-                    if objection_type == "major_objection":
-                        # print(f"  MAJOR - Awaiting player choice")
-                        # print(f"{'='*60}\n")
-
-                        # MAJOR OBJECTION: Pause for player choice
-                        world.pending_objection = objection
+                if action == 'retreat':
+                    if not world.is_in_danger(marshal_name):
                         return {
-                            "success": True,  # Changed to True so frontend processes it
-                            "awaiting_response": True,
-                            "state": "awaiting_player_choice",  # CRITICAL for frontend detection
-                            "message": objection["message"],
-                            "objection": objection,
-                            "choices": ["trust", "insist", "compromise"] if objection.get("suggested_alternative") else ["trust", "insist"],
-                            "marshal": marshal_name,
-                            "severity": severity,
-                            "trust": int(marshal.trust.value),
-                            "trust_label": marshal.trust.get_label(),
-                            "vindication": world.vindication_tracker.get_vindication_data(marshal_name).get("score", 0),
-                            "authority": int(world.authority_tracker.authority),
-                            "suggested_alternative": objection.get("suggested_alternative"),
-                            "compromise": objection.get("compromise")
+                            "success": False,
+                            "message": f"{marshal_name} is not in danger. No retreat necessary.",
+                            "suggestion": "Use 'move' to reposition instead."
                         }
-                    else:
-                        # MILD OBJECTION: Auto-resolve with trust, continue execution
-                        # The marshal grumbles but obeys
-                        # print(f"  MILD objection (type={objection_type}) - proceeding anyway")
-                        # print(f"{'='*60}\n")
-                        mild_message = f"[{marshal_name} hesitates but obeys: {objection.get('message', 'minor concerns')}]\n"
-                        # Continue with execution, will prepend message later
-                else:
-                    pass
-                    # print(f"  No objection (severity below threshold)")
-                    # print(f"{'='*60}\n")
+
+                # ═══════════════════════════════════════════════════════════
+                # SKIP OBJECTION if flag was cleared (e.g., by retreat state)
+                # ═══════════════════════════════════════════════════════════
+                if should_check_objection:
+                    # DEBUG: Print objection evaluation details (commented out)
+                    # print(f"\n{'='*60}")
+                    # print(f"OBJECTION CHECK: {marshal_name}")
+                    # print(f"{'='*60}")
+                    # print(f"  Personality: {marshal.personality}")
+                    # print(f"  Trust: {marshal.trust.value} ({marshal.trust.get_label()})")
+                    # print(f"  Action: {action} -> {command.get('target', 'N/A')}")
+
+                    # Evaluate the order for objection
+                    objection = world.disobedience_system.evaluate_order(
+                        marshal=marshal,
+                        order=command,
+                        game_state=world
+                    )
+
+                    if objection:
+                        severity = objection.get("severity", 0.0)
+                        objection_type = objection["type"]
+                        # Debug output commented out to avoid encoding issues
+                        # print(f"  OBJECTION TRIGGERED!")
+                        # print(f"     Type: {objection_type}")
+                        # print(f"     Severity: {severity:.2f}")
+                        # print(f"     Trigger: {objection.get('trigger', 'unknown')}")
+
+                        # BUG FIX: disobedience.py returns 'major_objection', not 'major'
+                        if objection_type == "major_objection":
+                            # print(f"  MAJOR - Awaiting player choice")
+                            # print(f"{'='*60}\n")
+
+                            # MAJOR OBJECTION: Pause for player choice
+                            world.pending_objection = objection
+                            return {
+                                "success": True,  # Changed to True so frontend processes it
+                                "awaiting_response": True,
+                                "state": "awaiting_player_choice",  # CRITICAL for frontend detection
+                                "message": objection["message"],
+                                "objection": objection,
+                                "choices": ["trust", "insist", "compromise"] if objection.get("suggested_alternative") else ["trust", "insist"],
+                                "marshal": marshal_name,
+                                "personality": marshal.personality,  # Phase 2.8: Added for UI display
+                                "severity": severity,
+                                "trust": int(marshal.trust.value),
+                                "trust_label": marshal.trust.get_label(),
+                                "vindication": world.vindication_tracker.get_vindication_data(marshal_name).get("score", 0),
+                                "authority": int(world.authority_tracker.authority),
+                                "suggested_alternative": objection.get("suggested_alternative"),
+                                "compromise": objection.get("compromise")
+                            }
+                        else:
+                            # MILD OBJECTION: Auto-resolve with trust, continue execution
+                            # The marshal grumbles but obeys
+                            # print(f"  MILD objection (type={objection_type}) - proceeding anyway")
+                            # print(f"{'='*60}\n")
+                            mild_message = f"[{marshal_name} hesitates but obeys: {objection.get('message', 'minor concerns')}]\n"
+                            # Continue with execution, will prepend message later
+                    # else: No objection (severity below threshold)
 
         # ============================================================
         # Continue with normal command routing
@@ -580,11 +743,121 @@ TIPS:
             return self._execute_unfortify(command, game_state)
         elif action == "stance_change":
             return self._execute_stance_change(command, game_state)
+        elif action == "debug":
+            return self._execute_debug(command, game_state)
         else:
             return {
                 "success": False,
                 "message": f"Unknown action: {action}"
             }
+
+    def _handle_forced_retreat(
+        self,
+        battle_result: Dict,
+        attacker,
+        defender,
+        world: 'WorldState'
+    ) -> str:
+        """
+        Handle forced retreat for broken armies after combat.
+
+        When morale drops below 25%, the army is forced to retreat.
+        - If safe retreat exists: normal retreat to that location
+        - If SURROUNDED (no safe retreat): Army is BROKEN
+          - Teleports to spawn_location (capital) with 3-10% of forces
+          - Takes 4 turns to recover
+          - Can ONLY recruit during recovery
+
+        Returns message describing any forced retreats or broken armies.
+        """
+        import random
+        retreat_messages = []
+
+        # Check attacker forced retreat
+        if battle_result.get("attacker", {}).get("forced_retreat"):
+            if attacker and attacker.strength > 0:
+                msg = self._apply_forced_retreat_or_break(attacker, defender, world)
+                if msg:
+                    retreat_messages.append(msg)
+
+        # Check defender forced retreat
+        if battle_result.get("defender", {}).get("forced_retreat"):
+            if defender and defender.strength > 0:
+                msg = self._apply_forced_retreat_or_break(defender, attacker, world)
+                if msg:
+                    retreat_messages.append(msg)
+
+        if retreat_messages:
+            return "\n" + "\n".join(retreat_messages)
+        return ""
+
+    def _apply_forced_retreat_or_break(self, marshal, enemy, world: 'WorldState') -> str:
+        """
+        Apply forced retreat or break the army if surrounded.
+
+        Uses get_safe_retreat_destination (BUG-009 fix) which properly checks
+        threat zones. If no safe retreat exists, army is BROKEN.
+
+        Returns message describing what happened.
+        """
+        import random
+
+        # Try to find safe retreat location using threat-aware pathfinding
+        retreat_to = world.get_safe_retreat_destination(marshal.name)
+
+        if retreat_to:
+            # ════════════════════════════════════════════════════════════
+            # NORMAL FORCED RETREAT: Safe location found
+            # ════════════════════════════════════════════════════════════
+            old_loc = marshal.location
+            marshal.location = retreat_to
+            marshal.retreating = True
+            marshal.retreat_recovery = 0  # Start recovery at stage 0
+            return f"⚠️ {marshal.name}'s broken army flees to {retreat_to}! (recovering for 3 turns)"
+        else:
+            # ════════════════════════════════════════════════════════════
+            # SURROUNDED - ARMY BROKEN: No safe retreat possible
+            # Army shatters, survivors flee to capital with 3-10% strength
+            # ════════════════════════════════════════════════════════════
+            old_loc = marshal.location
+            old_strength = marshal.strength
+
+            # Calculate survivors (3-10% of current strength)
+            survival_rate = random.uniform(0.03, 0.10)
+            survivors = max(1000, int(old_strength * survival_rate))  # Minimum 1000 survivors
+
+            # Get spawn location (capital)
+            spawn_loc = getattr(marshal, 'spawn_location', 'Paris')
+
+            # Apply broken state
+            marshal.location = spawn_loc
+            marshal.strength = survivors
+            marshal.morale = 20  # Shattered morale
+            marshal.broken = True
+            marshal.broken_recovery = 0  # Start at stage 0 (4 turns to recover)
+
+            # Clear any other states
+            marshal.retreating = False
+            marshal.retreat_recovery = 0
+            marshal.drilling = False
+            marshal.drilling_locked = False
+            marshal.shock_bonus = 0
+            marshal.fortified = False
+            marshal.defense_bonus = 0
+            marshal.stance = Stance.NEUTRAL
+
+            # Clear personality ability states
+            marshal.turns_defensive = 0
+            marshal.counter_punch_available = False
+            marshal.holding_position = False
+            marshal.hold_region = ""
+
+            survival_percent = int(survival_rate * 100)
+            return (
+                f"💀 {marshal.name}'s army is SURROUNDED and SHATTERED at {old_loc}! "
+                f"Only {survivors:,} survivors ({survival_percent}%) escape to {spawn_loc}. "
+                f"Army is BROKEN - can only recruit for 4 turns!"
+            )
 
     def _execute_attack(self, marshal, target, world: WorldState, game_state) -> Dict:
         """
@@ -593,6 +866,18 @@ TIPS:
         If attacking a region, will capture it after defeated all defenders.
         Handles undefended regions with instant capture.
         """
+        # ════════════════════════════════════════════════════════════
+        # COUNTER-PUNCH CHECK (Phase 2.8): Davout's free attack after defending
+        # If Davout has counter_punch_available, this attack costs 0 actions
+        # ════════════════════════════════════════════════════════════
+        counter_punch_message = ""
+        is_counter_punch = False
+        if getattr(marshal, 'counter_punch_available', False) and marshal.personality == 'cautious':
+            is_counter_punch = True
+            marshal.counter_punch_available = False  # Consume the counter-punch
+            counter_punch_message = f"⚡ {marshal.name}'s COUNTER-PUNCH! After successfully defending, he strikes back! (FREE ACTION)\n\n"
+            print(f"  [COUNTER-PUNCH] {marshal.name} uses counter-punch (free attack)")
+
         # ════════════════════════════════════════════════════════════
         # DRILL STATE CHECK: Handle drilling marshal trying to attack
         # ════════════════════════════════════════════════════════════
@@ -611,31 +896,69 @@ TIPS:
                 marshal.drill_complete_turn = -1
                 drill_cancelled_message = f"⚠️ DRILL CANCELLED: {marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
 
-        # Handle None target
+        # Handle None target - find nearest enemy for this marshal
         if not target:
-            return {
-                "success": False,
-                "message": "Attack requires a target"
-            }
+            # Find the nearest enemy to this specific marshal
+            result = world.find_nearest_enemy(marshal.location)
+
+            if result:
+                nearest_enemy, distance = result
+                # Check if in range (distance already returned by find_nearest_enemy)
+                if distance <= marshal.movement_range:
+                    # Auto-target the nearest enemy
+                    target = nearest_enemy.name
+                else:
+                    # Out of range - move toward the enemy instead
+                    # Find the adjacent region that gets us closest to the enemy
+                    current_region = world.get_region(marshal.location)
+                    best_next = None
+                    best_distance = distance  # Current distance
+
+                    for adjacent_name in current_region.adjacent_regions:
+                        adj_distance = world.get_distance(adjacent_name, nearest_enemy.location)
+                        if adj_distance < best_distance:
+                            best_distance = adj_distance
+                            best_next = adjacent_name
+
+                    if best_next:
+                        old_location = marshal.location
+                        marshal.location = best_next
+                        return {
+                            "success": True,
+                            "message": f"{marshal.name} advances from {old_location} to {best_next}, moving toward {nearest_enemy.name} at {nearest_enemy.location}! (Now {best_distance} region{'s' if best_distance != 1 else ''} away)"
+                        }
+                    else:
+                        return {
+                            "success": False,
+                            "message": f"{marshal.name} cannot get closer to any enemy from {marshal.location}."
+                        }
+            else:
+                return {
+                    "success": False,
+                    "message": f"No enemies found to attack!"
+                }
 
         # ============================================================
         # FUZZY MATCHING: Resolve target name first
         # ============================================================
 
-        # Check if target is an enemy marshal name (no fuzzy matching for enemy names yet)
-        enemy_by_name = world.get_enemy_by_name(target)
+        # Try fuzzy matching for enemy marshal name first
+        enemy_by_name, enemy_error = self._fuzzy_match_enemy(target, world)
         resolved_target = target
 
         if not enemy_by_name:
-            # Try fuzzy matching for region names
-            target_region_fuzzy, fuzzy_error = self._fuzzy_match_region(target, world)
-            if fuzzy_error and fuzzy_error.get("success") == False:
-                # Only return fuzzy error if it's a "suggest" or hard error
-                # Auto-corrects are handled silently
-                if "Did you mean" in fuzzy_error.get("message", ""):
-                    return fuzzy_error
+            # Not an enemy - try fuzzy matching for region names
+            target_region_fuzzy, region_error = self._fuzzy_match_region(target, world)
+
+            # If region has a suggestion, ask for confirmation
+            if region_error and "Did you mean" in region_error.get("message", ""):
+                return region_error
+
             if target_region_fuzzy:
                 resolved_target = target_region_fuzzy.name
+            elif enemy_error and "Did you mean" in enemy_error.get("message", ""):
+                # Enemy suggestion - show it
+                return enemy_error
 
         # ============================================================
         # RANGE CHECK: Verify target is within marshal's attack range
@@ -780,6 +1103,27 @@ TIPS:
         # Generate flanking message if applicable
         flanking_message = world.get_flanking_message(marshal.name, origin_region, target_location)
 
+        # ════════════════════════════════════════════════════════════
+        # CAVALRY CHARGE (Phase 2.8): Ney can attack from 2 regions away
+        # ════════════════════════════════════════════════════════════
+        cavalry_charge_message = ""
+        attack_distance = world.get_distance(origin_region, target_location)
+        is_cavalry = getattr(marshal, 'cavalry', False)
+
+        if is_cavalry and attack_distance == 2:
+            # Find the middle region for the charge message
+            middle_regions = []
+            current_region = world.get_region(origin_region)
+            for adj in current_region.adjacent_regions:
+                if world.get_distance(adj, target_location) == 1:
+                    middle_regions.append(adj)
+
+            if middle_regions:
+                middle = middle_regions[0]
+                cavalry_charge_message = f"🐴 {marshal.name}'s cavalry thunders across {middle} to strike! (Cavalry Charge: 2-region attack)\n"
+            else:
+                cavalry_charge_message = f"🐴 {marshal.name}'s cavalry charges across the battlefield! (Cavalry Charge: 2-region attack)\n"
+
         # RESOLVE COMBAT with flanking bonus!
         battle_result = self.combat_resolver.resolve_battle(
             attacker=marshal,
@@ -849,12 +1193,19 @@ TIPS:
             if vindication_result:
                 vindication_msg = f"\n\n📜 {vindication_result['message']}"
 
-        # Build final message with optional drill cancellation prefix
-        battle_message = flanking_prefix + battle_result["description"] + destroyed_msg + conquest_msg + vindication_msg
+        # ============================================================
+        # FORCED RETREAT: Handle broken armies (morale <= 25%)
+        # ============================================================
+        forced_retreat_msg = self._handle_forced_retreat(
+            battle_result, marshal, enemy_marshal, world
+        )
+
+        # Build final message with optional drill cancellation prefix, counter-punch, and cavalry charge
+        battle_message = counter_punch_message + cavalry_charge_message + flanking_prefix + battle_result["description"] + destroyed_msg + conquest_msg + vindication_msg + forced_retreat_msg
         if drill_cancelled_message:
             battle_message = drill_cancelled_message + battle_message
 
-        return {
+        result = {
             "success": True,
             "message": battle_message,
             "events": [{
@@ -868,10 +1219,19 @@ TIPS:
                 "region_name": resolved_target if conquered else None,
                 "flanking_bonus": flanking_bonus,
                 "flanking_origins": list(flanking_info["unique_origins"]) if flanking_info["unique_origins"] else [],
-                "vindication": vindication_result
+                "vindication": vindication_result,
+                "attacker_forced_retreat": battle_result.get("attacker", {}).get("forced_retreat", False),
+                "defender_forced_retreat": battle_result.get("defender", {}).get("forced_retreat", False)
             }],
             "new_state": game_state
         }
+
+        # Mark as free action for Davout's Counter-Punch
+        if is_counter_punch:
+            result["free_action"] = True
+            result["counter_punch_used"] = True
+
+        return result
 
     def _execute_defend(self, marshal, world, game_state) -> Dict:
         """
@@ -999,9 +1359,24 @@ TIPS:
         - Fortifies if already defensive
         - Same action costs
 
+        GROUCHY IMMOVABLE (Phase 2.8):
+        - For literal marshals (Grouchy), hold also sets holding_position = True
+        - This grants +15% defense bonus when defending at that location
+        - The bonus persists as long as Grouchy stays at that position
+
         The distinction is purely for player expression - some prefer
         "hold the line" to "defend".
         """
+        # ════════════════════════════════════════════════════════════
+        # GROUCHY IMMOVABLE (Phase 2.8): Set holding_position for literal marshals
+        # ════════════════════════════════════════════════════════════
+        immovable_message = ""
+        if getattr(marshal, 'personality', '') == 'literal':
+            marshal.holding_position = True
+            marshal.hold_region = marshal.location
+            immovable_message = f"\n🏰 {marshal.name} plants himself at {marshal.location}! (IMMOVABLE: +15% defense while holding)"
+            print(f"  [IMMOVABLE] {marshal.name} holding at {marshal.location}")
+
         # Delegate to defend - hold IS defend, just different wording
         result = self._execute_defend(marshal, world, game_state)
 
@@ -1016,12 +1391,17 @@ TIPS:
                     "shifts to DEFENSIVE stance",
                     "holds position, shifting to DEFENSIVE stance"
                 )
+            # Add Immovable message
+            if immovable_message:
+                result["message"] += immovable_message
 
         # Update event type if present
         if result.get("events"):
             for event in result["events"]:
                 if event.get("type") == "stance_change":
                     event["command"] = "hold"  # Mark that this came from hold command
+                    if getattr(marshal, 'personality', '') == 'literal':
+                        event["immovable"] = True
 
         return result
 
@@ -1099,13 +1479,34 @@ TIPS:
         target_name = target_region.name if hasattr(target_region, 'name') else target
 
         current_region = world.get_region(marshal.location)
-        if not current_region.is_adjacent_to(target_name):
-            distance = world.get_distance(marshal.location, target_name)
+        distance = world.get_distance(marshal.location, target_name)
+        move_range = getattr(marshal, 'movement_range', 1)
+
+        # Check if destination is within movement range
+        if distance > move_range:
+            marshal_type = "cavalry" if move_range == 2 else "infantry"
             return {
                 "success": False,
-                "message": f"{marshal.location} is not adjacent to {target_name} (distance: {distance} regions)",
+                "message": f"{marshal.location} is too far from {target_name} (distance: {distance}, {marshal_type} range: {move_range})",
                 "suggestion": f"Adjacent regions: {', '.join(current_region.adjacent_regions)}"
             }
+
+        # For 2-tile moves (cavalry), verify there's a valid path through adjacent region
+        if distance == 2:
+            # Find path through an intermediate region
+            intermediate = None
+            for adj_name in current_region.adjacent_regions:
+                adj_region = world.get_region(adj_name)
+                if adj_region and target_name in adj_region.adjacent_regions:
+                    intermediate = adj_name
+                    break
+
+            if not intermediate:
+                return {
+                    "success": False,
+                    "message": f"No valid path from {marshal.location} to {target_name}",
+                    "suggestion": f"Adjacent regions: {', '.join(current_region.adjacent_regions)}"
+                }
 
         old_location = marshal.location
         marshal.move_to(target_name)
@@ -1138,7 +1539,15 @@ TIPS:
         }
 
     def _execute_scout(self, marshal, target, world: WorldState, game_state) -> Dict:
-        """Execute a scout/reconnaissance order."""
+        """
+        Execute a scout/reconnaissance order.
+
+        TODO: Future UI interactivity needed:
+        - Visual fog of war reveal on map
+        - Enemy unit icons appearing with scouted info
+        - Scout report popup/panel with detailed intel
+        - Animated scout movement to target region
+        """
         current_region = world.get_region(marshal.location)
 
         if target:
@@ -1152,11 +1561,23 @@ TIPS:
 
             distance = world.get_distance(marshal.location, target_name)
 
-            if distance > 2:
+            # ════════════════════════════════════════════════════════════
+            # PERSONALITY-SPECIFIC SCOUT RANGE (Phase 2.8)
+            # Davout (cautious) gets +1 scout range
+            # ════════════════════════════════════════════════════════════
+            from backend.models.personality_modifiers import get_scout_range_bonus
+            base_scout_range = 2
+            scout_bonus = get_scout_range_bonus(getattr(marshal, 'personality', 'unknown'))
+            max_scout_range = base_scout_range + scout_bonus
+
+            if distance > max_scout_range:
+                range_msg = f"Can only scout regions within {max_scout_range} moves"
+                if scout_bonus > 0:
+                    range_msg += f" (Iron Marshal: +{scout_bonus} range)"
                 return {
                     "success": False,
                     "message": f"{target_name} is too far to scout (distance: {distance})",
-                    "suggestion": "Can only scout regions within 2 moves"
+                    "suggestion": range_msg
                 }
 
             # Scout report
@@ -1221,7 +1642,12 @@ TIPS:
             }
 
     def _execute_general_attack(self, command: Dict, game_state: Dict) -> Dict:
-        """Execute general attack - finds nearest enemy automatically."""
+        """
+        Execute general attack - finds nearest enemy automatically.
+
+        If no marshal can attack (all out of range), moves the closest
+        marshal toward the nearest enemy instead.
+        """
         world: WorldState = game_state.get("world")
 
         if not world:
@@ -1232,21 +1658,26 @@ TIPS:
         if not player_marshals:
             return {"success": False, "message": "No marshals available to attack"}
 
-        # Find STRONGEST combat-ready marshal (not just nearest)
-        best_marshal = None
-        best_enemy = None
-        best_distance = 999
-
-        # Track filtered marshals for explanation
-        filtered_out = []
+        # Track all combat-ready marshals and their nearest enemies
+        combat_ready = []  # [(marshal, enemy, distance)]
+        out_of_range = []  # [(marshal, enemy, distance)] - for fallback move
+        filtered_out = []  # Explanations for non-combat-ready
 
         for marshal in player_marshals:
-            # Filter out dead/weak marshals and track why
+            # Filter out dead/weak marshals
             if marshal.strength <= 0:
                 filtered_out.append(f"{marshal.name} (eliminated)")
                 continue
             elif marshal.strength < 1000:
                 filtered_out.append(f"{marshal.name} ({marshal.strength:,} troops - too weak)")
+                continue
+
+            # Check if fortified or drilling (can't attack)
+            if getattr(marshal, 'fortified', False):
+                filtered_out.append(f"{marshal.name} (fortified - unfortify first)")
+                continue
+            if getattr(marshal, 'drilling_locked', False):
+                filtered_out.append(f"{marshal.name} (locked in drill)")
                 continue
 
             nearest = world.find_nearest_enemy(marshal.location)
@@ -1255,38 +1686,113 @@ TIPS:
                 # Skip dead enemies
                 if enemy.strength <= 0:
                     continue
-                # Skip enemies out of range
-                if distance > marshal.movement_range:
-                    filtered_out.append(f"{marshal.name} (no enemies in range {marshal.movement_range})")
-                    continue
-                if distance < best_distance:
-                    best_distance = distance
-                    best_marshal = marshal
-                    best_enemy = enemy
 
-        # Check if we found a valid attacker and enemy
-        if not best_marshal:
-            return {
-                "success": False,
-                "message": "No combat-ready marshals available!"
-            }
+                if distance <= 1:  # Can attack (adjacent or same region)
+                    combat_ready.append((marshal, enemy, distance))
+                else:  # Out of range but can move toward
+                    out_of_range.append((marshal, enemy, distance))
 
-        if not best_enemy:
-            return {
-                "success": False,
-                "message": "No enemies found! You may have won the campaign."
-            }
+        # ════════════════════════════════════════════════════════════════
+        # CASE 1: Someone can attack - execute the attack
+        # ════════════════════════════════════════════════════════════════
+        if combat_ready:
+            # Sort by distance (prefer closer), then strength (prefer stronger)
+            combat_ready.sort(key=lambda x: (x[2], -x[0].strength))
+            best_marshal, best_enemy, best_distance = combat_ready[0]
 
-        # BUILD EXPLANATION MESSAGE FOR PLAYER
-        explanation = ""
+            # Build explanation if others were filtered
+            explanation = ""
+            if filtered_out:
+                explanation = f"[NOTE: {', '.join(filtered_out)}]\n"
+            explanation += f"{best_marshal.name} ({best_marshal.strength:,} troops) attacks!\n\n"
 
-        # If marshals were filtered out, explain why
+            # Execute the attack (rest of original logic follows below)
+            return self._execute_general_attack_combat(
+                best_marshal, best_enemy, world, explanation, game_state
+            )
+
+        # ════════════════════════════════════════════════════════════════
+        # CASE 2: No one can attack - move closest marshal toward enemy
+        # ════════════════════════════════════════════════════════════════
+        if out_of_range:
+            # Sort by distance to enemy (closest first)
+            out_of_range.sort(key=lambda x: x[2])
+            closest_marshal, target_enemy, distance = out_of_range[0]
+
+            # Find path toward enemy
+            path = world.find_path(closest_marshal.location, target_enemy.location)
+
+            if path and len(path) > 1:
+                # Move to next region on path
+                next_region = path[1]  # path[0] is current location
+
+                # Execute the move
+                old_location = closest_marshal.location
+                closest_marshal.location = next_region
+
+                remaining_distance = distance - 1
+
+                message = (
+                    f"No marshals in attack range!\n\n"
+                    f"{closest_marshal.name} advances toward {target_enemy.name}:\n"
+                    f"  {old_location} -> {next_region}\n"
+                    f"  Distance to enemy: {remaining_distance} region(s)\n\n"
+                )
+
+                if remaining_distance <= 1:
+                    message += f"[{closest_marshal.name} will be in attack range next action!]"
+                else:
+                    message += f"[{remaining_distance - 1} more move(s) needed to reach attack range]"
+
+                if filtered_out:
+                    message = f"[NOTE: {', '.join(filtered_out)}]\n\n" + message
+
+                return {
+                    "success": True,
+                    "message": message,
+                    "moved": True,
+                    "marshal": closest_marshal.name,
+                    "from": old_location,
+                    "to": next_region,
+                    "target_enemy": target_enemy.name,
+                    "events": [{
+                        "type": "move_toward_enemy",
+                        "marshal": closest_marshal.name,
+                        "from": old_location,
+                        "to": next_region,
+                        "target": target_enemy.name,
+                        "distance_remaining": remaining_distance
+                    }]
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": f"No path found from {closest_marshal.location} to {target_enemy.location}!"
+                }
+
+        # ════════════════════════════════════════════════════════════════
+        # CASE 3: No combat-ready marshals at all
+        # ════════════════════════════════════════════════════════════════
         if filtered_out:
-            explanation = f"[WARNING] {', '.join(filtered_out)} - "
+            return {
+                "success": False,
+                "message": f"No combat-ready marshals!\n{', '.join(filtered_out)}"
+            }
 
-        # Add who's attacking
-        explanation += f"{best_marshal.name} ({best_marshal.strength:,} troops) now attacking!\n\n"
+        return {
+            "success": False,
+            "message": "No enemies found! You may have won the campaign."
+        }
 
+    def _execute_general_attack_combat(
+        self,
+        best_marshal,
+        best_enemy,
+        world: 'WorldState',
+        explanation: str,
+        game_state: Dict
+    ) -> Dict:
+        """Helper to execute the actual combat for general attack."""
         # ============================================================
         # FLANKING SYSTEM (Phase 2.5): Record attack and calculate bonus
         # ============================================================
@@ -1313,11 +1819,11 @@ TIPS:
 
         # Remove destroyed marshals
         if enemy_destroyed:
-            print(f"🪦 REMOVING ENEMY: {best_enemy.name}")
+            print(f"REMOVING ENEMY: {best_enemy.name}")
             world.marshals.pop(best_enemy.name, None)
 
         if attacker_destroyed:
-            print(f"💀 REMOVING ALLY: {best_marshal.name}")
+            print(f"REMOVING ALLY: {best_marshal.name}")
             world.marshals.pop(best_marshal.name, None)
 
         # Combine explanation with battle result (add flanking message if applicable)
@@ -1347,9 +1853,14 @@ TIPS:
                 game_state=world
             )
             if vindication_result:
-                vindication_msg = f"\n\n📜 {vindication_result['message']}"
+                vindication_msg = f"\n\n{vindication_result['message']}"
 
-        full_message = explanation + flanking_prefix + battle_result["description"] + vindication_msg
+        # Handle forced retreat for broken armies
+        forced_retreat_msg = self._handle_forced_retreat(
+            battle_result, best_marshal, best_enemy, world
+        )
+
+        full_message = explanation + flanking_prefix + battle_result["description"] + vindication_msg + forced_retreat_msg
 
         return {
             "success": True,
@@ -1363,11 +1874,12 @@ TIPS:
                 "outcome": battle_result["outcome"],
                 "victor": battle_result["victor"],
                 "enemy_destroyed": enemy_destroyed,
-                "marshal_switched": len(filtered_out) > 0,
                 "explanation": explanation.strip(),
                 "flanking_bonus": flanking_bonus,
                 "flanking_origins": list(flanking_info["unique_origins"]) if flanking_info["unique_origins"] else [],
-                "vindication": vindication_result
+                "vindication": vindication_result,
+                "attacker_forced_retreat": battle_result.get("attacker", {}).get("forced_retreat", False),
+                "defender_forced_retreat": battle_result.get("defender", {}).get("forced_retreat", False)
             }],
             "new_state": game_state
         }
@@ -1457,11 +1969,16 @@ TIPS:
                     game_state=world
                 )
                 if vindication_result:
-                    vindication_msg = f"\n\n📜 {vindication_result['message']}"
+                    vindication_msg = f"\n\n{vindication_result['message']}"
+
+            # Handle forced retreat for broken armies
+            forced_retreat_msg = self._handle_forced_retreat(
+                battle_result, nearest_marshal, enemy, world
+            )
 
             return {
                 "success": True,
-                "message": f"{nearest_marshal.name} (auto-assigned) attacks {target}!{flanking_prefix} {battle_result['description']}{vindication_msg}",
+                "message": f"{nearest_marshal.name} (auto-assigned) attacks {target}!{flanking_prefix} {battle_result['description']}{vindication_msg}{forced_retreat_msg}",
                 "events": [{
                     "type": "battle",
                     "marshal": nearest_marshal.name,
@@ -1473,7 +1990,9 @@ TIPS:
                     "enemy_destroyed": enemy_destroyed,
                     "flanking_bonus": flanking_bonus,
                     "flanking_origins": list(flanking_info["unique_origins"]) if flanking_info["unique_origins"] else [],
-                    "vindication": vindication_result
+                    "vindication": vindication_result,
+                    "attacker_forced_retreat": battle_result.get("attacker", {}).get("forced_retreat", False),
+                    "defender_forced_retreat": battle_result.get("defender", {}).get("forced_retreat", False)
                 }],
                 "new_state": game_state
             }
@@ -1572,11 +2091,16 @@ TIPS:
                     game_state=world
                 )
                 if vindication_result:
-                    vindication_msg = f"\n\n📜 {vindication_result['message']}"
+                    vindication_msg = f"\n\n{vindication_result['message']}"
+
+            # Handle forced retreat for broken armies
+            forced_retreat_msg = self._handle_forced_retreat(
+                battle_result, nearest_marshal, enemy, world
+            )
 
             return {
                 "success": True,
-                "message": f"{nearest_marshal.name} attacks {enemy.name} at {target_name}!{flanking_prefix} {battle_result['description']}{conquest_msg}{vindication_msg}",
+                "message": f"{nearest_marshal.name} attacks {enemy.name} at {target_name}!{flanking_prefix} {battle_result['description']}{conquest_msg}{vindication_msg}{forced_retreat_msg}",
                 "events": [{
                     "type": "battle",
                     "marshal": nearest_marshal.name,
@@ -1587,6 +2111,8 @@ TIPS:
                     "victor": battle_result["victor"],
                     "region_conquered": conquered,
                     "enemy_destroyed": enemy_destroyed,
+                    "attacker_forced_retreat": battle_result.get("attacker", {}).get("forced_retreat", False),
+                    "defender_forced_retreat": battle_result.get("defender", {}).get("forced_retreat", False),
                     "flanking_bonus": flanking_bonus,
                     "flanking_origins": list(flanking_info["unique_origins"]) if flanking_info["unique_origins"] else [],
                     "vindication": vindication_result
@@ -1622,9 +2148,10 @@ TIPS:
 
     def _execute_general_retreat(self, command: Dict, game_state: Dict) -> Dict:
         """
-        Execute general retreat - retreat ALL marshals adjacent to enemies.
+        Execute general retreat - retreat ALL marshals that are in danger.
 
         BUG-003 FIX: Only retreats marshals that have enemies nearby, not all marshals.
+        BUG-010 FIX: Uses is_in_danger() to check threat properly.
         Uses proper retreat action (sets retreating state with recovery).
         """
         world: WorldState = game_state.get("world")
@@ -1637,61 +2164,55 @@ TIPS:
         if not player_marshals:
             return {"success": False, "message": "No marshals to retreat"}
 
-        # Find marshals adjacent to enemies
-        marshals_near_enemies = []
+        # BUG-010 FIX: Find marshals that are actually in danger
+        marshals_in_danger = []
         for marshal in player_marshals:
             if marshal.location == "Paris":
                 continue
             if getattr(marshal, 'retreating', False):
                 continue  # Already retreating
 
-            # Check if any enemy is in same region OR adjacent
-            has_enemy_in_range = False
-            current_region = world.get_region(marshal.location)
+            # Use the new is_in_danger() method
+            if world.is_in_danger(marshal.name):
+                marshals_in_danger.append(marshal)
 
-            for enemy in world.get_enemy_marshals():
-                if enemy.strength <= 0:
-                    continue
-                # Enemy in same region = definitely in attack range
-                if enemy.location == marshal.location:
-                    has_enemy_in_range = True
-                    break
-                # Enemy in adjacent region = can attack next turn
-                if current_region and enemy.location in current_region.adjacent_regions:
-                    has_enemy_in_range = True
-                    break
-
-            if has_enemy_in_range:
-                marshals_near_enemies.append(marshal)
-
-        if not marshals_near_enemies:
+        if not marshals_in_danger:
             return {
                 "success": False,
-                "message": "No marshals adjacent to enemies to retreat.",
-                "suggestion": "Use 'Ney retreat' to retreat a specific marshal."
+                "message": "No marshals are in danger. None need to retreat.",
+                "suggestion": "Use 'move' to reposition marshals instead."
             }
 
-        # Execute retreat for each marshal near enemies
+        # Execute retreat for each marshal in danger
         retreated = []
-        for marshal in marshals_near_enemies:
+        failed = []
+        for marshal in marshals_in_danger:
             result = self._execute_retreat_action(marshal, world, game_state)
             if result.get("success"):
                 retreated.append(f"{marshal.name} falling back!")
+            else:
+                # Capture failure reason (e.g., surrounded)
+                failed.append(f"{marshal.name}: {result.get('message', 'failed')}")
 
         if not retreated:
+            fail_msg = " | ".join(failed) if failed else "Could not retreat any marshals."
             return {
                 "success": False,
-                "message": "Could not retreat any marshals.",
+                "message": fail_msg,
                 "events": []
             }
 
+        message = f"General retreat ordered! {' '.join(retreated)}"
+        if failed:
+            message += f" (Failed: {', '.join([f.split(':')[0] for f in failed])})"
+
         return {
             "success": True,
-            "message": f"General retreat ordered! {' '.join(retreated)}",
+            "message": message,
             "events": [{
                 "type": "general_retreat",
                 "affected_marshals": len(retreated),
-                "retreating": [m.name for m in marshals_near_enemies]
+                "retreating": [m.name for m in marshals_in_danger if any(m.name in r for r in retreated)]
             }],
             "new_state": game_state
         }
@@ -1965,21 +2486,46 @@ TIPS:
             marshal.stance = Stance.DEFENSIVE
             stance_message = f"[Auto-shifted to DEFENSIVE stance first] "
 
+        # ════════════════════════════════════════════════════════════
+        # PERSONALITY-SPECIFIC FORTIFY (Phase 2.8)
+        # ════════════════════════════════════════════════════════════
+        from backend.models.personality_modifiers import (
+            get_max_fortify_bonus, get_fortify_rate, get_instant_fortify_bonus
+        )
+
+        personality = getattr(marshal, 'personality', 'unknown')
+        max_fortify = get_max_fortify_bonus(personality)
+        fortify_rate = get_fortify_rate(personality)
+        instant_bonus = get_instant_fortify_bonus(personality)
+
         # Enter fortified state
         marshal.fortified = True
-        marshal.defense_bonus = 0.2  # Start at +2% defense
+        # Base +2% plus instant bonus (Davout gets +5% instant = +7% total on first fortify)
+        base_bonus = 0.02
+        marshal.defense_bonus = base_bonus + instant_bonus
         marshal.fortify_expires_turn = -1  # No expiration (permanent until unfortified)
 
-        # Build message
+        # Build message with personality-specific info
+        personality_message = ""
+        if personality == "cautious":
+            personality_message = f" (Iron Marshal: +{int(instant_bonus * 100)}% instant, +{int(fortify_rate * 100)}%/turn, max {int(max_fortify * 100)}%)"
+        elif personality == "aggressive":
+            personality_message = f" (Aggressive: max {int(max_fortify * 100)}% only)"
+
+        current_bonus_pct = int(marshal.defense_bonus * 100)
+        rate_pct = int(fortify_rate * 100)
+        max_pct = int(max_fortify * 100)
+
         message = stance_message + f"{marshal.name} fortifies position at {marshal.location}. "
-        message += f"Defense bonus: +2% (grows +2% per turn, max 15%). "
+        message += f"Defense bonus: +{current_bonus_pct}% (grows +{rate_pct}% per turn, max {max_pct}%){personality_message}. "
         message += f"Cannot move or attack while fortified. Use 'unfortify' to become mobile."
 
         events = [{
             "type": "fortified",
             "marshal": marshal.name,
             "location": marshal.location,
-            "defense_bonus": 2  # Display as percentage
+            "defense_bonus": current_bonus_pct,  # Display as percentage
+            "personality_bonus": personality_message
         }]
 
         # Add stance change event if transitioned
@@ -2009,7 +2555,13 @@ TIPS:
         return result
 
     def _execute_unfortify(self, command: Dict, game_state: Dict) -> Dict:
-        """Remove fortification from a marshal."""
+        """
+        Remove fortification from a marshal.
+
+        DAVOUT FREE UNFORTIFY (Phase 2.8):
+        - Davout (cautious) can unfortify for free
+        - Other marshals pay 1 action
+        """
         marshal_name = command.get("marshal")
         world: WorldState = game_state.get("world")
 
@@ -2026,22 +2578,149 @@ TIPS:
                 "message": f"{marshal.name} is not currently fortified."
             }
 
+        # ════════════════════════════════════════════════════════════
+        # DAVOUT FREE UNFORTIFY (Phase 2.8)
+        # Cautious marshals can efficiently break camp
+        # ════════════════════════════════════════════════════════════
+        personality = getattr(marshal, 'personality', '')
+        is_free_unfortify = personality == 'cautious'
+
         # Remove fortification
         marshal.fortified = False
         marshal.defense_bonus = 0
         marshal.fortify_expires_turn = -1
 
-        return {
+        # Build message with ability note
+        if is_free_unfortify:
+            message = f"{marshal.name} efficiently breaks camp. (Free Unfortify: no action cost) "
+            message += f"Army is now mobile."
+        else:
+            message = f"{marshal.name} abandons fortified position at {marshal.location}. "
+            message += f"Army is now mobile."
+
+        result = {
             "success": True,
-            "message": f"{marshal.name} abandons fortified position at {marshal.location}. "
-                      f"Army is now mobile.",
+            "message": message,
             "events": [{
                 "type": "unfortified",
                 "marshal": marshal.name,
-                "location": marshal.location
+                "location": marshal.location,
+                "free_ability": is_free_unfortify
             }],
             "new_state": game_state
         }
+
+        # Mark as free action for Davout
+        if is_free_unfortify:
+            result["free_action"] = True
+
+        return result
+
+    # ========================================
+    # DEBUG COMMANDS (Phase 2.8)
+    # ========================================
+
+    def _execute_debug(self, command: Dict, game_state: Dict) -> Dict:
+        """
+        Execute debug commands for testing personality abilities.
+
+        Supported debug commands:
+        - /debug counter_punch <marshal>: Set counter_punch_available = True
+        - /debug restless <marshal>: Set turns_defensive to trigger restlessness
+        - /debug cavalry <marshal>: Toggle cavalry status
+        - /debug hold <marshal>: Set holding_position = True
+
+        Usage: /debug <ability> <marshal_name>
+        """
+        target = command.get("target", "")
+        world: WorldState = game_state.get("world")
+
+        if not world:
+            return {"success": False, "message": "Error: No world state available"}
+
+        # Parse debug command: "counter_punch Davout" -> ability="counter_punch", marshal="Davout"
+        parts = target.split() if target else []
+        if len(parts) < 2:
+            return {
+                "success": False,
+                "message": "Debug command format: /debug <ability> <marshal>\n"
+                          "Available abilities:\n"
+                          "  • counter_punch <marshal> - Set Davout's counter-punch (free attack)\n"
+                          "  • restless <marshal> - Set turns_defensive=5 (trigger restlessness)\n"
+                          "  • cavalry <marshal> - Toggle cavalry status (2-tile attacks)\n"
+                          "  • hold <marshal> - Set holding_position (Grouchy's Immovable)"
+            }
+
+        ability = parts[0].lower()
+        marshal_name = parts[1]
+
+        # Find marshal
+        marshal, error = self._fuzzy_match_marshal(marshal_name, world)
+        if error:
+            return error
+
+        # Handle different debug abilities
+        if ability == "counter_punch":
+            if marshal.personality != 'cautious':
+                return {
+                    "success": False,
+                    "message": f"Counter-Punch is only available for cautious marshals (Davout). "
+                              f"{marshal.name} is {marshal.personality}."
+                }
+            marshal.counter_punch_available = True
+            return {
+                "success": True,
+                "message": f"🔧 DEBUG: {marshal.name}'s counter_punch_available = True\n"
+                          f"Next attack by {marshal.name} will be FREE!\n"
+                          f"(Note: In normal play, this triggers when Davout successfully defends - "
+                          f"requires enemy AI to attack him)"
+            }
+
+        elif ability == "restless":
+            if marshal.personality != 'aggressive':
+                return {
+                    "success": False,
+                    "message": f"Restlessness is only available for aggressive marshals (Ney). "
+                              f"{marshal.name} is {marshal.personality}."
+                }
+            marshal.turns_defensive = 5
+            return {
+                "success": True,
+                "message": f"🔧 DEBUG: {marshal.name}'s turns_defensive = 5\n"
+                          f"Will trigger restlessness check at turn start with high probability."
+            }
+
+        elif ability == "cavalry":
+            current = getattr(marshal, 'cavalry', False)
+            marshal.cavalry = not current
+            marshal.movement_range = 2 if marshal.cavalry else 1
+            return {
+                "success": True,
+                "message": f"🔧 DEBUG: {marshal.name}'s cavalry = {marshal.cavalry}\n"
+                          f"Movement range: {marshal.movement_range} (can attack {marshal.movement_range} region(s) away)"
+            }
+
+        elif ability == "hold":
+            if marshal.personality != 'literal':
+                return {
+                    "success": False,
+                    "message": f"Immovable (hold) is only available for literal marshals (Grouchy). "
+                              f"{marshal.name} is {marshal.personality}."
+                }
+            marshal.holding_position = True
+            marshal.hold_region = marshal.location
+            return {
+                "success": True,
+                "message": f"🔧 DEBUG: {marshal.name}'s holding_position = True (at {marshal.location})\n"
+                          f"Will receive +15% defense bonus while defending here (Immovable ability)."
+            }
+
+        else:
+            return {
+                "success": False,
+                "message": f"Unknown debug ability: {ability}\n"
+                          "Available: counter_punch, restless, cavalry, hold"
+            }
 
     # ========================================
     # STANCE SYSTEM (Phase 2.7)
@@ -2210,47 +2889,38 @@ TIPS:
         - Stage 1: -30% effectiveness
         - Stage 2: -15% effectiveness
         - Stage 3: 0% (recovered, state cleared)
+
+        BUG FIXES (BUG-008/009/010):
+        - Only allows retreat when actually in danger
+        - Uses safe pathfinding to avoid enemy threat zones
+        - Triggers Fighting Retreat for Ney when enemies adjacent
         """
-        # Find retreat destination (toward Paris)
+        # Find retreat destination
         current_region = world.get_region(marshal.location)
         if not current_region:
             return {"success": False, "message": f"Invalid location: {marshal.location}"}
 
-        # Already at Paris? Can't retreat further
-        if marshal.location == "Paris":
+        # ════════════════════════════════════════════════════════════
+        # BUG-010 FIX: Check if marshal is actually in danger
+        # ════════════════════════════════════════════════════════════
+        if not world.is_in_danger(marshal.name):
             return {
                 "success": False,
-                "message": f"{marshal.name} is at Paris and cannot retreat further."
+                "message": f"{marshal.name} is not in danger. No retreat necessary. Use 'move' to reposition."
             }
 
-        # Find adjacent region closest to Paris
-        # TODO (BUG-004): Smart retreat pathfinding
-        # Current implementation: Simple BFS to Paris - picks adjacent region with shortest
-        # distance to capital, regardless of enemy positions.
-        #
-        # DESIRED BEHAVIOR:
-        # 1. Prefer friendly-controlled regions over neutral/enemy
-        # 2. Avoid regions containing enemies (unless no other option)
-        # 3. If surrounded, pick least dangerous route (smallest enemy force)
-        # 4. Consider terrain modifiers (future: rivers, mountains slow retreating army)
-        #
-        # IMPLEMENTATION NOTES:
-        # - Use weighted pathfinding: enemy presence adds cost
-        # - world.get_enemy_marshals() to check enemy positions
-        # - Fall back to current behavior if all routes dangerous
-        best_region = None
-        best_distance = 999
-
-        for adj in current_region.adjacent_regions:
-            distance = world.get_distance(adj, "Paris")
-            if distance < best_distance:
-                best_distance = distance
-                best_region = adj
+        # ════════════════════════════════════════════════════════════
+        # BUG-009 FIX: Find SAFE retreat destination (avoids threat zones)
+        # ════════════════════════════════════════════════════════════
+        best_region = world.get_safe_retreat_destination(marshal.name)
 
         if not best_region:
+            # Get threatening enemies for message
+            threats = world.get_threatening_enemies(marshal.name)
+            threat_names = ", ".join([t.name for t in threats[:3]])  # Show first 3
             return {
                 "success": False,
-                "message": f"{marshal.name} has no valid retreat route."
+                "message": f"{marshal.name} is surrounded! No safe retreat route. Threatening enemies: {threat_names}"
             }
 
         # ════════════════════════════════════════════════════════════
@@ -2277,8 +2947,66 @@ TIPS:
             # Neutral - standard retreat
             initial_penalty = "-45%"
 
-        # Execute retreat
+        # ════════════════════════════════════════════════════════════
+        # FIGHTING RETREAT (Phase 2.8)
+        # TRIGGER: Ney (aggressive + cavalry) retreats with enemies threatening
+        # EFFECT: Attack enemies while retreating with +10% bonus
+        # - Attacks STRONGEST enemy first
+        # - If multiple enemies in same tile, fights ALL of them
+        # ════════════════════════════════════════════════════════════
+        fighting_retreat_message = ""
+        fighting_retreat_events = []
         old_location = marshal.location
+
+        is_cavalry = getattr(marshal, 'cavalry', False)
+        is_aggressive = getattr(marshal, 'personality', '') == 'aggressive'
+
+        if is_cavalry and is_aggressive:
+            threatening_enemies = world.get_threatening_enemies(marshal.name)
+
+            if threatening_enemies:
+                fighting_retreat_message = f"\n[FIGHTING RETREAT] {marshal.name} refuses to flee quietly!\n"
+
+                # Group enemies by location, prioritize same tile
+                enemies_same_tile = [e for e in threatening_enemies if e.location == old_location]
+                enemies_adjacent = [e for e in threatening_enemies if e.location != old_location]
+
+                # Fight ALL enemies in same tile, then strongest adjacent
+                enemies_to_fight = []
+                if enemies_same_tile:
+                    # Fight ALL enemies in same tile (sorted by strength, strongest first)
+                    enemies_to_fight = sorted(enemies_same_tile, key=lambda e: e.strength, reverse=True)
+                else:
+                    # Fight the STRONGEST adjacent enemy
+                    strongest = max(enemies_adjacent, key=lambda e: e.strength)
+                    enemies_to_fight = [strongest]
+
+                total_casualties = 0
+                for target_enemy in enemies_to_fight:
+                    # Calculate damage (10% bonus from Fighting Retreat ability)
+                    fighting_retreat_bonus = 0.10
+                    base_damage = int(target_enemy.strength * 0.05)  # 5% base damage
+                    bonus_damage = int(base_damage * (1 + fighting_retreat_bonus))  # +10% from ability
+
+                    # Apply casualties to enemy
+                    target_enemy.take_casualties(bonus_damage)
+                    target_enemy.adjust_morale(-5)  # Minor morale hit
+                    total_casualties += bonus_damage
+
+                    fighting_retreat_message += f"  -> Cavalry charges {target_enemy.name}! {bonus_damage:,} casualties inflicted.\n"
+
+                    fighting_retreat_events.append({
+                        "type": "fighting_retreat",
+                        "marshal": marshal.name,
+                        "target": target_enemy.name,
+                        "casualties_inflicted": bonus_damage,
+                        "ability": "Fighting Retreat",
+                        "bonus": "+10% attack"
+                    })
+
+                fighting_retreat_message += f"[FIGHTING RETREAT] Total enemy casualties: {total_casualties:,} (+10% cavalry bonus)\n"
+
+        # Execute retreat
         marshal.move_to(best_region)
 
         # Track if drill was cancelled for message
@@ -2300,25 +3028,37 @@ TIPS:
         marshal.stance = Stance.NEUTRAL
 
         # Build message with optional drill cancellation note
-        retreat_message = f"{marshal.name} retreats from {old_location} to {best_region}.{troop_loss_msg} "
+        retreat_message = fighting_retreat_message  # Start with fighting retreat message if any
+        retreat_message += f"{marshal.name} retreats from {old_location} to {best_region}.{troop_loss_msg} "
         if drill_was_active:
             retreat_message += "Drill cancelled. "
         retreat_message += f"Army begins recovery (currently at {initial_penalty} effectiveness).{stance_penalty_msg} "
         retreat_message += "Will recover over 3 turns."
 
+        # Add final fighting retreat message
+        if fighting_retreat_events:
+            retreat_message += f"\n{marshal.name} withdraws to {best_region}, bloodied but defiant."
+
+        # Build events list
+        events = [{
+            "type": "retreat",
+            "marshal": marshal.name,
+            "from": old_location,
+            "to": best_region,
+            "recovery_stage": 0,
+            "penalty": initial_penalty,
+            "previous_stance": old_stance_value,
+            "troop_loss": troop_loss
+        }]
+
+        # Add fighting retreat events if they occurred
+        for fr_event in fighting_retreat_events:
+            events.insert(0, fr_event)
+
         return {
             "success": True,
             "message": retreat_message,
-            "events": [{
-                "type": "retreat",
-                "marshal": marshal.name,
-                "from": old_location,
-                "to": best_region,
-                "recovery_stage": 0,
-                "penalty": initial_penalty,
-                "previous_stance": old_stance_value,
-                "troop_loss": troop_loss
-            }],
+            "events": events,
             "new_state": game_state
         }
 

@@ -13,6 +13,7 @@ signal choice_made(choice: String)
 @onready var panel_container = $PanelContainer
 @onready var marshal_name_label = $PanelContainer/VBoxContainer/MarshalNameLabel
 @onready var message_label = $PanelContainer/VBoxContainer/MessageLabel
+@onready var personality_label = $PanelContainer/VBoxContainer/StatsContainer/PersonalityLabel
 @onready var trust_label = $PanelContainer/VBoxContainer/StatsContainer/TrustLabel
 @onready var vindication_label = $PanelContainer/VBoxContainer/StatsContainer/VindicationLabel
 @onready var authority_label = $PanelContainer/VBoxContainer/StatsContainer/AuthorityLabel
@@ -66,6 +67,10 @@ func show_objection(objection_data: Dictionary):
 	message_label.text = '"%s"' % message
 
 	# Get marshal stats (from game state if available, otherwise defaults)
+	var personality = objection_data.get("personality", "unknown")
+	if personality_label:
+		personality_label.text = "Personality: %s" % personality.capitalize()
+
 	var trust = int(objection_data.get("trust", 70))
 	var trust_label_text = objection_data.get("trust_label", "Unknown")
 	trust_label.text = "Trust: %d (%s)" % [trust, trust_label_text]

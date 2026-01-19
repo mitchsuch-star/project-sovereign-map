@@ -159,33 +159,64 @@ class CombatResolver:
                 ability_message = f"{attacker.name}'s '{attacker.ability['name']}' inspires the assault!"
 
         # ════════════════════════════════════════════════════════════
-        # DRILL BONUS (Phase 2.6): +2 shock from drill training
+        # DRILL BONUS (Phase 2.6): +20% attack from drill training
+        # NOTE: Actual calculation is in marshal.get_attack_modifier()
+        # Save value for message generation, clear AFTER modifier is calculated
         # ════════════════════════════════════════════════════════════
-        drill_bonus_message = None
         attacker_drill_bonus = getattr(attacker, 'shock_bonus', 0)
+        drill_bonus_message = None
         if attacker_drill_bonus > 0:
-            attacker_shock += attacker_drill_bonus
             drill_bonus_message = f"{attacker.name}'s drilled troops attack with +{attacker_drill_bonus * 10}% effectiveness!"
-            # Clear drill bonus after first use (one-time bonus)
-            attacker.shock_bonus = 0
-            attacker.drilling = False
-            attacker.drilling_locked = False
-            attacker.drill_complete_turn = -1
 
         # ════════════════════════════════════════════════════════════
-        # STANCE MODIFIER (Phase 2.7): Apply stance-based attack modifier
+        # STANCE & PERSONALITY MODIFIER (Phase 2.7/2.8): Apply attack modifiers
+        # NOTE: get_attack_modifier() includes stance, personality, AND drill bonus
         # ════════════════════════════════════════════════════════════
         attacker_stance_message = None
+        attacker_personality_message = None
         attacker_stance_modifier = 1.0
+
+        # Calculate strength ratio for personality modifiers (Davout bad odds)
+        strength_ratio = attacker.strength / defender.strength if defender.strength > 0 else float('inf')
+
         if hasattr(attacker, 'get_attack_modifier'):
-            attacker_stance_modifier = attacker.get_attack_modifier()
+            attacker_stance_modifier = attacker.get_attack_modifier(strength_ratio)
             if attacker_stance_modifier != 1.0:
                 from backend.models.marshal import Stance
                 current_stance = getattr(attacker, 'stance', Stance.NEUTRAL)
+                personality = getattr(attacker, 'personality', 'unknown')
+
+                # Stance messages
                 if current_stance == Stance.AGGRESSIVE:
                     attacker_stance_message = f"{attacker.name}'s AGGRESSIVE stance drives the assault! (+15% attack)"
                 elif current_stance == Stance.DEFENSIVE:
                     attacker_stance_message = f"{attacker.name}'s DEFENSIVE stance hampers offensive operations (-10% attack)"
+
+                # Personality-specific messages
+                if personality == "aggressive":
+                    base_bonus = 15
+                    if current_stance == Stance.AGGRESSIVE:
+                        base_bonus += 5  # +5% additional
+                    if attacker_drill_bonus > 0:  # Use saved value
+                        base_bonus += 5  # +5% drill synergy
+                    if base_bonus > 15:
+                        attacker_personality_message = f"{attacker.name}'s aggression fuels the attack! (Bravest of the Brave: +{base_bonus}% total)"
+                    else:
+                        attacker_personality_message = f"{attacker.name} leads the charge! (Aggressive: +15% attack)"
+
+                elif personality == "cautious":
+                    if strength_ratio < 1.0:
+                        attacker_personality_message = f"{attacker.name} attacks cautiously at unfavorable odds. (Cautious: -10% attack)"
+                    if current_stance == Stance.AGGRESSIVE:
+                        if not attacker_personality_message:
+                            attacker_personality_message = f"{attacker.name} is hesitant in aggressive posture. (Cautious: -5% attack)"
+
+        # Clear drill bonus AFTER modifier calculation (one-time use)
+        if attacker_drill_bonus > 0:
+            attacker.shock_bonus = 0
+            attacker.drilling = False
+            attacker.drilling_locked = False
+            attacker.drill_complete_turn = -1
 
         shock_multiplier = 1.0 + (attacker_shock / 20.0)
         # Apply stance modifier to shock
@@ -197,46 +228,74 @@ class CombatResolver:
         defender_defense = defender.skills.get("defense", 5)
 
         # ════════════════════════════════════════════════════════════
-        # FORTIFY BONUS (Phase 2.6): +1 defense from fortified position
+        # FORTIFY BONUS (Phase 2.6): Defense bonus from fortified position
+        # NOTE: Actual calculation is in marshal.get_defense_modifier()
+        # This section only generates the message for UI feedback
         # ════════════════════════════════════════════════════════════
         fortify_bonus_message = None
         defender_fortify_bonus = getattr(defender, 'defense_bonus', 0)
         if defender_fortify_bonus > 0:
-            defender_defense += defender_fortify_bonus
-            fortify_percent = int(defender_fortify_bonus * 10)
+            fortify_percent = int(defender_fortify_bonus * 100)  # 0.16 → 16%
             fortify_bonus_message = f"{defender.name}'s fortified position provides +{fortify_percent}% defense!"
-            # Fortification persists (doesn't clear on first use)
 
         # ════════════════════════════════════════════════════════════
         # DRILLING PENALTY (Phase 2.6): -25% defense when caught drilling
-        # When a marshal is drilling, they're focused on training, not defense!
+        # NOTE: Actual penalty is in marshal.get_defense_modifier()
+        # This section handles state changes and message generation
         # ════════════════════════════════════════════════════════════
         drilling_penalty_message = None
         is_drilling = getattr(defender, 'drilling', False) or getattr(defender, 'drilling_locked', False)
         if is_drilling:
-            # Apply -25% defense penalty (equivalent to -5 defense skill)
-            defender_defense = max(0, defender_defense - 5)
             drilling_penalty_message = f"{defender.name}'s drill was interrupted by the attack! (-25% defense)"
-            # Cancel drill - they lose all progress
+            # Cancel drill - they lose all progress (state change stays here)
             defender.drilling = False
             defender.drilling_locked = False
             defender.drill_complete_turn = -1
             defender.shock_bonus = 0  # Clear any pending bonus
 
         # ════════════════════════════════════════════════════════════
-        # STANCE MODIFIER (Phase 2.7): Apply stance-based defense modifier
+        # STANCE & PERSONALITY MODIFIER (Phase 2.7/2.8): Apply defense modifiers
         # ════════════════════════════════════════════════════════════
         defender_stance_message = None
+        defender_personality_message = None
         defender_stance_modifier = 1.0
+
+        # Check if defender is outnumbered (for Davout bonus)
+        is_outnumbered = defender.strength < attacker.strength
+
         if hasattr(defender, 'get_defense_modifier'):
-            defender_stance_modifier = defender.get_defense_modifier()
+            defender_stance_modifier = defender.get_defense_modifier(is_outnumbered)
             if defender_stance_modifier != 1.0 and not is_drilling:  # Don't double message if drilling
                 from backend.models.marshal import Stance
                 current_stance = getattr(defender, 'stance', Stance.NEUTRAL)
+                personality = getattr(defender, 'personality', 'unknown')
+
+                # Stance messages
                 if current_stance == Stance.DEFENSIVE:
                     defender_stance_message = f"{defender.name}'s DEFENSIVE stance strengthens the line! (+15% defense)"
                 elif current_stance == Stance.AGGRESSIVE:
                     defender_stance_message = f"{defender.name}'s AGGRESSIVE stance leaves flanks exposed (-10% defense)"
+
+                # Personality-specific messages
+                if personality == "aggressive":
+                    if current_stance == Stance.AGGRESSIVE:
+                        defender_personality_message = f"{defender.name}'s reckless aggression weakens defense! (Aggressive: -5% additional)"
+                    elif current_stance == Stance.DEFENSIVE:
+                        defender_personality_message = f"{defender.name} chafes at defensive duty. (Aggressive: +10% defense, not +15%)"
+
+                elif personality == "cautious":
+                    if current_stance == Stance.DEFENSIVE:
+                        defender_personality_message = f"{defender.name}'s methodical defense is exemplary! (Iron Marshal: +20% total)"
+                    if is_outnumbered:
+                        if not defender_personality_message:
+                            defender_personality_message = f"{defender.name} stands firm against superior numbers! (Cautious: +10% outnumbered)"
+                        else:
+                            defender_personality_message += f" Outnumbered bonus: +10%"
+
+                elif personality == "literal":
+                    is_holding = getattr(defender, 'holding_position', False)
+                    if is_holding:
+                        defender_personality_message = f"{defender.name} holds the position exactly as ordered! (Immovable: +15% defense)"
 
         defense_bonus = defender_defense / 20.0  # 0.05 to 0.50 (5% to 50% reduction)
         # Apply stance modifier to defense - note: higher modifier = better defense (reduces casualties MORE)
@@ -312,8 +371,12 @@ class CombatResolver:
         tactical_prefix = ""
         if attacker_stance_message:
             tactical_prefix += f"\n⚔️ {attacker_stance_message}"
+        if attacker_personality_message:
+            tactical_prefix += f"\n🔥 {attacker_personality_message}"
         if defender_stance_message:
             tactical_prefix += f"\n🛡️ {defender_stance_message}"
+        if defender_personality_message:
+            tactical_prefix += f"\n🛡️ {defender_personality_message}"
         if drill_bonus_message:
             tactical_prefix += f"\n⚔️ {drill_bonus_message}"
         if fortify_bonus_message:
@@ -323,6 +386,27 @@ class CombatResolver:
         if tactical_prefix:
             tactical_prefix += "\n"
 
+        # ════════════════════════════════════════════════════════════════
+        # FORCED RETREAT CHECK: Armies with critically low morale must retreat
+        # Threshold: 25% morale triggers forced retreat
+        # ════════════════════════════════════════════════════════════════
+        FORCED_RETREAT_THRESHOLD = 25
+        attacker_forced_retreat = (
+            attacker.strength > 0 and
+            attacker.morale <= FORCED_RETREAT_THRESHOLD
+        )
+        defender_forced_retreat = (
+            defender.strength > 0 and
+            defender.morale <= FORCED_RETREAT_THRESHOLD
+        )
+
+        # Add forced retreat message to description if applicable
+        retreat_message = ""
+        if attacker_forced_retreat:
+            retreat_message += f"\n\n⚠️ {attacker.name}'s troops are BROKEN (morale {int(attacker.morale)}%)! FORCED RETREAT!"
+        if defender_forced_retreat:
+            retreat_message += f"\n\n⚠️ {defender.name}'s troops are BROKEN (morale {int(defender.morale)}%)! FORCED RETREAT!"
+
         # THIS RETURN MUST BE HERE!
         return {
             "outcome": outcome,
@@ -331,13 +415,15 @@ class CombatResolver:
                 "name": attacker.name,
                 "casualties": int(attacker_casualties),
                 "remaining": int(attacker.strength),
-                "morale": int(attacker.morale)
+                "morale": int(attacker.morale),
+                "forced_retreat": attacker_forced_retreat
             },
             "defender": {
                 "name": defender.name,
                 "casualties": int(defender_casualties),
                 "remaining": int(defender.strength),
-                "morale": int(defender.morale)
+                "morale": int(defender.morale),
+                "forced_retreat": defender_forced_retreat
             },
             "terrain": terrain,
             "attacker_roll": attacker_roll,
@@ -347,9 +433,11 @@ class CombatResolver:
             "drilling_penalty_triggered": drilling_penalty_message,  # Phase 2.6: Drilling penalty
             "attacker_stance_triggered": attacker_stance_message,  # Phase 2.7: Stance system
             "defender_stance_triggered": defender_stance_message,  # Phase 2.7: Stance system
+            "attacker_personality_triggered": attacker_personality_message,  # Phase 2.8: Personality abilities
+            "defender_personality_triggered": defender_personality_message,  # Phase 2.8: Personality abilities
             "flanking_bonus": int(flanking_bonus),  # Phase 2.5: Flanking system
             "flanking_message": flanking_message,
-            "description": tactical_prefix + base_description
+            "description": tactical_prefix + base_description + retreat_message
         }
         # ... rest of existing code ...
 

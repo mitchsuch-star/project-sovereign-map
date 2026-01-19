@@ -364,6 +364,16 @@ func _draw_tooltip():
 	var fortify_expires_turn = tactical_state.get("fortify_expires_turn", -1)
 	var retreating = tactical_state.get("retreating", false)
 	var retreat_recovery = tactical_state.get("retreat_recovery", 0)
+	# Broken army state (surrounded + forced retreat)
+	var broken = tactical_state.get("broken", false)
+	var broken_recovery = tactical_state.get("broken_recovery", 0)
+
+	# Phase 2.8 Personality Ability fields
+	var cavalry = tactical_state.get("cavalry", false)
+	var turns_defensive = tactical_state.get("turns_defensive", 0)
+	var counter_punch_available = tactical_state.get("counter_punch_available", false)
+	var holding_position = tactical_state.get("holding_position", false)
+	var hold_region = tactical_state.get("hold_region", "")
 
 	# Count tactical state lines to display
 	var tactical_lines = 0
@@ -377,6 +387,17 @@ func _draw_tooltip():
 	if fortified:
 		tactical_lines += 1
 	if retreating:
+		tactical_lines += 1
+	if broken:
+		tactical_lines += 1
+	# Phase 2.8 ability states
+	if cavalry:
+		tactical_lines += 1
+	if turns_defensive > 0:
+		tactical_lines += 1
+	if counter_punch_available:
+		tactical_lines += 1
+	if holding_position:
 		tactical_lines += 1
 
 	# Calculate tooltip height based on whether we have debug info
@@ -542,7 +563,7 @@ func _draw_tooltip():
 
 		# Fortified state
 		if fortified:
-			var fort_percent = int(defense_bonus * 10)
+			var fort_percent = defense_bonus  # Already a percentage from backend
 			var fort_text = "FORTIFIED: +" + str(fort_percent) + "% defense"
 			if fort_percent >= 15:
 				fort_text += " (MAX)"
@@ -559,6 +580,50 @@ func _draw_tooltip():
 			var retreat_text = "RETREATING: " + penalty + " effectiveness (stage " + str(retreat_recovery) + "/3)"
 			var retreat_color = Color(0.9, 0.5, 0.5)  # Red/pink
 			draw_string(font, Vector2(text_x, text_y + 11), retreat_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, retreat_color)
+			text_y += line_spacing
+
+		# Broken army state (surrounded + forced retreat)
+		if broken:
+			var turns_left = 4 - broken_recovery
+			var broken_text = "💀 BROKEN: Recruit only (" + str(turns_left) + " turns to recover)"
+			var broken_color = Color(0.8, 0.2, 0.2)  # Dark red
+			draw_string(font, Vector2(text_x, text_y + 11), broken_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, broken_color)
+			text_y += line_spacing
+
+		# ═══════════════════════════════════════════════════════════
+		# PHASE 2.8 PERSONALITY ABILITIES
+		# ═══════════════════════════════════════════════════════════
+
+		# Ney: Cavalry (2-tile attack range)
+		if cavalry:
+			var cav_text = "CAVALRY: Can attack 2 tiles away"
+			var cav_color = Color(0.9, 0.6, 0.3)  # Orange
+			draw_string(font, Vector2(text_x, text_y + 11), cav_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, cav_color)
+			text_y += line_spacing
+
+		# Ney: Restlessness (turns defensive counter)
+		if turns_defensive > 0:
+			var restless_text = "RESTLESS: " + str(turns_defensive) + "/3 turns defensive"
+			if turns_defensive >= 3:
+				restless_text += " (objecting!)"
+			var restless_color = Color(0.9, 0.7, 0.4)  # Yellow-orange
+			draw_string(font, Vector2(text_x, text_y + 11), restless_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, restless_color)
+			text_y += line_spacing
+
+		# Davout: Counter-Punch Ready
+		if counter_punch_available:
+			var counter_text = "COUNTER-PUNCH READY: Free attack after defense"
+			var counter_color = Color(0.4, 0.9, 0.6)  # Green-cyan
+			draw_string(font, Vector2(text_x, text_y + 11), counter_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, counter_color)
+			text_y += line_spacing
+
+		# Grouchy: Holding Position (Immovable)
+		if holding_position:
+			var hold_text = "HOLDING POSITION: +15% defense"
+			if hold_region != "":
+				hold_text += " at " + hold_region
+			var hold_color = Color(0.6, 0.6, 0.9)  # Light purple
+			draw_string(font, Vector2(text_x, text_y + 11), hold_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, hold_color)
 			text_y += line_spacing
 
 func _format_number(num: int) -> String:

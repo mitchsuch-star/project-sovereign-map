@@ -548,6 +548,7 @@ func _show_objection_dialog(response):
 	# Prepare objection data for dialog
 	var objection_data = {
 		"marshal": response.get("marshal", "Marshal"),
+		"personality": response.get("personality", "unknown"),
 		"message": response.get("message", "I have concerns about this order, Sire."),
 		"trust": response.get("trust", 70),
 		"trust_label": response.get("trust_label", "Unknown"),

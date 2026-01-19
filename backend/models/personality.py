@@ -3,6 +3,61 @@ Personality System for Project Sovereign (Phase 2 - Disobedience)
 
 Defines marshal personalities and their objection triggers.
 Each personality type has specific situations that trigger objections.
+
+═══════════════════════════════════════════════════════════════════════════════
+TODO: LLM INTEGRATION FOR OBJECTION VARIETY (Phase 3+)
+═══════════════════════════════════════════════════════════════════════════════
+
+Currently, each trigger maps to a single severity value and generates predictable
+objections. With LLM integration, we can add CHAOS and VARIETY:
+
+1. DIALOGUE VARIETY: Instead of one response per trigger, LLM picks from a list
+   of contextually appropriate responses. Same "retreat" order could yield:
+   - "Retreat?! The enemy is RIGHT THERE!"
+   - "I did not earn my marshal's baton by running, Sire."
+   - "My men will think me a coward!"
+   - "Give me one hour. ONE HOUR to break them!"
+
+2. CONTEXT-AWARE SEVERITY: LLM can adjust severity based on:
+   - Recent battle outcomes (just won = more confident, just lost = demoralized)
+   - Relationship with player (high trust = benefit of doubt)
+   - Historical grudges ("Last time you ordered retreat, we lost 10,000 men")
+   - Weather/terrain ("In this mud? Perhaps retreat is wise...")
+
+3. LITERAL PERSONALITY ACTIVATION: Currently non-functional (all TODO).
+   LLM can detect:
+   - Ambiguous orders: "Attack when ready" (when is ready?)
+   - Contradictions: "Hold position" then "Advance immediately"
+   - Vague targets: "Attack the enemy" (which enemy?)
+
+4. ENTHUSIASM SYSTEM: Not just objections - marshals can be EAGER:
+   - Aggressive gets attack order: "Finally! I'll have Wellington's head by sunset!"
+   - Cautious gets scout order: "Prudent, Sire. I'll have full intelligence within the hour."
+
+5. DYNAMIC TRIGGER DISCOVERY: LLM might identify new objection scenarios
+   not in our predefined list, adding emergent gameplay.
+
+Implementation approach:
+- Keep PERSONALITY_TRIGGERS as base severity (rule-based fallback)
+- LLM receives trigger + context, returns (severity_modifier, dialogue_options[])
+- System picks from options, applies modifier to base severity
+- Fallback to current system if LLM unavailable
+
+═══════════════════════════════════════════════════════════════════════════════
+KNOWN ISSUES (to address in future phases):
+═══════════════════════════════════════════════════════════════════════════════
+
+1. LITERAL personality has 0 working triggers - Grouchy acts like BALANCED
+2. No enthusiasm/positive feedback for personality-aligned orders
+3. Missing potential triggers:
+   - attack_weak_target (AGGRESSIVE wanting bigger prey)
+   - low_morale_attack (demoralized troops ordered to attack)
+   - split_forces (CAUTIOUS objecting to dividing army)
+   - scout_enthusiasm (CAUTIOUS should WANT to scout)
+4. No relationship/trust modifiers affecting severity
+5. No recent-battle-outcome modifiers (winning streak = confidence)
+
+═══════════════════════════════════════════════════════════════════════════════
 """
 
 from enum import Enum
@@ -224,8 +279,17 @@ def analyze_order_situation(order: Dict, marshal, game_state) -> Optional[str]:
         if _is_fortified(target, game_state):
             return 'attack_fortified'
 
-    # Check for retreat
+    # Check for retreat (aggressive marshals object unless in desperate situation)
     if action == 'retreat':
+        # Check if marshal is in desperate situation (outnumbered + low morale)
+        # In this case, even aggressive marshals understand retreat is necessary
+        strength_ratio = _get_enemy_strength_ratio(marshal, game_state)
+        morale = getattr(marshal, 'morale', 100)
+
+        # Desperate situation: outnumbered 2:1+ AND morale below 40%
+        if strength_ratio is not None and strength_ratio <= 0.5 and morale <= 40:
+            return None  # No objection - retreat is justified
+
         return 'retreat'
 
     # Check for fortify (aggressive trigger)

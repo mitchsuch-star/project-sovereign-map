@@ -71,6 +71,14 @@ layout_mode = 2
 [node name="StatsContainer" type="HBoxContainer" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 
+[node name="PersonalityLabel" type="Label" parent="PanelContainer/VBoxContainer/StatsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.851, 0.753, 0.549, 1)
+theme_override_font_sizes/font_size = 14
+text = "Personality: -"
+horizontal_alignment = 1
+
 [node name="TrustLabel" type="Label" parent="PanelContainer/VBoxContainer/StatsContainer"]
 layout_mode = 2
 size_flags_horizontal = 3

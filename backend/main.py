@@ -636,16 +636,16 @@ if __name__ == "__main__":
     import uvicorn
 
     print("=" * 60)
-    print("🚀 GAME INITIALIZED")
-    print(f"🔧 DEBUG MODE: {'ENABLED' if DEBUG_MODE else 'DISABLED'}")
+    print("[*] GAME INITIALIZED")
+    print(f"[*] DEBUG MODE: {'ENABLED' if DEBUG_MODE else 'DISABLED'}")
     print("=" * 60)
     print(f"Turn: {world.current_turn}")
     print(f"Actions: {world.actions_remaining}/{world.max_actions_per_turn}")
     print(f"Gold: {world.gold}")
     print(f"Regions: {len(world.get_player_regions())}")
     print("=" * 60)
-    print("📍 Server: http://127.0.0.1:8000")
-    print("📖 API Docs: http://127.0.0.1:8000/docs")
+    print("[*] Server: http://127.0.0.1:8005")
+    print("[*] API Docs: http://127.0.0.1:8005/docs")
     print("=" * 60)
 
     uvicorn.run(app, host="127.0.0.1", port=8005)

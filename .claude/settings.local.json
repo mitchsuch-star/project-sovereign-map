@@ -7,7 +7,13 @@
       "Bash(git add:*)",
       "Bash(set PYTHONIOENCODING=utf-8:*)",
       "Bash(set PYTHONPATH=%PYTHONPATH%)",
-      "Bash(C:UsersUserPycharmProjectsproject-sovereign-map)"
+      "Bash(C:UsersUserPycharmProjectsproject-sovereign-map)",
+      "Bash(powershell:*)",
+      "Bash($env:PYTHONPATH=\".\")",
+      "Bash(PYTHONPATH=. python:*)",
+      "Bash(curl:*)",
+      "Bash(netstat:*)",
+      "Bash(taskkill:*)"
     ]
   }
 }
