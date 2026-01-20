@@ -20,8 +20,10 @@ GOLDEN RULES:
 4. State clearing: AFTER reading the value, not before
 5. Enemy AI uses SAME executor as player (Building Blocks principle)
 
-CURRENT PHASE: MVP (95% complete) - Enemy AI ✅ Complete
-- Implemented: combat, disobedience, cavalry limits, drill/fortify, Enemy AI
+CURRENT PHASE: Phase 2.5 (Autonomy Foundation) 🔄 IN PROGRESS
+- Phase 1 ✅: Foundation (regions, marshals, combat, actions, turns)
+- Phase 2 ✅: Combat & AI (disobedience, drill/fortify, Enemy AI, safety eval)
+- Phase 2.5 🔄: Autonomy (Grant Autonomy → Enemy AI, strategic commands)
 - Not implemented: diplomacy, LLM parsing, supply lines (marked CONCEPTUAL)
 ```
 
@@ -233,9 +235,16 @@ Each marshal has combat modifiers and unique abilities based on their personalit
 | Modifier | Value | Condition |
 |----------|-------|-----------|
 | Hold position defense | +15% | When holding_position=True |
+| Explicit order bonus | +15% | When given specific, unambiguous orders |
 
 **Unique Abilities:**
 - **Immovable**: Use `hold` command to set holding_position=True, grants +15% defense at that location. Lost when moving.
+
+**Literal Personality Mechanics (Phase 2.5):**
+- **Strategic commands cost 1 action** (not 2) - Grouchy follows orders efficiently
+- **+15% effectiveness on explicit orders** - Clear commands like "Attack Wellington" or "Move to Belgium"
+- **Stops when blocked, awaits new orders** - Won't improvise, waits for clarification
+- **Clarification popup for vague orders** - "Hold the line" triggers popup asking for specifics (NOT an objection)
 
 **State Tracking Fields (in Marshal class):**
 ```python
@@ -624,7 +633,7 @@ max_total_actions = actions_remaining * 2  # Absolute safety limit
 
 ## Implementation Status
 
-### MVP (Complete)
+### Phase 1: Foundation ✅ COMPLETE
 - [x] 13 regions with adjacency
 - [x] 5 marshals (3 French, 2 enemy)
 - [x] Basic combat (strength × morale)
@@ -637,7 +646,7 @@ max_total_actions = actions_remaining * 2  # Absolute safety limit
 - [x] Map visualization with colors
 - [x] API connection (port 8005)
 
-### Phase 2: Combat & Disobedience (Complete)
+### Phase 2: Combat & AI ✅ COMPLETE
 **✅ IMPLEMENTED:**
 - [x] Combat dice system (2d6 + skill modifiers)
 - [x] Marshal skills (6 skills per marshal)
@@ -659,16 +668,23 @@ max_total_actions = actions_remaining * 2  # Absolute safety limit
 - [x] Counter-Punch ability (Davout gets free attack after defending)
 - [x] Battle naming system ("Battle of [Region]")
 
-**📋 REMAINING (Phase 2.5 → 3):**
-- [ ] Autonomy foundation (connect "Grant Autonomy" to Enemy AI)
-- [ ] Strategic commands (MOVE_TO, PURSUE, ATTACK_TARGET)
-- [ ] Order delay (Grouchy moments - orders take TIME)
-- [ ] Grouchy literal bonus/penalty (+10% when commanded, poor autonomous)
-- [ ] Enemy encounter interrupts during strategic commands
-- [ ] Communication cut-off (no path to capital)
+### Phase 2.5: Autonomy Foundation 🔄 CURRENT
+
+**Core Concept:** "Grant Autonomy" at redemption floor connects player marshals to Enemy AI decision tree.
+
+**📋 TODO:**
+- [ ] Grant Autonomy → marshal uses Enemy AI for action selection
+- [ ] Autonomous marshal processing in turn flow
+- [ ] Autonomy end evaluation (regain trust floor → return to player control)
+- [ ] Strategic commands (MOVE_TO region, PURSUE marshal, ATTACK_TARGET marshal)
+- [ ] Order delay system (Grouchy moments - orders take TIME to reach marshals)
+- [ ] Enemy encounter interrupts during strategic movement
+- [ ] Communication cut-off (no path to capital = fully autonomous)
+
+**📋 REMAINING (Phase 3+):**
+- [ ] Grouchy literal mechanics (see below)
 - [ ] Marshal rivalries affect coordination
-- [ ] Special abilities (1 per marshal - partially done)
-- [ ] Flanking system (basic tracking exists, needs coordination)
+- [ ] Flanking coordination system
 - [ ] Post-battle casualty report
 
 ### Phase 3: LLM & Advisors (Planned)
@@ -2836,9 +2852,9 @@ func update_region_color(region_name: String, color: Color):
 
 ## Project Phases
 
-### Phase 1: MVP ✅ COMPLETE
+### Phase 1: Foundation ✅ COMPLETE
 - ✅ Core gameplay loop
-- ✅ Action economy
+- ✅ Action economy (4 actions/turn)
 - ✅ Combat resolution
 - ✅ Victory/defeat conditions
 - ✅ Full turn cycle working
@@ -2850,18 +2866,25 @@ func update_region_color(region_name: String, color: Color):
 - ✅ Enemy AI (personality-driven decision tree)
 - ✅ Enemy Phase popup UI
 - ✅ Smart AI safety evaluation
+- ✅ Attacker movement on victory
 
-### Phase 3: LLM Integration (Next)
+### Phase 2.5: Autonomy Foundation 🔄 CURRENT
+- Grant Autonomy → marshal uses Enemy AI decision tree
+- Autonomous marshal processing in turn flow
+- Strategic commands (MOVE_TO, PURSUE, ATTACK_TARGET)
+- Order delay system (Grouchy moments)
+- Communication cut-off mechanics
+
+### Phase 3: LLM Integration
 - Real Claude API for marshal responses
 - Personality-driven dialogue
 - Response caching
 - LLM command parsing (currently keyword matching)
 
 ### Phase 4: Strategic Depth
-- Autonomy system (marshals act independently)
-- Strategic commands (PURSUE, HOLD_REGION)
-- Order delays (Grouchy moments)
-- Flanking coordination
+- Flanking coordination system
+- Marshal rivalries
+- Post-battle reports
 
 ### Phase 5: Diplomacy
 - Natural language negotiation
