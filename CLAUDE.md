@@ -10,17 +10,19 @@ MOST IMPORTANT FILES:
 ├── backend/game_logic/combat.py     ← Combat resolution, messages (not modifiers!)
 ├── backend/commands/executor.py     ← Action handlers (_execute_*)
 ├── backend/models/world_state.py    ← Game state, turn processing
-└── backend/commands/disobedience.py ← Objection system, trust values
+├── backend/commands/disobedience.py ← Objection system, trust values
+└── backend/ai/enemy_ai.py           ← Enemy AI decision tree (P1-P8 priorities)
 
 GOLDEN RULES:
 1. Combat modifiers: SINGLE SOURCE OF TRUTH in marshal.py
 2. All numbers to Godot: wrap with int()
 3. All marshals in ONE dict: world.marshals (not separate player/enemy)
 4. State clearing: AFTER reading the value, not before
+5. Enemy AI uses SAME executor as player (Building Blocks principle)
 
-CURRENT PHASE: MVP (85% complete)
-- Implemented: combat, disobedience, cavalry limits, drill/fortify
-- Not implemented: diplomacy, AI nations, supply lines (marked CONCEPTUAL)
+CURRENT PHASE: MVP (95% complete) - Enemy AI ✅ Complete
+- Implemented: combat, disobedience, cavalry limits, drill/fortify, Enemy AI
+- Not implemented: diplomacy, LLM parsing, supply lines (marked CONCEPTUAL)
 ```
 
 ---
@@ -449,6 +451,8 @@ modified_chance = base_objection_chance * (1 - (authority / 100))
 | `backend/commands/disobedience.py` | Objection system | `check_objection()`, trust/authority calculations |
 | `backend/models/personality.py` | Personality types | `PersonalityType` enum, objection triggers |
 | `backend/models/personality_modifiers.py` | Combat bonuses by personality | Modifier definitions per personality |
+| `backend/ai/enemy_ai.py` | Enemy AI decision tree | `process_nation_turn()`, `_find_best_action()`, P1-P8 handlers |
+| `backend/game_logic/turn_manager.py` | Turn flow, enemy AI integration | `end_turn()`, `_process_enemy_turns()` |
 
 ### Disobedience System Reference
 
@@ -464,6 +468,111 @@ This file contains the core marshal objection logic:
 1. All trust modifications go through `marshal.trust.modify(value)`
 2. Authority affects objection probability, not elimination
 3. Cavalry limits bypass objection (automatic, not player-ordered)
+
+### Enemy AI System Reference
+
+**Location:** `backend/ai/enemy_ai.py` (685 lines)
+
+The Enemy AI system provides decision-making for enemy nations (Britain, Prussia) during their turn phase. **CRITICAL:** It follows the Building Blocks Principle - enemies use the SAME executor as player commands.
+
+**Key Principles:**
+1. All actions flow through `executor.execute()` - no special enemy code
+2. Enemy marshals have same combat modifiers, abilities, states as player marshals
+3. No disobedience for enemies (AI decides = AI executes)
+4. 4 actions per NATION, not per marshal
+
+**Decision Tree Priorities (P1-P8):**
+
+| Priority | Trigger | Behavior |
+|----------|---------|----------|
+| P1 | `retreat_recovery > 0` | Limited to defensive stance + wait |
+| P2 | `strength < 25%` | Retreat if enemy adjacent, else defend |
+| P3 | Stronger enemy adjacent | Defensive stance + fortify (cautious) |
+| P4 | Valid attack target | Attack if ratio meets personality threshold |
+| P4.5 | Undefended enemy region adjacent | Attack region to capture |
+| P5 | No attack, cautious | Fortify position |
+| P6 | No attack, aggressive | Drill for shock bonus |
+| P7 | No immediate threats | Move toward enemy (aggressive only) |
+| P8 | Default | Stance adjustment or wait |
+
+**Personality Attack Thresholds:**
+
+| Personality | Threshold | Meaning |
+|-------------|-----------|---------|
+| Aggressive (Blucher) | 0.7 | Attacks even when outnumbered 30% |
+| Cautious (Wellington) | 1.3 | Only attacks with 30% advantage |
+| Others | 1.0 | Only attacks at even odds or better |
+
+**State Checks Before Actions:**
+```python
+# Before attack:
+- Cannot attack if drilling or drilling_locked
+- Cannot attack if fortified (must unfortify first)
+- Cannot attack if broken
+
+# Before drill:
+- Cannot drill if already drilling
+- Cannot drill if already have shock_bonus
+- Cannot drill with enemy adjacent (nation-aware check!)
+
+# Before fortify:
+- Cannot fortify if already fortified at max
+- Cannot fortify if drilling
+- Must be in defensive stance
+```
+
+**Turn Flow:**
+```
+Player ends turn
+       |
+       v
+turn_manager.end_turn()
+       |
+       v
+_process_enemy_turns()
+       |
+       v
+For each nation in world.enemy_nations:
+    EnemyAI.process_nation_turn(nation, world, game_state)
+       |
+       v
+    For each action (up to 4):
+        _find_best_action() -> evaluate all marshals
+        Execute via executor.execute() <- SAME AS PLAYER!
+       |
+       v
+world.advance_turn()
+```
+
+**Critical Code Pattern - Enemy Actions Don't Consume Player Budget:**
+```python
+# In executor.py - check before consuming action
+is_player_action = True
+marshal_name = command.get("marshal")
+if marshal_name:
+    executing_marshal = world.get_marshal(marshal_name)
+    if executing_marshal and executing_marshal.nation != world.player_nation:
+        is_player_action = False  # Enemy AI action - skip player budget
+
+if result.get("success") and action_costs_point and is_player_action:
+    world.use_action(action)  # Only for player
+```
+
+**Safeguards Against Infinite Loops:**
+```python
+max_free_actions = 2        # Max "wait" actions per turn
+max_total_actions = actions_remaining * 2  # Absolute safety limit
+```
+
+**Known TODOs (Future Work):**
+- Flanking coordination (AI doesn't explicitly coordinate for flanking bonus)
+- Enemy recruiting (requires economy system)
+- Round-robin action distribution (currently greedy)
+- Region fortifications (buildings that slow capture - future economy feature)
+
+**Full documentation:** See `docs/ENEMY_AI_REFERENCE.md`
+
+**UI Status:** ✅ Enemy phase popup implemented (`enemy_phase_dialog.tscn/gd`). Shows full battle details in modal after end turn. See `docs/UI_TODO.md` for implementation notes.
 
 ---
 
@@ -481,6 +590,7 @@ This file contains the core marshal objection logic:
 | Turn processing | `world_state.py` (advance_turn, _process_tactical_states), `executor.py` (_execute_end_turn) |
 | Adding new actions | `executor.py`, `parser.py` (valid_actions), `world_state.py` (_action_costs) |
 | Retreat/Broken state | `combat.py` (forced retreat logic), `marshal.py` (retreat_recovery), `executor.py` (_execute_retreat) |
+| Enemy AI behavior | `enemy_ai.py` (decision tree), `turn_manager.py` (_process_enemy_turns), `executor.py` (is_player_action check) |
 
 ### Common Modification Patterns
 
@@ -514,18 +624,61 @@ This file contains the core marshal objection logic:
 
 ## Implementation Status
 
-**IMPLEMENTED (working code exists):**
-- Core combat system, modifiers, morale
-- Disobedience/objection system with trust
-- Cavalry limits (3-turn defensive/fortify caps)
-- Drill/Fortify mechanics with personality caps
-- Retreat recovery blocking
-- Action economy (4 actions/turn)
-- 13-region map with adjacency
+### MVP (Complete)
+- [x] 13 regions with adjacency
+- [x] 5 marshals (3 French, 2 enemy)
+- [x] Basic combat (strength × morale)
+- [x] Movement with adjacency validation
+- [x] Action economy (4 actions/turn)
+- [x] Turn progression with auto-advance
+- [x] Victory/defeat conditions
+- [x] Gold and income system
+- [x] Godot UI with command input
+- [x] Map visualization with colors
+- [x] API connection (port 8005)
+
+### Phase 2: Combat & Disobedience (Complete)
+**✅ IMPLEMENTED:**
+- [x] Combat dice system (2d6 + skill modifiers)
+- [x] Marshal skills (6 skills per marshal)
+- [x] Stance system (Aggressive/Defensive/Neutral)
+- [x] Drill mechanic (+50% shock bonus after 2 turns)
+- [x] Fortify mechanic (+2%/turn defense, max 15-20%)
+- [x] Retreat system (forced at 25% morale, recovery periods)
+- [x] Smart DEFEND command (context-aware: → stance or → fortify)
+- [x] Disobedience as NEGOTIATION (Trust/Insist/Compromise)
+- [x] Authority system (prevents "always trust" exploit)
+- [x] Vindication tracking (marshal track record affects objections)
+- [x] Redemption system (at trust floor: Grant Autonomy / Dismiss / Demand Obedience)
+- [x] Enemy AI decision tree (P1-P8 priorities)
+- [x] Personality-driven AI thresholds (Wellington 1.3, Blucher 0.7)
+- [x] Smart AI safety evaluation (encirclement check before captures)
+- [x] AI fortification opportunity check (unfortify for high-value targets)
+- [x] Enemy Phase popup (full battle details in modal)
+- [x] Attacker movement on victory (advances into captured region)
+- [x] Counter-Punch ability (Davout gets free attack after defending)
+- [x] Battle naming system ("Battle of [Region]")
+
+**📋 REMAINING (Phase 2.5 → 3):**
+- [ ] Autonomy foundation (connect "Grant Autonomy" to Enemy AI)
+- [ ] Strategic commands (MOVE_TO, PURSUE, ATTACK_TARGET)
+- [ ] Order delay (Grouchy moments - orders take TIME)
+- [ ] Grouchy literal bonus/penalty (+10% when commanded, poor autonomous)
+- [ ] Enemy encounter interrupts during strategic commands
+- [ ] Communication cut-off (no path to capital)
+- [ ] Marshal rivalries affect coordination
+- [ ] Special abilities (1 per marshal - partially done)
+- [ ] Flanking system (basic tracking exists, needs coordination)
+- [ ] Post-battle casualty report
+
+### Phase 3: LLM & Advisors (Planned)
+- [ ] Real LLM command parsing (currently mock keyword matching)
+- [ ] LLM marshal personality responses
+- [ ] Advisor gates (Berthier, Talleyrand)
+- [ ] Battle narration generation
 
 **CONCEPTUAL (design only, no code):**
 - Sections marked with "(CONCEPTUAL)" or "(Future)"
-- Nation AI decision trees
 - Diplomacy system
 - Supply/Logistics
 - Coalition triggers
@@ -2683,33 +2836,45 @@ func update_region_color(region_name: String, color: Color):
 
 ## Project Phases
 
-### Phase 1: MVP (Current - 85% complete)
+### Phase 1: MVP ✅ COMPLETE
 - ✅ Core gameplay loop
 - ✅ Action economy
 - ✅ Combat resolution
-- ⏳ Victory/defeat screens
-- ⏳ Full playthrough test
+- ✅ Victory/defeat conditions
+- ✅ Full turn cycle working
 
-### Phase 2: LLM Integration (Next)
+### Phase 2: Combat & AI ✅ COMPLETE
+- ✅ Disobedience system (Trust/Insist/Compromise)
+- ✅ Authority & Vindication tracking
+- ✅ Drill/Fortify/Stance mechanics
+- ✅ Enemy AI (personality-driven decision tree)
+- ✅ Enemy Phase popup UI
+- ✅ Smart AI safety evaluation
+
+### Phase 3: LLM Integration (Next)
 - Real Claude API for marshal responses
 - Personality-driven dialogue
 - Response caching
+- LLM command parsing (currently keyword matching)
 
-### Phase 3: AI Nations
-- AI turn phase
-- LLM decision engine for enemies
-- Coalition coordination
+### Phase 4: Strategic Depth
+- Autonomy system (marshals act independently)
+- Strategic commands (PURSUE, HOLD_REGION)
+- Order delays (Grouchy moments)
+- Flanking coordination
 
-### Phase 4: Diplomacy
+### Phase 5: Diplomacy
 - Natural language negotiation
 - Treaty system
 - Reputation tracking
+- Coalition triggers
 
-### Phase 5: Early Access
+### Phase 6: Early Access
 - Year-based timeline
 - Character death/replacement
 - Vassal system
 - Token monetization
+- Full Europe map (200+ regions)
 
 ---
 
