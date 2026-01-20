@@ -127,9 +127,15 @@ class CommandExecutor:
                 "suggestions": result["suggestions"]
             })
 
-    def _fuzzy_match_enemy(self, enemy_name: str, world: WorldState) -> Tuple[Optional[object], Optional[Dict]]:
+    def _fuzzy_match_enemy(self, enemy_name: str, world: WorldState, attacker_nation: str = None) -> Tuple[Optional[object], Optional[Dict]]:
         """
         Try to find enemy marshal with fuzzy matching for typo tolerance.
+
+        Args:
+            enemy_name: Name of the target marshal
+            world: WorldState instance
+            attacker_nation: Optional nation of the attacker. If provided, finds
+                           enemies of that nation. If None, uses player perspective.
 
         Returns:
             Tuple of (marshal_object, error_dict)
@@ -137,12 +143,17 @@ class CommandExecutor:
             - If suggestion or error: (None, error_dict)
         """
         # Try exact match first
-        enemy = world.get_enemy_by_name(enemy_name)
+        if attacker_nation:
+            # Nation-aware lookup (for enemy AI)
+            enemy = world.get_enemy_by_name_for_nation(enemy_name, attacker_nation)
+            all_enemies = [m.name for m in world.get_enemies_of_nation(attacker_nation)]
+        else:
+            # Player-centric lookup (original behavior)
+            enemy = world.get_enemy_by_name(enemy_name)
+            all_enemies = [m.name for m in world.get_enemy_marshals() if m.strength > 0]
+
         if enemy:
             return (enemy, None)
-
-        # Get all enemy marshal names for fuzzy matching
-        all_enemies = [m.name for m in world.get_enemy_marshals() if m.strength > 0]
 
         if not all_enemies:
             return (None, {
@@ -155,7 +166,10 @@ class CommandExecutor:
 
         if result["action"] == "exact" or result["action"] == "auto_correct":
             # Exact match or high confidence - use corrected name
-            enemy = world.get_enemy_by_name(result["match"])
+            if attacker_nation:
+                enemy = world.get_enemy_by_name_for_nation(result["match"], attacker_nation)
+            else:
+                enemy = world.get_enemy_by_name(result["match"])
             return (enemy, None)
         elif result["action"] == "suggest":
             # Medium confidence - ask for confirmation
@@ -175,18 +189,38 @@ class CommandExecutor:
             })
 
     def _execute_end_turn(self, command: Dict, game_state: Dict) -> Dict:
-        """End turn early, skipping remaining actions. Uses TurnManager to process tactical states."""
+        """
+        End turn early, skipping remaining actions.
+
+        Uses TurnManager to:
+        1. Process autonomous marshals
+        2. Process ENEMY AI TURNS (all enemy nations take actions)
+        3. Process tactical states (drill, fortify, retreat)
+        4. Advance turn
+        """
         world: WorldState = game_state.get("world")
 
         if not world:
             return {"success": False, "message": "Error: No world state"}
 
-        # Use TurnManager to properly process tactical states (drill, fortify, retreat)
+        # Use TurnManager to process everything including ENEMY AI
         turn_manager = TurnManager(world)
-        turn_result = turn_manager.end_turn()
+        turn_result = turn_manager.end_turn(game_state)  # Pass game_state for enemy AI
 
         # Build message with tactical events
         message = f"Turn {turn_result['turn_ended']} ended. Turn {turn_result['next_turn']} begins!"
+
+        # Add enemy phase summary if present
+        enemy_phase = turn_result.get("enemy_phase")
+        if enemy_phase and enemy_phase.get("total_actions", 0) > 0:
+            message += "\n\n═══ ENEMY PHASE ═══"
+            for summary in enemy_phase.get("summary", []):
+                message += f"\n{summary}"
+
+            # Check for enemy victory
+            if enemy_phase.get("enemy_victory"):
+                ev = enemy_phase["enemy_victory"]
+                message += f"\n\n⚠️ {ev['message']}"
 
         # Add tactical event messages
         tactical_messages = []
@@ -206,6 +240,7 @@ class CommandExecutor:
             "message": message,
             "events": turn_result.get("events", []),
             "tactical_events": tactical_messages,
+            "enemy_phase": enemy_phase,
             "new_state": game_state
         }
 
@@ -355,7 +390,15 @@ RETREAT RECOVERY (3 turns):
         # Check if action costs points
         action_costs_point = action not in free_actions
 
-        if action_costs_point:
+        # Check if this is a player action (enemy AI has separate action budget)
+        is_player_action_check = True
+        early_marshal_name = command.get("marshal")
+        if early_marshal_name:
+            early_marshal = world.get_marshal(early_marshal_name)
+            if early_marshal and early_marshal.nation != world.player_nation:
+                is_player_action_check = False  # Enemy AI - skip player action check
+
+        if action_costs_point and is_player_action_check:
             # Check if actions available (but DON'T consume yet)
             if world.actions_remaining <= 0:
                 return {
@@ -647,9 +690,18 @@ RETREAT RECOVERY (3 turns):
         # Only consume action if:
         # 1. Command succeeded
         # 2. Action costs a point (not free)
+        # 3. Marshal belongs to player nation (enemy AI has separate action budget)
         action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
 
-        if result.get("success", False) and action_costs_point:
+        # Determine if this is a player action (should consume from player's action budget)
+        is_player_action = True  # Default to player action
+        marshal_name = command.get("marshal")
+        if marshal_name:
+            executing_marshal = world.get_marshal(marshal_name)
+            if executing_marshal and executing_marshal.nation != world.player_nation:
+                is_player_action = False  # Enemy AI action - don't consume player actions
+
+        if result.get("success", False) and action_costs_point and is_player_action:
             # Check for variable action cost (stance_change returns this)
             variable_cost = result.get("variable_action_cost")
             if variable_cost is not None:
@@ -943,7 +995,8 @@ RETREAT RECOVERY (3 turns):
         # ============================================================
 
         # Try fuzzy matching for enemy marshal name first
-        enemy_by_name, enemy_error = self._fuzzy_match_enemy(target, world)
+        # Pass attacker's nation for nation-aware enemy lookup (required for enemy AI)
+        enemy_by_name, enemy_error = self._fuzzy_match_enemy(target, world, marshal.nation)
         resolved_target = target
 
         if not enemy_by_name:
@@ -985,8 +1038,9 @@ RETREAT RECOVERY (3 turns):
                 marshal_type = "cavalry" if marshal.movement_range == 2 else "infantry"
 
                 # Find closer targets within range
+                # Use nation-aware enemy lookup (required for enemy AI)
                 nearby_targets = []
-                for enemy in world.get_enemy_marshals():
+                for enemy in world.get_enemies_of_nation(marshal.nation):
                     if enemy.strength > 0:
                         enemy_distance = world.get_distance(marshal.location, enemy.location)
                         if enemy_distance <= marshal.movement_range:
@@ -1012,14 +1066,15 @@ RETREAT RECOVERY (3 turns):
         # ============================================================
 
         # Find enemy marshal - either by name or at target location
+        # Use nation-aware lookups (required for enemy AI to attack player marshals)
         enemy_marshal = None
 
         # Check if target is an enemy marshal name (use original target for enemy names)
-        enemy_marshal = world.get_enemy_by_name(target)
+        enemy_marshal = world.get_enemy_by_name_for_nation(target, marshal.nation)
 
         if not enemy_marshal:
             # Check if target is a region with enemies (use resolved_target for regions)
-            enemy_marshal = world.get_enemy_at_location(resolved_target)
+            enemy_marshal = world.get_enemy_at_location_for_nation(resolved_target, marshal.nation)
 
         if not enemy_marshal:
             # No enemy found - target should already be resolved, get the region
@@ -1027,22 +1082,28 @@ RETREAT RECOVERY (3 turns):
 
             if target_region:
                 # Check if already controlled
-                if target_region.controller == world.player_nation:
+                # ENEMY AI FIX: Use attacker's nation, not hardcoded player_nation
+                if target_region.controller == marshal.nation:
                     return {
                         "success": False,
-                        "message": f"{resolved_target} is already controlled by France"
+                        "message": f"{resolved_target} is already controlled by {marshal.nation}"
                     }
 
-                # Check for any defenders
-                defenders = [e for e in world.get_enemy_marshals()
-                            if e.location == resolved_target and e.strength > 0]
+                # Check for any defenders (marshals from nations other than attacker)
+                defenders = [m for m in world.marshals.values()
+                            if m.location == resolved_target and m.strength > 0 and m.nation != marshal.nation]
 
                 if not defenders:
                     # UNDEFENDED - Instant capture!
+                    # ENEMY AI FIX: Use attacker's nation, not hardcoded player_nation
                     old_controller = target_region.controller
-                    world.capture_region(resolved_target, world.player_nation)
+                    old_location = marshal.location
 
-                    capture_message = f"{marshal.name} marches into {resolved_target} unopposed! Captured: {old_controller} → France"
+                    # Move attacker to captured region
+                    marshal.move_to(resolved_target)
+                    world.capture_region(resolved_target, marshal.nation)
+
+                    capture_message = f"{marshal.name} marches from {old_location} into {resolved_target} unopposed! Captured: {old_controller} → {marshal.nation}"
                     if drill_cancelled_message:
                         capture_message = drill_cancelled_message + capture_message
 
@@ -1145,24 +1206,34 @@ RETREAT RECOVERY (3 turns):
         if marshal.strength <= 0:
             world.marshals.pop(marshal.name, None)
 
-        # ===== REGION CONQUEST LOGIC =====
+        # ===== ATTACKER MOVEMENT & REGION CONQUEST LOGIC =====
         conquered = False  # INITIALIZE HERE!
         conquest_msg = ""  # INITIALIZE HERE!
+        attacker_moved = False
+        movement_msg = ""
+
+        # Move attacker to target location if they won the battle and are still alive
+        if battle_result["victor"] == marshal.name and marshal.strength > 0:
+            if marshal.location != target_location:
+                marshal.move_to(target_location)
+                attacker_moved = True
+                movement_msg = f" {marshal.name} advances into {target_location}."
 
         # Check if we're attacking a region (not just a marshal name)
+        # ENEMY AI FIX: Use attacker's nation, not hardcoded player_nation
         target_region = world.get_region(resolved_target)
-        if target_region and target_region.controller != world.player_nation:
-            # Find all remaining enemy defenders in this region
+        if target_region and target_region.controller != marshal.nation:
+            # Find all remaining defenders (marshals from nations other than attacker)
             remaining_defenders = [
-                m for m in world.get_enemy_marshals()
-                if m.location == resolved_target and m.strength > 0
+                m for m in world.marshals.values()
+                if m.location == resolved_target and m.strength > 0 and m.nation != marshal.nation
             ]
 
             # If no defenders left, capture the region!
             if not remaining_defenders:
-                world.capture_region(resolved_target, world.player_nation)
+                world.capture_region(resolved_target, marshal.nation)
                 conquered = True
-                conquest_msg = f" {resolved_target} has been captured!"
+                conquest_msg = f" {resolved_target} has been captured by {marshal.nation}!"
 
         # Build message with flanking info if applicable
         flanking_prefix = ""
@@ -1201,7 +1272,7 @@ RETREAT RECOVERY (3 turns):
         )
 
         # Build final message with optional drill cancellation prefix, counter-punch, and cavalry charge
-        battle_message = counter_punch_message + cavalry_charge_message + flanking_prefix + battle_result["description"] + destroyed_msg + conquest_msg + vindication_msg + forced_retreat_msg
+        battle_message = counter_punch_message + cavalry_charge_message + flanking_prefix + battle_result["description"] + destroyed_msg + movement_msg + conquest_msg + vindication_msg + forced_retreat_msg
         if drill_cancelled_message:
             battle_message = drill_cancelled_message + battle_message
 
@@ -2058,13 +2129,14 @@ RETREAT RECOVERY (3 turns):
             conquest_msg = ""
 
             # Check for region conquest after enemy destroyed
+            # ENEMY AI FIX: Use attacker's nation, not hardcoded player_nation
             if enemy_destroyed:
-                remaining_defenders = [e for e in world.get_enemy_marshals()
-                                     if e.location == target_name and e.strength > 0]
+                remaining_defenders = [m for m in world.marshals.values()
+                                     if m.location == target_name and m.strength > 0 and m.nation != nearest_marshal.nation]
                 if not remaining_defenders:
-                    world.capture_region(target_name, world.player_nation)
+                    world.capture_region(target_name, nearest_marshal.nation)
                     conquered = True
-                    conquest_msg = f" {target_name} has been captured!"
+                    conquest_msg = f" {target_name} has been captured by {nearest_marshal.nation}!"
 
             # Build message with flanking info
             flanking_prefix = ""
@@ -2121,21 +2193,22 @@ RETREAT RECOVERY (3 turns):
             }
 
         # UNDEFENDED - Instant capture!
-        if target_region.controller == world.player_nation:
+        # ENEMY AI FIX: Use attacker's nation, not hardcoded player_nation
+        if target_region.controller == nearest_marshal.nation:
             return {
                 "success": True,
-                "message": f"{target_name} is already controlled by France",
+                "message": f"{target_name} is already controlled by {nearest_marshal.nation}",
                 "events": [],
                 "new_state": game_state
             }
 
         # Capture undefended region!
         old_controller = target_region.controller
-        world.capture_region(target_name, world.player_nation)
+        world.capture_region(target_name, nearest_marshal.nation)
 
         return {
             "success": True,
-            "message": f"{nearest_marshal.name} marches into {target_name} unopposed! Captured: {old_controller} → France",
+            "message": f"{nearest_marshal.name} marches into {target_name} unopposed! Captured: {old_controller} → {nearest_marshal.nation}",
             "events": [{
                 "type": "conquest",
                 "marshal": nearest_marshal.name,
@@ -2366,7 +2439,8 @@ RETREAT RECOVERY (3 turns):
             }
 
         # Check for enemies at current location (can't drill with enemy present)
-        enemy_at_location = world.get_enemy_at_location(marshal.location)
+        # Use nation-aware lookup so enemies can drill too (not just player marshals)
+        enemy_at_location = world.get_enemy_at_location_for_nation(marshal.location, marshal.nation)
         if enemy_at_location and enemy_at_location.strength > 0:
             return {
                 "success": False,
@@ -2374,10 +2448,11 @@ RETREAT RECOVERY (3 turns):
             }
 
         # Check for enemies in adjacent regions (too risky to drill)
+        # Use nation-aware lookup so enemies can drill too
         current_region = world.get_region(marshal.location)
         if current_region:
             for adj_name in current_region.adjacent_regions:
-                for enemy in world.get_enemy_marshals():
+                for enemy in world.get_enemies_of_nation(marshal.nation):
                     if enemy.location == adj_name and enemy.strength > 0:
                         return {
                             "success": False,
@@ -2773,7 +2848,10 @@ RETREAT RECOVERY (3 turns):
         - Def ↔ Agg: 2 actions
         """
         marshal_name = command.get("marshal")
-        target_stance_str = command.get("target_stance", "neutral").lower()
+        # Support both "target_stance" and "target" as parameter names
+        # (AI uses "target", player commands may use "target_stance")
+        target_stance_str = command.get("target_stance") or command.get("target") or "neutral"
+        target_stance_str = target_stance_str.lower()
         world: WorldState = game_state.get("world")
 
         if not world:

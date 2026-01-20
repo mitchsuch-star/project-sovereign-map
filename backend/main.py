@@ -71,7 +71,7 @@ def execute_command(request: CommandRequest):
     try:
         # Parse command
         parsed = parser.parse(request.command)
-        print(f"✅ Parsed: {parsed.get('command', {}).get('action', 'unknown')}")
+        print(f"[OK] Parsed: {parsed.get('command', {}).get('action', 'unknown')}")
 
         # Execute command
         result = executor.execute(parsed, game_state)
@@ -89,7 +89,7 @@ def execute_command(request: CommandRequest):
         # Get action summary
         action_summary = world.get_action_summary()
 
-        return {
+        response = {
             "success": result.get("success", False),
             "message": result.get("message", "Command executed"),
             "events": result.get("events", []),
@@ -97,8 +97,34 @@ def execute_command(request: CommandRequest):
             "action_summary": action_summary,
             "game_state": world.get_game_state_summary()
         }
+
+        # Include enemy_phase if present (from end_turn)
+        # Clean up non-serializable fields (new_state contains circular references)
+        if result.get("enemy_phase"):
+            enemy_phase = result["enemy_phase"]
+            cleaned_phase = {
+                "nations": {},
+                "total_actions": enemy_phase.get("total_actions", 0),
+                "summary": enemy_phase.get("summary", [])
+            }
+            # Clean each nation's actions
+            for nation, nation_data in enemy_phase.get("nations", {}).items():
+                cleaned_actions = []
+                for action in nation_data.get("actions", []):
+                    # Remove new_state which has circular references
+                    cleaned_action = {k: v for k, v in action.items() if k != "new_state"}
+                    cleaned_actions.append(cleaned_action)
+                cleaned_phase["nations"][nation] = {
+                    "actions": cleaned_actions,
+                    "action_count": nation_data.get("action_count", 0)
+                }
+            if enemy_phase.get("enemy_victory"):
+                cleaned_phase["enemy_victory"] = enemy_phase["enemy_victory"]
+            response["enemy_phase"] = cleaned_phase
+
+        return response
     except Exception as e:
-        print(f"❌ ERROR: {e}")
+        print(f"[ERROR]: {e}")
         import traceback
         traceback.print_exc()
 

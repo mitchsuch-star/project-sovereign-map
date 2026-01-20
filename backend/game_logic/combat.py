@@ -337,6 +337,10 @@ class CombatResolver:
             attacker.adjust_morale(-20)
             defender.battles_won += 1
             attacker.battles_lost += 1
+            # COUNTER-PUNCH: Cautious defenders (Davout) get free attack after winning defense
+            if getattr(defender, 'personality', '') == 'cautious':
+                defender.counter_punch_available = True
+                print(f"  [COUNTER-PUNCH EARNED] {defender.name} can now attack for FREE!")
         elif defender.strength <= 0:
             victor = attacker
             outcome = "attacker_victory"
@@ -351,6 +355,10 @@ class CombatResolver:
                 outcome = "defender_tactical_victory"
                 defender.adjust_morale(5)
                 attacker.adjust_morale(-10)
+                # COUNTER-PUNCH: Cautious defenders (Davout) get free attack after winning defense
+                if getattr(defender, 'personality', '') == 'cautious':
+                    defender.counter_punch_available = True
+                    print(f"  [COUNTER-PUNCH EARNED] {defender.name} can now attack for FREE!")
             elif defender_casualties > attacker_casualties * 1.5:
                 victor = attacker
                 outcome = "attacker_tactical_victory"

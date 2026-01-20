@@ -1,9 +1,14 @@
 """
 Turn Manager for Project Sovereign
 Handles turn progression and game loop
+
+Includes Enemy AI turn processing:
+- After player ends turn, enemy nations take their turns
+- Each nation gets N actions (configurable)
+- Uses same executor as player (building blocks principle)
 """
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 from backend.models.world_state import WorldState
 
 
@@ -46,12 +51,19 @@ class TurnManager:
             "message": f"Turn {self.world.current_turn} begins"
         }
 
-    def end_turn(self) -> Dict:
+    def end_turn(self, game_state: Optional[Dict] = None) -> Dict:
         """
         End turn and advance.
 
-        TODO (Post-MVP): Add _process_enemy_turns() here
-        Enemy nations should take actions before turn advances.
+        Processes:
+        1. Autonomy countdown for autonomous player marshals
+        2. Enemy AI turns (all enemy nations take actions)
+        3. Tactical state processing (drill, fortify, retreat for ALL marshals)
+        4. Turn advancement
+        5. Victory/defeat check
+
+        Args:
+            game_state: Game state dict for executor (required for enemy AI)
         """
         old_turn = self.world.current_turn
 
@@ -61,9 +73,18 @@ class TurnManager:
         autonomy_events = self._process_autonomy_countdown()
 
         # ════════════════════════════════════════════════════════════
+        # ENEMY AI TURN PHASE: All enemy nations take their turns
+        # ════════════════════════════════════════════════════════════
+        enemy_phase_results = None
+        if game_state:
+            enemy_phase_results = self._process_enemy_turns(game_state)
+            # Store for later retrieval if needed
+            self.world._last_enemy_phase_results = enemy_phase_results
+
+        # ════════════════════════════════════════════════════════════
         # ADVANCE TURN (includes tactical state processing!)
         # WorldState._advance_turn_internal() now handles:
-        # - Tactical states (drill/fortify/retreat)
+        # - Tactical states (drill/fortify/retreat) for ALL marshals
         # - Income application
         # - Action reset
         # ════════════════════════════════════════════════════════════
@@ -94,6 +115,10 @@ class TurnManager:
         if tactical_events:
             all_events.extend(tactical_events)
             result["tactical_events"] = tactical_events
+
+        # Add enemy phase results
+        if enemy_phase_results:
+            result["enemy_phase"] = enemy_phase_results
 
         if all_events:
             result["events"] = all_events
@@ -158,6 +183,93 @@ class TurnManager:
                 })
 
         return events
+
+    def _process_enemy_turns(self, game_state: Dict) -> Dict:
+        """
+        Process all enemy nations' turns.
+
+        Each enemy nation gets actions based on nation_actions config.
+        Uses EnemyAI decision tree to select actions.
+        Executes through same executor as player.
+
+        Args:
+            game_state: Game state dict for executor
+
+        Returns:
+            Dict with results for each nation
+        """
+        from backend.ai.enemy_ai import EnemyAI
+        from backend.commands.executor import CommandExecutor
+
+        print("\n" + "=" * 70)
+        print("ENEMY PHASE")
+        print("=" * 70)
+
+        # Create executor and AI
+        executor = CommandExecutor()
+        ai = EnemyAI(executor)
+
+        results = {
+            "nations": {},
+            "total_actions": 0,
+            "summary": []
+        }
+
+        # Process each enemy nation
+        for nation in self.world.enemy_nations:
+            # Check if nation has any marshals
+            marshals = self.world.get_marshals_by_nation(nation)
+            if not marshals:
+                print(f"\n{nation} has no marshals remaining - skipping")
+                results["summary"].append(f"{nation}: No marshals (eliminated?)")
+                continue
+
+            # Process this nation's turn
+            nation_results = ai.process_nation_turn(nation, self.world, game_state)
+
+            results["nations"][nation] = {
+                "actions": nation_results,
+                "action_count": len(nation_results)
+            }
+            results["total_actions"] += len(nation_results)
+
+            # Build summary for this nation
+            nation_summary = f"{nation} ({len(nation_results)} actions)"
+            if nation_results:
+                action_types = [r.get("ai_action", {}).get("action", "unknown") for r in nation_results]
+                nation_summary += f": {', '.join(action_types)}"
+            results["summary"].append(nation_summary)
+
+        # Check enemy win condition
+        enemy_victory = self._check_enemy_victory()
+        if enemy_victory:
+            results["enemy_victory"] = enemy_victory
+
+        print("\n" + "=" * 70)
+        print("ENEMY PHASE COMPLETE")
+        print(f"Total actions: {results['total_actions']}")
+        print("=" * 70)
+
+        return results
+
+    def _check_enemy_victory(self) -> Optional[Dict]:
+        """
+        Check if any enemy nation has achieved victory conditions.
+
+        Enemy wins if they control 8+ regions.
+
+        Returns:
+            Dict with victory info, or None if no enemy victory
+        """
+        for nation in self.world.enemy_nations:
+            regions = self.world.get_nation_regions(nation)
+            if len(regions) >= 8:
+                return {
+                    "nation": nation,
+                    "regions_controlled": len(regions),
+                    "message": f"{nation} has conquered Europe! They control {len(regions)} regions."
+                }
+        return None
 
     def _generate_situation_report(self) -> Dict:
         """Generate situation report for player."""

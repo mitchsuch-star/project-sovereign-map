@@ -100,6 +100,31 @@ class WorldState:
         # None when no redemption pending, Dict when awaiting player choice
         self.pending_redemption: Optional[Dict] = None
 
+        # ============================================================
+        # ENEMY AI SYSTEM - Nation tracking and battle naming
+        # ============================================================
+
+        # Explicit list of enemy nations (not derived from marshals)
+        # Nations exist even if all their marshals are destroyed
+        # TODO: Expand to full nation system with gold, diplomacy, etc.
+        self.enemy_nations: List[str] = ["Britain", "Prussia"]
+
+        # Actions per nation (configurable for future nation-specific economies)
+        # TODO: Future expansion - France 5, Austria 3, Russia 3, etc.
+        self.nation_actions: Dict[str, int] = {
+            "Britain": 4,
+            "Prussia": 4,
+        }
+
+        # Battle tracking for naming and history
+        # Active battles: region_name -> battle info dict
+        self.active_battles: Dict[str, Dict] = {}
+        # Completed battles for history/narrative
+        self.battle_history: List[Dict] = []
+
+        # Store last enemy phase results for frontend display
+        self._last_enemy_phase_results: Optional[Dict] = None
+
     def _setup_initial_control(self) -> None:
         """Set up which nation controls which regions at start."""
         # France starts controlling these regions
@@ -187,6 +212,175 @@ class WorldState:
                 if marshal.strength > 0:  # Only return alive marshals
                     return marshal
         return None
+
+    def get_marshals_by_nation(self, nation: str) -> List[Marshal]:
+        """
+        Get all marshals belonging to a specific nation.
+
+        Used by enemy AI to get all marshals for a nation's turn.
+
+        Args:
+            nation: Nation name (e.g., "Britain", "Prussia")
+
+        Returns:
+            List of Marshal objects belonging to that nation
+        """
+        return [
+            marshal for marshal in self.marshals.values()
+            if marshal.nation == nation and marshal.strength > 0
+        ]
+
+    def get_enemies_of_nation(self, nation: str) -> List[Marshal]:
+        """
+        Get all marshals that are enemies of a specific nation.
+
+        Used by enemy AI to find attack targets.
+
+        Args:
+            nation: The nation whose enemies we want
+
+        Returns:
+            List of Marshal objects that are enemies of the given nation
+        """
+        return [
+            marshal for marshal in self.marshals.values()
+            if marshal.nation != nation and marshal.strength > 0
+        ]
+
+    def get_enemy_by_name_for_nation(self, name: str, attacker_nation: str) -> Optional[Marshal]:
+        """
+        Get an enemy marshal by name from the perspective of a specific nation.
+
+        Used by attack logic to find target marshal when attacker is not the player.
+
+        Args:
+            name: Name of the target marshal
+            attacker_nation: Nation doing the attacking
+
+        Returns:
+            Marshal if found and is enemy of attacker_nation, None otherwise
+        """
+        marshal = self.marshals.get(name)
+        if marshal and marshal.nation != attacker_nation and marshal.strength > 0:
+            return marshal
+        return None
+
+    def get_enemy_at_location_for_nation(self, location: str, attacker_nation: str) -> Optional[Marshal]:
+        """
+        Get enemy marshal at a location from the perspective of a specific nation.
+
+        Args:
+            location: Region name to check
+            attacker_nation: Nation doing the attacking
+
+        Returns:
+            First enemy marshal at location with strength > 0
+        """
+        for marshal in self.marshals.values():
+            if marshal.location == location and marshal.nation != attacker_nation:
+                if marshal.strength > 0:
+                    return marshal
+        return None
+
+    # ========================================
+    # BATTLE TRACKING (for naming and history)
+    # ========================================
+
+    def start_or_continue_battle(self, region: str, attacker: Marshal, defender: Marshal) -> Dict:
+        """
+        Start a new battle or continue an existing one in a region.
+
+        Tracks engagements for battle naming ("2nd Engagement of the Battle of Waterloo").
+
+        Args:
+            region: Region where battle occurs
+            attacker: Attacking marshal
+            defender: Defending marshal
+
+        Returns:
+            Dict with battle info including name and engagement count
+        """
+        if region in self.active_battles:
+            # Continue existing battle
+            battle = self.active_battles[region]
+            battle["engagement_count"] += 1
+            battle["participants"].add(attacker.name)
+            battle["participants"].add(defender.name)
+
+            # Generate engagement name
+            ordinal = self._get_ordinal(battle["engagement_count"])
+            engagement_name = f"{ordinal} Engagement of the {battle['name']}"
+
+            return {
+                "battle_name": battle["name"],
+                "engagement_name": engagement_name,
+                "engagement_count": battle["engagement_count"],
+                "is_new_battle": False
+            }
+        else:
+            # Start new battle
+            battle_name = f"Battle of {region}"
+            self.active_battles[region] = {
+                "name": battle_name,
+                "region": region,
+                "participants": {attacker.name, defender.name},
+                "engagement_count": 1,
+                "started_turn": self.current_turn
+            }
+
+            return {
+                "battle_name": battle_name,
+                "engagement_name": battle_name,  # First engagement is just the battle name
+                "engagement_count": 1,
+                "is_new_battle": True
+            }
+
+    def end_battle_if_needed(self, region: str) -> Optional[Dict]:
+        """
+        Check if a battle should end and archive it if so.
+
+        A battle ends when only one nation (or no nations) remains in the region.
+
+        Args:
+            region: Region to check
+
+        Returns:
+            Archived battle dict if battle ended, None otherwise
+        """
+        if region not in self.active_battles:
+            return None
+
+        # Get all marshals still in this region
+        marshals_in_region = [
+            m for m in self.marshals.values()
+            if m.location == region and m.strength > 0
+        ]
+
+        # Get unique nations present
+        nations_present = set(m.nation for m in marshals_in_region)
+
+        # Battle ends if only one nation (or none) remains
+        if len(nations_present) <= 1:
+            battle = self.active_battles.pop(region)
+            battle["ended_turn"] = self.current_turn
+            battle["participants"] = list(battle["participants"])  # Convert set to list for JSON
+            self.battle_history.append(battle)
+            return battle
+
+        return None
+
+    def get_battle_name(self, region: str) -> str:
+        """Get the name of an active battle in a region, or generate one."""
+        if region in self.active_battles:
+            return self.active_battles[region]["name"]
+        return f"Battle of {region}"
+
+    def _get_ordinal(self, n: int) -> str:
+        """Convert number to ordinal string (1st, 2nd, 3rd, etc.)."""
+        if 11 <= n <= 13:
+            return f"{n}th"
+        suffixes = {1: "st", 2: "nd", 3: "rd"}
+        return f"{n}{suffixes.get(n % 10, 'th')}"
 
     def capture_region(self, region_name: str, capturing_nation: str) -> bool:
         """Capture a region (change controller)."""
@@ -860,9 +1054,13 @@ class WorldState:
         just_completed_drill = set()
 
         for marshal in self.marshals.values():
-            # Skip non-player marshals for now
-            if marshal.nation != self.player_nation:
-                continue
+            # ════════════════════════════════════════════════════════════
+            # ENEMY AI FIX: Process tactical states for ALL marshals
+            # Enemies are real generals - same drill, fortify, retreat rules
+            # ════════════════════════════════════════════════════════════
+
+            # Track if this is a player marshal (for UI events only)
+            is_player_marshal = (marshal.nation == self.player_nation)
 
             # ════════════════════════════════════════════════════════════
             # DRILL STATE PROGRESSION

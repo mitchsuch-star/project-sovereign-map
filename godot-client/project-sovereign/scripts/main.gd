@@ -27,6 +27,10 @@ var objection_dialog = null
 # Redemption Dialog
 var redemption_dialog = null
 
+# Enemy Phase Dialog
+var enemy_phase_dialog = null
+var pending_enemy_phase_response = null  # Store response to check game_over after dismissal
+
 # API Client
 var api_client = null
 
@@ -94,6 +98,24 @@ func _ready():
 			add_child(redemption_dialog)
 			redemption_dialog.choice_made.connect(_on_redemption_choice_made)
 			print("✓ RedemptionDialog ready!")
+
+	# Load and setup Enemy Phase Dialog
+	print("🔧 Loading EnemyPhaseDialog scene...")
+	var enemy_phase_scene = load("res://scenes/enemy_phase_dialog.tscn")
+	if enemy_phase_scene == null:
+		push_error("❌ FAILED to load enemy_phase_dialog.tscn!")
+		print("❌ FAILED to load enemy_phase_dialog.tscn!")
+	else:
+		print("✓ Enemy phase scene loaded, instantiating...")
+		enemy_phase_dialog = enemy_phase_scene.instantiate()
+		if enemy_phase_dialog == null:
+			push_error("❌ FAILED to instantiate EnemyPhaseDialog!")
+			print("❌ FAILED to instantiate EnemyPhaseDialog!")
+		else:
+			print("✓ Enemy phase dialog instantiated, adding to tree...")
+			add_child(enemy_phase_dialog)
+			enemy_phase_dialog.dismissed.connect(_on_enemy_phase_dismissed)
+			print("✓ EnemyPhaseDialog ready!")
 
 	# Connect signals
 	if not send_button.pressed.is_connected(_on_send_button_pressed):
@@ -260,6 +282,17 @@ func _on_command_result(response):
 
 		# Format and display result based on event type
 		_display_result(response)
+
+		# Check for enemy phase (from end_turn)
+		if response.has("enemy_phase") and response.enemy_phase.get("total_actions", 0) > 0:
+			print("ENEMY PHASE DETECTED - showing dialog")
+			set_input_enabled(false)  # Disable input until dismissed
+			var turn = current_turn
+			if response.has("action_summary"):
+				turn = int(response.action_summary.get("turn", current_turn))
+			pending_enemy_phase_response = response  # Store to check game_over after dismiss
+			_show_enemy_phase_dialog(response.enemy_phase, turn)
+			return  # Don't re-enable input until dialog dismissed
 
 		# Check for game over
 		if response.has("game_state") and response.game_state.has("game_over"):
@@ -804,6 +837,40 @@ func _on_redemption_response(response):
 	else:
 		add_output("[color=#" + COLOR_ERROR + "]" + response.message + "[/color]")
 		add_output("")
+
+	set_input_enabled(true)
+	command_input.grab_focus()
+
+
+func _show_enemy_phase_dialog(enemy_phase: Dictionary, turn: int):
+	"""Display enemy phase popup with full battle details."""
+	print("Showing enemy phase dialog for turn ", turn)
+
+	# Check if dialog exists
+	if enemy_phase_dialog == null:
+		print("ERROR: enemy_phase_dialog is NULL!")
+		push_error("enemy_phase_dialog is NULL! Cannot show dialog.")
+		# Fallback: just re-enable input
+		set_input_enabled(true)
+		return
+
+	# Show the dialog
+	enemy_phase_dialog.show_enemy_phase(enemy_phase, turn)
+
+
+func _on_enemy_phase_dismissed():
+	"""Handle enemy phase dialog dismissal."""
+	print("Enemy phase dialog dismissed")
+
+	# Check for game over (Paris captured, all marshals destroyed, etc.)
+	if pending_enemy_phase_response != null:
+		var response = pending_enemy_phase_response
+		pending_enemy_phase_response = null  # Clear it
+
+		if response.has("game_state") and response.game_state.has("game_over"):
+			if response.game_state.game_over:
+				_show_game_over_screen(response.game_state)
+				return  # Don't re-enable input
 
 	set_input_enabled(true)
 	command_input.grab_focus()
