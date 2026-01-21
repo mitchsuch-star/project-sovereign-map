@@ -37,15 +37,17 @@ class EnemyAI:
         "loyal": 1.0,        # Even odds
     }
 
-    # Thresholds to ABANDON FORTIFICATION for attack opportunity
-    # Higher than normal - need overwhelming advantage to leave fortified position
-    FORTIFICATION_ABANDON_THRESHOLD = {
-        "aggressive": 1.0,   # Even odds (but aggressive rarely fortify anyway)
-        "cautious": 2.0,     # Need 2:1 advantage to abandon fortification
-        "literal": 1.5,      # Need clear advantage
-        "balanced": 1.5,     # Need clear advantage
-        "loyal": 1.5,        # Need clear advantage
-    }
+    # DEPRECATED: No longer used to prevent oscillation
+    # Thresholds to ABANDON FORTIFICATION for attack opportunity were causing
+    # Wellington to oscillate: fortify → unfortify → no attack → fortify
+    # Attack opportunities are now handled by normal attack priority (P4) only
+    # FORTIFICATION_ABANDON_THRESHOLD = {
+    #     "aggressive": 1.0,   # Even odds (but aggressive rarely fortify anyway)
+    #     "cautious": 2.0,     # Need 2:1 advantage to abandon fortification
+    #     "literal": 1.5,      # Need clear advantage
+    #     "balanced": 1.5,     # Need clear advantage
+    #     "loyal": 1.5,        # Need clear advantage
+    # }
 
     # Maximum adjacent enemies tolerated when capturing a region
     # More enemies = higher risk of being counter-attacked or encircled
@@ -822,12 +824,14 @@ class EnemyAI:
         """
         Check if a fortified marshal should unfortify for a high-value opportunity.
 
-        Priority 4a: Called BEFORE attack/capture checks.
+        Priority 3.5: Called BEFORE attack/capture checks.
         Returns "unfortify" action if opportunity warrants abandoning fortification.
 
         Opportunities checked:
         1. Undefended enemy region nearby (always worth it - no risk)
-        2. Enemy with overwhelming advantage nearby (personality-based threshold)
+
+        NOTE: Does NOT check for attack opportunities to prevent oscillation.
+        Attack opportunities are handled by normal attack priority (P4) only.
 
         Args:
             marshal: The marshal to evaluate
@@ -881,27 +885,16 @@ class EnemyAI:
                     print(f"  [FORTIFICATION CHECK] {marshal.name}: {adj_name} undefended but unsafe - {reason}")
 
         # ════════════════════════════════════════════════════════════
-        # CHECK 2: Overwhelming attack opportunity
+        # NOTE: We do NOT check for attack opportunities here!
         # ════════════════════════════════════════════════════════════
-        threshold = self.FORTIFICATION_ABANDON_THRESHOLD.get(personality, 1.5)
-        enemies = world.get_enemies_of_nation(nation)
-
-        for enemy in enemies:
-            # Check if in range
-            distance = world.get_distance(marshal.location, enemy.location)
-            movement_range = getattr(marshal, 'movement_range', 1)
-
-            if distance <= movement_range:
-                # Calculate strength ratio
-                ratio = marshal.strength / enemy.strength if enemy.strength > 0 else 999
-
-                if ratio >= threshold:
-                    # Overwhelming advantage - worth abandoning fortification
-                    print(f"  [FORTIFICATION OPPORTUNITY] {marshal.name}: {ratio:.1f}:1 advantage vs {enemy.name} (threshold: {threshold}) - unfortifying to attack")
-                    return {
-                        "marshal": marshal.name,
-                        "action": "unfortify"
-                    }
+        # Reason: Attack opportunities are speculative. Even with overwhelming
+        # odds, the AI might not attack due to stance changes, priorities, or
+        # other factors. This causes oscillation: unfortify → no attack → fortify.
+        #
+        # Undefended captures are different - they're always executed immediately
+        # with no combat risk. Attack opportunities should be handled by the
+        # normal attack priority (P4) instead.
+        # ════════════════════════════════════════════════════════════
 
         # No opportunity worth abandoning fortification
         return None
