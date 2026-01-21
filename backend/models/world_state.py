@@ -1263,13 +1263,11 @@ class WorldState:
                 })
 
         # ════════════════════════════════════════════════════════════
-        # COUNTER-PUNCH EXPIRATION (Phase 2.8): Davout's free attack expires
+        # COUNTER-PUNCH EXPIRATION (Phase 2.8): Cautious marshals' free attack expires
         # Counter-Punch must be used the turn after defending, or it's lost
+        # Applies to ALL cautious marshals (Davout, Wellington) regardless of nation
         # ════════════════════════════════════════════════════════════
         for marshal in self.marshals.values():
-            if marshal.nation != self.player_nation:
-                continue
-
             counter_punch = getattr(marshal, 'counter_punch_available', False)
             if counter_punch:
                 # Counter-punch wasn't used this turn - it expires

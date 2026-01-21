@@ -125,14 +125,6 @@ class EnemyAI:
                 print(f"  No valid actions remaining for {nation}")
                 break
 
-            # Check if this is a free action and enforce limit
-            is_free_action = not self._action_costs_point(best_action["action"])
-            if is_free_action:
-                free_action_count += 1
-                if free_action_count > max_free_actions:
-                    print(f"  Maximum free actions reached for {nation}")
-                    break
-
             # Execute the action
             action_count += 1
             print(f"\n  Action {action_count}: {best_action['marshal']} -> {best_action['action']}")
@@ -141,6 +133,21 @@ class EnemyAI:
             result["nation"] = nation
             result["action_number"] = action_count
             results.append(result)
+
+            # Check if this is a free action:
+            # 1. Action type is inherently free (wait, retreat, etc.)
+            # 2. OR executor returned free_action=True (counter-punch)
+            is_free_action_type = not self._action_costs_point(best_action["action"])
+            is_free_action_result = result.get("free_action", False)
+            is_free_action = is_free_action_type or is_free_action_result
+
+            if is_free_action:
+                free_action_count += 1
+                if is_free_action_result:
+                    print(f"    [FREE ACTION] Counter-punch or similar - no action consumed")
+                if free_action_count > max_free_actions:
+                    print(f"  Maximum free actions reached for {nation}")
+                    break
 
             # Consume action (unless it's free)
             if not is_free_action:
@@ -240,6 +247,20 @@ class EnemyAI:
         threat_action = self._check_threats(marshal, nation, world)
         if threat_action:
             return (threat_action, 3)
+
+        # ════════════════════════════════════════════════════════════
+        # PRIORITY 3.25: COUNTER-PUNCH (FREE ATTACK AFTER DEFENDING)
+        # Cautious marshals (Wellington, Davout) get a free attack after
+        # successfully defending. This expires at turn end, so use it!
+        # ════════════════════════════════════════════════════════════
+        if getattr(marshal, 'counter_punch_available', False) and personality == 'cautious':
+            counter_punch_action = self._get_counter_punch_action(marshal, nation, world)
+            if counter_punch_action:
+                ai_debug(f"  P3.25: COUNTER-PUNCH available!")
+                ai_debug(f"  -> Counter-punch attack: {counter_punch_action}")
+                return (counter_punch_action, 3)  # High priority - FREE and expires
+            else:
+                ai_debug(f"  P3.25: Counter-punch available but no adjacent targets")
 
         # ════════════════════════════════════════════════════════════
         # PRIORITY 3.5: FORTIFICATION OPPORTUNITY CHECK
@@ -357,6 +378,54 @@ class EnemyAI:
             "action": "defend"
         }
 
+    def _evaluate_target_ratio(self, base_ratio: float, target: Marshal) -> float:
+        """
+        Evaluate effective attack ratio considering target's tactical state.
+
+        Factors in:
+        - Drilling targets: +25% (they have -25% defense penalty)
+        - Fortified targets: penalty equal to fortify bonus
+        - Low morale targets: up to +50% bonus (scales with how low)
+
+        Args:
+            base_ratio: Raw strength ratio (attacker / defender)
+            target: Target marshal to evaluate
+
+        Returns:
+            Effective ratio for decision making
+        """
+        effective_ratio = base_ratio
+        bonuses_applied = []
+
+        # Drilling targets are vulnerable (-25% defense penalty)
+        is_drilling = getattr(target, 'drilling', False) or getattr(target, 'drilling_locked', False)
+        if is_drilling:
+            effective_ratio *= 1.25  # +25% effective advantage
+            bonuses_applied.append("DRILLING +25%")
+
+        # Fortified targets are harder to attack
+        fortify_bonus = getattr(target, 'defense_bonus', 0)
+        if fortify_bonus > 0:
+            # Reduce effective ratio by fortify bonus (e.g., 15% fortify = 0.85 multiplier)
+            effective_ratio *= (1.0 - fortify_bonus)
+            bonuses_applied.append(f"FORTIFIED -{int(fortify_bonus * 100)}%")
+
+        # Low morale targets are easier (scale up to +50% for 0 morale)
+        target_morale = getattr(target, 'morale', 100)
+        if target_morale < 50:
+            morale_bonus = (50 - target_morale) / 100.0  # 0.0 to 0.5
+            effective_ratio *= (1.0 + morale_bonus)
+            bonuses_applied.append(f"LOW_MORALE +{int(morale_bonus * 100)}%")
+
+        # Floor at 0 (shouldn't happen, but be safe)
+        effective_ratio = max(0.0, effective_ratio)
+
+        if bonuses_applied:
+            ai_debug(f"      Target evaluation: {target.name} - {', '.join(bonuses_applied)}")
+            ai_debug(f"        Base ratio: {base_ratio:.2f} -> Effective: {effective_ratio:.2f}")
+
+        return effective_ratio
+
     def _check_threats(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
         """Check for threats and respond appropriately."""
         enemies = world.get_enemies_of_nation(nation)
@@ -403,6 +472,62 @@ class EnemyAI:
 
         return None
 
+    def _get_counter_punch_action(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
+        """
+        Get counter-punch attack action for cautious marshals.
+
+        Counter-punch is a FREE attack after successfully defending.
+        Can only target adjacent enemies.
+        """
+        # Check if marshal can actually attack (not drilling, fortified, etc.)
+        if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+            ai_debug(f"    {marshal.name} cannot counter-punch - drilling")
+            return None
+
+        if getattr(marshal, 'fortified', False):
+            ai_debug(f"    {marshal.name} cannot counter-punch - fortified (must unfortify first)")
+            return None
+
+        enemies = world.get_enemies_of_nation(nation)
+        marshal_region = world.get_region(marshal.location)
+
+        if not marshal_region:
+            return None
+
+        # Find adjacent enemies only (counter-punch is immediate retaliation)
+        adjacent_enemies = []
+        for enemy in enemies:
+            if enemy.strength > 0 and enemy.location in marshal_region.adjacent_regions:
+                adjacent_enemies.append(enemy)
+
+        if not adjacent_enemies:
+            ai_debug(f"    {marshal.name} has counter-punch but no adjacent enemies")
+            return None
+
+        # Select best target using smarter evaluation
+        best_target = None
+        best_effective_ratio = 0
+
+        for enemy in adjacent_enemies:
+            base_ratio = marshal.strength / enemy.strength if enemy.strength > 0 else 999
+            effective_ratio = self._evaluate_target_ratio(base_ratio, enemy)
+            ai_debug(f"    Counter-punch target: {enemy.name} (base={base_ratio:.2f}, effective={effective_ratio:.2f})")
+
+            if effective_ratio > best_effective_ratio:
+                best_effective_ratio = effective_ratio
+                best_target = enemy
+
+        if best_target:
+            ai_debug(f"    Counter-punch selected: {best_target.name} (effective ratio: {best_effective_ratio:.2f})")
+            # Note: The attack will be marked as counter-punch in executor and won't consume action
+            return {
+                "marshal": marshal.name,
+                "action": "attack",
+                "target": best_target.name
+            }
+
+        return None
+
     def _find_attack_opportunity(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
         """Find a valid attack target based on personality."""
         # Check if already drilling (cannot attack)
@@ -421,7 +546,7 @@ class EnemyAI:
         if not marshal_region:
             return None
 
-        # Find attackable targets
+        # Find attackable targets with smart evaluation
         valid_targets = []
 
         for enemy in enemies:
@@ -429,12 +554,16 @@ class EnemyAI:
             distance = world.get_distance(marshal.location, enemy.location)
             movement_range = getattr(marshal, 'movement_range', 1)
 
-            if distance <= movement_range:
-                # Calculate strength ratio
-                ratio = marshal.strength / enemy.strength if enemy.strength > 0 else 999
+            if distance <= movement_range and enemy.strength > 0:
+                # Calculate base strength ratio
+                base_ratio = marshal.strength / enemy.strength
+                # Calculate effective ratio considering target's tactical state
+                effective_ratio = self._evaluate_target_ratio(base_ratio, enemy)
+
                 ai_debug(f"    Target in range: {enemy.name} at {enemy.location} (dist={distance})")
-                ai_debug(f"      Ratio: {marshal.strength:,} / {enemy.strength:,} = {ratio:.2f}")
-                valid_targets.append((enemy, ratio, distance))
+                ai_debug(f"      Base: {marshal.strength:,} / {enemy.strength:,} = {base_ratio:.2f}")
+                ai_debug(f"      Effective ratio: {effective_ratio:.2f}")
+                valid_targets.append((enemy, base_ratio, effective_ratio, distance))
 
         if not valid_targets:
             ai_debug(f"    No enemies in range")
@@ -445,20 +574,20 @@ class EnemyAI:
         threshold = self.ATTACK_THRESHOLDS.get(personality, 1.0)
         ai_debug(f"    Attack threshold for {personality}: {threshold}")
 
-        # Filter by threshold
-        attackable = [(e, r, d) for e, r, d in valid_targets if r >= threshold]
+        # Filter by EFFECTIVE ratio against threshold (smarter decision)
+        attackable = [(e, br, er, d) for e, br, er, d in valid_targets if er >= threshold]
 
         if not attackable:
-            ai_debug(f"    No targets meet threshold (need ratio >= {threshold})")
+            ai_debug(f"    No targets meet threshold (need effective ratio >= {threshold})")
             return None
 
         # Select target based on personality
         if personality == "aggressive":
-            # Prefer weakest enemy (easy kill)
-            target = min(attackable, key=lambda x: x[0].strength)[0]
+            # Prefer weakest enemy (easy kill) - use effective ratio
+            target = max(attackable, key=lambda x: x[2])[0]  # Highest effective ratio = best opportunity
         else:
-            # Prefer nearest enemy
-            target = min(attackable, key=lambda x: x[2])[0]
+            # Prefer nearest enemy with acceptable odds
+            target = min(attackable, key=lambda x: x[3])[0]  # Closest distance
 
         # Check if should switch to aggressive stance first
         current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)

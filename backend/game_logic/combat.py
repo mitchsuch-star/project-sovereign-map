@@ -369,6 +369,10 @@ class CombatResolver:
                 outcome = "stalemate"
                 attacker.adjust_morale(-5)
                 defender.adjust_morale(-5)
+                # COUNTER-PUNCH: Cautious defenders held the line - still get counter-punch
+                if getattr(defender, 'personality', '') == 'cautious':
+                    defender.counter_punch_available = True
+                    print(f"  [COUNTER-PUNCH EARNED] {defender.name} held the line - can now attack for FREE!")
 
         # Build description with tactical state messages
         base_description = self._generate_description(

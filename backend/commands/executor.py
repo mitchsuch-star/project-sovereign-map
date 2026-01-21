@@ -701,7 +701,10 @@ RETREAT RECOVERY (3 turns):
             if executing_marshal and executing_marshal.nation != world.player_nation:
                 is_player_action = False  # Enemy AI action - don't consume player actions
 
-        if result.get("success", False) and action_costs_point and is_player_action:
+        # Check if this action is free (counter-punch, etc.)
+        is_free_action = result.get("free_action", False)
+
+        if result.get("success", False) and action_costs_point and is_player_action and not is_free_action:
             # Check for variable action cost (stance_change returns this)
             variable_cost = result.get("variable_action_cost")
             if variable_cost is not None:
@@ -715,6 +718,10 @@ RETREAT RECOVERY (3 turns):
             else:
                 # NOW consume the action (after validation passed)
                 action_result = world.use_action(action)
+        elif is_free_action:
+            # Free action (counter-punch) - don't consume action point
+            action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0, "should_end_turn": False}
+            print(f"  [FREE ACTION] Counter-punch or similar - no action consumed")
 
         # Add action info to result
         result["action_info"] = {
@@ -2758,7 +2765,7 @@ RETREAT RECOVERY (3 turns):
             if marshal.personality != 'cautious':
                 return {
                     "success": False,
-                    "message": f"Counter-Punch is only available for cautious marshals (Davout). "
+                    "message": f"Counter-Punch is only available for cautious marshals (Davout, Wellington). "
                               f"{marshal.name} is {marshal.personality}."
                 }
             marshal.counter_punch_available = True
@@ -2766,8 +2773,7 @@ RETREAT RECOVERY (3 turns):
                 "success": True,
                 "message": f"🔧 DEBUG: {marshal.name}'s counter_punch_available = True\n"
                           f"Next attack by {marshal.name} will be FREE!\n"
-                          f"(Note: In normal play, this triggers when Davout successfully defends - "
-                          f"requires enemy AI to attack him)"
+                          f"(Note: In normal play, this triggers when any cautious marshal successfully defends)"
             }
 
         elif ability == "restless":
