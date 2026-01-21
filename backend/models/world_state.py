@@ -951,14 +951,23 @@ class WorldState:
         return int(base_actions)
 
     def use_action(self, action_type: str = "generic") -> Dict:
-        """Use action points for an action. ALL values are integers."""
+        """
+        Use action points for an action. ALL values are integers.
+
+        NOTE: This method NO LONGER auto-advances the turn when actions hit 0.
+        The executor is responsible for detecting actions_remaining == 0 and
+        calling turn_manager.end_turn() to properly process enemy AI turns.
+
+        Bug fix: Previously, auto-advance skipped enemy AI processing entirely.
+        """
 
         if self.actions_remaining <= 0:
             return {
                 "success": False,
                 "message": "No actions remaining this turn",
                 "actions_remaining": 0,
-                "turn_advanced": False
+                "turn_advanced": False,
+                "should_end_turn": False
             }
 
         # Get cost and ensure it's an integer
@@ -967,17 +976,16 @@ class WorldState:
         # Update actions_remaining - ensure result is integer
         self.actions_remaining = int(max(0, self.actions_remaining - cost))
 
-        turn_advanced = False
-        if self.actions_remaining <= 0:
-            self._advance_turn_internal()
-            turn_advanced = True
+        # Flag if turn should end (executor must call end_turn for proper enemy AI)
+        should_end_turn = self.actions_remaining <= 0
 
         return {
             "success": True,
             "action_cost": int(cost),
             "actions_remaining": int(self.actions_remaining),
-            "turn_advanced": turn_advanced,
-            "new_turn": int(self.current_turn) if turn_advanced else None
+            "turn_advanced": False,  # Never auto-advance here
+            "new_turn": None,
+            "should_end_turn": should_end_turn  # Executor should call end_turn()
         }
 
     def advance_turn(self) -> None:

@@ -19,6 +19,14 @@ from typing import Dict, List, Optional, Tuple
 from backend.models.world_state import WorldState
 from backend.models.marshal import Marshal, Stance
 
+# Debug flag - set to True to enable detailed AI decision logging
+AI_DEBUG = True
+
+def ai_debug(msg: str):
+    """Print debug message if AI_DEBUG is enabled."""
+    if AI_DEBUG:
+        print(f"[AI DEBUG] {msg}")
+
 
 class EnemyAI:
     """
@@ -194,16 +202,24 @@ class EnemyAI:
         """
         personality = getattr(marshal, 'personality', 'balanced')
 
+        # Debug: Log marshal state at start of evaluation
+        ai_debug(f"Evaluating {marshal.name} ({personality}, {nation})")
+        ai_debug(f"  Location: {marshal.location}, Strength: {marshal.strength:,}")
+        ai_debug(f"  Stance: {getattr(marshal, 'stance', 'unknown')}")
+        ai_debug(f"  Drilling: {getattr(marshal, 'drilling', False)}, Fortified: {getattr(marshal, 'fortified', False)}")
+
         # ════════════════════════════════════════════════════════════
         # PRIORITY 1: RETREAT RECOVERY CHECK
         # ════════════════════════════════════════════════════════════
         retreat_recovery = getattr(marshal, 'retreat_recovery', 0)
         if retreat_recovery > 0:
+            ai_debug(f"  P1: In retreat recovery ({retreat_recovery} turns)")
             # Limited actions during recovery
             # Can: move, wait, defend, defensive stance
             # Cannot: attack, fortify, drill, aggressive stance
             action = self._get_recovery_action(marshal, world)
             if action:
+                ai_debug(f"  -> Recovery action: {action}")
                 return (action, 1)
             return (None, 999)
 
@@ -237,16 +253,22 @@ class EnemyAI:
         # ════════════════════════════════════════════════════════════
         # PRIORITY 4: ATTACK OPPORTUNITY
         # ════════════════════════════════════════════════════════════
+        ai_debug(f"  P4: Checking attack opportunities...")
         attack_action = self._find_attack_opportunity(marshal, nation, world)
         if attack_action:
+            ai_debug(f"  -> P4 Attack: {attack_action}")
             return (attack_action, 4)
+        ai_debug(f"  P4: No attack opportunity found")
 
         # ════════════════════════════════════════════════════════════
         # PRIORITY 4.5: CAPTURE UNDEFENDED ENEMY REGION
         # ════════════════════════════════════════════════════════════
+        ai_debug(f"  P4.5: Checking undefended captures...")
         capture_action = self._find_undefended_capture(marshal, nation, world)
         if capture_action:
+            ai_debug(f"  -> P4.5 Capture: {capture_action}")
             return (capture_action, 4)  # Same priority as attack
+        ai_debug(f"  P4.5: No capture opportunity found")
 
         # ════════════════════════════════════════════════════════════
         # PRIORITY 5: FORTIFICATION (cautious marshals)
@@ -260,9 +282,12 @@ class EnemyAI:
         # PRIORITY 6: DRILLING (aggressive marshals, no threat)
         # ════════════════════════════════════════════════════════════
         if personality == "aggressive":
+            ai_debug(f"  P6: Checking drill (aggressive marshal)...")
             drill_action = self._consider_drill(marshal, world)
             if drill_action:
+                ai_debug(f"  -> P6 Drill: {drill_action}")
                 return (drill_action, 6)
+            ai_debug(f"  P6: Drill not available")
 
         # ════════════════════════════════════════════════════════════
         # PRIORITY 7: STRATEGIC MOVEMENT
@@ -382,10 +407,12 @@ class EnemyAI:
         """Find a valid attack target based on personality."""
         # Check if already drilling (cannot attack)
         if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+            ai_debug(f"    {marshal.name} cannot attack - drilling")
             return None
 
         # Check if fortified (must unfortify before attacking)
         if getattr(marshal, 'fortified', False):
+            ai_debug(f"    {marshal.name} cannot attack - fortified")
             return None
 
         enemies = world.get_enemies_of_nation(nation)
@@ -405,19 +432,24 @@ class EnemyAI:
             if distance <= movement_range:
                 # Calculate strength ratio
                 ratio = marshal.strength / enemy.strength if enemy.strength > 0 else 999
+                ai_debug(f"    Target in range: {enemy.name} at {enemy.location} (dist={distance})")
+                ai_debug(f"      Ratio: {marshal.strength:,} / {enemy.strength:,} = {ratio:.2f}")
                 valid_targets.append((enemy, ratio, distance))
 
         if not valid_targets:
+            ai_debug(f"    No enemies in range")
             return None
 
         # Get attack threshold for personality
         personality = getattr(marshal, 'personality', 'balanced')
         threshold = self.ATTACK_THRESHOLDS.get(personality, 1.0)
+        ai_debug(f"    Attack threshold for {personality}: {threshold}")
 
         # Filter by threshold
         attackable = [(e, r, d) for e, r, d in valid_targets if r >= threshold]
 
         if not attackable:
+            ai_debug(f"    No targets meet threshold (need ratio >= {threshold})")
             return None
 
         # Select target based on personality
@@ -463,13 +495,17 @@ class EnemyAI:
         """
         # Cannot capture if drilling or fortified
         if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+            ai_debug(f"    {marshal.name} cannot capture - drilling")
             return None
         if getattr(marshal, 'fortified', False):
+            ai_debug(f"    {marshal.name} cannot capture - fortified")
             return None
 
         marshal_region = world.get_region(marshal.location)
         if not marshal_region:
             return None
+
+        ai_debug(f"    Checking adjacent regions: {marshal_region.adjacent_regions}")
 
         # Track best capture opportunity (prioritize capitals and high-value)
         capture_candidates = []
@@ -478,31 +514,43 @@ class EnemyAI:
         for adj_name in marshal_region.adjacent_regions:
             adj_region = world.get_region(adj_name)
             if not adj_region:
+                ai_debug(f"      {adj_name}: region not found")
                 continue
+
+            ai_debug(f"      {adj_name}: controller={adj_region.controller}")
 
             # Skip if already controlled by this nation
             if adj_region.controller == nation:
+                ai_debug(f"        -> Skip: owned by {nation}")
                 continue
 
             # Skip neutral regions (only capture enemy regions)
             if adj_region.controller == "Neutral":
+                ai_debug(f"        -> Skip: Neutral")
                 continue
 
             # Check if undefended (no enemy marshals present)
             defenders = [m for m in world.marshals.values()
                         if m.location == adj_name and m.strength > 0 and m.nation != nation]
 
-            if not defenders:
-                # Evaluate safety before adding to candidates
-                is_safe, reason = self._evaluate_capture_safety(marshal, adj_name, nation, world)
+            if defenders:
+                ai_debug(f"        -> Skip: defended by {[d.name for d in defenders]}")
+                continue
 
-                if is_safe:
-                    # Calculate value (capitals worth more)
-                    is_capital = self._is_enemy_capital(adj_name, nation, world)
-                    value = 100 if is_capital else (adj_region.income if hasattr(adj_region, 'income') else 10)
-                    capture_candidates.append((adj_name, value, reason))
-                else:
-                    print(f"  [CAPTURE SAFETY] {marshal.name} skipping {adj_name}: {reason}")
+            ai_debug(f"        -> UNDEFENDED enemy territory!")
+
+            # Evaluate safety before adding to candidates
+            is_safe, reason = self._evaluate_capture_safety(marshal, adj_name, nation, world)
+
+            if is_safe:
+                # Calculate value (capitals worth more)
+                is_capital = self._is_enemy_capital(adj_name, nation, world)
+                value = 100 if is_capital else (adj_region.income if hasattr(adj_region, 'income') else 10)
+                ai_debug(f"        -> Safe to capture (value={value}): {reason}")
+                capture_candidates.append((adj_name, value, reason))
+            else:
+                ai_debug(f"        -> UNSAFE: {reason}")
+                print(f"  [CAPTURE SAFETY] {marshal.name} skipping {adj_name}: {reason}")
 
         if not capture_candidates:
             return None
@@ -631,9 +679,12 @@ class EnemyAI:
         personality = getattr(marshal, 'personality', 'balanced')
         current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
 
+        ai_debug(f"  P8: Default action check - {personality}, stance={current_stance}")
+
         if personality == "aggressive":
             # Prefer aggressive stance
             if current_stance != Stance.AGGRESSIVE:
+                ai_debug(f"  -> P8: Change to aggressive stance")
                 return {
                     "marshal": marshal.name,
                     "action": "stance_change",
@@ -641,11 +692,13 @@ class EnemyAI:
                 }
             # Already aggressive - no useful default action
             # (wait is pointless, drill/attack handled by other priorities)
+            ai_debug(f"  -> P8: Already aggressive, no action needed")
             return None
 
         elif personality == "cautious":
             # Prefer defensive stance
             if current_stance != Stance.DEFENSIVE:
+                ai_debug(f"  -> P8: Change to defensive stance")
                 return {
                     "marshal": marshal.name,
                     "action": "stance_change",
@@ -653,15 +706,18 @@ class EnemyAI:
                 }
             # Already defensive - check if fortified
             if not getattr(marshal, 'fortified', False):
+                ai_debug(f"  -> P8: Fortify (defensive, not fortified)")
                 return {
                     "marshal": marshal.name,
                     "action": "fortify"
                 }
             # Already defensive AND fortified - optimal state, nothing to do
+            ai_debug(f"  -> P8: Already defensive+fortified, no action needed")
             return None
 
         else:
             # Balanced/other personalities - no default action
+            ai_debug(f"  -> P8: Balanced personality, no default action")
             return None
 
     def _find_retreat_destination(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[str]:

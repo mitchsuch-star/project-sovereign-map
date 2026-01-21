@@ -732,22 +732,36 @@ RETREAT RECOVERY (3 turns):
             result["mild_objection"] = True
 
         # ════════════════════════════════════════════════════════════
-        # TACTICAL EVENTS: Add to message when turn advances
-        # This shows drill completion, fortify expiration, etc.
+        # AUTO-END TURN: When actions exhausted, call end_turn properly
+        # This ensures enemy AI processes its turn (was being skipped before!)
         # ════════════════════════════════════════════════════════════
-        if action_result.get("turn_advanced", False):
-            tactical_events = world.get_last_tactical_events()
-            if tactical_events:
-                tactical_messages = []
-                for event in tactical_events:
-                    event_msg = event.get("message", "")
-                    if event_msg:
-                        tactical_messages.append(event_msg)
+        if action_result.get("should_end_turn", False) and is_player_action:
+            from backend.game_logic.turn_manager import TurnManager
 
+            turn_manager = TurnManager(world)
+            turn_result = turn_manager.end_turn(game_state)
+
+            # Update result with turn end info
+            result["action_info"]["turn_advanced"] = True
+            result["action_info"]["new_turn"] = turn_result.get("next_turn")
+
+            # Add enemy phase results to the response
+            if turn_result.get("enemy_phase"):
+                result["enemy_phase"] = turn_result["enemy_phase"]
+                result["message"] = result.get("message", "") + "\n\n" + turn_result.get("message", "")
+
+            # Add tactical events
+            tactical_events = turn_result.get("tactical_events", [])
+            if tactical_events:
+                tactical_messages = [e.get("message", "") for e in tactical_events if e.get("message")]
                 if tactical_messages:
-                    # Add tactical events to message
                     result["message"] = result.get("message", "") + "\n\n--- TURN EVENTS ---\n" + "\n".join(tactical_messages)
                     result["tactical_events"] = tactical_events
+
+            # Check victory/defeat
+            if turn_result.get("victory_check", {}).get("game_over"):
+                result["game_over"] = True
+                result["victory"] = turn_result["victory_check"].get("result")
 
         return result
 
