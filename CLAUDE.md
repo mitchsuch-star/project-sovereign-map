@@ -20,10 +20,12 @@ GOLDEN RULES:
 4. State clearing: AFTER reading the value, not before
 5. Enemy AI uses SAME executor as player (Building Blocks principle)
 
-CURRENT PHASE: Phase 2.5 (Autonomy Foundation) 🔄 IN PROGRESS
+CURRENT PHASE: Phase 2.9 (Retreat System + AI Refinements) 🔄 IN PROGRESS
 - Phase 1 ✅: Foundation (regions, marshals, combat, actions, turns)
 - Phase 2 ✅: Combat & AI (disobedience, drill/fortify, Enemy AI, safety eval)
-- Phase 2.5 🔄: Autonomy (Grant Autonomy → Enemy AI, strategic commands)
+- Phase 2.5 ✅: Autonomy Foundation
+- Phase 2.8 ✅: Marshal Abilities (cavalry, counter-punch, fighting retreat)
+- Phase 2.9 🔄: Retreat System (ally cover, smart destination, AI targeting)
 - Not implemented: diplomacy, LLM parsing, supply lines (marked CONCEPTUAL)
 ```
 
@@ -194,7 +196,36 @@ STATE INTERACTIONS:
 • drilling_locked BLOCKS: attack, move (until drill completes)
 • fortified + move = lose fortify bonus
 • broken → forced retreat → retreat_recovery=3
+
+ALLY COVERS RETREAT (Phase 2.9):
+┌─────────────────────────────────────────────────────────────────────────┐
+│ retreated_this_turn: True if marshal retreated THIS turn                │
+│                                                                         │
+│ When attacked while retreated_this_turn=True:                          │
+│   1. Check for covering ally (same region, same nation, not retreated) │
+│   2. If ally exists → ALLY fights instead (swapped defender)           │
+│   3. If no ally → EXPOSED (+30% AI targeting bonus)                    │
+│                                                                         │
+│ Cleared at: START of next player turn (protection lasts enemy phase)   │
+│ Set by: Forced retreat, manual retreat                                  │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
+
+### Retreat Destination Priority (Phase 2.9)
+
+When a marshal is forced to retreat, destinations are evaluated in priority order:
+
+| Priority | Destination Type | Description |
+|----------|-----------------|-------------|
+| 1 (Best) | Friendly + Ally | Adjacent friendly region WITH an allied marshal (COVERED) |
+| 2 | Friendly Empty | Adjacent friendly region WITHOUT marshal (EXPOSED) |
+| 3 | Enemy Unoccupied | Adjacent enemy-controlled region with NO defenders (DESPERATION) |
+| 4 | None | No valid retreat = ENCIRCLED (army breaks, flees to capital) |
+
+**Key points:**
+- Uses `marshal.nation` for nation-aware checks (works for both player and AI)
+- Unoccupied enemy region = enemy controls but no marshals defending
+- Forced retreat uses `move_to()` method (not direct assignment)
 
 ### Marshal Personality Abilities (Phase 2.8)
 
@@ -528,6 +559,20 @@ The Enemy AI system provides decision-making for enemy nations (Britain, Prussia
 - Cannot fortify if already fortified at max
 - Cannot fortify if drilling
 - Must be in defensive stance
+
+# Stance spam prevention (Phase 2.9):
+- _stance_changed_this_turn tracks marshals who changed stance
+- Skip duplicate stance changes for same marshal in same turn
+- Tracked per process_nation_turn() call, resets each nation's turn
+```
+
+**Target Evaluation Bonuses (Phase 2.9):**
+```python
+# _evaluate_target_ratio() adjusts effective attack ratio:
+- DRILLING target: +25% (they have -25% defense penalty)
+- FORTIFIED target: penalty equal to fortify bonus
+- LOW MORALE (<50): up to +50% bonus (scales with how low)
+- EXPOSED RETREATING: +30% (retreated_this_turn AND no covering ally)
 ```
 
 **Turn Flow:**

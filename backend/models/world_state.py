@@ -460,81 +460,106 @@ class WorldState:
         """
         Find a safe retreat destination for a marshal.
 
-        Uses marshal's movement_range (cavalry=2, infantry=1) to search for options.
+        Uses ADJACENT regions only (distance 1) for retreat.
 
         Priority order:
-        1. Friendly region (not threatened) - closer to Paris preferred
-        2. Neutral region (not threatened)
-        3. Enemy territory (not threatened) - LAST RESORT only
-        4. None = surrounded (all options threatened)
+        1. Adjacent friendly WITH allied marshal (COVERED - best)
+        2. Adjacent friendly WITHOUT marshal (EXPOSED - okay)
+        3. Adjacent UNOCCUPIED enemy region (no defenders - desperation)
+        4. None = ENCIRCLED (army breaks)
 
         Args:
             marshal_name: Name of the marshal retreating
 
         Returns:
-            Region name to retreat to, or None if surrounded
+            Region name to retreat to, or None if encircled
         """
         marshal = self.marshals.get(marshal_name)
         if not marshal:
+            print(f"  [RETREAT DEBUG] Marshal {marshal_name} not found")
             return None
 
         current_region = self.get_region(marshal.location)
         if not current_region:
+            print(f"  [RETREAT DEBUG] Region {marshal.location} not found")
             return None
 
-        # Get marshal's movement range (cavalry=2, infantry=1)
-        move_range = getattr(marshal, 'movement_range', 1)
+        marshal_nation = marshal.nation
+        print(f"  [RETREAT DEBUG] Finding retreat for {marshal_name} ({marshal_nation}) from {marshal.location}")
 
-        # Collect safe regions by category
-        friendly_safe = []
-        neutral_safe = []
-        enemy_safe = []  # Last resort only
+        # Categories for retreat destinations
+        friendly_with_ally = []    # Priority 1: Friendly region WITH allied marshal
+        friendly_empty = []        # Priority 2: Friendly region, no marshal
+        enemy_unoccupied = []      # Priority 3: Enemy-controlled but no defenders
 
-        # Get all regions within movement range
-        candidates = self._get_regions_within_range(marshal.location, move_range)
-
-        for candidate_name in candidates:
-            if self._region_is_threatened(candidate_name):
-                continue  # Skip threatened regions
-
+        # Check ADJACENT regions only (distance 1)
+        for candidate_name in current_region.adjacent_regions:
             candidate_region = self.get_region(candidate_name)
             if not candidate_region:
                 continue
 
-            # For 2-range moves, verify valid path exists
-            distance = self.get_distance(marshal.location, candidate_name)
-            if distance == 2:
-                if not self._has_valid_path(marshal.location, candidate_name):
-                    continue  # No valid path through intermediate region
-
             controller = candidate_region.controller
-            dist_to_paris = self.get_distance(candidate_name, "Paris")
 
-            entry = {"name": candidate_name, "distance": dist_to_paris, "retreat_dist": distance}
+            # Get marshals in this region
+            marshals_there = self.get_marshals_in_region(candidate_name)
+            allied_marshals = [m for m in marshals_there
+                             if m.nation == marshal_nation and m.name != marshal_name and m.strength > 0]
+            enemy_marshals = [m for m in marshals_there
+                            if m.nation != marshal_nation and m.strength > 0]
 
-            if controller == self.player_nation:
-                friendly_safe.append(entry)
+            print(f"    [RETREAT DEBUG] Checking {candidate_name}: controller={controller}, allies={len(allied_marshals)}, enemies={len(enemy_marshals)}")
+
+            # Skip regions with enemy marshals (can't retreat INTO enemies!)
+            if enemy_marshals:
+                print(f"      -> Skip: enemy marshals present")
+                continue
+
+            # Friendly region (controlled by our nation)
+            if controller == marshal_nation:
+                if allied_marshals:
+                    # Priority 1: Ally to cover us!
+                    friendly_with_ally.append({
+                        "name": candidate_name,
+                        "ally": allied_marshals[0].name,
+                        "ally_strength": allied_marshals[0].strength
+                    })
+                    print(f"      -> PRIORITY 1: Friendly with ally {allied_marshals[0].name}")
+                else:
+                    # Priority 2: Empty friendly
+                    friendly_empty.append({"name": candidate_name})
+                    print(f"      -> PRIORITY 2: Friendly, empty")
+
+            # Enemy-controlled but unoccupied (no defenders)
+            elif controller is not None and controller != marshal_nation:
+                # This is enemy territory but no one is defending
+                enemy_unoccupied.append({"name": candidate_name})
+                print(f"      -> PRIORITY 3: Enemy territory, unoccupied")
+
+            # Neutral (no controller) - treat like friendly empty
             elif controller is None:
-                neutral_safe.append(entry)
-            else:
-                enemy_safe.append(entry)
+                friendly_empty.append({"name": candidate_name})
+                print(f"      -> PRIORITY 2: Neutral, empty")
 
-        # Return best option by priority: friendly > neutral > enemy (last resort)
-        # Sort by distance to Paris (prefer closer to capital)
-        if friendly_safe:
-            friendly_safe.sort(key=lambda r: r["distance"])
-            return friendly_safe[0]["name"]
+        # Return best option by priority
+        if friendly_with_ally:
+            # Sort by ally strength (prefer stronger ally)
+            friendly_with_ally.sort(key=lambda r: r["ally_strength"], reverse=True)
+            result = friendly_with_ally[0]["name"]
+            print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (covered by {friendly_with_ally[0]['ally']})")
+            return result
 
-        if neutral_safe:
-            neutral_safe.sort(key=lambda r: r["distance"])
-            return neutral_safe[0]["name"]
+        if friendly_empty:
+            result = friendly_empty[0]["name"]
+            print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (exposed, no cover)")
+            return result
 
-        if enemy_safe:
-            # Last resort: retreat to enemy territory (contested retreat)
-            enemy_safe.sort(key=lambda r: r["distance"])
-            return enemy_safe[0]["name"]
+        if enemy_unoccupied:
+            result = enemy_unoccupied[0]["name"]
+            print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (desperation - enemy territory)")
+            return result
 
-        return None  # Truly surrounded - no safe retreat possible
+        print(f"  [RETREAT RESULT] {marshal_name} is ENCIRCLED - no valid retreat!")
+        return None  # ENCIRCLED - army breaks
 
     def _get_regions_within_range(self, start: str, max_range: int) -> List[str]:
         """
@@ -1002,6 +1027,15 @@ class WorldState:
 
         IMPORTANT: Processes tactical states BEFORE advancing turn counter.
         """
+        # ════════════════════════════════════════════════════════════
+        # CLEAR RETREATED_THIS_TURN FLAG (at turn start)
+        # This flag is used for ally covering system - retreating marshals
+        # can be protected by allies during the ENEMY phase.
+        # Clear at start of new player turn.
+        # ════════════════════════════════════════════════════════════
+        for marshal in self.marshals.values():
+            marshal.retreated_this_turn = False
+
         # ════════════════════════════════════════════════════════════
         # PROCESS TACTICAL STATES (before turn counter advances!)
         # ════════════════════════════════════════════════════════════

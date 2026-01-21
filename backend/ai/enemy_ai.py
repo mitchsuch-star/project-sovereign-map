@@ -99,6 +99,9 @@ class EnemyAI:
         # Get actions for this nation
         actions_remaining = world.nation_actions.get(nation, 4)
 
+        # Track marshals who have already changed stance this turn (prevent spam)
+        self._stance_changed_this_turn: set = set()
+
         print(f"\n{'='*60}")
         print(f"ENEMY TURN: {nation} ({actions_remaining} actions)")
         print(f"{'='*60}")
@@ -133,6 +136,11 @@ class EnemyAI:
             result["nation"] = nation
             result["action_number"] = action_count
             results.append(result)
+
+            # Track successful stance changes to prevent spam
+            if best_action["action"] == "stance_change" and result.get("success", False):
+                self._stance_changed_this_turn.add(best_action["marshal"])
+                print(f"    [STANCE TRACKED] {best_action['marshal']} changed stance this turn")
 
             # Check if this is a free action:
             # 1. Action type is inherently free (wait, retreat, etc.)
@@ -195,10 +203,23 @@ class EnemyAI:
         for marshal in marshals:
             action, priority = self._evaluate_marshal(marshal, nation, world)
             if action and priority < best_priority:
+                # Skip stance changes for marshals who already changed this turn
+                if action.get("action") == "stance_change":
+                    if self._should_skip_stance_change(action.get("marshal")):
+                        continue  # Skip this action, try next marshal
                 best_action = action
                 best_priority = priority
 
         return best_action
+
+    def _should_skip_stance_change(self, marshal_name: str) -> bool:
+        """Check if a stance change should be skipped for this marshal."""
+        # _stance_changed_this_turn is initialized per-turn in process_nation_turn()
+        stance_set = getattr(self, '_stance_changed_this_turn', set())
+        if marshal_name in stance_set:
+            ai_debug(f"  [SKIP] {marshal_name} already changed stance this turn")
+            return True
+        return False
 
     def _evaluate_marshal(self, marshal: Marshal, nation: str, world: WorldState) -> Tuple[Optional[Dict], int]:
         """
@@ -378,7 +399,7 @@ class EnemyAI:
             "action": "defend"
         }
 
-    def _evaluate_target_ratio(self, base_ratio: float, target: Marshal) -> float:
+    def _evaluate_target_ratio(self, base_ratio: float, target: Marshal, world: WorldState = None) -> float:
         """
         Evaluate effective attack ratio considering target's tactical state.
 
@@ -386,10 +407,12 @@ class EnemyAI:
         - Drilling targets: +25% (they have -25% defense penalty)
         - Fortified targets: penalty equal to fortify bonus
         - Low morale targets: up to +50% bonus (scales with how low)
+        - Exposed retreating targets: +30% (just retreated, no ally to cover)
 
         Args:
             base_ratio: Raw strength ratio (attacker / defender)
             target: Target marshal to evaluate
+            world: World state for checking covering allies
 
         Returns:
             Effective ratio for decision making
@@ -416,6 +439,22 @@ class EnemyAI:
             morale_bonus = (50 - target_morale) / 100.0  # 0.0 to 0.5
             effective_ratio *= (1.0 + morale_bonus)
             bonuses_applied.append(f"LOW_MORALE +{int(morale_bonus * 100)}%")
+
+        # EXPOSED RETREATING TARGET: Just retreated and no ally to cover (+30%)
+        if getattr(target, 'retreated_this_turn', False) and world:
+            # Check if there's a covering ally in the same region
+            covering_candidates = [
+                m for m in world.marshals.values()
+                if m.location == target.location
+                and m.nation == target.nation
+                and m.name != target.name
+                and m.strength > 0
+                and not getattr(m, 'retreated_this_turn', False)
+            ]
+            if not covering_candidates:
+                # EXPOSED - no ally to cover!
+                effective_ratio *= 1.30  # +30% bonus for vulnerable target
+                bonuses_applied.append("EXPOSED_RETREATING +30%")
 
         # Floor at 0 (shouldn't happen, but be safe)
         effective_ratio = max(0.0, effective_ratio)
@@ -510,7 +549,7 @@ class EnemyAI:
 
         for enemy in adjacent_enemies:
             base_ratio = marshal.strength / enemy.strength if enemy.strength > 0 else 999
-            effective_ratio = self._evaluate_target_ratio(base_ratio, enemy)
+            effective_ratio = self._evaluate_target_ratio(base_ratio, enemy, world)
             ai_debug(f"    Counter-punch target: {enemy.name} (base={base_ratio:.2f}, effective={effective_ratio:.2f})")
 
             if effective_ratio > best_effective_ratio:
@@ -558,7 +597,7 @@ class EnemyAI:
                 # Calculate base strength ratio
                 base_ratio = marshal.strength / enemy.strength
                 # Calculate effective ratio considering target's tactical state
-                effective_ratio = self._evaluate_target_ratio(base_ratio, enemy)
+                effective_ratio = self._evaluate_target_ratio(base_ratio, enemy, world)
 
                 ai_debug(f"    Target in range: {enemy.name} at {enemy.location} (dist={distance})")
                 ai_debug(f"      Base: {marshal.strength:,} / {enemy.strength:,} = {base_ratio:.2f}")

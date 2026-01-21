@@ -883,9 +883,10 @@ RETREAT RECOVERY (3 turns):
             # NORMAL FORCED RETREAT: Safe location found
             # ════════════════════════════════════════════════════════════
             old_loc = marshal.location
-            marshal.location = retreat_to
+            marshal.move_to(retreat_to)  # Use move_to() for proper state clearing
             marshal.retreating = True
             marshal.retreat_recovery = 0  # Start recovery at stage 0
+            marshal.retreated_this_turn = True  # Mark for ally covering system
             return f"⚠️ {marshal.name}'s broken army flees to {retreat_to}! (recovering for 3 turns)"
         else:
             # ════════════════════════════════════════════════════════════
@@ -903,7 +904,10 @@ RETREAT RECOVERY (3 turns):
             spawn_loc = getattr(marshal, 'spawn_location', 'Paris')
 
             # Apply broken state
-            marshal.location = spawn_loc
+            # NOTE: Broken armies do NOT set retreated_this_turn because:
+            # 1. They flee to capital (not adjacent region) - no ally cover possible
+            # 2. They're in BROKEN state with 3-10% strength - not a normal retreat
+            marshal.move_to(spawn_loc)  # Use move_to() for proper state clearing
             marshal.strength = survivors
             marshal.morale = 20  # Shattered morale
             marshal.broken = True
@@ -1170,6 +1174,42 @@ RETREAT RECOVERY (3 turns):
             }
 
         # ============================================================
+        # ALLY COVERS RETREAT SYSTEM: If target retreated this turn,
+        # an ally in the same region can step in to defend
+        # ============================================================
+        covering_message = ""
+        original_target = None  # Track original target for messaging
+
+        if getattr(enemy_marshal, 'retreated_this_turn', False):
+            # Target retreated this turn - check for covering allies
+            covering_candidates = [
+                m for m in world.marshals.values()
+                if m.location == enemy_marshal.location  # Same region
+                and m.nation == enemy_marshal.nation     # Same nation
+                and m.name != enemy_marshal.name         # Not the target itself
+                and m.strength > 0                       # Has troops
+                and not getattr(m, 'retreated_this_turn', False)  # Didn't also retreat
+            ]
+
+            if covering_candidates:
+                # Pick the strongest ally to cover
+                covering_ally = max(covering_candidates, key=lambda m: m.strength)
+                original_target = enemy_marshal
+                enemy_marshal = covering_ally  # Swap defender
+
+                covering_message = (
+                    f"🛡️ {covering_ally.name} steps forward to cover {original_target.name}'s retreat! "
+                    f"\"{original_target.name} is in no condition to fight - I'll handle this!\"\n\n"
+                )
+                print(f"  [ALLY COVER] {covering_ally.name} covers for retreating {original_target.name}")
+            else:
+                # No covering ally - target is EXPOSED
+                covering_message = (
+                    f"⚠️ {enemy_marshal.name} is EXPOSED! (Just retreated, no ally to cover)\n\n"
+                )
+                print(f"  [EXPOSED] {enemy_marshal.name} retreated and has no cover!")
+
+        # ============================================================
         # FLANKING SYSTEM (Phase 2.5): Record attack origin BEFORE combat
         # ============================================================
         origin_region = marshal.location  # Capture origin BEFORE any movement
@@ -1292,8 +1332,8 @@ RETREAT RECOVERY (3 turns):
             battle_result, marshal, enemy_marshal, world
         )
 
-        # Build final message with optional drill cancellation prefix, counter-punch, and cavalry charge
-        battle_message = counter_punch_message + cavalry_charge_message + flanking_prefix + battle_result["description"] + destroyed_msg + movement_msg + conquest_msg + vindication_msg + forced_retreat_msg
+        # Build final message with optional drill cancellation prefix, counter-punch, cavalry charge, and covering
+        battle_message = counter_punch_message + cavalry_charge_message + covering_message + flanking_prefix + battle_result["description"] + destroyed_msg + movement_msg + conquest_msg + vindication_msg + forced_retreat_msg
         if drill_cancelled_message:
             battle_message = drill_cancelled_message + battle_message
 
@@ -3119,6 +3159,7 @@ RETREAT RECOVERY (3 turns):
         marshal.just_retreated = False  # FIX: Clear legacy flag to use new retreat system
         marshal.retreating = True
         marshal.retreat_recovery = 0  # Intentional: retreating again resets recovery progress
+        marshal.retreated_this_turn = True  # Mark for ally covering system
 
         # Clear any offensive states
         marshal.drilling = False

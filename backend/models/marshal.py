@@ -147,6 +147,7 @@ class Marshal:
         self.retreating: bool = False        # Currently in retreat recovery
         self.retreat_recovery: int = 0       # 0-3, current recovery stage
         # Recovery stages: 0 = -45%, 1 = -30%, 2 = -15%, 3 = 0% (recovered)
+        self.retreated_this_turn: bool = False  # True if retreated this turn (for ally cover)
 
         # BROKEN State: Army shattered from surrounded forced retreat
         # When surrounded and forced to retreat, army is "broken":
@@ -315,7 +316,7 @@ class Marshal:
         """Remove troops due to combat losses."""
         self.strength = max(0, self.strength - amount)
         if self.strength < 50:
-            print(f"💀 {self.name} reduced to rubble ({self.strength} → 0)")
+            print(f"[DESTROYED] {self.name} reduced to rubble ({self.strength} -> 0)")
             self.strength = 0
     def adjust_morale(self, change: int) -> None:
         """Adjust morale (victories increase, defeats decrease)."""
