@@ -137,8 +137,10 @@ func _format_battle(event: Dictionary) -> String:
 	var defender_remaining = defender.get("remaining", 0)
 	var defender_morale = defender.get("morale", 0)
 
-	# Battle header
-	result += "[color=#" + COLOR_BATTLE + "]    BATTLE: " + attacker_name + " vs " + defender_name + "[/color]\n"
+	# Battle header - use battle_name if available, fallback to attacker vs defender
+	var battle_title = event.get("battle_name", attacker_name + " vs " + defender_name)
+	result += "[color=#" + COLOR_BATTLE + "]    " + battle_title + "[/color]\n"
+	result += "[color=#" + COLOR_INFO + "]    " + attacker_name + " attacks " + defender_name + "[/color]\n"
 
 	# Casualties
 	result += "[color=#" + COLOR_INFO + "]    " + attacker_name + ": "

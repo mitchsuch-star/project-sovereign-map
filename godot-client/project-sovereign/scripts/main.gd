@@ -362,9 +362,10 @@ func _display_battle_result(message: String, event: Dictionary, action_info: Dic
 	var victor = event.get("victor", "")
 	var enemy_destroyed = event.get("enemy_destroyed", false)
 	var region_conquered = event.get("region_conquered", false)
-	
-	# Battle header
-	add_output("[color=#" + COLOR_BATTLE + "]⚔ BATTLE ⚔[/color]")
+
+	# Battle header - use battle_name if available
+	var battle_name = event.get("battle_name", "BATTLE")
+	add_output("[color=#" + COLOR_BATTLE + "]⚔ " + battle_name + " ⚔[/color]")
 	
 	# Main result
 	add_output("[color=#" + COLOR_BATTLE + "]" + message + "[/color]")

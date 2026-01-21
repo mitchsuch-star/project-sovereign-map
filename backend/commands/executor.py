@@ -1290,11 +1290,16 @@ RETREAT RECOVERY (3 turns):
         if drill_cancelled_message:
             battle_message = drill_cancelled_message + battle_message
 
+        # Generate battle name: "Battle of [Region]"
+        battle_name = f"Battle of {target_location}"
+
         result = {
             "success": True,
             "message": battle_message,
+            "battle_name": battle_name,
             "events": [{
                 "type": "battle",
+                "battle_name": battle_name,
                 "attacker": battle_result["attacker"],
                 "defender": battle_result["defender"],
                 "outcome": battle_result["outcome"],
