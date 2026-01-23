@@ -118,11 +118,17 @@ class Marshal:
         self.recent_battles: List[str] = []  # Last 3 battle results
         self.recent_overrides: List[bool] = []  # Last 5 override events
 
-        # Autonomy System (Phase 2.1 - Redemption)
+        # Autonomy System (Phase 2.1 - Redemption, Phase 2.5 - AI Connection)
         # When trust hits critical low, player can grant autonomy
         self.autonomous: bool = False  # Marshal acting independently
         self.autonomy_turns: int = 0   # Turns remaining in autonomy
+        self.autonomy_reason: str = ""  # Why autonomous ("redemption", "communication_cut", etc.)
         self.redemption_pending: bool = False  # FIX: Track if redemption event already triggered
+
+        # Autonomy Performance Tracking (for evaluation when autonomy ends)
+        self.autonomous_battles_won: int = 0
+        self.autonomous_battles_lost: int = 0
+        self.autonomous_regions_captured: int = 0
 
         # ════════════════════════════════════════════════════════════
         # TACTICAL STATE SYSTEM (Phase 2.6)

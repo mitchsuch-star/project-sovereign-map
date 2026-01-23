@@ -232,10 +232,41 @@ class CommandExecutor:
         if tactical_messages:
             message += "\n\n" + "\n".join(tactical_messages)
 
+        # Add Independent Command Report to message (Phase 2.5)
+        independent_report = turn_result.get("independent_command_report", [])
+        if independent_report:
+            message += "\n\n═══ INDEPENDENT COMMAND REPORT ═══"
+            for entry in independent_report:
+                marshal_name = entry.get("marshal", "Unknown")
+                action = entry.get("action", "wait")
+                target = entry.get("target")
+                turns_left = entry.get("turns_remaining", 0)
+                perf = entry.get("performance", {})
+
+                action_str = action
+                if target:
+                    action_str += f" {target}"
+
+                perf_parts = []
+                if perf.get("battles_won", 0) > 0:
+                    perf_parts.append(f"{perf['battles_won']}W")
+                if perf.get("battles_lost", 0) > 0:
+                    perf_parts.append(f"{perf['battles_lost']}L")
+                if perf.get("regions_captured", 0) > 0:
+                    perf_parts.append(f"{perf['regions_captured']} captured")
+                perf_str = f" ({', '.join(perf_parts)})" if perf_parts else ""
+
+                if entry.get("autonomy_ended"):
+                    end_result = entry.get("end_result", {})
+                    message += f"\n{marshal_name}: {action_str}{perf_str} - AUTONOMY ENDED ({end_result.get('tier', 'unknown')})"
+                else:
+                    message += f"\n{marshal_name}: {action_str}{perf_str} - {turns_left} turn{'s' if turns_left != 1 else ''} remaining"
+
         # Get income info
         income_data = world.calculate_turn_income()
 
-        return {
+        # Build result with all data for frontend
+        result = {
             "success": True,
             "message": message,
             "events": turn_result.get("events", []),
@@ -243,6 +274,13 @@ class CommandExecutor:
             "enemy_phase": enemy_phase,
             "new_state": game_state
         }
+
+        # Add Independent Command Report for autonomous marshals (Phase 2.5)
+        if turn_result.get("show_independent_command_report"):
+            result["show_independent_command_report"] = True
+            result["independent_command_report"] = turn_result.get("independent_command_report", [])
+
+        return result
 
     def _execute_help(self, command: Dict, game_state: Dict) -> Dict:
         """
@@ -434,17 +472,43 @@ RETREAT RECOVERY (3 turns):
             marshal = world.get_marshal(marshal_name)
             if marshal and marshal.nation == world.player_nation:
                 # ═══════════════════════════════════════════════════════════
-                # AUTONOMOUS CHECK: Cannot command autonomous marshals
-                # TODO: Once AI decision tree is set up, autonomous marshals
-                # will make their own decisions each turn using that system.
-                # For now, they just block commands with a message.
+                # AUTONOMOUS CHECK: Cannot command autonomous marshals (Phase 2.5)
+                # Autonomous marshals use Enemy AI decision tree at turn start.
+                # Player cannot issue orders until autonomy period ends.
                 # ═══════════════════════════════════════════════════════════
                 if getattr(marshal, 'autonomous', False):
+                    reason = getattr(marshal, 'autonomy_reason', 'granted autonomy')
+                    turns = marshal.autonomy_turns
+
+                    # Build performance summary
+                    wins = getattr(marshal, 'autonomous_battles_won', 0)
+                    losses = getattr(marshal, 'autonomous_battles_lost', 0)
+                    captures = getattr(marshal, 'autonomous_regions_captured', 0)
+
+                    perf_parts = []
+                    if wins > 0:
+                        perf_parts.append(f"{wins} battle{'s' if wins != 1 else ''} won")
+                    if losses > 0:
+                        perf_parts.append(f"{losses} battle{'s' if losses != 1 else ''} lost")
+                    if captures > 0:
+                        perf_parts.append(f"{captures} region{'s' if captures != 1 else ''} captured")
+
+                    if perf_parts:
+                        perf_str = f" ({', '.join(perf_parts)})"
+                    else:
+                        perf_str = ""
+
                     return {
                         "success": False,
-                        "message": f"{marshal_name} is acting on their own judgment. {marshal.autonomy_turns} turn{'s' if marshal.autonomy_turns != 1 else ''} remaining.",
+                        "message": f"{marshal_name} is acting independently{perf_str}. {turns} turn{'s' if turns != 1 else ''} remaining.",
                         "autonomous": True,
-                        "autonomy_turns": marshal.autonomy_turns
+                        "autonomy_turns": turns,
+                        "autonomy_reason": reason,
+                        "performance": {
+                            "battles_won": wins,
+                            "battles_lost": losses,
+                            "regions_captured": captures
+                        }
                     }
 
                 # ═══════════════════════════════════════════════════════════
@@ -2831,6 +2895,8 @@ RETREAT RECOVERY (3 turns):
                           "  • set_strength <marshal> <amount> - Set troop strength\n"
                           "  • set_morale <marshal> <0-100> - Set morale\n"
                           "  • set_fortified <marshal> - Toggle fortified\n"
+                          "  • set_autonomy <marshal> [turns] - Toggle autonomous (Phase 2.5)\n"
+                          "  • set_trust <marshal> <0-100> - Set trust level\n"
                           "\n== Info ==\n"
                           "  • list_marshals - Show all marshals and locations\n"
                           "  • list_regions - Show all regions and who's there"
@@ -3116,6 +3182,51 @@ RETREAT RECOVERY (3 turns):
                 "message": f"🔧 DEBUG: {marshal.name}'s fortified = {marshal.fortified}\n"
                           f"Defense bonus: {marshal.defense_bonus * 100:.0f}%"
             }
+
+        elif ability == "set_autonomy":
+            # Parse optional turns parameter
+            turns = 3  # default
+            if len(parts) >= 3:
+                try:
+                    turns = int(parts[2])
+                    turns = max(1, min(10, turns))
+                except ValueError:
+                    pass
+
+            # Only works on player marshals
+            if marshal.nation != world.player_nation:
+                return {
+                    "success": False,
+                    "message": f"{marshal.name} is not a {world.player_nation} marshal. "
+                              f"Only player marshals can be made autonomous."
+                }
+
+            # Toggle autonomy
+            if getattr(marshal, 'autonomous', False):
+                # Turn off autonomy
+                marshal.autonomous = False
+                marshal.autonomy_turns = 0
+                marshal.autonomy_reason = ""
+                return {
+                    "success": True,
+                    "message": f"🔧 DEBUG: {marshal.name} is no longer autonomous.\n"
+                              f"Player can command normally."
+                }
+            else:
+                # Turn on autonomy
+                marshal.autonomous = True
+                marshal.autonomy_turns = turns
+                marshal.autonomy_reason = "debug"
+                marshal.autonomous_battles_won = 0
+                marshal.autonomous_battles_lost = 0
+                marshal.autonomous_regions_captured = 0
+                return {
+                    "success": True,
+                    "message": f"🔧 DEBUG: {marshal.name} is now AUTONOMOUS for {turns} turns.\n"
+                              f"• Will act independently at turn start using Enemy AI\n"
+                              f"• Player commands will be blocked\n"
+                              f"• Use 'end turn' to see Independent Command Report"
+                }
 
         elif ability == "set_location" or ability == "move":
             if len(parts) < 3:

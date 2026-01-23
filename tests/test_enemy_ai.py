@@ -496,6 +496,44 @@ class TestSafetyChecks:
         assert paid_actions <= 4, f"Should have max 4 paid actions, got {paid_actions}"
         print(f"Max actions: {paid_actions} paid actions (limit 4)")
 
+    def test_unfortify_when_no_enemies_adjacent(self):
+        """Fortified marshal should unfortify if no enemies are adjacent."""
+        wellington = self.world.get_marshal("Wellington")
+
+        # Set up: Wellington fortified in Netherlands
+        wellington.location = "Netherlands"
+        wellington.fortified = True
+        wellington.fortify_bonus = 0.10
+
+        # Move all French marshals far away (not in Belgium which is adjacent)
+        for m in self.world.marshals.values():
+            if m.nation == "France":
+                m.location = "Paris"  # Not adjacent to Netherlands
+
+        # Check fortification opportunity
+        result = self.ai._check_fortification_opportunity(wellington, "Britain", self.world)
+
+        assert result is not None, "Should unfortify when no enemies adjacent"
+        assert result["action"] == "unfortify"
+        print(f"Defending nothing: {wellington.name} unfortifies to reposition")
+
+    def test_stay_fortified_when_enemies_adjacent(self):
+        """Fortified marshal should stay fortified if enemies are adjacent."""
+        wellington = self.world.get_marshal("Wellington")
+        ney = self.world.get_marshal("Ney")
+
+        # Set up: Wellington fortified with Ney adjacent
+        wellington.location = "Waterloo"
+        wellington.fortified = True
+        wellington.fortify_bonus = 0.10
+        ney.location = "Belgium"  # Adjacent to Waterloo
+
+        # Check fortification opportunity
+        result = self.ai._check_fortification_opportunity(wellington, "Britain", self.world)
+
+        assert result is None, "Should stay fortified when enemies adjacent"
+        print(f"Defending position: {wellington.name} stays fortified (enemies nearby)")
+
 
 class TestNationProcessing:
     """Test full nation turn processing."""

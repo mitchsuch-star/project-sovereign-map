@@ -132,6 +132,63 @@ class EnemyAI:
 
         return adjusted
 
+    def decide_single_action(
+        self,
+        marshal: Marshal,
+        nation: str,
+        world: WorldState,
+        game_state: Dict
+    ) -> Optional[Dict]:
+        """
+        Decide and execute a single action for one marshal.
+
+        Used for autonomous player marshals who get 1 action per turn.
+        Uses the same decision tree as enemy AI but aligned with the given nation.
+
+        Args:
+            marshal: The marshal to decide for
+            nation: The nation alignment (determines who are enemies)
+            world: Current world state
+            game_state: Game state dict for executor
+
+        Returns:
+            Result dict with action taken and outcome, or None if no action
+        """
+        ai_debug(f"=== AUTONOMOUS ACTION: {marshal.name} ({nation}) ===")
+
+        # Use the same evaluation logic as enemy AI
+        action, priority = self._evaluate_marshal(marshal, nation, world)
+
+        if not action:
+            ai_debug(f"  No action available for {marshal.name}")
+            return {
+                "marshal": marshal.name,
+                "action": "wait",
+                "target": None,
+                "result": {"success": True, "message": f"{marshal.name} holds position."},
+                "priority": 999
+            }
+
+        ai_debug(f"  Decided: {action.get('action')} (priority {priority})")
+
+        # Execute through the same executor (Building Blocks principle)
+        command = {
+            "command_type": "specific",
+            "marshal": action.get("marshal"),
+            "action": action.get("action"),
+            "target": action.get("target"),
+        }
+
+        result = self.executor.execute(command, game_state)
+
+        return {
+            "marshal": marshal.name,
+            "action": action.get("action"),
+            "target": action.get("target"),
+            "result": result,
+            "priority": priority
+        }
+
     def process_nation_turn(self, nation: str, world: WorldState, game_state: Dict) -> List[Dict]:
         """
         Process a single nation's turn.
@@ -578,6 +635,7 @@ class EnemyAI:
             return None
 
         enemies = world.get_enemies_of_nation(nation)
+        ai_debug(f"    🎯 Valid targets for {nation}: {[e.name for e in enemies]}")
         marshal_region = world.get_region(marshal.location)
 
         if not marshal_region:
@@ -590,7 +648,7 @@ class EnemyAI:
                 adjacent_enemies.append(enemy)
 
         if not adjacent_enemies:
-            ai_debug(f"    {marshal.name} has counter-punch but no adjacent enemies")
+            ai_debug(f"    {marshal.name} has counter-punch but no adjacent enemies (checked {len(enemies)} total enemies)")
             return None
 
         # Select best target using smarter evaluation
@@ -630,6 +688,7 @@ class EnemyAI:
             return None
 
         enemies = world.get_enemies_of_nation(nation)
+        ai_debug(f"    🎯 All enemies of {nation}: {[(e.name, e.location, e.strength) for e in enemies]}")
         marshal_region = world.get_region(marshal.location)
 
         if not marshal_region:
@@ -1159,6 +1218,24 @@ class EnemyAI:
                     print(f"  [FORTIFICATION CHECK] {marshal.name}: {adj_name} undefended but unsafe - {reason}")
 
         # ════════════════════════════════════════════════════════════
+        # CHECK 2: "Defending nothing" - no enemies adjacent
+        # ════════════════════════════════════════════════════════════
+        # If no enemy marshals are adjacent, there's no point staying fortified.
+        # Unfortify to allow repositioning or attacking.
+        adjacent_enemies = []
+        for adj_name in marshal_region.adjacent_regions:
+            enemies_there = [m for m in world.marshals.values()
+                            if m.location == adj_name and m.strength > 0 and m.nation != nation]
+            adjacent_enemies.extend(enemies_there)
+
+        if not adjacent_enemies:
+            print(f"  [FORTIFICATION OPPORTUNITY] {marshal.name}: No enemies adjacent - unfortifying to reposition")
+            return {
+                "marshal": marshal.name,
+                "action": "unfortify"
+            }
+
+        # ════════════════════════════════════════════════════════════
         # NOTE: We do NOT check for attack opportunities here!
         # ════════════════════════════════════════════════════════════
         # Reason: Attack opportunities are speculative. Even with overwhelming
@@ -1170,7 +1247,7 @@ class EnemyAI:
         # normal attack priority (P4) instead.
         # ════════════════════════════════════════════════════════════
 
-        # No opportunity worth abandoning fortification
+        # Enemies are adjacent - stay fortified for defense
         return None
 
     def _execute_action(self, action: Dict, game_state: Dict) -> Dict:

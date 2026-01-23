@@ -524,6 +524,21 @@ The Enemy AI system provides decision-making for enemy nations (Britain, Prussia
 3. No disobedience for enemies (AI decides = AI executes)
 4. 4 actions per NATION, not per marshal
 
+**IMPORTANT - Personality Behaviors Apply to ALL Marshals of That Type:**
+When modifying AI behavior based on personality (e.g., "cautious marshals do X"), the change affects:
+- Wellington (Britain, cautious)
+- Davout (France, cautious) - when autonomous
+- Any future cautious marshals
+
+The Enemy AI code uses `personality = getattr(marshal, 'personality', 'balanced')` to determine behavior. Changes to how "cautious" personality behaves will affect ALL cautious marshals across all nations.
+
+**Fortification Opportunity Logic (P3.5):**
+Fortified marshals will unfortify when:
+1. **Undefended enemy region adjacent** - Always unfortify to capture (zero risk)
+2. **"Defending nothing"** - No enemies adjacent → unfortify to reposition
+
+This prevents fortified marshals from becoming permanent "rocks" that enemies can walk around.
+
 **Decision Tree Priorities (P1-P8):**
 
 | Priority | Trigger | Behavior |

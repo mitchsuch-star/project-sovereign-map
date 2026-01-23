@@ -477,6 +477,13 @@ def _get_map_data(world: WorldState) -> dict:
                     # Retreat state
                     "retreating": bool(getattr(m, 'retreating', False)),
                     "retreat_recovery": int(getattr(m, 'retreat_recovery', 0)),
+                    # Autonomy state (Phase 2.5)
+                    "autonomous": bool(getattr(m, 'autonomous', False)),
+                    "autonomy_turns": int(getattr(m, 'autonomy_turns', 0)),
+                    "autonomy_reason": str(getattr(m, 'autonomy_reason', '')),
+                    "autonomous_battles_won": int(getattr(m, 'autonomous_battles_won', 0)),
+                    "autonomous_battles_lost": int(getattr(m, 'autonomous_battles_lost', 0)),
+                    "autonomous_regions_captured": int(getattr(m, 'autonomous_regions_captured', 0)),
                 }
 
             marshals_data.append(marshal_data)

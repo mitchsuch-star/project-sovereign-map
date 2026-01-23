@@ -1055,18 +1055,25 @@ class DisobedienceSystem:
         marshal.redemption_pending = False
 
         if choice == 'grant_autonomy':
-            # Set marshal as autonomous
+            # Set marshal as autonomous (Phase 2.5)
             marshal.autonomous = True
             marshal.autonomy_turns = 3
+            marshal.autonomy_reason = "redemption"
+
+            # Reset performance tracking
+            marshal.autonomous_battles_won = 0
+            marshal.autonomous_battles_lost = 0
+            marshal.autonomous_regions_captured = 0
 
             return {
                 'success': True,
                 'type': 'redemption_resolved',
                 'choice': 'grant_autonomy',
                 'marshal': marshal_name,
-                'message': f"{marshal_name} has been granted autonomy. They will act on their own judgment for 3 turns.",
+                'message': f"{marshal_name} has been granted autonomy. They will act independently for 3 turns, using their own judgment in battle.",
                 'autonomous': True,
                 'autonomy_turns': 3,
+                'autonomy_reason': 'redemption',
             }
 
         elif choice == 'dismiss':
