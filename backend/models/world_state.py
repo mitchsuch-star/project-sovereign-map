@@ -1185,23 +1185,38 @@ class WorldState:
             # ════════════════════════════════════════════════════════════
             # FORTIFY GROWTH (personality-specific rates and caps)
             # Phase 2.8: Davout +3%/turn, max 20% | Ney max 10% | Others +2%/turn, max 15%
+            # Phase 3: FRONT-LOADING - First turn gives +5%, then normal rate
             # ════════════════════════════════════════════════════════════
             if getattr(marshal, 'fortified', False):
-                from backend.models.personality_modifiers import get_max_fortify_bonus, get_fortify_rate
+                from backend.models.personality_modifiers import (
+                    get_max_fortify_bonus, get_fortify_rate, get_instant_fortify_bonus
+                )
 
                 personality = getattr(marshal, 'personality', 'unknown')
                 max_bonus_rate = get_max_fortify_bonus(personality)  # 0.10-0.20 depending on personality
                 fortify_rate = get_fortify_rate(personality)  # 0.02-0.03 depending on personality
+                instant_bonus = get_instant_fortify_bonus(personality)  # 0.05 for Davout, 0 for others
 
                 current_bonus = getattr(marshal, 'defense_bonus', 0.02)
 
                 if current_bonus < max_bonus_rate:
-                    # Grow defense by personality-specific rate
-                    new_bonus = min(current_bonus + fortify_rate, max_bonus_rate)
+                    # FRONT-LOADING: First turn of growth gets +5%, then normal rate
+                    # Initial values after fortify command: 0.02 (base) + instant_bonus
+                    initial_fortify_value = 0.02 + instant_bonus
+
+                    if abs(current_bonus - initial_fortify_value) < 0.001:  # First turn of growth
+                        increment = 0.05  # Front-loaded +5%
+                        front_loaded = True
+                    else:
+                        increment = fortify_rate  # Normal rate (+2% or +3%)
+                        front_loaded = False
+
+                    new_bonus = min(current_bonus + increment, max_bonus_rate)
                     marshal.defense_bonus = new_bonus
                     old_percent = int(current_bonus * 100)
                     new_percent = int(new_bonus * 100)
                     max_percent = int(max_bonus_rate * 100)
+                    increment_percent = int(increment * 100)
 
                     # Add personality-specific message
                     personality_note = ""
@@ -1210,11 +1225,14 @@ class WorldState:
                     elif personality == "aggressive":
                         personality_note = " (Aggressive: limited fortification)"
 
-                    print(f"  [TACTICAL] FORTIFY: {marshal.name} defense {old_percent}% -> {new_percent}%{personality_note}")
+                    front_load_note = " [FRONT-LOADED]" if front_loaded else ""
+
+                    print(f"  [TACTICAL] FORTIFY: {marshal.name} defense {old_percent}% -> {new_percent}% (+{increment_percent}%){front_load_note}{personality_note}")
                     events.append({
                         "type": "fortify_strengthened",
                         "marshal": marshal.name,
                         "defense_bonus": new_percent,
+                        "front_loaded": front_loaded,
                         "message": f"{marshal.name}'s fortifications strengthen: +{new_percent}% defense" +
                                   (" (MAX)" if new_bonus >= max_bonus_rate else f" (max {max_percent}%)")
                     })
