@@ -666,6 +666,11 @@ RETREAT RECOVERY (3 turns):
         # ════════════════════════════════════════════════════════════
         elif action == "stance_change":
             result = self._execute_stance_change(command, game_state)
+        # ════════════════════════════════════════════════════════════
+        # DEBUG COMMANDS (Phase 2.8) - Must be before command_type routing
+        # ════════════════════════════════════════════════════════════
+        elif action == "debug":
+            result = self._execute_debug(command, game_state)
         # Route to appropriate handler
         elif command_type == "specific":
             result = self._execute_specific(command, game_state)
@@ -876,7 +881,9 @@ RETREAT RECOVERY (3 turns):
         import random
 
         # Try to find safe retreat location using threat-aware pathfinding
-        retreat_to = world.get_safe_retreat_destination(marshal.name)
+        # Pass attacker location to prioritize retreating AWAY from the threat
+        attacker_location = getattr(enemy, 'location', None) if enemy else None
+        retreat_to = world.get_safe_retreat_destination(marshal.name, attacker_location)
 
         if retreat_to:
             # ════════════════════════════════════════════════════════════
@@ -926,6 +933,7 @@ RETREAT RECOVERY (3 turns):
             # Clear personality ability states
             marshal.turns_defensive = 0
             marshal.counter_punch_available = False
+            marshal.counter_punch_turns = 0
             marshal.holding_position = False
             marshal.hold_region = ""
 
@@ -952,7 +960,14 @@ RETREAT RECOVERY (3 turns):
         if getattr(marshal, 'counter_punch_available', False) and marshal.personality == 'cautious':
             is_counter_punch = True
             marshal.counter_punch_available = False  # Consume the counter-punch
-            counter_punch_message = f"⚡ {marshal.name}'s COUNTER-PUNCH! After successfully defending, he strikes back! (FREE ACTION)\n\n"
+            marshal.counter_punch_turns = 0  # Clear the turns counter
+            counter_punch_message = (
+                f"========================================\n"
+                f"  [!] COUNTER-PUNCH! (FREE ACTION) [!]  \n"
+                f"========================================\n"
+                f"{marshal.name} strikes back after successfully defending!\n"
+                f"This attack costs NO actions.\n\n"
+            )
             print(f"  [COUNTER-PUNCH] {marshal.name} uses counter-punch (free attack)")
 
         # ════════════════════════════════════════════════════════════
@@ -2763,16 +2778,32 @@ RETREAT RECOVERY (3 turns):
 
     def _execute_debug(self, command: Dict, game_state: Dict) -> Dict:
         """
-        Execute debug commands for testing personality abilities.
+        Execute debug commands for testing personality abilities and AI.
 
         Supported debug commands:
         - /debug counter_punch <marshal>: Set counter_punch_available = True
         - /debug restless <marshal>: Set turns_defensive to trigger restlessness
         - /debug cavalry <marshal>: Toggle cavalry status
         - /debug hold <marshal>: Set holding_position = True
+        - /debug ai_turn <nation>: Force AI turn for nation (Britain/Prussia)
+        - /debug ai_state <marshal>: Show AI evaluation for marshal
+        - /debug set_retreat <marshal>: Set retreated_this_turn = True
+        - /debug set_recovery <marshal> <turns>: Set retreat_recovery (0-3)
+        - /debug set_strength <marshal> <amount>: Set marshal strength
+        - /debug set_morale <marshal> <amount>: Set marshal morale (0-100)
+        - /debug set_trust <marshal> <0-100>: Set marshal trust (for testing objections)
+        - /debug set_fortified <marshal>: Toggle fortified status
 
-        Usage: /debug <ability> <marshal_name>
+        Usage: /debug <command> <args>
         """
+        # Check if debug mode is enabled
+        debug_mode = game_state.get("debug_mode", False)
+        if not debug_mode:
+            return {
+                "success": False,
+                "message": "Debug commands are disabled. Set DEBUG_MODE = True in main.py to enable."
+            }
+
         target = command.get("target", "")
         world: WorldState = game_state.get("world")
 
@@ -2781,15 +2812,142 @@ RETREAT RECOVERY (3 turns):
 
         # Parse debug command: "counter_punch Davout" -> ability="counter_punch", marshal="Davout"
         parts = target.split() if target else []
+        if len(parts) < 1:
+            return {
+                "success": False,
+                "message": "Debug command format: /debug <command> <args>\n"
+                          "\n== Personality Testing ==\n"
+                          "  • counter_punch <marshal> - Set counter-punch (free attack)\n"
+                          "  • restless <marshal> - Set turns_defensive=5 (restlessness)\n"
+                          "  • cavalry <marshal> - Toggle cavalry status\n"
+                          "  • hold <marshal> - Set holding_position (Immovable)\n"
+                          "\n== AI Testing ==\n"
+                          "  • ai_turn <nation> - Force AI turn (Britain/Prussia)\n"
+                          "  • ai_state <marshal> - Show AI evaluation\n"
+                          "\n== State Manipulation ==\n"
+                          "  • set_location <marshal> <region> - Teleport ANY marshal\n"
+                          "  • set_retreat <marshal> - Set retreated_this_turn=True\n"
+                          "  • set_recovery <marshal> <0-3> - Set retreat_recovery\n"
+                          "  • set_strength <marshal> <amount> - Set troop strength\n"
+                          "  • set_morale <marshal> <0-100> - Set morale\n"
+                          "  • set_fortified <marshal> - Toggle fortified\n"
+                          "\n== Info ==\n"
+                          "  • list_marshals - Show all marshals and locations\n"
+                          "  • list_regions - Show all regions and who's there"
+            }
+
+        ability = parts[0].lower()
+
+        # === AI TESTING COMMANDS (don't require marshal) ===
+
+        if ability == "ai_turn":
+            if len(parts) < 2:
+                return {"success": False, "message": "Usage: /debug ai_turn <nation>\nNations: Britain, Prussia"}
+            nation = parts[1].capitalize()
+            if nation not in ["Britain", "Prussia"]:
+                return {"success": False, "message": f"Unknown nation: {nation}\nAvailable: Britain, Prussia"}
+
+            # Import and run AI
+            from backend.ai.enemy_ai import EnemyAI
+            ai = EnemyAI(self)
+            results = ai.process_nation_turn(nation, world, game_state)
+
+            # Format results
+            action_summary = []
+            for r in results:
+                ai_action = r.get("ai_action", {})
+                action_summary.append(f"  {ai_action.get('marshal', '?')}: {ai_action.get('action', '?')} -> {ai_action.get('target', '')}")
+
+            return {
+                "success": True,
+                "message": f"🤖 DEBUG: Forced {nation} AI turn\n"
+                          f"Actions taken: {len(results)}\n" +
+                          "\n".join(action_summary) if action_summary else "No actions taken",
+                "ai_results": results
+            }
+
+        elif ability == "ai_state":
+            if len(parts) < 2:
+                return {"success": False, "message": "Usage: /debug ai_state <marshal>"}
+            marshal_name = parts[1]
+            marshal, error = self._fuzzy_match_marshal(marshal_name, world)
+            if error:
+                return error
+
+            # Gather state info
+            from backend.models.marshal import Stance
+            stance = getattr(marshal, 'stance', Stance.NEUTRAL)
+            state_info = [
+                f"=== AI State: {marshal.name} ({marshal.nation}) ===",
+                f"Location: {marshal.location}",
+                f"Strength: {marshal.strength:,} / {marshal.starting_strength:,} ({marshal.strength/marshal.starting_strength*100:.0f}%)",
+                f"Morale: {marshal.morale}%",
+                f"Personality: {marshal.personality}",
+                f"Stance: {stance.value}",
+                f"",
+                f"== Tactical State ==",
+                f"Fortified: {getattr(marshal, 'fortified', False)} (bonus: {getattr(marshal, 'defense_bonus', 0)*100:.0f}%)",
+                f"Drilling: {getattr(marshal, 'drilling', False)} / Locked: {getattr(marshal, 'drilling_locked', False)}",
+                f"Shock bonus: {getattr(marshal, 'shock_bonus', 0)}",
+                f"Retreat recovery: {getattr(marshal, 'retreat_recovery', 0)}",
+                f"Retreated this turn: {getattr(marshal, 'retreated_this_turn', False)}",
+                f"Counter-punch: {getattr(marshal, 'counter_punch_available', False)}",
+                f"",
+                f"== Attack Thresholds ==",
+            ]
+
+            # Show attack threshold
+            from backend.ai.enemy_ai import EnemyAI
+            threshold = EnemyAI.ATTACK_THRESHOLDS.get(marshal.personality, 1.0)
+            state_info.append(f"Attack threshold: {threshold} (needs {threshold}x enemy strength to attack)")
+
+            # Find nearby enemies
+            enemies = world.get_enemies_of_nation(marshal.nation)
+            if enemies:
+                state_info.append(f"")
+                state_info.append(f"== Nearby Enemies ==")
+                for enemy in enemies:
+                    dist = world.get_distance(marshal.location, enemy.location)
+                    ratio = marshal.strength / enemy.strength if enemy.strength > 0 else 999
+                    would_attack = "YES" if ratio >= threshold else "NO"
+                    state_info.append(f"  {enemy.name}: {enemy.strength:,} at {enemy.location} (dist={dist}, ratio={ratio:.2f}, attack={would_attack})")
+
+            return {
+                "success": True,
+                "message": "\n".join(state_info)
+            }
+
+        # === INFO COMMANDS (no marshal needed) ===
+
+        elif ability == "list_marshals" or ability == "marshals":
+            lines = ["=== All Marshals ==="]
+            for name, m in world.marshals.items():
+                status = "DEAD" if m.strength <= 0 else f"{m.strength:,} troops"
+                retreated = " [RETREATED]" if getattr(m, 'retreated_this_turn', False) else ""
+                lines.append(f"  {name} ({m.nation}): {m.location} - {status}{retreated}")
+            return {
+                "success": True,
+                "message": "\n".join(lines)
+            }
+
+        elif ability == "list_regions" or ability == "regions":
+            lines = ["=== All Regions ==="]
+            for name, r in world.regions.items():
+                marshals_here = [m.name for m in world.marshals.values() if m.location == name and m.strength > 0]
+                marshal_str = f" <- {', '.join(marshals_here)}" if marshals_here else ""
+                lines.append(f"  {name} ({r.controller}){marshal_str}")
+            return {
+                "success": True,
+                "message": "\n".join(lines)
+            }
+
+        # === COMMANDS THAT NEED MARSHAL ===
+
         if len(parts) < 2:
             return {
                 "success": False,
-                "message": "Debug command format: /debug <ability> <marshal>\n"
-                          "Available abilities:\n"
-                          "  • counter_punch <marshal> - Set Davout's counter-punch (free attack)\n"
-                          "  • restless <marshal> - Set turns_defensive=5 (trigger restlessness)\n"
-                          "  • cavalry <marshal> - Toggle cavalry status (2-tile attacks)\n"
-                          "  • hold <marshal> - Set holding_position (Grouchy's Immovable)"
+                "message": f"Command '{ability}' requires a marshal name.\n"
+                          f"Usage: /debug {ability} <marshal>"
             }
 
         ability = parts[0].lower()
@@ -2809,6 +2967,7 @@ RETREAT RECOVERY (3 turns):
                               f"{marshal.name} is {marshal.personality}."
                 }
             marshal.counter_punch_available = True
+            marshal.counter_punch_turns = 2  # Survives one turn transition
             return {
                 "success": True,
                 "message": f"🔧 DEBUG: {marshal.name}'s counter_punch_available = True\n"
@@ -2855,11 +3014,173 @@ RETREAT RECOVERY (3 turns):
                           f"Will receive +15% defense bonus while defending here (Immovable ability)."
             }
 
+        elif ability == "set_retreat":
+            marshal.retreated_this_turn = True
+            return {
+                "success": True,
+                "message": f"🔧 DEBUG: {marshal.name}'s retreated_this_turn = True\n"
+                          f"Ally cover system will now protect this marshal if attacked with ally present."
+            }
+
+        elif ability == "set_recovery":
+            if len(parts) < 3:
+                return {"success": False, "message": "Usage: /debug set_recovery <marshal> <turns>\nTurns: 0-3 (0=max penalty, 3=recovered)"}
+            try:
+                turns = int(parts[2])
+                turns = max(0, min(3, turns))
+            except ValueError:
+                return {"success": False, "message": "Turns must be a number 0-3"}
+
+            marshal.retreat_recovery = turns
+            marshal.retreating = turns > 0
+            penalties = {0: "-45%", 1: "-30%", 2: "-15%", 3: "0% (recovered)"}
+            return {
+                "success": True,
+                "message": f"🔧 DEBUG: {marshal.name}'s retreat_recovery = {turns}\n"
+                          f"Combat effectiveness penalty: {penalties.get(turns, '?')}\n"
+                          f"Blocked actions: attack, fortify, drill, aggressive stance"
+            }
+
+        elif ability == "set_strength":
+            if len(parts) < 3:
+                return {"success": False, "message": "Usage: /debug set_strength <marshal> <amount>"}
+            try:
+                amount = int(parts[2])
+                amount = max(0, amount)
+            except ValueError:
+                return {"success": False, "message": "Amount must be a number"}
+
+            old_strength = marshal.strength
+            marshal.strength = amount
+            return {
+                "success": True,
+                "message": f"🔧 DEBUG: {marshal.name}'s strength: {old_strength:,} -> {amount:,}"
+            }
+
+        elif ability == "set_morale":
+            if len(parts) < 3:
+                return {"success": False, "message": "Usage: /debug set_morale <marshal> <0-100>"}
+            try:
+                amount = int(parts[2])
+                amount = max(0, min(100, amount))
+            except ValueError:
+                return {"success": False, "message": "Morale must be a number 0-100"}
+
+            old_morale = marshal.morale
+            marshal.morale = amount
+            forced_retreat = amount <= 25
+            return {
+                "success": True,
+                "message": f"🔧 DEBUG: {marshal.name}'s morale: {old_morale} -> {amount}\n"
+                          f"{'⚠️ BROKEN! Will force retreat in combat.' if forced_retreat else ''}"
+            }
+
+        elif ability == "set_trust":
+            if len(parts) < 3:
+                return {"success": False, "message": "Usage: /debug set_trust <marshal> <0-100>"}
+            try:
+                amount = int(parts[2])
+                amount = max(0, min(100, amount))
+            except ValueError:
+                return {"success": False, "message": "Trust must be a number 0-100"}
+
+            # Get old trust value (Trust object has .value property)
+            old_trust = marshal.trust.value if hasattr(marshal.trust, 'value') else marshal.trust
+
+            # Use Trust.set() method to properly set the value
+            if hasattr(marshal.trust, 'set'):
+                marshal.trust.set(amount)
+            else:
+                # Fallback if trust is just an int (shouldn't happen)
+                marshal.trust = amount
+
+            trust_status = ""
+            if amount <= 20:
+                trust_status = " [REDEMPTION THRESHOLD - can trigger redemption events]"
+            elif amount <= 40:
+                trust_status = " [LOW TRUST - frequent objections]"
+            return {
+                "success": True,
+                "message": f"DEBUG: {marshal.name}'s trust: {old_trust} -> {amount}{trust_status}"
+            }
+
+        elif ability == "set_fortified":
+            current = getattr(marshal, 'fortified', False)
+            marshal.fortified = not current
+            if marshal.fortified:
+                marshal.defense_bonus = 0.05  # Start with 5%
+            else:
+                marshal.defense_bonus = 0
+            return {
+                "success": True,
+                "message": f"🔧 DEBUG: {marshal.name}'s fortified = {marshal.fortified}\n"
+                          f"Defense bonus: {marshal.defense_bonus * 100:.0f}%"
+            }
+
+        elif ability == "set_location" or ability == "move":
+            if len(parts) < 3:
+                regions = list(world.regions.keys()) if world.regions else []
+                return {
+                    "success": False,
+                    "message": f"Usage: /debug set_location <marshal> <region>\n"
+                              f"Regions: {', '.join(regions)}"
+                }
+            region_name = parts[2]
+
+            # Fuzzy match region
+            matched_region = None
+            for r in world.regions.keys():
+                if r.lower() == region_name.lower():
+                    matched_region = r
+                    break
+            if not matched_region:
+                # Try partial match
+                for r in world.regions.keys():
+                    if region_name.lower() in r.lower():
+                        matched_region = r
+                        break
+
+            if not matched_region:
+                regions = list(world.regions.keys())
+                return {
+                    "success": False,
+                    "message": f"Unknown region: {region_name}\n"
+                              f"Available: {', '.join(regions)}"
+                }
+
+            old_location = marshal.location
+            marshal.location = matched_region
+            return {
+                "success": True,
+                "message": f"🔧 DEBUG: {marshal.name} teleported: {old_location} -> {matched_region}"
+            }
+
+        elif ability == "list_marshals" or ability == "marshals":
+            lines = ["=== All Marshals ==="]
+            for name, m in world.marshals.items():
+                status = "DEAD" if m.strength <= 0 else f"{m.strength:,} troops"
+                lines.append(f"  {name} ({m.nation}): {m.location} - {status}")
+            return {
+                "success": True,
+                "message": "\n".join(lines)
+            }
+
+        elif ability == "list_regions" or ability == "regions":
+            lines = ["=== All Regions ==="]
+            for name, r in world.regions.items():
+                marshals_here = [m.name for m in world.marshals.values() if m.location == name and m.strength > 0]
+                marshal_str = f" <- {', '.join(marshals_here)}" if marshals_here else ""
+                lines.append(f"  {name} ({r.controller}){marshal_str}")
+            return {
+                "success": True,
+                "message": "\n".join(lines)
+            }
+
         else:
             return {
                 "success": False,
-                "message": f"Unknown debug ability: {ability}\n"
-                          "Available: counter_punch, restless, cavalry, hold"
+                "message": f"Unknown debug command: {ability}\n"
+                          "Use /debug without args to see all commands."
             }
 
     # ========================================
@@ -3054,12 +3375,14 @@ RETREAT RECOVERY (3 turns):
 
         # ════════════════════════════════════════════════════════════
         # BUG-009 FIX: Find SAFE retreat destination (avoids threat zones)
+        # Pass nearest threat location to retreat AWAY from danger
         # ════════════════════════════════════════════════════════════
-        best_region = world.get_safe_retreat_destination(marshal.name)
+        threats = world.get_threatening_enemies(marshal.name)
+        nearest_threat_location = threats[0].location if threats else None
+        best_region = world.get_safe_retreat_destination(marshal.name, nearest_threat_location)
 
         if not best_region:
             # Get threatening enemies for message
-            threats = world.get_threatening_enemies(marshal.name)
             threat_names = ", ".join([t.name for t in threats[:3]])  # Show first 3
             return {
                 "success": False,
@@ -3108,7 +3431,12 @@ RETREAT RECOVERY (3 turns):
             threatening_enemies = world.get_threatening_enemies(marshal.name)
 
             if threatening_enemies:
-                fighting_retreat_message = f"\n[FIGHTING RETREAT] {marshal.name} refuses to flee quietly!\n"
+                fighting_retreat_message = (
+                    f"\n========================================\n"
+                    f"  [!] FIGHTING RETREAT! (+10% bonus) [!]  \n"
+                    f"========================================\n"
+                    f"{marshal.name}'s cavalry refuses to flee quietly!\n"
+                )
 
                 # Group enemies by location, prioritize same tile
                 enemies_same_tile = [e for e in threatening_enemies if e.location == old_location]

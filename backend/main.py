@@ -21,7 +21,7 @@ app = FastAPI(title="Project Sovereign API")
 parser = CommandParser(use_real_llm=False)
 executor = CommandExecutor()
 world = WorldState(player_nation="France")
-game_state = {"world": world}
+game_state = {"world": world, "debug_mode": DEBUG_MODE}
 
 # Allow Godot to connect
 app.add_middleware(
@@ -340,8 +340,8 @@ def get_authority_status():
     return {
         "authority": int(authority.authority),
         "label": authority.get_authority_label(),
-        "trust_modifier": float(authority.get_trust_gain_modifier()),
-        "obedience_modifier": float(authority.get_obedience_modifier()),
+        "trust_modifier": int(authority.get_trust_gain_modifier() * 100),  # As percentage (e.g., 80 = 0.8x)
+        "obedience_modifier": int(authority.get_obedience_modifier() * 100),  # As percentage
         "recent_responses": list(authority.recent_responses[-5:])  # Last 5 responses
     }
 

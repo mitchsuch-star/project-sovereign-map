@@ -456,20 +456,25 @@ class WorldState:
 
         return threatening
 
-    def get_safe_retreat_destination(self, marshal_name: str) -> Optional[str]:
+    def get_safe_retreat_destination(self, marshal_name: str, attacker_location: str = None) -> Optional[str]:
         """
         Find a safe retreat destination for a marshal.
 
         Uses ADJACENT regions only (distance 1) for retreat.
+        Prioritizes retreating AWAY from the attacker when attacker_location is provided.
 
         Priority order:
-        1. Adjacent friendly WITH allied marshal (COVERED - best)
-        2. Adjacent friendly WITHOUT marshal (EXPOSED - okay)
-        3. Adjacent UNOCCUPIED enemy region (no defenders - desperation)
-        4. None = ENCIRCLED (army breaks)
+        1. Adjacent friendly WITH allied marshal (COVERED on home turf - best)
+        2. Adjacent friendly WITHOUT marshal (EXPOSED but safe territory)
+        3. Adjacent enemy WITH allied marshal (at least you have cover)
+        4. Adjacent enemy WITHOUT marshal (desperation - alone in enemy land)
+        5. None = ENCIRCLED (army breaks)
+
+        Within each priority, prefers regions FURTHEST from the attacker.
 
         Args:
             marshal_name: Name of the marshal retreating
+            attacker_location: Location of the attacking marshal (for directional retreat)
 
         Returns:
             Region name to retreat to, or None if encircled
@@ -486,11 +491,14 @@ class WorldState:
 
         marshal_nation = marshal.nation
         print(f"  [RETREAT DEBUG] Finding retreat for {marshal_name} ({marshal_nation}) from {marshal.location}")
+        if attacker_location:
+            print(f"  [RETREAT DEBUG] Attacker at {attacker_location} - prioritizing retreat AWAY")
 
-        # Categories for retreat destinations
+        # Categories for retreat destinations (4 priorities)
         friendly_with_ally = []    # Priority 1: Friendly region WITH allied marshal
         friendly_empty = []        # Priority 2: Friendly region, no marshal
-        enemy_unoccupied = []      # Priority 3: Enemy-controlled but no defenders
+        enemy_with_ally = []       # Priority 3: Enemy region WITH allied marshal
+        enemy_unoccupied = []      # Priority 4: Enemy region, no one there
 
         # Check ADJACENT regions only (distance 1)
         for candidate_name in current_region.adjacent_regions:
@@ -507,7 +515,12 @@ class WorldState:
             enemy_marshals = [m for m in marshals_there
                             if m.nation != marshal_nation and m.strength > 0]
 
-            print(f"    [RETREAT DEBUG] Checking {candidate_name}: controller={controller}, allies={len(allied_marshals)}, enemies={len(enemy_marshals)}")
+            # Calculate distance from attacker (for sorting)
+            dist_from_attacker = 0
+            if attacker_location:
+                dist_from_attacker = self.get_distance(candidate_name, attacker_location)
+
+            print(f"    [RETREAT DEBUG] Checking {candidate_name}: controller={controller}, allies={len(allied_marshals)}, enemies={len(enemy_marshals)}, dist_from_attacker={dist_from_attacker}")
 
             # Skip regions with enemy marshals (can't retreat INTO enemies!)
             if enemy_marshals:
@@ -521,41 +534,73 @@ class WorldState:
                     friendly_with_ally.append({
                         "name": candidate_name,
                         "ally": allied_marshals[0].name,
-                        "ally_strength": allied_marshals[0].strength
+                        "ally_strength": allied_marshals[0].strength,
+                        "dist_from_attacker": dist_from_attacker
                     })
                     print(f"      -> PRIORITY 1: Friendly with ally {allied_marshals[0].name}")
                 else:
                     # Priority 2: Empty friendly
-                    friendly_empty.append({"name": candidate_name})
+                    friendly_empty.append({
+                        "name": candidate_name,
+                        "dist_from_attacker": dist_from_attacker
+                    })
                     print(f"      -> PRIORITY 2: Friendly, empty")
 
-            # Enemy-controlled but unoccupied (no defenders)
+            # Enemy-controlled territory (no enemy marshals - they were skipped above)
             elif controller is not None and controller != marshal_nation:
-                # This is enemy territory but no one is defending
-                enemy_unoccupied.append({"name": candidate_name})
-                print(f"      -> PRIORITY 3: Enemy territory, unoccupied")
+                if allied_marshals:
+                    # Priority 3: Enemy territory but we have an ally there for cover
+                    enemy_with_ally.append({
+                        "name": candidate_name,
+                        "ally": allied_marshals[0].name,
+                        "ally_strength": allied_marshals[0].strength,
+                        "dist_from_attacker": dist_from_attacker
+                    })
+                    print(f"      -> PRIORITY 3: Enemy territory with ally {allied_marshals[0].name}")
+                else:
+                    # Priority 4: Enemy territory, completely unoccupied (desperation)
+                    enemy_unoccupied.append({
+                        "name": candidate_name,
+                        "dist_from_attacker": dist_from_attacker
+                    })
+                    print(f"      -> PRIORITY 4: Enemy territory, unoccupied")
 
             # Neutral (no controller) - treat like friendly empty
             elif controller is None:
-                friendly_empty.append({"name": candidate_name})
+                friendly_empty.append({
+                    "name": candidate_name,
+                    "dist_from_attacker": dist_from_attacker
+                })
                 print(f"      -> PRIORITY 2: Neutral, empty")
 
         # Return best option by priority
+        # Within each priority, sort by: distance from attacker (furthest first), then ally strength
         if friendly_with_ally:
-            # Sort by ally strength (prefer stronger ally)
-            friendly_with_ally.sort(key=lambda r: r["ally_strength"], reverse=True)
+            # Sort by distance from attacker (furthest first), then ally strength
+            friendly_with_ally.sort(key=lambda r: (r["dist_from_attacker"], r["ally_strength"]), reverse=True)
             result = friendly_with_ally[0]["name"]
-            print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (covered by {friendly_with_ally[0]['ally']})")
+            print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (covered by {friendly_with_ally[0]['ally']}, dist={friendly_with_ally[0]['dist_from_attacker']})")
             return result
 
         if friendly_empty:
+            # Sort by distance from attacker (furthest first)
+            friendly_empty.sort(key=lambda r: r["dist_from_attacker"], reverse=True)
             result = friendly_empty[0]["name"]
-            print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (exposed, no cover)")
+            print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (exposed, dist={friendly_empty[0]['dist_from_attacker']})")
+            return result
+
+        if enemy_with_ally:
+            # Sort by distance from attacker (furthest first), then ally strength
+            enemy_with_ally.sort(key=lambda r: (r["dist_from_attacker"], r["ally_strength"]), reverse=True)
+            result = enemy_with_ally[0]["name"]
+            print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (enemy territory, covered by {enemy_with_ally[0]['ally']}, dist={enemy_with_ally[0]['dist_from_attacker']})")
             return result
 
         if enemy_unoccupied:
+            # Sort by distance from attacker (furthest first)
+            enemy_unoccupied.sort(key=lambda r: r["dist_from_attacker"], reverse=True)
             result = enemy_unoccupied[0]["name"]
-            print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (desperation - enemy territory)")
+            print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (desperation, dist={enemy_unoccupied[0]['dist_from_attacker']})")
             return result
 
         print(f"  [RETREAT RESULT] {marshal_name} is ENCIRCLED - no valid retreat!")
@@ -909,6 +954,7 @@ class WorldState:
                         "cavalry": bool(getattr(m, 'cavalry', False)),
                         "turns_defensive": int(getattr(m, 'turns_defensive', 0)),
                         "counter_punch_available": bool(getattr(m, 'counter_punch_available', False)),
+                        "counter_punch_turns": int(getattr(m, 'counter_punch_turns', 0)),
                         "holding_position": bool(getattr(m, 'holding_position', False)),
                         "hold_region": str(getattr(m, 'hold_region', '')),
                         # Broken army state (surrounded + forced retreat)
@@ -934,8 +980,8 @@ class WorldState:
             "marshals": {
                 name: {
                     "location": m.location,
-                    "strength": m.strength,
-                    "morale": m.morale
+                    "strength": int(m.strength),
+                    "morale": int(m.morale)
                 }
                 for name, m in self.marshals.items()
                 if m.nation == self.player_nation
@@ -943,7 +989,7 @@ class WorldState:
             "enemies": {
                 name: {
                     "location": m.location,
-                    "strength": m.strength,
+                    "strength": int(m.strength),
                     "nation": m.nation
                 }
                 for name, m in self.marshals.items()
@@ -1298,20 +1344,27 @@ class WorldState:
 
         # ════════════════════════════════════════════════════════════
         # COUNTER-PUNCH EXPIRATION (Phase 2.8): Cautious marshals' free attack expires
-        # Counter-Punch must be used the turn after defending, or it's lost
+        # Counter-Punch is earned during enemy phase but usable on NEXT player turn
+        # Uses counter system: earned with turns=2, decrements each turn, expires at 0
         # Applies to ALL cautious marshals (Davout, Wellington) regardless of nation
         # ════════════════════════════════════════════════════════════
         for marshal in self.marshals.values():
-            counter_punch = getattr(marshal, 'counter_punch_available', False)
-            if counter_punch:
-                # Counter-punch wasn't used this turn - it expires
-                marshal.counter_punch_available = False
-                print(f"  [COUNTER-PUNCH EXPIRED] {marshal.name}'s counter-punch opportunity has passed")
-                events.append({
-                    "type": "counter_punch_expired",
-                    "marshal": marshal.name,
-                    "message": f"⚠️ {marshal.name}'s Counter-Punch opportunity has expired! (Must use immediately after defending)"
-                })
+            counter_punch_turns = getattr(marshal, 'counter_punch_turns', 0)
+            if counter_punch_turns > 0:
+                # Decrement counter
+                marshal.counter_punch_turns -= 1
+                if marshal.counter_punch_turns <= 0:
+                    # Counter-punch wasn't used - it expires
+                    marshal.counter_punch_available = False
+                    marshal.counter_punch_turns = 0
+                    print(f"  [COUNTER-PUNCH EXPIRED] {marshal.name}'s counter-punch opportunity has passed")
+                    events.append({
+                        "type": "counter_punch_expired",
+                        "marshal": marshal.name,
+                        "message": f"⚠️ {marshal.name}'s Counter-Punch opportunity has expired! (Must use immediately after defending)"
+                    })
+                else:
+                    print(f"  [COUNTER-PUNCH] {marshal.name} has counter-punch available ({marshal.counter_punch_turns} turns remaining)")
 
         return events
 

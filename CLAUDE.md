@@ -20,13 +20,13 @@ GOLDEN RULES:
 4. State clearing: AFTER reading the value, not before
 5. Enemy AI uses SAME executor as player (Building Blocks principle)
 
-CURRENT PHASE: Phase 2.9 (Retreat System + AI Refinements) 🔄 IN PROGRESS
+CURRENT PHASE: Phase 2.5 (Autonomy) 🔄 → Phase 3 (Fun Factor) 📋 NEXT
 - Phase 1 ✅: Foundation (regions, marshals, combat, actions, turns)
 - Phase 2 ✅: Combat & AI (disobedience, drill/fortify, Enemy AI, safety eval)
-- Phase 2.5 ✅: Autonomy Foundation
-- Phase 2.8 ✅: Marshal Abilities (cavalry, counter-punch, fighting retreat)
-- Phase 2.9 🔄: Retreat System (ally cover, smart destination, AI targeting)
-- Not implemented: diplomacy, LLM parsing, supply lines (marked CONCEPTUAL)
+- Phase 2.5 🔄: Autonomy (AI control, narrative outcomes, admin role)
+- Phase 2.9 ✅: Retreat System (ally cover, smart destination, AI targeting)
+- Phase 3 📋: Fun Factor (hearing guns, vindication, anti-tedium, pressure)
+- Not implemented: diplomacy, LLM parsing, supply lines (see Phase 4-6)
 ```
 
 ---
@@ -217,15 +217,18 @@ When a marshal is forced to retreat, destinations are evaluated in priority orde
 
 | Priority | Destination Type | Description |
 |----------|-----------------|-------------|
-| 1 (Best) | Friendly + Ally | Adjacent friendly region WITH an allied marshal (COVERED) |
-| 2 | Friendly Empty | Adjacent friendly region WITHOUT marshal (EXPOSED) |
-| 3 | Enemy Unoccupied | Adjacent enemy-controlled region with NO defenders (DESPERATION) |
-| 4 | None | No valid retreat = ENCIRCLED (army breaks, flees to capital) |
+| 1 (Best) | Friendly + Ally | Adjacent friendly region WITH an allied marshal (COVERED on home turf) |
+| 2 | Friendly Empty | Adjacent friendly region WITHOUT marshal (EXPOSED but safe territory) |
+| 3 | Enemy + Ally | Adjacent enemy region WITH an allied marshal (at least you have cover) |
+| 4 | Enemy Unoccupied | Adjacent enemy region WITHOUT anyone (DESPERATION - alone in enemy land) |
+| 5 | None | No valid retreat = ENCIRCLED (army breaks, flees to capital) |
 
 **Key points:**
 - Uses `marshal.nation` for nation-aware checks (works for both player and AI)
+- Friendly territory is ALWAYS preferred over enemy territory, even if ally present in enemy territory
 - Unoccupied enemy region = enemy controls but no marshals defending
 - Forced retreat uses `move_to()` method (not direct assignment)
+- Within each priority, prefers regions FURTHEST from the attacker
 
 ### Marshal Personality Abilities (Phase 2.8)
 
@@ -2914,34 +2917,167 @@ func update_region_color(region_name: String, color: Color):
 - ✅ Attacker movement on victory
 
 ### Phase 2.5: Autonomy Foundation 🔄 CURRENT
-- Grant Autonomy → marshal uses Enemy AI decision tree
-- Autonomous marshal processing in turn flow
-- Strategic commands (MOVE_TO, PURSUE, ATTACK_TARGET)
-- Order delay system (Grouchy moments)
-- Communication cut-off mechanics
+- ✅ Grant Autonomy → marshal uses Enemy AI decision tree
+- ✅ Autonomous marshal processing in turn flow
+- 🔄 Autonomy narrative outcomes (success/neutral/failure text)
+- ⏳ Administrative Role option (removed marshal → +1 action/turn)
 
-### Phase 3: LLM Integration
-- Real Claude API for marshal responses
-- Personality-driven dialogue
-- Response caching
-- LLM command parsing (currently keyword matching)
+### Phase 3: Fun Factor & Historical Drama 📋 PLANNED
 
-### Phase 4: Strategic Depth
-- Flanking coordination system
-- Marshal rivalries
-- Post-battle reports
+**Target: May 2026 | Design Goal: 8.5/10 fun rating**
 
-### Phase 5: Diplomacy
-- Natural language negotiation
+#### 3.1 Hearing the Guns System (SIGNATURE FEATURE)
+The "Grouchy moment" - marshals detect nearby battles and respond based on personality.
+
+```python
+# Event broadcast when battle starts
+EVENT_BLOCKS["hearing_the_guns"] = {
+    "trigger": "battle_starts_within_2_regions",
+    "text": "{marshal} hears cannon fire from {location}!",
+    "personality_response": {
+        "aggressive": "I hear the guns! Let me march to join the battle!",
+        "cautious": "Battle rages at {location}. Should I hold or intervene?",
+        "literal": "I hear cannon fire, but my orders are clear. I continue as directed."
+    },
+    "player_options": [
+        {"id": "redirect", "text": "March to the guns!", "cancels_current_order": True},
+        {"id": "continue", "text": "Continue as ordered"},
+        {"id": "judgment", "text": "Use your judgment", "triggers": "personality_default"}
+    ]
+}
+
+# If no player response by turn end:
+# - Aggressive: auto-redirects to battle
+# - Cautious: holds position
+# - Literal: continues original order (THE GROUCHY MOMENT)
+```
+
+#### 3.2 Vindication & Causality System
+Make disobedience feel two-sided - player learns when marshals were right.
+
+**Post-Battle Counterfactual (opt-in):**
+```
+"Battle of Waterloo - Analysis:
+- You insisted on attacking despite Davout's objection
+- Davout's alternative (fortify) would have resulted in ~40% fewer casualties
+- Davout's vindication score: +1"
+```
+
+**Trust Trajectory Warnings:**
+```
+At trust 40 (dropping): "Ney's trust has fallen 25 points over 6 turns. Consider his counsel."
+```
+
+**Marshal Memory Callbacks:**
+```
+When similar situation arises:
+"Sire, the last time you ordered a frontal assault at these odds, we lost half our force."
+```
+
+**Reconciliation Events (at trust 35, recovering from <20):**
+```
+"Sire... I may have been too proud. Your counsel at [battle] was wiser than I admitted."
+Options: [Accept gracefully +8 trust, +2 authority] [Rub it in +3 trust, +8 authority]
+```
+
+#### 3.3 Grouchy Ambiguity Detection
+Implement the LITERAL personality's core mechanic.
+
+```python
+# Vague order triggers clarification
+"Sire, you say 'handle the Prussians.' Do you mean:
+- Pursue and destroy them
+- Pin them in place
+- Scout their movements
+I await specific orders."
+
+# Clear explicit orders give +15% bonus
+# "Use your judgment" → conservative/suboptimal interpretation
+```
+
+#### 3.4 Personality Failure Modes (Telegraphed)
+Dramatic moments that emerge from personality, NOT random punishment.
+
+| Marshal | Trigger | Warning | Failure Mode |
+|---------|---------|---------|--------------|
+| Ney | recklessness >= 3 | "Ney's blood is up!" | Glorious Charge: 2x damage dealt AND taken |
+| Davout | wins defense | None (positive) | May refuse pursuit ("Hold the line!") |
+| Grouchy | battle within 2 regions | Hearing the Guns | Ignores unless explicitly redirected |
+
+**Recklessness builds predictably:**
+```python
+if ney.stance == AGGRESSIVE and ney.consecutive_attacks >= 2:
+    ney.recklessness += 1
+
+if ney.recklessness >= 3:
+    # Player sees warning, can ALLOW or RESTRAIN (-5 trust)
+```
+
+#### 3.5 Anti-Tedium Improvements
+Quality of life fixes for every-turn friction.
+
+| Issue | Fix |
+|-------|-----|
+| Fortify grinding | Front-load: +5% turn 1, +2% after (max 13-18% by personality) |
+| Retreat recovery | Allow limited actions: hold, recruit, defensive stance |
+| Objection spam | Reduce severity on repeat situations (more auto-resolve) |
+| Stance management | Add "All marshals, [stance]!" army-wide command |
+
+#### 3.6 Dominant Strategy Pressure (Simplified)
+Break turtling and alpha-strike without complex event systems.
+
+**Fortify Pressure (escalating, predictable):**
+```
+Turn 3: "The men grow restless behind these walls." (warning)
+Turn 5: "Supplies run low." → forage (opinion -20) OR ration (strength -10)
+Turn 7: "Paris demands action." → authority -10, political_pressure flag
+Turn 9 (if flag): "Paris recalls you." → game over
+```
+
+**Attack Exhaustion:**
+```python
+if marshal.consecutive_attacks >= 2:
+    marshal.exhaustion += 1
+if marshal.exhaustion >= 2:
+    "Troops exhausted. Attack at -20%, or rest 1 turn?"
+```
+
+#### 3.7 Redemption System Improvements
+- Autonomy uses Enemy AI (marshal actually acts)
+- Narrative outcomes: Success +30 trust, Neutral +15, Failure +5
+- Spectacular success (capture region or 2+ wins): trust → 70, +10 authority
+- Remove "Demand Obedience" option (trap choice)
+- Add "Administrative Role": marshal removed, +1 action/turn for France
+
+#### Phase 3 File Changes
+| File | Changes |
+|------|---------|
+| `world_state.py` | Event broadcast system, hearing_the_guns trigger |
+| `disobedience.py` | Vindication tracking, reconciliation events, memory callbacks |
+| `executor.py` | Army-wide stance command, administrative role transfer |
+| `enemy_ai.py` | Autonomy processing improvements |
+| `marshal.py` | recklessness counter, exhaustion counter |
+| `turn_manager.py` | Fortify pressure escalation, exhaustion decay |
+
+### Phase 4: Strategic Commands & Polish
+- Order delay system (commands take time to reach marshals)
+- Strategic commands: "Hold until reinforced", "Attack when ready"
+- Battle momentum (pursue vs consolidate choice)
+- Coalition pressure visibility ("Prussia negotiating with Austria")
+- Campaign pattern recognition (every 10 turns)
+
+### Phase 5: Diplomacy & Fog of War
+- Natural language negotiation with AI nations
 - Treaty system
 - Reputation tracking
 - Coalition triggers
+- Fog of war (last-known positions)
 
-### Phase 6: Early Access
-- Year-based timeline
+### Phase 6: Early Access Polish
+- Year-based timeline (1805-1815)
 - Character death/replacement
 - Vassal system
-- Token monetization
+- Token monetization (BYOK or purchase)
 - Full Europe map (200+ regions)
 
 ---

@@ -100,7 +100,7 @@ class CommandParser:
         # If marshal is None, try to extract from command text with fuzzy matching
         elif not llm_result.get("marshal"):
             # BUG-002 FIX: Skip fuzzy marshal matching for meta/help commands
-            meta_actions = ["help", "end_turn", "status", "unknown"]
+            meta_actions = ["help", "end_turn", "status", "unknown", "debug"]
             if llm_result.get("action") in meta_actions:
                 return (llm_result, None)  # Don't try to find a marshal
 
@@ -113,7 +113,9 @@ class CommandParser:
                     "attack", "defend", "move", "scout", "retreat",
                     "help", "wait", "hold", "fortify", "drill", "recruit",
                     "reinforce", "unfortify", "stance", "aggressive", "defensive", "neutral",
-                    "go", "take", "be", "switch", "adopt", "return"  # Stance command verbs
+                    "go", "take", "be", "switch", "adopt", "return",  # Stance command verbs
+                    "debug", "/debug", "set_location", "set_retreat", "set_recovery",  # Debug commands
+                    "set_strength", "set_morale", "set_fortified", "ai_turn", "ai_state"
                 ]
                 if len(word) < 2 or word.lower() in skip_words:
                     continue

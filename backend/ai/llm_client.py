@@ -95,6 +95,26 @@ class LLMClient:
 
         # Extract action (ALWAYS set a value)
         action = "unknown"  # Default
+
+        # DEBUG COMMANDS: /debug or debug at start of command
+        if command_lower.startswith("/debug") or command_lower.startswith("debug "):
+            action = "debug"
+            # Extract everything after "debug " as the target
+            if command_lower.startswith("/debug"):
+                debug_args = command_text[6:].strip()  # Skip "/debug"
+            else:
+                debug_args = command_text[5:].strip()  # Skip "debug"
+            # Return early with debug command structure
+            return {
+                "marshal": None,
+                "action": "debug",
+                "target": debug_args,
+                "confidence": 1.0,
+                "raw_command": command_text,
+                "mode": "mock",
+                "type": "debug"  # Special type to skip marshal requirement
+            }
+
         # BUG-002 FIX: Added "commands" and "what can i do" as help aliases
         if "help" in command_lower or command_lower.strip() == "?" or "commands" in command_lower or "what can i do" in command_lower:
             action = "help"

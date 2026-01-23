@@ -340,6 +340,7 @@ class CombatResolver:
             # COUNTER-PUNCH: Cautious defenders (Davout) get free attack after winning defense
             if getattr(defender, 'personality', '') == 'cautious':
                 defender.counter_punch_available = True
+                defender.counter_punch_turns = 2  # Survives one turn transition
                 print(f"  [COUNTER-PUNCH EARNED] {defender.name} can now attack for FREE!")
         elif defender.strength <= 0:
             victor = attacker
@@ -358,6 +359,7 @@ class CombatResolver:
                 # COUNTER-PUNCH: Cautious defenders (Davout) get free attack after winning defense
                 if getattr(defender, 'personality', '') == 'cautious':
                     defender.counter_punch_available = True
+                    defender.counter_punch_turns = 2  # Survives one turn transition
                     print(f"  [COUNTER-PUNCH EARNED] {defender.name} can now attack for FREE!")
             elif defender_casualties > attacker_casualties * 1.5:
                 victor = attacker
@@ -372,6 +374,7 @@ class CombatResolver:
                 # COUNTER-PUNCH: Cautious defenders held the line - still get counter-punch
                 if getattr(defender, 'personality', '') == 'cautious':
                     defender.counter_punch_available = True
+                    defender.counter_punch_turns = 2  # Survives one turn transition
                     print(f"  [COUNTER-PUNCH EARNED] {defender.name} held the line - can now attack for FREE!")
 
         # Build description with tactical state messages

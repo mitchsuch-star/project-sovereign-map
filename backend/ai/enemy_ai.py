@@ -13,8 +13,20 @@ Design principles:
 - Personality-driven behavior (aggressive vs cautious)
 - Same building blocks as player (attack, move, fortify, drill, etc.)
 - No special enemy combat logic - same executor handles everything
+
+FUTURE IMPROVEMENTS (TODO):
+- Coordination: Multiple marshals attack same target (requires multi-marshal battles)
+- Recruiting: AI replenishes armies when weak (requires economy system)
+
+IMPLEMENTED:
+- Controlled Randomness: Personality-weighted mood variance on attack thresholds
+  - Aggressive: ±15% variance (Blucher might be cautious OR reckless)
+  - Cautious: ±10% variance (Wellington usually careful, occasionally bold)
+  - Others: ±12% variance
+  - Tests use seeded random for determinism
 """
 
+import random
 from typing import Dict, List, Optional, Tuple
 from backend.models.world_state import WorldState
 from backend.models.marshal import Marshal, Stance
@@ -73,6 +85,16 @@ class EnemyAI:
     # Low strength threshold for defensive behavior
     LOW_STRENGTH_THRESHOLD = 0.50
 
+    # Mood variance by personality (controlled randomness)
+    # Higher variance = more unpredictable behavior
+    MOOD_VARIANCE = {
+        "aggressive": 0.15,  # ±15% (threshold 0.7 becomes 0.595-0.805)
+        "cautious": 0.10,    # ±10% (threshold 1.3 becomes 1.17-1.43)
+        "literal": 0.08,     # ±8% (more predictable, follows orders)
+        "balanced": 0.12,    # ±12%
+        "loyal": 0.10,       # ±10%
+    }
+
     def __init__(self, executor):
         """
         Initialize enemy AI with reference to command executor.
@@ -81,6 +103,34 @@ class EnemyAI:
             executor: CommandExecutor instance for executing actions
         """
         self.executor = executor
+
+    def _get_mood_adjusted_threshold(self, marshal: Marshal) -> float:
+        """
+        Get attack threshold with personality-based mood variance.
+
+        This creates controlled unpredictability - marshals are generally
+        consistent with their personality but occasionally surprise you.
+
+        Args:
+            marshal: The marshal making the decision
+
+        Returns:
+            Mood-adjusted attack threshold (lower = more aggressive)
+        """
+        personality = getattr(marshal, 'personality', 'balanced')
+        base_threshold = self.ATTACK_THRESHOLDS.get(personality, 1.0)
+        variance = self.MOOD_VARIANCE.get(personality, 0.10)
+
+        # Apply random variance: threshold * (1 ± variance)
+        mood_modifier = random.uniform(1.0 - variance, 1.0 + variance)
+        adjusted = base_threshold * mood_modifier
+
+        # Log if significantly different from base
+        if abs(mood_modifier - 1.0) > 0.05:
+            mood_desc = "bold" if mood_modifier < 1.0 else "cautious"
+            ai_debug(f"    {marshal.name} feeling {mood_desc} today (threshold {base_threshold:.2f} -> {adjusted:.2f})")
+
+        return adjusted
 
     def process_nation_turn(self, nation: str, world: WorldState, game_state: Dict) -> List[Dict]:
         """
@@ -608,10 +658,10 @@ class EnemyAI:
             ai_debug(f"    No enemies in range")
             return None
 
-        # Get attack threshold for personality
+        # Get attack threshold with mood variance (controlled randomness)
         personality = getattr(marshal, 'personality', 'balanced')
-        threshold = self.ATTACK_THRESHOLDS.get(personality, 1.0)
-        ai_debug(f"    Attack threshold for {personality}: {threshold}")
+        threshold = self._get_mood_adjusted_threshold(marshal)
+        ai_debug(f"    Attack threshold for {personality}: {threshold:.2f} (mood-adjusted)")
 
         # Filter by EFFECTIVE ratio against threshold (smarter decision)
         attackable = [(e, br, er, d) for e, br, er, d in valid_targets if er >= threshold]

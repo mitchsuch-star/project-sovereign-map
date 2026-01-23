@@ -181,9 +181,11 @@ class Marshal:
         self.turns_defensive: int = 0            # Legacy - kept for compatibility
 
         # DAVOUT (Cautious) - Counter-Punch tracking
-        # Set True after successfully defending against attack
-        # Clears at turn END if not used, or after first attack
+        # Set to 1 after successfully defending against attack
+        # Decrements at turn end; expires when reaches 0
+        # This gives the player ONE full turn to use it after earning
         self.counter_punch_available: bool = False
+        self.counter_punch_turns: int = 0  # Turns remaining to use counter-punch
 
         # GROUCHY (Literal) - Immovable tracking
         # Set True when given hold/defend order
