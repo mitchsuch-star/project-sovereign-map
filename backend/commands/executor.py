@@ -1169,6 +1169,31 @@ RETREAT RECOVERY (3 turns):
         # NORMAL ATTACK LOGIC (Range check passed)
         # ============================================================
 
+        # ════════════════════════════════════════════════════════════
+        # ENGAGEMENT CHECK: Cannot attack elsewhere if enemy in your region
+        # Same rule as movement - must deal with engaged enemies first
+        # ════════════════════════════════════════════════════════════
+        marshals_here = world.get_marshals_in_region(marshal.location)
+        enemies_here = [m for m in marshals_here if m.nation != marshal.nation and m.strength > 0]
+
+        if enemies_here:
+            # Check if target is in a DIFFERENT region
+            # (Attacking enemy in same region is allowed - that's fighting them!)
+            target_in_same_region = False
+            for enemy in enemies_here:
+                if enemy.name.lower() == target.lower() or enemy.location == resolved_target:
+                    target_in_same_region = True
+                    break
+
+            if not target_in_same_region:
+                enemy_names = [e.name for e in enemies_here]
+                return {
+                    "success": False,
+                    "message": f"Cannot attack elsewhere while engaged with enemy forces! {', '.join(enemy_names)} must be dealt with first.",
+                    "engaged_with": enemy_names,
+                    "suggestion": f"Attack {enemies_here[0].name} in {marshal.location} first"
+                }
+
         # Find enemy marshal - either by name or at target location
         # Use nation-aware lookups (required for enemy AI to attack player marshals)
         enemy_marshal = None
@@ -1306,20 +1331,37 @@ RETREAT RECOVERY (3 turns):
 
         # ════════════════════════════════════════════════════════════
         # CAVALRY CHARGE (Phase 2.8): Ney can attack from 2 regions away
+        # Cannot leapfrog over enemies - must engage them first
         # ════════════════════════════════════════════════════════════
         cavalry_charge_message = ""
         attack_distance = world.get_distance(origin_region, target_location)
         is_cavalry = getattr(marshal, 'cavalry', False)
 
         if is_cavalry and attack_distance == 2:
-            # Find the middle region for the charge message
+            # Find the middle region for the charge
             middle_regions = []
             current_region = world.get_region(origin_region)
             for adj in current_region.adjacent_regions:
                 if world.get_distance(adj, target_location) == 1:
                     middle_regions.append(adj)
 
+            # CHECK FOR ENEMIES IN MIDDLE REGION - Cannot leapfrog!
             if middle_regions:
+                for middle in middle_regions:
+                    enemies_in_middle = [
+                        m for m in world.get_marshals_in_region(middle)
+                        if m.nation != marshal.nation and m.strength > 0
+                    ]
+                    if enemies_in_middle:
+                        blocking_enemy = enemies_in_middle[0]
+                        return {
+                            "success": False,
+                            "message": f"Cannot charge through {middle} - {blocking_enemy.name} blocks the path! Engage them first.",
+                            "blocked_by": blocking_enemy.name,
+                            "blocking_region": middle,
+                            "suggestion": f"Attack {blocking_enemy.name} at {middle} first"
+                        }
+
                 middle = middle_regions[0]
                 cavalry_charge_message = f"🐴 {marshal.name}'s cavalry thunders across {middle} to strike! (Cavalry Charge: 2-region attack)\n"
             else:
@@ -1695,6 +1737,24 @@ RETREAT RECOVERY (3 turns):
         target_name = target_region.name if hasattr(target_region, 'name') else target
 
         current_region = world.get_region(marshal.location)
+
+        # ════════════════════════════════════════════════════════════
+        # ENEMY ENGAGEMENT CHECK: Cannot advance through enemies
+        # If enemy marshal in current region, can only retreat to friendly territory
+        # ════════════════════════════════════════════════════════════
+        marshals_here = world.get_marshals_in_region(marshal.location)
+        enemies_here = [m for m in marshals_here if m.nation != marshal.nation]
+
+        if enemies_here:
+            # Engaged with enemy - can only move to regions controlled by marshal's nation
+            if target_region.controller != marshal.nation:
+                return {
+                    "success": False,
+                    "message": f"Cannot advance while engaged with enemy forces. You may retreat to friendly territory.",
+                    "engaged_with": [e.name for e in enemies_here],
+                    "suggestion": f"Friendly regions adjacent: {', '.join([r for r in current_region.adjacent_regions if world.get_region(r) and world.get_region(r).controller == marshal.nation])}"
+                }
+
         distance = world.get_distance(marshal.location, target_name)
         move_range = getattr(marshal, 'movement_range', 1)
 
