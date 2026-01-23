@@ -4,7 +4,12 @@ extends CanvasLayer
 # PROJECT SOVEREIGN - Marshal Redemption Dialog
 # =============================================================================
 # Displays when a marshal's trust drops to critical levels (≤ 20)
-# Player chooses: Grant Autonomy, Dismiss Marshal, or Demand Obedience
+# Player chooses: Grant Autonomy, Administrative Role, or Dismiss
+#
+# Options are dynamically shown/hidden based on availability from backend:
+# - Grant Autonomy: Always available
+# - Administrative Role: Only if ≥2 field marshals AND no existing admin
+# - Dismiss: Only if ≥2 field marshals
 # =============================================================================
 
 signal choice_made(choice: String)
@@ -16,7 +21,7 @@ signal choice_made(choice: String)
 @onready var trust_label = $PanelContainer/VBoxContainer/StatsContainer/TrustLabel
 @onready var autonomy_button = $PanelContainer/VBoxContainer/ButtonContainer/AutonomyButton
 @onready var dismiss_button = $PanelContainer/VBoxContainer/ButtonContainer/DismissButton
-@onready var demand_button = $PanelContainer/VBoxContainer/ButtonContainer/DemandButton
+@onready var admin_button = $PanelContainer/VBoxContainer/ButtonContainer/AdminButton
 
 var current_marshal: String = ""
 
@@ -30,7 +35,7 @@ func _ready():
 	# Connect button signals
 	autonomy_button.pressed.connect(_on_autonomy_pressed)
 	dismiss_button.pressed.connect(_on_dismiss_pressed)
-	demand_button.pressed.connect(_on_demand_pressed)
+	admin_button.pressed.connect(_on_admin_pressed)
 
 	# Hide by default
 	hide()
@@ -53,18 +58,39 @@ func show_redemption(redemption_data: Dictionary):
 	var trust = int(redemption_data.get("trust", 20))
 	trust_label.text = "Trust: %d (Critical)" % trust
 
-	# Set button text with descriptions
+	# ════════════════════════════════════════════════════════════════════════════
+	# DYNAMIC BUTTON VISIBILITY - Show only available options
+	# ════════════════════════════════════════════════════════════════════════════
 	var options = redemption_data.get("options", [])
+	var available_ids = []
+
+	# Collect available option IDs and update button text
 	for opt in options:
 		var opt_id = opt.get("id", "")
 		var opt_text = opt.get("text", "")
+		var opt_desc = opt.get("description", "")
+		available_ids.append(opt_id)
+
 		match opt_id:
 			"grant_autonomy":
 				autonomy_button.text = opt_text if opt_text else "Grant Autonomy (3 turns)"
+				autonomy_button.tooltip_text = opt_desc
+			"administrative_role":
+				admin_button.text = opt_text if opt_text else "Transfer to Staff (+1 action)"
+				admin_button.tooltip_text = opt_desc
 			"dismiss":
 				dismiss_button.text = opt_text if opt_text else "Dismiss Marshal"
-			"demand_obedience":
-				demand_button.text = opt_text if opt_text else "Demand Obedience"
+				dismiss_button.tooltip_text = opt_desc
+
+	# Show/hide buttons based on availability
+	autonomy_button.visible = "grant_autonomy" in available_ids
+	admin_button.visible = "administrative_role" in available_ids
+	dismiss_button.visible = "dismiss" in available_ids
+
+	print("REDEMPTION DIALOG: Available options: ", available_ids)
+	print("REDEMPTION DIALOG: Autonomy visible: ", autonomy_button.visible)
+	print("REDEMPTION DIALOG: Admin visible: ", admin_button.visible)
+	print("REDEMPTION DIALOG: Dismiss visible: ", dismiss_button.visible)
 
 	# Show the dialog
 	print("REDEMPTION DIALOG: Showing dialog...")
@@ -76,12 +102,12 @@ func _on_autonomy_pressed():
 	hide()
 	choice_made.emit("grant_autonomy")
 
+func _on_admin_pressed():
+	"""Player transfers marshal to administrative role."""
+	hide()
+	choice_made.emit("administrative_role")
+
 func _on_dismiss_pressed():
 	"""Player dismisses the marshal."""
 	hide()
 	choice_made.emit("dismiss")
-
-func _on_demand_pressed():
-	"""Player demands obedience despite broken trust."""
-	hide()
-	choice_made.emit("demand_obedience")

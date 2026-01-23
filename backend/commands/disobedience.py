@@ -967,7 +967,9 @@ class DisobedienceSystem:
 
             if current_trust <= 20 and not already_pending:
                 marshal.redemption_pending = True  # FIX: Mark as pending to prevent re-trigger
-                redemption_event = self._create_redemption_event(marshal)
+                # Pass world for option availability checks
+                world = getattr(game_state, 'world', game_state) if game_state else None
+                redemption_event = self._create_redemption_event(marshal, world)
 
         result = {
             'type': 'objection_resolved',
@@ -987,40 +989,110 @@ class DisobedienceSystem:
 
         return result
 
-    def _create_redemption_event(self, marshal) -> Dict:
+    def _get_available_redemption_options(self, marshal, world) -> List[Dict]:
+        """
+        Determine which redemption options are available based on game state.
+
+        Rules:
+        - Grant Autonomy: Always available
+        - Administrative Role: Available if ≥2 field marshals AND no existing admin
+        - Dismiss: Available if ≥2 field marshals
+
+        Last Marshal Protection: If only 1 field marshal remains, ONLY show Autonomy.
+
+        Args:
+            marshal: The marshal triggering redemption
+            world: WorldState for checking marshal counts
+
+        Returns:
+            List of available option dicts
+        """
+        options = []
+
+        # Get counts using world_state helpers
+        field_marshals = world.get_field_marshals()
+        admin_marshals = world.get_admin_marshals()
+
+        field_count = len(field_marshals)
+        admin_count = len(admin_marshals)
+
+        print(f"  [REDEMPTION OPTIONS] Field marshals: {field_count}, Admin marshals: {admin_count}")
+
+        # ════════════════════════════════════════════════════════════
+        # GRANT AUTONOMY - Always available
+        # ════════════════════════════════════════════════════════════
+        options.append({
+            'id': 'grant_autonomy',
+            'text': f"Grant {marshal.name} Autonomy",
+            'description': f"{marshal.name} will act independently for 3 turns. Cannot receive orders during this time. Trust restored based on performance.",
+            'effect': 'autonomous_3_turns_trust_based_on_performance',
+        })
+
+        # ════════════════════════════════════════════════════════════
+        # LAST MARSHAL PROTECTION - If only 1 field marshal, stop here
+        # ════════════════════════════════════════════════════════════
+        if field_count < 2:
+            print(f"  [REDEMPTION OPTIONS] Last marshal protection: only autonomy available")
+            return options
+
+        # ════════════════════════════════════════════════════════════
+        # ADMINISTRATIVE ROLE - Available if ≥2 field AND no existing admin
+        # ════════════════════════════════════════════════════════════
+        if admin_count == 0:
+            options.append({
+                'id': 'administrative_role',
+                'text': f"Transfer {marshal.name} to Staff",
+                'description': f"{marshal.name} joins the administrative staff. Troops frozen for future restoration. You gain +1 action per turn.",
+                'effect': 'admin_role_plus_one_action',
+            })
+            print(f"  [REDEMPTION OPTIONS] Administrative role available (no existing admin)")
+        else:
+            print(f"  [REDEMPTION OPTIONS] Administrative role NOT available (already have admin)")
+
+        # ════════════════════════════════════════════════════════════
+        # DISMISS - Available if ≥2 field marshals
+        # ════════════════════════════════════════════════════════════
+        options.append({
+            'id': 'dismiss',
+            'text': f"Dismiss {marshal.name}",
+            'description': f"Relieve {marshal.name} of command permanently. Troops transfer to nearby ally (≤3 regions) or disband. +10 authority.",
+            'effect': 'remove_marshal_transfer_troops_authority_bonus',
+        })
+        print(f"  [REDEMPTION OPTIONS] Dismiss available (≥2 field marshals)")
+
+        return options
+
+    def _create_redemption_event(self, marshal, world=None) -> Dict:
         """
         Create a redemption event when trust falls to critical levels.
 
         Player must choose how to handle the broken relationship:
-        - Grant Autonomy: Marshal acts independently for 3 turns, then returns at trust 50
-        - Dismiss Marshal: Remove marshal, transfer troops
-        - Demand Obedience: Keep marshal but 80% disobey chance
+        - Grant Autonomy: Marshal acts independently for 3 turns
+        - Administrative Role: Marshal sidelined, +1 action/turn (if available)
+        - Dismiss: Remove marshal permanently, +10 authority (if available)
+
+        Args:
+            marshal: The marshal whose trust is critical
+            world: WorldState for determining available options
         """
+        # Get available options based on game state
+        if world:
+            options = self._get_available_redemption_options(marshal, world)
+        else:
+            # Fallback if no world provided - only autonomy
+            options = [{
+                'id': 'grant_autonomy',
+                'text': f"Grant {marshal.name} Autonomy",
+                'description': f"{marshal.name} will act independently for 3 turns.",
+                'effect': 'autonomous_3_turns_trust_based_on_performance',
+            }]
+
         return {
             'type': 'redemption_event',
             'marshal': marshal.name,
             'trust': int(marshal.trust.value),
             'message': f"{marshal.name}'s trust in you has broken completely. The relationship must be addressed.",
-            'options': [
-                {
-                    'id': 'grant_autonomy',
-                    'text': f"Grant {marshal.name} Autonomy",
-                    'description': f"{marshal.name} will act independently for 3 turns. Cannot receive orders during this time. Relationship restored after.",
-                    'effect': 'autonomous_3_turns_then_trust_50',
-                },
-                {
-                    'id': 'dismiss',
-                    'text': f"Dismiss {marshal.name}",
-                    'description': f"Relieve {marshal.name} of command. Troops transfer to nearest friendly marshal.",
-                    'effect': 'remove_marshal_transfer_troops',
-                },
-                {
-                    'id': 'demand_obedience',
-                    'text': "Demand Obedience",
-                    'description': f"Force {marshal.name} to remain. Relationship stays strained. 80% chance of disobedience on any order.",
-                    'effect': 'no_change_high_disobey',
-                },
-            ],
+            'options': options,
         }
 
     def handle_redemption_response(
@@ -1034,7 +1106,7 @@ class DisobedienceSystem:
 
         Args:
             redemption_event: The redemption event dict
-            choice: 'grant_autonomy', 'dismiss', or 'demand_obedience'
+            choice: 'grant_autonomy', 'administrative_role', or 'dismiss'
             game_state: Current game state
 
         Returns:
@@ -1043,7 +1115,20 @@ class DisobedienceSystem:
         marshal_name = redemption_event['marshal']
 
         # Get marshal and world
-        world = game_state.get('world') if isinstance(game_state, dict) else getattr(game_state, 'world', None)
+        # Handle multiple ways game_state can be passed:
+        # 1. Dict with 'world' key
+        # 2. Object with 'world' attribute
+        # 3. WorldState directly
+        if isinstance(game_state, dict):
+            world = game_state.get('world')
+        elif hasattr(game_state, 'world'):
+            world = game_state.world
+        elif hasattr(game_state, 'marshals'):
+            # game_state IS a WorldState
+            world = game_state
+        else:
+            world = None
+
         if not world:
             return {'success': False, 'message': 'No world state'}
 
@@ -1054,8 +1139,10 @@ class DisobedienceSystem:
         # FIX: Clear redemption_pending flag now that we're resolving it
         marshal.redemption_pending = False
 
+        # ════════════════════════════════════════════════════════════════════════════
+        # GRANT AUTONOMY - Marshal acts independently for 3 turns
+        # ════════════════════════════════════════════════════════════════════════════
         if choice == 'grant_autonomy':
-            # Set marshal as autonomous (Phase 2.5)
             marshal.autonomous = True
             marshal.autonomy_turns = 3
             marshal.autonomy_reason = "redemption"
@@ -1064,6 +1151,8 @@ class DisobedienceSystem:
             marshal.autonomous_battles_won = 0
             marshal.autonomous_battles_lost = 0
             marshal.autonomous_regions_captured = 0
+
+            print(f"  [REDEMPTION] {marshal_name} granted autonomy for 3 turns")
 
             return {
                 'success': True,
@@ -1076,65 +1165,89 @@ class DisobedienceSystem:
                 'autonomy_reason': 'redemption',
             }
 
-        elif choice == 'dismiss':
-            # Find nearest friendly marshal for troop transfer
-            troop_count = marshal.strength
-            nearest = self._find_nearest_friendly_marshal(marshal, world)
+        # ════════════════════════════════════════════════════════════════════════════
+        # ADMINISTRATIVE ROLE - Marshal sidelined, troops frozen, +1 action/turn
+        # ════════════════════════════════════════════════════════════════════════════
+        elif choice == 'administrative_role':
+            # Store data for future restoration (Phase 4)
+            marshal.administrative = True
+            marshal.administrative_strength = marshal.strength
+            marshal.administrative_location = marshal.location
 
-            if nearest:
+            # Clear field presence (troops frozen, not transferred)
+            marshal.strength = 0
+            marshal.location = None
+
+            # Grant bonus action
+            world.bonus_actions = getattr(world, 'bonus_actions', 0) + 1
+            new_max_actions = world.calculate_max_actions()
+
+            print(f"  [REDEMPTION] {marshal_name} transferred to administrative role")
+            print(f"    Troops frozen: {marshal.administrative_strength:,}")
+            print(f"    New max actions: {new_max_actions}")
+
+            return {
+                'success': True,
+                'type': 'redemption_resolved',
+                'choice': 'administrative_role',
+                'marshal': marshal_name,
+                'message': f"{marshal_name} has been transferred to administrative duties. Their {marshal.administrative_strength:,} troops await future assignment. You now have {int(new_max_actions)} actions per turn.",
+                'administrative': True,
+                'troops_frozen': int(marshal.administrative_strength),
+                'new_max_actions': int(new_max_actions),
+            }
+
+        # ════════════════════════════════════════════════════════════════════════════
+        # DISMISS - Remove marshal permanently, transfer troops if ally nearby, +10 authority
+        # ════════════════════════════════════════════════════════════════════════════
+        elif choice == 'dismiss':
+            troop_count = marshal.strength
+            marshal_location = marshal.location
+
+            # Find nearest friendly marshal within 3 regions
+            result = world.find_nearest_marshal_within_range(
+                from_location=marshal_location,
+                nation=marshal.nation,
+                max_distance=3,
+                exclude_marshal=marshal_name
+            )
+
+            if result:
+                nearest, distance = result
                 nearest.add_troops(troop_count)
-                transfer_message = f"{troop_count:,} troops transferred to {nearest.name}."
+                transfer_message = f"{troop_count:,} troops transferred to {nearest.name} ({distance} region{'s' if distance != 1 else ''} away)."
+                print(f"  [REDEMPTION] Troops transferred to {nearest.name}")
             else:
-                transfer_message = f"{troop_count:,} troops disbanded."
+                transfer_message = f"{troop_count:,} troops dispersed - no nearby commanders within 3 regions."
+                print(f"  [REDEMPTION] Troops dispersed (no ally within 3 regions)")
 
             # Remove marshal from world
             if marshal_name in world.marshals:
                 del world.marshals[marshal_name]
+
+            # Grant authority bonus for difficult command decision
+            authority_bonus = 10
+            if hasattr(world, 'authority_tracker'):
+                world.authority_tracker.authority = min(100, world.authority_tracker.authority + authority_bonus)
+                print(f"  [REDEMPTION] Authority +{authority_bonus} (now {world.authority_tracker.authority})")
 
             return {
                 'success': True,
                 'type': 'redemption_resolved',
                 'choice': 'dismiss',
                 'marshal': marshal_name,
-                'message': f"{marshal_name} has been relieved of command. {transfer_message}",
+                'message': f"{marshal_name} has been relieved of command. {transfer_message} Your decisive action inspires confidence. (+{authority_bonus} Authority)",
                 'dismissed': True,
+                'authority_bonus': int(authority_bonus),
             }
 
-        elif choice == 'demand_obedience':
-            # No state change - just acknowledge
-            return {
-                'success': True,
-                'type': 'redemption_resolved',
-                'choice': 'demand_obedience',
-                'marshal': marshal_name,
-                'message': f"You demand {marshal_name}'s continued obedience. The relationship remains deeply strained.",
-                'strained': True,
-            }
-
+        # ════════════════════════════════════════════════════════════════════════════
+        # INVALID CHOICE
+        # ════════════════════════════════════════════════════════════════════════════
         return {
             'success': False,
-            'message': f'Invalid choice: {choice}',
+            'message': f'Invalid choice: {choice}. Valid options: grant_autonomy, administrative_role, dismiss',
         }
-
-    def _find_nearest_friendly_marshal(self, marshal, world) -> Optional:
-        """Find the nearest friendly marshal to transfer troops to."""
-        player_marshals = [m for m in world.marshals.values()
-                         if m.nation == marshal.nation and m.name != marshal.name and m.strength > 0]
-
-        if not player_marshals:
-            return None
-
-        # Find nearest by region distance
-        nearest = None
-        min_distance = float('inf')
-
-        for other in player_marshals:
-            dist = world.get_distance(marshal.location, other.location)
-            if dist < min_distance:
-                min_distance = dist
-                nearest = other
-
-        return nearest
 
     def get_major_objections_remaining(self) -> int:
         """Get number of major objections remaining this turn."""

@@ -111,11 +111,11 @@ theme_override_colors/font_hover_color = Color(0.9, 0.5, 0.5, 1)
 theme_override_font_sizes/font_size = 13
 text = "Dismiss Marshal - Relieve of command, troops transfer"
 
-[node name="DemandButton" type="Button" parent="PanelContainer/VBoxContainer/ButtonContainer"]
+[node name="AdminButton" type="Button" parent="PanelContainer/VBoxContainer/ButtonContainer"]
 custom_minimum_size = Vector2(0, 45)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.851, 0.753, 0.549, 1)
-theme_override_colors/font_pressed_color = Color(0.9, 0.8, 0.6, 1)
-theme_override_colors/font_hover_color = Color(0.9, 0.8, 0.6, 1)
+theme_override_colors/font_color = Color(0.5, 0.7, 0.9, 1)
+theme_override_colors/font_pressed_color = Color(0.6, 0.8, 1.0, 1)
+theme_override_colors/font_hover_color = Color(0.6, 0.8, 1.0, 1)
 theme_override_font_sizes/font_size = 13
-text = "Demand Obedience - Force compliance, high disobey chance"
+text = "Transfer to Staff - Sidelined, +1 action per turn"

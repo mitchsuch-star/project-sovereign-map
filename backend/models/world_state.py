@@ -63,6 +63,10 @@ class WorldState:
         self.max_actions_per_turn: int = 4
         self.actions_remaining: int = 4
 
+        # Administrative Role bonus (Phase 3)
+        # When a marshal is transferred to administrative role, player gains +1 action/turn
+        self.bonus_actions: int = 0
+
         # Future expansion hooks (not used in MVP)
         self._action_bonuses: Dict[str, int] = {}  # For leader/tech/morale bonuses
 
@@ -204,6 +208,85 @@ class WorldState:
         if marshal and marshal.nation != self.player_nation:
             return marshal
         return None
+
+    # ════════════════════════════════════════════════════════════════════════════
+    # ADMINISTRATIVE ROLE SYSTEM (Phase 3)
+    # ════════════════════════════════════════════════════════════════════════════
+
+    def get_field_marshals(self) -> List[Marshal]:
+        """
+        Get all player marshals currently in field command (not in administrative role).
+
+        Returns:
+            List of French marshals where administrative != True
+        """
+        return [
+            marshal for marshal in self.marshals.values()
+            if marshal.nation == self.player_nation
+            and not getattr(marshal, 'administrative', False)
+        ]
+
+    def get_admin_marshals(self) -> List[Marshal]:
+        """
+        Get all player marshals currently in administrative role.
+
+        Returns:
+            List of French marshals where administrative == True
+        """
+        return [
+            marshal for marshal in self.marshals.values()
+            if marshal.nation == self.player_nation
+            and getattr(marshal, 'administrative', False)
+        ]
+
+    def find_nearest_marshal_within_range(
+        self,
+        from_location: str,
+        nation: str,
+        max_distance: int,
+        exclude_marshal: str = None
+    ) -> Optional[Tuple[Marshal, int]]:
+        """
+        Find the nearest marshal of a given nation within a maximum distance.
+
+        Used for troop transfers on dismiss - only transfers if ally within range.
+
+        Args:
+            from_location: Region to measure distance from
+            nation: Nation the marshal must belong to
+            max_distance: Maximum allowed distance (inclusive)
+            exclude_marshal: Marshal name to exclude (the one being dismissed)
+
+        Returns:
+            Tuple of (Marshal, distance) or None if no marshal within range
+        """
+        if from_location not in self.regions:
+            return None
+
+        candidates = []
+        for marshal in self.marshals.values():
+            # Must be same nation
+            if marshal.nation != nation:
+                continue
+            # Must not be the excluded marshal
+            if exclude_marshal and marshal.name == exclude_marshal:
+                continue
+            # Must be alive and in field (not administrative)
+            if marshal.strength <= 0:
+                continue
+            if getattr(marshal, 'administrative', False):
+                continue
+
+            distance = self.get_distance(from_location, marshal.location)
+            if distance <= max_distance:
+                candidates.append((marshal, distance))
+
+        if not candidates:
+            return None
+
+        # Sort by distance (closest first), then by strength (strongest first)
+        candidates.sort(key=lambda x: (x[1], -x[0].strength))
+        return candidates[0]
 
     def get_enemy_at_location(self, location: str) -> Optional[Marshal]:
         """Get enemy marshal at a specific location (for combat)."""
@@ -1014,12 +1097,16 @@ class WorldState:
     def calculate_max_actions(self) -> int:
         """
         Calculate maximum actions for current turn.
-        MVP: Always returns 4
+
+        Base: 4 actions
+        + bonus_actions (from administrative role transfers)
+
         GUARANTEED to return an integer.
         """
         base_actions = 4
+        bonus = getattr(self, 'bonus_actions', 0)
         # Explicit int cast for safety
-        return int(base_actions)
+        return int(base_actions + bonus)
 
     def use_action(self, action_type: str = "generic") -> Dict:
         """

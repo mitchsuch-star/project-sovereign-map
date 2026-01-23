@@ -479,6 +479,44 @@ base_objection_chance = get_personality_objection_rate(marshal, action)
 modified_chance = base_objection_chance * (1 - (authority / 100))
 ```
 
+### Redemption System (Trust ≤ 20)
+
+When a marshal's trust falls to 20 or below, a redemption event triggers. The player must choose how to handle the broken relationship.
+
+**Available Options:**
+
+| Option | Troops | Marshal | Bonus | Availability |
+|--------|--------|---------|-------|--------------|
+| **Grant Autonomy** | Keep | 3 turns independent, uses AI | Trust +5 to +40 based on performance | Always |
+| **Administrative Role** | Frozen (stored) | Sidelined, restorable in Phase 4 | +1 action/turn | If ≥2 field marshals AND no existing admin |
+| **Dismiss** | Transfer to ally ≤3 regions OR disband | Gone forever | +10 authority | If ≥2 field marshals |
+
+**Key Rules:**
+1. **Last Marshal Protection:** If only 1 field marshal remains, ONLY Grant Autonomy is available
+2. **Admin Cap:** Maximum 1 marshal can be in administrative role at a time
+3. **Admin Troops Frozen:** Troops stay with admin marshal (stored in `administrative_strength`)
+4. **Dismiss Range Limit:** Troops only transfer to ally within 3 regions, otherwise disband
+
+**State Fields (Marshal):**
+```python
+marshal.administrative = True           # In admin role
+marshal.administrative_strength = 72000 # Stored troop count
+marshal.administrative_location = "Belgium"  # Stored location
+```
+
+**State Fields (WorldState):**
+```python
+world.bonus_actions = 1                 # From admin role transfer
+world.calculate_max_actions()           # Returns 4 + bonus_actions
+```
+
+**Helper Methods (WorldState):**
+```python
+world.get_field_marshals()              # French marshals not in admin
+world.get_admin_marshals()              # French marshals in admin role
+world.find_nearest_marshal_within_range(from_location, nation, max_distance)
+```
+
 ---
 
 ## Key Implementation Files
@@ -2931,11 +2969,12 @@ func update_region_color(region_name: String, color: Color):
 - ✅ Smart AI safety evaluation
 - ✅ Attacker movement on victory
 
-### Phase 2.5: Autonomy Foundation 🔄 CURRENT
+### Phase 2.5: Autonomy Foundation ✅ COMPLETE
 - ✅ Grant Autonomy → marshal uses Enemy AI decision tree
 - ✅ Autonomous marshal processing in turn flow
-- 🔄 Autonomy narrative outcomes (success/neutral/failure text)
-- ⏳ Administrative Role option (removed marshal → +1 action/turn)
+- ✅ Autonomy narrative outcomes (success/neutral/failure text with relative trust gains)
+- ✅ Administrative Role option (sidelined marshal → +1 action/turn)
+- ✅ Redemption system overhaul (removed Demand Obedience, added dynamic option availability)
 
 ### Phase 3: Fun Factor & Historical Drama 📋 PLANNED
 

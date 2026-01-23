@@ -2897,6 +2897,9 @@ RETREAT RECOVERY (3 turns):
                           "  • set_fortified <marshal> - Toggle fortified\n"
                           "  • set_autonomy <marshal> [turns] - Toggle autonomous (Phase 2.5)\n"
                           "  • set_trust <marshal> <0-100> - Set trust level\n"
+                          "\n== Redemption Testing (Phase 3) ==\n"
+                          "  • dismiss <marshal> - Directly dismiss (bypass disobedience)\n"
+                          "  • admin <marshal> - Toggle administrative role\n"
                           "\n== Info ==\n"
                           "  • list_marshals - Show all marshals and locations\n"
                           "  • list_regions - Show all regions and who's there"
@@ -3270,10 +3273,107 @@ RETREAT RECOVERY (3 turns):
             lines = ["=== All Marshals ==="]
             for name, m in world.marshals.items():
                 status = "DEAD" if m.strength <= 0 else f"{m.strength:,} troops"
-                lines.append(f"  {name} ({m.nation}): {m.location} - {status}")
+                admin_status = " [ADMIN]" if getattr(m, 'administrative', False) else ""
+                auto_status = f" [AUTO {m.autonomy_turns}t]" if getattr(m, 'autonomous', False) else ""
+                lines.append(f"  {name} ({m.nation}): {m.location} - {status}{admin_status}{auto_status}")
             return {
                 "success": True,
                 "message": "\n".join(lines)
+            }
+
+        elif ability == "dismiss":
+            # Directly dismiss a marshal (for testing redemption without triggering disobedience)
+            if marshal.nation != world.player_nation:
+                return {
+                    "success": False,
+                    "message": f"{marshal.name} is not a {world.player_nation} marshal."
+                }
+
+            # Check last marshal protection
+            field_marshals = world.get_field_marshals()
+            if len(field_marshals) <= 1:
+                return {
+                    "success": False,
+                    "message": f"Cannot dismiss {marshal.name} - last field marshal!"
+                }
+
+            # Transfer troops to nearest ally within 3 regions
+            troop_count = marshal.strength
+            result = world.find_nearest_marshal_within_range(
+                from_location=marshal.location,
+                nation=marshal.nation,
+                max_distance=3,
+                exclude_marshal=marshal.name
+            )
+
+            if result:
+                nearest, distance = result
+                nearest.add_troops(troop_count)
+                transfer_msg = f"{troop_count:,} troops transferred to {nearest.name}."
+            else:
+                transfer_msg = f"{troop_count:,} troops dispersed (no ally within 3 regions)."
+
+            # Remove marshal
+            del world.marshals[marshal.name]
+
+            return {
+                "success": True,
+                "message": f"🔧 DEBUG: {marshal.name} DISMISSED. {transfer_msg}"
+            }
+
+        elif ability == "admin" or ability == "administrative":
+            # Directly put marshal in administrative role (for testing)
+            if marshal.nation != world.player_nation:
+                return {
+                    "success": False,
+                    "message": f"{marshal.name} is not a {world.player_nation} marshal."
+                }
+
+            # Check if already admin
+            if getattr(marshal, 'administrative', False):
+                # Toggle off
+                marshal.administrative = False
+                strength = getattr(marshal, 'administrative_strength', 0)
+                location = getattr(marshal, 'administrative_location', 'Paris')
+                marshal.strength = strength
+                marshal.location = location
+                world.bonus_actions = max(0, getattr(world, 'bonus_actions', 0) - 1)
+                return {
+                    "success": True,
+                    "message": f"🔧 DEBUG: {marshal.name} restored from admin. "
+                              f"{strength:,} troops at {location}. "
+                              f"Max actions now: {world.calculate_max_actions()}"
+                }
+
+            # Check last marshal protection
+            field_marshals = world.get_field_marshals()
+            if len(field_marshals) <= 1:
+                return {
+                    "success": False,
+                    "message": f"Cannot put {marshal.name} in admin - last field marshal!"
+                }
+
+            # Check admin cap
+            admin_marshals = world.get_admin_marshals()
+            if len(admin_marshals) >= 1:
+                return {
+                    "success": False,
+                    "message": f"Already have admin: {admin_marshals[0].name}. Max 1 admin allowed."
+                }
+
+            # Put in admin
+            marshal.administrative = True
+            marshal.administrative_strength = marshal.strength
+            marshal.administrative_location = marshal.location
+            marshal.strength = 0
+            marshal.location = None
+            world.bonus_actions = getattr(world, 'bonus_actions', 0) + 1
+
+            return {
+                "success": True,
+                "message": f"🔧 DEBUG: {marshal.name} -> ADMIN ROLE. "
+                          f"{marshal.administrative_strength:,} troops frozen. "
+                          f"Max actions now: {world.calculate_max_actions()}"
             }
 
         elif ability == "list_regions" or ability == "regions":

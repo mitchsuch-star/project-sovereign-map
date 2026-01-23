@@ -257,8 +257,8 @@ def respond_to_redemption(request: RedemptionResponse):
 
         redemption_event = world.pending_redemption
 
-        # Validate choice
-        valid_choices = ['grant_autonomy', 'dismiss', 'demand_obedience']
+        # Validate choice (Phase 3: administrative_role replaces demand_obedience)
+        valid_choices = ['grant_autonomy', 'administrative_role', 'dismiss']
         if request.choice not in valid_choices:
             return {
                 "success": False,
@@ -283,7 +283,10 @@ def respond_to_redemption(request: RedemptionResponse):
             "autonomous": result.get("autonomous", False),
             "autonomy_turns": result.get("autonomy_turns", 0),
             "dismissed": result.get("dismissed", False),
-            "strained": result.get("strained", False),
+            "administrative": result.get("administrative", False),
+            "new_max_actions": result.get("new_max_actions", 0),
+            "troops_frozen": result.get("troops_frozen", 0),
+            "authority_bonus": result.get("authority_bonus", 0),
             "action_summary": world.get_action_summary(),
             "game_state": world.get_game_state_summary()
         }
