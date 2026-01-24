@@ -1002,6 +1002,7 @@ RETREAT RECOVERY (3 turns):
             marshal.shock_bonus = 0
             marshal.fortified = False
             marshal.defense_bonus = 0
+            marshal.turns_fortified = 0  # Reset decay counter
             marshal.stance = Stance.NEUTRAL
 
             # Clear personality ability states
@@ -1558,6 +1559,14 @@ RETREAT RECOVERY (3 turns):
             result["free_action"] = True
             result["counter_punch_used"] = True
 
+        # ════════════════════════════════════════════════════════════
+        # EXHAUSTION TRACKING (Phase 3 - Attack Spam Prevention)
+        # Increment attack counter AFTER attack, but NOT for counter-punch
+        # Counter-punch is reactive, not spam
+        # ════════════════════════════════════════════════════════════
+        if not is_counter_punch:
+            marshal.increment_attacks_this_turn()
+
         return result
 
     def _execute_defend(self, marshal, world, game_state) -> Dict:
@@ -1600,7 +1609,7 @@ RETREAT RECOVERY (3 turns):
         if current_stance == Stance.DEFENSIVE:
             # Check if already fortified
             if getattr(marshal, 'fortified', False):
-                current_bonus = int(getattr(marshal, 'defense_bonus', 0) * 10)
+                current_bonus = int(getattr(marshal, 'defense_bonus', 0) * 100)
                 return {
                     "success": True,
                     "message": f"{marshal.name} is already in defensive stance and fortified at {marshal.location} (+{current_bonus}% defense). "
@@ -1823,6 +1832,22 @@ RETREAT RECOVERY (3 turns):
                     "engaged_with": [e.name for e in enemies_here],
                     "suggestion": f"Friendly regions adjacent: {', '.join([r for r in current_region.adjacent_regions if world.get_region(r) and world.get_region(r).controller == marshal.nation])}"
                 }
+
+        # ════════════════════════════════════════════════════════════
+        # DESTINATION ENEMY CHECK: Cannot MOVE into enemy-occupied region
+        # Must use ATTACK to enter regions with enemy forces
+        # ════════════════════════════════════════════════════════════
+        marshals_at_dest = world.get_marshals_in_region(target_name)
+        enemies_at_dest = [m for m in marshals_at_dest if m.nation != marshal.nation and m.strength > 0]
+
+        if enemies_at_dest:
+            enemy_names = [e.name for e in enemies_at_dest]
+            return {
+                "success": False,
+                "message": f"Cannot move into {target_name} - enemy forces present! Use ATTACK to engage {', '.join(enemy_names)}.",
+                "enemies_at_destination": enemy_names,
+                "suggestion": f"Try: '{marshal.name}, attack {enemy_names[0]}'"
+            }
 
         distance = world.get_distance(marshal.location, target_name)
         move_range = getattr(marshal, 'movement_range', 1)
@@ -2782,7 +2807,7 @@ RETREAT RECOVERY (3 turns):
 
         # Check if already fortified
         if getattr(marshal, 'fortified', False):
-            current_bonus = int(getattr(marshal, 'defense_bonus', 0) * 10)
+            current_bonus = int(getattr(marshal, 'defense_bonus', 0) * 100)
             return {
                 "success": False,
                 "message": f"{marshal.name} is already fortified at {marshal.location} (+{current_bonus}% defense)."
@@ -2800,6 +2825,24 @@ RETREAT RECOVERY (3 turns):
             return {
                 "success": False,
                 "message": f"{marshal.name} is recovering from retreat and cannot fortify yet."
+            }
+
+        # ════════════════════════════════════════════════════════════
+        # ENGAGEMENT CHECK: Cannot fortify while engaged with enemy
+        # ════════════════════════════════════════════════════════════
+        enemies_in_region = [
+            m for m in world.marshals.values()
+            if m.location == marshal.location
+            and m.nation != marshal.nation
+            and m.strength > 0
+        ]
+        if enemies_in_region:
+            enemy_names = [e.name for e in enemies_in_region]
+            return {
+                "success": False,
+                "message": f"{marshal.name} cannot fortify while engaged with enemy forces! "
+                          f"Enemy present: {', '.join(enemy_names)}. "
+                          f"Attack or retreat first."
             }
 
         # ════════════════════════════════════════════════════════════
@@ -2938,6 +2981,7 @@ RETREAT RECOVERY (3 turns):
         marshal.fortified = False
         marshal.defense_bonus = 0
         marshal.fortify_expires_turn = -1
+        marshal.turns_fortified = 0  # Reset decay counter
 
         # Build message with ability note
         if is_free_unfortify:
@@ -3017,6 +3061,10 @@ RETREAT RECOVERY (3 turns):
                           "\n== Cavalry Recklessness (Phase 3) ==\n"
                           "  • set_recklessness <marshal> <0-4> - Set recklessness level\n"
                           "    (3 = popup, 4 = auto-charge)\n"
+                          "\n== Pressure System (Phase 3) ==\n"
+                          "  • set_exhaustion <marshal> <0-4> - Set attacks this turn\n"
+                          "  • set_fortify_turns <marshal> <turns> - Set turns fortified\n"
+                          "    (decay starts at turn 4-8 depending on personality)\n"
                           "\n== AI Testing ==\n"
                           "  • ai_turn <nation> - Force AI turn (Britain/Prussia)\n"
                           "  • ai_state <marshal> - Show AI evaluation\n"
@@ -3188,6 +3236,42 @@ RETREAT RECOVERY (3 turns):
                 "success": True,
                 "message": f"🔧 DEBUG: {marshal.name}'s turns_defensive = 5\n"
                           f"Will trigger restlessness check at turn start with high probability."
+            }
+
+        elif ability == "set_exhaustion":
+            # /debug set_exhaustion Ney 3
+            if len(parts) < 3:
+                return {"success": False, "message": "Usage: /debug set_exhaustion <marshal> <count>"}
+            try:
+                count = int(parts[2])
+            except ValueError:
+                return {"success": False, "message": "Count must be a number (0-4)"}
+            marshal.attacks_this_turn = max(0, min(4, count))
+            penalty = marshal._get_exhaustion_penalty() * 100
+            return {
+                "success": True,
+                "message": f"🔧 DEBUG: {marshal.name}'s attacks_this_turn = {marshal.attacks_this_turn}\n"
+                          f"Next attack will have {penalty:.0f}% exhaustion penalty."
+            }
+
+        elif ability == "set_fortify_turns":
+            # /debug set_fortify_turns Davout 8
+            if len(parts) < 3:
+                return {"success": False, "message": "Usage: /debug set_fortify_turns <marshal> <turns>"}
+            try:
+                turns = int(parts[2])
+            except ValueError:
+                return {"success": False, "message": "Turns must be a number"}
+            marshal.turns_fortified = max(0, turns)
+            # Also ensure marshal is fortified
+            if not marshal.fortified:
+                marshal.fortified = True
+                marshal.defense_bonus = 0.10
+            return {
+                "success": True,
+                "message": f"🔧 DEBUG: {marshal.name}'s turns_fortified = {marshal.turns_fortified}\n"
+                          f"fortified = {marshal.fortified}, defense_bonus = {marshal.defense_bonus*100:.0f}%\n"
+                          f"End turn to see decay effect."
             }
 
         elif ability == "cavalry":

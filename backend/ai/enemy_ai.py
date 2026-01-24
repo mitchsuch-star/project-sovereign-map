@@ -15,10 +15,38 @@ Design principles:
 - No special enemy combat logic - same executor handles everything
 
 FUTURE IMPROVEMENTS (TODO):
-- Coordination: Multiple marshals attack same target (requires multi-marshal battles)
-- Recruiting: AI replenishes armies when weak (requires economy system)
+- Failed Action Cooldown: Don't retry same failed action for 1-2 turns
+  - Track failed actions per marshal: {"Fortify": turns_until_retry}
+  - Prevents wasteful loops like fortify-block-fortify-block
+- Alliance Coordination: Britain/Prussia share intel and coordinate
+  - When one nation spots weakness, inform allies
+  - Coordinate pincer attacks from multiple directions
+- Strategic Objectives: AI picks high-level goals
+  - "Capture Belgium" drives multiple marshals toward same area
+  - "Defend Capital" prioritizes defense over attacks
+- Nation-Level Strategy Layer: Above marshal decisions
+  - Allocate resources between defense and offense
+  - Decide when to go all-in vs conservative
+- Flanking Coordination: Multiple marshals attack same target from different directions
+  - Requires multi-marshal battle support
+- Round-Robin Action Distribution: Spread actions among marshals
+  - Currently greedy (best marshal gets all actions)
+  - More realistic: each marshal gets 1 action, then cycle
+- Retreat Awareness: AI knows retreat is FREE
+  - Use retreat strategically to reposition
+  - Retreat from bad engagement to regroup
 
 IMPLEMENTED:
+- P0 Engagement Check: When engaged with enemy in same region, AI MUST:
+  - ATTACK if ratio >= threshold (good odds)
+  - RETREAT if ratio < threshold (bad odds, has escape route)
+  - WAIT if no retreat possible (stuck)
+  - UNFORTIFY if fortified (can't attack while fortified)
+  - Never fortify/drill/stance-change while engaged!
+- Drill Safety: Can't drill with enemy in same region OR adjacent
+- Cautious Fallback Movement: When threatened, cautious marshals move toward
+  friendly territory or allies for mutual support
+- Smart Retreat: Retreat destination prefers region closer to capital
 - Controlled Randomness: Personality-weighted mood variance on attack thresholds
   - Aggressive: ±15% variance (Blucher might be cautious OR reckless)
   - Cautious: ±10% variance (Wellington usually careful, occasionally bold)
@@ -342,6 +370,85 @@ class EnemyAI:
         ai_debug(f"  Location: {marshal.location}, Strength: {marshal.strength:,}")
         ai_debug(f"  Stance: {getattr(marshal, 'stance', 'unknown')}")
         ai_debug(f"  Drilling: {getattr(marshal, 'drilling', False)}, Fortified: {getattr(marshal, 'fortified', False)}")
+
+        # ════════════════════════════════════════════════════════════
+        # PRIORITY 0: ENGAGEMENT CHECK (HIGHEST PRIORITY!)
+        # When engaged with enemy in same region, MUST fight or flee.
+        # Cannot fortify, drill, change stance, or do anything else!
+        # ════════════════════════════════════════════════════════════
+        enemies_in_region = [
+            m for m in world.marshals.values()
+            if m.location == marshal.location
+            and m.nation != marshal.nation
+            and m.strength > 0
+        ]
+
+        print(f"  [P0 ENGAGEMENT] {marshal.name} at {marshal.location}: enemies = {[e.name for e in enemies_in_region]}")
+
+        if enemies_in_region:
+            ai_debug(f"  P0: ENGAGED with {[e.name for e in enemies_in_region]}!")
+
+            # Find weakest enemy (best attack target)
+            weakest_enemy = min(enemies_in_region, key=lambda e: e.strength)
+            ratio = marshal.strength / weakest_enemy.strength if weakest_enemy.strength > 0 else 999
+            threshold = self._get_mood_adjusted_threshold(marshal)
+
+            print(f"  [P0 ENGAGEMENT] {marshal.name} vs {weakest_enemy.name}: ratio={ratio:.2f}, threshold={threshold:.2f}")
+            print(f"  [P0 ENGAGEMENT] {marshal.name} fortified={getattr(marshal, 'fortified', False)}, drilling={getattr(marshal, 'drilling', False)}")
+
+            # Check if can attack (not drilling/fortified)
+            can_attack = not (getattr(marshal, 'drilling', False) or
+                            getattr(marshal, 'drilling_locked', False) or
+                            getattr(marshal, 'fortified', False))
+
+            if can_attack and ratio >= threshold:
+                # Good odds - ATTACK!
+                ai_debug(f"  -> P0: Attack {weakest_enemy.name} (ratio {ratio:.2f} >= threshold {threshold:.2f})")
+                print(f"  [P0 ENGAGEMENT] -> ATTACK {weakest_enemy.name}")
+                return ({
+                    "marshal": marshal.name,
+                    "action": "attack",
+                    "target": weakest_enemy.name
+                }, 0)
+
+            elif can_attack and ratio < threshold:
+                # Bad odds but engaged - must retreat or wait
+                # Try to find retreat destination
+                retreat_dest = self._find_retreat_destination(marshal, nation, world)
+                if retreat_dest:
+                    ai_debug(f"  -> P0: Retreat to {retreat_dest} (bad odds: {ratio:.2f} < {threshold:.2f})")
+                    print(f"  [P0 ENGAGEMENT] -> RETREAT to {retreat_dest}")
+                    return ({
+                        "marshal": marshal.name,
+                        "action": "retreat",
+                        "target": retreat_dest
+                    }, 0)
+                else:
+                    # No retreat possible - wait (stuck)
+                    ai_debug(f"  -> P0: Wait (no retreat possible, bad odds)")
+                    print(f"  [P0 ENGAGEMENT] -> WAIT (no retreat)")
+                    return ({
+                        "marshal": marshal.name,
+                        "action": "wait"
+                    }, 0)
+
+            else:
+                # Cannot attack (fortified/drilling) - must unfortify or wait
+                if getattr(marshal, 'fortified', False):
+                    ai_debug(f"  -> P0: Unfortify (engaged but fortified)")
+                    print(f"  [P0 ENGAGEMENT] -> UNFORTIFY")
+                    return ({
+                        "marshal": marshal.name,
+                        "action": "unfortify"
+                    }, 0)
+                else:
+                    # Drilling - wait for it to complete
+                    ai_debug(f"  -> P0: Wait (drilling, cannot attack)")
+                    print(f"  [P0 ENGAGEMENT] -> WAIT (drilling)")
+                    return ({
+                        "marshal": marshal.name,
+                        "action": "wait"
+                    }, 0)
 
         # ════════════════════════════════════════════════════════════
         # PRIORITY 1: RETREAT RECOVERY CHECK
@@ -752,20 +859,44 @@ class EnemyAI:
         threshold = self._get_mood_adjusted_threshold(marshal)
         ai_debug(f"    Attack threshold for {personality}: {threshold:.2f} (mood-adjusted)")
 
-        # Filter by EFFECTIVE ratio against threshold (smarter decision)
-        attackable = [(e, br, er, d) for e, br, er, d in valid_targets if er >= threshold]
-
-        if not attackable:
-            ai_debug(f"    No targets meet threshold (need effective ratio >= {threshold})")
-            return None
-
-        # Select target based on personality
-        if personality == "aggressive":
-            # Prefer weakest enemy (easy kill) - use effective ratio
-            target = max(attackable, key=lambda x: x[2])[0]  # Highest effective ratio = best opportunity
+        # ════════════════════════════════════════════════════════════
+        # ENGAGEMENT RULE: Must attack enemies in same region first!
+        # Cannot attack elsewhere while engaged with enemy forces.
+        # ════════════════════════════════════════════════════════════
+        engaged_targets = [(e, br, er, d) for e, br, er, d in valid_targets if d == 0]
+        # DEBUG: Print P4 analysis
+        print(f"  [P4 DEBUG] {marshal.name} valid_targets: {[(e.name, br, er, d) for e, br, er, d in valid_targets]}")
+        print(f"  [P4 DEBUG] {marshal.name} engaged_targets: {[(e.name, br, er, d) for e, br, er, d in engaged_targets]}")
+        print(f"  [P4 DEBUG] {marshal.name} threshold: {threshold}")
+        if engaged_targets:
+            ai_debug(f"    ENGAGED: Must attack enemy in same region first!")
+            # Filter engaged targets by threshold
+            attackable_engaged = [(e, br, er, d) for e, br, er, d in engaged_targets if er >= threshold]
+            if attackable_engaged:
+                # Attack the best engaged target
+                target = max(attackable_engaged, key=lambda x: x[2])[0]
+                ai_debug(f"    -> Attacking engaged enemy: {target.name}")
+            else:
+                # No engaged target meets threshold - but we're stuck here
+                # Must still attack the engaged enemy (even at bad odds) or wait
+                ai_debug(f"    No engaged target meets threshold - cannot attack elsewhere")
+                return None
         else:
-            # Prefer nearest enemy with acceptable odds
-            target = min(attackable, key=lambda x: x[3])[0]  # Closest distance
+            # No enemies in same region - can attack elsewhere
+            # Filter by EFFECTIVE ratio against threshold (smarter decision)
+            attackable = [(e, br, er, d) for e, br, er, d in valid_targets if er >= threshold]
+
+            if not attackable:
+                ai_debug(f"    No targets meet threshold (need effective ratio >= {threshold})")
+                return None
+
+            # Select target based on personality
+            if personality == "aggressive":
+                # Prefer weakest enemy (easy kill) - use effective ratio
+                target = max(attackable, key=lambda x: x[2])[0]  # Highest effective ratio = best opportunity
+            else:
+                # Prefer nearest enemy with acceptable odds
+                target = min(attackable, key=lambda x: x[3])[0]  # Closest distance
 
         # Check if should switch to aggressive stance first
         current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
@@ -877,12 +1008,38 @@ class EnemyAI:
 
     def _consider_fortify(self, marshal: Marshal, world: WorldState) -> Optional[Dict]:
         """Consider fortifying (cautious marshals prefer this)."""
-        # Don't fortify if already fortified at max
+        # Don't fortify if already fortified
         if getattr(marshal, 'fortified', False):
             from backend.models.personality_modifiers import get_max_fortify_bonus
             personality = getattr(marshal, 'personality', 'cautious')
             max_bonus = get_max_fortify_bonus(personality)
             current_bonus = getattr(marshal, 'defense_bonus', 0)
+
+            # ════════════════════════════════════════════════════════════
+            # DECAY CHECK (Phase 3): Don't stay fortified if decaying to nothing
+            # If already fortified and decaying with low bonus, unfortify instead
+            # ════════════════════════════════════════════════════════════
+            turns_fortified = getattr(marshal, 'turns_fortified', 0)
+            is_cavalry = getattr(marshal, 'cavalry', False)
+
+            # Decay thresholds by personality (same as world_state.py)
+            decay_config = {
+                "aggressive": {"start": 4, "floor": 0.0},
+                "balanced": {"start": 6, "floor": 0.0},
+                "cautious": {"start": 8, "floor": 0.05},
+                "literal": {"start": 8, "floor": 0.05},
+            }
+            default_decay = {"start": 6, "floor": 0.0}
+            decay_settings = decay_config.get(personality, default_decay)
+
+            is_decaying = not is_cavalry and turns_fortified >= decay_settings["start"]
+            floor = decay_settings["floor"]
+
+            # If decaying and bonus is low (< 3% above floor), don't stay fortified
+            # This prevents wasting turns maintaining crumbling fortifications
+            if is_decaying and current_bonus < floor + 0.03:
+                ai_debug(f"    {marshal.name}: fortifications decaying to nothing, should unfortify")
+                return None  # Will trigger unfortify via other logic or let it collapse
 
             if current_bonus >= max_bonus:
                 return None  # Already at max
@@ -890,6 +1047,18 @@ class EnemyAI:
 
         # Don't fortify if drilling
         if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+            return None
+
+        # ════════════════════════════════════════════════════════════
+        # DON'T fortify if engaged with enemy in same region!
+        # Must fight them first, not hide behind walls.
+        # ════════════════════════════════════════════════════════════
+        enemies_in_region = [
+            m for m in world.marshals.values()
+            if m.location == marshal.location and m.nation != marshal.nation and m.strength > 0
+        ]
+        if enemies_in_region:
+            ai_debug(f"    P5: Can't fortify - engaged with {[e.name for e in enemies_in_region]}")
             return None
 
         # Switch to defensive stance first if not already
@@ -914,15 +1083,21 @@ class EnemyAI:
         if getattr(marshal, 'shock_bonus', 0) > 0:
             return None  # Already have bonus
 
-        # Don't drill if enemy adjacent (vulnerable during drill)
+        # Don't drill if enemy in SAME region or adjacent (vulnerable during drill)
         nation = marshal.nation
         enemies = world.get_enemies_of_nation(nation)
         marshal_region = world.get_region(marshal.location)
 
         if marshal_region:
             for enemy in enemies:
+                # Check same region (engaged!)
+                if enemy.location == marshal.location:
+                    ai_debug(f"    P6: Can't drill - engaged with {enemy.name}")
+                    return None
+                # Check adjacent
                 if enemy.location in marshal_region.adjacent_regions:
-                    return None  # Enemy too close
+                    ai_debug(f"    P6: Can't drill - {enemy.name} adjacent")
+                    return None
 
         return {
             "marshal": marshal.name,
@@ -959,6 +1134,13 @@ class EnemyAI:
             best_distance = world.get_distance(marshal.location, nearest.location)
 
             for adj_name in marshal_region.adjacent_regions:
+                # Cannot MOVE into enemy-occupied region - must ATTACK
+                marshals_there = world.get_marshals_in_region(adj_name)
+                enemies_there = [m for m in marshals_there if m.nation != nation and m.strength > 0]
+                if enemies_there:
+                    ai_debug(f"    P7: Skipping {adj_name} - enemies present (must attack)")
+                    continue
+
                 dist = world.get_distance(adj_name, nearest.location)
                 if dist < best_distance:
                     best_dest = adj_name
@@ -970,9 +1152,56 @@ class EnemyAI:
                     "action": "move",
                     "target": best_dest
                 }
-        else:
-            # Cautious: stay put or move toward friendly regions
-            pass
+        elif personality == "cautious":
+            # Cautious: move toward friendly territory if threatened
+            marshal_region = world.get_region(marshal.location)
+            if not marshal_region:
+                return None
+
+            # Check if threatened (enemy adjacent)
+            enemy_adjacent = False
+            for enemy in enemies:
+                if enemy.location in marshal_region.adjacent_regions:
+                    enemy_adjacent = True
+                    break
+
+            if enemy_adjacent:
+                # Find friendly region to fall back to (prefer region with ally)
+                best_dest = None
+                best_score = -999
+
+                for adj_name in marshal_region.adjacent_regions:
+                    adj_region = world.get_region(adj_name)
+                    if not adj_region:
+                        continue
+
+                    # Skip enemy-occupied regions
+                    enemies_there = [m for m in world.get_marshals_in_region(adj_name)
+                                   if m.nation != nation and m.strength > 0]
+                    if enemies_there:
+                        continue
+
+                    score = 0
+                    # Prefer friendly controlled regions
+                    if adj_region.controller == nation:
+                        score += 10
+                    # Prefer regions with allies (mutual support)
+                    allies_there = [m for m in world.get_marshals_in_region(adj_name)
+                                  if m.nation == nation and m.name != marshal.name]
+                    if allies_there:
+                        score += 5
+
+                    if score > best_score:
+                        best_score = score
+                        best_dest = adj_name
+
+                if best_dest:
+                    ai_debug(f"    P7: Cautious fallback to {best_dest} (score={best_score})")
+                    return {
+                        "marshal": marshal.name,
+                        "action": "move",
+                        "target": best_dest
+                    }
 
         return None
 
@@ -988,6 +1217,40 @@ class EnemyAI:
 
         ai_debug(f"  P8: Default action check - {personality}, stance={current_stance}")
 
+        # ════════════════════════════════════════════════════════════
+        # SAFETY NET: Universal engagement check
+        # NOTE: P0 now handles engagement at start of _evaluate_marshal
+        # This is redundant but kept as a safety net in case P0 is bypassed
+        # ════════════════════════════════════════════════════════════
+        enemies_in_region = [
+            m for m in world.marshals.values()
+            if m.location == marshal.location and m.nation != marshal.nation and m.strength > 0
+        ]
+        print(f"  [P8 UNIVERSAL] {marshal.name} at {marshal.location}: enemies_in_region = {[e.name for e in enemies_in_region]}")
+
+        if enemies_in_region:
+            # ENGAGED! Must deal with enemy - attack if possible, else wait
+            weakest = min(enemies_in_region, key=lambda e: e.strength)
+            ratio = marshal.strength / weakest.strength if weakest.strength > 0 else 999
+            threshold = self._get_mood_adjusted_threshold(marshal)
+            print(f"  [P8 UNIVERSAL] {marshal.name} vs {weakest.name}: ratio={ratio:.2f}, threshold={threshold:.2f}")
+
+            if ratio >= threshold:
+                ai_debug(f"  -> P8: ENGAGED - attacking {weakest.name} (ratio {ratio:.2f} >= {threshold:.2f})")
+                return {
+                    "marshal": marshal.name,
+                    "action": "attack",
+                    "target": weakest.name
+                }
+            else:
+                # Can't win but still engaged - wait (don't try to fortify!)
+                ai_debug(f"  -> P8: ENGAGED but can't win - waiting (ratio {ratio:.2f} < {threshold:.2f})")
+                return {
+                    "marshal": marshal.name,
+                    "action": "wait"
+                }
+
+        # Not engaged - continue with personality-based defaults
         if personality == "aggressive":
             # Prefer aggressive stance
             if current_stance != Stance.AGGRESSIVE:
@@ -997,12 +1260,66 @@ class EnemyAI:
                     "action": "stance_change",
                     "target": "aggressive"
                 }
-            # Already aggressive - no useful default action
-            # (wait is pointless, drill/attack handled by other priorities)
-            ai_debug(f"  -> P8: Already aggressive, no action needed")
-            return None
+
+            # Already aggressive - check if we should retreat (badly outnumbered)
+            enemies = world.get_enemies_of_nation(marshal.nation)
+            adjacent_enemies = [
+                e for e in enemies
+                if world.get_distance(marshal.location, e.location) <= 1 and e.strength > 0
+            ]
+            if adjacent_enemies:
+                strongest_enemy = max(adjacent_enemies, key=lambda e: e.strength)
+                ratio = marshal.strength / strongest_enemy.strength if strongest_enemy.strength > 0 else 999
+
+                # If badly outnumbered (ratio < 0.5), consider tactical retreat
+                if ratio < 0.5:
+                    retreat_dest = self._find_retreat_destination(marshal, marshal.nation, world)
+                    if retreat_dest:
+                        ai_debug(f"  -> P8: Tactical retreat to {retreat_dest} (outnumbered {ratio:.2f})")
+                        return {
+                            "marshal": marshal.name,
+                            "action": "move",
+                            "target": retreat_dest
+                        }
+
+            # No retreat needed - wait (save action for next turn)
+            ai_debug(f"  -> P8: Already aggressive, waiting")
+            return {
+                "marshal": marshal.name,
+                "action": "wait"
+            }
 
         elif personality == "cautious":
+            # Check if engaged with enemy - must deal with them, not fortify!
+            enemies_in_region = [
+                m for m in world.marshals.values()
+                if m.location == marshal.location and m.nation != marshal.nation and m.strength > 0
+            ]
+            # DEBUG: Print what we're seeing
+            print(f"  [P8 DEBUG] {marshal.name} at {marshal.location}, nation={marshal.nation}")
+            print(f"  [P8 DEBUG] All marshals: {[(m.name, m.location, m.nation, m.strength) for m in world.marshals.values()]}")
+            print(f"  [P8 DEBUG] Enemies in region: {[(e.name, e.location, e.nation, e.strength) for e in enemies_in_region]}")
+            if enemies_in_region:
+                # Engaged! Attack the weakest enemy we can beat
+                weakest = min(enemies_in_region, key=lambda e: e.strength)
+                ratio = marshal.strength / weakest.strength if weakest.strength > 0 else 999
+                threshold = self._get_mood_adjusted_threshold(marshal)
+                if ratio >= threshold:
+                    ai_debug(f"  -> P8: Cautious but engaged - attacking {weakest.name}")
+                    return {
+                        "marshal": marshal.name,
+                        "action": "attack",
+                        "target": weakest.name
+                    }
+                else:
+                    # Can't win - just wait
+                    ai_debug(f"  -> P8: Engaged but can't win (ratio {ratio:.2f} < {threshold:.2f}), waiting")
+                    return {
+                        "marshal": marshal.name,
+                        "action": "wait"
+                    }
+
+            # Not engaged - normal cautious behavior
             # Prefer defensive stance
             if current_stance != Stance.DEFENSIVE:
                 ai_debug(f"  -> P8: Change to defensive stance")
@@ -1011,21 +1328,27 @@ class EnemyAI:
                     "action": "stance_change",
                     "target": "defensive"
                 }
-            # Already defensive - check if fortified
+            # Already defensive - fortify if not already
             if not getattr(marshal, 'fortified', False):
                 ai_debug(f"  -> P8: Fortify (defensive, not fortified)")
                 return {
                     "marshal": marshal.name,
                     "action": "fortify"
                 }
-            # Already defensive AND fortified - optimal state, nothing to do
-            ai_debug(f"  -> P8: Already defensive+fortified, no action needed")
-            return None
+            # Already defensive AND fortified - optimal state, just wait
+            ai_debug(f"  -> P8: Already defensive+fortified, waiting")
+            return {
+                "marshal": marshal.name,
+                "action": "wait"
+            }
 
         else:
-            # Balanced/other personalities - no default action
-            ai_debug(f"  -> P8: Balanced personality, no default action")
-            return None
+            # Balanced/other personalities - wait as default
+            ai_debug(f"  -> P8: Balanced personality, waiting")
+            return {
+                "marshal": marshal.name,
+                "action": "wait"
+            }
 
     def _find_retreat_destination(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[str]:
         """
@@ -1057,7 +1380,10 @@ class EnemyAI:
                     safe_regions.append(adj_name)
 
         if safe_regions:
-            # Return first safe region (could improve with distance to capital later)
+            # Prefer region closest to capital (homeland)
+            capital = self._get_nation_capital(nation, world)
+            if capital and len(safe_regions) > 1:
+                safe_regions.sort(key=lambda r: world.get_distance(r, capital))
             return safe_regions[0]
 
         # No safe friendly region - try any adjacent region without enemies
@@ -1071,6 +1397,27 @@ class EnemyAI:
 
         # Surrounded - no retreat possible
         # TODO: Handle encirclement (same as player)
+        return None
+
+    def _get_nation_capital(self, nation: str, world: WorldState) -> Optional[str]:
+        """
+        Get the capital/home region for a nation.
+
+        For current 13-region test map, uses approximate "home" regions.
+        For full 1805 map, will use actual capitals.
+        """
+        # Current test map capitals/home regions
+        capitals = {
+            "France": "Paris",
+            "Britain": "Netherlands",  # No London yet - Netherlands is British-controlled
+            "Prussia": "Rhine",        # No Berlin yet - Rhine is Prussian area
+            "Austria": "Vienna",       # Vienna exists in test map
+        }
+        capital = capitals.get(nation)
+
+        # Verify region exists in current map
+        if capital and world.get_region(capital):
+            return capital
         return None
 
     def _evaluate_capture_safety(
@@ -1219,6 +1566,30 @@ class EnemyAI:
             return None
 
         # ════════════════════════════════════════════════════════════
+        # CHECK 0: ENGAGED with enemy in same region (must unfortify!)
+        # If enemy is in our region, we MUST fight them.
+        # ════════════════════════════════════════════════════════════
+        enemies_in_region = [
+            m for m in world.marshals.values()
+            if m.location == marshal.location and m.nation != nation and m.strength > 0
+        ]
+        if enemies_in_region:
+            ai_debug(f"    P3.5: ENGAGED while fortified! Enemies in region: {[e.name for e in enemies_in_region]}")
+            # Check if we have good odds to attack
+            weakest_enemy = min(enemies_in_region, key=lambda e: e.strength)
+            ratio = marshal.strength / weakest_enemy.strength if weakest_enemy.strength > 0 else 999
+            threshold = self._get_mood_adjusted_threshold(marshal)
+
+            if ratio >= threshold * 0.8:  # Slightly lower threshold when engaged
+                ai_debug(f"    -> Unfortifying to attack engaged enemy (ratio {ratio:.2f} vs threshold {threshold:.2f})")
+                return {
+                    "marshal": marshal.name,
+                    "action": "unfortify"
+                }
+            else:
+                ai_debug(f"    -> Staying fortified (ratio {ratio:.2f} < threshold {threshold * 0.8:.2f})")
+
+        # ════════════════════════════════════════════════════════════
         # CHECK 1: Undefended enemy region nearby (always capture)
         # ════════════════════════════════════════════════════════════
         for adj_name in marshal_region.adjacent_regions:
@@ -1297,6 +1668,15 @@ class EnemyAI:
 
         result = self.executor.execute(command, game_state)
         result["ai_action"] = action
+
+        # DEBUG: Check if events are present
+        if "events" in result:
+            print(f"[AI_EXECUTE_DEBUG] Action {action['action']} returned {len(result.get('events', []))} events")
+            for evt in result.get("events", []):
+                print(f"  - Event type: {evt.get('type')}")
+        else:
+            print(f"[AI_EXECUTE_DEBUG] Action {action['action']} has NO events! Keys: {list(result.keys())}")
+            print(f"  success: {result.get('success')}, message: {result.get('message', '')[:100]}...")
 
         return result
 
