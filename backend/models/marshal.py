@@ -223,6 +223,15 @@ class Marshal:
         self.pending_glorious_charge: bool = False
         self.pending_charge_target: str = ""
 
+        # ════════════════════════════════════════════════════════════
+        # EXHAUSTION SYSTEM (Phase 3 - Attack Spam Prevention)
+        # ════════════════════════════════════════════════════════════
+        # Tracks attacks made this turn by this marshal
+        # Resets to 0 at turn start
+        # Applies penalty: 0% (1st), -10% (2nd), -20% (3rd), -30% (4th+)
+        # Counter-punch (reactive) does NOT count toward this
+        self.attacks_this_turn: int = 0
+
     def move_to(self, new_location: str) -> None:
         """
         Move marshal to a new region.
@@ -320,6 +329,56 @@ class Marshal:
         """Reset recklessness to 0 (on loss or after Glorious Charge)."""
         self.recklessness = 0
 
+    # ════════════════════════════════════════════════════════════
+    # EXHAUSTION SYSTEM (Phase 3 - Attack Spam Prevention)
+    # ════════════════════════════════════════════════════════════
+
+    def _get_exhaustion_penalty(self) -> float:
+        """
+        Get attack penalty from multiple attacks this turn.
+
+        Penalty schedule:
+        - 1st attack: 0% penalty
+        - 2nd attack: 10% penalty
+        - 3rd attack: 20% penalty
+        - 4th+ attack: 30% penalty
+
+        Returns:
+            Float penalty (0.0, 0.10, 0.20, or 0.30)
+        """
+        attacks = getattr(self, 'attacks_this_turn', 0)
+        if attacks <= 0:
+            return 0.0  # 1st attack (counter is 0 before first attack)
+        elif attacks == 1:
+            return 0.10  # 2nd attack
+        elif attacks == 2:
+            return 0.20  # 3rd attack
+        else:  # 3+
+            return 0.30  # 4th+ attack
+
+    def increment_attacks_this_turn(self) -> None:
+        """
+        Increment attack counter after an attack.
+
+        Called after regular attacks, NOT after counter-punch (reactive).
+        """
+        self.attacks_this_turn = getattr(self, 'attacks_this_turn', 0) + 1
+
+    def get_exhaustion_info(self) -> dict:
+        """
+        Get exhaustion status for display.
+
+        Returns:
+            Dict with attacks_this_turn and current penalty
+        """
+        attacks = getattr(self, 'attacks_this_turn', 0)
+        penalty = self._get_exhaustion_penalty()
+        return {
+            "attacks_this_turn": attacks,
+            "penalty": penalty,
+            "penalty_percent": int(penalty * 100)
+        }
+
     def get_recklessness_warning(self) -> Optional[str]:
         """
         Get warning message for current recklessness level.
@@ -410,6 +469,12 @@ class Marshal:
         recklessness_bonus = self._get_recklessness_attack_bonus()
         if recklessness_bonus > 0:
             modifier *= (1.0 + recklessness_bonus)
+
+        # Exhaustion penalty (attack spam prevention)
+        # Applied AFTER other modifiers (multiplicative with recklessness)
+        exhaustion_penalty = self._get_exhaustion_penalty()
+        if exhaustion_penalty > 0:
+            modifier *= (1.0 - exhaustion_penalty)
 
         return modifier
 

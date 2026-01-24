@@ -163,7 +163,7 @@ func _draw_regions():
 		var controller = region_controllers.get(region_name, "Neutral")
 
 		# DEBUG: Print controller for each region
-		print("Drawing region ", region_name, ": controller = ", controller)
+		# print("Drawing region ", region_name, ": controller = ", controller)  # Commented out - too noisy
 
 		# Get color with fallback warning
 		var color = COLORS.get(controller)
@@ -326,10 +326,10 @@ func _zoom_at_point(point: Vector2, zoom_factor: float):
 
 func _draw_tooltip():
 	"""Draw tooltip panel showing marshal details with debug info."""
-	# DEBUG: Print hovered marshal data to verify what we're receiving
-	print("TOOLTIP DEBUG: hovered_marshal keys = ", hovered_marshal.keys())
-	if hovered_marshal.has("tactical_state"):
-		print("TOOLTIP DEBUG: tactical_state = ", hovered_marshal.get("tactical_state"))
+	# DEBUG: Print fortify state to verify what we're receiving
+	if hovered_marshal.get("fortified", false):
+		print("TOOLTIP DEBUG: fortified=true, defense_bonus=", hovered_marshal.get("defense_bonus", 0))
+		print("TOOLTIP DEBUG: fortify_state = ", hovered_marshal.get("fortify_state", {}))
 
 	# Get marshal data
 	var marshal_name = hovered_marshal.get("name", "Unknown")
@@ -351,7 +351,7 @@ func _draw_tooltip():
 	var defense_skill = skills.get("defense", 0)
 	var tactical_skill = skills.get("tactical", 0)
 
-	# TACTICAL STATES (only for player marshals)
+	# TACTICAL STATES (nested under tactical_state for player marshals)
 	var tactical_state = hovered_marshal.get("tactical_state", {})
 	# BUG-007 FIX: Added stance display
 	var stance = tactical_state.get("stance", "neutral")
@@ -362,6 +362,22 @@ func _draw_tooltip():
 	var fortified = tactical_state.get("fortified", false)
 	var defense_bonus = tactical_state.get("defense_bonus", 0)
 	var fortify_expires_turn = tactical_state.get("fortify_expires_turn", -1)
+	# Fortify decay state (Phase 3)
+	var fortify_state_raw = tactical_state.get("fortify_state", null)
+	var fortify_direction = "none"
+	var fortify_floor = 0
+	var fortify_turns_until_decay = -1
+	# DEBUG: Trace fortify state
+	if fortified:
+		print("[FORTIFY_DEBUG] ", marshal_name, " fortified=", fortified, " defense_bonus=", defense_bonus)
+		print("[FORTIFY_DEBUG]   fortify_state_raw=", fortify_state_raw)
+		print("[FORTIFY_DEBUG]   is Dictionary=", fortify_state_raw is Dictionary if fortify_state_raw != null else "null")
+	if fortify_state_raw != null and fortify_state_raw is Dictionary:
+		fortify_direction = fortify_state_raw.get("direction", "none")
+		fortify_floor = fortify_state_raw.get("floor", 0)
+		fortify_turns_until_decay = fortify_state_raw.get("turns_until_decay", -1)
+		if fortified:
+			print("[FORTIFY_DEBUG]   direction=", fortify_direction, " floor=", fortify_floor, " turns_until_decay=", fortify_turns_until_decay)
 	var retreating = tactical_state.get("retreating", false)
 	var retreat_recovery = tactical_state.get("retreat_recovery", 0)
 	# Broken army state (surrounded + forced retreat)
@@ -561,15 +577,42 @@ func _draw_tooltip():
 			draw_string(font, Vector2(text_x, text_y + 11), shock_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, shock_color)
 			text_y += line_spacing
 
-		# Fortified state
+		# Fortified state with direction indicator (Phase 3)
 		if fortified:
 			var fort_percent = defense_bonus  # Already a percentage from backend
-			var fort_text = "FORTIFIED: +" + str(fort_percent) + "% defense"
-			if fort_percent >= 15:
-				fort_text += " (MAX)"
-			else:
-				fort_text += " (grows +2%/turn)"
-			var fort_color = Color(0.5, 0.7, 0.9)  # Blue
+			var direction_symbol = ""
+			var direction_info = ""
+			var fort_color = Color(0.5, 0.7, 0.9)  # Blue (default)
+
+			match fortify_direction:
+				"growing":
+					direction_symbol = " ▲"
+					direction_info = " (building)"
+					fort_color = Color(0.3, 0.8, 0.3)  # Green
+				"decaying":
+					direction_symbol = " ▼"
+					direction_info = " (decaying)"
+					fort_color = Color(0.9, 0.6, 0.3)  # Orange
+				"stable":
+					direction_symbol = " ━"
+					direction_info = " (MAX)"
+					fort_color = Color(0.5, 0.7, 0.9)  # Blue
+				"at_floor":
+					direction_symbol = " ━"
+					if fortify_floor > 0:
+						direction_info = " (floor: " + str(fortify_floor) + "%)"
+					else:
+						direction_info = " (collapsed)"
+					fort_color = Color(0.7, 0.7, 0.5)  # Yellow-gray
+				"cavalry_limit":
+					direction_symbol = " ⚠"
+					direction_info = " (cavalry: " + str(fortify_turns_until_decay) + " turns left)"
+					fort_color = Color(0.9, 0.5, 0.3)  # Orange-red
+				_:
+					direction_symbol = ""
+					direction_info = ""
+
+			var fort_text = "FORTIFIED: +" + str(fort_percent) + "%" + direction_symbol + direction_info
 			draw_string(font, Vector2(text_x, text_y + 11), fort_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, fort_color)
 			text_y += line_spacing
 
@@ -656,10 +699,7 @@ func update_region(region_name: String, controller: String, marshal: String = ""
 
 func update_all_regions(map_data: Dictionary):
 	"""Update all regions from backend map data."""
-	print("═══════════════════════════════════════")
-	print("MAP: update_all_regions() called")
-	print("Received ", map_data.keys().size(), " regions")
-	print("═══════════════════════════════════════")
+	# Reduced debug output - only print marshal tactical_state info
 
 	for region_name in map_data:
 		var data = map_data[region_name]
@@ -676,16 +716,22 @@ func update_all_regions(map_data: Dictionary):
 		var marshals = data.get("marshals", [])
 		if marshals.size() > 0:
 			region_marshals[region_name] = marshals
-			print("Map updating region ", region_name, ": controller = ", controller)
+			# Only print for regions with marshals (reduced noise)
 			for m in marshals:
 				print("  Marshal ", m.get("name"), " keys: ", m.keys())
+				# DEBUG: Check tactical_state specifically
+				if m.has("tactical_state"):
+					var ts = m.get("tactical_state")
+					print("    tactical_state keys: ", ts.keys() if ts else "NULL")
+					if ts and ts.has("fortify_state"):
+						print("    fortify_state: ", ts.get("fortify_state"))
+					if ts and ts.has("fortified"):
+						print("    fortified: ", ts.get("fortified"))
+				else:
+					print("    NO tactical_state key!")
 		else:
 			region_marshals.erase(region_name)
-			print("Map updating region ", region_name, ": controller = ", controller, ", no marshals")
+			pass  # No marshals, skip debug output
 
 	# Trigger redraw
 	queue_redraw()
-
-	print("═══════════════════════════════════════")
-	print("MAP: Update complete, triggering redraw")
-	print("═══════════════════════════════════════")

@@ -142,6 +142,64 @@ def run_tests():
     has_pending = vt.has_pending('Ney')
     results.append(('Vindication tracking', has_pending))
 
+    # Test 15: Exhaustion system (Phase 3 - Attack Spam Prevention)
+    w = WorldState()
+    ney = w.get_marshal('Ney')
+    # Test exhaustion penalty calculation
+    assert ney.attacks_this_turn == 0
+    penalty_0 = ney._get_exhaustion_penalty()  # 1st attack = 0%
+    ney.increment_attacks_this_turn()
+    penalty_1 = ney._get_exhaustion_penalty()  # 2nd attack = 10%
+    ney.increment_attacks_this_turn()
+    penalty_2 = ney._get_exhaustion_penalty()  # 3rd attack = 20%
+    ney.increment_attacks_this_turn()
+    penalty_3 = ney._get_exhaustion_penalty()  # 4th attack = 30%
+    results.append(('Exhaustion system',
+                   penalty_0 == 0.0 and penalty_1 == 0.10 and
+                   penalty_2 == 0.20 and penalty_3 == 0.30))
+
+    # Test 16: Exhaustion resets at turn start
+    w = WorldState()
+    ney = w.get_marshal('Ney')
+    ney.attacks_this_turn = 3
+    game_state = {"world": w}
+    with SuppressOutput():
+        tm = TurnManager(w)
+        tm.end_turn(game_state)
+    results.append(('Exhaustion turn reset', ney.attacks_this_turn == 0))
+
+    # Test 17: Fortify decay tracking
+    w = WorldState()
+    davout = w.get_marshal('Davout')
+    davout.fortified = True
+    davout.defense_bonus = 0.15
+    davout.stance = Stance.DEFENSIVE
+    # Simulate 8 turns of fortification (cautious decay starts at turn 8)
+    davout.turns_fortified = 8
+    old_bonus = davout.defense_bonus
+    with SuppressOutput():
+        events = w._process_tactical_states()
+    # After 8 turns, cautious should start decaying (-1%/turn)
+    new_bonus = davout.defense_bonus
+    results.append(('Fortify decay (cautious)', new_bonus < old_bonus or new_bonus == 0.05))
+
+    # Test 18: Balanced marshal fortify decay
+    # Note: Ney is cavalry so he has auto-unfortify at turn 3 (different system)
+    # Test balanced personality decay instead (turn 6, -1%/turn)
+    w = WorldState()
+    grouchy = w.get_marshal('Grouchy')  # literal personality uses cautious rules
+    grouchy.fortified = True
+    grouchy.defense_bonus = 0.10  # 10%
+    grouchy.stance = Stance.DEFENSIVE
+    # Literal/cautious decay starts at turn 8, -1%/turn, floor 5%
+    grouchy.turns_fortified = 8
+    old_bonus = grouchy.defense_bonus
+    with SuppressOutput():
+        events = w._process_tactical_states()
+    new_bonus = grouchy.defense_bonus
+    # Should decay by 1% (10% -> 9%)
+    results.append(('Fortify decay (literal)', new_bonus < old_bonus and new_bonus >= 0.05))
+
     return results
 
 

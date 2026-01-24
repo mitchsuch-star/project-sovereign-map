@@ -14,6 +14,15 @@ from backend.models.marshal import Marshal
 import random
 
 
+def ordinal(n: int) -> str:
+    """Convert number to ordinal string (1 -> '1st', 2 -> '2nd', etc.)."""
+    if 11 <= (n % 100) <= 13:
+        suffix = 'th'
+    else:
+        suffix = ['th', 'st', 'nd', 'rd', 'th'][min(n % 10, 4)]
+    return f"{n}{suffix}"
+
+
 class CombatResolver:
     """
     Resolves battles between armies.
@@ -169,6 +178,19 @@ class CombatResolver:
         drill_bonus_message = None
         if attacker_drill_bonus > 0:
             drill_bonus_message = f"{attacker.name}'s drilled troops attack with +{attacker_drill_bonus * 10}% effectiveness!"
+
+        # ════════════════════════════════════════════════════════════
+        # EXHAUSTION MESSAGE (Phase 3 - Attack Spam Prevention)
+        # Check if attacker has made previous attacks this turn
+        # ════════════════════════════════════════════════════════════
+        exhaustion_message = None
+        attacks_this_turn = getattr(attacker, 'attacks_this_turn', 0)
+        if attacks_this_turn > 0:
+            # This is 2nd, 3rd, or 4th+ attack
+            penalty_map = {1: 10, 2: 20}  # 1 previous = 2nd attack = -10%, etc.
+            penalty = penalty_map.get(attacks_this_turn, 30)  # 3+ = -30%
+            attack_num = attacks_this_turn + 1
+            exhaustion_message = f"{attacker.name}'s troops are exhausted from repeated attacks! ({ordinal(attack_num)} attack: -{penalty}%)"
 
         # ════════════════════════════════════════════════════════════
         # STANCE & PERSONALITY MODIFIER (Phase 2.7/2.8): Apply attack modifiers
@@ -409,6 +431,8 @@ class CombatResolver:
             tactical_prefix += f"\n🏰 {fortify_bonus_message}"
         if drilling_penalty_message:
             tactical_prefix += f"\n⚠️ {drilling_penalty_message}"
+        if exhaustion_message:
+            tactical_prefix += f"\n😓 {exhaustion_message}"
         if glorious_charge_message:
             tactical_prefix += f"\n{glorious_charge_message}"
         if tactical_prefix:

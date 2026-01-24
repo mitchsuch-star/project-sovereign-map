@@ -38,6 +38,12 @@ func _ready():
 func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 	"""Display enemy phase with full battle details."""
 
+	# DEBUG: Print received enemy_phase structure
+	print("[GODOT_ENEMY_PHASE] ═══════════════════════════════════════")
+	print("[GODOT_ENEMY_PHASE] Received enemy_phase for turn ", turn)
+	print("[GODOT_ENEMY_PHASE] Keys: ", enemy_phase.keys())
+	print("[GODOT_ENEMY_PHASE] total_actions: ", enemy_phase.get("total_actions", "MISSING"))
+
 	# Set title
 	title_label.text = "ENEMY PHASE - Turn %d" % turn
 
@@ -46,6 +52,16 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 
 	var nations = enemy_phase.get("nations", {})
 	var total_actions = enemy_phase.get("total_actions", 0)
+
+	print("[GODOT_ENEMY_PHASE] nations count: ", nations.size())
+	for n in nations:
+		var nd = nations[n]
+		print("[GODOT_ENEMY_PHASE]   ", n, ": ", nd.get("action_count", 0), " actions")
+		var acts = nd.get("actions", [])
+		for i in range(acts.size()):
+			var act = acts[i]
+			print("[GODOT_ENEMY_PHASE]     [", i, "] ai_action=", act.get("ai_action", {}))
+			print("[GODOT_ENEMY_PHASE]     [", i, "] has events=", act.has("events"), " count=", act.get("events", []).size() if act.has("events") else 0)
 
 	if total_actions == 0:
 		content = "[color=#" + COLOR_INFO + "]No enemy actions this turn.[/color]"
@@ -75,6 +91,13 @@ func show_enemy_phase(enemy_phase: Dictionary, turn: int):
 func _format_action(action: Dictionary) -> String:
 	"""Format a single action with full details."""
 	var result = ""
+
+	# DEBUG: Print entire action to see what's coming through
+	print("[ENEMY_PHASE_DEBUG] action keys: ", action.keys())
+	if action.has("events"):
+		print("[ENEMY_PHASE_DEBUG] events: ", action.get("events"))
+	else:
+		print("[ENEMY_PHASE_DEBUG] NO events key in action!")
 
 	var ai_action = action.get("ai_action", {})
 	var marshal_name = ai_action.get("marshal", "Unknown")
@@ -109,8 +132,12 @@ func _format_action(action: Dictionary) -> String:
 
 	# Check for battle events
 	var events = action.get("events", [])
-	for event in events:
+	print("[ENEMY_PHASE_DEBUG] events count: ", events.size() if events else 0)
+	for i in range(events.size()):
+		var event = events[i]
+		print("[ENEMY_PHASE_DEBUG] event[", i, "] type: ", event.get("type", "NO TYPE"))
 		if event.get("type") == "battle":
+			print("[ENEMY_PHASE_DEBUG] Calling _format_battle for battle event")
 			result += _format_battle(event)
 		elif event.get("type") == "conquest":
 			var region = event.get("region", "territory")

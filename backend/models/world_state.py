@@ -1049,6 +1049,76 @@ class WorldState:
     # GAME STATE MANAGEMENT
     # ========================================
 
+    def _get_fortify_state(self, marshal) -> Dict:
+        """
+        Get fortification state for display (Phase 3 - Fortify Direction Arrow).
+
+        Returns dict with direction, floor, turns_until_decay for frontend display.
+        """
+        from backend.models.personality_modifiers import get_max_fortify_bonus
+
+        if not getattr(marshal, 'fortified', False):
+            return {
+                "direction": "none",
+                "floor": 0,
+                "turns_until_decay": -1,
+                "turns_fortified": 0
+            }
+
+        personality = getattr(marshal, 'personality', 'unknown')
+        is_cavalry = getattr(marshal, 'cavalry', False)
+        current_bonus = getattr(marshal, 'defense_bonus', 0)
+        turns_fortified = getattr(marshal, 'turns_fortified', 0)
+
+        try:
+            max_bonus = get_max_fortify_bonus(personality)
+        except:
+            max_bonus = 0.15  # Default
+
+        # Decay configuration by personality
+        decay_config = {
+            "aggressive": {"start": 4, "rate": 0.02, "floor": 0.0},
+            "balanced": {"start": 6, "rate": 0.01, "floor": 0.0},
+            "cautious": {"start": 8, "rate": 0.01, "floor": 0.05},
+            "literal": {"start": 8, "rate": 0.01, "floor": 0.05},
+        }
+        default_decay = {"start": 6, "rate": 0.01, "floor": 0.0}
+        decay_settings = decay_config.get(personality, default_decay)
+
+        floor_percent = int(decay_settings["floor"] * 100)
+
+        # Cavalry uses different system (auto-unfortify at turn 3)
+        if is_cavalry:
+            turns_until_unfortify = max(0, 3 - turns_fortified)
+            return {
+                "direction": "cavalry_limit",
+                "floor": 0,
+                "turns_until_decay": turns_until_unfortify,
+                "turns_fortified": turns_fortified
+            }
+
+        # Determine direction
+        decay_starts = decay_settings["start"]
+        turns_until_decay = max(0, decay_starts - turns_fortified)
+
+        if turns_fortified >= decay_starts:
+            if current_bonus <= decay_settings["floor"]:
+                direction = "at_floor"
+            else:
+                direction = "decaying"
+        elif current_bonus >= max_bonus:
+            # At max, waiting for decay to start
+            direction = "stable"
+        else:
+            direction = "growing"
+
+        return {
+            "direction": direction,
+            "floor": floor_percent,
+            "turns_until_decay": turns_until_decay,
+            "turns_fortified": turns_fortified
+        }
+
     def get_game_state_summary(self) -> Dict:
         """Get a summary of current game state for API responses."""
         # Build map_data with marshals (including debug info for player marshals)
@@ -1099,6 +1169,8 @@ class WorldState:
                         "fortified": bool(getattr(m, 'fortified', False)),
                         "defense_bonus": int(getattr(m, 'defense_bonus', 0) * 100),  # Convert 0.02 -> 2%
                         "fortify_expires_turn": int(getattr(m, 'fortify_expires_turn', -1)),
+                        # Fortify direction for arrow display (Phase 3)
+                        "fortify_state": self._get_fortify_state(m),
                         # Retreat state
                         "retreating": bool(getattr(m, 'retreating', False)),
                         "retreat_recovery": int(getattr(m, 'retreat_recovery', 0)),
@@ -1235,13 +1307,13 @@ class WorldState:
         IMPORTANT: Processes tactical states BEFORE advancing turn counter.
         """
         # ════════════════════════════════════════════════════════════
-        # CLEAR RETREATED_THIS_TURN FLAG (at turn start)
-        # This flag is used for ally covering system - retreating marshals
-        # can be protected by allies during the ENEMY phase.
-        # Clear at start of new player turn.
+        # CLEAR PER-TURN FLAGS (at turn start)
         # ════════════════════════════════════════════════════════════
         for marshal in self.marshals.values():
+            # Ally covering system - retreating marshals can be protected during enemy phase
             marshal.retreated_this_turn = False
+            # Exhaustion system - reset attack counter for spam prevention
+            marshal.attacks_this_turn = 0
 
         # ════════════════════════════════════════════════════════════
         # PROCESS TACTICAL STATES (before turn counter advances!)
@@ -1366,9 +1438,10 @@ class WorldState:
                     })
 
             # ════════════════════════════════════════════════════════════
-            # FORTIFY GROWTH (personality-specific rates and caps)
-            # Phase 2.8: Davout +3%/turn, max 20% | Ney max 10% | Others +2%/turn, max 15%
-            # Phase 3: FRONT-LOADING - First turn gives +5%, then normal rate
+            # FORTIFY GROWTH & DECAY (Phase 3 - Turtle Prevention)
+            # Growth: Davout +3%/turn, max 20% | Ney max 10% | Others +2%/turn, max 15%
+            # Decay: Starts after threshold turns, personality-based rate and floor
+            # Cavalry: Handled by auto-unfortify at turn 3 (skip decay for them)
             # ════════════════════════════════════════════════════════════
             if getattr(marshal, 'fortified', False):
                 from backend.models.personality_modifiers import (
@@ -1376,13 +1449,71 @@ class WorldState:
                 )
 
                 personality = getattr(marshal, 'personality', 'unknown')
+                is_cavalry = getattr(marshal, 'cavalry', False)
                 max_bonus_rate = get_max_fortify_bonus(personality)  # 0.10-0.20 depending on personality
                 fortify_rate = get_fortify_rate(personality)  # 0.02-0.03 depending on personality
                 instant_bonus = get_instant_fortify_bonus(personality)  # 0.05 for Davout, 0 for others
 
                 current_bonus = getattr(marshal, 'defense_bonus', 0.02)
 
-                if current_bonus < max_bonus_rate:
+                # Increment turns_fortified for ALL marshals (used for decay calculation)
+                marshal.turns_fortified = getattr(marshal, 'turns_fortified', 0) + 1
+                turns_fortified = marshal.turns_fortified
+
+                # Decay thresholds and rates by personality
+                # Cavalry: Handled by auto-unfortify, skip decay
+                # Aggressive: Turn 4, -2%/turn, floor 0%
+                # Balanced/Unknown: Turn 6, -1%/turn, floor 0%
+                # Cautious/Literal: Turn 8, -1%/turn, floor 5%
+                decay_config = {
+                    "aggressive": {"start": 4, "rate": 0.02, "floor": 0.0},
+                    "balanced": {"start": 6, "rate": 0.01, "floor": 0.0},
+                    "cautious": {"start": 8, "rate": 0.01, "floor": 0.05},
+                    "literal": {"start": 8, "rate": 0.01, "floor": 0.05},
+                }
+                default_decay = {"start": 6, "rate": 0.01, "floor": 0.0}
+                decay_settings = decay_config.get(personality, default_decay)
+
+                # Determine if growing or decaying
+                should_decay = (
+                    not is_cavalry and  # Cavalry handled separately
+                    turns_fortified >= decay_settings["start"] and
+                    current_bonus > decay_settings["floor"]
+                )
+
+                if should_decay:
+                    # DECAY PHASE: Fortifications crumbling
+                    old_percent = int(current_bonus * 100)
+                    decay_amount = decay_settings["rate"]
+                    new_bonus = max(current_bonus - decay_amount, decay_settings["floor"])
+                    marshal.defense_bonus = new_bonus
+                    new_percent = int(new_bonus * 100)
+                    floor_percent = int(decay_settings["floor"] * 100)
+
+                    # Generate appropriate message
+                    if new_bonus <= decay_settings["floor"]:
+                        if floor_percent > 0:
+                            message = f"{marshal.name}'s men maintain minimal defenses. ({floor_percent}% - stable)"
+                            event_type = "fortify_stable"
+                        else:
+                            message = f"{marshal.name}'s fortifications have crumbled completely!"
+                            event_type = "fortify_collapsed"
+                    else:
+                        message = f"{marshal.name}'s fortifications decay: {old_percent}% → {new_percent}%"
+                        event_type = "fortify_decayed"
+
+                    print(f"  [TACTICAL] FORTIFY DECAY: {marshal.name} defense {old_percent}% -> {new_percent}% (turn {turns_fortified})")
+                    events.append({
+                        "type": event_type,
+                        "marshal": marshal.name,
+                        "defense_bonus": new_percent,
+                        "floor": floor_percent,
+                        "turns_fortified": turns_fortified,
+                        "message": message
+                    })
+
+                elif current_bonus < max_bonus_rate:
+                    # GROWTH PHASE: Fortifications still building
                     # FRONT-LOADING: First turn of growth gets +5%, then normal rate
                     # Initial values after fortify command: 0.02 (base) + instant_bonus
                     initial_fortify_value = 0.02 + instant_bonus

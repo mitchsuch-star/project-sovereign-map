@@ -127,6 +127,13 @@ def execute_command(request: CommandRequest):
                 for action in nation_data.get("actions", []):
                     # Remove new_state which has circular references
                     cleaned_action = {k: v for k, v in action.items() if k != "new_state"}
+                    # DEBUG: Check if events are present
+                    if "events" in cleaned_action:
+                        print(f"[ENEMY_PHASE_DEBUG] {nation} action has events: {len(cleaned_action.get('events', []))} events")
+                        for evt in cleaned_action.get("events", []):
+                            print(f"  - Event type: {evt.get('type')}, keys: {list(evt.keys())}")
+                    else:
+                        print(f"[ENEMY_PHASE_DEBUG] {nation} action has NO events! Keys: {list(cleaned_action.keys())}")
                     cleaned_actions.append(cleaned_action)
                 cleaned_phase["nations"][nation] = {
                     "actions": cleaned_actions,
@@ -135,6 +142,14 @@ def execute_command(request: CommandRequest):
             if enemy_phase.get("enemy_victory"):
                 cleaned_phase["enemy_victory"] = enemy_phase["enemy_victory"]
             response["enemy_phase"] = cleaned_phase
+
+            # DEBUG: Print final enemy_phase structure
+            print(f"[ENEMY_PHASE_FINAL] Sending to Godot:")
+            for nation, data in cleaned_phase.get("nations", {}).items():
+                print(f"  {nation}: {len(data.get('actions', []))} actions")
+                for i, act in enumerate(data.get("actions", [])):
+                    has_events = "events" in act and len(act.get("events", [])) > 0
+                    print(f"    [{i}] {act.get('ai_action', {}).get('action', '?')} - has_events: {has_events}")
 
         return response
     except Exception as e:
@@ -494,6 +509,94 @@ def debug_marshal(marshal_name: str):
     }
 
 
+def _get_fortify_state_safe(marshal) -> dict:
+    """Safe wrapper for _get_fortify_state with error handling."""
+    try:
+        return _get_fortify_state(marshal)
+    except Exception as e:
+        print(f"[FORTIFY_STATE_ERROR] Exception for {getattr(marshal, 'name', 'unknown')}: {e}")
+        return {
+            "direction": "error",
+            "floor": 0,
+            "turns_until_decay": -1,
+            "turns_fortified": 0,
+            "error": str(e)
+        }
+
+
+def _get_fortify_state(marshal) -> dict:
+    """
+    Get fortification state for display (Phase 3 - Fortify Decay).
+
+    Returns:
+        Dict with direction, floor, turns_until_decay for frontend display.
+    """
+    if not getattr(marshal, 'fortified', False):
+        return {
+            "direction": "none",
+            "floor": 0,
+            "turns_until_decay": -1,
+            "turns_fortified": 0
+        }
+
+    # DEBUG: Print fortify state calculation
+    print(f"[FORTIFY_STATE_DEBUG] {marshal.name}: fortified=True, defense_bonus={getattr(marshal, 'defense_bonus', 0)}, turns_fortified={getattr(marshal, 'turns_fortified', 0)}")
+
+    from backend.models.personality_modifiers import get_max_fortify_bonus
+
+    personality = getattr(marshal, 'personality', 'unknown')
+    is_cavalry = getattr(marshal, 'cavalry', False)
+    current_bonus = getattr(marshal, 'defense_bonus', 0)
+    turns_fortified = getattr(marshal, 'turns_fortified', 0)
+    max_bonus = get_max_fortify_bonus(personality)
+
+    # Decay configuration by personality
+    decay_config = {
+        "aggressive": {"start": 4, "rate": 0.02, "floor": 0.0},
+        "balanced": {"start": 6, "rate": 0.01, "floor": 0.0},
+        "cautious": {"start": 8, "rate": 0.01, "floor": 0.05},
+        "literal": {"start": 8, "rate": 0.01, "floor": 0.05},
+    }
+    default_decay = {"start": 6, "rate": 0.01, "floor": 0.0}
+    decay_settings = decay_config.get(personality, default_decay)
+
+    floor_percent = int(decay_settings["floor"] * 100)
+
+    # Cavalry uses different system (auto-unfortify at turn 3)
+    if is_cavalry:
+        turns_until_unfortify = max(0, 3 - turns_fortified)
+        return {
+            "direction": "cavalry_limit",
+            "floor": 0,
+            "turns_until_decay": turns_until_unfortify,
+            "turns_fortified": turns_fortified
+        }
+
+    # Determine direction
+    decay_starts = decay_settings["start"]
+    turns_until_decay = max(0, decay_starts - turns_fortified)
+
+    if turns_fortified >= decay_starts:
+        if current_bonus <= decay_settings["floor"]:
+            direction = "at_floor"
+        else:
+            direction = "decaying"
+    elif current_bonus >= max_bonus:
+        # At max, waiting for decay to start
+        direction = "stable"
+    else:
+        direction = "growing"
+
+    result = {
+        "direction": direction,
+        "floor": floor_percent,
+        "turns_until_decay": turns_until_decay,
+        "turns_fortified": turns_fortified
+    }
+    print(f"[FORTIFY_STATE_DEBUG]   -> direction={direction}, floor={floor_percent}%, turns_until_decay={turns_until_decay}")
+    return result
+
+
 def _get_map_data(world: WorldState) -> dict:
     """Get map visualization data with marshal debug info."""
     map_data = {}
@@ -526,6 +629,8 @@ def _get_map_data(world: WorldState) -> dict:
 
                 # Tactical states for hover info
                 marshal_data["tactical_state"] = {
+                    # Stance (BUG FIX: was missing!)
+                    "stance": m.stance.value if hasattr(m, 'stance') else "neutral",
                     # Drill state
                     "drilling": bool(getattr(m, 'drilling', False)),
                     "drilling_locked": bool(getattr(m, 'drilling_locked', False)),
@@ -533,11 +638,28 @@ def _get_map_data(world: WorldState) -> dict:
                     "drill_complete_turn": int(getattr(m, 'drill_complete_turn', -1)),
                     # Fortify state
                     "fortified": bool(getattr(m, 'fortified', False)),
-                    "defense_bonus": int(getattr(m, 'defense_bonus', 0)),
+                    "defense_bonus": int(getattr(m, 'defense_bonus', 0) * 100),  # Convert decimal to percent
                     "fortify_expires_turn": int(getattr(m, 'fortify_expires_turn', -1)),
+                    # Fortify decay state (Phase 3) - with error handling
+                    "fortify_state": _get_fortify_state_safe(m),
                     # Retreat state
                     "retreating": bool(getattr(m, 'retreating', False)),
                     "retreat_recovery": int(getattr(m, 'retreat_recovery', 0)),
+                    # Broken army state (BUG FIX: was missing!)
+                    "broken": bool(getattr(m, 'broken', False)),
+                    "broken_recovery": int(getattr(m, 'broken_recovery', 0)),
+                    # Personality ability states (BUG FIX: were missing!)
+                    "cavalry": bool(getattr(m, 'cavalry', False)),
+                    "turns_defensive": int(getattr(m, 'turns_defensive', 0)),
+                    "counter_punch_available": bool(getattr(m, 'counter_punch_available', False)),
+                    "counter_punch_turns": int(getattr(m, 'counter_punch_turns', 0)),
+                    "holding_position": bool(getattr(m, 'holding_position', False)),
+                    "hold_region": str(getattr(m, 'hold_region', '')),
+                    # Phase 3: Ney recklessness/Glorious Charge
+                    "recklessness": int(getattr(m, 'recklessness', 0)),
+                    "is_reckless_cavalry": bool(getattr(m, 'cavalry', False) and getattr(m, 'personality', '') == 'aggressive'),
+                    "pending_glorious_charge": bool(getattr(m, 'pending_glorious_charge', False)),
+                    "pending_charge_target": str(getattr(m, 'pending_charge_target', '')),
                     # Autonomy state (Phase 2.5)
                     "autonomous": bool(getattr(m, 'autonomous', False)),
                     "autonomy_turns": int(getattr(m, 'autonomy_turns', 0)),
