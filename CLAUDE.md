@@ -600,10 +600,11 @@ Fortified marshals will unfortify when:
 
 This prevents fortified marshals from becoming permanent "rocks" that enemies can walk around.
 
-**Decision Tree Priorities (P1-P8):**
+**Decision Tree Priorities (P0-P8):**
 
 | Priority | Trigger | Behavior |
 |----------|---------|----------|
+| **P0** | **Enemy in SAME region** | **MUST attack/retreat/wait - NEVER fortify/drill/stance!** |
 | P1 | `retreat_recovery > 0` | Limited to defensive stance + wait |
 | P2 | `strength < 25%` | Retreat if enemy adjacent, else defend |
 | P3 | Stronger enemy adjacent | Defensive stance + fortify (cautious) |
@@ -611,8 +612,24 @@ This prevents fortified marshals from becoming permanent "rocks" that enemies ca
 | P4.5 | Undefended enemy region adjacent | Attack region to capture |
 | P5 | No attack, cautious | Fortify position |
 | P6 | No attack, aggressive | Drill for shock bonus |
-| P7 | No immediate threats | Move toward enemy (aggressive only) |
+| P7 | No immediate threats | Move toward enemy (aggressive), fallback (cautious) |
 | P8 | Default | Stance adjustment or wait |
+
+**CRITICAL - P0 Engagement Check:**
+When a marshal shares a region with an enemy, they are "engaged" and MUST deal with it:
+```python
+# P0 runs FIRST in _evaluate_marshal(), before all other priorities
+if enemies_in_region:
+    if can_attack and ratio >= threshold:
+        return ATTACK      # Good odds - fight!
+    elif can_attack and ratio < threshold:
+        return RETREAT     # Bad odds - flee if possible, else WAIT
+    elif fortified:
+        return UNFORTIFY   # Can't attack while fortified
+    else:
+        return WAIT        # Drilling - wait it out
+```
+This prevents the "fortify loop" bug where AI wastes actions trying to fortify while engaged.
 
 **Personality Attack Thresholds:**
 
@@ -632,6 +649,7 @@ This prevents fortified marshals from becoming permanent "rocks" that enemies ca
 # Before drill:
 - Cannot drill if already drilling
 - Cannot drill if already have shock_bonus
+- Cannot drill with enemy in SAME region (engaged!)
 - Cannot drill with enemy adjacent (nation-aware check!)
 
 # Before fortify:
@@ -702,6 +720,22 @@ max_total_actions = actions_remaining * 2  # Absolute safety limit
 - Enemy recruiting (requires economy system)
 - Round-robin action distribution (currently greedy)
 - Region fortifications (buildings that slow capture - future economy feature)
+- Failed action cooldown (don't retry blocked actions for 1-2 turns)
+- Alliance coordination (Britain/Prussia share intel)
+- Strategic objectives (AI picks goals like "Capture Belgium")
+
+**Common AI Bugs & Fixes:**
+| Bug | Cause | Fix |
+|-----|-------|-----|
+| Fortify loop (AI wastes actions) | No engagement check | P0 engagement check forces attack/retreat |
+| Drill while engaged | Missing same-region check | Added `enemy.location == marshal.location` check |
+| Cautious marshal sits when threatened | No fallback movement | P7 cautious fallback to friendly territory |
+| Retreat picks wrong direction | No capital preference | Sort retreat destinations by distance to capital |
+
+**Test Map Limitations (13 regions):**
+- No London, Berlin, Moscow - use proxy "home" regions (Netherlands for Britain, Rhine for Prussia)
+- `_get_nation_capital()` is map-aware - checks if region exists before using
+- When adding full 1805 map, update capitals dict in `_get_nation_capital()`
 
 **Full documentation:** See `docs/ENEMY_AI_REFERENCE.md`
 
@@ -3218,6 +3252,10 @@ For detailed design decisions and architecture:
 | AttributeError on property | Check if attribute is a @property (use underlying field or method) |
 | Unicode error on Windows | Debug output has emoji; use UTF-8 encoding or suppress debug |
 | is_reckless_cavalry not settable | It's a computed property from `cavalry` + `personality=="aggressive"` |
+| AI fortify loop (wastes actions) | P0 engagement check missing - add check at start of `_evaluate_marshal` |
+| AI drills while engaged | Check `_consider_drill` has same-region enemy check |
+| AI doesn't attack when should | Check P4 attack threshold vs ratio; add `[P0 ENGAGEMENT]` debug prints |
+| AI capital not found | Test map lacks London/Berlin - use proxy regions in `_get_nation_capital()` |
 
 ---
 
