@@ -46,6 +46,11 @@ class RedemptionResponse(BaseModel):
     choice: str  # 'grant_autonomy', 'dismiss', or 'demand_obedience'
 
 
+class GloriousChargeResponse(BaseModel):
+    """Request model for responding to Glorious Charge popup."""
+    choice: str  # 'charge' or 'restrain'
+
+
 @app.get("/test")
 def test_connection():
     """Test endpoint for Godot connection."""
@@ -82,6 +87,15 @@ def execute_command(request: CommandRequest):
         if result.get("state") == "awaiting_player_choice":
             print(f"🛑 OBJECTION RESPONSE - Returning full result to frontend")
             # Return the full objection result plus action summary
+            result["action_summary"] = world.get_action_summary()
+            result["game_state"] = world.get_game_state_summary()
+            return result
+
+        # ════════════════════════════════════════════════════════════
+        # CHECK FOR GLORIOUS CHARGE: If pending, return full result for popup
+        # ════════════════════════════════════════════════════════════
+        if result.get("pending_glorious_charge"):
+            print(f"🐴 GLORIOUS CHARGE PENDING - Returning full result to frontend")
             result["action_summary"] = world.get_action_summary()
             result["game_state"] = world.get_game_state_summary()
             return result
@@ -325,6 +339,50 @@ def get_pending_redemption():
         "message": redemption.get("message"),
         "options": redemption.get("options", [])
     }
+
+
+@app.post("/respond_to_glorious_charge")
+def respond_to_glorious_charge(request: GloriousChargeResponse):
+    """
+    Respond to a Glorious Charge popup (Phase 3 Cavalry Recklessness).
+
+    Args:
+        request: GloriousChargeResponse with 'choice' field
+            - 'charge': Execute Glorious Charge (2x damage dealt AND taken)
+            - 'restrain': Normal attack (recklessness continues to build)
+
+    Returns result of the charge/restrain choice.
+    """
+    try:
+        # Validate choice
+        valid_choices = ['charge', 'restrain']
+        if request.choice not in valid_choices:
+            return {
+                "success": False,
+                "message": f"Invalid choice: '{request.choice}'. Valid: {', '.join(valid_choices)}",
+                "game_state": world.get_game_state_summary()
+            }
+
+        # Process the response through executor
+        result = executor.respond_to_glorious_charge(request.choice, world)
+
+        return {
+            "success": result.get("success", False),
+            "message": result.get("message", "Charge processed"),
+            "choice": request.choice,
+            "events": result.get("events", []),
+            "action_summary": world.get_action_summary(),
+            "game_state": world.get_game_state_summary()
+        }
+    except Exception as e:
+        print(f"❌ ERROR handling Glorious Charge response: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "message": f"Error: {str(e)}",
+            "game_state": world.get_game_state_summary()
+        }
 
 
 @app.get("/authority_status")

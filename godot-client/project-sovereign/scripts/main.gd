@@ -31,6 +31,9 @@ var redemption_dialog = null
 var enemy_phase_dialog = null
 var pending_enemy_phase_response = null  # Store response to check game_over after dismissal
 
+# Glorious Charge Dialog (Phase 3 Cavalry Recklessness)
+var glorious_charge_dialog = null
+
 # API Client
 var api_client = null
 
@@ -116,6 +119,24 @@ func _ready():
 			add_child(enemy_phase_dialog)
 			enemy_phase_dialog.dismissed.connect(_on_enemy_phase_dismissed)
 			print("✓ EnemyPhaseDialog ready!")
+
+	# Load and setup Glorious Charge Dialog (Phase 3 Cavalry Recklessness)
+	print("🔧 Loading GloriousChargeDialog scene...")
+	var glorious_charge_scene = load("res://scenes/glorious_charge_dialog.tscn")
+	if glorious_charge_scene == null:
+		push_error("❌ FAILED to load glorious_charge_dialog.tscn!")
+		print("❌ FAILED to load glorious_charge_dialog.tscn!")
+	else:
+		print("✓ Glorious charge scene loaded, instantiating...")
+		glorious_charge_dialog = glorious_charge_scene.instantiate()
+		if glorious_charge_dialog == null:
+			push_error("❌ FAILED to instantiate GloriousChargeDialog!")
+			print("❌ FAILED to instantiate GloriousChargeDialog!")
+		else:
+			print("✓ Glorious charge dialog instantiated, adding to tree...")
+			add_child(glorious_charge_dialog)
+			glorious_charge_dialog.choice_made.connect(_on_glorious_charge_choice_made)
+			print("✓ GloriousChargeDialog ready!")
 
 	# Connect signals
 	if not send_button.pressed.is_connected(_on_send_button_pressed):
@@ -257,6 +278,20 @@ func _on_command_result(response):
 		return  # Don't re-enable input or continue processing
 	else:
 		print("5. No objection - continuing normal flow")
+
+	# Check for Glorious Charge popup (Phase 3 Cavalry Recklessness)
+	# This happens when a reckless cavalry marshal at recklessness 3 tries to attack
+	print("GLORIOUS_CHARGE CHECK:")
+	print("  response.has('pending_glorious_charge'): ", response.has("pending_glorious_charge"))
+	if response.has("pending_glorious_charge"):
+		print("  response.pending_glorious_charge VALUE: ", response.pending_glorious_charge)
+
+	if response.has("pending_glorious_charge") and response.pending_glorious_charge:
+		print(">>> GLORIOUS CHARGE CONDITION MET - calling _show_glorious_charge_dialog()")
+		print(">>> glorious_charge_dialog is: ", glorious_charge_dialog)
+		print(">>> glorious_charge_dialog == null: ", glorious_charge_dialog == null)
+		_show_glorious_charge_dialog(response)
+		return  # Don't re-enable input until choice made
 
 	# Re-enable input
 	set_input_enabled(true)
@@ -874,4 +909,140 @@ func _on_enemy_phase_dismissed():
 				return  # Don't re-enable input
 
 	set_input_enabled(true)
+	command_input.grab_focus()
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# GLORIOUS CHARGE DIALOG (Phase 3 Cavalry Recklessness)
+# ════════════════════════════════════════════════════════════════════════════
+
+var pending_charge_marshal: String = ""
+var pending_charge_target: String = ""
+
+func _show_glorious_charge_dialog(response):
+	"""Display Glorious Charge popup when reckless cavalry is at recklessness 3."""
+	print("_show_glorious_charge_dialog() CALLED")
+	print("  Response: ", response)
+
+	# Store pending info for sending back to server
+	# Handle null values (get() default doesn't work if key exists with null)
+	var marshal_val = response.get("marshal")
+	var target_val = response.get("target")
+	var reck_val = response.get("recklessness")
+
+	pending_charge_marshal = marshal_val if marshal_val != null else ""
+	pending_charge_target = target_val if target_val != null else ""
+
+	# Get recklessness - backend sends it in the response directly
+	var recklessness = int(reck_val) if reck_val != null else 3
+
+	print("  Parsed: marshal=%s, target=%s, recklessness=%d" % [pending_charge_marshal, pending_charge_target, recklessness])
+
+	# Show notification in log
+	add_output("")
+	add_output("[color=#" + COLOR_BATTLE + "]🐴 " + pending_charge_marshal + "'s blood is up![/color]")
+	add_output("[color=#" + COLOR_INFO + "]Recklessness at " + str(recklessness) + "/4 - Glorious Charge available![/color]")
+	add_output("")
+
+	# Check if dialog exists
+	if glorious_charge_dialog == null:
+		print("❌ ERROR: glorious_charge_dialog is NULL!")
+		push_error("glorious_charge_dialog is NULL! Cannot show dialog.")
+		add_output("[color=#" + COLOR_ERROR + "]ERROR: Glorious Charge dialog not loaded![/color]")
+		# Fallback to text
+		_show_glorious_charge_text_fallback()
+		return
+
+	# Prepare data for dialog
+	var charge_data = {
+		"marshal": pending_charge_marshal,
+		"target": pending_charge_target,
+		"recklessness": recklessness
+	}
+
+	# Show the popup dialog
+	glorious_charge_dialog.show_glorious_charge(charge_data)
+
+
+func _show_glorious_charge_text_fallback():
+	"""Fallback text display if dialog fails to load."""
+	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("[color=#" + COLOR_GOLD + "]         GLORIOUS CHARGE![/color]")
+	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
+	add_output("")
+	add_output("[color=#" + COLOR_ERROR + "]⚠ Glorious Charge deals 2x damage but also TAKES 2x damage![/color]")
+	add_output("[color=#" + COLOR_INFO + "]Target: " + pending_charge_target + "[/color]")
+	add_output("")
+	add_output("[color=#" + COLOR_INFO + "]Type 'charge' to execute Glorious Charge[/color]")
+	add_output("[color=#" + COLOR_INFO + "]Type 'restrain' for normal attack[/color]")
+	add_output("")
+
+	set_input_enabled(true)
+	command_input.grab_focus()
+
+
+func _on_glorious_charge_choice_made(choice: String):
+	"""Handle player's choice in Glorious Charge dialog."""
+	print("GLORIOUS CHARGE CHOICE MADE: ", choice)
+	print("  Marshal: ", pending_charge_marshal)
+	print("  Target: ", pending_charge_target)
+
+	# Disable input while processing
+	set_input_enabled(false)
+
+	# Display player choice in log
+	var choice_text = ""
+	if choice == "charge":
+		choice_text = pending_charge_marshal + " unleashes a GLORIOUS CHARGE!"
+		add_output("[color=#" + COLOR_BATTLE + "]🐴⚔ " + choice_text + " ⚔🐴[/color]")
+	else:
+		choice_text = "You restrain " + pending_charge_marshal + " - normal attack."
+		add_output("[color=#" + COLOR_COMMAND + "]► " + choice_text + "[/color]")
+
+	add_output("")
+
+	# Send choice to backend
+	api_client.send_glorious_charge_response(choice, _on_glorious_charge_response)
+
+
+func _on_glorious_charge_response(response):
+	"""Handle backend response after player makes Glorious Charge choice."""
+	print("\n" + "=".repeat(60))
+	print("GLORIOUS CHARGE RESPONSE RECEIVED:")
+	print("  success: ", response.get("success", false))
+	print("  message: ", response.get("message", ""))
+	print("=".repeat(60) + "\n")
+
+	# Clear pending state
+	pending_charge_marshal = ""
+	pending_charge_target = ""
+
+	# Re-enable input
+	set_input_enabled(true)
+
+	if response.success:
+		# Update status displays
+		if response.has("action_summary"):
+			_update_status(response.action_summary)
+
+		if response.has("game_state") and response.game_state.has("gold"):
+			gold = int(response.game_state.gold)
+			_update_gold_display()
+
+		# Update map with latest state
+		if response.has("game_state") and response.game_state.has("map_data"):
+			map_area.update_all_regions(response.game_state.map_data)
+
+		# Display result
+		_display_result(response)
+
+		# Check for game over
+		if response.has("game_state") and response.game_state.has("game_over"):
+			if response.game_state.game_over:
+				_show_game_over_screen(response.game_state)
+				return
+	else:
+		add_output("[color=#" + COLOR_ERROR + "]" + response.message + "[/color]")
+
+	add_output("")
 	command_input.grab_focus()

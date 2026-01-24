@@ -87,6 +87,9 @@ class TurnManager:
 
         # Get tactical events that were processed during advance
         tactical_events = self.world.get_last_tactical_events()
+        print(f"[TURN_MANAGER DEBUG] Retrieved {len(tactical_events)} tactical events")
+        for i, evt in enumerate(tactical_events):
+            print(f"  Event {i}: type={evt.get('type')}, has_message={bool(evt.get('message'))}")
 
         # ════════════════════════════════════════════════════════════
         # AUTONOMOUS MARSHALS: Process at START of new turn (Phase 2.5)

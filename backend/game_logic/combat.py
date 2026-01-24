@@ -95,7 +95,8 @@ class CombatResolver:
             defender: Marshal,
             terrain: str = "open",
             flanking_bonus: int = 0,
-            flanking_message: str = None
+            flanking_message: str = None,
+            glorious_charge: bool = False
     ) -> Dict:
         """
         Resolve a battle between two marshals using 2d6 dice system.
@@ -106,6 +107,7 @@ class CombatResolver:
             terrain: Terrain type (affects defender bonus)
             flanking_bonus: Coordination bonus from attacking from multiple directions (0-3)
             flanking_message: Message describing the flanking situation
+            glorious_charge: If True, deals 2x damage dealt AND taken (cavalry recklessness)
         """
 
         #print(f"\n BATTLE: {attacker.name} vs {defender.name}")
@@ -316,6 +318,15 @@ class CombatResolver:
             * attacker_roll['multiplier']  # Dice roll affects damage
         )
 
+        # ════════════════════════════════════════════════════════════
+        # GLORIOUS CHARGE (Phase 3): 2x damage dealt AND taken
+        # ════════════════════════════════════════════════════════════
+        glorious_charge_message = None
+        if glorious_charge:
+            attacker_casualties = int(attacker_casualties * 2)
+            defender_casualties = int(defender_casualties * 2)
+            glorious_charge_message = f"🐴⚔️ GLORIOUS CHARGE! {attacker.name}'s cavalry deals devastating damage - but exposes themselves! (2x casualties both ways)"
+
         #print(f"   💀 Casualties: {attacker.name} {attacker_casualties:,}, {defender.name} {defender_casualties:,}")
 
         # Apply casualties FIRST (this was missing!)
@@ -398,6 +409,8 @@ class CombatResolver:
             tactical_prefix += f"\n🏰 {fortify_bonus_message}"
         if drilling_penalty_message:
             tactical_prefix += f"\n⚠️ {drilling_penalty_message}"
+        if glorious_charge_message:
+            tactical_prefix += f"\n{glorious_charge_message}"
         if tactical_prefix:
             tactical_prefix += "\n"
 
@@ -421,6 +434,45 @@ class CombatResolver:
             retreat_message += f"\n\n⚠️ {attacker.name}'s troops are BROKEN (morale {int(attacker.morale)}%)! FORCED RETREAT!"
         if defender_forced_retreat:
             retreat_message += f"\n\n⚠️ {defender.name}'s troops are BROKEN (morale {int(defender.morale)}%)! FORCED RETREAT!"
+
+        # ════════════════════════════════════════════════════════════
+        # CAVALRY RECKLESSNESS (Phase 3): Update attacker's recklessness
+        # - Increment on attack WIN (not glorious_charge, which resets)
+        # - Reset on attack LOSS
+        # - Glorious charge resets are handled in executor._execute_glorious_charge
+        # ════════════════════════════════════════════════════════════
+        recklessness_message = None
+        attacker_won = outcome in ["attacker_victory", "attacker_tactical_victory"]
+        attacker_lost = outcome in ["defender_victory", "defender_tactical_victory", "mutual_destruction"]
+
+        if hasattr(attacker, 'is_reckless_cavalry') and attacker.is_reckless_cavalry:
+            old_recklessness = getattr(attacker, 'recklessness', 0)
+
+            if glorious_charge:
+                # Glorious charge: reset handled in executor (already done before this call)
+                # But add message for clarity
+                recklessness_message = f"[{attacker.name}'s recklessness resets after Glorious Charge]"
+            elif attacker_won:
+                # Won as attacker (not charge): increment
+                attacker._increment_recklessness()
+                new_recklessness = getattr(attacker, 'recklessness', 0)
+                if new_recklessness > old_recklessness:
+                    if new_recklessness == 1:
+                        recklessness_message = f"🐴 {attacker.name}'s blood is up! (Recklessness: {new_recklessness})"
+                    elif new_recklessness == 2:
+                        recklessness_message = f"🐴 {attacker.name} is building momentum! (Recklessness: {new_recklessness})"
+                    elif new_recklessness == 3:
+                        recklessness_message = f"🐴⚠️ {attacker.name}'s recklessness is dangerous! Glorious Charge popup next attack. (Recklessness: {new_recklessness})"
+                    else:  # 4+
+                        recklessness_message = f"🐴🔥 {attacker.name} is UNCONTROLLABLE! Will auto-charge at next turn start! (Recklessness: {new_recklessness})"
+            elif attacker_lost:
+                # Lost as attacker: reset
+                if old_recklessness > 0:
+                    attacker.reset_recklessness()
+                    recklessness_message = f"🐴 {attacker.name}'s momentum broken by defeat. (Recklessness: {old_recklessness} → 0)"
+
+        if recklessness_message:
+            retreat_message += f"\n\n{recklessness_message}"
 
         # THIS RETURN MUST BE HERE!
         return {
@@ -452,6 +504,8 @@ class CombatResolver:
             "defender_personality_triggered": defender_personality_message,  # Phase 2.8: Personality abilities
             "flanking_bonus": int(flanking_bonus),  # Phase 2.5: Flanking system
             "flanking_message": flanking_message,
+            "glorious_charge": glorious_charge,  # Phase 3: Cavalry recklessness
+            "attacker_won": attacker_won,  # Phase 3: For recklessness tracking
             "description": tactical_prefix + base_description + retreat_message
         }
         # ... rest of existing code ...

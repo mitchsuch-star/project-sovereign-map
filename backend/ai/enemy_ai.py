@@ -352,7 +352,7 @@ class EnemyAI:
             # Limited actions during recovery
             # Can: move, wait, defend, defensive stance
             # Cannot: attack, fortify, drill, aggressive stance
-            action = self._get_recovery_action(marshal, world)
+            action = self._get_recovery_action(marshal, world, nation)
             if action:
                 ai_debug(f"  -> Recovery action: {action}")
                 return (action, 1)
@@ -456,14 +456,44 @@ class EnemyAI:
         # No useful action found - marshal is in optimal state
         return (None, 999)
 
-    def _get_recovery_action(self, marshal: Marshal, world: WorldState) -> Optional[Dict]:
-        """Get action for marshal in retreat recovery (limited options)."""
-        # During recovery: can move, wait, defend, defensive stance
-        # Cannot: attack, fortify, drill, aggressive stance
+    def _get_recovery_action(self, marshal: Marshal, world: WorldState, nation: str) -> Optional[Dict]:
+        """Get action for marshal in retreat recovery (limited options).
 
+        During recovery: can move, wait, defend, defensive stance
+        Cannot: attack, fortify, drill, aggressive stance
+
+        Priority:
+        1. If enemies still threatening, MOVE to safety (use paid action to flee further)
+        2. Switch to defensive stance if not already
+        3. Wait
+        """
+        # Check if enemies are still threatening (adjacent or same region)
+        enemies = world.get_enemies_of_nation(nation)
+        enemies_threatening = False
+
+        marshal_region = world.get_region(marshal.location)
+        if marshal_region:
+            for enemy in enemies:
+                if enemy.strength <= 0:
+                    continue
+                # Enemy in same region or adjacent = threatening
+                if enemy.location == marshal.location or enemy.location in marshal_region.adjacent_regions:
+                    enemies_threatening = True
+                    break
+
+        # Priority 1: Keep fleeing if enemies still nearby
+        if enemies_threatening:
+            safe_dest = self._find_retreat_destination(marshal, nation, world)
+            if safe_dest and safe_dest != marshal.location:
+                ai_debug(f"  P1 Recovery: {marshal.name} continues fleeing to {safe_dest}")
+                return {
+                    "marshal": marshal.name,
+                    "action": "move",
+                    "target": safe_dest
+                }
+
+        # Priority 2: Switch to defensive if not already
         current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
-
-        # Switch to defensive if not already
         if current_stance != Stance.DEFENSIVE:
             return {
                 "marshal": marshal.name,
@@ -471,7 +501,7 @@ class EnemyAI:
                 "target": "defensive"
             }
 
-        # Otherwise just wait
+        # Priority 3: Wait (already defensive and safe)
         return {
             "marshal": marshal.name,
             "action": "wait"

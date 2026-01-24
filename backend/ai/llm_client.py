@@ -143,6 +143,9 @@ class LLMClient:
             action = "unfortify"  # Must check before fortify to avoid false positives
         elif "fortify" in command_lower or "dig in" in command_lower or "entrench" in command_lower:
             action = "fortify"
+        # Restrain must be checked BEFORE drill (restrain contains "train")
+        elif "restrain" in command_lower:
+            action = "restrain"
         elif "drill" in command_lower or "train" in command_lower or "exercise" in command_lower:
             action = "drill"
         # Stance system (Phase 2.7) - Check for stance-related commands
@@ -168,6 +171,10 @@ class LLMClient:
         elif re.search(r'\bneutral\b', command_lower) and "stance" not in command_lower:
             # "neutral" alone (but "neutral stance" already caught above)
             action = "stance_change"
+        # Cavalry recklessness (Phase 3)
+        elif "charge" in command_lower or "glorious charge" in command_lower:
+            action = "charge"
+        # Note: "restrain" is checked earlier (before drill) to avoid "train" match
 
         # Extract target (can be None)
         target = None

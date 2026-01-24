@@ -817,6 +817,42 @@ class WorldState:
 
         return 999  # Not reachable
 
+    def find_path(self, start: str, end: str) -> Optional[List[str]]:
+        """
+        Find shortest path between two regions using BFS.
+
+        Args:
+            start: Starting region name
+            end: Destination region name
+
+        Returns:
+            List of region names from start to end (inclusive), or None if no path.
+        """
+        if start == end:
+            return [start]
+
+        if start not in self.regions or end not in self.regions:
+            return None
+
+        # BFS with path tracking
+        visited = {start}
+        queue = [(start, [start])]  # (current_region, path_to_here)
+
+        while queue:
+            current, path = queue.pop(0)
+
+            # Check adjacent regions
+            current_region = self.regions[current]
+            for adjacent in current_region.adjacent_regions:
+                if adjacent == end:
+                    return path + [end]
+
+                if adjacent not in visited:
+                    visited.add(adjacent)
+                    queue.append((adjacent, path + [adjacent]))
+
+        return None  # Not reachable
+
     # ============================================================================
     # PATCH 2 CORRECTED: backend/models/world_state.py
     # ============================================================================
@@ -937,6 +973,39 @@ class WorldState:
 
         return (nearest_enemy, nearest_distance) if nearest_enemy else None
 
+    def _find_nearest_enemy_for_nation(self, from_region: str, nation: str) -> Optional[Tuple[Marshal, int]]:
+        """
+        Find the nearest enemy marshal for a given nation.
+
+        Unlike find_nearest_enemy (player-perspective only), this method
+        finds enemies of the specified nation, allowing it to work for
+        both player and AI marshals.
+
+        Args:
+            from_region: Region to search from
+            nation: Nation to find enemies OF (enemies of this nation)
+
+        Returns:
+            Tuple of (enemy_marshal, distance) or None
+        """
+        nearest_enemy = None
+        nearest_distance = 999
+
+        for marshal in self.marshals.values():
+            # Skip marshals of same nation
+            if marshal.nation == nation:
+                continue
+            # Skip destroyed marshals
+            if marshal.strength <= 0:
+                continue
+
+            distance = self.get_distance(from_region, marshal.location)
+            if distance < nearest_distance:
+                nearest_distance = distance
+                nearest_enemy = marshal
+
+        return (nearest_enemy, nearest_distance) if nearest_enemy else None
+
     # ========================================
     # INCOME CALCULATION
     # ========================================
@@ -1043,6 +1112,11 @@ class WorldState:
                         # Broken army state (surrounded + forced retreat)
                         "broken": bool(getattr(m, 'broken', False)),
                         "broken_recovery": int(getattr(m, 'broken_recovery', 0)),
+                        # Cavalry Recklessness (Phase 3)
+                        "recklessness": int(getattr(m, 'recklessness', 0)),
+                        "is_reckless_cavalry": bool(getattr(m, 'is_reckless_cavalry', False) if hasattr(m, 'is_reckless_cavalry') else False),
+                        "pending_glorious_charge": bool(getattr(m, 'pending_glorious_charge', False)),
+                        "pending_charge_target": str(getattr(m, 'pending_charge_target', '')),
                     }
 
                 marshals_data.append(marshal_data)
@@ -1173,7 +1247,7 @@ class WorldState:
         # PROCESS TACTICAL STATES (before turn counter advances!)
         # ════════════════════════════════════════════════════════════
         tactical_events = self._process_tactical_states()
-        self._last_tactical_events = tactical_events  # Store for retrieval
+        # NOTE: _last_tactical_events stored AFTER all events collected (see below)
 
         old_turn = self.current_turn
         self.current_turn = int(self.current_turn + 1)
@@ -1199,6 +1273,20 @@ class WorldState:
         cavalry_events = self._check_cavalry_limits()
         if cavalry_events:
             tactical_events.extend(cavalry_events)
+
+        # ════════════════════════════════════════════════════════════
+        # RECKLESS CAVALRY AUTO-CHARGE (Phase 3) - Turn Start
+        # Reckless cavalry at recklessness 4+ auto-charges or moves toward enemy
+        # This happens BEFORE player gets to act
+        # ════════════════════════════════════════════════════════════
+        reckless_events = self._process_reckless_cavalry_turn_start()
+        if reckless_events:
+            print(f"  [DEBUG] Adding {len(reckless_events)} reckless cavalry events to tactical_events")
+            tactical_events.extend(reckless_events)
+
+        # Store ALL tactical events for retrieval (includes cavalry limits + reckless cavalry)
+        print(f"  [DEBUG] Storing {len(tactical_events)} total tactical events")
+        self._last_tactical_events = tactical_events
 
         # Check for game over
         if self.current_turn > self.max_turns:
@@ -1541,6 +1629,133 @@ class WorldState:
                 })
 
                 print(f"  [CAVALRY LIMIT] {marshal.name}: forced unfortify after {turns_fortified} turns")
+
+        return events
+
+    def _process_reckless_cavalry_turn_start(self) -> list:
+        """
+        Process reckless cavalry at turn start.
+
+        At recklessness 4+, cavalry automatically:
+        1. Charges nearest enemy if in range (FREE action)
+        2. Moves toward nearest enemy if not in range (FREE action)
+
+        This happens BEFORE player gets to act and is a FREE action.
+        Turn order: Recklessness 4+ → Autonomous → Enemy → Player
+
+        Returns:
+            List of events describing auto-actions
+        """
+        from backend.game_logic.combat import CombatResolver
+
+        events = []
+        combat_resolver = CombatResolver()
+
+        # Process all player reckless cavalry at recklessness 4+
+        # Also process AI reckless cavalry
+        for marshal in list(self.marshals.values()):
+            if not getattr(marshal, 'is_reckless_cavalry', False):
+                continue
+
+            recklessness = getattr(marshal, 'recklessness', 0)
+            if recklessness < 4:
+                continue
+
+            # Find nearest enemy (based on marshal's nation)
+            nearest = self._find_nearest_enemy_for_nation(marshal.location, marshal.nation)
+            if not nearest:
+                # No enemies - can't do anything
+                events.append({
+                    "type": "reckless_no_target",
+                    "marshal": marshal.name,
+                    "recklessness": recklessness,
+                    "message": f"🐴🔥 {marshal.name} is UNCONTROLLABLE (Recklessness: {recklessness}) but finds no enemies to charge!"
+                })
+                continue
+
+            enemy, distance = nearest
+
+            if distance <= marshal.movement_range:
+                # Can charge! Execute auto-charge
+                print(f"  [AUTO-CHARGE] {marshal.name} (recklessness {recklessness}) charges {enemy.name}!")
+                print(f"  [AUTO-CHARGE DEBUG] marshal.location={marshal.location}, enemy.location={enemy.location}")
+
+                # Execute combat with glorious charge
+                combat_result = combat_resolver.resolve_battle(
+                    attacker=marshal,
+                    defender=enemy,
+                    glorious_charge=True
+                )
+                print(f"  [AUTO-CHARGE DEBUG] Combat result victor: {combat_result.get('victor')}")
+
+                # Reset recklessness (done in combat resolver for regular attacks)
+                marshal.reset_recklessness()
+
+                # Move attacker if victorious and still alive
+                attacker_won = combat_result.get("attacker_won", False)
+                movement_msg = ""
+                target_location = enemy.location
+                if attacker_won and marshal.strength > 0:
+                    if marshal.location != target_location:
+                        marshal.move_to(target_location)
+                        movement_msg = f" {marshal.name} advances into {target_location}."
+
+                # Check if enemy destroyed
+                enemy_destroyed_msg = ""
+                if enemy.strength <= 0:
+                    enemy_destroyed_msg = f" {enemy.name}'s army is destroyed!"
+
+                event_msg = (f"🐴⚔️ AUTO-CHARGE! {marshal.name} (Recklessness: {recklessness}) cannot be restrained!\n\n"
+                            f"{combat_result.get('description', 'Combat resolved.')}"
+                            f"{enemy_destroyed_msg}{movement_msg}\n\n"
+                            f"[FREE ACTION - Recklessness reset to 0]")
+                print(f"  [AUTO-CHARGE DEBUG] Event message: {event_msg[:100]}...")
+                events.append({
+                    "type": "auto_glorious_charge",
+                    "marshal": marshal.name,
+                    "target": enemy.name,
+                    "recklessness": recklessness,
+                    "attacker_won": attacker_won,
+                    "combat_result": combat_result,
+                    "message": event_msg
+                })
+                print(f"  [AUTO-CHARGE DEBUG] Event appended, events count: {len(events)}")
+            else:
+                # Out of range - auto-move toward enemy
+                # Find path toward enemy
+                path = self.find_path(marshal.location, enemy.location)
+
+                if path and len(path) > 1:
+                    # Move one step toward enemy
+                    next_region = path[1]  # First step after current location
+                    old_location = marshal.location
+                    marshal.move_to(next_region)
+
+                    remaining_distance = distance - 1
+
+                    events.append({
+                        "type": "reckless_move",
+                        "marshal": marshal.name,
+                        "from": old_location,
+                        "to": next_region,
+                        "target": enemy.name,
+                        "recklessness": recklessness,
+                        "remaining_distance": remaining_distance,
+                        "message": f"🐴🔥 {marshal.name} rides out seeking battle! (Recklessness: {recklessness})\n"
+                                  f"Auto-moved: {old_location} → {next_region} (toward {enemy.name})\n"
+                                  f"[FREE ACTION - {remaining_distance} region(s) to target]"
+                    })
+
+                    print(f"  [RECKLESS MOVE] {marshal.name} auto-moves {old_location} -> {next_region}")
+                else:
+                    # Can't find path - stuck
+                    events.append({
+                        "type": "reckless_blocked",
+                        "marshal": marshal.name,
+                        "recklessness": recklessness,
+                        "message": f"🐴⚠️ {marshal.name} is UNCONTROLLABLE (Recklessness: {recklessness}) but cannot reach any enemy!\n"
+                                  f"The cavalry strains at the bit but is blocked."
+                    })
 
         return events
 

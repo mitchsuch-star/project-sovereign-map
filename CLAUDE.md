@@ -19,6 +19,7 @@ GOLDEN RULES:
 3. All marshals in ONE dict: world.marshals (not separate player/enemy)
 4. State clearing: AFTER reading the value, not before
 5. Enemy AI uses SAME executor as player (Building Blocks principle)
+6. New response fields: main.py must EXPLICITLY pass through (see Common Modification Patterns)
 
 CURRENT PHASE: Phase 2.5 (Autonomy) 🔄 → Phase 3 (Fun Factor) 📋 NEXT
 - Phase 1 ✅: Foundation (regions, marshals, combat, actions, turns)
@@ -728,6 +729,37 @@ max_total_actions = actions_remaining * 2  # Absolute safety limit
 3. Add blocking logic if it prevents certain actions
 4. Update executor.py to check state before executing blocked actions
 5. Document in Marshal State Machine diagram above
+```
+
+**Adding a new frontend-facing response field (popup, dialog, etc.):**
+```
+Backend → Frontend data flow:
+  executor.py → main.py → api_client.gd → main.gd
+
+CRITICAL: main.py must explicitly pass through new fields!
+
+1. executor.py: Return the field in the result dict
+   return {"success": False, "pending_something": True, "data": {...}}
+
+2. main.py /command endpoint: Add early return to pass through the field
+   # After objection check, before building response dict:
+   if result.get("pending_something"):
+       result["action_summary"] = world.get_action_summary()
+       result["game_state"] = world.get_game_state_summary()
+       return result  # Pass through full executor result
+
+3. main.gd _on_command_result(): Check for the field and handle it
+   if response.has("pending_something") and response.pending_something:
+       _show_something_dialog(response)
+       return
+
+4. Create dialog scene (.tscn) and script (.gd) in godot-client/
+
+DEBUG TIP: If frontend isn't receiving a field, test with curl first:
+  curl -X POST http://127.0.0.1:8005/command \
+    -H "Content-Type: application/json" \
+    -d '{"command": "test command"}'
+If field is missing in JSON response, the bug is in main.py (step 2).
 ```
 
 ---

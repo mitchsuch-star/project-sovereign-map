@@ -47,6 +47,9 @@ class CommandParser:
             "wait",  # Free action (0 cost) - pass turn for this marshal
             # Debug commands (Phase 2.8)
             "debug",  # For testing abilities: /debug counter_punch Davout
+            # Cavalry recklessness (Phase 3)
+            "charge",    # Glorious Charge - available at recklessness >= 1
+            "restrain",  # Restrain marshal - normal attack instead of charge
         ]
 
         # Valid stances for stance_change command (Phase 2.7)
@@ -100,7 +103,8 @@ class CommandParser:
         # If marshal is None, try to extract from command text with fuzzy matching
         elif not llm_result.get("marshal"):
             # BUG-002 FIX: Skip fuzzy marshal matching for meta/help commands
-            meta_actions = ["help", "end_turn", "status", "unknown", "debug"]
+            # Actions that don't require a marshal (meta commands + pending charge responses)
+            meta_actions = ["help", "end_turn", "status", "unknown", "debug", "charge", "restrain"]
             if llm_result.get("action") in meta_actions:
                 return (llm_result, None)  # Don't try to find a marshal
 
@@ -115,7 +119,8 @@ class CommandParser:
                     "reinforce", "unfortify", "stance", "aggressive", "defensive", "neutral",
                     "go", "take", "be", "switch", "adopt", "return",  # Stance command verbs
                     "debug", "/debug", "set_location", "set_retreat", "set_recovery",  # Debug commands
-                    "set_strength", "set_morale", "set_fortified", "ai_turn", "ai_state"
+                    "set_strength", "set_morale", "set_fortified", "ai_turn", "ai_state",
+                    "charge", "restrain", "glorious",  # Cavalry recklessness commands
                 ]
                 if len(word) < 2 or word.lower() in skip_words:
                     continue
@@ -177,6 +182,7 @@ class CommandParser:
                 "attack", "defend", "move", "scout", "retreat", "recruit",
                 "reinforce", "help", "wait", "hold", "fortify", "drill",
                 "unfortify", "stance", "aggressive", "defensive", "neutral",
+                "charge", "restrain", "glorious",  # Cavalry recklessness commands
             ]
             # Also skip the marshal name if identified
             if llm_result.get("marshal"):

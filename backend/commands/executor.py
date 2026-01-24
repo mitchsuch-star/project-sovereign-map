@@ -222,15 +222,16 @@ class CommandExecutor:
                 ev = enemy_phase["enemy_victory"]
                 message += f"\n\n⚠️ {ev['message']}"
 
-        # Add tactical event messages
+        # Add tactical event messages (includes drill, fortify, retreat, cavalry, reckless charges)
         tactical_messages = []
-        for event in turn_result.get("events", []):
-            if event.get("type") in ["drill_locked", "drill_complete", "fortify_expired", "retreat_recovery",
-                                     "cavalry_stance_forced", "cavalry_fortify_forced", "cavalry_restless_warning"]:
-                tactical_messages.append(event.get("message", ""))
+        tactical_events = turn_result.get("tactical_events", [])
+        for event in tactical_events:
+            event_msg = event.get("message", "")
+            if event_msg:
+                tactical_messages.append(event_msg)
 
         if tactical_messages:
-            message += "\n\n" + "\n".join(tactical_messages)
+            message += "\n\n--- TURN EVENTS ---\n" + "\n".join(tactical_messages)
 
         # Add Independent Command Report to message (Phase 2.5)
         independent_report = turn_result.get("independent_command_report", [])
@@ -270,7 +271,7 @@ class CommandExecutor:
             "success": True,
             "message": message,
             "events": turn_result.get("events", []),
-            "tactical_events": tactical_messages,
+            "tactical_events": tactical_events,  # Full event objects, not just messages
             "enemy_phase": enemy_phase,
             "new_state": game_state
         }
@@ -735,6 +736,13 @@ RETREAT RECOVERY (3 turns):
         # ════════════════════════════════════════════════════════════
         elif action == "debug":
             result = self._execute_debug(command, game_state)
+        # ════════════════════════════════════════════════════════════
+        # CAVALRY RECKLESSNESS SYSTEM (Phase 3)
+        # ════════════════════════════════════════════════════════════
+        elif action == "charge":
+            result = self._execute_charge(command, game_state)
+        elif action == "restrain":
+            result = self._execute_restrain(command, game_state)
         # Route to appropriate handler
         elif command_type == "specific":
             result = self._execute_specific(command, game_state)
@@ -828,8 +836,10 @@ RETREAT RECOVERY (3 turns):
 
             # Add tactical events
             tactical_events = turn_result.get("tactical_events", [])
+            print(f"[EXECUTOR DEBUG] Got {len(tactical_events)} tactical events from turn_result")
             if tactical_events:
                 tactical_messages = [e.get("message", "") for e in tactical_events if e.get("message")]
+                print(f"[EXECUTOR DEBUG] Extracted {len(tactical_messages)} messages")
                 if tactical_messages:
                     result["message"] = result.get("message", "") + "\n\n--- TURN EVENTS ---\n" + "\n".join(tactical_messages)
                     result["tactical_events"] = tactical_events
@@ -1008,12 +1018,16 @@ RETREAT RECOVERY (3 turns):
                 f"Army is BROKEN - can only recruit for 4 turns!"
             )
 
-    def _execute_attack(self, marshal, target, world: WorldState, game_state) -> Dict:
+    def _execute_attack(self, marshal, target, world: WorldState, game_state, skip_reckless_popup: bool = False) -> Dict:
         """
         Execute an attack order with combat and region conquest.
 
         If attacking a region, will capture it after defeated all defenders.
         Handles undefended regions with instant capture.
+
+        Args:
+            skip_reckless_popup: If True, skip the recklessness popup check.
+                                 Used when called from respond_to_glorious_charge.
         """
         # ════════════════════════════════════════════════════════════
         # COUNTER-PUNCH CHECK (Phase 2.8): Davout's free attack after defending
@@ -1051,6 +1065,54 @@ RETREAT RECOVERY (3 turns):
                 marshal.drilling = False
                 marshal.drill_complete_turn = -1
                 drill_cancelled_message = f"⚠️ DRILL CANCELLED: {marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
+
+        # ════════════════════════════════════════════════════════════
+        # CAVALRY RECKLESSNESS CHECK (Phase 3)
+        # At recklessness 3+, trigger popup for player choice
+        # At recklessness 4+, auto-charge (handled in turn start, not here)
+        # AI (non-player nation) auto-charges at 3+ without popup
+        # Skip if called from restrain response (skip_reckless_popup=True)
+        # ════════════════════════════════════════════════════════════
+        if marshal.is_reckless_cavalry and not skip_reckless_popup:
+            recklessness = getattr(marshal, 'recklessness', 0)
+            is_player = marshal.nation == world.player_nation
+
+            # At recklessness 3, player gets popup choice
+            # AI at 3+ auto-charges
+            if recklessness >= 3:
+                # Resolve target if empty (find nearest enemy) BEFORE proceeding
+                # This ensures we have a valid target for the popup or auto-charge
+                resolved_target = target
+                if not resolved_target:
+                    nearest = world.find_nearest_enemy(marshal.location)
+                    if nearest:
+                        enemy, dist = nearest
+                        if dist <= marshal.movement_range:
+                            resolved_target = enemy.name
+
+                # Only trigger recklessness popup/auto-charge if we have a valid target
+                # If no target in range, let normal attack flow handle it (move toward enemy)
+                if resolved_target:
+                    if is_player and recklessness < 4:  # Player at exactly 3 - popup
+                        # Set pending state for popup
+                        marshal.pending_glorious_charge = True
+                        marshal.pending_charge_target = resolved_target
+
+                        return {
+                            "success": False,  # Not executed yet - waiting for response
+                            "pending_glorious_charge": True,
+                            "marshal": marshal.name,
+                            "target": resolved_target,
+                            "recklessness": recklessness,
+                            "message": f"🐴 {marshal.name}'s blood is up! (Recklessness: {recklessness})\n\n"
+                                      f"Choose:\n"
+                                      f"• CHARGE: Execute Glorious Charge (2x damage dealt AND taken, resets recklessness)\n"
+                                      f"• RESTRAIN: Normal attack (marshal may object next time)",
+                            "options": ["charge", "restrain"]
+                        }
+                    else:
+                        # AI at 3+ or Player at 4+ - auto-charge
+                        return self._execute_glorious_charge(marshal, resolved_target, world, game_state)
 
         # Handle None target - find nearest enemy for this marshal
         if not target:
@@ -1395,11 +1457,18 @@ RETREAT RECOVERY (3 turns):
         movement_msg = ""
 
         # Move attacker to target location if they won the battle and are still alive
+        print(f"[ATTACK MOVEMENT] Checking: victor={battle_result.get('victor')}, marshal={marshal.name}, strength={marshal.strength}")
+        print(f"[ATTACK MOVEMENT] marshal.location={marshal.location}, target_location={target_location}")
         if battle_result["victor"] == marshal.name and marshal.strength > 0:
             if marshal.location != target_location:
+                print(f"[ATTACK MOVEMENT] MOVING {marshal.name}: {marshal.location} -> {target_location}")
                 marshal.move_to(target_location)
                 attacker_moved = True
                 movement_msg = f" {marshal.name} advances into {target_location}."
+            else:
+                print(f"[ATTACK MOVEMENT] Already at target location, no move needed")
+        else:
+            print(f"[ATTACK MOVEMENT] NOT moving: victor mismatch or strength <= 0")
 
         # Check if we're attacking a region (not just a marshal name)
         # ENEMY AI FIX: Use attacker's nation, not hardcoded player_nation
@@ -2945,6 +3014,9 @@ RETREAT RECOVERY (3 turns):
                           "  • restless <marshal> - Set turns_defensive=5 (restlessness)\n"
                           "  • cavalry <marshal> - Toggle cavalry status\n"
                           "  • hold <marshal> - Set holding_position (Immovable)\n"
+                          "\n== Cavalry Recklessness (Phase 3) ==\n"
+                          "  • set_recklessness <marshal> <0-4> - Set recklessness level\n"
+                          "    (3 = popup, 4 = auto-charge)\n"
                           "\n== AI Testing ==\n"
                           "  • ai_turn <nation> - Force AI turn (Britain/Prussia)\n"
                           "  • ai_state <marshal> - Show AI evaluation\n"
@@ -3244,6 +3316,41 @@ RETREAT RECOVERY (3 turns):
                 "success": True,
                 "message": f"🔧 DEBUG: {marshal.name}'s fortified = {marshal.fortified}\n"
                           f"Defense bonus: {marshal.defense_bonus * 100:.0f}%"
+            }
+
+        elif ability == "set_recklessness":
+            # Phase 3 Cavalry Recklessness - set recklessness level for testing popup
+            if not marshal.is_reckless_cavalry:
+                return {
+                    "success": False,
+                    "message": f"Recklessness is only for reckless cavalry (aggressive + cavalry).\n"
+                              f"{marshal.name}: cavalry={getattr(marshal, 'cavalry', False)}, "
+                              f"personality={marshal.personality}"
+                }
+            if len(parts) < 3:
+                return {"success": False, "message": "Usage: /debug set_recklessness <marshal> <0-4>"}
+            try:
+                level = int(parts[2])
+                level = max(0, min(4, level))
+            except ValueError:
+                return {"success": False, "message": "Recklessness must be a number 0-4"}
+
+            old_reck = getattr(marshal, 'recklessness', 0)
+            marshal.recklessness = level
+
+            # Explain what this level does
+            effects = {
+                0: "No bonus/penalty",
+                1: "+5% attack, -5% defense",
+                2: "+10% attack, -5% defense, cannot go defensive",
+                3: "+15% attack, -10% defense, POPUP before attack (Glorious Charge choice)",
+                4: "+20% attack, -15% defense, AUTO-CHARGE (no popup)"
+            }
+            return {
+                "success": True,
+                "message": f"🐴 DEBUG: {marshal.name}'s recklessness: {old_reck} -> {level}\n"
+                          f"Effect: {effects.get(level, '?')}\n"
+                          f"Now try: '{marshal.name}, attack Wellington' to trigger the popup!"
             }
 
         elif ability == "set_autonomy":
@@ -3560,6 +3667,18 @@ RETREAT RECOVERY (3 turns):
                 "message": f"{marshal.name} is recovering from retreat and cannot adopt aggressive stance."
             }
 
+        # ════════════════════════════════════════════════════════════
+        # CAVALRY RECKLESSNESS CHECK (Phase 3)
+        # High recklessness blocks defensive/neutral stances
+        # ════════════════════════════════════════════════════════════
+        can_use, block_reason = marshal.can_use_stance(target_stance.value)
+        if not can_use:
+            return {
+                "success": False,
+                "message": block_reason,
+                "recklessness": getattr(marshal, 'recklessness', 0)
+            }
+
         # Calculate action cost
         action_cost = self._get_stance_change_cost(current_stance, target_stance)
 
@@ -3604,6 +3723,302 @@ RETREAT RECOVERY (3 turns):
             }],
             "new_state": game_state
         }
+
+    # ════════════════════════════════════════════════════════════
+    # CAVALRY RECKLESSNESS SYSTEM (Phase 3)
+    # ════════════════════════════════════════════════════════════
+
+    def _execute_charge(self, command: Dict, game_state: Dict) -> Dict:
+        """
+        Execute Glorious Charge - powerful cavalry attack with 2x damage.
+
+        Requirements:
+        - Marshal must be reckless cavalry (cavalry + aggressive)
+        - Recklessness must be >= 1
+        - Must have valid attack target
+
+        Effects:
+        - 2x damage dealt AND taken
+        - Resets recklessness to 0 after (win or lose)
+
+        Unlike normal attacks at recklessness 3+, the explicit "charge"
+        command bypasses the popup and executes immediately.
+
+        If no marshal specified, checks for pending glorious charge and uses that.
+        """
+        marshal_name = command.get("marshal")
+        target = command.get("target")
+        world: WorldState = game_state.get("world")
+
+        if not world:
+            return {"success": False, "message": "Game state error"}
+
+        # If no marshal specified, check for pending glorious charge
+        if not marshal_name:
+            # Look for marshal with pending charge
+            for m in world.marshals.values():
+                if getattr(m, 'pending_glorious_charge', False) and m.nation == world.player_nation:
+                    # Found pending charge - route to respond handler
+                    return self.respond_to_glorious_charge("charge", world)
+
+            return {"success": False, "message": "Charge requires a marshal. Try: 'Ney, charge Wellington'"}
+
+        marshal = world.get_marshal(marshal_name)
+        if not marshal:
+            return {"success": False, "message": f"Marshal '{marshal_name}' not found"}
+
+        # Must be reckless cavalry
+        if not marshal.is_reckless_cavalry:
+            if not getattr(marshal, 'cavalry', False):
+                return {
+                    "success": False,
+                    "message": f"{marshal.name} is not cavalry and cannot execute a Glorious Charge."
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": f"{marshal.name} is cavalry but not aggressive enough for Glorious Charge. "
+                              f"Only reckless cavalry commanders (aggressive cavalry) can charge."
+                }
+
+        # Must have recklessness >= 1
+        recklessness = getattr(marshal, 'recklessness', 0)
+        if recklessness < 1:
+            return {
+                "success": False,
+                "message": f"{marshal.name} needs to build momentum first! "
+                          f"Win battles as attacker to increase recklessness (currently {recklessness}).",
+                "recklessness": recklessness
+            }
+
+        # Must have target
+        if not target:
+            return {
+                "success": False,
+                "message": f"Charge requires a target! Try: '{marshal.name}, charge [enemy name]'"
+            }
+
+        # Execute as a Glorious Charge attack
+        return self._execute_glorious_charge(marshal, target, world, game_state)
+
+    def _execute_restrain(self, command: Dict, game_state: Dict) -> Dict:
+        """
+        Execute restrain - choose normal attack instead of Glorious Charge.
+
+        This is used when the player types 'restrain' to respond to a
+        Glorious Charge popup with a normal attack instead.
+        """
+        world: WorldState = game_state.get("world")
+
+        if not world:
+            return {"success": False, "message": "Game state error"}
+
+        # Look for marshal with pending charge
+        for m in world.marshals.values():
+            if getattr(m, 'pending_glorious_charge', False) and m.nation == world.player_nation:
+                # Found pending charge - route to respond handler
+                return self.respond_to_glorious_charge("restrain", world)
+
+        return {
+            "success": False,
+            "message": "No pending Glorious Charge to restrain. Use 'attack' for normal attacks."
+        }
+
+    def _execute_glorious_charge(self, marshal, target: str, world: WorldState, game_state: Dict) -> Dict:
+        """
+        Execute the actual Glorious Charge combat.
+
+        This is the internal method that performs the 2x damage attack.
+        Called by:
+        - _execute_charge (explicit charge command)
+        - respond_to_glorious_charge (popup response)
+        - auto-charge at recklessness 4+
+        """
+        # Find target
+        target_marshal = None
+
+        # Try exact name match first
+        for m in world.marshals.values():
+            if m.name.lower() == target.lower() and m.nation != marshal.nation:
+                target_marshal = m
+                break
+
+        # Try fuzzy match
+        if not target_marshal:
+            target_region = world.get_region(target)
+            if target_region:
+                # Find enemy in that region
+                for m in world.marshals.values():
+                    if m.location == target_region.name and m.nation != marshal.nation:
+                        target_marshal = m
+                        break
+
+        if not target_marshal:
+            return {
+                "success": False,
+                "message": f"Cannot find target '{target}' for Glorious Charge."
+            }
+
+        if target_marshal.strength <= 0:
+            return {
+                "success": False,
+                "message": f"{target_marshal.name} has no troops to fight!"
+            }
+
+        # Check range (cavalry can charge 2 regions)
+        distance = world.get_distance(marshal.location, target_marshal.location)
+        if distance > marshal.movement_range:
+            return {
+                "success": False,
+                "message": f"{target_marshal.name} is too far for Glorious Charge! "
+                          f"Distance: {distance}, Range: {marshal.movement_range}"
+            }
+
+        # Check for leapfrog (same as normal attack)
+        if distance == 2:
+            origin_region = world.get_region(marshal.location)
+            target_location = target_marshal.location
+            middle_regions = []
+            for adj in origin_region.adjacent_regions:
+                if world.get_distance(adj, target_location) == 1:
+                    middle_regions.append(adj)
+
+            for middle in middle_regions:
+                enemies_in_middle = [
+                    m for m in world.get_marshals_in_region(middle)
+                    if m.nation != marshal.nation and m.strength > 0
+                ]
+                if enemies_in_middle:
+                    blocking_enemy = enemies_in_middle[0]
+                    return {
+                        "success": False,
+                        "message": f"Cannot charge through {middle} - {blocking_enemy.name} blocks the path!",
+                        "blocked_by": blocking_enemy.name
+                    }
+
+        # Execute combat with 2x damage multiplier
+        recklessness_before = getattr(marshal, 'recklessness', 0)
+
+        # Get combat result with glorious charge flag
+        combat_result = self.combat_resolver.resolve_battle(
+            attacker=marshal,
+            defender=target_marshal,
+            glorious_charge=True  # 2x damage multiplier
+        )
+
+        # ALWAYS reset recklessness after Glorious Charge
+        marshal.reset_recklessness()
+
+        # Move attacker if victorious and still alive
+        attacker_won = combat_result.get("attacker_won", False)
+        movement_msg = ""
+        if attacker_won and marshal.strength > 0:
+            target_location = target_marshal.location
+            if marshal.location != target_location:
+                marshal.move_to(target_location)
+                combat_result["attacker_moved"] = True
+                combat_result["attacker_new_location"] = target_location
+                movement_msg = f" {marshal.name} advances into {target_location}."
+
+        # Check if enemy was destroyed
+        enemy_destroyed_msg = ""
+        if target_marshal.strength <= 0:
+            enemy_destroyed_msg = f" {target_marshal.name}'s army is destroyed!"
+
+        # Build charge message - use "description" key from combat resolver
+        charge_message = f"🐴⚔️ GLORIOUS CHARGE! {marshal.name} leads a devastating cavalry assault!\n\n"
+        charge_message += combat_result.get("description", "")
+        charge_message += enemy_destroyed_msg + movement_msg
+        charge_message += f"\n\n[Recklessness reset: {recklessness_before} → 0]"
+
+        return {
+            "success": True,
+            "message": charge_message,
+            "glorious_charge": True,
+            "damage_multiplier": 2,
+            "recklessness_before": recklessness_before,
+            "recklessness_after": 0,
+            "combat_result": combat_result,
+            "events": [{
+                "type": "glorious_charge",
+                "marshal": marshal.name,
+                "target": target_marshal.name,
+                "attacker_won": attacker_won,
+                "recklessness_reset": True
+            }],
+            "new_state": game_state
+        }
+
+    def respond_to_glorious_charge(self, response: str, world: WorldState) -> Dict:
+        """
+        Handle player response to Glorious Charge popup.
+
+        Called when player responds to the popup that appears at recklessness 3.
+
+        Args:
+            response: "charge" or "restrain"
+            world: WorldState instance
+
+        Returns:
+            Result dict
+        """
+        # Find marshal with pending charge
+        pending_marshal = None
+        for m in world.marshals.values():
+            if getattr(m, 'pending_glorious_charge', False) and m.nation == world.player_nation:
+                pending_marshal = m
+                break
+
+        if not pending_marshal:
+            return {
+                "success": False,
+                "message": "No pending Glorious Charge to respond to."
+            }
+
+        target = getattr(pending_marshal, 'pending_charge_target', '')
+        print(f"[GLORIOUS CHARGE] Marshal: {pending_marshal.name}, stored target: '{target}'")
+
+        # Clear pending state
+        pending_marshal.pending_glorious_charge = False
+        pending_marshal.pending_charge_target = ""
+
+        # Verify target still exists and is reachable
+        target_marshal = world.get_marshal(target)
+        print(f"[GLORIOUS CHARGE] get_marshal('{target}') returned: {target_marshal}")
+        print(f"[GLORIOUS CHARGE] Available marshals: {list(world.marshals.keys())}")
+        if not target_marshal:
+            # Try to find by location
+            for m in world.marshals.values():
+                if m.location == target and m.nation != pending_marshal.nation:
+                    target_marshal = m
+                    break
+
+        if not target_marshal or target_marshal.strength <= 0:
+            return {
+                "success": False,
+                "message": f"Target has retreated or been destroyed! The charge cannot proceed."
+            }
+
+        # Check if target is still in range
+        distance = world.get_distance(pending_marshal.location, target_marshal.location)
+        if distance > pending_marshal.movement_range:
+            return {
+                "success": False,
+                "message": f"{target_marshal.name} is no longer in range! The charge cannot proceed."
+            }
+
+        game_state = {"world": world}
+
+        if response.lower() == "charge":
+            # Execute Glorious Charge
+            return self._execute_glorious_charge(pending_marshal, target_marshal.name, world, game_state)
+        else:
+            # Restrain - execute normal attack, recklessness continues
+            # Pass skip_reckless_popup=True to avoid retriggering the popup
+            result = self._execute_attack(pending_marshal, target_marshal.name, world, game_state, skip_reckless_popup=True)
+            if result.get("success"):
+                result["message"] = f"[{pending_marshal.name} is restrained - normal attack]\n\n" + result.get("message", "")
+            return result
 
     def _execute_retreat_action(self, marshal, world: WorldState, game_state: Dict) -> Dict:
         """

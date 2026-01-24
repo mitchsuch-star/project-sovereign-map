@@ -200,6 +200,24 @@ class Marshal:
         self.holding_position: bool = False
         self.hold_region: str = ""  # Region where Grouchy is holding
 
+        # ════════════════════════════════════════════════════════════
+        # CAVALRY RECKLESSNESS SYSTEM (Phase 3)
+        # ════════════════════════════════════════════════════════════
+        # Only affects reckless cavalry (cavalry + aggressive personality)
+        # Increments: +1 when winning as attacker
+        # Resets: To 0 when losing combat OR executing Glorious Charge
+        # Effects by level:
+        #   0: Normal
+        #   1: +5% attack, warning message
+        #   2: +10% attack, -5% defense, cannot use defensive stance
+        #   3: +15% attack, -10% defense, cannot use defensive/neutral, popup before attack
+        #   4+: +20% attack, -15% defense, auto-charge at turn start
+        self.recklessness: int = 0
+
+        # Pending Glorious Charge state (for popup at recklessness 3)
+        self.pending_glorious_charge: bool = False
+        self.pending_charge_target: str = ""
+
     def move_to(self, new_location: str) -> None:
         """
         Move marshal to a new region.
@@ -223,6 +241,126 @@ class Marshal:
             if self.holding_position:
                 self.holding_position = False
                 self.hold_region = ""
+
+    # ════════════════════════════════════════════════════════════
+    # CAVALRY RECKLESSNESS SYSTEM (Phase 3)
+    # ════════════════════════════════════════════════════════════
+
+    @property
+    def is_reckless_cavalry(self) -> bool:
+        """
+        Check if this marshal is reckless cavalry.
+
+        Reckless cavalry = cavalry + aggressive personality.
+        Only these marshals can build recklessness and trigger Glorious Charge.
+        """
+        return getattr(self, 'cavalry', False) and self.personality == "aggressive"
+
+    def _get_recklessness_attack_bonus(self) -> float:
+        """
+        Get attack bonus from recklessness level.
+
+        Returns:
+            Float bonus (0.0, 0.05, 0.10, 0.15, or 0.20)
+        """
+        if not self.is_reckless_cavalry:
+            return 0.0
+
+        reck = getattr(self, 'recklessness', 0)
+        if reck <= 0:
+            return 0.0
+        elif reck == 1:
+            return 0.05  # +5%
+        elif reck == 2:
+            return 0.10  # +10%
+        elif reck == 3:
+            return 0.15  # +15%
+        else:  # 4+
+            return 0.20  # +20%
+
+    def _get_recklessness_defense_penalty(self) -> float:
+        """
+        Get defense penalty from recklessness level.
+
+        Returns:
+            Float penalty (0.0, 0.05, 0.10, or 0.15)
+        """
+        if not self.is_reckless_cavalry:
+            return 0.0
+
+        reck = getattr(self, 'recklessness', 0)
+        if reck <= 1:
+            return 0.0
+        elif reck == 2:
+            return 0.05  # -5%
+        elif reck == 3:
+            return 0.10  # -10%
+        else:  # 4+
+            return 0.15  # -15%
+
+    def _increment_recklessness(self) -> None:
+        """
+        Increment recklessness after winning an attack.
+
+        Only applies to reckless cavalry. Capped at 4.
+        """
+        if not self.is_reckless_cavalry:
+            return
+
+        current = getattr(self, 'recklessness', 0)
+        if current < 4:
+            self.recklessness = current + 1
+
+    def reset_recklessness(self) -> None:
+        """Reset recklessness to 0 (on loss or after Glorious Charge)."""
+        self.recklessness = 0
+
+    def get_recklessness_warning(self) -> Optional[str]:
+        """
+        Get warning message for current recklessness level.
+
+        Returns:
+            Warning string or None if no warning needed.
+        """
+        if not self.is_reckless_cavalry:
+            return None
+
+        reck = getattr(self, 'recklessness', 0)
+        if reck == 0:
+            return None
+        elif reck == 1:
+            return f"{self.name}'s blood is up! (+5% attack)"
+        elif reck == 2:
+            return f"{self.name} is building momentum! (+10% attack, -5% defense, cannot use defensive stance)"
+        elif reck == 3:
+            return f"{self.name}'s recklessness is dangerous! (+15% attack, -10% defense, popup before attack)"
+        else:  # 4+
+            return f"{self.name} is UNCONTROLLABLE! Will auto-charge at turn start! (+20% attack, -15% defense)"
+
+    def can_use_stance(self, target_stance: str) -> tuple[bool, str]:
+        """
+        Check if marshal can switch to a stance given recklessness level.
+
+        Args:
+            target_stance: "aggressive", "neutral", or "defensive"
+
+        Returns:
+            Tuple of (allowed, reason_if_blocked)
+        """
+        if not self.is_reckless_cavalry:
+            return (True, "")
+
+        reck = getattr(self, 'recklessness', 0)
+
+        # Recklessness 2+: Cannot use defensive stance
+        if reck >= 2 and target_stance == "defensive":
+            return (False, f"{self.name}'s blood is up! Cannot adopt defensive stance at recklessness {reck}.")
+
+        # Recklessness 3+: Cannot use neutral stance either
+        if reck >= 3 and target_stance == "neutral":
+            return (False, f"{self.name} is too reckless to calm down! Cannot use neutral stance at recklessness {reck}.")
+
+        return (True, "")
 
     # ════════════════════════════════════════════════════════════
     # STANCE MODIFIER METHODS
@@ -262,6 +400,11 @@ class Marshal:
             strength_ratio
         )
         modifier *= personality_mod
+
+        # Recklessness attack bonus (cavalry recklessness system)
+        recklessness_bonus = self._get_recklessness_attack_bonus()
+        if recklessness_bonus > 0:
+            modifier *= (1.0 + recklessness_bonus)
 
         return modifier
 
@@ -304,6 +447,11 @@ class Marshal:
             is_holding
         )
         modifier *= personality_mod
+
+        # Recklessness defense penalty (cavalry recklessness system)
+        recklessness_penalty = self._get_recklessness_defense_penalty()
+        if recklessness_penalty > 0:
+            modifier *= (1.0 - recklessness_penalty)
 
         return modifier
 
