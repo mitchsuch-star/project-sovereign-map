@@ -1275,6 +1275,14 @@ class WorldState:
             tactical_events.extend(cavalry_events)
 
         # ════════════════════════════════════════════════════════════
+        # TRUST TRAJECTORY WARNINGS (Phase 3) - Turn Start
+        # Alert player when marshal trust drops below 40 (one-time per crossing)
+        # ════════════════════════════════════════════════════════════
+        trust_warnings = self._check_trust_warnings()
+        if trust_warnings:
+            tactical_events.extend(trust_warnings)
+
+        # ════════════════════════════════════════════════════════════
         # RECKLESS CAVALRY AUTO-CHARGE (Phase 3) - Turn Start
         # Reckless cavalry at recklessness 4+ auto-charges or moves toward enemy
         # This happens BEFORE player gets to act
@@ -1564,6 +1572,43 @@ class WorldState:
     def get_last_tactical_events(self) -> list:
         """Get tactical events from the last turn advance."""
         return getattr(self, '_last_tactical_events', [])
+
+    def _check_trust_warnings(self) -> list:
+        """
+        Check for trust trajectory warnings at turn start.
+
+        Triggers when a player marshal's trust drops below 40 for the first time.
+        Shows once per crossing (resets if trust goes back above 40).
+
+        Phase 3: Trust Trajectory Warning System
+        """
+        warnings = []
+
+        for marshal in self.marshals.values():
+            # Only player marshals
+            if marshal.nation != self.player_nation:
+                continue
+
+            trust_val = marshal.trust.value
+            warning_shown = getattr(marshal, 'trust_warning_shown', False)
+
+            # Check for trust falling below threshold
+            if trust_val < 40 and not warning_shown:
+                marshal.trust_warning_shown = True
+                warnings.append({
+                    "type": "trust_warning",
+                    "marshal": marshal.name,
+                    "trust": int(trust_val),
+                    "message": f"⚠️ {marshal.name}'s trust is faltering ({int(trust_val)}). Consider giving them more independence."
+                })
+                print(f"  [TRUST WARNING] {marshal.name}'s trust has fallen to {trust_val}")
+
+            # Reset warning if trust recovers
+            elif trust_val >= 40 and warning_shown:
+                marshal.trust_warning_shown = False
+                print(f"  [TRUST] {marshal.name}'s trust recovered above 40, warning reset")
+
+        return warnings
 
     def _check_cavalry_limits(self) -> list:
         """

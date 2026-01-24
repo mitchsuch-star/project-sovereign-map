@@ -20,6 +20,7 @@ GOLDEN RULES:
 4. State clearing: AFTER reading the value, not before
 5. Enemy AI uses SAME executor as player (Building Blocks principle)
 6. New response fields: main.py must EXPLICITLY pass through (see Common Modification Patterns)
+7. game_state format: ALWAYS pass {"world": WorldState} to executor/turn_manager, not WorldState directly
 
 CURRENT PHASE: Phase 2.5 (Autonomy) 🔄 → Phase 3 (Fun Factor) 📋 NEXT
 - Phase 1 ✅: Foundation (regions, marshals, combat, actions, turns)
@@ -48,7 +49,8 @@ python backend/main.py
 
 ### Running Tests
 ```bash
-pytest test_conquest_comprehensive.py -v
+pytest test_conquest_comprehensive.py -v  # Comprehensive gameplay test
+python test_integration.py                 # System integration tests (14 tests)
 ```
 
 ### Testing Individual Modules
@@ -479,6 +481,26 @@ The disobedience system uses odds-based calculations where authority modifies th
 base_objection_chance = get_personality_objection_rate(marshal, action)
 modified_chance = base_objection_chance * (1 - (authority / 100))
 ```
+
+### Trust Trajectory Warning (Phase 3)
+
+When a marshal's trust drops below 40, a one-time warning is shown at turn start.
+
+**Implementation:**
+- `trust_warning_shown: bool` field in Marshal tracks if warning has been shown
+- `_check_trust_warnings()` in WorldState checks at turn start
+- Warning resets (can trigger again) if trust rises back above 40
+
+**Turn Start Order:**
+1. Clear retreated_this_turn flags
+2. Process tactical states (drill, fortify, retreat)
+3. Check cavalry limits
+4. **Check trust warnings** ← New
+5. Process reckless cavalry auto-charge
+6. Store tactical events
+
+**Message Format:**
+> ⚠️ {Marshal}'s trust is faltering ({value}). Consider giving them more independence.
 
 ### Redemption System (Trust ≤ 20)
 
@@ -3192,6 +3214,10 @@ For detailed design decisions and architecture:
 | Drill bonus not applying | Ensure state cleared AFTER `get_attack_modifier()` call |
 | Display shows wrong % | Check using `* 100` not `* 10` for percentage display |
 | Cavalry not resetting | Verify `move_to()` resets `turns_in_defensive_stance` and `turns_fortified` |
+| Enemy AI crashing | Ensure game_state is dict `{"world": WorldState}`, not WorldState directly |
+| AttributeError on property | Check if attribute is a @property (use underlying field or method) |
+| Unicode error on Windows | Debug output has emoji; use UTF-8 encoding or suppress debug |
+| is_reckless_cavalry not settable | It's a computed property from `cavalry` + `personality=="aggressive"` |
 
 ---
 

@@ -130,6 +130,11 @@ class Marshal:
         self.autonomous_battles_lost: int = 0
         self.autonomous_regions_captured: int = 0
 
+        # Trust Warning System (Phase 3)
+        # Tracks if warning has been shown for trust dropping below 40
+        # Reset when trust rises back above 40
+        self.trust_warning_shown: bool = False
+
         # ════════════════════════════════════════════════════════════
         # TACTICAL STATE SYSTEM (Phase 2.6)
         # ════════════════════════════════════════════════════════════
