@@ -11,7 +11,16 @@ MOST IMPORTANT FILES:
 ├── backend/commands/executor.py     ← Action handlers (_execute_*)
 ├── backend/models/world_state.py    ← Game state, turn processing
 ├── backend/commands/disobedience.py ← Objection system, trust values
-└── backend/ai/enemy_ai.py           ← Enemy AI decision tree (P1-P8 priorities)
+├── backend/ai/enemy_ai.py           ← Enemy AI decision tree (P1-P8 priorities)
+└── backend/ai/llm_client.py         ← LLM command parsing (fast parser + Anthropic)
+
+LLM INTEGRATION FILES (Phase 4):
+├── backend/ai/llm_client.py         ← Main entry: fast parser + LLM fallback
+├── backend/ai/providers.py          ← Anthropic HTTP, Groq stub
+├── backend/ai/validation.py         ← Catches hallucinations
+├── backend/ai/prompt_builder.py     ← Context-aware prompts
+├── backend/ai/schemas.py            ← ParseResult dataclass
+└── backend/ai/README.md             ← Full LLM documentation
 
 GOLDEN RULES:
 1. Combat modifiers: SINGLE SOURCE OF TRUTH in marshal.py
@@ -19,16 +28,16 @@ GOLDEN RULES:
 3. All marshals in ONE dict: world.marshals (not separate player/enemy)
 4. State clearing: AFTER reading the value, not before
 5. Enemy AI uses SAME executor as player (Building Blocks principle)
-6. New response fields: main.py must EXPLICITLY pass through (see Common Modification Patterns)
-7. game_state format: ALWAYS pass {"world": WorldState} to executor/turn_manager, not WorldState directly
+6. LLM never affects game mechanics: Parsing only, executor is deterministic
 
 CURRENT PHASE: Phase 2.5 (Autonomy) 🔄 → Phase 3 (Fun Factor) 📋 NEXT
 - Phase 1 ✅: Foundation (regions, marshals, combat, actions, turns)
 - Phase 2 ✅: Combat & AI (disobedience, drill/fortify, Enemy AI, safety eval)
 - Phase 2.5 🔄: Autonomy (AI control, narrative outcomes, admin role)
 - Phase 2.9 ✅: Retreat System (ally cover, smart destination, AI targeting)
+- Phase 4 ✅: LLM Integration (fast parser, Anthropic fallback, BYOK, validation)
 - Phase 3 📋: Fun Factor (hearing guns, vindication, anti-tedium, pressure)
-- Not implemented: diplomacy, LLM parsing, supply lines (see Phase 4-6)
+- Not implemented: diplomacy, supply lines, strategic commands (see Phase 5-6)
 ```
 
 ---
@@ -1203,29 +1212,104 @@ AMBIGUOUS_COMMANDS = ["attack", "move", "reinforce", "scout"]
 
 ## LLM Integration Architecture
 
-### Current State
-- Mock LLM (keyword matching) for MVP
-- Real LLM deferred to Phase 2
+### Current State (Phase 4 ✅ COMPLETE)
+- **Fast parser** (keyword matching) handles 90%+ of commands - FREE, instant
+- **Anthropic fallback** for ambiguous commands - Haiku, ~$0.0004/request
+- **BYOK support** - Users can bring their own API key
+- **Validation layer** catches hallucinations
 
-### Architecture Layers (Future)
+### Command Parsing Pipeline
 ```
-Layer 1: Command Parser (Haiku - cheap, fast)
-    ↓
-Layer 2: Marshal Response Generator (Sonnet - personality)
-    ↓
-Layer 3: Executor (NO LLM - deterministic rules)
-    ↓
-Layer 4: Outcome Narrator (Sonnet - flavor text)
-    ↓
-Layer 5: AI Nation Decision Maker (Sonnet - strategy)
-    ↓
-Layer 6: Turn Summary Generator (Sonnet - narrative)
+User Input: "Ney, attack Wellington"
+                |
+                v
++===============================================+
+|           LLMClient.parse_command()           |
+|              (llm_client.py)                  |
++===============================================+
+                |
+                | STEP 1: Always run fast parser first
+                v
++-----------------------------------------------+
+|        Fast Parser (keyword matching)         |
+|        _parse_with_mock()                     |
+|                                               |
+|  Returns ParseResult with confidence score:   |
+|  - 0.95 = marshal + action + target           |
+|  - 0.9  = action + one identifier             |
+|  - 0.8  = action only                         |
+|  - 0.5  = unknown (couldn't parse)            |
++-----------------------------------------------+
+                |
+                | STEP 2: Check if LLM fallback needed
+                |
+                | Skip LLM if:
+                |   - Mock mode (LLM_MODE=mock)
+                |   - High confidence (>= 0.7)
+                |   - No game_state provided
+                |   - Meta command (help, debug, etc.)
+                |
+                v
+        [confidence < 0.7 AND live mode?]
+               /              \
+              NO              YES
+              |                |
+              v                v
+     Return fast result   +-----------------------------------+
+                          |   AnthropicProvider.parse()       |
+                          |        (providers.py)             |
+                          +-----------------------------------+
+                                        |
+                                        | HTTP POST to Anthropic
+                                        v
+                          +-----------------------------------+
+                          |   validation.validate_parse_result|
+                          |   (catches hallucinations)        |
+                          +-----------------------------------+
+                                        |
+                              Return validated result
 ```
+
+### LLM Files Reference
+
+| File | Purpose |
+|------|---------|
+| `backend/ai/llm_client.py` | Main entry point. Fast parser + LLM fallback logic |
+| `backend/ai/providers.py` | Provider abstraction (Anthropic, Groq stub) |
+| `backend/ai/schemas.py` | ParseResult, ProviderConfig dataclasses |
+| `backend/ai/validation.py` | Validates LLM output against game rules |
+| `backend/ai/prompt_builder.py` | Builds context-aware prompts |
+| `backend/ai/README.md` | Comprehensive documentation |
+
+### Configuration
+
+```bash
+# .env file
+LLM_MODE=mock          # mock | anthropic | groq (groq not yet implemented)
+ANTHROPIC_API_KEY=sk-ant-api03-...   # Required if LLM_MODE=anthropic
+```
+
+### Cost Estimation (Anthropic Haiku)
+- Per request: ~500 input + ~200 output tokens = **~$0.0004**
+- 1,000 ambiguous commands = **~$0.40**
+- Fast parser catches 90%+, so real cost is much lower
 
 ### Key Insight
-**Executor stays rule-based.** LLM adds flavor and decisions, but game mechanics are deterministic. AI nations use SAME executor as player.
+**Executor stays rule-based.** LLM helps with parsing ambiguous commands, but game mechanics are 100% deterministic. No LLM randomness in combat, movement, or AI decisions.
 
-### Nation Tiers for LLM
+### Future: Strategic Score + Ambiguity (Phase 5)
+
+ParseResult includes scoring fields for future gameplay mechanics:
+- `strategic_score` (0-100): How complex/strategic the command is
+- `ambiguity` (0-100): How unclear the command was
+
+**Planned effects:**
+| Score | Effect |
+|-------|--------|
+| High strategic | +authority, +morale (Napoleon in his element) |
+| High ambiguity | Delay, wrong interpretation, personality-dependent chaos |
+
+### Nation Tiers for LLM (Future)
 ```python
 NATION_TIERS = {
     "great_power": {

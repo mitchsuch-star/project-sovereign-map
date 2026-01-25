@@ -323,17 +323,19 @@ class TestTurnResetClearsTracking:
         result = world.calculate_flanking_bonus("Waterloo")
         assert result["bonus"] == 0
 
-    def test_auto_advance_resets_attack_tracking(self):
-        """Using all actions auto-advances and resets tracking."""
+    def test_advance_turn_resets_attack_tracking(self):
+        """Advancing turn resets attack tracking."""
         world = WorldState()
 
         # Record attacks
         world.record_attack("Ney", "Belgium", "Waterloo")
         world.record_attack("Davout", "Rhine", "Waterloo")
 
-        # Use all actions
+        # Use all actions and advance turn
+        # Note: use_action() no longer auto-advances (by design - executor handles this)
         world.actions_remaining = 1
-        world.use_action("attack")  # Last action triggers auto-advance
+        world.use_action("attack")  # Consumes last action
+        world.advance_turn()  # Explicitly advance turn
 
         # Tracking should be cleared
         assert len(world.attacks_this_turn) == 0

@@ -276,7 +276,30 @@ self.nation_actions = {
 # Free actions (don't consume budget)
 free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "wait"]
 
+# Variable cost actions (stance_change)
+# Any → Neutral: FREE (0 actions)
+# Neutral → Defensive/Aggressive: 1 action
+# Defensive ↔ Aggressive: 2 actions
+
 # All other actions cost 1 point
+```
+
+### Variable Action Cost Handling (January 2026 Fix)
+
+The AI now properly handles variable action costs from the executor:
+
+```python
+# Check for variable_action_cost in result
+variable_cost = result.get("variable_action_cost")
+if variable_cost is not None:
+    # Use actual cost from executor (0, 1, or 2)
+    actual_cost = variable_cost
+else:
+    # Standard action - 1 if not free, 0 if free
+    actual_cost = 1 if not is_free_action else 0
+
+# Consume correct number of actions
+actions_remaining -= actual_cost
 ```
 
 ### Safeguards Against Infinite Loops

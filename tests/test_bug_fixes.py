@@ -169,10 +169,14 @@ class TestActionConsumption:
         ney = world.get_marshal("Ney")
         ney.location = "Belgium"
 
+        # Move Blucher away from Netherlands so we can move there
+        blucher = world.get_marshal("Blucher")
+        blucher.location = "Rhineland"
+
         # Record initial actions
         initial_actions = world.actions_remaining
 
-        # Move to adjacent region
+        # Move to adjacent region (now empty of enemies)
         game_state = {"world": world}
         command = {
             "command": {"marshal": "Ney", "action": "move", "target": "Netherlands"},

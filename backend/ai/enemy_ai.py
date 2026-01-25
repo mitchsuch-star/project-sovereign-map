@@ -280,9 +280,20 @@ class EnemyAI:
             # Check if this is a free action:
             # 1. Action type is inherently free (wait, retreat, etc.)
             # 2. OR executor returned free_action=True (counter-punch)
+            # 3. OR executor returned variable_action_cost=0 (free stance change)
             is_free_action_type = not self._action_costs_point(best_action["action"])
             is_free_action_result = result.get("free_action", False)
-            is_free_action = is_free_action_type or is_free_action_result
+
+            # Handle variable action costs (stance changes can be 0, 1, or 2)
+            variable_cost = result.get("variable_action_cost")
+            if variable_cost is not None:
+                # Variable cost action - use actual cost from executor
+                actual_cost = variable_cost
+                is_free_action = (actual_cost == 0)
+            else:
+                # Standard action - use type-based check
+                actual_cost = 1 if not (is_free_action_type or is_free_action_result) else 0
+                is_free_action = is_free_action_type or is_free_action_result
 
             if is_free_action:
                 free_action_count += 1
@@ -292,9 +303,11 @@ class EnemyAI:
                     print(f"  Maximum free actions reached for {nation}")
                     break
 
-            # Consume action (unless it's free)
-            if not is_free_action:
-                actions_remaining -= 1
+            # Consume action(s) based on actual cost
+            if actual_cost > 0:
+                actions_remaining -= actual_cost
+                if actual_cost > 1:
+                    print(f"    [MULTI-ACTION] {best_action['action']} cost {actual_cost} actions")
 
             # Safeguard: prevent runaway execution
             if action_count >= max_total_actions:
@@ -395,6 +408,35 @@ class EnemyAI:
 
             print(f"  [P0 ENGAGEMENT] {marshal.name} vs {weakest_enemy.name}: ratio={ratio:.2f}, threshold={threshold:.2f}")
             print(f"  [P0 ENGAGEMENT] {marshal.name} fortified={getattr(marshal, 'fortified', False)}, drilling={getattr(marshal, 'drilling', False)}")
+
+            # Check if in retreat recovery (cannot attack while recovering)
+            retreat_recovery = getattr(marshal, 'retreat_recovery', 0)
+            if retreat_recovery > 0:
+                ai_debug(f"  P0: In retreat recovery ({retreat_recovery} turns) - cannot attack!")
+                print(f"  [P0 ENGAGEMENT] {marshal.name} in RETREAT RECOVERY - must flee or wait")
+                # Try to flee
+                retreat_dest = self._find_retreat_destination(marshal, nation, world)
+                if retreat_dest:
+                    ai_debug(f"  -> P0: Retreat to {retreat_dest} (in recovery)")
+                    return ({
+                        "marshal": marshal.name,
+                        "action": "retreat",
+                        "target": retreat_dest
+                    }, 0)
+                else:
+                    # Can't flee - switch to defensive stance and wait
+                    if getattr(marshal, 'stance', None) != Stance.DEFENSIVE:
+                        ai_debug(f"  -> P0: Switch to defensive stance (in recovery, can't flee)")
+                        return ({
+                            "marshal": marshal.name,
+                            "action": "stance_change",
+                            "target": "defensive"
+                        }, 0)
+                    ai_debug(f"  -> P0: Wait (in recovery, can't flee)")
+                    return ({
+                        "marshal": marshal.name,
+                        "action": "wait"
+                    }, 0)
 
             # Check if can attack (not drilling/fortified)
             can_attack = not (getattr(marshal, 'drilling', False) or

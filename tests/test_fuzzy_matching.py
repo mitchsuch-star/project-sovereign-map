@@ -146,11 +146,13 @@ class TestFuzzyRegionLookup:
         result = executor.execute(command, game_state)
 
         # Should succeed with auto-corrected region name
-        # Note: May fail if not adjacent, but should NOT fail due to region not found
+        # Note: May fail if not adjacent or enemy present, but should NOT fail due to region not found
         if not result.get("success", False):
-            # Check it's adjacency error, not region not found error
-            assert "not adjacent" in result.get("message", "").lower() or \
-                   "did you mean" in result.get("message", "").lower()
+            # Check it's adjacency/enemy error, not region not found error
+            msg = result.get("message", "").lower()
+            assert "not adjacent" in msg or \
+                   "did you mean" in msg or \
+                   "enemy forces present" in msg, f"Unexpected error: {msg}"
         else:
             assert "Netherlands" in result.get("message", "")
 

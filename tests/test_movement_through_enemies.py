@@ -113,7 +113,7 @@ class TestMoveNoEnemyNormalRules:
     """Test that normal movement rules apply when no enemy present."""
 
     def test_can_move_to_enemy_territory_when_not_engaged(self):
-        """Can move to enemy territory when no enemy in current region."""
+        """Can move to enemy-controlled territory when no enemy marshal present."""
         world = WorldState()
         executor = CommandExecutor()
 
@@ -123,8 +123,12 @@ class TestMoveNoEnemyNormalRules:
         assert wellington.location == "Waterloo"
         assert ney.location == "Belgium"
 
-        # Belgium is adjacent to Netherlands (British territory)
-        # Should be allowed since no enemy in Belgium
+        # Move Blucher away from Netherlands so region is undefended
+        blucher = world.get_marshal("Blucher")
+        blucher.location = "Rhineland"
+
+        # Belgium is adjacent to Netherlands (British territory, now undefended)
+        # Should be allowed since no enemy marshal at destination
         command = make_command("move", "Ney", "Netherlands")
 
         result = executor.execute(command, {"world": world})
@@ -351,7 +355,11 @@ class TestEdgeCases:
         davout = world.get_marshal("Davout")
         davout.location = "Belgium"
 
-        # Ney should still be able to move to Netherlands (enemy territory)
+        # Move Blucher away from Netherlands so region is undefended
+        blucher = world.get_marshal("Blucher")
+        blucher.location = "Rhineland"
+
+        # Ney should still be able to move to Netherlands (enemy territory, now undefended)
         # since Davout is friendly, not an enemy
         command = make_command("move", "Ney", "Netherlands")
 

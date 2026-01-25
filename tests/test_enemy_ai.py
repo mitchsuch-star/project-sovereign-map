@@ -215,15 +215,22 @@ class TestPriorityDecisions:
     def test_p1_retreat_recovery_limits_actions(self):
         """P1: Marshal in retreat recovery should only do defensive actions."""
         wellington = self.world.get_marshal("Wellington")
+        grouchy = self.world.get_marshal("Grouchy")
+
+        # Move Grouchy away from Waterloo (he starts there by default)
+        # to ensure we're testing recovery behavior, not engagement
+        grouchy.location = "Paris"
+
         wellington.retreating = True
         wellington.retreat_recovery = 1  # In recovery
 
         # Get action for Wellington
         action, priority = self.ai._evaluate_marshal(wellington, "Britain", self.world)
 
-        # Should be low-priority defensive action (stance change or wait)
+        # Should be defensive action (stance change, wait, defend, or retreat to flee)
         if action:
-            assert action.get("action") in ["stance_change", "wait", "defend"], \
+            valid_recovery_actions = ["stance_change", "wait", "defend", "retreat"]
+            assert action.get("action") in valid_recovery_actions, \
                 f"Recovery marshal should do defensive action, got {action.get('action')}"
         print(f"P1 recovery: action={action}, priority={priority}")
 
@@ -518,20 +525,23 @@ class TestSafetyChecks:
         print(f"Defending nothing: {wellington.name} unfortifies to reposition")
 
     def test_stay_fortified_when_enemies_adjacent(self):
-        """Fortified marshal should stay fortified if enemies are adjacent."""
+        """Fortified marshal should stay fortified if enemies are adjacent (not in same region)."""
         wellington = self.world.get_marshal("Wellington")
         ney = self.world.get_marshal("Ney")
+        grouchy = self.world.get_marshal("Grouchy")
 
         # Set up: Wellington fortified with Ney adjacent
+        # IMPORTANT: Move Grouchy away - he starts at Waterloo by default!
+        grouchy.location = "Paris"  # Clear Waterloo so no enemy in same region
         wellington.location = "Waterloo"
         wellington.fortified = True
         wellington.fortify_bonus = 0.10
-        ney.location = "Belgium"  # Adjacent to Waterloo
+        ney.location = "Belgium"  # Adjacent to Waterloo (not same region)
 
         # Check fortification opportunity
         result = self.ai._check_fortification_opportunity(wellington, "Britain", self.world)
 
-        assert result is None, "Should stay fortified when enemies adjacent"
+        assert result is None, "Should stay fortified when enemies adjacent (not in same region)"
         print(f"Defending position: {wellington.name} stays fortified (enemies nearby)")
 
 
