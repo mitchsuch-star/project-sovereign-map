@@ -1,65 +1,334 @@
 """
 LLM Client for Project Sovereign
-Handles both mock (free, instant) and real (Claude API) command parsing
+Handles both mock (free, instant) and real (LLM API) command parsing.
+
+Phase 4: Provider abstraction for Anthropic/Groq swapping.
+
+FLOW:
+1. Fast parser (keyword matching) runs ALWAYS - instant, free
+2. If confidence >= threshold OR mode == "mock" -> return fast result
+3. If confidence < threshold AND mode == "live" AND game_state provided:
+   a. Call LLM provider with prompt
+   b. Validate LLM response
+   c. If validation fails -> return fast result (safety net)
+   d. Return validated LLM result
 """
 
 import os
 import re
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 from dotenv import load_dotenv
+
+from .schemas import ParseResult
+from .providers import get_provider, PROVIDERS
+from .validation import validate_parse_result, should_skip_validation
 
 # Load environment variables
 load_dotenv()
 
+# =============================================================================
+# CONFIGURATION
+# =============================================================================
+
+# Confidence threshold for LLM fallback.
+# Below this, we try LLM (if in live mode) because fast parser isn't confident.
+# 0.7 chosen because:
+# - 0.9 default confidence from mock = "I matched keywords, looks good"
+# - 0.7+ = "Fast parser found something reasonable"
+# - <0.7 = "Fast parser is guessing, LLM might do better"
+LLM_FALLBACK_CONFIDENCE_THRESHOLD = 0.7
+
 
 class LLMClient:
     """
-    Dual-mode LLM client:
+    Dual-mode LLM client with provider abstraction:
     - Mock mode: Simple keyword matching (free, instant, offline)
-    - Real mode: Claude API (costs money, requires internet)
+    - Live mode: LLM API via configurable provider (Anthropic, Groq)
+
+    Provider is selected via LLM_MODE environment variable:
+    - "mock" (default): Keyword matching
+    - "anthropic": Claude API
+    - "groq": Groq API (fast, cheap)
+
+    Supports BYOK (Bring Your Own Key) for users with their own API keys.
     """
 
-    def __init__(self, use_real_api: bool = False):
+    def __init__(self, use_real_api: bool = None, provider: str = None, api_key: str = None):
         """
         Initialize the LLM client.
 
         Args:
-            use_real_api: If True, use real Claude API. If False, use mock.
+            use_real_api: DEPRECATED. Use provider or LLM_MODE env var instead.
+                         If True, uses "anthropic". If False, uses "mock".
+            provider: Override provider selection (one of: mock, anthropic, groq)
+            api_key: BYOK - user-provided API key. If provided, overrides env key.
         """
-        self.use_real_api = use_real_api
-        self.api_key = os.getenv("ANTHROPIC_API_KEY")
+        # Store BYOK key if provided
+        self._byok_key = api_key
 
-        if use_real_api and not self.api_key:
-            raise ValueError("ANTHROPIC_API_KEY not found in environment variables")
+        # Determine provider from args or environment
+        if provider:
+            self.provider_name = provider
+        elif use_real_api is not None:
+            # Backward compatibility
+            self.provider_name = "anthropic" if use_real_api else "mock"
+        else:
+            # Use environment variable
+            self.provider_name = os.getenv("LLM_MODE", "mock").lower()
 
-        print(f"LLM Client initialized in {'REAL' if use_real_api else 'MOCK'} mode")
+        # Validate provider name
+        if self.provider_name not in PROVIDERS:
+            print(f"Warning: Unknown LLM_MODE '{self.provider_name}', falling back to 'mock'")
+            self.provider_name = "mock"
+
+        # Get provider instance
+        self.provider = get_provider(self.provider_name)
+
+        # For backward compatibility, expose use_real_api
+        self.use_real_api = self.provider_name != "mock"
+
+        # API key handling - BYOK takes priority
+        if self._byok_key:
+            self.api_key = self._byok_key
+            # Also set on provider for when it makes API calls
+            self.provider._api_key = self._byok_key
+        else:
+            self.api_key = self.provider.get_api_key()
+
+        if self.use_real_api and not self.api_key:
+            print(f"Warning: API key not found for provider '{self.provider_name}'. "
+                  "Parsing will fall back to mock mode if provider fails.")
+
+        print(f"LLM Client: provider={self.provider_name.upper()}, key_source={self.key_source}")
+
+    @classmethod
+    def create(cls, user_api_key: str = None) -> "LLMClient":
+        """
+        Factory to create appropriate client.
+
+        Args:
+            user_api_key: If provided, use BYOK mode. If None, use env config.
+
+        Returns:
+            LLMClient configured for mock, inhouse, or byok.
+        """
+        mode = os.getenv("LLM_MODE", "mock").lower()
+
+        if user_api_key:
+            # BYOK - user provided their key
+            return cls(use_real_api=True, api_key=user_api_key)
+        elif mode in ("live", "anthropic", "groq"):
+            # Inhouse - use our master key from env
+            return cls(use_real_api=True, provider=mode if mode != "live" else "anthropic")
+        else:
+            # Mock mode
+            return cls(use_real_api=False)
+
+    @property
+    def key_source(self) -> str:
+        """Return 'none', 'inhouse', or 'byok' for logging/UI."""
+        if not self.use_real_api or not self.api_key:
+            return "none"
+        if self._byok_key:
+            return "byok"
+        # Check if using env key (inhouse)
+        master_key = os.getenv("ANTHROPIC_API_KEY") or os.getenv("GROQ_API_KEY")
+        if self.api_key == master_key:
+            return "inhouse"
+        return "byok"
 
     def parse_command(self, command_text: str, game_state: Optional[Dict] = None) -> Dict:
         """
         Parse a natural language command into structured data.
+
+        FLOW:
+        1. Fast parser runs ALWAYS (instant, free, deterministic)
+        2. Check if we should try LLM fallback
+        3. If LLM tried, validate result before using
+        4. Return best result as dict
 
         Args:
             command_text: The command from the player (e.g., "Ney, attack Wellington")
             game_state: Current game state (optional, for context)
 
         Returns:
-            Dict with parsed command structure:
-            {
-                "marshal": "Ney",
-                "action": "attack",
-                "target": "Wellington",
-                "confidence": 0.95
-            }
+            Dict with parsed command structure (backward compatible format)
         """
-        if self.use_real_api:
-            return self._parse_with_claude(command_text, game_state)
-        else:
-            return self._parse_with_mock(command_text)
+        # Step 1: ALWAYS run fast parser first - it's our baseline and safety net
+        fast_result = self._parse_with_mock(command_text)
 
-    def _parse_with_mock(self, command_text: str) -> Dict:
+        # Step 2: Decide if we should try LLM
+        # Skip LLM if: mock mode, high confidence, no game_state, or meta command
+        if not self._should_fallback_to_llm(fast_result, game_state):
+            return fast_result.to_dict()
+
+        # Step 3: Try LLM provider
+        print(f"Fast parser confidence {fast_result.confidence} < {LLM_FALLBACK_CONFIDENCE_THRESHOLD}, trying LLM...")
+        llm_result = self._parse_with_live_provider(command_text, game_state, fast_result)
+
+        # Step 4: Return best result
+        # _parse_with_live_provider handles validation and fallback internally
+        return llm_result.to_dict()
+
+    def _should_fallback_to_llm(self, fast_result: ParseResult, game_state: Optional[Dict]) -> bool:
+        """
+        Decide if we should try LLM fallback after fast parser.
+
+        Returns False (don't try LLM) if:
+        - We're in mock mode (no LLM configured)
+        - Fast parser is confident (>= threshold)
+        - No game_state (can't build meaningful prompt)
+        - Result is a recognized meta command (help, debug, end_turn - fast parser handles these)
+
+        Note: "unknown" action SHOULD try LLM - that's the whole point of the fallback!
+
+        Args:
+            fast_result: Result from fast parser
+            game_state: Current game state
+
+        Returns:
+            True if we should try LLM, False otherwise
+        """
+        # Mock mode: LLM not available
+        if self.provider_name == "mock":
+            return False
+
+        # No API key configured: can't call LLM
+        if not self.api_key:
+            return False
+
+        # Fast parser is confident: trust it
+        if fast_result.confidence >= LLM_FALLBACK_CONFIDENCE_THRESHOLD:
+            return False
+
+        # No game state: can't build good prompt (marshals, positions, etc.)
+        if game_state is None:
+            return False
+
+        # Known meta commands: fast parser handles these perfectly
+        # (help, debug, end_turn, status don't need LLM interpretation)
+        # NOTE: "unknown" is NOT included here - unknown SHOULD try LLM!
+        meta_commands = {"help", "debug", "end_turn", "status"}
+        if fast_result.action in meta_commands:
+            return False
+
+        # All checks passed: try LLM
+        return True
+
+    def parse_command_structured(self, command_text: str, game_state: Optional[Dict] = None) -> ParseResult:
+        """
+        Parse a command and return structured ParseResult.
+        Use this for new code that wants the full schema.
+
+        Same flow as parse_command() but returns ParseResult instead of dict.
+
+        Args:
+            command_text: The command from the player
+            game_state: Current game state (optional)
+
+        Returns:
+            ParseResult dataclass with full schema
+        """
+        # Step 1: Fast parser always runs first
+        fast_result = self._parse_with_mock(command_text)
+
+        # Step 2: Decide if we should try LLM
+        if not self._should_fallback_to_llm(fast_result, game_state):
+            return fast_result
+
+        # Step 3: Try LLM
+        return self._parse_with_live_provider(command_text, game_state, fast_result)
+
+    def _parse_with_live_provider(
+        self,
+        command_text: str,
+        game_state: Optional[Dict],
+        fast_result: ParseResult
+    ) -> ParseResult:
+        """
+        Parse using live LLM provider (Anthropic, Groq, etc.)
+
+        CRITICAL: fast_result is our safety net. If ANYTHING goes wrong with
+        the LLM call or validation, we return fast_result. This ensures:
+        - No crashes from LLM errors
+        - User always gets SOME interpretation
+        - Graceful degradation
+
+        Args:
+            command_text: Original command
+            game_state: Game state for prompt building
+            fast_result: Result from fast parser (our fallback)
+
+        Returns:
+            Validated LLM result, or fast_result if anything fails
+        """
+        try:
+            # Call provider (may raise exceptions)
+            llm_result = self.provider.parse(command_text, game_state)
+
+            # Provider returned but couldn't parse
+            if not llm_result.matched:
+                print(f"LLM couldn't parse command, using fast parser result")
+                return fast_result
+
+            # Validate LLM result against game rules
+            # This catches: invalid marshals, invalid actions, hallucinated targets
+            valid_marshals = self._extract_valid_marshals(game_state)
+            valid_regions = self._extract_valid_regions(game_state)
+            valid_targets = self._extract_valid_targets(game_state)
+
+            validated = validate_parse_result(
+                llm_result,
+                valid_marshals,
+                valid_regions,
+                valid_targets
+            )
+
+            # Validation failed (e.g., LLM hallucinated a marshal name)
+            if not validated.matched:
+                print(f"LLM result failed validation: {validated.suggestion}")
+                print(f"Falling back to fast parser result")
+                return fast_result
+
+            # Success! Return validated LLM result
+            print(f"LLM parse successful: {validated.action} by {validated.marshals}")
+            return validated
+
+        except Exception as e:
+            # API error, timeout, malformed JSON, etc.
+            # Log and return fast result - never crash
+            print(f"LLM provider error: {e}")
+            print(f"Falling back to fast parser result")
+            return fast_result
+
+    def _extract_valid_marshals(self, game_state: Optional[Dict]) -> List[str]:
+        """Extract list of valid marshal names from game state."""
+        if not game_state:
+            return []
+        marshals = list(game_state.get("marshals", {}).keys())
+        return marshals
+
+    def _extract_valid_regions(self, game_state: Optional[Dict]) -> List[str]:
+        """Extract list of valid region names from game state."""
+        if not game_state:
+            return []
+        map_data = game_state.get("map_data", {})
+        return list(map_data.keys())
+
+    def _extract_valid_targets(self, game_state: Optional[Dict]) -> List[str]:
+        """Extract list of valid targets (regions + enemy marshals)."""
+        if not game_state:
+            return []
+        regions = self._extract_valid_regions(game_state)
+        enemies = list(game_state.get("enemies", {}).keys())
+        return regions + enemies
+
+    def _parse_with_mock(self, command_text: str) -> ParseResult:
         """
         Mock parser using simple keyword matching.
         Fast, free, deterministic - perfect for development!
+
+        ALL existing keyword matching logic is preserved exactly as-is.
         """
         command_lower = command_text.lower()
 
@@ -105,15 +374,21 @@ class LLMClient:
             else:
                 debug_args = command_text[5:].strip()  # Skip "debug"
             # Return early with debug command structure
-            return {
-                "marshal": None,
-                "action": "debug",
-                "target": debug_args,
-                "confidence": 1.0,
-                "raw_command": command_text,
-                "mode": "mock",
-                "type": "debug"  # Special type to skip marshal requirement
-            }
+            return ParseResult(
+                matched=True,
+                command_type="debug",
+                marshals=[],
+                action="debug",
+                target=debug_args,
+                ambiguity=0,
+                strategic_score=0,
+                interpretation=f"Debug command: {debug_args}",
+                confidence=1.0,
+                mode="mock",
+                key_source=self.key_source,
+                raw_command=command_text,
+                type="debug",
+            )
 
         # BUG-002 FIX: Added "commands" and "what can i do" as help aliases
         if "help" in command_lower or command_lower.strip() == "?" or "commands" in command_lower or "what can i do" in command_lower:
@@ -244,31 +519,52 @@ class LLMClient:
             if second_marshal:
                 target = second_marshal
 
-        # Return parsed command
-        result = {
-            "marshal": marshal,
-            "action": action,
-            "target": target,
-            "confidence": 0.9,
-            "raw_command": command_text,
-            "mode": "mock"
-        }
+        # Build interpretation string
+        if marshal and action != "unknown":
+            interpretation = f"Order {marshal} to {action}"
+            if target:
+                interpretation += f" {target}"
+        elif action != "unknown":
+            interpretation = f"General order: {action}"
+            if target:
+                interpretation += f" {target}"
+        else:
+            interpretation = "Could not parse command"
 
-        # Add target_stance for stance_change action (Phase 2.7)
-        if action == "stance_change" and target_stance:
-            result["target_stance"] = target_stance
+        # Build marshals list
+        marshals = [marshal] if marshal else []
 
-        return result
+        # Calculate confidence based on how well we matched
+        # High confidence: recognized action + marshal or target
+        # Medium confidence: recognized action only
+        # Low confidence: unknown action (triggers LLM fallback in live mode)
+        matched = (action != "unknown")
+        if matched:
+            if marshal and target:
+                confidence = 0.95  # Very confident: action + marshal + target
+            elif marshal or target:
+                confidence = 0.9   # Confident: action + one identifier
+            else:
+                confidence = 0.8   # Moderate: action only, no context
+        else:
+            confidence = 0.5  # Low: couldn't parse, LLM might help
 
-    def _parse_with_claude(self, command_text: str, game_state: Optional[Dict] = None) -> Dict:
-        """
-        Real Claude API parsing.
-        Will implement this in Day 5-7 once mock works!
-        """
-        # TODO: Implement Claude API call
-        # For now, just use mock
-        print("Real API not implemented yet - using mock")
-        return self._parse_with_mock(command_text)
+        # Return ParseResult
+        return ParseResult(
+            matched=matched,
+            command_type="tactical",
+            marshals=marshals,
+            action=action,
+            target=target,
+            ambiguity=5 if matched else 75,  # High ambiguity for unmatched
+            strategic_score=10,
+            interpretation=interpretation,
+            confidence=confidence,
+            mode="mock",
+            key_source=self.key_source,
+            target_stance=target_stance,
+            raw_command=command_text,
+        )
 
 
 # Test function
@@ -281,25 +577,47 @@ if __name__ == "__main__":
     print("LLM CLIENT TEST")
     print("=" * 50)
 
-    # Create mock client
-    client = LLMClient(use_real_api=False)
+    # Test 1: Mock client via factory
+    print("\n--- Test 1: LLMClient.create() (mock mode) ---")
+    client = LLMClient.create()
+    print(f"key_source: {client.key_source}")
+    result = client.parse_command("Ney attack Wellington")
+    print(f"Result key_source: {result.get('key_source')}")
+
+    # Test 2: BYOK client via factory
+    print("\n--- Test 2: LLMClient.create(user_api_key='sk-xxx') (byok mode) ---")
+    byok_client = LLMClient.create(user_api_key="sk-test-user-key")
+    print(f"key_source: {byok_client.key_source}")
+    result = byok_client.parse_command("Davout defend")
+    print(f"Result key_source: {result.get('key_source')}")
+
+    # Test 3: Direct instantiation (backward compat)
+    print("\n--- Test 3: LLMClient(use_real_api=False) (backward compat) ---")
+    legacy_client = LLMClient(use_real_api=False)
+    print(f"key_source: {legacy_client.key_source}")
 
     # Test commands
     test_commands = [
         "Ney, attack Wellington",
         "Marshal Davout, defend the ridge",
-        "Grouchy, pursue the Prussians",
-        "Attack!",
         "Move to Belgium",
+        "Ney aggressive",
+        "/debug counter_punch Davout",
     ]
 
-    print("\nTesting command parsing:\n")
+    print("\n--- Parsing tests ---\n")
     for cmd in test_commands:
         print(f"Command: '{cmd}'")
         result = client.parse_command(cmd)
-        print(f"Parsed:  {result}")
+        print(f"Parsed:  marshal={result.get('marshal')}, action={result.get('action')}, key_source={result.get('key_source')}")
         print()
 
-    print("=" * 50)
+    # Test structured result
+    print("--- Structured result test ---\n")
+    result = client.parse_command_structured("Ney, attack Wellington")
+    print(f"ParseResult.key_source: {result.key_source}")
+    print(f"As dict key_source: {result.to_dict().get('key_source')}")
+
+    print("\n" + "=" * 50)
     print("TEST COMPLETE!")
     print("=" * 50)
