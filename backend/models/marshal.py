@@ -136,6 +136,14 @@ class Marshal:
         self.trust_warning_shown: bool = False
 
         # ════════════════════════════════════════════════════════════
+        # RELATIONSHIPS SYSTEM (Phase 4)
+        # ════════════════════════════════════════════════════════════
+        # How this marshal feels about other marshals (-2 to +2)
+        # -2: Hostile, -1: Rival, 0: Professional, +1: Friendly, +2: Devoted
+        # Asymmetric: Ney might hate Davout (-2) while Davout merely dislikes Ney (-1)
+        self.relationships: Dict[str, int] = {}
+
+        # ════════════════════════════════════════════════════════════
         # TACTICAL STATE SYSTEM (Phase 2.6)
         # ════════════════════════════════════════════════════════════
 
@@ -255,6 +263,68 @@ class Marshal:
             if self.holding_position:
                 self.holding_position = False
                 self.hold_region = ""
+
+    # ════════════════════════════════════════════════════════════
+    # RELATIONSHIPS SYSTEM (Phase 4)
+    # ════════════════════════════════════════════════════════════
+
+    def get_relationship(self, other_name: str) -> int:
+        """
+        Get this marshal's relationship with another marshal.
+
+        Args:
+            other_name: Name of the other marshal
+
+        Returns:
+            Relationship value (-2 to +2), defaults to 0 (professional)
+        """
+        return self.relationships.get(other_name, 0)
+
+    def set_relationship(self, other_name: str, value: int) -> None:
+        """
+        Set this marshal's relationship with another marshal.
+
+        Args:
+            other_name: Name of the other marshal
+            value: Relationship value (clamped to -2 to +2)
+        """
+        self.relationships[other_name] = max(-2, min(2, int(value)))
+
+    def modify_relationship(self, other_name: str, delta: int) -> int:
+        """
+        Modify this marshal's relationship with another marshal.
+
+        Args:
+            other_name: Name of the other marshal
+            delta: Amount to change (+/-)
+
+        Returns:
+            Actual change applied (may be less if clamped)
+        """
+        old_value = self.get_relationship(other_name)
+        new_value = max(-2, min(2, old_value + int(delta)))
+        self.relationships[other_name] = new_value
+        return new_value - old_value
+
+    @staticmethod
+    def get_relationship_label(value: int) -> str:
+        """
+        Get human-readable label for a relationship value.
+
+        Args:
+            value: Relationship value (-2 to +2)
+
+        Returns:
+            Label string
+        """
+        labels = {
+            -2: "Hostile",
+            -1: "Rival",
+            0: "Professional",
+            1: "Friendly",
+            2: "Devoted"
+        }
+        return labels.get(value, "Unknown")
 
     # ════════════════════════════════════════════════════════════
     # CAVALRY RECKLESSNESS SYSTEM (Phase 3)
@@ -712,6 +782,18 @@ def create_starting_marshals() -> dict[str, Marshal]:
             spawn_location="Paris"  # French capital - respawn location when broken
         )
     }
+
+    # ════════════════════════════════════════════════════════════
+    # WATERLOO SCENARIO: Historical Relationships
+    # ════════════════════════════════════════════════════════════
+    # Ney-Davout rivalry: Ney hates Davout, Davout merely dislikes Ney
+    marshals["Ney"].set_relationship("Davout", -2)
+    marshals["Ney"].set_relationship("Grouchy", 0)
+    marshals["Davout"].set_relationship("Ney", -1)
+    marshals["Davout"].set_relationship("Grouchy", 0)
+    marshals["Grouchy"].set_relationship("Ney", 0)
+    marshals["Grouchy"].set_relationship("Davout", 0)
+
     return marshals
 
 
@@ -782,6 +864,14 @@ def create_enemy_marshals() -> dict[str, Marshal]:
             spawn_location="Netherlands"  # TODO: Change to Berlin (Prussia capital) when map expanded
         )
     }
+
+    # ════════════════════════════════════════════════════════════
+    # WATERLOO SCENARIO: Historical Relationships
+    # ════════════════════════════════════════════════════════════
+    # Wellington-Blucher: Devoted allies (future-proofing for Coalition coordination)
+    enemies["Wellington"].set_relationship("Blucher", 2)
+    enemies["Blucher"].set_relationship("Wellington", 2)
+
     return enemies
 
 

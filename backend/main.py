@@ -613,7 +613,11 @@ def _get_map_data(world: WorldState) -> dict:
                 "nation": m.nation,
                 "strength": int(m.strength),
                 "morale": int(m.morale),
-                "movement_range": int(m.movement_range)
+                "movement_range": int(m.movement_range),
+                # Relationships (Phase 4) - exposed for all marshals
+                "relationships": {
+                    name: int(value) for name, value in getattr(m, 'relationships', {}).items()
+                }
             }
 
             # Add debug info for player marshals

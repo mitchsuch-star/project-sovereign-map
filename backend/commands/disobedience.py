@@ -65,6 +65,149 @@ def get_adjacent_regions(marshal_location: str, game_state) -> List[str]:
     return []
 
 
+def is_valid_move(marshal, target_region_name: str, game_state) -> Tuple[bool, str]:
+    """
+    Validate if a move to target region is legal.
+
+    Checks:
+    1. Engagement rule: If enemies in current region, can only move to friendly territory
+    2. Destination enemy check: Cannot move into region with enemy marshals
+
+    Returns:
+        (is_valid, reason) - True if valid, False with explanation if not
+    """
+    if game_state is None:
+        return False, "No game state"
+
+    # Get world state (handle different game_state structures)
+    world = getattr(game_state, 'world', game_state) if game_state else None
+    if not world or not hasattr(world, 'get_marshals_in_region'):
+        return True, "Cannot validate (no world)"  # Assume valid if can't check
+
+    marshal_nation = getattr(marshal, 'nation', 'France')
+
+    # ════════════════════════════════════════════════════════════
+    # CHECK 1: ENGAGEMENT RULE
+    # If enemy in current region, can only move to friendly territory
+    # ════════════════════════════════════════════════════════════
+    marshals_here = world.get_marshals_in_region(marshal.location)
+    enemies_here = [m for m in marshals_here if m.nation != marshal_nation and m.strength > 0]
+
+    if enemies_here:
+        # Engaged with enemy - check if destination is friendly
+        target_region = world.get_region(target_region_name)
+        if target_region and target_region.controller != marshal_nation:
+            return False, f"Engaged with enemy - can only retreat to friendly territory"
+
+    # ════════════════════════════════════════════════════════════
+    # CHECK 2: DESTINATION ENEMY CHECK
+    # Cannot MOVE into region with enemy marshals (must use ATTACK)
+    # ════════════════════════════════════════════════════════════
+    marshals_at_dest = world.get_marshals_in_region(target_region_name)
+    enemies_at_dest = [m for m in marshals_at_dest if m.nation != marshal_nation and m.strength > 0]
+
+    if enemies_at_dest:
+        return False, f"Enemy forces at {target_region_name} - must use ATTACK"
+
+    return True, "Valid move"
+
+
+def get_valid_move_targets(marshal, game_state) -> List[str]:
+    """
+    Get list of adjacent regions the marshal can legally move to.
+
+    Filters out invalid moves based on:
+    - Engagement rules (can't advance if engaged with enemy)
+    - Enemy presence at destination (can't move into enemy-occupied region)
+    """
+    adjacent = get_adjacent_regions(marshal.location, game_state)
+    valid_targets = []
+
+    for region_name in adjacent:
+        is_valid, reason = is_valid_move(marshal, region_name, game_state)
+        if is_valid:
+            valid_targets.append(region_name)
+
+    return valid_targets
+
+
+def can_drill(marshal, game_state) -> bool:
+    """
+    Check if marshal can legally drill.
+
+    Drill is blocked if:
+    - Already drilling or drilling_locked
+    - Fortified
+    - Retreating
+    - Enemy in same region (can't train with enemy attacking!)
+    """
+    if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+        return False
+    if getattr(marshal, 'fortified', False):
+        return False
+    if getattr(marshal, 'retreating', False):
+        return False
+
+    # Check for enemies in same region
+    if game_state is None:
+        return True  # Assume valid if can't check
+
+    world = getattr(game_state, 'world', game_state) if game_state else None
+    if not world or not hasattr(world, 'get_marshals_in_region'):
+        return True
+
+    marshal_nation = getattr(marshal, 'nation', 'France')
+    marshals_here = world.get_marshals_in_region(marshal.location)
+    enemies_here = [m for m in marshals_here if m.nation != marshal_nation and m.strength > 0]
+
+    return len(enemies_here) == 0
+
+
+def can_change_stance(marshal, target_stance: str) -> bool:
+    """
+    Check if marshal can change to target stance.
+
+    Blocked if:
+    - Already in that stance
+    - Drilling or drilling_locked
+    - Retreating
+    """
+    from backend.models.marshal import Stance
+
+    if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+        return False
+    if getattr(marshal, 'retreating', False):
+        return False
+
+    current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
+
+    stance_map = {
+        'aggressive': Stance.AGGRESSIVE,
+        'defensive': Stance.DEFENSIVE,
+        'neutral': Stance.NEUTRAL,
+    }
+
+    target = stance_map.get(target_stance.lower())
+    if target is None:
+        return False
+
+    return current_stance != target
+
+
+def get_enemies_in_region(marshal, game_state) -> List:
+    """Get enemy marshals in the same region as marshal."""
+    if game_state is None:
+        return []
+
+    world = getattr(game_state, 'world', game_state) if game_state else None
+    if not world or not hasattr(world, 'get_marshals_in_region'):
+        return []
+
+    marshal_nation = getattr(marshal, 'nation', 'France')
+    marshals_here = world.get_marshals_in_region(marshal.location)
+    return [m for m in marshals_here if m.nation != marshal_nation and m.strength > 0]
+
+
 def get_valid_actions(marshal, game_state) -> List[Dict]:
     """
     Return all actions this marshal can currently take.
@@ -107,10 +250,10 @@ def get_valid_actions(marshal, game_state) -> List[Dict]:
                 "description": f"Attack {enemy.name}"
             })
 
-    # Move destinations (blocked if fortified)
+    # Move destinations (blocked if fortified, validated against game rules)
     if not is_fortified:
-        adjacent = get_adjacent_regions(marshal.location, game_state)
-        for region in adjacent:
+        valid_move_targets = get_valid_move_targets(marshal, game_state)
+        for region in valid_move_targets:
             valid.append({
                 "action": "move",
                 "target": region,
@@ -622,19 +765,92 @@ class DisobedienceSystem:
         """
         Find valid compromise between original order and alternative.
 
-        Uses get_valid_actions() to ensure compromise is executable.
-        FIX: Defend target is always marshal's location, not enemy name.
+        Context-aware and personality-driven:
+        - Checks what actions are actually LEGAL
+        - Picks compromises that fit marshal's personality
+        - Falls back gracefully when preferred options aren't available
 
-        TODO: Post-testing, evaluate if scout/feint are needed for
-        meaningful compromise options. Only add if mechanically distinct.
+        Priority order for AGGRESSIVE (wants action):
+        1. aggressive_stance (if near enemies, ready to charge)
+        2. drill (if no enemies in region, prepare for shock attack)
+        3. move toward enemy (if valid move exists)
+        4. defend (last resort)
+
+        Priority order for CAUTIOUS (wants safety):
+        1. defensive_stance (careful posture)
+        2. fortify (if can fortify)
+        3. defend (hold position)
         """
         orig_action = original.get('action', '').lower()
         alt_action = alternative.get('action', '').lower()
+        personality = get_personality(marshal.personality)
 
-        # Get all valid actions for this marshal
-        valid_actions = get_valid_actions(marshal, game_state)
+        # Get context
+        enemies_in_range = get_enemies_in_range(marshal, game_state)
+        enemies_in_region = get_enemies_in_region(marshal, game_state)
+        has_enemies_nearby = len(enemies_in_range) > 0
+        is_engaged = len(enemies_in_region) > 0
 
-        # Look up compromise in rules
+        # ════════════════════════════════════════════════════════════
+        # AGGRESSIVE MARSHAL: Player wants passive, marshal wants action
+        # Compromise leans toward action-readiness
+        # ════════════════════════════════════════════════════════════
+        if personality == Personality.AGGRESSIVE:
+            # Player ordering defensive action (defend, fortify, defensive_stance)
+            if orig_action in ('defend', 'fortify', 'defensive_stance', 'stance_change'):
+                # Near enemies? Aggressive stance = ready to charge
+                if has_enemies_nearby and can_change_stance(marshal, 'aggressive'):
+                    return {
+                        'action': 'stance_change',
+                        'target': 'aggressive',
+                        'target_stance': 'aggressive',
+                    }
+
+                # No enemies in region? Drill for shock bonus
+                if not is_engaged and can_drill(marshal, game_state):
+                    return {
+                        'action': 'drill',
+                        'target': marshal.location,
+                    }
+
+                # Can move toward enemy?
+                move_target = self._get_move_toward_enemy(marshal, game_state)
+                if move_target:
+                    return {'action': 'move', 'target': move_target}
+
+                # Fallback: defend (at least stay mobile)
+                return {'action': 'defend', 'target': marshal.location}
+
+        # ════════════════════════════════════════════════════════════
+        # CAUTIOUS MARSHAL: Player wants aggression, marshal wants safety
+        # Compromise leans toward defensive readiness
+        # ════════════════════════════════════════════════════════════
+        elif personality == Personality.CAUTIOUS:
+            # Player ordering aggressive action (attack, aggressive_stance)
+            if orig_action in ('attack', 'aggressive_stance', 'stance_change'):
+                # Defensive stance = careful but not immobile
+                if can_change_stance(marshal, 'defensive'):
+                    return {
+                        'action': 'stance_change',
+                        'target': 'defensive',
+                        'target_stance': 'defensive',
+                    }
+
+                # Can fortify? Dig in for safety
+                is_fortified = getattr(marshal, 'fortified', False)
+                if not is_fortified and not is_engaged and can_drill(marshal, game_state):
+                    # Use can_drill check as proxy for "not blocked"
+                    return {
+                        'action': 'fortify',
+                        'target': marshal.location,
+                    }
+
+                # Fallback: defend
+                return {'action': 'defend', 'target': marshal.location}
+
+        # ════════════════════════════════════════════════════════════
+        # OTHER PERSONALITIES / FALLBACK: Use COMPROMISE_RULES table
+        # ════════════════════════════════════════════════════════════
         compromise_action = COMPROMISE_RULES.get((orig_action, alt_action))
         if not compromise_action:
             compromise_action = COMPROMISE_RULES.get((alt_action, orig_action))
@@ -642,44 +858,46 @@ class DisobedienceSystem:
         if compromise_action:
             # Find a valid target for this compromise action
             if compromise_action == 'defend':
-                # Defend always uses marshal's current location
-                target = marshal.location
+                return {'action': 'defend', 'target': marshal.location}
+
             elif compromise_action == 'move':
-                # Move toward enemy if possible
                 move_target = self._get_move_toward_enemy(marshal, game_state)
                 if move_target:
-                    target = move_target
-                else:
-                    # No valid move toward enemy - fall back to defend
-                    return {
-                        'action': 'defend',
-                        'target': marshal.location,
-                    }
+                    return {'action': 'move', 'target': move_target}
+                return {'action': 'defend', 'target': marshal.location}
+
             elif compromise_action == 'attack':
-                # Use original attack target if valid
-                enemies = get_enemies_in_range(marshal, game_state)
-                if enemies:
-                    target = enemies[0].name
-                else:
-                    # No valid attack - fall back to move or defend
-                    move_target = self._get_move_toward_enemy(marshal, game_state)
-                    if move_target:
-                        return {'action': 'move', 'target': move_target}
-                    return {'action': 'defend', 'target': marshal.location}
+                if enemies_in_range:
+                    return {'action': 'attack', 'target': enemies_in_range[0].name}
+                move_target = self._get_move_toward_enemy(marshal, game_state)
+                if move_target:
+                    return {'action': 'move', 'target': move_target}
+                return {'action': 'defend', 'target': marshal.location}
+
+            elif compromise_action == 'drill':
+                if can_drill(marshal, game_state):
+                    return {'action': 'drill', 'target': marshal.location}
+                return {'action': 'defend', 'target': marshal.location}
+
+            elif compromise_action == 'neutral_stance':
+                if can_change_stance(marshal, 'neutral'):
+                    return {'action': 'stance_change', 'target': 'neutral', 'target_stance': 'neutral'}
+                return {'action': 'defend', 'target': marshal.location}
+
             else:
-                target = marshal.location
+                return {'action': compromise_action, 'target': marshal.location}
 
-            return {
-                'action': compromise_action,
-                'target': target,
-            }
-
-        # No compromise rule - return None (no compromise available)
-        # The dialog will hide the compromise button
-        return None
+        # No compromise rule found - return defend as safe fallback
+        return {'action': 'defend', 'target': marshal.location}
 
     def _get_move_toward_enemy(self, marshal, game_state) -> Optional[str]:
-        """Find adjacent region that moves toward nearest enemy."""
+        """
+        Find adjacent region that moves toward nearest enemy.
+
+        Validates the move against game rules:
+        - Cannot move into enemy-occupied region (must attack)
+        - If engaged, can only retreat to friendly territory
+        """
         if game_state is None:
             return None
 
@@ -693,12 +911,23 @@ class DisobedienceSystem:
             return None
 
         current_dist = game_state.get_distance(marshal.location, enemy.location)
-        for adj_name in current_region.adjacent_regions:
-            adj_dist = game_state.get_distance(adj_name, enemy.location)
-            if adj_dist < current_dist:
-                return adj_name
 
-        return None
+        # Find valid moves that reduce distance to enemy
+        best_target = None
+        best_distance = current_dist
+
+        for adj_name in current_region.adjacent_regions:
+            # Validate this move is legal
+            valid, reason = is_valid_move(marshal, adj_name, game_state)
+            if not valid:
+                continue
+
+            adj_dist = game_state.get_distance(adj_name, enemy.location)
+            if adj_dist < best_distance:
+                best_target = adj_name
+                best_distance = adj_dist
+
+        return best_target
 
     def _get_strength_ratio_for_alternative(self, marshal, target, game_state) -> Optional[float]:
         """

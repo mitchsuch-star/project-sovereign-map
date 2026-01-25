@@ -111,17 +111,47 @@ func show_objection(objection_data: Dictionary):
 	print("19. PanelContainer visible: ", panel_container.visible if panel_container else "NULL")
 
 func _describe_order(order: Dictionary) -> String:
-	"""Create brief description of an order."""
+	"""Create human-readable description of an order."""
 	if not order:
 		return "unknown"
 
 	var action = order.get("action", "act")
 	var target = order.get("target", "")
 
-	if target:
-		return "%s %s" % [action, target]
-	else:
-		return action
+	# Handle specific action types with nice formatting
+	match action:
+		"attack":
+			return "attack %s" % target if target else "attack"
+		"defend":
+			return "defend position"
+		"move":
+			return "move to %s" % target if target else "move"
+		"fortify":
+			return "fortify position"
+		"drill":
+			return "drill troops"
+		"retreat":
+			return "retreat"
+		"stance_change":
+			var stance = target.to_upper() if target else "new"
+			return "adopt %s stance" % stance
+		"aggressive_stance":
+			return "adopt AGGRESSIVE stance"
+		"defensive_stance":
+			return "adopt DEFENSIVE stance"
+		"neutral_stance":
+			return "adopt NEUTRAL stance"
+		"recruit":
+			return "recruit troops"
+		"unfortify":
+			return "abandon fortifications"
+		"wait", "hold":
+			return "hold position"
+		_:
+			# Fallback for unknown actions
+			if target:
+				return "%s %s" % [action, target]
+			return action
 
 func _get_vindication_text(score: int) -> String:
 	"""Convert vindication score to readable text."""
