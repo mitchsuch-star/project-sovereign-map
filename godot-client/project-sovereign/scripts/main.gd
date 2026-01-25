@@ -17,6 +17,7 @@ extends Control
 @onready var output_display = $BottomLeftUI/MainMargin/MainLayout/OutputScroll/OutputDisplay
 @onready var command_input = $BottomLeftUI/MainMargin/MainLayout/InputSection/CommandInput
 @onready var send_button = $BottomLeftUI/MainMargin/MainLayout/InputSection/SendButton
+@onready var end_turn_button = $BottomLeftUI/MainMargin/MainLayout/InputSection/EndTurnButton
 
 # Map reference
 @onready var map_area = $MapArea
@@ -145,6 +146,9 @@ func _ready():
 	if not command_input.text_submitted.is_connected(_on_command_submitted):
 		command_input.text_submitted.connect(_on_command_submitted)
 
+	if not end_turn_button.pressed.is_connected(_on_end_turn_pressed):
+		end_turn_button.pressed.connect(_on_end_turn_pressed)
+
 	# Start disabled until connected
 	set_input_enabled(false)
 
@@ -217,6 +221,32 @@ func _on_send_button_pressed():
 func _on_command_submitted(_text: String):
 	"""Handle enter key in command input."""
 	_execute_command()
+
+func _on_end_turn_pressed():
+	"""Handle End Turn button click."""
+	_execute_end_turn()
+
+func _unhandled_input(event):
+	"""Handle hotkeys when command input is not focused."""
+	# E key for End Turn (only when not typing in command input)
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_E:
+			# Don't trigger if command input has focus
+			if not command_input.has_focus() and end_turn_button.visible and not end_turn_button.disabled:
+				_execute_end_turn()
+				get_viewport().set_input_as_handled()
+
+func _execute_end_turn():
+	"""Execute end turn command."""
+	# Display the command
+	add_output("")
+	add_output("[color=#" + COLOR_COMMAND + "]► end turn[/color]")
+
+	# Disable input while processing
+	set_input_enabled(false)
+
+	# Send to backend
+	api_client.send_command("end turn", _on_command_result)
 
 func _execute_command():
 	"""Execute the command in the input field."""
@@ -599,9 +629,10 @@ func _trim_old_messages():
 	message_count = new_lines.size()
 
 func set_input_enabled(enabled: bool):
-	"""Enable or disable command input."""
+	"""Enable or disable command input and buttons."""
 	command_input.editable = enabled
 	send_button.disabled = not enabled
+	end_turn_button.disabled = not enabled
 
 	if enabled:
 		command_input.grab_focus()
