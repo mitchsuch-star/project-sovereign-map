@@ -157,13 +157,22 @@ class LLMClient:
         # Step 1: ALWAYS run fast parser first - it's our baseline and safety net
         fast_result = self._parse_with_mock(command_text)
 
+        # DEBUG: Trace LLM fallback decision
+        print(f"[LLM DEBUG] Command: '{command_text}'")
+        print(f"[LLM DEBUG] Fast parser: action={fast_result.action}, conf={fast_result.confidence}")
+        print(f"[LLM DEBUG] game_state: {'provided' if game_state else 'None'}")
+
         # Step 2: Decide if we should try LLM
         # Skip LLM if: mock mode, high confidence, no game_state, or meta command
-        if not self._should_fallback_to_llm(fast_result, game_state):
+        should_fallback = self._should_fallback_to_llm(fast_result, game_state)
+        print(f"[LLM DEBUG] _should_fallback_to_llm() = {should_fallback}")
+
+        if not should_fallback:
+            print(f"[LLM DEBUG] Using fast parser result")
             return fast_result.to_dict()
 
         # Step 3: Try LLM provider
-        print(f"Fast parser confidence {fast_result.confidence} < {LLM_FALLBACK_CONFIDENCE_THRESHOLD}, trying LLM...")
+        print(f"[LLM DEBUG] Calling LLM provider...")
         llm_result = self._parse_with_live_provider(command_text, game_state, fast_result)
 
         # Step 4: Return best result
@@ -191,18 +200,22 @@ class LLMClient:
         """
         # Mock mode: LLM not available
         if self.provider_name == "mock":
+            print(f"[LLM DEBUG]   -> Skip: provider_name={self.provider_name} (mock mode)")
             return False
 
         # No API key configured: can't call LLM
         if not self.api_key:
+            print(f"[LLM DEBUG]   -> Skip: no API key configured")
             return False
 
         # Fast parser is confident: trust it
         if fast_result.confidence >= LLM_FALLBACK_CONFIDENCE_THRESHOLD:
+            print(f"[LLM DEBUG]   -> Skip: confidence {fast_result.confidence} >= {LLM_FALLBACK_CONFIDENCE_THRESHOLD}")
             return False
 
         # No game state: can't build good prompt (marshals, positions, etc.)
         if game_state is None:
+            print(f"[LLM DEBUG]   -> Skip: game_state is None")
             return False
 
         # Known meta commands: fast parser handles these perfectly
@@ -210,9 +223,11 @@ class LLMClient:
         # NOTE: "unknown" is NOT included here - unknown SHOULD try LLM!
         meta_commands = {"help", "debug", "end_turn", "status"}
         if fast_result.action in meta_commands:
+            print(f"[LLM DEBUG]   -> Skip: meta command '{fast_result.action}'")
             return False
 
         # All checks passed: try LLM
+        print(f"[LLM DEBUG]   -> All checks passed, will try LLM")
         return True
 
     def parse_command_structured(self, command_text: str, game_state: Optional[Dict] = None) -> ParseResult:

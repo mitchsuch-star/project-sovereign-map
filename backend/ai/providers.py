@@ -2,21 +2,98 @@
 LLM Provider abstraction for Project Sovereign.
 Phase 4: Supports mock, Anthropic, and future Groq integration.
 
-Provider Pattern:
-- BaseProvider: Abstract interface for all providers
-- MockProvider: Keyword matching (free, instant, offline)
-- AnthropicProvider: Claude API (uses prompt_builder)
-- GroqProvider: Groq API (future implementation)
+===============================================================================
+PROVIDER ARCHITECTURE
+===============================================================================
+
+This module implements the provider pattern for LLM integrations:
+
+    LLMClient (llm_client.py)
+         |
+         | calls provider.parse()
+         v
+    BaseProvider (abstract)
+         |
+         +-- MockProvider: Keyword matching (free, instant, offline)
+         |                 NOTE: Actual logic is in LLMClient._parse_with_mock()
+         |
+         +-- AnthropicProvider: Claude API via raw HTTP
+         |                      Uses httpx for HTTP calls
+         |                      Returns ParseResult or None on error
+         |
+         +-- GroqProvider: Groq API (OpenAI-compatible endpoint)
+                           Future implementation
+
+===============================================================================
+ERROR CONTRACT
+===============================================================================
+
+All providers follow this error contract:
+
+1. On SUCCESS: Return ParseResult with matched=True and parsed data
+2. On PARSE FAILURE: Return ParseResult with matched=False (LLM couldn't understand)
+3. On API ERROR: Return ParseResult with matched=False (caller falls back to fast parser)
+
+Providers NEVER raise exceptions to callers. All errors are caught internally,
+logged, and converted to a ParseResult with matched=False.
+
+The caller (LLMClient._parse_with_live_provider) handles fallback to fast parser.
+
+===============================================================================
+ADDING NEW PROVIDERS
+===============================================================================
+
+To add a new provider (e.g., OpenAI, Ollama):
+
+1. Create a new class inheriting from BaseProvider
+2. Implement __init__ with ProviderConfig
+3. Implement parse() following the error contract
+4. Add to PROVIDERS dict at bottom of file
+5. Test with LLM_MODE=<provider_name> in .env
+
+Example:
+    class OpenAIProvider(BaseProvider):
+        def __init__(self):
+            super().__init__(ProviderConfig(
+                name="openai",
+                api_key_env="OPENAI_API_KEY",
+                model="gpt-4o-mini",
+                endpoint="https://api.openai.com/v1/chat/completions",
+            ))
+
+        def parse(self, command_text, game_state):
+            # Build prompt, make HTTP call, parse response
+            # Return ParseResult (never raise)
+
+===============================================================================
 """
 
 import json
 import os
 import re
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, Tuple
+
+import httpx
 
 from .schemas import ParseResult, ProviderConfig
 from .prompt_builder import build_parse_prompt, build_system_prompt
+
+
+# =============================================================================
+# API CONFIGURATION
+# =============================================================================
+
+# Anthropic API endpoint (Messages API)
+ANTHROPIC_API_ENDPOINT = "https://api.anthropic.com/v1/messages"
+
+# API version header required by Anthropic
+ANTHROPIC_API_VERSION = "2023-06-01"
+
+# Request timeout in seconds
+# 5 seconds is reasonable for parsing requests (~500 tokens)
+# Longer timeouts would block the game too long
+REQUEST_TIMEOUT_SECONDS = 5.0
 
 
 # =============================================================================
@@ -181,7 +258,17 @@ class MockProvider(BaseProvider):
 class AnthropicProvider(BaseProvider):
     """
     Anthropic Claude API provider.
-    Future implementation for real LLM parsing.
+
+    Makes HTTP calls to the Anthropic Messages API to parse natural language
+    commands into structured game actions.
+
+    API Documentation: https://docs.anthropic.com/en/api/messages
+
+    Cost Estimation (claude-3-haiku):
+        - Input: ~$0.25 / 1M tokens
+        - Output: ~$1.25 / 1M tokens
+        - Per request: ~500 input + ~200 output = ~$0.0004 per parse
+        - 1000 commands ≈ $0.40
     """
 
     def __init__(self):
@@ -205,17 +292,55 @@ class AnthropicProvider(BaseProvider):
         """
         Parse command using Claude API.
 
-        Uses prompt_builder to construct context-aware prompts.
-        Parses JSON response into ParseResult.
+        FULL REQUEST/RESPONSE FLOW:
+        ===========================
+
+        1. PROMPT BUILDING
+           - build_system_prompt() → military commander context
+           - build_parse_prompt() → game state + command + examples
+
+        2. HTTP REQUEST
+           - POST to https://api.anthropic.com/v1/messages
+           - Headers: x-api-key, content-type, anthropic-version
+           - Body: model, max_tokens, system, messages
+
+        3. RESPONSE PARSING
+           - Extract: response["content"][0]["text"]
+           - Parse JSON from text (handles markdown blocks, etc.)
+           - Convert to ParseResult via json_to_parse_result()
+
+        4. ERROR HANDLING
+           - Timeout (5s): Log + return matched=False
+           - HTTP 401: Invalid key → Log + return matched=False
+           - HTTP 429: Rate limited → Log + return matched=False
+           - HTTP 5xx: Server error → Log + return matched=False
+           - JSON parse error: Log + return matched=False
+           - ALL errors result in matched=False, caller falls back to fast parser
+
+        LLM PIPELINE POSITION:
+        ======================
+
+        User Input → Fast Parser → [THIS METHOD] → Validation → Executor
+                         ↓              ↓              ↓
+                    (always runs)  (if low conf)  (catches hallucinations)
+
+        If this method fails, LLMClient falls back to fast parser result.
 
         Args:
-            command_text: Player's command
-            game_state: Current game state (marshals, enemies, regions)
+            command_text: Player's command (e.g., "Ney, attack Wellington")
+            game_state: Current game state for context:
+                - marshals: Dict of player marshals
+                - enemies: Dict of enemy forces
+                - map_data: Dict of regions
 
         Returns:
-            ParseResult from LLM, or error result if API call fails
+            ParseResult with:
+                - matched=True: Successfully parsed command
+                - matched=False: API error or couldn't parse (caller falls back)
         """
-        # Validate configuration
+        # =================================================================
+        # STEP 1: Validate configuration
+        # =================================================================
         if not self.validate_config():
             return ParseResult(
                 matched=False,
@@ -226,44 +351,173 @@ class AnthropicProvider(BaseProvider):
                 confidence=0.0,
             )
 
-        # Build prompt using prompt_builder
+        # =================================================================
+        # STEP 2: Build prompts
+        # =================================================================
         system_prompt = build_system_prompt()
         user_prompt = build_parse_prompt(
             raw_input=command_text,
             game_state=game_state or {},
         )
 
-        # Log prompt for debugging (truncated)
-        print(f"AnthropicProvider: Built prompt ({len(user_prompt)} chars)")
+        print(f"AnthropicProvider: Calling API for '{command_text[:50]}...'")
 
-        # TODO: Implement actual API call
-        # Structure will be:
-        #
-        # import anthropic
-        # client = anthropic.Anthropic(api_key=self.get_api_key())
-        # response = client.messages.create(
-        #     model=self.config.model,
-        #     max_tokens=self.config.max_tokens,
-        #     temperature=self.config.temperature,
-        #     system=system_prompt,
-        #     messages=[{"role": "user", "content": user_prompt}]
-        # )
-        # response_text = response.content[0].text
-        # json_data = parse_llm_json_response(response_text)
-        # ... convert to ParseResult ...
+        # =================================================================
+        # STEP 3: Make API request
+        # =================================================================
+        response_text, error = self._make_api_request(system_prompt, user_prompt)
 
-        # For now, return a stub indicating API not yet implemented
-        # This allows testing the flow without real API calls
-        return ParseResult(
-            matched=False,
-            action="unknown",
-            raw_command=command_text,
-            mode="anthropic",
-            interpretation="Anthropic API call not yet implemented - prompt ready",
-            confidence=0.0,
-            # Mark that we got this far in the flow
-            suggestion="LLM flow reached provider - API call pending implementation",
-        )
+        if error:
+            # Error already logged in _make_api_request
+            return ParseResult(
+                matched=False,
+                action="unknown",
+                raw_command=command_text,
+                mode="anthropic",
+                interpretation=f"API error: {error}",
+                confidence=0.0,
+            )
+
+        # =================================================================
+        # STEP 4: Parse JSON from response
+        # =================================================================
+        json_data = parse_llm_json_response(response_text)
+
+        if json_data is None:
+            print(f"AnthropicProvider: Failed to parse JSON from response")
+            return ParseResult(
+                matched=False,
+                action="unknown",
+                raw_command=command_text,
+                mode="anthropic",
+                interpretation="LLM response was not valid JSON",
+                confidence=0.0,
+            )
+
+        # =================================================================
+        # STEP 5: Convert to ParseResult
+        # =================================================================
+        result = json_to_parse_result(json_data, command_text, "anthropic")
+
+        print(f"AnthropicProvider: Parsed '{command_text}' -> "
+              f"action={result.action}, marshals={result.marshals}, "
+              f"ambiguity={result.ambiguity}")
+
+        return result
+
+    def _make_api_request(
+        self,
+        system_prompt: str,
+        user_prompt: str
+    ) -> Tuple[Optional[str], Optional[str]]:
+        """
+        Make HTTP request to Anthropic Messages API.
+
+        This method handles all HTTP communication and error handling.
+        It NEVER raises exceptions - all errors are returned as (None, error_msg).
+
+        Args:
+            system_prompt: System message for Claude
+            user_prompt: User message with command and context
+
+        Returns:
+            Tuple of (response_text, error_message):
+                - Success: (response_text, None)
+                - Failure: (None, error_description)
+        """
+        api_key = self.get_api_key()
+
+        # Build request
+        headers = {
+            "x-api-key": api_key,
+            "content-type": "application/json",
+            "anthropic-version": ANTHROPIC_API_VERSION,
+        }
+
+        body = {
+            "model": self.config.model,
+            "max_tokens": self.config.max_tokens,
+            "system": system_prompt,
+            "messages": [
+                {"role": "user", "content": user_prompt}
+            ]
+        }
+
+        # Log request (without API key!)
+        print(f"AnthropicProvider: POST {ANTHROPIC_API_ENDPOINT}")
+        print(f"AnthropicProvider: model={self.config.model}, "
+              f"max_tokens={self.config.max_tokens}, "
+              f"prompt_len={len(user_prompt)}")
+
+        try:
+            # Make request with timeout
+            with httpx.Client(timeout=REQUEST_TIMEOUT_SECONDS) as client:
+                response = client.post(
+                    ANTHROPIC_API_ENDPOINT,
+                    headers=headers,
+                    json=body
+                )
+
+            # Log response status
+            print(f"AnthropicProvider: Response status={response.status_code}")
+
+            # Handle HTTP errors
+            if response.status_code == 401:
+                print("AnthropicProvider: ERROR 401 - Invalid API key")
+                return None, "Invalid API key"
+
+            if response.status_code == 429:
+                print("AnthropicProvider: ERROR 429 - Rate limited")
+                return None, "Rate limited - too many requests"
+
+            if response.status_code >= 500:
+                print(f"AnthropicProvider: ERROR {response.status_code} - Server error")
+                return None, f"Server error ({response.status_code})"
+
+            if response.status_code != 200:
+                print(f"AnthropicProvider: ERROR {response.status_code} - {response.text[:200]}")
+                return None, f"HTTP {response.status_code}"
+
+            # Parse response JSON
+            try:
+                response_json = response.json()
+            except json.JSONDecodeError as e:
+                print(f"AnthropicProvider: Failed to parse response JSON: {e}")
+                return None, "Invalid JSON in response"
+
+            # Extract text content
+            # Response format: {"content": [{"type": "text", "text": "..."}], ...}
+            content = response_json.get("content", [])
+            if not content or not isinstance(content, list):
+                print(f"AnthropicProvider: No content in response")
+                return None, "No content in response"
+
+            text_content = content[0].get("text", "")
+            if not text_content:
+                print(f"AnthropicProvider: Empty text in response")
+                return None, "Empty text in response"
+
+            # Log token usage if available
+            usage = response_json.get("usage", {})
+            if usage:
+                input_tokens = usage.get("input_tokens", 0)
+                output_tokens = usage.get("output_tokens", 0)
+                print(f"AnthropicProvider: Tokens used - input={input_tokens}, output={output_tokens}")
+
+            return text_content, None
+
+        except httpx.TimeoutException:
+            print(f"AnthropicProvider: ERROR - Request timed out after {REQUEST_TIMEOUT_SECONDS}s")
+            return None, f"Request timed out after {REQUEST_TIMEOUT_SECONDS}s"
+
+        except httpx.ConnectError as e:
+            print(f"AnthropicProvider: ERROR - Connection failed: {e}")
+            return None, "Connection failed - check internet"
+
+        except Exception as e:
+            # Catch-all for unexpected errors
+            print(f"AnthropicProvider: ERROR - Unexpected: {type(e).__name__}: {e}")
+            return None, f"Unexpected error: {type(e).__name__}"
 
 
 class GroqProvider(BaseProvider):

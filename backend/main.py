@@ -3,6 +3,12 @@ FastAPI server for Project Sovereign
 Connects Godot frontend to Python game logic
 """
 
+import os
+from dotenv import load_dotenv
+
+# Load .env BEFORE any imports that might read env vars
+load_dotenv()
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -16,12 +22,76 @@ from backend.models.world_state import WorldState
 # ════════════════════════════════════════════════════════════
 DEBUG_MODE = True  # Set to False for production
 
+# ════════════════════════════════════════════════════════════
+# STARTUP: Show LLM configuration
+# ════════════════════════════════════════════════════════════
+print("=" * 60)
+print("PROJECT SOVEREIGN - Server Starting")
+print("=" * 60)
+llm_mode = os.getenv("LLM_MODE", "mock")
+api_key = os.getenv("ANTHROPIC_API_KEY", "")
+print(f"LLM_MODE: {llm_mode}")
+print(f"ANTHROPIC_API_KEY: {'SET (' + api_key[:10] + '...)' if api_key else 'NOT SET'}")
+print("=" * 60)
+
 # Initialize game
 app = FastAPI(title="Project Sovereign API")
-parser = CommandParser(use_real_llm=False)
+parser = CommandParser()  # Uses LLM_MODE from environment
 executor = CommandExecutor()
 world = WorldState(player_nation="France")
 game_state = {"world": world, "debug_mode": DEBUG_MODE}
+
+
+def get_llm_game_state() -> dict:
+    """
+    Build game state dict in the format expected by prompt_builder.
+
+    The LLM prompt builder expects:
+    - marshals: {name: {location, strength, morale}}
+    - enemies: {name: {location, strength, nation}}
+    - map_data: {region: {controller, marshals: [{name, personality}]}}
+
+    This is separate from get_game_state_summary() which is for the frontend.
+    """
+    # Build marshals dict (player marshals)
+    marshals = {}
+    for m in world.get_player_marshals():
+        if m.strength > 0:  # Only alive marshals
+            marshals[m.name] = {
+                "location": m.location,
+                "strength": int(m.strength),
+                "morale": int(m.morale),
+            }
+
+    # Build enemies dict
+    enemies = {}
+    for m in world.get_enemy_marshals():
+        if m.strength > 0:  # Only alive marshals
+            enemies[m.name] = {
+                "location": m.location,
+                "strength": int(m.strength),
+                "nation": m.nation,
+            }
+
+    # Build map_data dict
+    map_data = {}
+    for region_name, region in world.regions.items():
+        marshals_here = world.get_marshals_in_region(region_name)
+        map_data[region_name] = {
+            "controller": region.controller or "Neutral",
+            "marshals": [
+                {"name": m.name, "personality": getattr(m, 'personality', 'unknown')}
+                for m in marshals_here if m.strength > 0
+            ]
+        }
+
+    return {
+        "turn": int(world.current_turn),
+        "gold": int(world.gold),
+        "marshals": marshals,
+        "enemies": enemies,
+        "map_data": map_data,
+    }
 
 # Allow Godot to connect
 app.add_middleware(
@@ -75,7 +145,9 @@ def execute_command(request: CommandRequest):
 
     try:
         # Parse command
-        parsed = parser.parse(request.command)
+        # Build LLM-compatible game state for command parsing
+        llm_game_state = get_llm_game_state()
+        parsed = parser.parse(request.command, llm_game_state)
         print(f"[OK] Parsed: {parsed.get('command', {}).get('action', 'unknown')}")
 
         # Execute command

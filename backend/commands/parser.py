@@ -14,13 +14,15 @@ class CommandParser:
     Uses LLM client to interpret natural language.
     """
 
-    def __init__(self, use_real_llm: bool = False):
+    def __init__(self, use_real_llm: bool = None):
         """
         Initialize the parser with an LLM client.
 
         Args:
             use_real_llm: If True, use real Claude API. If False, use mock.
+                         If None (default), read from LLM_MODE environment variable.
         """
+        # Pass None to let LLMClient read from environment
         self.llm = LLMClient(use_real_api=use_real_llm)
         self.fuzzy_matcher = FuzzyMatcher()
 
@@ -65,7 +67,10 @@ class CommandParser:
         # Known enemy marshals
         self.known_enemies = ["Wellington", "Blucher"]
 
-        print(f"Command Parser initialized with {'REAL' if use_real_llm else 'MOCK'} LLM")
+        # Show actual mode from LLMClient (which reads from env if use_real_llm=None)
+        mode = self.llm.provider_name.upper()
+        key_source = self.llm.key_source
+        print(f"Command Parser initialized: mode={mode}, key_source={key_source}")
 
     def _apply_fuzzy_matching(self, llm_result: Dict, command_text: str) -> tuple:
         """
