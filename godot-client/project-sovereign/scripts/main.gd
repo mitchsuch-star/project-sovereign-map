@@ -46,6 +46,11 @@ var max_turns = 40
 var gold = 1200
 var pending_redemption = false  # True when awaiting redemption choice
 
+# Command history (up/down arrow navigation)
+var command_history: Array = []
+var history_index: int = -1  # -1 means "new command mode"
+const MAX_HISTORY = 10
+
 # Color palette (Napoleonic theme)
 const COLOR_GOLD = "d9c08c"        # Gold for titles, important text
 const COLOR_COMMAND = "7eb8da"     # Light blue for player commands
@@ -149,6 +154,9 @@ func _ready():
 	if not end_turn_button.pressed.is_connected(_on_end_turn_pressed):
 		end_turn_button.pressed.connect(_on_end_turn_pressed)
 
+	if not command_input.gui_input.is_connected(_on_command_input_gui_input):
+		command_input.gui_input.connect(_on_command_input_gui_input)
+
 	# Start disabled until connected
 	set_input_enabled(false)
 
@@ -222,6 +230,69 @@ func _on_command_submitted(_text: String):
 	"""Handle enter key in command input."""
 	_execute_command()
 
+func _on_command_input_gui_input(event):
+	"""Handle special keys in command input."""
+	if event is InputEventKey and event.pressed:
+		if event.keycode == KEY_UP:
+			_history_previous()
+			command_input.accept_event()  # Consume event, prevent camera movement
+		elif event.keycode == KEY_DOWN:
+			_history_next()
+			command_input.accept_event()  # Consume event, prevent camera movement
+		elif event.keycode == KEY_ESCAPE:
+			command_input.release_focus()  # Unfocus to allow camera controls
+			command_input.accept_event()
+
+func _history_previous():
+	"""Navigate to previous command in history (up arrow)."""
+	if command_history.is_empty():
+		return
+
+	if history_index == -1:
+		# Start from most recent
+		history_index = command_history.size() - 1
+	elif history_index > 0:
+		# Go further back
+		history_index -= 1
+	# else: already at oldest, stay there
+
+	command_input.text = command_history[history_index]
+	command_input.caret_column = command_input.text.length()
+
+func _history_next():
+	"""Navigate to next command in history (down arrow)."""
+	if history_index == -1:
+		# Already in new command mode
+		return
+
+	if history_index < command_history.size() - 1:
+		# Go forward in history
+		history_index += 1
+		command_input.text = command_history[history_index]
+		command_input.caret_column = command_input.text.length()
+	else:
+		# At newest, return to new command mode (clear)
+		history_index = -1
+		command_input.text = ""
+
+func _add_to_history(command: String):
+	"""Add command to history if valid."""
+	if command.is_empty():
+		return
+
+	# Don't add if same as last command
+	if not command_history.is_empty() and command_history.back() == command:
+		return
+
+	command_history.append(command)
+
+	# Trim to max size
+	while command_history.size() > MAX_HISTORY:
+		command_history.pop_front()
+
+	# Reset to new command mode
+	history_index = -1
+
 func _on_end_turn_pressed():
 	"""Handle End Turn button click."""
 	_execute_end_turn()
@@ -238,6 +309,9 @@ func _unhandled_input(event):
 
 func _execute_end_turn():
 	"""Execute end turn command."""
+	# Add to history
+	_add_to_history("end turn")
+
 	# Display the command
 	add_output("")
 	add_output("[color=#" + COLOR_COMMAND + "]► end turn[/color]")
@@ -254,6 +328,9 @@ func _execute_command():
 
 	if command.is_empty():
 		return
+
+	# Add to history before clearing
+	_add_to_history(command)
 
 	# Display player command with prompt styling
 	add_output("")
