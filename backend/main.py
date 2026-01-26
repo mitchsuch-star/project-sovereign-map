@@ -175,6 +175,36 @@ def execute_command(request: CommandRequest):
         # Get action summary
         action_summary = world.get_action_summary()
 
+        # ════════════════════════════════════════════════════════════
+        # FEEDBACK GENERATION (Phase 5): Generate immersive feedback
+        # Only for non-mock mode, successful player commands
+        # ════════════════════════════════════════════════════════════
+        feedback = {}
+        mode = parsed.get("mode", "mock")
+
+        if mode != "mock" and result.get("success", False):
+            from backend.ai.feedback import get_strategic_feedback, get_ambiguity_feedback
+
+            # Get scores from parsed command
+            strategic_score = parsed.get("strategic_score", 0)
+            ambiguity_score = parsed.get("ambiguity", 0)
+
+            # Get marshal info - try result first, then parsed command
+            marshal_name = result.get("marshal") or parsed.get("command", {}).get("marshal")
+            if marshal_name:
+                marshal = world.get_marshal(marshal_name)
+                if marshal and marshal.nation == world.player_nation:
+                    personality = getattr(marshal, 'personality', 'balanced')
+
+                    # Generate feedback strings
+                    strategic_text = get_strategic_feedback(strategic_score, marshal_name)
+                    ambiguity_text = get_ambiguity_feedback(ambiguity_score, marshal_name, personality)
+
+                    if strategic_text:
+                        feedback["strategic"] = strategic_text
+                    if ambiguity_text:
+                        feedback["ambiguity"] = ambiguity_text
+
         response = {
             "success": result.get("success", False),
             "message": result.get("message", "Command executed"),
@@ -183,6 +213,10 @@ def execute_command(request: CommandRequest):
             "action_summary": action_summary,
             "game_state": world.get_game_state_summary()
         }
+
+        # Add feedback if generated
+        if feedback:
+            response["feedback"] = feedback
 
         # Include enemy_phase if present (from end_turn)
         # Clean up non-serializable fields (new_state contains circular references)

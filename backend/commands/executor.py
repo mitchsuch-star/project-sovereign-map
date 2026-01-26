@@ -705,6 +705,26 @@ RETREAT RECOVERY (3 turns):
                     # else: No objection (severity below threshold)
 
         # ============================================================
+        # STRATEGIC BONUSES: Apply morale/trust/combat bonuses (Phase 5)
+        # Only for player actions, only in non-mock mode
+        # ============================================================
+
+        # Define combat actions that get strategic_combat_bonus
+        COMBAT_ACTIONS = ["attack", "charge"]
+
+        # Check if we should apply bonuses
+        mode = parsed_command.get("mode", "mock")
+        strategic_score = parsed_command.get("strategic_score", 0)
+
+        # Only apply for non-mock, player actions with a marshal
+        if mode != "mock" and is_player_action_check and marshal_name:
+            marshal = world.get_marshal(marshal_name)
+            if marshal and marshal.nation == world.player_nation:
+                from backend.ai.feedback import apply_strategic_bonuses
+                is_combat_action = action in COMBAT_ACTIONS
+                apply_strategic_bonuses(marshal, strategic_score, is_combat_action)
+
+        # ============================================================
         # Continue with normal command routing
         # ============================================================
 

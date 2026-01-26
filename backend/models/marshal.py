@@ -155,6 +155,7 @@ class Marshal:
         self.drilling_locked: bool = False   # Locked in drill (Turn N+1)
         self.drill_complete_turn: int = -1   # Turn when drill completes
         self.shock_bonus: int = 0            # +2 = +20% attack (from drill)
+        self.strategic_combat_bonus: int = 0  # Set by inspiring commands, consumed in combat
 
         # FORTIFY State: Defensive lockdown, +10% defense, can't move/attack
         self.fortified: bool = False         # Currently fortified
@@ -525,6 +526,12 @@ class Marshal:
         has_drill_bonus = shock > 0
         if has_drill_bonus:
             modifier *= (1.0 + shock * 0.10)  # shock_bonus=2 → +20%
+
+        # Strategic combat bonus (from inspiring commands, consumed on use)
+        strategic_bonus = getattr(self, 'strategic_combat_bonus', 0)
+        if strategic_bonus > 0:
+            modifier *= (1.0 + strategic_bonus / 100.0)  # 10 → +10%
+            self.strategic_combat_bonus = 0  # Consume after use
 
         # Personality-specific attack modifiers
         personality_mod = get_attack_modifier_for_personality(
