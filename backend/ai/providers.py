@@ -355,9 +355,15 @@ class AnthropicProvider(BaseProvider):
         # STEP 2: Build prompts
         # =================================================================
         system_prompt = build_system_prompt()
+
+        # Get command history from world for repetition detection
+        world = game_state.get("world") if game_state else None
+        command_history = world.get_command_history_for_prompt() if world else []
+
         user_prompt = build_parse_prompt(
             raw_input=command_text,
             game_state=game_state or {},
+            command_history=command_history,
         )
 
         print(f"AnthropicProvider: Calling API for '{command_text[:50]}...'")
@@ -570,9 +576,15 @@ class GroqProvider(BaseProvider):
 
         # Build prompt using prompt_builder (same as Anthropic)
         system_prompt = build_system_prompt()
+
+        # Get command history from world for repetition detection
+        world = game_state.get("world") if game_state else None
+        command_history = world.get_command_history_for_prompt() if world else []
+
         user_prompt = build_parse_prompt(
             raw_input=command_text,
             game_state=game_state or {},
+            command_history=command_history,
         )
 
         print(f"GroqProvider: Built prompt ({len(user_prompt)} chars)")

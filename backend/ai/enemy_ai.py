@@ -62,10 +62,65 @@ from backend.models.marshal import Marshal, Stance
 # Debug flag - set to True to enable detailed AI decision logging
 AI_DEBUG = True
 
+# AI Scoring flag - enables strategic scoring for AI actions (Phase 5)
+# Set to False to disable for performance testing
+AI_SCORING_ENABLED = True
+
 def ai_debug(msg: str):
     """Print debug message if AI_DEBUG is enabled."""
     if AI_DEBUG:
         print(f"[AI DEBUG] {msg}")
+
+
+def calculate_ai_strategic_score(marshal: "Marshal", action: str, target: Optional["Marshal"]) -> int:
+    """
+    Calculate AI strategic score (parallel to player LLM scoring).
+
+    Returns score 0-100 based on personality and situation.
+    This enables AI marshals to get the same morale/trust/combat bonuses
+    as player marshals, ensuring fairness.
+
+    Args:
+        marshal: The AI marshal executing the action
+        action: The action being taken (e.g., "attack", "defend")
+        target: The target marshal (if applicable)
+
+    Returns:
+        Strategic score 0-100
+    """
+    personality = getattr(marshal, 'personality', 'balanced')
+
+    # Base score by personality
+    BASE_SCORES = {
+        "aggressive": 55,  # Blücher's "Vorwärts!" energy
+        "cautious": 40,    # Professional, measured
+        "literal": 30,     # By-the-book, uninspiring
+        "balanced": 45,    # Competent
+        "loyal": 50,       # Dedicated to the cause
+    }
+    score = BASE_SCORES.get(personality, 40)
+
+    # Simple situation modifiers for combat actions only
+    if action in ["attack", "charge"] and target:
+        ratio = marshal.strength / max(target.strength, 1)
+
+        # Glory opportunity: clear advantage
+        if ratio > 1.5:
+            score += 10
+
+        # Opportunistic: vulnerable target
+        if getattr(target, 'drilling', False) or getattr(target, 'drilling_locked', False):
+            score += 10
+
+        # Blücher moment: aggressive attacking against odds
+        if ratio < 0.8 and personality == "aggressive":
+            score += 15
+
+    # Random variance ±10
+    score += random.randint(-10, 10)
+
+    # Clamp to 0-100
+    return max(0, min(100, score))
 
 
 class EnemyAI:
@@ -209,12 +264,37 @@ class EnemyAI:
 
         result = self.executor.execute(command, game_state)
 
+        # ════════════════════════════════════════════════════════════
+        # AI STRATEGIC SCORING (Phase 5): Apply bonuses to autonomous marshals
+        # ════════════════════════════════════════════════════════════
+        ai_score = None
+        if AI_SCORING_ENABLED and result.get("success", False):
+            # Get target marshal if exists
+            target_marshal = None
+            if action.get("target"):
+                target_marshal = world.get_marshal(action.get("target"))
+
+            # Calculate score
+            ai_score = calculate_ai_strategic_score(
+                marshal=marshal,
+                action=action.get("action"),
+                target=target_marshal
+            )
+
+            # Apply bonuses using same function as player
+            from backend.ai.feedback import apply_strategic_bonuses
+            is_combat = action.get("action") in ["attack", "charge"]
+            apply_strategic_bonuses(marshal, ai_score, is_combat_action=is_combat)
+
+            ai_debug(f"  Autonomous Strategic Score: {ai_score} (combat={is_combat})")
+
         return {
             "marshal": marshal.name,
             "action": action.get("action"),
             "target": action.get("target"),
             "result": result,
-            "priority": priority
+            "priority": priority,
+            "strategic_score": ai_score,
         }
 
     def process_nation_turn(self, nation: str, world: WorldState, game_state: Dict) -> List[Dict]:
@@ -1698,6 +1778,7 @@ class EnemyAI:
         Execute an action through the standard executor.
 
         Builds command dict in same format as player commands.
+        Also applies strategic bonuses to AI marshals (Phase 5).
         """
         command = {
             "command": {
@@ -1710,6 +1791,38 @@ class EnemyAI:
 
         result = self.executor.execute(command, game_state)
         result["ai_action"] = action
+
+        # ════════════════════════════════════════════════════════════
+        # AI STRATEGIC SCORING (Phase 5): Apply bonuses to AI marshals
+        # Same system as player commands for fairness
+        # ════════════════════════════════════════════════════════════
+        ai_score = None
+        if AI_SCORING_ENABLED and result.get("success", False):
+            world = game_state.get("world")
+            if world:
+                marshal = world.get_marshal(action["marshal"])
+                if marshal:
+                    # Get target marshal if exists
+                    target_marshal = None
+                    if action.get("target"):
+                        target_marshal = world.get_marshal(action.get("target"))
+
+                    # Calculate score
+                    ai_score = calculate_ai_strategic_score(
+                        marshal=marshal,
+                        action=action.get("action"),
+                        target=target_marshal
+                    )
+
+                    # Apply bonuses using same function as player
+                    from backend.ai.feedback import apply_strategic_bonuses
+                    is_combat = action.get("action") in ["attack", "charge"]
+                    apply_strategic_bonuses(marshal, ai_score, is_combat_action=is_combat)
+
+                    ai_debug(f"  AI Strategic Score: {ai_score} (combat={is_combat})")
+
+        # Add strategic score to result for debug visibility
+        result["strategic_score"] = ai_score
 
         # DEBUG: Check if events are present
         if "events" in result:

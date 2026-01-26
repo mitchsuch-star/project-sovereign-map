@@ -9,7 +9,7 @@ Includes Disobedience System (Phase 2):
 - DisobedienceSystem: Handles marshal objections
 """
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 from backend.models.region import Region, create_regions
 from backend.models.marshal import Marshal, create_starting_marshals, create_enemy_marshals
 from backend.models.authority import AuthorityTracker
@@ -128,6 +128,13 @@ class WorldState:
 
         # Store last enemy phase results for frontend display
         self._last_enemy_phase_results: Optional[Dict] = None
+
+        # ============================================================
+        # COMMAND HISTORY (Phase 5) - For LLM repetition detection
+        # ============================================================
+        # Sliding window of last 50 commands for LLM context
+        # Only populated in LLM mode (not mock mode)
+        self.command_history: List[Dict[str, Any]] = []
 
     def _setup_initial_control(self) -> None:
         """Set up which nation controls which regions at start."""
@@ -1227,6 +1234,36 @@ class WorldState:
             "game_over": self.game_over,
             "victory": self.victory
         }
+
+    # ========================================
+    # COMMAND HISTORY (Phase 5)
+    # ========================================
+
+    def add_to_command_history(self, command: Dict[str, Any]) -> None:
+        """
+        Add command to history (sliding window of 50).
+
+        Only called in LLM mode (not mock mode) for repetition detection.
+
+        Args:
+            command: {
+                "raw_input": str,      # Original player text
+                "marshal": str,        # Marshal name or None
+                "action": str,         # Parsed action
+                "turn": int,           # Current turn number
+            }
+        """
+        self.command_history.append(command)
+        if len(self.command_history) > 50:
+            self.command_history.pop(0)
+
+    def get_recent_commands(self, n: int = 5) -> List[Dict[str, Any]]:
+        """Get the n most recent commands."""
+        return self.command_history[-n:]
+
+    def get_command_history_for_prompt(self) -> List[str]:
+        """Get raw_input strings for LLM prompt (last 5)."""
+        return [cmd["raw_input"] for cmd in self.command_history[-5:]]
 
     # ========================================
     # ACTION ECONOMY - GUARANTEED INTEGERS

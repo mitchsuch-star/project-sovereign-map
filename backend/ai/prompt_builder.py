@@ -189,6 +189,7 @@ def build_parse_prompt(
     game_state: Dict[str, Any],
     marshal_name: Optional[str] = None,
     personality: Optional[str] = None,
+    command_history: Optional[List[str]] = None,
 ) -> str:
     """
     Build prompt for LLM command parsing.
@@ -204,6 +205,7 @@ def build_parse_prompt(
         game_state: Current game state dict with marshals, regions, enemies
         marshal_name: If known, the marshal being addressed (optional)
         personality: If known, the marshal's personality type (optional)
+        command_history: Recent player commands for repetition detection (optional)
 
     Returns:
         Complete prompt string ready to send to LLM
@@ -267,6 +269,20 @@ Return ONLY valid JSON matching this structure:
 {_format_examples()}
 
 Return JSON only. No explanation."""
+
+    # Add repetition context if history exists
+    if command_history and len(command_history) > 0:
+        history_lines = "\n".join(f'{i+1}. "{cmd}"' for i, cmd in enumerate(command_history))
+        prompt += f"""
+
+## RECENT PLAYER COMMANDS
+{history_lines}
+
+REPETITION RULES:
+- If this command uses very similar phrasing to recent commands, reduce strategic_score by 10 for each similar command.
+- Exact duplicate: strategic_score should be 10 maximum.
+- Same closing phrase repeated ("for glory!", "for France!"): -10 each.
+- Variety in command style is valued."""
 
     return prompt
 

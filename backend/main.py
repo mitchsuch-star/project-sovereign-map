@@ -150,6 +150,18 @@ def execute_command(request: CommandRequest):
         parsed = parser.parse(request.command, llm_game_state)
         print(f"[OK] Parsed: {parsed.get('command', {}).get('action', 'unknown')}")
 
+        # ════════════════════════════════════════════════════════════
+        # COMMAND HISTORY (Phase 5): Track commands for LLM repetition detection
+        # Only in LLM mode (not mock) and only for successfully parsed commands
+        # ════════════════════════════════════════════════════════════
+        if parsed.get("mode") != "mock" and parsed.get("matched"):
+            world.add_to_command_history({
+                "raw_input": request.command,
+                "marshal": parsed.get("command", {}).get("marshal"),
+                "action": parsed.get("command", {}).get("action"),
+                "turn": int(world.current_turn),
+            })
+
         # Execute command
         result = executor.execute(parsed, game_state)
 
