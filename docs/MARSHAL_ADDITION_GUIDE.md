@@ -9,14 +9,15 @@ This guide covers EVERY file that must be modified when adding a marshal, with c
 ## Table of Contents
 
 1. [Pre-Flight Checklist](#1-pre-flight-checklist)
-2. [Marshal Data Questionnaire](#2-marshal-data-questionnaire)
-3. [Complete File Reference](#3-complete-file-reference)
-4. [Step-by-Step Implementation](#4-step-by-step-implementation)
-5. [Code Templates](#5-code-templates)
-6. [Validation Checklist](#6-validation-checklist)
-7. [Common Pitfalls](#7-common-pitfalls)
-8. [Troubleshooting](#8-troubleshooting)
-9. [Quick Reference Tables](#9-quick-reference-tables)
+2. [Auto-Inherited Mechanics](#2-auto-inherited-mechanics)
+3. [Marshal Data Questionnaire](#3-marshal-data-questionnaire)
+4. [Complete File Reference](#4-complete-file-reference)
+5. [Step-by-Step Implementation](#5-step-by-step-implementation)
+6. [Code Templates](#6-code-templates)
+7. [Validation Checklist](#7-validation-checklist)
+8. [Common Pitfalls](#8-common-pitfalls)
+9. [Troubleshooting](#9-troubleshooting)
+10. [Quick Reference Tables](#10-quick-reference-tables)
 
 ---
 
@@ -49,10 +50,24 @@ Answer these questions BEFORE writing any code:
   - [ ] `loyal` - Extreme obedience (placeholder, not fully implemented)
   - [ ] **NEW personality type?** See [Adding New Personalities](#adding-new-personalities)
 
+> **IMPORTANT: Personality = Auto-Inherited Mechanics!**
+> - `aggressive` → +15% base attack, 10% max fortify, cavalry limits apply
+> - `cautious` → **Counter-Punch** (free attack after defense!), +20% defense stance, 20% max fortify
+> - `literal` → **Immovable** (+15% def when holding position)
+>
+> See [Section 2: Auto-Inherited Mechanics](#2-auto-inherited-mechanics) for full details.
+
 ### Unit Type
 - [ ] **Infantry or Cavalry?**
   - [ ] Infantry (`cavalry=False`, `movement_range=1`)
   - [ ] Cavalry (`cavalry=True`, `movement_range=2`)
+
+> **IMPORTANT: Cavalry = Special Mechanics!**
+> - 2-region attack range
+> - Cannot hold defensive positions >3 turns (-3 trust auto-switch)
+> - **Aggressive + Cavalry** → Full **Recklessness System** (Ney-style gameplay!)
+>
+> See [Section 2: Auto-Inherited Mechanics](#2-auto-inherited-mechanics) for full details.
 
 ### Special Abilities
 - [ ] Does this marshal have unique abilities?
@@ -61,7 +76,93 @@ Answer these questions BEFORE writing any code:
 
 ---
 
-## 2. Marshal Data Questionnaire
+## 2. Auto-Inherited Mechanics
+
+**CRITICAL:** Many mechanics are automatically inherited based on personality and unit type. You don't implement these - they just work. Your marshal's signature ability should be something UNIQUE beyond these inherited mechanics.
+
+### Mechanics by Personality
+
+| Personality | Auto-Inherited Mechanics | Source |
+|-------------|--------------------------|--------|
+| **aggressive** | +15% base attack bonus | `personality_modifiers.py` |
+| | +5% additional attack in aggressive stance (total +20%) | |
+| | -5% defense penalty in aggressive stance | |
+| | Max 10% fortify (impatient) | |
+| **cautious** | **Counter-Punch:** Free attack after successful defense | `combat.py` |
+| | +5% additional defense in defensive stance (total +20%) | `personality_modifiers.py` |
+| | +10% defense when outnumbered | |
+| | -5% attack in aggressive stance (hesitant) | |
+| | -10% attack at bad odds (ratio < 1:1) | |
+| | +3%/turn fortify rate (not +2%), max 20% | |
+| | +5% instant fortify bonus on first turn | |
+| **literal** | **Immovable:** +15% defense when holding position | `personality_modifiers.py` |
+| | Use `hold` command to activate `holding_position=True` | `marshal.py` |
+| **balanced** | No special bonuses (baseline modifiers only) | - |
+
+### Mechanics by Unit Type
+
+| Unit Type | Auto-Inherited Mechanics | Source |
+|-----------|--------------------------|--------|
+| **Cavalry** (`cavalry=True`) | 2-region attack range | `marshal.py` |
+| | Defensive stance limit: 3 turns max, then auto-switch to aggressive (-3 trust) | `world_state.py` |
+| | Fortify limit: 3 turns max, then auto-unfortify (-3 trust) | `world_state.py` |
+| **Infantry** (`cavalry=False`) | Standard 1-region attack range | `marshal.py` |
+| | No defensive limits (can hold positions indefinitely) | - |
+
+### COMBO: Aggressive + Cavalry = Recklessness System
+
+When a marshal has BOTH `personality="aggressive"` AND `cavalry=True`, they automatically inherit the **full Recklessness System**. This is a major gameplay mechanic.
+
+**Current marshals with Recklessness:** Ney
+**Future marshals that would inherit:** Murat, Lasalle, any aggressive cavalry
+
+| Recklessness Level | Attack Bonus | Defense Penalty | Restrictions |
+|--------------------|--------------|-----------------|--------------|
+| 0 | - | - | None |
+| 1 | +5% | - | Can use `charge` command |
+| 2 | +10% | -5% | Cannot use defensive stance |
+| 3 | +15% | -10% | Cannot use defensive/neutral, popup before attack |
+| 4+ | +20% | -15% | Auto-charge at turn start |
+
+**Recklessness changes:**
+- **+1:** Win battle AS ATTACKER
+- **Reset to 0:** Lose any battle OR execute Glorious Charge
+- **Glorious Charge (level 3+):** 2x casualties both sides, -20 enemy morale
+
+### Quick Inheritance Matrix
+
+| Personality | Unit Type | Counter-Punch? | Recklessness? | Immovable? | Max Fortify |
+|-------------|-----------|----------------|---------------|------------|-------------|
+| aggressive | infantry | No | No | No | 10% |
+| aggressive | cavalry | No | **YES** | No | 10%* |
+| cautious | infantry | **YES** | No | No | 20% |
+| cautious | cavalry | **YES** | No | No | 20%* |
+| literal | infantry | No | No | **YES** | 15% |
+| literal | cavalry | No | No | **YES** | 15%* |
+| balanced | infantry | No | No | No | 15% |
+| balanced | cavalry | No | No | No | 15%* |
+
+*Cavalry: fortification auto-removed after 3 turns anyway
+
+### Signature Abilities: What They Should Be
+
+Since so much is auto-inherited, signature abilities should be **UNIQUE**:
+
+**Good examples:**
+- Davout's "Free Unfortify" (0 action cost) - unique mechanic
+- A coordination bonus when supporting allies - unique trigger
+- Special morale effects under specific conditions - unique effect
+
+**Bad examples (already inherited):**
+- "Gets +10% attack bonus" - already from aggressive personality
+- "Free attack after defense" - already Counter-Punch from cautious
+- "Builds recklessness from victories" - already from aggressive+cavalry
+
+For detailed mechanics reference, see [MARSHAL_MECHANICS_REFERENCE.md](MARSHAL_MECHANICS_REFERENCE.md).
+
+---
+
+## 3. Marshal Data Questionnaire
 
 Fill out this sheet completely before implementing:
 
@@ -134,7 +235,7 @@ Fill out this sheet completely before implementing:
 
 ---
 
-## 3. Complete File Reference
+## 4. Complete File Reference
 
 ### Every File That Might Need Modification
 
@@ -181,7 +282,7 @@ Fill out this sheet completely before implementing:
 
 ---
 
-## 4. Step-by-Step Implementation
+## 5. Step-by-Step Implementation
 
 ### Step 1: Add Marshal Definition
 
@@ -327,7 +428,7 @@ Add entry for the new marshal.
 
 ---
 
-## 5. Code Templates
+## 6. Code Templates
 
 ### Template A: French Player Marshal
 
@@ -457,7 +558,7 @@ class TestNewMarshalAbilityName:
 
 ---
 
-## 6. Validation Checklist
+## 7. Validation Checklist
 
 Before committing, verify ALL items:
 
@@ -509,7 +610,7 @@ Before committing, verify ALL items:
 
 ---
 
-## 7. Common Pitfalls
+## 8. Common Pitfalls
 
 ### Pitfall 1: One-Sided Relationships
 
@@ -638,7 +739,7 @@ Marshal(
 
 ---
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
 | Problem | Likely Cause | Solution |
 |---------|--------------|----------|
@@ -658,7 +759,7 @@ Marshal(
 
 ---
 
-## 9. Quick Reference Tables
+## 10. Quick Reference Tables
 
 ### Valid Regions (Current 13-Region Map)
 
