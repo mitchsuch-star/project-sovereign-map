@@ -246,6 +246,10 @@ def build_parse_prompt(
 - CAUTIOUS: biases toward defense, wants intel first
 - LITERAL: interprets exactly as stated, picks nearest for ambiguity
 
+# NOTE: LLM handles personality-based target selection for complex commands.
+# For Phase 5.2 strategic commands, backend interpret_by_personality() will
+# provide equivalent logic for multi-turn order target resolution.
+
 ## Scoring Guide
 - ambiguity (0-100): 0=clear command, 50=missing details, 100=unparseable
 - strategic_score (0-100): 0=simple order, 50=tactical decision, 100=campaign-level
