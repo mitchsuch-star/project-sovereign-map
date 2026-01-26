@@ -154,7 +154,7 @@ def execute_command(request: CommandRequest):
         # COMMAND HISTORY (Phase 5): Track commands for LLM repetition detection
         # Only in LLM mode (not mock) and only for successfully parsed commands
         # ════════════════════════════════════════════════════════════
-        if parsed.get("mode") != "mock" and parsed.get("matched"):
+        if parsed.get("mode") != "mock" and parsed.get("success"):
             world.add_to_command_history({
                 "raw_input": request.command,
                 "marshal": parsed.get("command", {}).get("marshal"),
