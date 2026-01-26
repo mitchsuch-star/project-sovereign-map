@@ -49,7 +49,8 @@ CURRENT PHASE: Phase 2.5 (Autonomy) 🔄 → Phase 3 (Fun Factor) 📋 NEXT
 - Phase 2.9 ✅: Retreat System (ally cover, smart destination, AI targeting)
 - Phase 4 ✅: LLM Integration (fast parser, Anthropic fallback, BYOK, validation)
 - Phase 3 📋: Fun Factor (hearing guns, vindication, anti-tedium, pressure)
-- Not implemented: diplomacy, supply lines, strategic commands (see Phase 5-6)
+- Phase 5.2 📋: Strategic Commands (MOVE_TO, PURSUE, HOLD, SUPPORT) - **SEE docs/PHASE_5_2_IMPLEMENTATION_PLAN.md**
+- Not implemented: diplomacy, supply lines (see Phase 5-6)
 ```
 
 ---
@@ -886,10 +887,28 @@ If field is missing in JSON response, the bug is in main.py (step 2).
 - [ ] Grant Autonomy → marshal uses Enemy AI for action selection
 - [ ] Autonomous marshal processing in turn flow
 - [ ] Autonomy end evaluation (regain trust floor → return to player control)
-- [ ] Strategic commands (MOVE_TO region, PURSUE marshal, ATTACK_TARGET marshal)
-- [ ] Order delay system (Grouchy moments - orders take TIME to reach marshals)
-- [ ] Enemy encounter interrupts during strategic movement
 - [ ] Communication cut-off (no path to capital = fully autonomous)
+
+### Phase 5.2: Strategic Commands 📋 DESIGN LOCKED
+
+**CRITICAL: Read `docs/PHASE_5_2_IMPLEMENTATION_PLAN.md` before implementing!**
+
+This phase adds multi-turn strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) that marshals execute autonomously over several turns. Personality affects execution behavior.
+
+**Key Design Decisions (locked):**
+- Strategic orders cost 2 actions (1 for LITERAL personality)
+- LITERAL (Grouchy) NEVER interrupts for cannon fire ("The Grouchy Moment")
+- Combat result → order status: Victory=continue, Defeat=break, Stalemate=ask
+- Clarification system reuses objection popup for LITERAL + generic commands
+
+**📋 TODO (see implementation plan for full details):**
+- [ ] StrategicOrder/StrategicCondition dataclasses (marshal.py)
+- [ ] Strategic parser (strategic_parser.py)
+- [ ] StrategicExecutor class (strategic.py)
+- [ ] Interrupt system (CONTACT, ADJACENT, CANNON_FIRE)
+- [ ] Turn integration (after enemy phase, before autonomous)
+- [ ] LITERAL precision bonuses (+10% explicit, +20% completion)
+- [ ] UI: Strategic indicator, clarification popup
 
 **📋 REMAINING (Phase 3+):**
 - [ ] Grouchy literal mechanics (see below)
@@ -3297,12 +3316,14 @@ if marshal.exhaustion >= 2:
 | `marshal.py` | recklessness counter, exhaustion counter |
 | `turn_manager.py` | Fortify pressure escalation, exhaustion decay |
 
-### Phase 4: Strategic Commands & Polish
-- Order delay system (commands take time to reach marshals)
-- Strategic commands: "Hold until reinforced", "Attack when ready"
+### Phase 4: Strategic Commands & Polish → REPLACED BY Phase 5.2
+**NOTE:** Strategic commands moved to Phase 5.2 with full implementation plan.
+See `docs/PHASE_5_2_IMPLEMENTATION_PLAN.md` for detailed specs.
+
+- [x] Design locked: MOVE_TO, PURSUE, HOLD, SUPPORT commands
+- [ ] Implementation pending (follows Phase 5.2 plan)
 - Battle momentum (pursue vs consolidate choice)
 - Coalition pressure visibility ("Prussia negotiating with Austria")
-- Campaign pattern recognition (every 10 turns)
 
 ### Phase 5: Diplomacy & Fog of War
 - Natural language negotiation with AI nations
@@ -3323,6 +3344,8 @@ if marshal.exhaustion >= 2:
 ## Reference Documents
 
 For detailed design decisions and architecture:
+- **`docs/PHASE_5_2_IMPLEMENTATION_PLAN.md`** - Strategic Commands implementation (MOVE_TO, PURSUE, HOLD, SUPPORT) - **READ THIS FIRST for Phase 5.2 work!**
+- **`docs/PHASE_5_2_CHAIN_AUDIT.md`** - Complete chain verification (LLM → Backend → UI) with broken links and fixes
 - `PM_REVIEW_AND_ROADMAP.md` - Full assessment and phase plans
 - `LLM_INTEGRATION_ARCHITECTURE.md` - Technical LLM specs
 - `MVP_CREATION_LOG.md` - Development history and bug fixes
