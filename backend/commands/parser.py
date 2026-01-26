@@ -225,7 +225,36 @@ class CommandParser:
             game_state: Current game state (for validation)
 
         Returns:
-            Parsed and validated command - ALWAYS returns a Dict
+            Dict with the following structure on success:
+            {
+                "success": True,
+                "command": {
+                    "marshal": str | None,
+                    "action": str,
+                    "target": str | None,
+                    "confidence": float,
+                    "type": str | None,
+                    "target_stance": str | None  # For stance_change
+                },
+                "raw_input": str,
+                # Phase 5 - REQUIRED by main.py for feedback generation:
+                "strategic_score": int,  # 0-100, from LLM or default 10
+                "ambiguity": int,        # 0-100, from LLM or default 5
+                "mode": str,             # "mock" or "live"
+                "warning": str | None    # Optional validation warning
+            }
+
+            On failure:
+            {
+                "success": False,
+                "error": str,
+                "suggestion": str | None,
+                "raw_input": str
+            }
+
+        IMPORTANT: main.py reads strategic_score, ambiguity, and mode from
+        the TOP LEVEL of this return dict for feedback generation. If these
+        fields are missing, feedback will silently fail to generate.
         """
         try:
             # Step 1: Use LLM to parse natural language
@@ -266,7 +295,11 @@ class CommandParser:
                 result = {
                     "success": True,
                     "command": command_dict,
-                    "raw_input": command_text
+                    "raw_input": command_text,
+                    # Phase 5: Include scores for feedback generation
+                    "strategic_score": llm_result.get("strategic_score", 10),
+                    "ambiguity": llm_result.get("ambiguity", 5),
+                    "mode": llm_result.get("mode", "mock"),
                 }
 
                 # Add warning if present

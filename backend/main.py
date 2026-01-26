@@ -190,6 +190,13 @@ def execute_command(request: CommandRequest):
         # ════════════════════════════════════════════════════════════
         # FEEDBACK GENERATION (Phase 5): Generate immersive feedback
         # Only for non-mock mode, successful player commands
+        #
+        # REQUIRED FIELDS FROM parser.parse() - see parser.py docstring:
+        #   - parsed["mode"]: "mock" or "live"
+        #   - parsed["strategic_score"]: 0-100 (controls morale/trust bonus)
+        #   - parsed["ambiguity"]: 0-100 (controls clarity feedback)
+        #
+        # If these are missing, check parser.py return dict construction!
         # ════════════════════════════════════════════════════════════
         feedback = {}
         mode = parsed.get("mode", "mock")
@@ -200,6 +207,7 @@ def execute_command(request: CommandRequest):
             # Get scores from parsed command
             strategic_score = parsed.get("strategic_score", 0)
             ambiguity_score = parsed.get("ambiguity", 0)
+            print(f"[FEEDBACK DEBUG] mode={mode}, strategic_score={strategic_score}, ambiguity={ambiguity_score}")
 
             # Get marshal info - try result first, then parsed command
             marshal_name = result.get("marshal") or parsed.get("command", {}).get("marshal")

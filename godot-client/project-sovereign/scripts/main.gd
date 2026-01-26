@@ -60,6 +60,7 @@ const COLOR_BATTLE = "daa06d"      # Orange/amber for battle results
 const COLOR_INFO = "a0a0a8"        # Gray for system info
 const COLOR_MARSHAL = "c9b8e0"     # Lavender for marshal responses
 const COLOR_CONQUEST = "90d890"    # Bright green for conquests
+const COLOR_FEEDBACK = "b8a0d9"    # Soft purple/lavender for AI feedback
 
 # Message history limit (prevents infinite growth)
 const MAX_MESSAGES = 100
@@ -498,6 +499,10 @@ func _display_result(response):
 	if action_info.get("turn_advanced", false):
 		_display_turn_advance(action_info)
 
+	# Display AI feedback if present (LLM mode only)
+	if response.has("feedback"):
+		_display_feedback(response.feedback)
+
 func _display_battle_result(message: String, event: Dictionary, action_info: Dictionary):
 	"""Display battle results with dramatic formatting."""
 	var outcome = event.get("outcome", "")
@@ -688,6 +693,19 @@ func add_output(text: String):
 	# Ensure scroll to bottom
 	await get_tree().process_frame
 	output_scroll.scroll_vertical = output_scroll.get_v_scroll_bar().max_value
+
+func _display_feedback(feedback: Dictionary):
+	"""Display AI feedback from LLM response (words, not numbers)."""
+	if feedback.is_empty():
+		return
+
+	# Strategic feedback (eloquence/inspiration)
+	if feedback.has("strategic") and feedback.strategic != "":
+		add_output("[color=#" + COLOR_FEEDBACK + "][i]" + feedback.strategic + "[/i][/color]")
+
+	# Ambiguity feedback (clarity)
+	if feedback.has("ambiguity") and feedback.ambiguity != "":
+		add_output("[color=#" + COLOR_FEEDBACK + "][i]" + feedback.ambiguity + "[/i][/color]")
 
 func _trim_old_messages():
 	"""Remove oldest messages to prevent infinite growth."""

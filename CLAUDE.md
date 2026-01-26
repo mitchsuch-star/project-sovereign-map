@@ -20,7 +20,19 @@ LLM INTEGRATION FILES (Phase 4):
 ├── backend/ai/validation.py         ← Catches hallucinations
 ├── backend/ai/prompt_builder.py     ← Context-aware prompts
 ├── backend/ai/schemas.py            ← ParseResult dataclass
+├── backend/ai/feedback.py           ← Phase 5: Score→narrative text
 └── backend/ai/README.md             ← Full LLM documentation
+
+FEEDBACK DATA FLOW (Phase 5) - CRITICAL:
+  LLMClient.parse_command() → ParseResult.to_dict() includes:
+    - strategic_score (0-100)
+    - ambiguity (0-100)
+    - mode ("mock" | "live")
+
+  parser.parse() MUST copy these to top-level return dict!
+  main.py reads them for feedback generation.
+
+  If feedback doesn't appear: check parser.py return dict construction.
 
 GOLDEN RULES:
 1. Combat modifiers: SINGLE SOURCE OF TRUTH in marshal.py

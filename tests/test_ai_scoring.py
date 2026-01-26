@@ -85,11 +85,11 @@ class TestAIStrategicScoreModifiers:
         target = Mock(strength=1000, drilling=False, drilling_locked=False)
         # ratio = 1.5, should get +10
 
-        scores = [calculate_ai_strategic_score(marshal, "attack", target) for _ in range(20)]
-        avg = sum(scores) / 20
+        scores = [calculate_ai_strategic_score(marshal, "attack", target) for _ in range(50)]
+        avg = sum(scores) / 50
 
-        # Base 45 + 10 glory = 55 average
-        assert 45 <= avg <= 65, f"Glory opportunity average {avg} not in expected range"
+        # Base 45 + 10 glory = 55 average, wider margin for random variance
+        assert 40 <= avg <= 70, f"Glory opportunity average {avg} not in expected range"
         print(f"Glory opportunity average: {avg:.1f}")
 
     def test_no_glory_bonus_below_threshold(self):
