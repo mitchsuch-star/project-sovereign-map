@@ -123,6 +123,142 @@ def calculate_ai_strategic_score(marshal: "Marshal", action: str, target: Option
     return max(0, min(100, score))
 
 
+# ════════════════════════════════════════════════════════════════════════════════
+# MARSHAL PRIORITY SYSTEM
+# Determines turn order within a nation. Lower priority = acts first.
+# ════════════════════════════════════════════════════════════════════════════════
+
+def has_enemy_in_same_region(marshal: Marshal, world: WorldState) -> bool:
+    """
+    Check if any enemy marshal is in the same region as this marshal.
+
+    Args:
+        marshal: The marshal to check
+        world: Current world state
+
+    Returns:
+        True if at least one enemy is in the same region
+    """
+    for m in world.marshals.values():
+        if (m.location == marshal.location and
+            m.nation != marshal.nation and
+            m.strength > 0):
+            return True
+    return False
+
+
+def has_adjacent_enemies(marshal: Marshal, world: WorldState) -> bool:
+    """
+    Check if any enemy marshal is in an adjacent region.
+
+    Args:
+        marshal: The marshal to check
+        world: Current world state
+
+    Returns:
+        True if at least one enemy is adjacent
+    """
+    current_region = world.get_region(marshal.location)
+    if not current_region:
+        return False
+
+    adjacent = current_region.adjacent_regions
+    for m in world.marshals.values():
+        if (m.nation != marshal.nation and
+            m.strength > 0 and
+            m.location in adjacent):
+            return True
+    return False
+
+
+def can_crush_adjacent_enemy(marshal: Marshal, world: WorldState) -> bool:
+    """
+    Check if marshal can easily defeat an adjacent enemy (2:1+ ratio).
+
+    Args:
+        marshal: The marshal to check
+        world: Current world state
+
+    Returns:
+        True if strength ratio > 2:1 against any adjacent enemy
+    """
+    current_region = world.get_region(marshal.location)
+    if not current_region:
+        return False
+
+    adjacent = current_region.adjacent_regions
+    for m in world.marshals.values():
+        if (m.nation != marshal.nation and
+            m.strength > 0 and
+            m.location in adjacent):
+            # Check if we have 2:1 advantage
+            if m.strength > 0 and marshal.strength / m.strength >= 2.0:
+                return True
+    return False
+
+
+def get_marshal_priority(marshal: Marshal, world: WorldState) -> int:
+    """
+    Calculate priority for marshal turn order within their nation.
+    LOWER priority number = acts FIRST.
+
+    Priority modifiers:
+    - Base: 100
+    - In combat (enemy same region): -50
+    - Escape needed (morale <30 + adjacent enemies): -40
+    - Crush opportunity (2:1+ vs adjacent): -30
+    - Aggressive personality: -10
+
+    Tiebreaker: alphabetical by name (handled in sort key)
+
+    Args:
+        marshal: The marshal to evaluate
+        world: Current world state
+
+    Returns:
+        Priority integer (lower = acts first)
+    """
+    priority = 100  # Base
+
+    # --- CRITICAL SITUATIONS (act first) ---
+
+    # In combat (enemy in same region) - MUST act
+    if has_enemy_in_same_region(marshal, world):
+        priority -= 50
+
+    # Needs to escape (low morale AND enemies adjacent)
+    if marshal.morale < 30 and has_adjacent_enemies(marshal, world):
+        priority -= 40
+
+    # Can crush weak adjacent enemy (2:1+ ratio)
+    if can_crush_adjacent_enemy(marshal, world):
+        priority -= 30
+
+    # --- PERSONALITY (minor factor) ---
+
+    # Aggressive marshals are eager to act
+    if getattr(marshal, 'personality', 'balanced') == "aggressive":
+        priority -= 10
+
+    return priority
+
+
+def is_critical_situation(marshal: Marshal, world: WorldState) -> bool:
+    """
+    Check if marshal is in a critical situation that overrides round-robin fairness.
+
+    Critical = priority <= 60 (in combat or needs to escape)
+
+    Args:
+        marshal: The marshal to check
+        world: Current world state
+
+    Returns:
+        True if marshal should override round-robin and act immediately
+    """
+    return get_marshal_priority(marshal, world) <= 60
+
+
 class EnemyAI:
     """
     AI decision-making for enemy nations.
@@ -186,6 +322,10 @@ class EnemyAI:
             executor: CommandExecutor instance for executing actions
         """
         self.executor = executor
+        # Intent tracking: stores pending intents for marshals (Bug #1 fix)
+        # Format: {marshal_name: {"intent": str, "target": str}}
+        # Used when a multi-step action is split (e.g., unfortify then capture)
+        self._pending_intents: Dict[str, Dict[str, str]] = {}
 
     def _get_mood_adjusted_threshold(self, marshal: Marshal) -> float:
         """
@@ -299,7 +439,12 @@ class EnemyAI:
 
     def process_nation_turn(self, nation: str, world: WorldState, game_state: Dict) -> List[Dict]:
         """
-        Process a single nation's turn.
+        Process a single nation's turn with round-robin action distribution.
+
+        Uses priority-based marshal ordering with round-robin fairness:
+        - Marshals in critical situations (combat, need to escape) act first
+        - Otherwise, actions are distributed fairly among marshals
+        - Marshals with nothing useful to do are skipped
 
         Args:
             nation: Nation name (e.g., "Britain", "Prussia")
@@ -317,91 +462,220 @@ class EnemyAI:
         # Track marshals who have already changed stance this turn (prevent spam)
         self._stance_changed_this_turn: set = set()
 
-        print(f"\n{'='*60}")
-        print(f"ENEMY TURN: {nation} ({actions_remaining} actions)")
-        print(f"{'='*60}")
+        # Clear pending intents at start of each nation's turn (safety)
+        self._pending_intents = {}
 
         # Get this nation's marshals
         marshals = world.get_marshals_by_nation(nation)
 
         if not marshals:
-            print(f"  No marshals remaining for {nation}")
+            print(f"\n{'='*60}")
+            print(f"=== {nation} TURN: No marshals remaining ===")
+            print(f"{'='*60}")
             return results
 
-        # Process actions until exhausted or no valid actions
-        # Safeguard: limit total actions to prevent infinite loops with free actions
+        # Sort marshals by priority for logging
+        marshal_names = sorted(
+            [m.name for m in marshals],
+            key=lambda name: (get_marshal_priority(world.get_marshal(name), world), name)
+        )
+
+        print(f"\n{'='*60}")
+        print(f"=== {nation} TURN: {actions_remaining} actions, {len(marshals)} marshals {marshal_names} ===")
+        print(f"{'='*60}")
+
+        # Track actions used per marshal this turn (for round-robin fairness)
+        actions_used = {m.name: 0 for m in marshals}
+
+        # Track failed marshal+action combinations to avoid retrying
+        failed_actions: set = set()  # Set of (marshal_name, action) tuples
+
+        # Safeguards
         action_count = 0
-        max_total_actions = actions_remaining * 2  # Allow some free actions but not infinite
+        paid_action_budget = actions_remaining  # 4 paid actions max
+        max_total_actions = paid_action_budget + 2  # 4 paid + 2 free = 6 max total
         free_action_count = 0
         max_free_actions = 2  # Maximum free actions (wait, retreat) per turn
+        consecutive_skips = 0  # Track consecutive skips to detect "nothing to do"
+        max_consecutive_skips = len(marshals) + 1  # If we skip everyone, stop
 
         while actions_remaining > 0:
-            # Find best action across all marshals
-            best_action = self._find_best_action(marshals, nation, world)
-
-            if not best_action:
-                print(f"  No valid actions remaining for {nation}")
-                break
-
-            # Execute the action
-            action_count += 1
-            print(f"\n  Action {action_count}: {best_action['marshal']} -> {best_action['action']}")
-
-            result = self._execute_action(best_action, game_state)
-            result["nation"] = nation
-            result["action_number"] = action_count
-            results.append(result)
-
-            # Track successful stance changes to prevent spam
-            if best_action["action"] == "stance_change" and result.get("success", False):
-                self._stance_changed_this_turn.add(best_action["marshal"])
-                print(f"    [STANCE TRACKED] {best_action['marshal']} changed stance this turn")
-
-            # Check if this is a free action:
-            # 1. Action type is inherently free (wait, retreat, etc.)
-            # 2. OR executor returned free_action=True (counter-punch)
-            # 3. OR executor returned variable_action_cost=0 (free stance change)
-            is_free_action_type = not self._action_costs_point(best_action["action"])
-            is_free_action_result = result.get("free_action", False)
-
-            # Handle variable action costs (stance changes can be 0, 1, or 2)
-            variable_cost = result.get("variable_action_cost")
-            if variable_cost is not None:
-                # Variable cost action - use actual cost from executor
-                actual_cost = variable_cost
-                is_free_action = (actual_cost == 0)
-            else:
-                # Standard action - use type-based check
-                actual_cost = 1 if not (is_free_action_type or is_free_action_result) else 0
-                is_free_action = is_free_action_type or is_free_action_result
-
-            if is_free_action:
-                free_action_count += 1
-                if is_free_action_result:
-                    print(f"    [FREE ACTION] Counter-punch or similar - no action consumed")
-                if free_action_count > max_free_actions:
-                    print(f"  Maximum free actions reached for {nation}")
-                    break
-
-            # Consume action(s) based on actual cost
-            if actual_cost > 0:
-                actions_remaining -= actual_cost
-                if actual_cost > 1:
-                    print(f"    [MULTI-ACTION] {best_action['action']} cost {actual_cost} actions")
-
-            # Safeguard: prevent runaway execution
-            if action_count >= max_total_actions:
-                print(f"  Maximum total actions reached for {nation}")
-                break
-
             # Refresh marshals list (in case one was destroyed)
             marshals = world.get_marshals_by_nation(nation)
             if not marshals:
                 print(f"  All marshals destroyed for {nation}")
                 break
 
-        print(f"\n  {nation} turn complete: {action_count} actions taken")
+            # Select next marshal using priority + fairness (excluding failed actions)
+            selected_marshal, selected_action, action_priority = self._select_next_marshal_action(
+                marshals, nation, world, actions_used, failed_actions
+            )
+
+            if not selected_marshal or not selected_action:
+                print(f"  No valid actions remaining for {nation}")
+                break
+
+            # Skip marshals with "nothing to do" (priority >= 900)
+            if action_priority >= 900:
+                consecutive_skips += 1
+                ai_debug(f"  Skipping {selected_marshal.name} - nothing useful to do (priority {action_priority})")
+                if consecutive_skips >= max_consecutive_skips:
+                    print(f"  All marshals idle - ending turn early")
+                    break
+                continue
+
+            # Reset skip counter - we found something to do
+            consecutive_skips = 0
+
+            # Execute the action
+            marshal_priority = get_marshal_priority(selected_marshal, world)
+            print(f"\n  [?/{actions_remaining}] {selected_marshal.name} (priority {marshal_priority}): {selected_action['action']} -> {selected_action.get('target', 'N/A')}")
+
+            result = self._execute_action(selected_action, game_state)
+
+            # Only track SUCCESSFUL actions
+            if not result.get("success", False):
+                print(f"    [FAILED] {result.get('message', 'Unknown error')[:60]}...")
+                # Mark this marshal+action combo as failed so we don't retry it
+                failed_actions.add((selected_marshal.name, selected_action["action"]))
+                consecutive_skips += 1
+                if consecutive_skips >= max_consecutive_skips:
+                    print(f"  Too many failed actions - ending turn")
+                    break
+                continue
+
+            # Reset skip counter on success
+            consecutive_skips = 0
+
+            action_count += 1
+            result["nation"] = nation
+            result["action_number"] = action_count
+            result["marshal_priority"] = marshal_priority
+            results.append(result)
+
+            # Track successful stance changes to prevent spam
+            if selected_action["action"] == "stance_change":
+                self._stance_changed_this_turn.add(selected_action["marshal"])
+
+            # Determine action cost
+            is_free_action_type = not self._action_costs_point(selected_action["action"])
+            is_free_action_result = result.get("free_action", False)
+
+            variable_cost = result.get("variable_action_cost")
+            if variable_cost is not None:
+                actual_cost = variable_cost
+                is_free_action = (actual_cost == 0)
+            else:
+                actual_cost = 1 if not (is_free_action_type or is_free_action_result) else 0
+                is_free_action = is_free_action_type or is_free_action_result
+
+            # Track actions used by this marshal (for fairness - only successful actions)
+            actions_used[selected_marshal.name] += 1
+
+            if is_free_action:
+                free_action_count += 1
+                if is_free_action_result:
+                    print(f"    [FREE] Counter-punch or similar")
+                # NOTE: Don't break on free action limit - just skip free actions and keep trying
+                # This ensures we use all paid actions even if marshals prefer "wait"
+
+            # Consume action(s) based on actual cost
+            if actual_cost > 0:
+                actions_remaining -= actual_cost
+                if actual_cost > 1:
+                    print(f"    [MULTI-ACTION] Cost {actual_cost} actions")
+
+            # Safeguard: prevent runaway execution
+            if action_count >= max_total_actions:
+                print(f"  Maximum total actions reached for {nation}")
+                break
+
+        # Summary logging
+        actions_summary = ", ".join([f"{name}: {count}" for name, count in actions_used.items() if count > 0])
+        print(f"\n=== {nation} COMPLETE: {action_count} actions taken {{{actions_summary}}} ===")
         return results
+
+    def _select_next_marshal_action(
+        self,
+        marshals: List[Marshal],
+        nation: str,
+        world: WorldState,
+        actions_used: Dict[str, int],
+        failed_actions: set = None
+    ) -> Tuple[Optional[Marshal], Optional[Dict], int]:
+        """
+        Select the next marshal to act using priority + round-robin fairness.
+
+        Selection logic:
+        1. Sort marshals by priority (lower = acts first)
+        2. Critical situations (priority <= 60) override fairness
+        3. Otherwise, prefer marshals with fewer actions used
+        4. Tiebreaker: alphabetical by name
+
+        Args:
+            marshals: List of this nation's marshals
+            nation: Nation name
+            world: Current world state
+            actions_used: Dict tracking actions used per marshal this turn
+            failed_actions: Set of (marshal_name, action) tuples that have already failed
+
+        Returns:
+            Tuple of (selected_marshal, action_dict, action_priority)
+            Returns (None, None, 999) if no marshal can act
+        """
+        if failed_actions is None:
+            failed_actions = set()
+
+        # Build list of (marshal, action, action_priority, marshal_priority, actions_used)
+        candidates = []
+
+        for marshal in marshals:
+            action, action_priority = self._evaluate_marshal(marshal, nation, world)
+            if action:
+                # Skip actions that have already failed this turn
+                if (marshal.name, action.get("action")) in failed_actions:
+                    continue
+
+                # Skip stance changes for marshals who already changed this turn
+                if action.get("action") == "stance_change":
+                    if self._should_skip_stance_change(action.get("marshal")):
+                        continue
+
+                marshal_priority = get_marshal_priority(marshal, world)
+                used = actions_used.get(marshal.name, 0)
+                candidates.append((marshal, action, action_priority, marshal_priority, used))
+
+        if not candidates:
+            return None, None, 999
+
+        # Sort candidates:
+        # 1. Prioritize PAID actions over FREE actions (attack > wait)
+        # 2. Within same action type, use round-robin (fewer actions first)
+        # 3. Then by marshal_priority (lower = more urgent)
+        # 4. Then alphabetically by name
+        #
+        # This ensures marshals who want to ATTACK get priority over marshals
+        # who can only WAIT, even if the waiter has lower priority number.
+
+        # Identify free actions (don't make progress)
+        free_action_types = {"wait", "status", "help"}
+
+        def sort_key(candidate):
+            marshal, action, action_priority, marshal_priority, used = candidate
+            action_type = action.get("action", "unknown")
+            is_free_action = action_type in free_action_types
+
+            # Paid actions (0) sort before free actions (1)
+            action_tier = 1 if is_free_action else 0
+
+            # Within same tier, use round-robin fairness
+            return (action_tier, used, marshal_priority, marshal.name)
+
+        candidates.sort(key=sort_key)
+
+        # Return the best candidate
+        best = candidates[0]
+        return best[0], best[1], best[2]  # marshal, action, action_priority
 
     def _find_best_action(self, marshals: List[Marshal], nation: str, world: WorldState) -> Optional[Dict]:
         """
@@ -463,6 +737,52 @@ class EnemyAI:
         ai_debug(f"  Location: {marshal.location}, Strength: {marshal.strength:,}")
         ai_debug(f"  Stance: {getattr(marshal, 'stance', 'unknown')}")
         ai_debug(f"  Drilling: {getattr(marshal, 'drilling', False)}, Fortified: {getattr(marshal, 'fortified', False)}")
+
+        # ════════════════════════════════════════════════════════════
+        # INTENT CHECK (Bug #1 Fix): Execute pending intent from previous action
+        # If we unfortified to capture a region, now CAPTURE it!
+        # ════════════════════════════════════════════════════════════
+        if marshal.name in self._pending_intents:
+            intent = self._pending_intents.pop(marshal.name)
+            intent_type = intent.get("intent")
+            intent_target = intent.get("target")
+
+            if intent_type == "capture" and intent_target:
+                # Validate intent is still valid (region still undefended and enemy-controlled)
+                region = world.get_region(intent_target)
+                if region and region.controller != nation:
+                    defenders = [m for m in world.marshals.values()
+                                if m.location == intent_target and m.nation != nation and m.strength > 0]
+                    if not defenders:
+                        # Still undefended - execute the capture!
+                        print(f"  [INTENT EXECUTED] {marshal.name} capturing {intent_target} (pending from unfortify)")
+                        ai_debug(f"  INTENT: Executing pending capture of {intent_target}")
+                        return ({
+                            "marshal": marshal.name,
+                            "action": "attack",
+                            "target": intent_target
+                        }, 1)  # Priority 1 - high priority for follow-through
+                    else:
+                        print(f"  [INTENT CANCELLED] {intent_target} now defended by {[d.name for d in defenders]}")
+                else:
+                    print(f"  [INTENT CANCELLED] {intent_target} no longer valid target")
+
+        # ════════════════════════════════════════════════════════════
+        # CHECK: Already retreated this turn - limited options
+        # Cannot retreat again, but can wait or change to defensive stance
+        # ════════════════════════════════════════════════════════════
+        if getattr(marshal, 'retreated_this_turn', False):
+            ai_debug(f"  Already retreated this turn - limited options")
+            print(f"  [RETREATED THIS TURN] {marshal.name} - can only wait/stance change")
+            # Switch to defensive if not already
+            if getattr(marshal, 'stance', None) != Stance.DEFENSIVE:
+                return ({
+                    "marshal": marshal.name,
+                    "action": "stance_change",
+                    "target": "defensive"
+                }, 5)  # Low priority since they already retreated
+            # Already defensive - just wait
+            return ({"marshal": marshal.name, "action": "wait"}, 5)
 
         # ════════════════════════════════════════════════════════════
         # PRIORITY 0: ENGAGEMENT CHECK (HIGHEST PRIORITY!)
@@ -649,6 +969,18 @@ class EnemyAI:
         ai_debug(f"  P4.5: No capture opportunity found")
 
         # ════════════════════════════════════════════════════════════
+        # PRIORITY 4.75: ALLY SUPPORT
+        # If an ally is in combat or outnumbered, move to support them
+        # This is higher priority than fortifying/drilling
+        # ════════════════════════════════════════════════════════════
+        ai_debug(f"  P4.75: Checking ally support opportunities...")
+        support_action = self._find_ally_support_opportunity(marshal, nation, world)
+        if support_action:
+            ai_debug(f"  -> P4.75 Ally Support: {support_action}")
+            return (support_action, 4)  # Same priority as attack - helping ally is important
+        ai_debug(f"  P4.75: No ally needs support")
+
+        # ════════════════════════════════════════════════════════════
         # PRIORITY 5: FORTIFICATION (cautious marshals)
         # ════════════════════════════════════════════════════════════
         if personality == "cautious":
@@ -692,11 +1024,50 @@ class EnemyAI:
         Cannot: attack, fortify, drill, aggressive stance
 
         Priority:
-        1. If enemies still threatening, MOVE to safety (use paid action to flee further)
-        2. Switch to defensive stance if not already
-        3. Wait
+        1. If recovery destination is locked, move toward it (or wait if arrived)
+        2. If no locked destination and enemies threatening, lock destination and move
+        3. Switch to defensive stance if not already
+        4. Wait
+
+        Bug #2 Fix: Lock recovery destination on first calculation to prevent oscillation.
         """
-        # Check if enemies are still threatening (adjacent or same region)
+        retreat_recovery = getattr(marshal, 'retreat_recovery', 0)
+
+        # ════════════════════════════════════════════════════════════
+        # BUG #2 FIX: Check for locked recovery destination
+        # ════════════════════════════════════════════════════════════
+        recovery_dest = getattr(marshal, '_recovery_destination', None)
+
+        # If destination is locked, use it
+        if recovery_dest:
+            # Check if we've arrived at destination
+            if marshal.location == recovery_dest:
+                ai_debug(f"  P1 Recovery: {marshal.name} arrived at locked destination {recovery_dest}")
+                # Arrived - switch to defensive and wait
+                current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
+                if current_stance != Stance.DEFENSIVE:
+                    return {
+                        "marshal": marshal.name,
+                        "action": "stance_change",
+                        "target": "defensive"
+                    }
+                return {
+                    "marshal": marshal.name,
+                    "action": "wait"
+                }
+            else:
+                # Not yet arrived - continue moving toward locked destination
+                ai_debug(f"  P1 Recovery: {marshal.name} moving to locked destination {recovery_dest}")
+                print(f"  [RECOVERY LOCKED] {marshal.name} moving to {recovery_dest} (locked)")
+                return {
+                    "marshal": marshal.name,
+                    "action": "move",
+                    "target": recovery_dest
+                }
+
+        # ════════════════════════════════════════════════════════════
+        # No locked destination - check if enemies threatening
+        # ════════════════════════════════════════════════════════════
         enemies = world.get_enemies_of_nation(nation)
         enemies_threatening = False
 
@@ -710,11 +1081,14 @@ class EnemyAI:
                     enemies_threatening = True
                     break
 
-        # Priority 1: Keep fleeing if enemies still nearby
+        # Priority 1: If enemies threatening, calculate and LOCK destination
         if enemies_threatening:
             safe_dest = self._find_retreat_destination(marshal, nation, world)
             if safe_dest and safe_dest != marshal.location:
-                ai_debug(f"  P1 Recovery: {marshal.name} continues fleeing to {safe_dest}")
+                # Lock the destination for future evaluations (Bug #2 fix)
+                marshal._recovery_destination = safe_dest
+                ai_debug(f"  P1 Recovery: {marshal.name} locking destination to {safe_dest}")
+                print(f"  [RECOVERY LOCKED] {marshal.name} destination locked to {safe_dest}")
                 return {
                     "marshal": marshal.name,
                     "action": "move",
@@ -730,7 +1104,7 @@ class EnemyAI:
                 "target": "defensive"
             }
 
-        # Priority 3: Wait (already defensive and safe)
+        # Priority 3: Wait (already defensive and safe, or can't find destination)
         return {
             "marshal": marshal.name,
             "action": "wait"
@@ -962,6 +1336,18 @@ class EnemyAI:
             movement_range = getattr(marshal, 'movement_range', 1)
 
             if distance <= movement_range and enemy.strength > 0:
+                # ════════════════════════════════════════════════════════════
+                # BUG #3 FIX: Validate path for distance > 1 attacks
+                # Cavalry charges can be blocked by intermediate enemies
+                # ════════════════════════════════════════════════════════════
+                if distance > 1:
+                    path = self._get_path_to_target(marshal.location, enemy.location, world)
+                    is_blocked, blocker = self._path_is_blocked(path, nation, world)
+                    if is_blocked:
+                        print(f"  [P4 SKIP] {enemy.name} - path blocked by {blocker}")
+                        ai_debug(f"    SKIPPING {enemy.name} - path blocked by {blocker}")
+                        continue
+
                 # Calculate base strength ratio
                 base_ratio = marshal.strength / enemy.strength
                 # Calculate effective ratio considering target's tactical state
@@ -1127,6 +1513,152 @@ class EnemyAI:
             "action": "attack",
             "target": best_target
         }
+
+    def _find_ally_support_opportunity(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
+        """
+        Find opportunity to support an ally who is:
+        - In combat (enemy in same region)
+        - Outnumbered
+        - In danger
+
+        Returns a move action to get adjacent to ally, or None.
+        """
+        # Cannot support if drilling or fortified
+        if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+            ai_debug(f"    {marshal.name} cannot support ally - drilling")
+            return None
+        if getattr(marshal, 'fortified', False):
+            ai_debug(f"    {marshal.name} cannot support ally - fortified")
+            return None
+
+        # Get all allies from same nation (excluding self)
+        allies = [
+            m for m in world.marshals.values()
+            if m.nation == nation
+            and m.name != marshal.name
+            and m.strength > 0
+        ]
+
+        if not allies:
+            return None
+
+        marshal_region = world.get_region(marshal.location)
+        if not marshal_region:
+            return None
+
+        # Check each ally for support needs
+        for ally in allies:
+            # Skip if already in same region as ally (already supporting)
+            if ally.location == marshal.location:
+                continue
+
+            ally_region = world.get_region(ally.location)
+            if not ally_region:
+                continue
+
+            # Check if ally is engaged in combat (enemy in same region)
+            enemies_at_ally = [
+                m for m in world.marshals.values()
+                if m.location == ally.location
+                and m.nation != nation
+                and m.strength > 0
+            ]
+
+            # Also check if ally is threatened (enemy adjacent)
+            enemies_adjacent_to_ally = [
+                m for m in world.marshals.values()
+                if m.location in ally_region.adjacent_regions
+                and m.nation != nation
+                and m.strength > 0
+            ]
+
+            # Determine if ally needs support
+            ally_needs_support = False
+            support_reason = ""
+
+            if enemies_at_ally:
+                # Ally is in active combat!
+                total_enemy_strength = sum(e.strength for e in enemies_at_ally)
+                if ally.strength < total_enemy_strength:
+                    ally_needs_support = True
+                    support_reason = f"in combat and outnumbered at {ally.location}"
+                elif ally.strength < total_enemy_strength * 1.5:
+                    # Even if not outnumbered, joining helps
+                    ally_needs_support = True
+                    support_reason = f"in combat at {ally.location}"
+
+            elif enemies_adjacent_to_ally:
+                # Ally is threatened
+                total_adjacent_threat = sum(e.strength for e in enemies_adjacent_to_ally)
+                if ally.strength < total_adjacent_threat:
+                    ally_needs_support = True
+                    support_reason = f"threatened by {len(enemies_adjacent_to_ally)} enemy(ies)"
+
+            if not ally_needs_support:
+                continue
+
+            ai_debug(f"    {ally.name} needs support: {support_reason}")
+            print(f"    [ALLY SUPPORT] {ally.name} needs support: {support_reason}")
+
+            # Can we reach ally? Check if ally's location is adjacent to us
+            if ally.location in marshal_region.adjacent_regions:
+                # Check if there are enemies blocking the path
+                enemies_at_dest = [
+                    m for m in world.marshals.values()
+                    if m.location == ally.location
+                    and m.nation != nation
+                    and m.strength > 0
+                ]
+                if enemies_at_dest:
+                    # Must attack to join ally
+                    weakest = min(enemies_at_dest, key=lambda e: e.strength)
+                    ai_debug(f"    -> Moving to support {ally.name} (attacking {weakest.name} to join)")
+                    print(f"    [ALLY SUPPORT] {marshal.name} attacking {weakest.name} to support {ally.name}")
+                    return {
+                        "marshal": marshal.name,
+                        "action": "attack",
+                        "target": weakest.name
+                    }
+                else:
+                    # Can move directly to ally
+                    ai_debug(f"    -> Moving to support {ally.name} at {ally.location}")
+                    print(f"    [ALLY SUPPORT] {marshal.name} moving to {ally.location} to support {ally.name}")
+                    return {
+                        "marshal": marshal.name,
+                        "action": "move",
+                        "target": ally.location
+                    }
+
+            # Can we get closer to ally? Find path
+            best_move = None
+            best_distance = world.get_distance(marshal.location, ally.location)
+
+            for adj_name in marshal_region.adjacent_regions:
+                # Skip if enemies present (would need to attack, handled above)
+                enemies_there = [
+                    m for m in world.marshals.values()
+                    if m.location == adj_name
+                    and m.nation != nation
+                    and m.strength > 0
+                ]
+                if enemies_there:
+                    continue
+
+                dist = world.get_distance(adj_name, ally.location)
+                if dist < best_distance:
+                    best_move = adj_name
+                    best_distance = dist
+
+            if best_move:
+                ai_debug(f"    -> Moving toward {ally.name} via {best_move}")
+                print(f"    [ALLY SUPPORT] {marshal.name} moving toward {ally.name} via {best_move}")
+                return {
+                    "marshal": marshal.name,
+                    "action": "move",
+                    "target": best_move
+                }
+
+        return None
 
     def _consider_fortify(self, marshal: Marshal, world: WorldState) -> Optional[Dict]:
         """Consider fortifying (cautious marshals prefer this)."""
@@ -1372,6 +1904,28 @@ class EnemyAI:
                     "action": "wait"
                 }
 
+        # ════════════════════════════════════════════════════════════
+        # RETREAT RECOVERY CHECK: Block certain actions during recovery
+        # ════════════════════════════════════════════════════════════
+        retreat_recovery = getattr(marshal, 'retreat_recovery', 0)
+        if retreat_recovery > 0:
+            ai_debug(f"  P8: In retreat recovery ({retreat_recovery} turns) - limited options")
+            # During retreat recovery, can only: wait, move, recruit, defensive_stance
+            # Cannot: attack, fortify, drill, aggressive_stance
+            if current_stance != Stance.DEFENSIVE:
+                ai_debug(f"  -> P8: Recovery mode - switching to defensive stance")
+                return {
+                    "marshal": marshal.name,
+                    "action": "stance_change",
+                    "target": "defensive"
+                }
+            # Already defensive - just wait
+            ai_debug(f"  -> P8: Recovery mode - waiting")
+            return {
+                "marshal": marshal.name,
+                "action": "wait"
+            }
+
         # Not engaged - continue with personality-based defaults
         if personality == "aggressive":
             # Prefer aggressive stance
@@ -1457,12 +2011,12 @@ class EnemyAI:
                     "marshal": marshal.name,
                     "action": "fortify"
                 }
-            # Already defensive AND fortified - optimal state, just wait
-            ai_debug(f"  -> P8: Already defensive+fortified, waiting")
-            return {
-                "marshal": marshal.name,
-                "action": "wait"
-            }
+            # Already defensive AND fortified - check if there's ANYTHING useful
+            # If fortification opportunity check (P3.5) already decided to stay
+            # fortified, then there's truly nothing to do. Return None to end turn.
+            ai_debug(f"  -> P8: Already defensive+fortified, nothing to do")
+            print(f"  [P8 OPTIMAL] {marshal.name} is defensive+fortified with nothing to do - ending turn")
+            return None  # Signal "nothing useful" to trigger early turn termination
 
         else:
             # Balanced/other personalities - wait as default
@@ -1541,6 +2095,81 @@ class EnemyAI:
         if capital and world.get_region(capital):
             return capital
         return None
+
+    def _get_path_to_target(
+        self,
+        start: str,
+        end: str,
+        world: WorldState
+    ) -> List[str]:
+        """
+        Get shortest path from start to end region using BFS.
+
+        Bug #3 Fix: Used to validate that cavalry charges have clear paths.
+
+        Args:
+            start: Starting region name
+            end: Destination region name
+            world: Current world state
+
+        Returns:
+            List of region names forming the path (including start and end),
+            or empty list if no path exists.
+        """
+        if start == end:
+            return [start]
+
+        from collections import deque
+        queue = deque([(start, [start])])
+        visited = {start}
+
+        while queue:
+            current, path = queue.popleft()
+            current_region = world.get_region(current)
+            if not current_region:
+                continue
+
+            for neighbor in current_region.adjacent_regions:
+                if neighbor == end:
+                    return path + [neighbor]
+                if neighbor not in visited:
+                    visited.add(neighbor)
+                    queue.append((neighbor, path + [neighbor]))
+
+        return []  # No path found
+
+    def _path_is_blocked(
+        self,
+        path: List[str],
+        nation: str,
+        world: WorldState
+    ) -> Tuple[bool, Optional[str]]:
+        """
+        Check if any intermediate region in path has enemy marshals blocking passage.
+
+        Bug #3 Fix: Validates cavalry charge paths before committing to attack.
+
+        Args:
+            path: List of region names from start to end
+            nation: The nation attempting to traverse the path
+            world: Current world state
+
+        Returns:
+            Tuple of (is_blocked, blocker_name) where blocker_name is the marshal
+            blocking the path, or None if not blocked.
+        """
+        if len(path) < 3:
+            return (False, None)  # Adjacent or same region - no intermediate to block
+
+        # Check intermediate regions (not start, not destination)
+        for region_name in path[1:-1]:
+            blockers = [m for m in world.marshals.values()
+                       if m.location == region_name and m.nation != nation and m.strength > 0]
+            if blockers:
+                ai_debug(f"    [PATH BLOCKED] {blockers[0].name} in {region_name} blocks path")
+                return (True, blockers[0].name)
+
+        return (False, None)
 
     def _evaluate_capture_safety(
         self,
@@ -1733,6 +2362,12 @@ class EnemyAI:
 
                 if is_safe:
                     print(f"  [FORTIFICATION OPPORTUNITY] {marshal.name}: Undefended region {adj_name} - unfortifying to capture")
+                    # Store the intent to capture this region after unfortifying (Bug #1 fix)
+                    self._pending_intents[marshal.name] = {
+                        "intent": "capture",
+                        "target": adj_name
+                    }
+                    ai_debug(f"    [INTENT STORED] {marshal.name} will capture {adj_name} after unfortify")
                     return {
                         "marshal": marshal.name,
                         "action": "unfortify"
@@ -1743,8 +2378,9 @@ class EnemyAI:
         # ════════════════════════════════════════════════════════════
         # CHECK 2: "Defending nothing" - no enemies adjacent
         # ════════════════════════════════════════════════════════════
-        # If no enemy marshals are adjacent, there's no point staying fortified.
-        # Unfortify to allow repositioning or attacking.
+        # If no enemy marshals are adjacent, MAYBE unfortify to reposition.
+        # BUT: Only unfortify if there's actually somewhere useful to go!
+        # Otherwise we get an infinite loop: unfortify → nowhere to go → fortify
         adjacent_enemies = []
         for adj_name in marshal_region.adjacent_regions:
             enemies_there = [m for m in world.marshals.values()
@@ -1752,11 +2388,110 @@ class EnemyAI:
             adjacent_enemies.extend(enemies_there)
 
         if not adjacent_enemies:
-            print(f"  [FORTIFICATION OPPORTUNITY] {marshal.name}: No enemies adjacent - unfortifying to reposition")
-            return {
-                "marshal": marshal.name,
-                "action": "unfortify"
-            }
+            # Check if there's actually somewhere useful to move
+            # Look for: friendly regions to reinforce, undefended enemy regions, etc.
+            has_valid_destination = False
+            capture_target = None  # Track the capture target for intent (Bug #1 fix)
+            for adj_name in marshal_region.adjacent_regions:
+                adj_region = world.get_region(adj_name)
+                if not adj_region:
+                    continue
+
+                # Check if we can safely move there
+                enemies_at_dest = [m for m in world.marshals.values()
+                                  if m.location == adj_name and m.strength > 0 and m.nation != nation]
+
+                if not enemies_at_dest:
+                    # No enemies at destination - might be worth moving there
+                    # But check if it's a useful destination (not just wandering)
+                    if adj_region.controller != nation:
+                        # Could capture this region
+                        is_safe, _ = self._evaluate_capture_safety(marshal, adj_name, nation, world)
+                        if is_safe:
+                            has_valid_destination = True
+                            capture_target = adj_name  # Remember the capture target (Bug #1 fix)
+                            print(f"  [FORTIFICATION CHECK] {marshal.name}: Found valid capture target {adj_name}")
+                            break
+                    else:
+                        # Could reinforce friendly region
+                        # Check if there are allies there who might need help
+                        allies_there = [m for m in world.marshals.values()
+                                       if m.location == adj_name and m.nation == nation and m.name != marshal.name]
+                        if allies_there:
+                            has_valid_destination = True
+                            print(f"  [FORTIFICATION CHECK] {marshal.name}: Found ally to reinforce at {adj_name}")
+                            break
+
+            if has_valid_destination:
+                print(f"  [FORTIFICATION OPPORTUNITY] {marshal.name}: No enemies adjacent, valid destination found - unfortifying to reposition")
+                # Store capture intent if we found a capture target (Bug #1 fix)
+                if capture_target:
+                    self._pending_intents[marshal.name] = {
+                        "intent": "capture",
+                        "target": capture_target
+                    }
+                    ai_debug(f"    [INTENT STORED] {marshal.name} will capture {capture_target} after unfortify")
+                return {
+                    "marshal": marshal.name,
+                    "action": "unfortify"
+                }
+            else:
+                print(f"  [FORTIFICATION CHECK] {marshal.name}: No enemies adjacent BUT no valid destination - staying fortified")
+
+        # ════════════════════════════════════════════════════════════
+        # CHECK 3: ALLY NEEDS HELP (unfortify to support)
+        # If no enemies adjacent AND ally is in combat/threatened, unfortify.
+        # IMPORTANT: Only if WE are safe (no adjacent enemies) - don't abandon
+        # defensive position to help ally.
+        # ════════════════════════════════════════════════════════════
+        if not adjacent_enemies:
+            allies = [
+                m for m in world.marshals.values()
+                if m.nation == nation and m.name != marshal.name and m.strength > 0
+            ]
+
+            for ally in allies:
+                ally_region = world.get_region(ally.location)
+                if not ally_region:
+                    continue
+
+                # Check if ally is in combat (enemy in same region)
+                enemies_at_ally = [
+                    m for m in world.marshals.values()
+                    if m.location == ally.location and m.nation != nation and m.strength > 0
+                ]
+
+                # Check if ally is threatened (enemy adjacent and ally outnumbered)
+                enemies_adjacent_to_ally = [
+                    m for m in world.marshals.values()
+                    if m.location in ally_region.adjacent_regions and m.nation != nation and m.strength > 0
+                ]
+
+                ally_needs_help = False
+                help_reason = ""
+
+                if enemies_at_ally:
+                    # Ally is in active combat
+                    total_enemy_strength = sum(e.strength for e in enemies_at_ally)
+                    if ally.strength < total_enemy_strength * 1.5:
+                        ally_needs_help = True
+                        help_reason = f"in combat at {ally.location}"
+                elif enemies_adjacent_to_ally:
+                    # Ally is threatened and outnumbered
+                    total_threat = sum(e.strength for e in enemies_adjacent_to_ally)
+                    if ally.strength < total_threat:
+                        ally_needs_help = True
+                        help_reason = f"threatened by {len(enemies_adjacent_to_ally)} enemies"
+
+                if ally_needs_help:
+                    # Check if we can reach ally (adjacent or path exists)
+                    distance = world.get_distance(marshal.location, ally.location)
+                    if distance <= 3:  # Within reachable distance
+                        print(f"  [FORTIFICATION CHECK] {marshal.name}: Ally {ally.name} needs help ({help_reason}) - unfortifying to support")
+                        return {
+                            "marshal": marshal.name,
+                            "action": "unfortify"
+                        }
 
         # ════════════════════════════════════════════════════════════
         # NOTE: We do NOT check for attack opportunities here!

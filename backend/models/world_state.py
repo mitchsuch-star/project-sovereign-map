@@ -1612,6 +1612,9 @@ class WorldState:
                     if new_stage >= 3:
                         marshal.retreating = False
                         marshal.retreat_recovery = 0
+                        # Clear locked recovery destination (Bug #2 fix)
+                        if hasattr(marshal, '_recovery_destination'):
+                            marshal._recovery_destination = None
                         print(f"  [TACTICAL] FULLY RECOVERED: {marshal.name} combat ready")
                         events.append({
                             "type": "retreat_recovered",

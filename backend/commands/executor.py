@@ -1471,41 +1471,70 @@ RETREAT RECOVERY (3 turns):
         if marshal.strength <= 0:
             world.marshals.pop(marshal.name, None)
 
+        # ============================================================
+        # FORCED RETREAT: Handle broken armies (morale <= 25%)
+        # MUST happen BEFORE movement/conquest check so retreating
+        # defenders don't block territory capture!
+        # ============================================================
+        forced_retreat_msg = self._handle_forced_retreat(
+            battle_result, marshal, enemy_marshal, world
+        )
+
         # ===== ATTACKER MOVEMENT & REGION CONQUEST LOGIC =====
-        conquered = False  # INITIALIZE HERE!
-        conquest_msg = ""  # INITIALIZE HERE!
+        conquered = False
+        conquest_msg = ""
         attacker_moved = False
         movement_msg = ""
 
-        # Move attacker to target location if they won the battle and are still alive
-        print(f"[ATTACK MOVEMENT] Checking: victor={battle_result.get('victor')}, marshal={marshal.name}, strength={marshal.strength}")
+        # Check if defender retreated/fled (even in stalemate, empty territory = advance)
+        defender_fled = (
+            enemy_marshal.strength > 0 and  # Defender survived
+            enemy_marshal.location != target_location  # But no longer in target territory
+        )
+
+        # Move attacker to target location if:
+        # 1. They won the battle (victor = attacker), OR
+        # 2. Defender fled (even in stalemate, pursue into empty territory)
+        victor = battle_result.get('victor')
+        can_advance = (victor == marshal.name) or defender_fled
+
+        print(f"[ATTACK MOVEMENT] Checking: victor={victor}, marshal={marshal.name}, strength={marshal.strength}")
+        print(f"[ATTACK MOVEMENT] defender_fled={defender_fled}, enemy_location={enemy_marshal.location if enemy_marshal.strength > 0 else 'DESTROYED'}")
         print(f"[ATTACK MOVEMENT] marshal.location={marshal.location}, target_location={target_location}")
-        if battle_result["victor"] == marshal.name and marshal.strength > 0:
+
+        if can_advance and marshal.strength > 0:
             if marshal.location != target_location:
                 print(f"[ATTACK MOVEMENT] MOVING {marshal.name}: {marshal.location} -> {target_location}")
                 marshal.move_to(target_location)
                 attacker_moved = True
-                movement_msg = f" {marshal.name} advances into {target_location}."
+                if defender_fled and victor != marshal.name:
+                    movement_msg = f" {enemy_marshal.name} retreats! {marshal.name} pursues into {target_location}."
+                else:
+                    movement_msg = f" {marshal.name} advances into {target_location}."
             else:
                 print(f"[ATTACK MOVEMENT] Already at target location, no move needed")
         else:
-            print(f"[ATTACK MOVEMENT] NOT moving: victor mismatch or strength <= 0")
+            print(f"[ATTACK MOVEMENT] NOT moving: can_advance={can_advance}, strength={marshal.strength}")
 
-        # Check if we're attacking a region (not just a marshal name)
-        # ENEMY AI FIX: Use attacker's nation, not hardcoded player_nation
-        target_region = world.get_region(resolved_target)
+        # Check if territory can be captured
+        # Use target_location (the region) not resolved_target (which might be marshal name)
+        target_region = world.get_region(target_location)
         if target_region and target_region.controller != marshal.nation:
             # Find all remaining defenders (marshals from nations other than attacker)
+            # NOTE: This check happens AFTER forced retreats, so fled defenders aren't counted
             remaining_defenders = [
                 m for m in world.marshals.values()
-                if m.location == resolved_target and m.strength > 0 and m.nation != marshal.nation
+                if m.location == target_location and m.strength > 0 and m.nation != marshal.nation
             ]
+
+            print(f"[CONQUEST CHECK] target_location={target_location}, controller={target_region.controller}")
+            print(f"[CONQUEST CHECK] remaining_defenders={[m.name for m in remaining_defenders]}")
 
             # If no defenders left, capture the region!
             if not remaining_defenders:
-                world.capture_region(resolved_target, marshal.nation)
+                world.capture_region(target_location, marshal.nation)
                 conquered = True
-                conquest_msg = f" {resolved_target} has been captured by {marshal.nation}!"
+                conquest_msg = f" {target_location} has been captured by {marshal.nation}!"
 
         # Build message with flanking info if applicable
         flanking_prefix = ""
@@ -1536,12 +1565,8 @@ RETREAT RECOVERY (3 turns):
             if vindication_result:
                 vindication_msg = f"\n\n📜 {vindication_result['message']}"
 
-        # ============================================================
-        # FORCED RETREAT: Handle broken armies (morale <= 25%)
-        # ============================================================
-        forced_retreat_msg = self._handle_forced_retreat(
-            battle_result, marshal, enemy_marshal, world
-        )
+        # NOTE: Forced retreat was already handled above (before movement/conquest check)
+        # forced_retreat_msg is already set
 
         # Build final message with optional drill cancellation prefix, counter-punch, cavalry charge, and covering
         battle_message = counter_punch_message + cavalry_charge_message + covering_message + flanking_prefix + battle_result["description"] + destroyed_msg + movement_msg + conquest_msg + vindication_msg + forced_retreat_msg
@@ -4160,6 +4185,16 @@ RETREAT RECOVERY (3 turns):
         current_region = world.get_region(marshal.location)
         if not current_region:
             return {"success": False, "message": f"Invalid location: {marshal.location}"}
+
+        # ════════════════════════════════════════════════════════════
+        # BUG FIX: Prevent double retreat in same turn
+        # A marshal can only retreat once per turn (forced or ordered)
+        # ════════════════════════════════════════════════════════════
+        if getattr(marshal, 'retreated_this_turn', False):
+            return {
+                "success": False,
+                "message": f"{marshal.name} has already retreated this turn. Cannot retreat again."
+            }
 
         # ════════════════════════════════════════════════════════════
         # BUG-010 FIX: Check if marshal is actually in danger
