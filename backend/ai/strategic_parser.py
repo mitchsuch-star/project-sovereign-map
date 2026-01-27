@@ -31,22 +31,37 @@ except ImportError:
 
 STRATEGIC_KEYWORDS = {
     "MOVE_TO": [
+        # Multi-word phrases first (longer = checked first)
+        "make your way to", "advance toward", "march toward", "push toward",
+        "campaign toward", "sweep toward", "press toward", "drive toward",
+        "head toward", "press on to",
         "march to", "advance to", "proceed to", "head to",
         "make for", "travel to", "withdraw to", "fall back to",
+        "campaign to", "push to", "move toward",
+        "journey to", "relocate to", "deploy to",
     ],
     "PURSUE": [
-        "pursue", "chase", "hunt down", "hunt",
-        "go after", "give chase", "intercept", "track",
+        # Multi-word phrases first
+        "follow and destroy", "hunt down", "track down", "run down",
+        "give chase", "go after", "drive against",
+        "pursue", "chase", "hunt", "intercept", "track",
+        "harry", "hound", "shadow",
     ],
     "HOLD": [
+        # Multi-word phrases first
+        "hold at all costs", "hold your ground", "don't give ground",
         "hold position", "hold the line", "fortify and hold",
+        "defend and hold", "secure and hold",
+        "stand fast", "stand firm", "maintain position", "anchor at",
         "hold",
         "dig in", "guard", "protect",
     ],
     "SUPPORT": [
-        "link up with", "back up",
+        # Multi-word phrases first
+        "come to the aid of", "link up with", "move to reinforce",
+        "rally to", "back up", "shore up", "combine with",
         "support", "reinforce", "assist", "aid",
-        "join",
+        "bolster", "join",
     ],
 }
 

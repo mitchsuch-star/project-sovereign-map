@@ -172,6 +172,10 @@ def json_to_parse_result(json_data: Dict, raw_command: str, mode: str) -> ParseR
         target_stance=json_data.get("target_stance"),
         standing_order=json_data.get("standing_order"),
         condition=json_data.get("condition"),
+        # Phase 5.2: Strategic order fields from LLM
+        is_strategic=json_data.get("is_strategic", False),
+        strategic_type=json_data.get("strategic_type"),
+        strategic_condition=json_data.get("strategic_condition"),
         ambiguity=json_data.get("ambiguity", 50),
         strategic_score=json_data.get("strategic_score", 50),
         interpretation=json_data.get("interpretation", ""),

@@ -968,6 +968,7 @@ This phase adds multi-turn strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) tha
 - [ ] Phase I: Save/Load
 - [ ] Phase J: UI Updates (Godot)
 - [ ] Phase K: Integration testing
+- [x] Phase L: LLM Strategic Integration ✅ (prompt, schema, keywords, validation, 65 tests)
 
 **📋 REMAINING (Phase 3+):**
 - [ ] Grouchy literal mechanics (see below)
@@ -1387,17 +1388,31 @@ ANTHROPIC_API_KEY=sk-ant-api03-...   # Required if LLM_MODE=anthropic
 ### Key Insight
 **Executor stays rule-based.** LLM helps with parsing ambiguous commands, but game mechanics are 100% deterministic. No LLM randomness in combat, movement, or AI decisions.
 
-### Future: Strategic Score + Ambiguity (Phase 5)
+### LLM Strategic Integration ✅ (Phase 5.2-L)
 
-ParseResult includes scoring fields for future gameplay mechanics:
+LLM fallback now understands strategic commands:
+- **Prompt** teaches LLM about MOVE_TO, PURSUE, HOLD, SUPPORT keywords and conditions
+- **Schema** includes `is_strategic`, `strategic_type`, `strategic_condition` in LLM output format
+- **Ambiguity scoring** guide: 0-20 crystal clear, 61+ very vague (generic targets)
+- **Few-shot examples** include 4 strategic + 2 tactical commands
+- **Validation** no longer blocks `command_type="strategic"`, conditions, or standing orders
+- **Fast parser** expanded: 50+ keyword phrases across all 4 strategic types
+- Bare "defend" stays tactical; "defend and hold" is strategic HOLD
+
+### Strategic Score + Ambiguity
+
+ParseResult scoring fields drive gameplay mechanics:
 - `strategic_score` (0-100): How complex/strategic the command is
 - `ambiguity` (0-100): How unclear the command was
 
-**Planned effects:**
+**Active effects (Phase 5.2):**
 | Score | Effect |
 |-------|--------|
+| Ambiguity 0-20 | +15% combat buff (Grouchy explicit order bonus) |
+| Ambiguity 21-40 | +10% combat buff |
+| Ambiguity 41-60 | +5% combat buff + warning |
+| Ambiguity 61+ | No buff, triggers Grouchy clarification popup |
 | High strategic | +authority, +morale (Napoleon in his element) |
-| High ambiguity | Delay, wrong interpretation, personality-dependent chaos |
 
 ### Nation Tiers for LLM (Future)
 ```python

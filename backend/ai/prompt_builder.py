@@ -47,11 +47,10 @@ User Input
 EXTENSION POINTS FOR FUTURE PHASES
 ===============================================================================
 
-Phase 5 - Strategic Commands:
-    - Add STRATEGIC_COMMAND_EXAMPLES to examples section
-    - Update command_type options: "tactical" | "strategic"
-    - Add standing_order and condition to output format
-    - Search for "# PHASE 5:" comments below
+Phase 5 - Strategic Commands: ✅ DONE
+    - STRATEGIC_COMMAND_EXAMPLES added with MOVE_TO, PURSUE, HOLD, SUPPORT
+    - Output schema includes is_strategic, strategic_type, strategic_condition
+    - Prompt explains strategic keywords and conditions to LLM
 
 Phase 6 - Multi-Marshal Commands:
     - Update "marshals" field documentation to allow multiple
@@ -74,6 +73,7 @@ New Marshals/Regions:
 ===============================================================================
 """
 
+import json
 from typing import Dict, List, Optional, Any
 
 from .validation import VALID_ACTIONS, VALID_STANCES
@@ -96,6 +96,9 @@ OUTPUT_SCHEMA = """{
     "target_stance": null,
     "standing_order": null,
     "condition": null,
+    "is_strategic": false,
+    "strategic_type": null,
+    "strategic_condition": null,
     "ambiguity": 15,
     "strategic_score": 45,
     "interpretation": "Marshal Ney to attack enemy position at Waterloo",
@@ -150,34 +153,73 @@ EXAMPLE_COMMANDS = [
     },
 ]
 
-# PHASE 5: Strategic command examples (not yet implemented)
-# When Phase 5 ships, add these to EXAMPLE_COMMANDS:
-#
-# STRATEGIC_COMMAND_EXAMPLES = [
-#     {
-#         "input": "Ney, pursue Wellington until he's destroyed",
-#         "output": {
-#             "matched": True,
-#             "command_type": "strategic",
-#             "marshals": ["Ney"],
-#             "action": "pursue",
-#             "target": "Wellington",
-#             "standing_order": "pursue",
-#             "condition": "until target destroyed",
-#             "ambiguity": 20,
-#             "strategic_score": 75,
-#             "interpretation": "Standing order: Ney pursues Wellington",
-#         }
-#     },
-#     {
-#         "input": "Hold Belgium until reinforced",
-#         "output": {
-#             "command_type": "strategic",
-#             "standing_order": "hold",
-#             "condition": "until reinforced",
-#         }
-#     },
-# ]
+# Phase 5.2: Strategic command examples (active)
+STRATEGIC_COMMAND_EXAMPLES = [
+    {
+        "input": "Ney, pursue Wellington until he's destroyed",
+        "output": {
+            "matched": True,
+            "command_type": "strategic",
+            "marshals": ["Ney"],
+            "action": "pursue",
+            "target": "Wellington",
+            "is_strategic": True,
+            "strategic_type": "PURSUE",
+            "strategic_condition": {"until_marshal_destroyed": "Wellington"},
+            "ambiguity": 10,
+            "strategic_score": 75,
+            "interpretation": "Standing order: Ney pursues Wellington until destroyed",
+        }
+    },
+    {
+        "input": "Grouchy, march to Rhine",
+        "output": {
+            "matched": True,
+            "command_type": "strategic",
+            "marshals": ["Grouchy"],
+            "action": "move",
+            "target": "Rhine",
+            "is_strategic": True,
+            "strategic_type": "MOVE_TO",
+            "strategic_condition": None,
+            "ambiguity": 5,
+            "strategic_score": 60,
+            "interpretation": "Standing order: Grouchy marches to Rhine",
+        }
+    },
+    {
+        "input": "Hold Belgium until Ney arrives",
+        "output": {
+            "matched": True,
+            "command_type": "strategic",
+            "marshals": ["Davout"],
+            "action": "hold",
+            "target": "Belgium",
+            "is_strategic": True,
+            "strategic_type": "HOLD",
+            "strategic_condition": {"until_marshal_arrives": "Ney"},
+            "ambiguity": 15,
+            "strategic_score": 70,
+            "interpretation": "Standing order: Davout holds Belgium until Ney arrives",
+        }
+    },
+    {
+        "input": "Davout, support Ney",
+        "output": {
+            "matched": True,
+            "command_type": "strategic",
+            "marshals": ["Davout"],
+            "action": "reinforce",
+            "target": "Ney",
+            "is_strategic": True,
+            "strategic_type": "SUPPORT",
+            "strategic_condition": None,
+            "ambiguity": 10,
+            "strategic_score": 65,
+            "interpretation": "Standing order: Davout moves to support Ney",
+        }
+    },
+]
 
 
 # =============================================================================
@@ -248,13 +290,40 @@ def build_parse_prompt(
 - CAUTIOUS: biases toward defense, wants intel first
 - LITERAL: interprets exactly as stated, picks nearest for ambiguity
 
-# NOTE: LLM handles personality-based target selection for complex commands.
-# For Phase 5.2 strategic commands, backend interpret_by_personality() will
-# provide equivalent logic for multi-turn order target resolution.
+## Strategic Commands (Multi-Turn Orders)
+Commands that imply ongoing, multi-turn execution are STRATEGIC, not tactical.
+Set is_strategic=true and strategic_type to one of: MOVE_TO, PURSUE, HOLD, SUPPORT.
 
-## Scoring Guide
-- ambiguity (0-100): 0=clear command, 50=missing details, 100=unparseable
-- strategic_score (0-100): 0=simple order, 50=tactical decision, 100=campaign-level
+Strategic keywords:
+- MOVE_TO: "march to", "advance to", "proceed to", "head to", "travel to", "withdraw to", "fall back to"
+- PURSUE: "pursue", "chase", "hunt down", "hunt", "go after", "intercept", "track"
+- HOLD: "hold position", "hold the line", "hold", "dig in", "guard", "protect"
+- SUPPORT: "link up with", "support", "reinforce", "assist", "aid", "join", "back up"
+
+Conditions (set in strategic_condition dict):
+- "until_marshal_arrives": marshal name (e.g. "until Ney arrives")
+- "until_marshal_destroyed": marshal name (e.g. "until destroyed")
+- "until_relieved": true
+- "until_battle_won": true
+- "max_turns": number (e.g. "for 3 turns")
+
+IMPORTANT: "move to [region]" (2 words) = tactical (immediate). "march to [region]" = strategic (multi-turn).
+If the command implies an ongoing campaign or uses strategic keywords above, set is_strategic=true.
+
+## Ambiguity Scoring (0-100)
+- 0-20: Crystal clear ("Attack Wellington at Waterloo", "March to Vienna")
+- 21-40: Clear but minor gaps ("March to Vienna" — no condition specified)
+- 41-60: Somewhat vague ("Push toward the enemy", "Handle the flank")
+- 61-100: Very vague ("Handle the situation", "Deal with the Prussians")
+
+Generic targets like "the enemy", "them", "hostile forces" = ambiguity 60+
+Specific names like "Wellington", "Blücher" = ambiguity under 30
+No marshal specified = +20 ambiguity
+
+## Strategic Score (0-100)
+- 0-20: Simple immediate action ("Attack", "Move to Belgium")
+- 21-50: Tactical decision ("Fortify and hold the line")
+- 51-100: Campaign-level ("March to Vienna and crush resistance", "Pursue until destroyed")
 
 ## Command to Parse
 "{raw_input}"
@@ -377,21 +446,41 @@ def _format_examples() -> str:
     """
     Format example commands for few-shot learning.
 
-    Keeps examples minimal to save tokens.
+    Includes both tactical and strategic examples.
     """
     lines = []
-    for i, example in enumerate(EXAMPLE_COMMANDS[:2], 1):  # Only 2 examples to save tokens
+    # 2 tactical examples
+    for i, example in enumerate(EXAMPLE_COMMANDS[:2], 1):
         input_text = example["input"]
         output = example["output"]
-        # Minimal JSON representation
         output_json = (
             f'{{"matched": {str(output.get("matched", True)).lower()}, '
             f'"marshals": {output.get("marshals", [])}, '
             f'"action": "{output.get("action", "")}", '
             f'"target": {_json_value(output.get("target"))}, '
+            f'"is_strategic": false, '
             f'"ambiguity": {output.get("ambiguity", 0)}}}'
         )
         lines.append(f'{i}. "{input_text}" -> {output_json}')
+
+    # 2 strategic examples
+    for j, example in enumerate(STRATEGIC_COMMAND_EXAMPLES[:2], len(lines) + 1):
+        input_text = example["input"]
+        output = example["output"]
+        cond = output.get("strategic_condition")
+        cond_str = json.dumps(cond) if cond else "null"
+        output_json = (
+            f'{{"matched": true, '
+            f'"command_type": "strategic", '
+            f'"marshals": {output.get("marshals", [])}, '
+            f'"action": "{output.get("action", "")}", '
+            f'"target": {_json_value(output.get("target"))}, '
+            f'"is_strategic": true, '
+            f'"strategic_type": "{output.get("strategic_type", "")}", '
+            f'"strategic_condition": {cond_str}, '
+            f'"ambiguity": {output.get("ambiguity", 0)}}}'
+        )
+        lines.append(f'{j}. "{input_text}" -> {output_json}')
 
     return "\n".join(lines)
 

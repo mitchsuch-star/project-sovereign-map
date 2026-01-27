@@ -114,23 +114,8 @@ def validate_parse_result(
         result.suggestion = "Multi-marshal commands coming in a future update!"
         return result
 
-    # Strategic commands (standing orders): not yet implemented
-    if result.command_type == "strategic":
-        result.matched = False
-        result.suggestion = "Strategic commands coming in a future update!"
-        return result
-
-    # Conditional orders: not yet implemented
-    if result.condition:
-        result.matched = False
-        result.suggestion = "Conditional orders coming in a future update!"
-        return result
-
-    # Standing orders: not yet implemented
-    if result.standing_order:
-        result.matched = False
-        result.suggestion = "Standing orders coming in a future update!"
-        return result
+    # Phase 5.2: Strategic commands now supported — pass through for executor handling
+    # Note: command_type="strategic", condition, and standing_order are all valid now
 
     # Validate action is known
     if result.action and result.action not in VALID_ACTIONS:
