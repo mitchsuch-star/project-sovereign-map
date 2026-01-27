@@ -290,9 +290,10 @@ class EnemyAI:
 
     # Maximum adjacent enemies tolerated when capturing a region
     # More enemies = higher risk of being counter-attacked or encircled
+    # Bug #4 Fix: Increased cautious tolerance from 1 to 2, with strength-ratio override
     ENCIRCLEMENT_TOLERANCE = {
         "aggressive": 99,    # Only avoids COMPLETE encirclement (checked separately)
-        "cautious": 1,       # Won't capture if 2+ enemies adjacent after move
+        "cautious": 2,       # Won't capture if 3+ enemies adjacent (was 1, too restrictive)
         "literal": 2,        # Won't capture if 3+ enemies adjacent
         "balanced": 2,       # Won't capture if 3+ enemies adjacent
         "loyal": 2,          # Won't capture if 3+ enemies adjacent
@@ -465,6 +466,11 @@ class EnemyAI:
         # Clear pending intents at start of each nation's turn (safety)
         self._pending_intents = {}
 
+        # Bug #1 Fix: Track starting locations to prevent oscillation
+        # If marshal A starts at X and ally B starts at Y, we don't want:
+        # A moves to Y to "support" B, then B moves to X to "support" A
+        self._marshal_start_locations: Dict[str, str] = {}
+
         # Get this nation's marshals
         marshals = world.get_marshals_by_nation(nation)
 
@@ -473,6 +479,10 @@ class EnemyAI:
             print(f"=== {nation} TURN: No marshals remaining ===")
             print(f"{'='*60}")
             return results
+
+        # Record starting locations for all marshals (Bug #1 oscillation fix)
+        for m in marshals:
+            self._marshal_start_locations[m.name] = m.location
 
         # Sort marshals by priority for logging
         marshal_names = sorted(
@@ -1600,6 +1610,24 @@ class EnemyAI:
             ai_debug(f"    {ally.name} needs support: {support_reason}")
             print(f"    [ALLY SUPPORT] {ally.name} needs support: {support_reason}")
 
+            # Bug #1 Fix: Check for oscillation - don't move to where ally STARTED
+            # This prevents A moving to Y (where B started) while B moves to X (where A started)
+            ally_start_location = self._marshal_start_locations.get(ally.name)
+            if ally_start_location and ally_start_location == marshal.location:
+                # Ally started where we are now - they moved AWAY from here for a reason
+                # Don't chase them back
+                ai_debug(f"    [OSCILLATION BLOCKED] {ally.name} started at {marshal.location} - not chasing")
+                print(f"    [OSCILLATION BLOCKED] {marshal.name} won't follow {ally.name} - they retreated from here")
+                continue
+
+            # Bug #1 Fix: Also check if we'd be moving BACK to where WE started
+            my_start_location = self._marshal_start_locations.get(marshal.name)
+            if my_start_location and ally.location == my_start_location:
+                # We started at ally's location - we moved away for a reason
+                ai_debug(f"    [OSCILLATION BLOCKED] We started at {ally.location} - not going back")
+                print(f"    [OSCILLATION BLOCKED] {marshal.name} won't return to {ally.location} - moved away for a reason")
+                continue
+
             # Can we reach ally? Check if ally's location is adjacent to us
             if ally.location in marshal_region.adjacent_regions:
                 # Check if there are enemies blocking the path
@@ -2238,6 +2266,18 @@ class EnemyAI:
         if is_enemy_capital and personality == "aggressive":
             if not enemies_on_all_sides:  # But still avoid complete encirclement
                 return (True, "Enemy capital - aggressive always captures")
+
+        # Bug #4 Fix: Strength-ratio override for cautious marshals
+        # If marshal has overwhelming strength (3:1+ vs total adjacent enemies),
+        # they can capture even with more enemies than tolerance
+        if adjacent_enemy_strength > 0:
+            strength_ratio = marshal.strength / adjacent_enemy_strength
+            if strength_ratio >= 3.0:
+                # Overwhelming advantage - capture is safe regardless of enemy count
+                return (True, f"Overwhelming strength ({strength_ratio:.1f}:1 vs {adjacent_enemies} enemies)")
+            elif personality == "aggressive" and strength_ratio >= 2.0:
+                # Aggressive marshals more willing to take risks with 2:1 advantage
+                return (True, f"Aggressive with strong advantage ({strength_ratio:.1f}:1)")
 
         # Standard tolerance check
         if effective_enemies > tolerance:

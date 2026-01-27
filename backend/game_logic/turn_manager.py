@@ -79,6 +79,26 @@ class TurnManager:
         old_turn = self.world.current_turn
 
         # ════════════════════════════════════════════════════════════
+        # BUG #2 FIX: CHECK VICTORY BEFORE ENEMY PHASE
+        # If game is already over (player won/lost), skip enemy phase
+        # ════════════════════════════════════════════════════════════
+        pre_enemy_victory_check = self._check_victory_conditions()
+        if pre_enemy_victory_check["game_over"]:
+            print(f"\n[GAME OVER] {pre_enemy_victory_check['reason']} - skipping enemy phase")
+            self.world.game_over = True
+            self.world.victory = pre_enemy_victory_check["result"]
+            # Skip to turn advancement without enemy phase
+            self.world.advance_turn()
+            tactical_events = self.world.get_last_tactical_events()
+            return {
+                "turn_ended": old_turn,
+                "next_turn": self.world.current_turn,
+                "victory_check": pre_enemy_victory_check,
+                "message": f"Turn {old_turn} complete - {pre_enemy_victory_check['reason']}",
+                "tactical_events": tactical_events
+            }
+
+        # ════════════════════════════════════════════════════════════
         # ENEMY AI TURN PHASE: All enemy nations take their turns
         # ════════════════════════════════════════════════════════════
         enemy_phase_results = None
@@ -86,6 +106,28 @@ class TurnManager:
             enemy_phase_results = self._process_enemy_turns(game_state)
             # Store for later retrieval if needed
             self.world._last_enemy_phase_results = enemy_phase_results
+
+            # BUG #2 FIX: Check if enemy achieved victory during their turn
+            if enemy_phase_results and enemy_phase_results.get("enemy_victory"):
+                enemy_victory = enemy_phase_results["enemy_victory"]
+                print(f"\n[GAME OVER] {enemy_victory['message']}")
+                self.world.game_over = True
+                self.world.victory = "defeat"
+                # Still advance turn but game is over
+                self.world.advance_turn()
+                tactical_events = self.world.get_last_tactical_events()
+                return {
+                    "turn_ended": old_turn,
+                    "next_turn": self.world.current_turn,
+                    "victory_check": {
+                        "game_over": True,
+                        "result": "defeat",
+                        "reason": enemy_victory["message"]
+                    },
+                    "message": f"Turn {old_turn} complete - {enemy_victory['message']}",
+                    "tactical_events": tactical_events,
+                    "enemy_phase": enemy_phase_results
+                }
 
         # ════════════════════════════════════════════════════════════
         # ADVANCE TURN (includes tactical state processing!)
@@ -363,6 +405,13 @@ class TurnManager:
 
         # Process each enemy nation
         for nation in self.world.enemy_nations:
+            # BUG #2 FIX: Check if victory already achieved before processing more nations
+            existing_victory = self._check_enemy_victory()
+            if existing_victory:
+                print(f"\n[ENEMY VICTORY] {existing_victory['message']} - stopping enemy phase")
+                results["enemy_victory"] = existing_victory
+                break
+
             # Check if nation has any marshals
             marshals = self.world.get_marshals_by_nation(nation)
             if not marshals:
@@ -386,10 +435,11 @@ class TurnManager:
                 nation_summary += f": {', '.join(action_types)}"
             results["summary"].append(nation_summary)
 
-        # Check enemy win condition
-        enemy_victory = self._check_enemy_victory()
-        if enemy_victory:
-            results["enemy_victory"] = enemy_victory
+        # Final check for enemy win condition (if not already found)
+        if "enemy_victory" not in results:
+            enemy_victory = self._check_enemy_victory()
+            if enemy_victory:
+                results["enemy_victory"] = enemy_victory
 
         print("\n" + "=" * 70)
         print("ENEMY PHASE COMPLETE")
