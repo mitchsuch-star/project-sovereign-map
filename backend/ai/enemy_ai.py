@@ -15,9 +15,6 @@ Design principles:
 - No special enemy combat logic - same executor handles everything
 
 FUTURE IMPROVEMENTS (TODO):
-- Failed Action Cooldown: Don't retry same failed action for 1-2 turns
-  - Track failed actions per marshal: {"Fortify": turns_until_retry}
-  - Prevents wasteful loops like fortify-block-fortify-block
 - Alliance Coordination: Britain/Prussia share intel and coordinate
   - When one nation spots weakness, inform allies
   - Coordinate pincer attacks from multiple directions
@@ -58,6 +55,58 @@ import random
 from typing import Dict, List, Optional, Tuple
 from backend.models.world_state import WorldState
 from backend.models.marshal import Marshal, Stance
+
+# ═══════════════════════════════════════════════════════════════════
+# BUG FIX HISTORY (context for future maintainers)
+# ═══════════════════════════════════════════════════════════════════
+# Jan 20, 2026 - Wellington fortify/unfortify oscillation (1bd4e01):
+#   Problem: Wellington unfortifies to attack, attack fails, re-fortifies, repeat
+#   Fix: Removed FORTIFICATION_ABANDON_THRESHOLD; attacks go through normal P4 only
+#
+# Jan 20, 2026 - Enemy turn skipped on auto-advance (8e33b82):
+#   Problem: Auto-advance skipped enemy AI phase entirely
+#   Fix: Ensure _process_enemy_turns() runs before advance_turn()
+#
+# Jan 24, 2026 - Fortify/drill while engaged (bc9e936):
+#   Problem: AI tries to fortify or drill while enemy in same region
+#   Fix: P0 engagement check runs FIRST, forces attack/retreat/wait
+#
+# Jan 26, 2026 - Intent tracking for multi-step actions (c2ae6f8):
+#   Problem: Unfortify-then-capture failed because AI forgot the capture step
+#   Fix: _pending_intents dict stores next action after unfortify
+#
+# Jan 26, 2026 - Recovery destination oscillation (c2ae6f8):
+#   Problem: Marshal retreats to A, next turn path says B is better, oscillates
+#   Fix: recovery_destination locks retreat target until recovery complete
+#
+# Jan 26, 2026 - Blocked path attacks (c2ae6f8):
+#   Problem: Distance-2 attacks attempted through enemy-occupied regions
+#   Fix: BFS path validation confirms path is clear before attack
+#
+# Jan 27, 2026 - Within-turn oscillation (416ec12):
+#   Problem: Marshal moves A→B then B→A within same turn
+#   Fix: _marshal_visited_locations tracks all visited locations per turn as sets
+#
+# Jan 27, 2026 - Wait action spam (416ec12):
+#   Problem: AI spams wait actions, never ends turn
+#   Fix: _consecutive_waits counter, marshal marked "done" after 2 waits
+#
+# Jan 27, 2026 - Cautious stuck fortified forever (416ec12):
+#   Problem: All capture targets "unsafe" due to strict counter-attack threshold
+#   Fix: Stale fortification relaxation — threshold decays after 3+ turns
+#
+# Jan 27, 2026 - Prussia not capturing current region (416ec12):
+#   Problem: _find_undefended_capture only checks adjacent, not current region
+#   Fix: P-1 priority captures undefended enemy region marshal is standing on
+#
+# Jan 27, 2026 - Intent persists after failure (ef21ff6):
+#   Problem: Failed unfortify left stale capture intent blocking new decisions
+#   Fix: _pending_intents.pop() on any failed action execution
+#
+# Jan 27, 2026 - Fortify bonus distortion (ef21ff6):
+#   Problem: Uncapped fortify_bonus in target evaluation could distort ratios
+#   Fix: Cap at min(fortify_bonus, 0.20) in _evaluate_target_ratio()
+# ═══════════════════════════════════════════════════════════════════
 
 # Debug flag - set to True to enable detailed AI decision logging
 AI_DEBUG = True
@@ -300,9 +349,11 @@ class EnemyAI:
     }
 
     # Survival threshold (% of starting strength)
+    # Tuned: below 25% triggers desperate flee/defend behavior
     SURVIVAL_THRESHOLD = 0.25
 
     # Low strength threshold for defensive behavior
+    # Tuned: below 50% triggers cautious defensive posture
     LOW_STRENGTH_THRESHOLD = 0.50
 
     # Mood variance by personality (controlled randomness)
@@ -327,6 +378,17 @@ class EnemyAI:
         # Format: {marshal_name: {"intent": str, "target": str}}
         # Used when a multi-step action is split (e.g., unfortify then capture)
         self._pending_intents: Dict[str, Dict[str, str]] = {}
+
+        # ═══════════════════════════════════════════════════════════════════
+        # FAILED ACTION COOLDOWN SYSTEM
+        # ═══════════════════════════════════════════════════════════════════
+        # Prevents AI from retrying failed actions immediately.
+        # Example: Attack fails due to path blocked → 2 turn cooldown on attack
+        # This avoids repetitive failed attempts and encourages varied behavior.
+        # Cooldown of 2 turns chosen to allow situation to change before retry.
+        # Persists across turns (unlike failed_actions set which resets each turn).
+        # ═══════════════════════════════════════════════════════════════════
+        self._failed_action_cooldowns: Dict[str, Dict[str, int]] = {}  # {marshal_name: {action_type: turns_remaining}}
 
     def _get_mood_adjusted_threshold(self, marshal: Marshal) -> float:
         """
@@ -361,6 +423,49 @@ class EnemyAI:
             ai_debug(f"    {marshal.name} feeling {mood_desc} today (threshold {base_threshold:.2f} -> {adjusted:.2f})")
 
         return adjusted
+
+    # ═══════════════════════════════════════════════════════════════════
+    # FAILED ACTION COOLDOWN HELPERS
+    # ═══════════════════════════════════════════════════════════════════
+
+    def _is_action_on_cooldown(self, marshal_name: str, action_type: str) -> bool:
+        """Check if a marshal's action is on cooldown from a previous failure."""
+        marshal_cooldowns = self._failed_action_cooldowns.get(marshal_name, {})
+        remaining = marshal_cooldowns.get(action_type, 0)
+        if remaining > 0:
+            ai_debug(f"    [COOLDOWN] {marshal_name} '{action_type}' on cooldown ({remaining} turns)")
+            return True
+        return False
+
+    def _record_failed_action(self, marshal_name: str, action_type: str, cooldown: int = 2):
+        """Record a failed action with cooldown turns before retry.
+
+        Args:
+            marshal_name: The marshal whose action failed
+            action_type: The action that failed (e.g., "attack", "move")
+            cooldown: Turns before this action can be retried (default 2)
+        """
+        if marshal_name not in self._failed_action_cooldowns:
+            self._failed_action_cooldowns[marshal_name] = {}
+        self._failed_action_cooldowns[marshal_name][action_type] = cooldown
+        ai_debug(f"    [COOLDOWN SET] {marshal_name} '{action_type}' cooled down for {cooldown} turns")
+
+    def _decrement_cooldowns(self):
+        """Decrement all cooldowns by 1 turn. Called at start of each nation's turn."""
+        expired_marshals = []
+        for marshal_name, cooldowns in self._failed_action_cooldowns.items():
+            expired_actions = []
+            for action_type, remaining in cooldowns.items():
+                cooldowns[action_type] = remaining - 1
+                if cooldowns[action_type] <= 0:
+                    expired_actions.append(action_type)
+            for action_type in expired_actions:
+                del cooldowns[action_type]
+                ai_debug(f"    [COOLDOWN EXPIRED] {marshal_name} '{action_type}' available again")
+            if not cooldowns:
+                expired_marshals.append(marshal_name)
+        for marshal_name in expired_marshals:
+            del self._failed_action_cooldowns[marshal_name]
 
     def decide_single_action(
         self,
@@ -469,6 +574,9 @@ class EnemyAI:
         # Track marshals who have already changed stance this turn (prevent spam)
         self._stance_changed_this_turn: set = set()
 
+        # Decrement cross-turn cooldowns (failed action retry prevention)
+        self._decrement_cooldowns()
+
         # Clear pending intents at start of each nation's turn (safety)
         self._pending_intents = {}
 
@@ -516,7 +624,7 @@ class EnemyAI:
         paid_action_budget = actions_remaining  # 4 paid actions max
         max_total_actions = paid_action_budget + 2  # 4 paid + 2 free = 6 max total
         free_action_count = 0
-        max_free_actions = 2  # Maximum free actions (wait, retreat) per turn
+        max_free_actions = 2  # Safety: prevents infinite wait/retreat loops per turn
         consecutive_skips = 0  # Track consecutive skips to detect "nothing to do"
         max_consecutive_skips = len(marshals) + 1  # If we skip everyone, stop
 
@@ -557,8 +665,10 @@ class EnemyAI:
             # Only track SUCCESSFUL actions
             if not result.get("success", False):
                 print(f"    [FAILED] {result.get('message', 'Unknown error')[:60]}...")
-                # Mark this marshal+action combo as failed so we don't retry it
+                # Mark this marshal+action combo as failed so we don't retry it this turn
                 failed_actions.add((selected_marshal.name, selected_action["action"]))
+                # Record cross-turn cooldown (2 turns before retrying same action)
+                self._record_failed_action(selected_marshal.name, selected_action["action"])
                 # Clear any pending intent — the multi-step plan failed
                 self._pending_intents.pop(selected_marshal.name, None)
                 consecutive_skips += 1
@@ -592,7 +702,7 @@ class EnemyAI:
             # Track consecutive waits per marshal (wait spam fix)
             if selected_action["action"] == "wait":
                 self._consecutive_waits[selected_marshal.name] = self._consecutive_waits.get(selected_marshal.name, 0) + 1
-                if self._consecutive_waits[selected_marshal.name] >= 2:
+                if self._consecutive_waits[selected_marshal.name] >= 2:  # Design: 2 waits = "nothing useful to do"
                     self._marshals_done_this_turn.add(selected_marshal.name)
                     print(f"    [DONE] {selected_marshal.name} waited twice - skipping for rest of turn")
             else:
@@ -686,6 +796,10 @@ class EnemyAI:
             if action:
                 # Skip actions that have already failed this turn
                 if (marshal.name, action.get("action")) in failed_actions:
+                    continue
+
+                # Skip actions on cross-turn cooldown (failed recently)
+                if self._is_action_on_cooldown(marshal.name, action.get("action", "")):
                     continue
 
                 # Skip stance changes for marshals who already changed this turn
@@ -782,6 +896,32 @@ class EnemyAI:
         Returns:
             Tuple of (action_dict, priority) or (None, 999)
         """
+        # ═══════════════════════════════════════════════════════════════════
+        # DECISION FLOW (called from _select_next_marshal_action)
+        # ═══════════════════════════════════════════════════════════════════
+        # process_nation_turn()
+        #   └── _select_next_marshal_action() [picks WHO acts]
+        #       └── _evaluate_marshal() [picks WHAT they do] ← YOU ARE HERE
+        #           └── Returns (action_dict, priority) tuple
+        #               └── Executed via command_executor (same as player!)
+        #
+        # Priority evaluation order (first valid action wins):
+        #   INTENT  → Pending multi-step action (e.g., unfortify→capture)
+        #   P-1     → Capture current region (standing on undefended enemy territory)
+        #   P0      → Engagement (enemy in same region: attack/retreat/wait)
+        #   P1      → Retreat recovery (limited actions while recovering)
+        #   P2      → Critical survival (<25% strength: flee or defend)
+        #   P3      → Threat response (stronger enemy adjacent)
+        #   P3.25   → Counter-punch (free attack after defending, cautious only)
+        #   P3.5    → Fortification opportunity (unfortify for high-value target)
+        #   P4      → Attack opportunity (ratio >= personality threshold)
+        #   P4.5    → Capture undefended enemy region (adjacent)
+        #   P4.75   → Ally support (move toward outnumbered ally)
+        #   P5      → Fortify (cautious personality only)
+        #   P6      → Drill for shock bonus (aggressive personality only)
+        #   P7      → Strategic movement (advance or fall back)
+        #   P8      → Default (stance adjustment or wait)
+        # ═══════════════════════════════════════════════════════════════════
         personality = getattr(marshal, 'personality', 'balanced')
 
         # Debug: Log marshal state at start of evaluation
@@ -789,6 +929,8 @@ class EnemyAI:
         ai_debug(f"  Location: {marshal.location}, Strength: {marshal.strength:,}")
         ai_debug(f"  Stance: {getattr(marshal, 'stance', 'unknown')}")
         ai_debug(f"  Drilling: {getattr(marshal, 'drilling', False)}, Fortified: {getattr(marshal, 'fortified', False)}")
+
+        # ─── INTENT + P-1: IMMEDIATE OBLIGATIONS ─────────────────────────────
 
         # ════════════════════════════════════════════════════════════
         # INTENT CHECK (Bug #1 Fix): Execute pending intent from previous action
@@ -870,6 +1012,8 @@ class EnemyAI:
                 }, 5)  # Low priority since they already retreated
             # Already defensive - just wait
             return ({"marshal": marshal.name, "action": "wait"}, 5)
+
+        # ─── P0-P2: SURVIVAL PRIORITIES ──────────────────────────────────────
 
         # ════════════════════════════════════════════════════════════
         # PRIORITY 0: ENGAGEMENT CHECK (HIGHEST PRIORITY!)
@@ -1005,6 +1149,8 @@ class EnemyAI:
                 if action:
                     return (action, 2)
 
+        # ─── P3-P4: DEFENSIVE & TACTICAL PRIORITIES ──────────────────────────
+
         # ════════════════════════════════════════════════════════════
         # PRIORITY 3: THREAT RESPONSE
         # ════════════════════════════════════════════════════════════
@@ -1045,6 +1191,8 @@ class EnemyAI:
             return (attack_action, 4)
         ai_debug(f"  P4: No attack opportunity found")
 
+        # ─── P4.5-P5: OPPORTUNISTIC PRIORITIES ────────────────────────────────
+
         # ════════════════════════════════════════════════════════════
         # PRIORITY 4.5: CAPTURE UNDEFENDED ENEMY REGION
         # ════════════════════════════════════════════════════════════
@@ -1075,6 +1223,8 @@ class EnemyAI:
             if fortify_action:
                 return (fortify_action, 5)
 
+        # ─── P6-P7: OFFENSIVE & POSITIONING PRIORITIES ─────────────────────────
+
         # ════════════════════════════════════════════════════════════
         # PRIORITY 6: DRILLING (aggressive marshals, no threat)
         # ════════════════════════════════════════════════════════════
@@ -1092,6 +1242,8 @@ class EnemyAI:
         move_action = self._consider_strategic_move(marshal, nation, world)
         if move_action:
             return (move_action, 7)
+
+        # ─── P8: FALLBACK ────────────────────────────────────────────────────
 
         # ════════════════════════════════════════════════════════════
         # PRIORITY 8: DEFAULT (stance adjustment or wait)
@@ -1254,7 +1406,7 @@ class EnemyAI:
             bonuses_applied.append("DRILLING +25%")
 
         # Fortified targets are harder to attack
-        # Cap at 0.20 to prevent distorted ratios if bonus somehow exceeds max
+        # Balance: cap at 20% to prevent distorted ratios (max_fortify_bonus is 15-20%)
         fortify_bonus = min(getattr(target, 'defense_bonus', 0), 0.20)
         if fortify_bonus > 0:
             # Reduce effective ratio by fortify bonus (e.g., 15% fortify = 0.85 multiplier)
@@ -2374,9 +2526,11 @@ class EnemyAI:
         # BUT: relax threshold if marshal has been fortified and idle too long
         if personality == "cautious" and adjacent_enemy_strength > 0:
             # Stale fortification relaxation: after N turns fortified, accept more risk
+            # Stale fortification: idle too long → accept more risk to break deadlock
             # Floor at 0.9 — cautious marshals never ignore a near-equal threat
             turns_fortified = getattr(marshal, 'turns_fortified', 0)
-            # Base threshold: 1.5x. Each turn fortified beyond 3 reduces by 0.15
+            # Tuned: base 1.5x, decay 0.15/turn after 3 turns, floor 0.9
+            # Turn 4: 1.35, Turn 5: 1.20, Turn 6: 1.05, Turn 7+: 0.9 (floor)
             stale_reduction = max(0, (turns_fortified - 3) * 0.15) if turns_fortified > 3 else 0
             counter_attack_threshold = max(0.9, 1.5 - stale_reduction)
 
