@@ -332,8 +332,14 @@ class EnemyAI:
         """
         Get attack threshold with personality-based mood variance.
 
-        This creates controlled unpredictability - marshals are generally
+        This creates controlled unpredictability — marshals are generally
         consistent with their personality but occasionally surprise you.
+
+        INTENTIONAL CROSSOVER: An aggressive marshal (base 0.7) with max
+        negative variance (0.85 * 0.7 = 0.60) attacks recklessly, while
+        max positive variance (1.15 * 0.7 = 0.81) makes them cautious-ish.
+        A cautious marshal (base 1.3) with positive variance can reach 1.5+.
+        This is by design — "bad days" and "feeling bold" moments.
 
         Args:
             marshal: The marshal making the decision
@@ -553,6 +559,8 @@ class EnemyAI:
                 print(f"    [FAILED] {result.get('message', 'Unknown error')[:60]}...")
                 # Mark this marshal+action combo as failed so we don't retry it
                 failed_actions.add((selected_marshal.name, selected_action["action"]))
+                # Clear any pending intent — the multi-step plan failed
+                self._pending_intents.pop(selected_marshal.name, None)
                 consecutive_skips += 1
                 if consecutive_skips >= max_consecutive_skips:
                     print(f"  Too many failed actions - ending turn")
@@ -666,6 +674,10 @@ class EnemyAI:
         done_marshals = getattr(self, '_marshals_done_this_turn', set())
 
         for marshal in marshals:
+            # Skip dead marshals (0 or negative strength after heavy losses)
+            if marshal.strength <= 0:
+                continue
+
             # Skip marshals who are done for this turn (waited twice)
             if marshal.name in done_marshals:
                 continue
@@ -1242,7 +1254,8 @@ class EnemyAI:
             bonuses_applied.append("DRILLING +25%")
 
         # Fortified targets are harder to attack
-        fortify_bonus = getattr(target, 'defense_bonus', 0)
+        # Cap at 0.20 to prevent distorted ratios if bonus somehow exceeds max
+        fortify_bonus = min(getattr(target, 'defense_bonus', 0), 0.20)
         if fortify_bonus > 0:
             # Reduce effective ratio by fortify bonus (e.g., 15% fortify = 0.85 multiplier)
             effective_ratio *= (1.0 - fortify_bonus)
@@ -1446,11 +1459,9 @@ class EnemyAI:
         # ENGAGEMENT RULE: Must attack enemies in same region first!
         # Cannot attack elsewhere while engaged with enemy forces.
         # ════════════════════════════════════════════════════════════
+        # Separate targets in same region (engaged) from those at range
         engaged_targets = [(e, br, er, d) for e, br, er, d in valid_targets if d == 0]
-        # DEBUG: Print P4 analysis
-        print(f"  [P4 DEBUG] {marshal.name} valid_targets: {[(e.name, br, er, d) for e, br, er, d in valid_targets]}")
-        print(f"  [P4 DEBUG] {marshal.name} engaged_targets: {[(e.name, br, er, d) for e, br, er, d in engaged_targets]}")
-        print(f"  [P4 DEBUG] {marshal.name} threshold: {threshold}")
+        ai_debug(f"    P4: {len(valid_targets)} valid targets, {len(engaged_targets)} engaged, threshold={threshold:.2f}")
         if engaged_targets:
             ai_debug(f"    ENGAGED: Must attack enemy in same region first!")
             # Filter engaged targets by threshold
@@ -1724,7 +1735,8 @@ class EnemyAI:
             best_distance = world.get_distance(marshal.location, ally.location)
 
             for adj_name in marshal_region.adjacent_regions:
-                # Skip if already visited this turn (oscillation fix)
+                # Skip visited locations to prevent oscillation (A→B then B→A).
+                # Each action is one hop, so revisiting a location = backtracking.
                 if adj_name in my_visited:
                     continue
                 # Skip if enemies present (would need to attack, handled above)
@@ -1884,7 +1896,7 @@ class EnemyAI:
             best_distance = world.get_distance(marshal.location, nearest.location)
 
             for adj_name in marshal_region.adjacent_regions:
-                # Skip if already visited this turn (oscillation fix)
+                # Skip visited locations — one hop per action, revisiting = backtracking
                 if adj_name in visited:
                     ai_debug(f"    P7: Skipping {adj_name} - already visited this turn")
                     continue
@@ -1925,7 +1937,7 @@ class EnemyAI:
                 best_score = -999
 
                 for adj_name in marshal_region.adjacent_regions:
-                    # Skip if already visited this turn (oscillation fix)
+                    # Skip visited locations — one hop per action, revisiting = backtracking
                     if adj_name in visited:
                         continue
                     adj_region = world.get_region(adj_name)
@@ -2362,10 +2374,11 @@ class EnemyAI:
         # BUT: relax threshold if marshal has been fortified and idle too long
         if personality == "cautious" and adjacent_enemy_strength > 0:
             # Stale fortification relaxation: after N turns fortified, accept more risk
+            # Floor at 0.9 — cautious marshals never ignore a near-equal threat
             turns_fortified = getattr(marshal, 'turns_fortified', 0)
             # Base threshold: 1.5x. Each turn fortified beyond 3 reduces by 0.15
             stale_reduction = max(0, (turns_fortified - 3) * 0.15) if turns_fortified > 3 else 0
-            counter_attack_threshold = max(0.8, 1.5 - stale_reduction)  # Floor at 0.8
+            counter_attack_threshold = max(0.9, 1.5 - stale_reduction)
 
             if adjacent_enemy_strength > marshal.strength * counter_attack_threshold:
                 return (False, f"Cautious: enemy counter-attack strength too high ({adjacent_enemy_strength} vs {marshal.strength})")
