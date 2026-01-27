@@ -63,20 +63,24 @@ DAVOUT_MODIFIERS = {
 }
 
 # ════════════════════════════════════════════════════════════════════════════════
-# GROUCHY (Literal) - Hold position bonus, future TODO items
+# GROUCHY (Literal) - Precision Execution
+#
+# PHASE 5.2 IMPLEMENTATION: See docs/PHASE_5_2_IMPLEMENTATION_PLAN.md
+# This file will be expanded with:
+#   - explicit_order_attack_bonus: 0.10 (+10% attack on explicit orders)
+#   - explicit_order_defense_bonus: 0.10 (+10% defense on explicit orders)
+#   - strategic_completion_bonus: 0.20 (+20% next action after completing strategic)
+#   - strategic_action_cost: 1 (1 action instead of 2 for strategic commands)
+#   - strategic_morale_immunity: True (no morale loss during strategic execution)
+#   - explicit_order_trust_bonus: 2 (+2 trust for explicit orders)
+#   - strategic_completion_trust_bonus: 5 (+5 trust on strategic completion)
 # ════════════════════════════════════════════════════════════════════════════════
 GROUCHY_MODIFIERS = {
-    # Immovable ability (Phase 3 implementation)
-    "hold_position_defense_bonus": 0.15,  # +15% defense when holding
+    # Immovable ability - +15% defense when holding position
+    "hold_position_defense_bonus": 0.15,
 
-    # TODO: Blocking/Screening bonus (requires pathfinding)
-    # "blocking_defense_bonus": 0.10,  # +10%
-
-    # TODO: Clear orders bonus (requires LLM integration)
-    # "clear_orders_bonus": 0.10,  # +10%
-
-    # TODO: Initiative penalty (requires Standing Orders system)
-    # "initiative_penalty": 0.15,  # -15%
+    # TODO [Phase 5.2]: Add Precision Execution bonuses
+    # See docs/PHASE_5_2_IMPLEMENTATION_PLAN.md Section 3 for full specification
 }
 
 # ════════════════════════════════════════════════════════════════════════════════

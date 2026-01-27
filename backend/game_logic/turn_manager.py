@@ -6,6 +6,17 @@ Includes Enemy AI turn processing:
 - After player ends turn, enemy nations take their turns
 - Each nation gets N actions (configurable)
 - Uses same executor as player (building blocks principle)
+
+PHASE 5.2 STRATEGIC COMMANDS:
+This file will integrate strategic order processing.
+See docs/PHASE_5_2_IMPLEMENTATION_PLAN.md Section 11 for integration code.
+
+Strategic orders process at START of player turn:
+1. After enemy phase completes
+2. After turn advances
+3. BEFORE player can issue new commands
+
+Add _process_strategic_orders() method that calls StrategicExecutor.
 """
 
 from typing import Dict, List, Optional

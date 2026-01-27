@@ -12,6 +12,14 @@ FLOW:
    b. Validate LLM response
    c. If validation fails -> return fast result (safety net)
    d. Return validated LLM result
+
+PHASE 5.2 STRATEGIC COMMANDS:
+This file will receive STRATEGIC_KEYWORDS and CONDITION_PATTERNS dicts.
+See docs/PHASE_5_2_IMPLEMENTATION_PLAN.md Section 6 for keywords to add:
+- MOVE_TO: "march to", "advance to", "head to", etc.
+- PURSUE: "pursue", "chase", "hunt", "follow", etc.
+- HOLD: "hold", "defend", "guard", "protect", etc.
+- SUPPORT: "support", "reinforce", "assist", etc.
 """
 
 import os
