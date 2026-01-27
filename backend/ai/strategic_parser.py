@@ -137,7 +137,7 @@ def detect_strategic_command(
     # Step 6: Check attack_on_arrival hints
     attack_on_arrival = _detect_attack_on_arrival(cleaned)
 
-    return {
+    result = {
         "is_strategic": True,
         "strategic_type": strategic_type,
         "target": target_info["target"],
@@ -146,6 +146,11 @@ def detect_strategic_command(
         "condition": condition,
         "attack_on_arrival": attack_on_arrival,
     }
+
+    # Phase 5.2-C: Add interpretation for generic targets (Grouchy clarification)
+    result = _add_interpretation(result, marshal_name, world)
+
+    return result
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -364,3 +369,72 @@ def _detect_attack_on_arrival(command_lower: str) -> bool:
         "and assault", "then engage",
     ]
     return any(hint in command_lower for hint in attack_hints)
+
+
+def _add_interpretation(result: Dict, marshal_name: Optional[str], world) -> Dict:
+    """
+    For generic targets, pick a literal interpretation and list alternatives.
+
+    Enables the Grouchy clarification popup:
+    "You wish me to pursue Blucher (nearest enemy), Sire? Or did you mean another?"
+
+    Only populates interpreted_target when target_type == "generic".
+    """
+    if result.get("target_type") != "generic":
+        return result
+
+    if not world or not marshal_name:
+        return result
+
+    marshal = world.get_marshal(marshal_name)
+    if not marshal:
+        return result
+
+    strategic_type = result.get("strategic_type")
+
+    if strategic_type == "PURSUE":
+        enemies = world.get_enemies_of_nation(marshal.nation)
+        enemies = [e for e in enemies if e.strength > 0]
+        if enemies:
+            nearest = min(enemies,
+                          key=lambda e: world.get_distance(marshal.location, e.location))
+            result["interpreted_target"] = nearest.name
+            result["interpretation_reason"] = "nearest"
+            result["alternatives"] = [e.name for e in enemies
+                                      if e.name != nearest.name][:3]
+
+    elif strategic_type == "SUPPORT":
+        allies = [m for m in world.marshals.values()
+                  if m.nation == marshal.nation
+                  and m.name != marshal.name
+                  and m.strength > 0
+                  and not getattr(m, 'administrative', False)]
+        if allies:
+            def threat_level(ally):
+                threats = len(world.get_enemies_in_region(ally.location, ally.nation))
+                region = world.get_region(ally.location)
+                if region:
+                    for adj in region.adjacent_regions:
+                        threats += len(world.get_enemies_in_region(adj, ally.nation))
+                return threats
+
+            most_threatened = max(allies, key=threat_level)
+            result["interpreted_target"] = most_threatened.name
+            result["interpretation_reason"] = "most threatened"
+            result["alternatives"] = [a.name for a in allies
+                                      if a.name != most_threatened.name][:3]
+
+    elif strategic_type == "MOVE_TO":
+        # Generic MOVE_TO ("march to the front") — pick nearest enemy region
+        enemies = world.get_enemies_of_nation(marshal.nation)
+        enemies = [e for e in enemies if e.strength > 0]
+        if enemies:
+            nearest = min(enemies,
+                          key=lambda e: world.get_distance(marshal.location, e.location))
+            result["interpreted_target"] = nearest.location
+            result["interpretation_reason"] = "nearest enemy position"
+            result["alternatives"] = list(set(
+                e.location for e in enemies if e.location != nearest.location
+            ))[:3]
+
+    return result

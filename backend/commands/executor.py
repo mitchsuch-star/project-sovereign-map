@@ -204,7 +204,7 @@ class CommandExecutor:
             return {"success": False, "message": "Error: No world state"}
 
         # Use TurnManager to process everything including ENEMY AI
-        turn_manager = TurnManager(world)
+        turn_manager = TurnManager(world, executor=self)
         turn_result = turn_manager.end_turn(game_state)  # Pass game_state for enemy AI
 
         # Build message with tactical events
@@ -280,6 +280,11 @@ class CommandExecutor:
         if turn_result.get("show_independent_command_report"):
             result["show_independent_command_report"] = True
             result["independent_command_report"] = turn_result.get("independent_command_report", [])
+
+        # Add Strategic Order Reports (Phase 5.2-C)
+        strategic_reports = turn_result.get("strategic_reports", [])
+        if strategic_reports:
+            result["strategic_reports"] = strategic_reports
 
         return result
 
@@ -444,6 +449,14 @@ RETREAT RECOVERY (3 turns):
         command = parsed_command.get("command", {})
         action = command.get("action", "unknown")
 
+        # ════════════════════════════════════════════════════════════
+        # STRATEGIC EXECUTION FLAG (Phase 5.2-C)
+        # When set, skip action cost + objections (marshal's own decision)
+        # ════════════════════════════════════════════════════════════
+        is_strategic_execution = command.get("_strategic_execution", False)
+        is_sortie = command.get("_sortie", False)
+        self._current_sortie = is_sortie  # Expose to _execute_attack
+
         # ============================================================
         # ACTION ECONOMY: Check if player has actions remaining
         # ============================================================
@@ -455,6 +468,10 @@ RETREAT RECOVERY (3 turns):
 
         # Check if action costs points
         action_costs_point = action not in free_actions
+
+        # Strategic execution is always free (cost paid upfront when order issued)
+        if is_strategic_execution:
+            action_costs_point = False
 
         # Check if this is a player action (enemy AI has separate action budget)
         is_player_action_check = True
@@ -493,7 +510,8 @@ RETREAT RECOVERY (3 turns):
         objection_actions = ["attack", "defend", "move", "scout", "recruit", "fortify", "stance_change", "retreat", "drill", "wait", "hold"]
         should_check_objection = (
             action in objection_actions and
-            marshal_name is not None
+            marshal_name is not None and
+            not is_strategic_execution  # Phase 5.2-C: marshal can't object to own decision
         )
 
         if should_check_objection:
@@ -504,7 +522,7 @@ RETREAT RECOVERY (3 turns):
                 # Autonomous marshals use Enemy AI decision tree at turn start.
                 # Player cannot issue orders until autonomy period ends.
                 # ═══════════════════════════════════════════════════════════
-                if getattr(marshal, 'autonomous', False):
+                if getattr(marshal, 'autonomous', False) and not is_strategic_execution:
                     reason = getattr(marshal, 'autonomy_reason', 'granted autonomy')
                     turns = marshal.autonomy_turns
 
@@ -540,11 +558,31 @@ RETREAT RECOVERY (3 turns):
                     }
 
                 # ═══════════════════════════════════════════════════════════
+                # STRATEGIC OVERRIDE CHECK (Phase 5.2-C)
+                # Override commands silently cancel active strategic orders
+                # Non-override commands execute alongside strategic orders
+                # ═══════════════════════════════════════════════════════════
+                if marshal.in_strategic_mode and not is_strategic_execution:
+                    strategic_override_actions = [
+                        "attack", "move", "defend", "fortify", "drill", "retreat"
+                    ]
+                    if action in strategic_override_actions:
+                        old_order = marshal.strategic_order
+                        marshal.strategic_order = None
+                        # Clear holding_position if HOLD was active
+                        if old_order and old_order.command_type == "HOLD":
+                            marshal.holding_position = False
+                            marshal.hold_region = ""
+                        print(f"[STRATEGIC] {marshal.name}'s strategic order "
+                              f"cancelled by player {action} command")
+
+                # ═══════════════════════════════════════════════════════════
                 # DRILLING CHECK: Cannot order while drilling/drill-locked
                 # Also blocks stance_change during any drilling state
+                # (Skipped for strategic execution — executor handles state)
                 # ═══════════════════════════════════════════════════════════
                 is_drilling = getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False)
-                if is_drilling:
+                if is_drilling and not is_strategic_execution:
                     # Drilling-locked blocks ALL orders
                     if getattr(marshal, 'drilling_locked', False):
                         return {
@@ -566,7 +604,7 @@ RETREAT RECOVERY (3 turns):
                 # ═══════════════════════════════════════════════════════════
                 # FORTIFIED CHECK: Cannot move or attack while fortified
                 # ═══════════════════════════════════════════════════════════
-                if getattr(marshal, 'fortified', False) and action in ['attack', 'move']:
+                if getattr(marshal, 'fortified', False) and action in ['attack', 'move'] and not is_strategic_execution:
                     return {
                         "success": False,
                         "message": f"{marshal_name} is fortified at {marshal.location} and cannot {action}. "
@@ -579,7 +617,7 @@ RETREAT RECOVERY (3 turns):
                 # RETREAT STATE: Simplified - No personality objections during recovery
                 # Certain actions blocked, others allowed without objection dialog
                 # ═══════════════════════════════════════════════════════════
-                if getattr(marshal, 'retreating', False):
+                if getattr(marshal, 'retreating', False) and not is_strategic_execution:
                     recovery_turns = getattr(marshal, 'retreat_recovery_turns', 3)
 
                     # Actions allowed during retreat (no objections, just execute)
@@ -761,6 +799,62 @@ RETREAT RECOVERY (3 turns):
             if marshal_obj and getattr(marshal_obj, 'personality', '') == 'literal':
                 self._apply_grouchy_ambiguity_buff(marshal_obj, ambiguity, strategic_score, action)
 
+        # ════════════════════════════════════════════════════════════
+        # CLARIFICATION GATE (Phase 5.2-C — Grouchy)
+        # Literal personality + high ambiguity + strategic = clarification popup
+        # "You wish me to pursue Blucher (nearest enemy), Sire?"
+        # ════════════════════════════════════════════════════════════
+        if not is_strategic_execution and marshal_name:
+            cl_marshal = world.get_marshal(marshal_name)
+            if cl_marshal and getattr(cl_marshal, 'personality', '') == 'literal':
+                cl_ambiguity = parsed_command.get("ambiguity", 5)
+                cl_is_strategic = parsed_command.get("is_strategic", False)
+                if cl_ambiguity > 60 and cl_is_strategic:
+                    interpreted = parsed_command.get("interpreted_target")
+                    reason = parsed_command.get("interpretation_reason", "unclear")
+                    alternatives = parsed_command.get("alternatives", [])
+                    strategic_type = parsed_command.get("strategic_type", "unknown")
+
+                    options = []
+                    if interpreted:
+                        options.append({
+                            "label": f"Yes, {interpreted}",
+                            "value": "confirm",
+                            "target": interpreted
+                        })
+                    for alt in alternatives[:2]:
+                        options.append({
+                            "label": f"No, {alt}",
+                            "value": "specify",
+                            "target": alt
+                        })
+                    options.append({"label": "Proceed as ordered", "value": "insist"})
+                    options.append({"label": "Cancel", "value": "cancel"})
+
+                    if strategic_type == "PURSUE":
+                        cl_msg = (f"You wish me to pursue {interpreted} "
+                                  f"({reason} enemy), Sire?")
+                    elif strategic_type == "SUPPORT":
+                        cl_msg = (f"You wish me to support {interpreted} "
+                                  f"({reason} ally), Sire?")
+                    else:
+                        cl_msg = f"I understand {interpreted}, Sire. Is this correct?"
+
+                    return {
+                        "success": True,
+                        "state": "awaiting_clarification",
+                        "type": "clarification",
+                        "marshal": cl_marshal.name,
+                        "original_command": command.get("raw_command", ""),
+                        "message": cl_msg,
+                        "interpreted_target": interpreted,
+                        "interpretation_reason": reason,
+                        "alternatives": alternatives,
+                        "options": options,
+                        "action_summary": world.get_action_summary(),
+                        "game_state": world.get_game_state_summary()
+                    }
+
         # ============================================================
         # Continue with normal command routing
         # ============================================================
@@ -879,7 +973,7 @@ RETREAT RECOVERY (3 turns):
         if action_result.get("should_end_turn", False) and is_player_action:
             from backend.game_logic.turn_manager import TurnManager
 
-            turn_manager = TurnManager(world)
+            turn_manager = TurnManager(world, executor=self)
             turn_result = turn_manager.end_turn(game_state)
 
             # Update result with turn end info
@@ -1539,7 +1633,7 @@ RETREAT RECOVERY (3 turns):
         print(f"[ATTACK MOVEMENT] defender_fled={defender_fled}, enemy_location={enemy_marshal.location if enemy_marshal.strength > 0 else 'DESTROYED'}")
         print(f"[ATTACK MOVEMENT] marshal.location={marshal.location}, target_location={target_location}")
 
-        if can_advance and marshal.strength > 0:
+        if can_advance and marshal.strength > 0 and not getattr(self, '_current_sortie', False):
             if marshal.location != target_location:
                 print(f"[ATTACK MOVEMENT] MOVING {marshal.name}: {marshal.location} -> {target_location}")
                 marshal.move_to(target_location)

@@ -959,11 +959,11 @@ This phase adds multi-turn strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) tha
 - [x] Phase A: Data Structures ✅
 - [x] Phase B: Parser Integration ✅
 - [x] Pre-C: WorldState dependencies ✅
-- [ ] Phase C: Strategic Executor ← NEXT
-- [ ] Phase D: Interrupt system
-- [ ] Phase E: Command override/cancel
-- [ ] Phase F: Turn manager integration
-- [ ] Phase G: Clarification system (Grouchy "which enemy?")
+- [x] Phase C: Strategic Executor ✅ (StrategicExecutor, executor flags, turn manager hook, clarification gate)
+- [ ] Phase D: Interrupt response handling ← NEXT
+- [ ] Phase E: Explicit cancel command
+- [x] Phase F: Turn manager integration ✅ (included in Phase C)
+- [x] Phase G: Clarification system ✅ (included in Phase C)
 - [ ] Phase H: Literal bonuses (partially done — ambiguity system complete)
 - [ ] Phase I: Save/Load
 - [ ] Phase J: UI Updates (Godot)

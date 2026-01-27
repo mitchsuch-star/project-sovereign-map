@@ -21,6 +21,7 @@ Add _process_strategic_orders() method that calls StrategicExecutor.
 
 from typing import Dict, List, Optional
 from backend.models.world_state import WorldState
+from backend.commands.strategic import StrategicExecutor
 
 
 class TurnManager:
@@ -34,9 +35,10 @@ class TurnManager:
     4. Check victory/defeat
     """
 
-    def __init__(self, world: WorldState):
-        """Initialize turn manager with world state."""
+    def __init__(self, world: WorldState, executor=None):
+        """Initialize turn manager with world state and optional executor."""
         self.world = world
+        self.executor = executor  # CommandExecutor for strategic orders (Phase 5.2)
 
     def start_turn(self) -> Dict:
         """
@@ -130,6 +132,18 @@ class TurnManager:
                 }
 
         # ════════════════════════════════════════════════════════════
+        # STRATEGIC ORDER EXECUTION (Phase 5.2-C)
+        # Process player marshals' multi-turn strategic orders.
+        # Must run BEFORE advance_turn() to see battles_this_turn
+        # for cannon fire detection (advance_turn clears battles).
+        # ════════════════════════════════════════════════════════════
+        strategic_reports = []
+        if game_state and hasattr(self, 'executor'):
+            strategic_exec = StrategicExecutor(self.executor)
+            strategic_reports = strategic_exec.process_strategic_orders(
+                self.world, game_state)
+
+        # ════════════════════════════════════════════════════════════
         # ADVANCE TURN (includes tactical state processing!)
         # WorldState._advance_turn_internal() now handles:
         # - Tactical states (drill/fortify/retreat) for ALL marshals
@@ -181,6 +195,10 @@ class TurnManager:
         if autonomous_report:
             result["show_independent_command_report"] = autonomous_report.get("show_independent_command_report", False)
             result["independent_command_report"] = autonomous_report.get("independent_command_report", [])
+
+        # Add strategic order reports (Phase 5.2-C)
+        if strategic_reports:
+            result["strategic_reports"] = strategic_reports
 
         if all_events:
             result["events"] = all_events

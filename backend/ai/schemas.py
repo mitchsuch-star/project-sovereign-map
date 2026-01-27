@@ -51,6 +51,11 @@ class ParseResult:
     target_snapshot_location: Optional[str] = None  # For MOVE_TO friendly marshal
     strategic_condition: Optional[Dict[str, Any]] = None  # Serialized StrategicCondition
 
+    # Phase 5.2-C: Interpretation for vague commands (Grouchy clarification system)
+    interpreted_target: Optional[str] = None      # Parser's best guess for generic targets
+    interpretation_reason: Optional[str] = None   # "nearest", "most threatened"
+    alternatives: List[str] = field(default_factory=list)  # Other valid targets
+
     # Scoring fields
     ambiguity: int = 5  # 0-100, mock default is 5
     strategic_score: int = 10  # 0-100, mock default is 10
@@ -112,6 +117,12 @@ class ParseResult:
             result["target_snapshot_location"] = self.target_snapshot_location
             result["strategic_condition"] = self.strategic_condition
 
+        # Phase 5.2-C: Interpretation fields for clarification system
+        if self.interpreted_target:
+            result["interpreted_target"] = self.interpreted_target
+            result["interpretation_reason"] = self.interpretation_reason
+            result["alternatives"] = self.alternatives
+
         return result
 
     @classmethod
@@ -147,6 +158,9 @@ class ParseResult:
             strategic_type=data.get("strategic_type"),
             target_snapshot_location=data.get("target_snapshot_location"),
             strategic_condition=data.get("strategic_condition"),
+            interpreted_target=data.get("interpreted_target"),
+            interpretation_reason=data.get("interpretation_reason"),
+            alternatives=data.get("alternatives", []),
         )
 
 

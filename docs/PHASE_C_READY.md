@@ -124,6 +124,32 @@ if (order.last_combat_enemy == enemy.name and
 
 Note: `get_adjacent_regions` is NOT a WorldState method. Use `world.regions[name].adjacent_regions` (list attribute).
 
+## Clarification System (Grouchy)
+
+When a LITERAL marshal receives a strategic command with ambiguity > 60:
+1. Parser detects generic target (e.g., "pursue the enemy")
+2. `_add_interpretation()` picks nearest/most-threatened target
+3. Executor's clarification gate returns `awaiting_clarification` with:
+   - `interpreted_target` — what Grouchy will do if confirmed
+   - `alternatives` — up to 3 other options
+   - `interpretation_reason` — why this target was chosen
+4. Player confirms or picks alternative (Phase J UI)
+
+## Phase C Implementation Status: ✅ COMPLETE
+
+**Files created:**
+- `backend/commands/strategic.py` — StrategicExecutor class (~600 lines)
+
+**Files modified:**
+- `backend/ai/schemas.py` — ParseResult interpretation fields
+- `backend/ai/strategic_parser.py` — `_add_interpretation()` for generic targets
+- `backend/commands/executor.py` — `_strategic_execution`/`_sortie` flags, override logic, clarification gate
+- `backend/game_logic/turn_manager.py` — Strategic execution hook before `advance_turn()`
+
+**Tests:** 48 strategic tests + 602 total (0 regressions)
+
+**What's next:** Phase D (Interrupt response handling), Phase E (Explicit cancel command), Phase J (UI)
+
 ## Files to Read Before Implementing
 
 1. `docs/PHASE_5_2_IMPLEMENTATION_PLAN.md` — Full design spec (Section 11 has complete executor code)
