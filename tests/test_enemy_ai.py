@@ -709,7 +709,7 @@ class TestMoodVarianceSystem:
         blucher = self.world.get_marshal("Blucher")
         random.seed(42)  # Deterministic
 
-        thresholds = [self.ai._get_mood_adjusted_threshold(blucher) for _ in range(100)]
+        thresholds = [self.ai._get_mood_adjusted_threshold(blucher, self.world) for _ in range(100)]
 
         # Base 0.7 with ±15% variance = 0.595 to 0.805
         min_expected = 0.7 * 0.85  # 0.595
@@ -724,7 +724,7 @@ class TestMoodVarianceSystem:
         wellington = self.world.get_marshal("Wellington")
         random.seed(42)  # Deterministic
 
-        thresholds = [self.ai._get_mood_adjusted_threshold(wellington) for _ in range(100)]
+        thresholds = [self.ai._get_mood_adjusted_threshold(wellington, self.world) for _ in range(100)]
 
         # Base 1.3 with ±10% variance = 1.17 to 1.43
         min_expected = 1.3 * 0.90  # 1.17
@@ -740,8 +740,8 @@ class TestMoodVarianceSystem:
         wellington = self.world.get_marshal("Wellington")
         random.seed(42)  # Deterministic
 
-        aggressive_thresholds = [self.ai._get_mood_adjusted_threshold(blucher) for _ in range(100)]
-        cautious_thresholds = [self.ai._get_mood_adjusted_threshold(wellington) for _ in range(100)]
+        aggressive_thresholds = [self.ai._get_mood_adjusted_threshold(blucher, self.world) for _ in range(100)]
+        cautious_thresholds = [self.ai._get_mood_adjusted_threshold(wellington, self.world) for _ in range(100)]
 
         aggressive_avg = sum(aggressive_thresholds) / len(aggressive_thresholds)
         cautious_avg = sum(cautious_thresholds) / len(cautious_thresholds)
@@ -756,10 +756,10 @@ class TestMoodVarianceSystem:
         blucher = self.world.get_marshal("Blucher")
 
         random.seed(12345)
-        first_run = [self.ai._get_mood_adjusted_threshold(blucher) for _ in range(10)]
+        first_run = [self.ai._get_mood_adjusted_threshold(blucher, self.world) for _ in range(10)]
 
         random.seed(12345)
-        second_run = [self.ai._get_mood_adjusted_threshold(blucher) for _ in range(10)]
+        second_run = [self.ai._get_mood_adjusted_threshold(blucher, self.world) for _ in range(10)]
 
         assert first_run == second_run, "Same seed should produce identical results"
         print(f"Deterministic: Both runs produced {first_run[:3]}...")
@@ -769,7 +769,7 @@ class TestMoodVarianceSystem:
         blucher = self.world.get_marshal("Blucher")
         random.seed(42)
 
-        thresholds = [self.ai._get_mood_adjusted_threshold(blucher) for _ in range(20)]
+        thresholds = [self.ai._get_mood_adjusted_threshold(blucher, self.world) for _ in range(20)]
         unique_values = len(set(round(t, 4) for t in thresholds))
 
         # Should have many unique values, not just one

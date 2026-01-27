@@ -23,9 +23,130 @@ Fields to add:
 - in_strategic_mode: property - Check if strategic order is active
 """
 
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional, Dict, List
 from backend.models.trust import Trust
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# STRATEGIC ORDER DATA STRUCTURES (Phase 5.2)
+# ════════════════════════════════════════════════════════════════════════════════
+
+@dataclass
+class StrategicCondition:
+    """
+    Conditions that end strategic orders.
+
+    Example: "Hold until Ney arrives" -> until_marshal_arrives = "Ney"
+    """
+    # Time-based
+    max_turns: Optional[int] = None
+
+    # Marshal-based
+    until_marshal_arrives: Optional[str] = None
+    until_marshal_destroyed: Optional[str] = None
+
+    # Battle-based
+    until_battle_won: bool = False
+    until_relieved: bool = False
+
+    def to_dict(self) -> Dict:
+        return {
+            "max_turns": self.max_turns,
+            "until_marshal_arrives": self.until_marshal_arrives,
+            "until_marshal_destroyed": self.until_marshal_destroyed,
+            "until_battle_won": self.until_battle_won,
+            "until_relieved": self.until_relieved
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'StrategicCondition':
+        return cls(
+            max_turns=data.get("max_turns"),
+            until_marshal_arrives=data.get("until_marshal_arrives"),
+            until_marshal_destroyed=data.get("until_marshal_destroyed"),
+            until_battle_won=data.get("until_battle_won", False),
+            until_relieved=data.get("until_relieved", False)
+        )
+
+
+@dataclass
+class StrategicOrder:
+    """
+    Represents a multi-turn strategic command.
+
+    Stored in marshal.strategic_order field.
+    """
+    command_type: str              # "MOVE_TO", "PURSUE", "HOLD", "SUPPORT"
+    target: str                    # Region name, marshal name, or "generic"
+    target_type: str               # "region", "marshal", "battle", "generic"
+    started_turn: int              # Turn when order was issued
+    original_command: str          # Raw command text for reference
+
+    # Path for movement orders
+    path: List[str] = field(default_factory=list)
+
+    # SUPPORT-specific
+    follow_if_moves: bool = True
+    join_combat: bool = True
+
+    # For marshal targets - snapshot their location at order creation
+    # "Move to Ney" → stores where Ney WAS (one-time destination, not dynamic tracking)
+    target_snapshot_location: Optional[str] = None
+
+    # MOVE_TO-specific
+    attack_on_arrival: bool = False
+
+    # Condition (optional)
+    condition: Optional[StrategicCondition] = None
+
+    # Combat loop prevention (Issue #2 fix)
+    last_combat_enemy: Optional[str] = None
+    last_combat_turn: Optional[int] = None
+    last_combat_result: Optional[str] = None  # "victory", "defeat", "stalemate"
+
+    def to_dict(self) -> Dict:
+        """Serialize for save/load."""
+        return {
+            "command_type": self.command_type,
+            "target": self.target,
+            "target_type": self.target_type,
+            "started_turn": self.started_turn,
+            "original_command": self.original_command,
+            "path": self.path,
+            "follow_if_moves": self.follow_if_moves,
+            "join_combat": self.join_combat,
+            "target_snapshot_location": self.target_snapshot_location,
+            "attack_on_arrival": self.attack_on_arrival,
+            "condition": self.condition.to_dict() if self.condition else None,
+            "last_combat_enemy": self.last_combat_enemy,
+            "last_combat_turn": self.last_combat_turn,
+            "last_combat_result": self.last_combat_result,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'StrategicOrder':
+        """Deserialize from save/load."""
+        condition = None
+        if data.get("condition"):
+            condition = StrategicCondition.from_dict(data["condition"])
+        return cls(
+            command_type=data["command_type"],
+            target=data["target"],
+            target_type=data["target_type"],
+            started_turn=data["started_turn"],
+            original_command=data["original_command"],
+            path=data.get("path", []),
+            follow_if_moves=data.get("follow_if_moves", True),
+            join_combat=data.get("join_combat", True),
+            target_snapshot_location=data.get("target_snapshot_location"),
+            attack_on_arrival=data.get("attack_on_arrival", False),
+            condition=condition,
+            last_combat_enemy=data.get("last_combat_enemy"),
+            last_combat_turn=data.get("last_combat_turn"),
+            last_combat_result=data.get("last_combat_result"),
+        )
 
 
 class Stance(Enum):
@@ -166,6 +287,22 @@ class Marshal:
         self.drill_complete_turn: int = -1   # Turn when drill completes
         self.shock_bonus: int = 0            # +2 = +20% attack (from drill)
         self.strategic_combat_bonus: int = 0  # Set by inspiring commands, consumed in combat
+        self.strategic_defense_bonus: int = 0  # Set by clear orders (Grouchy), consumed in defense
+
+        # Precision Execution (Phase 5.2 - Grouchy/Literal personality)
+        # Triggered by crystal clear order (ambiguity <= 20) + high strategic value (> 60)
+        # Adds +1 to all skills at calculation time (not mutated), capped at 8
+        self.precision_execution_active: bool = False
+        self.precision_execution_turns: int = 0  # Countdown, 0 = inactive
+
+        # Strategic Order System (Phase 5.2)
+        self.strategic_order: Optional[StrategicOrder] = None
+
+        # Battle tracking (for cannon fire detection and until_battle_won)
+        self.in_combat_this_turn: bool = False
+        self.last_combat_turn: Optional[int] = None
+        self.last_combat_result: Optional[str] = None  # "victory", "defeat", "stalemate"
+        self.last_combat_location: Optional[str] = None
 
         # FORTIFY State: Defensive lockdown, +10% defense, can't move/attack
         self.fortified: bool = False         # Currently fortified
@@ -350,6 +487,18 @@ class Marshal:
         Only these marshals can build recklessness and trigger Glorious Charge.
         """
         return getattr(self, 'cavalry', False) and self.personality == "aggressive"
+
+    @property
+    def in_strategic_mode(self) -> bool:
+        """Check if marshal has active strategic order."""
+        return self.strategic_order is not None
+
+    @property
+    def strategic_command_type(self) -> Optional[str]:
+        """Get current strategic command type if any."""
+        if self.strategic_order:
+            return self.strategic_order.command_type
+        return None
 
     def _get_recklessness_attack_bonus(self) -> float:
         """
@@ -591,6 +740,12 @@ class Marshal:
         if fortify_bonus > 0:
             modifier *= (1.0 + fortify_bonus)  # 0.16 → 1.16x (16% reduction)
 
+        # Strategic defense bonus (from clear orders - Grouchy, consumed on use)
+        strategic_def_bonus = getattr(self, 'strategic_defense_bonus', 0)
+        if strategic_def_bonus > 0:
+            modifier *= (1.0 + strategic_def_bonus / 100.0)  # 10 → +10%
+            self.strategic_defense_bonus = 0  # Consume after use
+
         # Drilling penalty (caught drilling = vulnerable)
         if getattr(self, 'drilling', False) or getattr(self, 'drilling_locked', False):
             modifier *= 0.75  # -25%
@@ -611,6 +766,19 @@ class Marshal:
             modifier *= (1.0 - recklessness_penalty)
 
         return modifier
+
+    def get_effective_skill(self, skill_name: str) -> int:
+        """
+        Get skill value with Precision Execution bonus if active.
+
+        Precision Execution (Grouchy/literal) adds +1 to all skills,
+        capped at 8. The bonus is NOT stored in self.skills — it's
+        applied at calculation time only to prevent add/subtract bugs.
+        """
+        base = self.skills.get(skill_name, 5)
+        if getattr(self, 'precision_execution_active', False):
+            return min(8, base + 1)
+        return base
 
     def get_stance_display(self) -> str:
         """Get display string for current stance with modifiers."""
@@ -683,6 +851,46 @@ class Marshal:
 
         # Apply retreat penalty
         return max(0.25, base_effectiveness * (1.0 - retreat_penalty))
+
+    def to_dict(self) -> Dict:
+        """Serialize marshal state for save/load."""
+        data = {
+            "name": self.name,
+            "location": self.location,
+            "strength": int(self.strength),
+            "personality": self.personality,
+            "nation": self.nation,
+            "morale": int(self.morale),
+            "stance": self.stance.value,
+            # Strategic Order System (Phase 5.2)
+            "strategic_order": self.strategic_order.to_dict() if self.strategic_order else None,
+            "in_combat_this_turn": self.in_combat_this_turn,
+            "last_combat_turn": self.last_combat_turn,
+            "last_combat_result": self.last_combat_result,
+            "last_combat_location": self.last_combat_location,
+        }
+        return data
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'Marshal':
+        """Deserialize marshal from save/load data."""
+        marshal = cls(
+            name=data["name"],
+            location=data["location"],
+            strength=data["strength"],
+            personality=data.get("personality", "balanced"),
+            nation=data.get("nation", "France")
+        )
+        marshal.morale = data.get("morale", 70)
+        marshal.stance = Stance(data.get("stance", "neutral"))
+        # Strategic Order System (Phase 5.2)
+        if data.get("strategic_order"):
+            marshal.strategic_order = StrategicOrder.from_dict(data["strategic_order"])
+        marshal.in_combat_this_turn = data.get("in_combat_this_turn", False)
+        marshal.last_combat_turn = data.get("last_combat_turn")
+        marshal.last_combat_result = data.get("last_combat_result")
+        marshal.last_combat_location = data.get("last_combat_location")
+        return marshal
 
     def __repr__(self) -> str:
         """String representation for debugging."""

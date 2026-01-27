@@ -283,6 +283,33 @@ class CommandExecutor:
 
         return result
 
+    def _apply_grouchy_ambiguity_buff(self, marshal, ambiguity: int, strategic_score: int, action: str):
+        """
+        Apply combat buff to literal marshals based on order clarity.
+        Phase 5.2: Ambiguity thresholds → combat bonus on attack AND defense.
+        Also triggers Precision Execution if conditions met.
+        """
+        COMBAT_ACTIONS = ["attack", "charge", "defend", "fortify"]
+
+        # Ambiguity-scaled combat buff (attack + defense)
+        if ambiguity <= 20:
+            bonus = 15
+        elif ambiguity <= 40:
+            bonus = 10
+        elif ambiguity <= 60:
+            bonus = 5
+        else:
+            bonus = 0
+
+        if bonus > 0 and action in COMBAT_ACTIONS:
+            marshal.strategic_combat_bonus = bonus
+            marshal.strategic_defense_bonus = bonus
+
+        # Precision Execution: ambiguity <= 20 AND strategic_score > 60
+        if ambiguity <= 20 and strategic_score > 60:
+            marshal.precision_execution_active = True
+            marshal.precision_execution_turns = 3
+
     def _execute_help(self, command: Dict, game_state: Dict) -> Dict:
         """
         Display help text with available commands and examples.
@@ -723,6 +750,16 @@ RETREAT RECOVERY (3 turns):
                 from backend.ai.feedback import apply_strategic_bonuses
                 is_combat_action = action in COMBAT_ACTIONS
                 apply_strategic_bonuses(marshal, strategic_score, is_combat_action)
+
+        # ============================================================
+        # GROUCHY AMBIGUITY COMBAT BUFF (Phase 5.2)
+        # Literal marshals get combat bonuses from clear orders
+        # ============================================================
+        ambiguity = parsed_command.get("ambiguity", 50)
+        if is_player_action_check and marshal_name:
+            marshal_obj = world.get_marshal(marshal_name)
+            if marshal_obj and getattr(marshal_obj, 'personality', '') == 'literal':
+                self._apply_grouchy_ambiguity_buff(marshal_obj, ambiguity, strategic_score, action)
 
         # ============================================================
         # Continue with normal command routing

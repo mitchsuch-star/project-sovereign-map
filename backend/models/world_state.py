@@ -55,6 +55,9 @@ class WorldState:
         self.game_over: bool = False
         self.victory: Optional[str] = None  # "victory", "defeat", or None
 
+        # Battle tracking (Phase 5.2 - for cannon fire detection)
+        self.battles_this_turn: List[Dict] = []
+
         # ============================================================
         # ACTION ECONOMY SYSTEM - ALL VALUES ARE INTEGERS
         # ============================================================
@@ -194,6 +197,22 @@ class WorldState:
             marshal for marshal in self.marshals.values()
             if marshal.location == region_name
         ]
+
+    def get_enemies_in_region(self, region: str, nation: str) -> List[Marshal]:
+        """
+        Get enemy marshals in a region relative to given nation.
+
+        Args:
+            region: Region name to check
+            nation: The perspective nation (enemies are those with different nation)
+
+        Returns:
+            List of enemy marshals with strength > 0
+        """
+        return [m for m in self.marshals.values()
+                if m.location == region
+                and m.nation != nation
+                and m.strength > 0]
 
     def get_player_marshals(self) -> List[Marshal]:
         """Get all marshals belonging to the player's nation."""
@@ -824,13 +843,49 @@ class WorldState:
 
         return 999  # Not reachable
 
-    def find_path(self, start: str, end: str) -> Optional[List[str]]:
+    # ========================================
+    # BATTLE TRACKING (Phase 5.2 - cannon fire detection)
+    # ========================================
+
+    def record_battle(self, location: str, attacker: str, defender: str,
+                      result: str) -> None:
+        """
+        Record a battle for cannon fire detection.
+
+        Called by combat.py after resolve_combat().
+        """
+        self.battles_this_turn.append({
+            "location": location,
+            "attacker": attacker,
+            "defender": defender,
+            "result": result,
+            "turn": self.current_turn
+        })
+
+    def get_battles_within_range(self, location: str, max_distance: int) -> List[Dict]:
+        """Get battles within max_distance regions of location."""
+        nearby = []
+        for battle in self.battles_this_turn:
+            distance = self.get_distance(location, battle["location"])
+            if distance <= max_distance:
+                nearby.append(battle)
+        return nearby
+
+    def clear_turn_battles(self) -> None:
+        """Clear battle tracking at start of turn."""
+        self.battles_this_turn = []
+        for marshal in self.marshals.values():
+            marshal.in_combat_this_turn = False
+
+    def find_path(self, start: str, end: str, avoid_regions: List[str] = None) -> Optional[List[str]]:
         """
         Find shortest path between two regions using BFS.
 
         Args:
             start: Starting region name
             end: Destination region name
+            avoid_regions: Optional list of region names to skip (for cautious pathing).
+                           The destination is never avoided even if in this list.
 
         Returns:
             List of region names from start to end (inclusive), or None if no path.
@@ -840,6 +895,9 @@ class WorldState:
 
         if start not in self.regions or end not in self.regions:
             return None
+
+        if avoid_regions is None:
+            avoid_regions = []
 
         # BFS with path tracking
         visited = {start}
@@ -854,7 +912,7 @@ class WorldState:
                 if adjacent == end:
                     return path + [end]
 
-                if adjacent not in visited:
+                if adjacent not in visited and adjacent not in avoid_regions:
                     visited.add(adjacent)
                     queue.append((adjacent, path + [adjacent]))
 
@@ -1346,6 +1404,7 @@ class WorldState:
         # ════════════════════════════════════════════════════════════
         # CLEAR PER-TURN FLAGS (at turn start)
         # ════════════════════════════════════════════════════════════
+        self.clear_turn_battles()  # Phase 5.2: Reset battle tracking
         for marshal in self.marshals.values():
             # Ally covering system - retreating marshals can be protected during enemy phase
             marshal.retreated_this_turn = False
@@ -1737,6 +1796,16 @@ class WorldState:
                     })
                 else:
                     print(f"  [COUNTER-PUNCH] {marshal.name} has counter-punch available ({marshal.counter_punch_turns} turns remaining)")
+
+        # ════════════════════════════════════════════════════════════
+        # PRECISION EXECUTION COUNTDOWN (Phase 5.2 - Grouchy/Literal)
+        # ════════════════════════════════════════════════════════════
+        for marshal in self.marshals.values():
+            if getattr(marshal, 'precision_execution_turns', 0) > 0:
+                marshal.precision_execution_turns -= 1
+                if marshal.precision_execution_turns == 0:
+                    marshal.precision_execution_active = False
+                    print(f"  [PRECISION EXPIRED] {marshal.name}'s precision execution has worn off")
 
         return events
 

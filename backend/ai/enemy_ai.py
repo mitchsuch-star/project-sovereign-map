@@ -121,7 +121,7 @@ def ai_debug(msg: str):
         print(f"[AI DEBUG] {msg}")
 
 
-def calculate_ai_strategic_score(marshal: "Marshal", action: str, target: Optional["Marshal"]) -> int:
+def calculate_ai_strategic_score(marshal: "Marshal", action: str, target: Optional["Marshal"], world: Optional["WorldState"] = None) -> int:
     """
     Calculate AI strategic score (parallel to player LLM scoring).
 
@@ -133,11 +133,19 @@ def calculate_ai_strategic_score(marshal: "Marshal", action: str, target: Option
         marshal: The AI marshal executing the action
         action: The action being taken (e.g., "attack", "defend")
         target: The target marshal (if applicable)
+        world: Current world state (optional, for literal→cautious conversion)
 
     Returns:
         Strategic score 0-100
     """
     personality = getattr(marshal, 'personality', 'balanced')
+
+    # Literal marshals become cautious when AI-controlled
+    if personality == "literal" and world is not None:
+        is_player_controlled = (marshal.nation == getattr(world, 'player_nation', 'France')
+                                and not getattr(marshal, 'autonomous', False))
+        if not is_player_controlled:
+            personality = "cautious"
 
     # Base score by personality
     BASE_SCORES = {
@@ -286,7 +294,14 @@ def get_marshal_priority(marshal: Marshal, world: WorldState) -> int:
     # --- PERSONALITY (minor factor) ---
 
     # Aggressive marshals are eager to act
-    if getattr(marshal, 'personality', 'balanced') == "aggressive":
+    # Use effective personality: literal→cautious when AI-controlled
+    personality = getattr(marshal, 'personality', 'balanced')
+    if personality == "literal":
+        is_player_controlled = (marshal.nation == world.player_nation
+                                and not getattr(marshal, 'autonomous', False))
+        if not is_player_controlled:
+            personality = "cautious"
+    if personality == "aggressive":
         priority -= 10
 
     return priority
@@ -390,7 +405,29 @@ class EnemyAI:
         # ═══════════════════════════════════════════════════════════════════
         self._failed_action_cooldowns: Dict[str, Dict[str, int]] = {}  # {marshal_name: {action_type: turns_remaining}}
 
-    def _get_mood_adjusted_threshold(self, marshal: Marshal) -> float:
+    def _get_effective_personality(self, marshal: Marshal, world: WorldState) -> str:
+        """
+        Get personality for AI decision-making.
+
+        Literal marshals become cautious when AI-controlled because:
+        - Literal needs clear player orders to function well
+        - Without orders, cautious defensive behavior is reasonable
+        - Losing literal buffs IS the consequence of going autonomous
+
+        Applies to:
+        - Enemy nations controlling literal marshals
+        - Player's literal marshals that went autonomous (trust floor)
+        """
+        personality = getattr(marshal, 'personality', 'balanced')
+
+        is_player_controlled = (marshal.nation == world.player_nation
+                                and not getattr(marshal, 'autonomous', False))
+
+        if personality == "literal" and not is_player_controlled:
+            return "cautious"
+        return personality
+
+    def _get_mood_adjusted_threshold(self, marshal: Marshal, world: WorldState) -> float:
         """
         Get attack threshold with personality-based mood variance.
 
@@ -405,11 +442,12 @@ class EnemyAI:
 
         Args:
             marshal: The marshal making the decision
+            world: Current world state (for personality conversion)
 
         Returns:
             Mood-adjusted attack threshold (lower = more aggressive)
         """
-        personality = getattr(marshal, 'personality', 'balanced')
+        personality = self._get_effective_personality(marshal, world)
         base_threshold = self.ATTACK_THRESHOLDS.get(personality, 1.0)
         variance = self.MOOD_VARIANCE.get(personality, 0.10)
 
@@ -530,7 +568,8 @@ class EnemyAI:
             ai_score = calculate_ai_strategic_score(
                 marshal=marshal,
                 action=action.get("action"),
-                target=target_marshal
+                target=target_marshal,
+                world=world
             )
 
             # Apply bonuses using same function as player
@@ -922,7 +961,7 @@ class EnemyAI:
         #   P7      → Strategic movement (advance or fall back)
         #   P8      → Default (stance adjustment or wait)
         # ═══════════════════════════════════════════════════════════════════
-        personality = getattr(marshal, 'personality', 'balanced')
+        personality = self._get_effective_personality(marshal, world)
 
         # Debug: Log marshal state at start of evaluation
         ai_debug(f"Evaluating {marshal.name} ({personality}, {nation})")
@@ -1035,7 +1074,7 @@ class EnemyAI:
             # Find weakest enemy (best attack target)
             weakest_enemy = min(enemies_in_region, key=lambda e: e.strength)
             ratio = marshal.strength / weakest_enemy.strength if weakest_enemy.strength > 0 else 999
-            threshold = self._get_mood_adjusted_threshold(marshal)
+            threshold = self._get_mood_adjusted_threshold(marshal, world)
 
             print(f"  [P0 ENGAGEMENT] {marshal.name} vs {weakest_enemy.name}: ratio={ratio:.2f}, threshold={threshold:.2f}")
             print(f"  [P0 ENGAGEMENT] {marshal.name} fortified={getattr(marshal, 'fortified', False)}, drilling={getattr(marshal, 'drilling', False)}")
@@ -1468,7 +1507,7 @@ class EnemyAI:
         # Check if any enemy is stronger
         strongest_enemy = max(adjacent_enemies, key=lambda e: e.strength)
 
-        personality = getattr(marshal, 'personality', 'balanced')
+        personality = self._get_effective_personality(marshal, world)
         current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
 
         if strongest_enemy.strength > marshal.strength:
@@ -1603,8 +1642,8 @@ class EnemyAI:
             return None
 
         # Get attack threshold with mood variance (controlled randomness)
-        personality = getattr(marshal, 'personality', 'balanced')
-        threshold = self._get_mood_adjusted_threshold(marshal)
+        personality = self._get_effective_personality(marshal, world)
+        threshold = self._get_mood_adjusted_threshold(marshal, world)
         ai_debug(f"    Attack threshold for {personality}: {threshold:.2f} (mood-adjusted)")
 
         # ════════════════════════════════════════════════════════════
@@ -1922,7 +1961,7 @@ class EnemyAI:
         # Don't fortify if already fortified
         if getattr(marshal, 'fortified', False):
             from backend.models.personality_modifiers import get_max_fortify_bonus
-            personality = getattr(marshal, 'personality', 'cautious')
+            personality = self._get_effective_personality(marshal, world)
             max_bonus = get_max_fortify_bonus(personality)
             current_bonus = getattr(marshal, 'defense_bonus', 0)
 
@@ -2017,7 +2056,7 @@ class EnemyAI:
 
     def _consider_strategic_move(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
         """Consider moving strategically."""
-        personality = getattr(marshal, 'personality', 'balanced')
+        personality = self._get_effective_personality(marshal, world)
 
         # Don't move if fortified (lose bonus)
         if getattr(marshal, 'fortified', False):
@@ -2133,7 +2172,7 @@ class EnemyAI:
         Returns None if marshal is already in optimal state (ends turn early).
         This prevents pointless actions like defending when already fortified.
         """
-        personality = getattr(marshal, 'personality', 'balanced')
+        personality = self._get_effective_personality(marshal, world)
         current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
 
         ai_debug(f"  P8: Default action check - {personality}, stance={current_stance}")
@@ -2153,7 +2192,7 @@ class EnemyAI:
             # ENGAGED! Must deal with enemy - attack if possible, else wait
             weakest = min(enemies_in_region, key=lambda e: e.strength)
             ratio = marshal.strength / weakest.strength if weakest.strength > 0 else 999
-            threshold = self._get_mood_adjusted_threshold(marshal)
+            threshold = self._get_mood_adjusted_threshold(marshal, world)
             print(f"  [P8 UNIVERSAL] {marshal.name} vs {weakest.name}: ratio={ratio:.2f}, threshold={threshold:.2f}")
 
             if ratio >= threshold:
@@ -2246,7 +2285,7 @@ class EnemyAI:
                 # Engaged! Attack the weakest enemy we can beat
                 weakest = min(enemies_in_region, key=lambda e: e.strength)
                 ratio = marshal.strength / weakest.strength if weakest.strength > 0 else 999
-                threshold = self._get_mood_adjusted_threshold(marshal)
+                threshold = self._get_mood_adjusted_threshold(marshal, world)
                 if ratio >= threshold:
                     ai_debug(f"  -> P8: Cautious but engaged - attacking {weakest.name}")
                     return {
@@ -2463,7 +2502,7 @@ class EnemyAI:
         Returns:
             Tuple of (is_safe, reason)
         """
-        personality = getattr(marshal, 'personality', 'balanced')
+        personality = self._get_effective_personality(marshal, world)
         target = world.get_region(target_region)
 
         if not target:
@@ -2600,7 +2639,7 @@ class EnemyAI:
         if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
             return None
 
-        personality = getattr(marshal, 'personality', 'balanced')
+        personality = self._get_effective_personality(marshal, world)
         marshal_region = world.get_region(marshal.location)
 
         if not marshal_region:
@@ -2619,7 +2658,7 @@ class EnemyAI:
             # Check if we have good odds to attack
             weakest_enemy = min(enemies_in_region, key=lambda e: e.strength)
             ratio = marshal.strength / weakest_enemy.strength if weakest_enemy.strength > 0 else 999
-            threshold = self._get_mood_adjusted_threshold(marshal)
+            threshold = self._get_mood_adjusted_threshold(marshal, world)
 
             if ratio >= threshold * 0.8:  # Slightly lower threshold when engaged
                 ai_debug(f"    -> Unfortifying to attack engaged enemy (ratio {ratio:.2f} vs threshold {threshold:.2f})")
@@ -2836,7 +2875,8 @@ class EnemyAI:
                     ai_score = calculate_ai_strategic_score(
                         marshal=marshal,
                         action=action.get("action"),
-                        target=target_marshal
+                        target=target_marshal,
+                        world=world
                     )
 
                     # Apply bonuses using same function as player

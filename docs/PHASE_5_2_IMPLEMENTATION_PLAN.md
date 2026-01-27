@@ -1,7 +1,7 @@
 # Phase 5.2 Implementation Plan: Strategic Commands
 
 **Version:** 2.1
-**Status:** DESIGN LOCKED - CHAIN AUDIT COMPLETE
+**Status:** IN PROGRESS - Phase A ✅ Phase B ✅ Phase C next
 **Target:** Early Access (EA) - November 2025
 **Created:** January 2025
 **Last Revised:** January 2026 (Chain Audit Applied)
@@ -274,9 +274,85 @@ def clear_turn_battles(self) -> None:
 
 ---
 
-## 3. GROUCHY_MODIFIERS - Complete Specification
+## 3. GROUCHY (Literal) - Complete Specification
 
-**File:** `backend/models/personality_modifiers.py`
+### 3.1 Design Philosophy
+
+Grouchy doesn't argue about TACTICS (like Ney) or RISK (like Davout).
+He argues about CLARITY. "Which enemy, Sire?" not "That's suicide!"
+
+The core loop:
+- **Vague orders** → Grouchy objects (uses existing objection popup)
+- **Clear orders** → Grouchy executes with combat bonuses
+- **Crystal clear + strategic orders** → Precision Execution (+1 all stats, 3 turns)
+
+This means the LLM ambiguity score (already computed in ParseResult) drives
+Grouchy's entire personality without any new parsing infrastructure.
+
+### 3.2 Objection System - Unique Trigger
+
+| Marshal | Objection Trigger | Objection Flavor |
+|---------|-------------------|------------------|
+| Ney | Risky tactics | "That's suicide!" |
+| Davout | Reckless risk | "I counsel caution" |
+| Grouchy | High ambiguity (>0.5) | "Which enemy, Sire?" |
+
+Grouchy uses the EXISTING objection popup system. When LLM returns high
+ambiguity (>0.5) for an order to Grouchy:
+
+1. Grouchy objects with confusion flavor
+2. LLM generates valid options based on context
+3. Player picks an option OR insists (trust penalty, Grouchy picks literally/nearest)
+
+### 3.3 Trust Mechanics
+
+Grouchy participates in the normal trust system:
+
+| Event | Trust Change |
+|-------|-------------|
+| Grouchy objects (vague order), player picks option | 0 |
+| Grouchy objects, player insists | Same penalty as other marshals |
+| Strategic order completed | +5 |
+| Player cancels mid-execution | -3 (all marshals, not Grouchy-specific) |
+
+**NOTE:** Order cancellation trust penalty (-3) does not exist yet in codebase.
+It should be added in Phase 5.2 as a universal mechanic for all marshals when
+strategic orders are implemented. This is NOT a Grouchy-specific feature.
+
+Trust floor → autonomy decision → Grouchy becomes cautious AI (loses all
+literal buffs). This is implemented in `_get_effective_personality()` in
+`enemy_ai.py` (foundation work complete).
+
+### 3.4 Ambiguity-Scaled Combat Buff
+
+| Ambiguity (0-100) | Clarity | Combat Buff (atk+def) | Precision Execution? |
+|-----------|---------|-------------|---------------------|
+| 0 - 20 | Crystal clear | +15% | YES (if strategic_score > 60) |
+| 21 - 40 | Clear | +10% | No |
+| 41 - 60 | Vague (warning, not RNG) | +5% | No |
+| 61+ | Very vague (triggers objection) | 0% | No |
+
+**Implementation:** `_apply_grouchy_ambiguity_buff()` in executor.py. Applied on order receipt
+(before execution). Sets `strategic_combat_bonus` AND `strategic_defense_bonus` on marshal.
+Both are consumed after use in `get_attack_modifier()` / `get_defense_modifier()`.
+
+### 3.5 Precision Execution (Special Ability)
+
+When an order has BOTH:
+- Very LOW ambiguity (≤20, crystal clear)
+- AND high strategic value (strategic_score > 60)
+
+Grouchy gets temporary skill boost:
+- +1 to all general stats (attack, defense, tactics, etc.)
+- Additive bonus
+- Lasts 3 turns
+- Each stat caps at 8
+- Can stack with subsequent clear+strategic orders
+
+This rewards players who give excellent orders. Grouchy's ceiling is highest
+with skilled, precise commanders.
+
+### 3.6 GROUCHY_MODIFIERS (personality_modifiers.py)
 
 ```python
 # ════════════════════════════════════════════════════════════════════════════════
@@ -289,30 +365,69 @@ GROUCHY_MODIFIERS = {
     "hold_position_defense_bonus": 0.15,  # +15% defense in hold combat
 
     # ═══════════════════════════════════════════════════════════
-    # PRECISION EXECUTION (new - applies to action effectiveness)
+    # AMBIGUITY-SCALED COMBAT BUFF (new)
+    # Applied based on LLM ambiguity score of the order
     # ═══════════════════════════════════════════════════════════
-    "explicit_order_attack_bonus": 0.10,   # +10% attack when target explicitly named
-    "explicit_order_defense_bonus": 0.10,  # +10% defense when location explicitly named
-    "strategic_completion_bonus": 0.20,    # +20% next action after completing strategic
+    "crystal_clear_bonus": 0.15,          # +15% at ambiguity < 0.2
+    "clear_bonus": 0.10,                  # +10% at ambiguity 0.2-0.4
+    "vague_bonus": 0.05,                  # +5% at ambiguity 0.4-0.6
+    # No bonus at ambiguity >= 0.6
+
+    # ═══════════════════════════════════════════════════════════
+    # PRECISION EXECUTION (new - stat boost on clear+strategic)
+    # ═══════════════════════════════════════════════════════════
+    "precision_stat_boost": 1,            # +1 to all stats
+    "precision_duration": 3,              # Lasts 3 turns
+    "precision_stat_cap": 8,              # Max stat value
+    "precision_ambiguity_threshold": 0.2, # Must be below this
+    # Also requires high strategic_score from LLM
 
     # ═══════════════════════════════════════════════════════════
     # STRATEGIC EFFICIENCY (new - applies to order costs)
     # ═══════════════════════════════════════════════════════════
-    "strategic_action_cost": 1,            # 1 action instead of 2
-    "strategic_morale_immunity": True,     # No morale loss during strategic execution
+    "strategic_action_cost": 1,           # 1 action instead of 2
+    "strategic_morale_immunity": True,    # No morale loss during strategic execution
 
     # ═══════════════════════════════════════════════════════════
     # TRUST (new - applied in disobedience.py)
     # ═══════════════════════════════════════════════════════════
-    "explicit_order_trust_bonus": 2,       # +2 trust for giving explicit orders
     "strategic_completion_trust_bonus": 5, # +5 trust when strategic completes
 }
 ```
 
+### 3.7 Interrupt Behavior (Strategic Execution)
+
+| Interrupt | Aggressive | Cautious | Literal |
+|-----------|------------|----------|---------|
+| Cannon fire | Auto-engage | "Investigate?" | **Ignores** |
+| Ally attacked | Rush to help | "Support?" | **Ignores** |
+| Path blocked | Attack blocker | "Engage?" | Reroutes silently |
+
+Grouchy NEVER interrupts for cannon fire — this is "The Grouchy Moment",
+the signature historical reference. Players who want Grouchy to respond to
+nearby battles must give a new explicit order (costs 1 action).
+
+### 3.8 Redirecting Grouchy Mid-Execution
+
+No special "emergency override" mechanic. Player gives new clear order
+(1 action). Old order cancelled. Trust penalty (-3) applies — same as
+all other marshals (universal mechanic, not Grouchy-specific).
+
+### 3.9 AI Personality Conversion (IMPLEMENTED)
+
+When AI controls a literal marshal:
+- **Enemy nation controlling literal marshal** → becomes cautious
+- **Player's literal marshal goes autonomous** → becomes cautious
+
+Implementation: `EnemyAI._get_effective_personality()` in `enemy_ai.py`.
+All 8 decision-making personality reads in the class use this helper.
+Module-level utility functions (scoring, priority, flavor text) use raw
+personality since they don't affect tactical decisions.
+
 **Stacking Rules:**
-- Completion (+20%) + Explicit (+10%) = +30% ADDITIVE
+- Ambiguity combat buff + Precision Execution can stack (watch during playtesting)
 - Immovable (+15%) is SEPARATE combat modifier, applies during combat while holding
-- Final = action_bonus × combat_modifier
+- Final = ambiguity_buff × combat_modifier
 
 ---
 
@@ -1990,23 +2105,29 @@ class StrategicExecutor:
 
 ### Phase A: Data Structures (Estimated: 3-4 hours)
 
-- [ ] **A1.** Add `StrategicOrder` dataclass to `marshal.py` (with combat loop fields)
-- [ ] **A2.** Add `StrategicCondition` dataclass to `marshal.py`
-- [ ] **A3.** Add marshal fields: `strategic_order`, `precision_bonus_available`, combat tracking
-- [ ] **A4.** Add `@property in_strategic_mode` to Marshal class
-- [ ] **A5.** Update `GROUCHY_MODIFIERS` in `personality_modifiers.py`
-- [ ] **A6.** Add battle tracking to `WorldState` (battles_this_turn, record_battle, etc.)
-- [ ] **A7.** Test: Create marshal, set strategic_order, verify serialization
+- [x] **A1.** Add `StrategicOrder` dataclass to `marshal.py` (with combat loop fields) ✅
+- [x] **A2.** Add `StrategicCondition` dataclass to `marshal.py` ✅
+- [x] **A3.** Add marshal fields: `strategic_order`, `precision_bonus_available`, combat tracking ✅
+- [x] **A4.** Add `@property in_strategic_mode` to Marshal class ✅
+- [x] **A5.** Update `GROUCHY_MODIFIERS` in `personality_modifiers.py` ✅
+- [x] **A6.** Add battle tracking to `WorldState` (battles_this_turn, record_battle, etc.) ✅
+- [x] **A7.** Test: Create marshal, set strategic_order, verify serialization ✅ (15 tests in test_strategic_order.py)
 
 ### Phase B: Parser Integration (Estimated: 4-5 hours)
 
-- [ ] **B1.** Create `backend/commands/strategic_parser.py`
-- [ ] **B2.** Add `STRATEGIC_KEYWORDS` to `llm_client.py`
-- [ ] **B3.** Add `classify_command()` function
-- [ ] **B4.** Add `parse_condition()` for "until X" patterns
-- [ ] **B5.** Add `is_explicit_order()` for LITERAL bonus detection
-- [ ] **B6.** Add distance-based tactical→strategic conversion (with attack_on_arrival)
-- [ ] **B7.** Test: Parse "March to Vienna", "Pursue Blücher until destroyed", "Attack Bavaria" (distant)
+- [x] **B1.** Create `backend/ai/strategic_parser.py` ✅ (placed in ai/ not commands/ — standalone detection module)
+- [x] **B2.** Add `STRATEGIC_KEYWORDS` ✅ (in strategic_parser.py, not llm_client.py — cleaner separation)
+- [x] **B3.** Add `detect_strategic_command()` + `_classify_target()` functions ✅
+- [x] **B4.** Add `_parse_condition()` for "until X" patterns ✅
+- [ ] **B5.** Add `is_explicit_order()` for LITERAL bonus detection (deferred to Phase H)
+- [x] **B6.** Add target classification with auto-convert enemy MOVE_TO→PURSUE, attack_on_arrival ✅
+- [x] **B7.** Test: 45 tests in test_strategic_parser.py + 4 integration tests through parser.py ✅
+
+### Pre-Phase C: Dependencies ✅
+
+- [x] `get_enemies_in_region(region, nation)` added to WorldState ✅
+- [x] `find_path()` updated with `avoid_regions` parameter ✅
+- [x] Tests for new methods (12 tests in test_world_state_strategic.py) ✅
 
 ### Phase C: Strategic Executor (Estimated: 6-8 hours)
 

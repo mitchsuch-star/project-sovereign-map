@@ -5,6 +5,7 @@ Converts natural language commands into validated, executable orders
 
 from typing import Dict, List, Optional
 from backend.ai.llm_client import LLMClient
+from backend.ai.strategic_parser import detect_strategic_command
 from backend.utils.fuzzy_matcher import FuzzyMatcher
 
 
@@ -216,7 +217,7 @@ class CommandParser:
 
         return (llm_result, None)
 
-    def parse(self, command_text: str, game_state: Optional[Dict] = None) -> Dict:
+    def parse(self, command_text: str, game_state: Optional[Dict] = None, world=None) -> Dict:
         """
         Parse a command from the player.
 
@@ -305,6 +306,24 @@ class CommandParser:
                 # Add warning if present
                 if validation_result.get("warning"):
                     result["warning"] = validation_result["warning"]
+
+                # ════════════════════════════════════════════════════════════
+                # STRATEGIC COMMAND DETECTION (Phase 5.2)
+                # Check if this is a multi-turn strategic order
+                # ════════════════════════════════════════════════════════════
+                if world is not None:
+                    marshal_name = command_dict.get("marshal")
+                    strategic = detect_strategic_command(command_text, marshal_name, world)
+                    if strategic:
+                        result["is_strategic"] = True
+                        result["strategic_type"] = strategic["strategic_type"]
+                        result["target_snapshot_location"] = strategic.get("target_snapshot_location")
+                        result["strategic_condition"] = strategic.get("condition")
+                        result["attack_on_arrival"] = strategic.get("attack_on_arrival", False)
+                        # Override target with canonical name from strategic parser
+                        result["command"]["target"] = strategic["target"]
+                        result["command"]["target_type"] = strategic["target_type"]
+
                 return result
             else:
                 return {

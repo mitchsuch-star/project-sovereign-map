@@ -1,0 +1,366 @@
+"""
+Strategic Command Parser for Project Sovereign (Phase 5.2).
+
+Detects multi-turn strategic commands (MOVE_TO, PURSUE, HOLD, SUPPORT)
+and classifies targets as region, marshal, or generic.
+
+This module provides detection functions called by parser.py.
+It does NOT execute strategic orders — that's Phase C (StrategicExecutor).
+
+DESIGN NOTES:
+- "move to" (2 words) = tactical (immediate 1-region move)
+- "march to" = strategic (multi-turn campaign)
+- Enemy marshal MOVE_TO auto-converts to PURSUE
+- Friendly marshal MOVE_TO snapshots their location
+"""
+
+import re
+from typing import Dict, Optional
+
+# Try to import WorldState for type hints; not strictly required at runtime
+try:
+    from backend.models.world_state import WorldState
+except ImportError:
+    WorldState = None
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# STRATEGIC KEYWORDS
+# ════════════════════════════════════════════════════════════════════════════════
+# Order matters within each list — longer phrases checked first via "in" matching.
+
+STRATEGIC_KEYWORDS = {
+    "MOVE_TO": [
+        "march to", "advance to", "proceed to", "head to",
+        "make for", "travel to", "withdraw to", "fall back to",
+    ],
+    "PURSUE": [
+        "pursue", "chase", "hunt down", "hunt",
+        "go after", "give chase", "intercept", "track",
+    ],
+    "HOLD": [
+        "hold position", "hold the line", "fortify and hold",
+        "hold",
+        "dig in", "guard", "protect",
+    ],
+    "SUPPORT": [
+        "link up with", "back up",
+        "support", "reinforce", "assist", "aid",
+        "join",
+    ],
+}
+
+# These keywords overlap with existing tactical actions in llm_client.py.
+# Strategic detection runs AFTER the mock parser, inspecting raw_command text
+# to decide if the parsed tactical action should be upgraded to strategic.
+#
+# "hold" → tactical hold (1 action). BUT "hold Belgium until Ney arrives" → strategic HOLD.
+# "support" → tactical reinforce. BUT "support Ney" → strategic SUPPORT.
+# The condition/target analysis disambiguates.
+
+
+def detect_strategic_command(
+    command_text: str,
+    marshal_name: Optional[str],
+    world,
+) -> Optional[Dict]:
+    """
+    Detect if a command is strategic and parse its details.
+
+    Args:
+        command_text: Raw command text from the player.
+        marshal_name: Name of the issuing marshal (from parser), or None.
+        world: WorldState instance for marshal/region lookups.
+
+    Returns:
+        None if this is a tactical command.
+        Dict with strategic details if strategic:
+        {
+            "is_strategic": True,
+            "strategic_type": "MOVE_TO" | "PURSUE" | "HOLD" | "SUPPORT",
+            "target": str,
+            "target_type": "region" | "marshal" | "generic",
+            "target_snapshot_location": Optional[str],
+            "condition": Optional[Dict],  # StrategicCondition format
+            "attack_on_arrival": bool,
+        }
+    """
+    command_lower = command_text.lower()
+
+    # Strip marshal name prefix (e.g. "Grouchy, march to Belgium" → "march to Belgium")
+    # so keyword matching works on the order part
+    cleaned = _strip_marshal_prefix(command_lower, marshal_name)
+
+    # Step 1: Detect strategic type
+    strategic_type = _detect_strategic_type(cleaned)
+    if strategic_type is None:
+        return None
+
+    # Step 2: Extract target text from command
+    target_text = _extract_target_text(cleaned, strategic_type)
+    if not target_text:
+        # No target found — could be "hold" (use current location) or generic
+        if strategic_type == "HOLD" and marshal_name and world:
+            marshal = world.get_marshal(marshal_name)
+            if marshal:
+                return {
+                    "is_strategic": True,
+                    "strategic_type": "HOLD",
+                    "target": marshal.location,
+                    "target_type": "region",
+                    "target_snapshot_location": None,
+                    "condition": _parse_condition(cleaned, marshal.location),
+                    "attack_on_arrival": False,
+                }
+        # Generic target (no specific target identified)
+        return {
+            "is_strategic": True,
+            "strategic_type": strategic_type,
+            "target": "generic",
+            "target_type": "generic",
+            "target_snapshot_location": None,
+            "condition": _parse_condition(cleaned, "generic"),
+            "attack_on_arrival": False,
+        }
+
+    # Step 3: Classify target (region, friendly marshal, enemy marshal, generic)
+    target_info = _classify_target(target_text, marshal_name, world)
+
+    # Step 4: Auto-convert enemy marshal MOVE_TO → PURSUE
+    if strategic_type == "MOVE_TO" and target_info["convert_to_pursue"]:
+        strategic_type = "PURSUE"
+        print(f"[PARSER] Converted MOVE_TO → PURSUE (enemy marshal target)")
+
+    # Step 5: Parse conditions
+    condition = _parse_condition(cleaned, target_info["target"])
+
+    # Step 6: Check attack_on_arrival hints
+    attack_on_arrival = _detect_attack_on_arrival(cleaned)
+
+    return {
+        "is_strategic": True,
+        "strategic_type": strategic_type,
+        "target": target_info["target"],
+        "target_type": target_info["target_type"],
+        "target_snapshot_location": target_info["target_snapshot_location"],
+        "condition": condition,
+        "attack_on_arrival": attack_on_arrival,
+    }
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# INTERNAL HELPERS
+# ════════════════════════════════════════════════════════════════════════════════
+
+def _strip_marshal_prefix(command_lower: str, marshal_name: Optional[str]) -> str:
+    """Remove 'Grouchy,' or 'Marshal Grouchy,' prefix for cleaner matching."""
+    if not marshal_name:
+        return command_lower
+    name_lower = marshal_name.lower()
+    # "grouchy, march to belgium" → "march to belgium"
+    cleaned = re.sub(rf'^(marshal\s+)?{re.escape(name_lower)}[,\s]+', '', command_lower).strip()
+    return cleaned
+
+
+def _detect_strategic_type(command_lower: str) -> Optional[str]:
+    """Detect which strategic command type, if any."""
+    for cmd_type, keywords in STRATEGIC_KEYWORDS.items():
+        for keyword in keywords:
+            if keyword in command_lower:
+                return cmd_type
+    return None
+
+
+def _extract_target_text(command_lower: str, strategic_type: str) -> Optional[str]:
+    """
+    Extract the target portion from the command text.
+
+    Examples:
+        "march to Belgium until relieved" → "belgium"
+        "pursue Wellington to destruction" → "wellington"
+        "hold Belgium for 3 turns" → "belgium"
+        "support Ney until battle won" → "ney"
+    """
+    # Strip condition suffixes first so they don't pollute target
+    cleaned = _strip_conditions(command_lower)
+
+    # For MOVE_TO keywords: target is after the keyword
+    if strategic_type == "MOVE_TO":
+        for keyword in STRATEGIC_KEYWORDS["MOVE_TO"]:
+            if keyword in cleaned:
+                after = cleaned.split(keyword, 1)[1].strip()
+                return _clean_target_text(after) if after else None
+
+    # For PURSUE: target is after the keyword
+    if strategic_type == "PURSUE":
+        for keyword in STRATEGIC_KEYWORDS["PURSUE"]:
+            if keyword in cleaned:
+                after = cleaned.split(keyword, 1)[1].strip()
+                return _clean_target_text(after) if after else None
+
+    # For HOLD: target is after the keyword (or current location if absent)
+    if strategic_type == "HOLD":
+        for keyword in STRATEGIC_KEYWORDS["HOLD"]:
+            if keyword in cleaned:
+                after = cleaned.split(keyword, 1)[1].strip()
+                return _clean_target_text(after) if after else None
+
+    # For SUPPORT: target is after the keyword
+    if strategic_type == "SUPPORT":
+        for keyword in STRATEGIC_KEYWORDS["SUPPORT"]:
+            if keyword in cleaned:
+                after = cleaned.split(keyword, 1)[1].strip()
+                return _clean_target_text(after) if after else None
+
+    return None
+
+
+def _strip_conditions(text: str) -> str:
+    """Remove condition phrases from text so they don't get parsed as targets."""
+    # Remove "until ..." clauses
+    text = re.sub(r'\s+until\s+.*$', '', text)
+    # Remove "for N turns" clauses
+    text = re.sub(r'\s+for\s+\d+\s+turns?', '', text)
+    # Remove "and attack" / "then attack" suffixes
+    text = re.sub(r'\s+(and|then)\s+attack.*$', '', text)
+    return text.strip()
+
+
+def _clean_target_text(text: str) -> Optional[str]:
+    """Clean extracted target text — remove articles, trim."""
+    text = text.strip()
+    # Remove leading articles
+    text = re.sub(r'^(the|a|an)\s+', '', text)
+    # Take first word or two (target name)
+    # "belgium and attack" → "belgium"
+    text = re.sub(r'\s+(and|then|or)\s+.*$', '', text)
+    return text.strip() if text.strip() else None
+
+
+def _classify_target(
+    target_text: str,
+    issuing_marshal: Optional[str],
+    world,
+) -> Dict:
+    """
+    Classify target as region, friendly marshal, enemy marshal, or generic.
+
+    Returns:
+        {
+            "target": str (canonical name),
+            "target_type": "region" | "marshal" | "generic",
+            "target_snapshot_location": Optional[str],
+            "convert_to_pursue": bool,
+        }
+    """
+    if not world:
+        return {
+            "target": target_text,
+            "target_type": "region",
+            "target_snapshot_location": None,
+            "convert_to_pursue": False,
+        }
+
+    # Check if target is a region (case-insensitive lookup)
+    for region_name in world.regions:
+        if region_name.lower() == target_text.lower():
+            return {
+                "target": region_name,
+                "target_type": "region",
+                "target_snapshot_location": None,
+                "convert_to_pursue": False,
+            }
+
+    # Check if target is a marshal (case-insensitive lookup)
+    for marshal_name, marshal in world.marshals.items():
+        if marshal_name.lower() == target_text.lower():
+            issuing = world.get_marshal(issuing_marshal) if issuing_marshal else None
+            is_enemy = False
+            if issuing:
+                is_enemy = marshal.nation != issuing.nation
+            elif marshal.nation != world.player_nation:
+                # No issuing marshal known — assume player perspective
+                is_enemy = True
+
+            if is_enemy:
+                return {
+                    "target": marshal_name,
+                    "target_type": "marshal",
+                    "target_snapshot_location": None,  # PURSUE tracks dynamically
+                    "convert_to_pursue": True,
+                }
+            else:
+                return {
+                    "target": marshal_name,
+                    "target_type": "marshal",
+                    "target_snapshot_location": marshal.location,
+                    "convert_to_pursue": False,
+                }
+
+    # Check for generic indicators
+    generic_indicators = [
+        "the enemy", "enemy", "enemies", "them", "the prussians",
+        "the british", "hostile forces", "prussians", "british",
+    ]
+    if any(ind in target_text.lower() for ind in generic_indicators):
+        return {
+            "target": target_text,
+            "target_type": "generic",
+            "target_snapshot_location": None,
+            "convert_to_pursue": False,
+        }
+
+    # Unknown — treat as region (might fail at execution, that's ok)
+    # Capitalize first letter for region-like names
+    canonical = target_text.strip().title()
+    return {
+        "target": canonical,
+        "target_type": "region",
+        "target_snapshot_location": None,
+        "convert_to_pursue": False,
+    }
+
+
+def _parse_condition(command_lower: str, target: str) -> Optional[Dict]:
+    """
+    Parse condition from command text.
+
+    Returns:
+        Dict matching StrategicCondition.to_dict() format, or None.
+    """
+    condition = {}
+
+    # "until [marshal] arrives"
+    match = re.search(r'until\s+(\w+)\s+arrives', command_lower)
+    if match:
+        condition["until_marshal_arrives"] = match.group(1).capitalize()
+
+    # "until relieved"
+    if "until relieved" in command_lower:
+        condition["until_relieved"] = True
+
+    # "until destroyed" / "to destruction"
+    if "until destroyed" in command_lower or "to destruction" in command_lower:
+        condition["until_marshal_destroyed"] = target
+
+    # "for N turns"
+    match = re.search(r'for\s+(\d+)\s+turns?', command_lower)
+    if match:
+        condition["max_turns"] = int(match.group(1))
+
+    # "until battle won" / "until victory"
+    if ("until" in command_lower and "battle" in command_lower and "won" in command_lower):
+        condition["until_battle_won"] = True
+    if "until victory" in command_lower:
+        condition["until_battle_won"] = True
+
+    return condition if condition else None
+
+
+def _detect_attack_on_arrival(command_lower: str) -> bool:
+    """Detect if the player wants to attack on arrival."""
+    attack_hints = [
+        "and attack", "then attack", "and engage",
+        "and assault", "then engage",
+    ]
+    return any(hint in command_lower for hint in attack_hints)

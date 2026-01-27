@@ -147,7 +147,7 @@ def execute_command(request: CommandRequest):
         # Parse command
         # Build LLM-compatible game state for command parsing
         llm_game_state = get_llm_game_state()
-        parsed = parser.parse(request.command, llm_game_state)
+        parsed = parser.parse(request.command, llm_game_state, world=world)
         print(f"[OK] Parsed: {parsed.get('command', {}).get('action', 'unknown')}")
 
         # ════════════════════════════════════════════════════════════

@@ -71,7 +71,7 @@ class CombatResolver:
 
         # Calculate skill bonus from tactical skill (use skills dict if available)
         if hasattr(marshal, 'skills') and 'tactical' in marshal.skills:
-            tactical_skill = marshal.skills['tactical']
+            tactical_skill = marshal.get_effective_skill('tactical') if hasattr(marshal, 'get_effective_skill') else marshal.skills['tactical']
         else:
             tactical_skill = marshal.tactical_skill  # Fallback for backward compatibility
 
@@ -158,7 +158,7 @@ class CombatResolver:
         # Apply SHOCK skill to attacker damage (increases damage dealt to defender)
         # Higher shock = more casualties inflicted
         # shock_skill / 20 gives 0.05 to 0.50 bonus (5% to 50% more damage)
-        attacker_shock = attacker.skills.get("shock", 5)
+        attacker_shock = attacker.get_effective_skill("shock") if hasattr(attacker, 'get_effective_skill') else attacker.skills.get("shock", 5)
 
         # SIGNATURE ABILITY: Ney's "Bravest of the Brave" (Phase 2.3)
         # When attacking, Ney gets +2 Shock
@@ -249,7 +249,7 @@ class CombatResolver:
         # Apply DEFENSE skill to defender protection (reduces casualties taken)
         # Higher defense = fewer casualties taken
         # defense_skill // 2 gives 0 to 5 percentage points of protection
-        defender_defense = defender.skills.get("defense", 5)
+        defender_defense = defender.get_effective_skill("defense") if hasattr(defender, 'get_effective_skill') else defender.skills.get("defense", 5)
 
         # ════════════════════════════════════════════════════════════
         # FORTIFY BONUS (Phase 2.6): Defense bonus from fortified position
@@ -328,7 +328,7 @@ class CombatResolver:
 
         # Calculate final casualties
         # Attacker takes casualties (reduced by their defense skill)
-        attacker_defense = attacker.skills.get("defense", 5)
+        attacker_defense = attacker.get_effective_skill("defense") if hasattr(attacker, 'get_effective_skill') else attacker.skills.get("defense", 5)
         attacker_defense_mult = 1.0 - (attacker_defense / 20.0)
         attacker_casualties = int(base_attacker_casualties * attacker_defense_mult)
 

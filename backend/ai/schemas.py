@@ -45,6 +45,12 @@ class ParseResult:
     standing_order: Optional[str] = None
     condition: Optional[str] = None
 
+    # Phase 5.2: Strategic order fields
+    is_strategic: bool = False
+    strategic_type: Optional[str] = None  # "MOVE_TO", "PURSUE", "HOLD", "SUPPORT"
+    target_snapshot_location: Optional[str] = None  # For MOVE_TO friendly marshal
+    strategic_condition: Optional[Dict[str, Any]] = None  # Serialized StrategicCondition
+
     # Scoring fields
     ambiguity: int = 5  # 0-100, mock default is 5
     strategic_score: int = 10  # 0-100, mock default is 10
@@ -99,6 +105,13 @@ class ParseResult:
         if self.condition:
             result["condition"] = self.condition
 
+        # Phase 5.2: Strategic order fields
+        result["is_strategic"] = self.is_strategic
+        if self.is_strategic:
+            result["strategic_type"] = self.strategic_type
+            result["target_snapshot_location"] = self.target_snapshot_location
+            result["strategic_condition"] = self.strategic_condition
+
         return result
 
     @classmethod
@@ -130,6 +143,10 @@ class ParseResult:
             target_stance=data.get("target_stance"),
             raw_command=data.get("raw_command", ""),
             type=data.get("type"),
+            is_strategic=data.get("is_strategic", False),
+            strategic_type=data.get("strategic_type"),
+            target_snapshot_location=data.get("target_snapshot_location"),
+            strategic_condition=data.get("strategic_condition"),
         )
 
 
