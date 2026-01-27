@@ -290,6 +290,165 @@ class TestBlucherVorwarts:
         # TODO Phase 2.6: Test that Blücher inflicts extra casualties on retreating enemies
 
 
+class TestGneisenauStaffWork:
+    """Test Gneisenau's 'Staff Work' ability (TODO: Phase 6)."""
+
+    def test_gneisenau_exists(self):
+        """Verify Gneisenau is created in enemy marshals."""
+        enemies = create_enemy_marshals()
+        assert "Gneisenau" in enemies, "Gneisenau should exist in enemy marshals"
+
+    def test_gneisenau_is_prussian(self):
+        """Verify Gneisenau belongs to Prussia."""
+        enemies = create_enemy_marshals()
+        gneisenau = enemies["Gneisenau"]
+        assert gneisenau.nation == "Prussia", f"Gneisenau should be Prussian, got {gneisenau.nation}"
+
+    def test_gneisenau_personality(self):
+        """Verify Gneisenau has cautious personality."""
+        enemies = create_enemy_marshals()
+        gneisenau = enemies["Gneisenau"]
+        assert gneisenau.personality == "cautious", f"Gneisenau should be cautious, got {gneisenau.personality}"
+
+    def test_gneisenau_is_infantry(self):
+        """Verify Gneisenau is infantry (not cavalry)."""
+        enemies = create_enemy_marshals()
+        gneisenau = enemies["Gneisenau"]
+        assert gneisenau.cavalry is False, "Gneisenau should not be cavalry"
+        assert gneisenau.movement_range == 1, f"Infantry should have movement_range=1, got {gneisenau.movement_range}"
+
+    def test_gneisenau_has_ability(self):
+        """Verify Gneisenau has the Staff Work ability defined."""
+        enemies = create_enemy_marshals()
+        gneisenau = enemies["Gneisenau"]
+
+        assert gneisenau.ability["name"] == "Staff Work"
+        assert gneisenau.ability["trigger"] == "when_in_same_region_as_ally"
+        assert "TODO" in gneisenau.ability["effect"], "Should be marked as TODO"
+
+    def test_gneisenau_blucher_relationship(self):
+        """Verify Gneisenau and Blücher have bidirectional +2 relationship."""
+        enemies = create_enemy_marshals()
+        gneisenau = enemies["Gneisenau"]
+        blucher = enemies["Blucher"]
+
+        # Bidirectional relationship: both should be +2
+        gneisenau_to_blucher = gneisenau.get_relationship("Blucher")
+        blucher_to_gneisenau = blucher.get_relationship("Gneisenau")
+
+        assert gneisenau_to_blucher == 2, f"Gneisenau->Blücher should be +2, got {gneisenau_to_blucher}"
+        assert blucher_to_gneisenau == 2, f"Blücher->Gneisenau should be +2, got {blucher_to_gneisenau}"
+
+    def test_gneisenau_starts_with_blucher(self):
+        """Verify Gneisenau starts in the same location as Blücher."""
+        enemies = create_enemy_marshals()
+        gneisenau = enemies["Gneisenau"]
+        blucher = enemies["Blucher"]
+
+        assert gneisenau.location == blucher.location, \
+            f"Gneisenau ({gneisenau.location}) should start with Blücher ({blucher.location})"
+
+    def test_prussia_has_two_marshals(self):
+        """Verify Prussia now has two marshals: Blücher and Gneisenau."""
+        enemies = create_enemy_marshals()
+        prussian_marshals = [name for name, m in enemies.items() if m.nation == "Prussia"]
+
+        assert len(prussian_marshals) == 2, f"Prussia should have 2 marshals, got {len(prussian_marshals)}"
+        assert "Blucher" in prussian_marshals, "Blücher should be Prussian"
+        assert "Gneisenau" in prussian_marshals, "Gneisenau should be Prussian"
+
+
+class TestUxbridgePursuitMaster:
+    """Test Uxbridge's 'Pursuit Master' ability (TODO: combat.py implementation)."""
+
+    def test_uxbridge_exists(self):
+        """Verify Uxbridge is created in enemy marshals."""
+        enemies = create_enemy_marshals()
+        assert "Uxbridge" in enemies, "Uxbridge should exist in enemy marshals"
+
+    def test_uxbridge_is_british(self):
+        """Verify Uxbridge belongs to Britain."""
+        enemies = create_enemy_marshals()
+        uxbridge = enemies["Uxbridge"]
+        assert uxbridge.nation == "Britain", f"Uxbridge should be British, got {uxbridge.nation}"
+
+    def test_uxbridge_personality(self):
+        """Verify Uxbridge has aggressive personality."""
+        enemies = create_enemy_marshals()
+        uxbridge = enemies["Uxbridge"]
+        assert uxbridge.personality == "aggressive", f"Uxbridge should be aggressive, got {uxbridge.personality}"
+
+    def test_uxbridge_is_cavalry(self):
+        """Verify Uxbridge is cavalry (not infantry)."""
+        enemies = create_enemy_marshals()
+        uxbridge = enemies["Uxbridge"]
+        assert uxbridge.cavalry is True, "Uxbridge should be cavalry"
+        assert uxbridge.movement_range == 2, f"Cavalry should have movement_range=2, got {uxbridge.movement_range}"
+
+    def test_uxbridge_has_ability(self):
+        """Verify Uxbridge has the Pursuit Master ability defined."""
+        enemies = create_enemy_marshals()
+        uxbridge = enemies["Uxbridge"]
+
+        assert uxbridge.ability["name"] == "Pursuit Master"
+        assert uxbridge.ability["trigger"] == "when_enemy_retreats"
+        assert "TODO" in uxbridge.ability["effect"], "Should be marked as TODO"
+
+    def test_uxbridge_wellington_relationship(self):
+        """Verify Uxbridge and Wellington have bidirectional +1 relationship."""
+        enemies = create_enemy_marshals()
+        uxbridge = enemies["Uxbridge"]
+        wellington = enemies["Wellington"]
+
+        # Bidirectional relationship: both should be +1
+        uxbridge_to_wellington = uxbridge.get_relationship("Wellington")
+        wellington_to_uxbridge = wellington.get_relationship("Uxbridge")
+
+        assert uxbridge_to_wellington == 1, f"Uxbridge->Wellington should be +1, got {uxbridge_to_wellington}"
+        assert wellington_to_uxbridge == 1, f"Wellington->Uxbridge should be +1, got {wellington_to_uxbridge}"
+
+    def test_uxbridge_starts_with_wellington(self):
+        """Verify Uxbridge starts in the same location as Wellington."""
+        enemies = create_enemy_marshals()
+        uxbridge = enemies["Uxbridge"]
+        wellington = enemies["Wellington"]
+
+        assert uxbridge.location == wellington.location, \
+            f"Uxbridge ({uxbridge.location}) should start with Wellington ({wellington.location})"
+
+    def test_britain_has_two_marshals(self):
+        """Verify Britain now has two marshals: Wellington and Uxbridge."""
+        enemies = create_enemy_marshals()
+        british_marshals = [name for name, m in enemies.items() if m.nation == "Britain"]
+
+        assert len(british_marshals) == 2, f"Britain should have 2 marshals, got {len(british_marshals)}"
+        assert "Wellington" in british_marshals, "Wellington should be British"
+        assert "Uxbridge" in british_marshals, "Uxbridge should be British"
+
+    def test_uxbridge_smaller_than_wellington(self):
+        """Verify Uxbridge has a smaller cavalry corps than Wellington's infantry."""
+        enemies = create_enemy_marshals()
+        uxbridge = enemies["Uxbridge"]
+        wellington = enemies["Wellington"]
+
+        assert uxbridge.strength == 18000, f"Uxbridge should have 18000 strength, got {uxbridge.strength}"
+        assert uxbridge.strength < wellington.strength, \
+            f"Uxbridge ({uxbridge.strength}) should be smaller than Wellington ({wellington.strength})"
+
+    def test_uxbridge_inherits_recklessness(self):
+        """Verify Uxbridge (aggressive + cavalry) inherits the Recklessness system."""
+        enemies = create_enemy_marshals()
+        uxbridge = enemies["Uxbridge"]
+
+        # Recklessness field should exist and start at 0
+        assert hasattr(uxbridge, 'recklessness'), "Uxbridge should have recklessness field"
+        assert uxbridge.recklessness == 0, f"Recklessness should start at 0, got {uxbridge.recklessness}"
+
+        # is_reckless_cavalry should be True (aggressive + cavalry)
+        assert uxbridge.is_reckless_cavalry is True, \
+            "Uxbridge (aggressive + cavalry) should have is_reckless_cavalry=True"
+
+
 class TestAbilityIntegration:
     """Test that ability system integrates properly with combat."""
 

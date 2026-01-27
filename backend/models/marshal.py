@@ -11,6 +11,16 @@ Includes Stance System (Phase 2.7):
 - NEUTRAL: Balanced posture (default)
 - DEFENSIVE: -10% attack, +15% defense
 - AGGRESSIVE: +15% attack, -10% defense
+
+PHASE 5.2 STRATEGIC COMMANDS:
+This file will receive new fields for strategic order system.
+See docs/PHASE_5_2_IMPLEMENTATION_PLAN.md for full specification.
+
+Fields to add:
+- strategic_order: Optional[StrategicOrder] - Active strategic command
+- explicit_order_active: bool - LITERAL precision bonus tracking
+- precision_bonus_available: bool - +20% after strategic completion
+- in_strategic_mode: property - Check if strategic order is active
 """
 
 from enum import Enum
@@ -846,6 +856,32 @@ def create_enemy_marshals() -> dict[str, Marshal]:
             starting_trust=80,  # Wellington trusts his government
             spawn_location="Waterloo"  # TODO: Change to London (Britain capital) when map expanded
         ),
+        "Uxbridge": Marshal(
+            name="Uxbridge",
+            location="Waterloo",
+            strength=18000,  # Cavalry corps - smaller than infantry
+            personality="aggressive",
+            nation="Britain",
+            movement_range=2,  # Cavalry commander - can attack 2 regions away
+            tactical_skill=6,
+            skills={
+                "tactical": 6,      # Decent tactician
+                "shock": 9,         # Excellent cavalry charge
+                "defense": 3,       # Cavalry weak on defense
+                "logistics": 5,     # Average
+                "administration": 5,  # Average
+                "command": 7        # Inspirational cavalry leader
+            },
+            ability={
+                "name": "Pursuit Master",
+                "description": "Uxbridge's cavalry excels at running down broken enemies",
+                "trigger": "when_enemy_retreats",
+                "effect": "+50% casualties inflicted during pursuit (TODO: implement in combat.py)"
+            },
+            starting_trust=75,
+            cavalry=True,  # Cavalry commander - enables Recklessness system (aggressive + cavalry)
+            spawn_location="Waterloo"  # TODO: Change to London (Britain capital) when map expanded
+        ),
         "Blucher": Marshal(
             name="Blucher",
             location="Netherlands",
@@ -869,6 +905,30 @@ def create_enemy_marshals() -> dict[str, Marshal]:
             },
             starting_trust=70,  # Blucher trusts Prussia's king
             spawn_location="Netherlands"  # TODO: Change to Berlin (Prussia capital) when map expanded
+        ),
+        "Gneisenau": Marshal(
+            name="Gneisenau",
+            location="Netherlands",
+            strength=45000,
+            personality="cautious",
+            nation="Prussia",
+            tactical_skill=8,  # Brilliant strategist and planner
+            skills={
+                "tactical": 8,      # Brilliant planner
+                "shock": 4,         # Not an attacker
+                "defense": 7,       # Solid defender
+                "logistics": 9,     # Organizational genius
+                "administration": 8,  # Reformed Prussian army
+                "command": 7        # Respected leader
+            },
+            ability={
+                "name": "Staff Work",
+                "description": "Gneisenau's meticulous planning improves army coordination",
+                "trigger": "when_in_same_region_as_ally",
+                "effect": "+10% combat bonus to allies in same region (TODO: Phase 6)"
+            },
+            starting_trust=75,  # Gneisenau serves Prussia faithfully
+            spawn_location="Netherlands"  # TODO: Change to Berlin (Prussia capital) when map expanded
         )
     }
 
@@ -878,6 +938,26 @@ def create_enemy_marshals() -> dict[str, Marshal]:
     # Wellington-Blucher: Devoted allies (future-proofing for Coalition coordination)
     enemies["Wellington"].set_relationship("Blucher", 2)
     enemies["Blucher"].set_relationship("Wellington", 2)
+
+    # Gneisenau-Blucher: Chief of staff and commander (devoted)
+    enemies["Gneisenau"].set_relationship("Blucher", 2)
+    enemies["Blucher"].set_relationship("Gneisenau", 2)
+
+    # Gneisenau-Wellington: Allied commanders (friendly)
+    enemies["Gneisenau"].set_relationship("Wellington", 1)
+    enemies["Wellington"].set_relationship("Gneisenau", 1)
+
+    # Uxbridge-Wellington: Valued cavalry commander (friendly)
+    enemies["Uxbridge"].set_relationship("Wellington", 1)
+    enemies["Wellington"].set_relationship("Uxbridge", 1)
+
+    # Uxbridge-Blucher: Fellow aggressive commanders (friendly)
+    enemies["Uxbridge"].set_relationship("Blucher", 1)
+    enemies["Blucher"].set_relationship("Uxbridge", 1)
+
+    # Uxbridge-Gneisenau: Professional respect (neutral)
+    enemies["Uxbridge"].set_relationship("Gneisenau", 0)
+    enemies["Gneisenau"].set_relationship("Uxbridge", 0)
 
     return enemies
 

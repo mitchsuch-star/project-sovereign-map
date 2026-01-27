@@ -65,7 +65,7 @@ class CommandParser:
         ]
 
         # Known enemy marshals
-        self.known_enemies = ["Wellington", "Blucher"]
+        self.known_enemies = ["Wellington", "Uxbridge", "Blucher", "Gneisenau"]
 
         # Show actual mode from LLMClient (which reads from env if use_real_llm=None)
         mode = self.llm.provider_name.upper()
