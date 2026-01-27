@@ -14,7 +14,7 @@
 | Combat System | ✅ Complete | 0 |
 | State Management | ✅ Correct | 0 |
 
-**Overall Assessment:** System is production-ready for MVP. One bug in Enemy AI stance change cost tracking should be fixed before Early Access.
+**Overall Assessment:** System is production-ready. One bug in Enemy AI stance change cost tracking should be fixed before Early Access.
 
 ---
 
@@ -257,7 +257,7 @@ Combat modifiers are correctly centralized in marshal.py.
 
 ### Confidence Level
 
-**MVP:** Ready to ship
+**Current Build:** Ready to ship
 **Early Access:** Fix stance change bug first
 **Production:** All issues addressed
 

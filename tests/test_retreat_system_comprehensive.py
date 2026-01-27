@@ -154,7 +154,7 @@ class TestRetreatDestinationPriority:
         adjacent = list(belgium.adjacent_regions)
 
         # This is a simplified test - full encirclement needs more enemy marshals
-        # than we have in MVP
+        # than we have in the test map
         if len(adjacent) <= 2:
             # Place enemies in all adjacent
             wellington.location = adjacent[0] if len(adjacent) > 0 else wellington.location
@@ -272,7 +272,7 @@ class TestAllyCoveringSystem:
     def test_strongest_ally_covers(self):
         """When multiple allies available, strongest covers."""
         # Would need 3+ enemy marshals to test properly
-        # With MVP's 2 enemy marshals, test the selection logic
+        # With the test map's 2 enemy marshals, test the selection logic
         wellington = self.world.marshals["Wellington"]
         blucher = self.world.marshals["Blucher"]
 

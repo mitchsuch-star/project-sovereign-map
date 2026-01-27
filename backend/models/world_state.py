@@ -59,7 +59,7 @@ class WorldState:
         # ACTION ECONOMY SYSTEM - ALL VALUES ARE INTEGERS
         # ============================================================
 
-        # MVP Configuration (simple)
+        # Action Configuration
         self.max_actions_per_turn: int = 4
         self.actions_remaining: int = 4
 
@@ -67,7 +67,7 @@ class WorldState:
         # When a marshal is transferred to administrative role, player gains +1 action/turn
         self.bonus_actions: int = 0
 
-        # Future expansion hooks (not used in MVP)
+        # Future expansion hooks (not yet used)
         self._action_bonuses: Dict[str, int] = {}  # For leader/tech/morale bonuses
 
         # CRITICAL: All costs must be integers

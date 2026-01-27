@@ -300,7 +300,7 @@ def scenario_encirclement():
     belgium = world.get_region("Belgium")
     print(f"\nBelgium adjacent to: {belgium.adjacent_regions}")
 
-    # Put enemies in adjacent regions (we only have 2 enemies in MVP)
+    # Put enemies in adjacent regions (we only have 2 enemies in the test map)
     adjacent = list(belgium.adjacent_regions)
     if len(adjacent) >= 1:
         print(move_enemy(world, "Wellington", adjacent[0]))

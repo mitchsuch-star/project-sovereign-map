@@ -977,7 +977,7 @@ if world:
 
 ## Action Economy
 
-### Current Implementation (MVP)
+### Current Implementation
 - 4 actions per turn
 - Auto-advance when actions exhausted
 - Free actions: `status`, `help`, `end_turn`
@@ -1182,7 +1182,7 @@ class InputRouter:
         if self._needs_clarification(text, parsed):
             return self._handle_clarification(text, game_state)
         
-        # 6. LORE/ROLEPLAY (requires LLM, mock for MVP)
+        # 6. LORE/ROLEPLAY (requires LLM, mock fallback)
         if self._is_lore_or_roleplay(text):
             return self._handle_lore_roleplay(text, game_state)
         
@@ -1229,9 +1229,9 @@ AMBIGUOUS_COMMANDS = ["attack", "move", "reinforce", "scout"]
 {"type": "redirect", "message": "Sire, we are at war! Perhaps focus on the campaign?"}
 ```
 
-### MVP vs LLM-Enhanced Responses
+### Current vs LLM-Enhanced Responses
 
-| Category | MVP Response | LLM-Enhanced (EA) |
+| Category | Current Response | LLM-Enhanced (EA) |
 |----------|-------------|-------------------|
 | QUERY | Direct factual answer | Same |
 | ADVICE | Rule-based suggestions | LLM strategic analysis |
@@ -2912,7 +2912,7 @@ ANTHROPIC_API_KEY=sk-...  # Required only for real LLM mode
 
 ## Map System
 
-### Current State (MVP/Testing)
+### Current State (Testing)
 - 13 hardcoded regions in `region.py`
 - Programmatic circles + lines in `map.gd`
 - Simplified Western Europe
@@ -2947,7 +2947,7 @@ MAP_VISION = {
 - Validate gameplay loop
 - No art investment yet
 
-**Phase 2 (Post-MVP):** Enhanced testing map
+**Phase 2 (Pre-EA):** Enhanced testing map
 - Same 13 regions
 - Polygon2D real shapes
 - Dynamic colors on conquest
@@ -2976,7 +2976,7 @@ MAP_VISION = {
 
 **Recommended timing:**
 - **Now:** Keep testing with circles/programmatic
-- **After MVP ships:** Get player feedback
+- **After playtesting:** Get player feedback
 - **Pre-EA (2-4 weeks before):** Commission map art
 - **EA Launch:** Ship with real map
 
@@ -3029,7 +3029,7 @@ Cons: Doesn't look historical, more dev work
 ```python
 # backend/models/region.py - Data layer (doesn't care about visuals)
 
-# Current (MVP):
+# Current (13-region test map):
 REGIONS_DATA = {
     "Paris": {"adjacent": ["Belgium", "Lyon"], "income": 100},
     # ... 13 regions
@@ -3064,7 +3064,7 @@ func load_map_data(data_source: String):
 
 func create_region_visual(region_data: Dictionary) -> Node2D:
     """Create visual for a region. Override for different map styles."""
-    # MVP: Circle at position
+    # Current: Circle at position
     # Future: Polygon2D from vertex data
     pass
 
@@ -3348,7 +3348,7 @@ For detailed design decisions and architecture:
 - **`docs/PHASE_5_2_CHAIN_AUDIT.md`** - Complete chain verification (LLM → Backend → UI) with broken links and fixes
 - `PM_REVIEW_AND_ROADMAP.md` - Full assessment and phase plans
 - `LLM_INTEGRATION_ARCHITECTURE.md` - Technical LLM specs
-- `MVP_CREATION_LOG.md` - Development history and bug fixes
+- `CREATION_LOG.md` - Development history and bug fixes
 - `command-based-design.md` - Core gameplay vision
 
 ---

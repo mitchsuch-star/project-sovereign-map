@@ -1,6 +1,6 @@
 """
 Comprehensive Test: Enemy Persistence & Region Conquest
-Tests all critical gameplay mechanics for MVP
+Tests all critical gameplay mechanics
 """
 
 

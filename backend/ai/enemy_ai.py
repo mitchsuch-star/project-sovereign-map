@@ -2547,7 +2547,7 @@ class EnemyAI:
 
         TODO: Implement proper capital system. For now, hardcode known capitals.
         """
-        # Hardcoded capitals for MVP
+        # Hardcoded capitals for current test map
         capitals = {
             "France": "Paris",
             "Britain": "London",      # Not on current map

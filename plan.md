@@ -10,7 +10,7 @@
 
 ### ✅ Completed (Week 1 Days 1-2)
 
-**MVP Complete (Jan 15, 2025):**
+**Foundation Complete (Jan 15, 2025):**
 - Basic combat, movement, conquest
 - Action economy (4 actions/turn)
 - Command parsing (NL → structured)
@@ -253,7 +253,7 @@ WRONG:   LLM generates actions freely
 
 ## 📊 PROJECT METRICS
 
-**Target:** Early Access May 2026 (17 weeks from MVP)
+**Target:** Early Access May 2026
 
 **Phase Timeline:**
 - Phase 1: ✅ Complete (Foundation)
