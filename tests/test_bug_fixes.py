@@ -169,9 +169,12 @@ class TestActionConsumption:
         ney = world.get_marshal("Ney")
         ney.location = "Belgium"
 
-        # Move Blucher away from Netherlands so we can move there
+        # Move ALL enemy marshals away from Netherlands so we can move there
         blucher = world.get_marshal("Blucher")
         blucher.location = "Rhineland"
+        gneisenau = world.get_marshal("Gneisenau")
+        if gneisenau:
+            gneisenau.location = "Rhineland"
 
         # Record initial actions
         initial_actions = world.actions_remaining

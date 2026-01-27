@@ -1459,8 +1459,8 @@ class TestBugFix4_OscillationPrevention:
             if m.nation == "France":
                 m.location = "Paris"
 
-        # Simulate: Uxbridge STARTED at Waterloo (where Wellington is now)
-        self.ai._marshal_start_locations = {"Uxbridge": "Waterloo", "Wellington": "Waterloo"}
+        # Simulate: Uxbridge has visited Waterloo (where Wellington is now)
+        self.ai._marshal_visited_locations = {"Uxbridge": {"Waterloo", "Belgium"}, "Wellington": {"Waterloo"}}
 
         # Wellington should NOT move to Belgium to support Uxbridge
         # because Uxbridge started at Waterloo and moved away for a reason
@@ -1489,8 +1489,8 @@ class TestBugFix4_OscillationPrevention:
         ney = self.world.get_marshal("Ney")
         ney.location = "Brittany"  # Adjacent to Belgium
 
-        # Wellington started at Belgium
-        self.ai._marshal_start_locations = {"Wellington": "Belgium", "Uxbridge": "Belgium"}
+        # Wellington has visited Belgium (moved away from there)
+        self.ai._marshal_visited_locations = {"Wellington": {"Belgium", "Waterloo"}, "Uxbridge": {"Belgium"}}
 
         action = self.ai._find_ally_support_opportunity(wellington, "Britain", self.world)
 

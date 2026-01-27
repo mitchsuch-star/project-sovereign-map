@@ -466,10 +466,15 @@ class EnemyAI:
         # Clear pending intents at start of each nation's turn (safety)
         self._pending_intents = {}
 
-        # Bug #1 Fix: Track starting locations to prevent oscillation
-        # If marshal A starts at X and ally B starts at Y, we don't want:
-        # A moves to Y to "support" B, then B moves to X to "support" A
-        self._marshal_start_locations: Dict[str, str] = {}
+        # Bug Fix: Track ALL locations visited this turn per marshal (prevents oscillation)
+        # Using sets to track everywhere a marshal has been, not just start location
+        self._marshal_visited_locations: Dict[str, set] = {}
+
+        # Bug Fix: Track consecutive waits per marshal (prevents wait spam)
+        self._consecutive_waits: Dict[str, int] = {}
+
+        # Bug Fix: Track marshals who are "done" for this turn (waited twice, nothing else to do)
+        self._marshals_done_this_turn: set = set()
 
         # Get this nation's marshals
         marshals = world.get_marshals_by_nation(nation)
@@ -480,9 +485,9 @@ class EnemyAI:
             print(f"{'='*60}")
             return results
 
-        # Record starting locations for all marshals (Bug #1 oscillation fix)
+        # Record starting locations for all marshals (oscillation fix)
         for m in marshals:
-            self._marshal_start_locations[m.name] = m.location
+            self._marshal_visited_locations[m.name] = {m.location}
 
         # Sort marshals by priority for logging
         marshal_names = sorted(
@@ -567,6 +572,24 @@ class EnemyAI:
             if selected_action["action"] == "stance_change":
                 self._stance_changed_this_turn.add(selected_action["marshal"])
 
+            # Track locations visited after successful moves (oscillation fix)
+            if selected_action["action"] in ("move", "retreat") and result.get("success"):
+                marshal_name = selected_action["marshal"]
+                new_loc = world.get_marshal(marshal_name)
+                if new_loc:
+                    if marshal_name not in self._marshal_visited_locations:
+                        self._marshal_visited_locations[marshal_name] = set()
+                    self._marshal_visited_locations[marshal_name].add(new_loc.location)
+
+            # Track consecutive waits per marshal (wait spam fix)
+            if selected_action["action"] == "wait":
+                self._consecutive_waits[selected_marshal.name] = self._consecutive_waits.get(selected_marshal.name, 0) + 1
+                if self._consecutive_waits[selected_marshal.name] >= 2:
+                    self._marshals_done_this_turn.add(selected_marshal.name)
+                    print(f"    [DONE] {selected_marshal.name} waited twice - skipping for rest of turn")
+            else:
+                self._consecutive_waits[selected_marshal.name] = 0
+
             # Determine action cost
             is_free_action_type = not self._action_costs_point(selected_action["action"])
             is_free_action_result = result.get("free_action", False)
@@ -639,7 +662,14 @@ class EnemyAI:
         # Build list of (marshal, action, action_priority, marshal_priority, actions_used)
         candidates = []
 
+        # Get done marshals set (wait spam prevention)
+        done_marshals = getattr(self, '_marshals_done_this_turn', set())
+
         for marshal in marshals:
+            # Skip marshals who are done for this turn (waited twice)
+            if marshal.name in done_marshals:
+                continue
+
             action, action_priority = self._evaluate_marshal(marshal, nation, world)
             if action:
                 # Skip actions that have already failed this turn
@@ -776,6 +806,41 @@ class EnemyAI:
                         print(f"  [INTENT CANCELLED] {intent_target} now defended by {[d.name for d in defenders]}")
                 else:
                     print(f"  [INTENT CANCELLED] {intent_target} no longer valid target")
+
+        # ════════════════════════════════════════════════════════════
+        # PRIORITY -1: CAPTURE CURRENT REGION
+        # If standing on enemy territory with no enemy marshal present,
+        # capture it immediately! (e.g., Prussia starts at British Netherlands)
+        # ════════════════════════════════════════════════════════════
+        current_region = world.get_region(marshal.location)
+        if current_region and current_region.controller != nation and current_region.controller != "Neutral":
+            enemies_here = [
+                m for m in world.marshals.values()
+                if m.location == marshal.location
+                and m.nation != marshal.nation
+                and m.strength > 0
+            ]
+            if not enemies_here:
+                # Standing on undefended enemy territory - capture it!
+                # Must unfortify first if fortified
+                if getattr(marshal, 'fortified', False):
+                    ai_debug(f"  P-1: Standing on enemy territory {marshal.location} - unfortifying to capture")
+                    self._pending_intents[marshal.name] = {
+                        "intent": "capture",
+                        "target": marshal.location
+                    }
+                    return ({
+                        "marshal": marshal.name,
+                        "action": "unfortify"
+                    }, 0)
+                if not (getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False)):
+                    ai_debug(f"  P-1: Standing on enemy territory {marshal.location} - capturing!")
+                    print(f"  [CAPTURE CURRENT] {marshal.name} capturing {marshal.location} (standing on enemy territory)")
+                    return ({
+                        "marshal": marshal.name,
+                        "action": "attack",
+                        "target": marshal.location
+                    }, 0)
 
         # ════════════════════════════════════════════════════════════
         # CHECK: Already retreated this turn - limited options
@@ -1610,22 +1675,19 @@ class EnemyAI:
             ai_debug(f"    {ally.name} needs support: {support_reason}")
             print(f"    [ALLY SUPPORT] {ally.name} needs support: {support_reason}")
 
-            # Bug #1 Fix: Check for oscillation - don't move to where ally STARTED
-            # This prevents A moving to Y (where B started) while B moves to X (where A started)
-            ally_start_location = self._marshal_start_locations.get(ally.name)
-            if ally_start_location and ally_start_location == marshal.location:
-                # Ally started where we are now - they moved AWAY from here for a reason
-                # Don't chase them back
-                ai_debug(f"    [OSCILLATION BLOCKED] {ally.name} started at {marshal.location} - not chasing")
-                print(f"    [OSCILLATION BLOCKED] {marshal.name} won't follow {ally.name} - they retreated from here")
+            # Oscillation fix: don't move to a location we've already visited this turn
+            my_visited = getattr(self, '_marshal_visited_locations', {}).get(marshal.name, set())
+            if ally.location in my_visited:
+                ai_debug(f"    [OSCILLATION BLOCKED] Already visited {ally.location} this turn")
+                print(f"    [OSCILLATION BLOCKED] {marshal.name} won't return to {ally.location} - already visited this turn")
                 continue
 
-            # Bug #1 Fix: Also check if we'd be moving BACK to where WE started
-            my_start_location = self._marshal_start_locations.get(marshal.name)
-            if my_start_location and ally.location == my_start_location:
-                # We started at ally's location - we moved away for a reason
-                ai_debug(f"    [OSCILLATION BLOCKED] We started at {ally.location} - not going back")
-                print(f"    [OSCILLATION BLOCKED] {marshal.name} won't return to {ally.location} - moved away for a reason")
+            # If ally was at our current location and left, don't chase them
+            # (they left here for a reason - prevents A→B, B→A swap)
+            ally_visited = getattr(self, '_marshal_visited_locations', {}).get(ally.name, set())
+            if marshal.location in ally_visited:
+                ai_debug(f"    [OSCILLATION BLOCKED] {ally.name} was at {marshal.location} and left - not chasing")
+                print(f"    [OSCILLATION BLOCKED] {marshal.name} won't follow {ally.name} - they left {marshal.location}")
                 continue
 
             # Can we reach ally? Check if ally's location is adjacent to us
@@ -1662,6 +1724,9 @@ class EnemyAI:
             best_distance = world.get_distance(marshal.location, ally.location)
 
             for adj_name in marshal_region.adjacent_regions:
+                # Skip if already visited this turn (oscillation fix)
+                if adj_name in my_visited:
+                    continue
                 # Skip if enemies present (would need to attack, handled above)
                 enemies_there = [
                     m for m in world.marshals.values()
@@ -1803,6 +1868,9 @@ class EnemyAI:
         if not enemies:
             return None
 
+        # Get visited locations to prevent oscillation
+        visited = getattr(self, '_marshal_visited_locations', {}).get(marshal.name, set())
+
         if personality == "aggressive":
             # Move toward nearest enemy
             nearest = min(enemies, key=lambda e: world.get_distance(marshal.location, e.location))
@@ -1816,6 +1884,10 @@ class EnemyAI:
             best_distance = world.get_distance(marshal.location, nearest.location)
 
             for adj_name in marshal_region.adjacent_regions:
+                # Skip if already visited this turn (oscillation fix)
+                if adj_name in visited:
+                    ai_debug(f"    P7: Skipping {adj_name} - already visited this turn")
+                    continue
                 # Cannot MOVE into enemy-occupied region - must ATTACK
                 marshals_there = world.get_marshals_in_region(adj_name)
                 enemies_there = [m for m in marshals_there if m.nation != nation and m.strength > 0]
@@ -1853,6 +1925,9 @@ class EnemyAI:
                 best_score = -999
 
                 for adj_name in marshal_region.adjacent_regions:
+                    # Skip if already visited this turn (oscillation fix)
+                    if adj_name in visited:
+                        continue
                     adj_region = world.get_region(adj_name)
                     if not adj_region:
                         continue
@@ -2284,10 +2359,18 @@ class EnemyAI:
             return (False, f"Too risky: {adjacent_enemies} enemies adjacent, {friendly_support} friendly support")
 
         # Additional check for cautious: evaluate strength ratio even with tolerance met
+        # BUT: relax threshold if marshal has been fortified and idle too long
         if personality == "cautious" and adjacent_enemy_strength > 0:
-            # Cautious marshals also consider if they could handle a counter-attack
-            if adjacent_enemy_strength > marshal.strength * 1.5:
+            # Stale fortification relaxation: after N turns fortified, accept more risk
+            turns_fortified = getattr(marshal, 'turns_fortified', 0)
+            # Base threshold: 1.5x. Each turn fortified beyond 3 reduces by 0.15
+            stale_reduction = max(0, (turns_fortified - 3) * 0.15) if turns_fortified > 3 else 0
+            counter_attack_threshold = max(0.8, 1.5 - stale_reduction)  # Floor at 0.8
+
+            if adjacent_enemy_strength > marshal.strength * counter_attack_threshold:
                 return (False, f"Cautious: enemy counter-attack strength too high ({adjacent_enemy_strength} vs {marshal.strength})")
+            elif stale_reduction > 0:
+                ai_debug(f"    Stale fortification relaxation: threshold reduced to {counter_attack_threshold:.1f}x (fortified {turns_fortified} turns)")
 
         return (True, f"Safe: {effective_enemies} effective enemies (tolerance: {tolerance})")
 

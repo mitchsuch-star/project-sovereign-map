@@ -123,9 +123,12 @@ class TestMoveNoEnemyNormalRules:
         assert wellington.location == "Waterloo"
         assert ney.location == "Belgium"
 
-        # Move Blucher away from Netherlands so region is undefended
+        # Move ALL enemy marshals away from Netherlands so region is undefended
         blucher = world.get_marshal("Blucher")
         blucher.location = "Rhineland"
+        gneisenau = world.get_marshal("Gneisenau")
+        if gneisenau:
+            gneisenau.location = "Rhineland"
 
         # Belgium is adjacent to Netherlands (British territory, now undefended)
         # Should be allowed since no enemy marshal at destination
@@ -355,9 +358,12 @@ class TestEdgeCases:
         davout = world.get_marshal("Davout")
         davout.location = "Belgium"
 
-        # Move Blucher away from Netherlands so region is undefended
+        # Move ALL enemy marshals away from Netherlands so region is undefended
         blucher = world.get_marshal("Blucher")
         blucher.location = "Rhineland"
+        gneisenau = world.get_marshal("Gneisenau")
+        if gneisenau:
+            gneisenau.location = "Rhineland"
 
         # Ney should still be able to move to Netherlands (enemy territory, now undefended)
         # since Davout is friendly, not an enemy
