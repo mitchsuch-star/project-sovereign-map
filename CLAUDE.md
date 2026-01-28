@@ -42,10 +42,10 @@ GOLDEN RULES:
 5. Enemy AI uses SAME executor as player (Building Blocks principle)
 6. LLM never affects game mechanics: Parsing only, executor is deterministic
 
-CURRENT PHASE: Phase 2.5 (Autonomy) 🔄 → Phase 3 (Fun Factor) 📋 NEXT
+CURRENT PHASE: Phase 5.2 (Strategic Commands) 🔄 → Phase 3 (Fun Factor) 📋 NEXT
 - Phase 1 ✅: Foundation (regions, marshals, combat, actions, turns)
 - Phase 2 ✅: Combat & AI (disobedience, drill/fortify, Enemy AI, safety eval)
-- Phase 2.5 🔄: Autonomy (AI control, narrative outcomes, admin role)
+- Phase 2.5 ✅: Autonomy (AI control, narrative outcomes, admin role)
 - Phase 2.9 ✅: Retreat System (ally cover, smart destination, AI targeting)
 - Phase 4 ✅: LLM Integration (fast parser, Anthropic fallback, BYOK, validation)
 - Phase 3 📋: Fun Factor (hearing guns, vindication, anti-tedium, pressure)
@@ -879,7 +879,7 @@ If field is missing in JSON response, the bug is in main.py (step 2).
 - [x] Counter-Punch ability (Davout gets free attack after defending)
 - [x] Battle naming system ("Battle of [Region]")
 
-### Phase 2.5: Autonomy Foundation 🔄 CURRENT
+### Phase 2.5: Autonomy Foundation ✅ COMPLETE
 
 **Core Concept:** "Grant Autonomy" at redemption floor connects player marshals to Enemy AI decision tree.
 
@@ -959,17 +959,17 @@ User: "Grouchy, march to Belgium"
 - Strategic parser detects "reinforce" as SUPPORT keyword → strategic_type=SUPPORT
 - No separate routing, no teleporting — all support goes through strategic pipeline
 
-#### Known Issues (found during audit, not yet fixed)
+#### Audit Issues (all 7 fixed in commit 7e3fa12)
 
-| # | Severity | File | Issue |
-|---|----------|------|-------|
-| 1 | CRITICAL | strategic.py | Aggressive HOLD sally attacks enemy in adjacent region — executor validates target must be in same region, so attack fails silently |
-| 2 | CRITICAL | strategic.py | Marshal can move during retreat_recovery under strategic order (no recovery check) |
-| 3 | HIGH | validation.py | No validation of strategic_type values — LLM could hallucinate "TELEPORT" |
-| 4 | MEDIUM | strategic.py | SUPPORT handler doesn't use cautious personality pathfinding (avoid_regions) |
-| 5 | MEDIUM | strategic.py | MOVE_TO first turn doesn't use personality-aware pathfinding (only recalc does) |
-| 6 | MEDIUM | marshal.py | StrategicOrder.from_dict() missing attack_on_arrival, follow_if_moves, join_combat fields |
-| 7 | LOW | strategic.py | until_battle_won condition never triggers on stalemate for SUPPORT |
+| # | Status | Fix Summary |
+|---|--------|-------------|
+| 1 | ✅ FIXED | Sally now does move→attack→return (3 executor calls) |
+| 2 | ✅ FIXED | Retreat recovery check at top of `_execute_strategic_turn()` |
+| 3 | ✅ FIXED | `VALID_STRATEGIC_TYPES` validation in validation.py, falls back to tactical |
+| 4 | ✅ FIXED | Shared `_get_personality_aware_path()` used by SUPPORT, MOVE_TO, PURSUE |
+| 5 | ✅ FIXED | Personality-aware pathfinding in executor.py initial path + strategic.py recalc |
+| 6 | ✅ VERIFIED | `to_dict()`/`from_dict()` already included all fields (false positive) |
+| 7 | ✅ FIXED | `until_battle_won` triggers on both victory AND stalemate |
 
 #### What's Next: Phase D (Interrupt Responses)
 
