@@ -2061,6 +2061,11 @@ RETREAT RECOVERY (3 turns):
             else:
                 target_type = "marshal"
 
+        # ── HOLD: default target to current location (Bug #7) ─────────
+        if strategic_type == "HOLD" and (not target or target == "generic"):
+            target = marshal.location
+            target_type = "region"
+
         # ── Build path for movement orders ────────────────────────────
         path = []
         if strategic_type in ("MOVE_TO", "PURSUE", "SUPPORT", "HOLD"):
@@ -4808,7 +4813,7 @@ RETREAT RECOVERY (3 turns):
         }
 
     def _execute_reinforce(self, command: Dict, game_state: Dict) -> Dict:
-        """Reinforce another marshal by moving to their location."""
+        """Reinforce = strategic SUPPORT. Routes to _execute_strategic_command."""
         marshal_name = command.get("marshal")
         target_name = command.get("target")
 
@@ -4829,9 +4834,7 @@ RETREAT RECOVERY (3 turns):
         if error:
             return error
 
-        distance = world.get_distance(marshal.location, target_marshal.location)
-
-        if distance == 0:
+        if marshal.location == target_marshal.location:
             return {
                 "success": True,
                 "message": f"{marshal.name} is already with {target_marshal.name} at {marshal.location}",
@@ -4844,22 +4847,17 @@ RETREAT RECOVERY (3 turns):
                 "new_state": game_state
             }
 
-        old_location = marshal.location
-        marshal.move_to(target_marshal.location)
-
-        return {
-            "success": True,
-            "message": f"{marshal.name} moves to reinforce {target_marshal.name} at {target_marshal.location} ({distance} regions)",
-            "events": [{
-                "type": "reinforce",
-                "marshal": marshal.name,
-                "target": target_marshal.name,
-                "from_location": old_location,
-                "to_location": target_marshal.location,
-                "distance": distance
-            }],
-            "new_state": game_state
+        # Route to strategic SUPPORT
+        strategic_command = {
+            "command": command.get("command", {}),
+            "marshal": marshal.name,
+            "action": "reinforce",
+            "target": target_marshal.name,
+            "is_strategic": True,
+            "strategic_type": "SUPPORT",
+            "target_type": "marshal",
         }
+        return self._execute_strategic_command(strategic_command, command.get("command", command), game_state)
 
     # ========================================
     # DISOBEDIENCE SYSTEM (Phase 2)
