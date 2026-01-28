@@ -49,7 +49,7 @@ CURRENT PHASE: Phase 5.2 (Strategic Commands) 🔄 → Phase 3 (Fun Factor) 📋
 - Phase 2.9 ✅: Retreat System (ally cover, smart destination, AI targeting)
 - Phase 4 ✅: LLM Integration (fast parser, Anthropic fallback, BYOK, validation)
 - Phase 3 📋: Fun Factor (hearing guns, vindication, anti-tedium, pressure)
-- Phase 5.2 🔄: Strategic Commands (MOVE_TO, PURSUE, HOLD, SUPPORT) - Phase A-C ✅, Phase D (interrupts) next
+- Phase 5.2 🔄: Strategic Commands (MOVE_TO, PURSUE, HOLD, SUPPORT) - Phase A-E ✅, Phase H-K remaining
 - Not implemented: diplomacy, supply lines (see Phase 5-6)
 ```
 
@@ -971,27 +971,46 @@ User: "Grouchy, march to Belgium"
 | 6 | ✅ VERIFIED | `to_dict()`/`from_dict()` already included all fields (false positive) |
 | 7 | ✅ FIXED | `until_battle_won` triggers on both victory AND stalemate |
 
-#### What's Next: Phase D (Interrupt Responses)
+#### What's Next: Phase H-K
 
-**Interrupt types to implement:**
-- CONTACT: Enemy blocking next region on path
-- ADJACENT: Enemy in neighboring region (not blocking)
-- CANNON_FIRE: Battle within 2 regions (uses battles_this_turn)
-- ALLY_COMBAT: Supported ally enters combat
-- CONDITION_MET: Strategic condition satisfied
+**Remaining phases:**
+- Phase H: Literal bonuses (ambiguity system done, precision execution bonuses remain)
+- Phase I: Save/Load (StrategicOrder serialization for game saves)
+- Phase J: UI Updates (Godot strategic status display, interrupt dialogs)
+- Phase K: Integration testing (full end-to-end strategic command flow)
 
-**Key personality rule:** LITERAL personality NEVER gets cannon fire interrupts ("The Grouchy Moment")
+#### Phase D (Interrupt Response Handling) ✅ COMPLETE
+- `handle_response()` in strategic.py — processes player choices for interrupts
+- Interrupt types: `cannon_fire`, `contact`, `contact_bad_odds`, `ally_moving`
+- `pending_interrupt` field on Marshal — persists interrupt state
+- Response options: attack, go_around, hold_position, cancel_order, investigate, continue_order
+- Trust penalties: continue_order=-2, hold_position=-3 (mid-march), cancel_order=-3 (mid-march)
 
-**Files to create/modify:**
-- `backend/commands/strategic.py` — Add `_check_interrupts()`, `_handle_interrupt()`
-- `backend/commands/executor.py` — Add `/respond_to_interrupt` handler
-- `backend/main.py` — Add API endpoint for interrupt responses
-- `godot-client/` — interrupt_dialog.tscn/gd UI scene
-
-#### Phase E (Explicit Cancel)
+#### Phase E (Cancel Command) ✅ COMPLETE
 - Keywords: "cancel", "halt", "stand down", "stop", "abort", "belay that"
-- Cost: 1 action, -3 trust
-- Implementation: `_check_strategic_override()` in executor.py
+- Cost: 1 action
+- Trust: -3 (mid-march) or 0 (first-step cancel)
+- Implementation: `_execute_cancel()` in executor.py
+- Flavorful messages by order type:
+  - MOVE_TO: "halts his march and awaits new orders"
+  - PURSUE: "breaks off the pursuit"
+  - HOLD: "abandons the position"
+  - SUPPORT: "breaks off from supporting [ally]"
+
+#### First-Step Blocked Path (Option B) ✅ COMPLETE
+When strategic command is issued and first step is blocked:
+- **AGGRESSIVE**: Auto-attacks if odds ≥ 0.7; else asks player
+- **CAUTIOUS**: Always asks player
+- **LITERAL**: Silently reroutes around ALL enemy regions
+- First-step interrupt costs 1 AP (via `variable_action_cost`)
+- First-step cancel has 0 trust penalty (`is_first_step` flag in pending_interrupt)
+- Implementation: `_handle_first_step_blocked()` in executor.py
+
+#### Cavalry First-Step Movement ✅ COMPLETE
+- Cavalry (movement_range=2) now moves UP TO movement_range regions on first step
+- Formula: `steps = min(movement_range, len(path))`
+- Message: "Cavalry charges through Belgium -> Rhine" for multi-region moves
+- Applies to MOVE_TO, PURSUE, HOLD, SUPPORT first-step execution
 
 #### Implementation Order
 - [x] Phase A: Data Structures ✅
@@ -1001,8 +1020,8 @@ User: "Grouchy, march to Belgium"
 - [x] Phase F: Turn manager integration ✅ (included in Phase C)
 - [x] Phase G: Clarification system ✅ (included in Phase C)
 - [x] Phase L: LLM Strategic Integration ✅ (65 tests)
-- [ ] Phase D: Interrupt response handling ← NEXT
-- [ ] Phase E: Explicit cancel command
+- [x] Phase D: Interrupt response handling ✅ (14 tests)
+- [x] Phase E: Cancel command ✅ (14 tests + 7 first-step tests)
 - [ ] Phase H: Literal bonuses (partially done — ambiguity system complete)
 - [ ] Phase I: Save/Load (StrategicOrder serialization)
 - [ ] Phase J: UI Updates (Godot strategic status display)
