@@ -77,6 +77,17 @@ class StrategicExecutor:
         if not order:
             return None
 
+        # 0. Block execution during retreat recovery
+        recovery = getattr(marshal, 'retreat_recovery', 0)
+        if recovery > 0:
+            return {
+                "marshal": marshal.name,
+                "command": order.command_type,
+                "order_status": "paused",
+                "message": f"{marshal.name} is recovering from retreat "
+                           f"({recovery} turn(s) remaining). Order paused."
+            }
+
         # 1. Check conditions first (until_arrives, until_relieved, etc.)
         if order.condition:
             met, reason = self._check_condition(marshal, order.condition, world)
@@ -137,16 +148,9 @@ class StrategicExecutor:
                 order.path.pop(0)
 
             if not order.path:
-                if personality == "cautious":
-                    enemy_regions = self._get_enemy_occupied_regions(marshal.nation, world)
-                    path = world.find_path(marshal.location, destination,
-                                           avoid_regions=enemy_regions)
-                else:
-                    path = world.find_path(marshal.location, destination)
-
-                if path:
-                    # find_path returns start-inclusive, strip start
-                    order.path = [r for r in path if r != marshal.location]
+                new_path = self._get_personality_aware_path(marshal, destination, world)
+                if new_path:
+                    order.path = new_path
                 else:
                     return self._break_order(marshal, world,
                                              f"No path to {destination}")
@@ -309,13 +313,10 @@ class StrategicExecutor:
             return self._handle_combat_result(marshal, target, result, world, game_state)
 
         # Not same region — move toward target (RECALCULATE each turn)
-        path = world.find_path(marshal.location, target.location)
+        path = self._get_personality_aware_path(marshal, target.location, world)
         if not path:
             return self._break_order(marshal, world,
                                      f"Cannot reach {order.target}")
-
-        # Strip start location
-        path = [r for r in path if r != marshal.location]
 
         # Move up to movement_range
         regions_to_move = getattr(marshal, 'movement_range', 1)
@@ -505,28 +506,50 @@ class StrategicExecutor:
                         ratio = marshal.strength / max(1, enemy.strength)
 
                         if ratio >= 1.0:  # Favorable odds
-                            # SALLY: Attack but return to hold position
-                            result = self.executor.execute(
+                            # SALLY: Move to enemy region, attack, return
+                            # Step 1: Move to the adjacent region
+                            move_result = self.executor.execute(
                                 {"command": {
                                     "marshal": marshal.name,
-                                    "action": "attack",
-                                    "target": enemy.name,
-                                    "_strategic_execution": True,
-                                    "_sortie": True  # Don't advance on victory
+                                    "action": "move",
+                                    "target": adj_name,
+                                    "_strategic_execution": True
                                 }},
                                 game_state
                             )
 
-                            # Safety: ensure return to hold position
+                            combat_result = None
+                            if move_result.get("success"):
+                                # Step 2: Attack the enemy (now same region)
+                                combat_result = self.executor.execute(
+                                    {"command": {
+                                        "marshal": marshal.name,
+                                        "action": "attack",
+                                        "target": enemy.name,
+                                        "_strategic_execution": True,
+                                        "_sortie": True
+                                    }},
+                                    game_state
+                                )
+
+                            # Step 3: Return to hold position
                             if marshal.location != hold_position:
-                                marshal.move_to(hold_position)
+                                self.executor.execute(
+                                    {"command": {
+                                        "marshal": marshal.name,
+                                        "action": "move",
+                                        "target": hold_position,
+                                        "_strategic_execution": True
+                                    }},
+                                    game_state
+                                )
 
                             return {
                                 "marshal": marshal.name,
                                 "command": "HOLD",
                                 "action": "sally",
                                 "target": enemy.name,
-                                "combat_result": result,
+                                "combat_result": combat_result,
                                 "returned_to": hold_position,
                                 "order_status": "continues",
                                 "message": f"{marshal.name} sallies forth to attack "
@@ -617,12 +640,10 @@ class StrategicExecutor:
                 }
 
         # Move toward ally
-        path = world.find_path(marshal.location, ally.location)
+        path = self._get_personality_aware_path(marshal, ally.location, world)
         if not path:
             return self._break_order(marshal, world,
                                      f"Cannot reach {ally.name}")
-
-        path = [r for r in path if r != marshal.location]
 
         regions_to_move = getattr(marshal, 'movement_range', 1)
         moves_made = []
@@ -798,13 +819,19 @@ class StrategicExecutor:
                 return (True, f"Relieved by {allies[0].name}")
 
         if condition.until_battle_won:
-            if getattr(marshal, 'last_combat_result', None) == "victory":
-                return (True, "Victory achieved!")
+            battle_ending_results = ("victory", "stalemate")
+            combat_result = getattr(marshal, 'last_combat_result', None)
+            if combat_result in battle_ending_results:
+                label = "Victory achieved!" if combat_result == "victory" else "Battle concluded (stalemate)."
+                return (True, label)
             # For SUPPORT, also check ally's combat
             if order.command_type == "SUPPORT":
                 ally = world.get_marshal(order.target)
-                if ally and getattr(ally, 'last_combat_result', None) == "victory":
-                    return (True, f"{ally.name} won the battle!")
+                if ally:
+                    ally_result = getattr(ally, 'last_combat_result', None)
+                    if ally_result in battle_ending_results:
+                        label = f"{ally.name} won the battle!" if ally_result == "victory" else f"Battle at {ally.location} concluded."
+                        return (True, label)
 
         return (False, "")
 
@@ -1015,3 +1042,31 @@ class StrategicExecutor:
             if world.get_enemies_in_region(region_name, nation):
                 enemy_regions.append(region_name)
         return enemy_regions
+
+    def _get_personality_aware_path(self, marshal, destination, world) -> Optional[List[str]]:
+        """
+        Shared pathfinding helper — personality determines route strategy.
+
+        - Cautious: Avoids enemy-occupied regions
+        - Literal: Direct path (blocked path handled by _handle_blocked_path reroute)
+        - Aggressive: Direct path (will fight through blockages)
+
+        Returns path excluding start location, or None if no path exists.
+        """
+        personality = getattr(marshal, 'personality', 'balanced')
+
+        if personality == "cautious":
+            enemy_regions = self._get_enemy_occupied_regions(marshal.nation, world)
+            path = world.find_path(marshal.location, destination,
+                                   avoid_regions=enemy_regions)
+            # Fallback to direct path if safe path doesn't exist
+            if not path:
+                path = world.find_path(marshal.location, destination)
+        else:
+            path = world.find_path(marshal.location, destination)
+
+        if not path:
+            return None
+
+        # Strip start location (find_path returns start-inclusive)
+        return [r for r in path if r != marshal.location]

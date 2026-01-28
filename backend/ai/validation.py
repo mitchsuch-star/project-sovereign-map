@@ -113,8 +113,15 @@ def validate_parse_result(
         result.suggestion = "Multi-marshal commands coming in a future update!"
         return result
 
-    # Phase 5.2: Strategic commands now supported — pass through for executor handling
-    # Note: command_type="strategic", condition, and standing_order are all valid now
+    # Phase 5.2: Validate strategic command type if present
+    VALID_STRATEGIC_TYPES = {"MOVE_TO", "PURSUE", "HOLD", "SUPPORT"}
+    if getattr(result, 'is_strategic', False) or getattr(result, 'command_type', '') == "strategic":
+        st = getattr(result, 'strategic_type', None)
+        if st and st not in VALID_STRATEGIC_TYPES:
+            # Invalid strategic type — fall through to tactical
+            result.is_strategic = False
+            result.strategic_type = None
+            print(f"[VALIDATION] Invalid strategic_type '{st}', falling back to tactical")
 
     # Validate action is known
     if result.action and result.action not in VALID_ACTIONS:

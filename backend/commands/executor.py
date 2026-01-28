@@ -2080,7 +2080,20 @@ RETREAT RECOVERY (3 turns):
                 dest = target
 
             if dest and dest != marshal.location:
-                path = world.find_path(marshal.location, dest)
+                # Personality-aware pathfinding (cautious avoids enemies)
+                personality = getattr(marshal, 'personality', 'balanced')
+                if personality == "cautious":
+                    enemy_regions = [
+                        rn for rn in world.regions
+                        if world.get_enemies_in_region(rn, marshal.nation)
+                    ]
+                    path = world.find_path(marshal.location, dest,
+                                           avoid_regions=enemy_regions)
+                    if not path:
+                        # Fallback to direct path
+                        path = world.find_path(marshal.location, dest)
+                else:
+                    path = world.find_path(marshal.location, dest)
                 if not path:
                     return {
                         "success": False,
