@@ -1059,8 +1059,11 @@ class StrategicExecutor:
             enemy_regions = self._get_enemy_occupied_regions(marshal.nation, world)
             path = world.find_path(marshal.location, destination,
                                    avoid_regions=enemy_regions)
-            # Fallback to direct path if safe path doesn't exist
             if not path:
+                # No safe route exists — use direct path.
+                # The movement loop will hit _handle_blocked_path() when the
+                # cautious marshal encounters the enemy region, which asks the
+                # player for a decision before proceeding.
                 path = world.find_path(marshal.location, destination)
         else:
             path = world.find_path(marshal.location, destination)
