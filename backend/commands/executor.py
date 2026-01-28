@@ -855,12 +855,34 @@ RETREAT RECOVERY (3 turns):
                         "game_state": world.get_game_state_summary()
                     }
 
+        # ════════════════════════════════════════════════════════════
+        # STRATEGIC COMMAND INTERCEPTION (Phase 5.2)
+        # If parser detected a strategic command, create StrategicOrder
+        # on the marshal and execute first step immediately.
+        # ════════════════════════════════════════════════════════════
+        if (not is_strategic_execution and
+                parsed_command.get("is_strategic") and
+                parsed_command.get("strategic_type")):
+            strategic_result = self._execute_strategic_command(parsed_command, command, game_state)
+            if strategic_result is not None:
+                # Strategic command handled — set result and flow to action economy
+                result = strategic_result
+                # Jump past normal routing to action economy
+                # (Python doesn't have goto, so we use a flag)
+                _skip_routing = True
+            else:
+                _skip_routing = False
+        else:
+            _skip_routing = False
+
         # ============================================================
         # Continue with normal command routing
         # ============================================================
 
+        if _skip_routing:
+            pass  # Already have result from strategic handler
         # Handle special actions first
-        if action == "help":
+        elif action == "help":
             result = self._execute_help(command, game_state)
         elif action == "reinforce":
             result = self._execute_reinforce(command, game_state)
@@ -1954,6 +1976,274 @@ RETREAT RECOVERY (3 turns):
                 "action_cost": 0
             }],
             "new_state": game_state
+        }
+
+    # ════════════════════════════════════════════════════════════════════════
+    # STRATEGIC COMMAND HANDLER (Phase 5.2)
+    # Creates StrategicOrder on marshal & executes first step immediately.
+    # ════════════════════════════════════════════════════════════════════════
+
+    def _execute_strategic_command(self, parsed_command: Dict, command: Dict, game_state: Dict) -> Optional[Dict]:
+        """
+        Handle a strategic command: create StrategicOrder and execute first step.
+
+        Returns result dict if handled, None to fall through to tactical routing.
+        """
+        from backend.ai.strategic_parser import detect_strategic_command
+        from backend.models.marshal import StrategicOrder, StrategicCondition
+
+        world: WorldState = game_state.get("world")
+        if not world:
+            return None
+
+        marshal_name = command.get("marshal")
+        if not marshal_name:
+            return None
+
+        marshal = world.get_marshal(marshal_name)
+        if not marshal:
+            return None
+
+        strategic_type = parsed_command.get("strategic_type")
+        target = command.get("target")
+        target_type = command.get("target_type", "region")
+        snapshot = parsed_command.get("target_snapshot_location")
+
+        print(f"[STRATEGIC] Creating {strategic_type} order for {marshal.name} -> {target}")
+
+        # ── Validate target ───────────────────────────────────────────
+        # SUPPORT must target a friendly marshal, not a region
+        if strategic_type == "SUPPORT":
+            ally = world.get_marshal(target)
+            if not ally:
+                # Check if it's a region name (Bug #4)
+                region = world.get_region(target) if target else None
+                if region:
+                    return {
+                        "success": False,
+                        "message": f"{target} is a region, not a marshal. SUPPORT targets a friendly marshal.",
+                        "suggestion": f"Try: '{marshal.name}, support Davout' or '{marshal.name}, reinforce {target}'"
+                    }
+                return {
+                    "success": False,
+                    "message": f"Cannot find marshal '{target}' to support.",
+                    "suggestion": "Available French marshals: " + ", ".join(
+                        m.name for m in world.marshals.values()
+                        if m.nation == marshal.nation and m.name != marshal.name
+                    )
+                }
+            if ally.nation != marshal.nation:
+                return {
+                    "success": False,
+                    "message": f"{target} is an enemy! Use PURSUE instead.",
+                    "suggestion": f"Try: '{marshal.name}, pursue {target}'"
+                }
+            target_type = "marshal"
+
+        # PURSUE must target an enemy marshal
+        if strategic_type == "PURSUE":
+            enemy = world.get_marshal(target)
+            if not enemy:
+                # Generic target like "the enemy" — let it through, executor will interpret
+                if target and target.lower() not in ("generic", "the enemy", "enemy"):
+                    # Check if it's a region
+                    region = world.get_region(target) if target else None
+                    if region:
+                        # PURSUE a region doesn't make sense — convert to MOVE_TO
+                        print(f"[STRATEGIC] PURSUE region '{target}' -> converting to MOVE_TO")
+                        strategic_type = "MOVE_TO"
+                        target_type = "region"
+                    else:
+                        return {
+                            "success": False,
+                            "message": f"Cannot find '{target}' to pursue.",
+                        }
+            else:
+                target_type = "marshal"
+
+        # ── Build path for movement orders ────────────────────────────
+        path = []
+        if strategic_type in ("MOVE_TO", "PURSUE", "SUPPORT", "HOLD"):
+            dest = None
+            if strategic_type == "MOVE_TO":
+                dest = target
+            elif strategic_type == "PURSUE":
+                enemy = world.get_marshal(target)
+                dest = enemy.location if enemy else None
+            elif strategic_type == "SUPPORT":
+                ally = world.get_marshal(target)
+                dest = ally.location if ally else None
+            elif strategic_type == "HOLD":
+                dest = target
+
+            if dest and dest != marshal.location:
+                path = world.find_path(marshal.location, dest)
+                if not path:
+                    return {
+                        "success": False,
+                        "message": f"No path from {marshal.location} to {dest}.",
+                    }
+                # Strip start location
+                path = [r for r in path if r != marshal.location]
+
+        # ── Build condition ───────────────────────────────────────────
+        condition = None
+        cond_dict = parsed_command.get("strategic_condition")
+        if cond_dict and isinstance(cond_dict, dict):
+            condition = StrategicCondition(
+                max_turns=cond_dict.get("max_turns"),
+                until_marshal_arrives=cond_dict.get("until_marshal_arrives"),
+                until_marshal_destroyed=cond_dict.get("until_marshal_destroyed"),
+                until_relieved=cond_dict.get("until_relieved", False),
+                until_battle_won=cond_dict.get("until_battle_won", False),
+            )
+
+        # ── Create StrategicOrder ─────────────────────────────────────
+        order = StrategicOrder(
+            command_type=strategic_type,
+            target=target or "generic",
+            target_type=target_type,
+            started_turn=world.current_turn,
+            original_command=parsed_command.get("raw_input", ""),
+            path=path,
+            condition=condition,
+            target_snapshot_location=snapshot,
+            attack_on_arrival=parsed_command.get("attack_on_arrival", False),
+        )
+
+        # Cancel any existing strategic order
+        if marshal.strategic_order:
+            print(f"[STRATEGIC] {marshal.name}'s previous order cancelled by new order")
+        marshal.strategic_order = order
+
+        print(f"[STRATEGIC] Order created: {strategic_type} -> {target}, path={path}")
+
+        # ── Execute first step immediately ────────────────────────────
+        first_step_msg = ""
+        if strategic_type == "MOVE_TO" and path:
+            next_region = path[0]
+            enemies = world.get_enemies_in_region(next_region, marshal.nation)
+            if not enemies:
+                move_result = self.execute(
+                    {"command": {
+                        "marshal": marshal.name,
+                        "action": "move",
+                        "target": next_region,
+                        "_strategic_execution": True
+                    }},
+                    game_state
+                )
+                if move_result.get("success"):
+                    order.path.pop(0)
+                    first_step_msg = f" Moves to {next_region}."
+            else:
+                first_step_msg = f" Path blocked by {enemies[0].name} at {next_region}."
+
+        elif strategic_type == "HOLD":
+            # If already at target, set holding immediately
+            if marshal.location == (target or marshal.location):
+                if marshal.personality == "literal":
+                    marshal.holding_position = True
+                    marshal.hold_region = marshal.location
+                    first_step_msg = f" [Immovable: +15% defense]"
+                else:
+                    first_step_msg = f" Holding position."
+            elif path:
+                next_region = path[0]
+                enemies = world.get_enemies_in_region(next_region, marshal.nation)
+                if not enemies:
+                    move_result = self.execute(
+                        {"command": {
+                            "marshal": marshal.name,
+                            "action": "move",
+                            "target": next_region,
+                            "_strategic_execution": True
+                        }},
+                        game_state
+                    )
+                    if move_result.get("success"):
+                        order.path.pop(0)
+                        first_step_msg = f" Marching to {target}."
+
+        elif strategic_type == "PURSUE" and path:
+            next_region = path[0]
+            enemies_blocking = world.get_enemies_in_region(next_region, marshal.nation)
+            # Allow moving into target's region (that's the point of PURSUE)
+            blocking = [e for e in enemies_blocking if e.name != target]
+            if not blocking:
+                move_result = self.execute(
+                    {"command": {
+                        "marshal": marshal.name,
+                        "action": "move",
+                        "target": next_region,
+                        "_strategic_execution": True
+                    }},
+                    game_state
+                )
+                if move_result.get("success"):
+                    order.path = []  # PURSUE recalculates each turn
+                    first_step_msg = f" Moves to {next_region}."
+                    # Check if caught up
+                    enemy_m = world.get_marshal(target)
+                    if enemy_m and marshal.location == enemy_m.location:
+                        first_step_msg += f" {target} found here!"
+
+        elif strategic_type == "SUPPORT" and path:
+            next_region = path[0]
+            enemies = world.get_enemies_in_region(next_region, marshal.nation)
+            if not enemies:
+                move_result = self.execute(
+                    {"command": {
+                        "marshal": marshal.name,
+                        "action": "move",
+                        "target": next_region,
+                        "_strategic_execution": True
+                    }},
+                    game_state
+                )
+                if move_result.get("success"):
+                    order.path.pop(0)
+                    first_step_msg = f" Moves to {next_region}."
+
+        # ── Build response ────────────────────────────────────────────
+        remaining = len(order.path) if order.path else 0
+        route_str = " -> ".join([marshal.location] + (order.path or []))
+
+        if strategic_type == "MOVE_TO":
+            msg = f"{marshal.name} begins march to {target}. Route: {route_str}.{first_step_msg}"
+        elif strategic_type == "PURSUE":
+            enemy_m = world.get_marshal(target)
+            loc = enemy_m.location if enemy_m else "unknown"
+            msg = f"{marshal.name} pursues {target} (at {loc}).{first_step_msg}"
+        elif strategic_type == "HOLD":
+            hold_loc = target or marshal.location
+            msg = f"{marshal.name} will hold {hold_loc}.{first_step_msg}"
+        elif strategic_type == "SUPPORT":
+            ally_m = world.get_marshal(target)
+            loc = ally_m.location if ally_m else "unknown"
+            msg = f"{marshal.name} moves to support {target} (at {loc}).{first_step_msg}"
+        else:
+            msg = f"{marshal.name} received strategic order: {strategic_type}.{first_step_msg}"
+
+        cond_str = ""
+        if condition:
+            if condition.max_turns:
+                cond_str = f" (for {condition.max_turns} turns)"
+            elif condition.until_marshal_arrives:
+                cond_str = f" (until {condition.until_marshal_arrives} arrives)"
+            elif condition.until_relieved:
+                cond_str = " (until relieved)"
+            elif condition.until_marshal_destroyed:
+                cond_str = f" (until {condition.until_marshal_destroyed} destroyed)"
+
+        return {
+            "success": True,
+            "message": msg + cond_str,
+            "strategic_order": True,
+            "strategic_type": strategic_type,
+            "target": target,
+            "path": order.path,
+            "remaining_regions": remaining,
         }
 
     def _execute_move(self, marshal, target, world: WorldState, game_state) -> Dict:

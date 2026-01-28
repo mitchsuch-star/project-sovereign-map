@@ -32,7 +32,11 @@ except ImportError:
 STRATEGIC_KEYWORDS = {
     "MOVE_TO": [
         # Multi-word phrases first (longer = checked first)
-        "make your way to", "advance toward", "march toward", "push toward",
+        # "towards" variants BEFORE "toward" (longer match first)
+        "make your way to", "advance towards", "march towards", "push towards",
+        "campaign towards", "sweep towards", "press towards", "drive towards",
+        "head towards", "move towards",
+        "advance toward", "march toward", "push toward",
         "campaign toward", "sweep toward", "press toward", "drive toward",
         "head toward", "press on to",
         "march to", "advance to", "proceed to", "head to",

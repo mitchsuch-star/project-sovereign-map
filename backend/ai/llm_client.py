@@ -428,8 +428,9 @@ class LLMClient:
             action = "retreat"
         # Strategic MOVE_TO keywords → base action "move" (strategic parser upgrades)
         elif any(kw in command_lower for kw in [
-            "move", "march", "advance toward", "advance to",
-            "head toward", "head to", "proceed to", "push toward", "push to",
+            "move", "march", "advance towards", "advance toward", "advance to",
+            "head towards", "head toward", "head to", "proceed to",
+            "push towards", "push toward", "push to",
             "make for", "travel to", "campaign to", "campaign toward",
             "sweep toward", "press toward", "drive toward",
             "journey to", "relocate to", "deploy to",
