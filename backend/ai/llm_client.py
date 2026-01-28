@@ -403,17 +403,37 @@ class LLMClient:
             action = "help"
         elif "end turn" in command_lower or "end_turn" in command_lower or "next turn" in command_lower:
             action = "end_turn"
-        elif "attack" in command_lower:
+        elif "attack" in command_lower or "charge" in command_lower:
+            action = "attack"
+        # Strategic PURSUE keywords → base action "attack" (strategic parser upgrades)
+        elif any(kw in command_lower for kw in [
+            "pursue", "chase", "hunt down", "track down", "hunt",
+            "intercept", "give chase", "go after", "harry", "hound", "shadow",
+        ]):
             action = "attack"
         elif "wait" in command_lower or "stand by" in command_lower or "pass" in command_lower:
             action = "wait"  # Free action - marshal passes turn
+        elif any(kw in command_lower for kw in [
+            "hold at all costs", "hold your ground", "hold position",
+            "hold the line", "stand fast", "stand firm",
+            "defend and hold", "fortify and hold", "secure and hold",
+            "anchor at", "dig in", "guard", "protect",
+        ]):
+            action = "hold"
         elif "hold" in command_lower:
             action = "hold"  # Alias for defend - will be converted in executor
         elif "defend" in command_lower:
             action = "defend"
         elif "retreat" in command_lower or "fall back" in command_lower or "withdraw" in command_lower:
             action = "retreat"
-        elif "move" in command_lower or "march" in command_lower:
+        # Strategic MOVE_TO keywords → base action "move" (strategic parser upgrades)
+        elif any(kw in command_lower for kw in [
+            "move", "march", "advance toward", "advance to",
+            "head toward", "head to", "proceed to", "push toward", "push to",
+            "make for", "travel to", "campaign to", "campaign toward",
+            "sweep toward", "press toward", "drive toward",
+            "journey to", "relocate to", "deploy to",
+        ]):
             action = "move"
         elif "scout" in command_lower or "reconnaissance" in command_lower:
             action = "scout"

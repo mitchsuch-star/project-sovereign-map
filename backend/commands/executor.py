@@ -15,7 +15,7 @@ TODO (Future): Multi-Army Battles
 """
 from typing import Dict, List, Optional, Tuple
 from backend.models.world_state import WorldState
-from backend.models.marshal import Stance
+from backend.models.marshal import Stance, StrategicOrder
 from backend.game_logic.combat import CombatResolver
 from backend.game_logic.turn_manager import TurnManager
 from backend.utils.fuzzy_matcher import FuzzyMatcher
@@ -2030,12 +2030,32 @@ RETREAT RECOVERY (3 turns):
 
         # Check if destination is within movement range
         if distance > move_range:
-            marshal_type = "cavalry" if move_range == 2 else "infantry"
-            return {
-                "success": False,
-                "message": f"{marshal.location} is too far from {target_name} (distance: {distance}, {marshal_type} range: {move_range})",
-                "suggestion": f"Adjacent regions: {', '.join(current_region.adjacent_regions)}"
-            }
+            # Auto-upgrade to strategic MOVE_TO for distant regions
+            path = world.find_path(marshal.location, target_name)
+            if path and len(path) > 1:
+                order = StrategicOrder(
+                    command_type="MOVE_TO",
+                    target=target_name,
+                    target_type="region",
+                    started_turn=world.current_turn,
+                    original_command=f"move to {target_name}",
+                    path=path,
+                )
+                marshal.strategic_order = order
+                return {
+                    "success": True,
+                    "message": f"{marshal.name} begins marching to {target_name} (distance: {distance}). Route: {' -> '.join(path)}.",
+                    "strategic_upgrade": True,
+                    "strategic_type": "MOVE_TO",
+                    "path": path,
+                }
+            else:
+                marshal_type = "cavalry" if move_range == 2 else "infantry"
+                return {
+                    "success": False,
+                    "message": f"{marshal.location} is too far from {target_name} (distance: {distance}, {marshal_type} range: {move_range})",
+                    "suggestion": f"Adjacent regions: {', '.join(current_region.adjacent_regions)}"
+                }
 
         # For 2-tile moves (cavalry), verify there's a valid path through adjacent region
         if distance == 2:
