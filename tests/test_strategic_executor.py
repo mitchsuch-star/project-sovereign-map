@@ -1619,7 +1619,7 @@ class TestCancelCommand:
 
         assert result.get("success") is True
         assert ney.strategic_order is None
-        assert "Standing down" in result.get("message", "")
+        assert "halts his march" in result.get("message", "")
 
     def test_cancel_costs_one_action(self, world, game_state, executor):
         """Cancel consumes 1 action."""
@@ -1734,3 +1734,116 @@ class TestCancelCommand:
         client = LLMClient()
         result = client.parse_command("belay that")
         assert result.get("action") == "cancel"
+
+    def test_cancel_message_pursue(self, world, game_state, executor):
+        """Cancel PURSUE gives flavorful message."""
+        ney = world.get_marshal("Ney")
+        ney.location = "Paris"
+        _set_strategic_order(ney, "PURSUE", "Wellington", target_type="marshal")
+
+        with _suppress_output():
+            result = executor.execute(
+                {"command": {"marshal": "Ney", "action": "cancel"}},
+                game_state
+            )
+
+        assert result.get("success") is True
+        assert "breaks off the pursuit" in result.get("message", "")
+
+    def test_cancel_message_hold(self, world, game_state, executor):
+        """Cancel HOLD gives flavorful message."""
+        ney = world.get_marshal("Ney")
+        ney.location = "Belgium"
+        _set_strategic_order(ney, "HOLD", "Belgium")
+
+        with _suppress_output():
+            result = executor.execute(
+                {"command": {"marshal": "Ney", "action": "cancel"}},
+                game_state
+            )
+
+        assert result.get("success") is True
+        assert "abandons the position" in result.get("message", "")
+
+    def test_cancel_message_support(self, world, game_state, executor):
+        """Cancel SUPPORT gives flavorful message with ally name."""
+        ney = world.get_marshal("Ney")
+        ney.location = "Paris"
+        _set_strategic_order(ney, "SUPPORT", "Davout", target_type="marshal")
+
+        with _suppress_output():
+            result = executor.execute(
+                {"command": {"marshal": "Ney", "action": "cancel"}},
+                game_state
+            )
+
+        assert result.get("success") is True
+        assert "breaks off from supporting Davout" in result.get("message", "")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CAVALRY FIRST-STEP MOVEMENT TESTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestCavalryFirstStep:
+    """Tests for cavalry moving 2 regions on command (first-step)."""
+
+    def test_cavalry_first_step_moves_two_regions(self, world, game_state, executor):
+        """Cavalry moves 2 regions on MOVE_TO command first-step."""
+        ney = world.get_marshal("Ney")
+        assert ney.movement_range == 2, "Ney should be cavalry"
+
+        # Clear enemies from path
+        ney.location = "Paris"
+        for m in list(world.marshals.values()):
+            if m.nation != "France":
+                m.location = "Netherlands"  # Move enemies away
+
+        # Execute MOVE_TO Rhine (Paris -> Belgium -> Rhine) - cavalry should move 2 regions
+        with _suppress_output():
+            result = executor.execute({
+                "command": {
+                    "raw_input": "Ney, march to Rhine",
+                    "marshal": "Ney",
+                    "action": "move",
+                    "target": "Rhine",
+                },
+                "is_strategic": True,
+                "strategic_type": "MOVE_TO",
+            },
+                game_state
+            )
+
+        # Cavalry should move 2 regions on first step (Paris -> Belgium -> Rhine)
+        assert result.get("success") is True
+        assert ney.location == "Rhine", f"Ney should be at Rhine (moved 2 regions), but is at {ney.location}"
+
+    def test_infantry_first_step_moves_one_region(self, world, game_state, executor):
+        """Infantry moves only 1 region on MOVE_TO command first-step."""
+        davout = world.get_marshal("Davout")
+        assert davout.movement_range == 1, "Davout should be infantry"
+
+        # Clear enemies from path
+        davout.location = "Paris"
+        for m in list(world.marshals.values()):
+            if m.nation != "France":
+                m.location = "Netherlands"
+
+        # Execute MOVE_TO Rhine (Paris -> Belgium -> Rhine)
+        with _suppress_output():
+            result = executor.execute({
+                "command": {
+                    "raw_input": "Davout, march to Rhine",
+                    "marshal": "Davout",
+                    "action": "move",
+                    "target": "Rhine",
+                },
+                "is_strategic": True,
+                "strategic_type": "MOVE_TO",
+            },
+                game_state
+            )
+
+        # Infantry should only move 1 region
+        assert result.get("success") is True
+        assert davout.location == "Belgium", f"Davout should be at Belgium (moved 1 region), but is at {davout.location}"

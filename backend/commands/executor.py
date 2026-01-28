@@ -2137,11 +2137,22 @@ RETREAT RECOVERY (3 turns):
         print(f"[STRATEGIC] Order created: {strategic_type} -> {target}, path={path}")
 
         # ── Execute first step immediately ────────────────────────────
+        # Cavalry (movement_range=2) moves UP TO movement_range regions per step
         first_step_msg = ""
+        movement_range = getattr(marshal, 'movement_range', 1)
+
         if strategic_type == "MOVE_TO" and path:
-            next_region = path[0]
-            enemies = world.get_enemies_in_region(next_region, marshal.nation)
-            if not enemies:
+            steps = min(movement_range, len(path))
+            moved_regions = []
+            for _ in range(steps):
+                if not order.path:
+                    break
+                next_region = order.path[0]
+                enemies = world.get_enemies_in_region(next_region, marshal.nation)
+                if enemies:
+                    if not moved_regions:
+                        first_step_msg = f" Path blocked by {enemies[0].name} at {next_region}."
+                    break
                 move_result = self.execute(
                     {"command": {
                         "marshal": marshal.name,
@@ -2153,9 +2164,14 @@ RETREAT RECOVERY (3 turns):
                 )
                 if move_result.get("success"):
                     order.path.pop(0)
-                    first_step_msg = f" Moves to {next_region}."
-            else:
-                first_step_msg = f" Path blocked by {enemies[0].name} at {next_region}."
+                    moved_regions.append(next_region)
+                else:
+                    break
+            if moved_regions:
+                if len(moved_regions) > 1:
+                    first_step_msg = f" Cavalry charges through {' -> '.join(moved_regions)}."
+                else:
+                    first_step_msg = f" Moves to {moved_regions[0]}."
 
         elif strategic_type == "HOLD":
             # If already at target, set holding immediately
@@ -2167,9 +2183,15 @@ RETREAT RECOVERY (3 turns):
                 else:
                     first_step_msg = f" Holding position."
             elif path:
-                next_region = path[0]
-                enemies = world.get_enemies_in_region(next_region, marshal.nation)
-                if not enemies:
+                steps = min(movement_range, len(path))
+                moved_regions = []
+                for _ in range(steps):
+                    if not order.path:
+                        break
+                    next_region = order.path[0]
+                    enemies = world.get_enemies_in_region(next_region, marshal.nation)
+                    if enemies:
+                        break
                     move_result = self.execute(
                         {"command": {
                             "marshal": marshal.name,
@@ -2181,35 +2203,24 @@ RETREAT RECOVERY (3 turns):
                     )
                     if move_result.get("success"):
                         order.path.pop(0)
-                        first_step_msg = f" Marching to {target}."
+                        moved_regions.append(next_region)
+                    else:
+                        break
+                if moved_regions:
+                    first_step_msg = f" Marching to {target}."
 
         elif strategic_type == "PURSUE" and path:
-            next_region = path[0]
-            enemies_blocking = world.get_enemies_in_region(next_region, marshal.nation)
-            # Allow moving into target's region (that's the point of PURSUE)
-            blocking = [e for e in enemies_blocking if e.name != target]
-            if not blocking:
-                move_result = self.execute(
-                    {"command": {
-                        "marshal": marshal.name,
-                        "action": "move",
-                        "target": next_region,
-                        "_strategic_execution": True
-                    }},
-                    game_state
-                )
-                if move_result.get("success"):
-                    order.path = []  # PURSUE recalculates each turn
-                    first_step_msg = f" Moves to {next_region}."
-                    # Check if caught up
-                    enemy_m = world.get_marshal(target)
-                    if enemy_m and marshal.location == enemy_m.location:
-                        first_step_msg += f" {target} found here!"
-
-        elif strategic_type == "SUPPORT" and path:
-            next_region = path[0]
-            enemies = world.get_enemies_in_region(next_region, marshal.nation)
-            if not enemies:
+            steps = min(movement_range, len(path))
+            moved_regions = []
+            for _ in range(steps):
+                if not order.path:
+                    break
+                next_region = order.path[0]
+                enemies_blocking = world.get_enemies_in_region(next_region, marshal.nation)
+                # Allow moving into target's region (that's the point of PURSUE)
+                blocking = [e for e in enemies_blocking if e.name != target]
+                if blocking:
+                    break
                 move_result = self.execute(
                     {"command": {
                         "marshal": marshal.name,
@@ -2221,7 +2232,49 @@ RETREAT RECOVERY (3 turns):
                 )
                 if move_result.get("success"):
                     order.path.pop(0)
-                    first_step_msg = f" Moves to {next_region}."
+                    moved_regions.append(next_region)
+                else:
+                    break
+            if moved_regions:
+                order.path = []  # PURSUE recalculates each turn
+                if len(moved_regions) > 1:
+                    first_step_msg = f" Cavalry charges through {' -> '.join(moved_regions)}."
+                else:
+                    first_step_msg = f" Moves to {moved_regions[0]}."
+                # Check if caught up
+                enemy_m = world.get_marshal(target)
+                if enemy_m and marshal.location == enemy_m.location:
+                    first_step_msg += f" {target} found here!"
+
+        elif strategic_type == "SUPPORT" and path:
+            steps = min(movement_range, len(path))
+            moved_regions = []
+            for _ in range(steps):
+                if not order.path:
+                    break
+                next_region = order.path[0]
+                enemies = world.get_enemies_in_region(next_region, marshal.nation)
+                if enemies:
+                    break
+                move_result = self.execute(
+                    {"command": {
+                        "marshal": marshal.name,
+                        "action": "move",
+                        "target": next_region,
+                        "_strategic_execution": True
+                    }},
+                    game_state
+                )
+                if move_result.get("success"):
+                    order.path.pop(0)
+                    moved_regions.append(next_region)
+                else:
+                    break
+            if moved_regions:
+                if len(moved_regions) > 1:
+                    first_step_msg = f" Cavalry charges through {' -> '.join(moved_regions)}."
+                else:
+                    first_step_msg = f" Moves to {moved_regions[0]}."
 
         # ── Build response ────────────────────────────────────────────
         remaining = len(order.path) if order.path else 0
@@ -4451,10 +4504,14 @@ RETREAT RECOVERY (3 turns):
 
         if not marshal.in_strategic_mode and not getattr(marshal, 'pending_interrupt', None):
             return {"success": False, "no_action_cost": True,
-                    "message": f"{marshal.name} has no active order to cancel."}
+                    "message": f"{marshal.name} has no active orders to cancel."}
+
+        # Get order details for flavorful message
+        old_order = marshal.strategic_order
+        old_command = old_order.command_type if old_order else None
+        old_target = old_order.target if old_order else None
 
         # Cancel the order
-        old_command = marshal.strategic_order.command_type if marshal.strategic_order else "order"
         marshal.strategic_order = None
         marshal.pending_interrupt = None
 
@@ -4468,10 +4525,21 @@ RETREAT RECOVERY (3 turns):
         if hasattr(marshal, 'trust'):
             marshal.trust.modify(trust_change)
 
+        # Flavorful message varies by order type
+        if old_command == "MOVE_TO":
+            msg = f"{marshal.name} halts his march and awaits new orders."
+        elif old_command == "PURSUE":
+            msg = f"{marshal.name} breaks off the pursuit."
+        elif old_command == "HOLD":
+            msg = f"{marshal.name} abandons the position."
+        elif old_command == "SUPPORT":
+            msg = f"{marshal.name} breaks off from supporting {old_target}."
+        else:
+            msg = f"{marshal.name} acknowledges. Standing down."
+
         return {
             "success": True,
-            "message": f"{marshal.name} acknowledges. Standing down. "
-                       f"({old_command} order cancelled)",
+            "message": msg,
             "trust_change": trust_change,
             "order_cleared": True,
         }
