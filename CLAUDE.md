@@ -49,7 +49,7 @@ CURRENT PHASE: Phase 2.5 (Autonomy) 🔄 → Phase 3 (Fun Factor) 📋 NEXT
 - Phase 2.9 ✅: Retreat System (ally cover, smart destination, AI targeting)
 - Phase 4 ✅: LLM Integration (fast parser, Anthropic fallback, BYOK, validation)
 - Phase 3 📋: Fun Factor (hearing guns, vindication, anti-tedium, pressure)
-- Phase 5.2 🔄: Strategic Commands (MOVE_TO, PURSUE, HOLD, SUPPORT) - Phase A+B ✅, Phase C next
+- Phase 5.2 🔄: Strategic Commands (MOVE_TO, PURSUE, HOLD, SUPPORT) - Phase A-C ✅, Phase D (interrupts) next
 - Not implemented: diplomacy, supply lines (see Phase 5-6)
 ```
 
@@ -892,7 +892,6 @@ If field is missing in JSON response, the bug is in main.py (step 2).
 ### Phase 5.2: Strategic Commands 🔄 IN PROGRESS
 
 **CRITICAL: Read `docs/PHASE_5_2_IMPLEMENTATION_PLAN.md` before implementing!**
-**For Phase C context: Read `docs/PHASE_C_READY.md`**
 
 This phase adds multi-turn strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) that marshals execute autonomously over several turns. Personality affects execution behavior.
 
@@ -902,23 +901,52 @@ This phase adds multi-turn strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) tha
 - Combat result → order status: Victory=continue, Defeat=break, Stalemate=ask
 - Clarification system reuses objection popup for LITERAL + generic commands
 - ONE strategic order per marshal at a time; new order silently replaces old
+- "reinforce" = SUPPORT (no teleporting; removed as separate action)
 
-#### What's Implemented (89+ strategic tests, 555+ total)
+#### What's Implemented (667 tests, 0 failures)
+
+**Strategic Command Pipeline (end-to-end):**
+```
+User: "Grouchy, march to Belgium"
+  → llm_client fast parser: action="move"
+  → parser.py: detect_strategic_command() → is_strategic=True, strategic_type=MOVE_TO
+  → executor.py: strategic interception block (_skip_routing pattern)
+  → _execute_strategic_command(): creates StrategicOrder, executes first step
+  → turn_manager.py end_turn(): StrategicExecutor.process_strategic_orders()
+  → strategic.py: _execute_move_to() moves marshal along path each turn
+```
+
+**Phase A — Data Structures (marshal.py):**
+- `StrategicOrder` dataclass — command_type, target, target_type, path, conditions, combat tracking
+- `StrategicCondition` dataclass — max_turns, until_marshal_arrives, until_battle_won, etc.
+- `target_snapshot_location` field — for "Move to Ney" (friendly marshal snapshot)
+- Marshal fields: `strategic_order`, `in_strategic_mode` property, precision tracking
+- Full to_dict/from_dict serialization roundtrip
+
+**Phase B — Parser Integration (strategic_parser.py + parser.py + schemas.py):**
+- `detect_strategic_command()` — identifies MOVE_TO, PURSUE, HOLD, SUPPORT from natural language
+- `_classify_target()` — region, friendly marshal (snapshot), enemy marshal (→PURSUE), generic
+- `_parse_condition()` — until_arrives, until_destroyed, max_turns, until_battle_won
+- Enemy marshal MOVE_TO auto-converts to PURSUE
+- "reinforce" and "support" keywords both route to strategic SUPPORT via parser
+- Integrated into parser.py via `world=` parameter; main.py passes world
+
+**Phase C — Strategic Executor (executor.py + strategic.py + turn_manager.py):**
+- `_execute_strategic_command()` in executor.py — creates StrategicOrder, validates, first-step execution
+- `_skip_routing` pattern — intercepts strategic commands before tactical routing
+- `_strategic_execution=True` flag — skips action cost for per-turn autonomous moves
+- `StrategicExecutor.process_strategic_orders()` in strategic.py — per-turn multi-step execution
+- Handlers: `_execute_move_to`, `_execute_pursue`, `_execute_hold`, `_execute_support`
+- Personality-aware: aggressive=auto-attack, cautious=safe paths, literal=exact+immovable
+- HOLD sally mechanic: aggressive marshals attack adjacent enemies then return
+- Grouchy clarification gate for generic/ambiguous targets
+- Turn manager hook: runs AFTER enemy phase, BEFORE advance_turn()
 
 **Grouchy Ambiguity System (executor.py, enemy_ai.py):**
 - `_get_effective_personality()` in enemy_ai.py — literal→cautious when AI-controlled
 - `_apply_grouchy_ambiguity_buff()` in executor.py — combat buffs based on order clarity
 - Ambiguity thresholds: 0-20 (+15%), 21-40 (+10%), 41-60 (+5% + warning), 61+ (no buff)
 - `precision_execution_active/turns` fields — +1 all skills for 3 turns on crystal clear orders
-- `get_effective_skill()` in marshal.py — applies precision bonus at calculation time
-- `strategic_combat_bonus` and `strategic_defense_bonus` consumed in combat
-
-**Data Structures (marshal.py):**
-- `StrategicOrder` dataclass — command_type, target, target_type, path, conditions, combat tracking
-- `StrategicCondition` dataclass — max_turns, until_marshal_arrives, until_battle_won, etc.
-- `target_snapshot_location` field — for "Move to Ney" (friendly marshal snapshot)
-- Marshal fields: `strategic_order`, `in_strategic_mode` property, precision tracking
-- Full to_dict/from_dict serialization roundtrip
 
 **Battle Tracking (world_state.py):**
 - `battles_this_turn` list — for cannon fire detection
@@ -926,49 +954,59 @@ This phase adds multi-turn strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) tha
 - `get_enemies_in_region(region, nation)` — finds enemies relative to nation
 - `find_path(start, end, avoid_regions=)` — BFS pathfinding with region avoidance
 
-**Parser (backend/ai/strategic_parser.py + parser.py + schemas.py):**
-- `detect_strategic_command()` — identifies MOVE_TO, PURSUE, HOLD, SUPPORT from natural language
-- `_classify_target()` — region, friendly marshal (snapshot), enemy marshal (→PURSUE), generic
-- `_parse_condition()` — until_arrives, until_destroyed, max_turns, until_battle_won
-- Enemy marshal MOVE_TO auto-converts to PURSUE
-- ParseResult fields: `is_strategic`, `strategic_type`, `target_snapshot_location`, `strategic_condition`
-- Integrated into parser.py via `world=` parameter; main.py passes world
+**REMOVED: `_execute_reinforce` teleport action**
+- "reinforce" keyword now maps to action="move" in fast parser
+- Strategic parser detects "reinforce" as SUPPORT keyword → strategic_type=SUPPORT
+- No separate routing, no teleporting — all support goes through strategic pipeline
 
-#### What's Next: Phase C (Strategic Executor)
+#### Known Issues (found during audit, not yet fixed)
+
+| # | Severity | File | Issue |
+|---|----------|------|-------|
+| 1 | CRITICAL | strategic.py | Aggressive HOLD sally attacks enemy in adjacent region — executor validates target must be in same region, so attack fails silently |
+| 2 | CRITICAL | strategic.py | Marshal can move during retreat_recovery under strategic order (no recovery check) |
+| 3 | HIGH | validation.py | No validation of strategic_type values — LLM could hallucinate "TELEPORT" |
+| 4 | MEDIUM | strategic.py | SUPPORT handler doesn't use cautious personality pathfinding (avoid_regions) |
+| 5 | MEDIUM | strategic.py | MOVE_TO first turn doesn't use personality-aware pathfinding (only recalc does) |
+| 6 | MEDIUM | marshal.py | StrategicOrder.from_dict() missing attack_on_arrival, follow_if_moves, join_combat fields |
+| 7 | LOW | strategic.py | until_battle_won condition never triggers on stalemate for SUPPORT |
+
+#### What's Next: Phase D (Interrupt Responses)
+
+**Interrupt types to implement:**
+- CONTACT: Enemy blocking next region on path
+- ADJACENT: Enemy in neighboring region (not blocking)
+- CANNON_FIRE: Battle within 2 regions (uses battles_this_turn)
+- ALLY_COMBAT: Supported ally enters combat
+- CONDITION_MET: Strategic condition satisfied
+
+**Key personality rule:** LITERAL personality NEVER gets cannon fire interrupts ("The Grouchy Moment")
 
 **Files to create/modify:**
-- `backend/commands/strategic.py` — NEW: StrategicExecutor class
-- `backend/commands/executor.py` — Add `_execute_strategic_command()`, override logic
-- `backend/game_logic/turn_manager.py` — Hook strategic execution into turn flow
+- `backend/commands/strategic.py` — Add `_check_interrupts()`, `_handle_interrupt()`
+- `backend/commands/executor.py` — Add `/respond_to_interrupt` handler
+- `backend/main.py` — Add API endpoint for interrupt responses
+- `godot-client/` — interrupt_dialog.tscn/gd UI scene
 
-**Key concepts:**
-- Action cost: 2 actions (1 for literal) — handled in executor.py
-- Per-turn execution: START of player's turn, after enemy phase
-- `_strategic_execution=True` flag skips action cost for autonomous actions
-- `_sortie=True` flag prevents advancing on victory (HOLD sally mechanic)
-- Override commands (attack, move, defend) silently cancel strategic orders
-- Non-override commands (wait, scout) execute alongside strategic orders
-- Explicit cancel ("halt", "cancel") costs 1 action, -3 trust
+#### Phase E (Explicit Cancel)
+- Keywords: "cancel", "halt", "stand down", "stop", "abort", "belay that"
+- Cost: 1 action, -3 trust
+- Implementation: `_check_strategic_override()` in executor.py
 
-**Personality behaviors:**
-- AGGRESSIVE: Auto-attacks, never asks, rushes to battle
-- CAUTIOUS: Asks before risky actions, auto-fortifies, uses safe paths (avoid_regions)
-- LITERAL: Follows exactly, ignores cannon fire, gets Immovable bonus on HOLD
-
-#### Implementation Order (Section 12 of PHASE_5_2_IMPLEMENTATION_PLAN.md)
+#### Implementation Order
 - [x] Phase A: Data Structures ✅
 - [x] Phase B: Parser Integration ✅
 - [x] Pre-C: WorldState dependencies ✅
-- [x] Phase C: Strategic Executor ✅ (StrategicExecutor, executor flags, turn manager hook, clarification gate)
-- [ ] Phase D: Interrupt response handling ← NEXT
-- [ ] Phase E: Explicit cancel command
+- [x] Phase C: Strategic Executor ✅
 - [x] Phase F: Turn manager integration ✅ (included in Phase C)
 - [x] Phase G: Clarification system ✅ (included in Phase C)
+- [x] Phase L: LLM Strategic Integration ✅ (65 tests)
+- [ ] Phase D: Interrupt response handling ← NEXT
+- [ ] Phase E: Explicit cancel command
 - [ ] Phase H: Literal bonuses (partially done — ambiguity system complete)
-- [ ] Phase I: Save/Load
-- [ ] Phase J: UI Updates (Godot)
+- [ ] Phase I: Save/Load (StrategicOrder serialization)
+- [ ] Phase J: UI Updates (Godot strategic status display)
 - [ ] Phase K: Integration testing
-- [x] Phase L: LLM Strategic Integration ✅ (prompt, schema, keywords, validation, 65 tests)
 
 **📋 REMAINING (Phase 3+):**
 - [ ] Grouchy literal mechanics (see below)
@@ -1163,7 +1201,7 @@ The game uses a "building blocks" approach where all actions (player AND AI) go 
 | move | executor.py | Adjacency validated |
 | scout | executor.py | Range-limited intel |
 | recruit | executor.py | 200 gold → 10,000 troops |
-| reinforce | executor.py | Move to ally marshal |
+| support | strategic SUPPORT | March to ally marshal (multi-turn, "reinforce" keyword also works) |
 
 ### Planned Blocks (Future)
 | Block | Priority | Notes |

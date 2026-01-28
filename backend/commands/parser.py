@@ -40,7 +40,7 @@ class CommandParser:
         # 6. CLAUDE.md: Update Disobedience System documentation
         self.valid_actions = [
             "attack", "defend", "retreat", "move", "scout",
-            "reinforce", "recruit", "help", "end_turn",
+            "recruit", "help", "end_turn",
             # Tactical state actions (Phase 2.6)
             "drill", "fortify", "unfortify",
             # Stance system (Phase 2.7)

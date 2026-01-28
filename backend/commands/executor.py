@@ -345,8 +345,8 @@ MILITARY COMMANDS:
   recruit    - Raise 10,000 troops (costs 200 gold)
                "recruit" / "Ney, recruit"
 
-  reinforce  - Move to join an allied marshal
-               "Ney, reinforce Davout"
+  support    - March to reinforce an allied marshal (strategic)
+               "Ney, support Davout" / "Ney, reinforce Davout"
 
 TACTICAL COMMANDS:
   fortify    - Dig in for +50% defense (2 turns)
@@ -884,8 +884,6 @@ RETREAT RECOVERY (3 turns):
         # Handle special actions first
         elif action == "help":
             result = self._execute_help(command, game_state)
-        elif action == "reinforce":
-            result = self._execute_reinforce(command, game_state)
         elif action == "recruit":
             result = self._execute_recruit(command, game_state)
         elif action == "end_turn":
@@ -2022,7 +2020,7 @@ RETREAT RECOVERY (3 turns):
                     return {
                         "success": False,
                         "message": f"{target} is a region, not a marshal. SUPPORT targets a friendly marshal.",
-                        "suggestion": f"Try: '{marshal.name}, support Davout' or '{marshal.name}, reinforce {target}'"
+                        "suggestion": f"Try: '{marshal.name}, support Davout' — SUPPORT targets a friendly marshal, not a region."
                     }
                 return {
                     "success": False,
@@ -4812,53 +4810,6 @@ RETREAT RECOVERY (3 turns):
             "new_state": game_state
         }
 
-    def _execute_reinforce(self, command: Dict, game_state: Dict) -> Dict:
-        """Reinforce = strategic SUPPORT. Routes to _execute_strategic_command."""
-        marshal_name = command.get("marshal")
-        target_name = command.get("target")
-
-        world: WorldState = game_state.get("world")
-
-        if not world:
-            return {
-                "success": False,
-                "message": "Error: No world state available"
-            }
-
-        # Use fuzzy matching for both marshal lookups
-        marshal, error = self._fuzzy_match_marshal(marshal_name, world)
-        if error:
-            return error
-
-        target_marshal, error = self._fuzzy_match_marshal(target_name, world)
-        if error:
-            return error
-
-        if marshal.location == target_marshal.location:
-            return {
-                "success": True,
-                "message": f"{marshal.name} is already with {target_marshal.name} at {marshal.location}",
-                "events": [{
-                    "type": "reinforce",
-                    "marshal": marshal.name,
-                    "target": target_marshal.name,
-                    "already_together": True
-                }],
-                "new_state": game_state
-            }
-
-        # Route to strategic SUPPORT
-        strategic_command = {
-            "command": command.get("command", {}),
-            "marshal": marshal.name,
-            "action": "reinforce",
-            "target": target_marshal.name,
-            "is_strategic": True,
-            "strategic_type": "SUPPORT",
-            "target_type": "marshal",
-        }
-        return self._execute_strategic_command(strategic_command, command.get("command", command), game_state)
-
     # ========================================
     # DISOBEDIENCE SYSTEM (Phase 2)
     # ========================================
@@ -5120,8 +5071,6 @@ RETREAT RECOVERY (3 turns):
                 result = self._execute_retreat_action(marshal, world, game_state)
             else:
                 result = {"success": False, "message": f"Marshal {marshal_name} not found"}
-        elif action == "reinforce":
-            result = self._execute_reinforce(command, game_state)
         # BUG-005 FIX: Handle stance_change in post-objection execution
         elif action == "stance_change":
             result = self._execute_stance_change(command, game_state)

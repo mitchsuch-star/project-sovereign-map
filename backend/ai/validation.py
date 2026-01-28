@@ -31,7 +31,6 @@ VALID_ACTIONS: Set[str] = {
     "unfortify",
     "stance_change",
     "recruit",
-    "reinforce",
     "charge",     # Cavalry recklessness
     "restrain",   # Restrain reckless cavalry
 }

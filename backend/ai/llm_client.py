@@ -439,7 +439,7 @@ class LLMClient:
         elif "scout" in command_lower or "reconnaissance" in command_lower:
             action = "scout"
         elif "reinforce" in command_lower or "support" in command_lower:
-            action = "reinforce"
+            action = "move"  # Strategic parser upgrades to SUPPORT
         elif "recruit" in command_lower or "raise" in command_lower or "conscript" in command_lower:
             action = "recruit"
         # Tactical state actions (Phase 2.6)
@@ -530,23 +530,6 @@ class LLMClient:
             target = "Geneva"
         elif "netherlands" in command_lower:
             target = "Netherlands"
-
-        # For reinforce commands, check for friendly marshal names as targets
-        # Find the SECOND marshal mentioned (the one being reinforced)
-        if target is None and action == "reinforce":
-            second_marshal = None
-            second_position = len(command_lower) + 1
-
-            for pattern, name in known_marshals:
-                pos = command_lower.find(pattern)
-                if pos != -1 and name != marshal:  # Not the commanding marshal
-                    if second_marshal is None or pos < second_position:
-                        # Find this marshal's position (should be after the first)
-                        second_position = pos
-                        second_marshal = name
-
-            if second_marshal:
-                target = second_marshal
 
         # Build interpretation string
         if marshal and action != "unknown":

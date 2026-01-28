@@ -80,7 +80,6 @@ class WorldState:
             "scout": 1,
             "recruit": 1,
             "defend": 1,
-            "reinforce": 1,
             "end_turn": 0  # Free action
         }
 
