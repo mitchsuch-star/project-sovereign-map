@@ -49,7 +49,7 @@ CURRENT PHASE: Phase 5.2 (Strategic Commands) 🔄 → Phase 3 (Fun Factor) 📋
 - Phase 2.9 ✅: Retreat System (ally cover, smart destination, AI targeting)
 - Phase 4 ✅: LLM Integration (fast parser, Anthropic fallback, BYOK, validation)
 - Phase 3 📋: Fun Factor (hearing guns, vindication, anti-tedium, pressure)
-- Phase 5.2 🔄: Strategic Commands (MOVE_TO, PURSUE, HOLD, SUPPORT) - Phase A-H ✅, Phase I-K remaining
+- Phase 5.2 🔄: Strategic Commands (MOVE_TO, PURSUE, HOLD, SUPPORT) - Phase A-I ✅, Phase J-K remaining
 - Not implemented: diplomacy, supply lines (see Phase 5-6)
 ```
 
@@ -793,11 +793,14 @@ max_total_actions = actions_remaining * 2  # Absolute safety limit
 
 **Adding a new action:**
 ```
-1. Add _execute_[action]() method in executor.py
-2. Add action name to valid_actions in parser.py
-3. Add action cost to _action_costs in world_state.py
-4. Add keywords to mock parser in llm_client.py
-5. If it can trigger objections, add to objection_actions in disobedience.py
+1. Add to VALID_ACTIONS in validation.py (single source of truth for LLM pipeline)
+2. Add _execute_[action]() method in executor.py
+3. Add action name to valid_actions list in parser.py
+4. Add action cost to _action_costs in world_state.py
+5. Add keywords to mock parser in llm_client.py (~line 416, search "ADD NEW ACTION")
+6. Add few-shot example in prompt_builder.py if action is complex/ambiguous
+7. If it can trigger objections, add to objection_actions in disobedience.py
+8. Add to_dict/from_dict if new state fields are needed (see Serialization Enforcement)
 ```
 
 **Adding a new marshal state:**
@@ -838,6 +841,78 @@ DEBUG TIP: If frontend isn't receiving a field, test with curl first:
     -H "Content-Type: application/json" \
     -d '{"command": "test command"}'
 If field is missing in JSON response, the bug is in main.py (step 2).
+```
+
+---
+
+## Serialization Enforcement (MANDATORY)
+
+**Enforcement tests automatically fail CI when serialization is incomplete.**
+
+The rule: **"If it exists on the object, it must serialize."**
+
+### When Adding ANY New Field to ANY Model Class
+
+```
+1. Add field to __init__ (or as instance attribute)
+2. Add to to_dict() method
+3. Add to from_dict() method (with sensible default via .get())
+4. Run: pytest tests/test_serialization_enforcement.py -v
+5. Update docs/SAVE_FORMAT_REFERENCE.md
+6. Update docs/MODDING_FORMAT.md (if modder-facing)
+```
+
+### When Adding a NEW Model Class
+
+```
+1. Implement to_dict() method
+2. Implement @classmethod from_dict() method
+3. Add class to SERIALIZABLE_CLASSES list in test_serialization_enforcement.py
+4. Copy the enforcement test template for your class
+5. Run: pytest tests/test_serialization_enforcement.py -v
+6. Document in SAVE_FORMAT_REFERENCE.md
+```
+
+### What the Tests Catch
+
+The enforcement tests (`tests/test_serialization_enforcement.py`) automatically detect:
+- Fields that exist on an object but aren't in `to_dict()`
+- Classes in `SERIALIZABLE_CLASSES` that lack `to_dict`/`from_dict`
+- Roundtrip failures (field values that don't survive serialize → deserialize)
+
+Example failure message:
+```
+SERIALIZATION INCOMPLETE: Marshal
+Fields not in to_dict(): ['new_feature_flag', 'new_counter']
+
+Fix: Add these fields to Marshal.to_dict() AND from_dict()
+Docs: Update docs/MODDING_FORMAT.md and docs/SAVE_FORMAT_REFERENCE.md
+```
+
+### Serializable Classes (Add New Classes Here)
+
+Current classes with serialization (in `SERIALIZABLE_CLASSES`):
+- `Marshal` - Commander state (50+ fields)
+- `StrategicOrder` - Multi-turn orders
+- `StrategicCondition` - Order termination conditions
+- `WorldState` - Complete game state
+- `Region` - Territory state
+- `Trust` - Marshal trust value
+- `AuthorityTracker` - Player authority
+- `VindicationTracker` - Marshal vindication history
+
+Future classes to add when implemented:
+- `Treaty` - Diplomatic agreements
+- `Alliance` - Coalition membership
+- `Vassal` - Puppet states
+- `Character` - Leader/general characters
+
+### Doc Generation
+
+Generate field documentation from code:
+```bash
+python -m backend.modding.doc_generator marshal  # Marshal fields
+python -m backend.modding.doc_generator all      # All classes
 ```
 
 ---
@@ -971,12 +1046,39 @@ User: "Grouchy, march to Belgium"
 | 6 | ✅ VERIFIED | `to_dict()`/`from_dict()` already included all fields (false positive) |
 | 7 | ✅ FIXED | `until_battle_won` triggers on both victory AND stalemate |
 
-#### What's Next: Phase I-K
+#### What's Next: Phase J-K
 
-**Remaining phases (705 tests passing):**
-- Phase I: Save/Load (StrategicOrder serialization for game saves)
+**Remaining phases (806 tests passing):**
+- Phase I: Serialization Validation ✅ COMPLETE (33 roundtrip tests)
 - Phase J: UI Updates (Godot strategic status display, interrupt dialogs)
 - Phase K: Integration testing (full end-to-end strategic command flow)
+
+#### Phase I (Serialization Validation) ✅ COMPLETE
+Full serialization audit and fix. All game state now survives roundtrip.
+- Added `to_dict()`/`from_dict()` to: Trust, Region, AuthorityTracker, VindicationTracker, WorldState
+- Fixed Marshal.to_dict(): expanded from 15 fields to 50+ fields
+- 33 roundtrip tests in `tests/test_serialization.py`
+- Documentation: `docs/SAVE_FORMAT_REFERENCE.md`
+- Full save/load is Pre-EA feature; serialization validated and ready
+
+**Modding Support (Extension to Phase I):**
+- `WorldState.from_scenario(path)` — Load custom scenarios from JSON files
+- `backend/modding/validator.py` — CLI validation tool for modders
+- Minimal JSON support: Marshals need only `name`, `location`, `strength`; regions need only `name`, `adjacent_regions`
+- Forward compatibility: Unknown fields are silently ignored
+- 57 new tests (18 modding workflow + 9 forward compatibility + 7 scenario loading + 32 validator tests)
+- Example mods: `mods/examples/` (battle_of_waterloo.json, custom_nations_scenario.json, etc.)
+- Documentation: `docs/MODDING_FORMAT.md`
+
+**Modder Workflow:**
+```bash
+# Validate your scenario
+python -m backend.modding.validator mods/my_scenario.json
+
+# Load in Python
+from backend.models.world_state import WorldState
+world = WorldState.from_scenario("mods/my_scenario.json")
+```
 
 #### Phase H (Literal Bonuses) ✅ COMPLETE (Design Variation)
 Implemented via sustained precision execution rather than one-time completion bonus:
@@ -1031,7 +1133,7 @@ When strategic command is issued and first step is blocked:
 - [x] Phase D: Interrupt response handling ✅ (14 tests)
 - [x] Phase E: Cancel command ✅ (14 tests + 7 first-step tests)
 - [x] Phase H: Literal bonuses ✅ (8 tests — design variation: sustained +1 skills for 3 turns)
-- [ ] Phase I: Save/Load (StrategicOrder serialization)
+- [x] Phase I: Serialization Validation ✅ (33 tests — full roundtrip, see `docs/SAVE_FORMAT_REFERENCE.md`)
 - [ ] Phase J: UI Updates (Godot strategic status display)
 - [ ] Phase K: Integration testing
 
@@ -1243,10 +1345,12 @@ The game uses a "building blocks" approach where all actions (player AND AI) go 
 | intercept_messages | Low | Intelligence gathering |
 
 ### Adding New Blocks
-1. Add handler method in `executor.py`: `_execute_[action_name]()`
-2. Add action to `parser.py` valid_actions list
-3. Add cost to `world_state.py` `_action_costs` dict
-4. Update mock parser keywords in `llm_client.py`
+1. Add to `VALID_ACTIONS` in `validation.py` (single source of truth for LLM)
+2. Add handler method in `executor.py`: `_execute_[action_name]()`
+3. Add action to `parser.py` valid_actions list
+4. Add cost to `world_state.py` `_action_costs` dict
+5. Update mock parser keywords in `llm_client.py` (search "ADD NEW ACTION")
+6. Add few-shot example in `prompt_builder.py` if action has complex syntax
 
 ---
 
@@ -3485,6 +3589,8 @@ See `docs/PHASE_5_2_IMPLEMENTATION_PLAN.md` for detailed specs.
 For detailed design decisions and architecture:
 - **`docs/PHASE_5_2_IMPLEMENTATION_PLAN.md`** - Strategic Commands implementation (MOVE_TO, PURSUE, HOLD, SUPPORT) - **READ THIS FIRST for Phase 5.2 work!**
 - **`docs/PHASE_5_2_CHAIN_AUDIT.md`** - Complete chain verification (LLM → Backend → UI) with broken links and fixes
+- **`docs/SAVE_FORMAT_REFERENCE.md`** - Complete serialization format for all game objects
+- **`docs/MODDING_FORMAT.md`** - Guide for creating custom scenarios, marshals, and regions
 - `PM_REVIEW_AND_ROADMAP.md` - Full assessment and phase plans
 - `LLM_INTEGRATION_ARCHITECTURE.md` - Technical LLM specs
 - `CREATION_LOG.md` - Development history and bug fixes

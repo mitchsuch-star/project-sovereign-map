@@ -1,0 +1,14 @@
+{
+    "_comment": "Example: Creating a custom region",
+    "_note": "Only name and adjacent_regions are required",
+
+    "name": "Tuscany",
+    "adjacent_regions": ["Milan", "Rome", "Venice"],
+
+    "_optional_fields_below": "These are all optional with sensible defaults",
+
+    "income_value": 120,
+    "is_capital": false,
+    "controller": "France",
+    "garrison_strength": 0
+}

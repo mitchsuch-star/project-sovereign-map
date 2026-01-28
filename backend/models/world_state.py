@@ -1183,6 +1183,195 @@ class WorldState:
             "turns_fortified": turns_fortified
         }
 
+    # ============================================================
+    # SERIALIZATION (Phase I: Save/Load Preparation)
+    # ============================================================
+
+    def to_dict(self) -> Dict:
+        """
+        Serialize complete game state for save/load.
+
+        Returns:
+            Dict containing all game state that can be saved to disk.
+        """
+        return {
+            # ═══════ FORMAT VERSION ═══════
+            "format_version": "1.0",
+
+            # ═══════ CORE GAME STATE ═══════
+            "player_nation": self.player_nation,
+            "current_turn": int(self.current_turn),
+            "max_turns": int(self.max_turns),
+            "gold": int(self.gold),
+            "game_over": self.game_over,
+            "victory": self.victory,
+
+            # ═══════ ACTION ECONOMY ═══════
+            "max_actions_per_turn": int(self.max_actions_per_turn),
+            "actions_remaining": int(self.actions_remaining),
+            "bonus_actions": int(self.bonus_actions),
+
+            # ═══════ REGIONS ═══════
+            "regions": {name: r.to_dict() for name, r in self.regions.items()},
+
+            # ═══════ MARSHALS ═══════
+            "marshals": {name: m.to_dict() for name, m in self.marshals.items()},
+
+            # ═══════ DISOBEDIENCE SYSTEM ═══════
+            "authority_tracker": self.authority_tracker.to_dict(),
+            "vindication_tracker": self.vindication_tracker.to_dict(),
+            "pending_objection": self.pending_objection,
+            "pending_redemption": self.pending_redemption,
+
+            # ═══════ ENEMY AI ═══════
+            "enemy_nations": self.enemy_nations.copy(),
+            "nation_actions": self.nation_actions.copy(),
+            "active_battles": {k: v.copy() for k, v in self.active_battles.items()},
+            "battle_history": [b.copy() for b in self.battle_history],
+
+            # ═══════ BATTLE TRACKING (Phase 5.2) ═══════
+            "battles_this_turn": [b.copy() for b in self.battles_this_turn],
+
+            # ═══════ COMMAND HISTORY ═══════
+            "command_history": [c.copy() for c in self.command_history],
+
+            # ═══════ PER-TURN TRACKING (for mid-turn saves) ═══════
+            "attacks_this_turn": {k: [a.copy() for a in v] for k, v in self.attacks_this_turn.items()},
+            "disobedience_system": {
+                "major_objections_this_turn": self.disobedience_system.major_objections_this_turn
+            },
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'WorldState':
+        """
+        Deserialize complete game state from save/load data.
+
+        Args:
+            data: Dict from a previous to_dict() call
+
+        Returns:
+            Restored WorldState object
+        """
+        world = cls(player_nation=data.get("player_nation", "France"))
+
+        # ═══════ CORE GAME STATE ═══════
+        world.current_turn = data.get("current_turn", 1)
+        world.max_turns = data.get("max_turns", 40)
+        world.gold = data.get("gold", 1200)
+        world.game_over = data.get("game_over", False)
+        world.victory = data.get("victory")
+
+        # ═══════ ACTION ECONOMY ═══════
+        world.max_actions_per_turn = data.get("max_actions_per_turn", 4)
+        world.actions_remaining = data.get("actions_remaining", 4)
+        world.bonus_actions = data.get("bonus_actions", 0)
+
+        # ═══════ REGIONS ═══════
+        if data.get("regions"):
+            world.regions = {}
+            for name, region_data in data["regions"].items():
+                world.regions[name] = Region.from_dict(region_data)
+
+        # ═══════ MARSHALS ═══════
+        if data.get("marshals"):
+            world.marshals = {}
+            for name, marshal_data in data["marshals"].items():
+                world.marshals[name] = Marshal.from_dict(marshal_data)
+
+        # ═══════ DISOBEDIENCE SYSTEM ═══════
+        if data.get("authority_tracker"):
+            world.authority_tracker = AuthorityTracker.from_dict(data["authority_tracker"])
+        if data.get("vindication_tracker"):
+            world.vindication_tracker = VindicationTracker.from_dict(data["vindication_tracker"])
+        world.pending_objection = data.get("pending_objection")
+        world.pending_redemption = data.get("pending_redemption")
+
+        # ═══════ ENEMY AI ═══════
+        world.enemy_nations = data.get("enemy_nations", ["Britain", "Prussia"]).copy()
+        world.nation_actions = data.get("nation_actions", {"Britain": 4, "Prussia": 4}).copy()
+        world.active_battles = {k: v.copy() for k, v in data.get("active_battles", {}).items()}
+        world.battle_history = [b.copy() for b in data.get("battle_history", [])]
+
+        # ═══════ BATTLE TRACKING (Phase 5.2) ═══════
+        world.battles_this_turn = [b.copy() for b in data.get("battles_this_turn", [])]
+
+        # ═══════ COMMAND HISTORY ═══════
+        world.command_history = [c.copy() for c in data.get("command_history", [])]
+
+        # ═══════ PER-TURN TRACKING ═══════
+        attacks_data = data.get("attacks_this_turn", {})
+        world.attacks_this_turn = {k: [a.copy() for a in v] for k, v in attacks_data.items()}
+
+        disob_data = data.get("disobedience_system", {})
+        world.disobedience_system.major_objections_this_turn = disob_data.get("major_objections_this_turn", 0)
+
+        return world
+
+    @classmethod
+    def from_scenario(cls, scenario_path: str) -> 'WorldState':
+        """
+        Load a scenario from a JSON file.
+
+        This is the primary entry point for modders to create custom scenarios.
+        The scenario file can specify minimal data - missing fields get defaults.
+
+        Scenario JSON structure:
+            {
+                "scenario_name": "Custom Battle",      # Optional, for display
+                "scenario_description": "...",         # Optional
+                "player_nation": "France",             # Optional, defaults to France
+                "current_turn": 1,                     # Optional
+                "gold": 1200,                          # Optional
+                "regions": { ... },                    # Optional, uses defaults
+                "marshals": { ... },                   # Optional, uses defaults
+                ...
+            }
+
+        Args:
+            scenario_path: Path to JSON scenario file
+
+        Returns:
+            Initialized WorldState ready for gameplay
+
+        Raises:
+            FileNotFoundError: If scenario file doesn't exist
+            json.JSONDecodeError: If JSON is malformed
+            ValueError: If scenario has invalid structure
+        """
+        import json
+        from pathlib import Path
+
+        path = Path(scenario_path)
+        if not path.exists():
+            raise FileNotFoundError(f"Scenario file not found: {scenario_path}")
+
+        with open(path, 'r', encoding='utf-8') as f:
+            scenario_data = json.load(f)
+
+        # Validate basic structure
+        if not isinstance(scenario_data, dict):
+            raise ValueError(f"Scenario must be a JSON object, got {type(scenario_data).__name__}")
+
+        # If no regions specified, use default map
+        if not scenario_data.get("regions"):
+            scenario_data["regions"] = {
+                name: region.to_dict()
+                for name, region in create_regions().items()
+            }
+
+        # If no marshals specified, use defaults
+        if not scenario_data.get("marshals"):
+            from backend.models.marshal import create_starting_marshals, create_enemy_marshals
+            default_marshals = {**create_starting_marshals(), **create_enemy_marshals()}
+            scenario_data["marshals"] = {
+                name: marshal.to_dict()
+                for name, marshal in default_marshals.items()
+            }
+
+        # Use from_dict for actual loading
+        return cls.from_dict(scenario_data)
+
     def get_game_state_summary(self) -> Dict:
         """Get a summary of current game state for API responses."""
         # Build map_data with marshals (including debug info for player marshals)

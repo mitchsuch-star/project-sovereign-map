@@ -198,6 +198,23 @@ class AuthorityTracker:
     def __repr__(self) -> str:
         return f"AuthorityTracker(authority={self.authority}, responses={len(self.recent_responses)})"
 
+    def to_dict(self) -> dict:
+        """Serialize authority tracker for save/load."""
+        return {
+            "authority": self.authority,
+            "recent_responses": self.recent_responses.copy(),
+            "_crossed_thresholds": self._crossed_thresholds.copy()
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'AuthorityTracker':
+        """Deserialize authority tracker from save/load data."""
+        tracker = cls()
+        tracker.authority = data.get("authority", 100)
+        tracker.recent_responses = data.get("recent_responses", []).copy()
+        tracker._crossed_thresholds = data.get("_crossed_thresholds", []).copy()
+        return tracker
+
 
 # Test code
 if __name__ == "__main__":

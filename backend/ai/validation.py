@@ -34,6 +34,10 @@ VALID_ACTIONS: Set[str] = {
     "charge",     # Cavalry recklessness
     "restrain",   # Restrain reckless cavalry
     "cancel",     # Cancel strategic order (Phase E)
+    # ═══════ ADD NEW ACTIONS HERE ═══════
+    # This is the SINGLE SOURCE OF TRUTH for valid LLM actions.
+    # Also update: llm_client.py keywords, parser.py valid_actions,
+    # executor.py _execute_*, world_state.py _action_costs
 }
 
 # Meta actions that bypass validation entirely

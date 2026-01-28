@@ -1,0 +1,8 @@
+{
+    "_comment": "Minimal scenario - only specifies what's different from defaults",
+    "scenario_name": "Quick Start",
+    "scenario_description": "A minimal scenario using default map and marshals",
+
+    "player_nation": "France",
+    "gold": 2000
+}

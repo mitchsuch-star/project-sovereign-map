@@ -274,6 +274,21 @@ class VindicationTracker:
     def __repr__(self) -> str:
         return f"VindicationTracker(pending={len(self.pending)}, history={len(self.history)})"
 
+    def to_dict(self) -> dict:
+        """Serialize vindication tracker for save/load."""
+        return {
+            "pending": {k: v.copy() for k, v in self.pending.items()},
+            "history": [h.copy() for h in self.history]
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'VindicationTracker':
+        """Deserialize vindication tracker from save/load data."""
+        tracker = cls()
+        tracker.pending = {k: v.copy() for k, v in data.get("pending", {}).items()}
+        tracker.history = [h.copy() for h in data.get("history", [])]
+        return tracker
+
 
 # Test code
 if __name__ == "__main__":

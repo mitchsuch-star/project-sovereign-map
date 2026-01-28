@@ -1,0 +1,117 @@
+{
+    "_comment": "Example: Custom nations scenario",
+    "_note": "Shows how to create scenarios with entirely custom nations",
+
+    "scenario_name": "Italian Wars",
+    "scenario_description": "A fictional scenario set in the Italian peninsula",
+
+    "player_nation": "Venice",
+    "current_turn": 1,
+    "gold": 3000,
+    "enemy_nations": ["Milan", "Papal States"],
+
+    "regions": {
+        "Venice": {
+            "name": "Venice",
+            "adjacent_regions": ["Padua", "Treviso"],
+            "income_value": 200,
+            "is_capital": true,
+            "controller": "Venice"
+        },
+        "Padua": {
+            "name": "Padua",
+            "adjacent_regions": ["Venice", "Verona", "Milan_City"],
+            "income_value": 80,
+            "controller": "Venice"
+        },
+        "Treviso": {
+            "name": "Treviso",
+            "adjacent_regions": ["Venice", "Udine"],
+            "income_value": 60,
+            "controller": "Venice"
+        },
+        "Udine": {
+            "name": "Udine",
+            "adjacent_regions": ["Treviso"],
+            "income_value": 40
+        },
+        "Verona": {
+            "name": "Verona",
+            "adjacent_regions": ["Padua", "Milan_City"],
+            "income_value": 70
+        },
+        "Milan_City": {
+            "name": "Milan_City",
+            "adjacent_regions": ["Verona", "Padua", "Genoa"],
+            "income_value": 180,
+            "is_capital": true,
+            "controller": "Milan"
+        },
+        "Genoa": {
+            "name": "Genoa",
+            "adjacent_regions": ["Milan_City", "Florence"],
+            "income_value": 100
+        },
+        "Florence": {
+            "name": "Florence",
+            "adjacent_regions": ["Genoa", "Rome"],
+            "income_value": 150
+        },
+        "Rome": {
+            "name": "Rome",
+            "adjacent_regions": ["Florence"],
+            "income_value": 200,
+            "is_capital": true,
+            "controller": "Papal States"
+        }
+    },
+
+    "marshals": {
+        "Colleoni": {
+            "name": "Colleoni",
+            "location": "Venice",
+            "strength": 25000,
+            "personality": "aggressive",
+            "nation": "Venice",
+            "cavalry": true,
+            "skills": {
+                "tactical": 8,
+                "shock": 8,
+                "defense": 5,
+                "logistics": 6,
+                "administration": 4,
+                "command": 7
+            }
+        },
+        "Sforza": {
+            "name": "Sforza",
+            "location": "Milan_City",
+            "strength": 30000,
+            "personality": "balanced",
+            "nation": "Milan",
+            "skills": {
+                "tactical": 7,
+                "shock": 6,
+                "defense": 6,
+                "logistics": 7,
+                "administration": 8,
+                "command": 7
+            }
+        },
+        "Borgia": {
+            "name": "Borgia",
+            "location": "Rome",
+            "strength": 20000,
+            "personality": "cautious",
+            "nation": "Papal States",
+            "skills": {
+                "tactical": 6,
+                "shock": 5,
+                "defense": 7,
+                "logistics": 5,
+                "administration": 9,
+                "command": 6
+            }
+        }
+    }
+}

@@ -489,6 +489,10 @@ class LLMClient:
         elif "charge" in command_lower or "glorious charge" in command_lower:
             action = "charge"
         # Note: "restrain" is checked earlier (before drill) to avoid "train" match
+        # ═══════ ADD NEW ACTION KEYWORDS HERE ═══════
+        # When adding a new action, add an elif block above this comment.
+        # Also update: validation.py VALID_ACTIONS, parser.py valid_actions,
+        # executor.py _execute_*, world_state.py _action_costs
 
         # Extract target (can be None)
         target = None

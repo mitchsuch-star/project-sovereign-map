@@ -32,12 +32,15 @@ class CommandParser:
 
         # Valid actions
         # NOTE: When adding new actions, update ALL of these locations:
-        # 1. executor.py: Add _execute_* method
-        # 2. executor.py: Update help_text in _execute_help()
-        # 3. executor.py: Add to objection_actions if personality can object
-        # 4. llm_client.py: Add keyword detection for mock parser
-        # 5. personality.py: Add triggers if marshals can object to it
-        # 6. CLAUDE.md: Update Disobedience System documentation
+        # 1. validation.py: Add to VALID_ACTIONS set (single source of truth for LLM)
+        # 2. executor.py: Add _execute_* method
+        # 3. executor.py: Update help_text in _execute_help()
+        # 4. executor.py: Add to objection_actions if personality can object
+        # 5. llm_client.py: Add keyword detection for mock parser (~line 416+)
+        # 6. prompt_builder.py: Add few-shot example if action is complex/ambiguous
+        # 7. personality.py: Add triggers if marshals can object to it
+        # 8. world_state.py: Add cost to _action_costs dict
+        # 9. CLAUDE.md: Update documentation
         self.valid_actions = [
             "attack", "defend", "retreat", "move", "scout",
             "recruit", "help", "end_turn",

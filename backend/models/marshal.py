@@ -856,45 +856,221 @@ class Marshal:
         return max(0.25, base_effectiveness * (1.0 - retreat_penalty))
 
     def to_dict(self) -> Dict:
-        """Serialize marshal state for save/load."""
+        """Serialize marshal state for save/load. Includes ALL fields."""
         data = {
+            # ═══════ CORE IDENTITY ═══════
             "name": self.name,
             "location": self.location,
             "strength": int(self.strength),
+            "starting_strength": int(self.starting_strength),
             "personality": self.personality,
             "nation": self.nation,
+            "spawn_location": self.spawn_location,
+            "movement_range": int(self.movement_range),
+            "tactical_skill": int(self.tactical_skill),
+
+            # ═══════ SKILLS & ABILITY ═══════
+            "skills": {k: int(v) for k, v in self.skills.items()},
+            "ability": self.ability.copy(),
+
+            # ═══════ GAME STATE ═══════
             "morale": int(self.morale),
-            "stance": self.stance.value,
-            # Strategic Order System (Phase 5.2)
+            "orders_overridden": int(self.orders_overridden),
+            "battles_won": int(self.battles_won),
+            "battles_lost": int(self.battles_lost),
+            "just_retreated": self.just_retreated,
+
+            # ═══════ DISOBEDIENCE SYSTEM ═══════
+            "trust": self.trust.to_dict(),
+            "vindication_score": int(self.vindication_score),
+            "recent_battles": self.recent_battles.copy(),
+            "recent_overrides": self.recent_overrides.copy(),
+
+            # ═══════ AUTONOMY SYSTEM ═══════
+            "autonomous": self.autonomous,
+            "autonomy_turns": int(self.autonomy_turns),
+            "autonomy_reason": self.autonomy_reason,
+            "redemption_pending": self.redemption_pending,
+            "autonomous_battles_won": int(self.autonomous_battles_won),
+            "autonomous_battles_lost": int(self.autonomous_battles_lost),
+            "autonomous_regions_captured": int(self.autonomous_regions_captured),
+            "trust_warning_shown": self.trust_warning_shown,
+
+            # ═══════ RELATIONSHIPS ═══════
+            "relationships": self.relationships.copy(),
+
+            # ═══════ TACTICAL STATE - DRILL ═══════
+            "drilling": self.drilling,
+            "drilling_locked": self.drilling_locked,
+            "drill_complete_turn": int(self.drill_complete_turn),
+            "shock_bonus": int(self.shock_bonus),
+            "strategic_combat_bonus": int(self.strategic_combat_bonus),
+            "strategic_defense_bonus": int(self.strategic_defense_bonus),
+
+            # ═══════ PRECISION EXECUTION ═══════
+            "precision_execution_active": self.precision_execution_active,
+            "precision_execution_turns": int(self.precision_execution_turns),
+
+            # ═══════ STRATEGIC ORDER SYSTEM (Phase 5.2) ═══════
             "strategic_order": self.strategic_order.to_dict() if self.strategic_order else None,
             "pending_interrupt": self.pending_interrupt,
+
+            # ═══════ COMBAT TRACKING ═══════
             "in_combat_this_turn": self.in_combat_this_turn,
             "last_combat_turn": self.last_combat_turn,
             "last_combat_result": self.last_combat_result,
             "last_combat_location": self.last_combat_location,
+
+            # ═══════ FORTIFY STATE ═══════
+            "fortified": self.fortified,
+            "fortify_expires_turn": int(self.fortify_expires_turn),
+            "defense_bonus": float(self.defense_bonus),
+
+            # ═══════ RETREAT STATE ═══════
+            "retreating": self.retreating,
+            "retreat_recovery": int(self.retreat_recovery),
+            "retreated_this_turn": self.retreated_this_turn,
+
+            # ═══════ BROKEN STATE ═══════
+            "broken": self.broken,
+            "broken_recovery": int(self.broken_recovery),
+
+            # ═══════ STANCE ═══════
+            "stance": self.stance.value,
+
+            # ═══════ CAVALRY-SPECIFIC ═══════
+            "cavalry": self.cavalry,
+            "turns_in_defensive_stance": int(self.turns_in_defensive_stance),
+            "turns_fortified": int(self.turns_fortified),
+            "turns_defensive": int(self.turns_defensive),
+
+            # ═══════ DAVOUT-SPECIFIC (COUNTER-PUNCH) ═══════
+            "counter_punch_available": self.counter_punch_available,
+            "counter_punch_turns": int(self.counter_punch_turns),
+
+            # ═══════ GROUCHY-SPECIFIC (HOLDING POSITION) ═══════
+            "holding_position": self.holding_position,
+            "hold_region": self.hold_region,
+
+            # ═══════ RECKLESSNESS SYSTEM ═══════
+            "recklessness": int(self.recklessness),
+            "pending_glorious_charge": self.pending_glorious_charge,
+            "pending_charge_target": self.pending_charge_target,
+
+            # ═══════ EXHAUSTION ═══════
+            "attacks_this_turn": int(self.attacks_this_turn),
         }
         return data
 
     @classmethod
     def from_dict(cls, data: Dict) -> 'Marshal':
-        """Deserialize marshal from save/load data."""
+        """Deserialize marshal from save/load data. Restores ALL fields."""
         marshal = cls(
             name=data["name"],
             location=data["location"],
             strength=data["strength"],
             personality=data.get("personality", "balanced"),
-            nation=data.get("nation", "France")
+            nation=data.get("nation", "France"),
+            movement_range=data.get("movement_range", 1),
+            tactical_skill=data.get("tactical_skill", 5),
+            skills=data.get("skills"),
+            ability=data.get("ability"),
+            starting_trust=70,  # Will be overwritten by trust restoration
+            cavalry=data.get("cavalry", False),
+            spawn_location=data.get("spawn_location")
         )
+
+        # ═══════ CORE IDENTITY ═══════
+        marshal.starting_strength = data.get("starting_strength", marshal.strength)
+
+        # ═══════ GAME STATE ═══════
         marshal.morale = data.get("morale", 70)
-        marshal.stance = Stance(data.get("stance", "neutral"))
-        # Strategic Order System (Phase 5.2)
+        marshal.orders_overridden = data.get("orders_overridden", 0)
+        marshal.battles_won = data.get("battles_won", 0)
+        marshal.battles_lost = data.get("battles_lost", 0)
+        marshal.just_retreated = data.get("just_retreated", False)
+
+        # ═══════ DISOBEDIENCE SYSTEM ═══════
+        if data.get("trust"):
+            marshal.trust = Trust.from_dict(data["trust"])
+        marshal.vindication_score = data.get("vindication_score", 0)
+        marshal.recent_battles = data.get("recent_battles", []).copy()
+        marshal.recent_overrides = data.get("recent_overrides", []).copy()
+
+        # ═══════ AUTONOMY SYSTEM ═══════
+        marshal.autonomous = data.get("autonomous", False)
+        marshal.autonomy_turns = data.get("autonomy_turns", 0)
+        marshal.autonomy_reason = data.get("autonomy_reason", "")
+        marshal.redemption_pending = data.get("redemption_pending", False)
+        marshal.autonomous_battles_won = data.get("autonomous_battles_won", 0)
+        marshal.autonomous_battles_lost = data.get("autonomous_battles_lost", 0)
+        marshal.autonomous_regions_captured = data.get("autonomous_regions_captured", 0)
+        marshal.trust_warning_shown = data.get("trust_warning_shown", False)
+
+        # ═══════ RELATIONSHIPS ═══════
+        marshal.relationships = data.get("relationships", {}).copy()
+
+        # ═══════ TACTICAL STATE - DRILL ═══════
+        marshal.drilling = data.get("drilling", False)
+        marshal.drilling_locked = data.get("drilling_locked", False)
+        marshal.drill_complete_turn = data.get("drill_complete_turn", -1)
+        marshal.shock_bonus = data.get("shock_bonus", 0)
+        marshal.strategic_combat_bonus = data.get("strategic_combat_bonus", 0)
+        marshal.strategic_defense_bonus = data.get("strategic_defense_bonus", 0)
+
+        # ═══════ PRECISION EXECUTION ═══════
+        marshal.precision_execution_active = data.get("precision_execution_active", False)
+        marshal.precision_execution_turns = data.get("precision_execution_turns", 0)
+
+        # ═══════ STRATEGIC ORDER SYSTEM (Phase 5.2) ═══════
         if data.get("strategic_order"):
             marshal.strategic_order = StrategicOrder.from_dict(data["strategic_order"])
         marshal.pending_interrupt = data.get("pending_interrupt")
+
+        # ═══════ COMBAT TRACKING ═══════
         marshal.in_combat_this_turn = data.get("in_combat_this_turn", False)
         marshal.last_combat_turn = data.get("last_combat_turn")
         marshal.last_combat_result = data.get("last_combat_result")
         marshal.last_combat_location = data.get("last_combat_location")
+
+        # ═══════ FORTIFY STATE ═══════
+        marshal.fortified = data.get("fortified", False)
+        marshal.fortify_expires_turn = data.get("fortify_expires_turn", -1)
+        marshal.defense_bonus = data.get("defense_bonus", 0)
+
+        # ═══════ RETREAT STATE ═══════
+        marshal.retreating = data.get("retreating", False)
+        marshal.retreat_recovery = data.get("retreat_recovery", 0)
+        marshal.retreated_this_turn = data.get("retreated_this_turn", False)
+
+        # ═══════ BROKEN STATE ═══════
+        marshal.broken = data.get("broken", False)
+        marshal.broken_recovery = data.get("broken_recovery", 0)
+
+        # ═══════ STANCE ═══════
+        marshal.stance = Stance(data.get("stance", "neutral"))
+
+        # ═══════ CAVALRY-SPECIFIC ═══════
+        marshal.turns_in_defensive_stance = data.get("turns_in_defensive_stance", 0)
+        marshal.turns_fortified = data.get("turns_fortified", 0)
+        marshal.turns_defensive = data.get("turns_defensive", 0)
+
+        # ═══════ DAVOUT-SPECIFIC (COUNTER-PUNCH) ═══════
+        marshal.counter_punch_available = data.get("counter_punch_available", False)
+        marshal.counter_punch_turns = data.get("counter_punch_turns", 0)
+
+        # ═══════ GROUCHY-SPECIFIC (HOLDING POSITION) ═══════
+        marshal.holding_position = data.get("holding_position", False)
+        marshal.hold_region = data.get("hold_region", "")
+
+        # ═══════ RECKLESSNESS SYSTEM ═══════
+        marshal.recklessness = data.get("recklessness", 0)
+        marshal.pending_glorious_charge = data.get("pending_glorious_charge", False)
+        marshal.pending_charge_target = data.get("pending_charge_target", "")
+
+        # ═══════ EXHAUSTION ═══════
+        marshal.attacks_this_turn = data.get("attacks_this_turn", 0)
+
         return marshal
 
     def __repr__(self) -> str:

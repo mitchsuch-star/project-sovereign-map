@@ -1,0 +1,29 @@
+{
+    "_comment": "Example: Creating a custom marshal with minimal fields",
+    "_note": "Only name, location, and strength are required - everything else gets defaults",
+
+    "name": "Murat",
+    "location": "Lyon",
+    "strength": 45000,
+
+    "_optional_fields_below": "These are all optional with sensible defaults",
+
+    "personality": "aggressive",
+    "nation": "France",
+    "cavalry": true,
+    "movement_range": 2,
+
+    "skills": {
+        "tactical": 6,
+        "shock": 9,
+        "defense": 3,
+        "logistics": 4,
+        "administration": 3,
+        "command": 7
+    },
+
+    "ability": {
+        "name": "King of Naples",
+        "description": "Charismatic cavalry leader"
+    }
+}

@@ -29,6 +29,30 @@ class Region:
         """Check if this region borders another region."""
         return other_region_name in self.adjacent_regions
 
+    def to_dict(self) -> dict:
+        """Serialize region for save/load."""
+        return {
+            "name": self.name,
+            "adjacent_regions": self.adjacent_regions,
+            "income_value": self.income_value,
+            "is_capital": self.is_capital,
+            "controller": self.controller,
+            "garrison_strength": self.garrison_strength
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'Region':
+        """Deserialize region from save/load data."""
+        region = cls(
+            name=data["name"],
+            adjacent_regions=data["adjacent_regions"],
+            income_value=data.get("income_value", 100),
+            is_capital=data.get("is_capital", False)
+        )
+        region.controller = data.get("controller")
+        region.garrison_strength = data.get("garrison_strength", 0)
+        return region
+
     def __repr__(self) -> str:
         capital_marker = " (Capital)" if self.is_capital else ""
         controller_info = f" - Controlled by {self.controller}" if self.controller else ""

@@ -65,6 +65,11 @@ Provider Swap (Anthropic -> Groq):
 New Actions:
     - Update VALID_ACTIONS in validation.py (single source of truth)
     - Import from validation.py, don't duplicate here
+    - WHEN TO ADD FEW-SHOT EXAMPLES:
+      * Always add if action has non-obvious syntax (e.g., "propose peace to Prussia")
+      * Always add if action takes special parameters (e.g., conditions, terms)
+      * Skip if action uses simple "marshal, verb target" pattern (e.g., "Ney, recruit")
+      * Add both tactical and strategic variants if applicable
 
 New Marshals/Regions:
     - Extracted from game_state parameter dynamically

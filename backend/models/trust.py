@@ -87,6 +87,15 @@ class Trust:
     def __int__(self) -> int:
         return int(self._value)
 
+    def to_dict(self) -> dict:
+        """Serialize trust for save/load."""
+        return {"value": self._value}
+
+    @classmethod
+    def from_dict(cls, data: dict) -> 'Trust':
+        """Deserialize trust from save/load data."""
+        return cls(data.get("value", 70))
+
 
 def calculate_obedience_chance(trust_value: int) -> float:
     """
