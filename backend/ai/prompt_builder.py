@@ -310,6 +310,13 @@ Conditions (set in strategic_condition dict):
 IMPORTANT: "move to [region]" (2 words) = tactical (immediate). "march to [region]" = strategic (multi-turn).
 If the command implies an ongoing campaign or uses strategic keywords above, set is_strategic=true.
 
+## Cancel Command (Clears Strategic Orders)
+Cancel keywords: "halt", "stop", "cancel", "abort", "stand down", "belay that"
+When detected, set action="cancel". This clears the marshal's current strategic order.
+Example: "Ney, halt" → action: cancel, marshal: Ney
+Example: "Cancel Davout's orders" → action: cancel, marshal: Davout
+Example: "Stop everything" → action: cancel (marshal inferred from context)
+
 ## Ambiguity Scoring (0-100)
 - 0-20: Crystal clear ("Attack Wellington at Waterloo", "March to Vienna")
 - 21-40: Clear but minor gaps ("March to Vienna" — no condition specified)

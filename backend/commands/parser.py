@@ -53,6 +53,8 @@ class CommandParser:
             # Cavalry recklessness (Phase 3)
             "charge",    # Glorious Charge - available at recklessness >= 1
             "restrain",  # Restrain marshal - normal attack instead of charge
+            # Strategic cancel (Phase E)
+            "cancel",    # Cancel active strategic order
         ]
 
         # Valid stances for stance_change command (Phase 2.7)

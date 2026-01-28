@@ -1595,3 +1595,142 @@ class TestMovementEnforcement:
 
         # Ney should pass through Belgium (empty enemy territory)
         assert ney.location != "Paris"  # Moved at least one step
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PHASE E: CANCEL COMMAND TESTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestCancelCommand:
+    """Tests for Phase E cancel/halt/stop command."""
+
+    def test_cancel_clears_strategic_order(self, world, game_state, executor):
+        """Cancel clears marshal's strategic order."""
+        ney = world.get_marshal("Ney")
+        ney.location = "Paris"
+        _set_strategic_order(ney, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+        assert ney.in_strategic_mode
+
+        with _suppress_output():
+            result = executor.execute(
+                {"command": {"marshal": "Ney", "action": "cancel"}},
+                game_state
+            )
+
+        assert result.get("success") is True
+        assert ney.strategic_order is None
+        assert "Standing down" in result.get("message", "")
+
+    def test_cancel_costs_one_action(self, world, game_state, executor):
+        """Cancel consumes 1 action."""
+        ney = world.get_marshal("Ney")
+        ney.location = "Paris"
+        _set_strategic_order(ney, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+
+        actions_before = world.actions_remaining
+
+        with _suppress_output():
+            executor.execute(
+                {"command": {"marshal": "Ney", "action": "cancel"}},
+                game_state
+            )
+
+        assert world.actions_remaining == actions_before - 1
+
+    def test_cancel_applies_trust_penalty(self, world, game_state, executor):
+        """Cancel applies -3 trust."""
+        ney = world.get_marshal("Ney")
+        ney.location = "Paris"
+        _set_strategic_order(ney, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+
+        trust_before = ney.trust.value if hasattr(ney, 'trust') else None
+
+        with _suppress_output():
+            result = executor.execute(
+                {"command": {"marshal": "Ney", "action": "cancel"}},
+                game_state
+            )
+
+        assert result.get("trust_change") == -3
+        if trust_before is not None:
+            assert ney.trust.value == trust_before - 3
+
+    def test_cancel_clears_pending_interrupt(self, world, game_state, executor):
+        """Cancel also clears pending interrupt."""
+        ney = world.get_marshal("Ney")
+        ney.location = "Paris"
+        _set_strategic_order(ney, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+        ney.pending_interrupt = {
+            "interrupt_type": "cannon_fire",
+            "options": ["investigate", "continue_order", "hold_position"]
+        }
+
+        with _suppress_output():
+            executor.execute(
+                {"command": {"marshal": "Ney", "action": "cancel"}},
+                game_state
+            )
+
+        assert ney.pending_interrupt is None
+        assert ney.strategic_order is None
+
+    def test_cancel_no_order_free(self, world, game_state, executor):
+        """Cancel with no active order is free (no action cost)."""
+        ney = world.get_marshal("Ney")
+        ney.location = "Paris"
+        ney.strategic_order = None
+
+        actions_before = world.actions_remaining
+
+        with _suppress_output():
+            result = executor.execute(
+                {"command": {"marshal": "Ney", "action": "cancel"}},
+                game_state
+            )
+
+        assert result.get("success") is False
+        assert "no active order" in result.get("message", "").lower()
+        # No action consumed
+        assert world.actions_remaining == actions_before
+
+    def test_cancel_keyword_halt(self, world, game_state):
+        """'halt' keyword parses to cancel action."""
+        from backend.ai.llm_client import LLMClient
+        client = LLMClient()
+        result = client.parse_command("Ney, halt")
+        assert result.get("action") == "cancel"
+
+    def test_cancel_keyword_stop(self, world, game_state):
+        """'stop' keyword parses to cancel action."""
+        from backend.ai.llm_client import LLMClient
+        client = LLMClient()
+        result = client.parse_command("stop")
+        assert result.get("action") == "cancel"
+
+    def test_cancel_keyword_abort(self, world, game_state):
+        """'abort' keyword parses to cancel action."""
+        from backend.ai.llm_client import LLMClient
+        client = LLMClient()
+        result = client.parse_command("abort")
+        assert result.get("action") == "cancel"
+
+    def test_cancel_keyword_stand_down(self, world, game_state):
+        """'stand down' parses to cancel, not neutral stance."""
+        from backend.ai.llm_client import LLMClient
+        client = LLMClient()
+        result = client.parse_command("Ney, stand down")
+        assert result.get("action") == "cancel"
+
+    def test_cancel_keyword_cancel_order(self, world, game_state):
+        """'cancel order' parses to cancel action."""
+        from backend.ai.llm_client import LLMClient
+        client = LLMClient()
+        result = client.parse_command("cancel Davout's orders")
+        assert result.get("action") == "cancel"
+
+    def test_cancel_keyword_belay(self, world, game_state):
+        """'belay that' parses to cancel action."""
+        from backend.ai.llm_client import LLMClient
+        client = LLMClient()
+        result = client.parse_command("belay that")
+        assert result.get("action") == "cancel"

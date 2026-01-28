@@ -403,6 +403,16 @@ class LLMClient:
             action = "help"
         elif "end turn" in command_lower or "end_turn" in command_lower or "next turn" in command_lower:
             action = "end_turn"
+        # Cancel strategic order keywords (Phase E) — must be before attack/stance
+        elif any(kw in command_lower for kw in [
+            "cancel order", "cancel orders", "cancel ", "halt order", "halt orders",
+            "abort order", "abort orders", "abort mission",
+            "stand down", "belay that", "belay",
+            " halt", ", halt",
+        ]):
+            action = "cancel"
+        elif command_lower.strip() in ("halt", "stop", "cancel", "abort"):
+            action = "cancel"
         elif "attack" in command_lower or "charge" in command_lower:
             action = "attack"
         # Strategic PURSUE keywords → base action "attack" (strategic parser upgrades)
@@ -463,7 +473,7 @@ class LLMClient:
                                                   "switch to defensive"]):
             action = "stance_change"
         elif any(kw in command_lower for kw in ["neutral stance", "go neutral", "adopt neutral",
-                                                  "stand down", "return to neutral", "take neutral",
+                                                  "return to neutral", "take neutral",
                                                   "switch to neutral"]):
             action = "stance_change"
         # Simple stance words - "Ney aggressive", "aggressive", "Davout defensive"

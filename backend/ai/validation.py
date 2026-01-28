@@ -33,6 +33,7 @@ VALID_ACTIONS: Set[str] = {
     "recruit",
     "charge",     # Cavalry recklessness
     "restrain",   # Restrain reckless cavalry
+    "cancel",     # Cancel strategic order (Phase E)
 }
 
 # Meta actions that bypass validation entirely

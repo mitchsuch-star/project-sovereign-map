@@ -914,6 +914,8 @@ RETREAT RECOVERY (3 turns):
             result = self._execute_charge(command, game_state)
         elif action == "restrain":
             result = self._execute_restrain(command, game_state)
+        elif action == "cancel":
+            result = self._execute_cancel(command, game_state)
         # Route to appropriate handler
         elif command_type == "specific":
             result = self._execute_specific(command, game_state)
@@ -4415,6 +4417,63 @@ RETREAT RECOVERY (3 turns):
         return {
             "success": False,
             "message": "No pending Glorious Charge to restrain. Use 'attack' for normal attacks."
+        }
+
+    # ════════════════════════════════════════════════════════════
+    # CANCEL STRATEGIC ORDER (Phase E)
+    # ════════════════════════════════════════════════════════════
+
+    def _execute_cancel(self, command: Dict, game_state: Dict) -> Dict:
+        """
+        Cancel a marshal's active strategic order.
+
+        Costs 1 action. Applies -3 trust.
+        If no active order, returns error (no cost).
+        """
+        world: WorldState = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "Game state error"}
+
+        marshal_name = command.get("marshal")
+        if not marshal_name:
+            # Try to find a marshal with an active strategic order
+            for m in world.marshals.values():
+                if m.nation == world.player_nation and m.in_strategic_mode:
+                    marshal_name = m.name
+                    break
+            if not marshal_name:
+                return {"success": False,
+                        "message": "No marshal has an active strategic order to cancel."}
+
+        marshal = world.get_marshal(marshal_name)
+        if not marshal:
+            return {"success": False, "message": f"Marshal '{marshal_name}' not found."}
+
+        if not marshal.in_strategic_mode and not getattr(marshal, 'pending_interrupt', None):
+            return {"success": False, "no_action_cost": True,
+                    "message": f"{marshal.name} has no active order to cancel."}
+
+        # Cancel the order
+        old_command = marshal.strategic_order.command_type if marshal.strategic_order else "order"
+        marshal.strategic_order = None
+        marshal.pending_interrupt = None
+
+        # Clear HOLD state if applicable
+        if getattr(marshal, 'holding_position', False):
+            marshal.holding_position = False
+            marshal.hold_region = ""
+
+        # Trust penalty
+        trust_change = -3
+        if hasattr(marshal, 'trust'):
+            marshal.trust.modify(trust_change)
+
+        return {
+            "success": True,
+            "message": f"{marshal.name} acknowledges. Standing down. "
+                       f"({old_command} order cancelled)",
+            "trust_change": trust_change,
+            "order_cleared": True,
         }
 
     def _execute_glorious_charge(self, marshal, target: str, world: WorldState, game_state: Dict) -> Dict:
