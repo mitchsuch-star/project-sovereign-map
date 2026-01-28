@@ -68,6 +68,280 @@ class StrategicExecutor:
         return reports
 
     # ══════════════════════════════════════════════════════════════════════════
+    # INTERRUPT RESPONSE HANDLING (Phase D)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def handle_response(self, marshal_name: str, response_type: str,
+                        choice: str, world, game_state: Dict) -> Dict:
+        """
+        Process player's response to a strategic interrupt.
+
+        Args:
+            marshal_name: Name of the marshal with pending interrupt
+            response_type: "cannon_fire", "blocked_path", "ally_moving"
+            choice: Player's chosen option
+            world: WorldState
+            game_state: Game state dict
+
+        Returns:
+            Result dict with action taken, trust changes, order state
+        """
+        marshal = world.get_marshal(marshal_name)
+        if not marshal:
+            return {"success": False, "message": f"Marshal '{marshal_name}' not found."}
+
+        pending = getattr(marshal, 'pending_interrupt', None)
+        if not pending:
+            return {"success": False,
+                    "message": f"{marshal_name} has no pending interrupt."}
+
+        order = marshal.strategic_order
+        if not order:
+            marshal.pending_interrupt = None
+            return {"success": False,
+                    "message": f"{marshal_name} has no active strategic order."}
+
+        # Validate choice against stored options
+        valid_options = pending.get("options", [])
+        if choice not in valid_options:
+            return {"success": False,
+                    "message": f"Invalid choice '{choice}'. Valid: {', '.join(valid_options)}"}
+
+        # Clear pending interrupt before processing
+        marshal.pending_interrupt = None
+
+        # Route to appropriate handler
+        interrupt_type = pending.get("interrupt_type", response_type)
+
+        if interrupt_type == "cannon_fire":
+            return self._respond_cannon_fire(marshal, order, choice, pending, world, game_state)
+        elif interrupt_type in ("contact", "contact_bad_odds"):
+            return self._respond_blocked_path(marshal, order, choice, pending, world, game_state)
+        elif interrupt_type == "ally_moving":
+            return self._respond_ally_moving(marshal, order, choice, pending, world, game_state)
+        else:
+            return {"success": False,
+                    "message": f"Unknown interrupt type: {interrupt_type}"}
+
+    def _respond_cannon_fire(self, marshal, order, choice, pending,
+                             world, game_state) -> Dict:
+        """Handle player response to cannon fire interrupt."""
+        battle_location = pending.get("battle_location", "unknown")
+        trust_change = 0
+
+        if choice == "investigate":
+            # Cancel current order, move toward battle
+            cmd_type = order.command_type
+            marshal.strategic_order = None
+            # Move toward battle location
+            move_result = self.executor.execute(
+                {"command": {
+                    "marshal": marshal.name,
+                    "action": "move",
+                    "target": battle_location,
+                    "_strategic_execution": True
+                }},
+                game_state
+            )
+            return {
+                "success": True,
+                "message": f"{marshal.name} abandons {cmd_type} order and "
+                           f"marches toward the guns at {battle_location}.",
+                "order_cleared": True,
+                "trust_change": trust_change,
+                "action_taken": "investigate"
+            }
+
+        elif choice == "continue_order":
+            # Resume strategic order — marshal ignores cannon fire
+            trust_change = -2  # Non-literal acting literal
+            if hasattr(marshal, 'trust'):
+                marshal.trust.modify(trust_change)
+            return {
+                "success": True,
+                "message": f"{marshal.name} reluctantly continues the march, "
+                           f"ignoring cannon fire at {battle_location}.",
+                "order_cleared": False,
+                "trust_change": trust_change,
+                "action_taken": "continue_order"
+            }
+
+        elif choice == "hold_position":
+            # Cancel order, stay put
+            cmd_type = order.command_type
+            marshal.strategic_order = None
+            trust_change = -3
+            if hasattr(marshal, 'trust'):
+                marshal.trust.modify(trust_change)
+            return {
+                "success": True,
+                "message": f"{marshal.name} halts and holds position. "
+                           f"{cmd_type} order cancelled.",
+                "order_cleared": True,
+                "trust_change": trust_change,
+                "action_taken": "hold_position"
+            }
+
+        return {"success": False, "message": f"Unknown cannon_fire choice: {choice}"}
+
+    def _respond_blocked_path(self, marshal, order, choice, pending,
+                              world, game_state) -> Dict:
+        """Handle player response to blocked path (enemy contact)."""
+        enemy_name = pending.get("enemy", "unknown")
+        blocked_region = pending.get("location", "unknown")
+        trust_change = 0
+
+        if choice in ("attack", "attack_anyway"):
+            # Attack the blocking enemy
+            result = self.executor.execute(
+                {"command": {
+                    "marshal": marshal.name,
+                    "action": "attack",
+                    "target": enemy_name,
+                    "_strategic_execution": True
+                }},
+                game_state
+            )
+            combat_success = result.get("success", False)
+            combat_msg = result.get("message", "")
+
+            if combat_success and result.get("battle_result", {}).get("result") == "victory":
+                # Victory — continue order
+                return {
+                    "success": True,
+                    "message": f"{marshal.name} attacks {enemy_name} and wins! "
+                               f"Continuing {order.command_type} order. {combat_msg}",
+                    "order_cleared": False,
+                    "trust_change": 0,
+                    "action_taken": "attack"
+                }
+            else:
+                # Loss or stalemate — pause order
+                return {
+                    "success": True,
+                    "message": f"{marshal.name} attacks {enemy_name}. {combat_msg} "
+                               f"{order.command_type} order paused.",
+                    "order_cleared": False,
+                    "trust_change": 0,
+                    "action_taken": "attack"
+                }
+
+        elif choice == "go_around":
+            # Recalculate path avoiding ALL enemy regions (not just the one)
+            destination = order.target_snapshot_location or order.target
+            enemy_regions = self._get_enemy_occupied_regions(marshal.nation, world)
+            new_path = world.find_path(
+                marshal.location, destination,
+                avoid_regions=enemy_regions
+            )
+            if new_path:
+                order.path = [r for r in new_path if r != marshal.location]
+                return {
+                    "success": True,
+                    "message": f"{marshal.name} reroutes around {blocked_region}.",
+                    "order_cleared": False,
+                    "trust_change": 0,
+                    "action_taken": "go_around"
+                }
+            else:
+                # No safe path exists — break order
+                marshal.strategic_order = None
+                return {
+                    "success": True,
+                    "message": f"No safe route around {blocked_region}. "
+                               f"{order.command_type} order cancelled.",
+                    "order_cleared": True,
+                    "trust_change": 0,
+                    "action_taken": "go_around_failed"
+                }
+
+        elif choice == "hold_position":
+            marshal.strategic_order = None
+            trust_change = -3
+            if hasattr(marshal, 'trust'):
+                marshal.trust.modify(trust_change)
+            return {
+                "success": True,
+                "message": f"{marshal.name} holds position. "
+                           f"{order.command_type} order cancelled.",
+                "order_cleared": True,
+                "trust_change": trust_change,
+                "action_taken": "hold_position"
+            }
+
+        elif choice == "cancel_order":
+            marshal.strategic_order = None
+            trust_change = -3
+            if hasattr(marshal, 'trust'):
+                marshal.trust.modify(trust_change)
+            return {
+                "success": True,
+                "message": f"{marshal.name}: {order.command_type} order cancelled.",
+                "order_cleared": True,
+                "trust_change": trust_change,
+                "action_taken": "cancel_order"
+            }
+
+        return {"success": False, "message": f"Unknown blocked_path choice: {choice}"}
+
+    def _respond_ally_moving(self, marshal, order, choice, pending,
+                             world, game_state) -> Dict:
+        """Handle player response to supported ally moving."""
+        ally_name = pending.get("ally", order.target)
+        trust_change = 0
+
+        if choice == "follow":
+            # Update path to ally's new location
+            ally = world.get_marshal(ally_name)
+            if ally:
+                new_path = self._get_personality_aware_path(
+                    marshal, ally.location, world)
+                if new_path:
+                    order.path = new_path
+                    return {
+                        "success": True,
+                        "message": f"{marshal.name} adjusts course to follow "
+                                   f"{ally_name} to {ally.location}.",
+                        "order_cleared": False,
+                        "trust_change": 0,
+                        "action_taken": "follow"
+                    }
+            return {
+                "success": True,
+                "message": f"{marshal.name} cannot reach {ally_name}. "
+                           f"Holding position.",
+                "order_cleared": False,
+                "trust_change": 0,
+                "action_taken": "follow_failed"
+            }
+
+        elif choice == "hold_current":
+            # Pause — wait for ally to return or new orders
+            return {
+                "success": True,
+                "message": f"{marshal.name} holds current position, "
+                           f"awaiting {ally_name}'s return.",
+                "order_cleared": False,
+                "trust_change": 0,
+                "action_taken": "hold_current"
+            }
+
+        elif choice == "cancel_support":
+            marshal.strategic_order = None
+            trust_change = -3
+            if hasattr(marshal, 'trust'):
+                marshal.trust.modify(trust_change)
+            return {
+                "success": True,
+                "message": f"{marshal.name}: SUPPORT order for {ally_name} cancelled.",
+                "order_cleared": True,
+                "trust_change": trust_change,
+                "action_taken": "cancel_support"
+            }
+
+        return {"success": False, "message": f"Unknown ally_moving choice: {choice}"}
+
+    # ══════════════════════════════════════════════════════════════════════════
     # CORE EXECUTION FLOW
     # ══════════════════════════════════════════════════════════════════════════
 
@@ -77,7 +351,19 @@ class StrategicExecutor:
         if not order:
             return None
 
-        # 0. Block execution during retreat recovery
+        # 0a. If marshal has a pending interrupt awaiting player response, skip execution
+        if getattr(marshal, 'pending_interrupt', None):
+            return {
+                "marshal": marshal.name,
+                "command": order.command_type,
+                "order_status": "awaiting_response",
+                "requires_input": True,
+                "interrupt_type": marshal.pending_interrupt.get("interrupt_type"),
+                "message": f"{marshal.name} awaits your orders.",
+                "options": marshal.pending_interrupt.get("options", [])
+            }
+
+        # 0b. Block execution during retreat recovery
         recovery = getattr(marshal, 'retreat_recovery', 0)
         if recovery > 0:
             return {
@@ -99,6 +385,9 @@ class StrategicExecutor:
         if interrupt:
             response = self._handle_interrupt(marshal, interrupt, world, game_state)
             if response:
+                # Store pending interrupt if it requires player input
+                if response.get("requires_input"):
+                    marshal.pending_interrupt = response
                 return response
 
         # 3. Execute command-specific logic
@@ -111,7 +400,11 @@ class StrategicExecutor:
 
         handler = handlers.get(order.command_type)
         if handler:
-            return handler(marshal, world, game_state)
+            result = handler(marshal, world, game_state)
+            # Store pending interrupt if handler result requires player input
+            if result and result.get("requires_input"):
+                marshal.pending_interrupt = result
+            return result
 
         return {
             "marshal": marshal.name,
@@ -886,11 +1179,12 @@ class StrategicExecutor:
         order = marshal.strategic_order
 
         if personality == "literal":
-            # Reroute silently around the blockage
+            # Reroute silently around ALL enemy regions
             destination = order.target_snapshot_location or order.target
+            enemy_regions = self._get_enemy_occupied_regions(marshal.nation, world)
             new_path = world.find_path(
                 marshal.location, destination,
-                avoid_regions=[blocked_region]
+                avoid_regions=enemy_regions
             )
             if new_path:
                 order.path = [r for r in new_path if r != marshal.location]
@@ -1060,12 +1354,16 @@ class StrategicExecutor:
             path = world.find_path(marshal.location, destination,
                                    avoid_regions=enemy_regions)
             if not path:
-                # No safe route exists — use direct path.
-                # The movement loop will hit _handle_blocked_path() when the
-                # cautious marshal encounters the enemy region, which asks the
-                # player for a decision before proceeding.
+                # No safe route — fall back to direct path. The marshal will
+                # NOT walk through enemies: the movement loop (line 466-468)
+                # blocks entry and triggers _handle_blocked_path(), which asks
+                # the player before proceeding. This is intentional UX — the
+                # marshal starts moving and reports contact when it happens.
                 path = world.find_path(marshal.location, destination)
         else:
+            # Aggressive/literal/balanced: direct path. Movement loop at
+            # _execute_move_to line 466 still blocks entry into enemy regions
+            # and triggers _handle_blocked_path() for interrupt/reroute.
             path = world.find_path(marshal.location, destination)
 
         if not path:

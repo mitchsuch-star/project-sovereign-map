@@ -1220,3 +1220,378 @@ class TestEdgeCases:
         # Order completed (condition met), holding_position managed by _complete_order
         # Note: _complete_order doesn't clear holding_position — only _break_order does
         # But condition completion goes through _complete_order
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PHASE D: INTERRUPT RESPONSE TESTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestInterruptResponse:
+    """Tests for Phase D interrupt response handling."""
+
+    # ── Cannon Fire ──────────────────────────────────────────────────────
+
+    def test_cannon_fire_investigate(self, world, game_state, strategic_executor):
+        """Investigate cancels order and moves toward battle."""
+        ney = world.get_marshal("Ney")
+        ney.personality = "cautious"
+        ney.location = "Lyon"
+        _set_strategic_order(ney, "MOVE_TO", "Vienna", path=["Bavaria", "Vienna"])
+
+        # Simulate pending interrupt
+        ney.pending_interrupt = {
+            "interrupt_type": "cannon_fire",
+            "battle_location": "Bavaria",
+            "options": ["investigate", "continue_order", "hold_position"]
+        }
+
+        with _suppress_output():
+            result = strategic_executor.handle_response(
+                "Ney", "cannon_fire", "investigate", world, game_state
+            )
+
+        assert result["success"] is True
+        assert result["order_cleared"] is True
+        assert result["trust_change"] == 0
+        assert ney.strategic_order is None
+        assert ney.pending_interrupt is None
+
+    def test_cannon_fire_continue(self, world, game_state, strategic_executor):
+        """Continue order ignoring cannon fire costs -2 trust."""
+        davout = world.get_marshal("Davout")
+        davout.personality = "cautious"
+        davout.location = "Paris"
+        _set_strategic_order(davout, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+
+        davout.pending_interrupt = {
+            "interrupt_type": "cannon_fire",
+            "battle_location": "Belgium",
+            "options": ["investigate", "continue_order", "hold_position"]
+        }
+
+        trust_before = davout.trust.value if hasattr(davout, 'trust') else None
+
+        with _suppress_output():
+            result = strategic_executor.handle_response(
+                "Davout", "cannon_fire", "continue_order", world, game_state
+            )
+
+        assert result["success"] is True
+        assert result["order_cleared"] is False
+        assert result["trust_change"] == -2
+        assert davout.strategic_order is not None  # Order preserved
+        if trust_before is not None:
+            assert davout.trust.value == trust_before - 2
+
+    def test_cannon_fire_hold_position(self, world, game_state, strategic_executor):
+        """Hold position cancels order, -3 trust."""
+        davout = world.get_marshal("Davout")
+        davout.personality = "cautious"
+        davout.location = "Paris"
+        _set_strategic_order(davout, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+
+        davout.pending_interrupt = {
+            "interrupt_type": "cannon_fire",
+            "battle_location": "Belgium",
+            "options": ["investigate", "continue_order", "hold_position"]
+        }
+
+        with _suppress_output():
+            result = strategic_executor.handle_response(
+                "Davout", "cannon_fire", "hold_position", world, game_state
+            )
+
+        assert result["success"] is True
+        assert result["order_cleared"] is True
+        assert result["trust_change"] == -3
+        assert davout.strategic_order is None
+
+    # ── Blocked Path ─────────────────────────────────────────────────────
+
+    def test_blocked_path_attack_victory(self, world, game_state, strategic_executor):
+        """Attack blocking enemy — on victory, order continues."""
+        ney = world.get_marshal("Ney")
+        ney.personality = "cautious"
+        ney.location = "Belgium"
+        ney.strength = 80000  # Much stronger
+
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Belgium"  # Same region for attack
+        wellington.strength = 10000  # Weak
+
+        _set_strategic_order(ney, "MOVE_TO", "Netherlands", path=["Netherlands"])
+
+        ney.pending_interrupt = {
+            "interrupt_type": "contact",
+            "enemy": "Wellington",
+            "location": "Netherlands",
+            "options": ["attack", "go_around", "hold_position", "cancel_order"]
+        }
+
+        with _suppress_output():
+            result = strategic_executor.handle_response(
+                "Ney", "blocked_path", "attack", world, game_state
+            )
+
+        assert result["success"] is True
+        assert result["trust_change"] == 0
+        # Order should still exist (victory = continue)
+        assert result["order_cleared"] is False
+
+    def test_blocked_path_go_around(self, world, game_state, strategic_executor):
+        """Go around reroutes path avoiding blocked region."""
+        davout = world.get_marshal("Davout")
+        davout.personality = "cautious"
+        davout.location = "Paris"
+
+        # Place enemy in Belgium so _get_enemy_occupied_regions finds it
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Belgium"
+
+        _set_strategic_order(davout, "MOVE_TO", "Rhine",
+                             path=["Belgium", "Rhine"])
+
+        davout.pending_interrupt = {
+            "interrupt_type": "contact",
+            "enemy": "Wellington",
+            "location": "Belgium",
+            "options": ["attack", "go_around", "hold_position", "cancel_order"]
+        }
+
+        with _suppress_output():
+            result = strategic_executor.handle_response(
+                "Davout", "blocked_path", "go_around", world, game_state
+            )
+
+        assert result["success"] is True
+        assert result["order_cleared"] is False
+        # Path should now avoid Belgium (go through Lyon)
+        order = davout.strategic_order
+        assert order is not None
+        assert "Belgium" not in order.path
+
+    def test_blocked_path_cancel(self, world, game_state, strategic_executor):
+        """Cancel order clears strategic order with -3 trust."""
+        davout = world.get_marshal("Davout")
+        davout.personality = "cautious"
+        davout.location = "Paris"
+        _set_strategic_order(davout, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+
+        davout.pending_interrupt = {
+            "interrupt_type": "contact",
+            "enemy": "Wellington",
+            "location": "Belgium",
+            "options": ["attack", "go_around", "hold_position", "cancel_order"]
+        }
+
+        trust_before = davout.trust.value if hasattr(davout, 'trust') else None
+
+        with _suppress_output():
+            result = strategic_executor.handle_response(
+                "Davout", "blocked_path", "cancel_order", world, game_state
+            )
+
+        assert result["success"] is True
+        assert result["order_cleared"] is True
+        assert result["trust_change"] == -3
+        assert davout.strategic_order is None
+
+    # ── Support / Ally Moving ────────────────────────────────────────────
+
+    def test_support_follow_moving_ally(self, world, game_state, strategic_executor):
+        """Follow updates path to ally's new location."""
+        davout = world.get_marshal("Davout")
+        davout.personality = "cautious"
+        davout.location = "Paris"
+
+        ney = world.get_marshal("Ney")
+        ney.location = "Rhine"  # Ally moved here
+
+        _set_strategic_order(davout, "SUPPORT", "Ney",
+                             target_type="friendly_marshal",
+                             path=["Belgium"])
+
+        davout.pending_interrupt = {
+            "interrupt_type": "ally_moving",
+            "ally": "Ney",
+            "ally_destination": "Rhine",
+            "options": ["follow", "hold_current", "cancel_support"]
+        }
+
+        with _suppress_output():
+            result = strategic_executor.handle_response(
+                "Davout", "ally_moving", "follow", world, game_state
+            )
+
+        assert result["success"] is True
+        assert result["order_cleared"] is False
+        assert result["action_taken"] == "follow"
+        # Path should now lead toward Rhine
+        assert davout.strategic_order is not None
+
+    def test_support_hold_current(self, world, game_state, strategic_executor):
+        """Hold current pauses but doesn't clear order."""
+        davout = world.get_marshal("Davout")
+        davout.personality = "cautious"
+        davout.location = "Paris"
+        _set_strategic_order(davout, "SUPPORT", "Ney",
+                             target_type="friendly_marshal",
+                             path=["Belgium"])
+
+        davout.pending_interrupt = {
+            "interrupt_type": "ally_moving",
+            "ally": "Ney",
+            "options": ["follow", "hold_current", "cancel_support"]
+        }
+
+        with _suppress_output():
+            result = strategic_executor.handle_response(
+                "Davout", "ally_moving", "hold_current", world, game_state
+            )
+
+        assert result["success"] is True
+        assert result["order_cleared"] is False
+        assert davout.strategic_order is not None  # NOT cleared
+
+    # ── Validation ───────────────────────────────────────────────────────
+
+    def test_invalid_choice_rejected(self, world, game_state, strategic_executor):
+        """Invalid choice returns error."""
+        ney = world.get_marshal("Ney")
+        ney.location = "Paris"
+        _set_strategic_order(ney, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+
+        ney.pending_interrupt = {
+            "interrupt_type": "contact",
+            "options": ["attack", "go_around", "hold_position", "cancel_order"]
+        }
+
+        result = strategic_executor.handle_response(
+            "Ney", "blocked_path", "dance", world, game_state
+        )
+
+        assert result["success"] is False
+        assert "Invalid choice" in result["message"]
+
+    def test_no_pending_interrupt(self, world, game_state, strategic_executor):
+        """Response with no pending interrupt returns error."""
+        ney = world.get_marshal("Ney")
+        ney.location = "Paris"
+        _set_strategic_order(ney, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+        ney.pending_interrupt = None
+
+        result = strategic_executor.handle_response(
+            "Ney", "cannon_fire", "investigate", world, game_state
+        )
+
+        assert result["success"] is False
+        assert "no pending interrupt" in result["message"]
+
+    def test_pending_interrupt_blocks_execution(self, world, game_state,
+                                                 strategic_executor):
+        """Marshal with pending interrupt skips turn execution."""
+        davout = world.get_marshal("Davout")
+        davout.personality = "cautious"
+        davout.location = "Paris"
+        _set_strategic_order(davout, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+
+        davout.pending_interrupt = {
+            "interrupt_type": "cannon_fire",
+            "battle_location": "Belgium",
+            "options": ["investigate", "continue_order", "hold_position"]
+        }
+
+        location_before = davout.location
+
+        with _suppress_output():
+            reports = strategic_executor.process_strategic_orders(world, game_state)
+
+        # Marshal should NOT have moved — blocked by pending interrupt
+        assert davout.location == location_before
+        assert len(reports) >= 1
+        assert reports[0].get("requires_input") is True
+
+
+class TestMovementEnforcement:
+    """Tests that marshals never enter enemy-occupied regions without combat."""
+
+    def test_movement_stops_before_enemy_region(self, world, game_state,
+                                                 strategic_executor):
+        """Marshal stops at region BEFORE enemy, not inside it."""
+        ney = world.get_marshal("Ney")
+        ney.personality = "aggressive"
+        ney.location = "Paris"
+
+        # Place enemy in Belgium (on the path Paris→Belgium→Rhine)
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Belgium"
+
+        _set_strategic_order(ney, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+
+        with _suppress_output():
+            reports = strategic_executor.process_strategic_orders(world, game_state)
+
+        # Ney must still be in Paris — stopped BEFORE Belgium
+        assert ney.location == "Paris"
+
+    def test_go_around_avoids_all_enemy_armies(self, world, game_state,
+                                                strategic_executor):
+        """go_around avoids ALL enemy-occupied regions, not just the blocking one."""
+        davout = world.get_marshal("Davout")
+        davout.personality = "cautious"
+        davout.location = "Paris"
+
+        # Place enemies in Belgium AND Waterloo
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Belgium"
+        blucher = world.get_marshal("Blucher")
+        blucher.location = "Waterloo"
+
+        _set_strategic_order(davout, "MOVE_TO", "Rhine",
+                             path=["Belgium", "Rhine"])
+
+        davout.pending_interrupt = {
+            "interrupt_type": "contact",
+            "enemy": "Wellington",
+            "location": "Belgium",
+            "options": ["attack", "go_around", "hold_position", "cancel_order"]
+        }
+
+        with _suppress_output():
+            result = strategic_executor.handle_response(
+                "Davout", "blocked_path", "go_around", world, game_state
+            )
+
+        assert result["success"] is True
+        if not result["order_cleared"]:
+            order = davout.strategic_order
+            # Path must avoid BOTH Belgium and Waterloo
+            assert "Belgium" not in order.path
+            assert "Waterloo" not in order.path
+
+    def test_move_through_empty_enemy_territory(self, world, game_state,
+                                                 strategic_executor):
+        """Movement through enemy-CONTROLLED but unoccupied region is allowed."""
+        ney = world.get_marshal("Ney")
+        ney.personality = "cautious"
+        ney.location = "Paris"
+
+        # Belgium is enemy-controlled but NO marshal there
+        belgium = world.regions.get("Belgium")
+        if belgium:
+            belgium.controlled_by = "Britain"
+
+        # Move all enemy marshals far away
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Vienna"
+        blucher = world.get_marshal("Blucher")
+        blucher.location = "Vienna"
+
+        _set_strategic_order(ney, "MOVE_TO", "Netherlands",
+                             path=["Belgium", "Netherlands"])
+
+        with _suppress_output():
+            reports = strategic_executor.process_strategic_orders(world, game_state)
+
+        # Ney should pass through Belgium (empty enemy territory)
+        assert ney.location != "Paris"  # Moved at least one step

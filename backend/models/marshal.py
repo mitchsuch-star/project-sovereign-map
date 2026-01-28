@@ -297,6 +297,7 @@ class Marshal:
 
         # Strategic Order System (Phase 5.2)
         self.strategic_order: Optional[StrategicOrder] = None
+        self.pending_interrupt: Optional[Dict] = None  # Phase D: stored between raise and response
 
         # Battle tracking (for cannon fire detection and until_battle_won)
         self.in_combat_this_turn: bool = False
@@ -864,6 +865,7 @@ class Marshal:
             "stance": self.stance.value,
             # Strategic Order System (Phase 5.2)
             "strategic_order": self.strategic_order.to_dict() if self.strategic_order else None,
+            "pending_interrupt": self.pending_interrupt,
             "in_combat_this_turn": self.in_combat_this_turn,
             "last_combat_turn": self.last_combat_turn,
             "last_combat_result": self.last_combat_result,
@@ -886,6 +888,7 @@ class Marshal:
         # Strategic Order System (Phase 5.2)
         if data.get("strategic_order"):
             marshal.strategic_order = StrategicOrder.from_dict(data["strategic_order"])
+        marshal.pending_interrupt = data.get("pending_interrupt")
         marshal.in_combat_this_turn = data.get("in_combat_this_turn", False)
         marshal.last_combat_turn = data.get("last_combat_turn")
         marshal.last_combat_result = data.get("last_combat_result")

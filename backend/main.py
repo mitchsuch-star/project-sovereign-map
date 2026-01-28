@@ -121,6 +121,13 @@ class GloriousChargeResponse(BaseModel):
     choice: str  # 'charge' or 'restrain'
 
 
+class StrategicInterruptResponse(BaseModel):
+    """Request model for responding to strategic command interrupts (Phase D)."""
+    marshal_name: str
+    response_type: str  # 'cannon_fire', 'blocked_path', 'ally_moving'
+    choice: str  # varies by response_type
+
+
 @app.get("/test")
 def test_connection():
     """Test endpoint for Godot connection."""
@@ -517,6 +524,47 @@ def respond_to_glorious_charge(request: GloriousChargeResponse):
         }
     except Exception as e:
         print(f"❌ ERROR handling Glorious Charge response: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "message": f"Error: {str(e)}",
+            "game_state": world.get_game_state_summary()
+        }
+
+
+@app.post("/strategic_response")
+def handle_strategic_response(request: StrategicInterruptResponse):
+    """
+    Respond to a strategic command interrupt (Phase D).
+
+    Called when a marshal's strategic order hits an interrupt that requires
+    player input (cannon fire, blocked path, ally moving).
+
+    Args:
+        request: StrategicInterruptResponse with marshal_name, response_type, choice
+
+    Returns execution result after choice is processed.
+    """
+    try:
+        from backend.commands.strategic import StrategicExecutor
+        strategic_exec = StrategicExecutor(executor)
+        result = strategic_exec.handle_response(
+            request.marshal_name, request.response_type,
+            request.choice, world, game_state
+        )
+
+        return {
+            "success": result.get("success", False),
+            "message": result.get("message", "Response processed"),
+            "order_cleared": result.get("order_cleared", False),
+            "trust_change": result.get("trust_change", 0),
+            "action_taken": result.get("action_taken"),
+            "action_summary": world.get_action_summary(),
+            "game_state": world.get_game_state_summary()
+        }
+    except Exception as e:
+        print(f"❌ ERROR handling strategic response: {e}")
         import traceback
         traceback.print_exc()
         return {
