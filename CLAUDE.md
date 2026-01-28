@@ -49,7 +49,7 @@ CURRENT PHASE: Phase 5.2 (Strategic Commands) 🔄 → Phase 3 (Fun Factor) 📋
 - Phase 2.9 ✅: Retreat System (ally cover, smart destination, AI targeting)
 - Phase 4 ✅: LLM Integration (fast parser, Anthropic fallback, BYOK, validation)
 - Phase 3 📋: Fun Factor (hearing guns, vindication, anti-tedium, pressure)
-- Phase 5.2 🔄: Strategic Commands (MOVE_TO, PURSUE, HOLD, SUPPORT) - Phase A-E ✅, Phase H-K remaining
+- Phase 5.2 🔄: Strategic Commands (MOVE_TO, PURSUE, HOLD, SUPPORT) - Phase A-H ✅, Phase I-K remaining
 - Not implemented: diplomacy, supply lines (see Phase 5-6)
 ```
 
@@ -971,13 +971,21 @@ User: "Grouchy, march to Belgium"
 | 6 | ✅ VERIFIED | `to_dict()`/`from_dict()` already included all fields (false positive) |
 | 7 | ✅ FIXED | `until_battle_won` triggers on both victory AND stalemate |
 
-#### What's Next: Phase H-K
+#### What's Next: Phase I-K
 
-**Remaining phases:**
-- Phase H: Literal bonuses (ambiguity system done, precision execution bonuses remain)
+**Remaining phases (705 tests passing):**
 - Phase I: Save/Load (StrategicOrder serialization for game saves)
 - Phase J: UI Updates (Godot strategic status display, interrupt dialogs)
 - Phase K: Integration testing (full end-to-end strategic command flow)
+
+#### Phase H (Literal Bonuses) ✅ COMPLETE (Design Variation)
+Implemented via sustained precision execution rather than one-time completion bonus:
+- `precision_execution_active/turns` fields on Marshal
+- `get_effective_skill()` returns base skill +1 when precision active (capped at 8)
+- Triggers on command issuance when ambiguity ≤20 AND strategic_score >60
+- Lasts 3 turns, decays in `_process_tactical_states()`
+- Combat integration: combat.py uses `get_effective_skill()` for tactical, shock, defense
+- Tests: 8 tests in test_grouchy_ambiguity.py (TestPrecisionExecution, TestGetEffectiveSkill, TestPrecisionDecay)
 
 #### Phase D (Interrupt Response Handling) ✅ COMPLETE
 - `handle_response()` in strategic.py — processes player choices for interrupts
@@ -1022,7 +1030,7 @@ When strategic command is issued and first step is blocked:
 - [x] Phase L: LLM Strategic Integration ✅ (65 tests)
 - [x] Phase D: Interrupt response handling ✅ (14 tests)
 - [x] Phase E: Cancel command ✅ (14 tests + 7 first-step tests)
-- [ ] Phase H: Literal bonuses (partially done — ambiguity system complete)
+- [x] Phase H: Literal bonuses ✅ (8 tests — design variation: sustained +1 skills for 3 turns)
 - [ ] Phase I: Save/Load (StrategicOrder serialization)
 - [ ] Phase J: UI Updates (Godot strategic status display)
 - [ ] Phase K: Integration testing

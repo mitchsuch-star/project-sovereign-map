@@ -13,14 +13,16 @@ Includes Stance System (Phase 2.7):
 - AGGRESSIVE: +15% attack, -10% defense
 
 PHASE 5.2 STRATEGIC COMMANDS:
-This file will receive new fields for strategic order system.
+Strategic order system for multi-turn autonomous marshal execution.
 See docs/PHASE_5_2_IMPLEMENTATION_PLAN.md for full specification.
 
-Fields to add:
+Implemented fields:
 - strategic_order: Optional[StrategicOrder] - Active strategic command
-- explicit_order_active: bool - LITERAL precision bonus tracking
-- precision_bonus_available: bool - +20% after strategic completion
 - in_strategic_mode: property - Check if strategic order is active
+- precision_execution_active: bool - +1 to all skills when executing clear orders
+- precision_execution_turns: int - Countdown (3 turns), deactivates at 0
+- strategic_combat_bonus: int - 5-15% attack bonus based on order clarity
+- strategic_defense_bonus: int - 5-15% defense bonus based on order clarity
 """
 
 from dataclasses import dataclass, field

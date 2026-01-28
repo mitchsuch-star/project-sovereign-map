@@ -132,7 +132,7 @@ This session completed **Phase D (Interrupt Response Handling)** and **Phase E (
 
 ## Remaining Work (Phase 5.2)
 
-- [ ] Phase H: Literal bonuses (precision execution bonuses)
+- [x] Phase H: Literal bonuses ✅ (already implemented in Foundation — design variation with sustained +1 skills)
 - [ ] Phase I: Save/Load (StrategicOrder serialization)
 - [ ] Phase J: UI Updates (Godot strategic status display)
 - [ ] Phase K: Integration testing
