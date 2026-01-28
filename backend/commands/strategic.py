@@ -257,8 +257,10 @@ class StrategicExecutor:
 
         elif choice == "hold_position":
             marshal.strategic_order = None
-            trust_change = -3
-            if hasattr(marshal, 'trust'):
+            # First-step cancel = 0 trust penalty (order never really started)
+            is_first_step = pending.get("is_first_step", False)
+            trust_change = 0 if is_first_step else -3
+            if trust_change != 0 and hasattr(marshal, 'trust'):
                 marshal.trust.modify(trust_change)
             return {
                 "success": True,
@@ -271,8 +273,10 @@ class StrategicExecutor:
 
         elif choice == "cancel_order":
             marshal.strategic_order = None
-            trust_change = -3
-            if hasattr(marshal, 'trust'):
+            # First-step cancel = 0 trust penalty (order never really started)
+            is_first_step = pending.get("is_first_step", False)
+            trust_change = 0 if is_first_step else -3
+            if trust_change != 0 and hasattr(marshal, 'trust'):
                 marshal.trust.modify(trust_change)
             return {
                 "success": True,

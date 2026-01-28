@@ -2144,15 +2144,30 @@ RETREAT RECOVERY (3 turns):
         if strategic_type == "MOVE_TO" and path:
             steps = min(movement_range, len(path))
             moved_regions = []
-            for _ in range(steps):
+            for i in range(steps):
                 if not order.path:
                     break
                 next_region = order.path[0]
                 enemies = world.get_enemies_in_region(next_region, marshal.nation)
                 if enemies:
                     if not moved_regions:
-                        first_step_msg = f" Path blocked by {enemies[0].name} at {next_region}."
-                    break
+                        # First step blocked — personality-based response
+                        blocked_result = self._handle_first_step_blocked(
+                            marshal, enemies, next_region, world, game_state)
+                        if blocked_result is not None:
+                            return blocked_result  # Interrupt or combat result
+                        # Literal reroute succeeded — continue with new path
+                        first_step_msg = f" Adjusting route to avoid {next_region}."
+                        # Re-check path after reroute
+                        if order.path:
+                            next_region = order.path[0]
+                            enemies = world.get_enemies_in_region(next_region, marshal.nation)
+                            if enemies:
+                                break  # Still blocked after reroute
+                        else:
+                            break  # No path left
+                    else:
+                        break  # Mid-march block, stop here
                 move_result = self.execute(
                     {"command": {
                         "marshal": marshal.name,
@@ -2185,13 +2200,29 @@ RETREAT RECOVERY (3 turns):
             elif path:
                 steps = min(movement_range, len(path))
                 moved_regions = []
-                for _ in range(steps):
+                for i in range(steps):
                     if not order.path:
                         break
                     next_region = order.path[0]
                     enemies = world.get_enemies_in_region(next_region, marshal.nation)
                     if enemies:
-                        break
+                        if not moved_regions:
+                            # First step blocked — personality-based response
+                            blocked_result = self._handle_first_step_blocked(
+                                marshal, enemies, next_region, world, game_state)
+                            if blocked_result is not None:
+                                return blocked_result
+                            # Literal reroute — continue with new path
+                            first_step_msg = f" Adjusting route to avoid {next_region}."
+                            if order.path:
+                                next_region = order.path[0]
+                                enemies = world.get_enemies_in_region(next_region, marshal.nation)
+                                if enemies:
+                                    break
+                            else:
+                                break
+                        else:
+                            break
                     move_result = self.execute(
                         {"command": {
                             "marshal": marshal.name,
@@ -2212,7 +2243,7 @@ RETREAT RECOVERY (3 turns):
         elif strategic_type == "PURSUE" and path:
             steps = min(movement_range, len(path))
             moved_regions = []
-            for _ in range(steps):
+            for i in range(steps):
                 if not order.path:
                     break
                 next_region = order.path[0]
@@ -2220,7 +2251,24 @@ RETREAT RECOVERY (3 turns):
                 # Allow moving into target's region (that's the point of PURSUE)
                 blocking = [e for e in enemies_blocking if e.name != target]
                 if blocking:
-                    break
+                    if not moved_regions:
+                        # First step blocked by non-target enemy
+                        blocked_result = self._handle_first_step_blocked(
+                            marshal, blocking, next_region, world, game_state)
+                        if blocked_result is not None:
+                            return blocked_result
+                        # Literal reroute — continue
+                        first_step_msg = f" Adjusting route to avoid {next_region}."
+                        if order.path:
+                            next_region = order.path[0]
+                            enemies_blocking = world.get_enemies_in_region(next_region, marshal.nation)
+                            blocking = [e for e in enemies_blocking if e.name != target]
+                            if blocking:
+                                break
+                        else:
+                            break
+                    else:
+                        break
                 move_result = self.execute(
                     {"command": {
                         "marshal": marshal.name,
@@ -2249,13 +2297,29 @@ RETREAT RECOVERY (3 turns):
         elif strategic_type == "SUPPORT" and path:
             steps = min(movement_range, len(path))
             moved_regions = []
-            for _ in range(steps):
+            for i in range(steps):
                 if not order.path:
                     break
                 next_region = order.path[0]
                 enemies = world.get_enemies_in_region(next_region, marshal.nation)
                 if enemies:
-                    break
+                    if not moved_regions:
+                        # First step blocked
+                        blocked_result = self._handle_first_step_blocked(
+                            marshal, enemies, next_region, world, game_state)
+                        if blocked_result is not None:
+                            return blocked_result
+                        # Literal reroute — continue
+                        first_step_msg = f" Adjusting route to avoid {next_region}."
+                        if order.path:
+                            next_region = order.path[0]
+                            enemies = world.get_enemies_in_region(next_region, marshal.nation)
+                            if enemies:
+                                break
+                        else:
+                            break
+                    else:
+                        break
                 move_result = self.execute(
                     {"command": {
                         "marshal": marshal.name,
@@ -2316,6 +2380,116 @@ RETREAT RECOVERY (3 turns):
             "path": order.path,
             "remaining_regions": remaining,
         }
+
+    def _handle_first_step_blocked(self, marshal, enemies, blocked_region,
+                                   world, game_state) -> Optional[Dict]:
+        """
+        Handle enemy blocking path on first step of strategic command.
+
+        Personality-based response:
+        - AGGRESSIVE: Auto-attack if odds >= 0.7, else ask
+        - CAUTIOUS: Always ask
+        - LITERAL: Silently reroute
+
+        Returns:
+            Dict with interrupt data if player input needed, None if handled automatically
+        """
+        personality = getattr(marshal, 'personality', 'balanced')
+        enemy = enemies[0]
+        order = marshal.strategic_order
+
+        if personality == "literal":
+            # Silently reroute around ALL enemy regions
+            destination = order.target_snapshot_location or order.target
+            enemy_regions = [
+                rn for rn in world.regions
+                if world.get_enemies_in_region(rn, marshal.nation)
+            ]
+            new_path = world.find_path(
+                marshal.location, destination,
+                avoid_regions=enemy_regions
+            )
+            if new_path:
+                order.path = [r for r in new_path if r != marshal.location]
+                # Return None — handled automatically, continue with normal flow
+                return None  # Caller will set first_step_msg for reroute
+            else:
+                # No alternate route — break order
+                marshal.strategic_order = None
+                return {
+                    "success": False,
+                    "message": f"Path blocked at {blocked_region}, no alternate route. "
+                               f"{marshal.name} awaits new orders.",
+                    "order_cleared": True,
+                    "first_step_blocked": True,
+                    "variable_action_cost": 1,
+                }
+
+        elif personality == "aggressive":
+            ratio = marshal.strength / max(1, enemy.strength)
+            if ratio >= 0.7:
+                # Auto-attack — favorable odds
+                result = self.execute(
+                    {"command": {
+                        "marshal": marshal.name,
+                        "action": "attack",
+                        "target": enemy.name,
+                        "_strategic_execution": True
+                    }},
+                    game_state
+                )
+                # Return attack result — order continues or breaks based on combat
+                combat_msg = result.get("message", "")
+                if result.get("success"):
+                    return {
+                        "success": True,
+                        "message": f"{marshal.name}: '{enemy.name} bars the way!' "
+                                   f"Engaging!\n\n{combat_msg}",
+                        "strategic_order": True,
+                        "strategic_type": order.command_type,
+                        "first_step_combat": True,
+                    }
+                return result
+
+            # Bad odds — ask player
+            marshal.pending_interrupt = {
+                "interrupt_type": "contact_bad_odds",
+                "enemy": enemy.name,
+                "location": blocked_region,
+                "is_first_step": True,
+                "options": ["attack_anyway", "go_around", "hold_position", "cancel_order"]
+            }
+            return {
+                "success": True,
+                "requires_input": True,
+                "pending_interrupt": marshal.pending_interrupt,
+                "message": f"{marshal.name}: '{enemy.name} blocks the path at {blocked_region}. "
+                           f"Odds unfavorable. Your orders?'",
+                "strategic_order": True,
+                "strategic_type": order.command_type,
+                "first_step_interrupt": True,
+                "variable_action_cost": 1,
+            }
+
+        else:  # cautious, balanced, loyal — always ask
+            marshal.pending_interrupt = {
+                "interrupt_type": "contact",
+                "enemy": enemy.name,
+                "location": blocked_region,
+                "is_first_step": True,
+                "options": ["attack", "go_around", "hold_position", "cancel_order"]
+            }
+            return {
+                "success": True,
+                "requires_input": True,
+                "pending_interrupt": marshal.pending_interrupt,
+                "message": f"{marshal.name}: 'Enemy at {blocked_region}. "
+                           f"How shall I proceed, Sire?'",
+                "strategic_order": True,
+                "strategic_type": order.command_type,
+                "first_step_interrupt": True,
+                "variable_action_cost": 1,
+            }
 
     def _execute_move(self, marshal, target, world: WorldState, game_state) -> Dict:
         """Execute a move order."""

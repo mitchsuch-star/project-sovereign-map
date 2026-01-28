@@ -1785,6 +1785,222 @@ class TestCancelCommand:
 # CAVALRY FIRST-STEP MOVEMENT TESTS
 # ══════════════════════════════════════════════════════════════════════════════
 
+# ══════════════════════════════════════════════════════════════════════════════
+# FIRST-STEP BLOCKED PATH TESTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestFirstStepBlocked:
+    """Tests for personality-based first-step blocked path handling."""
+
+    def test_first_step_aggressive_auto_attacks_good_odds(self, world, game_state, executor):
+        """Aggressive marshal auto-attacks when blocked at first step with good odds."""
+        ney = world.get_marshal("Ney")
+        assert ney.personality == "aggressive"
+        ney.location = "Paris"
+        ney.strength = 80000
+
+        # Put weak enemy in path
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Belgium"
+        wellington.strength = 30000  # Ratio 80k/30k = 2.67 > 0.7
+
+        with _suppress_output():
+            result = executor.execute({
+                "command": {
+                    "raw_input": "Ney, march to Rhine",
+                    "marshal": "Ney",
+                    "action": "move",
+                    "target": "Rhine",
+                },
+                "is_strategic": True,
+                "strategic_type": "MOVE_TO",
+            }, game_state)
+
+        # Should auto-attack, not ask
+        assert result.get("success") is True
+        assert result.get("requires_input") is not True
+        assert "Engaging" in result.get("message", "") or "bars the way" in result.get("message", "")
+
+    def test_first_step_aggressive_asks_bad_odds(self, world, game_state, executor):
+        """Aggressive marshal asks player when blocked with bad odds."""
+        ney = world.get_marshal("Ney")
+        ney.location = "Paris"
+        ney.strength = 30000
+
+        # Put strong enemy in path
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Belgium"
+        wellington.strength = 80000  # Ratio 30k/80k = 0.375 < 0.7
+
+        with _suppress_output():
+            result = executor.execute({
+                "command": {
+                    "raw_input": "Ney, march to Rhine",
+                    "marshal": "Ney",
+                    "action": "move",
+                    "target": "Rhine",
+                },
+                "is_strategic": True,
+                "strategic_type": "MOVE_TO",
+            }, game_state)
+
+        # Should ask player
+        assert result.get("requires_input") is True
+        assert ney.pending_interrupt is not None
+        assert ney.pending_interrupt.get("is_first_step") is True
+
+    def test_first_step_cautious_always_asks(self, world, game_state, executor):
+        """Cautious marshal always asks when blocked at first step (no alternate route)."""
+        davout = world.get_marshal("Davout")
+        assert davout.personality == "cautious"
+        davout.location = "Belgium"  # Start at Belgium
+        davout.strength = 80000
+
+        # Put enemy at Rhine (only adjacent region from Belgium that leads to destination)
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Rhine"
+        wellington.strength = 30000
+
+        # Also block other paths with enemies
+        blucher = world.get_marshal("Blucher")
+        blucher.location = "Paris"  # Block fallback
+
+        with _suppress_output():
+            result = executor.execute({
+                "command": {
+                    "raw_input": "Davout, march to Bavaria",
+                    "marshal": "Davout",
+                    "action": "move",
+                    "target": "Bavaria",  # Must go through Rhine
+                },
+                "is_strategic": True,
+                "strategic_type": "MOVE_TO",
+            }, game_state)
+
+        # Should ask player (cautious found enemy on fallback direct path)
+        assert result.get("requires_input") is True
+        assert davout.pending_interrupt is not None
+        assert davout.pending_interrupt.get("is_first_step") is True
+
+    def test_first_step_literal_reroutes_silently(self, world, game_state, executor):
+        """Literal marshal silently reroutes around blocked path."""
+        grouchy = world.get_marshal("Grouchy")
+        assert grouchy.personality == "literal"
+        grouchy.location = "Paris"
+
+        # Put enemy in direct path
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Belgium"
+
+        # Clear other enemies from alternate routes
+        for m in world.marshals.values():
+            if m.nation != "France" and m.name != "Wellington":
+                m.location = "Netherlands"
+
+        with _suppress_output():
+            result = executor.execute({
+                "command": {
+                    "raw_input": "Grouchy, march to Rhine",
+                    "marshal": "Grouchy",
+                    "action": "move",
+                    "target": "Rhine",
+                },
+                "is_strategic": True,
+                "strategic_type": "MOVE_TO",
+            }, game_state)
+
+        # Should reroute silently, not ask
+        assert result.get("success") is True
+        assert result.get("requires_input") is not True
+        # Order should still be active with rerouted path
+        assert grouchy.strategic_order is not None
+
+    def test_first_step_cancel_zero_trust_penalty(self, world, game_state, executor):
+        """First-step cancel has 0 trust penalty."""
+        from backend.commands.strategic import StrategicExecutor
+        strategic_executor = StrategicExecutor(executor)
+
+        davout = world.get_marshal("Davout")
+        davout.location = "Paris"
+        _set_strategic_order(davout, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+
+        # Set up first-step interrupt
+        davout.pending_interrupt = {
+            "interrupt_type": "contact",
+            "enemy": "Wellington",
+            "location": "Belgium",
+            "is_first_step": True,
+            "options": ["attack", "go_around", "hold_position", "cancel_order"]
+        }
+
+        trust_before = davout.trust.value
+
+        with _suppress_output():
+            result = strategic_executor.handle_response(
+                "Davout", "contact", "cancel_order", world, game_state)
+
+        assert result.get("success") is True
+        assert result.get("trust_change") == 0  # No trust penalty for first-step cancel
+        assert davout.trust.value == trust_before  # Trust unchanged
+
+    def test_mid_march_cancel_has_trust_penalty(self, world, game_state, executor):
+        """Mid-march cancel has -3 trust penalty (not first step)."""
+        from backend.commands.strategic import StrategicExecutor
+        strategic_executor = StrategicExecutor(executor)
+
+        davout = world.get_marshal("Davout")
+        davout.location = "Belgium"  # Already moved from Paris
+        _set_strategic_order(davout, "MOVE_TO", "Rhine", path=["Rhine"])
+
+        # Set up mid-march interrupt (NOT first step)
+        davout.pending_interrupt = {
+            "interrupt_type": "contact",
+            "enemy": "Wellington",
+            "location": "Rhine",
+            "is_first_step": False,  # Explicitly NOT first step
+            "options": ["attack", "go_around", "hold_position", "cancel_order"]
+        }
+
+        trust_before = davout.trust.value
+
+        with _suppress_output():
+            result = strategic_executor.handle_response(
+                "Davout", "contact", "cancel_order", world, game_state)
+
+        assert result.get("success") is True
+        assert result.get("trust_change") == -3  # Full trust penalty
+        assert davout.trust.value == trust_before - 3
+
+    def test_first_step_interrupt_costs_one_ap(self, world, game_state, executor):
+        """First-step interrupt returns variable_action_cost=1."""
+        davout = world.get_marshal("Davout")
+        davout.location = "Belgium"
+
+        # Block the only path to Bavaria
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Rhine"
+
+        # Block fallback
+        blucher = world.get_marshal("Blucher")
+        blucher.location = "Paris"
+
+        with _suppress_output():
+            result = executor.execute({
+                "command": {
+                    "raw_input": "Davout, march to Bavaria",
+                    "marshal": "Davout",
+                    "action": "move",
+                    "target": "Bavaria",
+                },
+                "is_strategic": True,
+                "strategic_type": "MOVE_TO",
+            }, game_state)
+
+        # Should return variable_action_cost=1
+        assert result.get("requires_input") is True
+        assert result.get("variable_action_cost") == 1
+
+
 class TestCavalryFirstStep:
     """Tests for cavalry moving 2 regions on command (first-step)."""
 
