@@ -7,10 +7,7 @@ phrases that teach players the system without breaking immersion.
 CRITICAL: Never expose raw numbers to players!
 
 NOTE: This module currently handles TACTICAL commands only.
-Strategic commands (MOVE_TO, PURSUE, HOLD, SUPPORT) will need
-separate handling when implemented in Phase 5.2+. See TODO below.
-
-TODO [Phase 5.2 - Strategic Commands]:
+NOTE: Phase 5.2 strategic feedback not yet differentiated from tactical. Future improvement:
 - Add get_strategic_order_feedback() for multi-turn commands
 - Consider different thresholds for strategic vs tactical
 - Handle feedback timing (start of order? completion? each turn?)
@@ -141,7 +138,7 @@ def apply_strategic_bonuses(marshal, strategic_score: int, is_combat_action: boo
     NOTE: Only call for PLAYER actions, not enemy AI.
     Enemy AI doesn't use LLM scoring and shouldn't receive these bonuses.
 
-    TODO [Phase 5.2 - Strategic Commands]:
+    NOTE: Phase 5.2 strategic feedback not yet differentiated from tactical. Future improvement:
     When command_type == "strategic", use different bonus logic:
     - apply_strategic_order_bonuses(marshal, score, standing_order, condition)
     - Handle multi-turn persistence differently

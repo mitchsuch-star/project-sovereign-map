@@ -148,7 +148,7 @@ PERSONALITY_TRIGGERS: Dict[Personality, Dict[str, float]] = {
         'attack_outnumbered_3to1': 0.70,      # Very bad odds - strong objection
         'attack_outnumbered_2to1': 0.60,      # Bad odds objection (fixed from 0.70)
         'attack_outnumbered_1_5to1': 0.50,    # Moderate objection to risky attacks
-        'attack_without_intel': 0.55,         # TODO Phase 3: Requires fog of war system to detect unknown enemy strength
+        'attack_without_intel': 0.55,         # TODO Phase 3 (see ROADMAP.md): Requires fog of war system to detect unknown enemy strength
         'attack_fortified': 0.60,             # Objects to attacking fortifications
         'forced_march': 0.45,                 # Mild objection to exhausting troops
         # STANCE TRIGGERS (Phase 2.7)
@@ -157,23 +157,23 @@ PERSONALITY_TRIGGERS: Dict[Personality, Dict[str, float]] = {
     },
 
     Personality.LITERAL: {
-        'ambiguous_order': 0.50,              # TODO Phase 3: Implement in analyze_order_situation() - LLM will detect unclear commands
-        'contradictory_orders': 0.60,         # TODO Phase 3: Requires order history tracking to detect conflicting orders
-        'change_of_plans': 0.35,              # TODO Phase 3: Requires order history to detect frequent changes
+        'ambiguous_order': 0.50,              # TODO Phase 3 (see ROADMAP.md): Implement in analyze_order_situation() - LLM will detect unclear commands
+        'contradictory_orders': 0.60,         # TODO Phase 3 (see ROADMAP.md): Requires order history tracking to detect conflicting orders
+        'change_of_plans': 0.35,              # TODO Phase 3 (see ROADMAP.md): Requires order history to detect frequent changes
     },
 
     Personality.BALANCED: {
         'certain_death': 0.70,                # 5:1+ odds - strong objection
         'expose_capital': 0.55,               # Objects to leaving capital undefended
-        'suicidal_order': 0.65,               # TODO Phase 3: Currently uses 3:1+ ratio. Expand to other suicidal scenarios
+        'suicidal_order': 0.65,               # TODO Phase 3 (see ROADMAP.md): Currently uses 3:1+ ratio. Expand to other suicidal scenarios
         'attack_outnumbered_3to1': 0.60,      # Objects to very bad odds
-        'abandon_allies': 0.50,               # TODO Phase 3: Requires ally tracking system - detect when order leaves ally exposed
+        'abandon_allies': 0.50,               # TODO Phase 3 (see ROADMAP.md): Requires ally tracking system - detect when order leaves ally exposed
     },
 
     Personality.LOYAL: {
-        'suicidal_order': 0.40,               # TODO Phase 3: Same as balanced - expand suicidal definition
+        'suicidal_order': 0.40,               # TODO Phase 3 (see ROADMAP.md): Same as balanced - expand suicidal definition
         'certain_death': 0.55,                # Even loyal marshals object to impossible odds (5:1+)
-        'betray_emperor': 0.95,               # TODO Phase 3 (1805): Political intrigue system - detect orders harming Napoleon's interests
+        'betray_emperor': 0.95,               # TODO Phase 3 (1805) (see ROADMAP.md): Political intrigue system - detect orders harming Napoleon's interests
         'expose_capital': 0.35,               # Mild concern but trusts Emperor
     },
 }
@@ -223,7 +223,7 @@ def analyze_order_situation(order: Dict, marshal, game_state) -> Optional[str]:
     - attack_outnumbered_2to1, attack_outnumbered_1_5to1, attack_outnumbered_3to1
     - attack_fortified, forced_march, expose_capital
 
-    TODO Phase 3 - Not yet implemented:
+    TODO Phase 3 (see ROADMAP.md) - Not yet implemented:
     - ambiguous_order: Requires LLM to detect unclear commands
     - contradictory_orders: Requires order history tracking
     - change_of_plans: Requires order history tracking

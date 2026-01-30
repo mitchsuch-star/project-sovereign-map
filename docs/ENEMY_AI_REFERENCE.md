@@ -127,17 +127,21 @@ class EnemyAI:
 
 The AI evaluates each marshal and assigns a **priority score** (lower = more urgent). The action with the lowest priority across all marshals is executed.
 
-| Priority | Name | Trigger Condition |
-|----------|------|-------------------|
-| 1 | Retreat Recovery | `retreat_recovery > 0` |
-| 2 | Critical Survival | `strength < 25% of starting` |
-| 3 | Threat Response | Stronger enemy adjacent |
-| 4 | Attack Opportunity | Valid target + meets threshold |
-| 4.5 | Capture Undefended | Adjacent undefended enemy region |
-| 5 | Fortification | Cautious + no attack target |
-| 6 | Drilling | Aggressive + position secure |
-| 7 | Strategic Movement | Can advance toward enemy |
-| 8 | Default | Stance adjustment or wait |
+| Priority | Name | Score | Trigger Condition |
+|----------|------|-------|-------------------|
+| P0 | Combat Engagement | 50 | Enemy in SAME region — MUST fight/retreat/wait |
+| P1 | Retreat Recovery | 60 | `retreat_recovery > 0` |
+| P2 | Critical Survival | 70 | `strength < 25% of starting` |
+| P3 | Threat Response / Attack | 75 | Meets personality threshold |
+| P3.25 | Counter-punch | — | Cautious: free attack after defense |
+| P3.5 | Fortification Check | 77 | Unfortify if opportunity exists |
+| P4 | Attack (standard) | 75 | Valid target + meets threshold |
+| P4.5 | Capture Undefended | 80 | Adjacent undefended enemy region |
+| P4.6 | Consolidation | 78 | Weak marshal joins strong ally within 3 distance |
+| P5 | Fortification | 85 | Cautious + no attack target |
+| P6 | Drilling | 90 | Aggressive + position secure |
+| P7 | Strategic Movement | 92 | Can advance toward enemy |
+| P8 | Default | 95 | Stance adjustment or wait |
 
 ### Priority 1: Retreat Recovery
 
@@ -476,6 +480,53 @@ Flanking bonus applies automatically via `world.record_attack()`:
 self.enemy_nations = ["Britain", "Prussia"]
 self.nation_actions = {"Britain": 4, "Prussia": 4}
 ```
+
+---
+
+## Round-Robin System
+
+Prevents single marshal monopolizing actions.
+
+```python
+_marshals_done_this_turn: set  # Tracks who acted
+
+# After marshal takes non-critical action:
+if priority > 60:  # Not survival-critical
+    _marshals_done_this_turn.add(marshal.name)
+    # Skip this marshal until others have acted
+
+# Critical override (priority <= 60):
+# Survival actions bypass round-robin
+```
+
+---
+
+## Stagnation Counter
+
+Prevents marshals getting stuck doing nothing. Persisted on `world.ai_stagnation_turns`.
+
+| Stagnation Turns | Escalation |
+|------------------|------------|
+| 0-1 | Normal behavior |
+| 2 | Allow drill even with adjacent enemies |
+| 3 | Unfortify + move toward nearest ally |
+| 4 | Lower attack threshold by 20% |
+| 5+ | Lower threshold by 10% more (floor 0.3) |
+
+**Resets on:** Attack (win/lose), capture region, move toward enemy, consolidation move.
+**NOT meaningful:** defend, drill, wait.
+
+---
+
+## Test Files
+
+| File | Tests | Coverage |
+|------|-------|----------|
+| test_enemy_ai.py | 53 | Core decisions |
+| test_enemy_ai_priority.py | 5 | Priority ordering |
+| test_enemy_ai_action_budget.py | 4 | Action counting |
+| test_ai_scoring.py | 24 | Strategic scoring |
+| test_enemy_ai_bugs.py | 5 | Regression tests |
 
 ---
 

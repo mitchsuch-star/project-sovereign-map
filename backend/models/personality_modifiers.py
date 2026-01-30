@@ -79,8 +79,8 @@ GROUCHY_MODIFIERS = {
     # Immovable ability - +15% defense when holding position
     "hold_position_defense_bonus": 0.15,
 
-    # TODO [Phase 5.2]: Add Precision Execution bonuses
-    # See docs/PHASE_5_2_IMPLEMENTATION_PLAN.md Section 3 for full specification
+    # Precision Execution bonuses are implemented in marshal.py
+    # (precision_execution_active/turns fields, get_effective_skill() method)
 }
 
 # ════════════════════════════════════════════════════════════════════════════════

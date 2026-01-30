@@ -350,7 +350,7 @@ def find_action_in_valid(action: str, target: str, valid_actions: List[Dict]) ->
 # ════════════════════════════════════════════════════════════════════════════
 # COMPROMISE RULES
 # ════════════════════════════════════════════════════════════════════════════
-# TODO: Post-testing, evaluate if scout/feint are needed for meaningful
+# TODO (see ROADMAP.md): Post-testing, evaluate if scout/feint are needed for meaningful
 # compromise options. Only add if mechanically distinct from attack/defend/move.
 #
 # Current approach: If no real middle ground exists, compromise = original order
@@ -460,18 +460,18 @@ OBJECTION_TEMPLATES = {
         ],
     },
     'literal': {
-        # TODO Phase 3: 'ambiguous' situation detection not yet implemented in personality.py analyze_order_situation().
+        # TODO Phase 3 (see ROADMAP.md): 'ambiguous' situation detection not yet implemented in personality.py analyze_order_situation().
         # Currently this template is never used. Need LLM to detect unclear commands.
         'ambiguous': [
             "{name} looks confused. \"Sire, which enemy do you mean? There are several possibilities.\"",
             "\"Your orders are... unclear,\" {name} says hesitantly. \"Should I await clarification?\"",
         ],
-        # TODO Phase 3: 'contradictory' requires order history tracking to detect conflicting orders
+        # TODO Phase 3 (see ROADMAP.md): 'contradictory' requires order history tracking to detect conflicting orders
         'contradictory': [
             "{name} frowns at the dispatch. \"But Sire, this contradicts what you ordered before...\"",
             "\"I... do not understand,\" {name} says slowly. \"First you said one thing, now another?\"",
         ],
-        # TODO Phase 3: 'change_of_plans' requires order history to detect frequent changes
+        # TODO Phase 3 (see ROADMAP.md): 'change_of_plans' requires order history to detect frequent changes
         'change_of_plans': [
             "{name} hesitates. \"Another change of orders, Sire? The men grow confused.\"",
             "\"We have already begun the previous maneuver,\" {name} reports. \"Changing now will cause disorder.\"",
@@ -486,13 +486,13 @@ OBJECTION_TEMPLATES = {
             "{name} meets your eyes. \"I will follow this order if you insist, but you should know - we will not return.\"",
             "\"This order means death for my men,\" {name} says quietly. \"I ask you to reconsider.\"",
         ],
-        # TODO Phase 3: 'abandon_allies' requires ally tracking system
+        # TODO Phase 3 (see ROADMAP.md): 'abandon_allies' requires ally tracking system
         'abandon_allies': [
             "{name} looks troubled. \"If we leave now, our allies will be surrounded. Is that your intention?\"",
             "\"Sire, Marshal {ally} depends on our support,\" {name} warns. \"Abandoning them now could be catastrophic.\"",
         ],
     },
-    # TODO Phase 3: LOYAL personality templates for 'betray_emperor' (political intrigue system)
+    # TODO Phase 3 (see ROADMAP.md): LOYAL personality templates for 'betray_emperor' (political intrigue system)
     'loyal': {
         'betray_emperor': [
             "{name}'s face hardens. \"This order would harm the Emperor's cause. I cannot comply.\"",

@@ -112,11 +112,11 @@ class WorldState:
 
         # Explicit list of enemy nations (not derived from marshals)
         # Nations exist even if all their marshals are destroyed
-        # TODO: Expand to full nation system with gold, diplomacy, etc.
+        # TODO: Expand to full nation system with gold, diplomacy, etc. (see ROADMAP.md Phase 6+)
         self.enemy_nations: List[str] = ["Britain", "Prussia"]
 
         # Actions per nation (configurable for future nation-specific economies)
-        # TODO: Future expansion - France 5, Austria 3, Russia 3, etc.
+        # TODO: Future expansion - France 5, Austria 3, Russia 3, etc. (see ROADMAP.md Phase 6+)
         self.nation_actions: Dict[str, int] = {
             "Britain": 4,
             "Prussia": 4,

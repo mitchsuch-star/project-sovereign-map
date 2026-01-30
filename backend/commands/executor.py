@@ -2785,13 +2785,10 @@ RETREAT RECOVERY (3 turns):
                 filtered_out.append(f"{marshal.name} (locked in drill)")
                 continue
 
-            # TODO [Phase 5.2 - Strategic Commands]:
-            # Add interpret_by_personality() for strategic orders (PURSUE, HOLD, SUPPORT).
-            # Currently uses find_nearest_enemy() for all. Strategic commands need:
-            # - Aggressive: pick strongest enemy
-            # - Cautious: pick weakest enemy
-            # - Literal: pick nearest enemy (current behavior)
-            # See 4_ACTIVE_DESIGNS_FINAL.md for full design.
+            # NOTE: Phase 5.2 strategic commands are complete, but personality-aware
+            # target selection (interpret_by_personality) is not yet implemented here.
+            # Future improvement: Aggressive picks strongest, Cautious picks weakest,
+            # Literal picks nearest (current behavior for all).
             nearest = world.find_nearest_enemy(marshal.location)
             if nearest:
                 enemy, distance = nearest

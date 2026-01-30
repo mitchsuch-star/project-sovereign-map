@@ -1246,7 +1246,7 @@ def create_enemy_marshals() -> dict[str, Marshal]:
                 "effect": "+2 Defense skill when defending on Hills or Forest terrain (TODO: Terrain system)"
             },
             starting_trust=80,  # Wellington trusts his government
-            spawn_location="Waterloo"  # TODO: Change to London (Britain capital) when map expanded
+            spawn_location="Waterloo"  # TODO: Change to London (Britain capital) when map expanded (see ROADMAP.md EA Launch)
         ),
         "Uxbridge": Marshal(
             name="Uxbridge",
@@ -1272,7 +1272,7 @@ def create_enemy_marshals() -> dict[str, Marshal]:
             },
             starting_trust=75,
             cavalry=True,  # Cavalry commander - enables Recklessness system (aggressive + cavalry)
-            spawn_location="Waterloo"  # TODO: Change to London (Britain capital) when map expanded
+            spawn_location="Waterloo"  # TODO: Change to London (Britain capital) when map expanded (see ROADMAP.md EA Launch)
         ),
         "Blucher": Marshal(
             name="Blucher",
@@ -1296,7 +1296,7 @@ def create_enemy_marshals() -> dict[str, Marshal]:
                 "effect": "+1 pursuit damage to retreating enemies (TODO: Phase 2.6 pursuit system)"
             },
             starting_trust=70,  # Blucher trusts Prussia's king
-            spawn_location="Netherlands"  # TODO: Change to Berlin (Prussia capital) when map expanded
+            spawn_location="Netherlands"  # TODO: Change to Berlin (Prussia capital) when map expanded (see ROADMAP.md EA Launch)
         ),
         "Gneisenau": Marshal(
             name="Gneisenau",
@@ -1320,7 +1320,7 @@ def create_enemy_marshals() -> dict[str, Marshal]:
                 "effect": "+10% combat bonus to allies in same region (TODO: Phase 6)"
             },
             starting_trust=75,  # Gneisenau serves Prussia faithfully
-            spawn_location="Netherlands"  # TODO: Change to Berlin (Prussia capital) when map expanded
+            spawn_location="Netherlands"  # TODO: Change to Berlin (Prussia capital) when map expanded (see ROADMAP.md EA Launch)
         )
     }
 

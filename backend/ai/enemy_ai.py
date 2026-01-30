@@ -2652,7 +2652,7 @@ class EnemyAI:
                 return adj_name
 
         # Surrounded - no retreat possible
-        # TODO: Handle encirclement (same as player)
+        # TODO: Handle encirclement (same as player) (see ROADMAP.md Phase 6)
         return None
 
     def _get_nation_capital(self, nation: str, world: WorldState) -> Optional[str]:

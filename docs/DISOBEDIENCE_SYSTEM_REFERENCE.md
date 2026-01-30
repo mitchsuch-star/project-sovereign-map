@@ -401,6 +401,56 @@ These three actions serve different purposes:
 
 ---
 
+## Example Scenarios
+
+### Scenario 1: Ney Ordered to Fortify
+
+```
+You: "Ney, fortify your position"
+
+Ney (Aggressive, Trust 75):
+"Dig trenches? You want me to dig trenches like a coward?!"
+[MAJOR OBJECTION - Severity 0.55]
+
+Suggested Alternative: Attack Wellington
+
+Your Choices:
+1. TRUST - Let Ney attack instead (+12 trust, -3 authority)
+2. INSIST - Force Ney to fortify (-10 trust, +2 authority)
+3. COMPROMISE - Ney defends (holds position but stays mobile) (+3 trust, -1 authority)
+```
+
+### Scenario 2: Davout Ordered to Attack Superior Force (2:1 odds)
+
+```
+You: "Davout, attack Wellington" (Wellington has 96k, Davout has 48k)
+
+Davout (Cautious, Trust 85):
+"The odds are not in our favor. May I suggest we dig in and fortify?"
+[MAJOR OBJECTION - Severity 0.60]
+
+Suggested Alternative: Fortify current position
+```
+
+### Scenario 3: Grouchy Given Clear Orders
+
+```
+You: "Grouchy, move to Belgium"
+
+Grouchy (Literal, Trust 65):
+[NO OBJECTION - Grouchy follows orders exactly]
+```
+
+### Cautious Alternative Suggestions by Odds
+
+| Odds Against | Suggested Alternative | Rationale |
+|--------------|----------------------|-----------|
+| 3:1+ outnumbered | **RETREAT** | Too dangerous to hold |
+| 2:1 outnumbered | **FORTIFY** | Dig in for maximum defense |
+| 1.5:1 outnumbered | **DEFENSIVE STANCE** | Careful posture |
+
+---
+
 ## Known Limitations
 
 ### Phase 3 Features (Not Yet Implemented)
