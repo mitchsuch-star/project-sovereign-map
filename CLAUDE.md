@@ -780,6 +780,7 @@ max_total_actions = actions_remaining * 2  # Absolute safety limit
 | Dead-end fortification (Netherlands) | No valid capture/ally destination | P3.5 now repositions toward nearest enemy |
 | Weak marshal bounces aimlessly | No concept of linking up | P4.8 consolidation moves toward strongest ally |
 | All marshals idle indefinitely | No escalation mechanism | Graduated stagnation counter forces action |
+| Stagnation counter never resets (248ce85) | `process_nation_turn()` checked `r.get("action")` but executor results store action under `r["ai_action"]` | Read from `r.get("ai_action", {})` first, fallback to `r.get("action")` |
 
 **Test Map Limitations (13 regions):**
 - No London, Berlin, Moscow - use proxy "home" regions (Netherlands for Britain, Rhine for Prussia)
@@ -3668,6 +3669,7 @@ For detailed design decisions and architecture:
 | AI drills while engaged | Check `_consider_drill` has same-region enemy check |
 | AI doesn't attack when should | Check P4 attack threshold vs ratio; add `[P0 ENGAGEMENT]` debug prints |
 | AI capital not found | Test map lacks London/Berlin - use proxy regions in `_get_nation_capital()` |
+| AI stagnation never resets | `process_nation_turn()` result dicts have action under `ai_action` key, not `action` — fixed in 248ce85 |
 
 ---
 
