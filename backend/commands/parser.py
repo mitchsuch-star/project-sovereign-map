@@ -326,7 +326,21 @@ class CommandParser:
                         result["strategic_condition"] = strategic.get("condition")
                         result["attack_on_arrival"] = strategic.get("attack_on_arrival", False)
                         # Override target with canonical name from strategic parser
-                        result["command"]["target"] = strategic["target"]
+                        strategic_target = strategic["target"]
+                        # Apply fuzzy matching to strategic target (strategic parser
+                        # only does exact match — typos like "bordeuex" slip through)
+                        if strategic.get("target_type") == "region":
+                            fuzzy_result = self.fuzzy_matcher.match_with_context(
+                                strategic_target, self.known_regions)
+                            if fuzzy_result["action"] in ("exact", "auto_correct"):
+                                strategic_target = fuzzy_result["match"]
+                        elif strategic.get("target_type") == "marshal":
+                            all_marshals = self.valid_marshals + self.known_enemies
+                            fuzzy_result = self.fuzzy_matcher.match_with_context(
+                                strategic_target, all_marshals)
+                            if fuzzy_result["action"] in ("exact", "auto_correct"):
+                                strategic_target = fuzzy_result["match"]
+                        result["command"]["target"] = strategic_target
                         result["command"]["target_type"] = strategic["target_type"]
 
                 return result

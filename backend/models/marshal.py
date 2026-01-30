@@ -300,6 +300,7 @@ class Marshal:
         # Strategic Order System (Phase 5.2)
         self.strategic_order: Optional[StrategicOrder] = None
         self.pending_interrupt: Optional[Dict] = None  # Phase D: stored between raise and response
+        self.cannon_fire_ignored_turn: Optional[int] = None  # Suppress re-trigger for 1 turn after "continue"
 
         # Battle tracking (for cannon fire detection and until_battle_won)
         self.in_combat_this_turn: bool = False
@@ -914,6 +915,7 @@ class Marshal:
             # ═══════ STRATEGIC ORDER SYSTEM (Phase 5.2) ═══════
             "strategic_order": self.strategic_order.to_dict() if self.strategic_order else None,
             "pending_interrupt": self.pending_interrupt,
+            "cannon_fire_ignored_turn": self.cannon_fire_ignored_turn,
 
             # ═══════ COMBAT TRACKING ═══════
             "in_combat_this_turn": self.in_combat_this_turn,
@@ -1026,6 +1028,7 @@ class Marshal:
         if data.get("strategic_order"):
             marshal.strategic_order = StrategicOrder.from_dict(data["strategic_order"])
         marshal.pending_interrupt = data.get("pending_interrupt")
+        marshal.cannon_fire_ignored_turn = data.get("cannon_fire_ignored_turn")
 
         # ═══════ COMBAT TRACKING ═══════
         marshal.in_combat_this_turn = data.get("in_combat_this_turn", False)

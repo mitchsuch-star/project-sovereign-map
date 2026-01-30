@@ -157,13 +157,22 @@ class StrategicExecutor:
             trust_change = -2  # Non-literal acting literal
             if hasattr(marshal, 'trust'):
                 marshal.trust.modify(trust_change)
+
+            # Suppress cannon fire re-trigger for 1 turn (prevents infinite loop)
+            marshal.cannon_fire_ignored_turn = world.current_turn
+
+            # Execute one movement step so the marshal actually progresses
+            move_result = self._execute_movement_step(marshal, world, game_state)
+            move_msg = move_result.get("message", "") if move_result else ""
+
             return {
                 "success": True,
                 "message": f"{marshal.name} reluctantly continues the march, "
-                           f"ignoring cannon fire at {battle_location}.",
+                           f"ignoring cannon fire at {battle_location}. {move_msg}".strip(),
                 "order_cleared": False,
                 "trust_change": trust_change,
-                "action_taken": "continue_order"
+                "action_taken": "continue_order",
+                "movement_executed": bool(move_result and move_result.get("success"))
             }
 
         elif choice == "hold_position":
@@ -236,12 +245,16 @@ class StrategicExecutor:
             )
             if new_path:
                 order.path = [r for r in new_path if r != marshal.location]
+                # Execute one movement step along the new path
+                move_result = self._execute_movement_step(marshal, world, game_state)
+                move_msg = move_result.get("message", "") if move_result else ""
                 return {
                     "success": True,
-                    "message": f"{marshal.name} reroutes around {blocked_region}.",
+                    "message": f"{marshal.name} reroutes around {blocked_region}. {move_msg}".strip(),
                     "order_cleared": False,
                     "trust_change": 0,
-                    "action_taken": "go_around"
+                    "action_taken": "go_around",
+                    "movement_executed": bool(move_result and move_result.get("success"))
                 }
             else:
                 # No safe path exists — break order
@@ -295,20 +308,24 @@ class StrategicExecutor:
         trust_change = 0
 
         if choice == "follow":
-            # Update path to ally's new location
+            # Update path to ally's new location and execute movement
             ally = world.get_marshal(ally_name)
             if ally:
                 new_path = self._get_personality_aware_path(
                     marshal, ally.location, world)
                 if new_path:
                     order.path = new_path
+                    # Execute one movement step along the new path
+                    move_result = self._execute_movement_step(marshal, world, game_state)
+                    move_msg = move_result.get("message", "") if move_result else ""
                     return {
                         "success": True,
                         "message": f"{marshal.name} adjusts course to follow "
-                                   f"{ally_name} to {ally.location}.",
+                                   f"{ally_name} to {ally.location}. {move_msg}".strip(),
                         "order_cleared": False,
                         "trust_change": 0,
-                        "action_taken": "follow"
+                        "action_taken": "follow",
+                        "movement_executed": bool(move_result and move_result.get("success"))
                     }
             return {
                 "success": True,
@@ -998,6 +1015,39 @@ class StrategicExecutor:
         }
 
     # ══════════════════════════════════════════════════════════════════════════
+    # MOVEMENT HELPER (used by interrupt response handlers)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def _execute_movement_step(self, marshal, world, game_state) -> Optional[Dict]:
+        """
+        Execute one movement step for a marshal's current strategic order.
+
+        Called after interrupt responses (continue_order, go_around) to ensure
+        the marshal actually progresses rather than staying stuck in place.
+        Returns the movement handler result with "success" key normalized.
+        """
+        order = marshal.strategic_order
+        if not order:
+            return None
+
+        handlers = {
+            "MOVE_TO": self._execute_move_to,
+            "PURSUE": self._execute_pursue,
+            "HOLD": self._execute_hold,
+            "SUPPORT": self._execute_support,
+        }
+        handler = handlers.get(order.command_type)
+        if handler:
+            result = handler(marshal, world, game_state)
+            if result:
+                # Normalize: strategic handlers use order_status, not success
+                status = result.get("order_status", "")
+                if "success" not in result:
+                    result["success"] = status in ("continues", "completed")
+            return result
+        return None
+
+    # ══════════════════════════════════════════════════════════════════════════
     # INTERRUPT SYSTEM (Cannon Fire Detection)
     # ══════════════════════════════════════════════════════════════════════════
 
@@ -1015,6 +1065,11 @@ class StrategicExecutor:
 
         # LITERAL NEVER GETS INTERRUPTED BY CANNON FIRE
         if personality == "literal":
+            return None
+
+        # Skip cannon fire if marshal recently chose "continue" (suppress for 1 turn)
+        ignored_turn = getattr(marshal, 'cannon_fire_ignored_turn', None)
+        if ignored_turn is not None and ignored_turn >= world.current_turn - 1:
             return None
 
         # Check for nearby battles (cannon fire)

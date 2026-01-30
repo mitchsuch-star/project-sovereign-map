@@ -843,6 +843,27 @@ DEBUG TIP: If frontend isn't receiving a field, test with curl first:
 If field is missing in JSON response, the bug is in main.py (step 2).
 ```
 
+**UI Wiring Rule (MANDATORY):**
+
+Every backend feature that displays in UI must pass the 5-step chain:
+
+1. Backend logic works (unit tests)
+2. Return value includes data (not discarded)
+3. Endpoint response includes data (curl verification)
+4. Godot receives and parses data
+5. Godot displays data
+
+**Test with curl BEFORE assuming Godot is broken:**
+```bash
+curl -X POST http://127.0.0.1:8005/command \
+  -H "Content-Type: application/json" \
+  -d '{"command": "end turn"}' | python -m json.tool
+```
+If curl shows data but Godot doesn't, bug is in Godot.
+If curl shows no data, bug is in backend wiring (most likely main.py not passing through executor result fields).
+
+See: `docs/UI_WIRING_CHECKLIST.md`
+
 ---
 
 ## Serialization Enforcement (MANDATORY)

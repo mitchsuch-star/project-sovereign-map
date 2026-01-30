@@ -1257,11 +1257,11 @@ class TestInterruptResponse:
         assert ney.pending_interrupt is None
 
     def test_cannon_fire_continue(self, world, game_state, strategic_executor):
-        """Continue order ignoring cannon fire costs -2 trust."""
+        """Continue order ignoring cannon fire costs -2 trust and executes movement."""
         davout = world.get_marshal("Davout")
         davout.personality = "cautious"
         davout.location = "Paris"
-        _set_strategic_order(davout, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+        _set_strategic_order(davout, "MOVE_TO", "Rhine", path=["Lyon", "Belgium", "Rhine"])
 
         davout.pending_interrupt = {
             "interrupt_type": "cannon_fire",
@@ -1282,6 +1282,9 @@ class TestInterruptResponse:
         assert davout.strategic_order is not None  # Order preserved
         if trust_before is not None:
             assert davout.trust.value == trust_before - 2
+        # Movement should have executed (loop fix)
+        assert davout.location != "Paris", "Marshal must move after continue_order"
+        assert davout.cannon_fire_ignored_turn == world.current_turn
 
     def test_cannon_fire_hold_position(self, world, game_state, strategic_executor):
         """Hold position cancels order, -3 trust."""
@@ -1510,6 +1513,156 @@ class TestInterruptResponse:
         assert davout.location == location_before
         assert len(reports) >= 1
         assert reports[0].get("requires_input") is True
+
+
+class TestCannonFireLoopPrevention:
+    """Tests that cannon fire continue_order doesn't cause infinite loops."""
+
+    def test_continue_order_executes_movement(self, world, game_state, strategic_executor):
+        """After continue_order, marshal should actually move (not stay stuck)."""
+        davout = world.get_marshal("Davout")
+        davout.personality = "cautious"
+        davout.location = "Paris"
+        _set_strategic_order(davout, "MOVE_TO", "Rhine", path=["Lyon", "Belgium", "Rhine"])
+
+        davout.pending_interrupt = {
+            "interrupt_type": "cannon_fire",
+            "battle_location": "Belgium",
+            "options": ["investigate", "continue_order", "hold_position"]
+        }
+
+        with _suppress_output():
+            result = strategic_executor.handle_response(
+                "Davout", "cannon_fire", "continue_order", world, game_state
+            )
+
+        assert result["success"] is True
+        assert result["order_cleared"] is False
+        # Marshal should have moved (not stayed at Paris)
+        assert davout.location != "Paris", "Marshal must move after continue_order"
+        assert result.get("movement_executed") is True
+
+    def test_continue_order_sets_ignored_turn(self, world, game_state, strategic_executor):
+        """continue_order sets cannon_fire_ignored_turn to suppress re-trigger."""
+        davout = world.get_marshal("Davout")
+        davout.personality = "cautious"
+        davout.location = "Paris"
+        _set_strategic_order(davout, "MOVE_TO", "Rhine", path=["Lyon", "Belgium", "Rhine"])
+
+        davout.pending_interrupt = {
+            "interrupt_type": "cannon_fire",
+            "battle_location": "Belgium",
+            "options": ["investigate", "continue_order", "hold_position"]
+        }
+
+        with _suppress_output():
+            strategic_executor.handle_response(
+                "Davout", "cannon_fire", "continue_order", world, game_state
+            )
+
+        assert davout.cannon_fire_ignored_turn == world.current_turn
+
+    def test_ignored_turn_suppresses_redetection(self, world, game_state, strategic_executor):
+        """After continue_order, _check_interrupts should return None for 1 turn."""
+        davout = world.get_marshal("Davout")
+        davout.personality = "cautious"
+        davout.location = "Lyon"
+        davout.cannon_fire_ignored_turn = world.current_turn
+
+        # Record a battle nearby
+        world.record_battle("Belgium", "Wellington", "Ney", "victory")
+
+        result = strategic_executor._check_interrupts(davout, world)
+        assert result is None, "Cannon fire should be suppressed after continue_order"
+
+    def test_ignored_turn_expires_after_2_turns(self, world, game_state, strategic_executor):
+        """Suppression only lasts 1 turn — 2 turns later, cannon fire re-detects."""
+        davout = world.get_marshal("Davout")
+        davout.personality = "cautious"
+        davout.location = "Lyon"
+        davout.cannon_fire_ignored_turn = world.current_turn - 2  # Expired
+
+        world.record_battle("Belgium", "Wellington", "Ney", "victory")
+
+        result = strategic_executor._check_interrupts(davout, world)
+        assert result is not None, "Suppression should expire after 2 turns"
+        assert result["type"] == "cannon_fire"
+
+    def test_continue_order_breaks_loop_over_2_turns(self, world, game_state, strategic_executor):
+        """Full loop test: continue_order → move → next turn no re-trigger."""
+        davout = world.get_marshal("Davout")
+        davout.personality = "cautious"
+        davout.location = "Paris"
+        _set_strategic_order(davout, "MOVE_TO", "Rhine", path=["Lyon", "Belgium", "Rhine"])
+
+        # Turn 1: Cannon fire interrupt
+        davout.pending_interrupt = {
+            "interrupt_type": "cannon_fire",
+            "battle_location": "Belgium",
+            "options": ["investigate", "continue_order", "hold_position"]
+        }
+
+        with _suppress_output():
+            result = strategic_executor.handle_response(
+                "Davout", "cannon_fire", "continue_order", world, game_state
+            )
+
+        assert result["success"] is True
+        location_after_continue = davout.location
+        assert location_after_continue != "Paris"  # Moved
+
+        # Turn 2: Record battle again at same location
+        world.record_battle("Belgium", "Wellington", "Ney", "victory")
+
+        # Execute strategic turn — should NOT re-trigger cannon fire
+        with _suppress_output():
+            report = strategic_executor._execute_strategic_turn(davout, world, game_state)
+
+        # Should have moved, not been interrupted
+        assert report is not None
+        assert report.get("requires_input") is not True, \
+            "Cannon fire re-triggered — infinite loop NOT prevented!"
+
+    def test_go_around_executes_movement(self, world, game_state, strategic_executor):
+        """After go_around, marshal should actually move along new path."""
+        ney = world.get_marshal("Ney")
+        ney.personality = "cautious"
+        ney.location = "Belgium"
+        _set_strategic_order(ney, "MOVE_TO", "Bavaria", path=["Rhine", "Bavaria"])
+
+        # Enemy blocks Rhine
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Rhine"
+
+        ney.pending_interrupt = {
+            "interrupt_type": "contact",
+            "enemy": "Wellington",
+            "location": "Rhine",
+            "options": ["attack", "go_around", "hold_position", "cancel_order"]
+        }
+
+        with _suppress_output():
+            result = strategic_executor.handle_response(
+                "Ney", "blocked_path", "go_around", world, game_state
+            )
+
+        assert result["success"] is True
+        # If a new path exists, marshal should have moved
+        if result.get("action_taken") == "go_around":
+            assert result.get("movement_executed") is True or ney.location != "Belgium"
+
+    def test_cannon_fire_ignored_turn_serialization(self):
+        """cannon_fire_ignored_turn survives to_dict/from_dict roundtrip."""
+        from backend.models.marshal import Marshal
+        m = Marshal(name="Test", location="Paris", strength=50000,
+                    personality="cautious", nation="France")
+        m.cannon_fire_ignored_turn = 5
+
+        data = m.to_dict()
+        assert data["cannon_fire_ignored_turn"] == 5
+
+        restored = Marshal.from_dict(data)
+        assert restored.cannon_fire_ignored_turn == 5
 
 
 class TestMovementEnforcement:
