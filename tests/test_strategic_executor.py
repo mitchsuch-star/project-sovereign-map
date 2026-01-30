@@ -1638,10 +1638,11 @@ class TestCancelCommand:
         assert world.actions_remaining == actions_before - 1
 
     def test_cancel_applies_trust_penalty(self, world, game_state, executor):
-        """Cancel applies -3 trust."""
+        """Cancel applies -3 trust (mid-march, not first-step)."""
         ney = world.get_marshal("Ney")
         ney.location = "Paris"
-        _set_strategic_order(ney, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+        _set_strategic_order(ney, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"],
+                             started_turn=world.current_turn - 2)
 
         trust_before = ney.trust.value if hasattr(ney, 'trust') else None
 

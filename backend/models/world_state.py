@@ -2165,6 +2165,10 @@ class WorldState:
                 )
                 print(f"  [AUTO-CHARGE DEBUG] Combat result victor: {combat_result.get('victor')}")
 
+                # Record battle for cannon fire detection
+                self.record_battle(enemy.location, marshal.name, enemy.name,
+                                   combat_result.get("outcome", "unknown"))
+
                 # Reset recklessness (done in combat resolver for regular attacks)
                 marshal.reset_recklessness()
 

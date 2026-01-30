@@ -1612,6 +1612,10 @@ RETREAT RECOVERY (3 turns):
             flanking_message=flanking_message
         )
 
+        # Record battle for cannon fire detection (hearing the guns)
+        world.record_battle(target_location, marshal.name, enemy_marshal.name,
+                            battle_result.get("outcome", "unknown"))
+
         # Check if enemy was destroyed
         enemy_destroyed = enemy_marshal.strength <= 0
         if enemy_destroyed:
@@ -2921,6 +2925,10 @@ RETREAT RECOVERY (3 turns):
             flanking_message=flanking_message
         )
 
+        # Record battle for cannon fire detection
+        world.record_battle(target_location, best_marshal.name, best_enemy.name,
+                            battle_result.get("outcome", "unknown"))
+
         # Check for destroyed armies
         enemy_destroyed = best_enemy.strength <= 0
         attacker_destroyed = best_marshal.strength <= 0
@@ -3043,6 +3051,10 @@ RETREAT RECOVERY (3 turns):
                 flanking_message=flanking_message
             )
 
+            # Record battle for cannon fire detection
+            world.record_battle(target_location, nearest_marshal.name, enemy.name,
+                                battle_result.get("outcome", "unknown"))
+
             enemy_destroyed = enemy.strength <= 0
 
             # Remove dead enemy
@@ -3148,6 +3160,10 @@ RETREAT RECOVERY (3 turns):
                 flanking_bonus=flanking_bonus,
                 flanking_message=flanking_message
             )
+
+            # Record battle for cannon fire detection
+            world.record_battle(target_name, nearest_marshal.name, enemy.name,
+                                battle_result.get("outcome", "unknown"))
 
             # Check for destroyed armies
             enemy_destroyed = enemy.strength <= 0
@@ -4694,9 +4710,10 @@ RETREAT RECOVERY (3 turns):
             marshal.holding_position = False
             marshal.hold_region = ""
 
-        # Trust penalty
-        trust_change = -3
-        if hasattr(marshal, 'trust'):
+        # Trust penalty: -3 for mid-march, 0 for first-step cancel
+        is_first_step = (old_order and old_order.started_turn == world.current_turn)
+        trust_change = 0 if is_first_step else -3
+        if trust_change != 0 and hasattr(marshal, 'trust'):
             marshal.trust.modify(trust_change)
 
         # Flavorful message varies by order type
@@ -4799,6 +4816,12 @@ RETREAT RECOVERY (3 turns):
             defender=target_marshal,
             glorious_charge=True  # 2x damage multiplier
         )
+
+        # Record battle for cannon fire detection
+        world = game_state.get("world")
+        if world:
+            world.record_battle(target_marshal.location, marshal.name, target_marshal.name,
+                                combat_result.get("outcome", "unknown"))
 
         # ALWAYS reset recklessness after Glorious Charge
         marshal.reset_recklessness()
