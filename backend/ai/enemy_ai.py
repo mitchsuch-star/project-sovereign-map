@@ -804,8 +804,9 @@ class EnemyAI:
         # A marshal is "idle" if they only waited, defended-while-fortified, or changed stance
         meaningful_actions = set()  # marshals who took meaningful action
         for r in results:
-            action = r.get("action", "")
-            m_name = r.get("marshal", "")
+            ai_action = r.get("ai_action", {})
+            action = ai_action.get("action", "") if ai_action else r.get("action", "")
+            m_name = ai_action.get("marshal", "") if ai_action else r.get("marshal", "")
             if action in ("attack", "move", "drill", "recruit", "unfortify", "retreat"):
                 meaningful_actions.add(m_name)
             elif action == "fortify" and not any(
