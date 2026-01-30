@@ -284,6 +284,15 @@ def execute_command(request: CommandRequest):
                     has_events = "events" in act and len(act.get("events", [])) > 0
                     print(f"    [{i}] {act.get('ai_action', {}).get('action', '?')} - has_events: {has_events}")
 
+        # Include strategic reports if present (Phase 5.2-C)
+        if result.get("strategic_reports"):
+            response["strategic_reports"] = result["strategic_reports"]
+
+        # Include independent command report if present (Phase 2.5)
+        if result.get("show_independent_command_report"):
+            response["show_independent_command_report"] = True
+            response["independent_command_report"] = result.get("independent_command_report", [])
+
         return response
     except Exception as e:
         print(f"[ERROR]: {e}")
