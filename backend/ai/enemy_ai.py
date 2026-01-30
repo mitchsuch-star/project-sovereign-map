@@ -1389,7 +1389,15 @@ class EnemyAI:
         }
 
     def _get_survival_action(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
-        """Get action for critically wounded marshal (survival mode)."""
+        """Get action for critically wounded marshal (survival mode).
+
+        Bug fix: Previously always returned 'defend' when no adjacent enemy,
+        which blocked P3.5 fortification opportunity check and caused
+        action monopolization (defend costs 1 AP each time).
+
+        Now checks for fortification opportunities before defaulting to defend,
+        and marks marshal as done after one defend to prevent monopolization.
+        """
         # Check if enemy adjacent - if so, retreat
         enemies = world.get_enemies_of_nation(nation)
         enemy_adjacent = False
@@ -1411,7 +1419,18 @@ class EnemyAI:
                     "target": retreat_dest
                 }
 
-        # No immediate threat - defend
+        # No immediate threat - check if fortified with opportunity to capture
+        if getattr(marshal, 'fortified', False):
+            fortification_opportunity = self._check_fortification_opportunity(marshal, nation, world)
+            if fortification_opportunity:
+                ai_debug(f"  P2+P3.5: Survival mode but found fortification opportunity - unfortifying")
+                return fortification_opportunity
+
+        # No immediate threat, no opportunity - defend (once, then done)
+        # Mark marshal as done to prevent action monopolization
+        if not hasattr(self, '_marshals_done_this_turn'):
+            self._marshals_done_this_turn = set()
+        self._marshals_done_this_turn.add(marshal.name)
         return {
             "marshal": marshal.name,
             "action": "defend"
