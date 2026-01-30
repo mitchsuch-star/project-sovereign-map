@@ -122,6 +122,11 @@ class WorldState:
             "Prussia": 4,
         }
 
+        # AI Stagnation Counter (persists across turns, read/written by EnemyAI)
+        # Tracks consecutive turns where each marshal took no meaningful action
+        # Key: marshal_name, Value: consecutive idle turns
+        self.ai_stagnation_turns: Dict[str, int] = {}
+
         # Battle tracking for naming and history
         # Active battles: region_name -> battle info dict
         self.active_battles: Dict[str, Dict] = {}
@@ -1224,6 +1229,7 @@ class WorldState:
             "pending_redemption": self.pending_redemption,
 
             # ═══════ ENEMY AI ═══════
+            "ai_stagnation_turns": self.ai_stagnation_turns.copy(),
             "enemy_nations": self.enemy_nations.copy(),
             "nation_actions": self.nation_actions.copy(),
             "active_battles": {k: v.copy() for k, v in self.active_battles.items()},
@@ -1288,6 +1294,7 @@ class WorldState:
         world.pending_redemption = data.get("pending_redemption")
 
         # ═══════ ENEMY AI ═══════
+        world.ai_stagnation_turns = data.get("ai_stagnation_turns", {}).copy()
         world.enemy_nations = data.get("enemy_nations", ["Britain", "Prussia"]).copy()
         world.nation_actions = data.get("nation_actions", {"Britain": 4, "Prussia": 4}).copy()
         world.active_battles = {k: v.copy() for k, v in data.get("active_battles", {}).items()}

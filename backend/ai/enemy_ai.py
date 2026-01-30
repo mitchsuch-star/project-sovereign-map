@@ -405,6 +405,18 @@ class EnemyAI:
         # ═══════════════════════════════════════════════════════════════════
         self._failed_action_cooldowns: Dict[str, Dict[str, int]] = {}  # {marshal_name: {action_type: turns_remaining}}
 
+        # ═══════════════════════════════════════════════════════════════════
+        # GRADUATED STAGNATION COUNTER (Fix #1)
+        # ═══════════════════════════════════════════════════════════════════
+        # Stored on WorldState (world.ai_stagnation_turns) so it persists
+        # across turns. EnemyAI is recreated each turn but reads/writes
+        # the counter from WorldState.
+        # Graduated escalation:
+        #   Turn 2: Unfortify + move toward nearest enemy regardless of risk
+        #   Turn 3+: Lower attack threshold by 20% + 10% per additional turn (floor 0.3)
+        # Resets on any meaningful action.
+        # ═══════════════════════════════════════════════════════════════════
+
     def _get_effective_personality(self, marshal: Marshal, world: WorldState) -> str:
         """
         Get personality for AI decision-making.
@@ -629,6 +641,10 @@ class EnemyAI:
         # Bug Fix: Track marshals who are "done" for this turn (waited twice, nothing else to do)
         self._marshals_done_this_turn: set = set()
 
+        # Fix #2: Track marshals who advanced toward enemy via P7 this turn
+        # Prevents P8 from immediately retreating them back (advance→retreat oscillation)
+        self._advanced_this_turn: set = set()
+
         # Get this nation's marshals
         marshals = world.get_marshals_by_nation(nation)
 
@@ -738,6 +754,10 @@ class EnemyAI:
                         self._marshal_visited_locations[marshal_name] = set()
                     self._marshal_visited_locations[marshal_name].add(new_loc.location)
 
+            # Fix #2: Track P7 advances (suppress P8 retreat for this marshal)
+            if selected_action["action"] == "move" and action_priority == 7 and result.get("success"):
+                self._advanced_this_turn.add(selected_action["marshal"])
+
             # Track consecutive waits per marshal (wait spam fix)
             if selected_action["action"] == "wait":
                 self._consecutive_waits[selected_marshal.name] = self._consecutive_waits.get(selected_marshal.name, 0) + 1
@@ -779,6 +799,31 @@ class EnemyAI:
             if action_count >= max_total_actions:
                 print(f"  Maximum total actions reached for {nation}")
                 break
+
+        # Fix #1: Update stagnation counters per marshal
+        # A marshal is "idle" if they only waited, defended-while-fortified, or changed stance
+        meaningful_actions = set()  # marshals who took meaningful action
+        for r in results:
+            action = r.get("action", "")
+            m_name = r.get("marshal", "")
+            if action in ("attack", "move", "drill", "recruit", "unfortify", "retreat"):
+                meaningful_actions.add(m_name)
+            elif action == "fortify" and not any(
+                m.name == m_name and getattr(m, 'fortified', False)
+                for m in world.get_marshals_by_nation(nation)
+            ):
+                meaningful_actions.add(m_name)  # First fortify is meaningful
+
+        for m in world.get_marshals_by_nation(nation):
+            if m.name in meaningful_actions:
+                if world.ai_stagnation_turns.get(m.name, 0) > 0:
+                    print(f"  [STAGNATION RESET] {m.name} took meaningful action - counter reset")
+                world.ai_stagnation_turns[m.name] = 0
+            else:
+                old = world.ai_stagnation_turns.get(m.name, 0)
+                world.ai_stagnation_turns[m.name] = old + 1
+                if world.ai_stagnation_turns[m.name] >= 2:
+                    print(f"  [STAGNATION] {m.name} idle for {world.ai_stagnation_turns[m.name]} turns")
 
         # Summary logging
         actions_summary = ", ".join([f"{name}: {count}" for name, count in actions_used.items() if count > 0])
@@ -1255,6 +1300,16 @@ class EnemyAI:
         ai_debug(f"  P4.75: No ally needs support")
 
         # ════════════════════════════════════════════════════════════
+        # PRIORITY 4.8: CONSOLIDATE WITH ALLIES (weak marshals)
+        # If too weak to attack alone, move toward strongest ally
+        # ════════════════════════════════════════════════════════════
+        consolidate_action = self._consider_consolidation(marshal, nation, world)
+        if consolidate_action:
+            ai_debug(f"  -> P4.8 Consolidate: {consolidate_action}")
+            return (consolidate_action, 5)
+        ai_debug(f"  P4.8: No consolidation needed")
+
+        # ════════════════════════════════════════════════════════════
         # PRIORITY 5: FORTIFICATION (cautious marshals)
         # ════════════════════════════════════════════════════════════
         if personality == "cautious":
@@ -1281,6 +1336,19 @@ class EnemyAI:
         move_action = self._consider_strategic_move(marshal, nation, world)
         if move_action:
             return (move_action, 7)
+
+        # ─── P7.5: STAGNATION ESCALATION ──────────────────────────────────────
+
+        # ════════════════════════════════════════════════════════════
+        # PRIORITY 7.5: STAGNATION BREAKER (Fix #1)
+        # If marshal has been idle for multiple turns, escalate behavior
+        # ════════════════════════════════════════════════════════════
+        stagnation = world.ai_stagnation_turns.get(marshal.name, 0)
+        if stagnation >= 2:
+            stagnation_action = self._get_stagnation_action(marshal, nation, world, stagnation, personality)
+            if stagnation_action:
+                ai_debug(f"  -> P7.5 STAGNATION (turn {stagnation}): {stagnation_action}")
+                return (stagnation_action, 7)
 
         # ─── P8: FALLBACK ────────────────────────────────────────────────────
 
@@ -1975,6 +2043,187 @@ class EnemyAI:
 
         return None
 
+    def _get_stagnation_action(self, marshal: Marshal, nation: str, world: WorldState,
+                               stagnation: int, personality: str) -> Optional[Dict]:
+        """
+        Fix #1: Graduated stagnation breaker.
+
+        Escalation levels:
+        - Turn 2: Force unfortify + move toward nearest enemy
+        - Turn 3+: Lower attack threshold and try attacking
+
+        Returns action dict or None if no stagnation action available.
+        """
+        print(f"  [STAGNATION ESCALATION] {marshal.name}: idle {stagnation} turns, personality={personality}")
+
+        # Can't act if broken or in retreat recovery
+        if getattr(marshal, 'broken', False) or getattr(marshal, 'retreat_recovery', 0) > 0:
+            return None
+
+        # ── TURN 2+: Force unfortify to reposition ──
+        if stagnation >= 2:
+            if getattr(marshal, 'fortified', False):
+                print(f"  [STAGNATION] {marshal.name}: Force unfortify after {stagnation} idle turns")
+                return {
+                    "marshal": marshal.name,
+                    "action": "unfortify"
+                }
+
+            # Force move toward nearest enemy (ignore risk assessment)
+            enemies = world.get_enemies_of_nation(nation)
+            if enemies:
+                marshal_region = world.get_region(marshal.location)
+                if marshal_region:
+                    nearest = min(enemies, key=lambda e: world.get_distance(marshal.location, e.location))
+                    current_dist = world.get_distance(marshal.location, nearest.location)
+                    visited = getattr(self, '_marshal_visited_locations', {}).get(marshal.name, set())
+
+                    best_dest = None
+                    best_dist = current_dist
+                    for adj_name in marshal_region.adjacent_regions:
+                        if adj_name in visited:
+                            continue
+                        enemies_there = [m for m in world.marshals.values()
+                                        if m.location == adj_name and m.nation != nation and m.strength > 0]
+                        if enemies_there:
+                            continue  # Still don't walk into enemy-occupied regions
+                        dist = world.get_distance(adj_name, nearest.location)
+                        if dist < best_dist:
+                            best_dest = adj_name
+                            best_dist = dist
+
+                    if best_dest:
+                        print(f"  [STAGNATION] {marshal.name}: Force move toward {nearest.name} via {best_dest} (stagnation override)")
+                        return {
+                            "marshal": marshal.name,
+                            "action": "move",
+                            "target": best_dest
+                        }
+
+        # ── TURN 3+: Lower attack threshold and try attacking ──
+        if stagnation >= 3:
+            enemies = world.get_enemies_of_nation(nation)
+            if enemies:
+                marshal_region = world.get_region(marshal.location)
+                if marshal_region and not getattr(marshal, 'fortified', False):
+                    # Reduce threshold: base - 0.2 - 0.1*(stagnation-3), floor 0.3
+                    base_threshold = self.ATTACK_THRESHOLDS.get(personality, 1.0)
+                    reduction = 0.2 + 0.1 * (stagnation - 3)
+                    reduced_threshold = max(0.3, base_threshold - reduction)
+
+                    for enemy in enemies:
+                        dist = world.get_distance(marshal.location, enemy.location)
+                        if dist > getattr(marshal, 'movement_range', 1):
+                            continue
+                        if enemy.strength <= 0:
+                            continue
+                        ratio = marshal.strength / enemy.strength
+                        if ratio >= reduced_threshold:
+                            print(f"  [STAGNATION] {marshal.name}: Attacking {enemy.name} with lowered threshold {reduced_threshold:.2f} (was {base_threshold:.2f}, ratio {ratio:.2f})")
+                            return {
+                                "marshal": marshal.name,
+                                "action": "attack",
+                                "target": enemy.name
+                            }
+
+        return None
+
+    def _consider_consolidation(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
+        """
+        Fix #4: Weak marshals consolidate with strongest ally instead of ping-ponging.
+
+        Triggers when:
+        - Marshal is too weak to attack any nearby enemy (ratio < 0.5)
+        - There's an ally in a different region within 3 distance
+        - Moving toward ally reduces distance
+
+        Returns move action toward strongest ally, or None.
+        """
+        # Don't consolidate if unable to move
+        if getattr(marshal, 'fortified', False):
+            return None
+        if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+            return None
+        if getattr(marshal, 'broken', False):
+            return None
+        if getattr(marshal, 'retreat_recovery', 0) > 0:
+            return None
+
+        # Check if we're too weak to fight
+        enemies = world.get_enemies_of_nation(nation)
+        if not enemies:
+            return None
+
+        nearest_enemy = min(enemies, key=lambda e: world.get_distance(marshal.location, e.location))
+        nearest_dist = world.get_distance(marshal.location, nearest_enemy.location)
+
+        # Only consolidate if enemy is within threatening range (≤3)
+        if nearest_dist > 3:
+            return None
+
+        # Check strength ratio against nearest enemy
+        ratio = marshal.strength / nearest_enemy.strength if nearest_enemy.strength > 0 else 999
+        if ratio >= 0.5:
+            return None  # Strong enough to operate independently
+
+        # Find strongest ally in a different region
+        allies = [
+            m for m in world.marshals.values()
+            if m.nation == nation and m.name != marshal.name
+            and m.strength > 0 and m.location != marshal.location
+        ]
+
+        if not allies:
+            return None
+
+        # Pick strongest ally within 3 distance
+        reachable_allies = [
+            a for a in allies
+            if world.get_distance(marshal.location, a.location) <= 3
+        ]
+        if not reachable_allies:
+            return None
+
+        target_ally = max(reachable_allies, key=lambda a: a.strength)
+
+        # Already adjacent to ally? Don't move (P4.75 handles joining)
+        marshal_region = world.get_region(marshal.location)
+        if not marshal_region:
+            return None
+        if target_ally.location == marshal.location:
+            return None
+
+        # Find adjacent region that reduces distance to ally
+        visited = getattr(self, '_marshal_visited_locations', {}).get(marshal.name, set())
+        current_dist = world.get_distance(marshal.location, target_ally.location)
+        best_dest = None
+        best_dist = current_dist
+
+        for adj_name in marshal_region.adjacent_regions:
+            if adj_name in visited:
+                continue
+            # Don't walk into enemies
+            enemies_there = [m for m in world.marshals.values()
+                            if m.location == adj_name and m.nation != nation and m.strength > 0]
+            if enemies_there:
+                continue
+
+            dist = world.get_distance(adj_name, target_ally.location)
+            if dist < best_dist:
+                best_dest = adj_name
+                best_dist = dist
+
+        if best_dest:
+            ai_debug(f"    P4.8: {marshal.name} consolidating toward {target_ally.name} via {best_dest} (ratio {ratio:.2f})")
+            print(f"    [CONSOLIDATE] {marshal.name} ({marshal.strength:,}) moving toward {target_ally.name} ({target_ally.strength:,}) via {best_dest}")
+            return {
+                "marshal": marshal.name,
+                "action": "move",
+                "target": best_dest
+            }
+
+        return None
+
     def _consider_fortify(self, marshal: Marshal, world: WorldState) -> Optional[Dict]:
         """Consider fortifying (cautious marshals prefer this)."""
         # Don't fortify if already fortified
@@ -2263,25 +2512,30 @@ class EnemyAI:
                 }
 
             # Already aggressive - check if we should retreat (badly outnumbered)
-            enemies = world.get_enemies_of_nation(marshal.nation)
-            adjacent_enemies = [
-                e for e in enemies
-                if world.get_distance(marshal.location, e.location) <= 1 and e.strength > 0
-            ]
-            if adjacent_enemies:
-                strongest_enemy = max(adjacent_enemies, key=lambda e: e.strength)
-                ratio = marshal.strength / strongest_enemy.strength if strongest_enemy.strength > 0 else 999
+            # Fix #2: Don't retreat if we just advanced toward enemy via P7
+            advanced = getattr(self, '_advanced_this_turn', set())
+            if marshal.name not in advanced:
+                enemies = world.get_enemies_of_nation(marshal.nation)
+                adjacent_enemies = [
+                    e for e in enemies
+                    if world.get_distance(marshal.location, e.location) <= 1 and e.strength > 0
+                ]
+                if adjacent_enemies:
+                    strongest_enemy = max(adjacent_enemies, key=lambda e: e.strength)
+                    ratio = marshal.strength / strongest_enemy.strength if strongest_enemy.strength > 0 else 999
 
-                # If badly outnumbered (ratio < 0.5), consider tactical retreat
-                if ratio < 0.5:
-                    retreat_dest = self._find_retreat_destination(marshal, marshal.nation, world)
-                    if retreat_dest:
-                        ai_debug(f"  -> P8: Tactical retreat to {retreat_dest} (outnumbered {ratio:.2f})")
-                        return {
-                            "marshal": marshal.name,
-                            "action": "move",
-                            "target": retreat_dest
-                        }
+                    # If badly outnumbered (ratio < 0.5), consider tactical retreat
+                    if ratio < 0.5:
+                        retreat_dest = self._find_retreat_destination(marshal, marshal.nation, world)
+                        if retreat_dest:
+                            ai_debug(f"  -> P8: Tactical retreat to {retreat_dest} (outnumbered {ratio:.2f})")
+                            return {
+                                "marshal": marshal.name,
+                                "action": "move",
+                                "target": retreat_dest
+                            }
+            else:
+                ai_debug(f"  -> P8: Suppressing retreat - {marshal.name} advanced via P7 this turn")
 
             # No retreat needed - wait (save action for next turn)
             ai_debug(f"  -> P8: Already aggressive, waiting")
@@ -2752,7 +3006,7 @@ class EnemyAI:
                 if not enemies_at_dest:
                     # No enemies at destination - might be worth moving there
                     # But check if it's a useful destination (not just wandering)
-                    if adj_region.controller != nation:
+                    if adj_region.controller != nation and adj_region.controller != "Neutral":
                         # Could capture this region
                         is_safe, _ = self._evaluate_capture_safety(marshal, adj_name, nation, world)
                         if is_safe:
@@ -2769,6 +3023,25 @@ class EnemyAI:
                             has_valid_destination = True
                             print(f"  [FORTIFICATION CHECK] {marshal.name}: Found ally to reinforce at {adj_name}")
                             break
+
+            # Fix #3: If no capture/ally target, check if repositioning toward
+            # enemies would be useful (prevents dead-end stagnation)
+            if not has_valid_destination:
+                all_enemies = world.get_enemies_of_nation(nation)
+                if all_enemies:
+                    nearest_enemy = min(all_enemies, key=lambda e: world.get_distance(marshal.location, e.location))
+                    current_dist = world.get_distance(marshal.location, nearest_enemy.location)
+                    # Only reposition if enemies are far enough that moving helps
+                    if current_dist >= 2:
+                        for adj_name in marshal_region.adjacent_regions:
+                            enemies_at_dest = [m for m in world.marshals.values()
+                                              if m.location == adj_name and m.strength > 0 and m.nation != nation]
+                            if not enemies_at_dest:
+                                adj_dist = world.get_distance(adj_name, nearest_enemy.location)
+                                if adj_dist < current_dist:
+                                    has_valid_destination = True
+                                    print(f"  [FORTIFICATION CHECK] {marshal.name}: Repositioning toward {nearest_enemy.name} via {adj_name} (dist {current_dist}->{adj_dist})")
+                                    break
 
             if has_valid_destination:
                 print(f"  [FORTIFICATION OPPORTUNITY] {marshal.name}: No enemies adjacent, valid destination found - unfortifying to reposition")

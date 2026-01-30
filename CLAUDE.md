@@ -619,6 +619,7 @@ The Enemy AI code uses `personality = getattr(marshal, 'personality', 'balanced'
 Fortified marshals will unfortify when:
 1. **Undefended enemy region adjacent** - Always unfortify to capture (zero risk)
 2. **"Defending nothing"** - No enemies adjacent → unfortify to reposition
+3. **Reposition toward fight** - No capture/ally target, but moving toward nearest enemy reduces distance (Fix #3)
 
 This prevents fortified marshals from becoming permanent "rocks" that enemies can walk around.
 
@@ -632,10 +633,13 @@ This prevents fortified marshals from becoming permanent "rocks" that enemies ca
 | P3 | Stronger enemy adjacent | Defensive stance + fortify (cautious) |
 | P4 | Valid attack target | Attack if ratio meets personality threshold |
 | P4.5 | Undefended enemy region adjacent | Attack region to capture |
+| P4.75 | Ally in combat/outnumbered | Move to support ally |
+| P4.8 | Too weak alone (ratio < 0.5) | Consolidate with strongest ally within 3 distance |
 | P5 | No attack, cautious | Fortify position |
 | P6 | No attack, aggressive | Drill for shock bonus |
 | P7 | No immediate threats | Move toward enemy (aggressive), fallback (cautious) |
-| P8 | Default | Stance adjustment or wait |
+| P7.5 | Stagnation (2+ idle turns) | Graduated escalation: unfortify/move/lower threshold |
+| P8 | Default | Stance adjustment or wait (retreat suppressed after P7 advance) |
 
 **CRITICAL - P0 Engagement Check:**
 When a marshal shares a region with an enemy, they are "engaged" and MUST deal with it:
@@ -745,6 +749,25 @@ max_total_actions = actions_remaining * 2  # Absolute safety limit
 - Failed action cooldown (don't retry blocked actions for 1-2 turns)
 - Alliance coordination (Britain/Prussia share intel)
 - Strategic objectives (AI picks goals like "Capture Belgium")
+- **NOT planned: Strategic commands for AI** — per-action re-evaluation is a strength (AI adapts every action), strategic orders would cause interrupt deadlocks, engagement lock, and wasted actions. Player-only feature.
+
+**Anti-Stagnation Systems:**
+
+| System | Location | Trigger | Behavior |
+|--------|----------|---------|----------|
+| P7→P8 retreat suppression | `_advanced_this_turn` set | Marshal moved toward enemy via P7 | P8 won't retreat them back same turn |
+| P3.5 reposition toward fight | `_check_fortification_opportunity` | Fortified, no enemies/captures nearby | Unfortify if moving toward enemy reduces distance |
+| P4.8 ally consolidation | `_consider_consolidation` | Strength ratio < 0.5 vs nearest enemy | Move toward strongest ally within 3 distance |
+| Graduated stagnation | `world.ai_stagnation_turns` (persisted on WorldState) | 2+ consecutive idle turns | Turn 2: force unfortify+move; Turn 3+: lower attack threshold |
+
+**Stagnation Counter Details:**
+- **Persisted on WorldState** (`world.ai_stagnation_turns` dict, serialized in to_dict/from_dict)
+- **"Idle"** = only waited, defended-while-already-fortified, or changed stance
+- **"Meaningful"** = attack, move, drill, recruit, unfortify, retreat, first fortify
+- **Resets** on any meaningful action
+- **Turn 2**: Force unfortify + move toward nearest enemy (ignores risk assessment)
+- **Turn 3+**: Lower attack threshold by 20% + 10% per turn beyond 3 (floor 0.3)
+- **Never suicidal**: Won't walk into enemy-occupied regions
 
 **Common AI Bugs & Fixes:**
 | Bug | Cause | Fix |
@@ -753,6 +776,10 @@ max_total_actions = actions_remaining * 2  # Absolute safety limit
 | Drill while engaged | Missing same-region check | Added `enemy.location == marshal.location` check |
 | Cautious marshal sits when threatened | No fallback movement | P7 cautious fallback to friendly territory |
 | Retreat picks wrong direction | No capital preference | Sort retreat destinations by distance to capital |
+| P7→P8 ping-pong (advance then retreat) | P7 moves toward enemy, P8 retreats | `_advanced_this_turn` suppresses P8 retreat |
+| Dead-end fortification (Netherlands) | No valid capture/ally destination | P3.5 now repositions toward nearest enemy |
+| Weak marshal bounces aimlessly | No concept of linking up | P4.8 consolidation moves toward strongest ally |
+| All marshals idle indefinitely | No escalation mechanism | Graduated stagnation counter forces action |
 
 **Test Map Limitations (13 regions):**
 - No London, Berlin, Moscow - use proxy "home" regions (Netherlands for Britain, Rhine for Prussia)
