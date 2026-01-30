@@ -1442,6 +1442,10 @@ class WorldState:
                         "is_reckless_cavalry": bool(getattr(m, 'is_reckless_cavalry', False) if hasattr(m, 'is_reckless_cavalry') else False),
                         "pending_glorious_charge": bool(getattr(m, 'pending_glorious_charge', False)),
                         "pending_charge_target": str(getattr(m, 'pending_charge_target', '')),
+                        # Strategic Orders (Phase J)
+                        "in_strategic_mode": bool(m.in_strategic_mode),
+                        "strategic_command_type": str(m.strategic_command_type) if m.strategic_command_type else "",
+                        "strategic_target": str(m.strategic_order.target) if m.strategic_order else "",
                     }
 
                 marshals_data.append(marshal_data)

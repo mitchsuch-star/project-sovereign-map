@@ -416,6 +416,13 @@ func _draw_tooltip():
 	if holding_position:
 		tactical_lines += 1
 
+	# Strategic order (Phase J)
+	var in_strategic_mode = tactical_state.get("in_strategic_mode", false)
+	var strategic_command_type = tactical_state.get("strategic_command_type", "")
+	var strategic_target = tactical_state.get("strategic_target", "")
+	if in_strategic_mode:
+		tactical_lines += 1
+
 	# Calculate tooltip height based on whether we have debug info
 	var base_lines = 5  # Name, nation, troops, morale, movement
 	var skills_lines = 0
@@ -667,6 +674,15 @@ func _draw_tooltip():
 				hold_text += " at " + hold_region
 			var hold_color = Color(0.6, 0.6, 0.9)  # Light purple
 			draw_string(font, Vector2(text_x, text_y + 11), hold_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, hold_color)
+			text_y += line_spacing
+
+		# Strategic Order (Phase J)
+		if in_strategic_mode and strategic_command_type != "":
+			var order_text = strategic_command_type
+			if strategic_target != "":
+				order_text += " -> " + strategic_target
+			var order_color = Color(0.85, 0.75, 0.55)  # Gold
+			draw_string(font, Vector2(text_x, text_y + 11), order_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, order_color)
 			text_y += line_spacing
 
 func _format_number(num: int) -> String:

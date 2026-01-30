@@ -65,6 +65,20 @@ func send_glorious_charge_response(choice: String, callback: Callable):
 	if error != OK:
 		print("ERROR: HTTP request failed with code: ", error)
 
+func send_strategic_response(marshal_name: String, response_type: String, choice: String, callback: Callable):
+	"""Send player's response to a strategic command interrupt (Phase J)."""
+	pending_callback = callback
+	var url = API_URL + "/strategic_response"
+	var headers = ["Content-Type: application/json"]
+	var body = JSON.stringify({
+		"marshal_name": marshal_name,
+		"response_type": response_type,
+		"choice": choice
+	})
+	var error = http_request.request(url, headers, HTTPClient.METHOD_POST, body)
+	if error != OK:
+		print("ERROR: HTTP request failed with code: ", error)
+
 func _on_request_completed(result, response_code, headers, body):
 	var response_text = body.get_string_from_utf8()
 	

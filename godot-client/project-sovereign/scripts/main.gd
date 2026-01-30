@@ -35,6 +35,13 @@ var pending_enemy_phase_response = null  # Store response to check game_over aft
 # Glorious Charge Dialog (Phase 3 Cavalry Recklessness)
 var glorious_charge_dialog = null
 
+# Strategic Command Dialogs (Phase J)
+var strategic_report_popup = null
+var interrupt_popup = null
+var clarification_popup = null
+var pending_strategic_response = null  # Store response for post-report flow
+var interrupt_queue: Array = []  # Queue of interrupts to show one at a time
+
 # API Client
 var api_client = null
 
@@ -144,6 +151,31 @@ func _ready():
 			add_child(glorious_charge_dialog)
 			glorious_charge_dialog.choice_made.connect(_on_glorious_charge_choice_made)
 			print("✓ GloriousChargeDialog ready!")
+
+	# Load and setup Strategic Report Popup (Phase J)
+	var strategic_report_scene = load("res://scenes/strategic_report_popup.tscn")
+	if strategic_report_scene:
+		strategic_report_popup = strategic_report_scene.instantiate()
+		add_child(strategic_report_popup)
+		strategic_report_popup.dismissed.connect(_on_strategic_report_dismissed)
+		print("✓ StrategicReportPopup ready!")
+
+	# Load and setup Interrupt Popup (Phase J)
+	var interrupt_scene = load("res://scenes/interrupt_popup.tscn")
+	if interrupt_scene:
+		interrupt_popup = interrupt_scene.instantiate()
+		add_child(interrupt_popup)
+		interrupt_popup.choice_made.connect(_on_interrupt_choice_made)
+		print("✓ InterruptPopup ready!")
+
+	# Load and setup Clarification Popup (Phase J)
+	var clarification_scene = load("res://scenes/clarification_popup.tscn")
+	if clarification_scene:
+		clarification_popup = clarification_scene.instantiate()
+		add_child(clarification_popup)
+		clarification_popup.clarification_choice.connect(_on_clarification_choice_made)
+		clarification_popup.cancelled.connect(_on_clarification_cancelled)
+		print("✓ ClarificationPopup ready!")
 
 	# Connect signals
 	if not send_button.pressed.is_connected(_on_send_button_pressed):
@@ -401,6 +433,16 @@ func _on_command_result(response):
 		_show_glorious_charge_dialog(response)
 		return  # Don't re-enable input until choice made
 
+	# Check for clarification request (Grouchy/literal marshal)
+	if response.has("state") and response.state == "awaiting_clarification":
+		_show_clarification_popup(response)
+		return  # Don't re-enable input until choice made
+
+	# Check for strategic interrupt (blocked path, cannon fire, etc.)
+	if response.has("pending_interrupt") and response.pending_interrupt:
+		_show_interrupt_popup(response.pending_interrupt)
+		return  # Don't re-enable input until choice made
+
 	# Re-enable input
 	set_input_enabled(true)
 
@@ -433,9 +475,16 @@ func _on_command_result(response):
 			var turn = current_turn
 			if response.has("action_summary"):
 				turn = int(response.action_summary.get("turn", current_turn))
-			pending_enemy_phase_response = response  # Store to check game_over after dismiss
+			pending_enemy_phase_response = response  # Store for post-enemy-phase flow
 			_show_enemy_phase_dialog(response.enemy_phase, turn)
 			return  # Don't re-enable input until dialog dismissed
+
+		# Check for strategic reports (when no enemy phase dialog)
+		if response.has("strategic_reports") and not response.strategic_reports.is_empty():
+			set_input_enabled(false)
+			pending_strategic_response = response
+			_show_strategic_reports(response)
+			return  # Don't re-enable input until reports dismissed
 
 		# Check for game over
 		if response.has("game_state") and response.game_state.has("game_over"):
@@ -1027,12 +1076,21 @@ func _on_enemy_phase_dismissed():
 	# Check for game over (Paris captured, all marshals destroyed, etc.)
 	if pending_enemy_phase_response != null:
 		var response = pending_enemy_phase_response
-		pending_enemy_phase_response = null  # Clear it
 
 		if response.has("game_state") and response.game_state.has("game_over"):
 			if response.game_state.game_over:
+				pending_enemy_phase_response = null
 				_show_game_over_screen(response.game_state)
 				return  # Don't re-enable input
+
+		# Check for strategic reports (show after enemy phase)
+		if response.has("strategic_reports") and not response.strategic_reports.is_empty():
+			# Keep pending_enemy_phase_response for post-report game over check
+			pending_strategic_response = response
+			_show_strategic_reports(response)
+			return  # Don't re-enable input until reports dismissed
+
+		pending_enemy_phase_response = null
 
 	set_input_enabled(true)
 	command_input.grab_focus()
@@ -1171,4 +1229,168 @@ func _on_glorious_charge_response(response):
 		add_output("[color=#" + COLOR_ERROR + "]" + response.message + "[/color]")
 
 	add_output("")
+	command_input.grab_focus()
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# STRATEGIC COMMAND UI (Phase J)
+# ════════════════════════════════════════════════════════════════════════════
+
+func _show_strategic_reports(response):
+	"""Show strategic order reports popup after enemy phase."""
+	var reports = response.get("strategic_reports", [])
+	if reports.is_empty():
+		_on_strategic_report_dismissed()
+		return
+
+	if strategic_report_popup == null:
+		push_error("strategic_report_popup is NULL!")
+		_on_strategic_report_dismissed()
+		return
+
+	var turn = current_turn
+	if response.has("action_summary"):
+		turn = int(response.action_summary.get("turn", current_turn))
+
+	# Log reports to output too
+	add_output("")
+	add_output("[color=#" + COLOR_GOLD + "]--- Strategic Order Updates ---[/color]")
+	for report in reports:
+		var marshal_name = report.get("marshal", "")
+		var msg = report.get("message", "")
+		if msg:
+			add_output("[color=#" + COLOR_INFO + "]" + marshal_name + ": " + msg + "[/color]")
+	add_output("")
+
+	strategic_report_popup.show_reports(reports, turn)
+
+
+func _on_strategic_report_dismissed():
+	"""Handle strategic report popup dismissed."""
+	print("Strategic report popup dismissed")
+
+	# Check if any reports have interrupts that need input
+	if pending_strategic_response != null:
+		var response = pending_strategic_response
+		var reports = response.get("strategic_reports", [])
+
+		# Queue up any interrupts that require input
+		interrupt_queue.clear()
+		for report in reports:
+			if report.get("requires_input", false):
+				interrupt_queue.append(report)
+
+		# Show first interrupt if any
+		if not interrupt_queue.is_empty():
+			var first_interrupt = interrupt_queue.pop_front()
+			_show_interrupt_popup(first_interrupt)
+			return  # Don't re-enable input yet
+
+		# Check for game over
+		if response.has("game_state") and response.game_state.has("game_over"):
+			if response.game_state.game_over:
+				pending_strategic_response = null
+				_show_game_over_screen(response.game_state)
+				return
+
+	pending_strategic_response = null
+	pending_enemy_phase_response = null
+	set_input_enabled(true)
+	command_input.grab_focus()
+
+
+func _show_interrupt_popup(interrupt_data: Dictionary):
+	"""Show interrupt popup for a marshal needing a decision."""
+	set_input_enabled(false)
+
+	if interrupt_popup == null:
+		push_error("interrupt_popup is NULL!")
+		add_output("[color=#" + COLOR_ERROR + "]ERROR: Interrupt popup not loaded![/color]")
+		_process_next_interrupt()
+		return
+
+	var marshal_name = interrupt_data.get("marshal", "Marshal")
+	add_output("[color=#" + COLOR_BATTLE + "]" + marshal_name + " awaits your orders![/color]")
+
+	interrupt_popup.show_interrupt(interrupt_data)
+
+
+func _on_interrupt_choice_made(marshal_name: String, response_type: String, choice: String):
+	"""Handle player choosing an interrupt response."""
+	print("Interrupt choice: marshal=%s, type=%s, choice=%s" % [marshal_name, response_type, choice])
+	set_input_enabled(false)
+
+	add_output("[color=#" + COLOR_COMMAND + "]> " + marshal_name + ": " + choice.replace("_", " ") + "[/color]")
+
+	# Send to backend
+	api_client.send_strategic_response(marshal_name, response_type, choice, _on_interrupt_response)
+
+
+func _on_interrupt_response(response):
+	"""Handle backend response to interrupt choice."""
+	if response.success:
+		var msg = response.get("message", "Order acknowledged.")
+		add_output("[color=#" + COLOR_SUCCESS + "]" + msg + "[/color]")
+
+		# Update UI state
+		if response.has("action_summary"):
+			_update_status(response.action_summary)
+		if response.has("game_state") and response.game_state.has("gold"):
+			gold = int(response.game_state.gold)
+			_update_gold_display()
+		if response.has("game_state") and response.game_state.has("map_data"):
+			map_area.update_all_regions(response.game_state.map_data)
+	else:
+		add_output("[color=#" + COLOR_ERROR + "]" + response.get("message", "Error processing response.") + "[/color]")
+
+	# Process next interrupt in queue
+	_process_next_interrupt()
+
+
+func _process_next_interrupt():
+	"""Show next queued interrupt or re-enable input."""
+	if not interrupt_queue.is_empty():
+		var next_interrupt = interrupt_queue.pop_front()
+		_show_interrupt_popup(next_interrupt)
+	else:
+		# All interrupts processed
+		pending_strategic_response = null
+		pending_enemy_phase_response = null
+		set_input_enabled(true)
+		command_input.grab_focus()
+
+
+func _show_clarification_popup(response):
+	"""Show clarification popup for literal marshals."""
+	set_input_enabled(false)
+
+	var data = response.get("clarification_data", response)
+
+	if clarification_popup == null:
+		push_error("clarification_popup is NULL!")
+		add_output("[color=#" + COLOR_ERROR + "]ERROR: Clarification popup not loaded![/color]")
+		set_input_enabled(true)
+		return
+
+	var marshal_name = data.get("marshal", "Marshal")
+	add_output("[color=#" + COLOR_MARSHAL + "]" + marshal_name + " requests clarification...[/color]")
+
+	clarification_popup.show_clarification(data)
+
+
+func _on_clarification_choice_made(marshal_name: String, chosen_target: String):
+	"""Handle player selecting a clarification target."""
+	print("Clarification choice: marshal=%s, target=%s" % [marshal_name, chosen_target])
+	add_output("[color=#" + COLOR_COMMAND + "]> " + marshal_name + ", target " + chosen_target + "[/color]")
+
+	# Reissue the command with the specific target
+	var clarified_command = marshal_name + " pursue " + chosen_target
+	set_input_enabled(false)
+	api_client.send_command(clarified_command, _on_command_result)
+
+
+func _on_clarification_cancelled():
+	"""Handle player cancelling a clarification."""
+	add_output("[color=#" + COLOR_INFO + "]Order cancelled.[/color]")
+	set_input_enabled(true)
 	command_input.grab_focus()
