@@ -15,13 +15,138 @@ DESIGN NOTES:
 """
 
 import re
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Tuple
 
 # Try to import WorldState for type hints; not strictly required at runtime
 try:
     from backend.models.world_state import WorldState
 except ImportError:
     WorldState = None
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# CARDINAL DIRECTION SYSTEM
+# ════════════════════════════════════════════════════════════════════════════════
+# Approximate grid positions (row=0 is north, col=0 is west) for direction resolution.
+# These are rough geographic placements — no real coordinates needed.
+
+REGION_POSITIONS: Dict[str, Tuple[int, int]] = {
+    "Netherlands":  (0, 1),
+    "Belgium":      (1, 1),
+    "Waterloo":     (1, 2),
+    "Rhine":        (1, 3),
+    "Brittany":     (2, 0),
+    "Paris":        (2, 1),
+    "Bavaria":      (2, 4),
+    "Lyon":         (3, 2),
+    "Vienna":       (3, 5),
+    "Bordeaux":     (4, 0),
+    "Geneva":       (4, 2),
+    "Milan":        (4, 3),
+    "Marseille":    (5, 2),
+}
+
+# Direction keywords → (row_delta, col_delta) where negative row = north, positive col = east
+DIRECTION_VECTORS: Dict[str, Tuple[int, int]] = {
+    "north": (-1, 0), "northward": (-1, 0), "northwards": (-1, 0),
+    "south": (1, 0), "southward": (1, 0), "southwards": (1, 0),
+    "east": (0, 1), "eastward": (0, 1), "eastwards": (0, 1),
+    "west": (0, -1), "westward": (0, -1), "westwards": (0, -1),
+    "northeast": (-1, 1), "northwest": (-1, -1),
+    "southeast": (1, 1), "southwest": (1, -1),
+}
+
+# Relative direction keywords (resolved contextually)
+RELATIVE_KEYWORDS = [
+    "the front", "front lines", "front line", "front", "forward",
+    "back", "rear", "the rear", "home",
+]
+
+DIRECTION_WORDS = set(DIRECTION_VECTORS.keys()) | set(RELATIVE_KEYWORDS)
+
+
+def resolve_direction(from_region: str, direction: str, world, marshal_name: Optional[str] = None) -> Optional[str]:
+    """
+    Resolve a cardinal or relative direction to a specific adjacent region.
+
+    Args:
+        from_region: Marshal's current location.
+        direction: Direction keyword (e.g. "north", "the front", "back").
+        world: WorldState for adjacency and enemy lookups.
+        marshal_name: Issuing marshal name (for nation-aware "front" resolution).
+
+    Returns:
+        Region name, or None if no valid region in that direction.
+    """
+    if not world:
+        return None
+
+    region_obj = world.get_region(from_region)
+    if not region_obj:
+        return None
+
+    adjacent = region_obj.adjacent_regions
+    direction_lower = direction.lower().strip()
+
+    # Handle relative keywords
+    if direction_lower in ("the front", "front lines", "front line", "front", "forward"):
+        # "The front" = nearest region with enemy presence
+        marshal = world.get_marshal(marshal_name) if marshal_name else None
+        nation = marshal.nation if marshal else world.player_nation
+        enemies = world.get_enemies_of_nation(nation)
+        enemies = [e for e in enemies if e.strength > 0]
+        if enemies:
+            nearest_enemy = min(enemies,
+                                key=lambda e: world.get_distance(from_region, e.location))
+            # Pick adjacent region closest to that enemy
+            best = None
+            best_dist = 999
+            for adj in adjacent:
+                d = world.get_distance(adj, nearest_enemy.location)
+                if d < best_dist:
+                    best_dist = d
+                    best = adj
+            return best
+        return None
+
+    if direction_lower in ("back", "rear", "the rear", "home"):
+        # "Back" = toward capital (Paris for France)
+        capital = "Paris"
+        if from_region == capital:
+            return None  # Already at capital
+        path = world.find_path(from_region, capital)
+        if path and len(path) > 1:
+            return path[1]  # Next step toward capital
+        return None
+
+    # Cardinal direction resolution
+    vector = DIRECTION_VECTORS.get(direction_lower)
+    if not vector:
+        return None
+
+    from_pos = REGION_POSITIONS.get(from_region)
+    if not from_pos:
+        return None
+
+    dr, dc = vector
+    best_region = None
+    best_score = -999
+
+    for adj in adjacent:
+        adj_pos = REGION_POSITIONS.get(adj)
+        if not adj_pos:
+            continue
+        # How well does this adjacent region match the requested direction?
+        adj_dr = adj_pos[0] - from_pos[0]  # positive = south
+        adj_dc = adj_pos[1] - from_pos[1]  # positive = east
+        # Dot product with direction vector — higher = better match
+        score = adj_dr * dr + adj_dc * dc
+        if score > best_score:
+            best_score = score
+            best_region = adj
+
+    # Only return if the direction actually makes sense (positive dot product)
+    return best_region if best_score > 0 else None
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -43,6 +168,8 @@ STRATEGIC_KEYWORDS = {
         "make for", "travel to", "withdraw to", "fall back to",
         "campaign to", "push to", "move toward",
         "journey to", "relocate to", "deploy to",
+        # Bare verbs for cardinal directions ("march north", "advance east")
+        "march", "advance", "push", "head", "fall back", "withdraw",
     ],
     "PURSUE": [
         # Multi-word phrases first
@@ -328,10 +455,35 @@ def _classify_target(
                     "convert_to_pursue": False,
                 }
 
+    # Check for cardinal/relative direction keywords
+    target_lower = target_text.lower().strip()
+    if target_lower in DIRECTION_VECTORS or target_lower in RELATIVE_KEYWORDS:
+        issuing = world.get_marshal(issuing_marshal) if issuing_marshal and world else None
+        from_region = issuing.location if issuing else None
+        if from_region and world:
+            resolved = resolve_direction(from_region, target_lower, world, issuing_marshal)
+            if resolved:
+                print(f"[PARSER] Direction '{target_lower}' from {from_region} -> {resolved}")
+                return {
+                    "target": resolved,
+                    "target_type": "region",
+                    "target_snapshot_location": None,
+                    "convert_to_pursue": False,
+                }
+        # Direction couldn't resolve — fall through to generic
+        return {
+            "target": target_text,
+            "target_type": "generic",
+            "target_snapshot_location": None,
+            "convert_to_pursue": False,
+        }
+
     # Check for generic indicators
     generic_indicators = [
         "the enemy", "enemy", "enemies", "them", "the prussians",
         "the british", "hostile forces", "prussians", "british",
+        "whoever needs it", "whoever needs it most", "left flank",
+        "right flank", "the flank",
     ]
     if any(ind in target_text.lower() for ind in generic_indicators):
         return {

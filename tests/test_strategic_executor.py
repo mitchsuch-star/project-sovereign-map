@@ -2609,3 +2609,207 @@ class TestInvestigateResponseActuallyMoves:
         for internal_name in ["MOVE_TO", "PURSUE", "HOLD", "SUPPORT"]:
             assert internal_name not in msg, \
                 f"Message contains internal name '{internal_name}': {msg}"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CARDINAL DIRECTION RESOLUTION
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestCardinalDirectionResolution:
+    """Test direction keywords resolve to correct adjacent regions."""
+
+    def test_north_from_paris(self):
+        from backend.ai.strategic_parser import resolve_direction
+        world = WorldState()
+        result = resolve_direction("Paris", "north", world)
+        assert result == "Belgium"  # Belgium is north of Paris
+
+    def test_south_from_paris(self):
+        from backend.ai.strategic_parser import resolve_direction
+        world = WorldState()
+        result = resolve_direction("Paris", "south", world)
+        assert result == "Lyon"  # Lyon is south of Paris
+
+    def test_west_from_paris(self):
+        from backend.ai.strategic_parser import resolve_direction
+        world = WorldState()
+        result = resolve_direction("Paris", "west", world)
+        assert result == "Brittany"  # Brittany is west of Paris
+
+    def test_east_from_paris(self):
+        from backend.ai.strategic_parser import resolve_direction
+        world = WorldState()
+        result = resolve_direction("Paris", "east", world)
+        # Waterloo is east of Paris (col 2 vs col 1)
+        assert result == "Waterloo"
+
+    def test_front_resolves_toward_enemy(self):
+        from backend.ai.strategic_parser import resolve_direction
+        world = WorldState()
+        # Wellington is in Belgium — "the front" from Paris should go toward Belgium
+        result = resolve_direction("Paris", "the front", world, "Grouchy")
+        assert result is not None
+
+    def test_back_resolves_toward_capital(self):
+        from backend.ai.strategic_parser import resolve_direction
+        world = WorldState()
+        result = resolve_direction("Belgium", "back", world)
+        assert result == "Paris"  # Back from Belgium = toward Paris
+
+    def test_no_direction_when_at_capital_going_back(self):
+        from backend.ai.strategic_parser import resolve_direction
+        world = WorldState()
+        result = resolve_direction("Paris", "back", world)
+        assert result is None  # Already at capital
+
+    def test_direction_in_strategic_command(self):
+        """'march south' from Ney at Belgium should detect as MOVE_TO Paris."""
+        from backend.ai.strategic_parser import detect_strategic_command
+        world = WorldState()
+        # Ney starts at Belgium; south from Belgium → Paris
+        result = detect_strategic_command("march south", "Ney", world)
+        assert result is not None
+        assert result["strategic_type"] == "MOVE_TO"
+        assert result["target"] == "Paris"
+        assert result["target_type"] == "region"
+
+    def test_fall_back_south(self):
+        """'fall back south' from Belgium should detect as MOVE_TO Paris."""
+        from backend.ai.strategic_parser import detect_strategic_command
+        world = WorldState()
+        result = detect_strategic_command("fall back south", "Ney", world)
+        assert result is not None
+        assert result["strategic_type"] == "MOVE_TO"
+        assert result["target"] == "Paris"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# GENERIC TARGET RESOLUTION (ALL TYPES)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestGenericTargetResolutionAllTypes:
+    """Test generic target auto-resolution for non-literal and clarification for literal."""
+
+    def test_pursue_generic_non_literal_auto_resolves(self):
+        """Ney (aggressive) auto-resolves 'pursue the enemy' to nearest enemy."""
+        world = WorldState()
+        executor = CommandExecutor()
+        game_state = {"world": world}
+        parsed = {
+            "command": {
+                "marshal": "Ney",
+                "action": "move",
+                "target": "generic",
+                "target_type": "generic",
+            },
+            "is_strategic": True,
+            "strategic_type": "PURSUE",
+            "raw_command": "pursue the enemy",
+        }
+        result = executor.execute(parsed, game_state)
+        # Should NOT ask for clarification (Ney is aggressive)
+        assert result.get("state") != "awaiting_clarification"
+
+    def test_pursue_generic_literal_asks_clarification(self):
+        """Grouchy (literal) asks clarification for 'pursue the enemy'."""
+        world = WorldState()
+        executor = CommandExecutor()
+        game_state = {"world": world}
+        parsed = {
+            "command": {
+                "marshal": "Grouchy",
+                "action": "move",
+                "target": "generic",
+                "target_type": "generic",
+            },
+            "is_strategic": True,
+            "strategic_type": "PURSUE",
+            "raw_command": "pursue the enemy",
+        }
+        result = executor.execute(parsed, game_state)
+        assert result.get("state") == "awaiting_clarification"
+        assert result.get("strategic_type") == "PURSUE"
+        assert result.get("free_action") is True
+
+    def test_support_generic_non_literal_auto_resolves(self):
+        """Ney auto-resolves 'support whoever needs it' to most threatened ally."""
+        world = WorldState()
+        executor = CommandExecutor()
+        game_state = {"world": world}
+        parsed = {
+            "command": {
+                "marshal": "Ney",
+                "action": "move",
+                "target": "generic",
+                "target_type": "generic",
+            },
+            "is_strategic": True,
+            "strategic_type": "SUPPORT",
+            "raw_command": "support whoever needs it",
+        }
+        result = executor.execute(parsed, game_state)
+        # Should NOT ask for clarification
+        assert result.get("state") != "awaiting_clarification"
+
+    def test_support_generic_literal_asks_clarification(self):
+        """Grouchy asks clarification for 'support whoever needs it'."""
+        world = WorldState()
+        executor = CommandExecutor()
+        game_state = {"world": world}
+        parsed = {
+            "command": {
+                "marshal": "Grouchy",
+                "action": "move",
+                "target": "generic",
+                "target_type": "generic",
+            },
+            "is_strategic": True,
+            "strategic_type": "SUPPORT",
+            "raw_command": "support whoever needs it",
+        }
+        result = executor.execute(parsed, game_state)
+        assert result.get("state") == "awaiting_clarification"
+        assert result.get("strategic_type") == "SUPPORT"
+        assert "support" in result.get("message", "").lower()
+
+    def test_move_to_generic_non_literal_auto_resolves(self):
+        """Ney auto-resolves 'advance to the front' to nearest enemy position."""
+        world = WorldState()
+        executor = CommandExecutor()
+        game_state = {"world": world}
+        parsed = {
+            "command": {
+                "marshal": "Ney",
+                "action": "move",
+                "target": "generic",
+                "target_type": "generic",
+            },
+            "is_strategic": True,
+            "strategic_type": "MOVE_TO",
+            "raw_command": "advance to the front",
+        }
+        result = executor.execute(parsed, game_state)
+        assert result.get("state") != "awaiting_clarification"
+
+    def test_clarification_includes_strategic_type(self):
+        """All clarification responses include strategic_type for Godot reissue."""
+        world = WorldState()
+        executor = CommandExecutor()
+        game_state = {"world": world}
+
+        for stype in ["PURSUE", "SUPPORT", "MOVE_TO"]:
+            parsed = {
+                "command": {
+                    "marshal": "Grouchy",
+                    "action": "move",
+                    "target": "generic",
+                    "target_type": "generic",
+                },
+                "is_strategic": True,
+                "strategic_type": stype,
+                "raw_command": "test generic",
+            }
+            result = executor.execute(parsed, game_state)
+            if result.get("state") == "awaiting_clarification":
+                assert "strategic_type" in result, \
+                    f"{stype} clarification missing strategic_type"

@@ -837,6 +837,12 @@ RETREAT RECOVERY (3 turns):
                     elif strategic_type == "SUPPORT":
                         cl_msg = (f"You wish me to support {interpreted} "
                                   f"({reason} ally), Sire?")
+                    elif strategic_type == "MOVE_TO":
+                        cl_msg = (f"You wish me to march to {interpreted} "
+                                  f"({reason}), Sire?")
+                    elif strategic_type == "HOLD":
+                        cl_msg = (f"You wish me to hold {interpreted} "
+                                  f"({reason}), Sire?")
                     else:
                         cl_msg = f"I understand {interpreted}, Sire. Is this correct?"
 
@@ -845,6 +851,7 @@ RETREAT RECOVERY (3 turns):
                         "free_action": True,
                         "state": "awaiting_clarification",
                         "type": "clarification",
+                        "strategic_type": strategic_type,
                         "marshal": cl_marshal.name,
                         "original_command": command.get("raw_command", ""),
                         "message": cl_msg,
@@ -1984,6 +1991,145 @@ RETREAT RECOVERY (3 turns):
         }
 
     # ════════════════════════════════════════════════════════════════════════
+    # GENERIC TARGET RESOLUTION (Phase 5.2)
+    # Resolves vague targets ("the enemy", "whoever needs it") for all
+    # strategic types. Literal personality gets clarification popup.
+    # ════════════════════════════════════════════════════════════════════════
+
+    def _resolve_generic_target(self, marshal, strategic_type: str, target: str,
+                                world, parsed_command: dict) -> dict:
+        """
+        Resolve a generic/vague target for any strategic command type.
+
+        Returns:
+            {"resolved": True, "target": str, "target_type": str} on success,
+            {"needs_clarification": True, "response": dict} for literal marshals,
+            {"resolved": False} if no resolution possible.
+        """
+        is_literal = getattr(marshal, 'personality', '') == 'literal'
+
+        # ── PURSUE: nearest enemy marshal ────────────────────────────
+        if strategic_type == "PURSUE":
+            enemies = world.get_enemies_of_nation(marshal.nation)
+            enemies = [e for e in enemies if e.strength > 0]
+            nearest, alternatives = self._find_nearest_enemy(marshal, enemies, world)
+
+            if not nearest:
+                return {"resolved": False}
+
+            if is_literal:
+                return self._build_clarification(
+                    marshal, strategic_type, nearest.name, "nearest enemy",
+                    [e.name for e in enemies if e.name != nearest.name][:2],
+                    world, f"You wish me to pursue {nearest.name} (nearest enemy), Sire?"
+                )
+            return {"resolved": True, "target": nearest.name, "target_type": "marshal"}
+
+        # ── SUPPORT: most threatened ally ────────────────────────────
+        if strategic_type == "SUPPORT":
+            allies = [m for m in world.marshals.values()
+                      if m.nation == marshal.nation
+                      and m.name != marshal.name
+                      and m.strength > 0
+                      and not getattr(m, 'administrative', False)]
+
+            if not allies:
+                return {"resolved": False}
+
+            def threat_level(ally):
+                threats = len(world.get_enemies_in_region(ally.location, ally.nation))
+                region = world.get_region(ally.location)
+                if region:
+                    for adj in region.adjacent_regions:
+                        threats += len(world.get_enemies_in_region(adj, ally.nation))
+                return threats
+
+            most_threatened = max(allies, key=threat_level)
+            alt_names = [a.name for a in allies if a.name != most_threatened.name][:2]
+
+            if is_literal:
+                return self._build_clarification(
+                    marshal, strategic_type, most_threatened.name, "most threatened ally",
+                    alt_names, world,
+                    f"You wish me to support {most_threatened.name} (most threatened), Sire?"
+                )
+            return {"resolved": True, "target": most_threatened.name, "target_type": "marshal"}
+
+        # ── MOVE_TO: nearest enemy region ────────────────────────────
+        if strategic_type == "MOVE_TO":
+            enemies = world.get_enemies_of_nation(marshal.nation)
+            enemies = [e for e in enemies if e.strength > 0]
+            nearest, _ = self._find_nearest_enemy(marshal, enemies, world)
+
+            if not nearest:
+                return {"resolved": False}
+
+            target_region = nearest.location
+            alt_regions = list(set(
+                e.location for e in enemies if e.location != target_region
+            ))[:2]
+
+            if is_literal:
+                return self._build_clarification(
+                    marshal, strategic_type, target_region, "nearest enemy position",
+                    alt_regions, world,
+                    f"You wish me to march to {target_region} (nearest enemy), Sire?"
+                )
+            return {"resolved": True, "target": target_region, "target_type": "region"}
+
+        # ── HOLD: current location (already handled elsewhere, but be safe)
+        if strategic_type == "HOLD":
+            return {"resolved": True, "target": marshal.location, "target_type": "region"}
+
+        return {"resolved": False}
+
+    def _find_nearest_enemy(self, marshal, enemies, world):
+        """Find nearest enemy by path distance. Returns (nearest_marshal, all_enemies)."""
+        nearest = None
+        nearest_dist = 999
+        for e in enemies:
+            p = world.find_path(marshal.location, e.location)
+            if p and len(p) - 1 < nearest_dist:
+                nearest = e
+                nearest_dist = len(p) - 1
+        return nearest, enemies
+
+    def _build_clarification(self, marshal, strategic_type: str, interpreted: str,
+                             reason: str, alternatives: list, world, message: str) -> dict:
+        """Build a clarification response for literal marshals."""
+        options = [{
+            "label": f"Yes, {interpreted}",
+            "value": "confirm",
+            "target": interpreted
+        }]
+        for alt in alternatives:
+            options.append({
+                "label": f"No, {alt}",
+                "value": "specify",
+                "target": alt
+            })
+        options.append({"label": "Cancel", "value": "cancel"})
+
+        return {
+            "needs_clarification": True,
+            "response": {
+                "success": True,
+                "free_action": True,
+                "state": "awaiting_clarification",
+                "type": "clarification",
+                "strategic_type": strategic_type,
+                "marshal": marshal.name,
+                "message": message,
+                "interpreted_target": interpreted,
+                "interpretation_reason": reason,
+                "alternatives": alternatives,
+                "options": options,
+                "action_summary": world.get_action_summary(),
+                "game_state": world.get_game_state_summary()
+            }
+        }
+
+    # ════════════════════════════════════════════════════════════════════════
     # STRATEGIC COMMAND HANDLER (Phase 5.2)
     # Creates StrategicOrder on marshal & executes first step immediately.
     # ════════════════════════════════════════════════════════════════════════
@@ -2015,6 +2161,23 @@ RETREAT RECOVERY (3 turns):
         snapshot = parsed_command.get("target_snapshot_location")
 
         print(f"[STRATEGIC] Creating {strategic_type} order for {marshal.name} -> {target}")
+
+        # ── Resolve generic/vague targets for ALL strategic types ────
+        is_generic = (
+            not target
+            or target.lower() in ("generic", "the enemy", "enemy", "enemies", "them")
+            or target_type == "generic"
+        )
+        if is_generic:
+            resolution = self._resolve_generic_target(
+                marshal, strategic_type, target, world, parsed_command
+            )
+            if resolution.get("needs_clarification"):
+                return resolution["response"]
+            if resolution.get("resolved"):
+                target = resolution["target"]
+                target_type = resolution["target_type"]
+                print(f"[STRATEGIC] Generic resolved -> {target} ({target_type})")
 
         # ── Validate target ───────────────────────────────────────────
         # SUPPORT must target a friendly marshal, not a region
@@ -2049,73 +2212,18 @@ RETREAT RECOVERY (3 turns):
         if strategic_type == "PURSUE":
             enemy = world.get_marshal(target)
             if not enemy:
-                is_generic = not target or target.lower() in ("generic", "the enemy", "enemy")
-                if is_generic:
-                    # Find nearest enemy for resolution/clarification
-                    enemies = world.get_enemies_of_nation(marshal.nation)
-                    nearest = None
-                    nearest_dist = 999
-                    if enemies:
-                        for e in enemies:
-                            p = world.find_path(marshal.location, e.location)
-                            if p and len(p) - 1 < nearest_dist:
-                                nearest = e
-                                nearest_dist = len(p) - 1
-
-                    # Literal personality: ALWAYS ask for clarification on generic targets
-                    if getattr(marshal, 'personality', '') == 'literal' and nearest:
-                        alternatives = [e.name for e in enemies if e != nearest][:2]
-                        options = [{
-                            "label": f"Yes, {nearest.name}",
-                            "value": "confirm",
-                            "target": nearest.name
-                        }]
-                        for alt in alternatives:
-                            options.append({
-                                "label": f"No, {alt}",
-                                "value": "specify",
-                                "target": alt
-                            })
-                        options.append({"label": "Cancel", "value": "cancel"})
-                        return {
-                            "success": True,
-                            "free_action": True,
-                            "state": "awaiting_clarification",
-                            "type": "clarification",
-                            "marshal": marshal.name,
-                            "message": f"You wish me to pursue {nearest.name} "
-                                       f"(nearest enemy), Sire? Or did you mean another?",
-                            "interpreted_target": nearest.name,
-                            "interpretation_reason": "nearest",
-                            "alternatives": alternatives,
-                            "options": options,
-                            "action_summary": world.get_action_summary(),
-                            "game_state": world.get_game_state_summary()
-                        }
-
-                    # Non-literal: auto-resolve to nearest enemy (already computed above)
-                    if nearest:
-                        target = nearest.name
-                        target_type = "marshal"
-                        print(f"[STRATEGIC] PURSUE generic -> resolved to nearest enemy: {target}")
-                    else:
-                        return {
-                            "success": False,
-                            "message": "No reachable enemies to pursue." if enemies else "No enemies to pursue.",
-                        }
+                # Check if it's a region
+                region = world.get_region(target) if target else None
+                if region:
+                    # PURSUE a region doesn't make sense — convert to MOVE_TO
+                    print(f"[STRATEGIC] PURSUE region '{target}' -> converting to MOVE_TO")
+                    strategic_type = "MOVE_TO"
+                    target_type = "region"
                 else:
-                    # Check if it's a region
-                    region = world.get_region(target) if target else None
-                    if region:
-                        # PURSUE a region doesn't make sense — convert to MOVE_TO
-                        print(f"[STRATEGIC] PURSUE region '{target}' -> converting to MOVE_TO")
-                        strategic_type = "MOVE_TO"
-                        target_type = "region"
-                    else:
-                        return {
-                            "success": False,
-                            "message": f"Cannot find '{target}' to pursue.",
-                        }
+                    return {
+                        "success": False,
+                        "message": f"Cannot find '{target}' to pursue.",
+                    }
             else:
                 target_type = "marshal"
 

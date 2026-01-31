@@ -8,7 +8,7 @@ extends CanvasLayer
 # NOT an objection — this is the marshal asking for specifics.
 # =============================================================================
 
-signal clarification_choice(marshal_name: String, chosen_target: String)
+signal clarification_choice(marshal_name: String, chosen_target: String, strategic_type: String)
 signal cancelled
 
 # UI References
@@ -22,6 +22,7 @@ const COLOR_TEXT = "eeeeee"
 
 # Current clarification data
 var current_marshal: String = ""
+var current_strategic_type: String = ""
 
 func _ready():
 	hide()
@@ -29,6 +30,7 @@ func _ready():
 func show_clarification(data: Dictionary):
 	"""Display clarification popup with target options."""
 	current_marshal = data.get("marshal", "Marshal")
+	current_strategic_type = data.get("strategic_type", "PURSUE")
 
 	# Title
 	title_label.text = current_marshal.to_upper() + " ASKS:"
@@ -88,4 +90,4 @@ func _on_option_pressed(target_value: String):
 	if target_value == "":
 		cancelled.emit()
 	else:
-		clarification_choice.emit(current_marshal, target_value)
+		clarification_choice.emit(current_marshal, target_value, current_strategic_type)

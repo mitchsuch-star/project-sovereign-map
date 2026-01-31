@@ -1378,13 +1378,20 @@ func _show_clarification_popup(response):
 	clarification_popup.show_clarification(data)
 
 
-func _on_clarification_choice_made(marshal_name: String, chosen_target: String):
+func _on_clarification_choice_made(marshal_name: String, chosen_target: String, strategic_type: String):
 	"""Handle player selecting a clarification target."""
-	print("Clarification choice: marshal=%s, target=%s" % [marshal_name, chosen_target])
+	print("Clarification choice: marshal=%s, target=%s, type=%s" % [marshal_name, chosen_target, strategic_type])
 	add_output("[color=#" + COLOR_COMMAND + "]> " + marshal_name + ", target " + chosen_target + "[/color]")
 
-	# Reissue the command with the specific target
-	var clarified_command = marshal_name + " pursue " + chosen_target
+	# Reissue with correct strategic keyword for the command type
+	var keyword_map = {
+		"PURSUE": "pursue",
+		"MOVE_TO": "march to",
+		"SUPPORT": "support",
+		"HOLD": "hold",
+	}
+	var keyword = keyword_map.get(strategic_type, "pursue")
+	var clarified_command = marshal_name + " " + keyword + " " + chosen_target
 	set_input_enabled(false)
 	api_client.send_command(clarified_command, _on_command_result)
 

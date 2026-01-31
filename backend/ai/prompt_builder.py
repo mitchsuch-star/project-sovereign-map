@@ -315,6 +315,23 @@ Conditions (set in strategic_condition dict):
 IMPORTANT: "move to [region]" (2 words) = tactical (immediate). "march to [region]" = strategic (multi-turn).
 If the command implies an ongoing campaign or uses strategic keywords above, set is_strategic=true.
 
+## Cardinal Directions & Generic Targets
+Players may use directions instead of region names. Resolve to the actual region:
+- "march north/south/east/west" → resolve to the adjacent region in that direction from the marshal's position
+- "advance to the front" / "march forward" → nearest region with enemy presence
+- "fall back" / "retreat south" → direction toward Paris (French capital)
+- "support whoever needs it" → target the most threatened ally (set target to generic)
+- "pursue the enemy" → target the nearest enemy marshal (set target to generic)
+
+Geographic layout (approximate):
+  North: Netherlands, Belgium  |  Northeast: Waterloo, Rhine
+  Central: Paris               |  East: Bavaria, Vienna
+  South: Lyon, Marseille       |  Southwest: Bordeaux, Brittany
+  Southeast: Geneva, Milan
+
+If you can resolve a direction to a specific region, set the target to that region name (low ambiguity).
+If you cannot determine the specific region, set target to "generic" and ambiguity to 60+.
+
 ## Cancel Command (Clears Strategic Orders)
 Cancel keywords: "halt", "stop", "cancel", "abort", "stand down", "belay that"
 When detected, set action="cancel". This clears the marshal's current strategic order.
