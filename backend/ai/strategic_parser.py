@@ -484,6 +484,9 @@ def _classify_target(
         "the british", "hostile forces", "prussians", "british",
         "whoever needs it", "whoever needs it most", "left flank",
         "right flank", "the flank",
+        # Bare forms (after _clean_target_text strips "the")
+        "marshal", "general", "commander", "someone", "somebody",
+        "anyone", "whoever", "nearest", "closest",
     ]
     if any(ind in target_text.lower() for ind in generic_indicators):
         return {

@@ -1378,7 +1378,28 @@ RETREAT RECOVERY (3 turns):
             distance = world.get_distance(marshal.location, target_location)
 
             if distance > marshal.movement_range:
-                # OUT OF RANGE - Provide helpful error message
+                # OUT OF RANGE — auto-upgrade to strategic PURSUE if targeting enemy marshal
+                is_player_nation = marshal.nation == world.player_nation
+                if enemy_by_name and is_player_nation:
+                    print(f"[ATTACK→PURSUE] {marshal.name}: {target} out of range (distance {distance}), auto-upgrading to PURSUE")
+                    from backend.models.marshal import StrategicOrder
+                    pursue_parsed = {
+                        "success": True,
+                        "command": {
+                            "marshal": marshal.name,
+                            "action": "attack",
+                            "target": enemy_by_name.name,
+                            "target_type": "marshal",
+                        },
+                        "is_strategic": True,
+                        "strategic_type": "PURSUE",
+                        "raw_input": f"{marshal.name} attack {target}",
+                        "strategic_score": 60,
+                        "ambiguity": 15,
+                    }
+                    return self._execute_strategic_command(pursue_parsed, pursue_parsed["command"], game_state)
+
+                # Non-enemy or AI marshal — provide helpful error
                 marshal_type = "cavalry" if marshal.movement_range == 2 else "infantry"
 
                 # Find closer targets within range
@@ -2168,7 +2189,8 @@ RETREAT RECOVERY (3 turns):
         # ── Resolve generic/vague targets for ALL strategic types ────
         GENERIC_TARGETS = {
             "generic", "the enemy", "enemy", "enemies", "them",
-            "the marshal", "the general", "the commander",
+            "the marshal", "marshal", "the general", "general",
+            "the commander", "commander",
             "the region", "someone", "somebody", "anyone",
             "whoever", "nearest", "closest",
         }
