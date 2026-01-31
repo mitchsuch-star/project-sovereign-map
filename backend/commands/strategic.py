@@ -753,14 +753,53 @@ class StrategicExecutor:
 
             next_region = path[0]
 
-            # Check for OTHER enemies blocking (not our target)
+            # Check for enemies blocking the path
             enemies = world.get_enemies_in_region(next_region, marshal.nation)
             blocking = [e for e in enemies if e.name != order.target]
 
-            if blocking:
+            # If this is the target's region, don't treat other enemies as blockers —
+            # the whole point of PURSUE is to reach and fight the target
+            is_target_region = (next_region == target.location)
+
+            if blocking and not is_target_region:
                 if not moves_made:
                     return self._handle_blocked_path(
                         marshal, blocking, next_region, world, game_state)
+                break
+
+            # Target's region — skip move, go straight to attack
+            if is_target_region and enemies:
+                if self._should_auto_attack(marshal, target, world):
+                    personality = getattr(marshal, 'personality', 'balanced')
+                    attack_on_arrival = getattr(order, 'attack_on_arrival', False)
+                    if personality == "aggressive" or attack_on_arrival:
+                        attack_result = self.executor.execute(
+                            {"command": {
+                                "marshal": marshal.name,
+                                "action": "attack",
+                                "target": target.name,
+                                "_strategic_execution": True
+                            }},
+                            game_state
+                        )
+                        return self._handle_combat_result(
+                            marshal, target, attack_result, world, game_state)
+                    else:
+                        # Cautious/literal: report contact, ask player
+                        marshal.pending_interrupt = {
+                            "interrupt_type": "contact",
+                            "enemy": target.name,
+                            "location": next_region,
+                            "is_first_step": False,
+                            "options": ["attack", "go_around", "hold_position", "cancel_order"]
+                        }
+                        return {
+                            "marshal": marshal.name, "command": "PURSUE",
+                            "requires_input": True,
+                            "pending_interrupt": marshal.pending_interrupt,
+                            "message": f"{marshal.name}: '{target.name} spotted at {next_region}. Engage, Sire?'",
+                            "order_status": "awaiting_response",
+                        }
                 break
 
             result = self.executor.execute(

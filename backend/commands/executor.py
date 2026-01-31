@@ -1381,7 +1381,7 @@ RETREAT RECOVERY (3 turns):
                 # OUT OF RANGE — auto-upgrade to strategic PURSUE if targeting enemy marshal
                 is_player_nation = marshal.nation == world.player_nation
                 if enemy_by_name and is_player_nation:
-                    print(f"[ATTACK→PURSUE] {marshal.name}: {target} out of range (distance {distance}), auto-upgrading to PURSUE")
+                    print(f"[ATTACK->PURSUE] {marshal.name}: {target} out of range (distance {distance}), auto-upgrading to PURSUE")
                     from backend.models.marshal import StrategicOrder
                     pursue_parsed = {
                         "success": True,
