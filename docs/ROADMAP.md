@@ -93,7 +93,34 @@
 | Strategic + Relationships | "Support Ney" → reaction based on feelings | Medium | 📋 |
 | Jealousy system | Marshal getting all glory → others resent | Medium | 📋 |
 
-**Dependencies:** Phase 6.5 (Marshal Management UI)  
+### AI Enhancement: Combined Strength Evaluation ✅ IMPLEMENTED
+
+**What:** AI evaluates attack decisions using combined strength of all friendly marshals in the same region, not just the individual marshal's strength.
+
+**Why:** Prevents AI from being timid when it has overwhelming local superiority (e.g., two marshals trapped in dead-end should recognize they can fight their way out together).
+
+**Note:** This affects DECISION-MAKING only. Actual coordinated attacks (combined damage) planned for Phase 7 multi-marshal commands.
+
+### AI Enhancement: P0 Survival Instinct (Future)
+
+**Current behavior:**
+- AI only retreats via P0 when enemy is in same region AND ratio is below threshold
+- A marshal at 10% strength might still counter-attack a full-strength enemy if personality is aggressive
+
+**Proposed enhancement:**
+- Add "critical survival" override to P0
+- If marshal strength < 20% of starting_strength AND enemy in same region → ALWAYS retreat regardless of personality
+- Rationale: Even Blucher wouldn't charge at 10% strength against a fresh army
+- This is "survival instinct" not cowardice
+
+**Implementation notes:**
+- Add to P0 in enemy_ai.py, before personality threshold check
+- Use starting_strength field (already tracked on marshal)
+- Threshold could be personality-adjusted: Cautious 30%, Normal 20%, Aggressive 15%
+
+**Status:** Planned for Phase 7
+
+**Dependencies:** Phase 6.5 (Marshal Management UI)
 **Exit Criteria:** Multi-marshal commands work, relationships affect outcomes
 
 ---

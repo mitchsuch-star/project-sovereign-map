@@ -645,6 +645,12 @@ class EnemyAI:
         # Prevents P8 from immediately retreating them back (advance→retreat oscillation)
         self._advanced_this_turn: set = set()
 
+        # Fix: Track (attacker, target) pairs attacked this turn to prevent repetitive attacks
+        self._attacked_targets_this_turn: set = set()
+
+        # Fix: Track marshals force-unfortified by stagnation this turn (prevent immediate re-fortify)
+        self._stagnation_unfortified_this_turn: set = set()
+
         # Get this nation's marshals
         marshals = world.get_marshals_by_nation(nation)
 
@@ -745,6 +751,12 @@ class EnemyAI:
             if selected_action["action"] == "stance_change":
                 self._stance_changed_this_turn.add(selected_action["marshal"])
 
+            # Track successful attacks to prevent same attacker→target repetition
+            if selected_action["action"] == "attack" and selected_action.get("target"):
+                self._attacked_targets_this_turn.add(
+                    (selected_action["marshal"], selected_action["target"])
+                )
+
             # Track locations visited after successful moves (oscillation fix)
             if selected_action["action"] in ("move", "retreat") and result.get("success"):
                 marshal_name = selected_action["marshal"]
@@ -802,12 +814,24 @@ class EnemyAI:
 
         # Fix #1: Update stagnation counters per marshal
         # A marshal is "idle" if they only waited, defended-while-fortified, or changed stance
+        # Attacks that achieve nothing (no conquest, no kill) also count as idle
         meaningful_actions = set()  # marshals who took meaningful action
         for r in results:
             ai_action = r.get("ai_action", {})
             action = ai_action.get("action", "") if ai_action else r.get("action", "")
             m_name = ai_action.get("marshal", "") if ai_action else r.get("marshal", "")
-            if action in ("attack", "move", "drill", "recruit", "unfortify", "retreat"):
+            if action == "attack":
+                # Only count attack as meaningful if the attacker won, conquered, or destroyed
+                events = r.get("events", [])
+                achieved_something = any(
+                    e.get("region_conquered") or e.get("enemy_destroyed") or e.get("victor") == m_name
+                    for e in events if e.get("type") == "battle"
+                )
+                if achieved_something:
+                    meaningful_actions.add(m_name)
+                else:
+                    print(f"  [STAGNATION] {m_name} attacked but achieved nothing - not counted as meaningful")
+            elif action in ("move", "drill", "recruit", "unfortify", "retreat"):
                 meaningful_actions.add(m_name)
             elif action == "fortify" and not any(
                 m.name == m_name and getattr(m, 'fortified', False)
@@ -815,11 +839,18 @@ class EnemyAI:
             ):
                 meaningful_actions.add(m_name)  # First fortify is meaningful
 
+        stagnation_forced = getattr(self, '_stagnation_unfortified_this_turn', set())
         for m in world.get_marshals_by_nation(nation):
             if m.name in meaningful_actions:
-                if world.ai_stagnation_turns.get(m.name, 0) > 0:
-                    print(f"  [STAGNATION RESET] {m.name} took meaningful action - counter reset")
-                world.ai_stagnation_turns[m.name] = 0
+                if m.name in stagnation_forced:
+                    # Stagnation-forced actions only decrement, don't fully reset
+                    old = world.ai_stagnation_turns.get(m.name, 0)
+                    world.ai_stagnation_turns[m.name] = max(0, old - 1)
+                    print(f"  [STAGNATION DECREMENT] {m.name} stagnation-forced action: {old} -> {world.ai_stagnation_turns[m.name]}")
+                else:
+                    if world.ai_stagnation_turns.get(m.name, 0) > 0:
+                        print(f"  [STAGNATION RESET] {m.name} took meaningful action - counter reset")
+                    world.ai_stagnation_turns[m.name] = 0
             else:
                 old = world.ai_stagnation_turns.get(m.name, 0)
                 world.ai_stagnation_turns[m.name] = old + 1
@@ -1119,7 +1150,9 @@ class EnemyAI:
 
             # Find weakest enemy (best attack target)
             weakest_enemy = min(enemies_in_region, key=lambda e: e.strength)
-            ratio = marshal.strength / weakest_enemy.strength if weakest_enemy.strength > 0 else 999
+            # Use combined allied strength for decision (allies in same region will follow up)
+            combined_strength = self._get_combined_strength_in_region(marshal, nation, world)
+            ratio = combined_strength / weakest_enemy.strength if weakest_enemy.strength > 0 else 999
             threshold = self._get_mood_adjusted_threshold(marshal, world)
 
             print(f"  [P0 ENGAGEMENT] {marshal.name} vs {weakest_enemy.name}: ratio={ratio:.2f}, threshold={threshold:.2f}")
@@ -1314,9 +1347,11 @@ class EnemyAI:
         # PRIORITY 5: FORTIFICATION (cautious marshals)
         # ════════════════════════════════════════════════════════════
         if personality == "cautious":
-            fortify_action = self._consider_fortify(marshal, world)
-            if fortify_action:
-                return (fortify_action, 5)
+            # Don't re-fortify if stagnation system just forced unfortify this turn
+            if marshal.name not in getattr(self, '_stagnation_unfortified_this_turn', set()):
+                fortify_action = self._consider_fortify(marshal, world)
+                if fortify_action:
+                    return (fortify_action, 5)
 
         # ─── P6-P7: OFFENSIVE & POSITIONING PRIORITIES ─────────────────────────
 
@@ -1675,6 +1710,24 @@ class EnemyAI:
 
         return None
 
+    def _get_combined_strength_in_region(self, marshal: Marshal, nation: str, world: WorldState) -> int:
+        """Get total strength of all friendly marshals in marshal's region.
+
+        Used for attack DECISION-MAKING only — the actual attack is still
+        single marshal. This prevents AI from thinking it's too weak when
+        it has allies ready to follow up.
+        """
+        total = marshal.strength
+        for other in world.marshals.values():
+            if (other.name != marshal.name
+                    and other.nation == nation
+                    and other.location == marshal.location
+                    and other.strength > 0
+                    and not getattr(other, 'broken', False)
+                    and not getattr(other, 'retreated_this_turn', False)):
+                total += other.strength
+        return total
+
     def _find_attack_opportunity(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
         """Find a valid attack target based on personality."""
         # Check if already drilling (cannot attack)
@@ -1715,19 +1768,37 @@ class EnemyAI:
                         ai_debug(f"    SKIPPING {enemy.name} - path blocked by {blocker}")
                         continue
 
-                # Calculate base strength ratio
-                base_ratio = marshal.strength / enemy.strength
+                # Calculate base strength ratio using combined allied strength for decision
+                combined_strength = self._get_combined_strength_in_region(marshal, nation, world)
+                base_ratio = combined_strength / enemy.strength
                 # Calculate effective ratio considering target's tactical state
                 effective_ratio = self._evaluate_target_ratio(base_ratio, enemy, world)
 
                 ai_debug(f"    Target in range: {enemy.name} at {enemy.location} (dist={distance})")
-                ai_debug(f"      Base: {marshal.strength:,} / {enemy.strength:,} = {base_ratio:.2f}")
+                if combined_strength > marshal.strength:
+                    ai_debug(f"      Base: {combined_strength:,} (combined) / {enemy.strength:,} = {base_ratio:.2f}")
+                else:
+                    ai_debug(f"      Base: {marshal.strength:,} / {enemy.strength:,} = {base_ratio:.2f}")
                 ai_debug(f"      Effective ratio: {effective_ratio:.2f}")
                 valid_targets.append((enemy, base_ratio, effective_ratio, distance))
 
         if not valid_targets:
             ai_debug(f"    No enemies in range")
             return None
+
+        # Filter out targets already attacked by this marshal this turn
+        already_attacked = getattr(self, '_attacked_targets_this_turn', set())
+        filtered_targets = [
+            (e, br, er, d) for e, br, er, d in valid_targets
+            if (marshal.name, e.name) not in already_attacked
+        ]
+        if filtered_targets != valid_targets:
+            skipped = len(valid_targets) - len(filtered_targets)
+            ai_debug(f"    Filtered {skipped} already-attacked targets this turn")
+            valid_targets = filtered_targets
+            if not valid_targets:
+                ai_debug(f"    No new targets available (all already attacked this turn)")
+                return None
 
         # Get attack threshold with mood variance (controlled randomness)
         personality = self._get_effective_personality(marshal, world)
@@ -2065,6 +2136,7 @@ class EnemyAI:
         if stagnation >= 2:
             if getattr(marshal, 'fortified', False):
                 print(f"  [STAGNATION] {marshal.name}: Force unfortify after {stagnation} idle turns")
+                self._stagnation_unfortified_this_turn.add(marshal.name)
                 return {
                     "marshal": marshal.name,
                     "action": "unfortify"
@@ -2099,6 +2171,24 @@ class EnemyAI:
                             "marshal": marshal.name,
                             "action": "move",
                             "target": best_dest
+                        }
+
+                    # Fallback: no distance-reducing move, pick ANY unvisited safe region
+                    fallback_dests = [
+                        adj_name for adj_name in marshal_region.adjacent_regions
+                        if adj_name not in visited
+                        and not any(
+                            m.location == adj_name and m.nation != nation and m.strength > 0
+                            for m in world.marshals.values()
+                        )
+                    ]
+                    if fallback_dests:
+                        fallback = fallback_dests[0]
+                        print(f"  [STAGNATION] {marshal.name}: Force move to {fallback} (no better option, just reposition)")
+                        return {
+                            "marshal": marshal.name,
+                            "action": "move",
+                            "target": fallback
                         }
 
         # ── TURN 3+: Lower attack threshold and try attacking ──
