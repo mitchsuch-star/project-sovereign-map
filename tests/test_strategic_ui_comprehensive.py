@@ -224,11 +224,11 @@ class TestReportGeneration:
         assert len(report["options"]) > 0
 
     def test_paused_during_retreat_recovery(self, world, strategic_executor, game_state):
-        """Marshal in retreat_recovery gets 'paused' report."""
+        """Marshal in retreat_recovery gets 'paused' report (PURSUE pauses, MOVE_TO doesn't)."""
         grouchy = world.get_marshal("Grouchy")
         grouchy.retreat_recovery = 2
         grouchy.strategic_order = _make_order(
-            "MOVE_TO", "Vienna", path=["Munich", "Vienna"])
+            "PURSUE", "Wellington", target_type="enemy_marshal", path=["Munich", "Vienna"])
 
         reports = strategic_executor.process_strategic_orders(world, game_state)
         assert len(reports) >= 1

@@ -2217,3 +2217,133 @@ class TestCavalryFirstStep:
         # Infantry should only move 1 region
         assert result.get("success") is True
         assert davout.location == "Belgium", f"Davout should be at Belgium (moved 1 region), but is at {davout.location}"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BUG FIX REGRESSION TESTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestBugFixes:
+    """Regression tests for strategic command bug fixes."""
+
+    def test_strategic_no_double_move_on_issue_turn(self, world, game_state, strategic_executor):
+        """Bug 1: Marshal should NOT move twice on the turn the order is issued.
+
+        executor.py already executes the first step, so process_strategic_orders()
+        must skip orders whose issued_turn == current_turn.
+        """
+        ney = world.get_marshal("Ney")
+        ney.location = "Paris"
+
+        # Simulate: order was issued THIS turn (turn 1) with first step already done
+        _set_strategic_order(ney, "MOVE_TO", "Rhine", path=["Lyon", "Rhine"],
+                             started_turn=world.current_turn)
+        ney.strategic_order.issued_turn = world.current_turn
+
+        start_location = ney.location  # Paris (first step NOT simulated here)
+
+        with _suppress_output():
+            reports = strategic_executor.process_strategic_orders(world, game_state)
+
+        # Should produce NO reports — order skipped because issued this turn
+        assert len(reports) == 0, f"Expected 0 reports (skip same-turn), got {len(reports)}"
+        # Marshal should NOT have moved
+        assert ney.location == start_location, \
+            f"Marshal moved from {start_location} to {ney.location} — double-move bug!"
+
+    def test_strategic_move_to_continues_during_retreat_recovery(self, world, game_state, strategic_executor):
+        """Bug 2: MOVE_TO should NOT pause during retreat recovery.
+
+        Movement is allowed during retreat recovery. Only combat-related
+        orders (PURSUE, HOLD) should pause.
+        """
+        ney = world.get_marshal("Ney")
+        ney.location = "Paris"
+        ney.retreat_recovery = 2  # In recovery
+
+        # Issue a MOVE_TO on a previous turn
+        _set_strategic_order(ney, "MOVE_TO", "Lyon", path=["Lyon"],
+                             started_turn=world.current_turn - 1)
+        ney.strategic_order.issued_turn = world.current_turn - 1
+
+        with _suppress_output():
+            reports = strategic_executor.process_strategic_orders(world, game_state)
+
+        # Should have a report — MOVE_TO continues despite recovery
+        assert len(reports) > 0, "MOVE_TO should NOT be paused during retreat recovery"
+        report = reports[0]
+        assert report.get("order_status") != "paused", \
+            f"MOVE_TO was paused during recovery — should continue! Status: {report.get('order_status')}"
+
+    def test_strategic_pursue_pauses_during_retreat_recovery(self, world, game_state, strategic_executor):
+        """PURSUE should pause during retreat recovery (needs to attack)."""
+        ney = world.get_marshal("Ney")
+        ney.location = "Paris"
+        ney.retreat_recovery = 2
+
+        wellington = world.get_marshal("Wellington")
+
+        _set_strategic_order(ney, "PURSUE", "Wellington", target_type="marshal",
+                             started_turn=world.current_turn - 1)
+        ney.strategic_order.issued_turn = world.current_turn - 1
+
+        with _suppress_output():
+            reports = strategic_executor.process_strategic_orders(world, game_state)
+
+        assert len(reports) > 0
+        assert reports[0].get("order_status") == "paused"
+
+    def test_strategic_first_step_executes_immediately(self, world, game_state, executor):
+        """Bug 1: First step should execute immediately when strategic order is issued.
+
+        When player says "Grouchy, march to Vienna", Grouchy should move 1 region
+        immediately (infantry movement_range=1).
+        """
+        grouchy = world.get_marshal("Grouchy")
+        grouchy.location = "Paris"
+        start = grouchy.location
+
+        # Issue strategic command through full executor pipeline
+        with _suppress_output():
+            result = executor.execute(
+                {
+                    "command": {
+                        "marshal": "Grouchy",
+                        "action": "move",
+                        "target": "Vienna",
+                        "raw_command": "Grouchy, march to Vienna",
+                    },
+                    "is_strategic": True,
+                    "strategic_type": "MOVE_TO",
+                },
+                game_state
+            )
+
+        assert result.get("success"), f"Strategic command failed: {result.get('message')}"
+        # Grouchy should have moved from Paris (infantry = 1 region)
+        assert grouchy.location != start, \
+            f"First step did NOT execute — Grouchy still at {start}"
+        # Should have a strategic order set
+        assert grouchy.strategic_order is not None, "No strategic order set"
+        assert grouchy.strategic_order.issued_turn == world.current_turn
+
+    def test_strategic_infantry_moves_one_per_turn(self, world, game_state, strategic_executor):
+        """Infantry (movement_range=1) should move exactly 1 region per strategic turn."""
+        grouchy = world.get_marshal("Grouchy")
+        grouchy.location = "Lyon"
+        # Ensure infantry
+        assert getattr(grouchy, 'movement_range', 1) == 1
+
+        _set_strategic_order(grouchy, "MOVE_TO", "Vienna",
+                             path=["Bavaria", "Vienna"],
+                             started_turn=world.current_turn - 1)
+        grouchy.strategic_order.issued_turn = world.current_turn - 1
+
+        with _suppress_output():
+            reports = strategic_executor.process_strategic_orders(world, game_state)
+
+        assert len(reports) > 0
+        assert grouchy.location == "Bavaria", \
+            f"Infantry should move 1 region (to Bavaria), but is at {grouchy.location}"
+        # Should still have order active (not arrived yet)
+        assert grouchy.strategic_order is not None

@@ -103,6 +103,10 @@ class StrategicOrder:
     # Condition (optional)
     condition: Optional[StrategicCondition] = None
 
+    # Turn tracking — skip processing on the turn the order was issued
+    # (first step already executed by executor.py)
+    issued_turn: Optional[int] = None
+
     # Combat loop prevention (Issue #2 fix)
     last_combat_enemy: Optional[str] = None
     last_combat_turn: Optional[int] = None
@@ -122,6 +126,7 @@ class StrategicOrder:
             "target_snapshot_location": self.target_snapshot_location,
             "attack_on_arrival": self.attack_on_arrival,
             "condition": self.condition.to_dict() if self.condition else None,
+            "issued_turn": self.issued_turn,
             "last_combat_enemy": self.last_combat_enemy,
             "last_combat_turn": self.last_combat_turn,
             "last_combat_result": self.last_combat_result,
@@ -145,6 +150,7 @@ class StrategicOrder:
             target_snapshot_location=data.get("target_snapshot_location"),
             attack_on_arrival=data.get("attack_on_arrival", False),
             condition=condition,
+            issued_turn=data.get("issued_turn"),
             last_combat_enemy=data.get("last_combat_enemy"),
             last_combat_turn=data.get("last_combat_turn"),
             last_combat_result=data.get("last_combat_result"),

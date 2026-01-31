@@ -49,6 +49,8 @@ class StrategicExecutor:
         """
         reports = []
 
+        print(f"[STRATEGIC] Processing orders for turn {world.current_turn}")
+
         # Process in deterministic order (alphabetical by name)
         marshals_with_orders = sorted(
             [m for m in world.marshals.values()
@@ -57,6 +59,16 @@ class StrategicExecutor:
         )
 
         for marshal in marshals_with_orders:
+            order = marshal.strategic_order
+            print(f"[STRATEGIC] {marshal.name}: {order.command_type} -> {order.target} "
+                  f"(issued turn {getattr(order, 'issued_turn', '?')})")
+
+            # Skip orders issued THIS turn — first step already executed by executor.py
+            issued = getattr(order, 'issued_turn', None)
+            if issued is not None and issued == world.current_turn:
+                print(f"[STRATEGIC] {marshal.name}: SKIP - order issued this turn")
+                continue
+
             report = self._execute_strategic_turn(marshal, world, game_state)
             if report:
                 reports.append(report)
@@ -384,16 +396,26 @@ class StrategicExecutor:
                 "options": marshal.pending_interrupt.get("options", [])
             }
 
-        # 0b. Block execution during retreat recovery
+        # 0b. Block execution during retreat recovery (MOVE_TO always allowed — movement isn't blocked)
         recovery = getattr(marshal, 'retreat_recovery', 0)
         if recovery > 0:
-            return {
-                "marshal": marshal.name,
-                "command": order.command_type,
-                "order_status": "paused",
-                "message": f"{marshal.name} is recovering from retreat "
-                           f"({recovery} turn(s) remaining). Order paused."
-            }
+            should_pause = True
+            if order.command_type == "MOVE_TO":
+                should_pause = False
+                print(f"[STRATEGIC] {marshal.name}: MOVE_TO continues despite recovery (movement allowed)")
+            elif order.command_type == "SUPPORT" and not getattr(order, 'join_combat', True):
+                should_pause = False  # SUPPORT without combat = just movement
+            # PURSUE and HOLD pause (need to attack/fortify)
+
+            if should_pause:
+                print(f"[STRATEGIC] {marshal.name}: PAUSED - retreat recovery ({recovery} turns left)")
+                return {
+                    "marshal": marshal.name,
+                    "command": order.command_type,
+                    "order_status": "paused",
+                    "message": f"{marshal.name} is recovering from retreat "
+                               f"({recovery} turn(s) remaining). Order paused."
+                }
 
         # 1. Check conditions first (until_arrives, until_relieved, etc.)
         if order.condition:
@@ -475,6 +497,9 @@ class StrategicExecutor:
         # Move up to movement_range regions
         regions_to_move = getattr(marshal, 'movement_range', 1)
         moves_made = []
+        print(f"[STRATEGIC MOVE] {marshal.name}: {marshal.location} -> {destination}, "
+              f"cavalry={getattr(marshal, 'cavalry', False)}, "
+              f"movement_range={regions_to_move}, path={order.path}")
 
         for _ in range(regions_to_move):
             if not order.path:
@@ -506,8 +531,11 @@ class StrategicExecutor:
             )
 
             if result.get("success"):
+                from_region = moves_made[-1] if moves_made else marshal.location
                 order.path.pop(0)
                 moves_made.append(next_region)
+                print(f"[STRATEGIC] {marshal.name}: moved -> {next_region} "
+                      f"(path remaining: {order.path})")
             else:
                 break
 
@@ -1195,6 +1223,7 @@ class StrategicExecutor:
         """Complete a strategic order successfully."""
         order = marshal.strategic_order
         cmd_type = order.command_type if order else "unknown"
+        print(f"[STRATEGIC] {marshal.name}: ORDER COMPLETE - {reason}")
         marshal.strategic_order = None
 
         # Literal gets trust bonus for completing orders precisely
@@ -1215,6 +1244,7 @@ class StrategicExecutor:
         """Break a strategic order (could not complete)."""
         order = marshal.strategic_order
         cmd_type = order.command_type if order else "unknown"
+        print(f"[STRATEGIC] {marshal.name}: ORDER CANCELLED - {reason}")
         marshal.strategic_order = None
 
         # Clear holding_position if HOLD order breaks

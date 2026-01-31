@@ -2131,6 +2131,7 @@ RETREAT RECOVERY (3 turns):
             condition=condition,
             target_snapshot_location=snapshot,
             attack_on_arrival=parsed_command.get("attack_on_arrival", False),
+            issued_turn=world.current_turn,
         )
 
         # Cancel any existing strategic order
@@ -2144,16 +2145,20 @@ RETREAT RECOVERY (3 turns):
         # Cavalry (movement_range=2) moves UP TO movement_range regions per step
         first_step_msg = ""
         movement_range = getattr(marshal, 'movement_range', 1)
+        print(f"[STRATEGIC INIT] {marshal.name}: Path = {path}, movement_range = {movement_range}")
+        print(f"[STRATEGIC INIT] {marshal.name}: Executing first step from {marshal.location}...")
 
         if strategic_type == "MOVE_TO" and path:
             steps = min(movement_range, len(path))
             moved_regions = []
+            print(f"[STRATEGIC INIT] {marshal.name}: MOVE_TO first step, {steps} step(s) max")
             for i in range(steps):
                 if not order.path:
                     break
                 next_region = order.path[0]
                 enemies = world.get_enemies_in_region(next_region, marshal.nation)
                 if enemies:
+                    print(f"[STRATEGIC INIT] {marshal.name}: First step BLOCKED by enemies at {next_region}")
                     if not moved_regions:
                         # First step blocked — personality-based response
                         blocked_result = self._handle_first_step_blocked(
@@ -2172,6 +2177,7 @@ RETREAT RECOVERY (3 turns):
                             break  # No path left
                     else:
                         break  # Mid-march block, stop here
+                print(f"[STRATEGIC INIT] {marshal.name}: Moving {marshal.location} -> {next_region}")
                 move_result = self.execute(
                     {"command": {
                         "marshal": marshal.name,
@@ -2184,8 +2190,12 @@ RETREAT RECOVERY (3 turns):
                 if move_result.get("success"):
                     order.path.pop(0)
                     moved_regions.append(next_region)
+                    print(f"[STRATEGIC INIT] {marshal.name}: Moved to {next_region} OK")
                 else:
+                    print(f"[STRATEGIC INIT] {marshal.name}: Move FAILED - {move_result.get('message', '?')}")
                     break
+            if not moved_regions:
+                print(f"[STRATEGIC INIT] {marshal.name}: First step SKIPPED - no regions moved")
             if moved_regions:
                 if len(moved_regions) > 1:
                     first_step_msg = f" Cavalry charges through {' -> '.join(moved_regions)}."
@@ -2577,16 +2587,44 @@ RETREAT RECOVERY (3 turns):
                     target=target_name,
                     target_type="region",
                     started_turn=world.current_turn,
+                    issued_turn=world.current_turn,
                     original_command=f"move to {target_name}",
                     path=path,
                 )
                 marshal.strategic_order = order
+
+                # Execute first step immediately (mirrors _execute_strategic_command)
+                movement_range = getattr(marshal, 'movement_range', 1)
+                steps = min(movement_range, len(path) - 1)  # path[0] is current location
+                regions_moved = []
+                print(f"[STRATEGIC INIT] {marshal.name}: Auto-upgrade MOVE_TO, path={path}, steps={steps}")
+                for i in range(steps):
+                    next_region = path[1]  # Always path[1] since path shrinks after move
+                    enemies_blocking = world.get_enemies_in_region(next_region, marshal.nation)
+                    if enemies_blocking:
+                        print(f"[STRATEGIC INIT] {marshal.name}: First step BLOCKED by enemies at {next_region}")
+                        break
+                    move_result = self.execute({
+                        "marshal": marshal.name,
+                        "action": "move",
+                        "target": next_region,
+                        "_strategic_execution": True,
+                    }, game_state)
+                    if move_result.get("success"):
+                        regions_moved.append(next_region)
+                        order.path = order.path[1:]  # Consume path step
+                        print(f"[STRATEGIC INIT] {marshal.name}: Moved to {next_region} OK")
+                    else:
+                        print(f"[STRATEGIC INIT] {marshal.name}: Move FAILED - {move_result.get('message', '?')}")
+                        break
+
+                moved_str = f" Moved to {' -> '.join(regions_moved)}." if regions_moved else ""
                 return {
                     "success": True,
-                    "message": f"{marshal.name} begins marching to {target_name} (distance: {distance}). Route: {' -> '.join(path)}.",
+                    "message": f"{marshal.name} begins marching to {target_name} (distance: {distance}).{moved_str} Route: {' -> '.join(order.path)}.",
                     "strategic_upgrade": True,
                     "strategic_type": "MOVE_TO",
-                    "path": path,
+                    "path": order.path,
                 }
             else:
                 marshal_type = "cavalry" if move_range == 2 else "infantry"
