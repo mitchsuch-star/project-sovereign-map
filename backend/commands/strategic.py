@@ -793,19 +793,40 @@ class StrategicExecutor:
                             marshal, target, attack_result, world, game_state)
                     break
             else:
-                # Move failed — if target is in this region, attack instead of giving up
+                # Move failed — if target is in this region, personality determines response
                 if next_region == target.location and self._should_auto_attack(marshal, target, world):
-                    attack_result = self.executor.execute(
-                        {"command": {
+                    personality = getattr(marshal, 'personality', 'balanced')
+                    if personality == "aggressive":
+                        # Aggressive charges in
+                        attack_result = self.executor.execute(
+                            {"command": {
+                                "marshal": marshal.name,
+                                "action": "attack",
+                                "target": target.name,
+                                "_strategic_execution": True
+                            }},
+                            game_state
+                        )
+                        return self._handle_combat_result(
+                            marshal, target, attack_result, world, game_state)
+                    else:
+                        # Cautious/literal: report contact, ask player
+                        marshal.pending_interrupt = {
+                            "interrupt_type": "contact",
+                            "enemy": target.name,
+                            "location": next_region,
+                            "is_first_step": False,
+                            "options": ["attack", "go_around", "hold_position", "cancel_order"]
+                        }
+                        return {
                             "marshal": marshal.name,
-                            "action": "attack",
-                            "target": target.name,
-                            "_strategic_execution": True
-                        }},
-                        game_state
-                    )
-                    return self._handle_combat_result(
-                        marshal, target, attack_result, world, game_state)
+                            "command": "PURSUE",
+                            "requires_input": True,
+                            "pending_interrupt": marshal.pending_interrupt,
+                            "message": (f"{marshal.name}: '{target.name} is at {next_region}. "
+                                        f"Engage, Sire?'"),
+                            "order_status": "awaiting_response",
+                        }
                 break
 
         if moves_made:
