@@ -220,6 +220,15 @@ def execute_command(request: CommandRequest):
             return result
 
         # ════════════════════════════════════════════════════════════
+        # CHECK FOR CLARIFICATION: If awaiting clarification, return full result
+        # ════════════════════════════════════════════════════════════
+        if result.get("state") == "awaiting_clarification":
+            print(f"[CLARIFICATION] Returning clarification popup to frontend")
+            result["action_summary"] = world.get_action_summary()
+            result["game_state"] = world.get_game_state_summary()
+            return result
+
+        # ════════════════════════════════════════════════════════════
         # CHECK FOR GLORIOUS CHARGE: If pending, return full result for popup
         # ════════════════════════════════════════════════════════════
         if result.get("pending_glorious_charge"):
