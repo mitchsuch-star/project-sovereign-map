@@ -2525,3 +2525,87 @@ class TestStrategicInitCommandWrapper:
         msg = result.get("message", "")
         assert "None" not in msg or "not found" not in msg, \
             f"Got 'Marshal None not found' error: {msg}"
+
+
+class TestInvestigateResponseActuallyMoves:
+    """Bug fix: 'investigate' cannon fire response must actually move the marshal."""
+
+    def test_investigate_moves_marshal_toward_battle(self, world, game_state, strategic_executor):
+        """Davout at Lyon, battle at Waterloo (2 away). Investigate should move to Paris."""
+        davout = world.get_marshal("Davout")
+        davout.location = "Lyon"
+
+        # Clear enemies from Paris so move succeeds
+        for m in world.marshals.values():
+            if m.location == "Paris" and m.nation != "France":
+                m.location = "Vienna"
+
+        _set_strategic_order(davout, "MOVE_TO", "Vienna", path=["Bavaria", "Vienna"])
+
+        davout.pending_interrupt = {
+            "interrupt_type": "cannon_fire",
+            "battle_location": "Waterloo",
+            "options": ["investigate", "continue_order", "hold_position"]
+        }
+
+        with _suppress_output():
+            result = strategic_executor.handle_response(
+                "Davout", "cannon_fire", "investigate", world, game_state
+            )
+
+        assert result["success"] is True
+        assert result["order_cleared"] is True
+        # Davout should have actually moved from Lyon toward Waterloo
+        assert davout.location != "Lyon", \
+            f"Davout should have moved from Lyon but is still at {davout.location}"
+        # Lyon -> Paris is the first step toward Waterloo
+        assert davout.location == "Paris", \
+            f"Expected Davout at Paris (first step Lyon->Waterloo), got {davout.location}"
+
+    def test_investigate_attacks_when_adjacent(self, world, game_state, strategic_executor):
+        """Davout at Paris, enemy at Waterloo (adjacent). Investigate should attack."""
+        davout = world.get_marshal("Davout")
+        davout.location = "Paris"
+
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Waterloo"
+
+        _set_strategic_order(davout, "MOVE_TO", "Vienna", path=["Lyon", "Bavaria", "Vienna"])
+
+        davout.pending_interrupt = {
+            "interrupt_type": "cannon_fire",
+            "battle_location": "Waterloo",
+            "options": ["investigate", "continue_order", "hold_position"]
+        }
+
+        with _suppress_output():
+            result = strategic_executor.handle_response(
+                "Davout", "cannon_fire", "investigate", world, game_state
+            )
+
+        assert result["success"] is True
+        assert result["action_taken"] == "attack"
+        assert davout.strategic_order is None
+
+    def test_investigate_message_no_internal_names(self, world, game_state, strategic_executor):
+        """Player-facing messages should not contain MOVE_TO, PURSUE, etc."""
+        davout = world.get_marshal("Davout")
+        davout.location = "Lyon"
+
+        _set_strategic_order(davout, "MOVE_TO", "Vienna", path=["Bavaria", "Vienna"])
+
+        davout.pending_interrupt = {
+            "interrupt_type": "cannon_fire",
+            "battle_location": "Waterloo",
+            "options": ["investigate", "continue_order", "hold_position"]
+        }
+
+        with _suppress_output():
+            result = strategic_executor.handle_response(
+                "Davout", "cannon_fire", "investigate", world, game_state
+            )
+
+        msg = result.get("message", "")
+        for internal_name in ["MOVE_TO", "PURSUE", "HOLD", "SUPPORT"]:
+            assert internal_name not in msg, \
+                f"Message contains internal name '{internal_name}': {msg}"

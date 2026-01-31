@@ -21,6 +21,16 @@ to maintain the Building Blocks principle.
 from typing import Dict, List, Optional, Tuple
 
 
+def _strategic_command_flavor(cmd_type: str) -> str:
+    """Convert internal command type to player-facing flavor text."""
+    return {
+        "MOVE_TO": "his march",
+        "PURSUE": "the pursuit",
+        "HOLD": "his position",
+        "SUPPORT": "reinforcement orders",
+    }.get(cmd_type, "his orders")
+
+
 class StrategicExecutor:
     """
     Executes strategic orders during turn processing.
@@ -154,7 +164,8 @@ class StrategicExecutor:
 
         if choice == "investigate":
             # Cancel current order, attack or move toward battle
-            cmd_type = order.command_type
+            cmd_flavor = _strategic_command_flavor(order.command_type)
+            original_location = marshal.location
             marshal.strategic_order = None
 
             # Distance-based: attack if adjacent with enemy, otherwise move
@@ -170,6 +181,7 @@ class StrategicExecutor:
 
             print(f"[CANNON FIRE INVESTIGATE] {marshal.name}: distance={distance}, "
                   f"attack_range={attack_range}, enemies={[e.name for e in enemies_at_battle]}")
+            print(f"[CANNON FIRE INVESTIGATE] {marshal.name}: Location BEFORE = {marshal.location}")
 
             if distance <= attack_range and enemies_at_battle:
                 # Within range — attack!
@@ -183,9 +195,10 @@ class StrategicExecutor:
                     game_state
                 )
                 action_msg = action_result.get("message", "")
+                print(f"[CANNON FIRE INVESTIGATE] {marshal.name}: Location AFTER = {marshal.location}")
                 return {
                     "success": True,
-                    "message": f"{marshal.name} abandons {cmd_type} order and "
+                    "message": f"{marshal.name} abandons {cmd_flavor} and "
                                f"charges into battle at {battle_location}! {action_msg}".strip(),
                     "order_cleared": True,
                     "trust_change": trust_change,
@@ -193,20 +206,42 @@ class StrategicExecutor:
                     "action_events": action_result.get("events", []),
                 }
             else:
-                # Too far to attack — move toward
-                move_result = self.executor.execute(
-                    {"command": {
-                        "marshal": marshal.name,
-                        "action": "move",
-                        "target": battle_location,
-                        "_strategic_execution": True
-                    }},
-                    game_state
-                )
+                # Too far to attack — move step-by-step toward battle
+                steps = min(attack_range, distance) if distance < 999 else 0
+                moved_to = None
+                for i in range(steps):
+                    if not path_to_battle or len(path_to_battle) < 2:
+                        break
+                    next_step = path_to_battle[1 + i]
+                    # Check for enemies blocking the step
+                    enemies_blocking = world.get_enemies_in_region(next_step, marshal.nation)
+                    if enemies_blocking:
+                        break
+                    move_result = self.executor.execute(
+                        {"command": {
+                            "marshal": marshal.name,
+                            "action": "move",
+                            "target": next_step,
+                            "_strategic_execution": True
+                        }},
+                        game_state
+                    )
+                    if move_result.get("success"):
+                        moved_to = next_step
+                    else:
+                        break
+
+                print(f"[CANNON FIRE INVESTIGATE] {marshal.name}: Location AFTER = {marshal.location}")
+                if moved_to:
+                    msg = (f"{marshal.name} abandons {cmd_flavor} and "
+                           f"rushes toward the guns at {battle_location}! "
+                           f"Moved to {moved_to}.")
+                else:
+                    msg = (f"{marshal.name} abandons {cmd_flavor} and "
+                           f"turns toward {battle_location}, but cannot advance yet.")
                 return {
                     "success": True,
-                    "message": f"{marshal.name} abandons {cmd_type} order and "
-                               f"marches toward the guns at {battle_location}.",
+                    "message": msg,
                     "order_cleared": True,
                     "trust_change": trust_change,
                     "action_taken": "investigate"
@@ -237,15 +272,15 @@ class StrategicExecutor:
 
         elif choice == "hold_position":
             # Cancel order, stay put
-            cmd_type = order.command_type
+            cmd_flavor = _strategic_command_flavor(order.command_type)
             marshal.strategic_order = None
             trust_change = -3
             if hasattr(marshal, 'trust'):
                 marshal.trust.modify(trust_change)
             return {
                 "success": True,
-                "message": f"{marshal.name} halts and holds position. "
-                           f"{cmd_type} order cancelled.",
+                "message": f"{marshal.name} halts and holds position, "
+                           f"abandoning {cmd_flavor}.",
                 "order_cleared": True,
                 "trust_change": trust_change,
                 "action_taken": "hold_position"
@@ -279,7 +314,7 @@ class StrategicExecutor:
                 return {
                     "success": True,
                     "message": f"{marshal.name} attacks {enemy_name} and wins! "
-                               f"Continuing {order.command_type} order. {combat_msg}",
+                               f"Continuing {_strategic_command_flavor(order.command_type)}. {combat_msg}",
                     "order_cleared": False,
                     "trust_change": 0,
                     "action_taken": "attack"
@@ -289,7 +324,7 @@ class StrategicExecutor:
                 return {
                     "success": True,
                     "message": f"{marshal.name} attacks {enemy_name}. {combat_msg} "
-                               f"{order.command_type} order paused.",
+                               f"Orders paused.",
                     "order_cleared": False,
                     "trust_change": 0,
                     "action_taken": "attack"
@@ -322,7 +357,7 @@ class StrategicExecutor:
                 return {
                     "success": True,
                     "message": f"No safe route around {blocked_region}. "
-                               f"{order.command_type} order cancelled.",
+                               f"Orders cancelled.",
                     "order_cleared": True,
                     "trust_change": 0,
                     "action_taken": "go_around_failed"
@@ -337,8 +372,8 @@ class StrategicExecutor:
                 marshal.trust.modify(trust_change)
             return {
                 "success": True,
-                "message": f"{marshal.name} holds position. "
-                           f"{order.command_type} order cancelled.",
+                "message": f"{marshal.name} holds position, "
+                           f"abandoning {_strategic_command_flavor(order.command_type)}.",
                 "order_cleared": True,
                 "trust_change": trust_change,
                 "action_taken": "hold_position"
@@ -353,7 +388,7 @@ class StrategicExecutor:
                 marshal.trust.modify(trust_change)
             return {
                 "success": True,
-                "message": f"{marshal.name}: {order.command_type} order cancelled.",
+                "message": f"{marshal.name} cancels {_strategic_command_flavor(order.command_type)}.",
                 "order_cleared": True,
                 "trust_change": trust_change,
                 "action_taken": "cancel_order"
@@ -414,7 +449,7 @@ class StrategicExecutor:
                 marshal.trust.modify(trust_change)
             return {
                 "success": True,
-                "message": f"{marshal.name}: SUPPORT order for {ally_name} cancelled.",
+                "message": f"{marshal.name} abandons reinforcement orders for {ally_name}.",
                 "order_cleared": True,
                 "trust_change": trust_change,
                 "action_taken": "cancel_support"
