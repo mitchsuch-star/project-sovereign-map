@@ -152,6 +152,8 @@ class StrategicExecutor:
             return self._respond_blocked_path(marshal, order, choice, pending, world, game_state)
         elif interrupt_type == "ally_moving":
             return self._respond_ally_moving(marshal, order, choice, pending, world, game_state)
+        elif interrupt_type in ("combat_stalemate", "repeated_combat"):
+            return self._respond_combat_stalemate(marshal, order, choice, pending, world, game_state)
         else:
             return {"success": False,
                     "message": f"Unknown interrupt type: {interrupt_type}"}
@@ -457,6 +459,50 @@ class StrategicExecutor:
 
         return {"success": False, "message": f"Unknown ally_moving choice: {choice}"}
 
+    def _respond_combat_stalemate(self, marshal, order, choice, pending,
+                                   world, game_state) -> Dict:
+        """Handle player response to combat stalemate or repeated combat interrupt."""
+        enemy_name = pending.get("enemy", pending.get("target", order.target))
+
+        if choice in ("continue_order", "attack_again"):
+            # Keep order active, will re-engage next turn
+            return {
+                "success": True,
+                "message": f"{marshal.name} will continue {_strategic_command_flavor(order.command_type)} "
+                           f"despite the setback.",
+                "order_cleared": False,
+                "trust_change": 0,
+                "action_taken": choice
+            }
+
+        elif choice == "hold_position":
+            marshal.strategic_order = None
+            trust_change = -3
+            if hasattr(marshal, 'trust'):
+                marshal.trust.modify(trust_change)
+            return {
+                "success": True,
+                "message": f"{marshal.name} holds position after the engagement with {enemy_name}.",
+                "order_cleared": True,
+                "trust_change": trust_change,
+                "action_taken": "hold_position"
+            }
+
+        elif choice == "cancel_order":
+            marshal.strategic_order = None
+            trust_change = -3
+            if hasattr(marshal, 'trust'):
+                marshal.trust.modify(trust_change)
+            return {
+                "success": True,
+                "message": f"{marshal.name} abandons the order and awaits new instructions.",
+                "order_cleared": True,
+                "trust_change": trust_change,
+                "action_taken": "cancel_order"
+            }
+
+        return {"success": False, "message": f"Unknown combat_stalemate choice: {choice}"}
+
     # ══════════════════════════════════════════════════════════════════════════
     # CORE EXECUTION FLOW
     # ══════════════════════════════════════════════════════════════════════════
@@ -715,10 +761,18 @@ class StrategicExecutor:
         if marshal.location == target.location:
             # Combat loop prevention
             if not self._should_auto_attack(marshal, target, world):
+                marshal.pending_interrupt = {
+                    "interrupt_type": "repeated_combat",
+                    "enemy": target.name,
+                    "location": marshal.location,
+                    "is_first_step": False,
+                    "options": ["attack_again", "hold_position", "cancel_order"]
+                }
                 return {
                     "marshal": marshal.name,
                     "command": "PURSUE",
                     "requires_input": True,
+                    "pending_interrupt": marshal.pending_interrupt,
                     "interrupt_type": "repeated_combat",
                     "target": target.name,
                     "message": f"Fought {target.name} last turn with no decision. Attack again?",
@@ -1616,6 +1670,13 @@ class StrategicExecutor:
 
         else:  # stalemate / unknown
             marshal.last_combat_result = "stalemate"
+            marshal.pending_interrupt = {
+                "interrupt_type": "combat_stalemate",
+                "enemy": enemy.name,
+                "location": marshal.location,
+                "is_first_step": False,
+                "options": ["continue_order", "hold_position", "cancel_order"]
+            }
             return {
                 "marshal": marshal.name,
                 "command": order.command_type,
@@ -1623,6 +1684,7 @@ class StrategicExecutor:
                 "target": enemy.name,
                 "outcome": "stalemate",
                 "requires_input": True,
+                "pending_interrupt": marshal.pending_interrupt,
                 "interrupt_type": "combat_stalemate",
                 "message": f"Battle with {enemy.name} inconclusive. Continue?",
                 "options": ["continue_order", "hold_position", "cancel_order"]
