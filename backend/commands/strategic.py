@@ -796,7 +796,8 @@ class StrategicExecutor:
                 # Move failed — if target is in this region, personality determines response
                 if next_region == target.location and self._should_auto_attack(marshal, target, world):
                     personality = getattr(marshal, 'personality', 'balanced')
-                    if personality == "aggressive":
+                    attack_on_arrival = getattr(order, 'attack_on_arrival', False)
+                    if personality == "aggressive" or attack_on_arrival:
                         # Aggressive charges in
                         attack_result = self.executor.execute(
                             {"command": {

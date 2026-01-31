@@ -1393,6 +1393,7 @@ RETREAT RECOVERY (3 turns):
                         },
                         "is_strategic": True,
                         "strategic_type": "PURSUE",
+                        "attack_on_arrival": True,  # Player said "attack", not "pursue"
                         "raw_input": f"{marshal.name} attack {target}",
                         "strategic_score": 60,
                         "ambiguity": 15,
@@ -2348,7 +2349,7 @@ RETREAT RECOVERY (3 turns):
             if enemy_m and enemy_m.strength > 0 and marshal.location == enemy_m.location:
                 pursue_handled = True
                 personality = getattr(marshal, 'personality', 'balanced')
-                if personality == "aggressive":
+                if personality == "aggressive" or order.attack_on_arrival:
                     attack_result = self.execute(
                         {"command": {"marshal": marshal.name, "action": "attack",
                                      "target": target, "_strategic_execution": True}},
@@ -2511,7 +2512,8 @@ RETREAT RECOVERY (3 turns):
                     enemy_m = world.get_marshal(target)
                     if enemy_m and next_region == enemy_m.location:
                         personality = getattr(marshal, 'personality', 'balanced')
-                        if personality == "aggressive":
+                        attack_on_arrival = getattr(order, 'attack_on_arrival', False)
+                        if personality == "aggressive" or attack_on_arrival:
                             attack_result = self.execute(
                                 {"command": {"marshal": marshal.name, "action": "attack",
                                              "target": target, "_strategic_execution": True}},
