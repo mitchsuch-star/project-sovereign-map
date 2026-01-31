@@ -842,6 +842,7 @@ RETREAT RECOVERY (3 turns):
 
                     return {
                         "success": True,
+                        "free_action": True,
                         "state": "awaiting_clarification",
                         "type": "clarification",
                         "marshal": cl_marshal.name,
@@ -2048,8 +2049,61 @@ RETREAT RECOVERY (3 turns):
         if strategic_type == "PURSUE":
             enemy = world.get_marshal(target)
             if not enemy:
-                # Generic target like "the enemy" — let it through, executor will interpret
-                if target and target.lower() not in ("generic", "the enemy", "enemy"):
+                is_generic = not target or target.lower() in ("generic", "the enemy", "enemy")
+                if is_generic:
+                    # Find nearest enemy for resolution/clarification
+                    enemies = world.get_enemies_of_nation(marshal.nation)
+                    nearest = None
+                    nearest_dist = 999
+                    if enemies:
+                        for e in enemies:
+                            p = world.find_path(marshal.location, e.location)
+                            if p and len(p) - 1 < nearest_dist:
+                                nearest = e
+                                nearest_dist = len(p) - 1
+
+                    # Literal personality: ALWAYS ask for clarification on generic targets
+                    if getattr(marshal, 'personality', '') == 'literal' and nearest:
+                        alternatives = [e.name for e in enemies if e != nearest][:2]
+                        options = [{
+                            "label": f"Yes, {nearest.name}",
+                            "value": "confirm",
+                            "target": nearest.name
+                        }]
+                        for alt in alternatives:
+                            options.append({
+                                "label": f"No, {alt}",
+                                "value": "specify",
+                                "target": alt
+                            })
+                        options.append({"label": "Cancel", "value": "cancel"})
+                        return {
+                            "success": True,
+                            "free_action": True,
+                            "state": "awaiting_clarification",
+                            "type": "clarification",
+                            "marshal": marshal.name,
+                            "message": f"You wish me to pursue {nearest.name} "
+                                       f"(nearest enemy), Sire? Or did you mean another?",
+                            "interpreted_target": nearest.name,
+                            "interpretation_reason": "nearest",
+                            "alternatives": alternatives,
+                            "options": options,
+                            "action_summary": world.get_action_summary(),
+                            "game_state": world.get_game_state_summary()
+                        }
+
+                    # Non-literal: auto-resolve to nearest enemy (already computed above)
+                    if nearest:
+                        target = nearest.name
+                        target_type = "marshal"
+                        print(f"[STRATEGIC] PURSUE generic -> resolved to nearest enemy: {target}")
+                    else:
+                        return {
+                            "success": False,
+                            "message": "No reachable enemies to pursue." if enemies else "No enemies to pursue.",
+                        }
+                else:
                     # Check if it's a region
                     region = world.get_region(target) if target else None
                     if region:

@@ -187,10 +187,17 @@ def _strip_marshal_prefix(command_lower: str, marshal_name: Optional[str]) -> st
 
 
 def _detect_strategic_type(command_lower: str) -> Optional[str]:
-    """Detect which strategic command type, if any."""
+    """Detect which strategic command type, if any.
+
+    Uses word-boundary-aware matching to prevent substring false positives
+    (e.g. "attack" should NOT match "track" → PURSUE).
+    """
+    import re
     for cmd_type, keywords in STRATEGIC_KEYWORDS.items():
         for keyword in keywords:
-            if keyword in command_lower:
+            # Use word boundary regex to avoid substring matches
+            pattern = r'(?:^|[\s,;!])' + re.escape(keyword) + r'(?:[\s,;!.]|$)'
+            if re.search(pattern, command_lower):
                 return cmd_type
     return None
 
