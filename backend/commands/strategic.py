@@ -793,6 +793,19 @@ class StrategicExecutor:
                             marshal, target, attack_result, world, game_state)
                     break
             else:
+                # Move failed — if target is in this region, attack instead of giving up
+                if next_region == target.location and self._should_auto_attack(marshal, target, world):
+                    attack_result = self.executor.execute(
+                        {"command": {
+                            "marshal": marshal.name,
+                            "action": "attack",
+                            "target": target.name,
+                            "_strategic_execution": True
+                        }},
+                        game_state
+                    )
+                    return self._handle_combat_result(
+                        marshal, target, attack_result, world, game_state)
                 break
 
         if moves_made:
