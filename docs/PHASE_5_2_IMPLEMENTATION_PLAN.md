@@ -2210,8 +2210,48 @@ class StrategicExecutor:
 - [ ] **K6.** Test strategic order cancel via tactical override
 - [ ] **K7.** Test explicit cancel command (costs 1 action)
 - [ ] **K8.** Test Grouchy cannon fire (should NOT interrupt)
-- [ ] **K9.** Test combat loop prevention (stalemate → continue → no auto-attack)
+- [ ] **K9.** Test combat loop prevention (stalemate → pursuit completes)
 - [ ] **K10.** Test cavalry moves 2 regions per turn
+
+### Phase M: Strategic Objections (Disobedience at Issuance)
+
+Tie the existing objection/disobedience system into strategic command issuance. Marshals can object when given a strategic order that contradicts their personality. Objections happen **once at issuance only** — never during autonomous execution turns (that's what interrupts are for).
+
+**Design Principles:**
+- Check happens in `_execute_strategic_command()` before order creation
+- Uses the same `check_objection()` from `disobedience.py` — no new objection math
+- Same player choices: Trust (+12 trust, order cancelled), Insist (-10/-15, order proceeds), Compromise (+3)
+- If player trusts, refund the action cost (same as tactical objection handling)
+- Literal (Grouchy) never objects to strategic commands — his thing is clarification popups, already implemented
+- No objections on cancel commands
+
+**Personality Triggers:**
+
+| Personality | Objects To | Context Check |
+|-------------|-----------|---------------|
+| Aggressive (Ney) | HOLD, defensive SUPPORT | "You want me to sit and wait?!" |
+| Aggressive (Ney) | MOVE_TO away from enemy | Retreating when enemies are adjacent |
+| Cautious (Davout) | PURSUE when outnumbered | Target strength > marshal strength |
+| Cautious (Davout) | MOVE_TO into enemy territory | Path passes through enemy-dense regions |
+| Literal (Grouchy) | Never | Uses clarification popup instead |
+| Balanced | PURSUE at 3:1+ odds against | Only extreme cases |
+
+**Implementation Steps:**
+- [ ] **M1.** Add strategic context to `check_objection()` call — pass `is_strategic=True`, `strategic_type`, target strength ratio
+- [ ] **M2.** Add objection check in `_execute_strategic_command()` after validation, before order creation
+- [ ] **M3.** Map strategic types to objection actions: HOLD→"defend", PURSUE→"attack", MOVE_TO→"move", SUPPORT→"move"
+- [ ] **M4.** Handle objection result: Trust=cancel+refund, Insist=proceed, Compromise=modified order (e.g., PURSUE with cautious path)
+- [ ] **M5.** Tests: Each personality objecting to their trigger, insist/trust/compromise flows
+- [ ] **M6.** Test: Grouchy never objects (gets clarification instead)
+- [ ] **M7.** Test: No objection during retreat recovery (marshals are compliant)
+
+**What Compromise Means for Strategic Orders:**
+
+| Order | Compromise Result |
+|-------|------------------|
+| PURSUE (cautious objects) | PURSUE with cautious pathfinding (avoid enemy regions) — already the default for cautious |
+| HOLD (aggressive objects) | HOLD with sally enabled — aggressive already sallies, so this is essentially "fine, but I'm fighting" |
+| MOVE_TO (aggressive objects to retreating) | MOVE_TO proceeds but marshal gets -5 morale (grudging compliance) |
 
 **Total Estimated Time: 35-45 hours**
 

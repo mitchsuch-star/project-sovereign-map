@@ -529,11 +529,9 @@ class StrategicExecutor:
         recovery = getattr(marshal, 'retreat_recovery', 0)
         if recovery > 0:
             should_pause = True
-            if order.command_type == "MOVE_TO":
-                should_pause = False
-                print(f"[STRATEGIC] {marshal.name}: MOVE_TO continues despite recovery (movement allowed)")
-            elif order.command_type == "SUPPORT" and not getattr(order, 'join_combat', True):
-                should_pause = False  # SUPPORT without combat = just movement
+            if order.command_type in ("MOVE_TO", "SUPPORT"):
+                should_pause = False  # Movement-based orders continue during recovery
+                print(f"[STRATEGIC] {marshal.name}: {order.command_type} continues despite recovery (movement allowed)")
             # PURSUE and HOLD pause (need to attack/fortify)
 
             if should_pause:
@@ -558,7 +556,8 @@ class StrategicExecutor:
             response = self._handle_interrupt(marshal, interrupt, world, game_state)
             if response:
                 # Store pending interrupt if it requires player input
-                if response.get("requires_input"):
+                # Only set if handler didn't already set it (e.g., _handle_combat_result sets it directly)
+                if response.get("requires_input") and not getattr(marshal, 'pending_interrupt', None):
                     marshal.pending_interrupt = response
                 return response
 
@@ -574,7 +573,8 @@ class StrategicExecutor:
         if handler:
             result = handler(marshal, world, game_state)
             # Store pending interrupt if handler result requires player input
-            if result and result.get("requires_input"):
+            # Only set if handler didn't already set it (e.g., _handle_combat_result sets it directly)
+            if result and result.get("requires_input") and not getattr(marshal, 'pending_interrupt', None):
                 marshal.pending_interrupt = result
             return result
 
@@ -660,7 +660,6 @@ class StrategicExecutor:
             )
 
             if result.get("success"):
-                from_region = moves_made[-1] if moves_made else marshal.location
                 order.path.pop(0)
                 moves_made.append(next_region)
                 print(f"[STRATEGIC] {marshal.name}: moved -> {next_region} "
@@ -757,27 +756,12 @@ class StrategicExecutor:
             return self._complete_order(marshal, world,
                                         f"{order.target} destroyed")
 
-        # Same region? Attack!
+        # Same region? Engage and complete.
         if marshal.location == target.location:
-            # Combat loop prevention
+            # Already fought this target recently — order is done
             if not self._should_auto_attack(marshal, target, world):
-                marshal.pending_interrupt = {
-                    "interrupt_type": "repeated_combat",
-                    "enemy": target.name,
-                    "location": marshal.location,
-                    "is_first_step": False,
-                    "options": ["attack_again", "hold_position", "cancel_order"]
-                }
-                return {
-                    "marshal": marshal.name,
-                    "command": "PURSUE",
-                    "requires_input": True,
-                    "pending_interrupt": marshal.pending_interrupt,
-                    "interrupt_type": "repeated_combat",
-                    "target": target.name,
-                    "message": f"Fought {target.name} last turn with no decision. Attack again?",
-                    "options": ["attack_again", "hold_position", "cancel_order"]
-                }
+                return self._complete_order(marshal, world,
+                    f"{marshal.name} engaged {target.name} — pursuit complete")
 
             result = self.executor.execute(
                 {"command": {
@@ -789,7 +773,9 @@ class StrategicExecutor:
                 game_state
             )
 
-            return self._handle_combat_result(marshal, target, result, world, game_state)
+            # Combat happened — pursuit is complete regardless of outcome
+            combat_msg = result.get("message", f"Engaged {target.name}")
+            return self._complete_order(marshal, world, combat_msg)
 
         # Not same region — move toward target (RECALCULATE each turn)
         path = self._get_personality_aware_path(marshal, target.location, world)
@@ -821,40 +807,26 @@ class StrategicExecutor:
                         marshal, blocking, next_region, world, game_state)
                 break
 
-            # Target's region — skip move, go straight to attack
+            # Target's region — pursuit complete, attack if personality allows
             if is_target_region and enemies:
-                if self._should_auto_attack(marshal, target, world):
-                    personality = getattr(marshal, 'personality', 'balanced')
-                    attack_on_arrival = getattr(order, 'attack_on_arrival', False)
-                    if personality == "aggressive" or attack_on_arrival:
-                        attack_result = self.executor.execute(
-                            {"command": {
-                                "marshal": marshal.name,
-                                "action": "attack",
-                                "target": target.name,
-                                "_strategic_execution": True
-                            }},
-                            game_state
-                        )
-                        return self._handle_combat_result(
-                            marshal, target, attack_result, world, game_state)
-                    else:
-                        # Cautious/literal: report contact, ask player
-                        marshal.pending_interrupt = {
-                            "interrupt_type": "contact",
-                            "enemy": target.name,
-                            "location": next_region,
-                            "is_first_step": False,
-                            "options": ["attack", "go_around", "hold_position", "cancel_order"]
-                        }
-                        return {
-                            "marshal": marshal.name, "command": "PURSUE",
-                            "requires_input": True,
-                            "pending_interrupt": marshal.pending_interrupt,
-                            "message": f"{marshal.name}: '{target.name} spotted at {next_region}. Engage, Sire?'",
-                            "order_status": "awaiting_response",
-                        }
-                break
+                personality = getattr(marshal, 'personality', 'balanced')
+                attack_on_arrival = getattr(order, 'attack_on_arrival', False)
+                if personality == "aggressive" or attack_on_arrival:
+                    attack_result = self.executor.execute(
+                        {"command": {
+                            "marshal": marshal.name,
+                            "action": "attack",
+                            "target": target.name,
+                            "_strategic_execution": True
+                        }},
+                        game_state
+                    )
+                    combat_msg = attack_result.get("message", f"Engaged {target.name}")
+                    return self._complete_order(marshal, world, combat_msg)
+                else:
+                    # Cautious/literal: found the enemy, pursuit complete
+                    return self._complete_order(marshal, world,
+                        f"{marshal.name} has located {target.name} at {next_region} and awaits orders")
 
             result = self.executor.execute(
                 {"command": {
@@ -870,7 +842,7 @@ class StrategicExecutor:
                 path.pop(0)
                 moves_made.append(next_region)
 
-                # Did we catch up? Attack!
+                # Did we catch up? Pursuit complete.
                 if marshal.location == target.location:
                     if self._should_auto_attack(marshal, target, world):
                         attack_result = self.executor.execute(
@@ -882,45 +854,32 @@ class StrategicExecutor:
                             }},
                             game_state
                         )
-                        return self._handle_combat_result(
-                            marshal, target, attack_result, world, game_state)
-                    break
+                        combat_msg = attack_result.get("message", f"Engaged {target.name}")
+                        return self._complete_order(marshal, world, combat_msg)
+                    # Already fought recently — pursuit still complete
+                    return self._complete_order(marshal, world,
+                        f"{marshal.name} has engaged {target.name} — pursuit complete")
             else:
-                # Move failed — if target is in this region, personality determines response
-                if next_region == target.location and self._should_auto_attack(marshal, target, world):
+                # Move failed — if target is in this region, pursuit complete
+                if next_region == target.location:
                     personality = getattr(marshal, 'personality', 'balanced')
                     attack_on_arrival = getattr(order, 'attack_on_arrival', False)
                     if personality == "aggressive" or attack_on_arrival:
-                        # Aggressive charges in
-                        attack_result = self.executor.execute(
-                            {"command": {
-                                "marshal": marshal.name,
-                                "action": "attack",
-                                "target": target.name,
-                                "_strategic_execution": True
-                            }},
-                            game_state
-                        )
-                        return self._handle_combat_result(
-                            marshal, target, attack_result, world, game_state)
-                    else:
-                        # Cautious/literal: report contact, ask player
-                        marshal.pending_interrupt = {
-                            "interrupt_type": "contact",
-                            "enemy": target.name,
-                            "location": next_region,
-                            "is_first_step": False,
-                            "options": ["attack", "go_around", "hold_position", "cancel_order"]
-                        }
-                        return {
-                            "marshal": marshal.name,
-                            "command": "PURSUE",
-                            "requires_input": True,
-                            "pending_interrupt": marshal.pending_interrupt,
-                            "message": (f"{marshal.name}: '{target.name} is at {next_region}. "
-                                        f"Engage, Sire?'"),
-                            "order_status": "awaiting_response",
-                        }
+                        if self._should_auto_attack(marshal, target, world):
+                            attack_result = self.executor.execute(
+                                {"command": {
+                                    "marshal": marshal.name,
+                                    "action": "attack",
+                                    "target": target.name,
+                                    "_strategic_execution": True
+                                }},
+                                game_state
+                            )
+                            combat_msg = attack_result.get("message", f"Engaged {target.name}")
+                            return self._complete_order(marshal, world, combat_msg)
+                    # Found target — pursuit complete
+                    return self._complete_order(marshal, world,
+                        f"{marshal.name} has located {target.name} at {next_region} and awaits orders")
                 break
 
         if moves_made:
@@ -1058,7 +1017,7 @@ class StrategicExecutor:
                         enemy = enemies[0]
                         ratio = marshal.strength / max(1, enemy.strength)
 
-                        if ratio >= 1.0:  # Favorable odds
+                        if ratio >= 1.0 and self._should_auto_attack(marshal, enemy, world):  # Favorable odds, no combat loop
                             # SALLY: Move to enemy region, attack, return
                             # Step 1: Move to the adjacent region
                             move_result = self.executor.execute(
@@ -1501,6 +1460,11 @@ class StrategicExecutor:
         cmd_type = order.command_type if order else "unknown"
         print(f"[STRATEGIC] {marshal.name}: ORDER COMPLETE - {reason}")
         marshal.strategic_order = None
+
+        # Clear holding_position if HOLD order completes
+        if cmd_type == "HOLD":
+            marshal.holding_position = False
+            marshal.hold_region = ""
 
         # Literal gets trust bonus for completing orders precisely
         is_literal = marshal.personality == "literal"

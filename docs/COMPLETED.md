@@ -28,7 +28,7 @@
 | Command | Purpose | Completion |
 |---------|---------|------------|
 | MOVE_TO | March to distant region or marshal | Arrival |
-| PURSUE | Chase and attack enemy | Target destroyed |
+| PURSUE | Chase and engage enemy | Combat (any outcome) or target destroyed |
 | HOLD | Defend position | Condition met or cancelled |
 | SUPPORT | Follow and assist ally | Ally safe or battle won |
 

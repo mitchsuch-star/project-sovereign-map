@@ -1022,7 +1022,8 @@ This phase adds multi-turn strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) tha
 **Key Design Decisions (locked):**
 - Strategic orders cost 2 actions (1 for LITERAL personality)
 - LITERAL (Grouchy) NEVER interrupts for cannon fire ("The Grouchy Moment")
-- Combat result → order status: Victory=continue, Defeat=break, Stalemate=ask
+- PURSUE completes after combat (any outcome) — order is fulfilled once marshal engages target
+- HOLD/SUPPORT combat result → order status: Victory=continue, Defeat=break, Stalemate=ask
 - Clarification system reuses objection popup for LITERAL + generic commands
 - ONE strategic order per marshal at a time; new order silently replaces old
 - "reinforce" = SUPPORT (no teleporting; removed as separate action)
@@ -1097,12 +1098,13 @@ User: "Grouchy, march to Belgium"
 | 6 | ✅ VERIFIED | `to_dict()`/`from_dict()` already included all fields (false positive) |
 | 7 | ✅ FIXED | `until_battle_won` triggers on both victory AND stalemate |
 
-#### What's Next: Phase J-K
+#### What's Next: Phase J-K-M
 
-**Remaining phases (1010 tests passing):**
+**Remaining phases (1022 tests passing):**
 - Phase I: Serialization Validation ✅ COMPLETE (33 roundtrip tests)
 - Phase J: UI Updates (Godot strategic status display, interrupt dialogs). NOTE: Backend currently emits interim `strategic_progress` events (type: `strategic_progress`, with `order_status`: active/continues/completed) into the main events list. Phase J should replace these with a persistent HUD showing active orders per marshal. Backend data is ready (`marshal`, `command`, `destination`, `turns_remaining`).
 - Phase K: Integration testing (full end-to-end strategic command flow)
+- Phase M: Strategic Objections — marshals object at issuance based on personality (Ney→HOLD, Davout→PURSUE bad odds). Check once at issuance only, never during execution. Uses existing `check_objection()` and objection popup. See `docs/PHASE_5_2_IMPLEMENTATION_PLAN.md` Phase M.
 
 #### Phase I (Serialization Validation) ✅ COMPLETE
 Full serialization audit and fix. All game state now survives roundtrip.
@@ -1187,6 +1189,7 @@ When strategic command is issued and first step is blocked:
 - [x] Phase I: Serialization Validation ✅ (33 tests — full roundtrip, see `docs/SAVE_FORMAT_REFERENCE.md`)
 - [ ] Phase J: UI Updates (Godot strategic status display)
 - [ ] Phase K: Integration testing
+- [ ] Phase M: Strategic Objections (disobedience at issuance)
 
 **📋 REMAINING (Phase 3+):**
 - [ ] Grouchy literal mechanics (see below)
@@ -1473,6 +1476,24 @@ ANTHROPIC_API_KEY=sk-...  # Required only for real LLM mode
 
 > **Map system details, transition strategy, and migration checklists moved to `docs/FUTURE_DESIGN.md`.**
 > Current state: 13 hardcoded regions in `region.py`, programmatic circles in `map.gd`.
+
+---
+
+## Documentation Update Rules (MANDATORY)
+
+**If you changed behavior, update the doc that describes it.**
+**Every TODO/planned item MUST reference a phase in ROADMAP.md.** No orphan TODOs — if it doesn't belong to a phase, either add it to one or don't write it.
+
+| Event | Update These Docs |
+|-------|-------------------|
+| Session ends | STATUS.md (test count, completed work, next steps) |
+| Phase completed | ROADMAP.md (mark complete), STATUS.md |
+| New system built | COMPLETED.md (how it works) |
+| New code pattern | TECHNICAL.md (add to patterns) |
+| Design idea documented | FUTURE_DESIGN.md |
+| Enemy AI changes | AI_REFERENCE.md |
+| Bug fixes | STATUS.md (Recently Completed section) |
+| New tests added | STATUS.md (Test Count History) |
 
 ---
 

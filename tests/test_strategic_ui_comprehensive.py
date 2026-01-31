@@ -1337,11 +1337,11 @@ class TestPursueHandler:
         reports = strategic_executor.process_strategic_orders(world, game_state)
         assert len(reports) >= 1
         report = [r for r in reports if r["marshal"] == "Ney"][0]
-        # Should have attempted combat
-        assert report.get("action") == "combat" or report.get("order_status") in ("continues", "breaks")
+        # PURSUE completes after combat
+        assert report.get("order_status") == "completed"
 
     def test_pursue_combat_loop_prevention(self, world, strategic_executor, game_state):
-        """PURSUE doesn't auto-attack same enemy fought last turn."""
+        """PURSUE completes when already fought target last turn."""
         ney = world.get_marshal("Ney")
         ney.location = "Waterloo"
         order = _make_order("PURSUE", "Wellington", target_type="enemy_marshal", path=[])
@@ -1353,9 +1353,8 @@ class TestPursueHandler:
         reports = strategic_executor.process_strategic_orders(world, game_state)
         assert len(reports) >= 1
         report = [r for r in reports if r["marshal"] == "Ney"][0]
-        # Should require input (repeated_combat interrupt)
-        assert report.get("requires_input") == True
-        assert report.get("interrupt_type") == "repeated_combat"
+        # Pursuit completes — already engaged the target
+        assert report.get("order_status") == "completed"
 
     def test_pursue_moves_toward_target(self, world, strategic_executor, game_state):
         """PURSUE moves marshal closer to target each turn."""

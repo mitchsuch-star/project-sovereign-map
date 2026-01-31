@@ -34,10 +34,10 @@
 | 3 | Relationships | ~30 | Marshal relationships, historical values |
 | 4 | LLM Integration | ~60 | Parsing, personality responses, BYOK |
 | 5.1 | Tactical Feedback | 64 | Word-based scoring, strategic feedback |
-| 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding |
+| 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding. Phase M (Strategic Objections) designed, not yet implemented |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 1010+ (verify in STATUS.md)
+**Total Tests:** 1022 (verified Jan 31, 2026)
 
 ---
 
