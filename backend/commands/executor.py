@@ -482,12 +482,21 @@ RETREAT RECOVERY (3 turns):
                 is_player_action_check = False  # Enemy AI - skip player action check
 
         if action_costs_point and is_player_action_check:
-            # Check if actions available (but DON'T consume yet)
-            if world.actions_remaining <= 0:
+            # Determine how many actions this command needs
+            required_actions = 1
+            if (not is_strategic_execution and
+                    parsed_command.get("is_strategic") and
+                    parsed_command.get("strategic_type")):
+                # Strategic commands cost 2 (1 for literal personality)
+                marshal_for_cost = world.get_marshal(command.get("marshal", ""))
+                is_literal = marshal_for_cost and getattr(marshal_for_cost, 'personality', '') == 'literal'
+                required_actions = 1 if is_literal else 2
+
+            if world.actions_remaining < required_actions:
                 return {
                     "success": False,
-                    "message": "No actions remaining this turn! Turn will advance automatically.",
-                    "actions_remaining": 0,
+                    "message": f"Not enough actions! Need {required_actions}, have {world.actions_remaining}.",
+                    "actions_remaining": int(world.actions_remaining),
                     "action_summary": world.get_action_summary()
                 }
 
@@ -1394,6 +1403,7 @@ RETREAT RECOVERY (3 turns):
                         "is_strategic": True,
                         "strategic_type": "PURSUE",
                         "attack_on_arrival": True,  # Player said "attack", not "pursue"
+                        "auto_upgrade": True,  # Costs 1 action, not 2 (player typed "attack")
                         "raw_input": f"{marshal.name} attack {target}",
                         "strategic_score": 60,
                         "ambiguity": 15,
@@ -2611,6 +2621,12 @@ RETREAT RECOVERY (3 turns):
             elif condition.until_marshal_destroyed:
                 cond_str = f" (until {condition.until_marshal_destroyed} destroyed)"
 
+        # Strategic commands cost 2 actions (1 for literal — they follow orders efficiently)
+        # Auto-upgrades (e.g., attack→PURSUE) cost 1 (player didn't ask for strategic)
+        is_literal = getattr(marshal, 'personality', '') == 'literal'
+        is_auto_upgrade = parsed_command.get("auto_upgrade", False)
+        strategic_cost = 1 if (is_literal or is_auto_upgrade) else 2
+
         return {
             "success": True,
             "message": msg + cond_str,
@@ -2619,6 +2635,7 @@ RETREAT RECOVERY (3 turns):
             "target": target,
             "path": order.path,
             "remaining_regions": remaining,
+            "variable_action_cost": strategic_cost,
         }
 
     def _handle_first_step_blocked(self, marshal, enemies, blocked_region,

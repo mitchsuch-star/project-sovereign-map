@@ -35,6 +35,7 @@ Phase 5.2/5.3 fully complete. Next: Phase 6 design.
 - **Design fix:** PURSUE now completes after combat (any outcome) — no more stalemate popup for PURSUE; order is fulfilled once marshal engages target
 - **Code review fixes:** HOLD `_complete_order` now clears `holding_position` (was leaking +15% defense); HOLD sally now checks `_should_auto_attack` (was infinite loop); dead code cleanup (unreachable breaks, unused vars, dead `join_combat` check)
 - **Phase M designed:** Strategic Objections — disobedience at strategic command issuance (see PHASE_5_2_IMPLEMENTATION_PLAN.md)
+- **Bug fix:** Strategic commands cost 1 AP instead of 2 — pre-check didn't calculate required actions, `_execute_strategic_command` didn't return `variable_action_cost`. Literal personality correctly costs 1. Auto-upgrade (attack→PURSUE) costs 1.
 - Test count: **1022 passed, 0 failures**
 
 ### Jan 30
