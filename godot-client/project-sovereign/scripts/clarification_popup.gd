@@ -43,24 +43,25 @@ func show_clarification(data: Dictionary):
 	for child in button_container.get_children():
 		child.queue_free()
 
-	# Primary interpreted target button
-	var interpreted = data.get("interpreted_target", "")
-	if interpreted:
-		var primary_btn = _create_button("Yes, " + interpreted, interpreted)
-		button_container.add_child(primary_btn)
-
-	# Alternative target buttons
-	var alternatives = data.get("alternatives", [])
-	for alt in alternatives:
-		var alt_btn = _create_button("No, " + alt, alt)
-		button_container.add_child(alt_btn)
-
-	# Options from backend (if provided instead of alternatives)
+	# Use structured options from backend if available, else fall back to interpreted/alternatives
 	var options = data.get("options", [])
-	for option in options:
-		if option != interpreted and option not in alternatives:
-			var opt_btn = _create_button(option.capitalize(), option)
+	if options.size() > 0:
+		for option in options:
+			var label = option.get("label", "Option")
+			var target = option.get("target", option.get("value", ""))
+			var opt_btn = _create_button(label, target)
 			button_container.add_child(opt_btn)
+	else:
+		# Fallback: build buttons from interpreted_target + alternatives
+		var interpreted = data.get("interpreted_target", "")
+		if interpreted:
+			var primary_btn = _create_button("Yes, " + interpreted, interpreted)
+			button_container.add_child(primary_btn)
+
+		var alternatives = data.get("alternatives", [])
+		for alt in alternatives:
+			var alt_btn = _create_button("No, " + alt, alt)
+			button_container.add_child(alt_btn)
 
 	# Always add cancel button
 	var cancel_btn = _create_button("Cancel Order", "")
