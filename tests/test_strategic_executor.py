@@ -1842,8 +1842,10 @@ class TestCancelCommand:
                 game_state
             )
 
-        assert result.get("success") is False
-        assert "no active order" in result.get("message", "").lower()
+        # Bug 4 fix: cancel with no order is graceful success (not error)
+        assert result.get("success") is True
+        assert result.get("no_action_cost") is True
+        assert "awaits" in result.get("message", "").lower()
         # No action consumed
         assert world.actions_remaining == actions_before
 

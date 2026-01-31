@@ -832,17 +832,13 @@ RETREAT RECOVERY (3 turns):
                     options.append({"label": "Cancel", "value": "cancel"})
 
                     if strategic_type == "PURSUE":
-                        cl_msg = (f"You wish me to pursue {interpreted} "
-                                  f"({reason} enemy), Sire?")
+                        cl_msg = f"You wish me to pursue {interpreted}, Sire?"
                     elif strategic_type == "SUPPORT":
-                        cl_msg = (f"You wish me to support {interpreted} "
-                                  f"({reason} ally), Sire?")
+                        cl_msg = f"You wish me to support {interpreted}, Sire?"
                     elif strategic_type == "MOVE_TO":
-                        cl_msg = (f"You wish me to march to {interpreted} "
-                                  f"({reason}), Sire?")
+                        cl_msg = f"You wish me to march to {interpreted}, Sire?"
                     elif strategic_type == "HOLD":
-                        cl_msg = (f"You wish me to hold {interpreted} "
-                                  f"({reason}), Sire?")
+                        cl_msg = f"You wish me to hold {interpreted}, Sire?"
                     else:
                         cl_msg = f"I understand {interpreted}, Sire. Is this correct?"
 
@@ -960,7 +956,7 @@ RETREAT RECOVERY (3 turns):
                 is_player_action = False  # Enemy AI action - don't consume player actions
 
         # Check if this action is free (counter-punch, etc.)
-        is_free_action = result.get("free_action", False)
+        is_free_action = result.get("free_action", False) or result.get("no_action_cost", False)
 
         if result.get("success", False) and action_costs_point and is_player_action and not is_free_action:
             # Check for variable action cost (stance_change returns this)
@@ -2021,7 +2017,7 @@ RETREAT RECOVERY (3 turns):
                 return self._build_clarification(
                     marshal, strategic_type, nearest.name, "nearest enemy",
                     [e.name for e in enemies if e.name != nearest.name][:2],
-                    world, f"You wish me to pursue {nearest.name} (nearest enemy), Sire?"
+                    world, f"You wish me to pursue {nearest.name}, Sire?"
                 )
             return {"resolved": True, "target": nearest.name, "target_type": "marshal"}
 
@@ -2051,7 +2047,7 @@ RETREAT RECOVERY (3 turns):
                 return self._build_clarification(
                     marshal, strategic_type, most_threatened.name, "most threatened ally",
                     alt_names, world,
-                    f"You wish me to support {most_threatened.name} (most threatened), Sire?"
+                    f"You wish me to support {most_threatened.name}, Sire?"
                 )
             return {"resolved": True, "target": most_threatened.name, "target_type": "marshal"}
 
@@ -2073,7 +2069,7 @@ RETREAT RECOVERY (3 turns):
                 return self._build_clarification(
                     marshal, strategic_type, target_region, "nearest enemy position",
                     alt_regions, world,
-                    f"You wish me to march to {target_region} (nearest enemy), Sire?"
+                    f"You wish me to march to {target_region}, Sire?"
                 )
             return {"resolved": True, "target": target_region, "target_type": "region"}
 
@@ -2162,10 +2158,23 @@ RETREAT RECOVERY (3 turns):
 
         print(f"[STRATEGIC] Creating {strategic_type} order for {marshal.name} -> {target}")
 
+        # ── Self-targeting validation ────────────────────────────────
+        if target and target.lower() == marshal.name.lower():
+            return {
+                "success": False,
+                "message": f"{marshal.name} cannot target themselves!"
+            }
+
         # ── Resolve generic/vague targets for ALL strategic types ────
+        GENERIC_TARGETS = {
+            "generic", "the enemy", "enemy", "enemies", "them",
+            "the marshal", "the general", "the commander",
+            "the region", "someone", "somebody", "anyone",
+            "whoever", "nearest", "closest",
+        }
         is_generic = (
             not target
-            or target.lower() in ("generic", "the enemy", "enemy", "enemies", "them")
+            or target.lower() in GENERIC_TARGETS
             or target_type == "generic"
         )
         if is_generic:
@@ -2310,7 +2319,25 @@ RETREAT RECOVERY (3 turns):
         print(f"[STRATEGIC INIT] {marshal.name}: Path = {path}, movement_range = {movement_range}")
         print(f"[STRATEGIC INIT] {marshal.name}: Executing first step from {marshal.location}...")
 
-        if strategic_type == "MOVE_TO" and path:
+        # ── PURSUE: target in same region → personality-aware immediate response ──
+        pursue_handled = False
+        if strategic_type == "PURSUE":
+            enemy_m = world.get_marshal(target)
+            if enemy_m and enemy_m.strength > 0 and marshal.location == enemy_m.location:
+                pursue_handled = True
+                personality = getattr(marshal, 'personality', 'balanced')
+                if personality == "aggressive":
+                    attack_result = self.execute(
+                        {"command": {"marshal": marshal.name, "action": "attack",
+                                     "target": target, "_strategic_execution": True}},
+                        game_state)
+                    combat_msg = attack_result.get("message", "")
+                    first_step_msg = f" They're right here! Engaging!\n\n{combat_msg}"
+                else:
+                    first_step_msg = (f" {target} is right here in {marshal.location}!"
+                                      f" Awaiting the right moment to strike.")
+
+        if not pursue_handled and strategic_type == "MOVE_TO" and path:
             steps = min(movement_range, len(path))
             moved_regions = []
             print(f"[STRATEGIC INIT] {marshal.name}: MOVE_TO first step, {steps} step(s) max")
@@ -2416,7 +2443,7 @@ RETREAT RECOVERY (3 turns):
                 if moved_regions:
                     first_step_msg = f" Marching to {target}."
 
-        elif strategic_type == "PURSUE" and path:
+        elif not pursue_handled and strategic_type == "PURSUE" and path:
             steps = min(movement_range, len(path))
             moved_regions = []
             for i in range(steps):
@@ -2458,6 +2485,19 @@ RETREAT RECOVERY (3 turns):
                     order.path.pop(0)
                     moved_regions.append(next_region)
                 else:
+                    # Move failed — check if target is in this region (PURSUE should attack)
+                    enemy_m = world.get_marshal(target)
+                    if enemy_m and next_region == enemy_m.location:
+                        personality = getattr(marshal, 'personality', 'balanced')
+                        if personality == "aggressive":
+                            attack_result = self.execute(
+                                {"command": {"marshal": marshal.name, "action": "attack",
+                                             "target": target, "_strategic_execution": True}},
+                                game_state)
+                            combat_msg = attack_result.get("message", "")
+                            first_step_msg = f" {target} spotted at {next_region}! Engaging!\n\n{combat_msg}"
+                        else:
+                            first_step_msg = f" {target} spotted at {next_region}. Preparing to engage."
                     break
             if moved_regions:
                 order.path = []  # PURSUE recalculates each turn
@@ -4891,8 +4931,10 @@ RETREAT RECOVERY (3 turns):
             return {"success": False, "message": f"Marshal '{marshal_name}' not found."}
 
         if not marshal.in_strategic_mode and not getattr(marshal, 'pending_interrupt', None):
-            return {"success": False, "no_action_cost": True,
-                    "message": f"{marshal.name} has no active orders to cancel."}
+            # Graceful cancel — may be canceling from a clarification popup
+            # (before order was created) or just no active order
+            return {"success": True, "no_action_cost": True,
+                    "message": f"{marshal.name} awaits further orders."}
 
         # Get order details for flavorful message
         old_order = marshal.strategic_order

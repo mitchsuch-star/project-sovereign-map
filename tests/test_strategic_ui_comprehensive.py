@@ -1747,8 +1747,8 @@ class TestExecutorCancel:
         assert result["success"] == True
         assert grouchy.strategic_order is None
 
-    def test_cancel_no_orders_returns_error(self, world, executor, game_state):
-        """Cancel when no marshal has orders → error."""
+    def test_cancel_no_orders_returns_graceful(self, world, executor, game_state):
+        """Cancel when no marshal has orders → graceful success (Bug 4 fix)."""
         for m in world.marshals.values():
             m.strategic_order = None
 
@@ -1756,7 +1756,9 @@ class TestExecutorCancel:
             "command": {"marshal": "Grouchy", "action": "cancel"}
         }, game_state)
 
-        assert result["success"] == False
+        # Bug 4 fix: graceful cancel, not error
+        assert result["success"] == True
+        assert result.get("no_action_cost") == True
 
     def test_cancel_hold_clears_holding_state(self, world, executor, game_state):
         """Cancel HOLD order clears holding_position."""

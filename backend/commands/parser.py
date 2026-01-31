@@ -132,6 +132,11 @@ class CommandParser:
                     "debug", "/debug", "set_location", "set_retreat", "set_recovery",  # Debug commands
                     "set_strength", "set_morale", "set_fortified", "ai_turn", "ai_state",
                     "charge", "restrain", "glorious",  # Cavalry recklessness commands
+                    # Generic/ambiguous terms — don't try to match as marshal names
+                    "general", "marshal", "commander", "enemy", "enemies",
+                    "someone", "somebody", "anyone", "whoever",
+                    "support", "pursue", "chase", "hunt", "intercept",
+                    "cancel", "halt", "abort", "stop",
                 ]
                 if len(word) < 2 or word.lower() in skip_words:
                     continue
