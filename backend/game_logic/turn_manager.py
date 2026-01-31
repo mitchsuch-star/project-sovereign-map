@@ -199,6 +199,26 @@ class TurnManager:
         # Add strategic order reports (Phase 5.2-C)
         if strategic_reports:
             result["strategic_reports"] = strategic_reports
+            # Surface cannon fire and other interrupts into main events list
+            # so the frontend can display them alongside tactical events
+            for report in strategic_reports:
+                interrupt_type = report.get("interrupt_type") or report.get("interrupt")
+                if interrupt_type == "cannon_fire":
+                    all_events.append({
+                        "type": "cannon_fire_redirect",
+                        "marshal": report.get("marshal", "Unknown"),
+                        "battle_location": report.get("battle_location", report.get("to", "")),
+                        "action_taken": report.get("action_taken", "redirect"),
+                        "message": report.get("message", ""),
+                    })
+                elif report.get("order_status") in ("active", "continues", "completed"):
+                    all_events.append({
+                        "type": "strategic_progress",
+                        "marshal": report.get("marshal", "Unknown"),
+                        "command": report.get("command", ""),
+                        "order_status": report.get("order_status"),
+                        "message": report.get("message", ""),
+                    })
 
         if all_events:
             result["events"] = all_events

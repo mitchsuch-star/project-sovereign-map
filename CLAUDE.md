@@ -1099,7 +1099,7 @@ User: "Grouchy, march to Belgium"
 
 **Remaining phases (806 tests passing):**
 - Phase I: Serialization Validation ✅ COMPLETE (33 roundtrip tests)
-- Phase J: UI Updates (Godot strategic status display, interrupt dialogs)
+- Phase J: UI Updates (Godot strategic status display, interrupt dialogs). NOTE: Backend currently emits interim `strategic_progress` events (type: `strategic_progress`, with `order_status`: active/continues/completed) into the main events list. Phase J should replace these with a persistent HUD showing active orders per marshal. Backend data is ready (`marshal`, `command`, `destination`, `turns_remaining`).
 - Phase K: Integration testing (full end-to-end strategic command flow)
 
 #### Phase I (Serialization Validation) ✅ COMPLETE

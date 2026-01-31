@@ -2604,12 +2604,13 @@ RETREAT RECOVERY (3 turns):
                     if enemies_blocking:
                         print(f"[STRATEGIC INIT] {marshal.name}: First step BLOCKED by enemies at {next_region}")
                         break
-                    move_result = self.execute({
-                        "marshal": marshal.name,
-                        "action": "move",
-                        "target": next_region,
-                        "_strategic_execution": True,
-                    }, game_state)
+                    move_result = self.execute(
+                        {"command": {
+                            "marshal": marshal.name,
+                            "action": "move",
+                            "target": next_region,
+                            "_strategic_execution": True,
+                        }}, game_state)
                     if move_result.get("success"):
                         regions_moved.append(next_region)
                         order.path = order.path[1:]  # Consume path step

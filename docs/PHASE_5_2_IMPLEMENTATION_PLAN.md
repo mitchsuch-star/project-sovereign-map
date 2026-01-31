@@ -2192,12 +2192,13 @@ class StrategicExecutor:
 
 ### Phase J: UI Updates (Estimated: 4-5 hours)
 
-- [ ] **J1.** Add strategic order indicator to marshal display
+- [ ] **J1.** Add strategic order indicator to marshal display (persistent HUD element)
 - [ ] **J2.** Modify end_turn popup to show strategic reports
 - [ ] **J3.** Add clarification popup variant (reuse objection popup)
 - [ ] **J4.** Show "March to Vienna (Turn 2/4)" in status
 - [ ] **J5.** Add GDScript integration for strategic responses
 - [ ] **J6.** Test: Visual verification of strategic mode display
+- [ ] **J7.** Replace interim `strategic_progress` events with persistent HUD — currently strategic order status is emitted as `strategic_progress` events in the `events` list (including same-turn "active" status and per-turn "continues"/"completed"). Phase J should replace these text events with a proper always-visible marshal order display. Backend already emits all needed data (`marshal`, `command`, `destination`, `turns_remaining`, `order_status`).
 
 ### Phase K: Integration Testing (Estimated: 4-5 hours)
 

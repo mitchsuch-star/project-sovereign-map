@@ -151,6 +151,43 @@ def execute_command(request: CommandRequest):
     # print(f"{'=' * 60}")
 
     try:
+        # ════════════════════════════════════════════════════════════
+        # PENDING STRATEGIC INTERRUPT CHECK (Phase 5.2-D)
+        # If a marshal has a pending interrupt (cannon fire, blocked path),
+        # try to map the player's text input to a response choice.
+        # This prevents the command from being parsed as a new order.
+        # ════════════════════════════════════════════════════════════
+        for m in world.get_player_marshals():
+            pending = getattr(m, 'pending_interrupt', None)
+            if pending:
+                options = pending.get("options", [])
+                interrupt_type = pending.get("interrupt_type", "")
+                cmd_lower = request.command.strip().lower()
+
+                # Map natural language to response choices
+                choice = None
+                if any(kw in cmd_lower for kw in ["investigate", "march to", "guns", "attack", "charge", "join"]):
+                    choice = "investigate" if "investigate" in options else "attack" if "attack" in options else None
+                elif any(kw in cmd_lower for kw in ["continue", "ignore", "keep going", "carry on", "press on"]):
+                    choice = "continue_order" if "continue_order" in options else None
+                elif any(kw in cmd_lower for kw in ["hold", "stay", "stop", "wait", "halt"]):
+                    choice = "hold_position" if "hold_position" in options else None
+                elif any(kw in cmd_lower for kw in ["go around", "reroute", "avoid"]):
+                    choice = "go_around" if "go_around" in options else None
+                elif any(kw in cmd_lower for kw in ["cancel", "abort", "belay"]):
+                    choice = "cancel_order" if "cancel_order" in options else None
+
+                if choice:
+                    print(f"[INTERRUPT ROUTE] Routing '{request.command}' -> "
+                          f"{m.name} {interrupt_type} response: {choice}")
+                    from backend.commands.strategic import StrategicExecutor
+                    strategic_exec = StrategicExecutor(executor)
+                    result = strategic_exec.handle_response(
+                        m.name, interrupt_type, choice, world, game_state)
+                    result["action_summary"] = world.get_action_summary()
+                    result["game_state"] = world.get_game_state_summary()
+                    return result
+
         # Parse command
         # Build LLM-compatible game state for command parsing
         llm_game_state = get_llm_game_state()

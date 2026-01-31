@@ -67,6 +67,17 @@ class StrategicExecutor:
             issued = getattr(order, 'issued_turn', None)
             if issued is not None and issued == world.current_turn:
                 print(f"[STRATEGIC] {marshal.name}: SKIP - order issued this turn")
+                # Emit a status report so the player knows the order is active
+                remaining = len(order.path) if order.path else 0
+                reports.append({
+                    "marshal": marshal.name,
+                    "command": order.command_type,
+                    "order_status": "active",
+                    "destination": order.target,
+                    "turns_remaining": int(remaining),
+                    "message": f"{marshal.name} is marching to {order.target} "
+                               f"({remaining} turn(s) remaining).",
+                })
                 continue
 
             report = self._execute_strategic_turn(marshal, world, game_state)
@@ -142,27 +153,64 @@ class StrategicExecutor:
         trust_change = 0
 
         if choice == "investigate":
-            # Cancel current order, move toward battle
+            # Cancel current order, attack or move toward battle
             cmd_type = order.command_type
             marshal.strategic_order = None
-            # Move toward battle location
-            move_result = self.executor.execute(
-                {"command": {
-                    "marshal": marshal.name,
-                    "action": "move",
-                    "target": battle_location,
-                    "_strategic_execution": True
-                }},
-                game_state
-            )
-            return {
-                "success": True,
-                "message": f"{marshal.name} abandons {cmd_type} order and "
-                           f"marches toward the guns at {battle_location}.",
-                "order_cleared": True,
-                "trust_change": trust_change,
-                "action_taken": "investigate"
-            }
+
+            # Distance-based: attack if adjacent with enemy, otherwise move
+            is_cavalry = getattr(marshal, 'cavalry', False)
+            attack_range = getattr(marshal, 'movement_range', 1) if is_cavalry else 1
+            path_to_battle = world.find_path(marshal.location, battle_location)
+            distance = len(path_to_battle) - 1 if path_to_battle else 999
+
+            enemies_at_battle = [
+                m for m in world.get_enemies_of_nation(marshal.nation)
+                if m.location == battle_location and m.strength > 0
+            ]
+
+            print(f"[CANNON FIRE INVESTIGATE] {marshal.name}: distance={distance}, "
+                  f"attack_range={attack_range}, enemies={[e.name for e in enemies_at_battle]}")
+
+            if distance <= attack_range and enemies_at_battle:
+                # Within range — attack!
+                action_result = self.executor.execute(
+                    {"command": {
+                        "marshal": marshal.name,
+                        "action": "attack",
+                        "target": enemies_at_battle[0].name,
+                        "_strategic_execution": True
+                    }},
+                    game_state
+                )
+                action_msg = action_result.get("message", "")
+                return {
+                    "success": True,
+                    "message": f"{marshal.name} abandons {cmd_type} order and "
+                               f"charges into battle at {battle_location}! {action_msg}".strip(),
+                    "order_cleared": True,
+                    "trust_change": trust_change,
+                    "action_taken": "attack",
+                    "action_events": action_result.get("events", []),
+                }
+            else:
+                # Too far to attack — move toward
+                move_result = self.executor.execute(
+                    {"command": {
+                        "marshal": marshal.name,
+                        "action": "move",
+                        "target": battle_location,
+                        "_strategic_execution": True
+                    }},
+                    game_state
+                )
+                return {
+                    "success": True,
+                    "message": f"{marshal.name} abandons {cmd_type} order and "
+                               f"marches toward the guns at {battle_location}.",
+                    "order_cleared": True,
+                    "trust_change": trust_change,
+                    "action_taken": "investigate"
+                }
 
         elif choice == "continue_order":
             # Resume strategic order — marshal ignores cannon fire
@@ -1136,18 +1184,83 @@ class StrategicExecutor:
             order = marshal.strategic_order
 
             if interrupt["action"] == "redirect":
-                # Aggressive auto-redirects — cancel current order, move toward battle
+                # Aggressive auto-redirects — cancel current order, move/attack toward battle
                 battle_loc = interrupt["battle_location"]
+                cmd_type = order.command_type if order else "unknown"
                 marshal.strategic_order = None
+
+                # Distance-based response: attack if in range, otherwise move toward
+                is_cavalry = getattr(marshal, 'cavalry', False)
+                attack_range = getattr(marshal, 'movement_range', 1) if is_cavalry else 1
+                path_to_battle = world.find_path(marshal.location, battle_loc)
+                distance = len(path_to_battle) - 1 if path_to_battle else 999
+
+                enemies_at_battle = [
+                    m for m in world.get_enemies_of_nation(marshal.nation)
+                    if m.location == battle_loc and m.strength > 0
+                ]
+
+                print(f"[STRATEGIC INTERRUPT] {marshal.name}: Cannon fire at {battle_loc}")
+                print(f"[STRATEGIC INTERRUPT]   Distance={distance}, cavalry={is_cavalry}, "
+                      f"attack_range={attack_range}")
+                print(f"[STRATEGIC INTERRUPT]   Enemies present={bool(enemies_at_battle)}")
+
+                action_taken = "redirect"
+                action_result = {}
+
+                if distance <= attack_range and enemies_at_battle:
+                    # Within attack range AND enemy present — ATTACK
+                    print(f"[STRATEGIC INTERRUPT] {marshal.name}: Within attack range, attacking!")
+                    action_taken = "attack"
+                    action_result = self.executor.execute(
+                        {"command": {
+                            "action": "attack",
+                            "marshal": marshal.name,
+                            "target": enemies_at_battle[0].name,
+                            "_strategic_execution": True,
+                        }},
+                        game_state
+                    )
+                elif distance > 0 and path_to_battle and len(path_to_battle) > 1:
+                    # Move toward battle (one step for infantry, up to movement_range for cavalry)
+                    steps = min(attack_range, len(path_to_battle) - 1)
+                    print(f"[STRATEGIC INTERRUPT] {marshal.name}: Rushing toward battle "
+                          f"({distance} away, {steps} step(s))")
+                    action_taken = "move"
+                    for i in range(steps):
+                        next_region = path_to_battle[1 + i]
+                        step_result = self.executor.execute(
+                            {"command": {
+                                "marshal": marshal.name,
+                                "action": "move",
+                                "target": next_region,
+                                "_strategic_execution": True,
+                            }},
+                            game_state
+                        )
+                        if not step_result.get("success"):
+                            break
+                        action_result = step_result
+
+                # Extract only safe serializable fields from action result
+                action_success = action_result.get("success", False)
+                action_events = action_result.get("events", [])
+                action_msg = action_result.get("message", "")
+
                 return {
                     "marshal": marshal.name,
-                    "command": order.command_type if order else "unknown",
+                    "command": cmd_type,
                     "interrupt": "cannon_fire",
-                    "action": "redirecting",
+                    "interrupt_type": "cannon_fire",
+                    "action_taken": action_taken,
+                    "action_success": action_success,
+                    "action_events": action_events,
+                    "battle_location": battle_loc,
                     "to": battle_loc,
                     "order_status": "interrupted",
                     "message": f"{marshal.name} hears cannon fire! "
-                               f"Abandoning orders — rushing to {battle_loc}!"
+                               f"Abandoning orders — rushing to {battle_loc}! "
+                               f"{action_msg}".strip(),
                 }
             else:
                 # Cautious asks player

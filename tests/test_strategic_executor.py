@@ -2245,8 +2245,9 @@ class TestBugFixes:
         with _suppress_output():
             reports = strategic_executor.process_strategic_orders(world, game_state)
 
-        # Should produce NO reports — order skipped because issued this turn
-        assert len(reports) == 0, f"Expected 0 reports (skip same-turn), got {len(reports)}"
+        # Should produce only a status report (no execution), order_status="active"
+        assert len(reports) == 1, f"Expected 1 status report, got {len(reports)}"
+        assert reports[0]["order_status"] == "active"
         # Marshal should NOT have moved
         assert ney.location == start_location, \
             f"Marshal moved from {start_location} to {ney.location} — double-move bug!"
@@ -2347,3 +2348,180 @@ class TestBugFixes:
             f"Infantry should move 1 region (to Bavaria), but is at {grouchy.location}"
         # Should still have order active (not arrived yet)
         assert grouchy.strategic_order is not None
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BUG FIX TESTS: Cannon Fire Redirect + Strategic Init
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+class TestAggressiveRedirectActuallyMoves:
+    """Bug 1: Aggressive auto-redirect should actually move/attack, not just cancel order."""
+
+    def test_aggressive_redirect_moves_toward_battle(self, world, game_state, strategic_executor):
+        """Aggressive marshal moves toward distant battle after redirect."""
+        ney = world.get_marshal("Ney")
+        assert ney.personality == "aggressive"
+        # Place Ney at Paris, battle at Rhine (distance 2 via Belgium or Lyon)
+        ney.location = "Paris"
+
+        # Record battle at Rhine (not involving Ney)
+        world.record_battle("Rhine", "SomeAttacker", "SomeDefender", "ongoing")
+
+        # Give Ney order going elsewhere (e.g. Brittany)
+        _set_strategic_order(ney, "MOVE_TO", "Brittany", path=["Brittany"])
+
+        with _suppress_output():
+            reports = strategic_executor.process_strategic_orders(world, game_state)
+
+        report = [r for r in reports if r["marshal"] == "Ney"][0]
+        assert report.get("interrupt") == "cannon_fire"
+        assert report.get("order_status") == "interrupted"
+        # Order should be cancelled
+        assert ney.strategic_order is None
+        # Ney should have MOVED (not stayed at Paris)
+        assert ney.location != "Paris", \
+            f"Ney should have moved toward Rhine but is still at {ney.location}"
+
+    def test_aggressive_adjacent_to_battle_attacks(self, world, game_state, strategic_executor):
+        """Aggressive marshal attacks enemy when adjacent to battle location."""
+        ney = world.get_marshal("Ney")
+        ney.location = "Belgium"  # Adjacent to Waterloo
+
+        # Place an enemy at Waterloo
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Waterloo"
+
+        # Record battle at Waterloo (not involving Ney)
+        world.record_battle("Waterloo", "SomeOther", "SomeDefender", "ongoing")
+
+        # Give Ney order going away
+        _set_strategic_order(ney, "MOVE_TO", "Netherlands", path=["Netherlands"])
+
+        with _suppress_output():
+            reports = strategic_executor.process_strategic_orders(world, game_state)
+
+        report = [r for r in reports if r["marshal"] == "Ney"][0]
+        assert report.get("interrupt") == "cannon_fire"
+        assert report.get("action_taken") == "attack"
+        assert ney.strategic_order is None
+
+    def test_cavalry_attacks_from_distance_2(self, world, game_state, strategic_executor):
+        """Cavalry (movement_range=2) can attack from 2 regions away."""
+        ney = world.get_marshal("Ney")
+        assert getattr(ney, 'movement_range', 1) == 2  # Cavalry
+        ney.location = "Paris"  # Paris -> Waterloo (distance 1) or Paris -> Belgium -> Waterloo
+
+        # Place enemy at Waterloo (distance 1 from Paris, within cavalry range)
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Waterloo"
+
+        # Record battle at Waterloo
+        world.record_battle("Waterloo", "SomeAttacker", "SomeDefender", "ongoing")
+
+        _set_strategic_order(ney, "MOVE_TO", "Brittany", path=["Brittany"])
+
+        with _suppress_output():
+            reports = strategic_executor.process_strategic_orders(world, game_state)
+
+        report = [r for r in reports if r["marshal"] == "Ney"][0]
+        assert report.get("interrupt") == "cannon_fire"
+        # Paris->Waterloo is distance 1, within cavalry attack_range=2
+        # Enemy present at Waterloo, so should attack
+        assert report.get("action_taken") == "attack"
+
+    def test_infantry_moves_toward_distance_2_battle(self, world, game_state, strategic_executor):
+        """Infantry marshal moves toward battle 2 regions away (can't attack from distance 2)."""
+        davout = world.get_marshal("Davout")
+        # Davout is cautious — would ask. Use a different approach:
+        # We need an aggressive non-cavalry marshal. Let's make Ney non-cavalry temporarily.
+        ney = world.get_marshal("Ney")
+        ney.location = "Paris"
+        ney.movement_range = 1  # Override to infantry for this test
+
+        # Battle at Rhine (distance 2: Paris -> Lyon -> Rhine or Paris -> Belgium -> Rhine)
+        world.record_battle("Rhine", "SomeAttacker", "SomeDefender", "ongoing")
+
+        # No enemies at Rhine to attack
+        # Move all enemies away from Rhine
+        for m in world.marshals.values():
+            if m.location == "Rhine":
+                m.location = "Vienna"
+
+        _set_strategic_order(ney, "MOVE_TO", "Brittany", path=["Brittany"])
+
+        with _suppress_output():
+            reports = strategic_executor.process_strategic_orders(world, game_state)
+
+        report = [r for r in reports if r["marshal"] == "Ney"][0]
+        assert report.get("interrupt") == "cannon_fire"
+        # Infantry can't attack from distance 2, should move toward
+        assert report.get("action_taken") == "move"
+        assert ney.location != "Paris", "Infantry should have moved one step toward battle"
+
+        # Restore
+        ney.movement_range = 2
+
+
+class TestCannonFireEventInFrontendEvents:
+    """Bug 2: Cannon fire redirects should appear in the main events list."""
+
+    def test_cannon_fire_event_in_frontend_events(self, world, game_state):
+        """Strategic reports with cannon_fire should be surfaced as events."""
+        from backend.game_logic.turn_manager import TurnManager
+
+        ney = world.get_marshal("Ney")
+        ney.location = "Belgium"
+
+        # Record a battle nearby (not involving Ney)
+        world.record_battle("Waterloo", "SomeAttacker", "SomeDefender", "ongoing")
+
+        # Give Ney a strategic order (issued previous turn so it gets processed)
+        _set_strategic_order(ney, "MOVE_TO", "Netherlands", path=["Netherlands"])
+        ney.strategic_order.issued_turn = world.current_turn - 1
+
+        tm = TurnManager(world)
+        tm.executor = CommandExecutor()
+
+        with _suppress_output():
+            result = tm.end_turn(game_state)
+
+        # Check that events list contains cannon fire
+        events = result.get("events", [])
+        cannon_events = [e for e in events if e.get("type") == "cannon_fire_redirect"]
+        assert len(cannon_events) >= 1, \
+            f"Expected cannon_fire_redirect event, got events: {[e.get('type') for e in events]}"
+        assert cannon_events[0]["marshal"] == "Ney"
+
+
+class TestStrategicInitCommandWrapper:
+    """Bug 3: Auto-upgrade MOVE_TO was missing 'command' wrapper in execute() call."""
+
+    def test_strategic_init_with_valid_marshal(self, world, game_state):
+        """Auto-upgrade move should properly wrap command for executor."""
+        executor = CommandExecutor()
+        davout = world.get_marshal("Davout")
+        davout.location = "Paris"
+
+        # Clear enemies from the path Paris -> Lyon
+        for m in world.marshals.values():
+            if m.location == "Lyon" and m.nation != "France":
+                m.location = "Vienna"
+
+        # Issue a move to Lyon (distance > movement range, should auto-upgrade)
+        # Use the executor directly with a strategic command
+        result = executor.execute(
+            {"command": {
+                "marshal": "Davout",
+                "action": "move",
+                "target": "Bavaria",  # Far enough to trigger auto-upgrade
+                "is_strategic": True,
+                "strategic_type": "MOVE_TO",
+            }},
+            game_state
+        )
+
+        # Should NOT contain "Marshal 'None' not found"
+        msg = result.get("message", "")
+        assert "None" not in msg or "not found" not in msg, \
+            f"Got 'Marshal None not found' error: {msg}"
