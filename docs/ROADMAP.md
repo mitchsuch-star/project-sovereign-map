@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**  
 > **Other docs reference this — phase numbers only exist here.**  
-> **Last Updated:** January 30, 2026
+> **Last Updated:** January 31, 2026
 
 ---
 
@@ -21,7 +21,7 @@
 | 11 | Vassals & Naval | 📋 Planned |
 | 12 | Communication & Strategic Polish | 📋 Planned |
 | Pre-EA | Polish & Infrastructure | 📋 Planned |
-| EA | 1805 Campaign Launch | 🎯 November 2025 |
+| EA | 1805 Campaign Launch | 🎯 TBD 2026 |
 
 ---
 
@@ -37,7 +37,7 @@
 | 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 950+ (verify in STATUS.md)
+**Total Tests:** 1010+ (verify in STATUS.md)
 
 ---
 
@@ -276,6 +276,7 @@
 - Region tooltips
 - Dynamic coloring on conquest
 - Possibly commissioned art ($300-800)
+- **Cardinal direction system:** `REGION_POSITIONS` in `strategic_parser.py` must be expanded from 13 to 200+ entries with approximate grid coordinates for all new regions
 
 **Dependencies:** All phases + Pre-EA complete  
 **Exit Criteria:** Full 1805 campaign playable
@@ -318,7 +319,7 @@ Must be done, in rough order:
 13. 📋 Pre-EA: Save/Load, Tutorial, Voice, **LLM Monetization**, **Music**
 14. 📋 **1805 Map UI** ← LARGEST SINGLE TASK
 15. 📋 Steam Integration
-16. 🎯 **November 2025: Early Access**
+16. 🎯 **TBD 2026: Early Access**
 
 ---
 
@@ -359,7 +360,7 @@ All Phases ──► Pre-EA Polish (Save, Tutorial, Music) ──► 1805 Map UI
 | Pre-EA | +4 weeks | Polish, monetization, music |
 | 1805 Map | +4-6 weeks | **Major UI work** |
 | Buffer | +2 weeks | Bug fixes, testing |
-| **Early Access** | **November 2025** | |
+| **Early Access** | **TBD 2026** | |
 
 ---
 

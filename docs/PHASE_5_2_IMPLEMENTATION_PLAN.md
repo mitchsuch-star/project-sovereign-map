@@ -449,7 +449,7 @@ personality since they don't affect tactical decisions.
 
 | Aspect | AGGRESSIVE | CAUTIOUS | LITERAL |
 |--------|------------|----------|---------|
-| **Target selection (generic)** | Nearest OR strongest | Weakest OR isolated | **MUST clarify** |
+| **Target selection (generic)** | Nearest OR strongest | Weakest OR isolated | Clarification popup (auto-resolve if direction given) |
 | **Combat engagement** | Always attack | Attack only if favorable | Attack when reaching target |
 | **Target retreats** | Chase relentlessly | Ask: "Continue pursuit?" | Follow precisely |
 | **Target destroyed** | Order completes | Order completes | Order completes |
@@ -470,7 +470,7 @@ personality since they don't affect tactical decisions.
 
 | Aspect | AGGRESSIVE | CAUTIOUS | LITERAL |
 |--------|------------|----------|---------|
-| **Target selection (generic)** | Ally in active combat | Most threatened ally | **MUST clarify** |
+| **Target selection (generic)** | Ally in active combat | Most threatened ally | Clarification popup (auto-resolve if direction given) |
 | **Ally in combat** | Rush to join, attack | Move to assist, defend | Join, mirror ally |
 | **Ally moving** | Follow automatically | Ask: "Follow or hold?" | Follow precisely |
 | **Ally destroyed** | Order breaks | Order breaks | Order breaks |

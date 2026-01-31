@@ -1,7 +1,7 @@
 # Ink & Iron: Completed Systems
 
 > **Reference for done features. How things work.**  
-> **Last Updated:** January 30, 2026
+> **Last Updated:** January 31, 2026
 
 ---
 
@@ -39,6 +39,17 @@
 | Blocked path | Auto-attack | Ask player | Reroute silently |
 | Cannon fire | Rush to join! | Ask player | **IGNORE** |
 | HOLD behavior | Sally out, return | Fortify | Immovable (+15%) |
+| Generic target | Auto-resolve (nearest) | Auto-resolve (nearest) | Clarification popup |
+
+### Cardinal Direction & Generic Target Resolution
+
+Players can use directions and vague targets instead of specific names:
+- **Cardinal:** "march north", "fall back south", "advance east" → resolves to adjacent region
+- **Relative:** "the front" → nearest enemy region, "back" → toward Paris
+- **Generic:** "pursue the enemy" → nearest enemy marshal, "support whoever needs it" → most threatened ally
+- **Literal personality:** Always asks for clarification on generic targets (free, no action cost)
+- **Non-literal:** Auto-resolves to best target, proceeds without asking
+- **1805 TODO:** `REGION_POSITIONS` table in `strategic_parser.py` must be expanded for full map
 
 ### Interrupt System
 

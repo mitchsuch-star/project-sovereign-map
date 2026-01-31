@@ -1027,7 +1027,7 @@ This phase adds multi-turn strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) tha
 - ONE strategic order per marshal at a time; new order silently replaces old
 - "reinforce" = SUPPORT (no teleporting; removed as separate action)
 
-#### What's Implemented (667 tests, 0 failures)
+#### What's Implemented (1010 tests, 0 failures)
 
 **Strategic Command Pipeline (end-to-end):**
 ```
@@ -1049,7 +1049,8 @@ User: "Grouchy, march to Belgium"
 
 **Phase B — Parser Integration (strategic_parser.py + parser.py + schemas.py):**
 - `detect_strategic_command()` — identifies MOVE_TO, PURSUE, HOLD, SUPPORT from natural language
-- `_classify_target()` — region, friendly marshal (snapshot), enemy marshal (→PURSUE), generic
+- `_classify_target()` — region, marshal, cardinal direction, generic; direction auto-resolves via `REGION_POSITIONS` grid
+- `resolve_direction()` — cardinal (north/south/east/west) + relative ("the front", "back") → adjacent region
 - `_parse_condition()` — until_arrives, until_destroyed, max_turns, until_battle_won
 - Enemy marshal MOVE_TO auto-converts to PURSUE
 - "reinforce" and "support" keywords both route to strategic SUPPORT via parser
@@ -1063,7 +1064,8 @@ User: "Grouchy, march to Belgium"
 - Handlers: `_execute_move_to`, `_execute_pursue`, `_execute_hold`, `_execute_support`
 - Personality-aware: aggressive=auto-attack, cautious=safe paths, literal=exact+immovable
 - HOLD sally mechanic: aggressive marshals attack adjacent enemies then return
-- Grouchy clarification gate for generic/ambiguous targets
+- Generic target resolution for all 4 types: `_resolve_generic_target()` shared helper
+- Grouchy clarification popup for all types (free action, includes `strategic_type` for Godot reissue)
 - Turn manager hook: runs AFTER enemy phase, BEFORE advance_turn()
 
 **Grouchy Ambiguity System (executor.py, enemy_ai.py):**
@@ -1097,7 +1099,7 @@ User: "Grouchy, march to Belgium"
 
 #### What's Next: Phase J-K
 
-**Remaining phases (806 tests passing):**
+**Remaining phases (1010 tests passing):**
 - Phase I: Serialization Validation ✅ COMPLETE (33 roundtrip tests)
 - Phase J: UI Updates (Godot strategic status display, interrupt dialogs). NOTE: Backend currently emits interim `strategic_progress` events (type: `strategic_progress`, with `order_status`: active/continues/completed) into the main events list. Phase J should replace these with a persistent HUD showing active orders per marshal. Backend data is ready (`marshal`, `command`, `destination`, `turns_remaining`).
 - Phase K: Integration testing (full end-to-end strategic command flow)
