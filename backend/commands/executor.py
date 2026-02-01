@@ -2210,7 +2210,7 @@ RETREAT RECOVERY (3 turns):
 
         # ── Engagement check: cannot issue strategic orders while engaged ──
         # Exceptions:
-        #   - PURSUE: targets the enemy present (or will resolve to one)
+        #   - PURSUE targeting an enemy in THIS region (or generic, which resolves to one here)
         #   - HOLD current region: defending where you stand is always valid
         enemies_here = world.get_enemies_in_region(marshal.location, marshal.nation)
         if enemies_here:
@@ -2218,7 +2218,13 @@ RETREAT RECOVERY (3 turns):
                 strategic_type == "HOLD" and
                 (not target or target == "generic" or target == marshal.location)
             )
-            if strategic_type != "PURSUE" and not holding_here:
+            pursuing_local = (
+                strategic_type == "PURSUE" and (
+                    not target or target == "generic" or
+                    any(e.name.lower() == target.lower() for e in enemies_here)
+                )
+            )
+            if not holding_here and not pursuing_local:
                 enemy_names = [e.name for e in enemies_here]
                 return {
                     "success": False,
