@@ -2802,6 +2802,13 @@ RETREAT RECOVERY (3 turns):
 
         current_region = world.get_region(marshal.location)
 
+        # Already there?
+        if marshal.location == target_name:
+            return {
+                "success": False,
+                "message": f"{marshal.name} is already in {target_name}."
+            }
+
         # ════════════════════════════════════════════════════════════
         # ENEMY ENGAGEMENT CHECK: Cannot advance through enemies
         # If enemy marshal in current region, can only retreat to friendly territory
