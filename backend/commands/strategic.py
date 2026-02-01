@@ -311,8 +311,16 @@ class StrategicExecutor:
             combat_success = result.get("success", False)
             combat_msg = result.get("message", "")
 
-            if combat_success and result.get("battle_result", {}).get("result") == "victory":
-                # Victory — continue order
+            # Check victory: victor is in events[0] or battle_result
+            battle_victor = ""
+            events = result.get("events", [])
+            if events and isinstance(events, list) and len(events) > 0:
+                battle_victor = events[0].get("victor", "")
+            if not battle_victor:
+                battle_victor = result.get("battle_result", {}).get("victor", "")
+            if combat_success and battle_victor == marshal.name:
+                # Victory — reset attempts, continue order
+                order.combat_attempts = 0
                 return {
                     "success": True,
                     "message": f"{marshal.name} attacks {enemy_name} and wins! "
@@ -322,12 +330,16 @@ class StrategicExecutor:
                     "action_taken": "attack"
                 }
             else:
-                # Loss or stalemate — pause order
+                # Loss or stalemate — increment attempts, break order
+                order.combat_attempts = getattr(order, 'combat_attempts', 0) + 1
+                order.last_combat_enemy = enemy_name
+                order.last_combat_turn = world.current_turn
+                marshal.strategic_order = None
                 return {
                     "success": True,
                     "message": f"{marshal.name} attacks {enemy_name}. {combat_msg} "
-                               f"Orders paused.",
-                    "order_cleared": False,
+                               f"Assault failed — orders cancelled, marshal awaits new instructions.",
+                    "order_cleared": True,
                     "trust_change": 0,
                     "action_taken": "attack"
                 }
@@ -465,12 +477,14 @@ class StrategicExecutor:
         enemy_name = pending.get("enemy", pending.get("target", order.target))
 
         if choice in ("continue_order", "attack_again"):
-            # Keep order active, will re-engage next turn
+            # After failed combat, order breaks — marshal reverts to tactical
+            # This prevents infinite free attacks from a single strategic order
+            marshal.strategic_order = None
             return {
                 "success": True,
-                "message": f"{marshal.name} will continue {_strategic_command_flavor(order.command_type)} "
-                           f"despite the setback.",
-                "order_cleared": False,
+                "message": f"{marshal.name} cannot break through. "
+                           f"Orders cancelled — awaiting new instructions.",
+                "order_cleared": True,
                 "trust_change": 0,
                 "action_taken": choice
             }
