@@ -2209,9 +2209,16 @@ RETREAT RECOVERY (3 turns):
         print(f"[STRATEGIC] Creating {strategic_type} order for {marshal.name} -> {target}")
 
         # ── Engagement check: cannot issue strategic orders while engaged ──
-        # Exception: PURSUE is allowed (targets enemy present or will resolve to one)
+        # Exceptions:
+        #   - PURSUE: targets the enemy present (or will resolve to one)
+        #   - HOLD current region: defending where you stand is always valid
         enemies_here = world.get_enemies_in_region(marshal.location, marshal.nation)
-        if enemies_here and strategic_type != "PURSUE":
+        if enemies_here:
+            holding_here = (
+                strategic_type == "HOLD" and
+                (not target or target == "generic" or target == marshal.location)
+            )
+            if strategic_type != "PURSUE" and not holding_here:
                 enemy_names = [e.name for e in enemies_here]
                 return {
                     "success": False,
