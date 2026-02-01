@@ -47,8 +47,8 @@ class CommandExecutor:
         if marshal:
             return (marshal, None)
 
-        # Get all marshal names for fuzzy matching
-        all_marshals = [m.name for m in world.get_player_marshals()]
+        # Get all marshal names for fuzzy matching (player + enemy)
+        all_marshals = list(world.marshals.keys())
 
         if not all_marshals:
             return (None, {
@@ -971,8 +971,16 @@ RETREAT RECOVERY (3 turns):
             # Check for variable action cost (stance_change returns this)
             variable_cost = result.get("variable_action_cost")
             if variable_cost is not None:
-                # Stance changes have variable costs (0, 1, or 2)
+                # Variable costs (stance: 0-2, strategic upgrades: 1-2)
                 if variable_cost > 0:
+                    if world.actions_remaining < variable_cost:
+                        # Safety net — should be caught by pre-checks above
+                        return {
+                            "success": False,
+                            "message": f"Not enough actions! Need {variable_cost}, have {world.actions_remaining}.",
+                            "actions_remaining": int(world.actions_remaining),
+                            "action_summary": world.get_action_summary()
+                        }
                     for _ in range(variable_cost):
                         action_result = world.use_action(action)
                 else:
@@ -1390,6 +1398,16 @@ RETREAT RECOVERY (3 turns):
                 # OUT OF RANGE — auto-upgrade to strategic PURSUE if targeting enemy marshal
                 is_player_nation = marshal.nation == world.player_nation
                 if enemy_by_name and is_player_nation:
+                    # Pre-check: strategic commands cost 2 AP (1 for literal)
+                    is_literal = getattr(marshal, 'personality', '') == 'literal'
+                    strategic_cost = 1 if is_literal else 2
+                    if world.actions_remaining < strategic_cost:
+                        return {
+                            "success": False,
+                            "message": f"Not enough actions for a strategic pursuit! Need {strategic_cost}, have {world.actions_remaining}.",
+                            "actions_remaining": int(world.actions_remaining),
+                            "action_summary": world.get_action_summary()
+                        }
                     print(f"[ATTACK->PURSUE] {marshal.name}: {target} out of range (distance {distance}), auto-upgrading to PURSUE")
                     from backend.models.marshal import StrategicOrder
                     pursue_parsed = {
@@ -1403,7 +1421,7 @@ RETREAT RECOVERY (3 turns):
                         "is_strategic": True,
                         "strategic_type": "PURSUE",
                         "attack_on_arrival": True,  # Player said "attack", not "pursue"
-                        "auto_upgrade": True,  # Costs 1 action, not 2 (player typed "attack")
+                        "auto_upgrade": False,  # Same cost as explicit strategic command
                         "raw_input": f"{marshal.name} attack {target}",
                         "strategic_score": 60,
                         "ambiguity": 15,
@@ -2823,6 +2841,16 @@ RETREAT RECOVERY (3 turns):
         # Check if destination is within movement range
         if distance > move_range:
             # Auto-upgrade to strategic MOVE_TO for distant regions
+            # Pre-check: strategic commands cost 2 AP (1 for literal)
+            is_literal = getattr(marshal, 'personality', '') == 'literal'
+            strategic_cost = 1 if is_literal else 2
+            if marshal.nation == world.player_nation and world.actions_remaining < strategic_cost:
+                return {
+                    "success": False,
+                    "message": f"Not enough actions for a strategic march! Need {strategic_cost}, have {world.actions_remaining}.",
+                    "actions_remaining": int(world.actions_remaining),
+                    "action_summary": world.get_action_summary()
+                }
             path = world.find_path(marshal.location, target_name)
             if path and len(path) > 1:
                 order = StrategicOrder(
@@ -2869,6 +2897,7 @@ RETREAT RECOVERY (3 turns):
                     "strategic_upgrade": True,
                     "strategic_type": "MOVE_TO",
                     "path": order.path,
+                    "variable_action_cost": strategic_cost,
                 }
             else:
                 marshal_type = "cavalry" if move_range == 2 else "infantry"

@@ -192,8 +192,18 @@ class WorldState:
     # ========================================
 
     def get_marshal(self, marshal_name: str) -> Optional[Marshal]:
-        """Get a specific marshal by name."""
-        return self.marshals.get(marshal_name)
+        """Get a specific marshal by name (case-insensitive fallback)."""
+        if not marshal_name:
+            return None
+        marshal = self.marshals.get(marshal_name)
+        if marshal:
+            return marshal
+        # Case-insensitive fallback
+        name_lower = marshal_name.lower()
+        for name, m in self.marshals.items():
+            if name.lower() == name_lower:
+                return m
+        return None
 
     def get_marshals_in_region(self, region_name: str) -> List[Marshal]:
         """Get all marshals currently in a specific region."""

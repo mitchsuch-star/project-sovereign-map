@@ -35,7 +35,9 @@ Phase 5.2/5.3 fully complete. Next: Phase 6 design.
 - **Design fix:** PURSUE now completes after combat (any outcome) — no more stalemate popup for PURSUE; order is fulfilled once marshal engages target
 - **Code review fixes:** HOLD `_complete_order` now clears `holding_position` (was leaking +15% defense); HOLD sally now checks `_should_auto_attack` (was infinite loop); dead code cleanup (unreachable breaks, unused vars, dead `join_combat` check)
 - **Phase M designed:** Strategic Objections — disobedience at strategic command issuance (see PHASE_5_2_IMPLEMENTATION_PLAN.md)
-- **Bug fix:** Strategic commands cost 1 AP instead of 2 — pre-check didn't calculate required actions, `_execute_strategic_command` didn't return `variable_action_cost`. Literal personality correctly costs 1. Auto-upgrade (attack→PURSUE) costs 1.
+- **Bug fix:** Strategic commands cost 1 AP instead of 2 — pre-check didn't calculate required actions, `_execute_strategic_command` didn't return `variable_action_cost`. Literal personality correctly costs 1.
+- **Bug fix:** Auto-upgrade exploit — "move to [distant]" and "attack [out of range]" auto-upgraded to strategic orders for only 1 AP. Now pre-checks AP inside `_execute_move` and `_execute_attack` before auto-upgrading, plus safety net in `variable_action_cost` loop.
+- **Fix:** Case-insensitive marshal lookup — `get_marshal()` now falls back to case-insensitive search; `_fuzzy_match_marshal` searches all marshals (not just player).
 - **Bug fix:** AI fortify/unfortify infinite loop — P3.5 unfortified to reposition but couldn't move (unsafe), P5 re-fortified immediately, repeat forever. Fixed: `_unfortified_this_turn` set now tracks ALL unfortifies (P3.5 + P7.5), P5 guard blocks re-fortify.
 - **Bug fix:** Enemy marshals invisible on map — `marshals_data.append()` was inside the `if m.nation == player_nation` block, so only French marshals appeared in `map_data`.
 - Test count: **1022 passed, 0 failures**
