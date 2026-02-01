@@ -190,6 +190,7 @@ Player: "I offer Austria peace if they cede Tyrol"
 | **Gazette System** | Period newspaper every 3-5 turns, LLM-generated recaps | Medium | 📋 |
 | **Marshal Voice (Tier 1)** | Template personality responses for all command events | Low | 📋 |
 | **Marshal Voice (Tier 2)** | LLM personality for high-drama moments (objections, combat, interrupts) | Medium | 📋 |
+| **Music & Sound (Core)** | Battle drums on combat, march on movement, tension on objection, map ambient. Menus get theme. Sells the narrative systems above. | Medium | 📋 |
 
 ### Gazette System ("Le Moniteur")
 
@@ -320,7 +321,7 @@ Three tiers of personality expression, layered for cost control:
 | LLM Efficiency | Caching, optimization | Medium | 📋 |
 | Settings Menu | Audio, display, controls | Low | 📋 |
 | Steam Integration | Achievements, cloud saves | Medium | 📋 |
-| **Music & Sound** | Period orchestral, battle sounds, atmosphere | Medium | 📋 HIGH |
+| **Music & Sound (Polish)** | Full period orchestral, per-nation themes, dynamic intensity | Medium | 📋 |
 | Difficulty Settings | AI bonuses, player handicaps | Low | 📋 |
 | **Full Flavor Toggle** | Player setting for LLM voice on ALL commands (Marshal Voice Tier 3) | Low | 📋 |
 | **LLM Cost Display** | Show token usage in settings, warn on full flavor mode | Low | 📋 |
