@@ -620,6 +620,12 @@ class StrategicExecutor:
         if marshal.location == destination:
             return self._handle_move_to_arrival(marshal, world, game_state)
 
+        # Check if engaged with enemy in CURRENT region (e.g., after advancing into enemy on victory)
+        enemies_here = world.get_enemies_in_region(marshal.location, marshal.nation)
+        if enemies_here:
+            return self._handle_blocked_path(
+                marshal, enemies_here, marshal.location, world, game_state)
+
         # Ensure path exists (calculate or recalculate if empty)
         if not order.path or order.path[0] == marshal.location:
             # Strip current location from path if present
@@ -791,6 +797,15 @@ class StrategicExecutor:
             combat_msg = result.get("message", f"Engaged {target.name}")
             return self._complete_order(marshal, world, combat_msg)
 
+        # Check if engaged with a different enemy in current region
+        enemies_here = world.get_enemies_in_region(marshal.location, marshal.nation)
+        if enemies_here:
+            # Filter out the pursuit target — we handle that above
+            non_target_enemies = [e for e in enemies_here if e.name != order.target]
+            if non_target_enemies:
+                return self._handle_blocked_path(
+                    marshal, non_target_enemies, marshal.location, world, game_state)
+
         # Not same region — move toward target (RECALCULATE each turn)
         path = self._get_personality_aware_path(marshal, target.location, world)
         if not path:
@@ -936,6 +951,12 @@ class StrategicExecutor:
 
         # Not at hold position yet? Move there first
         if marshal.location != hold_position:
+            # Check if engaged with enemy in current region
+            enemies_here = world.get_enemies_in_region(marshal.location, marshal.nation)
+            if enemies_here:
+                return self._handle_blocked_path(
+                    marshal, enemies_here, marshal.location, world, game_state)
+
             # Temporarily use path-based movement
             path = world.find_path(marshal.location, hold_position)
             if path:
@@ -1149,6 +1170,12 @@ class StrategicExecutor:
             }
 
         # Not with ally — move toward them
+
+        # Check if engaged with enemy in current region
+        enemies_here = world.get_enemies_in_region(marshal.location, marshal.nation)
+        if enemies_here:
+            return self._handle_blocked_path(
+                marshal, enemies_here, marshal.location, world, game_state)
 
         # Cautious asks if ally is moving
         if personality == "cautious" and ally.in_strategic_mode:
