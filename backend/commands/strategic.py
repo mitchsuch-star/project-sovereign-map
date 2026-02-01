@@ -1545,7 +1545,13 @@ class StrategicExecutor:
                 return self._handle_combat_result(
                     marshal, enemy, result, world, game_state)
 
-            # Bad odds — ask player
+            # Bad odds or previous failed attempt — ask player
+            if order.combat_attempts > 0:
+                msg = (f"{marshal.name}: '{enemy.name} still blocks the path. "
+                       f"Previous assault was inconclusive. Orders?'")
+            else:
+                msg = (f"{marshal.name}: '{enemy.name} blocks the path. "
+                       f"Odds unfavorable.'")
             return {
                 "marshal": marshal.name,
                 "command": order.command_type,
@@ -1553,8 +1559,7 @@ class StrategicExecutor:
                 "interrupt_type": "contact_bad_odds",
                 "enemy": enemy.name,
                 "location": blocked_region,
-                "message": f"{marshal.name}: '{enemy.name} blocks the path. "
-                           f"Odds unfavorable.'",
+                "message": msg,
                 "options": ["attack_anyway", "go_around", "hold_position",
                             "cancel_order"]
             }
@@ -1610,6 +1615,12 @@ class StrategicExecutor:
         order.last_combat_turn = world.current_turn
         order.last_combat_result = outcome
 
+        # Track failed attempts — stalemate increments, victory resets
+        if outcome == "victory":
+            order.combat_attempts = 0
+        elif outcome != "defeat":  # stalemate/unknown
+            order.combat_attempts = getattr(order, 'combat_attempts', 0) + 1
+
         # Update marshal tracking
         marshal.in_combat_this_turn = True
         marshal.last_combat_turn = world.current_turn
@@ -1650,15 +1661,21 @@ class StrategicExecutor:
                 "requires_input": True,
                 "pending_interrupt": marshal.pending_interrupt,
                 "interrupt_type": "combat_stalemate",
-                "message": f"Battle with {enemy.name} inconclusive. Continue?",
+                "message": f"{marshal.name} attacked {enemy.name} during march but the battle was inconclusive. Continue {order.command_type.replace('_', ' ').lower()}?",
                 "options": ["continue_order", "hold_position", "cancel_order"]
             }
 
     def _should_auto_attack(self, marshal, enemy, world) -> bool:
-        """Combat loop prevention: Don't auto-attack same enemy fought last turn."""
+        """Combat loop prevention: Don't auto-attack same enemy after failed attempt."""
         order = marshal.strategic_order
         if not order:
             return True
+
+        # After any failed auto-attack (stalemate), stop auto-attacking this enemy
+        # Player must explicitly choose to re-engage via the interrupt popup
+        if (order.last_combat_enemy == enemy.name and
+                order.combat_attempts > 0):
+            return False
 
         if (order.last_combat_enemy == enemy.name and
                 order.last_combat_turn is not None and

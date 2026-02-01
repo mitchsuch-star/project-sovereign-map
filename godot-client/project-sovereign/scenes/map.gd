@@ -97,18 +97,21 @@ func _process(delta: float):
 	if is_zooming:
 		queue_redraw()
 
-	# Arrow key panning
+	# Arrow key panning (skip when a text input has focus)
 	var pan_input = Vector2.ZERO
+	var focused = get_viewport().gui_get_focus_owner()
+	var text_focused = focused is LineEdit or focused is TextEdit
 
 	# Check arrow key inputs
-	if Input.is_action_pressed("ui_left"):
-		pan_input.x += 1
-	if Input.is_action_pressed("ui_right"):
-		pan_input.x -= 1
-	if Input.is_action_pressed("ui_up"):
-		pan_input.y += 1
-	if Input.is_action_pressed("ui_down"):
-		pan_input.y -= 1
+	if not text_focused:
+		if Input.is_action_pressed("ui_left"):
+			pan_input.x += 1
+		if Input.is_action_pressed("ui_right"):
+			pan_input.x -= 1
+		if Input.is_action_pressed("ui_up"):
+			pan_input.y += 1
+		if Input.is_action_pressed("ui_down"):
+			pan_input.y -= 1
 
 	# Apply panning
 	if pan_input != Vector2.ZERO:

@@ -111,6 +111,7 @@ class StrategicOrder:
     last_combat_enemy: Optional[str] = None
     last_combat_turn: Optional[int] = None
     last_combat_result: Optional[str] = None  # "victory", "defeat", "stalemate"
+    combat_attempts: int = 0  # Tracks failed auto-attacks; after 1 stalemate, ask player
 
     def to_dict(self) -> Dict:
         """Serialize for save/load."""
@@ -130,6 +131,7 @@ class StrategicOrder:
             "last_combat_enemy": self.last_combat_enemy,
             "last_combat_turn": self.last_combat_turn,
             "last_combat_result": self.last_combat_result,
+            "combat_attempts": self.combat_attempts,
         }
 
     @classmethod
@@ -154,6 +156,7 @@ class StrategicOrder:
             last_combat_enemy=data.get("last_combat_enemy"),
             last_combat_turn=data.get("last_combat_turn"),
             last_combat_result=data.get("last_combat_result"),
+            combat_attempts=data.get("combat_attempts", 0),
         )
 
 
