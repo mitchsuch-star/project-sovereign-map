@@ -649,7 +649,7 @@ class EnemyAI:
         self._attacked_targets_this_turn: set = set()
 
         # Fix: Track marshals force-unfortified by stagnation this turn (prevent immediate re-fortify)
-        self._stagnation_unfortified_this_turn: set = set()
+        self._unfortified_this_turn: set = set()
 
         # Get this nation's marshals
         marshals = world.get_marshals_by_nation(nation)
@@ -839,7 +839,7 @@ class EnemyAI:
             ):
                 meaningful_actions.add(m_name)  # First fortify is meaningful
 
-        stagnation_forced = getattr(self, '_stagnation_unfortified_this_turn', set())
+        stagnation_forced = getattr(self, '_unfortified_this_turn', set())
         for m in world.get_marshals_by_nation(nation):
             if m.name in meaningful_actions:
                 if m.name in stagnation_forced:
@@ -1297,6 +1297,7 @@ class EnemyAI:
         # ════════════════════════════════════════════════════════════
         fortification_opportunity = self._check_fortification_opportunity(marshal, nation, world)
         if fortification_opportunity:
+            self._unfortified_this_turn.add(marshal.name)
             return (fortification_opportunity, 3)  # High priority - unlocks attack/capture
 
         # ════════════════════════════════════════════════════════════
@@ -1348,7 +1349,7 @@ class EnemyAI:
         # ════════════════════════════════════════════════════════════
         if personality == "cautious":
             # Don't re-fortify if stagnation system just forced unfortify this turn
-            if marshal.name not in getattr(self, '_stagnation_unfortified_this_turn', set()):
+            if marshal.name not in getattr(self, '_unfortified_this_turn', set()):
                 fortify_action = self._consider_fortify(marshal, world)
                 if fortify_action:
                     return (fortify_action, 5)
@@ -2136,7 +2137,7 @@ class EnemyAI:
         if stagnation >= 2:
             if getattr(marshal, 'fortified', False):
                 print(f"  [STAGNATION] {marshal.name}: Force unfortify after {stagnation} idle turns")
-                self._stagnation_unfortified_this_turn.add(marshal.name)
+                self._unfortified_this_turn.add(marshal.name)
                 return {
                     "marshal": marshal.name,
                     "action": "unfortify"
