@@ -4108,6 +4108,7 @@ RETREAT RECOVERY (3 turns):
                           "  • set_strength <marshal> <amount> - Set troop strength\n"
                           "  • set_morale <marshal> <0-100> - Set morale\n"
                           "  • set_fortified <marshal> - Toggle fortified\n"
+                          "  • freeze <marshal> - Toggle AI freeze (marshal won't act)\n"
                           "  • set_autonomy <marshal> [turns] - Toggle autonomous (Phase 2.5)\n"
                           "  • set_trust <marshal> <0-100> - Set trust level\n"
                           "\n== Redemption Testing (Phase 3) ==\n"
@@ -4551,6 +4552,16 @@ RETREAT RECOVERY (3 turns):
             return {
                 "success": True,
                 "message": f"🔧 DEBUG: {marshal.name} teleported: {old_location} -> {matched_region}"
+            }
+
+        elif ability == "freeze":
+            # Toggle AI freeze — frozen marshals are skipped by enemy AI
+            frozen = getattr(marshal, '_debug_frozen', False)
+            marshal._debug_frozen = not frozen
+            state = "FROZEN (AI will skip)" if marshal._debug_frozen else "UNFROZEN (AI acts normally)"
+            return {
+                "success": True,
+                "message": f"🔧 DEBUG: {marshal.name} is now {state}"
             }
 
         elif ability == "list_marshals" or ability == "marshals":

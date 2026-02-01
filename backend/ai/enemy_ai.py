@@ -904,6 +904,10 @@ class EnemyAI:
             if marshal.strength <= 0:
                 continue
 
+            # Skip debug-frozen marshals (for manual testing)
+            if getattr(marshal, '_debug_frozen', False):
+                continue
+
             # Skip marshals who are done for this turn (waited twice)
             if marshal.name in done_marshals:
                 continue
