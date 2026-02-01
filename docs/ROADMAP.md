@@ -232,8 +232,37 @@ Three tiers of personality expression, layered for cost control:
 
 **Integration:** `main.py` wraps executor result messages through `marshal_voice.get_response()`
 
+### Novel LLM Applications (Building Blocks)
+
+These exploit the building blocks architecture: the executor already resolved the outcome deterministically, the LLM just voices it. No LLM affects game mechanics.
+
+| Feature | Description | Trigger | Phase |
+|---------|-------------|---------|-------|
+| **Autonomy Inner Monologue** | When autonomous marshal acts via AI decision tree, LLM narrates WHY in-character ("Ney sees the gap and cannot resist") | Each autonomous action | 8.5 |
+| **LLM Objection Arguments** | Davout's objection references real game state: "Their fortifications are formidable. We should flank through Belgium." | Objection popup (Tier 2) | 8.5 |
+| **Post-Battle "What If"** | Losing marshal reflects: "If only we had drilled first." Surfaces combat modifiers as character voice. Teaches mechanics. | After combat resolves | 8.5 |
+| **Intercepted Dispatches** | Scout results as captured enemy letters: "My dear Castlereagh, I have positioned sixty-eight thousand at Waterloo..." | Scout action result | 8.5 |
+| **Marshal-to-Marshal Dialogue** | SUPPORT order triggers brief exchange between marshals, colored by relationship score | SUPPORT order issued | 8.5 |
+| **Berthier Parse Recovery** | Parse failures become Berthier (chief of staff) asking for clarification in-character, not error messages | Failed parse | 8.5 |
+
+All reuse existing data (game state, combat results, relationships, scout intel). 1 LLM call each, same cost as Tier 2 voice.
+
+### Encouraging Creative Commands (Anti-Memorization)
+
+Strategic score and ambiguity bonuses are wired (`apply_strategic_bonuses` in executor.py). Additional measures to reward natural language over parser keyword memorization:
+
+| Feature | Description | Phase |
+|---------|-------------|-------|
+| **Synonym Bonus** | LLM detects creative phrasing ("unleash hell" vs "attack") and boosts strategic_score | 8.5 |
+| **Flavor Echoing** | Marshal voice echoes the player's own words: "You said 'unleash hell' — Ney intends to." Reinforces creative input | 8.5 |
+| **Repetition Penalty** | Same exact phrasing 3+ times in a row lowers strategic_score. Already partially in prompt_builder (repetition detection) | 8.5 |
+| **"Napoleon's Wit" Bonus** | LLM scores commands for historical/thematic flair. "We march at dawn" scores higher than "move to Belgium" | 8.5 |
+| **Command Variety Tracker** | Track unique phrasings per session. Milestone rewards: "Your marshals admire your eloquence" (+authority) | 8.5 |
+
+**Key insight:** The fast parser already handles keywords efficiently. The LLM fallback scores creativity. Players who type creatively get higher strategic_score → higher morale/trust/combat bonuses. Players who type "attack wellington" still work perfectly but miss the bonus. Carrot, not stick.
+
 **Dependencies:** Phase 8 (diplomacy for event outcomes)
-**Exit Criteria:** Each campaign tells a story, nations play differently, marshals have personality voice, gazette provides narrative rhythm
+**Exit Criteria:** Each campaign tells a story, nations play differently, marshals have personality voice, gazette provides narrative rhythm, creative commands are rewarded
 
 ---
 
