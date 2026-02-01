@@ -1,8 +1,8 @@
 # Ink & Iron: Master Roadmap
 
-> **THE source of truth for all phases and timeline.**  
-> **Other docs reference this — phase numbers only exist here.**  
-> **Last Updated:** January 31, 2026
+> **THE source of truth for all phases and timeline.**
+> **Other docs reference this — phase numbers only exist here.**
+> **Last Updated:** February 1, 2026
 
 ---
 
@@ -58,8 +58,9 @@
 | Artillery Unit Type | Combat buffs like cavalry | Medium | 📋 |
 | **War Score** | Visual progress toward victory/defeat | Low | 📋 |
 | **Threat Indicator** | Coalition threat level, visible buildup | Low | 📋 |
+| Turn Events Log | Track battles/captures/retreats per turn (feeds gazette system) | Low | 📋 |
 
-**Dependencies:** None  
+**Dependencies:** None
 **Exit Criteria:** Player manages economy, enemies reinforce, terrain matters, can see war progress
 
 ---
@@ -137,11 +138,40 @@
 | Nation Relations | Values affect diplomacy options | Medium | 📋 |
 | **Coalition System** | Threat level → coalition forms | High | 📋 CRITICAL |
 | Tiered Nation AI | France smarter than minor nations | Medium | 📋 |
-| **AI Diplomatic Personality** | Metternich vs Tsar Alexander feel different | Medium | 📋 |
-| **AI Proposals** | AI offers peace, makes demands | Medium | 📋 |
+| **Diplomacy Chat** | LLM-powered conversations with nation leaders | High | 📋 |
+| **Leader Personalities** | Distinct voices: Metternich (scheming), Alexander (idealistic), Frederick William (cautious), Castlereagh (pragmatic) | Medium | 📋 |
+| Diplomatic Rules Engine | War score + relations → accept/reject (deterministic, LLM voices outcome) | Medium | 📋 |
+| **AI Proposals** | AI offers peace, makes demands — LLM voices the proposal | Medium | 📋 |
 
-**Dependencies:** Phase 6 (economy for peace terms)  
-**Exit Criteria:** Can negotiate peace, coalitions form, AI diplomacy feels alive
+### Diplomacy Chat Architecture
+
+Player types natural language proposals. LLM generates leader response in-character. Rules engine resolves outcome deterministically. LLM narrates the result.
+
+```
+Player: "I offer Austria peace if they cede Tyrol"
+  → LLM generates Metternich's response (in-character)
+  → Rules engine: war score + relations + territory value → accept/reject/counter
+  → LLM voices outcome: "Metternich smiles thinly..."
+```
+
+**Cost control:**
+- 2 LLM calls per exchange (response + outcome narration)
+- Last 3-4 exchanges as context only (prevents token creep)
+- Max 3 diplomatic exchanges per turn (prevents cost abuse)
+- Template fallback if LLM unavailable
+- ~$0.0004-0.0008 per exchange (Haiku)
+
+**Leader Personalities (per leader, not per nation):**
+
+| Leader | Nation | Personality | Voice |
+|--------|--------|-------------|-------|
+| Metternich | Austria | Scheming | Calculating, poison-pill deals, never says what he means |
+| Tsar Alexander | Russia | Idealistic | Grand gestures, emotional, unpredictable pivots |
+| Frederick William | Prussia | Cautious | Deferential, follows strongest ally, hedges |
+| Castlereagh | Britain | Pragmatic | Naval-focused, subsidy offers, cold cost-benefit |
+
+**Dependencies:** Phase 6 (economy for peace terms)
+**Exit Criteria:** Can negotiate peace, coalitions form, AI diplomacy feels alive, leaders have distinct voices
 
 ---
 
@@ -157,9 +187,52 @@
 | **Light Tech/Reforms** | Simple upgrades: conscription, tactics, administration | Medium | 📋 |
 | **Campaign Objectives** | Victory conditions beyond territory (prestige, survival) | Medium | 📋 |
 | Historical Moments | Coronation, Tilsit, Retreat from Moscow | Medium | 📋 |
+| **Gazette System** | Period newspaper every 3-5 turns, LLM-generated recaps | Medium | 📋 |
+| **Marshal Voice (Tier 1)** | Template personality responses for all command events | Low | 📋 |
+| **Marshal Voice (Tier 2)** | LLM personality for high-drama moments (objections, combat, interrupts) | Medium | 📋 |
 
-**Dependencies:** Phase 8 (diplomacy for event outcomes)  
-**Exit Criteria:** Each campaign tells a story, nations play differently
+### Gazette System ("Le Moniteur")
+
+Every 3-5 turns, generate a period newspaper summarizing recent events via single LLM call.
+
+**Content:** Battles, territory changes, marshal heroics, tension/foreshadowing.
+**Bias:** Written from French perspective. Post-EA: multiple nation perspectives.
+**Trigger:** Every 5 turns by default. Force on: major battle, territory loss, marshal death.
+**Skip:** If nothing meaningful happened (no battles, no territory change).
+
+**Implementation:**
+- `backend/ai/gazette.py` — prompt builder, trigger logic
+- WorldState fields: `turns_since_last_gazette`, `gazette_history`, `turn_events_log`
+- `turn_events_log` fed by `world.record_turn_event()` calls from executor/combat/turn_manager
+- Event types: `battle`, `capture`, `retreat`, `objection`, `redemption`, `strategic_order`, `marshal_eliminated`
+- Cost: ~$0.0005 per gazette (~$0.005 per 40-turn game)
+
+### Marshal Voice System (Tiered)
+
+Three tiers of personality expression, layered for cost control:
+
+**Tier 1 — Templates (free, always-on):**
+- 3-5 personality-specific variants per event type (move, attack, fortify, drill, stance, recruit)
+- Selected by marshal personality. Example: Ney move → "Ney spurs forward!" vs Davout → "Davout advances in good order."
+- File: `backend/ai/marshal_voice.py` — `TEMPLATES[personality][event_type] -> List[str]`
+
+**Tier 2 — LLM Drama (default for high-stakes moments):**
+- Triggers: objections, combat results, strategic interrupts, redemption, cannon fire, forced retreat
+- 200-token prompt budget: marshal name, personality, trust, morale, event context
+- Output: 1-2 sentences in-character
+- Cache by (marshal, event_type, outcome) within session
+- Fallback to Tier 1 template if LLM fails or mode=mock
+- Cost: ~$0.001-0.003/turn (2-5 drama events max)
+
+**Tier 3 — Full Flavor (opt-in player toggle, see Pre-EA):**
+- ALL command responses get 1-sentence LLM personality color
+- Same prompt as Tier 2 but for routine events
+- ~$0.0004/command extra, warned in UI
+
+**Integration:** `main.py` wraps executor result messages through `marshal_voice.get_response()`
+
+**Dependencies:** Phase 8 (diplomacy for event outcomes)
+**Exit Criteria:** Each campaign tells a story, nations play differently, marshals have personality voice, gazette provides narrative rhythm
 
 ---
 
@@ -249,8 +322,10 @@
 | Steam Integration | Achievements, cloud saves | Medium | 📋 |
 | **Music & Sound** | Period orchestral, battle sounds, atmosphere | Medium | 📋 HIGH |
 | Difficulty Settings | AI bonuses, player handicaps | Low | 📋 |
+| **Full Flavor Toggle** | Player setting for LLM voice on ALL commands (Marshal Voice Tier 3) | Low | 📋 |
+| **LLM Cost Display** | Show token usage in settings, warn on full flavor mode | Low | 📋 |
 
-**Dependencies:** All phases complete  
+**Dependencies:** All phases complete
 **Exit Criteria:** Can save/load, new players learn, payments work, game feels alive
 
 ---
@@ -310,8 +385,8 @@ Must be done, in rough order:
 4. 📋 Phase 6: Economy, Manpower, Terrain, Fog, War Score
 5. 📋 Phase 6.5: Notifications, Ledger, Marshal UI
 6. 📋 Phase 7: Multi-marshal, Relationships gameplay
-7. 📋 Phase 8: Diplomacy, **Coalitions** ← CRITICAL
-8. 📋 Phase 8.5: **Events, National Goals, Flavor** ← Makes it a GAME
+7. 📋 Phase 8: Diplomacy, **Coalitions**, **Diplomacy Chat** (LLM leader conversations) ← CRITICAL
+8. 📋 Phase 8.5: **Events, National Goals, Flavor**, **Gazette**, **Marshal Voice** ← Makes it a GAME
 9. 📋 Phase 9: Advisors
 10. 📋 Phase 10: Marshal death/recruitment
 11. 📋 Phase 11: Vassals, Naval
@@ -361,6 +436,21 @@ All Phases ──► Pre-EA Polish (Save, Tutorial, Music) ──► 1805 Map UI
 | 1805 Map | +4-6 weeks | **Major UI work** |
 | Buffer | +2 weeks | Bug fixes, testing |
 | **Early Access** | **TBD 2026** | |
+
+---
+
+## LLM Cost Budget (Per 40-Turn Game)
+
+| System | Phase | Calls | Cost |
+|--------|-------|-------|------|
+| Command parsing (existing) | 4 | ~40 LLM + ~360 free | ~$0.016 |
+| Marshal Voice Tier 2 | 8.5 | ~30-50 drama events | ~$0.012-0.020 |
+| Gazette | 8.5 | ~8 gazettes | ~$0.004 |
+| Diplomacy Chat | 8 | ~40-60 exchanges | ~$0.016-0.024 |
+| **Total per game** | | | **~$0.05-0.06** |
+| Full Flavor Tier 3 (opt-in) | Pre-EA | +160 routine calls | +$0.064 |
+
+At 1000 games/month = ~$50-60. BYOK covers heavy users. All systems degrade gracefully to templates when LLM unavailable.
 
 ---
 
