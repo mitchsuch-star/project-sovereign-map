@@ -417,14 +417,15 @@ Must be done, in rough order:
 6. 📋 Phase 7: Multi-marshal, Relationships gameplay
 7. 📋 Phase 8: Diplomacy, **Coalitions**, **Diplomacy Chat** (LLM leader conversations) ← CRITICAL
 8. 📋 Phase 8.5: **Events, National Goals, Flavor**, **Gazette**, **Marshal Voice** ← Makes it a GAME
-9. 📋 Phase 9: Advisors
-10. 📋 Phase 10: Marshal death/recruitment
-11. 📋 Phase 11: Vassals, Naval
-12. 📋 Phase 12: Communication cutoff
-13. 📋 Pre-EA: Save/Load, Tutorial, Voice, **LLM Monetization**, **Music**
-14. 📋 **1805 Map UI** ← LARGEST SINGLE TASK
-15. 📋 Steam Integration
-16. 🎯 **TBD 2026: Early Access**
+9. 🟢 **STEAM PAGE + TRAILER** ← After 8.5: marshal voice, gazette, audio all working. 13-region map is fine. Wishlists compound — every month without a page is lost wishlists.
+10. 📋 Phase 9: Advisors
+11. 📋 Phase 10: Marshal death/recruitment
+12. 📋 Phase 11: Vassals, Naval
+13. 📋 Phase 12: Communication cutoff
+14. 📋 Pre-EA: Save/Load, Tutorial, Voice, **LLM Monetization**
+15. 📋 **1805 Map UI** ← LARGEST SINGLE TASK
+16. 📋 Steam Integration
+17. 🎯 **TBD 2026: Early Access**
 
 ---
 
