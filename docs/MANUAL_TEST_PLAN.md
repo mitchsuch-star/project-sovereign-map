@@ -14,7 +14,7 @@ python backend/main.py
 
 ## Test 1: Strategic Command Costs
 
-### 1A. Standard marshal costs 2 AP
+### 1A. Standard marshal costs 2 AP -- PASS
 
 ```
 /debug set_location Ney Belgium
@@ -50,22 +50,21 @@ Grouchy, march to Lyon
 ```
 **Expected:** Success. Grouchy starts marching (literal = 1 AP).
 
-### 1D. Auto-upgrade attack->PURSUE costs 1 AP
+### 1D. Auto-upgrade attack->PURSUE costs 2 AP -- PASS
 
 ```
 /debug set_location Ney Belgium
 /debug set_location Wellington Bavaria
 /debug freeze Wellington
 
-# Fresh turn, use 3 AP
+# Fresh turn, use 2 AP
 Davout, scout Lyon
 Grouchy, scout Waterloo
-Davout, scout Lyon
-# 1 AP left
+# 2 AP left
 
 Ney, attack Wellington
 ```
-**Expected:** Success. Auto-upgrades to PURSUE (target out of range). Costs 1 AP.
+**Expected:** Success. Auto-upgrades to PURSUE (target out of range). Costs 2 AP (same as explicit strategic).
 
 ---
 
@@ -115,7 +114,7 @@ Davout, march to Rhine
 ```
 **Expected:** Blocked path popup EVEN with good odds (cautious always asks).
 
-### 2D. Literal (Grouchy) -- silent reroute
+### 2D. Literal (Grouchy) -- silent reroute -- PASS
 
 ```
 /debug set_location Grouchy Paris
