@@ -2757,6 +2757,8 @@ class TestGenericTargetResolutionAllTypes:
         world = WorldState()
         executor = CommandExecutor()
         game_state = {"world": world}
+        # Move Grouchy away from enemies so engagement check doesn't block
+        world.get_marshal("Grouchy").location = "Paris"
         parsed = {
             "command": {
                 "marshal": "Grouchy",

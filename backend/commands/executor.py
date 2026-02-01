@@ -2208,6 +2208,18 @@ RETREAT RECOVERY (3 turns):
 
         print(f"[STRATEGIC] Creating {strategic_type} order for {marshal.name} -> {target}")
 
+        # ── Engagement check: cannot issue strategic orders while engaged ──
+        # Exception: PURSUE is allowed (targets enemy present or will resolve to one)
+        enemies_here = world.get_enemies_in_region(marshal.location, marshal.nation)
+        if enemies_here and strategic_type != "PURSUE":
+                enemy_names = [e.name for e in enemies_here]
+                return {
+                    "success": False,
+                    "message": f"{marshal.name} is engaged with {', '.join(enemy_names)} and cannot begin a strategic march. Deal with the engagement first.",
+                    "engaged_with": enemy_names,
+                    "suggestion": f"Try: '{marshal.name}, attack {enemy_names[0]}' or '{marshal.name}, retreat'"
+                }
+
         # ── Self-targeting validation ────────────────────────────────
         if target and target.lower() == marshal.name.lower():
             return {
@@ -2847,6 +2859,14 @@ RETREAT RECOVERY (3 turns):
 
         # Check if destination is within movement range
         if distance > move_range:
+            # Cannot auto-upgrade to strategic march while engaged
+            if enemies_here:
+                return {
+                    "success": False,
+                    "message": f"{marshal.name} is engaged with enemy forces and cannot begin a strategic march. Deal with the engagement first.",
+                    "engaged_with": [e.name for e in enemies_here],
+                    "suggestion": f"Try: '{marshal.name}, attack {enemies_here[0].name}' or '{marshal.name}, retreat'"
+                }
             # Auto-upgrade to strategic MOVE_TO for distant regions
             # Pre-check: strategic commands cost 2 AP (1 for literal)
             is_literal = getattr(marshal, 'personality', '') == 'literal'
