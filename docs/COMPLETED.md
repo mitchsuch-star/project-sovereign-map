@@ -1,7 +1,7 @@
 # Ink & Iron: Completed Systems
 
 > **Reference for done features. How things work.**  
-> **Last Updated:** January 31, 2026
+> **Last Updated:** February 2, 2026
 
 ---
 
@@ -38,7 +38,7 @@
 |---------|------------|----------|---------|
 | Blocked path | Auto-attack | Ask player | Reroute silently |
 | Cannon fire | Rush to join! | Ask player | **IGNORE** |
-| HOLD behavior | Sally out (best target), return | Fortify | Immovable (+15%) |
+| HOLD behavior | Sally out (best target), return; Glorious Charge auto-resolves | Fortify | Immovable (+15%) |
 | Generic target | Auto-resolve (nearest) | Auto-resolve (nearest) | Clarification popup |
 | Attack (no target nearby) | Auto-move toward enemy | Auto-move toward enemy | Clarification popup (offers PURSUE upgrade) |
 
@@ -58,7 +58,10 @@ Players can use directions and vague targets instead of specific names:
 |-----------|---------|---------|
 | cannon_fire | Battle within 2 regions | investigate, continue, hold |
 | blocked_path | Enemy in path | attack, go_around, hold, cancel |
-| ally_moving | SUPPORT target moves | follow, hold_current, cancel |
+| contact | Enemy blocks path (mid-march) | attack, go_around, hold, cancel |
+| contact_bad_odds | Enemy blocks path, bad odds | go_around, hold, cancel |
+
+**Removed:** `ally_moving` interrupt — replaced with silent auto-follow (Feb 2, 2026). SUPPORT marshals now automatically track their ally's position each turn without prompting the player.
 
 ### Cancel System
 
@@ -174,6 +177,12 @@ Attacker: roll + tactical + shock + stance + recklessness - exhaustion
 Defender: roll + tactical + defense + stance + terrain (+20% defender bonus)
 Critical: 12 = +50% damage, 2 = -50% damage
 ```
+
+### Morale Damage Scaling (Feb 2, 2026)
+Morale damage now scales with casualty severity. Heavy losses (30%+ casualties) cause up to 2.5x worse morale damage than light losses. Formula: `severity = min(casualty_rate / 0.15, 2.5)`, applied to base morale loss.
+
+### Forced Retreat Clears Strategic Orders (Feb 2, 2026)
+When a marshal is forced to retreat, any active strategic order (HOLD, MOVE_TO, PURSUE, SUPPORT) is cancelled. HOLD-specific messaging: "Ney's HOLD order at Belgium is broken!"
 
 ### Cavalry Recklessness
 
