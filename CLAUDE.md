@@ -42,14 +42,14 @@ GOLDEN RULES:
 5. Enemy AI uses SAME executor as player (Building Blocks principle)
 6. LLM never affects game mechanics: Parsing only, executor is deterministic
 
-CURRENT PHASE: Phase 5.2 (Strategic Commands) 🔄 → Phase 3 (Fun Factor) 📋 NEXT
+CURRENT PHASE: Phase 5.2 (Strategic Commands) 🔄 — Phase M (Strategic Objections) remaining → Phase 6 (Core Campaign) 📋 NEXT
 - Phase 1 ✅: Foundation (regions, marshals, combat, actions, turns)
 - Phase 2 ✅: Combat & AI (disobedience, drill/fortify, Enemy AI, safety eval)
 - Phase 2.5 ✅: Autonomy (AI control, narrative outcomes, admin role)
 - Phase 2.9 ✅: Retreat System (ally cover, smart destination, AI targeting)
+- Phase 3 ✅: Fun Factor (hearing guns, vindication, anti-tedium, pressure)
 - Phase 4 ✅: LLM Integration (fast parser, Anthropic fallback, BYOK, validation)
-- Phase 3 📋: Fun Factor (hearing guns, vindication, anti-tedium, pressure)
-- Phase 5.2 🔄: Strategic Commands (MOVE_TO, PURSUE, HOLD, SUPPORT) - Phase A-I ✅, Phase J-K remaining
+- Phase 5.2 🔄: Strategic Commands (MOVE_TO, PURSUE, HOLD, SUPPORT) - Phase A-K ✅, Phase M remaining
 - Not implemented: diplomacy, supply lines (see Phase 5-6)
 ```
 

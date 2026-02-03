@@ -11,9 +11,9 @@
 | Metric | Value |
 |--------|-------|
 | **Tests Passing** | **1004** (verified Feb 2, 2026) |
-| **Current Phase** | 6 (Core Campaign Systems) — not started |
+| **Current Phase** | 5.2 (Strategic Commands) — Phase M remaining |
 | **Blockers** | None |
-| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3 |
+| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.3 |
 
 ---
 
