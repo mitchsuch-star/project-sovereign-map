@@ -1048,6 +1048,10 @@ RETREAT RECOVERY (3 turns):
                     result["message"] = result.get("message", "") + "\n\n--- TURN EVENTS ---\n" + "\n".join(tactical_messages)
                     result["tactical_events"] = tactical_events
 
+            # Add strategic reports
+            if turn_result.get("strategic_reports"):
+                result["strategic_reports"] = turn_result["strategic_reports"]
+
             # Check victory/defeat
             if turn_result.get("victory_check", {}).get("game_over"):
                 result["game_over"] = True

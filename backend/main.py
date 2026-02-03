@@ -333,6 +333,11 @@ def execute_command(request: CommandRequest):
         # Include strategic reports if present (Phase 5.2-C)
         if result.get("strategic_reports"):
             response["strategic_reports"] = result["strategic_reports"]
+            print(f"[STRATEGIC_REPORTS] Sending {len(result['strategic_reports'])} reports to Godot:")
+            for i, sr in enumerate(result["strategic_reports"]):
+                print(f"  [{i}] {sr.get('marshal')}: {sr.get('command')} -> {sr.get('action', 'N/A')}, status={sr.get('order_status')}, has_battle={bool(sr.get('battle_details'))}")
+        else:
+            print(f"[STRATEGIC_REPORTS] No strategic reports in result (keys: {[k for k in result.keys() if 'strat' in k.lower()]})")
 
         # Include independent command report if present (Phase 2.5)
         if result.get("show_independent_command_report"):
