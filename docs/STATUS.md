@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 2, 2026
-> **Last Session:** Sally battle root cause fix, post-objection cost fix, auto-advance strategic reports, parse_multiple world param
+> **Last Session:** Phase 5.2 playtesting complete — 8 bugs found and fixed, 2 UX improvements, 1 combat improvement, positive events added to roadmap
 
 ---
 
@@ -19,9 +19,9 @@
 
 ## Active Work
 
-Phase 5.2/5.3 fully complete. Next: Phase 6 design.
+Phase 5.2 playtesting (Phase K) complete. 8 bugs found and fixed during Godot smoke testing.
 
-- [ ] Smoke test strategic commands in Godot (Phase K)
+- [x] Smoke test strategic commands in Godot (Phase K) ✅
 - [ ] Phase M: Strategic Objections (disobedience at issuance) — designed, not yet implemented
 - [ ] Begin Phase 6 design (Economy, Terrain, Fog, Manpower)
 - [ ] See ROADMAP.md for full Phase 6 scope
@@ -51,7 +51,19 @@ Phase 5.2/5.3 fully complete. Next: Phase 6 design.
 - **Bug fix:** Ally moving interrupt infinite loop — cautious SUPPORT marshal (Davout) asked "Follow?" every turn while ally (Grouchy) had active MOVE_TO/PURSUE order. Added `last_ally_moving_turn`/`last_ally_moving_dest` suppression. Re-triggers only if ally changes destination.
 - **Fix:** Missing `order_status` on contact/contact_bad_odds/ally_moving interrupt dicts caused `status=None` in reports. Added `order_status: "awaiting_response"`.
 - **Feature:** Glorious Charge auto-resolves during HOLD sally (Option B). When Ney's recklessness hits 3+ during a sally, he auto-charges instead of showing popup. Result appears in strategic report. Recklessness resets as normal.
-- Test count: **1022 passed, 0 failures**
+- **Bug fix (Godot):** Battle names never displayed — `event_type` was initialized to `""` but never read from event dict. The `match` always fell through to default case, so `_display_battle_result()` was dead code. All event-specific formatting (battle header, conquest banner, move arrow, scout icon) now works.
+- **Roadmap:** Added 6 positive events to roadmap (Phase 7 + 8.5): victory celebration, momentum, rallying speech, captured supplies, vindication narrative, rivalry resolved. Design deferred to those phases.
+- Test count: **1004 passed, 0 failures**
+
+**Phase K Playtesting Summary:** 8 bugs found during Godot smoke testing of Phase 5.2 strategic commands. All fixed:
+1. Command misattribution (interrupt router hijacked commands for other marshals)
+2. Forced retreat didn't clear strategic orders (stale HOLD/MOVE_TO persisted)
+3. Enemy battle names missing from events
+4. Battle names never displayed in Godot (event_type never read)
+5. SUPPORT "Follow?" popup spammed every turn (replaced with silent auto-follow)
+6. Morale damage flat regardless of casualty severity (now scaled)
+7. Sally battles never reached frontend (circular ref in new_state)
+8. Post-objection strategic commands cost wrong AP amount
 
 ### Jan 31
 - **Bug fix:** `pending_interrupt` overwrite — lines 562/578 in strategic.py clobbered correctly-set interrupt dicts, causing "Invalid choice" errors on interrupt responses
