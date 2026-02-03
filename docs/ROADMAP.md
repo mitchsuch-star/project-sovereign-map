@@ -93,6 +93,7 @@
 | Coordination bonus/penalty | Relationships affect combined combat | Medium | 📋 |
 | Strategic + Relationships | "Support Ney" → reaction based on feelings | Medium | 📋 |
 | Jealousy system | Marshal getting all glory → others resent | Medium | 📋 |
+| Rivalry resolved event | Two marshals fight together successfully → trust boost for both | Low | 📋 |
 
 ### AI Enhancement: Combined Strength Evaluation ✅ IMPLEMENTED
 
@@ -181,7 +182,7 @@ Player: "I offer Austria peace if they cede Tyrol"
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| **Events System** | Random + historical events with choices | High | 📋 |
+| **Events System** | Random + historical events with choices (see Positive Events below) | High | 📋 |
 | **National Goals** | "Unite Germany", "Defend the Isles", "Continental System" | Medium | 📋 |
 | **National Flavor** | France FEELS different from Austria (unique mechanics) | Medium | 📋 |
 | **Light Tech/Reforms** | Simple upgrades: conscription, tactics, administration | Medium | 📋 |
@@ -260,6 +261,19 @@ Strategic score and ambiguity bonuses are wired (`apply_strategic_bonuses` in ex
 | **Command Variety Tracker** | Track unique phrasings per session. Milestone rewards: "Your marshals admire your eloquence" (+authority) | 8.5 |
 
 **Key insight:** The fast parser already handles keywords efficiently. The LLM fallback scores creativity. Players who type creatively get higher strategic_score → higher morale/trust/combat bonuses. Players who type "attack wellington" still work perfectly but miss the bonus. Carrot, not stick.
+
+### Positive Events (design further when we get here)
+
+Currently the event system skews negative (retreat, broken morale, cavalry restless, trust warnings). These positive events add reward and momentum. Vindication narratives already have infrastructure in `vindication.py`.
+
+| Event | Trigger | Effect | Notes |
+|-------|---------|--------|-------|
+| **Victory celebration** | Decisive victory (>2:1 casualty ratio) | +5 morale to nearby marshals | Reward aggressive play |
+| **Momentum** | Win 2+ battles in same turn | +10 morale army-wide, flavor text | "Unstoppable!" feeling |
+| **Rallying speech** | Marshal morale recovers past 60 from below 40 | Trust +3, flavor text | Recovery feels rewarding |
+| **Captured supplies** | Conquer region with high income value | One-time gold bonus + message | Economic reward for conquest |
+| **Vindication narrative** | Marshal proven right after objection (infrastructure exists) | "Davout was right!" popup, trust +8 | Phase 7 (relationships) |
+| **Rivalry resolved** | Two rival marshals fight together successfully | Trust boost for both | Phase 7 (relationships) |
 
 **Dependencies:** Phase 8 (diplomacy for event outcomes)
 **Exit Criteria:** Each campaign tells a story, nations play differently, marshals have personality voice, gazette provides narrative rhythm, creative commands are rewarded
