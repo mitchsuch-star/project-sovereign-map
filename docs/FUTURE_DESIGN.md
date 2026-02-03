@@ -1,6 +1,8 @@
 # Ink & Iron: Future Design Concepts
 
 > **CONCEPTUAL DESIGNS** — not yet implemented. Extracted from CLAUDE.md to reduce active context.
+> **Phase numbers and priorities live in ROADMAP.md** — this file has design detail, not scheduling.
+> **Last Updated:** February 2, 2026
 
 ---
 
@@ -449,6 +451,8 @@ AUTONOMY_LEVELS = {
 
 ## Missing Design Elements (EA Priority)
 
+> **NOTE:** These map to ROADMAP.md Phase 6 (Economy, Terrain, Fog, Manpower) and Phase 8 (Diplomacy, Coalitions). See ROADMAP for scheduling and priorities.
+
 ### CRITICAL: Must Have for Early Access
 
 #### 1. Supply & Logistics System
@@ -777,6 +781,15 @@ only           letters       selection    resolution  mutation
 ---
 
 ## LLM Flavor Systems (Immersion Layer)
+
+> **NOTE:** ROADMAP.md Phase 8.5 defines the concrete implementation plan:
+> - **Marshal Voice (3 tiers):** Templates → LLM Drama → Full Flavor
+> - **Gazette ("Le Moniteur"):** Every 3-5 turns, LLM-generated newspaper
+> - **Novel LLM Applications:** Autonomy monologue, objection arguments, post-battle "what if", intercepted dispatches, marshal dialogue, Berthier parse recovery
+> - **Creative Command Rewards:** Synonym bonus, flavor echoing, Napoleon's wit bonus
+> - **Positive Events:** Victory celebration, momentum, rallying speech, captured supplies, vindication narrative, rivalry resolved
+>
+> The designs below are the raw concepts that feed into those ROADMAP features.
 
 ### 1. Dynamic Diplomatic Writing
 
@@ -2016,12 +2029,12 @@ func update_region_color(region_name: String, color: Color):
 - Administrative Role option (sidelined marshal → +1 action/turn)
 - Redemption system overhaul (removed Demand Obedience, added dynamic option availability)
 
-### Phase 3: Fun Factor & Historical Drama (PLANNED)
+### Phase 3: Fun Factor & Historical Drama (PARTIALLY IMPLEMENTED)
 
-**Target: May 2026 | Design Goal: 8.5/10 fun rating**
+**Many items below are now implemented. See CLAUDE.md for current state.**
 
-#### 3.1 Hearing the Guns System (SIGNATURE FEATURE)
-The "Grouchy moment" - marshals detect nearby battles and respond based on personality.
+#### 3.1 Hearing the Guns System ✅ IMPLEMENTED (Phase 5.2)
+Cannon fire detection in strategic.py. Aggressive auto-redirects, cautious/literal ask player.
 
 ```python
 # Event broadcast when battle starts
@@ -2046,8 +2059,8 @@ EVENT_BLOCKS["hearing_the_guns"] = {
 # - Literal: continues original order (THE GROUCHY MOMENT)
 ```
 
-#### 3.2 Vindication & Causality System
-Make disobedience feel two-sided - player learns when marshals were right.
+#### 3.2 Vindication & Causality System (PARTIALLY IMPLEMENTED)
+VindicationTracker exists in `vindication.py`. Trust trajectory warnings implemented. Positive vindication narratives planned for Phase 8.5 (see ROADMAP.md Positive Events).
 
 **Post-Battle Counterfactual (opt-in):**
 ```
@@ -2074,8 +2087,8 @@ When similar situation arises:
 Options: [Accept gracefully +8 trust, +2 authority] [Rub it in +3 trust, +8 authority]
 ```
 
-#### 3.3 Grouchy Ambiguity Detection
-Implement the LITERAL personality's core mechanic.
+#### 3.3 Grouchy Ambiguity Detection ✅ IMPLEMENTED (Phase 5.2)
+Clarification popups, ambiguity scoring, precision execution (+1 skills for 3 turns on clear orders). See CLAUDE.md Phase H.
 
 ```python
 # Vague order triggers clarification
@@ -2089,8 +2102,8 @@ I await specific orders."
 # "Use your judgment" → conservative/suboptimal interpretation
 ```
 
-#### 3.4 Personality Failure Modes (Telegraphed)
-Dramatic moments that emerge from personality, NOT random punishment.
+#### 3.4 Personality Failure Modes ✅ PARTIALLY IMPLEMENTED
+Ney's Glorious Charge implemented (recklessness counter, auto-charge at 3+). Davout counter-punch implemented. Grouchy literal behavior implemented.
 
 | Marshal | Trigger | Warning | Failure Mode |
 |---------|---------|---------|--------------|
@@ -2107,8 +2120,8 @@ if ney.recklessness >= 3:
     # Player sees warning, can ALLOW or RESTRAIN (-5 trust)
 ```
 
-#### 3.5 Anti-Tedium Improvements
-Quality of life fixes for every-turn friction.
+#### 3.5 Anti-Tedium Improvements (PARTIALLY IMPLEMENTED)
+Front-loaded fortify (+5% turn 1) implemented. Retreat recovery allows limited actions. Remaining items below still planned.
 
 | Issue | Fix |
 |-------|-----|
@@ -2136,12 +2149,8 @@ if marshal.exhaustion >= 2:
     "Troops exhausted. Attack at -20%, or rest 1 turn?"
 ```
 
-#### 3.7 Redemption System Improvements
-- Autonomy uses Enemy AI (marshal actually acts)
-- Narrative outcomes: Success +30 trust, Neutral +15, Failure +5
-- Spectacular success (capture region or 2+ wins): trust → 70, +10 authority
-- Remove "Demand Obedience" option (trap choice)
-- Add "Administrative Role": marshal removed, +1 action/turn for France
+#### 3.7 Redemption System ✅ IMPLEMENTED (Phase 2.5)
+Grant Autonomy, Administrative Role, and Dismiss all implemented. See CLAUDE.md Phase 2.5.
 
 #### Phase 3 File Changes
 | File | Changes |
@@ -2153,29 +2162,14 @@ if marshal.exhaustion >= 2:
 | `marshal.py` | recklessness counter, exhaustion counter |
 | `turn_manager.py` | Fortify pressure escalation, exhaustion decay |
 
-### Phase 4: Strategic Commands & Polish (REPLACED BY Phase 5.2)
-**NOTE:** Strategic commands moved to Phase 5.2 with full implementation plan.
-See `docs/PHASE_5_2_IMPLEMENTATION_PLAN.md` for detailed specs.
+### Phases 4-5.3: ✅ ALL COMPLETE
+- Phase 4 (LLM Integration): Fast parser + Anthropic fallback, BYOK, validation
+- Phase 5.1 (Tactical Feedback): Word-based scoring, strategic feedback
+- Phase 5.2 (Strategic Commands): MOVE_TO, PURSUE, HOLD, SUPPORT — full pipeline
+- Phase 5.3 (Enemy AI Fixes): Stagnation counter, oscillation fixes
 
-- [x] Design locked: MOVE_TO, PURSUE, HOLD, SUPPORT commands
-- [ ] Implementation pending (follows Phase 5.2 plan)
-- Battle momentum (pursue vs consolidate choice)
-- Coalition pressure visibility ("Prussia negotiating with Austria")
-
-### Phase 5: Diplomacy & Fog of War
-- Natural language negotiation with AI nations
-- Treaty system
-- Reputation tracking
-- Coalition triggers
-- Fog of war (last-known positions)
-
-### Phase 6: Early Access Polish
-- Year-based timeline (1805-1815)
-- Character death/replacement
-- Vassal system
-- Token monetization (BYOK or purchase)
-- Full Europe map (200+ regions)
+**See ROADMAP.md for Phase 6+ planning (Economy, Terrain, Diplomacy, etc.)**
 
 ---
 
-*Extracted from CLAUDE.md during documentation cleanup, January 30, 2026.*
+*Extracted from CLAUDE.md during documentation cleanup. Last updated February 2, 2026.*
