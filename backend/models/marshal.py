@@ -53,13 +53,17 @@ class StrategicCondition:
     until_battle_won: bool = False
     until_relieved: bool = False
 
+    # Phase M: Cautious PURSUE auto-cancel
+    auto_cancel_below_ratio: Optional[float] = None
+
     def to_dict(self) -> Dict:
         return {
             "max_turns": self.max_turns,
             "until_marshal_arrives": self.until_marshal_arrives,
             "until_marshal_destroyed": self.until_marshal_destroyed,
             "until_battle_won": self.until_battle_won,
-            "until_relieved": self.until_relieved
+            "until_relieved": self.until_relieved,
+            "auto_cancel_below_ratio": self.auto_cancel_below_ratio
         }
 
     @classmethod
@@ -69,7 +73,8 @@ class StrategicCondition:
             until_marshal_arrives=data.get("until_marshal_arrives"),
             until_marshal_destroyed=data.get("until_marshal_destroyed"),
             until_battle_won=data.get("until_battle_won", False),
-            until_relieved=data.get("until_relieved", False)
+            until_relieved=data.get("until_relieved", False),
+            auto_cancel_below_ratio=data.get("auto_cancel_below_ratio")
         )
 
 
@@ -113,6 +118,9 @@ class StrategicOrder:
     last_combat_result: Optional[str] = None  # "victory", "defeat", "stalemate"
     combat_attempts: int = 0  # Tracks failed auto-attacks; after 1 stalemate, ask player
 
+    # Phase M: Strategic objection tracking
+    objection_resolved: bool = False  # True after player responds to objection
+
     def to_dict(self) -> Dict:
         """Serialize for save/load."""
         return {
@@ -132,6 +140,7 @@ class StrategicOrder:
             "last_combat_turn": self.last_combat_turn,
             "last_combat_result": self.last_combat_result,
             "combat_attempts": self.combat_attempts,
+            "objection_resolved": self.objection_resolved,
         }
 
     @classmethod
@@ -157,6 +166,7 @@ class StrategicOrder:
             last_combat_turn=data.get("last_combat_turn"),
             last_combat_result=data.get("last_combat_result"),
             combat_attempts=data.get("combat_attempts", 0),
+            objection_resolved=data.get("objection_resolved", False),
         )
 
 
