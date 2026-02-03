@@ -2008,13 +2008,17 @@ class TestFirstStepBlocked:
         assert ney.pending_interrupt.get("is_first_step") is True
 
     def test_first_step_cautious_always_asks(self, world, game_state, executor):
-        """Cautious marshal always asks when blocked at first step (no alternate route)."""
+        """Cautious marshal objects to MOVE_TO through dangerous path (Phase M behavior).
+
+        Note: Phase M strategic objections now trigger BEFORE first-step blocked.
+        Davout objects at issuance when path has enemies, not during execution.
+        """
         davout = world.get_marshal("Davout")
         assert davout.personality == "cautious"
         davout.location = "Belgium"  # Start at Belgium
         davout.strength = 80000
 
-        # Put enemy at Rhine (only adjacent region from Belgium that leads to destination)
+        # Put enemy at Rhine (on path to Bavaria)
         wellington = world.get_marshal("Wellington")
         wellington.location = "Rhine"
         wellington.strength = 30000
@@ -2035,10 +2039,12 @@ class TestFirstStepBlocked:
                 "strategic_type": "MOVE_TO",
             }, game_state)
 
-        # Should ask player (cautious found enemy on fallback direct path)
-        assert result.get("requires_input") is True
-        assert davout.pending_interrupt is not None
-        assert davout.pending_interrupt.get("is_first_step") is True
+        # Phase M: Davout objects to MOVE_TO through dangerous path at issuance
+        assert result.get("objection") is not None, "Davout should object to dangerous path"
+        assert result["objection"]["marshal"] == "Davout"
+        # Options should include proceed through danger and preferred (fortify)
+        options = result["objection"]["options"]
+        assert any("Proceed" in opt.get("text", "") for opt in options)
 
     def test_first_step_literal_reroutes_silently(self, world, game_state, executor):
         """Literal marshal silently reroutes around blocked path."""
@@ -2130,7 +2136,11 @@ class TestFirstStepBlocked:
         assert davout.trust.value == trust_before - 3
 
     def test_first_step_interrupt_costs_one_ap(self, world, game_state, executor):
-        """First-step interrupt returns variable_action_cost=1."""
+        """Phase M objection costs 1 AP for preferred action, 2 AP for proceed/compromise.
+
+        Note: Phase M strategic objections now trigger BEFORE first-step blocked.
+        This test verifies AP costs are communicated in the objection options.
+        """
         davout = world.get_marshal("Davout")
         davout.location = "Belgium"
 
@@ -2154,9 +2164,17 @@ class TestFirstStepBlocked:
                 "strategic_type": "MOVE_TO",
             }, game_state)
 
-        # Should return variable_action_cost=1
-        assert result.get("requires_input") is True
-        assert result.get("variable_action_cost") == 1
+        # Phase M objection should have AP costs in options
+        assert result.get("objection") is not None, "Should trigger Phase M objection"
+        options = result["objection"]["options"]
+        # Preferred option (fortify) should cost 1 AP
+        preferred = next((o for o in options if o.get("action") == "fortify"), None)
+        assert preferred is not None, "Should have preferred (fortify) option"
+        assert preferred.get("ap_cost") == 1, "Preferred action should cost 1 AP"
+        # Proceed should cost 2 AP
+        proceed = next((o for o in options if "Proceed" in o.get("text", "")), None)
+        assert proceed is not None, "Should have proceed option"
+        assert proceed.get("ap_cost") == 2, "Proceed should cost 2 AP"
 
 
 class TestCavalryFirstStep:

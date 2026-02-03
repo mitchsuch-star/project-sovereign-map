@@ -42,14 +42,14 @@ GOLDEN RULES:
 5. Enemy AI uses SAME executor as player (Building Blocks principle)
 6. LLM never affects game mechanics: Parsing only, executor is deterministic
 
-CURRENT PHASE: Phase 5.2 (Strategic Commands) 🔄 — Phase M (Strategic Objections) remaining → Phase 6 (Core Campaign) 📋 NEXT
+CURRENT PHASE: Phase 5.2 (Strategic Commands) ✅ COMPLETE → Phase 6 (Core Campaign) 📋 NEXT
 - Phase 1 ✅: Foundation (regions, marshals, combat, actions, turns)
 - Phase 2 ✅: Combat & AI (disobedience, drill/fortify, Enemy AI, safety eval)
 - Phase 2.5 ✅: Autonomy (AI control, narrative outcomes, admin role)
 - Phase 2.9 ✅: Retreat System (ally cover, smart destination, AI targeting)
 - Phase 3 ✅: Fun Factor (hearing guns, vindication, anti-tedium, pressure)
 - Phase 4 ✅: LLM Integration (fast parser, Anthropic fallback, BYOK, validation)
-- Phase 5.2 🔄: Strategic Commands (MOVE_TO, PURSUE, HOLD, SUPPORT) - Phase A-K ✅, Phase M remaining
+- Phase 5.2 ✅: Strategic Commands (MOVE_TO, PURSUE, HOLD, SUPPORT) - All phases complete including Phase M (Strategic Objections)
 - Not implemented: diplomacy, supply lines (see Phase 5-6)
 ```
 
@@ -1105,13 +1105,13 @@ User: "Grouchy, march to Belgium"
 | 6 | ✅ VERIFIED | `to_dict()`/`from_dict()` already included all fields (false positive) |
 | 7 | ✅ FIXED | `until_battle_won` triggers on both victory AND stalemate |
 
-#### What's Next: Phase J-K-M
+#### Phase 5.2 Status: COMPLETE
 
-**Remaining phases (1022 tests passing):**
+**All phases complete (1066 tests passing):**
 - Phase I: Serialization Validation ✅ COMPLETE (33 roundtrip tests)
-- Phase J: UI Updates (Godot strategic status display, interrupt dialogs). NOTE: Backend currently emits interim `strategic_progress` events (type: `strategic_progress`, with `order_status`: active/continues/completed) into the main events list. Phase J should replace these with a persistent HUD showing active orders per marshal. Backend data is ready (`marshal`, `command`, `destination`, `turns_remaining`).
-- Phase K: Integration testing (full end-to-end strategic command flow)
-- Phase M: Strategic Objections — marshals object at issuance based on personality (Ney→HOLD, Davout→PURSUE bad odds). Check once at issuance only, never during execution. Uses existing `check_objection()` and objection popup. See `docs/PHASE_5_2_IMPLEMENTATION_PLAN.md` Phase M.
+- Phase J: UI Updates ✅ COMPLETE (Godot strategic status display, interrupt dialogs)
+- Phase K: Integration testing ✅ COMPLETE (full end-to-end strategic command flow)
+- Phase M: Strategic Objections ✅ COMPLETE (47 tests, 44 pass + 3 skipped for future relationship system)
 
 #### Phase I (Serialization Validation) ✅ COMPLETE
 Full serialization audit and fix. All game state now survives roundtrip.
@@ -1194,9 +1194,9 @@ When strategic command is issued and first step is blocked:
 - [x] Phase E: Cancel command ✅ (14 tests + 7 first-step tests)
 - [x] Phase H: Literal bonuses ✅ (8 tests — design variation: sustained +1 skills for 3 turns)
 - [x] Phase I: Serialization Validation ✅ (33 tests — full roundtrip, see `docs/SAVE_FORMAT_REFERENCE.md`)
-- [ ] Phase J: UI Updates (Godot strategic status display)
-- [ ] Phase K: Integration testing
-- [ ] Phase M: Strategic Objections (disobedience at issuance)
+- [x] Phase J: UI Updates ✅ (Godot strategic status display)
+- [x] Phase K: Integration testing ✅
+- [x] Phase M: Strategic Objections ✅ (47 tests — disobedience at issuance)
 
 **📋 REMAINING (Phase 3+):**
 - [ ] Grouchy literal mechanics (see below)

@@ -1483,6 +1483,296 @@ class DisobedienceSystem:
         return max(0, MAX_MAJOR_OBJECTIONS_PER_TURN - self.major_objections_this_turn)
 
 
+# ════════════════════════════════════════════════════════════════════════════
+# STRATEGIC OBJECTION SYSTEM (Phase M)
+# ════════════════════════════════════════════════════════════════════════════
+# Marshals can object to strategic commands at issuance based on personality.
+# This is separate from tactical objection - strategic objections fire BEFORE
+# the order is created, while tactical objections fire during execution.
+# ════════════════════════════════════════════════════════════════════════════
+
+
+def check_strategic_objection(
+    marshal,
+    strategic_type: str,
+    target: str,
+    path: List[str],
+    world
+) -> Optional[Dict]:
+    """
+    Check if a marshal objects to a strategic command at issuance.
+
+    Trigger conditions:
+    - Ney (aggressive): HOLD with no enemies adjacent to target region
+    - Davout (cautious): PURSUE with target strength >= 1.2x marshal strength
+    - Davout (cautious): MOVE_TO with path crossing enemy-occupied region
+    - Grouchy (literal): NEVER objects (uses clarification popup instead)
+
+    Bypass conditions:
+    - Marshal is in retreat_recovery (compliant)
+    - Order already has objection_resolved=True
+
+    Args:
+        marshal: Marshal receiving the order
+        strategic_type: "HOLD", "PURSUE", "MOVE_TO", "SUPPORT"
+        target: Target region or marshal name
+        path: Calculated path for movement orders
+        world: WorldState for context
+
+    Returns:
+        None if no objection, or dict with:
+        - should_object: True
+        - reason: Human-readable explanation
+        - message: Dramatic objection message
+        - preferred_action: Dict with marshal's preferred alternative
+        - compromise_action: Dict with middle-ground option (or None)
+        - options: List of choice options for UI
+    """
+    if not marshal or not world:
+        return None
+
+    personality = getattr(marshal, 'personality', 'balanced').lower()
+
+    # ═══════════════════════════════════════════════════════════
+    # BYPASS: Grouchy (literal) never objects to strategic commands
+    # ═══════════════════════════════════════════════════════════
+    if personality == 'literal':
+        return None
+
+    # ═══════════════════════════════════════════════════════════
+    # BYPASS: Marshal in retreat recovery is compliant
+    # ═══════════════════════════════════════════════════════════
+    if getattr(marshal, 'retreat_recovery', 0) > 0:
+        return None
+
+    # ═══════════════════════════════════════════════════════════
+    # NEY (AGGRESSIVE) - Objects to HOLD with no enemies adjacent
+    # ═══════════════════════════════════════════════════════════
+    if personality == 'aggressive' and strategic_type == "HOLD":
+        # Check for enemies adjacent to target (or current location if no target)
+        hold_region = target or marshal.location
+        region = world.get_region(hold_region)
+
+        enemies_adjacent = False
+        if region:
+            for adj_name in region.adjacent_regions:
+                enemies = world.get_enemies_in_region(adj_name, marshal.nation)
+                if enemies:
+                    enemies_adjacent = True
+                    break
+
+        if not enemies_adjacent:
+            # Generate preferred alternatives
+            preferred = _get_aggressive_preferred(marshal, world)
+            compromise = {"action": "hold", "max_turns": 3}  # Timed HOLD
+
+            return {
+                "should_object": True,
+                "type": "strategic",
+                "reason": "ney_hold_no_enemies",
+                "message": f'"{marshal.name} scoffs. "Hold position? While there\'s glory to be won? You want me to guard nothing, Sire?""',
+                "marshal": marshal.name,
+                "personality": personality,
+                "options": _build_strategic_options(
+                    marshal,
+                    preferred,
+                    compromise,
+                    "Proceed with HOLD",
+                    "Accept: Timed HOLD (3 turns)",
+                    strategic_type
+                )
+            }
+
+    # ═══════════════════════════════════════════════════════════
+    # DAVOUT (CAUTIOUS) - Objects to PURSUE with bad odds
+    # ═══════════════════════════════════════════════════════════
+    if personality == 'cautious' and strategic_type == "PURSUE":
+        target_marshal = world.get_marshal(target) if target else None
+
+        if target_marshal and target_marshal.strength > 0:
+            ratio = target_marshal.strength / max(marshal.strength, 1)
+
+            # Threshold: >= 1.2x (target is 20% stronger or more)
+            if ratio >= 1.2:
+                preferred = {"action": "fortify", "target": marshal.location}
+                compromise = {"action": "pursue", "auto_cancel_below_ratio": 0.8}
+
+                return {
+                    "should_object": True,
+                    "type": "strategic",
+                    "reason": "davout_pursue_bad_odds",
+                    "message": f'"{marshal.name} studies the reports. "Pursue {target}? Their forces outnumber us. This is reckless, Sire.""',
+                    "marshal": marshal.name,
+                    "personality": personality,
+                    "options": _build_strategic_options(
+                        marshal,
+                        preferred,
+                        compromise,
+                        "Proceed with PURSUE",
+                        "Accept: Cautious PURSUE (auto-cancel if odds drop)",
+                        strategic_type
+                    )
+                }
+
+    # ═══════════════════════════════════════════════════════════
+    # DAVOUT (CAUTIOUS) - Objects to MOVE_TO through danger
+    # ═══════════════════════════════════════════════════════════
+    if personality == 'cautious' and strategic_type == "MOVE_TO":
+        # Check if path crosses any enemy-occupied region
+        enemy_regions = []
+        for region_name in path:
+            enemies = world.get_enemies_in_region(region_name, marshal.nation)
+            if enemies:
+                enemy_regions.append(region_name)
+
+        if enemy_regions:
+            preferred = {"action": "fortify", "target": marshal.location}
+
+            # Check if safe path exists
+            enemy_occupied = set()
+            for rn in world.regions:
+                if world.get_enemies_in_region(rn, marshal.nation):
+                    enemy_occupied.add(rn)
+
+            dest = path[-1] if path else target
+            safe_path = world.find_path(marshal.location, dest, avoid_regions=enemy_occupied)
+
+            compromise = None
+            if safe_path and len(safe_path) <= len(path) * 2:
+                compromise = {"action": "move_to", "safe_path": True}
+
+            return {
+                "should_object": True,
+                "type": "strategic",
+                "reason": "davout_move_dangerous_path",
+                "message": f'"{marshal.name} traces the route. "That path passes through {enemy_regions[0]}. We would be walking into danger, Sire.""',
+                "marshal": marshal.name,
+                "personality": personality,
+                "options": _build_strategic_options(
+                    marshal,
+                    preferred,
+                    compromise,
+                    "Proceed through danger",
+                    "Accept: Safe route" if compromise else None,
+                    strategic_type
+                )
+            }
+
+    return None
+
+
+def _get_aggressive_preferred(marshal, world) -> Optional[Dict]:
+    """
+    Find preferred aggressive action for Ney-type marshals.
+
+    Fallback chain:
+    1. Attack adjacent enemy (if one exists)
+    2. PURSUE nearest enemy (if within 3 regions)
+    3. Aggressive stance (if not already aggressive)
+    4. Drill (if not already drilling/has shock bonus)
+    5. None (chain exhausted)
+    """
+    from backend.models.marshal import Stance
+
+    # 1. Attack adjacent enemy
+    region = world.get_region(marshal.location)
+    if region:
+        for adj_name in region.adjacent_regions:
+            enemies = world.get_enemies_in_region(adj_name, marshal.nation)
+            if enemies:
+                return {"action": "attack", "target": enemies[0].name}
+
+    # 2. PURSUE nearest enemy within 3 regions
+    nearest_enemy = None
+    nearest_dist = float('inf')
+    for m in world.marshals.values():
+        if m.nation != marshal.nation and m.strength > 0:
+            dist = world.get_distance(marshal.location, m.location)
+            if dist <= 3 and dist < nearest_dist:
+                nearest_enemy = m
+                nearest_dist = dist
+
+    if nearest_enemy:
+        return {"action": "pursue", "target": nearest_enemy.name, "strategic_type": "PURSUE"}
+
+    # 3. Aggressive stance
+    current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
+    if current_stance != Stance.AGGRESSIVE:
+        return {"action": "stance", "target": "aggressive"}
+
+    # 4. Drill
+    is_drilling = getattr(marshal, 'drilling', False)
+    has_shock = getattr(marshal, 'shock_bonus', 0) > 0
+    if not is_drilling and not has_shock:
+        return {"action": "drill", "target": marshal.location}
+
+    # Chain exhausted
+    return None
+
+
+def _build_strategic_options(
+    marshal,
+    preferred: Optional[Dict],
+    compromise: Optional[Dict],
+    proceed_text: str,
+    compromise_text: Optional[str],
+    strategic_type: str
+) -> List[Dict]:
+    """Build options list for strategic objection popup."""
+    options = []
+
+    # Proceed option (always available)
+    options.append({
+        "type": "proceed",
+        "text": proceed_text,
+        "description": f"Override {marshal.name}'s objection and execute the order.",
+        "trust_change": -10,
+        "ap_cost": 2,
+    })
+
+    # Preferred option (if available)
+    if preferred:
+        action = preferred.get("action", "")
+        target = preferred.get("target", "")
+
+        if action == "attack":
+            desc = f"{marshal.name} attacks {target}"
+        elif action == "pursue":
+            desc = f"{marshal.name} pursues {target}"
+        elif action == "stance":
+            desc = f"{marshal.name} adopts {target} stance"
+        elif action == "drill":
+            desc = f"{marshal.name} drills troops"
+        elif action == "fortify":
+            desc = f"{marshal.name} fortifies position"
+        else:
+            desc = f"{marshal.name} takes alternative action"
+
+        options.append({
+            "type": "preferred",
+            "text": f"Trust: {desc}",
+            "description": f"Accept {marshal.name}'s judgment.",
+            "trust_change": 12,
+            "ap_cost": 1,
+            "action": preferred.get("action"),
+            "target": preferred.get("target"),
+            "strategic_type": preferred.get("strategic_type"),
+        })
+
+    # Compromise option (if available)
+    if compromise and compromise_text:
+        options.append({
+            "type": "compromise",
+            "text": compromise_text,
+            "description": f"Find middle ground with {marshal.name}.",
+            "trust_change": 3,
+            "ap_cost": 2,
+            "compromise": compromise,
+        })
+
+    return options
+
+
 # Test code
 if __name__ == "__main__":
     from backend.models.marshal import create_starting_marshals

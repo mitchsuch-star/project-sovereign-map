@@ -1,8 +1,8 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 2, 2026
-> **Last Session:** Phase 5.2 playtesting complete — 8 bugs found and fixed, 2 UX improvements, 1 combat improvement, positive events added to roadmap
+> **Last Updated:** February 3, 2026
+> **Last Session:** Phase M complete — all strategic objection tests passing, 1066 total tests
 
 ---
 
@@ -10,19 +10,19 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1004** (verified Feb 2, 2026) |
-| **Current Phase** | 5.2 (Strategic Commands) — Phase M remaining |
+| **Tests Passing** | **1066** (verified Feb 3, 2026) |
+| **Current Phase** | 5.2 (Strategic Commands) ✅ COMPLETE |
 | **Blockers** | None |
-| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.3 |
+| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3 |
 
 ---
 
 ## Active Work
 
-Phase 5.2 playtesting (Phase K) complete. 8 bugs found and fixed during Godot smoke testing.
+Phase 5.2 Strategic Commands is COMPLETE, including Phase M (Strategic Objections).
 
 - [x] Smoke test strategic commands in Godot (Phase K) ✅
-- [ ] Phase M: Strategic Objections (disobedience at issuance) — designed, not yet implemented
+- [x] Phase M: Strategic Objections (disobedience at issuance) ✅ COMPLETE
 - [ ] Begin Phase 6 design (Economy, Terrain, Fog, Manpower)
 - [ ] See ROADMAP.md for full Phase 6 scope
 
@@ -30,7 +30,12 @@ Phase 5.2 playtesting (Phase K) complete. 8 bugs found and fixed during Godot sm
 
 ## Recently Completed
 
-### Feb 2 (this session)
+### Feb 3 (this session)
+- **Phase M complete:** Strategic Objections implemented and verified. All 47 tests passing (44 pass, 3 skipped for future relationship system).
+- **Test fix:** Updated 2 first-step blocked tests to reflect Phase M behavior — Davout's objection to MOVE_TO through dangerous path now triggers at issuance (correct per design), not during first-step execution.
+- Test count: **1066 passed, 3 skipped, 0 failures**
+
+### Feb 2
 - **Bug fix:** Command misattribution — typing "grouchy march to brittany" triggered Davout's pending interrupt response because "march to" matched interrupt keywords. Interrupt router now checks if command addresses a different marshal and skips routing if so.
 - **UX improvement:** SUPPORT auto-follow — supporting marshals now silently follow when ally moves (no more repeated "Follow?" popups every turn). SUPPORT already tracked ally position dynamically; the popup was unnecessary friction.
 - **Bug fix:** Forced retreat now clears strategic orders. Previously, a marshal forced to retreat while executing HOLD/MOVE_TO/PURSUE/SUPPORT kept the stale order, causing confusion on next turn. HOLD-specific messaging: "Ney's HOLD order at Belgium is broken!"
@@ -95,7 +100,8 @@ Phase 5.2 playtesting (Phase K) complete. 8 bugs found and fixed during Godot sm
 
 | Date | Tests | Notes |
 |------|-------|-------|
-| Feb 2, 2026 | **1022** | Post-objection fix, UI/UX improvements, sally serialization fix |
+| Feb 3, 2026 | **1066** | Phase M complete, strategic objections verified |
+| Feb 2, 2026 | 1004 | Post-objection fix, UI/UX improvements, sally serialization fix |
 | Jan 31, 2026 | 1022 | PURSUE completion fix, code review fixes |
 | Jan 30, 2026 | 981 | Doc cleanup session |
 | Jan 28, 2026 | 705 | Phase D+E complete |

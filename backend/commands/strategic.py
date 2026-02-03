@@ -70,6 +70,15 @@ class StrategicExecutor:
 
         for marshal in marshals_with_orders:
             order = marshal.strategic_order
+
+            # ═══════════════════════════════════════════════════════════
+            # PHASE M: Skip dead marshals and clear their orders
+            # ═══════════════════════════════════════════════════════════
+            if marshal.strength <= 0:
+                marshal.strategic_order = None
+                print(f"[STRATEGIC] {marshal.name}: SKIP - marshal defeated, order cleared")
+                continue
+
             print(f"[STRATEGIC] {marshal.name}: {order.command_type} -> {order.target} "
                   f"(issued turn {getattr(order, 'issued_turn', '?')})")
 
@@ -558,7 +567,28 @@ class StrategicExecutor:
                                f"({recovery} turn(s) remaining). Order paused."
                 }
 
-        # 1. Check conditions first (until_arrives, until_relieved, etc.)
+        # 1a. Phase M: Timed HOLD expiry for aggressive marshals (Ney compromise)
+        # Aggressive marshals with max_turns "grow restless" instead of completing normally
+        if order.condition and order.condition.max_turns:
+            personality = getattr(marshal, 'personality', 'balanced')
+            if personality == "aggressive" and order.command_type == "HOLD":
+                issued_turn = order.issued_turn or order.started_turn
+                turns_elapsed = world.current_turn - issued_turn
+                if turns_elapsed >= order.condition.max_turns:
+                    print(f"[STRATEGIC] {marshal.name}: ORDER EXPIRED - restless after {turns_elapsed} turns")
+                    hold_location = order.target or marshal.location
+                    marshal.strategic_order = None
+                    marshal.holding_position = False
+                    marshal.hold_region = ""
+                    return {
+                        "success": True,
+                        "marshal": marshal.name,
+                        "order_status": "expired",
+                        "message": f"{marshal.name} grows restless and abandons the position at {hold_location}.",
+                        "timed_expiry": True,
+                    }
+
+        # 1b. Check conditions first (until_arrives, until_relieved, etc.)
         if order.condition:
             met, reason = self._check_condition(marshal, order.condition, world)
             if met:
@@ -773,6 +803,24 @@ class StrategicExecutor:
         order = marshal.strategic_order
         target = world.get_marshal(order.target)
 
+        # ═══════════════════════════════════════════════════════════
+        # PHASE M: Cautious PURSUE ratio check
+        # Auto-cancel if odds drop below threshold
+        # ═══════════════════════════════════════════════════════════
+        if order.condition and order.condition.auto_cancel_below_ratio:
+            if target and target.strength > 0:
+                ratio = marshal.strength / max(target.strength, 1)
+                threshold = order.condition.auto_cancel_below_ratio
+                if ratio < threshold:
+                    marshal.strategic_order = None
+                    return {
+                        "success": True,
+                        "marshal": marshal.name,
+                        "order_status": "cancelled",
+                        "message": f"{marshal.name} breaks off pursuit of {order.target} — the odds have turned against us.",
+                        "ratio_cancelled": True,
+                    }
+
         # Target destroyed?
         if not target or target.strength <= 0:
             return self._complete_order(marshal, world,
@@ -950,6 +998,25 @@ class StrategicExecutor:
         order = marshal.strategic_order
         personality = marshal.personality
         hold_position = order.target
+
+        # ═══════════════════════════════════════════════════════════
+        # PHASE M: Timed HOLD expiry check
+        # Auto-expire after max_turns (Ney compromise)
+        # ═══════════════════════════════════════════════════════════
+        if order.condition and order.condition.max_turns:
+            issued_turn = order.issued_turn or order.started_turn
+            turns_elapsed = world.current_turn - issued_turn
+            if turns_elapsed >= order.condition.max_turns:
+                marshal.strategic_order = None
+                marshal.holding_position = False
+                marshal.hold_region = ""
+                return {
+                    "success": True,
+                    "marshal": marshal.name,
+                    "order_status": "expired",
+                    "message": f"{marshal.name} grows restless and abandons the position at {hold_position}.",
+                    "timed_expiry": True,
+                }
 
         # Not at hold position yet? Move there first
         if marshal.location != hold_position:

@@ -526,10 +526,15 @@ RETREAT RECOVERY (3 turns):
         # Note: retreat added for aggressive marshals who object to fleeing
         # Note: drill, wait, hold added - aggressive marshals object to these (especially with enemy nearby)
         objection_actions = ["attack", "defend", "move", "scout", "recruit", "fortify", "stance_change", "retreat", "drill", "wait", "hold"]
+
+        # Phase M: Strategic commands use strategic objection, not tactical
+        is_strategic_command = parsed_command.get("is_strategic", False)
+
         should_check_objection = (
             action in objection_actions and
             marshal_name is not None and
-            not is_strategic_execution  # Phase 5.2-C: marshal can't object to own decision
+            not is_strategic_execution and  # Phase 5.2-C: marshal can't object to own decision
+            not is_strategic_command  # Phase M: strategic objection handled separately
         )
 
         if should_check_objection:
@@ -2423,6 +2428,42 @@ RETREAT RECOVERY (3 turns):
                 # Strip start location
                 path = [r for r in path if r != marshal.location]
 
+        # ── Strategic objection check (Phase M) ───────────────────────
+        # Check if marshal objects to this strategic command BEFORE creating order
+        from backend.commands.disobedience import check_strategic_objection
+
+        # Check for objection response (post-objection execution)
+        objection_response = command.get("objection_response")
+
+        if not objection_response:
+            # First time issuing - check for objection
+            objection = check_strategic_objection(
+                marshal, strategic_type, target, path, world
+            )
+
+            if objection and objection.get("should_object"):
+                # Store for response handling
+                objection["original_command"] = command.copy()
+                objection["parsed_command"] = parsed_command.copy()
+                objection["strategic_type"] = strategic_type
+                objection["path"] = path
+                objection["target"] = target
+
+                return {
+                    "success": True,  # So frontend processes it
+                    "pending_objection": True,
+                    "objection": objection,
+                    "message": objection.get("message", "Marshal objects to this order."),
+                }
+
+        else:
+            # Post-objection: Handle the response
+            result = self._handle_strategic_objection_response(
+                marshal, command, parsed_command, objection_response, world, game_state, path, target, strategic_type
+            )
+            if result is not None:
+                return result
+
         # ── Build condition ───────────────────────────────────────────
         condition = None
         cond_dict = parsed_command.get("strategic_condition")
@@ -2747,6 +2788,204 @@ RETREAT RECOVERY (3 turns):
             "path": order.path,
             "remaining_regions": remaining,
             "variable_action_cost": strategic_cost,
+        }
+
+    def _handle_strategic_objection_response(
+        self,
+        marshal,
+        command: Dict,
+        parsed_command: Dict,
+        response: str,
+        world,
+        game_state: Dict,
+        path: List[str],
+        target: str,
+        strategic_type: str
+    ) -> Optional[Dict]:
+        """
+        Handle player's response to a strategic objection.
+
+        Args:
+            marshal: The objecting marshal
+            command: Original command dict
+            parsed_command: Parsed command dict
+            response: "proceed", "preferred", or "compromise"
+            world: WorldState
+            game_state: Full game state dict
+            path: Calculated path for movement
+            target: Target of the order
+            strategic_type: "HOLD", "PURSUE", "MOVE_TO", "SUPPORT"
+
+        Returns:
+            Result dict or None to continue normal processing
+        """
+        from backend.models.marshal import StrategicOrder, StrategicCondition
+
+        # Get trust and preferred/compromise data from command
+        preferred_action = command.get("preferred_action")
+        compromise_data = command.get("compromise")
+        personality = getattr(marshal, 'personality', 'balanced')
+
+        if response == "proceed":
+            # ═══════════════════════════════════════════════════════════
+            # PROCEED: Execute original order, trust -10
+            # ═══════════════════════════════════════════════════════════
+            if hasattr(marshal, 'trust'):
+                marshal.trust.modify(-10)
+
+            # Continue with normal strategic order creation
+            # Return None to let flow continue
+            return None
+
+        elif response == "preferred":
+            # ═══════════════════════════════════════════════════════════
+            # PREFERRED: Execute marshal's suggested action, trust +12, 1 AP
+            # ═══════════════════════════════════════════════════════════
+            if hasattr(marshal, 'trust'):
+                marshal.trust.modify(12)
+
+            if not preferred_action:
+                return {
+                    "success": False,
+                    "message": "No preferred action available",
+                    "variable_action_cost": 0,
+                }
+
+            # Execute the preferred tactical action
+            pref_action = preferred_action.get("action")
+            pref_target = preferred_action.get("target")
+            pref_strategic_type = preferred_action.get("strategic_type")
+
+            if pref_strategic_type:
+                # Preferred is another strategic command (PURSUE)
+                new_parsed = {
+                    "command": {
+                        "marshal": marshal.name,
+                        "action": pref_action,
+                        "target": pref_target,
+                    },
+                    "is_strategic": True,
+                    "strategic_type": pref_strategic_type,
+                }
+                result = self._execute_strategic_command(new_parsed, new_parsed["command"], game_state)
+                if result:
+                    result["variable_action_cost"] = 1
+                    result["trust_change"] = 12
+                return result
+
+            else:
+                # Preferred is tactical (attack, stance, drill, fortify)
+                tactical_cmd = {
+                    "marshal": marshal.name,
+                    "action": pref_action,
+                    "target": pref_target,
+                }
+                result = self.execute({"command": tactical_cmd}, game_state)
+                result["variable_action_cost"] = 1
+                result["trust_change"] = 12
+                return result
+
+        elif response == "compromise":
+            # ═══════════════════════════════════════════════════════════
+            # COMPROMISE: Execute modified order, trust +3, 2 AP
+            # ═══════════════════════════════════════════════════════════
+            if hasattr(marshal, 'trust'):
+                marshal.trust.modify(3)
+
+            if not compromise_data:
+                return {
+                    "success": False,
+                    "message": "No compromise available",
+                    "variable_action_cost": 0,
+                }
+
+            # Build modified strategic order based on compromise type
+            condition = None
+
+            # Ney HOLD compromise: timed HOLD (3 turns)
+            if compromise_data.get("max_turns"):
+                condition = StrategicCondition(
+                    max_turns=compromise_data["max_turns"]
+                )
+
+            # Davout PURSUE compromise: auto-cancel below ratio
+            if compromise_data.get("auto_cancel_below_ratio"):
+                condition = StrategicCondition(
+                    auto_cancel_below_ratio=compromise_data["auto_cancel_below_ratio"]
+                )
+
+            # Davout MOVE_TO compromise: safe path
+            if compromise_data.get("safe_path"):
+                # Recalculate path avoiding enemies
+                enemy_occupied = set()
+                for rn in world.regions:
+                    if world.get_enemies_in_region(rn, marshal.nation):
+                        enemy_occupied.add(rn)
+
+                dest = path[-1] if path else target
+                safe_path = world.find_path(marshal.location, dest, avoid_regions=enemy_occupied)
+                if safe_path:
+                    path = [r for r in safe_path if r != marshal.location]
+                else:
+                    return {
+                        "success": False,
+                        "message": "No safe path available",
+                        "variable_action_cost": 0,
+                    }
+
+            # Create the modified strategic order
+            order = StrategicOrder(
+                command_type=strategic_type,
+                target=target or "generic",
+                target_type=command.get("target_type", "region"),
+                started_turn=world.current_turn,
+                original_command=parsed_command.get("raw_input", ""),
+                path=path,
+                condition=condition,
+                target_snapshot_location=parsed_command.get("target_snapshot_location"),
+                attack_on_arrival=parsed_command.get("attack_on_arrival", False),
+                issued_turn=world.current_turn,
+                objection_resolved=True,
+            )
+
+            # Apply the order
+            marshal.strategic_order = order
+
+            # For HOLD, set holding position
+            if strategic_type == "HOLD":
+                hold_location = target or marshal.location
+                if marshal.location == hold_location:
+                    if personality == "literal":
+                        marshal.holding_position = True
+                        marshal.hold_region = hold_location
+
+            # Build success message
+            if condition and condition.max_turns:
+                msg = f"{marshal.name} agrees to hold position for {condition.max_turns} turns."
+            elif condition and condition.auto_cancel_below_ratio:
+                msg = f"{marshal.name} will pursue cautiously, breaking off if odds turn against us."
+            elif compromise_data.get("safe_path"):
+                msg = f"{marshal.name} will take a safer route to {target}."
+            else:
+                msg = f"{marshal.name} agrees to the compromise."
+
+            return {
+                "success": True,
+                "message": msg,
+                "strategic_order_created": True,
+                "strategic_type": strategic_type,
+                "target": target,
+                "path": path,
+                "variable_action_cost": 2,
+                "trust_change": 3,
+                "compromise_applied": True,
+            }
+
+        # Unknown response
+        return {
+            "success": False,
+            "message": f"Unknown objection response: {response}",
+            "variable_action_cost": 0,
         }
 
     def _handle_first_step_blocked(self, marshal, enemies, blocked_region,
