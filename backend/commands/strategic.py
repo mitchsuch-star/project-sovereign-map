@@ -1208,20 +1208,34 @@ class StrategicExecutor:
             return self._handle_blocked_path(
                 marshal, enemies_here, marshal.location, world, game_state)
 
-        # Cautious asks if ally is moving
+        # Cautious asks if ally is moving — but only once per ally destination.
+        # Without suppression, this triggers EVERY turn while ally has an active
+        # strategic order, creating an infinite popup loop.
         if personality == "cautious" and ally.in_strategic_mode:
             ally_order = ally.strategic_order
             if ally_order and ally_order.command_type in ("MOVE_TO", "PURSUE"):
-                return {
-                    "marshal": marshal.name,
-                    "command": "SUPPORT",
-                    "requires_input": True,
-                    "interrupt_type": "ally_moving",
-                    "ally": ally.name,
-                    "ally_destination": ally_order.target,
-                    "message": f"{ally.name} is marching to {ally_order.target}. Follow?",
-                    "options": ["follow", "hold_current", "cancel_support"]
-                }
+                # Suppress if we already asked about this ally's destination recently
+                last_ally_ask_turn = getattr(order, 'last_ally_moving_turn', None)
+                last_ally_ask_dest = getattr(order, 'last_ally_moving_dest', None)
+                if (last_ally_ask_turn is not None and
+                        world.current_turn - last_ally_ask_turn <= 1 and
+                        last_ally_ask_dest == ally_order.target):
+                    # Already asked — silently continue moving toward ally
+                    pass
+                else:
+                    order.last_ally_moving_turn = world.current_turn
+                    order.last_ally_moving_dest = ally_order.target
+                    return {
+                        "marshal": marshal.name,
+                        "command": "SUPPORT",
+                        "order_status": "awaiting_response",
+                        "requires_input": True,
+                        "interrupt_type": "ally_moving",
+                        "ally": ally.name,
+                        "ally_destination": ally_order.target,
+                        "message": f"{ally.name} is marching to {ally_order.target}. Follow?",
+                        "options": ["follow", "hold_current", "cancel_support"]
+                    }
 
         # Move toward ally
         path = self._get_personality_aware_path(marshal, ally.location, world)

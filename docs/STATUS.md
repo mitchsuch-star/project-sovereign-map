@@ -43,7 +43,8 @@ Phase 5.2/5.3 fully complete. Next: Phase 6 design.
 - **Bug fix:** Post-objection strategic HOLD cost 1 AP instead of 2. `_execute_post_objection` called `use_action()` once instead of using `variable_action_cost` from strategic result.
 - **Fix:** `parse_multiple()` now accepts and passes `world` parameter, enabling strategic detection for multi-marshal commands.
 - **Bug fix:** Contact interrupt infinite loop — blocked path interrupts (SUPPORT/HOLD/MOVE_TO) re-triggered every turn when enemy persisted in path. Added `last_contact_enemy`/`last_contact_turn` suppression: after player responds, same enemy won't re-trigger for 1 turn (silently holds instead).
-- **Fix:** Missing `order_status` on contact/contact_bad_odds interrupt dicts caused `status=None` in reports. Added `order_status: "awaiting_response"`.
+- **Bug fix:** Ally moving interrupt infinite loop — cautious SUPPORT marshal (Davout) asked "Follow?" every turn while ally (Grouchy) had active MOVE_TO/PURSUE order. Added `last_ally_moving_turn`/`last_ally_moving_dest` suppression. Re-triggers only if ally changes destination.
+- **Fix:** Missing `order_status` on contact/contact_bad_odds/ally_moving interrupt dicts caused `status=None` in reports. Added `order_status: "awaiting_response"`.
 - **Feature:** Glorious Charge auto-resolves during HOLD sally (Option B). When Ney's recklessness hits 3+ during a sally, he auto-charges instead of showing popup. Result appears in strategic report. Recklessness resets as normal.
 - Test count: **1022 passed, 0 failures**
 
