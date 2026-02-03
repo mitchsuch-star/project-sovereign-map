@@ -1091,12 +1091,24 @@ class StrategicExecutor:
                                     game_state
                                 )
 
+                            # Extract combat details for UI display
+                            sally_outcome = ""
+                            battle_message = ""
+                            if combat_result:
+                                for evt in combat_result.get("events", []):
+                                    if evt.get("type") == "combat_result":
+                                        sally_outcome = evt.get("outcome", "")
+                                battle_message = combat_result.get("message", "")
+
                             return {
                                 "marshal": marshal.name,
                                 "command": "HOLD",
                                 "action": "sally",
                                 "target": enemy.name,
                                 "combat_result": combat_result,
+                                "outcome": sally_outcome,
+                                "battle_message": battle_message,
+                                "battle_details": combat_result,
                                 "returned_to": hold_position,
                                 "order_status": "continues",
                                 "message": f"{marshal.name} sallies forth to attack "

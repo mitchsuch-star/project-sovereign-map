@@ -1,8 +1,8 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** January 31, 2026
-> **Last Session:** PURSUE completion fix, code review, Phase M design
+> **Last Updated:** February 2, 2026
+> **Last Session:** Post-objection strategic routing fix, UI/UX improvements (hold tooltip, Grouchy clarification, sally battle display)
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1022** (verified Jan 31, 2026) |
+| **Tests Passing** | **1021** (verified Feb 2, 2026) |
 | **Current Phase** | 6 (Core Campaign Systems) — not started |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3 |
@@ -30,7 +30,14 @@ Phase 5.2/5.3 fully complete. Next: Phase 6 design.
 
 ## Recently Completed
 
-### Jan 31 (this session)
+### Feb 2 (this session)
+- **Bug fix:** Strategic commands (HOLD, MOVE_TO, PURSUE, SUPPORT) failed with "Unknown action" after player insisted on objection. Post-objection executor was missing strategic routing and hold/wait handlers. Also propagated `is_strategic`/`strategic_type` into command dict so they survive objection storage.
+- **UI fix:** Strategic HOLD tooltip — any marshal with active HOLD order now shows "HOLDING POSITION at [region]" in hover tooltip. Grouchy still shows "(Immovable): +15% defense".
+- **UX fix:** Grouchy attack clarification — literal marshals no longer silently auto-move when given "attack" with no nearby target. Instead shows clarification popup offering to upgrade to PURSUE with target selection.
+- **UX fix:** Sally battle display — extracted combat outcome/message from sally `combat_result` into top-level report fields. Strategic report popup now shows battle narrative and outcome inline. Text output also logs sally battle details.
+- Test count: **1021 passed** (1 pre-existing probabilistic failure)
+
+### Jan 31
 - **Bug fix:** `pending_interrupt` overwrite — lines 562/578 in strategic.py clobbered correctly-set interrupt dicts, causing "Invalid choice" errors on interrupt responses
 - **Design fix:** PURSUE now completes after combat (any outcome) — no more stalemate popup for PURSUE; order is fulfilled once marshal engages target
 - **Code review fixes:** HOLD `_complete_order` now clears `holding_position` (was leaking +15% defense); HOLD sally now checks `_should_auto_attack` (was infinite loop); dead code cleanup (unreachable breaks, unused vars, dead `join_combat` check)
@@ -60,7 +67,8 @@ Phase 5.2/5.3 fully complete. Next: Phase 6 design.
 
 | Date | Tests | Notes |
 |------|-------|-------|
-| Jan 31, 2026 | **1022** | PURSUE completion fix, code review fixes |
+| Feb 2, 2026 | **1021** | Post-objection fix, UI/UX improvements |
+| Jan 31, 2026 | 1022 | PURSUE completion fix, code review fixes |
 | Jan 30, 2026 | 981 | Doc cleanup session |
 | Jan 28, 2026 | 705 | Phase D+E complete |
 | Jan 25, 2026 | 667 | Phase 5.2 core complete |

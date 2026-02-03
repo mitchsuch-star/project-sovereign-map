@@ -102,11 +102,15 @@ func _format_report(report: Dictionary) -> String:
 	if ally and command == "SUPPORT":
 		result += "[color=#" + COLOR_INFO + "]   Supporting: " + ally + "[/color]\n"
 
-	# Combat outcome
+	# Combat outcome and battle details
 	var outcome = report.get("outcome", "")
 	if outcome:
 		var outcome_color = COLOR_SUCCESS if outcome == "victory" else COLOR_ERROR if outcome == "defeat" else COLOR_BATTLE
 		result += "[color=#" + outcome_color + "]   Combat: " + outcome.capitalize() + "[/color]\n"
+
+	var battle_msg = report.get("battle_message", "")
+	if battle_msg:
+		result += "[color=#" + COLOR_TEXT + "]   " + battle_msg + "[/color]\n"
 
 	# Requires input warning
 	if report.get("requires_input", false):

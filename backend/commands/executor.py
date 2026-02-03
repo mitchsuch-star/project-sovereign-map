@@ -1330,8 +1330,35 @@ RETREAT RECOVERY (3 turns):
                     # Auto-target the nearest enemy
                     target = nearest_enemy.name
                 else:
-                    # Out of range - move toward the enemy instead
-                    # Find the adjacent region that gets us closest to the enemy
+                    # Out of range — literal marshals ask for clarification instead of guessing
+                    if getattr(marshal, 'personality', '') == 'literal':
+                        enemies = [e for e in world.get_enemies_of_nation(marshal.nation) if e.strength > 0]
+                        options = []
+                        for e in enemies[:3]:
+                            e_dist = world.get_distance(marshal.location, e.location)
+                            options.append({
+                                "label": f"Pursue {e.name} ({e.location}, {e_dist} away)",
+                                "value": "specify",
+                                "target": e.name
+                            })
+                        options.append({"label": "Cancel", "value": "cancel"})
+                        return {
+                            "success": True,
+                            "free_action": True,
+                            "state": "awaiting_clarification",
+                            "type": "clarification",
+                            "strategic_type": "PURSUE",
+                            "marshal": marshal.name,
+                            "message": f"{nearest_enemy.name} is {distance} regions away, Sire. Shall I pursue?",
+                            "interpreted_target": nearest_enemy.name,
+                            "interpretation_reason": "nearest",
+                            "alternatives": [e.name for e in enemies if e.name != nearest_enemy.name][:2],
+                            "options": options,
+                            "action_summary": world.get_action_summary(),
+                            "game_state": world.get_game_state_summary()
+                        }
+
+                    # Non-literal marshals: move toward the enemy
                     current_region = world.get_region(marshal.location)
                     best_next = None
                     best_distance = distance  # Current distance

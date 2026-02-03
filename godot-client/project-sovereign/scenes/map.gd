@@ -394,6 +394,11 @@ func _draw_tooltip():
 	var holding_position = tactical_state.get("holding_position", false)
 	var hold_region = tactical_state.get("hold_region", "")
 
+	# Strategic order (Phase J) - read before tactical_lines count
+	var in_strategic_mode = tactical_state.get("in_strategic_mode", false)
+	var strategic_command_type = tactical_state.get("strategic_command_type", "")
+	var strategic_target = tactical_state.get("strategic_target", "")
+
 	# Count tactical state lines to display
 	var tactical_lines = 0
 	# BUG-007 FIX: Always show stance if we have tactical_state (player marshal)
@@ -416,13 +421,8 @@ func _draw_tooltip():
 		tactical_lines += 1
 	if counter_punch_available:
 		tactical_lines += 1
-	if holding_position:
+	if holding_position or (in_strategic_mode and strategic_command_type == "HOLD"):
 		tactical_lines += 1
-
-	# Strategic order (Phase J)
-	var in_strategic_mode = tactical_state.get("in_strategic_mode", false)
-	var strategic_command_type = tactical_state.get("strategic_command_type", "")
-	var strategic_target = tactical_state.get("strategic_target", "")
 	if in_strategic_mode:
 		tactical_lines += 1
 
@@ -670,11 +670,15 @@ func _draw_tooltip():
 			draw_string(font, Vector2(text_x, text_y + 11), counter_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, counter_color)
 			text_y += line_spacing
 
-		# Grouchy: Holding Position (Immovable)
-		if holding_position:
-			var hold_text = "HOLDING POSITION: +15% defense"
+		# Holding Position: Grouchy's Immovable (+15%) or any strategic HOLD order
+		if holding_position or (in_strategic_mode and strategic_command_type == "HOLD"):
+			var hold_text = "HOLDING POSITION"
+			if holding_position:
+				hold_text += " (Immovable): +15% defense"
 			if hold_region != "":
 				hold_text += " at " + hold_region
+			elif strategic_target != "":
+				hold_text += " at " + strategic_target
 			var hold_color = Color(0.6, 0.6, 0.9)  # Light purple
 			draw_string(font, Vector2(text_x, text_y + 11), hold_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, hold_color)
 			text_y += line_spacing

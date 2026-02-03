@@ -1260,6 +1260,14 @@ func _show_strategic_reports(response):
 		var msg = report.get("message", "")
 		if msg:
 			add_output("[color=#" + COLOR_INFO + "]" + marshal_name + ": " + msg + "[/color]")
+		# Log sally battle details to output
+		var battle_msg = report.get("battle_message", "")
+		if battle_msg:
+			add_output("[color=#" + COLOR_BATTLE + "]  " + battle_msg + "[/color]")
+		var outcome = report.get("outcome", "")
+		if outcome:
+			var outcome_color = COLOR_SUCCESS if outcome == "victory" else COLOR_ERROR if outcome == "defeat" else COLOR_BATTLE
+			add_output("[color=#" + outcome_color + "]  Result: " + outcome.capitalize() + "[/color]")
 	add_output("")
 
 	strategic_report_popup.show_reports(reports, turn)
