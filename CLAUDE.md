@@ -1568,7 +1568,8 @@ For detailed design decisions and architecture:
 | Post-objection costs 1 AP not 2 | `_execute_post_objection` must use `variable_action_cost` from strategic result, not single `use_action()` call. Strategic = 2 AP, literal = 1 AP |
 | Strategic detection skipped | Verify `world` is passed to `parser.parse()`. Without it, strategic_parser never runs and commands fall through to tactical routing (e.g. HOLD becomes defend) |
 | Contact interrupt loops forever | `_handle_blocked_path` triggers every turn if enemy persists. Must track `last_contact_enemy`/`last_contact_turn` on the order and suppress re-asking within 1 turn |
-| Ally moving interrupt loops forever | Cautious SUPPORT asks "Follow?" every turn while ally has MOVE_TO/PURSUE. Track `last_ally_moving_turn`/`last_ally_moving_dest` on order — only re-ask if ally changes destination |
+| Ally moving interrupt loops forever | REMOVED: ally_moving popup replaced with silent auto-follow. SUPPORT tracks ally.location dynamically each turn — no popup needed |
+| Command executes for wrong marshal | Interrupt router in main.py matched keywords (e.g. "march to") in command addressed to different marshal. Fixed: router checks if command names a different marshal and skips |
 | Interrupt report missing order_status | ALL return dicts from strategic handlers MUST include `order_status` field. Missing it causes `status=None` in debug output and may confuse Godot |
 
 ---

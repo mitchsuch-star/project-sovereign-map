@@ -1496,8 +1496,8 @@ class TestSupportHandler:
         report = [r for r in reports if r["marshal"] == "Davout"][0]
         assert report["order_status"] == "completed"
 
-    def test_support_cautious_ally_moving_interrupt(self, world, strategic_executor, game_state):
-        """Cautious SUPPORT asks player when ally is on the move."""
+    def test_support_auto_follows_moving_ally_no_popup(self, world, strategic_executor, game_state):
+        """SUPPORT silently auto-follows moving ally (no interrupt popup)."""
         davout = world.get_marshal("Davout")
         davout.location = "Paris"
         davout.strategic_order = _make_order(
@@ -1509,9 +1509,10 @@ class TestSupportHandler:
 
         reports = strategic_executor.process_strategic_orders(world, game_state)
         report = [r for r in reports if r["marshal"] == "Davout"][0]
-        assert report.get("requires_input") == True
-        assert report.get("interrupt_type") == "ally_moving"
-        assert "follow" in report.get("options", [])
+        # Should NOT show popup — auto-follows silently
+        assert report.get("requires_input") is not True
+        assert report.get("interrupt_type") != "ally_moving"
+        assert report.get("order_status") in ("continues", "completed")
 
     def test_support_moves_toward_ally(self, world, strategic_executor, game_state):
         """SUPPORT moves marshal closer to ally each turn."""

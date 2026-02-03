@@ -160,9 +160,27 @@ def execute_command(request: CommandRequest):
         for m in world.get_player_marshals():
             pending = getattr(m, 'pending_interrupt', None)
             if pending:
+                cmd_lower = request.command.strip().lower()
+
+                # ── Guard: if command addresses a DIFFERENT marshal, skip ──
+                # "grouchy march to brittany" should NOT be routed as
+                # Davout's interrupt response just because "march to" matches.
+                known_marshal_names = [
+                    name.lower() for name in world.marshals.keys()
+                ]
+                addressed_other = any(
+                    name in cmd_lower
+                    for name in known_marshal_names
+                    if name != m.name.lower()
+                )
+                if addressed_other:
+                    # Command is for a different marshal — clear stale interrupt
+                    # and let it parse normally
+                    m.pending_interrupt = None
+                    continue
+
                 options = pending.get("options", [])
                 interrupt_type = pending.get("interrupt_type", "")
-                cmd_lower = request.command.strip().lower()
 
                 # Map natural language to response choices
                 choice = None

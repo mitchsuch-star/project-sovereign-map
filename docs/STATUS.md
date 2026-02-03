@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1022** (verified Feb 2, 2026) |
+| **Tests Passing** | **1004** (verified Feb 2, 2026) |
 | **Current Phase** | 6 (Core Campaign Systems) — not started |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3 |
@@ -31,6 +31,8 @@ Phase 5.2/5.3 fully complete. Next: Phase 6 design.
 ## Recently Completed
 
 ### Feb 2 (this session)
+- **Bug fix:** Command misattribution — typing "grouchy march to brittany" triggered Davout's pending interrupt response because "march to" matched interrupt keywords. Interrupt router now checks if command addresses a different marshal and skips routing if so.
+- **UX improvement:** SUPPORT auto-follow — supporting marshals now silently follow when ally moves (no more repeated "Follow?" popups every turn). SUPPORT already tracked ally position dynamically; the popup was unnecessary friction.
 - **Bug fix:** Strategic commands (HOLD, MOVE_TO, PURSUE, SUPPORT) failed with "Unknown action" after player insisted on objection. Post-objection executor was missing strategic routing and hold/wait handlers. Also propagated `is_strategic`/`strategic_type` into command dict so they survive objection storage.
 - **UI fix:** Strategic HOLD tooltip — any marshal with active HOLD order now shows "HOLDING POSITION at [region]" in hover tooltip. Grouchy still shows "(Immovable): +15% defense".
 - **UX fix:** Grouchy attack clarification — literal marshals no longer silently auto-move when given "attack" with no nearby target. Instead shows clarification popup offering to upgrade to PURSUE with target selection.

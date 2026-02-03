@@ -585,8 +585,8 @@ class TestSupportCommand:
         assert report["order_status"] == "breaks"
         assert "fallen" in report["message"]
 
-    def test_support_cautious_asks_before_following(self, world, game_state, strategic_executor):
-        """Cautious asks before following moving ally."""
+    def test_support_auto_follows_moving_ally(self, world, game_state, strategic_executor):
+        """SUPPORT silently auto-follows when ally is moving (no popup)."""
         davout = world.get_marshal("Davout")
         assert davout.personality == "cautious"
         ney = world.get_marshal("Ney")
@@ -608,8 +608,11 @@ class TestSupportCommand:
             reports = strategic_executor.process_strategic_orders(world, game_state)
 
         report = [r for r in reports if r["marshal"] == "Davout"][0]
-        # Cautious should ask about following
-        assert report.get("requires_input") is True or report.get("interrupt_type") == "ally_moving"
+        # Should auto-follow without popup (no requires_input)
+        assert report.get("requires_input") is not True
+        assert report.get("interrupt_type") != "ally_moving"
+        # Should be moving toward ally or already with them
+        assert report.get("order_status") in ("continues", "completed")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
