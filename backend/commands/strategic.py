@@ -1562,10 +1562,31 @@ class StrategicExecutor:
 
     def _handle_blocked_path(self, marshal, enemies, blocked_region,
                              world, game_state) -> Dict:
-        """Handle enemy blocking the path."""
+        """Handle enemy blocking the path.
+
+        IMPORTANT: If the player already responded to this same enemy blocking
+        this same turn (or the previous turn), don't re-ask — just hold.
+        Without this, contact interrupts loop infinitely every turn when
+        a persistent enemy blocks a SUPPORT/MOVE_TO path.
+        """
         personality = marshal.personality
         enemy = enemies[0]
         order = marshal.strategic_order
+
+        # Suppress re-asking about the same enemy (prevents infinite interrupt loop)
+        last_contact_enemy = getattr(order, 'last_contact_enemy', None)
+        last_contact_turn = getattr(order, 'last_contact_turn', None)
+        if (last_contact_enemy == enemy.name and
+                last_contact_turn is not None and
+                world.current_turn - last_contact_turn <= 1):
+            return {
+                "marshal": marshal.name,
+                "command": order.command_type,
+                "order_status": "continues",
+                "action": "blocked",
+                "message": f"{marshal.name} holds position — {enemy.name} "
+                           f"still blocks the path at {blocked_region}."
+            }
 
         if personality == "literal":
             # Reroute silently around ALL enemy regions
@@ -1612,9 +1633,13 @@ class StrategicExecutor:
             else:
                 msg = (f"{marshal.name}: '{enemy.name} blocks the path. "
                        f"Odds unfavorable.'")
+            # Track contact to prevent infinite interrupt loop next turn
+            order.last_contact_enemy = enemy.name
+            order.last_contact_turn = world.current_turn
             return {
                 "marshal": marshal.name,
                 "command": order.command_type,
+                "order_status": "awaiting_response",
                 "requires_input": True,
                 "interrupt_type": "contact_bad_odds",
                 "enemy": enemy.name,
@@ -1625,9 +1650,13 @@ class StrategicExecutor:
             }
 
         else:  # cautious (and balanced/loyal) — always ask
+            # Track contact to prevent infinite interrupt loop next turn
+            order.last_contact_enemy = enemy.name
+            order.last_contact_turn = world.current_turn
             return {
                 "marshal": marshal.name,
                 "command": order.command_type,
+                "order_status": "awaiting_response",
                 "requires_input": True,
                 "interrupt_type": "contact",
                 "enemy": enemy.name,

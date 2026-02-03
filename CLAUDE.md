@@ -1567,6 +1567,8 @@ For detailed design decisions and architecture:
 | Strategic popups missing (auto-advance) | Auto-advance turn path in executor.py must copy ALL turn_result fields: `enemy_phase`, `tactical_events`, AND `strategic_reports`. Missing any one silently drops those popups |
 | Post-objection costs 1 AP not 2 | `_execute_post_objection` must use `variable_action_cost` from strategic result, not single `use_action()` call. Strategic = 2 AP, literal = 1 AP |
 | Strategic detection skipped | Verify `world` is passed to `parser.parse()`. Without it, strategic_parser never runs and commands fall through to tactical routing (e.g. HOLD becomes defend) |
+| Contact interrupt loops forever | `_handle_blocked_path` triggers every turn if enemy persists. Must track `last_contact_enemy`/`last_contact_turn` on the order and suppress re-asking within 1 turn |
+| Interrupt report missing order_status | ALL return dicts from strategic handlers MUST include `order_status` field. Missing it causes `status=None` in debug output and may confuse Godot |
 
 ---
 
