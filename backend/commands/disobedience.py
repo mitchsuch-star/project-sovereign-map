@@ -1497,10 +1497,17 @@ def check_strategic_objection(
     strategic_type: str,
     target: str,
     path: List[str],
-    world
+    world,
+    game_state=None,
+    include_variance: bool = True
 ) -> Optional[Dict]:
     """
     Check if a marshal objects to a strategic command at issuance.
+
+    Uses probability system (same as tactical objections):
+    1. Check if conditions are met for potential objection
+    2. Calculate severity using trust, authority, vindication modifiers
+    3. Roll against severity - only object if roll >= 0.50 threshold
 
     Trigger conditions:
     - Ney (aggressive): HOLD with no enemies adjacent to target region
@@ -1518,6 +1525,8 @@ def check_strategic_objection(
         target: Target region or marshal name
         path: Calculated path for movement orders
         world: WorldState for context
+        game_state: Game state for authority modifier (optional)
+        include_variance: Whether to add random variance (for testing)
 
     Returns:
         None if no objection, or dict with:
@@ -1527,7 +1536,10 @@ def check_strategic_objection(
         - preferred_action: Dict with marshal's preferred alternative
         - compromise_action: Dict with middle-ground option (or None)
         - options: List of choice options for UI
+        - severity: Calculated severity value
     """
+    from backend.commands.severity import calculate_strategic_severity
+
     if not marshal or not world:
         return None
 
@@ -1545,8 +1557,13 @@ def check_strategic_objection(
     if getattr(marshal, 'retreat_recovery', 0) > 0:
         return None
 
+    # Get game_state for severity calculation
+    if game_state is None:
+        game_state = {"world": world}
+
     # ═══════════════════════════════════════════════════════════
     # NEY (AGGRESSIVE) - Objects to HOLD with no enemies adjacent
+    # Base severity: 0.55 (strong objection tendency)
     # ═══════════════════════════════════════════════════════════
     if personality == 'aggressive' and strategic_type == "HOLD":
         # Check for enemies adjacent to target (or current location if no target)
@@ -1562,6 +1579,15 @@ def check_strategic_objection(
                     break
 
         if not enemies_adjacent:
+            # Calculate severity with probability modifiers
+            severity = calculate_strategic_severity(
+                marshal, strategic_type, 0.55, game_state, include_variance
+            )
+
+            # Only object if severity >= 0.50 (major objection threshold)
+            if severity < 0.50:
+                return None
+
             # Generate preferred alternatives
             preferred = _get_aggressive_preferred(marshal, world)
             compromise = {"action": "hold", "max_turns": 3}  # Timed HOLD
@@ -1573,6 +1599,7 @@ def check_strategic_objection(
                 "message": f'"{marshal.name} scoffs. "Hold position? While there\'s glory to be won? You want me to guard nothing, Sire?""',
                 "marshal": marshal.name,
                 "personality": personality,
+                "severity": severity,
                 "options": _build_strategic_options(
                     marshal,
                     preferred,
@@ -1585,6 +1612,7 @@ def check_strategic_objection(
 
     # ═══════════════════════════════════════════════════════════
     # DAVOUT (CAUTIOUS) - Objects to PURSUE with bad odds
+    # Base severity: 0.50 (moderate objection tendency)
     # ═══════════════════════════════════════════════════════════
     if personality == 'cautious' and strategic_type == "PURSUE":
         target_marshal = world.get_marshal(target) if target else None
@@ -1594,6 +1622,15 @@ def check_strategic_objection(
 
             # Threshold: >= 1.2x (target is 20% stronger or more)
             if ratio >= 1.2:
+                # Calculate severity with probability modifiers
+                severity = calculate_strategic_severity(
+                    marshal, strategic_type, 0.50, game_state, include_variance
+                )
+
+                # Only object if severity >= 0.50
+                if severity < 0.50:
+                    return None
+
                 preferred = {"action": "fortify", "target": marshal.location}
                 compromise = {"action": "pursue", "auto_cancel_below_ratio": 0.8}
 
@@ -1604,6 +1641,7 @@ def check_strategic_objection(
                     "message": f'"{marshal.name} studies the reports. "Pursue {target}? Their forces outnumber us. This is reckless, Sire.""',
                     "marshal": marshal.name,
                     "personality": personality,
+                    "severity": severity,
                     "options": _build_strategic_options(
                         marshal,
                         preferred,
@@ -1616,6 +1654,7 @@ def check_strategic_objection(
 
     # ═══════════════════════════════════════════════════════════
     # DAVOUT (CAUTIOUS) - Objects to MOVE_TO through danger
+    # Base severity: 0.45 (moderate objection tendency)
     # ═══════════════════════════════════════════════════════════
     if personality == 'cautious' and strategic_type == "MOVE_TO":
         # Check if path crosses any enemy-occupied region
@@ -1626,6 +1665,15 @@ def check_strategic_objection(
                 enemy_regions.append(region_name)
 
         if enemy_regions:
+            # Calculate severity with probability modifiers
+            severity = calculate_strategic_severity(
+                marshal, strategic_type, 0.45, game_state, include_variance
+            )
+
+            # Only object if severity >= 0.50
+            if severity < 0.50:
+                return None
+
             preferred = {"action": "fortify", "target": marshal.location}
 
             # Check if safe path exists
@@ -1648,6 +1696,7 @@ def check_strategic_objection(
                 "message": f'"{marshal.name} traces the route. "That path passes through {enemy_regions[0]}. We would be walking into danger, Sire.""',
                 "marshal": marshal.name,
                 "personality": personality,
+                "severity": severity,
                 "options": _build_strategic_options(
                     marshal,
                     preferred,

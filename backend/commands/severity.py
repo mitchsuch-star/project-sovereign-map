@@ -265,6 +265,55 @@ def get_severity_label(severity: float) -> str:
         return "Outright Defiance"
 
 
+def calculate_strategic_severity(
+    marshal,
+    strategic_type: str,
+    base_severity: float,
+    game_state,
+    include_variance: bool = True
+) -> float:
+    """
+    Calculate objection severity for strategic commands.
+
+    Uses the same modifier system as tactical objections:
+    - Trust modifier (low trust = higher severity)
+    - Vindication modifier (proven right = higher severity)
+    - Performance modifier (winning streak = lower severity)
+    - Override modifier (frequently overridden = higher severity)
+    - Authority modifier (low authority = higher severity)
+
+    Strategic commands have higher base severities than tactical:
+    - Ney HOLD (no enemies): 0.55 base
+    - Davout PURSUE (bad odds): 0.50 base
+    - Davout MOVE_TO (dangerous): 0.45 base
+
+    Args:
+        marshal: Marshal receiving the order
+        strategic_type: "HOLD", "PURSUE", "MOVE_TO", "SUPPORT"
+        base_severity: Starting severity for this objection type
+        game_state: Current game state
+        include_variance: Whether to add random variance
+
+    Returns:
+        Severity value (0.0 to 0.95)
+    """
+    severity = base_severity
+
+    # Apply multiplicative modifiers (same as tactical)
+    severity *= get_trust_modifier(marshal)
+    severity *= get_vindication_modifier(marshal)
+    severity *= get_performance_modifier(marshal)
+    severity *= get_override_modifier(marshal)
+    severity *= get_authority_modifier(game_state)
+
+    # Apply variance if enabled
+    if include_variance:
+        severity = apply_variance(severity)
+
+    # Cap at 0.95
+    return min(0.95, max(0.0, severity))
+
+
 def get_severity_breakdown(marshal, order: Dict, game_state) -> Dict:
     """
     Get detailed breakdown of severity calculation.

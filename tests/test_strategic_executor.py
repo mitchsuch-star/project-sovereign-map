@@ -2017,6 +2017,8 @@ class TestFirstStepBlocked:
         assert davout.personality == "cautious"
         davout.location = "Belgium"  # Start at Belgium
         davout.strength = 80000
+        # Low trust ensures objection triggers (severity = 0.45 * 1.6 = 0.72)
+        davout.trust.set(15)
 
         # Put enemy at Rhine (on path to Bavaria)
         wellington = world.get_marshal("Wellington")
@@ -2143,6 +2145,8 @@ class TestFirstStepBlocked:
         """
         davout = world.get_marshal("Davout")
         davout.location = "Belgium"
+        # Low trust ensures objection triggers
+        davout.trust.set(15)
 
         # Block the only path to Bavaria
         wellington = world.get_marshal("Wellington")

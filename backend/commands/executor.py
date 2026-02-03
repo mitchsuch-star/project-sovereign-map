@@ -2436,9 +2436,9 @@ RETREAT RECOVERY (3 turns):
         objection_response = command.get("objection_response")
 
         if not objection_response:
-            # First time issuing - check for objection
+            # First time issuing - check for objection (uses probability system)
             objection = check_strategic_objection(
-                marshal, strategic_type, target, path, world
+                marshal, strategic_type, target, path, world, game_state
             )
 
             if objection and objection.get("should_object"):

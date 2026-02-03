@@ -32,7 +32,13 @@ Phase 5.2 Strategic Commands is COMPLETE, including Phase M (Strategic Objection
 
 ### Feb 3 (this session)
 - **Phase M complete:** Strategic Objections implemented and verified. All 47 tests passing (44 pass, 3 skipped for future relationship system).
-- **Test fix:** Updated 2 first-step blocked tests to reflect Phase M behavior — Davout's objection to MOVE_TO through dangerous path now triggers at issuance (correct per design), not during first-step execution.
+- **CRITICAL FIX:** Strategic objections now use probability system (same as tactical):
+  - Factors: trust, authority, vindication, performance, override history
+  - Base severities: Ney HOLD=0.55, Davout PURSUE=0.50, Davout MOVE_TO=0.45
+  - Threshold: ≥0.50 for objection to trigger
+  - High trust (80+) = 0.7x modifier → objections less likely
+  - Low trust (<20) = 1.6x modifier → objections more likely
+- **Test updates:** Tests that require objections now set low trust to guarantee triggers
 - Test count: **1066 passed, 3 skipped, 0 failures**
 
 ### Feb 2

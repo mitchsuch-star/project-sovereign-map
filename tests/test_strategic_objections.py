@@ -159,6 +159,8 @@ class TestNeyHoldObjection:
         """Ney at Paris with no enemies nearby should object to HOLD."""
         world = world_with_french_marshals
         ney = world.marshals["Ney"]
+        # Low trust increases objection severity, ensuring objection triggers
+        ney.trust.set(15)
 
         # No enemies in world yet - Ney should object
         command = {
@@ -452,6 +454,8 @@ class TestDavoutPursueObjection:
         world = world_with_enemies
         davout = world.marshals["Davout"]
         davout.strength = 30000
+        # Low trust increases objection severity (1.6x modifier), ensuring objection triggers
+        davout.trust.set(15)
 
         wellington = world.marshals["Wellington"]
         wellington.strength = 40000  # 1.33x Davout's strength
@@ -491,6 +495,8 @@ class TestDavoutPursueObjection:
         world = world_with_enemies
         davout = world.marshals["Davout"]
         davout.strength = 30000
+        # Low trust ensures objection triggers despite variance
+        davout.trust.set(15)
 
         wellington = world.marshals["Wellington"]
         wellington.strength = 36000  # Exactly 1.2x
@@ -654,6 +660,8 @@ class TestDavoutMoveToObjection:
         world = world_with_enemies
         davout = world.marshals["Davout"]
         davout.location = "Belgium"
+        # Low trust ensures objection triggers despite variance (base severity 0.45)
+        davout.trust.set(15)
 
         # Blucher at Rhine - path to Bavaria goes through him
         blucher = world.marshals["Blucher"]
