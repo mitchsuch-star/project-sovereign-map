@@ -1043,78 +1043,84 @@ class StrategicExecutor:
             }
 
         else:  # aggressive (and balanced/loyal)
-            # Check for nearby enemies to sally
+            # Evaluate ALL adjacent enemies to find best sally target
+            # Priority: best strength ratio → lowest morale (tiebreaker)
             region = world.get_region(marshal.location)
+            sally_candidates = []
             if region:
                 for adj_name in region.adjacent_regions:
-                    enemies = world.get_enemies_in_region(adj_name, marshal.nation)
-                    if enemies:
-                        enemy = enemies[0]
+                    for enemy in world.get_enemies_in_region(adj_name, marshal.nation):
                         ratio = marshal.strength / max(1, enemy.strength)
+                        if ratio >= 1.0 and self._should_auto_attack(marshal, enemy, world):
+                            sally_candidates.append((enemy, adj_name, ratio))
 
-                        if ratio >= 1.0 and self._should_auto_attack(marshal, enemy, world):  # Favorable odds, no combat loop
-                            # SALLY: Move to enemy region, attack, return
-                            # Step 1: Move to the adjacent region
-                            move_result = self.executor.execute(
-                                {"command": {
-                                    "marshal": marshal.name,
-                                    "action": "move",
-                                    "target": adj_name,
-                                    "_strategic_execution": True
-                                }},
-                                game_state
-                            )
+            if sally_candidates:
+                # Best ratio first (easiest kill), then lowest morale (most likely to break)
+                sally_candidates.sort(key=lambda c: (-c[2], c[0].morale))
+                enemy, adj_name, ratio = sally_candidates[0]
 
-                            combat_result = None
-                            if move_result.get("success"):
-                                # Step 2: Attack the enemy (now same region)
-                                combat_result = self.executor.execute(
-                                    {"command": {
-                                        "marshal": marshal.name,
-                                        "action": "attack",
-                                        "target": enemy.name,
-                                        "_strategic_execution": True,
-                                        "_sortie": True
-                                    }},
-                                    game_state
-                                )
+                # SALLY: Move to enemy region, attack, return
+                # Step 1: Move to the adjacent region
+                move_result = self.executor.execute(
+                    {"command": {
+                        "marshal": marshal.name,
+                        "action": "move",
+                        "target": adj_name,
+                        "_strategic_execution": True
+                    }},
+                    game_state
+                )
 
-                            # Step 3: Return to hold position
-                            if marshal.location != hold_position:
-                                self.executor.execute(
-                                    {"command": {
-                                        "marshal": marshal.name,
-                                        "action": "move",
-                                        "target": hold_position,
-                                        "_strategic_execution": True
-                                    }},
-                                    game_state
-                                )
+                combat_result = None
+                if move_result.get("success"):
+                    # Step 2: Attack the enemy (now same region)
+                    combat_result = self.executor.execute(
+                        {"command": {
+                            "marshal": marshal.name,
+                            "action": "attack",
+                            "target": enemy.name,
+                            "_strategic_execution": True,
+                            "_sortie": True
+                        }},
+                        game_state
+                    )
 
-                            # Extract combat details for UI display
-                            sally_outcome = ""
-                            battle_message = ""
-                            if combat_result:
-                                for evt in combat_result.get("events", []):
-                                    if evt.get("type") == "battle":
-                                        sally_outcome = evt.get("outcome", "")
-                                        break
-                                battle_message = combat_result.get("message", "")
+                # Step 3: Return to hold position
+                if marshal.location != hold_position:
+                    self.executor.execute(
+                        {"command": {
+                            "marshal": marshal.name,
+                            "action": "move",
+                            "target": hold_position,
+                            "_strategic_execution": True
+                        }},
+                        game_state
+                    )
 
-                            return {
-                                "marshal": marshal.name,
-                                "command": "HOLD",
-                                "action": "sally",
-                                "target": enemy.name,
-                                "combat_result": combat_result,
-                                "outcome": sally_outcome,
-                                "battle_message": battle_message,
-                                "battle_details": combat_result,
-                                "returned_to": hold_position,
-                                "order_status": "continues",
-                                "message": f"{marshal.name} sallies forth to attack "
-                                           f"{enemy.name}, then returns to {hold_position}!"
-                            }
+                # Extract combat details for UI display
+                sally_outcome = ""
+                battle_message = ""
+                if combat_result:
+                    for evt in combat_result.get("events", []):
+                        if evt.get("type") == "battle":
+                            sally_outcome = evt.get("outcome", "")
+                            break
+                    battle_message = combat_result.get("message", "")
+
+                return {
+                    "marshal": marshal.name,
+                    "command": "HOLD",
+                    "action": "sally",
+                    "target": enemy.name,
+                    "combat_result": combat_result,
+                    "outcome": sally_outcome,
+                    "battle_message": battle_message,
+                    "battle_details": combat_result,
+                    "returned_to": hold_position,
+                    "order_status": "continues",
+                    "message": f"{marshal.name} sallies forth to attack "
+                               f"{enemy.name}, then returns to {hold_position}!"
+                }
 
             # No sally opportunity — hold actively
             return {

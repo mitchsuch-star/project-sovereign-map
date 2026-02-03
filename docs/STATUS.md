@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1021** (verified Feb 2, 2026) |
+| **Tests Passing** | **1022** (verified Feb 2, 2026) |
 | **Current Phase** | 6 (Core Campaign Systems) — not started |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3 |
@@ -35,7 +35,8 @@ Phase 5.2/5.3 fully complete. Next: Phase 6 design.
 - **UI fix:** Strategic HOLD tooltip — any marshal with active HOLD order now shows "HOLDING POSITION at [region]" in hover tooltip. Grouchy still shows "(Immovable): +15% defense".
 - **UX fix:** Grouchy attack clarification — literal marshals no longer silently auto-move when given "attack" with no nearby target. Instead shows clarification popup offering to upgrade to PURSUE with target selection.
 - **UX fix:** Sally battle display — extracted combat outcome/message from sally `combat_result` into top-level report fields. Strategic report popup now shows battle narrative and outcome inline. Text output also logs sally battle details.
-- Test count: **1021 passed** (1 pre-existing probabilistic failure)
+- **Improvement:** Sally target selection now evaluates all adjacent enemies and picks best strength ratio (lowest morale tiebreaker) instead of first-found.
+- Test count: **1022 passed, 0 failures**
 
 ### Jan 31
 - **Bug fix:** `pending_interrupt` overwrite — lines 562/578 in strategic.py clobbered correctly-set interrupt dicts, causing "Invalid choice" errors on interrupt responses
@@ -82,7 +83,7 @@ Phase 5.2/5.3 fully complete. Next: Phase 6 design.
 | Phase J (UI) not started | Low | Strategic status display in Godot |
 | Phase M not started | Low | Strategic objections — designed, see PHASE_5_2_IMPLEMENTATION_PLAN.md. Note: Ney currently objects to HOLD via tactical objection system (aggressive vs defensive), works but message is generic. Phase M should replace with strategic-aware objection ("I'd rather attack!"). |
 | Godot smoke test pending | Low | Need manual verification |
-| Sally target selection naive | Low | With 2+ adjacent enemies, picks first by region iteration order — no priority logic (weakest, most threatening, etc.) |
+| ~~Sally target selection naive~~ | ~~Low~~ | Fixed: evaluates all adjacent enemies, picks best strength ratio with morale tiebreaker |
 
 ---
 
