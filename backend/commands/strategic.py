@@ -1100,26 +1100,38 @@ class StrategicExecutor:
                 sally_outcome = ""
                 battle_message = ""
                 cleaned_combat = None
+                is_glorious_charge = False
                 if combat_result:
                     cleaned_combat = {k: v for k, v in combat_result.items() if k != "new_state"}
+                    is_glorious_charge = cleaned_combat.get("glorious_charge", False)
                     for evt in cleaned_combat.get("events", []):
                         if evt.get("type") == "battle":
                             sally_outcome = evt.get("outcome", "")
                             break
+                        elif evt.get("type") == "glorious_charge":
+                            sally_outcome = "victory" if evt.get("attacker_won") else "defeat"
+                            break
                     battle_message = cleaned_combat.get("message", "")
+
+                sally_action = "glorious_charge_sally" if is_glorious_charge else "sally"
+                sally_msg = (f"{marshal.name} leads a GLORIOUS CHARGE against "
+                             f"{enemy.name}, then returns to {hold_position}!"
+                             if is_glorious_charge else
+                             f"{marshal.name} sallies forth to attack "
+                             f"{enemy.name}, then returns to {hold_position}!")
 
                 return {
                     "marshal": marshal.name,
                     "command": "HOLD",
-                    "action": "sally",
+                    "action": sally_action,
                     "target": enemy.name,
                     "outcome": sally_outcome,
                     "battle_message": battle_message,
                     "battle_details": cleaned_combat,
+                    "glorious_charge": is_glorious_charge,
                     "returned_to": hold_position,
                     "order_status": "continues",
-                    "message": f"{marshal.name} sallies forth to attack "
-                               f"{enemy.name}, then returns to {hold_position}!"
+                    "message": sally_msg
                 }
 
             # No sally opportunity — hold actively

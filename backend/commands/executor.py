@@ -1304,7 +1304,11 @@ RETREAT RECOVERY (3 turns):
                 # Only trigger recklessness popup/auto-charge if we have a valid target
                 # If no target in range, let normal attack flow handle it (move toward enemy)
                 if resolved_target:
-                    if is_player and recklessness < 4:  # Player at exactly 3 - popup
+                    # Strategic execution (sally, etc.) auto-charges — no popup.
+                    # Ney on HOLD sallies autonomously; he wouldn't stop mid-charge
+                    # to ask permission. Result shows in strategic report.
+                    is_strategic_sally = marshal.in_strategic_mode
+                    if is_player and recklessness < 4 and not is_strategic_sally:  # Player at exactly 3 - popup
                         # Set pending state for popup
                         marshal.pending_glorious_charge = True
                         marshal.pending_charge_target = resolved_target
