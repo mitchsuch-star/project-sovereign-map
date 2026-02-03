@@ -1096,8 +1096,9 @@ class StrategicExecutor:
                             battle_message = ""
                             if combat_result:
                                 for evt in combat_result.get("events", []):
-                                    if evt.get("type") == "combat_result":
+                                    if evt.get("type") == "battle":
                                         sally_outcome = evt.get("outcome", "")
+                                        break
                                 battle_message = combat_result.get("message", "")
 
                             return {

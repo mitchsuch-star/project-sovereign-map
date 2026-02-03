@@ -80,8 +80,9 @@ Phase 5.2/5.3 fully complete. Next: Phase 6 design.
 | Issue | Severity | Notes |
 |-------|----------|-------|
 | Phase J (UI) not started | Low | Strategic status display in Godot |
-| Phase M not started | Low | Strategic objections — designed, see PHASE_5_2_IMPLEMENTATION_PLAN.md |
+| Phase M not started | Low | Strategic objections — designed, see PHASE_5_2_IMPLEMENTATION_PLAN.md. Note: Ney currently objects to HOLD via tactical objection system (aggressive vs defensive), works but message is generic. Phase M should replace with strategic-aware objection ("I'd rather attack!"). |
 | Godot smoke test pending | Low | Need manual verification |
+| Sally target selection naive | Low | With 2+ adjacent enemies, picks first by region iteration order — no priority logic (weakest, most threatening, etc.) |
 
 ---
 
