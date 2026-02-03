@@ -38,8 +38,9 @@
 |---------|------------|----------|---------|
 | Blocked path | Auto-attack | Ask player | Reroute silently |
 | Cannon fire | Rush to join! | Ask player | **IGNORE** |
-| HOLD behavior | Sally out, return | Fortify | Immovable (+15%) |
+| HOLD behavior | Sally out (best target), return | Fortify | Immovable (+15%) |
 | Generic target | Auto-resolve (nearest) | Auto-resolve (nearest) | Clarification popup |
+| Attack (no target nearby) | Auto-move toward enemy | Auto-move toward enemy | Clarification popup (offers PURSUE upgrade) |
 
 ### Cardinal Direction & Generic Target Resolution
 

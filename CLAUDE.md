@@ -864,11 +864,18 @@ CRITICAL: main.py must explicitly pass through new fields!
 
 4. Create dialog scene (.tscn) and script (.gd) in godot-client/
 
+SERIALIZATION WARNING: Executor results contain "new_state" (full WorldState
+with circular references). NEVER embed raw executor results in report dicts
+that reach the API response. Always strip first:
+  cleaned = {k: v for k, v in result.items() if k != "new_state"}
+If you don't, FastAPI silently drops the ENTIRE parent dict from the response.
+
 DEBUG TIP: If frontend isn't receiving a field, test with curl first:
   curl -X POST http://127.0.0.1:8005/command \
     -H "Content-Type: application/json" \
     -d '{"command": "test command"}'
 If field is missing in JSON response, the bug is in main.py (step 2).
+If curl hangs or returns 500, check for circular references in the response.
 ```
 
 **UI Wiring Rule (MANDATORY):**
@@ -1553,6 +1560,9 @@ For detailed design decisions and architecture:
 | AI doesn't attack when should | Check P4 attack threshold vs ratio; add `[P0 ENGAGEMENT]` debug prints |
 | AI capital not found | Test map lacks London/Berlin - use proxy regions in `_get_nation_capital()` |
 | AI stagnation never resets | `process_nation_turn()` result dicts have action under `ai_action` key, not `action` — fixed in 248ce85 |
+| Strategic reports silently dropped | Executor results contain `new_state` (WorldState, circular refs). Strip with `{k:v for k,v in result.items() if k != "new_state"}` before embedding in any report dict that reaches the API response |
+| Post-objection "Unknown action" | `_execute_post_objection` must handle ALL actions in `objection_actions` list + strategic routing. Check both when adding new actions |
+| Duplicate buttons in popup | Backend should NOT add Cancel/Proceed options — Godot clarification_popup.gd adds its own "Cancel Order" button at line 66-69 |
 
 ---
 
