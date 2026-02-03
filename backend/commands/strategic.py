@@ -732,12 +732,14 @@ class StrategicExecutor:
 
                 msg = f"{marshal.name} arrives at {marshal.location} and attacks {target.name}!"
                 self._complete_order(marshal, world, msg)
+                # Strip new_state to avoid circular reference in JSON serialization
+                cleaned_result = {k: v for k, v in result.items() if k != "new_state"} if result else None
                 return {
                     "marshal": marshal.name,
                     "command": "MOVE_TO",
                     "action": "attack_on_arrival",
                     "target": target.name,
-                    "combat_result": result,
+                    "combat_result": cleaned_result,
                     "order_status": "completed",
                     "message": msg
                 }
@@ -1098,24 +1100,28 @@ class StrategicExecutor:
                     )
 
                 # Extract combat details for UI display
+                # CRITICAL: Strip new_state from combat_result — contains circular
+                # references (WorldState) that crash JSON serialization and silently
+                # drop the entire strategic_reports from the API response.
                 sally_outcome = ""
                 battle_message = ""
+                cleaned_combat = None
                 if combat_result:
-                    for evt in combat_result.get("events", []):
+                    cleaned_combat = {k: v for k, v in combat_result.items() if k != "new_state"}
+                    for evt in cleaned_combat.get("events", []):
                         if evt.get("type") == "battle":
                             sally_outcome = evt.get("outcome", "")
                             break
-                    battle_message = combat_result.get("message", "")
+                    battle_message = cleaned_combat.get("message", "")
 
                 return {
                     "marshal": marshal.name,
                     "command": "HOLD",
                     "action": "sally",
                     "target": enemy.name,
-                    "combat_result": combat_result,
                     "outcome": sally_outcome,
                     "battle_message": battle_message,
-                    "battle_details": combat_result,
+                    "battle_details": cleaned_combat,
                     "returned_to": hold_position,
                     "order_status": "continues",
                     "message": f"{marshal.name} sallies forth to attack "
