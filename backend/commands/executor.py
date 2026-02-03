@@ -846,8 +846,9 @@ RETREAT RECOVERY (3 turns):
                             "value": "specify",
                             "target": alt
                         })
-                    options.append({"label": "Proceed as ordered", "value": "insist"})
-                    options.append({"label": "Cancel", "value": "cancel"})
+                    if interpreted:
+                        options.append({"label": "Proceed as ordered", "value": "confirm", "target": interpreted})
+                    # Note: popup adds its own "Cancel Order" button — don't duplicate
 
                     if strategic_type == "PURSUE":
                         cl_msg = f"You wish me to pursue {interpreted}, Sire?"
@@ -1341,7 +1342,7 @@ RETREAT RECOVERY (3 turns):
                                 "value": "specify",
                                 "target": e.name
                             })
-                        options.append({"label": "Cancel", "value": "cancel"})
+                        # Note: popup adds its own "Cancel Order" button — don't duplicate
                         return {
                             "success": True,
                             "free_action": True,
