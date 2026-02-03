@@ -450,6 +450,15 @@ RETREAT RECOVERY (3 turns):
         action = command.get("action", "unknown")
 
         # ════════════════════════════════════════════════════════════
+        # STRATEGIC FIELDS PROPAGATION: Copy strategic flags into command dict
+        # so they survive objection storage (original_order = command)
+        # and can be used for post-objection routing
+        # ════════════════════════════════════════════════════════════
+        if parsed_command.get("is_strategic"):
+            command["is_strategic"] = True
+            command["strategic_type"] = parsed_command.get("strategic_type")
+
+        # ════════════════════════════════════════════════════════════
         # STRATEGIC EXECUTION FLAG (Phase 5.2-C)
         # When set, skip action cost + objections (marshal's own decision)
         # ════════════════════════════════════════════════════════════
@@ -5728,6 +5737,26 @@ RETREAT RECOVERY (3 turns):
         # Route to appropriate handler based on action type
         command_type = command.get("type", "specific")
 
+        # Strategic commands route through strategic executor
+        if command.get("is_strategic") and command.get("strategic_type"):
+            parsed_command["is_strategic"] = True
+            parsed_command["strategic_type"] = command["strategic_type"]
+            parsed_command["marshal"] = marshal_name
+            strategic_result = self._execute_strategic_command(parsed_command, command, game_state)
+            if strategic_result is not None:
+                result = strategic_result
+                # Consume action if successful
+                action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
+                if result.get("success", False) and action_costs_point:
+                    action_result = world.use_action(action)
+                result["action_info"] = {
+                    "cost": action_result.get("action_cost", 0),
+                    "remaining": world.actions_remaining,
+                    "turn_advanced": action_result.get("turn_advanced", False),
+                    "new_turn": action_result.get("new_turn")
+                }
+                return result
+
         if action == "attack":
             marshal = world.get_marshal(marshal_name)
             if marshal:
@@ -5772,6 +5801,14 @@ RETREAT RECOVERY (3 turns):
         # BUG-005 FIX: Handle stance_change in post-objection execution
         elif action == "stance_change":
             result = self._execute_stance_change(command, game_state)
+        elif action == "hold":
+            marshal = world.get_marshal(marshal_name)
+            if marshal:
+                result = self._execute_hold(marshal, world, game_state)
+            else:
+                result = {"success": False, "message": f"Marshal {marshal_name} not found"}
+        elif action == "wait":
+            result = self._execute_wait(command, game_state)
         else:
             result = {"success": False, "message": f"Unknown action: {action}"}
 
