@@ -433,7 +433,7 @@ class CommandParser:
 
         # Default fallback
         return "specific"
-    def parse_multiple(self, command_text: str, game_state: Optional[Dict] = None) -> List[Dict]:
+    def parse_multiple(self, command_text: str, game_state: Optional[Dict] = None, world=None) -> List[Dict]:
         """
         Parse commands that mention multiple marshals.
 
@@ -450,13 +450,13 @@ class CommandParser:
             results = []
             for part in parts:
                 # Parse each part
-                result = self.parse(part.strip(), game_state)
+                result = self.parse(part.strip(), game_state, world=world)
                 results.append(result)
 
             return results
         else:
             # Single command
-            return [self.parse(command_text, game_state)]
+            return [self.parse(command_text, game_state, world=world)]
 
     def get_help(self) -> str:
         """

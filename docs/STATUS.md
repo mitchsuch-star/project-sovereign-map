@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 2, 2026
-> **Last Session:** Post-objection strategic routing fix, UI/UX improvements (hold tooltip, Grouchy clarification, sally battle display)
+> **Last Session:** Sally battle root cause fix, post-objection cost fix, auto-advance strategic reports, parse_multiple world param
 
 ---
 
@@ -38,6 +38,10 @@ Phase 5.2/5.3 fully complete. Next: Phase 6 design.
 - **Bug fix (root cause):** Sally battles never reached frontend — `new_state` (full WorldState with circular references) was embedded in executor attack results inside `combat_result`/`battle_details`. FastAPI JSON serializer silently dropped entire `strategic_reports`. Fixed by stripping `new_state` from combat results in sally and MOVE_TO attack_on_arrival reports.
 - **Bug fix:** Duplicate cancel buttons in clarification popup — backend included Cancel/Proceed options that Godot popup already adds natively. Also fixed "Proceed as ordered" sending `"insist"` as target.
 - **Improvement:** Sally target selection now evaluates all adjacent enemies and picks best strength ratio (lowest morale tiebreaker) instead of first-found.
+- **Bug fix:** Strategic reports (hold battles, movement progress) missing from auto-advance turn path. When actions exhausted and turn auto-advances, `strategic_reports` from `turn_result` were not copied into response — popups never appeared in Godot.
+- **Bug fix (root cause, 4th attempt):** Sally battles STILL never showed because the sally used move→attack→return pattern, but executor blocks `move()` into enemy-occupied regions. Move always failed silently, so `combat_result` was always None. Fixed: sally now attacks adjacent enemy directly (executor handles adjacent attacks), then returns only if marshal advanced on victory.
+- **Bug fix:** Post-objection strategic HOLD cost 1 AP instead of 2. `_execute_post_objection` called `use_action()` once instead of using `variable_action_cost` from strategic result.
+- **Fix:** `parse_multiple()` now accepts and passes `world` parameter, enabling strategic detection for multi-marshal commands.
 - Test count: **1022 passed, 0 failures**
 
 ### Jan 31

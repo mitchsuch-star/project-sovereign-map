@@ -1563,6 +1563,10 @@ For detailed design decisions and architecture:
 | Strategic reports silently dropped | Executor results contain `new_state` (WorldState, circular refs). Strip with `{k:v for k,v in result.items() if k != "new_state"}` before embedding in any report dict that reaches the API response |
 | Post-objection "Unknown action" | `_execute_post_objection` must handle ALL actions in `objection_actions` list + strategic routing. Check both when adding new actions |
 | Duplicate buttons in popup | Backend should NOT add Cancel/Proceed options — Godot clarification_popup.gd adds its own "Cancel Order" button at line 66-69 |
+| Sally battles never show | Do NOT use move→attack→return for sally. Executor blocks `move()` into enemy-occupied regions (silent fail). Use `attack` directly — executor handles adjacent attacks. See strategic.py sally comment |
+| Strategic popups missing (auto-advance) | Auto-advance turn path in executor.py must copy ALL turn_result fields: `enemy_phase`, `tactical_events`, AND `strategic_reports`. Missing any one silently drops those popups |
+| Post-objection costs 1 AP not 2 | `_execute_post_objection` must use `variable_action_cost` from strategic result, not single `use_action()` call. Strategic = 2 AP, literal = 1 AP |
+| Strategic detection skipped | Verify `world` is passed to `parser.parse()`. Without it, strategic_parser never runs and commands fall through to tactical routing (e.g. HOLD becomes defend) |
 
 ---
 

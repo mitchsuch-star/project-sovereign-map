@@ -1061,31 +1061,25 @@ class StrategicExecutor:
                 sally_candidates.sort(key=lambda c: (-c[2], c[0].morale))
                 enemy, adj_name, ratio = sally_candidates[0]
 
-                # SALLY: Move to enemy region, attack, return
-                # Step 1: Move to the adjacent region
-                move_result = self.executor.execute(
+                # SALLY: Attack adjacent enemy directly, then return if advanced.
+                #
+                # IMPORTANT: Do NOT try move→attack→return pattern here!
+                # The executor blocks move() into enemy-occupied regions, so
+                # the move always fails silently, combat_result stays None,
+                # and battle details never reach the frontend. This bug was
+                # found 4 times before the root cause was identified.
+                # The executor's _execute_attack() already handles attacking
+                # adjacent enemies from the marshal's current position.
+                combat_result = self.executor.execute(
                     {"command": {
                         "marshal": marshal.name,
-                        "action": "move",
-                        "target": adj_name,
-                        "_strategic_execution": True
+                        "action": "attack",
+                        "target": enemy.name,
+                        "_strategic_execution": True,
+                        "_sortie": True
                     }},
                     game_state
                 )
-
-                combat_result = None
-                if move_result.get("success"):
-                    # Step 2: Attack the enemy (now same region)
-                    combat_result = self.executor.execute(
-                        {"command": {
-                            "marshal": marshal.name,
-                            "action": "attack",
-                            "target": enemy.name,
-                            "_strategic_execution": True,
-                            "_sortie": True
-                        }},
-                        game_state
-                    )
 
                 # Step 3: Return to hold position
                 if marshal.location != hold_position:

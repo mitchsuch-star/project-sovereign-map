@@ -1048,7 +1048,9 @@ RETREAT RECOVERY (3 turns):
                     result["message"] = result.get("message", "") + "\n\n--- TURN EVENTS ---\n" + "\n".join(tactical_messages)
                     result["tactical_events"] = tactical_events
 
-            # Add strategic reports
+            # Add strategic reports — CRITICAL: without this, strategic popups
+            # (hold battles, movement progress) never appear in Godot when the
+            # turn auto-advances from actions being exhausted.
             if turn_result.get("strategic_reports"):
                 result["strategic_reports"] = turn_result["strategic_reports"]
 
@@ -5777,12 +5779,17 @@ RETREAT RECOVERY (3 turns):
             strategic_result = self._execute_strategic_command(parsed_command, command, game_state)
             if strategic_result is not None:
                 result = strategic_result
-                # Consume action if successful
+                # Consume action if successful — MUST use variable_action_cost!
+                # Strategic commands cost 2 AP (1 for literal). Do NOT call
+                # use_action() once — that only deducts 1 AP. This was a bug
+                # where post-objection HOLD always cost 1 AP instead of 2.
                 action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
                 if result.get("success", False) and action_costs_point:
-                    action_result = world.use_action(action)
+                    variable_cost = result.get("variable_action_cost", 1)
+                    for _ in range(variable_cost):
+                        action_result = world.use_action(action)
                 result["action_info"] = {
-                    "cost": action_result.get("action_cost", 0),
+                    "cost": result.get("variable_action_cost", 1),
                     "remaining": world.actions_remaining,
                     "turn_advanced": action_result.get("turn_advanced", False),
                     "new_turn": action_result.get("new_turn")
