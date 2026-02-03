@@ -1174,11 +1174,22 @@ RETREAT RECOVERY (3 turns):
             # NORMAL FORCED RETREAT: Safe location found
             # ════════════════════════════════════════════════════════════
             old_loc = marshal.location
+            # Clear strategic order before moving (forced retreat breaks all orders)
+            strategic_msg = ""
+            if marshal.strategic_order:
+                cmd_type = marshal.strategic_order.command_type
+                if cmd_type == "HOLD":
+                    strategic_msg = f" {marshal.name}'s HOLD order at {old_loc} is broken!"
+                    marshal.holding_position = False
+                    marshal.hold_region = ""
+                else:
+                    strategic_msg = f" {marshal.name}'s {cmd_type} order is cancelled!"
+                marshal.strategic_order = None
             marshal.move_to(retreat_to)  # Use move_to() for proper state clearing
             marshal.retreating = True
             marshal.retreat_recovery = 0  # Start recovery at stage 0
             marshal.retreated_this_turn = True  # Mark for ally covering system
-            return f"⚠️ {marshal.name}'s broken army flees to {retreat_to}! (recovering for 3 turns)"
+            return f"⚠️ {marshal.name}'s broken army flees to {retreat_to}!{strategic_msg} (recovering for 3 turns)"
         else:
             # ════════════════════════════════════════════════════════════
             # SURROUNDED - ARMY BROKEN: No safe retreat possible
@@ -1222,10 +1233,20 @@ RETREAT RECOVERY (3 turns):
             marshal.holding_position = False
             marshal.hold_region = ""
 
+            # Clear strategic order (army shattered, all orders void)
+            strategic_msg = ""
+            if marshal.strategic_order:
+                cmd_type = marshal.strategic_order.command_type
+                if cmd_type == "HOLD":
+                    strategic_msg = f" {marshal.name}'s HOLD position at {old_loc} is lost!"
+                else:
+                    strategic_msg = f" {marshal.name}'s {cmd_type} order is void!"
+                marshal.strategic_order = None
+
             survival_percent = int(survival_rate * 100)
             return (
                 f"💀 {marshal.name}'s army is SURROUNDED and SHATTERED at {old_loc}! "
-                f"Only {survivors:,} survivors ({survival_percent}%) escape to {spawn_loc}. "
+                f"Only {survivors:,} survivors ({survival_percent}%) escape to {spawn_loc}.{strategic_msg} "
                 f"Army is BROKEN - can only recruit for 4 turns!"
             )
 
@@ -3496,6 +3517,7 @@ RETREAT RECOVERY (3 turns):
                 "message": f"{nearest_marshal.name} (auto-assigned) attacks {target}!{flanking_prefix} {battle_result['description']}{vindication_msg}{forced_retreat_msg}",
                 "events": [{
                     "type": "battle",
+                    "battle_name": f"Battle of {enemy.location}",
                     "marshal": nearest_marshal.name,
                     "auto_assigned": True,
                     "attacker": battle_result["attacker"],
@@ -3623,6 +3645,7 @@ RETREAT RECOVERY (3 turns):
                 "message": f"{nearest_marshal.name} attacks {enemy.name} at {target_name}!{flanking_prefix} {battle_result['description']}{conquest_msg}{vindication_msg}{forced_retreat_msg}",
                 "events": [{
                     "type": "battle",
+                    "battle_name": f"Battle of {target_name}",
                     "marshal": nearest_marshal.name,
                     "auto_assigned": True,
                     "attacker": battle_result["attacker"],

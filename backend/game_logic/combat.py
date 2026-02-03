@@ -351,15 +351,26 @@ class CombatResolver:
 
         #print(f"   💀 Casualties: {attacker.name} {attacker_casualties:,}, {defender.name} {defender_casualties:,}")
 
+        # Capture original strengths for casualty-scaled morale
+        attacker_original_strength = attacker.strength
+        defender_original_strength = defender.strength
+
         # Apply casualties FIRST (this was missing!)
-        #print(f"   BEFORE: {attacker.name}={attacker.strength:,}, {defender.name}={defender.strength:,}")
         attacker.take_casualties(attacker_casualties)
         defender.take_casualties(defender_casualties)
-        #print(f"   AFTER: {attacker.name}={attacker.strength:,}, {defender.name}={defender.strength:,}")
+
+        # Calculate casualty rates for morale scaling
+        # Heavier losses = worse morale hit (Napoleonic armies broke after severe casualties)
+        atk_casualty_rate = attacker_casualties / max(attacker_original_strength, 1)
+        def_casualty_rate = defender_casualties / max(defender_original_strength, 1)
+
+        def _scaled_morale_loss(casualty_rate: float, base_loss: int) -> int:
+            """Scale morale loss by casualty severity. Worse losses = worse morale.
+            At 10% casualties: roughly base_loss. At 30%+: up to 2.5x base_loss."""
+            severity = min(casualty_rate / 0.15, 2.5)  # 15% = 1.0x, 37.5% = 2.5x cap
+            return max(base_loss, int(base_loss * severity))
 
         # Determine victor (AFTER applying casualties)
-
-        # Determine victor
         if attacker.strength <= 0 and defender.strength <= 0:
             victor = None
             outcome = "mutual_destruction"
@@ -367,7 +378,7 @@ class CombatResolver:
             victor = defender
             outcome = "defender_victory"
             defender.adjust_morale(10)
-            attacker.adjust_morale(-20)
+            attacker.adjust_morale(-_scaled_morale_loss(atk_casualty_rate, 20))
             defender.battles_won += 1
             attacker.battles_lost += 1
             # COUNTER-PUNCH: Cautious defenders (Davout) get free attack after winning defense
@@ -379,7 +390,7 @@ class CombatResolver:
             victor = attacker
             outcome = "attacker_victory"
             attacker.adjust_morale(10)
-            defender.adjust_morale(-20)
+            defender.adjust_morale(-_scaled_morale_loss(def_casualty_rate, 20))
             attacker.battles_won += 1
             defender.battles_lost += 1
         else:
@@ -388,7 +399,7 @@ class CombatResolver:
                 victor = defender
                 outcome = "defender_tactical_victory"
                 defender.adjust_morale(5)
-                attacker.adjust_morale(-10)
+                attacker.adjust_morale(-_scaled_morale_loss(atk_casualty_rate, 10))
                 # COUNTER-PUNCH: Cautious defenders (Davout) get free attack after winning defense
                 if getattr(defender, 'personality', '') == 'cautious':
                     defender.counter_punch_available = True
@@ -398,12 +409,12 @@ class CombatResolver:
                 victor = attacker
                 outcome = "attacker_tactical_victory"
                 attacker.adjust_morale(5)
-                defender.adjust_morale(-10)
+                defender.adjust_morale(-_scaled_morale_loss(def_casualty_rate, 10))
             else:
                 victor = None
                 outcome = "stalemate"
-                attacker.adjust_morale(-5)
-                defender.adjust_morale(-5)
+                attacker.adjust_morale(-_scaled_morale_loss(atk_casualty_rate, 5))
+                defender.adjust_morale(-_scaled_morale_loss(def_casualty_rate, 5))
                 # COUNTER-PUNCH: Cautious defenders held the line - still get counter-punch
                 if getattr(defender, 'personality', '') == 'cautious':
                     defender.counter_punch_available = True

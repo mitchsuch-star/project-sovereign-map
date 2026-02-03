@@ -1571,6 +1571,7 @@ For detailed design decisions and architecture:
 | Ally moving interrupt loops forever | REMOVED: ally_moving popup replaced with silent auto-follow. SUPPORT tracks ally.location dynamically each turn — no popup needed |
 | Command executes for wrong marshal | Interrupt router in main.py matched keywords (e.g. "march to") in command addressed to different marshal. Fixed: router checks if command names a different marshal and skips |
 | Interrupt report missing order_status | ALL return dicts from strategic handlers MUST include `order_status` field. Missing it causes `status=None` in debug output and may confuse Godot |
+| Stale strategic order after forced retreat | Forced retreat now clears `marshal.strategic_order` in `_apply_forced_retreat_or_break()`. HOLD orders also clear `holding_position`/`hold_region`. Message reflects which order was broken |
 
 ---
 

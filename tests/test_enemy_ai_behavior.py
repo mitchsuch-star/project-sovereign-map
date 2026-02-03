@@ -163,10 +163,15 @@ class TestMultiTurnIntegration:
         """Britain and Prussia stagnation counters should be independent."""
         wellington = self.world.get_marshal("Wellington")
         _isolate_marshal(self.world, "Wellington", "Britain")
-        wellington.location = "Waterloo"
+        # Place Wellington far from any targets so he idles
+        wellington.location = "Spain"
         wellington.fortified = True
         wellington.defense_bonus = 0.10
         wellington.stance = Stance.DEFENSIVE
+        # Ensure Spain is British-controlled so no capture opportunity
+        spain = self.world.get_region("Spain")
+        if spain:
+            spain.controller = "Britain"
 
         blucher = self.world.get_marshal("Blucher")
         _isolate_marshal(self.world, "Blucher", "Prussia")
@@ -175,7 +180,8 @@ class TestMultiTurnIntegration:
         # Place French target near Prussia but not Britain
         ney = self.world.get_marshal("Ney")
         ney.location = "Belgium"
-        ney.strength = 20000
+        ney.strength = 40000
+        ney.morale = 80
         blucher.strength = 55000
 
         _run_nation_turn(self.world, "Britain")
