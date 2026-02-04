@@ -6049,8 +6049,11 @@ RETREAT RECOVERY (3 turns):
                 # Strategic commands cost 2 AP (1 for literal). Do NOT call
                 # use_action() once — that only deducts 1 AP. This was a bug
                 # where post-objection HOLD always cost 1 AP instead of 2.
+                #
+                # CRITICAL: pending_objection means player hasn't decided yet —
+                # AP is consumed when they respond, NOT when objection triggers!
                 action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
-                if result.get("success", False) and action_costs_point:
+                if result.get("success", False) and action_costs_point and not result.get("pending_objection"):
                     variable_cost = result.get("variable_action_cost", 1)
                     for _ in range(variable_cost):
                         action_result = world.use_action(action)
