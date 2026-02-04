@@ -81,27 +81,36 @@ func show_objection(objection_data: Dictionary):
 	var authority = int(objection_data.get("authority", 100))
 	authority_label.text = "Authority: %d" % authority
 
-	# Check which options are available
-	has_alternative = objection_data.has("suggested_alternative") and objection_data.suggested_alternative != null
-	has_compromise = objection_data.has("compromise") and objection_data.compromise != null
+	# Strategic objections (Phase M) use options array
+	# Tactical objections use suggested_alternative/compromise dicts
+	var options = objection_data.get("options", [])
+	var is_strategic = objection_data.get("is_strategic", false) or options.size() > 0
 
-	# Set button text
-	if has_alternative:
-		var alt = objection_data.suggested_alternative
-		var alt_desc = _describe_order(alt)
-		trust_button.text = "Trust %s (%s)" % [current_marshal, alt_desc]
+	if is_strategic and options.size() > 0:
+		# Strategic objection - use options array
+		_setup_strategic_buttons(options)
 	else:
-		trust_button.text = "Trust %s's Judgment" % current_marshal
+		# Tactical objection - use legacy format
+		has_alternative = objection_data.has("suggested_alternative") and objection_data.suggested_alternative != null
+		has_compromise = objection_data.has("compromise") and objection_data.compromise != null
 
-	insist_button.text = "Proceed as Ordered"
+		# Set button text
+		if has_alternative:
+			var alt = objection_data.suggested_alternative
+			var alt_desc = _describe_order(alt)
+			trust_button.text = "Trust %s (%s)" % [current_marshal, alt_desc]
+		else:
+			trust_button.text = "Trust %s's Judgment" % current_marshal
 
-	if has_compromise:
-		var comp = objection_data.compromise
-		var comp_desc = _describe_order(comp)
-		compromise_button.text = "Compromise (%s)" % comp_desc
-		compromise_button.visible = true
-	else:
-		compromise_button.visible = false
+		insist_button.text = "Proceed as Ordered"
+
+		if has_compromise:
+			var comp = objection_data.compromise
+			var comp_desc = _describe_order(comp)
+			compromise_button.text = "Compromise (%s)" % comp_desc
+			compromise_button.visible = true
+		else:
+			compromise_button.visible = false
 
 	# Show the dialog
 	print("16. About to call show()")
@@ -152,6 +161,54 @@ func _describe_order(order: Dictionary) -> String:
 			if target:
 				return "%s %s" % [action, target]
 			return action
+
+func _setup_strategic_buttons(options: Array):
+	"""Configure buttons for strategic objection options."""
+	# Find each option type
+	var proceed_opt = null
+	var preferred_opt = null
+	var compromise_opt = null
+
+	for opt in options:
+		var opt_type = opt.get("type", "")
+		if opt_type == "proceed":
+			proceed_opt = opt
+		elif opt_type == "preferred":
+			preferred_opt = opt
+		elif opt_type == "compromise":
+			compromise_opt = opt
+
+	# Set up Insist/Proceed button
+	if proceed_opt:
+		var text = proceed_opt.get("text", "Proceed as Ordered")
+		var ap = proceed_opt.get("ap_cost", 2)
+		var trust = proceed_opt.get("trust_change", -10)
+		insist_button.text = "%s (%d AP, %+d trust)" % [text, ap, trust]
+	else:
+		insist_button.text = "Proceed as Ordered"
+
+	# Set up Trust/Preferred button
+	if preferred_opt:
+		var text = preferred_opt.get("text", "Accept Alternative")
+		var ap = preferred_opt.get("ap_cost", 1)
+		var trust = preferred_opt.get("trust_change", 12)
+		trust_button.text = "%s (%d AP, %+d trust)" % [text, ap, trust]
+		has_alternative = true
+	else:
+		trust_button.text = "Trust %s's Judgment" % current_marshal
+		has_alternative = false
+
+	# Set up Compromise button
+	if compromise_opt:
+		var text = compromise_opt.get("text", "Compromise")
+		var ap = compromise_opt.get("ap_cost", 2)
+		var trust = compromise_opt.get("trust_change", 3)
+		compromise_button.text = "%s (%d AP, %+d trust)" % [text, ap, trust]
+		compromise_button.visible = true
+		has_compromise = true
+	else:
+		compromise_button.visible = false
+		has_compromise = false
 
 func _get_vindication_text(score: int) -> String:
 	"""Convert vindication score to readable text."""

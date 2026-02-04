@@ -405,9 +405,12 @@ func _on_command_result(response):
 	print("=".repeat(60) + "\n")
 
 	# Check for marshal objection FIRST (before re-enabling input)
-	# The backend returns state: "awaiting_player_choice"
-	var is_objection = response.get("success", false) and response.has("state") and response.state == "awaiting_player_choice"
-	print("4. IS_OBJECTION CHECK RESULT: ", is_objection)
+	# Tactical objections: state == "awaiting_player_choice"
+	# Strategic objections (Phase M): pending_objection == true
+	var is_tactical_objection = response.get("success", false) and response.has("state") and response.state == "awaiting_player_choice"
+	var is_strategic_objection = response.get("success", false) and response.has("pending_objection") and response.pending_objection == true
+	var is_objection = is_tactical_objection or is_strategic_objection
+	print("4. IS_OBJECTION CHECK: tactical=", is_tactical_objection, " strategic=", is_strategic_objection, " => ", is_objection)
 
 	if is_objection:
 		print("5. OBJECTION DETECTED - About to show dialog")
@@ -786,21 +789,32 @@ func _show_objection_dialog(response):
 	"""Display objection dialog when marshal objects."""
 	print("9. _show_objection_dialog() CALLED")
 
+	# Strategic objections (Phase M) nest data in response.objection
+	# Tactical objections have data at top level
+	var is_strategic = response.has("pending_objection") and response.pending_objection == true
+	var objection = response.get("objection", {}) if is_strategic else response
+
+	var marshal_name = objection.get("marshal", response.get("marshal", "Unknown"))
+
 	add_output("")
-	add_output("[color=#" + COLOR_MARSHAL + "]⚠ Marshal " + response.get("marshal", "Unknown") + " raises concerns...[/color]")
+	add_output("[color=#" + COLOR_MARSHAL + "]⚠ Marshal " + marshal_name + " raises concerns...[/color]")
 	add_output("")
 
 	# Prepare objection data for dialog
+	# Handle both tactical (top-level) and strategic (nested in objection) formats
 	var objection_data = {
-		"marshal": response.get("marshal", "Marshal"),
-		"personality": response.get("personality", "unknown"),
-		"message": response.get("message", "I have concerns about this order, Sire."),
+		"marshal": marshal_name,
+		"personality": objection.get("personality", response.get("personality", "unknown")),
+		"message": objection.get("message", response.get("message", "I have concerns about this order, Sire.")),
 		"trust": response.get("trust", 70),
 		"trust_label": response.get("trust_label", "Unknown"),
 		"vindication": response.get("vindication", 0),
 		"authority": response.get("authority", 100),
-		"suggested_alternative": response.get("suggested_alternative"),
-		"compromise": response.get("compromise")
+		"suggested_alternative": objection.get("suggested_alternative", response.get("suggested_alternative")),
+		"compromise": objection.get("compromise", response.get("compromise")),
+		# Strategic objections have options array instead of suggested_alternative/compromise
+		"options": objection.get("options", []),
+		"is_strategic": is_strategic
 	}
 
 	print("10. OBJECTION DATA: ", objection_data)
