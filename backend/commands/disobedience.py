@@ -1545,6 +1545,9 @@ def check_strategic_objection(
 
     personality = getattr(marshal, 'personality', 'balanced').lower()
 
+    # DEBUG: Trace strategic objection check
+    print(f"[STRATEGIC OBJECTION CHECK] {marshal.name} ({personality}): {strategic_type} -> {target}")
+
     # ═══════════════════════════════════════════════════════════
     # BYPASS: Grouchy (literal) never objects to strategic commands
     # ═══════════════════════════════════════════════════════════
@@ -1563,7 +1566,10 @@ def check_strategic_objection(
 
     # ═══════════════════════════════════════════════════════════
     # NEY (AGGRESSIVE) - Objects to HOLD with no enemies adjacent
-    # Base severity: 0.55 (strong objection tendency)
+    # Base severity: 0.72 (strong objection - aggressive hates passive orders)
+    # At trust 70: 0.72 × 1.0 = 0.72 → ~80% objection chance
+    # At trust 85: 0.72 × 0.7 = 0.50 → ~50% objection chance
+    # At trust 15: 0.72 × 1.6 = 1.15 → capped at 0.95 → guaranteed
     # ═══════════════════════════════════════════════════════════
     if personality == 'aggressive' and strategic_type == "HOLD":
         # Check for enemies adjacent to target (or current location if no target)
@@ -1581,8 +1587,11 @@ def check_strategic_objection(
         if not enemies_adjacent:
             # Calculate severity with probability modifiers
             severity = calculate_strategic_severity(
-                marshal, strategic_type, 0.55, game_state, include_variance
+                marshal, strategic_type, 0.72, game_state, include_variance
             )
+
+            # DEBUG: Print severity calculation
+            print(f"[STRATEGIC OBJECTION] {marshal.name} HOLD: severity={severity:.3f}, threshold=0.50, triggers={severity >= 0.50}")
 
             # Only object if severity >= 0.50 (major objection threshold)
             if severity < 0.50:
@@ -1612,7 +1621,9 @@ def check_strategic_objection(
 
     # ═══════════════════════════════════════════════════════════
     # DAVOUT (CAUTIOUS) - Objects to PURSUE with bad odds
-    # Base severity: 0.50 (moderate objection tendency)
+    # Base severity: 0.68 (cautious hates risky chases)
+    # At trust 70: 0.68 × 1.0 = 0.68 → ~75% objection chance
+    # At trust 85: 0.68 × 0.7 = 0.48 → ~45% objection chance
     # ═══════════════════════════════════════════════════════════
     if personality == 'cautious' and strategic_type == "PURSUE":
         target_marshal = world.get_marshal(target) if target else None
@@ -1624,7 +1635,7 @@ def check_strategic_objection(
             if ratio >= 1.2:
                 # Calculate severity with probability modifiers
                 severity = calculate_strategic_severity(
-                    marshal, strategic_type, 0.50, game_state, include_variance
+                    marshal, strategic_type, 0.68, game_state, include_variance
                 )
 
                 # Only object if severity >= 0.50
@@ -1654,7 +1665,9 @@ def check_strategic_objection(
 
     # ═══════════════════════════════════════════════════════════
     # DAVOUT (CAUTIOUS) - Objects to MOVE_TO through danger
-    # Base severity: 0.45 (moderate objection tendency)
+    # Base severity: 0.65 (cautious dislikes marching into danger)
+    # At trust 70: 0.65 × 1.0 = 0.65 → ~70% objection chance
+    # At trust 85: 0.65 × 0.7 = 0.46 → ~40% objection chance
     # ═══════════════════════════════════════════════════════════
     if personality == 'cautious' and strategic_type == "MOVE_TO":
         # Check if path crosses any enemy-occupied region
@@ -1667,7 +1680,7 @@ def check_strategic_objection(
         if enemy_regions:
             # Calculate severity with probability modifiers
             severity = calculate_strategic_severity(
-                marshal, strategic_type, 0.45, game_state, include_variance
+                marshal, strategic_type, 0.65, game_state, include_variance
             )
 
             # Only object if severity >= 0.50
