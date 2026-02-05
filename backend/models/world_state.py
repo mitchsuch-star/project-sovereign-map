@@ -1786,8 +1786,16 @@ class WorldState:
                 decay_settings = decay_config.get(personality, default_decay)
 
                 # Determine if growing or decaying
+                # Davout (cautious) with active HOLD order is immune to decay
+                has_hold_order = (
+                    getattr(marshal, 'strategic_order', None) and
+                    marshal.strategic_order.command_type == "HOLD"
+                )
+                davout_hold_immunity = personality == "cautious" and has_hold_order
+
                 should_decay = (
                     not is_cavalry and  # Cavalry handled separately
+                    not davout_hold_immunity and  # Davout's HOLD = permanent fort
                     turns_fortified >= decay_settings["start"] and
                     current_bonus > decay_settings["floor"]
                 )

@@ -2397,6 +2397,21 @@ RETREAT RECOVERY (3 turns):
             target = marshal.location
             target_type = "region"
 
+        # ── HOLD: Check if already holding the same location ──────────
+        # Block redundant HOLD orders to prevent accidental AP waste
+        if strategic_type == "HOLD":
+            existing_order = marshal.strategic_order
+            if existing_order and existing_order.command_type == "HOLD":
+                existing_target = existing_order.target or marshal.location
+                new_target = target or marshal.location
+                if existing_target == new_target:
+                    return {
+                        "success": False,
+                        "message": f"{marshal.name} is already holding {existing_target}. No action needed.",
+                        "already_holding": True,
+                        "variable_action_cost": 0,  # Don't consume AP
+                    }
+
         # ── Build path for movement orders ────────────────────────────
         path = []
         if strategic_type in ("MOVE_TO", "PURSUE", "SUPPORT", "HOLD"):
@@ -4522,6 +4537,7 @@ RETREAT RECOVERY (3 turns):
                           "  • set_fortify_turns <marshal> <turns> - Set turns fortified\n"
                           "    (decay starts at turn 4-8 depending on personality)\n"
                           "\n== AI Testing ==\n"
+                          "  • freeze_enemies - Toggle freeze ALL enemies (AI skips them)\n"
                           "  • ai_turn <nation> - Force AI turn (Britain/Prussia)\n"
                           "  • ai_state <marshal> - Show AI evaluation\n"
                           "\n== State Manipulation ==\n"
@@ -4546,7 +4562,32 @@ RETREAT RECOVERY (3 turns):
 
         # === AI TESTING COMMANDS (don't require marshal) ===
 
-        if ability == "ai_turn":
+        if ability == "freeze_enemies":
+            # Toggle freeze on ALL enemy marshals at once
+            player_nation = getattr(world, 'player_nation', 'France')
+            enemy_marshals = [m for m in world.marshals.values() if m.nation != player_nation]
+
+            if not enemy_marshals:
+                return {"success": False, "message": "No enemy marshals found."}
+
+            # Check current state - if any are unfrozen, freeze all; else unfreeze all
+            any_unfrozen = any(not getattr(m, '_debug_frozen', False) for m in enemy_marshals)
+            new_state = any_unfrozen  # If any unfrozen, freeze all; else unfreeze all
+
+            frozen_names = []
+            for m in enemy_marshals:
+                m._debug_frozen = new_state
+                frozen_names.append(f"{m.name} ({m.nation})")
+
+            action = "FROZEN" if new_state else "UNFROZEN"
+            return {
+                "success": True,
+                "message": f"🧊 DEBUG: All enemies {action}\n"
+                          f"Affected: {', '.join(frozen_names)}\n"
+                          f"Enemy AI will {'skip these marshals' if new_state else 'act normally'}."
+            }
+
+        elif ability == "ai_turn":
             if len(parts) < 2:
                 return {"success": False, "message": "Usage: /debug ai_turn <nation>\nNations: Britain, Prussia"}
             nation = parts[1].capitalize()
@@ -5912,7 +5953,10 @@ RETREAT RECOVERY (3 turns):
         # Add objection response and preferred/compromise data to command
         original_command["objection_response"] = strategic_response
         original_command["preferred_action"] = objection.get("options", [{}])[1] if len(objection.get("options", [])) > 1 else None
-        original_command["compromise"] = objection.get("options", [{}])[2] if len(objection.get("options", [])) > 2 else None
+        # Extract inner "compromise" dict from the options entry (the entry has type/text/compromise structure)
+        options_list = objection.get("options", [])
+        compromise_option = options_list[2] if len(options_list) > 2 else {}
+        original_command["compromise"] = compromise_option.get("compromise") if isinstance(compromise_option, dict) else None
 
         # Clear the pending strategic objection BEFORE re-execution
         world.pending_strategic_objection = None

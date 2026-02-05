@@ -1001,7 +1001,7 @@ class StrategicExecutor:
 
         # ═══════════════════════════════════════════════════════════
         # PHASE M: Timed HOLD expiry check
-        # Auto-expire after max_turns (Ney compromise)
+        # Auto-expire after max_turns (compromise from objection)
         # ═══════════════════════════════════════════════════════════
         if order.condition and order.condition.max_turns:
             issued_turn = order.issued_turn or order.started_turn
@@ -1010,11 +1010,20 @@ class StrategicExecutor:
                 marshal.strategic_order = None
                 marshal.holding_position = False
                 marshal.hold_region = ""
+                # Personality-appropriate expiry message
+                if personality == "aggressive":
+                    msg = f"{marshal.name} grows restless and abandons the position at {hold_position}."
+                elif personality == "cautious":
+                    msg = f"{marshal.name} has held {hold_position} for the agreed duration. Awaiting new orders."
+                elif personality == "literal":
+                    msg = f"{marshal.name} reports: Hold order complete. {order.condition.max_turns} turns elapsed at {hold_position}."
+                else:
+                    msg = f"{marshal.name} completes the timed hold at {hold_position}. Ready for new orders."
                 return {
                     "success": True,
                     "marshal": marshal.name,
                     "order_status": "expired",
-                    "message": f"{marshal.name} grows restless and abandons the position at {hold_position}.",
+                    "message": msg,
                     "timed_expiry": True,
                 }
 
@@ -1540,27 +1549,68 @@ class StrategicExecutor:
         if condition.max_turns is not None:
             turns_active = world.current_turn - order.started_turn
             if turns_active >= condition.max_turns:
+                # Personality-appropriate completion message for HOLD
+                if order.command_type == "HOLD":
+                    personality = getattr(marshal, 'personality', 'balanced')
+                    location = order.target or marshal.location
+                    if personality == "aggressive":
+                        msg = f"{marshal.name} grows restless and abandons {location}."
+                    elif personality == "cautious":
+                        msg = f"{marshal.name} has held {location} for the agreed duration. Awaiting new orders."
+                    elif personality == "literal":
+                        msg = f"{marshal.name} reports: Hold order complete. {condition.max_turns} turns elapsed at {location}."
+                    else:
+                        msg = f"{marshal.name} completes the timed hold at {location}."
+                    return (True, msg)
                 return (True,
-                        f"Held for {condition.max_turns} turn(s) as ordered")
+                        f"Order complete after {condition.max_turns} turn(s)")
 
         if condition.until_marshal_arrives:
             target = world.get_marshal(condition.until_marshal_arrives)
             if target and target.location == marshal.location:
-                return (True,
-                        f"{condition.until_marshal_arrives} has arrived")
+                personality = getattr(marshal, 'personality', 'balanced')
+                ally_name = condition.until_marshal_arrives
+                if personality == "aggressive":
+                    msg = f"Finally! {ally_name} has arrived. Now we can take the fight to them!"
+                elif personality == "cautious":
+                    msg = f"{ally_name} has arrived. Position secured, Sire."
+                elif personality == "literal":
+                    msg = f"{marshal.name} reports: {ally_name} arrived as specified. Hold order complete."
+                else:
+                    msg = f"{ally_name} has arrived. {marshal.name} awaits new orders."
+                return (True, msg)
 
         if condition.until_marshal_destroyed:
             target = world.get_marshal(condition.until_marshal_destroyed)
             if not target or target.strength <= 0:
-                return (True,
-                        f"{condition.until_marshal_destroyed} destroyed")
+                personality = getattr(marshal, 'personality', 'balanced')
+                enemy_name = condition.until_marshal_destroyed
+                if personality == "aggressive":
+                    msg = f"{enemy_name} is finished! The hunt was glorious!"
+                elif personality == "cautious":
+                    msg = f"{enemy_name} has been eliminated. Threat neutralized."
+                elif personality == "literal":
+                    msg = f"{marshal.name} reports: Target ({enemy_name}) destroyed. Order complete."
+                else:
+                    msg = f"{enemy_name} destroyed. {marshal.name} awaits new orders."
+                return (True, msg)
 
         if condition.until_relieved:
             marshals_here = world.get_marshals_in_region(marshal.location)
             allies = [m for m in marshals_here
                       if m.nation == marshal.nation and m.name != marshal.name]
             if allies:
-                return (True, f"Relieved by {allies[0].name}")
+                personality = getattr(marshal, 'personality', 'balanced')
+                relief_name = allies[0].name
+                if personality == "aggressive":
+                    msg = f"About time! {relief_name} takes over. Free to hunt!"
+                elif personality == "cautious":
+                    msg = f"Relieved by {relief_name}. Orderly handover complete."
+                elif personality == "literal":
+                    msg = f"{marshal.name} reports: Relieved by {relief_name}. Awaiting new orders."
+                else:
+                    msg = f"Relieved by {relief_name}. {marshal.name} ready for new orders."
+                return (True, msg)
 
         if condition.until_battle_won:
             battle_ending_results = ("victory", "stalemate")
