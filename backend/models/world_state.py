@@ -106,6 +106,10 @@ class WorldState:
         # None when no redemption pending, Dict when awaiting player choice
         self.pending_redemption: Optional[Dict] = None
 
+        # Pending strategic objection - Phase M strategic objections
+        # None when no objection pending, Dict when awaiting player choice
+        self.pending_strategic_objection: Optional[Dict] = None
+
         # ============================================================
         # ENEMY AI SYSTEM - Nation tracking and battle naming
         # ============================================================
@@ -1237,6 +1241,7 @@ class WorldState:
             "vindication_tracker": self.vindication_tracker.to_dict(),
             "pending_objection": self.pending_objection,
             "pending_redemption": self.pending_redemption,
+            "pending_strategic_objection": self.pending_strategic_objection,
 
             # ═══════ ENEMY AI ═══════
             "ai_stagnation_turns": self.ai_stagnation_turns.copy(),
@@ -1302,6 +1307,7 @@ class WorldState:
             world.vindication_tracker = VindicationTracker.from_dict(data["vindication_tracker"])
         world.pending_objection = data.get("pending_objection")
         world.pending_redemption = data.get("pending_redemption")
+        world.pending_strategic_objection = data.get("pending_strategic_objection")
 
         # ═══════ ENEMY AI ═══════
         world.ai_stagnation_turns = data.get("ai_stagnation_turns", {}).copy()

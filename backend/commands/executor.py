@@ -2455,6 +2455,10 @@ RETREAT RECOVERY (3 turns):
                 objection["strategic_type"] = strategic_type
                 objection["path"] = path
                 objection["target"] = target
+                objection["marshal_name"] = marshal.name
+
+                # CRITICAL: Store on world so /respond_to_objection endpoint can find it
+                world.pending_strategic_objection = objection
 
                 return {
                     "success": True,  # So frontend processes it
@@ -5835,6 +5839,85 @@ RETREAT RECOVERY (3 turns):
     # DISOBEDIENCE SYSTEM (Phase 2)
     # ========================================
 
+    def _handle_strategic_objection_from_endpoint(self, choice: str, game_state: Dict) -> Dict:
+        """
+        Handle strategic objection response from /respond_to_objection endpoint.
+
+        Maps frontend choices ("trust", "insist", "compromise") to strategic
+        response types ("preferred", "proceed", "compromise") and re-executes
+        the strategic command with objection_response set.
+
+        Args:
+            choice: 'trust', 'insist', or 'compromise'
+            game_state: Current game state dict with 'world' key
+
+        Returns:
+            Result dict with execution outcome
+        """
+        world: WorldState = game_state.get("world")
+        objection = world.pending_strategic_objection
+
+        # Map frontend choice to strategic response
+        choice_mapping = {
+            "trust": "preferred",
+            "insist": "proceed",
+            "compromise": "compromise"
+        }
+        strategic_response = choice_mapping.get(choice, "proceed")
+
+        # Get stored objection data
+        marshal_name = objection.get("marshal_name")
+        original_command = objection.get("original_command", {})
+        parsed_command = objection.get("parsed_command", {})
+        strategic_type = objection.get("strategic_type")
+        path = objection.get("path", [])
+        target = objection.get("target")
+
+        # Get the marshal
+        marshal = world.get_marshal(marshal_name)
+        if not marshal:
+            world.pending_strategic_objection = None
+            return {
+                "success": False,
+                "message": f"Marshal {marshal_name} not found"
+            }
+
+        # Add objection response and preferred/compromise data to command
+        original_command["objection_response"] = strategic_response
+        original_command["preferred_action"] = objection.get("options", [{}])[1] if len(objection.get("options", [])) > 1 else None
+        original_command["compromise"] = objection.get("options", [{}])[2] if len(objection.get("options", [])) > 2 else None
+
+        # Clear the pending strategic objection BEFORE re-execution
+        world.pending_strategic_objection = None
+
+        # Re-execute the strategic command with objection_response
+        result = self._handle_strategic_objection_response(
+            marshal=marshal,
+            command=original_command,
+            parsed_command=parsed_command,
+            response=strategic_response,
+            world=world,
+            game_state=game_state,
+            path=path,
+            target=target,
+            strategic_type=strategic_type
+        )
+
+        # If _handle_strategic_objection_response returns None, it means "proceed"
+        # In that case, we need to continue with strategic order creation
+        if result is None:
+            # Rebuild parsed_command with objection_response
+            parsed_command["command"] = original_command
+            parsed_command["command"]["objection_response"] = strategic_response
+
+            # Execute the strategic command (this will skip objection check)
+            result = self._execute_strategic_command(parsed_command, original_command, game_state)
+
+        return result if result else {
+            "success": False,
+            "message": "Failed to process strategic objection response"
+        }
+
     def handle_objection_response(self, choice: str, game_state: Dict) -> Dict:
         """
         Handle player's response to a marshal objection.
@@ -5854,7 +5937,14 @@ RETREAT RECOVERY (3 turns):
                 "message": "Error: No world state available"
             }
 
-        # Check if there's a pending objection
+        # ════════════════════════════════════════════════════════════
+        # CHECK FOR STRATEGIC OBJECTION (Phase M)
+        # Strategic objections are stored in pending_strategic_objection
+        # ════════════════════════════════════════════════════════════
+        if getattr(world, 'pending_strategic_objection', None) is not None:
+            return self._handle_strategic_objection_from_endpoint(choice, game_state)
+
+        # Check if there's a pending tactical objection
         if world.pending_objection is None:
             return {
                 "success": False,
