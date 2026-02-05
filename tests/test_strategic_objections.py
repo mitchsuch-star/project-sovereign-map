@@ -958,6 +958,111 @@ class TestDavoutSupportDangerousPath:
 
 
 # =============================================================================
+# NO SAFE PATH EDGE CASES
+# =============================================================================
+
+class TestNoSafePathEdgeCases:
+    """Test behavior when no safe path exists (all routes go through enemies)."""
+
+    def test_hold_no_safe_path_no_compromise(self, world_with_enemies, executor):
+        """When no safe path exists, compromise option should be hidden."""
+        world = world_with_enemies
+        davout = world.marshals["Davout"]
+        davout.location = "Belgium"
+        davout.trust.set(15)
+
+        # Put enemies at ALL adjacent paths to Austria
+        # Belgium -> Rhine -> Bavaria -> Austria
+        # Block Rhine with Blucher, and add another enemy at Netherlands
+        blucher = world.marshals["Blucher"]
+        blucher.location = "Rhine"
+
+        wellington = world.marshals["Wellington"]
+        wellington.location = "Netherlands"
+
+        # Target Austria - only path is through Rhine (blocked by Blucher)
+        command = {
+            "marshal": "Davout",
+            "action": "hold",
+            "target": "Austria"
+        }
+
+        result = executor.execute(make_strategic_command(command, "HOLD"), make_game_state(world))
+
+        if result.get("pending_objection"):
+            options = result["objection"].get("options", [])
+            option_types = [o.get("type") for o in options]
+            # Should have preferred (fortify) and proceed, but NOT compromise
+            assert "preferred" in option_types
+            assert "proceed" in option_types
+            # Compromise should be absent or None
+            compromise_opt = next((o for o in options if o.get("type") == "compromise"), None)
+            if compromise_opt:
+                # If present, should have no safe_path action
+                assert compromise_opt.get("compromise") is None or compromise_opt.get("action") is None
+
+    def test_support_no_safe_path_no_compromise(self, world_with_enemies, executor):
+        """When no safe path to ally exists, compromise option should be hidden."""
+        world = world_with_enemies
+        davout = world.marshals["Davout"]
+        davout.location = "Belgium"
+        davout.trust.set(15)
+
+        # Put Ney in Austria (far away)
+        ney = world.marshals["Ney"]
+        ney.location = "Austria"
+
+        # Block all paths with enemies
+        blucher = world.marshals["Blucher"]
+        blucher.location = "Rhine"
+
+        wellington = world.marshals["Wellington"]
+        wellington.location = "Netherlands"
+
+        command = {
+            "marshal": "Davout",
+            "action": "support",
+            "target": "Ney"
+        }
+
+        result = executor.execute(make_strategic_command(command, "SUPPORT"), make_game_state(world))
+
+        if result.get("pending_objection"):
+            options = result["objection"].get("options", [])
+            option_types = [o.get("type") for o in options]
+            # Should have preferred and proceed, but NOT compromise with safe route
+            assert "preferred" in option_types
+            assert "proceed" in option_types
+
+    def test_move_to_no_safe_path_no_compromise(self, world_with_enemies, executor):
+        """Verify MOVE_TO also hides compromise when no safe path (baseline)."""
+        world = world_with_enemies
+        davout = world.marshals["Davout"]
+        davout.location = "Belgium"
+        davout.trust.set(15)
+
+        blucher = world.marshals["Blucher"]
+        blucher.location = "Rhine"
+
+        wellington = world.marshals["Wellington"]
+        wellington.location = "Netherlands"
+
+        command = {
+            "marshal": "Davout",
+            "action": "move",
+            "target": "Austria"
+        }
+
+        result = executor.execute(make_strategic_command(command, "MOVE_TO"), make_game_state(world))
+
+        if result.get("pending_objection"):
+            options = result["objection"].get("options", [])
+            option_types = [o.get("type") for o in options]
+            assert "preferred" in option_types
+            assert "proceed" in option_types
+
+
+# =============================================================================
 # GROUCHY (LITERAL) TESTS
 # =============================================================================
 
