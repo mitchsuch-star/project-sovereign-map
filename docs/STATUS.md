@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 4, 2026
-> **Last Session:** Phase M fixes — strategic objection response flow, AP consumption, endpoint routing
+> **Last Session:** HOLD improvements — personality benefits, timed expiry fix, debug freeze_enemies
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1048** (verified Feb 4, 2026, excluding flaky combat dice) |
+| **Tests Passing** | **1066** (verified Feb 4, 2026) |
 | **Current Phase** | 5.2 (Strategic Commands) ✅ COMPLETE |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M |
@@ -31,12 +31,22 @@ Phase 5.2 Strategic Commands is COMPLETE, including Phase M (Strategic Objection
 ## Recently Completed
 
 ### Feb 4 (this session)
-- **CRITICAL FIX:** Strategic objection response flow — `/respond_to_objection` endpoint now handles strategic objections. Previously only checked `world.pending_objection` (tactical), now also checks `world.pending_strategic_objection`.
-- **CRITICAL FIX:** AP consumption — strategic objections no longer consume AP when triggered. AP is consumed when player responds (proceed=2, preferred=1, compromise=2).
-- **New helper:** `_handle_strategic_objection_from_endpoint()` — maps frontend choices (trust→preferred, insist→proceed) and re-executes strategic command.
-- **Code documentation:** Added comprehensive comment block in executor.py explaining the strategic objection pattern for future developers.
-- **Cleanup:** Removed debug print statements from disobedience.py.
-- Test count: **1048 passed, 3 skipped** (flaky combat dice excluded)
+
+**HOLD Improvements:**
+- **BUG FIX:** Timed HOLD not expiring — compromise `max_turns` was nested incorrectly in options dict. Now correctly extracted and HOLD expires after agreed turns.
+- **QoL:** Block redundant HOLD orders — "Ney is already holding Belgium. No action needed." (0 AP cost)
+- **Feature:** Davout (cautious) HOLD benefit — auto-fortify (free) + fortification NEVER decays while holding. Can reach 40% defense (20% fortify + 20% stance).
+- **Feature:** Personality-specific HOLD completion messages for all conditions (timed, until_relieved, until_arrives, until_destroyed)
+
+**Debug:**
+- **New:** `/debug freeze_enemies` — toggles freeze on ALL enemy marshals for easier testing
+
+**Earlier today:**
+- Strategic objection response flow fixes
+- AP consumption timing fixes
+- `_handle_strategic_objection_from_endpoint()` helper
+
+Test count: **1066 passed, 3 skipped**
 
 ### Feb 3
 - **Phase M complete:** Strategic Objections implemented and verified. All 47 tests passing (44 pass, 3 skipped for future relationship system).
@@ -114,7 +124,7 @@ Phase 5.2 Strategic Commands is COMPLETE, including Phase M (Strategic Objection
 
 | Date | Tests | Notes |
 |------|-------|-------|
-| Feb 4, 2026 | **1048** | Phase M endpoint fix, AP consumption fix (flaky combat dice excluded) |
+| Feb 4, 2026 | **1066** | HOLD improvements, personality benefits, timed expiry fix, freeze_enemies debug |
 | Feb 3, 2026 | 1066 | Phase M complete, strategic objections verified |
 | Feb 2, 2026 | 1004 | Post-objection fix, UI/UX improvements, sally serialization fix |
 | Jan 31, 2026 | 1022 | PURSUE completion fix, code review fixes |

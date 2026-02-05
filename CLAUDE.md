@@ -322,7 +322,25 @@ self.hold_region: str = ""                    # Region where Grouchy is holding
 /debug restless <marshal>       - Set turns_defensive=5 (trigger restlessness)
 /debug cavalry <marshal>        - Toggle cavalry status
 /debug hold <marshal>           - Set holding_position=True
+/debug freeze_enemies           - Toggle freeze ALL enemy AI (for testing)
 ```
+
+### Strategic HOLD Benefits by Personality
+
+Each personality gets unique benefits when executing a strategic HOLD order:
+
+| Personality | HOLD Benefit | Details |
+|-------------|--------------|---------|
+| **Aggressive (Ney)** | Sally Attacks | Each turn, attacks adjacent enemies then returns to position. Picks best target by strength ratio. |
+| **Cautious (Davout)** | Iron Fortress | Auto-fortifies each turn (free). Fortification NEVER decays while HOLD is active. Can reach 40% total defense (20% fortify + 20% stance). |
+| **Literal (Grouchy)** | Immovable | +15% defense bonus. Never leaves position for any reason. |
+
+**Personality-Specific Completion Messages:**
+
+When HOLD ends (timed, ally arrives, relieved, etc.), marshals report differently:
+- **Aggressive**: "grows restless", "Finally!", "About time!"
+- **Cautious**: "Position secured", "Orderly handover complete"
+- **Literal**: "reports: Order complete. X turns elapsed."
 
 **Turn Processing:**
 - **Turn Start**: Cavalry limits check - auto-switch stance or unfortify after 3 turns (deterministic, -3 trust each)
