@@ -22,6 +22,9 @@ from backend.models.trust import calculate_obedience_chance
 
 
 # Maximum major objections per turn (prevents decision fatigue)
+# TODO (Unit 6): V2 design says per-marshal cap only, no global cap.
+# This V1 global cap is still active for strategic objections (which still use V1).
+# Remove when strategic objections migrate to V2 evaluate_strategic_situation().
 MAX_MAJOR_OBJECTIONS_PER_TURN = 2
 
 

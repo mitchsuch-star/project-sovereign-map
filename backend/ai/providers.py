@@ -593,7 +593,7 @@ class GroqProvider(BaseProvider):
 
         print(f"GroqProvider: Built prompt ({len(user_prompt)} chars)")
 
-        # TODO: Implement actual API call using OpenAI-compatible endpoint
+        # TODO (Pre-EA): Implement actual API call using OpenAI-compatible endpoint — BYOK provider choice
         # Structure will be:
         #
         # import openai

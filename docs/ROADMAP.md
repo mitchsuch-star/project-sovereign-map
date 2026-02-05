@@ -112,6 +112,12 @@
 | Jealousy system | Marshal getting all glory → others resent | Medium | 📋 |
 | Rivalry resolved event | Two marshals fight together successfully → trust boost for both | Low | 📋 |
 
+### V2b Audit Findings (from V2a audit)
+
+Items scaffolded in V2a that need wiring in V2b:
+- **Defensive vindication:** `pending_defensive_vindication` field exists and serializes, but nothing in turn_manager.py reads/writes it. Wire into enemy phase: cautious marshal trusted → check if enemies attack → resolve vindication.
+- **Vindication decay:** Spec says -1 per 3 turns of no objection activity. Not implemented. Add to prevent permanent vindication escalation.
+
 ### AI Enhancement: Combined Strength Evaluation ✅ IMPLEMENTED
 
 **What:** AI evaluates attack decisions using combined strength of all friendly marshals in the same region, not just the individual marshal's strength.
@@ -326,7 +332,11 @@ Currently the event system skews negative (retreat, broken morale, cavalry restl
 | Recruit Marshals | Activate from pool (costs resources) | Low | 📋 |
 | Traits System | Acquired traits from events | Medium | 📋 |
 
-**Dependencies:** Phase 6 (economy for recruitment costs)  
+### Evaluate Adding New Personality Type Before 1805
+
+Current types: Aggressive (Ney/Blucher), Cautious (Davout/Wellington), Literal (Grouchy). Three types create a clean triangle. Evaluate whether one additional type (e.g., Loyal — rarely objects but won't warn about bad decisions) adds enough gameplay contrast to justify the complexity of new trigger tables, V2 evaluators, and AI behavior. Napoleon will be unique (player character, authority source) — not a personality type but a separate system. Soult/Lannes stubs removed from `personality_modifiers.py` — design from scratch if adding.
+
+**Dependencies:** Phase 6 (economy for recruitment costs)
 **Exit Criteria:** Marshals can die, player can recruit replacements
 
 ---
@@ -413,6 +423,8 @@ Currently the event system skews negative (retreat, broken morale, cavalry restl
 - Dynamic coloring on conquest
 - Possibly commissioned art ($300-800)
 - **Cardinal direction system:** `REGION_POSITIONS` in `strategic_parser.py` must be expanded from 13 to 200+ entries with approximate grid coordinates for all new regions
+
+**⚠️ AI SCALING (from audit):** With 15-20 enemy marshals, the current 4-AP-per-nation budget causes **action starvation** — 2-3 marshals in combat consume all AP while others sit permanently idle. Needs AP budget scaling (e.g., AP = f(marshal_count)) or tiered actions (free basic actions for idle marshals, AP only for offensive). Also need **strategic order conflict detection** — two marshals can currently have contradictory orders with no warning.
 
 **Dependencies:** All phases + Pre-EA complete  
 **Exit Criteria:** Full 1805 campaign playable

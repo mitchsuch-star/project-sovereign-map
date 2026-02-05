@@ -73,6 +73,7 @@ A future save/load system should use this as the specification.
 | `pending_redemption` | dict\|null | null | Redemption event awaiting response |
 | `mild_concerns_this_turn` | list | [] | V2a: MILD concerns for turn log (cleared each turn) |
 | `objection_popups_this_turn` | list | [] | V2a: Per-marshal popup cap tracking (cleared each turn) |
+| `ai_failed_action_cooldowns` | dict | {} | AI failed action retry cooldowns {marshal: {action: turns}} |
 | `enemy_nations` | list | ["Britain", "Prussia"] | AI-controlled nations |
 | `nation_actions` | dict | {} | Actions per nation |
 | `active_battles` | dict | {} | Currently ongoing battles |

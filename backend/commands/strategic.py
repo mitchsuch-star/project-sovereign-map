@@ -117,6 +117,9 @@ class StrategicExecutor:
                 reports.append(report)
 
                 # If requires player input, stop processing further marshals
+                # TODO (Phase 6): This starves later marshals' strategic orders if an
+                # early marshal (alphabetically) always has interrupts. Consider queuing
+                # interrupts and processing remaining marshals, or rotating order.
                 if report.get("requires_input"):
                     break
 

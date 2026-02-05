@@ -693,7 +693,8 @@ def evaluate_aggressive(marshal, action: str, order: Dict, game_state) -> Concer
         if not _is_outnumbered_2to1(marshal, game_state):
             return ConcernLevel.MILD  # "We're not even outnumbered..."
 
-        return ConcernLevel.NONE  # Actually outnumbered and hurt, retreat makes sense
+        # Outnumbered 2:1+ but morale still high — aggressive wants to fight
+        return ConcernLevel.MILD
 
     # Drill with enemy nearby
     if action == "drill":

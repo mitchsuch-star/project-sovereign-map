@@ -889,6 +889,9 @@ RETREAT RECOVERY (3 turns):
                             world.objection_popups_this_turn.add(marshal.name)
 
                             # Get V1 objection for alternatives/compromise (reuse existing system)
+                            # TODO (Unit 6): Replace V1 evaluate_order() call with V2-native
+                            # alternative generation. Currently runs full V1 severity calc
+                            # just to extract suggested_alternative and compromise text.
                             v1_objection = world.disobedience_system.evaluate_order(
                                 marshal=marshal,
                                 order=command,
@@ -2604,6 +2607,9 @@ RETREAT RECOVERY (3 turns):
 
         # ── Strategic objection check (Phase M) ───────────────────────
         # Check if marshal objects to this strategic command BEFORE creating order
+        # TODO (Unit 6): Replace V1 check_strategic_objection with V2
+        # evaluate_strategic_situation() from objection_v2.py. The V2 strategic
+        # evaluators are implemented and tested (30 tests) but not wired in yet.
         from backend.commands.disobedience import check_strategic_objection
 
         # Check for objection response (post-objection execution)
@@ -3517,11 +3523,11 @@ RETREAT RECOVERY (3 turns):
         """
         Execute a scout/reconnaissance order.
 
-        TODO: Future UI interactivity needed:
-        - Visual fog of war reveal on map
-        - Enemy unit icons appearing with scouted info
-        - Scout report popup/panel with detailed intel
-        - Animated scout movement to target region
+        TODO (Phase 6/6.5): Godot UI for scouting:
+        - Visual fog of war reveal on map (Phase 6)
+        - Enemy unit icons appearing with scouted info (Phase 6.5)
+        - Scout report popup/panel with detailed intel (Phase 6.5)
+        - Animated scout movement to target region (Phase 6.5)
         """
         current_region = world.get_region(marshal.location)
 

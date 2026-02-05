@@ -401,9 +401,10 @@ class EnemyAI:
         # Example: Attack fails due to path blocked → 2 turn cooldown on attack
         # This avoids repetitive failed attempts and encourages varied behavior.
         # Cooldown of 2 turns chosen to allow situation to change before retry.
-        # Persists across turns (unlike failed_actions set which resets each turn).
+        # Stored on WorldState (world.ai_failed_action_cooldowns) so it persists
+        # across turns. EnemyAI is recreated each turn but reads/writes
+        # cooldowns from WorldState (same pattern as ai_stagnation_turns).
         # ═══════════════════════════════════════════════════════════════════
-        self._failed_action_cooldowns: Dict[str, Dict[str, int]] = {}  # {marshal_name: {action_type: turns_remaining}}
 
         # ═══════════════════════════════════════════════════════════════════
         # GRADUATED STAGNATION COUNTER (Fix #1)
@@ -479,8 +480,9 @@ class EnemyAI:
     # ═══════════════════════════════════════════════════════════════════
 
     def _is_action_on_cooldown(self, marshal_name: str, action_type: str) -> bool:
-        """Check if a marshal's action is on cooldown from a previous failure."""
-        marshal_cooldowns = self._failed_action_cooldowns.get(marshal_name, {})
+        """Check if a marshal's action is on cooldown from a previous failure.
+        Reads from WorldState.ai_failed_action_cooldowns (persists across turns)."""
+        marshal_cooldowns = self._current_world.ai_failed_action_cooldowns.get(marshal_name, {})
         remaining = marshal_cooldowns.get(action_type, 0)
         if remaining > 0:
             ai_debug(f"    [COOLDOWN] {marshal_name} '{action_type}' on cooldown ({remaining} turns)")
@@ -489,33 +491,37 @@ class EnemyAI:
 
     def _record_failed_action(self, marshal_name: str, action_type: str, cooldown: int = 2):
         """Record a failed action with cooldown turns before retry.
+        Writes to WorldState.ai_failed_action_cooldowns (persists across turns).
 
         Args:
             marshal_name: The marshal whose action failed
             action_type: The action that failed (e.g., "attack", "move")
             cooldown: Turns before this action can be retried (default 2)
         """
-        if marshal_name not in self._failed_action_cooldowns:
-            self._failed_action_cooldowns[marshal_name] = {}
-        self._failed_action_cooldowns[marshal_name][action_type] = cooldown
+        cooldowns = self._current_world.ai_failed_action_cooldowns
+        if marshal_name not in cooldowns:
+            cooldowns[marshal_name] = {}
+        cooldowns[marshal_name][action_type] = cooldown
         ai_debug(f"    [COOLDOWN SET] {marshal_name} '{action_type}' cooled down for {cooldown} turns")
 
-    def _decrement_cooldowns(self):
-        """Decrement all cooldowns by 1 turn. Called at start of each nation's turn."""
+    def _decrement_cooldowns(self, world: WorldState):
+        """Decrement all cooldowns by 1 turn. Called at start of each nation's turn.
+        Operates on WorldState.ai_failed_action_cooldowns (persists across turns)."""
+        cooldowns = world.ai_failed_action_cooldowns
         expired_marshals = []
-        for marshal_name, cooldowns in self._failed_action_cooldowns.items():
+        for marshal_name, marshal_cooldowns in cooldowns.items():
             expired_actions = []
-            for action_type, remaining in cooldowns.items():
-                cooldowns[action_type] = remaining - 1
-                if cooldowns[action_type] <= 0:
+            for action_type, remaining in marshal_cooldowns.items():
+                marshal_cooldowns[action_type] = remaining - 1
+                if marshal_cooldowns[action_type] <= 0:
                     expired_actions.append(action_type)
             for action_type in expired_actions:
-                del cooldowns[action_type]
+                del marshal_cooldowns[action_type]
                 ai_debug(f"    [COOLDOWN EXPIRED] {marshal_name} '{action_type}' available again")
-            if not cooldowns:
+            if not marshal_cooldowns:
                 expired_marshals.append(marshal_name)
         for marshal_name in expired_marshals:
-            del self._failed_action_cooldowns[marshal_name]
+            del cooldowns[marshal_name]
 
     def decide_single_action(
         self,
@@ -619,14 +625,17 @@ class EnemyAI:
         """
         results = []
 
+        # Store world reference for helper methods (cooldowns, etc.)
+        self._current_world = world
+
         # Get actions for this nation
         actions_remaining = world.nation_actions.get(nation, 4)
 
         # Track marshals who have already changed stance this turn (prevent spam)
         self._stance_changed_this_turn: set = set()
 
-        # Decrement cross-turn cooldowns (failed action retry prevention)
-        self._decrement_cooldowns()
+        # Decrement cross-turn cooldowns (stored on WorldState, persists across turns)
+        self._decrement_cooldowns(world)
 
         # Clear pending intents at start of each nation's turn (safety)
         self._pending_intents = {}
@@ -1298,6 +1307,10 @@ class EnemyAI:
         # PRIORITY 3.5: FORTIFICATION OPPORTUNITY CHECK
         # If fortified, check if there's a high-value opportunity worth
         # abandoning fortification for (undefended region, overwhelming odds)
+        # TODO (Phase 5.3): Residual 2-turn fortify micro-oscillation possible.
+        # _unfortified_this_turn only prevents same-turn re-fortify; next-turn
+        # re-fortify then P3.5 unfortify is still possible. Stagnation counter
+        # is the backstop. Consider a 2-turn cooldown on re-fortify if observed.
         # ════════════════════════════════════════════════════════════
         fortification_opportunity = self._check_fortification_opportunity(marshal, nation, world)
         if fortification_opportunity:

@@ -36,6 +36,14 @@ V2a Objection Refactor in progress: Units 1-5 complete, Units 6-7 remaining.
 
 ## Recently Completed
 
+### Feb 5 (Session 3: Audit Triage)
+
+**Triaged 15 findings from Enemy AI + V2a audits (3 fixed, 12 tracked):**
+- **BUG FIX:** `_failed_action_cooldowns` destroyed every turn — EnemyAI was recreated each turn, resetting cooldowns. Moved to `WorldState.ai_failed_action_cooldowns` (same pattern as `ai_stagnation_turns`). Cooldowns now persist across turns.
+- **BUG FIX:** Aggressive retreat: outnumbered 2:1 + high morale fell through to NONE (no concern). Now returns MILD.
+- **DOC FIX:** Trust gain spec table in OBJECTION_V2.md used rounded values but code uses `int()` truncation. Updated spec to match code.
+- **Tracked:** 7 items to STATUS.md Known Issues, 3 items to ROADMAP.md phase notes, 6 code TODOs added
+
 ### Feb 5 (Session 2: Audit Fixes)
 
 **Architecture audit fix session:**
@@ -125,8 +133,15 @@ V2a Objection Refactor in progress: Units 1-5 complete, Units 6-7 remaining.
 | Issue | Severity | Notes |
 |-------|----------|-------|
 | V1 `handle_objection_response` still uses V1 trust values | Medium | Wire V2 scaled trust gain/penalty in Unit 6 |
-| Strategic objections still use V1 `check_strategic_objection()` | Low | Migrate to V2 `evaluate_strategic_situation()` follow-up |
-| Clarification popup for other literal actions | Low | Only attack-without-target currently |
+| Strategic objections still use V1 `check_strategic_objection()` | High | V2 strategic evaluators (30 tests) exist but aren't wired into executor.py:2607. Migrate in Unit 6. The 30 strategic V2 tests provide false confidence — they test functions the game never calls. |
+| V1 `evaluate_order()` still called for alternative generation | Medium | executor.py:892 calls V1 to extract alternatives for V2 popups. Replace with V2-native alternatives in Unit 6. |
+| V1 global objection cap still active for strategic path | Medium | `disobedience.py:25` MAX_MAJOR_OBJECTIONS_PER_TURN=2. V2 says per-marshal cap only. Remove when strategic objections migrate to V2. |
+| No integration tests for V2 tactical pipeline | Medium | 127 V2 tests cover evaluators in isolation; no test verifies full executor→evaluate→popup→response path. Add in Unit 6. |
+| No mid-objection save/load roundtrip test | Low | Serialization enforcement confirms fields exist, but no test saves/loads with populated V2 pending_objection. |
+| Missing AI test coverage for P3, P4.75, P7 | Medium | P3 (threat response), P4.75 (ally support), P7 (strategic movement) have zero direct unit tests. |
+| Residual 2-turn fortify oscillation possible | Low | `_unfortified_this_turn` only prevents same-turn re-fortify. Next-turn re-fortify→P3.5 unfortify cycle possible. Stagnation counter is backstop. TODO in `enemy_ai.py` at P3.5. |
+| `requires_input` interrupt blocks later marshals | Low | `strategic.py:119` stops processing ALL further marshals when one requires player input. Later marshals' strategic orders starve if early marshal always has interrupts. TODO in `strategic.py`. |
+| ~~Clarification popup for other literal actions~~ | ~~Fixed~~ | Works for all strategic types + attack-without-target (verified Feb 5) |
 | Windows Store Python broken | Env | venv can't find base python — run tests from PyCharm |
 | Marshal ability dicts mostly decorative | Low | Only Ney's "Bravest of the Brave" is wired up in combat.py; others are TODO (personality mechanics DO work separately) |
 

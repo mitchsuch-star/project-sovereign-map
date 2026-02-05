@@ -83,24 +83,6 @@ GROUCHY_MODIFIERS = {
     # (precision_execution_active/turns fields, get_effective_skill() method)
 }
 
-# ════════════════════════════════════════════════════════════════════════════════
-# SOULT (Balanced) - TODO: Not implemented yet
-# ════════════════════════════════════════════════════════════════════════════════
-# TODO: Soult marshal and abilities
-# - Weaker stances: +10%/-15% instead of +15%/-10%
-# - Base +5% all actions
-# - Adjacent ally +10%
-# - Allies adjacent to Soult get +5%
-# - Retreat recovery -1 turn
-
-# ════════════════════════════════════════════════════════════════════════════════
-# LANNES (Loyal) - TODO: Not implemented yet
-# ════════════════════════════════════════════════════════════════════════════════
-# TODO: Lannes marshal and abilities
-# - Desperate defense: +20% below 50% strength, +25% below 25%
-# - Absolute Obedience: Always obeys on INSIST
-# - Inspiring Presence: Adjacent marshals -0.15 severity
-# - Napoleon proximity: +15%/+20% (requires Napoleon unit)
 
 
 def get_personality_modifiers(personality: str) -> Dict[str, Any]:

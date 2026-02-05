@@ -32,7 +32,12 @@ class VindicationTracker:
         self.history: List[Dict] = []  # Historical vindication events
         # V2a: Track defensive vindication for successful defenses
         # Format: {"Davout": {"order": {...}, "timestamp": turn_number}}
+        # TODO (V2b): Wire this into turn_manager.py enemy phase — when enemy attacks
+        # a marshal with pending defensive vindication and that marshal holds, resolve
+        # as vindication +1. If marshal loses, vindication -1. If no attack, unchanged.
         self.pending_defensive_vindication: Dict[str, Dict] = {}
+        # TODO (V2b): Implement vindication decay — spec says -1 per 3 turns of no
+        # objection activity from that marshal. Prevents permanent vindication escalation.
 
     def record_choice(
         self,

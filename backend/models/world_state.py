@@ -154,6 +154,11 @@ class WorldState:
         # Key: marshal_name, Value: consecutive idle turns
         self.ai_stagnation_turns: Dict[str, int] = {}
 
+        # AI Failed Action Cooldowns (persists across turns, read/written by EnemyAI)
+        # Prevents AI from retrying failed actions immediately.
+        # Format: {marshal_name: {action_type: turns_remaining}}
+        self.ai_failed_action_cooldowns: Dict[str, Dict[str, int]] = {}
+
         # Battle tracking for naming and history
         # Active battles: region_name -> battle info dict
         self.active_battles: Dict[str, Dict] = {}
@@ -1258,6 +1263,7 @@ class WorldState:
 
             # ═══════ ENEMY AI ═══════
             "ai_stagnation_turns": self.ai_stagnation_turns.copy(),
+            "ai_failed_action_cooldowns": {k: v.copy() for k, v in self.ai_failed_action_cooldowns.items()},
             "enemy_nations": self.enemy_nations.copy(),
             "nation_actions": self.nation_actions.copy(),
             "active_battles": {k: v.copy() for k, v in self.active_battles.items()},
@@ -1328,6 +1334,7 @@ class WorldState:
 
         # ═══════ ENEMY AI ═══════
         world.ai_stagnation_turns = data.get("ai_stagnation_turns", {}).copy()
+        world.ai_failed_action_cooldowns = {k: v.copy() for k, v in data.get("ai_failed_action_cooldowns", {}).items()}
         world.enemy_nations = data.get("enemy_nations", ["Britain", "Prussia"]).copy()
         world.nation_actions = data.get("nation_actions", {"Britain": 4, "Prussia": 4}).copy()
         world.active_battles = {k: v.copy() for k, v in data.get("active_battles", {}).items()}

@@ -138,22 +138,22 @@ Trust gain scales with BOTH concern level AND trust tier.
 | TRUSTING (50-79) | 1.0x | Baseline |
 | DEVOTED (80+) | 0.7x | Diminishing returns |
 
-**Combined trust gain = int(base x multiplier):**
+**Combined trust gain = int(base x multiplier)** (truncation, not rounding)**:**
 
 | | HOSTILE (1.5x) | WARY (1.2x) | TRUSTING (1.0x) | DEVOTED (0.7x) |
 |---|---|---|---|---|
-| **MODERATE** (+3) | +5 | +4 | +3 | +2 |
-| **STRONG** (+5) | +8 | +6 | +5 | +4 |
-| **EXTREME** (+8) | +12 | +10 | +8 | +6 |
+| **MODERATE** (+3) | +4 | +3 | +3 | +2 |
+| **STRONG** (+5) | +7 | +6 | +5 | +3 |
+| **EXTREME** (+8) | +12 | +9 | +8 | +5 |
 
 **Compare to insist penalties:**
 
 | Trust Tier | Insist Cost | Trust on MODERATE | Trust on EXTREME |
 |------------|-------------|-------------------|------------------|
-| HOSTILE | -15 | +5 | +12 |
-| WARY | -12 | +4 | +10 |
+| HOSTILE | -15 | +4 | +12 |
+| WARY | -12 | +3 | +9 |
 | TRUSTING | -10 | +3 | +8 |
-| DEVOTED | -5 | +2 | +6 |
+| DEVOTED | -5 | +2 | +5 |
 
 **Compromise is FLAT at +3 regardless of tier.** This prevents "always compromise" from being the optimal strategy.
 
