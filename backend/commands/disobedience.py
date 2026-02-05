@@ -1718,6 +1718,124 @@ def check_strategic_objection(
                 )
             }
 
+    # ═══════════════════════════════════════════════════════════
+    # DAVOUT (CAUTIOUS) - Objects to distant HOLD through danger
+    # Same logic as MOVE_TO: cautious marshals dislike marching into danger
+    # Only triggers if marshal must travel to reach HOLD position
+    # Base severity: 0.65 (same as MOVE_TO dangerous path)
+    # ═══════════════════════════════════════════════════════════
+    if personality == 'cautious' and strategic_type == "HOLD":
+        # Only check if marshal isn't already at the target
+        # (If already there, no dangerous path to traverse)
+        if target and marshal.location != target and path:
+            # Check if path crosses any enemy-occupied region
+            enemy_regions = []
+            for region_name in path:
+                enemies = world.get_enemies_in_region(region_name, marshal.nation)
+                if enemies:
+                    enemy_regions.append(region_name)
+
+            if enemy_regions:
+                # Calculate severity with probability modifiers
+                severity = calculate_strategic_severity(
+                    marshal, strategic_type, 0.65, game_state, include_variance
+                )
+
+                # Only object if severity >= 0.50
+                if severity < 0.50:
+                    return None
+
+                preferred = {"action": "fortify", "target": marshal.location}
+
+                # Check if safe path exists
+                enemy_occupied = set()
+                for rn in world.regions:
+                    if world.get_enemies_in_region(rn, marshal.nation):
+                        enemy_occupied.add(rn)
+
+                dest = path[-1] if path else target
+                safe_path = world.find_path(marshal.location, dest, avoid_regions=enemy_occupied)
+
+                compromise = None
+                if safe_path and len(safe_path) <= len(path) * 2:
+                    compromise = {"action": "hold", "safe_path": True}
+
+                return {
+                    "should_object": True,
+                    "type": "strategic",
+                    "reason": "davout_hold_dangerous_path",
+                    "message": f'"{marshal.name} studies the map. "To hold {target}, we must march through {enemy_regions[0]}. A dangerous gambit, Sire.""',
+                    "marshal": marshal.name,
+                    "personality": personality,
+                    "severity": severity,
+                    "options": _build_strategic_options(
+                        marshal,
+                        preferred,
+                        compromise,
+                        "Proceed through danger",
+                        "Accept: Safe route to position" if compromise else None,
+                        strategic_type
+                    )
+                }
+
+    # ═══════════════════════════════════════════════════════════
+    # DAVOUT (CAUTIOUS) - Objects to SUPPORT through danger
+    # Same logic as MOVE_TO/HOLD: cautious marshals dislike marching into danger
+    # Base severity: 0.65 (same as other dangerous path objections)
+    # ═══════════════════════════════════════════════════════════
+    if personality == 'cautious' and strategic_type == "SUPPORT":
+        # Only check if path exists (marshal isn't already with the ally)
+        if path:
+            # Check if path crosses any enemy-occupied region
+            enemy_regions = []
+            for region_name in path:
+                enemies = world.get_enemies_in_region(region_name, marshal.nation)
+                if enemies:
+                    enemy_regions.append(region_name)
+
+            if enemy_regions:
+                # Calculate severity with probability modifiers
+                severity = calculate_strategic_severity(
+                    marshal, strategic_type, 0.65, game_state, include_variance
+                )
+
+                # Only object if severity >= 0.50
+                if severity < 0.50:
+                    return None
+
+                preferred = {"action": "fortify", "target": marshal.location}
+
+                # Check if safe path exists
+                enemy_occupied = set()
+                for rn in world.regions:
+                    if world.get_enemies_in_region(rn, marshal.nation):
+                        enemy_occupied.add(rn)
+
+                dest = path[-1] if path else target
+                safe_path = world.find_path(marshal.location, dest, avoid_regions=enemy_occupied)
+
+                compromise = None
+                if safe_path and len(safe_path) <= len(path) * 2:
+                    compromise = {"action": "support", "safe_path": True}
+
+                return {
+                    "should_object": True,
+                    "type": "strategic",
+                    "reason": "davout_support_dangerous_path",
+                    "message": f'"{marshal.name} examines the route. "To reach {target}, we must pass through {enemy_regions[0]}. That path invites disaster, Sire.""',
+                    "marshal": marshal.name,
+                    "personality": personality,
+                    "severity": severity,
+                    "options": _build_strategic_options(
+                        marshal,
+                        preferred,
+                        compromise,
+                        "Proceed through danger",
+                        "Accept: Safe route to ally" if compromise else None,
+                        strategic_type
+                    )
+                }
+
     return None
 
 

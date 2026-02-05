@@ -2974,7 +2974,7 @@ RETREAT RECOVERY (3 turns):
                     auto_cancel_below_ratio=compromise_data["auto_cancel_below_ratio"]
                 )
 
-            # Davout MOVE_TO compromise: safe path
+            # Davout (cautious) compromise: safe path for MOVE_TO, HOLD, SUPPORT
             if compromise_data.get("safe_path"):
                 # Recalculate path avoiding enemies
                 enemy_occupied = set()

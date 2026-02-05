@@ -636,6 +636,16 @@ This file contains the core marshal objection logic:
 2. Return dict with: `should_object`, `type`, `reason`, `message`, `marshal`, `options`
 3. The executor automatically handles storage and endpoint routing
 
+**Existing Strategic Objection Triggers:**
+| Personality | Strategic Type | Trigger | Base Severity | Compromise |
+|-------------|---------------|---------|---------------|------------|
+| Aggressive (Ney) | HOLD | No enemies adjacent | 0.72 | Timed HOLD (3 turns) |
+| Cautious (Davout) | PURSUE | Bad odds (ratio < 1.2) | 0.68 | Auto-cancel below ratio |
+| Cautious (Davout) | MOVE_TO | Path through enemy | 0.65 | Safe route if exists |
+| Cautious (Davout) | HOLD | Distant, path through enemy | 0.65 | Safe route if exists |
+| Cautious (Davout) | SUPPORT | Path through enemy | 0.65 | Safe route if exists |
+| Literal (Grouchy) | Any | Never objects | N/A | Uses clarification popup instead |
+
 **Common bug:** If `/respond_to_objection` returns "No objection pending", you forgot to store on `world.pending_strategic_objection` in step 3a.
 
 ### Enemy AI System Reference

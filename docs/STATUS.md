@@ -1,8 +1,8 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 4, 2026
-> **Last Session:** HOLD improvements — personality benefits, timed expiry fix, debug freeze_enemies
+> **Last Updated:** February 5, 2026
+> **Last Session:** Dangerous path objections for HOLD/SUPPORT, message fixes
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1066** (verified Feb 4, 2026) |
+| **Tests Passing** | **1073** (verified Feb 5, 2026) |
 | **Current Phase** | 5.2 (Strategic Commands) ✅ COMPLETE |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M |
@@ -30,7 +30,19 @@ Phase 5.2 Strategic Commands is COMPLETE, including Phase M (Strategic Objection
 
 ## Recently Completed
 
-### Feb 4 (this session)
+### Feb 5 (this session)
+
+**Consistency Fixes:**
+- **Feature:** Davout (cautious) dangerous path objection for distant HOLD — same logic as MOVE_TO. If holding a distant position requires marching through enemy-occupied territory, Davout objects. Safe route compromise offered if one exists.
+- **Feature:** Davout (cautious) dangerous path objection for SUPPORT — if supporting an ally requires marching through danger, Davout objects. Consistent with MOVE_TO and HOLD.
+- **Bug fix:** "Marching to X" message when already at X — HOLD orders now correctly show "holding position at X" when marshal is already at target location.
+- **Code cleanup:** Updated comment in executor.py to reflect safe_path compromise applies to MOVE_TO, HOLD, and SUPPORT.
+
+**Tests:**
+- Added 7 new tests for HOLD and SUPPORT dangerous path objections
+- Test count: **1073 passed, 3 skipped**
+
+### Feb 4
 
 **HOLD Improvements:**
 - **BUG FIX:** Timed HOLD not expiring — compromise `max_turns` was nested incorrectly in options dict. Now correctly extracted and HOLD expires after agreed turns.
@@ -124,7 +136,8 @@ Test count: **1066 passed, 3 skipped**
 
 | Date | Tests | Notes |
 |------|-------|-------|
-| Feb 4, 2026 | **1066** | HOLD improvements, personality benefits, timed expiry fix, freeze_enemies debug |
+| Feb 5, 2026 | **1073** | Dangerous path objections for HOLD/SUPPORT, message fixes |
+| Feb 4, 2026 | 1066 | HOLD improvements, personality benefits, timed expiry fix, freeze_enemies debug |
 | Feb 3, 2026 | 1066 | Phase M complete, strategic objections verified |
 | Feb 2, 2026 | 1004 | Post-objection fix, UI/UX improvements, sally serialization fix |
 | Jan 31, 2026 | 1022 | PURSUE completion fix, code review fixes |

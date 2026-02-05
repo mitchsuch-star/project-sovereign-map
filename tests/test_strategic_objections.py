@@ -792,6 +792,172 @@ class TestDavoutMoveToCompromise:
 
 
 # =============================================================================
+# DAVOUT HOLD DANGEROUS PATH TESTS
+# =============================================================================
+
+class TestDavoutHoldDangerousPath:
+    """Davout objects to HOLD when path to hold position crosses enemy-occupied regions."""
+
+    def test_davout_objects_to_hold_distant_dangerous(self, world_with_enemies, executor):
+        """Davout should object when holding distant position requires crossing enemy."""
+        world = world_with_enemies
+        davout = world.marshals["Davout"]
+        davout.location = "Belgium"
+        davout.trust.set(15)  # Low trust ensures objection triggers
+
+        # Blucher at Rhine - path to Bavaria goes through him
+        blucher = world.marshals["Blucher"]
+        blucher.location = "Rhine"
+
+        command = {
+            "marshal": "Davout",
+            "action": "hold",
+            "target": "Bavaria"
+        }
+
+        result = executor.execute(make_strategic_command(command, "HOLD"), make_game_state(world))
+
+        assert result.get("pending_objection") is True, "Davout should object to path through enemy"
+        assert "danger" in result["objection"]["message"].lower() or "enemy" in result["objection"]["message"].lower()
+
+    def test_davout_no_objection_hold_local(self, world_with_enemies, executor):
+        """Davout should NOT object when holding current position (no travel)."""
+        world = world_with_enemies
+        davout = world.marshals["Davout"]
+        davout.location = "Belgium"
+
+        command = {
+            "marshal": "Davout",
+            "action": "hold",
+            "target": "Belgium"
+        }
+
+        result = executor.execute(make_strategic_command(command, "HOLD"), make_game_state(world))
+
+        assert result.get("pending_objection") is not True, "Davout should NOT object to holding current position"
+
+    def test_davout_no_objection_hold_safe_path(self, world_with_enemies, executor):
+        """Davout should NOT object when path to hold position is clear."""
+        world = world_with_enemies
+        davout = world.marshals["Davout"]
+        davout.location = "Paris"
+
+        # Path to Brittany is safe
+        command = {
+            "marshal": "Davout",
+            "action": "hold",
+            "target": "Brittany"
+        }
+
+        result = executor.execute(make_strategic_command(command, "HOLD"), make_game_state(world))
+
+        assert result.get("pending_objection") is not True, "Davout should NOT object to safe path"
+
+    def test_davout_hold_dangerous_compromise_safe_route(self, world_with_enemies, executor):
+        """Davout's compromise should offer safe route if one exists."""
+        world = world_with_enemies
+        davout = world.marshals["Davout"]
+        davout.location = "Belgium"
+        davout.trust.set(15)
+
+        blucher = world.marshals["Blucher"]
+        blucher.location = "Rhine"
+
+        command = {
+            "marshal": "Davout",
+            "action": "hold",
+            "target": "Bavaria"
+        }
+
+        result = executor.execute(make_strategic_command(command, "HOLD"), make_game_state(world))
+
+        if result.get("pending_objection"):
+            options = result["objection"].get("options", [])
+            option_types = [o.get("type") for o in options]
+            # Should have preferred (fortify) and possibly compromise (safe route)
+            assert "preferred" in option_types
+
+
+# =============================================================================
+# DAVOUT SUPPORT DANGEROUS PATH TESTS
+# =============================================================================
+
+class TestDavoutSupportDangerousPath:
+    """Davout objects to SUPPORT when path to ally crosses enemy-occupied regions."""
+
+    def test_davout_objects_to_support_dangerous_path(self, world_with_enemies, executor):
+        """Davout should object when supporting ally requires crossing enemy."""
+        world = world_with_enemies
+        davout = world.marshals["Davout"]
+        davout.location = "Belgium"
+        davout.trust.set(15)  # Low trust ensures objection triggers
+
+        # Put Ney far away, with Blucher in between
+        ney = world.marshals["Ney"]
+        ney.location = "Bavaria"
+
+        blucher = world.marshals["Blucher"]
+        blucher.location = "Rhine"
+
+        command = {
+            "marshal": "Davout",
+            "action": "support",
+            "target": "Ney"
+        }
+
+        result = executor.execute(make_strategic_command(command, "SUPPORT"), make_game_state(world))
+
+        assert result.get("pending_objection") is True, "Davout should object to path through enemy"
+        assert "danger" in result["objection"]["message"].lower() or "disaster" in result["objection"]["message"].lower()
+
+    def test_davout_no_objection_support_safe_path(self, world_with_enemies, executor):
+        """Davout should NOT object when path to ally is clear."""
+        world = world_with_enemies
+        davout = world.marshals["Davout"]
+        davout.location = "Paris"
+
+        grouchy = world.marshals["Grouchy"]
+        grouchy.location = "Brittany"
+
+        command = {
+            "marshal": "Davout",
+            "action": "support",
+            "target": "Grouchy"
+        }
+
+        result = executor.execute(make_strategic_command(command, "SUPPORT"), make_game_state(world))
+
+        assert result.get("pending_objection") is not True, "Davout should NOT object to safe path"
+
+    def test_davout_support_dangerous_compromise_safe_route(self, world_with_enemies, executor):
+        """Davout's compromise should offer safe route to ally if one exists."""
+        world = world_with_enemies
+        davout = world.marshals["Davout"]
+        davout.location = "Belgium"
+        davout.trust.set(15)
+
+        ney = world.marshals["Ney"]
+        ney.location = "Bavaria"
+
+        blucher = world.marshals["Blucher"]
+        blucher.location = "Rhine"
+
+        command = {
+            "marshal": "Davout",
+            "action": "support",
+            "target": "Ney"
+        }
+
+        result = executor.execute(make_strategic_command(command, "SUPPORT"), make_game_state(world))
+
+        if result.get("pending_objection"):
+            options = result["objection"].get("options", [])
+            option_types = [o.get("type") for o in options]
+            # Should have preferred (fortify)
+            assert "preferred" in option_types
+
+
+# =============================================================================
 # GROUCHY (LITERAL) TESTS
 # =============================================================================
 

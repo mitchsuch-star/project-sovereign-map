@@ -88,14 +88,27 @@ class StrategicExecutor:
                 print(f"[STRATEGIC] {marshal.name}: SKIP - order issued this turn")
                 # Emit a status report so the player knows the order is active
                 remaining = len(order.path) if order.path else 0
+
+                # Context-appropriate message based on order type and position
+                if order.command_type == "HOLD":
+                    if marshal.location == order.target or not order.target:
+                        msg = f"{marshal.name} is holding position at {marshal.location}."
+                    else:
+                        msg = f"{marshal.name} is marching to hold {order.target} ({remaining} turn(s) remaining)."
+                elif order.command_type == "PURSUE":
+                    msg = f"{marshal.name} is pursuing {order.target} ({remaining} turn(s) remaining)."
+                elif order.command_type == "SUPPORT":
+                    msg = f"{marshal.name} is moving to support {order.target} ({remaining} turn(s) remaining)."
+                else:  # MOVE_TO
+                    msg = f"{marshal.name} is marching to {order.target} ({remaining} turn(s) remaining)."
+
                 reports.append({
                     "marshal": marshal.name,
                     "command": order.command_type,
                     "order_status": "active",
                     "destination": order.target,
                     "turns_remaining": int(remaining),
-                    "message": f"{marshal.name} is marching to {order.target} "
-                               f"({remaining} turn(s) remaining).",
+                    "message": msg,
                 })
                 continue
 

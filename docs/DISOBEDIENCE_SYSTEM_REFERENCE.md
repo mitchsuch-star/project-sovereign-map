@@ -492,4 +492,40 @@ Grouchy (Literal, Trust 65):
 
 ---
 
-*Last updated: Session implementing hold/wait actions and documenting action policy.*
+## Strategic Command Objections (Phase M)
+
+Strategic commands (HOLD, MOVE_TO, PURSUE, SUPPORT) have their own objection system, separate from tactical objections. These fire at command **issuance**, not during execution.
+
+### Strategic Objection Triggers
+
+| Personality | Strategic Type | Trigger | Base Severity | Compromise |
+|-------------|---------------|---------|---------------|------------|
+| Aggressive (Ney) | HOLD | No enemies adjacent to hold position | 0.72 | Timed HOLD (3 turns) |
+| Cautious (Davout) | PURSUE | Target ratio < 1.2 (bad odds) | 0.68 | Auto-cancel below ratio |
+| Cautious (Davout) | MOVE_TO | Path crosses enemy-occupied region | 0.65 | Safe route if available |
+| Cautious (Davout) | HOLD (distant) | Path crosses enemy-occupied region | 0.65 | Safe route if available |
+| Cautious (Davout) | SUPPORT | Path crosses enemy-occupied region | 0.65 | Safe route if available |
+| Literal (Grouchy) | Any | **Never objects** | N/A | Uses clarification popup for vague orders |
+
+### Strategic vs Tactical
+
+| Aspect | Tactical | Strategic |
+|--------|----------|-----------|
+| When | Action execution | Command issuance |
+| Storage | `world.pending_objection` | `world.pending_strategic_objection` |
+| Trigger | Personality vs action type | Personality vs situation |
+| Recovery bypass | No objections during retreat_recovery | No objections during retreat_recovery |
+
+### Dangerous Path Objection (Cautious Only)
+
+Cautious marshals (like Davout) object to any strategic command that requires marching through enemy-occupied territory:
+
+1. **MOVE_TO through danger** - "That path passes through [enemy region]. We would be walking into danger, Sire."
+2. **HOLD (distant) through danger** - "To hold [target], we must march through [enemy region]. A dangerous gambit, Sire."
+3. **SUPPORT through danger** - "To reach [ally], we must pass through [enemy region]. That path invites disaster, Sire."
+
+If a safe path exists (no longer than 2x the direct path), compromise offers "Accept: Safe route" option.
+
+---
+
+*Last updated: Feb 5, 2026 - Added strategic command objections (Phase M), dangerous path objections.*
