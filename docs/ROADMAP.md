@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** February 1, 2026
+> **Last Updated:** February 5, 2026
 
 ---
 
@@ -11,7 +11,8 @@
 | Phase | Name | Status |
 |-------|------|--------|
 | 1-5.3 | Foundation through AI Fixes | ✅ COMPLETE |
-| **6** | **Core Campaign Systems** | **📋 NEXT** |
+| **V2a** | **Objection System Refactor** | **🔄 DESIGNED** |
+| **6** | **Core Campaign Systems** | **📋 NEXT (after V2a)** |
 | 6.5 | Information & UI Systems | 📋 Planned |
 | 7 | Multi-Marshal & Relationships | 📋 Planned |
 | 8 | Diplomacy & Coalitions | 📋 Planned |
@@ -34,10 +35,26 @@
 | 3 | Relationships | ~30 | Marshal relationships, historical values |
 | 4 | LLM Integration | ~60 | Parsing, personality responses, BYOK |
 | 5.1 | Tactical Feedback | 64 | Word-based scoring, strategic feedback |
-| 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding. Phase M (Strategic Objections) designed, not yet implemented |
+| 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) ✅ |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 1022 (verified Jan 31, 2026)
+**Total Tests:** 1076 (verified Feb 5, 2026)
+
+---
+
+## V2a: Objection System Refactor
+
+**Goal:** Fix fundamental flaw where trust modifies WHETHER marshals speak instead of HOW they speak.
+
+**Status:** Designed, pending implementation. See `OBJECTION_V2_REFACTOR_PLAN.md`.
+
+**Key Changes:**
+- Deterministic situational triggers (personality × situation → ConcernLevel)
+- Trust affects consequences only (tone, penalty, compliance)
+- MILD concerns as end-of-turn flavor text, not popups
+- V2b (defiance/vindication escalation) deferred to Phase 7
+
+**Estimated Effort:** 7-11 days
 
 ---
 
@@ -426,20 +443,21 @@ Must be done, in rough order:
 1. ✅ Strategic Commands (done)
 2. ✅ Enemy AI (done)
 3. ✅ Serialization/Modding foundation (done)
-4. 📋 Phase 6: Economy, Manpower, Terrain, Fog, War Score
-5. 📋 Phase 6.5: Notifications, Ledger, Marshal UI
-6. 📋 Phase 7: Multi-marshal, Relationships gameplay
-7. 📋 Phase 8: Diplomacy, **Coalitions**, **Diplomacy Chat** (LLM leader conversations) ← CRITICAL
-8. 📋 Phase 8.5: **Events, National Goals, Flavor**, **Gazette**, **Marshal Voice** ← Makes it a GAME
-9. 🟢 **STEAM PAGE + TRAILER** ← After 8.5: marshal voice, gazette, audio all working. 13-region map is fine. Wishlists compound — every month without a page is lost wishlists.
-10. 📋 Phase 9: Advisors
-11. 📋 Phase 10: Marshal death/recruitment
-12. 📋 Phase 11: Vassals, Naval
-13. 📋 Phase 12: Communication cutoff
-14. 📋 Pre-EA: Save/Load, Tutorial, Voice, **LLM Monetization**
-15. 📋 **1805 Map UI** ← LARGEST SINGLE TASK
-16. 📋 Steam Integration
-17. 🎯 **TBD 2026: Early Access**
+4. 🔄 V2a: Objection System Refactor (designed, pending)
+5. 📋 Phase 6: Economy, Manpower, Terrain, Fog, War Score
+6. 📋 Phase 6.5: Notifications, Ledger, Marshal UI
+7. 📋 Phase 7: Multi-marshal, Relationships gameplay, **V2b: Defiance/Vindication**
+8. 📋 Phase 8: Diplomacy, **Coalitions**, **Diplomacy Chat** (LLM leader conversations) ← CRITICAL
+9. 📋 Phase 8.5: **Events, National Goals, Flavor**, **Gazette**, **Marshal Voice** ← Makes it a GAME
+10. 🟢 **STEAM PAGE + TRAILER** ← After 8.5: marshal voice, gazette, audio all working. 13-region map is fine. Wishlists compound — every month without a page is lost wishlists.
+11. 📋 Phase 9: Advisors
+12. 📋 Phase 10: Marshal death/recruitment
+13. 📋 Phase 11: Vassals, Naval
+14. 📋 Phase 12: Communication cutoff
+15. 📋 Pre-EA: Save/Load, Tutorial, Voice, **LLM Monetization**
+16. 📋 **1805 Map UI** ← LARGEST SINGLE TASK
+17. 📋 Steam Integration
+18. 🎯 **TBD 2026: Early Access**
 
 ---
 

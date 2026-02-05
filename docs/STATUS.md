@@ -11,7 +11,7 @@
 | Metric | Value |
 |--------|-------|
 | **Tests Passing** | **1076** (verified Feb 5, 2026) |
-| **Current Phase** | 5.2 (Strategic Commands) ✅ COMPLETE |
+| **Current Phase** | V2a (Objection Refactor) — then Phase 6 |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M |
 
@@ -19,18 +19,23 @@
 
 ## Active Work
 
-Phase 5.2 Strategic Commands is COMPLETE, including Phase M (Strategic Objections).
+Phase 5.2 Strategic Commands is COMPLETE. V2a Objection Refactor designed, pending implementation.
 
-- [x] Smoke test strategic commands in Godot (Phase K) ✅
-- [x] Phase M: Strategic Objections (disobedience at issuance) ✅ COMPLETE
-- [ ] Begin Phase 6 design (Economy, Terrain, Fog, Manpower)
-- [ ] See ROADMAP.md for full Phase 6 scope
+- [x] Phase M: Strategic Objections ✅ (was already implemented, docs not updated)
+- [ ] V2a: Objection System Refactor (designed, pending implementation)
+- [ ] Begin Phase 6 design after V2a ships
 
 ---
 
 ## Recently Completed
 
 ### Feb 5 (this session)
+
+**Documentation Updates:**
+- Docs updated: Phase 5.2 marked fully complete including Phase M
+- V2a/V2b Objection Refactor designed with full edge case resolution (see `OBJECTION_V2_REFACTOR_PLAN.md`)
+- Root cause identified: trust modifies WHETHER marshals speak, should modify HOW they speak
+- Design finalized: deterministic ConcernLevel triggers, trust-as-consequence, MILD as flavor text
 
 **Consistency Fixes:**
 - **Feature:** Davout (cautious) dangerous path objection for distant HOLD — same logic as MOVE_TO. If holding a distant position requires marching through enemy-occupied territory, Davout objects. Safe route compromise offered if one exists.
@@ -163,9 +168,9 @@ Test count: **1066 passed, 3 skipped**
 
 ## Next Session Priorities
 
-1. Test strategic objections in Godot (HOLD with low trust Ney)
-2. Begin Phase 6 design (Economy, Terrain, Fog, Manpower)
-3. Phase J: Strategic status display in Godot HUD
+1. Implement V2a: Objection System Refactor
+2. Godot smoke test V2a
+3. Begin Phase 6 design
 
 ---
 
