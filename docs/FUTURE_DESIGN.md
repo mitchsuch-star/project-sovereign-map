@@ -568,6 +568,12 @@ FOG_OF_WAR = {
         "Captured dispatches (random event)",
         "Allied reports (shared intel)",
     ],
+
+    # STRATEGIC OBJECTIONS INTEGRATION:
+    # Currently, Davout objects to PURSUE with bad odds against ANY enemy.
+    # With fog of war, he should only object if the enemy is scouted/revealed.
+    # Unscouted enemy = unknown strength = marshal can't know odds are bad.
+    # See: disobedience.py check_strategic_objection() PURSUE section
 }
 ```
 

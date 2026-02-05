@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1073** (verified Feb 5, 2026) |
+| **Tests Passing** | **1076** (verified Feb 5, 2026) |
 | **Current Phase** | 5.2 (Strategic Commands) ✅ COMPLETE |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M |
@@ -40,7 +40,12 @@ Phase 5.2 Strategic Commands is COMPLETE, including Phase M (Strategic Objection
 
 **Tests:**
 - Added 7 new tests for HOLD and SUPPORT dangerous path objections
-- Test count: **1073 passed, 3 skipped**
+- Added 3 edge case tests for no-safe-path scenarios (compromise hidden)
+- Test count: **1076 passed, 3 skipped**
+
+**Documentation:**
+- Added fog of war comment to PURSUE objection (Phase 6+ consideration)
+- When fog of war is implemented, objections should only trigger for scouted/revealed enemies
 
 ### Feb 4
 
@@ -136,7 +141,7 @@ Test count: **1066 passed, 3 skipped**
 
 | Date | Tests | Notes |
 |------|-------|-------|
-| Feb 5, 2026 | **1073** | Dangerous path objections for HOLD/SUPPORT, message fixes |
+| Feb 5, 2026 | **1076** | Dangerous path objections, no-safe-path edge cases, fog of war comments |
 | Feb 4, 2026 | 1066 | HOLD improvements, personality benefits, timed expiry fix, freeze_enemies debug |
 | Feb 3, 2026 | 1066 | Phase M complete, strategic objections verified |
 | Feb 2, 2026 | 1004 | Post-objection fix, UI/UX improvements, sally serialization fix |

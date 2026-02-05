@@ -1622,10 +1622,16 @@ def check_strategic_objection(
     # Base severity: 0.68 (cautious hates risky chases)
     # At trust 70: 0.68 × 1.0 = 0.68 → ~75% objection chance
     # At trust 85: 0.68 × 0.7 = 0.48 → ~45% objection chance
+    #
+    # FOG OF WAR (Phase 6+): Currently checks all enemies regardless of
+    # distance. When fog of war is implemented, this should only trigger
+    # if the target has been scouted/revealed. Unscouted enemies = unknown
+    # strength = no objection (marshal doesn't know the odds are bad).
     # ═══════════════════════════════════════════════════════════
     if personality == 'cautious' and strategic_type == "PURSUE":
         target_marshal = world.get_marshal(target) if target else None
 
+        # TODO (Phase 6): Add check for target.revealed or target.scouted
         if target_marshal and target_marshal.strength > 0:
             ratio = target_marshal.strength / max(marshal.strength, 1)
 
