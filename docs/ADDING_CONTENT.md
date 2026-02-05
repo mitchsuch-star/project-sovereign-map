@@ -1,31 +1,43 @@
-# Marshal Addition Guide
+# Adding Content Guide
 
-**Complete guide for adding new marshals to Ink & Iron: Napoleonic Wars**
-
-This guide covers EVERY file that must be modified when adding a marshal, with copy-paste templates and validation checklists.
+Step-by-step guides for adding new marshals, personalities, and strategic commands.
 
 ---
 
 ## Table of Contents
 
-1. [Pre-Flight Checklist](#1-pre-flight-checklist)
-2. [Auto-Inherited Mechanics](#2-auto-inherited-mechanics)
-3. [Marshal Data Questionnaire](#3-marshal-data-questionnaire)
-4. [Complete File Reference](#4-complete-file-reference)
-5. [Step-by-Step Implementation](#5-step-by-step-implementation)
-6. [Code Templates](#6-code-templates)
-7. [Validation Checklist](#7-validation-checklist)
-8. [Common Pitfalls](#8-common-pitfalls)
-9. [Troubleshooting](#9-troubleshooting)
-10. [Quick Reference Tables](#10-quick-reference-tables)
+1. [Adding a New Marshal](#1-adding-a-new-marshal)
+   - [Pre-Flight Checklist](#pre-flight-checklist)
+   - [Auto-Inherited Mechanics](#auto-inherited-mechanics)
+   - [Marshal Data Questionnaire](#marshal-data-questionnaire)
+   - [Complete File Reference](#complete-file-reference)
+   - [Step-by-Step Implementation](#step-by-step-implementation)
+   - [Code Templates](#code-templates)
+   - [Validation Checklist](#validation-checklist)
+   - [Common Pitfalls (Marshals)](#common-pitfalls-marshals)
+   - [Troubleshooting (Marshals)](#troubleshooting-marshals)
+   - [Quick Reference Tables](#quick-reference-tables)
+   - [Adding New Nations](#adding-new-nations)
+   - [Adding New Personalities](#adding-new-personalities)
+   - [Worked Example: Adding Marshal Murat](#worked-example-adding-marshal-murat)
+2. [Adding a New Strategic Command Type](#2-adding-a-new-strategic-command-type)
+   - [Checklist](#checklist)
+   - [Worked Example: PATROL Command](#worked-example-patrol-command)
+   - [Common Pitfalls (Strategic Commands)](#common-pitfalls-strategic-commands)
 
 ---
 
-## 1. Pre-Flight Checklist
+## 1. Adding a New Marshal
+
+Complete guide for adding new marshals to Ink & Iron: Napoleonic Wars. Covers EVERY file that must be modified, with copy-paste templates and validation checklists.
+
+---
+
+### Pre-Flight Checklist
 
 Answer these questions BEFORE writing any code:
 
-### Basic Questions
+#### Basic Questions
 - [ ] **Name:** What is the marshal's full name? (e.g., "Murat", "Lannes")
 - [ ] **Nation:** What nation does this marshal belong to?
   - [ ] France (player)
@@ -36,12 +48,12 @@ Answer these questions BEFORE writing any code:
   - [ ] Other: ____________
 - [ ] **Is this a new nation?** If yes, you'll need extra steps (see [Adding New Nations](#adding-new-nations))
 
-### Marshal Type
+#### Marshal Type
 - [ ] **Player or Enemy?**
   - [ ] Player marshal (French) → Add to `create_starting_marshals()`
   - [ ] Enemy marshal → Add to `create_enemy_marshals()`
 
-### Personality Type
+#### Personality Type
 - [ ] **Which personality?**
   - [ ] `aggressive` - Attacks readily, objects to defensive orders
   - [ ] `cautious` - Defensive-minded, objects to risky attacks
@@ -55,9 +67,9 @@ Answer these questions BEFORE writing any code:
 > - `cautious` → **Counter-Punch** (free attack after defense!), +20% defense stance, 20% max fortify
 > - `literal` → **Immovable** (+15% def when holding position)
 >
-> See [Section 2: Auto-Inherited Mechanics](#2-auto-inherited-mechanics) for full details.
+> See [Auto-Inherited Mechanics](#auto-inherited-mechanics) for full details.
 
-### Unit Type
+#### Unit Type
 - [ ] **Infantry or Cavalry?**
   - [ ] Infantry (`cavalry=False`, `movement_range=1`)
   - [ ] Cavalry (`cavalry=True`, `movement_range=2`)
@@ -67,20 +79,20 @@ Answer these questions BEFORE writing any code:
 > - Cannot hold defensive positions >3 turns (-3 trust auto-switch)
 > - **Aggressive + Cavalry** → Full **Recklessness System** (Ney-style gameplay!)
 >
-> See [Section 2: Auto-Inherited Mechanics](#2-auto-inherited-mechanics) for full details.
+> See [Auto-Inherited Mechanics](#auto-inherited-mechanics) for full details.
 
-### Special Abilities
+#### Special Abilities
 - [ ] Does this marshal have unique abilities?
   - [ ] Yes → Define ability and triggers
   - [ ] No → Use default ability structure
 
 ---
 
-## 2. Auto-Inherited Mechanics
+### Auto-Inherited Mechanics
 
 **CRITICAL:** Many mechanics are automatically inherited based on personality and unit type. You don't implement these - they just work. Your marshal's signature ability should be something UNIQUE beyond these inherited mechanics.
 
-### Mechanics by Personality
+#### Mechanics by Personality
 
 | Personality | Auto-Inherited Mechanics | Source |
 |-------------|--------------------------|--------|
@@ -99,7 +111,7 @@ Answer these questions BEFORE writing any code:
 | | Use `hold` command to activate `holding_position=True` | `marshal.py` |
 | **balanced** | No special bonuses (baseline modifiers only) | - |
 
-### Mechanics by Unit Type
+#### Mechanics by Unit Type
 
 | Unit Type | Auto-Inherited Mechanics | Source |
 |-----------|--------------------------|--------|
@@ -109,7 +121,7 @@ Answer these questions BEFORE writing any code:
 | **Infantry** (`cavalry=False`) | Standard 1-region attack range | `marshal.py` |
 | | No defensive limits (can hold positions indefinitely) | - |
 
-### COMBO: Aggressive + Cavalry = Recklessness System
+#### COMBO: Aggressive + Cavalry = Recklessness System
 
 When a marshal has BOTH `personality="aggressive"` AND `cavalry=True`, they automatically inherit the **full Recklessness System**. This is a major gameplay mechanic.
 
@@ -129,7 +141,7 @@ When a marshal has BOTH `personality="aggressive"` AND `cavalry=True`, they auto
 - **Reset to 0:** Lose any battle OR execute Glorious Charge
 - **Glorious Charge (level 3+):** 2x casualties both sides, -20 enemy morale
 
-### Quick Inheritance Matrix
+#### Quick Inheritance Matrix
 
 | Personality | Unit Type | Counter-Punch? | Recklessness? | Immovable? | Max Fortify |
 |-------------|-----------|----------------|---------------|------------|-------------|
@@ -144,7 +156,7 @@ When a marshal has BOTH `personality="aggressive"` AND `cavalry=True`, they auto
 
 *Cavalry: fortification auto-removed after 3 turns anyway
 
-### Signature Abilities: What They Should Be
+#### Signature Abilities: What They Should Be
 
 Since so much is auto-inherited, signature abilities should be **UNIQUE**:
 
@@ -162,91 +174,91 @@ For detailed mechanics reference, see [MARSHAL_MECHANICS_REFERENCE.md](MARSHAL_M
 
 ---
 
-## 3. Marshal Data Questionnaire
+### Marshal Data Questionnaire
 
 Fill out this sheet completely before implementing:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ MARSHAL DATA SHEET                                          │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ IDENTITY                                                    │
-│ ─────────────────────────────────────────────────────────── │
-│ Name: _______________________________________________       │
-│ Nation: _____________________________________________       │
-│ Historical Title: ___________________________________       │
-│   (e.g., "King of Naples", "Iron Marshal")                 │
-│                                                             │
-│ PERSONALITY & UNIT TYPE                                     │
-│ ─────────────────────────────────────────────────────────── │
-│ Personality: [ ] aggressive  [ ] cautious  [ ] literal      │
-│              [ ] balanced    [ ] loyal                      │
-│                                                             │
-│ Unit Type:   [ ] Infantry (movement_range=1)                │
-│              [ ] Cavalry  (movement_range=2, cavalry=True)  │
-│                                                             │
-│ STARTING STATE                                              │
-│ ─────────────────────────────────────────────────────────── │
-│ Starting Region: ____________________________________       │
-│   (Must exist in region.py - see Quick Reference)          │
-│                                                             │
-│ Strength: ______________ (typical: 30,000 - 80,000)         │
-│ Starting Trust: ________ (typical: 60-85, French only)     │
-│                                                             │
-│ Spawn Location: _________________ (capital for respawn)     │
-│   (French = "Paris", Britain = "Waterloo", etc.)           │
-│                                                             │
-│ SKILLS (1-10 scale, 5 = average)                            │
-│ ─────────────────────────────────────────────────────────── │
-│ Tactical:       ____ (combat rolls, flanking bonuses)       │
-│ Shock:          ____ (attack damage, pursuit effectiveness) │
-│ Defense:        ____ (defender bonus, retreat casualties)   │
-│ Logistics:      ____ (supply range - Phase 5)               │
-│ Administration: ____ (recruitment speed, desertion)         │
-│ Command:        ____ (morale, discipline)                   │
-│                                                             │
-│ Legacy tactical_skill: ____ (0-12, used for dice rolls)     │
-│                                                             │
-│ SIGNATURE ABILITY                                           │
-│ ─────────────────────────────────────────────────────────── │
-│ Ability Name: ________________________________________      │
-│ Description: _________________________________________      │
-│ Trigger: _____________________________________________      │
-│   (when_attacking, morale_drops_below_50, etc.)            │
-│ Effect: ______________________________________________      │
-│                                                             │
-│ RELATIONSHIPS (with existing marshals)                      │
-│ ─────────────────────────────────────────────────────────── │
-│ Format: Marshal Name → Value (-2 to +2)                     │
-│   -2=Hostile, -1=Rival, 0=Professional, +1=Friendly, +2=Devoted│
-│                                                             │
-│ _________________ → ____                                    │
-│ _________________ → ____                                    │
-│ _________________ → ____                                    │
-│ _________________ → ____                                    │
-│                                                             │
-│ REMEMBER: Relationships must be set BIDIRECTIONALLY!        │
-│ If Murat likes Ney (+1), you must also set Ney's opinion    │
-│ of Murat (could be different value).                        │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------+
+| MARSHAL DATA SHEET                                          |
++-------------------------------------------------------------+
+|                                                             |
+| IDENTITY                                                    |
+| ----------------------------------------------------------- |
+| Name: _______________________________________________       |
+| Nation: _____________________________________________       |
+| Historical Title: ___________________________________       |
+|   (e.g., "King of Naples", "Iron Marshal")                 |
+|                                                             |
+| PERSONALITY & UNIT TYPE                                     |
+| ----------------------------------------------------------- |
+| Personality: [ ] aggressive  [ ] cautious  [ ] literal      |
+|              [ ] balanced    [ ] loyal                      |
+|                                                             |
+| Unit Type:   [ ] Infantry (movement_range=1)                |
+|              [ ] Cavalry  (movement_range=2, cavalry=True)  |
+|                                                             |
+| STARTING STATE                                              |
+| ----------------------------------------------------------- |
+| Starting Region: ____________________________________       |
+|   (Must exist in region.py - see Quick Reference)          |
+|                                                             |
+| Strength: ______________ (typical: 30,000 - 80,000)         |
+| Starting Trust: ________ (typical: 60-85, French only)     |
+|                                                             |
+| Spawn Location: _________________ (capital for respawn)     |
+|   (French = "Paris", Britain = "Waterloo", etc.)           |
+|                                                             |
+| SKILLS (1-10 scale, 5 = average)                            |
+| ----------------------------------------------------------- |
+| Tactical:       ____ (combat rolls, flanking bonuses)       |
+| Shock:          ____ (attack damage, pursuit effectiveness) |
+| Defense:        ____ (defender bonus, retreat casualties)   |
+| Logistics:      ____ (supply range - Phase 5)               |
+| Administration: ____ (recruitment speed, desertion)         |
+| Command:        ____ (morale, discipline)                   |
+|                                                             |
+| Legacy tactical_skill: ____ (0-12, used for dice rolls)     |
+|                                                             |
+| SIGNATURE ABILITY                                           |
+| ----------------------------------------------------------- |
+| Ability Name: ________________________________________      |
+| Description: _________________________________________      |
+| Trigger: _____________________________________________      |
+|   (when_attacking, morale_drops_below_50, etc.)            |
+| Effect: ______________________________________________      |
+|                                                             |
+| RELATIONSHIPS (with existing marshals)                      |
+| ----------------------------------------------------------- |
+| Format: Marshal Name -> Value (-2 to +2)                    |
+|   -2=Hostile, -1=Rival, 0=Professional, +1=Friendly, +2=Devoted |
+|                                                             |
+| _________________ -> ____                                   |
+| _________________ -> ____                                   |
+| _________________ -> ____                                   |
+| _________________ -> ____                                   |
+|                                                             |
+| REMEMBER: Relationships must be set BIDIRECTIONALLY!        |
+| If Murat likes Ney (+1), you must also set Ney's opinion    |
+| of Murat (could be different value).                        |
+|                                                             |
++-------------------------------------------------------------+
 ```
 
 ---
 
-## 4. Complete File Reference
+### Complete File Reference
 
-### Every File That Might Need Modification
+#### Every File That Might Need Modification
 
-#### Backend Files (Required)
+**Backend Files (Required)**
 
 | File | Purpose | When to Modify |
 |------|---------|---------------|
 | `backend/models/marshal.py` | Marshal creation | **ALWAYS** - Add marshal definition |
 | `backend/commands/parser.py` | Name fuzzy matching | **ALWAYS** - Add to valid_marshals |
 
-#### Backend Files (Conditional)
+**Backend Files (Conditional)**
 
 | File | Purpose | When to Modify |
 |------|---------|---------------|
@@ -258,14 +270,14 @@ Fill out this sheet completely before implementing:
 | `backend/models/world_state.py` | Nation management | If NEW nation |
 | `backend/ai/llm_client.py` | LLM keyword matching | If special command keywords |
 
-#### Frontend/Godot Files (Conditional)
+**Frontend/Godot Files (Conditional)**
 
 | File | Purpose | When to Modify |
 |------|---------|---------------|
 | `godot-client/.../scenes/map.gd` | Nation colors | If NEW nation |
 | `godot-client/.../scripts/main.gd` | Marshal display | Rarely (auto-handles) |
 
-#### Test Files (Required)
+**Test Files (Required)**
 
 | File | Purpose | When to Modify |
 |------|---------|---------------|
@@ -273,7 +285,7 @@ Fill out this sheet completely before implementing:
 | `tests/test_marshal_skills.py` | Skill tests | If special skill values |
 | `tests/test_enemy_ai.py` | AI behavior | If enemy marshal |
 
-#### Documentation (Required)
+**Documentation (Required)**
 
 | File | Purpose | When to Modify |
 |------|---------|---------------|
@@ -282,9 +294,9 @@ Fill out this sheet completely before implementing:
 
 ---
 
-## 5. Step-by-Step Implementation
+### Step-by-Step Implementation
 
-### Step 1: Add Marshal Definition
+#### Step 1: Add Marshal Definition
 
 **File:** `backend/models/marshal.py`
 
@@ -294,7 +306,7 @@ Fill out this sheet completely before implementing:
 
 **Action:** Add marshal to the appropriate function.
 
-### Step 2: Update Parser Valid Marshals
+#### Step 2: Update Parser Valid Marshals
 
 **File:** `backend/commands/parser.py`
 
@@ -308,7 +320,7 @@ self.valid_marshals = ["Ney", "Davout", "Grouchy", "Murat"]
 self.valid_marshals = ["Ney", "Davout", "Grouchy", "Murat", "NewMarshal"]
 ```
 
-### Step 3: Update Known Enemies (if enemy marshal)
+#### Step 3: Update Known Enemies (if enemy marshal)
 
 **File:** `backend/commands/parser.py`
 
@@ -322,7 +334,7 @@ self.known_enemies = ["Wellington", "Blucher"]
 self.known_enemies = ["Wellington", "Blucher", "NewEnemy"]
 ```
 
-### Step 4: Set Up Bidirectional Relationships
+#### Step 4: Set Up Bidirectional Relationships
 
 **File:** `backend/models/marshal.py`
 
@@ -340,13 +352,13 @@ marshals["Murat"].set_relationship("Davout", 0)  # Murat is neutral
 marshals["Davout"].set_relationship("Murat", -1) # Davout dislikes Murat
 ```
 
-### Step 5: Add Personality Modifiers (if new personality)
+#### Step 5: Add Personality Modifiers (if new personality)
 
 **File:** `backend/models/personality_modifiers.py`
 
 See [Adding New Personalities](#adding-new-personalities) section.
 
-### Step 6: Add to Enemy AI (if enemy marshal)
+#### Step 6: Add to Enemy AI (if enemy marshal)
 
 **File:** `backend/ai/enemy_ai.py`
 
@@ -354,7 +366,7 @@ Enemy marshals automatically use the AI system. Verify:
 - Marshal's personality threshold in `_get_attack_threshold()` (~line 500)
 - Nation is in `world.enemy_nations` list
 
-### Step 7: Update Godot Nation Colors (if new nation)
+#### Step 7: Update Godot Nation Colors (if new nation)
 
 **File:** `godot-client/project-sovereign/scenes/map.gd`
 
@@ -372,7 +384,7 @@ const COLORS = {
 }
 ```
 
-### Step 8: Add Tests
+#### Step 8: Add Tests
 
 **File:** `tests/test_marshal_abilities.py`
 
@@ -393,7 +405,7 @@ class TestNewMarshalAbility:
         pass
 ```
 
-### Step 9: Run All Tests
+#### Step 9: Run All Tests
 
 ```bash
 # Run all tests
@@ -406,7 +418,7 @@ pytest test_conquest_comprehensive.py -v
 pytest tests/test_marshal_abilities.py -v
 ```
 
-### Step 10: Manual Testing
+#### Step 10: Manual Testing
 
 Start the game and verify:
 - [ ] Marshal appears on map in correct location
@@ -416,7 +428,7 @@ Start the game and verify:
 - [ ] Enemy AI controls marshal correctly (if enemy)
 - [ ] No console errors or warnings
 
-### Step 11: Update Documentation
+#### Step 11: Update Documentation
 
 **File:** `CLAUDE.md`
 
@@ -428,9 +440,9 @@ Add entry for the new marshal.
 
 ---
 
-## 6. Code Templates
+### Code Templates
 
-### Template A: French Player Marshal
+#### Template A: French Player Marshal
 
 Copy this template and fill in the values:
 
@@ -465,7 +477,7 @@ Copy this template and fill in the values:
 ),
 ```
 
-### Template B: Enemy Marshal
+#### Template B: Enemy Marshal
 
 Copy this template and fill in the values:
 
@@ -499,14 +511,14 @@ Copy this template and fill in the values:
 ),
 ```
 
-### Template C: Relationship Setup
+#### Template C: Relationship Setup
 
 Add after all marshals are created in the function:
 
 ```python
-# ════════════════════════════════════════════════════════════
+# ================================================================
 # SCENARIO NAME: Historical Relationships
-# ════════════════════════════════════════════════════════════
+# ================================================================
 
 # NewMarshal's relationships
 marshals["NewMarshal"].set_relationship("Ney", 1)      # Friendly
@@ -519,7 +531,7 @@ marshals["Davout"].set_relationship("NewMarshal", 0)   # Mutual professionalism
 marshals["Grouchy"].set_relationship("NewMarshal", -1) # Mutual rivalry
 ```
 
-### Template D: Test Class
+#### Template D: Test Class
 
 ```python
 # Add to tests/test_marshal_abilities.py
@@ -558,11 +570,11 @@ class TestNewMarshalAbilityName:
 
 ---
 
-## 7. Validation Checklist
+### Validation Checklist
 
 Before committing, verify ALL items:
 
-### Marshal Definition
+#### Marshal Definition
 - [ ] Name is unique (not already in `self.marshals`)
 - [ ] Nation exists in game (or you've added it)
 - [ ] Personality is valid: `aggressive`, `cautious`, `literal`, `balanced`, `loyal`
@@ -575,33 +587,33 @@ Before committing, verify ALL items:
 - [ ] Spawn location exists and makes sense for nation
 - [ ] Ability has all 4 fields: name, description, trigger, effect
 
-### Relationships
+#### Relationships
 - [ ] All relationships are set BIDIRECTIONALLY
 - [ ] Relationship values are in range -2 to +2
 - [ ] Historical accuracy (if applicable)
 
-### Parser
+#### Parser
 - [ ] Marshal name added to `valid_marshals` list
 - [ ] If enemy: name added to `known_enemies` list
 - [ ] Name doesn't conflict with existing names (case-insensitive)
 - [ ] Fuzzy matching works (test with typos)
 
-### Tests
+#### Tests
 - [ ] Test class created for new marshal
 - [ ] Tests verify ability definition
 - [ ] Tests verify starting stats
 - [ ] Tests verify bidirectional relationships
 - [ ] All tests pass: `pytest tests/ -v`
 
-### Frontend (if new nation)
+#### Frontend (if new nation)
 - [ ] Nation color added to `map.gd` COLORS constant
 - [ ] Color is visually distinct from existing nations
 
-### Documentation
+#### Documentation
 - [ ] CLAUDE.md updated with new marshal
 - [ ] CHANGELOG.md has entry for addition
 
-### Manual Testing
+#### Manual Testing
 - [ ] Game starts without errors
 - [ ] Marshal appears on map
 - [ ] Tooltip shows correct info
@@ -610,9 +622,9 @@ Before committing, verify ALL items:
 
 ---
 
-## 8. Common Pitfalls
+### Common Pitfalls (Marshals)
 
-### Pitfall 1: One-Sided Relationships
+#### Pitfall 1: One-Sided Relationships
 
 **WRONG:**
 ```python
@@ -626,7 +638,7 @@ marshals["Murat"].set_relationship("Ney", 1)
 marshals["Ney"].set_relationship("Murat", 1)  # Must set both!
 ```
 
-### Pitfall 2: Wrong Movement Range for Cavalry
+#### Pitfall 2: Wrong Movement Range for Cavalry
 
 **WRONG:**
 ```python
@@ -648,7 +660,7 @@ Marshal(
 )
 ```
 
-### Pitfall 3: Nonexistent Starting Region
+#### Pitfall 3: Nonexistent Starting Region
 
 **WRONG:**
 ```python
@@ -671,7 +683,7 @@ Marshal(
 )
 ```
 
-### Pitfall 4: Skills Outside Valid Range
+#### Pitfall 4: Skills Outside Valid Range
 
 **WRONG:**
 ```python
@@ -691,7 +703,7 @@ skills={
 }
 ```
 
-### Pitfall 5: Forgetting to Update Parser
+#### Pitfall 5: Forgetting to Update Parser
 
 Marshal is added but commands don't work:
 
@@ -703,7 +715,7 @@ self.valid_marshals = ["Ney", "Davout", "Grouchy", "NewMarshal"]  # Added!
 self.known_enemies = ["Wellington", "Blucher", "NewEnemy"]  # Added!
 ```
 
-### Pitfall 6: Missing Nation Color in Godot
+#### Pitfall 6: Missing Nation Color in Godot
 
 New nation's marshals appear as magenta on map (debug color).
 
@@ -715,14 +727,14 @@ const COLORS = {
 }
 ```
 
-### Pitfall 7: Not Adding Tests
+#### Pitfall 7: Not Adding Tests
 
 Marshal seems to work but breaks in edge cases. Always add:
 - Ability definition test
 - Starting stats test
 - Relationship bidirectionality test
 
-### Pitfall 8: Cavalry Without cavalry=True
+#### Pitfall 8: Cavalry Without cavalry=True
 
 Marshal has `movement_range=2` but `cavalry=False`:
 - Won't get cavalry limits (restlessness system)
@@ -739,7 +751,7 @@ Marshal(
 
 ---
 
-## 9. Troubleshooting
+### Troubleshooting (Marshals)
 
 | Problem | Likely Cause | Solution |
 |---------|--------------|----------|
@@ -759,9 +771,9 @@ Marshal(
 
 ---
 
-## 10. Quick Reference Tables
+### Quick Reference Tables
 
-### Valid Regions (Current 13-Region Map)
+#### Valid Regions (Current 13-Region Map)
 
 | Region | Default Controller | Notes |
 |--------|-------------------|-------|
@@ -779,7 +791,7 @@ Marshal(
 | Milan | Neutral | Northern Italy |
 | Geneva | Neutral | Swiss region |
 
-### Personality Types
+#### Personality Types
 
 | Personality | Attack Behavior | Defense Behavior | Use For |
 |-------------|-----------------|------------------|---------|
@@ -789,7 +801,7 @@ Marshal(
 | `balanced` | Normal | Normal | Well-rounded generals |
 | `loyal` | Normal | Normal | Absolutely obedient (placeholder) |
 
-### Skill Value Guidelines
+#### Skill Value Guidelines
 
 | Value | Description | Example |
 |-------|-------------|---------|
@@ -799,16 +811,16 @@ Marshal(
 | 8-9 | Excellent | Elite performer |
 | 10 | Legendary | Best in Europe |
 
-### Typical Strength Values
+#### Typical Strength Values
 
 | Force Type | Strength Range | Examples |
 |------------|----------------|----------|
 | Small corps | 15,000 - 25,000 | Light cavalry, reconnaissance |
 | Medium corps | 30,000 - 50,000 | Standard army corps |
 | Large corps | 50,000 - 80,000 | Main field army |
-| Grande Armée | 100,000+ | Combined force |
+| Grande Armee | 100,000+ | Combined force |
 
-### Relationship Values
+#### Relationship Values
 
 | Value | Label | Meaning |
 |-------|-------|---------|
@@ -818,22 +830,22 @@ Marshal(
 | +1 | Friendly | Positive regard, cooperative |
 | +2 | Devoted | Deep loyalty, will sacrifice for |
 
-### Historical French Marshals (For Future Addition)
+#### Historical French Marshals (For Future Addition)
 
 | Marshal | Suggested Personality | Notes |
 |---------|----------------------|-------|
 | Murat | aggressive | Cavalry genius, King of Naples |
 | Lannes | loyal | "Roland of the Army" |
 | Soult | balanced | "Hand of Iron" |
-| Masséna | cautious | Defensive expert |
+| Massena | cautious | Defensive expert |
 | Bernadotte | cautious | Future Swedish king |
-| Bessières | loyal | Imperial Guard commander |
+| Bessieres | loyal | Imperial Guard commander |
 | Mortier | balanced | Artillery expert |
 | Oudinot | aggressive | "Bayard of the Army" |
 | Marmont | cautious | Artillery, later traitor |
 | Poniatowski | aggressive | Polish prince |
 
-### Historical Enemy Commanders (For Future Addition)
+#### Historical Enemy Commanders (For Future Addition)
 
 | Commander | Nation | Suggested Personality |
 |-----------|--------|----------------------|
@@ -845,11 +857,11 @@ Marshal(
 
 ---
 
-## Adding New Nations
+### Adding New Nations
 
 If adding a marshal for a nation not yet in the game:
 
-### 1. Add Nation Color (Godot)
+#### 1. Add Nation Color (Godot)
 
 ```gdscript
 # map.gd line ~38
@@ -859,7 +871,7 @@ const COLORS = {
 }
 ```
 
-### 2. Add to Enemy Nations List
+#### 2. Add to Enemy Nations List
 
 ```python
 # world_state.py line ~114
@@ -873,7 +885,7 @@ self.nation_actions: Dict[str, int] = {
 }
 ```
 
-### 3. Set Up Initial Region Control
+#### 3. Set Up Initial Region Control
 
 ```python
 # world_state.py in _setup_initial_control()
@@ -885,11 +897,11 @@ control_map = {
 
 ---
 
-## Adding New Personalities
+### Adding New Personalities
 
 If creating a new personality type:
 
-### 1. Add Modifiers
+#### 1. Add Modifiers
 
 ```python
 # personality_modifiers.py
@@ -901,7 +913,7 @@ NEW_PERSONALITY_MODIFIERS = {
 }
 ```
 
-### 2. Update Modifier Functions
+#### 2. Update Modifier Functions
 
 ```python
 # personality_modifiers.py in get_personality_modifiers()
@@ -913,7 +925,7 @@ modifiers = {
 }
 ```
 
-### 3. Add Objection Triggers
+#### 3. Add Objection Triggers
 
 ```python
 # personality.py in PERSONALITY_TRIGGERS
@@ -926,11 +938,11 @@ Personality.NEW_TYPE: {
 
 ---
 
-## Example: Adding Marshal Murat
+### Worked Example: Adding Marshal Murat
 
-Complete walkthrough of adding a new French cavalry marshal:
+Complete walkthrough of adding a new French cavalry marshal.
 
-### Step 1: Fill Out Data Sheet
+#### Step 1: Fill Out Data Sheet
 
 ```
 Name: Murat
@@ -960,7 +972,7 @@ Relationships:
   Grouchy: 0 (professional)
 ```
 
-### Step 2: Add to marshal.py
+#### Step 2: Add to marshal.py
 
 ```python
 # In create_starting_marshals(), after Grouchy:
@@ -993,7 +1005,7 @@ Relationships:
 ),
 ```
 
-### Step 3: Add Relationships
+#### Step 3: Add Relationships
 
 ```python
 # After all marshals are created in create_starting_marshals():
@@ -1009,14 +1021,14 @@ marshals["Davout"].set_relationship("Murat", -1)
 marshals["Grouchy"].set_relationship("Murat", 0)
 ```
 
-### Step 4: Update Parser
+#### Step 4: Update Parser
 
 ```python
 # parser.py line ~30
 self.valid_marshals = ["Ney", "Davout", "Grouchy", "Murat"]
 ```
 
-### Step 5: Add Tests
+#### Step 5: Add Tests
 
 ```python
 # tests/test_marshal_abilities.py
@@ -1056,14 +1068,14 @@ class TestMuratKingsCharge:
         assert marshals["Davout"].get_relationship("Murat") == -1
 ```
 
-### Step 6: Run Tests
+#### Step 6: Run Tests
 
 ```bash
 pytest tests/test_marshal_abilities.py -v
 pytest tests/ -v
 ```
 
-### Step 7: Manual Test
+#### Step 7: Manual Test
 
 1. Start backend: `python backend/main.py`
 2. Open Godot client
@@ -1072,13 +1084,11 @@ pytest tests/ -v
 5. Send command: "Murat, attack Bavaria"
 6. Verify 2-tile attack range works
 
-### Step 8: Update Documentation
+#### Step 8: Update Documentation
 
 Add to CLAUDE.md and CHANGELOG.md.
 
----
-
-## Summary
+#### Summary
 
 Adding a marshal requires modifying **at minimum**:
 1. `backend/models/marshal.py` - Marshal definition
@@ -1092,5 +1102,170 @@ If adding new nation or personality: Add **30-60 minutes** for additional files.
 
 ---
 
-*Last updated: January 2026*
-*Compatible with: Phase 2.5 (Autonomy Foundation)*
+## 2. Adding a New Strategic Command Type
+
+Step-by-step guide for adding new strategic commands (e.g., PATROL, ESCORT, FLANK).
+
+**Difficulty:** 6/10 -- Requires touching 6+ files but the pattern is well-established.
+
+---
+
+### Checklist
+
+#### Step 1: Define the Command Type
+
+Add to the valid types set:
+
+| File | Location | Change |
+|------|----------|--------|
+| `backend/ai/validation.py:117` | `VALID_STRATEGIC_TYPES` | Add `"PATROL"` to set |
+| `backend/ai/strategic_parser.py:32` | `STRATEGIC_KEYWORDS` | Add keyword-to-type mapping |
+
+#### Step 2: Parser Detection
+
+**File:** `backend/ai/strategic_parser.py`
+
+Add detection in `_detect_strategic_type()` (line 189):
+```python
+# Add keywords that trigger this command type
+STRATEGIC_KEYWORDS = {
+    ...
+    "PATROL": ["patrol", "sweep", "patrol between", "guard route"],
+}
+```
+
+If the command has a unique target classification (e.g., PATROL needs TWO regions), extend `_classify_target()` (line 264) or add a new classifier.
+
+#### Step 3: Fast Parser Keywords
+
+**File:** `backend/ai/llm_client.py`
+
+Add keyword detection in `_parse_with_mock()` (~line 408):
+```python
+elif "patrol" in command_lower or "sweep" in command_lower:
+    action = "move"  # Strategic parser will upgrade to PATROL
+```
+
+#### Step 4: Command Handler
+
+**File:** `backend/commands/strategic.py`
+
+Add a new handler method following the established pattern:
+
+```python
+def _execute_patrol(self, marshal, order, world, game_state):
+    """PATROL: Move between waypoints in a loop."""
+    # 1. Get current waypoint from order
+    # 2. Move one step toward it
+    # 3. On arrival, switch to next waypoint
+    # 4. Check for enemies encountered en route
+    # 5. Return result dict
+
+    result = self.executor.execute(
+        {"command": {
+            "marshal": marshal.name,
+            "action": "move",
+            "target": next_waypoint,
+            "_strategic_execution": True,  # REQUIRED: skips action cost
+        }},
+        game_state
+    )
+    return {
+        "marshal": marshal.name,
+        "command": "PATROL",
+        "action_taken": "move",
+        "moved_to": next_waypoint,
+        "order_status": "active",  # or "completed"
+    }
+```
+
+Wire it into `_execute_strategic_turn()` (line 74):
+```python
+elif order.command_type == "PATROL":
+    return self._execute_patrol(marshal, order, world, game_state)
+```
+
+#### Step 5: Executor Initial Setup
+
+**File:** `backend/commands/executor.py`
+
+In `_execute_strategic_command()` (line 1984), add any command-specific setup when creating the StrategicOrder:
+
+```python
+if strategic_type == "PATROL":
+    # PATROL may need multiple waypoints stored
+    order = StrategicOrder(
+        command_type="PATROL",
+        target=waypoints[0],  # First waypoint
+        target_type="region",
+        path=initial_path,
+        conditions=condition,
+        # Store full waypoint list in a custom field if needed
+    )
+```
+
+#### Step 6: Condition Support (if needed)
+
+If the command has unique completion conditions, add them to:
+- `backend/models/marshal.py` -- `StrategicCondition` dataclass (line 37)
+- `backend/commands/strategic.py` -- `_check_condition()` (line 792)
+
+#### Step 7: Serialization
+
+If you added new fields to `StrategicOrder` or `StrategicCondition`:
+- Update `to_dict()` and `from_dict()` in `backend/models/marshal.py`
+- Test roundtrip: `order == StrategicOrder.from_dict(order.to_dict())`
+
+#### Step 8: Tests
+
+Add tests in `tests/` covering:
+- Parser detects new command keywords
+- Executor creates correct StrategicOrder
+- Handler moves between waypoints / executes behavior
+- Personality affects behavior (aggressive version vs. cautious version vs. literal version)
+- Condition completion
+- Serialization roundtrip
+
+---
+
+### Worked Example: PATROL Command
+
+**Player says:** "Ney, patrol between Belgium and Netherlands"
+
+#### What happens:
+
+1. **llm_client.py** -- Fast parser sees "patrol" -> `action="move"`
+2. **strategic_parser.py** -- `_detect_strategic_type()` sees "patrol" -> `PATROL`
+3. **strategic_parser.py** -- `_classify_target()` needs to handle TWO region targets (new logic)
+4. **parser.py** -- Injects `is_strategic=True`, `strategic_type="PATROL"`
+5. **validation.py** -- `"PATROL" in VALID_STRATEGIC_TYPES` -> passes
+6. **executor.py** -- Intercepts, creates StrategicOrder with waypoints, executes first move
+7. **strategic.py** -- Each turn, moves to next waypoint; on arrival, reverses direction
+8. **Personality:**
+   - Aggressive: Auto-attacks enemies encountered on patrol route
+   - Cautious: Avoids enemy regions, reports contact, asks player
+   - Literal: Follows exact route, ignores nearby battles
+
+#### Difficulty Breakdown
+
+| Step | Effort | Notes |
+|------|--------|-------|
+| Keywords & validation | Easy | 2 lines each |
+| Parser detection | Easy | Add to existing keyword dict |
+| Target classification | Medium | PATROL needs multi-target support (new) |
+| Handler | Medium | Movement loop exists, add waypoint cycling |
+| Personality behavior | Medium | Reuse `_get_personality_aware_path()` and `_handle_blocked_path()` |
+| Serialization | Easy | Add waypoints field to StrategicOrder |
+| Tests | Medium | ~15-20 tests for full coverage |
+
+**Total estimated difficulty: 6/10** -- Most infrastructure exists. The main new work is multi-waypoint targeting and the cycling behavior.
+
+---
+
+### Common Pitfalls (Strategic Commands)
+
+1. **Always use `_strategic_execution=True`** in executor calls from handlers -- otherwise it deducts player actions
+2. **Always use `_get_personality_aware_path()`** for pathfinding -- don't call `world.find_path()` directly
+3. **Return `order_status`** in result dict -- `"active"`, `"completed"`, or `"paused"`
+4. **Handle retreat recovery** -- check at top of handler, not just in `_execute_strategic_turn()`
+5. **Test serialization** -- if you add fields to StrategicOrder, they MUST survive to_dict/from_dict roundtrip

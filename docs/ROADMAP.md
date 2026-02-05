@@ -11,7 +11,7 @@
 | Phase | Name | Status |
 |-------|------|--------|
 | 1-5.3 | Foundation through AI Fixes | ✅ COMPLETE |
-| **V2a** | **Objection System Refactor** | **🔄 DESIGNED** |
+| **V2a** | **Objection System Refactor** | **🔄 IN PROGRESS (Units 1-5 done)** |
 | **6** | **Core Campaign Systems** | **📋 NEXT (after V2a)** |
 | 6.5 | Information & UI Systems | 📋 Planned |
 | 7 | Multi-Marshal & Relationships | 📋 Planned |
@@ -38,7 +38,7 @@
 | 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) ✅ |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 1076 (verified Feb 5, 2026)
+**Total Tests:** 1203 (verified Feb 5, 2026)
 
 ---
 
@@ -46,7 +46,7 @@
 
 **Goal:** Fix fundamental flaw where trust modifies WHETHER marshals speak instead of HOW they speak.
 
-**Status:** Designed, pending implementation. See `OBJECTION_V2_REFACTOR_PLAN.md`.
+**Status:** In progress. Units 1-5 complete (1203 tests), Units 6-7 remaining. See `OBJECTION_V2.md`.
 
 **Key Changes:**
 - Deterministic situational triggers (personality × situation → ConcernLevel)
@@ -443,7 +443,7 @@ Must be done, in rough order:
 1. ✅ Strategic Commands (done)
 2. ✅ Enemy AI (done)
 3. ✅ Serialization/Modding foundation (done)
-4. 🔄 V2a: Objection System Refactor (designed, pending)
+4. 🔄 V2a: Objection System Refactor (Units 1-5 done, 6-7 remaining)
 5. 📋 Phase 6: Economy, Manpower, Terrain, Fog, War Score
 6. 📋 Phase 6.5: Notifications, Ledger, Marshal UI
 7. 📋 Phase 7: Multi-marshal, Relationships gameplay, **V2b: Defiance/Vindication**
@@ -520,9 +520,9 @@ At 1000 games/month = ~$50-60. BYOK covers heavy users. All systems degrade grac
 ## Document References
 
 - **STATUS.md** — Current test count, active work, blockers
-- **COMPLETED.md** — Reference for done systems
-- **TECHNICAL.md** — Code patterns, workflow, ports
-- **AI_REFERENCE.md** — Enemy AI decision tree
+- **SYSTEMS_REFERENCE.md** — Game systems reference
+- **ENEMY_AI_REFERENCE.md** — Enemy AI decision tree
+- **OBJECTION_V2.md** — V2 objection system design
 - **VISION.md** — Core concept, north star
 
 **Rule:** Phase numbers and timeline ONLY exist in this document. Other docs say "see ROADMAP.md".

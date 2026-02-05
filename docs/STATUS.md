@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 5, 2026
-> **Last Session:** V2a Objection Refactor implementation (Units 1-2 complete)
+> **Last Session:** V2a Units 4-5 complete, doc consolidation
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1195** (verified Feb 5, 2026) |
+| **Tests Passing** | **1203** (verified Feb 5, 2026) |
 | **Current Phase** | V2a (Objection Refactor) — then Phase 6 |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M |
@@ -19,154 +19,69 @@
 
 ## Active Work
 
-V2a Objection Refactor in progress: Units 1-2 complete, Units 3-7 remaining.
+V2a Objection Refactor in progress: Units 1-5 complete, Units 6-7 remaining.
 
-- [x] Phase M: Strategic Objections ✅ (was already implemented, docs not updated)
-- [🔄] V2a: Objection System Refactor (Units 1-3 complete)
-  - [x] Unit 1: Core Data Structures (ConcernLevel, TrustTier, trust/penalty calculations)
-  - [x] Unit 2: Trigger Evaluators (aggressive, cautious, literal personality handlers)
-  - [x] Unit 3: Strategic Trigger Evaluators (HOLD, PURSUE, MOVE_TO, SUPPORT)
-  - [ ] Unit 4: Pipeline Integration (wire V2 evaluators into executor.py)
-  - [ ] Unit 5: Vindication Extension
-  - [ ] Unit 6: Test Migration
-  - [ ] Unit 7: Godot Frontend
+- [x] Phase M: Strategic Objections
+- V2a: Objection System Refactor
+  - [x] Unit 1: Core Data Structures (ConcernLevel, TrustTier, trust/penalty calculations) — 53 tests
+  - [x] Unit 2: Tactical Trigger Evaluators (aggressive, cautious, literal) — 36 tests
+  - [x] Unit 3: Strategic Trigger Evaluators (HOLD, PURSUE, MOVE_TO, SUPPORT) — 30 tests
+  - [x] Unit 4: Pipeline Integration (V2 evaluators wired into executor.py) — 6 tests
+  - [x] Unit 5: Vindication Extension (pending_defensive_vindication) — 2 tests
+  - [ ] Unit 6: Test Migration (update existing tests asserting severity floats)
+  - [ ] Unit 7: Godot Frontend (tone-based styling, MILD flavor in turn log)
 - [ ] Begin Phase 6 design after V2a ships
 
 ---
 
 ## Recently Completed
 
-### Feb 5 (this session)
+### Feb 5
 
-**V2a Objection Refactor Implementation:**
-- **Unit 1 complete:** Core data structures in `backend/commands/objection_v2.py`
-  - `ConcernLevel` enum (NONE, MILD, MODERATE, STRONG, EXTREME)
-  - `TrustTier` enum (HOSTILE, WARY, TRUSTING, DEVOTED)
-  - Trust gain calculations with tier multipliers (rubber-band effect)
-  - Insist penalty tables by tier
-  - Mood variance (15-20% chance of ±1 level shift)
-  - 53 unit tests
-- **Unit 2 complete:** Trigger evaluation functions
-  - `evaluate_aggressive()` — defend/fortify/retreat/drill triggers
-  - `evaluate_cautious()` — attack odds/fortified/path danger triggers
-  - `evaluate_literal()` — always NONE (uses clarification system)
-  - `evaluate_situation()` — main dispatcher
-  - Helper functions for game state queries
-  - 36 additional unit tests
-- **Unit 3 complete:** Strategic trigger evaluators
-  - `evaluate_strategic_aggressive()` — HOLD no-enemies triggers
-  - `evaluate_strategic_cautious()` — PURSUE odds, dangerous path triggers
-  - `evaluate_strategic_literal()` — always NONE
-  - `evaluate_strategic_situation()` — main strategic dispatcher
-  - Helper functions: `_check_enemies_adjacent_to_region`, `_get_pursue_target_ratio`, `_path_has_enemies`
-  - 30 additional unit tests
-- **Docs updated:** Part 9 added to V2A_IMPLEMENTATION_ADDENDUM.md with all Q1-Q7 resolutions
+**V2a Units 4 & 5 (commit e04405b):**
+- **Unit 4:** Pipeline integration — V2 evaluators wired into executor.py
+  - `evaluate_situation()` + `apply_mood_variance()` replace V1 `evaluate_order()`
+  - MILD concerns → append to `world.mild_concerns_this_turn`, continue execution
+  - MODERATE+ → per-marshal popup cap, tone/insist_penalty from trust tier
+  - WorldState: `mild_concerns_this_turn`, `objection_popups_this_turn` fields
+  - main.py: mild_concerns passthrough in response
+- **Unit 5:** Added `pending_defensive_vindication` to VindicationTracker
+- **Opus 4.6 review fixes:**
+  - Fix: `"order"` → `"original_order"` key mismatch (would crash on insist)
+  - Fix: `game_state` variable shadowing dropping `debug_mode` key
+  - Fix: Removed unused `target` variables in message generators
 
-**Earlier today:**
+**V2a Units 1-3:**
+- Core data structures (ConcernLevel, TrustTier enums, trust gain/penalty tables)
+- Tactical trigger evaluators (personality × situation → ConcernLevel)
+- Strategic trigger evaluators (evaluate_strategic_situation dispatcher)
+- 119 new tests
 
-**Documentation Updates:**
-- Docs updated: Phase 5.2 marked fully complete including Phase M
-- V2a/V2b Objection Refactor designed with full edge case resolution (see `OBJECTION_V2_REFACTOR_PLAN.md`)
-- Root cause identified: trust modifies WHETHER marshals speak, should modify HOW they speak
-- Design finalized: deterministic ConcernLevel triggers, trust-as-consequence, MILD as flavor text
-
-**Consistency Fixes:**
-- **Feature:** Davout (cautious) dangerous path objection for distant HOLD — same logic as MOVE_TO. If holding a distant position requires marching through enemy-occupied territory, Davout objects. Safe route compromise offered if one exists.
-- **Feature:** Davout (cautious) dangerous path objection for SUPPORT — if supporting an ally requires marching through danger, Davout objects. Consistent with MOVE_TO and HOLD.
-- **Bug fix:** "Marching to X" message when already at X — HOLD orders now correctly show "holding position at X" when marshal is already at target location.
-- **Code cleanup:** Updated comment in executor.py to reflect safe_path compromise applies to MOVE_TO, HOLD, and SUPPORT.
-
-**Tests:**
-- Added 119 new tests for V2a objection system (Units 1-3)
-- Test count: **1195 passed, 3 skipped**
-
-**Documentation:**
-- Added fog of war comment to PURSUE objection (Phase 6+ consideration)
-- When fog of war is implemented, objections should only trigger for scouted/revealed enemies
+**Documentation consolidation:**
+- CLAUDE.md trimmed from 1661 → 268 lines
+- docs/ consolidated from 21 → 11 active files + 3 archived
+- New merged docs: SYSTEMS_REFERENCE.md, OBJECTION_V2.md, ADDING_CONTENT.md
 
 ### Feb 4
 
-**HOLD Improvements:**
-- **BUG FIX:** Timed HOLD not expiring — compromise `max_turns` was nested incorrectly in options dict. Now correctly extracted and HOLD expires after agreed turns.
-- **QoL:** Block redundant HOLD orders — "Ney is already holding Belgium. No action needed." (0 AP cost)
-- **Feature:** Davout (cautious) HOLD benefit — auto-fortify (free) + fortification NEVER decays while holding. Can reach 40% defense (20% fortify + 20% stance).
-- **Feature:** Personality-specific HOLD completion messages for all conditions (timed, until_relieved, until_arrives, until_destroyed)
-
-**Debug:**
-- **New:** `/debug freeze_enemies` — toggles freeze on ALL enemy marshals for easier testing
-
-**Earlier today:**
-- Strategic objection response flow fixes
-- AP consumption timing fixes
-- `_handle_strategic_objection_from_endpoint()` helper
-
-Test count: **1066 passed, 3 skipped**
+- Timed HOLD expiry fix, redundant HOLD blocking, Davout HOLD auto-fortify
+- Personality-specific HOLD completion messages
+- `/debug freeze_enemies` command
+- Test count: **1066 passed, 3 skipped**
 
 ### Feb 3
-- **Phase M complete:** Strategic Objections implemented and verified. All 47 tests passing (44 pass, 3 skipped for future relationship system).
-- **CRITICAL FIX:** Strategic objections now use probability system (same as tactical):
-  - Factors: trust, authority, vindication, performance, override history
-  - Base severities: Ney HOLD=0.72, Davout PURSUE=0.68, Davout MOVE_TO=0.65
-  - Threshold: ≥0.50 for objection to trigger
-  - High trust (80+) = 0.7x modifier → objections less likely
-  - Low trust (<20) = 1.6x modifier → objections more likely
-- **Test updates:** Tests that require objections now set low trust to guarantee triggers
-- Test count: **1066 passed, 3 skipped, 0 failures**
+
+- Phase M complete: Strategic Objections (47 tests)
+- Strategic objections use probability system (trust, authority, vindication)
 
 ### Feb 2
-- **Bug fix:** Command misattribution — typing "grouchy march to brittany" triggered Davout's pending interrupt response because "march to" matched interrupt keywords. Interrupt router now checks if command addresses a different marshal and skips routing if so.
-- **UX improvement:** SUPPORT auto-follow — supporting marshals now silently follow when ally moves (no more repeated "Follow?" popups every turn). SUPPORT already tracked ally position dynamically; the popup was unnecessary friction.
-- **Bug fix:** Forced retreat now clears strategic orders. Previously, a marshal forced to retreat while executing HOLD/MOVE_TO/PURSUE/SUPPORT kept the stale order, causing confusion on next turn. HOLD-specific messaging: "Ney's HOLD order at Belgium is broken!"
-- **Bug fix:** Enemy AI battle events now include `battle_name` field. Previously showed fallback "BATTLE" text in enemy phase popup instead of "Battle of Belgium".
-- **Combat improvement:** Morale damage now scales with casualty severity. Heavy losses (30%+ casualties) cause up to 2.5x worse morale damage than light losses. Previously flat: -10 for any tactical loss, -20 for any destruction. Now a devastating defeat hits morale much harder than a close fight.
-- **Bug fix:** Strategic commands (HOLD, MOVE_TO, PURSUE, SUPPORT) failed with "Unknown action" after player insisted on objection. Post-objection executor was missing strategic routing and hold/wait handlers. Also propagated `is_strategic`/`strategic_type` into command dict so they survive objection storage.
-- **UI fix:** Strategic HOLD tooltip — any marshal with active HOLD order now shows "HOLDING POSITION at [region]" in hover tooltip. Grouchy still shows "(Immovable): +15% defense".
-- **UX fix:** Grouchy attack clarification — literal marshals no longer silently auto-move when given "attack" with no nearby target. Instead shows clarification popup offering to upgrade to PURSUE with target selection.
-- **UX fix:** Sally battle display — extracted combat outcome/message from sally `combat_result` into top-level report fields. Strategic report popup now shows battle narrative and outcome inline. Text output also logs sally battle details.
-- **Bug fix (root cause):** Sally battles never reached frontend — `new_state` (full WorldState with circular references) was embedded in executor attack results inside `combat_result`/`battle_details`. FastAPI JSON serializer silently dropped entire `strategic_reports`. Fixed by stripping `new_state` from combat results in sally and MOVE_TO attack_on_arrival reports.
-- **Bug fix:** Duplicate cancel buttons in clarification popup — backend included Cancel/Proceed options that Godot popup already adds natively. Also fixed "Proceed as ordered" sending `"insist"` as target.
-- **Improvement:** Sally target selection now evaluates all adjacent enemies and picks best strength ratio (lowest morale tiebreaker) instead of first-found.
-- **Bug fix:** Strategic reports (hold battles, movement progress) missing from auto-advance turn path. When actions exhausted and turn auto-advances, `strategic_reports` from `turn_result` were not copied into response — popups never appeared in Godot.
-- **Bug fix (root cause, 4th attempt):** Sally battles STILL never showed because the sally used move→attack→return pattern, but executor blocks `move()` into enemy-occupied regions. Move always failed silently, so `combat_result` was always None. Fixed: sally now attacks adjacent enemy directly (executor handles adjacent attacks), then returns only if marshal advanced on victory.
-- **Bug fix:** Post-objection strategic HOLD cost 1 AP instead of 2. `_execute_post_objection` called `use_action()` once instead of using `variable_action_cost` from strategic result.
-- **Fix:** `parse_multiple()` now accepts and passes `world` parameter, enabling strategic detection for multi-marshal commands.
-- **Bug fix:** Contact interrupt infinite loop — blocked path interrupts (SUPPORT/HOLD/MOVE_TO) re-triggered every turn when enemy persisted in path. Added `last_contact_enemy`/`last_contact_turn` suppression: after player responds, same enemy won't re-trigger for 1 turn (silently holds instead).
-- **Bug fix:** Ally moving interrupt infinite loop — cautious SUPPORT marshal (Davout) asked "Follow?" every turn while ally (Grouchy) had active MOVE_TO/PURSUE order. Added `last_ally_moving_turn`/`last_ally_moving_dest` suppression. Re-triggers only if ally changes destination.
-- **Fix:** Missing `order_status` on contact/contact_bad_odds/ally_moving interrupt dicts caused `status=None` in reports. Added `order_status: "awaiting_response"`.
-- **Feature:** Glorious Charge auto-resolves during HOLD sally (Option B). When Ney's recklessness hits 3+ during a sally, he auto-charges instead of showing popup. Result appears in strategic report. Recklessness resets as normal.
-- **Bug fix (Godot):** Battle names never displayed — `event_type` was initialized to `""` but never read from event dict. The `match` always fell through to default case, so `_display_battle_result()` was dead code. All event-specific formatting (battle header, conquest banner, move arrow, scout icon) now works.
-- **Roadmap:** Added 6 positive events to roadmap (Phase 7 + 8.5): victory celebration, momentum, rallying speech, captured supplies, vindication narrative, rivalry resolved. Design deferred to those phases.
-- Test count: **1004 passed, 0 failures**
 
-**Phase K Playtesting Summary:** 8 bugs found during Godot smoke testing of Phase 5.2 strategic commands. All fixed:
-1. Command misattribution (interrupt router hijacked commands for other marshals)
-2. Forced retreat didn't clear strategic orders (stale HOLD/MOVE_TO persisted)
-3. Enemy battle names missing from events
-4. Battle names never displayed in Godot (event_type never read)
-5. SUPPORT "Follow?" popup spammed every turn (replaced with silent auto-follow)
-6. Morale damage flat regardless of casualty severity (now scaled)
-7. Sally battles never reached frontend (circular ref in new_state)
-8. Post-objection strategic commands cost wrong AP amount
-
-### Jan 31
-- **Bug fix:** `pending_interrupt` overwrite — lines 562/578 in strategic.py clobbered correctly-set interrupt dicts, causing "Invalid choice" errors on interrupt responses
-- **Design fix:** PURSUE now completes after combat (any outcome) — no more stalemate popup for PURSUE; order is fulfilled once marshal engages target
-- **Code review fixes:** HOLD `_complete_order` now clears `holding_position` (was leaking +15% defense); HOLD sally now checks `_should_auto_attack` (was infinite loop); dead code cleanup (unreachable breaks, unused vars, dead `join_combat` check)
-- **Phase M designed:** Strategic Objections — disobedience at strategic command issuance (see PHASE_5_2_IMPLEMENTATION_PLAN.md)
-- **Bug fix:** Strategic commands cost 1 AP instead of 2 — pre-check didn't calculate required actions, `_execute_strategic_command` didn't return `variable_action_cost`. Literal personality correctly costs 1.
-- **Bug fix:** Auto-upgrade exploit — "move to [distant]" and "attack [out of range]" auto-upgraded to strategic orders for only 1 AP. Now pre-checks AP inside `_execute_move` and `_execute_attack` before auto-upgrading, plus safety net in `variable_action_cost` loop.
-- **Fix:** Case-insensitive marshal lookup — `get_marshal()` now falls back to case-insensitive search; `_fuzzy_match_marshal` searches all marshals (not just player).
-- **Bug fix:** AI fortify/unfortify infinite loop — P3.5 unfortified to reposition but couldn't move (unsafe), P5 re-fortified immediately, repeat forever. Fixed: `_unfortified_this_turn` set now tracks ALL unfortifies (P3.5 + P7.5), P5 guard blocks re-fortify.
-- **Bug fix:** Enemy marshals invisible on map — `marshals_data.append()` was inside the `if m.nation == player_nation` block, so only French marshals appeared in `map_data`.
-- Test count: **1022 passed, 0 failures**
-
-### Jan 30
-- Documentation cleanup: deleted 12 obsolete files, merged 2 pairs, created VISION.md
-- Trimmed CLAUDE.md from ~3500 to ~1565 lines (conceptual sections to FUTURE_DESIGN.md)
-- Reconciled 55 TODOs: 3 stale removed, 21 updated with doc references, rest valid
-- Verified test count: **981 passed, 0 failures**
+- Phase K playtesting: 8 bugs found and fixed during Godot smoke testing
+- SUPPORT auto-follow, morale scaling, sally battle fixes
+- Test count: **1004 passed**
 
 ### Previous Sessions
+
 - Phase 5.2 Strategic Commands: 100% complete (MOVE_TO, PURSUE, HOLD, SUPPORT)
 - Phase 5.3 Enemy AI fixes: stagnation counter, oscillation fixes
 - Modding system: 66 tests, validator tool, example mods
@@ -178,15 +93,13 @@ Test count: **1066 passed, 3 skipped**
 
 | Date | Tests | Notes |
 |------|-------|-------|
-| Feb 5, 2026 | **1195** | V2a Units 1-3 complete (119 new tests: core structures + tactical + strategic evaluators) |
-| Feb 5, 2026 | 1076 | Dangerous path objections, no-safe-path edge cases, fog of war comments |
-| Feb 4, 2026 | 1066 | HOLD improvements, personality benefits, timed expiry fix, freeze_enemies debug |
-| Feb 3, 2026 | 1066 | Phase M complete, strategic objections verified |
-| Feb 2, 2026 | 1004 | Post-objection fix, UI/UX improvements, sally serialization fix |
-| Jan 31, 2026 | 1022 | PURSUE completion fix, code review fixes |
+| Feb 5, 2026 | **1203** | V2a Units 1-5 complete, Opus review fixes |
+| Feb 5, 2026 | 1195 | V2a Units 1-3 (119 new tests) |
+| Feb 4, 2026 | 1066 | HOLD improvements, personality benefits |
+| Feb 3, 2026 | 1066 | Phase M complete |
+| Feb 2, 2026 | 1004 | Phase K playtesting fixes |
+| Jan 31, 2026 | 1022 | PURSUE completion fix, code review |
 | Jan 30, 2026 | 981 | Doc cleanup session |
-| Jan 28, 2026 | 705 | Phase D+E complete |
-| Jan 25, 2026 | 667 | Phase 5.2 core complete |
 
 ---
 
@@ -194,35 +107,29 @@ Test count: **1066 passed, 3 skipped**
 
 | Issue | Severity | Notes |
 |-------|----------|-------|
-| Phase J (UI) not started | Low | Strategic status display in Godot |
-| Clarification popup for other literal actions | Low | Currently only triggers for attack-without-target. Could extend to move/scout with no target for Grouchy. |
+| V1 `handle_objection_response` still uses V1 trust values | Medium | Wire V2 scaled trust gain/penalty in Unit 6 |
+| Strategic objections still use V1 `check_strategic_objection()` | Low | Migrate to V2 `evaluate_strategic_situation()` follow-up |
+| Clarification popup for other literal actions | Low | Only attack-without-target currently |
 
 ---
 
 ## Next Session Priorities
 
-1. **Review Unit 4** - Pipeline integration (wire V2 evaluators into executor.py)
-2. **Implement Unit 5** - Vindication extension (pending_defensive_vindication field)
-3. Continue V2a implementation (Units 6-7)
+1. **Unit 6: Test Migration** — Update existing tests that assert severity floats
+2. **Unit 7: Godot Frontend** — Tone-based styling, MILD flavor in turn log
+3. Begin Phase 6 design after V2a ships
 
-**Handoff doc:** `docs/V2A_HANDOFF.md` has full context for continuing V2a work.
+**V2 objection design doc:** `docs/OBJECTION_V2.md`
 
 ---
 
 ## Quick Commands
 
 ```bash
-# Run all tests
-pytest tests/ -v
-
-# Quick test count
-pytest tests/ -v --tb=no -q 2>&1 | tail -3
-
-# Start backend
-python backend/main.py
-
-# Validate mod file
-python -m backend.modding.validator path/to/mod.json
+pytest tests/ -v                          # Full suite
+pytest tests/ -v --tb=no -q              # Quick count
+pytest tests/test_objection_v2.py -v     # V2 tests only
+python backend/main.py                    # Backend on port 8005
 ```
 
 ---
@@ -231,14 +138,12 @@ python -m backend.modding.validator path/to/mod.json
 
 | Need | Read |
 |------|------|
-| What phase are we in? | ROADMAP.md |
-| How does X system work? | CLAUDE.md (reference sections) |
-| Code patterns/rules | TECHNICAL.md |
-| Enemy AI behavior | ENEMY_AI_REFERENCE.md |
-| Disobedience system | DISOBEDIENCE_SYSTEM_REFERENCE.md |
-| Core concept/vision | VISION.md |
-| Future design concepts | FUTURE_DESIGN.md |
-| Adding a marshal | MARSHAL_ADDITION_GUIDE.md |
-| Save format | SAVE_FORMAT_REFERENCE.md |
-| Modding | MODDING_FORMAT.md |
-| Strategic commands | PHASE_5_2_IMPLEMENTATION_PLAN.md |
+| Phase timeline | `ROADMAP.md` |
+| Game systems reference | `SYSTEMS_REFERENCE.md` |
+| Enemy AI | `ENEMY_AI_REFERENCE.md` |
+| V2 objection design | `OBJECTION_V2.md` |
+| Save format | `SAVE_FORMAT_REFERENCE.md` |
+| Adding content | `ADDING_CONTENT.md` |
+| Game vision | `VISION.md` |
+| Future concepts | `FUTURE_DESIGN.md` |
+| Modding | `MODDING_FORMAT.md` |
