@@ -776,6 +776,41 @@ class TestVindicationTrackerSerialization:
         assert len(restored.history) == 2
         assert restored.history[0]["marshal"] == "Ney"
 
+    def test_tracker_with_pending_defensive_vindication_roundtrip(self):
+        """Tracker with pending defensive vindication (V2a)."""
+        original = VindicationTracker()
+        original.pending_defensive_vindication = {
+            "Davout": {
+                "order": {"action": "defend", "target": "Belgium"},
+                "timestamp": 5
+            },
+            "Grouchy": {
+                "order": {"action": "hold", "target": "Rhine"},
+                "timestamp": 7
+            }
+        }
+
+        data = original.to_dict()
+        restored = VindicationTracker.from_dict(data)
+
+        assert len(restored.pending_defensive_vindication) == 2
+        assert "Davout" in restored.pending_defensive_vindication
+        assert "Grouchy" in restored.pending_defensive_vindication
+        assert restored.pending_defensive_vindication["Davout"]["timestamp"] == 5
+        assert restored.pending_defensive_vindication["Grouchy"]["order"]["action"] == "hold"
+
+    def test_tracker_empty_pending_defensive_vindication_on_load(self):
+        """Old saves without pending_defensive_vindication load with empty dict."""
+        # Simulate old save format without the new field
+        old_data = {
+            "pending": {},
+            "history": []
+        }
+
+        restored = VindicationTracker.from_dict(old_data)
+
+        assert restored.pending_defensive_vindication == {}
+
 
 # ============================================================================
 # WORLD STATE SERIALIZATION TESTS

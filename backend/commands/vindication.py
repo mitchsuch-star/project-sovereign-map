@@ -30,6 +30,9 @@ class VindicationTracker:
         """Initialize vindication tracker."""
         self.pending: Dict[str, Dict] = {}  # marshal_name -> pending vindication
         self.history: List[Dict] = []  # Historical vindication events
+        # V2a: Track defensive vindication for successful defenses
+        # Format: {"Davout": {"order": {...}, "timestamp": turn_number}}
+        self.pending_defensive_vindication: Dict[str, Dict] = {}
 
     def record_choice(
         self,
@@ -278,7 +281,10 @@ class VindicationTracker:
         """Serialize vindication tracker for save/load."""
         return {
             "pending": {k: v.copy() for k, v in self.pending.items()},
-            "history": [h.copy() for h in self.history]
+            "history": [h.copy() for h in self.history],
+            "pending_defensive_vindication": {
+                k: v.copy() for k, v in self.pending_defensive_vindication.items()
+            },
         }
 
     @classmethod
@@ -287,6 +293,9 @@ class VindicationTracker:
         tracker = cls()
         tracker.pending = {k: v.copy() for k, v in data.get("pending", {}).items()}
         tracker.history = [h.copy() for h in data.get("history", [])]
+        tracker.pending_defensive_vindication = {
+            k: v.copy() for k, v in data.get("pending_defensive_vindication", {}).items()
+        }
         return tracker
 
 

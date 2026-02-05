@@ -38,6 +38,9 @@ A future save/load system should use this as the specification.
   "pending_objection": null,
   "pending_redemption": null,
 
+  "mild_concerns_this_turn": [],
+  "objection_popups_this_turn": [],
+
   "enemy_nations": ["Britain", "Prussia"],
   "nation_actions": {"Britain": 4, "Prussia": 4},
   "active_battles": {},
@@ -68,6 +71,8 @@ A future save/load system should use this as the specification.
 | `vindication_tracker` | dict | {} | VindicationTracker state |
 | `pending_objection` | dict\|null | null | Objection awaiting response |
 | `pending_redemption` | dict\|null | null | Redemption event awaiting response |
+| `mild_concerns_this_turn` | list | [] | V2a: MILD concerns for turn log (cleared each turn) |
+| `objection_popups_this_turn` | list | [] | V2a: Per-marshal popup cap tracking (cleared each turn) |
 | `enemy_nations` | list | ["Britain", "Prussia"] | AI-controlled nations |
 | `nation_actions` | dict | {} | Actions per nation |
 | `active_battles` | dict | {} | Currently ongoing battles |
@@ -458,7 +463,13 @@ A future save/load system should use this as the specification.
       "new_vindication": 1,
       "new_trust": 78
     }
-  ]
+  ],
+  "pending_defensive_vindication": {
+    "Davout": {
+      "order": {"action": "defend", "target": "Belgium"},
+      "timestamp": 5
+    }
+  }
 }
 ```
 
@@ -468,6 +479,7 @@ A future save/load system should use this as the specification.
 |-------|------|-------------|
 | `pending` | dict | marshal_name -> pending vindication data |
 | `history` | list | List of resolved vindication events |
+| `pending_defensive_vindication` | dict | marshal_name -> pending defensive vindication (V2a) |
 
 ---
 

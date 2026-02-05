@@ -1,8 +1,8 @@
 # V2a Implementation Handoff
 
 **Date:** February 5, 2026
-**Status:** Units 1-3 complete, Units 4-7 remaining
-**Tests:** 1195 passed, 3 skipped
+**Status:** Units 1-5 complete, Units 6-7 remaining
+**Tests:** 1203 passed, 3 skipped
 
 ---
 
@@ -47,112 +47,92 @@
 - `evaluate_strategic_literal(...)` - Always NONE
 - `evaluate_strategic_situation(...)` - Main strategic dispatcher
 
+### Unit 5: Vindication Extension (2 tests)
+**File:** `backend/commands/vindication.py`
+
+- Added `pending_defensive_vindication: Dict[str, Dict]` field
+- Full `to_dict()` / `from_dict()` serialization
+- Updated `docs/SAVE_FORMAT_REFERENCE.md`
+- Backward compatible with old saves (defaults to empty dict)
+
 ---
 
 ## What Remains
 
-### Unit 4: Pipeline Integration (REVIEW NEEDED)
+### Unit 4: Pipeline Integration ✅ COMPLETE (6 tests)
 
 **Goal:** Wire V2 evaluators into `executor.py`, replacing V1 severity-based system.
 
-**Key changes needed:**
+**Completed:**
 
 1. **In `executor.py`:**
-   - Import V2 functions from `objection_v2.py`
-   - Replace calls to `check_objection()` with V2 `evaluate_situation()`
-   - Replace calls to `check_strategic_objection()` with V2 `evaluate_strategic_situation()`
-   - Handle MILD concerns: append to `world.mild_concerns_this_turn`, execute order
-   - Handle MODERATE+: create popup, store in `world.pending_objection` or `world.pending_strategic_objection`
-   - Add `concern_level` field to all return dicts
+   - ✅ Imported V2 functions from `objection_v2.py`
+   - ✅ Replaced `world.disobedience_system.evaluate_order()` with V2 `evaluate_situation()`
+   - ✅ Added `apply_mood_variance()` call after evaluation
+   - ✅ MILD concerns: append to `world.mild_concerns_this_turn`, continue execution
+   - ✅ MODERATE+: check per-marshal cap, create popup with tone/insist_penalty
+   - ✅ Added `_generate_mild_concern_message()` helper for flavor text
+   - ✅ Added `_generate_objection_message()` helper for popup messages
 
 2. **In `world_state.py`:**
-   - Add `mild_concerns_this_turn: List[Dict] = []` field
-   - Add `objection_popups_this_turn: Set[str] = set()` field (per-marshal cap)
-   - Clear both at turn start
-   - Add to `to_dict()` / `from_dict()`
+   - ✅ Added `mild_concerns_this_turn: List[Dict] = []` field
+   - ✅ Added `objection_popups_this_turn: Set[str] = set()` field
+   - ✅ Added `Set` to typing imports
+   - ✅ Clear both at turn start in `_advance_turn_internal()`
+   - ✅ Added to `to_dict()` / `from_dict()` with backward compat
 
 3. **In `main.py`:**
-   - Pass `mild_concerns` through in response dict
+   - ✅ Pass `mild_concerns` through response dict when non-empty
 
-4. **Return dict shapes (from V2A_IMPLEMENTATION_ADDENDUM.md Part 9):**
+**Tests added (in test_objection_v2.py TestWorldStateV2aFields):**
+- `test_world_state_has_mild_concerns_field`
+- `test_world_state_has_objection_popups_field`
+- `test_mild_concerns_serialization`
+- `test_objection_popups_serialization`
+- `test_fields_clear_at_turn_advance`
+- `test_backward_compat_old_saves_without_v2a_fields`
 
-```python
-# MILD return dict
-{
-    "type": "mild_concern",
-    "concern_level": "MILD",
-    "marshal": str,
-    "message": str,
-    "execute": True,
-    "popup": False,
-}
-
-# MODERATE+ return dict (must include pending_objection for executor AP skip)
-{
-    "pending_objection": True,  # CRITICAL for backward compat
-    "type": "major_objection",
-    "concern_level": "MODERATE",  # or STRONG, EXTREME
-    "severity": float,  # Legacy compat via concern_to_legacy_severity()
-    "marshal": str,
-    "personality": str,
-    "message": str,
-    "tone": str,
-    "insist_penalty": int,
-    "options": list,
-    # ... other existing fields
-}
-```
-
-5. **Per-marshal popup cap:**
-```python
-# Before showing popup:
-if marshal.name in world.objection_popups_this_turn:
-    # Already had popup this turn - cap at MILD
-    concern = ConcernLevel.MILD
-
-# After showing popup:
-world.objection_popups_this_turn.add(marshal.name)
-```
-
-**Files to modify:**
-- `backend/commands/executor.py` - Main integration point
-- `backend/commands/disobedience.py` - Keep for response handling, but V1 evaluators deprecated
-- `backend/models/world_state.py` - New fields
-- `backend/main.py` - Pass through mild_concerns
-
-**Risk:** Multi-system integration. Recommend incremental approach: tactical first, then strategic.
+**Files modified:**
+- `backend/commands/executor.py` - V2 integration, message generators
+- `backend/models/world_state.py` - New fields, serialization, clear at turn
+- `backend/main.py` - mild_concerns passthrough
+- `docs/SAVE_FORMAT_REFERENCE.md` - Documented new fields
 
 ---
 
-### Unit 5: Vindication Extension (IMPLEMENT)
+### Unit 5: Vindication Extension ✅ COMPLETE
 
 **Goal:** Add `pending_defensive_vindication` to VindicationTracker for defensive vindication.
 
 **File:** `backend/commands/vindication.py`
 
-**Changes needed:**
+**Completed:**
 
-1. Add field to VindicationTracker:
+1. ✅ Added field to VindicationTracker `__init__`:
 ```python
 self.pending_defensive_vindication: Dict[str, Dict] = {}
 # Format: {"Davout": {"order": {...}, "timestamp": turn}}
 ```
 
-2. Add to `to_dict()`:
+2. ✅ Added to `to_dict()`:
 ```python
-"pending_defensive_vindication": self.pending_defensive_vindication,
+"pending_defensive_vindication": {
+    k: v.copy() for k, v in self.pending_defensive_vindication.items()
+},
 ```
 
-3. Add to `from_dict()`:
+3. ✅ Added to `from_dict()`:
 ```python
-tracker.pending_defensive_vindication = data.get("pending_defensive_vindication", {})
+tracker.pending_defensive_vindication = {
+    k: v.copy() for k, v in data.get("pending_defensive_vindication", {}).items()
+}
 ```
 
-4. Update `docs/SAVE_FORMAT_REFERENCE.md` with new field
+4. ✅ Updated `docs/SAVE_FORMAT_REFERENCE.md` with new field
 
-**Tests needed:**
-- Serialization roundtrip for new field
-- Default empty dict on load
+**Tests added (2 new tests):**
+- `test_tracker_with_pending_defensive_vindication_roundtrip` - Full roundtrip
+- `test_tracker_empty_pending_defensive_vindication_on_load` - Backward compat with old saves
 
 ---
 
@@ -199,6 +179,23 @@ pytest tests/ -v --tb=no -q 2>&1 | tail -3
 
 ## Next Session Tasks
 
-1. **Review Unit 4** - Read executor.py and disobedience.py to understand integration points
-2. **Implement Unit 5** - Add pending_defensive_vindication (straightforward)
-3. **If time:** Start Unit 4 tactical integration
+1. ✅ **Review Unit 4** - DONE
+2. ✅ **Implement Unit 5** - DONE - `pending_defensive_vindication` added
+3. ✅ **Implement Unit 4** - DONE - V2 evaluators integrated into executor.py
+
+**Remaining work:**
+4. **Unit 6: Test Migration** - Update existing tests that assert severity floats
+5. **Unit 7: Godot Frontend** - Tone-based styling, MILD flavor in turn log
+
+---
+
+## Implementation Notes
+
+**V2 integration points (executor.py):**
+- Lines 746-850: Tactical objection check now uses `evaluate_situation()` + `apply_mood_variance()`
+- MILD → append to `world.mild_concerns_this_turn`, continue execution
+- MODERATE+ → check per-marshal cap, store popup, return `pending_objection=True`
+
+**Strategic objections (TODO for Unit 6):**
+- Line 2486: Still uses V1 `check_strategic_objection()`
+- Should be migrated to `evaluate_strategic_situation()` in a follow-up PR

@@ -316,6 +316,10 @@ def execute_command(request: CommandRequest):
         if feedback:
             response["feedback"] = feedback
 
+        # V2a: Include mild concerns for turn log display
+        if world.mild_concerns_this_turn:
+            response["mild_concerns"] = world.mild_concerns_this_turn
+
         # Include enemy_phase if present (from end_turn)
         # Clean up non-serializable fields (new_state contains circular references)
         if result.get("enemy_phase"):

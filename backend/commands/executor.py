@@ -19,6 +19,13 @@ from backend.models.marshal import Stance, StrategicOrder
 from backend.game_logic.combat import CombatResolver
 from backend.game_logic.turn_manager import TurnManager
 from backend.utils.fuzzy_matcher import FuzzyMatcher
+# V2a Objection System imports
+from backend.commands.objection_v2 import (
+    ConcernLevel, TrustTier,
+    evaluate_situation, apply_mood_variance,
+    get_trust_tier, get_objection_tone, get_insist_penalty,
+    concern_to_legacy_severity, is_popup_concern,
+)
 
 
 class CommandExecutor:
@@ -287,6 +294,102 @@ class CommandExecutor:
             result["strategic_reports"] = strategic_reports
 
         return result
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    # V2a OBJECTION SYSTEM HELPERS
+    # ═══════════════════════════════════════════════════════════════════════════
+
+    def _generate_mild_concern_message(self, marshal, action: str, order: Dict) -> str:
+        """
+        Generate flavor text for MILD concerns (turn log display).
+
+        Args:
+            marshal: The marshal with the concern
+            action: The action being ordered
+            order: Full order dict
+
+        Returns:
+            Flavor message string
+        """
+        personality = getattr(marshal, 'personality', 'balanced').lower()
+
+        # Personality-specific mild concern messages
+        if personality == 'aggressive':
+            if action in ('defend', 'fortify', 'hold', 'wait'):
+                return f"{marshal.name} grumbles about defensive orders but complies."
+            elif action == 'retreat':
+                return f"{marshal.name} bristles at the retreat order but obeys."
+            elif action == 'drill':
+                return f"{marshal.name} would rather be fighting but begins drill exercises."
+
+        elif personality == 'cautious':
+            if action == 'attack':
+                return f"{marshal.name} notes the risks but prepares the attack."
+            elif action == 'move':
+                return f"{marshal.name} expresses caution about the route but proceeds."
+            elif action == 'stance_change':
+                return f"{marshal.name} hesitates at the aggressive posture but complies."
+
+        # Default mild message
+        return f"{marshal.name} hesitates briefly but follows orders."
+
+    def _generate_objection_message(
+        self,
+        marshal,
+        action: str,
+        order: Dict,
+        concern: 'ConcernLevel',
+        tone: str
+    ) -> str:
+        """
+        Generate objection message for MODERATE+ concerns based on tone.
+
+        Args:
+            marshal: The marshal objecting
+            action: The action being ordered
+            order: Full order dict
+            concern: ConcernLevel (MODERATE, STRONG, EXTREME)
+            tone: Tone string from trust tier ("defiant", "challenging", "firm", "respectful")
+
+        Returns:
+            Objection message string
+        """
+        personality = getattr(marshal, 'personality', 'balanced').lower()
+
+        # Tone modifiers for message prefix
+        tone_prefix = {
+            "defiant": f"{marshal.name} refuses outright:",
+            "challenging": f"{marshal.name} challenges the order:",
+            "firm": f"{marshal.name} firmly objects:",
+            "respectful": f"{marshal.name} respectfully raises concerns:",
+        }
+        prefix = tone_prefix.get(tone, f"{marshal.name} objects:")
+
+        # Personality + action specific messages
+        if personality == 'aggressive':
+            if action in ('defend', 'fortify', 'hold', 'wait'):
+                if concern == ConcernLevel.EXTREME:
+                    return f"{prefix} 'We outnumber them! Let me attack!'"
+                elif concern == ConcernLevel.STRONG:
+                    return f"{prefix} 'Sire, we have the advantage. Let me strike!'"
+                else:
+                    return f"{prefix} 'I would rather attack than sit idle.'"
+            elif action == 'retreat':
+                return f"{prefix} 'Retreat? We can still fight!'"
+
+        elif personality == 'cautious':
+            if action == 'attack':
+                if concern == ConcernLevel.EXTREME:
+                    return f"{prefix} 'This is suicide! The odds are hopeless!'"
+                elif concern == ConcernLevel.STRONG:
+                    return f"{prefix} 'Sire, the enemy is too strong. We need reinforcements.'"
+                else:
+                    return f"{prefix} 'The odds are not in our favor. Perhaps we should reconsider.'"
+            elif action == 'move':
+                return f"{prefix} 'That route passes through enemy territory. It is dangerous.'"
+
+        # Default objection message
+        return f"{prefix} 'I have concerns about this order, Sire.'"
 
     def _apply_grouchy_ambiguity_buff(self, marshal, ambiguity: int, strategic_score: int, action: str):
         """
@@ -735,47 +838,104 @@ RETREAT RECOVERY (3 turns):
                 # SKIP OBJECTION if flag was cleared (e.g., by retreat state)
                 # ═══════════════════════════════════════════════════════════
                 if should_check_objection:
-                    # DEBUG: Print objection evaluation details (commented out)
-                    # print(f"\n{'='*60}")
-                    # print(f"OBJECTION CHECK: {marshal_name}")
-                    # print(f"{'='*60}")
-                    # print(f"  Personality: {marshal.personality}")
-                    # print(f"  Trust: {marshal.trust.value} ({marshal.trust.get_label()})")
-                    # print(f"  Action: {action} -> {command.get('target', 'N/A')}")
+                    # ═══════════════════════════════════════════════════════════
+                    # V2a OBJECTION SYSTEM
+                    # Deterministic ConcernLevel evaluation with mood variance
+                    # ═══════════════════════════════════════════════════════════
 
-                    # Evaluate the order for objection
-                    objection = world.disobedience_system.evaluate_order(
-                        marshal=marshal,
-                        order=command,
-                        game_state=world
-                    )
+                    # Evaluate concern level using V2 system
+                    # NOTE: game_state (method param) already has {"world": world, ...}
+                    # V2 evaluators extract world via _get_world(game_state)
+                    base_concern = evaluate_situation(marshal, action, command, game_state)
+                    concern = apply_mood_variance(base_concern)
 
-                    if objection:
-                        severity = objection.get("severity", 0.0)
-                        objection_type = objection["type"]
-                        # Debug output commented out to avoid encoding issues
-                        # print(f"  OBJECTION TRIGGERED!")
-                        # print(f"     Type: {objection_type}")
-                        # print(f"     Severity: {severity:.2f}")
-                        # print(f"     Trigger: {objection.get('trigger', 'unknown')}")
+                    # Get trust tier for consequence scaling
+                    trust_tier = get_trust_tier(marshal.trust.value)
 
-                        # BUG FIX: disobedience.py returns 'major_objection', not 'major'
-                        if objection_type == "major_objection":
-                            # print(f"  MAJOR - Awaiting player choice")
-                            # print(f"{'='*60}\n")
+                    if concern == ConcernLevel.NONE:
+                        # No objection - proceed with execution
+                        pass
 
-                            # MAJOR OBJECTION: Pause for player choice
+                    elif concern == ConcernLevel.MILD:
+                        # MILD: Flavor text in turn log, order executes
+                        # Max 1 MILD per marshal per turn
+                        if marshal.name not in [c.get("marshal") for c in world.mild_concerns_this_turn]:
+                            # Generate mild flavor message
+                            mild_message = self._generate_mild_concern_message(marshal, action, command)
+                            world.mild_concerns_this_turn.append({
+                                "marshal": marshal.name,
+                                "message": mild_message,
+                                "concern_level": "MILD",
+                                "action": action,
+                            })
+                        # Continue with execution
+
+                    else:
+                        # MODERATE, STRONG, EXTREME: Popup with choices
+                        # Per-marshal cap: max 1 popup per marshal per turn
+                        if marshal.name in world.objection_popups_this_turn:
+                            # Already had popup this turn - downgrade to MILD
+                            if marshal.name not in [c.get("marshal") for c in world.mild_concerns_this_turn]:
+                                mild_message = self._generate_mild_concern_message(marshal, action, command)
+                                world.mild_concerns_this_turn.append({
+                                    "marshal": marshal.name,
+                                    "message": mild_message,
+                                    "concern_level": "MILD",
+                                    "action": action,
+                                    "downgraded_from": concern.name,
+                                })
+                        else:
+                            # Show popup - mark marshal as having had popup this turn
+                            world.objection_popups_this_turn.add(marshal.name)
+
+                            # Get V1 objection for alternatives/compromise (reuse existing system)
+                            v1_objection = world.disobedience_system.evaluate_order(
+                                marshal=marshal,
+                                order=command,
+                                game_state=world
+                            )
+
+                            # Build V2 objection dict with backward compat
+                            tone = get_objection_tone(trust_tier)
+                            insist_penalty = get_insist_penalty(trust_tier)
+                            legacy_severity = concern_to_legacy_severity(concern)
+
+                            # Generate message based on tone
+                            message = self._generate_objection_message(marshal, action, command, concern, tone)
+
+                            objection = {
+                                # V2 fields
+                                "type": "major_objection",
+                                "concern_level": concern.name,
+                                "tone": tone,
+                                "insist_penalty": insist_penalty,
+                                # Backward compat fields
+                                "severity": legacy_severity,
+                                "message": message,
+                                "marshal": marshal.name,
+                                "personality": marshal.personality,
+                                "original_order": command,
+                                # Pull alternatives from V1 system if available
+                                "suggested_alternative": v1_objection.get("suggested_alternative") if v1_objection else None,
+                                "compromise": v1_objection.get("compromise") if v1_objection else None,
+                            }
+
+                            # Store pending objection
                             world.pending_objection = objection
+
                             return {
-                                "success": True,  # Changed to True so frontend processes it
+                                "success": True,
                                 "awaiting_response": True,
-                                "state": "awaiting_player_choice",  # CRITICAL for frontend detection
-                                "message": objection["message"],
+                                "pending_objection": True,  # CRITICAL for AP skip logic
+                                "state": "awaiting_player_choice",
+                                "message": message,
                                 "objection": objection,
                                 "choices": ["trust", "insist", "compromise"] if objection.get("suggested_alternative") else ["trust", "insist"],
                                 "marshal": marshal_name,
-                                "personality": marshal.personality,  # Phase 2.8: Added for UI display
-                                "severity": severity,
+                                "personality": marshal.personality,
+                                "concern_level": concern.name,
+                                "tone": tone,
+                                "severity": legacy_severity,
                                 "trust": int(marshal.trust.value),
                                 "trust_label": marshal.trust.get_label(),
                                 "vindication": world.vindication_tracker.get_vindication_data(marshal_name).get("score", 0),
@@ -783,14 +943,6 @@ RETREAT RECOVERY (3 turns):
                                 "suggested_alternative": objection.get("suggested_alternative"),
                                 "compromise": objection.get("compromise")
                             }
-                        else:
-                            # MILD OBJECTION: Auto-resolve with trust, continue execution
-                            # The marshal grumbles but obeys
-                            # print(f"  MILD objection (type={objection_type}) - proceeding anyway")
-                            # print(f"{'='*60}\n")
-                            mild_message = f"[{marshal_name} hesitates but obeys: {objection.get('message', 'minor concerns')}]\n"
-                            # Continue with execution, will prepend message later
-                    # else: No objection (severity below threshold)
 
         # ============================================================
         # STRATEGIC BONUSES: Apply morale/trust/combat bonuses (Phase 5)

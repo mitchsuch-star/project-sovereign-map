@@ -9,7 +9,7 @@ Includes Disobedience System (Phase 2):
 - DisobedienceSystem: Handles marshal objections
 """
 
-from typing import Dict, List, Optional, Tuple, Any
+from typing import Dict, List, Optional, Tuple, Any, Set
 from backend.models.region import Region, create_regions
 from backend.models.marshal import Marshal, create_starting_marshals, create_enemy_marshals
 from backend.models.authority import AuthorityTracker
@@ -109,6 +109,18 @@ class WorldState:
         # Pending strategic objection - Phase M strategic objections
         # None when no objection pending, Dict when awaiting player choice
         self.pending_strategic_objection: Optional[Dict] = None
+
+        # ============================================================
+        # V2a OBJECTION SYSTEM - Per-turn tracking
+        # ============================================================
+
+        # MILD concerns this turn - flavor text for turn log (cleared at turn start)
+        # Format: [{"marshal": str, "message": str}, ...]
+        self.mild_concerns_this_turn: List[Dict] = []
+
+        # Per-marshal popup cap - tracks which marshals had MODERATE+ popup this turn
+        # (cleared at turn start) - max 1 popup per marshal per turn
+        self.objection_popups_this_turn: Set[str] = set()
 
         # ============================================================
         # ENEMY AI SYSTEM - Nation tracking and battle naming
@@ -1243,6 +1255,10 @@ class WorldState:
             "pending_redemption": self.pending_redemption,
             "pending_strategic_objection": self.pending_strategic_objection,
 
+            # ═══════ V2a OBJECTION SYSTEM ═══════
+            "mild_concerns_this_turn": [c.copy() for c in self.mild_concerns_this_turn],
+            "objection_popups_this_turn": list(self.objection_popups_this_turn),
+
             # ═══════ ENEMY AI ═══════
             "ai_stagnation_turns": self.ai_stagnation_turns.copy(),
             "enemy_nations": self.enemy_nations.copy(),
@@ -1308,6 +1324,10 @@ class WorldState:
         world.pending_objection = data.get("pending_objection")
         world.pending_redemption = data.get("pending_redemption")
         world.pending_strategic_objection = data.get("pending_strategic_objection")
+
+        # ═══════ V2a OBJECTION SYSTEM ═══════
+        world.mild_concerns_this_turn = [c.copy() for c in data.get("mild_concerns_this_turn", [])]
+        world.objection_popups_this_turn = set(data.get("objection_popups_this_turn", []))
 
         # ═══════ ENEMY AI ═══════
         world.ai_stagnation_turns = data.get("ai_stagnation_turns", {}).copy()
@@ -1625,6 +1645,10 @@ class WorldState:
             marshal.retreated_this_turn = False
             # Exhaustion system - reset attack counter for spam prevention
             marshal.attacks_this_turn = 0
+
+        # V2a Objection System - clear per-turn tracking
+        self.mild_concerns_this_turn = []
+        self.objection_popups_this_turn = set()
 
         # ════════════════════════════════════════════════════════════
         # PROCESS TACTICAL STATES (before turn counter advances!)

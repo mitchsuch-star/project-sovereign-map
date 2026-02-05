@@ -1354,3 +1354,90 @@ class TestEvaluateStrategicSituation:
         concern = evaluate_strategic_situation(marshal, "PURSUE", "Wellington", [], game_state)
         # Should route to cautious evaluator
         assert concern == ConcernLevel.MODERATE
+
+
+# ============================================================================
+# UNIT 4: WORLDSTATE INTEGRATION TESTS
+# ============================================================================
+
+class TestWorldStateV2aFields:
+    """Tests for V2a fields added to WorldState."""
+
+    def test_world_state_has_mild_concerns_field(self):
+        """WorldState has mild_concerns_this_turn field."""
+        from backend.models.world_state import WorldState
+        world = WorldState()
+        assert hasattr(world, 'mild_concerns_this_turn')
+        assert world.mild_concerns_this_turn == []
+
+    def test_world_state_has_objection_popups_field(self):
+        """WorldState has objection_popups_this_turn field."""
+        from backend.models.world_state import WorldState
+        world = WorldState()
+        assert hasattr(world, 'objection_popups_this_turn')
+        assert world.objection_popups_this_turn == set()
+
+    def test_mild_concerns_serialization(self):
+        """mild_concerns_this_turn serializes correctly."""
+        from backend.models.world_state import WorldState
+        world = WorldState()
+        world.mild_concerns_this_turn = [
+            {"marshal": "Ney", "message": "Grumbles about defense"},
+            {"marshal": "Davout", "message": "Notes the risks"}
+        ]
+
+        data = world.to_dict()
+        assert "mild_concerns_this_turn" in data
+        assert len(data["mild_concerns_this_turn"]) == 2
+
+        restored = WorldState.from_dict(data)
+        assert len(restored.mild_concerns_this_turn) == 2
+        assert restored.mild_concerns_this_turn[0]["marshal"] == "Ney"
+
+    def test_objection_popups_serialization(self):
+        """objection_popups_this_turn serializes correctly (set -> list -> set)."""
+        from backend.models.world_state import WorldState
+        world = WorldState()
+        world.objection_popups_this_turn = {"Ney", "Davout"}
+
+        data = world.to_dict()
+        assert "objection_popups_this_turn" in data
+        # Serialized as list
+        assert isinstance(data["objection_popups_this_turn"], list)
+        assert len(data["objection_popups_this_turn"]) == 2
+
+        restored = WorldState.from_dict(data)
+        # Restored as set
+        assert isinstance(restored.objection_popups_this_turn, set)
+        assert "Ney" in restored.objection_popups_this_turn
+        assert "Davout" in restored.objection_popups_this_turn
+
+    def test_fields_clear_at_turn_advance(self):
+        """V2a fields clear when turn advances."""
+        from backend.models.world_state import WorldState
+        world = WorldState()
+
+        # Populate the fields
+        world.mild_concerns_this_turn = [{"marshal": "Ney", "message": "test"}]
+        world.objection_popups_this_turn = {"Ney"}
+
+        # Advance turn
+        world.advance_turn()
+
+        # Fields should be cleared
+        assert world.mild_concerns_this_turn == []
+        assert world.objection_popups_this_turn == set()
+
+    def test_backward_compat_old_saves_without_v2a_fields(self):
+        """Old saves without V2a fields load with defaults."""
+        from backend.models.world_state import WorldState
+        world = WorldState()
+
+        # Simulate old save data without V2a fields
+        data = world.to_dict()
+        del data["mild_concerns_this_turn"]
+        del data["objection_popups_this_turn"]
+
+        restored = WorldState.from_dict(data)
+        assert restored.mild_concerns_this_turn == []
+        assert restored.objection_popups_this_turn == set()
