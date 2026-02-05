@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 5, 2026
-> **Last Session:** Dangerous path objections for HOLD/SUPPORT, message fixes
+> **Last Session:** V2a Objection Refactor implementation (Units 1-2 complete)
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1076** (verified Feb 5, 2026) |
+| **Tests Passing** | **1195** (verified Feb 5, 2026) |
 | **Current Phase** | V2a (Objection Refactor) — then Phase 6 |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M |
@@ -19,10 +19,17 @@
 
 ## Active Work
 
-Phase 5.2 Strategic Commands is COMPLETE. V2a Objection Refactor designed, pending implementation.
+V2a Objection Refactor in progress: Units 1-2 complete, Units 3-7 remaining.
 
 - [x] Phase M: Strategic Objections ✅ (was already implemented, docs not updated)
-- [ ] V2a: Objection System Refactor (designed, pending implementation)
+- [🔄] V2a: Objection System Refactor (Units 1-3 complete)
+  - [x] Unit 1: Core Data Structures (ConcernLevel, TrustTier, trust/penalty calculations)
+  - [x] Unit 2: Trigger Evaluators (aggressive, cautious, literal personality handlers)
+  - [x] Unit 3: Strategic Trigger Evaluators (HOLD, PURSUE, MOVE_TO, SUPPORT)
+  - [ ] Unit 4: Pipeline Integration (wire V2 evaluators into executor.py)
+  - [ ] Unit 5: Vindication Extension
+  - [ ] Unit 6: Test Migration
+  - [ ] Unit 7: Godot Frontend
 - [ ] Begin Phase 6 design after V2a ships
 
 ---
@@ -30,6 +37,32 @@ Phase 5.2 Strategic Commands is COMPLETE. V2a Objection Refactor designed, pendi
 ## Recently Completed
 
 ### Feb 5 (this session)
+
+**V2a Objection Refactor Implementation:**
+- **Unit 1 complete:** Core data structures in `backend/commands/objection_v2.py`
+  - `ConcernLevel` enum (NONE, MILD, MODERATE, STRONG, EXTREME)
+  - `TrustTier` enum (HOSTILE, WARY, TRUSTING, DEVOTED)
+  - Trust gain calculations with tier multipliers (rubber-band effect)
+  - Insist penalty tables by tier
+  - Mood variance (15-20% chance of ±1 level shift)
+  - 53 unit tests
+- **Unit 2 complete:** Trigger evaluation functions
+  - `evaluate_aggressive()` — defend/fortify/retreat/drill triggers
+  - `evaluate_cautious()` — attack odds/fortified/path danger triggers
+  - `evaluate_literal()` — always NONE (uses clarification system)
+  - `evaluate_situation()` — main dispatcher
+  - Helper functions for game state queries
+  - 36 additional unit tests
+- **Unit 3 complete:** Strategic trigger evaluators
+  - `evaluate_strategic_aggressive()` — HOLD no-enemies triggers
+  - `evaluate_strategic_cautious()` — PURSUE odds, dangerous path triggers
+  - `evaluate_strategic_literal()` — always NONE
+  - `evaluate_strategic_situation()` — main strategic dispatcher
+  - Helper functions: `_check_enemies_adjacent_to_region`, `_get_pursue_target_ratio`, `_path_has_enemies`
+  - 30 additional unit tests
+- **Docs updated:** Part 9 added to V2A_IMPLEMENTATION_ADDENDUM.md with all Q1-Q7 resolutions
+
+**Earlier today:**
 
 **Documentation Updates:**
 - Docs updated: Phase 5.2 marked fully complete including Phase M
@@ -44,9 +77,8 @@ Phase 5.2 Strategic Commands is COMPLETE. V2a Objection Refactor designed, pendi
 - **Code cleanup:** Updated comment in executor.py to reflect safe_path compromise applies to MOVE_TO, HOLD, and SUPPORT.
 
 **Tests:**
-- Added 7 new tests for HOLD and SUPPORT dangerous path objections
-- Added 3 edge case tests for no-safe-path scenarios (compromise hidden)
-- Test count: **1076 passed, 3 skipped**
+- Added 119 new tests for V2a objection system (Units 1-3)
+- Test count: **1195 passed, 3 skipped**
 
 **Documentation:**
 - Added fog of war comment to PURSUE objection (Phase 6+ consideration)
@@ -146,7 +178,8 @@ Test count: **1066 passed, 3 skipped**
 
 | Date | Tests | Notes |
 |------|-------|-------|
-| Feb 5, 2026 | **1076** | Dangerous path objections, no-safe-path edge cases, fog of war comments |
+| Feb 5, 2026 | **1195** | V2a Units 1-3 complete (119 new tests: core structures + tactical + strategic evaluators) |
+| Feb 5, 2026 | 1076 | Dangerous path objections, no-safe-path edge cases, fog of war comments |
 | Feb 4, 2026 | 1066 | HOLD improvements, personality benefits, timed expiry fix, freeze_enemies debug |
 | Feb 3, 2026 | 1066 | Phase M complete, strategic objections verified |
 | Feb 2, 2026 | 1004 | Post-objection fix, UI/UX improvements, sally serialization fix |
@@ -168,9 +201,11 @@ Test count: **1066 passed, 3 skipped**
 
 ## Next Session Priorities
 
-1. Implement V2a: Objection System Refactor
-2. Godot smoke test V2a
-3. Begin Phase 6 design
+1. **Review Unit 4** - Pipeline integration (wire V2 evaluators into executor.py)
+2. **Implement Unit 5** - Vindication extension (pending_defensive_vindication field)
+3. Continue V2a implementation (Units 6-7)
+
+**Handoff doc:** `docs/V2A_HANDOFF.md` has full context for continuing V2a work.
 
 ---
 
