@@ -87,7 +87,7 @@ class StrategicOrder:
     """
     command_type: str              # "MOVE_TO", "PURSUE", "HOLD", "SUPPORT"
     target: str                    # Region name, marshal name, or "generic"
-    target_type: str               # "region", "marshal", "battle", "generic"
+    target_type: str               # "region", "marshal", "generic"
     started_turn: int              # Turn when order was issued
     original_command: str          # Raw command text for reference
 
