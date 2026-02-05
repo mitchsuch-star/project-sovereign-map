@@ -198,7 +198,7 @@ return modifier
 ### Drill/Shock Bonus
 
 - 2-turn drill process: `drilling` (turn 1) -> `drilling_locked` (turn 2) -> `shock_bonus` set
-- Shock bonus: +50% attack modifier when consumed
+- Shock bonus: +20% attack modifier when consumed (shock_bonus=2, * 0.10 = +20%)
 - Consumed after first attack (cleared AFTER `get_attack_modifier()` reads it)
 - Drilling penalty: -25% defense while drilling or drilling_locked
 
@@ -799,8 +799,8 @@ Player Input ("Ney, march to Belgium")
 **File:** `backend/ai/strategic_parser.py`
 - **Line 81:** `detect_strategic_command(text, marshals, regions, world)` -- main entry
 - **Line 189:** `_detect_strategic_type(text)` -- classifies: MOVE_TO, PURSUE, HOLD, SUPPORT
-- **Line 264:** `_classify_target(target, regions, marshals, world)` -- target_type: region, enemy_marshal, friendly_marshal, generic
-- **Line 348:** `_parse_condition(text)` -- parses: until_arrives, until_destroyed, max_turns, until_battle_won
+- **Line 264:** `_classify_target(target, regions, marshals, world)` -- target_type: region, marshal, battle, generic
+- **Line 348:** `_parse_condition(text)` -- parses: until_marshal_arrives, until_marshal_destroyed, max_turns, until_battle_won
 
 **File:** `backend/commands/parser.py`
 - **Line 314-326:** Injection block -- calls `detect_strategic_command()` and injects:
@@ -890,7 +890,7 @@ Player Input ("Ney, march to Belgium")
 class StrategicOrder:
     command_type: str          # "MOVE_TO", "PURSUE", "HOLD", "SUPPORT"
     target: str                # Region name or marshal name
-    target_type: str           # "region", "enemy_marshal", "friendly_marshal"
+    target_type: str           # "region", "marshal", "battle", "generic"
     path: List[str]            # BFS path from current to target
     conditions: StrategicCondition
     turns_active: int = 0
@@ -908,8 +908,10 @@ class StrategicOrder:
 class StrategicCondition:
     max_turns: Optional[int] = None
     until_marshal_arrives: Optional[str] = None
+    until_marshal_destroyed: Optional[str] = None
     until_battle_won: bool = False
-    until_destroyed: bool = False
+    until_relieved: bool = False
+    auto_cancel_below_ratio: Optional[float] = None
 ```
 
 #### Key Marshal Fields (Strategic)
@@ -944,7 +946,7 @@ class StrategicCondition:
 #### Condition Evaluation
 **File:** `backend/commands/strategic.py`
 - **Line 792:** `_check_condition(marshal, order, world)`
-- Evaluates: `max_turns`, `until_marshal_arrives`, `until_battle_won`, `until_destroyed`
+- Evaluates: `max_turns`, `until_marshal_arrives`, `until_battle_won`, `until_marshal_destroyed`
 - `until_battle_won` triggers on both victory AND stalemate
 
 ### Battle Tracking (for Cannon Fire)

@@ -364,7 +364,6 @@ func _draw_tooltip():
 	var drill_complete_turn = tactical_state.get("drill_complete_turn", -1)
 	var fortified = tactical_state.get("fortified", false)
 	var defense_bonus = tactical_state.get("defense_bonus", 0)
-	var fortify_expires_turn = tactical_state.get("fortify_expires_turn", -1)
 	# Fortify decay state (Phase 3)
 	var fortify_state_raw = tactical_state.get("fortify_state", null)
 	var fortify_direction = "none"
@@ -389,7 +388,7 @@ func _draw_tooltip():
 
 	# Phase 2.8 Personality Ability fields
 	var cavalry = tactical_state.get("cavalry", false)
-	var turns_defensive = tactical_state.get("turns_defensive", 0)
+	var turns_in_defensive_stance = tactical_state.get("turns_in_defensive_stance", 0)
 	var counter_punch_available = tactical_state.get("counter_punch_available", false)
 	var holding_position = tactical_state.get("holding_position", false)
 	var hold_region = tactical_state.get("hold_region", "")
@@ -417,7 +416,7 @@ func _draw_tooltip():
 	# Phase 2.8 ability states
 	if cavalry:
 		tactical_lines += 1
-	if turns_defensive > 0:
+	if turns_in_defensive_stance > 0:
 		tactical_lines += 1
 	if counter_punch_available:
 		tactical_lines += 1
@@ -655,9 +654,9 @@ func _draw_tooltip():
 			text_y += line_spacing
 
 		# Ney: Restlessness (turns defensive counter)
-		if turns_defensive > 0:
-			var restless_text = "RESTLESS: " + str(turns_defensive) + "/3 turns defensive"
-			if turns_defensive >= 3:
+		if turns_in_defensive_stance > 0:
+			var restless_text = "RESTLESS: " + str(turns_in_defensive_stance) + "/3 turns defensive"
+			if turns_in_defensive_stance >= 3:
 				restless_text += " (objecting!)"
 			var restless_color = Color(0.9, 0.7, 0.4)  # Yellow-orange
 			draw_string(font, Vector2(text_x, text_y + 11), restless_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, restless_color)

@@ -906,7 +906,6 @@ def _get_map_data(world: WorldState) -> dict:
                     # Fortify state
                     "fortified": bool(getattr(m, 'fortified', False)),
                     "defense_bonus": int(getattr(m, 'defense_bonus', 0) * 100),  # Convert decimal to percent
-                    "fortify_expires_turn": int(getattr(m, 'fortify_expires_turn', -1)),
                     # Fortify decay state (Phase 3) - with error handling
                     "fortify_state": _get_fortify_state_safe(m),
                     # Retreat state
@@ -917,7 +916,7 @@ def _get_map_data(world: WorldState) -> dict:
                     "broken_recovery": int(getattr(m, 'broken_recovery', 0)),
                     # Personality ability states (BUG FIX: were missing!)
                     "cavalry": bool(getattr(m, 'cavalry', False)),
-                    "turns_defensive": int(getattr(m, 'turns_defensive', 0)),
+                    "turns_in_defensive_stance": int(getattr(m, 'turns_in_defensive_stance', 0)),
                     "counter_punch_available": bool(getattr(m, 'counter_punch_available', False)),
                     "counter_punch_turns": int(getattr(m, 'counter_punch_turns', 0)),
                     "holding_position": bool(getattr(m, 'holding_position', False)),

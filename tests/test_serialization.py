@@ -88,7 +88,6 @@ def create_full_marshal() -> Marshal:
     m.orders_overridden = 3
     m.battles_won = 5
     m.battles_lost = 2
-    m.just_retreated = True
 
     # Disobedience system
     m.trust.set(65)
@@ -156,13 +155,13 @@ def create_full_marshal() -> Marshal:
 
     # Fortify state
     m.fortified = True
-    m.fortify_expires_turn = 10
     m.defense_bonus = 0.16
 
     # Retreat state
     m.retreating = True
     m.retreat_recovery = 2
     m.retreated_this_turn = True
+    m._recovery_destination = "Paris"
 
     # Broken state
     m.broken = False
@@ -174,7 +173,6 @@ def create_full_marshal() -> Marshal:
     # Cavalry-specific
     m.turns_in_defensive_stance = 1
     m.turns_fortified = 2
-    m.turns_defensive = 3
 
     # Davout-specific
     m.counter_punch_available = True
@@ -412,7 +410,6 @@ class TestMarshalSerialization:
         assert_field_equal(restored, original, "orders_overridden", "Marshal")
         assert_field_equal(restored, original, "battles_won", "Marshal")
         assert_field_equal(restored, original, "battles_lost", "Marshal")
-        assert_field_equal(restored, original, "just_retreated", "Marshal")
 
         # Trust (special handling for Trust object)
         assert_field_equal(restored, original, "trust", "Marshal")
@@ -464,13 +461,13 @@ class TestMarshalSerialization:
 
         # Fortify state
         assert_field_equal(restored, original, "fortified", "Marshal")
-        assert_field_equal(restored, original, "fortify_expires_turn", "Marshal")
         assert_field_equal(restored, original, "defense_bonus", "Marshal")
 
         # Retreat state
         assert_field_equal(restored, original, "retreating", "Marshal")
         assert_field_equal(restored, original, "retreat_recovery", "Marshal")
         assert_field_equal(restored, original, "retreated_this_turn", "Marshal")
+        assert_field_equal(restored, original, "_recovery_destination", "Marshal")
 
         # Broken state
         assert_field_equal(restored, original, "broken", "Marshal")
@@ -483,7 +480,6 @@ class TestMarshalSerialization:
         assert_field_equal(restored, original, "cavalry", "Marshal")
         assert_field_equal(restored, original, "turns_in_defensive_stance", "Marshal")
         assert_field_equal(restored, original, "turns_fortified", "Marshal")
-        assert_field_equal(restored, original, "turns_defensive", "Marshal")
 
         # Davout-specific (counter-punch)
         assert_field_equal(restored, original, "counter_punch_available", "Marshal")

@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 5, 2026
-> **Last Session:** V2a Units 4-5 complete, doc consolidation
+> **Last Session:** Audit fix session — bug fixes, dead code removal, cleanup
 
 ---
 
@@ -10,9 +10,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1203** (verified Feb 5, 2026) |
+| **Tests Passing** | **~1203** (needs verification — venv broken in CLI, run in PyCharm) |
 | **Current Phase** | V2a (Objection Refactor) — then Phase 6 |
-| **Blockers** | None |
+| **Blockers** | Windows Store Python broken — run tests from PyCharm |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M |
 
 ---
@@ -36,7 +36,23 @@ V2a Objection Refactor in progress: Units 1-5 complete, Units 6-7 remaining.
 
 ## Recently Completed
 
-### Feb 5
+### Feb 5 (Session 2: Audit Fixes)
+
+**Architecture audit fix session:**
+- **BUG FIX:** Cavalry double-increment of `turns_fortified` — was reaching 3-turn limit in 2 turns
+- **BUG FIX:** `active_battles` participants used Python `set` (not JSON-serializable) → changed to `list`
+- **BUG FIX:** `defense_bonus` type annotation was `int`, actual usage is `float` (0.16 = 16%)
+- **BUG FIX:** `just_retreated` legacy flag removed — forced retreat now uses proper `retreating`/`retreat_recovery` system
+- **BUG FIX:** Debug command `/debug restless` was setting wrong field (`turns_defensive` instead of `turns_in_defensive_stance`)
+- **Dead code removed:** `PERSONALITY_TRAITS` dict, `_action_bonuses`, `turns_defensive` legacy field, `fortify_expires_turn` (always -1), `__main__` test block
+- **Serialization:** `_recovery_destination` formalized in `__init__`, `to_dict()`, `from_dict()`
+- **Debug prints:** 150+ bare `print()` in world_state.py, turn_manager.py, combat.py → gated behind `debug_print()` (set `INK_DEBUG=0` to silence)
+- **Duplicates consolidated:** `ordinal()` function → `backend/utils/__init__.py`; `decay_config` dict → module-level `FORTIFY_DECAY_CONFIG` constant
+- **getattr cleanup:** 20+ unnecessary `getattr(self, 'field', default)` → direct `self.field` in marshal.py
+- **Doc fixes:** SYSTEMS_REFERENCE.md shock bonus +50% → +20%, `until_destroyed` → `until_marshal_destroyed`, `target_type` values corrected
+- **Godot fixes:** Removed unused `fortify_expires_turn` var from map.gd, renamed `turns_defensive` → `turns_in_defensive_stance`
+
+### Feb 5 (Session 1: V2a + Docs)
 
 **V2a Units 4 & 5 (commit e04405b):**
 - **Unit 4:** Pipeline integration — V2 evaluators wired into executor.py
@@ -93,6 +109,7 @@ V2a Objection Refactor in progress: Units 1-5 complete, Units 6-7 remaining.
 
 | Date | Tests | Notes |
 |------|-------|-------|
+| Feb 5, 2026 | **~1203** | Audit fixes (need PyCharm verification) |
 | Feb 5, 2026 | **1203** | V2a Units 1-5 complete, Opus review fixes |
 | Feb 5, 2026 | 1195 | V2a Units 1-3 (119 new tests) |
 | Feb 4, 2026 | 1066 | HOLD improvements, personality benefits |
@@ -110,14 +127,17 @@ V2a Objection Refactor in progress: Units 1-5 complete, Units 6-7 remaining.
 | V1 `handle_objection_response` still uses V1 trust values | Medium | Wire V2 scaled trust gain/penalty in Unit 6 |
 | Strategic objections still use V1 `check_strategic_objection()` | Low | Migrate to V2 `evaluate_strategic_situation()` follow-up |
 | Clarification popup for other literal actions | Low | Only attack-without-target currently |
+| Windows Store Python broken | Env | venv can't find base python — run tests from PyCharm |
+| Marshal ability dicts mostly decorative | Low | Only Ney's "Bravest of the Brave" is wired up in combat.py; others are TODO (personality mechanics DO work separately) |
 
 ---
 
 ## Next Session Priorities
 
-1. **Unit 6: Test Migration** — Update existing tests that assert severity floats
-2. **Unit 7: Godot Frontend** — Tone-based styling, MILD flavor in turn log
-3. Begin Phase 6 design after V2a ships
+1. **Run full test suite in PyCharm** — verify audit fixes didn't break anything
+2. **Unit 6: Test Migration** — Update existing tests that assert severity floats
+3. **Unit 7: Godot Frontend** — Tone-based styling, MILD flavor in turn log
+4. Begin Phase 6 design after V2a ships
 
 **V2 objection design doc:** `docs/OBJECTION_V2.md`
 

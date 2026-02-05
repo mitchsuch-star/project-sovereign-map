@@ -1391,7 +1391,7 @@ RETREAT RECOVERY (3 turns):
             marshal.stance = Stance.NEUTRAL
 
             # Clear personality ability states
-            marshal.turns_defensive = 0
+            marshal.turns_in_defensive_stance = 0
             marshal.counter_punch_available = False
             marshal.counter_punch_turns = 0
             marshal.holding_position = False
@@ -4518,7 +4518,6 @@ RETREAT RECOVERY (3 turns):
         # Base +2% plus instant bonus (Davout gets +5% instant = +7% total on first fortify)
         base_bonus = 0.02
         marshal.defense_bonus = base_bonus + instant_bonus
-        marshal.fortify_expires_turn = -1  # No expiration (permanent until unfortified)
 
         # Build message with personality-specific info
         personality_message = ""
@@ -4603,7 +4602,6 @@ RETREAT RECOVERY (3 turns):
         # Remove fortification
         marshal.fortified = False
         marshal.defense_bonus = 0
-        marshal.fortify_expires_turn = -1
         marshal.turns_fortified = 0  # Reset decay counter
 
         # Build message with ability note
@@ -4642,7 +4640,7 @@ RETREAT RECOVERY (3 turns):
 
         Supported debug commands:
         - /debug counter_punch <marshal>: Set counter_punch_available = True
-        - /debug restless <marshal>: Set turns_defensive to trigger restlessness
+        - /debug restless <marshal>: Set turns_in_defensive_stance to trigger restlessness
         - /debug cavalry <marshal>: Toggle cavalry status
         - /debug hold <marshal>: Set holding_position = True
         - /debug ai_turn <nation>: Force AI turn for nation (Britain/Prussia)
@@ -4678,7 +4676,7 @@ RETREAT RECOVERY (3 turns):
                 "message": "Debug command format: /debug <command> <args>\n"
                           "\n== Personality Testing ==\n"
                           "  • counter_punch <marshal> - Set counter-punch (free attack)\n"
-                          "  • restless <marshal> - Set turns_defensive=5 (restlessness)\n"
+                          "  • restless <marshal> - Set turns_in_defensive_stance=5 (restlessness)\n"
                           "  • cavalry <marshal> - Toggle cavalry status\n"
                           "  • hold <marshal> - Set holding_position (Immovable)\n"
                           "\n== Cavalry Recklessness (Phase 3) ==\n"
@@ -4881,10 +4879,10 @@ RETREAT RECOVERY (3 turns):
                     "message": f"Restlessness is only available for aggressive marshals (Ney). "
                               f"{marshal.name} is {marshal.personality}."
                 }
-            marshal.turns_defensive = 5
+            marshal.turns_in_defensive_stance = 5
             return {
                 "success": True,
-                "message": f"🔧 DEBUG: {marshal.name}'s turns_defensive = 5\n"
+                "message": f"🔧 DEBUG: {marshal.name}'s turns_in_defensive_stance = 5\n"
                           f"Will trigger restlessness check at turn start with high probability."
             }
 
@@ -6005,7 +6003,6 @@ RETREAT RECOVERY (3 turns):
         drill_was_active = getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False)
 
         # Enter retreat recovery state
-        marshal.just_retreated = False  # FIX: Clear legacy flag to use new retreat system
         marshal.retreating = True
         marshal.retreat_recovery = 0  # Intentional: retreating again resets recovery progress
         marshal.retreated_this_turn = True  # Mark for ally covering system

@@ -262,7 +262,7 @@ class Marshal:
         self.orders_overridden: int = 0
         self.battles_won: int = 0
         self.battles_lost: int = 0
-        self.just_retreated: bool = False  # NEW: Vulnerable after retreat
+
 
         # Disobedience System (Phase 2)
         self.trust: Trust = Trust(int(starting_trust))
@@ -329,8 +329,7 @@ class Marshal:
 
         # FORTIFY State: Defensive lockdown, +10% defense, can't move/attack
         self.fortified: bool = False         # Currently fortified
-        self.fortify_expires_turn: int = -1  # Turn when fortification expires
-        self.defense_bonus: int = 0          # +1 = +10% defense (from fortify)
+        self.defense_bonus: float = 0.0       # Decimal: 0.16 = 16% defense (from fortify)
 
         # RETREAT State: Recovery from combat penalty
         # Starts at -45% effectiveness, recovers over 3 turns
@@ -338,6 +337,7 @@ class Marshal:
         self.retreat_recovery: int = 0       # 0-3, current recovery stage
         # Recovery stages: 0 = -45%, 1 = -30%, 2 = -15%, 3 = 0% (recovered)
         self.retreated_this_turn: bool = False  # True if retreated this turn (for ally cover)
+        self._recovery_destination: Optional[str] = None  # AI retreat destination cache (cleared on full recovery)
 
         # BROKEN State: Army shattered from surrounded forced retreat
         # When surrounded and forced to retreat, army is "broken":
@@ -368,7 +368,6 @@ class Marshal:
         # Tracked separately so both can trigger (-6 total if both)
         self.turns_in_defensive_stance: int = 0  # Resets when leaving defensive stance
         self.turns_fortified: int = 0            # Resets when unfortifying
-        self.turns_defensive: int = 0            # Legacy - kept for compatibility
 
         # DAVOUT (Cautious) - Counter-Punch tracking
         # Set to 1 after successfully defending against attack
@@ -425,10 +424,9 @@ class Marshal:
         # Only reset if actually moving to a different region
         if old_location != new_location:
             # CAVALRY: Moving resets defensive counters
-            if getattr(self, 'cavalry', False):
+            if self.cavalry:
                 self.turns_in_defensive_stance = 0
                 self.turns_fortified = 0
-            self.turns_defensive = 0  # Legacy compatibility
 
             # GROUCHY: Moving breaks Immovable
             if self.holding_position:
@@ -509,7 +507,7 @@ class Marshal:
         Reckless cavalry = cavalry + aggressive personality.
         Only these marshals can build recklessness and trigger Glorious Charge.
         """
-        return getattr(self, 'cavalry', False) and self.personality == "aggressive"
+        return self.cavalry and self.personality == "aggressive"
 
     @property
     def in_strategic_mode(self) -> bool:
@@ -533,7 +531,7 @@ class Marshal:
         if not self.is_reckless_cavalry:
             return 0.0
 
-        reck = getattr(self, 'recklessness', 0)
+        reck = self.recklessness
         if reck <= 0:
             return 0.0
         elif reck == 1:
@@ -555,7 +553,7 @@ class Marshal:
         if not self.is_reckless_cavalry:
             return 0.0
 
-        reck = getattr(self, 'recklessness', 0)
+        reck = self.recklessness
         if reck <= 1:
             return 0.0
         elif reck == 2:
@@ -574,7 +572,7 @@ class Marshal:
         if not self.is_reckless_cavalry:
             return
 
-        current = getattr(self, 'recklessness', 0)
+        current = self.recklessness
         if current < 4:
             self.recklessness = current + 1
 
@@ -599,7 +597,7 @@ class Marshal:
         Returns:
             Float penalty (0.0, 0.10, 0.20, or 0.30)
         """
-        attacks = getattr(self, 'attacks_this_turn', 0)
+        attacks = self.attacks_this_turn
         if attacks <= 0:
             return 0.0  # 1st attack (counter is 0 before first attack)
         elif attacks == 1:
@@ -615,7 +613,7 @@ class Marshal:
 
         Called after regular attacks, NOT after counter-punch (reactive).
         """
-        self.attacks_this_turn = getattr(self, 'attacks_this_turn', 0) + 1
+        self.attacks_this_turn = self.attacks_this_turn + 1
 
     def get_exhaustion_info(self) -> dict:
         """
@@ -624,7 +622,7 @@ class Marshal:
         Returns:
             Dict with attacks_this_turn and current penalty
         """
-        attacks = getattr(self, 'attacks_this_turn', 0)
+        attacks = self.attacks_this_turn
         penalty = self._get_exhaustion_penalty()
         return {
             "attacks_this_turn": attacks,
@@ -642,7 +640,7 @@ class Marshal:
         if not self.is_reckless_cavalry:
             return None
 
-        reck = getattr(self, 'recklessness', 0)
+        reck = self.recklessness
         if reck == 0:
             return None
         elif reck == 1:
@@ -667,7 +665,7 @@ class Marshal:
         if not self.is_reckless_cavalry:
             return (True, "")
 
-        reck = getattr(self, 'recklessness', 0)
+        reck = self.recklessness
 
         # Recklessness 2+: Cannot use defensive stance
         if reck >= 2 and target_stance == "defensive":
@@ -704,13 +702,13 @@ class Marshal:
             modifier *= 0.90  # -10%
 
         # Drill/shock bonus (from completed drill training)
-        shock = getattr(self, 'shock_bonus', 0)
+        shock = self.shock_bonus
         has_drill_bonus = shock > 0
         if has_drill_bonus:
             modifier *= (1.0 + shock * 0.10)  # shock_bonus=2 → +20%
 
         # Strategic combat bonus (from inspiring commands, consumed on use)
-        strategic_bonus = getattr(self, 'strategic_combat_bonus', 0)
+        strategic_bonus = self.strategic_combat_bonus
         if strategic_bonus > 0:
             modifier *= (1.0 + strategic_bonus / 100.0)  # 10 → +10%
             self.strategic_combat_bonus = 0  # Consume after use
@@ -759,22 +757,22 @@ class Marshal:
 
         # Fortify bonus (grows per turn, max varies by personality)
         # defense_bonus is stored as decimal (0.16 = 16%), applied directly as multiplier
-        fortify_bonus = getattr(self, 'defense_bonus', 0)
+        fortify_bonus = self.defense_bonus
         if fortify_bonus > 0:
             modifier *= (1.0 + fortify_bonus)  # 0.16 → 1.16x (16% reduction)
 
         # Strategic defense bonus (from clear orders - Grouchy, consumed on use)
-        strategic_def_bonus = getattr(self, 'strategic_defense_bonus', 0)
+        strategic_def_bonus = self.strategic_defense_bonus
         if strategic_def_bonus > 0:
             modifier *= (1.0 + strategic_def_bonus / 100.0)  # 10 → +10%
             self.strategic_defense_bonus = 0  # Consume after use
 
         # Drilling penalty (caught drilling = vulnerable)
-        if getattr(self, 'drilling', False) or getattr(self, 'drilling_locked', False):
+        if self.drilling or self.drilling_locked:
             modifier *= 0.75  # -25%
 
         # Personality-specific defense modifiers
-        is_holding = getattr(self, 'holding_position', False)
+        is_holding = self.holding_position
         personality_mod = get_defense_modifier_for_personality(
             self.personality,
             self.stance.value,
@@ -799,7 +797,7 @@ class Marshal:
         applied at calculation time only to prevent add/subtract bugs.
         """
         base = self.skills.get(skill_name, 5)
-        if getattr(self, 'precision_execution_active', False):
+        if self.precision_execution_active:
             return min(8, base + 1)
         return base
 
@@ -850,21 +848,16 @@ class Marshal:
 
         Returns:
             Float multiplier (0.25 to 1.5)
-            - Just retreated (just_retreated): 0.5x (vulnerable!)
             - Retreating recovery: Varies by stage
             - High morale: 1.5x effective
             - Normal morale: 1.0x effective
             - Low morale: 0.5x effective
         """
-        # PENALTY: Just retreated = vulnerable (legacy flag)
-        if self.just_retreated:
-            return 0.5
-
         # PENALTY: Retreat recovery stages
         # Stage 0: -45%, Stage 1: -30%, Stage 2: -15%, Stage 3: 0% (recovered)
         retreat_penalty = 0.0
-        if getattr(self, 'retreating', False):
-            recovery_stage = getattr(self, 'retreat_recovery', 0)
+        if self.retreating:
+            recovery_stage = self.retreat_recovery
             retreat_penalties = {0: 0.45, 1: 0.30, 2: 0.15, 3: 0.0}
             retreat_penalty = retreat_penalties.get(recovery_stage, 0.0)
 
@@ -898,7 +891,6 @@ class Marshal:
             "orders_overridden": int(self.orders_overridden),
             "battles_won": int(self.battles_won),
             "battles_lost": int(self.battles_lost),
-            "just_retreated": self.just_retreated,
 
             # ═══════ DISOBEDIENCE SYSTEM ═══════
             "trust": self.trust.to_dict(),
@@ -944,13 +936,13 @@ class Marshal:
 
             # ═══════ FORTIFY STATE ═══════
             "fortified": self.fortified,
-            "fortify_expires_turn": int(self.fortify_expires_turn),
             "defense_bonus": float(self.defense_bonus),
 
             # ═══════ RETREAT STATE ═══════
             "retreating": self.retreating,
             "retreat_recovery": int(self.retreat_recovery),
             "retreated_this_turn": self.retreated_this_turn,
+            "_recovery_destination": self._recovery_destination,
 
             # ═══════ BROKEN STATE ═══════
             "broken": self.broken,
@@ -963,7 +955,6 @@ class Marshal:
             "cavalry": self.cavalry,
             "turns_in_defensive_stance": int(self.turns_in_defensive_stance),
             "turns_fortified": int(self.turns_fortified),
-            "turns_defensive": int(self.turns_defensive),
 
             # ═══════ DAVOUT-SPECIFIC (COUNTER-PUNCH) ═══════
             "counter_punch_available": self.counter_punch_available,
@@ -1009,7 +1000,6 @@ class Marshal:
         marshal.orders_overridden = data.get("orders_overridden", 0)
         marshal.battles_won = data.get("battles_won", 0)
         marshal.battles_lost = data.get("battles_lost", 0)
-        marshal.just_retreated = data.get("just_retreated", False)
 
         # ═══════ DISOBEDIENCE SYSTEM ═══════
         if data.get("trust"):
@@ -1057,13 +1047,13 @@ class Marshal:
 
         # ═══════ FORTIFY STATE ═══════
         marshal.fortified = data.get("fortified", False)
-        marshal.fortify_expires_turn = data.get("fortify_expires_turn", -1)
-        marshal.defense_bonus = data.get("defense_bonus", 0)
+        marshal.defense_bonus = data.get("defense_bonus", 0.0)
 
         # ═══════ RETREAT STATE ═══════
         marshal.retreating = data.get("retreating", False)
         marshal.retreat_recovery = data.get("retreat_recovery", 0)
         marshal.retreated_this_turn = data.get("retreated_this_turn", False)
+        marshal._recovery_destination = data.get("_recovery_destination", None)
 
         # ═══════ BROKEN STATE ═══════
         marshal.broken = data.get("broken", False)
@@ -1075,7 +1065,6 @@ class Marshal:
         # ═══════ CAVALRY-SPECIFIC ═══════
         marshal.turns_in_defensive_stance = data.get("turns_in_defensive_stance", 0)
         marshal.turns_fortified = data.get("turns_fortified", 0)
-        marshal.turns_defensive = data.get("turns_defensive", 0)
 
         # ═══════ DAVOUT-SPECIFIC (COUNTER-PUNCH) ═══════
         marshal.counter_punch_available = data.get("counter_punch_available", False)
@@ -1097,32 +1086,9 @@ class Marshal:
 
     def __repr__(self) -> str:
         """String representation for debugging."""
-        unit_type = "cavalry" if getattr(self, 'cavalry', False) else "infantry"
+        unit_type = "cavalry" if self.cavalry else "infantry"
         trust_label = self.trust.get_label() if hasattr(self, 'trust') else "?"
         return f"Marshal({self.name}, {self.strength:,} troops at {self.location}, morale: {self.morale}%, trust: {trust_label}, {unit_type})"
-
-
-# Personality traits for AI behavior (used in executor)
-PERSONALITY_TRAITS = {
-    "aggressive": {
-        "description": "Prefers attacking, questions defensive orders",
-        "attack_bias": 0.3,  # +30% likely to attack
-        "caution": -0.2,  # -20% caution
-        "example": "Ney - The Bravest of the Brave"
-    },
-    "cautious": {
-        "description": "Methodical, provides analysis, suggests alternatives",
-        "attack_bias": -0.2,  # -20% likely to attack
-        "caution": 0.3,  # +30% more careful
-        "example": "Davout - The Iron Marshal"
-    },
-    "literal": {
-        "description": "Follows orders exactly, doesn't improvise",
-        "attack_bias": 0.0,  # No bias
-        "caution": 0.0,  # No bias
-        "example": "Grouchy - The Unlucky"
-    }
-}
 
 
 def create_starting_marshals() -> dict[str, Marshal]:
@@ -1372,63 +1338,3 @@ def create_enemy_marshals() -> dict[str, Marshal]:
 
     return enemies
 
-
-# Test code
-if __name__ == "__main__":
-    """Quick test of marshal system."""
-    print("=" * 60)
-    print("MARSHAL SYSTEM TEST")
-    print("=" * 60)
-
-    # Create marshals
-    marshals = create_starting_marshals()
-
-    print(f"\nStarting marshals: {len(marshals)}")
-    for name, marshal in marshals.items():
-        print(f"  {marshal}")
-
-    print("\n" + "=" * 60)
-    print("Test Movement")
-    print("=" * 60)
-
-    ney = marshals["Ney"]
-    print(f"\nBefore: {ney}")
-    ney.move_to("Waterloo")
-    print(f"After moving to Waterloo: {ney}")
-
-    print("\n" + "=" * 60)
-    print("Test Recruitment")
-    print("=" * 60)
-
-    print(f"\nBefore: Ney has {ney.strength:,} troops")
-    ney.add_troops(10000)
-    print(f"After recruiting: Ney has {ney.strength:,} troops")
-
-    print("\n" + "=" * 60)
-    print("Test Combat")
-    print("=" * 60)
-
-    print(f"\nBefore battle: {ney.strength:,} troops, {ney.morale}% morale")
-    print(f"Combat effectiveness: {ney.get_combat_effectiveness():.2f}x")
-
-    ney.take_casualties(15000)
-    ney.adjust_morale(-20)
-    ney.battles_won += 1
-
-    print(f"After battle: {ney.strength:,} troops, {ney.morale}% morale")
-    print(f"Combat effectiveness: {ney.get_combat_effectiveness():.2f}x")
-    print(f"Record: {ney.battles_won}W - {ney.battles_lost}L")
-
-    print("\n" + "=" * 60)
-    print("Personality Traits")
-    print("=" * 60)
-
-    for name, traits in PERSONALITY_TRAITS.items():
-        print(f"\n{name.upper()}: {traits['example']}")
-        print(f"  {traits['description']}")
-        print(f"  Attack bias: {traits['attack_bias']:+.0%}")
-        print(f"  Caution: {traits['caution']:+.0%}")
-
-    print("\n" + "=" * 60)
-    print("TEST COMPLETE!")
-    print("=" * 60)

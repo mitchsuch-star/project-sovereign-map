@@ -85,7 +85,6 @@ def create_fully_populated_marshal() -> Marshal:
     marshal.orders_overridden = 3
     marshal.battles_won = 5
     marshal.battles_lost = 2
-    marshal.just_retreated = True
 
     # Disobedience system
     marshal.trust.set(65)
@@ -137,13 +136,13 @@ def create_fully_populated_marshal() -> Marshal:
 
     # Fortify state
     marshal.fortified = True
-    marshal.fortify_expires_turn = 10
-    marshal.defense_bonus = 15
+    marshal.defense_bonus = 0.15
 
     # Retreat state
     marshal.retreating = True
     marshal.retreat_recovery = 2
     marshal.retreated_this_turn = True
+    marshal._recovery_destination = "Paris"
 
     # Broken state
     marshal.broken = True
@@ -155,7 +154,6 @@ def create_fully_populated_marshal() -> Marshal:
     # Cavalry-specific
     marshal.turns_in_defensive_stance = 2
     marshal.turns_fortified = 1
-    marshal.turns_defensive = 3
 
     # Davout-specific
     marshal.counter_punch_available = True

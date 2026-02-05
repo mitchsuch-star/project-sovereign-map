@@ -116,7 +116,6 @@ A future save/load system should use this as the specification.
   "orders_overridden": 0,
   "battles_won": 0,
   "battles_lost": 0,
-  "just_retreated": false,
 
   "trust": {"value": 75},
   "vindication_score": 0,
@@ -153,12 +152,12 @@ A future save/load system should use this as the specification.
   "last_combat_location": null,
 
   "fortified": false,
-  "fortify_expires_turn": -1,
   "defense_bonus": 0.0,
 
   "retreating": false,
   "retreat_recovery": 0,
   "retreated_this_turn": false,
+  "_recovery_destination": null,
 
   "broken": false,
   "broken_recovery": 0,
@@ -168,7 +167,6 @@ A future save/load system should use this as the specification.
   "cavalry": true,
   "turns_in_defensive_stance": 0,
   "turns_fortified": 0,
-  "turns_defensive": 0,
 
   "counter_punch_available": false,
   "counter_punch_turns": 0,
@@ -217,7 +215,6 @@ A future save/load system should use this as the specification.
 | `orders_overridden` | int | Times player insisted over objections |
 | `battles_won` | int | Victories counter |
 | `battles_lost` | int | Defeats counter |
-| `just_retreated` | bool | Vulnerable after retreat (legacy) |
 
 #### Disobedience System
 | Field | Type | Description |
@@ -247,7 +244,6 @@ A future save/load system should use this as the specification.
 | `drill_complete_turn` | int | Turn when drill completes |
 | `shock_bonus` | int | +2 = +20% attack from drill |
 | `fortified` | bool | Currently fortified |
-| `fortify_expires_turn` | int | Turn when fortification expires |
 | `defense_bonus` | float | 0.0-0.20, decimal (0.16 = 16%) |
 
 #### Strategic Order System (Phase 5.2)
@@ -274,6 +270,7 @@ A future save/load system should use this as the specification.
 | `retreating` | bool | In retreat recovery |
 | `retreat_recovery` | int | 0-3 recovery stage |
 | `retreated_this_turn` | bool | Retreated this turn (ally cover) |
+| `_recovery_destination` | str/null | AI retreat destination cache |
 | `broken` | bool | Army shattered |
 | `broken_recovery` | int | 0-4 recovery stage |
 
@@ -287,7 +284,6 @@ A future save/load system should use this as the specification.
 |-------|------|-------------|
 | `turns_in_defensive_stance` | int | Counter (triggers at 3) |
 | `turns_fortified` | int | Counter (triggers at 3) |
-| `turns_defensive` | int | Legacy counter |
 
 #### Ability State
 | Field | Type | Description |

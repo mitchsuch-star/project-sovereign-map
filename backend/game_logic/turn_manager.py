@@ -22,6 +22,7 @@ Add _process_strategic_orders() method that calls StrategicExecutor.
 from typing import Dict, List, Optional
 from backend.models.world_state import WorldState
 from backend.commands.strategic import StrategicExecutor
+from backend.utils.debug import debug_print
 
 
 class TurnManager:
@@ -86,7 +87,7 @@ class TurnManager:
         # ════════════════════════════════════════════════════════════
         pre_enemy_victory_check = self._check_victory_conditions()
         if pre_enemy_victory_check["game_over"]:
-            print(f"\n[GAME OVER] {pre_enemy_victory_check['reason']} - skipping enemy phase")
+            debug_print(f"\n[GAME OVER] {pre_enemy_victory_check['reason']} - skipping enemy phase")
             self.world.game_over = True
             self.world.victory = pre_enemy_victory_check["result"]
             # Skip to turn advancement without enemy phase
@@ -112,7 +113,7 @@ class TurnManager:
             # BUG #2 FIX: Check if enemy achieved victory during their turn
             if enemy_phase_results and enemy_phase_results.get("enemy_victory"):
                 enemy_victory = enemy_phase_results["enemy_victory"]
-                print(f"\n[GAME OVER] {enemy_victory['message']}")
+                debug_print(f"\n[GAME OVER] {enemy_victory['message']}")
                 self.world.game_over = True
                 self.world.victory = "defeat"
                 # Still advance turn but game is over
@@ -154,9 +155,9 @@ class TurnManager:
 
         # Get tactical events that were processed during advance
         tactical_events = self.world.get_last_tactical_events()
-        print(f"[TURN_MANAGER DEBUG] Retrieved {len(tactical_events)} tactical events")
+        debug_print(f"[TURN_MANAGER DEBUG] Retrieved {len(tactical_events)} tactical events")
         for i, evt in enumerate(tactical_events):
-            print(f"  Event {i}: type={evt.get('type')}, has_message={bool(evt.get('message'))}")
+            debug_print(f"  Event {i}: type={evt.get('type')}, has_message={bool(evt.get('message'))}")
 
         # ════════════════════════════════════════════════════════════
         # AUTONOMOUS MARSHALS: Process at START of new turn (Phase 2.5)
@@ -245,30 +246,30 @@ class TurnManager:
         from backend.commands.executor import CommandExecutor
 
         # DEBUG: Log all marshals and their autonomy state
-        print("\n" + "=" * 70)
-        print("🔍 DEBUG: Checking for autonomous marshals")
-        print("=" * 70)
+        debug_print("\n" + "=" * 70)
+        debug_print("🔍 DEBUG: Checking for autonomous marshals")
+        debug_print("=" * 70)
         for m in self.world.marshals.values():
             auto_status = "AUTONOMOUS" if getattr(m, 'autonomous', False) else "normal"
-            print(f"  {m.name} ({m.nation}): {auto_status}, turns={getattr(m, 'autonomy_turns', 0)}")
+            debug_print(f"  {m.name} ({m.nation}): {auto_status}, turns={getattr(m, 'autonomy_turns', 0)}")
 
         autonomous_marshals = [
             m for m in self.world.marshals.values()
             if m.nation == self.world.player_nation and getattr(m, 'autonomous', False)
         ]
 
-        print(f"🔍 DEBUG: Found {len(autonomous_marshals)} autonomous player marshals")
+        debug_print(f"🔍 DEBUG: Found {len(autonomous_marshals)} autonomous player marshals")
 
         if not autonomous_marshals:
-            print("🔍 DEBUG: No autonomous marshals - skipping report")
+            debug_print("🔍 DEBUG: No autonomous marshals - skipping report")
             return {
                 "show_independent_command_report": False,
                 "independent_command_report": []
             }
 
-        print("\n" + "=" * 70)
-        print("INDEPENDENT COMMAND REPORT")
-        print("=" * 70)
+        debug_print("\n" + "=" * 70)
+        debug_print("INDEPENDENT COMMAND REPORT")
+        debug_print("=" * 70)
 
         executor = CommandExecutor()
         ai = EnemyAI(executor)
@@ -276,7 +277,7 @@ class TurnManager:
         report = []
 
         for marshal in autonomous_marshals:
-            print(f"\n--- {marshal.name} (Autonomous, {marshal.autonomy_turns} turns remaining) ---")
+            debug_print(f"\n--- {marshal.name} (Autonomous, {marshal.autonomy_turns} turns remaining) ---")
 
             # Execute AI action for this marshal (aligned with player's nation)
             action_result = ai.decide_single_action(
@@ -293,15 +294,15 @@ class TurnManager:
                 # Check for battle outcomes
                 if result.get("battle_won"):
                     marshal.autonomous_battles_won += 1
-                    print(f"  🏆 Battle won! (Total: {marshal.autonomous_battles_won})")
+                    debug_print(f"  🏆 Battle won! (Total: {marshal.autonomous_battles_won})")
                 elif result.get("battle_lost"):
                     marshal.autonomous_battles_lost += 1
-                    print(f"  💀 Battle lost! (Total: {marshal.autonomous_battles_lost})")
+                    debug_print(f"  💀 Battle lost! (Total: {marshal.autonomous_battles_lost})")
 
                 # Check for region capture
                 if result.get("region_captured"):
                     marshal.autonomous_regions_captured += 1
-                    print(f"  🏰 Region captured! (Total: {marshal.autonomous_regions_captured})")
+                    debug_print(f"  🏰 Region captured! (Total: {marshal.autonomous_regions_captured})")
 
             # Decrement autonomy turns
             marshal.autonomy_turns -= 1
@@ -325,7 +326,7 @@ class TurnManager:
                 end_result = self._end_autonomy(marshal)
                 report_entry["autonomy_ended"] = True
                 report_entry["end_result"] = end_result
-                print(f"\n  ✅ AUTONOMY ENDED: {end_result['message']}")
+                debug_print(f"\n  ✅ AUTONOMY ENDED: {end_result['message']}")
 
             report.append(report_entry)
 
@@ -353,9 +354,9 @@ class TurnManager:
         """
         # Log trust before change
         old_trust = marshal.trust.value
-        print(f"\n[AUTONOMY END] {marshal.name}")
-        print(f"  Trust before: {old_trust}")
-        print(f"  Performance: {marshal.autonomous_battles_won}W / {marshal.autonomous_battles_lost}L / {marshal.autonomous_regions_captured} captured")
+        debug_print(f"\n[AUTONOMY END] {marshal.name}")
+        debug_print(f"  Trust before: {old_trust}")
+        debug_print(f"  Performance: {marshal.autonomous_battles_won}W / {marshal.autonomous_battles_lost}L / {marshal.autonomous_regions_captured} captured")
 
         marshal.autonomous = False
 
@@ -393,7 +394,7 @@ class TurnManager:
         new_trust = marshal.trust.value
 
         # Log trust after change
-        print(f"  Trust after: {new_trust} (score={score}, tier={tier})")
+        debug_print(f"  Trust after: {new_trust} (score={score}, tier={tier})")
 
         # Reset tracking fields
         marshal.autonomous_battles_won = 0
@@ -427,9 +428,9 @@ class TurnManager:
         from backend.ai.enemy_ai import EnemyAI
         from backend.commands.executor import CommandExecutor
 
-        print("\n" + "=" * 70)
-        print("ENEMY PHASE")
-        print("=" * 70)
+        debug_print("\n" + "=" * 70)
+        debug_print("ENEMY PHASE")
+        debug_print("=" * 70)
 
         # Create executor and AI
         executor = CommandExecutor()
@@ -446,14 +447,14 @@ class TurnManager:
             # BUG #2 FIX: Check if victory already achieved before processing more nations
             existing_victory = self._check_enemy_victory()
             if existing_victory:
-                print(f"\n[ENEMY VICTORY] {existing_victory['message']} - stopping enemy phase")
+                debug_print(f"\n[ENEMY VICTORY] {existing_victory['message']} - stopping enemy phase")
                 results["enemy_victory"] = existing_victory
                 break
 
             # Check if nation has any marshals
             marshals = self.world.get_marshals_by_nation(nation)
             if not marshals:
-                print(f"\n{nation} has no marshals remaining - skipping")
+                debug_print(f"\n{nation} has no marshals remaining - skipping")
                 results["summary"].append(f"{nation}: No marshals (eliminated?)")
                 continue
 
@@ -479,10 +480,10 @@ class TurnManager:
             if enemy_victory:
                 results["enemy_victory"] = enemy_victory
 
-        print("\n" + "=" * 70)
-        print("ENEMY PHASE COMPLETE")
-        print(f"Total actions: {results['total_actions']}")
-        print("=" * 70)
+        debug_print("\n" + "=" * 70)
+        debug_print("ENEMY PHASE COMPLETE")
+        debug_print(f"Total actions: {results['total_actions']}")
+        debug_print("=" * 70)
 
         return results
 
@@ -605,9 +606,9 @@ class TurnManager:
 # Test code
 if __name__ == "__main__":
     """Test turn manager."""
-    print("=" * 70)
-    print("TURN MANAGER TEST")
-    print("=" * 70)
+    debug_print("=" * 70)
+    debug_print("TURN MANAGER TEST")
+    debug_print("=" * 70)
 
     from backend.models.world_state import WorldState
 
@@ -615,55 +616,55 @@ if __name__ == "__main__":
     world = WorldState(player_nation="France")
     turn_manager = TurnManager(world)
 
-    print(f"\nStarting state: {world}")
-    print(f"Gold: {world.gold}")
+    debug_print(f"\nStarting state: {world}")
+    debug_print(f"Gold: {world.gold}")
 
     # Test Turn 1
-    print("\n" + "=" * 70)
-    print("TURN 1")
-    print("=" * 70)
+    debug_print("\n" + "=" * 70)
+    debug_print("TURN 1")
+    debug_print("=" * 70)
 
     start = turn_manager.start_turn()
-    print(f"\n{start['message']}")
-    print(f"Income: {start['income']['income']} gold")
-    print(f"Regions: {start['situation']['regions_controlled']}")
-    print(f"Military: {start['situation']['total_military_strength']:,}")
-    print(f"Morale: {start['situation']['average_morale']}%")
+    debug_print(f"\n{start['message']}")
+    debug_print(f"Income: {start['income']['income']} gold")
+    debug_print(f"Regions: {start['situation']['regions_controlled']}")
+    debug_print(f"Military: {start['situation']['total_military_strength']:,}")
+    debug_print(f"Morale: {start['situation']['average_morale']}%")
 
     # End turn
     end = turn_manager.end_turn()
-    print(f"\n{end['message']}")
-    print(f"Next turn: {end['next_turn']}")
-    print(f"Game over: {end['victory_check']['game_over']}")
+    debug_print(f"\n{end['message']}")
+    debug_print(f"Next turn: {end['next_turn']}")
+    debug_print(f"Game over: {end['victory_check']['game_over']}")
 
     # Test Turn 2
-    print("\n" + "=" * 70)
-    print("TURN 2")
-    print("=" * 70)
+    debug_print("\n" + "=" * 70)
+    debug_print("TURN 2")
+    debug_print("=" * 70)
 
     start = turn_manager.start_turn()
-    print(f"\n{start['message']}")
-    print(f"Gold: {world.gold}")
+    debug_print(f"\n{start['message']}")
+    debug_print(f"Gold: {world.gold}")
 
     # Test victory check by simulating loss of Paris
-    print("\n" + "=" * 70)
-    print("TEST: Defeat Condition (Lose Paris)")
-    print("=" * 70)
+    debug_print("\n" + "=" * 70)
+    debug_print("TEST: Defeat Condition (Lose Paris)")
+    debug_print("=" * 70)
 
     paris = world.get_region("Paris")
     paris.controller = "Britain"  # Lose Paris!
 
     end = turn_manager.end_turn()
-    print(f"\nVictory check: {end['victory_check']}")
+    debug_print(f"\nVictory check: {end['victory_check']}")
 
     if end['victory_check']['game_over']:
-        print(f"Game Over! Result: {end['victory_check']['result']}")
-        print(f"Reason: {end['victory_check']['reason']}")
+        debug_print(f"Game Over! Result: {end['victory_check']['result']}")
+        debug_print(f"Reason: {end['victory_check']['reason']}")
 
-    print("\n" + "=" * 70)
-    print("TURN MANAGER TEST COMPLETE!")
-    print("=" * 70)
-    print("\n✓ Turn start working")
-    print("✓ Income application working")
-    print("✓ Turn advancement working")
-    print("✓ Victory/defeat checking working")
+    debug_print("\n" + "=" * 70)
+    debug_print("TURN MANAGER TEST COMPLETE!")
+    debug_print("=" * 70)
+    debug_print("\n✓ Turn start working")
+    debug_print("✓ Income application working")
+    debug_print("✓ Turn advancement working")
+    debug_print("✓ Victory/defeat checking working")

@@ -11,16 +11,9 @@ Features:
 
 from typing import Dict, Tuple, Optional
 from backend.models.marshal import Marshal
+from backend.utils import ordinal
+from backend.utils.debug import debug_print
 import random
-
-
-def ordinal(n: int) -> str:
-    """Convert number to ordinal string (1 -> '1st', 2 -> '2nd', etc.)."""
-    if 11 <= (n % 100) <= 13:
-        suffix = 'th'
-    else:
-        suffix = ['th', 'st', 'nd', 'rd', 'th'][min(n % 10, 4)]
-    return f"{n}{suffix}"
 
 
 class CombatResolver:
@@ -162,9 +155,17 @@ class CombatResolver:
 
         # SIGNATURE ABILITY: Ney's "Bravest of the Brave" (Phase 2.3)
         # When attacking, Ney gets +2 Shock
+        # TODO: Only Ney's ability is wired up here. Other marshal abilities are defined
+        # in marshal.py create_starting_marshals() but NOT triggered in combat:
+        #   - Davout "Iron Marshal": morale-drop prevention (needs morale system)
+        #   - Wellington "Reverse Slope Defense": +2 def on terrain (needs terrain system)
+        #   - Uxbridge "Pursuit Master": +50% pursuit casualties (needs pursuit system)
+        #   - Blucher "Vorwärts!": +1 pursuit damage (needs pursuit system)
+        #   - Gneisenau "Staff Work": +10% ally bonus (needs Phase 6 coordination)
+        # Each marshal's personality DOES have working mechanics via personality_modifiers.py
+        # (Counter-Punch, Precision Execution, etc.) — those are separate from ability dicts.
         ability_message = None
         if hasattr(attacker, 'ability') and attacker.ability.get("trigger") == "when_attacking":
-            # Check if this is an attack-triggering ability (currently only Ney has this)
             if attacker.ability.get("name") == "Bravest of the Brave":
                 attacker_shock += 2
                 ability_message = f"{attacker.name}'s '{attacker.ability['name']}' inspires the assault!"
@@ -385,7 +386,7 @@ class CombatResolver:
             if getattr(defender, 'personality', '') == 'cautious':
                 defender.counter_punch_available = True
                 defender.counter_punch_turns = 2  # Survives one turn transition
-                print(f"  [COUNTER-PUNCH EARNED] {defender.name} can now attack for FREE!")
+                debug_print(f"  [COUNTER-PUNCH EARNED] {defender.name} can now attack for FREE!")
         elif defender.strength <= 0:
             victor = attacker
             outcome = "attacker_victory"
@@ -404,7 +405,7 @@ class CombatResolver:
                 if getattr(defender, 'personality', '') == 'cautious':
                     defender.counter_punch_available = True
                     defender.counter_punch_turns = 2  # Survives one turn transition
-                    print(f"  [COUNTER-PUNCH EARNED] {defender.name} can now attack for FREE!")
+                    debug_print(f"  [COUNTER-PUNCH EARNED] {defender.name} can now attack for FREE!")
             elif defender_casualties > attacker_casualties * 1.5:
                 victor = attacker
                 outcome = "attacker_tactical_victory"
@@ -419,7 +420,7 @@ class CombatResolver:
                 if getattr(defender, 'personality', '') == 'cautious':
                     defender.counter_punch_available = True
                     defender.counter_punch_turns = 2  # Survives one turn transition
-                    print(f"  [COUNTER-PUNCH EARNED] {defender.name} held the line - can now attack for FREE!")
+                    debug_print(f"  [COUNTER-PUNCH EARNED] {defender.name} held the line - can now attack for FREE!")
 
         # Build description with tactical state messages
         base_description = self._generate_description(
@@ -700,9 +701,9 @@ class CombatResolver:
 # Test code
 if __name__ == "__main__":
     """Test combat system."""
-    print("=" * 70)
-    print("COMBAT SYSTEM TEST")
-    print("=" * 70)
+    debug_print("=" * 70)
+    debug_print("COMBAT SYSTEM TEST")
+    debug_print("=" * 70)
 
     from backend.models.marshal import Marshal
 
@@ -710,55 +711,55 @@ if __name__ == "__main__":
     ney = Marshal("Ney", "Belgium", 72000, "aggressive", "France")
     wellington = Marshal("Wellington", "Waterloo", 68000, "cautious", "Britain")
 
-    print(f"\nBefore Battle:")
-    print(f"  {ney}")
-    print(f"  {wellington}")
+    debug_print(f"\nBefore Battle:")
+    debug_print(f"  {ney}")
+    debug_print(f"  {wellington}")
 
     # Create combat resolver
     combat = CombatResolver()
 
     # Test 1: Open field battle
-    print("\n" + "=" * 70)
-    print("TEST 1: Open Field Battle")
-    print("=" * 70)
+    debug_print("\n" + "=" * 70)
+    debug_print("TEST 1: Open Field Battle")
+    debug_print("=" * 70)
 
     result = combat.resolve_battle(ney, wellington, terrain="open")
 
-    print(f"\nOutcome: {result['outcome']}")
-    print(f"Victor: {result['victor']}")
-    print(f"\n{result['description']}")
-    print(f"\nAttacker ({result['attacker']['name']}):")
-    print(f"  Casualties: {result['attacker']['casualties']:,}")
-    print(f"  Remaining: {result['attacker']['remaining']:,}")
-    print(f"  Morale: {result['attacker']['morale']}%")
-    print(f"\nDefender ({result['defender']['name']}):")
-    print(f"  Casualties: {result['defender']['casualties']:,}")
-    print(f"  Remaining: {result['defender']['remaining']:,}")
-    print(f"  Morale: {result['defender']['morale']}%")
+    debug_print(f"\nOutcome: {result['outcome']}")
+    debug_print(f"Victor: {result['victor']}")
+    debug_print(f"\n{result['description']}")
+    debug_print(f"\nAttacker ({result['attacker']['name']}):")
+    debug_print(f"  Casualties: {result['attacker']['casualties']:,}")
+    debug_print(f"  Remaining: {result['attacker']['remaining']:,}")
+    debug_print(f"  Morale: {result['attacker']['morale']}%")
+    debug_print(f"\nDefender ({result['defender']['name']}):")
+    debug_print(f"  Casualties: {result['defender']['casualties']:,}")
+    debug_print(f"  Remaining: {result['defender']['remaining']:,}")
+    debug_print(f"  Morale: {result['defender']['morale']}%")
 
     # Test 2: Fortified position
-    print("\n" + "=" * 70)
-    print("TEST 2: Attack on Fortified Position")
-    print("=" * 70)
+    debug_print("\n" + "=" * 70)
+    debug_print("TEST 2: Attack on Fortified Position")
+    debug_print("=" * 70)
 
     # Reset marshals
     ney_2 = Marshal("Ney", "Belgium", 50000, "aggressive", "France")
     blucher = Marshal("Blucher", "Waterloo", 40000, "cautious", "Prussia")
 
-    print(f"\nBefore Battle:")
-    print(f"  {ney_2}")
-    print(f"  {blucher}")
+    debug_print(f"\nBefore Battle:")
+    debug_print(f"  {ney_2}")
+    debug_print(f"  {blucher}")
 
     result_2 = combat.resolve_battle(ney_2, blucher, terrain="fortified")
 
-    print(f"\nOutcome: {result_2['outcome']}")
-    print(f"Victor: {result_2['victor']}")
-    print(f"\n{result_2['description']}")
+    debug_print(f"\nOutcome: {result_2['outcome']}")
+    debug_print(f"Victor: {result_2['victor']}")
+    debug_print(f"\n{result_2['description']}")
 
-    print("\n" + "=" * 70)
-    print("COMBAT TEST COMPLETE!")
-    print("=" * 70)
-    print("\n✓ Battle resolution working")
-    print("✓ Casualties calculated")
-    print("✓ Morale effects applied")
-    print("✓ Terrain modifiers working")
+    debug_print("\n" + "=" * 70)
+    debug_print("COMBAT TEST COMPLETE!")
+    debug_print("=" * 70)
+    debug_print("\n✓ Battle resolution working")
+    debug_print("✓ Casualties calculated")
+    debug_print("✓ Morale effects applied")
+    debug_print("✓ Terrain modifiers working")

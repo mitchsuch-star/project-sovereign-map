@@ -15,6 +15,18 @@ from backend.models.marshal import Marshal, create_starting_marshals, create_ene
 from backend.models.authority import AuthorityTracker
 from backend.commands.vindication import VindicationTracker
 from backend.commands.disobedience import DisobedienceSystem
+from backend.utils import ordinal
+from backend.utils.debug import debug_print
+
+# Fortify decay configuration by personality (single source of truth)
+# Used in both _get_fortify_state() and _process_tactical_states()
+FORTIFY_DECAY_CONFIG = {
+    "aggressive": {"start": 4, "rate": 0.02, "floor": 0.0},
+    "balanced": {"start": 6, "rate": 0.01, "floor": 0.0},
+    "cautious": {"start": 8, "rate": 0.01, "floor": 0.05},
+    "literal": {"start": 8, "rate": 0.01, "floor": 0.05},
+}
+FORTIFY_DECAY_DEFAULT = {"start": 6, "rate": 0.01, "floor": 0.0}
 
 
 class WorldState:
@@ -71,7 +83,6 @@ class WorldState:
         self.bonus_actions: int = 0
 
         # Future expansion hooks (not yet used)
-        self._action_bonuses: Dict[str, int] = {}  # For leader/tech/morale bonuses
 
         # CRITICAL: All costs must be integers
         self._action_costs: Dict[str, int] = {  # Changed from float to int
@@ -443,12 +454,14 @@ class WorldState:
             # Continue existing battle
             battle = self.active_battles[region]
             battle["engagement_count"] += 1
-            battle["participants"].add(attacker.name)
-            battle["participants"].add(defender.name)
+            if attacker.name not in battle["participants"]:
+                battle["participants"].append(attacker.name)
+            if defender.name not in battle["participants"]:
+                battle["participants"].append(defender.name)
 
             # Generate engagement name
-            ordinal = self._get_ordinal(battle["engagement_count"])
-            engagement_name = f"{ordinal} Engagement of the {battle['name']}"
+            ord_str = ordinal(battle["engagement_count"])
+            engagement_name = f"{ord_str} Engagement of the {battle['name']}"
 
             return {
                 "battle_name": battle["name"],
@@ -462,7 +475,7 @@ class WorldState:
             self.active_battles[region] = {
                 "name": battle_name,
                 "region": region,
-                "participants": {attacker.name, defender.name},
+                "participants": [attacker.name, defender.name],
                 "engagement_count": 1,
                 "started_turn": self.current_turn
             }
@@ -502,7 +515,6 @@ class WorldState:
         if len(nations_present) <= 1:
             battle = self.active_battles.pop(region)
             battle["ended_turn"] = self.current_turn
-            battle["participants"] = list(battle["participants"])  # Convert set to list for JSON
             self.battle_history.append(battle)
             return battle
 
@@ -513,13 +525,6 @@ class WorldState:
         if region in self.active_battles:
             return self.active_battles[region]["name"]
         return f"Battle of {region}"
-
-    def _get_ordinal(self, n: int) -> str:
-        """Convert number to ordinal string (1st, 2nd, 3rd, etc.)."""
-        if 11 <= n <= 13:
-            return f"{n}th"
-        suffixes = {1: "st", 2: "nd", 3: "rd"}
-        return f"{n}{suffixes.get(n % 10, 'th')}"
 
     def capture_region(self, region_name: str, capturing_nation: str) -> bool:
         """Capture a region (change controller)."""
@@ -620,18 +625,18 @@ class WorldState:
         """
         marshal = self.marshals.get(marshal_name)
         if not marshal:
-            print(f"  [RETREAT DEBUG] Marshal {marshal_name} not found")
+            debug_print(f"  [RETREAT DEBUG] Marshal {marshal_name} not found")
             return None
 
         current_region = self.get_region(marshal.location)
         if not current_region:
-            print(f"  [RETREAT DEBUG] Region {marshal.location} not found")
+            debug_print(f"  [RETREAT DEBUG] Region {marshal.location} not found")
             return None
 
         marshal_nation = marshal.nation
-        print(f"  [RETREAT DEBUG] Finding retreat for {marshal_name} ({marshal_nation}) from {marshal.location}")
+        debug_print(f"  [RETREAT DEBUG] Finding retreat for {marshal_name} ({marshal_nation}) from {marshal.location}")
         if attacker_location:
-            print(f"  [RETREAT DEBUG] Attacker at {attacker_location} - prioritizing retreat AWAY")
+            debug_print(f"  [RETREAT DEBUG] Attacker at {attacker_location} - prioritizing retreat AWAY")
 
         # Categories for retreat destinations (4 priorities)
         friendly_with_ally = []    # Priority 1: Friendly region WITH allied marshal
@@ -659,11 +664,11 @@ class WorldState:
             if attacker_location:
                 dist_from_attacker = self.get_distance(candidate_name, attacker_location)
 
-            print(f"    [RETREAT DEBUG] Checking {candidate_name}: controller={controller}, allies={len(allied_marshals)}, enemies={len(enemy_marshals)}, dist_from_attacker={dist_from_attacker}")
+            debug_print(f"    [RETREAT DEBUG] Checking {candidate_name}: controller={controller}, allies={len(allied_marshals)}, enemies={len(enemy_marshals)}, dist_from_attacker={dist_from_attacker}")
 
             # Skip regions with enemy marshals (can't retreat INTO enemies!)
             if enemy_marshals:
-                print(f"      -> Skip: enemy marshals present")
+                debug_print(f"      -> Skip: enemy marshals present")
                 continue
 
             # Friendly region (controlled by our nation)
@@ -676,14 +681,14 @@ class WorldState:
                         "ally_strength": allied_marshals[0].strength,
                         "dist_from_attacker": dist_from_attacker
                     })
-                    print(f"      -> PRIORITY 1: Friendly with ally {allied_marshals[0].name}")
+                    debug_print(f"      -> PRIORITY 1: Friendly with ally {allied_marshals[0].name}")
                 else:
                     # Priority 2: Empty friendly
                     friendly_empty.append({
                         "name": candidate_name,
                         "dist_from_attacker": dist_from_attacker
                     })
-                    print(f"      -> PRIORITY 2: Friendly, empty")
+                    debug_print(f"      -> PRIORITY 2: Friendly, empty")
 
             # Enemy-controlled territory (no enemy marshals - they were skipped above)
             elif controller is not None and controller != marshal_nation:
@@ -695,14 +700,14 @@ class WorldState:
                         "ally_strength": allied_marshals[0].strength,
                         "dist_from_attacker": dist_from_attacker
                     })
-                    print(f"      -> PRIORITY 3: Enemy territory with ally {allied_marshals[0].name}")
+                    debug_print(f"      -> PRIORITY 3: Enemy territory with ally {allied_marshals[0].name}")
                 else:
                     # Priority 4: Enemy territory, completely unoccupied (desperation)
                     enemy_unoccupied.append({
                         "name": candidate_name,
                         "dist_from_attacker": dist_from_attacker
                     })
-                    print(f"      -> PRIORITY 4: Enemy territory, unoccupied")
+                    debug_print(f"      -> PRIORITY 4: Enemy territory, unoccupied")
 
             # Neutral (no controller) - treat like friendly empty
             elif controller is None:
@@ -710,7 +715,7 @@ class WorldState:
                     "name": candidate_name,
                     "dist_from_attacker": dist_from_attacker
                 })
-                print(f"      -> PRIORITY 2: Neutral, empty")
+                debug_print(f"      -> PRIORITY 2: Neutral, empty")
 
         # Return best option by priority
         # Within each priority, sort by: distance from attacker (furthest first), then ally strength
@@ -718,31 +723,31 @@ class WorldState:
             # Sort by distance from attacker (furthest first), then ally strength
             friendly_with_ally.sort(key=lambda r: (r["dist_from_attacker"], r["ally_strength"]), reverse=True)
             result = friendly_with_ally[0]["name"]
-            print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (covered by {friendly_with_ally[0]['ally']}, dist={friendly_with_ally[0]['dist_from_attacker']})")
+            debug_print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (covered by {friendly_with_ally[0]['ally']}, dist={friendly_with_ally[0]['dist_from_attacker']})")
             return result
 
         if friendly_empty:
             # Sort by distance from attacker (furthest first)
             friendly_empty.sort(key=lambda r: r["dist_from_attacker"], reverse=True)
             result = friendly_empty[0]["name"]
-            print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (exposed, dist={friendly_empty[0]['dist_from_attacker']})")
+            debug_print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (exposed, dist={friendly_empty[0]['dist_from_attacker']})")
             return result
 
         if enemy_with_ally:
             # Sort by distance from attacker (furthest first), then ally strength
             enemy_with_ally.sort(key=lambda r: (r["dist_from_attacker"], r["ally_strength"]), reverse=True)
             result = enemy_with_ally[0]["name"]
-            print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (enemy territory, covered by {enemy_with_ally[0]['ally']}, dist={enemy_with_ally[0]['dist_from_attacker']})")
+            debug_print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (enemy territory, covered by {enemy_with_ally[0]['ally']}, dist={enemy_with_ally[0]['dist_from_attacker']})")
             return result
 
         if enemy_unoccupied:
             # Sort by distance from attacker (furthest first)
             enemy_unoccupied.sort(key=lambda r: r["dist_from_attacker"], reverse=True)
             result = enemy_unoccupied[0]["name"]
-            print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (desperation, dist={enemy_unoccupied[0]['dist_from_attacker']})")
+            debug_print(f"  [RETREAT RESULT] {marshal_name} retreats to {result} (desperation, dist={enemy_unoccupied[0]['dist_from_attacker']})")
             return result
 
-        print(f"  [RETREAT RESULT] {marshal_name} is ENCIRCLED - no valid retreat!")
+        debug_print(f"  [RETREAT RESULT] {marshal_name} is ENCIRCLED - no valid retreat!")
         return None  # ENCIRCLED - army breaks
 
     def _get_regions_within_range(self, start: str, max_range: int) -> List[str]:
@@ -999,10 +1004,10 @@ class WorldState:
 
         # Log filtering results
         if filtered_out:
-            print(f"   ⚠️  FILTERED OUT: {', '.join(filtered_out)}")
+            debug_print(f"   ⚠️  FILTERED OUT: {', '.join(filtered_out)}")
 
         if not ready_marshals:
-            print(f"   ❌ NO COMBAT-READY MARSHALS IN RANGE!")
+            debug_print(f"   ❌ NO COMBAT-READY MARSHALS IN RANGE!")
             return None
 
         # Sort by STRENGTH (strongest first), then by distance
@@ -1011,15 +1016,15 @@ class WorldState:
         strongest_marshal, distance = ready_marshals[0]
 
         # EXPLANATORY LOGGING
-        print(f"   [MARSHAL SELECTED]: {strongest_marshal.name}")
-        print(f"      Strength: {strongest_marshal.strength:,} troops")
-        print(f"      Distance to {region_name}: {distance} hops")
-        print(f"      Attack range: {strongest_marshal.movement_range}")
+        debug_print(f"   [MARSHAL SELECTED]: {strongest_marshal.name}")
+        debug_print(f"      Strength: {strongest_marshal.strength:,} troops")
+        debug_print(f"      Distance to {region_name}: {distance} hops")
+        debug_print(f"      Attack range: {strongest_marshal.movement_range}")
 
         # Show alternatives if any
         if len(ready_marshals) > 1:
             alternatives = [f"{m.name} ({m.strength:,}, range {m.movement_range})" for m, d in ready_marshals[1:]]
-            print(f"      Alternatives: {', '.join(alternatives)}")
+            debug_print(f"      Alternatives: {', '.join(alternatives)}")
 
         return (strongest_marshal, distance)
 
@@ -1170,15 +1175,7 @@ class WorldState:
         except:
             max_bonus = 0.15  # Default
 
-        # Decay configuration by personality
-        decay_config = {
-            "aggressive": {"start": 4, "rate": 0.02, "floor": 0.0},
-            "balanced": {"start": 6, "rate": 0.01, "floor": 0.0},
-            "cautious": {"start": 8, "rate": 0.01, "floor": 0.05},
-            "literal": {"start": 8, "rate": 0.01, "floor": 0.05},
-        }
-        default_decay = {"start": 6, "rate": 0.01, "floor": 0.0}
-        decay_settings = decay_config.get(personality, default_decay)
+        decay_settings = FORTIFY_DECAY_CONFIG.get(personality, FORTIFY_DECAY_DEFAULT)
 
         floor_percent = int(decay_settings["floor"] * 100)
 
@@ -1464,7 +1461,6 @@ class WorldState:
                         # Fortify state
                         "fortified": bool(getattr(m, 'fortified', False)),
                         "defense_bonus": int(getattr(m, 'defense_bonus', 0) * 100),  # Convert 0.02 -> 2%
-                        "fortify_expires_turn": int(getattr(m, 'fortify_expires_turn', -1)),
                         # Fortify direction for arrow display (Phase 3)
                         "fortify_state": self._get_fortify_state(m),
                         # Retreat state
@@ -1472,7 +1468,7 @@ class WorldState:
                         "retreat_recovery": int(getattr(m, 'retreat_recovery', 0)),
                         # Personality ability states (Phase 2.8)
                         "cavalry": bool(getattr(m, 'cavalry', False)),
-                        "turns_defensive": int(getattr(m, 'turns_defensive', 0)),
+                        "turns_in_defensive_stance": int(getattr(m, 'turns_in_defensive_stance', 0)),
                         "counter_punch_available": bool(getattr(m, 'counter_punch_available', False)),
                         "counter_punch_turns": int(getattr(m, 'counter_punch_turns', 0)),
                         "holding_position": bool(getattr(m, 'holding_position', False)),
@@ -1696,11 +1692,11 @@ class WorldState:
         # ════════════════════════════════════════════════════════════
         reckless_events = self._process_reckless_cavalry_turn_start()
         if reckless_events:
-            print(f"  [DEBUG] Adding {len(reckless_events)} reckless cavalry events to tactical_events")
+            debug_print(f"  [DEBUG] Adding {len(reckless_events)} reckless cavalry events to tactical_events")
             tactical_events.extend(reckless_events)
 
         # Store ALL tactical events for retrieval (includes cavalry limits + reckless cavalry)
-        print(f"  [DEBUG] Storing {len(tactical_events)} total tactical events")
+        debug_print(f"  [DEBUG] Storing {len(tactical_events)} total tactical events")
         self._last_tactical_events = tactical_events
 
         # Check for game over
@@ -1748,7 +1744,7 @@ class WorldState:
             if getattr(marshal, 'drilling', False) and not getattr(marshal, 'drilling_locked', False):
                 # Transition from drilling to drilling_locked
                 marshal.drilling_locked = True
-                print(f"  [TACTICAL] DRILL: {marshal.name} now locked in training")
+                debug_print(f"  [TACTICAL] DRILL: {marshal.name} now locked in training")
                 events.append({
                     "type": "drill_locked",
                     "marshal": marshal.name,
@@ -1764,7 +1760,7 @@ class WorldState:
                     marshal.drilling_locked = False
                     marshal.shock_bonus = 2  # +20% attack bonus
                     just_completed_drill.add(marshal.name)
-                    print(f"  [TACTICAL] DRILL COMPLETE: {marshal.name} gains +20% shock bonus!")
+                    debug_print(f"  [TACTICAL] DRILL COMPLETE: {marshal.name} gains +20% shock bonus!")
                     events.append({
                         "type": "drill_complete",
                         "marshal": marshal.name,
@@ -1796,18 +1792,7 @@ class WorldState:
                 turns_fortified = marshal.turns_fortified
 
                 # Decay thresholds and rates by personality
-                # Cavalry: Handled by auto-unfortify, skip decay
-                # Aggressive: Turn 4, -2%/turn, floor 0%
-                # Balanced/Unknown: Turn 6, -1%/turn, floor 0%
-                # Cautious/Literal: Turn 8, -1%/turn, floor 5%
-                decay_config = {
-                    "aggressive": {"start": 4, "rate": 0.02, "floor": 0.0},
-                    "balanced": {"start": 6, "rate": 0.01, "floor": 0.0},
-                    "cautious": {"start": 8, "rate": 0.01, "floor": 0.05},
-                    "literal": {"start": 8, "rate": 0.01, "floor": 0.05},
-                }
-                default_decay = {"start": 6, "rate": 0.01, "floor": 0.0}
-                decay_settings = decay_config.get(personality, default_decay)
+                decay_settings = FORTIFY_DECAY_CONFIG.get(personality, FORTIFY_DECAY_DEFAULT)
 
                 # Determine if growing or decaying
                 # Davout (cautious) with active HOLD order is immune to decay
@@ -1845,7 +1830,7 @@ class WorldState:
                         message = f"{marshal.name}'s fortifications decay: {old_percent}% → {new_percent}%"
                         event_type = "fortify_decayed"
 
-                    print(f"  [TACTICAL] FORTIFY DECAY: {marshal.name} defense {old_percent}% -> {new_percent}% (turn {turns_fortified})")
+                    debug_print(f"  [TACTICAL] FORTIFY DECAY: {marshal.name} defense {old_percent}% -> {new_percent}% (turn {turns_fortified})")
                     events.append({
                         "type": event_type,
                         "marshal": marshal.name,
@@ -1884,7 +1869,7 @@ class WorldState:
 
                     front_load_note = " [FRONT-LOADED]" if front_loaded else ""
 
-                    print(f"  [TACTICAL] FORTIFY: {marshal.name} defense {old_percent}% -> {new_percent}% (+{increment_percent}%){front_load_note}{personality_note}")
+                    debug_print(f"  [TACTICAL] FORTIFY: {marshal.name} defense {old_percent}% -> {new_percent}% (+{increment_percent}%){front_load_note}{personality_note}")
                     events.append({
                         "type": "fortify_strengthened",
                         "marshal": marshal.name,
@@ -1905,7 +1890,7 @@ class WorldState:
                     marshal.retreat_recovery = recovery_stage + 1
                     new_stage = marshal.retreat_recovery
                     penalties = {0: "-45%", 1: "-30%", 2: "-15%", 3: "0% (recovered)"}
-                    print(f"  [TACTICAL] RETREAT RECOVERY: {marshal.name} stage {recovery_stage} -> {new_stage}")
+                    debug_print(f"  [TACTICAL] RETREAT RECOVERY: {marshal.name} stage {recovery_stage} -> {new_stage}")
                     events.append({
                         "type": "retreat_recovery",
                         "marshal": marshal.name,
@@ -1921,7 +1906,7 @@ class WorldState:
                         # Clear locked recovery destination (Bug #2 fix)
                         if hasattr(marshal, '_recovery_destination'):
                             marshal._recovery_destination = None
-                        print(f"  [TACTICAL] FULLY RECOVERED: {marshal.name} combat ready")
+                        debug_print(f"  [TACTICAL] FULLY RECOVERED: {marshal.name} combat ready")
                         events.append({
                             "type": "retreat_recovered",
                             "marshal": marshal.name,
@@ -1940,7 +1925,7 @@ class WorldState:
                     marshal.broken_recovery = recovery_stage + 1
                     new_stage = marshal.broken_recovery
                     turns_left = 4 - new_stage
-                    print(f"  [TACTICAL] BROKEN RECOVERY: {marshal.name} stage {recovery_stage} -> {new_stage}")
+                    debug_print(f"  [TACTICAL] BROKEN RECOVERY: {marshal.name} stage {recovery_stage} -> {new_stage}")
                     events.append({
                         "type": "broken_recovery",
                         "marshal": marshal.name,
@@ -1953,7 +1938,7 @@ class WorldState:
                     if new_stage >= 4:
                         marshal.broken = False
                         marshal.broken_recovery = 0
-                        print(f"  [TACTICAL] BROKEN RECOVERED: {marshal.name} combat ready")
+                        debug_print(f"  [TACTICAL] BROKEN RECOVERED: {marshal.name} combat ready")
                         events.append({
                             "type": "broken_recovered",
                             "marshal": marshal.name,
@@ -1975,7 +1960,7 @@ class WorldState:
                 if current_stance == Stance.DEFENSIVE:
                     old_turns = getattr(marshal, 'turns_in_defensive_stance', 0)
                     marshal.turns_in_defensive_stance = old_turns + 1
-                    print(f"  [CAVALRY] {marshal.name} defensive stance for {marshal.turns_in_defensive_stance} turns")
+                    debug_print(f"  [CAVALRY] {marshal.name} defensive stance for {marshal.turns_in_defensive_stance} turns")
 
                     if marshal.turns_in_defensive_stance == 3:
                         events.append({
@@ -1987,11 +1972,10 @@ class WorldState:
                 else:
                     marshal.turns_in_defensive_stance = 0  # Reset if not in defensive stance
 
-                # Track fortify turns separately
+                # Track fortify turns for cavalry auto-unfortify
+                # NOTE: turns_fortified already incremented in the general fortify section above
                 if is_fortified:
-                    old_turns = getattr(marshal, 'turns_fortified', 0)
-                    marshal.turns_fortified = old_turns + 1
-                    print(f"  [CAVALRY] {marshal.name} fortified for {marshal.turns_fortified} turns")
+                    debug_print(f"  [CAVALRY] {marshal.name} fortified for {marshal.turns_fortified} turns")
 
                     if marshal.turns_fortified == 3:
                         events.append({
@@ -2035,14 +2019,14 @@ class WorldState:
                     # Counter-punch wasn't used - it expires
                     marshal.counter_punch_available = False
                     marshal.counter_punch_turns = 0
-                    print(f"  [COUNTER-PUNCH EXPIRED] {marshal.name}'s counter-punch opportunity has passed")
+                    debug_print(f"  [COUNTER-PUNCH EXPIRED] {marshal.name}'s counter-punch opportunity has passed")
                     events.append({
                         "type": "counter_punch_expired",
                         "marshal": marshal.name,
                         "message": f"⚠️ {marshal.name}'s Counter-Punch opportunity has expired! (Must use immediately after defending)"
                     })
                 else:
-                    print(f"  [COUNTER-PUNCH] {marshal.name} has counter-punch available ({marshal.counter_punch_turns} turns remaining)")
+                    debug_print(f"  [COUNTER-PUNCH] {marshal.name} has counter-punch available ({marshal.counter_punch_turns} turns remaining)")
 
         # ════════════════════════════════════════════════════════════
         # PRECISION EXECUTION COUNTDOWN (Phase 5.2 - Grouchy/Literal)
@@ -2052,7 +2036,7 @@ class WorldState:
                 marshal.precision_execution_turns -= 1
                 if marshal.precision_execution_turns == 0:
                     marshal.precision_execution_active = False
-                    print(f"  [PRECISION EXPIRED] {marshal.name}'s precision execution has worn off")
+                    debug_print(f"  [PRECISION EXPIRED] {marshal.name}'s precision execution has worn off")
 
         return events
 
@@ -2088,12 +2072,12 @@ class WorldState:
                     "trust": int(trust_val),
                     "message": f"⚠️ {marshal.name}'s trust is faltering ({int(trust_val)}). Consider giving them more independence."
                 })
-                print(f"  [TRUST WARNING] {marshal.name}'s trust has fallen to {trust_val}")
+                debug_print(f"  [TRUST WARNING] {marshal.name}'s trust has fallen to {trust_val}")
 
             # Reset warning if trust recovers
             elif trust_val >= 40 and warning_shown:
                 marshal.trust_warning_shown = False
-                print(f"  [TRUST] {marshal.name}'s trust recovered above 40, warning reset")
+                debug_print(f"  [TRUST] {marshal.name}'s trust recovered above 40, warning reset")
 
         return warnings
 
@@ -2141,7 +2125,7 @@ class WorldState:
                               f"(Auto-switched to AGGRESSIVE stance. Trust: -3 for misusing cavalry)"
                 })
 
-                print(f"  [CAVALRY LIMIT] {marshal.name}: forced stance change after {turns_defensive} turns")
+                debug_print(f"  [CAVALRY LIMIT] {marshal.name}: forced stance change after {turns_defensive} turns")
 
             # Check fortify limit (triggers at turn 4, after 3 full turns)
             turns_fortified = getattr(marshal, 'turns_fortified', 0)
@@ -2160,7 +2144,7 @@ class WorldState:
                               f"(Auto-unfortified. Trust: -3 for misusing cavalry)"
                 })
 
-                print(f"  [CAVALRY LIMIT] {marshal.name}: forced unfortify after {turns_fortified} turns")
+                debug_print(f"  [CAVALRY LIMIT] {marshal.name}: forced unfortify after {turns_fortified} turns")
 
         return events
 
@@ -2209,8 +2193,8 @@ class WorldState:
 
             if distance <= marshal.movement_range:
                 # Can charge! Execute auto-charge
-                print(f"  [AUTO-CHARGE] {marshal.name} (recklessness {recklessness}) charges {enemy.name}!")
-                print(f"  [AUTO-CHARGE DEBUG] marshal.location={marshal.location}, enemy.location={enemy.location}")
+                debug_print(f"  [AUTO-CHARGE] {marshal.name} (recklessness {recklessness}) charges {enemy.name}!")
+                debug_print(f"  [AUTO-CHARGE DEBUG] marshal.location={marshal.location}, enemy.location={enemy.location}")
 
                 # Execute combat with glorious charge
                 combat_result = combat_resolver.resolve_battle(
@@ -2218,7 +2202,7 @@ class WorldState:
                     defender=enemy,
                     glorious_charge=True
                 )
-                print(f"  [AUTO-CHARGE DEBUG] Combat result victor: {combat_result.get('victor')}")
+                debug_print(f"  [AUTO-CHARGE DEBUG] Combat result victor: {combat_result.get('victor')}")
 
                 # Record battle for cannon fire detection
                 self.record_battle(enemy.location, marshal.name, enemy.name,
@@ -2245,7 +2229,7 @@ class WorldState:
                             f"{combat_result.get('description', 'Combat resolved.')}"
                             f"{enemy_destroyed_msg}{movement_msg}\n\n"
                             f"[FREE ACTION - Recklessness reset to 0]")
-                print(f"  [AUTO-CHARGE DEBUG] Event message: {event_msg[:100]}...")
+                debug_print(f"  [AUTO-CHARGE DEBUG] Event message: {event_msg[:100]}...")
                 events.append({
                     "type": "auto_glorious_charge",
                     "marshal": marshal.name,
@@ -2255,7 +2239,7 @@ class WorldState:
                     "combat_result": combat_result,
                     "message": event_msg
                 })
-                print(f"  [AUTO-CHARGE DEBUG] Event appended, events count: {len(events)}")
+                debug_print(f"  [AUTO-CHARGE DEBUG] Event appended, events count: {len(events)}")
             else:
                 # Out of range - auto-move toward enemy
                 # Find path toward enemy
@@ -2282,7 +2266,7 @@ class WorldState:
                                   f"[FREE ACTION - {remaining_distance} region(s) to target]"
                     })
 
-                    print(f"  [RECKLESS MOVE] {marshal.name} auto-moves {old_location} -> {next_region}")
+                    debug_print(f"  [RECKLESS MOVE] {marshal.name} auto-moves {old_location} -> {next_region}")
                 else:
                     # Can't find path - stuck
                     events.append({
@@ -2343,7 +2327,9 @@ class WorldState:
                 if retreat_to:
                     old_location = marshal.location
                     marshal.location = retreat_to
-                    marshal.just_retreated = True  # Mark as vulnerable
+                    # Enter retreat recovery system (replaces legacy just_retreated flag)
+                    marshal.retreating = True
+                    marshal.retreat_recovery = 0
 
                     retreat_events.append({
                         "type": "retreat",
@@ -2354,7 +2340,7 @@ class WorldState:
                         "vulnerable": True
                     })
 
-                    print(f"🏃 RETREAT: {marshal.name} flees {old_location} → {retreat_to}")
+                    debug_print(f"🏃 RETREAT: {marshal.name} flees {old_location} → {retreat_to}")
 
         return retreat_events
 
