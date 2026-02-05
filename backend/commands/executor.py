@@ -982,7 +982,9 @@ RETREAT RECOVERY (3 turns):
         # Check if this action is free (counter-punch, etc.)
         is_free_action = result.get("free_action", False) or result.get("no_action_cost", False)
 
-        if result.get("success", False) and action_costs_point and is_player_action and not is_free_action:
+        # CRITICAL: Don't consume AP for pending_objection (Phase M) - AP consumed
+        # when player responds, not when objection triggers
+        if result.get("success", False) and action_costs_point and is_player_action and not is_free_action and not result.get("pending_objection"):
             # Check for variable action cost (stance_change returns this)
             variable_cost = result.get("variable_action_cost")
             if variable_cost is not None:
@@ -1016,6 +1018,11 @@ RETREAT RECOVERY (3 turns):
             "turn_advanced": action_result.get("turn_advanced", False),
             "new_turn": action_result.get("new_turn")
         }
+
+        # EXPLICIT: For pending_objection (Phase M), ensure cost shows 0
+        # AP is consumed when player responds, not when objection triggers
+        if result.get("pending_objection"):
+            result["action_info"]["cost"] = 0
 
         result["action_summary"] = world.get_action_summary()
 
@@ -2454,6 +2461,13 @@ RETREAT RECOVERY (3 turns):
                     "pending_objection": True,
                     "objection": objection,
                     "message": objection.get("message", "Marshal objects to this order."),
+                    # Top-level fields expected by frontend UI
+                    "marshal": marshal.name,
+                    "personality": marshal.personality,
+                    "trust": int(marshal.trust.value),
+                    "trust_label": marshal.trust.get_label(),
+                    "vindication": world.vindication_tracker.get_vindication_data(marshal.name).get("score", 0),
+                    "authority": int(world.authority_tracker.authority),
                 }
 
         else:
@@ -6057,12 +6071,22 @@ RETREAT RECOVERY (3 turns):
                     variable_cost = result.get("variable_action_cost", 1)
                     for _ in range(variable_cost):
                         action_result = world.use_action(action)
-                result["action_info"] = {
-                    "cost": result.get("variable_action_cost", 1),
-                    "remaining": world.actions_remaining,
-                    "turn_advanced": action_result.get("turn_advanced", False),
-                    "new_turn": action_result.get("new_turn")
-                }
+                # For pending objections, cost is 0 (not consumed yet)
+                # Actual cost depends on player choice (proceed=2, preferred=1, compromise=2)
+                if result.get("pending_objection"):
+                    result["action_info"] = {
+                        "cost": 0,  # No AP consumed yet
+                        "remaining": world.actions_remaining,
+                        "turn_advanced": False,
+                        "new_turn": None
+                    }
+                else:
+                    result["action_info"] = {
+                        "cost": result.get("variable_action_cost", 1),
+                        "remaining": world.actions_remaining,
+                        "turn_advanced": action_result.get("turn_advanced", False),
+                        "new_turn": action_result.get("new_turn")
+                    }
                 return result
 
         if action == "attack":

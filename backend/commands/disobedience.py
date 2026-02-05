@@ -1545,8 +1545,7 @@ def check_strategic_objection(
 
     personality = getattr(marshal, 'personality', 'balanced').lower()
 
-    # DEBUG: Trace strategic objection check
-    print(f"[STRATEGIC OBJECTION CHECK] {marshal.name} ({personality}): {strategic_type} -> {target}")
+    # Debug trace removed for production (was: strategic objection check)
 
     # ═══════════════════════════════════════════════════════════
     # BYPASS: Grouchy (literal) never objects to strategic commands
@@ -1590,8 +1589,7 @@ def check_strategic_objection(
                 marshal, strategic_type, 0.72, game_state, include_variance
             )
 
-            # DEBUG: Print severity calculation
-            print(f"[STRATEGIC OBJECTION] {marshal.name} HOLD: severity={severity:.3f}, threshold=0.50, triggers={severity >= 0.50}")
+            # Debug trace removed for production (was: severity calculation)
 
             # Only object if severity >= 0.50 (major objection threshold)
             if severity < 0.50:

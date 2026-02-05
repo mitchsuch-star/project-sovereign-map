@@ -229,10 +229,17 @@ def execute_command(request: CommandRequest):
 
         # ════════════════════════════════════════════════════════════
         # CHECK FOR OBJECTION: If awaiting player choice, return full result
+        # Tactical objections: state == "awaiting_player_choice"
+        # Strategic objections (Phase M): pending_objection == True
         # ════════════════════════════════════════════════════════════
         if result.get("state") == "awaiting_player_choice":
-            print(f"🛑 OBJECTION RESPONSE - Returning full result to frontend")
-            # Return the full objection result plus action summary
+            print(f"🛑 TACTICAL OBJECTION - Returning full result to frontend")
+            result["action_summary"] = world.get_action_summary()
+            result["game_state"] = world.get_game_state_summary()
+            return result
+
+        if result.get("pending_objection"):
+            print(f"🛑 STRATEGIC OBJECTION (Phase M) - Returning full result to frontend")
             result["action_summary"] = world.get_action_summary()
             result["game_state"] = world.get_game_state_summary()
             return result
