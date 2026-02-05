@@ -1,8 +1,8 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 3, 2026
-> **Last Session:** Phase M complete — all strategic objection tests passing, 1066 total tests
+> **Last Updated:** February 4, 2026
+> **Last Session:** Phase M fixes — strategic objection response flow, AP consumption, endpoint routing
 
 ---
 
@@ -10,10 +10,10 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1066** (verified Feb 3, 2026) |
+| **Tests Passing** | **1048** (verified Feb 4, 2026, excluding flaky combat dice) |
 | **Current Phase** | 5.2 (Strategic Commands) ✅ COMPLETE |
 | **Blockers** | None |
-| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3 |
+| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M |
 
 ---
 
@@ -30,11 +30,19 @@ Phase 5.2 Strategic Commands is COMPLETE, including Phase M (Strategic Objection
 
 ## Recently Completed
 
-### Feb 3 (this session)
+### Feb 4 (this session)
+- **CRITICAL FIX:** Strategic objection response flow — `/respond_to_objection` endpoint now handles strategic objections. Previously only checked `world.pending_objection` (tactical), now also checks `world.pending_strategic_objection`.
+- **CRITICAL FIX:** AP consumption — strategic objections no longer consume AP when triggered. AP is consumed when player responds (proceed=2, preferred=1, compromise=2).
+- **New helper:** `_handle_strategic_objection_from_endpoint()` — maps frontend choices (trust→preferred, insist→proceed) and re-executes strategic command.
+- **Code documentation:** Added comprehensive comment block in executor.py explaining the strategic objection pattern for future developers.
+- **Cleanup:** Removed debug print statements from disobedience.py.
+- Test count: **1048 passed, 3 skipped** (flaky combat dice excluded)
+
+### Feb 3
 - **Phase M complete:** Strategic Objections implemented and verified. All 47 tests passing (44 pass, 3 skipped for future relationship system).
 - **CRITICAL FIX:** Strategic objections now use probability system (same as tactical):
   - Factors: trust, authority, vindication, performance, override history
-  - Base severities: Ney HOLD=0.55, Davout PURSUE=0.50, Davout MOVE_TO=0.45
+  - Base severities: Ney HOLD=0.72, Davout PURSUE=0.68, Davout MOVE_TO=0.65
   - Threshold: ≥0.50 for objection to trigger
   - High trust (80+) = 0.7x modifier → objections less likely
   - Low trust (<20) = 1.6x modifier → objections more likely
@@ -106,7 +114,8 @@ Phase 5.2 Strategic Commands is COMPLETE, including Phase M (Strategic Objection
 
 | Date | Tests | Notes |
 |------|-------|-------|
-| Feb 3, 2026 | **1066** | Phase M complete, strategic objections verified |
+| Feb 4, 2026 | **1048** | Phase M endpoint fix, AP consumption fix (flaky combat dice excluded) |
+| Feb 3, 2026 | 1066 | Phase M complete, strategic objections verified |
 | Feb 2, 2026 | 1004 | Post-objection fix, UI/UX improvements, sally serialization fix |
 | Jan 31, 2026 | 1022 | PURSUE completion fix, code review fixes |
 | Jan 30, 2026 | 981 | Doc cleanup session |
@@ -120,17 +129,15 @@ Phase 5.2 Strategic Commands is COMPLETE, including Phase M (Strategic Objection
 | Issue | Severity | Notes |
 |-------|----------|-------|
 | Phase J (UI) not started | Low | Strategic status display in Godot |
-| Phase M not started | Low | Strategic objections — designed, see PHASE_5_2_IMPLEMENTATION_PLAN.md. Note: Ney currently objects to HOLD via tactical objection system (aggressive vs defensive), works but message is generic. Phase M should replace with strategic-aware objection ("I'd rather attack!"). |
-| Godot smoke test pending | Low | Need manual verification |
 | Clarification popup for other literal actions | Low | Currently only triggers for attack-without-target. Could extend to move/scout with no target for Grouchy. |
 
 ---
 
 ## Next Session Priorities
 
-1. Finish testing strategic commands in Godot
-2. Phase M implementation (strategic objections) when ready
-3. Begin Phase 6 design
+1. Test strategic objections in Godot (HOLD with low trust Ney)
+2. Begin Phase 6 design (Economy, Terrain, Fog, Manpower)
+3. Phase J: Strategic status display in Godot HUD
 
 ---
 
@@ -157,11 +164,13 @@ python -m backend.modding.validator path/to/mod.json
 | Need | Read |
 |------|------|
 | What phase are we in? | ROADMAP.md |
-| How does X system work? | COMPLETED.md |
+| How does X system work? | CLAUDE.md (reference sections) |
 | Code patterns/rules | TECHNICAL.md |
 | Enemy AI behavior | ENEMY_AI_REFERENCE.md |
+| Disobedience system | DISOBEDIENCE_SYSTEM_REFERENCE.md |
 | Core concept/vision | VISION.md |
 | Future design concepts | FUTURE_DESIGN.md |
 | Adding a marshal | MARSHAL_ADDITION_GUIDE.md |
 | Save format | SAVE_FORMAT_REFERENCE.md |
 | Modding | MODDING_FORMAT.md |
+| Strategic commands | PHASE_5_2_IMPLEMENTATION_PLAN.md |

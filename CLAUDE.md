@@ -595,6 +595,31 @@ This file contains the core marshal objection logic:
 2. Authority affects objection probability, not elimination
 3. Cavalry limits bypass objection (automatic, not player-ordered)
 
+### Strategic Objection Pattern (Phase M)
+
+**CRITICAL:** Strategic objections use `world.pending_strategic_objection`, NOT `world.pending_objection` (which is for tactical objections).
+
+**Flow:**
+```
+1. User issues strategic command (HOLD, PURSUE, MOVE_TO, SUPPORT)
+2. _execute_strategic_command() calls check_strategic_objection()
+3. If objection triggers:
+   a. Store objection data in world.pending_strategic_objection
+   b. Return {pending_objection: True, objection: {...}}
+4. Frontend shows popup, user chooses trust/insist/compromise
+5. Frontend calls /respond_to_objection endpoint
+6. handle_objection_response() checks for pending_strategic_objection FIRST
+7. Routes to _handle_strategic_objection_from_endpoint()
+8. Maps choices (trust→preferred, insist→proceed) and re-executes
+```
+
+**When adding new strategic objection triggers:**
+1. Add check in `disobedience.py check_strategic_objection()`
+2. Return dict with: `should_object`, `type`, `reason`, `message`, `marshal`, `options`
+3. The executor automatically handles storage and endpoint routing
+
+**Common bug:** If `/respond_to_objection` returns "No objection pending", you forgot to store on `world.pending_strategic_objection` in step 3a.
+
 ### Enemy AI System Reference
 
 **Location:** `backend/ai/enemy_ai.py` (685 lines)
@@ -1572,6 +1597,8 @@ For detailed design decisions and architecture:
 | Command executes for wrong marshal | Interrupt router in main.py matched keywords (e.g. "march to") in command addressed to different marshal. Fixed: router checks if command names a different marshal and skips |
 | Interrupt report missing order_status | ALL return dicts from strategic handlers MUST include `order_status` field. Missing it causes `status=None` in debug output and may confuse Godot |
 | Stale strategic order after forced retreat | Forced retreat now clears `marshal.strategic_order` in `_apply_forced_retreat_or_break()`. HOLD orders also clear `holding_position`/`hold_region`. Message reflects which order was broken |
+| Strategic objection "No objection pending" | Store objection data in `world.pending_strategic_objection` (NOT `world.pending_objection`). See Strategic Objection Pattern section above |
+| Strategic objection AP consumed early | Check `not result.get("pending_objection")` in both main execute() and _execute_post_objection(). AP consumed on player response, not objection trigger |
 
 ---
 

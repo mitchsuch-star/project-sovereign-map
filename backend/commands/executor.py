@@ -2442,6 +2442,30 @@ RETREAT RECOVERY (3 turns):
         # Check for objection response (post-objection execution)
         objection_response = command.get("objection_response")
 
+        # ═══════════════════════════════════════════════════════════════════════════
+        # STRATEGIC OBJECTION CHECK (Phase M)
+        # ═══════════════════════════════════════════════════════════════════════════
+        #
+        # PATTERN FOR ADDING NEW STRATEGIC OBJECTIONS:
+        # 1. Add objection check in disobedience.py check_strategic_objection()
+        # 2. Return dict with: should_object, type, reason, message, marshal, options
+        # 3. The code below automatically handles:
+        #    - Storing objection in world.pending_strategic_objection
+        #    - Returning pending_objection=True to frontend
+        #    - Routing /respond_to_objection → _handle_strategic_objection_from_endpoint
+        #
+        # CRITICAL: Strategic objections MUST store on world.pending_strategic_objection
+        # because /respond_to_objection endpoint needs to find the objection data.
+        # Tactical objections use world.pending_objection (different field).
+        #
+        # Flow:
+        #   1. User issues command → objection triggers → data stored on world
+        #   2. Frontend shows popup → user chooses trust/insist/compromise
+        #   3. Frontend calls /respond_to_objection
+        #   4. handle_objection_response() finds pending_strategic_objection
+        #   5. Routes to _handle_strategic_objection_from_endpoint()
+        #   6. Re-executes strategic command with objection_response set
+        # ═══════════════════════════════════════════════════════════════════════════
         if not objection_response:
             # First time issuing - check for objection (uses probability system)
             objection = check_strategic_objection(
@@ -2449,7 +2473,7 @@ RETREAT RECOVERY (3 turns):
             )
 
             if objection and objection.get("should_object"):
-                # Store for response handling
+                # Store all data needed for response handling
                 objection["original_command"] = command.copy()
                 objection["parsed_command"] = parsed_command.copy()
                 objection["strategic_type"] = strategic_type
@@ -2458,6 +2482,9 @@ RETREAT RECOVERY (3 turns):
                 objection["marshal_name"] = marshal.name
 
                 # CRITICAL: Store on world so /respond_to_objection endpoint can find it
+                # This is the key difference from tactical objections which use
+                # world.pending_objection. If you forget this, /respond_to_objection
+                # will return "No objection pending. Issue a command first."
                 world.pending_strategic_objection = objection
 
                 return {
@@ -2465,7 +2492,7 @@ RETREAT RECOVERY (3 turns):
                     "pending_objection": True,
                     "objection": objection,
                     "message": objection.get("message", "Marshal objects to this order."),
-                    # Top-level fields expected by frontend UI
+                    # Top-level fields expected by frontend UI (objection_dialog.gd)
                     "marshal": marshal.name,
                     "personality": marshal.personality,
                     "trust": int(marshal.trust.value),
