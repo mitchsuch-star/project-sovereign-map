@@ -704,6 +704,7 @@ def evaluate_aggressive(marshal, action: str, order: Dict, game_state) -> Concer
 
     # Defensive stance change — aggressive marshals dislike ANY defensive posture,
     # matching the unconditional MILD on the "defend" action above.
+    # V2b: escalate to MODERATE/STRONG when weak enemy is adjacent (beatable odds).
     if action == "stance_change":
         # BUG FIX: order.get('target', '') returns None when key exists with value None
         # (parser.py:297 explicitly sets "target": None). Must use `or ''` pattern.

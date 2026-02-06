@@ -473,6 +473,9 @@ func _on_command_result(response):
 		_display_result(response)
 
 		# Check for enemy phase (from end_turn)
+		# NOTE: No total_actions > 0 gate — dialog shows even with 0 enemy actions
+		# (e.g. debug freeze_enemies). The dialog handles 0-action case with
+		# "No enemy actions this turn." message.
 		if response.has("enemy_phase"):
 			print("ENEMY PHASE DETECTED - showing dialog")
 			set_input_enabled(false)  # Disable input until dismissed
