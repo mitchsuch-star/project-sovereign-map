@@ -3,7 +3,9 @@ extends CanvasLayer
 # =============================================================================
 # PROJECT SOVEREIGN - Marshal Objection Dialog
 # =============================================================================
-# Displays when a marshal objects to an order with severity ≥ 0.50
+# V2a: Tone-based styling. Border color and header reflect trust tier:
+#   respectful (DEVOTED) = gold, firm (TRUSTING) = orange,
+#   challenging (WARY) = red, defiant (HOSTILE) = dark red
 # Player chooses: Trust (accept alternative), Insist (override), or Compromise
 # =============================================================================
 
@@ -34,6 +36,22 @@ const COLOR_TRUST = "2d5a27"    # Green
 const COLOR_INSIST = "8b0000"   # Dark red
 const COLOR_COMPROMISE = "4a4a4a"  # Gray
 
+# V2a tone-based border colors
+const TONE_COLORS = {
+	"respectful": Color(0.851, 0.753, 0.549, 1),  # Gold
+	"firm": Color(0.9, 0.6, 0.2, 1),               # Orange
+	"challenging": Color(0.8, 0.2, 0.2, 1),         # Red
+	"defiant": Color(0.55, 0.0, 0.0, 1),            # Dark red
+}
+
+# V2a tone-based header text
+const TONE_HEADERS = {
+	"respectful": "%s'S ADVICE",
+	"firm": "%s'S CONCERN",
+	"challenging": "%s OBJECTS",
+	"defiant": "%s REFUSES",
+}
+
 func _ready():
 	# Connect button signals
 	trust_button.pressed.connect(_on_trust_pressed)
@@ -48,25 +66,38 @@ func _ready():
 
 func _apply_styling():
 	"""Apply Napoleonic theme styling to the dialog."""
-	# This would be better done in the .tscn file, but we can set some properties here
-	# Background panel styling (requires theme override in .tscn)
 	pass
+
+func _apply_tone_styling(tone: String):
+	"""V2a: Apply border color and header text based on marshal's tone."""
+	# Header text
+	var header_template = TONE_HEADERS.get(tone, "%s OBJECTS")
+	marshal_name_label.text = header_template % current_marshal.to_upper()
+
+	# Border color on panel StyleBox
+	var border_color = TONE_COLORS.get(tone, TONE_COLORS["firm"])
+	var style = panel_container.get_theme_stylebox("panel")
+	if style and style is StyleBoxFlat:
+		var new_style = style.duplicate()
+		new_style.border_color = border_color
+		panel_container.add_theme_stylebox_override("panel", new_style)
+
+	# Header label color matches border
+	marshal_name_label.add_theme_color_override("font_color", border_color)
 
 func show_objection(objection_data: Dictionary):
 	"""Display objection dialog with data from backend."""
-	print("14. ObjectionDialog.show_objection() ENTERED")
-	print("15. Received data: ", objection_data)
-
 	current_marshal = objection_data.get("marshal", "Marshal")
 
-	# Set marshal name header
-	marshal_name_label.text = "%s OBJECTS" % current_marshal.to_upper()
+	# V2a: Apply tone-based styling (border color + header text)
+	var tone = objection_data.get("tone", "firm")
+	_apply_tone_styling(tone)
 
 	# Set objection message
 	var message = objection_data.get("message", "I have concerns about this order, Sire.")
 	message_label.text = '"%s"' % message
 
-	# Get marshal stats (from game state if available, otherwise defaults)
+	# Get marshal stats
 	var personality = objection_data.get("personality", "unknown")
 	if personality_label:
 		personality_label.text = "Personality: %s" % personality.capitalize()
@@ -81,43 +112,44 @@ func show_objection(objection_data: Dictionary):
 	var authority = int(objection_data.get("authority", 100))
 	authority_label.text = "Authority: %d" % authority
 
+	# V2a trust change values for button previews
+	var trust_gain = int(objection_data.get("trust_gain", 3))
+	var insist_penalty = int(objection_data.get("insist_penalty", -10))
+	var compromise_gain = int(objection_data.get("compromise_gain", 3))
+
 	# Strategic objections (Phase M) use options array
 	# Tactical objections use suggested_alternative/compromise dicts
 	var options = objection_data.get("options", [])
 	var is_strategic = objection_data.get("is_strategic", false) or options.size() > 0
 
 	if is_strategic and options.size() > 0:
-		# Strategic objection - use options array
+		# Strategic objection - use options array (already has trust previews)
 		_setup_strategic_buttons(options)
 	else:
-		# Tactical objection - use legacy format
+		# Tactical objection
 		has_alternative = objection_data.has("suggested_alternative") and objection_data.suggested_alternative != null
 		has_compromise = objection_data.has("compromise") and objection_data.compromise != null
 
-		# Set button text
+		# Set button text with V2a trust change previews
 		if has_alternative:
 			var alt = objection_data.suggested_alternative
 			var alt_desc = _describe_order(alt)
-			trust_button.text = "Trust %s (%s)" % [current_marshal, alt_desc]
+			trust_button.text = "Trust %s: %s (%+d trust)" % [current_marshal, alt_desc, trust_gain]
 		else:
-			trust_button.text = "Trust %s's Judgment" % current_marshal
+			trust_button.text = "Trust %s's Judgment (%+d trust)" % [current_marshal, trust_gain]
 
-		insist_button.text = "Proceed as Ordered"
+		insist_button.text = "Proceed as Ordered (%+d trust)" % insist_penalty
 
 		if has_compromise:
 			var comp = objection_data.compromise
 			var comp_desc = _describe_order(comp)
-			compromise_button.text = "Compromise (%s)" % comp_desc
+			compromise_button.text = "Compromise: %s (%+d trust)" % [comp_desc, compromise_gain]
 			compromise_button.visible = true
 		else:
 			compromise_button.visible = false
 
 	# Show the dialog
-	print("16. About to call show()")
 	show()
-	print("17. AFTER show() - visible property: ", visible)
-	print("18. is_inside_tree: ", is_inside_tree())
-	print("19. PanelContainer visible: ", panel_container.visible if panel_container else "NULL")
 
 func _describe_order(order: Dictionary) -> String:
 	"""Create human-readable description of an order."""

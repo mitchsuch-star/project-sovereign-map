@@ -11,7 +11,7 @@
 | Metric | Value |
 |--------|-------|
 | **Tests Passing** | **1216** (verified, 3 skipped) |
-| **Current Phase** | V2a (Objection Refactor) — Unit 7 remaining, then Phase 6 |
+| **Current Phase** | V2a **COMPLETE** — Begin Phase 6 |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M |
 
@@ -19,18 +19,18 @@
 
 ## Active Work
 
-V2a Objection Refactor in progress: Units 1-6 complete, Unit 7 remaining.
+**V2a Objection Refactor: COMPLETE** (all 7 units done).
 
 - [x] Phase M: Strategic Objections
-- V2a: Objection System Refactor
+- V2a: Objection System Refactor — **COMPLETE**
   - [x] Unit 1: Core Data Structures (ConcernLevel, TrustTier, trust/penalty calculations) — 53 tests
   - [x] Unit 2: Tactical Trigger Evaluators (aggressive, cautious, literal) — 36 tests
   - [x] Unit 3: Strategic Trigger Evaluators (HOLD, PURSUE, MOVE_TO, SUPPORT) — 30 tests
   - [x] Unit 4: Pipeline Integration (V2 evaluators wired into executor.py) — 6 tests
   - [x] Unit 5: Vindication Extension (pending_defensive_vindication) — 2 tests
   - [x] Unit 6: Integration Wiring + Test Migration — 13 new tests, 6 gaps resolved
-  - [ ] Unit 7: Godot Frontend (tone-based styling, MILD flavor in turn log)
-- [ ] Begin Phase 6 design after V2a ships
+  - [x] Unit 7: Godot Frontend (tone-based styling, MILD "Field Dispatches", trust previews)
+- [ ] Begin Phase 6 design
 
 ---
 
@@ -48,6 +48,14 @@ V2a Objection Refactor in progress: Units 1-6 complete, Unit 7 remaining.
 - **Test migration:** 9 V1 tests updated to V2 semantics (mock mood variance, relaxed message assertions → concern_level checks). 1 test in `test_strategic_bugfixes.py` updated.
 - **Integration tests:** 13 new tests — tactical full path (trust/insist/compromise), strategic full path, MILD no-popup, idle turns (increment/reset/enemy skip/acted flag/serialization/backward compat)
 - **Test count: 1216 passed, 3 skipped, 0 failures**
+
+**Unit 7: Godot Frontend:**
+- Tone-based objection dialog: border color + header text by trust tier (respectful/firm/challenging/defiant)
+- Trust change previews on all tactical objection buttons
+- V2 field passthrough: tone, concern_level, trust_gain, insist_penalty, compromise_gain
+- MILD "Field Dispatches" in turn log after enemy phase (warm gold, atmosphere text)
+
+**V2a Objection Refactor: COMPLETE** — all 7 units shipped.
 
 ### Feb 5 (Session 4: EA Readiness & Vision Assessment)
 
@@ -179,8 +187,8 @@ V2a Objection Refactor in progress: Units 1-6 complete, Unit 7 remaining.
 
 ## Next Session Priorities
 
-1. **Unit 7: Godot Frontend** — Tone-based styling, MILD flavor in turn log
-2. Begin Phase 6 design after V2a ships
+1. **Godot smoke test** — Launch game, trigger objection, verify tone styling + dispatches
+2. **Begin Phase 6 design** — Core Campaign (save/load, Berthier Parse Recovery)
 3. Commission Europe map art (start search for artist)
 
 **V2 objection design doc:** `docs/OBJECTION_V2.md`

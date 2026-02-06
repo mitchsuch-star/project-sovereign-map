@@ -68,6 +68,7 @@ const COLOR_INFO = "a0a0a8"        # Gray for system info
 const COLOR_MARSHAL = "c9b8e0"     # Lavender for marshal responses
 const COLOR_CONQUEST = "90d890"    # Bright green for conquests
 const COLOR_FEEDBACK = "b8a0d9"    # Soft purple/lavender for AI feedback
+const COLOR_DISPATCH = "c9b878"    # Warm gold for field dispatches (MILD flavor)
 
 # Message history limit (prevents infinite growth)
 const MAX_MESSAGES = 100
@@ -482,6 +483,9 @@ func _on_command_result(response):
 			_show_enemy_phase_dialog(response.enemy_phase, turn)
 			return  # Don't re-enable input until dialog dismissed
 
+		# V2a: Show MILD dispatches when no enemy phase dialog
+		_show_mild_dispatches(response)
+
 		# Check for strategic reports (when no enemy phase dialog)
 		if response.has("strategic_reports") and not response.strategic_reports.is_empty():
 			set_input_enabled(false)
@@ -787,8 +791,6 @@ func set_input_enabled(enabled: bool):
 
 func _show_objection_dialog(response):
 	"""Display objection dialog when marshal objects."""
-	print("9. _show_objection_dialog() CALLED")
-
 	# Strategic objections (Phase M) nest data in response.objection
 	# Tactical objections have data at top level
 	var is_strategic = response.has("pending_objection") and response.pending_objection == true
@@ -814,26 +816,22 @@ func _show_objection_dialog(response):
 		"compromise": objection.get("compromise", response.get("compromise")),
 		# Strategic objections have options array instead of suggested_alternative/compromise
 		"options": objection.get("options", []),
-		"is_strategic": is_strategic
+		"is_strategic": is_strategic,
+		# V2a fields: tone, concern_level, trust change previews
+		"tone": objection.get("tone", response.get("tone", "firm")),
+		"concern_level": objection.get("concern_level", response.get("concern_level", "MODERATE")),
+		"trust_gain": objection.get("trust_gain", response.get("trust_gain", 3)),
+		"insist_penalty": objection.get("insist_penalty", response.get("insist_penalty", -10)),
+		"compromise_gain": objection.get("compromise_gain", response.get("compromise_gain", 3)),
 	}
 
-	print("10. OBJECTION DATA: ", objection_data)
-
-	# CHECK: Is dialog null?
 	if objection_dialog == null:
-		print("11. ❌ ERROR: objection_dialog is NULL!")
 		push_error("objection_dialog is NULL! Cannot show dialog.")
 		add_output("[color=#" + COLOR_ERROR + "]ERROR: Dialog not loaded![/color]")
 		set_input_enabled(true)
 		return
 
-	print("11. Dialog exists, calling show_objection()")
-	print("12. BEFORE show_objection - visible: ", objection_dialog.visible)
-
-	# Show the dialog
 	objection_dialog.show_objection(objection_data)
-
-	print("13. AFTER show_objection - visible: ", objection_dialog.visible)
 
 func _on_objection_choice_made(choice: String):
 	"""Handle player's choice in objection dialog."""
@@ -1084,9 +1082,28 @@ func _show_enemy_phase_dialog(enemy_phase: Dictionary, turn: int):
 	enemy_phase_dialog.show_enemy_phase(enemy_phase, turn)
 
 
+func _show_mild_dispatches(response):
+	"""V2a: Show MILD concerns as 'Field Dispatches' in the turn log.
+	Atmosphere text — feels like reading war dispatches, not game feedback."""
+	if not response.has("mild_concerns"):
+		return
+	var concerns = response.mild_concerns
+	if concerns is Array and concerns.size() > 0:
+		add_output("")
+		add_output("[color=#" + COLOR_DISPATCH + "]━━ Field Dispatches ━━[/color]")
+		for concern in concerns:
+			var marshal_name = concern.get("marshal", "Unknown")
+			var msg = concern.get("message", "")
+			if msg != "":
+				add_output("[color=#" + COLOR_DISPATCH + "]  " + msg + "[/color]")
+		add_output("")
+
+
 func _on_enemy_phase_dismissed():
 	"""Handle enemy phase dialog dismissal."""
-	print("Enemy phase dialog dismissed")
+	# Show MILD dispatches after enemy phase (V2a: atmosphere text)
+	if pending_enemy_phase_response != null:
+		_show_mild_dispatches(pending_enemy_phase_response)
 
 	# Check for game over (Paris captured, all marshals destroyed, etc.)
 	if pending_enemy_phase_response != null:

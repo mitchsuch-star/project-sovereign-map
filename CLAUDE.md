@@ -14,7 +14,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ## Current Phase
 
-**V2a Objection Refactor** (Units 1-6 done, Unit 7 remaining) then **Phase 6: Core Campaign**. See `docs/ROADMAP.md` for Session 4 restructure (EA readiness audit).
+**V2a Objection Refactor: COMPLETE** (all 7 units). Next: **Phase 6: Core Campaign**. See `docs/ROADMAP.md` for EA readiness roadmap.
 See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 
 ---

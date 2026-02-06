@@ -596,12 +596,18 @@ Files: `executor.py`, `disobedience.py`, `marshal.py`, `world_state.py`
 
 Test migration: 9 V1 tests updated (mock mood variance, relaxed assertions), 1 bugfix test updated. 13 new integration tests (tactical trust/insist/compromise, strategic path, MILD no-popup, idle turns).
 
-### Units Remaining
+**Unit 7: Godot Frontend ✓**
+Files: `objection_dialog.gd`, `main.gd`
 
-**Unit 7: Godot Frontend**
-- Tone-based styling in `objection_dialog.gd`
-- MILD flavor in turn log
-- Smoke test
+- Tone-based styling: border color + header text change by tone (respectful=gold, firm=orange, challenging=red, defiant=dark red)
+- Trust change previews on tactical buttons: "Trust Davout: fortify (+2 trust)" / "Proceed as Ordered (-5 trust)" / "Compromise: move (+3 trust)"
+- V2 fields passthrough in `_show_objection_dialog`: tone, concern_level, trust_gain, insist_penalty, compromise_gain
+- MILD "Field Dispatches" section in turn log after enemy phase (warm gold color, atmosphere text)
+- Dispatches shown both with and without enemy phase dialog
+
+### V2a Complete
+
+All 7 units implemented. Backend fully wired. Frontend displays tone-based styling and MILD dispatches.
 
 ### Test Counts
 
@@ -616,7 +622,7 @@ Test migration: 9 V1 tests updated (mock mood variance, relaxed assertions), 1 b
 4. Unit 4: Pipeline Integration -- depends on Units 1-3 ✓
 5. Unit 5: Vindication Extension -- parallel with Unit 4 ✓
 6. Unit 6: Integration Wiring + Test Migration -- after Units 4-5 ✓
-7. Unit 7: Godot Frontend -- after Unit 6
+7. Unit 7: Godot Frontend -- after Unit 6 ✓
 
 **Code review checkpoints:** After Unit 2 ✓, After Unit 4 ✓, After Unit 6 ✓.
 
