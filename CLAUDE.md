@@ -14,7 +14,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ## Current Phase
 
-**V2a Objection Refactor** (Units 1-5 done, 6-7 remaining) then **Phase 6: Core Campaign**.
+**V2a Objection Refactor** (Units 1-5 done, 6-7 remaining) then **Phase 6: Core Campaign**. See `docs/ROADMAP.md` for Session 4 restructure (EA readiness audit).
 See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 
 ---
@@ -243,6 +243,7 @@ python -m backend.modding.validator path/to/mod.json
 | Future design concepts | `docs/FUTURE_DESIGN.md` |
 | Game vision | `docs/VISION.md` |
 | Manual test plan | `docs/MANUAL_TEST_PLAN.md` |
+| Tutorial content / what to teach | `docs/TUTORIAL_SCRIPT.md` |
 
 ## Documentation Rules
 

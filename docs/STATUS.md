@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 5, 2026
-> **Last Session:** Audit fix session — bug fixes, dead code removal, cleanup
+> **Last Session:** Session 4 — EA Readiness & Vision Assessment
 
 ---
 
@@ -28,13 +28,29 @@ V2a Objection Refactor in progress: Units 1-5 complete, Units 6-7 remaining.
   - [x] Unit 3: Strategic Trigger Evaluators (HOLD, PURSUE, MOVE_TO, SUPPORT) — 30 tests
   - [x] Unit 4: Pipeline Integration (V2 evaluators wired into executor.py) — 6 tests
   - [x] Unit 5: Vindication Extension (pending_defensive_vindication) — 2 tests
-  - [ ] Unit 6: Test Migration (update existing tests asserting severity floats)
+  - [ ] Unit 6: Test Migration + Strategic Wiring + Idle Objection Trigger
   - [ ] Unit 7: Godot Frontend (tone-based styling, MILD flavor in turn log)
 - [ ] Begin Phase 6 design after V2a ships
 
 ---
 
 ## Recently Completed
+
+### Feb 5 (Session 4: EA Readiness & Vision Assessment)
+
+- EA Readiness audit: full doc review, roadmap restructure
+- Map decision: Option C (commission Europe, wire partial ~80-100 regions)
+- Map approach: EU4-style bitmap color map (not SVG)
+- Coalitions split from Phase 8 to Phase 7
+- Phase 12 (Communication cutoff) deferred to Post-EA
+- Naval abstraction deferred to Post-EA, Britain as off-map funder
+- Phase 9 (Advisors) minimized: stats + flavor, no action gating
+- Phase 11 reworked: vassals + authority-based loyalty, no naval
+- Save/Load moved from Pre-EA to Phase 6
+- Berthier Parse Recovery moved from Phase 8.5 to Phase 6
+- New features added: Campaign Briefing, Marshal Report, Post-battle Analysis, Idle Marshal Objection, Grouchy Moment LLM, Intercepted Dispatches, Napoleon Comparison, LLM feature toggles, Short Waterloo Scenario
+- Created TUTORIAL_SCRIPT.md (living document)
+- ROADMAP.md fully restructured
 
 ### Feb 5 (Session 3: Audit Triage)
 
@@ -149,10 +165,11 @@ V2a Objection Refactor in progress: Units 1-5 complete, Units 6-7 remaining.
 
 ## Next Session Priorities
 
-1. **Run full test suite in PyCharm** — verify audit fixes didn't break anything
+1. **Run full test suite in PyCharm** — verify audit fixes didn’t break anything
 2. **Unit 6: Test Migration** — Update existing tests that assert severity floats
 3. **Unit 7: Godot Frontend** — Tone-based styling, MILD flavor in turn log
 4. Begin Phase 6 design after V2a ships
+5. Commission Europe map art (start search for artist)
 
 **V2 objection design doc:** `docs/OBJECTION_V2.md`
 

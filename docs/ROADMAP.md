@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** February 5, 2026
+> **Last Updated:** February 5, 2026 (Session 4: EA Readiness Audit)
 
 ---
 
@@ -10,23 +10,25 @@
 
 | Phase | Name | Status |
 |-------|------|--------|
-| 1-5.3 | Foundation through AI Fixes | ✅ COMPLETE |
-| **V2a** | **Objection System Refactor** | **🔄 IN PROGRESS (Units 1-5 done)** |
-| **6** | **Core Campaign Systems** | **📋 NEXT (after V2a)** |
-| 6.5 | Information & UI Systems | 📋 Planned |
-| 7 | Multi-Marshal & Relationships | 📋 Planned |
-| 8 | Diplomacy & Coalitions | 📋 Planned |
-| 8.5 | Events, Goals & National Identity | 📋 Planned |
-| 9 | Advisors | 📋 Planned |
-| 10 | Character & People | 📋 Planned |
-| 11 | Vassals & Naval | 📋 Planned |
-| 12 | Communication & Strategic Polish | 📋 Planned |
-| Pre-EA | Polish & Infrastructure | 📋 Planned |
-| EA | 1805 Campaign Launch | 🎯 TBD 2026 |
+| 1-5.3 | Foundation through AI Fixes | COMPLETE |
+| **V2a** | **Objection System Refactor** | **IN PROGRESS (Units 1-5 done)** |
+| **6** | **Core Campaign Systems** | **NEXT (after V2a)** |
+| 6.5 | Information & UI Systems | Planned |
+| 7 | Multi-Marshal, Relationships & Coalitions | Planned |
+| 8 | Diplomacy & Peace | Planned |
+| 8.5 | Events, Goals & National Identity | Planned |
+| -- | **STEAM PAGE + LLC** | **After 8.5** |
+| 9 | Advisors (Minimal) | Planned |
+| 10 | Character & People (Minimal) | Planned |
+| 11 | Vassals | Planned |
+| Pre-EA | Polish & Infrastructure | Planned |
+| EA | 1805 Campaign (Option C: Partial Europe) | TBD 2026 |
+
+**Removed from EA scope:** Phase 12 (Communication cutoff), Naval abstraction, Voice-to-text, Full advisor action-gating. See [Post-EA Expansion](#post-ea-expansion).
 
 ---
 
-## Completed Phases ✅
+## Completed Phases
 
 | Phase | Name | Tests | Key Features |
 |-------|------|-------|--------------|
@@ -35,7 +37,7 @@
 | 3 | Relationships | ~30 | Marshal relationships, historical values |
 | 4 | LLM Integration | ~60 | Parsing, personality responses, BYOK |
 | 5.1 | Tactical Feedback | 64 | Word-based scoring, strategic feedback |
-| 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) ✅ |
+| 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
 **Total Tests:** 1203 (verified Feb 5, 2026)
@@ -49,12 +51,17 @@
 **Status:** In progress. Units 1-5 complete (1203 tests), Units 6-7 remaining. See `OBJECTION_V2.md`.
 
 **Key Changes:**
-- Deterministic situational triggers (personality × situation → ConcernLevel)
+- Deterministic situational triggers (personality x situation -> ConcernLevel)
 - Trust affects consequences only (tone, penalty, compliance)
 - MILD concerns as end-of-turn flavor text, not popups
 - V2b (defiance/vindication escalation) deferred to Phase 7
 
-**Estimated Effort:** 7-11 days
+**New from Session 4 audit:**
+- **Idle marshal objection (Unit 6):** Aggressive marshals idle 2-3 turns -> MILD ("Ney paces restlessly"). 4+ turns -> MODERATE ("Ney demands action"). Cautious at 5 turns. Literal never (Grouchy waits patiently). Add to V2a trigger tables in Unit 6 alongside strategic wiring.
+
+**Post-V2a catch-up (before Phase 6):**
+- Create `docs/TUTORIAL_SCRIPT.md` (living document, updated each phase)
+- Review/update existing docs for Session 4 decisions
 
 ---
 
@@ -64,108 +71,182 @@
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| Economy | Income per region, treasury, upkeep | Medium | 📋 |
-| Reinforcements (Enemy) | AI can recruit troops | Low | 📋 |
-| Manpower Pools | Separate: Infantry, Cavalry, Artillery | Medium | 📋 |
-| Attrition | Movement/supply decay | Low | 📋 |
-| Fog of War | Hidden enemies, scouting required | Medium | 📋 |
-| Terrain | Region terrain affects combat/movement | Medium | 📋 |
-| Sieges | Fortified cities require siege mechanics | Medium | 📋 |
-| City Fortification | "Fortify this city" building action | Low | 📋 |
-| Artillery Unit Type | Combat buffs like cavalry | Medium | 📋 |
-| **War Score** | Visual progress toward victory/defeat | Low | 📋 |
-| **Threat Indicator** | Coalition threat level, visible buildup | Low | 📋 |
-| Turn Events Log | Track battles/captures/retreats per turn (feeds gazette system) | Low | 📋 |
+| Economy | Income per region, treasury, upkeep | Medium | Planned |
+| Reinforcements (Enemy) | AI can recruit troops | Low | Planned |
+| Manpower Pools | Separate: Infantry, Cavalry, Artillery | Medium | Planned |
+| Attrition | Movement/supply decay | Low | Planned |
+| Fog of War | Hidden enemies, scouting required | Medium | Planned |
+| Terrain | Region terrain affects combat/movement | Medium | Planned |
+| Sieges | Fortified cities require siege mechanics | Medium | Planned |
+| City Fortification | "Fortify this city" building action | Low | Planned |
+| Artillery Unit Type | Combat buffs like cavalry | Medium | Planned |
+| **War Score** | Visual progress toward victory/defeat | Low | Planned |
+| **Threat Indicator** | Coalition threat level, visible buildup | Low | Planned |
+| Turn Events Log | Track battles/captures/retreats per turn (feeds gazette) | Low | Planned |
+| **Save/Load** | Full game state persistence + autosave (moved from Pre-EA) | Low | Planned |
+| **Berthier Parse Recovery** | Failed parses -> Berthier asks clarification in-character (moved from 8.5) | Low | Planned |
+| **Post-Battle Analysis** | Template breakdown: modifiers, casualties, "if you had fortified..." | Low | Planned |
+
+### Save/Load Notes
+
+Serialization enforcement (`to_dict`/`from_dict` with `.get()` defaults, 33 roundtrip tests) already handles the data layer. Remaining work: file I/O, autosave trigger, load menu UI, save format version migration. All phases after this must maintain serialization discipline (already in CLAUDE.md).
+
+### Berthier Parse Recovery
+
+Failed commands return in-character clarification instead of error messages: "Berthier adjusts his spectacles: 'Sire, I heard attack... but attack whom? Wellington is at Waterloo, Blucher at the Netherlands.'" One LLM call on failure (rare), negligible cost. Template fallback for mock mode.
+
+### Post-Battle Analysis (Template)
+
+After every battle: "Attack modifier: 1.45x (aggressive stance +15%, drill +20%, personality +15%). Casualties: 12,000 dealt, 8,000 taken. If you had fortified: estimated -40% casualties." Uses data already computed in combat resolver. No LLM needed. Teaches players mechanics through results.
+
+### MAP COMMISSIONING REMINDER
+
+**Commission the Europe map during Phase 6 development.** Art takes 2-4 weeks; should be ready for Phase 6.5 renderer integration.
+
+**Map approach: EU4-style bitmap color map** (NOT SVG).
+
+**Artist brief:**
+- 1805 Europe, Portugal to Moscow, Scandinavia to Ottoman Balkans
+- EU4 political map style
+- ~120-150 province outlines (we wire ~80-100 for EA v1, rest greyed out)
+- **Two deliverables:** (1) visual map (pretty, what players see), (2) province color map (each province = unique solid RGB color, same dimensions, pixel-aligned)
+- Include coastlines for Britain and North Africa (greyed out, no province borders — off-map powers)
+- Each province must be a distinct closed region for hover detection and color fill
+- Artist familiar with Paradox modding ideal — this is the standard EU4 approach
+
+**Province count target: ~80-100 wired for EA v1:**
+
+| Area | Regions | Notes |
+|------|---------|-------|
+| France | 10-12 | Core gameplay area |
+| Low Countries | 3-4 | Belgium, Netherlands, Luxembourg |
+| German States | 14-18 | Confederation of the Rhine heartland |
+| Austria/Habsburg | 8-10 | Vienna to Transylvania |
+| Italy | 8-10 | Piedmont to Sicily |
+| Iberia | 6-8 | Peninsular War theater |
+| Russia (to Moscow) | 8-10 | Warsaw, Lithuania, Smolensk, Moscow, St. Petersburg |
+| Scandinavia | 3 | Denmark, Sweden, Norway |
+| Ottoman Europe | 6-8 | Constantinople, Greece, Serbia, Balkans |
+| Switzerland | 1-2 | |
+
+**Hit detection:** Sample pixel from hidden color map at mouse position -> dictionary lookup -> province ID. O(1), no polygon math.
 
 **Dependencies:** None
-**Exit Criteria:** Player manages economy, enemies reinforce, terrain matters, can see war progress
+**Exit Criteria:** Player manages economy, enemies reinforce, terrain matters, can see war progress, can save/load, failed parses feel in-character
 
 ---
 
 ## Phase 6.5: Information & UI Systems
 
-**Goal:** Player can track 200 regions, 30 marshals, 8 nations without drowning.
+**Goal:** Player can track 80-100 regions, 30 marshals, 8 nations without drowning.
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| Notification System | Alerts for key events (invasions, deaths, diplomacy) | Medium | 📋 |
-| Strategic Ledger | Overview screen: all marshals, armies, nations | Medium | 📋 |
-| Marshal Management UI | View/manage all marshals, relationships, recruit | Medium | 📋 |
-| Campaign Log | Scrollable history of major events | Low | 📋 |
-| Tooltips | Hover info on regions, marshals, nations | Low | 📋 |
+| Notification System | Alerts for key events (invasions, deaths, diplomacy) | Medium | Planned |
+| Strategic Ledger | Overview screen: all marshals, armies, nations | Medium | Planned |
+| Marshal Management UI | View/manage all marshals, relationships, recruit | Medium | Planned |
+| Campaign Log | Scrollable history of major events | Low | Planned |
+| Tooltips | Hover info on regions, marshals, nations | Low | Planned |
+| **Campaign Briefing Screen** | Turn-start summary: "France controls 8 regions. Coalition threat: rising. Ney is restless." Template-driven. | Low | Planned |
+| **Marshal Report** | Per-turn one-liner per marshal: "Ney: attacked Wellington, lost 8k, trust 72 (stable)." | Low | Planned |
+| **Tutorial Infrastructure** | `TutorialManager` for staged popups/highlights. Content populated in Pre-EA. | Medium | Planned |
+| **Map Renderer** | EU4-style bitmap map integration (using commissioned art from Phase 6) | High | Planned |
 
-**Dependencies:** Phase 6 (needs data to display)  
-**Exit Criteria:** Player has clear visibility into game state
+### Map Renderer Notes
+
+Build the Godot map renderer against the commissioned bitmap art:
+- `Sprite2D` for visual map layer
+- Hidden `Image` for province color map (hit detection)
+- Province hover highlighting (shader-based color swap)
+- Zoom/pan controls
+- Marshal sprites as clickable `Node2D` positioned on provinces
+- Dynamic nation coloring on conquest
+- Greyed-out unplayable provinces visible but non-interactive
+
+### Option C: Partial Europe Wiring
+
+Wire ~80-100 provinces for EA v1. Remaining provinces from the 120-150 in the art are visible but greyed out. Expand playable area in EA updates. Players see this as a roadmap, not a limitation.
+
+**Dependencies:** Phase 6 (needs data to display), commissioned map art
+**Exit Criteria:** Player has clear visibility into game state, map looks professional
 
 ---
 
-## Phase 7: Multi-Marshal & Relationships
+## Phase 7: Multi-Marshal, Relationships & Coalition Trigger
 
-**Goal:** Multiple marshals fight together, relationships have gameplay impact.
+**Goal:** Multiple marshals fight together, relationships have gameplay impact, coalitions threaten the player.
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| Multi-marshal battles | Combined strength in single fight | High | 📋 |
-| Command structure | Senior marshal leads combined force | Medium | 📋 |
-| Coordination bonus/penalty | Relationships affect combined combat | Medium | 📋 |
-| Strategic + Relationships | "Support Ney" → reaction based on feelings | Medium | 📋 |
-| Jealousy system | Marshal getting all glory → others resent | Medium | 📋 |
-| Rivalry resolved event | Two marshals fight together successfully → trust boost for both | Low | 📋 |
+| Multi-marshal battles | Combined strength in single fight | High | Planned |
+| Command structure | Senior marshal leads combined force | Medium | Planned |
+| Coordination bonus/penalty | Relationships affect combined combat | Medium | Planned |
+| Strategic + Relationships | "Support Ney" -> reaction based on feelings | Medium | Planned |
+| Jealousy system | Marshal getting all glory -> others resent | Medium | Planned |
+| Rivalry resolved event | Two marshals fight together successfully -> trust boost | Low | Planned |
+| **Coalition Trigger** | Threat level ticks up -> nations join against you -> war declarations (moved from Phase 8) | Medium | Planned |
+| **V2b: Defiance/Vindication** | STRONG/EXTREME concerns can trigger defiance. See OBJECTION_V2.md. | Medium | Planned |
+
+### Coalition Trigger (Split from Phase 8)
+
+The coalition MECHANIC is a number going up and triggering war declarations. It doesn't need the full diplomatic conversation system. Threat level = regions controlled + recent conquests + army size. Thresholds trigger warnings, then coalition formation. This is the core "France can't steamroll" mechanic.
+
+Coalition members get funding from Britain (off-map funder, see Phase 11). Coalition wars test the vassal loyalty system.
 
 ### V2b Audit Findings (from V2a audit)
 
 Items scaffolded in V2a that need wiring in V2b:
-- **Defensive vindication:** `pending_defensive_vindication` field exists and serializes, but nothing in turn_manager.py reads/writes it. Wire into enemy phase: cautious marshal trusted → check if enemies attack → resolve vindication.
-- **Vindication decay:** Spec says -1 per 3 turns of no objection activity. Not implemented. Add to prevent permanent vindication escalation.
+- **Defensive vindication:** `pending_defensive_vindication` field exists and serializes, but nothing in turn_manager.py reads/writes it.
+- **Vindication decay:** Spec says -1 per 3 turns of no objection activity. Not implemented.
+- **Idle marshal objection:** Moved to V2a Unit 6 (see V2a section above).
 
-### AI Enhancement: Combined Strength Evaluation ✅ IMPLEMENTED
+### AI Enhancements for Scale
 
-**What:** AI evaluates attack decisions using combined strength of all friendly marshals in the same region, not just the individual marshal's strength.
+**AP Scaling:** With 15-20 enemy marshals, 4 AP per nation causes action starvation. AP should reflect national bureaucratic capacity:
 
-**Why:** Prevents AI from being timid when it has overwhelming local superiority (e.g., two marshals trapped in dead-end should recognize they can fight their way out together).
+| Nation | Base AP | Rationale |
+|--------|---------|-----------|
+| France | 5 | Corps system, Napoleon's genius |
+| Prussia | 4 | Efficient, reformed military |
+| Britain | 4 | Competent but parliamentary delays |
+| Russia | 3 | Vast but slow |
+| Austria | 3 | Bureaucratic, multi-ethnic complexity |
+| Minor nations | 2 | Limited administration |
 
-**Note:** This affects DECISION-MAKING only. Actual coordinated attacks (combined damage) planned for Phase 7 multi-marshal commands.
+Additional: tiered actions (free basic actions for idle marshals, AP only for offensive), strategic order conflict detection.
 
-### AI Enhancement: P0 Survival Instinct (Future)
+**AI Coordination:** Aggressive marshals dogpiling same target, cautious marshals turtling forever. Needs coordination logic beyond round-robin. Investigate: shared target assignment, threat-based distribution, personality-aware theater commands.
 
-**Current behavior:**
-- AI only retreats via P0 when enemy is in same region AND ratio is below threshold
-- A marshal at 10% strength might still counter-attack a full-strength enemy if personality is aggressive
+### AI Enhancement: Combined Strength Evaluation (IMPLEMENTED)
 
-**Proposed enhancement:**
-- Add "critical survival" override to P0
-- If marshal strength < 20% of starting_strength AND enemy in same region → ALWAYS retreat regardless of personality
-- Rationale: Even Blucher wouldn't charge at 10% strength against a fresh army
-- This is "survival instinct" not cowardice
+AI evaluates attack decisions using combined strength of all friendly marshals in the same region. Affects DECISION-MAKING only. Actual coordinated attacks (combined damage) planned for this phase.
 
-**Implementation notes:**
-- Add to P0 in enemy_ai.py, before personality threshold check
-- Use starting_strength field (already tracked on marshal)
-- Threshold could be personality-adjusted: Cautious 30%, Normal 20%, Aggressive 15%
+### AI Enhancement: P0 Survival Instinct
 
-**Status:** Planned for Phase 7
+If marshal strength < 20% of starting_strength AND enemy in same region -> ALWAYS retreat regardless of personality. Threshold personality-adjusted: Cautious 30%, Normal 20%, Aggressive 15%.
 
-**Dependencies:** Phase 6.5 (Marshal Management UI)
-**Exit Criteria:** Multi-marshal commands work, relationships affect outcomes
+**Dependencies:** Phase 6.5 (Marshal Management UI), Phase 6 (economy for coalition impact)
+**Exit Criteria:** Multi-marshal commands work, relationships affect outcomes, coalitions form and threaten player
 
 ---
 
-## Phase 8: Diplomacy & Coalitions
+## Phase 8: Diplomacy & Peace
 
-**Goal:** Wars start and end through negotiation. Coalitions form dynamically. Diplomacy feels like talking to PEOPLE.
+**Goal:** Wars start and end through negotiation. Diplomacy feels like talking to PEOPLE.
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| Peace Treaties | LLM-powered negotiation | High | 📋 |
-| Alliances | Form defensive/offensive pacts | Medium | 📋 |
-| War Declarations | Formal with casus belli | Low | 📋 |
-| Nation Relations | Values affect diplomacy options | Medium | 📋 |
-| **Coalition System** | Threat level → coalition forms | High | 📋 CRITICAL |
-| Tiered Nation AI | France smarter than minor nations | Medium | 📋 |
-| **Diplomacy Chat** | LLM-powered conversations with nation leaders | High | 📋 |
-| **Leader Personalities** | Distinct voices: Metternich (scheming), Alexander (idealistic), Frederick William (cautious), Castlereagh (pragmatic) | Medium | 📋 |
-| Diplomatic Rules Engine | War score + relations → accept/reject (deterministic, LLM voices outcome) | Medium | 📋 |
-| **AI Proposals** | AI offers peace, makes demands — LLM voices the proposal | Medium | 📋 |
+| Peace Treaties | LLM-powered negotiation | High | Planned |
+| Alliances | Form defensive/offensive pacts | Medium | Planned |
+| War Declarations | Formal with casus belli | Low | Planned |
+| Nation Relations | Values affect diplomacy options | Medium | Planned |
+| Tiered Nation AI | France smarter than minor nations | Medium | Planned |
+| **Diplomacy Chat** | LLM-powered conversations with nation leaders | High | Planned |
+| **Leader Personalities** | Distinct voices (see table below) | Medium | Planned |
+| Diplomatic Rules Engine | War score + relations -> accept/reject (deterministic, LLM voices) | Medium | Planned |
+| **AI Proposals** | AI offers peace, makes demands — LLM voices the proposal | Medium | Planned |
+
+**Note:** Coalition TRIGGER moved to Phase 7. This phase handles the diplomatic conversation layer and peace mechanics.
 
 ### Diplomacy Chat Architecture
 
@@ -173,9 +254,9 @@ Player types natural language proposals. LLM generates leader response in-charac
 
 ```
 Player: "I offer Austria peace if they cede Tyrol"
-  → LLM generates Metternich's response (in-character)
-  → Rules engine: war score + relations + territory value → accept/reject/counter
-  → LLM voices outcome: "Metternich smiles thinly..."
+  -> LLM generates Metternich's response (in-character)
+  -> Rules engine: war score + relations + territory value -> accept/reject/counter
+  -> LLM voices outcome: "Metternich smiles thinly..."
 ```
 
 **Cost control:**
@@ -192,10 +273,10 @@ Player: "I offer Austria peace if they cede Tyrol"
 | Metternich | Austria | Scheming | Calculating, poison-pill deals, never says what he means |
 | Tsar Alexander | Russia | Idealistic | Grand gestures, emotional, unpredictable pivots |
 | Frederick William | Prussia | Cautious | Deferential, follows strongest ally, hedges |
-| Castlereagh | Britain | Pragmatic | Naval-focused, subsidy offers, cold cost-benefit |
+| Castlereagh | Britain | Pragmatic | Subsidy offers, cold cost-benefit, funds coalitions |
 
-**Dependencies:** Phase 6 (economy for peace terms)
-**Exit Criteria:** Can negotiate peace, coalitions form, AI diplomacy feels alive, leaders have distinct voices
+**Dependencies:** Phase 6 (economy for peace terms), Phase 7 (coalitions for diplomatic context)
+**Exit Criteria:** Can negotiate peace, AI diplomacy feels alive, leaders have distinct voices
 
 ---
 
@@ -205,16 +286,22 @@ Player: "I offer Austria peace if they cede Tyrol"
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| **Events System** | Random + historical events with choices (see Positive Events below) | High | 📋 |
-| **National Goals** | "Unite Germany", "Defend the Isles", "Continental System" | Medium | 📋 |
-| **National Flavor** | France FEELS different from Austria (unique mechanics) | Medium | 📋 |
-| **Light Tech/Reforms** | Simple upgrades: conscription, tactics, administration | Medium | 📋 |
-| **Campaign Objectives** | Victory conditions beyond territory (prestige, survival) | Medium | 📋 |
-| Historical Moments | Coronation, Tilsit, Retreat from Moscow | Medium | 📋 |
-| **Gazette System** | Period newspaper every 3-5 turns, LLM-generated recaps | Medium | 📋 |
-| **Marshal Voice (Tier 1)** | Template personality responses for all command events | Low | 📋 |
-| **Marshal Voice (Tier 2)** | LLM personality for high-drama moments (objections, combat, interrupts) | Medium | 📋 |
-| **Music & Sound (Core)** | Battle drums on combat, march on movement, tension on objection, map ambient. Menus get theme. Sells the narrative systems above. | Medium | 📋 |
+| **Events System** | Random + historical events with choices | High | Planned |
+| **National Goals** | "Unite Germany", "Continental System" | Medium | Planned |
+| **National Flavor** | France FEELS different from Austria | Medium | Planned |
+| **Light Tech/Reforms** | Simple upgrades: conscription, tactics, administration | Medium | Planned |
+| **Campaign Objectives** | Victory conditions beyond territory (prestige, survival) | Medium | Planned |
+| Historical Moments | Coronation, Tilsit, Retreat from Moscow | Medium | Planned |
+| **Gazette System** | Period newspaper every 3-5 turns, LLM-generated | Medium | Planned |
+| **Marshal Voice (Tier 1)** | Template personality responses for all events | Low | Planned |
+| **Marshal Voice (Tier 2)** | LLM personality for high-drama moments | Medium | Planned |
+| **Music & Sound (Core)** | Battle drums, march, tension, ambient | Medium | Planned |
+| **Grouchy Moment LLM** | LLM narrates Grouchy's inner monologue when ignoring cannon fire | Low | Planned |
+| **Intercepted Dispatches** | Scout results as captured enemy letters | Low | Planned |
+| **Marshal Memory** | Similar situation recurs -> marshal references last time | Low | Planned |
+| **Napoleon's Desk** | Turn-start LLM briefing from chief of staff | Low | Planned |
+| **Command Echoing** | Combat reports reference player's original phrasing | Low | Planned |
+| **Napoleon Comparison** | Post-game: compare your campaign to real Napoleon | Low | Planned |
 
 ### Gazette System ("Le Moniteur")
 
@@ -223,211 +310,227 @@ Every 3-5 turns, generate a period newspaper summarizing recent events via singl
 **Content:** Battles, territory changes, marshal heroics, tension/foreshadowing.
 **Bias:** Written from French perspective. Post-EA: multiple nation perspectives.
 **Trigger:** Every 5 turns by default. Force on: major battle, territory loss, marshal death.
-**Skip:** If nothing meaningful happened (no battles, no territory change).
-
-**Implementation:**
-- `backend/ai/gazette.py` — prompt builder, trigger logic
-- WorldState fields: `turns_since_last_gazette`, `gazette_history`, `turn_events_log`
-- `turn_events_log` fed by `world.record_turn_event()` calls from executor/combat/turn_manager
-- Event types: `battle`, `capture`, `retreat`, `objection`, `redemption`, `strategic_order`, `marshal_eliminated`
-- Cost: ~$0.0005 per gazette (~$0.005 per 40-turn game)
+**Cost:** ~$0.0005 per gazette (~$0.005 per 40-turn game)
 
 ### Marshal Voice System (Tiered)
 
-Three tiers of personality expression, layered for cost control:
+**Tier 1 -- Templates (free, always-on):**
+- 3-5 personality-specific variants per event type
+- File: `backend/ai/marshal_voice.py`
 
-**Tier 1 — Templates (free, always-on):**
-- 3-5 personality-specific variants per event type (move, attack, fortify, drill, stance, recruit)
-- Selected by marshal personality. Example: Ney move → "Ney spurs forward!" vs Davout → "Davout advances in good order."
-- File: `backend/ai/marshal_voice.py` — `TEMPLATES[personality][event_type] -> List[str]`
+**Tier 2 -- LLM Drama (default for high-stakes moments):**
+- Triggers: objections, combat results, cannon fire, forced retreat
+- 200-token prompt budget, 1-2 sentences in-character
+- Cache by (marshal, event_type, outcome)
+- Fallback to Tier 1 if LLM fails
+- Cost: ~$0.001-0.003/turn
 
-**Tier 2 — LLM Drama (default for high-stakes moments):**
-- Triggers: objections, combat results, strategic interrupts, redemption, cannon fire, forced retreat
-- 200-token prompt budget: marshal name, personality, trust, morale, event context
-- Output: 1-2 sentences in-character
-- Cache by (marshal, event_type, outcome) within session
-- Fallback to Tier 1 template if LLM fails or mode=mock
-- Cost: ~$0.001-0.003/turn (2-5 drama events max)
-
-**Tier 3 — Full Flavor (opt-in player toggle, see Pre-EA):**
-- ALL command responses get 1-sentence LLM personality color
-- Same prompt as Tier 2 but for routine events
+**Tier 3 -- Full Flavor (opt-in toggle, see Pre-EA):**
+- ALL commands get LLM personality response
 - ~$0.0004/command extra, warned in UI
 
-**Integration:** `main.py` wraps executor result messages through `marshal_voice.get_response()`
+### Novel LLM Applications
 
-### Novel LLM Applications (Building Blocks)
-
-These exploit the building blocks architecture: the executor already resolved the outcome deterministically, the LLM just voices it. No LLM affects game mechanics.
-
-| Feature | Description | Trigger | Phase |
-|---------|-------------|---------|-------|
-| **Autonomy Inner Monologue** | When autonomous marshal acts via AI decision tree, LLM narrates WHY in-character ("Ney sees the gap and cannot resist") | Each autonomous action | 8.5 |
-| **LLM Objection Arguments** | Davout's objection references real game state: "Their fortifications are formidable. We should flank through Belgium." | Objection popup (Tier 2) | 8.5 |
-| **Post-Battle "What If"** | Losing marshal reflects: "If only we had drilled first." Surfaces combat modifiers as character voice. Teaches mechanics. | After combat resolves | 8.5 |
-| **Intercepted Dispatches** | Scout results as captured enemy letters: "My dear Castlereagh, I have positioned sixty-eight thousand at Waterloo..." | Scout action result | 8.5 |
-| **Marshal-to-Marshal Dialogue** | SUPPORT order triggers brief exchange between marshals, colored by relationship score | SUPPORT order issued | 8.5 |
-| **Berthier Parse Recovery** | Parse failures become Berthier (chief of staff) asking for clarification in-character, not error messages | Failed parse | 8.5 |
-
-All reuse existing data (game state, combat results, relationships, scout intel). 1 LLM call each, same cost as Tier 2 voice.
+| Feature | Description | Trigger |
+|---------|-------------|---------|
+| **Grouchy Moment LLM** | "The marshal frowns. The sound of battle echoes from the west. His orders are clear. He continues east." | Cannon fire interrupt + literal personality |
+| **Intercepted Dispatches** | "My dear Castlereagh, I have positioned sixty-eight thousand at Waterloo..." | Scout action result |
+| **Marshal Memory** | "The last time you ordered me to attack fortified positions, we lost 12,000 men." | Similar situation recurs |
+| **Napoleon's Desk** | "Sire, Davout reports the enemy fortifying Belgium. Ney requests permission to attack." | Turn start |
+| **Command Echoing** | Player typed "unleash hell" -> "Ney unleashed hell on Wellington's lines — 12,000 casualties." | Combat report |
+| **Autonomy Inner Monologue** | "Ney sees the gap and cannot resist" | Autonomous marshal acts |
+| **LLM Objection Arguments** | Objection references real game state | Objection popup (Tier 2) |
+| **Napoleon Comparison** | "You lasted 47 turns. Napoleon lasted 120 months. Your coalition formed on turn 12; historically, the Third Coalition formed in 1805." | Post-game screen |
 
 ### Encouraging Creative Commands (Anti-Memorization)
 
-Strategic score and ambiguity bonuses are wired (`apply_strategic_bonuses` in executor.py). Additional measures to reward natural language over parser keyword memorization:
+| Feature | Description |
+|---------|-------------|
+| **Flavor Echoing** | Marshal voice echoes player's words. HIGHEST PRIORITY — signals "the game heard me." |
+| **Synonym Bonus** | LLM detects creative phrasing, boosts strategic_score |
+| **Command Suggestions** | Occasionally offer alternatives: "Instead of 'attack,' try 'storm the heights'" |
+| **Repetition Penalty** | Same phrasing 5+ times in a row lowers strategic_score. Subtle, not punishing. |
+| **"Napoleon's Wit" Bonus** | LLM scores commands for historical flair |
+| **Command Variety Tracker** | Milestone rewards: "Your marshals admire your eloquence" (+authority) |
 
-| Feature | Description | Phase |
-|---------|-------------|-------|
-| **Synonym Bonus** | LLM detects creative phrasing ("unleash hell" vs "attack") and boosts strategic_score | 8.5 |
-| **Flavor Echoing** | Marshal voice echoes the player's own words: "You said 'unleash hell' — Ney intends to." Reinforces creative input | 8.5 |
-| **Repetition Penalty** | Same exact phrasing 3+ times in a row lowers strategic_score. Already partially in prompt_builder (repetition detection) | 8.5 |
-| **"Napoleon's Wit" Bonus** | LLM scores commands for historical/thematic flair. "We march at dawn" scores higher than "move to Belgium" | 8.5 |
-| **Command Variety Tracker** | Track unique phrasings per session. Milestone rewards: "Your marshals admire your eloquence" (+authority) | 8.5 |
+**Key insight:** Carrot, not stick. "attack wellington" always works perfectly. Creative phrasing earns bonuses.
 
-**Key insight:** The fast parser already handles keywords efficiently. The LLM fallback scores creativity. Players who type creatively get higher strategic_score → higher morale/trust/combat bonuses. Players who type "attack wellington" still work perfectly but miss the bonus. Carrot, not stick.
+### Positive Events
 
-### Positive Events (design further when we get here)
-
-Currently the event system skews negative (retreat, broken morale, cavalry restless, trust warnings). These positive events add reward and momentum. Vindication narratives already have infrastructure in `vindication.py`.
-
-| Event | Trigger | Effect | Notes |
-|-------|---------|--------|-------|
-| **Victory celebration** | Decisive victory (>2:1 casualty ratio) | +5 morale to nearby marshals | Reward aggressive play |
-| **Momentum** | Win 2+ battles in same turn | +10 morale army-wide, flavor text | "Unstoppable!" feeling |
-| **Rallying speech** | Marshal morale recovers past 60 from below 40 | Trust +3, flavor text | Recovery feels rewarding |
-| **Captured supplies** | Conquer region with high income value | One-time gold bonus + message | Economic reward for conquest |
-| **Vindication narrative** | Marshal proven right after objection (infrastructure exists) | "Davout was right!" popup, trust +8 | Phase 7 (relationships) |
-| **Rivalry resolved** | Two rival marshals fight together successfully | Trust boost for both | Phase 7 (relationships) |
+| Event | Trigger | Effect |
+|-------|---------|--------|
+| **Victory celebration** | Decisive victory (>2:1 ratio) | +5 morale nearby |
+| **Momentum** | Win 2+ battles same turn | +10 morale army-wide |
+| **Rallying speech** | Morale recovers past 60 from below 40 | Trust +3 |
+| **Captured supplies** | Conquer high-income region | Gold bonus |
+| **Vindication narrative** | Marshal proven right | Trust +8, "Davout was right!" |
+| **Rivalry resolved** | Rival marshals fight together | Trust boost for both |
 
 **Dependencies:** Phase 8 (diplomacy for event outcomes)
-**Exit Criteria:** Each campaign tells a story, nations play differently, marshals have personality voice, gazette provides narrative rhythm, creative commands are rewarded
+**Exit Criteria:** Each campaign tells a story, nations play differently, marshals have voice, gazette provides rhythm
 
 ---
 
-## Phase 9: Advisors (Layer 1)
+## STEAM PAGE + LLC
 
-**Goal:** Implement VISION's "Three Layers of Agency" — advisors gate actions.
+**After Phase 8.5.** Marshal voice, gazette, audio, and EU4-style map all working. This is when the game is trailerworthy.
 
-| Feature | Description | Complexity | Status |
-|---------|-------------|------------|--------|
-| Advisor Characters | Talleyrand (diplomacy), Berthier (military) | Medium | 📋 |
-| Action Gating | Advisors modify/delay/refuse orders | High | 📋 |
-| Advisor Trust | Relationship affects options | Medium | 📋 |
-| Advisor Dismissal | Fire advisor, lose capabilities | Low | 📋 |
-| Diplomacy Integration | Advisors + peace treaties + LLM | High | 📋 |
-
-**Dependencies:** Phase 8 (diplomacy system exists)  
-**Exit Criteria:** Orders pass through advisors, advisors have agendas
+- Commission trailer showing command typing + objection popup + map
+- Set up LLC for business entity
+- Steam page with screenshots using commissioned Europe map
+- Begin wishlist accumulation — every month without a page is lost wishlists
+- Work with Claude Chat on store page copy, descriptions, tags
 
 ---
 
-## Phase 10: Character & People
+## Phase 9: Advisors (Minimal)
 
-**Goal:** Marshals feel like people who live, die, and can be replaced.
+**Goal:** Empire feels run by people. Advisors provide stats + flavor, not action gating.
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| Marshal Death | Casualties in battle, old age | Medium | 📋 |
-| Marshal Pool | Historical marshals waiting activation | Low | 📋 |
-| LLM Replacements | Generate new marshals when pool empty | Medium | 📋 |
-| Recruit Marshals | Activate from pool (costs resources) | Low | 📋 |
-| Traits System | Acquired traits from events | Medium | 📋 |
+| Advisor Characters | Named characters per domain (Talleyrand, Berthier, Treasurer) | Low | Planned |
+| Passive Stat Bonuses | Each advisor has 2-3 stats boosting their domain | Low | Planned |
+| Named Voices | Advisors narrate their domain's screens in-character | Medium | Planned |
+| Advisor Death/Replacement | Events can remove advisors, replacement has trade-offs | Low | Planned |
+| **National Identity** | Austria starts with Metternich (diplomacy god), Prussia with Scharnhorst (military reform) | Low | Planned |
+
+### Advisor Design (Minimal EA Version)
+
+Advisors exist as **named voices on information screens** with **passive stat bonuses**. They don't gate actions, don't have trust, don't refuse orders.
+
+Example: Metternich as Austria's advisor gives Diplomacy +2 (better peace terms, slower coalition formation). If he dies or is dismissed, Austria loses the bonus. Recruiting a replacement is a choice: "The new diplomat is cautious — +1 diplomacy but -1 military spending."
+
+**Post-EA promotion:** Advisors gain action gating, trust relationships, dismissal consequences (the full VISION Layer 1). But for EA, they're personality lenses on information with stat bonuses.
+
+**Dependencies:** Phase 8 (diplomacy for advisor context)
+**Exit Criteria:** Advisors feel like people running an empire, stats affect outcomes
+
+---
+
+## Phase 10: Character & People (Minimal)
+
+**Goal:** Marshals feel like people who live, die, and can be replaced. If all marshals die, you lose.
+
+| Feature | Description | Complexity | Status |
+|---------|-------------|------------|--------|
+| Marshal Death | Casualties in battle (% chance per major defeat) | Medium | Planned |
+| Marshal Pool | Historical marshals waiting activation | Low | Planned |
+| Recruit Marshals | Activate from pool (costs gold + manpower) | Low | Planned |
+| All-Dead Loss | If all marshals die, game over | Low | Planned |
 
 ### Evaluate Adding New Personality Type Before 1805
 
-Current types: Aggressive (Ney/Blucher), Cautious (Davout/Wellington), Literal (Grouchy). Three types create a clean triangle. Evaluate whether one additional type (e.g., Loyal — rarely objects but won't warn about bad decisions) adds enough gameplay contrast to justify the complexity of new trigger tables, V2 evaluators, and AI behavior. Napoleon will be unique (player character, authority source) — not a personality type but a separate system. Soult/Lannes stubs removed from `personality_modifiers.py` — design from scratch if adding.
+Current: Aggressive, Cautious, Literal. Evaluate whether Loyal or Balanced adds enough contrast to justify new trigger tables, V2 evaluators, and AI behavior.
+
+**Deferred from EA:** LLM-generated marshals (when pool empty), acquired traits system.
 
 **Dependencies:** Phase 6 (economy for recruitment costs)
-**Exit Criteria:** Marshals can die, player can recruit replacements
+**Exit Criteria:** Marshals can die, player can recruit replacements, total death = loss
 
 ---
 
-## Phase 11: Vassals & Naval
+## Phase 11: Vassals & Britain
 
-**Goal:** Puppet states and Britain's unique naval mechanics.
-
-| Feature | Description | Complexity | Status |
-|---------|-------------|------------|--------|
-| Create Vassals | Puppet states from conquests | Medium | 📋 |
-| Autonomy Levels | Low/Medium/High affects tribute | Medium | 📋 |
-| Vassal Troops | Vassal armies fight for overlord | Medium | 📋 |
-| Naval Abstraction | British blockades, expeditions | Medium | 📋 |
-| No Ship Combat | Naval is strategic, not tactical | — | Design |
-
-**Dependencies:** Phase 8 (diplomacy for vassal creation)  
-**Exit Criteria:** Can create vassals, Britain has coastal mechanics
-
----
-
-## Phase 12: Communication & Strategic Polish
-
-**Goal:** Communication matters, orders can be cut off.
+**Goal:** Client states work, France's empire makes geographic sense, Britain threatens from off-map.
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| Communication Cutoff | No capital connection → autonomous | Medium | 📋 |
-| Moving HQ | Napoleon's command center moves | Low | 📋 |
-| Courier Delay | Distance affects order timing | Low | 📋 |
+| **Simplified Vassals** | Conquered nations become vassals with loyalty number | Medium | Planned |
+| Vassal Troops | Vassals contribute troops automatically | Low | Planned |
+| Vassal Defection | If coalition threat > loyalty, vassal defects | Medium | Planned |
+| **Authority -> Loyalty** | Napoleon's authority affects all vassal loyalty (1813 snowball) | Low | Planned |
+| **Britain Off-Map** | Britain as funder: subsidy pool, expeditionary forces, can't be attacked | Medium | Planned |
+| Continental System | Player action to reduce British income/subsidies | Low | Planned |
 
-**Dependencies:** Phase 6 (map/region connectivity)  
-**Exit Criteria:** Cut-off marshals act autonomously or follow last order
+### Simplified Vassal System
+
+No autonomy slider, no vassal management UI. Just: "Bavaria is your vassal (loyalty 72). They provide 15,000 troops. If coalition threat exceeds their loyalty, they defect."
+
+Authority drop -> vassals waver -> defect in next coalition -> lose their troops AND territory becomes hostile -> more enemies -> more authority loss. The 1813-1814 death spiral in game mechanics. Inverse: high authority -> loyal vassals -> coalition can't peel them away.
+
+### Britain as Off-Map Power
+
+Britain has a subsidy pool that grows from colonial income. When coalition forms, Britain funds it. Britain can spawn Wellington + troops in coastal regions (Portugal, Netherlands). Player can't attack Britain directly.
+
+To beat Britain: exhaust their willingness to fund coalitions (war score / diplomacy) or make Continental System work (reduce income). Historically accurate for most of the Napoleonic Wars.
+
+**Naval abstraction deferred to Post-EA** (when Britain becomes playable with its own map provinces).
+
+**Dependencies:** Phase 7 (coalition trigger), Phase 8 (diplomacy for vassal creation)
+**Exit Criteria:** France has client states, vassals can defect, Britain funds enemies
 
 ---
 
 ## Pre-EA Polish
 
-**Goal:** Game is shippable, onboardable, monetizable, and IMMERSIVE.
+**Goal:** Game is shippable, onboardable, monetizable.
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| Save/Load | Full game state persistence | Low | 📋 |
-| Autosave | Per-turn automatic saves | Low | 📋 |
-| Tutorial | 5-stage onboarding | Medium | 📋 |
-| Voice-to-Text | Speak orders naturally | Medium | 📋 |
-| **LLM Monetization** | BYOK + token tiers + payment | High | 📋 CRITICAL |
-| At-will Autonomy | Grant autonomy anytime | Low | 📋 |
-| At-will Administrator | Sideline marshal anytime | Low | 📋 |
-| Increase Salary | Gold → Trust conversion | Low | 📋 |
-| Modding Polish | Finish tools, docs, examples | Low | 🔄 Nearly done |
-| LLM Efficiency | Caching, optimization | Medium | 📋 |
-| Settings Menu | Audio, display, controls | Low | 📋 |
-| Steam Integration | Achievements, cloud saves | Medium | 📋 |
-| **Music & Sound (Polish)** | Full period orchestral, per-nation themes, dynamic intensity | Medium | 📋 |
-| Difficulty Settings | AI bonuses, player handicaps | Low | 📋 |
-| **Full Flavor Toggle** | Player setting for LLM voice on ALL commands (Marshal Voice Tier 3) | Low | 📋 |
-| **LLM Cost Display** | Show token usage in settings, warn on full flavor mode | Low | 📋 |
+| Tutorial Content | Populate `TutorialManager` from TUTORIAL_SCRIPT.md | Medium | Planned |
+| **LLM Monetization** | BYOK + token tiers + payment | High | CRITICAL |
+| **LLM Feature Toggles** | Per-feature model/on-off selection in settings | Low | Planned |
+| At-will Autonomy | Grant autonomy anytime (gold-gated, one admin slot) | Low | Planned |
+| At-will Administrator | Sideline marshal for +1 AP (gold-gated) | Low | Planned |
+| Increase Salary | Gold -> Trust conversion | Low | Planned |
+| Modding Polish | Finish tools, docs, examples | Low | Nearly done |
+| LLM Efficiency | Caching, optimization | Medium | Planned |
+| Settings Menu | Audio, display, controls, LLM settings | Low | Planned |
+| Steam Integration | Achievements, cloud saves | Medium | Planned |
+| **Music & Sound (Polish)** | Full period orchestral, per-nation themes | Medium | Planned |
+| Difficulty Settings | AI bonuses, player handicaps | Low | Planned |
+| **Full Flavor Toggle** | Tier 3 marshal voice (opt-in with cost warning) | Low | Planned |
+| **LLM Cost Display** | Per-feature token usage in settings | Low | Planned |
+| **Short Waterloo Scenario** | 10-15 turn tutorial scenario, 3 marshals, reuse current 13-region data | Medium | Planned |
+
+### LLM Settings UI
+
+```
+LLM Features          Model       Status
+---------------------------------------------
+Command Parsing       Haiku       [ON]
+Marshal Voice         Haiku       [ON]
+Gazette              Sonnet       [ON] (recommended)
+Diplomacy Chat       Sonnet       [ON] (recommended)
+Battle Narration     Haiku        [OFF]
+Full Flavor Mode     Haiku        [OFF]
+
+Estimated cost/game: ~$0.05
+```
+
+Power users tune per-feature, casual players use defaults.
 
 **Dependencies:** All phases complete
-**Exit Criteria:** Can save/load, new players learn, payments work, game feels alive
+**Exit Criteria:** New players learn, payments work, game feels alive
 
 ---
 
 ## 1805 Campaign Launch (Early Access)
 
-**Goal:** The real game — full Europe, 8 nations, 10-year campaign.
+**Goal:** Option C — commission full Europe map, wire partial regions, expand over EA updates.
 
 | Feature | Description | Complexity | Notes |
 |---------|-------------|------------|-------|
-| **200+ Region Map** | Full Europe | HIGH | ⚠️ MAJOR UI WORK |
-| **EU4-Style Rendering** | Polygons, borders, colors | HIGH | ⚠️ MAJOR UI WORK |
-| Map Interaction | Click provinces, zoom, pan | HIGH | ⚠️ MAJOR UI WORK |
-| 8+ Nations | France, Austria, Russia, Prussia, Britain, Spain, Bavaria, Ottoman | HIGH | Data + balance |
-| 30+ Marshals | Historical personalities | Medium | Data entry |
+| **~80-100 Wired Regions** | Western/Central Europe playable | Medium | Data entry + balance |
+| **EU4-Style Bitmap Map** | Province color map, visual overlay | Integrated in 6.5 | Commissioned art |
+| Map Interaction | Click provinces, zoom, pan | Integrated in 6.5 | |
+| 6-8 Nations | France, Austria, Russia, Prussia, (Britain off-map), Spain, Bavaria, Ottoman | HIGH | Data + balance |
+| 20+ Marshals | Historical personalities per nation | Medium | Data entry |
 | Year-Based Turns | Monthly 1805-1815 | Low | |
-| 1805 Win Conditions | Per-nation victory conditions | Medium | Blocked by map |
+| 1805 Win Conditions | Per-nation victory conditions | Medium | |
+| **Greyed-Out Expansion** | Remaining 40-70 provinces visible but non-interactive | Low | Visual promise |
 
-**⚠️ UI CALLOUT:** The 1805 map is the single largest task. Estimate 4-6 weeks dedicated UI work:
-- Province polygon rendering (not circles)
-- Click detection on complex shapes
-- Zoom/pan controls
-- Region tooltips
-- Dynamic coloring on conquest
-- Possibly commissioned art ($300-800)
-- **Cardinal direction system:** `REGION_POSITIONS` in `strategic_parser.py` must be expanded from 13 to 200+ entries with approximate grid coordinates for all new regions
+### AP Scaling for 1805
 
-**⚠️ AI SCALING (from audit):** With 15-20 enemy marshals, the current 4-AP-per-nation budget causes **action starvation** — 2-3 marshals in combat consume all AP while others sit permanently idle. Needs AP budget scaling (e.g., AP = f(marshal_count)) or tiered actions (free basic actions for idle marshals, AP only for offensive). Also need **strategic order conflict detection** — two marshals can currently have contradictory orders with no warning.
+Nation AP reflects bureaucratic capacity (see Phase 7 table). Additional: free basic actions for idle marshals (stance, wait), AP only for offensive actions. Strategic order conflict detection required.
 
-**Dependencies:** All phases + Pre-EA complete  
-**Exit Criteria:** Full 1805 campaign playable
+### Option C Expansion Plan
+
+EA v1: Western + Central Europe (~80 regions). EA updates add Eastern Europe, expand Russia, Ottoman interior. Each update = wire more provinces from existing art + add region data. No new art commissions needed.
+
+**Dependencies:** All phases + Pre-EA complete, commissioned map art
+**Exit Criteria:** Partial 1805 campaign playable, map looks professional
 
 ---
 
@@ -435,106 +538,106 @@ Current types: Aggressive (Ney/Blucher), Cautious (Davout/Wellington), Literal (
 
 | Feature | Priority | Notes |
 |---------|----------|-------|
+| **Full Europe (120+ regions)** | HIGH | Wire remaining provinces from existing art |
 | Multi-Nation Play | HIGH | Play as Austria, Russia, etc. |
 | Coalition Player | HIGH | Lead coalition against France |
 | Additional Start Dates | HIGH | 1809, 1812, 1815 scenarios |
+| **Naval Abstraction** | HIGH | Required when Britain becomes playable |
+| **Britain Playable** | HIGH | Own provinces, naval mechanics, subsidy system |
+| **Communication / Courier Delay** | MEDIUM | Distance-based turn lag, Napoleon's HQ location matters, player-only (Option A) |
+| **Full Advisor System** | MEDIUM | Action gating, trust, dismissal (VISION Layer 1) |
+| **North Africa / Egypt** | MEDIUM | Expansion map art, Egyptian campaign scenario |
 | Weather System | MEDIUM | Russian winter, mud season |
-| Advanced AI | MEDIUM | Flanking, capital defense |
+| Advanced AI | MEDIUM | Flanking coordination, capital defense |
 | Campaign Editor | MEDIUM | Player-made scenarios |
 | Steam Workshop | MEDIUM | Mod sharing |
 | Accessibility | MEDIUM | Colorblind, fonts, keybinding |
+| Voice-to-Text | LOW | Speak orders naturally |
 | Mobile Port | LOW | Touch UI |
 | Multiplayer | LOW | Co-op? Competitive? |
+
+### Courier Delay (Post-EA Design)
+
+Lighter version of communication cutoff: orders to distant marshals take effect 1 turn later. Within 3 regions of Napoleon: instant. 4-6 regions: 1 turn delay. 7+: 2 turns. Makes Napoleon's physical location matter. Player-only for EA; when other nations become playable, each gets own HQ anchor.
 
 ---
 
 ## Critical Path to EA
 
-Must be done, in rough order:
-
-1. ✅ Strategic Commands (done)
-2. ✅ Enemy AI (done)
-3. ✅ Serialization/Modding foundation (done)
-4. 🔄 V2a: Objection System Refactor (Units 1-5 done, 6-7 remaining)
-5. 📋 Phase 6: Economy, Manpower, Terrain, Fog, War Score
-6. 📋 Phase 6.5: Notifications, Ledger, Marshal UI
-7. 📋 Phase 7: Multi-marshal, Relationships gameplay, **V2b: Defiance/Vindication**
-8. 📋 Phase 8: Diplomacy, **Coalitions**, **Diplomacy Chat** (LLM leader conversations) ← CRITICAL
-9. 📋 Phase 8.5: **Events, National Goals, Flavor**, **Gazette**, **Marshal Voice** ← Makes it a GAME
-10. 🟢 **STEAM PAGE + TRAILER** ← After 8.5: marshal voice, gazette, audio all working. 13-region map is fine. Wishlists compound — every month without a page is lost wishlists.
-11. 📋 Phase 9: Advisors
-12. 📋 Phase 10: Marshal death/recruitment
-13. 📋 Phase 11: Vassals, Naval
-14. 📋 Phase 12: Communication cutoff
-15. 📋 Pre-EA: Save/Load, Tutorial, Voice, **LLM Monetization**
-16. 📋 **1805 Map UI** ← LARGEST SINGLE TASK
-17. 📋 Steam Integration
-18. 🎯 **TBD 2026: Early Access**
+1. COMPLETE: Strategic Commands, Enemy AI, Serialization/Modding
+2. IN PROGRESS: V2a Objection System Refactor (Units 6-7 remaining)
+3. Post-V2a: TUTORIAL_SCRIPT.md, doc updates
+4. **Commission Europe map art** (2-4 week lead time, parallel with Phase 6)
+5. Phase 6: Economy, Manpower, Terrain, Fog, War Score, **Save/Load**, **Berthier**, **Post-battle analysis**
+6. Phase 6.5: Notifications, Ledger, Marshal UI, **Campaign Briefing**, **Marshal Report**, **Tutorial infra**, **Map Renderer**
+7. Phase 7: Multi-marshal, Relationships, **Coalition Trigger**, **V2b**, **AI scaling/coordination**
+8. Phase 8: **Diplomacy Chat**, Peace Treaties, Leader Personalities
+9. Phase 8.5: **Events, Gazette, Marshal Voice, Grouchy LLM, Intercepted Dispatches, Creative Commands, Napoleon Comparison**
+10. **STEAM PAGE + LLC** (marshal voice, gazette, audio, EU4 map all working)
+11. Phase 9: Advisors (minimal: stats + flavor + named voices)
+12. Phase 10: Marshal death/recruitment (minimal)
+13. Phase 11: Vassals (loyalty + authority), Britain (off-map funder)
+14. Pre-EA: Tutorial content, LLM monetization, **LLM feature toggles**, **Waterloo scenario**, Steam integration
+15. Wire ~80-100 regions from commissioned map, data entry, balance
+16. **TBD 2026: Early Access**
 
 ---
 
 ## Phase Dependencies Graph
 
 ```
-Phase 6 (Economy/Terrain) ──┬──► Phase 6.5 (UI/Info) ──► Phase 7 (Multi-marshal)
-                           │
-                           ├──► Phase 8 (Diplomacy) ──► Phase 8.5 (Events/Goals)
-                           │                                    │
-                           │                                    ▼
-                           │                            Phase 9 (Advisors)
-                           │
-                           ├──► Phase 10 (Characters)
-                           │
-                           └──► Phase 12 (Communication)
-
-Phase 8 (Diplomacy) ──► Phase 11 (Vassals)
-
-All Phases ──► Pre-EA Polish (Save, Tutorial, Music) ──► 1805 Map UI ──► EA Launch
+                    Commission Map Art (parallel)
+                           |
+Phase 6 (Economy/Terrain/Save) --+--> Phase 6.5 (UI/Info/Map Renderer)
+                                 |          |
+                                 |          +--> Phase 7 (Multi-marshal + Coalitions + V2b)
+                                 |                    |
+                                 |                    +--> Phase 8 (Diplomacy/Peace)
+                                 |                              |
+                                 |                              +--> Phase 8.5 (Events/Voice/Gazette)
+                                 |                                        |
+                                 |                                  STEAM PAGE + LLC
+                                 |                                        |
+                                 +--> Phase 10 (Characters) ----+         |
+                                                                |         v
+Phase 8 (Diplomacy) --> Phase 11 (Vassals/Britain) ----+  Phase 9 (Advisors)
+                                                       |         |
+                                                       v         v
+                                                  Pre-EA Polish
+                                                       |
+                                                  Wire Regions + Balance
+                                                       |
+                                                  EA Launch
 ```
-
----
-
-## Timeline Estimate
-
-| Milestone | Target | Notes |
-|-----------|--------|-------|
-| Phase 6 | +3-4 weeks | Economy, terrain, fog, manpower, war score |
-| Phase 6.5 | +2 weeks | Notifications, ledger, marshal UI |
-| Phase 7 | +2-3 weeks | Multi-marshal |
-| Phase 8 | +3-4 weeks | Diplomacy, coalitions |
-| Phase 8.5 | +3 weeks | Events, national goals, flavor |
-| Phase 9 | +2-3 weeks | Advisors |
-| Phase 10 | +2 weeks | Characters |
-| Phase 11 | +2 weeks | Vassals, naval |
-| Phase 12 | +1 week | Communication |
-| Pre-EA | +4 weeks | Polish, monetization, music |
-| 1805 Map | +4-6 weeks | **Major UI work** |
-| Buffer | +2 weeks | Bug fixes, testing |
-| **Early Access** | **TBD 2026** | |
 
 ---
 
 ## LLM Cost Budget (Per 40-Turn Game)
 
-| System | Phase | Calls | Cost |
-|--------|-------|-------|------|
-| Command parsing (existing) | 4 | ~40 LLM + ~360 free | ~$0.016 |
-| Marshal Voice Tier 2 | 8.5 | ~30-50 drama events | ~$0.012-0.020 |
-| Gazette | 8.5 | ~8 gazettes | ~$0.004 |
-| Diplomacy Chat | 8 | ~40-60 exchanges | ~$0.016-0.024 |
-| **Total per game** | | | **~$0.05-0.06** |
-| Full Flavor Tier 3 (opt-in) | Pre-EA | +160 routine calls | +$0.064 |
+| System | Phase | Calls | Model | Cost | Toggleable |
+|--------|-------|-------|-------|------|------------|
+| Command parsing | 4 (existing) | ~40 LLM + ~360 free | Haiku | ~$0.016 | ON by default |
+| Berthier parse recovery | 6 | ~5 failures | Haiku | ~$0.002 | ON by default |
+| Marshal Voice Tier 2 | 8.5 | ~30-50 drama events | Haiku | ~$0.012-0.020 | ON by default |
+| Gazette | 8.5 | ~8 gazettes | Sonnet (rec.) | ~$0.008 | ON by default |
+| Diplomacy Chat | 8 | ~40-60 exchanges | Sonnet (rec.) | ~$0.016-0.024 | ON by default |
+| Grouchy Moment / Dispatches | 8.5 | ~5-10 events | Haiku | ~$0.002-0.004 | ON by default |
+| Napoleon's Desk briefing | 8.5 | ~40 turns | Haiku | ~$0.016 | OFF by default |
+| **Total per game (defaults)** | | | | **~$0.07-0.09** | |
+| Full Flavor Tier 3 (opt-in) | Pre-EA | +160 routine calls | Haiku | +$0.064 | OFF by default |
 
-At 1000 games/month = ~$50-60. BYOK covers heavy users. All systems degrade gracefully to templates when LLM unavailable.
+At 1000 games/month = ~$70-90. BYOK covers heavy users. All systems degrade gracefully to templates when LLM unavailable. Per-feature toggle in settings lets players control cost vs immersion.
 
 ---
 
 ## Document References
 
-- **STATUS.md** — Current test count, active work, blockers
-- **SYSTEMS_REFERENCE.md** — Game systems reference
-- **ENEMY_AI_REFERENCE.md** — Enemy AI decision tree
-- **OBJECTION_V2.md** — V2 objection system design
-- **VISION.md** — Core concept, north star
+- **STATUS.md** -- Current test count, active work, blockers
+- **SYSTEMS_REFERENCE.md** -- Game systems reference
+- **ENEMY_AI_REFERENCE.md** -- Enemy AI decision tree
+- **OBJECTION_V2.md** -- V2 objection system design
+- **VISION.md** -- Core concept, north star
+- **TUTORIAL_SCRIPT.md** -- Living tutorial content document (updated each phase)
+- **FUTURE_DESIGN.md** -- Deferred concepts, post-EA designs
 
 **Rule:** Phase numbers and timeline ONLY exist in this document. Other docs say "see ROADMAP.md".
