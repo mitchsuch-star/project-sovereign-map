@@ -2178,4 +2178,55 @@ Grant Autonomy, Administrative Role, and Dismiss all implemented. See CLAUDE.md 
 
 ---
 
+---
+
+## Army Cohesion (Deferred)
+
+> **Deferred from Phase 6 economy design. Revisit after playtesting.**
+
+### Problem
+Morale alone doesn't capture army quality. A fresh conscript army at 80% morale isn't the same as Davout's veterans at 80% morale. Morale dilution on recruitment helps but doesn't create a persistent "army experience" stat.
+
+### Proposed Design
+
+New field on Marshal: `cohesion: int` (0-100)
+
+| Cohesion | Label | Combat Effect |
+|----------|-------|---------------|
+| 0-25 | Rabble | -15% attack, -15% defense |
+| 26-50 | Green | -5% attack, -5% defense |
+| 51-75 | Trained | No modifier |
+| 76-100 | Veterans | +5% attack, +5% defense |
+
+**What raises cohesion:**
+- Drilling: +5 per drill action
+- Winning battles: +5-8
+- Losing battles (survived): +2-3
+- Time together: +1/turn passively
+
+**What lowers cohesion:**
+- Mass recruitment: weighted average dilution (same formula as morale dilution)
+- Heavy casualties followed by replacements: proportional drop
+
+### Why Deferred
+
+Phase 6 uses morale dilution as the recruitment penalty, which covers ~80% of the gameplay value. Cohesion adds a persistent quality axis but requires:
+- New combat modifier (single-source in marshal.py)
+- UI display for another stat per marshal
+- Balancing alongside morale, trust, and stance
+- Drill now has dual purpose (shock bonus + cohesion) which needs testing
+
+### When to Add
+After Phase 6 playtesting. If veteran armies don't "feel" different from fresh conscript armies despite morale differences, add cohesion. Implementation is straightforward: new field on Marshal, modifier in `get_attack_modifier()` / `get_defense_modifier()`, dilution in `_execute_recruit()`.
+
+### Personality Hooks
+- Aggressive marshals: higher cohesion gain from combat, lower from drilling
+- Cautious marshals: higher cohesion gain from drilling, steady from combat
+- Literal marshals: consistent cohesion maintenance, no spikes
+
+### Admin General Hook (Phase 9)
+Marshal "administration" stat could slow cohesion decay and improve recruitment dilution ratio — better administrators integrate new troops faster.
+
+---
+
 *Extracted from CLAUDE.md during documentation cleanup. Last updated February 2, 2026.*

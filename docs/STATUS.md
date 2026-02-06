@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 6, 2026
-> **Last Session:** Session 7 — V2a Smoke Test Bug Fixes
+> **Last Session:** Sessions 8-10 — Economy Spec Design (3 review rounds)
 
 ---
 
@@ -11,7 +11,7 @@
 | Metric | Value |
 |--------|-------|
 | **Tests Passing** | **1222** (verified, 3 skipped) |
-| **Current Phase** | V2a **COMPLETE** — Begin Phase 6 |
+| **Current Phase** | Phase 6 — Economy spec COMPLETE, Terrain design next |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a |
 
@@ -19,22 +19,48 @@
 
 ## Active Work
 
-**V2a Objection Refactor: COMPLETE** (all 7 units done).
+**Phase 6: Core Campaign — Economy spec COMPLETE, Terrain next.**
 
-- [x] Phase M: Strategic Objections
-- V2a: Objection System Refactor — **COMPLETE**
-  - [x] Unit 1: Core Data Structures (ConcernLevel, TrustTier, trust/penalty calculations) — 53 tests
-  - [x] Unit 2: Tactical Trigger Evaluators (aggressive, cautious, literal) — 36 tests
-  - [x] Unit 3: Strategic Trigger Evaluators (HOLD, PURSUE, MOVE_TO, SUPPORT) — 30 tests
-  - [x] Unit 4: Pipeline Integration (V2 evaluators wired into executor.py) — 6 tests
-  - [x] Unit 5: Vindication Extension (pending_defensive_vindication) — 2 tests
-  - [x] Unit 6: Integration Wiring + Test Migration — 13 new tests, 6 gaps resolved
-  - [x] Unit 7: Godot Frontend (tone-based styling, MILD "Field Dispatches", trust previews)
-- [ ] Begin Phase 6 design
+- [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
+- [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
+- [x] COHESION_FUTURE_DESIGN.md deleted (content merged into FUTURE_DESIGN.md)
+- [ ] **Terrain spec design** (Phase 6.1 — must precede economy implementation)
+- [ ] Economy implementation (18 steps per ECONOMY_SPEC.md §15)
 
 ---
 
 ## Recently Completed
+
+### Feb 6 (Sessions 8-10: Economy Spec Design)
+
+**3 design review rounds across 3 sessions (context continuations):**
+
+**Session 8 — Initial Economy Spec + Cohesion Assessment:**
+- Created `docs/ECONOMY_SPEC.md` — complete economy implementation spec (17 sections)
+- Reviewed spec against 18 codebase files for conflicts, serialization gaps, edge cases
+- Assessed `docs/COHESION_FUTURE_DESIGN.md` → verdict: defer, morale dilution sufficient for now
+- Appended cohesion content to `docs/FUTURE_DESIGN.md` under "Army Cohesion (Deferred)"
+
+**Session 9 — 12 Design Updates + Comprehensive Review:**
+- Deleted `docs/COHESION_FUTURE_DESIGN.md` (content folded into FUTURE_DESIGN.md)
+- Applied 12 design decisions: halved upkeep rate (* 5), nerfed plunder (+0.35 war_damage), buffed secure (0.0 war_damage), pending_capture_choice pattern, all nations use identical economy, retreat half-attrition, construction cancelled on capture, separate use_admin_action(), morale dilution note, admin generals future hook
+- 6-angle design review: fun factor, historical flavor, edge cases/exploits, documentation quality, system interactions, scalability
+
+**Session 10 — Final 10 Patches + Edge Case Clarifications:**
+- Patch 1: Replaced partisan uprising with simpler `plundered: bool` flag
+- Patch 2: AI plunder/secure by personality (aggressive→plunder, cautious→secure)
+- Patch 3: `supply_capacity` as computed property (not serialized)
+- Patch 4: Added economy/treasury/finances free command
+- Patch 5: Fixed upkeep timing to income phase at end of turn
+- Patch 6: Removed save migration notes (no saves exist)
+- Patch 7: Added `_ACTION_DISPLAY_NAMES` requirement to implementation step 16
+- Patch 8: Added step 18 for MODDING_FORMAT.md update
+- Patch 9: Added bankruptcy → authority drop future hook (§3 + §16)
+- Patch 10: Added AI admin scaling note (§11 + §16)
+- Clarified 4 edge cases: recruit-without-marshal, multiple AI captures, front-line building risk, bankrupt recruiting
+- Final review: 7 questions answered, no remaining contradictions, all serialization accounted for
+
+**Economy spec final state:** 1025 lines, 18 implementation steps, 14 deferred features, all edge cases resolved.
 
 ### Feb 5 (Session 7: V2a Smoke Test Bug Fixes)
 
@@ -226,10 +252,11 @@
 
 ## Next Session Priorities
 
-1. **Godot smoke test** — Launch game, trigger objection, verify tone styling + dispatches
-2. **Begin Phase 6 design** — Core Campaign (save/load, Berthier Parse Recovery)
+1. **Design terrain spec** — `docs/TERRAIN_SPEC.md` (terrain types for 13 regions, combat modifiers, movement costs, attrition multipliers). Must be done BEFORE economy implementation.
+2. **Plan combined terrain + economy implementation** — Terrain first (simpler), then economy 18 steps.
 3. Commission Europe map art (start search for artist)
 
+**Economy spec:** `docs/ECONOMY_SPEC.md` (FINAL — no further changes)
 **V2 objection design doc:** `docs/OBJECTION_V2.md`
 
 ---
@@ -249,6 +276,7 @@ python backend/main.py                    # Backend on port 8005
 
 | Need | Read |
 |------|------|
+| Economy spec (Phase 6) | `ECONOMY_SPEC.md` |
 | Phase timeline | `ROADMAP.md` |
 | Game systems reference | `SYSTEMS_REFERENCE.md` |
 | Enemy AI | `ENEMY_AI_REFERENCE.md` |
