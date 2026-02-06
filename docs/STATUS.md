@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 5, 2026
+> **Last Updated:** February 6, 2026
 > **Last Session:** Session 7 — V2a Smoke Test Bug Fixes
 
 ---
@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1216** (verified, 3 skipped) |
+| **Tests Passing** | **1222** (verified, 3 skipped) |
 | **Current Phase** | V2a **COMPLETE** — Begin Phase 6 |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a |
@@ -51,6 +51,18 @@
 - **BUG FIX:** Stance change to current stance (e.g. aggressive while aggressive) could trigger objection before failing. Added already-in-stance pre-validation.
 
 **Defensive comments added** at all fix sites explaining why the code was wrong.
+
+**Follow-up fixes from continued smoke testing (2 bugs):**
+- **BUG FIX:** MILD "Field Dispatches" appearing below failed commands (e.g. "ney grumbles" shown even when defend fails). `main.py` had `elif world.mild_concerns_this_turn` fallback that sent stale MILD concerns on every command response. Removed fallback — MILD dispatches now only sent via end_turn result dict path.
+- **BUG FIX:** NoneType crash still occurring with Anthropic LLM mode on "ney nuertral". Root cause: `objection_v2.py` used `order.get('target', '').lower()` — but `parser.py:297` explicitly sets `"target": None`, and `.get()` default only applies for MISSING keys, not None values. `None.lower()` crashed. Fixed both instances (lines 707, 768) to `(order.get('target') or '').lower()`. Added 2 regression tests.
+- **Test count: 1218 passed, 3 skipped, 0 failures**
+
+**Follow-up fixes from second smoke test round (3 bugs):**
+- **BUG FIX:** Post-objection proceed for stance_change consumed only 1 AP instead of variable cost. `_execute_post_objection()` used `world.use_action()` (always 1 AP), ignoring `variable_action_cost`. Now handles variable costs (0-2 AP) matching main execute path.
+- **BUG FIX:** AP not checked before objection fires. Player could trigger objection for a 2 AP action with only 1 AP, then "proceed" would fail with AP error. Added AP pre-check in pre-validation block before V2 objection evaluation. Systemic fix: applies to all actions including stance_change variable costs.
+- **BUG FIX:** Enemy turn summary not visible in command output after enemy phase dialog dismissed. Added post-dismissal summary output to `_on_enemy_phase_dismissed()` in main.gd so player has text record in command history.
+- **Verified:** Already-in-stance pre-validation prevents MILD objection from firing (2 regression tests added).
+- **Test count: 1222 passed, 3 skipped, 0 failures**
 
 ### Feb 5 (Session 6: Bug Fixes + Roadmap)
 
@@ -179,6 +191,8 @@
 
 | Date | Tests | Notes |
 |------|-------|-------|
+| Feb 6, 2026 | **1222** | AP pre-check, post-objection variable cost, enemy summary, 4 regression tests |
+| Feb 5, 2026 | **1218** | Smoke test follow-up: NoneType + stale MILD fixes, 2 regression tests |
 | Feb 5, 2026 | **1216** | V2a Unit 6 complete, 13 new integration tests |
 | Feb 5, 2026 | **~1203** | Audit fixes (need PyCharm verification) |
 | Feb 5, 2026 | **1203** | V2a Units 1-5 complete, Opus review fixes |

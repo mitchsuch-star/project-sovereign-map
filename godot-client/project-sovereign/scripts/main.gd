@@ -1102,6 +1102,17 @@ func _show_mild_dispatches(response):
 
 func _on_enemy_phase_dismissed():
 	"""Handle enemy phase dialog dismissal."""
+	# Show enemy phase summary in command output after dialog dismissed
+	# so the player has a text record in the command history.
+	if pending_enemy_phase_response != null:
+		var ep = pending_enemy_phase_response.get("enemy_phase", {})
+		var summary_lines = ep.get("summary", [])
+		if summary_lines.size() > 0:
+			add_output("[color=#" + COLOR_GOLD + "]═══ ENEMY PHASE ═══[/color]")
+			for line in summary_lines:
+				add_output("[color=#" + COLOR_INFO + "]" + str(line) + "[/color]")
+			add_output("")
+
 	# Show MILD dispatches after enemy phase (V2a: atmosphere text)
 	if pending_enemy_phase_response != null:
 		_show_mild_dispatches(pending_enemy_phase_response)

@@ -924,6 +924,35 @@ RETREAT RECOVERY (3 turns):
                         }
 
                 # ═══════════════════════════════════════════════════════════
+                # AP PRE-CHECK — Validation BEFORE objection
+                # If the player doesn't have enough AP, fail immediately.
+                # Without this, an objection fires and then "proceed" fails
+                # with an AP error, which is confusing.
+                # ═══════════════════════════════════════════════════════════
+                if action_costs_point and is_player_action_check:
+                    required_ap = 1  # Default cost
+                    if action == 'stance_change':
+                        target_stance_raw_ap = (command.get('target_stance') or command.get('target') or '').lower()
+                        stance_map_ap = {
+                            "neutral": Stance.NEUTRAL, "defensive": Stance.DEFENSIVE,
+                            "defense": Stance.DEFENSIVE, "defend": Stance.DEFENSIVE,
+                            "aggressive": Stance.AGGRESSIVE, "attack": Stance.AGGRESSIVE,
+                            "offense": Stance.AGGRESSIVE,
+                        }
+                        target_stance_ap = stance_map_ap.get(target_stance_raw_ap)
+                        if target_stance_ap:
+                            required_ap = self._get_stance_change_cost(current_stance, target_stance_ap)
+                    if required_ap > 0 and world.actions_remaining < required_ap:
+                        cost_str = f" ({required_ap} action{'s' if required_ap > 1 else ''})" if required_ap > 1 else ""
+                        return {
+                            "success": False,
+                            "message": f"Not enough actions remaining{cost_str}. "
+                                      f"{world.actions_remaining} action{'s' if world.actions_remaining != 1 else ''} left.",
+                            "actions_remaining": int(world.actions_remaining),
+                            "action_summary": world.get_action_summary()
+                        }
+
+                # ═══════════════════════════════════════════════════════════
                 # SKIP OBJECTION if flag was cleared (e.g., by retreat state)
                 # ═══════════════════════════════════════════════════════════
                 if should_check_objection:
@@ -6638,9 +6667,26 @@ RETREAT RECOVERY (3 turns):
             result = {"success": False, "message": f"Unknown action: {action}"}
 
         # Consume action if successful
+        # BUG FIX: Must handle variable_action_cost (stance_change costs 0-2 AP).
+        # Previously called world.use_action() once which only deducts 1 AP.
         action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
         if result.get("success", False) and action_costs_point:
-            action_result = world.use_action(action)
+            variable_cost = result.get("variable_action_cost")
+            if variable_cost is not None:
+                if variable_cost > 0:
+                    if world.actions_remaining < variable_cost:
+                        return {
+                            "success": False,
+                            "message": f"Not enough actions! Need {variable_cost}, have {world.actions_remaining}.",
+                            "actions_remaining": int(world.actions_remaining),
+                        }
+                    for _ in range(variable_cost):
+                        action_result = world.use_action(action)
+                else:
+                    # Free transition (e.g. returning to neutral)
+                    action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
+            else:
+                action_result = world.use_action(action)
 
         # Add action info to result
         result["action_info"] = {

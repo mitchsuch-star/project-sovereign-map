@@ -776,6 +776,16 @@ class TestEvaluateAggressive:
         concern = evaluate_aggressive(marshal, "attack", {"action": "attack"}, game_state)
         assert concern == ConcernLevel.NONE
 
+    def test_stance_change_none_target_no_crash(self):
+        """Stance change with target=None must not crash (regression for .get('target', '').lower())."""
+        marshal = MockMarshal(personality="aggressive", location="Belgium")
+        game_state = self._make_game_state(marshal)
+
+        # Parser sets "target": None when LLM doesn't return a target value.
+        # dict.get('target', '') returns None (key exists), not '' (default is for missing keys).
+        concern = evaluate_aggressive(marshal, "stance_change", {"action": "stance_change", "target": None}, game_state)
+        assert concern == ConcernLevel.NONE
+
 
 class TestEvaluateCautious:
     """Test cautious personality trigger evaluation."""
@@ -892,6 +902,15 @@ class TestEvaluateCautious:
             game_state
         )
         assert concern == ConcernLevel.MILD
+
+    def test_stance_change_none_target_no_crash(self):
+        """Stance change with target=None must not crash (regression for .get('target', '').lower())."""
+        marshal = MockMarshal(personality="cautious", location="Belgium")
+        game_state = self._make_game_state(marshal)
+
+        # Parser sets "target": None when LLM doesn't return a target value.
+        concern = evaluate_cautious(marshal, "stance_change", {"action": "stance_change", "target": None}, game_state)
+        assert concern == ConcernLevel.NONE
 
     def test_defend_is_none(self):
         """Cautious marshals never object to defend."""
@@ -1772,3 +1791,125 @@ class TestV2aIdleTurnsIntegration:
 
         restored = Marshal.from_dict(data)
         assert restored.idle_turns == 0
+
+
+class TestV2aAlreadyInStanceNoMild:
+    """Regression: ordering a stance the marshal is already in must NOT produce MILD."""
+
+    @patch('backend.commands.objection_v2.random.random', return_value=0.5)
+    def test_already_defensive_no_mild(self, mock_rng):
+        """Ney (aggressive) already DEFENSIVE, ordered defensive → fail, no MILD."""
+        from backend.commands.executor import CommandExecutor
+        from backend.models.marshal import Stance
+
+        world = TestV2aIntegrationFixtures.make_integration_world()
+        executor = CommandExecutor()
+
+        ney = world.marshals["Ney"]
+        ney.stance = Stance.DEFENSIVE
+        ney.location = "Belgium"
+
+        # Enemy adjacent to trigger aggressive personality's MILD for defensive
+        blucher = world.marshals["Blucher"]
+        blucher.location = "Rhine"  # Adjacent to Belgium
+
+        command = {"command": {"marshal": "Ney", "action": "stance_change", "target": "defensive"}}
+        game_state = {"world": world}
+
+        result = executor.execute(command, game_state)
+
+        # Pre-validation should catch "already in stance" and return failure
+        assert result.get("success") is False
+        assert "already" in result.get("message", "").lower()
+        # No MILD concern should have been generated
+        assert len(world.mild_concerns_this_turn) == 0
+
+    @patch('backend.commands.objection_v2.random.random', return_value=0.5)
+    def test_already_aggressive_no_mild(self, mock_rng):
+        """Ney already AGGRESSIVE, ordered aggressive → fail, no MILD."""
+        from backend.commands.executor import CommandExecutor
+        from backend.models.marshal import Stance
+
+        world = TestV2aIntegrationFixtures.make_integration_world()
+        executor = CommandExecutor()
+
+        ney = world.marshals["Ney"]
+        ney.stance = Stance.AGGRESSIVE
+
+        command = {"command": {"marshal": "Ney", "action": "stance_change", "target": "aggressive"}}
+        game_state = {"world": world}
+
+        result = executor.execute(command, game_state)
+
+        assert result.get("success") is False
+        assert "already" in result.get("message", "").lower()
+        assert len(world.mild_concerns_this_turn) == 0
+
+
+class TestV2aAPPreCheck:
+    """Regression: AP must be checked BEFORE objection fires."""
+
+    @patch('backend.commands.objection_v2.random.random', return_value=0.5)
+    def test_not_enough_ap_for_stance_change_no_objection(self, mock_rng):
+        """Aggressive→Defensive costs 2 AP. With 1 AP, should fail without objection."""
+        from backend.commands.executor import CommandExecutor
+        from backend.models.marshal import Stance
+
+        world = TestV2aIntegrationFixtures.make_integration_world()
+        executor = CommandExecutor()
+
+        ney = world.marshals["Ney"]
+        ney.stance = Stance.AGGRESSIVE
+        ney.location = "Belgium"
+
+        # Enemy adjacent so objection WOULD fire if AP check didn't catch it first
+        blucher = world.marshals["Blucher"]
+        blucher.location = "Rhine"  # Adjacent
+
+        # Only 1 AP left — aggressive→defensive costs 2
+        world.actions_remaining = 1
+
+        command = {"command": {"marshal": "Ney", "action": "stance_change", "target": "defensive"}}
+        game_state = {"world": world}
+
+        result = executor.execute(command, game_state)
+
+        # Should fail with AP error, NOT trigger an objection
+        assert result.get("success") is False
+        assert "action" in result.get("message", "").lower()  # "Not enough actions"
+        assert result.get("pending_objection") is not True
+        assert len(world.mild_concerns_this_turn) == 0
+
+    @patch('backend.commands.objection_v2.random.random', return_value=0.5)
+    def test_post_objection_variable_cost_consumed(self, mock_rng):
+        """Post-objection path must consume variable AP cost (not always 1)."""
+        from backend.commands.executor import CommandExecutor
+        from backend.models.marshal import Stance
+
+        world = TestV2aIntegrationFixtures.make_integration_world()
+        executor = CommandExecutor()
+
+        davout = world.marshals["Davout"]
+        davout.stance = Stance.AGGRESSIVE
+        davout.location = "Belgium"
+
+        # Set up enough AP and conditions for objection
+        world.actions_remaining = 4
+
+        # Aggressive→Defensive costs 2 AP. Execute via post-objection path.
+        command = {
+            "command": {
+                "marshal": "Davout",
+                "action": "stance_change",
+                "target": "defensive",
+            }
+        }
+        parsed_command = {"success": True, "command": command["command"]}
+        game_state = {"world": world}
+
+        # Call post-objection directly to test variable cost handling
+        result = executor._execute_post_objection(parsed_command, game_state, "Davout")
+
+        assert result.get("success") is True
+        # Should have consumed 2 AP (aggressive→defensive)
+        assert world.actions_remaining == 2

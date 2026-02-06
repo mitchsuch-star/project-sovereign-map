@@ -198,7 +198,10 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | Internal names in frontend | Use `_ACTION_DISPLAY_NAMES` or `_action_display_name()` — never raw action strings |
 | Response key mismatch | curl test the endpoint to verify key names match what Godot reads |
 | None crash on parse field | Guard `.lower()`/`.strip()` — parser may return None for optional fields |
+| `.get('key', '')` returns None | Use `(d.get('key') or '')` — `.get()` default only applies for MISSING keys, not `None` values |
 | Objection on impossible action | Pre-validate BEFORE objection check — see bypass hierarchy in executor.py |
+| AP error after objection proceed | AP must be checked in pre-validation BEFORE objection fires, not after |
+| Post-objection wrong AP cost | `_execute_post_objection` must handle `variable_action_cost` (stance 0-2 AP) |
 | Data cleared before capture | Save per-turn lists (e.g. mild_concerns) BEFORE calling advance_turn |
 
 ---
@@ -215,6 +218,8 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 - Bypass executor for state changes
 - Run objection evaluation before action validation (check bypass hierarchy in executor.py)
 - Show raw internal action names to players (use `_ACTION_DISPLAY_NAMES` translation)
+- Use `.get('key', default)` when value may be `None` — use `(d.get('key') or default)` instead
+- Skip AP check before objection evaluation — player should never see objection then AP failure
 
 ---
 

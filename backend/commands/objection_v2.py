@@ -704,7 +704,9 @@ def evaluate_aggressive(marshal, action: str, order: Dict, game_state) -> Concer
 
     # Defensive stance change
     if action == "stance_change":
-        target_stance = order.get('target', '').lower()
+        # BUG FIX: order.get('target', '') returns None when key exists with value None
+        # (parser.py:297 explicitly sets "target": None). Must use `or ''` pattern.
+        target_stance = (order.get('target') or '').lower()
         if target_stance == 'defensive' and _check_enemy_adjacent(marshal, game_state):
             return ConcernLevel.MILD  # Minor grumble about going defensive
         return ConcernLevel.NONE
@@ -765,7 +767,9 @@ def evaluate_cautious(marshal, action: str, order: Dict, game_state) -> ConcernL
 
     # Aggressive stance change
     if action == "stance_change":
-        target_stance = order.get('target', '').lower()
+        # BUG FIX: order.get('target', '') returns None when key exists with value None
+        # (parser.py:297 explicitly sets "target": None). Must use `or ''` pattern.
+        target_stance = (order.get('target') or '').lower()
         if target_stance == 'aggressive' and _check_enemy_adjacent(marshal, game_state):
             return ConcernLevel.MILD  # "Going aggressive with enemy nearby is risky"
         return ConcernLevel.NONE

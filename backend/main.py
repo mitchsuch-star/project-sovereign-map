@@ -317,11 +317,13 @@ def execute_command(request: CommandRequest):
             response["feedback"] = feedback
 
         # V2a: Include mild concerns for turn log display
-        # Check result dict first (end_turn saves them before advance_turn clears world list)
+        # BUG FIX: Only send mild_concerns from the result dict (end_turn path).
+        # Previously, the elif fallback sent world.mild_concerns_this_turn on EVERY
+        # command response, which caused stale MILD concerns from failed actions to
+        # appear on the next successful command. MILD dispatches should only appear
+        # after end_turn, where executor.py saves them before advance_turn clears the list.
         if result.get("mild_concerns"):
             response["mild_concerns"] = result["mild_concerns"]
-        elif world.mild_concerns_this_turn:
-            response["mild_concerns"] = world.mild_concerns_this_turn
 
         # Include enemy_phase if present (from end_turn)
         # Clean up non-serializable fields (new_state contains circular references)
