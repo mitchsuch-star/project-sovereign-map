@@ -1617,7 +1617,11 @@ RETREAT RECOVERY (3 turns):
                 if resolved_target:
                     # ════════════════════════════════════════════════════════════
                     # TERRAIN CHARGE BLOCKING (Phase 6.1): mountains/forest/urban
-                    # block cavalry charges — skip popup, proceed with normal attack
+                    # block cavalry charges — skip popup, proceed with normal attack.
+                    # IMPORTANT: Check the DEFENDER's region terrain, not the attacker's.
+                    # Only block if we can positively confirm the defender is in
+                    # charge-blocked terrain. If lookup fails, allow the charge
+                    # (safety net in _execute_glorious_charge will catch it).
                     # ════════════════════════════════════════════════════════════
                     charge_terrain_blocked = False
                     charge_target_marshal = None
@@ -1626,6 +1630,7 @@ RETREAT RECOVERY (3 turns):
                             charge_target_marshal = m
                             break
                     if charge_target_marshal:
+                        # Check terrain at DEFENDER's location (not attacker's)
                         charge_target_region = world.get_region(charge_target_marshal.location)
                         if charge_target_region and charge_target_region.terrain in CHARGE_BLOCKED_TERRAIN:
                             charge_terrain_blocked = True
@@ -2191,6 +2196,11 @@ RETREAT RECOVERY (3 turns):
             }],
             "new_state": game_state
         }
+
+        # Phase 6.1: Pass cavalry terrain message through as separate field
+        # so Godot can display it in structured UI (not just embedded in description text)
+        if battle_result.get("cavalry_terrain_message"):
+            result["cavalry_terrain_message"] = battle_result["cavalry_terrain_message"]
 
         # Mark as free action for Davout's Counter-Punch
         if is_counter_punch:

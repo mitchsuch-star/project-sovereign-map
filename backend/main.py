@@ -316,6 +316,12 @@ def execute_command(request: CommandRequest):
         if feedback:
             response["feedback"] = feedback
 
+        # Phase 6.1: Include cavalry terrain message if present
+        # (same passthrough pattern as mild_concerns — field exists in combat
+        # result but wasn't being forwarded to Godot as a separate field)
+        if result.get("cavalry_terrain_message"):
+            response["cavalry_terrain_message"] = result["cavalry_terrain_message"]
+
         # V2a: Include mild concerns for turn log display
         # BUG FIX: Only send mild_concerns from the result dict (end_turn path).
         # Previously, the elif fallback sent world.mild_concerns_this_turn on EVERY

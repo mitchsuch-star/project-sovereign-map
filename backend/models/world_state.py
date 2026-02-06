@@ -2267,8 +2267,11 @@ class WorldState:
                 self.record_battle(enemy.location, marshal.name, enemy.name,
                                    combat_result.get("outcome", "unknown"))
 
-                # Reset recklessness (done in combat resolver for regular attacks)
-                marshal.reset_recklessness()
+                # Only reset recklessness when the charge actually executed.
+                # If terrain blocked the charge, recklessness should persist —
+                # the marshal is still fired up, they just couldn't charge HERE.
+                if not charge_blocked:
+                    marshal.reset_recklessness()
 
                 # Move attacker if victorious and still alive
                 attacker_won = combat_result.get("attacker_won", False)
