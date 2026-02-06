@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 6, 2026
-> **Last Session:** Session 11 — Terrain Review + Phase 6 Implementation Plan
+> **Last Session:** Session 12 — Phase 6.1 Terrain Implementation (A + B + Review Fixes)
 
 ---
 
@@ -10,8 +10,8 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1222** (verified, 3 skipped) |
-| **Current Phase** | Phase 6 — Terrain implementation NEXT, then Economy |
+| **Tests Passing** | **1334** (verified, 3 skipped) |
+| **Current Phase** | Phase 6.1 Terrain — A+B complete, review bugs fixed. Next: 6.1.C (movement/pathfinding) or 6.2 (Economy) |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a |
 
@@ -19,7 +19,7 @@
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain implementation next, then Economy.**
+**Phase 6: Core Campaign — Terrain 6.1.A+B done, review bugs fixed. Next: 6.1.C or 6.2.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -27,12 +27,44 @@
 - [x] Terrain spec design (TERRAIN_SPEC.md — 569 lines, 14 sections)
 - [x] Terrain codebase analysis (5 findings, all resolved)
 - [x] Terrain final design review (6 types confirmed, GO verdict)
-- [ ] **Phase 6.1: Terrain implementation** ← NEXT
+- [x] **Session 6.1.A: Terrain Data Layer** — constants, Region field, computed properties, REGIONS_DATA, 59 tests
+- [x] **Session 6.1.B: Combat Integration** — defense bonuses, cavalry terrain scaling, charge blocking, 5 executor call sites, 43 tests
+- [x] **6.1.B Opus Code Review** — found 3 bugs (auto-charge terrain, full_game.py dead code, charge safety net)
+- [x] **6.1.B Bug Fixes** — all 3 bugs fixed, 10 regression tests, full suite green (1334 pass)
+- [ ] **Phase 6.1.C+: Movement/pathfinding/supply** — weighted Dijkstra, movement cost enforcement, supply modifier wiring
 - [ ] Phase 6.2: Economy implementation (18 steps per ECONOMY_SPEC.md §15)
 
 ---
 
 ## Recently Completed
+
+### Feb 6 (Session 12: Phase 6.1 Terrain Implementation)
+
+**Session 6.1.A — Terrain Data Layer (59 tests):**
+- Added 7 terrain constants to `region.py`: `VALID_TERRAINS`, `TERRAIN_DEFENSE_BONUS`, `TERRAIN_MOVEMENT_COST`, `TERRAIN_SUPPLY_MODIFIER`, `TERRAIN_CAVALRY_EFFECTIVENESS`, `TERRAIN_CAVALRY_ATTRITION_BONUS`, `CHARGE_BLOCKED_TERRAIN`
+- Added `terrain` field to Region model with validation, `to_dict()`, `from_dict()` (defaults to "plains" for backward compat)
+- 4 computed properties: `defense_bonus`, `movement_cost`, `supply_modifier`, `cavalry_effectiveness`
+- All 13 REGIONS_DATA entries assigned terrain. Distribution: plains(4), hills(3), urban(3), mountains(1), forest(1), river_crossing(1)
+- Updated serialization enforcement fixture, doc_generator, SAVE_FORMAT_REFERENCE.md
+
+**Session 6.1.B — Combat Integration + Cavalry Terrain (43 tests):**
+- `combat.py`: `_get_terrain_bonus()` reads from `TERRAIN_DEFENSE_BONUS` (single source in region.py). Legacy terrain values still work.
+- `combat.py`: Cavalry recklessness attack bonus scaled by `TERRAIN_CAVALRY_EFFECTIVENESS` (plains 1.2x boost, mountains 0.3x gut)
+- `executor.py`: All 5 `resolve_battle()` call sites read terrain from defender's region
+- `executor.py`: Charge blocking at two layers — popup suppression + safety net in `_execute_glorious_charge()`
+- Combat messages: terrain defense message, cavalry terrain message
+
+**Opus Code Review — 3 bugs found:**
+- BUG 1 (HIGH): `world_state.py:2248` auto-charge path called `resolve_battle()` without terrain and without charge blocking
+- BUG 2: `full_game.py` (dead code, nothing imports it) had 3 hardcoded `terrain="open"` sites
+- BUG 3 (LOW): `executor.py` charge safety net said "attack proceeds" but returned `success: False` (no attack happened)
+
+**Bug Fixes (10 regression tests):**
+- BUG 1: Auto-charge now reads terrain from defender's region + blocks charge bonus on mountains/forest/urban (downgrades to normal attack)
+- BUG 2: Added `# TODO: Wire terrain from region if this file is revived` to all 3 `full_game.py` sites
+- BUG 3: Safety net now falls through to `_execute_attack()` so attack happens without charge bonus
+
+**Test count: 1334 passed, 3 skipped, 0 regressions** (1 pre-existing flaky dice test)
 
 ### Feb 6 (Session 11: Terrain Review + Phase 6 Implementation Plan)
 
@@ -239,6 +271,7 @@
 
 | Date | Tests | Notes |
 |------|-------|-------|
+| Feb 6, 2026 | **1334** | Phase 6.1 terrain: 59 data layer + 43 combat + 10 review bug regression tests |
 | Feb 6, 2026 | **1222** | AP pre-check, post-objection variable cost, enemy summary, 4 regression tests |
 | Feb 5, 2026 | **1218** | Smoke test follow-up: NoneType + stale MILD fixes, 2 regression tests |
 | Feb 5, 2026 | **1216** | V2a Unit 6 complete, 13 new integration tests |
@@ -269,14 +302,16 @@
 | ~~Clarification popup for other literal actions~~ | ~~Fixed~~ | Works for all strategic types + attack-without-target (verified Feb 5) |
 | ~~Windows Store Python broken~~ | ~~Fixed~~ | venv working, tests run from CLI |
 | Marshal ability dicts mostly decorative | Low | Only Ney's "Bravest of the Brave" is wired up in combat.py; others are TODO (personality mechanics DO work separately) |
+| `full_game.py` dead code with stale terrain | Low | 3 `resolve_battle()` calls hardcode `terrain="open"`. File is dead code (nothing imports it). TODO comments added at all 3 sites. |
 
 ---
 
 ## Next Session Priorities
 
-1. **Implement Phase 6.1: Terrain** — See `docs/PHASE6_IMPLEMENTATION_PLAN.md` for session breakdown
-2. **Implement Phase 6.2: Economy** — 18 steps per ECONOMY_SPEC.md §15
-3. Commission Europe map art (start search for artist)
+1. **Phase 6.1.C: Movement + Pathfinding** — Weighted Dijkstra for MOVE_TO/AI, movement cost enforcement in executor, supply modifier wiring. See `docs/PHASE6_IMPLEMENTATION_PLAN.md` Session 6.1.C.
+2. **Phase 6.1 Review Checkpoint** — Full terrain system review before moving to economy
+3. **Phase 6.2: Economy** — 18 steps per ECONOMY_SPEC.md §15
+4. Commission Europe map art (start search for artist)
 
 **Terrain spec:** `docs/TERRAIN_SPEC.md` (FINAL — pre-implementation decisions in §14)
 **Economy spec:** `docs/ECONOMY_SPEC.md` (FINAL — no further changes)
@@ -299,7 +334,9 @@ python backend/main.py                    # Backend on port 8005
 
 | Need | Read |
 |------|------|
-| Economy spec (Phase 6) | `ECONOMY_SPEC.md` |
+| Terrain spec (Phase 6.1) | `TERRAIN_SPEC.md` |
+| Economy spec (Phase 6.2) | `ECONOMY_SPEC.md` |
+| Phase 6 implementation plan | `PHASE6_IMPLEMENTATION_PLAN.md` |
 | Phase timeline | `ROADMAP.md` |
 | Game systems reference | `SYSTEMS_REFERENCE.md` |
 | Enemy AI | `ENEMY_AI_REFERENCE.md` |

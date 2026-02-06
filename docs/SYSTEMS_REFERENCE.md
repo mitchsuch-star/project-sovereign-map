@@ -1233,17 +1233,41 @@ world.find_nearest_marshal_within_range(from_location, nation, max_distance)
 
 ## Terrain System (Phase 6.1)
 
-**Status: Spec complete, implementation pending.**
+**Status: Sessions 6.1.A + 6.1.B COMPLETE. Opus review bugs fixed.**
 
-See `docs/TERRAIN_SPEC.md` for full spec. Key points:
-- 6 terrain types: plains, forest, hills, mountains, urban, river_crossing
-- Defense bonuses: 0% (plains) to 25% (mountains) — applied in combat.py
-- Cavalry effects: boolean proxy (marshal.cavalry) x terrain multiplier on recklessness bonus
-- Glorious charge blocked on: mountains, forest, urban
+See `docs/TERRAIN_SPEC.md` for full spec. Implementation details:
+
+### Terrain Types (6)
+
+| Terrain | Defense | Movement | Supply | Cavalry Eff. | Charge Blocked |
+|---------|---------|----------|--------|-------------|----------------|
+| plains | 0% | 1.0x | 1.0x | 1.2x | No |
+| forest | 10% | 1.3x | 0.8x | 0.5x | Yes |
+| hills | 15% | 1.2x | 0.9x | 0.8x | No |
+| mountains | 25% | 2.0x | 0.5x | 0.3x | Yes |
+| urban | 20% | 1.0x | 1.2x | 0.5x | Yes |
+| river_crossing | 15% | 1.5x | 1.0x | 0.6x | No |
+
+### Architecture
+
+- **Constants** (single source): `region.py` — `VALID_TERRAINS`, `TERRAIN_DEFENSE_BONUS`, `TERRAIN_MOVEMENT_COST`, `TERRAIN_SUPPLY_MODIFIER`, `TERRAIN_CAVALRY_EFFECTIVENESS`, `TERRAIN_CAVALRY_ATTRITION_BONUS`, `CHARGE_BLOCKED_TERRAIN`
+- **Region model**: `terrain` field with validation, 4 computed properties (`defense_bonus`, `movement_cost`, `supply_modifier`, `cavalry_effectiveness`)
+- **Combat**: `combat.py` reads `TERRAIN_DEFENSE_BONUS` for defender bonus, `TERRAIN_CAVALRY_EFFECTIVENESS` to scale recklessness attack bonus. Legacy terrain values ("open", "fortified", "mountain", "river") still work.
+- **Executor**: All 5 `resolve_battle()` call sites in `executor.py` read terrain from defender's region. Charge blocking at two layers: popup suppression + safety net fallthrough to normal attack.
+- **Auto-charge**: `world_state.py` auto-charge at recklessness 4+ reads terrain and blocks charge bonus on mountains/forest/urban (downgrades to normal attack).
+- **REGIONS_DATA**: All 13 regions assigned terrain. Distribution: plains(4), hills(3), urban(3), mountains(1), forest(1), river_crossing(1).
+- **Serialization**: `terrain` field roundtrips through `to_dict()`/`from_dict()`. Missing terrain defaults to "plains" (backward compat).
+
+### Remaining (Phase 6.1.C+)
+
 - Weighted pathfinding (Dijkstra) for MOVE_TO and AI; PURSUE stays on BFS
-- Constants centralized in region.py, consumed by combat.py and pathfinding
+- Movement cost enforcement in executor
+- Supply modifier wiring
+- Cavalry attrition bonus in combat
 
-*This section will be expanded with implementation details after Phase 6.1 ships.*
+### Known TODOs
+
+- `backend/full_game.py` (dead code, 3 sites): `resolve_battle()` calls still use hardcoded `terrain="open"`. Marked with TODO comments — wire from region if file is revived.
 
 ---
 
