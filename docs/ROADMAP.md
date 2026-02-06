@@ -76,7 +76,7 @@
 | Manpower Pools | Separate: Infantry, Cavalry, Artillery | Medium | Planned |
 | Attrition | Movement/supply decay | Low | Planned |
 | Fog of War | Hidden enemies, scouting required | Medium | Planned |
-| Terrain | Region terrain affects combat/movement | Medium | Planned |
+| Terrain | Region terrain affects combat/movement | Medium | Spec complete, implementation next |
 | Sieges | Fortified cities require siege mechanics | Medium | Planned |
 | City Fortification | "Fortify this city" building action | Low | Planned |
 | Artillery Unit Type | Combat buffs like cavalry | Medium | Planned |
@@ -130,6 +130,8 @@ After every battle: "Attack modifier: 1.45x (aggressive stance +15%, drill +20%,
 | Switzerland | 1-2 | |
 
 **Hit detection:** Sample pixel from hidden color map at mouse position -> dictionary lookup -> province ID. O(1), no polygon math.
+
+**Implementation plan:** See `docs/PHASE6_IMPLEMENTATION_PLAN.md` for session-by-session breakdown.
 
 **Dependencies:** None
 **Exit Criteria:** Player manages economy, enemies reinforce, terrain matters, can see war progress, can save/load, failed parses feel in-character

@@ -1231,6 +1231,22 @@ world.find_nearest_marshal_within_range(from_location, nation, max_distance)
 
 ---
 
+## Terrain System (Phase 6.1)
+
+**Status: Spec complete, implementation pending.**
+
+See `docs/TERRAIN_SPEC.md` for full spec. Key points:
+- 6 terrain types: plains, forest, hills, mountains, urban, river_crossing
+- Defense bonuses: 0% (plains) to 25% (mountains) — applied in combat.py
+- Cavalry effects: boolean proxy (marshal.cavalry) x terrain multiplier on recklessness bonus
+- Glorious charge blocked on: mountains, forest, urban
+- Weighted pathfinding (Dijkstra) for MOVE_TO and AI; PURSUE stays on BFS
+- Constants centralized in region.py, consumed by combat.py and pathfinding
+
+*This section will be expanded with implementation details after Phase 6.1 ships.*
+
+---
+
 ## Action System Reference
 
 ### Action Types

@@ -65,6 +65,7 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | Fortify/Drill mechanics | `executor.py` (_execute_fortify/drill), `marshal.py`, `world_state.py` (_process_tactical_states) |
 | Disobedience/Trust | `disobedience.py`, `objection_v2.py`, `personality.py` |
 | Cavalry limits | `world_state.py` (_check_cavalry_limits), `marshal.py` (cavalry counters) |
+| Terrain system | `region.py` (constants, Region class), `combat.py` (_get_terrain_bonus), `executor.py` (5 resolve_battle calls, charge blocking) |
 | Turn processing | `world_state.py` (advance_turn), `executor.py` (_execute_end_turn) |
 | Adding new actions | See pattern below |
 | Retreat/Broken state | `combat.py` (forced retreat), `marshal.py` (retreat_recovery), `executor.py` |
@@ -253,6 +254,7 @@ python -m backend.modding.validator path/to/mod.json
 | Modding guide | `docs/MODDING_FORMAT.md` |
 | Adding marshals or strategic commands | `docs/ADDING_CONTENT.md` |
 | Future design concepts | `docs/FUTURE_DESIGN.md` |
+| Phase 6 implementation plan | `docs/PHASE6_IMPLEMENTATION_PLAN.md` |
 | Game vision | `docs/VISION.md` |
 | Manual test plan | `docs/MANUAL_TEST_PLAN.md` |
 | Tutorial content / what to teach | `docs/TUTORIAL_SCRIPT.md` |

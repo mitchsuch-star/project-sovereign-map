@@ -37,6 +37,7 @@ godot-client/export/
 godot-client/.mono/
 godot-client/logs/
 godot-client/.godot/
+godot-client/project-sovereign/assets/
 
 # Testing
 .pytest_cache/

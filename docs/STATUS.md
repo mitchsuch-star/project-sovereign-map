@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 6, 2026
-> **Last Session:** Sessions 8-10 — Economy Spec Design (3 review rounds)
+> **Last Session:** Session 11 — Terrain Review + Phase 6 Implementation Plan
 
 ---
 
@@ -11,7 +11,7 @@
 | Metric | Value |
 |--------|-------|
 | **Tests Passing** | **1222** (verified, 3 skipped) |
-| **Current Phase** | Phase 6 — Economy spec COMPLETE, Terrain design next |
+| **Current Phase** | Phase 6 — Terrain implementation NEXT, then Economy |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a |
 
@@ -19,17 +19,39 @@
 
 ## Active Work
 
-**Phase 6: Core Campaign — Economy spec COMPLETE, Terrain next.**
+**Phase 6: Core Campaign — Terrain implementation next, then Economy.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
 - [x] COHESION_FUTURE_DESIGN.md deleted (content merged into FUTURE_DESIGN.md)
-- [ ] **Terrain spec design** (Phase 6.1 — must precede economy implementation)
-- [ ] Economy implementation (18 steps per ECONOMY_SPEC.md §15)
+- [x] Terrain spec design (TERRAIN_SPEC.md — 569 lines, 14 sections)
+- [x] Terrain codebase analysis (5 findings, all resolved)
+- [x] Terrain final design review (6 types confirmed, GO verdict)
+- [ ] **Phase 6.1: Terrain implementation** ← NEXT
+- [ ] Phase 6.2: Economy implementation (18 steps per ECONOMY_SPEC.md §15)
 
 ---
 
 ## Recently Completed
+
+### Feb 6 (Session 11: Terrain Review + Phase 6 Implementation Plan)
+
+**Terrain codebase analysis (5 findings):**
+- Finding 1: `cavalry_ratio: float` doesn't exist — only `marshal.cavalry: bool`. Decision: use boolean proxy.
+- Finding 2: Glorious charge blocking must go in executor.py, not combat.py.
+- Finding 3: 5 `resolve_battle()` call sites in executor.py (not 1 as spec implied), including `_execute_glorious_charge()` missing terrain param entirely.
+- Finding 4: Pathfinding has 3 BFS implementations (world_state.get_distance, world_state.find_path, enemy_ai._get_shortest_path). Decision: add weighted alongside, don't replace.
+- Finding 5: Region constructor changes won't break tests (terrain has default).
+
+**Terrain design review:**
+- 6 terrain types confirmed (GO verdict). All passed one-sentence differentiation test.
+- Evaluated 4-type reduction — decided to keep 6 to prep for 1805 map.
+
+**Implementation plan:**
+- Created `docs/PHASE6_IMPLEMENTATION_PLAN.md` — 10 sessions (3 terrain + 7 economy)
+- Methodology: bottom-up with integration tests at each layer
+- 4 review checkpoints, 6 stop-and-test gates
+- Updated TERRAIN_SPEC.md §14, STATUS.md, CLAUDE.md, SYSTEMS_REFERENCE.md, ROADMAP.md
 
 ### Feb 6 (Sessions 8-10: Economy Spec Design)
 
@@ -252,12 +274,13 @@
 
 ## Next Session Priorities
 
-1. **Design terrain spec** — `docs/TERRAIN_SPEC.md` (terrain types for 13 regions, combat modifiers, movement costs, attrition multipliers). Must be done BEFORE economy implementation.
-2. **Plan combined terrain + economy implementation** — Terrain first (simpler), then economy 18 steps.
+1. **Implement Phase 6.1: Terrain** — See `docs/PHASE6_IMPLEMENTATION_PLAN.md` for session breakdown
+2. **Implement Phase 6.2: Economy** — 18 steps per ECONOMY_SPEC.md §15
 3. Commission Europe map art (start search for artist)
 
+**Terrain spec:** `docs/TERRAIN_SPEC.md` (FINAL — pre-implementation decisions in §14)
 **Economy spec:** `docs/ECONOMY_SPEC.md` (FINAL — no further changes)
-**V2 objection design doc:** `docs/OBJECTION_V2.md`
+**Implementation plan:** `docs/PHASE6_IMPLEMENTATION_PLAN.md`
 
 ---
 
