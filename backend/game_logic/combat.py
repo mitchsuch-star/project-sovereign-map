@@ -11,6 +11,7 @@ Features:
 
 from typing import Dict, Tuple, Optional
 from backend.models.marshal import Marshal
+from backend.models.region import TERRAIN_DEFENSE_BONUS, TERRAIN_CAVALRY_EFFECTIVENESS
 from backend.utils import ordinal
 from backend.utils.debug import debug_print
 import random
@@ -130,6 +131,12 @@ class CombatResolver:
         terrain_bonus = self._get_terrain_bonus(terrain)
         defender_effective *= (1 + terrain_bonus)
 
+        # Generate terrain defense message
+        terrain_defense_message = None
+        if terrain_bonus > 0:
+            terrain_name = terrain.replace("_", " ").title()
+            terrain_defense_message = f"{defender.name} benefits from {terrain_name} terrain (+{int(terrain_bonus * 100)}% defense)"
+
         #print(f"   Defender after terrain: {defender_effective:,.0f}")
 
         # Calculate casualties with dice multiplier and skills
@@ -246,6 +253,33 @@ class CombatResolver:
         shock_multiplier = 1.0 + (attacker_shock / 20.0)
         # Apply stance modifier to shock
         shock_multiplier *= attacker_stance_modifier
+
+        # ════════════════════════════════════════════════════════════
+        # CAVALRY TERRAIN EFFECTIVENESS (Phase 6.1): Scale recklessness bonus by terrain
+        # Plains boost cavalry (+20%), mountains gut it (-70%).
+        # Only affects cavalry marshals with recklessness > 0.
+        # Non-cavalry marshals are completely unaffected.
+        # ════════════════════════════════════════════════════════════
+        cavalry_terrain_message = None
+        if getattr(attacker, 'cavalry', False) and getattr(attacker, 'is_reckless_cavalry', False):
+            recklessness_bonus = attacker._get_recklessness_attack_bonus()
+            if recklessness_bonus > 0:
+                terrain_cav_mult = TERRAIN_CAVALRY_EFFECTIVENESS.get(terrain, 1.0)
+                if terrain_cav_mult != 1.0:
+                    # Scale the recklessness portion of the attack modifier
+                    # recklessness_bonus was applied as (1.0 + bonus) inside get_attack_modifier
+                    # We adjust by removing the original bonus and adding the terrain-scaled version
+                    original_contribution = 1.0 + recklessness_bonus
+                    scaled_contribution = 1.0 + (recklessness_bonus * terrain_cav_mult)
+                    terrain_cavalry_adjustment = scaled_contribution / original_contribution
+                    shock_multiplier *= terrain_cavalry_adjustment
+
+                    terrain_name = terrain.replace("_", " ").title()
+                    effectiveness_pct = int(terrain_cav_mult * 100)
+                    if terrain_cav_mult > 1.0:
+                        cavalry_terrain_message = f"{attacker.name}'s cavalry thrives on {terrain_name} terrain! ({effectiveness_pct}% effectiveness)"
+                    else:
+                        cavalry_terrain_message = f"{attacker.name}'s cavalry is hampered by {terrain_name} terrain ({effectiveness_pct}% effectiveness)"
 
         # Apply DEFENSE skill to defender protection (reduces casualties taken)
         # Higher defense = fewer casualties taken
@@ -445,6 +479,10 @@ class CombatResolver:
             tactical_prefix += f"\n⚠️ {drilling_penalty_message}"
         if exhaustion_message:
             tactical_prefix += f"\n😓 {exhaustion_message}"
+        if terrain_defense_message:
+            tactical_prefix += f"\n🏔️ {terrain_defense_message}"
+        if cavalry_terrain_message:
+            tactical_prefix += f"\n🐴 {cavalry_terrain_message}"
         if glorious_charge_message:
             tactical_prefix += f"\n{glorious_charge_message}"
         if tactical_prefix:
@@ -542,6 +580,8 @@ class CombatResolver:
             "flanking_message": flanking_message,
             "glorious_charge": glorious_charge,  # Phase 3: Cavalry recklessness
             "attacker_won": attacker_won,  # Phase 3: For recklessness tracking
+            "terrain_defense_message": terrain_defense_message,  # Phase 6.1: Terrain defense
+            "cavalry_terrain_message": cavalry_terrain_message,  # Phase 6.1: Cavalry terrain
             "description": tactical_prefix + base_description + retreat_message
         }
         # ... rest of existing code ...
@@ -566,14 +606,23 @@ class CombatResolver:
         return effective
 
     def _get_terrain_bonus(self, terrain: str) -> float:
-        """Get defender bonus based on terrain."""
-        terrain_modifiers = {
-            "open": 0.0,  # No bonus
-            "fortified": 0.3,  # +30% for fortifications
-            "mountain": 0.2,  # +20% for high ground
-            "river": 0.15  # +15% for river crossing
+        """Get defender bonus based on terrain type.
+
+        Uses TERRAIN_DEFENSE_BONUS from region.py as single source of truth.
+        Legacy values ("open", "fortified") kept for backward compat with tests/mods.
+        """
+        # Check new terrain types first (single source in region.py)
+        if terrain in TERRAIN_DEFENSE_BONUS:
+            return TERRAIN_DEFENSE_BONUS[terrain]
+
+        # Legacy aliases for backward compatibility
+        legacy_modifiers = {
+            "open": 0.0,
+            "fortified": 0.30,
+            "mountain": 0.20,
+            "river": 0.15,
         }
-        return terrain_modifiers.get(terrain, 0.0)
+        return legacy_modifiers.get(terrain, 0.0)
 
     def _calculate_casualties(
             self,

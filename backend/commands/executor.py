@@ -16,6 +16,7 @@ TODO (Future): Multi-Army Battles
 from typing import Dict, List, Optional, Tuple
 from backend.models.world_state import WorldState
 from backend.models.marshal import Stance, StrategicOrder
+from backend.models.region import CHARGE_BLOCKED_TERRAIN
 from backend.game_logic.combat import CombatResolver
 from backend.game_logic.turn_manager import TurnManager
 from backend.utils.fuzzy_matcher import FuzzyMatcher
@@ -1614,30 +1615,46 @@ RETREAT RECOVERY (3 turns):
                 # Only trigger recklessness popup/auto-charge if we have a valid target
                 # If no target in range, let normal attack flow handle it (move toward enemy)
                 if resolved_target:
-                    # Strategic execution (sally, etc.) auto-charges — no popup.
-                    # Ney on HOLD sallies autonomously; he wouldn't stop mid-charge
-                    # to ask permission. Result shows in strategic report.
-                    is_strategic_sally = marshal.in_strategic_mode
-                    if is_player and recklessness < 4 and not is_strategic_sally:  # Player at exactly 3 - popup
-                        # Set pending state for popup
-                        marshal.pending_glorious_charge = True
-                        marshal.pending_charge_target = resolved_target
+                    # ════════════════════════════════════════════════════════════
+                    # TERRAIN CHARGE BLOCKING (Phase 6.1): mountains/forest/urban
+                    # block cavalry charges — skip popup, proceed with normal attack
+                    # ════════════════════════════════════════════════════════════
+                    charge_terrain_blocked = False
+                    charge_target_marshal = None
+                    for m in world.marshals.values():
+                        if m.name.lower() == resolved_target.lower() and m.nation != marshal.nation:
+                            charge_target_marshal = m
+                            break
+                    if charge_target_marshal:
+                        charge_target_region = world.get_region(charge_target_marshal.location)
+                        if charge_target_region and charge_target_region.terrain in CHARGE_BLOCKED_TERRAIN:
+                            charge_terrain_blocked = True
 
-                        return {
-                            "success": False,  # Not executed yet - waiting for response
-                            "pending_glorious_charge": True,
-                            "marshal": marshal.name,
-                            "target": resolved_target,
-                            "recklessness": recklessness,
-                            "message": f"🐴 {marshal.name}'s blood is up! (Recklessness: {recklessness})\n\n"
-                                      f"Choose:\n"
-                                      f"• CHARGE: Execute Glorious Charge (2x damage dealt AND taken, resets recklessness)\n"
-                                      f"• RESTRAIN: Normal attack (marshal may object next time)",
-                            "options": ["charge", "restrain"]
-                        }
-                    else:
-                        # AI at 3+ or Player at 4+ - auto-charge
-                        return self._execute_glorious_charge(marshal, resolved_target, world, game_state)
+                    if not charge_terrain_blocked:
+                        # Strategic execution (sally, etc.) auto-charges — no popup.
+                        # Ney on HOLD sallies autonomously; he wouldn't stop mid-charge
+                        # to ask permission. Result shows in strategic report.
+                        is_strategic_sally = marshal.in_strategic_mode
+                        if is_player and recklessness < 4 and not is_strategic_sally:  # Player at exactly 3 - popup
+                            # Set pending state for popup
+                            marshal.pending_glorious_charge = True
+                            marshal.pending_charge_target = resolved_target
+
+                            return {
+                                "success": False,  # Not executed yet - waiting for response
+                                "pending_glorious_charge": True,
+                                "marshal": marshal.name,
+                                "target": resolved_target,
+                                "recklessness": recklessness,
+                                "message": f"🐴 {marshal.name}'s blood is up! (Recklessness: {recklessness})\n\n"
+                                          f"Choose:\n"
+                                          f"• CHARGE: Execute Glorious Charge (2x damage dealt AND taken, resets recklessness)\n"
+                                          f"• RESTRAIN: Normal attack (marshal may object next time)",
+                                "options": ["charge", "restrain"]
+                            }
+                        else:
+                            # AI at 3+ or Player at 4+ - auto-charge
+                            return self._execute_glorious_charge(marshal, resolved_target, world, game_state)
 
         # Handle None target - find nearest enemy for this marshal
         if not target:
@@ -2014,11 +2031,15 @@ RETREAT RECOVERY (3 turns):
             else:
                 cavalry_charge_message = f"🐴 {marshal.name}'s cavalry charges across the battlefield! (Cavalry Charge: 2-region attack)\n"
 
+        # Read terrain from defender's region (defender chose this ground)
+        defender_region = world.get_region(enemy_marshal.location)
+        battle_terrain = defender_region.terrain if defender_region else "plains"
+
         # RESOLVE COMBAT with flanking bonus!
         battle_result = self.combat_resolver.resolve_battle(
             attacker=marshal,
             defender=enemy_marshal,
-            terrain="open",
+            terrain=battle_terrain,
             flanking_bonus=flanking_bonus,
             flanking_message=flanking_message
         )
@@ -3979,11 +4000,15 @@ RETREAT RECOVERY (3 turns):
         flanking_bonus = flanking_info["bonus"]
         flanking_message = world.get_flanking_message(best_marshal.name, origin_region, target_location)
 
+        # Read terrain from defender's region
+        sally_defender_region = world.get_region(best_enemy.location)
+        sally_terrain = sally_defender_region.terrain if sally_defender_region else "plains"
+
         # Resolve battle with flanking
         battle_result = self.combat_resolver.resolve_battle(
             attacker=best_marshal,
             defender=best_enemy,
-            terrain="open",
+            terrain=sally_terrain,
             flanking_bonus=flanking_bonus,
             flanking_message=flanking_message
         )
@@ -4105,11 +4130,15 @@ RETREAT RECOVERY (3 turns):
             flanking_bonus = flanking_info["bonus"]
             flanking_message = world.get_flanking_message(nearest_marshal.name, origin_region, target_location)
 
+            # Read terrain from defender's region
+            sally2_defender_region = world.get_region(enemy.location)
+            sally2_terrain = sally2_defender_region.terrain if sally2_defender_region else "plains"
+
             # Execute attack with flanking
             battle_result = self.combat_resolver.resolve_battle(
                 attacker=nearest_marshal,
                 defender=enemy,
-                terrain="open",
+                terrain=sally2_terrain,
                 flanking_bonus=flanking_bonus,
                 flanking_message=flanking_message
             )
@@ -4217,10 +4246,14 @@ RETREAT RECOVERY (3 turns):
             flanking_bonus = flanking_info["bonus"]
             flanking_message = world.get_flanking_message(nearest_marshal.name, origin_region, target_location)
 
+            # Read terrain from defender's region
+            sally3_defender_region = world.get_region(enemy.location)
+            sally3_terrain = sally3_defender_region.terrain if sally3_defender_region else "plains"
+
             battle_result = self.combat_resolver.resolve_battle(
                 attacker=nearest_marshal,
                 defender=enemy,
-                terrain="open",
+                terrain=sally3_terrain,
                 flanking_bonus=flanking_bonus,
                 flanking_message=flanking_message
             )
@@ -5884,6 +5917,23 @@ RETREAT RECOVERY (3 turns):
                 "message": f"{target_marshal.name} has no troops to fight!"
             }
 
+        # ════════════════════════════════════════════════════════════
+        # TERRAIN CHARGE BLOCKING (Phase 6.1): Safety net rejection
+        # Mountains/forest/urban block cavalry charges entirely
+        # ════════════════════════════════════════════════════════════
+        charge_region = world.get_region(target_marshal.location)
+        if charge_region and charge_region.terrain in CHARGE_BLOCKED_TERRAIN:
+            terrain_name = charge_region.terrain.replace("_", " ").title()
+            return {
+                "success": False,
+                "message": (
+                    f"🐴⛔ {marshal.name}'s cavalry cannot charge in {terrain_name} terrain! "
+                    f"The attack proceeds without the charge bonus."
+                ),
+                "charge_blocked_by_terrain": True,
+                "terrain": charge_region.terrain
+            }
+
         # Check range (cavalry can charge 2 regions)
         distance = world.get_distance(marshal.location, target_marshal.location)
         if distance > marshal.movement_range:
@@ -5918,10 +5968,15 @@ RETREAT RECOVERY (3 turns):
         # Execute combat with 2x damage multiplier
         recklessness_before = getattr(marshal, 'recklessness', 0)
 
+        # Read terrain from defender's region
+        charge_defender_region = world.get_region(target_marshal.location)
+        charge_terrain = charge_defender_region.terrain if charge_defender_region else "plains"
+
         # Get combat result with glorious charge flag
         combat_result = self.combat_resolver.resolve_battle(
             attacker=marshal,
             defender=target_marshal,
+            terrain=charge_terrain,
             glorious_charge=True  # 2x damage multiplier
         )
 
