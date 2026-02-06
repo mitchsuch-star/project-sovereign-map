@@ -856,6 +856,25 @@ RETREAT RECOVERY (3 turns):
                         }
 
                 # ═══════════════════════════════════════════════════════════
+                # ALREADY-IN-STANCE CHECK - Validation BEFORE objection
+                # No point objecting to a stance change that's a no-op.
+                # ═══════════════════════════════════════════════════════════
+                if action == 'stance_change' and current_stance:
+                    target_stance_raw = (command.get('target_stance') or command.get('target') or '').lower()
+                    stance_map = {
+                        "neutral": Stance.NEUTRAL, "defensive": Stance.DEFENSIVE,
+                        "defense": Stance.DEFENSIVE, "defend": Stance.DEFENSIVE,
+                        "aggressive": Stance.AGGRESSIVE, "attack": Stance.AGGRESSIVE,
+                        "offense": Stance.AGGRESSIVE,
+                    }
+                    target = stance_map.get(target_stance_raw)
+                    if target and current_stance == target:
+                        return {
+                            "success": False,
+                            "message": f"{marshal.name} is already in {current_stance.value.upper()} stance."
+                        }
+
+                # ═══════════════════════════════════════════════════════════
                 # AGGRESSIVE STANCE CHECK - Validation BEFORE objection
                 # Cannot fortify or drill while in aggressive stance
                 # ═══════════════════════════════════════════════════════════

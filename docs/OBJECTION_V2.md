@@ -888,6 +888,7 @@ def should_check_objection(marshal, action, world):
     return True  # Proceed to V2 objection check
 
 # ADDITIONAL pre-validation (returns failure BEFORE objection):
+# - Already in target stance → stance_change fails (no objection)
 # - Already defensive + fortified → defend fails (no objection)
 # - Already fortified → fortify fails (no objection)
 # - Already drilling → drill fails (no objection)

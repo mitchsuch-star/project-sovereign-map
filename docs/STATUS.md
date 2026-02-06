@@ -48,6 +48,7 @@
 - **BUG FIX:** Independent command report used raw action names → now uses `_action_display_name()`.
 - **BUG FIX:** `_execute_wait()` called with wrong signature in post-objection path (would crash as TypeError). Fixed to match `(marshal, world, game_state)` signature.
 - **BUG FIX:** Fortify and drill could trigger objections when already active. Promoted validation before objection check.
+- **BUG FIX:** Stance change to current stance (e.g. aggressive while aggressive) could trigger objection before failing. Added already-in-stance pre-validation.
 
 **Defensive comments added** at all fix sites explaining why the code was wrong.
 
