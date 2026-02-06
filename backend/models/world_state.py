@@ -10,7 +10,7 @@ Includes Disobedience System (Phase 2):
 """
 
 from typing import Dict, List, Optional, Tuple, Any, Set
-from backend.models.region import Region, create_regions
+from backend.models.region import Region, create_regions, CHARGE_BLOCKED_TERRAIN
 from backend.models.marshal import Marshal, create_starting_marshals, create_enemy_marshals
 from backend.models.authority import AuthorityTracker
 from backend.commands.vindication import VindicationTracker
@@ -2244,11 +2244,22 @@ class WorldState:
                 debug_print(f"  [AUTO-CHARGE] {marshal.name} (recklessness {recklessness}) charges {enemy.name}!")
                 debug_print(f"  [AUTO-CHARGE DEBUG] marshal.location={marshal.location}, enemy.location={enemy.location}")
 
-                # Execute combat with glorious charge
+                # Read terrain from defender's region
+                enemy_region = self.get_region(enemy.location)
+                auto_charge_terrain = enemy_region.terrain if enemy_region else "plains"
+
+                # Check if terrain blocks cavalry charges (mountains/forest/urban)
+                charge_blocked = auto_charge_terrain in CHARGE_BLOCKED_TERRAIN
+                if charge_blocked:
+                    terrain_name = auto_charge_terrain.replace("_", " ").title()
+                    debug_print(f"  [AUTO-CHARGE] Charge blocked by {terrain_name} terrain — downgrading to normal attack")
+
+                # Execute combat (glorious_charge=False if terrain blocks it)
                 combat_result = combat_resolver.resolve_battle(
                     attacker=marshal,
                     defender=enemy,
-                    glorious_charge=True
+                    terrain=auto_charge_terrain,
+                    glorious_charge=not charge_blocked
                 )
                 debug_print(f"  [AUTO-CHARGE DEBUG] Combat result victor: {combat_result.get('victor')}")
 
@@ -2273,7 +2284,14 @@ class WorldState:
                 if enemy.strength <= 0:
                     enemy_destroyed_msg = f" {enemy.name}'s army is destroyed!"
 
-                event_msg = (f"🐴⚔️ AUTO-CHARGE! {marshal.name} (Recklessness: {recklessness}) cannot be restrained!\n\n"
+                if charge_blocked:
+                    terrain_name = auto_charge_terrain.replace("_", " ").title()
+                    charge_header = (f"🐴⚔️ AUTO-CHARGE! {marshal.name} (Recklessness: {recklessness}) cannot be restrained!\n"
+                                    f"⛔ {terrain_name} terrain blocks the cavalry charge — attacking without charge bonus!\n\n")
+                else:
+                    charge_header = f"🐴⚔️ AUTO-CHARGE! {marshal.name} (Recklessness: {recklessness}) cannot be restrained!\n\n"
+
+                event_msg = (f"{charge_header}"
                             f"{combat_result.get('description', 'Combat resolved.')}"
                             f"{enemy_destroyed_msg}{movement_msg}\n\n"
                             f"[FREE ACTION - Recklessness reset to 0]")

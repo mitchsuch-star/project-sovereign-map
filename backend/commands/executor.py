@@ -5918,21 +5918,23 @@ RETREAT RECOVERY (3 turns):
             }
 
         # ════════════════════════════════════════════════════════════
-        # TERRAIN CHARGE BLOCKING (Phase 6.1): Safety net rejection
-        # Mountains/forest/urban block cavalry charges entirely
+        # TERRAIN CHARGE BLOCKING (Phase 6.1): Safety net fallthrough
+        # Mountains/forest/urban block cavalry charges — fall through
+        # to normal attack so the attack still happens without bonus
         # ════════════════════════════════════════════════════════════
         charge_region = world.get_region(target_marshal.location)
         if charge_region and charge_region.terrain in CHARGE_BLOCKED_TERRAIN:
             terrain_name = charge_region.terrain.replace("_", " ").title()
-            return {
-                "success": False,
-                "message": (
+            print(f"  [CHARGE BLOCKED] {terrain_name} terrain blocks charge — falling through to normal attack")
+            result = self._execute_attack(marshal, target, world, game_state, skip_reckless_popup=True)
+            result["charge_blocked_by_terrain"] = True
+            result["terrain"] = charge_region.terrain
+            if result.get("success"):
+                result["message"] = (
                     f"🐴⛔ {marshal.name}'s cavalry cannot charge in {terrain_name} terrain! "
-                    f"The attack proceeds without the charge bonus."
-                ),
-                "charge_blocked_by_terrain": True,
-                "terrain": charge_region.terrain
-            }
+                    f"Attacking without charge bonus.\n\n{result.get('message', '')}"
+                )
+            return result
 
         # Check range (cavalry can charge 2 regions)
         distance = world.get_distance(marshal.location, target_marshal.location)

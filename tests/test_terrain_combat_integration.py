@@ -323,26 +323,20 @@ class TestGloriousChargeTerrainBlocking:
         return ney, wellington
 
     @pytest.mark.parametrize("terrain", ["mountains", "forest", "urban"])
-    def test_charge_blocked_terrain_execute_glorious_charge(self, terrain):
-        """_execute_glorious_charge() should reject on blocked terrain."""
-        # Use a region adjacent to Belgium
-        if terrain == "mountains":
-            # Geneva is mountains but not adjacent to Belgium
-            # Use a region we can reach and set its terrain
-            defender_loc = "Waterloo"
-        else:
-            defender_loc = "Waterloo"
-
+    def test_charge_blocked_terrain_falls_through_to_attack(self, terrain):
+        """_execute_glorious_charge() should fall through to normal attack on blocked terrain."""
+        defender_loc = "Waterloo"
         ney, wellington = self._setup_charge_scenario(defender_loc, terrain)
 
         result = self.executor._execute_glorious_charge(
             ney, "Wellington", self.world, self.game_state
         )
 
-        assert result["success"] is False
+        # Should succeed as a normal attack (fallthrough), not fail
         assert result.get("charge_blocked_by_terrain") is True
         terrain_name = terrain.replace("_", " ").title()
         assert terrain_name in result["message"]
+        assert "cannot charge" in result["message"]
 
     @pytest.mark.parametrize("terrain", ["plains", "hills", "river_crossing"])
     def test_charge_allowed_terrain_execute_glorious_charge(self, terrain):
@@ -386,13 +380,14 @@ class TestGloriousChargeTerrainBlocking:
         assert result.get("pending_glorious_charge") is True
 
     def test_charge_blocking_message_content(self):
-        """Charge blocking message should name the terrain type."""
+        """Charge blocking message should name the terrain type and indicate fallthrough."""
         ney, wellington = self._setup_charge_scenario("Waterloo", "forest")
         result = self.executor._execute_glorious_charge(
             ney, "Wellington", self.world, self.game_state
         )
         assert "Forest" in result["message"]
         assert "cannot charge" in result["message"]
+        assert "without charge bonus" in result["message"]
 
 
 # ============================================================================
@@ -546,3 +541,241 @@ class TestExecutorTerrainWiring:
         for t in captured_terrain:
             assert t != "open", "Found hardcoded 'open' terrain in resolve_battle call"
             assert t in VALID_TERRAINS, f"Unexpected terrain value: {t}"
+
+
+# ============================================================================
+# REGRESSION: BUG 1 — Auto-charge terrain in world_state.py
+# ============================================================================
+
+class TestAutoChargeTerrain:
+    """Regression tests for auto-charge at recklessness 4+ in world_state.py."""
+
+    def setup_method(self):
+        self.world = WorldState()
+
+    def _setup_auto_charge(self, defender_location, terrain):
+        """Set up a reckless cavalry marshal at recklessness 4+ with adjacent enemy."""
+        ney = self.world.get_marshal("Ney")
+        ney.cavalry = True
+        ney.recklessness = 4
+        ney.strength = 100000
+        ney.morale = 100
+        ney.location = "Belgium"
+
+        wellington = self.world.get_marshal("Wellington")
+        wellington.location = defender_location
+        wellington.strength = 50000
+        wellington.morale = 80
+
+        # Set terrain on defender's region
+        region = self.world.get_region(defender_location)
+        if region:
+            region.terrain = terrain
+
+        return ney, wellington
+
+    def test_auto_charge_passes_terrain_to_combat(self):
+        """Auto-charge should pass defender's region terrain to resolve_battle."""
+        ney, wellington = self._setup_auto_charge("Waterloo", "hills")
+
+        # Patch resolve_battle to capture terrain arg
+        from backend.game_logic.combat import CombatResolver
+        captured_terrain = []
+        original_resolve = CombatResolver.resolve_battle
+
+        def mock_resolve(self_combat, *args, **kwargs):
+            captured_terrain.append(kwargs.get("terrain", "MISSING"))
+            return original_resolve(self_combat, *args, **kwargs)
+
+        with patch.object(CombatResolver, 'resolve_battle', mock_resolve):
+            events = self.world._process_reckless_cavalry_turn_start()
+
+        assert len(captured_terrain) > 0, "resolve_battle was not called during auto-charge"
+        assert captured_terrain[0] == "hills", (
+            f"Auto-charge should pass terrain='hills', got '{captured_terrain[0]}'"
+        )
+
+    def test_auto_charge_blocked_terrain_no_charge_bonus(self):
+        """Auto-charge into mountains/forest/urban should NOT get glorious_charge=True."""
+        ney, wellington = self._setup_auto_charge("Waterloo", "mountains")
+
+        # Patch resolve_battle to capture glorious_charge arg
+        from backend.game_logic.combat import CombatResolver
+        captured_charge = []
+
+        original_resolve = CombatResolver.resolve_battle
+
+        def mock_resolve(self_combat, *args, **kwargs):
+            captured_charge.append(kwargs.get("glorious_charge", False))
+            return original_resolve(self_combat, *args, **kwargs)
+
+        with patch.object(CombatResolver, 'resolve_battle', mock_resolve):
+            events = self.world._process_reckless_cavalry_turn_start()
+
+        assert len(captured_charge) > 0, "resolve_battle was not called"
+        assert captured_charge[0] is False, (
+            "Auto-charge into mountains should have glorious_charge=False"
+        )
+
+    def test_auto_charge_allowed_terrain_gets_charge_bonus(self):
+        """Auto-charge into plains should get glorious_charge=True."""
+        ney, wellington = self._setup_auto_charge("Waterloo", "plains")
+
+        from backend.game_logic.combat import CombatResolver
+        captured_charge = []
+
+        original_resolve = CombatResolver.resolve_battle
+
+        def mock_resolve(self_combat, *args, **kwargs):
+            captured_charge.append(kwargs.get("glorious_charge", False))
+            return original_resolve(self_combat, *args, **kwargs)
+
+        with patch.object(CombatResolver, 'resolve_battle', mock_resolve):
+            events = self.world._process_reckless_cavalry_turn_start()
+
+        assert len(captured_charge) > 0, "resolve_battle was not called"
+        assert captured_charge[0] is True, (
+            "Auto-charge into plains should have glorious_charge=True"
+        )
+
+    @pytest.mark.parametrize("terrain", ["mountains", "forest", "urban"])
+    def test_auto_charge_blocked_terrain_message(self, terrain):
+        """Auto-charge event message should mention terrain blocking when applicable."""
+        ney, wellington = self._setup_auto_charge("Waterloo", terrain)
+        events = self.world._process_reckless_cavalry_turn_start()
+
+        charge_events = [e for e in events if e["type"] == "auto_glorious_charge"]
+        assert len(charge_events) == 1, f"Expected 1 auto-charge event, got {len(charge_events)}"
+
+        msg = charge_events[0]["message"]
+        terrain_name = terrain.replace("_", " ").title()
+        assert terrain_name in msg, (
+            f"Auto-charge into {terrain} should mention '{terrain_name}' in message"
+        )
+
+    def test_auto_charge_plains_no_blocked_message(self):
+        """Auto-charge into plains should NOT mention terrain blocking."""
+        ney, wellington = self._setup_auto_charge("Waterloo", "plains")
+        events = self.world._process_reckless_cavalry_turn_start()
+
+        charge_events = [e for e in events if e["type"] == "auto_glorious_charge"]
+        assert len(charge_events) == 1
+
+        msg = charge_events[0]["message"]
+        assert "blocks" not in msg.lower()
+
+
+# ============================================================================
+# REGRESSION: BUG 3 — Charge safety net fallthrough in executor.py
+# ============================================================================
+
+class TestChargeSafetyNetFallthrough:
+    """Regression tests for glorious charge safety net falling through to normal attack."""
+
+    def setup_method(self):
+        self.world = WorldState()
+        self.executor = CommandExecutor()
+        self.game_state = {"world": self.world}
+
+    def test_charge_blocked_terrain_still_attacks(self):
+        """When terrain blocks charge, a normal attack should still happen."""
+        ney = self.world.get_marshal("Ney")
+        wellington = self.world.get_marshal("Wellington")
+
+        ney.location = "Belgium"
+        ney.strength = 100000
+        ney.morale = 100
+        ney.cavalry = True
+        ney.recklessness = 3
+        wellington.location = "Waterloo"
+        wellington.strength = 50000
+        wellington.morale = 80
+
+        waterloo = self.world.get_region("Waterloo")
+        waterloo.terrain = "mountains"
+
+        initial_wellington_strength = wellington.strength
+        result = self.executor._execute_glorious_charge(
+            ney, "Wellington", self.world, self.game_state
+        )
+
+        # The attack should have happened (damage dealt)
+        assert result.get("charge_blocked_by_terrain") is True
+        # Wellington should have taken damage from the normal attack
+        assert wellington.strength < initial_wellington_strength or ney.strength < 100000, (
+            "Neither side took damage — the fallthrough attack didn't happen"
+        )
+
+    def test_charge_blocked_does_not_get_charge_multiplier(self):
+        """Fallthrough attack should NOT have glorious_charge=True."""
+        ney = self.world.get_marshal("Ney")
+        wellington = self.world.get_marshal("Wellington")
+
+        ney.location = "Belgium"
+        ney.strength = 100000
+        ney.morale = 100
+        ney.cavalry = True
+        ney.recklessness = 3
+        wellington.location = "Waterloo"
+        wellington.strength = 50000
+        wellington.morale = 80
+
+        waterloo = self.world.get_region("Waterloo")
+        waterloo.terrain = "forest"
+
+        # Capture whether glorious_charge was passed
+        captured_charge = []
+        original_resolve = self.executor.combat_resolver.resolve_battle
+
+        def mock_resolve(*args, **kwargs):
+            captured_charge.append(kwargs.get("glorious_charge", False))
+            return original_resolve(*args, **kwargs)
+
+        self.executor.combat_resolver.resolve_battle = mock_resolve
+
+        result = self.executor._execute_glorious_charge(
+            ney, "Wellington", self.world, self.game_state
+        )
+
+        assert result.get("charge_blocked_by_terrain") is True
+        # The fallthrough goes to _execute_attack, which calls resolve_battle
+        # WITHOUT glorious_charge=True
+        for gc in captured_charge:
+            assert gc is not True, (
+                "Fallthrough attack should NOT have glorious_charge=True"
+            )
+
+    def test_charge_allowed_terrain_still_charges(self):
+        """On allowed terrain, _execute_glorious_charge should still do the charge."""
+        ney = self.world.get_marshal("Ney")
+        wellington = self.world.get_marshal("Wellington")
+
+        ney.location = "Belgium"
+        ney.strength = 100000
+        ney.morale = 100
+        ney.cavalry = True
+        ney.recklessness = 3
+        wellington.location = "Waterloo"
+        wellington.strength = 50000
+        wellington.morale = 80
+
+        waterloo = self.world.get_region("Waterloo")
+        waterloo.terrain = "plains"
+
+        captured_charge = []
+        original_resolve = self.executor.combat_resolver.resolve_battle
+
+        def mock_resolve(*args, **kwargs):
+            captured_charge.append(kwargs.get("glorious_charge", False))
+            return original_resolve(*args, **kwargs)
+
+        self.executor.combat_resolver.resolve_battle = mock_resolve
+
+        result = self.executor._execute_glorious_charge(
+            ney, "Wellington", self.world, self.game_state
+        )
+
+        assert result.get("charge_blocked_by_terrain") is not True
+        assert any(gc is True for gc in captured_charge), (
+            "Charge on plains should have glorious_charge=True"
+        )

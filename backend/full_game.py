@@ -134,7 +134,7 @@ class CommandExecutor:
         battle_result = self.combat_resolver.resolve_battle(
             attacker=marshal,
             defender=enemy_marshal,
-            terrain="open"  # Future: Get from region
+            terrain="open"  # TODO: Wire terrain from region if this file is revived
         )
 
         # Check if enemy was destroyed
@@ -351,7 +351,7 @@ class CommandExecutor:
         battle_result = self.combat_resolver.resolve_battle(
             attacker=best_marshal,
             defender=best_enemy,
-            terrain="open"
+            terrain="open"  # TODO: Wire terrain from region if this file is revived
         )
 
         enemy_destroyed = best_enemy.strength <= 0
@@ -401,7 +401,7 @@ class CommandExecutor:
         battle_result = self.combat_resolver.resolve_battle(
             attacker=nearest_marshal,
             defender=enemy,
-            terrain="open"
+            terrain="open"  # TODO: Wire terrain from region if this file is revived
         )
 
         enemy_destroyed = enemy.strength <= 0
