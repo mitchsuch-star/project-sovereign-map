@@ -389,6 +389,7 @@ A future save/load system should use this as the specification.
   "adjacent_regions": ["Belgium", "Lyon", "Brittany", "Waterloo"],
   "income_value": 100,
   "is_capital": true,
+  "terrain": "urban",
   "controller": "France",
   "garrison_strength": 0
 }
@@ -402,8 +403,18 @@ A future save/load system should use this as the specification.
 | `adjacent_regions` | list | Names of bordering regions |
 | `income_value` | int | Gold per turn when controlled |
 | `is_capital` | bool | Whether this is a capital |
+| `terrain` | string | Terrain type: plains, forest, hills, mountains, urban, river_crossing. Default "plains" for backward compat. |
 | `controller` | string\|null | Nation controlling region |
 | `garrison_strength` | int | Garrison troops (future use) |
+
+### Computed Properties (not serialized)
+
+| Property | Derived From | Description |
+|----------|-------------|-------------|
+| `defense_bonus` | terrain | Defender bonus (0.0-0.25) |
+| `movement_cost` | terrain | Attrition multiplier (1.0-2.0) |
+| `supply_modifier` | terrain | Supply capacity modifier (0.5-1.2) |
+| `cavalry_effectiveness` | terrain | Cavalry combat multiplier (0.3-1.2) |
 
 ---
 

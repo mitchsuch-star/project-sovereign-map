@@ -412,7 +412,8 @@ class TestRegionSerializationEnforcement:
             name="TestRegion",
             adjacent_regions=["Paris", "Lyon"],
             income_value=150,
-            is_capital=True
+            is_capital=True,
+            terrain="hills"
         )
         region.controller = "France"
         region.garrison_strength = 5000

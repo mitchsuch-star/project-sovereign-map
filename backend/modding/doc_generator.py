@@ -125,7 +125,8 @@ def generate_region_docs() -> str:
         name="Example",
         adjacent_regions=["Paris", "Lyon"],
         income_value=100,
-        is_capital=False
+        is_capital=False,
+        terrain="plains"
     )
 
     fields_info = get_field_info(region)
