@@ -11,7 +11,7 @@
 | Phase | Name | Status |
 |-------|------|--------|
 | 1-5.3 | Foundation through AI Fixes | COMPLETE |
-| **V2a** | **Objection System Refactor** | **IN PROGRESS (Units 1-5 done)** |
+| **V2a** | **Objection System Refactor** | **COMPLETE** |
 | **6** | **Core Campaign Systems** | **NEXT (after V2a)** |
 | 6.5 | Information & UI Systems | Planned |
 | 7 | Multi-Marshal, Relationships & Coalitions | Planned |
@@ -24,7 +24,7 @@
 | Pre-EA | Polish & Infrastructure | Planned |
 | EA | 1805 Campaign (Option C: Partial Europe) | TBD 2026 |
 
-**Removed from EA scope:** Phase 12 (Communication cutoff), Naval abstraction, Voice-to-text, Full advisor action-gating. See [Post-EA Expansion](#post-ea-expansion).
+**Removed from EA scope:** Phase 12 (Communication cutoff), Naval abstraction, Full advisor action-gating. See [Post-EA Expansion](#post-ea-expansion).
 
 ---
 
@@ -40,7 +40,7 @@
 | 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 1203 (verified Feb 5, 2026)
+**Total Tests:** 1216 (verified Feb 5, 2026)
 
 ---
 
@@ -48,7 +48,7 @@
 
 **Goal:** Fix fundamental flaw where trust modifies WHETHER marshals speak instead of HOW they speak.
 
-**Status:** In progress. Units 1-5 complete (1203 tests), Units 6-7 remaining. See `OBJECTION_V2.md`.
+**Status:** COMPLETE. All 7 units shipped (1216 tests). See `OBJECTION_V2.md`.
 
 **Key Changes:**
 - Deterministic situational triggers (personality x situation -> ConcernLevel)
@@ -482,6 +482,7 @@ To beat Britain: exhaust their willingness to fund coalitions (war score / diplo
 | Difficulty Settings | AI bonuses, player handicaps | Low | Planned |
 | **Full Flavor Toggle** | Tier 3 marshal voice (opt-in with cost warning) | Low | Planned |
 | **LLM Cost Display** | Per-feature token usage in settings | Low | Planned |
+| **Voice-to-Text** | Speak orders naturally — feeds into existing parser pipeline | Medium | Planned |
 | **Short Waterloo Scenario** | 10-15 turn tutorial scenario, 3 marshals, reuse current 13-region data | Medium | Planned |
 
 ### LLM Settings UI
@@ -501,7 +502,18 @@ Estimated cost/game: ~$0.05
 
 Power users tune per-feature, casual players use defaults.
 
+### Voice-to-Text
+
+Killer feature for the "talk to your marshals" fantasy. Player speaks commands, speech-to-text converts to text, text feeds into existing parser pipeline unchanged. The parser already handles natural language — voice is just a new input method.
+
+**Architecture:** Godot `AudioStreamPlayer` captures mic -> send audio to Whisper API (or browser Speech-to-Text API) -> insert transcribed text into command input -> submit through normal parser. Backend is unaware of voice vs typed input.
+
+**Cost:** Whisper API ~$0.006/minute. Average command ~3-5 seconds = ~$0.0003/command. 40 commands/game = ~$0.012/game. Negligible. Alternatively, browser-native `SpeechRecognition` API is free but less accurate.
+
+**Fallback:** Always show text input. Voice is additive, never required. Toggle in settings.
+
 **Dependencies:** All phases complete
+
 **Exit Criteria:** New players learn, payments work, game feels alive
 
 ---
@@ -552,7 +564,6 @@ EA v1: Western + Central Europe (~80 regions). EA updates add Eastern Europe, ex
 | Campaign Editor | MEDIUM | Player-made scenarios |
 | Steam Workshop | MEDIUM | Mod sharing |
 | Accessibility | MEDIUM | Colorblind, fonts, keybinding |
-| Voice-to-Text | LOW | Speak orders naturally |
 | Mobile Port | LOW | Touch UI |
 | Multiplayer | LOW | Co-op? Competitive? |
 
@@ -565,7 +576,7 @@ Lighter version of communication cutoff: orders to distant marshals take effect 
 ## Critical Path to EA
 
 1. COMPLETE: Strategic Commands, Enemy AI, Serialization/Modding
-2. IN PROGRESS: V2a Objection System Refactor (Units 6-7 remaining)
+2. COMPLETE: V2a Objection System Refactor (all 7 units)
 3. Post-V2a: TUTORIAL_SCRIPT.md, doc updates
 4. **Commission Europe map art** (2-4 week lead time, parallel with Phase 6)
 5. Phase 6: Economy, Manpower, Terrain, Fog, War Score, **Save/Load**, **Berthier**, **Post-battle analysis**
@@ -577,7 +588,7 @@ Lighter version of communication cutoff: orders to distant marshals take effect 
 11. Phase 9: Advisors (minimal: stats + flavor + named voices)
 12. Phase 10: Marshal death/recruitment (minimal)
 13. Phase 11: Vassals (loyalty + authority), Britain (off-map funder)
-14. Pre-EA: Tutorial content, LLM monetization, **LLM feature toggles**, **Waterloo scenario**, Steam integration
+14. Pre-EA: Tutorial content, LLM monetization, **LLM feature toggles**, **Voice-to-Text**, **Waterloo scenario**, Steam integration
 15. Wire ~80-100 regions from commissioned map, data entry, balance
 16. **TBD 2026: Early Access**
 

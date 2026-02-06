@@ -459,7 +459,8 @@ def respond_to_objection(request: ObjectionResponse):
             "events": result.get("events", []),
             "action_info": result.get("action_info", {}),
             "action_summary": world.get_action_summary(),
-            "game_state": world.get_game_state_summary()
+            "game_state": world.get_game_state_summary(),
+            "strategic_reports": result.get("strategic_reports", []),
         }
 
         # ════════════════════════════════════════════════════════════

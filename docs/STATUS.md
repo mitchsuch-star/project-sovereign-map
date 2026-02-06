@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 5, 2026
-> **Last Session:** Session 5 — V2a Unit 6 (Integration Wiring)
+> **Last Session:** Session 6 — Bug Fixes + Roadmap
 
 ---
 
@@ -13,7 +13,7 @@
 | **Tests Passing** | **1216** (verified, 3 skipped) |
 | **Current Phase** | V2a **COMPLETE** — Begin Phase 6 |
 | **Blockers** | None |
-| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M |
+| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a |
 
 ---
 
@@ -35,6 +35,15 @@
 ---
 
 ## Recently Completed
+
+### Feb 5 (Session 6: Bug Fixes + Roadmap)
+
+**Bug fixes:**
+- **BUG FIX:** Defend order allowed when already in defensive stance + fortified. `_execute_defend()` returned `success: True` with `variable_action_cost: 0` (wasted no AP but gave misleading feedback). Now returns `success: False` with clear message.
+- **BUG FIX:** Post-turn strategic reports missing after insist/proceed on objection. `/respond_to_objection` endpoint was not passing `strategic_reports` from executor result. Added `strategic_reports` to response dict.
+
+**Roadmap:**
+- Moved Voice-to-Text from Post-EA (LOW) to Pre-EA Polish (killer feature). Added architecture notes: Whisper API or browser SpeechRecognition -> existing parser pipeline. ~$0.012/game cost.
 
 ### Feb 5 (Session 5: V2a Unit 6 — Integration Wiring)
 

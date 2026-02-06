@@ -2112,17 +2112,9 @@ RETREAT RECOVERY (3 turns):
             if getattr(marshal, 'fortified', False):
                 current_bonus = int(getattr(marshal, 'defense_bonus', 0) * 100)
                 return {
-                    "success": True,
-                    "message": f"{marshal.name} is already in defensive stance and fortified at {marshal.location} (+{current_bonus}% defense). "
-                              f"Position is as secure as possible.",
-                    "events": [{
-                        "type": "defend_info",
-                        "marshal": marshal.name,
-                        "status": "already_fortified",
-                        "defense_bonus": current_bonus
-                    }],
-                    "new_state": game_state,
-                    "variable_action_cost": 0  # Free - just info
+                    "success": False,
+                    "message": f"{marshal.name} is already defending and fortified at {marshal.location} (+{current_bonus}% defense). "
+                              f"No further defensive action needed.",
                 }
 
             # Not fortified yet - execute fortify
