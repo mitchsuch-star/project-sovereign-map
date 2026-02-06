@@ -30,6 +30,29 @@ from backend.commands.objection_v2 import (
 )
 
 
+# Player-readable display names for internal action strings.
+# Internal action names must NEVER reach the frontend raw — always translate first.
+_ACTION_DISPLAY_NAMES = {
+    "attack": "attacks",
+    "move": "moves to",
+    "defend": "defends",
+    "fortify": "fortifies",
+    "unfortify": "abandons fortification",
+    "drill": "drills",
+    "stance_change": "changes stance",
+    "retreat": "retreats to",
+    "wait": "holds position",
+    "recruit": "recruits",
+    "scout": "scouts",
+    "hold": "holds",
+}
+
+
+def _action_display_name(action: str) -> str:
+    """Translate internal action name to player-readable text."""
+    return _ACTION_DISPLAY_NAMES.get(action, action.replace("_", " "))
+
+
 class CommandExecutor:
     """
     Executes validated commands and returns results.
@@ -212,6 +235,10 @@ class CommandExecutor:
         if not world:
             return {"success": False, "message": "Error: No world state"}
 
+        # V2a: Capture mild concerns BEFORE end_turn clears them
+        # (advance_turn resets mild_concerns_this_turn at start)
+        saved_mild_concerns = [c.copy() for c in world.mild_concerns_this_turn]
+
         # Use TurnManager to process everything including ENEMY AI
         turn_manager = TurnManager(world, executor=self)
         turn_result = turn_manager.end_turn(game_state)  # Pass game_state for enemy AI
@@ -243,6 +270,8 @@ class CommandExecutor:
             message += "\n\n--- TURN EVENTS ---\n" + "\n".join(tactical_messages)
 
         # Add Independent Command Report to message (Phase 2.5)
+        # NOTE: Action names must be player-readable — never show raw internal names
+        # like "stance_change" or "fortify". Use _action_display_name() to translate.
         independent_report = turn_result.get("independent_command_report", [])
         if independent_report:
             message += "\n\n═══ INDEPENDENT COMMAND REPORT ═══"
@@ -253,7 +282,7 @@ class CommandExecutor:
                 turns_left = entry.get("turns_remaining", 0)
                 perf = entry.get("performance", {})
 
-                action_str = action
+                action_str = _action_display_name(action)
                 if target:
                     action_str += f" {target}"
 
@@ -294,6 +323,10 @@ class CommandExecutor:
         strategic_reports = turn_result.get("strategic_reports", [])
         if strategic_reports:
             result["strategic_reports"] = strategic_reports
+
+        # V2a: Include saved mild concerns (captured before advance_turn cleared them)
+        if saved_mild_concerns:
+            result["mild_concerns"] = saved_mild_concerns
 
         return result
 
@@ -753,7 +786,7 @@ RETREAT RECOVERY (3 turns):
 
                     # Stance changes: defensive/neutral allowed, aggressive blocked
                     if action == 'stance_change':
-                        target_stance = command.get('target_stance', '').lower()
+                        target_stance = (command.get('target_stance') or command.get('target') or '').lower()
                         if target_stance in ['aggressive', 'attack', 'offense']:
                             return {
                                 "success": False,
@@ -809,10 +842,23 @@ RETREAT RECOVERY (3 turns):
                         should_check_objection = False
 
                 # ═══════════════════════════════════════════════════════════
+                # ALREADY-DEFENDED CHECK - Validation BEFORE objection
+                # Don't fire objection for defend when already fortified
+                # ═══════════════════════════════════════════════════════════
+                current_stance = getattr(marshal, 'stance', None)
+                if action == 'defend' and current_stance == Stance.DEFENSIVE:
+                    if getattr(marshal, 'fortified', False):
+                        current_bonus = int(getattr(marshal, 'defense_bonus', 0) * 100)
+                        return {
+                            "success": False,
+                            "message": f"{marshal.name} is already defending and fortified at {marshal.location} (+{current_bonus}% defense). "
+                                      f"No further defensive action needed.",
+                        }
+
+                # ═══════════════════════════════════════════════════════════
                 # AGGRESSIVE STANCE CHECK - Validation BEFORE objection
                 # Cannot fortify or drill while in aggressive stance
                 # ═══════════════════════════════════════════════════════════
-                current_stance = getattr(marshal, 'stance', None)
                 if current_stance and current_stance.value == "aggressive":
                     blocked_while_aggressive = ['fortify', 'drill']
                     if action in blocked_while_aggressive:
@@ -823,6 +869,28 @@ RETREAT RECOVERY (3 turns):
                             "stance": "aggressive",
                             "suggestion": f"Change stance first: '{marshal_name} defensive' or '{marshal_name} neutral'"
                         }
+
+                # ═══════════════════════════════════════════════════════════
+                # ALREADY-FORTIFIED CHECK - Validation BEFORE objection
+                # Objection evaluation must run AFTER action validation —
+                # no point objecting to an action that would fail anyway.
+                # ═══════════════════════════════════════════════════════════
+                if action == 'fortify' and getattr(marshal, 'fortified', False):
+                    current_bonus = int(getattr(marshal, 'defense_bonus', 0) * 100)
+                    return {
+                        "success": False,
+                        "message": f"{marshal.name} is already fortified at {marshal.location} (+{current_bonus}% defense)."
+                    }
+
+                # ═══════════════════════════════════════════════════════════
+                # ALREADY-DRILLING CHECK - Validation BEFORE objection
+                # Same principle: don't object to a redundant drill order.
+                # ═══════════════════════════════════════════════════════════
+                if action == 'drill' and (getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False)):
+                    return {
+                        "success": False,
+                        "message": f"{marshal.name} is already engaged in drill exercises."
+                    }
 
                 # ═══════════════════════════════════════════════════════════
                 # RETREAT DANGER CHECK - Validation BEFORE objection (BUG-010)
@@ -5436,7 +5504,13 @@ RETREAT RECOVERY (3 turns):
         marshal_name = command.get("marshal")
         # Support both "target_stance" and "target" as parameter names
         # (AI uses "target", player commands may use "target_stance")
-        target_stance_str = command.get("target_stance") or command.get("target") or "neutral"
+        # Parse results may have None fields — guard before .lower()/.strip()
+        target_stance_str = command.get("target_stance") or command.get("target")
+        if not target_stance_str:
+            return {
+                "success": False,
+                "message": f"No stance specified. Valid stances: neutral, defensive, aggressive"
+            }
         target_stance_str = target_stance_str.lower()
         world: WorldState = game_state.get("world")
 
@@ -6535,7 +6609,12 @@ RETREAT RECOVERY (3 turns):
             else:
                 result = {"success": False, "message": f"Marshal {marshal_name} not found"}
         elif action == "wait":
-            result = self._execute_wait(command, game_state)
+            # _execute_wait takes (marshal, world, game_state) — not (command, game_state)
+            marshal = world.get_marshal(marshal_name)
+            if marshal:
+                result = self._execute_wait(marshal, world, game_state)
+            else:
+                result = {"success": False, "message": f"Marshal {marshal_name} not found"}
         else:
             result = {"success": False, "message": f"Unknown action: {action}"}
 

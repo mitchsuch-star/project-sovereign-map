@@ -467,10 +467,30 @@ class TurnManager:
             }
             results["total_actions"] += len(nation_results)
 
-            # Build summary for this nation
+            # Build summary for this nation (human-readable action names).
+            # Internal action names must NEVER reach the frontend — translate before sending.
+            action_display_names = {
+                "attack": "attacks",
+                "move": "moves",
+                "defend": "defends",
+                "fortify": "fortifies",
+                "unfortify": "unfortifies",
+                "drill": "drills",
+                "stance_change": "changes stance",
+                "retreat": "retreats",
+                "wait": "holds position",
+                "recruit": "recruits",
+                "scout": "scouts",
+            }
             nation_summary = f"{nation} ({len(nation_results)} actions)"
             if nation_results:
-                action_types = [r.get("ai_action", {}).get("action", "unknown") for r in nation_results]
+                action_types = []
+                for r in nation_results:
+                    ai_act = r.get("ai_action", {})
+                    raw = ai_act.get("action", "unknown")
+                    marshal = ai_act.get("marshal", "")
+                    display = action_display_names.get(raw, raw.replace("_", " "))
+                    action_types.append(f"{marshal} {display}" if marshal else display)
                 nation_summary += f": {', '.join(action_types)}"
             results["summary"].append(nation_summary)
 

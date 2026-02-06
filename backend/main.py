@@ -317,7 +317,10 @@ def execute_command(request: CommandRequest):
             response["feedback"] = feedback
 
         # V2a: Include mild concerns for turn log display
-        if world.mild_concerns_this_turn:
+        # Check result dict first (end_turn saves them before advance_turn clears world list)
+        if result.get("mild_concerns"):
+            response["mild_concerns"] = result["mild_concerns"]
+        elif world.mild_concerns_this_turn:
             response["mild_concerns"] = world.mild_concerns_this_turn
 
         # Include enemy_phase if present (from end_turn)

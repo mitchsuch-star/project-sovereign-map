@@ -864,7 +864,8 @@ pytest tests/ -v --tb=no -q 2>&1 | tail -3
 
 ### Bypass Hierarchy (Check Order)
 
-Before entering the V2 objection system, these bypasses are checked in order:
+Before entering the V2 objection system, these bypasses are checked in order.
+**Key principle: Objection evaluation must run AFTER action validation — if the action would fail validation anyway, there's nothing to object to.**
 
 ```python
 def should_check_objection(marshal, action, world):
@@ -885,6 +886,13 @@ def should_check_objection(marshal, action, world):
     # 8. Enemy marshal
     if marshal.nation != world.player_nation: return False
     return True  # Proceed to V2 objection check
+
+# ADDITIONAL pre-validation (returns failure BEFORE objection):
+# - Already defensive + fortified → defend fails (no objection)
+# - Already fortified → fortify fails (no objection)
+# - Already drilling → drill fails (no objection)
+# - Aggressive stance → fortify/drill blocked (no objection)
+# - Not in danger → retreat blocked (no objection)
 ```
 
 ### Regression Checklist

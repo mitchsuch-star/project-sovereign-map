@@ -115,6 +115,8 @@ func _format_action(action: Dictionary) -> String:
 			action_str += "defends"
 		"fortify":
 			action_str += "fortifies position"
+		"unfortify":
+			action_str += "abandons fortified position"
 		"drill":
 			action_str += "drills troops"
 		"stance_change":
@@ -123,8 +125,12 @@ func _format_action(action: Dictionary) -> String:
 			action_str += "retreats to " + target
 		"wait":
 			action_str += "holds position"
+		"recruit":
+			action_str += "recruits troops"
+		"scout":
+			action_str += "scouts " + target
 		_:
-			action_str += action_type
+			action_str += action_type.replace("_", " ")
 			if target:
 				action_str += " " + target
 

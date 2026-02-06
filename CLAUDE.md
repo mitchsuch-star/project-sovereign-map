@@ -195,6 +195,11 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | AI fortify loop | P0 engagement check at start of `_evaluate_marshal` |
 | AI stagnation never resets | Result dicts have action under `ai_action` key, not `action` |
 | Enemy AI crash | `game_state` must be dict `{"world": WorldState}`, not WorldState directly |
+| Internal names in frontend | Use `_ACTION_DISPLAY_NAMES` or `_action_display_name()` — never raw action strings |
+| Response key mismatch | curl test the endpoint to verify key names match what Godot reads |
+| None crash on parse field | Guard `.lower()`/`.strip()` — parser may return None for optional fields |
+| Objection on impossible action | Pre-validate BEFORE objection check — see bypass hierarchy in executor.py |
+| Data cleared before capture | Save per-turn lists (e.g. mild_concerns) BEFORE calling advance_turn |
 
 ---
 
@@ -208,6 +213,8 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 - Store API keys in code (use .env)
 - Skip serialization for new fields
 - Bypass executor for state changes
+- Run objection evaluation before action validation (check bypass hierarchy in executor.py)
+- Show raw internal action names to players (use `_ACTION_DISPLAY_NAMES` translation)
 
 ---
 

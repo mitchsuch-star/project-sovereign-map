@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 5, 2026
-> **Last Session:** Session 6 — Bug Fixes + Roadmap
+> **Last Session:** Session 7 — V2a Smoke Test Bug Fixes
 
 ---
 
@@ -35,6 +35,21 @@
 ---
 
 ## Recently Completed
+
+### Feb 5 (Session 7: V2a Smoke Test Bug Fixes)
+
+**4 bugs found during V2a Godot smoke testing, all fixed:**
+- **BUG FIX:** Enemy actions showing raw internal names (`stance_change`, `fortify`) in command box. Summary in `turn_manager.py` and independent command report in `executor.py` were using raw action strings. Added `_ACTION_DISPLAY_NAMES` translation dict. Also added missing `unfortify`, `recruit`, `scout` to Godot enemy phase dialog match statement.
+- **BUG FIX:** MILD "Field Dispatches" never appearing. `world.advance_turn()` cleared `mild_concerns_this_turn` BEFORE `_execute_end_turn()` could capture them. Fix: save copy before calling `turn_manager.end_turn()`, include in result dict.
+- **BUG FIX:** NoneType crash on stance change (`'NoneType' object has no attribute 'lower'`). Parser could return None for stance field. Added guard clause returning clear error instead of crashing.
+- **BUG FIX:** Objection firing for impossible actions (defend when already fortified). V2 objection evaluator ran BEFORE action validation. Added pre-validation block for already-defended, already-fortified, already-drilling.
+
+**Proactive pattern hunt (3 additional fixes):**
+- **BUG FIX:** Independent command report used raw action names → now uses `_action_display_name()`.
+- **BUG FIX:** `_execute_wait()` called with wrong signature in post-objection path (would crash as TypeError). Fixed to match `(marshal, world, game_state)` signature.
+- **BUG FIX:** Fortify and drill could trigger objections when already active. Promoted validation before objection check.
+
+**Defensive comments added** at all fix sites explaining why the code was wrong.
 
 ### Feb 5 (Session 6: Bug Fixes + Roadmap)
 

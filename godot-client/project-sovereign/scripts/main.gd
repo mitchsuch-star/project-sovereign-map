@@ -1084,7 +1084,8 @@ func _show_enemy_phase_dialog(enemy_phase: Dictionary, turn: int):
 
 func _show_mild_dispatches(response):
 	"""V2a: Show MILD concerns as 'Field Dispatches' in the turn log.
-	Atmosphere text — feels like reading war dispatches, not game feedback."""
+	Atmosphere text — feels like reading war dispatches, not game feedback.
+	Key 'mild_concerns' must match exactly what main.py sends — verify with curl if dispatches stop appearing."""
 	if not response.has("mild_concerns"):
 		return
 	var concerns = response.mild_concerns
