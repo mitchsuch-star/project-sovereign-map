@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 6, 2026
-> **Last Session:** Session 12 — Phase 6.1 Terrain Implementation (A + B + Review Fixes)
+> **Last Session:** Session 13 — Phase 6.1.B Smoke Test Bug Fixes + Charge Redirect
 
 ---
 
@@ -10,8 +10,8 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1334** (verified, 3 skipped) |
-| **Current Phase** | Phase 6.1 Terrain — A+B complete, review bugs fixed. Next: 6.1.C (movement/pathfinding) or 6.2 (Economy) |
+| **Tests Passing** | **1347** (verified, 3 skipped) |
+| **Current Phase** | Phase 6.1 Terrain — A+B complete, smoke test bugs fixed. Next: 6.1.C (movement/pathfinding) or 6.2 (Economy) |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a |
 
@@ -19,7 +19,7 @@
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1.A+B done, review bugs fixed. Next: 6.1.C or 6.2.**
+**Phase 6: Core Campaign — Terrain 6.1.A+B done, smoke test bugs fixed + charge redirect. Next: 6.1.C or 6.2.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -31,12 +31,37 @@
 - [x] **Session 6.1.B: Combat Integration** — defense bonuses, cavalry terrain scaling, charge blocking, 5 executor call sites, 43 tests
 - [x] **6.1.B Opus Code Review** — found 3 bugs (auto-charge terrain, full_game.py dead code, charge safety net)
 - [x] **6.1.B Bug Fixes** — all 3 bugs fixed, 10 regression tests, full suite green (1334 pass)
+- [x] **6.1.B Smoke Test** — 3 Godot smoke test bugs fixed, charge redirect popup added, 13 regression tests (1347 pass)
 - [ ] **Phase 6.1.C+: Movement/pathfinding/supply** — weighted Dijkstra, movement cost enforcement, supply modifier wiring
 - [ ] Phase 6.2: Economy implementation (18 steps per ECONOMY_SPEC.md §15)
 
 ---
 
 ## Recently Completed
+
+### Feb 6 (Session 13: Phase 6.1.B Smoke Test Bug Fixes)
+
+**3 bugs found during Godot smoke testing, all fixed:**
+- **BUG 1 (cavalry_terrain_message passthrough):** Cavalry terrain flavor message (e.g. "Cavalry thrives on Plains!") generated in `combat.py` but not forwarded through `executor.py` → `main.py` to Godot as a separate field. Added passthrough in both files.
+- **BUG 2 (glorious charge popup on blocked terrain):** When terrain blocks a cavalry charge (forest/mountains/urban), popup never appeared. Now scans for alternative chargeable enemies within cavalry range (2 regions) on allowed terrain. If alternatives found: offers redirect popup. If no alternatives: falls through to normal attack with terrain message.
+- **BUG 3 (recklessness reset on blocked charge):** `world_state.py` auto-charge path unconditionally reset recklessness to 0 even when terrain blocked the charge. Now only resets when charge actually executes (conditional `if not charge_blocked`).
+
+**Charge redirect popup (new feature from Bug 2 fix):**
+- When reckless cavalry (level 3) attacks enemy on blocked terrain, executor searches for enemies within range on chargeable terrain
+- If found: returns `pending_glorious_charge=True, charge_redirected=True` with alternative target info
+- If not found: falls through to normal attack, prints terrain blocking message
+- At recklessness 4+ (auto-charge), blocked terrain downgrades to normal attack without reset
+
+**Regression tests (13 new, in `test_smoke_bugfixes_61b.py`):**
+- TestCavalryTerrainMessagePassthrough (4 tests): plains message, forest message, no message at recklessness 0, executor passthrough
+- TestGloriousChargePopupTerrain (6 tests): popup on plains, popup on hills, no popup on forest without alternatives, redirect popup on forest with alternatives, CHARGE_BLOCKED_TERRAIN constant check, recklessness persists after terrain block
+- TestRecklessnessResetOnBlockedCharge (3 tests): blocked terrain preserves recklessness, allowed terrain resets it, blocked generates correct message
+
+**Also fixed:** `test_terrain_combat_integration.py` test renamed to `test_recklessness_popup_suppressed_on_blocked_terrain_no_alternatives` with enemy cleanup to prevent false redirect popup trigger.
+
+**Verified:** 2 prior Opus review bugs (full_game.py dead code, charge safety net fallthrough) already fixed in commit 10624a3.
+
+**Test count: 1347 passed, 3 skipped, 0 failures**
 
 ### Feb 6 (Session 12: Phase 6.1 Terrain Implementation)
 
@@ -271,6 +296,7 @@
 
 | Date | Tests | Notes |
 |------|-------|-------|
+| Feb 6, 2026 | **1347** | Smoke test bug fixes: cavalry terrain msg, charge redirect, recklessness reset. 13 new tests |
 | Feb 6, 2026 | **1334** | Phase 6.1 terrain: 59 data layer + 43 combat + 10 review bug regression tests |
 | Feb 6, 2026 | **1222** | AP pre-check, post-objection variable cost, enemy summary, 4 regression tests |
 | Feb 5, 2026 | **1218** | Smoke test follow-up: NoneType + stale MILD fixes, 2 regression tests |

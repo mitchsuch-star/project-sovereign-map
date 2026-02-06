@@ -720,6 +720,12 @@ When attacking at recklessness 3+, player receives popup:
 | "Let him charge!" | 2x casualties both sides, -20 enemy morale, recklessness resets to 0 |
 | "Restrain attack" | Normal attack, -5 trust, recklessness follows normal rules |
 
+**Terrain blocking (Phase 6.1.B):** If the target is on charge-blocked terrain (mountains/forest/urban):
+1. Executor scans for alternative enemies within cavalry range (2 regions) on allowed terrain
+2. If alternatives found: redirect popup offers closest alternative target (`pending_glorious_charge=True, charge_redirected=True`)
+3. If no alternatives: falls through to normal attack (no charge bonus), recklessness preserved
+4. Recklessness does NOT reset when terrain blocks the charge
+
 #### Auto-Charge (Level 4)
 
 At turn start, before player input:
@@ -727,6 +733,7 @@ At turn start, before player input:
 2. If enemy found -> Attack weakest enemy automatically (free action)
 3. If no enemy -> March toward nearest enemy
 4. If movement blocked -> "strains at the reins" message, stays at level 4
+5. If target on charge-blocked terrain -> downgrade to normal attack, recklessness preserved (does NOT reset)
 
 #### AI Behavior
 
@@ -740,7 +747,9 @@ AI marshals at recklessness 3+ always charge (no popup decision needed).
 | Combat bonuses | `marshal.py` | `get_attack_modifier()`, `get_defense_modifier()` |
 | Stance restrictions | `marshal.py` | `can_use_stance()` |
 | Glorious Charge | `executor.py` | `_execute_charge()`, `_execute_restrain()` |
-| Auto-charge | `world_state.py` | (Phase 3 implementation) |
+| Charge redirect | `executor.py` | Charge terrain blocked section (~line 1617) |
+| Cavalry terrain msg | `combat.py`, `executor.py`, `main.py` | Passthrough chain |
+| Auto-charge | `world_state.py` | `_process_reckless_cavalry_turn_start()` |
 
 ---
 
@@ -1233,7 +1242,7 @@ world.find_nearest_marshal_within_range(from_location, nation, max_distance)
 
 ## Terrain System (Phase 6.1)
 
-**Status: Sessions 6.1.A + 6.1.B COMPLETE. Opus review bugs fixed.**
+**Status: Sessions 6.1.A + 6.1.B COMPLETE. Opus review bugs fixed. Smoke test bugs fixed + charge redirect.**
 
 See `docs/TERRAIN_SPEC.md` for full spec. Implementation details:
 
@@ -1253,8 +1262,9 @@ See `docs/TERRAIN_SPEC.md` for full spec. Implementation details:
 - **Constants** (single source): `region.py` — `VALID_TERRAINS`, `TERRAIN_DEFENSE_BONUS`, `TERRAIN_MOVEMENT_COST`, `TERRAIN_SUPPLY_MODIFIER`, `TERRAIN_CAVALRY_EFFECTIVENESS`, `TERRAIN_CAVALRY_ATTRITION_BONUS`, `CHARGE_BLOCKED_TERRAIN`
 - **Region model**: `terrain` field with validation, 4 computed properties (`defense_bonus`, `movement_cost`, `supply_modifier`, `cavalry_effectiveness`)
 - **Combat**: `combat.py` reads `TERRAIN_DEFENSE_BONUS` for defender bonus, `TERRAIN_CAVALRY_EFFECTIVENESS` to scale recklessness attack bonus. Legacy terrain values ("open", "fortified", "mountain", "river") still work.
-- **Executor**: All 5 `resolve_battle()` call sites in `executor.py` read terrain from defender's region. Charge blocking at two layers: popup suppression + safety net fallthrough to normal attack.
-- **Auto-charge**: `world_state.py` auto-charge at recklessness 4+ reads terrain and blocks charge bonus on mountains/forest/urban (downgrades to normal attack).
+- **Executor**: All 5 `resolve_battle()` call sites in `executor.py` read terrain from defender's region. Charge blocking at two layers: popup suppression (with redirect to alternatives) + safety net fallthrough to normal attack.
+- **Charge redirect**: When charge blocked by terrain at recklessness 3, executor scans for alternative enemies within cavalry range on allowed terrain. Offers redirect popup if found, falls through to normal attack if not. `cavalry_terrain_message` forwarded as separate field through `main.py`.
+- **Auto-charge**: `world_state.py` auto-charge at recklessness 4+ reads terrain and blocks charge bonus on mountains/forest/urban (downgrades to normal attack, recklessness preserved).
 - **REGIONS_DATA**: All 13 regions assigned terrain. Distribution: plains(4), hills(3), urban(3), mountains(1), forest(1), river_crossing(1).
 - **Serialization**: `terrain` field roundtrips through `to_dict()`/`from_dict()`. Missing terrain defaults to "plains" (backward compat).
 
