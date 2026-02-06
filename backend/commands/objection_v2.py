@@ -702,13 +702,14 @@ def evaluate_aggressive(marshal, action: str, order: Dict, game_state) -> Concer
             return ConcernLevel.MODERATE  # "There's an enemy right there!"
         return ConcernLevel.NONE
 
-    # Defensive stance change
+    # Defensive stance change — aggressive marshals dislike ANY defensive posture,
+    # matching the unconditional MILD on the "defend" action above.
     if action == "stance_change":
         # BUG FIX: order.get('target', '') returns None when key exists with value None
         # (parser.py:297 explicitly sets "target": None). Must use `or ''` pattern.
         target_stance = (order.get('target') or '').lower()
-        if target_stance == 'defensive' and _check_enemy_adjacent(marshal, game_state):
-            return ConcernLevel.MILD  # Minor grumble about going defensive
+        if target_stance in ('defensive', 'defense', 'defend'):
+            return ConcernLevel.MILD  # "We should be attacking, not cowering!"
         return ConcernLevel.NONE
 
     return ConcernLevel.NONE

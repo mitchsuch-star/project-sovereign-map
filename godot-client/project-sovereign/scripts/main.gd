@@ -473,7 +473,7 @@ func _on_command_result(response):
 		_display_result(response)
 
 		# Check for enemy phase (from end_turn)
-		if response.has("enemy_phase") and response.enemy_phase.get("total_actions", 0) > 0:
+		if response.has("enemy_phase"):
 			print("ENEMY PHASE DETECTED - showing dialog")
 			set_input_enabled(false)  # Disable input until dismissed
 			var turn = current_turn
