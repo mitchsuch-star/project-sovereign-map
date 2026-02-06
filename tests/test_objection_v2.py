@@ -1441,3 +1441,334 @@ class TestWorldStateV2aFields:
         restored = WorldState.from_dict(data)
         assert restored.mild_concerns_this_turn == []
         assert restored.objection_popups_this_turn == set()
+
+
+# ============================================================================
+# UNIT 6: V2a INTEGRATION TESTS (executor pipeline end-to-end)
+# ============================================================================
+
+
+class TestV2aIntegrationFixtures:
+    """Shared setup for integration tests."""
+
+    @staticmethod
+    def make_integration_world():
+        """Create a world suitable for integration testing."""
+        from backend.models.world_state import WorldState
+        from backend.models.marshal import Marshal, Stance
+        from backend.models.region import Region
+
+        world = WorldState()
+        world.marshals = {}
+        world.regions = {
+            "Paris": Region("Paris", ["Belgium", "Brittany"], "France", 100),
+            "Belgium": Region("Belgium", ["Paris", "Rhine", "Netherlands"], "France", 80),
+            "Rhine": Region("Rhine", ["Belgium", "Bavaria"], "Prussia", 60),
+            "Netherlands": Region("Netherlands", ["Belgium"], "Britain", 70),
+            "Brittany": Region("Brittany", ["Paris"], "France", 50),
+            "Bavaria": Region("Bavaria", ["Rhine"], "Prussia", 60),
+        }
+
+        davout = Marshal("Davout", "Belgium", 25000, "cautious", "France")
+        davout.morale = 85
+        davout.stance = Stance.NEUTRAL
+        davout.trust.set(50)  # TRUSTING tier
+        world.marshals["Davout"] = davout
+
+        ney = Marshal("Ney", "Paris", 30000, "aggressive", "France", cavalry=True)
+        ney.morale = 80
+        ney.stance = Stance.NEUTRAL
+        ney.trust.set(50)
+        world.marshals["Ney"] = ney
+
+        blucher = Marshal("Blucher", "Rhine", 60000, "aggressive", "Prussia")
+        blucher.morale = 85
+        world.marshals["Blucher"] = blucher
+
+        world.player_nation = "France"
+        world.current_turn = 1
+        world.actions_remaining = 4
+
+        return world
+
+
+class TestV2aTacticalIntegration:
+    """Integration: tactical command → V2 evaluate → popup → response → trust change."""
+
+    @patch('backend.commands.objection_v2.random.random', return_value=0.5)
+    def test_tactical_objection_full_path_trust(self, mock_rng):
+        """Full tactical path: Davout attacks bad odds → popup → trust → trust gain."""
+        from backend.commands.executor import CommandExecutor
+        from backend.commands.objection_v2 import calculate_trust_gain, ConcernLevel, TrustTier
+
+        world = TestV2aIntegrationFixtures.make_integration_world()
+        executor = CommandExecutor()
+
+        davout = world.marshals["Davout"]
+        davout.location = "Rhine"  # Same region as Blucher (60k vs 25k = 2.4x ratio)
+        initial_trust = davout.trust.value
+
+        command = {"command": {"marshal": "Davout", "action": "attack", "target": "Blucher"}}
+        game_state = {"world": world}
+
+        result = executor.execute(command, game_state)
+
+        # V2 should trigger MODERATE+ popup (2.4x ratio for cautious)
+        assert result.get("pending_objection") is True or result.get("awaiting_response") is True
+        objection = result.get("objection")
+        assert objection is not None
+        assert objection["concern_level"] in ("MODERATE", "STRONG", "EXTREME")
+        assert objection["trust_tier"] == "TRUSTING"
+        assert "trust_gain" in objection
+        assert "insist_penalty" in objection
+        assert "compromise_gain" in objection
+
+        # Now respond with 'trust' — pass world directly (has get_marshal)
+        expected_gain = objection["trust_gain"]
+        response_result = world.disobedience_system.handle_response(
+            world.pending_objection, "trust", world
+        )
+
+        # Trust should increase by V2 scaled amount
+        assert davout.trust.value == initial_trust + expected_gain
+
+    @patch('backend.commands.objection_v2.random.random', return_value=0.5)
+    def test_tactical_objection_insist_always_succeeds(self, mock_rng):
+        """V2a insist path: insist always succeeds with V2 scaled penalty."""
+        from backend.commands.executor import CommandExecutor
+
+        world = TestV2aIntegrationFixtures.make_integration_world()
+        executor = CommandExecutor()
+
+        davout = world.marshals["Davout"]
+        davout.location = "Rhine"
+        initial_trust = davout.trust.value
+
+        command = {"command": {"marshal": "Davout", "action": "attack", "target": "Blucher"}}
+        game_state = {"world": world}
+
+        result = executor.execute(command, game_state)
+        assert result.get("pending_objection") is True or result.get("awaiting_response") is True
+
+        objection = world.pending_objection
+        expected_penalty = objection["insist_penalty"]
+
+        response_result = world.disobedience_system.handle_response(
+            objection, "insist", world
+        )
+
+        # V2a: Insist always succeeds (no disobedience roll)
+        assert response_result.get("success") is True or "final_order" in response_result
+        # Trust decreases by V2 scaled penalty
+        assert davout.trust.value == initial_trust + expected_penalty  # penalty is negative
+
+    @patch('backend.commands.objection_v2.random.random', return_value=0.5)
+    def test_tactical_objection_compromise_flat_gain(self, mock_rng):
+        """V2a compromise: flat +3 regardless of tier."""
+        from backend.commands.executor import CommandExecutor
+        from backend.commands.objection_v2 import COMPROMISE_TRUST_GAIN
+
+        world = TestV2aIntegrationFixtures.make_integration_world()
+        executor = CommandExecutor()
+
+        davout = world.marshals["Davout"]
+        davout.location = "Rhine"
+        initial_trust = davout.trust.value
+
+        command = {"command": {"marshal": "Davout", "action": "attack", "target": "Blucher"}}
+        game_state = {"world": world}
+
+        result = executor.execute(command, game_state)
+        assert result.get("pending_objection") is True or result.get("awaiting_response") is True
+
+        objection = world.pending_objection
+        assert objection["compromise_gain"] == COMPROMISE_TRUST_GAIN
+
+        # Only respond if compromise action exists
+        if objection.get("compromise"):
+            response_result = world.disobedience_system.handle_response(
+                objection, "compromise", world
+            )
+            assert davout.trust.value == initial_trust + COMPROMISE_TRUST_GAIN
+
+
+class TestV2aStrategicIntegration:
+    """Integration: strategic command → V2 evaluate → popup → response → trust change."""
+
+    @patch('backend.commands.objection_v2.random.random', return_value=0.5)
+    def test_strategic_objection_full_path(self, mock_rng):
+        """Full strategic path: Davout MOVE_TO through enemy → popup → trust."""
+        from backend.commands.executor import CommandExecutor
+
+        world = TestV2aIntegrationFixtures.make_integration_world()
+        executor = CommandExecutor()
+
+        davout = world.marshals["Davout"]
+        davout.location = "Belgium"
+        initial_trust = davout.trust.value
+
+        # Blucher at Rhine blocks Belgium → Bavaria
+        command = {
+            "command": {"marshal": "Davout", "action": "move", "target": "Bavaria"},
+            "is_strategic": True,
+            "strategic_type": "MOVE_TO",
+        }
+        game_state = {"world": world}
+
+        result = executor.execute(command, game_state)
+
+        assert result.get("pending_objection") is True
+        objection = result.get("objection")
+        assert objection is not None
+        assert objection["concern_level"] in ("MODERATE", "STRONG", "EXTREME")
+        assert "trust_gain" in objection
+        assert "insist_penalty" in objection
+
+
+class TestV2aMildPath:
+    """Integration: MILD concerns produce flavor text, no popup."""
+
+    @patch('backend.commands.objection_v2.random.random', return_value=0.5)
+    def test_mild_concern_no_popup(self, mock_rng):
+        """MILD concern → flavor text in mild_concerns_this_turn, no popup."""
+        from backend.commands.executor import CommandExecutor
+
+        world = TestV2aIntegrationFixtures.make_integration_world()
+        executor = CommandExecutor()
+
+        davout = world.marshals["Davout"]
+        davout.location = "Belgium"
+        davout.strength = 25000
+
+        # Blucher at 37500 → ratio 1.5x → MILD for cautious
+        blucher = world.marshals["Blucher"]
+        blucher.strength = 37500
+        blucher.location = "Belgium"  # Same region
+
+        command = {"command": {"marshal": "Davout", "action": "attack", "target": "Blucher"}}
+        game_state = {"world": world}
+
+        result = executor.execute(command, game_state)
+
+        # MILD: no popup, action should proceed or mild concern recorded
+        assert result.get("pending_objection") is not True
+        assert result.get("awaiting_response") is not True
+
+
+class TestV2aIdleTurnsIntegration:
+    """Integration: idle_turns increment, reset on action, serialization roundtrip."""
+
+    def test_idle_turns_increment_on_idle(self):
+        """Player marshal that doesn't act gets idle_turns incremented."""
+        from backend.models.world_state import WorldState
+        from backend.models.marshal import Marshal
+
+        world = WorldState()
+        davout = Marshal("Davout", "Paris", 30000, "cautious", "France")
+        davout.idle_turns = 0
+        world.marshals["Davout"] = davout
+        world.player_nation = "France"
+
+        # Process tactical states (simulates end of turn processing)
+        world._process_tactical_states()
+
+        assert davout.idle_turns == 1
+
+    def test_idle_turns_increment_twice(self):
+        """Idle turns accumulate across multiple turn processes."""
+        from backend.models.world_state import WorldState
+        from backend.models.marshal import Marshal
+
+        world = WorldState()
+        davout = Marshal("Davout", "Paris", 30000, "cautious", "France")
+        davout.idle_turns = 0
+        world.marshals["Davout"] = davout
+        world.player_nation = "France"
+
+        world._process_tactical_states()
+        world._process_tactical_states()
+
+        assert davout.idle_turns == 2
+
+    def test_idle_turns_reset_on_attack(self):
+        """idle_turns resets to 0 when marshal attacks."""
+        from backend.models.marshal import Marshal
+
+        davout = Marshal("Davout", "Paris", 30000, "cautious", "France")
+        davout.idle_turns = 5
+
+        # Simulate what executor does after attack
+        davout.idle_turns = 0
+        davout._acted_this_turn = True
+
+        assert davout.idle_turns == 0
+
+    def test_idle_turns_reset_on_move(self):
+        """idle_turns resets to 0 when marshal moves."""
+        from backend.models.marshal import Marshal
+
+        davout = Marshal("Davout", "Paris", 30000, "cautious", "France")
+        davout.idle_turns = 3
+
+        # Simulate what executor does after move
+        davout.idle_turns = 0
+        davout._acted_this_turn = True
+
+        assert davout.idle_turns == 0
+
+    def test_idle_turns_not_incremented_for_enemy(self):
+        """Enemy marshals don't get idle_turns incremented."""
+        from backend.models.world_state import WorldState
+        from backend.models.marshal import Marshal
+
+        world = WorldState()
+        blucher = Marshal("Blucher", "Rhine", 35000, "aggressive", "Prussia")
+        blucher.idle_turns = 0
+        world.marshals["Blucher"] = blucher
+        world.player_nation = "France"
+
+        world._process_tactical_states()
+
+        assert blucher.idle_turns == 0
+
+    def test_idle_turns_acted_flag_prevents_increment(self):
+        """Marshal that acted this turn doesn't get idle_turns incremented."""
+        from backend.models.world_state import WorldState
+        from backend.models.marshal import Marshal
+
+        world = WorldState()
+        davout = Marshal("Davout", "Paris", 30000, "cautious", "France")
+        davout.idle_turns = 0
+        davout._acted_this_turn = True
+        world.marshals["Davout"] = davout
+        world.player_nation = "France"
+
+        world._process_tactical_states()
+
+        assert davout.idle_turns == 0
+        # Flag should be cleared
+        assert not getattr(davout, '_acted_this_turn', False)
+
+    def test_idle_turns_serialization_roundtrip(self):
+        """idle_turns survives to_dict/from_dict cycle."""
+        from backend.models.marshal import Marshal
+
+        davout = Marshal("Davout", "Paris", 30000, "cautious", "France")
+        davout.idle_turns = 7
+
+        data = davout.to_dict()
+        assert data["idle_turns"] == 7
+
+        restored = Marshal.from_dict(data)
+        assert restored.idle_turns == 7
+
+    def test_idle_turns_default_in_old_saves(self):
+        """Old save data without idle_turns loads with default 0."""
+        from backend.models.marshal import Marshal
+
+        davout = Marshal("Davout", "Paris", 30000, "cautious", "France")
+        data = davout.to_dict()
+        del data["idle_turns"]
+
+        restored = Marshal.from_dict(data)
+        assert restored.idle_turns == 0

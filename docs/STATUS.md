@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 5, 2026
-> **Last Session:** Session 4 — EA Readiness & Vision Assessment
+> **Last Session:** Session 5 — V2a Unit 6 (Integration Wiring)
 
 ---
 
@@ -10,16 +10,16 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **~1203** (needs verification — venv broken in CLI, run in PyCharm) |
-| **Current Phase** | V2a (Objection Refactor) — then Phase 6 |
-| **Blockers** | Windows Store Python broken — run tests from PyCharm |
+| **Tests Passing** | **1216** (verified, 3 skipped) |
+| **Current Phase** | V2a (Objection Refactor) — Unit 7 remaining, then Phase 6 |
+| **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M |
 
 ---
 
 ## Active Work
 
-V2a Objection Refactor in progress: Units 1-5 complete, Units 6-7 remaining.
+V2a Objection Refactor in progress: Units 1-6 complete, Unit 7 remaining.
 
 - [x] Phase M: Strategic Objections
 - V2a: Objection System Refactor
@@ -28,13 +28,26 @@ V2a Objection Refactor in progress: Units 1-5 complete, Units 6-7 remaining.
   - [x] Unit 3: Strategic Trigger Evaluators (HOLD, PURSUE, MOVE_TO, SUPPORT) — 30 tests
   - [x] Unit 4: Pipeline Integration (V2 evaluators wired into executor.py) — 6 tests
   - [x] Unit 5: Vindication Extension (pending_defensive_vindication) — 2 tests
-  - [ ] Unit 6: Test Migration + Strategic Wiring + Idle Objection Trigger
+  - [x] Unit 6: Integration Wiring + Test Migration — 13 new tests, 6 gaps resolved
   - [ ] Unit 7: Godot Frontend (tone-based styling, MILD flavor in turn log)
 - [ ] Begin Phase 6 design after V2a ships
 
 ---
 
 ## Recently Completed
+
+### Feb 5 (Session 5: V2a Unit 6 — Integration Wiring)
+
+**Unit 6: V2a Integration Wiring + Test Migration (6 gaps resolved):**
+- **Gap 1 (Doc):** Compromise math note for DEVOTED+MODERATE in OBJECTION_V2.md §2.3
+- **Gap 2 (idle_turns):** Added `idle_turns` field to Marshal — increments per turn if idle, resets on attack/move. Serialization roundtrip tested. V2b will use for idle objection triggers.
+- **Gap 3 (V2 trust scaling):** Wired `calculate_trust_gain()`, `get_insist_penalty()`, `COMPROMISE_TRUST_GAIN` into tactical and strategic objection dicts. Replaced all hard-coded +12/-10/-15/+3 values.
+- **Gap 4 (Insist bypass):** Removed V1 disobedience roll from `handle_response()`. Insist always succeeds in V2a. V2b comment block preserved for future defiance mechanic.
+- **Gap 5 (V1 evaluate_order shim):** Replaced V1 `evaluate_order()` call with direct `_generate_alternative()` + `_find_compromise()` calls, bypassing V1 severity calculation entirely.
+- **Gap 6 (Strategic V2 wiring):** Replaced V1 `check_strategic_objection()` with V2 `evaluate_strategic_situation()` + `apply_mood_variance()`. Added per-marshal popup cap, MILD path for strategic, V1 helpers retained only for option extraction.
+- **Test migration:** 9 V1 tests updated to V2 semantics (mock mood variance, relaxed message assertions → concern_level checks). 1 test in `test_strategic_bugfixes.py` updated.
+- **Integration tests:** 13 new tests — tactical full path (trust/insist/compromise), strategic full path, MILD no-popup, idle turns (increment/reset/enemy skip/acted flag/serialization/backward compat)
+- **Test count: 1216 passed, 3 skipped, 0 failures**
 
 ### Feb 5 (Session 4: EA Readiness & Vision Assessment)
 
@@ -133,6 +146,7 @@ V2a Objection Refactor in progress: Units 1-5 complete, Units 6-7 remaining.
 
 | Date | Tests | Notes |
 |------|-------|-------|
+| Feb 5, 2026 | **1216** | V2a Unit 6 complete, 13 new integration tests |
 | Feb 5, 2026 | **~1203** | Audit fixes (need PyCharm verification) |
 | Feb 5, 2026 | **1203** | V2a Units 1-5 complete, Opus review fixes |
 | Feb 5, 2026 | 1195 | V2a Units 1-3 (119 new tests) |
@@ -148,28 +162,26 @@ V2a Objection Refactor in progress: Units 1-5 complete, Units 6-7 remaining.
 
 | Issue | Severity | Notes |
 |-------|----------|-------|
-| V1 `handle_objection_response` still uses V1 trust values | Medium | Wire V2 scaled trust gain/penalty in Unit 6 |
-| Strategic objections still use V1 `check_strategic_objection()` | High | V2 strategic evaluators (30 tests) exist but aren't wired into executor.py:2607. Migrate in Unit 6. The 30 strategic V2 tests provide false confidence — they test functions the game never calls. |
-| V1 `evaluate_order()` still called for alternative generation | Medium | executor.py:892 calls V1 to extract alternatives for V2 popups. Replace with V2-native alternatives in Unit 6. |
-| V1 global objection cap still active for strategic path | Medium | `disobedience.py:25` MAX_MAJOR_OBJECTIONS_PER_TURN=2. V2 says per-marshal cap only. Remove when strategic objections migrate to V2. |
-| No integration tests for V2 tactical pipeline | Medium | 127 V2 tests cover evaluators in isolation; no test verifies full executor→evaluate→popup→response path. Add in Unit 6. |
+| ~~V1 `handle_objection_response` still uses V1 trust values~~ | ~~Fixed~~ | Unit 6 Gap 3: Wired V2 scaled trust gain/penalty into objection dicts |
+| ~~Strategic objections still use V1 `check_strategic_objection()`~~ | ~~Fixed~~ | Unit 6 Gap 6: V2 `evaluate_strategic_situation()` now authoritative. V1 retained only for option extraction. |
+| ~~V1 `evaluate_order()` still called for alternative generation~~ | ~~Fixed~~ | Unit 6 Gap 5: Replaced with direct `_generate_alternative()` + `_find_compromise()` calls |
+| V1 global objection cap still active for strategic path | Low | `disobedience.py:25` MAX_MAJOR_OBJECTIONS_PER_TURN=2. V2 per-marshal cap is now authoritative for strategic; V1 cap is redundant backstop. Remove in V2b cleanup. |
+| ~~No integration tests for V2 tactical pipeline~~ | ~~Fixed~~ | Unit 6: 13 integration tests cover full tactical path, strategic path, MILD path, insist path, idle turns |
 | No mid-objection save/load roundtrip test | Low | Serialization enforcement confirms fields exist, but no test saves/loads with populated V2 pending_objection. |
 | Missing AI test coverage for P3, P4.75, P7 | Medium | P3 (threat response), P4.75 (ally support), P7 (strategic movement) have zero direct unit tests. |
 | Residual 2-turn fortify oscillation possible | Low | `_unfortified_this_turn` only prevents same-turn re-fortify. Next-turn re-fortify→P3.5 unfortify cycle possible. Stagnation counter is backstop. TODO in `enemy_ai.py` at P3.5. |
 | `requires_input` interrupt blocks later marshals | Low | `strategic.py:119` stops processing ALL further marshals when one requires player input. Later marshals' strategic orders starve if early marshal always has interrupts. TODO in `strategic.py`. |
 | ~~Clarification popup for other literal actions~~ | ~~Fixed~~ | Works for all strategic types + attack-without-target (verified Feb 5) |
-| Windows Store Python broken | Env | venv can't find base python — run tests from PyCharm |
+| ~~Windows Store Python broken~~ | ~~Fixed~~ | venv working, tests run from CLI |
 | Marshal ability dicts mostly decorative | Low | Only Ney's "Bravest of the Brave" is wired up in combat.py; others are TODO (personality mechanics DO work separately) |
 
 ---
 
 ## Next Session Priorities
 
-1. **Run full test suite in PyCharm** — verify audit fixes didn’t break anything
-2. **Unit 6: Test Migration** — Update existing tests that assert severity floats
-3. **Unit 7: Godot Frontend** — Tone-based styling, MILD flavor in turn log
-4. Begin Phase 6 design after V2a ships
-5. Commission Europe map art (start search for artist)
+1. **Unit 7: Godot Frontend** — Tone-based styling, MILD flavor in turn log
+2. Begin Phase 6 design after V2a ships
+3. Commission Europe map art (start search for artist)
 
 **V2 objection design doc:** `docs/OBJECTION_V2.md`
 

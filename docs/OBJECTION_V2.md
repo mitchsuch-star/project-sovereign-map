@@ -155,7 +155,7 @@ Trust gain scales with BOTH concern level AND trust tier.
 | TRUSTING | -10 | +3 | +8 |
 | DEVOTED | -5 | +2 | +5 |
 
-**Compromise is FLAT at +3 regardless of tier.** This prevents "always compromise" from being the optimal strategy.
+**Compromise is FLAT at +3 regardless of tier.** This prevents "always compromise" from being the optimal strategy. Known: compromise (+3) slightly beats trust (+2) at DEVOTED+MODERATE. Acceptable — 1 point delta. Revisit in V2b.
 
 ```python
 TRUST_GAIN_BASE = {
@@ -583,14 +583,20 @@ File: `backend/commands/vindication.py`
 - Full `to_dict()` / `from_dict()` serialization
 - Backward compatible with old saves (defaults to empty dict)
 
-### Units Remaining
+**Unit 6: Integration Wiring + Test Migration (13 tests) ✓**
+Files: `executor.py`, `disobedience.py`, `marshal.py`, `world_state.py`
 
-**Unit 6: Test Migration**
-- Update `tests/test_disobedience.py` -- Replace severity float assertions with ConcernLevel
-- Update `tests/test_strategic_objections.py` -- Update for deterministic triggers
-- Tests requiring structural rewrite (~8-10): those asserting specific severity floats, `severity_breakdown` shape, global cap behavior
-- Tests requiring threshold updates (~10-15): popup at 1.5:1 ratio (now MILD), `compliance_chance` field (removed in V2a), specific trust change values (now scaled)
-- Approach: Run full test suite after integration. Fix failures incrementally. Most tests should pass unchanged because they test behavior, not implementation.
+6 gaps resolved:
+- Gap 1 (Doc): Compromise math note for DEVOTED+MODERATE
+- Gap 2 (`idle_turns`): New Marshal field — increments per idle turn, resets on attack/move, serialized
+- Gap 3 (V2 trust scaling): `calculate_trust_gain()`, `get_insist_penalty()`, `COMPROMISE_TRUST_GAIN` wired into tactical + strategic objection dicts, replacing hard-coded +12/-10/-15/+3
+- Gap 4 (Insist bypass): V1 disobedience roll removed from `handle_response()`. Insist always succeeds.
+- Gap 5 (V1 evaluate_order shim): Replaced with direct `_generate_alternative()` + `_find_compromise()` calls
+- Gap 6 (Strategic V2 wiring): `evaluate_strategic_situation()` + `apply_mood_variance()` replace `check_strategic_objection()`. Per-marshal popup cap, MILD path. V1 retained only for option extraction.
+
+Test migration: 9 V1 tests updated (mock mood variance, relaxed assertions), 1 bugfix test updated. 13 new integration tests (tactical trust/insist/compromise, strategic path, MILD no-popup, idle turns).
+
+### Units Remaining
 
 **Unit 7: Godot Frontend**
 - Tone-based styling in `objection_dialog.gd`
@@ -599,20 +605,20 @@ File: `backend/commands/vindication.py`
 
 ### Test Counts
 
-- V2 tests: 127 (53 + 36 + 30 + 6 + 2)
-- Total project tests at last count: 1203 passed, 3 skipped
+- V2 tests: 140 (53 + 36 + 30 + 6 + 2 + 13)
+- Total project tests: 1216 passed, 3 skipped
 
 ### Implementation Order
 
-1. Unit 1: Core Data Structures -- no dependencies
-2. Unit 2: Trigger Evaluators -- depends on Unit 1
-3. Unit 3: Strategic Migration -- depends on Unit 2
-4. Unit 4: Pipeline Integration -- depends on Units 1-3
-5. Unit 5: Vindication Extension -- parallel with Unit 4
-6. Unit 6: Test Migration -- after Units 4-5
+1. Unit 1: Core Data Structures -- no dependencies ✓
+2. Unit 2: Trigger Evaluators -- depends on Unit 1 ✓
+3. Unit 3: Strategic Migration -- depends on Unit 2 ✓
+4. Unit 4: Pipeline Integration -- depends on Units 1-3 ✓
+5. Unit 5: Vindication Extension -- parallel with Unit 4 ✓
+6. Unit 6: Integration Wiring + Test Migration -- after Units 4-5 ✓
 7. Unit 7: Godot Frontend -- after Unit 6
 
-**Code review checkpoints:** After Unit 2, After Unit 4, After Unit 6.
+**Code review checkpoints:** After Unit 2 ✓, After Unit 4 ✓, After Unit 6 ✓.
 
 ---
 
@@ -739,7 +745,7 @@ Keep AS-IS. Marshal names are proper nouns (`"Ney"`, `"Davout"`), stored with co
 | Defiance hard cap 40% (V2b) | Prevent degenerate spirals |
 | Per-marshal popup cap only | Global cap is exploitable. Per-marshal (max 1 per turn) is sufficient. |
 | Authority inert in V2a | V2b gives it purpose. Do not add placeholder effects. |
-| Compliance chance hidden in V2a | Insist always works in V2a. Showing a percentage that always succeeds is a lie. |
+| Compliance chance hidden in V2a | Insist always works in V2a. Showing a percentage that always succeeds is a lie. V2a bypasses disobedience roll (`calculate_obedience_chance()` preserved for V2b defiance mechanic). |
 | Skip Balanced/Loyal triggers | No current marshals use these types. Build when they ship. |
 | 1.5:1 cautious attack = MILD (not popup) | Intentional. 1.5:1 is not dangerous enough for a popup. Old behavior was too aggressive. |
 | Trust floor: 5 | Trust can never drop below 5. Existing redemption systems handle low-trust recovery. |
@@ -833,8 +839,8 @@ Authority changes from: defiance outcomes (success: -5, failure: +3), vindicatio
 | `backend/models/world_state.py` | New fields: `mild_concerns_this_turn`, `objection_popups_this_turn` |
 | `backend/main.py` | `mild_concerns` passthrough in response dict |
 | `tests/test_objection_v2.py` | V2 unit tests (127 tests) |
-| `tests/test_disobedience.py` | Existing tests (Unit 6: update for ConcernLevel) |
-| `tests/test_strategic_objections.py` | Existing tests (Unit 6: update for deterministic triggers) |
+| `tests/test_disobedience.py` | Existing tests (V1 behavior, compatible with V2) |
+| `tests/test_strategic_objections.py` | Strategic objection tests (Unit 6: migrated to V2 semantics) |
 | `docs/SAVE_FORMAT_REFERENCE.md` | Updated with new serialization fields |
 
 ### Test Commands
@@ -901,6 +907,16 @@ Before marking V2a complete, verify these previously fixed bugs remain fixed:
 world.mild_concerns_this_turn = data.get("mild_concerns_this_turn", [])
 world.objection_popups_this_turn = set(data.get("objection_popups_this_turn", []))
 ```
+
+**Marshal new fields (V2a Unit 6):**
+```python
+"idle_turns": int(self.idle_turns),  # int, default 0
+
+# from_dict():
+marshal.idle_turns = data.get("idle_turns", 0)
+```
+
+`idle_turns` field added in V2a (Unit 6). Tracks consecutive turns without attack/move. Trigger evaluators deferred to V2b per ROADMAP.
 
 **VindicationTracker new fields:**
 ```python

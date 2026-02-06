@@ -179,7 +179,9 @@ A future save/load system should use this as the specification.
   "pending_glorious_charge": false,
   "pending_charge_target": "",
 
-  "attacks_this_turn": 0
+  "attacks_this_turn": 0,
+
+  "idle_turns": 0
 }
 ```
 
@@ -305,6 +307,11 @@ A future save/load system should use this as the specification.
 | Field | Type | Description |
 |-------|------|-------------|
 | `attacks_this_turn` | int | Attacks made this turn |
+
+#### Idle Tracking (V2a)
+| Field | Type | Description |
+|-------|------|-------------|
+| `idle_turns` | int | Consecutive turns without attack or move (V2b: triggers idle objections) |
 
 ---
 

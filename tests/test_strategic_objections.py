@@ -155,14 +155,16 @@ def _get_relationship_modifier(marshal, target_marshal, world):
 class TestNeyHoldObjection:
     """Ney objects to HOLD only when no enemies are adjacent."""
 
-    def test_ney_objects_to_hold_no_enemies_adjacent(self, world_with_french_marshals, executor):
-        """Ney at Paris with no enemies nearby should object to HOLD."""
+    @patch('backend.commands.objection_v2.random.random', return_value=0.5)
+    def test_ney_objects_to_hold_no_enemies_adjacent(self, mock_rng, world_with_french_marshals, executor):
+        """Ney at Paris with no enemies nearby should object to HOLD.
+        V2a: Deterministic trigger — aggressive + HOLD + no enemies = MODERATE (always popup).
+        Trust no longer affects whether objection triggers, only consequences.
+        Mock mood variance to prevent random downgrade to MILD."""
         world = world_with_french_marshals
         ney = world.marshals["Ney"]
-        # Low trust increases objection severity, ensuring objection triggers
-        ney.trust.set(15)
 
-        # No enemies in world yet - Ney should object
+        # No enemies in world yet - Ney should object (V2: deterministic MODERATE)
         command = {
             "marshal": "Ney",
             "action": "hold",
@@ -177,7 +179,8 @@ class TestNeyHoldObjection:
         assert result.get("pending_objection") is True, "Ney should object to HOLD with no enemies"
         assert "objection" in result
         assert result["objection"]["marshal"] == "Ney"
-        assert "guard nothing" in result["objection"]["message"].lower() or "sitting" in result["objection"]["message"].lower()
+        # V2a: Check concern_level instead of specific message text
+        assert result["objection"].get("concern_level") in ("MODERATE", "STRONG", "EXTREME")
 
     def test_ney_no_objection_hold_enemies_adjacent(self, world_with_enemies, executor):
         """Ney at Belgium with Wellington adjacent should NOT object - sally = fighting."""
@@ -449,16 +452,17 @@ class TestNeyHoldCompromise:
 class TestDavoutPursueObjection:
     """Davout objects to PURSUE when odds are bad (target >= 1.2x his strength)."""
 
-    def test_davout_objects_to_pursue_bad_odds(self, world_with_enemies, executor):
-        """Davout should object to PURSUE when target is significantly stronger."""
+    @patch('backend.commands.objection_v2.random.random', return_value=0.5)
+    def test_davout_objects_to_pursue_bad_odds(self, mock_rng, world_with_enemies, executor):
+        """Davout should object to PURSUE when target is significantly stronger.
+        V2a: 2.0x ratio = MODERATE (popup). Trust doesn't affect trigger.
+        Mock mood variance to prevent random downgrade to MILD."""
         world = world_with_enemies
         davout = world.marshals["Davout"]
         davout.strength = 30000
-        # Low trust increases objection severity (1.6x modifier), ensuring objection triggers
-        davout.trust.set(15)
 
         wellington = world.marshals["Wellington"]
-        wellington.strength = 40000  # 1.33x Davout's strength
+        wellington.strength = 60000  # 2.0x Davout's strength → V2 MODERATE
 
         command = {
             "marshal": "Davout",
@@ -468,8 +472,8 @@ class TestDavoutPursueObjection:
 
         result = executor.execute(make_strategic_command(command, "PURSUE"), make_game_state(world))
 
-        assert result.get("pending_objection") is True, "Davout should object to PURSUE with bad odds"
-        assert "reckless" in result["objection"]["message"].lower() or "outnumber" in result["objection"]["message"].lower()
+        assert result.get("pending_objection") is True, "Davout should object to PURSUE at 2:1 odds"
+        assert result["objection"].get("concern_level") in ("MODERATE", "STRONG", "EXTREME")
 
     def test_davout_no_objection_pursue_good_odds(self, world_with_enemies, executor):
         """Davout should NOT object to PURSUE when he has the advantage."""
@@ -490,16 +494,15 @@ class TestDavoutPursueObjection:
 
         assert result.get("pending_objection") is not True, "Davout should NOT object with good odds"
 
-    def test_davout_pursue_threshold_exactly_1_2(self, world_with_enemies, executor):
-        """Edge case: Target exactly 1.2x strength - should trigger objection."""
+    def test_davout_pursue_threshold_exactly_1_2_is_mild(self, world_with_enemies, executor):
+        """V2a: 1.2x ratio is MILD (no popup). Old V1 treated this as popup-worthy.
+        V2 design decision: 1.5:1 cautious = MILD (not popup). See OBJECTION_V2.md §7."""
         world = world_with_enemies
         davout = world.marshals["Davout"]
         davout.strength = 30000
-        # Low trust ensures objection triggers despite variance
-        davout.trust.set(15)
 
         wellington = world.marshals["Wellington"]
-        wellington.strength = 36000  # Exactly 1.2x
+        wellington.strength = 36000  # Exactly 1.2x → V2 MILD
 
         command = {
             "marshal": "Davout",
@@ -509,8 +512,9 @@ class TestDavoutPursueObjection:
 
         result = executor.execute(make_strategic_command(command, "PURSUE"), make_game_state(world))
 
-        # At exactly 1.2x, should object (>= threshold)
-        assert result.get("pending_objection") is True
+        # V2a: 1.2x = MILD = no popup, order proceeds
+        assert result.get("pending_objection") is not True, "1.2x should be MILD in V2 (no popup)"
+        assert result.get("success") is True
 
 
 class TestDavoutPursuePreferred:
@@ -655,13 +659,14 @@ class TestDavoutPursueCompromise:
 class TestDavoutMoveToObjection:
     """Davout objects to MOVE_TO when path crosses enemy-occupied regions."""
 
-    def test_davout_objects_to_move_dangerous_path(self, world_with_enemies, executor):
-        """Davout should object when path goes through enemy marshal."""
+    @patch('backend.commands.objection_v2.random.random', return_value=0.5)
+    def test_davout_objects_to_move_dangerous_path(self, mock_rng, world_with_enemies, executor):
+        """Davout should object when path goes through enemy marshal.
+        V2a: Deterministic MODERATE trigger — dangerous path always triggers popup.
+        Mock mood variance to prevent random downgrade to MILD."""
         world = world_with_enemies
         davout = world.marshals["Davout"]
         davout.location = "Belgium"
-        # Low trust ensures objection triggers despite variance (base severity 0.45)
-        davout.trust.set(15)
 
         # Blucher at Rhine - path to Bavaria goes through him
         blucher = world.marshals["Blucher"]
@@ -676,7 +681,7 @@ class TestDavoutMoveToObjection:
         result = executor.execute(make_strategic_command(command, "MOVE_TO"), make_game_state(world))
 
         assert result.get("pending_objection") is True, "Davout should object to path through enemy"
-        assert "danger" in result["objection"]["message"].lower() or "enemy" in result["objection"]["message"].lower()
+        assert result["objection"].get("concern_level") in ("MODERATE", "STRONG", "EXTREME")
 
     def test_davout_no_objection_move_safe_path(self, world_with_enemies, executor):
         """Davout should NOT object when path is clear."""
@@ -798,12 +803,14 @@ class TestDavoutMoveToCompromise:
 class TestDavoutHoldDangerousPath:
     """Davout objects to HOLD when path to hold position crosses enemy-occupied regions."""
 
-    def test_davout_objects_to_hold_distant_dangerous(self, world_with_enemies, executor):
-        """Davout should object when holding distant position requires crossing enemy."""
+    @patch('backend.commands.objection_v2.random.random', return_value=0.5)
+    def test_davout_objects_to_hold_distant_dangerous(self, mock_rng, world_with_enemies, executor):
+        """Davout should object when holding distant position requires crossing enemy.
+        V2a: Deterministic MODERATE trigger — dangerous path always triggers popup.
+        Mock mood variance to prevent random downgrade to MILD."""
         world = world_with_enemies
         davout = world.marshals["Davout"]
         davout.location = "Belgium"
-        davout.trust.set(15)  # Low trust ensures objection triggers
 
         # Blucher at Rhine - path to Bavaria goes through him
         blucher = world.marshals["Blucher"]
@@ -818,7 +825,7 @@ class TestDavoutHoldDangerousPath:
         result = executor.execute(make_strategic_command(command, "HOLD"), make_game_state(world))
 
         assert result.get("pending_objection") is True, "Davout should object to path through enemy"
-        assert "danger" in result["objection"]["message"].lower() or "enemy" in result["objection"]["message"].lower()
+        assert result["objection"].get("concern_level") in ("MODERATE", "STRONG", "EXTREME")
 
     def test_davout_no_objection_hold_local(self, world_with_enemies, executor):
         """Davout should NOT object when holding current position (no travel)."""
@@ -885,12 +892,14 @@ class TestDavoutHoldDangerousPath:
 class TestDavoutSupportDangerousPath:
     """Davout objects to SUPPORT when path to ally crosses enemy-occupied regions."""
 
-    def test_davout_objects_to_support_dangerous_path(self, world_with_enemies, executor):
-        """Davout should object when supporting ally requires crossing enemy."""
+    @patch('backend.commands.objection_v2.random.random', return_value=0.5)
+    def test_davout_objects_to_support_dangerous_path(self, mock_rng, world_with_enemies, executor):
+        """Davout should object when supporting ally requires crossing enemy.
+        V2a: Deterministic MODERATE trigger — dangerous path always triggers popup.
+        Mock mood variance to prevent random downgrade to MILD."""
         world = world_with_enemies
         davout = world.marshals["Davout"]
         davout.location = "Belgium"
-        davout.trust.set(15)  # Low trust ensures objection triggers
 
         # Put Ney far away, with Blucher in between
         ney = world.marshals["Ney"]
@@ -908,7 +917,7 @@ class TestDavoutSupportDangerousPath:
         result = executor.execute(make_strategic_command(command, "SUPPORT"), make_game_state(world))
 
         assert result.get("pending_objection") is True, "Davout should object to path through enemy"
-        assert "danger" in result["objection"]["message"].lower() or "disaster" in result["objection"]["message"].lower()
+        assert result["objection"].get("concern_level") in ("MODERATE", "STRONG", "EXTREME")
 
     def test_davout_no_objection_support_safe_path(self, world_with_enemies, executor):
         """Davout should NOT object when path to ally is clear."""

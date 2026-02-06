@@ -14,6 +14,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
+from unittest.mock import patch
 from backend.models.world_state import WorldState
 from backend.models.marshal import (
     Marshal, StrategicOrder, StrategicCondition, Stance
@@ -2007,11 +2008,13 @@ class TestFirstStepBlocked:
         assert ney.pending_interrupt is not None
         assert ney.pending_interrupt.get("is_first_step") is True
 
-    def test_first_step_cautious_always_asks(self, world, game_state, executor):
+    @patch('backend.commands.objection_v2.random.random', return_value=0.5)
+    def test_first_step_cautious_always_asks(self, mock_rng, world, game_state, executor):
         """Cautious marshal objects to MOVE_TO through dangerous path (Phase M behavior).
 
         Note: Phase M strategic objections now trigger BEFORE first-step blocked.
         Davout objects at issuance when path has enemies, not during execution.
+        V2a: Mock mood variance to prevent random downgrade from MODERATE to MILD.
         """
         davout = world.get_marshal("Davout")
         assert davout.personality == "cautious"

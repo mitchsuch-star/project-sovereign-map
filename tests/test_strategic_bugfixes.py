@@ -73,7 +73,8 @@ class TestPursueSameRegion:
             f"Expected engagement message, got: {msg}"
 
     def test_pursue_same_region_cautious_waits(self, world, executor, game_state):
-        """Cautious marshal acknowledges target but doesn't auto-attack."""
+        """Cautious marshal acknowledges target but doesn't auto-attack.
+        V2a: Cautious may also object to PURSUE at bad odds (MODERATE+ popup)."""
         davout = world.get_marshal("Davout")
         wellington = world.get_marshal("Wellington")
 
@@ -96,9 +97,11 @@ class TestPursueSameRegion:
 
         assert result.get("success"), f"Expected success, got: {result.get('message')}"
         msg = result.get("message", "")
-        # Should mention the target is here
-        assert "right here" in msg.lower() or wellington.name.lower() in msg.lower(), \
-            f"Expected acknowledgment, got: {msg}"
+        # V2a: Cautious may object to bad odds (popup) OR acknowledge target is here
+        is_objection = result.get("pending_objection") is True
+        is_acknowledgment = "right here" in msg.lower() or wellington.name.lower() in msg.lower()
+        assert is_objection or is_acknowledgment, \
+            f"Expected objection or acknowledgment, got: {msg}"
 
 
 class TestPursueAdjacentRegion:

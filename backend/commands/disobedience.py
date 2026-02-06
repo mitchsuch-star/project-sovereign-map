@@ -21,10 +21,10 @@ from backend.models.personality import Personality, get_personality, analyze_ord
 from backend.models.trust import calculate_obedience_chance
 
 
-# Maximum major objections per turn (prevents decision fatigue)
-# TODO (Unit 6): V2 design says per-marshal cap only, no global cap.
-# This V1 global cap is still active for strategic objections (which still use V1).
-# Remove when strategic objections migrate to V2 evaluate_strategic_situation().
+# Maximum major objections per turn (V1 legacy - prevents decision fatigue)
+# V2a uses per-marshal cap only (world.objection_popups_this_turn).
+# This constant is only referenced by DisobedienceSystem.evaluate_order() (V1 code path).
+# Kept for backward compatibility with any remaining V1 callers.
 MAX_MAJOR_OBJECTIONS_PER_TURN = 2
 
 
@@ -1109,52 +1109,25 @@ class DisobedienceSystem:
             final_order = objection['suggested_alternative']
             message = f"You defer to {marshal_name}'s judgment."
 
-            # Trust bonus: +12 for trusting marshal's judgment
-            # Per design spec: Trust +12, Authority -3
+            # V2 scaled trust gain from objection dict (concern_level × trust_tier)
             if marshal and hasattr(marshal, 'trust'):
-                trust_change = 12
+                trust_change = objection.get('trust_gain', 3)
                 marshal.modify_trust(trust_change)
 
         elif choice == 'insist':
             # ════════════════════════════════════════════════════════════
-            # BUG FIX: Low trust marshals may REFUSE to obey
+            # V2a: Insist always succeeds. Compliance chance is hidden.
+            # V2b: Restore defiance roll for STRONG/EXTREME concerns only.
+            # See OBJECTION_V2.md §8 (V2b Preview) for defiance mechanic design.
+            # calculate_obedience_chance() is preserved for V2b reuse.
             # ════════════════════════════════════════════════════════════
+            final_order = objection['original_order']
+            message = f"You insist on the original order. {marshal_name} complies reluctantly."
+
             if marshal and hasattr(marshal, 'trust'):
-                trust_value = marshal.trust.value
-                base_obedience = calculate_obedience_chance(trust_value)
-
-                # Apply authority modifier
-                auth_modifier = authority.get_obedience_modifier() if authority else 1.0
-                final_obedience = min(1.0, base_obedience * auth_modifier)
-
-                # Roll for obedience
-                roll = random.random()
-
-                print(f"  🎲 DISOBEY CHECK: trust={trust_value}, base_chance={base_obedience:.2f}, " +
-                      f"auth_mod={auth_modifier:.2f}, final_chance={final_obedience:.2f}, " +
-                      f"roll={roll:.2f}, result={'OBEY' if roll < final_obedience else 'DISOBEY'}")
-
-                if roll >= final_obedience:
-                    # Marshal DISOBEYS!
-                    disobeyed = True
-                    final_order = None  # Order NOT executed
-                    message = f"{marshal_name} refuses! \"I cannot execute this order in good conscience, Sire!\""
-
-                    # Extra trust penalty for disobedience
-                    trust_change = -15
-                    marshal.modify_trust(trust_change)
-                else:
-                    # Marshal obeys reluctantly
-                    final_order = objection['original_order']
-                    message = f"You insist on the original order. {marshal_name} complies reluctantly."
-
-                    # Trust penalty: -10 for overriding marshal who obeys
-                    # Per design spec: Trust -10, Authority +2
-                    trust_change = -10
-                    marshal.modify_trust(trust_change)
-            else:
-                final_order = objection['original_order']
-                message = f"You insist on the original order. {marshal_name} complies reluctantly."
+                # V2 scaled insist penalty from objection dict
+                trust_change = objection.get('insist_penalty', -10)
+                marshal.modify_trust(trust_change)
 
             # Record override (whether successful or not)
             if marshal and hasattr(marshal, 'recent_overrides'):
@@ -1166,10 +1139,9 @@ class DisobedienceSystem:
             final_order = objection['compromise']
             message = f"You find middle ground with {marshal_name}."
 
-            # Compromise trust bonus: +3 for finding middle ground
-            # Per design spec: Trust +3, Authority -1
+            # V2: Compromise is flat +3 regardless of tier
             if marshal and hasattr(marshal, 'trust'):
-                trust_change = 3
+                trust_change = objection.get('compromise_gain', 3)
                 marshal.modify_trust(trust_change)
 
         else:

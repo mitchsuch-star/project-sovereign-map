@@ -2045,6 +2045,47 @@ class WorldState:
                     marshal.precision_execution_active = False
                     debug_print(f"  [PRECISION EXPIRED] {marshal.name}'s precision execution has worn off")
 
+        # ════════════════════════════════════════════════════════════
+        # IDLE TRACKING (V2a Unit 6)
+        # Increment idle_turns for player marshals who didn't attack or move.
+        # in_combat_this_turn is set by combat resolution (covers attack).
+        # Reset happens in executor when attack/move executes.
+        # V2b: idle objection triggers consume this field.
+        # ════════════════════════════════════════════════════════════
+        for marshal in self.marshals.values():
+            if marshal.nation != self.player_nation:
+                continue
+            # A marshal is "not idle" if they were in combat this turn
+            # (attack actions set in_combat_this_turn = True)
+            # or if idle_turns was reset to 0 during this turn by a move/attack
+            # We only increment if idle_turns was NOT reset this turn.
+            # Since reset happens on execute (sets to 0), and increment happens
+            # at turn end, a marshal who moved/attacked will have idle_turns=0
+            # and we skip the increment. A marshal who only defended/fortified/drilled
+            # will still have idle_turns >= 0 from last turn, so we increment.
+            if marshal.in_combat_this_turn:
+                # Was in combat — not idle (already reset by executor)
+                continue
+            # Check if idle_turns was reset this turn (marshal moved/attacked)
+            # We use a simple heuristic: if idle_turns == 0 and the marshal
+            # had a non-zero idle count last turn, the reset happened.
+            # Simpler approach: just always increment if not in combat.
+            # The executor resets to 0 on attack/move, so after turn processing:
+            # - attacked this turn: in_combat_this_turn=True, skip (idle stays 0)
+            # - moved this turn: idle_turns was reset to 0 by executor, now +1? No — we want 0.
+            # Solution: track whether marshal performed an active action this turn.
+            # Use a lightweight flag: if marshal.idle_turns was set to 0 during this turn's
+            # execution phase, we don't increment. But we can't distinguish "was already 0"
+            # from "was reset to 0". So use in_combat_this_turn for attacks, and a new
+            # per-turn flag for moves.
+            #
+            # Simpler: use _acted_this_turn flag set by executor on attack/move.
+            if getattr(marshal, '_acted_this_turn', False):
+                # Marshal moved or attacked — not idle (idle_turns already reset to 0)
+                marshal._acted_this_turn = False  # Clear for next turn
+                continue
+            marshal.idle_turns = getattr(marshal, 'idle_turns', 0) + 1
+
         return events
 
     def get_last_tactical_events(self) -> list:

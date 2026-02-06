@@ -410,6 +410,15 @@ class Marshal:
         # Counter-punch (reactive) does NOT count toward this
         self.attacks_this_turn: int = 0
 
+        # ════════════════════════════════════════════════════════════
+        # IDLE TRACKING (V2a Unit 6)
+        # ════════════════════════════════════════════════════════════
+        # Consecutive turns without attack or move action.
+        # Incremented at turn end for player marshals who didn't attack/move.
+        # Reset to 0 when marshal executes attack or move.
+        # V2b: idle objection triggers consume this field (see ROADMAP Phase V2b)
+        self.idle_turns: int = 0
+
     def move_to(self, new_location: str) -> None:
         """
         Move marshal to a new region.
@@ -971,6 +980,9 @@ class Marshal:
 
             # ═══════ EXHAUSTION ═══════
             "attacks_this_turn": int(self.attacks_this_turn),
+
+            # ═══════ IDLE TRACKING (V2a) ═══════
+            "idle_turns": int(self.idle_turns),
         }
         return data
 
@@ -1081,6 +1093,9 @@ class Marshal:
 
         # ═══════ EXHAUSTION ═══════
         marshal.attacks_this_turn = data.get("attacks_this_turn", 0)
+
+        # ═══════ IDLE TRACKING (V2a) ═══════
+        marshal.idle_turns = data.get("idle_turns", 0)
 
         return marshal
 
