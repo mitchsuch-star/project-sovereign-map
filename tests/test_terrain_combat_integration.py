@@ -354,18 +354,26 @@ class TestGloriousChargeTerrainBlocking:
         """Verify CHARGE_BLOCKED_TERRAIN matches spec."""
         assert CHARGE_BLOCKED_TERRAIN == {"mountains", "forest", "urban"}
 
-    def test_recklessness_popup_suppressed_on_blocked_terrain(self):
-        """At recklessness 3, popup should NOT appear if terrain blocks charge."""
+    def test_recklessness_popup_suppressed_on_blocked_terrain_no_alternatives(self):
+        """At recklessness 3, no popup if terrain blocks AND no alternative targets."""
         ney, wellington = self._setup_charge_scenario("Waterloo", "mountains")
 
-        # Execute attack as player — should NOT get popup
+        # Remove all other enemies so no redirect alternatives exist
+        enemies_to_remove = [
+            name for name, m in self.world.marshals.items()
+            if m.nation != "France" and m.name != "Wellington"
+        ]
+        for name in enemies_to_remove:
+            del self.world.marshals[name]
+
+        # Execute attack as player — should NOT get popup (no alternatives)
         result = self.executor.execute(
             make_command("attack", "Ney", "Wellington"),
             self.game_state
         )
 
-        # Should NOT have pending_glorious_charge popup
-        assert result.get("pending_glorious_charge") is not True
+        # No popup — blocked terrain and no chargeable alternatives
+        assert result.get("charge_redirected") is not True
 
     def test_recklessness_popup_shown_on_allowed_terrain(self):
         """At recklessness 3, popup SHOULD appear if terrain allows charge."""

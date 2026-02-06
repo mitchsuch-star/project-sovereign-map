@@ -1617,13 +1617,14 @@ RETREAT RECOVERY (3 turns):
                 if resolved_target:
                     # ════════════════════════════════════════════════════════════
                     # TERRAIN CHARGE BLOCKING (Phase 6.1): mountains/forest/urban
-                    # block cavalry charges — skip popup, proceed with normal attack.
-                    # IMPORTANT: Check the DEFENDER's region terrain, not the attacker's.
-                    # Only block if we can positively confirm the defender is in
-                    # charge-blocked terrain. If lookup fails, allow the charge
-                    # (safety net in _execute_glorious_charge will catch it).
+                    # block cavalry charges. Check the DEFENDER's region terrain.
+                    # If blocked, look for alternative chargeable enemies in range
+                    # on allowed terrain. If alternatives exist, offer popup to
+                    # redirect the charge. Otherwise show terrain-blocked message
+                    # and fall through to normal attack.
                     # ════════════════════════════════════════════════════════════
                     charge_terrain_blocked = False
+                    blocked_terrain_name = None
                     charge_target_marshal = None
                     for m in world.marshals.values():
                         if m.name.lower() == resolved_target.lower() and m.nation != marshal.nation:
@@ -1634,8 +1635,67 @@ RETREAT RECOVERY (3 turns):
                         charge_target_region = world.get_region(charge_target_marshal.location)
                         if charge_target_region and charge_target_region.terrain in CHARGE_BLOCKED_TERRAIN:
                             charge_terrain_blocked = True
+                            blocked_terrain_name = charge_target_region.terrain.replace("_", " ").title()
 
-                    if not charge_terrain_blocked:
+                    if charge_terrain_blocked:
+                        # ── Terrain blocks charge on this target. Check for ──
+                        # ── alternative enemies in range on allowed terrain.  ──
+                        chargeable_alternatives = []
+                        for m in world.marshals.values():
+                            if m.nation == marshal.nation or m.strength <= 0:
+                                continue
+                            if m.name == (charge_target_marshal.name if charge_target_marshal else ""):
+                                continue  # Skip the blocked target
+                            dist = world.get_distance(marshal.location, m.location)
+                            if dist <= marshal.movement_range:
+                                alt_region = world.get_region(m.location)
+                                if alt_region and alt_region.terrain not in CHARGE_BLOCKED_TERRAIN:
+                                    alt_terrain = alt_region.terrain.replace("_", " ").title()
+                                    chargeable_alternatives.append({
+                                        "name": m.name,
+                                        "location": m.location,
+                                        "terrain": alt_terrain,
+                                        "distance": dist,
+                                    })
+
+                        if chargeable_alternatives and is_player and recklessness < 4:
+                            # Offer popup to redirect charge to an alternative target
+                            alt_lines = []
+                            for alt in chargeable_alternatives:
+                                alt_lines.append(f"• CHARGE {alt['name'].upper()}: "
+                                                f"at {alt['location']} ({alt['terrain']}, {alt['distance']} away)")
+                            alt_text = "\n".join(alt_lines)
+
+                            marshal.pending_glorious_charge = True
+                            marshal.pending_charge_target = chargeable_alternatives[0]["name"]
+
+                            return {
+                                "success": False,
+                                "pending_glorious_charge": True,
+                                "marshal": marshal.name,
+                                "target": chargeable_alternatives[0]["name"],
+                                "recklessness": recklessness,
+                                "charge_redirected": True,
+                                "blocked_target": resolved_target,
+                                "blocked_terrain": blocked_terrain_name,
+                                "message": (
+                                    f"🐴⛔ {marshal.name}'s blood is up (Recklessness: {recklessness}) "
+                                    f"but {blocked_terrain_name} terrain at {charge_target_marshal.location} "
+                                    f"blocks the cavalry charge!\n\n"
+                                    f"Alternative targets on open ground:\n{alt_text}\n\n"
+                                    f"• CHARGE: Redirect charge to {chargeable_alternatives[0]['name']}\n"
+                                    f"• RESTRAIN: Normal attack on {resolved_target} (no charge bonus)"
+                                ),
+                                "options": ["charge", "restrain"]
+                            }
+                        else:
+                            # No alternatives (or AI/4+) — tell player terrain blocks,
+                            # fall through to normal attack below
+                            print(f"  [CHARGE BLOCKED] {blocked_terrain_name} terrain blocks "
+                                  f"{marshal.name}'s charge on {resolved_target} — normal attack")
+
+                    elif not charge_terrain_blocked:
+                        # Terrain allows charge — show popup or auto-charge
                         # Strategic execution (sally, etc.) auto-charges — no popup.
                         # Ney on HOLD sallies autonomously; he wouldn't stop mid-charge
                         # to ask permission. Result shows in strategic report.

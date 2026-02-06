@@ -183,25 +183,76 @@ class TestGloriousChargePopupTerrain:
             f"Expected pending_glorious_charge popup on hills, got: {result.get('message', '')}"
         )
 
-    def test_no_popup_on_forest(self):
-        """At recklessness 3, attacking enemy in forest -> no popup, normal attack."""
+    def test_no_popup_on_forest_no_alternatives(self):
+        """At recklessness 3, enemy in forest, no alternatives -> no popup, normal attack."""
         world, executor, game_state, ney, wellington = self._setup_reckless_attack("forest")
+
+        # Remove all other enemies so there are no charge alternatives
+        enemies_to_remove = [
+            name for name, m in world.marshals.items()
+            if m.nation != "France" and m.name != wellington.name
+        ]
+        for name in enemies_to_remove:
+            del world.marshals[name]
 
         cmd = make_command("attack", "Ney", wellington.name)
         result = executor.execute(cmd, game_state)
 
-        # Should NOT have the popup — forest blocks charges
-        assert result.get("pending_glorious_charge") is not True, (
-            "Charge popup should NOT appear on forest terrain"
+        # No popup (no alternatives on open ground), falls through to normal attack
+        assert result.get("charge_redirected") is not True, (
+            "Should not offer redirect when no alternatives exist"
+        )
+
+    def test_redirect_popup_on_forest_with_alternatives(self):
+        """At recklessness 3, enemy in forest, alternative on open ground -> redirect popup."""
+        world = WorldState(player_nation="France")
+        executor = CommandExecutor()
+        game_state = {"world": world}
+
+        ney = world.get_marshal("Ney")
+        ney.recklessness = 3
+        ney.morale = 100
+        ney.location = "Paris"  # Adjacent to Brittany (forest) and Belgium (plains)
+
+        # Put one enemy in forest (blocked)
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Brittany"  # forest
+        wellington.strength = 40000
+
+        # Put another enemy in plains (chargeable) within range
+        blucher = world.get_marshal("Blucher")
+        blucher.location = "Belgium"  # plains, adjacent to Paris
+        blucher.strength = 40000
+
+        cmd = make_command("attack", "Ney", "Wellington")
+        result = executor.execute(cmd, game_state)
+
+        # Should get a redirect popup offering Blucher as alternative
+        assert result.get("pending_glorious_charge") is True, (
+            f"Expected redirect popup when alternative exists. Got: {result.get('message', '')}"
+        )
+        assert result.get("charge_redirected") is True, (
+            "Should flag charge_redirected when offering alternative targets"
+        )
+        assert "terrain" in result.get("message", "").lower() or "block" in result.get("message", "").lower(), (
+            "Redirect popup should explain terrain blocked the original target"
         )
 
     def test_charge_blocked_terrains_match_constant(self):
         """Verify CHARGE_BLOCKED_TERRAIN includes exactly mountains/forest/urban."""
         assert CHARGE_BLOCKED_TERRAIN == {"mountains", "forest", "urban"}
 
-    def test_recklessness_persists_after_terrain_blocked_popup(self):
-        """When terrain blocks the popup, recklessness should NOT reset."""
+    def test_recklessness_persists_after_terrain_blocked(self):
+        """When terrain blocks the charge and no alternatives, recklessness should NOT reset."""
         world, executor, game_state, ney, wellington = self._setup_reckless_attack("forest")
+
+        # Remove alternatives
+        enemies_to_remove = [
+            name for name, m in world.marshals.items()
+            if m.nation != "France" and m.name != wellington.name
+        ]
+        for name in enemies_to_remove:
+            del world.marshals[name]
 
         original_recklessness = ney.recklessness
         assert original_recklessness == 3
@@ -212,9 +263,8 @@ class TestGloriousChargePopupTerrain:
         # Recklessness should still be >= original (might increment on win)
         # but should NOT have been reset to 0 by the terrain block alone
         if result.get("success"):
-            # If the normal attack won, recklessness may have incremented
-            # If the normal attack lost, recklessness resets (correct behavior)
-            pass  # Combat outcome determines recklessness change
+            # Combat outcome determines recklessness change, not terrain block
+            pass
         else:
             # Attack didn't execute — recklessness should be unchanged
             assert ney.recklessness == original_recklessness
