@@ -199,6 +199,7 @@ Items scaffolded in V2a that need wiring in V2b:
 - **Defensive vindication:** `pending_defensive_vindication` field exists and serializes, but nothing in turn_manager.py reads/writes it.
 - **Vindication decay:** Spec says -1 per 3 turns of no objection activity. Not implemented.
 - **Idle marshal objection:** Moved to V2a Unit 6 (see V2a section above).
+- **Aggressive trigger escalation:** Aggressive personality stance_change to defensive is always MILD. Should escalate to MODERATE/STRONG when weak enemy is adjacent (beatable odds). Mirror `evaluate_cautious` ratio-based scaling pattern but inverted — aggressive gets MORE opposed when fight looks winnable.
 
 ### AI Enhancements for Scale
 
