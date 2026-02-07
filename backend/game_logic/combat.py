@@ -99,7 +99,8 @@ class CombatResolver:
             terrain: str = "open",
             flanking_bonus: int = 0,
             flanking_message: str = None,
-            glorious_charge: bool = False
+            glorious_charge: bool = False,
+            fortification_bonus: float = 0.0
     ) -> Dict:
         """
         Resolve a battle between two marshals using 2d6 dice system.
@@ -111,6 +112,7 @@ class CombatResolver:
             flanking_bonus: Coordination bonus from attacking from multiple directions (0-3)
             flanking_message: Message describing the flanking situation
             glorious_charge: If True, deals 2x damage dealt AND taken (cavalry recklessness)
+            fortification_bonus: Defense bonus from fortification building (Phase 6.2.E)
         """
 
         #print(f"\n BATTLE: {attacker.name} vs {defender.name}")
@@ -127,15 +129,22 @@ class CombatResolver:
         #print(f"   Attacker effective: {attacker_effective:,.0f}")
         #print(f"   Defender effective: {defender_effective:,.0f}")
 
-        # Apply terrain modifiers
+        # Apply terrain modifiers + fortification bonus (Phase 6.2.E — stacks additively)
         terrain_bonus = self._get_terrain_bonus(terrain)
-        defender_effective *= (1 + terrain_bonus)
+        total_defense_bonus = terrain_bonus + fortification_bonus
+        defender_effective *= (1 + total_defense_bonus)
 
         # Generate terrain defense message
         terrain_defense_message = None
-        if terrain_bonus > 0:
+        if terrain_bonus > 0 and fortification_bonus > 0:
+            terrain_name = terrain.replace("_", " ").title()
+            terrain_defense_message = (f"{defender.name} benefits from {terrain_name} terrain (+{int(terrain_bonus * 100)}% defense) "
+                                       f"and fortifications (+{int(fortification_bonus * 100)}% defense)")
+        elif terrain_bonus > 0:
             terrain_name = terrain.replace("_", " ").title()
             terrain_defense_message = f"{defender.name} benefits from {terrain_name} terrain (+{int(terrain_bonus * 100)}% defense)"
+        elif fortification_bonus > 0:
+            terrain_defense_message = f"{defender.name} benefits from fortifications (+{int(fortification_bonus * 100)}% defense)"
 
         #print(f"   Defender after terrain: {defender_effective:,.0f}")
 

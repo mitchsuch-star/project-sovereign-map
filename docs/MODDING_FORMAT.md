@@ -217,6 +217,9 @@ Regions represent territories on the map.
 | `garrison_strength` | integer | 0 | Troops defending (not marshal) |
 | `stability` | integer | 100 | Region stability (0-100). Affects income via tiers: 0-25=Hostile (0%), 26-50=Unrest (25%), 51-75=Settling (75%), 76-100=Stable (100%). Set to 25 on capture. |
 | `war_damage` | float | 0.0 | War damage (0.0-0.5). Reduces income multiplicatively. Applied by battles, recovers -0.02/turn. |
+| `plundered` | boolean | false | True if region was plundered on capture. Clears when stability > 50. |
+| `buildings` | array | [] | Built buildings: `[{"type": "supply_depot", "damaged": false}]`. Types: supply_depot, fortification, training_ground. |
+| `building_under_construction` | object\|null | null | Active construction project: `{"type": "supply_depot", "turns_remaining": 2}`. |
 
 ### Terrain Types
 

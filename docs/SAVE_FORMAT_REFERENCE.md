@@ -10,8 +10,8 @@ A future save/load system should use this as the specification.
 ## Version
 
 - **Format version:** 1.0
-- **Last updated:** 2026-02-06
-- **Compatible with:** Phase 6.2.C Stability + War Damage
+- **Last updated:** 2026-02-07
+- **Compatible with:** Phase 6.2.E Plunder/Secure + Buildings
 
 ## Top-Level Structure (WorldState)
 
@@ -42,6 +42,7 @@ A future save/load system should use this as the specification.
   "vindication_tracker": { ... },
   "pending_objection": null,
   "pending_redemption": null,
+  "pending_capture_choice": null,
 
   "mild_concerns_this_turn": [],
   "objection_popups_this_turn": [],
@@ -80,6 +81,7 @@ A future save/load system should use this as the specification.
 | `vindication_tracker` | dict | {} | VindicationTracker state |
 | `pending_objection` | dict\|null | null | Objection awaiting response |
 | `pending_redemption` | dict\|null | null | Redemption event awaiting response |
+| `pending_capture_choice` | dict\|null | null | Plunder/secure choice awaiting response: `{region, capturer, previous_controller}` (Phase 6.2.E) |
 | `mild_concerns_this_turn` | list | [] | V2a: MILD concerns for turn log (cleared each turn) |
 | `objection_popups_this_turn` | list | [] | V2a: Per-marshal popup cap tracking (cleared each turn) |
 | `ai_failed_action_cooldowns` | dict | {} | AI failed action retry cooldowns {marshal: {action: turns}} |
@@ -403,7 +405,10 @@ A future save/load system should use this as the specification.
   "controller": "France",
   "garrison_strength": 0,
   "stability": 100,
-  "war_damage": 0.0
+  "war_damage": 0.0,
+  "plundered": false,
+  "buildings": [{"type": "supply_depot", "damaged": false}],
+  "building_under_construction": null
 }
 ```
 
@@ -421,6 +426,9 @@ A future save/load system should use this as the specification.
 | `garrison_strength` | int | Garrison troops (future use) |
 | `stability` | int | 0-100, affects income via tiered modifier. Default 100 for backward compat. (Phase 6.2.C) |
 | `war_damage` | float | 0.0-0.5, reduces income. Default 0.0 for backward compat. (Phase 6.2.C) |
+| `plundered` | bool | True if region was plundered on capture. Clears when stability > 50. Default false. (Phase 6.2.E) |
+| `buildings` | list | Built buildings: `[{"type": str, "damaged": bool}]`. Default []. (Phase 6.2.E) |
+| `building_under_construction` | dict\|null | Active construction: `{"type": str, "turns_remaining": int}`. Default null. (Phase 6.2.E) |
 
 ### Computed Properties (not serialized)
 
@@ -430,8 +438,10 @@ A future save/load system should use this as the specification.
 | `movement_cost` | terrain | Attrition multiplier (1.0-2.0) |
 | `supply_modifier` | terrain | Supply capacity modifier (0.5-1.2) |
 | `cavalry_effectiveness` | terrain | Cavalry combat multiplier (0.3-1.2) |
-| `get_effective_income()` | stability, war_damage | Actual income after modifiers: `int(income_value * stability_mod * (1 - war_damage))` |
+| `get_effective_income()` | stability, war_damage, buildings | Actual income: `int((income_value + depot_bonus) * stability_mod * (1 - war_damage))` |
 | `get_stability_label()` | stability | "Hostile" / "Unrest" / "Settling" / "Stable" |
+| `max_building_slots()` | region_type | Capital: 2, major_city/city: 1, town/rural: 0 |
+| `has_building(type)` | buildings | True if functional (undamaged) building of that type exists |
 
 ---
 

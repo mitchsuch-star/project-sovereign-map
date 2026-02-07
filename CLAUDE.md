@@ -14,7 +14,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ## Current Phase
 
-**Phase 6.2 Economy: 6.2.A-D COMPLETE** (region types, differentiated income, per-nation gold, upkeep, bankruptcy, admin AP, stability, war damage, recruitment rework with morale dilution/stability gates/capital discount). Next: **Phase 6.2.E Plunder/Secure + Buildings**. See `docs/ROADMAP.md` for EA readiness roadmap.
+**Phase 6.2 Economy: 6.2.A-E COMPLETE** (region types, differentiated income, per-nation gold, upkeep, bankruptcy, admin AP, stability, war damage, recruitment rework, plunder/secure capture choice, building system, fortification combat bonus, repair command). Next: **Phase 6.2.F Supply/Attrition**. See `docs/ROADMAP.md` for EA readiness roadmap.
 See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 
 ---

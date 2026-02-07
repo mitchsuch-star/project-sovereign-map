@@ -1533,8 +1533,44 @@ new_morale = int((old_strength * old_morale + 10000 * RECRUIT_MORALE) / (old_str
 
 **Key code:** `executor.py::_execute_recruit()`, `executor.py::_calculate_recruit_cost()`
 
+### Plunder/Secure Capture Choice (Phase 6.2.E)
+
+When a **player** captures a region, a popup asks: **Plunder** or **Secure**?
+
+| Choice | Stability | War Damage | Gold | Buildings | Plundered Flag |
+|--------|-----------|------------|------|-----------|----------------|
+| Plunder | 10 | +0.35 | = base income | Destroyed | True |
+| Secure | 25 | +0.00 | 0 | Damaged | False |
+
+- **AI captures** auto-decide by personality: aggressive → plunder, all others → secure
+- `pending_capture_choice` blocks commands until resolved (same pattern as `pending_objection`)
+- Plundered flag clears when stability recovers above 50
+- Endpoint: `POST /capture_choice` with `{"choice": "plunder"}` or `{"choice": "secure"}`
+- Key code: `executor.py::handle_capture_choice()`, `executor.py::_apply_plunder()`, `executor.py::_apply_secure()`
+
+### Building System (Phase 6.2.E)
+
+Three building types, constructed via `build <type> at <region>`:
+
+| Building | Cost | Time | Effect |
+|----------|------|------|--------|
+| Supply Depot | 300g | 2 turns | +50 base income (before modifiers) |
+| Fortification | 400g | 3 turns | +25% defense (stacks with terrain) |
+| Training Ground | 250g | 2 turns | Recruit morale 55% (instead of 40%) |
+
+**Building slots:** Capital: 2, Major City/City: 1, Town/Rural: 0
+
+**Validation:** Region must be controlled, stability > 50, sufficient gold, available slots, no duplicate type, no existing construction.
+
+**Construction timers** process during turn resolution (after tactical states, before turn counter advance).
+
+**Damage:** Battles damage fortifications (100% if 50k+ troops, 25% chance otherwise). Plunder destroys all. Secure damages all. Construction cancelled on any capture.
+
+**Repair:** `repair <region>` = 150 gold, -0.15 war damage. `repair <building> at <region>` = 150 gold, restores damaged building. Uses admin AP.
+
+**Key code:** `region.py::BUILDING_TYPES`, `executor.py::_execute_build()`, `executor.py::_execute_repair()`, `world_state.py::process_construction_timers()`
+
 ### Future Economy Features (not yet implemented)
 
-- Plunder/secure capture choice and buildings (6.2.E)
 - Supply limits and movement attrition (6.2.F)
 - AI admin phase (6.2.G)

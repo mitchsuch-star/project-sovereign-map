@@ -58,6 +58,9 @@ class CommandParser:
             "restrain",  # Restrain marshal - normal attack instead of charge
             # Strategic cancel (Phase E)
             "cancel",    # Cancel active strategic order
+            # Economy actions (Phase 6.2.E)
+            "build",     # Build a building at a region
+            "repair",    # Repair war damage or damaged building
         ]
 
         # Valid stances for stance_change command (Phase 2.7)

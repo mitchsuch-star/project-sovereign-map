@@ -71,7 +71,7 @@
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| Economy | Income per region, treasury, upkeep | Medium | **6.2.A-C done** (region types, income, gold, upkeep, bankruptcy, admin AP, stability, war damage). Recruitment/buildings/supply remaining. |
+| Economy | Income per region, treasury, upkeep | Medium | **6.2.A-E done** (region types, income, gold, upkeep, bankruptcy, admin AP, stability, war damage, recruitment, plunder/secure, buildings). Supply remaining. |
 | Reinforcements (Enemy) | AI can recruit troops | Low | Planned |
 | Manpower Pools | Separate: Infantry, Cavalry, Artillery | Medium | Planned |
 | Attrition | Movement/supply decay | Low | Planned |

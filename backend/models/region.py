@@ -3,7 +3,7 @@ Region Model for Project Sovereign
 Represents a region/territory on the map
 """
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 
 # ============================================================================
@@ -68,6 +68,24 @@ REGION_TYPE_INCOME = {
     "rural": 50,
 }
 
+# ============================================================================
+# BUILDING CONSTANTS (single source of truth) — Phase 6.2.E
+# ============================================================================
+
+BUILDING_TYPES = {
+    "supply_depot": {"gold_cost": 300, "build_time": 2, "allowed_in": ["capital", "major_city", "city"]},
+    "fortification": {"gold_cost": 400, "build_time": 3, "allowed_in": ["capital", "major_city", "city"]},
+    "training_ground": {"gold_cost": 250, "build_time": 2, "allowed_in": ["capital", "major_city", "city"]},
+}
+
+BUILDING_SLOT_LIMITS = {
+    "capital": 2,
+    "major_city": 1,
+    "city": 1,
+    "town": 0,
+    "rural": 0,
+}
+
 
 class Region:
     """A region on the game map."""
@@ -101,6 +119,11 @@ class Region:
         self.stability: int = 100  # 0-100, affects income. Default 100 = Stable
         self.war_damage: float = 0.0  # 0.0-0.5, reduces income. Default 0.0 = pristine
 
+        # Plunder/Secure & Buildings (Phase 6.2.E)
+        self.plundered: bool = False  # Set by plunder, clears when stability > 50
+        self.buildings: List[Dict] = []  # [{"type": "supply_depot", "damaged": False}, ...]
+        self.building_under_construction: Optional[Dict] = None  # {"type": "supply_depot", "turns_remaining": 2}
+
     @property
     def defense_bonus(self) -> float:
         """Defender bonus from terrain."""
@@ -120,6 +143,35 @@ class Region:
     def cavalry_effectiveness(self) -> float:
         """Cavalry combat effectiveness multiplier in this terrain."""
         return TERRAIN_CAVALRY_EFFECTIVENESS.get(self.terrain, 1.0)
+
+    # ========================================
+    # BUILDINGS (Phase 6.2.E)
+    # ========================================
+
+    def max_building_slots(self) -> int:
+        """Maximum building slots for this region type."""
+        return BUILDING_SLOT_LIMITS.get(self.region_type, 0)
+
+    def available_building_slots(self) -> int:
+        """How many building slots are free."""
+        used = len(self.buildings)
+        if self.building_under_construction:
+            used += 1
+        return max(0, self.max_building_slots() - used)
+
+    def has_building(self, building_type: str, functional_only: bool = True) -> bool:
+        """Check if region has a building of the given type.
+
+        Args:
+            building_type: e.g. "supply_depot", "fortification", "training_ground"
+            functional_only: If True, damaged buildings don't count.
+        """
+        for b in self.buildings:
+            if b["type"] == building_type:
+                if functional_only and b.get("damaged", False):
+                    continue
+                return True
+        return False
 
     # ========================================
     # STABILITY & WAR DAMAGE (Phase 6.2.C)
@@ -156,10 +208,19 @@ class Region:
         self.war_damage = max(0.0, self.war_damage - amount)
 
     def get_effective_income(self) -> int:
-        """Actual income after stability and war damage modifiers."""
+        """Actual income after stability and war damage modifiers.
+
+        Supply depot adds +50 to BASE income (before modifiers).
+        This means a supply depot in a hostile region still yields 0
+        (50 * 0.0 stability = 0) — no gaming by building in warzones.
+        """
+        base = self.income_value
+        # Supply depot bonus (Phase 6.2.E) — on base, before modifiers
+        if self.has_building("supply_depot"):
+            base += 50
         stability_mod = self._get_stability_modifier()
         damage_mod = 1.0 - self.war_damage
-        return int(self.income_value * stability_mod * damage_mod)
+        return int(base * stability_mod * damage_mod)
 
     def is_adjacent_to(self, other_region_name: str) -> bool:
         """Check if this region borders another region."""
@@ -177,7 +238,11 @@ class Region:
             "controller": self.controller,
             "garrison_strength": self.garrison_strength,
             "stability": self.stability,
-            "war_damage": self.war_damage
+            "war_damage": self.war_damage,
+            # Phase 6.2.E
+            "plundered": self.plundered,
+            "buildings": [b.copy() for b in self.buildings],
+            "building_under_construction": self.building_under_construction.copy() if self.building_under_construction else None,
         }
 
     @classmethod
@@ -195,6 +260,11 @@ class Region:
         region.garrison_strength = data.get("garrison_strength", 0)
         region.stability = data.get("stability", 100)  # Default 100 for backward compat
         region.war_damage = data.get("war_damage", 0.0)  # Default 0.0 for backward compat
+        # Phase 6.2.E
+        region.plundered = data.get("plundered", False)
+        region.buildings = [b.copy() for b in data.get("buildings", [])]
+        buc = data.get("building_under_construction")
+        region.building_under_construction = buc.copy() if buc else None
         return region
 
     def __repr__(self) -> str:

@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 7, 2026
-> **Last Session:** Session 18 — Phase 6.2.D Recruitment Rework
+> **Last Session:** Session 19 — Phase 6.2.E Plunder/Secure + Buildings
 
 ---
 
@@ -10,16 +10,16 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1617** (verified, 3 skipped) |
-| **Current Phase** | Phase 6.2 Economy: 6.2.D COMPLETE. Next: 6.2.E Plunder/Secure + Buildings |
+| **Tests Passing** | **1689** (verified, 3 skipped) |
+| **Current Phase** | Phase 6.2 Economy: 6.2.E COMPLETE. Next: 6.2.F Supply/Attrition |
 | **Blockers** | None |
-| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2.A, 6.2.B, 6.2.C, 6.2.D |
+| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2.A, 6.2.B, 6.2.C, 6.2.D, 6.2.E |
 
 ---
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2.A-D COMPLETE. Next: 6.2.E.**
+**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2.A-E COMPLETE. Next: 6.2.F.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -38,11 +38,49 @@
 - [x] **Session 6.2.B: Upkeep + Bankruptcy + Admin AP** — upkeep calculation, bankruptcy desertion, admin AP pool, income phase refactor, 59 tests (1491 total)
 - [x] **Session 6.2.C: Stability + War Damage** — region stability tiers, war damage, combined income modifiers, battle effects, turn resolution, 78 tests (1569 total)
 - [x] **Session 6.2.D: Recruitment Rework** — morale dilution, stability gates, capital discount, updated events, 48 tests (1617 total)
-- [ ] Phase 6.2.E–G: Plunder/secure, buildings, supply, AI admin
+- [x] **Session 6.2.E: Plunder/Secure + Buildings** — capture choice popup, plunder/secure effects, building system (3 types), fortification combat bonus, training ground morale, repair command, 72 tests (1689 total)
+- [ ] Phase 6.2.F–G: Supply/attrition, AI admin
 
 ---
 
 ## Recently Completed
+
+### Feb 7 (Session 19: Phase 6.2.E Plunder/Secure + Buildings)
+
+**Plunder/Secure capture choice (executor.py, main.py):**
+- Player captures trigger `pending_capture_choice` popup (blocks commands until resolved)
+- Plunder: stability 10, war_damage +0.35, plundered flag, gold = base income, buildings destroyed
+- Secure: stability 25, no extra damage, buildings damaged (not destroyed)
+- AI captures auto-decide by personality (aggressive → plunder, others → secure)
+- New `/capture_choice` endpoint in main.py (same pattern as `/respond_to_objection`)
+- All 4 capture paths in executor.py modified (undefended move, post-battle, auto-assigned battle, auto-assigned undefended)
+
+**Building system (region.py, executor.py):**
+- 3 building types: Supply Depot (300g/2t, +50 income), Fortification (400g/3t, +25% defense), Training Ground (250g/2t, 55% recruit morale)
+- Slot limits: capital 2, city/major_city 1, town/rural 0
+- Construction timers in `process_construction_timers()` (called during turn resolution)
+- `_execute_build()` with 8 validation checks (slots, stability, gold, duplicates, etc.)
+- Supply depot bonus applies to BASE income before stability/damage modifiers
+
+**Fortification combat bonus (combat.py, executor.py):**
+- New `fortification_bonus` parameter on `resolve_battle()` (stacks additively with terrain)
+- All 5 resolve_battle call sites updated with fortification check
+
+**Building damage (executor.py):**
+- Battles damage fortifications: 100% for major (50k+), 25% chance for normal
+- Plunder destroys all buildings; secure damages all buildings
+- Construction cancelled on any capture
+
+**Repair command (executor.py):**
+- Repair war damage: 1 admin AP + 150 gold, -0.15 war_damage
+- Repair building: 1 admin AP + 150 gold, damaged → functional
+
+**Parser integration (validation.py, parser.py, llm_client.py):**
+- build/repair added to VALID_ACTIONS, parser valid_actions, mock parser keywords
+- build/repair added to ADMIN_ACTIONS set in executor.py
+
+**Tests:** 72 new tests (test_plunder_secure.py, test_buildings.py), 1689 total passing.
+**Bug hunt:** 7-step audit — all checks pass (serialization, gold accounting, stability boundaries, admin AP routing, turn flow, cross-system integration).
 
 ### Feb 7 (Session 18: Phase 6.2.D Recruitment Rework)
 

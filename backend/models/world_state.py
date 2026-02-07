@@ -107,6 +107,8 @@ class WorldState:
             "move": 1,
             "scout": 1,
             "recruit": 1,
+            "build": 1,    # Phase 6.2.E
+            "repair": 1,   # Phase 6.2.E
             "defend": 1,
             "end_turn": 0  # Free action
         }
@@ -137,6 +139,11 @@ class WorldState:
         # Pending strategic objection - Phase M strategic objections
         # None when no objection pending, Dict when awaiting player choice
         self.pending_strategic_objection: Optional[Dict] = None
+
+        # Pending capture choice - Phase 6.2.E plunder/secure popup
+        # None when no choice pending, Dict when awaiting player choice
+        # {"region": str, "capturer": str, "previous_controller": str}
+        self.pending_capture_choice: Optional[Dict] = None
 
         # ============================================================
         # V2a OBJECTION SYSTEM - Per-turn tracking
@@ -1374,6 +1381,7 @@ class WorldState:
 
         Base growth: +5/turn.
         Garrison bonus: +5 if a friendly marshal is present (total +10).
+        Also clears plundered flag when stability recovers past 50 (Phase 6.2.E).
         """
         for region in self.regions.values():
             if region.controller is None:
@@ -1381,12 +1389,39 @@ class WorldState:
             base_growth = 5
             garrison_bonus = 5 if self._has_marshal_in_region(region.name, region.controller) else 0
             region.stability = min(100, region.stability + base_growth + garrison_bonus)
+            # Clear plundered flag when region recovers (Phase 6.2.E)
+            if region.plundered and region.stability > 50:
+                region.plundered = False
 
     def process_war_damage_recovery(self):
         """Natural war damage recovery for all regions. -0.02/turn."""
         for region in self.regions.values():
             if region.war_damage > 0:
                 region.recover_war_damage(0.02)
+
+    def process_construction_timers(self) -> list:
+        """Advance all construction projects by 1 turn. (Phase 6.2.E)
+
+        Returns list of events for completed constructions.
+        """
+        events = []
+        for region in self.regions.values():
+            if region.building_under_construction:
+                region.building_under_construction["turns_remaining"] -= 1
+                if region.building_under_construction["turns_remaining"] <= 0:
+                    completed_type = region.building_under_construction["type"]
+                    region.buildings.append({
+                        "type": completed_type,
+                        "damaged": False
+                    })
+                    region.building_under_construction = None
+                    events.append({
+                        "type": "construction_complete",
+                        "region": region.name,
+                        "building": completed_type,
+                        "message": f"Construction complete: {completed_type.replace('_', ' ').title()} in {region.name}!"
+                    })
+        return events
 
     def _has_marshal_in_region(self, region_name: str, nation: str) -> bool:
         """Check if any marshal of the given nation is in the region."""
@@ -1573,6 +1608,7 @@ class WorldState:
             "pending_objection": self.pending_objection,
             "pending_redemption": self.pending_redemption,
             "pending_strategic_objection": self.pending_strategic_objection,
+            "pending_capture_choice": self.pending_capture_choice,
 
             # ═══════ V2a OBJECTION SYSTEM ═══════
             "mild_concerns_this_turn": [c.copy() for c in self.mild_concerns_this_turn],
@@ -1661,6 +1697,7 @@ class WorldState:
         world.pending_objection = data.get("pending_objection")
         world.pending_redemption = data.get("pending_redemption")
         world.pending_strategic_objection = data.get("pending_strategic_objection")
+        world.pending_capture_choice = data.get("pending_capture_choice")
 
         # ═══════ V2a OBJECTION SYSTEM ═══════
         world.mild_concerns_this_turn = [c.copy() for c in data.get("mild_concerns_this_turn", [])]
@@ -1999,6 +2036,13 @@ class WorldState:
         # ════════════════════════════════════════════════════════════
         tactical_events = self._process_tactical_states()
         # NOTE: _last_tactical_events stored AFTER all events collected (see below)
+
+        # ════════════════════════════════════════════════════════════
+        # PROCESS CONSTRUCTION TIMERS (Phase 6.2.E)
+        # ════════════════════════════════════════════════════════════
+        construction_events = self.process_construction_timers()
+        if construction_events:
+            tactical_events.extend(construction_events)
 
         old_turn = self.current_turn
         self.current_turn = int(self.current_turn + 1)

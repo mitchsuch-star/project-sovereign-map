@@ -50,7 +50,7 @@ _ACTION_DISPLAY_NAMES = {
 
 
 # Actions that consume Admin AP instead of CP (Phase 6.2.B)
-ADMIN_ACTIONS = {"recruit"}
+ADMIN_ACTIONS = {"recruit", "build", "repair"}
 
 
 def _action_display_name(action: str) -> str:
@@ -587,6 +587,17 @@ RETREAT RECOVERY (3 turns):
                 "awaiting_response": True,
                 "objection": world.pending_objection,
                 "choices": ["trust", "insist", "compromise"] if world.pending_objection.get("alternative") else ["trust", "insist"]
+            }
+
+        # ============================================================
+        # CAPTURE CHOICE CHECK (Phase 6.2.E): Plunder or Secure?
+        # ============================================================
+        if world.pending_capture_choice is not None:
+            return {
+                "success": False,
+                "message": "You must decide how to handle the captured region first! Choose 'plunder' or 'secure'.",
+                "pending_capture_choice": True,
+                "capture_data": world.pending_capture_choice
             }
 
         command = parsed_command.get("command", {})
@@ -1210,6 +1221,10 @@ RETREAT RECOVERY (3 turns):
             result = self._execute_help(command, game_state)
         elif action == "recruit":
             result = self._execute_recruit(command, game_state)
+        elif action == "build":
+            result = self._execute_build(command, game_state)
+        elif action == "repair":
+            result = self._execute_repair(command, game_state)
         elif action == "end_turn":
             result = self._execute_end_turn(command, game_state)
         # ════════════════════════════════════════════════════════════
@@ -1433,16 +1448,26 @@ RETREAT RECOVERY (3 turns):
         defender_strength: int,
         world: 'WorldState'
     ) -> None:
-        """Apply war damage and stability hit to a region after battle.
+        """Apply war damage, stability hit, and building damage to a region after battle.
 
         Uses pre-battle troop counts for the 50k major battle threshold.
+        Phase 6.2.E: Fortifications damaged by battle (100% for major, 25% for normal).
         """
+        import random
         region = world.get_region(region_name)
         if not region:
             return
         combined = attacker_strength + defender_strength
-        region.apply_war_damage(0.20 if combined >= 50000 else 0.10)
+        is_major = combined >= 50000
+        region.apply_war_damage(0.20 if is_major else 0.10)
         region.stability = max(0, region.stability - 10)
+
+        # Phase 6.2.E: Battle damages fortifications
+        # Major battles (50k+ troops) always damage; normal battles 25% chance
+        for building in region.buildings:
+            if building["type"] == "fortification" and not building.get("damaged", False):
+                if is_major or random.random() < 0.25:
+                    building["damaged"] = True
 
     def _handle_forced_retreat(
         self,
@@ -2011,17 +2036,40 @@ RETREAT RECOVERY (3 turns):
                     if drill_cancelled_message:
                         capture_message = drill_cancelled_message + capture_message
 
-                    return {
-                        "success": True,
-                        "message": capture_message,
-                        "events": [{
-                            "type": "conquest",
-                            "marshal": marshal.name,
+                    # Phase 6.2.E: Plunder/Secure choice
+                    if marshal.nation == world.player_nation:
+                        world.pending_capture_choice = {
                             "region": resolved_target,
-                            "unopposed": True
-                        }],
-                        "new_state": game_state
-                    }
+                            "capturer": marshal.name,
+                            "previous_controller": old_controller,
+                        }
+                        return {
+                            "success": True,
+                            "message": capture_message + "\nYour forces have taken the region! How shall they behave?",
+                            "pending_capture_choice": True,
+                            "capture_data": world.pending_capture_choice,
+                            "events": [{
+                                "type": "conquest",
+                                "marshal": marshal.name,
+                                "region": resolved_target,
+                                "unopposed": True
+                            }],
+                            "new_state": game_state
+                        }
+                    else:
+                        # AI capture — auto-decide by personality
+                        self._apply_ai_capture_choice(marshal, target_region, world)
+                        return {
+                            "success": True,
+                            "message": capture_message,
+                            "events": [{
+                                "type": "conquest",
+                                "marshal": marshal.name,
+                                "region": resolved_target,
+                                "unopposed": True
+                            }],
+                            "new_state": game_state
+                        }
 
             # If region not found, return error
             if not target_region:
@@ -2146,6 +2194,11 @@ RETREAT RECOVERY (3 turns):
         defender_region = world.get_region(enemy_marshal.location)
         battle_terrain = defender_region.terrain if defender_region else "plains"
 
+        # Fortification bonus (Phase 6.2.E): defender gets +25% if region has functional fortification
+        fort_bonus = 0.0
+        if defender_region and defender_region.has_building("fortification"):
+            fort_bonus = 0.25
+
         # Capture pre-battle strengths for war damage threshold (Phase 6.2.C)
         pre_battle_attacker_strength = marshal.strength
         pre_battle_defender_strength = enemy_marshal.strength
@@ -2157,7 +2210,8 @@ RETREAT RECOVERY (3 turns):
             defender=enemy_marshal,
             terrain=battle_terrain,
             flanking_bonus=flanking_bonus,
-            flanking_message=flanking_message
+            flanking_message=flanking_message,
+            fortification_bonus=fort_bonus
         )
 
         # Apply war damage + stability hit to battle region (Phase 6.2.C)
@@ -2247,9 +2301,20 @@ RETREAT RECOVERY (3 turns):
 
             # If no defenders left, capture the region!
             if not remaining_defenders:
+                old_controller = target_region.controller
                 world.capture_region(target_location, marshal.nation)
                 conquered = True
                 conquest_msg = f" {target_location} has been captured by {marshal.nation}!"
+                # Phase 6.2.E: Plunder/Secure choice
+                if marshal.nation == world.player_nation:
+                    world.pending_capture_choice = {
+                        "region": target_location,
+                        "capturer": marshal.name,
+                        "previous_controller": old_controller,
+                    }
+                else:
+                    # AI capture — auto-decide by personality
+                    self._apply_ai_capture_choice(marshal, target_region, world)
 
         # Build message with flanking info if applicable
         flanking_prefix = ""
@@ -2324,6 +2389,11 @@ RETREAT RECOVERY (3 turns):
         if is_counter_punch:
             result["free_action"] = True
             result["counter_punch_used"] = True
+
+        # Phase 6.2.E: Flag pending capture choice for popup
+        if world.pending_capture_choice:
+            result["pending_capture_choice"] = True
+            result["capture_data"] = world.pending_capture_choice
 
         # ════════════════════════════════════════════════════════════
         # EXHAUSTION TRACKING (Phase 3 - Attack Spam Prevention)
@@ -4154,6 +4224,7 @@ RETREAT RECOVERY (3 turns):
         # Read terrain from defender's region
         sally_defender_region = world.get_region(best_enemy.location)
         sally_terrain = sally_defender_region.terrain if sally_defender_region else "plains"
+        sally_fort_bonus = 0.25 if sally_defender_region and sally_defender_region.has_building("fortification") else 0.0
 
         # Capture pre-battle strengths for war damage threshold (Phase 6.2.C)
         pre_battle_atk = best_marshal.strength
@@ -4165,7 +4236,8 @@ RETREAT RECOVERY (3 turns):
             defender=best_enemy,
             terrain=sally_terrain,
             flanking_bonus=flanking_bonus,
-            flanking_message=flanking_message
+            flanking_message=flanking_message,
+            fortification_bonus=sally_fort_bonus
         )
 
         # Apply war damage + stability hit to battle region (Phase 6.2.C)
@@ -4293,6 +4365,7 @@ RETREAT RECOVERY (3 turns):
             # Read terrain from defender's region
             sally2_defender_region = world.get_region(enemy.location)
             sally2_terrain = sally2_defender_region.terrain if sally2_defender_region else "plains"
+            sally2_fort_bonus = 0.25 if sally2_defender_region and sally2_defender_region.has_building("fortification") else 0.0
 
             # Capture pre-battle strengths for war damage threshold (Phase 6.2.C)
             pre_battle_atk = nearest_marshal.strength
@@ -4304,7 +4377,8 @@ RETREAT RECOVERY (3 turns):
                 defender=enemy,
                 terrain=sally2_terrain,
                 flanking_bonus=flanking_bonus,
-                flanking_message=flanking_message
+                flanking_message=flanking_message,
+                fortification_bonus=sally2_fort_bonus
             )
 
             # Apply war damage + stability hit to battle region (Phase 6.2.C)
@@ -4418,6 +4492,7 @@ RETREAT RECOVERY (3 turns):
             # Read terrain from defender's region
             sally3_defender_region = world.get_region(enemy.location)
             sally3_terrain = sally3_defender_region.terrain if sally3_defender_region else "plains"
+            sally3_fort_bonus = 0.25 if sally3_defender_region and sally3_defender_region.has_building("fortification") else 0.0
 
             # Capture pre-battle strengths for war damage threshold (Phase 6.2.C)
             pre_battle_atk = nearest_marshal.strength
@@ -4428,7 +4503,8 @@ RETREAT RECOVERY (3 turns):
                 defender=enemy,
                 terrain=sally3_terrain,
                 flanking_bonus=flanking_bonus,
-                flanking_message=flanking_message
+                flanking_message=flanking_message,
+                fortification_bonus=sally3_fort_bonus
             )
 
             # Apply war damage + stability hit to battle region (Phase 6.2.C)
@@ -4462,9 +4538,21 @@ RETREAT RECOVERY (3 turns):
                 remaining_defenders = [m for m in world.marshals.values()
                                      if m.location == target_name and m.strength > 0 and m.nation != nearest_marshal.nation]
                 if not remaining_defenders:
+                    old_ctrl = (world.get_region(target_name).controller
+                                if world.get_region(target_name) else None)
                     world.capture_region(target_name, nearest_marshal.nation)
                     conquered = True
                     conquest_msg = f" {target_name} has been captured by {nearest_marshal.nation}!"
+                    # Phase 6.2.E: Plunder/Secure choice
+                    cap_region = world.get_region(target_name)
+                    if nearest_marshal.nation == world.player_nation:
+                        world.pending_capture_choice = {
+                            "region": target_name,
+                            "capturer": nearest_marshal.name,
+                            "previous_controller": old_ctrl,
+                        }
+                    elif cap_region:
+                        self._apply_ai_capture_choice(nearest_marshal, cap_region, world)
 
             # Build message with flanking info
             flanking_prefix = ""
@@ -4498,7 +4586,7 @@ RETREAT RECOVERY (3 turns):
                 battle_result, nearest_marshal, enemy, world
             )
 
-            return {
+            auto_result = {
                 "success": True,
                 "message": f"{nearest_marshal.name} attacks {enemy.name} at {target_name}!{flanking_prefix} {battle_result['description']}{conquest_msg}{vindication_msg}{forced_retreat_msg}",
                 "events": [{
@@ -4520,6 +4608,11 @@ RETREAT RECOVERY (3 turns):
                 }],
                 "new_state": game_state
             }
+            # Phase 6.2.E: Flag pending capture choice
+            if world.pending_capture_choice:
+                auto_result["pending_capture_choice"] = True
+                auto_result["capture_data"] = world.pending_capture_choice
+            return auto_result
 
         # UNDEFENDED - Instant capture!
         # ENEMY AI FIX: Use attacker's nation, not hardcoded player_nation
@@ -4535,18 +4628,42 @@ RETREAT RECOVERY (3 turns):
         old_controller = target_region.controller
         world.capture_region(target_name, nearest_marshal.nation)
 
-        return {
-            "success": True,
-            "message": f"{nearest_marshal.name} marches into {target_name} unopposed! Captured: {old_controller} → {nearest_marshal.nation}",
-            "events": [{
-                "type": "conquest",
-                "marshal": nearest_marshal.name,
+        # Phase 6.2.E: Plunder/Secure choice
+        if nearest_marshal.nation == world.player_nation:
+            world.pending_capture_choice = {
                 "region": target_name,
+                "capturer": nearest_marshal.name,
                 "previous_controller": old_controller,
-                "unopposed": True
-            }],
-            "new_state": game_state
-        }
+            }
+            return {
+                "success": True,
+                "message": f"{nearest_marshal.name} marches into {target_name} unopposed! Captured: {old_controller} → {nearest_marshal.nation}\nYour forces have taken the region! How shall they behave?",
+                "pending_capture_choice": True,
+                "capture_data": world.pending_capture_choice,
+                "events": [{
+                    "type": "conquest",
+                    "marshal": nearest_marshal.name,
+                    "region": target_name,
+                    "previous_controller": old_controller,
+                    "unopposed": True
+                }],
+                "new_state": game_state
+            }
+        else:
+            # AI capture — auto-decide by personality
+            self._apply_ai_capture_choice(nearest_marshal, target_region, world)
+            return {
+                "success": True,
+                "message": f"{nearest_marshal.name} marches into {target_name} unopposed! Captured: {old_controller} → {nearest_marshal.nation}",
+                "events": [{
+                    "type": "conquest",
+                    "marshal": nearest_marshal.name,
+                    "region": target_name,
+                    "previous_controller": old_controller,
+                    "unopposed": True
+                }],
+                "new_state": game_state
+            }
 
     def _execute_general_retreat(self, command: Dict, game_state: Dict) -> Dict:
         """
@@ -4674,8 +4791,9 @@ RETREAT RECOVERY (3 turns):
         - Settling premium: 50% more at stability 51-75 (300 gold)
         - Admin AP cost handled by executor routing layer (not here)
         """
-        RECRUIT_MORALE = 40   # Green conscripts base morale
         NEW_TROOPS = 10000    # Fixed recruit amount
+        # Base recruit morale — upgraded by Training Ground (Phase 6.2.E)
+        RECRUIT_MORALE = 40   # Green conscripts base morale
 
         marshal_specified = command.get("marshal")
         location_specified = command.get("target")
@@ -4760,6 +4878,10 @@ RETREAT RECOVERY (3 turns):
                 "suggestion": "Wait for more income or conquer more regions"
             }
 
+        # Phase 6.2.E: Training Ground upgrades recruit morale
+        if region.has_building("training_ground"):
+            RECRUIT_MORALE = 55
+
         # --- Morale dilution ---
         marshal = world.get_marshal(recipient)
         old_strength = marshal.strength
@@ -4802,6 +4924,170 @@ RETREAT RECOVERY (3 turns):
                 "stability_premium": is_stability_premium,
                 "capital_discount": is_capital_discount
             }],
+            "new_state": game_state
+        }
+
+    # ========================================
+    # BUILDING SYSTEM (Phase 6.2.E)
+    # ========================================
+
+    def _extract_building_type(self, command: Dict) -> str:
+        """Extract building type from command text or target field.
+
+        Simple keyword matching — full parser rework in 6.2.G.
+        """
+        raw = (command.get("raw_command") or command.get("target") or "").lower()
+        # Also check the original raw_input if available
+        if not raw:
+            raw = ""
+        if "supply" in raw or "depot" in raw:
+            return "supply_depot"
+        elif "fort" in raw:
+            return "fortification"
+        elif "train" in raw:
+            return "training_ground"
+        # Try building_type field directly (set by tests)
+        bt = command.get("building_type")
+        if bt:
+            return bt
+        return ""
+
+    def _execute_build(self, command: Dict, game_state: Dict) -> Dict:
+        """Build a building at a region. Costs admin AP + gold.
+
+        Phase 6.2.E: supply_depot (300g/2t), fortification (400g/3t), training_ground (250g/2t).
+        """
+        from backend.models.region import BUILDING_TYPES
+
+        world: WorldState = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "No world state available"}
+
+        region_name = command.get("target")
+        building_type = command.get("building_type") or self._extract_building_type(command)
+
+        if not region_name:
+            return {"success": False, "message": "Specify a region. Example: 'build supply depot at Lyon'"}
+
+        if not building_type or building_type not in BUILDING_TYPES:
+            return {
+                "success": False,
+                "message": f"Unknown building type. Valid types: {', '.join(BUILDING_TYPES.keys())}"
+            }
+
+        region = world.get_region(region_name)
+        if not region:
+            return {"success": False, "message": f"Unknown region: {region_name}"}
+
+        # Must be controlled
+        if region.controller != world.player_nation:
+            return {"success": False, "message": f"Cannot build in {region_name} — not controlled by {world.player_nation}"}
+
+        # Region type must allow buildings
+        if region.max_building_slots() == 0:
+            return {"success": False, "message": f"Cannot build in {region_name} — {region.region_type} regions don't support buildings (need city or larger)"}
+
+        # Allowed region type for this building
+        btype_info = BUILDING_TYPES[building_type]
+        if region.region_type not in btype_info["allowed_in"]:
+            return {"success": False, "message": f"Cannot build {building_type.replace('_', ' ')} in {region.region_type} region"}
+
+        # Already constructing (check before slot count since construction uses a slot)
+        if region.building_under_construction:
+            return {"success": False, "message": f"Already constructing {region.building_under_construction['type'].replace('_', ' ')} in {region_name}"}
+
+        # Available slots
+        if region.available_building_slots() <= 0:
+            return {"success": False, "message": f"No building slots available in {region_name} ({len(region.buildings)}/{region.max_building_slots()})"}
+
+        # Stability gate (same as recruit: need > 50)
+        if region.stability <= 50:
+            return {"success": False, "message": f"Cannot build in {region_name} — region stability too low ({region.stability}/100). Need 51+."}
+
+        # Duplicate check
+        if region.has_building(building_type, functional_only=False):
+            return {"success": False, "message": f"{region_name} already has a {building_type.replace('_', ' ')}"}
+
+        # Gold check
+        gold_cost = btype_info["gold_cost"]
+        if world.gold < gold_cost:
+            return {"success": False, "message": f"Insufficient gold! Need {gold_cost}, have {world.gold}"}
+
+        # Start construction
+        region.building_under_construction = {
+            "type": building_type,
+            "turns_remaining": btype_info["build_time"]
+        }
+        world.gold -= gold_cost
+
+        display_name = building_type.replace('_', ' ').title()
+        return {
+            "success": True,
+            "message": f"Construction started: {display_name} in {region_name} ({btype_info['build_time']} turns, {gold_cost} gold)",
+            "events": [{
+                "type": "build_started",
+                "region": region_name,
+                "building": building_type,
+                "gold_cost": int(gold_cost),
+                "turns": btype_info["build_time"],
+            }],
+            "new_state": game_state
+        }
+
+    def _execute_repair(self, command: Dict, game_state: Dict) -> Dict:
+        """Repair war damage or a damaged building. Costs admin AP + 150 gold.
+
+        Phase 6.2.E: 1 admin AP + 150 gold.
+        - No building_type: repair war damage (-0.15)
+        - With building_type: repair that building (damaged -> functional)
+        """
+        REPAIR_COST = 150
+
+        world: WorldState = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "No world state available"}
+
+        region_name = command.get("target")
+        if not region_name:
+            return {"success": False, "message": "Specify a region. Example: 'repair Lyon'"}
+
+        region = world.get_region(region_name)
+        if not region:
+            return {"success": False, "message": f"Unknown region: {region_name}"}
+
+        if region.controller != world.player_nation:
+            return {"success": False, "message": f"Cannot repair in {region_name} — not controlled by {world.player_nation}"}
+
+        if world.gold < REPAIR_COST:
+            return {"success": False, "message": f"Insufficient gold! Need {REPAIR_COST}, have {world.gold}"}
+
+        # Check if repairing a building or war damage
+        building_type = command.get("building_type") or self._extract_building_type(command)
+
+        if building_type:
+            # Find the damaged building
+            for b in region.buildings:
+                if b["type"] == building_type and b.get("damaged", False):
+                    b["damaged"] = False
+                    world.gold -= REPAIR_COST
+                    return {
+                        "success": True,
+                        "message": f"Repaired {building_type.replace('_', ' ').title()} in {region_name} ({REPAIR_COST} gold)",
+                        "events": [{"type": "repair_building", "region": region_name, "building": building_type}],
+                        "new_state": game_state
+                    }
+            return {"success": False, "message": f"No damaged {building_type.replace('_', ' ')} in {region_name}"}
+
+        # Repair war damage
+        if region.war_damage <= 0:
+            return {"success": False, "message": f"No war damage to repair in {region_name}"}
+
+        region.recover_war_damage(0.15)
+        world.gold -= REPAIR_COST
+        return {
+            "success": True,
+            "message": f"War damage repaired in {region_name} ({REPAIR_COST} gold). War damage: {region.war_damage:.0%}",
+            "events": [{"type": "repair_war_damage", "region": region_name, "remaining_damage": region.war_damage}],
             "new_state": game_state
         }
 
@@ -6235,6 +6521,7 @@ RETREAT RECOVERY (3 turns):
         # Read terrain from defender's region
         charge_defender_region = world.get_region(target_marshal.location)
         charge_terrain = charge_defender_region.terrain if charge_defender_region else "plains"
+        charge_fort_bonus = 0.25 if charge_defender_region and charge_defender_region.has_building("fortification") else 0.0
 
         # Capture pre-battle strengths for war damage threshold (Phase 6.2.C)
         pre_battle_atk = marshal.strength
@@ -6246,7 +6533,8 @@ RETREAT RECOVERY (3 turns):
             attacker=marshal,
             defender=target_marshal,
             terrain=charge_terrain,
-            glorious_charge=True  # 2x damage multiplier
+            glorious_charge=True,  # 2x damage multiplier
+            fortification_bonus=charge_fort_bonus
         )
 
         # Apply war damage + stability hit to battle region (Phase 6.2.C)
@@ -6674,6 +6962,115 @@ RETREAT RECOVERY (3 turns):
             "message": "Failed to process strategic objection response"
         }
 
+    # ============================================================
+    # CAPTURE CHOICE SYSTEM (Phase 6.2.E)
+    # ============================================================
+
+    def handle_capture_choice(self, choice: str, game_state: Dict) -> Dict:
+        """Handle player's plunder/secure choice after capturing a region.
+
+        Args:
+            choice: 'plunder' or 'secure'
+            game_state: Current game state dict with 'world' key
+
+        Returns:
+            Result dict with effects applied
+        """
+        world: WorldState = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "No world state available"}
+
+        pending = world.pending_capture_choice
+        if not pending:
+            return {"success": False, "message": "No pending capture choice."}
+
+        region_name = pending["region"]
+        capturer_name = pending["capturer"]
+        region = world.get_region(region_name)
+
+        if not region:
+            world.pending_capture_choice = None
+            return {"success": False, "message": f"Region {region_name} not found."}
+
+        if choice == "plunder":
+            result = self._apply_plunder(region, world)
+            world.pending_capture_choice = None
+            return {
+                "success": True,
+                "message": (f"{capturer_name}'s troops plunder {region_name}! "
+                            f"Gained {result['gold_gained']} gold. "
+                            f"Buildings destroyed. Stability set to 10."),
+                "events": [{
+                    "type": "plunder",
+                    "region": region_name,
+                    "capturer": capturer_name,
+                    "gold_gained": result["gold_gained"],
+                }],
+                "capture_choice": "plunder",
+            }
+        elif choice == "secure":
+            self._apply_secure(region)
+            world.pending_capture_choice = None
+            damaged_count = len([b for b in region.buildings if b.get("damaged")])
+            return {
+                "success": True,
+                "message": (f"{capturer_name} secures {region_name}. "
+                            f"Stability set to 25. Order is maintained."
+                            + (f" {damaged_count} building(s) damaged." if damaged_count else "")),
+                "events": [{
+                    "type": "secure",
+                    "region": region_name,
+                    "capturer": capturer_name,
+                }],
+                "capture_choice": "secure",
+            }
+        else:
+            return {
+                "success": False,
+                "message": f"Invalid choice: '{choice}'. Choose 'plunder' or 'secure'."
+            }
+
+    def _apply_plunder(self, region, world) -> Dict:
+        """Apply plunder effects to a captured region."""
+        region.stability = 10
+        region.apply_war_damage(0.35)
+        region.plundered = True
+        # Immediate gold = 100% of BASE income (not effective)
+        gold_gained = region.income_value
+        world.gold += gold_gained
+        # Destroy all buildings
+        region.buildings = []
+        region.building_under_construction = None
+        return {"gold_gained": int(gold_gained)}
+
+    def _apply_secure(self, region) -> None:
+        """Apply secure effects to a captured region."""
+        region.stability = 25
+        # No additional war damage
+        region.plundered = False
+        # No immediate gold
+        # Damage existing buildings (not destroyed)
+        for building in region.buildings:
+            building["damaged"] = True
+        # Cancel construction
+        region.building_under_construction = None
+
+    def _get_ai_capture_choice(self, marshal) -> str:
+        """AI decides plunder vs secure based on personality."""
+        from backend.models.personality import Personality
+        personality = getattr(marshal, 'personality_type', None)
+        if personality == Personality.AGGRESSIVE:
+            return "plunder"
+        return "secure"
+
+    def _apply_ai_capture_choice(self, marshal, region, world) -> None:
+        """Apply AI's automatic capture choice (no popup)."""
+        choice = self._get_ai_capture_choice(marshal)
+        if choice == "plunder":
+            self._apply_plunder(region, world)
+        else:
+            self._apply_secure(region)
+
     def handle_objection_response(self, choice: str, game_state: Dict) -> Dict:
         """
         Handle player's response to a marshal objection.
@@ -6961,6 +7358,10 @@ RETREAT RECOVERY (3 turns):
                 result = {"success": False, "message": f"Marshal {marshal_name} not found"}
         elif action == "recruit":
             result = self._execute_recruit(command, game_state)
+        elif action == "build":
+            result = self._execute_build(command, game_state)
+        elif action == "repair":
+            result = self._execute_repair(command, game_state)
         # ════════════════════════════════════════════════════════════
         # TACTICAL ACTIONS (Phase 2.6) - Must work via objection Insist
         # ════════════════════════════════════════════════════════════

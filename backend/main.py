@@ -121,6 +121,11 @@ class GloriousChargeResponse(BaseModel):
     choice: str  # 'charge' or 'restrain'
 
 
+class CaptureChoiceResponse(BaseModel):
+    """Request model for responding to plunder/secure choice (Phase 6.2.E)."""
+    choice: str  # 'plunder' or 'secure'
+
+
 class StrategicInterruptResponse(BaseModel):
     """Request model for responding to strategic command interrupts (Phase D)."""
     marshal_name: str
@@ -257,7 +262,16 @@ def execute_command(request: CommandRequest):
         # CHECK FOR GLORIOUS CHARGE: If pending, return full result for popup
         # ════════════════════════════════════════════════════════════
         if result.get("pending_glorious_charge"):
-            print(f"🐴 GLORIOUS CHARGE PENDING - Returning full result to frontend")
+            print(f"GLORIOUS CHARGE PENDING - Returning full result to frontend")
+            result["action_summary"] = world.get_action_summary()
+            result["game_state"] = world.get_game_state_summary()
+            return result
+
+        # ════════════════════════════════════════════════════════════
+        # CHECK FOR CAPTURE CHOICE (Phase 6.2.E): Plunder or Secure popup
+        # ════════════════════════════════════════════════════════════
+        if result.get("pending_capture_choice"):
+            print(f"[CAPTURE] PLUNDER/SECURE CHOICE PENDING - Returning full result to frontend")
             result["action_summary"] = world.get_action_summary()
             result["game_state"] = world.get_game_state_summary()
             return result
@@ -487,6 +501,36 @@ def respond_to_objection(request: ObjectionResponse):
         return response
     except Exception as e:
         print(f"❌ ERROR handling objection response: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "message": f"Error: {str(e)}",
+            "game_state": world.get_game_state_summary()
+        }
+
+
+@app.post("/capture_choice")
+def capture_choice(request: CaptureChoiceResponse):
+    """Respond to the plunder/secure choice after capturing a region (Phase 6.2.E).
+
+    Args:
+        request: CaptureChoiceResponse with 'choice' field ('plunder' or 'secure')
+    """
+    try:
+        result = executor.handle_capture_choice(request.choice, game_state)
+
+        response = {
+            "success": result.get("success", False),
+            "message": result.get("message", "Choice processed"),
+            "events": result.get("events", []),
+            "capture_choice": result.get("capture_choice"),
+            "action_summary": world.get_action_summary(),
+            "game_state": world.get_game_state_summary(),
+        }
+        return response
+    except Exception as e:
+        print(f"ERROR handling capture choice: {e}")
         import traceback
         traceback.print_exc()
         return {

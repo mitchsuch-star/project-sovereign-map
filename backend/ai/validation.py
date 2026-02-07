@@ -39,6 +39,9 @@ VALID_ACTIONS: Set[str] = {
     "support",    # Strategic SUPPORT - marching to ally
     "reinforce",  # Alias for support
     "march",      # Strategic MOVE_TO - multi-turn movement
+    # Economy actions (Phase 6.2.E)
+    "build",      # Build a building at a region
+    "repair",     # Repair war damage or damaged building
     # ═══════ ADD NEW ACTIONS HERE ═══════
     # This is the SINGLE SOURCE OF TRUTH for valid LLM actions.
     # Also update: llm_client.py keywords, parser.py valid_actions,
