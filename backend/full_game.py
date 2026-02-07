@@ -535,7 +535,9 @@ class CommandExecutor:
         }
 
     def _execute_recruit(self, command: Dict, game_state: Dict) -> Dict:
-        """Recruit new troops (costs 200 gold, adds 10,000 troops)."""
+        """DEPRECATED: Legacy recruit. Canonical version is in executor.py.
+        Phase 6.2.D added morale dilution, stability gates, and capital discount there.
+        This version is kept for backward compat with legacy tests only."""
         marshal_specified = command.get("marshal")
         location_specified = command.get("target")
 

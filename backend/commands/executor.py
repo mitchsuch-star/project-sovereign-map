@@ -4644,8 +4644,39 @@ RETREAT RECOVERY (3 turns):
             "new_state": game_state
         }
 
+    def _calculate_recruit_cost(self, region, world) -> int:
+        """Calculate recruitment gold cost based on region properties.
+
+        Priority: Capital discount wins over settling premium.
+        If capital somehow has stability 51-75 (unlikely but possible),
+        capital discount applies — it's always cheaper at your capital.
+        """
+        base_cost = 200
+
+        # Capital discount: 25% off (checked first — always wins)
+        if region.region_type == "capital":
+            return int(base_cost * 0.75)  # 150
+
+        # Settling stability premium: 50% more (stability 51-75)
+        if 51 <= region.stability <= 75:
+            return int(base_cost * 1.50)  # 300
+
+        return base_cost  # 200
+
     def _execute_recruit(self, command: Dict, game_state: Dict) -> Dict:
-        """Recruit new troops (costs 200 gold, adds 10,000 troops)."""
+        """Recruit new troops with morale dilution, stability gates, and cost modifiers.
+
+        Phase 6.2.D: Recruitment is now a strategic decision.
+        - 10,000 troops always added (fixed amount)
+        - Green conscripts have 40% base morale (dilutes veteran armies)
+        - Stability gates: blocked in Hostile/Unrest regions (stability <= 50)
+        - Capital discount: 25% off at capital (150 gold)
+        - Settling premium: 50% more at stability 51-75 (300 gold)
+        - Admin AP cost handled by executor routing layer (not here)
+        """
+        RECRUIT_MORALE = 40   # Green conscripts base morale
+        NEW_TROOPS = 10000    # Fixed recruit amount
+
         marshal_specified = command.get("marshal")
         location_specified = command.get("target")
 
@@ -4657,14 +4688,7 @@ RETREAT RECOVERY (3 turns):
                 "message": "Error: No world state available"
             }
 
-        if world.gold < 200:
-            return {
-                "success": False,
-                "message": f"Insufficient gold! Need 200 gold, have {world.gold} gold",
-                "suggestion": "Wait for more income or conquer more regions"
-            }
-
-        # Determine which marshal gets the troops
+        # Determine which marshal gets the troops and where recruitment happens
         if marshal_specified:
             # Use fuzzy matching for marshal lookup
             marshal, error = self._fuzzy_match_marshal(marshal_specified, world)
@@ -4673,7 +4697,7 @@ RETREAT RECOVERY (3 turns):
 
             recipient = marshal.name
             recruitment_location = marshal.location
-            message = f"{marshal.name} recruits 10,000 troops at {marshal.location}"
+            base_message = f"{marshal.name} recruits 10,000 troops at {marshal.location}"
 
         elif location_specified:
             result = world.find_nearest_marshal_to_region(location_specified)
@@ -4687,7 +4711,7 @@ RETREAT RECOVERY (3 turns):
             marshal, distance = result
             recipient = marshal.name
             recruitment_location = location_specified
-            message = f"{marshal.name} recruits 10,000 troops for {location_specified} ({distance} regions away)"
+            base_message = f"{marshal.name} recruits 10,000 troops for {location_specified} ({distance} regions away)"
 
         else:
             result = world.find_nearest_marshal_to_region("Paris")
@@ -4701,22 +4725,82 @@ RETREAT RECOVERY (3 turns):
             marshal, distance = result
             recipient = marshal.name
             recruitment_location = "Paris"
-            message = f"{marshal.name} recruits 10,000 troops (nearest to capital)"
+            base_message = f"{marshal.name} recruits 10,000 troops (nearest to capital)"
 
+        # --- Location validation (Phase 6.2.D) ---
+        region = world.get_region(recruitment_location)
+        if not region:
+            return {"success": False, "message": f"Unknown region: {recruitment_location}"}
+
+        # Must be controlled by player's nation
+        if region.controller != world.player_nation:
+            return {
+                "success": False,
+                "message": f"Cannot recruit in {recruitment_location} — not controlled by {world.player_nation}"
+            }
+
+        # Stability gate: block entire Unrest tier (stability <= 50).
+        # Spec says "< 50" but we block <= 50 to match stability tier boundaries
+        # from 6.2.C: Hostile (0-25) and Unrest (26-50) are both blocked.
+        if region.stability <= 50:
+            label = region.get_stability_label()
+            return {
+                "success": False,
+                "message": f"Cannot recruit in {recruitment_location} — region is {label} (stability {region.stability}/100). Need stability 51+.",
+                "suggestion": "Garrison a marshal there to speed up stability growth, or recruit at a more stable region."
+            }
+
+        # --- Gold cost calculation ---
+        gold_cost = self._calculate_recruit_cost(region, world)
+
+        if world.gold < gold_cost:
+            return {
+                "success": False,
+                "message": f"Insufficient gold! Need {gold_cost} gold, have {world.gold} gold",
+                "suggestion": "Wait for more income or conquer more regions"
+            }
+
+        # --- Morale dilution ---
         marshal = world.get_marshal(recipient)
-        marshal.add_troops(10000)
-        world.gold -= 200
+        old_strength = marshal.strength
+        old_morale = marshal.morale
+
+        # Weighted average: existing troops at current morale + new troops at RECRUIT_MORALE
+        new_morale = int(
+            (old_strength * old_morale + NEW_TROOPS * RECRUIT_MORALE)
+            / (old_strength + NEW_TROOPS)
+        )
+
+        # Set morale BEFORE add_troops (add_troops only modifies strength)
+        marshal.morale = new_morale
+        marshal.add_troops(NEW_TROOPS)
+        world.gold -= gold_cost
+
+        # --- Build result message ---
+        # Capital discount and settling premium are mutually exclusive (capital wins)
+        is_capital_discount = region.region_type == "capital"
+        is_stability_premium = (51 <= region.stability <= 75) and not is_capital_discount
+
+        cost_note = ""
+        if is_capital_discount:
+            cost_note = " (capital discount)"
+        elif is_stability_premium:
+            cost_note = " (unstable region premium)"
 
         return {
             "success": True,
-            "message": f"{message} - Cost: 200 gold",
+            "message": f"{base_message} - Cost: {gold_cost} gold{cost_note}. Morale: {old_morale}% → {new_morale}%",
             "events": [{
                 "type": "recruit",
                 "marshal": recipient,
                 "location": recruitment_location,
-                "troops_added": 10000,
-                "gold_cost": 200,
-                "new_strength": marshal.strength
+                "troops_added": int(NEW_TROOPS),
+                "gold_cost": int(gold_cost),
+                "morale_before": int(old_morale),
+                "morale_after": int(new_morale),
+                "new_strength": int(marshal.strength),
+                "stability_premium": is_stability_premium,
+                "capital_discount": is_capital_discount
             }],
             "new_state": game_state
         }

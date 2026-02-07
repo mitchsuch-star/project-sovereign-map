@@ -1316,7 +1316,7 @@ Two new methods on `WorldState` alongside existing BFS:
 | `move` | Movement | 1 | Move to adjacent region |
 | `retreat` | Movement | 1 | Withdraw from combat |
 | `scout` | Intel | 1 | Gather intelligence |
-| `recruit` | Economic | 1 | Raise new troops |
+| `recruit` | Economic | 1 Admin AP | Raise 10k troops (uses admin AP, not CP). Cost: 150-300 gold. Morale dilution. |
 | `reinforce` | Movement | 1 | Move to ally marshal |
 | `fortify` | Tactical | 1 | Dig in for defense bonus |
 | `unfortify` | Tactical | 1 | Abandon fortifications |
@@ -1499,9 +1499,42 @@ Example: Paris (300 base), Unrest (50 stability = 0.25 mod), 0.10 damage → `in
 - `region_type` serialized on each Region; defaults to `"town"` if missing (backward compat)
 - `stability` defaults to 100, `war_damage` defaults to 0.0 for backward compat
 
+### Recruitment (Phase 6.2.D)
+
+**Morale dilution:** Green conscripts have 40% base morale. Army morale becomes weighted average:
+```python
+RECRUIT_MORALE = 40
+new_morale = int((old_strength * old_morale + 10000 * RECRUIT_MORALE) / (old_strength + 10000))
+```
+
+**Cost table:**
+
+| Situation | Gold Cost | Condition |
+|-----------|-----------|-----------|
+| Capital region | 150 | `region.region_type == "capital"` |
+| Settling region (stability 51-75) | 300 | 50% premium |
+| Stable region (stability 76+) | 200 | Base cost |
+| Hostile/Unrest (stability ≤ 50) | **Blocked** | Cannot recruit |
+
+**Capital discount always wins:** If capital has stability 51-75 (unlikely), capital discount (150) takes priority over settling premium (300).
+
+**Location resolution:**
+- `"recruit for Ney"` → recruit at Ney's current location
+- `"recruit at Lyon"` → recruit at Lyon, troops go to nearest marshal
+- `"recruit"` (default) → recruit at capital (Paris), 150 gold
+
+**Stability gate:** Recruitment blocked when `region.stability <= 50` (entire Unrest tier). Matches tier boundaries from 6.2.C.
+
+**Controller check:** Recruitment location must be controlled by player's nation. Cannot recruit in enemy territory.
+
+**Admin AP:** Uses admin AP pool (not CP). AP deduction handled by executor routing layer, not inside `_execute_recruit()`.
+
+**Event fields:** `morale_before`, `morale_after`, `gold_cost`, `stability_premium`, `capital_discount`, `troops_added`, `new_strength`. All `int()`.
+
+**Key code:** `executor.py::_execute_recruit()`, `executor.py::_calculate_recruit_cost()`
+
 ### Future Economy Features (not yet implemented)
 
-- Recruitment rework with morale dilution (6.2.D)
 - Plunder/secure capture choice and buildings (6.2.E)
 - Supply limits and movement attrition (6.2.F)
 - AI admin phase (6.2.G)

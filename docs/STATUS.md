@@ -1,8 +1,8 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 6, 2026
-> **Last Session:** Session 17 — Phase 6.2.C Stability + War Damage
+> **Last Updated:** February 7, 2026
+> **Last Session:** Session 18 — Phase 6.2.D Recruitment Rework
 
 ---
 
@@ -10,16 +10,16 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1569** (verified, 3 skipped) |
-| **Current Phase** | Phase 6.2 Economy: 6.2.C COMPLETE. Next: 6.2.D Recruitment Rework |
+| **Tests Passing** | **1617** (verified, 3 skipped) |
+| **Current Phase** | Phase 6.2 Economy: 6.2.D COMPLETE. Next: 6.2.E Plunder/Secure + Buildings |
 | **Blockers** | None |
-| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2.A, 6.2.B, 6.2.C |
+| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2.A, 6.2.B, 6.2.C, 6.2.D |
 
 ---
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2.A-C COMPLETE. Next: 6.2.D.**
+**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2.A-D COMPLETE. Next: 6.2.E.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -37,11 +37,52 @@
 - [x] **Session 6.2.A: Region Types + Income + Gold** — 5 region types, differentiated income, per-nation gold tracking, 46 tests (1432 total)
 - [x] **Session 6.2.B: Upkeep + Bankruptcy + Admin AP** — upkeep calculation, bankruptcy desertion, admin AP pool, income phase refactor, 59 tests (1491 total)
 - [x] **Session 6.2.C: Stability + War Damage** — region stability tiers, war damage, combined income modifiers, battle effects, turn resolution, 78 tests (1569 total)
-- [ ] Phase 6.2.D–G: Recruitment rework, buildings, supply, AI admin
+- [x] **Session 6.2.D: Recruitment Rework** — morale dilution, stability gates, capital discount, updated events, 48 tests (1617 total)
+- [ ] Phase 6.2.E–G: Plunder/secure, buildings, supply, AI admin
 
 ---
 
 ## Recently Completed
+
+### Feb 7 (Session 18: Phase 6.2.D Recruitment Rework)
+
+**Morale dilution (executor.py):**
+- Green conscripts have 40% base morale (RECRUIT_MORALE constant)
+- Weighted average: `new_morale = int((old_strength * old_morale + 10000 * 40) / (old_strength + 10000))`
+- Morale set BEFORE `add_troops()` call (add_troops only modifies strength)
+- Truncation via `int()`, not rounding: 66.67 → 66
+- Below-40% armies get morale RAISED by recruiting (correct: fresh troops improve devastated army)
+
+**Gold cost modifiers (executor.py):**
+- `_calculate_recruit_cost(region, world)` — new helper method
+- Capital: 150 gold (25% discount)
+- Settling (stability 51-75): 300 gold (50% premium)
+- Stable (stability 76+): 200 gold (base)
+- Capital discount takes priority over settling premium (mutually exclusive flags)
+
+**Stability gate (executor.py):**
+- Blocked in Hostile (0-25) and Unrest (26-50) regions: `region.stability <= 50`
+- Spec says "< 50" but we block entire Unrest tier (≤50) to match tier boundaries from 6.2.C
+- Error message includes stability value and requirement ("Need stability 51+")
+
+**Controller check (executor.py):**
+- Recruitment location must be controlled by player's nation
+- "recruit for Ney" when Ney is in enemy territory → blocked
+
+**Updated return values:**
+- Events now include: `morale_before`, `morale_after`, `gold_cost`, `stability_premium`, `capital_discount`
+- All numeric values wrapped in `int()` for Godot
+- Message includes cost breakdown and morale change: "Cost: 150 gold (capital discount). Morale: 80% → 66%"
+
+**Admin AP:** Already routed in 6.2.B. No changes needed — executor routing layer handles AP deduction.
+
+**Existing test fix:** `test_fuzzy_matching.py::test_recruit_with_marshal_typo` — moved Grouchy from Waterloo (British-controlled) to Paris so fuzzy match is tested, not controller check.
+
+**Deprecation:** `full_game.py::_execute_recruit()` marked as deprecated with pointer to executor.py.
+
+**Tests:** 48 new tests in `test_recruitment_rework.py` (1617 total)
+
+---
 
 ### Feb 6 (Session 17: Phase 6.2.C Stability + War Damage)
 
@@ -457,6 +498,7 @@
 
 | Date | Tests | Notes |
 |------|-------|-------|
+| Feb 7, 2026 | **1617** | Phase 6.2.D: recruitment rework (morale dilution, stability gates, capital discount). 48 new tests |
 | Feb 6, 2026 | **1569** | Phase 6.2.C: stability, war damage, combined income modifiers. 78 new tests |
 | Feb 6, 2026 | **1491** | Phase 6.2.B: upkeep, bankruptcy, admin AP. 59 new tests |
 | Feb 6, 2026 | **1432** | Phase 6.2.A: region types, income, per-nation gold. 46 new tests |
@@ -498,9 +540,9 @@
 
 ## Next Session Priorities
 
-1. **Phase 6.2.D: Recruitment Rework** — morale dilution, location restrictions, capital discount, admin AP integration
-2. **Phase 6.2.E: Plunder/Secure + Buildings** — capture choice (plunder=10 stability vs secure=25), reconquest bonus, buildings
-3. **Phase 6.2.E–G: Buildings, Supply, AI Admin** — remaining economy features
+1. **Phase 6.2.E: Plunder/Secure + Buildings** — capture choice (plunder=10 stability vs secure=25), reconquest bonus, buildings
+2. **Phase 6.2.F: Supply Limits + Movement Attrition** — per-region capacity, size penalty, retreat attrition
+3. **Phase 6.2.G: AI Admin Phase + Turn Summary** — AI recruit/build/repair, financial report display
 4. Commission Europe map art (start search for artist)
 
 **Economy spec:** `docs/ECONOMY_SPEC.md` (FINAL — no further changes)

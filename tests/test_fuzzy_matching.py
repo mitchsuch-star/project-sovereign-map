@@ -211,7 +211,12 @@ class TestFuzzyMatchingIntegration:
         # Give enough gold
         world.gold = 500
 
-        # "Grouch" -> "Grouchy"
+        # "Grouch" -> "Grouchy" — Grouchy starts at Waterloo (British-controlled).
+        # Move him to French territory so the fuzzy match is what's being tested,
+        # not the 6.2.D controller check.
+        grouchy = world.get_marshal("Grouchy")
+        grouchy.location = "Paris"
+
         game_state = {"world": world}
         command = {
             "command": {"marshal": "Grouch", "action": "recruit"},
