@@ -2744,10 +2744,11 @@ class EnemyAI:
                     safe_regions.append(adj_name)
 
         if safe_regions:
-            # Prefer region closest to capital (homeland)
+            # Prefer region closest to capital (homeland) via terrain-aware distance
+            # Weighted distance makes AI avoid retreating through mountains
             capital = self._get_nation_capital(nation, world)
             if capital and len(safe_regions) > 1:
-                safe_regions.sort(key=lambda r: world.get_distance(r, capital))
+                safe_regions.sort(key=lambda r: world.get_weighted_distance(r, capital))
             return safe_regions[0]
 
         # No safe friendly region - try any adjacent region without enemies

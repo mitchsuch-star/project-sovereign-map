@@ -10,7 +10,7 @@ Includes Disobedience System (Phase 2):
 """
 
 from typing import Dict, List, Optional, Tuple, Any, Set
-from backend.models.region import Region, create_regions, CHARGE_BLOCKED_TERRAIN
+from backend.models.region import Region, create_regions, CHARGE_BLOCKED_TERRAIN, TERRAIN_MOVEMENT_COST
 from backend.models.marshal import Marshal, create_starting_marshals, create_enemy_marshals
 from backend.models.authority import AuthorityTracker
 from backend.commands.vindication import VindicationTracker
@@ -958,6 +958,91 @@ class WorldState:
 
         return None  # Not reachable
 
+    def find_weighted_path(self, start: str, end: str, avoid_regions: List[str] = None) -> Optional[List[str]]:
+        """
+        Find lowest-attrition path between two regions using Dijkstra.
+
+        Edge weight = TERRAIN_MOVEMENT_COST of the destination region.
+        This means mountains (2.0) are expensive to enter, plains (1.0) are cheap.
+
+        Args:
+            start: Starting region name
+            end: Destination region name
+            avoid_regions: Optional list of region names to skip.
+                           The destination is never avoided even if in this list.
+
+        Returns:
+            List of region names from start to end (inclusive), or None if no path.
+        """
+        import heapq
+
+        if start == end:
+            return [start]
+
+        if start not in self.regions or end not in self.regions:
+            return None
+
+        if avoid_regions is None:
+            avoid_regions = []
+
+        # Dijkstra with (cost, counter, region_name, path) tuples
+        # Counter prevents comparing region names when costs are equal
+        counter = 0
+        heap = [(0.0, counter, start, [start])]
+        visited = set()
+
+        while heap:
+            cost, _, current, path = heapq.heappop(heap)
+
+            if current in visited:
+                continue
+            visited.add(current)
+
+            if current == end:
+                return path
+
+            current_region = self.regions[current]
+            for adjacent in current_region.adjacent_regions:
+                if adjacent in visited:
+                    continue
+                if adjacent in avoid_regions and adjacent != end:
+                    continue
+
+                # Edge weight = movement cost of entering the adjacent region
+                edge_cost = TERRAIN_MOVEMENT_COST.get(
+                    self.regions[adjacent].terrain, 1.0
+                )
+                new_cost = cost + edge_cost
+                counter += 1
+                heapq.heappush(heap, (new_cost, counter, adjacent, path + [adjacent]))
+
+        return None  # Not reachable
+
+    def get_weighted_distance(self, start: str, end: str) -> float:
+        """
+        Get the total weighted movement cost of the optimal path between two regions.
+
+        Uses Dijkstra (find_weighted_path) internally, sums TERRAIN_MOVEMENT_COST
+        for each step along the path.
+
+        Returns:
+            Total weighted cost (sum of edge weights), or float('inf') if unreachable.
+        """
+        if start == end:
+            return 0.0
+
+        path = self.find_weighted_path(start, end)
+        if not path:
+            return float('inf')
+
+        # Sum movement costs for each step (skip start, count destination entries)
+        total = 0.0
+        for i in range(1, len(path)):
+            region = self.regions[path[i]]
+            total += TERRAIN_MOVEMENT_COST.get(region.terrain, 1.0)
+
+        return total
+
     # ============================================================================
     # PATCH 2 CORRECTED: backend/models/world_state.py
     # ============================================================================
@@ -1498,6 +1583,7 @@ class WorldState:
 
             map_data[region_name] = {
                 "controller": region.controller,
+                "terrain": region.terrain,
                 "marshals": marshals_data
             }
 

@@ -194,6 +194,7 @@ Regions represent territories on the map.
     "adjacent_regions": ["Belgium", "Lyon", "Brittany"],
     "income_value": 200,
     "is_capital": true,
+    "terrain": "urban",
     "controller": "France",
     "garrison_strength": 5000
 }
@@ -207,8 +208,29 @@ Regions represent territories on the map.
 | `adjacent_regions` | array | **REQUIRED** | List of connected region names |
 | `income_value` | integer | 100 | Gold per turn when controlled |
 | `is_capital` | boolean | false | If true, losing this loses the game |
+| `terrain` | string | "plains" | Terrain type (see below). Affects defense, movement cost, cavalry, supply |
 | `controller` | string | null | Nation that controls this region |
 | `garrison_strength` | integer | 0 | Troops defending (not marshal) |
+
+### Terrain Types
+
+The `terrain` field controls combat bonuses, pathfinding costs, and cavalry effectiveness. Valid values:
+
+| Terrain | Defense Bonus | Movement Cost | Cavalry Eff. | Charge Blocked |
+|---------|-------------|---------------|-------------|----------------|
+| `plains` | +0% | 1.0x | 1.2x | No |
+| `forest` | +10% | 1.3x | 0.5x | Yes |
+| `hills` | +15% | 1.2x | 0.8x | No |
+| `mountains` | +25% | 2.0x | 0.3x | Yes |
+| `urban` | +20% | 1.0x | 0.5x | Yes |
+| `river_crossing` | +15% | 1.5x | 0.6x | No |
+
+- **Defense Bonus**: Defender gets this bonus in combat
+- **Movement Cost**: Dijkstra weight for MOVE_TO pathfinding (higher = costlier to enter)
+- **Cavalry Eff.**: Multiplier on cavalry combat bonuses (lower = weaker cavalry)
+- **Charge Blocked**: If yes, Glorious Charge (recklessness 3+) downgrades to normal attack
+
+The `terrain` field is separate from `region_type` (which does not exist). If omitted, defaults to `"plains"`.
 
 ### Adjacency Rules
 

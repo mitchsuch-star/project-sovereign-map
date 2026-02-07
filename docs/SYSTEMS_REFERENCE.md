@@ -1243,7 +1243,7 @@ world.find_nearest_marshal_within_range(from_location, nation, max_distance)
 
 ## Terrain System (Phase 6.1)
 
-**Status: Sessions 6.1.A + 6.1.B COMPLETE. Opus review bugs fixed. Smoke test bugs fixed + charge redirect.**
+**Status: Sessions 6.1.A + 6.1.B + 6.1.C COMPLETE. Phase 6.1 Terrain fully implemented.**
 
 See `docs/TERRAIN_SPEC.md` for full spec. Implementation details:
 
@@ -1269,11 +1269,31 @@ See `docs/TERRAIN_SPEC.md` for full spec. Implementation details:
 - **REGIONS_DATA**: All 13 regions assigned terrain. Distribution: plains(4), hills(3), urban(3), mountains(1), forest(1), river_crossing(1).
 - **Serialization**: `terrain` field roundtrips through `to_dict()`/`from_dict()`. Missing terrain defaults to "plains" (backward compat).
 
-### Remaining (Phase 6.1.C+)
+### Weighted Pathfinding (6.1.C)
 
-- Weighted pathfinding (Dijkstra) for MOVE_TO and AI; PURSUE stays on BFS
-- Movement cost enforcement in executor
-- Supply modifier wiring
+Two new methods on `WorldState` alongside existing BFS:
+
+- **`find_weighted_path(start, end, avoid_regions=None)`** — Dijkstra using `TERRAIN_MOVEMENT_COST` as edge weight. Edge weight = destination region's cost. Returns start-inclusive path or None.
+- **`get_weighted_distance(start, end)`** — Returns total weighted cost of optimal path. Returns `float('inf')` if unreachable.
+
+**Which commands use which pathfinding:**
+
+| Command | Pathfinding | Rationale |
+|---------|------------|-----------|
+| MOVE_TO | **Weighted (Dijkstra)** | Strategic marches should pick lower-attrition routes |
+| PURSUE | BFS (hop count) | Chasing doesn't pick scenic routes |
+| HOLD | BFS | Short-range repositioning |
+| SUPPORT | BFS | Following allies directly |
+| AI retreat | **Weighted** | Retreat destination sort by weighted distance to capital |
+| AI movement (P7, stagnation) | BFS | Single-hop adjacent comparisons |
+| Scout range | BFS | Hop count is the right metric for range checks |
+
+**Terrain display:** Scout output includes terrain name and defense bonus (e.g., "Terrain: Hills (+15% defense)"). `get_game_state_summary()` map_data includes `terrain` field for Godot frontend.
+
+### Remaining (Phase 6.2+)
+
+- Movement cost enforcement in executor (AP cost scaling by terrain — Phase 6.2 Economy)
+- Supply modifier wiring (Phase 6.2 Economy)
 - Cavalry attrition bonus in combat
 
 ### Known TODOs

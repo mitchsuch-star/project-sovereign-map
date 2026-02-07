@@ -16,7 +16,7 @@ TODO (Future): Multi-Army Battles
 from typing import Dict, List, Optional, Tuple
 from backend.models.world_state import WorldState
 from backend.models.marshal import Stance, StrategicOrder
-from backend.models.region import CHARGE_BLOCKED_TERRAIN
+from backend.models.region import CHARGE_BLOCKED_TERRAIN, TERRAIN_DEFENSE_BONUS
 from backend.game_logic.combat import CombatResolver
 from backend.game_logic.turn_manager import TurnManager
 from backend.utils.fuzzy_matcher import FuzzyMatcher
@@ -2799,19 +2799,23 @@ RETREAT RECOVERY (3 turns):
 
             if dest and dest != marshal.location:
                 # Personality-aware pathfinding (cautious avoids enemies)
+                # MOVE_TO uses weighted (Dijkstra) pathfinding for terrain-aware routes
+                # PURSUE/SUPPORT/HOLD stay on BFS (chasing/supporting doesn't pick scenic routes)
+                use_weighted = (strategic_type == "MOVE_TO")
+                pathfinder = world.find_weighted_path if use_weighted else world.find_path
                 personality = getattr(marshal, 'personality', 'balanced')
                 if personality == "cautious":
                     enemy_regions = [
                         rn for rn in world.regions
                         if world.get_enemies_in_region(rn, marshal.nation)
                     ]
-                    path = world.find_path(marshal.location, dest,
-                                           avoid_regions=enemy_regions)
+                    path = pathfinder(marshal.location, dest,
+                                      avoid_regions=enemy_regions)
                     if not path:
                         # Fallback to direct path
-                        path = world.find_path(marshal.location, dest)
+                        path = pathfinder(marshal.location, dest)
                 else:
-                    path = world.find_path(marshal.location, dest)
+                    path = pathfinder(marshal.location, dest)
                 if not path:
                     return {
                         "success": False,
@@ -3418,13 +3422,16 @@ RETREAT RECOVERY (3 turns):
             # Davout (cautious) compromise: safe path for MOVE_TO, HOLD, SUPPORT
             if compromise_data.get("safe_path"):
                 # Recalculate path avoiding enemies
+                # MOVE_TO uses weighted pathfinding for terrain-aware routes
                 enemy_occupied = set()
                 for rn in world.regions:
                     if world.get_enemies_in_region(rn, marshal.nation):
                         enemy_occupied.add(rn)
 
                 dest = path[-1] if path else target
-                safe_path = world.find_path(marshal.location, dest, avoid_regions=enemy_occupied)
+                use_weighted = (strategic_type == "MOVE_TO")
+                safe_pathfinder = world.find_weighted_path if use_weighted else world.find_path
+                safe_path = safe_pathfinder(marshal.location, dest, avoid_regions=enemy_occupied)
                 if safe_path:
                     path = [r for r in safe_path if r != marshal.location]
                 else:
@@ -3513,7 +3520,10 @@ RETREAT RECOVERY (3 turns):
                 rn for rn in world.regions
                 if world.get_enemies_in_region(rn, marshal.nation)
             ]
-            new_path = world.find_path(
+            # MOVE_TO uses weighted pathfinding for terrain-aware rerouting
+            use_weighted = (order.command_type == "MOVE_TO")
+            first_step_pathfinder = world.find_weighted_path if use_weighted else world.find_path
+            new_path = first_step_pathfinder(
                 marshal.location, destination,
                 avoid_regions=enemy_regions
             )
@@ -3699,7 +3709,7 @@ RETREAT RECOVERY (3 turns):
                     "actions_remaining": int(world.actions_remaining),
                     "action_summary": world.get_action_summary()
                 }
-            path = world.find_path(marshal.location, target_name)
+            path = world.find_weighted_path(marshal.location, target_name)
             if path and len(path) > 1:
                 order = StrategicOrder(
                     command_type="MOVE_TO",
@@ -3852,13 +3862,21 @@ RETREAT RECOVERY (3 turns):
             controller = target_region.controller or "Unknown"
             marshals_there = world.get_marshals_in_region(target_name)
 
+            # Terrain info
+            terrain = getattr(target_region, 'terrain', 'plains')
+            defense_pct = int(TERRAIN_DEFENSE_BONUS.get(terrain, 0.0) * 100)
+            terrain_display = terrain.replace("_", " ").title()
+            terrain_msg = f"Terrain: {terrain_display}"
+            if defense_pct > 0:
+                terrain_msg += f" (+{defense_pct}% defense)"
+
             # Detailed intel on enemies
             enemy_intel = []
             for m in marshals_there:
                 if m.nation != world.player_nation:
                     enemy_intel.append(f"{m.name} ({m.nation}): ~{m.strength:,} troops")
 
-            intel_msg = f"Controlled by {controller}. "
+            intel_msg = f"Controlled by {controller}. {terrain_msg}. "
             if enemy_intel:
                 intel_msg += f"Enemy forces: {'; '.join(enemy_intel)}"
             else:
@@ -3873,6 +3891,9 @@ RETREAT RECOVERY (3 turns):
                     "target": target_name,
                     "intel": {
                         "controller": controller,
+                        "terrain": terrain,
+                        "terrain_display": terrain_display,
+                        "defense_bonus": defense_pct,
                         "enemies": enemy_intel
                     }
                 }],
@@ -3884,16 +3905,18 @@ RETREAT RECOVERY (3 turns):
             for region_name in current_region.adjacent_regions:
                 region = world.get_region(region_name)
                 controller = region.controller or "Unknown"
+                terrain = getattr(region, 'terrain', 'plains')
                 enemies = [m for m in world.get_marshals_in_region(region_name)
                           if m.nation != world.player_nation]
                 adjacent_intel.append({
                     "region": region_name,
                     "controller": controller,
+                    "terrain": terrain,
                     "enemy_count": len(enemies)
                 })
 
             intel_summary = ", ".join([
-                f"{info['region']} ({info['controller']}" +
+                f"{info['region']} ({info['controller']}, {info['terrain'].replace('_', ' ').title()}" +
                 (f", {info['enemy_count']} enemies)" if info['enemy_count'] > 0 else ")")
                 for info in adjacent_intel
             ])

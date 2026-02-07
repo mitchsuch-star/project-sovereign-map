@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 6, 2026
-> **Last Session:** Session 13 — Phase 6.1.B Smoke Test Bug Fixes + Charge Redirect + Polish
+> **Last Session:** Session 14 — Phase 6.1.C Weighted Pathfinding + Terrain Display
 
 ---
 
@@ -10,16 +10,16 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1347** (verified, 3 skipped) |
-| **Current Phase** | Phase 6.1 Terrain — A+B complete, smoke test bugs fixed. Next: 6.1.C (movement/pathfinding) or 6.2 (Economy) |
+| **Tests Passing** | **1384** (verified, 3 skipped) |
+| **Current Phase** | Phase 6.1 Terrain: COMPLETE. Next: Phase 6.2 Economy |
 | **Blockers** | None |
-| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a |
+| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1 |
 
 ---
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1.A+B done, smoke test bugs fixed + charge redirect. Next: 6.1.C or 6.2.**
+**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Next: Phase 6.2 Economy.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -33,12 +33,51 @@
 - [x] **6.1.B Bug Fixes** — all 3 bugs fixed, 10 regression tests, full suite green (1334 pass)
 - [x] **6.1.B Smoke Test** — 3 Godot smoke test bugs fixed, charge redirect popup added, 13 regression tests (1347 pass)
 - [x] **6.1.B Polish** — cavalry terrain flavor in Godot battle UI, recklessness color tags, charge redirect sort logic, auto-charge message bug fix
-- [ ] **Phase 6.1.C+: Movement/pathfinding/supply** — weighted Dijkstra, movement cost enforcement, supply modifier wiring
+- [x] **Session 6.1.C: Weighted Pathfinding** — Dijkstra pathfinding, MOVE_TO terrain-aware routing, AI retreat weighted distance, terrain display in scout/status, 37 tests (1384 total)
 - [ ] Phase 6.2: Economy implementation (18 steps per ECONOMY_SPEC.md §15)
 
 ---
 
 ## Recently Completed
+
+### Feb 6 (Session 14: Phase 6.1.C Weighted Pathfinding + Terrain Display)
+
+**Phase 6.1 Terrain: COMPLETE.** All 3 sessions (A, B, C) done.
+
+**Weighted pathfinding (world_state.py):**
+- `find_weighted_path()` — Dijkstra using `TERRAIN_MOVEMENT_COST` as edge weight. Heapq with counter tiebreaker.
+- `get_weighted_distance()` — Returns total weighted cost of optimal path (float('inf') if unreachable).
+- Existing BFS methods (`find_path()`, `get_distance()`) untouched.
+
+**Strategic integration (strategic.py, executor.py):**
+- MOVE_TO now uses `find_weighted_path()` — avoids mountains/expensive terrain when possible
+- PURSUE stays on BFS — chasing doesn't pick scenic routes
+- HOLD, SUPPORT stay on BFS — short-range/ally-following pathfinding
+- All MOVE_TO path calculation sites updated: initial path, recalculation, reroute (go_around), literal reroute, cautious compromise, auto-upgrade
+
+**AI integration (enemy_ai.py):**
+- `_find_retreat_destination()` sorts safe regions by `get_weighted_distance()` to capital — AI retreats avoid mountains
+- All other AI distance checks remain BFS (single-hop adjacency comparisons, range checks)
+
+**Terrain display (executor.py, world_state.py):**
+- Targeted scout includes "Terrain: Hills (+15% defense)" in message
+- Adjacent scout summary includes terrain type for each region
+- Scout events include terrain data for Godot frontend (terrain, terrain_display, defense_bonus)
+- `get_game_state_summary()` map_data includes `terrain` field per region
+
+**Tests (37 new in `test_terrain_pathfinding.py`):**
+- TestFindWeightedPath (11): route preference, mountains, unreachable, avoid_regions, BFS/Dijkstra divergence
+- TestGetWeightedDistance (6): correct sums, inf for unreachable, comparison with hop count
+- TestMoveToUsesWeightedPath (1): MOVE_TO avoids mountains
+- TestPursueUsesBFS (1): PURSUE uses BFS
+- TestAIRetreatTerrainAware (2): retreat weighted distance
+- TestTerrainDisplay (7): scout text format, event data, map_data terrain field
+- TestBFSUnchanged (5): regression tests for existing BFS
+- TestWeightedPathfindingEdgeCases (4): all-mountains, inclusive paths, adjacent distance
+
+**Total: 1384 tests passing, 3 skipped.**
+
+---
 
 ### Feb 6 (Session 13: Phase 6.1.B Smoke Test Bug Fixes)
 

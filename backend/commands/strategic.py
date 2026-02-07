@@ -373,7 +373,10 @@ class StrategicExecutor:
             # Recalculate path avoiding ALL enemy regions (not just the one)
             destination = order.target_snapshot_location or order.target
             enemy_regions = self._get_enemy_occupied_regions(marshal.nation, world)
-            new_path = world.find_path(
+            # MOVE_TO uses weighted pathfinding for terrain-aware rerouting
+            use_weighted = (order.command_type == "MOVE_TO")
+            pathfinder = world.find_weighted_path if use_weighted else world.find_path
+            new_path = pathfinder(
                 marshal.location, destination,
                 avoid_regions=enemy_regions
             )
@@ -679,7 +682,8 @@ class StrategicExecutor:
                 order.path.pop(0)
 
             if not order.path:
-                new_path = self._get_personality_aware_path(marshal, destination, world)
+                new_path = self._get_personality_aware_path(
+                    marshal, destination, world, use_weighted=True)
                 if new_path:
                     order.path = new_path
                 else:
@@ -1727,7 +1731,10 @@ class StrategicExecutor:
             # Reroute silently around ALL enemy regions
             destination = order.target_snapshot_location or order.target
             enemy_regions = self._get_enemy_occupied_regions(marshal.nation, world)
-            new_path = world.find_path(
+            # MOVE_TO uses weighted pathfinding for terrain-aware rerouting
+            use_weighted = (order.command_type == "MOVE_TO")
+            pathfinder = world.find_weighted_path if use_weighted else world.find_path
+            new_path = pathfinder(
                 marshal.location, destination,
                 avoid_regions=enemy_regions
             )
@@ -1915,7 +1922,8 @@ class StrategicExecutor:
                 enemy_regions.append(region_name)
         return enemy_regions
 
-    def _get_personality_aware_path(self, marshal, destination, world) -> Optional[List[str]]:
+    def _get_personality_aware_path(self, marshal, destination, world,
+                                     use_weighted: bool = False) -> Optional[List[str]]:
         """
         Shared pathfinding helper — personality determines route strategy.
 
@@ -1923,29 +1931,35 @@ class StrategicExecutor:
         - Literal: Direct path (blocked path handled by _handle_blocked_path reroute)
         - Aggressive: Direct path (will fight through blockages)
 
+        Args:
+            use_weighted: If True, use Dijkstra (terrain-aware) instead of BFS.
+                          Used by MOVE_TO for attrition-optimized routes.
+                          PURSUE stays on BFS (chasing doesn't pick scenic routes).
+
         Returns path excluding start location, or None if no path exists.
         """
         personality = getattr(marshal, 'personality', 'balanced')
+        pathfinder = world.find_weighted_path if use_weighted else world.find_path
 
         if personality == "cautious":
             enemy_regions = self._get_enemy_occupied_regions(marshal.nation, world)
-            path = world.find_path(marshal.location, destination,
-                                   avoid_regions=enemy_regions)
+            path = pathfinder(marshal.location, destination,
+                              avoid_regions=enemy_regions)
             if not path:
                 # No safe route — fall back to direct path. The marshal will
                 # NOT walk through enemies: the movement loop (line 466-468)
                 # blocks entry and triggers _handle_blocked_path(), which asks
                 # the player before proceeding. This is intentional UX — the
                 # marshal starts moving and reports contact when it happens.
-                path = world.find_path(marshal.location, destination)
+                path = pathfinder(marshal.location, destination)
         else:
             # Aggressive/literal/balanced: direct path. Movement loop at
             # _execute_move_to line 466 still blocks entry into enemy regions
             # and triggers _handle_blocked_path() for interrupt/reroute.
-            path = world.find_path(marshal.location, destination)
+            path = pathfinder(marshal.location, destination)
 
         if not path:
             return None
 
-        # Strip start location (find_path returns start-inclusive)
+        # Strip start location (find_weighted_path/find_path returns start-inclusive)
         return [r for r in path if r != marshal.location]
