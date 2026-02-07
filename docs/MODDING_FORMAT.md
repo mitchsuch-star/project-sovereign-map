@@ -192,9 +192,10 @@ Regions represent territories on the map.
 {
     "name": "Paris",
     "adjacent_regions": ["Belgium", "Lyon", "Brittany"],
-    "income_value": 200,
+    "income_value": 300,
     "is_capital": true,
     "terrain": "urban",
+    "region_type": "capital",
     "controller": "France",
     "garrison_strength": 5000
 }
@@ -209,6 +210,7 @@ Regions represent territories on the map.
 | `income_value` | integer | 100 | Gold per turn when controlled |
 | `is_capital` | boolean | false | If true, losing this loses the game |
 | `terrain` | string | "plains" | Terrain type (see below). Affects defense, movement cost, cavalry, supply |
+| `region_type` | string | "town" | Region type (see below). Determines income. Valid: capital, major_city, city, town, rural |
 | `controller` | string | null | Nation that controls this region |
 | `garrison_strength` | integer | 0 | Troops defending (not marshal) |
 
@@ -230,7 +232,19 @@ The `terrain` field controls combat bonuses, pathfinding costs, and cavalry effe
 - **Cavalry Eff.**: Multiplier on cavalry combat bonuses (lower = weaker cavalry)
 - **Charge Blocked**: If yes, Glorious Charge (recklessness 3+) downgrades to normal attack
 
-The `terrain` field is separate from `region_type` (which does not exist). If omitted, defaults to `"plains"`.
+The `terrain` field is separate from `region_type`. Terrain affects combat/movement; region type affects income. Both default if omitted (`terrain` → "plains", `region_type` → "town").
+
+### Region Types
+
+The `region_type` field determines base income:
+
+| Region Type | Income | Description |
+|-------------|--------|-------------|
+| `capital` | 300 | National capital |
+| `major_city` | 200 | Large strategic city |
+| `city` | 150 | Medium city |
+| `town` | 100 | Small settlement (default) |
+| `rural` | 50 | Countryside/village |
 
 ### Adjacency Rules
 

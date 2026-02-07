@@ -14,7 +14,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ## Current Phase
 
-**Phase 6.1 Terrain: COMPLETE** (data layer, combat, pathfinding — 3 sessions). Next: **Phase 6.2 Economy**. See `docs/ROADMAP.md` for EA readiness roadmap.
+**Phase 6.2 Economy: 6.2.A COMPLETE** (region types, differentiated income, per-nation gold). Next: **Phase 6.2.B Upkeep + Bankruptcy**. See `docs/ROADMAP.md` for EA readiness roadmap.
 See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 
 ---

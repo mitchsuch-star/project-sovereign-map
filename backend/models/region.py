@@ -54,6 +54,20 @@ TERRAIN_CAVALRY_ATTRITION_BONUS = {
 
 CHARGE_BLOCKED_TERRAIN = {"mountains", "forest", "urban"}
 
+# ============================================================================
+# REGION TYPE CONSTANTS (single source of truth)
+# ============================================================================
+
+VALID_REGION_TYPES = {"capital", "major_city", "city", "town", "rural"}
+
+REGION_TYPE_INCOME = {
+    "capital": 300,
+    "major_city": 200,
+    "city": 150,
+    "town": 100,
+    "rural": 50,
+}
+
 
 class Region:
     """A region on the game map."""
@@ -64,16 +78,20 @@ class Region:
             adjacent_regions: List[str],
             income_value: int = 100,
             is_capital: bool = False,
-            terrain: str = "plains"
+            terrain: str = "plains",
+            region_type: str = "town"
     ):
         if terrain not in VALID_TERRAINS:
             raise ValueError(f"Invalid terrain '{terrain}'. Must be one of: {sorted(VALID_TERRAINS)}")
+        if region_type not in VALID_REGION_TYPES:
+            raise ValueError(f"Invalid region_type '{region_type}'. Must be one of: {sorted(VALID_REGION_TYPES)}")
 
         self.name = name
         self.adjacent_regions = adjacent_regions
         self.income_value = income_value
         self.is_capital = is_capital
         self.terrain = terrain
+        self.region_type = region_type
 
         # Game state (changes during play)
         self.controller: Optional[str] = None
@@ -111,6 +129,7 @@ class Region:
             "income_value": self.income_value,
             "is_capital": self.is_capital,
             "terrain": self.terrain,
+            "region_type": self.region_type,
             "controller": self.controller,
             "garrison_strength": self.garrison_strength
         }
@@ -123,97 +142,111 @@ class Region:
             adjacent_regions=data["adjacent_regions"],
             income_value=data.get("income_value", 100),
             is_capital=data.get("is_capital", False),
-            terrain=data.get("terrain", "plains")
+            terrain=data.get("terrain", "plains"),
+            region_type=data.get("region_type", "town")
         )
         region.controller = data.get("controller")
         region.garrison_strength = data.get("garrison_strength", 0)
         return region
 
     def __repr__(self) -> str:
-        capital_marker = " (Capital)" if self.is_capital else ""
+        type_label = self.region_type.replace("_", " ").title()
         controller_info = f" - Controlled by {self.controller}" if self.controller else ""
-        return f"Region({self.name}{capital_marker}{controller_info})"
+        return f"Region({self.name}, {type_label}{controller_info})"
 
 
 # Map data: 13 regions of Western Europe
 REGIONS_DATA = {
     "Paris": {
         "adjacent": ["Belgium", "Waterloo", "Brittany", "Lyon"],
-        "income": 100,
+        "income": 300,
         "is_capital": True,
-        "terrain": "urban"
+        "terrain": "urban",
+        "region_type": "capital"
     },
     "Belgium": {
         "adjacent": ["Paris", "Netherlands", "Waterloo", "Rhine"],
         "income": 100,
         "is_capital": False,
-        "terrain": "plains"
+        "terrain": "plains",
+        "region_type": "town"
     },
     "Netherlands": {
         "adjacent": ["Belgium"],
-        "income": 100,
+        "income": 50,
         "is_capital": False,
-        "terrain": "plains"
+        "terrain": "plains",
+        "region_type": "rural"
     },
     "Waterloo": {
         "adjacent": ["Belgium", "Paris"],
-        "income": 100,
+        "income": 50,
         "is_capital": False,
-        "terrain": "hills"
+        "terrain": "hills",
+        "region_type": "rural"
     },
     "Rhine": {
         "adjacent": ["Belgium", "Bavaria", "Lyon"],
         "income": 100,
         "is_capital": False,
-        "terrain": "river_crossing"
+        "terrain": "river_crossing",
+        "region_type": "town"
     },
     "Bavaria": {
         "adjacent": ["Rhine", "Vienna", "Lyon"],
         "income": 100,
         "is_capital": False,
-        "terrain": "hills"
+        "terrain": "hills",
+        "region_type": "town"
     },
     "Vienna": {
         "adjacent": ["Bavaria", "Milan"],
-        "income": 100,
+        "income": 200,
         "is_capital": False,
-        "terrain": "urban"
+        "terrain": "urban",
+        "region_type": "major_city"
     },
     "Lyon": {
         "adjacent": ["Paris", "Rhine", "Bavaria", "Marseille", "Milan"],
-        "income": 100,
+        "income": 200,
         "is_capital": False,
-        "terrain": "hills"
+        "terrain": "hills",
+        "region_type": "major_city"
     },
     "Milan": {
         "adjacent": ["Lyon", "Vienna", "Geneva"],
-        "income": 100,
+        "income": 150,
         "is_capital": False,
-        "terrain": "urban"
+        "terrain": "urban",
+        "region_type": "city"
     },
     "Marseille": {
         "adjacent": ["Lyon", "Geneva"],
-        "income": 100,
+        "income": 150,
         "is_capital": False,
-        "terrain": "plains"
+        "terrain": "plains",
+        "region_type": "city"
     },
     "Geneva": {
         "adjacent": ["Marseille", "Milan", "Bordeaux"],
         "income": 100,
         "is_capital": False,
-        "terrain": "mountains"
+        "terrain": "mountains",
+        "region_type": "town"
     },
     "Brittany": {
         "adjacent": ["Paris", "Bordeaux"],
-        "income": 100,
+        "income": 50,
         "is_capital": False,
-        "terrain": "forest"
+        "terrain": "forest",
+        "region_type": "rural"
     },
     "Bordeaux": {
         "adjacent": ["Brittany", "Geneva"],
-        "income": 100,
+        "income": 50,
         "is_capital": False,
-        "terrain": "plains"
+        "terrain": "plains",
+        "region_type": "rural"
     }
 }
 
@@ -227,7 +260,8 @@ def create_regions() -> dict[str, Region]:
             adjacent_regions=data["adjacent"],
             income_value=data["income"],
             is_capital=data.get("is_capital", False),
-            terrain=data.get("terrain", "plains")
+            terrain=data.get("terrain", "plains"),
+            region_type=data.get("region_type", "town")
         )
     return regions
 

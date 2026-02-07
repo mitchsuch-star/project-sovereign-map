@@ -63,7 +63,11 @@ class WorldState:
         # Game state - ALL INTEGERS
         self.current_turn: int = 1
         self.max_turns: int = 40
-        self.gold: int = 1200
+        self.nation_gold: Dict[str, int] = {
+            "France": 600,
+            "Britain": 800,
+            "Prussia": 300,
+        }
         self.game_over: bool = False
         self.victory: Optional[str] = None  # "victory", "defeat", or None
 
@@ -174,6 +178,19 @@ class WorldState:
         # Sliding window of last 50 commands for LLM context
         # Only populated in LLM mode (not mock mode)
         self.command_history: List[Dict[str, Any]] = []
+
+    # ========================================
+    # GOLD CONVENIENCE PROPERTY
+    # ========================================
+
+    @property
+    def gold(self) -> int:
+        """Convenience: player nation's gold."""
+        return self.nation_gold.get(self.player_nation, 0)
+
+    @gold.setter
+    def gold(self, value: int):
+        self.nation_gold[self.player_nation] = int(value)
 
     def _setup_initial_control(self) -> None:
         """Set up which nation controls which regions at start."""
@@ -1200,39 +1217,34 @@ class WorldState:
     # INCOME CALCULATION
     # ========================================
 
-    def calculate_turn_income(self) -> Dict:
-        """Calculate income for the current turn."""
-        player_regions = self.get_player_regions()
+    def calculate_turn_income(self, nation: str = None) -> Dict:
+        """Calculate income for a nation. Defaults to player_nation."""
+        nation = nation or self.player_nation
+        nation_regions = self.get_nation_regions(nation)
 
-        # Base income from regions
+        # Base income from regions (differentiated by region_type)
         base_income = 0
-        for region_name in player_regions:
+        for region_name in nation_regions:
             region = self.regions[region_name]
             base_income += region.income_value
 
-        # Capital bonus
-        capital_bonus = 0
-        paris = self.regions.get("Paris")
-        if paris and paris.controller == self.player_nation:
-            capital_bonus = 200
-
-        total_income = base_income + capital_bonus
+        total_income = base_income
 
         return {
             "income": total_income,
             "breakdown": {
-                "regions": len(player_regions),
+                "regions": len(nation_regions),
                 "base_income": base_income,
-                "capital_bonus": capital_bonus,
                 "total": total_income
             },
-            "message": f"Turn {self.current_turn} income: {total_income} gold ({len(player_regions)} regions)"
+            "message": f"Turn {self.current_turn} income: {total_income} gold ({len(nation_regions)} regions)"
         }
 
-    def apply_turn_income(self) -> Dict:
-        """Apply income to player's gold and return breakdown."""
-        income_data = self.calculate_turn_income()
-        self.gold += income_data["income"]
+    def apply_turn_income(self, nation: str = None) -> Dict:
+        """Apply income to a nation's gold and return breakdown."""
+        nation = nation or self.player_nation
+        income_data = self.calculate_turn_income(nation)
+        self.nation_gold[nation] = self.nation_gold.get(nation, 0) + income_data["income"]
         return income_data
 
     # ========================================
@@ -1320,7 +1332,8 @@ class WorldState:
             "player_nation": self.player_nation,
             "current_turn": int(self.current_turn),
             "max_turns": int(self.max_turns),
-            "gold": int(self.gold),
+            "gold": int(self.gold),  # Backward compat: player gold
+            "nation_gold": {k: int(v) for k, v in self.nation_gold.items()},
             "game_over": self.game_over,
             "victory": self.victory,
 
@@ -1383,7 +1396,19 @@ class WorldState:
         # ═══════ CORE GAME STATE ═══════
         world.current_turn = data.get("current_turn", 1)
         world.max_turns = data.get("max_turns", 40)
-        world.gold = data.get("gold", 1200)
+        # Per-nation gold: prefer nation_gold dict, fall back to old single gold field
+        if "nation_gold" in data:
+            world.nation_gold = {k: int(v) for k, v in data["nation_gold"].items()}
+        else:
+            # Backward compat: old save with single gold field
+            # Start with defaults for known nations, then override player nation
+            old_gold = data.get("gold", 1200)
+            world.nation_gold = {
+                "France": 600,
+                "Britain": 800,
+                "Prussia": 300,
+            }
+            world.nation_gold[world.player_nation] = int(old_gold)
         world.game_over = data.get("game_over", False)
         world.victory = data.get("victory")
 
@@ -1584,6 +1609,8 @@ class WorldState:
             map_data[region_name] = {
                 "controller": region.controller,
                 "terrain": region.terrain,
+                "region_type": region.region_type,
+                "income_value": int(region.income_value),
                 "marshals": marshals_data
             }
 

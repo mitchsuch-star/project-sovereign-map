@@ -13,6 +13,7 @@ Consolidated reference for all game systems. Read when modifying related code.
 5. [LLM Integration](#5-llm-integration)
 6. [Cavalry Limits](#6-cavalry-limits)
 7. [Redemption System](#7-redemption-system)
+8. [Economy System](#8-economy-system)
 
 ---
 
@@ -1388,3 +1389,59 @@ You: "Grouchy, move to Belgium"
 Grouchy (Literal, Trust 65):
 [NO OBJECTION - Grouchy follows orders exactly]
 ```
+
+---
+
+## 8. Economy System
+
+### Region Types (Phase 6.2.A)
+
+Each region has a `region_type` field that determines its base income:
+
+| Region Type | Income | Examples |
+|-------------|--------|----------|
+| `capital` | 300 | Paris |
+| `major_city` | 200 | Vienna, Lyon |
+| `city` | 150 | Milan, Marseille |
+| `town` | 100 | Belgium, Rhine, Bavaria, Geneva |
+| `rural` | 50 | Netherlands, Waterloo, Brittany, Bordeaux |
+
+**Constants (single source of truth in `region.py`):**
+- `VALID_REGION_TYPES` — set of 5 valid type strings
+- `REGION_TYPE_INCOME` — dict mapping region_type → income value
+
+**Important:** `region_type` and `terrain` are independent axes. Terrain affects combat and movement. Region type affects income.
+
+### Per-Nation Gold (Phase 6.2.A)
+
+Gold is tracked per nation in `world_state.nation_gold` dict:
+
+```python
+self.nation_gold = {
+    "France": 600,   # Player starting gold
+    "Britain": 800,  # Naval/trade wealth
+    "Prussia": 300,  # Smaller economy
+}
+```
+
+**Convenience property:** `world.gold` reads/writes `nation_gold[player_nation]`. All existing code referencing `world.gold` continues to work unchanged.
+
+**Income calculation:** `calculate_turn_income(nation=None)` works for any nation. Defaults to player_nation. Sums `income_value` for all regions controlled by that nation. No separate capital bonus — capital income (300) already reflects importance.
+
+**Income application:** `apply_turn_income(nation=None)` calculates and adds income to the nation's gold.
+
+### Serialization
+
+- `nation_gold` serialized as `{"France": 600, "Britain": 800, ...}` in `to_dict()`
+- `gold` key still emitted for backward compatibility (player nation's gold)
+- `from_dict()` prefers `nation_gold` key; falls back to old `gold` field for pre-6.2 saves
+- `region_type` serialized on each Region; defaults to `"town"` if missing (backward compat)
+
+### Future Economy Features (not yet implemented)
+
+- Upkeep and bankruptcy (6.2.B)
+- Stability and war damage modifiers (6.2.C)
+- Recruitment rework with morale dilution (6.2.D)
+- Plunder/secure capture choice and buildings (6.2.E)
+- Supply limits and movement attrition (6.2.F)
+- AI admin phase (6.2.G)

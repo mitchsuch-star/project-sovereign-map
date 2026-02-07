@@ -22,7 +22,8 @@ A future save/load system should use this as the specification.
   "player_nation": "France",
   "current_turn": 1,
   "max_turns": 40,
-  "gold": 1200,
+  "gold": 600,
+  "nation_gold": {"France": 600, "Britain": 800, "Prussia": 300},
   "game_over": false,
   "victory": null,
 
@@ -59,7 +60,8 @@ A future save/load system should use this as the specification.
 | `player_nation` | string | "France" | Nation controlled by player |
 | `current_turn` | int | 1 | Current turn number |
 | `max_turns` | int | 40 | Maximum turns before game ends |
-| `gold` | int | 1200 | Player's treasury |
+| `gold` | int | 600 | Player's treasury (backward compat, reads from nation_gold) |
+| `nation_gold` | dict | {"France": 600, ...} | Per-nation treasury |
 | `game_over` | bool | false | Whether game has ended |
 | `victory` | string\|null | null | "victory", "defeat", or null |
 | `max_actions_per_turn` | int | 4 | Base actions per turn |
@@ -387,9 +389,10 @@ A future save/load system should use this as the specification.
 {
   "name": "Paris",
   "adjacent_regions": ["Belgium", "Lyon", "Brittany", "Waterloo"],
-  "income_value": 100,
+  "income_value": 300,
   "is_capital": true,
   "terrain": "urban",
+  "region_type": "capital",
   "controller": "France",
   "garrison_strength": 0
 }
@@ -404,6 +407,7 @@ A future save/load system should use this as the specification.
 | `income_value` | int | Gold per turn when controlled |
 | `is_capital` | bool | Whether this is a capital |
 | `terrain` | string | Terrain type: plains, forest, hills, mountains, urban, river_crossing. Default "plains" for backward compat. |
+| `region_type` | string | Region type: capital, major_city, city, town, rural. Default "town" for backward compat. |
 | `controller` | string\|null | Nation controlling region |
 | `garrison_strength` | int | Garrison troops (future use) |
 

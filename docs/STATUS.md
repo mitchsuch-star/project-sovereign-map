@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 6, 2026
-> **Last Session:** Session 14 — Phase 6.1.C Weighted Pathfinding + Terrain Display
+> **Last Session:** Session 15 — Phase 6.2.A Region Types + Economy Foundations
 
 ---
 
@@ -10,16 +10,16 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1386** (verified, 3 skipped) |
-| **Current Phase** | Phase 6.1 Terrain: COMPLETE. Next: Phase 6.2 Economy |
+| **Tests Passing** | **1432** (verified, 3 skipped) |
+| **Current Phase** | Phase 6.2 Economy: 6.2.A COMPLETE. Next: 6.2.B Upkeep + Bankruptcy |
 | **Blockers** | None |
-| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1 |
+| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2.A |
 
 ---
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Next: Phase 6.2 Economy.**
+**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2.A COMPLETE. Next: 6.2.B.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -34,11 +34,38 @@
 - [x] **6.1.B Smoke Test** — 3 Godot smoke test bugs fixed, charge redirect popup added, 13 regression tests (1347 pass)
 - [x] **6.1.B Polish** — cavalry terrain flavor in Godot battle UI, recklessness color tags, charge redirect sort logic, auto-charge message bug fix
 - [x] **Session 6.1.C: Weighted Pathfinding** — Dijkstra pathfinding, MOVE_TO+HOLD terrain-aware routing, AI retreat weighted distance, terrain display in scout/status, 39 tests (1386 total)
-- [ ] Phase 6.2: Economy implementation (18 steps per ECONOMY_SPEC.md §15)
+- [x] **Session 6.2.A: Region Types + Income + Gold** — 5 region types, differentiated income, per-nation gold tracking, 46 tests (1432 total)
+- [ ] Phase 6.2.B: Upkeep + Bankruptcy + Admin AP
+- [ ] Phase 6.2.C–G: Stability, recruitment, buildings, supply, AI admin
 
 ---
 
 ## Recently Completed
+
+### Feb 6 (Session 15: Phase 6.2.A Region Types + Economy Foundations)
+
+**Region types (region.py):**
+- Added `region_type` field: capital, major_city, city, town, rural
+- `VALID_REGION_TYPES` set and `REGION_TYPE_INCOME` dict as single source of truth
+- Updated all 13 REGIONS_DATA entries with types and differentiated income values
+- Validation: invalid region_type raises ValueError
+- Serialization: `to_dict()`/`from_dict()` with `"town"` backward compat default
+
+**Differentiated income (region.py REGIONS_DATA):**
+- Paris: capital (300), Vienna/Lyon: major_city (200), Milan/Marseille: city (150)
+- Belgium/Rhine/Bavaria/Geneva: town (100), Netherlands/Waterloo/Brittany/Bordeaux: rural (50)
+- Removed +200 hardcoded capital bonus from calculate_turn_income — capital type income (300) replaces it
+
+**Per-nation gold (world_state.py):**
+- `nation_gold` dict: France 600, Britain 800, Prussia 300
+- `world.gold` property wrapper for backward compat — all 22+ existing references work unchanged
+- `calculate_turn_income(nation=None)` works for any nation, defaults to player
+- `apply_turn_income(nation=None)` adds income to specified nation's gold
+- Serialization: `nation_gold` dict in to_dict, backward compat from_dict (old `gold` field → player nation)
+
+**Tests:** 46 new tests in `test_economy_foundations.py` (1432 total)
+
+---
 
 ### Feb 6 (Session 14: Phase 6.1.C Weighted Pathfinding + Terrain Display)
 
