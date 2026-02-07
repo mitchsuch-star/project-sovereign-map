@@ -207,9 +207,10 @@ def execute_command(request: CommandRequest):
                     strategic_exec = StrategicExecutor(executor)
                     result = strategic_exec.handle_response(
                         m.name, interrupt_type, choice, world, game_state)
-                    result["action_summary"] = world.get_action_summary()
-                    result["game_state"] = world.get_game_state_summary()
-                    return result
+                    cleaned = {k: v for k, v in result.items() if k != "new_state"}
+                    cleaned["action_summary"] = world.get_action_summary()
+                    cleaned["game_state"] = world.get_game_state_summary()
+                    return cleaned
 
         # Parse command
         # Build LLM-compatible game state for command parsing
@@ -239,42 +240,47 @@ def execute_command(request: CommandRequest):
         # ════════════════════════════════════════════════════════════
         if result.get("state") == "awaiting_player_choice":
             print(f"[OBJECTION] TACTICAL OBJECTION - Returning full result to frontend")
-            result["action_summary"] = world.get_action_summary()
-            result["game_state"] = world.get_game_state_summary()
-            return result
+            cleaned = {k: v for k, v in result.items() if k != "new_state"}
+            cleaned["action_summary"] = world.get_action_summary()
+            cleaned["game_state"] = world.get_game_state_summary()
+            return cleaned
 
         if result.get("pending_objection"):
             print(f"[OBJECTION] STRATEGIC OBJECTION (Phase M) - Returning full result to frontend")
-            result["action_summary"] = world.get_action_summary()
-            result["game_state"] = world.get_game_state_summary()
-            return result
+            cleaned = {k: v for k, v in result.items() if k != "new_state"}
+            cleaned["action_summary"] = world.get_action_summary()
+            cleaned["game_state"] = world.get_game_state_summary()
+            return cleaned
 
         # ════════════════════════════════════════════════════════════
         # CHECK FOR CLARIFICATION: If awaiting clarification, return full result
         # ════════════════════════════════════════════════════════════
         if result.get("state") == "awaiting_clarification":
             print(f"[CLARIFICATION] Returning clarification popup to frontend")
-            result["action_summary"] = world.get_action_summary()
-            result["game_state"] = world.get_game_state_summary()
-            return result
+            cleaned = {k: v for k, v in result.items() if k != "new_state"}
+            cleaned["action_summary"] = world.get_action_summary()
+            cleaned["game_state"] = world.get_game_state_summary()
+            return cleaned
 
         # ════════════════════════════════════════════════════════════
         # CHECK FOR GLORIOUS CHARGE: If pending, return full result for popup
         # ════════════════════════════════════════════════════════════
         if result.get("pending_glorious_charge"):
             print(f"GLORIOUS CHARGE PENDING - Returning full result to frontend")
-            result["action_summary"] = world.get_action_summary()
-            result["game_state"] = world.get_game_state_summary()
-            return result
+            cleaned = {k: v for k, v in result.items() if k != "new_state"}
+            cleaned["action_summary"] = world.get_action_summary()
+            cleaned["game_state"] = world.get_game_state_summary()
+            return cleaned
 
         # ════════════════════════════════════════════════════════════
         # CHECK FOR CAPTURE CHOICE (Phase 6.2.E): Plunder or Secure popup
         # ════════════════════════════════════════════════════════════
         if result.get("pending_capture_choice"):
             print(f"[CAPTURE] PLUNDER/SECURE CHOICE PENDING - Returning full result to frontend")
-            result["action_summary"] = world.get_action_summary()
-            result["game_state"] = world.get_game_state_summary()
-            return result
+            cleaned = {k: v for k, v in result.items() if k != "new_state"}
+            cleaned["action_summary"] = world.get_action_summary()
+            cleaned["game_state"] = world.get_game_state_summary()
+            return cleaned
 
         # Get action summary
         action_summary = world.get_action_summary()
