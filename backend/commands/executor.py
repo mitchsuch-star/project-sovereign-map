@@ -1640,6 +1640,8 @@ RETREAT RECOVERY (3 turns):
                     if charge_terrain_blocked:
                         # ── Terrain blocks charge on this target. Check for ──
                         # ── alternative enemies in range on allowed terrain.  ──
+                        # Sort by: nearest first, then weakest (reckless cavalry
+                        # charges the closest easy prey on open ground).
                         chargeable_alternatives = []
                         for m in world.marshals.values():
                             if m.nation == marshal.nation or m.strength <= 0:
@@ -1656,7 +1658,10 @@ RETREAT RECOVERY (3 turns):
                                         "location": m.location,
                                         "terrain": alt_terrain,
                                         "distance": dist,
+                                        "strength": m.strength,
                                     })
+                        # Nearest first, weakest as tiebreaker
+                        chargeable_alternatives.sort(key=lambda a: (a["distance"], a["strength"]))
 
                         if chargeable_alternatives and is_player and recklessness < 4:
                             # Offer popup to redirect charge to an alternative target
@@ -2252,7 +2257,8 @@ RETREAT RECOVERY (3 turns):
                 "flanking_origins": list(flanking_info["unique_origins"]) if flanking_info["unique_origins"] else [],
                 "vindication": vindication_result,
                 "attacker_forced_retreat": battle_result.get("attacker", {}).get("forced_retreat", False),
-                "defender_forced_retreat": battle_result.get("defender", {}).get("forced_retreat", False)
+                "defender_forced_retreat": battle_result.get("defender", {}).get("forced_retreat", False),
+                "cavalry_terrain_message": battle_result.get("cavalry_terrain_message"),
             }],
             "new_state": game_state
         }
@@ -6081,7 +6087,7 @@ RETREAT RECOVERY (3 turns):
         charge_message = f"🐴⚔️ GLORIOUS CHARGE! {marshal.name} leads a devastating cavalry assault!\n\n"
         charge_message += combat_result.get("description", "")
         charge_message += enemy_destroyed_msg + movement_msg
-        charge_message += f"\n\n[Recklessness reset: {recklessness_before} → 0]"
+        charge_message += f"\n\n[color=#cd6b6b]Recklessness reset: {recklessness_before} → 0[/color]"
 
         return {
             "success": True,

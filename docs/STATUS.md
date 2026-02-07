@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 6, 2026
-> **Last Session:** Session 13 — Phase 6.1.B Smoke Test Bug Fixes + Charge Redirect
+> **Last Session:** Session 13 — Phase 6.1.B Smoke Test Bug Fixes + Charge Redirect + Polish
 
 ---
 
@@ -32,6 +32,7 @@
 - [x] **6.1.B Opus Code Review** — found 3 bugs (auto-charge terrain, full_game.py dead code, charge safety net)
 - [x] **6.1.B Bug Fixes** — all 3 bugs fixed, 10 regression tests, full suite green (1334 pass)
 - [x] **6.1.B Smoke Test** — 3 Godot smoke test bugs fixed, charge redirect popup added, 13 regression tests (1347 pass)
+- [x] **6.1.B Polish** — cavalry terrain flavor in Godot battle UI, recklessness color tags, charge redirect sort logic, auto-charge message bug fix
 - [ ] **Phase 6.1.C+: Movement/pathfinding/supply** — weighted Dijkstra, movement cost enforcement, supply modifier wiring
 - [ ] Phase 6.2: Economy implementation (18 steps per ECONOMY_SPEC.md §15)
 
@@ -62,6 +63,12 @@
 **Verified:** 2 prior Opus review bugs (full_game.py dead code, charge safety net fallthrough) already fixed in commit 10624a3.
 
 **Test count: 1347 passed, 3 skipped, 0 failures**
+
+**Follow-up polish (same session):**
+- **Godot cavalry terrain flavor:** `main.gd` `_display_battle_result()` now shows cavalry terrain message as a distinct warm-gold line (e.g. "🐴 Ney's cavalry thrives on Plains terrain!"). Field added to battle event dict in `executor.py`.
+- **Recklessness color tags:** All recklessness reset/change messages now use `[color=#cd6b6b]...[/color]` BBCode for visual distinction in Godot's RichTextLabel.
+- **BUG FIX (auto-charge message):** `world_state.py` auto-charge event always said "Recklessness reset to 0" even when terrain blocked the charge (recklessness NOT actually reset). Now shows "Recklessness unchanged (4)" when blocked.
+- **Charge redirect sort:** Alternatives now sorted by `(distance, strength)` — nearest first, weakest as tiebreaker. Previously arbitrary dict iteration order.
 
 ### Feb 6 (Session 12: Phase 6.1 Terrain Implementation)
 

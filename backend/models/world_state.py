@@ -2294,10 +2294,14 @@ class WorldState:
                 else:
                     charge_header = f"🐴⚔️ AUTO-CHARGE! {marshal.name} (Recklessness: {recklessness}) cannot be restrained!\n\n"
 
+                if charge_blocked:
+                    reck_footer = f"[color=#cd6b6b]FREE ACTION — Recklessness unchanged ({recklessness})[/color]"
+                else:
+                    reck_footer = f"[color=#cd6b6b]FREE ACTION — Recklessness reset to 0[/color]"
                 event_msg = (f"{charge_header}"
                             f"{combat_result.get('description', 'Combat resolved.')}"
                             f"{enemy_destroyed_msg}{movement_msg}\n\n"
-                            f"[FREE ACTION - Recklessness reset to 0]")
+                            f"{reck_footer}")
                 debug_print(f"  [AUTO-CHARGE DEBUG] Event message: {event_msg[:100]}...")
                 events.append({
                     "type": "auto_glorious_charge",

@@ -576,7 +576,12 @@ func _display_battle_result(message: String, event: Dictionary, action_info: Dic
 	
 	# Main result
 	add_output("[color=#" + COLOR_BATTLE + "]" + message + "[/color]")
-	
+
+	# Cavalry terrain flavor (Phase 6.1: separate colored line for cavalry effectiveness)
+	var cav_terrain_msg = event.get("cavalry_terrain_message", "")
+	if cav_terrain_msg != "" and cav_terrain_msg != null:
+		add_output("[color=#" + COLOR_DISPATCH + "]   🐴 " + cav_terrain_msg + "[/color]")
+
 	# Special notifications
 	if enemy_destroyed:
 		add_output("[color=#" + COLOR_CONQUEST + "]   ★ Enemy army destroyed! ★[/color]")

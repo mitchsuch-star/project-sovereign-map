@@ -722,9 +722,10 @@ When attacking at recklessness 3+, player receives popup:
 
 **Terrain blocking (Phase 6.1.B):** If the target is on charge-blocked terrain (mountains/forest/urban):
 1. Executor scans for alternative enemies within cavalry range (2 regions) on allowed terrain
-2. If alternatives found: redirect popup offers closest alternative target (`pending_glorious_charge=True, charge_redirected=True`)
-3. If no alternatives: falls through to normal attack (no charge bonus), recklessness preserved
-4. Recklessness does NOT reset when terrain blocks the charge
+2. Alternatives sorted by `(distance, strength)` — nearest first, weakest as tiebreaker
+3. If alternatives found: redirect popup offers best alternative target (`pending_glorious_charge=True, charge_redirected=True`)
+4. If no alternatives: falls through to normal attack (no charge bonus), recklessness preserved
+5. Recklessness does NOT reset when terrain blocks the charge
 
 #### Auto-Charge (Level 4)
 
@@ -748,7 +749,7 @@ AI marshals at recklessness 3+ always charge (no popup decision needed).
 | Stance restrictions | `marshal.py` | `can_use_stance()` |
 | Glorious Charge | `executor.py` | `_execute_charge()`, `_execute_restrain()` |
 | Charge redirect | `executor.py` | Charge terrain blocked section (~line 1617) |
-| Cavalry terrain msg | `combat.py`, `executor.py`, `main.py` | Passthrough chain |
+| Cavalry terrain msg | `combat.py`, `executor.py`, `main.py`, `main.gd` | Passthrough chain + Godot display |
 | Auto-charge | `world_state.py` | `_process_reckless_cavalry_turn_start()` |
 
 ---

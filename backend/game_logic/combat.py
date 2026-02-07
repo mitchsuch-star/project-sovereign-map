@@ -525,7 +525,7 @@ class CombatResolver:
             if glorious_charge:
                 # Glorious charge: reset handled in executor (already done before this call)
                 # But add message for clarity
-                recklessness_message = f"[{attacker.name}'s recklessness resets after Glorious Charge]"
+                recklessness_message = f"[color=#cd6b6b]{attacker.name}'s recklessness resets after Glorious Charge[/color]"
             elif attacker_won:
                 # Won as attacker (not charge): increment
                 attacker._increment_recklessness()
@@ -543,7 +543,7 @@ class CombatResolver:
                 # Lost as attacker: reset
                 if old_recklessness > 0:
                     attacker.reset_recklessness()
-                    recklessness_message = f"🐴 {attacker.name}'s momentum broken by defeat. (Recklessness: {old_recklessness} → 0)"
+                    recklessness_message = f"🐴 {attacker.name}'s momentum broken by defeat. [color=#cd6b6b](Recklessness: {old_recklessness} → 0)[/color]"
 
         if recklessness_message:
             retreat_message += f"\n\n{recklessness_message}"
