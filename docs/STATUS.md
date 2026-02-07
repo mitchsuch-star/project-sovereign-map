@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 6, 2026
-> **Last Session:** Session 15 — Phase 6.2.A Region Types + Economy Foundations
+> **Last Session:** Session 16 — Phase 6.2.B Upkeep + Bankruptcy + Admin AP
 
 ---
 
@@ -10,16 +10,16 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1432** (verified, 3 skipped) |
-| **Current Phase** | Phase 6.2 Economy: 6.2.A COMPLETE. Next: 6.2.B Upkeep + Bankruptcy |
+| **Tests Passing** | **1491** (verified, 3 skipped) |
+| **Current Phase** | Phase 6.2 Economy: 6.2.B COMPLETE. Next: 6.2.C Stability + War Damage |
 | **Blockers** | None |
-| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2.A |
+| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2.A, 6.2.B |
 
 ---
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2.A COMPLETE. Next: 6.2.B.**
+**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2.A-B COMPLETE. Next: 6.2.C.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -35,12 +35,51 @@
 - [x] **6.1.B Polish** — cavalry terrain flavor in Godot battle UI, recklessness color tags, charge redirect sort logic, auto-charge message bug fix
 - [x] **Session 6.1.C: Weighted Pathfinding** — Dijkstra pathfinding, MOVE_TO+HOLD terrain-aware routing, AI retreat weighted distance, terrain display in scout/status, 39 tests (1386 total)
 - [x] **Session 6.2.A: Region Types + Income + Gold** — 5 region types, differentiated income, per-nation gold tracking, 46 tests (1432 total)
-- [ ] Phase 6.2.B: Upkeep + Bankruptcy + Admin AP
+- [x] **Session 6.2.B: Upkeep + Bankruptcy + Admin AP** — upkeep calculation, bankruptcy desertion, admin AP pool, income phase refactor, 59 tests (1491 total)
 - [ ] Phase 6.2.C–G: Stability, recruitment, buildings, supply, AI admin
 
 ---
 
 ## Recently Completed
+
+### Feb 6 (Session 16: Phase 6.2.B Upkeep + Bankruptcy + Admin AP)
+
+**Upkeep calculation (world_state.py):**
+- `calculate_turn_upkeep(nation)` — formula: `(marshal.strength // 1000) * 5` per marshal
+- Upkeep halved during bankruptcy (mercy mechanic)
+- Returns breakdown with per-marshal cost detail
+
+**Income phase refactor (world_state.py):**
+- `process_income_phase(nation)` — full income cycle: income - upkeep + admin bonus = net
+- `apply_turn_income()` now wraps `process_income_phase()` for backward compat
+- `_advance_turn_internal()` processes ALL nations (player + enemies), not just player
+- Admin bonus: unused admin AP * 75 gold (player nation only)
+
+**Bankruptcy system (world_state.py):**
+- `nation_bankruptcy_turns: Dict[str, int]` — per-nation tracking (same pattern as `nation_gold`)
+- `bankruptcy_turns` convenience property for player nation
+- `_update_bankruptcy(nation)` — increments counter when gold < 0, resets to 0 when solvent
+- `process_bankruptcy_desertion(nation)` — runs BEFORE income phase using PREVIOUS turn's counter
+  - Turn 1: warning, upkeep halved
+  - Turn 2: severe warning, upkeep halved
+  - Turn 3+: desertion (5% strength loss per marshal, rounded down)
+
+**Admin AP infrastructure (world_state.py + executor.py):**
+- `admin_actions_remaining` / `max_admin_actions` fields (default 2/2)
+- `use_admin_action()` — consumes from admin pool, returns False if insufficient
+- Admin AP resets at turn start alongside CP
+- `get_action_summary()` includes admin AP fields
+- `ADMIN_ACTIONS = {"recruit"}` in executor.py — recruit now uses admin AP, not CP
+- Pre-check and consumption routing in executor for admin vs military actions
+
+**Serialization:**
+- `admin_actions_remaining`, `max_admin_actions`, `nation_bankruptcy_turns` in to_dict/from_dict
+- Backward compat: missing fields default to 2/2/{} respectively
+- Serialization enforcement tests pass
+
+**Tests:** 59 new tests in `test_economy_upkeep_bankruptcy.py` (1491 total)
+
+---
 
 ### Feb 6 (Session 15: Phase 6.2.A Region Types + Economy Foundations)
 
@@ -373,6 +412,8 @@
 
 | Date | Tests | Notes |
 |------|-------|-------|
+| Feb 6, 2026 | **1491** | Phase 6.2.B: upkeep, bankruptcy, admin AP. 59 new tests |
+| Feb 6, 2026 | **1432** | Phase 6.2.A: region types, income, per-nation gold. 46 new tests |
 | Feb 6, 2026 | **1347** | Smoke test bug fixes: cavalry terrain msg, charge redirect, recklessness reset. 13 new tests |
 | Feb 6, 2026 | **1334** | Phase 6.1 terrain: 59 data layer + 43 combat + 10 review bug regression tests |
 | Feb 6, 2026 | **1222** | AP pre-check, post-objection variable cost, enemy summary, 4 regression tests |
@@ -411,12 +452,11 @@
 
 ## Next Session Priorities
 
-1. **Phase 6.1.C: Movement + Pathfinding** — Weighted Dijkstra for MOVE_TO/AI, movement cost enforcement in executor, supply modifier wiring. See `docs/PHASE6_IMPLEMENTATION_PLAN.md` Session 6.1.C.
-2. **Phase 6.1 Review Checkpoint** — Full terrain system review before moving to economy
-3. **Phase 6.2: Economy** — 18 steps per ECONOMY_SPEC.md §15
+1. **Phase 6.2.C: Stability + War Damage** — region stability field, plunder/secure actions, war damage, stability income modifier. See `docs/PHASE6_IMPLEMENTATION_PLAN.md` Session 6.2.C.
+2. **Phase 6.2.D: Recruitment Rework** — morale dilution, location restrictions, capital discount, admin AP integration
+3. **Phase 6.2.E–G: Buildings, Supply, AI Admin** — remaining economy features
 4. Commission Europe map art (start search for artist)
 
-**Terrain spec:** `docs/TERRAIN_SPEC.md` (FINAL — pre-implementation decisions in §14)
 **Economy spec:** `docs/ECONOMY_SPEC.md` (FINAL — no further changes)
 **Implementation plan:** `docs/PHASE6_IMPLEMENTATION_PLAN.md`
 

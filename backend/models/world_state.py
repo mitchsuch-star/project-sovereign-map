@@ -86,6 +86,19 @@ class WorldState:
         # When a marshal is transferred to administrative role, player gains +1 action/turn
         self.bonus_actions: int = 0
 
+        # ============================================================
+        # ADMIN ACTION ECONOMY (Phase 6.2.B)
+        # Separate pool for administrative actions (recruit, build, repair)
+        # ============================================================
+        self.admin_actions_remaining: int = 2
+        self.max_admin_actions: int = 2
+
+        # ============================================================
+        # BANKRUPTCY SYSTEM (Phase 6.2.B)
+        # Per-nation tracking: {nation: consecutive_bankrupt_turns}
+        # ============================================================
+        self.nation_bankruptcy_turns: Dict[str, int] = {}
+
         # Future expansion hooks (not yet used)
 
         # CRITICAL: All costs must be integers
@@ -191,6 +204,15 @@ class WorldState:
     @gold.setter
     def gold(self, value: int):
         self.nation_gold[self.player_nation] = int(value)
+
+    @property
+    def bankruptcy_turns(self) -> int:
+        """Convenience: player nation's bankruptcy turn counter."""
+        return self.nation_bankruptcy_turns.get(self.player_nation, 0)
+
+    @bankruptcy_turns.setter
+    def bankruptcy_turns(self, value: int):
+        self.nation_bankruptcy_turns[self.player_nation] = int(value)
 
     def _setup_initial_control(self) -> None:
         """Set up which nation controls which regions at start."""
@@ -1241,11 +1263,156 @@ class WorldState:
         }
 
     def apply_turn_income(self, nation: str = None) -> Dict:
-        """Apply income to a nation's gold and return breakdown."""
+        """Apply income to a nation's gold and return breakdown.
+        Backward-compat wrapper — calls process_income_phase internally."""
+        return self.process_income_phase(nation)
+
+    # ========================================
+    # UPKEEP CALCULATION (Phase 6.2.B)
+    # ========================================
+
+    def calculate_turn_upkeep(self, nation: str = None) -> Dict:
+        """Calculate total upkeep for a nation's armies.
+
+        Formula: (marshal.strength // 1000) * 5 per marshal.
+        If nation is bankrupt (bankruptcy_turns >= 1), upkeep is halved (mercy mechanic).
+        """
+        nation = nation or self.player_nation
+        total_upkeep = 0
+        breakdown = []
+        for marshal in self.marshals.values():
+            if marshal.nation == nation and marshal.strength > 0:
+                cost = (marshal.strength // 1000) * 5
+                total_upkeep += cost
+                breakdown.append({
+                    "marshal": marshal.name,
+                    "strength": marshal.strength,
+                    "upkeep": cost
+                })
+
+        # Mercy mechanic: halve upkeep during bankruptcy
+        is_bankrupt = self.nation_bankruptcy_turns.get(nation, 0) >= 1
+        if is_bankrupt:
+            total_upkeep = total_upkeep // 2
+
+        return {
+            "total": int(total_upkeep),
+            "breakdown": breakdown,
+            "halved": is_bankrupt
+        }
+
+    # ========================================
+    # INCOME PHASE (Phase 6.2.B)
+    # ========================================
+
+    def process_income_phase(self, nation: str = None) -> Dict:
+        """Process full income phase for a nation: income - upkeep + admin bonus.
+
+        Returns breakdown dict with income, upkeep, admin_bonus, net, treasury.
+        """
         nation = nation or self.player_nation
         income_data = self.calculate_turn_income(nation)
-        self.nation_gold[nation] = self.nation_gold.get(nation, 0) + income_data["income"]
-        return income_data
+        upkeep_data = self.calculate_turn_upkeep(nation)
+
+        # Admin AP bonus (only player for now)
+        admin_bonus = self._calculate_admin_bonus(nation)
+
+        net = income_data["income"] - upkeep_data["total"] + admin_bonus
+        self.nation_gold[nation] = int(self.nation_gold.get(nation, 0) + net)
+
+        # Update bankruptcy counter
+        self._update_bankruptcy(nation)
+
+        return {
+            "nation": nation,
+            "income": income_data["income"],
+            "upkeep": upkeep_data["total"],
+            "upkeep_halved": upkeep_data["halved"],
+            "admin_bonus": int(admin_bonus),
+            "net": int(net),
+            "treasury": int(self.nation_gold[nation]),
+            "breakdown": income_data["breakdown"],
+            "upkeep_breakdown": upkeep_data["breakdown"],
+            "message": (f"Turn {self.current_turn} economy: "
+                       f"+{income_data['income']} income, "
+                       f"-{upkeep_data['total']} upkeep"
+                       f"{', +' + str(admin_bonus) + ' admin bonus' if admin_bonus > 0 else ''}"
+                       f" = {'+' if net >= 0 else ''}{net} net")
+        }
+
+    def _calculate_admin_bonus(self, nation: str) -> int:
+        """Unused admin AP -> gold bonus. Only applies to player for now."""
+        if nation == self.player_nation:
+            return int(getattr(self, 'admin_actions_remaining', 0) * 75)
+        # AI nations: assume they use all AP (no bonus)
+        # AI admin spending comes in 6.2.G
+        return 0
+
+    # ========================================
+    # BANKRUPTCY SYSTEM (Phase 6.2.B)
+    # ========================================
+
+    def _update_bankruptcy(self, nation: str) -> None:
+        """Update bankruptcy counter after income phase.
+        Called at end of process_income_phase."""
+        if self.nation_gold.get(nation, 0) < 0:
+            self.nation_bankruptcy_turns[nation] = self.nation_bankruptcy_turns.get(nation, 0) + 1
+        else:
+            self.nation_bankruptcy_turns[nation] = 0
+
+    def process_bankruptcy_desertion(self, nation: str = None) -> Dict:
+        """Process bankruptcy effects based on PREVIOUS turn's counter.
+
+        Called BEFORE income phase in turn resolution.
+        - bankruptcy_turns == 0: nothing
+        - bankruptcy_turns == 1: warning only
+        - bankruptcy_turns == 2: severe warning
+        - bankruptcy_turns >= 3: desertion (5% strength loss per marshal)
+        """
+        nation = nation or self.player_nation
+        bt = self.nation_bankruptcy_turns.get(nation, 0)
+
+        if bt == 0:
+            return {"bankrupt": False, "messages": [], "desertions": []}
+
+        messages = []
+        desertions = []
+
+        if bt == 1:
+            messages.append(f"{nation} treasury is in deficit! Upkeep costs halved as a mercy, but continued deficit will cause desertion.")
+        elif bt == 2:
+            messages.append(f"{nation} treasury remains in deficit! Troops grow restless. One more turn and soldiers will desert.")
+        elif bt >= 3:
+            messages.append(f"{nation} has been bankrupt for {bt} turns! Troops are deserting!")
+            for marshal in self.marshals.values():
+                if marshal.nation == nation and marshal.strength > 0:
+                    loss = marshal.strength * 5 // 100  # 5% rounded down
+                    if loss > 0:
+                        marshal.strength = max(0, marshal.strength - loss)
+                        desertions.append({
+                            "marshal": marshal.name,
+                            "lost": loss,
+                            "remaining": marshal.strength
+                        })
+                        messages.append(f"  {marshal.name} loses {loss} troops to desertion (now {marshal.strength})")
+
+        return {
+            "bankrupt": True,
+            "bankruptcy_turns": bt,
+            "messages": messages,
+            "desertions": desertions
+        }
+
+    # ========================================
+    # ADMIN ACTION ECONOMY (Phase 6.2.B)
+    # ========================================
+
+    def use_admin_action(self, cost: int = 1) -> bool:
+        """Consume admin action points. Returns False if insufficient."""
+        if self.admin_actions_remaining < cost:
+            return False
+        self.admin_actions_remaining = int(self.admin_actions_remaining - cost)
+        return True
 
     # ========================================
     # GAME STATE MANAGEMENT
@@ -1341,6 +1508,11 @@ class WorldState:
             "max_actions_per_turn": int(self.max_actions_per_turn),
             "actions_remaining": int(self.actions_remaining),
             "bonus_actions": int(self.bonus_actions),
+            "admin_actions_remaining": int(self.admin_actions_remaining),
+            "max_admin_actions": int(self.max_admin_actions),
+
+            # ═══════ BANKRUPTCY (Phase 6.2.B) ═══════
+            "nation_bankruptcy_turns": {k: int(v) for k, v in self.nation_bankruptcy_turns.items()},
 
             # ═══════ REGIONS ═══════
             "regions": {name: r.to_dict() for name, r in self.regions.items()},
@@ -1416,6 +1588,11 @@ class WorldState:
         world.max_actions_per_turn = data.get("max_actions_per_turn", 4)
         world.actions_remaining = data.get("actions_remaining", 4)
         world.bonus_actions = data.get("bonus_actions", 0)
+        world.admin_actions_remaining = data.get("admin_actions_remaining", 2)
+        world.max_admin_actions = data.get("max_admin_actions", 2)
+
+        # ═══════ BANKRUPTCY (Phase 6.2.B) ═══════
+        world.nation_bankruptcy_turns = {k: int(v) for k, v in data.get("nation_bankruptcy_turns", {}).items()}
 
         # ═══════ REGIONS ═══════
         if data.get("regions"):
@@ -1775,13 +1952,27 @@ class WorldState:
         old_turn = self.current_turn
         self.current_turn = int(self.current_turn + 1)
 
-        # Apply income
-        income_data = self.calculate_turn_income()
-        self.gold = int(self.gold + income_data["income"])
+        # ════════════════════════════════════════════════════════════
+        # BANKRUPTCY DESERTION (Phase 6.2.B) — uses PREVIOUS turn's counter
+        # Must run BEFORE income phase updates the counter
+        # ════════════════════════════════════════════════════════════
+        all_nations = [self.player_nation] + list(self.enemy_nations)
+        for nation in all_nations:
+            self.process_bankruptcy_desertion(nation)
+
+        # ════════════════════════════════════════════════════════════
+        # INCOME PHASE (Phase 6.2.B) — ALL nations
+        # Calculates income - upkeep + admin bonus, updates gold & bankruptcy
+        # ════════════════════════════════════════════════════════════
+        for nation in all_nations:
+            self.process_income_phase(nation)
 
         # Reset actions (recalculate in case bonuses changed)
         self.max_actions_per_turn = int(self.calculate_max_actions())
         self.actions_remaining = int(self.max_actions_per_turn)
+
+        # Reset admin actions (Phase 6.2.B)
+        self.admin_actions_remaining = int(self.max_admin_actions)
 
         # Reset attack tracking for flanking system (Phase 2.5)
         self.reset_attack_tracking()
@@ -2473,6 +2664,7 @@ class WorldState:
         self.actions_remaining = 0
         self._advance_turn_internal()
 
+        # Income was already applied in _advance_turn_internal via process_income_phase
         income = self.calculate_turn_income()
 
         return {
@@ -2492,6 +2684,8 @@ class WorldState:
         return {
             "actions_remaining": int(self.actions_remaining),
             "max_actions": int(self.max_actions_per_turn),
+            "admin_actions_remaining": int(self.admin_actions_remaining),
+            "max_admin_actions": int(self.max_admin_actions),
             "turn": int(self.current_turn),
             "max_turns": int(self.max_turns),
         }

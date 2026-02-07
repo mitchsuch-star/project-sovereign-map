@@ -49,6 +49,10 @@ _ACTION_DISPLAY_NAMES = {
 }
 
 
+# Actions that consume Admin AP instead of CP (Phase 6.2.B)
+ADMIN_ACTIONS = {"recruit"}
+
+
 def _action_display_name(action: str) -> str:
     """Translate internal action name to player-readable text."""
     return _ACTION_DISPLAY_NAMES.get(action, action.replace("_", " "))
@@ -629,24 +633,38 @@ RETREAT RECOVERY (3 turns):
             if early_marshal and early_marshal.nation != world.player_nation:
                 is_player_action_check = False  # Enemy AI - skip player action check
 
-        if action_costs_point and is_player_action_check:
-            # Determine how many actions this command needs
-            required_actions = 1
-            if (not is_strategic_execution and
-                    parsed_command.get("is_strategic") and
-                    parsed_command.get("strategic_type")):
-                # Strategic commands cost 2 (1 for literal personality)
-                marshal_for_cost = world.get_marshal(command.get("marshal", ""))
-                is_literal = marshal_for_cost and getattr(marshal_for_cost, 'personality', '') == 'literal'
-                required_actions = 1 if is_literal else 2
+        # Track whether this is an admin action (uses admin AP pool)
+        is_admin_action = action in ADMIN_ACTIONS and is_player_action_check
 
-            if world.actions_remaining < required_actions:
-                return {
-                    "success": False,
-                    "message": f"Not enough actions! Need {required_actions}, have {world.actions_remaining}.",
-                    "actions_remaining": int(world.actions_remaining),
-                    "action_summary": world.get_action_summary()
-                }
+        if action_costs_point and is_player_action_check:
+            if is_admin_action:
+                # Admin actions use admin AP pool
+                if world.admin_actions_remaining < 1:
+                    return {
+                        "success": False,
+                        "message": "No administrative actions remaining this turn.",
+                        "actions_remaining": int(world.actions_remaining),
+                        "action_summary": world.get_action_summary()
+                    }
+            else:
+                # Military/tactical actions use CP pool
+                # Determine how many actions this command needs
+                required_actions = 1
+                if (not is_strategic_execution and
+                        parsed_command.get("is_strategic") and
+                        parsed_command.get("strategic_type")):
+                    # Strategic commands cost 2 (1 for literal personality)
+                    marshal_for_cost = world.get_marshal(command.get("marshal", ""))
+                    is_literal = marshal_for_cost and getattr(marshal_for_cost, 'personality', '') == 'literal'
+                    required_actions = 1 if is_literal else 2
+
+                if world.actions_remaining < required_actions:
+                    return {
+                        "success": False,
+                        "message": f"Not enough actions! Need {required_actions}, have {world.actions_remaining}.",
+                        "actions_remaining": int(world.actions_remaining),
+                        "action_summary": world.get_action_summary()
+                    }
 
         # ============================================================
         # DISOBEDIENCE SYSTEM: Check for marshal objection
@@ -1263,27 +1281,32 @@ RETREAT RECOVERY (3 turns):
         # CRITICAL: Don't consume AP for pending_objection (Phase M) - AP consumed
         # when player responds, not when objection triggers
         if result.get("success", False) and action_costs_point and is_player_action and not is_free_action and not result.get("pending_objection"):
-            # Check for variable action cost (stance_change returns this)
-            variable_cost = result.get("variable_action_cost")
-            if variable_cost is not None:
-                # Variable costs (stance: 0-2, strategic upgrades: 1-2)
-                if variable_cost > 0:
-                    if world.actions_remaining < variable_cost:
-                        # Safety net — should be caught by pre-checks above
-                        return {
-                            "success": False,
-                            "message": f"Not enough actions! Need {variable_cost}, have {world.actions_remaining}.",
-                            "actions_remaining": int(world.actions_remaining),
-                            "action_summary": world.get_action_summary()
-                        }
-                    for _ in range(variable_cost):
-                        action_result = world.use_action(action)
-                else:
-                    # Free transition (returning to neutral)
-                    action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
+            if is_admin_action:
+                # Admin actions consume from admin AP pool, not CP
+                world.use_admin_action()
+                action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 1, "should_end_turn": False}
             else:
-                # NOW consume the action (after validation passed)
-                action_result = world.use_action(action)
+                # Check for variable action cost (stance_change returns this)
+                variable_cost = result.get("variable_action_cost")
+                if variable_cost is not None:
+                    # Variable costs (stance: 0-2, strategic upgrades: 1-2)
+                    if variable_cost > 0:
+                        if world.actions_remaining < variable_cost:
+                            # Safety net — should be caught by pre-checks above
+                            return {
+                                "success": False,
+                                "message": f"Not enough actions! Need {variable_cost}, have {world.actions_remaining}.",
+                                "actions_remaining": int(world.actions_remaining),
+                                "action_summary": world.get_action_summary()
+                            }
+                        for _ in range(variable_cost):
+                            action_result = world.use_action(action)
+                    else:
+                        # Free transition (returning to neutral)
+                        action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
+                else:
+                    # NOW consume the action (after validation passed)
+                    action_result = world.use_action(action)
         elif is_free_action:
             # Free action (counter-punch) - don't consume action point
             action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0, "should_end_turn": False}

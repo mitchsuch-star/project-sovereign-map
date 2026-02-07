@@ -358,18 +358,19 @@ class TestApplyTurnIncome:
     """Tests for apply_turn_income with nation parameter."""
 
     def test_apply_income_player(self):
-        """apply_turn_income() adds to player gold."""
+        """apply_turn_income() applies net income (income - upkeep + admin bonus)."""
         world = WorldState()
         starting_gold = world.gold
         income_data = world.apply_turn_income()
-        assert world.gold == starting_gold + income_data["income"]
+        # Net = income - upkeep + admin_bonus (Phase 6.2.B)
+        assert world.gold == starting_gold + income_data["net"]
 
     def test_apply_income_enemy_nation(self):
-        """apply_turn_income('Britain') adds to Britain's gold."""
+        """apply_turn_income('Britain') applies net income to Britain's gold."""
         world = WorldState()
         starting = world.nation_gold["Britain"]
         income_data = world.apply_turn_income("Britain")
-        assert world.nation_gold["Britain"] == starting + income_data["income"]
+        assert world.nation_gold["Britain"] == starting + income_data["net"]
 
     def test_apply_income_doesnt_affect_other_nations(self):
         """Applying income for one nation doesn't change others."""
@@ -384,7 +385,7 @@ class TestApplyTurnIncome:
         starting = {k: v for k, v in world.nation_gold.items()}
         for nation in ["France", "Britain", "Prussia"]:
             income_data = world.apply_turn_income(nation)
-            expected = starting[nation] + income_data["income"]
+            expected = starting[nation] + income_data["net"]
             assert world.nation_gold[nation] == expected
 
 

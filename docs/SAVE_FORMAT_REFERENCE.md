@@ -10,8 +10,8 @@ A future save/load system should use this as the specification.
 ## Version
 
 - **Format version:** 1.0
-- **Last updated:** 2026-01-28
-- **Compatible with:** Phase 5.2 Strategic Commands (commit after serialization audit)
+- **Last updated:** 2026-02-06
+- **Compatible with:** Phase 6.2.B Upkeep + Bankruptcy + Admin AP
 
 ## Top-Level Structure (WorldState)
 
@@ -30,6 +30,10 @@ A future save/load system should use this as the specification.
   "max_actions_per_turn": 4,
   "actions_remaining": 4,
   "bonus_actions": 0,
+  "admin_actions_remaining": 2,
+  "max_admin_actions": 2,
+
+  "nation_bankruptcy_turns": {"France": 0, "Britain": 0},
 
   "regions": { ... },
   "marshals": { ... },
@@ -67,6 +71,9 @@ A future save/load system should use this as the specification.
 | `max_actions_per_turn` | int | 4 | Base actions per turn |
 | `actions_remaining` | int | 4 | Actions left this turn |
 | `bonus_actions` | int | 0 | Extra actions from admin role |
+| `admin_actions_remaining` | int | 2 | Admin actions left this turn (Phase 6.2.B) |
+| `max_admin_actions` | int | 2 | Max admin actions per turn (Phase 6.2.B) |
+| `nation_bankruptcy_turns` | dict | {} | Per-nation bankruptcy counter {nation: int} (Phase 6.2.B) |
 | `regions` | dict | {} | Map of region_name -> Region |
 | `marshals` | dict | {} | Map of marshal_name -> Marshal |
 | `authority_tracker` | dict | {} | AuthorityTracker state |
