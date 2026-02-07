@@ -130,12 +130,24 @@ class CommandExecutor:
                 "message": f"Cannot find living enemy: {target}"
             }
 
+        # Capture pre-battle strengths for war damage threshold (Phase 6.2.C)
+        pre_battle_atk = marshal.strength
+        pre_battle_def = enemy_marshal.strength
+        battle_region_name = enemy_marshal.location
+
         # RESOLVE COMBAT!
         battle_result = self.combat_resolver.resolve_battle(
             attacker=marshal,
             defender=enemy_marshal,
             terrain="open"  # TODO: Wire terrain from region if this file is revived
         )
+
+        # Apply war damage + stability hit to battle region (Phase 6.2.C)
+        battle_region = world.get_region(battle_region_name)
+        if battle_region:
+            combined = pre_battle_atk + pre_battle_def
+            battle_region.apply_war_damage(0.20 if combined >= 50000 else 0.10)
+            battle_region.stability = max(0, battle_region.stability - 10)
 
         # Check if enemy was destroyed
         enemy_destroyed = enemy_marshal.strength <= 0
@@ -347,12 +359,24 @@ class CommandExecutor:
         if not best_enemy:
             return {"success": False, "message": "No enemies found!"}
 
+        # Capture pre-battle strengths for war damage threshold (Phase 6.2.C)
+        pre_battle_atk = best_marshal.strength
+        pre_battle_def = best_enemy.strength
+        battle_region_name = best_enemy.location
+
         # Execute attack
         battle_result = self.combat_resolver.resolve_battle(
             attacker=best_marshal,
             defender=best_enemy,
             terrain="open"  # TODO: Wire terrain from region if this file is revived
         )
+
+        # Apply war damage + stability hit to battle region (Phase 6.2.C)
+        battle_region = world.get_region(battle_region_name)
+        if battle_region:
+            combined = pre_battle_atk + pre_battle_def
+            battle_region.apply_war_damage(0.20 if combined >= 50000 else 0.10)
+            battle_region.stability = max(0, battle_region.stability - 10)
 
         enemy_destroyed = best_enemy.strength <= 0
 
@@ -397,12 +421,24 @@ class CommandExecutor:
 
         nearest_marshal, distance = result
 
+        # Capture pre-battle strengths for war damage threshold (Phase 6.2.C)
+        pre_battle_atk = nearest_marshal.strength
+        pre_battle_def = enemy.strength
+        battle_region_name = enemy.location
+
         # Execute attack
         battle_result = self.combat_resolver.resolve_battle(
             attacker=nearest_marshal,
             defender=enemy,
             terrain="open"  # TODO: Wire terrain from region if this file is revived
         )
+
+        # Apply war damage + stability hit to battle region (Phase 6.2.C)
+        battle_region = world.get_region(battle_region_name)
+        if battle_region:
+            combined = pre_battle_atk + pre_battle_def
+            battle_region.apply_war_damage(0.20 if combined >= 50000 else 0.10)
+            battle_region.stability = max(0, battle_region.stability - 10)
 
         enemy_destroyed = enemy.strength <= 0
 

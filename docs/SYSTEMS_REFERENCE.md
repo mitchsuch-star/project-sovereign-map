@@ -1426,9 +1426,70 @@ self.nation_gold = {
 
 **Convenience property:** `world.gold` reads/writes `nation_gold[player_nation]`. All existing code referencing `world.gold` continues to work unchanged.
 
-**Income calculation:** `calculate_turn_income(nation=None)` works for any nation. Defaults to player_nation. Sums `income_value` for all regions controlled by that nation. No separate capital bonus — capital income (300) already reflects importance.
+**Income calculation:** `calculate_turn_income(nation=None)` works for any nation. Defaults to player_nation. Uses `region.get_effective_income()` (applies stability + war damage modifiers). Income breakdown includes per-region stability, damage, and effective income details.
 
-**Income application:** `apply_turn_income(nation=None)` calculates and adds income to the nation's gold.
+**Income application:** `apply_turn_income(nation=None)` wraps `process_income_phase()` which handles income - upkeep + admin bonus.
+
+### Upkeep + Bankruptcy (Phase 6.2.B)
+
+**Upkeep:** `(marshal.strength // 1000) * 5` per marshal. Halved during bankruptcy (mercy mechanic).
+
+**Income phase:** `process_income_phase(nation)` = income - upkeep + admin bonus. Runs for ALL nations during turn resolution.
+
+**Bankruptcy:** `nation_bankruptcy_turns` tracks consecutive turns with negative gold. Turn 1-2: warnings + halved upkeep. Turn 3+: desertion (5% strength loss per marshal).
+
+**Admin AP:** 2/turn, recruit uses admin AP (not CP). Unused admin AP * 75 = gold bonus.
+
+### Region Stability (Phase 6.2.C)
+
+**Stability field:** `region.stability` (int, 0-100). Controls income via tiered modifier.
+
+| Stability | Label | Income Modifier |
+|-----------|-------|----------------|
+| 0-25 | Hostile | 0% (no income) |
+| 26-50 | Unrest | 25% |
+| 51-75 | Settling | 75% |
+| 76-100 | Stable | 100% |
+
+**Boundary values fall into LOWER tier:** stability=25 → Hostile, stability=50 → Unrest, stability=75 → Settling.
+
+**On capture:** Stability set to 25 (Hostile/Secured). TODO 6.2.E: plunder (10) vs secure (25) choice.
+
+**On battle:** -10 stability per battle in the region.
+
+**Growth per turn:** +5 base, +5 if friendly marshal present (garrison bonus). Capped at 100.
+
+### War Damage (Phase 6.2.C)
+
+**War damage field:** `region.war_damage` (float, 0.0-0.5). Reduces income multiplicatively.
+
+**Sources:**
+- Normal battle (<50k combined pre-battle troops): +0.10
+- Major battle (50k+ combined): +0.20
+- Stacks across multiple battles in same turn
+- Capped at 0.50
+
+**Recovery:** -0.02/turn natural recovery. 0.10 damage recovers in 5 turns.
+
+**Combined income formula:**
+```python
+effective_income = int(income_value * stability_modifier * (1.0 - war_damage))
+```
+
+Example: Paris (300 base), Unrest (50 stability = 0.25 mod), 0.10 damage → `int(300 * 0.25 * 0.90)` = 67 gold.
+
+### Turn Resolution Order
+
+```
+1. Clear per-turn flags
+2. Process tactical states (fortify, drill)
+3. Turn counter increment
+4. Stability growth (all regions)     ← Phase 6.2.C
+5. War damage recovery (all regions)  ← Phase 6.2.C
+6. Bankruptcy desertion (all nations) ← Phase 6.2.B
+7. Income phase (all nations)         ← Phase 6.2.A+B
+8. Reset actions, cavalry limits, trust warnings, reckless cavalry
+```
 
 ### Serialization
 
@@ -1436,11 +1497,10 @@ self.nation_gold = {
 - `gold` key still emitted for backward compatibility (player nation's gold)
 - `from_dict()` prefers `nation_gold` key; falls back to old `gold` field for pre-6.2 saves
 - `region_type` serialized on each Region; defaults to `"town"` if missing (backward compat)
+- `stability` defaults to 100, `war_damage` defaults to 0.0 for backward compat
 
 ### Future Economy Features (not yet implemented)
 
-- Upkeep and bankruptcy (6.2.B)
-- Stability and war damage modifiers (6.2.C)
 - Recruitment rework with morale dilution (6.2.D)
 - Plunder/secure capture choice and buildings (6.2.E)
 - Supply limits and movement attrition (6.2.F)

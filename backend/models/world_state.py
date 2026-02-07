@@ -571,12 +571,17 @@ class WorldState:
         return f"Battle of {region}"
 
     def capture_region(self, region_name: str, capturing_nation: str) -> bool:
-        """Capture a region (change controller)."""
+        """Capture a region (change controller).
+
+        Sets stability to 25 (Hostile/Secured baseline).
+        TODO (6.2.E): Plunder (10) vs Secure (25) choice, reconquest bonus (60).
+        """
         region = self.get_region(region_name)
         if not region:
             return False
 
         region.controller = capturing_nation
+        region.stability = 25  # Captured regions start at low stability
         return True
 
     # ========================================
@@ -1240,24 +1245,36 @@ class WorldState:
     # ========================================
 
     def calculate_turn_income(self, nation: str = None) -> Dict:
-        """Calculate income for a nation. Defaults to player_nation."""
+        """Calculate income for a nation. Defaults to player_nation.
+
+        Uses get_effective_income() which applies stability and war damage modifiers.
+        """
         nation = nation or self.player_nation
         nation_regions = self.get_nation_regions(nation)
 
-        # Base income from regions (differentiated by region_type)
-        base_income = 0
+        # Effective income from regions (after stability + war damage modifiers)
+        total_income = 0
+        region_breakdown = []
         for region_name in nation_regions:
             region = self.regions[region_name]
-            base_income += region.income_value
-
-        total_income = base_income
+            effective = region.get_effective_income()
+            total_income += effective
+            region_breakdown.append({
+                "region": region_name,
+                "base_income": region.income_value,
+                "effective_income": effective,
+                "stability": region.stability,
+                "stability_label": region.get_stability_label(),
+                "war_damage": region.war_damage
+            })
 
         return {
             "income": total_income,
             "breakdown": {
                 "regions": len(nation_regions),
-                "base_income": base_income,
-                "total": total_income
+                "base_income": sum(self.regions[r].income_value for r in nation_regions),
+                "total": total_income,
+                "region_details": region_breakdown
             },
             "message": f"Turn {self.current_turn} income: {total_income} gold ({len(nation_regions)} regions)"
         }
@@ -1347,6 +1364,36 @@ class WorldState:
         # AI nations: assume they use all AP (no bonus)
         # AI admin spending comes in 6.2.G
         return 0
+
+    # ========================================
+    # STABILITY GROWTH & WAR DAMAGE RECOVERY (Phase 6.2.C)
+    # ========================================
+
+    def process_stability_growth(self):
+        """Per-turn stability growth for all controlled regions.
+
+        Base growth: +5/turn.
+        Garrison bonus: +5 if a friendly marshal is present (total +10).
+        """
+        for region in self.regions.values():
+            if region.controller is None:
+                continue  # Neutral/unclaimed regions don't grow
+            base_growth = 5
+            garrison_bonus = 5 if self._has_marshal_in_region(region.name, region.controller) else 0
+            region.stability = min(100, region.stability + base_growth + garrison_bonus)
+
+    def process_war_damage_recovery(self):
+        """Natural war damage recovery for all regions. -0.02/turn."""
+        for region in self.regions.values():
+            if region.war_damage > 0:
+                region.recover_war_damage(0.02)
+
+    def _has_marshal_in_region(self, region_name: str, nation: str) -> bool:
+        """Check if any marshal of the given nation is in the region."""
+        for marshal in self.marshals.values():
+            if marshal.location == region_name and marshal.nation == nation and marshal.strength > 0:
+                return True
+        return False
 
     # ========================================
     # BANKRUPTCY SYSTEM (Phase 6.2.B)
@@ -1788,6 +1835,10 @@ class WorldState:
                 "terrain": region.terrain,
                 "region_type": region.region_type,
                 "income_value": int(region.income_value),
+                "effective_income": int(region.get_effective_income()),
+                "stability": int(region.stability),
+                "stability_label": region.get_stability_label(),
+                "war_damage": region.war_damage,
                 "marshals": marshals_data
             }
 
@@ -1951,6 +2002,13 @@ class WorldState:
 
         old_turn = self.current_turn
         self.current_turn = int(self.current_turn + 1)
+
+        # ════════════════════════════════════════════════════════════
+        # STABILITY GROWTH & WAR DAMAGE RECOVERY (Phase 6.2.C)
+        # Must run BEFORE income phase so modifiers are current
+        # ════════════════════════════════════════════════════════════
+        self.process_stability_growth()
+        self.process_war_damage_recovery()
 
         # ════════════════════════════════════════════════════════════
         # BANKRUPTCY DESERTION (Phase 6.2.B) — uses PREVIOUS turn's counter
@@ -2558,6 +2616,11 @@ class WorldState:
                     terrain_name = auto_charge_terrain.replace("_", " ").title()
                     debug_print(f"  [AUTO-CHARGE] Charge blocked by {terrain_name} terrain — downgrading to normal attack")
 
+                # Capture pre-battle strengths for war damage threshold (Phase 6.2.C)
+                pre_battle_atk = marshal.strength
+                pre_battle_def = enemy.strength
+                auto_charge_battle_region = enemy.location
+
                 # Execute combat (glorious_charge=False if terrain blocks it)
                 combat_result = combat_resolver.resolve_battle(
                     attacker=marshal,
@@ -2566,6 +2629,13 @@ class WorldState:
                     glorious_charge=not charge_blocked
                 )
                 debug_print(f"  [AUTO-CHARGE DEBUG] Combat result victor: {combat_result.get('victor')}")
+
+                # Apply war damage + stability hit to battle region (Phase 6.2.C)
+                battle_region = self.get_region(auto_charge_battle_region)
+                if battle_region:
+                    combined = pre_battle_atk + pre_battle_def
+                    battle_region.apply_war_damage(0.20 if combined >= 50000 else 0.10)
+                    battle_region.stability = max(0, battle_region.stability - 10)
 
                 # Record battle for cannon fire detection
                 self.record_battle(enemy.location, marshal.name, enemy.name,

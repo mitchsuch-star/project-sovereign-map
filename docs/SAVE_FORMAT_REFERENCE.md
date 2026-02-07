@@ -11,7 +11,7 @@ A future save/load system should use this as the specification.
 
 - **Format version:** 1.0
 - **Last updated:** 2026-02-06
-- **Compatible with:** Phase 6.2.B Upkeep + Bankruptcy + Admin AP
+- **Compatible with:** Phase 6.2.C Stability + War Damage
 
 ## Top-Level Structure (WorldState)
 
@@ -401,7 +401,9 @@ A future save/load system should use this as the specification.
   "terrain": "urban",
   "region_type": "capital",
   "controller": "France",
-  "garrison_strength": 0
+  "garrison_strength": 0,
+  "stability": 100,
+  "war_damage": 0.0
 }
 ```
 
@@ -417,6 +419,8 @@ A future save/load system should use this as the specification.
 | `region_type` | string | Region type: capital, major_city, city, town, rural. Default "town" for backward compat. |
 | `controller` | string\|null | Nation controlling region |
 | `garrison_strength` | int | Garrison troops (future use) |
+| `stability` | int | 0-100, affects income via tiered modifier. Default 100 for backward compat. (Phase 6.2.C) |
+| `war_damage` | float | 0.0-0.5, reduces income. Default 0.0 for backward compat. (Phase 6.2.C) |
 
 ### Computed Properties (not serialized)
 
@@ -426,6 +430,8 @@ A future save/load system should use this as the specification.
 | `movement_cost` | terrain | Attrition multiplier (1.0-2.0) |
 | `supply_modifier` | terrain | Supply capacity modifier (0.5-1.2) |
 | `cavalry_effectiveness` | terrain | Cavalry combat multiplier (0.3-1.2) |
+| `get_effective_income()` | stability, war_damage | Actual income after modifiers: `int(income_value * stability_mod * (1 - war_damage))` |
+| `get_stability_label()` | stability | "Hostile" / "Unrest" / "Settling" / "Stable" |
 
 ---
 

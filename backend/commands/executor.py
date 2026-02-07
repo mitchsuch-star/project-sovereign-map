@@ -1426,6 +1426,24 @@ RETREAT RECOVERY (3 turns):
                 "message": f"Unknown action: {action}"
             }
 
+    def _apply_battle_effects_to_region(
+        self,
+        region_name: str,
+        attacker_strength: int,
+        defender_strength: int,
+        world: 'WorldState'
+    ) -> None:
+        """Apply war damage and stability hit to a region after battle.
+
+        Uses pre-battle troop counts for the 50k major battle threshold.
+        """
+        region = world.get_region(region_name)
+        if not region:
+            return
+        combined = attacker_strength + defender_strength
+        region.apply_war_damage(0.20 if combined >= 50000 else 0.10)
+        region.stability = max(0, region.stability - 10)
+
     def _handle_forced_retreat(
         self,
         battle_result: Dict,
@@ -2128,6 +2146,11 @@ RETREAT RECOVERY (3 turns):
         defender_region = world.get_region(enemy_marshal.location)
         battle_terrain = defender_region.terrain if defender_region else "plains"
 
+        # Capture pre-battle strengths for war damage threshold (Phase 6.2.C)
+        pre_battle_attacker_strength = marshal.strength
+        pre_battle_defender_strength = enemy_marshal.strength
+        battle_region_name = enemy_marshal.location
+
         # RESOLVE COMBAT with flanking bonus!
         battle_result = self.combat_resolver.resolve_battle(
             attacker=marshal,
@@ -2135,6 +2158,12 @@ RETREAT RECOVERY (3 turns):
             terrain=battle_terrain,
             flanking_bonus=flanking_bonus,
             flanking_message=flanking_message
+        )
+
+        # Apply war damage + stability hit to battle region (Phase 6.2.C)
+        self._apply_battle_effects_to_region(
+            battle_region_name, pre_battle_attacker_strength,
+            pre_battle_defender_strength, world
         )
 
         # V2a: Reset idle tracking on attack
@@ -4126,6 +4155,10 @@ RETREAT RECOVERY (3 turns):
         sally_defender_region = world.get_region(best_enemy.location)
         sally_terrain = sally_defender_region.terrain if sally_defender_region else "plains"
 
+        # Capture pre-battle strengths for war damage threshold (Phase 6.2.C)
+        pre_battle_atk = best_marshal.strength
+        pre_battle_def = best_enemy.strength
+
         # Resolve battle with flanking
         battle_result = self.combat_resolver.resolve_battle(
             attacker=best_marshal,
@@ -4133,6 +4166,11 @@ RETREAT RECOVERY (3 turns):
             terrain=sally_terrain,
             flanking_bonus=flanking_bonus,
             flanking_message=flanking_message
+        )
+
+        # Apply war damage + stability hit to battle region (Phase 6.2.C)
+        self._apply_battle_effects_to_region(
+            target_location, pre_battle_atk, pre_battle_def, world
         )
 
         # Record battle for cannon fire detection
@@ -4256,6 +4294,10 @@ RETREAT RECOVERY (3 turns):
             sally2_defender_region = world.get_region(enemy.location)
             sally2_terrain = sally2_defender_region.terrain if sally2_defender_region else "plains"
 
+            # Capture pre-battle strengths for war damage threshold (Phase 6.2.C)
+            pre_battle_atk = nearest_marshal.strength
+            pre_battle_def = enemy.strength
+
             # Execute attack with flanking
             battle_result = self.combat_resolver.resolve_battle(
                 attacker=nearest_marshal,
@@ -4263,6 +4305,11 @@ RETREAT RECOVERY (3 turns):
                 terrain=sally2_terrain,
                 flanking_bonus=flanking_bonus,
                 flanking_message=flanking_message
+            )
+
+            # Apply war damage + stability hit to battle region (Phase 6.2.C)
+            self._apply_battle_effects_to_region(
+                target_location, pre_battle_atk, pre_battle_def, world
             )
 
             # Record battle for cannon fire detection
@@ -4372,12 +4419,21 @@ RETREAT RECOVERY (3 turns):
             sally3_defender_region = world.get_region(enemy.location)
             sally3_terrain = sally3_defender_region.terrain if sally3_defender_region else "plains"
 
+            # Capture pre-battle strengths for war damage threshold (Phase 6.2.C)
+            pre_battle_atk = nearest_marshal.strength
+            pre_battle_def = enemy.strength
+
             battle_result = self.combat_resolver.resolve_battle(
                 attacker=nearest_marshal,
                 defender=enemy,
                 terrain=sally3_terrain,
                 flanking_bonus=flanking_bonus,
                 flanking_message=flanking_message
+            )
+
+            # Apply war damage + stability hit to battle region (Phase 6.2.C)
+            self._apply_battle_effects_to_region(
+                target_name, pre_battle_atk, pre_battle_def, world
             )
 
             # Record battle for cannon fire detection
@@ -6096,12 +6152,22 @@ RETREAT RECOVERY (3 turns):
         charge_defender_region = world.get_region(target_marshal.location)
         charge_terrain = charge_defender_region.terrain if charge_defender_region else "plains"
 
+        # Capture pre-battle strengths for war damage threshold (Phase 6.2.C)
+        pre_battle_atk = marshal.strength
+        pre_battle_def = target_marshal.strength
+        charge_battle_region = target_marshal.location
+
         # Get combat result with glorious charge flag
         combat_result = self.combat_resolver.resolve_battle(
             attacker=marshal,
             defender=target_marshal,
             terrain=charge_terrain,
             glorious_charge=True  # 2x damage multiplier
+        )
+
+        # Apply war damage + stability hit to battle region (Phase 6.2.C)
+        self._apply_battle_effects_to_region(
+            charge_battle_region, pre_battle_atk, pre_battle_def, world
         )
 
         # Record battle for cannon fire detection

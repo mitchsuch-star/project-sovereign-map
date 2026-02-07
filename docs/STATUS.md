@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 6, 2026
-> **Last Session:** Session 16 — Phase 6.2.B Upkeep + Bankruptcy + Admin AP
+> **Last Session:** Session 17 — Phase 6.2.C Stability + War Damage
 
 ---
 
@@ -10,16 +10,16 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1491** (verified, 3 skipped) |
-| **Current Phase** | Phase 6.2 Economy: 6.2.B COMPLETE. Next: 6.2.C Stability + War Damage |
+| **Tests Passing** | **1569** (verified, 3 skipped) |
+| **Current Phase** | Phase 6.2 Economy: 6.2.C COMPLETE. Next: 6.2.D Recruitment Rework |
 | **Blockers** | None |
-| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2.A, 6.2.B |
+| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2.A, 6.2.B, 6.2.C |
 
 ---
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2.A-B COMPLETE. Next: 6.2.C.**
+**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2.A-C COMPLETE. Next: 6.2.D.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -36,11 +36,56 @@
 - [x] **Session 6.1.C: Weighted Pathfinding** — Dijkstra pathfinding, MOVE_TO+HOLD terrain-aware routing, AI retreat weighted distance, terrain display in scout/status, 39 tests (1386 total)
 - [x] **Session 6.2.A: Region Types + Income + Gold** — 5 region types, differentiated income, per-nation gold tracking, 46 tests (1432 total)
 - [x] **Session 6.2.B: Upkeep + Bankruptcy + Admin AP** — upkeep calculation, bankruptcy desertion, admin AP pool, income phase refactor, 59 tests (1491 total)
-- [ ] Phase 6.2.C–G: Stability, recruitment, buildings, supply, AI admin
+- [x] **Session 6.2.C: Stability + War Damage** — region stability tiers, war damage, combined income modifiers, battle effects, turn resolution, 78 tests (1569 total)
+- [ ] Phase 6.2.D–G: Recruitment rework, buildings, supply, AI admin
 
 ---
 
 ## Recently Completed
+
+### Feb 6 (Session 17: Phase 6.2.C Stability + War Damage)
+
+**Region stability (region.py):**
+- `stability: int = 100` — 0-100 range, affects income via tiered modifier
+- Stability tiers: Hostile (0-25, 0% income), Unrest (26-50, 25%), Settling (51-75, 75%), Stable (76-100, 100%)
+- Boundary values fall into LOWER tier (stability=25 → Hostile, stability=50 → Unrest, etc.)
+- `get_stability_label()`, `_get_stability_modifier()` helpers
+- Capture sets stability to 25 (TODO 6.2.E: plunder=10 vs secure=25 choice)
+
+**War damage (region.py):**
+- `war_damage: float = 0.0` — 0.0-0.5 range, reduces income
+- `apply_war_damage(amount)` — adds damage, caps at 0.50
+- `recover_war_damage(0.02)` — natural recovery per turn
+- Normal battle: +0.10, Major battle (50k+ combined pre-battle troops): +0.20
+
+**Combined income formula (region.py):**
+- `get_effective_income()` = `int(income_value * stability_modifier * (1.0 - war_damage))`
+- `calculate_turn_income()` now uses `get_effective_income()` instead of raw `income_value`
+- Income breakdown includes per-region stability, damage, effective income details
+- `get_game_state_summary()` map_data includes: effective_income, stability, stability_label, war_damage
+
+**Battle effects (executor.py):**
+- `_apply_battle_effects_to_region()` helper: war damage + stability hit (-10) per battle
+- Uses pre-battle troop counts for 50k major battle threshold (not post-battle)
+- Applied at ALL 6 `resolve_battle()` call sites in executor.py
+- Applied at auto-charge in `world_state.py` and 3 legacy sites in `full_game.py`
+- Two battles in same region stack damage (0.10 + 0.10 = 0.20)
+
+**Turn resolution (world_state.py):**
+- `process_stability_growth()` — +5/turn base, +5 garrison bonus (friendly marshal present)
+- `process_war_damage_recovery()` — -0.02/turn natural recovery
+- `_has_marshal_in_region(region_name, nation)` — garrison check helper
+- Runs in `_advance_turn_internal()` BEFORE bankruptcy/income phase
+- Stability capped at 100, war damage floored at 0.0
+
+**Serialization:**
+- `stability`, `war_damage` in Region `to_dict()`/`from_dict()`
+- Backward compat: missing stability defaults to 100, missing war_damage defaults to 0.0
+- Serialization enforcement tests pass
+
+**Tests:** 78 new tests in `test_economy_stability_war_damage.py` (1569 total)
+
+---
 
 ### Feb 6 (Session 16: Phase 6.2.B Upkeep + Bankruptcy + Admin AP)
 
@@ -412,6 +457,7 @@
 
 | Date | Tests | Notes |
 |------|-------|-------|
+| Feb 6, 2026 | **1569** | Phase 6.2.C: stability, war damage, combined income modifiers. 78 new tests |
 | Feb 6, 2026 | **1491** | Phase 6.2.B: upkeep, bankruptcy, admin AP. 59 new tests |
 | Feb 6, 2026 | **1432** | Phase 6.2.A: region types, income, per-nation gold. 46 new tests |
 | Feb 6, 2026 | **1347** | Smoke test bug fixes: cavalry terrain msg, charge redirect, recklessness reset. 13 new tests |
@@ -452,8 +498,8 @@
 
 ## Next Session Priorities
 
-1. **Phase 6.2.C: Stability + War Damage** — region stability field, plunder/secure actions, war damage, stability income modifier. See `docs/PHASE6_IMPLEMENTATION_PLAN.md` Session 6.2.C.
-2. **Phase 6.2.D: Recruitment Rework** — morale dilution, location restrictions, capital discount, admin AP integration
+1. **Phase 6.2.D: Recruitment Rework** — morale dilution, location restrictions, capital discount, admin AP integration
+2. **Phase 6.2.E: Plunder/Secure + Buildings** — capture choice (plunder=10 stability vs secure=25), reconquest bonus, buildings
 3. **Phase 6.2.E–G: Buildings, Supply, AI Admin** — remaining economy features
 4. Commission Europe map art (start search for artist)
 

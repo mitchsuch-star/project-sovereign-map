@@ -197,7 +197,9 @@ Regions represent territories on the map.
     "terrain": "urban",
     "region_type": "capital",
     "controller": "France",
-    "garrison_strength": 5000
+    "garrison_strength": 5000,
+    "stability": 100,
+    "war_damage": 0.0
 }
 ```
 
@@ -213,6 +215,8 @@ Regions represent territories on the map.
 | `region_type` | string | "town" | Region type (see below). Determines income. Valid: capital, major_city, city, town, rural |
 | `controller` | string | null | Nation that controls this region |
 | `garrison_strength` | integer | 0 | Troops defending (not marshal) |
+| `stability` | integer | 100 | Region stability (0-100). Affects income via tiers: 0-25=Hostile (0%), 26-50=Unrest (25%), 51-75=Settling (75%), 76-100=Stable (100%). Set to 25 on capture. |
+| `war_damage` | float | 0.0 | War damage (0.0-0.5). Reduces income multiplicatively. Applied by battles, recovers -0.02/turn. |
 
 ### Terrain Types
 

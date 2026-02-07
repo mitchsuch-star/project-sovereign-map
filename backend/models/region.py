@@ -97,6 +97,10 @@ class Region:
         self.controller: Optional[str] = None
         self.garrison_strength: int = 0
 
+        # Economy modifiers (Phase 6.2.C)
+        self.stability: int = 100  # 0-100, affects income. Default 100 = Stable
+        self.war_damage: float = 0.0  # 0.0-0.5, reduces income. Default 0.0 = pristine
+
     @property
     def defense_bonus(self) -> float:
         """Defender bonus from terrain."""
@@ -117,6 +121,46 @@ class Region:
         """Cavalry combat effectiveness multiplier in this terrain."""
         return TERRAIN_CAVALRY_EFFECTIVENESS.get(self.terrain, 1.0)
 
+    # ========================================
+    # STABILITY & WAR DAMAGE (Phase 6.2.C)
+    # ========================================
+
+    def get_stability_label(self) -> str:
+        """Human-readable stability tier label."""
+        if self.stability <= 25:
+            return "Hostile"
+        elif self.stability <= 50:
+            return "Unrest"
+        elif self.stability <= 75:
+            return "Settling"
+        else:
+            return "Stable"
+
+    def _get_stability_modifier(self) -> float:
+        """Income modifier from stability tier. Boundary values fall into LOWER tier."""
+        if self.stability <= 25:
+            return 0.0     # Hostile: no income
+        elif self.stability <= 50:
+            return 0.25    # Unrest: 25%
+        elif self.stability <= 75:
+            return 0.75    # Settling: 75%
+        else:
+            return 1.0     # Stable: 100%
+
+    def apply_war_damage(self, amount: float):
+        """Add war damage, capped at 0.5."""
+        self.war_damage = min(0.5, self.war_damage + amount)
+
+    def recover_war_damage(self, amount: float = 0.02):
+        """Natural recovery per turn."""
+        self.war_damage = max(0.0, self.war_damage - amount)
+
+    def get_effective_income(self) -> int:
+        """Actual income after stability and war damage modifiers."""
+        stability_mod = self._get_stability_modifier()
+        damage_mod = 1.0 - self.war_damage
+        return int(self.income_value * stability_mod * damage_mod)
+
     def is_adjacent_to(self, other_region_name: str) -> bool:
         """Check if this region borders another region."""
         return other_region_name in self.adjacent_regions
@@ -131,7 +175,9 @@ class Region:
             "terrain": self.terrain,
             "region_type": self.region_type,
             "controller": self.controller,
-            "garrison_strength": self.garrison_strength
+            "garrison_strength": self.garrison_strength,
+            "stability": self.stability,
+            "war_damage": self.war_damage
         }
 
     @classmethod
@@ -147,6 +193,8 @@ class Region:
         )
         region.controller = data.get("controller")
         region.garrison_strength = data.get("garrison_strength", 0)
+        region.stability = data.get("stability", 100)  # Default 100 for backward compat
+        region.war_damage = data.get("war_damage", 0.0)  # Default 0.0 for backward compat
         return region
 
     def __repr__(self) -> str:
