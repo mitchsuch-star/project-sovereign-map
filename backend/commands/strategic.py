@@ -373,8 +373,8 @@ class StrategicExecutor:
             # Recalculate path avoiding ALL enemy regions (not just the one)
             destination = order.target_snapshot_location or order.target
             enemy_regions = self._get_enemy_occupied_regions(marshal.nation, world)
-            # MOVE_TO uses weighted pathfinding for terrain-aware rerouting
-            use_weighted = (order.command_type == "MOVE_TO")
+            # MOVE_TO and HOLD use weighted pathfinding for terrain-aware rerouting
+            use_weighted = (order.command_type in ("MOVE_TO", "HOLD"))
             pathfinder = world.find_weighted_path if use_weighted else world.find_path
             new_path = pathfinder(
                 marshal.location, destination,
@@ -1055,8 +1055,8 @@ class StrategicExecutor:
                 return self._handle_blocked_path(
                     marshal, enemies_here, marshal.location, world, game_state)
 
-            # Temporarily use path-based movement
-            path = world.find_path(marshal.location, hold_position)
+            # Use weighted pathfinding — march to hold position avoids expensive terrain
+            path = world.find_weighted_path(marshal.location, hold_position)
             if path:
                 path = [r for r in path if r != marshal.location]
                 if path:
@@ -1731,8 +1731,8 @@ class StrategicExecutor:
             # Reroute silently around ALL enemy regions
             destination = order.target_snapshot_location or order.target
             enemy_regions = self._get_enemy_occupied_regions(marshal.nation, world)
-            # MOVE_TO uses weighted pathfinding for terrain-aware rerouting
-            use_weighted = (order.command_type == "MOVE_TO")
+            # MOVE_TO and HOLD use weighted pathfinding for terrain-aware rerouting
+            use_weighted = (order.command_type in ("MOVE_TO", "HOLD"))
             pathfinder = world.find_weighted_path if use_weighted else world.find_path
             new_path = pathfinder(
                 marshal.location, destination,

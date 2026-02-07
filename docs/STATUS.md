@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1384** (verified, 3 skipped) |
+| **Tests Passing** | **1386** (verified, 3 skipped) |
 | **Current Phase** | Phase 6.1 Terrain: COMPLETE. Next: Phase 6.2 Economy |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1 |
@@ -33,7 +33,7 @@
 - [x] **6.1.B Bug Fixes** — all 3 bugs fixed, 10 regression tests, full suite green (1334 pass)
 - [x] **6.1.B Smoke Test** — 3 Godot smoke test bugs fixed, charge redirect popup added, 13 regression tests (1347 pass)
 - [x] **6.1.B Polish** — cavalry terrain flavor in Godot battle UI, recklessness color tags, charge redirect sort logic, auto-charge message bug fix
-- [x] **Session 6.1.C: Weighted Pathfinding** — Dijkstra pathfinding, MOVE_TO terrain-aware routing, AI retreat weighted distance, terrain display in scout/status, 37 tests (1384 total)
+- [x] **Session 6.1.C: Weighted Pathfinding** — Dijkstra pathfinding, MOVE_TO+HOLD terrain-aware routing, AI retreat weighted distance, terrain display in scout/status, 39 tests (1386 total)
 - [ ] Phase 6.2: Economy implementation (18 steps per ECONOMY_SPEC.md §15)
 
 ---
@@ -50,10 +50,10 @@
 - Existing BFS methods (`find_path()`, `get_distance()`) untouched.
 
 **Strategic integration (strategic.py, executor.py):**
-- MOVE_TO now uses `find_weighted_path()` — avoids mountains/expensive terrain when possible
+- MOVE_TO and HOLD now use `find_weighted_path()` — avoids mountains/expensive terrain when possible
 - PURSUE stays on BFS — chasing doesn't pick scenic routes
-- HOLD, SUPPORT stay on BFS — short-range/ally-following pathfinding
-- All MOVE_TO path calculation sites updated: initial path, recalculation, reroute (go_around), literal reroute, cautious compromise, auto-upgrade
+- SUPPORT stays on BFS — following allies directly
+- All MOVE_TO/HOLD path calculation sites updated: initial path, recalculation, per-turn movement, reroute (go_around), literal reroute, cautious compromise, auto-upgrade
 
 **AI integration (enemy_ai.py):**
 - `_find_retreat_destination()` sorts safe regions by `get_weighted_distance()` to capital — AI retreats avoid mountains
@@ -65,17 +65,21 @@
 - Scout events include terrain data for Godot frontend (terrain, terrain_display, defense_bonus)
 - `get_game_state_summary()` map_data includes `terrain` field per region
 
-**Tests (37 new in `test_terrain_pathfinding.py`):**
+**Bug fix (main.py):**
+- Fixed emoji `print()` statements that crashed on Windows console encoding (charmap codec). Replaced emoji prefixes with ASCII `[OBJECTION]` tag.
+
+**Tests (39 new in `test_terrain_pathfinding.py`):**
 - TestFindWeightedPath (11): route preference, mountains, unreachable, avoid_regions, BFS/Dijkstra divergence
 - TestGetWeightedDistance (6): correct sums, inf for unreachable, comparison with hop count
 - TestMoveToUsesWeightedPath (1): MOVE_TO avoids mountains
+- TestHoldUsesWeightedPath (2): HOLD avoids mountains, path differs from BFS
 - TestPursueUsesBFS (1): PURSUE uses BFS
 - TestAIRetreatTerrainAware (2): retreat weighted distance
 - TestTerrainDisplay (7): scout text format, event data, map_data terrain field
 - TestBFSUnchanged (5): regression tests for existing BFS
 - TestWeightedPathfindingEdgeCases (4): all-mountains, inclusive paths, adjacent distance
 
-**Total: 1384 tests passing, 3 skipped.**
+**Total: 1386 tests passing, 3 skipped.**
 
 ---
 

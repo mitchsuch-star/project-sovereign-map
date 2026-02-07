@@ -2799,9 +2799,9 @@ RETREAT RECOVERY (3 turns):
 
             if dest and dest != marshal.location:
                 # Personality-aware pathfinding (cautious avoids enemies)
-                # MOVE_TO uses weighted (Dijkstra) pathfinding for terrain-aware routes
-                # PURSUE/SUPPORT/HOLD stay on BFS (chasing/supporting doesn't pick scenic routes)
-                use_weighted = (strategic_type == "MOVE_TO")
+                # MOVE_TO and HOLD use weighted (Dijkstra) pathfinding for terrain-aware routes
+                # PURSUE/SUPPORT stay on BFS (chasing/supporting doesn't pick scenic routes)
+                use_weighted = (strategic_type in ("MOVE_TO", "HOLD"))
                 pathfinder = world.find_weighted_path if use_weighted else world.find_path
                 personality = getattr(marshal, 'personality', 'balanced')
                 if personality == "cautious":
@@ -3422,14 +3422,14 @@ RETREAT RECOVERY (3 turns):
             # Davout (cautious) compromise: safe path for MOVE_TO, HOLD, SUPPORT
             if compromise_data.get("safe_path"):
                 # Recalculate path avoiding enemies
-                # MOVE_TO uses weighted pathfinding for terrain-aware routes
+                # MOVE_TO and HOLD use weighted pathfinding for terrain-aware routes
                 enemy_occupied = set()
                 for rn in world.regions:
                     if world.get_enemies_in_region(rn, marshal.nation):
                         enemy_occupied.add(rn)
 
                 dest = path[-1] if path else target
-                use_weighted = (strategic_type == "MOVE_TO")
+                use_weighted = (strategic_type in ("MOVE_TO", "HOLD"))
                 safe_pathfinder = world.find_weighted_path if use_weighted else world.find_path
                 safe_path = safe_pathfinder(marshal.location, dest, avoid_regions=enemy_occupied)
                 if safe_path:
@@ -3520,8 +3520,8 @@ RETREAT RECOVERY (3 turns):
                 rn for rn in world.regions
                 if world.get_enemies_in_region(rn, marshal.nation)
             ]
-            # MOVE_TO uses weighted pathfinding for terrain-aware rerouting
-            use_weighted = (order.command_type == "MOVE_TO")
+            # MOVE_TO and HOLD use weighted pathfinding for terrain-aware rerouting
+            use_weighted = (order.command_type in ("MOVE_TO", "HOLD"))
             first_step_pathfinder = world.find_weighted_path if use_weighted else world.find_path
             new_path = first_step_pathfinder(
                 marshal.location, destination,

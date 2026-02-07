@@ -1282,7 +1282,7 @@ Two new methods on `WorldState` alongside existing BFS:
 |---------|------------|-----------|
 | MOVE_TO | **Weighted (Dijkstra)** | Strategic marches should pick lower-attrition routes |
 | PURSUE | BFS (hop count) | Chasing doesn't pick scenic routes |
-| HOLD | BFS | Short-range repositioning |
+| HOLD | **Weighted (Dijkstra)** | March to hold position avoids expensive terrain |
 | SUPPORT | BFS | Following allies directly |
 | AI retreat | **Weighted** | Retreat destination sort by weighted distance to capital |
 | AI movement (P7, stagnation) | BFS | Single-hop adjacent comparisons |

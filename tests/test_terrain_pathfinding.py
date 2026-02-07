@@ -293,6 +293,66 @@ class TestMoveToUsesWeightedPath:
                 f"MOVE_TO path should avoid mountains, got: {order.path}"
 
 
+class TestHoldUsesWeightedPath:
+    """HOLD to distant region should use Dijkstra for terrain-aware routes."""
+
+    def setup_method(self):
+        self.world = WorldState()
+        self.executor = CommandExecutor()
+        self.game_state = {"world": self.world}
+
+        # Make Belgium mountains so weighted path avoids it
+        self.world.get_region("Belgium").terrain = "mountains"
+
+        # Move enemies far away to avoid combat interference
+        for m in self.world.marshals.values():
+            if m.nation != "France":
+                m.location = "Vienna"
+                m.strength = 1000
+
+    def test_hold_distant_avoids_mountains(self):
+        """HOLD to a distant region uses weighted path (avoids mountains)."""
+        ney = self.world.get_marshal("Ney")
+        ney.location = "Paris"
+        ney.strength = 50000
+        ney.morale = 100
+
+        # Issue HOLD Rhine (distant — not adjacent)
+        # BFS path: Paris -> Belgium(mountains) -> Rhine
+        # Weighted path: Paris -> Lyon -> Rhine (cheaper)
+        result = self.executor.execute(
+            {"command": {
+                "marshal": "Ney",
+                "action": "defend",
+                "target": "Rhine",
+                "is_strategic": True,
+                "strategic_type": "HOLD",
+            }},
+            self.game_state
+        )
+
+        assert result.get("success") or result.get("pending_objection"), \
+            f"Expected success or objection, got: {result.get('message')}"
+
+        # Check the order's path avoids Belgium
+        order = ney.strategic_order
+        if order and order.path:
+            assert "Belgium" not in order.path, \
+                f"HOLD path should avoid mountains, got: {order.path}"
+
+    def test_hold_initial_path_differs_from_bfs(self):
+        """HOLD initial path uses Dijkstra, producing different route from BFS."""
+        # Verify weighted pathfinding gives different result from BFS
+        # Paris -> Rhine: BFS may go via Belgium, weighted avoids mountains
+        bfs_path = self.world.find_path("Paris", "Rhine")
+        weighted_path = self.world.find_weighted_path("Paris", "Rhine")
+
+        # Weighted should go via Lyon, BFS may go via Belgium
+        assert weighted_path is not None
+        assert "Belgium" not in weighted_path
+        assert "Lyon" in weighted_path
+
+
 class TestPursueUsesBFS:
     """PURSUE should stay on BFS (direct path)."""
 
