@@ -55,6 +55,16 @@ func get_marshal_trust(marshal_name: String, callback: Callable):
 	if error != OK:
 		print("ERROR: HTTP request failed with code: ", error)
 
+func send_capture_choice_response(choice: String, callback: Callable):
+	"""Send player's plunder/secure choice after capturing a region (Phase 6.2.E)."""
+	pending_callback = callback
+	var url = API_URL + "/capture_choice"
+	var headers = ["Content-Type: application/json"]
+	var body = JSON.stringify({"choice": choice})
+	var error = http_request.request(url, headers, HTTPClient.METHOD_POST, body)
+	if error != OK:
+		print("ERROR: HTTP request failed with code: ", error)
+
 func send_glorious_charge_response(choice: String, callback: Callable):
 	"""Send player's response to Glorious Charge popup (charge or restrain)."""
 	pending_callback = callback

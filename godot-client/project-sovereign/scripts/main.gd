@@ -35,6 +35,9 @@ var pending_enemy_phase_response = null  # Store response to check game_over aft
 # Glorious Charge Dialog (Phase 3 Cavalry Recklessness)
 var glorious_charge_dialog = null
 
+# Capture Choice Dialog (Phase 6.2.E Plunder/Secure)
+var capture_choice_dialog = null
+
 # Strategic Command Dialogs (Phase J)
 var strategic_report_popup = null
 var interrupt_popup = null
@@ -152,6 +155,14 @@ func _ready():
 			add_child(glorious_charge_dialog)
 			glorious_charge_dialog.choice_made.connect(_on_glorious_charge_choice_made)
 			print("✓ GloriousChargeDialog ready!")
+
+	# Load and setup Capture Choice Dialog (Phase 6.2.E Plunder/Secure)
+	var capture_choice_scene = load("res://scenes/capture_choice_dialog.tscn")
+	if capture_choice_scene:
+		capture_choice_dialog = capture_choice_scene.instantiate()
+		add_child(capture_choice_dialog)
+		capture_choice_dialog.choice_made.connect(_on_capture_choice_made)
+		print("✓ CaptureChoiceDialog ready!")
 
 	# Load and setup Strategic Report Popup (Phase J)
 	var strategic_report_scene = load("res://scenes/strategic_report_popup.tscn")
@@ -435,6 +446,11 @@ func _on_command_result(response):
 		print(">>> glorious_charge_dialog is: ", glorious_charge_dialog)
 		print(">>> glorious_charge_dialog == null: ", glorious_charge_dialog == null)
 		_show_glorious_charge_dialog(response)
+		return  # Don't re-enable input until choice made
+
+	# Check for capture choice (Phase 6.2.E: Plunder or Secure)
+	if response.has("pending_capture_choice") and response.pending_capture_choice:
+		_show_capture_choice_dialog(response)
 		return  # Don't re-enable input until choice made
 
 	# Check for clarification request (Grouchy/literal marshal)
@@ -1145,6 +1161,84 @@ func _on_enemy_phase_dismissed():
 		pending_enemy_phase_response = null
 
 	set_input_enabled(true)
+	command_input.grab_focus()
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# CAPTURE CHOICE DIALOG (Phase 6.2.E Plunder/Secure)
+# ════════════════════════════════════════════════════════════════════════════
+
+func _show_capture_choice_dialog(response):
+	"""Display Plunder/Secure popup when player captures an enemy region."""
+	var capture_data = response.get("capture_data", {})
+	var region_name = capture_data.get("region", "Unknown") if capture_data is Dictionary else "Unknown"
+	var capturer_name = capture_data.get("capturer", "Marshal") if capture_data is Dictionary else "Marshal"
+
+	# Show the capture message in log first
+	if response.has("message"):
+		add_output("[color=#" + COLOR_CONQUEST + "]" + response.message + "[/color]")
+
+	# Update status/map from the response
+	if response.has("action_summary"):
+		_update_status(response.action_summary)
+	if response.has("game_state") and response.game_state.has("gold"):
+		gold = int(response.game_state.gold)
+		_update_gold_display()
+	if response.has("game_state") and response.game_state.has("map_data"):
+		map_area.update_all_regions(response.game_state.map_data)
+
+	add_output("")
+	add_output("[color=#" + COLOR_GOLD + "]Your forces await orders: Plunder or Secure?[/color]")
+	add_output("")
+
+	if capture_choice_dialog == null:
+		push_error("capture_choice_dialog is NULL! Cannot show dialog.")
+		add_output("[color=#" + COLOR_ERROR + "]ERROR: Capture choice dialog not loaded![/color]")
+		set_input_enabled(true)
+		return
+
+	capture_choice_dialog.show_capture_choice(capture_data)
+
+
+func _on_capture_choice_made(choice: String):
+	"""Handle player's plunder/secure choice."""
+	set_input_enabled(false)
+
+	var choice_text = ""
+	if choice == "plunder":
+		choice_text = "You order your troops to plunder the region!"
+		add_output("[color=#" + COLOR_BATTLE + "]" + choice_text + "[/color]")
+	else:
+		choice_text = "You order your troops to secure the region."
+		add_output("[color=#" + COLOR_SUCCESS + "]" + choice_text + "[/color]")
+	add_output("")
+
+	api_client.send_capture_choice_response(choice, _on_capture_choice_response)
+
+
+func _on_capture_choice_response(response):
+	"""Handle backend response after player makes plunder/secure choice."""
+	set_input_enabled(true)
+
+	if response.success:
+		if response.has("action_summary"):
+			_update_status(response.action_summary)
+		if response.has("game_state") and response.game_state.has("gold"):
+			gold = int(response.game_state.gold)
+			_update_gold_display()
+		if response.has("game_state") and response.game_state.has("map_data"):
+			map_area.update_all_regions(response.game_state.map_data)
+
+		add_output("[color=#" + COLOR_SUCCESS + "]" + response.message + "[/color]")
+
+		if response.has("game_state") and response.game_state.has("game_over"):
+			if response.game_state.game_over:
+				_show_game_over_screen(response.game_state)
+				return
+	else:
+		add_output("[color=#" + COLOR_ERROR + "]" + response.message + "[/color]")
+
+	add_output("")
 	command_input.grab_focus()
 
 

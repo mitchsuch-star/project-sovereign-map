@@ -309,11 +309,20 @@ class CommandExecutor:
         # Get income info
         income_data = world.calculate_turn_income()
 
+        # Build turn_end event for Godot's _display_turn_change
+        turn_end_event = {
+            "type": "turn_end",
+            "old_turn": int(turn_result.get("turn_ended", world.current_turn - 1)),
+            "new_turn": int(turn_result.get("next_turn", world.current_turn)),
+            "income": int(income_data.get("income", 0)),
+        }
+        events = [turn_end_event] + turn_result.get("events", [])
+
         # Build result with all data for frontend
         result = {
             "success": True,
             "message": message,
-            "events": turn_result.get("events", []),
+            "events": events,
             "tactical_events": tactical_events,  # Full event objects, not just messages
             "enemy_phase": enemy_phase,
             "new_state": game_state
@@ -1299,7 +1308,9 @@ RETREAT RECOVERY (3 turns):
             if is_admin_action:
                 # Admin actions consume from admin AP pool, not CP
                 world.use_admin_action()
-                action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 1, "should_end_turn": False}
+                # Auto-end turn when BOTH pools are exhausted
+                both_exhausted = (world.actions_remaining <= 0 and world.admin_actions_remaining <= 0)
+                action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 1, "should_end_turn": both_exhausted}
             else:
                 # Check for variable action cost (stance_change returns this)
                 variable_cost = result.get("variable_action_cost")
@@ -5480,6 +5491,10 @@ RETREAT RECOVERY (3 turns):
                           "\n== Redemption Testing (Phase 3) ==\n"
                           "  • dismiss <marshal> - Directly dismiss (bypass disobedience)\n"
                           "  • admin <marshal> - Toggle administrative role\n"
+                          "\n== Economy Testing (Phase 6.2) ==\n"
+                          "  • damage_building <region> - Damage first building in region\n"
+                          "  • set_stability <region> <0-100> - Set region stability\n"
+                          "  • set_gold <amount> - Set player gold\n"
                           "\n== Info ==\n"
                           "  • list_marshals - Show all marshals and locations\n"
                           "  • list_regions - Show all regions and who's there"
@@ -6061,6 +6076,65 @@ RETREAT RECOVERY (3 turns):
                           f"{marshal.administrative_strength:,} troops frozen. "
                           f"Max actions now: {world.calculate_max_actions()}"
             }
+
+        # ═══════════════════════════════════════════════
+        # ECONOMY TESTING (Phase 6.2)
+        # ═══════════════════════════════════════════════
+
+        elif ability == "damage_building":
+            # Damage first building in a region (for testing repair command)
+            if len(parts) < 2:
+                return {"success": False, "message": "Usage: /debug damage_building <region>"}
+            region_name = " ".join(parts[1:])
+            region = world.get_region(region_name)
+            if not region:
+                # Fuzzy match
+                for rn in world.regions:
+                    if region_name.lower() in rn.lower():
+                        region = world.regions[rn]
+                        region_name = rn
+                        break
+            if not region:
+                return {"success": False, "message": f"Region '{region_name}' not found."}
+            if not region.buildings:
+                return {"success": False, "message": f"{region_name} has no buildings."}
+            for b in region.buildings:
+                if not b.get("damaged"):
+                    b["damaged"] = True
+                    return {"success": True, "message": f"DEBUG: Damaged {b['type']} in {region_name}."}
+            return {"success": True, "message": f"DEBUG: All buildings in {region_name} already damaged."}
+
+        elif ability == "set_stability":
+            if len(parts) < 3:
+                return {"success": False, "message": "Usage: /debug set_stability <region> <0-100>"}
+            try:
+                value = int(parts[-1])
+            except ValueError:
+                return {"success": False, "message": "Stability must be a number 0-100."}
+            region_name = " ".join(parts[1:-1])
+            region = world.get_region(region_name)
+            if not region:
+                for rn in world.regions:
+                    if region_name.lower() in rn.lower():
+                        region = world.regions[rn]
+                        region_name = rn
+                        break
+            if not region:
+                return {"success": False, "message": f"Region '{region_name}' not found."}
+            old = region.stability
+            region.stability = max(0, min(100, value))
+            return {"success": True, "message": f"DEBUG: {region_name} stability: {old} -> {region.stability}"}
+
+        elif ability == "set_gold":
+            if len(parts) < 2:
+                return {"success": False, "message": "Usage: /debug set_gold <amount>"}
+            try:
+                value = int(parts[1])
+            except ValueError:
+                return {"success": False, "message": "Gold must be a number."}
+            old = world.gold
+            world.gold = value
+            return {"success": True, "message": f"DEBUG: Gold: {old} -> {world.gold}"}
 
         elif ability == "list_regions" or ability == "regions":
             lines = ["=== All Regions ==="]

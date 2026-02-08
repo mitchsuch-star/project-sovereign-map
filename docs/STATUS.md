@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 7, 2026
-> **Last Session:** Session 19 — Phase 6.2.E Plunder/Secure + Buildings
+> **Last Session:** Session 20 — 6.2.E Smoke Test Bug Fixes
 
 ---
 
@@ -44,6 +44,42 @@
 ---
 
 ## Recently Completed
+
+### Feb 7 (Session 20: 6.2.E Smoke Test Bug Fixes)
+
+**5 bugs found during first Godot smoke test of Phase 6.2 (A-E), all fixed:**
+
+**BUG FIX 1: Plunder/Secure popup never appeared in Godot frontend.**
+- Backend fully implemented but frontend completely missing (no dialog, no handler, no API method)
+- Root cause: Recurring wiring gap — backend returns popup data, Godot never checks for the field
+- Fix: NEW `capture_choice_dialog.tscn` + `.gd`, added `send_capture_choice_response()` to api_client.gd, wired `pending_capture_choice` check + 3 handler methods in main.gd
+
+**BUG FIX 2: `build fortification in Paris` returned "marshal none" error.**
+- Parser fuzzy matching tried to match "fortification" against marshal names
+- Root cause: `build` and `repair` not in `meta_actions` skip list in `parser.py:_apply_fuzzy_matching()`
+- Fix: Added `"build", "repair"` to meta_actions list
+
+**BUG FIX 2b: Build command returned "unknown building type" after marshal fix.**
+- `_extract_building_type()` checks `command.get("raw_command")` but parser never included it in command dict
+- Root cause: `parser.py` built command_dict with only marshal/action/target/confidence/type — no `raw_command`
+- Fix: Added `"raw_command": llm_result.get("raw_command", command_text)` to command_dict in parser.py
+
+**BUG FIX 3: "TURN X BEGINS" banner never appeared.**
+- Godot `_display_turn_change()` expects event with `type: "turn_end"` + `old_turn`/`new_turn`/`income`
+- Backend never generated this event — the events array only contained tactical events
+- Fix: Inject `turn_end` event at start of events array in `_execute_end_turn()`
+
+**BUG FIX 4: Auto turn-end only checked command AP, not admin AP.**
+- `use_action()` flagged `should_end_turn` when `actions_remaining <= 0`, ignoring admin AP pool
+- Admin action path hardcoded `should_end_turn: False`
+- Fix: Both checks now require `actions_remaining <= 0 AND admin_actions_remaining <= 0`
+
+**Debug commands added (Phase 6.2 testing):**
+- `/debug damage_building <region>` — damage first building for repair testing
+- `/debug set_stability <region> <0-100>` — set region stability
+- `/debug set_gold <amount>` — set player gold
+
+**Tests:** 1689 passed, 3 skipped, 0 failures.
 
 ### Feb 7 (Session 19: Phase 6.2.E Plunder/Secure + Buildings)
 
@@ -578,8 +614,7 @@
 
 ## Next Session Priorities
 
-1. **Phase 6.2.E: Plunder/Secure + Buildings** — capture choice (plunder=10 stability vs secure=25), reconquest bonus, buildings
-2. **Phase 6.2.F: Supply Limits + Movement Attrition** — per-region capacity, size penalty, retreat attrition
+1. **Phase 6.2.F: Supply Limits + Movement Attrition** — per-region capacity, size penalty, retreat attrition
 3. **Phase 6.2.G: AI Admin Phase + Turn Summary** — AI recruit/build/repair, financial report display
 4. Commission Europe map art (start search for artist)
 

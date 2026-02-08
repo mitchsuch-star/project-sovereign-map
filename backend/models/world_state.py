@@ -1992,7 +1992,8 @@ class WorldState:
         self.actions_remaining = int(max(0, self.actions_remaining - cost))
 
         # Flag if turn should end (executor must call end_turn for proper enemy AI)
-        should_end_turn = self.actions_remaining <= 0
+        # Both command AP and admin AP must be exhausted before auto-ending
+        should_end_turn = (self.actions_remaining <= 0 and self.admin_actions_remaining <= 0)
 
         return {
             "success": True,
