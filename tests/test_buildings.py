@@ -258,7 +258,7 @@ class TestBuildingEffects:
         assert region.get_effective_income() == 0  # 250 * 0.0 = 0
 
     def test_training_ground_boosts_recruit_morale(self):
-        """Training ground should give 55% recruit morale instead of 40%."""
+        """Training ground should give 70% recruit morale instead of 40%."""
         world, gs = make_game_state()
         executor = CommandExecutor()
         # Add training ground to Paris
@@ -274,8 +274,8 @@ class TestBuildingEffects:
         result = executor._execute_recruit(command, gs)
         assert result["success"]
 
-        # With training ground: morale = (20000 * 80 + 10000 * 55) / 30000
-        expected = int((20000 * 80 + 10000 * 55) / 30000)
+        # With training ground: morale = (20000 * 80 + 10000 * 70) / 30000
+        expected = int((20000 * 80 + 10000 * 70) / 30000)
         assert ney.morale == expected
 
     def test_damaged_training_ground_no_morale_boost(self):

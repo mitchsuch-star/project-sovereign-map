@@ -100,6 +100,22 @@ theme_override_colors/font_color = Color(0.4, 0.8, 0.4, 1)
 theme_override_font_sizes/font_size = 12
 text = "4/4"
 
+[node name="AdminDisplay" type="HBoxContainer" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="AdminLabel" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/AdminDisplay"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.75, 1)
+theme_override_font_sizes/font_size = 12
+text = "Admin:"
+
+[node name="AdminValue" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/AdminDisplay"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.7, 0.9, 1)
+theme_override_font_sizes/font_size = 12
+text = "2/2"
+
 [node name="GoldDisplay" type="HBoxContainer" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection"]
 layout_mode = 2
 theme_override_constants/separation = 4

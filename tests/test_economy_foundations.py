@@ -190,14 +190,14 @@ class TestPerNationGold:
         assert world.nation_gold["France"] == 600
 
     def test_starting_gold_britain(self):
-        """Britain starts with 800 gold."""
+        """Britain starts with 1500 gold."""
         world = WorldState()
-        assert world.nation_gold["Britain"] == 800
+        assert world.nation_gold["Britain"] == 1500
 
     def test_starting_gold_prussia(self):
-        """Prussia starts with 300 gold."""
+        """Prussia starts with 800 gold."""
         world = WorldState()
-        assert world.nation_gold["Prussia"] == 300
+        assert world.nation_gold["Prussia"] == 800
 
     def test_gold_property_reads_player_nation(self):
         """world.gold returns player nation's gold."""
@@ -244,8 +244,8 @@ class TestNationGoldSerialization:
         d = world.to_dict()
         assert "nation_gold" in d
         assert d["nation_gold"]["France"] == 600
-        assert d["nation_gold"]["Britain"] == 800
-        assert d["nation_gold"]["Prussia"] == 300
+        assert d["nation_gold"]["Britain"] == 1500
+        assert d["nation_gold"]["Prussia"] == 800
 
     def test_nation_gold_roundtrip(self):
         """nation_gold survives to_dict -> from_dict roundtrip."""

@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 8, 2026
-> **Last Session:** Session 23 — Phase 6.2.G AI Admin Phase, Economy Command, Turn Summary
+> **Last Session:** Session 24 — Phase 6.2 Economy Audit Fixes
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1813** (verified, 3 skipped) |
+| **Tests Passing** | **1847** (verified, 3 skipped) |
 | **Current Phase** | Phase 6.2 Economy: 6.2 COMPLETE |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2.A, 6.2.B, 6.2.C, 6.2.D, 6.2.E, 6.2.F, 6.2.G |
@@ -43,10 +43,57 @@
 - [x] **Session 22: Phase 6.2.F** — supply limits, movement attrition, contested capture, 43 tests (1780 total)
 - [x] **Session 22b: 6.2.F Polish** — friendly stable attrition exemption, occupation popup timing fix, debug commands, 47 tests (1784 total)
 - [x] **Session 23: Phase 6.2.G** — AI admin phase, economy command, turn summary financial report, occupation UI wiring, 29 tests (1813 total)
+- [x] **Session 24: Economy Audit Fixes** — Coalition territory viability (Britain/Prussia get Milan/Bavaria/Vienna), starting gold rebalance (Britain 1500, Prussia 800), plunder 1.75x multiplier, AI recruitment threshold 0.50, training ground +30% buff, AI market/depot building, AI supply attrition P0.5 check, 30 tests (1844 total), Geneva→Britain, gold expenditure tracking, two-tier AI recruitment
 
 ---
 
 ## Recently Completed
+
+### Feb 8 (Session 24: Economy Audit Fixes)
+
+**Phase 6.2 Economy: Audit findings from Sonnet's review. 8 tasks, all complete.**
+
+**Task 1: Coalition Territory Viability (world_state.py):**
+- Reassigned territories: Bavaria + Vienna → Prussia, Milan → Britain
+- Britain: 3 regions (Netherlands, Waterloo, Milan), 250 income, net -180/turn (was -330)
+- Prussia: 3 regions (Rhine, Bavaria, Vienna), 400 income, net +100/turn (was -400)
+- Starting gold increased: Britain 800→1500, Prussia 300→800
+- Austria removed as active nation (territories absorbed into Coalition)
+
+**Task 3: Plunder Gold Multiplier (executor.py):**
+- New constant: `PLUNDER_GOLD_MULTIPLIER = 1.75`
+- Paris plunder: 300 → 525 gold. Makes plunder meaningfully different from secure.
+
+**Task 4: AI Recruitment Threshold (enemy_ai.py):**
+- Changed `AI_RECRUITMENT_THRESHOLD` from 0.40 to 0.50
+- AI now recruits when marshal below 50% starting strength (was 40%)
+
+**Task 5: Training Ground Morale Buff (executor.py):**
+- Recruit morale with training ground: 55% → 70% (+30% bonus, was +15%)
+- At 70%: zero morale dilution into 70%+ armies — genuinely valuable building
+
+**Task 7: AI Market/Depot Building (enemy_ai.py):**
+- Added `_find_best_market_region()`: highest-income buildable region without market
+- Added `_find_best_depot_region()`: prioritizes capital > major_city > city
+- Admin priority chain now: recruit (P1) > market (P2) > depot (P3) > fortification (P4) > repair (P5)
+
+**Task 8: AI Supply Attrition Survival (enemy_ai.py):**
+- New P0.5 check in `_evaluate_marshal()`: between engagement (P0) and retreat recovery (P1)
+- Triggers when supply excess > 50% (5% attrition tier)
+- AI moves to adjacent friendly region with best supply margin
+
+**Documentation:**
+- Task 2: Core Territories section added to FUTURE_DESIGN.md
+- Task 6: Market building documented in ECONOMY_SPEC.md
+- ENEMY_AI_REFERENCE.md updated with P0.5 and admin priority changes
+
+**Tests:** 30 new tests in `test_economy_audit_fixes.py` + 1 existing test updated (1844 total passing, 3 skipped).
+
+**Follow-up fixes (discussion with user):**
+- Two-tier AI recruitment: urgent (P1, below 50%) + rebuild (P7, 50%-100%). Enemies can reach 100% strength.
+- Supply awareness moved from P0.5 (panic) to P6.5 (mild). AI attacks/threats first, relocates only when idle.
+- Geneva reassigned from Neutral to Britain (4 British regions now: Netherlands, Waterloo, Milan, Geneva).
+- Gold expenditure tracking: `gold_spent_this_turn` dict on WorldState, recorded in recruit/build/repair, shown in turn summary and economy command. Serialized.
 
 ### Feb 8 (Session 23: Phase 6.2.G AI Admin Phase, Economy Command, Turn Summary)
 

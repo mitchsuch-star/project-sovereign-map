@@ -189,14 +189,11 @@ class TestAIAdminBuild:
         ai = EnemyAI(executor)
 
         # Find unfortified border region helper should skip non-buildable types
+        # Britain's starting regions are: Belgium (town), Netherlands (rural), Waterloo (rural), Milan (city)
+        # Belgium, Netherlands, Waterloo are not buildable (need capital/major_city/city)
+        # Milan IS a city and borders France (Lyon), so it's a valid buildable border region
         result = ai._find_unfortified_border_region("Britain", world)
-        # Britain's starting regions are: Belgium (town), Netherlands (rural), Waterloo (rural)
-        # None of these are buildable (need capital/major_city/city)
-        # Unless Vienna is also British... depends on setup
-        # Default setup: Britain controls Belgium (town), Netherlands (rural), Waterloo (rural)
-        # None are buildable types, so should return None
-        # (Vienna is neutral/enemy-controlled in default setup)
-        assert result is None, "No buildable border region should exist for Britain in default setup"
+        assert result == "Milan", f"Milan should be the only buildable border region for Britain, got {result}"
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -268,7 +265,9 @@ class TestAIAdminSaveAP:
         game_state = _make_game_state(world)
 
         # Give Britain nothing to do: marshals healthy, no damaged buildings
-        initial_gold = 500
+        # Gold set below all build/recruit thresholds so AI can't spend
+        # (recruit=200, market=350, depot=300, fort=400, repair=150)
+        initial_gold = 100
         world.nation_gold["Britain"] = initial_gold
 
         results = ai.execute_admin_phase("Britain", world, game_state)

@@ -244,6 +244,9 @@ class CommandExecutor:
         # (advance_turn resets mild_concerns_this_turn at start)
         saved_mild_concerns = [c.copy() for c in world.mild_concerns_this_turn]
 
+        # Capture gold spending BEFORE advance_turn clears it
+        saved_gold_spent = world.gold_spent_this_turn.copy()
+
         # Use TurnManager to process everything including ENEMY AI
         turn_manager = TurnManager(world, executor=self)
         turn_result = turn_manager.end_turn(game_state)  # Pass game_state for enemy AI
@@ -320,9 +323,11 @@ class CommandExecutor:
         # Add financial report to message
         income_val = income_data["income"]
         upkeep_val = upkeep_data["total"]
+        spent_val = saved_gold_spent.get(nation, 0)
         net_val = income_val - upkeep_val
         net_sign = "+" if net_val >= 0 else ""
-        message += f"\n\nIncome: {income_val}g | Upkeep: {upkeep_val}g | Net: {net_sign}{net_val}g | Treasury: {treasury:,}g"
+        spent_str = f" | Spent: {spent_val}g" if spent_val > 0 else ""
+        message += f"\n\nIncome: {income_val}g | Upkeep: {upkeep_val}g | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
 
         if world.nation_bankruptcy_turns.get(nation, 0) > 0:
             bk_turns = world.nation_bankruptcy_turns[nation]
@@ -335,6 +340,7 @@ class CommandExecutor:
             "new_turn": int(turn_result.get("next_turn", world.current_turn)),
             "income": int(income_data.get("income", 0)),
             "upkeep": int(upkeep_val),
+            "spent": int(spent_val),
             "net": int(net_val),
             "treasury": int(treasury),
         }
@@ -4975,6 +4981,11 @@ RETREAT RECOVERY (3 turns):
         else:
             lines.append(f"\n  Admin bonus: 0g  (all AP used)")
 
+        # Spending this turn
+        spent = world.gold_spent_this_turn.get(nation, 0)
+        if spent > 0:
+            lines.append(f"\n  Spent this turn: -{spent}g")
+
         # Net and treasury
         net_sign = "+" if net >= 0 else ""
         lines.append(f"\n  Projected net: {net_sign}{net}g")
@@ -5128,9 +5139,13 @@ RETREAT RECOVERY (3 turns):
                 "suggestion": "Wait for more income or conquer more regions"
             }
 
-        # Phase 6.2.E: Training Ground upgrades recruit morale
+        # Phase 6.2 Audit Fix #6: Training Ground morale bonus buffed from +15% to +30%
+        # At +15%: recruits at 55%, only 1.25% army morale improvement (10k into 30k at 70%)
+        # At +30%: recruits at 70%, ZERO morale dilution into 70%+ army — genuinely valuable
+        # Worth 250g + 2 turns vs Market (350g, +25% income) and Fortification (400g, +25% defense)
+        # Training Ground = "build before mass recruitment" building
         if region.has_building("training_ground"):
-            RECRUIT_MORALE = 55
+            RECRUIT_MORALE = 70
 
         # --- Morale dilution ---
         marshal = world.get_marshal(recipient)
@@ -5147,6 +5162,7 @@ RETREAT RECOVERY (3 turns):
         marshal.morale = new_morale
         marshal.add_troops(NEW_TROOPS)
         world.nation_gold[acting_nation] = int(nation_treasury - gold_cost)
+        world.record_gold_spent(acting_nation, gold_cost)
 
         # --- Build result message ---
         # Capital discount and settling premium are mutually exclusive (capital wins)
@@ -5279,6 +5295,7 @@ RETREAT RECOVERY (3 turns):
             "turns_remaining": btype_info["build_time"]
         }
         world.nation_gold[build_acting_nation] = int(build_treasury - gold_cost)
+        world.record_gold_spent(build_acting_nation, gold_cost)
 
         display_name = building_type.replace('_', ' ').title()
         return {
@@ -5340,6 +5357,7 @@ RETREAT RECOVERY (3 turns):
                 if b["type"] == building_type and b.get("damaged", False):
                     b["damaged"] = False
                     world.nation_gold[repair_acting_nation] = int(repair_treasury - REPAIR_COST)
+                    world.record_gold_spent(repair_acting_nation, REPAIR_COST)
                     return {
                         "success": True,
                         "message": f"Repaired {building_type.replace('_', ' ').title()} in {region_name} ({REPAIR_COST} gold)",
@@ -5354,6 +5372,7 @@ RETREAT RECOVERY (3 turns):
 
         region.recover_war_damage(0.15)
         world.nation_gold[repair_acting_nation] = int(repair_treasury - REPAIR_COST)
+        world.record_gold_spent(repair_acting_nation, REPAIR_COST)
         return {
             "success": True,
             "message": f"War damage repaired in {region_name} ({REPAIR_COST} gold). War damage: {region.war_damage:.0%}",
@@ -7417,13 +7436,20 @@ RETREAT RECOVERY (3 turns):
                 "message": f"Invalid choice: '{choice}'. Choose 'plunder' or 'secure'."
             }
 
+    # Plunder Gold Multiplier (Phase 6.2 Audit Fix #4)
+    # 1.75x creates genuine short-term vs long-term tradeoff:
+    # Paris plundered: 300 * 1.75 = 525 gold immediately, but 0 income for ~9 turns
+    # Paris secured: 0 gold immediately, but ~75/turn from turn 1 (stability 25 = 25%)
+    # Breakeven: ~7 turns — plunder pays off in short campaigns, secure in long ones
+    PLUNDER_GOLD_MULTIPLIER = 1.75
+
     def _apply_plunder(self, region, world) -> Dict:
         """Apply plunder effects to a captured region."""
         region.stability = 10
         region.apply_war_damage(0.35)
         region.plundered = True
-        # Immediate gold = 100% of BASE income (not effective)
-        gold_gained = region.income_value
+        # Immediate gold = 175% of BASE income (not effective)
+        gold_gained = int(region.income_value * self.PLUNDER_GOLD_MULTIPLIER)
         world.gold += gold_gained
         # Destroy all buildings
         region.buildings = []

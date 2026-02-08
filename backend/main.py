@@ -399,6 +399,12 @@ def execute_command(request: CommandRequest):
         else:
             print(f"[STRATEGIC_REPORTS] No strategic reports in result (keys: {[k for k in result.keys() if 'strat' in k.lower()]})")
 
+        # Include tactical events if present (from end_turn).
+        # Contains supply attrition messages, occupation updates, etc.
+        # Godot main.gd reads tactical_events for display in turn log.
+        if result.get("tactical_events"):
+            response["tactical_events"] = result["tactical_events"]
+
         # Include independent command report if present (Phase 2.5)
         if result.get("show_independent_command_report"):
             response["show_independent_command_report"] = True
@@ -1000,8 +1006,23 @@ def _get_map_data(world: WorldState) -> dict:
             marshals_data.append(marshal_data)
 
         controller = region.controller or "Neutral"
+        # Region data for Godot tooltip and map display.
+        # Godot's map.gd _draw_region_tooltip() reads these fields.
+        # If you add a new region property, include it here or
+        # the tooltip won't show it. All numbers must be int().
         map_data[region_name] = {
             "controller": controller,
+            "region_type": region.region_type,
+            "terrain": region.terrain,
+            "income_value": int(region.income_value),
+            "effective_income": int(region.get_effective_income()),
+            "stability": int(region.stability),
+            "stability_label": region.get_stability_label(),
+            "war_damage": float(region.war_damage),
+            "buildings": region.buildings,
+            "building_under_construction": region.building_under_construction,
+            "max_building_slots": int(region.max_building_slots()),
+            "supply_capacity": int(region.supply_capacity),
             "marshals": marshals_data
         }
 

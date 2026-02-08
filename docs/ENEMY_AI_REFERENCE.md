@@ -140,8 +140,21 @@ The AI evaluates each marshal and assigns a **priority score** (lower = more urg
 | P4.6 | Consolidation | 78 | Weak marshal joins strong ally within 3 distance |
 | P5 | Fortification | 85 | Cautious + no attack target |
 | P6 | Drilling | 90 | Aggressive + position secure |
+| P6.5 | Supply Awareness | 91 | Supply excess > 50% — mildly relocate to better-supplied region |
 | P7 | Strategic Movement | 92 | Can advance toward enemy |
 | P8 | Default | 95 | Stance adjustment or wait |
+
+### Priority 6.5: Supply Awareness
+
+Low-priority supply relocation check. The AI prioritizes combat, threats, and attacks first — supply relocation only happens when there is nothing more important to do. If attrition weakens the marshal, normal recruitment handles rebuilding.
+
+Triggered when marshal is in a region where supply excess exceeds 50% and no higher-priority action is available.
+
+**Behavior:**
+- Scans adjacent friendly/neutral regions for better supply margin
+- Picks the region with best `supply_capacity - total_troops_there` margin
+- Will not move if no adjacent region has positive net margin (stays and takes attrition)
+- This is a mild optimization, not a panic reaction — the AI will not abandon combat positions or skip attacks to avoid attrition
 
 ### Priority 1: Retreat Recovery
 
@@ -515,6 +528,31 @@ Prevents marshals getting stuck doing nothing. Persisted on `world.ai_stagnation
 
 **Resets on:** Attack (win/lose), capture region, move toward enemy, consolidation move.
 **NOT meaningful:** defend, drill, wait.
+
+---
+
+## Admin Phase
+
+The AI performs an admin phase each turn (before combat actions) using admin AP. Actions are evaluated in strict priority order — the AI spends admin AP on the highest-priority action available, then moves to the next.
+
+### Admin Priority Chain
+
+| Priority | Action | Details |
+|----------|--------|---------|
+| 1 | Urgent recruit | Marshals below 50% starting strength — critical reinforcement |
+| 2 | Build market | At highest-income region |
+| 3 | Build supply depot | At capital or major city |
+| 4 | Build fortification | At border regions |
+| 5 | Repair damaged buildings | Restore buildings damaged by war |
+| 6 | Repair war damage | Fix war damage on regions |
+| 7 | Rebuild recruit | Marshals at 50%-100% starting strength — enemies can reach full strength |
+| 8 | Save AP | +75g per unused admin AP |
+
+**Notes:**
+- The AI uses the same admin commands as the player (Building Blocks principle)
+- Recruitment is split into two tiers: urgent (below 50%, top priority) and rebuild (50%-100%, low priority) so enemies can reach full strength over time without sacrificing building and repair
+- Building priorities reflect economic strategy: income first (market), then logistics (supply depot), then defense (fortification)
+- Saving AP for gold is always the lowest priority — the AI prefers to spend
 
 ---
 

@@ -2180,6 +2180,40 @@ Grant Autonomy, Administrative Role, and Dismiss all implemented. See CLAUDE.md 
 
 ---
 
+## Core Territories Mechanic
+
+**Problem:** Reconquest stability bonus (60 instead of 25) makes sense short-term but gets confusing in long campaigns. If France loses/recaptures Paris 3 times over 40 turns, is it still "reconquest"? Does historical ownership reset?
+
+**Solution (Post-EA):** Core vs Non-Core territories
+
+**Core territories:**
+- Defined at nation creation (France: Paris, Lyon, Marseille, Brittany, Bordeaux)
+- Recapture ALWAYS gives 60 stability regardless of how many times territory changed hands
+- Represents: "This population expects this government"
+- Clear mental model: "This is French soil"
+
+**Non-core territories:**
+- Any captured enemy territory
+- ALWAYS 25 stability on capture, no exceptions
+- Represents: "This is occupied enemy land"
+- Clear mental model: "This is conquered Austria"
+
+**Core expansion mechanics:**
+- Can designate new cores through events (integrate vassals, long-term governance)
+- Non-core becomes core after 50+ turns of stable control (represents cultural integration)
+- Adds strategic depth: "Do I invest in integrating Milan as French core?"
+
+**Integration with existing systems:**
+- Plunder/secure choice stays the same (affects initial stability/damage)
+- Replace `historical_ownership` dict with `core_territories` dict
+- Backward compatible: current reconquest logic becomes core-territory logic
+
+**Implementation phase:** Phase 8.5 (Events System) or 1805 expansion
+**Complexity:** Low — mostly data structure change
+**Dependencies:** None (drop-in replacement for current system)
+
+---
+
 ## Army Cohesion (Deferred)
 
 > **Deferred from Phase 6 economy design. Revisit after playtesting.**

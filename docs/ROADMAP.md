@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** February 5, 2026 (Session 4: EA Readiness Audit)
+> **Last Updated:** February 8, 2026 (Session 24: Economy Audit Fixes)
 
 ---
 
@@ -12,7 +12,7 @@
 |-------|------|--------|
 | 1-5.3 | Foundation through AI Fixes | COMPLETE |
 | **V2a** | **Objection System Refactor** | **COMPLETE** |
-| **6** | **Core Campaign Systems** | **IN PROGRESS (6.1 terrain A+B done)** |
+| **6** | **Core Campaign Systems** | **IN PROGRESS (6.1 terrain complete, 6.2 economy complete + audited)** |
 | 6.5 | Information & UI Systems | Planned |
 | 7 | Multi-Marshal, Relationships & Coalitions | Planned |
 | 8 | Diplomacy & Peace | Planned |
@@ -40,7 +40,7 @@
 | 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 1334 (verified Feb 6, 2026)
+**Total Tests:** 1844 (verified Feb 8, 2026)
 
 ---
 
@@ -71,10 +71,10 @@
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| Economy | Income per region, treasury, upkeep | Medium | **6.2.A-E done** (region types, income, gold, upkeep, bankruptcy, admin AP, stability, war damage, recruitment, plunder/secure, buildings). Supply remaining. |
-| Reinforcements (Enemy) | AI can recruit troops | Low | Planned |
+| Economy | Income per region, treasury, upkeep | Medium | **6.2 COMPLETE + audited** (region types, income, gold, upkeep, bankruptcy, admin AP, stability, war damage, recruitment, plunder/secure, buildings, supply, AI admin, economy audit fixes). Session 24 audit: territory viability, plunder multiplier, AI recruitment/building/supply checks. |
+| Reinforcements (Enemy) | AI can recruit troops | Low | **DONE** (AI admin phase, Session 23+24) |
 | Manpower Pools | Separate: Infantry, Cavalry, Artillery | Medium | Planned |
-| Attrition | Movement/supply decay | Low | Planned |
+| Attrition | Movement/supply decay | Low | **DONE** (Session 22: supply + movement attrition) |
 | Fog of War | Hidden enemies, scouting required | Medium | Planned |
 | Terrain | Region terrain affects combat/movement | Medium | **6.1.A+B done** (data layer + combat). Movement/pathfinding remaining. |
 | Sieges | Fortified cities require siege mechanics | Medium | Planned |

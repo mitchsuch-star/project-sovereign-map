@@ -74,9 +74,12 @@ class TestMultiTurnIntegration:
 
         # Put Wellington somewhere with no targets and all adjacent friendly
         # so P3.5 doesn't unfortify (no capture targets, no enemies to reposition toward)
-        wellington.location = "Waterloo"
+        # Use Paris (capital, supply=50000*1.2=60000) to avoid P0.5 supply crisis
+        wellington.location = "Paris"
         wellington.fortified = False
         wellington.stance = Stance.DEFENSIVE
+        # Keep strength within supply capacity to avoid P0.5 relocation
+        wellington.strength = 10000
 
         # Make all regions friendly and remove all enemies
         for region in self.world.regions.values():

@@ -1391,6 +1391,59 @@ class EnemyAI:
             ai_debug(f"  P6: Drill not available")
 
         # ════════════════════════════════════════════════════════════
+        # PRIORITY 6.5: SUPPLY AWARENESS (mild — relocate if over-supplied)
+        # Not a panic reaction. AI attacks, retreats, and responds to threats
+        # first. If nothing else to do, consider moving to a better-supplied
+        # region. If attrition weakens the marshal enough, they'll recruit
+        # back to full through the normal admin phase.
+        # ════════════════════════════════════════════════════════════
+        if current_region:
+            supply_cap = current_region.supply_capacity
+            total_troops_here = sum(
+                m.strength for m in world.marshals.values()
+                if m.location == marshal.location and m.strength > 0
+            )
+            supply_excess_ratio = (total_troops_here - supply_cap) / supply_cap if supply_cap > 0 else 0
+
+            if supply_excess_ratio > 0.50:  # 5% attrition tier
+                ai_debug(f"  P6.5: Supply pressure at {marshal.location} "
+                         f"({total_troops_here:,} troops, {supply_cap:,} capacity, "
+                         f"{supply_excess_ratio:.0%} over)")
+
+                best_supply_region = None
+                best_supply_margin = -999999
+
+                for adj_name in current_region.adjacent_regions:
+                    adj_region = world.get_region(adj_name)
+                    if not adj_region:
+                        continue
+                    if adj_region.controller == world.player_nation:
+                        continue
+                    if adj_region.controller and adj_region.controller != nation and adj_region.controller != "Neutral":
+                        continue
+
+                    adj_cap = adj_region.supply_capacity
+                    troops_at_dest = sum(
+                        m.strength for m in world.marshals.values()
+                        if m.location == adj_name and m.strength > 0
+                    )
+                    supply_margin = adj_cap - troops_at_dest - marshal.strength
+                    if supply_margin > best_supply_margin:
+                        best_supply_margin = supply_margin
+                        best_supply_region = adj_name
+
+                if best_supply_region and best_supply_margin > -marshal.strength:
+                    ai_debug(f"  -> P6.5: Relocating to {best_supply_region} "
+                             f"(supply margin: {best_supply_margin:,})")
+                    return ({
+                        "marshal": marshal.name,
+                        "action": "move",
+                        "target": best_supply_region
+                    }, 6)
+                else:
+                    ai_debug(f"  P6.5: No better supply region adjacent — staying")
+
+        # ════════════════════════════════════════════════════════════
         # PRIORITY 7: STRATEGIC MOVEMENT
         # ════════════════════════════════════════════════════════════
         move_action = self._consider_strategic_move(marshal, nation, world)
@@ -3324,11 +3377,17 @@ class EnemyAI:
         """Pick the best admin action for the AI nation.
 
         Priority:
-        1. Recruit for weakest marshal (below 40% starting strength, treasury > cost)
-        2. Build fortification at border region (treasury > 400)
-        3. Repair damaged building in high-income region (treasury > 150)
-        4. Repair war damage in high-income region (treasury > 150)
-        5. None (save AP for income bonus)
+        1. Urgent recruit (marshal below 50% starting strength)
+        2. Build market at highest-income region (treasury > 350)
+        3. Build supply depot at capital/major_city (treasury > 300)
+        4. Build fortification at border region (treasury > 400)
+        5. Repair damaged building in high-income region (treasury > 150)
+        6. Repair war damage in high-income region (treasury > 150)
+        7. Low-priority rebuild recruit (marshal 50%-100% strength)
+        8. None (save AP for income bonus)
+
+        Two-tier recruitment: urgent (P1) gets troops back fast when critically weak.
+        Rebuild (P7) lets enemies eventually reach 100% when nothing better to do.
 
         skip_actions: set of action types that failed and should be skipped.
         """
@@ -3356,7 +3415,27 @@ class EnemyAI:
                     "target": weakest.location
                 }
 
-        # Priority 2: Build fortification at border region
+        # Priority 2: Build market at highest-income region (Phase 6.2 Audit Fix #8)
+        if "build" not in skip_actions and treasury >= 350:
+            best_market = self._find_best_market_region(nation, world)
+            if best_market:
+                return {
+                    "action": "build",
+                    "target": best_market,
+                    "building_type": "market"
+                }
+
+        # Priority 3: Build supply depot at capital/major_city (Phase 6.2 Audit Fix #8)
+        if "build" not in skip_actions and treasury >= 300:
+            best_depot = self._find_best_depot_region(nation, world)
+            if best_depot:
+                return {
+                    "action": "build",
+                    "target": best_depot,
+                    "building_type": "supply_depot"
+                }
+
+        # Priority 4: Build fortification at border region
         if "build" not in skip_actions:
             border_region = self._find_unfortified_border_region(nation, world)
             if border_region and treasury >= 400:
@@ -3368,7 +3447,7 @@ class EnemyAI:
                         "building_type": "fortification"
                     }
 
-        # Priority 3: Repair damaged building
+        # Priority 5: Repair damaged building
         if "repair" not in skip_actions:
             damaged_building = self._find_damaged_building_region(nation, world)
             if damaged_building and treasury >= 150:
@@ -3378,7 +3457,7 @@ class EnemyAI:
                     "building_type": damaged_building["building_type"]
                 }
 
-        # Priority 4: Repair war damage in high-income region
+        # Priority 6: Repair war damage in high-income region
         if "repair" not in skip_actions:
             damaged_region = self._find_war_damaged_region(nation, world)
             if damaged_region and treasury >= 150:
@@ -3387,13 +3466,57 @@ class EnemyAI:
                     "target": damaged_region
             }
 
-        # Priority 5: Save AP for income bonus
+        # Priority 7: Low-priority rebuild recruit (50%-100% strength)
+        # Enemies can eventually rebuild to full strength if left alone.
+        # This fires after all building/repair priorities, so AI invests
+        # in infrastructure first, then tops off troops when idle.
+        if "recruit" not in skip_actions:
+            rebuild_target = self._find_weakest_marshal_for_admin(
+                nation, world, threshold=self.AI_RECRUITMENT_REBUILD_CAP
+            )
+        else:
+            rebuild_target = None
+        if rebuild_target:
+            region = world.get_region(rebuild_target.location)
+            recruit_cost = 200
+            if region and getattr(region, 'is_capital', False):
+                recruit_cost = 150
+            elif region and getattr(region, 'stability', 100) <= 75:
+                recruit_cost = 300
+            if treasury >= recruit_cost and region and getattr(region, 'stability', 100) > 50:
+                return {
+                    "action": "recruit",
+                    "marshal": rebuild_target.name,
+                    "target": rebuild_target.location
+                }
+
+        # Priority 8: Save AP for income bonus
         return None
 
-    def _find_weakest_marshal_for_admin(self, nation: str, world) -> Optional['Marshal']:
-        """Find the weakest marshal below 40% starting strength for recruitment."""
+    # AI Recruitment Thresholds (Phase 6.2 Audit)
+    #
+    # Two-tier system: urgency controls priority, not whether recruitment happens.
+    # Below URGENT → Priority 1 (recruit before buildings)
+    # Between URGENT and 1.0 → Priority 7 (rebuild when nothing better to do)
+    # At or above 1.0 → Don't recruit
+    #
+    # This means enemies CAN rebuild to 100% if left alone, but prioritize
+    # urgent recruitment when critically weak. Victories still matter for
+    # several turns while the AI slowly rebuilds through low-priority actions.
+    AI_RECRUITMENT_THRESHOLD = 0.50       # Below this: urgent (Priority 1)
+    AI_RECRUITMENT_REBUILD_CAP = 1.0      # Above this: stop recruiting
+
+    def _find_weakest_marshal_for_admin(self, nation: str, world, threshold: float = None) -> Optional['Marshal']:
+        """Find the weakest marshal below recruitment threshold for recruitment.
+
+        Args:
+            threshold: Override threshold. Defaults to AI_RECRUITMENT_THRESHOLD (urgent).
+                       Pass AI_RECRUITMENT_REBUILD_CAP (1.0) for low-priority rebuild.
+        """
+        if threshold is None:
+            threshold = self.AI_RECRUITMENT_THRESHOLD
         weakest = None
-        lowest_ratio = 1.0
+        lowest_ratio = threshold
 
         for marshal in world.marshals.values():
             if marshal.nation != nation or marshal.strength <= 0:
@@ -3402,7 +3525,7 @@ class EnemyAI:
             if starting <= 0:
                 continue
             ratio = marshal.strength / starting
-            if ratio < 0.4 and ratio < lowest_ratio:
+            if ratio < threshold and ratio < lowest_ratio:
                 # Check if marshal's location is suitable for recruiting
                 region = world.get_region(marshal.location)
                 if region and region.controller == nation:
@@ -3460,6 +3583,84 @@ class EnemyAI:
                     break
 
             if is_border:
+                return region_name
+
+        return None
+
+    def _find_best_market_region(self, nation: str, world) -> Optional[str]:
+        """Find the best region for a market (highest base income, no market, has slots).
+
+        Phase 6.2 Audit Fix #8: AI builds markets for income boost.
+        """
+        best_region = None
+        best_income = 0
+
+        for region_name in world.get_nation_regions(nation):
+            region = world.get_region(region_name)
+            if not region:
+                continue
+
+            # Market only allowed in capital, major_city, city
+            if getattr(region, 'region_type', 'town') not in {"capital", "major_city", "city"}:
+                continue
+
+            # Already has market?
+            if region.has_building("market", functional_only=False):
+                continue
+
+            # Already building something?
+            if getattr(region, 'building_under_construction', None):
+                continue
+
+            # Check available slots
+            if region.available_building_slots() <= 0:
+                continue
+
+            # Stability must be > 50
+            if getattr(region, 'stability', 100) <= 50:
+                continue
+
+            # Pick highest income region (market gives % bonus, so higher base = more value)
+            income = getattr(region, 'income_value', 0)
+            if income > best_income:
+                best_income = income
+                best_region = region_name
+
+        return best_region
+
+    def _find_best_depot_region(self, nation: str, world) -> Optional[str]:
+        """Find the best region for a supply depot (capital first, then major_city).
+
+        Phase 6.2 Audit Fix #8: AI builds supply depots for income + capacity.
+        """
+        # Prioritize capital, then major_city, then city
+        priority_order = ["capital", "major_city", "city"]
+
+        for target_type in priority_order:
+            for region_name in world.get_nation_regions(nation):
+                region = world.get_region(region_name)
+                if not region:
+                    continue
+
+                if getattr(region, 'region_type', 'town') != target_type:
+                    continue
+
+                # Already has depot?
+                if region.has_building("supply_depot", functional_only=False):
+                    continue
+
+                # Already building something?
+                if getattr(region, 'building_under_construction', None):
+                    continue
+
+                # Check available slots
+                if region.available_building_slots() <= 0:
+                    continue
+
+                # Stability must be > 50
+                if getattr(region, 'stability', 100) <= 50:
+                    continue
+
                 return region_name
 
         return None

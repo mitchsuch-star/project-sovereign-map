@@ -519,10 +519,10 @@ Light building system. Cities only (region_type in ["capital", "major_city", "ci
 
 | Building | Gold Cost | Admin AP | Build Time | Effect |
 |----------|-----------|----------|------------|--------|
-| Supply Depot | 300 | 1 | 2 turns | +50 income, increases supply limit by 10,000 |
-| Fortification | 400 | 1 | 3 turns | +25% defense for battles in this region, enables contested capture mechanic |
+| Supply Depot | 300 | 1 | 2 turns | +50 income (flat), +10k supply capacity |
+| Fortification | 400 | 1 | 3 turns | +25% defense for battles in this region, enables contested capture |
 | Training Ground | 250 | 1 | 2 turns | Recruits here have 55% morale instead of 40% |
-| Market | 350 | 1 | 2 turns | +25% income multiplier on base region income |
+| Market | 350 | 1 | 2 turns | +25% income multiplier on base region income (after depot, before stability/damage) |
 
 ### Building Construction
 
@@ -571,6 +571,19 @@ During occupation, the marshal can't take other actions (they're securing the fo
 New fields on Region:
 - `buildings: list` (default [])
 - `building_under_construction: dict or None` (default None)
+
+### Income Calculation Examples (with Buildings)
+
+**Paris (capital, 300 base income, stable, no damage):**
+- No buildings: 300 * 1.0 * 1.0 = 300/turn
+- With depot: (300 + 50) * 1.0 * 1.0 = 350/turn
+- With market: int(300 * 1.25) * 1.0 * 1.0 = 375/turn
+- With depot + market: int((300 + 50) * 1.25) * 1.0 * 1.0 = 437/turn
+
+**Lyon (major_city, 200 base income, settling stability 60, war damage 0.10):**
+- No buildings: 200 * 0.75 * 0.90 = 135/turn
+- With market: int(200 * 1.25) * 0.75 * 0.90 = 168/turn
+- With depot + market: int((200 + 50) * 1.25) * 0.75 * 0.90 = 211/turn
 
 ---
 

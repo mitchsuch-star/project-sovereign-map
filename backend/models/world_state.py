@@ -63,10 +63,17 @@ class WorldState:
         # Game state - ALL INTEGERS
         self.current_turn: int = 1
         self.max_turns: int = 40
+        # Phase 6.2 Audit Fix #1: Starting gold adjusted for Coalition viability
+        # Post-territory-expansion economics:
+        #   France:  income 850, upkeep 700, net +150. Comfortable.
+        #   Britain: income 250 (Netherlands+Waterloo+Milan), upkeep 430, net -180.
+        #            1500 starting gold = ~8 turns before bankrupt. Must expand or build markets.
+        #   Prussia: income 400 (Rhine+Bavaria+Vienna), upkeep 500, net -100.
+        #            800 starting gold = ~8 turns before bankrupt. Must expand or recruit less.
         self.nation_gold: Dict[str, int] = {
             "France": 600,
-            "Britain": 800,
-            "Prussia": 300,
+            "Britain": 1500,
+            "Prussia": 800,
         }
         self.game_over: bool = False
         self.victory: Optional[str] = None  # "victory", "defeat", or None
@@ -98,6 +105,12 @@ class WorldState:
         # Per-nation tracking: {nation: consecutive_bankrupt_turns}
         # ============================================================
         self.nation_bankruptcy_turns: Dict[str, int] = {}
+
+        # Per-nation gold spending tracker for turn summary
+        # Records all gold spent this turn (recruit, build, repair)
+        # Reset at start of each turn in advance_turn()
+        # Format: {nation: total_gold_spent_this_turn}
+        self.gold_spent_this_turn: Dict[str, int] = {}
 
         # Future expansion hooks (not yet used)
 
@@ -213,6 +226,10 @@ class WorldState:
     def gold(self, value: int):
         self.nation_gold[self.player_nation] = int(value)
 
+    def record_gold_spent(self, nation: str, amount: int) -> None:
+        """Record gold spent by a nation this turn (for turn summary)."""
+        self.gold_spent_this_turn[nation] = self.gold_spent_this_turn.get(nation, 0) + int(amount)
+
     @property
     def bankruptcy_turns(self) -> int:
         """Convenience: player nation's bankruptcy turn counter."""
@@ -232,15 +249,19 @@ class WorldState:
                 self.regions[region_name].controller = "France"
 
         # Other nations control remaining regions
+        # Phase 6.2 Audit Fix #1: Coalition territory expansion
+        # Austria is inactive in the Waterloo scenario (no marshals).
+        # Reassign Austria/Neutral territories to active Coalition nations
+        # so Britain and Prussia have viable economies.
         control_map = {
             "Netherlands": "Britain",
             "Waterloo": "Britain",
+            "Milan": "Britain",       # Coalition control of northern Italy
             "Rhine": "Prussia",
-            "Bavaria": "Austria",
-            "Vienna": "Austria",
-            "Milan": "Neutral",
+            "Bavaria": "Prussia",     # Prussian sphere of influence
+            "Vienna": "Prussia",      # Eastern Coalition territory
             "Marseille": "France",
-            "Geneva": "Neutral"
+            "Geneva": "Britain",      # Alpine corridor connecting to Milan
         }
 
         for region_name, controller in control_map.items():
@@ -1701,6 +1722,9 @@ class WorldState:
             "mild_concerns_this_turn": [c.copy() for c in self.mild_concerns_this_turn],
             "objection_popups_this_turn": list(self.objection_popups_this_turn),
 
+            # ═══════ ECONOMY TRACKING ═══════
+            "gold_spent_this_turn": self.gold_spent_this_turn.copy(),
+
             # ═══════ ENEMY AI ═══════
             "ai_stagnation_turns": self.ai_stagnation_turns.copy(),
             "ai_failed_action_cooldowns": {k: v.copy() for k, v in self.ai_failed_action_cooldowns.items()},
@@ -1789,6 +1813,7 @@ class WorldState:
         # ═══════ V2a OBJECTION SYSTEM ═══════
         world.mild_concerns_this_turn = [c.copy() for c in data.get("mild_concerns_this_turn", [])]
         world.objection_popups_this_turn = set(data.get("objection_popups_this_turn", []))
+        world.gold_spent_this_turn = data.get("gold_spent_this_turn", {}).copy()
 
         # ═══════ ENEMY AI ═══════
         world.ai_stagnation_turns = data.get("ai_stagnation_turns", {}).copy()
@@ -2129,6 +2154,9 @@ class WorldState:
         # V2a Objection System - clear per-turn tracking
         self.mild_concerns_this_turn = []
         self.objection_popups_this_turn = set()
+
+        # Economy - clear per-turn spending tracker
+        self.gold_spent_this_turn = {}
 
         # ════════════════════════════════════════════════════════════
         # PROCESS TACTICAL STATES (before turn counter advances!)

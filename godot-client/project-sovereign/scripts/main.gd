@@ -10,6 +10,7 @@ extends Control
 # UI References - Header Status
 @onready var turn_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/TurnDisplay/TurnValue
 @onready var actions_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ActionsDisplay/ActionsValue
+@onready var admin_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/AdminDisplay/AdminValue
 @onready var gold_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/GoldDisplay/GoldValue
 
 # UI References - Main Interface
@@ -51,6 +52,8 @@ var api_client = null
 # Game state tracking
 var actions_remaining = 4
 var max_actions = 4
+var admin_actions_remaining = 2
+var max_admin_actions = 2
 var current_turn = 1
 var max_turns = 40
 var gold = 1200
@@ -609,16 +612,29 @@ func _display_battle_result(message: String, event: Dictionary, action_info: Dic
 	_show_action_cost(action_info)
 
 func _display_turn_change(event: Dictionary):
-	"""Display turn end notification."""
-	var old_turn = int(event.get("old_turn", 0))
+	"""Display turn end notification with full financial summary.
+
+	Backend sends: income, upkeep, spent, net, treasury in turn_end event.
+	All values are int() wrapped by executor.py (Godot crashes on floats).
+	"""
 	var new_turn = int(event.get("new_turn", 0))
 	var income = int(event.get("income", 0))
-	
+	var upkeep = int(event.get("upkeep", 0))
+	var spent = int(event.get("spent", 0))
+	var net = int(event.get("net", 0))
+	var treasury = int(event.get("treasury", 0))
+
+	var net_sign = "+" if net >= 0 else ""
+	var spent_str = ""
+	if spent > 0:
+		spent_str = " | Spent: " + str(int(spent)) + "g"
+
 	add_output("")
 	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 	add_output("[color=#" + COLOR_GOLD + "]         TURN " + str(int(new_turn)) + " BEGINS[/color]")
 	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-	add_output("[color=#" + COLOR_SUCCESS + "]Treasury: +" + str(int(income)) + " gold[/color]")
+	add_output("[color=#" + COLOR_SUCCESS + "]Income: " + str(int(income)) + "g | Upkeep: " + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
+	add_output("[color=#" + COLOR_GOLD + "]Treasury: " + _format_number(int(treasury)) + "g[/color]")
 	add_output("[color=#" + COLOR_SUCCESS + "]Actions refreshed: " + str(int(max_actions)) + "/" + str(int(max_actions)) + "[/color]")
 	add_output("")
 
@@ -715,22 +731,33 @@ func _show_action_cost(action_info: Dictionary):
 		add_output("[color=#" + COLOR_INFO + "]   [" + str(int(remaining)) + "/" + str(int(max_actions)) + " actions remaining][/color]")
 
 func _update_status(action_summary: Dictionary):
-	"""Update header status displays."""
+	"""Update header status displays.
+
+	Backend sends action_summary with: actions_remaining, max_actions,
+	admin_actions_remaining, max_admin_actions, turn, max_turns.
+	All values are int() wrapped by world_state.py get_action_summary().
+	"""
 	if action_summary.has("actions_remaining"):
 		actions_remaining = int(action_summary.actions_remaining)
-	
+
 	if action_summary.has("max_actions"):
 		max_actions = int(action_summary.max_actions)
-	
+
+	if action_summary.has("admin_actions_remaining"):
+		admin_actions_remaining = int(action_summary.admin_actions_remaining)
+
+	if action_summary.has("max_admin_actions"):
+		max_admin_actions = int(action_summary.max_admin_actions)
+
 	if action_summary.has("turn"):
 		current_turn = int(action_summary.turn)
-	
+
 	if action_summary.has("max_turns"):
 		max_turns = int(action_summary.max_turns)
-	
+
 	# Update displays - force integer conversion in strings
 	turn_value.text = str(int(current_turn)) + "/" + str(int(max_turns))
-	
+
 	# Color actions based on remaining
 	if actions_remaining <= 1:
 		actions_value.add_theme_color_override("font_color", Color(0.8, 0.4, 0.4))  # Red when low
@@ -738,8 +765,15 @@ func _update_status(action_summary: Dictionary):
 		actions_value.add_theme_color_override("font_color", Color(0.9, 0.7, 0.3))  # Yellow when medium
 	else:
 		actions_value.add_theme_color_override("font_color", Color(0.4, 0.8, 0.4))  # Green when good
-	
+
 	actions_value.text = str(int(actions_remaining)) + "/" + str(int(max_actions))
+
+	# Admin AP display
+	if admin_actions_remaining == 0:
+		admin_value.add_theme_color_override("font_color", Color(0.5, 0.5, 0.55))  # Grey when spent
+	else:
+		admin_value.add_theme_color_override("font_color", Color(0.6, 0.7, 0.9))  # Blue when available
+	admin_value.text = str(int(admin_actions_remaining)) + "/" + str(int(max_admin_actions))
 
 func _update_gold_display():
 	"""Update treasury display with formatting."""

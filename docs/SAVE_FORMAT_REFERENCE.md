@@ -34,6 +34,7 @@ A future save/load system should use this as the specification.
   "max_admin_actions": 2,
 
   "nation_bankruptcy_turns": {"France": 0, "Britain": 0},
+  "gold_spent_this_turn": {"France": 0, "Britain": 0, "Prussia": 0},
 
   "regions": { ... },
   "marshals": { ... },
@@ -75,6 +76,7 @@ A future save/load system should use this as the specification.
 | `admin_actions_remaining` | int | 2 | Admin actions left this turn (Phase 6.2.B) |
 | `max_admin_actions` | int | 2 | Max admin actions per turn (Phase 6.2.B) |
 | `nation_bankruptcy_turns` | dict | {} | Per-nation bankruptcy counter {nation: int} (Phase 6.2.B) |
+| `gold_spent_this_turn` | dict | {} | Per-nation gold spending tracker for turn summary. Records all gold spent this turn (recruit, build, repair). Reset at start of each turn. |
 | `regions` | dict | {} | Map of region_name -> Region |
 | `marshals` | dict | {} | Map of marshal_name -> Marshal |
 | `authority_tracker` | dict | {} | AuthorityTracker state |

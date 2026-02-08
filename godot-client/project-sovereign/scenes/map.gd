@@ -733,12 +733,13 @@ func _draw_region_tooltip():
 	var stability = data.get("stability", 100)
 	var stability_label = data.get("stability_label", "Stable")
 	var war_damage = data.get("war_damage", 0.0)
+	var supply_capacity = data.get("supply_capacity", 0)
 	var buildings = data.get("buildings", [])
 	var construction = data.get("building_under_construction", null)
 	var max_slots = data.get("max_building_slots", 0)
 
 	# Count lines for tooltip height
-	var line_count = 5  # name, controller, type+terrain, income, stability
+	var line_count = 6  # name, controller, type+terrain, income, stability, supply
 	if war_damage > 0:
 		line_count += 1
 	if max_slots > 0:
@@ -797,6 +798,11 @@ func _draw_region_tooltip():
 		stability_color = Color(0.85, 0.75, 0.4)  # Yellow for Settling
 	var stability_text = "Stability: " + str(stability) + "% (" + stability_label + ")"
 	draw_string(font, Vector2(text_x, text_y + 11), stability_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, stability_color)
+	text_y += line_spacing
+
+	# Line 6: Supply capacity
+	var supply_text = "Supply: " + _format_number(int(supply_capacity))
+	draw_string(font, Vector2(text_x, text_y + 11), supply_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.6, 0.8, 0.7))
 	text_y += line_spacing
 
 	# War damage (only if > 0)
