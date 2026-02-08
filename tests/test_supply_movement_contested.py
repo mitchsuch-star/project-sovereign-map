@@ -231,10 +231,11 @@ class TestMovementAttrition:
         executor = make_executor()
         ney = world.get_marshal("Ney")
         ney.strength = 50000
-        # Belgium is plains (1.0x)
+        # Set Belgium as enemy so attrition applies (friendly stable = exempt)
+        belgium = world.get_region("Belgium")
+        belgium.controller = "Britain"
         result = executor._calculate_movement_attrition(ney, "Belgium", world)
-        # base = 0.01, size_penalty = min(0.02, (50000-20000)/500000) = 0.00006 → 0.06/1000
-        # Actually: (30000)/500000 = 0.06, min(0.02, 0.06) = 0.02
+        # base = 0.01, size_penalty = min(0.02, (50000-20000)/500000) = 0.02
         # rate = (0.01 + 0.02) * 1.0 = 0.03
         expected = int(50000 * 0.03)
         assert result["march_losses"] == expected
@@ -245,7 +246,9 @@ class TestMovementAttrition:
         executor = make_executor()
         marshal = world.get_marshal("Grouchy")
         marshal.strength = 10000
-        # Belgium is plains (1.0x)
+        # Set Belgium as enemy so attrition applies
+        belgium = world.get_region("Belgium")
+        belgium.controller = "Britain"
         result = executor._calculate_movement_attrition(marshal, "Belgium", world)
         # base = 0.01, size_penalty = 0, rate = 0.01
         expected = int(10000 * 0.01)
@@ -268,7 +271,9 @@ class TestMovementAttrition:
         executor = make_executor()
         marshal = world.get_marshal("Grouchy")
         marshal.strength = 20000
-        # Belgium is plains (1.0x)
+        # Set Belgium as enemy so attrition applies
+        belgium = world.get_region("Belgium")
+        belgium.controller = "Britain"
         result = executor._calculate_movement_attrition(marshal, "Belgium", world, is_retreat=True)
         # base = 0.005, size_penalty = 0, rate = 0.005
         expected = int(20000 * 0.005)
@@ -289,16 +294,18 @@ class TestMovementAttrition:
         assert result["total_losses"] == result["march_losses"] + result["harassment_losses"]
 
     def test_no_harassment_friendly_fortification(self):
-        """No harassment through own fortification."""
+        """No harassment through own fortification. Also no march losses (friendly stable)."""
         world = fresh_world()
         executor = make_executor()
         ney = world.get_marshal("Ney")
         ney.strength = 20000
         belgium = world.get_region("Belgium")
         belgium.controller = "France"
+        belgium.stability = 100  # Stable
         belgium.buildings.append({"type": "fortification", "damaged": False})
         result = executor._calculate_movement_attrition(ney, "Belgium", world)
         assert result["harassment_losses"] == 0
+        assert result["march_losses"] == 0  # Friendly stable = no attrition
 
     def test_no_harassment_damaged_enemy_fortification(self):
         """Damaged enemy fortification: no harassment."""
@@ -318,9 +325,13 @@ class TestMovementAttrition:
         executor = make_executor()
         marshal = world.get_marshal("Grouchy")
         marshal.strength = 20000
+        # Set Belgium as enemy so attrition applies
+        belgium = world.get_region("Belgium")
+        belgium.controller = "Britain"
         old_str = marshal.strength
         result = executor._calculate_movement_attrition(marshal, "Belgium", world)
         assert marshal.strength == old_str - result["total_losses"]
+        assert result["total_losses"] > 0
 
     def test_strength_cannot_go_below_zero(self):
         """Strength cannot go below 0 from attrition."""
@@ -328,6 +339,9 @@ class TestMovementAttrition:
         executor = make_executor()
         marshal = world.get_marshal("Grouchy")
         marshal.strength = 10  # Tiny army
+        # Set Belgium as enemy so attrition applies
+        belgium = world.get_region("Belgium")
+        belgium.controller = "Britain"
         result = executor._calculate_movement_attrition(marshal, "Belgium", world)
         assert marshal.strength >= 0
 
@@ -338,6 +352,9 @@ class TestMovementAttrition:
         game_state = make_game_state(world)
         ney = world.get_marshal("Ney")
         ney.strength = 50000  # Large army for visible losses
+        # Set Paris as unstable so attrition applies (friendly stable = exempt)
+        paris = world.get_region("Paris")
+        paris.stability = 50  # Unrest tier — attrition still applies
         old_str = ney.strength
         result = executor.execute({
             "command": {
@@ -350,6 +367,41 @@ class TestMovementAttrition:
         assert result["success"]
         assert ney.strength < old_str
         assert "lost to march" in result["message"]
+
+    def test_no_attrition_friendly_stable_territory(self):
+        """No march attrition in friendly stable (76+) territory."""
+        world = fresh_world()
+        executor = make_executor()
+        ney = world.get_marshal("Ney")
+        ney.strength = 50000
+        # Paris is France + stability 100 (default) = friendly stable
+        result = executor._calculate_movement_attrition(ney, "Paris", world)
+        assert result["march_losses"] == 0
+        assert result["total_losses"] == 0
+        assert ney.strength == 50000  # No losses
+
+    def test_attrition_in_friendly_unstable_territory(self):
+        """March attrition still applies in friendly but unstable territory."""
+        world = fresh_world()
+        executor = make_executor()
+        ney = world.get_marshal("Ney")
+        ney.strength = 20000
+        # Paris is France but set stability to 75 (Settling — below 76 threshold)
+        paris = world.get_region("Paris")
+        paris.stability = 75
+        result = executor._calculate_movement_attrition(ney, "Paris", world)
+        assert result["march_losses"] > 0  # Attrition applies
+
+    def test_no_attrition_at_exactly_76_stability(self):
+        """Stability exactly 76 = Stable tier = no attrition."""
+        world = fresh_world()
+        executor = make_executor()
+        ney = world.get_marshal("Ney")
+        ney.strength = 20000
+        paris = world.get_region("Paris")
+        paris.stability = 76
+        result = executor._calculate_movement_attrition(ney, "Paris", world)
+        assert result["march_losses"] == 0
 
 
 # ============================================================================
@@ -629,6 +681,32 @@ class TestContestedCapture:
         result = executor._apply_forced_retreat_or_break(ney, wellington, world)
         # Marshal should be broken, occupation cleared
         assert ney.occupation_region is None
+
+
+    def test_occupation_complete_triggers_capture_choice_in_end_turn(self):
+        """When occupation completes during turn resolution, end_turn result includes capture popup."""
+        world = fresh_world()
+        executor = make_executor()
+        game_state = make_game_state(world)
+
+        ney = world.get_marshal("Ney")
+        ney.location = "Belgium"
+        ney.occupation_region = "Belgium"
+        ney.occupation_turns_held = 0
+        ney.occupation_turns_required = 1  # Completes on next tick
+        belgium = world.get_region("Belgium")
+        belgium.controller = "Britain"
+
+        # End turn — occupation should complete, capture choice should be in result
+        result = executor.execute({
+            "command": {"action": "end_turn"}
+        }, game_state)
+
+        assert result["success"]
+        # The capture choice popup should be in the end_turn result
+        assert result.get("pending_capture_choice") is True
+        assert result.get("capture_data") is not None
+        assert result["capture_data"]["region"] == "Belgium"
 
 
 # ============================================================================

@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1780** (verified, 3 skipped) |
+| **Tests Passing** | **1784** (verified, 3 skipped) |
 | **Current Phase** | Phase 6.2 Economy: 6.2.F COMPLETE. Next: 6.2.G AI Admin |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2.A, 6.2.B, 6.2.C, 6.2.D, 6.2.E, 6.2.F |
@@ -41,6 +41,7 @@
 - [x] **Session 6.2.E: Plunder/Secure + Buildings** — capture choice popup, plunder/secure effects, building system (3 types), fortification combat bonus, training ground morale, repair command, 72 tests (1689 total)
 - [x] **Session 21: Polish** — market building (4th type), region hover tooltip, fortification spelling robustness, battle damage fix, 48 tests (1737 total)
 - [x] **Session 22: Phase 6.2.F** — supply limits, movement attrition, contested capture, 43 tests (1780 total)
+- [x] **Session 22b: 6.2.F Polish** — friendly stable attrition exemption, occupation popup timing fix, debug commands, 47 tests (1784 total)
 - [ ] Phase 6.2.G: AI admin
 
 ---

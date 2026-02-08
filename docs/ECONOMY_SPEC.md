@@ -678,6 +678,8 @@ A 50,000-strong army loses ~1.6% (800 troops) per move (size penalty kicks in).
 A 72,000-strong army loses ~2.04% (~1,470 troops) per move.
 A 120,000+ army loses ~3% (capped) per move on plains.
 
+**Friendly stable territory exemption:** No march attrition when moving through own regions with stability 76+ (Stable tier). This represents well-maintained supply lines and friendly population. Settling (51-75) and below still incur attrition — the region isn't secure enough for safe passage.
+
 ### Application
 
 Applied in `_execute_move()` and `_execute_attack()` (for the movement component). Also applied during strategic order movement (MOVE_TO, PURSUE).

@@ -342,6 +342,11 @@ class CommandExecutor:
         if saved_mild_concerns:
             result["mild_concerns"] = saved_mild_concerns
 
+        # Phase 6.2.F: Occupation may complete during turn resolution, triggering capture choice
+        if world.pending_capture_choice:
+            result["pending_capture_choice"] = True
+            result["capture_data"] = world.pending_capture_choice
+
         return result
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -1559,7 +1564,11 @@ RETREAT RECOVERY (3 turns):
         terrain_mult = region.movement_cost if region else 1.0
         rate *= terrain_mult
 
-        losses = int(marshal.strength * rate)
+        # Friendly stable territory: no march attrition (good roads, supply lines)
+        is_friendly_stable = (
+            region and region.controller == marshal.nation and region.stability >= 76
+        )
+        losses = 0 if is_friendly_stable else int(marshal.strength * rate)
         harassment_losses = 0
 
         # Harassment from enemy fortification
