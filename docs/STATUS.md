@@ -703,9 +703,22 @@
 
 ## Next Session Priorities
 
-1. **Phase 6.2 Smoke Test** — Full Godot smoke test of economy features (6.2.A-G). Verify: supply attrition events display, movement attrition messages, occupation progress events, AI admin actions in enemy phase dialog, economy command output, turn summary financial report.
-2. **Phase 7 planning** — Review ROADMAP.md for next phase (Coalitions or Save/Load).
-3. Commission Europe map art (start search for artist)
+1. **Phase 6.2 Audit Bug Fixes** — 7 findings from economy audit (see below).
+2. **Phase 6.2 Smoke Test** — Full Godot smoke test of economy features (6.2.A-G). Verify: supply attrition events display, movement attrition messages, occupation progress events, AI admin actions in enemy phase dialog, economy command output, turn summary financial report.
+3. **Phase 7 planning** — Review ROADMAP.md for next phase (Coalitions or Save/Load).
+4. Commission Europe map art (start search for artist)
+
+### Phase 6.2 Economy Audit Findings
+
+| # | Priority | Finding | Details |
+|---|----------|---------|---------|
+| 1 | **CRITICAL** | Coalition economy nonviable | Britain nets -330/turn, Prussia -400/turn. Spec balance table (Section 17 of ECONOMY_SPEC.md) assumed ~400/turn Britain income, ~300/turn Prussia — actual map gives Britain 100/turn (2 rural regions) and Prussia 100/turn (1 town). Prussia bankrupt turn 1, Britain by turn 3. Options: more starting territory, smaller Coalition armies, subsidy mechanic, or lower upkeep. |
+| 2 | ~~HIGH~~ | ~~AI admin break-on-failure~~ | **FIXED in Session 23.** Changed `break` to `skip_actions` set pattern in `enemy_ai.py:3308`. |
+| 3 | **MEDIUM** | Reconquest stability bonus missing | `capture_region()` in `world_state.py` always sets stability to 25. Spec says reconquering your OWN territory should set stability 60 (citizens welcome you back). Check `capture_region()` and `_apply_occupation_capture_effects()`. |
+| 4 | **MEDIUM** | Plunder gold too low | Plunder gives 100% base income. Secure yields ~935g over 10 turns vs Plunder's ~515g — not a real tradeoff. Raise to 150-200% base income. See `_apply_plunder()` in `executor.py`. |
+| 5 | **LOW** | AI recruitment threshold too conservative | AI only recruits below 40% starting strength (`enemy_ai.py:_find_weakest_marshal_for_admin`). Wellington must fall to 27k (from 68k) before AI recruits. Raise to 50-60%. |
+| 6 | **LOW** | Training Ground underwhelming | +15% morale on recruits (40%->55%) translates to ~4% morale difference in practice. Consider secondary benefit (e.g., +5% morale recovery/turn for armies in region). See `executor.py:_execute_recruit`. |
+| 7 | **LOW** | AI only builds fortifications | `_find_unfortified_border_region` in `enemy_ai.py` only builds forts. AI never builds markets/depots. Coalition needs markets more than forts given their income crisis. |
 
 ---
 
