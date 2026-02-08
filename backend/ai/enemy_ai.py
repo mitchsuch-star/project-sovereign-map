@@ -1059,6 +1059,12 @@ class EnemyAI:
         ai_debug(f"  Stance: {getattr(marshal, 'stance', 'unknown')}")
         ai_debug(f"  Drilling: {getattr(marshal, 'drilling', False)}, Fortified: {getattr(marshal, 'fortified', False)}")
 
+        # ─── OCCUPATION CHECK (Phase 6.2.F) ─────────────────────────────
+        # Marshal occupying a fortified region should not act — let occupation tick handle
+        if getattr(marshal, 'occupation_region', None):
+            ai_debug(f"  {marshal.name}: OCCUPYING {marshal.occupation_region} — skipping evaluation")
+            return None, 999
+
         # ─── INTENT + P-1: IMMEDIATE OBLIGATIONS ─────────────────────────────
 
         # ════════════════════════════════════════════════════════════

@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 7, 2026
-> **Last Session:** Session 21 — Region Tooltip, Market Building, Fortification Spelling
+> **Last Session:** Session 22 — Phase 6.2.F Supply Limits, Movement Attrition, Contested Capture
 
 ---
 
@@ -10,10 +10,10 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1737** (verified, 3 skipped) |
-| **Current Phase** | Phase 6.2 Economy: 6.2.E COMPLETE. Next: 6.2.F Supply/Attrition |
+| **Tests Passing** | **1780** (verified, 3 skipped) |
+| **Current Phase** | Phase 6.2 Economy: 6.2.F COMPLETE. Next: 6.2.G AI Admin |
 | **Blockers** | None |
-| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2.A, 6.2.B, 6.2.C, 6.2.D, 6.2.E |
+| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2.A, 6.2.B, 6.2.C, 6.2.D, 6.2.E, 6.2.F |
 
 ---
 
@@ -40,11 +40,39 @@
 - [x] **Session 6.2.D: Recruitment Rework** — morale dilution, stability gates, capital discount, updated events, 48 tests (1617 total)
 - [x] **Session 6.2.E: Plunder/Secure + Buildings** — capture choice popup, plunder/secure effects, building system (3 types), fortification combat bonus, training ground morale, repair command, 72 tests (1689 total)
 - [x] **Session 21: Polish** — market building (4th type), region hover tooltip, fortification spelling robustness, battle damage fix, 48 tests (1737 total)
-- [ ] Phase 6.2.F–G: Supply/attrition, AI admin
+- [x] **Session 22: Phase 6.2.F** — supply limits, movement attrition, contested capture, 43 tests (1780 total)
+- [ ] Phase 6.2.G: AI admin
 
 ---
 
 ## Recently Completed
+
+### Feb 7 (Session 22: Phase 6.2.F Supply Limits, Movement Attrition, Contested Capture)
+
+**Supply Limits (region.py + world_state.py):**
+- `SUPPLY_BY_TYPE` constant: capital 50k, major_city 40k, city 30k, town 20k, rural 15k
+- `supply_capacity` computed property on Region: base + supply depot bonus (+10k) * terrain modifier
+- `process_supply_attrition()`: runs during turn resolution, 3 tiers (1%/3%/5% based on excess)
+
+**Movement Attrition (executor.py):**
+- `_calculate_movement_attrition()` helper: base 1% (retreat 0.5%), size penalty for >20k, terrain multiplier, +4% harassment through enemy fortification
+- Wired into: `_execute_move()` (1-tile and 2-tile cavalry), `_execute_attack()` (undefended + post-battle advance), `_execute_retreat_action()`, `_apply_forced_retreat_or_break()`, `_execute_glorious_charge()` advance
+- Broken army flee to capital: no attrition (already shattered)
+
+**Contested Capture (executor.py + world_state.py + marshal.py + enemy_ai.py):**
+- 3 occupation fields on Marshal: `occupation_region`, `occupation_turns_held`, `occupation_turns_required`
+- `_attempt_region_capture()` helper: checks fortification, starts occupation or instant capture
+- Replaced all 4 `world.capture_region()` call sites in executor.py with helper
+- Occupation blocking: marshal can only wait/retreat/end_turn during occupation
+- `_process_tactical_states()`: occupation tick — abandon if left, complete + capture if held
+- `_apply_occupation_capture_effects()` on WorldState: handles AI plunder/secure decision
+- AI skip: `_evaluate_marshal()` returns None for occupying marshals
+- Cleared occupation on forced retreat/break paths
+- Updated serialization test fixture
+
+**Test fix:** `test_bankruptcy_desertion_before_income` — reduced Ney's strength to avoid supply attrition interference
+
+**Tests:** 43 new tests in `test_supply_movement_contested.py` (9 supply capacity, 8 supply attrition, 12 movement attrition, 13 contested capture, 1 serialization)
 
 ### Feb 7 (Session 21: Region Tooltip, Market Building, Fortification Spelling)
 

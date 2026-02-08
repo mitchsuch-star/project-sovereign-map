@@ -11,7 +11,7 @@ A future save/load system should use this as the specification.
 
 - **Format version:** 1.0
 - **Last updated:** 2026-02-07
-- **Compatible with:** Phase 6.2.E Plunder/Secure + Buildings
+- **Compatible with:** Phase 6.2.F Supply/Attrition + Contested Capture
 
 ## Top-Level Structure (WorldState)
 
@@ -192,7 +192,11 @@ A future save/load system should use this as the specification.
 
   "attacks_this_turn": 0,
 
-  "idle_turns": 0
+  "idle_turns": 0,
+
+  "occupation_region": null,
+  "occupation_turns_held": 0,
+  "occupation_turns_required": 0
 }
 ```
 
@@ -323,6 +327,13 @@ A future save/load system should use this as the specification.
 | Field | Type | Description |
 |-------|------|-------------|
 | `idle_turns` | int | Consecutive turns without attack or move (V2b: triggers idle objections) |
+
+#### Contested Capture (Phase 6.2.F)
+| Field | Type | Description |
+|-------|------|-------------|
+| `occupation_region` | string\|null | Region being occupied (null if not occupying) |
+| `occupation_turns_held` | int | Turns held so far |
+| `occupation_turns_required` | int | Turns needed to complete capture (1 = ungarrisoned, 2 = garrisoned) |
 
 ---
 

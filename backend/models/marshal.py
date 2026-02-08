@@ -419,6 +419,17 @@ class Marshal:
         # V2b: idle objection triggers consume this field (see ROADMAP Phase V2b)
         self.idle_turns: int = 0
 
+        # ════════════════════════════════════════════════════════════
+        # CONTESTED CAPTURE OCCUPATION (Phase 6.2.F)
+        # ════════════════════════════════════════════════════════════
+        # When capturing a fortified region, marshal must hold for N turns.
+        # occupation_region: region being occupied (None if not occupying)
+        # occupation_turns_held: turns held so far
+        # occupation_turns_required: turns needed to complete capture
+        self.occupation_region: Optional[str] = None
+        self.occupation_turns_held: int = 0
+        self.occupation_turns_required: int = 0
+
     def move_to(self, new_location: str) -> None:
         """
         Move marshal to a new region.
@@ -983,6 +994,11 @@ class Marshal:
 
             # ═══════ IDLE TRACKING (V2a) ═══════
             "idle_turns": int(self.idle_turns),
+
+            # ═══════ CONTESTED CAPTURE (Phase 6.2.F) ═══════
+            "occupation_region": self.occupation_region,
+            "occupation_turns_held": int(self.occupation_turns_held),
+            "occupation_turns_required": int(self.occupation_turns_required),
         }
         return data
 
@@ -1096,6 +1112,11 @@ class Marshal:
 
         # ═══════ IDLE TRACKING (V2a) ═══════
         marshal.idle_turns = data.get("idle_turns", 0)
+
+        # ═══════ CONTESTED CAPTURE (Phase 6.2.F) ═══════
+        marshal.occupation_region = data.get("occupation_region", None)
+        marshal.occupation_turns_held = data.get("occupation_turns_held", 0)
+        marshal.occupation_turns_required = data.get("occupation_turns_required", 0)
 
         return marshal
 

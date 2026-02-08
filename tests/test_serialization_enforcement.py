@@ -171,6 +171,11 @@ def create_fully_populated_marshal() -> Marshal:
     # Exhaustion
     marshal.attacks_this_turn = 2
 
+    # Contested capture occupation (Phase 6.2.F)
+    marshal.occupation_region = "Brussels"
+    marshal.occupation_turns_held = 1
+    marshal.occupation_turns_required = 2
+
     return marshal
 
 

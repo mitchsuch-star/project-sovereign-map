@@ -1571,7 +1571,47 @@ Four building types, constructed via `build <type> at <region>`:
 
 **Key code:** `region.py::BUILDING_TYPES`, `executor.py::_execute_build()`, `executor.py::_execute_repair()`, `world_state.py::process_construction_timers()`
 
+### Supply Limits & Attrition (Phase 6.2.F)
+
+**Supply Capacity:** Each region has a max troop capacity derived from region type + buildings + terrain.
+
+| Region Type | Base Capacity |
+|-------------|---------------|
+| Capital | 50,000 |
+| Major City | 40,000 |
+| City | 30,000 |
+| Town | 20,000 |
+| Rural | 15,000 |
+
+Supply depot adds +10,000 to base. Terrain modifier applied (mountains 0.5x, urban 1.2x, etc.). Capacity is a computed property — not serialized.
+
+**Supply Attrition:** Runs during turn resolution (after stability/war damage recovery, before bankruptcy). When total troops in a region (all nations) exceed supply capacity:
+- 0-25% excess: 1% attrition per marshal
+- 25-50% excess: 3% attrition per marshal
+- >50% excess: 5% attrition per marshal
+
+**Movement Attrition:** Applied every time a marshal moves. Base rate 1% (retreat 0.5%). Large armies (>20k) get a size penalty: `min(0.02, (strength - 20000) / 500000)` capped at 2%. Total rate on plains: 1% (20k) to 3% (120k+). Terrain multiplier from destination (mountains 2.0x, etc.). Moving through enemy fortified region adds 4% harassment. Cavalry 2-tile moves apply attrition for both tiles. Broken army flee to capital: no attrition (already shattered).
+
+**Key code:** `region.py::SUPPLY_BY_TYPE`, `region.py::supply_capacity`, `world_state.py::process_supply_attrition()`, `executor.py::_calculate_movement_attrition()`
+
+### Contested Capture (Phase 6.2.F)
+
+When capturing a region with a **functional fortification** (undamaged), instant capture is blocked. Instead, the marshal starts an **occupation**:
+- **Ungarrisoned fort:** 1 turn to capture
+- **Garrisoned fort** (defenders beaten this turn): 2 turns to capture
+- **Damaged fort:** Instant capture (no holdout)
+
+During occupation:
+- Marshal is **blocked** from most actions (only wait/retreat/end_turn/status)
+- Occupation ticks at turn start in `_process_tactical_states()`
+- If marshal **leaves** the region, occupation is abandoned
+- If marshal is **forced to retreat**, occupation is cleared
+- AI marshals with occupation in progress are **skipped** by enemy AI evaluator
+
+On occupation completion, capture + plunder/secure choice fires normally.
+
+**Key code:** `marshal.py::occupation_*` fields, `executor.py::_attempt_region_capture()`, `world_state.py::_process_tactical_states()` (occupation progression), `world_state.py::_apply_occupation_capture_effects()`
+
 ### Future Economy Features (not yet implemented)
 
-- Supply limits and movement attrition (6.2.F)
 - AI admin phase (6.2.G)

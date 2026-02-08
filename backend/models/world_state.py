@@ -591,6 +591,51 @@ class WorldState:
         region.stability = 25  # Captured regions start at low stability
         return True
 
+    def _apply_occupation_capture_effects(self, marshal, region_name: str) -> str:
+        """Apply capture effects when occupation completes. Used by turn processing.
+
+        For player: sets pending_capture_choice.
+        For AI: auto-decides plunder vs secure based on personality.
+
+        Returns message string.
+        """
+        region = self.get_region(region_name)
+        if not region:
+            return ""
+
+        old_controller = region.controller
+        self.capture_region(region_name, marshal.nation)
+
+        if marshal.nation == self.player_nation:
+            self.pending_capture_choice = {
+                "region": region_name,
+                "capturer": marshal.name,
+                "previous_controller": old_controller,
+            }
+            return f" {region_name} captured by {marshal.nation}! Choose plunder or secure."
+        else:
+            # AI auto-decide by personality
+            from backend.models.personality import Personality
+            personality_type = getattr(marshal, 'personality_type', None)
+            if personality_type == Personality.AGGRESSIVE:
+                # Plunder: stability 10, war damage, destroy buildings, gain gold
+                region.stability = 10
+                region.apply_war_damage(0.35)
+                region.plundered = True
+                gold_gained = region.income_value
+                self.nation_gold[marshal.nation] = self.nation_gold.get(marshal.nation, 0) + gold_gained
+                region.buildings = []
+                region.building_under_construction = None
+                return f" {region_name} captured and plundered by {marshal.nation}! (+{gold_gained} gold)"
+            else:
+                # Secure: stability 25, damage buildings, cancel construction
+                region.stability = 25
+                region.plundered = False
+                for building in region.buildings:
+                    building["damaged"] = True
+                region.building_under_construction = None
+                return f" {region_name} captured and secured by {marshal.nation}."
+
     # ========================================
     # DANGER / THREAT ZONE CALCULATIONS (BUG-008/009/010)
     # ========================================
@@ -1399,6 +1444,43 @@ class WorldState:
             if region.war_damage > 0:
                 region.recover_war_damage(0.02)
 
+    def process_supply_attrition(self) -> list:
+        """Apply supply attrition to over-capacity regions. Returns event list.
+
+        Regions have a supply capacity based on type + buildings + terrain.
+        When total troops exceed capacity, all marshals in the region suffer attrition.
+        """
+        events = []
+        for region in self.regions.values():
+            if not region.controller:
+                continue
+            # Sum ALL marshals in region (any nation)
+            marshals_here = [m for m in self.marshals.values()
+                             if m.location == region.name and m.strength > 0]
+            total = sum(m.strength for m in marshals_here)
+            cap = region.supply_capacity
+            if total <= cap:
+                continue
+            excess_ratio = (total - cap) / cap
+            if excess_ratio <= 0.25:
+                attrition = 0.01
+            elif excess_ratio <= 0.50:
+                attrition = 0.03
+            else:
+                attrition = 0.05
+            for m in marshals_here:
+                losses = int(m.strength * attrition)
+                if losses > 0:
+                    m.strength = max(0, m.strength - losses)
+                    events.append({
+                        "type": "supply_attrition",
+                        "marshal": m.name,
+                        "region": region.name,
+                        "losses": int(losses),
+                        "message": f"Supply shortage at {region.name}: {m.name} loses {losses:,} troops"
+                    })
+        return events
+
     def process_construction_timers(self) -> list:
         """Advance all construction projects by 1 turn. (Phase 6.2.E)
 
@@ -2063,6 +2145,12 @@ class WorldState:
         self.process_war_damage_recovery()
 
         # ════════════════════════════════════════════════════════════
+        # SUPPLY ATTRITION (Phase 6.2.F) — troops over supply capacity take losses
+        # ════════════════════════════════════════════════════════════
+        supply_events = self.process_supply_attrition()
+        tactical_events.extend(supply_events)
+
+        # ════════════════════════════════════════════════════════════
         # BANKRUPTCY DESERTION (Phase 6.2.B) — uses PREVIOUS turn's counter
         # Must run BEFORE income phase updates the counter
         # ════════════════════════════════════════════════════════════
@@ -2156,6 +2244,46 @@ class WorldState:
 
             # Track if this is a player marshal (for UI events only)
             is_player_marshal = (marshal.nation == self.player_nation)
+
+            # ════════════════════════════════════════════════════════════
+            # OCCUPATION PROGRESSION (Phase 6.2.F)
+            # ════════════════════════════════════════════════════════════
+            if getattr(marshal, 'occupation_region', None):
+                occ_region = marshal.occupation_region
+                if marshal.location != occ_region:
+                    # Left the region — abandon occupation
+                    marshal.occupation_region = None
+                    marshal.occupation_turns_held = 0
+                    marshal.occupation_turns_required = 0
+                    events.append({
+                        "type": "occupation_abandoned",
+                        "marshal": marshal.name,
+                        "region": occ_region,
+                        "message": f"{marshal.name} abandoned the siege of {occ_region}!"
+                    })
+                else:
+                    marshal.occupation_turns_held += 1
+                    if marshal.occupation_turns_held >= marshal.occupation_turns_required:
+                        # CAPTURE COMPLETE
+                        capture_msg = self._apply_occupation_capture_effects(marshal, occ_region)
+                        marshal.occupation_region = None
+                        marshal.occupation_turns_held = 0
+                        marshal.occupation_turns_required = 0
+                        events.append({
+                            "type": "occupation_complete",
+                            "marshal": marshal.name,
+                            "region": occ_region,
+                            "message": f"{marshal.name} has secured the fortress at {occ_region}!{capture_msg}"
+                        })
+                    else:
+                        turns_left = marshal.occupation_turns_required - marshal.occupation_turns_held
+                        events.append({
+                            "type": "occupation_continues",
+                            "marshal": marshal.name,
+                            "region": occ_region,
+                            "turns_left": turns_left,
+                            "message": f"{marshal.name} continues securing {occ_region}... ({turns_left} turn(s) remaining)"
+                        })
 
             # ════════════════════════════════════════════════════════════
             # DRILL STATE PROGRESSION

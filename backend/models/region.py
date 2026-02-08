@@ -87,6 +87,15 @@ BUILDING_SLOT_LIMITS = {
     "rural": 0,
 }
 
+# Supply capacity by region type (max troops region can sustain)
+SUPPLY_BY_TYPE = {
+    "capital": 50000,
+    "major_city": 40000,
+    "city": 30000,
+    "town": 20000,
+    "rural": 15000,
+}
+
 
 class Region:
     """A region on the game map."""
@@ -144,6 +153,17 @@ class Region:
     def cavalry_effectiveness(self) -> float:
         """Cavalry combat effectiveness multiplier in this terrain."""
         return TERRAIN_CAVALRY_EFFECTIVENESS.get(self.terrain, 1.0)
+
+    @property
+    def supply_capacity(self) -> int:
+        """Max troops region can sustain. Computed from type + buildings + terrain."""
+        base = SUPPLY_BY_TYPE.get(self.region_type, 20000)
+        # Supply depot adds 10,000
+        if self.has_building("supply_depot"):
+            base += 10000
+        # Terrain modifier (mountains 0.5x, urban 1.2x, etc.)
+        base = int(base * self.supply_modifier)
+        return base
 
     # ========================================
     # BUILDINGS (Phase 6.2.E)

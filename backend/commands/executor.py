@@ -687,6 +687,21 @@ RETREAT RECOVERY (3 turns):
                     }
 
         # ============================================================
+        # OCCUPATION BLOCKING CHECK (Phase 6.2.F)
+        # Marshals securing a fortress can only status/help/end_turn/wait/retreat
+        # ============================================================
+        if early_marshal_name and not is_strategic_execution:
+            occ_marshal = world.get_marshal(early_marshal_name) if early_marshal_name else None
+            if occ_marshal and getattr(occ_marshal, 'occupation_region', None):
+                allowed_during_occupation = {"status", "help", "end_turn", "wait", "retreat", "economy", "treasury", "finances"}
+                if action not in allowed_during_occupation:
+                    return {
+                        "success": False,
+                        "message": f"{occ_marshal.name} is securing the fortress at {occ_marshal.occupation_region}. "
+                                   f"Only wait, retreat, or end turn allowed during occupation."
+                    }
+
+        # ============================================================
         # DISOBEDIENCE SYSTEM: Check for marshal objection
         # ============================================================
 
@@ -1523,6 +1538,46 @@ RETREAT RECOVERY (3 turns):
             return "\n" + "\n".join(retreat_messages)
         return ""
 
+    def _calculate_movement_attrition(self, marshal, destination_region, world, is_retreat=False) -> dict:
+        """Calculate and apply movement attrition. Returns info dict.
+
+        Args:
+            marshal: Marshal moving
+            destination_region: Name of destination region
+            world: WorldState
+            is_retreat: If True, halved base rate (0.5% vs 1%)
+
+        Returns:
+            Dict with march_losses, harassment_losses, total_losses, destination
+        """
+        base = 0.005 if is_retreat else 0.01
+        size_penalty = min(0.02, max(0, (marshal.strength - 20000) / 500000))
+        rate = base + size_penalty
+
+        # Terrain multiplier from destination
+        region = world.get_region(destination_region)
+        terrain_mult = region.movement_cost if region else 1.0
+        rate *= terrain_mult
+
+        losses = int(marshal.strength * rate)
+        harassment_losses = 0
+
+        # Harassment from enemy fortification
+        if region and region.controller and region.controller != marshal.nation:
+            if region.has_building("fortification"):
+                harassment_losses = int(marshal.strength * 0.04)
+
+        total_losses = losses + harassment_losses
+        if total_losses > 0:
+            marshal.strength = max(0, marshal.strength - total_losses)
+
+        return {
+            "march_losses": int(losses),
+            "harassment_losses": int(harassment_losses),
+            "total_losses": int(total_losses),
+            "destination": destination_region,
+        }
+
     def _apply_forced_retreat_or_break(self, marshal, enemy, world: 'WorldState') -> str:
         """
         Apply forced retreat or break the army if surrounded.
@@ -1544,6 +1599,10 @@ RETREAT RECOVERY (3 turns):
             # NORMAL FORCED RETREAT: Safe location found
             # ════════════════════════════════════════════════════════════
             old_loc = marshal.location
+            # Clear occupation state (Phase 6.2.F) — forced retreat breaks occupation
+            marshal.occupation_region = None
+            marshal.occupation_turns_held = 0
+            marshal.occupation_turns_required = 0
             # Clear strategic order before moving (forced retreat breaks all orders)
             strategic_msg = ""
             if marshal.strategic_order:
@@ -1556,10 +1615,15 @@ RETREAT RECOVERY (3 turns):
                     strategic_msg = f" {marshal.name}'s {cmd_type} order is cancelled!"
                 marshal.strategic_order = None
             marshal.move_to(retreat_to)  # Use move_to() for proper state clearing
+            # Movement attrition on forced retreat (Phase 6.2.F) — halved rate
+            forced_retreat_attrition = self._calculate_movement_attrition(marshal, retreat_to, world, is_retreat=True)
             marshal.retreating = True
             marshal.retreat_recovery = 0  # Start recovery at stage 0
             marshal.retreated_this_turn = True  # Mark for ally covering system
-            return f"⚠️ {marshal.name}'s broken army flees to {retreat_to}!{strategic_msg} (recovering for 3 turns)"
+            attrition_note = ""
+            if forced_retreat_attrition["total_losses"] > 0:
+                attrition_note = f" ({forced_retreat_attrition['total_losses']:,} lost to march)"
+            return f"⚠️ {marshal.name}'s broken army flees to {retreat_to}!{strategic_msg}{attrition_note} (recovering for 3 turns)"
         else:
             # ════════════════════════════════════════════════════════════
             # SURROUNDED - ARMY BROKEN: No safe retreat possible
@@ -1595,6 +1659,10 @@ RETREAT RECOVERY (3 turns):
             marshal.defense_bonus = 0
             marshal.turns_fortified = 0  # Reset decay counter
             marshal.stance = Stance.NEUTRAL
+            # Clear occupation state (Phase 6.2.F)
+            marshal.occupation_region = None
+            marshal.occupation_turns_held = 0
+            marshal.occupation_turns_required = 0
 
             # Clear personality ability states
             marshal.turns_in_defensive_stance = 0
@@ -2037,53 +2105,67 @@ RETREAT RECOVERY (3 turns):
                             if m.location == resolved_target and m.strength > 0 and m.nation != marshal.nation]
 
                 if not defenders:
-                    # UNDEFENDED - Instant capture!
-                    # ENEMY AI FIX: Use attacker's nation, not hardcoded player_nation
+                    # UNDEFENDED - Capture attempt (may start occupation if fortified)
                     old_controller = target_region.controller
                     old_location = marshal.location
 
                     # Move attacker to captured region
                     marshal.move_to(resolved_target)
-                    world.capture_region(resolved_target, marshal.nation)
 
-                    capture_message = f"{marshal.name} marches from {old_location} into {resolved_target} unopposed! Captured: {old_controller} → {marshal.nation}"
-                    if drill_cancelled_message:
-                        capture_message = drill_cancelled_message + capture_message
+                    # Movement attrition (Phase 6.2.F)
+                    attrition_info = self._calculate_movement_attrition(marshal, resolved_target, world)
 
-                    # Phase 6.2.E: Plunder/Secure choice
-                    if marshal.nation == world.player_nation:
-                        world.pending_capture_choice = {
-                            "region": resolved_target,
-                            "capturer": marshal.name,
-                            "previous_controller": old_controller,
-                        }
-                        return {
-                            "success": True,
-                            "message": capture_message + "\nYour forces have taken the region! How shall they behave?",
-                            "pending_capture_choice": True,
-                            "capture_data": world.pending_capture_choice,
-                            "events": [{
-                                "type": "conquest",
-                                "marshal": marshal.name,
-                                "region": resolved_target,
-                                "unopposed": True
-                            }],
-                            "new_state": game_state
-                        }
-                    else:
-                        # AI capture — auto-decide by personality
-                        self._apply_ai_capture_choice(marshal, target_region, world)
+                    # Attempt capture (Phase 6.2.F: contested capture)
+                    capture_result = self._attempt_region_capture(
+                        marshal, resolved_target, world, game_state, had_garrison=False)
+
+                    capture_message = f"{marshal.name} marches from {old_location} into {resolved_target} unopposed!"
+                    if attrition_info["total_losses"] > 0:
+                        capture_message += f" ({attrition_info['march_losses']:,} lost to march"
+                        if attrition_info["harassment_losses"] > 0:
+                            capture_message += f", {attrition_info['harassment_losses']:,} to garrison harassment"
+                        capture_message += ")"
+
+                    if capture_result["occupation_started"]:
+                        capture_message += f" {capture_result['message']}"
+                        if drill_cancelled_message:
+                            capture_message = drill_cancelled_message + capture_message
                         return {
                             "success": True,
                             "message": capture_message,
+                            "occupation_started": True,
                             "events": [{
-                                "type": "conquest",
+                                "type": "occupation_started",
                                 "marshal": marshal.name,
                                 "region": resolved_target,
-                                "unopposed": True
+                                "turns_required": capture_result["turns_required"],
                             }],
                             "new_state": game_state
                         }
+
+                    # Instant capture
+                    capture_message += f" Captured: {old_controller} → {marshal.nation}"
+                    if drill_cancelled_message:
+                        capture_message = drill_cancelled_message + capture_message
+
+                    result = {
+                        "success": True,
+                        "message": capture_message,
+                        "events": [{
+                            "type": "conquest",
+                            "marshal": marshal.name,
+                            "region": resolved_target,
+                            "unopposed": True
+                        }],
+                        "new_state": game_state
+                    }
+
+                    if marshal.nation == world.player_nation and world.pending_capture_choice:
+                        result["message"] += "\nYour forces have taken the region! How shall they behave?"
+                        result["pending_capture_choice"] = True
+                        result["capture_data"] = world.pending_capture_choice
+
+                    return result
 
             # If region not found, return error
             if not target_region:
@@ -2289,11 +2371,15 @@ RETREAT RECOVERY (3 turns):
             if marshal.location != target_location:
                 print(f"[ATTACK MOVEMENT] MOVING {marshal.name}: {marshal.location} -> {target_location}")
                 marshal.move_to(target_location)
+                # Movement attrition on post-battle advance (Phase 6.2.F)
+                attrition_info = self._calculate_movement_attrition(marshal, target_location, world)
                 attacker_moved = True
                 if defender_fled and victor != marshal.name:
                     movement_msg = f" {enemy_marshal.name} retreats! {marshal.name} pursues into {target_location}."
                 else:
                     movement_msg = f" {marshal.name} advances into {target_location}."
+                if attrition_info["total_losses"] > 0:
+                    movement_msg += f" ({attrition_info['total_losses']:,} lost to march)"
             else:
                 print(f"[ATTACK MOVEMENT] Already at target location, no move needed")
         else:
@@ -2313,22 +2399,15 @@ RETREAT RECOVERY (3 turns):
             print(f"[CONQUEST CHECK] target_location={target_location}, controller={target_region.controller}")
             print(f"[CONQUEST CHECK] remaining_defenders={[m.name for m in remaining_defenders]}")
 
-            # If no defenders left, capture the region!
+            # If no defenders left, attempt capture (may start occupation if fortified)
             if not remaining_defenders:
-                old_controller = target_region.controller
-                world.capture_region(target_location, marshal.nation)
-                conquered = True
-                conquest_msg = f" {target_location} has been captured by {marshal.nation}!"
-                # Phase 6.2.E: Plunder/Secure choice
-                if marshal.nation == world.player_nation:
-                    world.pending_capture_choice = {
-                        "region": target_location,
-                        "capturer": marshal.name,
-                        "previous_controller": old_controller,
-                    }
-                else:
-                    # AI capture — auto-decide by personality
-                    self._apply_ai_capture_choice(marshal, target_region, world)
+                capture_result = self._attempt_region_capture(
+                    marshal, target_location, world, game_state, had_garrison=True)
+                if capture_result["captured"]:
+                    conquered = True
+                    conquest_msg = f" {target_location} has been captured by {marshal.nation}!"
+                elif capture_result["occupation_started"]:
+                    conquest_msg = f" {capture_result['message']}"
 
         # Build message with flanking info if applicable
         flanking_prefix = ""
@@ -3936,6 +4015,31 @@ RETREAT RECOVERY (3 turns):
             "to": target_name
         }]
 
+        # Movement attrition (Phase 6.2.F)
+        # Cavalry 2-tile moves: attrition for BOTH intermediate + destination
+        if distance == 2 and intermediate:
+            attrition_intermediate = self._calculate_movement_attrition(marshal, intermediate, world)
+            attrition_dest = self._calculate_movement_attrition(marshal, target_name, world)
+            total_march = attrition_intermediate["march_losses"] + attrition_dest["march_losses"]
+            total_harassment = attrition_intermediate["harassment_losses"] + attrition_dest["harassment_losses"]
+            total_all = attrition_intermediate["total_losses"] + attrition_dest["total_losses"]
+            if total_all > 0:
+                attrition_msg = f" ({total_march:,} lost to march"
+                if total_harassment > 0:
+                    attrition_msg += f", {total_harassment:,} to garrison harassment"
+                attrition_msg += ")"
+                move_message += attrition_msg
+                events[0]["march_losses"] = int(total_all)
+        else:
+            attrition_info = self._calculate_movement_attrition(marshal, target_name, world)
+            if attrition_info["total_losses"] > 0:
+                attrition_msg = f" ({attrition_info['march_losses']:,} lost to march"
+                if attrition_info["harassment_losses"] > 0:
+                    attrition_msg += f", {attrition_info['harassment_losses']:,} to garrison harassment"
+                attrition_msg += ")"
+                move_message += attrition_msg
+                events[0]["march_losses"] = int(attrition_info["total_losses"])
+
         # Add drill_cancelled event if drill was interrupted
         if drill_cancelled_message:
             events.insert(0, {
@@ -4552,21 +4656,13 @@ RETREAT RECOVERY (3 turns):
                 remaining_defenders = [m for m in world.marshals.values()
                                      if m.location == target_name and m.strength > 0 and m.nation != nearest_marshal.nation]
                 if not remaining_defenders:
-                    old_ctrl = (world.get_region(target_name).controller
-                                if world.get_region(target_name) else None)
-                    world.capture_region(target_name, nearest_marshal.nation)
-                    conquered = True
-                    conquest_msg = f" {target_name} has been captured by {nearest_marshal.nation}!"
-                    # Phase 6.2.E: Plunder/Secure choice
-                    cap_region = world.get_region(target_name)
-                    if nearest_marshal.nation == world.player_nation:
-                        world.pending_capture_choice = {
-                            "region": target_name,
-                            "capturer": nearest_marshal.name,
-                            "previous_controller": old_ctrl,
-                        }
-                    elif cap_region:
-                        self._apply_ai_capture_choice(nearest_marshal, cap_region, world)
+                    capture_result = self._attempt_region_capture(
+                        nearest_marshal, target_name, world, game_state, had_garrison=True)
+                    if capture_result["captured"]:
+                        conquered = True
+                        conquest_msg = f" {target_name} has been captured by {nearest_marshal.nation}!"
+                    elif capture_result["occupation_started"]:
+                        conquest_msg = f" {capture_result['message']}"
 
             # Build message with flanking info
             flanking_prefix = ""
@@ -4640,44 +4736,44 @@ RETREAT RECOVERY (3 turns):
 
         # Capture undefended region!
         old_controller = target_region.controller
-        world.capture_region(target_name, nearest_marshal.nation)
+        capture_result = self._attempt_region_capture(
+            nearest_marshal, target_name, world, game_state, had_garrison=False)
 
-        # Phase 6.2.E: Plunder/Secure choice
-        if nearest_marshal.nation == world.player_nation:
-            world.pending_capture_choice = {
+        if capture_result["occupation_started"]:
+            return {
+                "success": True,
+                "message": f"{nearest_marshal.name} marches into {target_name} unopposed! {capture_result['message']}",
+                "occupation_started": True,
+                "events": [{
+                    "type": "occupation_started",
+                    "marshal": nearest_marshal.name,
+                    "region": target_name,
+                    "turns_required": capture_result["turns_required"],
+                }],
+                "new_state": game_state
+            }
+
+        # Instant capture
+        capture_message = f"{nearest_marshal.name} marches into {target_name} unopposed! Captured: {old_controller} → {nearest_marshal.nation}"
+        result = {
+            "success": True,
+            "message": capture_message,
+            "events": [{
+                "type": "conquest",
+                "marshal": nearest_marshal.name,
                 "region": target_name,
-                "capturer": nearest_marshal.name,
                 "previous_controller": old_controller,
-            }
-            return {
-                "success": True,
-                "message": f"{nearest_marshal.name} marches into {target_name} unopposed! Captured: {old_controller} → {nearest_marshal.nation}\nYour forces have taken the region! How shall they behave?",
-                "pending_capture_choice": True,
-                "capture_data": world.pending_capture_choice,
-                "events": [{
-                    "type": "conquest",
-                    "marshal": nearest_marshal.name,
-                    "region": target_name,
-                    "previous_controller": old_controller,
-                    "unopposed": True
-                }],
-                "new_state": game_state
-            }
-        else:
-            # AI capture — auto-decide by personality
-            self._apply_ai_capture_choice(nearest_marshal, target_region, world)
-            return {
-                "success": True,
-                "message": f"{nearest_marshal.name} marches into {target_name} unopposed! Captured: {old_controller} → {nearest_marshal.nation}",
-                "events": [{
-                    "type": "conquest",
-                    "marshal": nearest_marshal.name,
-                    "region": target_name,
-                    "previous_controller": old_controller,
-                    "unopposed": True
-                }],
-                "new_state": game_state
-            }
+                "unopposed": True
+            }],
+            "new_state": game_state
+        }
+
+        if nearest_marshal.nation == world.player_nation and world.pending_capture_choice:
+            result["message"] += "\nYour forces have taken the region! How shall they behave?"
+            result["pending_capture_choice"] = True
+            result["capture_data"] = world.pending_capture_choice
+
+        return result
 
     def _execute_general_retreat(self, command: Dict, game_state: Dict) -> Dict:
         """
@@ -6638,9 +6734,13 @@ RETREAT RECOVERY (3 turns):
             target_location = target_marshal.location
             if marshal.location != target_location:
                 marshal.move_to(target_location)
+                # Movement attrition on charge advance (Phase 6.2.F)
+                charge_attrition = self._calculate_movement_attrition(marshal, target_location, world)
                 combat_result["attacker_moved"] = True
                 combat_result["attacker_new_location"] = target_location
                 movement_msg = f" {marshal.name} advances into {target_location}."
+                if charge_attrition["total_losses"] > 0:
+                    movement_msg += f" ({charge_attrition['total_losses']:,} lost to march)"
 
         # Check if enemy was destroyed
         enemy_destroyed_msg = ""
@@ -6898,6 +6998,9 @@ RETREAT RECOVERY (3 turns):
         # Execute retreat
         marshal.move_to(best_region)
 
+        # Movement attrition on retreat (Phase 6.2.F) — halved rate
+        retreat_attrition = self._calculate_movement_attrition(marshal, best_region, world, is_retreat=True)
+
         # Track if drill was cancelled for message
         drill_was_active = getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False)
 
@@ -6921,7 +7024,9 @@ RETREAT RECOVERY (3 turns):
         retreat_message += f"{marshal.name} retreats from {old_location} to {best_region}.{troop_loss_msg} "
         if drill_was_active:
             retreat_message += "Drill cancelled. "
-        retreat_message += f"Army begins recovery (currently at {initial_penalty} effectiveness).{stance_penalty_msg} "
+        if retreat_attrition["total_losses"] > 0:
+            retreat_message += f" ({retreat_attrition['total_losses']:,} lost to march)"
+        retreat_message += f" Army begins recovery (currently at {initial_penalty} effectiveness).{stance_penalty_msg} "
         retreat_message += "Will recover over 3 turns."
 
         # Add final fighting retreat message
@@ -7150,6 +7255,63 @@ RETREAT RECOVERY (3 turns):
             self._apply_plunder(region, world)
         else:
             self._apply_secure(region)
+
+    def _attempt_region_capture(self, marshal, region_name, world, game_state, had_garrison=False) -> dict:
+        """Handle capture attempt, respecting fortification holdout.
+
+        Args:
+            marshal: Capturing marshal
+            region_name: Region being captured
+            world: WorldState
+            game_state: Full game state dict
+            had_garrison: True if defenders were beaten this turn (2-turn occupation)
+
+        Returns:
+            {"captured": bool, "occupation_started": bool, "message": str, ...}
+        """
+        region = world.get_region(region_name)
+        if not region:
+            return {"captured": False, "occupation_started": False, "message": ""}
+
+        # Check for functional fortification (damaged forts don't block)
+        has_fort = region.has_building("fortification")
+
+        if has_fort:
+            # CONTESTED CAPTURE: Start occupation timer
+            turns_required = 2 if had_garrison else 1
+            marshal.occupation_region = region_name
+            marshal.occupation_turns_held = 0
+            marshal.occupation_turns_required = turns_required
+
+            return {
+                "captured": False,
+                "occupation_started": True,
+                "turns_required": turns_required,
+                "message": f"{region_name} is fortified! {marshal.name} must hold for "
+                           f"{turns_required} turn(s) to capture.",
+            }
+        else:
+            # INSTANT CAPTURE (existing behavior)
+            old_controller = region.controller
+            world.capture_region(region_name, marshal.nation)
+
+            # Phase 6.2.E: Plunder/Secure choice
+            if marshal.nation == world.player_nation:
+                world.pending_capture_choice = {
+                    "region": region_name,
+                    "capturer": marshal.name,
+                    "previous_controller": old_controller,
+                }
+            else:
+                # AI capture — auto-decide by personality
+                self._apply_ai_capture_choice(marshal, region, world)
+
+            return {
+                "captured": True,
+                "occupation_started": False,
+                "old_controller": old_controller,
+                "message": "",
+            }
 
     def handle_objection_response(self, choice: str, game_state: Dict) -> Dict:
         """

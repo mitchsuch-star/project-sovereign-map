@@ -666,7 +666,7 @@ Every march costs lives. Larger armies lose proportionally more (supply lines st
 
 ```python
 base_attrition = 0.01  # 1% per move
-size_penalty = max(0, (marshal.strength - 20000) / 100000)  # 0-0.03 for large armies
+size_penalty = min(0.02, max(0, (marshal.strength - 20000) / 500000))  # 0-2% for large armies
 move_attrition = base_attrition + size_penalty
 
 losses = int(marshal.strength * move_attrition)
@@ -674,7 +674,9 @@ marshal.strength -= losses
 ```
 
 A 20,000-strong army loses ~1% (200 troops) per move.
-A 50,000-strong army loses ~1.3% (650 troops) per move.
+A 50,000-strong army loses ~1.6% (800 troops) per move (size penalty kicks in).
+A 72,000-strong army loses ~2.04% (~1,470 troops) per move.
+A 120,000+ army loses ~3% (capped) per move on plains.
 
 ### Application
 
