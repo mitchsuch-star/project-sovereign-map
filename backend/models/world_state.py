@@ -110,7 +110,8 @@ class WorldState:
             "build": 1,    # Phase 6.2.E
             "repair": 1,   # Phase 6.2.E
             "defend": 1,
-            "end_turn": 0  # Free action
+            "end_turn": 0,  # Free action
+            "economy": 0,  # Free action (Phase 6.2.G)
         }
 
         # ============================================================
@@ -1410,11 +1411,15 @@ class WorldState:
         }
 
     def _calculate_admin_bonus(self, nation: str) -> int:
-        """Unused admin AP -> gold bonus. Only applies to player for now."""
+        """Unused admin AP -> gold bonus.
+
+        Player: uses admin_actions_remaining field.
+        AI: bonus is applied directly during execute_admin_phase() in enemy_ai.py
+            so return 0 here to avoid double-counting.
+        """
         if nation == self.player_nation:
             return int(getattr(self, 'admin_actions_remaining', 0) * 75)
-        # AI nations: assume they use all AP (no bonus)
-        # AI admin spending comes in 6.2.G
+        # AI nations: bonus applied in enemy_ai.execute_admin_phase()
         return 0
 
     # ========================================
@@ -1945,6 +1950,10 @@ class WorldState:
                         "in_strategic_mode": bool(m.in_strategic_mode),
                         "strategic_command_type": str(m.strategic_command_type) if m.strategic_command_type else "",
                         "strategic_target": str(m.strategic_order.target) if m.strategic_order else "",
+                        # Occupation state (Phase 6.2.F)
+                        "occupation_region": str(getattr(m, 'occupation_region', '') or ''),
+                        "occupation_turns_held": int(getattr(m, 'occupation_turns_held', 0)),
+                        "occupation_turns_required": int(getattr(m, 'occupation_turns_required', 0)),
                     }
 
                 marshals_data.append(marshal_data)

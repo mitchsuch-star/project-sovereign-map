@@ -306,8 +306,27 @@ class CommandExecutor:
                 else:
                     message += f"\n{marshal_name}: {action_str}{perf_str} - {turns_left} turn{'s' if turns_left != 1 else ''} remaining"
 
-        # Get income info
-        income_data = world.calculate_turn_income()
+        # ════════════════════════════════════════════════════════════
+        # FINANCIAL SUMMARY (Phase 6.2.G)
+        # Show income/upkeep/net after turn processing
+        # ════════════════════════════════════════════════════════════
+        nation = world.player_nation
+        income_data = world.calculate_turn_income(nation)
+        upkeep_data = world.calculate_turn_upkeep(nation)
+        # Admin bonus was already applied during process_income_phase in advance_turn
+        # Use 0 here since AP was already consumed/saved
+        treasury = world.nation_gold.get(nation, 0)
+
+        # Add financial report to message
+        income_val = income_data["income"]
+        upkeep_val = upkeep_data["total"]
+        net_val = income_val - upkeep_val
+        net_sign = "+" if net_val >= 0 else ""
+        message += f"\n\nIncome: {income_val}g | Upkeep: {upkeep_val}g | Net: {net_sign}{net_val}g | Treasury: {treasury:,}g"
+
+        if world.nation_bankruptcy_turns.get(nation, 0) > 0:
+            bk_turns = world.nation_bankruptcy_turns[nation]
+            message += f"\nWARNING: Bankrupt for {bk_turns} turn{'s' if bk_turns > 1 else ''}!"
 
         # Build turn_end event for Godot's _display_turn_change
         turn_end_event = {
@@ -315,6 +334,9 @@ class CommandExecutor:
             "old_turn": int(turn_result.get("turn_ended", world.current_turn - 1)),
             "new_turn": int(turn_result.get("next_turn", world.current_turn)),
             "income": int(income_data.get("income", 0)),
+            "upkeep": int(upkeep_val),
+            "net": int(net_val),
+            "treasury": int(treasury),
         }
         events = [turn_end_event] + turn_result.get("events", [])
 
@@ -528,12 +550,22 @@ STANCE COMMANDS:
   neutral    - Balanced (default, FREE to return)
                "Ney, neutral" / "Ney, return to neutral"
 
+ECONOMY COMMANDS (Admin AP):
+  build      - Build at a city you control (1 Admin AP)
+               "build fortification at Lyon" / "build market at Paris"
+  repair     - Repair damage or buildings (1 Admin AP, 150 gold)
+               "repair Lyon" / "repair market at Lyon"
+  recruit    - Raise 10,000 troops (1 Admin AP, 200 gold)
+               "recruit" / "recruit for Ney" / "recruit at Paris"
+
 FREE ACTIONS (cost 0):
   help       - Display this help text
   end turn   - Skip remaining actions, advance turn
   wait       - Marshal passes turn (no action taken)
   retreat    - Fall back toward friendly territory
   hold       - Alias for defend
+  economy    - Show treasury, income, upkeep breakdown
+               Also: "treasury" / "finances"
 
 MARSHAL ABILITIES (Phase 2.8):
 
@@ -641,7 +673,8 @@ RETREAT RECOVERY (3 turns):
         # Actions don't apply to status queries or help
         # retreat is FREE (costs 0 actions - strategic withdrawal)
         # debug is FREE (for testing abilities)
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug"]
+        # economy/treasury/finances are FREE information commands (Phase 6.2.G)
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances"]
 
         # Check if action costs points
         action_costs_point = action not in free_actions
@@ -1254,6 +1287,8 @@ RETREAT RECOVERY (3 turns):
             result = self._execute_build(command, game_state)
         elif action == "repair":
             result = self._execute_repair(command, game_state)
+        elif action in ("economy", "treasury", "finances"):
+            result = self._execute_economy(command, game_state)
         elif action == "end_turn":
             result = self._execute_end_turn(command, game_state)
         # ════════════════════════════════════════════════════════════
@@ -4880,6 +4915,97 @@ RETREAT RECOVERY (3 turns):
             "new_state": game_state
         }
 
+    # ═══════════════════════════════════════════════════════════════════
+    # ECONOMY COMMAND (Phase 6.2.G)
+    # Free action showing treasury, income, upkeep breakdown
+    # ═══════════════════════════════════════════════════════════════════
+
+    def _execute_economy(self, command: Dict, game_state: Dict) -> Dict:
+        """Display economy summary: treasury, income, upkeep, net.
+
+        Free action (0 AP). Shows same data as end-of-turn financial report.
+        Aliases: economy, treasury, finances.
+        """
+        world: WorldState = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "No world state"}
+
+        nation = world.player_nation
+        income_data = world.calculate_turn_income(nation)
+        upkeep_data = world.calculate_turn_upkeep(nation)
+        admin_bonus = world.admin_actions_remaining * 75  # Potential bonus if saved
+
+        net = income_data["income"] - upkeep_data["total"] + admin_bonus
+        treasury = world.nation_gold.get(nation, 0)
+
+        # Build detailed report
+        lines = []
+        lines.append("═══════════════════════════════════")
+        lines.append(f"  {nation.upper()} TREASURY REPORT")
+        lines.append("═══════════════════════════════════")
+
+        # Income breakdown
+        region_details = income_data["breakdown"]["region_details"]
+        lines.append(f"  Income:  {income_data['income']}g  ({len(region_details)} regions)")
+        for rd in region_details:
+            effective = rd["effective_income"]
+            base = rd["base_income"]
+            modifiers = []
+            if rd.get("stability_label") and rd["stability_label"] != "Stable":
+                modifiers.append(rd["stability_label"].lower())
+            if rd.get("war_damage", 0) > 0:
+                modifiers.append(f"{int(rd['war_damage'] * 100)}% damaged")
+            mod_str = f" ({', '.join(modifiers)})" if modifiers else ""
+            if effective != base:
+                lines.append(f"    {rd['region']}: {effective}g / {base}g base{mod_str}")
+            else:
+                lines.append(f"    {rd['region']}: {effective}g")
+
+        # Upkeep breakdown
+        upkeep_breakdown = upkeep_data["breakdown"]
+        lines.append(f"\n  Upkeep: -{upkeep_data['total']}g  ({len(upkeep_breakdown)} marshals)")
+        if upkeep_data.get("halved"):
+            lines.append("    (HALVED - bankruptcy mercy)")
+        for ub in upkeep_breakdown:
+            lines.append(f"    {ub['marshal']} ({ub['strength']:,} troops): -{ub['upkeep']}g")
+
+        # Admin bonus
+        if admin_bonus > 0:
+            lines.append(f"\n  Admin bonus: +{admin_bonus}g  ({world.admin_actions_remaining} unused AP x 75)")
+        else:
+            lines.append(f"\n  Admin bonus: 0g  (all AP used)")
+
+        # Net and treasury
+        net_sign = "+" if net >= 0 else ""
+        lines.append(f"\n  Projected net: {net_sign}{net}g")
+        lines.append(f"  Treasury: {treasury:,}g")
+
+        # Bankruptcy warning
+        bankruptcy = world.nation_bankruptcy_turns.get(nation, 0)
+        if bankruptcy > 0:
+            lines.append(f"\n  WARNING: Bankrupt for {bankruptcy} turn{'s' if bankruptcy > 1 else ''}!")
+            if bankruptcy >= 3:
+                lines.append("  Desertion active: -5% strength per marshal per turn!")
+
+        lines.append("═══════════════════════════════════")
+
+        message = "\n".join(lines)
+
+        return {
+            "success": True,
+            "message": message,
+            "events": [{
+                "type": "economy_report",
+                "income": int(income_data["income"]),
+                "upkeep": int(upkeep_data["total"]),
+                "admin_bonus": int(admin_bonus),
+                "net": int(net),
+                "treasury": int(treasury),
+                "bankruptcy_turns": int(bankruptcy),
+            }],
+            "new_state": game_state
+        }
+
     def _calculate_recruit_cost(self, region, world) -> int:
         """Calculate recruitment gold cost based on region properties.
 
@@ -4969,11 +5095,15 @@ RETREAT RECOVERY (3 turns):
         if not region:
             return {"success": False, "message": f"Unknown region: {recruitment_location}"}
 
-        # Must be controlled by player's nation
-        if region.controller != world.player_nation:
+        # Must be controlled by acting nation (player or AI)
+        acting_nation = world.player_nation
+        recruit_marshal = world.get_marshal(recipient) if recipient else None
+        if recruit_marshal:
+            acting_nation = recruit_marshal.nation
+        if region.controller != acting_nation:
             return {
                 "success": False,
-                "message": f"Cannot recruit in {recruitment_location} — not controlled by {world.player_nation}"
+                "message": f"Cannot recruit in {recruitment_location} — not controlled by {acting_nation}"
             }
 
         # Stability gate: block entire Unrest tier (stability <= 50).
@@ -4990,10 +5120,11 @@ RETREAT RECOVERY (3 turns):
         # --- Gold cost calculation ---
         gold_cost = self._calculate_recruit_cost(region, world)
 
-        if world.gold < gold_cost:
+        nation_treasury = world.nation_gold.get(acting_nation, 0)
+        if nation_treasury < gold_cost:
             return {
                 "success": False,
-                "message": f"Insufficient gold! Need {gold_cost} gold, have {world.gold} gold",
+                "message": f"Insufficient gold! Need {gold_cost} gold, have {nation_treasury} gold",
                 "suggestion": "Wait for more income or conquer more regions"
             }
 
@@ -5015,7 +5146,7 @@ RETREAT RECOVERY (3 turns):
         # Set morale BEFORE add_troops (add_troops only modifies strength)
         marshal.morale = new_morale
         marshal.add_troops(NEW_TROOPS)
-        world.gold -= gold_cost
+        world.nation_gold[acting_nation] = int(nation_treasury - gold_cost)
 
         # --- Build result message ---
         # Capital discount and settling premium are mutually exclusive (capital wins)
@@ -5100,9 +5231,16 @@ RETREAT RECOVERY (3 turns):
         if not region:
             return {"success": False, "message": f"Unknown region: {region_name}"}
 
-        # Must be controlled
-        if region.controller != world.player_nation:
-            return {"success": False, "message": f"Cannot build in {region_name} — not controlled by {world.player_nation}"}
+        # Determine acting nation: from _acting_nation (AI), marshal, or player default
+        build_acting_nation = command.get("_acting_nation") or world.player_nation
+        if not command.get("_acting_nation"):
+            build_marshal_name = command.get("marshal")
+            if build_marshal_name:
+                build_marshal_obj = world.get_marshal(build_marshal_name)
+                if build_marshal_obj:
+                    build_acting_nation = build_marshal_obj.nation
+        if region.controller != build_acting_nation:
+            return {"success": False, "message": f"Cannot build in {region_name} — not controlled by {build_acting_nation}"}
 
         # Region type must allow buildings
         if region.max_building_slots() == 0:
@@ -5129,17 +5267,18 @@ RETREAT RECOVERY (3 turns):
         if region.has_building(building_type, functional_only=False):
             return {"success": False, "message": f"{region_name} already has a {building_type.replace('_', ' ')}"}
 
-        # Gold check
+        # Gold check (use acting nation's treasury)
         gold_cost = btype_info["gold_cost"]
-        if world.gold < gold_cost:
-            return {"success": False, "message": f"Insufficient gold! Need {gold_cost}, have {world.gold}"}
+        build_treasury = world.nation_gold.get(build_acting_nation, 0)
+        if build_treasury < gold_cost:
+            return {"success": False, "message": f"Insufficient gold! Need {gold_cost}, have {build_treasury}"}
 
         # Start construction
         region.building_under_construction = {
             "type": building_type,
             "turns_remaining": btype_info["build_time"]
         }
-        world.gold -= gold_cost
+        world.nation_gold[build_acting_nation] = int(build_treasury - gold_cost)
 
         display_name = building_type.replace('_', ' ').title()
         return {
@@ -5176,11 +5315,21 @@ RETREAT RECOVERY (3 turns):
         if not region:
             return {"success": False, "message": f"Unknown region: {region_name}"}
 
-        if region.controller != world.player_nation:
-            return {"success": False, "message": f"Cannot repair in {region_name} — not controlled by {world.player_nation}"}
+        # Determine acting nation: from _acting_nation (AI), marshal, or player default
+        repair_acting_nation = command.get("_acting_nation") or world.player_nation
+        if not command.get("_acting_nation"):
+            repair_marshal_name = command.get("marshal")
+            if repair_marshal_name:
+                repair_marshal_obj = world.get_marshal(repair_marshal_name)
+                if repair_marshal_obj:
+                    repair_acting_nation = repair_marshal_obj.nation
 
-        if world.gold < REPAIR_COST:
-            return {"success": False, "message": f"Insufficient gold! Need {REPAIR_COST}, have {world.gold}"}
+        if region.controller != repair_acting_nation:
+            return {"success": False, "message": f"Cannot repair in {region_name} — not controlled by {repair_acting_nation}"}
+
+        repair_treasury = world.nation_gold.get(repair_acting_nation, 0)
+        if repair_treasury < REPAIR_COST:
+            return {"success": False, "message": f"Insufficient gold! Need {REPAIR_COST}, have {repair_treasury}"}
 
         # Check if repairing a building or war damage
         building_type = command.get("building_type") or self._extract_building_type(command)
@@ -5190,7 +5339,7 @@ RETREAT RECOVERY (3 turns):
             for b in region.buildings:
                 if b["type"] == building_type and b.get("damaged", False):
                     b["damaged"] = False
-                    world.gold -= REPAIR_COST
+                    world.nation_gold[repair_acting_nation] = int(repair_treasury - REPAIR_COST)
                     return {
                         "success": True,
                         "message": f"Repaired {building_type.replace('_', ' ').title()} in {region_name} ({REPAIR_COST} gold)",
@@ -5204,7 +5353,7 @@ RETREAT RECOVERY (3 turns):
             return {"success": False, "message": f"No war damage to repair in {region_name}"}
 
         region.recover_war_damage(0.15)
-        world.gold -= REPAIR_COST
+        world.nation_gold[repair_acting_nation] = int(repair_treasury - REPAIR_COST)
         return {
             "success": True,
             "message": f"War damage repaired in {region_name} ({REPAIR_COST} gold). War damage: {region.war_damage:.0%}",

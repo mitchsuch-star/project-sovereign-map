@@ -42,6 +42,8 @@ VALID_ACTIONS: Set[str] = {
     # Economy actions (Phase 6.2.E)
     "build",      # Build a building at a region
     "repair",     # Repair war damage or damaged building
+    # Economy info command (Phase 6.2.G) — free action
+    "economy",    # Display treasury/income/upkeep breakdown
     # ═══════ ADD NEW ACTIONS HERE ═══════
     # This is the SINGLE SOURCE OF TRUTH for valid LLM actions.
     # Also update: llm_client.py keywords, parser.py valid_actions,
@@ -55,6 +57,7 @@ META_ACTIONS: Set[str] = {
     "debug",
     "status",
     "unknown",  # Failed parse, let executor handle error message
+    "economy",  # Free info command, no marshal needed (Phase 6.2.G)
 }
 
 # Valid stances for stance_change action

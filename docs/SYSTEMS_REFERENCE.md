@@ -1612,6 +1612,34 @@ On occupation completion, capture + plunder/secure choice fires normally.
 
 **Key code:** `marshal.py::occupation_*` fields, `executor.py::_attempt_region_capture()`, `world_state.py::_process_tactical_states()` (occupation progression), `world_state.py::_apply_occupation_capture_effects()`
 
-### Future Economy Features (not yet implemented)
+### AI Admin Phase (Phase 6.2.G)
 
-- AI admin phase (6.2.G)
+AI nations get an admin phase each turn, using the same executor as the player (Building Blocks principle).
+
+**Admin AP:** 2 per turn (hardcoded, not serialized — computed fresh each turn).
+
+**Priority order** (evaluated top-to-bottom, first valid action wins each AP):
+
+| Priority | Action | Condition |
+|----------|--------|-----------|
+| 1 | Recruit | Any marshal below 40% strength |
+| 2 | Build fortification | At border regions (adjacent to enemy) |
+| 3 | Repair building | Any damaged building in controlled region |
+| 4 | Repair war damage | Any region with war_damage > 0 |
+| 5 | Save AP | No valid action — unused AP converts to +75 gold each |
+
+**Implementation:**
+- `enemy_ai.py::execute_admin_phase()` — main entry point (7 methods: main entry + 5 helpers + `_pick_admin_action`)
+- `_acting_nation` field in command dict — lets executor check correct nation's control and treasury (not player's)
+- Wired in `turn_manager.py` — runs after enemy military phase, before strategic orders
+
+**Economy command:**
+- `_execute_economy()` in `executor.py` — free action (0 AP), shows nation's financial summary
+- Aliases: `economy`, `treasury`, `finances`
+- Wired in parser, validation, mock parser
+
+**Turn summary financial report:**
+- `_execute_end_turn()` appends financial report showing income, upkeep, net gold, and balance for the player's nation
+
+**UI wiring:**
+- Occupation fields (`occupation_region`, `occupation_turns_held`, `occupation_turns_required`) added to `tactical_state` dict in `main.py::_get_map_data()` for Godot marshal tooltip display

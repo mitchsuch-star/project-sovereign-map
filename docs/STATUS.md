@@ -1,8 +1,8 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 7, 2026
-> **Last Session:** Session 22 — Phase 6.2.F Supply Limits, Movement Attrition, Contested Capture
+> **Last Updated:** February 8, 2026
+> **Last Session:** Session 23 — Phase 6.2.G AI Admin Phase, Economy Command, Turn Summary
 
 ---
 
@@ -10,16 +10,16 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1784** (verified, 3 skipped) |
-| **Current Phase** | Phase 6.2 Economy: 6.2.F COMPLETE. Next: 6.2.G AI Admin |
+| **Tests Passing** | **1813** (verified, 3 skipped) |
+| **Current Phase** | Phase 6.2 Economy: 6.2 COMPLETE |
 | **Blockers** | None |
-| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2.A, 6.2.B, 6.2.C, 6.2.D, 6.2.E, 6.2.F |
+| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2.A, 6.2.B, 6.2.C, 6.2.D, 6.2.E, 6.2.F, 6.2.G |
 
 ---
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2.A-E COMPLETE. Next: 6.2.F.**
+**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE (6.2.A-G all done).**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -42,11 +42,36 @@
 - [x] **Session 21: Polish** — market building (4th type), region hover tooltip, fortification spelling robustness, battle damage fix, 48 tests (1737 total)
 - [x] **Session 22: Phase 6.2.F** — supply limits, movement attrition, contested capture, 43 tests (1780 total)
 - [x] **Session 22b: 6.2.F Polish** — friendly stable attrition exemption, occupation popup timing fix, debug commands, 47 tests (1784 total)
-- [ ] Phase 6.2.G: AI admin
+- [x] **Session 23: Phase 6.2.G** — AI admin phase, economy command, turn summary financial report, occupation UI wiring, 29 tests (1813 total)
 
 ---
 
 ## Recently Completed
+
+### Feb 8 (Session 23: Phase 6.2.G AI Admin Phase, Economy Command, Turn Summary)
+
+**Phase 6.2 Economy: COMPLETE.** All 7 sub-phases (6.2.A-G) shipped.
+
+**AI Admin Phase (enemy_ai.py):**
+- `execute_admin_phase()` — main entry point with 7 methods (main entry + 5 helpers + `_pick_admin_action`)
+- Priority chain: recruit weak marshals (< 40% strength) > build fortification at border regions > repair damaged buildings > repair war damage > save AP (+75g/unused AP)
+- Uses same executor as player (Building Blocks principle)
+- `_acting_nation` field in command dict lets executor check correct nation's control and treasury
+- Wired into `turn_manager.py` after enemy military phase, before strategic orders
+- Fixed executor admin commands (recruit/build/repair) to work for AI nations via `_acting_nation` field
+
+**Economy Command (executor.py):**
+- `_execute_economy()` — free action (0 AP), displays nation's financial summary
+- Aliases: `economy`, `treasury`, `finances`
+- Wired in parser (`valid_actions`), validation (`VALID_ACTIONS`), mock parser (keywords)
+
+**Turn Summary Financial Report:**
+- `_execute_end_turn()` appends financial report showing income, upkeep, net gold, and balance
+
+**UI Wiring:**
+- Added `occupation_region`, `occupation_turns_held`, `occupation_turns_required` to `tactical_state` dict in `main.py::_get_map_data()` for Godot marshal tooltip
+
+**Tests:** 29 new tests in `test_ai_admin_economy.py` (1813 total passing, 3 skipped).
 
 ### Feb 7 (Session 22: Phase 6.2.F Supply Limits, Movement Attrition, Contested Capture)
 
@@ -633,6 +658,8 @@
 
 | Date | Tests | Notes |
 |------|-------|-------|
+| Feb 8, 2026 | **1813** | Phase 6.2.G: AI admin phase, economy command, turn summary financial report. 29 new tests |
+| Feb 7, 2026 | **1784** | Phase 6.2.F polish: friendly stable attrition exemption, occupation popup timing, debug commands. 47 new tests |
 | Feb 7, 2026 | **1737** | Polish: market building, region hover tooltip, fortification spelling, battle damage fix. 48 new tests |
 | Feb 7, 2026 | **1617** | Phase 6.2.D: recruitment rework (morale dilution, stability gates, capital discount). 48 new tests |
 | Feb 6, 2026 | **1569** | Phase 6.2.C: stability, war damage, combined income modifiers. 78 new tests |
@@ -676,17 +703,9 @@
 
 ## Next Session Priorities
 
-1. **Phase 6.2.G: AI Admin Phase + Turn Summary** — AI recruit/build/repair, financial report display
-2. **6.2.F UI wiring gaps (fix during 6.2.G):**
-   - Supply attrition events: `process_supply_attrition()` generates events in `tactical_events` but verify they display in Godot terminal during turn resolution
-   - Movement attrition: message is embedded in the move `message` string (should display already) — verify with curl
-   - Occupation progress: `occupation_continues` and `occupation_complete` events generated in `_process_tactical_states()` — verify they appear in turn-end output. If not, may need passthrough in `main.py`
-   - Occupation fields not in `tactical_state` dict in `main.py::_get_map_data()` — add `occupation_region`, `occupation_turns_held`, `occupation_turns_required` so Godot can show occupation status in marshal tooltip
-   - No visual indicator in Godot for marshal "stuck" occupying — consider adding to marshal tooltip in `map.gd`
+1. **Phase 6.2 Smoke Test** — Full Godot smoke test of economy features (6.2.A-G). Verify: supply attrition events display, movement attrition messages, occupation progress events, AI admin actions in enemy phase dialog, economy command output, turn summary financial report.
+2. **Phase 7 planning** — Review ROADMAP.md for next phase (Coalitions or Save/Load).
 3. Commission Europe map art (start search for artist)
-
-**Economy spec:** `docs/ECONOMY_SPEC.md` (FINAL — no further changes)
-**Implementation plan:** `docs/PHASE6_IMPLEMENTATION_PLAN.md`
 
 ---
 

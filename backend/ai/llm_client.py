@@ -494,6 +494,9 @@ class LLMClient:
             action = "build"
         elif any(kw in command_lower for kw in ["repair ", "fix ", "restore "]):
             action = "repair"
+        # Economy info command (Phase 6.2.G)
+        elif any(kw in command_lower for kw in ["economy", "treasury", "finances", "financial"]):
+            action = "economy"
         # ═══════ ADD NEW ACTION KEYWORDS HERE ═══════
         # When adding a new action, add an elif block above this comment.
         # Also update: validation.py VALID_ACTIONS, parser.py valid_actions,

@@ -522,6 +522,7 @@ Light building system. Cities only (region_type in ["capital", "major_city", "ci
 | Supply Depot | 300 | 1 | 2 turns | +50 income, increases supply limit by 10,000 |
 | Fortification | 400 | 1 | 3 turns | +25% defense for battles in this region, enables contested capture mechanic |
 | Training Ground | 250 | 1 | 2 turns | Recruits here have 55% morale instead of 40% |
+| Market | 350 | 1 | 2 turns | +25% income multiplier on base region income |
 
 ### Building Construction
 

@@ -461,9 +461,17 @@ class TurnManager:
             # Process this nation's turn
             nation_results = ai.process_nation_turn(nation, self.world, game_state)
 
+            # ════════════════════════════════════════════════════════════
+            # AI ADMIN PHASE (Phase 6.2.G): Economic actions after military
+            # ════════════════════════════════════════════════════════════
+            admin_results = ai.execute_admin_phase(nation, self.world, game_state)
+            if admin_results:
+                nation_results.extend(admin_results)
+
             results["nations"][nation] = {
                 "actions": nation_results,
-                "action_count": len(nation_results)
+                "action_count": len(nation_results),
+                "admin_actions": len(admin_results) if admin_results else 0
             }
             results["total_actions"] += len(nation_results)
 
@@ -481,6 +489,8 @@ class TurnManager:
                 "wait": "holds position",
                 "recruit": "recruits",
                 "scout": "scouts",
+                "build": "builds",
+                "repair": "repairs",
             }
             nation_summary = f"{nation} ({len(nation_results)} actions)"
             if nation_results:

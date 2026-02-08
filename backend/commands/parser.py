@@ -61,6 +61,8 @@ class CommandParser:
             # Economy actions (Phase 6.2.E)
             "build",     # Build a building at a region
             "repair",    # Repair war damage or damaged building
+            # Economy info command (Phase 6.2.G)
+            "economy",   # Display treasury/income/upkeep (free action)
         ]
 
         # Valid stances for stance_change command (Phase 2.7)
@@ -118,7 +120,7 @@ class CommandParser:
         elif not llm_result.get("marshal"):
             # BUG-002 FIX: Skip fuzzy marshal matching for meta/help commands
             # Actions that don't require a marshal (meta commands + pending charge responses)
-            meta_actions = ["help", "end_turn", "status", "unknown", "debug", "charge", "restrain", "build", "repair"]
+            meta_actions = ["help", "end_turn", "status", "unknown", "debug", "charge", "restrain", "build", "repair", "economy"]
             if llm_result.get("action") in meta_actions:
                 return (llm_result, None)  # Don't try to find a marshal
 

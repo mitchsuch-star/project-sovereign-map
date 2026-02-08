@@ -3245,6 +3245,267 @@ class EnemyAI:
         # Enemies are adjacent - stay fortified for defense
         return None
 
+
+    # ═══════════════════════════════════════════════════════════════════
+    # AI ADMIN PHASE (Phase 6.2.G)
+    # After military actions, AI uses admin AP for economic decisions.
+    # Same executor as player (building blocks principle).
+    # ═══════════════════════════════════════════════════════════════════
+
+    def execute_admin_phase(self, nation: str, world, game_state: Dict) -> List[Dict]:
+        """Execute admin actions (recruit, build, repair) for one enemy nation.
+
+        AI gets 2 admin AP per turn (same as player). Priority order:
+        1. Recruit for weakest marshal (below 40% starting strength)
+        2. Build fortification at unfortified border region
+        3. Repair damaged building in high-income region
+        4. Repair war damage in high-income region
+        5. Save AP for income bonus
+
+        Returns list of admin action results.
+        """
+        from backend.utils.debug import debug_print
+        debug_print(f"\n[AI ADMIN] {nation} admin phase begins")
+        debug_print(f"  Treasury: {world.nation_gold.get(nation, 0)}")
+
+        admin_ap = 2  # AI gets 2 admin AP per turn
+        results = []
+        actions_taken = 0
+        skip_actions = set()  # Track failed action types to avoid infinite retry
+
+        while admin_ap > 0:
+            action = self._pick_admin_action(nation, world, admin_ap, skip_actions)
+            if action is None:
+                break  # Save remaining AP for income bonus
+
+            # Build command dict in same format as player commands
+            # Include _acting_nation for executor to check control correctly
+            command = {
+                "command": {
+                    "marshal": action.get("marshal"),
+                    "action": action["action"],
+                    "target": action.get("target"),
+                    "building_type": action.get("building_type"),
+                    "_acting_nation": nation,
+                    "type": "specific"
+                }
+            }
+
+            debug_print(f"  [AI ADMIN] Attempting: {action['action']} "
+                        f"(marshal={action.get('marshal')}, target={action.get('target')})")
+
+            result = self.executor.execute(command, game_state)
+            result["ai_action"] = action
+
+            if result.get("success"):
+                admin_ap -= 1
+                actions_taken += 1
+                result["nation"] = nation
+                result["action_number"] = actions_taken
+                results.append(result)
+                debug_print(f"  [AI ADMIN] Success: {result.get('message', '')[:80]}")
+            else:
+                debug_print(f"  [AI ADMIN] Failed: {result.get('message', '')[:80]}")
+                skip_actions.add(action["action"])  # Skip this action type on retry
+
+        # Track unused AP for income bonus
+        unused_ap = admin_ap
+        if unused_ap > 0:
+            bonus = unused_ap * 75
+            world.nation_gold[nation] = world.nation_gold.get(nation, 0) + bonus
+            debug_print(f"  [AI ADMIN] {nation} saved {unused_ap} admin AP -> +{bonus} gold bonus")
+
+        debug_print(f"[AI ADMIN] {nation} admin phase complete: {actions_taken} actions, "
+                    f"{unused_ap} AP saved, treasury: {world.nation_gold.get(nation, 0)}")
+
+        return results
+
+    def _pick_admin_action(self, nation: str, world, admin_ap: int, skip_actions: set = None) -> Optional[Dict]:
+        """Pick the best admin action for the AI nation.
+
+        Priority:
+        1. Recruit for weakest marshal (below 40% starting strength, treasury > cost)
+        2. Build fortification at border region (treasury > 400)
+        3. Repair damaged building in high-income region (treasury > 150)
+        4. Repair war damage in high-income region (treasury > 150)
+        5. None (save AP for income bonus)
+
+        skip_actions: set of action types that failed and should be skipped.
+        """
+        skip_actions = skip_actions or set()
+        treasury = world.nation_gold.get(nation, 0)
+
+        # Priority 1: Recruit for weakest marshal
+        if "recruit" not in skip_actions:
+            weakest = self._find_weakest_marshal_for_admin(nation, world)
+        else:
+            weakest = None
+        if weakest:
+            # Calculate recruit cost based on region
+            region = world.get_region(weakest.location)
+            recruit_cost = 200  # Base cost
+            if region and getattr(region, 'is_capital', False):
+                recruit_cost = 150  # Capital discount
+            elif region and getattr(region, 'stability', 100) <= 75:
+                recruit_cost = 300  # Settling premium
+
+            if treasury >= recruit_cost and region and getattr(region, 'stability', 100) > 50:
+                return {
+                    "action": "recruit",
+                    "marshal": weakest.name,
+                    "target": weakest.location
+                }
+
+        # Priority 2: Build fortification at border region
+        if "build" not in skip_actions:
+            border_region = self._find_unfortified_border_region(nation, world)
+            if border_region and treasury >= 400:
+                region = world.get_region(border_region)
+                if region and getattr(region, 'stability', 100) > 50:
+                    return {
+                        "action": "build",
+                        "target": border_region,
+                        "building_type": "fortification"
+                    }
+
+        # Priority 3: Repair damaged building
+        if "repair" not in skip_actions:
+            damaged_building = self._find_damaged_building_region(nation, world)
+            if damaged_building and treasury >= 150:
+                return {
+                    "action": "repair",
+                    "target": damaged_building["region"],
+                    "building_type": damaged_building["building_type"]
+                }
+
+        # Priority 4: Repair war damage in high-income region
+        if "repair" not in skip_actions:
+            damaged_region = self._find_war_damaged_region(nation, world)
+            if damaged_region and treasury >= 150:
+                return {
+                    "action": "repair",
+                    "target": damaged_region
+            }
+
+        # Priority 5: Save AP for income bonus
+        return None
+
+    def _find_weakest_marshal_for_admin(self, nation: str, world) -> Optional['Marshal']:
+        """Find the weakest marshal below 40% starting strength for recruitment."""
+        weakest = None
+        lowest_ratio = 1.0
+
+        for marshal in world.marshals.values():
+            if marshal.nation != nation or marshal.strength <= 0:
+                continue
+            starting = getattr(marshal, 'starting_strength', marshal.strength)
+            if starting <= 0:
+                continue
+            ratio = marshal.strength / starting
+            if ratio < 0.4 and ratio < lowest_ratio:
+                # Check if marshal's location is suitable for recruiting
+                region = world.get_region(marshal.location)
+                if region and region.controller == nation:
+                    lowest_ratio = ratio
+                    weakest = marshal
+
+        return weakest
+
+    def _find_unfortified_border_region(self, nation: str, world) -> Optional[str]:
+        """Find an unfortified border region (adjacent to enemy) suitable for building.
+
+        Only considers regions where buildings can be placed (capital, major_city, city).
+        """
+        from backend.models.region import BUILDING_TYPES
+
+        nation_regions = world.get_nation_regions(nation)
+
+        for region_name in nation_regions:
+            region = world.get_region(region_name)
+            if not region:
+                continue
+
+            # Check if building is possible (needs slots and no existing fortification)
+            buildable_types = {"capital", "major_city", "city"}
+            if getattr(region, 'region_type', 'town') not in buildable_types:
+                continue
+
+            # Already has fortification?
+            has_fort = any(b.get("type") == "fortification" for b in getattr(region, 'buildings', []))
+            if has_fort:
+                continue
+
+            # Already building something?
+            if getattr(region, 'building_under_construction', None):
+                continue
+
+            # Check available slots
+            used_slots = len(getattr(region, 'buildings', []))
+            if getattr(region, 'building_under_construction', None):
+                used_slots += 1
+            max_slots = 2 if getattr(region, 'region_type', 'town') == 'capital' else 1
+            if used_slots >= max_slots:
+                continue
+
+            # Stability must be > 50
+            if getattr(region, 'stability', 100) <= 50:
+                continue
+
+            # Is it a border region? (adjacent to enemy-controlled region)
+            is_border = False
+            for adj_name in region.adjacent_regions:
+                adj = world.get_region(adj_name)
+                if adj and adj.controller != nation:
+                    is_border = True
+                    break
+
+            if is_border:
+                return region_name
+
+        return None
+
+    def _find_damaged_building_region(self, nation: str, world) -> Optional[Dict]:
+        """Find a region with a damaged building, prioritizing high-income regions."""
+        best = None
+        best_income = -1
+
+        nation_regions = world.get_nation_regions(nation)
+        for region_name in nation_regions:
+            region = world.get_region(region_name)
+            if not region:
+                continue
+            for building in getattr(region, 'buildings', []):
+                if building.get("damaged", False):
+                    income = getattr(region, 'income_value', 0)
+                    if income > best_income:
+                        best_income = income
+                        best = {
+                            "region": region_name,
+                            "building_type": building["type"]
+                        }
+
+        return best
+
+    def _find_war_damaged_region(self, nation: str, world) -> Optional[str]:
+        """Find a war-damaged region with highest income potential."""
+        best_region = None
+        best_income = -1
+
+        nation_regions = world.get_nation_regions(nation)
+        for region_name in nation_regions:
+            region = world.get_region(region_name)
+            if not region:
+                continue
+            damage = getattr(region, 'war_damage', 0.0)
+            if damage > 0.05:  # Only repair if meaningful damage
+                income = getattr(region, 'income_value', 0)
+                if income > best_income:
+                    best_income = income
+                    best_region = region_name
+
+        return best_region
+
+
     def _execute_action(self, action: Dict, game_state: Dict) -> Dict:
         """
         Execute an action through the standard executor.
