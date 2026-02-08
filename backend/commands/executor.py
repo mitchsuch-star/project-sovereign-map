@@ -5596,6 +5596,8 @@ RETREAT RECOVERY (3 turns):
                           "  • damage_building <region> - Damage first building in region\n"
                           "  • set_stability <region> <0-100> - Set region stability\n"
                           "  • set_gold <amount> - Set player gold\n"
+                          "  • set_controller <region> <nation> - Set region controller\n"
+                          "  • add_building <region> <type> - Add building (supply_depot/fortification/training_ground/market)\n"
                           "\n== Info ==\n"
                           "  • list_marshals - Show all marshals and locations\n"
                           "  • list_regions - Show all regions and who's there"
@@ -5787,6 +5789,48 @@ RETREAT RECOVERY (3 turns):
             old = world.gold
             world.gold = value
             return {"success": True, "message": f"DEBUG: Gold: {old} -> {world.gold}"}
+
+        elif ability == "set_controller":
+            if len(parts) < 3:
+                return {"success": False, "message": "Usage: /debug set_controller <region> <nation>\nNations: France, Britain, Prussia (or 'none')"}
+            nation = parts[-1]
+            region_name = " ".join(parts[1:-1])
+            region = world.get_region(region_name)
+            if not region:
+                for rn in world.regions:
+                    if region_name.lower() in rn.lower():
+                        region = world.regions[rn]
+                        region_name = rn
+                        break
+            if not region:
+                return {"success": False, "message": f"Region '{region_name}' not found."}
+            old_ctrl = region.controller or "none"
+            if nation.lower() == "none":
+                region.controller = None
+            else:
+                region.controller = nation.capitalize()
+            new_ctrl = region.controller or "none"
+            return {"success": True, "message": f"DEBUG: {region_name} controller: {old_ctrl} -> {new_ctrl}"}
+
+        elif ability == "add_building":
+            if len(parts) < 3:
+                return {"success": False, "message": "Usage: /debug add_building <region> <type>\nTypes: supply_depot, fortification, training_ground, market"}
+            building_type = parts[-1].lower()
+            valid_types = {"supply_depot", "fortification", "training_ground", "market"}
+            if building_type not in valid_types:
+                return {"success": False, "message": f"Invalid building type '{building_type}'.\nValid: {', '.join(sorted(valid_types))}"}
+            region_name = " ".join(parts[1:-1])
+            region = world.get_region(region_name)
+            if not region:
+                for rn in world.regions:
+                    if region_name.lower() in rn.lower():
+                        region = world.regions[rn]
+                        region_name = rn
+                        break
+            if not region:
+                return {"success": False, "message": f"Region '{region_name}' not found."}
+            region.buildings.append({"type": building_type, "damaged": False})
+            return {"success": True, "message": f"DEBUG: Added {building_type} to {region_name}. Buildings: {len(region.buildings)}"}
 
         # === COMMANDS THAT NEED MARSHAL ===
 

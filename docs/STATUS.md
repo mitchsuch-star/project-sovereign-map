@@ -675,8 +675,13 @@
 
 ## Next Session Priorities
 
-1. **Phase 6.2.F: Supply Limits + Movement Attrition** — per-region capacity, size penalty, retreat attrition
-2. **Phase 6.2.G: AI Admin Phase + Turn Summary** — AI recruit/build/repair, financial report display
+1. **Phase 6.2.G: AI Admin Phase + Turn Summary** — AI recruit/build/repair, financial report display
+2. **6.2.F UI wiring gaps (fix during 6.2.G):**
+   - Supply attrition events: `process_supply_attrition()` generates events in `tactical_events` but verify they display in Godot terminal during turn resolution
+   - Movement attrition: message is embedded in the move `message` string (should display already) — verify with curl
+   - Occupation progress: `occupation_continues` and `occupation_complete` events generated in `_process_tactical_states()` — verify they appear in turn-end output. If not, may need passthrough in `main.py`
+   - Occupation fields not in `tactical_state` dict in `main.py::_get_map_data()` — add `occupation_region`, `occupation_turns_held`, `occupation_turns_required` so Godot can show occupation status in marshal tooltip
+   - No visual indicator in Godot for marshal "stuck" occupying — consider adding to marshal tooltip in `map.gd`
 3. Commission Europe map art (start search for artist)
 
 **Economy spec:** `docs/ECONOMY_SPEC.md` (FINAL — no further changes)
