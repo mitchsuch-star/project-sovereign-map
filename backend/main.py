@@ -929,7 +929,13 @@ def _get_fortify_state(marshal) -> dict:
 
 
 def _get_map_data(world: WorldState) -> dict:
-    """Get map visualization data with marshal debug info."""
+    """Get map visualization data with marshal debug info.
+
+    WARNING: Currently unused. Godot reads map_data from
+    WorldState.get_game_state_summary(), not this function.
+    If you need to add region fields for Godot, update
+    get_game_state_summary() in world_state.py instead.
+    """
     map_data = {}
 
     for region_name, region in world.regions.items():

@@ -1983,6 +1983,8 @@ class WorldState:
 
                 marshals_data.append(marshal_data)
 
+            # This is the map_data that Godot actually reads (via game_state response).
+            # Do NOT confuse with _get_map_data() in main.py which is unused.
             map_data[region_name] = {
                 "controller": region.controller,
                 "terrain": region.terrain,
@@ -1991,7 +1993,8 @@ class WorldState:
                 "effective_income": int(region.get_effective_income()),
                 "stability": int(region.stability),
                 "stability_label": region.get_stability_label(),
-                "war_damage": region.war_damage,
+                "war_damage": float(region.war_damage),
+                "supply_capacity": int(region.supply_capacity),
                 # Building data for region tooltip
                 "buildings": [{"type": b["type"], "damaged": b.get("damaged", False)} for b in region.buildings],
                 "building_under_construction": {
