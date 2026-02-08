@@ -14,7 +14,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ## Current Phase
 
-**Phase 6.2 Economy: 6.2.A-G COMPLETE + AUDITED (Session 24).** (region types, differentiated income, per-nation gold, upkeep, bankruptcy, admin AP, stability, war damage, recruitment rework, plunder/secure capture choice, building system (4 types: supply depot, fortification, training ground, market), fortification combat bonus, repair command, region hover tooltip, supply limits, movement attrition, contested capture, AI admin phase, economy command, turn summary financial report). Session 24 audit: Coalition territory viability, plunder 1.75x, AI recruitment 0.50, training ground +30%, AI market/depot building, AI supply attrition P0.5. See `docs/ROADMAP.md` for EA readiness roadmap.
+**Phase 6.2 Economy: 6.2.A-G COMPLETE + AUDITED (Session 24). 6.2.H (Supply Depot Forward Logistics) TO BE DESIGNED.** (region types, differentiated income, per-nation gold, upkeep, bankruptcy, admin AP, stability, war damage, recruitment rework, plunder/secure capture choice, building system (4 types: supply depot, fortification, training ground, market), fortification combat bonus, repair command, region hover tooltip, supply limits, movement attrition, contested capture, AI admin phase, economy command, turn summary financial report). Session 24 audit: Coalition territory viability, plunder 1.75x, AI recruitment 0.50, training ground +30%, AI market/depot building, AI supply attrition P0.5. See `docs/ROADMAP.md` for EA readiness roadmap.
 See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 
 ---

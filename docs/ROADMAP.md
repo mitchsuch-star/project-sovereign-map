@@ -12,7 +12,7 @@
 |-------|------|--------|
 | 1-5.3 | Foundation through AI Fixes | COMPLETE |
 | **V2a** | **Objection System Refactor** | **COMPLETE** |
-| **6** | **Core Campaign Systems** | **IN PROGRESS (6.1 terrain complete, 6.2 economy complete + audited)** |
+| **6** | **Core Campaign Systems** | **IN PROGRESS (6.1 terrain complete, 6.2.A-G economy complete + audited, 6.2.H supply depot forward logistics TO BE DESIGNED)** |
 | 6.5 | Information & UI Systems | Planned |
 | 7 | Multi-Marshal, Relationships & Coalitions | Planned |
 | 8 | Diplomacy & Peace | Planned |
@@ -71,7 +71,7 @@
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| Economy | Income per region, treasury, upkeep | Medium | **6.2 COMPLETE + audited** (region types, income, gold, upkeep, bankruptcy, admin AP, stability, war damage, recruitment, plunder/secure, buildings, supply, AI admin, economy audit fixes). Session 24 audit: territory viability, plunder multiplier, AI recruitment/building/supply checks. |
+| Economy | Income per region, treasury, upkeep | Medium | **6.2.A-G COMPLETE + audited** (region types, income, gold, upkeep, bankruptcy, admin AP, stability, war damage, recruitment, plunder/secure, buildings, supply, AI admin, economy audit fixes). Session 24 audit: territory viability, plunder multiplier, AI recruitment/building/supply checks. **6.2.H: Supply Depot Forward Logistics — TO BE DESIGNED** (depots project supply benefits to adjacent regions). |
 | Reinforcements (Enemy) | AI can recruit troops | Low | **DONE** (AI admin phase, Session 23+24) |
 | Manpower Pools | Separate: Infantry, Cavalry, Artillery | Medium | Planned |
 | Attrition | Movement/supply decay | Low | **DONE** (Session 22: supply + movement attrition) |

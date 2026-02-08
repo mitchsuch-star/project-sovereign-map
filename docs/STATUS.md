@@ -11,7 +11,7 @@
 | Metric | Value |
 |--------|-------|
 | **Tests Passing** | **1847** (verified, 3 skipped) |
-| **Current Phase** | Phase 6.2 Economy: 6.2 COMPLETE |
+| **Current Phase** | Phase 6.2 Economy: 6.2.A-G COMPLETE, 6.2.H TO BE DESIGNED |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2.A, 6.2.B, 6.2.C, 6.2.D, 6.2.E, 6.2.F, 6.2.G |
 
@@ -19,7 +19,7 @@
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE (6.2.A-G all done).**
+**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2.A-G COMPLETE. 6.2.H (Supply Depot Forward Logistics) TO BE DESIGNED.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -750,10 +750,28 @@
 
 ## Next Session Priorities
 
-1. **Phase 6.2 Audit Bug Fixes** — 7 findings from economy audit (see below).
+1. **Phase 6.2.H Design: Supply Depot Forward Logistics** — Design how supply depots project supply benefits to adjacent conquered/hostile regions (reduced movement attrition, increased effective supply capacity). Makes depots a forward logistics building ("build in Belgium before pushing into Waterloo"). See design notes below.
 2. **Phase 6.2 Smoke Test** — Full Godot smoke test of economy features (6.2.A-G). Verify: supply attrition events display, movement attrition messages, occupation progress events, AI admin actions in enemy phase dialog, economy command output, turn summary financial report.
 3. **Phase 7 planning** — Review ROADMAP.md for next phase (Coalitions or Save/Load).
 4. Commission Europe map art (start search for artist)
+
+### Phase 6.2.H Design: Supply Depot Forward Logistics (TO BE DESIGNED)
+
+**Problem:** Supply depots currently add +10,000 local supply capacity, but friendly stable territory already waives movement attrition. This makes depots low-value in most scenarios — you rarely stack enough troops in one region to exceed capacity at major cities.
+
+**Concept:** Supply depots project supply benefits to **adjacent regions**, creating a forward logistics network. Build a depot in friendly territory before an offensive, and your troops benefit when pushing into neighboring hostile regions.
+
+**Design questions to resolve:**
+1. What benefit does an adjacent depot project?
+   - Option A: Waive/reduce movement attrition into adjacent regions (like having friendly roads)
+   - Option B: Increase effective supply capacity in adjacent regions (e.g. +10,000 to neighbors)
+   - Option C: Both (risk making depots the obvious best building)
+2. Does the projection stack? (Two depots adjacent to same region = double benefit?)
+3. Does it work for enemy-controlled regions or only neutral/recently captured?
+4. Should AI prioritize building depots near planned offensive targets?
+5. How does this scale to the 1805 map with longer supply lines?
+
+**Key constraint:** Must not crowd out fortifications and training grounds as building choices. Each building type should have a clear use case.
 
 ### Phase 6.2 Economy Audit Findings
 
