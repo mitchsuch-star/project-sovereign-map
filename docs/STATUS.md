@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 7, 2026
-> **Last Session:** Session 20 — 6.2.E Smoke Test Bug Fixes
+> **Last Session:** Session 21 — Region Tooltip, Market Building, Fortification Spelling
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1689** (verified, 3 skipped) |
+| **Tests Passing** | **1737** (verified, 3 skipped) |
 | **Current Phase** | Phase 6.2 Economy: 6.2.E COMPLETE. Next: 6.2.F Supply/Attrition |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2.A, 6.2.B, 6.2.C, 6.2.D, 6.2.E |
@@ -39,11 +39,43 @@
 - [x] **Session 6.2.C: Stability + War Damage** — region stability tiers, war damage, combined income modifiers, battle effects, turn resolution, 78 tests (1569 total)
 - [x] **Session 6.2.D: Recruitment Rework** — morale dilution, stability gates, capital discount, updated events, 48 tests (1617 total)
 - [x] **Session 6.2.E: Plunder/Secure + Buildings** — capture choice popup, plunder/secure effects, building system (3 types), fortification combat bonus, training ground morale, repair command, 72 tests (1689 total)
+- [x] **Session 21: Polish** — market building (4th type), region hover tooltip, fortification spelling robustness, battle damage fix, 48 tests (1737 total)
 - [ ] Phase 6.2.F–G: Supply/attrition, AI admin
 
 ---
 
 ## Recently Completed
+
+### Feb 7 (Session 21: Region Tooltip, Market Building, Fortification Spelling)
+
+**Market building (4th building type, region.py + executor.py):**
+- New `market` entry in `BUILDING_TYPES`: 350 gold, 2 turns, capital/major_city/city
+- +25% base income multiplier in `get_effective_income()` (after supply depot flat bonus, before stability/damage)
+- Income examples: Paris 300->375, Lyon 200->250, Milan 150->187. Stacking with depot: Paris (300+50)*1.25=437
+- "market" and "trade" keywords added to `_extract_building_type()` in executor.py
+
+**Fortification spelling robustness (executor.py + prompt_builder.py):**
+- Added "wall" and "defense" as aliases for fortification in `_extract_building_type()`
+- Added 2 building few-shot examples in `prompt_builder.py` (build fortification, build market)
+
+**Region hover tooltip (world_state.py + map.gd):**
+- Backend: `map_data` now includes `buildings`, `building_under_construction`, `max_building_slots` per region
+- Frontend: `hovered_region` / `region_full_data` vars in map.gd (same pattern as `hovered_marshal`)
+- Region hover detection via distance check in `_draw_regions()` (radius 30)
+- `_draw_region_tooltip()`: name, controller (nation color), type+terrain, income (effective/base), stability (color-coded by tier), war damage (if >0), buildings with DAMAGED tag, under-construction with turns remaining
+- Marshal tooltip takes priority when hovering marshal icon inside region
+
+**Debug command fix (executor.py):**
+- `/debug damage_building`, `/debug set_stability`, `/debug set_gold` were unreachable — placed after marshal resolution block which tried to match region names as marshals
+- Moved all 3 economy debug commands above the marshal resolution block (they take regions/values, not marshals)
+
+**Battle damage fix (executor.py):**
+- Battles now damage civilian buildings (markets, depots, training grounds) instead of fortifications
+- Fortifications are immune to battle damage — they're built to withstand combat
+- Fort value is the contested capture holdout (6.2.F): region holds out even after defending army retreats
+- Plunder/secure still affect all buildings (including forts) — that's deliberate demolition, not combat
+
+**Tests:** 48 new tests in `test_market_building_and_tooltip.py` (1737 total passing).
 
 ### Feb 7 (Session 20: 6.2.E Smoke Test Bug Fixes)
 
@@ -572,6 +604,7 @@
 
 | Date | Tests | Notes |
 |------|-------|-------|
+| Feb 7, 2026 | **1737** | Polish: market building, region hover tooltip, fortification spelling, battle damage fix. 48 new tests |
 | Feb 7, 2026 | **1617** | Phase 6.2.D: recruitment rework (morale dilution, stability gates, capital discount). 48 new tests |
 | Feb 6, 2026 | **1569** | Phase 6.2.C: stability, war damage, combined income modifiers. 78 new tests |
 | Feb 6, 2026 | **1491** | Phase 6.2.B: upkeep, bankruptcy, admin AP. 59 new tests |
@@ -615,11 +648,17 @@
 ## Next Session Priorities
 
 1. **Phase 6.2.F: Supply Limits + Movement Attrition** — per-region capacity, size penalty, retreat attrition
-3. **Phase 6.2.G: AI Admin Phase + Turn Summary** — AI recruit/build/repair, financial report display
-4. Commission Europe map art (start search for artist)
+2. **Phase 6.2.G: AI Admin Phase + Turn Summary** — AI recruit/build/repair, financial report display
+3. Commission Europe map art (start search for artist)
 
 **Economy spec:** `docs/ECONOMY_SPEC.md` (FINAL — no further changes)
 **Implementation plan:** `docs/PHASE6_IMPLEMENTATION_PLAN.md`
+
+---
+
+## Queued Design Items
+
+*All 3 items from Session 20 implemented in Session 21. Section cleared.*
 
 ---
 

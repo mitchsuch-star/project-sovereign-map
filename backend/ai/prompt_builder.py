@@ -156,6 +156,32 @@ EXAMPLE_COMMANDS = [
             "suggestion": "Which marshal should lead the attack?",
         }
     },
+    {
+        "input": "Build a fortification in Lyon",
+        "output": {
+            "matched": True,
+            "command_type": "tactical",
+            "marshals": [],
+            "action": "build",
+            "target": "Lyon",
+            "ambiguity": 5,
+            "strategic_score": 20,
+            "interpretation": "Construct fortification building in Lyon",
+        }
+    },
+    {
+        "input": "Build market at Paris",
+        "output": {
+            "matched": True,
+            "command_type": "tactical",
+            "marshals": [],
+            "action": "build",
+            "target": "Paris",
+            "ambiguity": 5,
+            "strategic_score": 15,
+            "interpretation": "Construct market building in Paris",
+        }
+    },
 ]
 
 # Phase 5.2: Strategic command examples (active)

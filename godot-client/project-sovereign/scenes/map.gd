@@ -51,6 +51,8 @@ var region_marshals = {}
 # Mouse tracking for hover tooltips
 var mouse_position: Vector2 = Vector2.ZERO
 var hovered_marshal: Dictionary = {}  # Stores marshal data when hovering
+var hovered_region: String = ""  # Stores region name when hovering over region circle
+var region_full_data: Dictionary = {}  # Full map_data per region (for tooltips)
 
 # Camera/zoom control variables
 var zoom_level: float = 1.0
@@ -120,8 +122,9 @@ func _process(delta: float):
 
 func _draw():
 	"""Draw the entire map."""
-	# Reset hovered marshal at start of each frame
+	# Reset hover state at start of each frame
 	hovered_marshal = {}
+	hovered_region = ""
 
 	# Apply camera transformations (pan and zoom)
 	draw_set_transform(pan_offset, 0.0, Vector2(zoom_level, zoom_level))
@@ -136,8 +139,11 @@ func _draw():
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 	# Draw tooltip last (on top of everything, in screen space)
+	# Marshal tooltip takes priority over region tooltip
 	if hovered_marshal.size() > 0:
 		_draw_tooltip()
+	elif hovered_region != "" and hovered_region in region_full_data:
+		_draw_region_tooltip()
 
 func _draw_connections():
 	"""Draw lines showing region adjacencies."""
@@ -189,6 +195,11 @@ func _draw_regions():
 		var font_size = 14
 		var text_size = font.get_string_size(region_name, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
 		draw_string(font, pos - Vector2(text_size.x / 2, -5), region_name, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size, Color.WHITE if controller != "Neutral" else Color.BLACK)
+
+		# Region hover detection (circle radius 30)
+		var map_mouse = _get_map_mouse_position()
+		if map_mouse.distance_to(pos) <= 30:
+			hovered_region = region_name
 
 		# Draw marshal icons
 		if region_name in region_marshals:
@@ -707,6 +718,124 @@ func _format_number(num: int) -> String:
 
 	return result
 
+func _draw_region_tooltip():
+	"""Draw tooltip panel showing region details when hovering over a region circle."""
+	var data = region_full_data[hovered_region]
+
+	# Extract region data
+	var controller = data.get("controller", null)
+	if controller == null:
+		controller = "Neutral"
+	var region_type = data.get("region_type", "town")
+	var terrain = data.get("terrain", "plains")
+	var income_value = data.get("income_value", 0)
+	var effective_income = data.get("effective_income", 0)
+	var stability = data.get("stability", 100)
+	var stability_label = data.get("stability_label", "Stable")
+	var war_damage = data.get("war_damage", 0.0)
+	var buildings = data.get("buildings", [])
+	var construction = data.get("building_under_construction", null)
+	var max_slots = data.get("max_building_slots", 0)
+
+	# Count lines for tooltip height
+	var line_count = 5  # name, controller, type+terrain, income, stability
+	if war_damage > 0:
+		line_count += 1
+	if max_slots > 0:
+		line_count += 1  # "Buildings (X/Y):" header
+		line_count += buildings.size()
+		if construction != null:
+			line_count += 1
+
+	var line_spacing = 16
+	var padding = 10
+	var extra_spacing = 8
+	var tooltip_height = padding * 2 + (line_count * line_spacing) + extra_spacing * 2
+	var tooltip_size = Vector2(260, tooltip_height)
+	var tooltip_pos = mouse_position + Vector2(15, 15)
+
+	# Draw panel
+	var panel_color = Color(0.1, 0.1, 0.15, 0.95)
+	draw_rect(Rect2(tooltip_pos, tooltip_size), panel_color)
+	draw_rect(Rect2(tooltip_pos, tooltip_size), Color.WHITE, false, 2.0)
+
+	var font = ThemeDB.fallback_font
+	var text_x = tooltip_pos.x + padding
+	var text_y = tooltip_pos.y + padding
+
+	# Line 1: Region name (size 14, white)
+	draw_string(font, Vector2(text_x, text_y + 14), hovered_region, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color.WHITE)
+	text_y += line_spacing + 4
+
+	# Line 2: Controller (nation color)
+	var nation_color = COLORS.get(controller, Color(0.7, 0.7, 0.7))
+	draw_string(font, Vector2(text_x, text_y + 11), controller, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, nation_color)
+	text_y += line_spacing + 4
+
+	# Line 3: Type + Terrain
+	var type_display = region_type.replace("_", " ").capitalize()
+	var terrain_display = terrain.replace("_", " ").capitalize()
+	var type_text = type_display + " | " + terrain_display
+	draw_string(font, Vector2(text_x, text_y + 11), type_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.7, 0.7, 0.7))
+	text_y += line_spacing
+
+	# Line 4: Income (effective/base)
+	var income_text = "Income: " + str(effective_income)
+	if effective_income != income_value:
+		income_text += " (base " + str(income_value) + ")"
+	var income_color = Color(0.9, 0.85, 0.4)  # Gold
+	draw_string(font, Vector2(text_x, text_y + 11), income_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, income_color)
+	text_y += line_spacing
+
+	# Line 5: Stability (color-coded by tier)
+	var stability_color = Color(0.5, 0.85, 0.5)  # Green for Stable
+	if stability <= 25:
+		stability_color = Color(0.85, 0.3, 0.3)  # Red for Hostile
+	elif stability <= 50:
+		stability_color = Color(0.85, 0.5, 0.3)  # Orange for Unrest
+	elif stability <= 75:
+		stability_color = Color(0.85, 0.75, 0.4)  # Yellow for Settling
+	var stability_text = "Stability: " + str(stability) + "% (" + stability_label + ")"
+	draw_string(font, Vector2(text_x, text_y + 11), stability_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, stability_color)
+	text_y += line_spacing
+
+	# War damage (only if > 0)
+	if war_damage > 0:
+		var dmg_pct = int(war_damage * 100)
+		var dmg_text = "War Damage: " + str(dmg_pct) + "%"
+		var dmg_color = Color(0.85, 0.4, 0.4)  # Red
+		draw_string(font, Vector2(text_x, text_y + 11), dmg_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, dmg_color)
+		text_y += line_spacing
+
+	# Buildings section (only if region supports buildings)
+	if max_slots > 0:
+		text_y += extra_spacing
+		var used_slots = buildings.size()
+		if construction != null:
+			used_slots += 1
+		var buildings_header = "Buildings (" + str(used_slots) + "/" + str(max_slots) + "):"
+		draw_string(font, Vector2(text_x, text_y + 11), buildings_header, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.7, 0.8, 0.9))
+		text_y += line_spacing
+
+		for b in buildings:
+			var b_name = b.get("type", "unknown").replace("_", " ").capitalize()
+			var b_damaged = b.get("damaged", false)
+			var b_text = "  " + b_name
+			var b_color = Color(0.6, 0.8, 0.6)  # Green
+			if b_damaged:
+				b_text += " [DAMAGED]"
+				b_color = Color(0.85, 0.5, 0.3)  # Orange
+			draw_string(font, Vector2(text_x, text_y + 11), b_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, b_color)
+			text_y += line_spacing
+
+		if construction != null:
+			var c_name = construction.get("type", "unknown").replace("_", " ").capitalize()
+			var c_turns = construction.get("turns_remaining", 0)
+			var c_text = "  " + c_name + " (" + str(c_turns) + " turns)"
+			var c_color = Color(0.85, 0.75, 0.4)  # Yellow
+			draw_string(font, Vector2(text_x, text_y + 11), c_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, c_color)
+			text_y += line_spacing
+
 func update_region(region_name: String, controller: String, marshal: String = ""):
 	"""Update a region's state (called from backend response)."""
 	if region_name in REGION_POSITIONS:
@@ -721,7 +850,8 @@ func update_region(region_name: String, controller: String, marshal: String = ""
 
 func update_all_regions(map_data: Dictionary):
 	"""Update all regions from backend map data."""
-	# Reduced debug output - only print marshal tactical_state info
+	# Store full map_data for region tooltips
+	region_full_data = map_data
 
 	for region_name in map_data:
 		var data = map_data[region_name]

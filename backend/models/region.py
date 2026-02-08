@@ -76,6 +76,7 @@ BUILDING_TYPES = {
     "supply_depot": {"gold_cost": 300, "build_time": 2, "allowed_in": ["capital", "major_city", "city"]},
     "fortification": {"gold_cost": 400, "build_time": 3, "allowed_in": ["capital", "major_city", "city"]},
     "training_ground": {"gold_cost": 250, "build_time": 2, "allowed_in": ["capital", "major_city", "city"]},
+    "market": {"gold_cost": 350, "build_time": 2, "allowed_in": ["capital", "major_city", "city"]},
 }
 
 BUILDING_SLOT_LIMITS = {
@@ -211,13 +212,17 @@ class Region:
         """Actual income after stability and war damage modifiers.
 
         Supply depot adds +50 to BASE income (before modifiers).
-        This means a supply depot in a hostile region still yields 0
-        (50 * 0.0 stability = 0) — no gaming by building in warzones.
+        Market applies +25% multiplier to base (after supply depot, before stability/damage).
+        This means buildings in a hostile region still yield 0
+        (base * 0.0 stability = 0) — no gaming by building in warzones.
         """
         base = self.income_value
-        # Supply depot bonus (Phase 6.2.E) — on base, before modifiers
+        # Supply depot bonus (Phase 6.2.E) — flat add on base, before modifiers
         if self.has_building("supply_depot"):
             base += 50
+        # Market bonus — +25% multiplier on base (after supply depot)
+        if self.has_building("market"):
+            base = int(base * 1.25)
         stability_mod = self._get_stability_modifier()
         damage_mod = 1.0 - self.war_damage
         return int(base * stability_mod * damage_mod)

@@ -1550,13 +1550,14 @@ When a **player** captures a region, a popup asks: **Plunder** or **Secure**?
 
 ### Building System (Phase 6.2.E)
 
-Three building types, constructed via `build <type> at <region>`:
+Four building types, constructed via `build <type> at <region>`:
 
 | Building | Cost | Time | Effect |
 |----------|------|------|--------|
 | Supply Depot | 300g | 2 turns | +50 base income (before modifiers) |
 | Fortification | 400g | 3 turns | +25% defense (stacks with terrain) |
 | Training Ground | 250g | 2 turns | Recruit morale 55% (instead of 40%) |
+| Market | 350g | 2 turns | +25% base income multiplier (after depot, before stability/damage) |
 
 **Building slots:** Capital: 2, Major City/City: 1, Town/Rural: 0
 
@@ -1564,7 +1565,7 @@ Three building types, constructed via `build <type> at <region>`:
 
 **Construction timers** process during turn resolution (after tactical states, before turn counter advance).
 
-**Damage:** Battles damage fortifications (100% if 50k+ troops, 25% chance otherwise). Plunder destroys all. Secure damages all. Construction cancelled on any capture.
+**Battle damage:** Battles damage civilian buildings — markets, supply depots, training grounds (100% if 50k+ troops, 25% chance otherwise). **Fortifications are immune** to battle damage — they're built to withstand combat and provide contested capture holdout value (6.2.F). Plunder destroys all buildings (including forts). Secure damages all buildings (including forts). Construction cancelled on any capture.
 
 **Repair:** `repair <region>` = 150 gold, -0.15 war damage. `repair <building> at <region>` = 150 gold, restores damaged building. Uses admin AP.
 

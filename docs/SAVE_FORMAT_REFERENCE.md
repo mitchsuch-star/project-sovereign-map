@@ -438,7 +438,7 @@ A future save/load system should use this as the specification.
 | `movement_cost` | terrain | Attrition multiplier (1.0-2.0) |
 | `supply_modifier` | terrain | Supply capacity modifier (0.5-1.2) |
 | `cavalry_effectiveness` | terrain | Cavalry combat multiplier (0.3-1.2) |
-| `get_effective_income()` | stability, war_damage, buildings | Actual income: `int((income_value + depot_bonus) * stability_mod * (1 - war_damage))` |
+| `get_effective_income()` | stability, war_damage, buildings | Actual income: `int(int((income_value + depot_bonus) * market_mult) * stability_mod * (1 - war_damage))`. Market mult = 1.25 if functional market, else 1.0. |
 | `get_stability_label()` | stability | "Hostile" / "Unrest" / "Settling" / "Stable" |
 | `max_building_slots()` | region_type | Capital: 2, major_city/city: 1, town/rural: 0 |
 | `has_building(type)` | buildings | True if functional (undamaged) building of that type exists |

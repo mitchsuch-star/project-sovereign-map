@@ -1876,6 +1876,13 @@ class WorldState:
                 "stability": int(region.stability),
                 "stability_label": region.get_stability_label(),
                 "war_damage": region.war_damage,
+                # Building data for region tooltip
+                "buildings": [{"type": b["type"], "damaged": b.get("damaged", False)} for b in region.buildings],
+                "building_under_construction": {
+                    "type": region.building_under_construction["type"],
+                    "turns_remaining": int(region.building_under_construction["turns_remaining"])
+                } if region.building_under_construction else None,
+                "max_building_slots": int(region.max_building_slots()),
                 "marshals": marshals_data
             }
 

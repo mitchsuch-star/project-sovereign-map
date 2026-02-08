@@ -1462,7 +1462,9 @@ RETREAT RECOVERY (3 turns):
         """Apply war damage, stability hit, and building damage to a region after battle.
 
         Uses pre-battle troop counts for the 50k major battle threshold.
-        Phase 6.2.E: Fortifications damaged by battle (100% for major, 25% for normal).
+        Civilian buildings (markets, depots, training grounds) damaged by battle.
+        Fortifications are immune — they're built to withstand combat and provide
+        contested capture holdout value even after the defending army retreats.
         """
         import random
         region = world.get_region(region_name)
@@ -1473,10 +1475,11 @@ RETREAT RECOVERY (3 turns):
         region.apply_war_damage(0.20 if is_major else 0.10)
         region.stability = max(0, region.stability - 10)
 
-        # Phase 6.2.E: Battle damages fortifications
+        # Battle damages civilian buildings (not fortifications — forts are built to withstand combat
+        # and their value is delaying capture via contested capture mechanic in 6.2.F)
         # Major battles (50k+ troops) always damage; normal battles 25% chance
         for building in region.buildings:
-            if building["type"] == "fortification" and not building.get("damaged", False):
+            if building["type"] != "fortification" and not building.get("damaged", False):
                 if is_major or random.random() < 0.25:
                     building["damaged"] = True
 
@@ -4953,10 +4956,12 @@ RETREAT RECOVERY (3 turns):
             raw = ""
         if "supply" in raw or "depot" in raw:
             return "supply_depot"
-        elif "fort" in raw:
+        elif "fort" in raw or "wall" in raw or "defense" in raw:
             return "fortification"
         elif "train" in raw:
             return "training_ground"
+        elif "market" in raw or "trade" in raw:
+            return "market"
         # Try building_type field directly (set by tests)
         bt = command.get("building_type")
         if bt:
@@ -5630,6 +5635,63 @@ RETREAT RECOVERY (3 turns):
                 "message": "\n".join(lines)
             }
 
+        # === ECONOMY TESTING (Phase 6.2) — region-based, no marshal needed ===
+
+        elif ability == "damage_building":
+            # Damage first building in a region (for testing repair command)
+            if len(parts) < 2:
+                return {"success": False, "message": "Usage: /debug damage_building <region>"}
+            region_name = " ".join(parts[1:])
+            region = world.get_region(region_name)
+            if not region:
+                # Fuzzy match
+                for rn in world.regions:
+                    if region_name.lower() in rn.lower():
+                        region = world.regions[rn]
+                        region_name = rn
+                        break
+            if not region:
+                return {"success": False, "message": f"Region '{region_name}' not found."}
+            if not region.buildings:
+                return {"success": False, "message": f"{region_name} has no buildings."}
+            for b in region.buildings:
+                if not b.get("damaged"):
+                    b["damaged"] = True
+                    return {"success": True, "message": f"DEBUG: Damaged {b['type']} in {region_name}."}
+            return {"success": True, "message": f"DEBUG: All buildings in {region_name} already damaged."}
+
+        elif ability == "set_stability":
+            if len(parts) < 3:
+                return {"success": False, "message": "Usage: /debug set_stability <region> <0-100>"}
+            try:
+                value = int(parts[-1])
+            except ValueError:
+                return {"success": False, "message": "Stability must be a number 0-100."}
+            region_name = " ".join(parts[1:-1])
+            region = world.get_region(region_name)
+            if not region:
+                for rn in world.regions:
+                    if region_name.lower() in rn.lower():
+                        region = world.regions[rn]
+                        region_name = rn
+                        break
+            if not region:
+                return {"success": False, "message": f"Region '{region_name}' not found."}
+            old = region.stability
+            region.stability = max(0, min(100, value))
+            return {"success": True, "message": f"DEBUG: {region_name} stability: {old} -> {region.stability}"}
+
+        elif ability == "set_gold":
+            if len(parts) < 2:
+                return {"success": False, "message": "Usage: /debug set_gold <amount>"}
+            try:
+                value = int(parts[1])
+            except ValueError:
+                return {"success": False, "message": "Gold must be a number."}
+            old = world.gold
+            world.gold = value
+            return {"success": True, "message": f"DEBUG: Gold: {old} -> {world.gold}"}
+
         # === COMMANDS THAT NEED MARSHAL ===
 
         if len(parts) < 2:
@@ -6077,64 +6139,8 @@ RETREAT RECOVERY (3 turns):
                           f"Max actions now: {world.calculate_max_actions()}"
             }
 
-        # ═══════════════════════════════════════════════
-        # ECONOMY TESTING (Phase 6.2)
-        # ═══════════════════════════════════════════════
-
-        elif ability == "damage_building":
-            # Damage first building in a region (for testing repair command)
-            if len(parts) < 2:
-                return {"success": False, "message": "Usage: /debug damage_building <region>"}
-            region_name = " ".join(parts[1:])
-            region = world.get_region(region_name)
-            if not region:
-                # Fuzzy match
-                for rn in world.regions:
-                    if region_name.lower() in rn.lower():
-                        region = world.regions[rn]
-                        region_name = rn
-                        break
-            if not region:
-                return {"success": False, "message": f"Region '{region_name}' not found."}
-            if not region.buildings:
-                return {"success": False, "message": f"{region_name} has no buildings."}
-            for b in region.buildings:
-                if not b.get("damaged"):
-                    b["damaged"] = True
-                    return {"success": True, "message": f"DEBUG: Damaged {b['type']} in {region_name}."}
-            return {"success": True, "message": f"DEBUG: All buildings in {region_name} already damaged."}
-
-        elif ability == "set_stability":
-            if len(parts) < 3:
-                return {"success": False, "message": "Usage: /debug set_stability <region> <0-100>"}
-            try:
-                value = int(parts[-1])
-            except ValueError:
-                return {"success": False, "message": "Stability must be a number 0-100."}
-            region_name = " ".join(parts[1:-1])
-            region = world.get_region(region_name)
-            if not region:
-                for rn in world.regions:
-                    if region_name.lower() in rn.lower():
-                        region = world.regions[rn]
-                        region_name = rn
-                        break
-            if not region:
-                return {"success": False, "message": f"Region '{region_name}' not found."}
-            old = region.stability
-            region.stability = max(0, min(100, value))
-            return {"success": True, "message": f"DEBUG: {region_name} stability: {old} -> {region.stability}"}
-
-        elif ability == "set_gold":
-            if len(parts) < 2:
-                return {"success": False, "message": "Usage: /debug set_gold <amount>"}
-            try:
-                value = int(parts[1])
-            except ValueError:
-                return {"success": False, "message": "Gold must be a number."}
-            old = world.gold
-            world.gold = value
-            return {"success": True, "message": f"DEBUG: Gold: {old} -> {world.gold}"}
+        # Economy debug commands (damage_building, set_stability, set_gold)
+        # moved above marshal resolution block — they take regions, not marshals.
 
         elif ability == "list_regions" or ability == "regions":
             lines = ["=== All Regions ==="]
