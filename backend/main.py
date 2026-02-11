@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 # Load .env BEFORE any imports that might read env vars
 load_dotenv()
 
+from pathlib import Path
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -16,6 +18,7 @@ from pydantic import BaseModel
 from backend.commands.parser import CommandParser
 from backend.commands.executor import CommandExecutor
 from backend.models.world_state import WorldState
+from backend.save_manager import save_game, load_game, autosave, list_saves, delete_save
 
 # ════════════════════════════════════════════════════════════
 # DEBUG MODE: Set to True to enable debug endpoints
@@ -131,6 +134,21 @@ class StrategicInterruptResponse(BaseModel):
     marshal_name: str
     response_type: str  # 'cannon_fire', 'blocked_path', 'ally_moving'
     choice: str  # varies by response_type
+
+
+class SaveRequest(BaseModel):
+    """Request model for saving game state."""
+    save_name: str = "Quicksave"
+
+
+class LoadRequest(BaseModel):
+    """Request model for loading a saved game."""
+    filename: str
+
+
+class DeleteSaveRequest(BaseModel):
+    """Request model for deleting a save file."""
+    filename: str
 
 
 @app.get("/test")
@@ -335,6 +353,10 @@ def execute_command(request: CommandRequest):
         # Add feedback if generated
         if feedback:
             response["feedback"] = feedback
+
+        # Save/Load: pass through show_load_dialog flag for Godot
+        if result.get("show_load_dialog"):
+            response["show_load_dialog"] = True
 
         # Phase 6.1: Include cavalry terrain message if present
         # (same passthrough pattern as mild_concerns — field exists in combat
@@ -926,6 +948,50 @@ def _get_fortify_state(marshal) -> dict:
     }
     print(f"[FORTIFY_STATE_DEBUG]   -> direction={direction}, floor={floor_percent}%, turns_until_decay={turns_until_decay}")
     return result
+
+
+# ════════════════════════════════════════════════════════════
+# SAVE/LOAD ENDPOINTS (Phase 6: Save/Load System)
+# ════════════════════════════════════════════════════════════
+
+@app.post("/save")
+async def save_endpoint(request: SaveRequest):
+    """Save current game state."""
+    global world
+    result = save_game(world, save_name=request.save_name)
+    return result
+
+
+@app.post("/load")
+async def load_endpoint(request: LoadRequest):
+    """Load a saved game. Replaces current game state."""
+    global world, game_state
+    filepath = Path("saves") / request.filename
+    result = load_game(filepath)
+    if result["success"]:
+        world = result["world"]
+        game_state["world"] = world
+        # Return game state summary so Godot can refresh
+        return {
+            "success": True,
+            "message": result["message"],
+            "game_state": world.get_game_state_summary()
+        }
+    return {"success": False, "message": result["message"]}
+
+
+@app.get("/saves")
+async def list_saves_endpoint():
+    """List all available save files."""
+    saves = list_saves()
+    return {"saves": saves}
+
+
+@app.post("/delete_save")
+async def delete_save_endpoint(request: DeleteSaveRequest):
+    """Delete a save file."""
+    filepath = Path("saves") / request.filename
+    return delete_save(filepath)
 
 
 # ════════════════════════════════════════════════════════════

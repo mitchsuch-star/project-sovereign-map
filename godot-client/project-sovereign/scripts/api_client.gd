@@ -75,6 +75,34 @@ func send_glorious_charge_response(choice: String, callback: Callable):
 	if error != OK:
 		print("ERROR: HTTP request failed with code: ", error)
 
+func save_game(save_name: String, callback: Callable):
+	"""Save current game state."""
+	pending_callback = callback
+	var url = API_URL + "/save"
+	var headers = ["Content-Type: application/json"]
+	var body = JSON.stringify({"save_name": save_name})
+	var error = http_request.request(url, headers, HTTPClient.METHOD_POST, body)
+	if error != OK:
+		print("ERROR: HTTP request failed with code: ", error)
+
+func load_game(filename: String, callback: Callable):
+	"""Load a saved game. On success, refresh game state from response."""
+	pending_callback = callback
+	var url = API_URL + "/load"
+	var headers = ["Content-Type: application/json"]
+	var body = JSON.stringify({"filename": filename})
+	var error = http_request.request(url, headers, HTTPClient.METHOD_POST, body)
+	if error != OK:
+		print("ERROR: HTTP request failed with code: ", error)
+
+func list_saves(callback: Callable):
+	"""List all available save files."""
+	pending_callback = callback
+	var url = API_URL + "/saves"
+	var error = http_request.request(url)
+	if error != OK:
+		print("ERROR: HTTP request failed with code: ", error)
+
 func send_strategic_response(marshal_name: String, response_type: String, choice: String, callback: Callable):
 	"""Send player's response to a strategic command interrupt (Phase J)."""
 	pending_callback = callback

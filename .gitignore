@@ -39,6 +39,9 @@ godot-client/logs/
 godot-client/.godot/
 godot-client/project-sovereign/assets/
 
+# Save files (player data, not code)
+saves/
+
 # Testing
 .pytest_cache/
 .coverage

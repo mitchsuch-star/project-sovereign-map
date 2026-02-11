@@ -398,6 +398,19 @@ class LLMClient:
                 type="debug",
             )
 
+        # Meta-commands: save/load — return raw command so executor handles it directly.
+        # Must be checked BEFORE normal keyword matching to prevent false parses.
+        if command_lower.startswith("save") or command_lower == "load":
+            return ParseResult(
+                matched=True,
+                action="meta_command",
+                raw_command=command_text,
+                mode="mock",
+                interpretation="Save/Load command",
+                confidence=1.0,
+                key_source=self.key_source,
+            )
+
         # BUG-002 FIX: Added "commands" and "what can i do" as help aliases
         if "help" in command_lower or command_lower.strip() == "?" or "commands" in command_lower or "what can i do" in command_lower:
             action = "help"

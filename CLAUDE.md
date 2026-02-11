@@ -14,7 +14,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ## Current Phase
 
-**Phase 6.2 Economy: COMPLETE + AUDITED (Session 26).** 6.2.A-H all implemented and audited. (region types, differentiated income, per-nation gold, upkeep, bankruptcy, admin AP, stability, war damage, recruitment rework, plunder/secure capture choice, building system (4 types: supply depot, fortification, training ground, market), fortification combat bonus, repair command, region hover tooltip, supply limits, movement attrition, contested capture, AI admin phase, economy command, turn summary financial report, depot forward logistics). Session 26 Opus audit: fixed 10 P0 bugs (auto-advance data loss, plunder nation routing, 6 float-to-Godot, mock parser collisions), 10 P1, 7 P2. Economy balance to be revisited for 1805 campaign. See `docs/ROADMAP.md` for EA readiness roadmap.
+**Phase 6.2 Economy: COMPLETE + AUDITED (Session 26). Save/Load: COMPLETE (Session 27).** 6.2.A-H all implemented and audited. Save/Load: `backend/save_manager.py`, 4 API endpoints, autosave every turn, terminal commands ("save"/"load"), load dialog popup, 38 tests. Pause menu deferred to Phase 6.5. See `docs/ROADMAP.md` for EA readiness roadmap.
 See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 
 ---
@@ -44,6 +44,7 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | `backend/ai/strategic_parser.py` | Strategic command detection |
 | `backend/ai/validation.py` | VALID_ACTIONS (single source of truth for LLM) |
 | `backend/ai/prompt_builder.py` | Context-aware LLM prompts |
+| `backend/save_manager.py` | Save/load file I/O, autosave |
 
 ### Godot Core
 

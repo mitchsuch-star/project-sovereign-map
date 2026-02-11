@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** February 8, 2026 (Session 24: Economy Audit Fixes)
+> **Last Updated:** February 10, 2026 (Session 27: Save/Load System)
 
 ---
 
@@ -12,7 +12,7 @@
 |-------|------|--------|
 | 1-5.3 | Foundation through AI Fixes | COMPLETE |
 | **V2a** | **Objection System Refactor** | **COMPLETE** |
-| **6** | **Core Campaign Systems** | **IN PROGRESS (6.1 terrain complete, 6.2 economy COMPLETE + audited)** |
+| **6** | **Core Campaign Systems** | **IN PROGRESS (6.1 terrain, 6.2 economy, Save/Load all COMPLETE)** |
 | 6.5 | Information & UI Systems | Planned |
 | 7 | Multi-Marshal, Relationships & Coalitions | Planned |
 | 8 | Diplomacy & Peace | Planned |
@@ -40,7 +40,7 @@
 | 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 1844 (verified Feb 8, 2026)
+**Total Tests:** 1903 (verified Feb 10, 2026)
 
 ---
 
@@ -83,13 +83,13 @@
 | **War Score** | Visual progress toward victory/defeat | Low | Planned |
 | **Threat Indicator** | Coalition threat level, visible buildup | Low | Planned |
 | Turn Events Log | Track battles/captures/retreats per turn (feeds gazette) | Low | Planned |
-| **Save/Load** | Full game state persistence + autosave (moved from Pre-EA) | Low | Planned |
+| **Save/Load** | Full game state persistence + autosave (moved from Pre-EA) | Low | **COMPLETE** (Session 27: save_manager.py, 4 API endpoints, autosave, terminal commands, load dialog, 38 tests) |
 | **Berthier Parse Recovery** | Failed parses -> Berthier asks clarification in-character (moved from 8.5) | Low | Planned |
 | **Post-Battle Analysis** | Template breakdown: modifiers, casualties, "if you had fortified..." | Low | Planned |
 
 ### Save/Load Notes
 
-Serialization enforcement (`to_dict`/`from_dict` with `.get()` defaults, 33 roundtrip tests) already handles the data layer. Remaining work: file I/O, autosave trigger, load menu UI, save format version migration. All phases after this must maintain serialization discipline (already in CLAUDE.md).
+**COMPLETE (Session 27).** `backend/save_manager.py` handles all file I/O. Autosave every turn. Terminal commands "save"/"load". Load dialog popup in Godot. 38 tests. Pause menu (Esc → Save/Load/Settings/Quit) deferred to Phase 6.5 — needed before 1805 EA launch. All phases after this must maintain serialization discipline (already in CLAUDE.md).
 
 ### Berthier Parse Recovery
 
@@ -153,6 +153,7 @@ After every battle: "Attack modifier: 1.45x (aggressive stance +15%, drill +20%,
 | **Marshal Report** | Per-turn one-liner per marshal: "Ney: attacked Wellington, lost 8k, trust 72 (stable)." | Low | Planned |
 | **Tutorial Infrastructure** | `TutorialManager` for staged popups/highlights. Content populated in Pre-EA. | Medium | Planned |
 | **Map Renderer** | EU4-style bitmap map integration (using commissioned art from Phase 6) | High | Planned |
+| **Pause Menu** | Esc → Save/Load/Settings/Quit (wraps Phase 6 save/load endpoints) | Low | Planned |
 
 ### Map Renderer Notes
 

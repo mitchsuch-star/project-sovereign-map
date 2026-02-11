@@ -120,7 +120,7 @@ class CommandParser:
         elif not llm_result.get("marshal"):
             # BUG-002 FIX: Skip fuzzy marshal matching for meta/help commands
             # Actions that don't require a marshal (meta commands + pending charge responses)
-            meta_actions = ["help", "end_turn", "status", "unknown", "debug", "charge", "restrain", "build", "repair", "economy"]
+            meta_actions = ["help", "end_turn", "status", "unknown", "debug", "charge", "restrain", "build", "repair", "economy", "meta_command"]
             if llm_result.get("action") in meta_actions:
                 return (llm_result, None)  # Don't try to find a marshal
 
@@ -377,6 +377,10 @@ class CommandParser:
         """
         marshal = parsed_command.get("marshal")
         action = parsed_command.get("action")
+
+        # Meta commands (save/load) bypass all validation
+        if action == "meta_command":
+            return {"valid": True, "warning": None}
 
         # Validation 1: Check action is valid
         if action not in self.valid_actions:

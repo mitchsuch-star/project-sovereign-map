@@ -39,6 +39,9 @@ var glorious_charge_dialog = null
 # Capture Choice Dialog (Phase 6.2.E Plunder/Secure)
 var capture_choice_dialog = null
 
+# Load Game Dialog (Phase 6: Save/Load)
+var load_dialog = null
+
 # Strategic Command Dialogs (Phase J)
 var strategic_report_popup = null
 var interrupt_popup = null
@@ -166,6 +169,15 @@ func _ready():
 		add_child(capture_choice_dialog)
 		capture_choice_dialog.choice_made.connect(_on_capture_choice_made)
 		print("✓ CaptureChoiceDialog ready!")
+
+	# Load and setup Load Game Dialog (Phase 6: Save/Load)
+	var load_dialog_scene = load("res://scenes/load_dialog.tscn")
+	if load_dialog_scene:
+		load_dialog = load_dialog_scene.instantiate()
+		add_child(load_dialog)
+		load_dialog.save_selected.connect(_on_load_save_selected)
+		load_dialog.load_cancelled.connect(_on_load_cancelled)
+		print("LoadDialog ready!")
 
 	# Load and setup Strategic Report Popup (Phase J)
 	var strategic_report_scene = load("res://scenes/strategic_report_popup.tscn")
@@ -455,6 +467,11 @@ func _on_command_result(response):
 	if response.has("pending_capture_choice") and response.pending_capture_choice:
 		_show_capture_choice_dialog(response)
 		return  # Don't re-enable input until choice made
+
+	# Check for load dialog request (Phase 6: Save/Load)
+	if response.has("show_load_dialog") and response.show_load_dialog:
+		_show_load_dialog()
+		# Don't return — still show the save list message in terminal
 
 	# Check for clarification request (Grouchy/literal marshal)
 	if response.has("state") and response.state == "awaiting_clarification":
@@ -1316,6 +1333,71 @@ func _on_capture_choice_response(response):
 		add_output("[color=#" + COLOR_ERROR + "]" + response.message + "[/color]")
 
 	add_output("")
+	command_input.grab_focus()
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# LOAD GAME DIALOG (Phase 6: Save/Load)
+# ════════════════════════════════════════════════════════════════════════════
+
+func _show_load_dialog():
+	"""Fetch saves from backend and show load dialog."""
+	if load_dialog == null:
+		add_output("[color=#" + COLOR_ERROR + "]Load dialog not available.[/color]")
+		return
+	api_client.list_saves(_on_saves_listed)
+
+func _on_saves_listed(response):
+	"""Handle saves list response from backend."""
+	if response.success and response.has("saves"):
+		load_dialog.show_saves(response.saves)
+	else:
+		add_output("[color=#" + COLOR_ERROR + "]Failed to list saves.[/color]")
+		set_input_enabled(true)
+
+func _on_load_save_selected(filename: String):
+	"""Player selected a save to load."""
+	set_input_enabled(false)
+	add_output("[color=#" + COLOR_INFO + "]Loading save...[/color]")
+	api_client.load_game(filename, _on_load_result)
+
+func _on_load_result(response):
+	"""Handle load result from backend."""
+	set_input_enabled(true)
+	if response.success:
+		# Refresh entire display from new game state
+		if response.has("game_state"):
+			var gs = response.game_state
+			if gs.has("map_data"):
+				map_area.update_all_regions(gs.map_data)
+			if gs.has("gold"):
+				gold = int(gs.gold)
+				_update_gold_display()
+			if gs.has("turn"):
+				current_turn = int(gs.turn)
+				turn_value.text = str(current_turn)
+			if gs.has("actions_remaining"):
+				actions_remaining = int(gs.actions_remaining)
+			if gs.has("max_actions"):
+				max_actions = int(gs.max_actions)
+			if gs.has("admin_actions_remaining"):
+				admin_actions_remaining = int(gs.admin_actions_remaining)
+			if gs.has("max_admin_actions"):
+				max_admin_actions = int(gs.max_admin_actions)
+			# Update actions display
+			actions_value.text = "%d / %d" % [actions_remaining, max_actions]
+			admin_value.text = "%d / %d" % [admin_actions_remaining, max_admin_actions]
+
+		add_output("[color=#" + COLOR_SUCCESS + "]Game loaded successfully.[/color]")
+		add_output("[color=#" + COLOR_INFO + "]" + response.get("message", "") + "[/color]")
+	else:
+		add_output("[color=#" + COLOR_ERROR + "]Load failed: " + response.get("message", "Unknown error") + "[/color]")
+	add_output("")
+	command_input.grab_focus()
+
+func _on_load_cancelled():
+	"""Player cancelled the load dialog."""
+	set_input_enabled(true)
 	command_input.grab_focus()
 
 

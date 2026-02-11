@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 10, 2026
-> **Last Session:** Session 26 — Phase 6.2 Opus Audit + Fixes
+> **Last Session:** Session 27 — Phase 6: Save/Load System
 
 ---
 
@@ -10,16 +10,16 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1865** (verified, 3 skipped) |
-| **Current Phase** | Phase 6.2 Economy: **COMPLETE + AUDITED** |
+| **Tests Passing** | **1903** (verified, 3 skipped) |
+| **Current Phase** | Phase 6: Save/Load **COMPLETE** |
 | **Blockers** | None |
-| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2 |
+| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load |
 
 ---
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED.**
+**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED. Save/Load COMPLETE.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -49,6 +49,51 @@
 ---
 
 ## Recently Completed
+
+### Feb 10 (Session 27: Phase 6 Save/Load System)
+
+**Full game state persistence: manual save, manual load, autosave every turn.**
+
+**Backend:**
+- New `backend/save_manager.py` module: `save_game()`, `load_game()`, `autosave()`, `list_saves()`, `delete_save()`
+- Save format: JSON with metadata (format_version, save_name, saved_at, turn, player_nation) + world_state (from `to_dict()`)
+- Save directory: `saves/` relative to backend working directory, 1 autosave + up to 10 manual slots
+- Autosave triggers at end of every turn (both `_execute_end_turn()` and auto-advance path)
+- Autosave is non-blocking: turn doesn't fail if autosave fails
+- Transient data cleared on load: `battles_this_turn`, `in_combat_this_turn`
+- 4 new API endpoints: `POST /save`, `POST /load`, `GET /saves`, `POST /delete_save`
+- Load endpoint replaces global `world` and `game_state["world"]`, returns `get_game_state_summary()` for Godot refresh
+
+**Terminal Commands:**
+- "save" / "save My Campaign" — saves with optional custom name, no AP cost
+- "load" — lists available saves and shows load dialog, no AP cost
+- Mock parser routes save/load as `meta_command` action before other keyword matching
+- Executor handles meta_commands before AP checks, objection checks, and marshal resolution
+
+**Godot Frontend:**
+- `api_client.gd`: 3 new functions (`save_game`, `load_game`, `list_saves`)
+- New `load_dialog.tscn` + `load_dialog.gd`: scrollable panel with save slot buttons, follows capture_choice_dialog pattern
+- `main.gd`: load dialog wiring (scene load, signal connections, display refresh on successful load)
+- Successful load refreshes: map, gold, turn, actions, admin AP
+
+**Tests:** 38 new tests in `test_save_load.py`:
+- File I/O (7): save creates file, custom filepath, filename sanitization, load restores, transient data cleared, autosave create/overwrite
+- List/Delete (5): list returns all, sorted newest first, empty dir, skips corrupt, delete works + autosave blocked
+- Error handling (3): missing file, corrupt JSON, missing world_state
+- Roundtrip integrity (6): turn, gold, marshal state, region state, economy state, transient data
+- Backward compatibility (4): missing metadata, old format version, extra fields ignored, missing fields get defaults
+- API endpoints (4): save returns success, load replaces world, list returns saves, bad filename error
+- Commands (2): save via executor, load shows saves
+- Mock parser (4): save/load parsed as meta_command
+- Autosave integration (1): end_turn triggers autosave
+
+**Pause menu (Esc → Save/Load/Settings/Quit) deferred to Phase 6.5** — terminal commands + load popup sufficient for now.
+
+**Parser fix:** `meta_command` action was rejected by `_validate_command()` in `parser.py` — added early return to bypass validation for meta commands. Also added `meta_command` to `meta_actions` list in `_apply_fuzzy_matching()` to skip marshal resolution. Both fixes required for save/load to work in-game.
+
+**Smoke tested:** Save and load confirmed working in-game via Godot client.
+
+**Tests:** 1903 total passing, 3 skipped.
 
 ### Feb 10 (Session 26: Phase 6.2 Opus Audit + Fixes)
 
@@ -761,6 +806,7 @@
 
 | Date | Tests | Notes |
 |------|-------|-------|
+| Feb 10, 2026 | **1903** | Session 27: Save/Load system. 38 new tests (file I/O, roundtrip, backward compat, API, parser, autosave). |
 | Feb 10, 2026 | **1865** | Session 26: Opus audit — 10 P0, 10 P1, 7 P2 fixes. 2 new roundtrip tests, 2 updated. |
 | Feb 10, 2026 | **1863** | Session 25: Phase 6.2.H depot forward logistics + smoke test bugfixes. 16 new tests |
 | Feb 8, 2026 | **1813** | Phase 6.2.G: AI admin phase, economy command, turn summary financial report. 29 new tests |
@@ -808,9 +854,10 @@
 
 ## Next Session Priorities
 
-1. **Phase 6.2 Godot Smoke Test** — Full Godot playtest of economy features end-to-end. Verify: financial summary on auto-advance turns (was broken, now fixed), construction completion events, occupation progress events, AI capture choice display in enemy phase, economy command output.
-2. **Phase 7 planning** — Review ROADMAP.md for next phase (Coalitions or Save/Load).
-3. Commission Europe map art (start search for artist).
+1. **Save/Load Godot Smoke Test** — Test save/load in Godot: type "save", type "load", verify load dialog appears, load a save, verify display refreshes correctly.
+2. **Phase 6 remaining items** — Berthier Parse Recovery, Post-Battle Analysis, War Score, Fog of War, Manpower Pools (see ROADMAP.md Phase 6 table).
+3. **Pause menu planning** — Phase 6.5 needs Esc → Save/Load/Settings/Quit menu before 1805 EA. Plan scope.
+4. Commission Europe map art (start search for artist).
 
 ### Phase 6.2 Economy Audit Findings
 

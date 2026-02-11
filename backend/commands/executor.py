@@ -379,6 +379,12 @@ class CommandExecutor:
             result["pending_capture_choice"] = True
             result["capture_data"] = world.pending_capture_choice
 
+        # Autosave at start of new turn (non-blocking — don't fail if autosave fails)
+        from backend.save_manager import autosave
+        autosave_result = autosave(world)
+        if not autosave_result["success"]:
+            print(f"Autosave warning: {autosave_result['message']}")
+
         return result
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -658,6 +664,33 @@ RETREAT RECOVERY (3 turns):
 
         command = parsed_command.get("command", {})
         action = command.get("action", "unknown")
+
+        # ════════════════════════════════════════════════════════════
+        # META-COMMANDS: save/load — no AP cost, bypass all checks
+        # Handled before marshal resolution, AP checks, objection checks.
+        # ════════════════════════════════════════════════════════════
+        if action == "meta_command":
+            raw_cmd = (command.get("raw_command") or parsed_command.get("raw_command", "")).strip()
+            cmd_lower = raw_cmd.lower()
+            if cmd_lower.startswith("save"):
+                save_name = raw_cmd[4:].strip() or f"Save - Turn {world.current_turn}"
+                from backend.save_manager import save_game
+                result = save_game(world, save_name=save_name)
+                return {**result, "new_state": game_state}
+            elif cmd_lower == "load":
+                from backend.save_manager import list_saves
+                saves = list_saves()
+                save_list = "\n".join(
+                    f"  {s['filename']}: {s['metadata'].get('save_name', '?')} (Turn {s['metadata'].get('turn', '?')})"
+                    for s in saves
+                ) or "  No saves found."
+                return {
+                    "success": True,
+                    "message": f"Available saves:\n{save_list}\n\nUse the load menu to load a save.",
+                    "new_state": game_state,
+                    "show_load_dialog": True
+                }
+            # Unknown meta command — fall through to normal processing
 
         # ════════════════════════════════════════════════════════════
         # STRATEGIC FIELDS PROPAGATION: Copy strategic flags into command dict
@@ -1510,6 +1543,12 @@ RETREAT RECOVERY (3 turns):
             if turn_result.get("victory_check", {}).get("game_over"):
                 result["game_over"] = True
                 result["victory"] = turn_result["victory_check"].get("result")
+
+            # Autosave at start of new turn (auto-advance path, mirrors _execute_end_turn)
+            from backend.save_manager import autosave
+            autosave_result = autosave(world)
+            if not autosave_result["success"]:
+                print(f"Autosave warning: {autosave_result['message']}")
 
         return result
 
