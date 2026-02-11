@@ -12,7 +12,7 @@
 |-------|------|--------|
 | 1-5.3 | Foundation through AI Fixes | COMPLETE |
 | **V2a** | **Objection System Refactor** | **COMPLETE** |
-| **6** | **Core Campaign Systems** | **IN PROGRESS (6.1 terrain complete, 6.2.A-G economy complete + audited, 6.2.H supply depot forward logistics TO BE DESIGNED)** |
+| **6** | **Core Campaign Systems** | **IN PROGRESS (6.1 terrain complete, 6.2 economy COMPLETE + audited)** |
 | 6.5 | Information & UI Systems | Planned |
 | 7 | Multi-Marshal, Relationships & Coalitions | Planned |
 | 8 | Diplomacy & Peace | Planned |
@@ -71,7 +71,7 @@
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| Economy | Income per region, treasury, upkeep | Medium | **6.2.A-G COMPLETE + audited** (region types, income, gold, upkeep, bankruptcy, admin AP, stability, war damage, recruitment, plunder/secure, buildings, supply, AI admin, economy audit fixes). Session 24 audit: territory viability, plunder multiplier, AI recruitment/building/supply checks. **6.2.H: Supply Depot Forward Logistics — TO BE DESIGNED** (depots project supply benefits to adjacent regions). |
+| Economy | Income per region, treasury, upkeep | Medium | **6.2 COMPLETE** (6.2.A-H: region types, income, gold, upkeep, bankruptcy, admin AP, stability, war damage, recruitment, plunder/secure, buildings, supply, movement attrition, contested capture, AI admin, depot forward logistics). Session 24 audit: territory viability, plunder multiplier, AI recruitment/building/supply. Session 26 audit (Opus): 10 P0 bugs fixed (auto-advance data, plunder nation, float wrapping, parser collisions), 10 P1 risks resolved, 7 P2 cleanups. **Economy balance to be revisited for 1805 campaign** (Coalition admin AP dilemma, France dominance, building affordability). |
 | Reinforcements (Enemy) | AI can recruit troops | Low | **DONE** (AI admin phase, Session 23+24) |
 | Manpower Pools | Separate: Infantry, Cavalry, Artillery | Medium | Planned |
 | Attrition | Movement/supply decay | Low | **DONE** (Session 22: supply + movement attrition) |
@@ -535,6 +535,21 @@ Killer feature for the "talk to your marshals" fantasy. Player speaks commands, 
 | Year-Based Turns | Monthly 1805-1815 | Low | |
 | 1805 Win Conditions | Per-nation victory conditions | Medium | |
 | **Greyed-Out Expansion** | Remaining 40-70 provinces visible but non-interactive | Low | Visual promise |
+
+### Economy Rebalance for 1805
+
+The 13-region tutorial map has known balance tensions surfaced by Session 26 Opus audit:
+- **Admin AP bonus (150g) is disproportionately important** — 9-43% of a nation's income. Creates strong disincentive for Coalition AI to recruit/build.
+- **Coalition death spiral** — battle losses → recruitment needs → lost admin bonus → deficit → bankruptcy → desertion → more losses.
+- **France cannot go bankrupt** under normal play (+85 to +235/turn). Bankruptcy is Coalition-only.
+- **Buildings expensive for Coalition** — a 350g market is 44% of Prussia's starting gold.
+
+These are acceptable for the tutorial scenario (France should feel dominant). For 1805 with 6-8 nations and 80+ regions:
+- Income sources will be more numerous and distributed
+- Admin AP bonus should scale differently (flat 150g matters less with 2000g income)
+- Building costs may need scaling by era or nation
+- Coalition subsidy mechanic from off-map Britain may be needed
+- Upkeep rate (5g/1000 troops) should be re-evaluated against 1805 army sizes
 
 ### AP Scaling for 1805
 

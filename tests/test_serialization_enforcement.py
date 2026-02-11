@@ -403,6 +403,26 @@ class TestWorldStateSerializationEnforcement:
             f"{'='*60}"
         )
 
+    def test_world_state_roundtrip_preserves_economy_fields(self):
+        """Serialize -> deserialize must preserve Phase 6.2 economy fields."""
+        world = WorldState(player_nation="France")
+
+        # Set non-default economy values
+        world.nation_gold = {"France": 1234, "Britain": 567, "Prussia": 89}
+        world.nation_bankruptcy_turns = {"Britain": 2}
+        world.admin_actions_remaining = 1
+        world.gold_spent_this_turn = {"France": 200}
+        world.current_turn = 7
+
+        data = world.to_dict()
+        restored = WorldState.from_dict(data)
+
+        assert restored.nation_gold == world.nation_gold, "nation_gold not preserved"
+        assert restored.nation_bankruptcy_turns == world.nation_bankruptcy_turns, "nation_bankruptcy_turns not preserved"
+        assert restored.admin_actions_remaining == world.admin_actions_remaining, "admin_actions_remaining not preserved"
+        assert restored.gold_spent_this_turn == world.gold_spent_this_turn, "gold_spent_this_turn not preserved"
+        assert restored.current_turn == world.current_turn, "current_turn not preserved"
+
 
 # ============================================================================
 # REGION ENFORCEMENT
@@ -431,6 +451,34 @@ class TestRegionSerializationEnforcement:
         assert not missing, (
             f"Region fields not in to_dict(): {sorted(missing)}"
         )
+
+    def test_region_roundtrip_preserves_economy_fields(self):
+        """Serialize -> deserialize must preserve Phase 6.2 economy fields."""
+        region = Region(
+            name="TestRegion",
+            adjacent_regions=["Paris", "Lyon"],
+            income_value=150,
+            is_capital=True,
+            terrain="hills"
+        )
+        region.controller = "France"
+        region.stability = 45
+        region.war_damage = 0.25
+        region.plundered = True
+        region.buildings = [{"type": "market", "damaged": True}]
+        region.building_under_construction = {"type": "fortification", "turns_remaining": 2}
+
+        data = region.to_dict()
+        restored = Region.from_dict(data)
+
+        assert restored.stability == region.stability, "stability not preserved"
+        assert restored.war_damage == region.war_damage, "war_damage not preserved"
+        assert restored.plundered == region.plundered, "plundered not preserved"
+        assert len(restored.buildings) == 1, "buildings not preserved"
+        assert restored.buildings[0]["type"] == "market", "building type not preserved"
+        assert restored.buildings[0]["damaged"] is True, "building damaged not preserved"
+        assert restored.building_under_construction is not None, "building_under_construction not preserved"
+        assert restored.building_under_construction["type"] == "fortification", "construction type not preserved"
 
 
 # ============================================================================

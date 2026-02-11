@@ -108,7 +108,7 @@ class CommandExecutor:
                 "success": False,
                 "message": f"Marshal '{marshal_name}' not found. Did you mean '{result['match']}'?",
                 "suggestion": result["match"],
-                "score": result["score"]
+                "score": int(result["score"] * 100)
             })
         else:
             # Low confidence - show suggestions
@@ -155,7 +155,7 @@ class CommandExecutor:
                 "success": False,
                 "message": f"Region '{region_name}' not found. Did you mean '{result['match']}'?",
                 "suggestion": result["match"],
-                "score": result["score"]
+                "score": int(result["score"] * 100)
             })
         else:
             # Low confidence - show suggestions
@@ -216,7 +216,7 @@ class CommandExecutor:
                 "success": False,
                 "message": f"Enemy '{enemy_name}' not found. Did you mean '{result['match']}'?",
                 "suggestion": result["match"],
-                "score": result["score"]
+                "score": int(result["score"] * 100)
             })
         else:
             # Low confidence - show suggestions
@@ -710,7 +710,7 @@ RETREAT RECOVERY (3 turns):
                 if world.admin_actions_remaining < 1:
                     return {
                         "success": False,
-                        "message": "No administrative actions remaining this turn.",
+                        "message": f"No administrative actions remaining this turn. (Military commands: {int(world.actions_remaining)} remaining)",
                         "actions_remaining": int(world.actions_remaining),
                         "action_summary": world.get_action_summary()
                     }
@@ -1426,9 +1426,14 @@ RETREAT RECOVERY (3 turns):
         # ════════════════════════════════════════════════════════════
         # AUTO-END TURN: When actions exhausted, call end_turn properly
         # This ensures enemy AI processes its turn (was being skipped before!)
+        # Must mirror _execute_end_turn() data capture — see P0-1/2/3 audit.
         # ════════════════════════════════════════════════════════════
         if action_result.get("should_end_turn", False) and is_player_action:
             from backend.game_logic.turn_manager import TurnManager
+
+            # Capture data BEFORE advance_turn() clears it (same as _execute_end_turn)
+            saved_mild_concerns = [c.copy() for c in world.mild_concerns_this_turn]
+            saved_gold_spent = world.gold_spent_this_turn.copy()
 
             turn_manager = TurnManager(world, executor=self)
             turn_result = turn_manager.end_turn(game_state)
@@ -1444,10 +1449,8 @@ RETREAT RECOVERY (3 turns):
 
             # Add tactical events
             tactical_events = turn_result.get("tactical_events", [])
-            print(f"[EXECUTOR DEBUG] Got {len(tactical_events)} tactical events from turn_result")
             if tactical_events:
                 tactical_messages = [e.get("message", "") for e in tactical_events if e.get("message")]
-                print(f"[EXECUTOR DEBUG] Extracted {len(tactical_messages)} messages")
                 if tactical_messages:
                     result["message"] = result.get("message", "") + "\n\n--- TURN EVENTS ---\n" + "\n".join(tactical_messages)
                     result["tactical_events"] = tactical_events
@@ -1457,6 +1460,51 @@ RETREAT RECOVERY (3 turns):
             # turn auto-advances from actions being exhausted.
             if turn_result.get("strategic_reports"):
                 result["strategic_reports"] = turn_result["strategic_reports"]
+
+            # Add Independent Command Report (Phase 2.5) — was missing on auto-advance
+            if turn_result.get("show_independent_command_report"):
+                result["show_independent_command_report"] = True
+                result["independent_command_report"] = turn_result.get("independent_command_report", [])
+
+            # Include saved mild concerns (captured before advance_turn cleared them)
+            if saved_mild_concerns:
+                result["mild_concerns"] = saved_mild_concerns
+
+            # Build turn_end financial event (same as _execute_end_turn)
+            nation = world.player_nation
+            income_data = world.calculate_turn_income(nation)
+            upkeep_data = world.calculate_turn_upkeep(nation)
+            treasury = world.nation_gold.get(nation, 0)
+            income_val = income_data["income"]
+            upkeep_val = upkeep_data["total"]
+            spent_val = saved_gold_spent.get(nation, 0)
+            net_val = income_val - upkeep_val
+            bk_turns = int(world.nation_bankruptcy_turns.get(nation, 0))
+            turn_end_event = {
+                "type": "turn_end",
+                "old_turn": int(turn_result.get("turn_ended", world.current_turn - 1)),
+                "new_turn": int(turn_result.get("next_turn", world.current_turn)),
+                "income": int(income_val),
+                "upkeep": int(upkeep_val),
+                "spent": int(spent_val),
+                "net": int(net_val),
+                "treasury": int(treasury),
+                "bankruptcy_turns": bk_turns,
+            }
+            existing_events = result.get("events", [])
+            result["events"] = [turn_end_event] + existing_events + turn_result.get("events", [])
+
+            # Append financial summary to message
+            net_sign = "+" if net_val >= 0 else ""
+            spent_str = f" | Spent: {spent_val}g" if spent_val > 0 else ""
+            result["message"] = result.get("message", "") + f"\n\nIncome: {income_val}g | Upkeep: {upkeep_val}g | Net: {net_sign}{net_val}g{spent_str} | Treasury: {treasury:,}g"
+            if bk_turns > 0:
+                result["message"] += f"\nWARNING: Bankrupt for {bk_turns} turn{'s' if bk_turns > 1 else ''}!"
+
+            # Phase 6.2.F: Occupation may complete during turn resolution
+            if world.pending_capture_choice:
+                result["pending_capture_choice"] = True
+                result["capture_data"] = world.pending_capture_choice
 
             # Check victory/defeat
             if turn_result.get("victory_check", {}).get("game_over"):
@@ -2237,15 +2285,18 @@ RETREAT RECOVERY (3 turns):
                     if drill_cancelled_message:
                         capture_message = drill_cancelled_message + capture_message
 
+                    conquest_event = {
+                        "type": "conquest",
+                        "marshal": marshal.name,
+                        "region": resolved_target,
+                        "unopposed": True,
+                    }
+                    if capture_result.get("capture_choice"):
+                        conquest_event["capture_choice"] = capture_result["capture_choice"]
                     result = {
                         "success": True,
                         "message": capture_message,
-                        "events": [{
-                            "type": "conquest",
-                            "marshal": marshal.name,
-                            "region": resolved_target,
-                            "unopposed": True
-                        }],
+                        "events": [conquest_event],
                         "new_state": game_state
                     }
 
@@ -4853,16 +4904,19 @@ RETREAT RECOVERY (3 turns):
 
         # Instant capture
         capture_message = f"{nearest_marshal.name} marches into {target_name} unopposed! Captured: {old_controller} → {nearest_marshal.nation}"
+        conquest_event = {
+            "type": "conquest",
+            "marshal": nearest_marshal.name,
+            "region": target_name,
+            "previous_controller": old_controller,
+            "unopposed": True,
+        }
+        if capture_result.get("capture_choice"):
+            conquest_event["capture_choice"] = capture_result["capture_choice"]
         result = {
             "success": True,
             "message": capture_message,
-            "events": [{
-                "type": "conquest",
-                "marshal": nearest_marshal.name,
-                "region": target_name,
-                "previous_controller": old_controller,
-                "unopposed": True
-            }],
+            "events": [conquest_event],
             "new_state": game_state
         }
 
@@ -5008,7 +5062,7 @@ RETREAT RECOVERY (3 turns):
             if rd.get("stability_label") and rd["stability_label"] != "Stable":
                 modifiers.append(rd["stability_label"].lower())
             if rd.get("war_damage", 0) > 0:
-                modifiers.append(f"{int(rd['war_damage'] * 100)}% damaged")
+                modifiers.append(f"{rd['war_damage']}% damaged")
             mod_str = f" ({', '.join(modifiers)})" if modifiers else ""
             if effective != base:
                 lines.append(f"    {rd['region']}: {effective}g / {base}g base{mod_str}")
@@ -5424,7 +5478,7 @@ RETREAT RECOVERY (3 turns):
         return {
             "success": True,
             "message": f"War damage repaired in {region_name} ({REPAIR_COST} gold). War damage: {region.war_damage:.0%}",
-            "events": [{"type": "repair_war_damage", "region": region_name, "remaining_damage": region.war_damage}],
+            "events": [{"type": "repair_war_damage", "region": region_name, "remaining_damage": int(region.war_damage * 100)}],
             "new_state": game_state
         }
 
@@ -7495,14 +7549,22 @@ RETREAT RECOVERY (3 turns):
     # Breakeven: ~7 turns — plunder pays off in short campaigns, secure in long ones
     PLUNDER_GOLD_MULTIPLIER = 1.75
 
-    def _apply_plunder(self, region, world) -> Dict:
-        """Apply plunder effects to a captured region."""
+    def _apply_plunder(self, region, world, nation: str = None) -> Dict:
+        """Apply plunder effects to a captured region.
+
+        Args:
+            nation: Nation receiving the gold. MUST be passed explicitly for AI nations.
+                    Do NOT use world.gold (property targeting player_nation) for AI plunder.
+                    Defaults to player_nation for backward compat only.
+        """
         region.stability = 10
         region.apply_war_damage(0.35)
         region.plundered = True
         # Immediate gold = 175% of BASE income (not effective)
         gold_gained = int(region.income_value * self.PLUNDER_GOLD_MULTIPLIER)
-        world.gold += gold_gained
+        # IMPORTANT: Use nation_gold dict directly, NOT world.gold (which always targets player_nation)
+        receiving_nation = nation or world.player_nation
+        world.nation_gold[receiving_nation] = world.nation_gold.get(receiving_nation, 0) + gold_gained
         # Destroy all buildings
         region.buildings = []
         region.building_under_construction = None
@@ -7528,13 +7590,14 @@ RETREAT RECOVERY (3 turns):
             return "plunder"
         return "secure"
 
-    def _apply_ai_capture_choice(self, marshal, region, world) -> None:
-        """Apply AI's automatic capture choice (no popup)."""
+    def _apply_ai_capture_choice(self, marshal, region, world) -> str:
+        """Apply AI's automatic capture choice (no popup). Returns the choice made."""
         choice = self._get_ai_capture_choice(marshal)
         if choice == "plunder":
-            self._apply_plunder(region, world)
+            self._apply_plunder(region, world, nation=marshal.nation)
         else:
             self._apply_secure(region)
+        return choice
 
     def _attempt_region_capture(self, marshal, region_name, world, game_state, had_garrison=False) -> dict:
         """Handle capture attempt, respecting fortification holdout.
@@ -7576,6 +7639,7 @@ RETREAT RECOVERY (3 turns):
             world.capture_region(region_name, marshal.nation)
 
             # Phase 6.2.E: Plunder/Secure choice
+            ai_choice = None
             if marshal.nation == world.player_nation:
                 world.pending_capture_choice = {
                     "region": region_name,
@@ -7584,12 +7648,13 @@ RETREAT RECOVERY (3 turns):
                 }
             else:
                 # AI capture — auto-decide by personality
-                self._apply_ai_capture_choice(marshal, region, world)
+                ai_choice = self._apply_ai_capture_choice(marshal, region, world)
 
             return {
                 "captured": True,
                 "occupation_started": False,
                 "old_controller": old_controller,
+                "capture_choice": ai_choice,
                 "message": "",
             }
 

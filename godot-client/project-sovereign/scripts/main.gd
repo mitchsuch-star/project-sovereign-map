@@ -654,7 +654,7 @@ func _display_turn_change(event: Dictionary):
 	add_output("")
 
 func _display_tactical_events(tactical_events):
-	"""Display tactical events from turn resolution (supply attrition, etc.)."""
+	"""Display tactical events from turn resolution (supply attrition, construction, occupation, etc.)."""
 	if tactical_events is Array and tactical_events.size() > 0:
 		for event in tactical_events:
 			var event_type = event.get("type", "")
@@ -668,6 +668,18 @@ func _display_tactical_events(tactical_events):
 				var losses = int(event.get("losses", 0))
 				var remaining = int(event.get("remaining", 0))
 				add_output("[color=#" + COLOR_ERROR + "]DESERTION: " + marshal_name + " loses " + _format_number(losses) + " troops (" + _format_number(remaining) + " remaining)[/color]")
+			elif event_type == "construction_complete":
+				var msg = event.get("message", "Construction complete.")
+				add_output("[color=#" + COLOR_GOLD + "]" + msg + "[/color]")
+			elif event_type == "occupation_complete":
+				var msg = event.get("message", "Siege complete.")
+				add_output("[color=#" + COLOR_GOLD + "]" + msg + "[/color]")
+			elif event_type == "occupation_continues":
+				var msg = event.get("message", "Siege continues.")
+				add_output("[color=#" + COLOR_INFO + "]" + msg + "[/color]")
+			elif event_type == "occupation_abandoned":
+				var msg = event.get("message", "Siege abandoned.")
+				add_output("[color=#" + COLOR_ERROR + "]" + msg + "[/color]")
 
 func _display_turn_advance(action_info: Dictionary):
 	"""Display automatic turn advancement when actions run out."""

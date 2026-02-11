@@ -474,7 +474,7 @@ class TestCalculateTurnIncomeUsesEffective:
         assert paris_detail["base_income"] == 300
         assert paris_detail["stability"] == 50
         assert paris_detail["stability_label"] == "Unrest"
-        assert abs(paris_detail["war_damage"] - 0.10) < 0.001
+        assert paris_detail["war_damage"] == 10  # int percentage
         assert paris_detail["effective_income"] == int(300 * 0.25 * 0.90)
 
 
@@ -644,7 +644,7 @@ class TestGameStateSummary:
         world.regions["Paris"].war_damage = 0.30
         summary = world.get_game_state_summary()
         paris_data = summary["map_data"]["Paris"]
-        assert abs(paris_data["war_damage"] - 0.30) < 0.001
+        assert paris_data["war_damage"] == 30  # int percentage
 
     def test_map_data_includes_effective_income(self):
         world = WorldState()

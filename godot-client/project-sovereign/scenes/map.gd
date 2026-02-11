@@ -732,7 +732,7 @@ func _draw_region_tooltip():
 	var effective_income = data.get("effective_income", 0)
 	var stability = data.get("stability", 100)
 	var stability_label = data.get("stability_label", "Stable")
-	var war_damage = data.get("war_damage", 0.0)
+	var war_damage = int(data.get("war_damage", 0))
 	var supply_capacity = data.get("supply_capacity", 0)
 	var buildings = data.get("buildings", [])
 	var construction = data.get("building_under_construction", null)
@@ -807,8 +807,7 @@ func _draw_region_tooltip():
 
 	# War damage (only if > 0)
 	if war_damage > 0:
-		var dmg_pct = int(war_damage * 100)
-		var dmg_text = "War Damage: " + str(dmg_pct) + "%"
+		var dmg_text = "War Damage: " + str(war_damage) + "%"
 		var dmg_color = Color(0.85, 0.4, 0.4)  # Red
 		draw_string(font, Vector2(text_x, text_y + 11), dmg_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, dmg_color)
 		text_y += line_spacing

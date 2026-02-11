@@ -413,7 +413,12 @@ class LLMClient:
             action = "cancel"
         elif command_lower.strip() in ("halt", "stop", "cancel", "abort"):
             action = "cancel"
-        elif "attack" in command_lower or "charge" in command_lower:
+        # Cavalry recklessness (Phase 3) — must check BEFORE "attack" to avoid "charge" being eaten.
+        # ORDERING RULE: More-specific keywords must come BEFORE generic ones.
+        # Use \b word boundaries to prevent substring false positives (e.g. "bypass" matching "pass").
+        elif "glorious charge" in command_lower or (re.search(r'\bcharge\b', command_lower) and "attack" not in command_lower):
+            action = "charge"
+        elif "attack" in command_lower or re.search(r'\bcharge\b', command_lower):
             action = "attack"
         # Strategic PURSUE keywords → base action "attack" (strategic parser upgrades)
         elif any(kw in command_lower for kw in [
@@ -421,13 +426,13 @@ class LLMClient:
             "intercept", "give chase", "go after", "harry", "hound", "shadow",
         ]):
             action = "attack"
-        elif "wait" in command_lower or "stand by" in command_lower or "pass" in command_lower:
+        elif "wait" in command_lower or "stand by" in command_lower or re.search(r'\bpass\b', command_lower):
             action = "wait"  # Free action - marshal passes turn
         elif any(kw in command_lower for kw in [
             "hold at all costs", "hold your ground", "hold position",
             "hold the line", "stand fast", "stand firm",
             "defend and hold", "fortify and hold", "secure and hold",
-            "anchor at", "dig in", "guard", "protect",
+            "anchor at", "guard", "protect",
         ]):
             action = "hold"
         elif "hold" in command_lower:
@@ -438,26 +443,27 @@ class LLMClient:
             action = "retreat"
         # Strategic MOVE_TO keywords → base action "move" (strategic parser upgrades)
         elif any(kw in command_lower for kw in [
-            "move", "march", "advance towards", "advance toward", "advance to",
+            "move ", "march", "advance towards", "advance toward", "advance to",
             "head towards", "head toward", "head to", "proceed to",
             "push towards", "push toward", "push to",
             "make for", "travel to", "campaign to", "campaign toward",
             "sweep toward", "press toward", "drive toward",
             "journey to", "relocate to", "deploy to",
-        ]):
+        ]) or re.search(r'\bmove\b', command_lower):
             action = "move"
         elif "scout" in command_lower or "reconnaissance" in command_lower:
             action = "scout"
-        elif "reinforce" in command_lower or "support" in command_lower:
+        elif "reinforce" in command_lower or re.search(r'\bsupport\b', command_lower):
             action = "move"  # Strategic parser upgrades to SUPPORT
-        elif "recruit" in command_lower or "raise" in command_lower or "conscript" in command_lower:
+        elif "recruit" in command_lower or re.search(r'\braise\b', command_lower) or "conscript" in command_lower:
             action = "recruit"
         # Tactical state actions (Phase 2.6)
         elif "unfortify" in command_lower or "abandon fortif" in command_lower or "leave fortif" in command_lower:
             action = "unfortify"  # Must check before fortify to avoid false positives
         elif "fortify" in command_lower or "dig in" in command_lower or "entrench" in command_lower:
             action = "fortify"
-        # Economy actions (Phase 6.2.E) — must check BEFORE drill ("build training ground" contains "train")
+        # Economy actions (Phase 6.2.E) — must check BEFORE drill ("build training ground" contains "train").
+        # ORDERING RULE: "build " (with space) before "train" keyword in drill block.
         elif any(kw in command_lower for kw in ["build ", "construct ", "bould ", "biuld ", "buld ", "buid "]):
             action = "build"
         # Restrain must be checked BEFORE drill (restrain contains "train")
@@ -488,9 +494,6 @@ class LLMClient:
         elif re.search(r'\bneutral\b', command_lower) and "stance" not in command_lower:
             # "neutral" alone (but "neutral stance" already caught above)
             action = "stance_change"
-        # Cavalry recklessness (Phase 3)
-        elif "charge" in command_lower or "glorious charge" in command_lower:
-            action = "charge"
         elif any(kw in command_lower for kw in ["repair ", "fix ", "restore "]):
             action = "repair"
         # Economy info command (Phase 6.2.G)

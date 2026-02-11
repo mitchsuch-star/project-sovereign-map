@@ -158,7 +158,13 @@ func _format_action(action: Dictionary) -> String:
 			result += _format_battle(event)
 		elif event.get("type") == "conquest":
 			var region = event.get("region", "territory")
-			result += "[color=#" + COLOR_CONQUEST + "]    Region captured: " + region + "[/color]\n"
+			var capture_choice = event.get("capture_choice", "")
+			var choice_str = ""
+			if capture_choice == "plunder":
+				choice_str = " (plundered)"
+			elif capture_choice == "secure":
+				choice_str = " (secured)"
+			result += "[color=#" + COLOR_CONQUEST + "]    Region captured: " + region + choice_str + "[/color]\n"
 
 	return result
 

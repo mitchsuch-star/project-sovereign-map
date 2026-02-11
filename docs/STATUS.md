@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 10, 2026
-> **Last Session:** Session 25 — Phase 6.2.H + Smoke Test Bugfixes
+> **Last Session:** Session 26 — Phase 6.2 Opus Audit + Fixes
 
 ---
 
@@ -10,16 +10,16 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1863** (verified, 3 skipped) |
-| **Current Phase** | Phase 6.2 Economy: 6.2.A-H COMPLETE |
+| **Tests Passing** | **1865** (verified, 3 skipped) |
+| **Current Phase** | Phase 6.2 Economy: **COMPLETE + AUDITED** |
 | **Blockers** | None |
-| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2.A, 6.2.B, 6.2.C, 6.2.D, 6.2.E, 6.2.F, 6.2.G, 6.2.H |
+| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2 |
 
 ---
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2.A-H COMPLETE.**
+**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -49,6 +49,41 @@
 ---
 
 ## Recently Completed
+
+### Feb 10 (Session 26: Phase 6.2 Opus Audit + Fixes)
+
+**Phase 6.2 Economy: AUDITED AND CLOSED.** Fresh-instance Opus audit across 7 parallel research agents.
+
+**10 P0 bugs found and fixed:**
+- **Auto-advance data loss (P0-1/2/3):** Turn auto-advance path (executor.py:1426) was incomplete copy of `_execute_end_turn()`. Missing: `turn_end` financial event, `mild_concerns`, `independent_command_report`, `gold_spent_this_turn`. All four now captured before `advance_turn()` clears them.
+- **AI plunder credits wrong nation (P0-4):** `_apply_plunder()` used `world.gold` (always player). Now takes `nation` param; AI path passes `marshal.nation`.
+- **Float-to-Godot crashes (P0-5/6/7):** `war_damage` sent as raw float in every API response via `get_game_state_summary()`. Plus `remaining_damage` in repair events and `severity` in objection endpoint. All wrapped with `int(value * 100)`.
+- **Mock parser keyword collisions (P0-8/9/10):** `"charge"` eaten by attack check (dead code). `"pass"` substring matched "pass through" as wait. `"dig in"` caught by hold before fortify. Fixed with word-boundary regex, reordering, and removal of dead code.
+
+**10 P1 risks resolved:**
+- Income breakdown `war_damage` float, fuzzy match `score` floats, debug `affects_trust_gains` float — all wrapped with `int()`.
+- Godot `_display_tactical_events()` missing `construction_complete`, `occupation_complete/continues/abandoned` handlers — added.
+- Admin AP exhausted message now mentions military commands still available.
+- Supply capacity div-by-zero guard for modded `cap=0`.
+- Mock parser substring risks: `move`/`raise`/`support` now use `\b` word boundaries.
+
+**7 P2 cleanups:**
+- WorldState and Region roundtrip serialization tests added (was key-presence only).
+- Economy comments in `world_state.py` corrected (France upkeep 765 not 700, Britain income 350 not 250).
+- Dead `_get_map_data()` (110 lines) removed from `main.py`.
+- Enemy phase dialog now shows plunder/secure choice on AI captures.
+- Conquest events include `capture_choice` field for Godot display.
+
+**Defensive comments added** at auto-advance path, `_apply_plunder`, int() wrapping sites, and mock parser ordering to prevent recurrence.
+
+**Economy balance observations (for 1805 rebalance):**
+- France income 850, upkeep 765, net +85 (+235 with admin bonus). Cannot go bankrupt.
+- Coalition runs deficits without admin bonus. Admin AP trap: spending AP costs 150g opportunity + action cost.
+- Plunder/secure tradeoff well-tuned at 1.75x — plunder only optimal for short-term or desperate plays.
+- Buildings affordable for France, major investment for Coalition.
+- All acceptable for tutorial scenario; flagged for 1805 rebalance in ROADMAP.md.
+
+**Tests:** 2 new roundtrip tests, 2 existing tests updated for war_damage format change. 1865 total passing, 3 skipped.
 
 ### Feb 10 (Session 25: Phase 6.2.H + Smoke Test Bugfixes)
 
@@ -726,6 +761,8 @@
 
 | Date | Tests | Notes |
 |------|-------|-------|
+| Feb 10, 2026 | **1865** | Session 26: Opus audit — 10 P0, 10 P1, 7 P2 fixes. 2 new roundtrip tests, 2 updated. |
+| Feb 10, 2026 | **1863** | Session 25: Phase 6.2.H depot forward logistics + smoke test bugfixes. 16 new tests |
 | Feb 8, 2026 | **1813** | Phase 6.2.G: AI admin phase, economy command, turn summary financial report. 29 new tests |
 | Feb 7, 2026 | **1784** | Phase 6.2.F polish: friendly stable attrition exemption, occupation popup timing, debug commands. 47 new tests |
 | Feb 7, 2026 | **1737** | Polish: market building, region hover tooltip, fortification spelling, battle damage fix. 48 new tests |
@@ -771,28 +808,9 @@
 
 ## Next Session Priorities
 
-1. **Phase 6.2.H Design: Supply Depot Forward Logistics** — Design how supply depots project supply benefits to adjacent conquered/hostile regions (reduced movement attrition, increased effective supply capacity). Makes depots a forward logistics building ("build in Belgium before pushing into Waterloo"). See design notes below.
-2. **Phase 6.2 Smoke Test** — Full Godot smoke test of economy features (6.2.A-G). Verify: supply attrition events display, movement attrition messages, occupation progress events, AI admin actions in enemy phase dialog, economy command output, turn summary financial report.
-3. **Phase 7 planning** — Review ROADMAP.md for next phase (Coalitions or Save/Load).
-4. Commission Europe map art (start search for artist)
-
-### Phase 6.2.H Design: Supply Depot Forward Logistics (TO BE DESIGNED)
-
-**Problem:** Supply depots currently add +10,000 local supply capacity, but friendly stable territory already waives movement attrition. This makes depots low-value in most scenarios — you rarely stack enough troops in one region to exceed capacity at major cities.
-
-**Concept:** Supply depots project supply benefits to **adjacent regions**, creating a forward logistics network. Build a depot in friendly territory before an offensive, and your troops benefit when pushing into neighboring hostile regions.
-
-**Design questions to resolve:**
-1. What benefit does an adjacent depot project?
-   - Option A: Waive/reduce movement attrition into adjacent regions (like having friendly roads)
-   - Option B: Increase effective supply capacity in adjacent regions (e.g. +10,000 to neighbors)
-   - Option C: Both (risk making depots the obvious best building)
-2. Does the projection stack? (Two depots adjacent to same region = double benefit?)
-3. Does it work for enemy-controlled regions or only neutral/recently captured?
-4. Should AI prioritize building depots near planned offensive targets?
-5. How does this scale to the 1805 map with longer supply lines?
-
-**Key constraint:** Must not crowd out fortifications and training grounds as building choices. Each building type should have a clear use case.
+1. **Phase 6.2 Godot Smoke Test** — Full Godot playtest of economy features end-to-end. Verify: financial summary on auto-advance turns (was broken, now fixed), construction completion events, occupation progress events, AI capture choice display in enemy phase, economy command output.
+2. **Phase 7 planning** — Review ROADMAP.md for next phase (Coalitions or Save/Load).
+3. Commission Europe map art (start search for artist).
 
 ### Phase 6.2 Economy Audit Findings
 

@@ -459,7 +459,7 @@ def get_pending_objection():
         "has_pending": True,
         "marshal": objection.get("marshal"),
         "message": objection.get("message"),
-        "severity": objection.get("severity", 0.5),
+        "severity": int(objection.get("severity", 0.5) * 100),  # int % for Godot — no raw floats
         "type": objection.get("type", "major"),
         "trigger": objection.get("trigger"),
         "choices": ["trust", "insist", "compromise"] if objection.get("alternative") else ["trust", "insist"],
@@ -832,7 +832,7 @@ def debug_marshal(marshal_name: str):
         "authority_context": {
             "player_authority": int(world.authority_tracker.authority),
             "authority_label": world.authority_tracker.get_authority_label(),
-            "affects_trust_gains": world.authority_tracker.get_trust_gain_modifier()
+            "affects_trust_gains": int(world.authority_tracker.get_trust_gain_modifier() * 100)  # int % for Godot
         },
         "location": marshal.location,
         "strength": int(marshal.strength),
@@ -926,117 +926,6 @@ def _get_fortify_state(marshal) -> dict:
     }
     print(f"[FORTIFY_STATE_DEBUG]   -> direction={direction}, floor={floor_percent}%, turns_until_decay={turns_until_decay}")
     return result
-
-
-def _get_map_data(world: WorldState) -> dict:
-    """Get map visualization data with marshal debug info.
-
-    WARNING: Currently unused. Godot reads map_data from
-    WorldState.get_game_state_summary(), not this function.
-    If you need to add region fields for Godot, update
-    get_game_state_summary() in world_state.py instead.
-    """
-    map_data = {}
-
-    for region_name, region in world.regions.items():
-        # Find ALL marshals in this region (player + enemy)
-        all_marshals_here = world.get_marshals_in_region(region_name)
-
-        # Build marshal data with debug info
-        marshals_data = []
-        for m in all_marshals_here:
-            marshal_data = {
-                "name": m.name,
-                "nation": m.nation,
-                "strength": int(m.strength),
-                "morale": int(m.morale),
-                "movement_range": int(m.movement_range),
-                # Relationships (Phase 4) - exposed for all marshals
-                "relationships": {
-                    name: int(value) for name, value in getattr(m, 'relationships', {}).items()
-                }
-            }
-
-            # Add debug info for player marshals
-            if m.nation == world.player_nation:
-                marshal_data["personality"] = m.personality
-                marshal_data["trust"] = int(m.trust.value) if hasattr(m, 'trust') else 70
-                marshal_data["trust_label"] = m.trust.get_label() if hasattr(m, 'trust') else "Unknown"
-
-                # Get vindication data
-                vindication_data = world.vindication_tracker.get_vindication_data(m.name)
-                marshal_data["vindication"] = vindication_data.get("score", 0)
-                marshal_data["has_pending_vindication"] = world.vindication_tracker.has_pending(m.name)
-
-                # Tactical states for hover info
-                marshal_data["tactical_state"] = {
-                    # Stance (BUG FIX: was missing!)
-                    "stance": m.stance.value if hasattr(m, 'stance') else "neutral",
-                    # Drill state
-                    "drilling": bool(getattr(m, 'drilling', False)),
-                    "drilling_locked": bool(getattr(m, 'drilling_locked', False)),
-                    "shock_bonus": int(getattr(m, 'shock_bonus', 0)),
-                    "drill_complete_turn": int(getattr(m, 'drill_complete_turn', -1)),
-                    # Fortify state
-                    "fortified": bool(getattr(m, 'fortified', False)),
-                    "defense_bonus": int(getattr(m, 'defense_bonus', 0) * 100),  # Convert decimal to percent
-                    # Fortify decay state (Phase 3) - with error handling
-                    "fortify_state": _get_fortify_state_safe(m),
-                    # Retreat state
-                    "retreating": bool(getattr(m, 'retreating', False)),
-                    "retreat_recovery": int(getattr(m, 'retreat_recovery', 0)),
-                    # Broken army state (BUG FIX: was missing!)
-                    "broken": bool(getattr(m, 'broken', False)),
-                    "broken_recovery": int(getattr(m, 'broken_recovery', 0)),
-                    # Personality ability states (BUG FIX: were missing!)
-                    "cavalry": bool(getattr(m, 'cavalry', False)),
-                    "turns_in_defensive_stance": int(getattr(m, 'turns_in_defensive_stance', 0)),
-                    "counter_punch_available": bool(getattr(m, 'counter_punch_available', False)),
-                    "counter_punch_turns": int(getattr(m, 'counter_punch_turns', 0)),
-                    "holding_position": bool(getattr(m, 'holding_position', False)),
-                    "hold_region": str(getattr(m, 'hold_region', '')),
-                    # Phase 3: Ney recklessness/Glorious Charge
-                    "recklessness": int(getattr(m, 'recklessness', 0)),
-                    "is_reckless_cavalry": bool(getattr(m, 'cavalry', False) and getattr(m, 'personality', '') == 'aggressive'),
-                    "pending_glorious_charge": bool(getattr(m, 'pending_glorious_charge', False)),
-                    "pending_charge_target": str(getattr(m, 'pending_charge_target', '')),
-                    # Autonomy state (Phase 2.5)
-                    "autonomous": bool(getattr(m, 'autonomous', False)),
-                    "autonomy_turns": int(getattr(m, 'autonomy_turns', 0)),
-                    "autonomy_reason": str(getattr(m, 'autonomy_reason', '')),
-                    "autonomous_battles_won": int(getattr(m, 'autonomous_battles_won', 0)),
-                    "autonomous_battles_lost": int(getattr(m, 'autonomous_battles_lost', 0)),
-                    "autonomous_regions_captured": int(getattr(m, 'autonomous_regions_captured', 0)),
-                }
-
-            marshals_data.append(marshal_data)
-
-        controller = region.controller or "Neutral"
-        # Region data for Godot tooltip and map display.
-        # Godot's map.gd _draw_region_tooltip() reads these fields.
-        # If you add a new region property, include it here or
-        # the tooltip won't show it. All numbers must be int().
-        map_data[region_name] = {
-            "controller": controller,
-            "region_type": region.region_type,
-            "terrain": region.terrain,
-            "income_value": int(region.income_value),
-            "effective_income": int(region.get_effective_income()),
-            "stability": int(region.stability),
-            "stability_label": region.get_stability_label(),
-            "war_damage": float(region.war_damage),
-            "buildings": region.buildings,
-            "building_under_construction": region.building_under_construction,
-            "max_building_slots": int(region.max_building_slots()),
-            "supply_capacity": int(region.supply_capacity),
-            "marshals": marshals_data
-        }
-
-        # Debug: Show captured regions
-        if controller == "France" and region_name in ["Waterloo", "Netherlands", "Bavaria", "Vienna"]:
-            print(f"🚩 {region_name} is now controlled by France!")
-
-    return map_data
 
 
 # ════════════════════════════════════════════════════════════

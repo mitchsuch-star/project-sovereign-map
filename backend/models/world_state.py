@@ -64,12 +64,13 @@ class WorldState:
         self.current_turn: int = 1
         self.max_turns: int = 40
         # Phase 6.2 Audit Fix #1: Starting gold adjusted for Coalition viability
-        # Post-territory-expansion economics:
-        #   France:  income 850, upkeep 700, net +150. Comfortable.
-        #   Britain: income 250 (Netherlands+Waterloo+Milan), upkeep 430, net -180.
-        #            1500 starting gold = ~8 turns before bankrupt. Must expand or build markets.
+        # Post-territory-expansion economics (5g upkeep per 1000 troops):
+        #   France:  income 850, upkeep 765 (Ney 72k + Davout 48k + Grouchy 33k), net +85.
+        #            Admin AP bonus (150g if unused) → net +235. Comfortable.
+        #   Britain: income 350 (Netherlands+Waterloo+Milan+Geneva), upkeep 430, net -80.
+        #            Admin AP bonus → net +70. 1500 starting gold provides buffer.
         #   Prussia: income 400 (Rhine+Bavaria+Vienna), upkeep 500, net -100.
-        #            800 starting gold = ~8 turns before bankrupt. Must expand or recruit less.
+        #            Admin AP bonus → net +50. 800 starting gold provides buffer.
         self.nation_gold: Dict[str, int] = {
             "France": 600,
             "Britain": 1500,
@@ -1339,7 +1340,7 @@ class WorldState:
                 "effective_income": effective,
                 "stability": region.stability,
                 "stability_label": region.get_stability_label(),
-                "war_damage": region.war_damage
+                "war_damage": int(region.war_damage * 100)  # int % (0-100) for Godot
             })
 
         return {
@@ -1485,7 +1486,7 @@ class WorldState:
                              if m.location == region.name and m.strength > 0]
             total = sum(m.strength for m in marshals_here)
             cap = region.supply_capacity
-            if total <= cap:
+            if cap <= 0 or total <= cap:
                 continue
             excess_ratio = (total - cap) / cap
             if excess_ratio <= 0.25:
@@ -1984,7 +1985,6 @@ class WorldState:
                 marshals_data.append(marshal_data)
 
             # This is the map_data that Godot actually reads (via game_state response).
-            # Do NOT confuse with _get_map_data() in main.py which is unused.
             map_data[region_name] = {
                 "controller": region.controller,
                 "terrain": region.terrain,
@@ -1993,7 +1993,7 @@ class WorldState:
                 "effective_income": int(region.get_effective_income()),
                 "stability": int(region.stability),
                 "stability_label": region.get_stability_label(),
-                "war_damage": float(region.war_damage),
+                "war_damage": int(region.war_damage * 100),  # Send as int % (0-100) — Godot crashes on floats
                 "supply_capacity": int(region.supply_capacity),
                 # Building data for region tooltip
                 "buildings": [{"type": b["type"], "damaged": b.get("damaged", False)} for b in region.buildings],
