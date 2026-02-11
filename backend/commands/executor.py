@@ -336,6 +336,7 @@ class CommandExecutor:
             message += f"\nWARNING: Bankrupt for {bk_turns} turn{'s' if bk_turns > 1 else ''}!"
 
         # Build turn_end event for Godot's _display_turn_change
+        bk_turns = int(world.nation_bankruptcy_turns.get(nation, 0))
         turn_end_event = {
             "type": "turn_end",
             "old_turn": int(turn_result.get("turn_ended", world.current_turn - 1)),
@@ -345,6 +346,7 @@ class CommandExecutor:
             "spent": int(spent_val),
             "net": int(net_val),
             "treasury": int(treasury),
+            "bankruptcy_turns": bk_turns,
         }
         events = [turn_end_event] + turn_result.get("events", [])
 

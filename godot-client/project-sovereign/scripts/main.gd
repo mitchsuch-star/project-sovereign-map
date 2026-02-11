@@ -639,6 +639,17 @@ func _display_turn_change(event: Dictionary):
 	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 	add_output("[color=#" + COLOR_SUCCESS + "]Income: " + str(int(income)) + "g | Upkeep: " + str(int(upkeep)) + "g | Net: " + net_sign + str(int(net)) + "g" + spent_str + "[/color]")
 	add_output("[color=#" + COLOR_GOLD + "]Treasury: " + _format_number(int(treasury)) + "g[/color]")
+
+	# Bankruptcy warning
+	var bankruptcy_turns = int(event.get("bankruptcy_turns", 0))
+	if bankruptcy_turns > 0:
+		if bankruptcy_turns >= 3:
+			add_output("[color=#" + COLOR_ERROR + "]BANKRUPTCY: Troops are deserting! (" + str(bankruptcy_turns) + " turns in deficit)[/color]")
+		elif bankruptcy_turns >= 2:
+			add_output("[color=#" + COLOR_ERROR + "]WARNING: Treasury in deficit! Troops grow restless![/color]")
+		else:
+			add_output("[color=#" + COLOR_ERROR + "]WARNING: Treasury in deficit! Upkeep costs halved as mercy.[/color]")
+
 	add_output("[color=#" + COLOR_SUCCESS + "]Actions refreshed: " + str(int(max_actions)) + "/" + str(int(max_actions)) + "[/color]")
 	add_output("")
 
@@ -652,6 +663,11 @@ func _display_tactical_events(tactical_events):
 				var region_name = event.get("region", "Unknown")
 				var losses = int(event.get("losses", 0))
 				add_output("[color=#" + COLOR_ERROR + "]Supply shortage at " + region_name + ": " + marshal_name + " loses " + _format_number(losses) + " troops[/color]")
+			elif event_type == "bankruptcy_desertion":
+				var marshal_name = event.get("marshal", "Unknown")
+				var losses = int(event.get("losses", 0))
+				var remaining = int(event.get("remaining", 0))
+				add_output("[color=#" + COLOR_ERROR + "]DESERTION: " + marshal_name + " loses " + _format_number(losses) + " troops (" + _format_number(remaining) + " remaining)[/color]")
 
 func _display_turn_advance(action_info: Dictionary):
 	"""Display automatic turn advancement when actions run out."""

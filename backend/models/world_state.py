@@ -2196,7 +2196,17 @@ class WorldState:
         # ════════════════════════════════════════════════════════════
         all_nations = [self.player_nation] + list(self.enemy_nations)
         for nation in all_nations:
-            self.process_bankruptcy_desertion(nation)
+            bankruptcy_result = self.process_bankruptcy_desertion(nation)
+            if bankruptcy_result.get("bankrupt"):
+                for d in bankruptcy_result.get("desertions", []):
+                    tactical_events.append({
+                        "type": "bankruptcy_desertion",
+                        "marshal": d["marshal"],
+                        "losses": int(d["lost"]),
+                        "remaining": int(d["remaining"]),
+                        "nation": nation,
+                        "bankruptcy_turns": int(bankruptcy_result.get("bankruptcy_turns", 0)),
+                    })
 
         # ════════════════════════════════════════════════════════════
         # INCOME PHASE (Phase 6.2.B) — ALL nations
