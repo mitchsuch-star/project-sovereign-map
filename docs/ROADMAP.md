@@ -77,7 +77,7 @@
 | Attrition | Movement/supply decay | Low | **DONE** (Session 22: supply + movement attrition) |
 | Fog of War | Hidden enemies, scouting required | Medium | Planned |
 | Terrain | Region terrain affects combat/movement | Medium | **6.1.A+B done** (data layer + combat). Movement/pathfinding remaining. |
-| Sieges | Fortified cities require siege mechanics | Medium | Planned |
+| Sieges | Fortified cities require siege mechanics | Medium | **Deferred to 1805** — current fort + contested capture (1-2 turn occupation) sufficient for 13-region map. Full sieges (attrition, starvation, sortie, artillery) revisit when 80-100 regions make longer holdouts strategic. |
 | City Fortification | "Fortify this city" building action | Low | **DONE** (6.2.E: fortification building, 400g/3t, +25% defense. 6.2.F: contested capture holdout.) |
 | Artillery Unit Type | Combat buffs like cavalry | Medium | Planned |
 | Turn Events Log | Track battles/captures/retreats per turn (feeds gazette) | Low | Planned |
