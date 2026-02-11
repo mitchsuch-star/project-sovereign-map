@@ -248,8 +248,67 @@ def execute_command(request: CommandRequest):
                 "turn": int(world.current_turn),
             })
 
+        # ════════════════════════════════════════════════════════════
+        # BERTHIER PARSE RECOVERY: Replace generic "Unknown action"
+        # with in-character Berthier clarification. Only fires for
+        # type-1 parse failures; marshal typos & validation errors
+        # pass through unchanged.
+        # ════════════════════════════════════════════════════════════
+        if not parsed.get("success") and (parsed.get("error") or "").startswith("Unknown action"):
+            berthier_msg = parser.llm.generate_berthier_recovery(
+                raw_command=request.command,
+                game_state=llm_game_state,
+                partial_parse={
+                    "recognized_marshal": parsed.get("partial_marshal"),
+                    "recognized_target": parsed.get("partial_target"),
+                    "raw_input": parsed.get("raw_input", request.command),
+                },
+            )
+            return {
+                "success": False,
+                "message": berthier_msg,
+                "events": [],
+                "action_info": {
+                    "cost": 0,
+                    "remaining": int(world.actions_remaining),
+                    "turn_advanced": False,
+                    "new_turn": None,
+                },
+                "action_summary": world.get_action_summary(),
+                "game_state": world.get_game_state_summary(),
+            }
+
         # Execute command
         result = executor.execute(parsed, game_state)
+
+        # ════════════════════════════════════════════════════════════
+        # BERTHIER EXECUTOR RECOVERY: Catch "Marshal 'None' not found"
+        # This happens when a valid action is parsed but no marshal was
+        # identified (e.g., "move to Belgium" without naming a marshal).
+        # ════════════════════════════════════════════════════════════
+        if not result.get("success") and "Marshal 'None' not found" in (result.get("message") or ""):
+            berthier_msg = parser.llm.generate_berthier_recovery(
+                raw_command=request.command,
+                game_state=llm_game_state,
+                partial_parse={
+                    "recognized_marshal": None,
+                    "recognized_target": parsed.get("command", {}).get("target"),
+                    "raw_input": request.command,
+                },
+            )
+            return {
+                "success": False,
+                "message": berthier_msg,
+                "events": [],
+                "action_info": {
+                    "cost": 0,
+                    "remaining": int(world.actions_remaining),
+                    "turn_advanced": False,
+                    "new_turn": None,
+                },
+                "action_summary": world.get_action_summary(),
+                "game_state": world.get_game_state_summary(),
+            }
 
         # ════════════════════════════════════════════════════════════
         # CHECK FOR OBJECTION: If awaiting player choice, return full result

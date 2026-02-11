@@ -14,7 +14,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ## Current Phase
 
-**Phase 6.2 Economy: COMPLETE + AUDITED (Session 26). Save/Load: COMPLETE (Session 27).** 6.2.A-H all implemented and audited. Save/Load: `backend/save_manager.py`, 4 API endpoints, autosave every turn, terminal commands ("save"/"load"), load dialog popup, 38 tests. Pause menu deferred to Phase 6.5. See `docs/ROADMAP.md` for EA readiness roadmap.
+**Phase 6.2 Economy: COMPLETE + AUDITED (Session 26). Save/Load: COMPLETE (Session 27). Berthier Parse Recovery: COMPLETE (Session 28).** 6.2.A-H all implemented and audited. Save/Load: `backend/save_manager.py`, 4 API endpoints, autosave every turn, terminal commands ("save"/"load"), load dialog popup, 38 tests. Berthier: in-character error messages replace raw "Unknown action" / "Marshal None" errors, mock templates + LLM prompt, 20 tests. Pause menu deferred to Phase 6.5. See `docs/ROADMAP.md` for EA readiness roadmap.
 See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 
 ---

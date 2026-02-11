@@ -360,7 +360,9 @@ class CommandParser:
                     "success": False,
                     "error": validation_result.get("error", "Unknown validation error"),
                     "suggestion": validation_result.get("suggestion"),
-                    "raw_input": command_text
+                    "raw_input": command_text,
+                    "partial_marshal": llm_result.get("marshal"),
+                    "partial_target": llm_result.get("target"),
                 }
         except Exception as e:
             # Safety net - should never happen but prevents crashes

@@ -23,6 +23,7 @@ See docs/PHASE_5_2_IMPLEMENTATION_PLAN.md Section 6 for keywords to add:
 """
 
 import os
+import random
 import re
 from typing import Dict, Optional, List
 from dotenv import load_dotenv
@@ -330,6 +331,111 @@ class LLMClient:
         regions = self._extract_valid_regions(game_state)
         enemies = list(game_state.get("enemies", {}).keys())
         return regions + enemies
+
+    # =================================================================
+    # BERTHIER PARSE RECOVERY (in-character "Unknown action" replacement)
+    # =================================================================
+
+    def generate_berthier_recovery(
+        self,
+        raw_command: str,
+        game_state: Optional[Dict] = None,
+        partial_parse: Optional[Dict] = None,
+    ) -> str:
+        """
+        Generate an in-character Berthier response for unparseable commands.
+
+        Mock mode: template response using real game-state names.
+        Live mode: LLM call (Haiku-class), falling back to mock on failure.
+
+        Always returns a string, never raises.
+        """
+        game_state = game_state or {}
+        partial_parse = partial_parse or {}
+
+        # Mock mode — use template
+        if self.provider_name == "mock":
+            return self._berthier_mock_response(raw_command, game_state, partial_parse)
+
+        # Live mode — try LLM, fall back to mock
+        try:
+            from .prompt_builder import build_berthier_recovery_prompt
+            system_prompt, user_prompt = build_berthier_recovery_prompt(
+                raw_command, game_state, partial_parse
+            )
+            response_text, error = self.provider._make_api_request(
+                system_prompt, user_prompt
+            )
+            if error or not response_text:
+                print(f"[BERTHIER] LLM call failed ({error}), using mock fallback")
+                return self._berthier_mock_response(raw_command, game_state, partial_parse)
+            return response_text
+        except Exception as e:
+            print(f"[BERTHIER] Exception in LLM recovery: {e}")
+            return self._berthier_mock_response(raw_command, game_state, partial_parse)
+
+    def _berthier_mock_response(
+        self,
+        raw_command: str,
+        game_state: Dict,
+        partial_parse: Dict,
+    ) -> str:
+        """
+        Template-based Berthier response for mock mode.
+
+        Uses real marshal/enemy names from game_state for immersion.
+        Three template categories: marshal recognised, target recognised, nothing recognised.
+        """
+        from .validation import VALID_ACTIONS
+
+        # Extract real names for templates
+        marshal_names = list(game_state.get("marshals", {}).keys())
+        enemy_names = list(game_state.get("enemies", {}).keys())
+        first_marshal = marshal_names[0] if marshal_names else "Ney"
+        first_enemy = enemy_names[0] if enemy_names else "Wellington"
+
+        actions_sample = ", ".join(sorted(VALID_ACTIONS)[:6])
+
+        recognized_marshal = partial_parse.get("recognized_marshal")
+        recognized_target = partial_parse.get("recognized_target")
+
+        if recognized_marshal:
+            templates = [
+                (f"Berthier adjusts his spectacles. \"Sire, I understand this concerns "
+                 f"Marshal {recognized_marshal}, but I cannot determine the order. "
+                 f"Perhaps: '{recognized_marshal}, attack {first_enemy}' or "
+                 f"'{recognized_marshal}, move to Paris'?\""),
+                (f"Berthier frowns at the dispatch. \"I see Marshal {recognized_marshal}'s "
+                 f"name, Sire, but the instruction is unclear. Valid orders include: "
+                 f"{actions_sample}.\""),
+                (f"\"Sire, Marshal {recognized_marshal} awaits your command, but I cannot "
+                 f"parse this order. Might you mean '{recognized_marshal}, scout' or "
+                 f"'{recognized_marshal}, defend'?\" Berthier asks carefully."),
+            ]
+        elif recognized_target:
+            templates = [
+                (f"Berthier studies the map. \"Sire, I note the reference to "
+                 f"{recognized_target}, but which marshal should act? "
+                 f"Try: '{first_marshal}, attack {recognized_target}' or "
+                 f"'{first_marshal}, move to {recognized_target}'.\""),
+                (f"\"Regarding {recognized_target}, Sire — I need a marshal and an action. "
+                 f"For example: '{first_marshal}, move to {recognized_target}'.\" "
+                 f"Berthier taps the map pointedly."),
+            ]
+        else:
+            templates = [
+                (f"Berthier clears his throat. \"Forgive me, Sire, but I cannot interpret "
+                 f"that order. Our marshals ({', '.join(marshal_names[:3]) or first_marshal}) "
+                 f"await clear commands — perhaps 'attack', 'move', 'defend', or 'scout'?\""),
+                (f"\"Sire, I must confess this order eludes me,\" Berthier admits. "
+                 f"\"Shall I relay an order to {first_marshal}? Valid actions include: "
+                 f"{actions_sample}.\""),
+                (f"Berthier peers at the dispatch with concern. \"I cannot make sense of "
+                 f"this, Sire. A clear order might be: '{first_marshal}, attack "
+                 f"{first_enemy}' or 'end turn'.\""),
+            ]
+
+        return random.choice(templates)
 
     def _parse_with_mock(self, command_text: str) -> ParseResult:
         """

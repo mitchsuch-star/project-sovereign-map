@@ -10,10 +10,10 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1903** (verified, 3 skipped) |
-| **Current Phase** | Phase 6: Save/Load **COMPLETE** |
+| **Tests Passing** | **1923** (verified, 3 skipped) |
+| **Current Phase** | Phase 6: Berthier Parse Recovery **COMPLETE** |
 | **Blockers** | None |
-| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load |
+| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier |
 
 ---
 
@@ -49,6 +49,32 @@
 ---
 
 ## Recently Completed
+
+### Feb 11 (Session 28: Berthier Parse Recovery)
+
+**In-character error messages for unparseable commands. Berthier replaces raw errors.**
+
+**What it does:**
+- Generic "Unknown action" and "Marshal 'None' not found" errors replaced with in-character Berthier (chief of staff) responses
+- Mock mode: template responses using real marshal/enemy names from game state, 3 categories x 2-3 variants
+- Live mode (Anthropic): one LLM call with Berthier character prompt, falls back to mock on failure
+- Berthier reacts to the Emperor's tone (insults, rudeness, absurdity) with flustered dignity
+- Partial parse info (recognized marshal/target) forwarded to recovery for context-aware suggestions
+
+**Files modified:**
+- `backend/ai/prompt_builder.py`: `build_berthier_recovery_prompt()` — system + user prompt tuple
+- `backend/ai/llm_client.py`: `generate_berthier_recovery()` + `_berthier_mock_response()` on LLMClient
+- `backend/commands/parser.py`: `partial_marshal` / `partial_target` fields in validation failure dicts
+- `backend/main.py`: Two early-return intercept blocks (before executor for parse failures, after executor for marshal-None failures)
+
+**What it does NOT change:** No new actions, popups, state changes, serialization, or executor changes. Same `success: False` response shape — Godot needs no changes.
+
+**Tests:** 20 new tests in `test_berthier_recovery.py`:
+- Mock templates (8): non-empty, Berthier reference, recognized marshal/target, valid actions, variation, empty game state
+- Prompt builder (5): system prompt character, raw command, partial parse, valid actions, return type
+- Integration (7): gibberish→Berthier, valid→bypass, typo→fuzzy match, response format, partial marshal forwarding, marshal-None executor errors (scout, move)
+
+**Tests:** 1923 total passing, 3 skipped.
 
 ### Feb 10 (Session 27: Phase 6 Save/Load System)
 
@@ -806,6 +832,7 @@
 
 | Date | Tests | Notes |
 |------|-------|-------|
+| Feb 11, 2026 | **1923** | Session 28: Berthier Parse Recovery. 20 new tests (mock templates, prompt builder, integration). |
 | Feb 10, 2026 | **1903** | Session 27: Save/Load system. 38 new tests (file I/O, roundtrip, backward compat, API, parser, autosave). |
 | Feb 10, 2026 | **1865** | Session 26: Opus audit — 10 P0, 10 P1, 7 P2 fixes. 2 new roundtrip tests, 2 updated. |
 | Feb 10, 2026 | **1863** | Session 25: Phase 6.2.H depot forward logistics + smoke test bugfixes. 16 new tests |
@@ -854,10 +881,9 @@
 
 ## Next Session Priorities
 
-1. **Save/Load Godot Smoke Test** — Test save/load in Godot: type "save", type "load", verify load dialog appears, load a save, verify display refreshes correctly.
-2. **Phase 6 remaining items** — Berthier Parse Recovery, Post-Battle Analysis, War Score, Fog of War, Manpower Pools (see ROADMAP.md Phase 6 table).
-3. **Pause menu planning** — Phase 6.5 needs Esc → Save/Load/Settings/Quit menu before 1805 EA. Plan scope.
-4. Commission Europe map art (start search for artist).
+1. **Phase 6 remaining items** — Post-Battle Analysis, Fog of War, Manpower Pools, Sieges, City Fortification, Artillery Unit Type, Turn Events Log (see ROADMAP.md Phase 6 table). War Score and Threat Indicator moved to Phase 8 (Diplomacy).
+2. **Pause menu planning** — Phase 6.5 needs Esc → Save/Load/Settings/Quit menu before 1805 EA. Plan scope.
+3. Commission Europe map art (start search for artist).
 
 ### Phase 6.2 Economy Audit Findings
 

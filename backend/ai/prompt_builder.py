@@ -598,6 +598,67 @@ Return only the question text."""
 
 
 # =============================================================================
+# BERTHIER PARSE RECOVERY
+# =============================================================================
+
+def build_berthier_recovery_prompt(
+    raw_input: str,
+    game_state: Dict[str, Any],
+    partial_parse: Optional[Dict[str, Any]] = None,
+) -> tuple:
+    """
+    Build prompt for Berthier (chief of staff) to clarify an unparseable command.
+
+    Called when the parser returns "Unknown action" — Berthier responds in character
+    to help the player rephrase their order.
+
+    Args:
+        raw_input: The player's original command text
+        game_state: Current game state dict (marshals, enemies, map_data)
+        partial_parse: Optional dict with recognized_marshal, recognized_target, raw_input
+
+    Returns:
+        Tuple of (system_prompt, user_prompt)
+    """
+    partial_parse = partial_parse or {}
+
+    marshals_info = _format_marshals(game_state)
+    enemies_info = _format_enemies(game_state)
+    actions_list = ", ".join(sorted(VALID_ACTIONS))
+
+    system_prompt = (
+        "You are Berthier, Napoleon's meticulous chief of staff. "
+        "You are historically nervous, detail-obsessed, and easily flustered. "
+        "The Emperor has issued an order you cannot interpret. "
+        "React briefly to the Emperor's tone — if he is rude, dismissive, or absurd, "
+        "show flustered dignity before helping. If he is polite, be warmly efficient. "
+        "2-3 sentences max. Suggest a valid rephrasing. "
+        "Always address the player as 'Sire'."
+    )
+
+    user_prompt = f"""# Unrecognised Order
+
+The Emperor said: "{raw_input}"
+
+## What I could recognise
+- Marshal mentioned: {partial_parse.get('recognized_marshal') or 'none'}
+- Target mentioned: {partial_parse.get('recognized_target') or 'none'}
+
+## Available Marshals
+{marshals_info}
+
+## Enemy Forces
+{enemies_info}
+
+## Valid Actions
+{actions_list}
+
+Respond as Berthier. Acknowledge the confusion, mention what you DID recognise (if anything), and suggest a concrete rephrasing using valid actions and real marshal/enemy names."""
+
+    return (system_prompt, user_prompt)
+
+
+# =============================================================================
 # TESTING
 # =============================================================================
 

@@ -1090,6 +1090,29 @@ ParseResult scoring fields drive gameplay mechanics:
 | Ambiguity 61+ | No buff, triggers Grouchy clarification popup |
 | High strategic | +authority, +morale (Napoleon in his element) |
 
+### Berthier Parse Recovery
+
+When a command can't be parsed (Unknown action, Marshal 'None' not found), Berthier — Napoleon's chief of staff — responds in character instead of showing a raw error.
+
+**Two intercept points in `main.py`:**
+
+| Error | Where | Example |
+|-------|-------|---------|
+| `"Unknown action"` | Before executor | `"dance with the moon"` |
+| `"Marshal 'None' not found"` | After executor | `"scout"`, `"move to Belgium"` (no marshal named) |
+
+**Mock mode:** Template responses from `_berthier_mock_response()` in `llm_client.py`. Three categories (marshal recognised, target recognised, nothing recognised), 2-3 variants each, uses real game-state names.
+
+**Live mode:** One LLM call via `build_berthier_recovery_prompt()` in `prompt_builder.py`. Berthier character: nervous, meticulous, reacts to the Emperor's tone (insults, absurdity, rudeness). Falls back to mock templates on API failure.
+
+**Files:**
+- `prompt_builder.py`: `build_berthier_recovery_prompt()` — system + user prompt
+- `llm_client.py`: `generate_berthier_recovery()` + `_berthier_mock_response()`
+- `parser.py`: `partial_marshal` / `partial_target` fields in failure dicts
+- `main.py`: Two early-return blocks (before and after executor)
+
+**Does NOT change:** No new actions, no new popups, no state changes, no serialization, no executor changes. Same `success: False` response shape — Godot needs no changes.
+
 ### Key Insight
 
 **Executor stays rule-based.** LLM helps with parsing ambiguous commands, but game mechanics are 100% deterministic. No LLM randomness in combat, movement, or AI decisions.

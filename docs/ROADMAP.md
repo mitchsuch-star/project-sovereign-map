@@ -78,10 +78,8 @@
 | Fog of War | Hidden enemies, scouting required | Medium | Planned |
 | Terrain | Region terrain affects combat/movement | Medium | **6.1.A+B done** (data layer + combat). Movement/pathfinding remaining. |
 | Sieges | Fortified cities require siege mechanics | Medium | Planned |
-| City Fortification | "Fortify this city" building action | Low | Planned |
+| City Fortification | "Fortify this city" building action | Low | **DONE** (6.2.E: fortification building, 400g/3t, +25% defense. 6.2.F: contested capture holdout.) |
 | Artillery Unit Type | Combat buffs like cavalry | Medium | Planned |
-| **War Score** | Visual progress toward victory/defeat | Low | Planned |
-| **Threat Indicator** | Coalition threat level, visible buildup | Low | Planned |
 | Turn Events Log | Track battles/captures/retreats per turn (feeds gazette) | Low | Planned |
 | **Save/Load** | Full game state persistence + autosave (moved from Pre-EA) | Low | **COMPLETE** (Session 27: save_manager.py, 4 API endpoints, autosave, terminal commands, load dialog, 38 tests) |
 | **Berthier Parse Recovery** | Failed parses -> Berthier asks clarification in-character (moved from 8.5) | Low | Planned |
@@ -134,7 +132,7 @@ After every battle: "Attack modifier: 1.45x (aggressive stance +15%, drill +20%,
 **Implementation plan:** See `docs/PHASE6_IMPLEMENTATION_PLAN.md` for session-by-session breakdown.
 
 **Dependencies:** None
-**Exit Criteria:** Player manages economy, enemies reinforce, terrain matters, can see war progress, can save/load, failed parses feel in-character
+**Exit Criteria:** Player manages economy, enemies reinforce, terrain matters, can save/load, failed parses feel in-character
 
 ---
 
@@ -249,8 +247,12 @@ If marshal strength < 20% of starting_strength AND enemy in same region -> ALWAY
 | **Leader Personalities** | Distinct voices (see table below) | Medium | Planned |
 | Diplomatic Rules Engine | War score + relations -> accept/reject (deterministic, LLM voices) | Medium | Planned |
 | **AI Proposals** | AI offers peace, makes demands — LLM voices the proposal | Medium | Planned |
+| **War Score** | Visual progress toward victory/defeat, drives peace treaty acceptance | Low | Planned |
+| **Threat Indicator** | Coalition threat level, visible diplomatic pressure buildup | Low | Planned |
 
 **Note:** Coalition TRIGGER moved to Phase 7. This phase handles the diplomatic conversation layer and peace mechanics.
+
+**Note:** War Score and Threat Indicator moved from Phase 6 — both are only meaningful when they drive peace negotiations and diplomatic pressure. Without diplomacy, war score is a cosmetic number and threat indicator has no mechanic to trigger. Building them here avoids premature design that Phase 8 diplomacy would likely need to revise.
 
 ### Diplomacy Chat Architecture
 
@@ -598,7 +600,7 @@ Lighter version of communication cutoff: orders to distant marshals take effect 
 2. COMPLETE: V2a Objection System Refactor (all 7 units)
 3. Post-V2a: TUTORIAL_SCRIPT.md, doc updates
 4. **Commission Europe map art** (2-4 week lead time, parallel with Phase 6)
-5. Phase 6: Economy, Manpower, Terrain, Fog, War Score, **Save/Load**, **Berthier**, **Post-battle analysis**
+5. Phase 6: Economy, Manpower, Terrain, Fog, **Save/Load**, **Berthier**, **Post-battle analysis**
 6. Phase 6.5: Notifications, Ledger, Marshal UI, **Campaign Briefing**, **Marshal Report**, **Tutorial infra**, **Map Renderer**
 7. Phase 7: Multi-marshal, Relationships, **Coalition Trigger**, **V2b**, **AI scaling/coordination**
 8. Phase 8: **Diplomacy Chat**, Peace Treaties, Leader Personalities
