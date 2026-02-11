@@ -541,7 +541,7 @@ The AI performs an admin phase each turn (before combat actions) using admin AP.
 |----------|--------|---------|
 | 1 | Urgent recruit | Marshals below 50% starting strength — critical reinforcement |
 | 2 | Build market | At highest-income region |
-| 3 | Build supply depot | At capital or major city |
+| 3 | Build supply depot | At capital or major city; within each tier, prefers regions adjacent to enemy territory (forward logistics, Phase 6.2.H) |
 | 4 | Build fortification | At border regions |
 | 5 | Repair damaged buildings | Restore buildings damaged by war |
 | 6 | Repair war damage | Fix war damage on regions |

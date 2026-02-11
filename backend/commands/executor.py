@@ -1584,6 +1584,29 @@ RETREAT RECOVERY (3 turns):
             return "\n" + "\n".join(retreat_messages)
         return ""
 
+    def _has_depot_supply_bonus(self, world, region_name, nation):
+        """Check if destination or any adjacent region has a friendly undamaged supply depot.
+
+        Used for depot forward logistics: depots project supply benefits
+        to the region they're in AND adjacent regions, halving movement attrition.
+        """
+        region = world.get_region(region_name)
+        if not region:
+            return False
+
+        # Check destination region itself
+        if region.controller == nation:
+            if region.has_building("supply_depot"):
+                return True
+
+        # Check adjacent regions
+        for adj_name in region.adjacent_regions:
+            adj = world.get_region(adj_name)
+            if adj and adj.controller == nation:
+                if adj.has_building("supply_depot"):
+                    return True
+        return False
+
     def _calculate_movement_attrition(self, marshal, destination_region, world, is_retreat=False) -> dict:
         """Calculate and apply movement attrition. Returns info dict.
 
@@ -1609,6 +1632,15 @@ RETREAT RECOVERY (3 turns):
         is_friendly_stable = (
             region and region.controller == marshal.nation and region.stability >= 76
         )
+
+        # Depot forward logistics: halve march attrition if friendly depot nearby
+        # Only for normal moves, not retreats (retreats already have their own 0.5x)
+        depot_bonus = False
+        if not is_friendly_stable and not is_retreat:
+            if self._has_depot_supply_bonus(world, destination_region, marshal.nation):
+                rate *= 0.5
+                depot_bonus = True
+
         losses = 0 if is_friendly_stable else int(marshal.strength * rate)
         harassment_losses = 0
 
@@ -1626,6 +1658,7 @@ RETREAT RECOVERY (3 turns):
             "harassment_losses": int(harassment_losses),
             "total_losses": int(total_losses),
             "destination": destination_region,
+            "depot_bonus": depot_bonus,
         }
 
     def _apply_forced_retreat_or_break(self, marshal, enemy, world: 'WorldState') -> str:
@@ -2172,6 +2205,8 @@ RETREAT RECOVERY (3 turns):
                     capture_message = f"{marshal.name} marches from {old_location} into {resolved_target} unopposed!"
                     if attrition_info["total_losses"] > 0:
                         capture_message += f" ({attrition_info['march_losses']:,} lost to march"
+                        if attrition_info.get("depot_bonus"):
+                            capture_message += " — forward supply lines reduce losses"
                         if attrition_info["harassment_losses"] > 0:
                             capture_message += f", {attrition_info['harassment_losses']:,} to garrison harassment"
                         capture_message += ")"
@@ -2429,7 +2464,11 @@ RETREAT RECOVERY (3 turns):
                 else:
                     movement_msg = f" {marshal.name} advances into {target_location}."
                 if attrition_info["total_losses"] > 0:
-                    movement_msg += f" ({attrition_info['total_losses']:,} lost to march)"
+                    march_note = f" ({attrition_info['total_losses']:,} lost to march"
+                    if attrition_info.get("depot_bonus"):
+                        march_note += " — forward supply lines reduce losses"
+                    march_note += ")"
+                    movement_msg += march_note
             else:
                 print(f"[ATTACK MOVEMENT] Already at target location, no move needed")
         else:
@@ -4073,8 +4112,11 @@ RETREAT RECOVERY (3 turns):
             total_march = attrition_intermediate["march_losses"] + attrition_dest["march_losses"]
             total_harassment = attrition_intermediate["harassment_losses"] + attrition_dest["harassment_losses"]
             total_all = attrition_intermediate["total_losses"] + attrition_dest["total_losses"]
+            any_depot_bonus = attrition_intermediate.get("depot_bonus") or attrition_dest.get("depot_bonus")
             if total_all > 0:
                 attrition_msg = f" ({total_march:,} lost to march"
+                if any_depot_bonus:
+                    attrition_msg += " — forward supply lines reduce losses"
                 if total_harassment > 0:
                     attrition_msg += f", {total_harassment:,} to garrison harassment"
                 attrition_msg += ")"
@@ -4084,6 +4126,8 @@ RETREAT RECOVERY (3 turns):
             attrition_info = self._calculate_movement_attrition(marshal, target_name, world)
             if attrition_info["total_losses"] > 0:
                 attrition_msg = f" ({attrition_info['march_losses']:,} lost to march"
+                if attrition_info.get("depot_bonus"):
+                    attrition_msg += " — forward supply lines reduce losses"
                 if attrition_info["harassment_losses"] > 0:
                     attrition_msg += f", {attrition_info['harassment_losses']:,} to garrison harassment"
                 attrition_msg += ")"
@@ -6961,7 +7005,11 @@ RETREAT RECOVERY (3 turns):
                 combat_result["attacker_new_location"] = target_location
                 movement_msg = f" {marshal.name} advances into {target_location}."
                 if charge_attrition["total_losses"] > 0:
-                    movement_msg += f" ({charge_attrition['total_losses']:,} lost to march)"
+                    charge_march_note = f" ({charge_attrition['total_losses']:,} lost to march"
+                    if charge_attrition.get("depot_bonus"):
+                        charge_march_note += " — forward supply lines reduce losses"
+                    charge_march_note += ")"
+                    movement_msg += charge_march_note
 
         # Check if enemy was destroyed
         enemy_destroyed_msg = ""

@@ -1,8 +1,8 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 8, 2026
-> **Last Session:** Session 24 — Phase 6.2 Economy Audit Fixes
+> **Last Updated:** February 10, 2026
+> **Last Session:** Session 25 — Phase 6.2.H Supply Depot Forward Logistics
 
 ---
 
@@ -10,16 +10,16 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1847** (verified, 3 skipped) |
-| **Current Phase** | Phase 6.2 Economy: 6.2.A-G COMPLETE, 6.2.H TO BE DESIGNED |
+| **Tests Passing** | **1863** (verified, 3 skipped) |
+| **Current Phase** | Phase 6.2 Economy: 6.2.A-H COMPLETE |
 | **Blockers** | None |
-| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2.A, 6.2.B, 6.2.C, 6.2.D, 6.2.E, 6.2.F, 6.2.G |
+| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2.A, 6.2.B, 6.2.C, 6.2.D, 6.2.E, 6.2.F, 6.2.G, 6.2.H |
 
 ---
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2.A-G COMPLETE. 6.2.H (Supply Depot Forward Logistics) TO BE DESIGNED.**
+**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2.A-H COMPLETE.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -44,10 +44,22 @@
 - [x] **Session 22b: 6.2.F Polish** — friendly stable attrition exemption, occupation popup timing fix, debug commands, 47 tests (1784 total)
 - [x] **Session 23: Phase 6.2.G** — AI admin phase, economy command, turn summary financial report, occupation UI wiring, 29 tests (1813 total)
 - [x] **Session 24: Economy Audit Fixes** — Coalition territory viability (Britain/Prussia get Milan/Bavaria/Vienna), starting gold rebalance (Britain 1500, Prussia 800), plunder 1.75x multiplier, AI recruitment threshold 0.50, training ground +30% buff, AI market/depot building, AI supply attrition P0.5 check, 30 tests (1844 total), Geneva→Britain, gold expenditure tracking, two-tier AI recruitment
+- [x] **Session 25: Phase 6.2.H** — Supply depot forward logistics: depots project 0.5x movement attrition to destination + adjacent regions, AI depot placement prefers border regions, 16 tests (1863 total)
 
 ---
 
 ## Recently Completed
+
+### Feb 10 (Session 25: Phase 6.2.H Supply Depot Forward Logistics)
+
+**Supply depots now project logistics benefits to adjacent regions.**
+
+- Depot forward logistics: moving into a region with a friendly undamaged depot nearby (destination or adjacent) halves movement attrition (0.5x after terrain)
+- Does NOT stack, does NOT affect retreat/harassment/supply attrition/friendly stable exemption
+- AI depot placement updated: within each priority tier (capital > major_city > city), prefers regions adjacent to enemy territory
+- Attrition messages updated to show "forward supply lines reduce losses" when depot bonus active
+- 16 new tests in `tests/test_depot_forward_logistics.py` (core projection, non-interaction, AI placement)
+- Docs updated: ECONOMY_SPEC, SYSTEMS_REFERENCE, ENEMY_AI_REFERENCE
 
 ### Feb 8 (Session 24: Economy Audit Fixes)
 

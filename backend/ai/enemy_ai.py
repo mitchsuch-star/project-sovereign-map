@@ -3632,11 +3632,14 @@ class EnemyAI:
         """Find the best region for a supply depot (capital first, then major_city).
 
         Phase 6.2 Audit Fix #8: AI builds supply depots for income + capacity.
+        Phase 6.2.H: Prefer regions adjacent to enemy territory (forward logistics value).
         """
         # Prioritize capital, then major_city, then city
         priority_order = ["capital", "major_city", "city"]
 
         for target_type in priority_order:
+            # Collect valid candidates for this tier
+            candidates = []
             for region_name in world.get_nation_regions(nation):
                 region = world.get_region(region_name)
                 if not region:
@@ -3661,9 +3664,29 @@ class EnemyAI:
                 if getattr(region, 'stability', 100) <= 50:
                     continue
 
-                return region_name
+                candidates.append(region_name)
+
+            if not candidates:
+                continue
+
+            # Within this tier, prefer regions bordering enemy territory
+            for region_name in candidates:
+                region = world.get_region(region_name)
+                if self._borders_enemy(region, nation, world):
+                    return region_name
+
+            # No border candidate — fall back to first valid in this tier
+            return candidates[0]
 
         return None
+
+    def _borders_enemy(self, region, nation: str, world) -> bool:
+        """Check if a region has any adjacent enemy-controlled region."""
+        for adj_name in region.adjacent_regions:
+            adj = world.get_region(adj_name)
+            if adj and adj.controller and adj.controller != nation:
+                return True
+        return False
 
     def _find_damaged_building_region(self, nation: str, world) -> Optional[Dict]:
         """Find a region with a damaged building, prioritizing high-income regions."""

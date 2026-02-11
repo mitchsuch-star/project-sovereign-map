@@ -653,6 +653,25 @@ def supply_capacity(self) -> int:
 
 This means supply_capacity is **not serialized** — it derives from `region_type` and `buildings`, both of which are serialized.
 
+### Depot Forward Logistics (Phase 6.2.H)
+
+Supply depots **project** a logistics benefit to adjacent regions. If a marshal moves into a region where the destination itself or any adjacent region has a friendly undamaged supply depot, **movement attrition is halved** (0.5x multiplier applied after terrain).
+
+Rules:
+- **Does not stack.** One adjacent depot or five — same 0.5x benefit.
+- **Depot must be in a region controlled by the marshal's nation** and undamaged.
+- **Destination can be any controller** — enemy, neutral, friendly. That's the point: build depots in your territory to ease pushes into enemy land.
+- **Does NOT affect retreat attrition** (retreats have their own 0.5x rate).
+- **Does NOT affect harassment** (fortification garrison fire is separate).
+- **Does NOT affect supply attrition** (overcrowding). The +10k capacity is a separate benefit.
+- **Does NOT affect friendly stable territory exemption** (already 0 attrition).
+
+```python
+# executor.py — applied after terrain multiplier, before computing losses
+if not is_retreat and has_depot_supply_bonus(world, destination, marshal.nation):
+    rate *= 0.5  # halve march attrition
+```
+
 ### Future Hook (Phase 9): Admin Generals + Army Size
 
 Marshal "administration" stat raises personal supply efficiency — effectively increases the supply cap for regions they're in. For Phase 6, flat caps based on region type only.
