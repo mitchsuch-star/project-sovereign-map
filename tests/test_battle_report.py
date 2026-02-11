@@ -330,12 +330,16 @@ class TestObservationPriority:
     """Test that observation selection follows priority order."""
 
     def _make_result(self, outcome, atk_cas=5000, def_cas=8000,
-                     atk_orig=50000, def_orig=68000, atk_mods=None, def_mods=None):
+                     atk_orig=50000, def_orig=68000, atk_mods=None, def_mods=None,
+                     atk_nation="France", def_nation="Britain",
+                     atk_name="Ney", def_name="Wellington"):
         """Create a battle result for observation testing."""
         return {
             "outcome": outcome,
-            "attacker": {"name": "Ney", "casualties": atk_cas, "remaining": atk_orig - atk_cas},
-            "defender": {"name": "Wellington", "casualties": def_cas, "remaining": def_orig - def_cas},
+            "attacker": {"name": atk_name, "casualties": atk_cas, "remaining": atk_orig - atk_cas},
+            "defender": {"name": def_name, "casualties": def_cas, "remaining": def_orig - def_cas},
+            "attacker_nation": atk_nation,
+            "defender_nation": def_nation,
             "attacker_original_strength": atk_orig,
             "defender_original_strength": def_orig,
             "modifier_snapshot": {

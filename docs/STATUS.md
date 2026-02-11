@@ -62,12 +62,19 @@
 - 11 observation priorities (first match wins, 2-3 template variants each): mutual destruction, lost into fortification, lost bad stance, lost terrain disadvantage, won heavy casualties, won broke fortification, won drilled, lost narrow no drill, won decisively, stalemate, default
 - All numeric values int()-wrapped for Godot safety
 
+**Perspective-aware observations (follow-up fix):**
+- Observations always from Napoleon's (player's) perspective, not the attacker's
+- When enemy attacks French marshal, "we won" = defender (French) won, "we lost" = defender lost
+- `combat.py` now includes `attacker_nation`/`defender_nation` in result dict
+- `_pick_observation()` takes `player_nation` param, flips win/loss/modifier logic based on which side is French
+- All templates use `{marshal}` and `{enemy}` placeholders instead of hardcoded "we"/"our"
+
 **Files created:**
-- `backend/game_logic/battle_report.py` — snapshot functions + report generator + observation picker
+- `backend/game_logic/battle_report.py` — snapshot functions + report generator + perspective-aware observation picker
 - `tests/test_battle_report.py` — 39 tests (12 attacker snapshot, 7 defender snapshot, 6 report generation, 8 observation priority, 6 integration)
 
 **Files modified:**
-- `backend/game_logic/combat.py` — snapshot calls inserted before get_attack_modifier(), return dict extended with attacker/defender original strength + modifier_snapshot + battle_report
+- `backend/game_logic/combat.py` — snapshot calls inserted before get_attack_modifier(), return dict extended with attacker/defender original strength + modifier_snapshot + battle_report + attacker_nation/defender_nation
 - `backend/commands/executor.py` — 5 passthrough sites (attack, 3 sally events, charge)
 - `backend/models/world_state.py` — 1 passthrough site (auto-charge event)
 - `backend/main.py` — 1 passthrough block (battle_report in response)

@@ -176,6 +176,7 @@ def snapshot_defender_modifiers(
 # BERTHIER OBSERVATION TEMPLATES
 # ════════════════════════════════════════════════════════════════════════════════
 
+# Templates use {marshal} for our marshal's name, {enemy} for the enemy's name.
 _OBSERVATIONS = {
     "mutual_destruction": [
         "Both armies have been annihilated, Sire. A catastrophe for all involved.",
@@ -183,49 +184,49 @@ _OBSERVATIONS = {
         "Neither army survives. The cost of this day is beyond measure.",
     ],
     "lost_into_fortification": [
-        "The enemy fortifications proved formidable, Sire.",
-        "Attacking prepared positions cost us dearly. The fortifications held.",
-        "Our assault broke against their walls. Fortified positions demand respect.",
+        "The enemy fortifications proved formidable, Sire. {marshal}'s assault was repulsed.",
+        "Attacking prepared positions cost {marshal} dearly. The fortifications held.",
+        "{marshal}'s troops broke against their walls. Fortified positions demand respect.",
     ],
     "lost_bad_stance": [
-        "Our aggressive posture left us exposed to their disciplined defense.",
-        "The enemy's defensive position punished our reckless advance.",
-        "An aggressive stance against a prepared defender — a costly choice.",
+        "{marshal}'s aggressive posture left the troops exposed to the enemy's disciplined defense.",
+        "{enemy}'s defensive position punished {marshal}'s reckless advance.",
+        "An aggressive stance against a prepared defender — a costly choice, Sire.",
     ],
     "lost_terrain_disadvantage": [
-        "The terrain favored the defender heavily. We fought uphill in every sense.",
-        "Geography was our enemy today. The defender held the high ground.",
-        "The ground itself conspired against us. Terrain matters, Sire.",
+        "The terrain heavily favored {enemy}. {marshal}'s men paid the price.",
+        "Geography was our enemy today, Sire. {enemy} held the superior ground.",
+        "The ground itself worked against {marshal}. Terrain matters, Sire.",
     ],
     "won_heavy_casualties": [
-        "Victory, but at terrible cost. Our ranks are thinned dangerously.",
-        "We carried the field, but the butcher's bill is steep, Sire.",
-        "A pyrrhic victory, one might say. The enemy gave ground grudgingly.",
+        "Victory for {marshal}, but at terrible cost. The ranks are thinned dangerously.",
+        "{marshal} carried the field, but the butcher's bill is steep, Sire.",
+        "A pyrrhic victory for {marshal}. {enemy} gave ground grudgingly.",
     ],
     "won_broke_fortification": [
-        "We stormed their fortifications successfully! A feat of arms, Sire.",
-        "The enemy's walls could not save them. Our troops showed great valor.",
-        "Breaking through fortified positions — the men fought with extraordinary courage.",
+        "{marshal} stormed the enemy fortifications! A feat of arms, Sire.",
+        "{enemy}'s walls could not save them. {marshal}'s troops showed great valor.",
+        "{marshal} broke through fortified positions — extraordinary courage from the men.",
     ],
     "won_drilled": [
-        "The drill training proved its worth on the field today.",
-        "Well-drilled troops make the difference. Our preparation paid dividends.",
-        "The hours of drill translated directly into battlefield superiority.",
+        "{marshal}'s drill training proved its worth on the field today.",
+        "Well-drilled troops make the difference. {marshal}'s preparation paid dividends.",
+        "The hours of drill translated directly into {marshal}'s battlefield superiority.",
     ],
     "lost_narrow_no_drill": [
-        "A narrow defeat, Sire. Better-prepared troops might have tipped the balance.",
-        "We were close. A period of drilling could have changed the outcome.",
-        "The margin was slim. Training and preparation would serve us well.",
+        "A narrow defeat for {marshal}, Sire. Better-prepared troops might have tipped the balance.",
+        "{marshal} was close. A period of drilling could have changed the outcome.",
+        "The margin was slim. Training and preparation would serve {marshal} well.",
     ],
     "won_decisively": [
-        "A decisive victory! The enemy was thoroughly outmatched.",
-        "Complete dominance on the field. The enemy crumbled before us.",
-        "An exemplary engagement. The outcome was never in doubt.",
+        "A decisive victory for {marshal}! {enemy} was thoroughly outmatched.",
+        "Complete dominance on the field. {enemy} crumbled before {marshal}.",
+        "An exemplary engagement by {marshal}. The outcome was never in doubt.",
     ],
     "stalemate": [
-        "Neither side could claim the field. The armies remain locked.",
+        "Neither {marshal} nor {enemy} could claim the field. The armies remain locked.",
         "An inconclusive affair. Both sides bloodied but unbroken.",
-        "Stalemate. The armies glare at each other across the field.",
+        "Stalemate. {marshal} and {enemy} glare at each other across the field.",
     ],
     "default": [
         "The engagement proceeded as one might expect, Sire.",
@@ -235,10 +236,13 @@ _OBSERVATIONS = {
 }
 
 
-def _pick_observation(battle_result: Dict) -> str:
+def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str:
     """
     Select a Berthier observation based on priority rules.
     First matching priority wins.
+
+    Perspective is always from the player's side (Napoleon/Berthier).
+    If the player's marshal is the defender, "we won" means the defender won.
     """
     outcome = battle_result.get("outcome", "")
     attacker_data = battle_result.get("attacker", {})
@@ -253,7 +257,34 @@ def _pick_observation(battle_result: Dict) -> str:
     defender_casualties = defender_data.get("casualties", 0)
 
     attacker_won = outcome in ("attacker_victory", "attacker_tactical_victory")
-    attacker_lost = outcome in ("defender_victory", "defender_tactical_victory")
+    defender_won = outcome in ("defender_victory", "defender_tactical_victory")
+
+    # Determine perspective: which side is ours?
+    attacker_nation = battle_result.get("attacker_nation", "")
+    defender_nation = battle_result.get("defender_nation", "")
+    we_are_attacker = (attacker_nation == player_nation)
+
+    # Perspective-flipped variables
+    if we_are_attacker:
+        we_won = attacker_won
+        we_lost = defender_won
+        our_mods = atk_mods
+        their_mods = def_mods
+        our_original = attacker_original
+        our_casualties = attacker_casualties
+        enemy_casualties = defender_casualties
+        our_name = attacker_data.get("name", "Attacker")
+        enemy_name = defender_data.get("name", "Defender")
+    else:
+        we_won = defender_won
+        we_lost = attacker_won
+        our_mods = def_mods
+        their_mods = atk_mods
+        our_original = defender_original
+        our_casualties = defender_casualties
+        enemy_casualties = attacker_casualties
+        our_name = defender_data.get("name", "Defender")
+        enemy_name = attacker_data.get("name", "Attacker")
 
     def _has_mod(mod_list, label_fragment, mod_type=None):
         for m in mod_list:
@@ -269,70 +300,71 @@ def _pick_observation(battle_result: Dict) -> str:
                     return m.get("value", 0)
         return 0
 
+    def _fill(template: str) -> str:
+        return template.format(marshal=our_name, enemy=enemy_name)
+
     # Priority 1: Mutual destruction
     if outcome == "mutual_destruction":
-        return random.choice(_OBSERVATIONS["mutual_destruction"])
+        return _fill(random.choice(_OBSERVATIONS["mutual_destruction"]))
 
-    # Priority 2: Lost + attacked into fortification
-    if attacker_lost and (
-        _has_mod(def_mods, "fortif", "bonus") or _has_mod(def_mods, "fortification", "bonus")
-    ):
-        return random.choice(_OBSERVATIONS["lost_into_fortification"])
+    # Priority 2: We lost + enemy had fortifications
+    if we_lost and _has_mod(their_mods, "fortif", "bonus"):
+        return _fill(random.choice(_OBSERVATIONS["lost_into_fortification"]))
 
-    # Priority 3: Lost + bad stance (aggressive into defensive)
-    if attacker_lost and _has_mod(atk_mods, "aggressive stance", "bonus") and _has_mod(def_mods, "defensive stance", "bonus"):
-        return random.choice(_OBSERVATIONS["lost_bad_stance"])
+    # Priority 3: We lost + our side was aggressive, their side was defensive
+    if we_lost and _has_mod(our_mods, "aggressive stance", "bonus") and _has_mod(their_mods, "defensive stance", "bonus"):
+        return _fill(random.choice(_OBSERVATIONS["lost_bad_stance"]))
 
-    # Priority 4: Lost + terrain disadvantage >= 15%
-    if attacker_lost and _mod_value(def_mods, "terrain", "bonus") >= 15:
-        return random.choice(_OBSERVATIONS["lost_terrain_disadvantage"])
+    # Priority 4: We lost + enemy had terrain advantage >= 15%
+    if we_lost and _mod_value(their_mods, "terrain", "bonus") >= 15:
+        return _fill(random.choice(_OBSERVATIONS["lost_terrain_disadvantage"]))
 
-    # Priority 5: Won + heavy casualties (>40% of attacker original)
-    if attacker_won and attacker_original > 0 and attacker_casualties > attacker_original * 0.40:
-        return random.choice(_OBSERVATIONS["won_heavy_casualties"])
+    # Priority 5: We won + heavy casualties (>40% of our original)
+    if we_won and our_original > 0 and our_casualties > our_original * 0.40:
+        return _fill(random.choice(_OBSERVATIONS["won_heavy_casualties"]))
 
-    # Priority 6: Won + broke through fortification
-    if attacker_won and (
-        _has_mod(def_mods, "fortif", "bonus") or _has_mod(def_mods, "fortification", "bonus")
-    ):
-        return random.choice(_OBSERVATIONS["won_broke_fortification"])
+    # Priority 6: We won + enemy had fortifications (we broke through)
+    if we_won and _has_mod(their_mods, "fortif", "bonus"):
+        return _fill(random.choice(_OBSERVATIONS["won_broke_fortification"]))
 
-    # Priority 7: Won + drilled
-    if attacker_won and _has_mod(atk_mods, "drill", "bonus"):
-        return random.choice(_OBSERVATIONS["won_drilled"])
+    # Priority 7: We won + our side had drill bonus
+    if we_won and _has_mod(our_mods, "drill", "bonus"):
+        return _fill(random.choice(_OBSERVATIONS["won_drilled"]))
 
-    # Priority 8: Lost + no drill + narrow margin (< 15% of attacker original strength)
-    if attacker_lost and not _has_mod(atk_mods, "drill", "bonus"):
-        if attacker_original > 0:
-            margin = abs(attacker_casualties - defender_casualties)
-            if margin < attacker_original * 0.15:
-                return random.choice(_OBSERVATIONS["lost_narrow_no_drill"])
+    # Priority 8: We lost + no drill + narrow margin (< 15% of our original strength)
+    if we_lost and not _has_mod(our_mods, "drill", "bonus"):
+        if our_original > 0:
+            margin = abs(our_casualties - enemy_casualties)
+            if margin < our_original * 0.15:
+                return _fill(random.choice(_OBSERVATIONS["lost_narrow_no_drill"]))
 
-    # Priority 9: Won decisively (2:1+ casualty ratio)
-    if attacker_won and defender_casualties > 0 and attacker_casualties > 0:
-        if defender_casualties >= attacker_casualties * 2:
-            return random.choice(_OBSERVATIONS["won_decisively"])
+    # Priority 9: We won decisively (2:1+ casualty ratio in our favor)
+    if we_won and enemy_casualties > 0 and our_casualties > 0:
+        if enemy_casualties >= our_casualties * 2:
+            return _fill(random.choice(_OBSERVATIONS["won_decisively"]))
 
     # Priority 10: Stalemate
     if outcome == "stalemate":
-        return random.choice(_OBSERVATIONS["stalemate"])
+        return _fill(random.choice(_OBSERVATIONS["stalemate"]))
 
     # Priority 11: Default
-    return random.choice(_OBSERVATIONS["default"])
+    return _fill(random.choice(_OBSERVATIONS["default"]))
 
 
-def generate_battle_report(battle_result: Dict) -> Dict:
+def generate_battle_report(battle_result: Dict, player_nation: str = "France") -> Dict:
     """
     Generate a structured battle report from a resolve_battle() return dict.
 
     Args:
         battle_result: Full dict from resolve_battle(), augmented with
             attacker_original_strength, defender_original_strength,
-            and modifier_snapshot.
+            modifier_snapshot, attacker_nation, and defender_nation.
+        player_nation: The player's nation for perspective (default "France").
 
     Returns:
         Dict with modifier_breakdown, casualty_summary, and observation.
         All numeric values are int()-wrapped.
+        Observation is always from the player's (Napoleon/Berthier) perspective.
     """
     attacker_data = battle_result.get("attacker", {})
     defender_data = battle_result.get("defender", {})
@@ -346,7 +378,7 @@ def generate_battle_report(battle_result: Dict) -> Dict:
     attacker_remaining = int(attacker_data.get("remaining", 0))
     defender_remaining = int(defender_data.get("remaining", 0))
 
-    observation = _pick_observation(battle_result)
+    observation = _pick_observation(battle_result, player_nation)
 
     return {
         "modifier_breakdown": {

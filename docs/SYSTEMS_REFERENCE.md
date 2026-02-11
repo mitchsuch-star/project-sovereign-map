@@ -246,21 +246,23 @@ After every player-visible combat, `battle_report.py` generates a structured rep
 - **Snapshots** taken BEFORE `get_attack_modifier()`/`get_defense_modifier()` (which consume one-shot bonuses like strategic_combat_bonus)
 - `snapshot_attacker_modifiers()` — reads stance, drill/shock, strategic bonus (peek only, NOT zeroed), personality, recklessness, exhaustion, cavalry terrain, flanking, glorious charge
 - `snapshot_defender_modifiers()` — reads stance, fortify bonus, strategic defense (peek only), drilling penalty, personality, recklessness, terrain defense, fortification building
-- `generate_battle_report()` — assembles modifier_breakdown, casualty_summary, observation
+- `generate_battle_report(battle_result, player_nation)` — assembles modifier_breakdown, casualty_summary, observation
+
+**Perspective-aware observations:** Berthier always speaks from Napoleon's side. `_pick_observation()` uses `attacker_nation`/`defender_nation` from the battle result to determine which side is French. When the enemy attacks a French marshal, "we won" means the defender (our marshal) won. Templates use `{marshal}` and `{enemy}` placeholders filled by the appropriate side. The `player_nation` param (default "France") is passed from `combat.py`.
 
 **Observation priorities** (first match wins, `random.choice()` from 2-3 templates):
 
-| Priority | Condition |
+| Priority | Condition (from French perspective) |
 |----------|-----------|
 | 1 | Mutual destruction (both sides lost >50%) |
-| 2 | Lost + attacked into fortification |
-| 3 | Lost + bad stance (aggressive into defensive) |
-| 4 | Lost + terrain disadvantage >= 15% |
-| 5 | Won + heavy casualties (>40% of attacker original) |
-| 6 | Won + broke through fortification |
-| 7 | Won + drilled |
-| 8 | Lost + no drill + margin < 15% of attacker original |
-| 9 | Won decisively (2:1+ casualty ratio) |
+| 2 | We lost + enemy had fortification |
+| 3 | We lost + bad stance matchup (aggressive into defensive) |
+| 4 | We lost + enemy had terrain advantage >= 15% |
+| 5 | We won + heavy casualties (>40% of our original strength) |
+| 6 | We won + broke through enemy fortification |
+| 7 | We won + our troops were drilled |
+| 8 | We lost + no drill + narrow margin (<15% of our strength) |
+| 9 | We won decisively (2:1+ casualty ratio in our favor) |
 | 10 | Stalemate |
 | 11 | Default |
 

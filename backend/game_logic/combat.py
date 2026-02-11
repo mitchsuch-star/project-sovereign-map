@@ -608,6 +608,8 @@ class CombatResolver:
             "cavalry_terrain_message": cavalry_terrain_message,  # Phase 6.1: Cavalry terrain
             "description": tactical_prefix + base_description + retreat_message,
             # Berthier's After-Action Report
+            "attacker_nation": getattr(attacker, "nation", ""),
+            "defender_nation": getattr(defender, "nation", ""),
             "attacker_original_strength": int(attacker_original_strength),
             "defender_original_strength": int(defender_original_strength),
             "modifier_snapshot": {
