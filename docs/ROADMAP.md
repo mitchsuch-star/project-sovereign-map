@@ -40,7 +40,7 @@
 | 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 1962 (verified Feb 11, 2026)
+**Total Tests:** 1988 (verified Feb 11, 2026)
 
 ---
 
@@ -83,7 +83,7 @@
 | Turn Events Log | Track battles/captures/retreats per turn (feeds gazette) | Low | Planned |
 | **Save/Load** | Full game state persistence + autosave (moved from Pre-EA) | Low | **COMPLETE** (Session 27: save_manager.py, 4 API endpoints, autosave, terminal commands, load dialog, 38 tests) |
 | **Berthier Parse Recovery** | Failed parses -> Berthier asks clarification in-character (moved from 8.5) | Low | **COMPLETE** (Session 28: prompt_builder.py, llm_client.py, parser.py, main.py. Mock templates + LLM prompt. Reacts to tone. 20 tests.) |
-| **Post-Battle Analysis** | Template breakdown: modifiers, casualties, Berthier observation | Low | **COMPLETE** (Session 29: battle_report.py, snapshots, 11 observation priorities, Godot display, 39 tests) |
+| **Post-Battle Analysis** | Template breakdown: modifiers, casualties, Berthier observation | Low | **COMPLETE** (Session 29: battle_report.py, snapshots, 15 observation priorities with perspective-aware attacker/defender variants, Godot display, 65 tests) |
 
 ### Save/Load Notes
 
@@ -98,9 +98,9 @@
 **COMPLETE (Session 29).** After every player-visible combat, Berthier delivers a formatted report with:
 - **Modifier breakdown:** All attack/defense modifiers with labels and +/- signs (stance, drill, personality, terrain, fortification, etc.)
 - **Casualty summary:** Original strength, casualties, remaining for both sides
-- **Berthier observation:** One contextual comment from 11 priority categories (mutual destruction, lost into fortification, lost bad stance, won heavy casualties, won decisively, stalemate, etc.) with 2-3 template variants each
+- **Berthier observation:** One contextual comment from 15 priority categories with perspective-aware attacker/defender variants. Categories: mutual destruction, lost into fortification, lost fort overrun, lost bad stance (attacker/defender), lost terrain disadvantage, lost despite terrain, won heavy casualties, won broke fortification, won fort held, won drilled, lost narrow no drill, lost costly, won decisively, stalemate, default
 
-Uses read-only modifier snapshots taken BEFORE state-consuming `get_attack_modifier()`/`get_defense_modifier()` calls. No LLM needed. Teaches players mechanics through results. All values `int()`-wrapped. 39 tests.
+Uses read-only modifier snapshots taken BEFORE state-consuming `get_attack_modifier()`/`get_defense_modifier()` calls. Perspective-aware: observations always from player's side regardless of who attacks. No LLM needed. Teaches players mechanics through results. All values `int()`-wrapped. 65 tests.
 
 ### MAP COMMISSIONING REMINDER
 
@@ -589,6 +589,7 @@ EA v1: Western + Central Europe (~80 regions). EA updates add Eastern Europe, ex
 | Advanced AI | MEDIUM | Flanking coordination, capital defense |
 | Campaign Editor | MEDIUM | Player-made scenarios |
 | Steam Workshop | MEDIUM | Mod sharing |
+| **Multi-Nation Battle Reports** | LOW | Thread player_nation from world state through combat resolver. Currently hardcoded to France. Tests document exact wiring point. |
 | Accessibility | MEDIUM | Colorblind, fonts, keybinding |
 | Mobile Port | LOW | Touch UI |
 | Multiplayer | LOW | Co-op? Competitive? |

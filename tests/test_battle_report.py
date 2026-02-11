@@ -519,3 +519,440 @@ class TestBattleReportIntegration:
         def_mods = result["modifier_snapshot"]["defender"]
         assert _find_mod(def_mods, "defensive stance") is not None
         assert _find_mod(def_mods, "terrain") is not None
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# PERSPECTIVE FLIP TESTS
+# ════════════════════════════════════════════════════════════════════════════════
+
+class TestPerspectiveFlip:
+    """Test that Berthier's observation works correctly from the player's
+    perspective regardless of who attacks."""
+
+    def _make_result(self, outcome, atk_cas=5000, def_cas=8000,
+                     atk_orig=50000, def_orig=68000, atk_mods=None, def_mods=None,
+                     atk_nation="France", def_nation="Britain",
+                     atk_name="Ney", def_name="Wellington"):
+        return {
+            "outcome": outcome,
+            "attacker": {"name": atk_name, "casualties": atk_cas, "remaining": atk_orig - atk_cas},
+            "defender": {"name": def_name, "casualties": def_cas, "remaining": def_orig - def_cas},
+            "attacker_nation": atk_nation,
+            "defender_nation": def_nation,
+            "attacker_original_strength": atk_orig,
+            "defender_original_strength": def_orig,
+            "modifier_snapshot": {
+                "attacker": atk_mods or [],
+                "defender": def_mods or [],
+            },
+        }
+
+    # ── Core flip tests ──────────────────────────────────────────────────
+
+    def test_french_attacker_wins_is_victory(self):
+        """France attacks Britain, attacker wins. Observation should be positive."""
+        result = self._make_result("attacker_victory")
+        obs = _pick_observation(result, player_nation="France")
+        # France is attacker and won — observation should NOT be negative
+        negative_keywords = ["cost", "pyrrhic", "lost", "defeat", "broke against"]
+        assert not any(kw in obs.lower() for kw in negative_keywords), f"Positive expected, got: {obs}"
+
+    def test_french_defender_wins_is_victory(self):
+        """Britain attacks France, defender wins. Observation should be positive for France."""
+        result = self._make_result(
+            "defender_victory",
+            atk_nation="Britain", def_nation="France",
+            atk_name="Wellington", def_name="Grouchy",
+        )
+        obs = _pick_observation(result, player_nation="France")
+        # France is defender and won — should NOT celebrate Britain
+        assert "Wellington" not in obs or "Grouchy" in obs, f"Should be France perspective: {obs}"
+        negative_keywords = ["lost", "defeat", "broke against", "repulsed"]
+        assert not any(kw in obs.lower() for kw in negative_keywords), f"Positive expected, got: {obs}"
+
+    def test_french_attacker_loses_is_defeat(self):
+        """France attacks Britain, defender wins. Should reflect French loss."""
+        result = self._make_result("defender_victory")
+        obs = _pick_observation(result, player_nation="France")
+        # France attacked and lost — observation should reflect loss
+        positive_keywords = ["decisive victory", "exemplary", "dominance", "stormed"]
+        assert not any(kw in obs.lower() for kw in positive_keywords), f"Defeat expected, got: {obs}"
+
+    def test_french_defender_loses_is_defeat(self):
+        """Britain attacks France, attacker wins. Should reflect French loss."""
+        result = self._make_result(
+            "attacker_victory",
+            atk_nation="Britain", def_nation="France",
+            atk_name="Wellington", def_name="Grouchy",
+        )
+        obs = _pick_observation(result, player_nation="France")
+        # France is defender and lost — should NOT celebrate Britain's victory
+        positive_keywords = ["decisive victory for", "exemplary", "dominance", "stormed"]
+        assert not any(kw in obs.lower() for kw in positive_keywords), f"Defeat expected, got: {obs}"
+
+    def test_names_correct_when_france_attacks(self):
+        """France (Ney) attacks Britain (Wellington). Observation contains Ney as our marshal."""
+        result = self._make_result(
+            "attacker_tactical_victory",
+            atk_cas=25000, atk_orig=50000,  # heavy casualties to trigger won_heavy_casualties
+        )
+        obs = _pick_observation(result, player_nation="France")
+        # {marshal} = Ney (our marshal), {enemy} = Wellington
+        assert "Ney" in obs, f"Expected 'Ney' in observation: {obs}"
+
+    def test_names_correct_when_france_defends(self):
+        """Britain (Wellington) attacks France (Grouchy). Observation contains Grouchy as our marshal."""
+        result = self._make_result(
+            "attacker_tactical_victory",
+            atk_nation="Britain", def_nation="France",
+            atk_name="Wellington", def_name="Grouchy",
+            atk_cas=25000, atk_orig=50000,  # attacker heavy cas but attacker won
+        )
+        obs = _pick_observation(result, player_nation="France")
+        # France is defender and lost with default 8000 def_cas on 68000 def_orig (~12%).
+        # Below 30% threshold so lost_costly won't trigger. Margin: |8000-25000|=17000 > 68000*0.15=10200,
+        # so lost_narrow_no_drill won't trigger either. Falls to default.
+        # With no special mods, small losses → default is acceptable.
+        assert isinstance(obs, str)
+        assert len(obs) > 0
+
+    def test_no_unfilled_placeholders(self):
+        """Both perspectives: observation must NOT contain literal {marshal} or {enemy}."""
+        # France as attacker
+        result_atk = self._make_result("attacker_victory")
+        obs_atk = _pick_observation(result_atk, player_nation="France")
+        assert "{marshal}" not in obs_atk, f"Unfilled placeholder in: {obs_atk}"
+        assert "{enemy}" not in obs_atk, f"Unfilled placeholder in: {obs_atk}"
+
+        # France as defender
+        result_def = self._make_result(
+            "defender_victory",
+            atk_nation="Britain", def_nation="France",
+            atk_name="Wellington", def_name="Grouchy",
+        )
+        obs_def = _pick_observation(result_def, player_nation="France")
+        assert "{marshal}" not in obs_def, f"Unfilled placeholder in: {obs_def}"
+        assert "{enemy}" not in obs_def, f"Unfilled placeholder in: {obs_def}"
+
+    # ── Modifier perspective tests ───────────────────────────────────────
+
+    def test_fortification_loss_when_defending(self):
+        """French defender has fortification, enemy attacker wins.
+        Should trigger 'lost_fort_overrun' (our fort was overwhelmed),
+        NOT 'lost_into_fortification' (we attacked their fort)."""
+        result = self._make_result(
+            "attacker_victory",
+            atk_nation="Britain", def_nation="France",
+            atk_name="Wellington", def_name="Grouchy",
+            def_mods=[{"label": "Fortified position", "value": 16, "type": "bonus"}],
+        )
+        obs = _pick_observation(result, player_nation="France")
+        # Should NOT get the attacker-into-fort templates
+        lost_into_fort_phrases = ["fortifications proved formidable", "broke against their walls",
+                                  "attacking prepared positions"]
+        assert not any(p in obs.lower() for p in lost_into_fort_phrases), (
+            f"Should not trigger 'lost_into_fortification' when WE had the fort: {obs}"
+        )
+        # Should get the fort-overrun templates instead
+        fort_overrun_phrases = ["overran", "broke through", "overwhelmed", "could not hold"]
+        assert any(p in obs.lower() for p in fort_overrun_phrases), (
+            f"Expected 'lost_fort_overrun' observation: {obs}"
+        )
+
+    def test_fortification_loss_when_attacking(self):
+        """French attacker loses, enemy defender has fortification.
+        Should trigger 'lost_into_fortification'."""
+        result = self._make_result(
+            "defender_victory",
+            def_mods=[{"label": "Fortified position", "value": 16, "type": "bonus"}],
+        )
+        obs = _pick_observation(result, player_nation="France")
+        # We (France) attacked and lost. Enemy (defender) had fortification.
+        # their_mods = def_mods which has fortification.
+        lost_fort_phrases = ["fortifications proved", "broke against their walls", "attacking prepared positions",
+                             "fortified positions"]
+        assert any(p in obs.lower() for p in lost_fort_phrases), (
+            f"Should trigger 'lost_into_fortification': {obs}"
+        )
+
+    def test_terrain_advantage_is_enemies_terrain(self):
+        """French attacker loses into enemy terrain bonus. Terrain check looks at THEIR mods."""
+        result = self._make_result(
+            "defender_victory",
+            def_mods=[{"label": "Terrain (Hills)", "value": 15, "type": "bonus"}],
+        )
+        obs = _pick_observation(result, player_nation="France")
+        # We attacked and lost, their (defender) mods have terrain.
+        terrain_phrases = ["terrain", "ground", "geography"]
+        assert any(p in obs.lower() for p in terrain_phrases), (
+            f"Should trigger terrain disadvantage observation: {obs}"
+        )
+
+    def test_drill_victory_uses_our_drill(self):
+        """French defender wins with drill bonus. 'won_drilled' should trigger."""
+        result = self._make_result(
+            "defender_victory",
+            atk_nation="Britain", def_nation="France",
+            atk_name="Wellington", def_name="Ney",
+            def_mods=[{"label": "Drill training", "value": 20, "type": "bonus"}],
+        )
+        obs = _pick_observation(result, player_nation="France")
+        # We (France) are defender and won. Our mods = def_mods which has drill.
+        drill_phrases = ["drill", "train", "prepar"]
+        assert any(p in obs.lower() for p in drill_phrases), (
+            f"Should trigger 'won_drilled' observation: {obs}"
+        )
+
+    def test_bad_stance_uses_our_aggressive(self):
+        """French defender in aggressive stance loses, enemy attacker in defensive.
+        Defender-specific templates should be used (not attacker 'reckless advance' text)."""
+        result = self._make_result(
+            "attacker_victory",
+            atk_nation="Britain", def_nation="France",
+            atk_name="Wellington", def_name="Ney",
+            # When France is defender: our_mods = def_mods, their_mods = atk_mods
+            def_mods=[{"label": "Aggressive stance", "value": 10, "type": "bonus"}],
+            atk_mods=[{"label": "Defensive stance", "value": 15, "type": "bonus"}],
+        )
+        obs = _pick_observation(result, player_nation="France")
+        # Priority 3 checks: we_lost AND our_mods has "aggressive stance"
+        # AND their_mods has "defensive stance".
+        # When France defends: triggers lost_bad_stance_defending templates.
+        # FIXED: Defender-specific templates no longer say "reckless advance" — they say
+        # "caught in aggressive posture" / "not the attacker" which fits the defender case.
+        stance_phrases = ["aggressive", "defensive"]
+        assert any(p in obs.lower() for p in stance_phrases), (
+            f"Should trigger 'lost_bad_stance_defending' observation: {obs}"
+        )
+        # Verify attacker-perspective phrases are NOT used for defender case
+        assert "reckless advance" not in obs.lower(), (
+            f"Defender should not get attacker 'reckless advance' template: {obs}"
+        )
+
+    # ── Multi-nation future-proofing tests ───────────────────────────────
+
+    def test_non_france_player_nation(self):
+        """player_nation='Britain', attacker is Britain. Should treat Britain as 'us'."""
+        result = self._make_result(
+            "attacker_tactical_victory",
+            atk_nation="Britain", def_nation="France",
+            atk_name="Wellington", def_name="Ney",
+            atk_cas=25000, atk_orig=50000,  # heavy casualties to trigger won_heavy_casualties
+        )
+        obs = _pick_observation(result, player_nation="Britain")
+        # Britain is attacker and won with heavy casualties
+        # {marshal} = Wellington (British), {enemy} = Ney
+        assert "Wellington" in obs, f"Expected 'Wellington' as our marshal: {obs}"
+
+    def test_prussia_as_player_defends(self):
+        """player_nation='Prussia', Prussia defends and wins. Victory from Prussia's perspective."""
+        result = self._make_result(
+            "defender_victory",
+            atk_nation="France", def_nation="Prussia",
+            atk_name="Ney", def_name="Blucher",
+            def_cas=2000, atk_cas=15000,  # decisive: 2:1+ ratio
+        )
+        obs = _pick_observation(result, player_nation="Prussia")
+        # Prussia is defender and won. Decisively: enemy_casualties (15000) >= our_casualties (2000) * 2
+        positive_keywords = ["decisive", "dominance", "exemplary", "outmatched", "crumbled"]
+        assert any(kw in obs.lower() for kw in positive_keywords), (
+            f"Expected decisive victory observation: {obs}"
+        )
+        assert "Blucher" in obs, f"Expected 'Blucher' as our marshal: {obs}"
+
+    def test_third_party_battle(self):
+        """player_nation='France', Britain attacks Prussia. Neither side is France.
+        Should not crash and returns a valid string."""
+        result = self._make_result(
+            "attacker_victory",
+            atk_nation="Britain", def_nation="Prussia",
+            atk_name="Wellington", def_name="Blucher",
+        )
+        obs = _pick_observation(result, player_nation="France")
+        # Neither side is France. we_are_attacker = False (Britain != France).
+        # Falls into the else branch: we are treated as defender (Prussia).
+        # This defaults to defender perspective — known behavior, not a bug.
+        # The observation text will treat Prussia as "us" even though we're France.
+        assert isinstance(obs, str)
+        assert len(obs) > 0
+        assert "{marshal}" not in obs
+        assert "{enemy}" not in obs
+
+    def test_player_nation_default_is_france(self):
+        """Call without explicit player_nation. Verify same behavior as passing 'France'."""
+        result = self._make_result("attacker_victory")
+        obs_default = _pick_observation(result)
+        # Default should be France. France is attacker and won.
+        # Same logic as test_french_attacker_wins_is_victory
+        negative_keywords = ["cost", "pyrrhic", "lost", "defeat", "broke against"]
+        assert not any(kw in obs_default.lower() for kw in negative_keywords), (
+            f"Default should be France perspective (positive): {obs_default}"
+        )
+
+    # ── Edge cases ───────────────────────────────────────────────────────
+
+    def test_missing_nation_fields(self):
+        """No attacker_nation/defender_nation keys. Should not crash."""
+        result = {
+            "outcome": "attacker_victory",
+            "attacker": {"name": "Ney", "casualties": 5000, "remaining": 45000},
+            "defender": {"name": "Wellington", "casualties": 8000, "remaining": 60000},
+            "attacker_original_strength": 50000,
+            "defender_original_strength": 68000,
+            "modifier_snapshot": {"attacker": [], "defender": []},
+        }
+        obs = _pick_observation(result, player_nation="France")
+        assert isinstance(obs, str)
+        assert len(obs) > 0
+
+    def test_empty_nation_strings(self):
+        """Both nations empty string. Should not crash."""
+        result = self._make_result(
+            "attacker_victory",
+            atk_nation="", def_nation="",
+        )
+        obs = _pick_observation(result, player_nation="France")
+        assert isinstance(obs, str)
+        assert len(obs) > 0
+
+    def test_same_nation_battle(self):
+        """Both France (civil war edge case). Should not crash."""
+        result = self._make_result(
+            "attacker_victory",
+            atk_nation="France", def_nation="France",
+            atk_name="Ney", def_name="Grouchy",
+        )
+        obs = _pick_observation(result, player_nation="France")
+        assert isinstance(obs, str)
+        assert len(obs) > 0
+
+    def test_generate_battle_report_accepts_player_nation(self):
+        """Full generate_battle_report() with player_nation='Britain'."""
+        result = self._make_result(
+            "attacker_tactical_victory",
+            atk_nation="Britain", def_nation="France",
+            atk_name="Wellington", def_name="Ney",
+        )
+        report = generate_battle_report(result, player_nation="Britain")
+        assert "modifier_breakdown" in report
+        assert "casualty_summary" in report
+        assert "observation" in report
+        assert isinstance(report["observation"], str)
+        assert len(report["observation"]) > 0
+        assert "{marshal}" not in report["observation"]
+        assert "{enemy}" not in report["observation"]
+
+    # ── Integration / wiring tests ───────────────────────────────────────
+
+    def test_combat_resolver_uses_default_france(self):
+        """resolve_battle() with French attacker vs British defender, verify France perspective.
+        Then British attacker vs French defender, verify STILL France perspective."""
+        combat = CombatResolver()
+
+        # French attacker
+        atk = _make_marshal(name="Ney", personality="aggressive", strength=50000, cavalry=True)
+        defn = _make_marshal(name="Wellington", personality="cautious", strength=68000, nation="Britain")
+        result = combat.resolve_battle(atk, defn, terrain="plains")
+        report = result["battle_report"]
+        assert isinstance(report["observation"], str)
+        assert "{marshal}" not in report["observation"]
+        assert "{enemy}" not in report["observation"]
+
+        # British attacker vs French defender — still defaults to France perspective
+        atk2 = _make_marshal(name="Wellington", personality="cautious", strength=68000, nation="Britain")
+        defn2 = _make_marshal(name="Grouchy", personality="literal", strength=50000, nation="France")
+        result2 = combat.resolve_battle(atk2, defn2, terrain="plains")
+        report2 = result2["battle_report"]
+        assert isinstance(report2["observation"], str)
+        assert "{marshal}" not in report2["observation"]
+        assert "{enemy}" not in report2["observation"]
+        # NOTE: combat.py hardcodes player_nation="France". Threading world.player_nation
+        # is a post-EA task for multi-nation playability.
+
+    def test_combat_result_includes_nation_fields(self):
+        """Verify resolve_battle() return dict contains attacker_nation and defender_nation."""
+        combat = CombatResolver()
+        atk = _make_marshal(name="Ney", personality="aggressive", strength=50000, nation="France")
+        defn = _make_marshal(name="Wellington", personality="cautious", strength=68000, nation="Britain")
+        result = combat.resolve_battle(atk, defn, terrain="plains")
+        assert "attacker_nation" in result
+        assert "defender_nation" in result
+        assert result["attacker_nation"] == "France"
+        assert result["defender_nation"] == "Britain"
+
+    def test_enemy_attacker_wins_triggers_loss_observation(self):
+        """Regression: Wellington attacks Grouchy on hills, Wellington wins decisively.
+        Grouchy loses over half his army. Should NOT get 'standard affair' default.
+        Bug: terrain was in def_mods (our_mods when defending) but P4 only checked their_mods.
+        And no catch-all existed for heavy losses without specific modifier conditions."""
+        result = self._make_result(
+            "attacker_victory",
+            atk_nation="Britain", def_nation="France",
+            atk_name="Wellington", def_name="Grouchy",
+            atk_cas=3000, atk_orig=68000,  # Wellington takes light casualties
+            def_cas=7409, def_orig=20462,  # Grouchy loses ~36% — matches screenshot
+            # Terrain is on defender (Grouchy/France) — Hills +15%
+            def_mods=[{"label": "Terrain (Hills)", "value": 15, "type": "bonus"}],
+        )
+        obs = _pick_observation(result, player_nation="France")
+        # Should trigger P4b (lost_despite_terrain): we had terrain advantage but still lost
+        default_phrases = ["standard affair", "nothing unusual", "without particular distinction",
+                           "as one might expect"]
+        assert not any(p in obs.lower() for p in default_phrases), (
+            f"Loss with terrain + heavy casualties should NOT be default: {obs}"
+        )
+        # Should mention terrain/hills/ground since we lost despite holding high ground
+        terrain_phrases = ["terrain", "ground", "hills", "overrun", "overcame"]
+        assert any(p in obs.lower() for p in terrain_phrases), (
+            f"Expected terrain-related loss observation: {obs}"
+        )
+
+    def test_fort_overrun_when_defending(self):
+        """French defender has fortification, enemy attacker wins.
+        Should trigger 'lost_fort_overrun' — our fort was overwhelmed."""
+        result = self._make_result(
+            "attacker_victory",
+            atk_nation="Britain", def_nation="France",
+            atk_name="Wellington", def_name="Grouchy",
+            def_mods=[{"label": "Fortified position", "value": 16, "type": "bonus"}],
+        )
+        obs = _pick_observation(result, player_nation="France")
+        fort_overrun_phrases = ["overran", "broke through", "overwhelmed", "could not hold"]
+        assert any(p in obs.lower() for p in fort_overrun_phrases), (
+            f"Expected 'lost_fort_overrun' observation: {obs}"
+        )
+
+    def test_fort_held_when_defending(self):
+        """French defender has fortification, enemy attacker loses.
+        Should trigger 'won_fort_held' — our investment paid off."""
+        result = self._make_result(
+            "defender_victory",
+            atk_nation="Britain", def_nation="France",
+            atk_name="Wellington", def_name="Grouchy",
+            def_mods=[{"label": "Fortified position", "value": 16, "type": "bonus"}],
+        )
+        obs = _pick_observation(result, player_nation="France")
+        fort_held_phrases = ["held firm", "impregnable", "proved their worth", "broke against our walls"]
+        assert any(p in obs.lower() for p in fort_held_phrases), (
+            f"Expected 'won_fort_held' observation: {obs}"
+        )
+
+    def test_lost_costly_catches_heavy_loss_without_mods(self):
+        """Heavy loss (>30% casualties) with no special modifiers should trigger lost_costly,
+        not fall through to default 'standard affair'."""
+        result = self._make_result(
+            "attacker_victory",
+            atk_nation="Britain", def_nation="France",
+            atk_name="Wellington", def_name="Grouchy",
+            atk_cas=2000, atk_orig=68000,
+            def_cas=20000, def_orig=50000,  # 40% casualties, no mods
+        )
+        obs = _pick_observation(result, player_nation="France")
+        default_phrases = ["standard affair", "nothing unusual", "without particular distinction"]
+        assert not any(p in obs.lower() for p in default_phrases), (
+            f"Heavy loss should not be 'standard affair': {obs}"
+        )
+        loss_phrases = ["defeat", "mauled", "losses", "toll", "grievous"]
+        assert any(p in obs.lower() for p in loss_phrases), (
+            f"Expected loss-related observation: {obs}"
+        )

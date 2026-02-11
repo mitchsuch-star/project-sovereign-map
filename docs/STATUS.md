@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1962** (verified, 3 skipped) |
+| **Tests Passing** | **1988** (verified, 3 skipped) |
 | **Current Phase** | Phase 6: Post-Battle Analysis **COMPLETE** |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier, 6-BattleReport |
@@ -52,26 +52,31 @@
 
 ### Feb 11 (Session 29: Berthier's After-Action Report)
 
-**Template-based battle report after every player-visible combat. Shows modifier breakdown, casualty summary, and one Berthier observation.**
+**Template-based battle report after every player-visible combat. Shows modifier breakdown, casualty summary, and one Berthier observation. Perspective-aware for attacker/defender.**
 
 **What it does:**
 - Read-only modifier snapshots taken BEFORE state-consuming get_attack_modifier()/get_defense_modifier() calls
 - `snapshot_attacker_modifiers()` captures: stance, drill/shock, strategic bonus (peek only), personality, recklessness, exhaustion, cavalry terrain, flanking, glorious charge
 - `snapshot_defender_modifiers()` captures: stance, fortify bonus, strategic defense (peek only), drilling penalty, personality, recklessness, terrain defense, fortification building
 - `generate_battle_report()` returns modifier_breakdown, casualty_summary, and observation string
-- 11 observation priorities (first match wins, 2-3 template variants each): mutual destruction, lost into fortification, lost bad stance, lost terrain disadvantage, won heavy casualties, won broke fortification, won drilled, lost narrow no drill, won decisively, stalemate, default
+- 15 observation priorities (first match wins, 2-3 template variants each): mutual destruction, lost into fortification, lost fort overrun, lost bad stance (attacker/defender variants), lost terrain disadvantage, lost despite terrain, won heavy casualties, won broke fortification, won fort held, won drilled, lost narrow no drill, lost costly (catch-all), won decisively, stalemate, default
 - All numeric values int()-wrapped for Godot safety
 
-**Perspective-aware observations (follow-up fix):**
+**Perspective-aware observations:**
 - Observations always from Napoleon's (player's) perspective, not the attacker's
 - When enemy attacks French marshal, "we won" = defender (French) won, "we lost" = defender lost
-- `combat.py` now includes `attacker_nation`/`defender_nation` in result dict
-- `_pick_observation()` takes `player_nation` param, flips win/loss/modifier logic based on which side is French
-- All templates use `{marshal}` and `{enemy}` placeholders instead of hardcoded "we"/"our"
+- `combat.py` includes `attacker_nation`/`defender_nation` in result dict
+- `_pick_observation()` takes `player_nation` param, flips win/loss/modifier logic based on which side is the player
+- Templates use `{marshal}` and `{enemy}` placeholders instead of hardcoded "we"/"our"
+- Perspective-aware template selection: lost_bad_stance splits into attacking/defending variants, terrain checks both our_mods and their_mods, fort observations cover both attacker and defender
+
+**Perspective bugs found and fixed:**
+- **Bug 1 (HIGH):** Loss observations not firing when enemy attacks and wins. Three root causes: (a) terrain check only looked at their_mods but terrain defense is on defender's mods, (b) stance type filter rejected defender aggressive stance (snapshotted as "penalty" not "bonus"), (c) no catch-all for heavy losses — devastating defeats fell through to "standard affair"
+- **Bug 2 (LOW):** Defender stance templates assumed attacker perspective ("reckless advance"). Split into attacker/defender variant lists
 
 **Files created:**
 - `backend/game_logic/battle_report.py` — snapshot functions + report generator + perspective-aware observation picker
-- `tests/test_battle_report.py` — 39 tests (12 attacker snapshot, 7 defender snapshot, 6 report generation, 8 observation priority, 6 integration)
+- `tests/test_battle_report.py` — 65 tests (12 attacker snapshot, 7 defender snapshot, 6 report generation, 8 observation priority, 6 integration, 26 perspective flip + regression)
 
 **Files modified:**
 - `backend/game_logic/combat.py` — snapshot calls inserted before get_attack_modifier(), return dict extended with attacker/defender original strength + modifier_snapshot + battle_report + attacker_nation/defender_nation
@@ -80,7 +85,7 @@
 - `backend/main.py` — 1 passthrough block (battle_report in response)
 - `godot-client/project-sovereign/scripts/main.gd` — `_display_berthier_report()` function with BBCode coloring, `_format_number()` helper for comma-separated thousands
 
-**Tests:** 1962 total passing, 3 skipped.
+**Tests:** 1988 total passing, 3 skipped.
 
 ### Feb 11 (Session 28: Berthier Parse Recovery)
 
@@ -864,6 +869,7 @@
 
 | Date | Tests | Notes |
 |------|-------|-------|
+| Feb 11, 2026 | **1988** | Session 29 final: Perspective bugs fixed + fort defender observations. 65 battle report tests total. |
 | Feb 11, 2026 | **1962** | Session 29: Berthier's After-Action Report. 39 new tests (snapshots, report generation, observations, integration). |
 | Feb 11, 2026 | **1923** | Session 28: Berthier Parse Recovery. 20 new tests (mock templates, prompt builder, integration). |
 | Feb 10, 2026 | **1903** | Session 27: Save/Load system. 38 new tests (file I/O, roundtrip, backward compat, API, parser, autosave). |
@@ -911,12 +917,14 @@
 | `full_game.py` dead code with stale terrain | Low | 3 `resolve_battle()` calls hardcode `terrain="open"`. File is dead code (nothing imports it). TODO comments added at all 3 sites. |
 | ~~Battle report not shown during enemy phase~~ | ~~Fixed~~ | Added `_format_berthier_report()` to `enemy_phase_dialog.gd`. Battle reports now display in enemy phase dialog. |
 | ~~Auto-charge battle report not displayed~~ | ~~Fixed~~ | Hoisted `battle_report` from tactical events to result level in both `_execute_end_turn()` and auto-advance path in `executor.py`. |
+| Multi-nation battle report perspective | Low | combat.py hardcodes player_nation="France" default. When Coalition nations become playable (Post-EA), thread world.player_nation through resolve_battle() into generate_battle_report(). See test_combat_resolver_uses_default_france for exact wiring point. |
+| France hardcoded as player nation | Low | Multiple systems assume France is the player nation (world_state.py player_nation default, combat.py battle report perspective, AI decision tree). Post-EA multi-nation play requires threading player_nation throughout. |
 
 ---
 
 ## Next Session Priorities
 
-1. **Battle report perspective tests** — Run prompt at `docs/prompts/TEST_BATTLE_REPORT_PERSPECTIVE.md`. ~22 tests covering flipped perspective, multi-nation, edge cases. Known wiring gap: `combat.py` hardcodes `player_nation="France"` default — tests will document this for future multi-nation support.
+1. ~~**Post-Battle Analysis**~~ — **DONE** (Session 29). battle_report.py module with 15 observation priorities, perspective-aware for attacker/defender, 65 tests, 2 perspective bugs fixed. Known wiring gap: combat.py hardcodes player_nation="France" — documented for post-EA multi-nation.
 2. **Phase 6 remaining items** — Fog of War, Manpower Pools, Artillery Unit Type, Turn Events Log (see ROADMAP.md Phase 6 table). War Score and Threat Indicator moved to Phase 8 (Diplomacy).
 3. **Pause menu planning** — Phase 6.5 needs Esc → Save/Load/Settings/Quit menu before 1805 EA. Plan scope.
 4. Commission Europe map art (start search for artist).

@@ -188,15 +188,30 @@ _OBSERVATIONS = {
         "Attacking prepared positions cost {marshal} dearly. The fortifications held.",
         "{marshal}'s troops broke against their walls. Fortified positions demand respect.",
     ],
-    "lost_bad_stance": [
+    "lost_fort_overrun": [
+        "Even {marshal}'s fortifications could not hold, Sire. {enemy} overran the position.",
+        "The walls were not enough. {enemy} broke through {marshal}'s prepared defenses.",
+        "{marshal}'s fortified position was overwhelmed. A costly investment lost, Sire.",
+    ],
+    "lost_bad_stance_attacking": [
         "{marshal}'s aggressive posture left the troops exposed to the enemy's disciplined defense.",
         "{enemy}'s defensive position punished {marshal}'s reckless advance.",
         "An aggressive stance against a prepared defender — a costly choice, Sire.",
+    ],
+    "lost_bad_stance_defending": [
+        "{marshal} was caught in an aggressive posture when {enemy} struck, Sire. A defensive stance would have served better.",
+        "An aggressive stance invites disaster when one is not the attacker, Sire. {marshal} paid the price.",
+        "{marshal}'s aggressive posture left the troops exposed when {enemy}'s attack came.",
     ],
     "lost_terrain_disadvantage": [
         "The terrain heavily favored {enemy}. {marshal}'s men paid the price.",
         "Geography was our enemy today, Sire. {enemy} held the superior ground.",
         "The ground itself worked against {marshal}. Terrain matters, Sire.",
+    ],
+    "lost_despite_terrain": [
+        "Even the favorable ground could not save {marshal}, Sire. {enemy} overcame the terrain.",
+        "The hills were ours, but {enemy} took them. {marshal}'s position was overrun.",
+        "{marshal} held superior ground, yet {enemy} prevailed. A grim day, Sire.",
     ],
     "won_heavy_casualties": [
         "Victory for {marshal}, but at terrible cost. The ranks are thinned dangerously.",
@@ -208,6 +223,11 @@ _OBSERVATIONS = {
         "{enemy}'s walls could not save them. {marshal}'s troops showed great valor.",
         "{marshal} broke through fortified positions — extraordinary courage from the men.",
     ],
+    "won_fort_held": [
+        "{marshal}'s fortifications held firm, Sire. {enemy} broke against our walls.",
+        "The prepared defenses proved their worth. {enemy} could not dislodge {marshal}.",
+        "A wise investment in fortification. {marshal}'s position was impregnable to {enemy}'s assault.",
+    ],
     "won_drilled": [
         "{marshal}'s drill training proved its worth on the field today.",
         "Well-drilled troops make the difference. {marshal}'s preparation paid dividends.",
@@ -217,6 +237,11 @@ _OBSERVATIONS = {
         "A narrow defeat for {marshal}, Sire. Better-prepared troops might have tipped the balance.",
         "{marshal} was close. A period of drilling could have changed the outcome.",
         "The margin was slim. Training and preparation would serve {marshal} well.",
+    ],
+    "lost_costly": [
+        "A grievous defeat for {marshal}, Sire. The losses are severe.",
+        "{marshal}'s army has been badly mauled. {enemy} proved the stronger force today.",
+        "The toll on {marshal}'s forces is heavy, Sire. This defeat will be felt.",
     ],
     "won_decisively": [
         "A decisive victory for {marshal}! {enemy} was thoroughly outmatched.",
@@ -307,25 +332,41 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     if outcome == "mutual_destruction":
         return _fill(random.choice(_OBSERVATIONS["mutual_destruction"]))
 
-    # Priority 2: We lost + enemy had fortifications
+    # Priority 2: We lost + fortifications were involved
+    # 2a: We attacked into enemy fort and lost
     if we_lost and _has_mod(their_mods, "fortif", "bonus"):
         return _fill(random.choice(_OBSERVATIONS["lost_into_fortification"]))
+    # 2b: Enemy attacked our fort and still won — our fort was overrun
+    if we_lost and _has_mod(our_mods, "fortif", "bonus"):
+        return _fill(random.choice(_OBSERVATIONS["lost_fort_overrun"]))
 
     # Priority 3: We lost + our side was aggressive, their side was defensive
-    if we_lost and _has_mod(our_mods, "aggressive stance", "bonus") and _has_mod(their_mods, "defensive stance", "bonus"):
-        return _fill(random.choice(_OBSERVATIONS["lost_bad_stance"]))
+    if we_lost and _has_mod(our_mods, "aggressive stance") and _has_mod(their_mods, "defensive stance"):
+        # Use perspective-aware templates: attacking into defense vs caught defending aggressively
+        if we_are_attacker:
+            return _fill(random.choice(_OBSERVATIONS["lost_bad_stance_attacking"]))
+        else:
+            return _fill(random.choice(_OBSERVATIONS["lost_bad_stance_defending"]))
 
-    # Priority 4: We lost + enemy had terrain advantage >= 15%
+    # Priority 4: We lost + terrain was a factor
+    # When we attacked into enemy terrain: their_mods has terrain bonus
+    # When enemy attacked us on our terrain and still won: our_mods has terrain bonus (we lost DESPITE it)
     if we_lost and _mod_value(their_mods, "terrain", "bonus") >= 15:
         return _fill(random.choice(_OBSERVATIONS["lost_terrain_disadvantage"]))
+    if we_lost and _mod_value(our_mods, "terrain", "bonus") >= 15:
+        return _fill(random.choice(_OBSERVATIONS["lost_despite_terrain"]))
 
     # Priority 5: We won + heavy casualties (>40% of our original)
     if we_won and our_original > 0 and our_casualties > our_original * 0.40:
         return _fill(random.choice(_OBSERVATIONS["won_heavy_casualties"]))
 
-    # Priority 6: We won + enemy had fortifications (we broke through)
+    # Priority 6: We won + fortifications were involved
+    # 6a: We attacked and broke through enemy fort
     if we_won and _has_mod(their_mods, "fortif", "bonus"):
         return _fill(random.choice(_OBSERVATIONS["won_broke_fortification"]))
+    # 6b: We defended with a fort and held — our investment paid off
+    if we_won and _has_mod(our_mods, "fortif", "bonus"):
+        return _fill(random.choice(_OBSERVATIONS["won_fort_held"]))
 
     # Priority 7: We won + our side had drill bonus
     if we_won and _has_mod(our_mods, "drill", "bonus"):
@@ -337,6 +378,12 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
             margin = abs(our_casualties - enemy_casualties)
             if margin < our_original * 0.15:
                 return _fill(random.choice(_OBSERVATIONS["lost_narrow_no_drill"]))
+
+    # Priority 8.5: We lost with significant casualties (>30% of original) — catch-all for
+    # losses that didn't match any specific condition (terrain, stance, fort, narrow margin).
+    # Without this, devastating defeats like losing half an army fall through to "standard affair".
+    if we_lost and our_original > 0 and our_casualties > our_original * 0.30:
+        return _fill(random.choice(_OBSERVATIONS["lost_costly"]))
 
     # Priority 9: We won decisively (2:1+ casualty ratio in our favor)
     if we_won and enemy_casualties > 0 and our_casualties > 0:
