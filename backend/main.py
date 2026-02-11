@@ -584,6 +584,8 @@ def respond_to_objection(request: ObjectionResponse):
             "game_state": world.get_game_state_summary(),
             "strategic_reports": result.get("strategic_reports", []),
         }
+        if result.get("battle_report"):
+            response["battle_report"] = result["battle_report"]
 
         # ════════════════════════════════════════════════════════════
         # REDEMPTION EVENT: Check if trust dropped to critical level
@@ -756,7 +758,7 @@ def respond_to_glorious_charge(request: GloriousChargeResponse):
         # Process the response through executor
         result = executor.respond_to_glorious_charge(request.choice, world)
 
-        return {
+        response = {
             "success": result.get("success", False),
             "message": result.get("message", "Charge processed"),
             "choice": request.choice,
@@ -764,6 +766,9 @@ def respond_to_glorious_charge(request: GloriousChargeResponse):
             "action_summary": world.get_action_summary(),
             "game_state": world.get_game_state_summary()
         }
+        if result.get("battle_report"):
+            response["battle_report"] = result["battle_report"]
+        return response
     except Exception as e:
         print(f"❌ ERROR handling Glorious Charge response: {e}")
         import traceback

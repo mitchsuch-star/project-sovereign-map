@@ -574,9 +574,6 @@ func _display_result(response):
 	match event_type:
 		"battle":
 			_display_battle_result(message, events[0], action_info)
-			# Berthier's After-Action Report (response-level field)
-			if response.has("battle_report"):
-				_display_berthier_report(response.battle_report)
 		"conquest":
 			add_output("[color=#" + COLOR_CONQUEST + "]⚑ " + message + "[/color]")
 			_show_action_cost(action_info)
@@ -597,6 +594,10 @@ func _display_result(response):
 		_:
 			add_output("[color=#" + COLOR_SUCCESS + "]" + message + "[/color]")
 			_show_action_cost(action_info)
+
+	# Berthier's After-Action Report — shown after any combat event type
+	if response.has("battle_report"):
+		_display_berthier_report(response.battle_report)
 	
 	# Check for turn advancement
 	if action_info.get("turn_advanced", false):
@@ -655,7 +656,7 @@ func _display_berthier_report(report: Dictionary):
 		for m in atk_mods:
 			var sign = "+" if m.get("type", "") == "bonus" else "-"
 			atk_parts.append(str(m.get("label", "")) + " " + sign + str(int(m.get("value", 0))) + "%")
-		add_output("[color=#" + COLOR_REPORT + "]  Attack: " + atk_name + " (" + ", ".join(atk_parts) + ")[/color]")
+		add_output("[color=#" + COLOR_REPORT + "]  Attack: " + atk_name + " (" + ", ".join(PackedStringArray(atk_parts)) + ")[/color]")
 
 	# Defender modifiers
 	var def_mods = breakdown.get("defender", [])
@@ -665,7 +666,7 @@ func _display_berthier_report(report: Dictionary):
 		for m in def_mods:
 			var sign = "+" if m.get("type", "") == "bonus" else "-"
 			def_parts.append(str(m.get("label", "")) + " " + sign + str(int(m.get("value", 0))) + "%")
-		add_output("[color=#" + COLOR_REPORT + "]  Defense: " + def_name + " (" + ", ".join(def_parts) + ")[/color]")
+		add_output("[color=#" + COLOR_REPORT + "]  Defense: " + def_name + " (" + ", ".join(PackedStringArray(def_parts)) + ")[/color]")
 
 	# Casualty summary
 	var atk_cas = int(casualty.get("attacker_casualties", 0))
@@ -685,20 +686,6 @@ func _display_berthier_report(report: Dictionary):
 		add_output("[color=#" + COLOR_OBSERVATION + "]  Berthier: \"" + observation + "\"[/color]")
 
 	add_output("")
-
-func _format_number(n: int) -> String:
-	"""Format an integer with comma separators (e.g. 12000 -> 12,000)."""
-	var s = str(abs(n))
-	var result = ""
-	var count = 0
-	for i in range(s.length() - 1, -1, -1):
-		if count > 0 and count % 3 == 0:
-			result = "," + result
-		result = s[i] + result
-		count += 1
-	if n < 0:
-		result = "-" + result
-	return result
 
 func _display_turn_change(event: Dictionary):
 	"""Display turn end notification with full financial summary.

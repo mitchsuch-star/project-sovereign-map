@@ -7817,6 +7817,8 @@ RETREAT RECOVERY (3 turns):
                     "action_summary": world.get_action_summary(),
                     "new_state": game_state
                 }
+                if execution_result.get("battle_report"):
+                    result["battle_report"] = execution_result["battle_report"]
             else:
                 # No alternative available - marshal simply refuses
                 print(f"  ⚠️ No alternative available - marshal refuses entirely")
@@ -7898,6 +7900,8 @@ RETREAT RECOVERY (3 turns):
             "action_summary": world.get_action_summary(),
             "new_state": game_state
         }
+        if execution_result.get("battle_report"):
+            result["battle_report"] = execution_result["battle_report"]
 
         # Add redemption event if triggered (trust dropped to critical after executing)
         if response_result.get("redemption_event"):
