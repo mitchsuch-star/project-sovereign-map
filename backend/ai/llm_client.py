@@ -458,7 +458,7 @@ class LLMClient:
         elif "fortify" in command_lower or "dig in" in command_lower or "entrench" in command_lower:
             action = "fortify"
         # Economy actions (Phase 6.2.E) — must check BEFORE drill ("build training ground" contains "train")
-        elif any(kw in command_lower for kw in ["build ", "construct "]):
+        elif any(kw in command_lower for kw in ["build ", "construct ", "bould ", "biuld ", "buld ", "buid "]):
             action = "build"
         # Restrain must be checked BEFORE drill (restrain contains "train")
         elif "restrain" in command_lower:
