@@ -916,9 +916,10 @@
 
 ## Next Session Priorities
 
-1. **Phase 6 remaining items** — Fog of War, Manpower Pools, Artillery Unit Type, Turn Events Log (see ROADMAP.md Phase 6 table). War Score and Threat Indicator moved to Phase 8 (Diplomacy).
-2. **Pause menu planning** — Phase 6.5 needs Esc → Save/Load/Settings/Quit menu before 1805 EA. Plan scope.
-3. Commission Europe map art (start search for artist).
+1. **Battle report perspective tests** — Run prompt at `docs/prompts/TEST_BATTLE_REPORT_PERSPECTIVE.md`. ~22 tests covering flipped perspective, multi-nation, edge cases. Known wiring gap: `combat.py` hardcodes `player_nation="France"` default — tests will document this for future multi-nation support.
+2. **Phase 6 remaining items** — Fog of War, Manpower Pools, Artillery Unit Type, Turn Events Log (see ROADMAP.md Phase 6 table). War Score and Threat Indicator moved to Phase 8 (Diplomacy).
+3. **Pause menu planning** — Phase 6.5 needs Esc → Save/Load/Settings/Quit menu before 1805 EA. Plan scope.
+4. Commission Europe map art (start search for artist).
 
 ### Phase 6.2 Economy Audit Findings
 
