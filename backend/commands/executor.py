@@ -350,6 +350,16 @@ class CommandExecutor:
         }
         events = [turn_end_event] + turn_result.get("events", [])
 
+        # Hoist battle_report from tactical events (e.g. auto-charge) to result level
+        # so Godot's _display_berthier_report() can find it at response.battle_report
+        for te in tactical_events:
+            if te.get("battle_report"):
+                # Use first battle report found (auto-charge is typically the only one)
+                tactical_battle_report = te["battle_report"]
+                break
+        else:
+            tactical_battle_report = None
+
         # Build result with all data for frontend
         result = {
             "success": True,
@@ -359,6 +369,8 @@ class CommandExecutor:
             "enemy_phase": enemy_phase,
             "new_state": game_state
         }
+        if tactical_battle_report:
+            result["battle_report"] = tactical_battle_report
 
         # Add Independent Command Report for autonomous marshals (Phase 2.5)
         if turn_result.get("show_independent_command_report"):
@@ -1487,6 +1499,11 @@ RETREAT RECOVERY (3 turns):
                 if tactical_messages:
                     result["message"] = result.get("message", "") + "\n\n--- TURN EVENTS ---\n" + "\n".join(tactical_messages)
                     result["tactical_events"] = tactical_events
+                # Hoist battle_report from tactical events (auto-charge) to result level
+                for te in tactical_events:
+                    if te.get("battle_report"):
+                        result["battle_report"] = te["battle_report"]
+                        break
 
             # Add strategic reports — CRITICAL: without this, strategic popups
             # (hold battles, movement progress) never appear in Godot when the

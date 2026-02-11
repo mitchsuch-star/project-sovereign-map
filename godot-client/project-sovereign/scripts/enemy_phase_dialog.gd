@@ -166,6 +166,10 @@ func _format_action(action: Dictionary) -> String:
 				choice_str = " (secured)"
 			result += "[color=#" + COLOR_CONQUEST + "]    Region captured: " + region + choice_str + "[/color]\n"
 
+	# Berthier's After-Action Report (if battle occurred)
+	if action.has("battle_report"):
+		result += _format_berthier_report(action.battle_report)
+
 	return result
 
 func _format_battle(event: Dictionary) -> String:
@@ -226,6 +230,44 @@ func _format_battle(event: Dictionary) -> String:
 		result += "[color=#" + COLOR_ERROR + "]    " + attacker_name + " forced to retreat![/color]\n"
 	if defender.get("forced_retreat", false):
 		result += "[color=#" + COLOR_ERROR + "]    " + defender_name + " forced to retreat![/color]\n"
+
+	return result
+
+func _format_berthier_report(report: Dictionary) -> String:
+	"""Format Berthier's After-Action Report for enemy phase dialog."""
+	var result = ""
+	var COLOR_BERTHIER = "B8860B"
+	var COLOR_RPT = "AAAAAA"
+	var COLOR_OBS = "DAA520"
+
+	result += "[color=#" + COLOR_BERTHIER + "]    --- Berthier's Report ---[/color]\n"
+
+	# Modifier lines
+	var breakdown = report.get("modifier_breakdown", {})
+	var casualty = report.get("casualty_summary", {})
+	var atk_name = str(casualty.get("attacker_name", "Attacker"))
+	var def_name = str(casualty.get("defender_name", "Defender"))
+
+	var atk_mods = breakdown.get("attacker", [])
+	if atk_mods.size() > 0:
+		var parts: Array = []
+		for m in atk_mods:
+			var sign = "+" if m.get("type", "") == "bonus" else "-"
+			parts.append(str(m.get("label", "")) + " " + sign + str(int(m.get("value", 0))) + "%")
+		result += "[color=#" + COLOR_RPT + "]    Attack: " + atk_name + " (" + ", ".join(PackedStringArray(parts)) + ")[/color]\n"
+
+	var def_mods = breakdown.get("defender", [])
+	if def_mods.size() > 0:
+		var parts: Array = []
+		for m in def_mods:
+			var sign = "+" if m.get("type", "") == "bonus" else "-"
+			parts.append(str(m.get("label", "")) + " " + sign + str(int(m.get("value", 0))) + "%")
+		result += "[color=#" + COLOR_RPT + "]    Defense: " + def_name + " (" + ", ".join(PackedStringArray(parts)) + ")[/color]\n"
+
+	# Observation
+	var observation = report.get("observation", "")
+	if observation != "":
+		result += "[color=#" + COLOR_OBS + "]    Berthier: \"" + observation + "\"[/color]\n"
 
 	return result
 
