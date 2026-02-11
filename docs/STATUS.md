@@ -1,8 +1,8 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 10, 2026
-> **Last Session:** Session 27 — Phase 6: Save/Load System
+> **Last Updated:** February 11, 2026
+> **Last Session:** Session 29 — Berthier's After-Action Report
 
 ---
 
@@ -10,10 +10,10 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1923** (verified, 3 skipped) |
-| **Current Phase** | Phase 6: Berthier Parse Recovery **COMPLETE** |
+| **Tests Passing** | **1962** (verified, 3 skipped) |
+| **Current Phase** | Phase 6: Post-Battle Analysis **COMPLETE** |
 | **Blockers** | None |
-| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier |
+| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier, 6-BattleReport |
 
 ---
 
@@ -49,6 +49,31 @@
 ---
 
 ## Recently Completed
+
+### Feb 11 (Session 29: Berthier's After-Action Report)
+
+**Template-based battle report after every player-visible combat. Shows modifier breakdown, casualty summary, and one Berthier observation.**
+
+**What it does:**
+- Read-only modifier snapshots taken BEFORE state-consuming get_attack_modifier()/get_defense_modifier() calls
+- `snapshot_attacker_modifiers()` captures: stance, drill/shock, strategic bonus (peek only), personality, recklessness, exhaustion, cavalry terrain, flanking, glorious charge
+- `snapshot_defender_modifiers()` captures: stance, fortify bonus, strategic defense (peek only), drilling penalty, personality, recklessness, terrain defense, fortification building
+- `generate_battle_report()` returns modifier_breakdown, casualty_summary, and observation string
+- 11 observation priorities (first match wins, 2-3 template variants each): mutual destruction, lost into fortification, lost bad stance, lost terrain disadvantage, won heavy casualties, won broke fortification, won drilled, lost narrow no drill, won decisively, stalemate, default
+- All numeric values int()-wrapped for Godot safety
+
+**Files created:**
+- `backend/game_logic/battle_report.py` — snapshot functions + report generator + observation picker
+- `tests/test_battle_report.py` — 39 tests (12 attacker snapshot, 7 defender snapshot, 6 report generation, 8 observation priority, 6 integration)
+
+**Files modified:**
+- `backend/game_logic/combat.py` — snapshot calls inserted before get_attack_modifier(), return dict extended with attacker/defender original strength + modifier_snapshot + battle_report
+- `backend/commands/executor.py` — 5 passthrough sites (attack, 3 sally events, charge)
+- `backend/models/world_state.py` — 1 passthrough site (auto-charge event)
+- `backend/main.py` — 1 passthrough block (battle_report in response)
+- `godot-client/project-sovereign/scripts/main.gd` — `_display_berthier_report()` function with BBCode coloring, `_format_number()` helper for comma-separated thousands
+
+**Tests:** 1962 total passing, 3 skipped.
 
 ### Feb 11 (Session 28: Berthier Parse Recovery)
 
@@ -832,6 +857,7 @@
 
 | Date | Tests | Notes |
 |------|-------|-------|
+| Feb 11, 2026 | **1962** | Session 29: Berthier's After-Action Report. 39 new tests (snapshots, report generation, observations, integration). |
 | Feb 11, 2026 | **1923** | Session 28: Berthier Parse Recovery. 20 new tests (mock templates, prompt builder, integration). |
 | Feb 10, 2026 | **1903** | Session 27: Save/Load system. 38 new tests (file I/O, roundtrip, backward compat, API, parser, autosave). |
 | Feb 10, 2026 | **1865** | Session 26: Opus audit — 10 P0, 10 P1, 7 P2 fixes. 2 new roundtrip tests, 2 updated. |

@@ -14,7 +14,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ## Current Phase
 
-**Phase 6.2 Economy: COMPLETE + AUDITED (Session 26). Save/Load: COMPLETE (Session 27). Berthier Parse Recovery: COMPLETE (Session 28).** 6.2.A-H all implemented and audited. Save/Load: `backend/save_manager.py`, 4 API endpoints, autosave every turn, terminal commands ("save"/"load"), load dialog popup, 38 tests. Berthier: in-character error messages replace raw "Unknown action" / "Marshal None" errors, mock templates + LLM prompt, 20 tests. Pause menu deferred to Phase 6.5. See `docs/ROADMAP.md` for EA readiness roadmap.
+**Phase 6.2 Economy: COMPLETE + AUDITED (Session 26). Save/Load: COMPLETE (Session 27). Berthier Parse Recovery: COMPLETE (Session 28). Post-Battle Analysis: COMPLETE (Session 29).** 6.2.A-H all implemented and audited. Save/Load: `backend/save_manager.py`, 4 API endpoints, autosave every turn, terminal commands ("save"/"load"), load dialog popup, 38 tests. Berthier: in-character error messages replace raw "Unknown action" / "Marshal None" errors, mock templates + LLM prompt, 20 tests. Battle Report: `backend/game_logic/battle_report.py`, modifier snapshots, 11 observation priorities, Godot BBCode display, 39 tests. Pause menu deferred to Phase 6.5. See `docs/ROADMAP.md` for EA readiness roadmap.
 See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 
 ---
@@ -38,6 +38,7 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | `backend/models/personality.py` | PersonalityType enum |
 | `backend/models/personality_modifiers.py` | Combat bonuses by personality |
 | `backend/game_logic/combat.py` | Combat resolution, messages |
+| `backend/game_logic/battle_report.py` | Post-battle modifier snapshots, report generation, Berthier observations |
 | `backend/game_logic/turn_manager.py` | Turn flow, enemy phase |
 | `backend/ai/enemy_ai.py` | Enemy AI decision tree (P1-P8) |
 | `backend/ai/llm_client.py` | LLM integration (fast parser + Anthropic) |

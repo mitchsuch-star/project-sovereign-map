@@ -187,6 +187,21 @@ class CombatResolver:
                 ability_message = f"{attacker.name}'s '{attacker.ability['name']}' inspires the assault!"
 
         # ════════════════════════════════════════════════════════════
+        # BERTHIER REPORT: Snapshot modifiers BEFORE consumption
+        # Must happen before get_attack_modifier() / get_defense_modifier()
+        # which zero out strategic_combat_bonus / strategic_defense_bonus
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic.battle_report import (
+            snapshot_attacker_modifiers, snapshot_defender_modifiers, generate_battle_report
+        )
+        attacker_modifier_snapshot = snapshot_attacker_modifiers(
+            attacker, defender, terrain, fortification_bonus, flanking_bonus, glorious_charge
+        )
+        defender_modifier_snapshot = snapshot_defender_modifiers(
+            defender, attacker, terrain, fortification_bonus
+        )
+
+        # ════════════════════════════════════════════════════════════
         # DRILL BONUS (Phase 2.6): +20% attack from drill training
         # NOTE: Actual calculation is in marshal.get_attack_modifier()
         # Save value for message generation, clear AFTER modifier is calculated
@@ -558,7 +573,7 @@ class CombatResolver:
             retreat_message += f"\n\n{recklessness_message}"
 
         # THIS RETURN MUST BE HERE!
-        return {
+        result_dict = {
             "outcome": outcome,
             "victor": victor.name if victor else None,
             "attacker": {
@@ -591,9 +606,17 @@ class CombatResolver:
             "attacker_won": attacker_won,  # Phase 3: For recklessness tracking
             "terrain_defense_message": terrain_defense_message,  # Phase 6.1: Terrain defense
             "cavalry_terrain_message": cavalry_terrain_message,  # Phase 6.1: Cavalry terrain
-            "description": tactical_prefix + base_description + retreat_message
+            "description": tactical_prefix + base_description + retreat_message,
+            # Berthier's After-Action Report
+            "attacker_original_strength": int(attacker_original_strength),
+            "defender_original_strength": int(defender_original_strength),
+            "modifier_snapshot": {
+                "attacker": attacker_modifier_snapshot,
+                "defender": defender_modifier_snapshot,
+            },
         }
-        # ... rest of existing code ...
+        result_dict["battle_report"] = generate_battle_report(result_dict)
+        return result_dict
 
     def _calculate_effective_strength(self, marshal: Marshal, is_attacker: bool) -> float:
         """Calculate effective combat strength considering morale."""

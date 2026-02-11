@@ -2661,6 +2661,10 @@ RETREAT RECOVERY (3 turns):
         if battle_result.get("cavalry_terrain_message"):
             result["cavalry_terrain_message"] = battle_result["cavalry_terrain_message"]
 
+        # Berthier's After-Action Report
+        if battle_result.get("battle_report"):
+            result["battle_report"] = battle_result["battle_report"]
+
         # Mark as free action for Davout's Counter-Punch
         if is_counter_punch:
             result["free_action"] = True
@@ -4604,7 +4608,7 @@ RETREAT RECOVERY (3 turns):
 
         full_message = explanation + flanking_prefix + battle_result["description"] + vindication_msg + forced_retreat_msg
 
-        return {
+        sally1_result = {
             "success": True,
             "message": full_message,
             "events": [{
@@ -4625,6 +4629,10 @@ RETREAT RECOVERY (3 turns):
             }],
             "new_state": game_state
         }
+        # Berthier's After-Action Report
+        if battle_result.get("battle_report"):
+            sally1_result["battle_report"] = battle_result["battle_report"]
+        return sally1_result
 
     def _execute_auto_assign_attack(self, command: Dict, game_state: Dict) -> Dict:
         """
@@ -4737,7 +4745,7 @@ RETREAT RECOVERY (3 turns):
                 battle_result, nearest_marshal, enemy, world
             )
 
-            return {
+            sally2_result = {
                 "success": True,
                 "message": f"{nearest_marshal.name} (auto-assigned) attacks {target}!{flanking_prefix} {battle_result['description']}{vindication_msg}{forced_retreat_msg}",
                 "events": [{
@@ -4758,6 +4766,10 @@ RETREAT RECOVERY (3 turns):
                 }],
                 "new_state": game_state
             }
+            # Berthier's After-Action Report
+            if battle_result.get("battle_report"):
+                sally2_result["battle_report"] = battle_result["battle_report"]
+            return sally2_result
 
         # SECOND: Check if target is a region name with fuzzy matching
         target_region, error = self._fuzzy_match_region(target, world)
@@ -4906,6 +4918,9 @@ RETREAT RECOVERY (3 turns):
                 }],
                 "new_state": game_state
             }
+            # Berthier's After-Action Report
+            if battle_result.get("battle_report"):
+                auto_result["battle_report"] = battle_result["battle_report"]
             # Phase 6.2.E: Flag pending capture choice
             if world.pending_capture_choice:
                 auto_result["pending_capture_choice"] = True
@@ -7119,7 +7134,7 @@ RETREAT RECOVERY (3 turns):
         charge_message += enemy_destroyed_msg + movement_msg
         charge_message += f"\n\n[color=#cd6b6b]Recklessness reset: {recklessness_before} → 0[/color]"
 
-        return {
+        charge_result = {
             "success": True,
             "message": charge_message,
             "glorious_charge": True,
@@ -7136,6 +7151,10 @@ RETREAT RECOVERY (3 turns):
             }],
             "new_state": game_state
         }
+        # Berthier's After-Action Report
+        if combat_result.get("battle_report"):
+            charge_result["battle_report"] = combat_result["battle_report"]
+        return charge_result
 
     def respond_to_glorious_charge(self, response: str, world: WorldState) -> Dict:
         """

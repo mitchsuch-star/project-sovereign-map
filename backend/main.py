@@ -423,6 +423,10 @@ def execute_command(request: CommandRequest):
         if result.get("cavalry_terrain_message"):
             response["cavalry_terrain_message"] = result["cavalry_terrain_message"]
 
+        # Berthier's After-Action Report
+        if result.get("battle_report"):
+            response["battle_report"] = result["battle_report"]
+
         # V2a: Include mild concerns for turn log display
         # BUG FIX: Only send mild_concerns from the result dict (end_turn path).
         # Previously, the elif fallback sent world.mild_concerns_this_turn on EVERY

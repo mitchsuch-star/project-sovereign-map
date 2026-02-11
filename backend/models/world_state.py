@@ -2907,7 +2907,7 @@ class WorldState:
                             f"{enemy_destroyed_msg}{movement_msg}\n\n"
                             f"{reck_footer}")
                 debug_print(f"  [AUTO-CHARGE DEBUG] Event message: {event_msg[:100]}...")
-                events.append({
+                auto_charge_event = {
                     "type": "auto_glorious_charge",
                     "marshal": marshal.name,
                     "target": enemy.name,
@@ -2915,7 +2915,11 @@ class WorldState:
                     "attacker_won": attacker_won,
                     "combat_result": combat_result,
                     "message": event_msg
-                })
+                }
+                # Berthier's After-Action Report
+                if combat_result.get("battle_report"):
+                    auto_charge_event["battle_report"] = combat_result["battle_report"]
+                events.append(auto_charge_event)
                 debug_print(f"  [AUTO-CHARGE DEBUG] Event appended, events count: {len(events)}")
             else:
                 # Out of range - auto-move toward enemy

@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** February 10, 2026 (Session 27: Save/Load System)
+> **Last Updated:** February 11, 2026 (Session 29: Berthier's After-Action Report)
 
 ---
 
@@ -12,7 +12,7 @@
 |-------|------|--------|
 | 1-5.3 | Foundation through AI Fixes | COMPLETE |
 | **V2a** | **Objection System Refactor** | **COMPLETE** |
-| **6** | **Core Campaign Systems** | **IN PROGRESS (6.1 terrain, 6.2 economy, Save/Load all COMPLETE)** |
+| **6** | **Core Campaign Systems** | **IN PROGRESS (6.1 terrain, 6.2 economy, Save/Load, Berthier, Battle Report all COMPLETE)** |
 | 6.5 | Information & UI Systems | Planned |
 | 7 | Multi-Marshal, Relationships & Coalitions | Planned |
 | 8 | Diplomacy & Peace | Planned |
@@ -40,7 +40,7 @@
 | 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 1903 (verified Feb 10, 2026)
+**Total Tests:** 1962 (verified Feb 11, 2026)
 
 ---
 
@@ -83,7 +83,7 @@
 | Turn Events Log | Track battles/captures/retreats per turn (feeds gazette) | Low | Planned |
 | **Save/Load** | Full game state persistence + autosave (moved from Pre-EA) | Low | **COMPLETE** (Session 27: save_manager.py, 4 API endpoints, autosave, terminal commands, load dialog, 38 tests) |
 | **Berthier Parse Recovery** | Failed parses -> Berthier asks clarification in-character (moved from 8.5) | Low | **COMPLETE** (Session 28: prompt_builder.py, llm_client.py, parser.py, main.py. Mock templates + LLM prompt. Reacts to tone. 20 tests.) |
-| **Post-Battle Analysis** | Template breakdown: modifiers, casualties, "if you had fortified..." | Low | Planned |
+| **Post-Battle Analysis** | Template breakdown: modifiers, casualties, Berthier observation | Low | **COMPLETE** (Session 29: battle_report.py, snapshots, 11 observation priorities, Godot display, 39 tests) |
 
 ### Save/Load Notes
 
@@ -93,9 +93,14 @@
 
 **COMPLETE (Session 28).** Failed commands return in-character Berthier clarification instead of raw errors. Two intercept points: "Unknown action" (before executor) and "Marshal None" (after executor). Mock mode: context-aware templates using real game-state names (3 categories x 2-3 variants). Live mode: one LLM call with Berthier character prompt — reacts to Emperor's tone with flustered dignity. Partial parse info (recognized marshal/target) forwarded for context-aware suggestions. 20 tests.
 
-### Post-Battle Analysis (Template)
+### Post-Battle Analysis (Berthier's After-Action Report)
 
-After every battle: "Attack modifier: 1.45x (aggressive stance +15%, drill +20%, personality +15%). Casualties: 12,000 dealt, 8,000 taken. If you had fortified: estimated -40% casualties." Uses data already computed in combat resolver. No LLM needed. Teaches players mechanics through results.
+**COMPLETE (Session 29).** After every player-visible combat, Berthier delivers a formatted report with:
+- **Modifier breakdown:** All attack/defense modifiers with labels and +/- signs (stance, drill, personality, terrain, fortification, etc.)
+- **Casualty summary:** Original strength, casualties, remaining for both sides
+- **Berthier observation:** One contextual comment from 11 priority categories (mutual destruction, lost into fortification, lost bad stance, won heavy casualties, won decisively, stalemate, etc.) with 2-3 template variants each
+
+Uses read-only modifier snapshots taken BEFORE state-consuming `get_attack_modifier()`/`get_defense_modifier()` calls. No LLM needed. Teaches players mechanics through results. All values `int()`-wrapped. 39 tests.
 
 ### MAP COMMISSIONING REMINDER
 

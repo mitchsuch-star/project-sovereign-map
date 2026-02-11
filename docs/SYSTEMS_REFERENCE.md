@@ -238,6 +238,46 @@ x 1.10 (outnumbered personality bonus)
 | Cavalry limits | `world_state.py` | `marshal.py` (counters) |
 | Combat calculation | `combat.py` | `marshal.py` (modifiers) |
 
+### Battle Report (Berthier's After-Action Report)
+
+After every player-visible combat, `battle_report.py` generates a structured report attached to the battle result.
+
+**Architecture:**
+- **Snapshots** taken BEFORE `get_attack_modifier()`/`get_defense_modifier()` (which consume one-shot bonuses like strategic_combat_bonus)
+- `snapshot_attacker_modifiers()` — reads stance, drill/shock, strategic bonus (peek only, NOT zeroed), personality, recklessness, exhaustion, cavalry terrain, flanking, glorious charge
+- `snapshot_defender_modifiers()` — reads stance, fortify bonus, strategic defense (peek only), drilling penalty, personality, recklessness, terrain defense, fortification building
+- `generate_battle_report()` — assembles modifier_breakdown, casualty_summary, observation
+
+**Observation priorities** (first match wins, `random.choice()` from 2-3 templates):
+
+| Priority | Condition |
+|----------|-----------|
+| 1 | Mutual destruction (both sides lost >50%) |
+| 2 | Lost + attacked into fortification |
+| 3 | Lost + bad stance (aggressive into defensive) |
+| 4 | Lost + terrain disadvantage >= 15% |
+| 5 | Won + heavy casualties (>40% of attacker original) |
+| 6 | Won + broke through fortification |
+| 7 | Won + drilled |
+| 8 | Lost + no drill + margin < 15% of attacker original |
+| 9 | Won decisively (2:1+ casualty ratio) |
+| 10 | Stalemate |
+| 11 | Default |
+
+**Data flow:**
+```
+combat.py (snapshots + generate_battle_report)
+  → resolve_battle() return dict includes "battle_report"
+  → executor.py (5 passthrough sites: attack, 3 sally, charge)
+  → world_state.py (1 passthrough: auto-charge event)
+  → main.py (1 passthrough block)
+  → Godot main.gd (_display_berthier_report)
+```
+
+**Godot display:** BBCode formatted with dark goldenrod header, light gray report lines, goldenrod observation quote. Comma-formatted numbers via `_format_number()`.
+
+**Key code:** `battle_report.py` (snapshots + report), `combat.py:~189` (snapshot insertion point), `combat.py:~561` (return dict), `main.gd::_display_berthier_report()`
+
 ---
 
 ## 2. Disobedience & Trust

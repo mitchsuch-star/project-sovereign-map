@@ -574,6 +574,9 @@ func _display_result(response):
 	match event_type:
 		"battle":
 			_display_battle_result(message, events[0], action_info)
+			# Berthier's After-Action Report (response-level field)
+			if response.has("battle_report"):
+				_display_berthier_report(response.battle_report)
 		"conquest":
 			add_output("[color=#" + COLOR_CONQUEST + "]⚑ " + message + "[/color]")
 			_show_action_cost(action_info)
@@ -631,6 +634,71 @@ func _display_battle_result(message: String, event: Dictionary, action_info: Dic
 		add_output("[color=#" + COLOR_CONQUEST + "]   ⚑ " + region_name + " captured! ⚑[/color]")
 	
 	_show_action_cost(action_info)
+
+func _display_berthier_report(report: Dictionary):
+	"""Display Berthier's After-Action Report with modifier breakdown and observation."""
+	var COLOR_BERTHIER = "B8860B"   # Dark goldenrod for header
+	var COLOR_REPORT = "CCCCCC"     # Light gray for report lines
+	var COLOR_OBSERVATION = "DAA520" # Goldenrod for Berthier's quote
+
+	add_output("[color=#" + COLOR_BERTHIER + "]--- Berthier's Report ---[/color]")
+
+	# Modifier breakdown
+	var breakdown = report.get("modifier_breakdown", {})
+
+	# Attacker modifiers
+	var atk_mods = breakdown.get("attacker", [])
+	var casualty = report.get("casualty_summary", {})
+	var atk_name = str(casualty.get("attacker_name", "Attacker"))
+	if atk_mods.size() > 0:
+		var atk_parts: Array = []
+		for m in atk_mods:
+			var sign = "+" if m.get("type", "") == "bonus" else "-"
+			atk_parts.append(str(m.get("label", "")) + " " + sign + str(int(m.get("value", 0))) + "%")
+		add_output("[color=#" + COLOR_REPORT + "]  Attack: " + atk_name + " (" + ", ".join(atk_parts) + ")[/color]")
+
+	# Defender modifiers
+	var def_mods = breakdown.get("defender", [])
+	var def_name = str(casualty.get("defender_name", "Defender"))
+	if def_mods.size() > 0:
+		var def_parts: Array = []
+		for m in def_mods:
+			var sign = "+" if m.get("type", "") == "bonus" else "-"
+			def_parts.append(str(m.get("label", "")) + " " + sign + str(int(m.get("value", 0))) + "%")
+		add_output("[color=#" + COLOR_REPORT + "]  Defense: " + def_name + " (" + ", ".join(def_parts) + ")[/color]")
+
+	# Casualty summary
+	var atk_cas = int(casualty.get("attacker_casualties", 0))
+	var def_cas = int(casualty.get("defender_casualties", 0))
+	var atk_orig = int(casualty.get("attacker_original", 0))
+	var atk_rem = int(casualty.get("attacker_remaining", 0))
+	var def_orig = int(casualty.get("defender_original", 0))
+	var def_rem = int(casualty.get("defender_remaining", 0))
+
+	# Format with thousands separators
+	add_output("[color=#" + COLOR_REPORT + "]  Casualties: " + atk_name + " " + _format_number(atk_cas) + " | " + def_name + " " + _format_number(def_cas) + "[/color]")
+	add_output("[color=#" + COLOR_REPORT + "]  Strength: " + atk_name + " " + _format_number(atk_orig) + " -> " + _format_number(atk_rem) + " | " + def_name + " " + _format_number(def_orig) + " -> " + _format_number(def_rem) + "[/color]")
+
+	# Berthier's observation
+	var observation = str(report.get("observation", ""))
+	if observation != "":
+		add_output("[color=#" + COLOR_OBSERVATION + "]  Berthier: \"" + observation + "\"[/color]")
+
+	add_output("")
+
+func _format_number(n: int) -> String:
+	"""Format an integer with comma separators (e.g. 12000 -> 12,000)."""
+	var s = str(abs(n))
+	var result = ""
+	var count = 0
+	for i in range(s.length() - 1, -1, -1):
+		if count > 0 and count % 3 == 0:
+			result = "," + result
+		result = s[i] + result
+		count += 1
+	if n < 0:
+		result = "-" + result
+	return result
 
 func _display_turn_change(event: Dictionary):
 	"""Display turn end notification with full financial summary.
