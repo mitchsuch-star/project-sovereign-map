@@ -100,12 +100,18 @@ func _format_action(action: Dictionary) -> String:
 		print("[ENEMY_PHASE_DEBUG] NO events key in action!")
 
 	var ai_action = action.get("ai_action", {})
-	var marshal_name = ai_action.get("marshal", "Unknown")
+	var marshal_name = ai_action.get("marshal", "")
 	var action_type = ai_action.get("action", "unknown")
 	var target = ai_action.get("target", "")
+	var nation = action.get("nation", "")
 
-	# Basic action line
-	var action_str = marshal_name + " "
+	# Basic action line — admin actions (build/repair/recruit) may not have a marshal
+	var action_str = ""
+	if marshal_name != "":
+		action_str = marshal_name + " "
+	elif nation != "":
+		action_str = nation + " "
+
 	match action_type:
 		"attack":
 			action_str += "attacks " + target
@@ -129,6 +135,11 @@ func _format_action(action: Dictionary) -> String:
 			action_str += "recruits troops"
 		"scout":
 			action_str += "scouts " + target
+		"build":
+			var building_type = ai_action.get("building_type", "building").replace("_", " ")
+			action_str += "builds " + building_type + " at " + target
+		"repair":
+			action_str += "repairs " + target
 		_:
 			action_str += action_type.replace("_", " ")
 			if target:

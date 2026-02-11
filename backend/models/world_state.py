@@ -1218,23 +1218,23 @@ class WorldState:
             debug_print(f"   ❌ NO COMBAT-READY MARSHALS IN RANGE!")
             return None
 
-        # Sort by STRENGTH (strongest first), then by distance
-        ready_marshals.sort(key=lambda x: (-x[0].strength, x[1]))
+        # Sort by DISTANCE (nearest first), then by strength as tiebreaker
+        ready_marshals.sort(key=lambda x: (x[1], -x[0].strength))
 
-        strongest_marshal, distance = ready_marshals[0]
+        nearest_marshal, distance = ready_marshals[0]
 
         # EXPLANATORY LOGGING
-        debug_print(f"   [MARSHAL SELECTED]: {strongest_marshal.name}")
-        debug_print(f"      Strength: {strongest_marshal.strength:,} troops")
+        debug_print(f"   [MARSHAL SELECTED]: {nearest_marshal.name}")
+        debug_print(f"      Strength: {nearest_marshal.strength:,} troops")
         debug_print(f"      Distance to {region_name}: {distance} hops")
-        debug_print(f"      Attack range: {strongest_marshal.movement_range}")
+        debug_print(f"      Attack range: {nearest_marshal.movement_range}")
 
         # Show alternatives if any
         if len(ready_marshals) > 1:
             alternatives = [f"{m.name} ({m.strength:,}, range {m.movement_range})" for m, d in ready_marshals[1:]]
             debug_print(f"      Alternatives: {', '.join(alternatives)}")
 
-        return (strongest_marshal, distance)
+        return (nearest_marshal, distance)
 
     # ============================================================================
     # EXAMPLE OUTPUT WITH THIS LOGGING:

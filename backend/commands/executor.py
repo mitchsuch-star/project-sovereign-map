@@ -46,6 +46,8 @@ _ACTION_DISPLAY_NAMES = {
     "recruit": "recruits",
     "scout": "scouts",
     "hold": "holds",
+    "build": "builds",
+    "repair": "repairs",
 }
 
 

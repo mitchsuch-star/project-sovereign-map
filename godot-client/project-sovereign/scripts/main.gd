@@ -491,6 +491,10 @@ func _on_command_result(response):
 		# Format and display result based on event type
 		_display_result(response)
 
+		# Display tactical events (supply attrition, etc.) from turn resolution
+		if response.has("tactical_events"):
+			_display_tactical_events(response.tactical_events)
+
 		# Check for enemy phase (from end_turn)
 		# NOTE: No total_actions > 0 gate — dialog shows even with 0 enemy actions
 		# (e.g. debug freeze_enemies). The dialog handles 0-action case with
@@ -637,6 +641,17 @@ func _display_turn_change(event: Dictionary):
 	add_output("[color=#" + COLOR_GOLD + "]Treasury: " + _format_number(int(treasury)) + "g[/color]")
 	add_output("[color=#" + COLOR_SUCCESS + "]Actions refreshed: " + str(int(max_actions)) + "/" + str(int(max_actions)) + "[/color]")
 	add_output("")
+
+func _display_tactical_events(tactical_events):
+	"""Display tactical events from turn resolution (supply attrition, etc.)."""
+	if tactical_events is Array and tactical_events.size() > 0:
+		for event in tactical_events:
+			var event_type = event.get("type", "")
+			if event_type == "supply_attrition":
+				var marshal_name = event.get("marshal", "Unknown")
+				var region_name = event.get("region", "Unknown")
+				var losses = int(event.get("losses", 0))
+				add_output("[color=#" + COLOR_ERROR + "]Supply shortage at " + region_name + ": " + marshal_name + " loses " + _format_number(losses) + " troops[/color]")
 
 func _display_turn_advance(action_info: Dictionary):
 	"""Display automatic turn advancement when actions run out."""

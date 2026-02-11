@@ -457,6 +457,9 @@ class LLMClient:
             action = "unfortify"  # Must check before fortify to avoid false positives
         elif "fortify" in command_lower or "dig in" in command_lower or "entrench" in command_lower:
             action = "fortify"
+        # Economy actions (Phase 6.2.E) — must check BEFORE drill ("build training ground" contains "train")
+        elif any(kw in command_lower for kw in ["build ", "construct "]):
+            action = "build"
         # Restrain must be checked BEFORE drill (restrain contains "train")
         elif "restrain" in command_lower:
             action = "restrain"
@@ -488,10 +491,6 @@ class LLMClient:
         # Cavalry recklessness (Phase 3)
         elif "charge" in command_lower or "glorious charge" in command_lower:
             action = "charge"
-        # Note: "restrain" is checked earlier (before drill) to avoid "train" match
-        # Economy actions (Phase 6.2.E)
-        elif any(kw in command_lower for kw in ["build ", "construct "]):
-            action = "build"
         elif any(kw in command_lower for kw in ["repair ", "fix ", "restore "]):
             action = "repair"
         # Economy info command (Phase 6.2.G)
