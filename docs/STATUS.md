@@ -902,12 +902,14 @@
 | ~~Windows Store Python broken~~ | ~~Fixed~~ | venv working, tests run from CLI |
 | Marshal ability dicts mostly decorative | Low | Only Ney's "Bravest of the Brave" is wired up in combat.py; others are TODO (personality mechanics DO work separately) |
 | `full_game.py` dead code with stale terrain | Low | 3 `resolve_battle()` calls hardcode `terrain="open"`. File is dead code (nothing imports it). TODO comments added at all 3 sites. |
+| Battle report not shown during enemy phase | Low | `battle_report` data reaches Godot in enemy action dicts, but `enemy_phase_dialog.gd` only displays `events` array — never checks for `battle_report`. Fix: add `_display_berthier_report()` call in enemy phase dialog's `_format_battle()`. |
+| Auto-charge battle report not displayed | Low | Auto-charge in `world_state.py` nests `battle_report` inside event dict in events array. Godot checks `response.battle_report` at top level only. Fix: either hoist from events to result level in executor end_turn path, or iterate events in Godot's `_display_tactical_events()`. |
 
 ---
 
 ## Next Session Priorities
 
-1. **Phase 6 remaining items** — Post-Battle Analysis, Fog of War, Manpower Pools, Sieges, City Fortification, Artillery Unit Type, Turn Events Log (see ROADMAP.md Phase 6 table). War Score and Threat Indicator moved to Phase 8 (Diplomacy).
+1. **Phase 6 remaining items** — Fog of War, Manpower Pools, Artillery Unit Type, Turn Events Log (see ROADMAP.md Phase 6 table). War Score and Threat Indicator moved to Phase 8 (Diplomacy).
 2. **Pause menu planning** — Phase 6.5 needs Esc → Save/Load/Settings/Quit menu before 1805 EA. Plan scope.
 3. Commission Europe map art (start search for artist).
 
