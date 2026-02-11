@@ -82,7 +82,7 @@
 | Artillery Unit Type | Combat buffs like cavalry | Medium | Planned |
 | Turn Events Log | Track battles/captures/retreats per turn (feeds gazette) | Low | Planned |
 | **Save/Load** | Full game state persistence + autosave (moved from Pre-EA) | Low | **COMPLETE** (Session 27: save_manager.py, 4 API endpoints, autosave, terminal commands, load dialog, 38 tests) |
-| **Berthier Parse Recovery** | Failed parses -> Berthier asks clarification in-character (moved from 8.5) | Low | Planned |
+| **Berthier Parse Recovery** | Failed parses -> Berthier asks clarification in-character (moved from 8.5) | Low | **COMPLETE** (Session 28: prompt_builder.py, llm_client.py, parser.py, main.py. Mock templates + LLM prompt. Reacts to tone. 20 tests.) |
 | **Post-Battle Analysis** | Template breakdown: modifiers, casualties, "if you had fortified..." | Low | Planned |
 
 ### Save/Load Notes
@@ -91,7 +91,7 @@
 
 ### Berthier Parse Recovery
 
-Failed commands return in-character clarification instead of error messages: "Berthier adjusts his spectacles: 'Sire, I heard attack... but attack whom? Wellington is at Waterloo, Blucher at the Netherlands.'" One LLM call on failure (rare), negligible cost. Template fallback for mock mode.
+**COMPLETE (Session 28).** Failed commands return in-character Berthier clarification instead of raw errors. Two intercept points: "Unknown action" (before executor) and "Marshal None" (after executor). Mock mode: context-aware templates using real game-state names (3 categories x 2-3 variants). Live mode: one LLM call with Berthier character prompt — reacts to Emperor's tone with flustered dignity. Partial parse info (recognized marshal/target) forwarded for context-aware suggestions. 20 tests.
 
 ### Post-Battle Analysis (Template)
 
