@@ -204,6 +204,8 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | AP error after objection proceed | AP must be checked in pre-validation BEFORE objection fires, not after |
 | Post-objection wrong AP cost | `_execute_post_objection` must handle `variable_action_cost` (stance 0-2 AP) |
 | Data cleared before capture | Save per-turn lists (e.g. mild_concerns) BEFORE calling advance_turn |
+| "build" parsed as drill | Mock parser keyword order matters — "build " must be checked BEFORE "train" (substring in "training") |
+| Event data missing in Godot | Check if advance_turn return value is captured AND added to tactical_events/events list |
 
 ---
 

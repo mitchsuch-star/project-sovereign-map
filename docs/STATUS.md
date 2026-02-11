@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 10, 2026
-> **Last Session:** Session 25 — Phase 6.2.H Supply Depot Forward Logistics
+> **Last Session:** Session 25 — Phase 6.2.H + Smoke Test Bugfixes
 
 ---
 
@@ -44,13 +44,13 @@
 - [x] **Session 22b: 6.2.F Polish** — friendly stable attrition exemption, occupation popup timing fix, debug commands, 47 tests (1784 total)
 - [x] **Session 23: Phase 6.2.G** — AI admin phase, economy command, turn summary financial report, occupation UI wiring, 29 tests (1813 total)
 - [x] **Session 24: Economy Audit Fixes** — Coalition territory viability (Britain/Prussia get Milan/Bavaria/Vienna), starting gold rebalance (Britain 1500, Prussia 800), plunder 1.75x multiplier, AI recruitment threshold 0.50, training ground +30% buff, AI market/depot building, AI supply attrition P0.5 check, 30 tests (1844 total), Geneva→Britain, gold expenditure tracking, two-tier AI recruitment
-- [x] **Session 25: Phase 6.2.H** — Supply depot forward logistics: depots project 0.5x movement attrition to destination + adjacent regions, AI depot placement prefers border regions, 16 tests (1863 total)
+- [x] **Session 25: Phase 6.2.H + Bugfixes** — Supply depot forward logistics (0.5x attrition), AI border depot placement, 16 tests (1863 total). Smoke test bugfixes: recruit targeting, build parser, supply attrition display, enemy phase labels, bankruptcy warning wiring, build typo tolerance
 
 ---
 
 ## Recently Completed
 
-### Feb 10 (Session 25: Phase 6.2.H Supply Depot Forward Logistics)
+### Feb 10 (Session 25: Phase 6.2.H + Smoke Test Bugfixes)
 
 **Supply depots now project logistics benefits to adjacent regions.**
 
@@ -60,6 +60,15 @@
 - Attrition messages updated to show "forward supply lines reduce losses" when depot bonus active
 - 16 new tests in `tests/test_depot_forward_logistics.py` (core projection, non-interaction, AI placement)
 - Docs updated: ECONOMY_SPEC, SYSTEMS_REFERENCE, ENEMY_AI_REFERENCE
+
+**Smoke test bugfixes (6 issues resolved):**
+
+- **Recruit targeting (Bug C):** `find_nearest_marshal_to_region` now sorts by (distance, -strength) instead of (-strength, distance) — recruits go to nearest marshal, not strongest
+- **Build parser (Bug G):** "build training ground" was parsed as drill ("train" substring match). Moved build keyword check before drill in mock parser
+- **Supply attrition display (Bug I):** Backend produced `tactical_events` but Godot never read them. Added `_display_tactical_events()` in main.gd
+- **Enemy phase labels:** enemy_phase_dialog.gd missing build/repair in match block; admin actions (no marshal) showed "Unknown". Added build/repair cases + nation fallback
+- **Bankruptcy warning:** `turn_end_event` was missing `bankruptcy_turns` field; Godot had no display code. Fixed both backend event and frontend display (tiered warnings + per-marshal desertion messages)
+- **Build typo tolerance:** Added common typos (bould, biuld, buld, buid) to mock parser build keyword list
 
 ### Feb 8 (Session 24: Economy Audit Fixes)
 
