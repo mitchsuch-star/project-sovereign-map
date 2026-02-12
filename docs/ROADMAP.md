@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** February 11, 2026 (Session 31: Event Log Hardening)
+> **Last Updated:** February 11, 2026 (Session 32: Fog of War Spec + Implementation Plan)
 
 ---
 
@@ -75,7 +75,7 @@
 | Reinforcements (Enemy) | AI can recruit troops | Low | **DONE** (AI admin phase, Session 23+24) |
 | Manpower Pools | Separate: Infantry, Cavalry, Artillery | Medium | Planned |
 | Attrition | Movement/supply decay | Low | **DONE** (Session 22: supply + movement attrition) |
-| Fog of War | Hidden enemies, scouting required | Medium | Planned |
+| Fog of War | Hidden enemies, scouting required, watchtower building | Medium | Spec COMPLETE (Session 32). Implementation planned (Sessions 33-36). See `FOG_OF_WAR_SPEC.md`, `FOG_IMPLEMENTATION_PLAN.md`. |
 | Terrain | Region terrain affects combat/movement | Medium | **6.1.A+B done** (data layer + combat). Movement/pathfinding remaining. |
 | Sieges | Fortified cities require siege mechanics | Medium | **Deferred to 1805** — current fort + contested capture (1-2 turn occupation) sufficient for 13-region map. Full sieges (attrition, starvation, sortie, artillery) revisit when 80-100 regions make longer holdouts strategic. |
 | City Fortification | "Fortify this city" building action | Low | **DONE** (6.2.E: fortification building, 400g/3t, +25% defense. 6.2.F: contested capture holdout.) |

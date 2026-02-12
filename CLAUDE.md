@@ -92,6 +92,7 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | Enemy AI behavior | `enemy_ai.py`, `turn_manager.py`, `executor.py` (is_player_action check) |
 | Strategic commands | `strategic.py`, `strategic_parser.py`, `executor.py` |
 | Objection V2 system | `objection_v2.py`, `docs/OBJECTION_V2.md` |
+| Fog of war | `docs/FOG_OF_WAR_SPEC.md`, `docs/FOG_IMPLEMENTATION_PLAN.md`, `backend/models/intel.py` (when created) |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`
 For Enemy AI details: `docs/ENEMY_AI_REFERENCE.md`
@@ -275,6 +276,7 @@ python -m backend.modding.validator path/to/mod.json
 | Save format / serialization | `docs/SAVE_FORMAT_REFERENCE.md` |
 | Modding guide | `docs/MODDING_FORMAT.md` |
 | Adding marshals or strategic commands | `docs/ADDING_CONTENT.md` |
+| Fog of war spec + plan | `docs/FOG_OF_WAR_SPEC.md`, `docs/FOG_IMPLEMENTATION_PLAN.md` |
 | Future design concepts | `docs/FUTURE_DESIGN.md` |
 | Phase 6 implementation plan | `docs/PHASE6_IMPLEMENTATION_PLAN.md` |
 | Game vision | `docs/VISION.md` |

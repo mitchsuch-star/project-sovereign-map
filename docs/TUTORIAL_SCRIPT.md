@@ -2,7 +2,7 @@
 
 > **Living document. Updated every phase. Feeds the Pre-EA tutorial.**
 > **Format: What the player needs to learn, and how to teach it.**
-> **Last Updated:** February 10, 2026 (Session 26)
+> **Last Updated:** February 11, 2026 (Session 32: Fog of War section added)
 
 ---
 
@@ -164,6 +164,22 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 | Moving through enemy fortification: +4% harassment | "Enemy fortification inflicts 4% harassment losses" | Should-know |
 | Supply depots halve movement attrition nearby | "Forward supply lines reduce march losses" | Nice-to-know |
 | Friendly stable regions: no supply attrition | "Home territory with stability 76+ has no supply drain" | Nice-to-know |
+
+## Fog of War (Phase 6 — Fog)
+
+| Concept | Teach by | Priority |
+|---------|----------|----------|
+| You don't see all enemies anymore | First turn: status shows "NO INTELLIGENCE" for distant regions | Must-know |
+| 5 visibility levels: Full/Partial/Stale/Last Known/Unknown | Tooltip on first "no intelligence" region | Should-know |
+| Scout reveals enemy positions and strength | "Scout Waterloo" gives FULL intel for 2 turns | Must-know |
+| Adjacent regions show partial intel (name + band) | Map shows nearby enemies as "a substantial army" | Should-know |
+| Intel decays over turns (exact -> band -> "last seen") | After 3 turns, status shows "[3 turns ago]" | Should-know |
+| Attacking into fog is allowed (you learn the hard way) | First fog attack reveals enemy on contact | Should-know |
+| PURSUE needs known/stale target location | Error if PURSUE target is UNKNOWN: "No intelligence on target" | Must-know |
+| PURSUE into stale intel may find empty region | "Ney arrives at Waterloo but finds no sign of Wellington" | Should-know |
+| Watchtower building provides permanent adjacent visibility | "Build watchtower in Belgium" — see nearby enemies without scouts | Should-know |
+| Watchtower + scout synergy: 3 turns FULL instead of 2 | Tooltip: "Watchtower observation post keeps intel fresher" | Nice-to-know |
+| Controllers (political) always visible, military intel varies | Region ownership shown regardless of fog | Should-know |
 
 ## UI & Information (Phase 6.5+)
 

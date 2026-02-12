@@ -762,6 +762,24 @@ Keep AS-IS. Marshal names are proper nouns (`"Ney"`, `"Davout"`), stored with co
 
 V2b adds the defiance/vindication/authority feedback loop. **Deferred to Phase 7 -- do NOT implement in V2a.**
 
+### Fog-of-War Objection Triggers (V2b Scope)
+
+> **Designed in `docs/FOG_OF_WAR_SPEC.md` §6.** These triggers require fog of war (Phase 6) + V2b (Phase 7) to be implemented.
+
+| Situation | Cautious (Davout) | Aggressive (Ney) | Literal (Grouchy) |
+|-----------|-------------------|-------------------|--------------------|
+| Attack into UNKNOWN region | MODERATE -> STRONG | No concern | Follows orders |
+| Attack on STALE intel (3+ turns) | MODERATE | MILD at most | Follows orders |
+| Refuse to attack when scout shows weakness | No concern | MODERATE -> STRONG | No concern |
+| PURSUE target with no intel | STRONG | MILD | Depends on order clarity |
+
+**Existing Davout PURSUE fix (disobedience.py:1609):** Currently Davout objects to PURSUE with bad odds against ANY enemy regardless of distance. With fog:
+- FULL visibility: object as now (sees odds)
+- PARTIAL: object based on strength band comparison only
+- STALE/LAST_KNOWN/UNKNOWN: cannot object on odds, may object on staleness ("Three-day-old intelligence, Sire.")
+
+**Implementation note:** `objection_v2.py` has 8+ helper functions that access enemy data without fog awareness (`_check_enemy_adjacent`, `_get_friendly_to_enemy_ratio`, etc.). Phase 6 fog adds a `get_visible_enemies_near()` helper that returns actual data now. V2b switches these helpers to use fog-filtered data. See `docs/FOG_IMPLEMENTATION_PLAN.md` issue H4.
+
 ### Defiance Mechanic (STRONG/EXTREME Only)
 
 ```python

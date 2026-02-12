@@ -2,7 +2,7 @@
 
 > **CONCEPTUAL DESIGNS** — not yet implemented. Extracted from CLAUDE.md to reduce active context.
 > **Phase numbers and priorities live in ROADMAP.md** — this file has design detail, not scheduling.
-> **Last Updated:** February 2, 2026
+> **Last Updated:** February 11, 2026 (Session 32: Fog/Terrain/Attrition sections updated to reflect implementation status)
 
 ---
 
@@ -456,32 +456,10 @@ AUTONOMY_LEVELS = {
 ### CRITICAL: Must Have for Early Access
 
 #### 1. Supply & Logistics System
-```python
-# Napoleon lost 400,000 men to attrition in Russia, not combat
-# Armies NEED supply lines to function
 
-SUPPLY_SYSTEM = {
-    "supply_range": 3,  # Regions from friendly territory
-    "effects_when_unsupplied": {
-        "attrition": "5% strength loss per turn",
-        "morale_loss": "-10 per turn",
-        "combat_penalty": "-30% effectiveness",
-        "forced_retreat": "After 3 turns unsupplied",
-    },
+**PARTIALLY IMPLEMENTED (Phase 6.2).** Supply capacity by region type (capital 50k down to rural 15k), 3-tier supply attrition, supply depot building (+10k capacity, halves movement attrition in adjacent regions). See `docs/ECONOMY_SPEC.md`.
 
-    # Supply sources:
-    "supply_sources": [
-        "Friendly controlled regions",
-        "Depot buildings (can be built)",
-        "Foraging (hostile territory, damages relations)",
-    ],
-
-    # Strategic implications:
-    # - Can't just march to Moscow without supply chain
-    # - Cutting enemy supply = winning without fighting
-    # - Depots are high-value targets
-}
-```
+**Not yet implemented:** Supply range/lines (armies can be unsupplied), foraging in hostile territory, combat penalty when unsupplied. These are Post-EA scope — current system handles supply pressure without distance-based supply lines.
 
 #### 2. Manpower Pool System
 ```python
@@ -544,111 +522,25 @@ COALITION_TRIGGERS = {
 ```
 
 #### 4. Fog of War System
-```python
-# What does the player actually KNOW vs guess?
 
-FOG_OF_WAR = {
-    "visibility_levels": {
-        "full": "Own regions, adjacent to own armies",
-        "partial": "Scouted regions (decays over time)",
-        "rumor": "2+ regions away, vague info",
-        "unknown": "No information",
-    },
+**IMPLEMENTED — See `docs/FOG_OF_WAR_SPEC.md` for full design, `docs/FOG_IMPLEMENTATION_PLAN.md` for implementation roadmap.**
 
-    "information_types": {
-        "full": ["Army location", "Army size", "Commander", "Morale"],
-        "partial": ["Army location", "Approximate size (±20%)"],
-        "rumor": ["Army reported in area", "Size unknown"],
-        "unknown": ["???"],
-    },
+5 visibility tiers (FULL/PARTIAL/STALE/LAST_KNOWN/UNKNOWN), strength bands, intel decay, watchtower building, scout persistence, PURSUE-into-fog chase mechanics. AI remains omniscient on 13 regions.
 
-    "intel_gathering": [
-        "Scout action (1 action, reveals 1 region fully)",
-        "Spy network (passive, slow intel on enemy)",
-        "Captured dispatches (random event)",
-        "Allied reports (shared intel)",
-    ],
-
-    # STRATEGIC OBJECTIONS INTEGRATION:
-    # Currently, Davout objects to PURSUE with bad odds against ANY enemy.
-    # With fog of war, he should only object if the enemy is scouted/revealed.
-    # Unscouted enemy = unknown strength = marshal can't know odds are bad.
-    # See: disobedience.py check_strategic_objection() PURSUE section
-}
-```
+**AI Fog of War (Post-EA, 80+ regions):** At scale, omniscient AI feels unfair. Design options:
+- AI gets fog but with bonuses (wider adjacency range, faster intel updates)
+- AI fog is "softer" — PARTIAL everywhere instead of UNKNOWN
+- Nation-specific intelligence quality (Britain best due to spy networks, Russia worst in distant theaters)
 
 #### 5. Terrain System
-```python
-# Mountains, rivers, fortresses matter enormously
 
-TERRAIN_TYPES = {
-    "plains": {
-        "movement_cost": 1,
-        "defender_bonus": 0,
-        "attrition": 0,
-    },
-    "hills": {
-        "movement_cost": 1.5,
-        "defender_bonus": +20,
-        "attrition": 0,
-    },
-    "mountains": {
-        "movement_cost": 2,
-        "defender_bonus": +40,
-        "attrition": 2,  # % per turn
-    },
-    "forest": {
-        "movement_cost": 1.5,
-        "defender_bonus": +15,
-        "cavalry_penalty": -30,
-    },
-    "marsh": {
-        "movement_cost": 2,
-        "defender_bonus": +10,
-        "attrition": 3,
-    },
-    "river_crossing": {
-        "attacker_penalty": -25,
-        "requires": "Bridge or ford",
-    },
-    "fortress": {
-        "defender_bonus": +50,
-        "requires_siege": True,
-        "siege_duration": "3-6 turns",
-    },
-}
-```
+**IMPLEMENTED (Phase 6.1).** 6 terrain types: plains, hills, mountains, forest, urban, river_crossing. Defense bonuses, cavalry effectiveness scaling, charge blocking, weighted pathfinding. See `docs/TERRAIN_SPEC.md`.
 
 #### 6. Attrition System
-```python
-# Armies lose men just by existing, especially in bad conditions
 
-ATTRITION_FACTORS = {
-    "base_attrition": 0.5,  # % per turn just existing
+**PARTIALLY IMPLEMENTED (Phase 6.2.F).** Supply limits by region type, 3-tier supply attrition (1%/3%/5%), movement attrition (base 1% with terrain/size/fortification modifiers), supply depot halves movement attrition. See `docs/ECONOMY_SPEC.md`.
 
-    "modifiers": {
-        "winter": +3.0,           # % additional
-        "hostile_territory": +1.0,
-        "unsupplied": +5.0,
-        "forced_march": +2.0,
-        "mountain_terrain": +2.0,
-        "disease_outbreak": +5.0,  # Event
-        "over_supply_limit": +2.0, # Too many troops in region
-    },
-
-    "mitigation": {
-        "high_morale": -0.5,
-        "experienced_troops": -0.5,
-        "supply_depot": -1.0,
-        "winter_quarters": -2.0,  # Defensive stance in winter
-    },
-
-    # Historical example:
-    # Napoleon enters Russia: 600,000 troops
-    # Reaches Moscow: 100,000 troops
-    # Most losses = attrition, not combat
-}
-```
+**Not yet implemented:** Weather/winter attrition, disease events, base idle attrition. See Weather & Seasons below.
 
 ### IMPORTANT: Should Have for EA
 

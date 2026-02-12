@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 11, 2026
-> **Last Session:** Session 31 — Event Log Hardening (EL1-EL5)
+> **Last Session:** Session 32 — Fog of War Spec Review + Implementation Plan
 
 ---
 
@@ -49,6 +49,37 @@
 ---
 
 ## Recently Completed
+
+### Feb 11 (Session 32: Fog of War Spec Review + Implementation Plan)
+
+**Architectural review of FOG_OF_WAR_SPEC.md. Created FOG_IMPLEMENTATION_PLAN.md. No code touched.**
+
+**Spec Review (6 parallel explore agents across all backend files):**
+- **3 CRITICAL issues found:** (C1) `get_game_state_summary()` exposes ALL enemy data via 12+ API endpoints — need single filtering point. (C2) Scout action does NOT persist intel to WorldState — currently ephemeral in API response only. (C3) Enemy phase display in main.py reveals all enemy actions — must be filtered alongside status command.
+- **5 HIGH issues found:** (H1) Watchtower keyword missing from `_extract_building_type()`. (H2) Watchtower field pattern diverges from building list — repair/damage handlers need extending. (H3) PURSUE/SUPPORT have 5+ direct enemy location accesses needing fog filtering. (H4) Objection system has 8+ fog-unaware enemy data helpers. (H5) Visibility calculation timing not specified in turn pipeline.
+- **6 MEDIUM issues:** PARTIAL decay timeline unspecified, watchtower construction timer, multiple enemies display, map_data marshal filtering, AI watchtower priority chain, own-region PARTIAL split.
+- **4 LOW issues:** RegionIntel class vs dict, intel source overlap, backward compat first load, event type documentation.
+
+**Implementation Plan (4 Sonnet sessions + 1 Opus review):**
+- Session 33: Intel data layer + visibility calculation + serialization (~45 tests)
+- Session 34: Command filtering + status + PURSUE + enemy phase (~45 tests)
+- Session 35: Watchtower building + AI + repair (~30 tests)
+- Session 36: Edge cases + smoke test + Davout fix + V2b markers (~20 tests)
+- Opus code review gate after Session 36
+- Total estimated: ~138-155 new tests → ~2174-2191 total
+
+**Deferred items routed:**
+- AI fog of war → FUTURE_DESIGN.md (Post-EA, 80+ regions)
+- V2b fog triggers → OBJECTION_V2.md §8 (Phase 7)
+- Spy network, captured dispatches, allied intel → FOG_OF_WAR_SPEC.md §15 (deferred)
+- Fog tutorial content → TUTORIAL_SCRIPT.md (11 entries added)
+- Fog sketches in FUTURE_DESIGN.md → marked as "IMPLEMENTED, see spec"
+
+**Files modified:** FOG_IMPLEMENTATION_PLAN.md (NEW), FUTURE_DESIGN.md, OBJECTION_V2.md, TUTORIAL_SCRIPT.md, ROADMAP.md, STATUS.md, CLAUDE.md.
+
+**Tests:** 2036 (unchanged — no code touched).
+
+---
 
 ### Feb 11 (Session 31: Event Log Hardening EL1-EL5)
 
@@ -984,12 +1015,17 @@ Traced the auto-charge tactical event path: `_process_reckless_cavalry_turn_star
 
 ## Next Session Priorities
 
-1. **Phase 6 remaining items (3 Planned features):**
-   - **Fog of War** (Medium) — Hidden enemies, scouting required
+1. **Fog of War implementation (Session 33: Intel Data Layer + Visibility Core)**
+   - Create `backend/models/intel.py` — RegionIntel class
+   - Add intel dict to WorldState, wire calculate_visibility() into turn pipeline
+   - Implement decay_intel(), update_intel_from_scout(), update_intel_from_battle()
+   - Serialization enforcement, ~45 tests expected
+   - See `docs/FOG_IMPLEMENTATION_PLAN.md` for full Session 33 checklist
+2. **After Fog of War (Sessions 33-36 + Opus review):**
    - **Manpower Pools** (Medium) — Separate: Infantry, Cavalry, Artillery
    - **Artillery Unit Type** (Medium) — Combat buffs like cavalry
-2. **Pause menu planning** — Phase 6.5 needs Esc → Save/Load/Settings/Quit menu before 1805 EA. Plan scope.
-3. Commission Europe map art (start search for artist).
+3. **Pause menu planning** — Phase 6.5 needs Esc → Save/Load/Settings/Quit menu before 1805 EA. Plan scope.
+4. Commission Europe map art (start search for artist).
 
 ### Phase 6.2 Economy Audit Findings
 
