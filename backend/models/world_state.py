@@ -319,7 +319,7 @@ class WorldState:
         Step 0: Marshal-present → FULL military (any region with friendly marshal)
         Step 1: Own regions → FULL economic; FULL military if marshal present, else PARTIAL
         Step 2: Adjacent to friendly army → PARTIAL (if not already higher)
-        Step 3: Adjacent to watchtower → PARTIAL (placeholder for Session 35)
+        Step 3: Adjacent to active watchtower in own region → PARTIAL
         Step 4-5: Handled by decay_intel() separately
 
         CRITICAL: This is the REFRESH path. It queries live world.get_marshals_in_region()
@@ -343,14 +343,24 @@ class WorldState:
                     for adj in region.adjacent_regions:
                         friendly_adjacent_regions.add(adj)
 
+        # Step 3 prep: Find regions visible via watchtower
+        # Active watchtowers in player-controlled regions grant PARTIAL on adjacent regions
+        watchtower_adjacent_regions: set = set()
+        for region_name, region in self.regions.items():
+            if (region.controller == self.player_nation
+                    and getattr(region, 'watchtower', 'none') == "active"):
+                for adj in region.adjacent_regions:
+                    watchtower_adjacent_regions.add(adj)
+
         # ════════════════════════════════════════════════════════════
-        # Step 0 + 1: Process all regions
+        # Step 0 + 1 + 2 + 3: Process all regions
         # ════════════════════════════════════════════════════════════
         for region_name, region in self.regions.items():
             intel = self.get_region_intel(region_name)
             is_own = (region.controller == self.player_nation)
             has_friendly_marshal = (region_name in friendly_marshal_regions)
             is_adjacent = (region_name in friendly_adjacent_regions)
+            is_watchtower_adjacent = (region_name in watchtower_adjacent_regions)
 
             # Get enemy military data for this region (REFRESH path: live query)
             enemy_marshals = [
@@ -404,8 +414,18 @@ class WorldState:
                 )
                 refreshed_regions.add(region_name)
 
-            # Step 3: Watchtower adjacency — placeholder for Session 35
-            # Will check for active watchtowers in own regions and grant PARTIAL
+            elif is_watchtower_adjacent:
+                # Step 3: Adjacent to active watchtower in own region → PARTIAL
+                marshal_data = self._build_marshal_snapshot(enemy_marshals, full=False)
+                total_strength = sum(m.strength for m in enemy_marshals)
+                intel.refresh(
+                    visibility=PARTIAL,
+                    source="watchtower",
+                    turn=turn,
+                    marshals=marshal_data,
+                    total_strength=total_strength,
+                )
+                refreshed_regions.add(region_name)
 
         # Store refreshed set for decay_intel to use
         self._refreshed_regions_this_turn = refreshed_regions
@@ -433,6 +453,12 @@ class WorldState:
         Called from executor._execute_scout() (Session 34A wiring).
 
         REFRESH path: queries live marshal data.
+
+        Watchtower synergy (Session 35): If the scouted region is adjacent to
+        an active watchtower in a player-controlled region, FULL intel lasts
+        one extra turn (expires after turn 3 instead of turn 2). Implemented
+        by advancing last_updated_turn by 1 — the watchtower's observation
+        post keeps the intel fresher.
         """
         intel = self.get_region_intel(region_name)
         enemy_marshals = [
@@ -442,6 +468,9 @@ class WorldState:
         marshal_data = self._build_marshal_snapshot(enemy_marshals, full=True)
         total_strength = sum(m.strength for m in enemy_marshals)
         strongest = max(enemy_marshals, key=lambda m: m.strength) if enemy_marshals else None
+
+        # Check watchtower synergy: is this region adjacent to an active watchtower?
+        has_watchtower_synergy = self._has_watchtower_coverage(region_name)
 
         intel.refresh(
             visibility=FULL,
@@ -453,6 +482,26 @@ class WorldState:
             stance=strongest.stance.value if strongest and hasattr(strongest.stance, 'value') else None,
         )
         intel.last_scouted_turn = turn
+
+        # Watchtower synergy: bump last_updated_turn by 1 for extra freshness
+        if has_watchtower_synergy:
+            intel.last_updated_turn = turn + 1
+
+    def _has_watchtower_coverage(self, region_name: str) -> bool:
+        """Check if a region is adjacent to an active watchtower in a player-controlled region.
+
+        Used for scout synergy (Session 35): scouting watchtower-covered regions
+        gives one extra turn of FULL intel freshness.
+        """
+        region = self.regions.get(region_name)
+        if not region:
+            return False
+        for adj_name in region.adjacent_regions:
+            adj = self.regions.get(adj_name)
+            if (adj and adj.controller == self.player_nation
+                    and getattr(adj, 'watchtower', 'none') == "active"):
+                return True
+        return False
 
     def update_intel_from_battle(self, region_name: str, turn: int) -> None:
         """
@@ -912,6 +961,10 @@ class WorldState:
                 self.nation_gold[marshal.nation] = self.nation_gold.get(marshal.nation, 0) + gold_gained
                 region.buildings = []
                 region.building_under_construction = None
+                # Destroy watchtower on plunder (Phase 6 Fog - Session 35)
+                if getattr(region, 'watchtower', 'none') != "none":
+                    region.watchtower = "none"
+                    region.watchtower_turns_remaining = 0
                 self.log_event({
                     "type": "region_captured",
                     "region": region_name,
@@ -927,6 +980,12 @@ class WorldState:
                 for building in region.buildings:
                     building["damaged"] = True
                 region.building_under_construction = None
+                # Damage watchtower on secure (Phase 6 Fog - Session 35)
+                if getattr(region, 'watchtower', 'none') == "active":
+                    region.watchtower = "damaged"
+                elif getattr(region, 'watchtower', 'none') == "under_construction":
+                    region.watchtower = "none"
+                    region.watchtower_turns_remaining = 0
                 self.log_event({
                     "type": "region_captured",
                     "region": region_name,
@@ -1788,10 +1847,14 @@ class WorldState:
     def process_construction_timers(self) -> list:
         """Advance all construction projects by 1 turn. (Phase 6.2.E)
 
+        Also handles watchtower construction (Phase 6 Fog - Session 35).
+        Watchtower uses dedicated field, not building_under_construction.
+
         Returns list of events for completed constructions.
         """
         events = []
         for region in self.regions.values():
+            # Standard building construction
             if region.building_under_construction:
                 region.building_under_construction["turns_remaining"] -= 1
                 if region.building_under_construction["turns_remaining"] <= 0:
@@ -1812,6 +1875,25 @@ class WorldState:
                         "type": "building_completed",
                         "region": region.name,
                         "building": completed_type,
+                        "nation": region.controller or "",
+                    })
+
+            # Watchtower construction (dedicated field)
+            if region.watchtower == "under_construction" and region.watchtower_turns_remaining > 0:
+                region.watchtower_turns_remaining -= 1
+                if region.watchtower_turns_remaining <= 0:
+                    region.watchtower = "active"
+                    region.watchtower_turns_remaining = 0
+                    events.append({
+                        "type": "construction_complete",
+                        "region": region.name,
+                        "building": "watchtower",
+                        "message": f"Construction complete: Watchtower in {region.name}!"
+                    })
+                    self.log_event({
+                        "type": "building_completed",
+                        "region": region.name,
+                        "building": "watchtower",
                         "nation": region.controller or "",
                     })
         return events
@@ -2316,6 +2398,9 @@ class WorldState:
                     "turns_remaining": int(region.building_under_construction["turns_remaining"])
                 } if region.building_under_construction else None,
                 "max_building_slots": int(region.max_building_slots()),
+                # Watchtower (Phase 6 Fog - Session 35)
+                "watchtower": getattr(region, 'watchtower', 'none'),
+                "watchtower_turns_remaining": int(getattr(region, 'watchtower_turns_remaining', 0)),
                 "marshals": marshals_data
             }
 
@@ -2393,6 +2478,8 @@ class WorldState:
                 filtered_region["buildings"] = region_data["buildings"]
                 filtered_region["building_under_construction"] = region_data["building_under_construction"]
                 filtered_region["max_building_slots"] = region_data["max_building_slots"]
+                filtered_region["watchtower"] = region_data.get("watchtower", "none")
+                filtered_region["watchtower_turns_remaining"] = region_data.get("watchtower_turns_remaining", 0)
             else:
                 # Hidden economic data — send safe defaults so Godot doesn't crash on missing keys
                 filtered_region["income_value"] = 0
@@ -2404,6 +2491,8 @@ class WorldState:
                 filtered_region["buildings"] = []
                 filtered_region["building_under_construction"] = None
                 filtered_region["max_building_slots"] = 0
+                filtered_region["watchtower"] = "none"
+                filtered_region["watchtower_turns_remaining"] = 0
 
             # Marshal filtering per visibility
             for marshal_data in region_data["marshals"]:

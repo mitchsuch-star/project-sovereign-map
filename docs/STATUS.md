@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 12, 2026
-> **Last Session:** Session 34A — Fog of War Intel Report + Filtering Infrastructure
+> **Last Session:** Session 35 — Fog of War Watchtower Building
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2130** (verified, 3 skipped) |
+| **Tests Passing** | **2183** (verified, 3 skipped) |
 | **Current Phase** | Phase 6: **IN PROGRESS** (3 items remaining: Fog of War, Manpower Pools, Artillery Unit Type) |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier, 6-BattleReport, 6-EventLog |
@@ -19,7 +19,7 @@
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED. Save/Load COMPLETE. Fog of War Sessions 33 + 34A COMPLETE.**
+**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED. Save/Load COMPLETE. Fog of War Sessions 33 + 34A + 35 COMPLETE. Session 34B NEXT.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -49,6 +49,59 @@
 ---
 
 ## Recently Completed
+
+### Feb 12 (Session 35: Fog of War Watchtower Building)
+
+**Watchtower as dedicated building type, bypasses slot system. Construction, visibility, scout synergy, damage/repair, AI building logic.**
+
+**Watchtower building (dedicated Region field):**
+- `watchtower` field: "none" / "under_construction" / "active" / "damaged"
+- `watchtower_turns_remaining` field: construction/repair countdown
+- Cost: 250 gold, 2 turns. All region types allowed (no slot needed)
+- Added to Region `to_dict()`/`from_dict()` with backward compat defaults
+
+**Visibility (calculate_visibility Step 3):**
+- Active watchtower in player-controlled region → PARTIAL on all adjacent regions
+- Source = "watchtower" (priority 1 in INTEL_SOURCE_PRIORITY, already existed)
+- Does not override higher-priority sources (marshal_present, own_territory, adjacent)
+- Refreshes each turn while watchtower is active (no decay while maintained)
+
+**Scout synergy:**
+- Scouting a watchtower-covered region: FULL expires after turn 3 instead of turn 2
+- Implemented via `_has_watchtower_coverage()` helper + `last_updated_turn` bump
+
+**Damage/destruction:**
+- Battle: active → damaged (major always, normal 25% chance). Under construction → destroyed
+- Plunder: watchtower destroyed (set to "none")
+- Secure: active → damaged, under construction → destroyed
+
+**Repair:**
+- `_execute_repair()` handles watchtower: damaged → under_construction (2 turns, 150 gold)
+- Construction timer handles watchtower completion alongside regular buildings
+
+**AI building (enemy_ai.py):**
+- Priority 6.5 (after repair, before low-priority recruit) in `_pick_admin_action()`
+- `_find_best_watchtower_region()`: prefers border regions, scored by enemy adjacency + income
+- `_find_damaged_building_region()`: now also detects damaged watchtowers for AI repair
+
+**API/display:**
+- `get_game_state_summary()`: includes watchtower/watchtower_turns_remaining in map_data
+- `get_filtered_game_state_summary()`: shows watchtower for own/FULL regions, hides for fogged
+- Debug command `add_building` updated to support watchtower (sets field directly)
+
+**Files modified:**
+- `backend/models/region.py` — watchtower + watchtower_turns_remaining fields
+- `backend/models/world_state.py` — visibility Step 3, construction timer, scout synergy, capture effects, game state summary
+- `backend/commands/executor.py` — build watchtower, repair watchtower, battle damage, plunder/secure, keyword extraction, debug
+- `backend/ai/enemy_ai.py` — P6.5 watchtower building, helper, damaged finder
+- `tests/test_watchtower.py` (NEW) — 53 tests
+- `docs/STATUS.md`, `docs/FOG_IMPLEMENTATION_PLAN.md`, `docs/SAVE_FORMAT_REFERENCE.md`, `docs/ROADMAP.md`, `CLAUDE.md`
+
+**Tests:** 53 new (2183 total passing, 3 skipped).
+
+**⚠️ NEXT SESSION: 34B** — PURSUE fog validation, SUPPORT visibility, cautious pathfinding, enemy phase filtering, tactical event filtering, event log types. Independent of Session 35 (no dependency). Then Session 36 (edge cases + polish).
+
+---
 
 ### Feb 12 (Session 34A: Fog of War Intel Report + Filtering Infrastructure)
 

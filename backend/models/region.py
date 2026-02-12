@@ -134,6 +134,11 @@ class Region:
         self.buildings: List[Dict] = []  # [{"type": "supply_depot", "damaged": False}, ...]
         self.building_under_construction: Optional[Dict] = None  # {"type": "supply_depot", "turns_remaining": 2}
 
+        # Watchtower (Phase 6 Fog of War - Session 35)
+        # Dedicated field, NOT part of building slot system. Every region type can have one.
+        self.watchtower: str = "none"  # "none", "under_construction", "active", "damaged"
+        self.watchtower_turns_remaining: int = 0  # countdown during construction/repair
+
     @property
     def defense_bonus(self) -> float:
         """Defender bonus from terrain."""
@@ -268,6 +273,9 @@ class Region:
             "plundered": self.plundered,
             "buildings": [b.copy() for b in self.buildings],
             "building_under_construction": self.building_under_construction.copy() if self.building_under_construction else None,
+            # Phase 6 Fog of War - Watchtower (Session 35)
+            "watchtower": self.watchtower,
+            "watchtower_turns_remaining": self.watchtower_turns_remaining,
         }
 
     @classmethod
@@ -290,6 +298,9 @@ class Region:
         region.buildings = [b.copy() for b in data.get("buildings", [])]
         buc = data.get("building_under_construction")
         region.building_under_construction = buc.copy() if buc else None
+        # Phase 6 Fog of War - Watchtower (Session 35)
+        region.watchtower = data.get("watchtower", "none")
+        region.watchtower_turns_remaining = data.get("watchtower_turns_remaining", 0)
         return region
 
     def __repr__(self) -> str:

@@ -1680,6 +1680,29 @@ RETREAT RECOVERY (3 turns):
                         "cause": "battle",
                     })
 
+        # Watchtower battle damage (Phase 6 Fog - Session 35)
+        # Active → damaged. Under construction → destroyed (none).
+        wt = getattr(region, 'watchtower', 'none')
+        if wt == "active":
+            if is_major or random.random() < 0.25:
+                region.watchtower = "damaged"
+                world.log_event({
+                    "type": "building_damaged",
+                    "region": region_name,
+                    "building": "watchtower",
+                    "cause": "battle",
+                })
+        elif wt == "under_construction":
+            # Under construction + battle → destroyed
+            region.watchtower = "none"
+            region.watchtower_turns_remaining = 0
+            world.log_event({
+                "type": "building_damaged",
+                "region": region_name,
+                "building": "watchtower",
+                "cause": "battle",
+            })
+
     def _log_battle_event(self, battle_result: Dict, location: str, world) -> None:
         """Extract and log the battle event from a combat result dict."""
         event = battle_result.get("log_battle_event")
@@ -5502,6 +5525,8 @@ RETREAT RECOVERY (3 turns):
             return "training_ground"
         elif "market" in raw or "trade" in raw:
             return "market"
+        elif "watch" in raw or "tower" in raw:
+            return "watchtower"
         # Try building_type field directly (set by tests)
         bt = command.get("building_type")
         if bt:
@@ -5512,6 +5537,7 @@ RETREAT RECOVERY (3 turns):
         """Build a building at a region. Costs admin AP + gold.
 
         Phase 6.2.E: supply_depot (300g/2t), fortification (400g/3t), training_ground (250g/2t).
+        Phase 6 Fog: watchtower (250g/2t) — dedicated field, bypasses slot system.
         """
         from backend.models.region import BUILDING_TYPES
 
@@ -5525,10 +5551,17 @@ RETREAT RECOVERY (3 turns):
         if not region_name:
             return {"success": False, "message": "Specify a region. Example: 'build supply depot at Lyon'"}
 
+        # ════════════════════════════════════════════════════════════
+        # WATCHTOWER: Dedicated field, bypasses slot system (Phase 6 Fog - Session 35)
+        # Every region type can have exactly one watchtower.
+        # ════════════════════════════════════════════════════════════
+        if building_type == "watchtower":
+            return self._execute_build_watchtower(command, game_state, region_name)
+
         if not building_type or building_type not in BUILDING_TYPES:
             return {
                 "success": False,
-                "message": f"Unknown building type. Valid types: {', '.join(BUILDING_TYPES.keys())}"
+                "message": f"Unknown building type. Valid types: {', '.join(BUILDING_TYPES.keys())}, watchtower"
             }
 
         region = world.get_region(region_name)
@@ -5608,6 +5641,82 @@ RETREAT RECOVERY (3 turns):
             "new_state": game_state
         }
 
+    # Watchtower cost constants (Phase 6 Fog - Session 35)
+    WATCHTOWER_GOLD_COST = 250
+    WATCHTOWER_BUILD_TIME = 2
+
+    def _execute_build_watchtower(self, command: Dict, game_state: Dict, region_name: str) -> Dict:
+        """Build a watchtower at a region. Dedicated field, bypasses slot system.
+
+        Phase 6 Fog of War - Session 35:
+        - Cost: 250 gold, 2 turns construction
+        - No slot required — every region type can have one
+        - Provides PARTIAL visibility on all adjacent regions when active
+        """
+        world: WorldState = game_state.get("world")
+
+        region = world.get_region(region_name)
+        if not region:
+            return {"success": False, "message": f"Unknown region: {region_name}"}
+
+        # Determine acting nation
+        build_acting_nation = command.get("_acting_nation") or world.player_nation
+        if not command.get("_acting_nation"):
+            build_marshal_name = command.get("marshal")
+            if build_marshal_name:
+                build_marshal_obj = world.get_marshal(build_marshal_name)
+                if build_marshal_obj:
+                    build_acting_nation = build_marshal_obj.nation
+
+        # Control check
+        if region.controller != build_acting_nation:
+            return {"success": False, "message": f"Cannot build in {region_name} — not controlled by {build_acting_nation}"}
+
+        # Already has watchtower (active or damaged)
+        if region.watchtower in ("active", "damaged"):
+            status = "an active" if region.watchtower == "active" else "a damaged"
+            return {"success": False, "message": f"{region_name} already has {status} watchtower"}
+
+        # Already constructing watchtower
+        if region.watchtower == "under_construction":
+            return {"success": False, "message": f"Already constructing a watchtower in {region_name}"}
+
+        # Stability gate
+        if region.stability <= 50:
+            return {"success": False, "message": f"Cannot build in {region_name} — region stability too low ({region.stability}/100). Need 51+."}
+
+        # Gold check
+        build_treasury = world.nation_gold.get(build_acting_nation, 0)
+        if build_treasury < self.WATCHTOWER_GOLD_COST:
+            return {"success": False, "message": f"Insufficient gold! Need {self.WATCHTOWER_GOLD_COST}, have {build_treasury}"}
+
+        # Start construction
+        region.watchtower = "under_construction"
+        region.watchtower_turns_remaining = self.WATCHTOWER_BUILD_TIME
+        world.nation_gold[build_acting_nation] = int(build_treasury - self.WATCHTOWER_GOLD_COST)
+        world.record_gold_spent(build_acting_nation, self.WATCHTOWER_GOLD_COST)
+
+        # Log event
+        world.log_event({
+            "type": "building_started",
+            "region": region_name,
+            "building": "watchtower",
+            "nation": build_acting_nation,
+        })
+
+        return {
+            "success": True,
+            "message": f"Construction started: Watchtower in {region_name} ({self.WATCHTOWER_BUILD_TIME} turns, {self.WATCHTOWER_GOLD_COST} gold)",
+            "events": [{
+                "type": "build_started",
+                "region": region_name,
+                "building": "watchtower",
+                "gold_cost": int(self.WATCHTOWER_GOLD_COST),
+                "turns": self.WATCHTOWER_BUILD_TIME,
+            }],
+            "new_state": game_state
+        }
+
     def _execute_repair(self, command: Dict, game_state: Dict) -> Dict:
         """Repair war damage or a damaged building. Costs admin AP + 150 gold.
 
@@ -5649,6 +5758,22 @@ RETREAT RECOVERY (3 turns):
         building_type = command.get("building_type") or self._extract_building_type(command)
 
         if building_type:
+            # Watchtower repair (Phase 6 Fog - Session 35): dedicated field, not in buildings list
+            if building_type == "watchtower":
+                wt = getattr(region, 'watchtower', 'none')
+                if wt != "damaged":
+                    return {"success": False, "message": f"No damaged watchtower in {region_name}"}
+                region.watchtower = "under_construction"
+                region.watchtower_turns_remaining = 2  # Same as build time
+                world.nation_gold[repair_acting_nation] = int(repair_treasury - REPAIR_COST)
+                world.record_gold_spent(repair_acting_nation, REPAIR_COST)
+                return {
+                    "success": True,
+                    "message": f"Watchtower repair started in {region_name} (2 turns, {REPAIR_COST} gold)",
+                    "events": [{"type": "repair_building", "region": region_name, "building": "watchtower"}],
+                    "new_state": game_state
+                }
+
             # Find the damaged building
             for b in region.buildings:
                 if b["type"] == building_type and b.get("damaged", False):
@@ -6071,7 +6196,7 @@ RETREAT RECOVERY (3 turns):
                           "  • set_stability <region> <0-100> - Set region stability\n"
                           "  • set_gold <amount> - Set player gold\n"
                           "  • set_controller <region> <nation> - Set region controller\n"
-                          "  • add_building <region> <type> - Add building (supply_depot/fortification/training_ground/market)\n"
+                          "  • add_building <region> <type> - Add building (supply_depot/fortification/training_ground/market/watchtower)\n"
                           "\n== Info ==\n"
                           "  • list_marshals - Show all marshals and locations\n"
                           "  • list_regions - Show all regions and who's there"
@@ -6288,9 +6413,9 @@ RETREAT RECOVERY (3 turns):
 
         elif ability == "add_building":
             if len(parts) < 3:
-                return {"success": False, "message": "Usage: /debug add_building <region> <type>\nTypes: supply_depot, fortification, training_ground, market"}
+                return {"success": False, "message": "Usage: /debug add_building <region> <type>\nTypes: supply_depot, fortification, training_ground, market, watchtower"}
             building_type = parts[-1].lower()
-            valid_types = {"supply_depot", "fortification", "training_ground", "market"}
+            valid_types = {"supply_depot", "fortification", "training_ground", "market", "watchtower"}
             if building_type not in valid_types:
                 return {"success": False, "message": f"Invalid building type '{building_type}'.\nValid: {', '.join(sorted(valid_types))}"}
             region_name = " ".join(parts[1:-1])
@@ -6303,6 +6428,11 @@ RETREAT RECOVERY (3 turns):
                         break
             if not region:
                 return {"success": False, "message": f"Region '{region_name}' not found."}
+            # Watchtower uses dedicated field (Phase 6 Fog - Session 35)
+            if building_type == "watchtower":
+                region.watchtower = "active"
+                region.watchtower_turns_remaining = 0
+                return {"success": True, "message": f"DEBUG: Added watchtower to {region_name}. Watchtower: active"}
             region.buildings.append({"type": building_type, "damaged": False})
             return {"success": True, "message": f"DEBUG: Added {building_type} to {region_name}. Buildings: {len(region.buildings)}"}
 
@@ -7797,6 +7927,16 @@ RETREAT RECOVERY (3 turns):
         # Destroy all buildings
         region.buildings = []
         region.building_under_construction = None
+        # Destroy watchtower (Phase 6 Fog - Session 35)
+        if getattr(region, 'watchtower', 'none') != "none":
+            world.log_event({
+                "type": "building_damaged",
+                "region": region.name,
+                "building": "watchtower",
+                "cause": "plunder",
+            })
+            region.watchtower = "none"
+            region.watchtower_turns_remaining = 0
         return {"gold_gained": int(gold_gained)}
 
     def _apply_secure(self, region) -> None:
@@ -7810,6 +7950,12 @@ RETREAT RECOVERY (3 turns):
             building["damaged"] = True
         # Cancel construction
         region.building_under_construction = None
+        # Damage watchtower (Phase 6 Fog - Session 35)
+        if getattr(region, 'watchtower', 'none') == "active":
+            region.watchtower = "damaged"
+        elif getattr(region, 'watchtower', 'none') == "under_construction":
+            region.watchtower = "none"
+            region.watchtower_turns_remaining = 0
 
     def _get_ai_capture_choice(self, marshal) -> str:
         """AI decides plunder vs secure based on personality."""

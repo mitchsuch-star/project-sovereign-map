@@ -323,39 +323,28 @@ The spec (§10) adds 3 new event types: `intel_updated`, `intel_decayed`, `targe
 
 **Goal:** Watchtower as dedicated building, construction, visibility effect, scout synergy, AI building, repair.
 
-**Implementation:**
-- [ ] Add `watchtower` and `watchtower_turns_remaining` fields to Region model (§7.2)
-  - `watchtower: str` — "none", "under_construction", "active", "damaged"
-  - `watchtower_turns_remaining: int` — countdown during construction/repair
-  - Add to `to_dict()` / `from_dict()` with backward compat defaults ("none", 0)
-- [ ] Add "watchtower" keyword to `_extract_building_type()` in executor.py (H1 fix)
-- [ ] Add watchtower build handler in `_execute_build()` — branch based on building type
-  - Cost: 250 gold, 2 turns construction
-  - No slot required (dedicated field) — bypass slot check AND `allowed_in` check
-  - Buildable in ALL region types (rural, town, city, major_city, capital)
-  - Validation: region already has watchtower check, gold check, region control check, not already constructing
-- [ ] Extend `process_construction_timers()` on **WorldState** (not Region — it's at `world_state.py:1562`)
-  - Add watchtower countdown alongside building countdown
-  - When timer completes: watchtower → "active"
-- [ ] Wire watchtower into `calculate_visibility()` — active watchtower in own region provides PARTIAL on adjacent
-  - Only player-owned watchtowers affect fog (AI is omniscient, doesn't need them for visibility)
-- [ ] Watchtower scout synergy: scouting watchtower-visible region → FULL expires turn 3 instead of turn 2 (§7.4)
-- [ ] Battle damage: active watchtower → "damaged" (same as civilian buildings)
-  - Under construction + battle → "none" (destroyed, consistent with `building_under_construction = None`)
-- [ ] Plunder destroys watchtower ("none"), secure damages it ("damaged")
-- [ ] Extend `_execute_repair()` to handle watchtower repair (H2 fix)
-  - Same cost as building repair: 1 admin AP + 150 gold
-  - Damaged → under_construction (repair timer) → active
-- [ ] AI watchtower building logic (§7.1, M5)
-  - Add to `_pick_admin_action()` between depot (P3) and fortification (P4)
-  - `_find_best_watchtower_region()`: own border regions without watchtower
-  - Score by: border adjacency (heavy bonus) + income value
-- [ ] Update mock parser to handle "watchtower" keyword in `llm_client.py`
-- [ ] Serialization enforcement tests
-- [ ] Unit tests: watchtower construction, visibility effect, scout synergy, damage/repair, AI building, serialization
+**Implementation: COMPLETE (Session 35, Feb 12 2026)**
+- [x] Add `watchtower` and `watchtower_turns_remaining` fields to Region model (§7.2)
+- [x] Add "watchtower" keyword to `_extract_building_type()` in executor.py (H1 fix)
+- [x] Add watchtower build handler `_execute_build_watchtower()` — bypasses slot system
+  - Cost: 250 gold, 2 turns. All region types. Dedicated field, not building slots.
+- [x] Extend `process_construction_timers()` for watchtower countdown
+- [x] Wire watchtower into `calculate_visibility()` Step 3 — PARTIAL on adjacent
+- [x] Watchtower scout synergy: +1 turn freshness via `_has_watchtower_coverage()` helper
+- [x] Battle damage: active → damaged (major always, normal 25%), under_construction → destroyed
+- [x] Plunder destroys watchtower, secure damages active / destroys under_construction
+- [x] Extend `_execute_repair()` for watchtower: damaged → under_construction (2t, 150g)
+- [x] AI watchtower building: P6.5 in `_pick_admin_action()` (after repair, before rebuild recruit)
+  - `_find_best_watchtower_region()`: border regions scored by enemy adjacency + income
+  - `_find_damaged_building_region()`: also detects damaged watchtowers
+- [x] Mock parser: watchtower routes through existing "build " keyword → `_extract_building_type()`
+- [x] Serialization enforcement tests pass (14/14)
+- [x] Debug command `add_building` updated for watchtower
+- [x] `get_game_state_summary()` and `get_filtered_game_state_summary()` include watchtower data
+- [x] 53 unit tests: construction, visibility, scout synergy, damage, repair, AI, serialization, edge cases
 
-**Tests expected:** ~30
-**Smoke test gate:** `pytest tests/ -v --tb=no -q` green
+**Tests:** 53 new (2183 total passing, 3 skipped)
+**Smoke test gate:** PASSED
 
 ---
 
@@ -558,10 +547,10 @@ Fog touches many systems — review integration points:
 |---------|-------|------------|-------|------------|
 | 33 | Intel model + visibility + decay + serialization + game init | Sonnet | 55 | 2091 |
 | 34A | Intel report + filtered game state + scout persistence + battle reveals + fogged_forces | Sonnet | 39 | 2130 |
-| 34B | PURSUE fog + SUPPORT fog + cautious pathfinding + enemy phase/tactical filtering + event log | Sonnet | ~30 | ~2160 |
-| 35 | Watchtower building + visibility + AI + repair + synergy | Sonnet | ~30 | ~2166 |
-| 36 | Edge cases + Davout PURSUE + V2b markers + smoke test + docs | Sonnet | ~20 | ~2186 |
-| Review | Opus code review gate — verify all 23 endpoints + no data leaks | Opus | 0 | ~2186 |
+| 34B | PURSUE fog + SUPPORT fog + cautious pathfinding + enemy phase/tactical filtering + event log | Sonnet | ~30 | ~2213 |
+| 35 | Watchtower building + visibility + AI + repair + synergy | Opus | 53 | 2183 |
+| 36 | Edge cases + Davout PURSUE + V2b markers + smoke test + docs | Sonnet | ~20 | ~2233 |
+| Review | Opus code review gate — verify all 23 endpoints + no data leaks | Opus | 0 | ~2233 |
 
 All sessions are Sonnet-level except the code review gate (Opus).
 

@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** February 11, 2026 (Session 32: Fog of War Spec + Implementation Plan)
+> **Last Updated:** February 12, 2026 (Session 35: Watchtower Building)
 
 ---
 
@@ -40,7 +40,7 @@
 | 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 2036 (verified Feb 11, 2026)
+**Total Tests:** 2183 (verified Feb 12, 2026)
 
 ---
 
@@ -75,7 +75,7 @@
 | Reinforcements (Enemy) | AI can recruit troops | Low | **DONE** (AI admin phase, Session 23+24) |
 | Manpower Pools | Separate: Infantry, Cavalry, Artillery | Medium | Planned |
 | Attrition | Movement/supply decay | Low | **DONE** (Session 22: supply + movement attrition) |
-| Fog of War | Hidden enemies, scouting required, watchtower building | Medium | Spec COMPLETE (Session 32). Implementation planned (Sessions 33-36). See `FOG_OF_WAR_SPEC.md`, `FOG_IMPLEMENTATION_PLAN.md`. **Backend mechanics only — visual fog layer (region tinting/overlays) deferred to Phase 6.5 Map Renderer.** |
+| Fog of War | Hidden enemies, scouting required, watchtower building | Medium | Spec COMPLETE (Session 32). Backend IN PROGRESS (Sessions 33-36). Sessions 33+34A+35 COMPLETE (intel model, visibility engine, scout action, intel report, watchtower building). Session 34B (enemy AI fog helpers) and Session 36 (integration/hardening) remaining. See `FOG_OF_WAR_SPEC.md`, `FOG_IMPLEMENTATION_PLAN.md`. **Backend mechanics only — visual fog layer deferred to Phase 6.5 Map Renderer.** |
 | Terrain | Region terrain affects combat/movement | Medium | **6.1.A+B done** (data layer + combat). Movement/pathfinding remaining. |
 | Sieges | Fortified cities require siege mechanics | Medium | **Deferred to 1805** — current fort + contested capture (1-2 turn occupation) sufficient for 13-region map. Full sieges (attrition, starvation, sortie, artillery) revisit when 80-100 regions make longer holdouts strategic. |
 | City Fortification | "Fortify this city" building action | Low | **DONE** (6.2.E: fortification building, 400g/3t, +25% defense. 6.2.F: contested capture holdout.) |

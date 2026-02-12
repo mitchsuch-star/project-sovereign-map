@@ -3383,6 +3383,7 @@ class EnemyAI:
         4. Build fortification at border region (treasury > 400)
         5. Repair damaged building in high-income region (treasury > 150)
         6. Repair war damage in high-income region (treasury > 150)
+        6.5. Build watchtower at border region (treasury > 250) [Phase 6 Fog]
         7. Low-priority rebuild recruit (marshal 50%-100% strength)
         8. None (save AP for income bonus)
 
@@ -3465,6 +3466,17 @@ class EnemyAI:
                     "action": "repair",
                     "target": damaged_region
             }
+
+        # Priority 6.5: Build watchtower at border region (Phase 6 Fog - Session 35)
+        # Below repair priorities — fix infrastructure before building new watchtowers
+        if "build" not in skip_actions and treasury >= 250:
+            watchtower_region = self._find_best_watchtower_region(nation, world)
+            if watchtower_region:
+                return {
+                    "action": "build",
+                    "target": watchtower_region,
+                    "building_type": "watchtower"
+                }
 
         # Priority 7: Low-priority rebuild recruit (50%-100% strength)
         # Enemies can eventually rebuild to full strength if left alone.
@@ -3688,8 +3700,49 @@ class EnemyAI:
                 return True
         return False
 
+    def _find_best_watchtower_region(self, nation: str, world) -> Optional[str]:
+        """Find the best border region for a watchtower (Phase 6 Fog - Session 35).
+
+        Watchtowers don't use building slots — every region type can have one.
+        Prefer border regions (adjacent to enemy territory) for maximum strategic value.
+        """
+        best_region = None
+        best_score = -1
+
+        for region_name in world.get_nation_regions(nation):
+            region = world.get_region(region_name)
+            if not region:
+                continue
+
+            # Already has watchtower (any state)?
+            wt = getattr(region, 'watchtower', 'none')
+            if wt != "none":
+                continue
+
+            # Stability must be > 50
+            if getattr(region, 'stability', 100) <= 50:
+                continue
+
+            # Score by border adjacency (heavy bonus) + income value
+            score = 0
+            for adj_name in region.adjacent_regions:
+                adj = world.get_region(adj_name)
+                if adj and adj.controller and adj.controller != nation:
+                    score += 100  # Border bonus per enemy-adjacent region
+            score += getattr(region, 'income_value', 0)
+
+            # Only consider border regions (must have at least one enemy neighbor)
+            if score > best_score and score >= 100:
+                best_score = score
+                best_region = region_name
+
+        return best_region
+
     def _find_damaged_building_region(self, nation: str, world) -> Optional[Dict]:
-        """Find a region with a damaged building, prioritizing high-income regions."""
+        """Find a region with a damaged building, prioritizing high-income regions.
+
+        Also checks for damaged watchtowers (Phase 6 Fog - Session 35).
+        """
         best = None
         best_income = -1
 
@@ -3707,6 +3760,15 @@ class EnemyAI:
                             "region": region_name,
                             "building_type": building["type"]
                         }
+            # Check damaged watchtower (Phase 6 Fog - Session 35)
+            if getattr(region, 'watchtower', 'none') == "damaged":
+                income = getattr(region, 'income_value', 0)
+                if income > best_income:
+                    best_income = income
+                    best = {
+                        "region": region_name,
+                        "building_type": "watchtower"
+                    }
 
         return best
 

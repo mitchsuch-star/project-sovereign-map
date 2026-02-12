@@ -11,7 +11,7 @@ A future save/load system should use this as the specification.
 
 - **Format version:** 1.0
 - **Last updated:** 2026-02-12
-- **Compatible with:** Phase 6 Session 33 (Fog of War Intel Data Layer)
+- **Compatible with:** Phase 6 Session 35 (Fog of War Watchtower Building)
 
 ## Top-Level Structure (WorldState)
 
@@ -430,7 +430,9 @@ A future save/load system should use this as the specification.
   "war_damage": 0.0,
   "plundered": false,
   "buildings": [{"type": "supply_depot", "damaged": false}],
-  "building_under_construction": null
+  "building_under_construction": null,
+  "watchtower": "none",
+  "watchtower_turns_remaining": 0
 }
 ```
 
