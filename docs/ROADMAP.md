@@ -543,6 +543,7 @@ Killer feature for the "talk to your marshals" fantasy. Player speaks commands, 
 | Year-Based Turns | Monthly 1805-1815 | Low | |
 | 1805 Win Conditions | Per-nation victory conditions | Medium | |
 | **Greyed-Out Expansion** | Remaining 40-70 provinces visible but non-interactive | Low | Visual promise |
+| **AI Fog of War** | AI gets fog (softer than player's) at 80+ regions | Medium | Omniscient AI unfair at scale. Toggle point: `get_visible_enemies_near()` |
 
 ### Economy Rebalance for 1805
 
@@ -558,6 +559,15 @@ These are acceptable for the tutorial scenario (France should feel dominant). Fo
 - Building costs may need scaling by era or nation
 - Coalition subsidy mechanic from off-map Britain may be needed
 - Upkeep rate (5g/1000 troops) should be re-evaluated against 1805 army sizes
+
+### AI Fog of War for 1805
+
+At 13 regions, AI omniscience is fine — too few regions for fog to matter strategically. At 80+ regions, omniscient AI feels unfair (it always knows where you are, you never know where it is). Options to evaluate:
+- AI gets fog but with bonuses (wider adjacency range, faster intel updates)
+- AI fog is "softer" — PARTIAL everywhere instead of UNKNOWN
+- AI uses watchtowers and scouts like the player but with priority logic already built
+
+The `get_visible_enemies_near()` helper added in Session 36 is the toggle point — currently returns actual data, switch to fog-filtered for AI fog. The 12 objection helper TODO markers (V2b) also apply here since AI nations' marshals would need fog-aware objection triggers.
 
 ### AP Scaling for 1805
 
