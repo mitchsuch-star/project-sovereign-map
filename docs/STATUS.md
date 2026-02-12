@@ -1,8 +1,8 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 11, 2026
-> **Last Session:** Session 32b — Fog of War Fresh-Eyes Review + Design Decisions
+> **Last Updated:** February 12, 2026
+> **Last Session:** Session 33 — Fog of War Intel Data Layer + Visibility Core
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2036** (verified, 3 skipped) |
+| **Tests Passing** | **2091** (verified, 3 skipped) |
 | **Current Phase** | Phase 6: **IN PROGRESS** (3 items remaining: Fog of War, Manpower Pools, Artillery Unit Type) |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier, 6-BattleReport, 6-EventLog |
@@ -19,7 +19,7 @@
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED. Save/Load COMPLETE.**
+**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED. Save/Load COMPLETE. Fog of War Session 33 COMPLETE.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -49,6 +49,46 @@
 ---
 
 ## Recently Completed
+
+### Feb 12 (Session 33: Fog of War Intel Data Layer + Visibility Core)
+
+**Backend data layer for fog of war. RegionIntel model, visibility calculation, decay system, serialization. Game is functionally unchanged — nothing reads the intel store yet (filtering comes in Session 34A).**
+
+**New file: `backend/models/intel.py`**
+- `RegionIntel` class with visibility constants (FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN)
+- Strength bands: no forces, screening force (<5K), small (5-15K), substantial (15-40K), large (40-70K), massive (70K+)
+- `refresh()` method: upgrade-only, stores live marshal data, resets `last_updated_turn`
+- `decay()` method: frozen snapshot, only downgrades visibility level based on age
+- Intel source priority: own_territory (5) > marshal_present (4) > scout (3) > battle (2) > watchtower (1) > adjacent (0)
+- Full `to_dict()` / `from_dict()` serialization
+
+**WorldState additions (`backend/models/world_state.py`):**
+- `self.intel: Dict[str, RegionIntel]` — intel store for all 13 regions
+- `calculate_visibility()` — Steps 0-3: marshal-present → own region → adjacent → watchtower placeholder. Tracks `_refreshed_regions_this_turn` set for decay to skip.
+- `decay_intel()` — Degrades non-refreshed regions: FULL/PARTIAL → STALE at 3 turns → LAST_KNOWN at 5 turns
+- `get_region_intel(region_name)` — Returns current intel (creates UNKNOWN entry if missing)
+- `update_intel_from_scout(region_name, turn)` — Sets FULL with live data, sets `last_scouted_turn`
+- `update_intel_from_battle(region_name, turn)` — Sets FULL with live data (no `last_scouted_turn`)
+- `_build_marshal_snapshot(marshal, visibility)` — Creates marshal dict for intel (exact strength for FULL, band for PARTIAL)
+- Wired at END of `_advance_turn_internal()` (after all processing), at end of `__init__()`, and after save load
+
+**Key design decisions implemented (from Session 32c):**
+- **Marshal-present → FULL (H6):** Grouchy in British Waterloo gets FULL visibility on Wellington — sees exact strength, morale, stance
+- **Timing (H5):** End of turn, after broken retreats, auto-charges, income — player sees clean picture
+- **PARTIAL decay (M1):** Same timeline as FULL, offset from `last_updated_turn`
+- **Stale snapshots intentionally wrong:** When enemies leave, stale intel still shows them there
+
+**Files modified:**
+- `backend/models/intel.py` (NEW) — RegionIntel class, visibility constants, strength bands
+- `backend/models/world_state.py` — intel dict, 6 new methods, wiring at 3 locations
+- `backend/save_manager.py` — `calculate_visibility()` after load for backward compat
+- `tests/test_fog_of_war.py` (NEW) — 55 tests
+- `docs/SAVE_FORMAT_REFERENCE.md` — RegionIntel format section, intel field in WorldState
+- `docs/STATUS.md` — this entry
+
+**Tests:** 55 new (2091 total passing, 3 skipped).
+
+---
 
 ### Feb 11 (Session 32b: Fog of War Fresh-Eyes Review)
 
@@ -980,6 +1020,7 @@ Traced the auto-charge tactical event path: `_process_reckless_cavalry_turn_star
 
 | Date | Tests | Notes |
 |------|-------|-------|
+| Feb 12, 2026 | **2091** | Session 33: Fog of War intel data layer + visibility core. 55 new tests (RegionIntel, visibility, decay, serialization). |
 | Feb 11, 2026 | **2036** | Session 31: Event log hardening (EL1-EL5) + float leak fix. 9 new tests, 2 bugs fixed. |
 | Feb 11, 2026 | **2027** | Session 30: Turn Events Log. 39 new tests (13 event types, 5 helpers, serialization). |
 | Feb 11, 2026 | **1988** | Session 29 final: Perspective bugs fixed + fort defender observations. 65 battle report tests total. |
@@ -1037,17 +1078,21 @@ Traced the auto-charge tactical event path: `_process_reckless_cavalry_turn_star
 
 ## Next Session Priorities
 
-1. **Fog of War implementation (Session 33: Intel Data Layer + Visibility Core)**
-   - Create `backend/models/intel.py` — RegionIntel class
-   - Add intel dict to WorldState, wire calculate_visibility() into turn pipeline
-   - Implement decay_intel(), update_intel_from_scout(), update_intel_from_battle()
-   - Serialization enforcement, ~45 tests expected
-   - See `docs/FOG_IMPLEMENTATION_PLAN.md` for full Session 33 checklist
-2. **After Fog of War (Sessions 33-36 + Opus review):**
+1. **Fog of War Session 34A: Intel Report + Filtering Infrastructure**
+   - Create `backend/intel_report.py` — Berthier Intelligence Report (fog-filtered status)
+   - `get_filtered_game_state_summary()` — replace all 23 unfiltered call sites
+   - Wire scout action → `update_intel_from_scout()`, battle → `update_intel_from_battle()` at all 6 resolve_battle sites
+   - See `docs/FOG_IMPLEMENTATION_PLAN.md` for full checklist
+2. **Fog of War Sessions 34B-36:**
+   - 34B: PURSUE fog, SUPPORT visibility, cautious pathfinding, display filtering
+   - 35: Watchtower building + visibility + AI + repair
+   - 36: Edge cases, Davout PURSUE, V2b markers, smoke test, docs
+   - Opus code review gate after Session 36
+3. **After Fog of War:**
    - **Manpower Pools** (Medium) — Separate: Infantry, Cavalry, Artillery
    - **Artillery Unit Type** (Medium) — Combat buffs like cavalry
-3. **Pause menu planning** — Phase 6.5 needs Esc → Save/Load/Settings/Quit menu before 1805 EA. Plan scope.
-4. Commission Europe map art (start search for artist).
+4. **Pause menu planning** — Phase 6.5 needs Esc → Save/Load/Settings/Quit menu before 1805 EA. Plan scope.
+5. Commission Europe map art (start search for artist).
 
 ### Phase 6.2 Economy Audit Findings
 

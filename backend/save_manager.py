@@ -106,6 +106,11 @@ def load_game(filepath: Path) -> Dict:
         for marshal in world.marshals.values():
             marshal.in_combat_this_turn = False
 
+        # Fog of War: recalculate visibility after load (Phase 6 Session 33)
+        # Handles backward compat for old saves that have no intel data —
+        # calculate_visibility() populates from current game state.
+        world.calculate_visibility()
+
         return {"success": True, "message": f"Loaded: {metadata.get('save_name', 'Unknown')}", "world": world, "metadata": metadata}
 
     except json.JSONDecodeError as e:

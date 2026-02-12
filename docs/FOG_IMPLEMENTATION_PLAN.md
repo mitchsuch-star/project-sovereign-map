@@ -5,6 +5,7 @@
 > **Created:** February 11, 2026
 > **Author:** Claude (Opus), Session 32
 > **Reviewed:** Session 32b (Opus) — fresh-eyes review, 6 design decisions resolved, session 34 split into 34A/34B
+> **Updated:** Session 32c — 5 implementation issues resolved: marshal-present visibility (H6), calculate_visibility() timing (H5 revised), PARTIAL decay timeline (M1), refresh vs decay path separation, stale snapshot semantics
 
 ---
 
@@ -65,22 +66,25 @@ The spec proposes `watchtower: str` with states "none"/"under_construction"/"act
 
 **Resolution:** Full fog-aware objection logic is V2b scope (Phase 7). For Phase 6, Session 36 adds: (1) `get_visible_enemies_near()` helper that returns actual data now but can be switched to fog-filtered in V2b, (2) TODO markers at all 12 helper functions, (3) Davout PURSUE fog-aware objection as first concrete fog+objection integration.
 
-**H5: `calculate_visibility()` execution timing not specified in turn pipeline** ✅ SPEC UPDATED
+**H5: `calculate_visibility()` execution timing not specified in turn pipeline** ✅ RESOLVED (Session 32c)
 
 The spec (§3.3) says "each turn, before player actions, recalculate visibility." The actual turn pipeline in `world_state.py:_advance_turn_internal()` has many phases.
 
-**Resolution:** Spec §3.3 updated. `calculate_visibility()` runs at the START of `_advance_turn_internal()` (step 0, before all other processing), `decay_intel()` runs immediately after. Also runs at game init and after save load. Assigned to Session 33.
+**Resolution (updated Session 32c):** `calculate_visibility()` + `decay_intel()` run at the END of `_advance_turn_internal()`, AFTER all processing (tactical states, construction, turn increment, stability, supply, bankruptcy, income). This ensures broken marshal retreats, auto-charges, and strategic movements are all resolved before visibility recalculates. The player sees a clean, accurate picture at the start of their next action phase. Also runs at game init (end of `__init__`) and after save load. Assigned to Session 33.
+
+**H6: Marshal-present visibility not in calculate_visibility() steps** ✅ RESOLVED (Session 32c)
+
+The original `calculate_visibility()` steps only handled "own regions" (Step 1) and "adjacent to friendly army" (Step 2). Neither covered enemy-controlled regions where a friendly marshal is physically present. Example: Grouchy starts in Waterloo (British territory) alongside Wellington and Uxbridge — he can see them, but no rule granted FULL visibility there.
+
+**Resolution:** New Step 0 added to `calculate_visibility()`: "Any region containing a friendly marshal → FULL military intel." Runs before own-region and adjacency checks. Priority order is now: marshal-present (Step 0) → own region (Step 1) → adjacent to army (Step 2) → watchtower (Step 3) → decay (Step 4-5) → best-wins (Step 6).
 
 ### MEDIUM Issues
 
-**M1: Stale intel degradation granularity not specified for PARTIAL**
+**M1: Stale intel degradation granularity not specified for PARTIAL** ✅ RESOLVED (Session 32c)
 
-The spec (§2.2) defines decay for FULL intel: turns 0-2 = FULL, 3-4 = STALE, 5+ = LAST_KNOWN. But §3.3 step 5 says "Previously PARTIAL but no longer adjacent → starts aging from last_updated_turn." The decay timeline for PARTIAL-sourced intel is not explicitly defined.
+The spec (§2.2) defines decay for FULL intel: turns 0-2 = FULL, 3-4 = STALE, 5+ = LAST_KNOWN. But §3.3 step 5 says "Previously PARTIAL but no longer adjacent → starts aging from last_updated_turn." The decay timeline for PARTIAL-sourced intel was not explicitly defined.
 
-**Design decision needed:**
-- Should PARTIAL degrade directly to LAST_KNOWN (skipping STALE)?
-- Or follow the same 2-turn-fresh → STALE → LAST_KNOWN timeline?
-- **Recommendation:** PARTIAL degrades to STALE at turn 2 after losing adjacency, then LAST_KNOWN at turn 4. Same timeline but with less data to start with (no exact strength, morale, stance). This matches the user's refinement in Session 31c about gradual degradation.
+**Resolution:** Same decay timeline for both FULL and PARTIAL, offset from `last_updated_turn`. PARTIAL was less detailed (bands not exact numbers), but the freshness of the observation is the same — a cavalry screen saw them yesterday whether they counted heads or not. Making PARTIAL decay faster adds complexity for minimal gameplay value. Same clock: 2 turns fresh → STALE at 3-4 → LAST_KNOWN at 5+.
 
 **M2: Watchtower construction timer needs dedicated processing**
 
@@ -139,37 +143,28 @@ The spec (§10) adds 3 new event types: `intel_updated`, `intel_decayed`, `targe
 
 **Goal:** RegionIntel model, intel store on WorldState, visibility calculation, decay, serialization. After this session, the data layer exists but nothing reads it yet — the game is functionally unchanged.
 
-**Implementation:**
-- [ ] Create `backend/models/intel.py` — `RegionIntel` class
-  - Fields: region_name, visibility, known_marshals, strength_band, exact_strength, morale, stance, economic_intel, last_scouted_turn, last_updated_turn, intel_source
-  - `to_dict()` / `from_dict()` with full serialization
-  - `get_strength_band(strength)` static helper
-  - Visibility constants: FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN
-  - Intel source priority: own_territory > scout > battle > watchtower > adjacent (store highest only)
-- [ ] Add `intel: dict` to `WorldState.__init__()` (empty dict default)
-  - Backward compat: missing field = empty dict
-  - Add to `to_dict()` / `from_dict()`
-- [ ] Implement `calculate_visibility()` as method on WorldState
-  - Step 1: Own regions → FULL economic, military based on army presence/adjacency
-  - Step 2: Adjacent to friendly army → PARTIAL
-  - Step 3: Adjacent to watchtower → PARTIAL (placeholder, watchtower comes Session 35)
-  - Step 4: Check intel age → FULL/STALE/LAST_KNOWN
-  - Step 5: Previously PARTIAL no longer adjacent → age from last_updated_turn
-  - Step 6: Best visibility wins when multiple sources apply
-- [ ] Implement `get_region_intel(region_name)` — returns current intel for a region
-- [ ] Implement `update_intel_from_scout(region_name, turn)` — scout sets FULL
-- [ ] Implement `update_intel_from_battle(region_name, turn)` — battle sets FULL
-- [ ] Implement `decay_intel()` — called each turn, degrades old intel
-- [ ] Implement strength band calculation (5 bands from spec §2.1)
-- [ ] **Game init:** Call `calculate_visibility()` at end of `WorldState.__init__()` so turn 1 has correct visibility (French regions FULL, rest UNKNOWN)
-- [ ] Wire `calculate_visibility()` into `_advance_turn_internal()` — FIRST thing, before all other processing (step 0)
-- [ ] Wire `decay_intel()` immediately after `calculate_visibility()`
-- [ ] Wire `calculate_visibility()` to run after save load (backward compat for old saves without intel)
-- [ ] Serialization enforcement tests for RegionIntel and WorldState.intel
-- [ ] Unit tests: visibility calculation, decay timeline, strength bands, own region rules, game init visibility, serialization roundtrip
+**Key design decisions (confirmed Session 32c):**
+- **Marshal-present → FULL:** Any region with a friendly marshal gets FULL military intel, regardless of controller (Grouchy in Waterloo sees Wellington)
+- **Placement:** `calculate_visibility()` + `decay_intel()` run at END of `_advance_turn_internal()`, after ALL processing (tactical states, broken retreats, auto-charges, income, etc.). Player sees clean picture at start of next action phase.
+- **PARTIAL decay:** Same timeline as FULL, offset from `last_updated_turn`. 2 turns fresh → STALE at 3-4 → LAST_KNOWN at 5+.
+- **Refresh vs decay separation:** Refresh path (FULL/PARTIAL) queries `world.get_marshals_in_region()` for live data, updates `known_marshals`, resets `last_updated_turn`. Decay path (STALE/LAST_KNOWN) does NOT query live data — keeps snapshot frozen, only changes visibility level and strength band precision.
+- **Stale snapshots are intentionally wrong:** When enemies leave a scouted region, STALE/LAST_KNOWN intel still shows them there. `known_marshals` and `strength_band` stay frozen from last refresh. Player must re-scout or move through to discover the region is empty.
 
-**Tests expected:** ~45
-**Smoke test gate:** `pytest tests/ -v --tb=no -q` green, test count = 2036 + new tests
+**Implementation: ✅ COMPLETE (Session 33, Feb 12 2026)**
+- [x] Create `backend/models/intel.py` — `RegionIntel` class
+- [x] Add `intel: dict` to `WorldState.__init__()` with to_dict/from_dict
+- [x] Implement `calculate_visibility()` (Steps 0-3: marshal-present → own region → adjacent → watchtower placeholder)
+- [x] Implement `get_region_intel()`, `update_intel_from_scout()`, `update_intel_from_battle()`
+- [x] Implement `decay_intel()` with refresh/decay path separation
+- [x] Implement strength band calculation (6 bands)
+- [x] Game init: `calculate_visibility()` at end of `__init__()`
+- [x] Wire at END of `_advance_turn_internal()` after all processing
+- [x] Wire after save load in `save_manager.py`
+- [x] Serialization enforcement tests
+- [x] 55 unit tests: visibility calculation, decay timeline, strength bands, own region rules, marshal-present rules, game init visibility, refresh vs decay path separation, stale snapshot persistence, serialization roundtrip, multi-turn integration
+
+**Tests:** 55 new (2091 total passing, 3 skipped)
+**Smoke test gate:** ✅ PASSED
 
 ---
 
@@ -348,6 +343,7 @@ Fog touches many systems — review integration points:
 - [ ] Check for float values in any fog-related data sent to Godot
 - [ ] Review V2b TODO markers at all 12 objection helper functions
 - [ ] Verify intel_report.py produces correct tiered output
+- [ ] Verify refresh vs decay path separation — no `get_marshals_in_region()` calls in decay path, no snapshot freezing in refresh path
 
 ---
 
@@ -367,13 +363,12 @@ Fog touches many systems — review integration points:
 
 | File | Session | Changes |
 |------|---------|---------|
-| `backend/models/world_state.py` | 33, 34A | intel dict, calculate_visibility(), decay_intel(), get_region_intel(), get_filtered_game_state_summary() |
+| `backend/models/world_state.py` | 33, 34A | intel dict, calculate_visibility() + decay_intel() at END of `_advance_turn_internal()`, get_region_intel(), get_filtered_game_state_summary() |
 | `backend/models/region.py` | 35 | watchtower, watchtower_turns_remaining fields |
 | `backend/commands/executor.py` | 34A, 35 | scout→intel update, battle→intel update (6 sites), status→intel_report, _extract_building_type watchtower, _execute_build watchtower branch, _execute_repair watchtower |
 | `backend/commands/strategic.py` | 34B | PURSUE reads intel store, empty-arrival handling, cautious pathfinding fog-aware, SUPPORT safety fog-aware, HOLD sally fog-aware |
 | `backend/commands/disobedience.py` | 36 | Davout PURSUE fog-aware check |
 | `backend/commands/objection_v2.py` | 36 | V2b TODO markers at 12 helpers, get_visible_enemies_near() helper |
-| `backend/game_logic/turn_manager.py` | 33 | Call calculate_visibility() + decay_intel() in turn pipeline |
 | `backend/main.py` | 34A, 34B | 23 call sites → get_filtered_game_state_summary(), /status → intel report, enemy phase filtering, tactical/strategic report filtering |
 | `backend/ai/enemy_ai.py` | 35 | Watchtower building logic (AI remains omniscient) |
 | `backend/ai/llm_client.py` | 35 | "watchtower" keyword in mock parser |
@@ -467,6 +462,10 @@ Fog touches many systems — review integration points:
 | Reckless cavalry auto-charge bypassing fog | RESOLVED | Design decision: auto-charge ignores fog (thematically correct for reckless cavalry) |
 | PURSUE empty-arrival complexity | RESOLVED | Simplified: no new interrupt type; auto-cancel if empty, existing personality vectors if adjacent |
 | Cannon fire fog interaction | RESOLVED | Non-issue: every battle involves a player marshal, fogged cannon fire is impossible in 2-faction design |
+| Marshal-present visibility gap | RESOLVED (32c) | Step 0 added: any region with friendly marshal → FULL military. Covers Grouchy in Waterloo at game start. |
+| calculate_visibility() timing | RESOLVED (32c) | Runs at END of `_advance_turn_internal()` after all processing. Broken retreats, auto-charges resolved first. |
+| PARTIAL decay timeline | RESOLVED (32c) | Same timeline as FULL, offset from `last_updated_turn`. Freshness of observation is the same regardless of detail level. |
+| Stale snapshot data integrity | RESOLVED (32c) | Refresh path (FULL/PARTIAL) queries live data. Decay path (STALE/LAST_KNOWN) freezes snapshot. Two clearly separated code paths. |
 
 ---
 

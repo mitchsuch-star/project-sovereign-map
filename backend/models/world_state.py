@@ -17,6 +17,10 @@ from backend.commands.vindication import VindicationTracker
 from backend.commands.disobedience import DisobedienceSystem
 from backend.utils import ordinal
 from backend.utils.debug import debug_print
+from backend.models.intel import (
+    RegionIntel, FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
+    VISIBILITY_PRIORITY, get_strength_band
+)
 
 # Fortify decay configuration by personality (single source of truth)
 # Used in both _get_fortify_state() and _process_tactical_states()
@@ -222,6 +226,19 @@ class WorldState:
         # Consumed by Campaign Log (Phase 6.5), Gazette (Phase 8.5), etc.
         self.event_log: List[Dict[str, Any]] = []
 
+        # ============================================================
+        # FOG OF WAR - Intel tracking per region (Phase 6 Session 33)
+        # ============================================================
+        # Dict of region_name -> RegionIntel objects
+        # Populated by calculate_visibility() at game init and each turn end
+        # Backward compat: old saves without intel get empty dict, then
+        # calculate_visibility() runs after load to populate correctly.
+        self.intel: Dict[str, Any] = {}
+
+        # Calculate initial visibility so turn 1 starts with correct fog state
+        # (French regions FULL, Grouchy's Waterloo FULL, adjacent PARTIAL, rest UNKNOWN)
+        self.calculate_visibility()
+
     # ========================================
     # GOLD CONVENIENCE PROPERTY
     # ========================================
@@ -276,6 +293,215 @@ class WorldState:
     def get_latest_events(self, n: int = 10) -> List[Dict]:
         """Get the N most recent events. Used by Campaign Briefing."""
         return self.event_log[-n:]
+
+    # ========================================
+    # FOG OF WAR - Intel & Visibility (Phase 6 Session 33)
+    # ========================================
+
+    def get_region_intel(self, region_name: str) -> RegionIntel:
+        """
+        Get current intel for a region. Creates UNKNOWN entry if missing.
+        """
+        if region_name not in self.intel:
+            self.intel[region_name] = RegionIntel(region_name)
+        return self.intel[region_name]
+
+    def calculate_visibility(self) -> None:
+        """
+        Recalculate visibility for all regions based on current game state.
+
+        Called at:
+        - Game init (end of __init__)
+        - End of _advance_turn_internal() (after ALL processing)
+        - After save load (backward compat)
+
+        Priority order:
+        Step 0: Marshal-present → FULL military (any region with friendly marshal)
+        Step 1: Own regions → FULL economic; FULL military if marshal present, else PARTIAL
+        Step 2: Adjacent to friendly army → PARTIAL (if not already higher)
+        Step 3: Adjacent to watchtower → PARTIAL (placeholder for Session 35)
+        Step 4-5: Handled by decay_intel() separately
+
+        CRITICAL: This is the REFRESH path. It queries live world.get_marshals_in_region()
+        and updates known_marshals snapshots. The decay path (decay_intel) does NOT query
+        live data — it keeps snapshots frozen.
+        """
+        turn = self.current_turn
+
+        # Track which regions were refreshed this turn (so decay_intel skips them)
+        refreshed_regions: set = set()
+
+        # Find all friendly marshal locations and their adjacent regions
+        friendly_marshal_regions: set = set()
+        friendly_adjacent_regions: set = set()
+
+        for marshal in self.marshals.values():
+            if marshal.nation == self.player_nation and marshal.strength > 0:
+                friendly_marshal_regions.add(marshal.location)
+                region = self.regions.get(marshal.location)
+                if region:
+                    for adj in region.adjacent_regions:
+                        friendly_adjacent_regions.add(adj)
+
+        # ════════════════════════════════════════════════════════════
+        # Step 0 + 1: Process all regions
+        # ════════════════════════════════════════════════════════════
+        for region_name, region in self.regions.items():
+            intel = self.get_region_intel(region_name)
+            is_own = (region.controller == self.player_nation)
+            has_friendly_marshal = (region_name in friendly_marshal_regions)
+            is_adjacent = (region_name in friendly_adjacent_regions)
+
+            # Get enemy military data for this region (REFRESH path: live query)
+            enemy_marshals = [
+                m for m in self.get_marshals_in_region(region_name)
+                if m.nation != self.player_nation and m.strength > 0
+            ]
+
+            if has_friendly_marshal:
+                # Step 0: Marshal-present → FULL military
+                # Your marshal is standing there — they can see everything
+                source = "own_territory" if is_own else "marshal_present"
+                marshal_data = self._build_marshal_snapshot(enemy_marshals, full=True)
+                total_strength = sum(m.strength for m in enemy_marshals)
+                # Pick representative morale/stance from strongest enemy
+                strongest = max(enemy_marshals, key=lambda m: m.strength) if enemy_marshals else None
+                intel.refresh(
+                    visibility=FULL,
+                    source=source,
+                    turn=turn,
+                    marshals=marshal_data,
+                    total_strength=total_strength,
+                    morale=int(strongest.morale) if strongest else None,
+                    stance=strongest.stance.value if strongest and hasattr(strongest.stance, 'value') else None,
+                )
+                refreshed_regions.add(region_name)
+
+            elif is_own:
+                # Step 1: Own region without friendly marshal
+                # FULL economic data always. Military: PARTIAL (locals report vaguely)
+                marshal_data = self._build_marshal_snapshot(enemy_marshals, full=False)
+                total_strength = sum(m.strength for m in enemy_marshals)
+                intel.refresh(
+                    visibility=PARTIAL,
+                    source="own_territory",
+                    turn=turn,
+                    marshals=marshal_data,
+                    total_strength=total_strength,
+                )
+                refreshed_regions.add(region_name)
+
+            elif is_adjacent:
+                # Step 2: Adjacent to friendly army → PARTIAL
+                marshal_data = self._build_marshal_snapshot(enemy_marshals, full=False)
+                total_strength = sum(m.strength for m in enemy_marshals)
+                intel.refresh(
+                    visibility=PARTIAL,
+                    source="adjacent",
+                    turn=turn,
+                    marshals=marshal_data,
+                    total_strength=total_strength,
+                )
+                refreshed_regions.add(region_name)
+
+            # Step 3: Watchtower adjacency — placeholder for Session 35
+            # Will check for active watchtowers in own regions and grant PARTIAL
+
+        # Store refreshed set for decay_intel to use
+        self._refreshed_regions_this_turn = refreshed_regions
+
+    def decay_intel(self) -> None:
+        """
+        DECAY path: Downgrade visibility for regions NOT refreshed this turn.
+
+        Does NOT query live marshal data. Keeps known_marshals frozen.
+        Only changes visibility level based on age since last_updated_turn.
+
+        Called immediately after calculate_visibility() in _advance_turn_internal().
+        """
+        refreshed = getattr(self, '_refreshed_regions_this_turn', set())
+        turn = self.current_turn
+
+        for region_name, intel in self.intel.items():
+            if region_name in refreshed:
+                continue  # Skip — already refreshed with live data
+            intel.decay(turn)
+
+    def update_intel_from_scout(self, region_name: str, turn: int) -> None:
+        """
+        Scout action grants FULL visibility on target region.
+        Called from executor._execute_scout() (Session 34A wiring).
+
+        REFRESH path: queries live marshal data.
+        """
+        intel = self.get_region_intel(region_name)
+        enemy_marshals = [
+            m for m in self.get_marshals_in_region(region_name)
+            if m.nation != self.player_nation and m.strength > 0
+        ]
+        marshal_data = self._build_marshal_snapshot(enemy_marshals, full=True)
+        total_strength = sum(m.strength for m in enemy_marshals)
+        strongest = max(enemy_marshals, key=lambda m: m.strength) if enemy_marshals else None
+
+        intel.refresh(
+            visibility=FULL,
+            source="scout",
+            turn=turn,
+            marshals=marshal_data,
+            total_strength=total_strength,
+            morale=int(strongest.morale) if strongest else None,
+            stance=strongest.stance.value if strongest and hasattr(strongest.stance, 'value') else None,
+        )
+        intel.last_scouted_turn = turn
+
+    def update_intel_from_battle(self, region_name: str, turn: int) -> None:
+        """
+        Battle grants FULL visibility on the battle region.
+        Called from executor at all 6 resolve_battle sites (Session 34A wiring).
+
+        REFRESH path: queries live marshal data.
+        """
+        intel = self.get_region_intel(region_name)
+        enemy_marshals = [
+            m for m in self.get_marshals_in_region(region_name)
+            if m.nation != self.player_nation and m.strength > 0
+        ]
+        marshal_data = self._build_marshal_snapshot(enemy_marshals, full=True)
+        total_strength = sum(m.strength for m in enemy_marshals)
+        strongest = max(enemy_marshals, key=lambda m: m.strength) if enemy_marshals else None
+
+        intel.refresh(
+            visibility=FULL,
+            source="battle",
+            turn=turn,
+            marshals=marshal_data,
+            total_strength=total_strength,
+            morale=int(strongest.morale) if strongest else None,
+            stance=strongest.stance.value if strongest and hasattr(strongest.stance, 'value') else None,
+        )
+
+    def _build_marshal_snapshot(self, enemy_marshals: list, full: bool = False) -> List[Dict]:
+        """
+        Build a snapshot of enemy marshals for intel storage.
+
+        Args:
+            enemy_marshals: List of Marshal objects
+            full: If True, include exact strength/morale/stance. If False, band only.
+        """
+        result = []
+        for m in enemy_marshals:
+            entry: Dict[str, Any] = {
+                "name": m.name,
+                "nation": m.nation,
+            }
+            if full:
+                entry["strength"] = int(m.strength)
+                entry["morale"] = int(m.morale)
+                entry["stance"] = m.stance.value if hasattr(m.stance, 'value') else str(m.stance)
+            else:
+                entry["band"] = get_strength_band(m.strength)
+            result.append(entry)
+        return result
 
     def _setup_initial_control(self) -> None:
         """Set up which nation controls which regions at start."""
@@ -1821,6 +2047,9 @@ class WorldState:
 
             # ═══════ EVENT LOG ═══════
             "event_log": [e.copy() for e in self.event_log],
+
+            # ═══════ FOG OF WAR (Phase 6 Session 33) ═══════
+            "intel": {name: ri.to_dict() for name, ri in self.intel.items()},
         }
 
     @classmethod
@@ -1915,6 +2144,12 @@ class WorldState:
 
         # ═══════ EVENT LOG ═══════
         world.event_log = [e.copy() for e in data.get("event_log", [])]
+
+        # ═══════ FOG OF WAR (Phase 6 Session 33) ═══════
+        # Backward compat: old saves have no intel key → empty dict
+        # calculate_visibility() will be called after load to populate correctly
+        intel_data = data.get("intel", {})
+        world.intel = {name: RegionIntel.from_dict(ri_data) for name, ri_data in intel_data.items()}
 
         return world
 
@@ -2336,6 +2571,14 @@ class WorldState:
         # Store ALL tactical events for retrieval (includes cavalry limits + reckless cavalry)
         debug_print(f"  [DEBUG] Storing {len(tactical_events)} total tactical events")
         self._last_tactical_events = tactical_events
+
+        # ════════════════════════════════════════════════════════════
+        # FOG OF WAR - Recalculate visibility (Phase 6 Session 33)
+        # Runs LAST, after all processing (tactical states, broken retreats,
+        # auto-charges, income, etc.) so player sees clean picture at turn start.
+        # ════════════════════════════════════════════════════════════
+        self.calculate_visibility()
+        self.decay_intel()
 
         # Check for game over
         if self.current_turn > self.max_turns:

@@ -10,8 +10,8 @@ A future save/load system should use this as the specification.
 ## Version
 
 - **Format version:** 1.0
-- **Last updated:** 2026-02-11
-- **Compatible with:** Phase 6.2.F Supply/Attrition + Contested Capture + Event Log
+- **Last updated:** 2026-02-12
+- **Compatible with:** Phase 6 Session 33 (Fog of War Intel Data Layer)
 
 ## Top-Level Structure (WorldState)
 
@@ -56,7 +56,12 @@ A future save/load system should use this as the specification.
   "battles_this_turn": [],
   "command_history": [],
 
-  "event_log": []
+  "event_log": [],
+
+  "intel": {
+    "Paris": { ... },
+    "Belgium": { ... }
+  }
 }
 ```
 
@@ -96,6 +101,7 @@ A future save/load system should use this as the specification.
 | `battles_this_turn` | list | [] | Battles this turn (Phase 5.2) |
 | `command_history` | list | [] | LLM command context |
 | `event_log` | list | [] | Structured game event history. Each entry is a dict with `type`, `turn`, and event-specific fields. Accumulates across full game, never cleared. Used by Campaign Log, Gazette. |
+| `intel` | dict | {} | Map of region_name -> RegionIntel. Fog of war intel store. Empty dict for backward compat (old saves populate via `calculate_visibility()` on load). |
 
 ---
 
@@ -541,6 +547,71 @@ A future save/load system should use this as the specification.
 
 ---
 
+## RegionIntel Format (Fog of War)
+
+```json
+{
+  "region_name": "Belgium",
+  "visibility": "partial",
+  "known_marshals": [
+    {"name": "Wellington", "nation": "Britain", "band": "large force"}
+  ],
+  "strength_band": "large force",
+  "exact_strength": null,
+  "morale": null,
+  "stance": null,
+  "last_scouted_turn": 0,
+  "last_updated_turn": 1,
+  "intel_source": "adjacent"
+}
+```
+
+### RegionIntel Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `region_name` | string | Region this intel applies to |
+| `visibility` | string | Current visibility level: "full", "partial", "stale", "last_known", "unknown" |
+| `known_marshals` | list | Snapshot of marshals last seen: `[{name, nation, strength?, band?}]`. Frozen during decay. |
+| `strength_band` | string | Aggregate strength band: "no forces", "screening force", "small force", "substantial force", "large force", "massive force" |
+| `exact_strength` | int\|null | Exact total troop count. Only set at FULL visibility. |
+| `morale` | int\|null | Morale value. Only set at FULL visibility. |
+| `stance` | string\|null | Stance value. Only set at FULL visibility. |
+| `last_scouted_turn` | int | Turn when last scouted via scout action. Default 0. |
+| `last_updated_turn` | int | Turn when intel was last refreshed by any source. Default 0. |
+| `intel_source` | string | Best source: "own_territory", "marshal_present", "scout", "battle", "watchtower", "adjacent" |
+
+### Visibility Levels (priority order)
+
+| Level | Priority | Data Available |
+|-------|----------|----------------|
+| `full` | 4 | Exact strength, morale, stance, marshal names |
+| `partial` | 3 | Marshal names + strength band, no morale/stance |
+| `stale` | 2 | Frozen snapshot from last refresh, aging |
+| `last_known` | 1 | Old snapshot, "last seen X turns ago" |
+| `unknown` | 0 | Never scouted, no intel |
+
+### Strength Bands
+
+| Threshold | Band |
+|-----------|------|
+| 0 | "no forces" |
+| 1 - 4,999 | "screening force" |
+| 5,000 - 14,999 | "small force" |
+| 15,000 - 39,999 | "substantial force" |
+| 40,000 - 69,999 | "large force" |
+| 70,000+ | "massive force" |
+
+### Decay Timeline
+
+| Turns since update | Effect |
+|--------------------|--------|
+| 0-2 | Stays at current level (fresh) |
+| 3-4 | Degrades to STALE (exact data cleared, snapshot frozen) |
+| 5+ | Degrades to LAST_KNOWN (persists indefinitely) |
+
+---
+
 ## Validation Checklist
 
 When implementing save/load, verify:
@@ -554,6 +625,7 @@ When implementing save/load, verify:
   - `world.authority_tracker` is `AuthorityTracker`, not `dict`
   - `world.vindication_tracker` is `VindicationTracker`, not `dict`
   - All regions are `Region`, not `dict`
+  - All intel entries are `RegionIntel`, not `dict`
 - [ ] None values are handled correctly (field present with null value)
 - [ ] Enum values are stored as strings, restored as enums (e.g., Stance)
 - [ ] Unknown fields in save file are ignored (forward compatibility)
