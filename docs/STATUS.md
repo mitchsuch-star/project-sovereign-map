@@ -62,7 +62,7 @@
 **`get_filtered_game_state_summary()` on WorldState:**
 - Wraps `get_game_state_summary()`, redacts enemy data by intel visibility
 - UNKNOWN: enemies hidden from map_data and enemies dict entirely
-- PARTIAL/STALE: enemies shown with strength_band, strength=0, fog_level tag
+- PARTIAL/STALE: enemies moved to `fogged_forces[]` (not `marshals[]`) to prevent Godot rendering "0 troops" map icons
 - FULL: enemies shown with exact data (unchanged from pre-fog behavior)
 - Own region economic data always shown; enemy economic data only at FULL
 - Controller and terrain always public (political/geographic knowledge)
@@ -88,7 +88,7 @@
 - `backend/models/world_state.py` — `get_filtered_game_state_summary()`, battle reveal wiring at auto-charge site
 - `backend/commands/executor.py` — `_execute_status()`, status routing, scout persistence, battle reveal at 5 sites
 - `backend/main.py` — 26 call sites replaced, `/status` endpoint rewritten
-- `tests/test_intel_report.py` (NEW) — 33 tests
+- `tests/test_intel_report.py` (NEW) — 39 tests (report, filtering, fogged_forces, integration)
 - `docs/STATUS.md` — this entry
 - `docs/FOG_IMPLEMENTATION_PLAN.md` — Session 34A marked COMPLETE
 
@@ -97,7 +97,7 @@
 - Adjacent scan source: Set to "scout" (not "adjacent") since the player actively ordered the scan. This gives adjacent-scan intel slightly higher source priority than passive adjacency from `calculate_visibility()`, which is correct — an ordered reconnaissance is more deliberate than passive line-of-sight.
 - `_execute_attack()` signature is `(self, marshal, target, world, game_state)` not `(self, command, game_state)` — documented for future test writers.
 
-**Tests:** 33 new (2124 total passing, 3 skipped).
+**Tests:** 39 new (2130 total passing, 3 skipped).
 
 ---
 
@@ -1071,6 +1071,7 @@ Traced the auto-charge tactical event path: `_process_reckless_cavalry_turn_star
 
 | Date | Tests | Notes |
 |------|-------|-------|
+| Feb 12, 2026 | **2130** | Session 34A: Fog of War intel report + filtering + fogged_forces separation. 39 new tests. |
 | Feb 12, 2026 | **2091** | Session 33: Fog of War intel data layer + visibility core. 55 new tests (RegionIntel, visibility, decay, serialization). |
 | Feb 11, 2026 | **2036** | Session 31: Event log hardening (EL1-EL5) + float leak fix. 9 new tests, 2 bugs fixed. |
 | Feb 11, 2026 | **2027** | Session 30: Turn Events Log. 39 new tests (13 event types, 5 helpers, serialization). |
@@ -1129,13 +1130,12 @@ Traced the auto-charge tactical event path: `_process_reckless_cavalry_turn_star
 
 ## Next Session Priorities
 
-1. **Fog of War Session 34A: Intel Report + Filtering Infrastructure**
-   - Create `backend/intel_report.py` — Berthier Intelligence Report (fog-filtered status)
-   - `get_filtered_game_state_summary()` — replace all 23 unfiltered call sites
-   - Wire scout action → `update_intel_from_scout()`, battle → `update_intel_from_battle()` at all 6 resolve_battle sites
+1. **Fog of War Session 34B: Strategic Commands + Display Filtering**
+   - PURSUE fog validation (read target from intel store, empty-arrival handling)
+   - SUPPORT/HOLD sally fog-aware, cautious pathfinding fog-aware
+   - Enemy phase display filtering, tactical/strategic report filtering
    - See `docs/FOG_IMPLEMENTATION_PLAN.md` for full checklist
-2. **Fog of War Sessions 34B-36:**
-   - 34B: PURSUE fog, SUPPORT visibility, cautious pathfinding, display filtering
+2. **Fog of War Sessions 35-36:**
    - 35: Watchtower building + visibility + AI + repair
    - 36: Edge cases, Davout PURSUE, V2b markers, smoke test, docs
    - Opus code review gate after Session 36

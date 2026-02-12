@@ -63,6 +63,7 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | `backend/ai/strategic_parser.py` | Strategic command detection |
 | `backend/ai/validation.py` | VALID_ACTIONS (single source of truth for LLM) |
 | `backend/ai/prompt_builder.py` | Context-aware LLM prompts |
+| `backend/intel_report.py` | Berthier Intelligence Report (fog-filtered status view) |
 | `backend/save_manager.py` | Save/load file I/O, autosave |
 
 ### Godot Core
@@ -92,7 +93,7 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | Enemy AI behavior | `enemy_ai.py`, `turn_manager.py`, `executor.py` (is_player_action check) |
 | Strategic commands | `strategic.py`, `strategic_parser.py`, `executor.py` |
 | Objection V2 system | `objection_v2.py`, `docs/OBJECTION_V2.md` |
-| Fog of war | `docs/FOG_OF_WAR_SPEC.md`, `docs/FOG_IMPLEMENTATION_PLAN.md`, `backend/models/intel.py` (when created) |
+| Fog of war | `docs/FOG_OF_WAR_SPEC.md`, `docs/FOG_IMPLEMENTATION_PLAN.md`, `backend/models/intel.py`, `backend/intel_report.py` |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`
 For Enemy AI details: `docs/ENEMY_AI_REFERENCE.md`
