@@ -1651,6 +1651,20 @@ RETREAT RECOVERY (3 turns):
             if building["type"] != "fortification" and not building.get("damaged", False):
                 if is_major or random.random() < 0.25:
                     building["damaged"] = True
+                    world.log_event({
+                        "type": "building_damaged",
+                        "region": region_name,
+                        "building": building["type"],
+                        "cause": "battle",
+                    })
+
+    def _log_battle_event(self, battle_result: Dict, location: str, world) -> None:
+        """Extract and log the battle event from a combat result dict."""
+        event = battle_result.get("log_battle_event")
+        if event:
+            event = event.copy()
+            event["location"] = location
+            world.log_event(event)
 
     def _handle_forced_retreat(
         self,
@@ -1814,6 +1828,14 @@ RETREAT RECOVERY (3 turns):
             attrition_note = ""
             if forced_retreat_attrition["total_losses"] > 0:
                 attrition_note = f" ({forced_retreat_attrition['total_losses']:,} lost to march)"
+            # Log retreat event
+            world.log_event({
+                "type": "retreat",
+                "marshal": marshal.name,
+                "nation": getattr(marshal, "nation", ""),
+                "from": old_loc,
+                "to": retreat_to,
+            })
             return f"⚠️ {marshal.name}'s broken army flees to {retreat_to}!{strategic_msg}{attrition_note} (recovering for 3 turns)"
         else:
             # ════════════════════════════════════════════════════════════
@@ -1873,6 +1895,13 @@ RETREAT RECOVERY (3 turns):
                 marshal.strategic_order = None
 
             survival_percent = int(survival_rate * 100)
+            # Log marshal_broken event
+            world.log_event({
+                "type": "marshal_broken",
+                "marshal": marshal.name,
+                "nation": getattr(marshal, "nation", ""),
+                "location": old_loc,
+            })
             return (
                 f"💀 {marshal.name}'s army is SURROUNDED and SHATTERED at {old_loc}! "
                 f"Only {survivors:,} survivors ({survival_percent}%) escape to {spawn_loc}.{strategic_msg} "
@@ -2505,6 +2534,9 @@ RETREAT RECOVERY (3 turns):
             flanking_message=flanking_message,
             fortification_bonus=fort_bonus
         )
+
+        # Log battle event
+        self._log_battle_event(battle_result, battle_region_name, world)
 
         # Apply war damage + stability hit to battle region (Phase 6.2.C)
         self._apply_battle_effects_to_region(
@@ -3413,6 +3445,14 @@ RETREAT RECOVERY (3 turns):
         if marshal.strategic_order:
             print(f"[STRATEGIC] {marshal.name}'s previous order cancelled by new order")
         marshal.strategic_order = order
+
+        # Log strategic order event
+        world.log_event({
+            "type": "strategic_order",
+            "marshal": marshal.name,
+            "order_type": strategic_type,
+            "destination": target or "",
+        })
 
         print(f"[STRATEGIC] Order created: {strategic_type} -> {target}, path={path}")
 
@@ -4567,6 +4607,9 @@ RETREAT RECOVERY (3 turns):
             fortification_bonus=sally_fort_bonus
         )
 
+        # Log battle event
+        self._log_battle_event(battle_result, target_location, world)
+
         # Apply war damage + stability hit to battle region (Phase 6.2.C)
         self._apply_battle_effects_to_region(
             target_location, pre_battle_atk, pre_battle_def, world
@@ -4712,6 +4755,9 @@ RETREAT RECOVERY (3 turns):
                 fortification_bonus=sally2_fort_bonus
             )
 
+            # Log battle event
+            self._log_battle_event(battle_result, target_location, world)
+
             # Apply war damage + stability hit to battle region (Phase 6.2.C)
             self._apply_battle_effects_to_region(
                 target_location, pre_battle_atk, pre_battle_def, world
@@ -4841,6 +4887,9 @@ RETREAT RECOVERY (3 turns):
                 flanking_message=flanking_message,
                 fortification_bonus=sally3_fort_bonus
             )
+
+            # Log battle event
+            self._log_battle_event(battle_result, target_name, world)
 
             # Apply war damage + stability hit to battle region (Phase 6.2.C)
             self._apply_battle_effects_to_region(
@@ -5348,6 +5397,15 @@ RETREAT RECOVERY (3 turns):
         elif is_stability_premium:
             cost_note = " (unstable region premium)"
 
+        # Log recruitment event
+        world.log_event({
+            "type": "recruitment",
+            "marshal": recipient,
+            "nation": acting_nation,
+            "amount": int(NEW_TROOPS),
+            "location": recruitment_location,
+        })
+
         return {
             "success": True,
             "message": f"{base_message} - Cost: {gold_cost} gold{cost_note}. Morale: {old_morale}% → {new_morale}%",
@@ -5471,6 +5529,15 @@ RETREAT RECOVERY (3 turns):
         world.record_gold_spent(build_acting_nation, gold_cost)
 
         display_name = building_type.replace('_', ' ').title()
+
+        # Log building_started event
+        world.log_event({
+            "type": "building_started",
+            "region": region_name,
+            "building": building_type,
+            "nation": build_acting_nation,
+        })
+
         return {
             "success": True,
             "message": f"Construction started: {display_name} in {region_name} ({btype_info['build_time']} turns, {gold_cost} gold)",
@@ -7107,6 +7174,9 @@ RETREAT RECOVERY (3 turns):
             fortification_bonus=charge_fort_bonus
         )
 
+        # Log battle event
+        self._log_battle_event(combat_result, charge_battle_region, world)
+
         # Apply war damage + stability hit to battle region (Phase 6.2.C)
         self._apply_battle_effects_to_region(
             charge_battle_region, pre_battle_atk, pre_battle_def, world
@@ -7582,6 +7652,14 @@ RETREAT RECOVERY (3 turns):
         if choice == "plunder":
             result = self._apply_plunder(region, world)
             world.pending_capture_choice = None
+            # Log region_captured event
+            world.log_event({
+                "type": "region_captured",
+                "region": region_name,
+                "captured_by": world.player_nation,
+                "captured_from": pending.get("previous_controller", ""),
+                "method": "plunder",
+            })
             return {
                 "success": True,
                 "message": (f"{capturer_name}'s troops plunder {region_name}! "
@@ -7599,6 +7677,14 @@ RETREAT RECOVERY (3 turns):
             self._apply_secure(region)
             world.pending_capture_choice = None
             damaged_count = len([b for b in region.buildings if b.get("damaged")])
+            # Log region_captured event
+            world.log_event({
+                "type": "region_captured",
+                "region": region_name,
+                "captured_by": world.player_nation,
+                "captured_from": pending.get("previous_controller", ""),
+                "method": "secure",
+            })
             return {
                 "success": True,
                 "message": (f"{capturer_name} secures {region_name}. "
@@ -7640,6 +7726,14 @@ RETREAT RECOVERY (3 turns):
         # IMPORTANT: Use nation_gold dict directly, NOT world.gold (which always targets player_nation)
         receiving_nation = nation or world.player_nation
         world.nation_gold[receiving_nation] = world.nation_gold.get(receiving_nation, 0) + gold_gained
+        # Log building_damaged for each destroyed building
+        for building in region.buildings:
+            world.log_event({
+                "type": "building_damaged",
+                "region": region.name,
+                "building": building["type"],
+                "cause": "plunder",
+            })
         # Destroy all buildings
         region.buildings = []
         region.building_under_construction = None
@@ -7665,13 +7759,21 @@ RETREAT RECOVERY (3 turns):
             return "plunder"
         return "secure"
 
-    def _apply_ai_capture_choice(self, marshal, region, world) -> str:
+    def _apply_ai_capture_choice(self, marshal, region, world, old_controller: str = "") -> str:
         """Apply AI's automatic capture choice (no popup). Returns the choice made."""
         choice = self._get_ai_capture_choice(marshal)
         if choice == "plunder":
             self._apply_plunder(region, world, nation=marshal.nation)
         else:
             self._apply_secure(region)
+        # Log region_captured event for AI captures
+        world.log_event({
+            "type": "region_captured",
+            "region": region.name,
+            "captured_by": marshal.nation,
+            "captured_from": old_controller,
+            "method": choice,
+        })
         return choice
 
     def _attempt_region_capture(self, marshal, region_name, world, game_state, had_garrison=False) -> dict:
@@ -7723,7 +7825,7 @@ RETREAT RECOVERY (3 turns):
                 }
             else:
                 # AI capture — auto-decide by personality
-                ai_choice = self._apply_ai_capture_choice(marshal, region, world)
+                ai_choice = self._apply_ai_capture_choice(marshal, region, world, old_controller=old_controller)
 
             return {
                 "captured": True,
@@ -7794,6 +7896,16 @@ RETREAT RECOVERY (3 turns):
 
         # Clear the pending objection
         world.pending_objection = None
+
+        # Log objection event (MODERATE+ only — MILD concerns are not logged here)
+        world.log_event({
+            "type": "objection",
+            "marshal": marshal_name,
+            "concern_level": objection.get("concern_level", ""),
+            "action": (objection.get("original_order") or {}).get("action", ""),
+            "target": (objection.get("original_order") or {}).get("target", ""),
+            "resolution": choice,
+        })
 
         # ════════════════════════════════════════════════════════════
         # BUG FIX #1: Check for DISOBEY - execute ALTERNATIVE instead

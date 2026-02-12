@@ -14,7 +14,25 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ## Current Phase
 
-**Phase 6.2 Economy: COMPLETE + AUDITED (Session 26). Save/Load: COMPLETE (Session 27). Berthier Parse Recovery: COMPLETE (Session 28). Post-Battle Analysis: COMPLETE (Session 29).** 6.2.A-H all implemented and audited. Save/Load: `backend/save_manager.py`, 4 API endpoints, autosave every turn, terminal commands ("save"/"load"), load dialog popup, 38 tests. Berthier: in-character error messages replace raw "Unknown action" / "Marshal None" errors, mock templates + LLM prompt, 20 tests. Battle Report: `backend/game_logic/battle_report.py`, modifier snapshots, 15 observation priorities (perspective-aware for attacker/defender, fort overrun/held, terrain despite, lost costly catch-all), Godot BBCode display, 65 tests. Pause menu deferred to Phase 6.5. See `docs/ROADMAP.md` for EA readiness roadmap.
+**Phase 6: Core Campaign Systems — IN PROGRESS (3 items remaining)**
+
+### Remaining (must build before Phase 6.5)
+
+| Feature | Complexity | Notes |
+|---------|------------|-------|
+| **Fog of War** | Medium | Hidden enemies, scouting required |
+| **Manpower Pools** | Medium | Separate: Infantry, Cavalry, Artillery |
+| **Artillery Unit Type** | Medium | Combat buffs like cavalry |
+
+### Completed in Phase 6
+
+Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-Battle Analysis, Turn Events Log, Reinforcements, Attrition, City Fortification. See `docs/STATUS.md` for details.
+
+### Deferred from Phase 6
+
+- Sieges → deferred to 1805 (current fort + contested capture sufficient for 13-region map)
+- Pause menu → Phase 6.5
+
 See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 
 ---
@@ -273,6 +291,13 @@ python -m backend.modding.validator path/to/mod.json
 | Phase completed | `docs/ROADMAP.md`, `docs/STATUS.md` |
 | System behavior changed | `docs/SYSTEMS_REFERENCE.md` |
 | New fields added | `docs/SAVE_FORMAT_REFERENCE.md` |
+
+**Phase Status Rules:**
+- The "Current Phase" section in CLAUDE.md must ALWAYS list remaining/unbuilt items for the current phase. Completed items get a brief summary. Remaining items are the priority — they must be impossible to miss.
+- When completing a session, if the current phase still has unfinished items in ROADMAP.md, CLAUDE.md must say "Phase X IN PROGRESS" with remaining items listed. NEVER let it read as complete when items remain.
+- STATUS.md "Current Phase" quick stat must include remaining item count: e.g., "Phase 6: IN PROGRESS (3 items remaining: Fog of War, Manpower, Artillery)"
+- When a phase is truly complete (all ROADMAP items done or explicitly deferred), BOTH CLAUDE.md and STATUS.md must be updated to point to the next phase and its first items.
+- Any item marked "Deferred" in ROADMAP.md doesn't count as remaining — only "Planned" items that are still in-scope for the current phase.
 
 ---
 

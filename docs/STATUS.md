@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 11, 2026
-> **Last Session:** Session 29 — Berthier's After-Action Report
+> **Last Session:** Session 31 — Event Log Hardening (EL1-EL5)
 
 ---
 
@@ -10,10 +10,10 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **1988** (verified, 3 skipped) |
-| **Current Phase** | Phase 6: Post-Battle Analysis **COMPLETE** |
+| **Tests Passing** | **2036** (verified, 3 skipped) |
+| **Current Phase** | Phase 6: **IN PROGRESS** (3 items remaining: Fog of War, Manpower Pools, Artillery Unit Type) |
 | **Blockers** | None |
-| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier, 6-BattleReport |
+| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier, 6-BattleReport, 6-EventLog |
 
 ---
 
@@ -49,6 +49,64 @@
 ---
 
 ## Recently Completed
+
+### Feb 11 (Session 31: Event Log Hardening EL1-EL5)
+
+**Cleared 5 hardening TODOs from Session 30. Found and fixed 2 bugs (EL4 + float leak). 9 new tests.**
+
+**EL1 (sally battle):** Test confirms `_execute_general_attack_combat` logs battle event via `_log_battle_event`. All 3 sally `resolve_battle` call sites share this wiring — 1 test covers the pattern.
+
+**EL2 (glorious charge):** Test confirms `_execute_glorious_charge` logs battle event with correct location at recklessness 3+.
+
+**EL3 (AI occupation capture):** Test confirms `_apply_occupation_capture_effects` logs `region_captured` event when AI completes occupation. Verifies `captured_by`, `captured_from`, and `method` fields. Cautious AI (Wellington) secures rather than plunders.
+
+**EL4 (auto-charge): BUG FOUND.** `_process_reckless_cavalry_turn_start` in `world_state.py` was a 6th `resolve_battle` path that never logged battle events to `world.event_log`. The combat result contained `log_battle_event` data but it was only embedded in the tactical event dict, never passed to `world.log_event()`. Fixed by extracting and logging the event after `resolve_battle()`, matching the pattern used by `executor._log_battle_event()`.
+
+**EL5 (API response audit): CONFIRMED SAFE.** `main.py` builds API responses by selectively picking keys — never references `log_battle_event`. The key (which contains floats in `battle_report.modifier_breakdown`) cannot reach Godot. Two tests verify: (1) source code of `/command` endpoint contains no reference to `log_battle_event`, (2) known response keys do not include it.
+
+**Session 31b: Auto-charge float leak (follow-up investigation).**
+Traced the auto-charge tactical event path: `_process_reckless_cavalry_turn_start()` → `tactical_events` → `_last_tactical_events` → `executor` → `main.py:491` (`response["tactical_events"] = result["tactical_events"]`) → Godot. The raw `combat_result` dict was embedded in the `auto_glorious_charge` tactical event and shipped to Godot. It contained `attacker_roll.multiplier` (a float, e.g. `1.025`). Godot's `_display_tactical_events()` has no `auto_glorious_charge` handler so it was inert — but a future handler would crash on the floats. **Fixed** by removing `combat_result` from the tactical event dict. The event already has `message` (human-readable) and `battle_report` (int-safe) as separate fields. 2 tests added: no `combat_result` key, recursive float scan on entire event dict.
+
+**Files modified:**
+- `backend/models/world_state.py` — EL4 fix (log_event call ~line 2955) + stripped `combat_result` from auto-charge tactical event (~line 3019)
+- `tests/test_event_log_hardening.py` — 9 new tests (1 EL1 + 1 EL2 + 1 EL3 + 1 EL4 + 2 float leak + 3 EL5)
+
+**Tests:** 9 new (2036 total passing, 3 skipped).
+
+---
+
+### Feb 11 (Session 30: Turn Events Log)
+
+**Structured event log on WorldState recording all significant game events. Data-only plumbing — no UI. Consumed by Phase 6.5 Campaign Log, Phase 8.5 Gazette, etc.**
+
+**What it does:**
+- `world.event_log` — list of dicts accumulating across full game, never cleared
+- Helper methods: `log_event()`, `get_events_for_turn()`, `get_events_since_turn()`, `get_events_by_type()`, `get_latest_events()`
+- Full serialization (save/load) with backward compat for old saves (empty list default)
+
+**Event types logged (13):**
+- **Combat:** battle (with full battle_report), retreat, marshal_broken, marshal_recovered
+- **Territory:** region_captured (with method: plunder/secure/occupation)
+- **Economy:** recruitment, building_started, building_completed, building_damaged (battle/plunder causes), bankruptcy, desertion
+- **Command:** objection (MODERATE+ only, not MILD), strategic_order
+
+**Logging approach:**
+- combat.py returns pre-built battle event in result dict (Option A — stateless combat)
+- executor.py calls `world.log_event()` after each `resolve_battle()` (5 call sites)
+- Retreat/broken events logged in `_apply_forced_retreat_or_break()` where destination is known
+- Recovery events logged alongside existing tactical events in `_process_tactical_states()`
+- Territory/economy/command events logged at their respective execution points
+
+**Tests:** 39 new (2027 total)
+
+**Known TODOs (Session 30 — event log hardening): ALL RESOLVED (Session 31)**
+- [x] **TODO-EL1: Test sally battle event logging** — Test added: `test_sally_battle_logs_event`. Sally path via `_execute_general_attack_combat` confirmed logging correctly.
+- [x] **TODO-EL2: Test glorious charge event logging** — Test added: `test_glorious_charge_logs_battle_event`. Charge at recklessness 3+ logs battle event with correct location.
+- [x] **TODO-EL3: Test AI occupation capture event logging** — Test added: `test_ai_occupation_capture_logs_region_captured`. Cautious AI secures, event has correct captured_by/method.
+- [x] **TODO-EL4: Verify auto-charge battle path logs events** — **BUG FOUND AND FIXED.** `_process_reckless_cavalry_turn_start` was a 6th unwired `resolve_battle` path — it never called `log_event()` for battle events. Added `log_event()` call after `resolve_battle()` in `world_state.py`. Test added: `test_auto_charge_logs_battle_event`.
+- [x] **TODO-EL5: Audit `log_battle_event` key in API responses** — **CONFIRMED SAFE.** `main.py` builds responses by selectively picking keys (`success`, `message`, `battle_report`, etc.) — never references `log_battle_event`. 2 tests added: source code audit of `/command` endpoint + known-keys verification.
+
+---
 
 ### Feb 11 (Session 29: Berthier's After-Action Report)
 
@@ -869,6 +927,8 @@
 
 | Date | Tests | Notes |
 |------|-------|-------|
+| Feb 11, 2026 | **2036** | Session 31: Event log hardening (EL1-EL5) + float leak fix. 9 new tests, 2 bugs fixed. |
+| Feb 11, 2026 | **2027** | Session 30: Turn Events Log. 39 new tests (13 event types, 5 helpers, serialization). |
 | Feb 11, 2026 | **1988** | Session 29 final: Perspective bugs fixed + fort defender observations. 65 battle report tests total. |
 | Feb 11, 2026 | **1962** | Session 29: Berthier's After-Action Report. 39 new tests (snapshots, report generation, observations, integration). |
 | Feb 11, 2026 | **1923** | Session 28: Berthier Parse Recovery. 20 new tests (mock templates, prompt builder, integration). |
@@ -924,10 +984,12 @@
 
 ## Next Session Priorities
 
-1. ~~**Post-Battle Analysis**~~ — **DONE** (Session 29). battle_report.py module with 15 observation priorities, perspective-aware for attacker/defender, 65 tests, 2 perspective bugs fixed. Known wiring gap: combat.py hardcodes player_nation="France" — documented for post-EA multi-nation.
-2. **Phase 6 remaining items** — Fog of War, Manpower Pools, Artillery Unit Type, Turn Events Log (see ROADMAP.md Phase 6 table). War Score and Threat Indicator moved to Phase 8 (Diplomacy).
-3. **Pause menu planning** — Phase 6.5 needs Esc → Save/Load/Settings/Quit menu before 1805 EA. Plan scope.
-4. Commission Europe map art (start search for artist).
+1. **Phase 6 remaining items (3 Planned features):**
+   - **Fog of War** (Medium) — Hidden enemies, scouting required
+   - **Manpower Pools** (Medium) — Separate: Infantry, Cavalry, Artillery
+   - **Artillery Unit Type** (Medium) — Combat buffs like cavalry
+2. **Pause menu planning** — Phase 6.5 needs Esc → Save/Load/Settings/Quit menu before 1805 EA. Plan scope.
+3. Commission Europe map art (start search for artist).
 
 ### Phase 6.2 Economy Audit Findings
 

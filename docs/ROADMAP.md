@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** February 11, 2026 (Session 29: Berthier's After-Action Report)
+> **Last Updated:** February 11, 2026 (Session 31: Event Log Hardening)
 
 ---
 
@@ -12,7 +12,7 @@
 |-------|------|--------|
 | 1-5.3 | Foundation through AI Fixes | COMPLETE |
 | **V2a** | **Objection System Refactor** | **COMPLETE** |
-| **6** | **Core Campaign Systems** | **IN PROGRESS (6.1 terrain, 6.2 economy, Save/Load, Berthier, Battle Report all COMPLETE)** |
+| **6** | **Core Campaign Systems** | **IN PROGRESS (6.1 terrain, 6.2 economy, Save/Load, Berthier, Battle Report, Event Log all COMPLETE)** |
 | 6.5 | Information & UI Systems | Planned |
 | 7 | Multi-Marshal, Relationships & Coalitions | Planned |
 | 8 | Diplomacy & Peace | Planned |
@@ -40,7 +40,7 @@
 | 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 1988 (verified Feb 11, 2026)
+**Total Tests:** 2036 (verified Feb 11, 2026)
 
 ---
 
@@ -80,7 +80,7 @@
 | Sieges | Fortified cities require siege mechanics | Medium | **Deferred to 1805** — current fort + contested capture (1-2 turn occupation) sufficient for 13-region map. Full sieges (attrition, starvation, sortie, artillery) revisit when 80-100 regions make longer holdouts strategic. |
 | City Fortification | "Fortify this city" building action | Low | **DONE** (6.2.E: fortification building, 400g/3t, +25% defense. 6.2.F: contested capture holdout.) |
 | Artillery Unit Type | Combat buffs like cavalry | Medium | Planned |
-| Turn Events Log | Track battles/captures/retreats per turn (feeds gazette) | Low | Planned |
+| Turn Events Log | Track battles/captures/retreats per turn (feeds gazette) | Low | **COMPLETE** (Session 30: 13 event types, world.event_log, 5 helpers, serialized, 39 tests). EL1-EL5 hardening TODOs resolved in Session 31 (1 bug fixed: auto-charge path wasn't logging battle events). |
 | **Save/Load** | Full game state persistence + autosave (moved from Pre-EA) | Low | **COMPLETE** (Session 27: save_manager.py, 4 API endpoints, autosave, terminal commands, load dialog, 38 tests) |
 | **Berthier Parse Recovery** | Failed parses -> Berthier asks clarification in-character (moved from 8.5) | Low | **COMPLETE** (Session 28: prompt_builder.py, llm_client.py, parser.py, main.py. Mock templates + LLM prompt. Reacts to tone. 20 tests.) |
 | **Post-Battle Analysis** | Template breakdown: modifiers, casualties, Berthier observation | Low | **COMPLETE** (Session 29: battle_report.py, snapshots, 15 observation priorities with perspective-aware attacker/defender variants, Godot display, 65 tests) |
@@ -150,7 +150,7 @@ Uses read-only modifier snapshots taken BEFORE state-consuming `get_attack_modif
 | Notification System | Alerts for key events (invasions, deaths, diplomacy) | Medium | Planned |
 | Strategic Ledger | Overview screen: all marshals, armies, nations | Medium | Planned |
 | Marshal Management UI | View/manage all marshals, relationships, recruit | Medium | Planned |
-| Campaign Log | Scrollable history of major events | Low | Planned |
+| Campaign Log | Scrollable history of major events | Low | Planned. EL1-EL5 prereqs resolved (Session 31). |
 | Tooltips | Hover info on regions, marshals, nations | Low | Planned |
 | **Campaign Briefing Screen** | Turn-start summary: "France controls 8 regions. Coalition threat: rising. Ney is restless." Template-driven. | Low | Planned |
 | **Marshal Report** | Per-turn one-liner per marshal: "Ney: attacked Wellington, lost 8k, trust 72 (stable)." | Low | Planned |

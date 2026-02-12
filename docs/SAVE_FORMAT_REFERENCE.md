@@ -10,8 +10,8 @@ A future save/load system should use this as the specification.
 ## Version
 
 - **Format version:** 1.0
-- **Last updated:** 2026-02-07
-- **Compatible with:** Phase 6.2.F Supply/Attrition + Contested Capture
+- **Last updated:** 2026-02-11
+- **Compatible with:** Phase 6.2.F Supply/Attrition + Contested Capture + Event Log
 
 ## Top-Level Structure (WorldState)
 
@@ -54,7 +54,9 @@ A future save/load system should use this as the specification.
   "battle_history": [],
 
   "battles_this_turn": [],
-  "command_history": []
+  "command_history": [],
+
+  "event_log": []
 }
 ```
 
@@ -93,6 +95,7 @@ A future save/load system should use this as the specification.
 | `battle_history` | list | [] | Completed battle records |
 | `battles_this_turn` | list | [] | Battles this turn (Phase 5.2) |
 | `command_history` | list | [] | LLM command context |
+| `event_log` | list | [] | Structured game event history. Each entry is a dict with `type`, `turn`, and event-specific fields. Accumulates across full game, never cleared. Used by Campaign Log, Gazette. |
 
 ---
 

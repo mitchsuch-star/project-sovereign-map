@@ -214,6 +214,14 @@ class WorldState:
         # Only populated in LLM mode (not mock mode)
         self.command_history: List[Dict[str, Any]] = []
 
+        # ============================================================
+        # EVENT LOG - Structured history of all game events
+        # ============================================================
+        # Accumulates across the full game, never reset.
+        # Each event is a dict with at minimum "type" and "turn" keys.
+        # Consumed by Campaign Log (Phase 6.5), Gazette (Phase 8.5), etc.
+        self.event_log: List[Dict[str, Any]] = []
+
     # ========================================
     # GOLD CONVENIENCE PROPERTY
     # ========================================
@@ -239,6 +247,35 @@ class WorldState:
     @bankruptcy_turns.setter
     def bankruptcy_turns(self, value: int):
         self.nation_bankruptcy_turns[self.player_nation] = int(value)
+
+    # ========================================
+    # EVENT LOG HELPERS
+    # ========================================
+
+    def log_event(self, event: dict) -> None:
+        """Append a structured event to the game event log.
+
+        Automatically stamps the event with the current turn number.
+        Events accumulate across the full game and are never cleared.
+        """
+        event["turn"] = self.current_turn
+        self.event_log.append(event)
+
+    def get_events_for_turn(self, turn: int) -> List[Dict]:
+        """Get all events from a specific turn."""
+        return [e for e in self.event_log if e.get("turn") == turn]
+
+    def get_events_since_turn(self, turn: int) -> List[Dict]:
+        """Get all events from turn N onwards. Used by Gazette for 'last 3 turns'."""
+        return [e for e in self.event_log if e.get("turn", 0) >= turn]
+
+    def get_events_by_type(self, event_type: str) -> List[Dict]:
+        """Get all events of a specific type. Used for stats/summaries."""
+        return [e for e in self.event_log if e.get("type") == event_type]
+
+    def get_latest_events(self, n: int = 10) -> List[Dict]:
+        """Get the N most recent events. Used by Campaign Briefing."""
+        return self.event_log[-n:]
 
     def _setup_initial_control(self) -> None:
         """Set up which nation controls which regions at start."""
@@ -649,6 +686,13 @@ class WorldState:
                 self.nation_gold[marshal.nation] = self.nation_gold.get(marshal.nation, 0) + gold_gained
                 region.buildings = []
                 region.building_under_construction = None
+                self.log_event({
+                    "type": "region_captured",
+                    "region": region_name,
+                    "captured_by": marshal.nation,
+                    "captured_from": old_controller,
+                    "method": "plunder",
+                })
                 return f" {region_name} captured and plundered by {marshal.nation}! (+{gold_gained} gold)"
             else:
                 # Secure: stability 25, damage buildings, cancel construction
@@ -657,6 +701,13 @@ class WorldState:
                 for building in region.buildings:
                     building["damaged"] = True
                 region.building_under_construction = None
+                self.log_event({
+                    "type": "region_captured",
+                    "region": region_name,
+                    "captured_by": marshal.nation,
+                    "captured_from": old_controller,
+                    "method": "secure",
+                })
                 return f" {region_name} captured and secured by {marshal.nation}."
 
     # ========================================
@@ -1530,6 +1581,13 @@ class WorldState:
                         "building": completed_type,
                         "message": f"Construction complete: {completed_type.replace('_', ' ').title()} in {region.name}!"
                     })
+                    # Log building_completed event
+                    self.log_event({
+                        "type": "building_completed",
+                        "region": region.name,
+                        "building": completed_type,
+                        "nation": region.controller or "",
+                    })
         return events
 
     def _has_marshal_in_region(self, region_name: str, nation: str) -> bool:
@@ -1586,6 +1644,21 @@ class WorldState:
                             "remaining": marshal.strength
                         })
                         messages.append(f"  {marshal.name} loses {loss} troops to desertion (now {marshal.strength})")
+                        # Log desertion event
+                        self.log_event({
+                            "type": "desertion",
+                            "marshal": marshal.name,
+                            "nation": nation,
+                            "amount": int(loss),
+                            "cause": "bankruptcy",
+                        })
+
+        # Log bankruptcy event (for any level of bankruptcy)
+        self.log_event({
+            "type": "bankruptcy",
+            "nation": nation,
+            "deficit": int(self.nation_gold.get(nation, 0)),
+        })
 
         return {
             "bankrupt": True,
@@ -1745,6 +1818,9 @@ class WorldState:
             "disobedience_system": {
                 "major_objections_this_turn": self.disobedience_system.major_objections_this_turn
             },
+
+            # ═══════ EVENT LOG ═══════
+            "event_log": [e.copy() for e in self.event_log],
         }
 
     @classmethod
@@ -1836,6 +1912,9 @@ class WorldState:
 
         disob_data = data.get("disobedience_system", {})
         world.disobedience_system.major_objections_this_turn = disob_data.get("major_objections_this_turn", 0)
+
+        # ═══════ EVENT LOG ═══════
+        world.event_log = [e.copy() for e in data.get("event_log", [])]
 
         return world
 
@@ -2511,6 +2590,13 @@ class WorldState:
                             "marshal": marshal.name,
                             "message": f"{marshal.name}'s army has fully recovered and is combat ready."
                         })
+                        # Log marshal_recovered event
+                        self.log_event({
+                            "type": "marshal_recovered",
+                            "marshal": marshal.name,
+                            "nation": getattr(marshal, "nation", ""),
+                            "recovery_type": "retreat",
+                        })
 
             # ════════════════════════════════════════════════════════════
             # BROKEN ARMY RECOVERY PROGRESSION
@@ -2542,6 +2628,13 @@ class WorldState:
                             "type": "broken_recovered",
                             "marshal": marshal.name,
                             "message": f"🎉 {marshal.name}'s army has been rebuilt and is combat ready!"
+                        })
+                        # Log marshal_recovered event
+                        self.log_event({
+                            "type": "marshal_recovered",
+                            "marshal": marshal.name,
+                            "nation": getattr(marshal, "nation", ""),
+                            "recovery_type": "broken",
                         })
 
             # ════════════════════════════════════════════════════════════
@@ -2860,6 +2953,16 @@ class WorldState:
                 )
                 debug_print(f"  [AUTO-CHARGE DEBUG] Combat result victor: {combat_result.get('victor')}")
 
+                # Log battle event to world.event_log (EL4 fix, Session 31)
+                # Auto-charge is a 6th resolve_battle path outside executor.py,
+                # so it must log the battle event directly instead of via
+                # executor._log_battle_event().
+                log_event_data = combat_result.get("log_battle_event")
+                if log_event_data:
+                    log_event_data = log_event_data.copy()
+                    log_event_data["location"] = auto_charge_battle_region
+                    self.log_event(log_event_data)
+
                 # Apply war damage + stability hit to battle region (Phase 6.2.C)
                 battle_region = self.get_region(auto_charge_battle_region)
                 if battle_region:
@@ -2907,13 +3010,17 @@ class WorldState:
                             f"{enemy_destroyed_msg}{movement_msg}\n\n"
                             f"{reck_footer}")
                 debug_print(f"  [AUTO-CHARGE DEBUG] Event message: {event_msg[:100]}...")
+                # Strip combat_result from the tactical event sent to Godot.
+                # combat_result contains floats (attacker_roll.multiplier,
+                # modifier_snapshot values) that would crash Godot if read.
+                # The event already has message (human-readable) and
+                # battle_report (int-safe) copied out separately below.
                 auto_charge_event = {
                     "type": "auto_glorious_charge",
                     "marshal": marshal.name,
                     "target": enemy.name,
                     "recklessness": recklessness,
                     "attacker_won": attacker_won,
-                    "combat_result": combat_result,
                     "message": event_msg
                 }
                 # Berthier's After-Action Report

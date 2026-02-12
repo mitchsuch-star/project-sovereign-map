@@ -618,6 +618,26 @@ class CombatResolver:
             },
         }
         result_dict["battle_report"] = generate_battle_report(result_dict)
+
+        # ════════════════════════════════════════════════════════════
+        # EVENT LOG: Pre-build battle event dict for the caller to log.
+        # combat.py doesn't have WorldState access, so we return the event
+        # in the result dict. The caller (executor.py) fills in location
+        # and calls world.log_event(). Retreat/broken events are logged
+        # directly by _apply_forced_retreat_or_break where destination is known.
+        # ════════════════════════════════════════════════════════════
+        result_dict["log_battle_event"] = {
+            "type": "battle",
+            "attacker": attacker.name,
+            "attacker_nation": getattr(attacker, "nation", ""),
+            "defender": defender.name,
+            "defender_nation": getattr(defender, "nation", ""),
+            "location": "",  # Caller fills in
+            "outcome": outcome,
+            "attacker_casualties": int(attacker_casualties),
+            "defender_casualties": int(defender_casualties),
+            "battle_report": result_dict["battle_report"],
+        }
         return result_dict
 
     def _calculate_effective_strength(self, marshal: Marshal, is_attacker: bool) -> float:
