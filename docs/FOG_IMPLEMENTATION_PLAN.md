@@ -174,34 +174,27 @@ The spec (§10) adds 3 new event types: `intel_updated`, `intel_decayed`, `targe
 
 **Ordering dependency:** `get_filtered_game_state_summary()` FIRST — everything else depends on it.
 
-**Implementation:**
-- [ ] Create `backend/intel_report.py` — Berthier Intelligence Report module
-  - `generate_intel_report(world)` → structured report grouped by visibility tier
-  - Sections: YOUR FORCES, CONFIRMED (FULL), RECENT REPORTS (PARTIAL/STALE), LAST KNOWN, NO INTELLIGENCE (UNKNOWN)
-  - Show exact data for FULL, strength band for PARTIAL/STALE, "last seen X turns ago" for LAST_KNOWN, region name only for UNKNOWN
-  - Reusable by Campaign Briefing (Phase 6.5)
-- [ ] Create `get_filtered_game_state_summary()` on WorldState (C1 fix)
+**Implementation: COMPLETE (Session 34A, Feb 12 2026)**
+- [x] Create `backend/intel_report.py` — Berthier Intelligence Report module
+- [x] Create `get_filtered_game_state_summary()` on WorldState (C1 fix)
   - Wrapper that calls `get_game_state_summary()` then filters by visibility
-  - Enemy marshals only appear in `map_data` for PARTIAL+ regions
-  - `enemies` dict: only PARTIAL+ visible enemies with appropriate data (exact for FULL, band for PARTIAL/STALE)
-  - Own region economic data always full regardless of military visibility
-  - Replace all 23 call sites across 8 endpoints with filtered version
-- [ ] Wire status command to `intel_report.py`
-  - "status" is a free_action in `executor.py:732` — no `_execute_status()` exists
-  - Route status action to call `generate_intel_report()` and return result
-  - Update `/status` GET endpoint in `main.py:514` to use filtered report
-- [ ] Wire scout action → `update_intel_from_scout()` in `_execute_scout()` (C2 fix)
-  - Targeted scout: update intel for target region → FULL
-  - Adjacent scan: adjacent regions get PARTIAL (not FULL)
-  - Davout +1 range: only target gets FULL, intermediates untouched
-- [ ] Wire battle resolution → `update_intel_from_battle()` at all 6 resolve_battle sites
-  - `executor.py`: 5 sites (main attack:2529, general attack:4601, sally 2:4749, sally 3:4882, glorious charge:7169)
+  - Enemy marshals hidden at UNKNOWN, strength_band only at PARTIAL/STALE, exact at FULL
+  - Own region economic data always full; enemy economic data only at FULL
+  - Replaced all 29 call sites (26 in main.py, 3 in executor.py) — actual count higher than estimated 23
+- [x] Wire status command to `intel_report.py`
+  - Created `_execute_status()` in executor.py
+  - Routed "status" action in command routing block
+  - Updated `/status` GET endpoint to return intel report + filtered game state
+- [x] Wire scout action → `update_intel_from_scout()` in `_execute_scout()` (C2 fix)
+  - Targeted scout → FULL on target region
+  - Adjacent scan → PARTIAL refresh on each adjacent region
+- [x] Wire battle resolution → `update_intel_from_battle()` at all 6 resolve_battle sites
+  - `executor.py`: 5 sites (main attack, general attack, sally 2, sally 3, glorious charge)
   - `world_state.py`: 1 site (auto-charge in `_process_reckless_cavalry_turn_start()`)
-  - All battles grant FULL on the battle region
-- [ ] Unit tests: intel report format, filtered game state, scout persistence, battle reveals, status command output
+- [x] 33 unit tests: intel report format/tiers, filtered game state (enemy hiding, band-only, FULL shown, economic data, float check), scout persistence (targeted + adjacent + persistence across turns), battle reveals (attack + auto-charge), status command wiring, edge cases
 
-**Tests expected:** ~30
-**Smoke test gate:** `pytest tests/ -v --tb=no -q` green, curl test `/status` and `/command` to verify filtered responses
+**Tests:** 33 new (2124 total passing, 3 skipped)
+**Smoke test gate:** PASSED
 
 ---
 
@@ -473,8 +466,8 @@ Fog touches many systems — review integration points:
 
 | Session | Scope | Complexity | Tests | Cumulative |
 |---------|-------|------------|-------|------------|
-| 33 | Intel model + visibility + decay + serialization + game init | Sonnet | ~45 | ~2081 |
-| 34A | Intel report + filtered game state + scout persistence + battle reveals | Sonnet | ~30 | ~2111 |
+| 33 | Intel model + visibility + decay + serialization + game init | Sonnet | 55 | 2091 |
+| 34A | Intel report + filtered game state + scout persistence + battle reveals | Sonnet | 33 | 2124 |
 | 34B | PURSUE fog + SUPPORT/HOLD fog + cautious pathfinding + display filtering | Sonnet | ~25 | ~2136 |
 | 35 | Watchtower building + visibility + AI + repair + synergy | Sonnet | ~30 | ~2166 |
 | 36 | Edge cases + Davout PURSUE + V2b markers + smoke test + docs | Sonnet | ~20 | ~2186 |

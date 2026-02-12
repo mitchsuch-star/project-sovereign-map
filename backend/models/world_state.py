@@ -2349,6 +2349,113 @@ class WorldState:
             "victory": self.victory
         }
 
+    def get_filtered_game_state_summary(self) -> Dict:
+        """
+        Fog-filtered game state for API responses (Session 34A).
+
+        Wraps get_game_state_summary() and redacts enemy data based on
+        the player's intel visibility per region. Player marshals always
+        shown. Region controller and terrain always shown (public knowledge).
+        Economic data (stability, buildings, war_damage, income) only shown
+        for own regions or FULL visibility on enemy regions.
+
+        Call sites: ALL endpoints in main.py and executor.py that previously
+        called get_game_state_summary() now call this instead.
+        """
+        from backend.models.intel import FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN, get_strength_band
+
+        summary = self.get_game_state_summary()
+
+        # Filter map_data: redact enemy marshals and economic data by visibility
+        filtered_map = {}
+        for region_name, region_data in summary["map_data"].items():
+            intel = self.get_region_intel(region_name)
+            region_obj = self.regions.get(region_name)
+            is_own_region = region_obj and region_obj.controller == self.player_nation
+
+            filtered_region = {
+                # Always public
+                "controller": region_data["controller"],
+                "terrain": region_data["terrain"],
+                "region_type": region_data["region_type"],
+                "marshals": [],  # Rebuilt below
+            }
+
+            # Economic data: always for own regions, only at FULL for enemy
+            if is_own_region or intel.visibility == FULL:
+                filtered_region["income_value"] = region_data["income_value"]
+                filtered_region["effective_income"] = region_data["effective_income"]
+                filtered_region["stability"] = region_data["stability"]
+                filtered_region["stability_label"] = region_data["stability_label"]
+                filtered_region["war_damage"] = region_data["war_damage"]
+                filtered_region["supply_capacity"] = region_data["supply_capacity"]
+                filtered_region["buildings"] = region_data["buildings"]
+                filtered_region["building_under_construction"] = region_data["building_under_construction"]
+                filtered_region["max_building_slots"] = region_data["max_building_slots"]
+            else:
+                # Hidden economic data — send safe defaults so Godot doesn't crash on missing keys
+                filtered_region["income_value"] = 0
+                filtered_region["effective_income"] = 0
+                filtered_region["stability"] = 0
+                filtered_region["stability_label"] = "Unknown"
+                filtered_region["war_damage"] = 0
+                filtered_region["supply_capacity"] = 0
+                filtered_region["buildings"] = []
+                filtered_region["building_under_construction"] = None
+                filtered_region["max_building_slots"] = 0
+
+            # Marshal filtering per visibility
+            for marshal_data in region_data["marshals"]:
+                if marshal_data["nation"] == self.player_nation:
+                    # Own marshals: always show full detail
+                    filtered_region["marshals"].append(marshal_data)
+                elif intel.visibility == FULL:
+                    # FULL: show enemy with exact data (but no player-only fields like trust)
+                    filtered_region["marshals"].append(marshal_data)
+                elif intel.visibility in (PARTIAL, STALE):
+                    # PARTIAL/STALE: name, nation, strength band — no exact numbers
+                    band = get_strength_band(marshal_data["strength"])
+                    filtered_marshal = {
+                        "name": marshal_data["name"],
+                        "nation": marshal_data["nation"],
+                        "strength": 0,  # Hidden — use strength_band instead
+                        "morale": 0,
+                        "movement_range": 0,
+                        "strength_band": band,
+                        "fog_level": intel.visibility,
+                    }
+                    filtered_region["marshals"].append(filtered_marshal)
+                # LAST_KNOWN / UNKNOWN: enemy marshals hidden from map_data
+                # (their last known position is in the intel store, not live map data)
+
+            filtered_map[region_name] = filtered_region
+
+        summary["map_data"] = filtered_map
+
+        # Filter enemies dict: only show enemies with PARTIAL+ visibility
+        filtered_enemies = {}
+        for name, enemy_data in summary["enemies"].items():
+            enemy_location = enemy_data["location"]
+            intel = self.get_region_intel(enemy_location)
+            if intel.visibility == FULL:
+                filtered_enemies[name] = enemy_data
+            elif intel.visibility in (PARTIAL, STALE):
+                # Show location but not exact strength
+                marshal_obj = self.marshals.get(name)
+                band = get_strength_band(marshal_obj.strength) if marshal_obj else "unknown"
+                filtered_enemies[name] = {
+                    "location": enemy_data["location"],
+                    "strength": 0,
+                    "nation": enemy_data["nation"],
+                    "strength_band": band,
+                    "fog_level": intel.visibility,
+                }
+            # LAST_KNOWN / UNKNOWN: enemy not shown in enemies dict
+
+        summary["enemies"] = filtered_enemies
+
+        return summary
+
     # ========================================
     # COMMAND HISTORY (Phase 5)
     # ========================================
@@ -3205,6 +3312,9 @@ class WorldState:
                     log_event_data = log_event_data.copy()
                     log_event_data["location"] = auto_charge_battle_region
                     self.log_event(log_event_data)
+
+                # Fog of War (Session 34A): Battle grants FULL visibility on battle region
+                self.update_intel_from_battle(auto_charge_battle_region, self.current_turn)
 
                 # Apply war damage + stability hit to battle region (Phase 6.2.C)
                 battle_region = self.get_region(auto_charge_battle_region)

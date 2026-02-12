@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 12, 2026
-> **Last Session:** Session 33 — Fog of War Intel Data Layer + Visibility Core
+> **Last Session:** Session 34A — Fog of War Intel Report + Filtering Infrastructure
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2091** (verified, 3 skipped) |
+| **Tests Passing** | **2124** (verified, 3 skipped) |
 | **Current Phase** | Phase 6: **IN PROGRESS** (3 items remaining: Fog of War, Manpower Pools, Artillery Unit Type) |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier, 6-BattleReport, 6-EventLog |
@@ -19,7 +19,7 @@
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED. Save/Load COMPLETE. Fog of War Session 33 COMPLETE.**
+**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED. Save/Load COMPLETE. Fog of War Sessions 33 + 34A COMPLETE.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -49,6 +49,57 @@
 ---
 
 ## Recently Completed
+
+### Feb 12 (Session 34A: Fog of War Intel Report + Filtering Infrastructure)
+
+**Berthier's Intelligence Report, filtered game state summary, scout persistence, battle reveal wiring. After this session, the status command shows fog-filtered intel, scouts persist FULL visibility, battles reveal regions, and all 29 API call sites serve fog-filtered data.**
+
+**New file: `backend/intel_report.py`**
+- `generate_intel_report(world)` — structured report grouped by visibility tier
+- Sections: YOUR FORCES (always full), CONFIRMED (FULL), RECENT REPORTS (PARTIAL/STALE), LAST KNOWN, NO INTELLIGENCE (UNKNOWN)
+- Formatted text output for terminal display + structured data for Godot
+
+**`get_filtered_game_state_summary()` on WorldState:**
+- Wraps `get_game_state_summary()`, redacts enemy data by intel visibility
+- UNKNOWN: enemies hidden from map_data and enemies dict entirely
+- PARTIAL/STALE: enemies shown with strength_band, strength=0, fog_level tag
+- FULL: enemies shown with exact data (unchanged from pre-fog behavior)
+- Own region economic data always shown; enemy economic data only at FULL
+- Controller and terrain always public (political/geographic knowledge)
+- All 29 call sites replaced (26 in main.py, 3 in executor.py)
+
+**Status command wiring:**
+- New `_execute_status()` in executor.py calls `generate_intel_report()`
+- `/status` GET endpoint returns Berthier's Intelligence Report + filtered game state
+- "status" action routed in executor command routing block
+
+**Scout persistence (C2 fix):**
+- Targeted scout → `update_intel_from_scout()` → FULL on target region
+- Adjacent scan → PARTIAL refresh on each adjacent region via `intel.refresh()`
+- Scout data now persists to intel store (was previously ephemeral in API response only)
+
+**Battle reveal wiring (6 sites):**
+- `executor.py`: 5 sites (main attack, general attack, sally 2, sally 3, glorious charge)
+- `world_state.py`: 1 site (auto-charge in `_process_reckless_cavalry_turn_start()`)
+- All battles grant FULL visibility on battle region via `update_intel_from_battle()`
+
+**Files modified:**
+- `backend/intel_report.py` (NEW) — Berthier Intelligence Report
+- `backend/models/world_state.py` — `get_filtered_game_state_summary()`, battle reveal wiring at auto-charge site
+- `backend/commands/executor.py` — `_execute_status()`, status routing, scout persistence, battle reveal at 5 sites
+- `backend/main.py` — 26 call sites replaced, `/status` endpoint rewritten
+- `tests/test_intel_report.py` (NEW) — 33 tests
+- `docs/STATUS.md` — this entry
+- `docs/FOG_IMPLEMENTATION_PLAN.md` — Session 34A marked COMPLETE
+
+**Issues found during implementation:**
+- Scout on own-territory regions: `update_intel_from_scout()` correctly fires but `own_territory` source takes priority (higher in INTEL_SOURCE_PRIORITY). This is correct behavior — own territory source is more authoritative than a scout. The FULL visibility is still granted.
+- Adjacent scan source: Set to "scout" (not "adjacent") since the player actively ordered the scan. This gives adjacent-scan intel slightly higher source priority than passive adjacency from `calculate_visibility()`, which is correct — an ordered reconnaissance is more deliberate than passive line-of-sight.
+- `_execute_attack()` signature is `(self, marshal, target, world, game_state)` not `(self, command, game_state)` — documented for future test writers.
+
+**Tests:** 33 new (2124 total passing, 3 skipped).
+
+---
 
 ### Feb 12 (Session 33: Fog of War Intel Data Layer + Visibility Core)
 

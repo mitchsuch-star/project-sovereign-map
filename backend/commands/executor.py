@@ -522,6 +522,26 @@ class CommandExecutor:
             marshal.precision_execution_active = True
             marshal.precision_execution_turns = 3
 
+    def _execute_status(self, command: Dict, game_state: Dict) -> Dict:
+        """
+        Execute status command — returns Berthier's Intelligence Report (Session 34A).
+
+        Reads the intel store and produces a fog-filtered status view.
+        Free action (0 AP cost).
+        """
+        from backend.intel_report import generate_intel_report
+        world: WorldState = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "No world state"}
+
+        report = generate_intel_report(world)
+        return {
+            "success": True,
+            "free_action": True,
+            "message": report["report_text"],
+            "intel_report": report,
+        }
+
     def _execute_help(self, command: Dict, game_state: Dict) -> Dict:
         """
         Display help text with available commands and examples.
@@ -1304,7 +1324,7 @@ RETREAT RECOVERY (3 turns):
                         "alternatives": alternatives,
                         "options": options,
                         "action_summary": world.get_action_summary(),
-                        "game_state": world.get_game_state_summary()
+                        "game_state": world.get_filtered_game_state_summary()
                     }
 
         # ════════════════════════════════════════════════════════════
@@ -1334,6 +1354,8 @@ RETREAT RECOVERY (3 turns):
         if _skip_routing:
             pass  # Already have result from strategic handler
         # Handle special actions first
+        elif action == "status":
+            result = self._execute_status(command, game_state)
         elif action == "help":
             result = self._execute_help(command, game_state)
         elif action == "recruit":
@@ -2131,7 +2153,7 @@ RETREAT RECOVERY (3 turns):
                             "alternatives": [e.name for e in enemies if e.name != nearest_enemy.name][:2],
                             "options": options,
                             "action_summary": world.get_action_summary(),
-                            "game_state": world.get_game_state_summary()
+                            "game_state": world.get_filtered_game_state_summary()
                         }
 
                     # Non-literal marshals: move toward the enemy
@@ -2537,6 +2559,9 @@ RETREAT RECOVERY (3 turns):
 
         # Log battle event
         self._log_battle_event(battle_result, battle_region_name, world)
+
+        # Fog of War (Session 34A): Battle grants FULL visibility on battle region
+        world.update_intel_from_battle(battle_region_name, world.current_turn)
 
         # Apply war damage + stability hit to battle region (Phase 6.2.C)
         self._apply_battle_effects_to_region(
@@ -3072,7 +3097,7 @@ RETREAT RECOVERY (3 turns):
                 "alternatives": alternatives,
                 "options": options,
                 "action_summary": world.get_action_summary(),
-                "game_state": world.get_game_state_summary()
+                "game_state": world.get_filtered_game_state_summary()
             }
         }
 
@@ -4371,6 +4396,9 @@ RETREAT RECOVERY (3 turns):
             else:
                 intel_msg += "No enemy forces detected."
 
+            # Fog of War (Session 34A): Persist FULL intel on scouted region
+            world.update_intel_from_scout(target_name, world.current_turn)
+
             return {
                 "success": True,
                 "message": f"{marshal.name} scouts {target_name}: {intel_msg}",
@@ -4403,6 +4431,26 @@ RETREAT RECOVERY (3 turns):
                     "terrain": terrain,
                     "enemy_count": len(enemies)
                 })
+
+            # Fog of War (Session 34A): Adjacent scan refreshes PARTIAL on each adjacent region.
+            # This is NOT the same as a targeted scout (which grants FULL).
+            # Adjacent intel is already handled by calculate_visibility() during turn
+            # processing, but the scout action provides an immediate snapshot.
+            from backend.models.intel import PARTIAL, get_strength_band
+            for info in adjacent_intel:
+                adj_region_name = info["region"]
+                adj_intel = world.get_region_intel(adj_region_name)
+                adj_enemies = [m for m in world.get_marshals_in_region(adj_region_name)
+                               if m.nation != world.player_nation and m.strength > 0]
+                adj_marshal_data = world._build_marshal_snapshot(adj_enemies, full=False)
+                adj_total = sum(m.strength for m in adj_enemies)
+                adj_intel.refresh(
+                    visibility=PARTIAL,
+                    source="scout",
+                    turn=world.current_turn,
+                    marshals=adj_marshal_data,
+                    total_strength=adj_total,
+                )
 
             intel_summary = ", ".join([
                 f"{info['region']} ({info['controller']}, {info['terrain'].replace('_', ' ').title()}" +
@@ -4610,6 +4658,9 @@ RETREAT RECOVERY (3 turns):
         # Log battle event
         self._log_battle_event(battle_result, target_location, world)
 
+        # Fog of War (Session 34A): Battle grants FULL visibility on battle region
+        world.update_intel_from_battle(target_location, world.current_turn)
+
         # Apply war damage + stability hit to battle region (Phase 6.2.C)
         self._apply_battle_effects_to_region(
             target_location, pre_battle_atk, pre_battle_def, world
@@ -4758,6 +4809,9 @@ RETREAT RECOVERY (3 turns):
             # Log battle event
             self._log_battle_event(battle_result, target_location, world)
 
+            # Fog of War (Session 34A): Battle grants FULL visibility on battle region
+            world.update_intel_from_battle(target_location, world.current_turn)
+
             # Apply war damage + stability hit to battle region (Phase 6.2.C)
             self._apply_battle_effects_to_region(
                 target_location, pre_battle_atk, pre_battle_def, world
@@ -4890,6 +4944,9 @@ RETREAT RECOVERY (3 turns):
 
             # Log battle event
             self._log_battle_event(battle_result, target_name, world)
+
+            # Fog of War (Session 34A): Battle grants FULL visibility on battle region
+            world.update_intel_from_battle(target_name, world.current_turn)
 
             # Apply war damage + stability hit to battle region (Phase 6.2.C)
             self._apply_battle_effects_to_region(
@@ -7176,6 +7233,9 @@ RETREAT RECOVERY (3 turns):
 
         # Log battle event
         self._log_battle_event(combat_result, charge_battle_region, world)
+
+        # Fog of War (Session 34A): Battle grants FULL visibility on battle region
+        world.update_intel_from_battle(charge_battle_region, world.current_turn)
 
         # Apply war damage + stability hit to battle region (Phase 6.2.C)
         self._apply_battle_effects_to_region(

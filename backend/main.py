@@ -160,7 +160,7 @@ def test_connection():
         "turn": int(world.current_turn),
         "gold": int(world.gold),
         "action_summary": world.get_action_summary(),
-        "game_state": world.get_game_state_summary()
+        "game_state": world.get_filtered_game_state_summary()
     }
 
 
@@ -227,7 +227,7 @@ def execute_command(request: CommandRequest):
                         m.name, interrupt_type, choice, world, game_state)
                     cleaned = {k: v for k, v in result.items() if k != "new_state"}
                     cleaned["action_summary"] = world.get_action_summary()
-                    cleaned["game_state"] = world.get_game_state_summary()
+                    cleaned["game_state"] = world.get_filtered_game_state_summary()
                     return cleaned
 
         # Parse command
@@ -275,7 +275,7 @@ def execute_command(request: CommandRequest):
                     "new_turn": None,
                 },
                 "action_summary": world.get_action_summary(),
-                "game_state": world.get_game_state_summary(),
+                "game_state": world.get_filtered_game_state_summary(),
             }
 
         # Execute command
@@ -307,7 +307,7 @@ def execute_command(request: CommandRequest):
                     "new_turn": None,
                 },
                 "action_summary": world.get_action_summary(),
-                "game_state": world.get_game_state_summary(),
+                "game_state": world.get_filtered_game_state_summary(),
             }
 
         # ════════════════════════════════════════════════════════════
@@ -319,14 +319,14 @@ def execute_command(request: CommandRequest):
             print(f"[OBJECTION] TACTICAL OBJECTION - Returning full result to frontend")
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
-            cleaned["game_state"] = world.get_game_state_summary()
+            cleaned["game_state"] = world.get_filtered_game_state_summary()
             return cleaned
 
         if result.get("pending_objection"):
             print(f"[OBJECTION] STRATEGIC OBJECTION (Phase M) - Returning full result to frontend")
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
-            cleaned["game_state"] = world.get_game_state_summary()
+            cleaned["game_state"] = world.get_filtered_game_state_summary()
             return cleaned
 
         # ════════════════════════════════════════════════════════════
@@ -336,7 +336,7 @@ def execute_command(request: CommandRequest):
             print(f"[CLARIFICATION] Returning clarification popup to frontend")
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
-            cleaned["game_state"] = world.get_game_state_summary()
+            cleaned["game_state"] = world.get_filtered_game_state_summary()
             return cleaned
 
         # ════════════════════════════════════════════════════════════
@@ -346,7 +346,7 @@ def execute_command(request: CommandRequest):
             print(f"GLORIOUS CHARGE PENDING - Returning full result to frontend")
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
-            cleaned["game_state"] = world.get_game_state_summary()
+            cleaned["game_state"] = world.get_filtered_game_state_summary()
             return cleaned
 
         # ════════════════════════════════════════════════════════════
@@ -356,7 +356,7 @@ def execute_command(request: CommandRequest):
             print(f"[CAPTURE] PLUNDER/SECURE CHOICE PENDING - Returning full result to frontend")
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
-            cleaned["game_state"] = world.get_game_state_summary()
+            cleaned["game_state"] = world.get_filtered_game_state_summary()
             return cleaned
 
         # Get action summary
@@ -406,7 +406,7 @@ def execute_command(request: CommandRequest):
             "events": result.get("events", []),
             "action_info": result.get("action_info", {}),
             "action_summary": action_summary,
-            "game_state": world.get_game_state_summary()
+            "game_state": world.get_filtered_game_state_summary()
         }
 
         # Add feedback if generated
@@ -507,14 +507,17 @@ def execute_command(request: CommandRequest):
             "events": [],
             "action_info": {"remaining": int(world.actions_remaining)},
             "action_summary": world.get_action_summary(),
-            "game_state": world.get_game_state_summary()
+            "game_state": world.get_filtered_game_state_summary()
         }
 
 
 @app.get("/status")
 def get_status():
-    """Get current game status."""
-    return world.get_game_state_summary()
+    """Get current game status — Berthier's Intelligence Report (Session 34A)."""
+    from backend.intel_report import generate_intel_report
+    report = generate_intel_report(world)
+    report["game_state"] = world.get_filtered_game_state_summary()
+    return report
 
 
 # ============================================================
@@ -581,7 +584,7 @@ def respond_to_objection(request: ObjectionResponse):
             "events": result.get("events", []),
             "action_info": result.get("action_info", {}),
             "action_summary": world.get_action_summary(),
-            "game_state": world.get_game_state_summary(),
+            "game_state": world.get_filtered_game_state_summary(),
             "strategic_reports": result.get("strategic_reports", []),
         }
         if result.get("battle_report"):
@@ -605,7 +608,7 @@ def respond_to_objection(request: ObjectionResponse):
         return {
             "success": False,
             "message": f"Error: {str(e)}",
-            "game_state": world.get_game_state_summary()
+            "game_state": world.get_filtered_game_state_summary()
         }
 
 
@@ -625,7 +628,7 @@ def capture_choice(request: CaptureChoiceResponse):
             "events": result.get("events", []),
             "capture_choice": result.get("capture_choice"),
             "action_summary": world.get_action_summary(),
-            "game_state": world.get_game_state_summary(),
+            "game_state": world.get_filtered_game_state_summary(),
         }
         return response
     except Exception as e:
@@ -635,7 +638,7 @@ def capture_choice(request: CaptureChoiceResponse):
         return {
             "success": False,
             "message": f"Error: {str(e)}",
-            "game_state": world.get_game_state_summary()
+            "game_state": world.get_filtered_game_state_summary()
         }
 
 
@@ -658,7 +661,7 @@ def respond_to_redemption(request: RedemptionResponse):
             return {
                 "success": False,
                 "message": "No redemption event pending.",
-                "game_state": world.get_game_state_summary()
+                "game_state": world.get_filtered_game_state_summary()
             }
 
         redemption_event = world.pending_redemption
@@ -669,7 +672,7 @@ def respond_to_redemption(request: RedemptionResponse):
             return {
                 "success": False,
                 "message": f"Invalid choice: '{request.choice}'. Valid: {', '.join(valid_choices)}",
-                "game_state": world.get_game_state_summary()
+                "game_state": world.get_filtered_game_state_summary()
             }
 
         # Process the redemption response
@@ -694,7 +697,7 @@ def respond_to_redemption(request: RedemptionResponse):
             "troops_frozen": result.get("troops_frozen", 0),
             "authority_bonus": result.get("authority_bonus", 0),
             "action_summary": world.get_action_summary(),
-            "game_state": world.get_game_state_summary()
+            "game_state": world.get_filtered_game_state_summary()
         }
     except Exception as e:
         print(f"❌ ERROR handling redemption response: {e}")
@@ -703,7 +706,7 @@ def respond_to_redemption(request: RedemptionResponse):
         return {
             "success": False,
             "message": f"Error: {str(e)}",
-            "game_state": world.get_game_state_summary()
+            "game_state": world.get_filtered_game_state_summary()
         }
 
 
@@ -752,7 +755,7 @@ def respond_to_glorious_charge(request: GloriousChargeResponse):
             return {
                 "success": False,
                 "message": f"Invalid choice: '{request.choice}'. Valid: {', '.join(valid_choices)}",
-                "game_state": world.get_game_state_summary()
+                "game_state": world.get_filtered_game_state_summary()
             }
 
         # Process the response through executor
@@ -764,7 +767,7 @@ def respond_to_glorious_charge(request: GloriousChargeResponse):
             "choice": request.choice,
             "events": result.get("events", []),
             "action_summary": world.get_action_summary(),
-            "game_state": world.get_game_state_summary()
+            "game_state": world.get_filtered_game_state_summary()
         }
         if result.get("battle_report"):
             response["battle_report"] = result["battle_report"]
@@ -776,7 +779,7 @@ def respond_to_glorious_charge(request: GloriousChargeResponse):
         return {
             "success": False,
             "message": f"Error: {str(e)}",
-            "game_state": world.get_game_state_summary()
+            "game_state": world.get_filtered_game_state_summary()
         }
 
 
@@ -808,7 +811,7 @@ def handle_strategic_response(request: StrategicInterruptResponse):
             "trust_change": result.get("trust_change", 0),
             "action_taken": result.get("action_taken"),
             "action_summary": world.get_action_summary(),
-            "game_state": world.get_game_state_summary()
+            "game_state": world.get_filtered_game_state_summary()
         }
     except Exception as e:
         print(f"❌ ERROR handling strategic response: {e}")
@@ -817,7 +820,7 @@ def handle_strategic_response(request: StrategicInterruptResponse):
         return {
             "success": False,
             "message": f"Error: {str(e)}",
-            "game_state": world.get_game_state_summary()
+            "game_state": world.get_filtered_game_state_summary()
         }
 
 
@@ -1043,7 +1046,7 @@ async def load_endpoint(request: LoadRequest):
         return {
             "success": True,
             "message": result["message"],
-            "game_state": world.get_game_state_summary()
+            "game_state": world.get_filtered_game_state_summary()
         }
     return {"success": False, "message": result["message"]}
 
