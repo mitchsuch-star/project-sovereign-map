@@ -200,39 +200,121 @@ The spec (§10) adds 3 new event types: `intel_updated`, `intel_decayed`, `targe
 
 ### Session 34B: Strategic Commands + Display Filtering (Sonnet)
 
-**Goal:** PURSUE fog validation, SUPPORT visibility, cautious pathfinding fog-awareness, enemy phase filtering, tactical/strategic report filtering. After this session, fog is fully functional — all API responses respect visibility.
+**Goal:** PURSUE fog validation, SUPPORT visibility, cautious pathfinding fog-awareness, enemy phase filtering, tactical/strategic event filtering. After this session, fog is fully functional — all API responses respect visibility.
+
+**Design principle (confirmed Session 34B review):** Game mechanics use real world data — the executor is deterministic (Golden Rule #6). Fog only filters what the PLAYER sees in messages and UI. Same principle as AI omniscience: the simulation is accurate, the player's view is filtered. This means sally ratio checks, combat resolution, and pathfinding *decisions* use real data. Only the *display* of those decisions is fog-filtered.
+
+**Prerequisites (build FIRST — everything else depends on these):**
+- [ ] `get_last_known_location(marshal_name)` helper on WorldState
+  - Scans all RegionIntel objects in `self.intel`
+  - Returns region_name of the RegionIntel whose `known_marshals` contains the target with the most recent `last_updated_turn`
+  - Handles: never scouted → returns None; marshal in multiple stale regions → return most recent; marshal destroyed → last intel entry persists (player's last knowledge is that the marshal existed there)
+- [ ] `get_visible_enemies_in_region(region_name, nation)` helper on WorldState
+  - Wraps `get_enemies_in_region()`, filters by `get_region_intel(region).visibility >= PARTIAL`
+  - Returns empty list for STALE/LAST_KNOWN/UNKNOWN (enemies not confirmed visible)
+  - Does NOT replace `get_enemies_in_region()` — AI needs omniscient access, too many callsites
 
 **Implementation:**
-- [ ] PURSUE validation: read target location from intel store, not raw marshal data (§5.2)
-  - `world.get_marshal(target).location` → `intel.get_last_known_location(target)`
-  - If UNKNOWN: reject with "No intelligence on [target]'s position"
-  - If STALE/LAST_KNOWN: allow, use last known position for pathfinding
-- [ ] PURSUE empty-arrival: detect target not at destination (§5.2)
-  - Marshal arrives → target not in region → check adjacent via PARTIAL
-  - No enemies adjacent: order auto-cancels, message "[Marshal] arrives at [region] but finds no sign of [target]. Awaiting orders, Sire."
-  - Enemies adjacent: existing personality contact vectors handle encounter (no new interrupt type needed)
-- [ ] SUPPORT safety check: fog-aware (spec §5.3 note)
-  - `_execute_support()` adjacent enemy scan only sees PARTIAL+ visible enemies
-- [ ] Cautious pathfinding: fog-aware (spec §9.3)
-  - `_get_enemy_occupied_regions()` filters by PARTIAL+ visibility from intel store
-  - Cautious marshals only avoid enemies they can see
-- [ ] HOLD sally logic: fog-aware
-  - Sally only targets enemies visible at PARTIAL+ in adjacent regions
-- [ ] Filter enemy phase display by visibility (§4.2) in `main.py`
-  - Actions in FULL regions: show full display
-  - Actions in PARTIAL regions: show vague "movement reported near [region]"
-  - Actions in STALE/LAST_KNOWN/UNKNOWN: suppress
-  - Exception: arrival into visible region shows "[forces] appear at [region]"
-- [ ] Filter tactical events by visibility (end-turn events sent to Godot)
-  - Only show events in regions with PARTIAL+ visibility
-  - Supply attrition for enemy nations: suppress if region not visible
-- [ ] Filter strategic reports by visibility
-  - Reports about events in fogged regions: suppress or redact
-- [ ] Event log: `intel_updated`, `intel_decayed` event types (§10)
-  - `target_not_found` becomes an order completion message, not a separate event type
-- [ ] Unit tests: PURSUE into fog, PURSUE empty arrival (both cases), SUPPORT fog, cautious pathfinding, enemy phase filtering, tactical event filtering, strategic report filtering
 
-**Tests expected:** ~25
+**1. PURSUE fog validation (HIGH RISK):** read target location from intel store, not raw marshal data (§5.2)
+- [ ] Replace `world.get_marshal(target).location` → `world.get_last_known_location(target)` at strategic.py lines 850, 880, 901, 945, 963, 985, 992
+  - If returns None (UNKNOWN, never scouted): reject with "No intelligence on [target]'s position, Sire."
+  - If STALE/LAST_KNOWN: allow, use last known position for pathfinding — pursuer heads toward outdated location
+  - Target destroyed mid-pursuit in fog: pursuer continues toward last known position, discovers truth on arrival. Identical to "target moved away" — auto-cancel, report. Needs explicit test.
+  - Multi-region sighting edge case: if Wellington appears in stale intel at both Waterloo (turn 2) and Brussels (turn 5), `get_last_known_location()` returns Brussels (most recent `last_updated_turn`). The older Waterloo entry keeps stale data but the search finds the freshest sighting.
+
+**2. PURSUE empty-arrival (MEDIUM RISK):** detect target not at destination (§5.2)
+- [ ] Marshal arrives → target not in region → check surroundings
+  - **Arrival timing:** Strategic orders execute during `process_strategic_orders()` (turn_manager.py:144) BEFORE `advance_turn()` (line 154). `calculate_visibility()` runs at END of `_advance_turn_internal()` (line 2688). So at arrival moment, intel store is stale from previous turn. **Resolution:** On arrival, use raw `world.get_marshals_in_region(current_region)` for the current region (marshal is physically there, this is legitimate) and raw `world.get_enemies_in_region(adj, nation)` for adjacent regions (marshal just arrived and can see surroundings). This is an implicit mini-refresh, not a fog breach — the formal intel store catches up when `calculate_visibility()` runs at turn end.
+  - No enemies in region AND no enemies adjacent: order auto-cancels, message "[Marshal] arrives at [region] but finds no sign of [target]. Last intelligence was [X] turns old. Awaiting orders, Sire."
+  - Enemies in region or adjacent: existing personality contact vectors handle encounter — aggressive charges, cautious reports/scouts, literal continues as ordered (no new interrupt type needed)
+
+**3. SUPPORT safety check (LOW RISK):** fog-aware (spec §5.3 note)
+- [ ] `_execute_support()` adjacent enemy scan at lines 1277-1281: replace `world.get_enemies_in_region()` with `world.get_visible_enemies_in_region()`
+  - Only reports enemies the player can see. If enemies are hidden in fog, SUPPORT cannot assess safety.
+  - Message change: if enemies only at PARTIAL visibility, say "forces reported near [ally]" with band, not exact counts
+
+**4. Cautious pathfinding (LOW RISK):** fog-aware (spec §9.3)
+- [ ] `_get_enemy_occupied_regions()` at strategic.py line 1917: filter by PARTIAL+ visibility from intel store
+  - Replace `world.get_enemies_in_region(region_name, nation)` with visibility-gated check: `world.get_region_intel(region_name).visibility in (FULL, PARTIAL)` before checking enemies
+  - Affects ALL callers (shared function): MOVE_TO (line 685 via `_get_personality_aware_path`), PURSUE (line 880), SUPPORT (line 1313), go_around reroutes (line 375), literal silent reroutes (line 1733)
+  - Cautious marshals only avoid enemies they can see. Walking into a trap because intel was bad is a fog moment — existing contact interrupt handles the surprise encounter.
+
+**5. HOLD sally logic (NO CHANGES NEEDED — verified):**
+- Sally scan at strategic.py line 1148-1149 iterates `region.adjacent_regions` ONLY — strictly adjacent, no cavalry extended range
+  - Adjacency guarantees PARTIAL visibility (Step 2 of `calculate_visibility()` — any region adjacent to friendly marshal is PARTIAL)
+  - Therefore all sally targets are always visible to the holding marshal. No fog filter needed on targeting.
+  - Ratio check at line 1151 uses `enemy.strength` (exact data). Per design principle above: game mechanics use real data, fog filters display. The sally *decision* is deterministic; the *message shown to player* uses fog-appropriate language.
+  - Note for 1805: if cavalry gets extended sally range in the future, this needs fog filtering for non-adjacent targets.
+
+**6. Enemy phase display filtering (HIGH RISK, MOST COMPLEX):** (§4.2) in `main.py`
+- [ ] Create `_filter_enemy_phase_by_visibility(enemy_phase, world)` function in main.py
+  - For each action in each nation's action list:
+    1. **Involves player marshal?** Check if `ai_action.target` matches a player marshal name, OR if action `events[]` contain a battle with player nation involved → **ALWAYS SHOW** (player was in the battle, they know about it)
+    2. **Extract action region:** From `ai_action.target` (for attack/move) or from action result `events[].location`. If no clean region field, infer from marshal's post-action location via action result.
+    3. **Check visibility:** `world.get_region_intel(action_region).visibility`
+    4. FULL → show as-is (full action display)
+    5. Below FULL → **suppress** for initial implementation
+    6. **Arrival exception (deferred to polish):** If enemy moves INTO a visible region, show "[forces] appear at [region]". Requires checking destination visibility, not origin. Deferred because: extracting destination reliably from heterogeneous action dicts is fragile. Core suppression is sufficient for Phase 6.
+  - **PARTIAL "reports of movement" tier: DEFERRED** — spec §4.2 explicitly calls this a "polish tier (not in initial implementation)". Implement after core fog is stable.
+  - Must be bulletproof on: direct attacks, general attacks, sallies, auto-charges against player, admin actions (recruit/build/repair)
+
+**7. Tactical event filtering (MEDIUM RISK):**
+- [ ] Filter tactical events by visibility before sending to client (main.py line 490-491)
+  - Player nation events → always show (drill, fortify, retreat, construction — all player marshal events)
+  - Enemy nation events → check region visibility:
+    - Occupation events ("Enemy occupies [region]"): suppress if region below PARTIAL — player doesn't know enemy is there
+    - Supply attrition for enemy nations: suppress if region not visible
+    - Auto-charge results: always involve player marshal → always show
+  - Key: check `event.get("nation")` or `event.get("marshal")` → determine if player or enemy → if enemy, check `event.get("location")` against intel visibility
+
+**8. Strategic report filtering (NO CHANGES NEEDED — verified):**
+- Strategic reports are about player marshals executing their own orders
+  - All involve the player's marshal, so location is automatically FULL (Step 0 of `calculate_visibility()`)
+  - Hold-battle reports: player marshal involved → FULL. Movement progress: player marshal → known. Cannon fire interrupts: non-issue per spec §9.4 (every battle involves a player marshal).
+  - If a report mentions enemy by name in context of battle: the battle itself grants FULL visibility. Not a leak.
+
+**9. Event log types (LOW RISK):**
+- [ ] Emit `intel_updated` events in `calculate_visibility()` when visibility CHANGES for a region
+  - Data: `{type: "intel_updated", region, new_visibility, old_visibility, source}`
+  - Only emit on actual change (not every turn refresh)
+- [ ] Emit `intel_decayed` events in `decay_intel()` when intel downgrades
+  - Data: `{type: "intel_decayed", region, old_visibility, new_visibility}`
+- [ ] `target_not_found` is NOT a separate event type — it's the PURSUE auto-cancel message (item 2 above)
+- These events are always player-visible (player caused the visibility change). No filtering needed on the events themselves. They feed Campaign Log (6.5) and Gazette (8.5).
+
+**10. Cross-cutting notes (for implementer reference):**
+- **Attack targeting (Issue C):** `_fuzzy_match_enemy()` in executor.py searches `world.marshals` directly. A player typing "attack Kutuzov" when Kutuzov was never scouted gets a match. This is ACCEPTED for 13 regions (small map, players know all marshals). **Add TODO note for 1805:** fuzzy matching should be filtered by known marshals at 80+ regions.
+- **`_build_marshal_snapshot()` confirmed** at world_state.py:483. Handles `full=True` (exact) and `full=False` (band only). Ready for use.
+- **`get_enemies_in_region()` stays omniscient.** Do NOT add fog parameter. AI and executor internals need unfiltered access. Only display/UI paths use `get_visible_enemies_in_region()`.
+
+**Tests (all items):**
+- [ ] PURSUE into UNKNOWN target → reject with "No intelligence"
+- [ ] PURSUE into STALE target → use last known position, pathfinding proceeds
+- [ ] PURSUE target destroyed in fog → pursuer arrives, auto-cancels same as "target moved"
+- [ ] PURSUE multi-region sighting → uses most recent `last_updated_turn`
+- [ ] PURSUE empty arrival, no adjacent enemies → auto-cancel message
+- [ ] PURSUE empty arrival, enemies adjacent → personality contact vector fires
+- [ ] PURSUE arrival timing → raw world data check on arrival is correct
+- [ ] SUPPORT safety check only sees visible enemies
+- [ ] SUPPORT message uses band language for PARTIAL enemies
+- [ ] Cautious pathfinding avoids only visible enemies
+- [ ] Cautious walks into trap when enemy in fogged region
+- [ ] `_get_enemy_occupied_regions()` consistent across MOVE_TO, PURSUE, SUPPORT, reroutes
+- [ ] Enemy phase: battle involving player always shown regardless of fog
+- [ ] Enemy phase: action in FULL region shown
+- [ ] Enemy phase: action in UNKNOWN/STALE region suppressed
+- [ ] Enemy phase: admin action (recruit/build) in fogged region suppressed
+- [ ] Tactical events: player nation events always shown
+- [ ] Tactical events: enemy occupation in fogged region suppressed
+- [ ] Tactical events: enemy supply attrition in fogged region suppressed
+- [ ] Event log: `intel_updated` emitted on visibility change
+- [ ] Event log: `intel_decayed` emitted on decay
+- [ ] `get_last_known_location()`: never scouted → None
+- [ ] `get_last_known_location()`: multiple stale regions → most recent
+- [ ] `get_last_known_location()`: destroyed marshal → last entry persists
+
+**Tests expected:** ~30
 **Smoke test gate:** `pytest tests/ -v --tb=no -q` green, curl test end-turn flow to verify all filtering
 
 ---
@@ -326,17 +408,23 @@ The spec (§10) adds 3 new event types: `intel_updated`, `intel_decayed`, `targe
 **After Session 36, before moving to Manpower Pools / Artillery.**
 
 Fog touches many systems — review integration points:
-- [ ] Verify all 23 call sites across 8 endpoints use `get_filtered_game_state_summary()`
-- [ ] Verify no enemy data leaks in tactical events, strategic reports, or turn results
+- [ ] Verify all 29 call sites across 8 endpoints use `get_filtered_game_state_summary()`
+- [ ] Verify no enemy data leaks in tactical events, enemy phase, or turn results
+- [ ] Verify strategic reports don't need filtering (all player marshal events, confirmed 34B review)
 - [ ] Verify AI is completely unaffected by fog (omniscient, reads `world.marshals` directly)
 - [ ] Verify reckless cavalry auto-charge works unchanged (no fog filtering)
 - [ ] Verify serialization roundtrip for all new fields (RegionIntel, watchtower)
 - [ ] Verify backward compat with old saves (empty intel → calculate_visibility on load)
 - [ ] Verify combat.py still accesses zero world state (confirmed safe in Session 32 audit)
 - [ ] Check for float values in any fog-related data sent to Godot
-- [ ] Review V2b TODO markers at all 12 objection helper functions
+- [ ] Review V2b TODO markers at all 12+ objection helper functions
 - [ ] Verify intel_report.py produces correct tiered output
 - [ ] Verify refresh vs decay path separation — no `get_marshals_in_region()` calls in decay path, no snapshot freezing in refresh path
+- [ ] Verify `get_last_known_location()` handles: never scouted, multi-region sighting, destroyed marshal
+- [ ] Verify `get_visible_enemies_in_region()` is not called by AI or executor internals (only display paths)
+- [ ] Verify HOLD sally uses adjacent-only scan (no cavalry extended range) — if future change adds extended range, fog filter needed
+- [ ] Verify `_fuzzy_match_enemy()` TODO note exists for 1805 (filter by known marshals at 80+ regions)
+- [ ] Verify PURSUE arrival uses raw world data for current region (justified: marshal physically present)
 
 ---
 
@@ -356,13 +444,13 @@ Fog touches many systems — review integration points:
 
 | File | Session | Changes |
 |------|---------|---------|
-| `backend/models/world_state.py` | 33, 34A | intel dict, calculate_visibility() + decay_intel() at END of `_advance_turn_internal()`, get_region_intel(), get_filtered_game_state_summary() |
+| `backend/models/world_state.py` | 33, 34A, 34B | intel dict, calculate_visibility() + decay_intel() at END of `_advance_turn_internal()`, get_region_intel(), get_filtered_game_state_summary(), get_last_known_location(), get_visible_enemies_in_region() |
 | `backend/models/region.py` | 35 | watchtower, watchtower_turns_remaining fields |
 | `backend/commands/executor.py` | 34A, 35 | scout→intel update, battle→intel update (6 sites), status→intel_report, _extract_building_type watchtower, _execute_build watchtower branch, _execute_repair watchtower |
-| `backend/commands/strategic.py` | 34B | PURSUE reads intel store, empty-arrival handling, cautious pathfinding fog-aware, SUPPORT safety fog-aware, HOLD sally fog-aware |
+| `backend/commands/strategic.py` | 34B | PURSUE reads intel store (7 sites), empty-arrival handling, cautious pathfinding fog-aware (`_get_enemy_occupied_regions` affects MOVE_TO/PURSUE/SUPPORT/reroutes), SUPPORT safety fog-aware. HOLD sally: no changes (adjacent-only scan, adjacency guarantees PARTIAL) |
 | `backend/commands/disobedience.py` | 36 | Davout PURSUE fog-aware check |
 | `backend/commands/objection_v2.py` | 36 | V2b TODO markers at 12 helpers, get_visible_enemies_near() helper |
-| `backend/main.py` | 34A, 34B | 23 call sites → get_filtered_game_state_summary(), /status → intel report, enemy phase filtering, tactical/strategic report filtering |
+| `backend/main.py` | 34A, 34B | 29 call sites → get_filtered_game_state_summary(), /status → intel report, enemy phase filtering (`_filter_enemy_phase_by_visibility`), tactical event filtering. Strategic reports: no changes (player marshals only). |
 | `backend/ai/enemy_ai.py` | 35 | Watchtower building logic (AI remains omniscient) |
 | `backend/ai/llm_client.py` | 35 | "watchtower" keyword in mock parser |
 | `backend/save_manager.py` | 33 | Automatic via WorldState.to_dict (no explicit changes needed) |
@@ -397,11 +485,13 @@ Fog touches many systems — review integration points:
 | Scout persistence (target + adjacent) | 34A | ~5 |
 | Battle reveals (6 sites) | 34A | ~5 |
 | Status command output | 34A | ~4 |
-| PURSUE fog validation + empty arrival | 34B | ~8 |
-| SUPPORT + HOLD sally fog-aware | 34B | ~4 |
-| Cautious pathfinding fog-aware | 34B | ~4 |
-| Enemy phase filtering | 34B | ~4 |
-| Tactical/strategic report filtering | 34B | ~3 |
+| `get_last_known_location()` helper | 34B | ~3 |
+| PURSUE fog validation (UNKNOWN/STALE/destroyed target) | 34B | ~5 |
+| PURSUE empty-arrival (both branches + timing) | 34B | ~3 |
+| SUPPORT fog-aware safety check + band messaging | 34B | ~3 |
+| Cautious pathfinding fog-aware (all callers) | 34B | ~4 |
+| Enemy phase filtering (player battles, FULL, suppression) | 34B | ~5 |
+| Tactical event filtering (player vs enemy, visibility) | 34B | ~3 |
 | Event log (intel_updated, intel_decayed) | 34B | ~2 |
 | Watchtower construction | 35 | ~8 |
 | Watchtower visibility + scout synergy | 35 | ~8 |
@@ -412,9 +502,9 @@ Fog touches many systems — review integration points:
 | Davout PURSUE fog check | 36 | ~3 |
 | V2b helper + TODO marker validation | 36 | ~4 |
 | Integration (full turn cycle with fog) | 36 | ~5 |
-| **Total estimated** | | **~142-160** |
+| **Total estimated** | | **~148-168** |
 
-**Final test count estimate:** 2036 (current) + ~142-160 = **~2178-2196**
+**Final test count estimate:** 2036 (current) + ~148-168 = **~2184-2204**
 
 ---
 
@@ -468,7 +558,7 @@ Fog touches many systems — review integration points:
 |---------|-------|------------|-------|------------|
 | 33 | Intel model + visibility + decay + serialization + game init | Sonnet | 55 | 2091 |
 | 34A | Intel report + filtered game state + scout persistence + battle reveals + fogged_forces | Sonnet | 39 | 2130 |
-| 34B | PURSUE fog + SUPPORT/HOLD fog + cautious pathfinding + display filtering | Sonnet | ~25 | ~2136 |
+| 34B | PURSUE fog + SUPPORT fog + cautious pathfinding + enemy phase/tactical filtering + event log | Sonnet | ~30 | ~2160 |
 | 35 | Watchtower building + visibility + AI + repair + synergy | Sonnet | ~30 | ~2166 |
 | 36 | Edge cases + Davout PURSUE + V2b markers + smoke test + docs | Sonnet | ~20 | ~2186 |
 | Review | Opus code review gate — verify all 23 endpoints + no data leaks | Opus | 0 | ~2186 |
