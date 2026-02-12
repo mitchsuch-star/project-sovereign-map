@@ -2378,7 +2378,8 @@ class WorldState:
                 "controller": region_data["controller"],
                 "terrain": region_data["terrain"],
                 "region_type": region_data["region_type"],
-                "marshals": [],  # Rebuilt below
+                "marshals": [],       # Rebuilt below — only marshals Godot should render
+                "fogged_forces": [],  # PARTIAL/STALE enemies — Godot ignores until Phase 6.5
             }
 
             # Economic data: always for own regions, only at FULL for enemy
@@ -2413,18 +2414,18 @@ class WorldState:
                     # FULL: show enemy with exact data (but no player-only fields like trust)
                     filtered_region["marshals"].append(marshal_data)
                 elif intel.visibility in (PARTIAL, STALE):
-                    # PARTIAL/STALE: name, nation, strength band — no exact numbers
+                    # PARTIAL/STALE: enemy goes into fogged_forces (not marshals).
+                    # Godot renders everything in marshals[] as map icons — putting
+                    # band-only enemies there would show "0 troops" on the map.
+                    # fogged_forces is ignored by current Godot; Phase 6.5 handles it.
                     band = get_strength_band(marshal_data["strength"])
                     filtered_marshal = {
                         "name": marshal_data["name"],
                         "nation": marshal_data["nation"],
-                        "strength": 0,  # Hidden — use strength_band instead
-                        "morale": 0,
-                        "movement_range": 0,
                         "strength_band": band,
                         "fog_level": intel.visibility,
                     }
-                    filtered_region["marshals"].append(filtered_marshal)
+                    filtered_region["fogged_forces"].append(filtered_marshal)
                 # LAST_KNOWN / UNKNOWN: enemy marshals hidden from map_data
                 # (their last known position is in the intel store, not live map data)
 

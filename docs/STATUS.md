@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2124** (verified, 3 skipped) |
+| **Tests Passing** | **2130** (verified, 3 skipped) |
 | **Current Phase** | Phase 6: **IN PROGRESS** (3 items remaining: Fog of War, Manpower Pools, Artillery Unit Type) |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier, 6-BattleReport, 6-EventLog |

@@ -191,9 +191,9 @@ The spec (§10) adds 3 new event types: `intel_updated`, `intel_decayed`, `targe
 - [x] Wire battle resolution → `update_intel_from_battle()` at all 6 resolve_battle sites
   - `executor.py`: 5 sites (main attack, general attack, sally 2, sally 3, glorious charge)
   - `world_state.py`: 1 site (auto-charge in `_process_reckless_cavalry_turn_start()`)
-- [x] 33 unit tests: intel report format/tiers, filtered game state (enemy hiding, band-only, FULL shown, economic data, float check), scout persistence (targeted + adjacent + persistence across turns), battle reveals (attack + auto-charge), status command wiring, edge cases
+- [x] 39 unit tests: intel report format/tiers, filtered game state (enemy hiding, fogged_forces separation, FULL shown, economic data, float check), scout persistence (targeted + adjacent + persistence across turns), battle reveals (attack + auto-charge), status command wiring, edge cases, full-path integration (executor.execute)
 
-**Tests:** 33 new (2124 total passing, 3 skipped)
+**Tests:** 39 new (2130 total passing, 3 skipped)
 **Smoke test gate:** PASSED
 
 ---
@@ -467,7 +467,7 @@ Fog touches many systems — review integration points:
 | Session | Scope | Complexity | Tests | Cumulative |
 |---------|-------|------------|-------|------------|
 | 33 | Intel model + visibility + decay + serialization + game init | Sonnet | 55 | 2091 |
-| 34A | Intel report + filtered game state + scout persistence + battle reveals | Sonnet | 33 | 2124 |
+| 34A | Intel report + filtered game state + scout persistence + battle reveals + fogged_forces | Sonnet | 39 | 2130 |
 | 34B | PURSUE fog + SUPPORT/HOLD fog + cautious pathfinding + display filtering | Sonnet | ~25 | ~2136 |
 | 35 | Watchtower building + visibility + AI + repair + synergy | Sonnet | ~30 | ~2166 |
 | 36 | Edge cases + Davout PURSUE + V2b markers + smoke test + docs | Sonnet | ~20 | ~2186 |
