@@ -1,8 +1,9 @@
 # Fog of War Specification
 
 > **Phase 6 — Fog of War System**
-> **Status:** DESIGN — Pending review
+> **Status:** REVIEWED — Ready for implementation (Sessions 33-36)
 > **Author:** Mitch + Claude (Opus), Session 31c
+> **Reviewed:** Session 32b (Opus) — fresh-eyes review, all design decisions resolved
 > **Depends on:** Terrain (6.1), Economy (6.2), Scout action (existing), Buildings (6.2.E)
 > **Feeds into:** V2b Objection Triggers (Phase 7), Campaign Log (6.5), Gazette (8.5), Map Renderer (6.5)
 
@@ -102,7 +103,9 @@ class WorldState:
 
 ### 3.3 Visibility Calculation (per turn)
 
-Each turn, before player actions, recalculate visibility for all regions:
+Recalculate visibility for all regions at two points:
+1. **Game initialization** — so turn 1 starts with correct visibility (player regions FULL, rest UNKNOWN)
+2. **During `_advance_turn_internal()`** — at the START, before all other processing, so each new turn has fresh data
 
 ```
 For each region:
@@ -118,6 +121,8 @@ For each region:
 ```
 
 Priority: if multiple sources apply, use the best visibility level.
+
+**Own marshal positions are always known.** The player always sees their own marshals regardless of fog — broken, retreating, behind enemy lines. Fog applies to enemy marshals only.
 
 ### 3.4 Serialization
 
@@ -165,7 +170,9 @@ Currently shows all enemy actions. With fog, filter by visibility:
 
 The existing scout action becomes much more valuable. Currently it reveals everything — that stays the same, but now it's the ONLY way to get FULL intel on non-adjacent enemy regions.
 
-No changes to scout mechanics needed — range 2 (Davout +1), costs 1 AP, reveals region fully. The value proposition changes because the baseline is now fog instead of omniscience.
+Scout mechanics stay the same (range 2, Davout +1 = range 3, costs 1 AP, reveals region fully), but **scout results must now persist to the intel store.** Currently `_execute_scout()` returns intel ephemerally in the API response without storing it. Phase 6 adds `update_intel_from_scout(region, turn)` calls to persist FULL visibility.
+
+**Scout range and intel:** Only the targeted region gets FULL. Intermediate regions are unaffected. The scouting marshal's army position still provides PARTIAL on adjacent regions as normal (army adjacency), but the scout action itself only grants FULL on its target.
 
 ### 4.4 Battle Reveals
 
@@ -191,18 +198,24 @@ After the battle, normal decay applies (2 turns fresh, then stale, etc.).
 
 ### 5.2 PURSUE into Stale Intel
 
+PURSUE reads the target's location from the **intel store** (last known position), NOT from the raw marshal data. This is the core fog change: `world.get_marshal(target).location` → `intel.get_last_known_location(target)`.
+
 When PURSUE target is at a STALE or LAST_KNOWN location:
 - Marshal heads toward last known position
 - If target is still there → engagement as normal
-- If target has moved → marshal arrives, finds empty region
-- Strategic order generates interrupt: "[Marshal] arrives at [region] but finds no sign of [target]. Last intelligence was [X] turns old. Awaiting new orders."
-- Player must re-scout or re-issue orders
+- If target has moved → marshal arrives, finds empty region. Two outcomes:
 
-This creates a natural "fog chase" mechanic that's historically perfect — Napoleon's entire Waterloo campaign involved chasing armies whose positions were uncertain.
+**No enemies in region or adjacent:** Order auto-cancels. Message: "[Marshal] arrives at [region] but finds no sign of [target]. Last intelligence was [X] turns old. Awaiting orders, Sire." Player issues new orders on their turn. The marshal now has FULL on current region + PARTIAL on adjacent — fresh intel for the player's next decision.
+
+**Enemies detected adjacent (via PARTIAL from arrival):** PURSUE continues toward the target's new visible position. The existing personality-based contact vectors handle the encounter — aggressive marshals push in, cautious marshals report and may scout first, literal marshals continue as ordered. No new interrupt type needed; the existing strategic contact interrupt system handles this.
+
+This creates a natural "fog chase" mechanic that's historically perfect — Napoleon's entire Waterloo campaign involved chasing armies whose positions were uncertain. The arrival itself is the scouting — adjacency reveals nearby enemies.
 
 ### 5.3 SUPPORT into Fog
 
 SUPPORT targets a friendly marshal. Since you always know where your own marshals are, SUPPORT always works. The fog applies to enemies in the destination region — the supporting marshal might arrive to find a much larger force than expected.
+
+**Note:** SUPPORT's "ally safety" check in `strategic.py` scans adjacent regions for enemies. With fog, this scan must be visibility-aware — only report enemies the player can see. If enemies are hidden in fog, SUPPORT cannot assess safety.
 
 ---
 
@@ -248,10 +261,10 @@ TODO marker at `disobedience.py` PURSUE section (already exists, reference this 
 | **Cost** | 250 gold |
 | **Build time** | 2 turns |
 | **Effect** | Provides permanent PARTIAL visibility on all adjacent regions |
-| **Scout synergy** | Scouting a watchtower-visible region grants 3 turns FULL instead of 2 |
-| **Destruction** | Damaged by battle in region or plunder (same as other buildings) |
+| **Scout synergy** | Scouting a watchtower-visible region: FULL expires after turn 3 instead of turn 2 (one extra turn of freshness) |
+| **Destruction** | Damaged by battle in region or plunder (same as other buildings). If under construction when damaged, destroyed (reverts to "none" — consistent with `building_under_construction = None` pattern) |
 | **Repair** | Same as other buildings (existing repair command) |
-| **AI builds** | On border regions, priority below fortification but above market |
+| **AI builds** | On border regions, priority between depot (P3) and fortification (P4) in admin chain |
 
 ### 7.2 Dedicated Watchtower Slot
 
@@ -277,7 +290,7 @@ The UI shows watchtower status alongside other region info: "Watchtower: active"
 
 If you scout a region already visible via watchtower:
 - You get FULL intel (exact counts, morale, stance) — the watchtower only gives PARTIAL
-- The FULL intel lasts 3 turns instead of 2 (watchtower maintains the observation post, keeping intel fresher)
+- The FULL intel lasts one extra turn — expires after turn 3 instead of turn 2 (watchtower maintains the observation post, keeping intel fresher)
 - This rewards investing in BOTH passive and active scouting
 
 ---
@@ -308,7 +321,25 @@ If you scout a region already visible via watchtower:
 - France historically had the best intelligence network — asymmetry is thematically justified
 - The Building Blocks principle (AI uses same systems as player) is preserved for ACTIONS, not for INFORMATION
 
-### 9.2 Future (80+ Regions — Post-EA)
+### 9.2 Reckless Cavalry and Fog
+
+**Reckless cavalry auto-charge ignores fog.** The `_process_reckless_cavalry_turn_start()` function remains omniscient — reckless cavalry finds and charges enemies regardless of visibility. This is intentional:
+- Reckless cavalry IS reckless — they ride out and find trouble. That's the entire mechanic.
+- Historically perfect — Ney's cavalry famously charged without orders or intel at Waterloo.
+- The resulting battle grants FULL intel via battle reveal. The recklessness becomes unintentional scouting — the player gets punished (uncontrolled charge) but also learns enemy positions.
+- Implementation: zero fog changes needed in auto-charge path. The battle calls `update_intel_from_battle()` to persist the reveal.
+
+### 9.3 Cautious Pathfinding and Fog
+
+`strategic.py:_get_enemy_occupied_regions()` scans all regions for enemies to route cautious marshals around them. **With fog, cautious marshals can only avoid VISIBLE enemies** (PARTIAL+ visibility). If an enemy is in a fogged region, the cautious marshal doesn't know to avoid it and may walk into an encounter.
+
+This is correct behavior — cautious marshals get surprised when intel is bad. The existing contact interrupt system handles the surprise: marshal hits hidden enemy → blocked path interrupt fires → player gets "attack / go around / hold / cancel" options.
+
+### 9.4 Cannon Fire and Fog
+
+Cannon fire interrupts only trigger when a French marshal is involved in a battle. Since the player already knows about every battle involving their marshals, cannon fire from a fogged region cannot happen in the current design. Deferred to post-EA when multi-nation conflicts (e.g., Prussia vs Austria without French involvement) could produce battles the player doesn't know about.
+
+### 9.5 Future (80+ Regions — Post-EA)
 
 At scale, omniscient AI feels unfair. Design options for later:
 - AI gets fog but with bonuses (wider adjacency range, faster intel updates)
@@ -360,69 +391,18 @@ When the EU4-style map renderer is built:
 
 ## 12. Implementation Plan
 
-### Session 32: Data Layer (Sonnet)
+> **Canonical plan is in `docs/FOG_IMPLEMENTATION_PLAN.md`.** This section is a summary only. Session 32 was the design review (this spec + the plan). Implementation is Sessions 33-36 with 34 split into 34A/34B.
 
-**Intel model + visibility calculation + serialization**
+| Session | Scope | Tests |
+|---------|-------|-------|
+| **33** | Intel data layer: RegionIntel model, visibility calculation, decay, serialization, game init | ~45 |
+| **34A** | Intel report module, status command rewrite, `get_filtered_game_state_summary()`, scout persistence, battle reveal wiring | ~30 |
+| **34B** | PURSUE fog validation, SUPPORT visibility, cautious pathfinding, enemy phase filtering, tactical/strategic report filtering, event log types | ~25 |
+| **35** | Watchtower building: dedicated field, construction, visibility, scout synergy, AI building, repair, damage | ~30 |
+| **36** | Edge cases, Godot smoke test, Davout PURSUE fix, V2b TODO markers, doc updates | ~20 |
+| **Review** | Opus code review gate before Manpower/Artillery | 0 |
 
-- [ ] Create `backend/models/intel.py` — RegionIntel class with to_dict/from_dict
-- [ ] Add `intel` dict to WorldState (with backward-compat empty default)
-- [ ] Implement `calculate_visibility()` — runs each turn, sets visibility per region
-- [ ] Implement `get_region_intel(region_name)` — returns current intel for a region
-- [ ] Implement `update_intel_from_scout(region_name, turn)` — scout sets FULL
-- [ ] Implement `update_intel_from_battle(region_name, turn)` — battle sets FULL
-- [ ] Implement `decay_intel()` — called each turn, degrades old intel
-- [ ] Strength band calculation helper
-- [ ] Serialization enforcement tests
-- [ ] Unit tests: visibility calculation, decay timeline, strength bands
-- [ ] ~40-50 tests expected
-
-### Session 33: Command Filtering (Sonnet)
-
-**Status, scout, and strategic command integration**
-
-- [ ] Filter status command output by visibility (biggest player-facing change)
-- [ ] Wire scout action to update intel store (currently returns data but doesn't persist it)
-- [ ] Wire battle resolution to update intel store
-- [ ] PURSUE validation: require known/stale target location
-- [ ] PURSUE empty-arrival interrupt: "target not found" when arriving at stale location
-- [ ] SUPPORT validation: target marshal always known (friendly), no change needed
-- [ ] Wire `calculate_visibility()` into turn processing (before player phase)
-- [ ] Unit tests: filtered status, PURSUE into fog, scout persistence
-- [ ] ~30-40 tests expected
-
-### Session 34: Response Filtering + Watchtower (Sonnet)
-
-**API response filtering + watchtower building**
-
-- [ ] Filter enemy phase display by visibility in main.py
-- [ ] Filter tactical events by visibility
-- [ ] Filter end-turn results by visibility
-- [ ] Watchtower building: dedicated field on Region (not building slot), 250g, 2 turns, PARTIAL on adjacent
-- [ ] Watchtower states: none → under_construction → active → damaged. Repair uses existing repair command
-- [ ] Watchtower scout synergy: 3-turn FULL when scouting watchtower-visible region
-- [ ] AI watchtower building logic (border regions, below fort priority)
-- [ ] Event log: intel_updated, intel_decayed, target_not_found events
-- [ ] Integration tests: full turn cycle with fog
-- [ ] ~30-40 tests expected
-
-### Session 35: Polish + Smoke Test (Sonnet)
-
-**Godot smoke test, edge cases, doc updates**
-
-- [ ] Smoke test: play through 5+ turns verifying fog behavior in Godot terminal
-- [ ] Edge cases: broken marshal in fog, retreat into fog, auto-charge in fog
-- [ ] Own-region military intel: PARTIAL when no friendly army present/adjacent
-- [ ] Davout PURSUE objection: update to check visibility (existing TODO in disobedience.py)
-- [ ] Update SYSTEMS_REFERENCE.md with fog of war section
-- [ ] Update TUTORIAL_SCRIPT.md with fog of war teaching moments
-- [ ] Update FUTURE_DESIGN.md: move fog sketches to "implemented, see spec", add AI fog notes
-- [ ] Add V2b TODO markers at objection wiring points (documented but not implemented)
-- [ ] Update ROADMAP.md: mark Fog of War COMPLETE
-- [ ] ~15-20 tests expected
-
-### Code Review Gate (Opus)
-
-After Session 35, before moving to Manpower Pools / Artillery. Fog touches many systems — review integration points.
+See `FOG_IMPLEMENTATION_PLAN.md` for full checklists, ordering dependencies, and risk assessment.
 
 ---
 
@@ -453,8 +433,9 @@ After Session 35, before moving to Manpower Pools / Artillery. Fog touches many 
 | `backend/models/intel.py` | **NEW** — RegionIntel class |
 | `backend/models/world_state.py` | Add intel dict, calculate_visibility(), decay_intel() |
 | `backend/models/region.py` | Add watchtower field (dedicated slot, separate from buildings) |
-| `backend/commands/executor.py` | Wire scout → intel update, battle → intel update |
-| `backend/commands/strategic.py` | PURSUE validation against visibility |
+| `backend/intel_report.py` | **NEW** — Berthier Intelligence Report (fog-filtered status view) |
+| `backend/commands/executor.py` | Wire scout → intel update, battle → intel update, watchtower build/repair |
+| `backend/commands/strategic.py` | PURSUE validation against visibility, cautious pathfinding fog-aware, SUPPORT safety fog-aware |
 | `backend/commands/disobedience.py` | Davout PURSUE: check visibility before odds objection |
 | `backend/game_logic/combat.py` | Return intel update with battle result |
 | `backend/game_logic/turn_manager.py` | Call calculate_visibility() + decay_intel() each turn |
@@ -505,3 +486,17 @@ After Session 35, before moving to Manpower Pools / Artillery. Fog touches many 
 4. **~~Should the player be told "you don't know" or just see silence?~~** **RESOLVED:** Execute silently for direct commands (attack/move). For strategic commands (PURSUE), give the warning because the commitment is larger.
 
 5. **~~Watchtower slot system?~~** **RESOLVED:** Dedicated watchtower field on Region, separate from building slots. Every region type can have one. No slot competition.
+
+6. **~~Reckless cavalry auto-charge in fog?~~** **RESOLVED (Session 32b review):** Auto-charge ignores fog entirely. Reckless cavalry is reckless — they find and charge enemies regardless of visibility. The resulting battle grants FULL intel via battle reveal. Zero fog changes needed in auto-charge path. Thematically perfect (Ney at Waterloo).
+
+7. **~~Cautious pathfinding in fog?~~** **RESOLVED (Session 32b review):** Cautious marshals only avoid VISIBLE enemies (PARTIAL+). If an enemy is fogged, the cautious marshal doesn't know to avoid it. Walking into a trap because intel was bad is a fog moment. Existing contact interrupt handles the surprise encounter.
+
+8. **~~Cannon fire from fogged battles?~~** **RESOLVED (Session 32b review):** Non-issue. Every battle in the current game involves a player marshal. Cannon fire interrupts only trigger for nearby player marshals hearing battles their side is in. No fogged cannon fire is possible. Deferred to post-EA multi-nation conflicts.
+
+9. **~~PURSUE arrives at empty region — interrupt type?~~** **RESOLVED (Session 32b review):** Not a new interrupt type. If target not found AND no enemies adjacent: order auto-cancels with message. If enemies detected adjacent via PARTIAL: existing personality-based contact vectors handle the encounter (aggressive charges, cautious reports/scouts, literal continues). The arrival itself provides fresh intel (FULL on current region, PARTIAL on adjacent).
+
+10. **~~Watchtower under construction + battle damage?~~** **RESOLVED (Session 32b review):** Destroyed — reverts to "none". Consistent with how `building_under_construction = None` works for regular buildings.
+
+11. **~~Scout range and intermediate regions?~~** **RESOLVED (Session 32b review):** Only the targeted region gets FULL. Intermediate regions untouched. The scouting marshal's army position provides PARTIAL on adjacent regions via normal adjacency rules.
+
+12. **~~Status command implementation?~~** **RESOLVED (Session 32b review):** New `backend/intel_report.py` module produces the Berthier Intelligence Report. Reads WorldState + intel store, returns structured report grouped by visibility tier. Executor calls it for "status" action. `/status` endpoint calls it. Reusable by Campaign Briefing (6.5).
