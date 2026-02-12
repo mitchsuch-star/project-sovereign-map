@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 11, 2026
-> **Last Session:** Session 32 — Fog of War Spec Review + Implementation Plan
+> **Last Session:** Session 32b — Fog of War Fresh-Eyes Review + Design Decisions
 
 ---
 
@@ -50,6 +50,27 @@
 
 ## Recently Completed
 
+### Feb 11 (Session 32b: Fog of War Fresh-Eyes Review)
+
+**Opus fresh-eyes review of spec + implementation plan. 6 design decisions resolved. No code touched.**
+
+**Design decisions resolved:**
+- **Game init visibility:** `calculate_visibility()` called at end of `WorldState.__init__()` so turn 1 starts with French regions FULL, rest UNKNOWN.
+- **Status command:** New `backend/intel_report.py` module (Berthier Intelligence Report) — fog-filtered status view grouped by visibility tier.
+- **Session 34 split:** Original session 34 had ~12 items — split into 34A (filtering infra) and 34B (strategic commands + display filtering).
+- **Reckless cavalry auto-charge:** Ignores fog entirely — thematically correct, reckless cavalry charges whatever is nearby.
+- **Cautious pathfinding:** Only avoids VISIBLE enemies (PARTIAL+) — fog creates surprise encounters for cautious marshals.
+- **PURSUE empty-arrival:** Simplified — no new interrupt type. Auto-cancels if no enemies found; existing personality vectors handle adjacent encounters.
+- **Cannon fire in fog:** Non-issue — every battle involves a player marshal, fogged cannon fire impossible in 2-faction design.
+
+**Doc updates:** Spec §3.3, §4.3, §5.2, §5.3, §7.1, §7.4, §9 (3 new subsections), §12, §14, §16 (7 new resolved questions). Implementation plan: all C/H issues annotated, 5-session structure, updated test estimates (~142-160 new → ~2178-2196 total), internal dependency table. AI Fog of War added to ROADMAP.md 1805 section.
+
+**Files modified:** FOG_OF_WAR_SPEC.md, FOG_IMPLEMENTATION_PLAN.md, ROADMAP.md, STATUS.md.
+
+**Tests:** 2036 (unchanged — no code touched).
+
+---
+
 ### Feb 11 (Session 32: Fog of War Spec Review + Implementation Plan)
 
 **Architectural review of FOG_OF_WAR_SPEC.md. Created FOG_IMPLEMENTATION_PLAN.md. No code touched.**
@@ -60,13 +81,14 @@
 - **6 MEDIUM issues:** PARTIAL decay timeline unspecified, watchtower construction timer, multiple enemies display, map_data marshal filtering, AI watchtower priority chain, own-region PARTIAL split.
 - **4 LOW issues:** RegionIntel class vs dict, intel source overlap, backward compat first load, event type documentation.
 
-**Implementation Plan (4 Sonnet sessions + 1 Opus review):**
-- Session 33: Intel data layer + visibility calculation + serialization (~45 tests)
-- Session 34: Command filtering + status + PURSUE + enemy phase (~45 tests)
-- Session 35: Watchtower building + AI + repair (~30 tests)
-- Session 36: Edge cases + smoke test + Davout fix + V2b markers (~20 tests)
+**Implementation Plan (5 Sonnet sessions + 1 Opus review) — updated in Session 32b:**
+- Session 33: Intel data layer + visibility + decay + serialization + game init (~45 tests)
+- Session 34A: Intel report + filtered game state + scout persistence + battle reveals (~30 tests)
+- Session 34B: PURSUE fog + SUPPORT/HOLD fog + cautious pathfinding + display filtering (~25 tests)
+- Session 35: Watchtower building + visibility + AI + repair + synergy (~30 tests)
+- Session 36: Edge cases + Davout PURSUE + V2b markers + smoke test + docs (~20 tests)
 - Opus code review gate after Session 36
-- Total estimated: ~138-155 new tests → ~2174-2191 total
+- Total estimated: ~142-160 new tests → ~2178-2196 total
 
 **Deferred items routed:**
 - AI fog of war → FUTURE_DESIGN.md (Post-EA, 80+ regions)
