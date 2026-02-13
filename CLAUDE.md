@@ -20,7 +20,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 | Feature | Complexity | Notes |
 |---------|------------|-------|
-| **Fog of War** | Medium | IN PROGRESS — Sessions 33+34A+35 done (intel, visibility, scout, report, watchtower). 34B (AI helpers) + 36 (integration) remain. |
+| **Fog of War** | Medium | IN PROGRESS — Sessions 33+34A+35 done (intel, visibility, scout, report, watchtower). 34B-prep review done (Feb 13). **34B NEXT** (strategic fog, display filtering, event log) + 36 (edge cases, polish) remain. |
 | **Manpower Pools** | Medium | Separate: Infantry, Cavalry, Artillery |
 | **Artillery Unit Type** | Medium | Combat buffs like cavalry |
 
@@ -94,6 +94,7 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | Strategic commands | `strategic.py`, `strategic_parser.py`, `executor.py` |
 | Objection V2 system | `objection_v2.py`, `docs/OBJECTION_V2.md` |
 | Fog of war | `docs/FOG_OF_WAR_SPEC.md`, `docs/FOG_IMPLEMENTATION_PLAN.md`, `backend/models/intel.py`, `backend/intel_report.py` |
+| Strategic commands + fog | `docs/FOG_OF_WAR_SPEC.md` §5, `docs/FOG_IMPLEMENTATION_PLAN.md` Session 34B, `backend/commands/strategic.py` |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`
 For Enemy AI details: `docs/ENEMY_AI_REFERENCE.md`
@@ -164,7 +165,7 @@ For ANY new field on ANY model class:
 3. Run: `pytest tests/test_serialization_enforcement.py -v`
 4. Update `docs/SAVE_FORMAT_REFERENCE.md`
 
-Serializable classes: Marshal, StrategicOrder, StrategicCondition, WorldState, Region, Trust, AuthorityTracker, VindicationTracker
+Serializable classes: Marshal, StrategicOrder, StrategicCondition, WorldState, Region, Trust, AuthorityTracker, VindicationTracker, RegionIntel
 
 ---
 

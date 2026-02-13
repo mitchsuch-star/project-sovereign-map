@@ -184,6 +184,16 @@ After the battle, normal decay applies (2 turns fresh, then stale, etc.).
 
 ## 5. Command Interactions
 
+### 5.0 Mechanics vs Display Principle
+
+**"Fog filters information, not mechanics."** Game mechanics (sally ratios, combat damage, pathfinding costs, contact interrupts) use real world data — the executor is deterministic (Golden Rule #6). Fog only filters what the player **sees** in messages and UI. The simulation is accurate; the player's view is filtered.
+
+Exceptions where fog affects mechanics (not just display):
+- **PURSUE pathfinding** uses last-known location from intel store (marshal genuinely doesn't know where the target is)
+- **Cautious pathfinding** only avoids visible enemies (marshal can't route around forces they don't know about)
+
+Everything else — combat resolution, sally ratio checks, contact interrupts when physically entering a region — uses real data.
+
 ### 5.1 Movement and Attack
 
 | Command | Into Fog? | Behavior |
@@ -195,6 +205,8 @@ After the battle, normal decay applies (2 turns fresh, then stale, etc.).
 | SUPPORT | Needs target | Target marshal must be at known or stale location. Fails if unknown. |
 | PURSUE (strategic) | Needs target | Target must be at known or stale location. Heads toward last known position. If target has moved, marshal arrives at empty region → "Target not found. Awaiting orders." interrupt. |
 | SCOUT | Into partial/unknown | Reveals target region to FULL. Existing mechanics unchanged. |
+
+**Cavalry 2-range and fog (researched Session 34B-prep):** Cavalry moves 2 regions per turn (infantry: 1). The intermediate-region enemy check uses omniscient data (`get_enemies_in_region`), meaning cavalry "senses" hidden enemies in regions they pass through. This is **accepted for Phase 6** — the cavalry physically passes through the region, so encountering forces there is a physical constraint, not an intelligence one. The contact interrupt handles it gracefully. Auto-charge (reckless 4+) also scans at range 2, but is omniscient by design (spec §9.2). Sally from HOLD is adjacent-only (no cavalry extension). **TODO for 1805:** fog-aware intermediate checks with surprise encounter interrupt at 80+ regions.
 
 ### 5.2 PURSUE into Stale Intel
 
@@ -358,7 +370,9 @@ New event types for the event log system (Session 30):
 |------------|------|-------------|
 | `intel_updated` | region, new_visibility, source (scout/adjacent/battle/watchtower) | When visibility changes for a region |
 | `intel_decayed` | region, old_visibility, new_visibility | When intel degrades (full→stale, stale→last_known) |
-| `target_not_found` | marshal, target, region, intel_age | When PURSUE arrives at empty region |
+| `target_not_found` | marshal, target, region, intel_age | When PURSUE arrives at empty region (auto-cancels order, message: "[Marshal] arrives at [region] but finds no sign of [target]. Last intelligence was [X] turns old.") |
+
+`target_not_found` is NOT a separate interrupt type — it reuses the PURSUE auto-cancel flow. The event is logged for Campaign Log (6.5) and Gazette (8.5). The `intel_age` field is `current_turn - last_updated_turn` from the intel store.
 
 These feed into Phase 6.5 Campaign Log and Phase 8.5 Gazette ("Reports from the front grow stale — Wellington's position is uncertain").
 

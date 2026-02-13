@@ -2,7 +2,7 @@
 
 > **CONCEPTUAL DESIGNS** — not yet implemented. Extracted from CLAUDE.md to reduce active context.
 > **Phase numbers and priorities live in ROADMAP.md** — this file has design detail, not scheduling.
-> **Last Updated:** February 11, 2026 (Session 32: Fog/Terrain/Attrition sections updated to reflect implementation status)
+> **Last Updated:** February 13, 2026 (Session 34B-prep: Added "Fog + Movement Discovery" 1805 design under Fog of War)
 
 ---
 
@@ -531,6 +531,28 @@ COALITION_TRIGGERS = {
 - AI gets fog but with bonuses (wider adjacency range, faster intel updates)
 - AI fog is "softer" — PARTIAL everywhere instead of UNKNOWN
 - Nation-specific intelligence quality (Britain best due to spy networks, Russia worst in distant theaters)
+
+**Fog + Movement Discovery (1805):**
+
+No new "ambush" mechanic needed. Existing systems handle it:
+
+1. Marshal ordered to move to distant region, route passes through unexplored territory
+2. Each movement step grants PARTIAL visibility on adjacent regions (existing `calculate_visibility` Step 2)
+3. If the next region on the path has enemies (now visible via adjacency), the existing strategic contact interrupt fires
+4. Marshal personality determines response — aggressive wants to attack, cautious halts and reports, literal follows original orders toward the final destination
+
+What fog changes: On 13 regions with omniscience, contact interrupts are predictable ("you knew they were there"). On 80+ regions with fog, the marshal genuinely discovers enemies mid-march. The interrupt becomes a real decision point because the player didn't plan for this encounter.
+
+Personality-driven responses to unexpected contact (V2b triggers, Phase 7):
+- **Aggressive:** "The enemy! Let me attack, Sire!" — wants to engage, objects to continuing past
+- **Cautious:** "Enemy force ahead. I've halted the column." — stops, reports, waits for orders
+- **Literal:** Continues toward original destination unless directly blocked — the Grouchy scenario
+
+Vindication: Cautious marshal halts on discovering enemies. Player insists on continuing. Marshal attacks and is outnumbered. Marshal vindicated.
+
+No flat ambush penalties. The "cost" of not scouting is surprise contact interrupts that disrupt your plans — your marshal stops where you didn't expect, and personality determines how gracefully they handle it.
+
+This requires no new mechanics — just fog making existing contact interrupts meaningful. The only 1805 addition is ensuring the contact interrupt message reflects that this was unexpected ("Enemy forces discovered ahead!" vs the current "Enemy forces detected"), and fog-aware intermediate-region checks so cavalry 2-range movement discovers enemies on arrival rather than being blocked omnisciently (see `FOG_IMPLEMENTATION_PLAN.md` §34B-R for the Phase 6 acceptance rationale).
 
 #### 5. Terrain System
 

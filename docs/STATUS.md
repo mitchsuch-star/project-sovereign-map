@@ -1,8 +1,8 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 12, 2026
-> **Last Session:** Session 35 — Fog of War Watchtower Building
+> **Last Updated:** February 13, 2026
+> **Last Session:** Session 34B-prep — Fog of War Pre-Implementation Review
 
 ---
 
@@ -19,7 +19,7 @@
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED. Save/Load COMPLETE. Fog of War Sessions 33 + 34A + 35 COMPLETE. Session 34B NEXT.**
+**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED. Save/Load COMPLETE. Fog of War Sessions 33 + 34A + 35 COMPLETE. Session 34B-prep review COMPLETE (Feb 13). Session 34B NEXT.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -49,6 +49,28 @@
 ---
 
 ## Recently Completed
+
+### Feb 13 (Session 34B-prep: Fog of War Pre-Implementation Review)
+
+**Thorough audit of all fog-of-war code before Session 34B implementation. Documentation-only session — no code changes.**
+
+**Findings:**
+- All 147 fog-specific tests pass (57 fog_of_war + 40 intel_report + 53 watchtower = 147 across 3 test files)
+- 2183 total tests passing, 3 skipped — unchanged from Session 35
+- Sessions 33, 34A, and 35 are solid — no bugs or issues found in implemented code
+- Confirmed: Session 34B has ZERO code written (no `get_last_known_location`, no `get_visible_enemies_in_region`, no `_filter_enemy_phase_by_visibility`, no fog awareness in strategic.py or turn_manager.py)
+- **Serialization gap found:** `RegionIntel` missing from `SERIALIZABLE_CLASSES` in `test_serialization_enforcement.py`. Must fix before 34B starts.
+- **Cavalry fog research completed:** Cavalry moves 2 regions/turn, charge range 2, auto-charge range 2. Intermediate-region omniscience accepted for Phase 6 (physical encounter, not intel). Sally is adjacent-only (no cavalry extension). Auto-charge omniscient by design (spec §9.2). Full findings documented in `FOG_IMPLEMENTATION_PLAN.md` §34B-R.
+
+**Documentation updated:**
+- `FOG_IMPLEMENTATION_PLAN.md` — Session 34B section: added pre-implementation fix (RegionIntel serialization), cavalry fog research results (§34B-R), `fog_aware` parameter design for cautious pathfinding, expanded `get_visible_enemies_in_region` return spec (FULL vs PARTIAL vs UNKNOWN), expanded `get_last_known_location` return type (tuple), test list expanded to ~35, safe-default rule for enemy phase filtering
+- `FOG_OF_WAR_SPEC.md` — Added §5.0 "Mechanics vs Display" principle, cavalry 2-range fog note in §5.1, `target_not_found` event details in §10
+- `STATUS.md` — This entry
+- `CLAUDE.md` — Added strategic commands fog entry to "Before Modifying" table, added RegionIntel to serializable classes list
+
+**Next session: 34B** — Pre-implementation fix (RegionIntel serialization), then PURSUE fog validation, SUPPORT visibility, cautious pathfinding, enemy phase filtering, tactical event filtering, event log types. ~35 new tests expected.
+
+---
 
 ### Feb 12 (Session 35: Fog of War Watchtower Building)
 
