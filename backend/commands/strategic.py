@@ -372,7 +372,8 @@ class StrategicExecutor:
         elif choice == "go_around":
             # Recalculate path avoiding ALL enemy regions (not just the one)
             destination = order.target_snapshot_location or order.target
-            enemy_regions = self._get_enemy_occupied_regions(marshal.nation, world)
+            enemy_regions = self._get_enemy_occupied_regions(
+                marshal.nation, world, marshal=marshal)
             # MOVE_TO and HOLD use weighted pathfinding for terrain-aware rerouting
             use_weighted = (order.command_type in ("MOVE_TO", "HOLD"))
             pathfinder = world.find_weighted_path if use_weighted else world.find_path
@@ -819,13 +820,31 @@ class StrategicExecutor:
 
         Dynamically tracks enemy each turn (recalculates path).
         Attacks when in same region. Completes when target destroyed.
+
+        FOG OF WAR (Session 34B): PURSUE reads the target's location from the
+        intel store (last known position), NOT from raw marshal data. This is
+        the core fog change. Pathfinding heads toward last known location.
+        Physical co-location checks (same region) use real data because the
+        marshal is physically there — that's a discovery, not intelligence.
         """
         order = marshal.strategic_order
         target = world.get_marshal(order.target)
 
         # ═══════════════════════════════════════════════════════════
+        # FOG OF WAR: Resolve target location from intel store
+        # Real target object used for co-location and combat only
+        # ═══════════════════════════════════════════════════════════
+        is_player_marshal = (marshal.nation == world.player_nation)
+        if is_player_marshal:
+            last_known = world.get_last_known_location(order.target)
+        else:
+            # AI is omniscient (spec §9.1)
+            last_known = (target.location, world.current_turn, "full") if target and target.strength > 0 else None
+
+        # ═══════════════════════════════════════════════════════════
         # PHASE M: Cautious PURSUE ratio check
         # Auto-cancel if odds drop below threshold
+        # Uses real data — this is a MECHANIC decision, not display
         # ═══════════════════════════════════════════════════════════
         if order.condition and order.condition.auto_cancel_below_ratio:
             if target and target.strength > 0:
@@ -846,7 +865,15 @@ class StrategicExecutor:
             return self._complete_order(marshal, world,
                                         f"{order.target} destroyed")
 
-        # Same region? Engage and complete.
+        # ═══════════════════════════════════════════════════════════
+        # FOG OF WAR: No intelligence on target -> reject PURSUE
+        # Player marshal with zero intel cannot pursue
+        # ═══════════════════════════════════════════════════════════
+        if is_player_marshal and not last_known:
+            return self._break_order(marshal, world,
+                f"No intelligence on {order.target}'s position, Sire.")
+
+        # Same region? Engage and complete (physical encounter — real data).
         if marshal.location == target.location:
             # Already fought this target recently — order is done
             if not self._should_auto_attack(marshal, target, world):
@@ -876,8 +903,12 @@ class StrategicExecutor:
                 return self._handle_blocked_path(
                     marshal, non_target_enemies, marshal.location, world, game_state)
 
-        # Not same region — move toward target (RECALCULATE each turn)
-        path = self._get_personality_aware_path(marshal, target.location, world)
+        # ═══════════════════════════════════════════════════════════
+        # FOG OF WAR: Pathfind toward last known location (not real location)
+        # Player marshals head toward intel; AI uses real position
+        # ═══════════════════════════════════════════════════════════
+        pursue_destination = last_known[0] if last_known else target.location
+        path = self._get_personality_aware_path(marshal, pursue_destination, world)
         if not path:
             return self._break_order(marshal, world,
                                      f"Cannot reach {order.target}")
@@ -892,12 +923,11 @@ class StrategicExecutor:
 
             next_region = path[0]
 
-            # Check for enemies blocking the path
+            # Check for enemies blocking the path (omniscient — physical encounter)
             enemies = world.get_enemies_in_region(next_region, marshal.nation)
             blocking = [e for e in enemies if e.name != order.target]
 
-            # If this is the target's region, don't treat other enemies as blockers —
-            # the whole point of PURSUE is to reach and fight the target
+            # If this is the target's REAL region, don't treat other enemies as blockers
             is_target_region = (next_region == target.location)
 
             if blocking and not is_target_region:
@@ -941,7 +971,7 @@ class StrategicExecutor:
                 path.pop(0)
                 moves_made.append(next_region)
 
-                # Did we catch up? Pursuit complete.
+                # Did we catch up? Physical encounter — real data.
                 if marshal.location == target.location:
                     if self._should_auto_attack(marshal, target, world):
                         attack_result = self.executor.execute(
@@ -981,15 +1011,52 @@ class StrategicExecutor:
                         f"{marshal.name} has located {target.name} at {next_region} and awaits orders")
                 break
 
+        # ═══════════════════════════════════════════════════════════
+        # FOG OF WAR: Empty arrival — target not at last known location
+        # Marshal arrived at the intel destination but target moved
+        # ═══════════════════════════════════════════════════════════
+        if moves_made and is_player_marshal and marshal.location == pursue_destination:
+            # Arrived at last-known position but target isn't here
+            if marshal.location != target.location:
+                # Check adjacent for enemies (physical presence = mini-refresh)
+                region = world.get_region(marshal.location)
+                enemies_adjacent = []
+                if region:
+                    for adj in region.adjacent_regions:
+                        adj_enemies = world.get_enemies_in_region(adj, marshal.nation)
+                        enemies_adjacent.extend(adj_enemies)
+
+                intel_age = world.current_turn - last_known[1] if last_known else 0
+
+                if not enemies_adjacent:
+                    # No enemies nearby — auto-cancel, log target_not_found
+                    events = world.get_last_tactical_events() if hasattr(world, '_last_tactical_events') else []
+                    target_not_found_event = {
+                        "type": "target_not_found",
+                        "marshal": marshal.name,
+                        "target": order.target,
+                        "region": marshal.location,
+                        "intel_age": int(intel_age),
+                    }
+                    if hasattr(world, '_last_tactical_events'):
+                        world._last_tactical_events.append(target_not_found_event)
+                    return self._break_order(marshal, world,
+                        f"{marshal.name} arrives at {marshal.location} but finds no sign of "
+                        f"{order.target}. Last intelligence was {intel_age} turn(s) old. "
+                        f"Awaiting orders, Sire.")
+                # Enemies adjacent — existing personality contact vectors handle
+                # The marshal stays in position; PURSUE continues with fresh intel next turn
+
         if moves_made:
-            distance = world.get_distance(marshal.location, target.location)
+            # Use pursue_destination for distance (what the marshal is heading toward)
+            distance = world.get_distance(marshal.location, pursue_destination)
             return {
                 "marshal": marshal.name,
                 "command": "PURSUE",
                 "order_status": "continues",
                 "regions_moved": moves_made,
                 "target": order.target,
-                "target_location": target.location,
+                "target_location": pursue_destination,
                 "distance": int(distance),
                 "message": f"{marshal.name} pursues {order.target}. "
                            f"{distance} region(s) away."
@@ -1269,17 +1336,30 @@ class StrategicExecutor:
                     return self._complete_order(marshal, world,
                                                 f"{ally.name} won the battle!")
 
-            # Check if ally is safe (no adjacent enemies)
+            # Check if ally is safe (no adjacent enemies the player can see)
+            # FOG OF WAR (Session 34B): Only report enemies the player can see.
+            # If enemies are hidden in fog, SUPPORT cannot assess safety.
+            # Fog filters information, not mechanics.
             ally_safe = True
+            is_player_support = (marshal.nation == world.player_nation)
             region = world.get_region(ally.location)
             if region:
                 for adj in region.adjacent_regions:
-                    if world.get_enemies_in_region(adj, ally.nation):
-                        ally_safe = False
-                        break
+                    if is_player_support:
+                        if world.get_visible_enemies_in_region(adj, ally.nation):
+                            ally_safe = False
+                            break
+                    else:
+                        if world.get_enemies_in_region(adj, ally.nation):
+                            ally_safe = False
+                            break
                 # Also check current region
-                if world.get_enemies_in_region(ally.location, ally.nation):
-                    ally_safe = False
+                if is_player_support:
+                    if world.get_visible_enemies_in_region(ally.location, ally.nation):
+                        ally_safe = False
+                else:
+                    if world.get_enemies_in_region(ally.location, ally.nation):
+                        ally_safe = False
 
             if ally_safe:
                 return self._complete_order(marshal, world,
@@ -1730,7 +1810,8 @@ class StrategicExecutor:
         if personality == "literal":
             # Reroute silently around ALL enemy regions
             destination = order.target_snapshot_location or order.target
-            enemy_regions = self._get_enemy_occupied_regions(marshal.nation, world)
+            enemy_regions = self._get_enemy_occupied_regions(
+                marshal.nation, world, marshal=marshal)
             # MOVE_TO and HOLD use weighted pathfinding for terrain-aware rerouting
             use_weighted = (order.command_type in ("MOVE_TO", "HOLD"))
             pathfinder = world.find_weighted_path if use_weighted else world.find_path
@@ -1914,10 +1995,32 @@ class StrategicExecutor:
             return False
         return True
 
-    def _get_enemy_occupied_regions(self, nation: str, world) -> List[str]:
-        """Get list of regions with enemies (for cautious pathfinding)."""
+    def _get_enemy_occupied_regions(self, nation: str, world,
+                                     fog_aware: bool = False,
+                                     marshal=None) -> List[str]:
+        """Get list of regions with enemies (for cautious pathfinding).
+
+        FOG OF WAR (Session 34B): When fog_aware=True, only includes regions
+        where the player has PARTIAL+ visibility confirming enemy presence.
+        Cautious marshals can only avoid enemies they know about.
+        When fog_aware=False (default), omniscient — used by AI.
+
+        If marshal is provided and fog_aware is not explicitly set by caller,
+        fog_aware is derived automatically: True for player marshals, False for AI.
+        This prevents callers from forgetting to pass fog_aware.
+        """
+        from backend.models.intel import FULL, PARTIAL
+
+        # Auto-derive fog_aware from marshal if provided and caller didn't override
+        if marshal is not None and not fog_aware:
+            fog_aware = (marshal.nation == world.player_nation)
+
         enemy_regions = []
         for region_name in world.regions:
+            if fog_aware:
+                intel = world.get_region_intel(region_name)
+                if intel.visibility not in (FULL, PARTIAL):
+                    continue  # Can't see enemies here — skip
             if world.get_enemies_in_region(region_name, nation):
                 enemy_regions.append(region_name)
         return enemy_regions
@@ -1931,6 +2034,11 @@ class StrategicExecutor:
         - Literal: Direct path (blocked path handled by _handle_blocked_path reroute)
         - Aggressive: Direct path (will fight through blockages)
 
+        FOG OF WAR (Session 34B): Cautious player marshals only avoid
+        VISIBLE enemies (PARTIAL+). If an enemy is fogged, the cautious
+        marshal doesn't know to avoid it — walking into a trap is a fog moment.
+        AI marshals use omniscient pathfinding (fog_aware=False).
+
         Args:
             use_weighted: If True, use Dijkstra (terrain-aware) instead of BFS.
                           Used by MOVE_TO for attrition-optimized routes.
@@ -1942,7 +2050,8 @@ class StrategicExecutor:
         pathfinder = world.find_weighted_path if use_weighted else world.find_path
 
         if personality == "cautious":
-            enemy_regions = self._get_enemy_occupied_regions(marshal.nation, world)
+            enemy_regions = self._get_enemy_occupied_regions(
+                marshal.nation, world, marshal=marshal)
             path = pathfinder(marshal.location, destination,
                               avoid_regions=enemy_regions)
             if not path:

@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 13, 2026
-> **Last Session:** Session 34B-prep — Fog of War Pre-Implementation Review
+> **Last Session:** Session 34B — Strategic Fog of War + Display Filtering
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2183** (verified, 3 skipped) |
+| **Tests Passing** | **2228** (verified, 3 skipped) |
 | **Current Phase** | Phase 6: **IN PROGRESS** (3 items remaining: Fog of War, Manpower Pools, Artillery Unit Type) |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier, 6-BattleReport, 6-EventLog |
@@ -19,7 +19,7 @@
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED. Save/Load COMPLETE. Fog of War Sessions 33 + 34A + 35 COMPLETE. Session 34B-prep review COMPLETE (Feb 13). Session 34B NEXT.**
+**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED. Save/Load COMPLETE. Fog of War Sessions 33 + 34A + 34B + 35 COMPLETE. Session 36 (edge cases/polish) NEXT.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -49,6 +49,54 @@
 ---
 
 ## Recently Completed
+
+### Feb 13 (Session 34B: Strategic Fog of War + Display Filtering)
+
+**All fog-of-war API responses now respect visibility. Strategic commands, enemy phase, and tactical events are fog-filtered.**
+
+**Pre-implementation fix:**
+- Added `RegionIntel` to `SERIALIZABLE_CLASSES` in `test_serialization_enforcement.py` (2 new tests)
+
+**Prerequisite helpers on WorldState:**
+- `get_last_known_location(marshal_name)` — scans intel store, returns `(region, turn, visibility)` or None
+- `get_visible_enemies_in_region(region_name, nation)` — fog-filtered enemy data (FULL=exact, PARTIAL/STALE=band, UNKNOWN=empty)
+
+**PURSUE fog validation (strategic.py):**
+- PURSUE reads target location from intel store, not raw marshal data
+- UNKNOWN target → reject ("No intelligence on [target]'s position, Sire.")
+- STALE target → pathfind toward last known location
+- Empty arrival → auto-cancel with intel age message + `target_not_found` event
+- AI pursuits remain omniscient (spec §9.1)
+
+**SUPPORT safety check (strategic.py):**
+- Adjacent enemy scan uses `get_visible_enemies_in_region()` for player marshals
+- Fogged enemies don't affect ally safety assessment
+
+**Cautious pathfinding (strategic.py):**
+- `_get_enemy_occupied_regions()` gains `fog_aware` parameter
+- Player cautious marshals only avoid PARTIAL+ visible enemies
+- AI pathfinding stays omniscient
+- All 4 callers updated: cautious path, go_around, literal reroute, personality-aware path
+
+**Enemy phase display filtering (main.py):**
+- `_filter_enemy_phase_by_visibility()` — battles involving player always shown, FULL region actions shown, below-FULL suppressed, missing fields suppressed (safe default)
+
+**Tactical event filtering (main.py):**
+- `_filter_tactical_events_by_visibility()` — player events always shown, enemy events require PARTIAL+ visibility, fog events (intel_updated/intel_decayed/target_not_found) always shown
+
+**Event log types (world_state.py):**
+- `intel_updated` emitted in `calculate_visibility()` on actual visibility upgrades
+- `intel_decayed` emitted in `decay_intel()` on downgrades
+- `target_not_found` logged on PURSUE empty arrival
+- All events appended to `_last_tactical_events` during `_advance_turn_internal()`
+
+**Tests:** 45 new (2228 total passing, 3 skipped)
+- 2 serialization enforcement (RegionIntel)
+- 43 in `test_fog_34b.py`: helpers, PURSUE fog, SUPPORT fog, cautious pathfinding, enemy phase filtering, tactical event filtering, event log types, integration
+
+**Next session: 36** — Edge cases, Godot smoke test, Davout PURSUE fix, V2b TODO markers, doc updates.
+
+---
 
 ### Feb 13 (Session 34B-prep: Fog of War Pre-Implementation Review)
 

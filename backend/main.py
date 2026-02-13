@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from backend.commands.parser import CommandParser
 from backend.commands.executor import CommandExecutor
 from backend.models.world_state import WorldState
+from backend.models.intel import FULL, PARTIAL
 from backend.save_manager import save_game, load_game, autosave, list_saves, delete_save
 
 # ════════════════════════════════════════════════════════════
@@ -95,6 +96,161 @@ def get_llm_game_state() -> dict:
         "enemies": enemies,
         "map_data": map_data,
     }
+
+def _filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
+    """
+    Fog of War (Session 34B): Filter enemy phase actions by player visibility.
+
+    Fog filters information, not mechanics. The enemy AI ran omnisciently;
+    this function redacts the DISPLAY of those actions based on what the
+    player can see.
+
+    Rules:
+    - Battle involving a player marshal -> ALWAYS SHOW (player was in the battle)
+    - Action in FULL visibility region -> show as-is
+    - Action below FULL -> suppress (safe default)
+    - Missing/unrecognized fields -> suppress (never show more than intended)
+    """
+    if not enemy_phase or not enemy_phase.get("nations"):
+        return enemy_phase
+
+    player_nation = world_state.player_nation
+    filtered_phase = {
+        "nations": {},
+        "total_actions": 0,
+        "summary": enemy_phase.get("summary", [])
+    }
+
+    for nation, nation_data in enemy_phase.get("nations", {}).items():
+        filtered_actions = []
+        for action in nation_data.get("actions", []):
+            # Check 1: Does this action involve a player marshal? (battle)
+            involves_player = False
+            events = action.get("events", [])
+            if isinstance(events, list):
+                for evt in events:
+                    if isinstance(evt, dict):
+                        # Battle events with player involvement
+                        if evt.get("type") == "battle":
+                            attacker = evt.get("attacker", "")
+                            defender = evt.get("defender", "")
+                            attacker_nation = evt.get("attacker_nation", "")
+                            defender_nation = evt.get("defender_nation", "")
+                            if (attacker_nation == player_nation or
+                                    defender_nation == player_nation):
+                                involves_player = True
+                                break
+                            # Also check marshal names against player marshals
+                            for pm in world_state.get_player_marshals():
+                                if pm.name in (attacker, defender):
+                                    involves_player = True
+                                    break
+
+            # Also check ai_action target against player marshals
+            ai_action = action.get("ai_action", {})
+            if ai_action and isinstance(ai_action, dict):
+                target = ai_action.get("target", "")
+                if target:
+                    for pm in world_state.get_player_marshals():
+                        if pm.name == target:
+                            involves_player = True
+                            break
+
+            if involves_player:
+                filtered_actions.append(action)
+                continue
+
+            # Check 2: Determine action region and check visibility
+            action_region = None
+
+            # Try to get region from ai_action
+            if ai_action and isinstance(ai_action, dict):
+                ai_marshal_name = ai_action.get("marshal", "")
+                if ai_marshal_name:
+                    ai_marshal = world_state.get_marshal(ai_marshal_name)
+                    if ai_marshal:
+                        action_region = ai_marshal.location
+
+            # If we have a region, check visibility
+            if action_region:
+                intel = world_state.get_region_intel(action_region)
+                if intel.visibility == FULL:
+                    filtered_actions.append(action)
+                    continue
+            # Missing region or below FULL -> suppress (safe default)
+
+        if filtered_actions:
+            filtered_phase["nations"][nation] = {
+                "actions": filtered_actions,
+                "action_count": len(filtered_actions)
+            }
+            filtered_phase["total_actions"] += len(filtered_actions)
+
+    # Preserve enemy_victory if present
+    if enemy_phase.get("enemy_victory"):
+        filtered_phase["enemy_victory"] = enemy_phase["enemy_victory"]
+
+    return filtered_phase
+
+
+def _filter_tactical_events_by_visibility(events: list, world_state) -> list:
+    """
+    Fog of War (Session 34B): Filter tactical events by player visibility.
+
+    Rules:
+    - Player nation events -> always show
+    - Auto-charge results -> always show (involve player marshal)
+    - Enemy events in visible regions (PARTIAL+) -> show
+    - Enemy events in fogged regions -> suppress
+    """
+    if not events:
+        return events
+
+    player_nation = world_state.player_nation
+    filtered = []
+
+    for event in events:
+        if not isinstance(event, dict):
+            filtered.append(event)
+            continue
+
+        # Player nation events always shown
+        event_nation = event.get("nation", "")
+        event_marshal = event.get("marshal", "")
+
+        # Check if this is a player-side event
+        is_player_event = False
+        if event_nation == player_nation:
+            is_player_event = True
+        elif event_marshal:
+            pm = world_state.get_marshal(event_marshal)
+            if pm and pm.nation == player_nation:
+                is_player_event = True
+
+        # Auto-charge and reckless events always involve player
+        event_type = event.get("type", "")
+        if event_type in ("auto_charge", "reckless_cavalry"):
+            is_player_event = True
+
+        # Fog events (intel_updated, intel_decayed, target_not_found) always shown
+        if event_type in ("intel_updated", "intel_decayed", "target_not_found"):
+            is_player_event = True
+
+        if is_player_event:
+            filtered.append(event)
+            continue
+
+        # Enemy event — check region visibility
+        event_location = event.get("location", "") or event.get("region", "")
+        if event_location:
+            intel = world_state.get_region_intel(event_location)
+            if intel.visibility in (FULL, PARTIAL):
+                filtered.append(event)
+                continue
+        # No location or below PARTIAL -> suppress
+
+    return filtered
+
 
 # Allow Godot to connect
 app.add_middleware(
@@ -465,6 +621,10 @@ def execute_command(request: CommandRequest):
                 }
             if enemy_phase.get("enemy_victory"):
                 cleaned_phase["enemy_victory"] = enemy_phase["enemy_victory"]
+
+            # FOG OF WAR (Session 34B): Filter enemy actions by visibility
+            cleaned_phase = _filter_enemy_phase_by_visibility(cleaned_phase, world)
+
             response["enemy_phase"] = cleaned_phase
 
             # DEBUG: Print final enemy_phase structure
@@ -488,7 +648,9 @@ def execute_command(request: CommandRequest):
         # Contains supply attrition messages, occupation updates, etc.
         # Godot main.gd reads tactical_events for display in turn log.
         if result.get("tactical_events"):
-            response["tactical_events"] = result["tactical_events"]
+            # FOG OF WAR (Session 34B): Filter tactical events by visibility
+            response["tactical_events"] = _filter_tactical_events_by_visibility(
+                result["tactical_events"], world)
 
         # Include independent command report if present (Phase 2.5)
         if result.get("show_independent_command_report"):

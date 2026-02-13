@@ -237,6 +237,7 @@ class WorldState:
 
         # Calculate initial visibility so turn 1 starts with correct fog state
         # (French regions FULL, Grouchy's Waterloo FULL, adjacent PARTIAL, rest UNKNOWN)
+        self._intel_events_this_turn = []  # Init before first calculate_visibility
         self.calculate_visibility()
 
     # ========================================
@@ -353,10 +354,16 @@ class WorldState:
                     watchtower_adjacent_regions.add(adj)
 
         # ════════════════════════════════════════════════════════════
+        # FOG EVENT LOG (Session 34B): Track visibility changes for events
+        # ════════════════════════════════════════════════════════════
+        intel_events: list = []
+
+        # ════════════════════════════════════════════════════════════
         # Step 0 + 1 + 2 + 3: Process all regions
         # ════════════════════════════════════════════════════════════
         for region_name, region in self.regions.items():
             intel = self.get_region_intel(region_name)
+            old_visibility = intel.visibility
             is_own = (region.controller == self.player_nation)
             has_friendly_marshal = (region_name in friendly_marshal_regions)
             is_adjacent = (region_name in friendly_adjacent_regions)
@@ -427,8 +434,21 @@ class WorldState:
                 )
                 refreshed_regions.add(region_name)
 
+            # Emit intel_updated event if visibility actually changed (upgrade)
+            if intel.visibility != old_visibility and VISIBILITY_PRIORITY.get(intel.visibility, 0) > VISIBILITY_PRIORITY.get(old_visibility, 0):
+                intel_events.append({
+                    "type": "intel_updated",
+                    "region": region_name,
+                    "new_visibility": intel.visibility,
+                    "old_visibility": old_visibility,
+                    "source": intel.intel_source,
+                })
+
         # Store refreshed set for decay_intel to use
         self._refreshed_regions_this_turn = refreshed_regions
+        # Store intel events for retrieval
+        self._intel_events_this_turn = getattr(self, '_intel_events_this_turn', [])
+        self._intel_events_this_turn.extend(intel_events)
 
     def decay_intel(self) -> None:
         """
@@ -442,10 +462,25 @@ class WorldState:
         refreshed = getattr(self, '_refreshed_regions_this_turn', set())
         turn = self.current_turn
 
+        decay_events: list = []
         for region_name, intel in self.intel.items():
             if region_name in refreshed:
                 continue  # Skip — already refreshed with live data
+            old_visibility = intel.visibility
             intel.decay(turn)
+            # Emit intel_decayed event if visibility downgraded
+            if intel.visibility != old_visibility:
+                decay_events.append({
+                    "type": "intel_decayed",
+                    "region": region_name,
+                    "old_visibility": old_visibility,
+                    "new_visibility": intel.visibility,
+                })
+
+        # Append decay events to the intel events list
+        intel_events = getattr(self, '_intel_events_this_turn', [])
+        intel_events.extend(decay_events)
+        self._intel_events_this_turn = intel_events
 
     def update_intel_from_scout(self, region_name: str, turn: int) -> None:
         """
@@ -640,6 +675,76 @@ class WorldState:
                 if m.location == region
                 and m.nation != nation
                 and m.strength > 0]
+
+    def get_last_known_location(self, marshal_name: str) -> Optional[tuple]:
+        """
+        Fog of War (Session 34B): Find the last known location of a marshal
+        from the player's intel store.
+
+        Scans all RegionIntel objects for entries whose known_marshals list
+        contains a matching name. Returns the most recent sighting.
+
+        Args:
+            marshal_name: Name of the marshal to search for
+
+        Returns:
+            (region_name, last_updated_turn, visibility) tuple, or None if
+            the marshal was never seen in any intel snapshot.
+
+        Edge cases:
+        - Never scouted -> returns None
+        - Marshal in multiple stale regions -> most recent last_updated_turn wins
+        - Marshal destroyed -> last intel entry persists (player's last knowledge)
+        """
+        best_match = None
+        best_turn = -1
+
+        for region_name, intel in self.intel.items():
+            for km in intel.known_marshals:
+                if km.get("name") == marshal_name:
+                    if intel.last_updated_turn > best_turn:
+                        best_turn = intel.last_updated_turn
+                        best_match = (region_name, intel.last_updated_turn, intel.visibility)
+
+        return best_match
+
+    def get_visible_enemies_in_region(self, region_name: str, nation: str) -> list:
+        """
+        Fog of War (Session 34B): Get enemies visible to the player in a region.
+
+        Fog filters information, not mechanics. This is for DISPLAY paths only.
+        AI and executor internals use get_enemies_in_region() (omniscient).
+
+        Args:
+            region_name: Region to check
+            nation: The perspective nation
+
+        Returns:
+            - FULL visibility: full enemy data (exact strength, morale, stance)
+            - PARTIAL/STALE: name + strength band only (no exact numbers)
+            - LAST_KNOWN/UNKNOWN: empty list (enemies not confirmed visible)
+        """
+        intel = self.get_region_intel(region_name)
+
+        if intel.visibility == FULL:
+            # Full data — return actual marshal objects (same as get_enemies_in_region)
+            return self.get_enemies_in_region(region_name, nation)
+
+        if intel.visibility in (PARTIAL, STALE):
+            # Return limited data from intel snapshot (band only, no exact numbers)
+            enemies = self.get_enemies_in_region(region_name, nation)
+            limited = []
+            for m in enemies:
+                limited.append({
+                    "name": m.name,
+                    "nation": m.nation,
+                    "strength_band": get_strength_band(m.strength),
+                    "fog_level": intel.visibility,
+                })
+            return limited
+
+        # LAST_KNOWN or UNKNOWN — enemies not confirmed visible
+        return []
 
     def get_player_marshals(self) -> List[Marshal]:
         """Get all marshals belonging to the player's nation."""
@@ -2774,8 +2879,13 @@ class WorldState:
         # Runs LAST, after all processing (tactical states, broken retreats,
         # auto-charges, income, etc.) so player sees clean picture at turn start.
         # ════════════════════════════════════════════════════════════
+        self._intel_events_this_turn = []  # Reset before visibility calc
         self.calculate_visibility()
         self.decay_intel()
+
+        # Append fog intel events to tactical events (Session 34B)
+        if getattr(self, '_intel_events_this_turn', None):
+            self._last_tactical_events.extend(self._intel_events_this_turn)
 
         # Check for game over
         if self.current_turn > self.max_turns:

@@ -20,13 +20,13 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 | Feature | Complexity | Notes |
 |---------|------------|-------|
-| **Fog of War** | Medium | IN PROGRESS — Sessions 33+34A+35 done (intel, visibility, scout, report, watchtower). 34B-prep review done (Feb 13). **34B NEXT** (strategic fog, display filtering, event log) + 36 (edge cases, polish) remain. |
+| **Fog of War** | Medium | IN PROGRESS — Sessions 33+34A+34B+35 done (intel, visibility, scout, report, watchtower, strategic fog, display filtering, event log). **36 NEXT** (edge cases, polish). |
 | **Manpower Pools** | Medium | Separate: Infantry, Cavalry, Artillery |
 | **Artillery Unit Type** | Medium | Combat buffs like cavalry |
 
 ### Completed in Phase 6
 
-Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-Battle Analysis, Turn Events Log, Reinforcements, Attrition, City Fortification, Fog of War (partial: intel model, visibility, scout, intel report, watchtower). See `docs/STATUS.md` for details.
+Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-Battle Analysis, Turn Events Log, Reinforcements, Attrition, City Fortification, Fog of War (partial: intel model, visibility, scout, intel report, watchtower, strategic fog, display filtering, event log). See `docs/STATUS.md` for details.
 
 ### Deferred from Phase 6
 

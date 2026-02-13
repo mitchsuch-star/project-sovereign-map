@@ -17,6 +17,7 @@ from dataclasses import fields, is_dataclass
 from backend.models.marshal import Marshal, StrategicOrder, StrategicCondition, Stance
 from backend.models.world_state import WorldState
 from backend.models.region import Region
+from backend.models.intel import RegionIntel
 from backend.models.trust import Trust
 from backend.models.authority import AuthorityTracker
 from backend.commands.vindication import VindicationTracker
@@ -549,6 +550,60 @@ class TestVindicationTrackerSerializationEnforcement:
 
 
 # ============================================================================
+# REGION INTEL SERIALIZATION (Session 34B — Fog of War)
+# ============================================================================
+
+class TestRegionIntelSerializationEnforcement:
+    """Ensure RegionIntel serialization stays complete."""
+
+    def test_all_region_intel_fields_serialized(self):
+        """Every RegionIntel field must be in to_dict()."""
+        obj = RegionIntel("Waterloo")
+        # Set all fields to non-default values
+        obj.visibility = "full"
+        obj.known_marshals = [{"name": "Wellington", "nation": "Britain", "strength": 42000}]
+        obj.strength_band = "large force"
+        obj.exact_strength = 42000
+        obj.morale = 65
+        obj.stance = "defensive"
+        obj.last_scouted_turn = 3
+        obj.last_updated_turn = 3
+        obj.intel_source = "scout"
+
+        instance_attrs = get_instance_attributes(obj)
+        serialized_keys = get_serialized_keys(obj)
+
+        missing = instance_attrs - serialized_keys
+
+        assert not missing, (
+            f"RegionIntel fields not in to_dict(): {sorted(missing)}"
+        )
+
+    def test_region_intel_roundtrip_preserves_all_fields(self):
+        """RegionIntel to_dict() -> from_dict() roundtrip preserves all data."""
+        obj = RegionIntel("Waterloo")
+        obj.visibility = "stale"
+        obj.known_marshals = [{"name": "Wellington", "nation": "Britain", "band": "large force"}]
+        obj.strength_band = "large force"
+        obj.exact_strength = None
+        obj.morale = None
+        obj.stance = None
+        obj.last_scouted_turn = 2
+        obj.last_updated_turn = 2
+        obj.intel_source = "adjacent"
+
+        data = obj.to_dict()
+        restored = RegionIntel.from_dict(data)
+
+        for attr in get_instance_attributes(obj):
+            original_val = getattr(obj, attr)
+            restored_val = getattr(restored, attr)
+            assert original_val == restored_val, (
+                f"RegionIntel roundtrip mismatch: {attr} = {original_val!r} != {restored_val!r}"
+            )
+
+
+# ============================================================================
 # META TEST: ALL SERIALIZABLE CLASSES HAVE ENFORCEMENT
 # ============================================================================
 
@@ -560,6 +615,7 @@ SERIALIZABLE_CLASSES: list[Type] = [
     StrategicCondition,
     WorldState,
     Region,
+    RegionIntel,
     Trust,
     AuthorityTracker,
     VindicationTracker,
