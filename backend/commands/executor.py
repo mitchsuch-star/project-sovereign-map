@@ -170,6 +170,11 @@ class CommandExecutor:
         """
         Try to find enemy marshal with fuzzy matching for typo tolerance.
 
+        TODO (1805): At 80+ regions, fuzzy matching should be filtered by known
+        marshals (from intel store) — player typing "attack Kutuzov" when Kutuzov
+        was never scouted should fail or warn. On 13 regions this is acceptable
+        since players know all marshal names. See FOG_OF_WAR_SPEC.md §5.1.
+
         Args:
             enemy_name: Name of the target marshal
             world: WorldState instance

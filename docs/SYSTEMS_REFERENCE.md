@@ -14,6 +14,7 @@ Consolidated reference for all game systems. Read when modifying related code.
 6. [Cavalry Limits](#6-cavalry-limits)
 7. [Redemption System](#7-redemption-system)
 8. [Economy System](#8-economy-system)
+9. [Fog of War](#9-fog-of-war)
 
 ---
 
@@ -1710,3 +1711,124 @@ AI nations get an admin phase each turn, using the same executor as the player (
 
 **UI wiring:**
 - Occupation fields (`occupation_region`, `occupation_turns_held`, `occupation_turns_required`) added to `tactical_state` dict in `main.py::_get_map_data()` for Godot marshal tooltip display
+
+---
+
+## 9. Fog of War
+
+> **Full spec:** `docs/FOG_OF_WAR_SPEC.md` (16 sections)
+> **Implementation plan:** `docs/FOG_IMPLEMENTATION_PLAN.md` (Sessions 33-36)
+> **Status:** COMPLETE (Sessions 33-36, Feb 2026)
+
+### Core Principle
+
+**"Fog filters information, not mechanics."** Game mechanics (combat, pathfinding decisions, sally ratios) use real world data — the executor is deterministic (Golden Rule #6). Fog only filters what the player sees in messages and UI. The simulation is accurate; the player's view is filtered.
+
+Exceptions where fog affects mechanics:
+- **PURSUE pathfinding** uses last-known location from intel store
+- **Cautious pathfinding** only avoids PARTIAL+ visible enemies
+
+### Visibility Levels
+
+| Level | Source | What You See |
+|-------|--------|-------------|
+| **FULL** | Own region w/ army, scouted, post-battle | Names, exact strength, morale, stance, buildings |
+| **PARTIAL** | Adjacent to army, watchtower, own region w/o army | Names, strength band only |
+| **STALE** | 3-4 turns since last update | Frozen snapshot, marked with age |
+| **LAST_KNOWN** | 5+ turns since last update | Old snapshot, position likely wrong |
+| **UNKNOWN** | Never scouted, no adjacency | Region exists, controller known, no military intel |
+
+### Visibility Calculation (`calculate_visibility()`)
+
+Runs at: game init, end of `_advance_turn_internal()`, after save load.
+
+Priority order (highest wins):
+1. **Step 0:** Marshal-present → FULL (any region with a friendly marshal)
+2. **Step 1:** Own region → PARTIAL military + FULL economic
+3. **Step 2:** Adjacent to friendly army → PARTIAL
+4. **Step 3:** Adjacent to active watchtower in own region → PARTIAL
+5. **Decay:** Regions not refreshed → age from `last_updated_turn`
+
+### Decay Timeline
+
+Same for FULL and PARTIAL, offset from `last_updated_turn`:
+- Turns 0-2: Stays at current level (FRESH_TURNS = 2)
+- Turns 3-4: Degrades to STALE (STALE_TURN_START = 3)
+- Turns 5+: Degrades to LAST_KNOWN (LAST_KNOWN_TURN_START = 5)
+
+### Strength Bands (PARTIAL/STALE)
+
+| Band | Range |
+|------|-------|
+| No forces | 0 |
+| Screening force | 1 – 4,999 |
+| Small force | 5,000 – 14,999 |
+| Substantial force | 15,000 – 39,999 |
+| Large force | 40,000 – 69,999 |
+| Massive force | 70,000+ |
+
+Multiple enemies in same region: combined total → single aggregate band.
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `backend/models/intel.py` | RegionIntel class, visibility constants, strength bands |
+| `backend/intel_report.py` | Berthier Intelligence Report (fog-filtered status) |
+| `backend/models/world_state.py` | `calculate_visibility()`, `decay_intel()`, `get_region_intel()`, `get_last_known_location()`, `get_visible_enemies_in_region()`, `get_filtered_game_state_summary()` |
+| `backend/commands/strategic.py` | PURSUE fog validation, cautious pathfinding `fog_aware`, contact interrupt discovery messages |
+| `backend/commands/disobedience.py` | Davout PURSUE fog-aware objection |
+| `backend/main.py` | `_filter_enemy_phase_by_visibility()`, `_filter_tactical_events_by_visibility()` |
+
+### Intel Sources
+
+Scouts, battles, and adjacency update the intel store:
+- **Scout:** `update_intel_from_scout()` → FULL on target region. Watchtower synergy: +1 turn freshness.
+- **Battle:** `update_intel_from_battle()` → FULL on battle region. Wired at all 6 `resolve_battle` sites.
+- **Adjacency/watchtower:** Refreshed each turn by `calculate_visibility()`.
+
+### Display Filtering
+
+All API responses go through `get_filtered_game_state_summary()` (replaced 29 call sites):
+- Enemy marshals hidden at UNKNOWN
+- Strength band only at PARTIAL/STALE
+- Exact data at FULL
+- Own region economic data always full
+
+Enemy phase: `_filter_enemy_phase_by_visibility()` — battles involving player always shown, FULL actions shown, below-FULL suppressed.
+
+Tactical events: `_filter_tactical_events_by_visibility()` — player events always shown, enemy events require PARTIAL+.
+
+### Strategic Command Fog Interactions
+
+- **PURSUE:** Reads target from intel store via `get_last_known_location()`. UNKNOWN → reject. STALE → pathfind to last known. Empty arrival → auto-cancel with intel age message.
+- **SUPPORT:** Safety check uses `get_visible_enemies_in_region()`. Reports only visible enemies.
+- **Cautious pathfinding:** `_get_enemy_occupied_regions(fog_aware=True)` for player marshals. Only avoids PARTIAL+ enemies.
+- **HOLD sally:** Adjacent-only scan, no fog filter needed (adjacency guarantees PARTIAL).
+- **Contact interrupt:** Discovery language for fogged regions ("Enemy forces discovered!"), standard for FULL.
+
+### Watchtower Building
+
+| Property | Value |
+|----------|-------|
+| Cost | 250 gold, 2 turns |
+| Effect | PARTIAL on all adjacent regions |
+| Scout synergy | +1 turn FULL freshness |
+| Damage | Major battle → damaged. Plunder → destroyed. Under construction + any damage → destroyed. |
+| Repair | 150 gold, 2 turns |
+| AI priority | P6.5 (after repair, before low-priority recruit) |
+
+Dedicated field on Region (not a building slot). Every region type allowed.
+
+### AI and Fog
+
+AI is omniscient on 13 regions (spec §9.1). Uses `world.marshals` and `get_enemies_in_region()` directly. Only display paths use fog-filtered helpers. Auto-charge ignores fog (spec §9.2 — reckless cavalry finds trouble). Revisit at 80+ regions for EA 1805.
+
+### Objection System + Fog
+
+Davout PURSUE objection (disobedience.py) is fog-aware:
+- FULL: Objects on exact odds (ratio >= 1.2)
+- PARTIAL: Objects on band comparison
+- STALE/UNKNOWN: Objects on staleness ("X-day-old intelligence")
+
+V2b TODO markers at 12 helper functions in `objection_v2.py`. `get_visible_enemies_near()` helper ready for V2b swap.

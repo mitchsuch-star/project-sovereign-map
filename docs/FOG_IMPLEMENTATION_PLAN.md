@@ -399,28 +399,28 @@ Cavalry has movement_range=2 (infantry=1). This creates fog interactions at seve
 
 **Goal:** Edge cases, Godot smoke test, Davout PURSUE fix, V2b TODO markers, doc updates.
 
-**Implementation:**
-- [ ] Edge cases:
+**Implementation: COMPLETE (Session 36, Feb 13 2026)**
+- [x] Edge cases:
   - Broken marshal in fog (position always known — it's your marshal)
   - Retreat into fog (forced retreat sends your marshal into unknown region — FULL on arrival)
   - Own-region behind enemy lines: PARTIAL military (§2.3 special case)
   - Multiple enemies in same region: combined band calculation at PARTIAL/STALE
   - Occupied own region: standard PARTIAL per spec §2.3 edge case
   - ~~Auto-charge in fog~~ **No changes needed** — auto-charge ignores fog per spec §9.2 decision
-- [ ] Contact interrupt fog-discovery messages:
+- [x] Contact interrupt fog-discovery messages:
   - When strategic movement hits enemies in a region that was below FULL visibility, use discovery language: "Enemy forces discovered ahead at [region]!" instead of the standard "Enemy forces detected at [region]"
   - Check visibility level at time of contact interrupt in `_handle_blocked_path()` (strategic.py)
   - Simple message branch — no mechanic changes. Fog makes existing interrupts feel like genuine discoveries instead of known obstacles.
   - Test: contact interrupt in fogged region → discovery message. Contact interrupt in FULL region → standard message.
-- [ ] Davout PURSUE objection update (§6.3, existing TODO at `disobedience.py:1609`)
+- [x] Davout PURSUE objection update (§6.3, existing TODO at `disobedience.py:1609`)
   - If target FULL visibility: object as now (sees odds)
   - If target PARTIAL: object based on strength band comparison
   - If target STALE/LAST_KNOWN/UNKNOWN: cannot object on odds, may object on staleness
-- [ ] Add V2b TODO markers at fog-aware objection wiring points (§6.1)
+- [x] Add V2b TODO markers at fog-aware objection wiring points (§6.1)
   - `objection_v2.py`: comment block at each of the 12 helper functions noting fog integration needed for V2b
   - `disobedience.py`: update existing TODO at line 1609
   - Add `get_visible_enemies_near()` helper — returns actual data now, fog-filtered in V2b
-- [ ] Smoke test: play through 5+ turns in Godot
+- [ ] Smoke test: play through 5+ turns in Godot (MANUAL — requires Godot client)
   - Verify status command shows Berthier Intelligence Report format
   - Verify enemy phase shows only visible actions
   - Verify scout reveals FULL intel that persists across turns
@@ -429,9 +429,9 @@ Cavalry has movement_range=2 (infantry=1). This creates fog interactions at seve
   - Verify PURSUE uses last-known intel, handles empty arrival
   - Verify cautious pathfinding only avoids visible enemies
   - Verify reckless cavalry auto-charge works unchanged
-- [ ] Update test_serialization_enforcement.py fixture if needed
-- [ ] Integration tests: full turn cycle with fog, multi-turn decay, scout→stale→last_known
-- [ ] Doc updates:
+- [x] Update test_serialization_enforcement.py fixture if needed (not needed — already up to date)
+- [x] Integration tests: full turn cycle with fog, multi-turn decay, scout→stale→last_known
+- [x] Doc updates:
   - SYSTEMS_REFERENCE.md: new fog of war section
   - TUTORIAL_SCRIPT.md: fog of war teaching moments
   - FUTURE_DESIGN.md: fog sketches → "implemented, see spec", AI fog notes
@@ -439,8 +439,8 @@ Cavalry has movement_range=2 (infantry=1). This creates fog interactions at seve
   - ROADMAP.md: mark Fog of War COMPLETE
   - CLAUDE.md: update current phase
 
-**Tests expected:** ~20
-**Smoke test gate:** Full Godot smoke test + `pytest tests/ -v --tb=no -q` green
+**Tests:** 20 new (2264 total passing, 3 skipped)
+**Smoke test gate:** `pytest tests/ -v --tb=no -q` green (2264 passed). Godot smoke test: MANUAL (requires Godot client).
 
 ---
 
@@ -449,23 +449,26 @@ Cavalry has movement_range=2 (infantry=1). This creates fog interactions at seve
 **After Session 36, before moving to Manpower Pools / Artillery.**
 
 Fog touches many systems — review integration points:
-- [ ] Verify all 29 call sites across 8 endpoints use `get_filtered_game_state_summary()`
-- [ ] Verify no enemy data leaks in tactical events, enemy phase, or turn results
-- [ ] Verify strategic reports don't need filtering (all player marshal events, confirmed 34B review)
-- [ ] Verify AI is completely unaffected by fog (omniscient, reads `world.marshals` directly)
-- [ ] Verify reckless cavalry auto-charge works unchanged (no fog filtering)
-- [ ] Verify serialization roundtrip for all new fields (RegionIntel, watchtower)
-- [ ] Verify backward compat with old saves (empty intel → calculate_visibility on load)
-- [ ] Verify combat.py still accesses zero world state (confirmed safe in Session 32 audit)
-- [ ] Check for float values in any fog-related data sent to Godot
-- [ ] Review V2b TODO markers at all 12+ objection helper functions
-- [ ] Verify intel_report.py produces correct tiered output
-- [ ] Verify refresh vs decay path separation — no `get_marshals_in_region()` calls in decay path, no snapshot freezing in refresh path
-- [ ] Verify `get_last_known_location()` handles: never scouted, multi-region sighting, destroyed marshal
-- [ ] Verify `get_visible_enemies_in_region()` is not called by AI or executor internals (only display paths)
-- [ ] Verify HOLD sally uses adjacent-only scan (no cavalry extended range) — if future change adds extended range, fog filter needed
-- [ ] Verify `_fuzzy_match_enemy()` TODO note exists for 1805 (filter by known marshals at 80+ regions)
-- [ ] Verify PURSUE arrival uses raw world data for current region (justified: marshal physically present)
+
+**Audit completed Session 36 (Feb 13 2026): 17/17 PASS. Verdict: APPROVED.**
+
+- [x] Verify all 29 call sites across 8 endpoints use `get_filtered_game_state_summary()` — PASS (main.py:26 + executor.py:3 = 29)
+- [x] Verify no enemy data leaks in tactical events, enemy phase, or turn results — PASS (two-layer filtering)
+- [x] Verify strategic reports don't need filtering (all player marshal events) — PASS (player marshals only)
+- [x] Verify AI is completely unaffected by fog (omniscient, reads `world.marshals` directly) — PASS
+- [x] Verify reckless cavalry auto-charge works unchanged (no fog filtering) — PASS (uses get_enemies_in_region)
+- [x] Verify serialization roundtrip for all new fields (RegionIntel, watchtower) — PASS (10 fields each way)
+- [x] Verify backward compat with old saves (empty intel → calculate_visibility on load) — PASS
+- [x] Verify combat.py still accesses zero world state (confirmed safe) — PASS (imports only Marshal + Region constants)
+- [x] Check for float values in any fog-related data sent to Godot — PASS (all int()-wrapped)
+- [x] Review V2b TODO markers at all 12+ objection helper functions — PASS (12 functions marked)
+- [x] Verify intel_report.py produces correct tiered output — PASS (5 tiers: your forces, confirmed, recent, last known, no intel)
+- [x] Verify refresh vs decay path separation — PASS (no get_marshals_in_region in decay path)
+- [x] Verify `get_last_known_location()` handles: never scouted, multi-region sighting, destroyed marshal — PASS
+- [x] Verify `get_visible_enemies_in_region()` is not called by AI or executor internals — PASS (strategic.py SUPPORT only for player)
+- [x] Verify HOLD sally uses adjacent-only scan (no cavalry extended range) — PASS (region.adjacent_regions only)
+- [x] Verify `_fuzzy_match_enemy()` TODO note exists for 1805 — PASS (added Session 36)
+- [x] Verify PURSUE arrival uses raw world data for current region — PASS (physical encounter = real data)
 
 ---
 

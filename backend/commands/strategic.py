@@ -1787,10 +1787,23 @@ class StrategicExecutor:
         this same turn (or the previous turn), don't re-ask — just hold.
         Without this, contact interrupts loop infinitely every turn when
         a persistent enemy blocks a SUPPORT/MOVE_TO path.
+
+        Session 36: Fog-discovery messages. When blocked region is below FULL
+        visibility, use discovery language ("Enemy forces discovered ahead!")
+        instead of standard language ("Enemy at region"). This makes existing
+        contact interrupts feel like genuine discoveries in fog.
         """
+        from backend.models.intel import FULL as FULL_VIS
+
         personality = marshal.personality
         enemy = enemies[0]
         order = marshal.strategic_order
+
+        # Session 36: Check if this is a fog discovery (region below FULL visibility)
+        is_fog_discovery = False
+        if hasattr(world, 'get_region_intel'):
+            region_intel = world.get_region_intel(blocked_region)
+            is_fog_discovery = (region_intel.visibility != FULL_VIS)
 
         # Suppress re-asking about the same enemy (prevents infinite interrupt loop)
         last_contact_enemy = getattr(order, 'last_contact_enemy', None)
@@ -1821,14 +1834,21 @@ class StrategicExecutor:
             )
             if new_path:
                 order.path = [r for r in new_path if r != marshal.location]
+                # Session 36: Discovery vs standard reroute message
+                if is_fog_discovery:
+                    msg = (f"{marshal.name} discovers enemy forces and adjusts "
+                           f"route to avoid {blocked_region}.")
+                else:
+                    msg = (f"{marshal.name} adjusts route to avoid "
+                           f"enemy at {blocked_region}.")
                 return {
                     "marshal": marshal.name,
                     "command": order.command_type,
                     "action": "reroute",
                     "avoiding": blocked_region,
                     "order_status": "continues",
-                    "message": f"{marshal.name} adjusts route to avoid "
-                               f"enemy at {blocked_region}."
+                    "fog_discovery": is_fog_discovery,
+                    "message": msg,
                 }
             return self._break_order(marshal, world,
                                      f"Path blocked at {blocked_region}, no alternate route")
@@ -1854,8 +1874,14 @@ class StrategicExecutor:
                 msg = (f"{marshal.name}: '{enemy.name} still blocks the path. "
                        f"Previous assault was inconclusive. Orders?'")
             else:
-                msg = (f"{marshal.name}: '{enemy.name} blocks the path. "
-                       f"Odds unfavorable.'")
+                # Session 36: Discovery prefix for fogged regions
+                if is_fog_discovery:
+                    msg = (f"{marshal.name}: 'Enemy forces discovered ahead! "
+                           f"{enemy.name} blocks the path at {blocked_region}. "
+                           f"Odds unfavorable.'")
+                else:
+                    msg = (f"{marshal.name}: '{enemy.name} blocks the path. "
+                           f"Odds unfavorable.'")
             # Track contact to prevent infinite interrupt loop next turn
             order.last_contact_enemy = enemy.name
             order.last_contact_turn = world.current_turn
@@ -1867,6 +1893,7 @@ class StrategicExecutor:
                 "interrupt_type": "contact_bad_odds",
                 "enemy": enemy.name,
                 "location": blocked_region,
+                "fog_discovery": is_fog_discovery,
                 "message": msg,
                 "options": ["attack_anyway", "go_around", "hold_position",
                             "cancel_order"]
@@ -1876,6 +1903,13 @@ class StrategicExecutor:
             # Track contact to prevent infinite interrupt loop next turn
             order.last_contact_enemy = enemy.name
             order.last_contact_turn = world.current_turn
+            # Session 36: Discovery vs standard contact message
+            if is_fog_discovery:
+                msg = (f"{marshal.name}: 'Enemy forces discovered at "
+                       f"{blocked_region}! How shall I proceed?'")
+            else:
+                msg = (f"{marshal.name}: 'Enemy at {blocked_region}. "
+                       f"How shall I proceed?'")
             return {
                 "marshal": marshal.name,
                 "command": order.command_type,
@@ -1884,8 +1918,8 @@ class StrategicExecutor:
                 "interrupt_type": "contact",
                 "enemy": enemy.name,
                 "location": blocked_region,
-                "message": f"{marshal.name}: 'Enemy at {blocked_region}. "
-                           f"How shall I proceed?'",
+                "fog_discovery": is_fog_discovery,
+                "message": msg,
                 "options": ["attack", "go_around", "hold_position",
                             "cancel_order"]
             }

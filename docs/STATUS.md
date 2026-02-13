@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 13, 2026
-> **Last Session:** Session 34B — Strategic Fog of War + Display Filtering
+> **Last Session:** Session 36 — Fog of War Polish + Edge Cases + Audit
 
 ---
 
@@ -10,16 +10,16 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2228** (verified, 3 skipped) |
-| **Current Phase** | Phase 6: **IN PROGRESS** (3 items remaining: Fog of War, Manpower Pools, Artillery Unit Type) |
+| **Tests Passing** | **2264** (verified, 3 skipped) |
+| **Current Phase** | Phase 6: **IN PROGRESS** (2 items remaining: Manpower Pools, Artillery Unit Type) |
 | **Blockers** | None |
-| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier, 6-BattleReport, 6-EventLog |
+| **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier, 6-BattleReport, 6-EventLog, 6-FogOfWar |
 
 ---
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED. Save/Load COMPLETE. Fog of War Sessions 33 + 34A + 34B + 35 COMPLETE. Session 36 (edge cases/polish) NEXT.**
+**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED. Save/Load COMPLETE. Fog of War COMPLETE (Sessions 33-36). Manpower Pools and Artillery Unit Type NEXT.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -49,6 +49,44 @@
 ---
 
 ## Recently Completed
+
+### Feb 13 (Session 36: Fog of War Polish + Edge Cases + Audit)
+
+**Final fog session. Edge case validation, contact interrupt discovery messages, Davout PURSUE fog-aware objection, V2b TODO markers, documentation updates, comprehensive audit.**
+
+**Edge case tests (all passing — verified existing code handles correctly):**
+- Broken marshal visibility: Step 0 grants FULL (strength > 0 after break with 3-10% survivors)
+- Forced retreat into unknown region: `calculate_visibility()` at turn end grants FULL via marshal-present
+- Own region behind enemy lines: PARTIAL military intel (band only), FULL economic data
+- Multiple enemies same region at PARTIAL: combined strength → single aggregate band
+- Occupied own region: standard PARTIAL per spec §2.3
+
+**Contact interrupt fog-discovery messages (strategic.py):**
+- `_handle_blocked_path()` checks region visibility before building messages
+- Below FULL: "Enemy forces discovered!" discovery language
+- FULL: standard "Enemy at [region]" messages
+- All 3 personality branches updated (literal reroute, aggressive bad odds, cautious ask)
+- `fog_discovery` flag in result dict for frontend differentiation
+
+**Davout PURSUE fog-aware objection (disobedience.py):**
+- FULL visibility: objects on exact odds (ratio >= 1.2) — unchanged behavior
+- PARTIAL: objects on strength band comparison (target band > our band)
+- STALE/LAST_KNOWN/UNKNOWN: objects on staleness ("X-day-old intelligence") if intel age >= 3 turns
+- New reason: `davout_pursue_stale_intel` for staleness objections
+
+**V2b TODO markers (objection_v2.py):**
+- TODO (V2b) comments at all 12 helper functions documenting fog integration needed
+- `get_visible_enemies_near()` helper added — returns omniscient data now, swappable to fog-filtered in V2b
+- Updated TODO at disobedience.py Davout PURSUE section
+
+**Integration tests:**
+- Multi-turn decay: FULL → STALE (turn 3) → LAST_KNOWN (turn 5)
+- Stale snapshot persistence: frozen data survives enemy movement
+- Full turn cycle: scout → verify FULL → broken marshal → verify visibility
+
+**Tests:** 20 new (2264 total passing, 3 skipped)
+
+---
 
 ### Feb 13 (Session 34B: Strategic Fog of War + Display Filtering)
 

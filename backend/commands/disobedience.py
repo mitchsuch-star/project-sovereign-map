@@ -1598,49 +1598,130 @@ def check_strategic_objection(
     # At trust 70: 0.68 × 1.0 = 0.68 → ~75% objection chance
     # At trust 85: 0.68 × 0.7 = 0.48 → ~45% objection chance
     #
-    # FOG OF WAR (Phase 6+): Currently checks all enemies regardless of
-    # distance. When fog of war is implemented, this should only trigger
-    # if the target has been scouted/revealed. Unscouted enemies = unknown
-    # strength = no objection (marshal doesn't know the odds are bad).
+    # FOG OF WAR (Session 36): Respects visibility levels:
+    # - FULL: Object on exact odds (ratio >= 1.2)
+    # - PARTIAL: Object on strength band comparison (band-level only)
+    # - STALE/LAST_KNOWN/UNKNOWN: Cannot object on odds. May object
+    #   on staleness instead ("Three-day-old intelligence, Sire.")
     # ═══════════════════════════════════════════════════════════
     if personality == 'cautious' and strategic_type == "PURSUE":
+        from backend.models.intel import FULL as FULL_VIS, PARTIAL as PARTIAL_VIS, STALE as STALE_VIS
+        from backend.models.intel import get_strength_band
+
         target_marshal = world.get_marshal(target) if target else None
 
-        # TODO (Phase 6): Add check for target.revealed or target.scouted
+        # Determine target visibility from intel store
+        target_visibility = None
+        target_intel_age = 0
+        if hasattr(world, 'get_last_known_location') and target:
+            last_known = world.get_last_known_location(target)
+            if last_known:
+                _region, last_turn, vis = last_known
+                target_visibility = vis
+                target_intel_age = world.current_turn - last_turn
+
         if target_marshal and target_marshal.strength > 0:
-            ratio = target_marshal.strength / max(marshal.strength, 1)
+            if target_visibility == FULL_VIS:
+                # FULL visibility: object on exact odds as before
+                ratio = target_marshal.strength / max(marshal.strength, 1)
 
-            # Threshold: >= 1.2x (target is 20% stronger or more)
-            if ratio >= 1.2:
-                # Calculate severity with probability modifiers
-                severity = calculate_strategic_severity(
-                    marshal, strategic_type, 0.68, game_state, include_variance
-                )
-
-                # Only object if severity >= 0.50
-                if severity < 0.50:
-                    return None
-
-                preferred = {"action": "fortify", "target": marshal.location}
-                compromise = {"action": "pursue", "auto_cancel_below_ratio": 0.8}
-
-                return {
-                    "should_object": True,
-                    "type": "strategic",
-                    "reason": "davout_pursue_bad_odds",
-                    "message": f'"{marshal.name} studies the reports. "Pursue {target}? Their forces outnumber us. This is reckless, Sire.""',
-                    "marshal": marshal.name,
-                    "personality": personality,
-                    "severity": severity,
-                    "options": _build_strategic_options(
-                        marshal,
-                        preferred,
-                        compromise,
-                        "Proceed with PURSUE",
-                        "Accept: Cautious PURSUE (auto-cancel if odds drop)",
-                        strategic_type
+                if ratio >= 1.2:
+                    severity = calculate_strategic_severity(
+                        marshal, strategic_type, 0.68, game_state, include_variance
                     )
-                }
+                    if severity < 0.50:
+                        return None
+
+                    preferred = {"action": "fortify", "target": marshal.location}
+                    compromise = {"action": "pursue", "auto_cancel_below_ratio": 0.8}
+
+                    return {
+                        "should_object": True,
+                        "type": "strategic",
+                        "reason": "davout_pursue_bad_odds",
+                        "message": f'"{marshal.name} studies the reports. "Pursue {target}? Their forces outnumber us. This is reckless, Sire.""',
+                        "marshal": marshal.name,
+                        "personality": personality,
+                        "severity": severity,
+                        "options": _build_strategic_options(
+                            marshal,
+                            preferred,
+                            compromise,
+                            "Proceed with PURSUE",
+                            "Accept: Cautious PURSUE (auto-cancel if odds drop)",
+                            strategic_type
+                        )
+                    }
+
+            elif target_visibility == PARTIAL_VIS:
+                # PARTIAL visibility: compare strength bands only
+                target_band = get_strength_band(target_marshal.strength)
+                our_band = get_strength_band(marshal.strength)
+                # Object if target band suggests they're stronger
+                # Band ordering: no forces < screening < small < substantial < large < massive
+                band_order = ["no forces", "screening force", "small force",
+                              "substantial force", "large force", "massive force"]
+                target_idx = band_order.index(target_band) if target_band in band_order else 0
+                our_idx = band_order.index(our_band) if our_band in band_order else 0
+
+                if target_idx > our_idx:
+                    severity = calculate_strategic_severity(
+                        marshal, strategic_type, 0.60, game_state, include_variance
+                    )
+                    if severity < 0.50:
+                        return None
+
+                    preferred = {"action": "fortify", "target": marshal.location}
+                    compromise = {"action": "pursue", "auto_cancel_below_ratio": 0.8}
+
+                    return {
+                        "should_object": True,
+                        "type": "strategic",
+                        "reason": "davout_pursue_bad_odds",
+                        "message": f'"{marshal.name} studies the reports. "Reports suggest {target} commands a {target_band}. We are a {our_band}. This pursuit is unwise, Sire.""',
+                        "marshal": marshal.name,
+                        "personality": personality,
+                        "severity": severity,
+                        "options": _build_strategic_options(
+                            marshal,
+                            preferred,
+                            compromise,
+                            "Proceed with PURSUE",
+                            "Accept: Cautious PURSUE (auto-cancel if odds drop)",
+                            strategic_type
+                        )
+                    }
+
+            elif target_visibility in (STALE_VIS, "last_known", "unknown") or target_visibility is None:
+                # STALE/LAST_KNOWN/UNKNOWN: Cannot object on odds.
+                # May object on staleness if intel is old (3+ turns)
+                if target_intel_age >= 3:
+                    severity = calculate_strategic_severity(
+                        marshal, strategic_type, 0.55, game_state, include_variance
+                    )
+                    if severity < 0.50:
+                        return None
+
+                    preferred = {"action": "scout", "target": target}
+                    compromise = {"action": "pursue", "auto_cancel_below_ratio": 0.8}
+
+                    return {
+                        "should_object": True,
+                        "type": "strategic",
+                        "reason": "davout_pursue_stale_intel",
+                        "message": f'"{marshal.name} frowns at the dispatch. "{target_intel_age}-day-old intelligence, Sire. We know nothing of {target}\'s current strength or position.""',
+                        "marshal": marshal.name,
+                        "personality": personality,
+                        "severity": severity,
+                        "options": _build_strategic_options(
+                            marshal,
+                            preferred,
+                            compromise,
+                            "Proceed with PURSUE",
+                            "Accept: Cautious PURSUE (scout first if possible)",
+                            strategic_type
+                        )
+                    }
 
     # ═══════════════════════════════════════════════════════════
     # DAVOUT (CAUTIOUS) - Objects to MOVE_TO through danger

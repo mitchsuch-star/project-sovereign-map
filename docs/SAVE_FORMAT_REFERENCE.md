@@ -10,8 +10,8 @@ A future save/load system should use this as the specification.
 ## Version
 
 - **Format version:** 1.0
-- **Last updated:** 2026-02-12
-- **Compatible with:** Phase 6 Session 35 (Fog of War Watchtower Building)
+- **Last updated:** 2026-02-13
+- **Compatible with:** Phase 6 Session 36 (Fog of War COMPLETE)
 
 ## Top-Level Structure (WorldState)
 
