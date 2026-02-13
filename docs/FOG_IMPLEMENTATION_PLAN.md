@@ -407,6 +407,11 @@ Cavalry has movement_range=2 (infantry=1). This creates fog interactions at seve
   - Multiple enemies in same region: combined band calculation at PARTIAL/STALE
   - Occupied own region: standard PARTIAL per spec §2.3 edge case
   - ~~Auto-charge in fog~~ **No changes needed** — auto-charge ignores fog per spec §9.2 decision
+- [ ] Contact interrupt fog-discovery messages:
+  - When strategic movement hits enemies in a region that was below FULL visibility, use discovery language: "Enemy forces discovered ahead at [region]!" instead of the standard "Enemy forces detected at [region]"
+  - Check visibility level at time of contact interrupt in `_handle_blocked_path()` (strategic.py)
+  - Simple message branch — no mechanic changes. Fog makes existing interrupts feel like genuine discoveries instead of known obstacles.
+  - Test: contact interrupt in fogged region → discovery message. Contact interrupt in FULL region → standard message.
 - [ ] Davout PURSUE objection update (§6.3, existing TODO at `disobedience.py:1609`)
   - If target FULL visibility: object as now (sees odds)
   - If target PARTIAL: object based on strength band comparison

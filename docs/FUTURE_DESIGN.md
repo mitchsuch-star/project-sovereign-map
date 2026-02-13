@@ -527,12 +527,12 @@ COALITION_TRIGGERS = {
 
 5 visibility tiers (FULL/PARTIAL/STALE/LAST_KNOWN/UNKNOWN), strength bands, intel decay, watchtower building, scout persistence, PURSUE-into-fog chase mechanics. AI remains omniscient on 13 regions.
 
-**AI Fog of War (Post-EA, 80+ regions):** At scale, omniscient AI feels unfair. Design options:
+**AI Fog of War (EA 1805, 80+ regions):** At scale, omniscient AI feels unfair. Design options:
 - AI gets fog but with bonuses (wider adjacency range, faster intel updates)
 - AI fog is "softer" — PARTIAL everywhere instead of UNKNOWN
 - Nation-specific intelligence quality (Britain best due to spy networks, Russia worst in distant theaters)
 
-**Fog + Movement Discovery (1805):**
+**Fog + Movement Discovery (Phase 6 → EA):**
 
 No new "ambush" mechanic needed. Existing systems handle it:
 
@@ -552,7 +552,7 @@ Vindication: Cautious marshal halts on discovering enemies. Player insists on co
 
 No flat ambush penalties. The "cost" of not scouting is surprise contact interrupts that disrupt your plans — your marshal stops where you didn't expect, and personality determines how gracefully they handle it.
 
-This requires no new mechanics — just fog making existing contact interrupts meaningful. The only 1805 addition is ensuring the contact interrupt message reflects that this was unexpected ("Enemy forces discovered ahead!" vs the current "Enemy forces detected"), and fog-aware intermediate-region checks so cavalry 2-range movement discovers enemies on arrival rather than being blocked omnisciently (see `FOG_IMPLEMENTATION_PLAN.md` §34B-R for the Phase 6 acceptance rationale).
+This requires no new mechanics — just fog making existing contact interrupts meaningful. **Phase 6 (Session 36):** Contact interrupt messages should distinguish fog-discovery ("Enemy forces discovered ahead!") from known-enemy blocking ("Enemy forces detected at [region]"). Simple message branch on visibility level. **EA (1805, 80+ regions):** Fog-aware intermediate-region checks so cavalry 2-range movement discovers enemies on arrival rather than being blocked omnisciently (see `FOG_IMPLEMENTATION_PLAN.md` §34B-R for the 13-region acceptance rationale).
 
 #### 5. Terrain System
 

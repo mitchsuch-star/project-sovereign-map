@@ -351,7 +351,7 @@ This is correct behavior — cautious marshals get surprised when intel is bad. 
 
 Cannon fire interrupts only trigger when a French marshal is involved in a battle. Since the player already knows about every battle involving their marshals, cannon fire from a fogged region cannot happen in the current design. Deferred to post-EA when multi-nation conflicts (e.g., Prussia vs Austria without French involvement) could produce battles the player doesn't know about.
 
-### 9.5 Future (80+ Regions — Post-EA)
+### 9.5 Future (80+ Regions — EA 1805)
 
 At scale, omniscient AI feels unfair. Design options for later:
 - AI gets fog but with bonuses (wider adjacency range, faster intel updates)
@@ -479,7 +479,7 @@ See `FOG_IMPLEMENTATION_PLAN.md` for full checklists, ordering dependencies, and
 
 | Item | Reason | When |
 |------|--------|------|
-| AI fog of war | 13 regions too small, AI too fragile | Post-EA (80+ regions) |
+| AI fog of war | 13 regions too small, AI too fragile | EA 1805 (80+ regions) |
 | V2b objection triggers | Requires V2b system (Phase 7) | Phase 7 |
 | Spy network (passive intel) | Complexity, no existing system to hook into | Phase 8.5 (Events) or Post-EA |
 | Captured dispatches | Requires Events system | Phase 8.5 |
