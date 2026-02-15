@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 15, 2026
-> **Last Session:** Session 37 — Dev Tooling, Test Coverage, Bugfix
+> **Last Session:** Session 38 — Fog of War Map Visualization
 
 ---
 
@@ -20,7 +20,7 @@
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED. Save/Load COMPLETE. Fog of War COMPLETE (Sessions 33-36). Manpower Pools and Artillery Unit Type NEXT.**
+**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED. Save/Load COMPLETE. Fog of War COMPLETE (Sessions 33-36). Fog Map Visualization COMPLETE (Session 38). Manpower Pools and Artillery Unit Type NEXT.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -50,6 +50,24 @@
 ---
 
 ## Recently Completed
+
+### Feb 15 (Session 38: Fog of War Map Visualization)
+
+**Implemented fog of war visual rendering in Godot map — region fog overlay and fogged enemy marshal icons.**
+
+**Backend:**
+- Added `visibility_status` field per-region in `get_filtered_game_state_summary()` — sends fog level string directly to Godot
+
+**Frontend (map.gd):**
+- **Region fog overlay:** Semi-transparent dark overlay on region circles by visibility (FULL=bright, PARTIAL=slight dim, STALE=grey, LAST_KNOWN=dark, UNKNOWN=near-black). Border and label colors also dim.
+- **Fogged enemy icons:** `fogged_forces[]` (previously ignored) now renders as dimmed nation-colored silhouettes with "?" overlay. PARTIAL more visible, STALE more faded.
+- **Fogged enemy tooltip:** Name, nation, strength band ("large force"), intel quality indicator
+- **Region tooltip fog-awareness:** UNKNOWN/LAST_KNOWN show minimal tooltip ("No intelligence"). PARTIAL/STALE show intel quality line.
+- Removed debug print statements from `update_all_regions()`
+
+**Tests:** 2434 passing (no regressions — frontend-only changes)
+
+---
 
 ### Feb 15 (Session 37: Dev Tooling, Test Coverage, Bugfix)
 

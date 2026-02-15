@@ -47,12 +47,24 @@ const COLORS = {
 # Current region states (updated from backend)
 var region_controllers = {}
 var region_marshals = {}
+var region_visibility = {}       # Per-region fog level: "full"/"partial"/"stale"/"last_known"/"unknown"
+var region_fogged_forces = {}    # Per-region fogged enemy data: [{name, nation, strength_band, fog_level}]
 
 # Mouse tracking for hover tooltips
 var mouse_position: Vector2 = Vector2.ZERO
 var hovered_marshal: Dictionary = {}  # Stores marshal data when hovering
+var hovered_fogged_force: Dictionary = {}  # Stores fogged enemy data when hovering
 var hovered_region: String = ""  # Stores region name when hovering over region circle
 var region_full_data: Dictionary = {}  # Full map_data per region (for tooltips)
+
+# Fog overlay colors (drawn over region circles to indicate visibility)
+const FOG_OVERLAYS = {
+	"full": Color(0, 0, 0, 0),            # No overlay
+	"partial": Color(0.15, 0.15, 0.2, 0.3),   # Slight dim
+	"stale": Color(0.1, 0.1, 0.15, 0.5),      # Medium grey
+	"last_known": Color(0.05, 0.05, 0.1, 0.65), # Dark grey
+	"unknown": Color(0.02, 0.02, 0.05, 0.75),   # Near-black fog
+}
 
 # Camera/zoom control variables
 var zoom_level: float = 1.0
@@ -124,6 +136,7 @@ func _draw():
 	"""Draw the entire map."""
 	# Reset hover state at start of each frame
 	hovered_marshal = {}
+	hovered_fogged_force = {}
 	hovered_region = ""
 
 	# Apply camera transformations (pan and zoom)
@@ -139,9 +152,11 @@ func _draw():
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 	# Draw tooltip last (on top of everything, in screen space)
-	# Marshal tooltip takes priority over region tooltip
+	# Marshal tooltip takes priority over fogged force, which takes priority over region
 	if hovered_marshal.size() > 0:
 		_draw_tooltip()
+	elif hovered_fogged_force.size() > 0:
+		_draw_fogged_tooltip()
 	elif hovered_region != "" and hovered_region in region_full_data:
 		_draw_region_tooltip()
 
@@ -166,45 +181,63 @@ func _draw_connections():
 			drawn_connections.append(connection_str)
 
 func _draw_regions():
-	"""Draw all regions as circles."""
+	"""Draw all regions as circles with fog overlay."""
 	for region_name in REGION_POSITIONS:
 		var pos = REGION_POSITIONS[region_name]
 		var controller = region_controllers.get(region_name, "Neutral")
-
-		# DEBUG: Print controller for each region
-		# print("Drawing region ", region_name, ": controller = ", controller)  # Commented out - too noisy
+		var visibility = region_visibility.get(region_name, "full")
 
 		# Get color with fallback warning
 		var color = COLORS.get(controller)
 		if color == null:
-			print("⚠️  WARNING: Unknown nation '", controller, "' for region ", region_name, " - using magenta")
+			print("WARNING: Unknown nation '", controller, "' for region ", region_name, " - using magenta")
 			color = Color(1.0, 0.0, 1.0)  # Magenta for debugging
 
 		# Draw circle
 		draw_circle(pos, 30, color)
-		
+
+		# Draw fog overlay on top of region circle (dims it based on visibility)
+		var fog_color = FOG_OVERLAYS.get(visibility, FOG_OVERLAYS["full"])
+		if fog_color.a > 0:
+			draw_circle(pos, 30, fog_color)
+
 		# Draw border
 		if region_name == "Paris":
 			# Capital gets gold border
 			draw_arc(pos, 30, 0, TAU, 32, COLORS["Austria"], 3.0)
 		else:
-			draw_arc(pos, 30, 0, TAU, 32, Color.BLACK, 2.0)
-		
-		# Draw label (region name)
+			# Border color dims with fog
+			var border_color = Color.BLACK
+			if visibility == "unknown" or visibility == "last_known":
+				border_color = Color(0.25, 0.25, 0.3)  # Dim border in heavy fog
+			draw_arc(pos, 30, 0, TAU, 32, border_color, 2.0)
+
+		# Draw label (region name) — always visible but dimmed in heavy fog
 		var font = ThemeDB.fallback_font
 		var font_size = 14
 		var text_size = font.get_string_size(region_name, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
-		draw_string(font, pos - Vector2(text_size.x / 2, -5), region_name, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size, Color.WHITE if controller != "Neutral" else Color.BLACK)
+		var label_color = Color.WHITE if controller != "Neutral" else Color.BLACK
+		if visibility == "unknown" or visibility == "last_known":
+			label_color = Color(0.5, 0.5, 0.55)  # Dim label text in heavy fog
+		elif visibility == "stale":
+			label_color = Color(0.7, 0.7, 0.75)  # Slightly dim for stale
+		draw_string(font, pos - Vector2(text_size.x / 2, -5), region_name, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size, label_color)
 
 		# Region hover detection (circle radius 30)
 		var map_mouse = _get_map_mouse_position()
 		if map_mouse.distance_to(pos) <= 30:
 			hovered_region = region_name
 
-		# Draw marshal icons
+		# Draw regular marshal icons (FULL visibility enemies + own marshals)
 		if region_name in region_marshals:
 			var marshals = region_marshals[region_name]
 			_draw_marshal_icons(pos, marshals)
+
+		# Draw fogged force icons (PARTIAL/STALE enemies as silhouettes)
+		if region_name in region_fogged_forces:
+			var fogged = region_fogged_forces[region_name]
+			var regular_count = region_marshals[region_name].size() if region_name in region_marshals else 0
+			_draw_fogged_force_icons(pos, fogged, regular_count)
 
 func _draw_marshal_icons(region_pos: Vector2, marshals: Array):
 	"""Draw marshal icons above a region."""
@@ -249,6 +282,108 @@ func _draw_marshal_icons(region_pos: Vector2, marshals: Array):
 		if icon_rect.has_point(map_mouse_pos):
 			# Store hovered marshal data for tooltip
 			hovered_marshal = marshal
+
+func _draw_fogged_force_icons(region_pos: Vector2, fogged_forces: Array, regular_marshal_offset: int):
+	"""Draw fogged enemy icons as dimmed silhouettes with '?' overlay."""
+	var icon_size = Vector2(16, 16)
+	var icon_y_offset = -50  # Same height as regular marshals
+	var font = ThemeDB.fallback_font
+	var name_font_size = 11
+
+	# Position fogged forces after any regular marshals already drawn
+	var total_icons = regular_marshal_offset + fogged_forces.size()
+	var total_width = total_icons * icon_size.x + (total_icons - 1) * 8
+	var start_x = -total_width / 2.0
+
+	for i in range(fogged_forces.size()):
+		var force = fogged_forces[i]
+		var force_name = force.get("name", "?")
+		var force_nation = force.get("nation", "Unknown")
+		var fog_level = force.get("fog_level", "partial")
+
+		# Position after regular marshals
+		var slot = regular_marshal_offset + i
+		var icon_x_offset = start_x + slot * (icon_size.x + 8)
+		var icon_pos = region_pos + Vector2(icon_x_offset, icon_y_offset)
+
+		# Get dimmed nation color
+		var nation_color = COLORS.get(force_nation, Color(0.5, 0.5, 0.5))
+		var dimmed_color = nation_color.darkened(0.5) if fog_level == "partial" else nation_color.darkened(0.7)
+		dimmed_color.a = 0.7 if fog_level == "partial" else 0.5
+
+		# Draw dimmed icon background
+		draw_rect(Rect2(icon_pos, icon_size), dimmed_color)
+
+		# Draw dashed/dim border
+		var border_color = Color(0.4, 0.4, 0.45, 0.6)
+		draw_rect(Rect2(icon_pos, icon_size), border_color, false, 1.5)
+
+		# Draw "?" overlay on the icon
+		var q_size = font.get_string_size("?", HORIZONTAL_ALIGNMENT_CENTER, -1, 12)
+		var q_pos = icon_pos + Vector2(icon_size.x / 2.0 - q_size.x / 2.0, 13)
+		draw_string(font, q_pos, "?", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color(1.0, 1.0, 1.0, 0.8))
+
+		# Draw dimmed name above icon
+		var name_y_offset = -4 - (slot * 14)
+		var name_color = Color(0.7, 0.7, 0.75, 0.7) if fog_level == "partial" else Color(0.5, 0.5, 0.55, 0.5)
+		var name_text_size = font.get_string_size(force_name, HORIZONTAL_ALIGNMENT_CENTER, -1, name_font_size)
+		var name_pos = icon_pos + Vector2(icon_size.x / 2.0 - name_text_size.x / 2.0, name_y_offset)
+		draw_string(font, name_pos, force_name, HORIZONTAL_ALIGNMENT_LEFT, -1, name_font_size, name_color)
+
+		# Hover detection
+		var icon_rect = Rect2(icon_pos, icon_size)
+		var map_mouse_pos = _get_map_mouse_position()
+		if icon_rect.has_point(map_mouse_pos):
+			hovered_fogged_force = force
+
+func _draw_fogged_tooltip():
+	"""Draw simplified tooltip for fogged enemy forces (name, nation, strength band, fog level)."""
+	var force_name = hovered_fogged_force.get("name", "Unknown")
+	var force_nation = hovered_fogged_force.get("nation", "Unknown")
+	var strength_band = hovered_fogged_force.get("strength_band", "unknown forces")
+	var fog_level = hovered_fogged_force.get("fog_level", "partial")
+
+	var font = ThemeDB.fallback_font
+	var line_spacing = 16
+	var padding = 10
+
+	# 4 lines: name, nation, strength band, intel quality
+	var tooltip_height = padding * 2 + (4 * line_spacing) + 8
+	var tooltip_size = Vector2(220, tooltip_height)
+	var tooltip_pos = mouse_position + Vector2(15, 15)
+
+	# Draw panel (slightly different tint for fogged tooltip)
+	var panel_color = Color(0.12, 0.1, 0.18, 0.95)
+	draw_rect(Rect2(tooltip_pos, tooltip_size), panel_color)
+	draw_rect(Rect2(tooltip_pos, tooltip_size), Color(0.6, 0.6, 0.7, 0.8), false, 2.0)
+
+	var text_x = tooltip_pos.x + padding
+	var text_y = tooltip_pos.y + padding
+
+	# Line 1: Marshal name
+	draw_string(font, Vector2(text_x, text_y + 14), force_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.85, 0.85, 0.9))
+	text_y += line_spacing + 4
+
+	# Line 2: Nation (dimmed)
+	var nation_color = COLORS.get(force_nation, Color(0.6, 0.6, 0.6))
+	draw_string(font, Vector2(text_x, text_y + 11), force_nation, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, nation_color.lightened(0.2))
+	text_y += line_spacing + 4
+
+	# Line 3: Strength band
+	var band_text = "Estimated: " + strength_band
+	draw_string(font, Vector2(text_x, text_y + 11), band_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.8, 0.75, 0.5))
+	text_y += line_spacing
+
+	# Line 4: Intel quality
+	var intel_text = ""
+	var intel_color = Color(0.6, 0.6, 0.7)
+	if fog_level == "partial":
+		intel_text = "Intel: Recent reports"
+		intel_color = Color(0.6, 0.75, 0.6)
+	elif fog_level == "stale":
+		intel_text = "Intel: Stale (outdated)"
+		intel_color = Color(0.8, 0.6, 0.4)
+	draw_string(font, Vector2(text_x, text_y + 11), intel_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, intel_color)
 
 func _gui_input(event):
 	"""Handle clicks, mouse motion, zoom, and pan."""
@@ -721,6 +856,7 @@ func _format_number(num: int) -> String:
 func _draw_region_tooltip():
 	"""Draw tooltip panel showing region details when hovering over a region circle."""
 	var data = region_full_data[hovered_region]
+	var visibility = region_visibility.get(hovered_region, "full")
 
 	# Extract region data
 	var controller = data.get("controller", null)
@@ -728,6 +864,36 @@ func _draw_region_tooltip():
 		controller = "Neutral"
 	var region_type = data.get("region_type", "town")
 	var terrain = data.get("terrain", "plains")
+
+	# For heavily fogged regions, show minimal tooltip
+	if visibility == "unknown" or visibility == "last_known":
+		var line_spacing = 16
+		var padding = 10
+		var fog_line_count = 4  # name, controller, terrain, intel status
+		var tooltip_height = padding * 2 + (fog_line_count * line_spacing) + 12
+		var tooltip_size = Vector2(240, tooltip_height)
+		var tooltip_pos = mouse_position + Vector2(15, 15)
+
+		var panel_color = Color(0.08, 0.08, 0.12, 0.95)
+		draw_rect(Rect2(tooltip_pos, tooltip_size), panel_color)
+		draw_rect(Rect2(tooltip_pos, tooltip_size), Color(0.4, 0.4, 0.5), false, 2.0)
+
+		var font = ThemeDB.fallback_font
+		var text_x = tooltip_pos.x + padding
+		var text_y = tooltip_pos.y + padding
+
+		draw_string(font, Vector2(text_x, text_y + 14), hovered_region, HORIZONTAL_ALIGNMENT_LEFT, -1, 14, Color(0.7, 0.7, 0.75))
+		text_y += line_spacing + 4
+		var nation_color = COLORS.get(controller, Color(0.5, 0.5, 0.5))
+		draw_string(font, Vector2(text_x, text_y + 11), controller, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, nation_color)
+		text_y += line_spacing + 4
+		var terrain_display = terrain.replace("_", " ").capitalize()
+		draw_string(font, Vector2(text_x, text_y + 11), terrain_display, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.5, 0.5, 0.55))
+		text_y += line_spacing
+		var intel_text = "No intelligence" if visibility == "unknown" else "Last known (outdated)"
+		draw_string(font, Vector2(text_x, text_y + 11), intel_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.6, 0.4, 0.4))
+		return
+
 	var income_value = data.get("income_value", 0)
 	var effective_income = data.get("effective_income", 0)
 	var stability = data.get("stability", 100)
@@ -740,6 +906,8 @@ func _draw_region_tooltip():
 
 	# Count lines for tooltip height
 	var line_count = 6  # name, controller, type+terrain, income, stability, supply
+	if visibility == "stale" or visibility == "partial":
+		line_count += 1  # Intel quality line
 	if war_damage > 0:
 		line_count += 1
 	if max_slots > 0:
@@ -755,10 +923,16 @@ func _draw_region_tooltip():
 	var tooltip_size = Vector2(260, tooltip_height)
 	var tooltip_pos = mouse_position + Vector2(15, 15)
 
-	# Draw panel
+	# Draw panel — slightly different tint for non-full visibility
 	var panel_color = Color(0.1, 0.1, 0.15, 0.95)
+	var border_color = Color.WHITE
+	if visibility == "stale":
+		panel_color = Color(0.1, 0.09, 0.14, 0.95)
+		border_color = Color(0.7, 0.7, 0.75)
+	elif visibility == "partial":
+		border_color = Color(0.85, 0.85, 0.9)
 	draw_rect(Rect2(tooltip_pos, tooltip_size), panel_color)
-	draw_rect(Rect2(tooltip_pos, tooltip_size), Color.WHITE, false, 2.0)
+	draw_rect(Rect2(tooltip_pos, tooltip_size), border_color, false, 2.0)
 
 	var font = ThemeDB.fallback_font
 	var text_x = tooltip_pos.x + padding
@@ -779,6 +953,14 @@ func _draw_region_tooltip():
 	var type_text = type_display + " | " + terrain_display
 	draw_string(font, Vector2(text_x, text_y + 11), type_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.7, 0.7, 0.7))
 	text_y += line_spacing
+
+	# Intel quality indicator for non-full visibility
+	if visibility == "partial":
+		draw_string(font, Vector2(text_x, text_y + 11), "Intel: Partial (reports only)", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.6, 0.75, 0.6))
+		text_y += line_spacing
+	elif visibility == "stale":
+		draw_string(font, Vector2(text_x, text_y + 11), "Intel: Stale (outdated)", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.8, 0.6, 0.4))
+		text_y += line_spacing
 
 	# Line 4: Income (effective/base)
 	var income_text = "Income: " + str(effective_income)
@@ -869,26 +1051,25 @@ func update_all_regions(map_data: Dictionary):
 		# Update controller
 		region_controllers[region_name] = controller
 
+		# Update visibility status (fog of war)
+		var vis = data.get("visibility_status", "full")
+		if vis == null:
+			vis = "full"
+		region_visibility[region_name] = vis
+
 		# Update marshals (array of {name, nation, strength, ...})
 		var marshals = data.get("marshals", [])
 		if marshals.size() > 0:
 			region_marshals[region_name] = marshals
-			# Only print for regions with marshals (reduced noise)
-			for m in marshals:
-				print("  Marshal ", m.get("name"), " keys: ", m.keys())
-				# DEBUG: Check tactical_state specifically
-				if m.has("tactical_state"):
-					var ts = m.get("tactical_state")
-					print("    tactical_state keys: ", ts.keys() if ts else "NULL")
-					if ts and ts.has("fortify_state"):
-						print("    fortify_state: ", ts.get("fortify_state"))
-					if ts and ts.has("fortified"):
-						print("    fortified: ", ts.get("fortified"))
-				else:
-					print("    NO tactical_state key!")
 		else:
 			region_marshals.erase(region_name)
-			pass  # No marshals, skip debug output
+
+		# Update fogged forces (PARTIAL/STALE enemies shown as silhouettes)
+		var fogged = data.get("fogged_forces", [])
+		if fogged.size() > 0:
+			region_fogged_forces[region_name] = fogged
+		else:
+			region_fogged_forces.erase(region_name)
 
 	# Trigger redraw
 	queue_redraw()

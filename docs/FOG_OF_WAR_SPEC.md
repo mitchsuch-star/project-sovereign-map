@@ -390,16 +390,17 @@ This means:
 - End-turn tactical events are filtered by visibility
 - Enemy phase actions are filtered by visibility
 
-### 11.2 Phase 6.5 (Frontend — Map Renderer)
+### 11.2 Map Visualization (Implemented — Session 38)
 
-When the EU4-style map renderer is built:
-- FULL regions: Normal rendering, full detail on hover
-- PARTIAL regions: Slightly dimmed, hover shows limited info
-- STALE regions: Greyed out, hover shows timestamped old info
-- LAST_KNOWN regions: Dark, hover shows "last seen X turns ago"
-- UNKNOWN regions: Dark/fog overlay, hover shows "no intelligence"
-- Watchtower icon on regions with watchtower building
-- Scout action could show animated reveal (nice-to-have)
+Backend sends `visibility_status` per region. Godot `map.gd` renders fog:
+- FULL regions: Normal rendering, full detail on hover (**DONE**)
+- PARTIAL regions: Slightly dimmed, hover shows limited info + "Intel: Partial" (**DONE**)
+- STALE regions: Greyed out, hover shows timestamped old info + "Intel: Stale" (**DONE**)
+- LAST_KNOWN regions: Dark, hover shows "Last known (outdated)" (**DONE**)
+- UNKNOWN regions: Dark/fog overlay, hover shows "No intelligence" (**DONE**)
+- Fogged enemies (PARTIAL/STALE): Dimmed silhouette icons with "?" + strength band tooltip (**DONE**)
+- Watchtower icon on regions with watchtower building (deferred to EU4 map)
+- Scout action animated reveal (nice-to-have, deferred to EU4 map)
 
 ---
 

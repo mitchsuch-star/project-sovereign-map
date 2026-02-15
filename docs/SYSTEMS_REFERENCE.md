@@ -1832,3 +1832,19 @@ Davout PURSUE objection (disobedience.py) is fog-aware:
 - STALE/UNKNOWN: Objects on staleness ("X-day-old intelligence")
 
 V2b TODO markers at 12 helper functions in `objection_v2.py`. `get_visible_enemies_near()` helper ready for V2b swap.
+
+### Map Visualization (Godot)
+
+Backend sends `visibility_status` per region in `get_filtered_game_state_summary()`. Godot renders fog:
+
+| Visibility | Region Overlay | Marshal Icon | Region Tooltip |
+|-----------|---------------|-------------|----------------|
+| **FULL** | No overlay (bright) | Full icon + name | Full detail |
+| **PARTIAL** | Slight dim (30% alpha) | Dimmed silhouette + "?" | Full detail + "Intel: Partial" |
+| **STALE** | Medium grey (50% alpha) | Faded silhouette + "?" | Full detail + "Intel: Stale" |
+| **LAST_KNOWN** | Dark grey (65% alpha) | Not shown | Minimal: name, controller, "Last known (outdated)" |
+| **UNKNOWN** | Near-black (75% alpha) | Not shown | Minimal: name, controller, "No intelligence" |
+
+Fogged enemies (PARTIAL/STALE) use `fogged_forces[]` from backend response. Tooltip shows name, nation, strength band, intel quality.
+
+Key files: `map.gd` (`_draw_fogged_force_icons()`, `_draw_fogged_tooltip()`, `FOG_OVERLAYS` const).

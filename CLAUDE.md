@@ -71,7 +71,7 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 |------|---------|
 | `api_client.gd` | Backend communication |
 | `game_manager.gd` | Game state coordination |
-| `map.gd` | Map rendering |
+| `map.gd` | Map rendering, fog overlay, fogged enemy icons |
 | `main.gd` | Terminal UI, response handling |
 
 ---
@@ -92,7 +92,7 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | Enemy AI behavior | `enemy_ai.py`, `turn_manager.py`, `executor.py` (is_player_action check) |
 | Strategic commands | `strategic.py`, `strategic_parser.py`, `executor.py` |
 | Objection V2 system | `objection_v2.py`, `docs/OBJECTION_V2.md` |
-| Fog of war | `docs/FOG_OF_WAR_SPEC.md`, `docs/FOG_IMPLEMENTATION_PLAN.md`, `backend/models/intel.py`, `backend/intel_report.py` |
+| Fog of war | `docs/FOG_OF_WAR_SPEC.md`, `docs/FOG_IMPLEMENTATION_PLAN.md`, `backend/models/intel.py`, `backend/intel_report.py`, `map.gd` (fog overlay + fogged icons) |
 | Strategic commands + fog | `docs/FOG_OF_WAR_SPEC.md` §5, `docs/FOG_IMPLEMENTATION_PLAN.md` Session 34B, `backend/commands/strategic.py` |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`

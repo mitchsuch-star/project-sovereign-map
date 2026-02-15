@@ -2567,8 +2567,9 @@ class WorldState:
                 "controller": region_data["controller"],
                 "terrain": region_data["terrain"],
                 "region_type": region_data["region_type"],
+                "visibility_status": intel.visibility,  # For Godot fog overlay rendering
                 "marshals": [],       # Rebuilt below — only marshals Godot should render
-                "fogged_forces": [],  # PARTIAL/STALE enemies — Godot ignores until Phase 6.5
+                "fogged_forces": [],  # PARTIAL/STALE enemies rendered as silhouettes
             }
 
             # Economic data: always for own regions, only at FULL for enemy
