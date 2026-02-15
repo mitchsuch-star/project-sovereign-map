@@ -258,31 +258,31 @@ if __name__ == "__main__":
     # Test 1: High confidence auto-correct
     print("\nTest 1: Typo with high confidence")
     result = matcher.match_with_context("Waterlo", ["Waterloo", "Paris", "Belgium"])
-    print(f"Query: 'Waterlo'")
+    print("Query: 'Waterlo'")
     print(f"Result: {result}")
 
     # Test 2: Medium confidence suggestion
     print("\nTest 2: Partial match")
     result = matcher.match_with_context("Bruss", ["Brussels", "Bavaria", "Britain"])
-    print(f"Query: 'Bruss'")
+    print("Query: 'Bruss'")
     print(f"Result: {result}")
 
     # Test 3: Low confidence error
     print("\nTest 3: No good match")
     result = matcher.match_with_context("Asdfgh", ["Waterloo", "Paris", "Belgium"])
-    print(f"Query: 'Asdfgh'")
+    print("Query: 'Asdfgh'")
     print(f"Result: {result}")
 
     # Test 4: Exact match
     print("\nTest 4: Exact match (case-insensitive)")
     result = matcher.match_with_context("waterloo", ["Waterloo", "Paris", "Belgium"])
-    print(f"Query: 'waterloo'")
+    print("Query: 'waterloo'")
     print(f"Result: {result}")
 
     # Test 5: Marshal name typo
     print("\nTest 5: Marshal typo")
     result = matcher.match_with_context("Davot", ["Davout", "Ney", "Grouchy"])
-    print(f"Query: 'Davot'")
+    print("Query: 'Davot'")
     print(f"Result: {result}")
 
     print("\n" + "=" * 60)

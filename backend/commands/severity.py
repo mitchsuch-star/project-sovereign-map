@@ -16,9 +16,9 @@ Final severity determines objection type:
 """
 
 import random
-from typing import Dict, Optional, Tuple
+from typing import Dict
 from backend.models.personality import (
-    Personality, get_personality, get_base_severity, analyze_order_situation
+    get_personality, get_base_severity, analyze_order_situation
 )
 
 

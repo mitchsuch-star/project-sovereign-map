@@ -72,7 +72,7 @@ import json
 import os
 import re
 from abc import ABC, abstractmethod
-from typing import Dict, Optional, Any, Tuple
+from typing import Dict, Optional, Tuple
 
 import httpx
 
@@ -394,7 +394,7 @@ class AnthropicProvider(BaseProvider):
         json_data = parse_llm_json_response(response_text)
 
         if json_data is None:
-            print(f"AnthropicProvider: Failed to parse JSON from response")
+            print("AnthropicProvider: Failed to parse JSON from response")
             return ParseResult(
                 matched=False,
                 action="unknown",
@@ -499,12 +499,12 @@ class AnthropicProvider(BaseProvider):
             # Response format: {"content": [{"type": "text", "text": "..."}], ...}
             content = response_json.get("content", [])
             if not content or not isinstance(content, list):
-                print(f"AnthropicProvider: No content in response")
+                print("AnthropicProvider: No content in response")
                 return None, "No content in response"
 
             text_content = content[0].get("text", "")
             if not text_content:
-                print(f"AnthropicProvider: Empty text in response")
+                print("AnthropicProvider: Empty text in response")
                 return None, "Empty text in response"
 
             # Log token usage if available

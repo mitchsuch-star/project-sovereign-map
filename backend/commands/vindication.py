@@ -168,7 +168,7 @@ class VindicationTracker:
             else:  # draw
                 vindication_change = 0
                 trust_change = +2
-                message = f"The compromise led to stalemate. Cooperation continues."
+                message = "The compromise led to stalemate. Cooperation continues."
 
         # Apply vindication change (capped at -5 to +5)
         if hasattr(marshal, 'vindication_score'):

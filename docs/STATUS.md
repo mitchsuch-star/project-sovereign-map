@@ -1,8 +1,8 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 13, 2026
-> **Last Session:** Session 36 — Fog of War Polish + Edge Cases + Audit
+> **Last Updated:** February 15, 2026
+> **Last Session:** Session 37 — Dev Tooling, Test Coverage, Bugfix
 
 ---
 
@@ -10,10 +10,11 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2264** (verified, 3 skipped) |
+| **Tests Passing** | **2434** (verified, 3 skipped) |
 | **Current Phase** | Phase 6: **IN PROGRESS** (2 items remaining: Manpower Pools, Artillery Unit Type) |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier, 6-BattleReport, 6-EventLog, 6-FogOfWar |
+| **Code Coverage** | **71%** (backend/) |
 
 ---
 
@@ -49,6 +50,31 @@
 ---
 
 ## Recently Completed
+
+### Feb 15 (Session 37: Dev Tooling, Test Coverage, Bugfix)
+
+**Added dev tooling (ruff, pytest-cov), Claude Code hooks, 5 new test files (170 tests), ruff auto-fix across backend, and fixed `get_authority_label` bug.**
+
+**Dev tooling:**
+- Added `pytest-cov` and `ruff` to dev dependencies
+- Configured Claude Code hooks: PostToolUse auto-lint (ruff on .py edits), PreToolUse pre-commit test gate
+- Ruff auto-fix: 148 safe fixes across 21 backend files (F541 f-strings, F401 unused imports)
+
+**New test files:**
+- `test_auto_assign_attack.py` (25 tests) — `_execute_auto_assign_attack`, `_execute_general_attack`, `_execute_general_retreat`
+- `test_severity_modifiers.py` (72 tests) — severity tiers, variance bands, labels, AuthorityTracker lifecycle, strategic severity
+- `test_fog_endpoint_filters.py` (22 tests) — `_filter_enemy_phase_by_visibility`, `_filter_tactical_events_by_visibility`
+- `test_vindication_system.py` (27 tests) — all 9 outcome combos (trust/insist/compromise x victory/defeat/draw), edge cases, serialization
+- `test_endpoint_wiring.py` (24 tests) — FastAPI TestClient for 11 endpoints, int value enforcement for Godot
+
+**Bugfix:**
+- `AuthorityTracker.get_authority_label()` was missing (called by `/authority_status` endpoint in main.py:1004)
+- Added method to `authority.py` with 5 Napoleonic-themed labels (Divine Right → Emperor in Name Only)
+- `/authority_status` endpoint no longer crashes with 500
+
+**Tests:** 170 new (2434 total passing, 3 skipped), coverage 68% → 71%
+
+---
 
 ### Feb 13 (Session 36: Fog of War Polish + Edge Cases + Audit)
 

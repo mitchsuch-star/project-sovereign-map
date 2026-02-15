@@ -11,10 +11,9 @@ Usage:
     report = generate_intel_report(world)
 """
 
-from typing import Dict, List, Any
+from typing import Dict, Any
 from backend.models.intel import (
     FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
-    get_strength_band,
 )
 
 

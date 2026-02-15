@@ -9,7 +9,7 @@ Features:
 - Variance while maintaining tactical superiority
 """
 
-from typing import Dict, Tuple, Optional
+from typing import Dict
 from backend.models.marshal import Marshal
 from backend.models.region import TERRAIN_DEFENSE_BONUS, TERRAIN_CAVALRY_EFFECTIVENESS
 from backend.utils import ordinal
@@ -373,7 +373,7 @@ class CombatResolver:
                         if not defender_personality_message:
                             defender_personality_message = f"{defender.name} stands firm against superior numbers! (Cautious: +10% outnumbered)"
                         else:
-                            defender_personality_message += f" Outnumbered bonus: +10%"
+                            defender_personality_message += " Outnumbered bonus: +10%"
 
                 elif personality == "literal":
                     is_holding = getattr(defender, 'holding_position', False)
@@ -814,7 +814,7 @@ if __name__ == "__main__":
     ney = Marshal("Ney", "Belgium", 72000, "aggressive", "France")
     wellington = Marshal("Wellington", "Waterloo", 68000, "cautious", "Britain")
 
-    debug_print(f"\nBefore Battle:")
+    debug_print("\nBefore Battle:")
     debug_print(f"  {ney}")
     debug_print(f"  {wellington}")
 
@@ -849,7 +849,7 @@ if __name__ == "__main__":
     ney_2 = Marshal("Ney", "Belgium", 50000, "aggressive", "France")
     blucher = Marshal("Blucher", "Waterloo", 40000, "cautious", "Prussia")
 
-    debug_print(f"\nBefore Battle:")
+    debug_print("\nBefore Battle:")
     debug_print(f"  {ney_2}")
     debug_print(f"  {blucher}")
 

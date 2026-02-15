@@ -24,8 +24,8 @@ def play_game():
     game_state = {"world": world}
 
     print(f"\nStarting game: {world}")
-    print(f"Victory condition: Control 12 regions OR survive 40 turns")
-    print(f"Defeat condition: Lose Paris OR lose all armies")
+    print("Victory condition: Control 12 regions OR survive 40 turns")
+    print("Defeat condition: Lose Paris OR lose all armies")
 
     # Play 5 turns
     for turn_num in range(1, 6):
@@ -39,12 +39,12 @@ def play_game():
         print(f"Gold: {world.gold}")
         print(f"Income this turn: +{turn_start['income']['income']}")
 
-        print(f"\nSituation:")
+        print("\nSituation:")
         print(f"  Regions: {turn_start['situation']['regions_controlled']}")
         print(f"  Military: {turn_start['situation']['total_military_strength']:,}")
         print(f"  Morale: {turn_start['situation']['average_morale']}%")
 
-        print(f"\nMarshals:")
+        print("\nMarshals:")
         for marshal_info in turn_start['situation']['marshals']:
             print(f"  {marshal_info['name']}: {marshal_info['strength']:,} at "
                   f"{marshal_info['location']} ({marshal_info['morale']}% morale)")
@@ -60,7 +60,7 @@ def play_game():
 
         turn_commands = commands[turn_num - 1]
 
-        print(f"\nPlayer commands:")
+        print("\nPlayer commands:")
         for cmd in turn_commands:
             print(f"  > {cmd}")
 
@@ -76,7 +76,7 @@ def play_game():
                 else:
                     print(f"    ✗ {result['message']}")
             else:
-                print(f"    ✗ Parse failed")
+                print("    ✗ Parse failed")
 
         # End turn
         turn_end = turn_manager.end_turn()
@@ -84,7 +84,7 @@ def play_game():
 
         # Check game over
         if turn_end['victory_check']['game_over']:
-            print(f"\n🎮 GAME OVER!")
+            print("\n🎮 GAME OVER!")
             print(f"Result: {turn_end['victory_check']['result'].upper()}")
             print(f"Reason: {turn_end['victory_check']['reason']}")
             break
@@ -103,7 +103,7 @@ def play_game():
     print(f"Gold: {final_summary['gold']}")
     print(f"Regions: {final_summary['regions_controlled']}")
 
-    print(f"\nFinal Marshal Status:")
+    print("\nFinal Marshal Status:")
     for name, data in final_summary['marshals'].items():
         marshal = world.get_marshal(name)
         print(f"  {name}:")

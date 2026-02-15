@@ -131,6 +131,24 @@ class AuthorityTracker:
         else:
             return 0.9  # Penalty for weak authority
 
+    def get_authority_label(self) -> str:
+        """
+        Get a human-readable label for the current authority level.
+
+        Returns:
+            Label string describing Napoleon's perceived authority.
+        """
+        if self.authority >= 90:
+            return "Divine Right"
+        elif self.authority >= 70:
+            return "Commanding"
+        elif self.authority >= 50:
+            return "Respected"
+        elif self.authority >= 30:
+            return "Questionable"
+        else:
+            return "Emperor in Name Only"
+
     def get_severity_modifier(self) -> float:
         """
         Get modifier for objection severity based on authority.

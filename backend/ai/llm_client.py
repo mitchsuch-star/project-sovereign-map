@@ -30,7 +30,7 @@ from dotenv import load_dotenv
 
 from .schemas import ParseResult
 from .providers import get_provider, PROVIDERS
-from .validation import validate_parse_result, should_skip_validation
+from .validation import validate_parse_result
 
 # Load environment variables
 load_dotenv()
@@ -277,7 +277,7 @@ class LLMClient:
 
             # Provider returned but couldn't parse
             if not llm_result.matched:
-                print(f"LLM couldn't parse command, using fast parser result")
+                print("LLM couldn't parse command, using fast parser result")
                 return fast_result
 
             # Validate LLM result against game rules
@@ -296,7 +296,7 @@ class LLMClient:
             # Validation failed (e.g., LLM hallucinated a marshal name)
             if not validated.matched:
                 print(f"LLM result failed validation: {validated.suggestion}")
-                print(f"Falling back to fast parser result")
+                print("Falling back to fast parser result")
                 return fast_result
 
             # Success! Return validated LLM result
@@ -307,7 +307,7 @@ class LLMClient:
             # API error, timeout, malformed JSON, etc.
             # Log and return fast result - never crash
             print(f"LLM provider error: {e}")
-            print(f"Falling back to fast parser result")
+            print("Falling back to fast parser result")
             return fast_result
 
     def _extract_valid_marshals(self, game_state: Optional[Dict]) -> List[str]:

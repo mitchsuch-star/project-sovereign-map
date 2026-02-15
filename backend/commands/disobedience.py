@@ -16,9 +16,8 @@ This is Phase 2 (Mock Mode) - NO LLM API calls. All logic is deterministic.
 
 from typing import Dict, Optional, List, Tuple
 import random
-from backend.commands.severity import calculate_objection_severity, get_severity_breakdown
-from backend.models.personality import Personality, get_personality, analyze_order_situation
-from backend.models.trust import calculate_obedience_chance
+from backend.commands.severity import calculate_objection_severity
+from backend.models.personality import Personality, get_personality
 
 
 # Maximum major objections per turn (V1 legacy - prevents decision fatigue)
@@ -100,7 +99,7 @@ def is_valid_move(marshal, target_region_name: str, game_state) -> Tuple[bool, s
         # Engaged with enemy - check if destination is friendly
         target_region = world.get_region(target_region_name)
         if target_region and target_region.controller != marshal_nation:
-            return False, f"Engaged with enemy - can only retreat to friendly territory"
+            return False, "Engaged with enemy - can only retreat to friendly territory"
 
     # ════════════════════════════════════════════════════════════
     # CHECK 2: DESTINATION ENEMY CHECK
@@ -296,7 +295,7 @@ def get_valid_actions(marshal, game_state) -> List[Dict]:
         valid.append({
             "action": "retreat",
             "target": "toward_paris",
-            "description": f"Retreat toward Paris (free, -45% effectiveness, recovers over 3 turns)"
+            "description": "Retreat toward Paris (free, -45% effectiveness, recovers over 3 turns)"
         })
 
     # ════════════════════════════════════════════════════════════
@@ -311,7 +310,7 @@ def get_valid_actions(marshal, game_state) -> List[Dict]:
             valid.append({
                 "action": "stance_change",
                 "target": "neutral",
-                "description": f"Return to NEUTRAL stance (FREE, balanced posture)"
+                "description": "Return to NEUTRAL stance (FREE, balanced posture)"
             })
         if current_stance != Stance.DEFENSIVE:
             cost = "1 action" if current_stance == Stance.NEUTRAL else "2 actions"
@@ -1236,7 +1235,7 @@ class DisobedienceSystem:
         # LAST MARSHAL PROTECTION - If only 1 field marshal, stop here
         # ════════════════════════════════════════════════════════════
         if field_count < 2:
-            print(f"  [REDEMPTION OPTIONS] Last marshal protection: only autonomy available")
+            print("  [REDEMPTION OPTIONS] Last marshal protection: only autonomy available")
             return options
 
         # ════════════════════════════════════════════════════════════
@@ -1249,9 +1248,9 @@ class DisobedienceSystem:
                 'description': f"{marshal.name} joins the administrative staff. Troops frozen for future restoration. You gain +1 action per turn.",
                 'effect': 'admin_role_plus_one_action',
             })
-            print(f"  [REDEMPTION OPTIONS] Administrative role available (no existing admin)")
+            print("  [REDEMPTION OPTIONS] Administrative role available (no existing admin)")
         else:
-            print(f"  [REDEMPTION OPTIONS] Administrative role NOT available (already have admin)")
+            print("  [REDEMPTION OPTIONS] Administrative role NOT available (already have admin)")
 
         # ════════════════════════════════════════════════════════════
         # DISMISS - Available if ≥2 field marshals
@@ -1262,7 +1261,7 @@ class DisobedienceSystem:
             'description': f"Relieve {marshal.name} of command permanently. Troops transfer to nearby ally (≤3 regions) or disband. +10 authority.",
             'effect': 'remove_marshal_transfer_troops_authority_bonus',
         })
-        print(f"  [REDEMPTION OPTIONS] Dismiss available (≥2 field marshals)")
+        print("  [REDEMPTION OPTIONS] Dismiss available (≥2 field marshals)")
 
         return options
 
@@ -1423,7 +1422,7 @@ class DisobedienceSystem:
                 print(f"  [REDEMPTION] Troops transferred to {nearest.name}")
             else:
                 transfer_message = f"{troop_count:,} troops dispersed - no nearby commanders within 3 regions."
-                print(f"  [REDEMPTION] Troops dispersed (no ally within 3 regions)")
+                print("  [REDEMPTION] Troops dispersed (no ally within 3 regions)")
 
             # Remove marshal from world
             if marshal_name in world.marshals:

@@ -22,12 +22,11 @@ from backend.game_logic.turn_manager import TurnManager
 from backend.utils.fuzzy_matcher import FuzzyMatcher
 # V2a Objection System imports
 from backend.commands.objection_v2 import (
-    ConcernLevel, TrustTier,
-    evaluate_situation, evaluate_strategic_situation,
+    ConcernLevel, evaluate_situation, evaluate_strategic_situation,
     apply_mood_variance,
     get_trust_tier, get_objection_tone, get_insist_penalty,
     calculate_trust_gain, COMPROMISE_TRUST_GAIN,
-    concern_to_legacy_severity, is_popup_concern,
+    concern_to_legacy_severity,
 )
 
 
@@ -931,7 +930,7 @@ RETREAT RECOVERY (3 turns):
                             "success": False,
                             "message": f"{marshal_name} is engaged in drill exercises and cannot change stance.",
                             "drilling": True,
-                            "suggestion": f"Wait for drill to complete, or cancel with different orders."
+                            "suggestion": "Wait for drill to complete, or cancel with different orders."
                         }
 
                 # ═══════════════════════════════════════════════════════════
@@ -1473,7 +1472,7 @@ RETREAT RECOVERY (3 turns):
         elif is_free_action:
             # Free action (counter-punch) - don't consume action point
             action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0, "should_end_turn": False}
-            print(f"  [FREE ACTION] Counter-punch or similar - no action consumed")
+            print("  [FREE ACTION] Counter-punch or similar - no action consumed")
 
         # Add action info to result
         result["action_info"] = {
@@ -1735,7 +1734,6 @@ RETREAT RECOVERY (3 turns):
 
         Returns message describing any forced retreats or broken armies.
         """
-        import random
         retreat_messages = []
 
         # Check attacker forced retreat
@@ -2210,7 +2208,7 @@ RETREAT RECOVERY (3 turns):
             else:
                 return {
                     "success": False,
-                    "message": f"No enemies found to attack!"
+                    "message": "No enemies found to attack!"
                 }
 
         # ============================================================
@@ -2271,7 +2269,6 @@ RETREAT RECOVERY (3 turns):
                             "action_summary": world.get_action_summary()
                         }
                     print(f"[ATTACK->PURSUE] {marshal.name}: {target} out of range (distance {distance}), auto-upgrading to PURSUE")
-                    from backend.models.marshal import StrategicOrder
                     pursue_parsed = {
                         "success": True,
                         "command": {
@@ -2462,7 +2459,7 @@ RETREAT RECOVERY (3 turns):
             else:
                 return {
                     "success": False,
-                    "message": f"No enemies found! You may have won the campaign.",
+                    "message": "No enemies found! You may have won the campaign.",
                 }
 
         if not enemy_marshal or enemy_marshal.strength <= 0:
@@ -2666,7 +2663,7 @@ RETREAT RECOVERY (3 turns):
                     march_note += ")"
                     movement_msg += march_note
             else:
-                print(f"[ATTACK MOVEMENT] Already at target location, no move needed")
+                print("[ATTACK MOVEMENT] Already at target location, no move needed")
         else:
             print(f"[ATTACK MOVEMENT] NOT moving: can_advance={can_advance}, strength={marshal.strength}")
 
@@ -2866,7 +2863,7 @@ RETREAT RECOVERY (3 turns):
             defend_message += f"Effect: -10% attack, +15% defense. (Cost: {action_cost} actions)"
         else:
             defend_message = f"{marshal.name} shifts to DEFENSIVE stance at {marshal.location}. "
-            defend_message += f"Effect: -10% attack, +15% defense."
+            defend_message += "Effect: -10% attack, +15% defense."
 
         if drill_cancelled_message:
             defend_message = drill_cancelled_message + defend_message
@@ -3140,7 +3137,6 @@ RETREAT RECOVERY (3 turns):
 
         Returns result dict if handled, None to fall through to tactical routing.
         """
-        from backend.ai.strategic_parser import detect_strategic_command
         from backend.models.marshal import StrategicOrder, StrategicCondition
 
         world: WorldState = game_state.get("world")
@@ -3594,9 +3590,9 @@ RETREAT RECOVERY (3 turns):
                 if marshal.personality == "literal":
                     marshal.holding_position = True
                     marshal.hold_region = marshal.location
-                    first_step_msg = f" [Immovable: +15% defense]"
+                    first_step_msg = " [Immovable: +15% defense]"
                 else:
-                    first_step_msg = f" Holding position."
+                    first_step_msg = " Holding position."
             elif path:
                 steps = min(movement_range, len(path))
                 moved_regions = []
@@ -4176,7 +4172,7 @@ RETREAT RECOVERY (3 turns):
             if target_region.controller != marshal.nation:
                 return {
                     "success": False,
-                    "message": f"Cannot advance while engaged with enemy forces. You may retreat to friendly territory.",
+                    "message": "Cannot advance while engaged with enemy forces. You may retreat to friendly territory.",
                     "engaged_with": [e.name for e in enemies_here],
                     "suggestion": f"Friendly regions adjacent: {', '.join([r for r in current_region.adjacent_regions if world.get_region(r) and world.get_region(r).controller == marshal.nation])}"
                 }
@@ -4464,7 +4460,7 @@ RETREAT RECOVERY (3 turns):
             # This is NOT the same as a targeted scout (which grants FULL).
             # Adjacent intel is already handled by calculate_visibility() during turn
             # processing, but the scout action provides an immediate snapshot.
-            from backend.models.intel import PARTIAL, get_strength_band
+            from backend.models.intel import PARTIAL
             for info in adjacent_intel:
                 adj_region_name = info["region"]
                 adj_intel = world.get_region_intel(adj_region_name)
@@ -5286,7 +5282,7 @@ RETREAT RECOVERY (3 turns):
         if admin_bonus > 0:
             lines.append(f"\n  Admin bonus: +{admin_bonus}g  ({world.admin_actions_remaining} unused AP x 75)")
         else:
-            lines.append(f"\n  Admin bonus: 0g  (all AP used)")
+            lines.append("\n  Admin bonus: 0g  (all AP used)")
 
         # Spending this turn
         spent = world.gold_spent_this_turn.get(nation, 0)
@@ -5992,7 +5988,7 @@ RETREAT RECOVERY (3 turns):
 
             # Execute stance change first
             marshal.stance = Stance.DEFENSIVE
-            stance_message = f"[Auto-shifted to DEFENSIVE stance first] "
+            stance_message = "[Auto-shifted to DEFENSIVE stance first] "
 
         # ════════════════════════════════════════════════════════════
         # PERSONALITY-SPECIFIC FORTIFY (Phase 2.8)
@@ -6025,7 +6021,7 @@ RETREAT RECOVERY (3 turns):
 
         message = stance_message + f"{marshal.name} fortifies position at {marshal.location}. "
         message += f"Defense bonus: +{current_bonus_pct}% (grows +{rate_pct}% per turn, max {max_pct}%){personality_message}. "
-        message += f"Cannot move or attack while fortified. Use 'unfortify' to become mobile."
+        message += "Cannot move or attack while fortified. Use 'unfortify' to become mobile."
 
         events = [{
             "type": "fortified",
@@ -6100,10 +6096,10 @@ RETREAT RECOVERY (3 turns):
         # Build message with ability note
         if is_free_unfortify:
             message = f"{marshal.name} efficiently breaks camp. (Free Unfortify: no action cost) "
-            message += f"Army is now mobile."
+            message += "Army is now mobile."
         else:
             message = f"{marshal.name} abandons fortified position at {marshal.location}. "
-            message += f"Army is now mobile."
+            message += "Army is now mobile."
 
         result = {
             "success": True,
@@ -6280,16 +6276,16 @@ RETREAT RECOVERY (3 turns):
                 f"Morale: {marshal.morale}%",
                 f"Personality: {marshal.personality}",
                 f"Stance: {stance.value}",
-                f"",
-                f"== Tactical State ==",
+                "",
+                "== Tactical State ==",
                 f"Fortified: {getattr(marshal, 'fortified', False)} (bonus: {getattr(marshal, 'defense_bonus', 0)*100:.0f}%)",
                 f"Drilling: {getattr(marshal, 'drilling', False)} / Locked: {getattr(marshal, 'drilling_locked', False)}",
                 f"Shock bonus: {getattr(marshal, 'shock_bonus', 0)}",
                 f"Retreat recovery: {getattr(marshal, 'retreat_recovery', 0)}",
                 f"Retreated this turn: {getattr(marshal, 'retreated_this_turn', False)}",
                 f"Counter-punch: {getattr(marshal, 'counter_punch_available', False)}",
-                f"",
-                f"== Attack Thresholds ==",
+                "",
+                "== Attack Thresholds ==",
             ]
 
             # Show attack threshold
@@ -6300,8 +6296,8 @@ RETREAT RECOVERY (3 turns):
             # Find nearby enemies
             enemies = world.get_enemies_of_nation(marshal.nation)
             if enemies:
-                state_info.append(f"")
-                state_info.append(f"== Nearby Enemies ==")
+                state_info.append("")
+                state_info.append("== Nearby Enemies ==")
                 for enemy in enemies:
                     dist = world.get_distance(marshal.location, enemy.location)
                     ratio = marshal.strength / enemy.strength if enemy.strength > 0 else 999
@@ -6967,7 +6963,7 @@ RETREAT RECOVERY (3 turns):
         if not target_stance_str:
             return {
                 "success": False,
-                "message": f"No stance specified. Valid stances: neutral, defensive, aggressive"
+                "message": "No stance specified. Valid stances: neutral, defensive, aggressive"
             }
         target_stance_str = target_stance_str.lower()
         world: WorldState = game_state.get("world")
@@ -7485,7 +7481,7 @@ RETREAT RECOVERY (3 turns):
         if not target_marshal or target_marshal.strength <= 0:
             return {
                 "success": False,
-                "message": f"Target has retreated or been destroyed! The charge cannot proceed."
+                "message": "Target has retreated or been destroyed! The charge cannot proceed."
             }
 
         # Check if target is still in range
@@ -8122,7 +8118,7 @@ RETREAT RECOVERY (3 turns):
         # BUG FIX #1: Check for DISOBEY - execute ALTERNATIVE instead
         # ════════════════════════════════════════════════════════════
         if response_result.get("disobeyed"):
-            print(f"  🛑 DISOBEY - Marshal executes their alternative instead!")
+            print("  🛑 DISOBEY - Marshal executes their alternative instead!")
 
             # Marshal does what THEY wanted, not what player ordered
             disobey_order = alternative if alternative else None
@@ -8161,7 +8157,7 @@ RETREAT RECOVERY (3 turns):
                     result["battle_report"] = execution_result["battle_report"]
             else:
                 # No alternative available - marshal simply refuses
-                print(f"  ⚠️ No alternative available - marshal refuses entirely")
+                print("  ⚠️ No alternative available - marshal refuses entirely")
                 result = {
                     "success": True,
                     "message": response_result["message"] + f"\n\n{marshal_name} stands firm and takes no action.",
@@ -8181,7 +8177,7 @@ RETREAT RECOVERY (3 turns):
             if response_result.get("redemption_event"):
                 result["redemption_event"] = response_result["redemption_event"]
                 result["state"] = "awaiting_redemption_choice"
-                print(f"  🚨 REDEMPTION EVENT attached to disobey response")
+                print("  🚨 REDEMPTION EVENT attached to disobey response")
 
             return result
 
@@ -8189,7 +8185,7 @@ RETREAT RECOVERY (3 turns):
         # BUG FIX #2: Check for REDEMPTION EVENT - return with event
         # ════════════════════════════════════════════════════════════
         if response_result.get("redemption_event"):
-            print(f"  🚨 REDEMPTION EVENT - returning before order execution")
+            print("  🚨 REDEMPTION EVENT - returning before order execution")
             # Still execute the order, but include redemption event in response
             # (Trust dropped to critical AFTER the order would execute)
 
@@ -8247,7 +8243,7 @@ RETREAT RECOVERY (3 turns):
         if response_result.get("redemption_event"):
             result["redemption_event"] = response_result["redemption_event"]
             result["state"] = "awaiting_redemption_choice"
-            print(f"  🚨 REDEMPTION EVENT attached to response")
+            print("  🚨 REDEMPTION EVENT attached to response")
 
         return result
 

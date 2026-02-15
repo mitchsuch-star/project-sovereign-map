@@ -18,8 +18,7 @@ from backend.commands.disobedience import DisobedienceSystem
 from backend.utils import ordinal
 from backend.utils.debug import debug_print
 from backend.models.intel import (
-    RegionIntel, FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
-    VISIBILITY_PRIORITY, get_strength_band
+    RegionIntel, FULL, PARTIAL, STALE, VISIBILITY_PRIORITY, get_strength_band
 )
 
 # Fortify decay configuration by personality (single source of truth)
@@ -1233,7 +1232,7 @@ class WorldState:
 
             # Skip regions with enemy marshals (can't retreat INTO enemies!)
             if enemy_marshals:
-                debug_print(f"      -> Skip: enemy marshals present")
+                debug_print("      -> Skip: enemy marshals present")
                 continue
 
             # Friendly region (controlled by our nation)
@@ -1253,7 +1252,7 @@ class WorldState:
                         "name": candidate_name,
                         "dist_from_attacker": dist_from_attacker
                     })
-                    debug_print(f"      -> PRIORITY 2: Friendly, empty")
+                    debug_print("      -> PRIORITY 2: Friendly, empty")
 
             # Enemy-controlled territory (no enemy marshals - they were skipped above)
             elif controller is not None and controller != marshal_nation:
@@ -1272,7 +1271,7 @@ class WorldState:
                         "name": candidate_name,
                         "dist_from_attacker": dist_from_attacker
                     })
-                    debug_print(f"      -> PRIORITY 4: Enemy territory, unoccupied")
+                    debug_print("      -> PRIORITY 4: Enemy territory, unoccupied")
 
             # Neutral (no controller) - treat like friendly empty
             elif controller is None:
@@ -1280,7 +1279,7 @@ class WorldState:
                     "name": candidate_name,
                     "dist_from_attacker": dist_from_attacker
                 })
-                debug_print(f"      -> PRIORITY 2: Neutral, empty")
+                debug_print("      -> PRIORITY 2: Neutral, empty")
 
         # Return best option by priority
         # Within each priority, sort by: distance from attacker (furthest first), then ally strength
@@ -1657,7 +1656,7 @@ class WorldState:
             debug_print(f"   ⚠️  FILTERED OUT: {', '.join(filtered_out)}")
 
         if not ready_marshals:
-            debug_print(f"   ❌ NO COMBAT-READY MARSHALS IN RANGE!")
+            debug_print("   ❌ NO COMBAT-READY MARSHALS IN RANGE!")
             return None
 
         # Sort by DISTANCE (nearest first), then by strength as tiebreaker
@@ -2552,7 +2551,7 @@ class WorldState:
         Call sites: ALL endpoints in main.py and executor.py that previously
         called get_game_state_summary() now call this instead.
         """
-        from backend.models.intel import FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN, get_strength_band
+        from backend.models.intel import FULL, PARTIAL, STALE, get_strength_band
 
         summary = self.get_game_state_summary()
 
@@ -3557,7 +3556,7 @@ class WorldState:
                 if charge_blocked:
                     reck_footer = f"[color=#cd6b6b]FREE ACTION — Recklessness unchanged ({recklessness})[/color]"
                 else:
-                    reck_footer = f"[color=#cd6b6b]FREE ACTION — Recklessness reset to 0[/color]"
+                    reck_footer = "[color=#cd6b6b]FREE ACTION — Recklessness reset to 0[/color]"
                 event_msg = (f"{charge_header}"
                             f"{combat_result.get('description', 'Combat resolved.')}"
                             f"{enemy_destroyed_msg}{movement_msg}\n\n"

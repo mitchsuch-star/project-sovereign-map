@@ -2,7 +2,7 @@
 Command Executor for Project Sovereign
 Executes parsed commands against game state with region conquest
 """
-from typing import Dict, List
+from typing import Dict
 from backend.models.world_state import WorldState
 from backend.game_logic.combat import CombatResolver
 
@@ -121,7 +121,7 @@ class CommandExecutor:
             else:
                 return {
                     "success": False,
-                    "message": f"No enemies found! You may have won the campaign.",
+                    "message": "No enemies found! You may have won the campaign.",
                 }
 
         if not enemy_marshal or enemy_marshal.strength <= 0:

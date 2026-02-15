@@ -719,7 +719,7 @@ class EnemyAI:
                 consecutive_skips += 1
                 ai_debug(f"  Skipping {selected_marshal.name} - nothing useful to do (priority {action_priority})")
                 if consecutive_skips >= max_consecutive_skips:
-                    print(f"  All marshals idle - ending turn early")
+                    print("  All marshals idle - ending turn early")
                     break
                 continue
 
@@ -743,7 +743,7 @@ class EnemyAI:
                 self._pending_intents.pop(selected_marshal.name, None)
                 consecutive_skips += 1
                 if consecutive_skips >= max_consecutive_skips:
-                    print(f"  Too many failed actions - ending turn")
+                    print("  Too many failed actions - ending turn")
                     break
                 continue
 
@@ -806,7 +806,7 @@ class EnemyAI:
             if is_free_action:
                 free_action_count += 1
                 if is_free_action_result:
-                    print(f"    [FREE] Counter-punch or similar")
+                    print("    [FREE] Counter-punch or similar")
                 # NOTE: Don't break on free action limit - just skip free actions and keep trying
                 # This ensures we use all paid actions even if marshals prefer "wait"
 
@@ -1136,7 +1136,7 @@ class EnemyAI:
         # Cannot retreat again, but can wait or change to defensive stance
         # ════════════════════════════════════════════════════════════
         if getattr(marshal, 'retreated_this_turn', False):
-            ai_debug(f"  Already retreated this turn - limited options")
+            ai_debug("  Already retreated this turn - limited options")
             print(f"  [RETREATED THIS TURN] {marshal.name} - can only wait/stance change")
             # Switch to defensive if not already
             if getattr(marshal, 'stance', None) != Stance.DEFENSIVE:
@@ -1194,13 +1194,13 @@ class EnemyAI:
                 else:
                     # Can't flee - switch to defensive stance and wait
                     if getattr(marshal, 'stance', None) != Stance.DEFENSIVE:
-                        ai_debug(f"  -> P0: Switch to defensive stance (in recovery, can't flee)")
+                        ai_debug("  -> P0: Switch to defensive stance (in recovery, can't flee)")
                         return ({
                             "marshal": marshal.name,
                             "action": "stance_change",
                             "target": "defensive"
                         }, 0)
-                    ai_debug(f"  -> P0: Wait (in recovery, can't flee)")
+                    ai_debug("  -> P0: Wait (in recovery, can't flee)")
                     return ({
                         "marshal": marshal.name,
                         "action": "wait"
@@ -1235,8 +1235,8 @@ class EnemyAI:
                     }, 0)
                 else:
                     # No retreat possible - wait (stuck)
-                    ai_debug(f"  -> P0: Wait (no retreat possible, bad odds)")
-                    print(f"  [P0 ENGAGEMENT] -> WAIT (no retreat)")
+                    ai_debug("  -> P0: Wait (no retreat possible, bad odds)")
+                    print("  [P0 ENGAGEMENT] -> WAIT (no retreat)")
                     return ({
                         "marshal": marshal.name,
                         "action": "wait"
@@ -1245,16 +1245,16 @@ class EnemyAI:
             else:
                 # Cannot attack (fortified/drilling) - must unfortify or wait
                 if getattr(marshal, 'fortified', False):
-                    ai_debug(f"  -> P0: Unfortify (engaged but fortified)")
-                    print(f"  [P0 ENGAGEMENT] -> UNFORTIFY")
+                    ai_debug("  -> P0: Unfortify (engaged but fortified)")
+                    print("  [P0 ENGAGEMENT] -> UNFORTIFY")
                     return ({
                         "marshal": marshal.name,
                         "action": "unfortify"
                     }, 0)
                 else:
                     # Drilling - wait for it to complete
-                    ai_debug(f"  -> P0: Wait (drilling, cannot attack)")
-                    print(f"  [P0 ENGAGEMENT] -> WAIT (drilling)")
+                    ai_debug("  -> P0: Wait (drilling, cannot attack)")
+                    print("  [P0 ENGAGEMENT] -> WAIT (drilling)")
                     return ({
                         "marshal": marshal.name,
                         "action": "wait"
@@ -1303,11 +1303,11 @@ class EnemyAI:
         if getattr(marshal, 'counter_punch_available', False) and personality == 'cautious':
             counter_punch_action = self._get_counter_punch_action(marshal, nation, world)
             if counter_punch_action:
-                ai_debug(f"  P3.25: COUNTER-PUNCH available!")
+                ai_debug("  P3.25: COUNTER-PUNCH available!")
                 ai_debug(f"  -> Counter-punch attack: {counter_punch_action}")
                 return (counter_punch_action, 3)  # High priority - FREE and expires
             else:
-                ai_debug(f"  P3.25: Counter-punch available but no adjacent targets")
+                ai_debug("  P3.25: Counter-punch available but no adjacent targets")
 
         # ════════════════════════════════════════════════════════════
         # PRIORITY 3.5: FORTIFICATION OPPORTUNITY CHECK
@@ -1326,36 +1326,36 @@ class EnemyAI:
         # ════════════════════════════════════════════════════════════
         # PRIORITY 4: ATTACK OPPORTUNITY
         # ════════════════════════════════════════════════════════════
-        ai_debug(f"  P4: Checking attack opportunities...")
+        ai_debug("  P4: Checking attack opportunities...")
         attack_action = self._find_attack_opportunity(marshal, nation, world)
         if attack_action:
             ai_debug(f"  -> P4 Attack: {attack_action}")
             return (attack_action, 4)
-        ai_debug(f"  P4: No attack opportunity found")
+        ai_debug("  P4: No attack opportunity found")
 
         # ─── P4.5-P5: OPPORTUNISTIC PRIORITIES ────────────────────────────────
 
         # ════════════════════════════════════════════════════════════
         # PRIORITY 4.5: CAPTURE UNDEFENDED ENEMY REGION
         # ════════════════════════════════════════════════════════════
-        ai_debug(f"  P4.5: Checking undefended captures...")
+        ai_debug("  P4.5: Checking undefended captures...")
         capture_action = self._find_undefended_capture(marshal, nation, world)
         if capture_action:
             ai_debug(f"  -> P4.5 Capture: {capture_action}")
             return (capture_action, 4)  # Same priority as attack
-        ai_debug(f"  P4.5: No capture opportunity found")
+        ai_debug("  P4.5: No capture opportunity found")
 
         # ════════════════════════════════════════════════════════════
         # PRIORITY 4.75: ALLY SUPPORT
         # If an ally is in combat or outnumbered, move to support them
         # This is higher priority than fortifying/drilling
         # ════════════════════════════════════════════════════════════
-        ai_debug(f"  P4.75: Checking ally support opportunities...")
+        ai_debug("  P4.75: Checking ally support opportunities...")
         support_action = self._find_ally_support_opportunity(marshal, nation, world)
         if support_action:
             ai_debug(f"  -> P4.75 Ally Support: {support_action}")
             return (support_action, 4)  # Same priority as attack - helping ally is important
-        ai_debug(f"  P4.75: No ally needs support")
+        ai_debug("  P4.75: No ally needs support")
 
         # ════════════════════════════════════════════════════════════
         # PRIORITY 4.8: CONSOLIDATE WITH ALLIES (weak marshals)
@@ -1365,7 +1365,7 @@ class EnemyAI:
         if consolidate_action:
             ai_debug(f"  -> P4.8 Consolidate: {consolidate_action}")
             return (consolidate_action, 5)
-        ai_debug(f"  P4.8: No consolidation needed")
+        ai_debug("  P4.8: No consolidation needed")
 
         # ════════════════════════════════════════════════════════════
         # PRIORITY 5: FORTIFICATION (cautious marshals)
@@ -1383,12 +1383,12 @@ class EnemyAI:
         # PRIORITY 6: DRILLING (aggressive marshals, no threat)
         # ════════════════════════════════════════════════════════════
         if personality == "aggressive":
-            ai_debug(f"  P6: Checking drill (aggressive marshal)...")
+            ai_debug("  P6: Checking drill (aggressive marshal)...")
             drill_action = self._consider_drill(marshal, world)
             if drill_action:
                 ai_debug(f"  -> P6 Drill: {drill_action}")
                 return (drill_action, 6)
-            ai_debug(f"  P6: Drill not available")
+            ai_debug("  P6: Drill not available")
 
         # ════════════════════════════════════════════════════════════
         # PRIORITY 6.5: SUPPLY AWARENESS (mild — relocate if over-supplied)
@@ -1441,7 +1441,7 @@ class EnemyAI:
                         "target": best_supply_region
                     }, 6)
                 else:
-                    ai_debug(f"  P6.5: No better supply region adjacent — staying")
+                    ai_debug("  P6.5: No better supply region adjacent — staying")
 
         # ════════════════════════════════════════════════════════════
         # PRIORITY 7: STRATEGIC MOVEMENT
@@ -1604,7 +1604,7 @@ class EnemyAI:
         if getattr(marshal, 'fortified', False):
             fortification_opportunity = self._check_fortification_opportunity(marshal, nation, world)
             if fortification_opportunity:
-                ai_debug(f"  P2+P3.5: Survival mode but found fortification opportunity - unfortifying")
+                ai_debug("  P2+P3.5: Survival mode but found fortification opportunity - unfortifying")
                 return fortification_opportunity
 
         # No immediate threat, no opportunity - defend (once, then done)
@@ -1860,7 +1860,7 @@ class EnemyAI:
                 valid_targets.append((enemy, base_ratio, effective_ratio, distance))
 
         if not valid_targets:
-            ai_debug(f"    No enemies in range")
+            ai_debug("    No enemies in range")
             return None
 
         # Filter out targets already attacked by this marshal this turn
@@ -1874,7 +1874,7 @@ class EnemyAI:
             ai_debug(f"    Filtered {skipped} already-attacked targets this turn")
             valid_targets = filtered_targets
             if not valid_targets:
-                ai_debug(f"    No new targets available (all already attacked this turn)")
+                ai_debug("    No new targets available (all already attacked this turn)")
                 return None
 
         # Get attack threshold with mood variance (controlled randomness)
@@ -1890,7 +1890,7 @@ class EnemyAI:
         engaged_targets = [(e, br, er, d) for e, br, er, d in valid_targets if d == 0]
         ai_debug(f"    P4: {len(valid_targets)} valid targets, {len(engaged_targets)} engaged, threshold={threshold:.2f}")
         if engaged_targets:
-            ai_debug(f"    ENGAGED: Must attack enemy in same region first!")
+            ai_debug("    ENGAGED: Must attack enemy in same region first!")
             # Filter engaged targets by threshold
             attackable_engaged = [(e, br, er, d) for e, br, er, d in engaged_targets if er >= threshold]
             if attackable_engaged:
@@ -1900,7 +1900,7 @@ class EnemyAI:
             else:
                 # No engaged target meets threshold - but we're stuck here
                 # Must still attack the engaged enemy (even at bad odds) or wait
-                ai_debug(f"    No engaged target meets threshold - cannot attack elsewhere")
+                ai_debug("    No engaged target meets threshold - cannot attack elsewhere")
                 return None
         else:
             # No enemies in same region - can attack elsewhere
@@ -1985,7 +1985,7 @@ class EnemyAI:
 
             # Skip neutral regions (only capture enemy regions)
             if adj_region.controller == "Neutral":
-                ai_debug(f"        -> Skip: Neutral")
+                ai_debug("        -> Skip: Neutral")
                 continue
 
             # Check if undefended (no enemy marshals present)
@@ -1996,7 +1996,7 @@ class EnemyAI:
                 ai_debug(f"        -> Skip: defended by {[d.name for d in defenders]}")
                 continue
 
-            ai_debug(f"        -> UNDEFENDED enemy territory!")
+            ai_debug("        -> UNDEFENDED enemy territory!")
 
             # Evaluate safety before adding to candidates
             is_safe, reason = self._evaluate_capture_safety(marshal, adj_name, nation, world)
@@ -2655,14 +2655,14 @@ class EnemyAI:
             # During retreat recovery, can only: wait, move, recruit, defensive_stance
             # Cannot: attack, fortify, drill, aggressive_stance
             if current_stance != Stance.DEFENSIVE:
-                ai_debug(f"  -> P8: Recovery mode - switching to defensive stance")
+                ai_debug("  -> P8: Recovery mode - switching to defensive stance")
                 return {
                     "marshal": marshal.name,
                     "action": "stance_change",
                     "target": "defensive"
                 }
             # Already defensive - just wait
-            ai_debug(f"  -> P8: Recovery mode - waiting")
+            ai_debug("  -> P8: Recovery mode - waiting")
             return {
                 "marshal": marshal.name,
                 "action": "wait"
@@ -2672,7 +2672,7 @@ class EnemyAI:
         if personality == "aggressive":
             # Prefer aggressive stance
             if current_stance != Stance.AGGRESSIVE:
-                ai_debug(f"  -> P8: Change to aggressive stance")
+                ai_debug("  -> P8: Change to aggressive stance")
                 return {
                     "marshal": marshal.name,
                     "action": "stance_change",
@@ -2706,7 +2706,7 @@ class EnemyAI:
                 ai_debug(f"  -> P8: Suppressing retreat - {marshal.name} advanced via P7 this turn")
 
             # No retreat needed - wait (save action for next turn)
-            ai_debug(f"  -> P8: Already aggressive, waiting")
+            ai_debug("  -> P8: Already aggressive, waiting")
             return {
                 "marshal": marshal.name,
                 "action": "wait"
@@ -2745,7 +2745,7 @@ class EnemyAI:
             # Not engaged - normal cautious behavior
             # Prefer defensive stance
             if current_stance != Stance.DEFENSIVE:
-                ai_debug(f"  -> P8: Change to defensive stance")
+                ai_debug("  -> P8: Change to defensive stance")
                 return {
                     "marshal": marshal.name,
                     "action": "stance_change",
@@ -2753,7 +2753,7 @@ class EnemyAI:
                 }
             # Already defensive - fortify if not already
             if not getattr(marshal, 'fortified', False):
-                ai_debug(f"  -> P8: Fortify (defensive, not fortified)")
+                ai_debug("  -> P8: Fortify (defensive, not fortified)")
                 return {
                     "marshal": marshal.name,
                     "action": "fortify"
@@ -2761,13 +2761,13 @@ class EnemyAI:
             # Already defensive AND fortified - check if there's ANYTHING useful
             # If fortification opportunity check (P3.5) already decided to stay
             # fortified, then there's truly nothing to do. Return None to end turn.
-            ai_debug(f"  -> P8: Already defensive+fortified, nothing to do")
+            ai_debug("  -> P8: Already defensive+fortified, nothing to do")
             print(f"  [P8 OPTIMAL] {marshal.name} is defensive+fortified with nothing to do - ending turn")
             return None  # Signal "nothing useful" to trigger early turn termination
 
         else:
             # Balanced/other personalities - wait as default
-            ai_debug(f"  -> P8: Balanced personality, waiting")
+            ai_debug("  -> P8: Balanced personality, waiting")
             return {
                 "marshal": marshal.name,
                 "action": "wait"
@@ -3551,7 +3551,6 @@ class EnemyAI:
 
         Only considers regions where buildings can be placed (capital, major_city, city).
         """
-        from backend.models.region import BUILDING_TYPES
 
         nation_regions = world.get_nation_regions(nation)
 

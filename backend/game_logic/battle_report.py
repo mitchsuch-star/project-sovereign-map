@@ -9,7 +9,7 @@ get_defense_modifier() consume one-shot bonuses (strategic combat bonus, etc.).
 """
 
 import random
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 from backend.models.region import TERRAIN_DEFENSE_BONUS, TERRAIN_CAVALRY_EFFECTIVENESS
 from backend.models.personality_modifiers import (

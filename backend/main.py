@@ -19,7 +19,7 @@ from backend.commands.parser import CommandParser
 from backend.commands.executor import CommandExecutor
 from backend.models.world_state import WorldState
 from backend.models.intel import FULL, PARTIAL
-from backend.save_manager import save_game, load_game, autosave, list_saves, delete_save
+from backend.save_manager import save_game, load_game, list_saves, delete_save
 
 # ════════════════════════════════════════════════════════════
 # DEBUG MODE: Set to True to enable debug endpoints
@@ -472,14 +472,14 @@ def execute_command(request: CommandRequest):
         # Strategic objections (Phase M): pending_objection == True
         # ════════════════════════════════════════════════════════════
         if result.get("state") == "awaiting_player_choice":
-            print(f"[OBJECTION] TACTICAL OBJECTION - Returning full result to frontend")
+            print("[OBJECTION] TACTICAL OBJECTION - Returning full result to frontend")
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
             cleaned["game_state"] = world.get_filtered_game_state_summary()
             return cleaned
 
         if result.get("pending_objection"):
-            print(f"[OBJECTION] STRATEGIC OBJECTION (Phase M) - Returning full result to frontend")
+            print("[OBJECTION] STRATEGIC OBJECTION (Phase M) - Returning full result to frontend")
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
             cleaned["game_state"] = world.get_filtered_game_state_summary()
@@ -489,7 +489,7 @@ def execute_command(request: CommandRequest):
         # CHECK FOR CLARIFICATION: If awaiting clarification, return full result
         # ════════════════════════════════════════════════════════════
         if result.get("state") == "awaiting_clarification":
-            print(f"[CLARIFICATION] Returning clarification popup to frontend")
+            print("[CLARIFICATION] Returning clarification popup to frontend")
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
             cleaned["game_state"] = world.get_filtered_game_state_summary()
@@ -499,7 +499,7 @@ def execute_command(request: CommandRequest):
         # CHECK FOR GLORIOUS CHARGE: If pending, return full result for popup
         # ════════════════════════════════════════════════════════════
         if result.get("pending_glorious_charge"):
-            print(f"GLORIOUS CHARGE PENDING - Returning full result to frontend")
+            print("GLORIOUS CHARGE PENDING - Returning full result to frontend")
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
             cleaned["game_state"] = world.get_filtered_game_state_summary()
@@ -509,7 +509,7 @@ def execute_command(request: CommandRequest):
         # CHECK FOR CAPTURE CHOICE (Phase 6.2.E): Plunder or Secure popup
         # ════════════════════════════════════════════════════════════
         if result.get("pending_capture_choice"):
-            print(f"[CAPTURE] PLUNDER/SECURE CHOICE PENDING - Returning full result to frontend")
+            print("[CAPTURE] PLUNDER/SECURE CHOICE PENDING - Returning full result to frontend")
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
             cleaned["game_state"] = world.get_filtered_game_state_summary()
@@ -628,7 +628,7 @@ def execute_command(request: CommandRequest):
             response["enemy_phase"] = cleaned_phase
 
             # DEBUG: Print final enemy_phase structure
-            print(f"[ENEMY_PHASE_FINAL] Sending to Godot:")
+            print("[ENEMY_PHASE_FINAL] Sending to Godot:")
             for nation, data in cleaned_phase.get("nations", {}).items():
                 print(f"  {nation}: {len(data.get('actions', []))} actions")
                 for i, act in enumerate(data.get("actions", [])):

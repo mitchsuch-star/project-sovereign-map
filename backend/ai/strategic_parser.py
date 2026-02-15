@@ -15,7 +15,7 @@ DESIGN NOTES:
 """
 
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 # Try to import WorldState for type hints; not strictly required at runtime
 try:
@@ -275,7 +275,7 @@ def detect_strategic_command(
     # Step 4: Auto-convert enemy marshal MOVE_TO → PURSUE
     if strategic_type == "MOVE_TO" and target_info["convert_to_pursue"]:
         strategic_type = "PURSUE"
-        print(f"[PARSER] Converted MOVE_TO → PURSUE (enemy marshal target)")
+        print("[PARSER] Converted MOVE_TO → PURSUE (enemy marshal target)")
 
     # Step 5: Parse conditions
     condition = _parse_condition(cleaned, target_info["target"])

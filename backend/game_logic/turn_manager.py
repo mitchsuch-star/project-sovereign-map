@@ -19,7 +19,7 @@ Strategic orders process at START of player turn:
 Add _process_strategic_orders() method that calls StrategicExecutor.
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 from backend.models.world_state import WorldState
 from backend.commands.strategic import StrategicExecutor
 from backend.utils.debug import debug_print
