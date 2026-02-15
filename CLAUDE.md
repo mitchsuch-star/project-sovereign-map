@@ -259,6 +259,13 @@ pytest tests/ -v                          # Full suite
 pytest tests/ -v --tb=no -q              # Quick count
 pytest tests/test_objection_v2.py -v     # V2 tests only
 
+# Coverage
+pytest tests/ --cov=backend --cov-report=term-missing -v --tb=no -q
+
+# Lint
+ruff check backend/                     # Check for issues
+ruff check backend/ --fix               # Auto-fix safe issues
+
 # Validate mod
 python -m backend.modding.validator path/to/mod.json
 ```
