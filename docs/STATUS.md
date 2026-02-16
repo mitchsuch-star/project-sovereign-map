@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2433** (verified, 3 skipped) |
+| **Tests Passing** | **2497** (verified, 3 skipped) |
 | **Current Phase** | Phase 6: **IN PROGRESS** (2 items remaining: Manpower Pools, Artillery Unit Type) |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier, 6-BattleReport, 6-EventLog, 6-FogOfWar |
@@ -75,7 +75,7 @@
 - Below 5,000 threshold: garrison collapses, capture proceeds
 - AI P-1 and P4.5 updated to respect garrison strength
 
-**Tests:** 2433 passing (8 test files updated for Grouchy location change and supply bonus), 3 skipped
+**Tests:** 2497 passing (8 test files updated for Grouchy location change and supply bonus, 3 new test files with 63 tests for garrison/supply/AI coverage), 3 skipped
 
 ---
 
