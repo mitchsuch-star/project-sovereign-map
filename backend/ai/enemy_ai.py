@@ -118,7 +118,10 @@ AI_SCORING_ENABLED = True
 def ai_debug(msg: str):
     """Print debug message if AI_DEBUG is enabled."""
     if AI_DEBUG:
-        print(f"[AI DEBUG] {msg}")
+        try:
+            print(f"[AI DEBUG] {msg}")
+        except UnicodeEncodeError:
+            print(f"[AI DEBUG] {msg.encode('ascii', 'replace').decode('ascii')}")
 
 
 def calculate_ai_strategic_score(marshal: "Marshal", action: str, target: Optional["Marshal"], world: Optional["WorldState"] = None) -> int:

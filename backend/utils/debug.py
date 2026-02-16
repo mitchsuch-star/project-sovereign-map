@@ -10,4 +10,8 @@ _DEBUG_ENABLED = os.environ.get("INK_DEBUG", "1") != "0"
 def debug_print(*args, **kwargs):
     """Print only when debug output is enabled."""
     if _DEBUG_ENABLED:
-        print(*args, **kwargs)
+        try:
+            print(*args, **kwargs)
+        except UnicodeEncodeError:
+            safe_args = [str(a).encode('ascii', 'replace').decode('ascii') for a in args]
+            print(*safe_args, **kwargs)
