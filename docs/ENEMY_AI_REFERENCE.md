@@ -551,12 +551,27 @@ This prevents the cautious AI from camping indefinitely. The marshal finds an ad
 
 ### Garrison Assault (P4.25)
 
-AI marshals evaluate whether to attack a garrisoned capital. The decision is based on:
+AI marshals evaluate whether to attack a garrisoned region. Handles both capital garrisons (>= 5k) and detachment garrisons (any size, `garrison_detachment=True`). The decision is based on:
 - **Strength ratio** = marshal strength / garrison effective defense (includes terrain + fort bonuses)
 - **Threshold** = personality attack threshold, adjusted by mood (anger lowers it, satisfaction raises it)
 - If ratio >= threshold, the AI attacks the garrison
 
 Aggressive marshals will assault garrisons more readily (threshold 0.7), while cautious marshals need a stronger advantage (threshold 1.3).
+
+### AI Garrison Placement (P6.75)
+
+AI marshals can detach 3,000 troops to garrison a controlled border region (same `_execute_garrison` as player — Building Blocks principle). Defensive luxury, not a combat priority.
+
+**Conditions (all must be true):**
+- Marshal strength >= 20,000 (`AI_GARRISON_MIN_STRENGTH`, tunable)
+- Current region controlled by marshal's nation
+- No existing garrison in region
+- No enemy marshal in current region or adjacent (safe to split)
+- No other friendly marshal in current region (they can defend instead)
+- Region is adjacent to at least 1 non-friendly region (vulnerable border)
+- Max 1 garrison per nation per turn (`_garrison_placed_this_turn` flag)
+
+**Behavior:** AI garrisons use `garrison_detachment=True` — no regen, fight to destruction (same as player garrisons).
 
 ---
 
@@ -594,6 +609,7 @@ The AI performs an admin phase each turn (before combat actions) using admin AP.
 | test_enemy_ai_action_budget.py | 4 | Action counting |
 | test_ai_scoring.py | 24 | Strategic scoring |
 | test_enemy_ai_bugs.py | 5 | Regression tests |
+| test_ai_garrison.py | 29 | AI garrison placement + P4.25 awareness |
 
 ---
 

@@ -1832,8 +1832,8 @@ RETREAT RECOVERY (3 turns):
         target_region.garrison_strength = max(0, target_region.garrison_strength - garrison_losses)
 
         # Check if garrison collapsed
-        # Capital garrisons collapse below 5k threshold; player-placed garrisons fight to destruction
-        if target_region.garrison_player_placed:
+        # Capital garrisons collapse below 5k threshold; detachment garrisons fight to destruction
+        if target_region.garrison_detachment:
             garrison_collapsed = target_region.garrison_strength <= 0
         else:
             garrison_collapsed = target_region.garrison_strength < 5000
@@ -1841,7 +1841,7 @@ RETREAT RECOVERY (3 turns):
         if garrison_collapsed:
             # Garrison collapses — capture proceeds
             target_region.garrison_strength = 0
-            target_region.garrison_player_placed = False
+            target_region.garrison_detachment = False
             old_controller = target_region.controller
             old_location = marshal.location
 
@@ -2531,13 +2531,13 @@ RETREAT RECOVERY (3 turns):
                 if not defenders:
                     # ════════════════════════════════════════════════════════════
                     # GARRISON DEFENSE: Garrison fights attackers when no marshal
-                    # is present. Capital garrisons collapse below 5k. Player
-                    # garrisons (garrison_player_placed) fight to destruction.
+                    # is present. Capital garrisons collapse below 5k. Detachment
+                    # garrisons (garrison_detachment) fight to destruction.
                     # ════════════════════════════════════════════════════════════
                     garrison_fights = False
                     if target_region.garrison_strength > 0 and target_region.controller != marshal.nation:
-                        if target_region.garrison_player_placed:
-                            # Player-placed garrisons always fight (no collapse threshold)
+                        if target_region.garrison_detachment:
+                            # Detachment garrisons always fight (no collapse threshold)
                             garrison_fights = True
                         elif target_region.garrison_strength >= 5000:
                             # Capital garrisons fight above 5k
@@ -2553,7 +2553,7 @@ RETREAT RECOVERY (3 turns):
                     # If garrison exists but below collapse threshold, it collapses — clear it
                     if target_region.garrison_strength > 0 and target_region.controller != marshal.nation:
                         target_region.garrison_strength = 0
-                        target_region.garrison_player_placed = False
+                        target_region.garrison_detachment = False
 
                     # UNDEFENDED - Capture attempt (may start occupation if fortified)
                     old_controller = target_region.controller
@@ -4553,7 +4553,7 @@ RETREAT RECOVERY (3 turns):
                     enemies_there = world.get_marshals_in_region(adj_name)
                     enemy_marshals = [m for m in enemies_there if m.nation != marshal.nation and m.strength > 0]
                     has_garrison = adj_region.garrison_strength >= 5000 or (
-                        adj_region.garrison_player_placed and adj_region.garrison_strength > 0
+                        adj_region.garrison_detachment and adj_region.garrison_strength > 0
                     )
                     if not enemy_marshals and not has_garrison:
                         capture_hints.append(adj_name)
@@ -5774,15 +5774,12 @@ RETREAT RECOVERY (3 turns):
     def _execute_garrison(self, command: Dict, game_state: Dict) -> Dict:
         """Detach troops to garrison the marshal's current region.
 
-        Session 31: Player-placed garrisons use the same garrison_strength field as
-        capital garrisons, but with garrison_player_placed=True. Player garrisons
+        Session 31: Detachment garrisons use the same garrison_strength field as
+        capital garrisons, but with garrison_detachment=True. Detachment garrisons
         don't regen and fight to destruction (no 5k collapse threshold).
 
-        TODO (Phase 7+): Enemy AI should also use garrison command — Building Blocks
-        principle requires AI uses same executor as player. Add heuristic in
-        enemy_ai.py: after capturing a region, if marshal has > 15k troops AND
-        region is adjacent to enemy territory AND no friendly marshal nearby,
-        garrison it. See Session 31 review notes.
+        Used by both player and AI (Building Blocks principle). AI heuristic in
+        enemy_ai.py P6.75: garrison behind front lines with excess strength.
         """
         world: WorldState = game_state.get("world")
         marshal_name = (command.get("marshal") or "").strip()
@@ -5842,7 +5839,7 @@ RETREAT RECOVERY (3 turns):
         # Execute: detach troops
         marshal.strength -= self.GARRISON_DETACHMENT_SIZE
         region.garrison_strength = self.GARRISON_DETACHMENT_SIZE
-        region.garrison_player_placed = True
+        region.garrison_detachment = True
 
         # Event log
         world.log_event({

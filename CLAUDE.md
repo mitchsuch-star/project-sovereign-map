@@ -14,7 +14,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ## Current Phase
 
-**Phase 6: Core Campaign Systems — IN PROGRESS (3 items remaining)**
+**Phase 6: Core Campaign Systems — IN PROGRESS (2 items remaining)**
 
 ### Remaining (must build before Phase 6.5)
 
@@ -22,11 +22,10 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 |---------|------------|-------|
 | **Manpower Pools** | Medium | Separate: Infantry, Cavalry, Artillery |
 | **Artillery Unit Type** | Medium | Combat buffs like cavalry |
-| **Enemy AI Garrison** | Low | AI places garrisons via _execute_garrison (Building Blocks). Simple heuristic: garrison behind front lines with excess strength. |
 
 ### Completed in Phase 6
 
-Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-Battle Analysis, Turn Events Log, Reinforcements, Attrition, City Fortification, Fog of War (COMPLETE: Sessions 33-36), Player Garrison Command (Session 31: garrison command + fort degradation + morale warning + capture hint + occupy alias). See `docs/STATUS.md` for details.
+Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-Battle Analysis, Turn Events Log, Reinforcements, Attrition, City Fortification, Fog of War (COMPLETE: Sessions 33-36), Player Garrison Command (Session 31), Enemy AI Garrison (P6.75: AI places garrisons via Building Blocks, 20k threshold, 1/nation/turn cap, P4.25 sub-5k awareness, `garrison_detachment` rename). See `docs/STATUS.md` for details.
 
 ### Deferred from Phase 6
 
@@ -92,7 +91,7 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | Retreat/Broken state | `combat.py` (forced retreat), `marshal.py` (retreat_recovery), `executor.py` |
 | Enemy AI behavior | `enemy_ai.py`, `turn_manager.py`, `executor.py` (is_player_action check) |
 | Capital garrison | `executor.py` (_resolve_garrison_combat), `world_state.py` (garrison init/regen), `enemy_ai.py` (P4.25) |
-| Player garrison | `executor.py` (_execute_garrison), `region.py` (garrison_player_placed), `world_state.py` (regen exclusion) |
+| Player garrison | `executor.py` (_execute_garrison), `region.py` (garrison_detachment), `world_state.py` (regen exclusion) |
 | Fort degradation | `combat.py` (resolve_combat degradation block), `battle_report.py` (P6c observations) |
 | Supply attrition | `world_state.py` (process_supply_attrition), `region.py` (supply_capacity) |
 | Strategic commands | `strategic.py`, `strategic_parser.py`, `executor.py` |
@@ -238,8 +237,8 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | Capital captured too easily | Verify garrison_strength initialized (15000) in `_setup_initial_control()` and regen in `advance_turn()` |
 | AI never advances | Check cautious advance in `_consider_strategic_move()` — needs stagnation >= 1 and not fortified |
 | AI fortify oscillation | Check `ai_refortify_cooldown` — 2-turn cooldown after stagnation unfortify |
-| Player garrison not fighting | Check `garrison_player_placed` — player garrisons fight to destruction (no 5k threshold) |
-| Garrison regen on player garrison | Check `world_state.py advance_turn()` — player-placed garrisons excluded from regen |
+| Player garrison not fighting | Check `garrison_detachment` — detachment garrisons fight to destruction (no 5k threshold) |
+| Garrison regen on player garrison | Check `world_state.py advance_turn()` — detachment garrisons excluded from regen |
 | Fort bonus not degrading | Check `combat.py` — degradation block after recklessness tracking, only if `defense_bonus > 0` |
 
 ---

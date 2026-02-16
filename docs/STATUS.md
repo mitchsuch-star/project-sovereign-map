@@ -1,8 +1,8 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 15, 2026
-> **Last Session:** Session 31 — Playtest Balance Fixes
+> **Last Updated:** February 16, 2026
+> **Last Session:** AI Garrison Implementation
 
 ---
 
@@ -10,8 +10,8 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2559** (verified, 3 skipped) |
-| **Current Phase** | Phase 6: **IN PROGRESS** (3 items remaining: Manpower Pools, Artillery Unit Type, Enemy AI Garrison) |
+| **Tests Passing** | **2588** (verified, 3 skipped) |
+| **Current Phase** | Phase 6: **IN PROGRESS** (2 items remaining: Manpower Pools, Artillery Unit Type) |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier, 6-BattleReport, 6-EventLog, 6-FogOfWar |
 | **Code Coverage** | **71%** (backend/) |
@@ -20,7 +20,7 @@
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED. Save/Load COMPLETE. Fog of War COMPLETE (Sessions 33-36). Fog Map Visualization COMPLETE (Session 38). Manpower Pools and Artillery Unit Type NEXT. TODO: Enemy AI garrison logic (Building Blocks — AI uses same _execute_garrison as player).**
+**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED. Save/Load COMPLETE. Fog of War COMPLETE (Sessions 33-36). Fog Map Visualization COMPLETE (Session 38). Enemy AI Garrison COMPLETE (P6.75 + P4.25 awareness + garrison_detachment rename). Manpower Pools and Artillery Unit Type NEXT.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -63,9 +63,24 @@
 - **Capture Hint:** After move, [HINT] shown for adjacent undefended enemy regions with FULL/PARTIAL visibility. Fog-aware, checks garrison. 8 tests
 - **Occupy Alias:** "occupy" keyword in mock parser maps to "attack" action (word boundary regex, NOT in VALID_ACTIONS). LLM few-shot example added. 5 tests
 
-**TODO for next session:** Enemy AI garrison logic — AI should place garrisons using same _execute_garrison (Building Blocks principle). Tied to Phase 6 remaining items.
-
 **Tests:** 2558 passing (+61 from Session 39), 3 skipped
+
+---
+
+### Feb 16 (AI Garrison Implementation)
+
+**Enemy AI garrison placement + garrison system polish. Three changes:**
+
+**1. `garrison_player_placed` → `garrison_detachment` rename:**
+Rename across all source, tests, and docs. Flag now describes behavior (marshal detachment) not origin (player). Backward compat: `from_dict` accepts both old and new key. Zero test regressions.
+
+**2. P4.25 sub-5k garrison awareness:**
+`_find_garrison_attack()` now evaluates detachment garrisons of any size (not just >= 5k). P4.5 `_find_undefended_capture()` skips detachment garrisons, deferring to P4.25's conscious strength-ratio evaluation.
+
+**3. AI Garrison Placement (P6.75):**
+New `_consider_garrison()` in `enemy_ai.py`. Priority between drill/supply (P6-6.5) and strategic movement (P7). Conditions: strength >= 20k, own territory, no existing garrison, no enemies in/adjacent, no friendly marshal already defending, adjacent to non-friendly region (vulnerable border). Max 1 per nation per turn. AI garrisons use `garrison_detachment=True` (fight to destruction, no regen). Building Blocks principle — same `_execute_garrison` as player.
+
+**Tests:** 2588 passing (+29 new AI garrison tests), 3 skipped
 
 ---
 

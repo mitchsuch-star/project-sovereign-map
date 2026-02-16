@@ -2,7 +2,7 @@
 Test suite for the garrison command (Session 31).
 
 Player can detach 3,000 troops to garrison a controlled region.
-Uses existing garrison_strength field with garrison_player_placed=True.
+Uses existing garrison_strength field with garrison_detachment=True.
 Player garrisons don't regen and fight to destruction (no 5k collapse).
 """
 
@@ -58,7 +58,7 @@ class TestGarrisonPlacement:
         assert result["success"] is True
         assert ney.strength == old_strength - 3000
         assert region.garrison_strength == 3000
-        assert region.garrison_player_placed is True
+        assert region.garrison_detachment is True
         assert "3,000" in result["message"]
         assert "Ney" in result["message"]
 
@@ -125,7 +125,7 @@ class TestGarrisonFailures:
         ney = world.marshals["Ney"]
         region = world.regions[ney.location]
         region.garrison_strength = 3000
-        region.garrison_player_placed = True
+        region.garrison_detachment = True
 
         result = executor._execute_garrison(
             {"marshal": "Ney"}, gs)
@@ -198,7 +198,7 @@ class TestPlayerGarrisonCombat:
         # Set up a garrisoned French region with no French marshals present
         target_region = world.regions["Belgium"]
         target_region.garrison_strength = 3000
-        target_region.garrison_player_placed = True
+        target_region.garrison_detachment = True
         target_region.controller = "France"
 
         # Move ALL marshals far away first to avoid engagement conflicts
@@ -225,12 +225,12 @@ class TestPlayerGarrisonCombat:
         # Set up a region with player garrison at 2000 (below capital 5k threshold)
         region = world.regions.get("Belgium") or list(world.regions.values())[0]
         region.garrison_strength = 2000
-        region.garrison_player_placed = True
+        region.garrison_detachment = True
         region.controller = "France"
 
         # The garrison should still be "fightable" — garrison_fights check uses > 0 for player
         assert region.garrison_strength > 0
-        assert region.garrison_player_placed is True
+        assert region.garrison_detachment is True
         # This confirms the garrison won't auto-collapse like capital garrisons do
 
     def test_player_garrison_destroyed_clears_fields(self):
@@ -238,15 +238,15 @@ class TestPlayerGarrisonCombat:
         world, gs, executor = _setup()
         region = world.regions.get("Belgium") or list(world.regions.values())[0]
         region.garrison_strength = 100  # Very weak — will die
-        region.garrison_player_placed = True
+        region.garrison_detachment = True
         region.controller = "France"
 
         # Simulate destruction
         region.garrison_strength = 0
-        region.garrison_player_placed = False
+        region.garrison_detachment = False
 
         assert region.garrison_strength == 0
-        assert region.garrison_player_placed is False
+        assert region.garrison_detachment is False
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -262,7 +262,7 @@ class TestCapitalGarrisonRegression:
         paris = world.regions.get("Paris")
         if paris and paris.is_capital:
             paris.garrison_strength = 10000
-            paris.garrison_player_placed = False  # Capital garrison
+            paris.garrison_detachment = False  # Capital garrison
 
             # Advance turn — garrison should regen
             old = paris.garrison_strength
@@ -276,7 +276,7 @@ class TestCapitalGarrisonRegression:
         paris = world.regions.get("Paris")
         if paris and paris.is_capital:
             paris.garrison_strength = 3000
-            paris.garrison_player_placed = True  # Player garrison, NOT capital
+            paris.garrison_detachment = True  # Player garrison, NOT capital
 
             old = paris.garrison_strength
             world.advance_turn()
@@ -288,13 +288,13 @@ class TestCapitalGarrisonRegression:
         # We test via the attack path logic
         region = list(world.regions.values())[0]
         region.garrison_strength = 3000
-        region.garrison_player_placed = False  # Capital style
+        region.garrison_detachment = False  # Capital style
         region.controller = "Britain"
 
         # The capital-style garrison with < 5000 should auto-collapse
         # (handled in executor attack flow: garrison_strength > 0, not player_placed, < 5000)
         # Just verify the field values
-        assert not region.garrison_player_placed
+        assert not region.garrison_detachment
         assert region.garrison_strength < 5000
 
 
@@ -305,30 +305,41 @@ class TestCapitalGarrisonRegression:
 class TestGarrisonSerialization:
     """Test save/load roundtrip for garrison fields."""
 
-    def test_garrison_player_placed_serializes(self):
-        """garrison_player_placed survives to_dict/from_dict."""
+    def test_garrison_detachment_serializes(self):
+        """garrison_detachment survives to_dict/from_dict."""
         region = Region("Test", ["A", "B"], terrain="plains", region_type="town")
         region.garrison_strength = 3000
-        region.garrison_player_placed = True
+        region.garrison_detachment = True
 
         d = region.to_dict()
-        assert d["garrison_player_placed"] is True
+        assert d["garrison_detachment"] is True
         assert d["garrison_strength"] == 3000
 
         r2 = Region.from_dict(d)
-        assert r2.garrison_player_placed is True
+        assert r2.garrison_detachment is True
         assert r2.garrison_strength == 3000
 
     def test_backward_compat_missing_field(self):
-        """Old saves without garrison_player_placed default to False."""
+        """Old saves without garrison_detachment default to False."""
         data = {
             "name": "Test",
             "adjacent_regions": ["A"],
             "garrison_strength": 15000,
-            # No garrison_player_placed key
+            # No garrison_detachment key
         }
         r = Region.from_dict(data)
-        assert r.garrison_player_placed is False
+        assert r.garrison_detachment is False
+
+    def test_backward_compat_old_key_name(self):
+        """Old saves with garrison_player_placed migrate to garrison_detachment."""
+        data = {
+            "name": "Test",
+            "adjacent_regions": ["A"],
+            "garrison_strength": 3000,
+            "garrison_player_placed": True,  # Old key name
+        }
+        r = Region.from_dict(data)
+        assert r.garrison_detachment is True
 
     def test_garrison_persists_across_turns(self):
         """Player garrison survives turn processing without change."""
@@ -338,12 +349,12 @@ class TestGarrisonSerialization:
 
         executor._execute_garrison({"marshal": "Ney"}, gs)
         assert region.garrison_strength == 3000
-        assert region.garrison_player_placed is True
+        assert region.garrison_detachment is True
 
         # Advance a turn — garrison should persist unchanged
         world.advance_turn()
         assert region.garrison_strength == 3000
-        assert region.garrison_player_placed is True
+        assert region.garrison_detachment is True
 
 
 # ════════════════════════════════════════════════════════════════════════════════

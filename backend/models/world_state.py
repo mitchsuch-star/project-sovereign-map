@@ -2833,7 +2833,7 @@ class WorldState:
         # Only when capital is controlled by a nation (any nation)
         # ════════════════════════════════════════════════════════════
         for region in self.regions.values():
-            if region.is_capital and region.controller and region.garrison_strength < 15000 and not region.garrison_player_placed:
+            if region.is_capital and region.controller and region.garrison_strength < 15000 and not region.garrison_detachment:
                 old = region.garrison_strength
                 region.garrison_strength = min(15000, region.garrison_strength + 2000)
                 if region.garrison_strength > old:

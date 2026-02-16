@@ -1722,8 +1722,8 @@ Capital regions have a standing garrison that must be defeated before the capita
 
 **AI Integration:**
 - **P-1:** AI marshals don't recklessly abandon capitals — garrison check added to retreat logic
-- **P4.25:** New priority level — AI evaluates garrison assault based on strength ratio vs personality-adjusted threshold
-- **P4.5:** AI skips garrisoned capitals (>= 5,000) when looking for undefended captures
+- **P4.25:** AI evaluates garrison assault — handles both capital garrisons (>= 5k) and detachment garrisons (any size)
+- **P4.5:** AI skips garrisoned regions (>= 5k or detachment) when looking for undefended captures
 
 **Capital Proximity Alerts:** When enemy marshals are adjacent to the player's capital, a warning event is generated in tactical events.
 
@@ -1731,27 +1731,29 @@ Capital regions have a standing garrison that must be defeated before the capita
 
 ### Player Garrison Command (Session 31)
 
-Players can detach 3,000 troops from a marshal to garrison a controlled region. Uses the same `garrison_strength` field as capital garrisons, distinguished by `garrison_player_placed` boolean.
+Players and AI can detach 3,000 troops from a marshal to garrison a controlled region. Uses the same `garrison_strength` field as capital garrisons, distinguished by `garrison_detachment` boolean (renamed from `garrison_player_placed` in AI Garrison session).
 
 **Mechanics:**
 - **Cost:** 1 AP, 3,000 troops detached from marshal
-- **Minimum marshal strength:** 8,000 (must retain 5,000+ after detachment)
-- **Region requirements:** Controlled by player, no existing garrison, no enemies present
+- **Minimum marshal strength:** 8,000 (player), 20,000 (AI — `AI_GARRISON_MIN_STRENGTH`)
+- **Region requirements:** Controlled by marshal's nation, no existing garrison, no enemies present
 
 **Differences from capital garrison:**
-| Property | Capital Garrison | Player Garrison |
-|----------|-----------------|-----------------|
+| Property | Capital Garrison | Detachment Garrison |
+|----------|-----------------|---------------------|
 | Regeneration | +2,000/turn (cap 15k) | None |
 | Collapse threshold | < 5,000 auto-collapses | Fights to destruction (> 0) |
-| `garrison_player_placed` | `False` | `True` |
+| `garrison_detachment` | `False` | `True` |
 
-**Garrison combat:** Both types use `_resolve_garrison_combat()`. Player garrisons fight until `garrison_strength <= 0`.
+**Garrison combat:** Both types use `_resolve_garrison_combat()`. Detachment garrisons fight until `garrison_strength <= 0`.
 
-**Serialization:** `garrison_player_placed` added to `region.py` `to_dict()`/`from_dict()`. Old saves default to `False`.
+**AI garrison placement (P6.75):** AI uses same `_execute_garrison()` (Building Blocks). Heuristic: garrison border regions with excess strength. Max 1 per nation per turn. See `docs/ENEMY_AI_REFERENCE.md` for full conditions.
 
-**TODO — Enemy AI garrison:** AI should be able to place player-style garrisons using the same `_execute_garrison()` method (Building Blocks principle). Simple heuristic: garrison controlled regions behind front lines when excess strength available. Track in Phase 6 remaining items.
+**P4.25 garrison awareness:** AI evaluates ALL garrisons for attack — capital garrisons >= 5k AND detachment garrisons of any size. P4.5 (undefended capture) skips detachment garrisons, deferring them to P4.25.
 
-**Key code:** `executor.py::_execute_garrison()`, `region.py::garrison_player_placed`, `world_state.py::advance_turn()` (regen exclusion), `validation.py` (VALID_ACTIONS), `llm_client.py` (mock parser keywords)
+**Serialization:** `garrison_detachment` in `region.py` `to_dict()`/`from_dict()`. Backward compat: `from_dict` accepts both `garrison_detachment` and old `garrison_player_placed` key.
+
+**Key code:** `executor.py::_execute_garrison()`, `region.py::garrison_detachment`, `world_state.py::advance_turn()` (regen exclusion), `enemy_ai.py::_consider_garrison()` (P6.75), `enemy_ai.py::_find_garrison_attack()` (P4.25)
 
 ### AI Admin Phase (Phase 6.2.G)
 

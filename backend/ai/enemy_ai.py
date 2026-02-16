@@ -366,6 +366,10 @@ class EnemyAI:
         "loyal": 2,          # Won't capture if 3+ enemies adjacent
     }
 
+    # AI garrison: minimum marshal strength to detach troops (keeps 17k after 3k detachment)
+    # Tunable: 20k for Waterloo (4-marshal AI), 15k for 1805 (larger armies)
+    AI_GARRISON_MIN_STRENGTH = 20000
+
     # Survival threshold (% of starting strength)
     # Tuned: below 25% triggers desperate flee/defend behavior
     SURVIVAL_THRESHOLD = 0.25
@@ -392,6 +396,8 @@ class EnemyAI:
             executor: CommandExecutor instance for executing actions
         """
         self.executor = executor
+        # AI Garrison: 1 per nation per turn cap (reset in process_nation_turn)
+        self._garrison_placed_this_turn: bool = False
         # Intent tracking: stores pending intents for marshals (Bug #1 fix)
         # Format: {marshal_name: {"intent": str, "target": str}}
         # Used when a multi-step action is split (e.g., unfortify then capture)
@@ -673,6 +679,9 @@ class EnemyAI:
         # Fix: Track marshals force-unfortified by stagnation this turn (prevent immediate re-fortify)
         self._unfortified_this_turn: set = set()
 
+        # AI Garrison: 1 per nation per turn cap (prevents AP waste)
+        self._garrison_placed_this_turn: bool = False
+
         # Get this nation's marshals
         marshals = world.get_marshals_by_nation(nation)
 
@@ -778,6 +787,10 @@ class EnemyAI:
                 self._attacked_targets_this_turn.add(
                     (selected_action["marshal"], selected_action["target"])
                 )
+
+            # Track successful garrison placement (1 per nation per turn cap)
+            if selected_action["action"] == "garrison":
+                self._garrison_placed_this_turn = True
 
             # Track locations visited after successful moves (oscillation fix)
             if selected_action["action"] in ("move", "retreat") and result.get("success"):
@@ -1477,6 +1490,17 @@ class EnemyAI:
                     ai_debug("  P6.5: No better supply region adjacent — staying")
 
         # ════════════════════════════════════════════════════════════
+        # PRIORITY 6.75: AI GARRISON PLACEMENT
+        # Defensive luxury — garrison vulnerable border regions with
+        # excess strength. Max 1 per nation per turn (AP conservation).
+        # ════════════════════════════════════════════════════════════
+        if not self._garrison_placed_this_turn:
+            garrison_action = self._consider_garrison(marshal, nation, world)
+            if garrison_action:
+                ai_debug(f"  -> P6.75 Garrison: {garrison_action}")
+                return (garrison_action, 7)  # Score 7 (between drill/supply and strategic move)
+
+        # ════════════════════════════════════════════════════════════
         # PRIORITY 7: STRATEGIC MOVEMENT
         # ════════════════════════════════════════════════════════════
         move_action = self._consider_strategic_move(marshal, nation, world)
@@ -2029,9 +2053,13 @@ class EnemyAI:
                 ai_debug(f"        -> Skip: defended by {[d.name for d in defenders]}")
                 continue
 
-            # Skip garrisoned capitals (garrison >= 5000 requires assault via P4)
+            # Skip garrisoned regions (handled by P4.25 garrison assault)
+            # Capital garrisons >= 5k and detachment garrisons (any size) both require assault
             if adj_region.garrison_strength >= 5000:
                 ai_debug(f"        -> Skip: garrison defense ({adj_region.garrison_strength:,} troops)")
+                continue
+            if adj_region.garrison_detachment and adj_region.garrison_strength > 0:
+                ai_debug(f"        -> Skip: detachment garrison ({adj_region.garrison_strength:,} troops)")
                 continue
 
             ai_debug("        -> UNDEFENDED enemy territory!")
@@ -2067,9 +2095,10 @@ class EnemyAI:
 
     def _find_garrison_attack(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
         """
-        Find an adjacent capital garrison to assault.
+        Find an adjacent garrison to assault.
 
         Evaluates garrison strength against marshal's attack threshold.
+        Handles both capital garrisons (>= 5k) and detachment garrisons (any size).
         Uses the attack command — executor handles garrison combat resolution.
         """
         from backend.models.region import TERRAIN_DEFENSE_BONUS
@@ -2081,7 +2110,10 @@ class EnemyAI:
 
         for adj_name in marshal_region.adjacent_regions:
             adj_region = world.get_region(adj_name)
-            if not adj_region or adj_region.garrison_strength < 5000:
+            if not adj_region or adj_region.garrison_strength <= 0:
+                continue
+            # Skip garrisons below 5k UNLESS they are detachment garrisons (fight to death)
+            if adj_region.garrison_strength < 5000 and not adj_region.garrison_detachment:
                 continue
             if adj_region.controller == nation:
                 continue
@@ -2569,6 +2601,93 @@ class EnemyAI:
         return {
             "marshal": marshal.name,
             "action": "drill"
+        }
+
+    def _consider_garrison(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
+        """
+        Consider garrisoning the marshal's current region (P6.75).
+
+        Defensive luxury — garrison vulnerable border regions with excess strength.
+        Uses same _execute_garrison as the player (Building Blocks principle).
+
+        Conditions:
+        - Marshal strength >= AI_GARRISON_MIN_STRENGTH (20k)
+        - Current region controlled by marshal's nation
+        - No existing garrison in region
+        - Region is adjacent to at least 1 non-friendly region (vulnerable border)
+        - No enemy marshal in current region or adjacent (safe to split)
+        - No other friendly marshal in current region (they can defend instead)
+        - 1 per nation per turn cap (checked before calling this method)
+
+        TODO (1805): Check HOLD orders — "no other friendly marshal" should
+        ideally be "no other friendly marshal with HOLD order" to avoid
+        garrisoning when all friendlies are passing through.
+        """
+        # Can't garrison if drilling or fortified (executor would reject, but skip early)
+        if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+            ai_debug(f"    P6.75: {marshal.name} cannot garrison - drilling")
+            return None
+        if getattr(marshal, 'fortified', False):
+            ai_debug(f"    P6.75: {marshal.name} cannot garrison - fortified")
+            return None
+
+        # Strength check — need excess troops to detach
+        if marshal.strength < self.AI_GARRISON_MIN_STRENGTH:
+            ai_debug(f"    P6.75: {marshal.name} too weak to garrison "
+                     f"({marshal.strength:,} < {self.AI_GARRISON_MIN_STRENGTH:,})")
+            return None
+
+        current_region = world.get_region(marshal.location)
+        if not current_region:
+            return None
+
+        # Must control this region
+        if current_region.controller != nation:
+            ai_debug(f"    P6.75: {marshal.name} not in own territory ({current_region.controller})")
+            return None
+
+        # No existing garrison
+        if current_region.garrison_strength > 0:
+            ai_debug(f"    P6.75: {current_region.name} already garrisoned ({current_region.garrison_strength:,})")
+            return None
+
+        # Check for enemy marshals in current or adjacent regions (not safe to split)
+        for m in world.marshals.values():
+            if m.nation == nation or m.strength <= 0:
+                continue
+            if m.location == marshal.location:
+                ai_debug(f"    P6.75: Enemy {m.name} in region - unsafe to garrison")
+                return None
+            if m.location in current_region.adjacent_regions:
+                ai_debug(f"    P6.75: Enemy {m.name} adjacent ({m.location}) - unsafe to garrison")
+                return None
+
+        # Check for other friendly marshals in region (they can defend instead)
+        friendly_here = [m for m in world.marshals.values()
+                         if m.location == marshal.location and m.nation == nation
+                         and m.name != marshal.name and m.strength > 0]
+        if friendly_here:
+            ai_debug(f"    P6.75: {friendly_here[0].name} already in region - no garrison needed")
+            return None
+
+        # Must be adjacent to at least 1 non-friendly region (vulnerable border)
+        has_vulnerable_border = False
+        for adj_name in current_region.adjacent_regions:
+            adj_region = world.get_region(adj_name)
+            if adj_region and adj_region.controller != nation:
+                has_vulnerable_border = True
+                break
+
+        if not has_vulnerable_border:
+            ai_debug(f"    P6.75: {current_region.name} fully surrounded by friendly territory")
+            return None
+
+        # All conditions met — garrison this region
+        print(f"  [AI GARRISON] {marshal.name} garrisoning {current_region.name} "
+              f"(strength {marshal.strength:,}, border region)")
+        return {
+            "marshal": marshal.name,
+            "action": "garrison"
         }
 
     def _consider_strategic_move(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:

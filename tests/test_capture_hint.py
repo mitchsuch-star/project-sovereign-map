@@ -41,7 +41,7 @@ class TestCaptureHint:
         netherlands = world.regions["Netherlands"]
         netherlands.controller = "Britain"
         netherlands.garrison_strength = 0
-        netherlands.garrison_player_placed = False
+        netherlands.garrison_detachment = False
 
         # Ensure FULL visibility on Netherlands
         intel = world.get_region_intel("Netherlands")
@@ -100,7 +100,7 @@ class TestCaptureHint:
         netherlands = world.regions["Netherlands"]
         netherlands.controller = "Britain"
         netherlands.garrison_strength = 15000
-        netherlands.garrison_player_placed = False
+        netherlands.garrison_detachment = False
 
         # Move all enemies out of Netherlands
         for m in world.marshals.values():
@@ -124,7 +124,7 @@ class TestCaptureHint:
         netherlands = world.regions["Netherlands"]
         netherlands.controller = "Britain"
         netherlands.garrison_strength = 2000
-        netherlands.garrison_player_placed = True
+        netherlands.garrison_detachment = True
 
         for m in world.marshals.values():
             if m.nation != "France" and m.location == "Netherlands":

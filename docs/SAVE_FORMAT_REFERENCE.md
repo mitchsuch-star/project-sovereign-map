@@ -427,7 +427,7 @@ A future save/load system should use this as the specification.
   "region_type": "capital",
   "controller": "France",
   "garrison_strength": 0,
-  "garrison_player_placed": false,
+  "garrison_detachment": false,
   "stability": 100,
   "war_damage": 0.0,
   "plundered": false,
@@ -450,7 +450,7 @@ A future save/load system should use this as the specification.
 | `region_type` | string | Region type: capital, major_city, city, town, rural. Default "town" for backward compat. |
 | `controller` | string\|null | Nation controlling region |
 | `garrison_strength` | int | Garrison troops (capital: 15k start, player-placed: 3k detachment) |
-| `garrison_player_placed` | bool | True if garrison was placed by player (no regen, no 5k collapse). Default false for backward compat. (Session 31) |
+| `garrison_detachment` | bool | True if garrison was placed by marshal detachment — player or AI (no regen, no 5k collapse). Default false. Backward compat: `from_dict` also reads old `garrison_player_placed` key. |
 | `stability` | int | 0-100, affects income via tiered modifier. Default 100 for backward compat. (Phase 6.2.C) |
 | `war_damage` | float | 0.0-0.5, reduces income. Default 0.0 for backward compat. (Phase 6.2.C) |
 | `plundered` | bool | True if region was plundered on capture. Clears when stability > 50. Default false. (Phase 6.2.E) |
