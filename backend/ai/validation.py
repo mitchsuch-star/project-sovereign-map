@@ -44,6 +44,8 @@ VALID_ACTIONS: Set[str] = {
     "repair",     # Repair war damage or damaged building
     # Economy info command (Phase 6.2.G) — free action
     "economy",    # Display treasury/income/upkeep breakdown
+    # Garrison command (Session 31) — detach troops to defend a region
+    "garrison",   # Leave garrison detachment in current region
     # ═══════ ADD NEW ACTIONS HERE ═══════
     # This is the SINGLE SOURCE OF TRUTH for valid LLM actions.
     # Also update: llm_client.py keywords, parser.py valid_actions,

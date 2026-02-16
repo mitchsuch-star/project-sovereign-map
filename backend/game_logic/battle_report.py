@@ -228,6 +228,26 @@ _OBSERVATIONS = {
         "The prepared defenses proved their worth. {enemy} could not dislodge {marshal}.",
         "A wise investment in fortification. {marshal}'s position was impregnable to {enemy}'s assault.",
     ],
+    # Fortification degradation (Session 31) — attacker perspective: we attacked and damaged their fort
+    "fort_degraded_attacker": [
+        "The walls of the region bear fresh scars, Your Majesty. Their fortifications weaken -- another assault may crack them.",
+        "Our bombardment has damaged their works. {enemy}'s defenses erode with each engagement.",
+    ],
+    # Fortification degradation — defender perspective: our fort was damaged by enemy attack
+    "fort_degraded_defender": [
+        "Our fortifications have sustained damage in the fighting. The walls will not hold forever, Your Majesty.",
+        "The enemy's assault has weakened our works. We must repair or consider withdrawal.",
+    ],
+    # Fortification destroyed — attacker perspective: we destroyed their fort
+    "fort_destroyed_attacker": [
+        "{enemy}'s fortifications have been reduced to rubble! They now defend on open ground.",
+        "Persistent assault has demolished their works. The advantage of position is no more.",
+    ],
+    # Fortification destroyed — defender perspective: our fort was destroyed
+    "fort_destroyed_defender": [
+        "I regret to report our fortifications are destroyed, Your Majesty. We hold open ground now.",
+        "The enemy's repeated assaults have leveled our defenses. We fight without cover.",
+    ],
     "won_drilled": [
         "{marshal}'s drill training proved its worth on the field today.",
         "Well-drilled troops make the difference. {marshal}'s preparation paid dividends.",
@@ -367,6 +387,26 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     # 6b: We defended with a fort and held — our investment paid off
     if we_won and _has_mod(our_mods, "fortif", "bonus"):
         return _fill(random.choice(_OBSERVATIONS["won_fort_held"]))
+
+    # Priority 6c: Fortification degradation — walls damaged by battle (Session 31)
+    # Fires regardless of who won — any battle with degradation is notable
+    fort_degraded = battle_result.get("fortification_degraded", False)
+    fort_new = battle_result.get("fortification_new", 0)
+    if fort_degraded:
+        # Determine if the defender's fort was ours or theirs
+        defender_is_ours = not we_are_attacker
+        if fort_new <= 0:
+            # Fort destroyed
+            if defender_is_ours:
+                return _fill(random.choice(_OBSERVATIONS["fort_destroyed_defender"]))
+            else:
+                return _fill(random.choice(_OBSERVATIONS["fort_destroyed_attacker"]))
+        else:
+            # Fort damaged but standing
+            if defender_is_ours:
+                return _fill(random.choice(_OBSERVATIONS["fort_degraded_defender"]))
+            else:
+                return _fill(random.choice(_OBSERVATIONS["fort_degraded_attacker"]))
 
     # Priority 7: We won + our side had drill bonus
     if we_won and _has_mod(our_mods, "drill", "bonus"):

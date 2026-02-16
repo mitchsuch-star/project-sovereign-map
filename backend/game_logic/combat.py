@@ -572,6 +572,22 @@ class CombatResolver:
         if recklessness_message:
             retreat_message += f"\n\n{recklessness_message}"
 
+        # ════════════════════════════════════════════════════════════
+        # FORTIFICATION DEGRADATION: Battles damage walls
+        # Every battle degrades the defender's personal defense_bonus by 5%,
+        # regardless of who wins. This makes sustained assault crack fortified
+        # positions. Star fort buildings (fortification_bonus param) are NOT
+        # affected — only the marshal's personal fortify bonus degrades.
+        # ════════════════════════════════════════════════════════════
+        fortification_degraded = False
+        fortification_old = 0.0
+        fortification_new = 0.0
+        if getattr(defender, 'defense_bonus', 0) > 0:
+            fortification_old = defender.defense_bonus
+            defender.defense_bonus = max(0, round(defender.defense_bonus - 0.05, 2))
+            fortification_new = defender.defense_bonus
+            fortification_degraded = True
+
         # THIS RETURN MUST BE HERE!
         result_dict = {
             "outcome": outcome,
@@ -616,6 +632,10 @@ class CombatResolver:
                 "attacker": attacker_modifier_snapshot,
                 "defender": defender_modifier_snapshot,
             },
+            # Fortification degradation (Session 31)
+            "fortification_degraded": fortification_degraded,
+            "fortification_old": fortification_old,
+            "fortification_new": fortification_new,
         }
         result_dict["battle_report"] = generate_battle_report(result_dict)
 

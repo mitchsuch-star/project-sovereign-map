@@ -14,7 +14,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ## Current Phase
 
-**Phase 6: Core Campaign Systems — IN PROGRESS (2 items remaining)**
+**Phase 6: Core Campaign Systems — IN PROGRESS (3 items remaining)**
 
 ### Remaining (must build before Phase 6.5)
 
@@ -22,10 +22,11 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 |---------|------------|-------|
 | **Manpower Pools** | Medium | Separate: Infantry, Cavalry, Artillery |
 | **Artillery Unit Type** | Medium | Combat buffs like cavalry |
+| **Enemy AI Garrison** | Low | AI places garrisons via _execute_garrison (Building Blocks). Simple heuristic: garrison behind front lines with excess strength. |
 
 ### Completed in Phase 6
 
-Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-Battle Analysis, Turn Events Log, Reinforcements, Attrition, City Fortification, Fog of War (COMPLETE: Sessions 33-36 — intel model, visibility engine, scout persistence, battle reveal, intel report, filtered game state, PURSUE/SUPPORT/cautious pathfinding fog-aware, enemy phase filtering, tactical event filtering, watchtower building, contact interrupt discovery messages, Davout PURSUE fog-aware objection, V2b TODO markers, 157 fog-specific tests). See `docs/STATUS.md` for details.
+Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-Battle Analysis, Turn Events Log, Reinforcements, Attrition, City Fortification, Fog of War (COMPLETE: Sessions 33-36), Player Garrison Command (Session 31: garrison command + fort degradation + morale warning + capture hint + occupy alias). See `docs/STATUS.md` for details.
 
 ### Deferred from Phase 6
 
@@ -91,6 +92,8 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | Retreat/Broken state | `combat.py` (forced retreat), `marshal.py` (retreat_recovery), `executor.py` |
 | Enemy AI behavior | `enemy_ai.py`, `turn_manager.py`, `executor.py` (is_player_action check) |
 | Capital garrison | `executor.py` (_resolve_garrison_combat), `world_state.py` (garrison init/regen), `enemy_ai.py` (P4.25) |
+| Player garrison | `executor.py` (_execute_garrison), `region.py` (garrison_player_placed), `world_state.py` (regen exclusion) |
+| Fort degradation | `combat.py` (resolve_combat degradation block), `battle_report.py` (P6c observations) |
 | Supply attrition | `world_state.py` (process_supply_attrition), `region.py` (supply_capacity) |
 | Strategic commands | `strategic.py`, `strategic_parser.py`, `executor.py` |
 | Objection V2 system | `objection_v2.py`, `docs/OBJECTION_V2.md` |
@@ -235,6 +238,9 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | Capital captured too easily | Verify garrison_strength initialized (15000) in `_setup_initial_control()` and regen in `advance_turn()` |
 | AI never advances | Check cautious advance in `_consider_strategic_move()` — needs stagnation >= 1 and not fortified |
 | AI fortify oscillation | Check `ai_refortify_cooldown` — 2-turn cooldown after stagnation unfortify |
+| Player garrison not fighting | Check `garrison_player_placed` — player garrisons fight to destruction (no 5k threshold) |
+| Garrison regen on player garrison | Check `world_state.py advance_turn()` — player-placed garrisons excluded from regen |
+| Fort bonus not degrading | Check `combat.py` — degradation block after recklessness tracking, only if `defense_bonus > 0` |
 
 ---
 
@@ -312,7 +318,7 @@ python -m backend.modding.validator path/to/mod.json
 **Phase Status Rules:**
 - The "Current Phase" section in CLAUDE.md must ALWAYS list remaining/unbuilt items for the current phase. Completed items get a brief summary. Remaining items are the priority — they must be impossible to miss.
 - When completing a session, if the current phase still has unfinished items in ROADMAP.md, CLAUDE.md must say "Phase X IN PROGRESS" with remaining items listed. NEVER let it read as complete when items remain.
-- STATUS.md "Current Phase" quick stat must include remaining item count: e.g., "Phase 6: IN PROGRESS (3 items remaining: Fog of War, Manpower, Artillery)"
+- STATUS.md "Current Phase" quick stat must include remaining item count: e.g., "Phase 6: IN PROGRESS (3 items remaining: Manpower, Artillery, AI Garrison)"
 - When a phase is truly complete (all ROADMAP items done or explicitly deferred), BOTH CLAUDE.md and STATUS.md must be updated to point to the next phase and its first items.
 - Any item marked "Deferred" in ROADMAP.md doesn't count as remaining — only "Planned" items that are still in-scope for the current phase.
 

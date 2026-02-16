@@ -40,7 +40,7 @@
 | 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 2264 (verified Feb 13, 2026)
+**Total Tests:** 2558 (verified Feb 15, 2026)
 
 ---
 
@@ -81,6 +81,8 @@
 | City Fortification | "Fortify this city" building action | Low | **DONE** (6.2.E: fortification building, 400g/3t, +25% defense. 6.2.F: contested capture holdout.) |
 | Artillery Unit Type | Combat buffs like cavalry | Medium | Planned |
 | Turn Events Log | Track battles/captures/retreats per turn (feeds gazette) | Low | **COMPLETE** (Session 30: 13 event types, world.event_log, 5 helpers, serialized, 39 tests). EL1-EL5 hardening TODOs resolved in Session 31 (1 bug fixed: auto-charge path wasn't logging battle events). |
+| Player Garrison | Detach 3k troops to garrison a region | Low | **DONE** (Session 31: garrison command, fort degradation, morale warning, capture hint, occupy alias) |
+| Enemy AI Garrison | AI places garrisons via same _execute_garrison (Building Blocks) | Low | **TODO** — next action after Manpower Pools / Artillery |
 | **Save/Load** | Full game state persistence + autosave (moved from Pre-EA) | Low | **COMPLETE** (Session 27: save_manager.py, 4 API endpoints, autosave, terminal commands, load dialog, 38 tests) |
 | **Berthier Parse Recovery** | Failed parses -> Berthier asks clarification in-character (moved from 8.5) | Low | **COMPLETE** (Session 28: prompt_builder.py, llm_client.py, parser.py, main.py. Mock templates + LLM prompt. Reacts to tone. 20 tests.) |
 | **Post-Battle Analysis** | Template breakdown: modifiers, casualties, Berthier observation | Low | **COMPLETE** (Session 29: battle_report.py, snapshots, 15 observation priorities with perspective-aware attacker/defender variants, Godot display, 65 tests) |

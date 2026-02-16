@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 15, 2026
-> **Last Session:** Session 39 — Balance & AI Fixes
+> **Last Session:** Session 31 — Playtest Balance Fixes
 
 ---
 
@@ -10,8 +10,8 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2497** (verified, 3 skipped) |
-| **Current Phase** | Phase 6: **IN PROGRESS** (2 items remaining: Manpower Pools, Artillery Unit Type) |
+| **Tests Passing** | **2559** (verified, 3 skipped) |
+| **Current Phase** | Phase 6: **IN PROGRESS** (3 items remaining: Manpower Pools, Artillery Unit Type, Enemy AI Garrison) |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier, 6-BattleReport, 6-EventLog, 6-FogOfWar |
 | **Code Coverage** | **71%** (backend/) |
@@ -20,7 +20,7 @@
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED. Save/Load COMPLETE. Fog of War COMPLETE (Sessions 33-36). Fog Map Visualization COMPLETE (Session 38). Manpower Pools and Artillery Unit Type NEXT.**
+**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED. Save/Load COMPLETE. Fog of War COMPLETE (Sessions 33-36). Fog Map Visualization COMPLETE (Session 38). Manpower Pools and Artillery Unit Type NEXT. TODO: Enemy AI garrison logic (Building Blocks — AI uses same _execute_garrison as player).**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -50,6 +50,24 @@
 ---
 
 ## Recently Completed
+
+### Feb 15 (Session 31: Playtest Balance Fixes)
+
+**6 playtest-driven fixes addressing UX issues, combat realism, and new garrison command.**
+
+**Fixes:**
+- **Fix 500 Error:** Replaced emoji in print statements (14 total across main.py, executor.py, disobedience.py) that caused UnicodeEncodeError on Windows, crashing the /respond_to_objection endpoint
+- **Fortification Degradation:** Defender's defense_bonus degrades -5% per battle in combat.py. Berthier observations added (4 categories: degraded/destroyed x attacker/defender). 19 tests
+- **Garrison Command:** New "garrison" action — detach 3,000 troops to defend a controlled region. Uses existing garrison_strength + new garrison_player_placed bool. Player garrisons don't regen and fight to destruction (no 5k collapse). Full 8-step action pattern (validation.py, executor.py, parser.py, world_state.py, llm_client.py, prompt_builder.py, region.py serialization). 22 tests
+- **Morale Warning:** Recruitment result shows [WARNING] at <40% morale, [DANGER] at <25%. 6 tests
+- **Capture Hint:** After move, [HINT] shown for adjacent undefended enemy regions with FULL/PARTIAL visibility. Fog-aware, checks garrison. 8 tests
+- **Occupy Alias:** "occupy" keyword in mock parser maps to "attack" action (word boundary regex, NOT in VALID_ACTIONS). LLM few-shot example added. 5 tests
+
+**TODO for next session:** Enemy AI garrison logic — AI should place garrisons using same _execute_garrison (Building Blocks principle). Tied to Phase 6 remaining items.
+
+**Tests:** 2558 passing (+61 from Session 39), 3 skipped
+
+---
 
 ### Feb 15 (Session 39: Balance & AI Fixes)
 

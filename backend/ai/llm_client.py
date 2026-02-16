@@ -537,7 +537,7 @@ class LLMClient:
         # Use \b word boundaries to prevent substring false positives (e.g. "bypass" matching "pass").
         elif "glorious charge" in command_lower or (re.search(r'\bcharge\b', command_lower) and "attack" not in command_lower):
             action = "charge"
-        elif "attack" in command_lower or re.search(r'\bcharge\b', command_lower):
+        elif "attack" in command_lower or re.search(r'\bcharge\b', command_lower) or re.search(r'\boccupy\b', command_lower):
             action = "attack"
         # Strategic PURSUE keywords → base action "attack" (strategic parser upgrades)
         elif any(kw in command_lower for kw in [
@@ -618,6 +618,12 @@ class LLMClient:
         # Economy info command (Phase 6.2.G)
         elif any(kw in command_lower for kw in ["economy", "treasury", "finances", "financial"]):
             action = "economy"
+        # Garrison command (Session 31) — detach troops to defend a region
+        elif re.search(r'\bgarrison\b', command_lower) or any(kw in command_lower for kw in [
+            "leave troops", "detach troops", "leave behind", "detach garrison",
+            "leave a garrison", "station troops",
+        ]):
+            action = "garrison"
         # ═══════ ADD NEW ACTION KEYWORDS HERE ═══════
         # When adding a new action, add an elif block above this comment.
         # Also update: validation.py VALID_ACTIONS, parser.py valid_actions,

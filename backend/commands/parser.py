@@ -63,6 +63,8 @@ class CommandParser:
             "repair",    # Repair war damage or damaged building
             # Economy info command (Phase 6.2.G)
             "economy",   # Display treasury/income/upkeep (free action)
+            # Garrison command (Session 31)
+            "garrison",  # Detach troops to garrison a region
         ]
 
         # Valid stances for stance_change command (Phase 2.7)

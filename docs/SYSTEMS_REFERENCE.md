@@ -197,6 +197,23 @@ return modifier
 - Max: 15% standard, 10% for aggressive (Ney), 20% for cautious (Davout)
 - Instant fortify: +5% on first turn for cautious (Davout)
 
+### Fortification Degradation (Session 31)
+
+When a fortified defender is attacked, their `defense_bonus` degrades by 5% (0.05) per battle. This represents siege damage wearing down prepared positions.
+
+- Applied in `combat.py` AFTER all combat resolution (damage, retreats, recklessness tracking)
+- Only triggers if `defender.defense_bonus > 0`
+- Capped at 0 (can't go negative)
+- If defense_bonus reaches 0: fortification is destroyed
+- Result dict includes: `fortification_degraded`, `fortification_old`, `fortification_new`
+
+**Berthier Observations (Priority 6c):**
+- `fort_degraded_attacker/defender`: "The enemy earthworks crumble under our bombardment"
+- `fort_destroyed_attacker/defender`: "Their fortifications are reduced to rubble"
+- Priority 6c fires between P6 (won/fort held) and P7 (won drilled)
+
+**Key code:** `combat.py::resolve_combat()` (degradation), `battle_report.py::_pick_observation()` (P6c), `battle_report.py::_OBSERVATIONS` (templates)
+
 ### Drill/Shock Bonus
 
 - 2-turn drill process: `drilling` (turn 1) -> `drilling_locked` (turn 2) -> `shock_bonus` set
@@ -1597,6 +1614,10 @@ new_morale = int((old_strength * old_morale + 10000 * RECRUIT_MORALE) / (old_str
 
 **Event fields:** `morale_before`, `morale_after`, `gold_cost`, `stability_premium`, `capital_discount`, `troops_added`, `new_strength`. All `int()`.
 
+**Morale Warning (Session 31):** Recruitment result includes warning labels when post-recruit morale is dangerously low:
+- `[WARNING]` when new morale < 40%: "consider drilling before battle"
+- `[DANGER]` when new morale < 25%: "troops may break in combat"
+
 **Key code:** `executor.py::_execute_recruit()`, `executor.py::_calculate_recruit_cost()`
 
 ### Plunder/Secure Capture Choice (Phase 6.2.E)
@@ -1662,7 +1683,9 @@ Supply depot adds +10,000 to base. Terrain modifier applied (mountains 0.5x, urb
 
 **Depot Forward Logistics (Phase 6.2.H):** Supply depots project a logistics benefit to adjacent regions. If the destination or any adjacent region has a friendly undamaged supply depot, movement attrition is halved (0.5x after terrain). Does NOT stack, does NOT affect retreat/harassment/supply attrition. This makes depots an offensive logistics tool: build a depot at the border before pushing into enemy territory.
 
-**Key code:** `region.py::SUPPLY_BY_TYPE`, `region.py::supply_capacity`, `world_state.py::process_supply_attrition()`, `executor.py::_calculate_movement_attrition()`, `executor.py::_has_depot_supply_bonus()`
+**Capture Hint (Session 31):** After a player marshal moves, adjacent enemy regions that are undefended (no enemy marshals, no garrison >= 5k, no player-placed garrison) and have FULL or PARTIAL visibility get a `[HINT]` in the move result message. Also adds `capture_hints` list to result dict for Godot UI. Enemy marshals don't receive hints.
+
+**Key code:** `region.py::SUPPLY_BY_TYPE`, `region.py::supply_capacity`, `world_state.py::process_supply_attrition()`, `executor.py::_calculate_movement_attrition()`, `executor.py::_has_depot_supply_bonus()`, `executor.py::_execute_move()` (capture hint block)
 
 ### Contested Capture (Phase 6.2.F)
 
@@ -1705,6 +1728,30 @@ Capital regions have a standing garrison that must be defeated before the capita
 **Capital Proximity Alerts:** When enemy marshals are adjacent to the player's capital, a warning event is generated in tactical events.
 
 **Key code:** `region.py::garrison_strength`, `executor.py::_resolve_garrison_combat()`, `world_state.py::_setup_initial_control()` (init), `world_state.py::advance_turn()` (regen), `enemy_ai.py::_find_garrison_attack()`, `turn_manager.py::_check_capital_proximity()`
+
+### Player Garrison Command (Session 31)
+
+Players can detach 3,000 troops from a marshal to garrison a controlled region. Uses the same `garrison_strength` field as capital garrisons, distinguished by `garrison_player_placed` boolean.
+
+**Mechanics:**
+- **Cost:** 1 AP, 3,000 troops detached from marshal
+- **Minimum marshal strength:** 8,000 (must retain 5,000+ after detachment)
+- **Region requirements:** Controlled by player, no existing garrison, no enemies present
+
+**Differences from capital garrison:**
+| Property | Capital Garrison | Player Garrison |
+|----------|-----------------|-----------------|
+| Regeneration | +2,000/turn (cap 15k) | None |
+| Collapse threshold | < 5,000 auto-collapses | Fights to destruction (> 0) |
+| `garrison_player_placed` | `False` | `True` |
+
+**Garrison combat:** Both types use `_resolve_garrison_combat()`. Player garrisons fight until `garrison_strength <= 0`.
+
+**Serialization:** `garrison_player_placed` added to `region.py` `to_dict()`/`from_dict()`. Old saves default to `False`.
+
+**TODO — Enemy AI garrison:** AI should be able to place player-style garrisons using the same `_execute_garrison()` method (Building Blocks principle). Simple heuristic: garrison controlled regions behind front lines when excess strength available. Track in Phase 6 remaining items.
+
+**Key code:** `executor.py::_execute_garrison()`, `region.py::garrison_player_placed`, `world_state.py::advance_turn()` (regen exclusion), `validation.py` (VALID_ACTIONS), `llm_client.py` (mock parser keywords)
 
 ### AI Admin Phase (Phase 6.2.G)
 

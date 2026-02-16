@@ -1165,7 +1165,7 @@ class DisobedienceSystem:
         if marshal and hasattr(marshal, 'trust'):
             current_trust = marshal.trust.value
             already_pending = getattr(marshal, 'redemption_pending', False)
-            print(f"  📊 TRUST CHECK: {marshal_name} at {current_trust}, " +
+            print(f"  [TRUST CHECK] {marshal_name} at {current_trust}, " +
                   f"redemption_triggered={'YES' if current_trust <= 20 and not already_pending else 'NO'}")
 
             if current_trust <= 20 and not already_pending:

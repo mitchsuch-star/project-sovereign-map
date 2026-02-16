@@ -124,6 +124,7 @@ class Region:
         # Game state (changes during play)
         self.controller: Optional[str] = None
         self.garrison_strength: int = 0
+        self.garrison_player_placed: bool = False  # Session 31: True = player detachment (no regen, no collapse threshold)
 
         # Economy modifiers (Phase 6.2.C)
         self.stability: int = 100  # 0-100, affects income. Default 100 = Stable
@@ -267,6 +268,7 @@ class Region:
             "region_type": self.region_type,
             "controller": self.controller,
             "garrison_strength": self.garrison_strength,
+            "garrison_player_placed": self.garrison_player_placed,
             "stability": self.stability,
             "war_damage": self.war_damage,
             # Phase 6.2.E
@@ -291,6 +293,7 @@ class Region:
         )
         region.controller = data.get("controller")
         region.garrison_strength = data.get("garrison_strength", 0)
+        region.garrison_player_placed = data.get("garrison_player_placed", False)
         region.stability = data.get("stability", 100)  # Default 100 for backward compat
         region.war_damage = data.get("war_damage", 0.0)  # Default 0.0 for backward compat
         # Phase 6.2.E

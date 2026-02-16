@@ -152,6 +152,58 @@ class TestObjectionResponseEndpoint:
         assert "message" in data
 
 
+    def test_respond_insist_with_pending_objection(self, client, fresh_world):
+        """Insist on order after Ney fortify objection — no 500 error."""
+        import backend.main as main_module
+        world = main_module.world
+
+        # Set up a realistic Ney fortify objection
+        world.pending_objection = {
+            "type": "major_objection",
+            "marshal": "Ney",
+            "message": "Ney objects to fortifying.",
+            "original_order": {"action": "fortify", "marshal": "Ney", "target": None},
+            "suggested_alternative": {"action": "attack", "marshal": "Ney", "target": "Waterloo"},
+            "compromise": None,
+            "severity": 0.6,
+            "concern_level": "MODERATE",
+        }
+
+        response = client.post(
+            "/respond_to_objection",
+            json={"choice": "insist"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "message" in data
+        assert data.get("objection_resolved") is True
+
+    def test_respond_trust_with_pending_objection(self, client, fresh_world):
+        """Trust marshal after objection — no 500 error."""
+        import backend.main as main_module
+        world = main_module.world
+
+        world.pending_objection = {
+            "type": "major_objection",
+            "marshal": "Ney",
+            "message": "Ney objects to defending.",
+            "original_order": {"action": "defend", "marshal": "Ney", "target": None},
+            "suggested_alternative": {"action": "attack", "marshal": "Ney", "target": "Waterloo"},
+            "compromise": None,
+            "severity": 0.6,
+            "concern_level": "MODERATE",
+        }
+
+        response = client.post(
+            "/respond_to_objection",
+            json={"choice": "trust"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "message" in data
+        assert data.get("objection_resolved") is True
+
+
 class TestCaptureChoiceEndpoint:
     """Test /capture_choice endpoint."""
 

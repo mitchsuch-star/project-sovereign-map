@@ -760,11 +760,11 @@ def respond_to_objection(request: ObjectionResponse):
             response["redemption_event"] = result["redemption_event"]
             # Store pending redemption for the endpoint
             world.pending_redemption = result["redemption_event"]
-            print(f"🚨 REDEMPTION TRIGGERED for {result['redemption_event']['marshal']}")
+            print(f"[ALERT] REDEMPTION TRIGGERED for {result['redemption_event']['marshal']}")
 
         return response
     except Exception as e:
-        print(f"❌ ERROR handling objection response: {e}")
+        print(f"[ERROR] handling objection response: {e}")
         import traceback
         traceback.print_exc()
         return {
@@ -862,7 +862,7 @@ def respond_to_redemption(request: RedemptionResponse):
             "game_state": world.get_filtered_game_state_summary()
         }
     except Exception as e:
-        print(f"❌ ERROR handling redemption response: {e}")
+        print(f"[ERROR] handling redemption response: {e}")
         import traceback
         traceback.print_exc()
         return {
@@ -935,7 +935,7 @@ def respond_to_glorious_charge(request: GloriousChargeResponse):
             response["battle_report"] = result["battle_report"]
         return response
     except Exception as e:
-        print(f"❌ ERROR handling Glorious Charge response: {e}")
+        print(f"[ERROR] handling Glorious Charge response: {e}")
         import traceback
         traceback.print_exc()
         return {
@@ -976,7 +976,7 @@ def handle_strategic_response(request: StrategicInterruptResponse):
             "game_state": world.get_filtered_game_state_summary()
         }
     except Exception as e:
-        print(f"❌ ERROR handling strategic response: {e}")
+        print(f"[ERROR] handling strategic response: {e}")
         import traceback
         traceback.print_exc()
         return {
@@ -1257,7 +1257,7 @@ async def debug_set_trust(request: Request):
     old_trust = int(marshal.trust.value)
     marshal.trust._value = max(0, min(100, int(trust_value)))
 
-    print(f"🔧 DEBUG: Set {marshal_name} trust: {old_trust} → {marshal.trust.value}")
+    print(f"[DEBUG] Set {marshal_name} trust: {old_trust} -> {marshal.trust.value}")
 
     return {
         "success": True,
@@ -1348,7 +1348,7 @@ def debug_trigger_redemption(marshal_name: str):
     redemption_event = world.disobedience_system._create_redemption_event(marshal)
     world.pending_redemption = redemption_event
 
-    print(f"🔧 DEBUG: Triggered redemption for {marshal_name} (trust: {old_trust} → 15)")
+    print(f"[DEBUG] Triggered redemption for {marshal_name} (trust: {old_trust} -> 15)")
 
     return {
         "success": True,
@@ -1381,7 +1381,7 @@ async def debug_set_authority(request: Request):
     old_authority = int(world.authority_tracker.authority)
     world.authority_tracker.authority = max(0, min(100, int(authority_value)))
 
-    print(f"🔧 DEBUG: Set authority: {old_authority} → {world.authority_tracker.authority}")
+    print(f"[DEBUG] Set authority: {old_authority} -> {world.authority_tracker.authority}")
 
     return {
         "success": True,

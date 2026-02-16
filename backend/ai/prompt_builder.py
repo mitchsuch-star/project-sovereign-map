@@ -182,6 +182,32 @@ EXAMPLE_COMMANDS = [
             "interpretation": "Construct market building in Paris",
         }
     },
+    {
+        "input": "Davout, garrison Bavaria",
+        "output": {
+            "matched": True,
+            "command_type": "tactical",
+            "marshals": ["Davout"],
+            "action": "garrison",
+            "target": "Bavaria",
+            "ambiguity": 5,
+            "strategic_score": 20,
+            "interpretation": "Marshal Davout detaches troops to garrison Bavaria",
+        }
+    },
+    {
+        "input": "Ney, occupy the Netherlands",
+        "output": {
+            "matched": True,
+            "command_type": "tactical",
+            "marshals": ["Ney"],
+            "action": "attack",
+            "target": "Netherlands",
+            "ambiguity": 10,
+            "strategic_score": 45,
+            "interpretation": "Marshal Ney to attack and occupy the Netherlands",
+        }
+    },
 ]
 
 # Phase 5.2: Strategic command examples (active)

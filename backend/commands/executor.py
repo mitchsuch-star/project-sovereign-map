@@ -47,6 +47,7 @@ _ACTION_DISPLAY_NAMES = {
     "hold": "holds",
     "build": "builds",
     "repair": "repairs",
+    "garrison": "garrisons",
 }
 
 
@@ -1370,6 +1371,8 @@ RETREAT RECOVERY (3 turns):
             result = self._execute_repair(command, game_state)
         elif action in ("economy", "treasury", "finances"):
             result = self._execute_economy(command, game_state)
+        elif action == "garrison":
+            result = self._execute_garrison(command, game_state)
         elif action == "end_turn":
             result = self._execute_end_turn(command, game_state)
         # ════════════════════════════════════════════════════════════
@@ -1828,12 +1831,17 @@ RETREAT RECOVERY (3 turns):
         old_garrison = target_region.garrison_strength
         target_region.garrison_strength = max(0, target_region.garrison_strength - garrison_losses)
 
-        # Check if garrison collapsed (below 5k threshold)
-        garrison_collapsed = target_region.garrison_strength < 5000
+        # Check if garrison collapsed
+        # Capital garrisons collapse below 5k threshold; player-placed garrisons fight to destruction
+        if target_region.garrison_player_placed:
+            garrison_collapsed = target_region.garrison_strength <= 0
+        else:
+            garrison_collapsed = target_region.garrison_strength < 5000
 
         if garrison_collapsed:
             # Garrison collapses — capture proceeds
             target_region.garrison_strength = 0
+            target_region.garrison_player_placed = False
             old_controller = target_region.controller
             old_location = marshal.location
 
@@ -2522,20 +2530,30 @@ RETREAT RECOVERY (3 turns):
 
                 if not defenders:
                     # ════════════════════════════════════════════════════════════
-                    # CAPITAL GARRISON DEFENSE: Garrison fights attackers when no
-                    # marshal is present. Must reduce garrison below 5,000 to capture.
-                    # Attacker stays in original region until garrison collapses.
+                    # GARRISON DEFENSE: Garrison fights attackers when no marshal
+                    # is present. Capital garrisons collapse below 5k. Player
+                    # garrisons (garrison_player_placed) fight to destruction.
                     # ════════════════════════════════════════════════════════════
-                    if target_region.garrison_strength >= 5000 and target_region.controller != marshal.nation:
+                    garrison_fights = False
+                    if target_region.garrison_strength > 0 and target_region.controller != marshal.nation:
+                        if target_region.garrison_player_placed:
+                            # Player-placed garrisons always fight (no collapse threshold)
+                            garrison_fights = True
+                        elif target_region.garrison_strength >= 5000:
+                            # Capital garrisons fight above 5k
+                            garrison_fights = True
+
+                    if garrison_fights:
                         garrison_result = self._resolve_garrison_combat(
                             marshal, target_region, world, game_state)
                         if drill_cancelled_message:
                             garrison_result["message"] = drill_cancelled_message + garrison_result["message"]
                         return garrison_result
 
-                    # If garrison exists but below 5k, it collapses — clear it
+                    # If garrison exists but below collapse threshold, it collapses — clear it
                     if target_region.garrison_strength > 0 and target_region.controller != marshal.nation:
                         target_region.garrison_strength = 0
+                        target_region.garrison_player_placed = False
 
                     # UNDEFENDED - Capture attempt (may start occupation if fortified)
                     old_controller = target_region.controller
@@ -4511,13 +4529,52 @@ RETREAT RECOVERY (3 turns):
                 "reason": "move"
             })
 
-        return {
+        # ════════════════════════════════════════════════════════════
+        # CAPTURE HINT (Session 31): Suggest attacking undefended enemy regions
+        # Fog-aware: only hint about regions with FULL or PARTIAL visibility
+        # ════════════════════════════════════════════════════════════
+        capture_hints = []
+        if marshal.nation == world.player_nation:
+            from backend.models.intel import FULL, PARTIAL
+            dest_region = world.get_region(target_name)
+            if dest_region:
+                for adj_name in dest_region.adjacent_regions:
+                    adj_region = world.get_region(adj_name)
+                    if not adj_region:
+                        continue
+                    # Must be enemy-controlled
+                    if not adj_region.controller or adj_region.controller == marshal.nation:
+                        continue
+                    # Fog-aware: check visibility
+                    intel = world.get_region_intel(adj_name)
+                    if intel.visibility not in (FULL, PARTIAL):
+                        continue
+                    # Check if undefended: no enemy marshals AND no meaningful garrison
+                    enemies_there = world.get_marshals_in_region(adj_name)
+                    enemy_marshals = [m for m in enemies_there if m.nation != marshal.nation and m.strength > 0]
+                    has_garrison = adj_region.garrison_strength >= 5000 or (
+                        adj_region.garrison_player_placed and adj_region.garrison_strength > 0
+                    )
+                    if not enemy_marshals and not has_garrison:
+                        capture_hints.append(adj_name)
+
+        capture_hint_msg = ""
+        if capture_hints:
+            if len(capture_hints) == 1:
+                capture_hint_msg = f"\n[HINT] {capture_hints[0]} is undefended — attack to capture it!"
+            else:
+                capture_hint_msg = f"\n[HINT] Undefended regions nearby: {', '.join(capture_hints)} — attack to capture!"
+
+        result = {
             "success": True,
-            "message": move_message,
+            "message": move_message + capture_hint_msg,
             "drill_cancelled": bool(drill_cancelled_message),
             "events": events,
             "new_state": game_state
         }
+        if capture_hints:
+            result["capture_hints"] = capture_hints
+        return result
 
     def _execute_scout(self, marshal, target, world: WorldState, game_state) -> Dict:
         """
@@ -5643,6 +5700,14 @@ RETREAT RECOVERY (3 turns):
         elif is_stability_premium:
             cost_note = " (unstable region premium)"
 
+        # --- Morale warning (Session 31) ---
+        morale_warning = ""
+        morale_drop = old_morale - new_morale
+        if new_morale < 25:
+            morale_warning = f" [DANGER] Morale critically low at {new_morale}% — troops may break in combat!"
+        elif new_morale < 40:
+            morale_warning = f" [WARNING] Morale dropped to {new_morale}% — consider drilling before battle."
+
         # Log recruitment event
         world.log_event({
             "type": "recruitment",
@@ -5654,7 +5719,7 @@ RETREAT RECOVERY (3 turns):
 
         return {
             "success": True,
-            "message": f"{base_message} - Cost: {gold_cost} gold{cost_note}. Morale: {old_morale}% → {new_morale}%",
+            "message": f"{base_message} - Cost: {gold_cost} gold{cost_note}. Morale: {old_morale}% -> {new_morale}%{morale_warning}",
             "events": [{
                 "type": "recruit",
                 "marshal": recipient,
@@ -5698,6 +5763,102 @@ RETREAT RECOVERY (3 turns):
         if bt:
             return bt
         return ""
+
+    # ════════════════════════════════════════════════════════════════════════════
+    # GARRISON COMMAND (Session 31): Detach troops to defend a region
+    # ════════════════════════════════════════════════════════════════════════════
+
+    GARRISON_DETACHMENT_SIZE = 3000
+    GARRISON_MIN_MARSHAL_STRENGTH = 8000
+
+    def _execute_garrison(self, command: Dict, game_state: Dict) -> Dict:
+        """Detach troops to garrison the marshal's current region.
+
+        Session 31: Player-placed garrisons use the same garrison_strength field as
+        capital garrisons, but with garrison_player_placed=True. Player garrisons
+        don't regen and fight to destruction (no 5k collapse threshold).
+
+        TODO (Phase 7+): Enemy AI should also use garrison command — Building Blocks
+        principle requires AI uses same executor as player. Add heuristic in
+        enemy_ai.py: after capturing a region, if marshal has > 15k troops AND
+        region is adjacent to enemy territory AND no friendly marshal nearby,
+        garrison it. See Session 31 review notes.
+        """
+        world: WorldState = game_state.get("world")
+        marshal_name = (command.get("marshal") or "").strip()
+
+        if not marshal_name:
+            return {
+                "success": False,
+                "message": "Berthier clears his throat. 'Which marshal should garrison, Your Majesty?'"
+            }
+
+        marshal = world.marshals.get(marshal_name)
+        if not marshal:
+            return {
+                "success": False,
+                "message": f"Berthier frowns. 'I know no marshal named {marshal_name}, Your Majesty.'"
+            }
+
+        region_name = marshal.location
+        region = world.regions.get(region_name)
+        if not region:
+            return {
+                "success": False,
+                "message": f"{marshal_name} is in an unknown region, Your Majesty."
+            }
+
+        # Validation: region must be owned by marshal's nation
+        if region.controller != marshal.nation:
+            return {
+                "success": False,
+                "message": f"We do not control {region_name}, Your Majesty. We cannot garrison enemy territory."
+            }
+
+        # Validation: no enemy marshals present
+        enemies_present = [m for m in world.marshals.values()
+                          if m.location == region_name and m.nation != marshal.nation and m.strength > 0]
+        if enemies_present:
+            return {
+                "success": False,
+                "message": f"Enemy forces contest {region_name}. We cannot garrison while under threat, Your Majesty."
+            }
+
+        # Validation: region doesn't already have a garrison
+        if region.garrison_strength > 0:
+            return {
+                "success": False,
+                "message": f"A garrison already holds {region_name}, Your Majesty."
+            }
+
+        # Validation: marshal has enough troops
+        if marshal.strength < self.GARRISON_MIN_MARSHAL_STRENGTH:
+            return {
+                "success": False,
+                "message": (f"{marshal_name}'s forces are too depleted to spare a garrison, Your Majesty. "
+                           f"We need at least {self.GARRISON_MIN_MARSHAL_STRENGTH:,} men to leave troops behind.")
+            }
+
+        # Execute: detach troops
+        marshal.strength -= self.GARRISON_DETACHMENT_SIZE
+        region.garrison_strength = self.GARRISON_DETACHMENT_SIZE
+        region.garrison_player_placed = True
+
+        # Event log
+        world.log_event({
+            "type": "garrison_placed",
+            "marshal": marshal_name,
+            "region": region_name,
+            "troops": int(self.GARRISON_DETACHMENT_SIZE),
+            "marshal_remaining": int(marshal.strength),
+        })
+
+        return {
+            "success": True,
+            "message": (f"{marshal_name} detaches {self.GARRISON_DETACHMENT_SIZE:,} troops to garrison {region_name}. "
+                       f"Army strength: {marshal.strength:,}."),
+            "action_info": {"remaining": world.actions_remaining},
+        }
 
     def _execute_build(self, command: Dict, game_state: Dict) -> Dict:
         """Build a building at a region. Costs admin AP + gold.
@@ -8283,7 +8444,7 @@ RETREAT RECOVERY (3 turns):
         # BUG FIX #1: Check for DISOBEY - execute ALTERNATIVE instead
         # ════════════════════════════════════════════════════════════
         if response_result.get("disobeyed"):
-            print("  🛑 DISOBEY - Marshal executes their alternative instead!")
+            print("  [DISOBEY] Marshal executes their alternative instead!")
 
             # Marshal does what THEY wanted, not what player ordered
             disobey_order = alternative if alternative else None
@@ -8322,7 +8483,7 @@ RETREAT RECOVERY (3 turns):
                     result["battle_report"] = execution_result["battle_report"]
             else:
                 # No alternative available - marshal simply refuses
-                print("  ⚠️ No alternative available - marshal refuses entirely")
+                print("  [WARN] No alternative available - marshal refuses entirely")
                 result = {
                     "success": True,
                     "message": response_result["message"] + f"\n\n{marshal_name} stands firm and takes no action.",
@@ -8342,7 +8503,7 @@ RETREAT RECOVERY (3 turns):
             if response_result.get("redemption_event"):
                 result["redemption_event"] = response_result["redemption_event"]
                 result["state"] = "awaiting_redemption_choice"
-                print("  🚨 REDEMPTION EVENT attached to disobey response")
+                print("  [ALERT] REDEMPTION EVENT attached to disobey response")
 
             return result
 
@@ -8350,7 +8511,7 @@ RETREAT RECOVERY (3 turns):
         # BUG FIX #2: Check for REDEMPTION EVENT - return with event
         # ════════════════════════════════════════════════════════════
         if response_result.get("redemption_event"):
-            print("  🚨 REDEMPTION EVENT - returning before order execution")
+            print("  [ALERT] REDEMPTION EVENT - returning before order execution")
             # Still execute the order, but include redemption event in response
             # (Trust dropped to critical AFTER the order would execute)
 
@@ -8408,7 +8569,7 @@ RETREAT RECOVERY (3 turns):
         if response_result.get("redemption_event"):
             result["redemption_event"] = response_result["redemption_event"]
             result["state"] = "awaiting_redemption_choice"
-            print("  🚨 REDEMPTION EVENT attached to response")
+            print("  [ALERT] REDEMPTION EVENT attached to response")
 
         return result
 
