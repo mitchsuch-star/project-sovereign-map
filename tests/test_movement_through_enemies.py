@@ -187,6 +187,9 @@ class TestEnemyAIFollowsSameRules:
         ney = world.get_marshal("Ney")
         wellington = world.get_marshal("Wellington")
         ney.location = "Waterloo"  # Ney engages Wellington
+        # Move Grouchy away from Belgium so Wellington can retreat there
+        grouchy = world.get_marshal("Grouchy")
+        grouchy.location = "Paris"
 
         # Waterloo adjacent to Belgium (French) and Paris (French)
         # Wellington has no friendly retreat option from Waterloo in default map

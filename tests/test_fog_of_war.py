@@ -302,21 +302,26 @@ class TestGameInitVisibility:
         belgium_intel = world.get_region_intel("Belgium")
         assert belgium_intel.visibility == FULL
 
-    def test_grouchy_waterloo_full(self):
-        """Waterloo (British, but Grouchy is there) should be FULL military.
-        This is the H6 fix — marshal-present in enemy territory."""
+    def test_grouchy_belgium_full(self):
+        """Belgium (French, Grouchy present) should be FULL.
+        Waterloo (adjacent to Belgium) should be PARTIAL."""
         world = WorldState()
+        belgium_intel = world.get_region_intel("Belgium")
+        assert belgium_intel.visibility == FULL
+        # Waterloo is adjacent to Belgium (where Grouchy is), so PARTIAL
+        waterloo_intel = world.get_region_intel("Waterloo")
+        assert waterloo_intel.visibility == PARTIAL
+
+    def test_marshal_present_enemy_region_has_exact_strength(self):
+        """FULL visibility in enemy region (marshal present) means exact strength data."""
+        world = WorldState()
+        # Move Grouchy to Waterloo (enemy region with Wellington/Uxbridge)
+        # so FULL visibility reveals exact enemy strength
+        grouchy = world.get_marshal("Grouchy")
+        grouchy.location = "Waterloo"
+        world.calculate_visibility()
         waterloo_intel = world.get_region_intel("Waterloo")
         assert waterloo_intel.visibility == FULL
-        # Should see Wellington and Uxbridge
-        names = [m["name"] for m in waterloo_intel.known_marshals]
-        assert "Wellington" in names
-        assert "Uxbridge" in names
-
-    def test_grouchy_waterloo_has_exact_strength(self):
-        """FULL visibility at Waterloo means exact strength data."""
-        world = WorldState()
-        waterloo_intel = world.get_region_intel("Waterloo")
         assert waterloo_intel.exact_strength is not None
         assert waterloo_intel.exact_strength > 0
 

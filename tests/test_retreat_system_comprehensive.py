@@ -200,11 +200,14 @@ class TestAllyCoveringSystem:
         # (Wellington=Britain, Blucher=Prussia - different nations can't cover each other)
         ney = self.world.marshals["Ney"]
         davout = self.world.marshals["Davout"]
+        grouchy = self.world.marshals["Grouchy"]
         wellington = self.world.marshals["Wellington"]
 
         # Setup: Both French marshals in same region, Ney retreated
         ney.location = "Belgium"
         davout.location = "Belgium"
+        # Move Grouchy away so he doesn't count as a covering candidate
+        grouchy.location = "Paris"
         ney.retreated_this_turn = True
         davout.retreated_this_turn = False
         davout.strength = 50000  # Healthy troops

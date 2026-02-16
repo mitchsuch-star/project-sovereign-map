@@ -640,6 +640,16 @@ class EnemyAI:
         # Decrement cross-turn cooldowns (stored on WorldState, persists across turns)
         self._decrement_cooldowns(world)
 
+        # Decrement re-fortify cooldowns
+        expired = []
+        for m_name, turns in world.ai_refortify_cooldown.items():
+            world.ai_refortify_cooldown[m_name] = turns - 1
+            if world.ai_refortify_cooldown[m_name] <= 0:
+                expired.append(m_name)
+        for m_name in expired:
+            del world.ai_refortify_cooldown[m_name]
+            ai_debug(f"    [REFORTIFY COOLDOWN EXPIRED] {m_name} can fortify again")
+
         # Clear pending intents at start of each nation's turn (safety)
         self._pending_intents = {}
 
@@ -1112,7 +1122,9 @@ class EnemyAI:
                 and m.nation != marshal.nation
                 and m.strength > 0
             ]
-            if not enemies_here:
+            # Region with garrison >= 5000 is NOT undefended — requires assault via P4
+            has_garrison = current_region.garrison_strength >= 5000
+            if not enemies_here and not has_garrison:
                 # Standing on undefended enemy territory - capture it!
                 # Must unfortify first if fortified
                 if getattr(marshal, 'fortified', False):
@@ -1336,6 +1348,19 @@ class EnemyAI:
             return (attack_action, 4)
         ai_debug("  P4: No attack opportunity found")
 
+        # ════════════════════════════════════════════════════════════
+        # PRIORITY 4.25: GARRISON ASSAULT
+        # Attack a capital garrison if adjacent and strength ratio is favorable.
+        # Uses attack command — executor handles garrison combat.
+        # ════════════════════════════════════════════════════════════
+        if not getattr(marshal, 'fortified', False) and not (
+            getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False)
+        ):
+            garrison_action = self._find_garrison_attack(marshal, nation, world)
+            if garrison_action:
+                ai_debug(f"  -> P4.25 Garrison Assault: {garrison_action}")
+                return (garrison_action, 4)
+
         # ─── P4.5-P5: OPPORTUNISTIC PRIORITIES ────────────────────────────────
 
         # ════════════════════════════════════════════════════════════
@@ -1375,7 +1400,12 @@ class EnemyAI:
         # ════════════════════════════════════════════════════════════
         if personality == "cautious":
             # Don't re-fortify if stagnation system just forced unfortify this turn
-            if marshal.name not in getattr(self, '_unfortified_this_turn', set()):
+            # or if re-fortify cooldown is active (prevents fortify→unfortify oscillation)
+            refortify_blocked = (
+                marshal.name in getattr(self, '_unfortified_this_turn', set())
+                or world.ai_refortify_cooldown.get(marshal.name, 0) > 0
+            )
+            if not refortify_blocked:
                 fortify_action = self._consider_fortify(marshal, world)
                 if fortify_action:
                     return (fortify_action, 5)
@@ -1991,12 +2021,17 @@ class EnemyAI:
                 ai_debug("        -> Skip: Neutral")
                 continue
 
-            # Check if undefended (no enemy marshals present)
+            # Check if undefended (no enemy marshals present AND no garrison)
             defenders = [m for m in world.marshals.values()
                         if m.location == adj_name and m.strength > 0 and m.nation != nation]
 
             if defenders:
                 ai_debug(f"        -> Skip: defended by {[d.name for d in defenders]}")
+                continue
+
+            # Skip garrisoned capitals (garrison >= 5000 requires assault via P4)
+            if adj_region.garrison_strength >= 5000:
+                ai_debug(f"        -> Skip: garrison defense ({adj_region.garrison_strength:,} troops)")
                 continue
 
             ai_debug("        -> UNDEFENDED enemy territory!")
@@ -2029,6 +2064,47 @@ class EnemyAI:
             "action": "attack",
             "target": best_target
         }
+
+    def _find_garrison_attack(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
+        """
+        Find an adjacent capital garrison to assault.
+
+        Evaluates garrison strength against marshal's attack threshold.
+        Uses the attack command — executor handles garrison combat resolution.
+        """
+        from backend.models.region import TERRAIN_DEFENSE_BONUS
+        personality = self._get_effective_personality(marshal, world)
+        threshold = self._get_mood_adjusted_threshold(marshal, world)
+        marshal_region = world.get_region(marshal.location)
+        if not marshal_region:
+            return None
+
+        for adj_name in marshal_region.adjacent_regions:
+            adj_region = world.get_region(adj_name)
+            if not adj_region or adj_region.garrison_strength < 5000:
+                continue
+            if adj_region.controller == nation:
+                continue
+
+            # Calculate garrison effective defense for AI decision
+            terrain_bonus = TERRAIN_DEFENSE_BONUS.get(adj_region.terrain, 0.0)
+            fort_bonus = 0.25 if adj_region.has_building("fortification") else 0.0
+            garrison_effective = adj_region.garrison_strength * (1.0 + terrain_bonus) * (1.0 + fort_bonus)
+
+            ratio = marshal.strength / garrison_effective if garrison_effective > 0 else 999
+            ai_debug(f"    P4.25: Garrison at {adj_name}: {adj_region.garrison_strength:,} "
+                     f"(effective {garrison_effective:,.0f}), ratio={ratio:.2f}, threshold={threshold:.2f}")
+
+            if ratio >= threshold:
+                print(f"  [GARRISON ASSAULT] {marshal.name} attacking garrison at {adj_name} "
+                      f"(ratio {ratio:.2f} >= {threshold:.2f})")
+                return {
+                    "marshal": marshal.name,
+                    "action": "attack",
+                    "target": adj_name
+                }
+
+        return None
 
     def _find_ally_support_opportunity(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
         """
@@ -2217,6 +2293,8 @@ class EnemyAI:
             if getattr(marshal, 'fortified', False):
                 print(f"  [STAGNATION] {marshal.name}: Force unfortify after {stagnation} idle turns")
                 self._unfortified_this_turn.add(marshal.name)
+                # Set 2-turn re-fortify cooldown to prevent immediate re-fortification
+                world.ai_refortify_cooldown[marshal.name] = 2
                 return {
                     "marshal": marshal.name,
                     "action": "unfortify"
@@ -2549,7 +2627,6 @@ class EnemyAI:
                     "target": best_dest
                 }
         elif personality == "cautious":
-            # Cautious: move toward friendly territory if threatened
             marshal_region = world.get_region(marshal.location)
             if not marshal_region:
                 return None
@@ -2562,7 +2639,7 @@ class EnemyAI:
                     break
 
             if enemy_adjacent:
-                # Find friendly region to fall back to (prefer region with ally)
+                # Cautious fallback: move toward friendly territory if threatened
                 best_dest = None
                 best_score = -999
 
@@ -2601,6 +2678,44 @@ class EnemyAI:
                         "action": "move",
                         "target": best_dest
                     }
+            else:
+                # ═══════════════════════════════════════════════════════════
+                # CAUTIOUS ADVANCE: When not threatened and not fortified,
+                # advance toward nearest enemy at a measured pace.
+                # This prevents cautious AI from sitting in place forever.
+                # Only advances when stagnation >= 1 (gave the AI one turn to
+                # fortify/drill first, then it starts moving).
+                # ═══════════════════════════════════════════════════════════
+                stagnation = world.ai_stagnation_turns.get(marshal.name, 0)
+                is_fortified = getattr(marshal, 'fortified', False)
+
+                if not is_fortified and stagnation >= 1:
+                    nearest = min(enemies, key=lambda e: world.get_distance(marshal.location, e.location))
+                    current_dist = world.get_distance(marshal.location, nearest.location)
+
+                    best_dest = None
+                    best_distance = current_dist
+
+                    for adj_name in marshal_region.adjacent_regions:
+                        if adj_name in visited:
+                            continue
+                        # Cannot MOVE into enemy-occupied region
+                        enemies_there = [m for m in world.get_marshals_in_region(adj_name)
+                                        if m.nation != nation and m.strength > 0]
+                        if enemies_there:
+                            continue
+                        dist = world.get_distance(adj_name, nearest.location)
+                        if dist < best_distance:
+                            best_dest = adj_name
+                            best_distance = dist
+
+                    if best_dest:
+                        ai_debug(f"    P7: Cautious advance toward {nearest.name} via {best_dest} (stagnation={stagnation})")
+                        return {
+                            "marshal": marshal.name,
+                            "action": "move",
+                            "target": best_dest
+                        }
 
         return None
 
@@ -2754,8 +2869,9 @@ class EnemyAI:
                     "action": "stance_change",
                     "target": "defensive"
                 }
-            # Already defensive - fortify if not already
-            if not getattr(marshal, 'fortified', False):
+            # Already defensive - fortify if not already (and not on re-fortify cooldown)
+            refortify_blocked = world.ai_refortify_cooldown.get(marshal.name, 0) > 0
+            if not getattr(marshal, 'fortified', False) and not refortify_blocked:
                 ai_debug("  -> P8: Fortify (defensive, not fortified)")
                 return {
                     "marshal": marshal.name,

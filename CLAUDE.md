@@ -90,6 +90,8 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | Adding new actions | See pattern below |
 | Retreat/Broken state | `combat.py` (forced retreat), `marshal.py` (retreat_recovery), `executor.py` |
 | Enemy AI behavior | `enemy_ai.py`, `turn_manager.py`, `executor.py` (is_player_action check) |
+| Capital garrison | `executor.py` (_resolve_garrison_combat), `world_state.py` (garrison init/regen), `enemy_ai.py` (P4.25) |
+| Supply attrition | `world_state.py` (process_supply_attrition), `region.py` (supply_capacity) |
 | Strategic commands | `strategic.py`, `strategic_parser.py`, `executor.py` |
 | Objection V2 system | `objection_v2.py`, `docs/OBJECTION_V2.md` |
 | Fog of war | `docs/FOG_OF_WAR_SPEC.md`, `docs/FOG_IMPLEMENTATION_PLAN.md`, `backend/models/intel.py`, `backend/intel_report.py`, `map.gd` (fog overlay + fogged icons) |
@@ -228,6 +230,11 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | Data cleared before capture | Save per-turn lists (e.g. mild_concerns) BEFORE calling advance_turn |
 | "build" parsed as drill | Mock parser keyword order matters — "build " must be checked BEFORE "train" (substring in "training") |
 | Event data missing in Godot | Check if advance_turn return value is captured AND added to tactical_events/events list |
+| Garrison not blocking capture | Check `garrison_strength >= 5000` — below 5k it collapses automatically |
+| AI ignores garrison | Check P4.25 `_find_garrison_attack()` — must be before P4.5 undefended capture |
+| Capital captured too easily | Verify garrison_strength initialized (15000) in `_setup_initial_control()` and regen in `advance_turn()` |
+| AI never advances | Check cautious advance in `_consider_strategic_move()` — needs stagnation >= 1 and not fortified |
+| AI fortify oscillation | Check `ai_refortify_cooldown` — 2-turn cooldown after stagnation unfortify |
 
 ---
 

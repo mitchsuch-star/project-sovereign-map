@@ -201,6 +201,11 @@ class WorldState:
         # Format: {marshal_name: {action_type: turns_remaining}}
         self.ai_failed_action_cooldowns: Dict[str, Dict[str, int]] = {}
 
+        # AI Re-fortify Cooldown (persists across turns, read/written by EnemyAI)
+        # Prevents AI from re-fortifying immediately after stagnation-forced unfortify.
+        # Key: marshal_name, Value: turns remaining before re-fortify allowed
+        self.ai_refortify_cooldown: Dict[str, int] = {}
+
         # Battle tracking for naming and history
         # Active battles: region_name -> battle info dict
         self.active_battles: Dict[str, Dict] = {}
@@ -235,7 +240,7 @@ class WorldState:
         self.intel: Dict[str, Any] = {}
 
         # Calculate initial visibility so turn 1 starts with correct fog state
-        # (French regions FULL, Grouchy's Waterloo FULL, adjacent PARTIAL, rest UNKNOWN)
+        # (French regions FULL, adjacent PARTIAL, rest UNKNOWN)
         self._intel_events_this_turn = []  # Init before first calculate_visibility
         self.calculate_visibility()
 
@@ -614,6 +619,12 @@ class WorldState:
         for region_name, controller in control_map.items():
             if region_name in self.regions:
                 self.regions[region_name].controller = controller
+
+        # Capital garrisons: all capital regions start with a 15,000 garrison
+        # Garrisons defend the capital when no marshal is present
+        for region in self.regions.values():
+            if region.is_capital:
+                region.garrison_strength = 15000
 
     # ========================================
     # REGION QUERIES (Generic, works for any nation)
@@ -1916,6 +1927,10 @@ class WorldState:
 
         Regions have a supply capacity based on type + buildings + terrain.
         When total troops exceed capacity, all marshals in the region suffer attrition.
+
+        Home territory bonus: marshals in regions controlled by their own nation
+        get 1.5x effective supply capacity. Defenders on home turf are well-supplied;
+        invaders in enemy territory suffer more from logistics strain.
         """
         events = []
         for region in self.regions.values():
@@ -1925,17 +1940,21 @@ class WorldState:
             marshals_here = [m for m in self.marshals.values()
                              if m.location == region.name and m.strength > 0]
             total = sum(m.strength for m in marshals_here)
-            cap = region.supply_capacity
-            if cap <= 0 or total <= cap:
-                continue
-            excess_ratio = (total - cap) / cap
-            if excess_ratio <= 0.25:
-                attrition = 0.01
-            elif excess_ratio <= 0.50:
-                attrition = 0.03
-            else:
-                attrition = 0.05
+            base_cap = region.supply_capacity
+
+            # Per-marshal attrition: home territory gets 1.5x supply capacity
             for m in marshals_here:
+                is_home = (region.controller == m.nation)
+                cap = int(base_cap * 1.5) if is_home else base_cap
+                if cap <= 0 or total <= cap:
+                    continue
+                excess_ratio = (total - cap) / cap
+                if excess_ratio <= 0.25:
+                    attrition = 0.01
+                elif excess_ratio <= 0.50:
+                    attrition = 0.03
+                else:
+                    attrition = 0.05
                 losses = int(m.strength * attrition)
                 if losses > 0:
                     m.strength = max(0, m.strength - losses)
@@ -2214,6 +2233,7 @@ class WorldState:
             # ═══════ ENEMY AI ═══════
             "ai_stagnation_turns": self.ai_stagnation_turns.copy(),
             "ai_failed_action_cooldowns": {k: v.copy() for k, v in self.ai_failed_action_cooldowns.items()},
+            "ai_refortify_cooldown": self.ai_refortify_cooldown.copy(),
             "enemy_nations": self.enemy_nations.copy(),
             "nation_actions": self.nation_actions.copy(),
             "active_battles": {k: v.copy() for k, v in self.active_battles.items()},
@@ -2310,6 +2330,7 @@ class WorldState:
         # ═══════ ENEMY AI ═══════
         world.ai_stagnation_turns = data.get("ai_stagnation_turns", {}).copy()
         world.ai_failed_action_cooldowns = {k: v.copy() for k, v in data.get("ai_failed_action_cooldowns", {}).items()}
+        world.ai_refortify_cooldown = data.get("ai_refortify_cooldown", {}).copy()
         world.enemy_nations = data.get("enemy_nations", ["Britain", "Prussia"]).copy()
         world.nation_actions = data.get("nation_actions", {"Britain": 4, "Prussia": 4}).copy()
         world.active_battles = {k: v.copy() for k, v in data.get("active_battles", {}).items()}
@@ -2807,6 +2828,23 @@ class WorldState:
         tactical_events.extend(supply_events)
 
         # ════════════════════════════════════════════════════════════
+        # CAPITAL GARRISON REGENERATION — +2,000/turn, capped at 15,000
+        # Only when capital is controlled by a nation (any nation)
+        # ════════════════════════════════════════════════════════════
+        for region in self.regions.values():
+            if region.is_capital and region.controller and region.garrison_strength < 15000:
+                old = region.garrison_strength
+                region.garrison_strength = min(15000, region.garrison_strength + 2000)
+                if region.garrison_strength > old:
+                    tactical_events.append({
+                        "type": "garrison_regen",
+                        "region": region.name,
+                        "old_strength": int(old),
+                        "new_strength": int(region.garrison_strength),
+                        "message": f"Garrison at {region.name} reinforced: {old:,} -> {region.garrison_strength:,}"
+                    })
+
+        # ════════════════════════════════════════════════════════════
         # BANKRUPTCY DESERTION (Phase 6.2.B) — uses PREVIOUS turn's counter
         # Must run BEFORE income phase updates the counter
         # ════════════════════════════════════════════════════════════
@@ -2891,7 +2929,7 @@ class WorldState:
         if self.current_turn > self.max_turns:
             self.game_over = True
             player_regions = len(self.get_player_regions())
-            if player_regions >= 8:
+            if player_regions >= 10:
                 self.victory = "victory"
             else:
                 self.victory = "defeat"

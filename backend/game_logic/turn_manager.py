@@ -156,6 +156,12 @@ class TurnManager:
         # Get tactical events that were processed during advance
         tactical_events = self.world.get_last_tactical_events()
         debug_print(f"[TURN_MANAGER DEBUG] Retrieved {len(tactical_events)} tactical events")
+
+        # ════════════════════════════════════════════════════════════
+        # CAPITAL PROXIMITY ALERT: Warn when enemy enters capital-adjacent region
+        # ════════════════════════════════════════════════════════════
+        capital_alerts = self._check_capital_proximity()
+        tactical_events.extend(capital_alerts)
         for i, evt in enumerate(tactical_events):
             debug_print(f"  Event {i}: type={evt.get('type')}, has_message={bool(evt.get('message'))}")
 
@@ -521,14 +527,14 @@ class TurnManager:
         """
         Check if any enemy nation has achieved victory conditions.
 
-        Enemy wins if they control 8+ regions.
+        Enemy wins if they control 10+ regions.
 
         Returns:
             Dict with victory info, or None if no enemy victory
         """
         for nation in self.world.enemy_nations:
             regions = self.world.get_nation_regions(nation)
-            if len(regions) >= 8:
+            if len(regions) >= 10:
                 return {
                     "nation": nation,
                     "regions_controlled": len(regions),
@@ -559,6 +565,39 @@ class TurnManager:
                 for m in player_marshals
             ]
         }
+
+    def _check_capital_proximity(self) -> list:
+        """
+        Check if any enemy marshal is adjacent to the player's capital.
+        Returns list of alert events.
+        """
+        alerts = []
+        for region in self.world.regions.values():
+            if not region.is_capital:
+                continue
+            # Only alert for player's capital
+            if region.controller != self.world.player_nation:
+                continue
+            for adj_name in region.adjacent_regions:
+                enemies_adj = [
+                    m for m in self.world.marshals.values()
+                    if m.location == adj_name
+                    and m.nation != self.world.player_nation
+                    and m.strength > 0
+                ]
+                for enemy in enemies_adj:
+                    alerts.append({
+                        "type": "capital_proximity_alert",
+                        "capital": region.name,
+                        "enemy": enemy.name,
+                        "enemy_location": adj_name,
+                        "enemy_strength": int(enemy.strength),
+                        "message": (
+                            f"Berthier: Enemy forces spotted near {region.name}! "
+                            f"{enemy.name} ({enemy.strength:,} troops) at {adj_name}."
+                        )
+                    })
+        return alerts
 
     def _check_victory_conditions(self) -> Dict:
         """
@@ -600,7 +639,7 @@ class TurnManager:
 
         if self.world.current_turn > self.world.max_turns:
             # Already handled in world.advance_turn(), but check here too
-            if len(player_regions) >= 8:
+            if len(player_regions) >= 10:
                 return {
                     "game_over": True,
                     "result": "victory",

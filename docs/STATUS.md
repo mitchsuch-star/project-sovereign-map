@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 15, 2026
-> **Last Session:** Session 38 — Fog of War Map Visualization
+> **Last Session:** Session 39 — Balance & AI Fixes
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2434** (verified, 3 skipped) |
+| **Tests Passing** | **2433** (verified, 3 skipped) |
 | **Current Phase** | Phase 6: **IN PROGRESS** (2 items remaining: Manpower Pools, Artillery Unit Type) |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier, 6-BattleReport, 6-EventLog, 6-FogOfWar |
@@ -50,6 +50,34 @@
 ---
 
 ## Recently Completed
+
+### Feb 15 (Session 39: Balance & AI Fixes)
+
+**Playtest-driven balance fixes addressing 4 meta-game issues: AI passivity, supply attrition dominance, Grouchy vulnerability, and Paris defense.**
+
+**Balance Changes:**
+- **Grouchy start moved from Waterloo to Belgium** — no longer instantly destroyed by Wellington+Blucher
+- **Home territory supply bonus (1.5x capacity)** — defending your own territory is now more sustainable, reduces turtling advantage
+- **Victory threshold raised from 8 to 10 regions** — timed victory requires more aggressive play
+- **Capital garrison system** — all capitals start with 15,000 garrison troops; must be reduced below 5,000 before capture; garrison gets terrain + fort bonuses; regenerates +2,000/turn (capped at 15,000)
+
+**AI Improvements:**
+- **Cautious advance** — cautious AI marshals now advance toward nearest enemy when not threatened and stagnation >= 1 (prevents Wellington/Blucher camping)
+- **Re-fortify cooldown** — 2-turn cooldown after stagnation forces unfortify, prevents fortify→unfortify oscillation
+- **Garrison assault (P4.25)** — AI evaluates garrison attacks based on strength ratio vs personality threshold
+- **Capital proximity alerts** — player warned when enemy marshals are adjacent to their capital
+
+**Garrison Combat System:**
+- Simplified combat without pseudo-marshal (garrison is region property, not marshal)
+- Garrison effective defense = strength × (1 + terrain_bonus) × (1 + fort_bonus where fort_bonus = 0.25)
+- Proportional damage exchange with caps (attacker 35%, garrison 50%)
+- Minimum losses enforced (2% attacker, 10% garrison) to prevent stalemates
+- Below 5,000 threshold: garrison collapses, capture proceeds
+- AI P-1 and P4.5 updated to respect garrison strength
+
+**Tests:** 2433 passing (8 test files updated for Grouchy location change and supply bonus), 3 skipped
+
+---
 
 ### Feb 15 (Session 38: Fog of War Map Visualization)
 

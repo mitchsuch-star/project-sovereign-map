@@ -666,7 +666,11 @@ class TestTurnFlowIntegration:
         # Set France to 3+ turns bankrupt so desertion triggers
         world.nation_bankruptcy_turns["France"] = 3
         ney = world.get_marshal("Ney")
+        # Move Grouchy away from Belgium so combined troops don't exceed supply cap
+        grouchy = world.get_marshal("Grouchy")
+        grouchy.location = "Paris"
         # Reduce strength below Belgium's supply cap (town=20,000 * plains=1.0)
+        # With home territory bonus: 20,000 * 1.5 = 30,000
         # so supply attrition doesn't interfere with this test
         ney.strength = 15000
         ney_str_before = ney.strength

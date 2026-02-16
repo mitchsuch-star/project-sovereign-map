@@ -10,8 +10,8 @@ A future save/load system should use this as the specification.
 ## Version
 
 - **Format version:** 1.0
-- **Last updated:** 2026-02-13
-- **Compatible with:** Phase 6 Session 36 (Fog of War COMPLETE)
+- **Last updated:** 2026-02-15
+- **Compatible with:** Phase 6 Session 39 (Balance & AI Fixes)
 
 ## Top-Level Structure (WorldState)
 
@@ -94,6 +94,7 @@ A future save/load system should use this as the specification.
 | `mild_concerns_this_turn` | list | [] | V2a: MILD concerns for turn log (cleared each turn) |
 | `objection_popups_this_turn` | list | [] | V2a: Per-marshal popup cap tracking (cleared each turn) |
 | `ai_failed_action_cooldowns` | dict | {} | AI failed action retry cooldowns {marshal: {action: turns}} |
+| `ai_refortify_cooldown` | dict | {} | Per-marshal re-fortify cooldown turns {marshal_name: int}. Set to 2 when stagnation forces unfortify, decremented each turn. Blocks P5/P8 fortify while active. |
 | `enemy_nations` | list | ["Britain", "Prussia"] | AI-controlled nations |
 | `nation_actions` | dict | {} | Actions per nation |
 | `active_battles` | dict | {} | Currently ongoing battles |

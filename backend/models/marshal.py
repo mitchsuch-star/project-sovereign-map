@@ -1188,7 +1188,7 @@ def create_starting_marshals() -> dict[str, Marshal]:
         ),
         "Grouchy": Marshal(
             name="Grouchy",
-            location="Waterloo",
+            location="Belgium",
             strength=33000,
             personality="literal",
             nation="France",

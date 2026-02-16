@@ -136,7 +136,8 @@ The AI evaluates each marshal and assigns a **priority score** (lower = more urg
 | P3.25 | Counter-punch | — | Cautious: free attack after defense |
 | P3.5 | Fortification Check | 77 | Unfortify if opportunity exists |
 | P4 | Attack (standard) | 75 | Valid target + meets threshold |
-| P4.5 | Capture Undefended | 80 | Adjacent undefended enemy region |
+| P4.25 | Garrison Assault | 77 | Adjacent garrisoned capital — strength ratio vs threshold |
+| P4.5 | Capture Undefended | 80 | Adjacent undefended enemy region (skips garrisoned capitals) |
 | P4.6 | Consolidation | 78 | Weak marshal joins strong ally within 3 distance |
 | P5 | Fortification | 85 | Cautious + no attack target |
 | P6 | Drilling | 90 | Aggressive + position secure |
@@ -522,12 +523,40 @@ Prevents marshals getting stuck doing nothing. Persisted on `world.ai_stagnation
 |------------------|------------|
 | 0-1 | Normal behavior |
 | 2 | Allow drill even with adjacent enemies |
+| 1+ | Cautious marshals: advance toward nearest enemy if not threatened/fortified |
 | 3 | Unfortify + move toward nearest ally |
 | 4 | Lower attack threshold by 20% |
 | 5+ | Lower threshold by 10% more (floor 0.3) |
 
 **Resets on:** Attack (win/lose), capture region, move toward enemy, consolidation move.
 **NOT meaningful:** defend, drill, wait.
+
+### Re-Fortify Cooldown
+
+When stagnation forces a marshal to unfortify (at stagnation >= 3), a 2-turn **re-fortify cooldown** is set on that marshal. This prevents the fortify→unfortify oscillation loop where marshals would fortify, get forced to unfortify by stagnation, then immediately re-fortify.
+
+- Stored in `world.ai_refortify_cooldown` (Dict[str, int])
+- Blocks P5 (fortification) and P8 (default fortify) when cooldown > 0
+- Decremented at start of each `process_nation_turn()`
+- Removed when it reaches 0
+
+### Cautious Advance
+
+Cautious AI marshals (Wellington, Blucher) now advance toward the nearest enemy when:
+1. Not threatened (no enemy in same region or adjacent)
+2. Not fortified
+3. Stagnation counter >= 1
+
+This prevents the cautious AI from camping indefinitely. The marshal finds an adjacent region that is closer to the nearest enemy and moves there. This is evaluated during P7 (Strategic Movement).
+
+### Garrison Assault (P4.25)
+
+AI marshals evaluate whether to attack a garrisoned capital. The decision is based on:
+- **Strength ratio** = marshal strength / garrison effective defense (includes terrain + fort bonuses)
+- **Threshold** = personality attack threshold, adjusted by mood (anger lowers it, satisfaction raises it)
+- If ratio >= threshold, the AI attacks the garrison
+
+Aggressive marshals will assault garrisons more readily (threshold 0.7), while cautious marshals need a stronger advantage (threshold 1.3).
 
 ---
 

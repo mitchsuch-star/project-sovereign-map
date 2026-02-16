@@ -85,7 +85,10 @@ class TestIntelReport:
     def test_full_visibility_enemies_in_confirmed(self):
         """Enemies in FULL visibility regions appear in confirmed section."""
         world = make_world()
-        # Grouchy starts in Waterloo with Wellington — marshal_present grants FULL
+        # Move Grouchy to Waterloo so marshal_present grants FULL visibility there
+        grouchy = world.get_marshal("Grouchy")
+        grouchy.location = "Waterloo"
+        world.calculate_visibility()
         intel = world.get_region_intel("Waterloo")
         assert intel.visibility == FULL
         report = generate_intel_report(world)

@@ -1091,10 +1091,12 @@ class TestHelperFunctions:
 
         blucher = self.world.get_marshal("Blucher")
         ney = self.world.get_marshal("Ney")
+        grouchy = self.world.get_marshal("Grouchy")
 
-        # Far away
+        # Far away — move Grouchy away from Belgium so no French adjacent to Netherlands
         blucher.location = "Netherlands"
         ney.location = "Paris"
+        grouchy.location = "Paris"
         assert not has_adjacent_enemies(blucher, self.world)
 
         # Adjacent (Belgium is adjacent to Netherlands)

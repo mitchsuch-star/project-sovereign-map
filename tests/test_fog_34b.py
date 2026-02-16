@@ -139,7 +139,10 @@ class TestGetVisibleEnemiesInRegion:
     def test_full_visibility_returns_full_data(self):
         """FULL visibility -> returns actual Marshal objects."""
         world = make_world()
-        # Waterloo has FULL at game start (Grouchy is there)
+        # Move a French marshal to Waterloo to grant FULL visibility there
+        grouchy = world.get_marshal("Grouchy")
+        grouchy.location = "Waterloo"
+        world.calculate_visibility()
         enemies = world.get_visible_enemies_in_region("Waterloo", "France")
         assert len(enemies) > 0
         # Should be actual marshal objects
@@ -520,7 +523,10 @@ class TestEnemyPhaseFiltering:
         from backend.main import _filter_enemy_phase_by_visibility
 
         world = make_world()
-        # Ensure Waterloo is FULL (Grouchy is there)
+        # Move Grouchy to Waterloo to grant FULL visibility there
+        grouchy = world.get_marshal("Grouchy")
+        grouchy.location = "Waterloo"
+        world.calculate_visibility()
         assert world.get_region_intel("Waterloo").visibility == FULL
 
         enemy_phase = {

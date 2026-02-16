@@ -147,6 +147,10 @@ class TestDismissTransfersTroopsNearby:
 
         ney = world.get_marshal("Ney")
         davout = world.get_marshal("Davout")
+        grouchy = world.get_marshal("Grouchy")
+
+        # Move Grouchy far away so Davout is the nearest ally to Ney
+        grouchy.location = "Spain"
 
         ney_strength = ney.strength
         davout_original_strength = davout.strength

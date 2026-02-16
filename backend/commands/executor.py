@@ -1777,6 +1777,155 @@ RETREAT RECOVERY (3 turns):
                     return True
         return False
 
+    def _resolve_garrison_combat(self, marshal, target_region, world, game_state) -> dict:
+        """
+        Resolve combat between an attacking marshal and a capital garrison.
+
+        Garrison fights with simplified combat: no morale, no retreat, no flanking.
+        Attacker stays in their original region until garrison falls below 5,000.
+        Garrison gets terrain defense bonus and fortification building bonus.
+
+        Args:
+            marshal: Attacking marshal
+            target_region: Region with garrison
+            world: Current world state
+            game_state: Game state dict
+
+        Returns:
+            Result dict with success, message, events
+        """
+        # Calculate garrison effective defense
+        terrain_bonus = TERRAIN_DEFENSE_BONUS.get(target_region.terrain, 0.0)
+        fort_bonus = 0.25 if target_region.has_building("fortification") else 0.0
+        garrison_effective = int(target_region.garrison_strength * (1.0 + terrain_bonus) * (1.0 + fort_bonus))
+
+        # Attacker effective strength (uses single-source modifier from marshal.py)
+        attacker_modifier = marshal.get_attack_modifier()
+        attacker_effective = int(marshal.strength * attacker_modifier)
+
+        # Calculate losses — proportional exchange
+        # Garrison damage to attacker: ratio of garrison_effective to attacker_effective
+        # Attacker damage to garrison: ratio of attacker_effective to garrison_effective
+        if attacker_effective <= 0:
+            return {
+                "success": False,
+                "message": f"{marshal.name} has no combat strength to assault the garrison."
+            }
+
+        # Damage ratios (capped to prevent absurd results)
+        attacker_damage_ratio = min(0.35, garrison_effective / max(attacker_effective, 1) * 0.25)
+        garrison_damage_ratio = min(0.50, attacker_effective / max(garrison_effective, 1) * 0.35)
+
+        attacker_losses = int(marshal.strength * attacker_damage_ratio)
+        garrison_losses = int(target_region.garrison_strength * garrison_damage_ratio)
+
+        # Ensure minimum losses on both sides (no zero-damage stalemates)
+        attacker_losses = max(attacker_losses, int(marshal.strength * 0.02))
+        garrison_losses = max(garrison_losses, int(target_region.garrison_strength * 0.10))
+
+        # Apply losses
+        marshal.strength = max(0, marshal.strength - attacker_losses)
+        old_garrison = target_region.garrison_strength
+        target_region.garrison_strength = max(0, target_region.garrison_strength - garrison_losses)
+
+        # Check if garrison collapsed (below 5k threshold)
+        garrison_collapsed = target_region.garrison_strength < 5000
+
+        if garrison_collapsed:
+            # Garrison collapses — capture proceeds
+            target_region.garrison_strength = 0
+            old_controller = target_region.controller
+            old_location = marshal.location
+
+            # Move attacker into region
+            marshal.move_to(target_region.name)
+
+            # Movement attrition
+            attrition_info = self._calculate_movement_attrition(marshal, target_region.name, world)
+
+            # Attempt capture
+            capture_result = self._attempt_region_capture(
+                marshal, target_region.name, world, game_state, had_garrison=False)
+
+            msg = (
+                f"{marshal.name} assaults the {target_region.name} garrison! "
+                f"Garrison collapses ({old_garrison:,} -> 0). "
+                f"{marshal.name} loses {attacker_losses:,} troops in the assault. "
+                f"{marshal.name} marches into {target_region.name}!"
+            )
+            if attrition_info["total_losses"] > 0:
+                msg += f" ({attrition_info['total_losses']:,} lost to march)"
+
+            if capture_result["occupation_started"]:
+                msg += f" {capture_result['message']}"
+                return {
+                    "success": True,
+                    "message": msg,
+                    "occupation_started": True,
+                    "events": [{
+                        "type": "garrison_destroyed",
+                        "marshal": marshal.name,
+                        "region": target_region.name,
+                        "garrison_losses": int(garrison_losses),
+                        "attacker_losses": int(attacker_losses),
+                    }, {
+                        "type": "occupation_started",
+                        "marshal": marshal.name,
+                        "region": target_region.name,
+                        "turns_required": capture_result["turns_required"],
+                    }],
+                    "new_state": game_state
+                }
+
+            msg += f" Captured: {old_controller} -> {marshal.nation}"
+
+            conquest_event = {
+                "type": "conquest",
+                "marshal": marshal.name,
+                "region": target_region.name,
+                "garrison_destroyed": True,
+            }
+            if capture_result.get("capture_choice"):
+                conquest_event["capture_choice"] = capture_result["capture_choice"]
+
+            result = {
+                "success": True,
+                "message": msg,
+                "events": [conquest_event],
+                "new_state": game_state
+            }
+
+            if marshal.nation == world.player_nation and world.pending_capture_choice:
+                result["message"] += "\nYour forces have taken the region! How shall they behave?"
+                result["pending_capture_choice"] = True
+                result["capture_data"] = world.pending_capture_choice
+
+            return result
+        else:
+            # Garrison holds — attacker stays in place
+            msg = (
+                f"{marshal.name} assaults the {target_region.name} garrison! "
+                f"Garrison: {old_garrison:,} -> {target_region.garrison_strength:,} "
+                f"(-{garrison_losses:,}). "
+                f"{marshal.name} loses {attacker_losses:,} troops. "
+                f"Garrison holds — {target_region.garrison_strength:,} defenders remain."
+            )
+            if target_region.has_building("fortification"):
+                msg += " Fortifications bolster the defense."
+
+            return {
+                "success": True,
+                "message": msg,
+                "events": [{
+                    "type": "garrison_assault",
+                    "marshal": marshal.name,
+                    "region": target_region.name,
+                    "garrison_losses": int(garrison_losses),
+                    "attacker_losses": int(attacker_losses),
+                    "garrison_remaining": int(target_region.garrison_strength),
+                }],
+            }
+
     def _calculate_movement_attrition(self, marshal, destination_region, world, is_retreat=False) -> dict:
         """Calculate and apply movement attrition. Returns info dict.
 
@@ -2372,6 +2521,22 @@ RETREAT RECOVERY (3 turns):
                             if m.location == resolved_target and m.strength > 0 and m.nation != marshal.nation]
 
                 if not defenders:
+                    # ════════════════════════════════════════════════════════════
+                    # CAPITAL GARRISON DEFENSE: Garrison fights attackers when no
+                    # marshal is present. Must reduce garrison below 5,000 to capture.
+                    # Attacker stays in original region until garrison collapses.
+                    # ════════════════════════════════════════════════════════════
+                    if target_region.garrison_strength >= 5000 and target_region.controller != marshal.nation:
+                        garrison_result = self._resolve_garrison_combat(
+                            marshal, target_region, world, game_state)
+                        if drill_cancelled_message:
+                            garrison_result["message"] = drill_cancelled_message + garrison_result["message"]
+                        return garrison_result
+
+                    # If garrison exists but below 5k, it collapses — clear it
+                    if target_region.garrison_strength > 0 and target_region.controller != marshal.nation:
+                        target_region.garrison_strength = 0
+
                     # UNDEFENDED - Capture attempt (may start occupation if fortified)
                     old_controller = target_region.controller
                     old_location = marshal.location
