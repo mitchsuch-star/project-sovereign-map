@@ -338,6 +338,74 @@ class TestMovementAttrition:
         result = executor._calculate_movement_attrition(ney, "Belgium", world)
         assert result["harassment_losses"] == 0
 
+    def test_harassment_from_enemy_garrison_detachment(self):
+        """Garrison detachment in enemy region: +2% harassment."""
+        world = fresh_world()
+        executor = make_executor()
+        ney = world.get_marshal("Ney")
+        ney.strength = 20000
+        belgium = world.get_region("Belgium")
+        belgium.controller = "Britain"
+        belgium.garrison_detachment = True
+        belgium.garrison_strength = 5000
+        result = executor._calculate_movement_attrition(ney, "Belgium", world)
+        assert result["harassment_losses"] == int(20000 * 0.02)
+
+    def test_harassment_stacks_fort_and_detachment(self):
+        """Fort (4%) + detachment (2%) stack to 6% harassment."""
+        world = fresh_world()
+        executor = make_executor()
+        ney = world.get_marshal("Ney")
+        ney.strength = 20000
+        belgium = world.get_region("Belgium")
+        belgium.controller = "Britain"
+        belgium.buildings.append({"type": "fortification", "damaged": False})
+        belgium.garrison_detachment = True
+        belgium.garrison_strength = 5000
+        result = executor._calculate_movement_attrition(ney, "Belgium", world)
+        expected = int(20000 * 0.04) + int(20000 * 0.02)
+        assert result["harassment_losses"] == expected
+
+    def test_no_harassment_from_friendly_detachment(self):
+        """Friendly garrison detachment: no harassment."""
+        world = fresh_world()
+        executor = make_executor()
+        ney = world.get_marshal("Ney")
+        ney.strength = 20000
+        paris = world.get_region("Paris")
+        paris.controller = "France"
+        paris.stability = 50  # Not stable, so march attrition applies
+        paris.garrison_detachment = True
+        paris.garrison_strength = 5000
+        result = executor._calculate_movement_attrition(ney, "Paris", world)
+        assert result["harassment_losses"] == 0
+
+    def test_no_harassment_from_dead_detachment(self):
+        """Garrison detachment with 0 strength: no harassment."""
+        world = fresh_world()
+        executor = make_executor()
+        ney = world.get_marshal("Ney")
+        ney.strength = 20000
+        belgium = world.get_region("Belgium")
+        belgium.controller = "Britain"
+        belgium.garrison_detachment = True
+        belgium.garrison_strength = 0
+        result = executor._calculate_movement_attrition(ney, "Belgium", world)
+        assert result["harassment_losses"] == 0
+
+    def test_no_harassment_from_capital_garrison(self):
+        """Capital garrison (not detachment): no harassment from garrison itself."""
+        world = fresh_world()
+        executor = make_executor()
+        ney = world.get_marshal("Ney")
+        ney.strength = 20000
+        belgium = world.get_region("Belgium")
+        belgium.controller = "Britain"
+        belgium.garrison_strength = 15000
+        belgium.garrison_detachment = False
+        result = executor._calculate_movement_attrition(ney, "Belgium", world)
+        assert result["harassment_losses"] == 0
+
     def test_attrition_reduces_strength(self):
         """Attrition actually reduces marshal strength."""
         world = fresh_world()

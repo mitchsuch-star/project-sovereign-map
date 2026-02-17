@@ -1975,6 +1975,9 @@ RETREAT RECOVERY (3 turns):
         if region and region.controller and region.controller != marshal.nation:
             if region.has_building("fortification"):
                 harassment_losses = int(marshal.strength * 0.04)
+            # Harassment from enemy garrison detachment (smaller than fort — 2%)
+            if region.garrison_detachment and region.garrison_strength > 0:
+                harassment_losses += int(marshal.strength * 0.02)
 
         total_losses = losses + harassment_losses
         if total_losses > 0:
@@ -2596,7 +2599,7 @@ RETREAT RECOVERY (3 turns):
                         if attrition_info.get("depot_bonus"):
                             capture_message += " — forward supply lines reduce losses"
                         if attrition_info["harassment_losses"] > 0:
-                            capture_message += f", {attrition_info['harassment_losses']:,} to garrison harassment"
+                            capture_message += f", {attrition_info['harassment_losses']:,} to enemy harassment"
                         capture_message += ")"
 
                     if capture_result["occupation_started"]:
@@ -4563,7 +4566,7 @@ RETREAT RECOVERY (3 turns):
                 if any_depot_bonus:
                     attrition_msg += " — forward supply lines reduce losses"
                 if total_harassment > 0:
-                    attrition_msg += f", {total_harassment:,} to garrison harassment"
+                    attrition_msg += f", {total_harassment:,} to enemy harassment"
                 attrition_msg += ")"
                 move_message += attrition_msg
                 events[0]["march_losses"] = int(total_all)
@@ -4574,7 +4577,7 @@ RETREAT RECOVERY (3 turns):
                 if attrition_info.get("depot_bonus"):
                     attrition_msg += " — forward supply lines reduce losses"
                 if attrition_info["harassment_losses"] > 0:
-                    attrition_msg += f", {attrition_info['harassment_losses']:,} to garrison harassment"
+                    attrition_msg += f", {attrition_info['harassment_losses']:,} to enemy harassment"
                 attrition_msg += ")"
                 move_message += attrition_msg
                 events[0]["march_losses"] = int(attrition_info["total_losses"])
