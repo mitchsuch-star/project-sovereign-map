@@ -4488,6 +4488,11 @@ RETREAT RECOVERY (3 turns):
         marshal.idle_turns = 0
         marshal._acted_this_turn = True
 
+        # Refresh visibility immediately so destination (FULL) and new adjacents
+        # (PARTIAL) are available for capture hints and the UI this turn
+        if marshal.nation == world.player_nation:
+            world.calculate_visibility()
+
         move_message = f"{marshal.name} moves from {old_location} to {target_name}"
         if drill_cancelled_message:
             move_message = drill_cancelled_message + move_message

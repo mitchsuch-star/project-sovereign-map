@@ -153,8 +153,14 @@ class TestCaptureHint:
             region = world.regions.get(h)
             assert region is None or region.controller != "France"
 
-    def test_no_hint_for_fogged_region(self):
-        """No hint when enemy region has STALE or UNKNOWN visibility."""
+    def test_adjacent_fogged_region_becomes_visible_after_move(self):
+        """Adjacent enemy regions get PARTIAL visibility after moving,
+        so capture hints fire for undefended adjacent regions.
+
+        Previously, manually setting STALE would block hints. Now that
+        calculate_visibility() runs after each move, adjacent regions
+        always get at least PARTIAL from army adjacency.
+        """
         world, gs, executor = _setup()
         ney = world.marshals["Ney"]
         ney.location = "Paris"
@@ -167,14 +173,15 @@ class TestCaptureHint:
             if m.nation != "France" and m.location == "Netherlands":
                 m.location = "London"
 
-        # Set visibility to STALE — should NOT show hint
+        # Even if we set STALE, moving to Belgium refreshes adjacency → PARTIAL
         intel = world.get_region_intel("Netherlands")
         intel.visibility = STALE
 
         result = executor._execute_move(ney, "Belgium", world, gs)
         assert result["success"] is True
         hints = result.get("capture_hints", [])
-        assert "Netherlands" not in hints
+        # Netherlands is now visible (PARTIAL from adjacency) so hint fires
+        assert "Netherlands" in hints
 
     def test_hint_works_with_partial_visibility(self):
         """Hint shown when enemy region has PARTIAL visibility."""
