@@ -28,7 +28,7 @@ Five tiers of intel, each with defined information access:
 
 | Level | Source | Duration | What You See |
 |-------|--------|----------|-------------|
-| **FULL** | Own region / scouted / post-battle | 2 turns (scouted), permanent (own) | Commander names, exact troop counts, morale, stance, fortification, buildings, stability, terrain |
+| **FULL** | Own region w/ army / scouted / post-battle | **Ephemeral** (marshal present), 2 turns (scouted/battle), PARTIAL (own w/o army) | Commander names, exact troop counts, morale, stance, fortification, buildings, stability, terrain |
 | **PARTIAL** | Adjacent to your army / watchtower | Refreshes each turn while adjacent | Commander names, strength band, terrain. No morale/stance/fortification/buildings |
 | **STALE** | Formerly FULL, 3-4 turns old | Turns 3-4 after last scout | Commander names (may have moved), strength band (degraded from exact), terrain. Marked "[3 turns ago]" |
 | **LAST_KNOWN** | Formerly FULL/PARTIAL, 5+ turns old | Persists indefinitely | "Last seen: Wellington, large force, Waterloo (7 turns ago)." Position likely wrong. |
@@ -103,17 +103,24 @@ class WorldState:
 
 ### 3.3 Visibility Calculation (per turn)
 
-Recalculate visibility for all regions at two points:
+Recalculate visibility at:
 1. **Game initialization** — so turn 1 starts with correct visibility (player regions FULL, rest UNKNOWN)
-2. **During `_advance_turn_internal()`** — at the START, before all other processing, so each new turn has fresh data
+2. **During `_advance_turn_internal()`** — at the END, after all processing
+3. **After each player move** — so destination and adjacents are visible immediately
 
 ```
+Pre-pass: Ephemeral marshal_present downgrade
+  - Any region FULL from marshal_present where marshal has left:
+    - If scouted/battled within 2 turns → fall back to scout FULL (persistent)
+    - Otherwise → downgrade to PARTIAL (main loop may re-upgrade)
+
 For each region:
-  1. Own region → FULL (economic always, military if army present/adjacent, else PARTIAL)
+  0. Marshal present → FULL (ephemeral — only while standing there)
+  1. Own region → FULL economic always; FULL military if army present, else PARTIAL
   2. Adjacent to a friendly army → PARTIAL (refresh each turn)
   3. Adjacent to a watchtower in own region → PARTIAL (refresh each turn)
-  4. Has FULL intel from scouting → check age:
-     - Age 0-2 turns → FULL
+  4. Has FULL intel from scouting/battle → check age:
+     - Age 0-2 turns → FULL (persistent)
      - Age 3-4 turns → STALE (degrade exact_strength to band)
      - Age 5+ turns → LAST_KNOWN
   5. Previously PARTIAL but no longer adjacent → starts aging from last_updated_turn

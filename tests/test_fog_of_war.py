@@ -497,12 +497,13 @@ class TestUpdateIntelFromBattle:
         assert intel.visibility == FULL
         assert intel.intel_source == "battle"
 
-    def test_battle_does_not_set_last_scouted(self):
+    def test_battle_sets_last_scouted_for_persistent_full(self):
+        """Battle sets last_scouted_turn so FULL persists after marshal leaves.
+        Without this, ephemeral marshal_present downgrade would kill battle FULL."""
         world = WorldState()
         world.update_intel_from_battle("Waterloo", turn=2)
         intel = world.get_region_intel("Waterloo")
-        # Battle doesn't count as a scout for the scouted_turn tracker
-        assert intel.last_scouted_turn == 0
+        assert intel.last_scouted_turn == 2
 
 
 # ============================================================================
@@ -648,3 +649,211 @@ class TestMultiTurnIntegration:
             world.decay_intel()
             bordeaux = world.get_region_intel("Bordeaux")
             assert bordeaux.visibility == PARTIAL, f"Expected PARTIAL at turn {t}"
+
+
+# ============================================================================
+# EPHEMERAL MARSHAL_PRESENT TESTS
+# ============================================================================
+
+class TestEphemeralMarshalPresent:
+    """Marshal-present FULL is ephemeral — only while standing there.
+    Scout and battle FULL persist for 2 turns."""
+
+    def test_marshal_present_full_while_standing(self):
+        """Region has FULL while a friendly marshal is there."""
+        world = WorldState()
+        ney = world.get_marshal("Ney")
+        # Move Ney to an enemy region
+        ney.location = "Waterloo"
+        world.calculate_visibility()
+        intel = world.get_region_intel("Waterloo")
+        assert intel.visibility == FULL
+        assert intel.intel_source == "marshal_present"
+
+    def test_marshal_present_full_lost_on_departure(self):
+        """FULL from marshal_present drops when marshal leaves."""
+        world = WorldState()
+        ney = world.get_marshal("Ney")
+        ney.location = "Waterloo"
+        world.current_turn = 1
+        world.calculate_visibility()
+
+        intel = world.get_region_intel("Waterloo")
+        assert intel.visibility == FULL
+        assert intel.intel_source == "marshal_present"
+
+        # Marshal leaves — move to adjacent region
+        ney.location = "Belgium"
+        world.current_turn = 2
+        world.calculate_visibility()
+
+        intel = world.get_region_intel("Waterloo")
+        # Should NOT stay FULL — marshal_present is ephemeral
+        assert intel.visibility != FULL
+
+    def test_marshal_leaves_drops_to_partial(self):
+        """After marshal leaves, non-scouted region drops to PARTIAL."""
+        world = WorldState()
+        ney = world.get_marshal("Ney")
+        ney.location = "Waterloo"
+        world.current_turn = 1
+        world.calculate_visibility()
+
+        ney.location = "Belgium"
+        world.current_turn = 2
+        world.calculate_visibility()
+
+        intel = world.get_region_intel("Waterloo")
+        # Waterloo is adjacent to Belgium, so gets PARTIAL from adjacency
+        assert intel.visibility == PARTIAL
+
+    def test_scout_full_persists_after_leaving(self):
+        """Scouted FULL persists for 2 turns even after marshal leaves."""
+        world = WorldState()
+        ney = world.get_marshal("Ney")
+        ney.location = "Belgium"
+
+        # Scout Waterloo at turn 1
+        world.current_turn = 1
+        world.update_intel_from_scout("Waterloo", turn=1)
+        intel = world.get_region_intel("Waterloo")
+        assert intel.visibility == FULL
+        assert intel.last_scouted_turn == 1
+
+        # Move Ney into Waterloo then out — marshal_present overwrites source
+        ney.location = "Waterloo"
+        world.calculate_visibility()
+        ney.location = "Belgium"
+        world.current_turn = 2
+        world.calculate_visibility()
+
+        # Scout was at turn 1, now turn 2 — within FRESH_TURNS (2).
+        # Should fall back to scout FULL, not downgrade.
+        intel = world.get_region_intel("Waterloo")
+        assert intel.visibility == FULL
+        assert intel.intel_source == "scout"
+
+    def test_battle_full_persists_after_leaving(self):
+        """Battle FULL persists for 2 turns even after marshal leaves."""
+        world = WorldState()
+        ney = world.get_marshal("Ney")
+        ney.location = "Waterloo"
+
+        # Battle at turn 1
+        world.current_turn = 1
+        world.update_intel_from_battle("Waterloo", turn=1)
+        intel = world.get_region_intel("Waterloo")
+        assert intel.visibility == FULL
+        assert intel.last_scouted_turn == 1  # Battle now sets this
+
+        # Marshal_present overwrites source
+        world.calculate_visibility()
+        assert intel.intel_source == "marshal_present"
+
+        # Marshal leaves
+        ney.location = "Belgium"
+        world.current_turn = 2
+        world.calculate_visibility()
+
+        # Battle was turn 1, now turn 2 — within FRESH_TURNS.
+        # Should fall back to battle/scout FULL.
+        intel = world.get_region_intel("Waterloo")
+        assert intel.visibility == FULL
+        assert intel.intel_source == "scout"  # Falls back to scout source
+
+    def test_old_scout_does_not_prevent_downgrade(self):
+        """Scout from many turns ago doesn't prevent marshal_present downgrade."""
+        world = WorldState()
+        ney = world.get_marshal("Ney")
+        ney.location = "Belgium"
+
+        # Scout Waterloo at turn 1
+        world.current_turn = 1
+        world.update_intel_from_scout("Waterloo", turn=1)
+
+        # Many turns pass — scout is stale
+        world.current_turn = 10
+        ney.location = "Waterloo"
+        world.calculate_visibility()
+        assert world.get_region_intel("Waterloo").visibility == FULL
+
+        # Marshal leaves
+        ney.location = "Belgium"
+        world.current_turn = 11
+        world.calculate_visibility()
+
+        # Scout was at turn 1, now turn 11 — way past FRESH_TURNS.
+        # marshal_present downgrade should apply.
+        intel = world.get_region_intel("Waterloo")
+        assert intel.visibility != FULL
+
+    def test_two_marshals_one_leaves(self):
+        """If two marshals in region and one leaves, FULL stays from other."""
+        world = WorldState()
+        ney = world.get_marshal("Ney")
+        davout = world.get_marshal("Davout")
+        ney.location = "Waterloo"
+        davout.location = "Waterloo"
+        world.current_turn = 1
+        world.calculate_visibility()
+
+        intel = world.get_region_intel("Waterloo")
+        assert intel.visibility == FULL
+
+        # Ney leaves, Davout stays
+        ney.location = "Belgium"
+        world.calculate_visibility()
+
+        intel = world.get_region_intel("Waterloo")
+        assert intel.visibility == FULL  # Davout still there
+
+    def test_enemy_hidden_after_marshal_leaves_unscouted(self):
+        """Enemy entering an unscouted region after marshal left is not visible at FULL."""
+        world = WorldState()
+        ney = world.get_marshal("Ney")
+        wellington = world.get_marshal("Wellington")
+
+        # Ney visits Bavaria (no enemies there)
+        ney.location = "Bavaria"
+        wellington.location = "London"
+        world.current_turn = 1
+        world.calculate_visibility()
+
+        intel = world.get_region_intel("Bavaria")
+        assert intel.visibility == FULL
+
+        # Ney leaves, enemy moves in
+        ney.location = "Rhine"
+        wellington.location = "Bavaria"
+        world.current_turn = 2
+        world.calculate_visibility()
+
+        intel = world.get_region_intel("Bavaria")
+        # Bavaria should NOT be FULL — marshal left, wasn't scouted
+        assert intel.visibility != FULL
+
+    def test_own_territory_drops_to_partial_when_all_marshals_leave(self):
+        """Own region with marshal is FULL. When ALL marshals leave, drops to
+        PARTIAL (Step 1: own region without marshal)."""
+        world = WorldState()
+        # Move ALL French marshals to Paris first
+        for m in world.marshals.values():
+            if m.nation == "France":
+                m.location = "Paris"
+        world.current_turn = 1
+        world.calculate_visibility()
+
+        intel = world.get_region_intel("Paris")
+        assert intel.visibility == FULL
+        assert intel.intel_source == "own_territory"
+
+        # All marshals leave Paris
+        for m in world.marshals.values():
+            if m.nation == "France":
+                m.location = "Belgium"
+        world.current_turn = 2
+        world.calculate_visibility()
+
+        # Paris is own territory without marshal — Step 1 gives PARTIAL military
+        intel = world.get_region_intel("Paris")
+        assert intel.visibility == PARTIAL

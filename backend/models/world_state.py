@@ -18,7 +18,8 @@ from backend.commands.disobedience import DisobedienceSystem
 from backend.utils import ordinal
 from backend.utils.debug import debug_print
 from backend.models.intel import (
-    RegionIntel, FULL, PARTIAL, STALE, VISIBILITY_PRIORITY, get_strength_band
+    RegionIntel, FULL, PARTIAL, STALE, VISIBILITY_PRIORITY, FRESH_TURNS,
+    get_strength_band
 )
 
 # Fortify decay configuration by personality (single source of truth)
@@ -364,6 +365,38 @@ class WorldState:
         intel_events: list = []
 
         # ════════════════════════════════════════════════════════════
+        # PRE-PASS: Ephemeral marshal_present downgrade
+        # Marshal-present FULL is live-only. Before refreshing, reset any
+        # region that was FULL from marshal_present but the marshal has left.
+        # If a scout/battle provided persistent FULL, fall back to that.
+        # The main loop will then re-upgrade to FULL if the marshal is still
+        # there, or set PARTIAL from adjacency/watchtower/own-territory.
+        # ════════════════════════════════════════════════════════════
+        for region_name, intel in self.intel.items():
+            if intel.visibility != FULL:
+                continue
+            # Only downgrade marshal-presence FULL (both "marshal_present" and
+            # "own_territory" when marshal was present — Step 0 uses own_territory
+            # source for own regions with a marshal)
+            if intel.intel_source not in ("marshal_present", "own_territory"):
+                continue
+            if region_name in friendly_marshal_regions:
+                continue  # Marshal still there — will be re-upgraded in main loop
+
+            # Marshal left. Check for persistent scout/battle fallback.
+            if intel.last_scouted_turn > 0:
+                age = turn - intel.last_scouted_turn
+                if age <= FRESH_TURNS:
+                    intel.intel_source = "scout"
+                    continue  # Scout/battle still fresh — keep FULL
+
+            # No persistent source — downgrade to allow main loop to set correct level
+            intel.visibility = PARTIAL
+            intel.exact_strength = None
+            intel.morale = None
+            intel.stance = None
+
+        # ════════════════════════════════════════════════════════════
         # Step 0 + 1 + 2 + 3: Process all regions
         # ════════════════════════════════════════════════════════════
         for region_name, region in self.regions.items():
@@ -568,6 +601,9 @@ class WorldState:
             morale=int(strongest.morale) if strongest else None,
             stance=strongest.stance.value if strongest and hasattr(strongest.stance, 'value') else None,
         )
+        # Battle grants persistent FULL (same as scout). Set last_scouted_turn
+        # so ephemeral marshal_present downgrade falls back to battle FULL.
+        intel.last_scouted_turn = turn
 
     def update_intel_from_transit(self, region_name: str, turn: int) -> None:
         """

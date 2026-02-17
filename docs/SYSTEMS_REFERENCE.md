@@ -1809,7 +1809,7 @@ Exceptions where fog affects mechanics:
 
 | Level | Source | What You See |
 |-------|--------|-------------|
-| **FULL** | Own region w/ army, scouted, post-battle | Names, exact strength, morale, stance, buildings |
+| **FULL** | Own region w/ army (**ephemeral**), scouted (2 turns), post-battle (2 turns) | Names, exact strength, morale, stance, buildings |
 | **PARTIAL** | Adjacent to army, watchtower, own region w/o army, transit | Names, strength band only |
 | **STALE** | 3-4 turns since last update | Frozen snapshot, marked with age |
 | **LAST_KNOWN** | 5+ turns since last update | Old snapshot, position likely wrong |
@@ -1817,14 +1817,22 @@ Exceptions where fog affects mechanics:
 
 ### Visibility Calculation (`calculate_visibility()`)
 
-Runs at: game init, end of `_advance_turn_internal()`, after save load.
+Runs at: game init, end of `_advance_turn_internal()`, after save load, **after each player move**.
 
 Priority order (highest wins):
-1. **Step 0:** Marshal-present → FULL (any region with a friendly marshal)
-2. **Step 1:** Own region → PARTIAL military + FULL economic
-3. **Step 2:** Adjacent to friendly army → PARTIAL
-4. **Step 3:** Adjacent to active watchtower in own region → PARTIAL
-5. **Decay:** Regions not refreshed → age from `last_updated_turn`
+1. **Pre-pass:** Ephemeral marshal_present downgrade — regions FULL from marshal presence lose FULL when marshal leaves (falls back to scout/battle FULL if recent, otherwise drops to PARTIAL for main loop to handle)
+2. **Step 0:** Marshal-present → FULL (any region with a friendly marshal)
+3. **Step 1:** Own region → PARTIAL military + FULL economic
+4. **Step 2:** Adjacent to friendly army → PARTIAL
+5. **Step 3:** Adjacent to active watchtower in own region → PARTIAL
+6. **Decay:** Regions not refreshed → age from `last_updated_turn`
+
+### FULL Visibility: Ephemeral vs Persistent
+
+- **Ephemeral FULL** (marshal_present): Only while your army stands in the region. When the marshal leaves, FULL is lost immediately. The region drops to whatever the next applicable source provides (PARTIAL from adjacency, own-territory, etc.).
+- **Persistent FULL** (scout, battle): Lasts for 2 turns after the scout/battle. Both scout and battle set `last_scouted_turn`. If a marshal was present AND the region was scouted/battled, the persistent FULL survives the marshal leaving.
+
+This makes scouting valuable — it's the only way to lock in detailed intel on a region you don't occupy.
 
 ### Decay Timeline
 
