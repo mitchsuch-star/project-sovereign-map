@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 17, 2026
-> **Last Session:** Fog of War Bugfixes (Move Fog Leak + Strategic Destination Reroute)
+> **Last Session:** Fog of War Audit — Full Coverage
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2610** (verified, 3 skipped) |
+| **Tests Passing** | **2611** (verified, 3 skipped) |
 | **Current Phase** | Phase 6: **IN PROGRESS** (2 items remaining: Manpower Pools, Artillery Unit Type) |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier, 6-BattleReport, 6-EventLog, 6-FogOfWar |
@@ -51,19 +51,27 @@
 
 ## Recently Completed
 
-### Feb 17 (Fog of War Bugfixes)
+### Feb 17 (Fog of War Audit — Full Coverage)
 
-**Two fog-related bugs fixed: move command fog leak + strategic MOVE_TO destination reroute.**
+**Comprehensive fog audit across all tactical + strategic commands. All player-facing paths now fog-aware.**
 
 **Bug 1 — Move command fog leak (executor.py):**
 - Direct "move to X" checked for enemies at destination WITHOUT fog filtering, revealing fogged enemy positions
 - Fix: player marshals moving to a fogged destination (below PARTIAL) now walk in blind. On arrival they discover enemies ("ENEMY FORCES DISCOVERED!") and are engaged. Visible destinations still block with "use ATTACK" prompt.
 
-**Bug 2 — Strategic MOVE_TO literal reroute at destination (strategic.py):**
-- Literal marshals given "march to Vienna" would reroute around the destination itself when enemies held it, looping endlessly
-- Fix: when the blocked region IS the destination, literal marshals now halt and ask for orders ("Enemy forces hold Vienna — destination blocked. Awaiting orders.") with attack/go_around/hold/cancel options. New interrupt type: `destination_blocked`. Mid-path rerouting unchanged.
+**Bug 2 — Strategic destination-blocked for ALL personalities (strategic.py):**
+- Literal/aggressive/cautious marshals would offer "go around" when enemy held the destination itself
+- Fix: all three personality branches in `_handle_blocked_path` now check `blocked_region == destination`. At destination: literal halts, aggressive auto-attacks or halts (no go_around), cautious halts (no go_around). Mid-path rerouting unchanged. New interrupt type: `destination_blocked`.
 
-**Tests:** 2610 passing (no new tests — behavioral fix in existing paths), 3 skipped
+**Bug 3 — Attack suggestion fog leak (executor.py):**
+- Out-of-range attack error listed "Targets in range" using global omniscient scan, revealing fogged enemies
+- Literal popup listed all enemies for pursue alternatives, same global scan
+- Null-target attack auto-found nearest enemy omnisciently, named them in messages
+- Fix: all three paths now fog-filtered (PARTIAL+ only) for player marshals. `find_nearest_enemy` accepts optional `filter_fn` for visibility check.
+
+**Audit result:** All remaining omniscient checks are intentional — same-region (physical co-location), adjacent (PARTIAL guaranteed), combat resolution, AI logic, LLM context.
+
+**Tests:** 2611 passing, 3 skipped
 
 ---
 

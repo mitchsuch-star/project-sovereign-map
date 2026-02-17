@@ -2302,7 +2302,15 @@ RETREAT RECOVERY (3 turns):
         # Handle None target - find nearest enemy for this marshal
         if not target:
             # Find the nearest enemy to this specific marshal
-            result = world.find_nearest_enemy(marshal.location)
+            # FOG-AWARE (Session 37): Player marshals only auto-target visible enemies
+            if marshal.nation == world.player_nation and hasattr(world, 'get_region_intel'):
+                from backend.models.intel import FULL as _FULL, PARTIAL as _PARTIAL
+                result = world.find_nearest_enemy(
+                    marshal.location,
+                    filter_fn=lambda e: world.get_region_intel(e.location).visibility in (_FULL, _PARTIAL)
+                )
+            else:
+                result = world.find_nearest_enemy(marshal.location)
 
             if result:
                 nearest_enemy, distance = result
@@ -2314,6 +2322,11 @@ RETREAT RECOVERY (3 turns):
                     # Out of range — literal marshals ask for clarification instead of guessing
                     if getattr(marshal, 'personality', '') == 'literal':
                         enemies = [e for e in world.get_enemies_of_nation(marshal.nation) if e.strength > 0]
+                        # FOG-AWARE (Session 37): Only show visible enemies for player
+                        if marshal.nation == world.player_nation and hasattr(world, 'get_region_intel'):
+                            from backend.models.intel import FULL, PARTIAL
+                            enemies = [e for e in enemies
+                                       if world.get_region_intel(e.location).visibility in (FULL, PARTIAL)]
                         options = []
                         for e in enemies[:3]:
                             e_dist = world.get_distance(marshal.location, e.location)
@@ -2449,11 +2462,19 @@ RETREAT RECOVERY (3 turns):
 
                 # Find closer targets within range
                 # Use nation-aware enemy lookup (required for enemy AI)
+                # FOG-AWARE (Session 37): Only suggest visible enemies for player
                 nearby_targets = []
+                is_player = marshal.nation == world.player_nation
                 for enemy in world.get_enemies_of_nation(marshal.nation):
                     if enemy.strength > 0:
                         enemy_distance = world.get_distance(marshal.location, enemy.location)
                         if enemy_distance <= marshal.movement_range:
+                            # Fog check: player only sees PARTIAL+ enemies
+                            if is_player and hasattr(world, 'get_region_intel'):
+                                from backend.models.intel import FULL, PARTIAL
+                                intel = world.get_region_intel(enemy.location)
+                                if intel.visibility not in (FULL, PARTIAL):
+                                    continue
                             nearby_targets.append(f"{enemy.name} at {enemy.location} ({enemy_distance} region{'s' if enemy_distance != 1 else ''} away)")
 
                 error_msg = f"{marshal.name} cannot reach {target} from {marshal.location}! "

@@ -1774,8 +1774,14 @@ class WorldState:
     # 2. WHY Grouchy stopped attacking (too weak)
     # 3. WHO took over and why (Ney - strongest remaining)
     # ============================================================================
-    def find_nearest_enemy(self, from_region: str) -> Optional[Tuple[Marshal, int]]:
-        """Find the nearest enemy marshal from a given region."""
+    def find_nearest_enemy(self, from_region: str, filter_fn=None) -> Optional[Tuple[Marshal, int]]:
+        """Find the nearest enemy marshal from a given region.
+
+        Args:
+            from_region: Region to measure distance from.
+            filter_fn: Optional callable(marshal) -> bool to filter candidates
+                       (e.g., fog visibility check).
+        """
         enemy_marshals = self.get_enemy_marshals()
 
         if not enemy_marshals:
@@ -1787,6 +1793,8 @@ class WorldState:
         for marshal in enemy_marshals:
             if marshal.strength <= 0:
                 continue  # Skip destroyed marshals
+            if filter_fn and not filter_fn(marshal):
+                continue
             distance = self.get_distance(from_region, marshal.location)
             if distance < nearest_distance:
                 nearest_distance = distance

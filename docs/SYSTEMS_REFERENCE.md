@@ -1893,7 +1893,8 @@ Tactical events: `_filter_tactical_events_by_visibility()` — player events alw
 - **HOLD sally:** Adjacent-only scan, no fog filter needed (adjacency guarantees PARTIAL).
 - **Contact interrupt:** Discovery language for fogged regions ("Enemy forces discovered!"), standard for FULL.
 - **Direct MOVE fog-awareness:** Destination enemy check is fog-filtered for player marshals. Below PARTIAL → walk in blind, discover enemies on arrival. FULL/PARTIAL → blocked with "use ATTACK" suggestion.
-- **Literal MOVE_TO destination blocked:** When enemy holds the destination itself (not mid-path), literal marshals halt and ask for orders instead of rerouting around the destination. Interrupt type: `destination_blocked`.
+- **Destination blocked (all personalities):** When enemy holds the destination itself (not mid-path), all personality types halt instead of offering "go around". Literal halts. Aggressive auto-attacks at good odds or halts. Cautious halts. Interrupt type: `destination_blocked`.
+- **Attack suggestion fog filter:** Out-of-range attack "Targets in range" and literal pursue popup only list PARTIAL+ visible enemies. Null-target auto-find uses `find_nearest_enemy(filter_fn=...)` for visibility check.
 
 ### Watchtower Building
 

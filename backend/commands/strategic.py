@@ -1896,6 +1896,48 @@ class StrategicExecutor:
                                      f"Path blocked at {blocked_region}, no alternate route")
 
         elif personality == "aggressive":
+            destination = order.target_snapshot_location or order.target
+
+            # Session 37: If enemy is AT the destination, auto-attack or
+            # ask player without go_around (can't reroute around destination)
+            if blocked_region == destination:
+                ratio = marshal.strength / max(1, enemy.strength)
+                if ratio >= 0.7 and self._should_auto_attack(marshal, enemy, world):
+                    result = self.executor.execute(
+                        {"command": {
+                            "marshal": marshal.name,
+                            "action": "attack",
+                            "target": enemy.name,
+                            "_strategic_execution": True
+                        }},
+                        game_state
+                    )
+                    return self._handle_combat_result(
+                        marshal, enemy, result, world, game_state)
+                # Bad odds at destination — ask without go_around
+                order.last_contact_enemy = enemy.name
+                order.last_contact_turn = world.current_turn
+                if is_fog_discovery:
+                    msg = (f"{marshal.name}: 'Enemy forces discovered at "
+                           f"{blocked_region}! Destination held by {enemy.name}. "
+                           f"Odds unfavorable — awaiting orders.'")
+                else:
+                    msg = (f"{marshal.name}: '{enemy.name} holds {blocked_region} "
+                           f"— destination blocked. Odds unfavorable.'")
+                return {
+                    "marshal": marshal.name,
+                    "command": order.command_type,
+                    "order_status": "awaiting_response",
+                    "requires_input": True,
+                    "interrupt_type": "destination_blocked",
+                    "enemy": enemy.name,
+                    "location": blocked_region,
+                    "fog_discovery": is_fog_discovery,
+                    "message": msg,
+                    "options": ["attack_anyway", "hold_position",
+                                "cancel_order"]
+                }
+
             ratio = marshal.strength / max(1, enemy.strength)
             if ratio >= 0.7 and self._should_auto_attack(marshal, enemy, world):
                 # Auto-attack — favorable enough odds
@@ -1942,9 +1984,35 @@ class StrategicExecutor:
             }
 
         else:  # cautious (and balanced/loyal) — always ask
+            destination = order.target_snapshot_location or order.target
+
             # Track contact to prevent infinite interrupt loop next turn
             order.last_contact_enemy = enemy.name
             order.last_contact_turn = world.current_turn
+
+            # Session 37: If enemy is AT the destination, no go_around option
+            if blocked_region == destination:
+                if is_fog_discovery:
+                    msg = (f"{marshal.name}: 'Enemy forces discovered at "
+                           f"{blocked_region}! Destination held. "
+                           f"How shall I proceed?'")
+                else:
+                    msg = (f"{marshal.name}: 'Enemy holds {blocked_region} "
+                           f"— destination blocked. How shall I proceed?'")
+                return {
+                    "marshal": marshal.name,
+                    "command": order.command_type,
+                    "order_status": "awaiting_response",
+                    "requires_input": True,
+                    "interrupt_type": "destination_blocked",
+                    "enemy": enemy.name,
+                    "location": blocked_region,
+                    "fog_discovery": is_fog_discovery,
+                    "message": msg,
+                    "options": ["attack", "hold_position",
+                                "cancel_order"]
+                }
+
             # Session 36: Discovery vs standard contact message
             if is_fog_discovery:
                 msg = (f"{marshal.name}: 'Enemy forces discovered at "

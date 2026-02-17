@@ -241,7 +241,8 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | Garrison regen on player garrison | Check `world_state.py advance_turn()` — detachment garrisons excluded from regen |
 | Fort bonus not degrading | Check `combat.py` — degradation block after recklessness tracking, only if `defense_bonus > 0` |
 | Move leaks fogged enemies | `_execute_move` destination check must be fog-filtered for player marshals (below PARTIAL → walk in blind) |
-| Literal marshal reroutes around destination | `_handle_blocked_path` must check `blocked_region == destination` — halt instead of reroute |
+| Any personality reroutes around destination | `_handle_blocked_path` must check `blocked_region == destination` for ALL personalities — halt instead of reroute |
+| Attack suggestion reveals fogged enemies | Out-of-range target list and literal popup must fog-filter to PARTIAL+ visibility |
 
 ---
 
