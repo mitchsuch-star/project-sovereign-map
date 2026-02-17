@@ -2631,6 +2631,16 @@ class EnemyAI:
             ai_debug(f"    P6.75: {marshal.name} cannot garrison - fortified")
             return None
 
+        # Nation garrison cap check (same cap as player — Building Blocks)
+        from backend.commands.executor import CommandExecutor
+        nation_garrisons = sum(
+            1 for r in world.regions.values()
+            if r.garrison_strength > 0 and r.controller == nation
+        )
+        if nation_garrisons >= CommandExecutor.GARRISON_MAX_PER_NATION:
+            ai_debug(f"    P6.75: {nation} at garrison cap ({nation_garrisons}/{CommandExecutor.GARRISON_MAX_PER_NATION})")
+            return None
+
         # Strength check — need excess troops to detach
         if marshal.strength < self.AI_GARRISON_MIN_STRENGTH:
             ai_debug(f"    P6.75: {marshal.name} too weak to garrison "

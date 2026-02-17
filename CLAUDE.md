@@ -25,7 +25,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Completed in Phase 6
 
-Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-Battle Analysis, Turn Events Log, Reinforcements, Attrition, City Fortification, Fog of War (COMPLETE: Sessions 33-36), Player Garrison Command (Session 31), Enemy AI Garrison (P6.75: AI places garrisons via Building Blocks, 20k threshold, 1/nation/turn cap, P4.25 sub-5k awareness, `garrison_detachment` rename). See `docs/STATUS.md` for details.
+Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-Battle Analysis, Turn Events Log, Reinforcements, Attrition, City Fortification, Fog of War (COMPLETE: Sessions 33-36), Player Garrison Command (Session 31: 2 AP, cap 3/nation, map overlay), Enemy AI Garrison (P6.75: Building Blocks, 20k threshold, 1/nation/turn, P4.25 sub-5k awareness, `garrison_detachment` rename). See `docs/STATUS.md` for details.
 
 ### Deferred from Phase 6
 

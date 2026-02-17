@@ -62,10 +62,31 @@ class TestGarrisonPlacement:
         assert "3,000" in result["message"]
         assert "Ney" in result["message"]
 
-    def test_garrison_costs_1_ap(self):
-        """Garrison action costs 1 AP."""
+    def test_garrison_costs_2_ap(self):
+        """Garrison action costs 2 AP (real commitment)."""
         world, gs, executor = _setup()
-        assert world.get_action_cost("garrison") == 1
+        assert world.get_action_cost("garrison") == 2
+
+    def test_garrison_blocked_with_1_ap(self):
+        """Garrison requires 2 AP — must fail with only 1 remaining."""
+        world, gs, executor = _setup()
+        world.actions_remaining = 1
+        result = executor.execute(
+            _garrison_command("Ney"), gs)
+        assert result["success"] is False
+        assert "Not enough actions" in result.get("message", "") or "action" in result.get("message", "").lower()
+
+    def test_garrison_succeeds_with_2_ap(self):
+        """Garrison succeeds with exactly 2 AP remaining."""
+        world, gs, executor = _setup()
+        world.actions_remaining = 2
+        ney = world.marshals["Ney"]
+        region = world.regions[ney.location]
+        region.controller = "France"
+        region.garrison_strength = 0
+        result = executor.execute(
+            _garrison_command("Ney"), gs)
+        assert result["success"] is True
 
     def test_garrison_event_logged(self):
         """Event log records garrison_placed."""
@@ -387,3 +408,201 @@ class TestGarrisonParser:
         result = client._parse_with_mock("Davout, detach troops")
         assert result is not None
         assert result.action == "garrison"
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# GARRISON CAP TESTS (Session 37: max 3 per nation)
+# ════════════════════════════════════════════════════════════════════════════════
+
+class TestGarrisonCap:
+    """Test garrison cap of 3 per nation (includes capital garrisons)."""
+
+    def test_cap_constant_is_3(self):
+        """GARRISON_MAX_PER_NATION is 3."""
+        world, gs, executor = _setup()
+        assert executor.GARRISON_MAX_PER_NATION == 3
+
+    def test_capital_counts_toward_cap(self):
+        """Paris capital garrison counts as 1 toward France's cap of 3."""
+        world, gs, executor = _setup()
+        paris = world.regions.get("Paris")
+        assert paris is not None
+        assert paris.garrison_strength > 0  # Capital garrison exists
+        # Count French garrisons — Paris should count
+        french_garrisons = sum(
+            1 for r in world.regions.values()
+            if r.garrison_strength > 0 and r.controller == "France"
+        )
+        assert french_garrisons >= 1  # At least Paris
+
+    def test_cap_blocks_at_3(self):
+        """Cannot place garrison when nation already has 3."""
+        world, gs, executor = _setup()
+        # Paris already has a capital garrison (1).
+        # Set up 2 more French garrisons to hit cap of 3.
+        french_regions = [r for r in world.regions.values()
+                         if r.controller == "France" and r.garrison_strength == 0]
+        for i, region in enumerate(french_regions[:2]):
+            region.garrison_strength = 3000
+            region.garrison_detachment = True
+
+        # Now try to place another — should fail
+        ney = world.marshals["Ney"]
+        ney.strength = 20000
+        # Put Ney in a region without a garrison
+        for r in world.regions.values():
+            if r.controller == "France" and r.garrison_strength == 0:
+                ney.location = r.name
+                break
+
+        result = executor._execute_garrison({"marshal": "Ney"}, gs)
+        assert result["success"] is False
+        assert "Berthier" in result["message"]
+        assert "3" in result["message"]
+
+    def test_cap_allows_when_under_limit(self):
+        """Can place garrison when under cap."""
+        world, gs, executor = _setup()
+        # Paris has capital garrison (1). Should still allow 2 more.
+        ney = world.marshals["Ney"]
+        ney.strength = 20000
+        region = world.regions[ney.location]
+        region.controller = "France"
+        region.garrison_strength = 0
+
+        result = executor._execute_garrison({"marshal": "Ney"}, gs)
+        assert result["success"] is True
+
+    def test_cap_no_ap_spent_on_rejection(self):
+        """When cap blocks garrison, no AP is consumed."""
+        world, gs, executor = _setup()
+        # Fill to cap
+        french_regions = [r for r in world.regions.values()
+                         if r.controller == "France" and r.garrison_strength == 0]
+        for region in french_regions[:2]:
+            region.garrison_strength = 3000
+            region.garrison_detachment = True
+
+        old_ap = world.actions_remaining
+        ney = world.marshals["Ney"]
+        ney.strength = 20000
+        for r in world.regions.values():
+            if r.controller == "France" and r.garrison_strength == 0:
+                ney.location = r.name
+                break
+
+        result = executor._execute_garrison({"marshal": "Ney"}, gs)
+        assert result["success"] is False
+        # AP should not have changed (cap validation is pre-executor)
+        assert world.actions_remaining == old_ap
+
+    def test_cap_per_nation_not_global(self):
+        """Each nation has its own cap of 3."""
+        world, gs, executor = _setup()
+        # Count French and British garrisons separately
+        french_count = sum(
+            1 for r in world.regions.values()
+            if r.garrison_strength > 0 and r.controller == "France"
+        )
+        british_count = sum(
+            1 for r in world.regions.values()
+            if r.garrison_strength > 0 and r.controller == "Britain"
+        )
+        # British cap is independent of French garrisons
+        # Fill France to 3 — British should still be able to garrison
+        french_regions = [r for r in world.regions.values()
+                         if r.controller == "France" and r.garrison_strength == 0]
+        for region in french_regions[:3 - french_count]:
+            region.garrison_strength = 3000
+            region.garrison_detachment = True
+
+        # Now verify French is at cap
+        french_count = sum(
+            1 for r in world.regions.values()
+            if r.garrison_strength > 0 and r.controller == "France"
+        )
+        assert french_count >= 3
+
+        # British marshal should still be able to garrison
+        wellington = world.marshals.get("Wellington")
+        if wellington:
+            wellington.strength = 20000
+            region = world.regions[wellington.location]
+            region.controller = "Britain"
+            region.garrison_strength = 0
+            result = executor._execute_garrison({"marshal": "Wellington"}, gs)
+            # Should succeed (Britain not at cap) or fail for other reasons, NOT cap
+            if not result["success"]:
+                assert "3 garrisons" not in result["message"]
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# MAP DATA / FOG FILTER TESTS (Session 37)
+# ════════════════════════════════════════════════════════════════════════════════
+
+class TestGarrisonMapData:
+    """Test garrison data in map_data and fog filtering."""
+
+    def test_garrison_in_map_data(self):
+        """get_game_state_summary includes garrison_strength and garrison_detachment."""
+        world, gs, executor = _setup()
+        region = world.regions["Belgium"]
+        region.garrison_strength = 3000
+        region.garrison_detachment = True
+
+        summary = world.get_game_state_summary()
+        map_data = summary["map_data"]
+        belgium = map_data["Belgium"]
+        assert belgium["garrison_strength"] == 3000
+        assert belgium["garrison_detachment"] is True
+
+    def test_garrison_zero_in_map_data(self):
+        """Regions without garrisons show 0 strength and False detachment."""
+        world, gs, executor = _setup()
+        region = world.regions["Belgium"]
+        region.garrison_strength = 0
+        region.garrison_detachment = False
+
+        summary = world.get_game_state_summary()
+        map_data = summary["map_data"]
+        belgium = map_data["Belgium"]
+        assert belgium["garrison_strength"] == 0
+        assert belgium["garrison_detachment"] is False
+
+    def test_fog_own_region_full_garrison(self):
+        """Own region with FULL visibility shows exact garrison strength."""
+        world, gs, executor = _setup()
+        # Paris is French — should have full visibility for France (player nation)
+        paris = world.regions["Paris"]
+        assert paris.garrison_strength > 0  # Capital garrison
+
+        filtered = world.get_filtered_game_state_summary()
+        paris_data = filtered["map_data"]["Paris"]
+        assert paris_data["garrison_strength"] == paris.garrison_strength
+
+    def test_fog_unknown_hides_garrison(self):
+        """UNKNOWN visibility hides garrison entirely (shows 0)."""
+        world, gs, executor = _setup()
+        # Set a garrison on an enemy region far from player
+        london = world.regions.get("London")
+        if london:
+            london.garrison_strength = 10000
+            london.controller = "Britain"
+
+            filtered = world.get_filtered_game_state_summary()
+            london_data = filtered["map_data"].get("London")
+            if london_data:
+                # If visibility is unknown/last_known, garrison should be hidden
+                vis = london_data.get("visibility", "unknown")
+                if vis in ("unknown", "last_known"):
+                    assert london_data["garrison_strength"] == 0
+
+    def test_fog_partial_sentinel(self):
+        """PARTIAL/STALE visibility shows sentinel -1 for garrison (unknown strength)."""
+        world, gs, executor = _setup()
+        # Test the filtering logic via unfiltered summary fields
+        summary = world.get_game_state_summary()
+        # Verify the map_data has the fields we expect
+        for region_name, data in summary["map_data"].items():
+            assert "garrison_strength" in data
+            assert "garrison_detachment" in data

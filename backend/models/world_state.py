@@ -129,7 +129,7 @@ class WorldState:
             "defend": 1,
             "end_turn": 0,  # Free action
             "economy": 0,  # Free action (Phase 6.2.G)
-            "garrison": 1,  # Session 31: Detach troops
+            "garrison": 2,  # Session 31: Detach troops (2 AP — real commitment)
         }
 
         # ============================================================
@@ -2527,6 +2527,9 @@ class WorldState:
                 # Watchtower (Phase 6 Fog - Session 35)
                 "watchtower": getattr(region, 'watchtower', 'none'),
                 "watchtower_turns_remaining": int(getattr(region, 'watchtower_turns_remaining', 0)),
+                # Garrison data (for map overlay)
+                "garrison_strength": int(region.garrison_strength),
+                "garrison_detachment": region.garrison_detachment,
                 "marshals": marshals_data
             }
 
@@ -2620,6 +2623,30 @@ class WorldState:
                 filtered_region["max_building_slots"] = 0
                 filtered_region["watchtower"] = "none"
                 filtered_region["watchtower_turns_remaining"] = 0
+
+            # Garrison filtering: own garrisons always visible, enemy by visibility
+            if is_own_region:
+                # Own garrison: full detail
+                filtered_region["garrison_strength"] = region_data["garrison_strength"]
+                filtered_region["garrison_detachment"] = region_data["garrison_detachment"]
+            elif intel.visibility == FULL:
+                # Enemy garrison at FULL: exact strength
+                filtered_region["garrison_strength"] = region_data["garrison_strength"]
+                filtered_region["garrison_detachment"] = region_data["garrison_detachment"]
+            elif intel.visibility in (PARTIAL, STALE):
+                # PARTIAL/STALE: show garrison exists but not exact strength
+                gs = region_data["garrison_strength"]
+                if gs > 0:
+                    from backend.models.intel import get_strength_band
+                    filtered_region["garrison_strength"] = -1  # Sentinel: "garrison exists, unknown size"
+                    filtered_region["garrison_strength_band"] = get_strength_band(gs)
+                else:
+                    filtered_region["garrison_strength"] = 0
+                filtered_region["garrison_detachment"] = False
+            else:
+                # LAST_KNOWN/UNKNOWN: hidden
+                filtered_region["garrison_strength"] = 0
+                filtered_region["garrison_detachment"] = False
 
             # Marshal filtering per visibility
             for marshal_data in region_data["marshals"]:

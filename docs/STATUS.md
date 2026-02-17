@@ -1,8 +1,8 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 16, 2026
-> **Last Session:** AI Garrison Implementation
+> **Last Updated:** February 17, 2026
+> **Last Session:** Garrison Balance + Map Overlay
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2588** (verified, 3 skipped) |
+| **Tests Passing** | **2602** (verified, 3 skipped) |
 | **Current Phase** | Phase 6: **IN PROGRESS** (2 items remaining: Manpower Pools, Artillery Unit Type) |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier, 6-BattleReport, 6-EventLog, 6-FogOfWar |
@@ -20,7 +20,7 @@
 
 ## Active Work
 
-**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED. Save/Load COMPLETE. Fog of War COMPLETE (Sessions 33-36). Fog Map Visualization COMPLETE (Session 38). Enemy AI Garrison COMPLETE (P6.75 + P4.25 awareness + garrison_detachment rename). Manpower Pools and Artillery Unit Type NEXT.**
+**Phase 6: Core Campaign — Terrain 6.1 COMPLETE. Economy 6.2 COMPLETE + AUDITED. Save/Load COMPLETE. Fog of War COMPLETE (Sessions 33-36). Fog Map Visualization COMPLETE (Session 38). Enemy AI Garrison COMPLETE (P6.75 + P4.25 + balance nerf + map overlay). Manpower Pools and Artillery Unit Type NEXT.**
 
 - [x] Economy spec design (3 review rounds, 1025 lines, 17 sections)
 - [x] Cohesion assessment → deferred to FUTURE_DESIGN.md
@@ -50,6 +50,24 @@
 ---
 
 ## Recently Completed
+
+### Feb 17 (Garrison Balance + Map Overlay)
+
+**Garrison balance nerf (cap + AP cost) and map overlay UI.**
+
+**Balance:**
+- **AP cost raised to 2** (from 1) — garrison is now a real commitment, unified across player and AI
+- **Nation cap of 3 garrisons** — includes capital garrisons (France has Paris = 1 used, 2 remaining). Berthier warning on cap, no AP consumed on rejection
+- **BUGFIX: AP pre-validation** — executor hardcoded `required_actions = 1` for all military actions; now uses `world.get_action_cost(action)` so variable-cost actions (garrison=2) are correctly blocked when insufficient AP
+
+**Godot Map Overlay:**
+- **Garrison shield indicator** — colored rectangle below region circle with strength text ("3k", "15k", "?"). Dimmed under fog (PARTIAL/STALE). Nation-colored.
+- **Region tooltip garrison line** — "Garrison: 15,000" or "Garrison: Present (unknown strength)" with [Detachment] tag
+- **Map data pipeline** — garrison_strength + garrison_detachment in map_data, fog-filtered (FULL=exact, PARTIAL/STALE=sentinel -1 + band, UNKNOWN=hidden)
+
+**Tests:** 2602 passing (+14 new: cap validation, AP cost, AP pre-validation bugfix, map_data, fog filtering), 3 skipped
+
+---
 
 ### Feb 15 (Session 31: Playtest Balance Fixes)
 

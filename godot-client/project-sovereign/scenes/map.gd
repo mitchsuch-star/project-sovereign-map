@@ -49,6 +49,7 @@ var region_controllers = {}
 var region_marshals = {}
 var region_visibility = {}       # Per-region fog level: "full"/"partial"/"stale"/"last_known"/"unknown"
 var region_fogged_forces = {}    # Per-region fogged enemy data: [{name, nation, strength_band, fog_level}]
+var region_garrisons = {}        # Per-region garrison data: {strength: int, detachment: bool, band: str}
 
 # Mouse tracking for hover tooltips
 var mouse_position: Vector2 = Vector2.ZERO
@@ -239,6 +240,10 @@ func _draw_regions():
 			var regular_count = region_marshals[region_name].size() if region_name in region_marshals else 0
 			_draw_fogged_force_icons(pos, fogged, regular_count)
 
+		# Draw garrison indicator below region circle
+		if region_name in region_garrisons:
+			_draw_garrison_indicator(pos, region_garrisons[region_name], controller, visibility)
+
 func _draw_marshal_icons(region_pos: Vector2, marshals: Array):
 	"""Draw marshal icons above a region."""
 	var icon_size = Vector2(16, 16)
@@ -384,6 +389,52 @@ func _draw_fogged_tooltip():
 		intel_text = "Intel: Stale (outdated)"
 		intel_color = Color(0.8, 0.6, 0.4)
 	draw_string(font, Vector2(text_x, text_y + 11), intel_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, intel_color)
+
+func _draw_garrison_indicator(region_pos: Vector2, garrison_data: Dictionary, controller: String, visibility: String):
+	"""Draw a small garrison shield indicator below the region circle."""
+	var strength = garrison_data.get("strength", 0)
+	var band = garrison_data.get("band", "")
+	var font = ThemeDB.fallback_font
+
+	# Position below region circle
+	var indicator_pos = region_pos + Vector2(0, 38)
+
+	# Shield shape: small rectangle with pointed bottom
+	var shield_size = Vector2(20, 14)
+	var shield_rect = Rect2(indicator_pos - shield_size / 2, shield_size)
+
+	# Nation color for the shield, dimmed under fog
+	var nation_color = COLORS.get(controller, Color(0.5, 0.5, 0.5))
+	var shield_color = nation_color
+	var text_color = Color.WHITE
+	var border_col = Color(0.9, 0.9, 0.9)
+
+	if visibility == "stale":
+		shield_color = Color(nation_color.r * 0.5, nation_color.g * 0.5, nation_color.b * 0.5, 0.6)
+		text_color = Color(0.7, 0.7, 0.7)
+		border_col = Color(0.5, 0.5, 0.5)
+	elif visibility == "partial":
+		shield_color = Color(nation_color.r * 0.7, nation_color.g * 0.7, nation_color.b * 0.7, 0.8)
+		text_color = Color(0.85, 0.85, 0.85)
+		border_col = Color(0.7, 0.7, 0.7)
+
+	# Draw shield background
+	draw_rect(shield_rect, shield_color)
+	draw_rect(shield_rect, border_col, false, 1.5)
+
+	# Draw strength text centered on shield
+	var label = ""
+	if strength == -1:
+		# Fogged: show "?" or band initial
+		label = "?"
+	elif strength >= 1000:
+		label = str(int(strength / 1000)) + "k"
+	else:
+		label = str(strength)
+
+	var label_size = font.get_string_size(label, HORIZONTAL_ALIGNMENT_CENTER, -1, 9)
+	var label_pos = indicator_pos - Vector2(label_size.x / 2, -4)
+	draw_string(font, label_pos, label, HORIZONTAL_ALIGNMENT_CENTER, -1, 9, text_color)
 
 func _gui_input(event):
 	"""Handle clicks, mouse motion, zoom, and pan."""
@@ -908,6 +959,9 @@ func _draw_region_tooltip():
 	var line_count = 6  # name, controller, type+terrain, income, stability, supply
 	if visibility == "stale" or visibility == "partial":
 		line_count += 1  # Intel quality line
+	var garrison_info = region_garrisons.get(hovered_region, null)
+	if garrison_info != null:
+		line_count += 1
 	if war_damage > 0:
 		line_count += 1
 	if max_slots > 0:
@@ -986,6 +1040,21 @@ func _draw_region_tooltip():
 	var supply_text = "Supply: " + _format_number(int(supply_capacity))
 	draw_string(font, Vector2(text_x, text_y + 11), supply_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.6, 0.8, 0.7))
 	text_y += line_spacing
+
+	# Garrison (only if present)
+	if garrison_info != null:
+		var g_strength = garrison_info.get("strength", 0)
+		var g_detachment = garrison_info.get("detachment", false)
+		var g_text = "Garrison: "
+		if g_strength == -1:
+			g_text += "Present (unknown strength)"
+		else:
+			g_text += _format_number(g_strength)
+		if g_detachment:
+			g_text += " [Detachment]"
+		var g_color = Color(0.8, 0.6, 0.4)  # Bronze/brown for garrison
+		draw_string(font, Vector2(text_x, text_y + 11), g_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, g_color)
+		text_y += line_spacing
 
 	# War damage (only if > 0)
 	if war_damage > 0:
@@ -1070,6 +1139,17 @@ func update_all_regions(map_data: Dictionary):
 			region_fogged_forces[region_name] = fogged
 		else:
 			region_fogged_forces.erase(region_name)
+
+		# Update garrison data (for map overlay indicator)
+		var garrison_str = int(data.get("garrison_strength", 0))
+		if garrison_str != 0:  # -1 = fogged (exists but unknown size), >0 = exact
+			region_garrisons[region_name] = {
+				"strength": garrison_str,
+				"detachment": data.get("garrison_detachment", false),
+				"band": data.get("garrison_strength_band", ""),
+			}
+		else:
+			region_garrisons.erase(region_name)
 
 	# Trigger redraw
 	queue_redraw()

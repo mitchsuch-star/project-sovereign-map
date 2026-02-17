@@ -787,7 +787,7 @@ RETREAT RECOVERY (3 turns):
             else:
                 # Military/tactical actions use CP pool
                 # Determine how many actions this command needs
-                required_actions = 1
+                required_actions = world.get_action_cost(action)
                 if (not is_strategic_execution and
                         parsed_command.get("is_strategic") and
                         parsed_command.get("strategic_type")):
@@ -5770,6 +5770,7 @@ RETREAT RECOVERY (3 turns):
 
     GARRISON_DETACHMENT_SIZE = 3000
     GARRISON_MIN_MARSHAL_STRENGTH = 8000
+    GARRISON_MAX_PER_NATION = 3  # Cap includes capital garrisons
 
     def _execute_garrison(self, command: Dict, game_state: Dict) -> Dict:
         """Detach troops to garrison the marshal's current region.
@@ -5826,6 +5827,19 @@ RETREAT RECOVERY (3 turns):
             return {
                 "success": False,
                 "message": f"A garrison already holds {region_name}, Your Majesty."
+            }
+
+        # Validation: nation garrison cap (includes capital garrisons)
+        nation_garrisons = sum(
+            1 for r in world.regions.values()
+            if r.garrison_strength > 0 and r.controller == marshal.nation
+        )
+        if nation_garrisons >= self.GARRISON_MAX_PER_NATION:
+            return {
+                "success": False,
+                "message": (f"Berthier shakes his head. 'We already maintain {nation_garrisons} garrisons, "
+                           f"Your Majesty. Our supply lines cannot support another. "
+                           f"Maximum {self.GARRISON_MAX_PER_NATION} garrisons per nation.'")
             }
 
         # Validation: marshal has enough troops

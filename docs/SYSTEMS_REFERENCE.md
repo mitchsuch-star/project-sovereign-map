@@ -1734,8 +1734,10 @@ Capital regions have a standing garrison that must be defeated before the capita
 Players and AI can detach 3,000 troops from a marshal to garrison a controlled region. Uses the same `garrison_strength` field as capital garrisons, distinguished by `garrison_detachment` boolean (renamed from `garrison_player_placed` in AI Garrison session).
 
 **Mechanics:**
-- **Cost:** 1 AP, 3,000 troops detached from marshal
+- **Cost:** 2 AP (real commitment — unified across player and AI)
+- **Troops detached:** 3,000 from marshal
 - **Minimum marshal strength:** 8,000 (player), 20,000 (AI — `AI_GARRISON_MIN_STRENGTH`)
+- **Nation cap:** Maximum 3 garrisons per nation (`GARRISON_MAX_PER_NATION`), includes capital garrisons. Berthier warning on cap, no AP consumed.
 - **Region requirements:** Controlled by marshal's nation, no existing garrison, no enemies present
 
 **Differences from capital garrison:**

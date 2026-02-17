@@ -548,10 +548,10 @@ class TestAIGarrisonNoLoops:
 class TestAIGarrisonIntegration:
     """Test garrison in full AI turn flow."""
 
-    def test_garrison_action_costs_1_ap(self):
-        """Garrison costs 1 AP from nation budget."""
+    def test_garrison_action_costs_2_ap(self):
+        """Garrison costs 2 AP (real commitment)."""
         world, gs, executor, ai = _setup()
-        assert world.get_action_cost("garrison") == 1
+        assert world.get_action_cost("garrison") == 2
 
     def test_garrison_detachment_fights_to_destruction(self):
         """AI-placed garrison (garrison_detachment=True) fights, doesn't collapse at 5k."""
