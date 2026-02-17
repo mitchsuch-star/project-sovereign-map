@@ -547,6 +547,191 @@ end turn
 
 ---
 
+## Test G: Garrison System (Session 37)
+
+> **Estimated time:** 15-20 min. G1-G3 critical path (~8 min), G4-G6 visual (~10 min).
+
+### G1. Garrison Placement + AP Cost
+
+#### G1A. Successful garrison (message + overlay)
+
+```
+/debug set_location Grouchy Lyon
+/debug set_strength Grouchy 50000
+Grouchy, garrison
+```
+
+**Expected:**
+- Message: "Grouchy detaches 3,000 troops to garrison Lyon. Army strength: 47,000."
+- Map: Blue shield icon appears below Lyon circle, text "3k"
+- Hover Lyon: tooltip shows "Garrison: 3,000 [Detachment]" in bronze text after Supply line
+
+#### G1B. Garrison blocked with 1 AP
+
+```
+# Fresh turn (4 AP)
+Ney, scout Belgium           # 3 AP
+Davout, scout Lyon            # 2 AP
+Grouchy, scout Waterloo       # 1 AP
+
+Ney, garrison
+```
+
+**Expected:** "Not enough actions! Need 2, have 1."
+
+#### G1C. Garrison succeeds with exactly 2 AP
+
+```
+# Fresh turn (4 AP)
+Ney, scout Belgium            # 3 AP
+Davout, scout Lyon             # 2 AP
+
+Ney, garrison
+```
+
+**Expected:** Success. 0 AP remaining.
+
+---
+
+### G2. Garrison Cap (3 per nation)
+
+#### G2A. Capital counts toward cap — fill to 3
+
+```
+# Paris already has capital garrison (1/3 used)
+/debug set_location Grouchy Lyon
+/debug set_strength Grouchy 50000
+Grouchy, garrison
+end turn
+
+/debug set_location Davout Waterloo
+/debug set_strength Davout 50000
+Davout, garrison
+end turn
+```
+
+**Expected:** Both succeed. France now at 3/3 (Paris + Lyon + Waterloo).
+
+#### G2B. Cap blocks 4th garrison
+
+```
+/debug set_location Ney Belgium
+/debug set_strength Ney 50000
+Ney, garrison
+```
+
+**Expected:** "Berthier shakes his head. 'We already maintain 3 garrisons, Your Majesty. Our supply lines cannot support another. Maximum 3 garrisons per nation.'"
+
+#### G2C. No AP consumed on cap rejection
+
+Check AP counter before and after — should be unchanged.
+
+---
+
+### G3. Garrison Failure Cases
+
+#### G3A. Not enough troops (needs 8k)
+
+```
+/debug set_strength Ney 5000
+Ney, garrison
+```
+
+**Expected:** "Ney's forces are too depleted to spare a garrison...need at least 8,000 men..."
+
+#### G3B. Enemy territory
+
+```
+/debug set_location Ney Vienna
+/debug set_strength Ney 50000
+Ney, garrison
+```
+
+**Expected:** "We do not control Vienna, Your Majesty."
+
+#### G3C. Enemy present in region
+
+```
+/debug set_location Ney Belgium
+/debug set_location Wellington Belgium
+/debug freeze Wellington
+Ney, garrison
+```
+
+**Expected:** "Enemy forces contest Belgium. We cannot garrison while under threat..."
+
+#### G3D. Already garrisoned
+
+```
+# Lyon already garrisoned from G2A
+/debug set_location Ney Lyon
+/debug set_strength Ney 50000
+Ney, garrison
+```
+
+**Expected:** "A garrison already holds Lyon, Your Majesty."
+
+---
+
+### G4. Map Overlay Visuals
+
+#### G4A. Shield appearance
+
+After placing a garrison (G1A), verify:
+- Blue rectangle below Lyon circle (France color)
+- White border
+- "3k" text centered, white, small font
+
+#### G4B. Hover tooltip — player garrison
+
+Hover over Lyon (player-placed garrison):
+- Tooltip shows "Garrison: 3,000 [Detachment]" in bronze/brown color
+- Line appears after "Supply:" and before "War Damage" (if any)
+
+#### G4C. Hover tooltip — capital garrison
+
+Hover over Paris:
+- Tooltip shows "Garrison: 15,000" (no [Detachment] tag)
+
+---
+
+### G5. Fog of War Interaction
+
+#### G5A. Enemy garrison in fogged region
+
+End several turns to let AI place garrisons. Find an enemy region with PARTIAL/STALE visibility that has a garrison:
+- Shield should appear dimmed with "?" text
+- Tooltip shows "Garrison: Present (unknown strength)"
+
+#### G5B. UNKNOWN region hides garrison
+
+Enemy garrison in UNKNOWN visibility region should NOT show shield at all. Tooltip shows "No intelligence".
+
+#### G5C. Own garrison always visible
+
+Player garrisons in own territory always show exact strength regardless of fog state.
+
+---
+
+### G6. Garrison Persistence
+
+#### G6A. Survives turn processing
+
+```
+# After placing garrison in G1A
+end turn
+```
+
+**Expected:** Garrison still visible on map. Shield icon persists with same strength.
+
+#### G6B. Capital regens, detachment doesn't
+
+- End several turns
+- Paris capital garrison should regen toward 15k if damaged
+- Player garrison at Lyon should NOT regen (stays at 3,000)
+
+---
+
 ## Debug Command Quick Reference
 
 | Command | Purpose |
