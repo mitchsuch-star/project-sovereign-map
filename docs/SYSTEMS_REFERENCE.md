@@ -1810,7 +1810,7 @@ Exceptions where fog affects mechanics:
 | Level | Source | What You See |
 |-------|--------|-------------|
 | **FULL** | Own region w/ army, scouted, post-battle | Names, exact strength, morale, stance, buildings |
-| **PARTIAL** | Adjacent to army, watchtower, own region w/o army | Names, strength band only |
+| **PARTIAL** | Adjacent to army, watchtower, own region w/o army, transit | Names, strength band only |
 | **STALE** | 3-4 turns since last update | Frozen snapshot, marked with age |
 | **LAST_KNOWN** | 5+ turns since last update | Old snapshot, position likely wrong |
 | **UNKNOWN** | Never scouted, no adjacency | Region exists, controller known, no military intel |
@@ -1859,9 +1859,10 @@ Multiple enemies in same region: combined total → single aggregate band.
 
 ### Intel Sources
 
-Scouts, battles, and adjacency update the intel store:
+Scouts, battles, transit, and adjacency update the intel store:
 - **Scout:** `update_intel_from_scout()` → FULL on target region. Watchtower synergy: +1 turn freshness.
 - **Battle:** `update_intel_from_battle()` → FULL on battle region. Wired at all 6 `resolve_battle` sites.
+- **Transit:** `update_intel_from_transit()` → PARTIAL on regions an army passes through without stopping (cavalry 2-tile moves, strategic multi-step movement). Snapshots enemy names + strength band.
 - **Adjacency/watchtower:** Refreshed each turn by `calculate_visibility()`.
 
 ### Display Filtering

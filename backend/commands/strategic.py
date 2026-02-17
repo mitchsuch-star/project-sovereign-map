@@ -738,6 +738,11 @@ class StrategicExecutor:
             else:
                 break
 
+        # Transit intel: regions passed through but not ended at get PARTIAL
+        if len(moves_made) > 1 and marshal.nation == world.player_nation:
+            for transit_region in moves_made[:-1]:
+                world.update_intel_from_transit(transit_region, world.current_turn)
+
         # Check if we arrived after moving
         if marshal.location == destination:
             return self._handle_move_to_arrival(marshal, world, game_state)
@@ -1010,6 +1015,11 @@ class StrategicExecutor:
                     return self._complete_order(marshal, world,
                         f"{marshal.name} has located {target.name} at {next_region} and awaits orders")
                 break
+
+        # Transit intel: regions passed through but not ended at get PARTIAL
+        if len(moves_made) > 1 and marshal.nation == world.player_nation:
+            for transit_region in moves_made[:-1]:
+                world.update_intel_from_transit(transit_region, world.current_turn)
 
         # ═══════════════════════════════════════════════════════════
         # FOG OF WAR: Empty arrival — target not at last known location
@@ -1429,6 +1439,11 @@ class StrategicExecutor:
                     break
             else:
                 break
+
+        # Transit intel: regions passed through but not ended at get PARTIAL
+        if len(moves_made) > 1 and marshal.nation == world.player_nation:
+            for transit_region in moves_made[:-1]:
+                world.update_intel_from_transit(transit_region, world.current_turn)
 
         if moves_made:
             distance = world.get_distance(marshal.location, ally.location)

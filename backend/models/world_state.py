@@ -569,6 +569,30 @@ class WorldState:
             stance=strongest.stance.value if strongest and hasattr(strongest.stance, 'value') else None,
         )
 
+    def update_intel_from_transit(self, region_name: str, turn: int) -> None:
+        """
+        Army passing through a region grants PARTIAL visibility.
+        Called when cavalry moves 2 tiles (intermediate region) or when
+        strategic movement passes through a region without ending there.
+
+        REFRESH path: queries live marshal data (PARTIAL — names + band only).
+        """
+        intel = self.get_region_intel(region_name)
+        enemy_marshals = [
+            m for m in self.get_marshals_in_region(region_name)
+            if m.nation != self.player_nation and m.strength > 0
+        ]
+        marshal_data = self._build_marshal_snapshot(enemy_marshals, full=False)
+        total_strength = sum(m.strength for m in enemy_marshals)
+
+        intel.refresh(
+            visibility=PARTIAL,
+            source="transit",
+            turn=turn,
+            marshals=marshal_data,
+            total_strength=total_strength,
+        )
+
     def _build_marshal_snapshot(self, enemy_marshals: list, full: bool = False) -> List[Dict]:
         """
         Build a snapshot of enemy marshals for intel storage.

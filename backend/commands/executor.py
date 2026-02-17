@@ -2737,6 +2737,9 @@ RETREAT RECOVERY (3 turns):
                         }
 
                 middle = middle_regions[0]
+                # Transit intel: cavalry charging through middle region gets PARTIAL snapshot
+                if marshal.nation == world.player_nation:
+                    world.update_intel_from_transit(middle, world.current_turn)
                 cavalry_charge_message = f"🐴 {marshal.name}'s cavalry thunders across {middle} to strike! (Cavalry Charge: 2-region attack)\n"
             else:
                 cavalry_charge_message = f"🐴 {marshal.name}'s cavalry charges across the battlefield! (Cavalry Charge: 2-region attack)\n"
@@ -4439,6 +4442,11 @@ RETREAT RECOVERY (3 turns):
                         print(f"[STRATEGIC INIT] {marshal.name}: Move FAILED - {move_result.get('message', '?')}")
                         break
 
+                # Transit intel: regions passed through but not ended at get PARTIAL
+                if len(regions_moved) > 1 and marshal.nation == world.player_nation:
+                    for transit_region in regions_moved[:-1]:
+                        world.update_intel_from_transit(transit_region, world.current_turn)
+
                 moved_str = f" Moved to {' -> '.join(regions_moved)}." if regions_moved else ""
                 return {
                     "success": True,
@@ -4490,6 +4498,10 @@ RETREAT RECOVERY (3 turns):
             "from": old_location,
             "to": target_name
         }]
+
+        # Transit intel: cavalry passing through intermediate region gets PARTIAL snapshot
+        if distance == 2 and intermediate and marshal.nation == world.player_nation:
+            world.update_intel_from_transit(intermediate, world.current_turn)
 
         # Movement attrition (Phase 6.2.F)
         # Cavalry 2-tile moves: attrition for BOTH intermediate + destination

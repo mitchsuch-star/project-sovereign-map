@@ -584,7 +584,7 @@ A future save/load system should use this as the specification.
 | `stance` | string\|null | Stance value. Only set at FULL visibility. |
 | `last_scouted_turn` | int | Turn when last scouted via scout action. Default 0. |
 | `last_updated_turn` | int | Turn when intel was last refreshed by any source. Default 0. |
-| `intel_source` | string | Best source: "own_territory", "marshal_present", "scout", "battle", "watchtower", "adjacent" |
+| `intel_source` | string | Best source: "own_territory", "marshal_present", "scout", "battle", "watchtower", "adjacent", "transit" |
 
 ### Visibility Levels (priority order)
 
