@@ -2,7 +2,7 @@
 
 > **Updated every session by Claude Code.**
 > **Last Updated:** February 17, 2026
-> **Last Session:** Garrison Balance + Map Overlay
+> **Last Session:** Fog of War Bugfixes (Move Fog Leak + Strategic Destination Reroute)
 
 ---
 
@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2602** (verified, 3 skipped) |
+| **Tests Passing** | **2610** (verified, 3 skipped) |
 | **Current Phase** | Phase 6: **IN PROGRESS** (2 items remaining: Manpower Pools, Artillery Unit Type) |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier, 6-BattleReport, 6-EventLog, 6-FogOfWar |
@@ -50,6 +50,22 @@
 ---
 
 ## Recently Completed
+
+### Feb 17 (Fog of War Bugfixes)
+
+**Two fog-related bugs fixed: move command fog leak + strategic MOVE_TO destination reroute.**
+
+**Bug 1 — Move command fog leak (executor.py):**
+- Direct "move to X" checked for enemies at destination WITHOUT fog filtering, revealing fogged enemy positions
+- Fix: player marshals moving to a fogged destination (below PARTIAL) now walk in blind. On arrival they discover enemies ("ENEMY FORCES DISCOVERED!") and are engaged. Visible destinations still block with "use ATTACK" prompt.
+
+**Bug 2 — Strategic MOVE_TO literal reroute at destination (strategic.py):**
+- Literal marshals given "march to Vienna" would reroute around the destination itself when enemies held it, looping endlessly
+- Fix: when the blocked region IS the destination, literal marshals now halt and ask for orders ("Enemy forces hold Vienna — destination blocked. Awaiting orders.") with attack/go_around/hold/cancel options. New interrupt type: `destination_blocked`. Mid-path rerouting unchanged.
+
+**Tests:** 2610 passing (no new tests — behavioral fix in existing paths), 3 skipped
+
+---
 
 ### Feb 17 (Garrison Balance + Map Overlay)
 

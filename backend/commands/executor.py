@@ -4366,18 +4366,29 @@ RETREAT RECOVERY (3 turns):
         # ════════════════════════════════════════════════════════════
         # DESTINATION ENEMY CHECK: Cannot MOVE into enemy-occupied region
         # Must use ATTACK to enter regions with enemy forces
+        # FOG-AWARE (Session 37): Only block if player can SEE enemies there.
+        # If fogged, marshal walks in blind and discovers engagement on arrival.
         # ════════════════════════════════════════════════════════════
         marshals_at_dest = world.get_marshals_in_region(target_name)
         enemies_at_dest = [m for m in marshals_at_dest if m.nation != marshal.nation and m.strength > 0]
 
         if enemies_at_dest:
-            enemy_names = [e.name for e in enemies_at_dest]
-            return {
-                "success": False,
-                "message": f"Cannot move into {target_name} - enemy forces present! Use ATTACK to engage {', '.join(enemy_names)}.",
-                "enemies_at_destination": enemy_names,
-                "suggestion": f"Try: '{marshal.name}, attack {enemy_names[0]}'"
-            }
+            # Fog check: player marshals only blocked if destination is visible
+            can_see_enemies = True
+            if marshal.nation == world.player_nation and hasattr(world, 'get_region_intel'):
+                from backend.models.intel import FULL, PARTIAL
+                dest_intel = world.get_region_intel(target_name)
+                can_see_enemies = dest_intel.visibility in (FULL, PARTIAL)
+
+            if can_see_enemies:
+                enemy_names = [e.name for e in enemies_at_dest]
+                return {
+                    "success": False,
+                    "message": f"Cannot move into {target_name} - enemy forces present! Use ATTACK to engage {', '.join(enemy_names)}.",
+                    "enemies_at_destination": enemy_names,
+                    "suggestion": f"Try: '{marshal.name}, attack {enemy_names[0]}'"
+                }
+            # Fogged: marshal walks in blind — will discover enemies on arrival
 
         distance = world.get_distance(marshal.location, target_name)
         move_range = getattr(marshal, 'movement_range', 1)
@@ -4497,6 +4508,15 @@ RETREAT RECOVERY (3 turns):
         if drill_cancelled_message:
             move_message = drill_cancelled_message + move_message
 
+        # Fog discovery: marshal walked into region with enemies they couldn't see
+        discovered_enemies = world.get_enemies_in_region(target_name, marshal.nation)
+        fog_discovery = False
+        if discovered_enemies and marshal.nation == world.player_nation:
+            fog_discovery = True
+            enemy_names = [e.name for e in discovered_enemies]
+            move_message += f". ENEMY FORCES DISCOVERED! {', '.join(enemy_names)} present in {target_name}!"
+            move_message += f" {marshal.name} is now engaged — attack or retreat."
+
         events = [{
             "type": "move",
             "marshal": marshal.name,
@@ -4589,6 +4609,9 @@ RETREAT RECOVERY (3 turns):
             "events": events,
             "new_state": game_state
         }
+        if fog_discovery:
+            result["fog_discovery"] = True
+            result["discovered_enemies"] = [e.name for e in discovered_enemies]
         if capture_hints:
             result["capture_hints"] = capture_hints
         return result

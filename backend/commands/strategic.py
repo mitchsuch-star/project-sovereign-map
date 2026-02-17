@@ -173,7 +173,7 @@ class StrategicExecutor:
 
         if interrupt_type == "cannon_fire":
             return self._respond_cannon_fire(marshal, order, choice, pending, world, game_state)
-        elif interrupt_type in ("contact", "contact_bad_odds"):
+        elif interrupt_type in ("contact", "contact_bad_odds", "destination_blocked"):
             return self._respond_blocked_path(marshal, order, choice, pending, world, game_state)
         elif interrupt_type == "ally_moving":
             return self._respond_ally_moving(marshal, order, choice, pending, world, game_state)
@@ -1836,8 +1836,35 @@ class StrategicExecutor:
             }
 
         if personality == "literal":
-            # Reroute silently around ALL enemy regions
             destination = order.target_snapshot_location or order.target
+
+            # Session 37: If enemy is AT the destination, don't reroute — halt
+            # and report. Rerouting around the destination itself is nonsensical.
+            if blocked_region == destination:
+                order.last_contact_enemy = enemy.name
+                order.last_contact_turn = world.current_turn
+                if is_fog_discovery:
+                    msg = (f"{marshal.name}: 'Enemy forces discovered at "
+                           f"{blocked_region}! Cannot proceed to destination. "
+                           f"Awaiting orders.'")
+                else:
+                    msg = (f"{marshal.name}: 'Enemy forces hold {blocked_region} "
+                           f"— destination blocked. Awaiting orders.'")
+                return {
+                    "marshal": marshal.name,
+                    "command": order.command_type,
+                    "order_status": "awaiting_response",
+                    "requires_input": True,
+                    "interrupt_type": "destination_blocked",
+                    "enemy": enemy.name,
+                    "location": blocked_region,
+                    "fog_discovery": is_fog_discovery,
+                    "message": msg,
+                    "options": ["attack", "go_around", "hold_position",
+                                "cancel_order"]
+                }
+
+            # Reroute silently around ALL enemy regions (mid-path only)
             enemy_regions = self._get_enemy_occupied_regions(
                 marshal.nation, world, marshal=marshal)
             # MOVE_TO and HOLD use weighted pathfinding for terrain-aware rerouting

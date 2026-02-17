@@ -205,9 +205,9 @@ Everything else — combat resolution, sally ratio checks, contact interrupts wh
 
 | Command | Into Fog? | Behavior |
 |---------|-----------|----------|
-| MOVE | Yes | Move to region. Discover what's there on arrival. |
+| MOVE | Yes | Move to region. If destination fogged (below PARTIAL), marshal walks in blind and discovers enemies on arrival ("ENEMY FORCES DISCOVERED!"). If destination visible, blocked with "use ATTACK" prompt. |
 | ATTACK | Yes | Attack into region. Combat resolves normally — you learn enemy strength the hard way. |
-| MOVE_TO (strategic) | Yes | Location-based. Pathfinding works regardless of fog. |
+| MOVE_TO (strategic) | Yes | Location-based. Pathfinding works regardless of fog. Literal marshals reroute around mid-path enemies but HALT at destination if enemy holds it (interrupt: "destination blocked, awaiting orders"). |
 | HOLD | N/A | Hold current position. No fog interaction. |
 | SUPPORT | Needs target | Target marshal must be at known or stale location. Fails if unknown. |
 | PURSUE (strategic) | Needs target | Target must be at known or stale location. Heads toward last known position. If target has moved, marshal arrives at empty region → "Target not found. Awaiting orders." interrupt. |
