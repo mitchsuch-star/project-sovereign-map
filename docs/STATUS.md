@@ -285,7 +285,7 @@ New `_consider_garrison()` in `enemy_ai.py`. Priority between drill/supply (P6-6
 | Missing AI test coverage for P3, P4.75, P7 | Medium | P3 (threat response), P4.75 (ally support), P7 (strategic movement) have zero direct unit tests. |
 | Residual 2-turn fortify oscillation possible | Low | `_unfortified_this_turn` only prevents same-turn re-fortify. Stagnation counter is backstop. TODO in `enemy_ai.py` at P3.5. |
 | `requires_input` interrupt blocks later marshals | Low | `strategic.py:119` stops processing ALL further marshals when one requires input. TODO in `strategic.py`. |
-| Marshal ability dicts mostly decorative | Low | Only Ney's "Bravest of the Brave" wired in combat.py; others are TODO. |
+| Marshal ability dicts mostly decorative | Low | Only Ney's "Bravest of the Brave" wired in combat.py. All others (Drouot, Wellington, Blucher, Uxbridge, Gneisenau) planned for Phase 6.5 ability wiring pass. |
 | `full_game.py` dead code with stale terrain | Low | 3 `resolve_battle()` calls hardcode `terrain="open"`. File is dead code. |
 | Multi-nation battle report perspective | Low | combat.py hardcodes player_nation="France". Post-EA requires threading world.player_nation. |
 | France hardcoded as player nation | Low | Multiple systems assume France. Post-EA multi-nation play requires threading player_nation throughout. |
