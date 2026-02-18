@@ -12,6 +12,7 @@ Consolidated reference for all game systems. Read when modifying related code.
 4. [Strategic Commands](#4-strategic-commands)
 5. [LLM Integration](#5-llm-integration)
 6. [Cavalry Limits](#6-cavalry-limits)
+6b. [Artillery Unit Type](#6b-artillery-unit-type)
 7. [Redemption System](#7-redemption-system)
 8. [Economy System](#8-economy-system)
 9. [Fog of War](#9-fog-of-war)
@@ -1272,6 +1273,59 @@ if getattr(self, 'cavalry', False):
 
 ---
 
+## 6b. Artillery Unit Type
+
+Artillery units are a third marshal type alongside infantry and cavalry. They provide powerful bombardment but sacrifice mobility.
+
+### Core Properties
+
+| Property | Value |
+|----------|-------|
+| `artillery` flag | `True` (mutually exclusive with `cavalry`) |
+| `movement_range` | 1 (same as infantry) |
+| Attack restriction | Cannot attack the turn they move (`moved_this_turn`) |
+| Win behavior | Stay in position after adjacent win — no advance, no capture |
+| Banned actions | Glorious Charge, PURSUE auto-promotion |
+| Defense penalty | -25% when `moved_this_turn` is True |
+
+### moved_this_turn Lifecycle
+
+1. **Set True** — on successful move in `_execute_move` (after `marshal.move_to()`)
+2. **Blocks attack** — early return in `_execute_attack` if artillery + moved_this_turn
+3. **Applies defense penalty** — -25% in `get_defense_modifier()` if moved_this_turn
+4. **Reset False** — at turn start in `advance_turn()` (with other per-turn resets)
+
+### Combat Interactions
+
+| Interaction | Effect | Location |
+|-------------|--------|----------|
+| Cavalry vs Artillery | +30% shock_multiplier | `combat.py` (target-type, NOT marshal intrinsic) |
+| Fort degradation | 10% per artillery attack (vs 5% for non-artillery) | `combat.py` |
+| No advance on win | Artillery stays at origin, target NOT captured | `executor.py` |
+| Same-region combat | Normal rules apply (no movement restriction) | `executor.py` |
+
+### Starting Marshals
+
+| Marshal | Nation | Location | Strength | Personality |
+|---------|--------|----------|----------|-------------|
+| Drouot | France | Paris | 25,000 | cautious |
+| PrinceAugust | Prussia | Netherlands | 20,000 | cautious |
+
+### Key Files
+
+| File | What changed |
+|------|-------------|
+| `marshal.py` | `artillery` flag, `moved_this_turn`, defense modifier, serialization, starting marshals |
+| `combat.py` | Cavalry counter (+30%), fort degradation (10%), cavalry_counter_message |
+| `executor.py` | Can't attack after moving, no advance on win, glorious charge ban, PURSUE block, recruit type logic |
+| `world_state.py` | Artillery constants, pool regen, `get_artillery_regen_rate()`, moved_this_turn reset |
+| `enemy_ai.py` | moved_this_turn gate, pool-aware recruit, cost-aware admin |
+| `battle_report.py` | Artillery observation templates (bombardment, caught moving, cavalry overran, fort degradation) |
+| `llm_client.py` | Artillery keywords (bombard, barrage, shell, cannonade), Drouot/PrinceAugust in known_marshals |
+| `prompt_builder.py` | Drouot bombardment few-shot example |
+
+---
+
 ## 7. Redemption System
 
 ### Trigger
@@ -1945,30 +1999,32 @@ Key files: `map.gd` (`_draw_fogged_force_icons()`, `_draw_fogged_tooltip()`, `FO
 
 ## 10. Manpower Pools
 
-Nation-level infantry/cavalry reserve pools that gate recruitment. Cavalry is precious and slow to rebuild.
+Nation-level infantry/cavalry/artillery reserve pools that gate recruitment. Cavalry and artillery are precious and slow to rebuild.
 
 ### Core Concept
 
-Marshal type (`cavalry: bool`) auto-determines which pool is drawn from. No player choice needed — the strategic choice is *which marshal to reinforce*.
+Marshal type (`cavalry: bool`, `artillery: bool`) auto-determines which pool is drawn from. No player choice needed — the strategic choice is *which marshal to reinforce*.
 
 | Marshal type | Pool | Batch | Gold cost | Example |
 |-------------|------|-------|-----------|---------|
+| `artillery: True` | artillery | 3,000 | 400g base | Drouot, PrinceAugust |
 | `cavalry: True` | cavalry | 5,000 | 300g base | Ney, Uxbridge |
-| `cavalry: False` | infantry | 10,000 | 200g base | Davout, Wellington |
+| neither | infantry | 10,000 | 200g base | Davout, Wellington |
 
 ### Starting Pools
 
-| Nation | Infantry | Cavalry |
-|--------|----------|---------|
-| France | 80,000 | 15,000 |
-| Britain | 50,000 | 8,000 |
-| Prussia | 60,000 | 10,000 |
+| Nation | Infantry | Cavalry | Artillery |
+|--------|----------|---------|-----------|
+| France | 80,000 | 15,000 | 10,000 |
+| Britain | 50,000 | 8,000 | 5,000 |
+| Prussia | 60,000 | 10,000 | 5,000 |
 
 ### Regen (per turn)
 
 - Infantry: 5,000/turn base (no territory dependency)
 - Cavalry: 500/turn base + 500 per plains region + 750 per stables building
-- Pool caps: 100,000 infantry, 30,000 cavalry
+- Artillery: 300/turn base + 200 per urban region controlled
+- Pool caps: 100,000 infantry, 30,000 cavalry, 20,000 artillery
 - Damaged/under-construction stables don't contribute
 - Nations with 0 regions still get base regen
 
@@ -1995,8 +2051,9 @@ All recruitment failures use Berthier's voice. Pool empty error includes regen r
 ### AI Awareness
 
 - `_find_weakest_marshal_for_admin` skips marshals whose pool can't support a recruit
-- `_pick_admin_action` uses correct gold cost per marshal type (300g cavalry, 200g infantry)
+- `_pick_admin_action` uses correct gold cost per marshal type (400g artillery, 300g cavalry, 200g infantry)
 - Priority 4.5: Build stables when cavalry pool < 60% cap and nation has cavalry marshals
+- Artillery moved_this_turn gate in `_find_attack_opportunity` — AI won't attack with artillery that moved this turn
 
 ### HUD Display
 
@@ -2015,7 +2072,7 @@ Manpower pools are displayed permanently in the Godot status bar alongside Turn,
 
 | File | What changed |
 |------|-------------|
-| `world_state.py` | Constants, `manpower_pools` field, `_process_manpower_regen()`, `get_cavalry_regen_rate()`, serialization, `get_game_state_summary()` (manpower in API) |
+| `world_state.py` | Constants, `manpower_pools` field, `_process_manpower_regen()`, `get_cavalry_regen_rate()`, `get_artillery_regen_rate()`, serialization, `get_game_state_summary()` (manpower in API) |
 | `region.py` | `"stables"` in `BUILDING_TYPES` |
 | `executor.py` | `_execute_recruit` (pool drawing, type-based costs, Berthier voice), `_calculate_recruit_cost(base_cost)`, `_extract_building_type` (stables), `_execute_economy` (manpower section) |
 | `enemy_ai.py` | Pool/cost-aware recruit, `_should_build_stables()`, `_find_best_stables_region()`, Priority 4.5 |

@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 17, 2026
+> **Last Updated:** February 18, 2026
 
 ---
 
@@ -9,17 +9,18 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2697** (verified, 3 skipped) |
-| **Current Phase** | Phase 6: **IN PROGRESS** (1 item remaining: Artillery Unit Type) |
+| **Tests Passing** | **2783** (verified, 3 skipped) |
+| **Current Phase** | Phase 6: **COMPLETE** — all items shipped or deferred |
 | **Blockers** | None |
-| **Code Coverage** | **71%** (backend/) |
+| **Code Coverage** | ~71% (backend/) |
 
 ---
 
 ## Next Steps
 
-1. **Artillery Unit Type** (Medium) — Combat buffs like cavalry system
+1. **Artillery Session 2** — Bombardment streak, Berthier advisory, AI positioning/screening, personality objection triggers
 2. **Pause menu** — Phase 6.5, Esc → Save/Load/Settings/Quit
+3. **Godot HUD: Artillery pool display** — Add Art: Z to ManpowerDisplay (mirrors Inf/Cav pattern)
 
 ---
 
@@ -38,10 +39,51 @@ All major Phase 6 features shipped:
 - **Player Garrison Command:** 2 AP, cap 3/nation, map overlay
 - **Enemy AI Garrison (P6.75):** Building Blocks, 20k threshold, 1/nation/turn, P4.25 sub-5k awareness
 - **Manpower Pools:** Nation-level infantry/cavalry reserves gate recruitment. Marshal type auto-determines pool (infantry 10k/200g, cavalry 5k/300g). Stables building (+750 cavalry regen). AI pool/cost awareness. Berthier voice throughout.
+- **Artillery Unit Type (Session 42):** Third marshal type (Drouot/France, PrinceAugust/Prussia). Can't attack after moving, no advance on win, cavalry counter (+30%), 2x fort degradation, -25% defense when moved. Glorious Charge banned, PURSUE blocked. Artillery manpower pool (3k batch, 400g, 300+200 urban regen, 20k cap). 86 tests.
 
 ---
 
 ## Recent Sessions
+
+### Feb 18 (Session 42: Artillery Unit Type — Core Mechanics)
+
+**Full implementation: artillery as third marshal type alongside infantry/cavalry.**
+
+**Core System (marshal.py):**
+- `artillery: bool` flag, mutually exclusive with cavalry via assert
+- `moved_this_turn: bool` lifecycle: set on move, blocks attack, -25% defense, reset at turn start
+- Starting marshals: Drouot (France/Paris/25k/cautious), PrinceAugust (Prussia/Netherlands/20k/cautious)
+- Serialization: to_dict/from_dict with backward compat defaults
+
+**Combat (combat.py):**
+- Cavalry counter: +30% shock_multiplier when cavalry attacks artillery
+- Fort degradation: 10% for artillery attacker (vs 5% for non-artillery)
+- cavalry_counter_message in tactical_prefix and result_dict
+
+**Executor (executor.py):**
+- Can't attack after moving (early return with Berthier message)
+- No advance on win: artillery stays at origin, target NOT captured
+- Glorious Charge banned, PURSUE auto-promotion blocked
+- Recruit type determination: artillery → cavalry → infantry priority order
+- Economy display includes artillery pool with regen rate
+
+**World State (world_state.py):**
+- Constants: ARTILLERY_RECRUIT_AMOUNT=3000, ARTILLERY_RECRUIT_GOLD_COST_BASE=400, ARTILLERY_BASE_REGEN=300, URBAN_ARTILLERY_REGEN=200, MAX_ARTILLERY_POOL=20000
+- Artillery regen: 300 base + 200 per urban region controlled
+- moved_this_turn reset at turn start
+
+**Enemy AI (enemy_ai.py):**
+- moved_this_turn gate in `_find_attack_opportunity`
+- Pool-aware recruit and cost-aware admin actions
+
+**Parser/Reports:**
+- Artillery keywords (bombard, barrage, shell, cannonade) → attack action
+- Drouot/PrinceAugust in mock parser known_marshals
+- 4 artillery observation templates in battle_report.py
+
+**Tests:** 86 new tests across 14 categories, 2783 total (3 skipped)
+
+---
 
 ### Feb 17 (Session 41: Manpower Pools Implementation)
 

@@ -79,10 +79,10 @@
 | Terrain | Region terrain affects combat/movement | Medium | **6.1.A+B done** (data layer + combat). Movement/pathfinding remaining. |
 | Sieges | Fortified cities require siege mechanics | Medium | **Deferred to 1805** — current fort + contested capture (1-2 turn occupation) sufficient for 13-region map. Full sieges (attrition, starvation, sortie, artillery) revisit when 80-100 regions make longer holdouts strategic. |
 | City Fortification | "Fortify this city" building action | Low | **DONE** (6.2.E: fortification building, 400g/3t, +25% defense. 6.2.F: contested capture holdout.) |
-| Artillery Unit Type | Combat buffs like cavalry | Medium | Spec complete (`ARTILLERY_SPEC.md`), ready for implementation |
+| Artillery Unit Type | Combat buffs like cavalry | Medium | **DONE** (Session 42: Drouot/PrinceAugust, moved_this_turn lifecycle, cavalry counter +30%, 2x fort degradation, no advance on win, glorious charge ban, artillery manpower pool, 86 tests) |
 | Turn Events Log | Track battles/captures/retreats per turn (feeds gazette) | Low | **COMPLETE** (Session 30: 13 event types, world.event_log, 5 helpers, serialized, 39 tests). EL1-EL5 hardening TODOs resolved in Session 31 (1 bug fixed: auto-charge path wasn't logging battle events). |
 | Player Garrison | Detach 3k troops to garrison a region | Low | **DONE** (Session 31: garrison command, fort degradation, morale warning, capture hint, occupy alias) |
-| Enemy AI Garrison | AI places garrisons via same _execute_garrison (Building Blocks) | Low | **TODO** — next action after Manpower Pools / Artillery |
+| Enemy AI Garrison | AI places garrisons via same _execute_garrison (Building Blocks) | Low | **DONE** (P6.75: Building Blocks, 20k threshold, 1/nation/turn, P4.25 sub-5k awareness) |
 | **Save/Load** | Full game state persistence + autosave (moved from Pre-EA) | Low | **COMPLETE** (Session 27: save_manager.py, 4 API endpoints, autosave, terminal commands, load dialog, 38 tests) |
 | **Berthier Parse Recovery** | Failed parses -> Berthier asks clarification in-character (moved from 8.5) | Low | **COMPLETE** (Session 28: prompt_builder.py, llm_client.py, parser.py, main.py. Mock templates + LLM prompt. Reacts to tone. 20 tests.) |
 | **Post-Battle Analysis** | Template breakdown: modifiers, casualties, Berthier observation | Low | **COMPLETE** (Session 29: battle_report.py, snapshots, 15 observation priorities with perspective-aware attacker/defender variants, Godot display, 65 tests) |

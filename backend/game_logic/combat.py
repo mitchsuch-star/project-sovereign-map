@@ -305,6 +305,16 @@ class CombatResolver:
                     else:
                         cavalry_terrain_message = f"{attacker.name}'s cavalry is hampered by {terrain_name} terrain ({effectiveness_pct}% effectiveness)"
 
+        # ════════════════════════════════════════════════════════════
+        # CAVALRY vs ARTILLERY COUNTER: Cavalry devastates unscreened guns
+        # +30% attack bonus when cavalry attacks artillery.
+        # Applied to shock_multiplier (target-type interaction, not marshal-intrinsic).
+        # ════════════════════════════════════════════════════════════
+        cavalry_counter_message = None
+        if getattr(attacker, 'cavalry', False) and getattr(defender, 'artillery', False):
+            shock_multiplier *= 1.30
+            cavalry_counter_message = f"{attacker.name}'s cavalry overruns {defender.name}'s gun line! (+30% attack)"
+
         # Apply DEFENSE skill to defender protection (reduces casualties taken)
         # Higher defense = fewer casualties taken
         # defense_skill // 2 gives 0 to 5 percentage points of protection
@@ -507,6 +517,8 @@ class CombatResolver:
             tactical_prefix += f"\n🏔️ {terrain_defense_message}"
         if cavalry_terrain_message:
             tactical_prefix += f"\n🐴 {cavalry_terrain_message}"
+        if cavalry_counter_message:
+            tactical_prefix += f"\n🐴 {cavalry_counter_message}"
         if glorious_charge_message:
             tactical_prefix += f"\n{glorious_charge_message}"
         if tactical_prefix:
@@ -584,7 +596,8 @@ class CombatResolver:
         fortification_new = 0.0
         if getattr(defender, 'defense_bonus', 0) > 0:
             fortification_old = defender.defense_bonus
-            defender.defense_bonus = max(0, round(defender.defense_bonus - 0.05, 2))
+            degradation_amount = 0.10 if getattr(attacker, 'artillery', False) else 0.05
+            defender.defense_bonus = max(0, round(defender.defense_bonus - degradation_amount, 2))
             fortification_new = defender.defense_bonus
             fortification_degraded = True
 
@@ -622,6 +635,7 @@ class CombatResolver:
             "attacker_won": attacker_won,  # Phase 3: For recklessness tracking
             "terrain_defense_message": terrain_defense_message,  # Phase 6.1: Terrain defense
             "cavalry_terrain_message": cavalry_terrain_message,  # Phase 6.1: Cavalry terrain
+            "cavalry_counter_message": cavalry_counter_message,  # Phase 6: Cavalry vs artillery
             "description": tactical_prefix + base_description + retreat_message,
             # Berthier's After-Action Report
             "attacker_nation": getattr(attacker, "nation", ""),

@@ -201,9 +201,13 @@ class Marshal:
             ability: Optional[dict] = None,
             starting_trust: int = 70,
             cavalry: bool = False,
+            artillery: bool = False,
             spawn_location: str = None  # Capital/respawn location when broken
     ):
         """Initialize a marshal."""
+        # Mutual exclusivity: a marshal can be infantry, cavalry, OR artillery
+        assert not (cavalry and artillery), "A marshal cannot be both cavalry and artillery"
+
         self.name = name
         self.location = location
         self.strength = strength
@@ -361,6 +365,14 @@ class Marshal:
         # ════════════════════════════════════════════════════════════
         # Unit type tag for cavalry-specific abilities
         self.cavalry: bool = cavalry  # True for cavalry commanders (Ney), False for infantry
+
+        # ════════════════════════════════════════════════════════════
+        # ARTILLERY UNIT TYPE (Phase 6)
+        # ════════════════════════════════════════════════════════════
+        self.artillery: bool = artillery  # True for artillery commanders (Drouot)
+        # Artillery cannot attack on the same turn they move.
+        # Set True in _execute_move on success, reset False at turn start.
+        self.moved_this_turn: bool = False
 
         # CAVALRY DEFENSIVE LIMITS - Horses can't hold defensive positions
         # After 3 turns in defensive stance → auto-switch to aggressive (-3 trust)
@@ -791,6 +803,10 @@ class Marshal:
         if self.drilling or self.drilling_locked:
             modifier *= 0.75  # -25%
 
+        # Artillery moved this turn — caught in transit, guns not set up
+        if getattr(self, 'artillery', False) and getattr(self, 'moved_this_turn', False):
+            modifier *= 0.75  # -25%
+
         # Personality-specific defense modifiers
         is_holding = self.holding_position
         personality_mod = get_defense_modifier_for_personality(
@@ -973,6 +989,10 @@ class Marshal:
 
             # ═══════ CAVALRY-SPECIFIC ═══════
             "cavalry": self.cavalry,
+
+            # ═══════ ARTILLERY-SPECIFIC ═══════
+            "artillery": self.artillery,
+            "moved_this_turn": self.moved_this_turn,
             "turns_in_defensive_stance": int(self.turns_in_defensive_stance),
             "turns_fortified": int(self.turns_fortified),
 
@@ -1017,6 +1037,7 @@ class Marshal:
             ability=data.get("ability"),
             starting_trust=70,  # Will be overwritten by trust restoration
             cavalry=data.get("cavalry", False),
+            artillery=data.get("artillery", False),
             spawn_location=data.get("spawn_location")
         )
 
@@ -1094,6 +1115,9 @@ class Marshal:
         marshal.turns_in_defensive_stance = data.get("turns_in_defensive_stance", 0)
         marshal.turns_fortified = data.get("turns_fortified", 0)
 
+        # ═══════ ARTILLERY-SPECIFIC ═══════
+        marshal.moved_this_turn = data.get("moved_this_turn", False)
+
         # ═══════ DAVOUT-SPECIFIC (COUNTER-PUNCH) ═══════
         marshal.counter_punch_available = data.get("counter_punch_available", False)
         marshal.counter_punch_turns = data.get("counter_punch_turns", 0)
@@ -1122,7 +1146,7 @@ class Marshal:
 
     def __repr__(self) -> str:
         """String representation for debugging."""
-        unit_type = "cavalry" if self.cavalry else "infantry"
+        unit_type = "artillery" if self.artillery else ("cavalry" if self.cavalry else "infantry")
         trust_label = self.trust.get_label() if hasattr(self, 'trust') else "?"
         return f"Marshal({self.name}, {self.strength:,} troops at {self.location}, morale: {self.morale}%, trust: {trust_label}, {unit_type})"
 
@@ -1210,6 +1234,32 @@ def create_starting_marshals() -> dict[str, Marshal]:
             },
             starting_trust=65,  # Newly promoted, unproven, follows orders literally
             spawn_location="Paris"  # French capital - respawn location when broken
+        ),
+        "Drouot": Marshal(
+            name="Drouot",
+            location="Paris",
+            strength=25000,
+            personality="cautious",
+            nation="France",
+            movement_range=1,
+            tactical_skill=8,
+            skills={
+                "tactical": 8,
+                "shock": 7,
+                "defense": 6,
+                "logistics": 7,
+                "administration": 6,
+                "command": 7
+            },
+            ability={
+                "name": "Sage of the Grand Army",
+                "description": "Drouot's precise artillery fire is devastatingly accurate",
+                "trigger": "when_attacking_fortified",
+                "effect": "+2 fort degradation per bombardment (DEFERRED — Phase 6.5 ability wiring pass)"
+            },
+            starting_trust=80,
+            artillery=True,
+            spawn_location="Paris"
         )
     }
 
@@ -1219,10 +1269,16 @@ def create_starting_marshals() -> dict[str, Marshal]:
     # Ney-Davout rivalry: Ney hates Davout, Davout merely dislikes Ney
     marshals["Ney"].set_relationship("Davout", -2)
     marshals["Ney"].set_relationship("Grouchy", 0)
+    marshals["Ney"].set_relationship("Drouot", 0)
     marshals["Davout"].set_relationship("Ney", -1)
     marshals["Davout"].set_relationship("Grouchy", 0)
+    marshals["Davout"].set_relationship("Drouot", 1)  # Respects methodical approach
     marshals["Grouchy"].set_relationship("Ney", 0)
     marshals["Grouchy"].set_relationship("Davout", 0)
+    marshals["Grouchy"].set_relationship("Drouot", 0)
+    marshals["Drouot"].set_relationship("Ney", 0)
+    marshals["Drouot"].set_relationship("Davout", 1)  # Respects Iron Marshal
+    marshals["Drouot"].set_relationship("Grouchy", 0)
 
     return marshals
 
@@ -1342,6 +1398,32 @@ def create_enemy_marshals() -> dict[str, Marshal]:
             },
             starting_trust=75,  # Gneisenau serves Prussia faithfully
             spawn_location="Netherlands"  # TODO: Change to Berlin (Prussia capital) when map expanded (see ROADMAP.md EA Launch)
+        ),
+        "PrinceAugust": Marshal(
+            name="PrinceAugust",
+            location="Netherlands",
+            strength=20000,
+            personality="cautious",
+            nation="Prussia",
+            movement_range=1,
+            tactical_skill=7,
+            skills={
+                "tactical": 7,
+                "shock": 6,
+                "defense": 6,
+                "logistics": 6,
+                "administration": 5,
+                "command": 6
+            },
+            ability={
+                "name": "Prussian Gunnery",
+                "description": "Disciplined Prussian artillery fire",
+                "trigger": "when_attacking_fortified",
+                "effect": "Standard artillery (no special bonus)"
+            },
+            starting_trust=70,
+            artillery=True,
+            spawn_location="Netherlands"
         )
     }
 
@@ -1371,6 +1453,16 @@ def create_enemy_marshals() -> dict[str, Marshal]:
     # Uxbridge-Gneisenau: Professional respect (neutral)
     enemies["Uxbridge"].set_relationship("Gneisenau", 0)
     enemies["Gneisenau"].set_relationship("Uxbridge", 0)
+
+    # PrinceAugust — Prussian artillery, professional relationships
+    enemies["PrinceAugust"].set_relationship("Blucher", 1)
+    enemies["PrinceAugust"].set_relationship("Gneisenau", 1)
+    enemies["PrinceAugust"].set_relationship("Wellington", 0)
+    enemies["PrinceAugust"].set_relationship("Uxbridge", 0)
+    enemies["Blucher"].set_relationship("PrinceAugust", 1)
+    enemies["Gneisenau"].set_relationship("PrinceAugust", 1)
+    enemies["Wellington"].set_relationship("PrinceAugust", 0)
+    enemies["Uxbridge"].set_relationship("PrinceAugust", 0)
 
     return enemies
 

@@ -458,6 +458,8 @@ class LLMClient:
             ("murat", "Murat"),
             ("soult", "Soult"),
             ("lannes", "Lannes"),
+            ("drouot", "Drouot"),
+            ("prince august", "PrinceAugust"),
         ]
 
         # Find which marshal appears FIRST in the command
@@ -539,6 +541,9 @@ class LLMClient:
         elif "glorious charge" in command_lower or (re.search(r'\bcharge\b', command_lower) and "attack" not in command_lower):
             action = "charge"
         elif "attack" in command_lower or re.search(r'\bcharge\b', command_lower) or re.search(r'\boccupy\b', command_lower):
+            action = "attack"
+        # Artillery keywords → attack action
+        elif any(kw in command_lower for kw in ["bombard", "barrage", "shell ", "cannonade"]):
             action = "attack"
         # Strategic PURSUE keywords → base action "attack" (strategic parser upgrades)
         elif any(kw in command_lower for kw in [

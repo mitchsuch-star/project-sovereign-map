@@ -16,8 +16,8 @@ TODO (Future): Multi-Army Battles
 from typing import Dict, List, Optional, Tuple
 from backend.models.world_state import (
     WorldState,
-    INFANTRY_RECRUIT_AMOUNT, CAVALRY_RECRUIT_AMOUNT,
-    INFANTRY_RECRUIT_GOLD_COST_BASE, CAVALRY_RECRUIT_GOLD_COST_BASE,
+    INFANTRY_RECRUIT_AMOUNT, CAVALRY_RECRUIT_AMOUNT, ARTILLERY_RECRUIT_AMOUNT,
+    INFANTRY_RECRUIT_GOLD_COST_BASE, CAVALRY_RECRUIT_GOLD_COST_BASE, ARTILLERY_RECRUIT_GOLD_COST_BASE,
     INFANTRY_BASE_REGEN,
 )
 from backend.models.marshal import Stance, StrategicOrder
@@ -2170,6 +2170,16 @@ RETREAT RECOVERY (3 turns):
                 drill_cancelled_message = f"⚠️ DRILL CANCELLED: {marshal.name}'s drill was interrupted - troops dispersed before training completed.\n\n"
 
         # ════════════════════════════════════════════════════════════
+        # ARTILLERY MOVEMENT CHECK: Can't attack on the turn artillery moved
+        # ════════════════════════════════════════════════════════════
+        if getattr(marshal, 'artillery', False) and getattr(marshal, 'moved_this_turn', False):
+            return {
+                "success": False,
+                "message": f"{marshal.name}'s artillery is still setting up after repositioning. "
+                           f"Available to fire next turn."
+            }
+
+        # ════════════════════════════════════════════════════════════
         # CAVALRY RECKLESSNESS CHECK (Phase 3)
         # At recklessness 3+, trigger popup for player choice
         # At recklessness 4+, auto-charge (handled in turn start, not here)
@@ -2433,6 +2443,13 @@ RETREAT RECOVERY (3 turns):
             distance = world.get_distance(marshal.location, target_location)
 
             if distance > marshal.movement_range:
+                # ARTILLERY: Block PURSUE auto-promotion — artillery can't chase
+                if getattr(marshal, 'artillery', False):
+                    return {
+                        "success": False,
+                        "message": f"Target out of range. {marshal.name}'s artillery can only engage adjacent regions."
+                    }
+
                 # OUT OF RANGE — auto-upgrade to strategic PURSUE if targeting enemy marshal
                 is_player_nation = marshal.nation == world.player_nation
                 if enemy_by_name and is_player_nation:
@@ -2860,7 +2877,14 @@ RETREAT RECOVERY (3 turns):
         print(f"[ATTACK MOVEMENT] defender_fled={defender_fled}, enemy_location={enemy_marshal.location if enemy_marshal.strength > 0 else 'DESTROYED'}")
         print(f"[ATTACK MOVEMENT] marshal.location={marshal.location}, target_location={target_location}")
 
-        if can_advance and marshal.strength > 0 and not getattr(self, '_current_sortie', False):
+        # ARTILLERY: No advance on win — positional platform stays in place
+        is_artillery_no_advance = getattr(marshal, 'artillery', False) and marshal.location != target_location
+        if is_artillery_no_advance:
+            if can_advance:
+                movement_msg = (f" {marshal.name}'s bombardment forces the enemy to retreat from {target_location}. "
+                                f"Region must be secured by infantry to complete the capture.")
+            print(f"[ATTACK MOVEMENT] Artillery {marshal.name} stays at {marshal.location} (no advance on win)")
+        elif can_advance and marshal.strength > 0 and not getattr(self, '_current_sortie', False):
             if marshal.location != target_location:
                 print(f"[ATTACK MOVEMENT] MOVING {marshal.name}: {marshal.location} -> {target_location}")
                 marshal.move_to(target_location)
@@ -2884,8 +2908,9 @@ RETREAT RECOVERY (3 turns):
 
         # Check if territory can be captured
         # Use target_location (the region) not resolved_target (which might be marshal name)
+        # ARTILLERY: Skip capture for artillery attacking from adjacent (no advance = no capture)
         target_region = world.get_region(target_location)
-        if target_region and target_region.controller != marshal.nation:
+        if target_region and target_region.controller != marshal.nation and not is_artillery_no_advance:
             # Find all remaining defenders (marshals from nations other than attacker)
             # NOTE: This check happens AFTER forced retreats, so fled defenders aren't counted
             remaining_defenders = [
@@ -4546,6 +4571,10 @@ RETREAT RECOVERY (3 turns):
         old_location = marshal.location
         marshal.move_to(target_name)
 
+        # Artillery: Mark as having moved this turn (blocks attacking)
+        if getattr(marshal, 'artillery', False):
+            marshal.moved_this_turn = True
+
         # V2a: Reset idle tracking on move
         marshal.idle_turns = 0
         marshal._acted_this_turn = True
@@ -5618,13 +5647,18 @@ RETREAT RECOVERY (3 turns):
         pool = world.manpower_pools.get(nation, {})
         inf_pool = pool.get("infantry", 0)
         cav_pool = pool.get("cavalry", 0)
+        art_pool = pool.get("artillery", 0)
         cav_regen = world.get_cavalry_regen_rate(nation)
+        art_regen = world.get_artillery_regen_rate(nation)
 
         lines.append("\n  ═══════ MANPOWER ═══════")
-        lines.append(f"  Infantry Pool: {inf_pool:,} (+{INFANTRY_BASE_REGEN:,}/turn)")
-        lines.append(f"  Cavalry Pool:  {cav_pool:,} (+{cav_regen:,}/turn)")
+        lines.append(f"  Infantry Pool:  {inf_pool:,} (+{INFANTRY_BASE_REGEN:,}/turn)")
+        lines.append(f"  Cavalry Pool:   {cav_pool:,} (+{cav_regen:,}/turn)")
+        lines.append(f"  Artillery Pool: {art_pool:,} (+{art_regen:,}/turn)")
         if cav_pool < CAVALRY_RECRUIT_AMOUNT:
             lines.append(f"  Berthier warns: 'Cavalry reserves dangerously low, Sire.' (need {CAVALRY_RECRUIT_AMOUNT:,} to recruit)")
+        if art_pool < ARTILLERY_RECRUIT_AMOUNT:
+            lines.append(f"  Berthier warns: 'Artillery reserves dangerously low, Sire.' (need {ARTILLERY_RECRUIT_AMOUNT:,} to recruit)")
 
         lines.append("═══════════════════════════════════")
 
@@ -5726,10 +5760,17 @@ RETREAT RECOVERY (3 turns):
 
         # --- Determine recruit type from marshal ---
         recruit_marshal = world.get_marshal(recipient)
-        recruit_type = "cavalry" if getattr(recruit_marshal, 'cavalry', False) else "infantry"
+        if getattr(recruit_marshal, 'artillery', False):
+            recruit_type = "artillery"
+        elif getattr(recruit_marshal, 'cavalry', False):
+            recruit_type = "cavalry"
+        else:
+            recruit_type = "infantry"
 
         # Set batch size and cost based on type
-        if recruit_type == "cavalry":
+        if recruit_type == "artillery":
+            NEW_TROOPS = ARTILLERY_RECRUIT_AMOUNT     # 3,000
+        elif recruit_type == "cavalry":
             NEW_TROOPS = CAVALRY_RECRUIT_AMOUNT       # 5,000
         else:
             NEW_TROOPS = INFANTRY_RECRUIT_AMOUNT      # 10,000
@@ -5775,7 +5816,12 @@ RETREAT RECOVERY (3 turns):
         pool = world.manpower_pools.get(acting_nation, {})
         available = pool.get(recruit_type, 0)
         if available < NEW_TROOPS:
-            regen_rate = world.get_cavalry_regen_rate(acting_nation) if recruit_type == "cavalry" else INFANTRY_BASE_REGEN
+            if recruit_type == "artillery":
+                regen_rate = world.get_artillery_regen_rate(acting_nation)
+            elif recruit_type == "cavalry":
+                regen_rate = world.get_cavalry_regen_rate(acting_nation)
+            else:
+                regen_rate = INFANTRY_BASE_REGEN
             turns_until = max(1, (NEW_TROOPS - available + regen_rate - 1) // regen_rate)
             plural = "s" if turns_until > 1 else ""
             return {
@@ -5786,7 +5832,12 @@ RETREAT RECOVERY (3 turns):
             }
 
         # --- Gold cost calculation ---
-        cost_base = CAVALRY_RECRUIT_GOLD_COST_BASE if recruit_type == "cavalry" else INFANTRY_RECRUIT_GOLD_COST_BASE
+        if recruit_type == "artillery":
+            cost_base = ARTILLERY_RECRUIT_GOLD_COST_BASE
+        elif recruit_type == "cavalry":
+            cost_base = CAVALRY_RECRUIT_GOLD_COST_BASE
+        else:
+            cost_base = INFANTRY_RECRUIT_GOLD_COST_BASE
         gold_cost = self._calculate_recruit_cost(region, world, base_cost=cost_base)
 
         nation_treasury = world.nation_gold.get(acting_nation, 0)
@@ -7755,6 +7806,13 @@ RETREAT RECOVERY (3 turns):
         - respond_to_glorious_charge (popup response)
         - auto-charge at recklessness 4+
         """
+        # ARTILLERY: Guns don't charge
+        if getattr(marshal, 'artillery', False):
+            return {
+                "success": False,
+                "message": f"{marshal.name}'s artillery cannot execute a Glorious Charge. Guns don't charge."
+            }
+
         # Find target
         target_marshal = None
 

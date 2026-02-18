@@ -35,20 +35,25 @@ FORTIFY_DECAY_DEFAULT = {"start": 6, "rate": 0.01, "floor": 0.0}
 # ═══════ MANPOWER POOL CONSTANTS ═══════
 INFANTRY_RECRUIT_AMOUNT = 10000        # Troops per infantry recruit (unchanged)
 CAVALRY_RECRUIT_AMOUNT = 5000          # Troops per cavalry recruit (half infantry — precious)
+ARTILLERY_RECRUIT_AMOUNT = 3000        # Troops per artillery recruit (smallest — trained crews rare)
 INFANTRY_RECRUIT_GOLD_COST_BASE = 200  # Gold cost for infantry recruit (existing behavior)
 CAVALRY_RECRUIT_GOLD_COST_BASE = 300   # Gold cost for cavalry recruit (vs 200 infantry)
+ARTILLERY_RECRUIT_GOLD_COST_BASE = 400 # Gold cost for artillery recruit (most expensive — guns + training)
 INFANTRY_BASE_REGEN = 5000             # Per nation per turn (fast — infantry isn't the bottleneck)
 CAVALRY_BASE_REGEN = 500               # Per nation per turn (slow — this IS the bottleneck)
+ARTILLERY_BASE_REGEN = 300             # Per nation per turn (slow — foundries)
 PLAINS_CAVALRY_REGEN = 500             # Bonus per plains region controlled
 STABLES_CAVALRY_REGEN = 750            # Bonus per stables building owned
+URBAN_ARTILLERY_REGEN = 200            # Bonus per urban region controlled (arsenals)
 MAX_INFANTRY_POOL = 100000             # Pool cap
 MAX_CAVALRY_POOL = 30000               # Pool cap
+MAX_ARTILLERY_POOL = 20000             # Pool cap
 
 # Default starting pools (also used for backward compat)
 DEFAULT_MANPOWER_POOLS = {
-    "France": {"infantry": 80000, "cavalry": 15000},
-    "Britain": {"infantry": 50000, "cavalry": 8000},
-    "Prussia": {"infantry": 60000, "cavalry": 10000},
+    "France": {"infantry": 80000, "cavalry": 15000, "artillery": 10000},
+    "Britain": {"infantry": 50000, "cavalry": 8000, "artillery": 5000},
+    "Prussia": {"infantry": 60000, "cavalry": 10000, "artillery": 5000},
 }
 
 
@@ -1971,9 +1976,16 @@ class WorldState:
                 if region.has_building("stables"):
                     cav_regen += STABLES_CAVALRY_REGEN
 
+            # Artillery: slow base + urban territory bonuses (arsenals)
+            art_regen = ARTILLERY_BASE_REGEN
+            for region in controlled:
+                if region.terrain == "urban":
+                    art_regen += URBAN_ARTILLERY_REGEN
+
             pool = self.manpower_pools[nation]
             pool["infantry"] = min(pool["infantry"] + inf_regen, MAX_INFANTRY_POOL)
             pool["cavalry"] = min(pool["cavalry"] + cav_regen, MAX_CAVALRY_POOL)
+            pool["artillery"] = min(pool.get("artillery", 0) + art_regen, MAX_ARTILLERY_POOL)
 
     def get_cavalry_regen_rate(self, nation: str) -> int:
         """Calculate current cavalry regen rate for a nation (for display/error messages)."""
@@ -1984,6 +1996,15 @@ class WorldState:
                 rate += PLAINS_CAVALRY_REGEN
             if region.has_building("stables"):
                 rate += STABLES_CAVALRY_REGEN
+        return rate
+
+    def get_artillery_regen_rate(self, nation: str) -> int:
+        """Calculate current artillery regen rate for a nation."""
+        controlled = [r for r in self.regions.values() if r.controller == nation]
+        rate = ARTILLERY_BASE_REGEN
+        for region in controlled:
+            if region.terrain == "urban":
+                rate += URBAN_ARTILLERY_REGEN
         return rate
 
     def process_income_phase(self, nation: str = None) -> Dict:
@@ -2998,6 +3019,8 @@ class WorldState:
             marshal.retreated_this_turn = False
             # Exhaustion system - reset attack counter for spam prevention
             marshal.attacks_this_turn = 0
+            # Artillery - reset moved-this-turn flag so artillery can fire
+            marshal.moved_this_turn = False
 
         # V2a Objection System - clear per-turn tracking
         self.mild_concerns_this_turn = []

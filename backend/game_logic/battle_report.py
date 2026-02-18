@@ -90,6 +90,10 @@ def snapshot_attacker_modifiers(
                 else:
                     mods.append({"label": f"Cavalry terrain ({terrain})", "value": 100 - eff_pct, "type": "penalty"})
 
+    # --- Cavalry counter vs artillery ---
+    if getattr(attacker, "cavalry", False) and getattr(defender, "artillery", False):
+        mods.append({"label": "Cavalry counter (vs artillery)", "value": 30, "type": "bonus"})
+
     # --- Flanking bonus ---
     if flanking_bonus > 0:
         mods.append({"label": "Flanking", "value": int(flanking_bonus), "type": "bonus"})
@@ -138,6 +142,10 @@ def snapshot_defender_modifiers(
     is_drilling = getattr(defender, "drilling", False) or getattr(defender, "drilling_locked", False)
     if is_drilling:
         mods.append({"label": "Caught drilling", "value": 25, "type": "penalty"})
+
+    # --- Artillery moved this turn (guns not set up) ---
+    if getattr(defender, "artillery", False) and getattr(defender, "moved_this_turn", False):
+        mods.append({"label": "Artillery in transit", "value": 25, "type": "penalty"})
 
     # --- Personality defense modifier (stateless function) ---
     is_outnumbered = defender.strength < attacker.strength
@@ -273,6 +281,27 @@ _OBSERVATIONS = {
         "An inconclusive affair. Both sides bloodied but unbroken.",
         "Stalemate. {marshal} and {enemy} glare at each other across the field.",
     ],
+    # Artillery bombardment observations
+    "artillery_bombardment_effective": [
+        "{marshal}'s artillery devastated {enemy}'s position. The guns speak with authority, Sire.",
+        "A masterful bombardment by {marshal}. {enemy}'s defenses crumble under sustained fire.",
+        "{marshal}'s gunners proved their worth today. The enemy position was thoroughly reduced.",
+    ],
+    "artillery_caught_moving": [
+        "{marshal}'s guns were caught in transit when {enemy} struck. The crews had no time to deploy.",
+        "A costly lesson, Sire. {marshal}'s artillery was vulnerable during repositioning.",
+        "{enemy} exploited {marshal}'s movement. Artillery must be given time to set up.",
+    ],
+    "cavalry_overran_artillery": [
+        "{enemy}'s cavalry swept through {marshal}'s gun line. Unscreened artillery is cavalry's prey.",
+        "The horsemen of {enemy} overran {marshal}'s guns before the crews could react.",
+        "{marshal}'s artillery was defenseless against {enemy}'s cavalry charge. Infantry screens are essential, Sire.",
+    ],
+    "artillery_fort_degradation": [
+        "{marshal}'s bombardment is systematically dismantling {enemy}'s fortifications. The walls cannot endure much more.",
+        "Our artillery is the answer to their walls, Sire. {marshal}'s guns crack what infantry cannot.",
+        "Persistent bombardment by {marshal} erodes the enemy's prepared positions. Time and gunpowder are on our side.",
+    ],
     "default": [
         "The engagement proceeded as one might expect, Sire.",
         "A standard affair. Nothing unusual to report.",
@@ -407,6 +436,32 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
                 return _fill(random.choice(_OBSERVATIONS["fort_degraded_defender"]))
             else:
                 return _fill(random.choice(_OBSERVATIONS["fort_degraded_attacker"]))
+
+    # Priority 6d: Artillery-specific observations
+    cavalry_counter = battle_result.get("cavalry_counter_message")
+
+    # Cavalry overran our artillery
+    if we_lost and cavalry_counter and not we_are_attacker:
+        return _fill(random.choice(_OBSERVATIONS["cavalry_overran_artillery"]))
+
+    # Our artillery caught moving
+    if we_lost and _has_mod(our_mods, "artillery in transit", "penalty"):
+        return _fill(random.choice(_OBSERVATIONS["artillery_caught_moving"]))
+
+    # Our artillery bombardment was effective (we won + fort degradation from artillery)
+    if we_won and fort_degraded and we_are_attacker:
+        # Check if the attacker is artillery (fort degrades 10% vs 5%)
+        atk_nation = battle_result.get("attacker_nation", "")
+        if atk_nation == player_nation:
+            return _fill(random.choice(_OBSERVATIONS["artillery_fort_degradation"]))
+
+    # Our artillery won decisively
+    if we_won and we_are_attacker:
+        atk_name = attacker_data.get("name", "")
+        # Check any artillery observations not already covered
+        if _has_mod(our_mods, "cavalry counter (vs artillery)", "bonus"):
+            # We used cavalry counter bonus against their artillery — already covered above
+            pass
 
     # Priority 7: We won + our side had drill bonus
     if we_won and _has_mod(our_mods, "drill", "bonus"):

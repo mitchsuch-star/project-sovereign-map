@@ -551,8 +551,8 @@ class TestAutoChargeAtFour:
         # Move ALL enemies outside Ney's 2-tile range
         wellington.location = "Vienna"  # 3 hops from Paris
         blucher.location = "Vienna"     # Both far away
-        # Also move Uxbridge and Gneisenau if they exist
-        for name in ["Uxbridge", "Gneisenau"]:
+        # Also move Uxbridge, Gneisenau, and PrinceAugust if they exist
+        for name in ["Uxbridge", "Gneisenau", "PrinceAugust"]:
             m = world.get_marshal(name)
             if m:
                 m.location = "Vienna"

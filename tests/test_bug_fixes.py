@@ -175,6 +175,9 @@ class TestActionConsumption:
         gneisenau = world.get_marshal("Gneisenau")
         if gneisenau:
             gneisenau.location = "Rhineland"
+        prince_august = world.get_marshal("PrinceAugust")
+        if prince_august:
+            prince_august.location = "Rhineland"
 
         # Record initial actions
         initial_actions = world.actions_remaining

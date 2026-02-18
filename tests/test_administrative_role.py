@@ -184,6 +184,9 @@ class TestDismissDisbandsTroopsFar:
         davout.location = "Spain"
         grouchy.location = "Italy"
 
+        # Remove Drouot — at Paris he's only 1 region from Belgium
+        del world.marshals["Drouot"]
+
         ney = world.get_marshal("Ney")  # At Belgium
         davout_original_strength = davout.strength
         grouchy_original_strength = grouchy.strength
@@ -251,6 +254,7 @@ class TestLastMarshalOnlyAutonomy:
         # Remove all marshals except Ney
         del world.marshals["Davout"]
         del world.marshals["Grouchy"]
+        del world.marshals["Drouot"]
 
         # Verify only 1 field marshal
         assert len(world.get_field_marshals()) == 1
@@ -270,8 +274,9 @@ class TestLastMarshalOnlyAutonomy:
         world = WorldState()
         system = DisobedienceSystem()
 
-        # Remove one marshal, keep two
+        # Remove marshals to keep exactly two
         del world.marshals["Grouchy"]
+        del world.marshals["Drouot"]
 
         # Verify 2 field marshals
         assert len(world.get_field_marshals()) == 2
@@ -341,7 +346,7 @@ class TestFieldAndAdminMarshalHelpers:
         system = DisobedienceSystem()
 
         initial_field = len(world.get_field_marshals())
-        assert initial_field == 3  # Ney, Davout, Grouchy
+        assert initial_field == 4  # Ney, Davout, Grouchy, Drouot
 
         # Put Ney in admin role
         ney = world.get_marshal("Ney")
@@ -349,7 +354,7 @@ class TestFieldAndAdminMarshalHelpers:
         redemption_event = system._create_redemption_event(ney, world)
         system.handle_redemption_response(redemption_event, 'administrative_role', world)
 
-        assert len(world.get_field_marshals()) == 2
+        assert len(world.get_field_marshals()) == 3
         field_names = [m.name for m in world.get_field_marshals()]
         assert 'Ney' not in field_names
         assert 'Davout' in field_names
@@ -399,6 +404,7 @@ class TestFindNearestMarshalWithinRange:
         # Move all French marshals far away
         world.get_marshal("Davout").location = "Spain"
         world.get_marshal("Grouchy").location = "Italy"
+        world.get_marshal("Drouot").location = "Spain"
 
         result = world.find_nearest_marshal_within_range(
             from_location="Belgium",

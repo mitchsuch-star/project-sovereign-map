@@ -128,6 +128,20 @@ EXAMPLE_COMMANDS = [
         }
     },
     {
+        "input": "Drouot, bombard Wellington's position",
+        "output": {
+            "matched": True,
+            "command_type": "tactical",
+            "marshals": ["Drouot"],
+            "action": "attack",
+            "target": "Wellington",
+            "ambiguity": 5,
+            "strategic_score": 50,
+            "interpretation": "Marshal Drouot to bombard Wellington's forces with artillery",
+            "dialogue": "The guns are loaded, Sire. We shall reduce their position to rubble.",
+        }
+    },
+    {
         "input": "Have Davout fortify his position",
         "output": {
             "matched": True,

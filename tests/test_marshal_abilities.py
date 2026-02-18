@@ -348,14 +348,15 @@ class TestGneisenauStaffWork:
         assert gneisenau.location == blucher.location, \
             f"Gneisenau ({gneisenau.location}) should start with Blücher ({blucher.location})"
 
-    def test_prussia_has_two_marshals(self):
-        """Verify Prussia now has two marshals: Blücher and Gneisenau."""
+    def test_prussia_has_three_marshals(self):
+        """Verify Prussia now has three marshals: Blücher, Gneisenau, and PrinceAugust."""
         enemies = create_enemy_marshals()
         prussian_marshals = [name for name, m in enemies.items() if m.nation == "Prussia"]
 
-        assert len(prussian_marshals) == 2, f"Prussia should have 2 marshals, got {len(prussian_marshals)}"
+        assert len(prussian_marshals) == 3, f"Prussia should have 3 marshals, got {len(prussian_marshals)}"
         assert "Blucher" in prussian_marshals, "Blücher should be Prussian"
         assert "Gneisenau" in prussian_marshals, "Gneisenau should be Prussian"
+        assert "PrinceAugust" in prussian_marshals, "PrinceAugust should be Prussian"
 
 
 class TestUxbridgePursuitMaster:

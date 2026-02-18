@@ -91,10 +91,10 @@ class TestUpkeepCalculation:
     def test_upkeep_multiple_marshals(self):
         """Sum of individual upkeeps for all French marshals."""
         world = fresh_world()
-        # Default French marshals: Ney 72000, Davout 48000, Grouchy 33000
-        # (72000//1000)*5 + (48000//1000)*5 + (33000//1000)*5 = 360 + 240 + 165 = 765
+        # Default French marshals: Ney 72000, Davout 48000, Grouchy 33000, Drouot 25000
+        # (72000//1000)*5 + (48000//1000)*5 + (33000//1000)*5 + (25000//1000)*5 = 360 + 240 + 165 + 125 = 890
         result = world.calculate_turn_upkeep("France")
-        assert result["total"] == 765
+        assert result["total"] == 890
 
     def test_upkeep_non_player_nation(self):
         """Can calculate upkeep for Britain."""
@@ -130,9 +130,9 @@ class TestUpkeepCalculation:
         """Upkeep halved when nation is bankrupt."""
         world = fresh_world()
         world.nation_bankruptcy_turns["France"] = 1
-        # Normal upkeep would be 765 for default French marshals
+        # Normal upkeep would be 890 for default French marshals (Ney+Davout+Grouchy+Drouot)
         result = world.calculate_turn_upkeep("France")
-        assert result["total"] == 765 // 2  # 382
+        assert result["total"] == 890 // 2  # 445
         assert result["halved"] is True
 
     def test_upkeep_not_halved_when_solvent(self):

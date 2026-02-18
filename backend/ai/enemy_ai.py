@@ -55,8 +55,8 @@ import random
 from typing import Dict, List, Optional, Tuple
 from backend.models.world_state import (
     WorldState,
-    INFANTRY_RECRUIT_AMOUNT, CAVALRY_RECRUIT_AMOUNT,
-    INFANTRY_RECRUIT_GOLD_COST_BASE, CAVALRY_RECRUIT_GOLD_COST_BASE,
+    INFANTRY_RECRUIT_AMOUNT, CAVALRY_RECRUIT_AMOUNT, ARTILLERY_RECRUIT_AMOUNT,
+    INFANTRY_RECRUIT_GOLD_COST_BASE, CAVALRY_RECRUIT_GOLD_COST_BASE, ARTILLERY_RECRUIT_GOLD_COST_BASE,
     MAX_CAVALRY_POOL,
 )
 from backend.models.marshal import Marshal, Stance
@@ -1879,6 +1879,11 @@ class EnemyAI:
             ai_debug(f"    {marshal.name} cannot attack - fortified")
             return None
 
+        # Artillery can't attack after moving (guns not set up)
+        if getattr(marshal, 'artillery', False) and getattr(marshal, 'moved_this_turn', False):
+            ai_debug(f"    {marshal.name} cannot attack - artillery moved this turn")
+            return None
+
         enemies = world.get_enemies_of_nation(nation)
         ai_debug(f"    🎯 All enemies of {nation}: {[(e.name, e.location, e.strength) for e in enemies]}")
         marshal_region = world.get_region(marshal.location)
@@ -3655,8 +3660,14 @@ class EnemyAI:
             weakest = None
         if weakest:
             # Calculate recruit cost based on marshal type and region
+            is_artillery = getattr(weakest, 'artillery', False)
             is_cavalry = getattr(weakest, 'cavalry', False)
-            base_cost = CAVALRY_RECRUIT_GOLD_COST_BASE if is_cavalry else INFANTRY_RECRUIT_GOLD_COST_BASE
+            if is_artillery:
+                base_cost = ARTILLERY_RECRUIT_GOLD_COST_BASE
+            elif is_cavalry:
+                base_cost = CAVALRY_RECRUIT_GOLD_COST_BASE
+            else:
+                base_cost = INFANTRY_RECRUIT_GOLD_COST_BASE
 
             region = world.get_region(weakest.location)
             recruit_cost = base_cost
@@ -3807,8 +3818,15 @@ class EnemyAI:
             ratio = marshal.strength / starting
             if ratio < threshold and ratio < lowest_ratio:
                 # Check pool availability
-                recruit_type = "cavalry" if getattr(marshal, 'cavalry', False) else "infantry"
-                needed = CAVALRY_RECRUIT_AMOUNT if recruit_type == "cavalry" else INFANTRY_RECRUIT_AMOUNT
+                if getattr(marshal, 'artillery', False):
+                    recruit_type = "artillery"
+                    needed = ARTILLERY_RECRUIT_AMOUNT
+                elif getattr(marshal, 'cavalry', False):
+                    recruit_type = "cavalry"
+                    needed = CAVALRY_RECRUIT_AMOUNT
+                else:
+                    recruit_type = "infantry"
+                    needed = INFANTRY_RECRUIT_AMOUNT
                 pool = world.manpower_pools.get(nation, {})
                 if pool.get(recruit_type, 0) < needed:
                     continue  # Pool can't support this marshal's recruit type
