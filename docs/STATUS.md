@@ -20,7 +20,8 @@
 
 1. **Pause menu** — Phase 6.5, Esc → Save/Load/Settings/Quit
 2. **Godot HUD: Artillery pool display** — Add Art: Z to ManpowerDisplay (mirrors Inf/Cav pattern)
-3. **Phase 7: Objection V2b** — See OBJECTION_V2.md for preview
+3. **Godot wiring: `bombardment_advisory`** — Backend sends key in API response, `main.gd` needs handler to display it (Berthier popup or terminal message)
+4. **Phase 7: Objection V2b** — See OBJECTION_V2.md for preview
 
 ---
 

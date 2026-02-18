@@ -29,6 +29,7 @@ Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-B
 
 - **Phase 6.5:** Pause menu (Esc → Save/Load/Settings/Quit)
 - **Godot HUD:** Artillery pool display (Art: Z in ManpowerDisplay)
+- **Godot wiring:** `bombardment_advisory` handler in `main.gd` (backend sends key, frontend doesn't display it yet)
 
 See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 
