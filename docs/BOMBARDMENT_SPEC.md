@@ -820,7 +820,85 @@ Pre-wire the streak check point in `_execute_bombardment()` so adding this later
 
 ---
 
-## 15. Files to Modify
+## 15. Implementation Sessions
+
+### Session 48: Core Bombardment Resolution
+
+**Foundation — everything else depends on this.**
+
+| Item | Spec Section | Files |
+|------|-------------|-------|
+| `TERRAIN_BOMBARDMENT_MODIFIER` dict | §4.1 | `region.py` |
+| `bombardments_this_turn` field + serialization | §4.5, §13 | `marshal.py` |
+| `_execute_bombardment()` — damage formula, return casualties, morale, no-battle-outcome rules | §4.2, 4.3, 4.6, 4.7, 4.8 | `executor.py` |
+| Routing rule in `_execute_attack()` | §3 | `executor.py` |
+| Fort degradation in bombardment | §5 | `executor.py` |
+| Turn reset in `advance_turn()` | §4.5 | `world_state.py` |
+| Diminishing returns hook (commented) | §14 | `executor.py` |
+| Remove dead code from `combat.py` | §16.1 | `combat.py` |
+| Bombardment streak tracking (port from _execute_attack) | §4.6 | `executor.py` |
+
+**Tests:** §17.1 (core bombardment) + §17.2 (terrain) + serialization round-trip.
+
+**Verify:** curl test — Drouot bombards adjacent Wellington, confirm new path. Same-region attack still uses resolve_battle().
+
+### Session 49: Collateral Damage + Event Log
+
+**Builds on core bombardment. Adds the "shells are imprecise" identity.**
+
+| Item | Spec Section | Files |
+|------|-------------|-------|
+| Collateral damage loop (40% chance, 25% of primary) | §4.4 | `executor.py` |
+| Friendly fire trust/relationship penalties | §4.4 | `executor.py` |
+| Region-name target auto-selection (strongest enemy) | §4.4 | `executor.py` or `parser.py` |
+| Bombardment event type for turn log | §8 | `executor.py` |
+| `main.py` pass-through for bombardment_result + collateral | §8 | `main.py` |
+
+**Tests:** §17.3 (collateral) + region-name target + redemption threshold.
+
+### Session 50: Enemy AI Bombardment
+
+**Independent of collateral (collateral just happens). Depends on core routing existing.**
+
+| Item | Spec Section | Files |
+|------|-------------|-------|
+| Bombardment limit check in `_find_attack_opportunity()` | §10.1 | `enemy_ai.py` |
+| P4.25 garrison assault skip for artillery | §10.1 | `enemy_ai.py` |
+| Ratio bypass for ranged bombardment | §10.1 | `enemy_ai.py` |
+| Skip broken/retreating targets | §10.1 | `enemy_ai.py` |
+| Target selection update (fort + density + terrain tiebreaker) | §10.2 | `enemy_ai.py` |
+
+**Tests:** §17.5 (integration — AI uses bombardment correctly).
+
+### Session 51: Strategic HOLD + Objections
+
+**Thematically linked — both about Drouot's autonomous behavior and when he pushes back.**
+
+| Item | Spec Section | Files |
+|------|-------------|-------|
+| `_execute_hold_bombardment()` in strategic.py | §9.3 | `strategic.py` |
+| `bombardment_target` field on StrategicOrder + serialization | §9.6, §13 | `strategic.py`, marshal models |
+| HOLD edge cases (enemy enters region, no targets, target leaves) | §9.5 | `strategic.py` |
+| Replace V2a artillery triggers (cease fire, reckless repositioning, wasted fire, last-shot, melee) | §7.1, 7.2 | `objection_v2.py` |
+| Add artillery flavor text | §7.5 | `disobedience.py` |
+
+**Tests:** §17.4 (strategic HOLD) + objection trigger tests from §17.5.
+
+### Session 52: Godot Frontend + Berthier + Docs
+
+**Presentation layer. Depends on all backend sessions.**
+
+| Item | Spec Section | Files |
+|------|-------------|-------|
+| `bombardment_result` display in terminal UI | §12.1 | `main.gd` |
+| HUD advisory (bombardments remaining) | §12.2 | `main.gd` |
+| Berthier bombardment observations | §11.1, 11.2 | `battle_report.py` |
+| Doc updates | — | `SAVE_FORMAT_REFERENCE.md`, `SYSTEMS_REFERENCE.md`, `CLAUDE.md`, `STATUS.md` |
+| Full manual curl test pass | §17.6 | — |
+
+---
+
+## 16. Files to Modify (All Sessions)
 
 | File | Changes |
 |------|---------|
