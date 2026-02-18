@@ -555,6 +555,7 @@ AI marshals evaluate whether to attack a garrisoned region. Handles both capital
 - **Strength ratio** = marshal strength / garrison effective defense (includes terrain + fort bonuses)
 - **Threshold** = personality attack threshold, adjusted by mood (anger lowers it, satisfaction raises it)
 - If ratio >= threshold, the AI attacks the garrison
+- **Artillery skip:** Artillery marshals are excluded entirely from P4.25 — garrison combat requires same-region presence, and artillery cannot bombard garrisons (Session 50)
 
 Aggressive marshals will assault garrisons more readily (threshold 0.7), while cautious marshals need a stronger advantage (threshold 1.3).
 
@@ -572,6 +573,22 @@ AI marshals can detach 3,000 troops to garrison a controlled border region (same
 - Max 1 garrison per nation per turn (`_garrison_placed_this_turn` flag)
 
 **Behavior:** AI garrisons use `garrison_detachment=True` — no regen, fight to destruction (same as player garrisons).
+
+### Artillery AI Bombardment (Session 50)
+
+AI artillery behavior for ranged bombardment. The executor routes artillery attacks to the dedicated `_execute_bombardment()` path transparently — the AI just issues "attack" commands and the routing handles the rest (Building Blocks principle).
+
+**Bombardment-Specific AI Checks (in `_find_attack_opportunity`):**
+- **Limit pre-check:** If `bombardments_this_turn >= 2`, skip P4 entirely (fall through to P5+)
+- **Broken/retreating skip:** Skip targets with `broken=True` or `retreating=True` at range — waste of ammunition
+- **Ratio bypass:** Artillery bypasses personality threshold for ranged targets. Bombardment costs only 1.5% own strength, making it favorable at any ratio. Same-region combat (P0) still uses normal thresholds.
+- **Enhanced target sort:** Fort tier (building+fortify > fortify > none) → force density in region (collateral opportunity) → distance → terrain bombardment modifier (plains > forest > mountains)
+
+**P4.25 Garrison Exclusion:** Artillery cannot assault garrisons — garrison combat requires physical presence.
+
+**P2 Screen Check:** Exposed artillery (no infantry in same/adjacent region) retreats toward nearest friendly infantry when enemy cavalry is within 2 tiles.
+
+**P7 Anti-Oscillation:** Artillery with adjacent targets stays put (skips P7 movement) to continue bombarding.
 
 ---
 

@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 18, 2026 (Session 49)
+> **Last Updated:** February 18, 2026 (Session 50)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2884** (verified, 3 skipped) |
+| **Tests Passing** | **2908** (verified, 3 skipped) |
 
-| **Current Phase** | Phase 6.5 **IN PROGRESS** — Bombardment Parts 1-2 complete, Parts 3-5 remaining |
+| **Current Phase** | Phase 6.5 **IN PROGRESS** — Bombardment Parts 1-3 complete, Parts 4-5 remaining |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,8 +19,8 @@
 
 ## Next Steps
 
-1. **Bombardment Part 3: Counter-Battery Fire** — Session 50. See `BOMBARDMENT_SPEC.md` §9.
-2. **Bombardment Part 4: AI Bombardment + Godot Frontend** — Sessions 51-52. See `BOMBARDMENT_SPEC.md` §10-12.
+1. **Bombardment Part 4: Strategic HOLD + Objections** — Session 51. See `BOMBARDMENT_SPEC.md` §9, §7.
+2. **Bombardment Part 5: Godot Frontend + Berthier Observations** — Session 52. See `BOMBARDMENT_SPEC.md` §11-12.
 3. **Pause menu** — Phase 6.5, Esc → Save/Load/Settings/Quit
 4. **Phase 7: Multi-marshal battles + Combined Arms + Square Formation + V2b** — Sessions 53-54 (combined arms, square) deferred here to build alongside multi-marshal combat. See BOMBARDMENT_SPEC.md §15, ROADMAP.md Phase 7.
 
@@ -46,6 +46,42 @@ All major Phase 6 features shipped:
 ---
 
 ## Recent Sessions
+
+### Feb 18 (Session 50: Bombardment Part 3 — Enemy AI Bombardment)
+
+**AI artillery behavior improvements per BOMBARDMENT_SPEC.md §10.**
+
+**Bombardment Limit Pre-Check (enemy_ai.py `_find_attack_opportunity`):**
+- Artillery at bombardments_this_turn >= 2 returns None early from P4
+- Prevents wasted AI evaluation cycle (executor would catch it, but this is cleaner)
+- Non-artillery marshals completely unaffected
+
+**P4.25 Garrison Assault Skip (enemy_ai.py `_find_garrison_attack`):**
+- Artillery returns None immediately — cannot bombard garrisons from range
+- Garrison combat requires same-region physical presence
+- Infantry/cavalry garrison assault unchanged
+
+**Ratio Bypass for Ranged Bombardment (enemy_ai.py `_find_attack_opportunity`):**
+- Artillery bypasses cautious/aggressive ratio threshold for ranged targets
+- Bombardment costs only 1.5% own strength — always favorable risk/reward
+- Same-region artillery combat (handled by P0) still uses normal thresholds
+- Non-artillery marshals still filtered by personality threshold
+
+**Skip Broken/Retreating Targets (enemy_ai.py `_find_attack_opportunity`):**
+- Artillery skips broken or retreating targets at range (distance > 0)
+- Prevents wasting bombardments on already-defeated forces
+- Same-region targets (distance == 0) unaffected (P0 handles, guard is defensive)
+- Non-artillery marshals unaffected (filter is artillery + ranged only)
+
+**Enhanced Target Selection (enemy_ai.py `_find_attack_opportunity`):**
+- Artillery sort key updated: fort tier → force density → distance → terrain modifier
+- Force density: count of other enemies in target region (collateral opportunity)
+- Terrain tiebreaker: plains (1.10) preferred over mountains (0.60) for more effective bombardment
+- Fort + building (tier 0) > fortified only (tier 1) > unfortified (tier 2) preserved from Session 43
+
+**Tests:** 24 new tests in `test_ai_bombardment.py` (4 limit pre-check, 3 garrison skip, 3 ratio bypass, 5 broken/retreating, 5 target selection, 2 P0 integration, 2 full AI integration). **2908 total passing**, 3 skipped. Zero regressions. Serialization 16/16.
+
+---
 
 ### Feb 18 (Session 49: Bombardment Part 2 — Collateral Damage + Event Log)
 

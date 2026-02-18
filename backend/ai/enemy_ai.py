@@ -1901,6 +1901,13 @@ class EnemyAI:
             ai_debug(f"    {marshal.name} cannot attack - artillery moved this turn")
             return None
 
+        # Artillery: check bombardment limit before attempting ranged attack
+        # P0 handles same-region engagement; at P4, all artillery targets are ranged
+        if getattr(marshal, 'artillery', False):
+            if getattr(marshal, 'bombardments_this_turn', 0) >= 2:
+                ai_debug(f"    P4: {marshal.name} at bombardment limit — skipping ranged attack")
+                return None  # Fall through to P5+ (positioning)
+
         enemies = world.get_enemies_of_nation(nation)
         ai_debug(f"    🎯 All enemies of {nation}: {[(e.name, e.location, e.strength) for e in enemies]}")
         marshal_region = world.get_region(marshal.location)
@@ -1917,6 +1924,14 @@ class EnemyAI:
             movement_range = getattr(marshal, 'movement_range', 1)
 
             if distance <= movement_range and enemy.strength > 0:
+                # ════════════════════════════════════════════════════════════
+                # ARTILLERY: Skip broken/retreating targets (waste of ammo)
+                # ════════════════════════════════════════════════════════════
+                if getattr(marshal, 'artillery', False) and distance > 0:
+                    if getattr(enemy, 'broken', False) or getattr(enemy, 'retreating', False):
+                        ai_debug(f"    P4: Skipping broken/retreating target {enemy.name} for bombardment")
+                        continue
+
                 # ════════════════════════════════════════════════════════════
                 # BUG #3 FIX: Validate path for distance > 1 attacks
                 # Cavalry charges can be blocked by intermediate enemies
@@ -1988,8 +2003,17 @@ class EnemyAI:
                 return None
         else:
             # No enemies in same region - can attack elsewhere
-            # Filter by EFFECTIVE ratio against threshold (smarter decision)
-            attackable = [(e, br, er, d) for e, br, er, d in valid_targets if er >= threshold]
+            # ════════════════════════════════════════════════════════════
+            # ARTILLERY RATIO BYPASS: Ranged bombardment costs only 1.5%
+            # of own strength — always worth it regardless of ratio.
+            # Same-region combat (handled by P0) still uses normal thresholds.
+            # ════════════════════════════════════════════════════════════
+            if getattr(marshal, 'artillery', False):
+                attackable = valid_targets  # Bypass threshold for ranged artillery
+                ai_debug(f"    P4: Artillery ratio bypass — bombardment is low-risk ({len(attackable)} targets)")
+            else:
+                # Filter by EFFECTIVE ratio against threshold (smarter decision)
+                attackable = [(e, br, er, d) for e, br, er, d in valid_targets if er >= threshold]
 
             if not attackable:
                 ai_debug(f"    No targets meet threshold (need effective ratio >= {threshold})")
@@ -2017,9 +2041,13 @@ class EnemyAI:
                         target = min(attackable, key=lambda x: x[3])[0]
 
             # ════════════════════════════════════════════════════════════
-            # ARTILLERY SORT: Prefer fortified targets (bombardment value)
+            # ARTILLERY SORT: Prefer fortified > dense > open-terrain targets
+            # Fort value (crack forts), force density (collateral opportunity),
+            # terrain bombardment modifier (open ground = more damage)
             # ════════════════════════════════════════════════════════════
             elif getattr(marshal, 'artillery', False):
+                from backend.models.region import TERRAIN_BOMBARDMENT_MODIFIER
+
                 def _art_sort_key(item):
                     enemy, br, er, d = item
                     has_fortify = getattr(enemy, 'defense_bonus', 0) > 0
@@ -2032,7 +2060,19 @@ class EnemyAI:
                         tier = 1
                     else:
                         tier = 2
-                    return (tier, d)  # Sort by tier then distance
+                    # Force density: other enemies in region (collateral opportunity)
+                    forces_in_region = len([
+                        m for m in world.marshals.values()
+                        if m.location == enemy.location
+                        and m.nation != nation
+                        and m.strength > 0
+                        and m.name != enemy.name
+                    ])
+                    # Terrain: higher modifier = more effective bombardment
+                    terrain_mod = TERRAIN_BOMBARDMENT_MODIFIER.get(
+                        target_reg.terrain, 1.0) if target_reg else 1.0
+                    # Sort: fort tier (asc), density (desc), distance (asc), terrain (desc)
+                    return (tier, -forces_in_region, d, -terrain_mod)
 
                 attackable.sort(key=_art_sort_key)
                 target = attackable[0][0]
@@ -2171,6 +2211,11 @@ class EnemyAI:
         Handles both capital garrisons (>= 5k) and detachment garrisons (any size).
         Uses the attack command — executor handles garrison combat resolution.
         """
+        # Artillery cannot bombard garrisons — garrison combat requires same-region presence
+        if getattr(marshal, 'artillery', False):
+            ai_debug(f"    P4.25: {marshal.name} is artillery — cannot assault garrisons from range")
+            return None
+
         from backend.models.region import TERRAIN_DEFENSE_BONUS
         personality = self._get_effective_personality(marshal, world)
         threshold = self._get_mood_adjusted_threshold(marshal, world)
