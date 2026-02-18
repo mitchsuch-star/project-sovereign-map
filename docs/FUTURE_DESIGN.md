@@ -2,7 +2,7 @@
 
 > **CONCEPTUAL DESIGNS** — not yet implemented. Extracted from CLAUDE.md to reduce active context.
 > **Phase numbers and priorities live in ROADMAP.md** — this file has design detail, not scheduling.
-> **Last Updated:** February 13, 2026 (Session 34B-prep: Added "Fog + Movement Discovery" 1805 design under Fog of War)
+> **Last Updated:** February 17, 2026 (Doc cleanup: archived implemented sections, removed phase summary duplicate)
 
 ---
 
@@ -457,7 +457,7 @@ AUTONOMY_LEVELS = {
 
 #### 1. Supply & Logistics System
 
-**PARTIALLY IMPLEMENTED (Phase 6.2).** Supply capacity by region type (capital 50k down to rural 15k), 3-tier supply attrition, supply depot building (+10k capacity, halves movement attrition in adjacent regions). See `docs/ECONOMY_SPEC.md`.
+**PARTIALLY IMPLEMENTED (Phase 6.2).** Supply capacity by region type (capital 50k down to rural 15k), 3-tier supply attrition, supply depot building (+10k capacity, halves movement attrition in adjacent regions). See `docs/SYSTEMS_REFERENCE.md` Section 8.
 
 **Not yet implemented:** Supply range/lines (armies can be unsupplied), foraging in hostile territory, combat penalty when unsupplied. These are Post-EA scope — current system handles supply pressure without distance-based supply lines.
 
@@ -523,44 +523,22 @@ COALITION_TRIGGERS = {
 
 #### 4. Fog of War System
 
-**IMPLEMENTED — See `docs/FOG_OF_WAR_SPEC.md` for full design, `docs/FOG_IMPLEMENTATION_PLAN.md` for implementation roadmap.**
-
-5 visibility tiers (FULL/PARTIAL/STALE/LAST_KNOWN/UNKNOWN), strength bands, intel decay, watchtower building, scout persistence, PURSUE-into-fog chase mechanics. AI remains omniscient on 13 regions.
+**IMPLEMENTED.** See `docs/FOG_OF_WAR_SPEC.md` and `docs/SYSTEMS_REFERENCE.md` Section 9.
 
 **AI Fog of War (EA 1805, 80+ regions):** At scale, omniscient AI feels unfair. Design options:
 - AI gets fog but with bonuses (wider adjacency range, faster intel updates)
 - AI fog is "softer" — PARTIAL everywhere instead of UNKNOWN
 - Nation-specific intelligence quality (Britain best due to spy networks, Russia worst in distant theaters)
 
-**Fog + Movement Discovery (Phase 6 → EA):**
-
-No new "ambush" mechanic needed. Existing systems handle it:
-
-1. Marshal ordered to move to distant region, route passes through unexplored territory
-2. Each movement step grants PARTIAL visibility on adjacent regions (existing `calculate_visibility` Step 2)
-3. If the next region on the path has enemies (now visible via adjacency), the existing strategic contact interrupt fires
-4. Marshal personality determines response — aggressive wants to attack, cautious halts and reports, literal follows original orders toward the final destination
-
-What fog changes: On 13 regions with omniscience, contact interrupts are predictable ("you knew they were there"). On 80+ regions with fog, the marshal genuinely discovers enemies mid-march. The interrupt becomes a real decision point because the player didn't plan for this encounter.
-
-Personality-driven responses to unexpected contact (V2b triggers, Phase 7):
-- **Aggressive:** "The enemy! Let me attack, Sire!" — wants to engage, objects to continuing past
-- **Cautious:** "Enemy force ahead. I've halted the column." — stops, reports, waits for orders
-- **Literal:** Continues toward original destination unless directly blocked — the Grouchy scenario
-
-Vindication: Cautious marshal halts on discovering enemies. Player insists on continuing. Marshal attacks and is outnumbered. Marshal vindicated.
-
-No flat ambush penalties. The "cost" of not scouting is surprise contact interrupts that disrupt your plans — your marshal stops where you didn't expect, and personality determines how gracefully they handle it.
-
-This requires no new mechanics — just fog making existing contact interrupts meaningful. **Phase 6 (Session 36):** Contact interrupt messages should distinguish fog-discovery ("Enemy forces discovered ahead!") from known-enemy blocking ("Enemy forces detected at [region]"). Simple message branch on visibility level. **EA (1805, 80+ regions):** Fog-aware intermediate-region checks so cavalry 2-range movement discovers enemies on arrival rather than being blocked omnisciently (see `FOG_IMPLEMENTATION_PLAN.md` §34B-R for the 13-region acceptance rationale).
+**Fog + Movement Discovery (EA, 80+ regions):** No new "ambush" mechanic needed. Existing contact interrupts + fog make mid-march discoveries meaningful. Fog-aware intermediate-region checks needed so cavalry 2-range movement discovers enemies on arrival.
 
 #### 5. Terrain System
 
-**IMPLEMENTED (Phase 6.1).** 6 terrain types: plains, hills, mountains, forest, urban, river_crossing. Defense bonuses, cavalry effectiveness scaling, charge blocking, weighted pathfinding. See `docs/TERRAIN_SPEC.md`.
+**IMPLEMENTED (Phase 6.1).** See `docs/SYSTEMS_REFERENCE.md` Combat section.
 
 #### 6. Attrition System
 
-**PARTIALLY IMPLEMENTED (Phase 6.2.F).** Supply limits by region type, 3-tier supply attrition (1%/3%/5%), movement attrition (base 1% with terrain/size/fortification modifiers), supply depot halves movement attrition. See `docs/ECONOMY_SPEC.md`.
+**PARTIALLY IMPLEMENTED (Phase 6.2.F).** See `docs/SYSTEMS_REFERENCE.md` Section 8.
 
 **Not yet implemented:** Weather/winter attrition, disease events, base idle attrition. See Weather & Seasons below.
 
@@ -1924,174 +1902,6 @@ func update_region_color(region_name: String, color: Color):
 
 ---
 
-## Project Phases
-
-### Phase 1: Foundation (COMPLETE)
-- Core gameplay loop
-- Action economy (4 actions/turn)
-- Combat resolution
-- Victory/defeat conditions
-- Full turn cycle working
-
-### Phase 2: Combat & AI (COMPLETE)
-- Disobedience system (Trust/Insist/Compromise)
-- Authority & Vindication tracking
-- Drill/Fortify/Stance mechanics
-- Enemy AI (personality-driven decision tree)
-- Enemy Phase popup UI
-- Smart AI safety evaluation
-- Attacker movement on victory
-
-### Phase 2.5: Autonomy Foundation (COMPLETE)
-- Grant Autonomy → marshal uses Enemy AI decision tree
-- Autonomous marshal processing in turn flow
-- Autonomy narrative outcomes (success/neutral/failure text with relative trust gains)
-- Administrative Role option (sidelined marshal → +1 action/turn)
-- Redemption system overhaul (removed Demand Obedience, added dynamic option availability)
-
-### Phase 3: Fun Factor & Historical Drama (PARTIALLY IMPLEMENTED)
-
-**Many items below are now implemented. See CLAUDE.md for current state.**
-
-#### 3.1 Hearing the Guns System ✅ IMPLEMENTED (Phase 5.2)
-Cannon fire detection in strategic.py. Aggressive auto-redirects, cautious/literal ask player.
-
-```python
-# Event broadcast when battle starts
-EVENT_BLOCKS["hearing_the_guns"] = {
-    "trigger": "battle_starts_within_2_regions",
-    "text": "{marshal} hears cannon fire from {location}!",
-    "personality_response": {
-        "aggressive": "I hear the guns! Let me march to join the battle!",
-        "cautious": "Battle rages at {location}. Should I hold or intervene?",
-        "literal": "I hear cannon fire, but my orders are clear. I continue as directed."
-    },
-    "player_options": [
-        {"id": "redirect", "text": "March to the guns!", "cancels_current_order": True},
-        {"id": "continue", "text": "Continue as ordered"},
-        {"id": "judgment", "text": "Use your judgment", "triggers": "personality_default"}
-    ]
-}
-
-# If no player response by turn end:
-# - Aggressive: auto-redirects to battle
-# - Cautious: holds position
-# - Literal: continues original order (THE GROUCHY MOMENT)
-```
-
-#### 3.2 Vindication & Causality System (PARTIALLY IMPLEMENTED)
-VindicationTracker exists in `vindication.py`. Trust trajectory warnings implemented. Positive vindication narratives planned for Phase 8.5 (see ROADMAP.md Positive Events).
-
-**Post-Battle Counterfactual (opt-in):**
-```
-"Battle of Waterloo - Analysis:
-- You insisted on attacking despite Davout's objection
-- Davout's alternative (fortify) would have resulted in ~40% fewer casualties
-- Davout's vindication score: +1"
-```
-
-**Trust Trajectory Warnings:**
-```
-At trust 40 (dropping): "Ney's trust has fallen 25 points over 6 turns. Consider his counsel."
-```
-
-**Marshal Memory Callbacks:**
-```
-When similar situation arises:
-"Sire, the last time you ordered a frontal assault at these odds, we lost half our force."
-```
-
-**Reconciliation Events (at trust 35, recovering from <20):**
-```
-"Sire... I may have been too proud. Your counsel at [battle] was wiser than I admitted."
-Options: [Accept gracefully +8 trust, +2 authority] [Rub it in +3 trust, +8 authority]
-```
-
-#### 3.3 Grouchy Ambiguity Detection ✅ IMPLEMENTED (Phase 5.2)
-Clarification popups, ambiguity scoring, precision execution (+1 skills for 3 turns on clear orders). See CLAUDE.md Phase H.
-
-```python
-# Vague order triggers clarification
-"Sire, you say 'handle the Prussians.' Do you mean:
-- Pursue and destroy them
-- Pin them in place
-- Scout their movements
-I await specific orders."
-
-# Clear explicit orders give +15% bonus
-# "Use your judgment" → conservative/suboptimal interpretation
-```
-
-#### 3.4 Personality Failure Modes ✅ PARTIALLY IMPLEMENTED
-Ney's Glorious Charge implemented (recklessness counter, auto-charge at 3+). Davout counter-punch implemented. Grouchy literal behavior implemented.
-
-| Marshal | Trigger | Warning | Failure Mode |
-|---------|---------|---------|--------------|
-| Ney | recklessness >= 3 | "Ney's blood is up!" | Glorious Charge: 2x damage dealt AND taken |
-| Davout | wins defense | None (positive) | May refuse pursuit ("Hold the line!") |
-| Grouchy | battle within 2 regions | Hearing the Guns | Ignores unless explicitly redirected |
-
-**Recklessness builds predictably:**
-```python
-if ney.stance == AGGRESSIVE and ney.consecutive_attacks >= 2:
-    ney.recklessness += 1
-
-if ney.recklessness >= 3:
-    # Player sees warning, can ALLOW or RESTRAIN (-5 trust)
-```
-
-#### 3.5 Anti-Tedium Improvements (PARTIALLY IMPLEMENTED)
-Front-loaded fortify (+5% turn 1) implemented. Retreat recovery allows limited actions. Remaining items below still planned.
-
-| Issue | Fix |
-|-------|-----|
-| Fortify grinding | Front-load: +5% turn 1, +2% after (max 13-18% by personality) |
-| Retreat recovery | Allow limited actions: hold, recruit, defensive stance |
-| Objection spam | Reduce severity on repeat situations (more auto-resolve) |
-| Stance management | Add "All marshals, [stance]!" army-wide command |
-
-#### 3.6 Dominant Strategy Pressure (Simplified)
-Break turtling and alpha-strike without complex event systems.
-
-**Fortify Pressure (escalating, predictable):**
-```
-Turn 3: "The men grow restless behind these walls." (warning)
-Turn 5: "Supplies run low." → forage (opinion -20) OR ration (strength -10)
-Turn 7: "Paris demands action." → authority -10, political_pressure flag
-Turn 9 (if flag): "Paris recalls you." → game over
-```
-
-**Attack Exhaustion:**
-```python
-if marshal.consecutive_attacks >= 2:
-    marshal.exhaustion += 1
-if marshal.exhaustion >= 2:
-    "Troops exhausted. Attack at -20%, or rest 1 turn?"
-```
-
-#### 3.7 Redemption System ✅ IMPLEMENTED (Phase 2.5)
-Grant Autonomy, Administrative Role, and Dismiss all implemented. See CLAUDE.md Phase 2.5.
-
-#### Phase 3 File Changes
-| File | Changes |
-|------|---------|
-| `world_state.py` | Event broadcast system, hearing_the_guns trigger |
-| `disobedience.py` | Vindication tracking, reconciliation events, memory callbacks |
-| `executor.py` | Army-wide stance command, administrative role transfer |
-| `enemy_ai.py` | Autonomy processing improvements |
-| `marshal.py` | recklessness counter, exhaustion counter |
-| `turn_manager.py` | Fortify pressure escalation, exhaustion decay |
-
-### Phases 4-5.3: ✅ ALL COMPLETE
-- Phase 4 (LLM Integration): Fast parser + Anthropic fallback, BYOK, validation
-- Phase 5.1 (Tactical Feedback): Word-based scoring, strategic feedback
-- Phase 5.2 (Strategic Commands): MOVE_TO, PURSUE, HOLD, SUPPORT — full pipeline
-- Phase 5.3 (Enemy AI Fixes): Stagnation counter, oscillation fixes
-
-**See ROADMAP.md for Phase 6+ planning (Economy, Terrain, Diplomacy, etc.)**
-
----
-
 ---
 
 ## Core Territories Mechanic
@@ -2177,4 +1987,4 @@ Marshal "administration" stat could slow cohesion decay and improve recruitment 
 
 ---
 
-*Extracted from CLAUDE.md during documentation cleanup. Last updated February 2, 2026.*
+*Extracted from CLAUDE.md during documentation cleanup. Last updated February 17, 2026.*

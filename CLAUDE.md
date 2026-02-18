@@ -96,8 +96,8 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | Supply attrition | `world_state.py` (process_supply_attrition), `region.py` (supply_capacity) |
 | Strategic commands | `strategic.py`, `strategic_parser.py`, `executor.py` |
 | Objection V2 system | `objection_v2.py`, `docs/OBJECTION_V2.md` |
-| Fog of war | `docs/FOG_OF_WAR_SPEC.md`, `docs/FOG_IMPLEMENTATION_PLAN.md`, `backend/models/intel.py`, `backend/intel_report.py`, `map.gd` (fog overlay + fogged icons) |
-| Strategic commands + fog | `docs/FOG_OF_WAR_SPEC.md` §5, `docs/FOG_IMPLEMENTATION_PLAN.md` Session 34B, `backend/commands/strategic.py` |
+| Fog of war | `docs/FOG_OF_WAR_SPEC.md`, `backend/models/intel.py`, `backend/intel_report.py`, `map.gd` (fog overlay + fogged icons) |
+| Strategic commands + fog | `docs/FOG_OF_WAR_SPEC.md` §5, `backend/commands/strategic.py` |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`
 For Enemy AI details: `docs/ENEMY_AI_REFERENCE.md`
@@ -298,16 +298,16 @@ python -m backend.modding.validator path/to/mod.json
 | Phase timeline | `docs/ROADMAP.md` |
 | Game systems (combat, trust, disobedience, LLM, cavalry, strategic) | `docs/SYSTEMS_REFERENCE.md` |
 | Enemy AI decision tree | `docs/ENEMY_AI_REFERENCE.md` |
-| V2 objection refactor | `docs/OBJECTION_V2.md` |
+| V2b objection plans (Phase 7) | `docs/OBJECTION_V2.md` |
 | Save format / serialization | `docs/SAVE_FORMAT_REFERENCE.md` |
+| Fog of war spec | `docs/FOG_OF_WAR_SPEC.md` |
 | Modding guide | `docs/MODDING_FORMAT.md` |
 | Adding marshals or strategic commands | `docs/ADDING_CONTENT.md` |
-| Fog of war spec + plan | `docs/FOG_OF_WAR_SPEC.md`, `docs/FOG_IMPLEMENTATION_PLAN.md` |
 | Future design concepts | `docs/FUTURE_DESIGN.md` |
-| Phase 6 implementation plan | `docs/PHASE6_IMPLEMENTATION_PLAN.md` |
 | Game vision | `docs/VISION.md` |
 | Manual test plan | `docs/MANUAL_TEST_PLAN.md` |
 | Tutorial content / what to teach | `docs/TUTORIAL_SCRIPT.md` |
+| Playtest evaluation | `docs/PLAYTEST_EVALUATION_PROMPT.md` |
 
 ## Documentation Rules
 
