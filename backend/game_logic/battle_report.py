@@ -310,6 +310,32 @@ _OBSERVATIONS = {
         "Our artillery is the answer to their walls, Sire. {marshal}'s guns crack what infantry cannot.",
         "Persistent bombardment by {marshal} erodes the enemy's prepared positions. Time and gunpowder are on our side.",
     ],
+    # ── Bombardment-specific observations (§11.1) ──
+    "bombardment_effective": [
+        "{marshal}'s guns thunder across the valley. The enemy position absorbs punishment, Sire.",
+        "A methodical bombardment by {marshal}. Each salvo finds its mark.",
+        "Smoke rises from {enemy}'s position. {marshal}'s fire is taking its toll.",
+    ],
+    "bombardment_fort_cracking": [
+        "{marshal}'s sustained fire is dismantling {enemy}'s fortifications. The walls cannot endure.",
+        "Cracks spread through the enemy works under {marshal}'s bombardment. They weaken, Sire.",
+    ],
+    "bombardment_ineffective": [
+        "{marshal}'s guns fire into the mass, but {enemy}'s army is vast. The shells are pinpricks.",
+        "The bombardment continues, but {enemy}'s numbers absorb our fire with barely a flinch.",
+    ],
+    "bombardment_target_broken": [
+        "{marshal}'s bombardment has shattered {enemy}'s position entirely. The way is clear for advance.",
+        "The guns fall silent — there is nothing left to shell. {enemy}'s force is destroyed.",
+    ],
+    "bombardment_terrain_difficulty": [
+        "{marshal}'s guns struggle to find targets in the {terrain}. The land itself shields {enemy}.",
+        "The {terrain} terrain hampers {marshal}'s fire. Shells fall wide of their marks.",
+    ],
+    "bombardment_friendly_fire": [
+        "Sire, our own forces were caught in {marshal}'s bombardment. Regrettable, but unavoidable.",
+        "{marshal}'s shells struck friend as well as foe. The price of area bombardment.",
+    ],
     "default": [
         "The engagement proceeded as one might expect, Sire.",
         "A standard affair. Nothing unusual to report.",
@@ -547,3 +573,88 @@ def generate_battle_report(battle_result: Dict, player_nation: str = "France") -
         },
         "observation": str(observation),
     }
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# BOMBARDMENT REPORT  (BOMBARDMENT_SPEC §11)
+# ════════════════════════════════════════════════════════════════════════════════
+
+def _pick_bombardment_observation(bombardment_data: Dict, player_nation: str = "France") -> str:
+    """
+    Select a Berthier observation for a bombardment (not a battle).
+
+    Priority rules per BOMBARDMENT_SPEC §11.2:
+      1. Defender reduced to 0 → bombardment_target_broken
+      2. Collateral hit friendly → bombardment_friendly_fire
+      3. Fort degraded → bombardment_fort_cracking
+      4. Terrain modifier < 0.80 → bombardment_terrain_difficulty
+      5. Defender casualties < 3% of pre-bombardment strength → bombardment_ineffective
+      6. Default → bombardment_effective
+    """
+    attacker_name = str(bombardment_data.get("attacker_name", "Artillery"))
+    defender_name = str(bombardment_data.get("defender_name", "Enemy"))
+    defender_remaining = bombardment_data.get("defender_remaining", 1)
+    defender_original = bombardment_data.get("defender_original", 1)
+    defender_casualties = bombardment_data.get("defender_casualties", 0)
+    terrain = str(bombardment_data.get("terrain", "plains"))
+    terrain_modifier = bombardment_data.get("terrain_modifier", 1.0)
+    fort_degraded = bombardment_data.get("fort_degraded", False)
+    collateral = bombardment_data.get("collateral", [])
+
+    # Check for friendly fire in collateral
+    has_friendly_fire = any(
+        c.get("friendly_fire", False) for c in (collateral or [])
+    )
+
+    terrain_display = terrain.replace("_", " ")
+
+    def _fill(template: str) -> str:
+        return template.format(
+            marshal=attacker_name, enemy=defender_name, terrain=terrain_display
+        )
+
+    # P1: Defender destroyed
+    if defender_remaining <= 0:
+        return _fill(random.choice(_OBSERVATIONS["bombardment_target_broken"]))
+
+    # P2: Friendly fire collateral
+    if has_friendly_fire:
+        return _fill(random.choice(_OBSERVATIONS["bombardment_friendly_fire"]))
+
+    # P3: Fort degraded
+    if fort_degraded:
+        return _fill(random.choice(_OBSERVATIONS["bombardment_fort_cracking"]))
+
+    # P4: Terrain difficulty (modifier < 0.80 means heavy cover)
+    if terrain_modifier < 0.80:
+        return _fill(random.choice(_OBSERVATIONS["bombardment_terrain_difficulty"]))
+
+    # P5: Ineffective bombardment (< 3% of defender's pre-bombardment strength)
+    if defender_original > 0 and defender_casualties < defender_original * 0.03:
+        return _fill(random.choice(_OBSERVATIONS["bombardment_ineffective"]))
+
+    # P6: Default — effective bombardment
+    return _fill(random.choice(_OBSERVATIONS["bombardment_effective"]))
+
+
+def generate_bombardment_report(bombardment_data: Dict, player_nation: str = "France") -> str:
+    """
+    Generate a Berthier observation string for a bombardment result.
+
+    Unlike generate_battle_report() which returns a full dict with modifier
+    breakdowns, bombardment reports return just the observation string.
+    The casualty/terrain/fort data is already in the bombardment_result dict
+    that Godot receives, so no duplication is needed.
+
+    Args:
+        bombardment_data: Dict with keys:
+            attacker_name, defender_name, attacker_casualties,
+            defender_casualties, defender_remaining, defender_original,
+            terrain, terrain_modifier, fort_degraded, fort_old, fort_new,
+            collateral (list of dicts with name/nation/casualties/friendly_fire)
+        player_nation: For perspective (default "France").
+
+    Returns:
+        str: Berthier observation text.
+    """
+    return _pick_bombardment_observation(bombardment_data, player_nation)

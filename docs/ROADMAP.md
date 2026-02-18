@@ -13,7 +13,7 @@
 | 1-5.3 | Foundation through AI Fixes | COMPLETE |
 | **V2a** | **Objection System Refactor** | **COMPLETE** |
 | **6** | **Core Campaign Systems** | **COMPLETE** |
-| **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment Part 1 done — Sessions 49-52 remaining) |
+| **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE Sessions 48-52, Pause Menu remaining) |
 | 7 | Multi-Marshal, Relationships & Coalitions | Planned |
 | 8 | Diplomacy & Peace | Planned |
 | 8.5 | Events, Goals & National Identity | Planned |

@@ -1434,6 +1434,23 @@ For each non-primary marshal in target region (strength > 0, not broken/retreati
 ]
 ```
 
+### Berthier Bombardment Observations (Session 52)
+
+After each bombardment, Berthier provides a contextual observation embedded in `bombardment_result.berthier_observation`. Selection priority:
+
+| Priority | Condition | Observation Key |
+|----------|-----------|----------------|
+| P1 | Defender reduced to 0 | `bombardment_target_broken` |
+| P2 | Collateral hit friendly force | `bombardment_friendly_fire` |
+| P3 | Fort degraded this bombardment | `bombardment_fort_cracking` |
+| P4 | Terrain modifier < 0.80 | `bombardment_terrain_difficulty` |
+| P5 | Casualties < 3% of defender's pre-bombardment strength | `bombardment_ineffective` |
+| P6 | Default | `bombardment_effective` |
+
+Templates use `{marshal}`, `{enemy}`, and `{terrain}` placeholders. Terrain names have underscores replaced with spaces.
+
+**Godot display:** `_display_bombardment_report()` in `main.gd` shows terrain effectiveness, casualties, fort degradation, collateral (with friendly fire highlighting), bombardments remaining, and the observation quote. Separate from the melee `_display_berthier_report()`.
+
 ### Strategic HOLD Bombardment (Session 51)
 
 Artillery marshals on strategic HOLD auto-bombard adjacent enemies instead of using personality-specific sally/fortify behavior.
@@ -1465,7 +1482,7 @@ Artillery marshals on strategic HOLD auto-bombard adjacent enemies instead of us
 | `world_state.py` | Artillery constants, pool regen, `get_artillery_regen_rate()`, moved_this_turn reset, **bombardments_this_turn reset (Session 48)** |
 | `enemy_ai.py` | moved_this_turn gate, pool-aware recruit, cost-aware admin, P2 screen check, P4 bombardment sort + cavalry preference, P7 anti-oscillation + position scoring, 4 helper functions |
 | `strategic.py` | **`_execute_hold_bombardment()` + `_hold_no_targets()` (Session 51)** |
-| `battle_report.py` | Artillery observation templates, exhaustion snapshot skip for artillery |
+| `battle_report.py` | Artillery observation templates, exhaustion snapshot skip for artillery, **6 bombardment observation categories + `_pick_bombardment_observation()` + `generate_bombardment_report()` (Session 52)** |
 | `objection_v2.py` | **5 artillery triggers: ordered_into_melee (STRONG), reckless_repositioning (MODERATE), ordered_to_cease_fire (MODERATE), wasted_fire (MILD), last_shot_advisory (MILD) (Session 51)** |
 | `disobedience.py` | **5 artillery flavor text keys under cautious personality (Session 51)** |
 | `llm_client.py` | Artillery keywords (bombard, barrage, shell, cannonade), Drouot/PrinceAugust in known_marshals |

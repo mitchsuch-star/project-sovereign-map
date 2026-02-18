@@ -2397,6 +2397,26 @@ RETREAT RECOVERY (3 turns):
         world.update_intel_from_battle(target_location, world.current_turn)
 
         # ════════════════════════════════════════════════════════════
+        # BERTHIER OBSERVATION (§11)
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic.battle_report import generate_bombardment_report
+
+        berthier_observation = generate_bombardment_report({
+            "attacker_name": marshal.name,
+            "defender_name": defender.name,
+            "attacker_casualties": int(attacker_casualties),
+            "defender_casualties": int(defender_casualties),
+            "defender_remaining": int(defender.strength),
+            "defender_original": int(pre_defender_strength),
+            "terrain": terrain,
+            "terrain_modifier": terrain_mod,
+            "fort_degraded": fortification_degraded,
+            "fort_old": fortification_old,
+            "fort_new": fortification_new,
+            "collateral": collateral_results,
+        })
+
+        # ════════════════════════════════════════════════════════════
         # BUILD RESULT DICT
         # ════════════════════════════════════════════════════════════
         bombardments_remaining = max(0, 2 - marshal.bombardments_this_turn)
@@ -2424,6 +2444,7 @@ RETREAT RECOVERY (3 turns):
                 "fort_new": fortification_new,
                 "bombardments_remaining": int(bombardments_remaining),
                 "collateral": collateral_results,
+                "berthier_observation": str(berthier_observation),
             },
             "events": [bombardment_event],
             "new_state": game_state,

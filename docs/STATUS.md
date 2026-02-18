@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 18, 2026 (Session 51)
+> **Last Updated:** February 18, 2026 (Session 52)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2950** (verified, 3 skipped) |
+| **Tests Passing** | **2987** (verified, 3 skipped) |
 
-| **Current Phase** | Phase 6.5 **IN PROGRESS** — Bombardment Parts 1-4 complete, Part 5 remaining |
+| **Current Phase** | Phase 6.5 **IN PROGRESS** — Bombardment COMPLETE (Parts 1-5), Pause Menu remaining |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,9 +19,8 @@
 
 ## Next Steps
 
-1. **Bombardment Part 5: Godot Frontend + Berthier Observations** — Session 52. See `BOMBARDMENT_SPEC.md` §11-12.
-2. **Pause menu** — Phase 6.5, Esc → Save/Load/Settings/Quit
-3. **Phase 7: Multi-marshal battles + Combined Arms + Square Formation + V2b** — Sessions 53-54 (combined arms, square) deferred here to build alongside multi-marshal combat. See BOMBARDMENT_SPEC.md §15, ROADMAP.md Phase 7.
+1. **Pause menu** — Phase 6.5, Esc → Save/Load/Settings/Quit
+2. **Phase 7: Multi-marshal battles + Combined Arms + Square Formation + V2b** — Sessions 53-54 (combined arms, square) deferred here to build alongside multi-marshal combat. See BOMBARDMENT_SPEC.md §15, ROADMAP.md Phase 7.
 
 ---
 
@@ -45,6 +44,37 @@ All major Phase 6 features shipped:
 ---
 
 ## Recent Sessions
+
+### Feb 18 (Session 52: Bombardment Part 5 — Godot Frontend + Berthier Observations)
+
+**Berthier bombardment observations and Godot frontend display for bombardment results.**
+
+**Berthier Observations (battle_report.py):**
+- 6 new observation categories: `bombardment_effective` (3 variants), `bombardment_fort_cracking` (2), `bombardment_ineffective` (2), `bombardment_target_broken` (2), `bombardment_terrain_difficulty` (2), `bombardment_friendly_fire` (2)
+- Priority-based selection: destroyed > friendly_fire > fort_cracking > terrain_difficulty (< 0.80) > ineffective (< 3%) > effective
+- `_pick_bombardment_observation()` + `generate_bombardment_report()` functions
+- Observation embedded in `bombardment_result.berthier_observation` (no separate report dict needed — casualty/terrain/fort data already in bombardment_result)
+
+**Executor Wiring (executor.py `_execute_bombardment`):**
+- Calls `generate_bombardment_report()` after casualties and fort degradation applied
+- `berthier_observation` string added to `bombardment_result` dict
+- Passes: attacker/defender names, casualties, terrain, terrain_modifier, fort_degraded, collateral
+
+**Godot Frontend (main.gd):**
+- `"bombardment"` event type in `_display_result()` match block
+- `_display_bombardment_report()` function: terrain effectiveness (±% label), enemy/return fire casualties with remaining strength and morale, fort degradation (percentage change or "DESTROYED!"), collateral damage list with friendly fire highlighting (red), bombardments remaining, Berthier observation quote
+- Bombardment advisory still shown separately after report (fort crumbling)
+
+**Edge Cases Covered:**
+- Empty/None collateral, collateral without friendly fire, fort destroyed vs partially degraded
+- Terrain modifier at exact 0.80 boundary (NOT < 0.80), underscore terrain names replaced
+- Float terrain_modifier/fort values handled via int(value * 100) in Godot
+- Zero defender original (no division by zero), ineffective at exactly 3% boundary
+- Strategic HOLD auto-bombardment (same executor path, observation generated)
+
+**Tests:** 37 new tests in `test_bombardment_report.py` (6 template existence, 8 selection priority, 4 priority ordering, 3 generate function, 10 edge cases, 6 executor integration). Total: 2987 passing, 3 skipped. Zero regressions. Serialization 16/16.
+
+---
 
 ### Feb 18 (Session 51: Bombardment Part 4 — Strategic HOLD + Objections)
 
