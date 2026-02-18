@@ -18,7 +18,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Completed in Phase 6
 
-Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-Battle Analysis, Turn Events Log, Reinforcements, Attrition, City Fortification, Fog of War (COMPLETE: Sessions 33-36), Player Garrison Command (Session 31: 2 AP, cap 3/nation, map overlay), Enemy AI Garrison (P6.75: Building Blocks, 20k threshold, 1/nation/turn, P4.25 sub-5k awareness, `garrison_detachment` rename), Manpower Pools (Session 41: infantry/cavalry reserves, stables building, AI awareness), Artillery Unit Type (Session 42: Drouot/PrinceAugust, can't attack after move, no advance on win, cavalry counter, 2x fort degradation, artillery manpower pool). See `docs/STATUS.md` for details.
+Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-Battle Analysis, Turn Events Log, Reinforcements, Attrition, City Fortification, Fog of War (COMPLETE: Sessions 33-36), Player Garrison Command (Session 31: 2 AP, cap 3/nation, map overlay), Enemy AI Garrison (P6.75: Building Blocks, 20k threshold, 1/nation/turn, P4.25 sub-5k awareness, `garrison_detachment` rename), Manpower Pools (Session 41: infantry/cavalry reserves, stables building, AI awareness), Artillery Unit Type (Sessions 42-43: Drouot/PrinceAugust, can't attack after move, no advance on win, cavalry counter, 2x fort degradation, artillery manpower pool, exhaustion exemption, bombardment streak, Berthier advisory, personality objections, AI positioning/screening/anti-oscillation). See `docs/STATUS.md` for details.
 
 ### Deferred from Phase 6
 
@@ -28,7 +28,7 @@ Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-B
 ### Up Next
 
 - **Phase 6.5:** Pause menu (Esc → Save/Load/Settings/Quit)
-- **Artillery Session 2:** Bombardment streak, Berthier advisory, AI positioning/screening
+- **Godot HUD:** Artillery pool display (Art: Z in ManpowerDisplay)
 
 See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 

@@ -10,8 +10,8 @@ A future save/load system should use this as the specification.
 ## Version
 
 - **Format version:** 1.0
-- **Last updated:** 2026-02-15
-- **Compatible with:** Phase 6 Session 39 (Balance & AI Fixes)
+- **Last updated:** 2026-02-18
+- **Compatible with:** Phase 6 Session 43 (Artillery Session 2)
 
 ## Top-Level Structure (WorldState)
 
@@ -212,6 +212,9 @@ A future save/load system should use this as the specification.
 
   "attacks_this_turn": 0,
 
+  "last_bombardment_target": null,
+  "bombardment_streak": 0,
+
   "idle_turns": 0,
 
   "occupation_region": null,
@@ -344,6 +347,12 @@ A future save/load system should use this as the specification.
 | Field | Type | Description |
 |-------|------|-------------|
 | `attacks_this_turn` | int | Attacks made this turn |
+
+#### Bombardment Tracking (Session 2)
+| Field | Type | Description |
+|-------|------|-------------|
+| `last_bombardment_target` | string\|null | Region of last bombardment target (null if never bombarded or after move) |
+| `bombardment_streak` | int | Consecutive attacks on same target (resets on move or target change) |
 
 #### Idle Tracking (V2a)
 | Field | Type | Description |

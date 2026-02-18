@@ -594,6 +594,10 @@ def execute_command(request: CommandRequest):
         if result.get("cavalry_terrain_message"):
             response["cavalry_terrain_message"] = result["cavalry_terrain_message"]
 
+        # Berthier's Bombardment Advisory (Artillery Session 2)
+        if result.get("bombardment_advisory"):
+            response["bombardment_advisory"] = result["bombardment_advisory"]
+
         # Berthier's After-Action Report
         if result.get("battle_report"):
             response["battle_report"] = result["battle_report"]

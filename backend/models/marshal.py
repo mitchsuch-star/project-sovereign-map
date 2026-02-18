@@ -373,6 +373,10 @@ class Marshal:
         # Artillery cannot attack on the same turn they move.
         # Set True in _execute_move on success, reset False at turn start.
         self.moved_this_turn: bool = False
+        # Bombardment streak: consecutive attacks on the same target region.
+        # Used for personality objections and Berthier advisory.
+        self.last_bombardment_target: Optional[str] = None
+        self.bombardment_streak: int = 0
 
         # CAVALRY DEFENSIVE LIMITS - Horses can't hold defensive positions
         # After 3 turns in defensive stance → auto-switch to aggressive (-3 trust)
@@ -620,7 +624,9 @@ class Marshal:
         """
         Get attack penalty from multiple attacks this turn.
 
-        Penalty schedule:
+        Artillery is EXEMPT: guns don't tire — sustained bombardment is their function.
+
+        Penalty schedule (non-artillery):
         - 1st attack: 0% penalty
         - 2nd attack: 10% penalty
         - 3rd attack: 20% penalty
@@ -629,6 +635,10 @@ class Marshal:
         Returns:
             Float penalty (0.0, 0.10, 0.20, or 0.30)
         """
+        # Artillery exemption: sustained bombardment is their core function
+        if getattr(self, 'artillery', False):
+            return 0.0
+
         attacks = self.attacks_this_turn
         if attacks <= 0:
             return 0.0  # 1st attack (counter is 0 before first attack)
@@ -993,6 +1003,8 @@ class Marshal:
             # ═══════ ARTILLERY-SPECIFIC ═══════
             "artillery": self.artillery,
             "moved_this_turn": self.moved_this_turn,
+            "last_bombardment_target": self.last_bombardment_target,
+            "bombardment_streak": int(self.bombardment_streak),
             "turns_in_defensive_stance": int(self.turns_in_defensive_stance),
             "turns_fortified": int(self.turns_fortified),
 
@@ -1117,6 +1129,8 @@ class Marshal:
 
         # ═══════ ARTILLERY-SPECIFIC ═══════
         marshal.moved_this_turn = data.get("moved_this_turn", False)
+        marshal.last_bombardment_target = data.get("last_bombardment_target", None)
+        marshal.bombardment_streak = data.get("bombardment_streak", 0)
 
         # ═══════ DAVOUT-SPECIFIC (COUNTER-PUNCH) ═══════
         marshal.counter_punch_available = data.get("counter_punch_available", False)

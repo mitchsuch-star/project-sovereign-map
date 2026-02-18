@@ -1311,16 +1311,68 @@ Artillery units are a third marshal type alongside infantry and cavalry. They pr
 | Drouot | France | Paris | 25,000 | cautious |
 | PrinceAugust | Prussia | Netherlands | 20,000 | cautious |
 
+### Exhaustion Exemption (Session 2)
+
+Artillery is exempt from exhaustion penalties — sustained bombardment is their core function. `_get_exhaustion_penalty()` returns 0.0 for artillery. Combat messages skip exhaustion display. Battle report snapshots skip exhaustion for artillery attackers.
+
+### Bombardment Streak (Session 2)
+
+Tracks consecutive bombardments on the same target:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `last_bombardment_target` | string\|null | Region of last bombardment target |
+| `bombardment_streak` | int | Consecutive attacks on same target |
+
+- **Increments:** When artillery attacks same target region as previous bombardment
+- **Resets to 1:** When artillery attacks a different target
+- **Resets to 0:** When artillery moves (`_execute_move`)
+- **Cleared:** On broken state recovery
+
+### Berthier Bombardment Advisory (Session 2)
+
+After artillery bombardment, if defender's `defense_bonus <= 0` AND region `fortification_bonus < 0.15`, Berthier advises: "Sire, the enemy fortifications at {location} are crumbling. An infantry assault would now have favorable odds." Returned as `bombardment_advisory` in result dict.
+
+### Personality Objections (Session 2)
+
+| Personality | Trigger | Condition | Level |
+|-------------|---------|-----------|-------|
+| Aggressive | `repeated_bombardment_same_target` | Artillery attack + streak >= 3 + target defense_bonus <= 0.05 | MILD |
+| Cautious | `move_while_bombarding` | Artillery move + streak >= 1 + adjacent target with defense_bonus > 0 | MILD |
+| Literal | (none) | Never objects | — |
+
+### AI Artillery Behavior (Session 2)
+
+**P2 Screen Check:** If artillery has no friendly infantry screen (same/adjacent region) AND enemy cavalry within 2 regions, retreat toward nearest friendly infantry. Priority 2 (survival).
+
+**P4 Bombardment Sort:** Artillery sorts valid targets by bombardment value: fortified+fort_building > fortified_only > unfortified, then by distance. Cavalry prefers exposed (unscreened) artillery targets.
+
+**P7 Anti-Oscillation:** If artillery has adjacent enemies and hasn't moved this turn, skip P7 strategic movement (stay and bombard). If artillery must move, uses `_score_artillery_position()` for destination evaluation.
+
+**Position Scoring (`_score_artillery_position`):**
+- +30 hills terrain
+- +25 adjacent fortified enemy
+- +20 friendly infantry screen present
+- -30 exposed to enemy cavalry (within 2, no screen)
+- +10 own territory
+
+**Helper Functions:**
+- `_artillery_has_screen(marshal, nation, world)` — friendly non-cavalry, non-artillery in same/adjacent region
+- `_enemy_cavalry_within_range(marshal, nation, world, max_range)` — BFS to depth max_range
+- `_score_artillery_position(region, marshal, nation, world)` — position quality score
+- `_find_nearest_friendly_infantry(marshal, nation, world)` — BFS for retreat target
+
 ### Key Files
 
 | File | What changed |
 |------|-------------|
-| `marshal.py` | `artillery` flag, `moved_this_turn`, defense modifier, serialization, starting marshals |
-| `combat.py` | Cavalry counter (+30%), fort degradation (10%), cavalry_counter_message |
-| `executor.py` | Can't attack after moving, no advance on win, glorious charge ban, PURSUE block, recruit type logic |
+| `marshal.py` | `artillery` flag, `moved_this_turn`, defense modifier, exhaustion exemption, `bombardment_streak` + `last_bombardment_target`, serialization, starting marshals |
+| `combat.py` | Cavalry counter (+30%), fort degradation (10%), cavalry_counter_message, artillery exhaustion message skip |
+| `executor.py` | Can't attack after moving, no advance on win, glorious charge ban, PURSUE block, recruit type logic, bombardment streak tracking, Berthier advisory, broken state cleanup |
 | `world_state.py` | Artillery constants, pool regen, `get_artillery_regen_rate()`, moved_this_turn reset |
-| `enemy_ai.py` | moved_this_turn gate, pool-aware recruit, cost-aware admin |
-| `battle_report.py` | Artillery observation templates (bombardment, caught moving, cavalry overran, fort degradation) |
+| `enemy_ai.py` | moved_this_turn gate, pool-aware recruit, cost-aware admin, P2 screen check, P4 bombardment sort + cavalry preference, P7 anti-oscillation + position scoring, 4 helper functions |
+| `battle_report.py` | Artillery observation templates, exhaustion snapshot skip for artillery |
+| `objection_v2.py` | Aggressive impatient trigger, cautious patient trigger |
 | `llm_client.py` | Artillery keywords (bombard, barrage, shell, cannonade), Drouot/PrinceAugust in known_marshals |
 | `prompt_builder.py` | Drouot bombardment few-shot example |
 

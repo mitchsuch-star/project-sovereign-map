@@ -2033,6 +2033,10 @@ RETREAT RECOVERY (3 turns):
                     strategic_msg = f" {marshal.name}'s {cmd_type} order is cancelled!"
                 marshal.strategic_order = None
             marshal.move_to(retreat_to)  # Use move_to() for proper state clearing
+            # Clear artillery bombardment state — forced retreat breaks sustained fire
+            if getattr(marshal, 'artillery', False):
+                marshal.last_bombardment_target = None
+                marshal.bombardment_streak = 0
             # Movement attrition on forced retreat (Phase 6.2.F) — halved rate
             forced_retreat_attrition = self._calculate_movement_attrition(marshal, retreat_to, world, is_retreat=True)
             marshal.retreating = True
@@ -2084,6 +2088,9 @@ RETREAT RECOVERY (3 turns):
             marshal.fortified = False
             marshal.defense_bonus = 0
             marshal.turns_fortified = 0  # Reset decay counter
+            marshal.moved_this_turn = False  # Symmetry: clear artillery movement flag
+            marshal.last_bombardment_target = None
+            marshal.bombardment_streak = 0
             marshal.stance = Stance.NEUTRAL
             # Clear occupation state (Phase 6.2.F)
             marshal.occupation_region = None
@@ -3021,6 +3028,31 @@ RETREAT RECOVERY (3 turns):
         # ════════════════════════════════════════════════════════════
         if not is_counter_punch:
             marshal.increment_attacks_this_turn()
+
+        # ════════════════════════════════════════════════════════════
+        # BOMBARDMENT STREAK TRACKING (Artillery Session 2)
+        # Track consecutive artillery attacks on same target region
+        # ════════════════════════════════════════════════════════════
+        if getattr(marshal, 'artillery', False):
+            if target_location == getattr(marshal, 'last_bombardment_target', None):
+                marshal.bombardment_streak += 1
+            else:
+                marshal.last_bombardment_target = target_location
+                marshal.bombardment_streak = 1
+
+        # ════════════════════════════════════════════════════════════
+        # BERTHIER BOMBARDMENT ADVISORY (Artillery Session 2)
+        # Alert when enemy fortifications are crumbling after bombardment
+        # ════════════════════════════════════════════════════════════
+        if getattr(marshal, 'artillery', False):
+            defender_fort = getattr(enemy_marshal, 'defense_bonus', 0)
+            target_reg = world.get_region(target_location)
+            has_fort_building = target_reg.has_building("fortification") if target_reg and hasattr(target_reg, 'has_building') else False
+            if defender_fort <= 0 and not has_fort_building:
+                result["bombardment_advisory"] = (
+                    f"Sire, the enemy fortifications at {target_location} are crumbling. "
+                    f"An infantry assault would now have favorable odds."
+                )
 
         return result
 
@@ -4572,8 +4604,11 @@ RETREAT RECOVERY (3 turns):
         marshal.move_to(target_name)
 
         # Artillery: Mark as having moved this turn (blocks attacking)
+        # Also reset bombardment streak (repositioning breaks sustained fire)
         if getattr(marshal, 'artillery', False):
             marshal.moved_this_turn = True
+            marshal.last_bombardment_target = None
+            marshal.bombardment_streak = 0
 
         # V2a: Reset idle tracking on move
         marshal.idle_turns = 0

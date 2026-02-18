@@ -262,10 +262,8 @@ class TestCantAttackAfterMoving:
         assert result["success"] is False
         assert "setting up" in result["message"].lower() or "repositioning" in result["message"].lower()
 
-    def test_artillery_same_region_attack_not_blocked(self):
-        """Artillery can attack enemies in same region even if moved (engagement lock)."""
-        # Actually, the spec says can't-attack-after-moving blocks ALL attacks.
-        # The engagement lock is a separate concern.
+    def test_artillery_same_region_attack_still_blocked(self):
+        """Artillery cannot attack even same-region enemies after moving (moved_this_turn blocks ALL attacks)."""
         art = _make_artillery(name="ArtSame", location="Belgium")
         art.moved_this_turn = True
 

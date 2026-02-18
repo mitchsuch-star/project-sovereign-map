@@ -214,10 +214,12 @@ class CombatResolver:
         # ════════════════════════════════════════════════════════════
         # EXHAUSTION MESSAGE (Phase 3 - Attack Spam Prevention)
         # Check if attacker has made previous attacks this turn
+        # Artillery is EXEMPT: guns don't tire — sustained bombardment is their function
         # ════════════════════════════════════════════════════════════
         exhaustion_message = None
         attacks_this_turn = getattr(attacker, 'attacks_this_turn', 0)
-        if attacks_this_turn > 0:
+        is_artillery_attacker = getattr(attacker, 'artillery', False)
+        if attacks_this_turn > 0 and not is_artillery_attacker:
             # This is 2nd, 3rd, or 4th+ attack
             penalty_map = {1: 10, 2: 20}  # 1 previous = 2nd attack = -10%, etc.
             penalty = penalty_map.get(attacks_this_turn, 30)  # 3+ = -30%

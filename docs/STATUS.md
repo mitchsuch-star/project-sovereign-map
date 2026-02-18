@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2783** (verified, 3 skipped) |
+| **Tests Passing** | **2818** (verified, 3 skipped) |
 | **Current Phase** | Phase 6: **COMPLETE** — all items shipped or deferred |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
@@ -18,9 +18,9 @@
 
 ## Next Steps
 
-1. **Artillery Session 2** — Bombardment streak, Berthier advisory, AI positioning/screening, personality objection triggers
-2. **Pause menu** — Phase 6.5, Esc → Save/Load/Settings/Quit
-3. **Godot HUD: Artillery pool display** — Add Art: Z to ManpowerDisplay (mirrors Inf/Cav pattern)
+1. **Pause menu** — Phase 6.5, Esc → Save/Load/Settings/Quit
+2. **Godot HUD: Artillery pool display** — Add Art: Z to ManpowerDisplay (mirrors Inf/Cav pattern)
+3. **Phase 7: Objection V2b** — See OBJECTION_V2.md for preview
 
 ---
 
@@ -39,11 +39,47 @@ All major Phase 6 features shipped:
 - **Player Garrison Command:** 2 AP, cap 3/nation, map overlay
 - **Enemy AI Garrison (P6.75):** Building Blocks, 20k threshold, 1/nation/turn, P4.25 sub-5k awareness
 - **Manpower Pools:** Nation-level infantry/cavalry reserves gate recruitment. Marshal type auto-determines pool (infantry 10k/200g, cavalry 5k/300g). Stables building (+750 cavalry regen). AI pool/cost awareness. Berthier voice throughout.
-- **Artillery Unit Type (Session 42):** Third marshal type (Drouot/France, PrinceAugust/Prussia). Can't attack after moving, no advance on win, cavalry counter (+30%), 2x fort degradation, -25% defense when moved. Glorious Charge banned, PURSUE blocked. Artillery manpower pool (3k batch, 400g, 300+200 urban regen, 20k cap). 86 tests.
+- **Artillery Unit Type (Sessions 42-43):** Third marshal type (Drouot/France, PrinceAugust/Prussia). Can't attack after moving, no advance on win, cavalry counter (+30%), 2x fort degradation, -25% defense when moved. Glorious Charge banned, PURSUE blocked. Artillery manpower pool (3k batch, 400g, 300+200 urban regen, 20k cap). Session 2: exhaustion exemption, bombardment streak tracking, Berthier advisory, personality objections, AI positioning/screening/anti-oscillation. 121 tests.
 
 ---
 
 ## Recent Sessions
+
+### Feb 18 (Session 43: Artillery Session 2 — Intelligence & Behavior)
+
+**Artillery transforms from functional to intelligent: bombardment streaks, Berthier advisory, personality objections, AI positioning/screening, exhaustion exemption.**
+
+**Exhaustion Exemption (marshal.py, combat.py, battle_report.py):**
+- Artillery exempt from exhaustion penalty — `_get_exhaustion_penalty()` returns 0.0
+- Combat messages skip exhaustion display for artillery attackers
+- Battle report snapshots skip exhaustion for artillery
+
+**Bombardment Streak (marshal.py, executor.py):**
+- `last_bombardment_target` + `bombardment_streak` fields with full serialization
+- Streak increments on same target, resets on different target or move
+- Cleared on broken state recovery
+
+**Berthier Bombardment Advisory (executor.py):**
+- After bombardment: if defender defense_bonus=0 and region fort<15%, advisory fires
+- "Sire, the enemy fortifications are crumbling. An infantry assault would now have favorable odds."
+
+**Personality Objections (objection_v2.py):**
+- Aggressive: MILD `repeated_bombardment_same_target` at streak>=3 + weak target
+- Cautious: MILD `move_while_bombarding` at streak>=1 + adjacent fortified target
+
+**AI Artillery Behavior (enemy_ai.py):**
+- P2 screen check: exposed artillery retreats toward friendly infantry when cavalry within 2
+- P4 bombardment sort: artillery prefers fortified targets; cavalry prefers exposed artillery
+- P7 anti-oscillation: artillery with adjacent targets stays and bombards
+- 4 helper functions: `_artillery_has_screen`, `_enemy_cavalry_within_range`, `_score_artillery_position`, `_find_nearest_friendly_infantry`
+
+**Audit Fixes:**
+- Renamed misleading test (`test_artillery_same_region_attack_still_blocked`)
+- Broken state handler clears `moved_this_turn`, `last_bombardment_target`, `bombardment_streak`
+
+**Tests:** 35 new tests in `test_artillery_session2.py` + 1 rename, 2818 total (3 skipped)
+
+---
 
 ### Feb 18 (Session 42: Artillery Unit Type — Core Mechanics)
 

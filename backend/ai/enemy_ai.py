@@ -1309,6 +1309,23 @@ class EnemyAI:
             return (None, 999)
 
         # ════════════════════════════════════════════════════════════
+        # PRIORITY 2 (ARTILLERY): SCREEN CHECK
+        # Artillery exposed to enemy cavalry without infantry screen
+        # must retreat toward nearest friendly infantry for protection.
+        # ════════════════════════════════════════════════════════════
+        if getattr(marshal, 'artillery', False):
+            if not self._artillery_has_screen(marshal, nation, world):
+                if self._enemy_cavalry_within_range(marshal, nation, world, max_range=2):
+                    retreat_dest = self._find_nearest_friendly_infantry(marshal, nation, world)
+                    if retreat_dest and retreat_dest != marshal.location:
+                        ai_debug(f"  P2: ARTILLERY SCREEN — {marshal.name} exposed to cavalry, retreating to screen at {retreat_dest}")
+                        return ({
+                            "marshal": marshal.name,
+                            "action": "move",
+                            "target": retreat_dest
+                        }, 2)
+
+        # ════════════════════════════════════════════════════════════
         # PRIORITY 2: CRITICAL SURVIVAL
         # ════════════════════════════════════════════════════════════
         starting_strength = getattr(marshal, 'starting_strength', marshal.strength)
@@ -1978,13 +1995,56 @@ class EnemyAI:
                 ai_debug(f"    No targets meet threshold (need effective ratio >= {threshold})")
                 return None
 
-            # Select target based on personality
-            if personality == "aggressive":
-                # Prefer weakest enemy (easy kill) - use effective ratio
-                target = max(attackable, key=lambda x: x[2])[0]  # Highest effective ratio = best opportunity
+            # ════════════════════════════════════════════════════════════
+            # CAVALRY PREFERENCE: Prefer exposed artillery targets (+30% counter)
+            # ════════════════════════════════════════════════════════════
+            if getattr(marshal, 'cavalry', False):
+                for enemy, br, er, d in attackable:
+                    if getattr(enemy, 'artillery', False):
+                        # Check if artillery target has infantry screen
+                        if not self._artillery_has_screen(enemy, enemy.nation, world):
+                            ai_debug(f"    P4: Cavalry {marshal.name} targeting exposed artillery {enemy.name}")
+                            target = enemy
+                            break
+                else:
+                    target = None  # No exposed artillery found, fall through to normal selection
+
+                if target is None:
+                    # Normal cavalry target selection
+                    if personality == "aggressive":
+                        target = max(attackable, key=lambda x: x[2])[0]
+                    else:
+                        target = min(attackable, key=lambda x: x[3])[0]
+
+            # ════════════════════════════════════════════════════════════
+            # ARTILLERY SORT: Prefer fortified targets (bombardment value)
+            # ════════════════════════════════════════════════════════════
+            elif getattr(marshal, 'artillery', False):
+                def _art_sort_key(item):
+                    enemy, br, er, d = item
+                    has_fortify = getattr(enemy, 'defense_bonus', 0) > 0
+                    target_reg = world.get_region(enemy.location)
+                    has_fort_building = target_reg.has_building("fortification") if target_reg and hasattr(target_reg, 'has_building') else False
+                    # Lower tier = higher priority: 0=fort+fortify, 1=fortify, 2=unfortified
+                    if has_fort_building and has_fortify:
+                        tier = 0
+                    elif has_fortify:
+                        tier = 1
+                    else:
+                        tier = 2
+                    return (tier, d)  # Sort by tier then distance
+
+                attackable.sort(key=_art_sort_key)
+                target = attackable[0][0]
+                ai_debug(f"    P4: Artillery {marshal.name} selected bombardment target {target.name}")
             else:
-                # Prefer nearest enemy with acceptable odds
-                target = min(attackable, key=lambda x: x[3])[0]  # Closest distance
+                # Select target based on personality
+                if personality == "aggressive":
+                    # Prefer weakest enemy (easy kill) - use effective ratio
+                    target = max(attackable, key=lambda x: x[2])[0]  # Highest effective ratio = best opportunity
+                else:
+                    # Prefer nearest enemy with acceptable odds
+                    target = min(attackable, key=lambda x: x[3])[0]  # Closest distance
 
         # Check if should switch to aggressive stance first
         current_stance = getattr(marshal, 'stance', Stance.NEUTRAL)
@@ -2722,6 +2782,22 @@ class EnemyAI:
         if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
             return None
 
+        # ════════════════════════════════════════════════════════════
+        # ARTILLERY ANTI-OSCILLATION: If artillery has adjacent targets
+        # and hasn't moved this turn, DO NOT move — stay and bombard.
+        # ════════════════════════════════════════════════════════════
+        if getattr(marshal, 'artillery', False) and not getattr(marshal, 'moved_this_turn', False):
+            marshal_region = world.get_region(marshal.location)
+            if marshal_region:
+                adj_enemies = [
+                    m for m in world.marshals.values()
+                    if m.nation != nation and m.strength > 0
+                    and m.location in marshal_region.adjacent_regions
+                ]
+                if adj_enemies:
+                    ai_debug(f"  P7: Artillery {marshal.name} has adjacent targets — staying to bombard")
+                    return None  # Skip P7, let P4 handle attack
+
         enemies = world.get_enemies_of_nation(nation)
 
         if not enemies:
@@ -2729,6 +2805,38 @@ class EnemyAI:
 
         # Get visited locations to prevent oscillation
         visited = getattr(self, '_marshal_visited_locations', {}).get(marshal.name, set())
+
+        # ════════════════════════════════════════════════════════════
+        # ARTILLERY P7: Use position scoring for destination selection
+        # ════════════════════════════════════════════════════════════
+        if getattr(marshal, 'artillery', False):
+            marshal_region = world.get_region(marshal.location)
+            if not marshal_region:
+                return None
+
+            current_score = self._score_artillery_position(marshal.location, marshal, nation, world)
+            best_dest = None
+            best_score = current_score
+
+            for adj_name in marshal_region.adjacent_regions:
+                if adj_name in visited:
+                    continue
+                enemies_there = [m for m in world.get_marshals_in_region(adj_name) if m.nation != nation and m.strength > 0]
+                if enemies_there:
+                    continue
+                score = self._score_artillery_position(adj_name, marshal, nation, world)
+                if score > best_score:
+                    best_score = score
+                    best_dest = adj_name
+
+            if best_dest:
+                ai_debug(f"    P7: Artillery {marshal.name} repositioning to {best_dest} (score {best_score} vs current {current_score})")
+                return {
+                    "marshal": marshal.name,
+                    "action": "move",
+                    "target": best_dest
+                }
+            return None
 
         if personality == "aggressive":
             # Move toward nearest enemy
@@ -4041,6 +4149,126 @@ class EnemyAI:
             return False
         pool = world.manpower_pools.get(nation, {})
         return pool.get("cavalry", 0) < MAX_CAVALRY_POOL * 0.6
+
+    # ═══════════════════════════════════════════════════════════════════
+    # ARTILLERY AI HELPERS (Session 2)
+    # ═══════════════════════════════════════════════════════════════════
+
+    def _artillery_has_screen(self, marshal: Marshal, nation: str, world: WorldState) -> bool:
+        """Check if artillery has friendly non-cavalry, non-artillery marshal in same or adjacent region."""
+        region = world.get_region(marshal.location)
+        if not region:
+            return False
+        for m in world.marshals.values():
+            if m.name != marshal.name and m.nation == nation and m.strength > 0:
+                if not getattr(m, 'cavalry', False) and not getattr(m, 'artillery', False):
+                    if m.location == marshal.location or m.location in region.adjacent_regions:
+                        return True
+        return False
+
+    def _enemy_cavalry_within_range(self, marshal: Marshal, nation: str, world: WorldState, max_range: int = 2) -> bool:
+        """Check if enemy cavalry is within max_range regions (BFS)."""
+        region = world.get_region(marshal.location)
+        if not region:
+            return False
+        checked = {marshal.location}
+        frontier = set(region.adjacent_regions)
+        for depth in range(1, max_range + 1):
+            for rname in frontier:
+                for m in world.marshals.values():
+                    if m.nation != nation and getattr(m, 'cavalry', False) and m.strength > 0 and m.location == rname:
+                        return True
+                checked.add(rname)
+            if depth < max_range:
+                next_frontier = set()
+                for rname in frontier:
+                    r = world.get_region(rname)
+                    if r:
+                        next_frontier.update(n for n in r.adjacent_regions if n not in checked)
+                frontier = next_frontier
+        return False
+
+    def _score_artillery_position(self, region_name: str, marshal: Marshal, nation: str, world: WorldState) -> int:
+        """Score a candidate position for AI artillery. Higher = better."""
+        region = world.get_region(region_name)
+        if not region:
+            return -1000
+
+        score = 0
+
+        # Prefer hills terrain (+30)
+        terrain = getattr(region, 'terrain', 'plains')
+        if terrain == 'hills':
+            score += 30
+        elif terrain == 'mountains':
+            score += 15
+        elif terrain == 'urban':
+            score += 20
+
+        # Prefer positions adjacent to enemy positions (+15, +25 if fortified)
+        for adj_name in region.adjacent_regions:
+            adj_region = world.get_region(adj_name)
+            if adj_region and adj_region.controller and adj_region.controller != nation:
+                score += 15
+                for m in world.marshals.values():
+                    if m.location == adj_name and m.nation != nation and m.strength > 0:
+                        if getattr(m, 'defense_bonus', 0) > 0:
+                            score += 25
+
+        # Prefer positions with friendly infantry screen (+20 same, +10 adjacent)
+        has_screen = False
+        for m in world.marshals.values():
+            if m.name != marshal.name and m.nation == nation and m.strength > 0:
+                if not getattr(m, 'cavalry', False) and not getattr(m, 'artillery', False):
+                    if m.location == region_name:
+                        score += 20
+                        has_screen = True
+                    elif m.location in region.adjacent_regions:
+                        score += 10
+                        has_screen = True
+
+        # Avoid positions near enemy cavalry without screen (-30)
+        if not has_screen:
+            for adj_name in region.adjacent_regions:
+                for m in world.marshals.values():
+                    if m.nation != nation and getattr(m, 'cavalry', False) and m.strength > 0 and m.location == adj_name:
+                        score -= 30
+
+        # Own territory preferred (+10)
+        if region.controller == nation:
+            score += 10
+
+        return score
+
+    def _find_nearest_friendly_infantry(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[str]:
+        """Find region of nearest friendly non-cavalry, non-artillery marshal for screen retreat."""
+        best_dest = None
+        best_dist = 999
+        for m in world.marshals.values():
+            if m.name != marshal.name and m.nation == nation and m.strength > 0:
+                if not getattr(m, 'cavalry', False) and not getattr(m, 'artillery', False):
+                    dist = world.get_distance(marshal.location, m.location)
+                    if dist < best_dist:
+                        best_dist = dist
+                        best_dest = m.location
+        if not best_dest or best_dest == marshal.location:
+            return None
+        # Return adjacent region closest to the infantry
+        region = world.get_region(marshal.location)
+        if not region:
+            return None
+        best_step = None
+        best_step_dist = best_dist
+        for adj_name in region.adjacent_regions:
+            # Skip enemy-occupied regions
+            enemies_there = [m for m in world.get_marshals_in_region(adj_name) if m.nation != nation and m.strength > 0]
+            if enemies_there:
+                continue
+            d = world.get_distance(adj_name, best_dest)
+            if d < best_step_dist:
+                best_step_dist = d
+                best_step = adj_name
+        return best_step
 
     def _find_best_stables_region(self, nation: str, world) -> Optional[str]:
         """Find region to build stables. Prefer plains (thematic), then highest-income."""

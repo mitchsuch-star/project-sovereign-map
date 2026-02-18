@@ -73,10 +73,11 @@ def snapshot_attacker_modifiers(
         if reck_bonus > 0:
             mods.append({"label": "Recklessness", "value": int(round(reck_bonus * 100)), "type": "bonus"})
 
-    # --- Exhaustion penalty ---
-    exhaustion = getattr(attacker, "_get_exhaustion_penalty", lambda: 0.0)()
-    if exhaustion > 0:
-        mods.append({"label": "Exhaustion", "value": int(round(exhaustion * 100)), "type": "penalty"})
+    # --- Exhaustion penalty (artillery exempt) ---
+    if not getattr(attacker, "artillery", False):
+        exhaustion = getattr(attacker, "_get_exhaustion_penalty", lambda: 0.0)()
+        if exhaustion > 0:
+            mods.append({"label": "Exhaustion", "value": int(round(exhaustion * 100)), "type": "penalty"})
 
     # --- Cavalry terrain effectiveness ---
     if getattr(attacker, "cavalry", False) and getattr(attacker, "is_reckless_cavalry", False):
