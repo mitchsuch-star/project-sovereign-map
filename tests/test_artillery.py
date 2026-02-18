@@ -1006,3 +1006,85 @@ class TestAIMinimal:
         # _should_build_stables checks for cavalry marshals — with only artillery, should return False
         should_build = ai._should_build_stables("Prussia", world)
         assert should_build is False
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# 15. RANGED BOMBARDMENT — REDUCED RETURN DAMAGE
+# ════════════════════════════════════════════════════════════════════════════════
+
+class TestRangedBombardment:
+    """When artillery attacks from an adjacent region (different location from
+    the defender), return casualties are halved — guns fire from behind the line."""
+
+    def test_ranged_bombardment_halves_attacker_casualties(self):
+        """Artillery in different region takes ~50% return casualties."""
+        combat = CombatResolver()
+        art = _make_artillery(location="Paris", strength=25000)
+        inf = _make_infantry(name="Enemy", location="Belgium", strength=40000, nation="Britain")
+        # Run many trials and average
+        total_art_cas = 0
+        trials = 200
+        for _ in range(trials):
+            a = _make_artillery(location="Paris", strength=25000)
+            d = _make_infantry(name="Enemy", location="Belgium", strength=40000, nation="Britain")
+            result = combat.resolve_battle(a, d, terrain="open")
+            total_art_cas += result["attacker"]["casualties"]
+        avg_ranged = total_art_cas / trials
+
+        # Compare with same-region (no reduction)
+        total_melee_cas = 0
+        for _ in range(trials):
+            a = _make_artillery(location="Belgium", strength=25000)
+            d = _make_infantry(name="Enemy", location="Belgium", strength=40000, nation="Britain")
+            result = combat.resolve_battle(a, d, terrain="open")
+            total_melee_cas += result["attacker"]["casualties"]
+        avg_melee = total_melee_cas / trials
+
+        # Ranged should be roughly half of melee
+        ratio = avg_ranged / avg_melee if avg_melee > 0 else 0
+        assert 0.35 <= ratio <= 0.65, f"Expected ~0.5 ratio, got {ratio:.2f}"
+
+    def test_ranged_bombardment_message_present(self):
+        """Result dict contains bombardment_range_message for ranged artillery."""
+        combat = CombatResolver()
+        art = _make_artillery(location="Paris", strength=25000)
+        inf = _make_infantry(name="Enemy", location="Belgium", strength=40000, nation="Britain")
+        result = combat.resolve_battle(art, inf, terrain="open")
+        assert result.get("bombardment_range_message") is not None
+        assert "range" in result["bombardment_range_message"].lower()
+        assert "50%" in result["bombardment_range_message"]
+
+    def test_ranged_bombardment_in_description(self):
+        """Bombardment range message appears in the battle description."""
+        combat = CombatResolver()
+        art = _make_artillery(location="Paris", strength=25000)
+        inf = _make_infantry(name="Enemy", location="Belgium", strength=40000, nation="Britain")
+        result = combat.resolve_battle(art, inf, terrain="open")
+        assert "bombard from range" in result["description"]
+
+    def test_same_region_artillery_no_reduction(self):
+        """Artillery in same region as defender gets full return casualties."""
+        combat = CombatResolver()
+        art = _make_artillery(location="Belgium", strength=25000)
+        inf = _make_infantry(name="Enemy", location="Belgium", strength=40000, nation="Britain")
+        result = combat.resolve_battle(art, inf, terrain="open")
+        assert result.get("bombardment_range_message") is None
+
+    def test_infantry_different_region_no_reduction(self):
+        """Non-artillery in different region does NOT get ranged reduction."""
+        combat = CombatResolver()
+        inf_atk = _make_infantry(name="Attacker", location="Paris", strength=40000)
+        inf_def = _make_infantry(name="Defender", location="Belgium", strength=40000, nation="Britain")
+        result = combat.resolve_battle(inf_atk, inf_def, terrain="open")
+        assert result.get("bombardment_range_message") is None
+
+    def test_ranged_bombardment_in_battle_report_snapshot(self):
+        """Battle report modifier snapshot includes ranged bombardment bonus."""
+        combat = CombatResolver()
+        art = _make_artillery(location="Paris", strength=25000)
+        inf = _make_infantry(name="Enemy", location="Belgium", strength=40000, nation="Britain")
+        result = combat.resolve_battle(art, inf, terrain="open")
+        atk_mods = result["modifier_snapshot"]["attacker"]
+        labels = [m["label"] for m in atk_mods]
+        assert any("bombardment" in l.lower() or "range" in l.lower() for l in labels), \
+            f"Expected ranged bombardment in snapshot, got: {labels}"

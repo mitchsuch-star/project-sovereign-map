@@ -18,7 +18,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Completed in Phase 6
 
-Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-Battle Analysis, Turn Events Log, Reinforcements, Attrition, City Fortification, Fog of War (COMPLETE: Sessions 33-36), Player Garrison Command (Session 31: 2 AP, cap 3/nation, map overlay), Enemy AI Garrison (P6.75: Building Blocks, 20k threshold, 1/nation/turn, P4.25 sub-5k awareness, `garrison_detachment` rename), Manpower Pools (Session 41: infantry/cavalry reserves, stables building, AI awareness), Artillery Unit Type (Sessions 42-44: Drouot/PrinceAugust, can't attack after move, no advance on win, cavalry counter, 2x fort degradation, artillery manpower pool, exhaustion exemption, bombardment streak, Berthier advisory, personality objections, AI positioning/screening/anti-oscillation, Godot HUD + bombardment advisory handler). See `docs/STATUS.md` for details.
+Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-Battle Analysis, Turn Events Log, Reinforcements, Attrition, City Fortification, Fog of War (COMPLETE: Sessions 33-36), Player Garrison Command (Session 31: 2 AP, cap 3/nation, map overlay), Enemy AI Garrison (P6.75: Building Blocks, 20k threshold, 1/nation/turn, P4.25 sub-5k awareness, `garrison_detachment` rename), Manpower Pools (Session 41: infantry/cavalry reserves, stables building, AI awareness), Artillery Unit Type (Sessions 42-44: Drouot/PrinceAugust, can't attack after move, no advance on win, cavalry counter, 2x fort degradation, artillery manpower pool, exhaustion exemption, bombardment streak, Berthier advisory, personality objections, AI positioning/screening/anti-oscillation, Godot HUD + bombardment advisory handler, ranged bombardment 50% return casualties). See `docs/STATUS.md` for details.
 
 ### Deferred from Phase 6
 
@@ -96,7 +96,7 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | Fog of war | `docs/FOG_OF_WAR_SPEC.md`, `backend/models/intel.py`, `backend/intel_report.py`, `map.gd` (fog overlay + fogged icons) |
 | Strategic commands + fog | `docs/FOG_OF_WAR_SPEC.md` §5, `backend/commands/strategic.py` |
 | Manpower pools / recruitment | `world_state.py` (manpower constants, `_process_manpower_regen`), `executor.py` (`_execute_recruit`), `enemy_ai.py` (P1/P4.5/P7 pool checks) |
-| Artillery mechanics | `marshal.py` (artillery flag, moved_this_turn, defense modifier), `combat.py` (cavalry counter, fort degradation), `executor.py` (attack block, no advance, charge ban) |
+| Artillery mechanics | `marshal.py` (artillery flag, moved_this_turn, defense modifier), `combat.py` (cavalry counter, fort degradation, ranged bombardment 50% return), `executor.py` (attack block, no advance, charge ban) |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`
 For Enemy AI details: `docs/ENEMY_AI_REFERENCE.md`

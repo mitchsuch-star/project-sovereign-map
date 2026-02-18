@@ -1302,7 +1302,8 @@ Artillery units are a third marshal type alongside infantry and cavalry. They pr
 | Cavalry vs Artillery | +30% shock_multiplier | `combat.py` (target-type, NOT marshal intrinsic) |
 | Fort degradation | 10% per artillery attack (vs 5% for non-artillery) | `combat.py` |
 | No advance on win | Artillery stays at origin, target NOT captured | `executor.py` |
-| Same-region combat | Normal rules apply (no movement restriction) | `executor.py` |
+| Ranged bombardment | 50% return casualties when attacker.location != defender.location | `combat.py` |
+| Same-region combat | Normal rules apply (no movement restriction, full return damage) | `executor.py` |
 
 ### Starting Marshals
 
@@ -1367,7 +1368,7 @@ After artillery bombardment, if defender's `defense_bonus <= 0` AND region `fort
 | File | What changed |
 |------|-------------|
 | `marshal.py` | `artillery` flag, `moved_this_turn`, defense modifier, exhaustion exemption, `bombardment_streak` + `last_bombardment_target`, serialization, starting marshals |
-| `combat.py` | Cavalry counter (+30%), fort degradation (10%), cavalry_counter_message, artillery exhaustion message skip |
+| `combat.py` | Cavalry counter (+30%), fort degradation (10%), cavalry_counter_message, artillery exhaustion message skip, ranged bombardment (50% return casualties) |
 | `executor.py` | Can't attack after moving, no advance on win, glorious charge ban, PURSUE block, recruit type logic, bombardment streak tracking, Berthier advisory, broken state cleanup |
 | `world_state.py` | Artillery constants, pool regen, `get_artillery_regen_rate()`, moved_this_turn reset |
 | `enemy_ai.py` | moved_this_turn gate, pool-aware recruit, cost-aware admin, P2 screen check, P4 bombardment sort + cavalry preference, P7 anti-oscillation + position scoring, 4 helper functions |

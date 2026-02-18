@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2821** (verified, 3 skipped) |
+| **Tests Passing** | **2827** (verified, 3 skipped) |
 
 | **Current Phase** | Phase 6: **COMPLETE** — all items shipped or deferred |
 | **Blockers** | None |
@@ -39,7 +39,7 @@ All major Phase 6 features shipped:
 - **Player Garrison Command:** 2 AP, cap 3/nation, map overlay
 - **Enemy AI Garrison (P6.75):** Building Blocks, 20k threshold, 1/nation/turn, P4.25 sub-5k awareness
 - **Manpower Pools:** Nation-level infantry/cavalry reserves gate recruitment. Marshal type auto-determines pool (infantry 10k/200g, cavalry 5k/300g). Stables building (+750 cavalry regen). AI pool/cost awareness. Berthier voice throughout.
-- **Artillery Unit Type (Sessions 42-43):** Third marshal type (Drouot/France, PrinceAugust/Prussia). Can't attack after moving, no advance on win, cavalry counter (+30%), 2x fort degradation, -25% defense when moved. Glorious Charge banned, PURSUE blocked. Artillery manpower pool (3k batch, 400g, 300+200 urban regen, 20k cap). Session 2: exhaustion exemption, bombardment streak tracking, Berthier advisory, personality objections, AI positioning/screening/anti-oscillation. 121 tests.
+- **Artillery Unit Type (Sessions 42-44):** Third marshal type (Drouot/France, PrinceAugust/Prussia). Can't attack after moving, no advance on win, cavalry counter (+30%), 2x fort degradation, -25% defense when moved. Glorious Charge banned, PURSUE blocked. Ranged bombardment: 50% return casualties from adjacent regions. Artillery manpower pool (3k batch, 400g, 300+200 urban regen, 20k cap). Session 2: exhaustion exemption, bombardment streak tracking, Berthier advisory, personality objections, AI positioning/screening/anti-oscillation. Session 3: Godot HUD wiring, full audit, ranged bombardment. 127 tests.
 
 ---
 
@@ -76,7 +76,15 @@ All major Phase 6 features shipped:
 - Parser: Added Drouot to `valid_marshals` in `parser.py` — was rejected as unknown marshal in mock mode
 - Executor: Blocked PURSUE strategic orders for artillery in `_execute_strategic_command()` — returns helpful message suggesting `move to`
 
-**Tests:** 2821 passed, 3 skipped (no new tests — audit session)
+**Ranged Bombardment — Reduced Return Damage (combat.py, battle_report.py):**
+- Artillery attacking from adjacent region (different location from defender) takes only 50% return casualties
+- Guns fire from behind the line, not in the melee — thematic and balanced
+- Battle messages explain the mechanic: "guns bombard from range — return fire inflicts reduced casualties (50%)"
+- Battle report snapshot includes ranged bombardment modifier
+- Same-region artillery and non-artillery marshals are unaffected
+- 6 new tests covering: casualty ratio, message presence, description text, same-region no-reduction, infantry no-reduction, snapshot
+
+**Tests:** 2827 passed, 3 skipped (+6 new ranged bombardment tests)
 
 ---
 

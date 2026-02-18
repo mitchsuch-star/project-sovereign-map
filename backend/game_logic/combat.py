@@ -403,6 +403,25 @@ class CombatResolver:
         attacker_defense_mult = 1.0 - (attacker_defense / 20.0)
         attacker_casualties = int(base_attacker_casualties * attacker_defense_mult)
 
+        # ════════════════════════════════════════════════════════════
+        # RANGED BOMBARDMENT: Artillery firing from adjacent region
+        # takes only 50% return casualties — guns are behind the line,
+        # not in the thick of the melee.
+        # ════════════════════════════════════════════════════════════
+        bombardment_range_message = None
+        is_ranged_bombardment = (
+            getattr(attacker, 'artillery', False)
+            and getattr(attacker, 'location', None) is not None
+            and getattr(defender, 'location', None) is not None
+            and attacker.location != defender.location
+        )
+        if is_ranged_bombardment:
+            attacker_casualties = int(attacker_casualties * 0.5)
+            bombardment_range_message = (
+                f"{attacker.name}'s guns bombard from range — "
+                f"return fire inflicts reduced casualties (50%)"
+            )
+
         # Defender takes casualties (increased by attacker shock, reduced by defender defense, affected by dice roll)
         defender_casualties = int(
             base_defender_casualties
@@ -521,6 +540,8 @@ class CombatResolver:
             tactical_prefix += f"\n🐴 {cavalry_terrain_message}"
         if cavalry_counter_message:
             tactical_prefix += f"\n🐴 {cavalry_counter_message}"
+        if bombardment_range_message:
+            tactical_prefix += f"\n🎯 {bombardment_range_message}"
         if glorious_charge_message:
             tactical_prefix += f"\n{glorious_charge_message}"
         if tactical_prefix:
@@ -638,6 +659,7 @@ class CombatResolver:
             "terrain_defense_message": terrain_defense_message,  # Phase 6.1: Terrain defense
             "cavalry_terrain_message": cavalry_terrain_message,  # Phase 6.1: Cavalry terrain
             "cavalry_counter_message": cavalry_counter_message,  # Phase 6: Cavalry vs artillery
+            "bombardment_range_message": bombardment_range_message,  # Session 44: Ranged bombardment
             "description": tactical_prefix + base_description + retreat_message,
             # Berthier's After-Action Report
             "attacker_nation": getattr(attacker, "nation", ""),

@@ -99,6 +99,13 @@ def snapshot_attacker_modifiers(
     if flanking_bonus > 0:
         mods.append({"label": "Flanking", "value": int(flanking_bonus), "type": "bonus"})
 
+    # --- Ranged bombardment (reduces return casualties) ---
+    if getattr(attacker, "artillery", False):
+        atk_loc = getattr(attacker, "location", None)
+        def_loc = getattr(defender, "location", None)
+        if atk_loc and def_loc and atk_loc != def_loc:
+            mods.append({"label": "Ranged bombardment (−50% return fire)", "value": 50, "type": "bonus"})
+
     # --- Glorious Charge ---
     if glorious_charge:
         mods.append({"label": "Glorious Charge", "value": 100, "type": "bonus"})
