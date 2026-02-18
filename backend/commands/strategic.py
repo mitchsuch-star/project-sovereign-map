@@ -719,8 +719,29 @@ class StrategicExecutor:
             enemies = world.get_enemies_in_region(next_region, marshal.nation)
             if enemies:
                 if not moves_made:  # First move blocked
-                    return self._handle_blocked_path(
+                    blocked_result = self._handle_blocked_path(
                         marshal, enemies, next_region, world, game_state)
+                    # If literal reroute, try to move on the new path this turn
+                    if blocked_result and blocked_result.get("action") == "reroute":
+                        if order.path:
+                            rerouted_next = order.path[0]
+                            rerouted_enemies = world.get_enemies_in_region(
+                                rerouted_next, marshal.nation)
+                            if not rerouted_enemies:
+                                move_result = self.executor.execute(
+                                    {"command": {
+                                        "marshal": marshal.name,
+                                        "action": "move",
+                                        "target": rerouted_next,
+                                        "_strategic_execution": True
+                                    }}, game_state)
+                                if move_result.get("success"):
+                                    order.path.pop(0)
+                                    moves_made.append(rerouted_next)
+                                    blocked_result["message"] += (
+                                        f" Moves to {rerouted_next}.")
+                                    blocked_result["regions_moved"] = moves_made
+                    return blocked_result
                 else:
                     break  # Moved some, stop at blockage
 
@@ -942,8 +963,29 @@ class StrategicExecutor:
 
             if blocking and not is_target_region:
                 if not moves_made:
-                    return self._handle_blocked_path(
+                    blocked_result = self._handle_blocked_path(
                         marshal, blocking, next_region, world, game_state)
+                    # If literal reroute, try to move on the new path this turn
+                    if blocked_result and blocked_result.get("action") == "reroute":
+                        if order.path:
+                            rerouted_next = order.path[0]
+                            rerouted_enemies = world.get_enemies_in_region(
+                                rerouted_next, marshal.nation)
+                            if not rerouted_enemies:
+                                move_result = self.executor.execute(
+                                    {"command": {
+                                        "marshal": marshal.name,
+                                        "action": "move",
+                                        "target": rerouted_next,
+                                        "_strategic_execution": True
+                                    }}, game_state)
+                                if move_result.get("success"):
+                                    order.path.pop(0)
+                                    moves_made.append(rerouted_next)
+                                    blocked_result["message"] += (
+                                        f" Moves to {rerouted_next}.")
+                                    blocked_result["regions_moved"] = moves_made
+                    return blocked_result
                 break
 
             # Target's region — pursuit complete, attack if personality allows
@@ -1877,6 +1919,10 @@ class StrategicExecutor:
             # Reroute silently around ALL enemy regions (mid-path only)
             enemy_regions = self._get_enemy_occupied_regions(
                 marshal.nation, world, marshal=marshal)
+            # Always include the just-discovered blocked region even if fog
+            # doesn't reflect it yet (physical encounter is authoritative)
+            if blocked_region not in enemy_regions:
+                enemy_regions.append(blocked_region)
             # MOVE_TO and HOLD use weighted pathfinding for terrain-aware rerouting
             use_weighted = (order.command_type in ("MOVE_TO", "HOLD"))
             pathfinder = world.find_weighted_path if use_weighted else world.find_path

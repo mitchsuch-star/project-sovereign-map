@@ -2956,3 +2956,166 @@ class TestPursueMarshalNameResolution:
         assert result is not None, "go_around should return a result"
         assert result.get("success") is not False or "no safe path" not in result.get("message", "").lower(), \
             f"go_around should resolve marshal name to region for pathfinding. Got: {result.get('message')}"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# REROUTE-THEN-MOVE TESTS (Session 39)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestRerouteThenMove:
+    """Tests that literal reroute also moves on the same turn/command.
+
+    Bug: Before fix, a literal marshal rerouting around a blocked path would
+    update the path but NOT move, wasting 1-2 turns before any movement.
+    """
+
+    def test_auto_upgrade_init_reroutes_and_moves(self, world, game_state, executor):
+        """Auto-upgrade MOVE_TO: literal reroutes AND moves on init turn.
+
+        Scenario: Grouchy at Vienna, Blucher at Bavaria, target Rhine.
+        Direct path Vienna→Bavaria→Rhine blocked.
+        Should reroute (Vienna→Milan→Lyon→Rhine) AND move to Milan immediately.
+        """
+        grouchy = world.get_marshal("Grouchy")
+        assert grouchy.personality == "literal"
+        grouchy.location = "Vienna"
+
+        blucher = world.get_marshal("Blucher")
+        blucher.location = "Bavaria"
+
+        # Clear other enemies from alternate routes
+        for m in world.marshals.values():
+            if m.nation != "France" and m.name != "Blucher":
+                m.location = "Paris" if m.nation != "France" else m.location
+
+        world.actions_remaining = 5
+
+        with _suppress_output():
+            result = executor.execute({
+                "command": {
+                    "raw_input": "Grouchy, march to Rhine",
+                    "marshal": "Grouchy",
+                    "action": "move",
+                    "target": "Rhine",
+                },
+                "is_strategic": True,
+                "strategic_type": "MOVE_TO",
+            }, game_state)
+
+        assert result.get("success") is True, \
+            f"Should succeed, got: {result.get('message', '')}"
+        assert grouchy.strategic_order is not None, "Should have strategic order"
+        # Must have actually moved — not still at Vienna
+        assert grouchy.location != "Vienna", \
+            f"Grouchy should have moved after reroute, still at {grouchy.location}"
+        # Bavaria is blocked, so must have gone via Milan
+        assert grouchy.location == "Milan", \
+            f"Grouchy should be at Milan (rerouted), but at {grouchy.location}"
+
+    def test_strategic_move_to_reroutes_and_moves(self, world, game_state, strategic_executor):
+        """Turn-by-turn MOVE_TO: literal reroutes AND moves same turn.
+
+        Scenario: Grouchy at Vienna with MOVE_TO Rhine order.
+        Bavaria blocked by Blucher. On turn processing, should reroute
+        to Vienna→Milan→Lyon→Rhine AND move to Milan.
+        """
+        grouchy = world.get_marshal("Grouchy")
+        assert grouchy.personality == "literal"
+        grouchy.location = "Vienna"
+
+        blucher = world.get_marshal("Blucher")
+        blucher.location = "Bavaria"
+
+        # Clear other enemies from alternate routes
+        for m in world.marshals.values():
+            if m.nation != "France" and m.name != "Blucher":
+                m.location = "Paris" if m.nation != "France" else m.location
+
+        _set_strategic_order(grouchy, "MOVE_TO", "Rhine", path=["Bavaria", "Rhine"])
+
+        with _suppress_output():
+            reports = strategic_executor.process_strategic_orders(world, game_state)
+
+        report = [r for r in reports if r["marshal"] == "Grouchy"][0]
+        # Should reroute
+        assert report.get("action") == "reroute", \
+            f"Should reroute, got action={report.get('action')}, msg={report.get('message', '')}"
+        # Should have moved on the rerouted path
+        assert grouchy.location != "Vienna", \
+            f"Grouchy should have moved after reroute, still at {grouchy.location}"
+        assert grouchy.location == "Milan", \
+            f"Grouchy should be at Milan after reroute-move, but at {grouchy.location}"
+        # Message should mention movement
+        assert "Moves to" in report.get("message", ""), \
+            f"Reroute message should mention movement: {report.get('message', '')}"
+
+    def test_pursue_reroutes_and_moves(self, world, game_state, strategic_executor):
+        """Turn-by-turn PURSUE: literal reroutes AND moves same turn.
+
+        Scenario: Grouchy at Vienna pursuing Wellington at Rhine.
+        Bavaria blocked by Blucher. Should reroute and move to Milan.
+        """
+        grouchy = world.get_marshal("Grouchy")
+        assert grouchy.personality == "literal"
+        grouchy.location = "Vienna"
+
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Rhine"
+        blucher = world.get_marshal("Blucher")
+        blucher.location = "Bavaria"
+
+        # Clear other enemies from alternate routes
+        for m in world.marshals.values():
+            if m.nation != "France" and m.name not in ("Blucher", "Wellington"):
+                m.location = "Paris" if m.nation != "France" else m.location
+
+        _set_strategic_order(grouchy, "PURSUE", "Wellington",
+                             target_type="marshal", path=["Bavaria", "Rhine"],
+                             target_snapshot_location="Rhine")
+
+        with _suppress_output():
+            reports = strategic_executor.process_strategic_orders(world, game_state)
+
+        report = [r for r in reports if r["marshal"] == "Grouchy"][0]
+        assert report.get("action") == "reroute", \
+            f"Should reroute, got action={report.get('action')}, msg={report.get('message', '')}"
+        assert grouchy.location != "Vienna", \
+            f"Grouchy should have moved after reroute, still at {grouchy.location}"
+        assert "Moves to" in report.get("message", ""), \
+            f"Reroute message should mention movement: {report.get('message', '')}"
+
+    def test_non_literal_still_gets_interrupt(self, world, game_state, executor):
+        """Non-literal marshals still get interrupt (not auto-reroute).
+
+        Aggressive/cautious should NOT silently reroute — they should ask.
+        """
+        ney = world.get_marshal("Ney")
+        assert ney.personality == "aggressive"
+        ney.location = "Vienna"
+
+        blucher = world.get_marshal("Blucher")
+        blucher.location = "Bavaria"
+
+        # Clear other enemies
+        for m in world.marshals.values():
+            if m.nation != "France" and m.name != "Blucher":
+                m.location = "Paris" if m.nation != "France" else m.location
+
+        world.actions_remaining = 5
+
+        with _suppress_output():
+            result = executor.execute({
+                "command": {
+                    "raw_input": "Ney, march to Rhine",
+                    "marshal": "Ney",
+                    "action": "move",
+                    "target": "Rhine",
+                },
+                "is_strategic": True,
+                "strategic_type": "MOVE_TO",
+            }, game_state)
+
+        # Aggressive should auto-attack or ask — NOT silently reroute
+        # Should not be at Milan (that's literal behavior)
+        assert ney.location != "Milan", \
+            "Aggressive marshal should not silently reroute to Milan"

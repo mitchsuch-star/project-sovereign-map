@@ -4466,7 +4466,24 @@ RETREAT RECOVERY (3 turns):
                     enemies_blocking = world.get_enemies_in_region(next_region, marshal.nation)
                     if enemies_blocking:
                         print(f"[STRATEGIC INIT] {marshal.name}: First step BLOCKED by enemies at {next_region}")
-                        break
+                        if not regions_moved:
+                            # First step blocked — personality-based response
+                            blocked_result = self._handle_first_step_blocked(
+                                marshal, enemies_blocking, next_region, world, game_state)
+                            if blocked_result is not None:
+                                return blocked_result  # Interrupt or combat result
+                            # Literal reroute succeeded — update local path ref and continue
+                            path = [marshal.location] + list(order.path)
+                            if order.path:
+                                next_region = order.path[0]
+                                enemies_blocking = world.get_enemies_in_region(next_region, marshal.nation)
+                                if enemies_blocking:
+                                    break  # Still blocked after reroute
+                                # Fall through to move along rerouted path
+                            else:
+                                break  # No path left after reroute
+                        else:
+                            break  # Mid-march block
                     move_result = self.execute(
                         {"command": {
                             "marshal": marshal.name,

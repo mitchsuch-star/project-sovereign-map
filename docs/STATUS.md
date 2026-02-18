@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2625** (verified, 3 skipped) |
+| **Tests Passing** | **2629** (verified, 3 skipped) |
 | **Current Phase** | Phase 6: **IN PROGRESS** (2 items remaining: Manpower Pools, Artillery Unit Type) |
 | **Blockers** | None |
 | **Code Coverage** | **71%** (backend/) |
@@ -42,6 +42,25 @@ All major Phase 6 features shipped:
 ---
 
 ## Recent Sessions
+
+### Feb 17 (Session 39: Strategic Reroute Wastes 2 Turns)
+
+**3 bugs fixed, 4 new tests.**
+
+**Bug 1 — Auto-upgrade init skips reroute (executor.py):**
+- When a move auto-upgraded to MOVE_TO and the first step was blocked, the code just `break`ed without calling `_handle_first_step_blocked()`. Order created with blocked path, wasting the init turn. Fix: calls `_handle_first_step_blocked()` (same as older init path), updates local `path` reference after reroute for cavalry correctness.
+
+**Bug 2 — Strategic MOVE_TO/PURSUE reroute doesn't move (strategic.py):**
+- Turn-by-turn handler called `_handle_blocked_path()` and returned immediately after reroute. Path updated but no movement — wasted another turn. Fix: after literal reroute (`action == "reroute"`), attempts move on first step of new path before returning. Applied to both MOVE_TO and PURSUE handlers.
+
+**Bug 3 — Reroute ignores just-discovered blocked region (strategic.py):**
+- `_handle_blocked_path` used fog-aware `_get_enemy_occupied_regions` for avoid list, which could miss the blocked region if fog hadn't been updated yet. Physical encounter is authoritative. Fix: always include `blocked_region` in avoid list.
+
+**Combined effect:** Literal marshal rerouting now reroutes AND moves on the same turn (1 turn instead of 3).
+
+**Tests:** 2629 passing (+4), 3 skipped
+
+---
 
 ### Feb 17 (Session 38b: Bug Batch — Scout, Attrition Fog, Pursue Reroute, Stale Icons)
 
