@@ -19,8 +19,9 @@
 
 ## Next Steps
 
-1. **Pause menu** — Phase 6.5, Esc → Save/Load/Settings/Quit
-2. **Phase 7: Objection V2b** — See OBJECTION_V2.md for preview
+1. **Bombardment redesign** — Phase 6.5, Sessions 48-52. See `BOMBARDMENT_SPEC.md` (v3).
+2. **Pause menu** — Phase 6.5, Esc → Save/Load/Settings/Quit
+3. **Phase 7: Multi-marshal battles + Combined Arms + Square Formation + V2b** — Sessions 53-54 (combined arms, square) deferred here to build alongside multi-marshal combat. See BOMBARDMENT_SPEC.md §15, ROADMAP.md Phase 7.
 
 ---
 

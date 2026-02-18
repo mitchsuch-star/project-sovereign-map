@@ -900,7 +900,9 @@ Pre-wire the streak check point in `_execute_bombardment()` so adding this later
 | Doc updates | — | `SAVE_FORMAT_REFERENCE.md`, `SYSTEMS_REFERENCE.md`, `CLAUDE.md`, `STATUS.md` |
 | Full manual curl test pass | §17.6 | — |
 
-### Session 53: Combined Arms Bonus
+### Session 53: Combined Arms Bonus (Phase 7 — with Multi-Marshal Battles)
+
+**Deferred to Phase 7.** Combined arms rewards coordinating unit types, which only matters when multiple marshals fight together. Build alongside multi-marshal battles and command structure.
 
 **Rewards coordinating unit types in the same battle. Extends existing flanking infrastructure.**
 
@@ -985,7 +987,9 @@ if combined_arms["bonus"] > 0:
 - [ ] Combined arms bonus resets at turn start (via `attacks_this_turn` clear)
 - [ ] Serialization: no new fields needed (`attacks_this_turn` already clears per turn)
 
-### Session 54: Square Formation
+### Session 54: Square Formation (Phase 7 — with Multi-Marshal Battles)
+
+**Deferred to Phase 7.** Square formation is a response to multi-unit-type engagements — the tactical dilemma (square or line?) only arises when cavalry and artillery coordinate against infantry. Build alongside combined arms and multi-marshal battles.
 
 **Infantry forms square to counter cavalry charges, but becomes an artillery target. Completes the Napoleonic tactical triangle.**
 

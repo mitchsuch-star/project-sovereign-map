@@ -190,6 +190,8 @@ Wire ~80-100 provinces for EA v1. Remaining provinces from the 120-150 in the ar
 | Multi-marshal battles | Combined strength in single fight | High | Planned |
 | Command structure | Senior marshal leads combined force | Medium | Planned |
 | Coordination bonus/penalty | Relationships affect combined combat | Medium | Planned |
+| **Combined arms bonus** | 2 unit types +10%, 3 types +20% attack. Rewards artillery→infantry→cavalry sequence. See BOMBARDMENT_SPEC.md §15 Session 53. | Medium | Planned |
+| **Square formation** | Infantry anti-cavalry stance (-40% cav dmg), vulnerable to artillery (+50%). Completes tactical triangle. See BOMBARDMENT_SPEC.md §15 Session 54. | Medium | Planned |
 | Strategic + Relationships | "Support Ney" -> reaction based on feelings | Medium | Planned |
 | Jealousy system | Marshal getting all glory -> others resent | Medium | Planned |
 | Rivalry resolved event | Two marshals fight together successfully -> trust boost | Low | Planned |
