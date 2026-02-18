@@ -2712,6 +2712,7 @@ class WorldState:
             "manpower_pools": {
                 "infantry": int(self.manpower_pools.get(self.player_nation, {}).get("infantry", 0)),
                 "cavalry": int(self.manpower_pools.get(self.player_nation, {}).get("cavalry", 0)),
+                "artillery": int(self.manpower_pools.get(self.player_nation, {}).get("artillery", 0)),
             },
             "player_nation": self.player_nation,
             "regions_controlled": len(self.get_player_regions()),

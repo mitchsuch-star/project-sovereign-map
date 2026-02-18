@@ -14,6 +14,7 @@ extends Control
 @onready var gold_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/GoldDisplay/GoldValue
 @onready var inf_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ManpowerDisplay/InfValue
 @onready var cav_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ManpowerDisplay/CavValue
+@onready var art_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ManpowerDisplay/ArtValue
 
 # UI References - Main Interface
 @onready var output_scroll = $BottomLeftUI/MainMargin/MainLayout/OutputScroll
@@ -64,6 +65,7 @@ var max_turns = 40
 var gold = 1200
 var infantry_pool = 80000
 var cavalry_pool = 15000
+var artillery_pool = 10000
 var pending_redemption = false  # True when awaiting redemption choice
 
 # Command history (up/down arrow navigation)
@@ -606,6 +608,11 @@ func _display_result(response):
 	# Berthier's After-Action Report — shown after any combat event type
 	if response.has("battle_report"):
 		_display_berthier_report(response.battle_report)
+
+	# Berthier's Bombardment Advisory — shown when artillery crumbles enemy forts
+	var bombardment_advisory = response.get("bombardment_advisory", "")
+	if bombardment_advisory != "" and bombardment_advisory != null:
+		add_output("[color=#" + COLOR_DISPATCH + "]  Berthier: \"" + str(bombardment_advisory) + "\"[/color]")
 	
 	# Check for turn advancement
 	if action_info.get("turn_advanced", false):
@@ -908,12 +915,15 @@ func _apply_manpower(pools: Dictionary):
 		infantry_pool = int(pools.infantry)
 	if pools.has("cavalry"):
 		cavalry_pool = int(pools.cavalry)
+	if pools.has("artillery"):
+		artillery_pool = int(pools.artillery)
 	_update_manpower_display()
 
 func _update_manpower_display():
 	"""Update manpower pool display with formatting."""
 	inf_value.text = _format_number(infantry_pool)
 	cav_value.text = _format_number(cavalry_pool)
+	art_value.text = _format_number(artillery_pool)
 	# Color shift when pools are low
 	if cavalry_pool < 5000:
 		cav_value.add_theme_color_override("font_color", Color(0.9, 0.3, 0.3))
@@ -927,6 +937,12 @@ func _update_manpower_display():
 		inf_value.add_theme_color_override("font_color", Color(0.9, 0.6, 0.4))
 	else:
 		inf_value.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6))
+	if artillery_pool < 3000:
+		art_value.add_theme_color_override("font_color", Color(0.9, 0.3, 0.3))
+	elif artillery_pool < 8000:
+		art_value.add_theme_color_override("font_color", Color(0.9, 0.6, 0.4))
+	else:
+		art_value.add_theme_color_override("font_color", Color(0.75, 0.7, 0.85))
 
 func _format_number(num: int) -> String:
 	"""Format number with comma separators."""

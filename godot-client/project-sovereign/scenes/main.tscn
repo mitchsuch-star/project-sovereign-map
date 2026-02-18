@@ -160,6 +160,18 @@ theme_override_colors/font_color = Color(0.85, 0.75, 0.55, 1)
 theme_override_font_sizes/font_size = 12
 text = "15,000"
 
+[node name="ArtLabel" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ManpowerDisplay"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.75, 1)
+theme_override_font_sizes/font_size = 12
+text = "Art:"
+
+[node name="ArtValue" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ManpowerDisplay"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.7, 0.85, 1)
+theme_override_font_sizes/font_size = 12
+text = "10,000"
+
 [node name="OutputScroll" type="ScrollContainer" parent="BottomLeftUI/MainMargin/MainLayout"]
 custom_minimum_size = Vector2(0, 140)
 layout_mode = 2

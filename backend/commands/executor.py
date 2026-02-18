@@ -3430,6 +3430,13 @@ RETREAT RECOVERY (3 turns):
 
         print(f"[STRATEGIC] Creating {strategic_type} order for {marshal.name} -> {target}")
 
+        # ── Artillery PURSUE block: guns can't chase ──
+        if strategic_type == "PURSUE" and getattr(marshal, 'artillery', False):
+            return {
+                "success": False,
+                "message": f"{marshal.name}'s artillery cannot pursue. Guns must be repositioned manually — try 'move to' instead."
+            }
+
         # ── Engagement check: cannot issue strategic orders while engaged ──
         # Exceptions:
         #   - PURSUE targeting an enemy in THIS region (or generic, which resolves to one here)

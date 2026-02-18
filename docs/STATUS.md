@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 18, 2026
+> **Last Updated:** February 18, 2026 (Session 44)
 
 ---
 
@@ -10,6 +10,7 @@
 | Metric | Value |
 |--------|-------|
 | **Tests Passing** | **2821** (verified, 3 skipped) |
+
 | **Current Phase** | Phase 6: **COMPLETE** — all items shipped or deferred |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
@@ -19,9 +20,7 @@
 ## Next Steps
 
 1. **Pause menu** — Phase 6.5, Esc → Save/Load/Settings/Quit
-2. **Godot HUD: Artillery pool display** — Add Art: Z to ManpowerDisplay (mirrors Inf/Cav pattern)
-3. **Godot wiring: `bombardment_advisory`** — Backend sends key in API response, `main.gd` needs handler to display it (Berthier popup or terminal message)
-4. **Phase 7: Objection V2b** — See OBJECTION_V2.md for preview
+2. **Phase 7: Objection V2b** — See OBJECTION_V2.md for preview
 
 ---
 
@@ -45,6 +44,41 @@ All major Phase 6 features shipped:
 ---
 
 ## Recent Sessions
+
+### Feb 18 (Session 44: Artillery Session 3 — Godot Frontend + Full Audit)
+
+**Godot frontend wiring for artillery + comprehensive backend audit.**
+
+**Godot: Artillery Pool Display (main.gd, main.tscn):**
+- Added `art_value` @onready reference and `artillery_pool` variable
+- Extended `_apply_manpower()` to extract artillery from response
+- Extended `_update_manpower_display()` with artillery label, value, and color warnings (orange < 8k, red < 3k)
+- Added ArtLabel + ArtValue nodes to ManpowerDisplay HBoxContainer in main.tscn
+
+**Godot: Bombardment Advisory Handler (main.gd):**
+- Added handler in `_display_result()` to display `bombardment_advisory` string
+- Uses COLOR_DISPATCH (warm gold) with Berthier quote format, matching cavalry_terrain_message pattern
+
+**Backend Bug Fix — Artillery Pool Missing from API:**
+- `world_state.py` `get_filtered_game_state_summary()` and `main.py` `/test` endpoint both omitted artillery from manpower_pools sent to Godot
+- Fixed: added `"artillery": int(...)` to both locations
+- Without this fix, the new Godot artillery display would always show 0
+
+**Full Artillery Audit (all 7 backend files):**
+- Verified: marshal.py, combat.py, executor.py, enemy_ai.py, objection_v2.py, world_state.py, battle_report.py
+- All `getattr` guards present, serialization round-trip correct, combat modifiers at single source
+- Edge cases noted (not fixed — design decisions):
+  - Artillery advances when garrison collapses (inconsistent with no-advance, but garrison combat is a special path)
+  - PURSUE strategic order on artillery wastes turns (AI blocks it, player doesn't)
+- Parser issue found: Drouot/PrinceAugust not in `parser.py` valid_marshals list (pre-existing, blocks curl testing)
+
+**Post-Audit Fixes:**
+- Parser: Added Drouot to `valid_marshals` in `parser.py` — was rejected as unknown marshal in mock mode
+- Executor: Blocked PURSUE strategic orders for artillery in `_execute_strategic_command()` — returns helpful message suggesting `move to`
+
+**Tests:** 2821 passed, 3 skipped (no new tests — audit session)
+
+---
 
 ### Feb 18 (Session 43: Artillery Session 2 — Intelligence & Behavior)
 
