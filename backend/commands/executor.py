@@ -582,8 +582,13 @@ MILITARY COMMANDS:
   recruit    - Raise 10,000 troops (costs 200 gold)
                "recruit" / "Ney, recruit"
 
-  support    - March to reinforce an allied marshal (strategic)
-               "Ney, support Davout" / "Ney, reinforce Davout"
+  bombardment - Artillery fires on adjacent region (max 2/turn)
+               "Drouot, bombard Rhine" / "Drouot, attack Rhine"
+               Cannot attack after moving. Terrain affects damage.
+
+  garrison   - Leave detachment to defend a region (2 AP)
+               "garrison" - Detaches troops in current region
+               Max 3 garrisons per nation. Fights to destruction.
 
 TACTICAL COMMANDS:
   fortify    - Dig in for +50% defense (2 turns)
@@ -608,44 +613,65 @@ STANCE COMMANDS:
   neutral    - Balanced (default, FREE to return)
                "Ney, neutral" / "Ney, return to neutral"
 
+STRATEGIC COMMANDS (2 AP, multi-turn):
+  march      - Move to distant region over multiple turns
+               "Ney, march to Bavaria" / "move to Bavaria"
+  pursue     - Chase an enemy marshal across the map
+               "Ney, pursue Wellington"
+  support    - March to reinforce an allied marshal
+               "Ney, support Davout" / "Ney, reinforce Davout"
+  hold       - Hold position and auto-bombard (artillery)
+               "Drouot, hold Rhine"
+  cancel     - Cancel a strategic order (1 AP)
+               "cancel Ney" / "halt Ney" / "stop Ney"
+
 ECONOMY COMMANDS (Admin AP):
   build      - Build at a city you control (1 Admin AP)
-               "build fortification at Lyon" / "build market at Paris"
+               "build fortification at Lyon"
+               "build market at Paris"
+               "build stables at Lyon" (cavalry recruitment)
   repair     - Repair damage or buildings (1 Admin AP, 150 gold)
                "repair Lyon" / "repair market at Lyon"
-  recruit    - Raise 10,000 troops (1 Admin AP, 200 gold)
+  recruit    - Raise troops (1 Admin AP, 200-400 gold)
                "recruit" / "recruit for Ney" / "recruit at Paris"
+               Infantry: 10k troops. Cavalry: 5k. Artillery: 3k.
 
 FREE ACTIONS (cost 0):
   help       - Display this help text
   end turn   - Skip remaining actions, advance turn
   wait       - Marshal passes turn (no action taken)
   retreat    - Fall back toward friendly territory
-  hold       - Alias for defend
+  hold       - Alias for defend (or strategic HOLD with region)
   economy    - Show treasury, income, upkeep breakdown
                Also: "treasury" / "finances"
 
-MARSHAL ABILITIES (Phase 2.8):
+MARSHAL ABILITIES:
 
-  NEY (Aggressive):
+  NEY (Aggressive, Cavalry):
     • +15% attack always, +5% more in aggressive stance
     • Cavalry Charge: Attack enemies 2 regions away
     • Fighting Retreat: Attack during retreat (+10% bonus)
     • Restlessness: Objects after 3+ turns defensive
     • Fortify capped at 10% (impatient)
 
-  DAVOUT (Cautious, "Iron Marshal"):
+  DAVOUT (Cautious, Infantry, "Iron Marshal"):
     • +20% defense in defensive stance
     • Free Unfortify: Break camp at no action cost
-    • Counter-Punch: Free attack after defending*
+    • Counter-Punch: Free attack after defending
     • Fortify: +3%/turn (max 20%), +5% instant
     • Scout Range: +1 region
-    * Requires enemy AI (use /debug counter_punch Davout to test)
 
   GROUCHY (Literal):
     • Immovable: +15% defense when holding position
     • Use "hold" command to activate
     • Lost when Grouchy moves
+
+  DROUOT (Precise, Artillery):
+    • Cannot attack after moving (must stay put)
+    • Bombardment: Fire on adjacent regions (max 2/turn)
+    • No advance on victory (holds position)
+    • Exempt from exhaustion penalties
+    • 2x fort degradation (siege breaker)
 
 DEBUG COMMANDS (for testing):
   /debug counter_punch <marshal> - Enable free attack

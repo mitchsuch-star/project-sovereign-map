@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 18, 2026 (Session 52)
+> **Last Updated:** February 18, 2026 (Session 53)
 
 ---
 
@@ -44,6 +44,40 @@ All major Phase 6 features shipped:
 ---
 
 ## Recent Sessions
+
+### Feb 18 (Session 53: UI Polish — Help, Unit Types, Minimize, Ammo)
+
+**Help command, unit type labels, minimizable terminal, bombardment ammo display.**
+
+**Help Command Update (executor.py):**
+- Added bombardment command with usage examples and terrain note
+- Added garrison command (2 AP, cap 3/nation, fights to destruction)
+- Added strategic commands section: march, pursue, support, hold, cancel with AP costs
+- Added build stables example, artillery recruit cost (3k/400g)
+- Added Drouot marshal abilities section (can't move+attack, bombardment, 2x fort degradation, exhaustion exempt)
+- Updated Davout/Ney descriptions with unit type labels
+
+**Unit Type Labels (world_state.py + map.gd):**
+- Backend sends `artillery` flag and `bombardments_this_turn` in `tactical_state` dict
+- Tooltip now shows unit type for ALL player marshals:
+  - Ney/Murat: "CAVALRY: Can attack 2 tiles away" (orange)
+  - Davout/Grouchy: "INFANTRY" (steel blue)
+  - Drouot: "ARTILLERY: Cannot attack after moving" (copper)
+- Removed duplicate standalone cavalry line (now unified in unit type display)
+
+**Bombardment Ammo Display (map.gd):**
+- Artillery marshals show "Bombardments: X/2 remaining" in tooltip
+- Color-coded: green (2 remaining), yellow (1 remaining), red (0 remaining)
+
+**Minimizable Terminal (main.tscn + main.gd):**
+- "—" minimize button in header title row
+- "Open Terminal (Tab)" restore button appears when minimized
+- Tab key toggles terminal panel visibility (when command input not focused)
+- Full panel collapses (header, output, input) and restores cleanly
+
+**Tests:** 2987 passing, 3 skipped. Zero regressions (no new backend logic, UI-only additions).
+
+---
 
 ### Feb 18 (Session 52: Bombardment Part 5 — Godot Frontend + Berthier Observations)
 

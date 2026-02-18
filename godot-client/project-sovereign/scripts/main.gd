@@ -23,6 +23,11 @@ extends Control
 @onready var send_button = $BottomLeftUI/MainMargin/MainLayout/InputSection/SendButton
 @onready var end_turn_button = $BottomLeftUI/MainMargin/MainLayout/InputSection/EndTurnButton
 
+# UI References - Minimize/Restore
+@onready var bottom_left_ui = $BottomLeftUI
+@onready var minimize_button = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/TitleRow/MinimizeButton
+@onready var restore_button = $RestoreButton
+
 # Map reference
 @onready var map_area = $MapArea
 
@@ -223,6 +228,12 @@ func _ready():
 	if not command_input.gui_input.is_connected(_on_command_input_gui_input):
 		command_input.gui_input.connect(_on_command_input_gui_input)
 
+	# Minimize/Restore terminal panel
+	if not minimize_button.pressed.is_connected(_minimize_terminal):
+		minimize_button.pressed.connect(_minimize_terminal)
+	if not restore_button.pressed.is_connected(_restore_terminal):
+		restore_button.pressed.connect(_restore_terminal)
+
 	# Start disabled until connected
 	set_input_enabled(false)
 
@@ -367,13 +378,35 @@ func _on_end_turn_pressed():
 
 func _unhandled_input(event):
 	"""Handle hotkeys when command input is not focused."""
-	# E key for End Turn (only when not typing in command input)
 	if event is InputEventKey and event.pressed and not event.echo:
+		# E key for End Turn (only when not typing in command input)
 		if event.keycode == KEY_E:
 			# Don't trigger if command input has focus
 			if not command_input.has_focus() and end_turn_button.visible and not end_turn_button.disabled:
 				_execute_end_turn()
 				get_viewport().set_input_as_handled()
+		# Tab key to toggle terminal panel
+		elif event.keycode == KEY_TAB:
+			if not command_input.has_focus():
+				_toggle_terminal()
+				get_viewport().set_input_as_handled()
+
+func _minimize_terminal():
+	"""Collapse the terminal panel, show restore button."""
+	bottom_left_ui.visible = false
+	restore_button.visible = true
+
+func _restore_terminal():
+	"""Expand the terminal panel, hide restore button."""
+	bottom_left_ui.visible = true
+	restore_button.visible = false
+
+func _toggle_terminal():
+	"""Toggle terminal panel visibility."""
+	if bottom_left_ui.visible:
+		_minimize_terminal()
+	else:
+		_restore_terminal()
 
 func _execute_end_turn():
 	"""Execute end turn command."""

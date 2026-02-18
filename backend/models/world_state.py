@@ -2674,6 +2674,9 @@ class WorldState:
                         "occupation_region": str(getattr(m, 'occupation_region', '') or ''),
                         "occupation_turns_held": int(getattr(m, 'occupation_turns_held', 0)),
                         "occupation_turns_required": int(getattr(m, 'occupation_turns_required', 0)),
+                        # Unit type and artillery state (Session 53)
+                        "artillery": bool(getattr(m, 'artillery', False)),
+                        "bombardments_this_turn": int(getattr(m, 'bombardments_this_turn', 0)),
                     }
 
                 marshals_data.append(marshal_data)

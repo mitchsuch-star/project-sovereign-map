@@ -590,6 +590,10 @@ func _draw_tooltip():
 	var holding_position = tactical_state.get("holding_position", false)
 	var hold_region = tactical_state.get("hold_region", "")
 
+	# Artillery state (Session 53)
+	var artillery = tactical_state.get("artillery", false)
+	var bombardments_this_turn = tactical_state.get("bombardments_this_turn", 0)
+
 	# Strategic order (Phase J) - read before tactical_lines count
 	var in_strategic_mode = tactical_state.get("in_strategic_mode", false)
 	var strategic_command_type = tactical_state.get("strategic_command_type", "")
@@ -600,6 +604,9 @@ func _draw_tooltip():
 	# BUG-007 FIX: Always show stance if we have tactical_state (player marshal)
 	if tactical_state.size() > 0:
 		tactical_lines += 1  # Stance line
+	# Unit type line (always shown for player marshals with tactical_state)
+	if tactical_state.size() > 0:
+		tactical_lines += 1  # Unit type line (CAVALRY/INFANTRY/ARTILLERY)
 	if drilling or drilling_locked:
 		tactical_lines += 1
 	if shock_bonus > 0:
@@ -610,9 +617,7 @@ func _draw_tooltip():
 		tactical_lines += 1
 	if broken:
 		tactical_lines += 1
-	# Phase 2.8 ability states
-	if cavalry:
-		tactical_lines += 1
+	# Phase 2.8 ability states (cavalry line now part of unit type, skip here)
 	if turns_in_defensive_stance > 0:
 		tactical_lines += 1
 	if counter_punch_available:
@@ -620,6 +625,9 @@ func _draw_tooltip():
 	if holding_position or (in_strategic_mode and strategic_command_type == "HOLD"):
 		tactical_lines += 1
 	if in_strategic_mode:
+		tactical_lines += 1
+	# Artillery bombardment ammo (only for artillery marshals)
+	if artillery:
 		tactical_lines += 1
 
 	# Calculate tooltip height based on whether we have debug info
@@ -764,6 +772,22 @@ func _draw_tooltip():
 			draw_string(font, Vector2(text_x, text_y + 11), stance_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, stance_color)
 			text_y += line_spacing
 
+		# Unit type display (Session 53: CAVALRY/INFANTRY/ARTILLERY)
+		if tactical_state.size() > 0:
+			var type_text = ""
+			var type_color = Color(0.7, 0.7, 0.7)
+			if cavalry:
+				type_text = "CAVALRY: Can attack 2 tiles away"
+				type_color = Color(0.9, 0.6, 0.3)  # Orange
+			elif artillery:
+				type_text = "ARTILLERY: Cannot attack after moving"
+				type_color = Color(0.8, 0.6, 0.4)  # Copper
+			else:
+				type_text = "INFANTRY"
+				type_color = Color(0.5, 0.7, 0.9)  # Steel blue
+			draw_string(font, Vector2(text_x, text_y + 11), type_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, type_color)
+			text_y += line_spacing
+
 		# Drill state
 		if drilling or drilling_locked:
 			var drill_text = ""
@@ -843,13 +867,6 @@ func _draw_tooltip():
 		# PHASE 2.8 PERSONALITY ABILITIES
 		# ═══════════════════════════════════════════════════════════
 
-		# Ney: Cavalry (2-tile attack range)
-		if cavalry:
-			var cav_text = "CAVALRY: Can attack 2 tiles away"
-			var cav_color = Color(0.9, 0.6, 0.3)  # Orange
-			draw_string(font, Vector2(text_x, text_y + 11), cav_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, cav_color)
-			text_y += line_spacing
-
 		# Ney: Restlessness (turns defensive counter)
 		if turns_in_defensive_stance > 0:
 			var restless_text = "RESTLESS: " + str(turns_in_defensive_stance) + "/3 turns defensive"
@@ -886,6 +903,18 @@ func _draw_tooltip():
 				order_text += " -> " + strategic_target
 			var order_color = Color(0.85, 0.75, 0.55)  # Gold
 			draw_string(font, Vector2(text_x, text_y + 11), order_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, order_color)
+			text_y += line_spacing
+
+		# Artillery: Bombardment ammo remaining (Session 53)
+		if artillery:
+			var remaining = max(0, 2 - bombardments_this_turn)
+			var ammo_text = "Bombardments: " + str(remaining) + "/2 remaining"
+			var ammo_color = Color(0.4, 0.8, 0.4)  # Green
+			if remaining == 0:
+				ammo_color = Color(0.8, 0.3, 0.3)  # Red when empty
+			elif remaining == 1:
+				ammo_color = Color(0.9, 0.7, 0.3)  # Yellow when low
+			draw_string(font, Vector2(text_x, text_y + 11), ammo_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, ammo_color)
 			text_y += line_spacing
 
 func _format_number(num: int) -> String:
