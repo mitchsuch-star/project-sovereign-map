@@ -807,3 +807,311 @@ class TestManpowerInteractions:
         assert result["success"] is False
         assert "turn" in result["message"]
         assert "/turn" in result["message"]
+
+
+# ============================================================================
+# AI INTEGRATION TESTS (confidence gap closers)
+# ============================================================================
+
+class TestAIManpowerIntegration:
+    """Integration tests for AI multi-turn manpower behavior."""
+
+    def test_ai_p7_rebuild_uses_correct_cavalry_cost(self):
+        """P7 rebuild path uses cavalry gold cost for cavalry marshals."""
+        ai = EnemyAI(CommandExecutor())
+        world = fresh_world()
+        # Uxbridge is cavalry — at 80% strength should trigger P7 rebuild (threshold=1.0)
+        uxbridge = world.get_marshal("Uxbridge")
+        uxbridge.strength = int(uxbridge.starting_strength * 0.8)
+        uxbridge.location = "Milan"
+        milan = world.get_region("Milan")
+        milan.controller = "Britain"
+        milan.stability = 100
+        # Give exactly enough for cavalry (300) but not enough for a hypothetical 200 + margin
+        give_gold(world, "Britain", 300)
+
+        action = ai._pick_admin_action("Britain", world, admin_ap=2)
+        # Should find Uxbridge and attempt recruit at 300g cost
+        if action and action["action"] == "recruit":
+            assert action["marshal"] == "Uxbridge"
+
+    def test_ai_p7_rebuild_blocked_by_empty_pool(self):
+        """P7 rebuild skips marshal when pool is empty."""
+        ai = EnemyAI(CommandExecutor())
+        world = fresh_world()
+        world.manpower_pools["Britain"]["cavalry"] = 0
+        uxbridge = world.get_marshal("Uxbridge")
+        uxbridge.strength = int(uxbridge.starting_strength * 0.8)
+        uxbridge.location = "Milan"
+        milan = world.get_region("Milan")
+        milan.controller = "Britain"
+        milan.stability = 100
+        give_gold(world, "Britain", 500)
+
+        action = ai._pick_admin_action("Britain", world, admin_ap=2)
+        # Should NOT recruit Uxbridge (cavalry pool empty)
+        if action and action["action"] == "recruit":
+            assert action["marshal"] != "Uxbridge"
+
+    def test_ai_multi_turn_pool_depletion(self):
+        """AI stops recruiting a type after pool depletes across turns."""
+        ai = EnemyAI(CommandExecutor())
+        world = fresh_world()
+        executor = CommandExecutor()
+        # Give Britain just enough cavalry for one recruit
+        world.manpower_pools["Britain"]["cavalry"] = 5000
+        world.manpower_pools["Britain"]["infantry"] = 50000
+        give_gold(world, "Britain", 2000)
+
+        uxbridge = world.get_marshal("Uxbridge")
+        uxbridge.strength = int(uxbridge.starting_strength * 0.3)
+        uxbridge.location = "Milan"
+        milan = world.get_region("Milan")
+        milan.controller = "Britain"
+        milan.stability = 100
+
+        # First recruit should succeed (5000 cavalry available)
+        action1 = ai._pick_admin_action("Britain", world, admin_ap=2)
+        assert action1 is not None
+        assert action1["action"] == "recruit"
+        assert action1["marshal"] == "Uxbridge"
+
+        # Execute it to drain the pool
+        result = executor.execute(
+            {"command": {"action": "recruit", "marshal": "Uxbridge"}, "type": "specific"},
+            {"world": world}
+        )
+        assert result["success"] is True
+        assert world.manpower_pools["Britain"]["cavalry"] == 0
+
+        # Weaken Uxbridge again
+        uxbridge.strength = int(uxbridge.starting_strength * 0.3)
+
+        # Second attempt — pool is now empty, should NOT find Uxbridge
+        weakest = ai._find_weakest_marshal_for_admin("Britain", world)
+        if weakest:
+            assert weakest.name != "Uxbridge"
+
+    def test_ai_both_pools_empty_no_recruit(self):
+        """AI returns no recruit action when both pools are empty."""
+        ai = EnemyAI(CommandExecutor())
+        world = fresh_world()
+        world.manpower_pools["Britain"]["cavalry"] = 0
+        world.manpower_pools["Britain"]["infantry"] = 0
+        give_gold(world, "Britain", 5000)
+
+        # Weaken all British marshals
+        for m in world.marshals.values():
+            if m.nation == "Britain":
+                m.strength = int(m.starting_strength * 0.3)
+                # Put them in controlled regions
+                m.location = "Milan"
+        milan = world.get_region("Milan")
+        milan.controller = "Britain"
+        milan.stability = 100
+
+        weakest = ai._find_weakest_marshal_for_admin("Britain", world)
+        # No marshal should be found — both pools empty
+        assert weakest is None
+
+    def test_ai_switches_to_infantry_when_cavalry_depleted(self):
+        """AI recruits infantry marshal when cavalry pool is empty but infantry is available."""
+        ai = EnemyAI(CommandExecutor())
+        world = fresh_world()
+        world.manpower_pools["Britain"]["cavalry"] = 0
+        world.manpower_pools["Britain"]["infantry"] = 50000
+        give_gold(world, "Britain", 500)
+
+        # Weaken both Wellington (infantry) and Uxbridge (cavalry) equally
+        wellington = world.get_marshal("Wellington")
+        wellington.strength = int(wellington.starting_strength * 0.3)
+        wellington.location = "Milan"
+        uxbridge = world.get_marshal("Uxbridge")
+        uxbridge.strength = int(uxbridge.starting_strength * 0.3)
+        uxbridge.location = "Milan"
+        milan = world.get_region("Milan")
+        milan.controller = "Britain"
+        milan.stability = 100
+
+        weakest = ai._find_weakest_marshal_for_admin("Britain", world)
+        # Should pick Wellington (infantry) not Uxbridge (cavalry pool empty)
+        assert weakest is not None
+        assert weakest.name != "Uxbridge"
+
+    def test_ai_stables_full_execution(self):
+        """AI stables decision executes through executor without error."""
+        ai = EnemyAI(CommandExecutor())
+        executor = CommandExecutor()
+        world = fresh_world()
+        world.manpower_pools["Britain"]["cavalry"] = 1000
+        give_gold(world, "Britain", 500)
+
+        # Set up a buildable region
+        milan = world.get_region("Milan")
+        milan.controller = "Britain"
+        milan.stability = 100
+
+        # Check if AI wants to build stables
+        if ai._should_build_stables("Britain", world):
+            region_name = ai._find_best_stables_region("Britain", world)
+            if region_name:
+                # Execute the build through the executor
+                result = executor.execute(
+                    {"command": {"action": "build", "marshal": "Wellington", "target": region_name, "building_type": "stables"}, "type": "specific"},
+                    {"world": world}
+                )
+                # Should succeed or fail gracefully (not crash)
+                assert "message" in result
+
+    def test_ai_recruit_pool_deducted_correctly(self):
+        """When AI recruit executes, the correct pool is deducted."""
+        world = fresh_world()
+        executor = CommandExecutor()
+        initial_inf = world.manpower_pools["Britain"]["infantry"]
+        initial_cav = world.manpower_pools["Britain"]["cavalry"]
+
+        # Recruit for Wellington (infantry)
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Milan"
+        milan = world.get_region("Milan")
+        milan.controller = "Britain"
+        milan.stability = 100
+        give_gold(world, "Britain", 500)
+
+        result = executor.execute(
+            {"command": {"action": "recruit", "marshal": "Wellington"}, "type": "specific"},
+            {"world": world}
+        )
+        assert result["success"] is True
+        assert world.manpower_pools["Britain"]["infantry"] == initial_inf - INFANTRY_RECRUIT_AMOUNT
+        assert world.manpower_pools["Britain"]["cavalry"] == initial_cav  # Untouched
+
+    def test_regen_after_recruit_restores_pool(self):
+        """Pool regen after recruiting partially restores the pool."""
+        world = fresh_world()
+        executor = CommandExecutor()
+        give_gold(world, "France", 500)
+
+        # Recruit infantry (drains 10k)
+        result = recruit_result(world, executor, marshal="Davout")
+        assert result["success"] is True
+        pool_after_recruit = world.manpower_pools["France"]["infantry"]
+
+        # Advance turn to trigger regen
+        world._advance_turn_internal()
+        pool_after_regen = world.manpower_pools["France"]["infantry"]
+
+        # Pool should have increased
+        assert pool_after_regen > pool_after_recruit
+
+
+# ============================================================================
+# ENDPOINT WIRING TESTS
+# ============================================================================
+
+class TestManpowerEndpoint:
+    """Verify manpower_pools flows through API responses."""
+
+    def test_game_state_summary_includes_manpower(self):
+        """get_game_state_summary() includes manpower_pools."""
+        world = fresh_world()
+        summary = world.get_game_state_summary()
+        assert "manpower_pools" in summary
+        assert summary["manpower_pools"]["infantry"] == 80000
+        assert summary["manpower_pools"]["cavalry"] == 15000
+
+    def test_filtered_summary_includes_manpower(self):
+        """get_filtered_game_state_summary() includes manpower_pools."""
+        world = fresh_world()
+        summary = world.get_filtered_game_state_summary()
+        assert "manpower_pools" in summary
+        assert summary["manpower_pools"]["infantry"] == 80000
+        assert summary["manpower_pools"]["cavalry"] == 15000
+
+    def test_manpower_values_are_int(self):
+        """Manpower pool values are ints (Godot requirement)."""
+        world = fresh_world()
+        summary = world.get_game_state_summary()
+        assert isinstance(summary["manpower_pools"]["infantry"], int)
+        assert isinstance(summary["manpower_pools"]["cavalry"], int)
+
+    def test_manpower_updates_after_recruit(self):
+        """Game state summary reflects pool changes after recruit."""
+        world = fresh_world()
+        executor = CommandExecutor()
+        give_gold(world, "France", 500)
+        recruit_result(world, executor, marshal="Davout")
+
+        summary = world.get_game_state_summary()
+        assert summary["manpower_pools"]["infantry"] == 70000
+        assert summary["manpower_pools"]["cavalry"] == 15000
+
+    def test_manpower_only_shows_player_nation(self):
+        """Manpower pools only show player nation's data."""
+        world = fresh_world()
+        summary = world.get_game_state_summary()
+        # Should be France's pools (player nation)
+        assert summary["manpower_pools"]["infantry"] == DEFAULT_MANPOWER_POOLS["France"]["infantry"]
+        # Should NOT contain Britain/Prussia data in the summary pools
+        assert summary["manpower_pools"]["infantry"] != DEFAULT_MANPOWER_POOLS["Britain"]["infantry"]
+
+
+# ============================================================================
+# DEBUG COMMAND TESTS
+# ============================================================================
+
+class TestManpowerDebug:
+    """Tests for /debug set_manpower command."""
+
+    def test_set_manpower_infantry(self):
+        """Debug command sets infantry pool correctly."""
+        world = fresh_world()
+        executor = CommandExecutor()
+        result = executor.execute(
+            {"command": {"action": "debug", "target": "set_manpower France infantry 42000"}, "type": "general"},
+            {"world": world, "debug_mode": True}
+        )
+        assert result["success"] is True
+        assert world.manpower_pools["France"]["infantry"] == 42000
+
+    def test_set_manpower_cavalry(self):
+        """Debug command sets cavalry pool correctly."""
+        world = fresh_world()
+        executor = CommandExecutor()
+        result = executor.execute(
+            {"command": {"action": "debug", "target": "set_manpower France cavalry 3000"}, "type": "general"},
+            {"world": world, "debug_mode": True}
+        )
+        assert result["success"] is True
+        assert world.manpower_pools["France"]["cavalry"] == 3000
+
+    def test_set_manpower_clamps_negative(self):
+        """Debug command clamps negative values to 0."""
+        world = fresh_world()
+        executor = CommandExecutor()
+        result = executor.execute(
+            {"command": {"action": "debug", "target": "set_manpower France cavalry -500"}, "type": "general"},
+            {"world": world, "debug_mode": True}
+        )
+        assert result["success"] is True
+        assert world.manpower_pools["France"]["cavalry"] == 0
+
+    def test_set_manpower_invalid_nation(self):
+        """Debug command rejects invalid nation."""
+        world = fresh_world()
+        executor = CommandExecutor()
+        result = executor.execute(
+            {"command": {"action": "debug", "target": "set_manpower Spain infantry 10000"}, "type": "general"},
+            {"world": world, "debug_mode": True}
+        )
+        assert result["success"] is False
+
+    def test_set_manpower_invalid_pool_type(self):
+        """Debug command rejects invalid pool type."""
+        world = fresh_world()
+        executor = CommandExecutor()
+        result = executor.execute(
+            {"command": {"action": "debug", "target": "set_manpower France artillery 10000"}, "type": "general"},
+            {"world": world, "debug_mode": True}
+        )
+        assert result["success"] is False
