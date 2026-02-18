@@ -782,6 +782,7 @@ When limit reached:
 | Field | Class | Type | Default | Purpose |
 |-------|-------|------|---------|---------|
 | `bombardments_this_turn` | Marshal | int | 0 | Tracks bombardments fired this turn (max 2) |
+| `square_formation` | Marshal | bool | False | True when infantry is in anti-cavalry square |
 | `bombardment_target` | StrategicOrder | Optional[str] | None | Locked target for HOLD bombardment |
 
 ### 13.2 Checklist
@@ -790,8 +791,11 @@ When limit reached:
 - [ ] Add `bombardments_this_turn` to `Marshal.to_dict()`
 - [ ] Add `bombardments_this_turn` to `Marshal.from_dict()` with `.get('bombardments_this_turn', 0)`
 - [ ] Reset `bombardments_this_turn` in `world_state.py advance_turn()` per-marshal loop (alongside `attacks_this_turn`, `moved_this_turn`)
+- [ ] Add `square_formation` to `Marshal.__init__`, `to_dict()`, `from_dict()` with `.get('square_formation', False)`
+- [ ] Process `square_formation` in `_process_tactical_states()` (clear on broken/retreating)
 - [ ] Add `bombardment_target` to `StrategicOrder.__init__`, `to_dict()`, `from_dict()`
 - [ ] Add `TERRAIN_BOMBARDMENT_MODIFIER` to `region.py`
+- [ ] Extend `record_attack()` with `unit_type` field (no serialization needed — clears per turn)
 - [ ] Run `pytest tests/test_serialization_enforcement.py -v`
 - [ ] Update `docs/SAVE_FORMAT_REFERENCE.md`
 
@@ -896,6 +900,285 @@ Pre-wire the streak check point in `_execute_bombardment()` so adding this later
 | Doc updates | — | `SAVE_FORMAT_REFERENCE.md`, `SYSTEMS_REFERENCE.md`, `CLAUDE.md`, `STATUS.md` |
 | Full manual curl test pass | §17.6 | — |
 
+### Session 53: Combined Arms Bonus
+
+**Rewards coordinating unit types in the same battle. Extends existing flanking infrastructure.**
+
+The Napoleonic sequence — artillery preparation, infantry assault, cavalry exploitation — should be mechanically rewarded. When multiple unit types attack the same region in the same turn, later attackers benefit from the combined arms coordination.
+
+#### Design
+
+**Extend `record_attack()` in `world_state.py`:**
+
+The existing `attack_record` dict gains a `unit_type` field:
+
+```python
+attack_record = {
+    "attacker": attacker_name,
+    "origin": origin_region,
+    "timestamp": int(self._action_counter),
+    "unit_type": unit_type,  # "infantry" | "cavalry" | "artillery"
+}
+```
+
+Bombardment also records into `attacks_this_turn` via `record_attack()` so artillery preparation counts toward the combined arms bonus for later infantry/cavalry attacks.
+
+**New method: `calculate_combined_arms_bonus(target_region)`:**
+
+```python
+def calculate_combined_arms_bonus(self, target_region: str) -> Dict:
+    """Calculate bonus from multiple unit types attacking the same region."""
+    if target_region not in self.attacks_this_turn:
+        return {"bonus": 0.0, "unit_types": set(), "message": None}
+
+    unit_types = set()
+    for attack in self.attacks_this_turn[target_region]:
+        unit_types.add(attack.get("unit_type", "infantry"))
+
+    if len(unit_types) >= 3:
+        bonus = 0.20  # +20% — full combined arms (all three branches)
+    elif len(unit_types) >= 2:
+        bonus = 0.10  # +10% — partial combined arms (two branches)
+    else:
+        bonus = 0.0
+
+    return {"bonus": bonus, "unit_types": unit_types, "message": ...}
+```
+
+**Apply in `resolve_battle()` (combat.py):**
+
+The combined arms bonus applies as an **attack multiplier** on the current attacker's shock calculation, alongside the existing flanking bonus on dice. This stacks with flanking (different axes of coordination):
+
+```python
+# After shock_multiplier calculation, before damage:
+combined_arms = world.calculate_combined_arms_bonus(target_region)
+if combined_arms["bonus"] > 0:
+    shock_multiplier *= (1.0 + combined_arms["bonus"])
+    combined_arms_message = f"Combined arms coordination! (+{int(combined_arms['bonus'] * 100)}% attack)"
+```
+
+**Bombardment contribution:** When `_execute_bombardment()` fires, it calls `record_attack()` with `unit_type="artillery"`. This means bombardment counts toward combined arms even though bombardment itself doesn't use `resolve_battle()`. The bonus applies to the NEXT melee attacker, not to the bombardment. This naturally creates the historical sequence: shell them, then charge.
+
+**Key interactions:**
+- Flanking (multi-direction) + combined arms (multi-type) stack. Maximum coordination: 3 unit types from 3 directions = +20% combined arms + flanking bonus 3 on dice. Devastating but requires committing your entire army.
+- The first attacker of a new type gets no bonus (they establish the type). The second type gets +10%. The third gets +20%. Order matters.
+- Same unit type attacking twice doesn't increase the bonus (set-based, not count-based).
+- Combined arms message appears in battle report alongside flanking message.
+
+| Item | Files |
+|------|-------|
+| Extend `record_attack()` with `unit_type` param | `world_state.py` |
+| `calculate_combined_arms_bonus()` method | `world_state.py` |
+| Pass `unit_type` from all `record_attack()` call sites (5 in executor.py) | `executor.py` |
+| Bombardment calls `record_attack()` with `unit_type="artillery"` | `executor.py` |
+| Apply combined arms multiplier in `resolve_battle()` | `combat.py` |
+| Combined arms message in battle report | `combat.py`, `battle_report.py` |
+| AI awareness: prefer attacking regions where allies of different types already struck | `enemy_ai.py` |
+| Berthier observation: "The coordination of infantry, cavalry, and artillery proved decisive" | `battle_report.py` |
+
+**Tests:**
+- [ ] 2 unit types attacking same region → +10% for second attacker
+- [ ] 3 unit types → +20% for third attacker
+- [ ] Same type attacking twice → no bonus increase
+- [ ] Bombardment counts as artillery type for combined arms
+- [ ] Combined arms stacks with flanking bonus
+- [ ] Combined arms bonus resets at turn start (via `attacks_this_turn` clear)
+- [ ] Serialization: no new fields needed (`attacks_this_turn` already clears per turn)
+
+### Session 54: Square Formation
+
+**Infantry forms square to counter cavalry charges, but becomes an artillery target. Completes the Napoleonic tactical triangle.**
+
+This is THE central tactical problem of Napoleonic warfare. Historically, infantry in square was nearly impervious to cavalry but a concentrated target for artillery. The decision — square or line? — depended entirely on what the enemy was sending at you.
+
+#### The Triangle
+
+```
+        CAVALRY
+       /        \
+      / counters  \
+     /    (+30%)   \
+ARTILLERY ←-------- SQUARE
+ counters          counters
+  (+50%)           (-40% cav dmg)
+```
+
+- **Cavalry → Artillery:** Already exists (+30% cavalry counter)
+- **Square → Cavalry:** New — infantry in square reduces cavalry attack damage by 40%
+- **Artillery → Square:** New — bombardment and melee artillery deal +50% against square
+
+Infantry in LINE formation (default) is the baseline — vulnerable to cavalry charges but not an artillery magnet.
+
+#### Mechanics
+
+**Command:** "Marshal Davout, form square" / "Davout, square formation"
+**Cost:** 1 AP (same as fortify/drill — it's a tactical stance)
+**Who:** Infantry marshals only. Cavalry and artillery cannot form square.
+
+**New field on Marshal:**
+
+```python
+self.square_formation: bool = False  # True when in anti-cavalry square
+```
+
+**Effects while in square:**
+- Cavalry attacks deal **-40% damage** (bristling bayonets, horses refuse to charge home)
+- Artillery bombardment deals **+50% damage** (concentrated mass, can't miss)
+- Artillery melee attacks deal **+50% damage** (same logic — packed formation)
+- Marshal **cannot attack** (square is purely defensive — you can't advance in square)
+- Marshal **cannot move** (square is a fixed position)
+- Small defense bonus: **+5%** via `get_defense_modifier()` (tight formation, mutual support)
+- **Stacks with fortify:** A fortified square is historically accurate (redoubt + square) but the combined bonuses make the marshal extremely hard to crack with infantry alone
+
+**Square breaks automatically on:**
+- Player orders move (break + move in one command, costs normal move AP)
+- Player orders attack (break + attack, costs normal attack AP)
+- Marshal is forced to retreat (broken by combat)
+- Marshal is broken (morale collapse)
+- Explicit "break square" / "form line" command (0 AP — free action, like stance change)
+
+**Square does NOT break on:**
+- Being attacked (the whole point is to endure attacks)
+- Being bombarded (you suffer the +50% but the square holds)
+- Turn end (persists across turns like fortify)
+
+#### Implementation
+
+**`_execute_form_square()` in executor.py:**
+
+```python
+def _execute_form_square(self, command, game_state, world, marshal):
+    if getattr(marshal, 'cavalry', False) or getattr(marshal, 'artillery', False):
+        return {"success": False, "message": f"{marshal.name} commands cavalry/artillery — only infantry can form square."}
+
+    if getattr(marshal, 'square_formation', False):
+        return {"success": False, "message": f"{marshal.name} is already in square formation."}
+
+    marshal.square_formation = True
+    return {
+        "success": True,
+        "message": f"{marshal.name} orders the infantry into square! "
+                   f"Bayonets bristle outward — cavalry charges will break against this formation, "
+                   f"but the packed ranks are vulnerable to artillery fire."
+    }
+```
+
+**Blocking logic:** When `square_formation = True`, block attack and move actions with message: "{name}'s troops are in square formation. Break square first, or issue the order directly (square will break automatically)."
+
+Actually — don't block. Auto-break on attack/move for smoother UX:
+
+```python
+# In _execute_attack / _execute_move, before main logic:
+if getattr(marshal, 'square_formation', False):
+    marshal.square_formation = False
+    # Continue with attack/move normally
+    # Add to message: "{name} breaks square formation and advances."
+```
+
+**Modifier integration (SINGLE SOURCE in marshal.py):**
+
+```python
+def get_defense_modifier(self):
+    modifier = 0.0
+    # ... existing modifiers ...
+    if getattr(self, 'square_formation', False):
+        modifier += 0.05  # +5% general defense in square
+    return modifier
+```
+
+The cavalry damage reduction and artillery bonus are NOT in `get_defense_modifier` — they're target-type interactions applied in `combat.py` (same pattern as the existing cavalry counter):
+
+```python
+# In resolve_battle(), alongside cavalry counter block:
+
+# SQUARE vs CAVALRY: Infantry square blunts cavalry charges
+square_counter_message = None
+if getattr(defender, 'square_formation', False) and getattr(attacker, 'cavalry', False):
+    shock_multiplier *= 0.60  # -40% cavalry damage
+    square_counter_message = f"{defender.name}'s square bristles with bayonets! {attacker.name}'s cavalry cannot break through. (-40% attack)"
+
+# ARTILLERY vs SQUARE: Packed formation is a gunner's dream
+square_vulnerability_message = None
+if getattr(defender, 'square_formation', False) and getattr(attacker, 'artillery', False):
+    shock_multiplier *= 1.50  # +50% artillery damage
+    square_vulnerability_message = f"{defender.name}'s packed square is a perfect target for {attacker.name}'s guns! (+50% attack)"
+```
+
+**Bombardment integration:** In `_execute_bombardment()`, check for square:
+
+```python
+# After calculating raw_damage, before applying variance:
+if getattr(defender, 'square_formation', False):
+    raw_damage *= 1.50  # +50% — concentrated target
+    square_vulnerability = True
+```
+
+#### Objection Triggers
+
+| Marshal Type | Trigger | Level | Flavor |
+|-------------|---------|-------|--------|
+| **Aggressive infantry** (future) | Ordered to form square | MODERATE | "Square?! You want me to stand here like a sitting duck? Let me CHARGE them!" |
+| **Cautious infantry** (Davout/Wellington) | Ordered to form square when no cavalry adjacent | MILD | "A prudent formation, Sire, though I see no cavalry to warrant it." |
+| **Cautious infantry** | Ordered to form square when artillery adjacent | MILD | "Sire, their guns will make short work of us in square. Perhaps we should advance on the battery instead." |
+| **Any infantry** | In square AND hit by bombardment | — (Berthier observation) | "The enemy artillery savages {name}'s square. The formation holds but the cost is terrible." |
+
+#### AI Behavior
+
+```python
+# In enemy_ai.py, new check between P0 engagement and P3 counter-punch:
+
+# P2.5: FORM SQUARE — defensive response to cavalry threat
+if not getattr(marshal, 'cavalry', False) and not getattr(marshal, 'artillery', False):
+    # Infantry only
+    adjacent_cavalry = [e for e in adjacent_enemies if getattr(e, 'cavalry', False)]
+    adjacent_artillery = [e for e in adjacent_enemies if getattr(e, 'artillery', False)]
+
+    if adjacent_cavalry and not getattr(marshal, 'square_formation', False):
+        # Form square if cavalry threatens AND no artillery threatens
+        if not adjacent_artillery:
+            return {"marshal": marshal.name, "action": "form_square"}
+        # If BOTH cavalry and artillery threaten — the Napoleonic dilemma!
+        # Cautious: form square (survive the charge, accept artillery damage)
+        # Aggressive: stay in line (charge the cavalry back)
+        if marshal.personality == "cautious":
+            return {"marshal": marshal.name, "action": "form_square"}
+        # Aggressive/literal: don't form square, prefer attacking
+```
+
+**AI break square:** If in square and no cavalry adjacent, break square (set `square_formation = False` directly in AI evaluation, or issue move/attack which auto-breaks).
+
+| Item | Files |
+|------|-------|
+| `square_formation` field + serialization | `marshal.py` |
+| `_execute_form_square()` | `executor.py` |
+| Auto-break on move/attack | `executor.py` |
+| `get_defense_modifier()` +5% in square | `marshal.py` |
+| Square vs cavalry (-40%) in `resolve_battle()` | `combat.py` |
+| Artillery vs square (+50%) in `resolve_battle()` | `combat.py` |
+| Bombardment vs square (+50%) in `_execute_bombardment()` | `executor.py` |
+| Process in `_process_tactical_states()` (clear on broken/retreat) | `world_state.py` |
+| Add to `VALID_ACTIONS` + mock parser + AP cost | `validation.py`, `llm_client.py`, `world_state.py` |
+| AI P2.5 square formation logic | `enemy_ai.py` |
+| Square messages in battle report | `combat.py`, `battle_report.py` |
+| Objection triggers | `objection_v2.py` |
+| Godot display (square icon/indicator) | `main.gd`, `map.gd` |
+
+**Tests:**
+- [ ] Only infantry can form square (cavalry/artillery rejected)
+- [ ] Square reduces cavalry attack damage by 40%
+- [ ] Square increases artillery attack damage by 50%
+- [ ] Square increases bombardment damage by 50%
+- [ ] Square gives +5% defense modifier
+- [ ] Cannot attack while in square (or auto-breaks before attack)
+- [ ] Cannot move while in square (or auto-breaks before move)
+- [ ] Square breaks on retreat/broken
+- [ ] Square persists across turns
+- [ ] "Break square" is free (0 AP)
+- [ ] AI forms square when cavalry threatens and no artillery adjacent
+- [ ] AI doesn't form square when artillery also threatens (personality-dependent)
+- [ ] Serialization round-trip preserves `square_formation`
+- [ ] Square + fortify stack correctly
+
 ---
 
 ## 16. Files to Modify (All Sessions)
@@ -903,20 +1186,22 @@ Pre-wire the streak check point in `_execute_bombardment()` so adding this later
 | File | Changes |
 |------|---------|
 | `backend/models/region.py` | Add `TERRAIN_BOMBARDMENT_MODIFIER` dict |
-| `backend/models/marshal.py` | Add `bombardments_this_turn` field, serialization |
-| `backend/commands/executor.py` | Route ranged artillery to new `_execute_bombardment()` with terrain mod + collateral; keep same-region in `_execute_attack()` |
-| `backend/game_logic/combat.py` | Remove ranged bombardment 50% reduction (lines 406-423 — dead code after this) |
-| `backend/game_logic/battle_report.py` | Add bombardment observations, bombardment report generator |
-| `backend/commands/objection_v2.py` | Replace artillery triggers per §7 (add cease-fire, last-shot, upgrade reckless-repositioning to MODERATE) |
+| `backend/models/marshal.py` | Add `bombardments_this_turn`, `square_formation` fields, serialization |
+| `backend/commands/executor.py` | Route ranged artillery to new `_execute_bombardment()` with terrain mod + collateral; `_execute_form_square()`; combined arms `record_attack()` calls; keep same-region in `_execute_attack()` |
+| `backend/game_logic/combat.py` | Remove ranged bombardment 50% reduction (dead code); add combined arms multiplier, square vs cavalry (-40%), artillery vs square (+50%) |
+| `backend/game_logic/battle_report.py` | Add bombardment, combined arms, and square observations |
+| `backend/commands/objection_v2.py` | Replace artillery triggers per §7; add square formation triggers |
 | `backend/commands/disobedience.py` | Add artillery flavor text per §7.5 |
 | `backend/commands/strategic.py` | Add `_execute_hold_bombardment()` for artillery HOLD override (§9), add `bombardment_target` to StrategicOrder |
-| `backend/models/world_state.py` | Reset `bombardments_this_turn` at turn start |
-| `backend/ai/enemy_ai.py` | Add bombardment limit check, lower ratio threshold for ranged, skip broken/retreating targets, skip P4.25 for artillery (§10) |
+| `backend/models/world_state.py` | Reset `bombardments_this_turn` at turn start; `calculate_combined_arms_bonus()`; extend `record_attack()` with `unit_type`; process `square_formation` in `_process_tactical_states()` |
+| `backend/ai/enemy_ai.py` | Add bombardment limit check, lower ratio threshold for ranged, skip broken/retreating targets, skip P4.25 for artillery (§10); P2.5 square formation; combined arms coordination awareness |
+| `backend/ai/validation.py` | Add `form_square` to `VALID_ACTIONS` |
+| `backend/ai/llm_client.py` | Add `form_square` keywords to mock parser |
 | `backend/main.py` | Pass through bombardment result fields + collateral to API response |
-| `godot-client/...main.gd` | Handle `bombardment_result` display including collateral |
+| `godot-client/...main.gd` | Handle `bombardment_result` display including collateral; square formation indicator |
 | `docs/SAVE_FORMAT_REFERENCE.md` | Document new fields |
-| `docs/SYSTEMS_REFERENCE.md` | Document bombardment vs battle distinction, terrain modifier, collateral |
-| `CLAUDE.md` | Update artillery mechanics references, add bombardment to troubleshooting |
+| `docs/SYSTEMS_REFERENCE.md` | Document bombardment vs battle distinction, terrain modifier, collateral, combined arms, square formation |
+| `CLAUDE.md` | Update artillery/combat mechanics references, add bombardment + square to troubleshooting |
 
 ---
 
@@ -1007,7 +1292,35 @@ The following code becomes **dead** once bombardment has its own path and should
 - [ ] Bombardment streak accumulates across turns during HOLD
 - [ ] Cancelling HOLD with streak >= 2 triggers "cease fire" objection
 
-### 17.5 Integration Tests
+### 17.5 Unit Tests — Combined Arms (Session 53)
+
+- [ ] 2 unit types attacking same region → +10% for second attacker
+- [ ] 3 unit types attacking same region → +20% for third attacker
+- [ ] Same type attacking twice → no bonus increase
+- [ ] Bombardment counts as artillery type for combined arms
+- [ ] Combined arms stacks with flanking bonus
+- [ ] Combined arms bonus resets at turn start (via `attacks_this_turn` clear)
+- [ ] Combined arms message in battle report
+- [ ] `record_attack()` includes `unit_type` field
+
+### 17.6 Unit Tests — Square Formation (Session 54)
+
+- [ ] Only infantry can form square (cavalry/artillery rejected)
+- [ ] Square reduces cavalry attack damage by 40%
+- [ ] Square increases artillery melee attack damage by 50%
+- [ ] Square increases bombardment damage by 50%
+- [ ] Square gives +5% defense modifier
+- [ ] Auto-breaks on attack order (attack proceeds after breaking)
+- [ ] Auto-breaks on move order (move proceeds after breaking)
+- [ ] Square breaks on retreat/broken
+- [ ] Square persists across turns
+- [ ] "Break square" / "form line" is free (0 AP)
+- [ ] AI forms square when cavalry threatens and no artillery adjacent
+- [ ] AI cautious forms square even with artillery threat; aggressive does not
+- [ ] Serialization round-trip preserves `square_formation`
+- [ ] Square + fortify stack correctly
+
+### 17.7 Integration Tests
 
 - [ ] AI artillery (PrinceAugust) uses bombardment correctly
 - [ ] AI skips bombardment when at 2/turn limit
@@ -1019,8 +1332,12 @@ The following code becomes **dead** once bombardment has its own path and should
 - [ ] Objection triggers fire correctly per §7
 - [ ] Event log records bombardment events with terrain and collateral
 - [ ] Fog of war filters bombardment events correctly
+- [ ] Combined arms bonus applied in multi-type coordinated attacks
+- [ ] AI coordinates unit types when possible (combined arms awareness)
+- [ ] Square formation interacts correctly with cavalry counter and bombardment
+- [ ] Full triangle: cavalry→artillery (+30%), artillery→square (+50%), square→cavalry (-40%)
 
-### 17.6 Manual / Curl Tests
+### 17.8 Manual / Curl Tests
 
 ```bash
 # Drouot bombards Wellington from adjacent region (targeted)
