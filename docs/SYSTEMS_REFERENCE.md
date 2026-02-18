@@ -1302,8 +1302,8 @@ Artillery units are a third marshal type alongside infantry and cavalry. They pr
 | Cavalry vs Artillery | +30% shock_multiplier | `combat.py` (target-type, NOT marshal intrinsic) |
 | Fort degradation | 10% per artillery attack (vs 5% for non-artillery) | `combat.py` |
 | No advance on win | Artillery stays at origin, target NOT captured | `executor.py` |
-| Ranged bombardment | 50% return casualties when attacker.location != defender.location | `combat.py` |
-| Same-region combat | Normal rules apply (no movement restriction, full return damage) | `executor.py` |
+| Ranged bombardment | Dedicated `_execute_bombardment()` path when attacker.location != defender.location | `executor.py` |
+| Same-region combat | Normal `resolve_battle()` rules apply (full return damage, counter-punch possible) | `executor.py` → `combat.py` |
 
 ### Starting Marshals
 
@@ -1363,14 +1363,51 @@ After artillery bombardment, if defender's `defense_bonus <= 0` AND region `fort
 - `_score_artillery_position(region, marshal, nation, world)` — position quality score
 - `_find_nearest_friendly_infantry(marshal, nation, world)` — BFS for retreat target
 
+### Bombardment Resolution (Session 48)
+
+Ranged bombardment now uses a dedicated `_execute_bombardment()` method in executor.py instead of the old 50% return casualties hack in combat.py.
+
+**Routing rule:** In `_execute_attack()`, after target resolution: if `marshal.artillery` AND `marshal.location != enemy_marshal.location` → route to `_execute_bombardment()`. Same-region artillery combat still uses full `resolve_battle()`.
+
+**Damage formula:**
+```
+raw_damage = defender.strength × 0.04 × (1.0 + shock_skill/15.0) × terrain_modifier
+final_damage = int(raw_damage × uniform(0.80, 1.20))
+return_casualties = int(marshal.strength × 0.015 × uniform(0.80, 1.20))
+```
+
+**Terrain bombardment modifiers (region.py `TERRAIN_BOMBARDMENT_MODIFIER`):**
+
+| Terrain | Modifier | Reason |
+|---------|----------|--------|
+| Plains | 1.10 | +10% — open ground, no cover |
+| Forest | 0.80 | -20% — trees obscure targets |
+| Hills | 0.75 | -25% — defilade behind ridgelines |
+| Mountains | 0.60 | -40% — deep cover, hard to range |
+| Urban | 0.70 | -30% — buildings provide shelter |
+| River Crossing | 1.00 | Neutral — rivers don't help vs shells |
+
+**Per-bombardment effects:**
+- Fort degradation: -0.10 (always artillery rate), floors at 0
+- Defender morale: -3
+- Attacker morale: unchanged
+- No winner/loser, no battles_won/lost, no counter-punch
+- `bombardments_this_turn` incremented (max 2 per turn)
+- `attacks_this_turn` incremented (shares exhaustion counter)
+- Bombardment streak tracking (same as Session 43)
+
+**Defender destroyed:** Delegates to `_apply_forced_retreat_or_break()` for consistent break behavior. Region NOT captured (artillery doesn't advance).
+
+**Per-turn limit:** `bombardments_this_turn` field on marshal, reset to 0 in `advance_turn()`. Max 2 bombardments per turn.
+
 ### Key Files
 
 | File | What changed |
 |------|-------------|
-| `marshal.py` | `artillery` flag, `moved_this_turn`, defense modifier, exhaustion exemption, `bombardment_streak` + `last_bombardment_target`, serialization, starting marshals |
-| `combat.py` | Cavalry counter (+30%), fort degradation (10%), cavalry_counter_message, artillery exhaustion message skip, ranged bombardment (50% return casualties) |
-| `executor.py` | Can't attack after moving, no advance on win, glorious charge ban, PURSUE block, recruit type logic, bombardment streak tracking, Berthier advisory, broken state cleanup |
-| `world_state.py` | Artillery constants, pool regen, `get_artillery_regen_rate()`, moved_this_turn reset |
+| `marshal.py` | `artillery` flag, `moved_this_turn`, defense modifier, exhaustion exemption, `bombardment_streak` + `last_bombardment_target`, `bombardments_this_turn`, serialization, starting marshals |
+| `combat.py` | Cavalry counter (+30%), fort degradation (10%), cavalry_counter_message, artillery exhaustion message skip |
+| `executor.py` | Can't attack after moving, no advance on win, glorious charge ban, PURSUE block, recruit type logic, bombardment streak tracking, Berthier advisory, broken state cleanup, **`_execute_bombardment()` (Session 48)** |
+| `world_state.py` | Artillery constants, pool regen, `get_artillery_regen_rate()`, moved_this_turn reset, **bombardments_this_turn reset (Session 48)** |
 | `enemy_ai.py` | moved_this_turn gate, pool-aware recruit, cost-aware admin, P2 screen check, P4 bombardment sort + cavalry preference, P7 anti-oscillation + position scoring, 4 helper functions |
 | `battle_report.py` | Artillery observation templates, exhaustion snapshot skip for artillery |
 | `objection_v2.py` | Aggressive impatient trigger, cautious patient trigger |

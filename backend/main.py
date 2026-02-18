@@ -599,6 +599,11 @@ def execute_command(request: CommandRequest):
         if result.get("bombardment_advisory"):
             response["bombardment_advisory"] = result["bombardment_advisory"]
 
+        # Bombardment result (Phase 6.5: separate bombardment resolution path)
+        if result.get("bombardment_result"):
+            response["bombardment_result"] = result["bombardment_result"]
+            response["action"] = "bombardment"
+
         # Berthier's After-Action Report
         if result.get("battle_report"):
             response["battle_report"] = result["battle_report"]

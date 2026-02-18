@@ -54,6 +54,15 @@ TERRAIN_CAVALRY_ATTRITION_BONUS = {
 
 CHARGE_BLOCKED_TERRAIN = {"mountains", "forest", "urban"}
 
+TERRAIN_BOMBARDMENT_MODIFIER = {
+    "plains": 1.10,          # +10% damage — open ground, no cover
+    "forest": 0.80,          # -20% damage — trees obscure targets
+    "hills": 0.75,           # -25% damage — defilade behind ridgelines
+    "mountains": 0.60,       # -40% damage — deep cover, hard to range
+    "urban": 0.70,           # -30% damage — buildings provide shelter
+    "river_crossing": 1.0,   # No modifier — rivers don't help vs shells
+}
+
 # ============================================================================
 # REGION TYPE CONSTANTS (single source of truth)
 # ============================================================================

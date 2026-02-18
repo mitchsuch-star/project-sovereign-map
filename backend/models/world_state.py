@@ -3022,6 +3022,8 @@ class WorldState:
             marshal.attacks_this_turn = 0
             # Artillery - reset moved-this-turn flag so artillery can fire
             marshal.moved_this_turn = False
+            # Artillery - reset bombardment counter for per-turn limit
+            marshal.bombardments_this_turn = 0
 
         # V2a Objection System - clear per-turn tracking
         self.mild_concerns_this_turn = []

@@ -12,8 +12,8 @@
 |-------|------|--------|
 | 1-5.3 | Foundation through AI Fixes | COMPLETE |
 | **V2a** | **Objection System Refactor** | **COMPLETE** |
-| **6** | **Core Campaign Systems** | **IN PROGRESS (6.1 terrain, 6.2 economy, Save/Load, Berthier, Battle Report, Event Log all COMPLETE)** |
-| 6.5 | Information & UI Systems | Planned |
+| **6** | **Core Campaign Systems** | **COMPLETE** |
+| **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment Part 1 done — Sessions 49-52 remaining) |
 | 7 | Multi-Marshal, Relationships & Coalitions | Planned |
 | 8 | Diplomacy & Peace | Planned |
 | 8.5 | Events, Goals & National Identity | Planned |
@@ -40,7 +40,7 @@
 | 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 2558 (verified Feb 15, 2026)
+**Total Tests:** 2861 (verified Feb 18, 2026)
 
 ---
 

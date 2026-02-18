@@ -377,6 +377,8 @@ class Marshal:
         # Used for personality objections and Berthier advisory.
         self.last_bombardment_target: Optional[str] = None
         self.bombardment_streak: int = 0
+        # Bombardment limit: max 2 bombardments per turn (reset at turn start)
+        self.bombardments_this_turn: int = 0
 
         # CAVALRY DEFENSIVE LIMITS - Horses can't hold defensive positions
         # After 3 turns in defensive stance → auto-switch to aggressive (-3 trust)
@@ -1005,6 +1007,7 @@ class Marshal:
             "moved_this_turn": self.moved_this_turn,
             "last_bombardment_target": self.last_bombardment_target,
             "bombardment_streak": int(self.bombardment_streak),
+            "bombardments_this_turn": int(self.bombardments_this_turn),
             "turns_in_defensive_stance": int(self.turns_in_defensive_stance),
             "turns_fortified": int(self.turns_fortified),
 
@@ -1131,6 +1134,7 @@ class Marshal:
         marshal.moved_this_turn = data.get("moved_this_turn", False)
         marshal.last_bombardment_target = data.get("last_bombardment_target", None)
         marshal.bombardment_streak = data.get("bombardment_streak", 0)
+        marshal.bombardments_this_turn = data.get("bombardments_this_turn", 0)
 
         # ═══════ DAVOUT-SPECIFIC (COUNTER-PUNCH) ═══════
         marshal.counter_punch_available = data.get("counter_punch_available", False)

@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 18, 2026 (Session 44)
+> **Last Updated:** February 18, 2026 (Session 48)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2827** (verified, 3 skipped) |
+| **Tests Passing** | **2861** (verified, 3 skipped) |
 
-| **Current Phase** | Phase 6: **COMPLETE** — all items shipped or deferred |
+| **Current Phase** | Phase 6.5 **IN PROGRESS** — Bombardment Part 1 complete, Parts 2-5 remaining |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,9 +19,11 @@
 
 ## Next Steps
 
-1. **Bombardment redesign** — Phase 6.5, Sessions 48-52. See `BOMBARDMENT_SPEC.md` (v3).
-2. **Pause menu** — Phase 6.5, Esc → Save/Load/Settings/Quit
-3. **Phase 7: Multi-marshal battles + Combined Arms + Square Formation + V2b** — Sessions 53-54 (combined arms, square) deferred here to build alongside multi-marshal combat. See BOMBARDMENT_SPEC.md §15, ROADMAP.md Phase 7.
+1. **Bombardment Part 2: Collateral Damage & Region Targeting** — Session 49. See `BOMBARDMENT_SPEC.md` §7-8.
+2. **Bombardment Part 3: Counter-Battery Fire** — Session 50. See `BOMBARDMENT_SPEC.md` §9.
+3. **Bombardment Part 4: AI Bombardment + Godot Frontend** — Sessions 51-52. See `BOMBARDMENT_SPEC.md` §10-12.
+4. **Pause menu** — Phase 6.5, Esc → Save/Load/Settings/Quit
+5. **Phase 7: Multi-marshal battles + Combined Arms + Square Formation + V2b** — Sessions 53-54 (combined arms, square) deferred here to build alongside multi-marshal combat. See BOMBARDMENT_SPEC.md §15, ROADMAP.md Phase 7.
 
 ---
 
@@ -45,6 +47,52 @@ All major Phase 6 features shipped:
 ---
 
 ## Recent Sessions
+
+### Feb 18 (Session 48: Bombardment Part 1 — Core Resolution & Terrain)
+
+**New dedicated bombardment resolution system replacing the old 50% return casualties hack in combat.py.**
+
+**Core Bombardment (`_execute_bombardment` in executor.py):**
+- New method: ~180 lines, handles all ranged bombardment resolution
+- Damage formula: 4% of defender strength × shock skill multiplier × terrain modifier × variance(0.80-1.20)
+- Return casualties: 1.5% of attacker strength × variance (independent of terrain)
+- Fort degradation: 0.10 per bombardment (always artillery rate)
+- Morale: -3 to defender per bombardment, no change to attacker
+- No winner/loser, no counter-punch, no battles_won/lost increment
+- 2 bombardments per turn limit (new `bombardments_this_turn` field)
+- Bombardment streak tracking carried forward from Session 43
+- Defender destroyed → reuses `_apply_forced_retreat_or_break` for consistent break system
+- Region NOT captured on destruction — artillery doesn't advance
+
+**Terrain Bombardment Modifiers (region.py):**
+- `TERRAIN_BOMBARDMENT_MODIFIER` dict covering all 6 valid terrains
+- Plains +10%, Forest -20%, Hills -25%, Mountains -40%, Urban -30%, River Crossing neutral
+- Only affects offensive damage; return casualties are terrain-independent
+
+**Routing Rule (executor.py):**
+- Transparent routing in `_execute_attack`: if artillery + different region → `_execute_bombardment()`
+- Same-region artillery combat still uses full `resolve_battle()` (melee)
+- Enemy AI gets bombardment automatically (same executor, Building Blocks principle)
+- Engagement check correctly blocks bombardment when enemies in artillery's region
+
+**Dead Code Removal (combat.py):**
+- Removed old ranged bombardment 50% return casualties block
+- Removed `bombardment_range_message` from result dict and tactical prefix
+- Added note pointing to new system in BOMBARDMENT_SPEC.md §3
+
+**Integration:**
+- `_acted_this_turn` flag for idle system
+- `record_battle()` for cannon fire detection
+- `record_attack()` for flanking system
+- `update_intel_from_battle()` for fog of war
+- `log_event()` with type "bombardment" for event history
+- `bombardment_result` + `bombardment_advisory` pass-through in main.py
+- Serialization: `bombardments_this_turn` in marshal `__init__`, `to_dict()`, `from_dict()`
+- Reset in `advance_turn()` alongside existing per-turn counters
+
+**Tests:** 37 new tests in `test_bombardment.py` (core, terrain, serialization, edge cases). 6 updated in `test_artillery.py`. **2861 total passing**, 3 skipped. Serialization enforcement 16/16.
+
+---
 
 ### Feb 18 (Session 44: Artillery Session 3 — Godot Frontend + Full Audit)
 

@@ -379,7 +379,7 @@ class TestWinWithoutAdvancing:
             assert inf.location == "Waterloo"
 
     def test_artillery_bombardment_message(self):
-        """Win message should mention 'must be secured by infantry'."""
+        """Bombardment of adjacent target uses new bombardment path, not resolve_battle."""
         world = _make_world()
         art = _make_artillery(name="ArtBomb", location="Belgium", strength=50000)
         art.moved_this_turn = False
@@ -390,16 +390,17 @@ class TestWinWithoutAdvancing:
         executor = CommandExecutor()
         game_state = {"world": world}
 
-        with patch("backend.game_logic.combat.random") as mock_random:
-            mock_random.randint.return_value = 6
-            mock_random.uniform.return_value = 0.0
-            mock_random.choice.side_effect = lambda x: x[0]
+        # Patch random in executor module (bombardment uses inline import)
+        with patch("random.uniform", return_value=1.0):
             result = executor._execute_attack(art, "Wellington", world, game_state)
 
-        if result.get("success") and art.location == "Belgium":
-            # Message should indicate region needs infantry
-            msg = result.get("message", "")
-            assert "infantry" in msg.lower() or "secured" in msg.lower() or "must be" in msg.lower()
+        assert result.get("success")
+        # New bombardment path returns action="bombardment"
+        assert result.get("action") == "bombardment"
+        # Art stays at Belgium (doesn't advance)
+        assert art.location == "Belgium"
+        msg = result.get("message", "")
+        assert "bombardment" in msg.lower()
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -1013,78 +1014,45 @@ class TestAIMinimal:
 # ════════════════════════════════════════════════════════════════════════════════
 
 class TestRangedBombardment:
-    """When artillery attacks from an adjacent region (different location from
-    the defender), return casualties are halved — guns fire from behind the line."""
+    """Ranged bombardment now uses _execute_bombardment() in executor.py.
+    resolve_battle() only handles same-region melee combat.
+    See BOMBARDMENT_SPEC.md §3 for routing rule."""
 
-    def test_ranged_bombardment_halves_attacker_casualties(self):
-        """Artillery in different region takes ~50% return casualties."""
-        combat = CombatResolver()
-        art = _make_artillery(location="Paris", strength=25000)
-        inf = _make_infantry(name="Enemy", location="Belgium", strength=40000, nation="Britain")
-        # Run many trials and average
-        total_art_cas = 0
-        trials = 200
-        for _ in range(trials):
-            a = _make_artillery(location="Paris", strength=25000)
-            d = _make_infantry(name="Enemy", location="Belgium", strength=40000, nation="Britain")
-            result = combat.resolve_battle(a, d, terrain="open")
-            total_art_cas += result["attacker"]["casualties"]
-        avg_ranged = total_art_cas / trials
-
-        # Compare with same-region (no reduction)
-        total_melee_cas = 0
-        for _ in range(trials):
-            a = _make_artillery(location="Belgium", strength=25000)
-            d = _make_infantry(name="Enemy", location="Belgium", strength=40000, nation="Britain")
-            result = combat.resolve_battle(a, d, terrain="open")
-            total_melee_cas += result["attacker"]["casualties"]
-        avg_melee = total_melee_cas / trials
-
-        # Ranged should be roughly half of melee
-        ratio = avg_ranged / avg_melee if avg_melee > 0 else 0
-        assert 0.35 <= ratio <= 0.65, f"Expected ~0.5 ratio, got {ratio:.2f}"
-
-    def test_ranged_bombardment_message_present(self):
-        """Result dict contains bombardment_range_message for ranged artillery."""
-        combat = CombatResolver()
-        art = _make_artillery(location="Paris", strength=25000)
-        inf = _make_infantry(name="Enemy", location="Belgium", strength=40000, nation="Britain")
-        result = combat.resolve_battle(art, inf, terrain="open")
-        assert result.get("bombardment_range_message") is not None
-        assert "range" in result["bombardment_range_message"].lower()
-        assert "50%" in result["bombardment_range_message"]
-
-    def test_ranged_bombardment_in_description(self):
-        """Bombardment range message appears in the battle description."""
-        combat = CombatResolver()
-        art = _make_artillery(location="Paris", strength=25000)
-        inf = _make_infantry(name="Enemy", location="Belgium", strength=40000, nation="Britain")
-        result = combat.resolve_battle(art, inf, terrain="open")
-        assert "bombard from range" in result["description"]
-
-    def test_same_region_artillery_no_reduction(self):
-        """Artillery in same region as defender gets full return casualties."""
+    def test_same_region_artillery_uses_resolve_battle(self):
+        """Artillery in same region as defender uses full battle, not bombardment."""
         combat = CombatResolver()
         art = _make_artillery(location="Belgium", strength=25000)
         inf = _make_infantry(name="Enemy", location="Belgium", strength=40000, nation="Britain")
         result = combat.resolve_battle(art, inf, terrain="open")
-        assert result.get("bombardment_range_message") is None
+        # resolve_battle returns outcome, not bombardment_result
+        assert "outcome" in result
+        assert "outcome" in result  # resolve_battle produces battle outcomes
 
-    def test_infantry_different_region_no_reduction(self):
-        """Non-artillery in different region does NOT get ranged reduction."""
-        combat = CombatResolver()
-        inf_atk = _make_infantry(name="Attacker", location="Paris", strength=40000)
-        inf_def = _make_infantry(name="Defender", location="Belgium", strength=40000, nation="Britain")
-        result = combat.resolve_battle(inf_atk, inf_def, terrain="open")
-        assert result.get("bombardment_range_message") is None
+    def test_different_region_routes_to_bombardment(self):
+        """Artillery attacking from adjacent region uses bombardment path."""
+        world = _make_world()
+        art = _make_artillery(name="ArtRanged", location="Belgium", strength=25000)
+        world.marshals["ArtRanged"] = art
+        # Wellington is at Waterloo (adjacent to Belgium)
+        executor = CommandExecutor()
+        game_state = {"world": world}
+        with patch("random.uniform", return_value=1.0):
+            result = executor._execute_attack(art, "Wellington", world, game_state)
+        assert result.get("success")
+        assert result.get("action") == "bombardment"
+        assert "bombardment_result" in result
 
-    def test_ranged_bombardment_in_battle_report_snapshot(self):
-        """Battle report modifier snapshot includes ranged bombardment bonus."""
-        combat = CombatResolver()
-        art = _make_artillery(location="Paris", strength=25000)
-        inf = _make_infantry(name="Enemy", location="Belgium", strength=40000, nation="Britain")
-        result = combat.resolve_battle(art, inf, terrain="open")
-        atk_mods = result["modifier_snapshot"]["attacker"]
-        labels = [m["label"] for m in atk_mods]
-        assert any("bombardment" in l.lower() or "range" in l.lower() for l in labels), \
-            f"Expected ranged bombardment in snapshot, got: {labels}"
+    def test_infantry_different_region_no_bombardment(self):
+        """Non-artillery in different region does NOT get bombardment routing."""
+        world = _make_world()
+        inf = _make_infantry(name="InfAtk", location="Belgium", strength=40000)
+        world.marshals["InfAtk"] = inf
+        executor = CommandExecutor()
+        game_state = {"world": world}
+        with patch("backend.game_logic.combat.random") as mock_random:
+            mock_random.randint.return_value = 7
+            mock_random.uniform.return_value = 0.0
+            mock_random.choice.side_effect = lambda x: x[0]
+            result = executor._execute_attack(inf, "Wellington", world, game_state)
+        # Infantry uses normal battle, not bombardment
+        assert result.get("action") != "bombardment"

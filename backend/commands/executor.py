@@ -2128,6 +2128,242 @@ RETREAT RECOVERY (3 turns):
                 f"Army is BROKEN - can only recruit for 4 turns!"
             )
 
+    def _execute_bombardment(self, marshal, defender, world: WorldState, game_state) -> Dict:
+        """
+        Execute ranged bombardment: artillery fires from adjacent region.
+
+        This is NOT a battle — no winner/loser, no counter-punch, no morale swing
+        on attacker. Bombardment grinds the target from range at low risk.
+
+        Routing: Called from _execute_attack when artillery attacks a target
+        in a different (adjacent) region. Same-region artillery attacks use
+        the normal resolve_battle() path.
+
+        Spec reference: BOMBARDMENT_SPEC.md §4
+        """
+        import random
+        from backend.models.region import TERRAIN_BOMBARDMENT_MODIFIER
+
+        # ════════════════════════════════════════════════════════════
+        # BOMBARDMENT LIMIT CHECK: max 2 per turn
+        # ════════════════════════════════════════════════════════════
+        if getattr(marshal, 'bombardments_this_turn', 0) >= 2:
+            return {
+                "success": False,
+                "message": (
+                    f"{marshal.name}'s guns have expended their ammunition for today. "
+                    f"The battery needs time to resupply. (Max 2 bombardments per turn)"
+                )
+            }
+
+        # ════════════════════════════════════════════════════════════
+        # DAMAGE CALCULATION (§4.2)
+        # ════════════════════════════════════════════════════════════
+        defender_region = world.get_region(defender.location)
+        terrain = defender_region.terrain if defender_region else "plains"
+        terrain_mod = TERRAIN_BOMBARDMENT_MODIFIER.get(terrain, 1.0)
+
+        base_rate = 0.04  # 4% of defender's strength
+        shock_skill = marshal.get_effective_skill("shock")
+        damage_multiplier = 1.0 + (shock_skill / 15.0)
+
+        # DIMINISHING RETURNS HOOK (not active — see §14)
+        # streak = marshal.bombardment_streak
+        # if streak >= 5: damage_multiplier *= 0.50
+        # elif streak >= 3: damage_multiplier *= 0.75
+
+        raw_damage = defender.strength * base_rate * damage_multiplier * terrain_mod
+        variance = random.uniform(0.80, 1.20)
+        defender_casualties = int(raw_damage * variance)
+
+        # ════════════════════════════════════════════════════════════
+        # RETURN CASUALTIES (§4.3) — counter-battery / wear
+        # ════════════════════════════════════════════════════════════
+        return_rate = 0.015  # 1.5% of own strength
+        return_variance = random.uniform(0.80, 1.20)
+        attacker_casualties = int(marshal.strength * return_rate * return_variance)
+
+        # ════════════════════════════════════════════════════════════
+        # FORT DEGRADATION (§5)
+        # ════════════════════════════════════════════════════════════
+        fortification_degraded = False
+        fortification_old = 0.0
+        fortification_new = 0.0
+        if getattr(defender, 'defense_bonus', 0) > 0:
+            fortification_old = defender.defense_bonus
+            degradation_amount = 0.10  # Always artillery rate for bombardment
+            defender.defense_bonus = max(0, round(defender.defense_bonus - degradation_amount, 2))
+            fortification_new = defender.defense_bonus
+            fortification_degraded = True
+
+        # ════════════════════════════════════════════════════════════
+        # APPLY CASUALTIES
+        # ════════════════════════════════════════════════════════════
+        pre_defender_strength = defender.strength
+        defender.take_casualties(defender_casualties)
+        marshal.take_casualties(attacker_casualties)
+
+        # ════════════════════════════════════════════════════════════
+        # MORALE EFFECTS (§4.7)
+        # Defender: -3 per bombardment. Attacker: None.
+        # ════════════════════════════════════════════════════════════
+        defender.adjust_morale(-3)
+
+        # ════════════════════════════════════════════════════════════
+        # BOMBARDMENT STREAK TRACKING
+        # ════════════════════════════════════════════════════════════
+        target_location = defender.location
+        if target_location == getattr(marshal, 'last_bombardment_target', None):
+            marshal.bombardment_streak += 1
+        else:
+            marshal.last_bombardment_target = target_location
+            marshal.bombardment_streak = 1
+
+        # ════════════════════════════════════════════════════════════
+        # INCREMENT COUNTERS
+        # ════════════════════════════════════════════════════════════
+        marshal.bombardments_this_turn += 1
+        marshal.increment_attacks_this_turn()  # Shares exhaustion counter
+        marshal.in_combat_this_turn = True  # For cannon fire interrupt detection
+        marshal.idle_turns = 0
+        marshal._acted_this_turn = True  # Prevents idle increment at turn end
+
+        # Record attack for flanking system (bombardment counts)
+        world.record_attack(marshal.name, marshal.location, target_location)
+
+        # Record battle for cannon fire detection (hearing the guns)
+        world.record_battle(target_location, marshal.name, defender.name, "bombardment")
+
+        # ════════════════════════════════════════════════════════════
+        # CHECK IF DEFENDER DESTROYED (§4.8)
+        # Reuses _apply_forced_retreat_or_break for consistent state clearing.
+        # Region NOT captured — artillery doesn't advance.
+        # ════════════════════════════════════════════════════════════
+        enemy_destroyed = defender.strength <= 0
+        destroyed_msg = ""
+        if enemy_destroyed and defender.name in world.marshals:
+            # Use the existing break system for proper state clearing
+            break_msg = self._apply_forced_retreat_or_break(
+                defender, marshal, world)
+            destroyed_msg = f"\n{break_msg}"
+
+        # ════════════════════════════════════════════════════════════
+        # BUILD NARRATIVE MESSAGE
+        # ════════════════════════════════════════════════════════════
+        terrain_display = terrain.replace("_", " ").title()
+        if terrain_mod > 1.0:
+            terrain_note = f" Open {terrain_display} terrain offers no cover from the shells."
+        elif terrain_mod < 0.80:
+            terrain_note = f" The {terrain_display} terrain provides significant cover, reducing effectiveness."
+        elif terrain_mod < 1.0:
+            terrain_note = f" The {terrain_display} terrain provides some cover."
+        else:
+            terrain_note = ""
+
+        fort_note = ""
+        if fortification_degraded:
+            if fortification_new <= 0:
+                fort_note = f" The enemy fortifications have been completely destroyed!"
+            else:
+                fort_note = f" Enemy fortifications degraded ({int(fortification_old * 100)}% → {int(fortification_new * 100)}%)."
+
+        destroyed_note = ""
+        if enemy_destroyed:
+            destroyed_note = destroyed_msg  # Contains break/shatter message from existing system
+
+        message = (
+            f"{'=' * 40}\n"
+            f"  BOMBARDMENT: {marshal.name} → {defender.name}\n"
+            f"{'=' * 40}\n"
+            f"{marshal.name}'s guns thunder from {marshal.location}, "
+            f"raining shells on {defender.name}'s position at {target_location}.\n"
+            f"{terrain_note}\n"
+            f"  Enemy casualties: {defender_casualties:,} "
+            f"({defender.name}: {pre_defender_strength:,} → {int(defender.strength):,})\n"
+            f"  Return fire/wear: {attacker_casualties:,} "
+            f"({marshal.name}: {int(marshal.strength + attacker_casualties):,} → {int(marshal.strength):,})\n"
+            f"  Defender morale: {int(defender.morale)}%"
+            f"{fort_note}{destroyed_note}"
+        )
+
+        # ════════════════════════════════════════════════════════════
+        # BOMBARDMENT ADVISORY (carry forward from old system)
+        # ════════════════════════════════════════════════════════════
+        bombardment_advisory = None
+        if not enemy_destroyed:
+            defender_fort = getattr(defender, 'defense_bonus', 0)
+            target_reg = world.get_region(target_location)
+            has_fort_building = (target_reg.has_building("fortification")
+                                if target_reg and hasattr(target_reg, 'has_building') else False)
+            if defender_fort <= 0 and not has_fort_building:
+                bombardment_advisory = (
+                    f"Sire, the enemy fortifications at {target_location} are crumbling. "
+                    f"An infantry assault would now have favorable odds."
+                )
+
+        # ════════════════════════════════════════════════════════════
+        # EVENT LOG (§8)
+        # ════════════════════════════════════════════════════════════
+        bombardment_event = {
+            "type": "bombardment",
+            "attacker": marshal.name,
+            "attacker_nation": marshal.nation,
+            "defender": defender.name,
+            "defender_nation": defender.nation,
+            "attacker_location": marshal.location,
+            "defender_location": target_location,
+            "attacker_casualties": int(attacker_casualties),
+            "defender_casualties": int(defender_casualties),
+            "terrain": terrain,
+            "terrain_modifier": terrain_mod,
+            "fort_degraded": fortification_degraded,
+            "fort_old": fortification_old,
+            "fort_new": fortification_new,
+            "collateral": [],  # Session 49: collateral damage (not yet implemented)
+        }
+        world.log_event(bombardment_event)
+
+        # Fog of War: Bombardment grants visibility on target region
+        world.update_intel_from_battle(target_location, world.current_turn)
+
+        # ════════════════════════════════════════════════════════════
+        # BUILD RESULT DICT
+        # ════════════════════════════════════════════════════════════
+        bombardments_remaining = max(0, 2 - marshal.bombardments_this_turn)
+
+        result = {
+            "success": True,
+            "action": "bombardment",
+            "message": message,
+            "bombardment_result": {
+                "attacker": {
+                    "name": marshal.name,
+                    "casualties": int(attacker_casualties),
+                    "remaining": int(marshal.strength),
+                },
+                "defender": {
+                    "name": defender.name,
+                    "casualties": int(defender_casualties),
+                    "remaining": int(defender.strength),
+                    "morale": int(defender.morale),
+                },
+                "terrain": terrain,
+                "terrain_modifier": terrain_mod,
+                "fort_degraded": fortification_degraded,
+                "fort_old": fortification_old,
+                "fort_new": fortification_new,
+                "bombardments_remaining": int(bombardments_remaining),
+                "collateral": [],  # Session 49
+            },
+            "events": [bombardment_event],
+            "new_state": game_state,
+        }
+
+        if bombardment_advisory:
+            result["bombardment_advisory"] = bombardment_advisory
+
+        return result
+
     def _execute_attack(self, marshal, target, world: WorldState, game_state, skip_reckless_popup: bool = False) -> Dict:
         """
         Execute an attack order with combat and region conquest.
@@ -2703,6 +2939,23 @@ RETREAT RECOVERY (3 turns):
                 "success": False,
                 "message": f"Cannot find living enemy: {resolved_target}"
             }
+
+        # ════════════════════════════════════════════════════════════
+        # BOMBARDMENT ROUTING (§3): Artillery in different region → bombardment
+        # Same-region artillery combat still uses full resolve_battle().
+        # ════════════════════════════════════════════════════════════
+        if (getattr(marshal, 'artillery', False)
+                and marshal.location != enemy_marshal.location):
+            bombard_result = self._execute_bombardment(
+                marshal, enemy_marshal, world, game_state)
+            if drill_cancelled_message:
+                bombard_result["message"] = drill_cancelled_message + bombard_result["message"]
+            if counter_punch_message:
+                bombard_result["message"] = counter_punch_message + bombard_result["message"]
+            if is_counter_punch:
+                bombard_result["free_action"] = True
+                bombard_result["counter_punch_used"] = True
+            return bombard_result
 
         # ============================================================
         # ALLY COVERS RETREAT SYSTEM: If target retreated this turn,
