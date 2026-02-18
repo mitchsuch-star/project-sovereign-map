@@ -156,7 +156,7 @@ text = "Cav:"
 
 [node name="CavValue" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ManpowerDisplay"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.8, 0.5, 0.5, 1)
+theme_override_colors/font_color = Color(0.85, 0.75, 0.55, 1)
 theme_override_font_sizes/font_size = 12
 text = "15,000"
 

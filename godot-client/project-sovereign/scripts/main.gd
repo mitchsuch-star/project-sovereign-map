@@ -920,7 +920,7 @@ func _update_manpower_display():
 	elif cavalry_pool < 10000:
 		cav_value.add_theme_color_override("font_color", Color(0.9, 0.6, 0.4))
 	else:
-		cav_value.add_theme_color_override("font_color", Color(0.8, 0.5, 0.5))
+		cav_value.add_theme_color_override("font_color", Color(0.85, 0.75, 0.55))
 	if infantry_pool < 20000:
 		inf_value.add_theme_color_override("font_color", Color(0.9, 0.3, 0.3))
 	elif infantry_pool < 40000:
