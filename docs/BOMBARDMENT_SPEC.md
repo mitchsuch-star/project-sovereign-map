@@ -1,10 +1,10 @@
 # Bombardment System Specification
 
 > **Phase 6.5 — Artillery Bombardment Redesign**
-> **Status:** DRAFT — Awaiting review
-> **Author:** Mitch + Claude (Opus), Session 45
+> **Status:** DRAFT v2 — Audited & Expanded
+> **Author:** Mitch + Claude (Opus), Sessions 45-46
 > **Depends on:** Artillery Unit Type (Sessions 42-44), Combat System, Objection V2
-> **Feeds into:** Berthier Reports, Event Log, Godot HUD
+> **Feeds into:** Berthier Reports, Event Log, Godot HUD, Strategic Commands, Enemy AI
 
 ---
 
@@ -34,6 +34,8 @@ Artillery's identity in the unit type triangle:
 
 The player's strategic choice: commit artillery to a real battle (risky but decisive) or keep them safe bombarding (slow but low-risk). Artillery **clears the way**, infantry **captures**.
 
+**Collateral principle:** Shells are imprecise. Bombardment is area-of-effect — it hits a region, not a general's tent. Multiple forces in the same region all take fire, including friendlies caught in the blast zone.
+
 ---
 
 ## 3. Routing Rule
@@ -47,44 +49,65 @@ ELSE:
     → Full resolve_battle() (unchanged)
 ```
 
-This is transparent to the AI, parser, and player. The command is still "attack" — the executor routes internally.
+**Command handling:** The player command is "attack" — the executor routes internally based on location. The parser treats "bombard," "shell," "barrage," and "cannonade" as synonyms for "attack" (existing mock parser keywords). No new action type in VALID_ACTIONS — bombardment is an attack variant, not a separate action.
+
+This is transparent to the AI, parser, and player.
 
 ---
 
 ## 4. Bombardment Resolution
 
-### 4.1 Damage Dealt to Defender
+### 4.1 Terrain Bombardment Modifier
 
-Base damage as percentage of **defender's** army (not strength ratio):
+Terrain affects how effective bombardment is. Open terrain offers no protection from shells; forests and hills provide concealment and defilade; mountains provide significant cover behind ridgelines; urban areas have buildings to shelter in.
 
+```python
+TERRAIN_BOMBARDMENT_MODIFIER = {
+    "plains": 1.10,          # +10% damage — open ground, no cover
+    "forest": 0.80,          # -20% damage — trees obscure targets
+    "hills": 0.75,           # -25% damage — defilade behind ridgelines
+    "mountains": 0.60,       # -40% damage — deep cover, hard to range
+    "urban": 0.70,           # -30% damage — buildings provide shelter
+    "river_crossing": 1.0,   # No modifier — rivers don't help vs shells
+}
 ```
-base_rate = 0.04  (4% of defender's strength)
+
+**Single source of truth:** Define in `region.py` alongside existing terrain tables.
+
+**Note:** This modifier applies ONLY to bombardment damage dealt to the defender. Return casualties (§4.3) are unaffected by terrain — counter-battery wear happens to the guns regardless.
+
+### 4.2 Damage Dealt to Defender (Targeted Bombardment)
+
+When the player targets a specific marshal ("Drouot, attack Wellington"), the primary target takes full bombardment damage:
+
+```python
+base_rate = 0.04  # 4% of defender's strength
 shock_skill = artillery_marshal.get_effective_skill("shock")
 damage_multiplier = 1.0 + (shock_skill / 15.0)
+terrain_mod = TERRAIN_BOMBARDMENT_MODIFIER.get(defender_region.terrain, 1.0)
 
-raw_damage = defender.strength * base_rate * damage_multiplier
+raw_damage = defender.strength * base_rate * damage_multiplier * terrain_mod
 variance = random.uniform(0.80, 1.20)  # ±20% randomness
 defender_casualties = int(raw_damage * variance)
 ```
 
-**Example — Drouot (shock 7) bombards Wellington (68,000):**
+**Example — Drouot (shock 7) bombards Wellington (68,000) on plains:**
 - base: 68,000 × 0.04 = 2,720
-- multiplier: 1.0 + (7 / 15) = 1.467
-- raw: 2,720 × 1.467 = 3,990
-- with variance: ~3,192 to ~4,788 casualties per bombardment
+- shock multiplier: 1.0 + (7 / 15) = 1.467
+- terrain: plains = 1.10
+- raw: 2,720 × 1.467 × 1.10 = 4,389
+- with variance: ~3,511 to ~5,267 casualties per bombardment
 
-**Example — PrinceAugust (shock 6) bombards Davout (48,000):**
-- base: 48,000 × 0.04 = 1,920
-- multiplier: 1.0 + (6 / 15) = 1.40
-- raw: 1,920 × 1.40 = 2,688
-- with variance: ~2,150 to ~3,226
+**Example — Drouot bombards Wellington (68,000) in mountains:**
+- raw: 2,720 × 1.467 × 0.60 = 2,394
+- with variance: ~1,915 to ~2,873 (much less effective)
 
-### 4.2 Return Casualties (Counter-Battery / Wear)
+### 4.3 Return Casualties (Counter-Battery / Wear)
 
 Fixed small percentage of **artillery's own** army:
 
-```
-return_rate = 0.015  (1.5% of own strength)
+```python
+return_rate = 0.015  # 1.5% of own strength
 variance = random.uniform(0.80, 1.20)
 attacker_casualties = int(artillery.strength * return_rate * variance)
 ```
@@ -93,9 +116,71 @@ attacker_casualties = int(artillery.strength * return_rate * variance)
 - base: 25,000 × 0.015 = 375
 - with variance: ~300 to ~450 casualties per bombardment
 
-This represents counter-battery fire, gun wear, logistics attrition — not melee losses.
+This represents counter-battery fire, gun wear, logistics attrition — not melee losses. Terrain does NOT affect return casualties.
 
-### 4.3 Bombardment Limit Per Turn
+### 4.4 Collateral Damage (Area-of-Effect)
+
+Shells are imprecise. When bombardment hits a region, **all other forces in that region** have a chance of taking collateral damage — including friendly units.
+
+#### Targeted vs. Area Bombardment
+
+**Targeted ("Drouot, attack Wellington"):**
+- Primary target takes full damage (§4.2)
+- Each OTHER force in the target region (enemy or friendly) has a **40% chance** of taking collateral damage
+- Collateral damage = **25% of the primary damage** (reduced accuracy on non-targeted forces)
+
+**Area bombardment ("Drouot, attack Waterloo" / targeting a region):**
+- ALL forces in the region take damage
+- Each force takes **60% of the standard bombardment damage** (fire spread across the whole area)
+- This includes friendly forces if present
+- Parser: if the "target" matches a region name instead of a marshal name, route to area bombardment
+
+#### Collateral Damage Formula
+
+```python
+# For each non-primary force in target region:
+collateral_chance = 0.40  # 40% chance per force
+collateral_rate = 0.25    # 25% of primary damage
+
+if random.random() < collateral_chance:
+    collateral_raw = primary_raw_damage * collateral_rate
+    collateral_variance = random.uniform(0.80, 1.20)
+    collateral_casualties = int(collateral_raw * collateral_variance)
+    force.take_casualties(collateral_casualties)
+```
+
+#### Area Bombardment Formula
+
+```python
+# For each force in target region (friend or foe):
+area_rate = 0.60  # 60% of standard damage
+area_raw = force.strength * base_rate * damage_multiplier * terrain_mod * area_rate
+area_variance = random.uniform(0.80, 1.20)
+area_casualties = int(area_raw * area_variance)
+force.take_casualties(area_casualties)
+```
+
+#### Friendly Fire
+
+When collateral or area bombardment hits a friendly force:
+- Casualties apply normally (no protection for being allied)
+- Event log includes `"friendly_fire": True` flag
+- Berthier observation: "Sire, our own forces at {region} were caught in {marshal}'s bombardment. {casualties} casualties from friendly fire."
+- **Trust penalty:** Friendly marshal hit by bombardment loses -5 trust with the player (you shelled their troops)
+- **Relationship penalty:** Friendly marshal hit takes -1 relationship with the artillery marshal
+
+#### Collateral Display
+
+The bombardment result dict includes a `collateral` array:
+
+```python
+"collateral": [
+    {"name": "Uxbridge", "nation": "Britain", "casualties": 998, "friendly_fire": False},
+    {"name": "Davout", "nation": "France", "casualties": 750, "friendly_fire": True},
+]
+```
+
+### 4.5 Bombardment Limit Per Turn
 
 Artillery may fire a **maximum of 2 bombardments per turn**. Guns need time to cool, resupply ammunition, and reposition between salvos.
 
@@ -119,7 +204,7 @@ marshal.bombardments_this_turn += 1
 
 **Turn reset:** Clear in `world_state.py _process_tactical_states()` alongside `attacks_this_turn` and `moved_this_turn`.
 
-### 4.4 No Battle Outcome
+### 4.6 No Battle Outcome
 
 Bombardment produces **no winner or loser**. It is not a battle — it is shelling.
 
@@ -133,27 +218,29 @@ Bombardment produces **no winner or loser**. It is not a battle — it is shelli
 - No flanking bonus
 - No dice roll (damage is formula-based with variance)
 - No cavalry counter (+30%) — not applicable at range
-- No terrain defense bonus — shells fall regardless of terrain
 - No stance modifiers on damage calculation (bombardment is mechanical, not tactical posture)
 
 **Systems that DO trigger from bombardment:**
+- Terrain bombardment modifier (§4.1)
+- Collateral damage (§4.4)
 - Fort degradation (§5)
-- Bombardment streak tracking (existing, for objections)
+- Bombardment streak tracking (existing, for objections — persists across turns)
 - Idle turn reset (artillery is active)
 - `in_combat_this_turn` = True (for cannon fire interrupt detection)
-- AP cost: 1 per bombardment (standard attack cost)
+- AP cost: **1 per bombardment** (same as standard attack — confirmed: `_action_costs["attack"] = 1`)
 - Event log: new "bombardment" event type (§8)
 
-### 4.5 Morale Effects
+### 4.7 Morale Effects
 
 | Target | Morale Change | Rationale |
 |--------|--------------|-----------|
 | **Attacker (artillery)** | None | Guns fired safely, no risk |
-| **Defender** | -3 per bombardment | Sustained shelling erodes morale slowly |
+| **Defender (primary)** | -3 per bombardment | Sustained shelling erodes morale slowly |
+| **Collateral targets** | -1 per collateral hit | Shrapnel is demoralizing but less intense |
 
 Sustained bombardment (2/turn × multiple turns) will grind defender morale down. At -3 per salvo, -6 per turn, a defender at 100% morale reaches forced retreat threshold (25%) after ~13 bombardments across ~7 turns. This makes bombardment a **slow siege tool**, not an instant win.
 
-### 4.6 Defender Reduced to Zero
+### 4.8 Defender Reduced to Zero
 
 If bombardment casualties reduce the defender's strength to 0:
 
@@ -213,55 +300,66 @@ This represents guns being physically present on the battlefield:
 
 ---
 
-## 7. Artillery Objections (Revised)
+## 7. Artillery Objections
+
+### Phase 6.5 (V2a) — Build Now
 
 The current objection triggers for artillery are:
 - **Impatient bombardier** (aggressive): streak >= 3 + target softened → MILD "Let the infantry finish it!"
 - **Patient gunner** (cautious): moving while adjacent target still has forts → MILD "One more barrage!"
 
-These need revision to reflect the new bombardment system and add more flavorful artillery personality.
+These are **replaced** by the triggers below.
 
-### 7.1 Cautious Artillery (Drouot) — "The Sage of the Grand Army"
+#### 7.1 Cautious Artillery (Drouot) — "The Sage of the Grand Army"
 
-Drouot is methodical, precise, and protective of his guns. He objects when:
+Drouot is methodical, precise, and protective of his guns and ammunition. He objects when his professional judgment is overridden — not when asked to bombard (that's what he wants).
 
 | Trigger | Condition | Level | Flavor |
 |---------|-----------|-------|--------|
-| **Bombard the strong** | Bombardment target has > 50,000 troops AND Drouot has < 20,000 | MILD | "The enemy force is vast, Sire. Our shells will sting but not wound. A smaller target would feel our fire more keenly." |
-| **Reckless repositioning** | Move order while bombardment streak >= 2 AND adjacent fort not yet cracked | MODERATE | "One more barrage and their walls crumble, Sire! Moving now wastes everything we've achieved." |
 | **Ordered into melee** | Attack when in same region as enemy (real battle, not bombardment) | STRONG | "You would send my gunners into the bayonet line? These are artillerists, not infantry. We serve you best from range." |
-| **Wasted fire** | Bombardment target already has 0 fort bonus AND < 10,000 troops | MILD | "The target is already broken, Sire. Infantry can sweep them aside. My ammunition is better spent elsewhere." |
-| **No targets adjacent** | Attack order but no valid bombardment targets in range | N/A (pre-validation fail, not objection) | Standard "no enemies in range" message |
+| **Reckless repositioning** | Move order while bombardment_streak >= 2 AND adjacent target has defense_bonus > 0 | MODERATE | "One more barrage and their walls crumble, Sire! Moving now wastes everything we've achieved." |
+| **Ordered to cease fire** | Defend/fortify order while adjacent enemy has defense_bonus > 0.05 AND bombardment_streak >= 1 | MODERATE | "You would have me silence my guns while their walls still stand? Give me one more day, Sire." |
+| **Wasted fire** | Bombardment target has defense_bonus == 0 AND strength < 8,000 | MILD | "The target is already broken, Sire. Infantry can sweep them aside. My ammunition is better spent elsewhere." |
+| **Last-shot advisory** | Bombardment when bombardments_this_turn == 1 (last shot) AND multiple valid adjacent targets | MILD | "One salvo remains today, Sire. The fortified position at {best_target} will feel it most keenly." |
 
-### 7.2 Aggressive Artillery (Hypothetical / Future Marshals)
+**Note on streak persistence:** `bombardment_streak` persists across turns (only resets on move, target switch, retreat, or broken state). It is NOT reset at turn start. This means a streak of 2 builds over 2+ turns of sustained bombardment on the same target — the "cease fire" and "reckless repositioning" triggers work correctly with the HOLD strategic command (§9) since HOLD fires once per turn.
 
-For future aggressive artillery marshals (not currently in game, but future-proofing):
+#### 7.2 Replacing Old Triggers
+
+- `objection_v2.py` line 772-782: "Impatient bombardier" → **Replace** with "Wasted fire" (more specific, same level)
+- `objection_v2.py` line 850-861: "Patient gunner" → **Replace** with "Reckless repositioning" (stronger, MODERATE)
+
+### Phase 7 (V2b) — Deferred Triggers
+
+#### 7.3 Aggressive Artillery (Future Marshals)
+
+For future aggressive artillery marshals (not currently in game):
 
 | Trigger | Condition | Level | Flavor |
 |---------|-----------|-------|--------|
-| **Ordered to hold fire** | Defend/hold/fortify when enemy is adjacent | MILD | "The enemy is RIGHT THERE and you want me to sit idle? Let me fire!" |
-| **Bombardment too cautious** | Ordered to stop bombarding when target is weakened | MILD | "We have them reeling! One more salvo finishes this!" |
+| **Ordered to hold fire** | Defend/fortify order when enemy is adjacent | MILD | "The enemy is RIGHT THERE! Let me fire, damn it! What good are guns that don't shoot?" |
+| **Told to stop when winning** | Cancel/move order when target has morale < 50 OR strength < starting_strength × 0.4 | MILD | "They're reeling! One more salvo and they break — don't pull me away now!" |
+| **Told to stay at range** | HOLD order when enemy is in same region | MODERATE | "I won't hide behind my guns when the enemy is at our throats! Let me advance!" |
+| **Extended inactivity** | No targets adjacent for 3+ turns while enemies exist on map | MILD | "My guns rust while battles rage elsewhere! Send me where the fighting is, Sire!" |
 
-### 7.3 Removing Old Triggers
+#### 7.4 Cross-Marshal Objections (V2b Infrastructure)
 
-The following existing triggers should be **replaced** by the new ones above:
+These require V2b infrastructure (marshal A objecting to an order given to marshal B):
 
-- `objection_v2.py` line 772-782: "Impatient bombardier" → Replace with §7.1 "Wasted fire" (more specific)
-- `objection_v2.py` line 850-861: "Patient gunner" move hesitancy → Replace with §7.1 "Reckless repositioning" (stronger, MODERATE instead of MILD)
+| Marshal | Trigger | Condition | Level | Flavor |
+|---------|---------|-----------|-------|--------|
+| **Ney** (aggressive cavalry) | Artillery wasting time | Drouot has bombardment_streak >= 3 AND Ney adjacent to same target AND favorable ratio | MILD | "Enough shells! My cavalry can break them in a single charge — let us ride, Sire!" |
+| **Davout** (cautious infantry) | Artillery pulled away | Drouot receives move order AWAY from Davout AND Davout adjacent to enemy | MILD | "The guns provide valuable cover for my position. Without Drouot's support, we are exposed." |
+| **Ney** (aggressive) | Shelling his target | Drouot bombards enemy Ney is pursuing (PURSUE order on same marshal) | MILD | "That's MY prey, Drouot! Stop tickling them with shells — I'm going in!" |
+| **Any marshal** | Friendly fire victim | Marshal hit by collateral from friendly bombardment | MODERATE | "{name} is furious! 'Your guns just shelled MY men! Control your fire, Drouot!'" |
 
-### 7.4 Objection Flavor Text (disobedience.py)
+#### 7.5 Objection Flavor Text (disobedience.py)
 
 New V1 flavor text entries for artillery objections:
 
 ```python
 'cautious': {
     # ... existing entries ...
-    'bombard_the_strong': [
-        "\"{name} adjusts his telescope. \"That is a vast encampment, Sire. Our guns will harass them, "
-        "but true damage requires a softer target.\"",
-        "\"{name} calculates quietly. \"At this range, against those numbers... we will expend much "
-        "powder for little effect. Might I suggest a more vulnerable position?\"",
-    ],
     'reckless_repositioning': [
         "\"{name} places a steadying hand on the nearest cannon. \"Sire, we have the range. "
         "Their fortifications are cracking. To move now abandons our advantage.\"",
@@ -274,11 +372,23 @@ New V1 flavor text entries for artillery objections:
         "\"{name} looks at his gunners, then back at you. \"If you order it, we go. "
         "But know that we lose the guns and the men who know how to fire them.\"",
     ],
+    'ordered_to_cease_fire': [
+        "\"{name} grips his telescope tightly. \"Sire, the fortifications crack more with each "
+        "salvo. Silence my guns now and all that fire was for nothing.\"",
+        "\"{name} gestures to the distant smoke. \"We have their measure, Sire. The walls "
+        "will not survive another day of this. Why stop when we are so close?\"",
+    ],
     'wasted_fire': [
         "\"{name} lowers his telescope. \"The position is already shattered, Sire. "
         "Sending more shells into rubble serves no purpose. Let the infantry advance.\"",
         "\"{name} gestures toward the distant target. \"Look — they have no walls left, "
         "and barely enough men to hold a picket line. Save my powder for a worthy target.\"",
+    ],
+    'last_shot_advisory': [
+        "\"{name} calculates carefully. \"One salvo remains today, Sire. Might I suggest "
+        "the fortified position? My guns will have the greatest effect there.\"",
+        "\"{name} studies the field. \"A single shot left for the day. Let me place it "
+        "where it counts — the enemy walls will crack if we strike true.\"",
     ],
 }
 ```
@@ -300,9 +410,15 @@ New event type for the turn events log:
     "defender_location": "Waterloo",    # Where shells landed
     "attacker_casualties": 375,
     "defender_casualties": 3990,
+    "terrain": "plains",
+    "terrain_modifier": 1.10,
     "fort_degraded": True,
     "fort_old": 0.16,
     "fort_new": 0.06,
+    "collateral": [                     # May be empty list
+        {"name": "Uxbridge", "nation": "Britain", "casualties": 998, "friendly_fire": False},
+    ],
+    "area_bombardment": False,          # True if player targeted region instead of marshal
 }
 ```
 
@@ -310,9 +426,242 @@ New event type for the turn events log:
 
 ---
 
-## 9. Berthier Report
+## 9. Strategic HOLD — Artillery Override
 
-### 9.1 New Bombardment Observations
+### 9.1 Concept
+
+When artillery is given a HOLD strategic command, the personality-specific behavior is replaced with **automatic bombardment** — analogous to how aggressive marshals on HOLD sally out against adjacent enemies.
+
+This is the artillery equivalent of Ney's sally: a free, automatic action each turn that doesn't cost the player AP but trades off player control for convenience. The artillery picks its own target based on personality.
+
+### 9.2 Behavior Matrix
+
+When an artillery marshal arrives at the HOLD position, behavior depends on personality:
+
+| Personality | Bombardments/Turn | Target Selection | Switching |
+|-------------|-------------------|------------------|-----------|
+| **Cautious** (Drouot) | 1 | Highest defense_bonus (crack forts) | Switches only if new threat is 2x stronger |
+| **Aggressive** (future) | 2 | Lowest strength (finish them off) | Switches every turn to weakest |
+| **Literal** (future) | 1 | Same target always (sustained fire) | Never switches until target destroyed/moved |
+
+**Key trade-offs vs. manual bombardment:**
+- HOLD bombardment is **free** (no AP cost — `_strategic_execution = True`)
+- HOLD bombardment fires **once per turn** for cautious (vs. 2/turn manual)
+- HOLD bombardment is **not player-targeted** (artillery picks its own target)
+- `bombardments_this_turn` still increments (prevents manual + strategic double-dipping if order is cancelled mid-turn)
+
+### 9.3 Implementation in strategic.py
+
+In `_execute_hold()`, add an artillery path **before** the existing personality checks:
+
+```python
+# AT HOLD POSITION — Check unit type first
+if getattr(marshal, 'artillery', False):
+    return self._execute_hold_bombardment(marshal, world, game_state)
+
+# Then existing personality paths (aggressive sally, cautious fortify, etc.)
+```
+
+#### _execute_hold_bombardment Logic
+
+```python
+def _execute_hold_bombardment(self, marshal, world, game_state):
+    """Artillery-specific HOLD: auto-bombard adjacent enemies."""
+    order = marshal.strategic_order
+    hold_position = order.target
+    personality = marshal.personality
+
+    # Check if already fired this turn (strategic + manual share the limit)
+    if marshal.bombardments_this_turn >= 2:
+        return {
+            "marshal": marshal.name,
+            "command": "HOLD",
+            "action": "hold_artillery_spent",
+            "order_status": "continues",
+            "message": f"{marshal.name}'s guns have already fired today. Maintaining position."
+        }
+
+    # Find adjacent enemies
+    region = world.get_region(marshal.location)
+    if not region:
+        return self._hold_no_targets(marshal, hold_position)
+
+    targets = []
+    for adj_name in region.adjacent_regions:
+        for enemy in world.get_enemies_in_region(adj_name, marshal.nation):
+            targets.append(enemy)
+
+    if not targets:
+        return self._hold_no_targets(marshal, hold_position)
+
+    # Select target by personality
+    if personality == "cautious":
+        # Crack forts first, then biggest army
+        targets.sort(key=lambda t: (-getattr(t, 'defense_bonus', 0), -t.strength))
+    elif personality == "aggressive":
+        # Finish the weak first
+        targets.sort(key=lambda t: t.strength)
+    else:  # literal
+        # Same target as last time if possible
+        locked = getattr(order, 'bombardment_target', None)
+        if locked:
+            locked_targets = [t for t in targets if t.name == locked]
+            if locked_targets:
+                targets = locked_targets
+
+    target = targets[0]
+
+    # Store target lock for literal/cautious consistency
+    order.bombardment_target = target.name
+
+    # Fire via executor (strategic execution = free)
+    result = self.executor.execute(
+        {"command": {
+            "marshal": marshal.name,
+            "action": "attack",
+            "target": target.name,
+            "_strategic_execution": True,
+        }},
+        game_state
+    )
+
+    # Build report
+    cleaned = {k: v for k, v in result.items() if k != "new_state"} if result else {}
+    return {
+        "marshal": marshal.name,
+        "command": "HOLD",
+        "action": "hold_bombardment",
+        "target": target.name,
+        "order_status": "continues",
+        "battle_details": cleaned,
+        "message": f"{marshal.name}'s guns bombard {target.name}'s position from {hold_position}.",
+    }
+```
+
+### 9.4 Personality Interactions
+
+**Cautious Drouot on HOLD — The Artillery Grouchy Moment:**
+- Drouot hears cannon fire from a nearby battle (cannon fire interrupt)
+- He does NOT redirect fire. He stays on his assigned bombardment target
+- This is the cautious, methodical choice — he trusts his orders, cracks the fort
+- The player must spend 1 AP to cancel HOLD and redirect him
+- This creates dramatic tension identical to the Grouchy Moment but for artillery
+
+**Objection on receiving "HOLD" order:**
+- Drouot does NOT object to HOLD. This is exactly what he wants — a clear, safe, methodical assignment
+- ConcernLevel.NONE: "A fine position, Sire. My guns will make their presence known."
+
+**Objection on CANCELLING HOLD:**
+- If bombardment_streak >= 2 AND adjacent target has defense_bonus > 0: **MODERATE**
+- "The walls are cracking, Sire! To silence my guns now abandons everything we've achieved."
+- This uses the existing "ordered to cease fire" trigger from §7.1
+- Streak persists across turns, so 2+ turns of sustained HOLD bombardment meets the threshold
+
+### 9.5 Edge Cases
+
+| Edge Case | Behavior |
+|-----------|----------|
+| Enemy enters artillery's region | HOLD order breaks. Report: "{marshal} reports: enemy forces have entered {region}! Requesting orders." Artillery can't bombard enemies in their own region. |
+| All adjacent enemies retreat/destroyed | Report "no targets in range — maintaining readiness." Order continues (new targets may arrive). |
+| Target switches region | Cautious: switch to next-best adjacent target. Literal: report "lost sight of {target}." Continue on next-best or wait. |
+| Player manually bombards before strategic turn | `bombardments_this_turn` incremented by manual fire. Strategic HOLD respects the shared limit. If already at 2, strategic bombardment skips. |
+
+### 9.6 Serialization
+
+New field on StrategicOrder:
+
+| Field | Type | Default | Purpose |
+|-------|------|---------|---------|
+| `bombardment_target` | Optional[str] | None | Current locked target for HOLD bombardment |
+
+Add to `StrategicOrder.to_dict()` / `from_dict()`.
+
+---
+
+## 10. Enemy AI — Artillery Bombardment
+
+### 10.1 Changes Required
+
+The spec's routing rule (§3) makes bombardment **transparent to the AI** — PrinceAugust issues an "attack" command, the executor routes to bombardment if the target is adjacent but not same-region. However, several AI behaviors need updating:
+
+#### Bombardment Limit Check (REQUIRED)
+
+In `_find_attack_opportunity()`, before selecting a bombardment target for artillery:
+
+```python
+# Artillery: check bombardment limit before attempting ranged attack
+if getattr(marshal, 'artillery', False):
+    if getattr(marshal, 'bombardments_this_turn', 0) >= 2:
+        ai_debug(f"    P4: {marshal.name} at bombardment limit — skipping ranged attack")
+        return None  # Fall through to P5+ (positioning)
+```
+
+Without this check, the AI wastes an evaluation cycle on a failed bombardment attempt.
+
+#### Lower Ratio Threshold for Bombardment (REQUIRED)
+
+Bombardment costs 1.5% own strength per salvo — dramatically less risky than melee (15%+ casualties). The AI should bombard at ANY strength ratio since the risk/reward is always favorable:
+
+```python
+# In _find_attack_opportunity(), when evaluating artillery targets:
+if getattr(marshal, 'artillery', False) and target.location != marshal.location:
+    # Ranged bombardment — always worth it regardless of ratio
+    # Skip the normal cautious ratio checks
+    return {"marshal": marshal.name, "action": "attack", "target": target.name}
+```
+
+Current cautious personality thresholds (ratio >= 1.5 to attack) should be **bypassed for ranged bombardment only**. Same-region artillery combat still uses normal thresholds.
+
+#### Skip Broken/Retreating Targets (REQUIRED)
+
+```python
+# Don't bombard marshals that are broken or retreating (waste of ammo)
+if getattr(target, 'broken', False) or getattr(target, 'retreating', False):
+    continue  # Skip this target
+```
+
+### 10.2 AI Target Selection Update
+
+Current AI sorts artillery targets by fort value. With bombardment being a separate low-risk path, update the sort to also consider collateral opportunity:
+
+```python
+# ARTILLERY SORT for bombardment targets
+if getattr(marshal, 'artillery', False):
+    # Priority: fortified > multiple enemies in region > unfortified
+    def bombardment_value(enemy):
+        fort = getattr(enemy, 'defense_bonus', 0)
+        region = world.get_region(enemy.location)
+        forces_in_region = len([m for m in world.get_marshals_in_region(enemy.location)
+                                if m.nation != nation and m.strength > 0])
+        return (fort > 0, forces_in_region, fort)  # Tuple sort: fort first, then density
+    targets.sort(key=bombardment_value, reverse=True)
+```
+
+### 10.3 AI Does NOT Use Strategic HOLD
+
+The AI evaluates each marshal each turn through the priority tree (P0-P8). Strategic HOLD is a **player convenience feature** to reduce micromanagement. The AI already achieves equivalent behavior through:
+- P4: Attack (bombardment via executor routing)
+- P7: Anti-oscillation (stay and bombard instead of repositioning)
+- Position scoring (prefer spots adjacent to fortified enemies)
+
+Adding strategic command usage to the AI would add complexity with zero behavioral change.
+
+### 10.4 AI Edge Cases
+
+| Edge Case | Current Behavior | Required Change |
+|-----------|-----------------|-----------------|
+| PrinceAugust at bombardment limit (2/turn) | AI tries attack, executor fails, AI falls through to P5+ | Add pre-check (§10.1) to skip cleanly |
+| PrinceAugust bombards target to 0, region undefended | AI infantry captures via P4.5 | None — works correctly |
+| PrinceAugust targets broken/retreating marshal | May waste bombardment on ineffective target | Add broken/retreating filter (§10.1) |
+| PrinceAugust has no adjacent enemies after 2 bombardments | Falls through to P7 positioning | None — correct behavior |
+| Two future AI artillery both target same enemy | Each evaluates independently, both bombard | None — concentrated fire is historically correct |
+| Collateral hits AI's own forces | AI doesn't account for friendly fire risk | **Acceptable for now.** AI doesn't position allies to avoid collateral. Future: AI avoids area bombardment when friendlies are in target region. |
+
+---
+
+## 11. Berthier Report
+
+### 11.1 New Bombardment Observations
 
 Add to `battle_report.py` `_OBSERVATIONS` dict:
 
@@ -334,22 +683,34 @@ Add to `battle_report.py` `_OBSERVATIONS` dict:
     "{marshal}'s bombardment has shattered {enemy}'s position entirely. The way is clear for advance.",
     "The guns fall silent — there is nothing left to shell. {enemy}'s force is destroyed.",
 ],
+"bombardment_terrain_difficulty": [
+    "{marshal}'s guns struggle to find targets in the {terrain}. The land itself shields {enemy}.",
+    "The {terrain} terrain hampers {marshal}'s fire. Shells fall wide of their marks.",
+],
+"bombardment_friendly_fire": [
+    "Sire, our own forces were caught in {marshal}'s bombardment. Regrettable, but unavoidable.",
+    "{marshal}'s shells struck friend as well as foe. The price of area bombardment.",
+],
 ```
 
-### 9.2 Selection Logic
+### 11.2 Selection Logic
 
 ```
 IF defender reduced to 0 → "bombardment_target_broken"
+ELIF collateral hit friendly → "bombardment_friendly_fire"
 ELIF fort_degraded → "bombardment_fort_cracking"
-ELIF defender_casualties < defender.strength * 0.02 → "bombardment_ineffective"
+ELIF terrain_modifier < 0.80 → "bombardment_terrain_difficulty"
+ELIF defender_casualties < defender.strength * 0.03 → "bombardment_ineffective"
 ELSE → "bombardment_effective"
 ```
 
+**Note:** Threshold for "ineffective" raised from 0.02 to 0.03 so it fires more often against large armies, giving the player meaningful feedback about target selection.
+
 ---
 
-## 10. Godot Frontend
+## 12. Godot Frontend
 
-### 10.1 Bombardment Result Display
+### 12.1 Bombardment Result Display
 
 The bombardment result dict returned to Godot differs from a battle result:
 
@@ -361,16 +722,20 @@ The bombardment result dict returned to Godot differs from a battle result:
     "bombardment_result": {
         "attacker": {"name": "Drouot", "casualties": 375, "remaining": 24625},
         "defender": {"name": "Wellington", "casualties": 3990, "remaining": 64010, "morale": 97},
+        "terrain": "plains",
+        "terrain_modifier": 1.10,
         "fort_degraded": True,
         "fort_old": 0.16,
         "fort_new": 0.06,
         "bombardments_remaining": 1,  # How many more this turn
+        "collateral": [...],           # Collateral damage array (§4.4)
+        "area_bombardment": False,
         "berthier_observation": "...",
     }
 }
 ```
 
-### 10.2 HUD Advisory
+### 12.2 HUD Advisory
 
 When artillery has bombardments remaining and valid targets adjacent, the Berthier advisory system should note:
 
@@ -382,26 +747,29 @@ When limit reached:
 
 ---
 
-## 11. Serialization
+## 13. Serialization
 
-### 11.1 New Fields
+### 13.1 New Fields
 
 | Field | Class | Type | Default | Purpose |
 |-------|-------|------|---------|---------|
 | `bombardments_this_turn` | Marshal | int | 0 | Tracks bombardments fired this turn (max 2) |
+| `bombardment_target` | StrategicOrder | Optional[str] | None | Locked target for HOLD bombardment |
 
-### 11.2 Checklist
+### 13.2 Checklist
 
-- [ ] Add to `Marshal.__init__`
-- [ ] Add to `Marshal.to_dict()`
-- [ ] Add to `Marshal.from_dict()` with `.get('bombardments_this_turn', 0)`
-- [ ] Reset in `world_state.py` turn processing (alongside `attacks_this_turn`)
+- [ ] Add `bombardments_this_turn` to `Marshal.__init__`
+- [ ] Add `bombardments_this_turn` to `Marshal.to_dict()`
+- [ ] Add `bombardments_this_turn` to `Marshal.from_dict()` with `.get('bombardments_this_turn', 0)`
+- [ ] Reset `bombardments_this_turn` in `world_state.py` turn processing (alongside `attacks_this_turn`)
+- [ ] Add `bombardment_target` to `StrategicOrder.__init__`, `to_dict()`, `from_dict()`
+- [ ] Add `TERRAIN_BOMBARDMENT_MODIFIER` to `region.py`
 - [ ] Run `pytest tests/test_serialization_enforcement.py -v`
 - [ ] Update `docs/SAVE_FORMAT_REFERENCE.md`
 
 ---
 
-## 12. Diminishing Returns (Future Consideration)
+## 14. Diminishing Returns (Future Consideration)
 
 If playtesting reveals "park and shell" is still too dominant even with the 2/turn limit, add diminishing returns based on `bombardment_streak`:
 
@@ -411,32 +779,80 @@ streak 3-4: 75% damage (target has dug in)
 streak 5+:  50% damage (deeply entrenched)
 ```
 
-This is NOT part of the initial implementation — flag for playtesting evaluation. The 2/turn limit + low per-shot damage + 1 AP cost should be sufficient.
+This is NOT part of the initial implementation — flag for playtesting evaluation. The 2/turn limit + low per-shot damage + terrain modifier + 1 AP cost should be sufficient.
+
+Pre-wire the streak check point in `_execute_bombardment()` so adding this later is a single constant change:
+
+```python
+# DIMINISHING RETURNS HOOK (not active — see §14)
+# streak = marshal.bombardment_streak
+# if streak >= 5: damage_multiplier *= 0.50
+# elif streak >= 3: damage_multiplier *= 0.75
+```
 
 ---
 
-## 13. Files to Modify
+## 15. Files to Modify
 
 | File | Changes |
 |------|---------|
+| `backend/models/region.py` | Add `TERRAIN_BOMBARDMENT_MODIFIER` dict |
 | `backend/models/marshal.py` | Add `bombardments_this_turn` field, serialization |
-| `backend/commands/executor.py` | Route ranged artillery to new `_execute_bombardment()`, keep same-region in `_execute_attack()` |
-| `backend/game_logic/combat.py` | Remove ranged bombardment 50% reduction (no longer needed — bombardment doesn't use resolve_battle) |
+| `backend/commands/executor.py` | Route ranged artillery to new `_execute_bombardment()` with terrain mod + collateral; keep same-region in `_execute_attack()` |
+| `backend/game_logic/combat.py` | Remove ranged bombardment 50% reduction (lines 406-423 — dead code after this) |
 | `backend/game_logic/battle_report.py` | Add bombardment observations, bombardment report generator |
-| `backend/commands/objection_v2.py` | Replace artillery triggers per §7 |
-| `backend/commands/disobedience.py` | Add artillery flavor text per §7.4 |
+| `backend/commands/objection_v2.py` | Replace artillery triggers per §7 (add cease-fire, last-shot, upgrade reckless-repositioning to MODERATE) |
+| `backend/commands/disobedience.py` | Add artillery flavor text per §7.5 |
+| `backend/commands/strategic.py` | Add `_execute_hold_bombardment()` for artillery HOLD override (§9), add `bombardment_target` to StrategicOrder |
 | `backend/models/world_state.py` | Reset `bombardments_this_turn` at turn start |
-| `backend/main.py` | Pass through bombardment result fields to API response |
-| `godot-client/...main.gd` | Handle `bombardment_result` display |
-| `docs/SAVE_FORMAT_REFERENCE.md` | Document new field |
-| `docs/SYSTEMS_REFERENCE.md` | Document bombardment vs battle distinction |
+| `backend/ai/enemy_ai.py` | Add bombardment limit check, lower ratio threshold for ranged, skip broken/retreating targets (§10) |
+| `backend/commands/parser.py` | Handle region-name targets for area bombardment routing |
+| `backend/main.py` | Pass through bombardment result fields + collateral to API response |
+| `godot-client/...main.gd` | Handle `bombardment_result` display including collateral |
+| `docs/SAVE_FORMAT_REFERENCE.md` | Document new fields |
+| `docs/SYSTEMS_REFERENCE.md` | Document bombardment vs battle distinction, terrain modifier, collateral |
 | `CLAUDE.md` | Update artillery mechanics references, add bombardment to troubleshooting |
 
 ---
 
-## 14. Test Plan
+## 16. Transition & Migration
 
-### 14.1 Unit Tests
+### 16.1 Code Removal
+
+The following code becomes **dead** once bombardment has its own path and should be removed:
+
+| File | Lines | Code | Reason |
+|------|-------|------|--------|
+| `combat.py` | 406-423 | Ranged bombardment 50% return casualties block | Bombardment no longer goes through `resolve_battle()` |
+| `combat.py` | 411 | `bombardment_range_message` variable | No longer generated by resolve_battle |
+| `combat.py` | 544 | `bombardment_range_message` in tactical_prefix | Dead reference |
+| `combat.py` | 662 | `"bombardment_range_message"` in result_dict | Dead field |
+
+**Do NOT remove these until bombardment routing is confirmed working.** Implementation order:
+1. Build `_execute_bombardment()` in executor
+2. Add routing rule (§3) in `_execute_attack()`
+3. Verify with curl tests that ranged attacks use new path
+4. THEN remove dead code from combat.py
+5. Run full test suite to confirm nothing breaks
+
+### 16.2 Old Saves
+
+- `bombardments_this_turn` defaults to 0 via `.get()` — no migration needed
+- `TERRAIN_BOMBARDMENT_MODIFIER` is new code, not save data — no migration needed
+- `bombardment_target` on StrategicOrder defaults to None via `.get()` — no migration needed
+- Old saves with active ranged bombardment mid-turn: impossible (saves happen between turns)
+
+### 16.3 Backward Compatibility
+
+- The `bombardment_range_message` field in battle results stays until confirmed safe to remove (grep all Godot references first)
+- Existing `bombardment_streak` / `last_bombardment_target` fields are unchanged — same semantics, now used by both manual and strategic bombardment
+- The mock parser already handles "bombard" / "shell" / "barrage" keywords — no parser migration needed
+
+---
+
+## 17. Test Plan
+
+### 17.1 Unit Tests — Core Bombardment
 
 - [ ] Bombardment deals correct damage range (±20% variance around expected)
 - [ ] Return casualties are ~1.5% of artillery strength
@@ -452,33 +868,71 @@ This is NOT part of the initial implementation — flag for playtesting evaluati
 - [ ] Cavalry counter (+30%) does NOT apply to bombardment
 - [ ] Serialization round-trip preserves `bombardments_this_turn`
 
-### 14.2 Integration Tests
+### 17.2 Unit Tests — Terrain
+
+- [ ] Plains terrain gives +10% bombardment damage
+- [ ] Forest terrain gives -20% bombardment damage
+- [ ] Hills terrain gives -25% bombardment damage
+- [ ] Mountains terrain gives -40% bombardment damage
+- [ ] Urban terrain gives -30% bombardment damage
+- [ ] River crossing gives no modifier
+- [ ] Return casualties are NOT affected by terrain
+
+### 17.3 Unit Tests — Collateral
+
+- [ ] Targeted bombardment: 40% chance of collateral on each other force in region
+- [ ] Collateral damage is 25% of primary damage
+- [ ] Area bombardment: all forces in region take 60% damage
+- [ ] Friendly forces take collateral/area damage
+- [ ] Friendly fire triggers trust penalty (-5)
+- [ ] Friendly fire triggers relationship penalty (-1 with artillery marshal)
+- [ ] Collateral array in result dict is correctly populated
+
+### 17.4 Unit Tests — Strategic HOLD
+
+- [ ] Artillery on HOLD auto-bombards adjacent enemy
+- [ ] Cautious fires 1/turn, picks highest fort target
+- [ ] HOLD bombardment uses `_strategic_execution` (no AP cost)
+- [ ] `bombardments_this_turn` increments from HOLD bombardment
+- [ ] Manual bombardment after HOLD respects shared limit
+- [ ] Enemy entering artillery's region breaks HOLD order
+- [ ] No targets adjacent → "maintaining readiness" message
+- [ ] Bombardment streak accumulates across turns during HOLD
+- [ ] Cancelling HOLD with streak >= 2 triggers "cease fire" objection
+
+### 17.5 Integration Tests
 
 - [ ] AI artillery (PrinceAugust) uses bombardment correctly
+- [ ] AI skips bombardment when at 2/turn limit
+- [ ] AI bombards regardless of strength ratio (low risk)
+- [ ] AI skips broken/retreating targets
 - [ ] Bombardment streak tracks across turns
 - [ ] Objection triggers fire correctly per §7
-- [ ] Event log records bombardment events
+- [ ] Event log records bombardment events with terrain and collateral
 - [ ] Fog of war filters bombardment events correctly
 
-### 14.3 Manual / Curl Tests
+### 17.6 Manual / Curl Tests
 
 ```bash
-# Drouot bombards Wellington from adjacent region
+# Drouot bombards Wellington from adjacent region (targeted)
 curl -X POST http://127.0.0.1:8005/command \
   -H "Content-Type: application/json" \
   -d '{"command": "Drouot, bombard Wellington"}' | python -m json.tool
+
+# Area bombardment — target a region
+curl -X POST http://127.0.0.1:8005/command \
+  -H "Content-Type: application/json" \
+  -d '{"command": "Drouot, bombard Waterloo"}' | python -m json.tool
 
 # Verify 3rd bombardment is blocked
 # (after 2 successful bombardments in same turn)
 
 # Verify same-region attack uses full battle
 # (move Drouot to Wellington's region first)
+
+# Verify HOLD auto-bombardment
+curl -X POST http://127.0.0.1:8005/command \
+  -H "Content-Type: application/json" \
+  -d '{"command": "Drouot, hold position"}' | python -m json.tool
+# Then end turn and verify bombardment in strategic report
 ```
-
----
-
-## 15. Migration Notes
-
-- Old saves: `bombardments_this_turn` defaults to 0 via `.get()` — no migration needed
-- The `ranged bombardment 50% return casualties` code in `combat.py` lines 406-423 should be **removed** once bombardment has its own path (dead code otherwise)
-- The `bombardment_range_message` field in battle results becomes unused for ranged attacks but stays for backward compat until confirmed safe to remove
