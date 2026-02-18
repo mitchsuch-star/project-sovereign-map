@@ -75,6 +75,12 @@ All major Phase 6 features shipped:
 - `requested_type` field on ParseResult for cavalry/infantry keyword extraction
 - Economy report shows infantry/cavalry pools with regen rates, low-cavalry Berthier warning
 
+**Permanent HUD Display (main.tscn + main.gd):**
+- `Inf: 80,000  Cav: 15,000` in status bar next to Gold
+- Color warnings: green → orange → red as pools deplete
+- Updates across all 10 response handlers (mirrors gold pattern)
+- `/debug set_manpower <nation> <infantry|cavalry> <amount>` for testing
+
 **Tests:** 2679 passing (+50 new, 0 regressions), 3 skipped. All 39 existing test regressions fixed (Ney cavalry math, gold costs, morale dilution).
 
 ---
