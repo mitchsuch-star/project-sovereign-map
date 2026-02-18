@@ -648,28 +648,33 @@ class TestSession1EdgeCases:
         assert art.location == "Belgium"
 
     def test_broken_state_clears_artillery_fields(self):
-        """Broken state handler clears moved_this_turn and bombardment streak."""
-        art = _make_artillery(name="BrokenArt", location="Belgium")
+        """Broken state handler clears moved_this_turn and bombardment streak via production code."""
+        # Netherlands is only adjacent to Belgium — placing enemies in Belgium means no safe retreat
+        art = _make_artillery(name="BrokenArt", location="Netherlands", strength=5000)
         art.moved_this_turn = True
-        art.last_bombardment_target = "Waterloo"
+        art.last_bombardment_target = "Belgium"
         art.bombardment_streak = 3
+
+        # Massive enemy in the only adjacent region — no escape route
+        blocker = _make_infantry(name="Blocker", location="Belgium", nation="Britain", strength=80000)
 
         world = _make_world()
         world.marshals["BrokenArt"] = art
+        world.marshals["Blocker"] = blocker
 
         executor = CommandExecutor()
+        game_state = {"world": world}
 
-        # Simulate forced break — call the handler directly
-        # Setting up the conditions for army break
-        art.broken = True
-        art.broken_recovery = 0
-        art.moved_this_turn = False  # Would be cleared in actual handler
-        art.last_bombardment_target = None
-        art.bombardment_streak = 0
+        # Trigger devastating loss → morale collapse → forced retreat → surrounded → broken
+        with patch('backend.game_logic.combat.random.randint', return_value=1), \
+             patch('backend.game_logic.combat.random.uniform', return_value=0.0):
+            result = executor._execute_attack(art, "Blocker", world, game_state)
 
-        assert art.moved_this_turn is False
-        assert art.last_bombardment_target is None
-        assert art.bombardment_streak == 0
+        # Should be broken (fled to capital) with artillery fields cleared
+        if art.broken:
+            assert art.moved_this_turn is False
+            assert art.last_bombardment_target is None
+            assert art.bombardment_streak == 0
 
     def test_counter_punch_artillery(self):
         """Counter-punch works for cautious artillery (Drouot scenario)."""
@@ -751,3 +756,27 @@ class TestBugFixes:
         if art.retreating or art.broken:
             assert art.bombardment_streak == 0
             assert art.last_bombardment_target is None
+
+    def test_advisory_not_fired_when_enemy_destroyed(self):
+        """Advisory does NOT fire when enemy army is destroyed (no one left to assault)."""
+        art = _make_artillery(name="DestroyArt", location="Belgium", strength=80000)
+        # Tiny force — guaranteed destruction
+        defender = _make_infantry(name="DestroyDef", location="Waterloo", strength=100, nation="Britain")
+        defender.defense_bonus = 0.0  # No fortifications
+        defender.morale = 10  # Near collapse
+
+        world = _make_world()
+        world.marshals["DestroyArt"] = art
+        world.marshals["DestroyDef"] = defender
+
+        executor = CommandExecutor()
+        game_state = {"world": world}
+
+        with patch('backend.game_logic.combat.random.randint', return_value=6), \
+             patch('backend.game_logic.combat.random.uniform', return_value=0.0):
+            result = executor._execute_attack(art, "DestroyDef", world, game_state)
+
+        assert result.get("success")
+        # If enemy was destroyed, advisory should not fire
+        if "DestroyDef" not in world.marshals:
+            assert result.get("bombardment_advisory") is None

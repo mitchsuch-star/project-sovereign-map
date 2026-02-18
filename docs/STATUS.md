@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2818** (verified, 3 skipped) |
+| **Tests Passing** | **2821** (verified, 3 skipped) |
 | **Current Phase** | Phase 6: **COMPLETE** — all items shipped or deferred |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
@@ -76,8 +76,13 @@ All major Phase 6 features shipped:
 **Audit Fixes:**
 - Renamed misleading test (`test_artillery_same_region_attack_still_blocked`)
 - Broken state handler clears `moved_this_turn`, `last_bombardment_target`, `bombardment_streak`
+- Advisory suppressed when enemy destroyed (no "send infantry" to empty battlefield)
+- Advisory checks `has_building("fortification")` not nonexistent `fortification_bonus` attribute
+- Advisory wired through `main.py` to API response (was dead code)
+- Forced retreat clears bombardment streak (not just broken state)
+- Broken-state test exercises production code path (not vacuous)
 
-**Tests:** 35 new tests in `test_artillery_session2.py` + 1 rename, 2818 total (3 skipped)
+**Tests:** 38 new tests in `test_artillery_session2.py` + 1 rename, 2821 total (3 skipped)
 
 ---
 

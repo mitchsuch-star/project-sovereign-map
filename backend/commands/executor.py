@@ -3044,7 +3044,7 @@ RETREAT RECOVERY (3 turns):
         # BERTHIER BOMBARDMENT ADVISORY (Artillery Session 2)
         # Alert when enemy fortifications are crumbling after bombardment
         # ════════════════════════════════════════════════════════════
-        if getattr(marshal, 'artillery', False):
+        if getattr(marshal, 'artillery', False) and not enemy_destroyed:
             defender_fort = getattr(enemy_marshal, 'defense_bonus', 0)
             target_reg = world.get_region(target_location)
             has_fort_building = target_reg.has_building("fortification") if target_reg and hasattr(target_reg, 'has_building') else False
