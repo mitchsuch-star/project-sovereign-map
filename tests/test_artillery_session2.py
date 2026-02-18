@@ -307,14 +307,13 @@ class TestBerthierBombardmentAdvisory:
 # ════════════════════════════════════════════════════════════════════════════════
 
 class TestArtilleryPersonalityObjections:
-    def test_aggressive_artillery_mild_at_streak_3_weak_target(self):
-        """Aggressive artillery MILD when streak >= 3 and target defense_bonus <= 0.05."""
+    def test_aggressive_artillery_mild_wasted_fire(self):
+        """Aggressive artillery MILD when target has no forts and is weak (wasted fire §7.1)."""
         art = _make_artillery(name="AggrArt", personality="aggressive")
-        art.bombardment_streak = 3
 
-        # Create target with low defense
-        target = _make_infantry(name="WeakTarget", location="Waterloo", nation="Britain", strength=20000)
-        target.defense_bonus = 0.03  # Nearly crumbled
+        # Create target with no defense and low strength
+        target = _make_infantry(name="WeakTarget", location="Waterloo", nation="Britain", strength=5000)
+        target.defense_bonus = 0.0  # No fortifications
 
         world = _make_world()
         world.marshals["AggrArt"] = art
@@ -344,8 +343,8 @@ class TestArtilleryPersonalityObjections:
         concern = evaluate_aggressive(art, "attack", order, game_state)
         assert concern == ConcernLevel.NONE
 
-    def test_cautious_artillery_mild_on_move_while_bombarding(self):
-        """Cautious artillery MILD when ordered to move while adjacent target still fortified."""
+    def test_cautious_artillery_moderate_reckless_repositioning(self):
+        """Cautious artillery MODERATE when streak >= 2 and adjacent target still fortified (§7.1)."""
         art = _make_artillery(name="CautArt", location="Belgium", personality="cautious")
         art.bombardment_streak = 2
 
@@ -361,7 +360,7 @@ class TestArtilleryPersonalityObjections:
         order = {"action": "move", "target": "Paris"}
 
         concern = evaluate_cautious(art, "move", order, game_state)
-        assert concern == ConcernLevel.MILD
+        assert concern == ConcernLevel.MODERATE
 
     def test_cautious_artillery_no_objection_when_target_cracked(self):
         """Cautious artillery no objection on move when adjacent targets all cracked."""

@@ -769,17 +769,14 @@ def evaluate_aggressive(marshal, action: str, order: Dict, game_state) -> Concer
         # Outnumbered 2:1+ but morale still high — aggressive wants to fight
         return ConcernLevel.MILD
 
-    # Artillery: Impatient bombardier — restless when bombarding weakened target
+    # Artillery: Wasted fire — bombarding already-broken target (§7.1)
     if action == "attack" and getattr(marshal, 'artillery', False):
-        streak = getattr(marshal, 'bombardment_streak', 0)
-        if streak >= 3:
-            # Check if target is already softened
-            world = _get_world(game_state)
-            target_name = order.get('target')
-            if world and target_name:
-                target_marshal = world.get_marshal(target_name) if hasattr(world, 'get_marshal') else None
-                if target_marshal and getattr(target_marshal, 'defense_bonus', 0) <= 0.05:
-                    return ConcernLevel.MILD  # "Let the infantry finish it!"
+        world = _get_world(game_state)
+        target_name = order.get('target')
+        if world and target_name:
+            target_marshal = world.get_marshal(target_name) if hasattr(world, 'get_marshal') else None
+            if target_marshal and getattr(target_marshal, 'defense_bonus', 0) == 0 and target_marshal.strength < 8000:
+                return ConcernLevel.MILD  # "The target is already broken — save my powder"
 
     # Drill with enemy nearby
     if action == "drill":
@@ -822,6 +819,36 @@ def evaluate_cautious(marshal, action: str, order: Dict, game_state) -> ConcernL
     """
     # Attack action
     if action == "attack":
+        # Artillery: Ordered into melee — STRONG objection (§7.1)
+        if getattr(marshal, 'artillery', False):
+            world = _get_world(game_state)
+            target_name = order.get('target')
+            if world and target_name:
+                target_marshal = world.get_marshal(target_name) if hasattr(world, 'get_marshal') else None
+                if target_marshal and target_marshal.location == marshal.location:
+                    return ConcernLevel.STRONG  # "You would send my gunners into the bayonet line?"
+
+            # Artillery: Last-shot advisory — MILD when last bombardment and multiple targets (§7.1)
+            if getattr(marshal, 'bombardments_this_turn', 0) == 1:
+                if world:
+                    region = world.get_region(marshal.location) if hasattr(world, 'get_region') else None
+                    if region:
+                        adjacent_targets = []
+                        for adj_name in region.adjacent_regions:
+                            for m in world.get_enemies_in_region(adj_name, marshal.nation):
+                                if m.strength > 0 and not getattr(m, 'broken', False) and not getattr(m, 'retreating', False):
+                                    adjacent_targets.append(m)
+                        if len(adjacent_targets) > 1:
+                            return ConcernLevel.MILD  # "One salvo remains — let me place it where it counts"
+
+            # Artillery: Wasted fire — target already broken and weak (§7.1)
+            if world and target_name:
+                target_marshal = world.get_marshal(target_name) if hasattr(world, 'get_marshal') else None
+                if target_marshal and getattr(target_marshal, 'defense_bonus', 0) == 0 and target_marshal.strength < 8000:
+                    return ConcernLevel.MILD  # "The target is already broken — save my powder"
+
+            return ConcernLevel.NONE  # Cautious artillery doesn't object to bombardment itself
+
         ratio = _get_attack_odds_ratio(marshal, order, game_state)
 
         # Base concern from odds
@@ -847,8 +874,8 @@ def evaluate_cautious(marshal, action: str, order: Dict, game_state) -> ConcernL
 
     # Move action - check path danger
     if action == "move":
-        # Artillery: Patient gunner — hesitant to move while bombardment in progress
-        if getattr(marshal, 'artillery', False) and getattr(marshal, 'bombardment_streak', 0) >= 1:
+        # Artillery: Reckless repositioning — moving while bombardment streak active (§7.1)
+        if getattr(marshal, 'artillery', False) and getattr(marshal, 'bombardment_streak', 0) >= 2:
             world = _get_world(game_state)
             if world:
                 # Check if any adjacent target still has fortifications worth bombarding
@@ -858,12 +885,25 @@ def evaluate_cautious(marshal, action: str, order: Dict, game_state) -> ConcernL
                         for m in world.marshals.values():
                             if m.nation != getattr(marshal, 'nation', 'France') and m.location == adj_name:
                                 if getattr(m, 'defense_bonus', 0) > 0:
-                                    return ConcernLevel.MILD  # "One more barrage and they'll crumble"
+                                    return ConcernLevel.MODERATE  # "One more barrage and their walls crumble!"
 
         target = order.get('target')
         if target and _path_crosses_enemy(marshal, target, game_state):
             return ConcernLevel.MODERATE  # "That route goes through enemy territory"
         return ConcernLevel.NONE
+
+    # Artillery: Ordered to cease fire — defend/fortify while adjacent fort still standing (§7.1)
+    if action in ("defend", "fortify") and getattr(marshal, 'artillery', False):
+        streak = getattr(marshal, 'bombardment_streak', 0)
+        if streak >= 1:
+            world = _get_world(game_state)
+            if world:
+                region = world.get_region(marshal.location) if hasattr(world, 'get_region') else None
+                if region:
+                    for adj_name in region.adjacent_regions:
+                        for m in world.get_enemies_in_region(adj_name, marshal.nation):
+                            if getattr(m, 'defense_bonus', 0) > 0.05:
+                                return ConcernLevel.MODERATE  # "Their walls still stand — give me one more day!"
 
     # Aggressive stance change
     if action == "stance_change":

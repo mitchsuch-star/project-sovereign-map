@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 18, 2026 (Session 50)
+> **Last Updated:** February 18, 2026 (Session 51)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2908** (verified, 3 skipped) |
+| **Tests Passing** | **2950** (verified, 3 skipped) |
 
-| **Current Phase** | Phase 6.5 **IN PROGRESS** — Bombardment Parts 1-3 complete, Parts 4-5 remaining |
+| **Current Phase** | Phase 6.5 **IN PROGRESS** — Bombardment Parts 1-4 complete, Part 5 remaining |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,10 +19,9 @@
 
 ## Next Steps
 
-1. **Bombardment Part 4: Strategic HOLD + Objections** — Session 51. See `BOMBARDMENT_SPEC.md` §9, §7.
-2. **Bombardment Part 5: Godot Frontend + Berthier Observations** — Session 52. See `BOMBARDMENT_SPEC.md` §11-12.
-3. **Pause menu** — Phase 6.5, Esc → Save/Load/Settings/Quit
-4. **Phase 7: Multi-marshal battles + Combined Arms + Square Formation + V2b** — Sessions 53-54 (combined arms, square) deferred here to build alongside multi-marshal combat. See BOMBARDMENT_SPEC.md §15, ROADMAP.md Phase 7.
+1. **Bombardment Part 5: Godot Frontend + Berthier Observations** — Session 52. See `BOMBARDMENT_SPEC.md` §11-12.
+2. **Pause menu** — Phase 6.5, Esc → Save/Load/Settings/Quit
+3. **Phase 7: Multi-marshal battles + Combined Arms + Square Formation + V2b** — Sessions 53-54 (combined arms, square) deferred here to build alongside multi-marshal combat. See BOMBARDMENT_SPEC.md §15, ROADMAP.md Phase 7.
 
 ---
 
@@ -46,6 +45,36 @@ All major Phase 6 features shipped:
 ---
 
 ## Recent Sessions
+
+### Feb 18 (Session 51: Bombardment Part 4 — Strategic HOLD + Objections)
+
+**Artillery-specific HOLD behavior and 5 new objection triggers per BOMBARDMENT_SPEC.md §9, §7.**
+
+**Strategic HOLD Bombardment (strategic.py `_execute_hold_bombardment`):**
+- Artillery on HOLD auto-bombards adjacent enemies instead of sally/fortify
+- Target selection: cautious=crack forts first, aggressive=finish weak first, literal=lock on previous target
+- Shared bombardment limit (strategic + manual = 2/turn max)
+- Enemy contact in same region breaks HOLD with request-for-orders
+- Broken/retreating/dead targets excluded, executor failure gracefully handled
+- `bombardment_target` field on StrategicOrder for literal personality target lock (serialized)
+
+**5 New Artillery Objection Triggers (objection_v2.py):**
+- `ordered_into_melee` — STRONG when cautious artillery ordered to attack in same region
+- `reckless_repositioning` — MODERATE when cautious artillery moves with streak >= 2 and adjacent fortified target
+- `ordered_to_cease_fire` — MODERATE when cautious artillery defend/fortify with streak >= 1 and adjacent fort
+- `wasted_fire` — MILD (cautious + aggressive) when target has no forts and < 8k strength
+- `last_shot_advisory` — MILD when cautious artillery on last bombardment with multiple targets
+
+**Artillery Flavor Text (disobedience.py):**
+- 5 new flavor text keys under cautious personality with 2 variants each
+
+**Edge Case Audit:**
+- Timed expiry checked BEFORE artillery dispatch (correct)
+- Not-at-position checked BEFORE artillery dispatch (correct)
+- Retreat recovery pauses BEFORE HOLD handler (correct)
+- Last-shot advisory filters retreating enemies consistently with target selection
+
+**Tests:** 42 new tests in `test_strategic_bombardment.py`. Total: 2950 passing.
 
 ### Feb 18 (Session 50: Bombardment Part 3 — Enemy AI Bombardment)
 

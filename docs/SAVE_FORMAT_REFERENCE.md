@@ -11,7 +11,7 @@ A future save/load system should use this as the specification.
 
 - **Format version:** 1.0
 - **Last updated:** 2026-02-18
-- **Compatible with:** Phase 6.5 Session 48 (Bombardment Part 1)
+- **Compatible with:** Phase 6.5 Session 51 (Bombardment Part 4)
 
 ## Top-Level Structure (WorldState)
 
@@ -409,6 +409,7 @@ A future save/load system should use this as the specification.
 | `last_combat_enemy` | string\|null | Combat loop prevention |
 | `last_combat_turn` | int\|null | Combat loop prevention |
 | `last_combat_result` | string\|null | "victory", "defeat", "stalemate" |
+| `bombardment_target` | string\|null | Locked target for artillery HOLD |
 
 ---
 

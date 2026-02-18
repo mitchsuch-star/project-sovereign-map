@@ -121,6 +121,9 @@ class StrategicOrder:
     # Phase M: Strategic objection tracking
     objection_resolved: bool = False  # True after player responds to objection
 
+    # Artillery HOLD bombardment: locked target for consistent fire
+    bombardment_target: Optional[str] = None
+
     def to_dict(self) -> Dict:
         """Serialize for save/load."""
         return {
@@ -141,6 +144,7 @@ class StrategicOrder:
             "last_combat_result": self.last_combat_result,
             "combat_attempts": self.combat_attempts,
             "objection_resolved": self.objection_resolved,
+            "bombardment_target": self.bombardment_target,
         }
 
     @classmethod
@@ -167,6 +171,7 @@ class StrategicOrder:
             last_combat_result=data.get("last_combat_result"),
             combat_attempts=data.get("combat_attempts", 0),
             objection_resolved=data.get("objection_resolved", False),
+            bombardment_target=data.get("bombardment_target"),
         )
 
 

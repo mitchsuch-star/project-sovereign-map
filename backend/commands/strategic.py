@@ -1226,6 +1226,14 @@ class StrategicExecutor:
                                      f"Cannot reach {hold_position}")
 
         # ═══════════════════════════════════════════════════════════════
+        # AT HOLD POSITION — Check unit type first
+        # ═══════════════════════════════════════════════════════════════
+
+        # Artillery HOLD: auto-bombard adjacent enemies instead of sally/fortify
+        if getattr(marshal, 'artillery', False):
+            return self._execute_hold_bombardment(marshal, world, game_state)
+
+        # ═══════════════════════════════════════════════════════════════
         # AT HOLD POSITION — Personality-specific behavior
         # ═══════════════════════════════════════════════════════════════
 
@@ -1363,6 +1371,142 @@ class StrategicExecutor:
                 "order_status": "continues",
                 "message": f"{marshal.name} holds {marshal.location}, ready to strike."
             }
+
+    # ══════════════════════════════════════════════════════════════════════════
+    # ARTILLERY HOLD BOMBARDMENT
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def _execute_hold_bombardment(self, marshal, world, game_state) -> Dict:
+        """
+        Artillery-specific HOLD: auto-bombard adjacent enemies.
+
+        Replaces personality-specific HOLD behavior for artillery marshals.
+        Fires once per turn (cautious), free (strategic execution), picks
+        target by personality-based priority.
+
+        See BOMBARDMENT_SPEC.md §9.
+        """
+        order = marshal.strategic_order
+        hold_position = order.target or marshal.location
+        personality = getattr(marshal, 'personality', 'cautious')
+
+        # Check if enemy is in same region — HOLD breaks
+        enemies_here = world.get_enemies_in_region(marshal.location, marshal.nation)
+        if enemies_here:
+            enemy_names = ", ".join(e.name for e in enemies_here[:3])
+            marshal.strategic_order = None
+            marshal.holding_position = False
+            marshal.hold_region = ""
+            return {
+                "marshal": marshal.name,
+                "command": "HOLD",
+                "action": "hold_broken_contact",
+                "order_status": "cancelled",
+                "message": f"{marshal.name} reports: enemy forces ({enemy_names}) have "
+                           f"entered {marshal.location}! Requesting orders."
+            }
+
+        # Check if already fired max this turn (strategic + manual share limit)
+        if getattr(marshal, 'bombardments_this_turn', 0) >= 2:
+            return {
+                "marshal": marshal.name,
+                "command": "HOLD",
+                "action": "hold_artillery_spent",
+                "order_status": "continues",
+                "message": f"{marshal.name}'s guns have already fired today. Maintaining position at {hold_position}."
+            }
+
+        # Find adjacent enemies
+        region = world.get_region(marshal.location)
+        if not region:
+            return self._hold_no_targets(marshal, hold_position)
+
+        targets = []
+        for adj_name in region.adjacent_regions:
+            for enemy in world.get_enemies_in_region(adj_name, marshal.nation):
+                if enemy.strength > 0 and not getattr(enemy, 'broken', False) and not getattr(enemy, 'retreating', False):
+                    targets.append(enemy)
+
+        if not targets:
+            return self._hold_no_targets(marshal, hold_position)
+
+        # Select target by personality
+        if personality == "cautious":
+            # Crack forts first, then biggest army
+            targets.sort(key=lambda t: (-getattr(t, 'defense_bonus', 0), -t.strength))
+        elif personality == "aggressive":
+            # Finish the weak first
+            targets.sort(key=lambda t: t.strength)
+        else:  # literal
+            # Same target as last time if possible
+            locked = getattr(order, 'bombardment_target', None)
+            if locked:
+                locked_targets = [t for t in targets if t.name == locked]
+                if locked_targets:
+                    targets = locked_targets
+
+        target = targets[0]
+
+        # Store target lock for consistency
+        order.bombardment_target = target.name
+
+        # Fire via executor (strategic execution = free, no AP cost)
+        result = self.executor.execute(
+            {"command": {
+                "marshal": marshal.name,
+                "action": "attack",
+                "target": target.name,
+                "_strategic_execution": True,
+            }},
+            game_state
+        )
+
+        # Build report — strip new_state to prevent serialization crash
+        cleaned = {k: v for k, v in result.items() if k != "new_state"} if result else {}
+
+        # Check if executor succeeded (could fail if marshal is broken, acted, etc.)
+        if not cleaned.get("success"):
+            return {
+                "marshal": marshal.name,
+                "command": "HOLD",
+                "action": "hold_artillery_ready",
+                "order_status": "continues",
+                "message": f"{marshal.name} maintains readiness at {hold_position}. "
+                           f"{cleaned.get('message', 'Unable to fire.')}",
+            }
+
+        # Extract bombardment details for the strategic report
+        bombardment_result = cleaned.get("bombardment_result")
+        bombardment_advisory = cleaned.get("bombardment_advisory")
+        battle_message = cleaned.get("message", "")
+
+        report = {
+            "marshal": marshal.name,
+            "command": "HOLD",
+            "action": "hold_bombardment",
+            "target": target.name,
+            "order_status": "continues",
+            "battle_details": cleaned,
+            "message": f"{marshal.name}'s guns bombard {target.name}'s position from {hold_position}. {battle_message}".strip(),
+        }
+
+        # Pass through bombardment_result and advisory for frontend
+        if bombardment_result:
+            report["bombardment_result"] = bombardment_result
+        if bombardment_advisory:
+            report["bombardment_advisory"] = bombardment_advisory
+
+        return report
+
+    def _hold_no_targets(self, marshal, hold_position: str) -> Dict:
+        """Return status when artillery HOLD has no valid targets."""
+        return {
+            "marshal": marshal.name,
+            "command": "HOLD",
+            "action": "hold_artillery_ready",
+            "order_status": "continues",
+            "message": f"{marshal.name} maintains readiness at {hold_position}. No targets in range."
+        }
 
     # ══════════════════════════════════════════════════════════════════════════
     # SUPPORT HANDLER

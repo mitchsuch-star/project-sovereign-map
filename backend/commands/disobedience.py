@@ -460,6 +460,27 @@ OBJECTION_TEMPLATES = {
             "\"We are outnumbered, and you want me to be MORE aggressive?\" {name} asks incredulously.",
             "{name} shakes his head firmly. \"This is reckless. We should fortify, not expose ourselves.\"",
         ],
+        # ARTILLERY TRIGGERS (Phase 6.5 — BOMBARDMENT_SPEC.md §7.5)
+        'reckless_repositioning': [
+            "{name} places a steadying hand on the nearest cannon. \"Sire, we have the range. Their fortifications are cracking. To move now abandons our advantage.\"",
+            "{name} shakes his head firmly. \"The walls show fractures from our fire. One -- perhaps two -- more barrages and they will have no cover at all.\"",
+        ],
+        'ordered_into_melee': [
+            "{name} pales visibly. \"Sire... these men serve the guns. In a bayonet fight, we are butchers sent to do a swordsman's work. I beg you, reconsider.\"",
+            "{name} looks at his gunners, then back at you. \"If you order it, we go. But know that we lose the guns and the men who know how to fire them.\"",
+        ],
+        'ordered_to_cease_fire': [
+            "{name} grips his telescope tightly. \"Sire, the fortifications crack more with each salvo. Silence my guns now and all that fire was for nothing.\"",
+            "{name} gestures to the distant smoke. \"We have their measure, Sire. The walls will not survive another day of this. Why stop when we are so close?\"",
+        ],
+        'wasted_fire': [
+            "{name} lowers his telescope. \"The position is already shattered, Sire. Sending more shells into rubble serves no purpose. Let the infantry advance.\"",
+            "{name} gestures toward the distant target. \"Look -- they have no walls left, and barely enough men to hold a picket line. Save my powder for a worthy target.\"",
+        ],
+        'last_shot_advisory': [
+            "{name} calculates carefully. \"One salvo remains today, Sire. Might I suggest the fortified position? My guns will have the greatest effect there.\"",
+            "{name} studies the field. \"A single shot left for the day. Let me place it where it counts -- the enemy walls will crack if we strike true.\"",
+        ],
     },
     'literal': {
         # TODO Phase 3 (see ROADMAP.md): 'ambiguous' situation detection not yet implemented in personality.py analyze_order_situation().

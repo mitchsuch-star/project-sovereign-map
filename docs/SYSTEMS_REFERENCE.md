@@ -1334,12 +1334,16 @@ Tracks consecutive bombardments on the same target:
 
 After artillery bombardment, if defender's `defense_bonus <= 0` AND region `fortification_bonus < 0.15`, Berthier advises: "Sire, the enemy fortifications at {location} are crumbling. An infantry assault would now have favorable odds." Returned as `bombardment_advisory` in result dict.
 
-### Personality Objections (Session 2)
+### Personality Objections (Session 51 — BOMBARDMENT_SPEC §7.1)
 
 | Personality | Trigger | Condition | Level |
 |-------------|---------|-----------|-------|
-| Aggressive | `repeated_bombardment_same_target` | Artillery attack + streak >= 3 + target defense_bonus <= 0.05 | MILD |
-| Cautious | `move_while_bombarding` | Artillery move + streak >= 1 + adjacent target with defense_bonus > 0 | MILD |
+| Cautious | `ordered_into_melee` | Artillery attack on enemy in same region | STRONG |
+| Cautious | `reckless_repositioning` | Artillery move + streak >= 2 + adjacent target defense_bonus > 0 | MODERATE |
+| Cautious | `ordered_to_cease_fire` | Artillery defend/fortify + streak >= 1 + adjacent target defense_bonus > 0.05 | MODERATE |
+| Cautious | `wasted_fire` | Artillery attack + target defense_bonus == 0 + target strength < 8000 | MILD |
+| Cautious | `last_shot_advisory` | Artillery attack + bombardments_this_turn == 1 + multiple adjacent targets | MILD |
+| Aggressive | `wasted_fire` | Artillery attack + target defense_bonus == 0 + target strength < 8000 | MILD |
 | Literal | (none) | Never objects | — |
 
 ### AI Artillery Behavior (Session 2)
@@ -1430,17 +1434,40 @@ For each non-primary marshal in target region (strength > 0, not broken/retreati
 ]
 ```
 
+### Strategic HOLD Bombardment (Session 51)
+
+Artillery marshals on strategic HOLD auto-bombard adjacent enemies instead of using personality-specific sally/fortify behavior.
+
+**Routing:** In `_execute_hold()`, if `marshal.artillery == True` and at hold position → dispatch to `_execute_hold_bombardment()`.
+
+**Target selection by personality:**
+- **Cautious:** Crack forts first (highest `defense_bonus`), then biggest army
+- **Aggressive:** Finish the weak first (lowest `strength`)
+- **Literal:** Lock on previous target (`order.bombardment_target`), fall back to default if target left
+
+**Edge cases handled:**
+- Enemy enters artillery's region → HOLD breaks, requests orders
+- `bombardments_this_turn >= 2` → "already fired today" message, order continues
+- No adjacent targets → "maintaining readiness" message, order continues
+- Broken/retreating/dead targets excluded from selection
+- Executor failure → graceful fallback message, order continues
+- Timed expiry and not-at-position checked BEFORE artillery dispatch
+
+**New serialization field:** `bombardment_target` on `StrategicOrder` — stores locked target name for literal personality. Defaults to `None`.
+
 ### Key Files
 
 | File | What changed |
 |------|-------------|
-| `marshal.py` | `artillery` flag, `moved_this_turn`, defense modifier, exhaustion exemption, `bombardment_streak` + `last_bombardment_target`, `bombardments_this_turn`, serialization, starting marshals |
+| `marshal.py` | `artillery` flag, `moved_this_turn`, defense modifier, exhaustion exemption, `bombardment_streak` + `last_bombardment_target`, `bombardments_this_turn`, serialization, starting marshals, **`bombardment_target` on StrategicOrder (Session 51)** |
 | `combat.py` | Cavalry counter (+30%), fort degradation (10%), cavalry_counter_message, artillery exhaustion message skip |
 | `executor.py` | Can't attack after moving, no advance on win, glorious charge ban, PURSUE block, recruit type logic, bombardment streak tracking, Berthier advisory, broken state cleanup, **`_execute_bombardment()` (Session 48)** |
 | `world_state.py` | Artillery constants, pool regen, `get_artillery_regen_rate()`, moved_this_turn reset, **bombardments_this_turn reset (Session 48)** |
 | `enemy_ai.py` | moved_this_turn gate, pool-aware recruit, cost-aware admin, P2 screen check, P4 bombardment sort + cavalry preference, P7 anti-oscillation + position scoring, 4 helper functions |
+| `strategic.py` | **`_execute_hold_bombardment()` + `_hold_no_targets()` (Session 51)** |
 | `battle_report.py` | Artillery observation templates, exhaustion snapshot skip for artillery |
-| `objection_v2.py` | Aggressive impatient trigger, cautious patient trigger |
+| `objection_v2.py` | **5 artillery triggers: ordered_into_melee (STRONG), reckless_repositioning (MODERATE), ordered_to_cease_fire (MODERATE), wasted_fire (MILD), last_shot_advisory (MILD) (Session 51)** |
+| `disobedience.py` | **5 artillery flavor text keys under cautious personality (Session 51)** |
 | `llm_client.py` | Artillery keywords (bombard, barrage, shell, cannonade), Drouot/PrinceAugust in known_marshals |
 | `prompt_builder.py` | Drouot bombardment few-shot example |
 
