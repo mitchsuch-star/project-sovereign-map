@@ -732,6 +732,191 @@ end turn
 
 ---
 
+## Test M: Manpower Pools (Session 41)
+
+> **Estimated time:** 15-20 min. M1-M3 critical path (~8 min), M4-M6 visual/HUD (~10 min).
+
+### M1. HUD Display — Initial State
+
+```
+# Fresh game start, verify connection
+```
+
+**Expected:**
+- Status bar shows: `Turn: 1  Actions: 4/4  Admin: 2/2  Gold: 1,200  Inf: 80,000  Cav: 15,000`
+- Inf value is green, Cav value is reddish
+- No layout clipping — all 6 items visible in status bar
+
+---
+
+### M2. Recruitment Draws from Pool
+
+#### M2A. Infantry recruit (Davout)
+
+```
+Davout, recruit
+```
+
+**Expected:**
+- Message: "Davout receives 10,000 infantry reinforcements" (Berthier voice)
+- Message includes "Infantry reserves: 70,000 remaining"
+- HUD: Inf drops from 80,000 → 70,000
+- HUD: Gold drops by recruit cost (200g base, 150g if at capital)
+
+#### M2B. Cavalry recruit (Ney)
+
+```
+Ney, recruit
+```
+
+**Expected:**
+- Message: "Ney receives 5,000 cavalry reinforcements"
+- Message includes "Cavalry reserves: 10,000 remaining"
+- HUD: Cav drops from 15,000 → 10,000
+- HUD: Gold drops by 300g base (or 225g if at capital)
+
+#### M2C. Pool empty blocks recruit
+
+```
+# Drain cavalry pool
+/debug set_manpower France cavalry 0
+Ney, recruit
+```
+
+**Expected:**
+- Berthier voice error: "no cavalry reserves remaining"
+- Message includes regen rate and estimated turns to refill
+- No gold deducted, no troops added
+
+---
+
+### M3. Regen After Turn
+
+```
+# After recruiting in M2
+end turn
+```
+
+**Expected:**
+- HUD: Inf increases by ~5,000 (base regen per controlled region)
+- HUD: Cav increases by base + plains bonuses
+- Economy command shows exact regen breakdown
+
+#### M3A. Economy report shows pools
+
+```
+economy
+```
+
+**Expected:**
+- MANPOWER section visible with:
+  - Infantry Pool: X (+5,000/turn)
+  - Cavalry Pool: X (+Y/turn) where Y depends on plains/stables
+- Low cavalry warning if applicable
+
+---
+
+### M4. HUD Color Warnings
+
+#### M4A. Low cavalry — orange
+
+```
+/debug set_manpower France cavalry 8000
+```
+
+**Expected:** Cav value turns orange
+
+#### M4B. Critical cavalry — red
+
+```
+/debug set_manpower France cavalry 3000
+```
+
+**Expected:** Cav value turns red
+
+#### M4C. Low infantry — orange
+
+```
+/debug set_manpower France infantry 35000
+```
+
+**Expected:** Inf value turns orange
+
+#### M4D. Critical infantry — red
+
+```
+/debug set_manpower France infantry 15000
+```
+
+**Expected:** Inf value turns red
+
+#### M4E. Healthy pools — normal colors
+
+```
+/debug set_manpower France infantry 80000
+/debug set_manpower France cavalry 15000
+```
+
+**Expected:** Colors return to green (inf) and reddish (cav)
+
+---
+
+### M5. Stables Building
+
+```
+/debug set_location Davout Lyon
+Davout, build stables
+end turn
+end turn
+```
+
+**Expected:**
+- Build starts: "Construction of stables in Lyon has begun (2 turns)"
+- After 2 turns: stables complete
+- Economy report: cavalry regen increases by 750
+- If Lyon is plains: even higher cavalry regen
+
+---
+
+### M6. Save/Load Persistence
+
+#### M6A. Save with depleted pools
+
+```
+# After several recruits
+save
+```
+
+#### M6B. Load restores pools
+
+```
+load
+# Select the save
+```
+
+**Expected:**
+- HUD shows correct manpower values from save
+- Economy report matches saved state
+- Pools round-trip correctly
+
+---
+
+### M7. HUD Updates Across All Flows
+
+Verify manpower HUD updates after each interaction type:
+
+| Flow | How to trigger | Check HUD updates? |
+|------|---------------|-------------------|
+| Normal command | `Davout, recruit` | Inf/Cav change |
+| Objection → Proceed | Object then Insist on recruit | Inf/Cav change |
+| Capture choice | Capture region → Plunder/Secure | No pool change, but HUD refreshes |
+| Strategic response | Strategic report popup → Continue | HUD refreshes |
+| End turn | `end turn` | Regen visible |
+| Load game | `load` → select save | Pools from save |
+| Connection test | Restart Godot client | Initial pools shown |
+
+---
+
 ## Debug Command Quick Reference
 
 | Command | Purpose |
@@ -747,5 +932,6 @@ end turn
 | `/debug cavalry <marshal>` | Toggle cavalry status |
 | `/debug hold <marshal>` | Set holding_position |
 | `/debug counter_punch <marshal>` | Set counter-punch ready |
+| `/debug set_manpower <nation> <infantry\|cavalry> <amount>` | Set manpower pool |
 | `/debug ai_turn <nation>` | Force AI turn |
 | `/debug list_marshals` | Show all positions |

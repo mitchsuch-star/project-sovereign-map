@@ -6616,6 +6616,7 @@ RETREAT RECOVERY (3 turns):
         - /debug set_morale <marshal> <amount>: Set marshal morale (0-100)
         - /debug set_trust <marshal> <0-100>: Set marshal trust (for testing objections)
         - /debug set_fortified <marshal>: Toggle fortified status
+        - /debug set_manpower <nation> <infantry|cavalry> <amount>: Set manpower pool
 
         Usage: /debug <command> <args>
         """
@@ -6672,8 +6673,9 @@ RETREAT RECOVERY (3 turns):
                           "  • damage_building <region> - Damage first building in region\n"
                           "  • set_stability <region> <0-100> - Set region stability\n"
                           "  • set_gold <amount> - Set player gold\n"
+                          "  • set_manpower <nation> <infantry|cavalry> <amount> - Set manpower pool\n"
                           "  • set_controller <region> <nation> - Set region controller\n"
-                          "  • add_building <region> <type> - Add building (supply_depot/fortification/training_ground/market/watchtower)\n"
+                          "  • add_building <region> <type> - Add building (supply_depot/fortification/training_ground/market/watchtower/stables)\n"
                           "\n== Info ==\n"
                           "  • list_marshals - Show all marshals and locations\n"
                           "  • list_regions - Show all regions and who's there"
@@ -6865,6 +6867,24 @@ RETREAT RECOVERY (3 turns):
             old = world.gold
             world.gold = value
             return {"success": True, "message": f"DEBUG: Gold: {old} -> {world.gold}"}
+
+        elif ability == "set_manpower":
+            # /debug set_manpower <nation> <infantry|cavalry> <amount>
+            if len(parts) < 4:
+                return {"success": False, "message": "Usage: /debug set_manpower <nation> <infantry|cavalry> <amount>"}
+            nation = parts[1].capitalize()
+            pool_type = parts[2].lower()
+            if pool_type not in ("infantry", "cavalry"):
+                return {"success": False, "message": "Pool type must be 'infantry' or 'cavalry'."}
+            try:
+                value = int(parts[3])
+            except ValueError:
+                return {"success": False, "message": "Amount must be a number."}
+            if nation not in world.manpower_pools:
+                return {"success": False, "message": f"Unknown nation: {nation}. Available: {list(world.manpower_pools.keys())}"}
+            old = world.manpower_pools[nation][pool_type]
+            world.manpower_pools[nation][pool_type] = max(0, value)
+            return {"success": True, "message": f"DEBUG: {nation} {pool_type}: {old:,} -> {world.manpower_pools[nation][pool_type]:,}"}
 
         elif ability == "set_controller":
             if len(parts) < 3:

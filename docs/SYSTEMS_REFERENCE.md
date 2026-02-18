@@ -1998,13 +1998,29 @@ All recruitment failures use Berthier's voice. Pool empty error includes regen r
 - `_pick_admin_action` uses correct gold cost per marshal type (300g cavalry, 200g infantry)
 - Priority 4.5: Build stables when cavalry pool < 60% cap and nation has cavalry marshals
 
+### HUD Display
+
+Manpower pools are displayed permanently in the Godot status bar alongside Turn, Actions, Admin, and Gold.
+
+- **Location:** StatusSection → ManpowerDisplay (HBoxContainer after GoldDisplay)
+- **Format:** `Inf: 80,000  Cav: 15,000` with comma formatting
+- **Colors:** Infantry green `(0.6, 0.8, 0.6)`, Cavalry reddish `(0.8, 0.5, 0.5)`
+- **Low-pool warnings:** Color shifts to orange then red when pools drop below thresholds
+  - Infantry: orange < 40k, red < 20k
+  - Cavalry: orange < 10k, red < 5k
+- **Data source:** `game_state.manpower_pools.infantry` / `.cavalry` (player nation only)
+- **Update sites:** All 10 response handlers in `main.gd` (mirrors gold update pattern)
+
 ### Key Files
 
 | File | What changed |
 |------|-------------|
-| `world_state.py` | Constants, `manpower_pools` field, `_process_manpower_regen()`, `get_cavalry_regen_rate()`, serialization |
+| `world_state.py` | Constants, `manpower_pools` field, `_process_manpower_regen()`, `get_cavalry_regen_rate()`, serialization, `get_game_state_summary()` (manpower in API) |
 | `region.py` | `"stables"` in `BUILDING_TYPES` |
 | `executor.py` | `_execute_recruit` (pool drawing, type-based costs, Berthier voice), `_calculate_recruit_cost(base_cost)`, `_extract_building_type` (stables), `_execute_economy` (manpower section) |
 | `enemy_ai.py` | Pool/cost-aware recruit, `_should_build_stables()`, `_find_best_stables_region()`, Priority 4.5 |
+| `main.py` | `manpower_pools` in `/test` endpoint response |
+| `main.tscn` | ManpowerDisplay nodes (InfLabel, InfValue, CavLabel, CavValue) |
+| `main.gd` | `_apply_manpower()`, `_update_manpower_display()`, 10 update sites |
 | `llm_client.py` | Optional `requested_type` extraction for soft correction |
 | `schemas.py` | `requested_type` field on ParseResult |
