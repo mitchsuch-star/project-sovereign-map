@@ -1,8 +1,29 @@
 # Bombardment System Specification
 
+<!-- v3 audit notes (Session 47):
+  Changes from v2 → v3:
+  - §3: Clarified routing does NOT apply to garrison combat (P4.25). Artillery cannot bombard garrisons.
+  - §4.4: CUT area bombardment entirely. Targeted + collateral is sufficient. Removed area formula,
+    parser region-name routing, and area_bombardment result field. "Drouot, bombard Waterloo" now
+    auto-targets strongest enemy in region (or asks which if ambiguous).
+  - §4.4: Added disambiguation rule: marshal names take priority over region names for target matching.
+  - §4.4: Added note: collateral affects marshals only (not capital garrisons or detachments).
+  - §4.4: Added note: friendly fire trust drop can trigger redemption event at threshold.
+  - §4.5: Fixed reset location: advance_turn() per-marshal loop (alongside attacks_this_turn), NOT
+    _process_tactical_states().
+  - §8: Removed area_bombardment field from event log.
+  - §9.3: Added arrival-turn note (marshal moves to position on turn 1, bombardment starts turn 2).
+  - §9.6: Added note: bombardment_target clears gracefully on dangling reference (handled by lookup).
+  - §10.1: Added note: P4.25 garrison assault skipped for ranged artillery. Added explicit P0 note.
+  - §10.2: Added terrain_mod as tertiary sort key for target selection.
+  - §12.1: Removed area_bombardment from Godot result dict.
+  - §15: Removed parser.py from files-to-modify (no region-name routing needed).
+  - §17: Removed area bombardment test cases. Added garrison-skip and redemption-threshold tests.
+-->
+
 > **Phase 6.5 — Artillery Bombardment Redesign**
-> **Status:** DRAFT v2 — Audited & Expanded
-> **Author:** Mitch + Claude (Opus), Sessions 45-46
+> **Status:** DRAFT v3 — Second Audit Pass
+> **Author:** Mitch + Claude (Opus), Sessions 45-47
 > **Depends on:** Artillery Unit Type (Sessions 42-44), Combat System, Objection V2
 > **Feeds into:** Berthier Reports, Event Log, Godot HUD, Strategic Commands, Enemy AI
 
@@ -50,6 +71,8 @@ ELSE:
 ```
 
 **Command handling:** The player command is "attack" — the executor routes internally based on location. The parser treats "bombard," "shell," "barrage," and "cannonade" as synonyms for "attack" (existing mock parser keywords). No new action type in VALID_ACTIONS — bombardment is an attack variant, not a separate action.
+
+**Garrison combat exclusion:** This routing rule only applies when the target is a marshal. Garrison attacks (target = region name) go through `_resolve_garrison_combat()` regardless of distance. Artillery **cannot bombard garrisons** — garrison combat requires physical presence (same-region). The AI's P4.25 garrison assault is skipped for artillery that hasn't moved into the target region (see §10.1).
 
 This is transparent to the AI, parser, and player.
 
@@ -118,27 +141,18 @@ attacker_casualties = int(artillery.strength * return_rate * variance)
 
 This represents counter-battery fire, gun wear, logistics attrition — not melee losses. Terrain does NOT affect return casualties.
 
-### 4.4 Collateral Damage (Area-of-Effect)
+### 4.4 Collateral Damage
 
-Shells are imprecise. When bombardment hits a region, **all other forces in that region** have a chance of taking collateral damage — including friendly units.
+Shells are imprecise. When bombardment hits a region, **other forces in that region** have a chance of taking collateral damage — including friendly units.
 
-#### Targeted vs. Area Bombardment
+**All bombardment is targeted.** The player names a specific marshal to bombard. If the player names a region ("bombard Waterloo"), the parser auto-selects the strongest enemy marshal in that region as the primary target. If multiple enemies are present and ambiguity exists, Berthier asks which target. There is no separate "area bombardment" mode.
 
-**Targeted ("Drouot, attack Wellington"):**
-- Primary target takes full damage (§4.2)
-- Each OTHER force in the target region (enemy or friendly) has a **40% chance** of taking collateral damage
-- Collateral damage = **25% of the primary damage** (reduced accuracy on non-targeted forces)
-
-**Area bombardment ("Drouot, attack Waterloo" / targeting a region):**
-- ALL forces in the region take damage
-- Each force takes **60% of the standard bombardment damage** (fire spread across the whole area)
-- This includes friendly forces if present
-- Parser: if the "target" matches a region name instead of a marshal name, route to area bombardment
+**Target disambiguation:** Marshal names always take priority over region names. If a target string matches both a marshal and a region (unlikely in base game but possible with mods), treat as targeted bombardment against the marshal.
 
 #### Collateral Damage Formula
 
 ```python
-# For each non-primary force in target region:
+# For each non-primary MARSHAL in target region:
 collateral_chance = 0.40  # 40% chance per force
 collateral_rate = 0.25    # 25% of primary damage
 
@@ -149,25 +163,17 @@ if random.random() < collateral_chance:
     force.take_casualties(collateral_casualties)
 ```
 
-#### Area Bombardment Formula
-
-```python
-# For each force in target region (friend or foe):
-area_rate = 0.60  # 60% of standard damage
-area_raw = force.strength * base_rate * damage_multiplier * terrain_mod * area_rate
-area_variance = random.uniform(0.80, 1.20)
-area_casualties = int(area_raw * area_variance)
-force.take_casualties(area_casualties)
-```
+**Scope:** Collateral affects **marshals only**. Capital garrisons and player garrison detachments (region attributes, not marshal objects) are not affected by collateral. They are structural defenses, not field armies in the blast zone.
 
 #### Friendly Fire
 
-When collateral or area bombardment hits a friendly force:
+When collateral hits a friendly force:
 - Casualties apply normally (no protection for being allied)
 - Event log includes `"friendly_fire": True` flag
 - Berthier observation: "Sire, our own forces at {region} were caught in {marshal}'s bombardment. {casualties} casualties from friendly fire."
 - **Trust penalty:** Friendly marshal hit by bombardment loses -5 trust with the player (you shelled their troops)
 - **Relationship penalty:** Friendly marshal hit takes -1 relationship with the artillery marshal
+- **Redemption threshold note:** If the -5 trust drop pushes a marshal to trust <= 20, the normal redemption event fires. This is intentional — the player's bombardment triggered a trust crisis with their own marshal. Dramatic and fair.
 
 #### Collateral Display
 
@@ -202,7 +208,7 @@ marshal.bombardments_this_turn += 1
 
 **Serialization:** Add `bombardments_this_turn` to `to_dict()` / `from_dict()` with `.get(key, 0)` default.
 
-**Turn reset:** Clear in `world_state.py _process_tactical_states()` alongside `attacks_this_turn` and `moved_this_turn`.
+**Turn reset:** Clear in `world_state.py advance_turn()` in the per-marshal reset loop (line ~3022), alongside `attacks_this_turn` and `moved_this_turn`. **NOT** in `_process_tactical_states()` — the reset happens in the direct loop before that function is called.
 
 ### 4.6 No Battle Outcome
 
@@ -418,7 +424,6 @@ New event type for the turn events log:
     "collateral": [                     # May be empty list
         {"name": "Uxbridge", "nation": "Britain", "casualties": 998, "friendly_fire": False},
     ],
-    "area_bombardment": False,          # True if player targeted region instead of marshal
 }
 ```
 
@@ -452,7 +457,7 @@ When an artillery marshal arrives at the HOLD position, behavior depends on pers
 
 ### 9.3 Implementation in strategic.py
 
-In `_execute_hold()`, add an artillery path **before** the existing personality checks:
+In `_execute_hold()`, add an artillery path **before** the existing personality checks (line ~1228):
 
 ```python
 # AT HOLD POSITION — Check unit type first
@@ -461,6 +466,8 @@ if getattr(marshal, 'artillery', False):
 
 # Then existing personality paths (aggressive sally, cautious fortify, etc.)
 ```
+
+**Arrival-turn note:** On the turn the marshal moves to the hold position, the existing code returns an "arriving" message (line 1204-1212) **before** reaching this artillery check. The marshal does not bombard on the arrival turn. Bombardment begins the following turn when `moved_this_turn` has been reset. This is correct behavior but important to document: do not reorganize the code to move the artillery check before the position/arrival checks.
 
 #### _execute_hold_bombardment Logic
 
@@ -576,6 +583,8 @@ New field on StrategicOrder:
 
 Add to `StrategicOrder.to_dict()` / `from_dict()`.
 
+**Dangling reference handling:** If `bombardment_target` references a marshal that was destroyed or left the area, the lookup in `_execute_hold_bombardment()` gracefully falls through to default target selection (the `locked_targets` list is empty, so the code uses the personality-based sort). No explicit cleanup is required, but the field will naturally clear when the order ends or the target is re-acquired.
+
 ---
 
 ## 10. Enemy AI — Artillery Bombardment
@@ -597,6 +606,23 @@ if getattr(marshal, 'artillery', False):
 ```
 
 Without this check, the AI wastes an evaluation cycle on a failed bombardment attempt.
+
+#### P4.25 Garrison Assault — Skip for Ranged Artillery (REQUIRED)
+
+Artillery cannot bombard garrisons (§3). Add a check in `_find_garrison_attack()`:
+
+```python
+# Artillery can't bombard garrisons — must be in same region (which requires prior move)
+if getattr(marshal, 'artillery', False) and getattr(marshal, 'moved_this_turn', False):
+    return None  # Can't move + attack in same turn
+# Note: if artillery is already adjacent to a garrison and hasn't moved,
+# it still can't "bombard" a garrison — the garrison combat path requires
+# same-region presence. Skip P4.25 for artillery entirely.
+if getattr(marshal, 'artillery', False):
+    return None
+```
+
+**P0 engagement note:** P0 handles same-region combat. When artillery is engaged in the same region as an enemy, it uses the normal `resolve_battle()` path (melee), NOT bombardment. The mood-adjusted threshold applies normally. No changes needed for P0.
 
 #### Lower Ratio Threshold for Bombardment (REQUIRED)
 
@@ -627,15 +653,18 @@ Current AI sorts artillery targets by fort value. With bombardment being a separ
 ```python
 # ARTILLERY SORT for bombardment targets
 if getattr(marshal, 'artillery', False):
-    # Priority: fortified > multiple enemies in region > unfortified
+    # Priority: fortified > multiple enemies in region > terrain effectiveness > unfortified
     def bombardment_value(enemy):
         fort = getattr(enemy, 'defense_bonus', 0)
         region = world.get_region(enemy.location)
         forces_in_region = len([m for m in world.get_marshals_in_region(enemy.location)
                                 if m.nation != nation and m.strength > 0])
-        return (fort > 0, forces_in_region, fort)  # Tuple sort: fort first, then density
+        terrain_mod = TERRAIN_BOMBARDMENT_MODIFIER.get(region.terrain, 1.0) if region else 1.0
+        return (fort > 0, forces_in_region, fort, terrain_mod)  # Tuple sort: fort, density, fort level, terrain
     targets.sort(key=bombardment_value, reverse=True)
 ```
+
+**Terrain as tiebreaker:** When two targets have equal fort value and force density, prefer the target on open terrain (higher terrain_mod = more damage per bombardment). A plains target (1.10) takes 1.83x more damage than a mountains target (0.60).
 
 ### 10.3 AI Does NOT Use Strategic HOLD
 
@@ -729,7 +758,6 @@ The bombardment result dict returned to Godot differs from a battle result:
         "fort_new": 0.06,
         "bombardments_remaining": 1,  # How many more this turn
         "collateral": [...],           # Collateral damage array (§4.4)
-        "area_bombardment": False,
         "berthier_observation": "...",
     }
 }
@@ -761,7 +789,7 @@ When limit reached:
 - [ ] Add `bombardments_this_turn` to `Marshal.__init__`
 - [ ] Add `bombardments_this_turn` to `Marshal.to_dict()`
 - [ ] Add `bombardments_this_turn` to `Marshal.from_dict()` with `.get('bombardments_this_turn', 0)`
-- [ ] Reset `bombardments_this_turn` in `world_state.py` turn processing (alongside `attacks_this_turn`)
+- [ ] Reset `bombardments_this_turn` in `world_state.py advance_turn()` per-marshal loop (alongside `attacks_this_turn`, `moved_this_turn`)
 - [ ] Add `bombardment_target` to `StrategicOrder.__init__`, `to_dict()`, `from_dict()`
 - [ ] Add `TERRAIN_BOMBARDMENT_MODIFIER` to `region.py`
 - [ ] Run `pytest tests/test_serialization_enforcement.py -v`
@@ -805,8 +833,7 @@ Pre-wire the streak check point in `_execute_bombardment()` so adding this later
 | `backend/commands/disobedience.py` | Add artillery flavor text per §7.5 |
 | `backend/commands/strategic.py` | Add `_execute_hold_bombardment()` for artillery HOLD override (§9), add `bombardment_target` to StrategicOrder |
 | `backend/models/world_state.py` | Reset `bombardments_this_turn` at turn start |
-| `backend/ai/enemy_ai.py` | Add bombardment limit check, lower ratio threshold for ranged, skip broken/retreating targets (§10) |
-| `backend/commands/parser.py` | Handle region-name targets for area bombardment routing |
+| `backend/ai/enemy_ai.py` | Add bombardment limit check, lower ratio threshold for ranged, skip broken/retreating targets, skip P4.25 for artillery (§10) |
 | `backend/main.py` | Pass through bombardment result fields + collateral to API response |
 | `godot-client/...main.gd` | Handle `bombardment_result` display including collateral |
 | `docs/SAVE_FORMAT_REFERENCE.md` | Document new fields |
@@ -882,11 +909,13 @@ The following code becomes **dead** once bombardment has its own path and should
 
 - [ ] Targeted bombardment: 40% chance of collateral on each other force in region
 - [ ] Collateral damage is 25% of primary damage
-- [ ] Area bombardment: all forces in region take 60% damage
-- [ ] Friendly forces take collateral/area damage
+- [ ] Friendly forces take collateral damage
 - [ ] Friendly fire triggers trust penalty (-5)
 - [ ] Friendly fire triggers relationship penalty (-1 with artillery marshal)
+- [ ] Friendly fire trust drop to <= 20 triggers redemption event
 - [ ] Collateral array in result dict is correctly populated
+- [ ] Collateral does NOT affect capital garrisons or player garrison detachments
+- [ ] Region-name target ("bombard Waterloo") auto-selects strongest enemy in region
 
 ### 17.4 Unit Tests — Strategic HOLD
 
@@ -906,6 +935,8 @@ The following code becomes **dead** once bombardment has its own path and should
 - [ ] AI skips bombardment when at 2/turn limit
 - [ ] AI bombards regardless of strength ratio (low risk)
 - [ ] AI skips broken/retreating targets
+- [ ] AI skips P4.25 garrison assault for artillery (cannot bombard garrisons)
+- [ ] AI P0 same-region engagement uses normal battle, not bombardment
 - [ ] Bombardment streak tracks across turns
 - [ ] Objection triggers fire correctly per §7
 - [ ] Event log records bombardment events with terrain and collateral
@@ -919,7 +950,7 @@ curl -X POST http://127.0.0.1:8005/command \
   -H "Content-Type: application/json" \
   -d '{"command": "Drouot, bombard Wellington"}' | python -m json.tool
 
-# Area bombardment — target a region
+# Region-name target — auto-selects strongest enemy in region
 curl -X POST http://127.0.0.1:8005/command \
   -H "Content-Type: application/json" \
   -d '{"command": "Drouot, bombard Waterloo"}' | python -m json.tool
