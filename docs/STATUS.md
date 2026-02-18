@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2679** (verified, 3 skipped) |
+| **Tests Passing** | **2697** (verified, 3 skipped) |
 | **Current Phase** | Phase 6: **IN PROGRESS** (1 item remaining: Artillery Unit Type) |
 | **Blockers** | None |
 | **Code Coverage** | **71%** (backend/) |
@@ -81,7 +81,7 @@ All major Phase 6 features shipped:
 - Updates across all 10 response handlers (mirrors gold pattern)
 - `/debug set_manpower <nation> <infantry|cavalry> <amount>` for testing
 
-**Tests:** 2679 passing (+50 new, 0 regressions), 3 skipped. All 39 existing test regressions fixed (Ney cavalry math, gold costs, morale dilution).
+**Tests:** 2697 passing (+68 new, 0 regressions), 3 skipped. All 39 existing test regressions fixed (Ney cavalry math, gold costs, morale dilution). 18 integration tests for AI multi-turn behavior, endpoint wiring, and debug commands.
 
 ---
 
