@@ -132,6 +132,34 @@ theme_override_colors/font_color = Color(0.85, 0.75, 0.3, 1)
 theme_override_font_sizes/font_size = 12
 text = "1,200"
 
+[node name="ManpowerDisplay" type="HBoxContainer" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="InfLabel" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ManpowerDisplay"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.75, 1)
+theme_override_font_sizes/font_size = 12
+text = "Inf:"
+
+[node name="InfValue" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ManpowerDisplay"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.8, 0.6, 1)
+theme_override_font_sizes/font_size = 12
+text = "80,000"
+
+[node name="CavLabel" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ManpowerDisplay"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.75, 1)
+theme_override_font_sizes/font_size = 12
+text = "Cav:"
+
+[node name="CavValue" type="Label" parent="BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ManpowerDisplay"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.5, 0.5, 1)
+theme_override_font_sizes/font_size = 12
+text = "15,000"
+
 [node name="OutputScroll" type="ScrollContainer" parent="BottomLeftUI/MainMargin/MainLayout"]
 custom_minimum_size = Vector2(0, 140)
 layout_mode = 2

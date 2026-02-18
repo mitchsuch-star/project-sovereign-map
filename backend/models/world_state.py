@@ -32,6 +32,25 @@ FORTIFY_DECAY_CONFIG = {
 }
 FORTIFY_DECAY_DEFAULT = {"start": 6, "rate": 0.01, "floor": 0.0}
 
+# ═══════ MANPOWER POOL CONSTANTS ═══════
+INFANTRY_RECRUIT_AMOUNT = 10000        # Troops per infantry recruit (unchanged)
+CAVALRY_RECRUIT_AMOUNT = 5000          # Troops per cavalry recruit (half infantry — precious)
+INFANTRY_RECRUIT_GOLD_COST_BASE = 200  # Gold cost for infantry recruit (existing behavior)
+CAVALRY_RECRUIT_GOLD_COST_BASE = 300   # Gold cost for cavalry recruit (vs 200 infantry)
+INFANTRY_BASE_REGEN = 5000             # Per nation per turn (fast — infantry isn't the bottleneck)
+CAVALRY_BASE_REGEN = 500               # Per nation per turn (slow — this IS the bottleneck)
+PLAINS_CAVALRY_REGEN = 500             # Bonus per plains region controlled
+STABLES_CAVALRY_REGEN = 750            # Bonus per stables building owned
+MAX_INFANTRY_POOL = 100000             # Pool cap
+MAX_CAVALRY_POOL = 30000               # Pool cap
+
+# Default starting pools (also used for backward compat)
+DEFAULT_MANPOWER_POOLS = {
+    "France": {"infantry": 80000, "cavalry": 15000},
+    "Britain": {"infantry": 50000, "cavalry": 8000},
+    "Prussia": {"infantry": 60000, "cavalry": 10000},
+}
+
 
 class WorldState:
     """
@@ -80,6 +99,13 @@ class WorldState:
             "Britain": 1500,
             "Prussia": 800,
         }
+        # ═══════ MANPOWER POOLS (Phase 6) ═══════
+        # Nation-level reserve pools that gate recruitment.
+        # Cavalry is precious and slow to rebuild; infantry is cheap and plentiful.
+        self.manpower_pools: Dict[str, Dict[str, int]] = {
+            k: v.copy() for k, v in DEFAULT_MANPOWER_POOLS.items()
+        }
+
         self.game_over: bool = False
         self.victory: Optional[str] = None  # "victory", "defeat", or None
 
@@ -1917,6 +1943,49 @@ class WorldState:
     # INCOME PHASE (Phase 6.2.B)
     # ========================================
 
+    # ========================================
+    # MANPOWER POOLS (Phase 6)
+    # ========================================
+
+    def _process_manpower_regen(self):
+        """Regenerate manpower pools per nation. Called during advance_turn.
+
+        Nations with 0 regions still get base regen (represents national reserves,
+        overseas recruitment, etc.). Territory bonuses require actual control.
+        """
+        all_nations = [self.player_nation] + list(self.enemy_nations)
+        for nation in all_nations:
+            if nation not in self.manpower_pools:
+                continue
+
+            controlled = [r for r in self.regions.values() if r.controller == nation]
+
+            # Infantry: generous base regen (no territory dependency)
+            inf_regen = INFANTRY_BASE_REGEN
+
+            # Cavalry: slow base + territory bonuses
+            cav_regen = CAVALRY_BASE_REGEN
+            for region in controlled:
+                if region.terrain == "plains":
+                    cav_regen += PLAINS_CAVALRY_REGEN
+                if region.has_building("stables"):
+                    cav_regen += STABLES_CAVALRY_REGEN
+
+            pool = self.manpower_pools[nation]
+            pool["infantry"] = min(pool["infantry"] + inf_regen, MAX_INFANTRY_POOL)
+            pool["cavalry"] = min(pool["cavalry"] + cav_regen, MAX_CAVALRY_POOL)
+
+    def get_cavalry_regen_rate(self, nation: str) -> int:
+        """Calculate current cavalry regen rate for a nation (for display/error messages)."""
+        controlled = [r for r in self.regions.values() if r.controller == nation]
+        rate = CAVALRY_BASE_REGEN
+        for region in controlled:
+            if region.terrain == "plains":
+                rate += PLAINS_CAVALRY_REGEN
+            if region.has_building("stables"):
+                rate += STABLES_CAVALRY_REGEN
+        return rate
+
     def process_income_phase(self, nation: str = None) -> Dict:
         """Process full income phase for a nation: income - upkeep + admin bonus.
 
@@ -2266,6 +2335,7 @@ class WorldState:
             "max_turns": int(self.max_turns),
             "gold": int(self.gold),  # Backward compat: player gold
             "nation_gold": {k: int(v) for k, v in self.nation_gold.items()},
+            "manpower_pools": {k: v.copy() for k, v in self.manpower_pools.items()},
             "game_over": self.game_over,
             "victory": self.victory,
 
@@ -2359,6 +2429,18 @@ class WorldState:
             world.nation_gold[world.player_nation] = int(old_gold)
         world.game_over = data.get("game_over", False)
         world.victory = data.get("victory")
+
+        # ═══════ MANPOWER POOLS (Phase 6) ═══════
+        raw_pools = data.get("manpower_pools", {})
+        world.manpower_pools = {k: v.copy() for k, v in raw_pools.items()}
+        # Fill missing nations or missing pool types from defaults
+        for nation, defaults in DEFAULT_MANPOWER_POOLS.items():
+            if nation not in world.manpower_pools:
+                world.manpower_pools[nation] = defaults.copy()
+            else:
+                for pool_type, default_val in defaults.items():
+                    if pool_type not in world.manpower_pools[nation]:
+                        world.manpower_pools[nation][pool_type] = default_val
 
         # ═══════ ACTION ECONOMY ═══════
         world.max_actions_per_turn = data.get("max_actions_per_turn", 4)
@@ -2606,6 +2688,10 @@ class WorldState:
             "turn": int(self.current_turn),  # Explicit int cast
             "max_turns": int(self.max_turns),
             "gold": int(self.gold),
+            "manpower_pools": {
+                "infantry": int(self.manpower_pools.get(self.player_nation, {}).get("infantry", 0)),
+                "cavalry": int(self.manpower_pools.get(self.player_nation, {}).get("cavalry", 0)),
+            },
             "player_nation": self.player_nation,
             "regions_controlled": len(self.get_player_regions()),
             "total_regions": len(self.regions),
@@ -2990,6 +3076,11 @@ class WorldState:
         # ════════════════════════════════════════════════════════════
         for nation in all_nations:
             self.process_income_phase(nation)
+
+        # ════════════════════════════════════════════════════════════
+        # MANPOWER REGEN (Phase 6) — after income, before action resets
+        # ════════════════════════════════════════════════════════════
+        self._process_manpower_regen()
 
         # Reset actions (recalculate in case bonuses changed)
         self.max_actions_per_turn = int(self.calculate_max_actions())

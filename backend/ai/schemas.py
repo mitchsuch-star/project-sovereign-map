@@ -72,6 +72,7 @@ class ParseResult:
     target_stance: Optional[str] = None
     raw_command: str = ""
     type: Optional[str] = None  # Special type marker (e.g., "debug")
+    requested_type: Optional[str] = None  # Phase 6: player-requested recruit type (for soft correction)
 
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -122,6 +123,10 @@ class ParseResult:
             result["interpreted_target"] = self.interpreted_target
             result["interpretation_reason"] = self.interpretation_reason
             result["alternatives"] = self.alternatives
+
+        # Phase 6: Requested recruit type (for soft correction)
+        if self.requested_type:
+            result["requested_type"] = self.requested_type
 
         return result
 

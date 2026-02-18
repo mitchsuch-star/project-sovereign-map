@@ -315,6 +315,10 @@ def test_connection():
         "message": "Backend is running",
         "turn": int(world.current_turn),
         "gold": int(world.gold),
+        "manpower_pools": {
+            "infantry": int(world.manpower_pools.get(world.player_nation, {}).get("infantry", 0)),
+            "cavalry": int(world.manpower_pools.get(world.player_nation, {}).get("cavalry", 0)),
+        },
         "action_summary": world.get_action_summary(),
         "game_state": world.get_filtered_game_state_summary()
     }

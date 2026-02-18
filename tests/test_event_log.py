@@ -382,7 +382,7 @@ class TestEconomyEventLogging:
             assert len(events) == 1
             assert events[0]["marshal"] == "Ney"
             assert events[0]["nation"] == "France"
-            assert events[0]["amount"] == 10000
+            assert events[0]["amount"] == 5000  # Ney is cavalry
             assert events[0]["location"] == "Paris"
 
     def test_build_logs_building_started_event(self):

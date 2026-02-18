@@ -23,7 +23,16 @@ def _setup():
 
 
 def _get_french_marshal_in_stable_region(world):
-    """Find a French marshal in a stable, French-controlled region."""
+    """Find a French infantry marshal in a stable, French-controlled region.
+
+    Prefers infantry marshals for consistent 10k recruit math in morale tests.
+    """
+    for m in world.marshals.values():
+        if m.nation == "France" and not getattr(m, 'cavalry', False):
+            region = world.regions.get(m.location)
+            if region and region.controller == "France" and region.stability > 50:
+                return m, region
+    # Fallback to any French marshal
     for m in world.marshals.values():
         if m.nation == "France":
             region = world.regions.get(m.location)

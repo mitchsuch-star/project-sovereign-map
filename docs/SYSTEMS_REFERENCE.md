@@ -15,6 +15,7 @@ Consolidated reference for all game systems. Read when modifying related code.
 7. [Redemption System](#7-redemption-system)
 8. [Economy System](#8-economy-system)
 9. [Fog of War](#9-fog-of-war)
+10. [Manpower Pools](#10-manpower-pools)
 
 ---
 
@@ -1939,3 +1940,71 @@ Backend sends `visibility_status` per region in `get_filtered_game_state_summary
 Fogged enemies (PARTIAL/STALE) use `fogged_forces[]` from backend response. Tooltip shows name, nation, strength band, intel quality.
 
 Key files: `map.gd` (`_draw_fogged_force_icons()`, `_draw_fogged_tooltip()`, `FOG_OVERLAYS` const).
+
+---
+
+## 10. Manpower Pools
+
+Nation-level infantry/cavalry reserve pools that gate recruitment. Cavalry is precious and slow to rebuild.
+
+### Core Concept
+
+Marshal type (`cavalry: bool`) auto-determines which pool is drawn from. No player choice needed — the strategic choice is *which marshal to reinforce*.
+
+| Marshal type | Pool | Batch | Gold cost | Example |
+|-------------|------|-------|-----------|---------|
+| `cavalry: True` | cavalry | 5,000 | 300g base | Ney, Uxbridge |
+| `cavalry: False` | infantry | 10,000 | 200g base | Davout, Wellington |
+
+### Starting Pools
+
+| Nation | Infantry | Cavalry |
+|--------|----------|---------|
+| France | 80,000 | 15,000 |
+| Britain | 50,000 | 8,000 |
+| Prussia | 60,000 | 10,000 |
+
+### Regen (per turn)
+
+- Infantry: 5,000/turn base (no territory dependency)
+- Cavalry: 500/turn base + 500 per plains region + 750 per stables building
+- Pool caps: 100,000 infantry, 30,000 cavalry
+- Damaged/under-construction stables don't contribute
+- Nations with 0 regions still get base regen
+
+### Stables Building
+
+| Property | Value |
+|----------|-------|
+| Gold cost | 300g |
+| Build time | 2 turns |
+| Allowed in | capital, major_city, city |
+| Cavalry regen bonus | +750/turn |
+
+### Cost Modifiers
+
+Same `_calculate_recruit_cost(region, world, base_cost)` for both types:
+- Capital: 75% of base (infantry 150g, cavalry 225g)
+- Settling (stability 51-75): 150% of base (infantry 300g, cavalry 450g)
+- Normal: base (infantry 200g, cavalry 300g)
+
+### Error Messages (Berthier Voice)
+
+All recruitment failures use Berthier's voice. Pool empty error includes regen rate and estimated turns.
+
+### AI Awareness
+
+- `_find_weakest_marshal_for_admin` skips marshals whose pool can't support a recruit
+- `_pick_admin_action` uses correct gold cost per marshal type (300g cavalry, 200g infantry)
+- Priority 4.5: Build stables when cavalry pool < 60% cap and nation has cavalry marshals
+
+### Key Files
+
+| File | What changed |
+|------|-------------|
+| `world_state.py` | Constants, `manpower_pools` field, `_process_manpower_regen()`, `get_cavalry_regen_rate()`, serialization |
+| `region.py` | `"stables"` in `BUILDING_TYPES` |
+| `executor.py` | `_execute_recruit` (pool drawing, type-based costs, Berthier voice), `_calculate_recruit_cost(base_cost)`, `_extract_building_type` (stables), `_execute_economy` (manpower section) |
+| `enemy_ai.py` | Pool/cost-aware recruit, `_should_build_stables()`, `_find_best_stables_region()`, Priority 4.5 |
+| `llm_client.py` | Optional `requested_type` extraction for soft correction |
+| `schemas.py` | `requested_type` field on ParseResult |

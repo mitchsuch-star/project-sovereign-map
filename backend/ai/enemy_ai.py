@@ -53,7 +53,12 @@ IMPLEMENTED:
 
 import random
 from typing import Dict, List, Optional, Tuple
-from backend.models.world_state import WorldState
+from backend.models.world_state import (
+    WorldState,
+    INFANTRY_RECRUIT_AMOUNT, CAVALRY_RECRUIT_AMOUNT,
+    INFANTRY_RECRUIT_GOLD_COST_BASE, CAVALRY_RECRUIT_GOLD_COST_BASE,
+    MAX_CAVALRY_POOL,
+)
 from backend.models.marshal import Marshal, Stance
 
 # ═══════════════════════════════════════════════════════════════════
@@ -3649,13 +3654,16 @@ class EnemyAI:
         else:
             weakest = None
         if weakest:
-            # Calculate recruit cost based on region
+            # Calculate recruit cost based on marshal type and region
+            is_cavalry = getattr(weakest, 'cavalry', False)
+            base_cost = CAVALRY_RECRUIT_GOLD_COST_BASE if is_cavalry else INFANTRY_RECRUIT_GOLD_COST_BASE
+
             region = world.get_region(weakest.location)
-            recruit_cost = 200  # Base cost
+            recruit_cost = base_cost
             if region and getattr(region, 'is_capital', False):
-                recruit_cost = 150  # Capital discount
-            elif region and getattr(region, 'stability', 100) <= 75:
-                recruit_cost = 300  # Settling premium
+                recruit_cost = int(base_cost * 0.75)
+            elif region and 51 <= getattr(region, 'stability', 100) <= 75:
+                recruit_cost = int(base_cost * 1.50)
 
             if treasury >= recruit_cost and region and getattr(region, 'stability', 100) > 50:
                 return {
@@ -3695,6 +3703,13 @@ class EnemyAI:
                         "target": border_region,
                         "building_type": "fortification"
                     }
+
+        # Priority 4.5: Build stables if cavalry pool low and nation has cavalry marshals
+        if "build" not in skip_actions and treasury >= 300:
+            if self._should_build_stables(nation, world):
+                stables_region = self._find_best_stables_region(nation, world)
+                if stables_region:
+                    return {"action": "build", "target": stables_region, "building_type": "stables"}
 
         # Priority 5: Repair damaged building
         if "repair" not in skip_actions:
@@ -3737,12 +3752,15 @@ class EnemyAI:
         else:
             rebuild_target = None
         if rebuild_target:
+            is_cavalry = getattr(rebuild_target, 'cavalry', False)
+            base_cost = CAVALRY_RECRUIT_GOLD_COST_BASE if is_cavalry else INFANTRY_RECRUIT_GOLD_COST_BASE
+
             region = world.get_region(rebuild_target.location)
-            recruit_cost = 200
+            recruit_cost = base_cost
             if region and getattr(region, 'is_capital', False):
-                recruit_cost = 150
-            elif region and getattr(region, 'stability', 100) <= 75:
-                recruit_cost = 300
+                recruit_cost = int(base_cost * 0.75)
+            elif region and 51 <= getattr(region, 'stability', 100) <= 75:
+                recruit_cost = int(base_cost * 1.50)
             if treasury >= recruit_cost and region and getattr(region, 'stability', 100) > 50:
                 return {
                     "action": "recruit",
@@ -3769,6 +3787,8 @@ class EnemyAI:
     def _find_weakest_marshal_for_admin(self, nation: str, world, threshold: float = None) -> Optional['Marshal']:
         """Find the weakest marshal below recruitment threshold for recruitment.
 
+        Skips marshals whose manpower pool can't support a recruit.
+
         Args:
             threshold: Override threshold. Defaults to AI_RECRUITMENT_THRESHOLD (urgent).
                        Pass AI_RECRUITMENT_REBUILD_CAP (1.0) for low-priority rebuild.
@@ -3786,6 +3806,13 @@ class EnemyAI:
                 continue
             ratio = marshal.strength / starting
             if ratio < threshold and ratio < lowest_ratio:
+                # Check pool availability
+                recruit_type = "cavalry" if getattr(marshal, 'cavalry', False) else "infantry"
+                needed = CAVALRY_RECRUIT_AMOUNT if recruit_type == "cavalry" else INFANTRY_RECRUIT_AMOUNT
+                pool = world.manpower_pools.get(nation, {})
+                if pool.get(recruit_type, 0) < needed:
+                    continue  # Pool can't support this marshal's recruit type
+
                 # Check if marshal's location is suitable for recruiting
                 region = world.get_region(marshal.location)
                 if region and region.controller == nation:
@@ -3984,6 +4011,41 @@ class EnemyAI:
                 best_region = region_name
 
         return best_region
+
+    def _should_build_stables(self, nation: str, world) -> bool:
+        """Check if nation should invest in stables."""
+        has_cavalry_marshal = any(
+            getattr(m, 'cavalry', False)
+            for m in world.marshals.values()
+            if m.nation == nation
+        )
+        if not has_cavalry_marshal:
+            return False
+        pool = world.manpower_pools.get(nation, {})
+        return pool.get("cavalry", 0) < MAX_CAVALRY_POOL * 0.6
+
+    def _find_best_stables_region(self, nation: str, world) -> Optional[str]:
+        """Find region to build stables. Prefer plains (thematic), then highest-income."""
+        candidates = []
+        for name, region in world.regions.items():
+            if region.controller != nation:
+                continue
+            if region.region_type not in ("capital", "major_city", "city"):
+                continue
+            if region.has_building("stables", functional_only=False):
+                continue
+            if getattr(region, 'building_under_construction', None):
+                continue
+            if region.available_building_slots() <= 0:
+                continue
+            score = region.income_value
+            if region.terrain == "plains":
+                score += 500  # Strong preference for thematic placement
+            candidates.append((score, name))
+        if not candidates:
+            return None
+        candidates.sort(reverse=True)
+        return candidates[0][1]
 
     def _find_damaged_building_region(self, nation: str, world) -> Optional[Dict]:
         """Find a region with a damaged building, prioritizing high-income regions.

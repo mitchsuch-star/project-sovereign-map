@@ -14,7 +14,12 @@ TODO (Future): Multi-Army Battles
 - Coordinated attacks with flanking bonuses
 """
 from typing import Dict, List, Optional, Tuple
-from backend.models.world_state import WorldState
+from backend.models.world_state import (
+    WorldState,
+    INFANTRY_RECRUIT_AMOUNT, CAVALRY_RECRUIT_AMOUNT,
+    INFANTRY_RECRUIT_GOLD_COST_BASE, CAVALRY_RECRUIT_GOLD_COST_BASE,
+    INFANTRY_BASE_REGEN,
+)
 from backend.models.marshal import Stance, StrategicOrder
 from backend.models.region import CHARGE_BLOCKED_TERRAIN, TERRAIN_DEFENSE_BONUS
 from backend.game_logic.combat import CombatResolver
@@ -5609,6 +5614,18 @@ RETREAT RECOVERY (3 turns):
             if bankruptcy >= 3:
                 lines.append("  Desertion active: -5% strength per marshal per turn!")
 
+        # Manpower pools (Phase 6)
+        pool = world.manpower_pools.get(nation, {})
+        inf_pool = pool.get("infantry", 0)
+        cav_pool = pool.get("cavalry", 0)
+        cav_regen = world.get_cavalry_regen_rate(nation)
+
+        lines.append("\n  ═══════ MANPOWER ═══════")
+        lines.append(f"  Infantry Pool: {inf_pool:,} (+{INFANTRY_BASE_REGEN:,}/turn)")
+        lines.append(f"  Cavalry Pool:  {cav_pool:,} (+{cav_regen:,}/turn)")
+        if cav_pool < CAVALRY_RECRUIT_AMOUNT:
+            lines.append(f"  Berthier warns: 'Cavalry reserves dangerously low, Sire.' (need {CAVALRY_RECRUIT_AMOUNT:,} to recruit)")
+
         lines.append("═══════════════════════════════════")
 
         message = "\n".join(lines)
@@ -5628,42 +5645,40 @@ RETREAT RECOVERY (3 turns):
             "new_state": game_state
         }
 
-    def _calculate_recruit_cost(self, region, world) -> int:
+    def _calculate_recruit_cost(self, region, world, base_cost: int = 200) -> int:
         """Calculate recruitment gold cost based on region properties.
 
         Priority: Capital discount wins over settling premium.
-        If capital somehow has stability 51-75 (unlikely but possible),
-        capital discount applies — it's always cheaper at your capital.
+        Parameterized base_cost: 200 for infantry, 300 for cavalry.
         """
-        base_cost = 200
-
         # Capital discount: 25% off (checked first — always wins)
         if region.region_type == "capital":
-            return int(base_cost * 0.75)  # 150
+            return int(base_cost * 0.75)
 
         # Settling stability premium: 50% more (stability 51-75)
         if 51 <= region.stability <= 75:
-            return int(base_cost * 1.50)  # 300
+            return int(base_cost * 1.50)
 
-        return base_cost  # 200
+        return base_cost
 
     def _execute_recruit(self, command: Dict, game_state: Dict) -> Dict:
-        """Recruit new troops with morale dilution, stability gates, and cost modifiers.
+        """Recruit new troops with manpower pools, morale dilution, stability gates, and cost modifiers.
 
-        Phase 6.2.D: Recruitment is now a strategic decision.
-        - 10,000 troops always added (fixed amount)
+        Phase 6: Manpower Pools — recruit type auto-determined from marshal.cavalry.
+        - Infantry marshals: 10,000 troops from infantry pool at 200g base
+        - Cavalry marshals: 5,000 troops from cavalry pool at 300g base
         - Green conscripts have 40% base morale (dilutes veteran armies)
         - Stability gates: blocked in Hostile/Unrest regions (stability <= 50)
-        - Capital discount: 25% off at capital (150 gold)
-        - Settling premium: 50% more at stability 51-75 (300 gold)
+        - Capital discount: 25% off at capital
+        - Settling premium: 50% more at stability 51-75
         - Admin AP cost handled by executor routing layer (not here)
         """
-        NEW_TROOPS = 10000    # Fixed recruit amount
         # Base recruit morale — upgraded by Training Ground (Phase 6.2.E)
         RECRUIT_MORALE = 40   # Green conscripts base morale
 
         marshal_specified = command.get("marshal")
         location_specified = command.get("target")
+        requested_type = command.get("requested_type")  # Optional: for soft correction
 
         world: WorldState = game_state.get("world")
 
@@ -5682,7 +5697,6 @@ RETREAT RECOVERY (3 turns):
 
             recipient = marshal.name
             recruitment_location = marshal.location
-            base_message = f"{marshal.name} recruits 10,000 troops at {marshal.location}"
 
         elif location_specified:
             result = world.find_nearest_marshal_to_region(location_specified)
@@ -5690,13 +5704,12 @@ RETREAT RECOVERY (3 turns):
             if not result:
                 return {
                     "success": False,
-                    "message": f"No marshals available to recruit in {location_specified}"
+                    "message": f"Berthier scans the dispatches. 'No marshal is available to receive reinforcements at {location_specified}, Sire.'"
                 }
 
             marshal, distance = result
             recipient = marshal.name
             recruitment_location = location_specified
-            base_message = f"{marshal.name} recruits 10,000 troops for {location_specified} ({distance} regions away)"
 
         else:
             result = world.find_nearest_marshal_to_region("Paris")
@@ -5704,13 +5717,36 @@ RETREAT RECOVERY (3 turns):
             if not result:
                 return {
                     "success": False,
-                    "message": "No marshals available for recruitment"
+                    "message": "Berthier scans the dispatches. 'No marshal is available to receive reinforcements, Sire.'"
                 }
 
             marshal, distance = result
             recipient = marshal.name
             recruitment_location = "Paris"
-            base_message = f"{marshal.name} recruits 10,000 troops (nearest to capital)"
+
+        # --- Determine recruit type from marshal ---
+        recruit_marshal = world.get_marshal(recipient)
+        recruit_type = "cavalry" if getattr(recruit_marshal, 'cavalry', False) else "infantry"
+
+        # Set batch size and cost based on type
+        if recruit_type == "cavalry":
+            NEW_TROOPS = CAVALRY_RECRUIT_AMOUNT       # 5,000
+        else:
+            NEW_TROOPS = INFANTRY_RECRUIT_AMOUNT      # 10,000
+
+        # Build base_message with correct type and amount
+        type_label = recruit_type
+        if marshal_specified:
+            base_message = f"{recruit_marshal.name} recruits {NEW_TROOPS:,} {type_label} at {recruit_marshal.location}"
+        elif location_specified:
+            base_message = f"{recruit_marshal.name} recruits {NEW_TROOPS:,} {type_label} for {location_specified} ({distance} regions away)"
+        else:
+            base_message = f"{recruit_marshal.name} recruits {NEW_TROOPS:,} {type_label} (nearest to capital)"
+
+        # Soft correction: player asked for wrong type
+        soft_correction = ""
+        if requested_type and requested_type != recruit_type:
+            soft_correction = f"Berthier notes: 'Marshal {recruit_marshal.name} commands {recruit_type}, Sire.' "
 
         # --- Location validation (Phase 6.2.D) ---
         region = world.get_region(recruitment_location)
@@ -5719,44 +5755,54 @@ RETREAT RECOVERY (3 turns):
 
         # Must be controlled by acting nation (player or AI)
         acting_nation = world.player_nation
-        recruit_marshal = world.get_marshal(recipient) if recipient else None
         if recruit_marshal:
             acting_nation = recruit_marshal.nation
         if region.controller != acting_nation:
             return {
                 "success": False,
-                "message": f"Cannot recruit in {recruitment_location} — not controlled by {acting_nation}"
+                "message": f"Berthier frowns. 'We do not control {recruitment_location}, Your Majesty. Recruitment is impossible there.'"
             }
 
         # Stability gate: block entire Unrest tier (stability <= 50).
-        # Spec says "< 50" but we block <= 50 to match stability tier boundaries
-        # from 6.2.C: Hostile (0-25) and Unrest (26-50) are both blocked.
         if region.stability <= 50:
             label = region.get_stability_label()
             return {
                 "success": False,
-                "message": f"Cannot recruit in {recruitment_location} — region is {label} (stability {region.stability}/100). Need stability 51+.",
-                "suggestion": "Garrison a marshal there to speed up stability growth, or recruit at a more stable region."
+                "message": f"Berthier advises caution. '{recruitment_location} is in {label} (stability {region.stability}/100). The populace will not answer our call until stability exceeds 50.'"
+            }
+
+        # --- Manpower pool check (BEFORE gold check) ---
+        pool = world.manpower_pools.get(acting_nation, {})
+        available = pool.get(recruit_type, 0)
+        if available < NEW_TROOPS:
+            regen_rate = world.get_cavalry_regen_rate(acting_nation) if recruit_type == "cavalry" else INFANTRY_BASE_REGEN
+            turns_until = max(1, (NEW_TROOPS - available + regen_rate - 1) // regen_rate)
+            plural = "s" if turns_until > 1 else ""
+            return {
+                "success": False,
+                "message": f"Berthier consults his ledgers. 'Sire, our {recruit_type} reserves are insufficient. "
+                           f"Pool: {available:,}, need: {NEW_TROOPS:,}. "
+                           f"Recovering +{regen_rate:,}/turn — available in ~{turns_until} turn{plural}.'"
             }
 
         # --- Gold cost calculation ---
-        gold_cost = self._calculate_recruit_cost(region, world)
+        cost_base = CAVALRY_RECRUIT_GOLD_COST_BASE if recruit_type == "cavalry" else INFANTRY_RECRUIT_GOLD_COST_BASE
+        gold_cost = self._calculate_recruit_cost(region, world, base_cost=cost_base)
 
         nation_treasury = world.nation_gold.get(acting_nation, 0)
         if nation_treasury < gold_cost:
             return {
                 "success": False,
-                "message": f"Insufficient gold! Need {gold_cost} gold, have {nation_treasury} gold",
-                "suggestion": "Wait for more income or conquer more regions"
+                "message": f"Berthier shakes his head. 'The treasury cannot support this, Sire. Need {gold_cost} gold, have {nation_treasury}.'"
             }
 
         # Phase 6.2 Audit Fix #6: Training Ground morale bonus buffed from +15% to +30%
-        # At +15%: recruits at 55%, only 1.25% army morale improvement (10k into 30k at 70%)
-        # At +30%: recruits at 70%, ZERO morale dilution into 70%+ army — genuinely valuable
-        # Worth 250g + 2 turns vs Market (350g, +25% income) and Fortification (400g, +25% defense)
-        # Training Ground = "build before mass recruitment" building
         if region.has_building("training_ground"):
             RECRUIT_MORALE = 70
+
+        # --- Draw from manpower pool ---
+        world.manpower_pools[acting_nation][recruit_type] -= NEW_TROOPS
+        pool_after = world.manpower_pools[acting_nation][recruit_type]
 
         # --- Morale dilution ---
         marshal = world.get_marshal(recipient)
@@ -5776,7 +5822,6 @@ RETREAT RECOVERY (3 turns):
         world.record_gold_spent(acting_nation, gold_cost)
 
         # --- Build result message ---
-        # Capital discount and settling premium are mutually exclusive (capital wins)
         is_capital_discount = region.region_type == "capital"
         is_stability_premium = (51 <= region.stability <= 75) and not is_capital_discount
 
@@ -5786,9 +5831,11 @@ RETREAT RECOVERY (3 turns):
         elif is_stability_premium:
             cost_note = " (unstable region premium)"
 
+        # Pool status line
+        pool_line = f"\n{recruit_type.title()} pool: {available:,} -> {pool_after:,}"
+
         # --- Morale warning (Session 31) ---
         morale_warning = ""
-        morale_drop = old_morale - new_morale
         if new_morale < 25:
             morale_warning = f" [DANGER] Morale critically low at {new_morale}% — troops may break in combat!"
         elif new_morale < 40:
@@ -5800,23 +5847,27 @@ RETREAT RECOVERY (3 turns):
             "marshal": recipient,
             "nation": acting_nation,
             "amount": int(NEW_TROOPS),
+            "recruit_type": recruit_type,
             "location": recruitment_location,
         })
 
         return {
             "success": True,
-            "message": f"{base_message} - Cost: {gold_cost} gold{cost_note}. Morale: {old_morale}% -> {new_morale}%{morale_warning}",
+            "message": f"{soft_correction}{base_message} - Cost: {gold_cost} gold{cost_note}. Morale: {old_morale}% -> {new_morale}%{pool_line}{morale_warning}",
             "events": [{
                 "type": "recruit",
                 "marshal": recipient,
                 "location": recruitment_location,
+                "recruit_type": recruit_type,
                 "troops_added": int(NEW_TROOPS),
                 "gold_cost": int(gold_cost),
                 "morale_before": int(old_morale),
                 "morale_after": int(new_morale),
                 "new_strength": int(marshal.strength),
                 "stability_premium": is_stability_premium,
-                "capital_discount": is_capital_discount
+                "capital_discount": is_capital_discount,
+                "pool_before": int(available),
+                "pool_after": int(pool_after),
             }],
             "new_state": game_state
         }
@@ -5842,6 +5893,8 @@ RETREAT RECOVERY (3 turns):
             return "training_ground"
         elif "market" in raw or "trade" in raw:
             return "market"
+        elif "stable" in raw or "horse" in raw:
+            return "stables"
         elif "watch" in raw or "tower" in raw:
             return "watchtower"
         # Try building_type field directly (set by tests)

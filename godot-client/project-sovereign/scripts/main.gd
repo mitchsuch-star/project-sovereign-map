@@ -12,6 +12,8 @@ extends Control
 @onready var actions_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ActionsDisplay/ActionsValue
 @onready var admin_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/AdminDisplay/AdminValue
 @onready var gold_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/GoldDisplay/GoldValue
+@onready var inf_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ManpowerDisplay/InfValue
+@onready var cav_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ManpowerDisplay/CavValue
 
 # UI References - Main Interface
 @onready var output_scroll = $BottomLeftUI/MainMargin/MainLayout/OutputScroll
@@ -60,6 +62,8 @@ var max_admin_actions = 2
 var current_turn = 1
 var max_turns = 40
 var gold = 1200
+var infantry_pool = 80000
+var cavalry_pool = 15000
 var pending_redemption = false  # True when awaiting redemption choice
 
 # Command history (up/down arrow navigation)
@@ -255,6 +259,8 @@ func _on_connection_test(response):
 		if response.has("gold"):
 			gold = int(response.gold)
 			_update_gold_display()
+		if response.has("manpower_pools"):
+			_apply_manpower(response.manpower_pools)
 
 		# Update map with initial state
 		if response.has("game_state") and response.game_state.has("map_data"):
@@ -494,6 +500,8 @@ func _on_command_result(response):
 		if response.has("game_state") and response.game_state.has("gold"):
 			gold = int(response.game_state.gold)
 			_update_gold_display()
+		if response.has("game_state") and response.game_state.has("manpower_pools"):
+			_apply_manpower(response.game_state.manpower_pools)
 
 		# Update map with latest state
 		if response.has("game_state") and response.game_state.has("map_data"):
@@ -894,6 +902,32 @@ func _update_gold_display():
 	"""Update treasury display with formatting."""
 	gold_value.text = _format_number(gold)
 
+func _apply_manpower(pools: Dictionary):
+	"""Extract manpower values from a dict and update display."""
+	if pools.has("infantry"):
+		infantry_pool = int(pools.infantry)
+	if pools.has("cavalry"):
+		cavalry_pool = int(pools.cavalry)
+	_update_manpower_display()
+
+func _update_manpower_display():
+	"""Update manpower pool display with formatting."""
+	inf_value.text = _format_number(infantry_pool)
+	cav_value.text = _format_number(cavalry_pool)
+	# Color shift when pools are low
+	if cavalry_pool < 5000:
+		cav_value.add_theme_color_override("font_color", Color(0.9, 0.3, 0.3))
+	elif cavalry_pool < 10000:
+		cav_value.add_theme_color_override("font_color", Color(0.9, 0.6, 0.4))
+	else:
+		cav_value.add_theme_color_override("font_color", Color(0.8, 0.5, 0.5))
+	if infantry_pool < 20000:
+		inf_value.add_theme_color_override("font_color", Color(0.9, 0.3, 0.3))
+	elif infantry_pool < 40000:
+		inf_value.add_theme_color_override("font_color", Color(0.9, 0.6, 0.4))
+	else:
+		inf_value.add_theme_color_override("font_color", Color(0.6, 0.8, 0.6))
+
 func _format_number(num: int) -> String:
 	"""Format number with comma separators."""
 	var s = str(num)
@@ -1072,6 +1106,8 @@ func _on_objection_response(response):
 			if response.has("game_state") and response.game_state.has("gold"):
 				gold = int(response.game_state.gold)
 				_update_gold_display()
+			if response.has("game_state") and response.game_state.has("manpower_pools"):
+				_apply_manpower(response.game_state.manpower_pools)
 			if response.has("game_state") and response.game_state.has("map_data"):
 				map_area.update_all_regions(response.game_state.map_data)
 			_display_result(response)
@@ -1099,6 +1135,8 @@ func _on_objection_response(response):
 		if response.has("game_state") and response.game_state.has("gold"):
 			gold = int(response.game_state.gold)
 			_update_gold_display()
+		if response.has("game_state") and response.game_state.has("manpower_pools"):
+			_apply_manpower(response.game_state.manpower_pools)
 
 		# Update map with latest state
 		if response.has("game_state") and response.game_state.has("map_data"):
@@ -1205,6 +1243,8 @@ func _on_redemption_response(response):
 		if response.has("game_state") and response.game_state.has("gold"):
 			gold = int(response.game_state.gold)
 			_update_gold_display()
+		if response.has("game_state") and response.game_state.has("manpower_pools"):
+			_apply_manpower(response.game_state.manpower_pools)
 
 		# Update map
 		if response.has("game_state") and response.game_state.has("map_data"):
@@ -1341,6 +1381,8 @@ func _show_capture_choice_dialog(response):
 	if response.has("game_state") and response.game_state.has("gold"):
 		gold = int(response.game_state.gold)
 		_update_gold_display()
+	if response.has("game_state") and response.game_state.has("manpower_pools"):
+		_apply_manpower(response.game_state.manpower_pools)
 	if response.has("game_state") and response.game_state.has("map_data"):
 		map_area.update_all_regions(response.game_state.map_data)
 
@@ -1383,6 +1425,8 @@ func _on_capture_choice_response(response):
 		if response.has("game_state") and response.game_state.has("gold"):
 			gold = int(response.game_state.gold)
 			_update_gold_display()
+		if response.has("game_state") and response.game_state.has("manpower_pools"):
+			_apply_manpower(response.game_state.manpower_pools)
 		if response.has("game_state") and response.game_state.has("map_data"):
 			map_area.update_all_regions(response.game_state.map_data)
 
@@ -1436,6 +1480,8 @@ func _on_load_result(response):
 			if gs.has("gold"):
 				gold = int(gs.gold)
 				_update_gold_display()
+			if gs.has("manpower_pools"):
+				_apply_manpower(gs.manpower_pools)
 			if gs.has("turn"):
 				current_turn = int(gs.turn)
 				turn_value.text = str(current_turn)
@@ -1580,6 +1626,8 @@ func _on_glorious_charge_response(response):
 		if response.has("game_state") and response.game_state.has("gold"):
 			gold = int(response.game_state.gold)
 			_update_gold_display()
+		if response.has("game_state") and response.game_state.has("manpower_pools"):
+			_apply_manpower(response.game_state.manpower_pools)
 
 		# Update map with latest state
 		if response.has("game_state") and response.game_state.has("map_data"):
@@ -1714,6 +1762,8 @@ func _on_interrupt_response(response):
 		if response.has("game_state") and response.game_state.has("gold"):
 			gold = int(response.game_state.gold)
 			_update_gold_display()
+		if response.has("game_state") and response.game_state.has("manpower_pools"):
+			_apply_manpower(response.game_state.manpower_pools)
 		if response.has("game_state") and response.game_state.has("map_data"):
 			map_area.update_all_regions(response.game_state.map_data)
 	else:

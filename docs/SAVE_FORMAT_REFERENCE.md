@@ -24,6 +24,11 @@ A future save/load system should use this as the specification.
   "max_turns": 40,
   "gold": 600,
   "nation_gold": {"France": 600, "Britain": 800, "Prussia": 300},
+  "manpower_pools": {
+    "France": {"infantry": 80000, "cavalry": 15000},
+    "Britain": {"infantry": 50000, "cavalry": 8000},
+    "Prussia": {"infantry": 60000, "cavalry": 10000}
+  },
   "game_over": false,
   "victory": null,
 
@@ -75,6 +80,7 @@ A future save/load system should use this as the specification.
 | `max_turns` | int | 40 | Maximum turns before game ends |
 | `gold` | int | 600 | Player's treasury (backward compat, reads from nation_gold) |
 | `nation_gold` | dict | {"France": 600, ...} | Per-nation treasury |
+| `manpower_pools` | dict | DEFAULT_MANPOWER_POOLS | Per-nation infantry/cavalry reserve pools |
 | `game_over` | bool | false | Whether game has ended |
 | `victory` | string\|null | null | "victory", "defeat", or null |
 | `max_actions_per_turn` | int | 4 | Base actions per turn |

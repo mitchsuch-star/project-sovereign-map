@@ -14,18 +14,17 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ## Current Phase
 
-**Phase 6: Core Campaign Systems — IN PROGRESS (2 items remaining)**
+**Phase 6: Core Campaign Systems — IN PROGRESS (1 item remaining)**
 
 ### Remaining (must build before Phase 6.5)
 
 | Feature | Complexity | Notes |
 |---------|------------|-------|
-| **Manpower Pools** | Medium | Separate: Infantry, Cavalry, Artillery |
 | **Artillery Unit Type** | Medium | Combat buffs like cavalry |
 
 ### Completed in Phase 6
 
-Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-Battle Analysis, Turn Events Log, Reinforcements, Attrition, City Fortification, Fog of War (COMPLETE: Sessions 33-36), Player Garrison Command (Session 31: 2 AP, cap 3/nation, map overlay), Enemy AI Garrison (P6.75: Building Blocks, 20k threshold, 1/nation/turn, P4.25 sub-5k awareness, `garrison_detachment` rename). See `docs/STATUS.md` for details.
+Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-Battle Analysis, Turn Events Log, Reinforcements, Attrition, City Fortification, Fog of War (COMPLETE: Sessions 33-36), Player Garrison Command (Session 31: 2 AP, cap 3/nation, map overlay), Enemy AI Garrison (P6.75: Building Blocks, 20k threshold, 1/nation/turn, P4.25 sub-5k awareness, `garrison_detachment` rename), Manpower Pools (Session 41: infantry/cavalry reserves, stables building, AI awareness). See `docs/STATUS.md` for details.
 
 ### Deferred from Phase 6
 
@@ -98,6 +97,7 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | Objection V2 system | `objection_v2.py`, `docs/OBJECTION_V2.md` |
 | Fog of war | `docs/FOG_OF_WAR_SPEC.md`, `backend/models/intel.py`, `backend/intel_report.py`, `map.gd` (fog overlay + fogged icons) |
 | Strategic commands + fog | `docs/FOG_OF_WAR_SPEC.md` §5, `backend/commands/strategic.py` |
+| Manpower pools / recruitment | `world_state.py` (manpower constants, `_process_manpower_regen`), `executor.py` (`_execute_recruit`), `enemy_ai.py` (P1/P4.5/P7 pool checks) |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`
 For Enemy AI details: `docs/ENEMY_AI_REFERENCE.md`

@@ -445,6 +445,7 @@ class LLMClient:
         ALL existing keyword matching logic is preserved exactly as-is.
         """
         command_lower = command_text.lower()
+        requested_type = None  # Phase 6: player-requested recruit type (for soft correction)
 
         # Extract marshal name - find the FIRST mentioned marshal
         marshal = None  # Start with None for general orders
@@ -576,6 +577,13 @@ class LLMClient:
             action = "move"  # Strategic parser upgrades to SUPPORT
         elif "recruit" in command_lower or re.search(r'\braise\b', command_lower) or "conscript" in command_lower:
             action = "recruit"
+            # Optional: extract what the player ASKED for (for soft correction message)
+            if any(kw in command_lower for kw in ["cavalry", "horse", "rider", "horsemen"]):
+                requested_type = "cavalry"
+            elif "infantry" in command_lower or "foot" in command_lower:
+                requested_type = "infantry"
+            else:
+                requested_type = None
         # Tactical state actions (Phase 2.6)
         elif "unfortify" in command_lower or "abandon fortif" in command_lower or "leave fortif" in command_lower:
             action = "unfortify"  # Must check before fortify to avoid false positives
@@ -725,6 +733,7 @@ class LLMClient:
             key_source=self.key_source,
             target_stance=target_stance,
             raw_command=command_text,
+            requested_type=requested_type,
         )
 
 

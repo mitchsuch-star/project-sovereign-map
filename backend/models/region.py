@@ -77,6 +77,7 @@ BUILDING_TYPES = {
     "fortification": {"gold_cost": 400, "build_time": 3, "allowed_in": ["capital", "major_city", "city"]},
     "training_ground": {"gold_cost": 250, "build_time": 2, "allowed_in": ["capital", "major_city", "city"]},
     "market": {"gold_cost": 350, "build_time": 2, "allowed_in": ["capital", "major_city", "city"]},
+    "stables": {"gold_cost": 300, "build_time": 2, "allowed_in": ["capital", "major_city", "city"]},
 }
 
 BUILDING_SLOT_LIMITS = {

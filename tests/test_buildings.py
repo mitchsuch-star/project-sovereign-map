@@ -265,18 +265,19 @@ class TestBuildingEffects:
         world.regions["Paris"].buildings = [{"type": "training_ground", "damaged": False}]
         world.regions["Paris"].stability = 80
 
-        ney = world.get_marshal("Ney")
-        ney.location = "Paris"
-        ney.strength = 20000
-        ney.morale = 80
+        # Use Davout (infantry, 10k recruit) for consistent math
+        davout = world.get_marshal("Davout")
+        davout.location = "Paris"
+        davout.strength = 20000
+        davout.morale = 80
 
-        command = {"action": "recruit", "marshal": "Ney"}
+        command = {"action": "recruit", "marshal": "Davout"}
         result = executor._execute_recruit(command, gs)
         assert result["success"]
 
         # With training ground: morale = (20000 * 80 + 10000 * 70) / 30000
         expected = int((20000 * 80 + 10000 * 70) / 30000)
-        assert ney.morale == expected
+        assert davout.morale == expected
 
     def test_damaged_training_ground_no_morale_boost(self):
         """Damaged training ground: still 40% base morale."""
@@ -285,18 +286,19 @@ class TestBuildingEffects:
         world.regions["Paris"].buildings = [{"type": "training_ground", "damaged": True}]
         world.regions["Paris"].stability = 80
 
-        ney = world.get_marshal("Ney")
-        ney.location = "Paris"
-        ney.strength = 20000
-        ney.morale = 80
+        # Use Davout (infantry, 10k recruit) for consistent math
+        davout = world.get_marshal("Davout")
+        davout.location = "Paris"
+        davout.strength = 20000
+        davout.morale = 80
 
-        command = {"action": "recruit", "marshal": "Ney"}
+        command = {"action": "recruit", "marshal": "Davout"}
         result = executor._execute_recruit(command, gs)
         assert result["success"]
 
         # Without training ground: morale = (20000 * 80 + 10000 * 40) / 30000
         expected = int((20000 * 80 + 10000 * 40) / 30000)
-        assert ney.morale == expected
+        assert davout.morale == expected
 
     def test_has_building_functional_only(self):
         region = Region("Test", ["A"], region_type="city")

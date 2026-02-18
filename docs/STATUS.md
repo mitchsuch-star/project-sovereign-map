@@ -9,8 +9,8 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2629** (verified, 3 skipped) |
-| **Current Phase** | Phase 6: **IN PROGRESS** (2 items remaining: Manpower Pools, Artillery Unit Type) |
+| **Tests Passing** | **2679** (verified, 3 skipped) |
+| **Current Phase** | Phase 6: **IN PROGRESS** (1 item remaining: Artillery Unit Type) |
 | **Blockers** | None |
 | **Code Coverage** | **71%** (backend/) |
 
@@ -18,9 +18,8 @@
 
 ## Next Steps
 
-1. **Manpower Pools** (Medium) — Separate pool types: Infantry, Cavalry, Artillery
-2. **Artillery Unit Type** (Medium) — Combat buffs like cavalry system
-3. **Pause menu** — Phase 6.5, Esc → Save/Load/Settings/Quit
+1. **Artillery Unit Type** (Medium) — Combat buffs like cavalry system
+2. **Pause menu** — Phase 6.5, Esc → Save/Load/Settings/Quit
 
 ---
 
@@ -38,10 +37,47 @@ All major Phase 6 features shipped:
 - **Reinforcements, Attrition, City Fortification**
 - **Player Garrison Command:** 2 AP, cap 3/nation, map overlay
 - **Enemy AI Garrison (P6.75):** Building Blocks, 20k threshold, 1/nation/turn, P4.25 sub-5k awareness
+- **Manpower Pools:** Nation-level infantry/cavalry reserves gate recruitment. Marshal type auto-determines pool (infantry 10k/200g, cavalry 5k/300g). Stables building (+750 cavalry regen). AI pool/cost awareness. Berthier voice throughout.
 
 ---
 
 ## Recent Sessions
+
+### Feb 17 (Session 41: Manpower Pools Implementation)
+
+**Full feature implementation: nation-level infantry/cavalry reserve pools gating recruitment.**
+
+**Core System (world_state.py):**
+- Nation-level `manpower_pools` dict: `{nation: {infantry: int, cavalry: int}}`
+- Starting pools: France 80k/15k, Britain 50k/8k, Prussia 60k/10k
+- Per-turn regen: infantry +5k (per controlled region), cavalry +500 (base) +500 (plains) +750 (stables)
+- Caps: infantry 100k, cavalry 30k
+- Constants: `INFANTRY_RECRUIT_AMOUNT=10000`, `CAVALRY_RECRUIT_AMOUNT=5000`, `INFANTRY_RECRUIT_GOLD_COST_BASE=200`, `CAVALRY_RECRUIT_GOLD_COST_BASE=300`
+
+**Recruitment Rework (executor.py):**
+- Marshal type (`cavalry: bool`) auto-determines pool, batch size, and gold cost
+- Pool check BEFORE gold check — Berthier voice for all errors
+- Parameterized `_calculate_recruit_cost(base_cost=200)` for both types
+- Soft correction when player requests wrong type ("infantry" for cavalry marshal)
+- Pool status line in recruit success message
+
+**Stables Building (region.py):**
+- New building type: 300g, 2-turn build, allowed in capital/major_city/city
+- Boosts cavalry regen by +750/turn in that region
+
+**AI Awareness (enemy_ai.py):**
+- Pool availability check before recruit attempts (prevents `skip_actions` cascade)
+- Type-aware gold cost in P1 and P7
+- New P4.5: stables building (when cavalry pool < 60% cap and nation has cavalry marshals)
+- `_should_build_stables()` and `_find_best_stables_region()` helpers
+
+**Parser (llm_client.py + schemas.py):**
+- `requested_type` field on ParseResult for cavalry/infantry keyword extraction
+- Economy report shows infantry/cavalry pools with regen rates, low-cavalry Berthier warning
+
+**Tests:** 2679 passing (+50 new, 0 regressions), 3 skipped. All 39 existing test regressions fixed (Ney cavalry math, gold costs, morale dilution).
+
+---
 
 ### Feb 17 (Session 40: Strategic Reroute Wastes 2 Turns)
 
