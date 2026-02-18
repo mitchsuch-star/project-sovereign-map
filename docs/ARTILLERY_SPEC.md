@@ -1,7 +1,7 @@
 # Artillery Unit Type — Implementation Spec
 
 > **Phase 6 Feature (final item). Ready for implementation.**
-> **Complexity:** Medium (1 session, Opus)
+> **Complexity:** Medium (2 sessions, Opus)
 > **Prerequisites:** Manpower Pools (DONE), Terrain (DONE), Combat modifiers (DONE)
 > **Reviewed:** February 2026. All numbers evaluated, edge cases resolved, AI behavior specified.
 
@@ -771,22 +771,41 @@ True combined arms coordination — "bombard with artillery THEN infantry follow
 
 ## Files to Modify
 
-### Single Session (Opus)
+### Session 1: Core Mechanics (Opus)
+
+Delivers a **playable artillery type** — player can use Drouot, recruit from artillery pool, bombard fortifications, cavalry counter works. AI treats artillery like infantry (functional but not smart).
 
 | File | Changes | Difficulty |
 |------|---------|------------|
-| `marshal.py` | `artillery: bool` field, `moved_this_turn: bool` field, `last_bombardment_target`/`bombardment_streak` fields, mutual exclusivity assert, -25% defense in `get_defense_modifier()` when moved, `to_dict/from_dict`, `__repr__` unit type, Drouot + PrinceAugust in starting marshals | 2/5 |
+| `marshal.py` | `artillery: bool` field, `moved_this_turn: bool` field, mutual exclusivity assert, -25% defense in `get_defense_modifier()` when moved, `to_dict/from_dict`, `__repr__` unit type, Drouot + PrinceAugust in starting marshals | 2/5 |
 | `combat.py` | Cavalry-vs-artillery counter (+30%), artillery fort degradation (10% vs 5%), cavalry counter message, battle report context | 2/5 |
-| `executor.py` | Can't-attack-after-moving check (early return), no-advance-on-win (skip `move_to` for artillery), block PURSUE auto-promotion for artillery, ban glorious charge for artillery, set `moved_this_turn=True` in `_execute_move`, bombardment streak tracking, Berthier bombardment advisory, artillery-specific battle messaging | 3/5 |
+| `executor.py` | Can't-attack-after-moving check (early return), no-advance-on-win (skip `move_to` for artillery), block PURSUE auto-promotion for artillery, ban glorious charge for artillery, set `moved_this_turn=True` in `_execute_move`, artillery-specific battle messaging | 3/5 |
 | `world_state.py` | Reset `moved_this_turn` at turn start in `_process_tactical_states`, artillery manpower pool constants + starting pools + regen + `get_artillery_regen_rate()` helper + cap, serialization | 2/5 |
-| `enemy_ai.py` | P2 artillery screen check, P4 `moved_this_turn` gate + bombardment target sort, P7 `_score_artillery_position()` for positioning, anti-oscillation rule, cavalry targets exposed artillery, `_artillery_has_screen()`/`_enemy_cavalry_within_range()` helpers, pool-aware recruit for artillery type, skip stables for artillery | 4/5 |
+| `enemy_ai.py` | P4 `moved_this_turn` gate (skip attack if moved), pool-aware recruit for artillery type, skip stables for artillery | 2/5 |
 | `llm_client.py` | "bombard"/"barrage"/"shell"/"cannonade" keywords → attack action | 1/5 |
 | `prompt_builder.py` | Few-shot examples for artillery commands | 1/5 |
 | `battle_report.py` | Artillery-specific observations (bombardment, fort degradation note, cavalry counter) | 1/5 |
 
-**No changes to:** `region.py` (no artillery terrain table — defender terrain bonus is sufficient), `validation.py` (reuse "attack" action), `main.py` (verify passthrough only), `objection_v2.py` (bombardment triggers are V2a entries — wire during implementation alongside other trigger additions)
+**Estimated tests: ~75**
 
-**Estimated tests: ~115**
+### Session 2: AI Behavior + Bombardment (Opus)
+
+Makes AI artillery **competent** — PrinceAugust positions on hills, prioritizes fortified targets, retreats from exposed cavalry, doesn't oscillate. Plus bombardment flavor (streak tracking, personality objections, Berthier advisory).
+
+| File | Changes | Difficulty |
+|------|---------|------------|
+| `marshal.py` | `last_bombardment_target`/`bombardment_streak` fields, `to_dict/from_dict` additions | 1/5 |
+| `executor.py` | Bombardment streak tracking in `_execute_attack`, streak reset in `_execute_move`, Berthier bombardment advisory | 2/5 |
+| `enemy_ai.py` | P2 artillery screen check, P4 bombardment target sort (fortified-first), P7 `_score_artillery_position()` for positioning, anti-oscillation rule, cavalry targets exposed artillery, `_artillery_has_screen()`/`_enemy_cavalry_within_range()` helpers | 4/5 |
+| `objection_v2.py` | Bombardment personality triggers (`repeated_bombardment_same_target`, `move_while_bombarding`) | 2/5 |
+
+**Estimated tests: ~40**
+
+### Unchanged files (both sessions)
+
+**No changes to:** `region.py` (no artillery terrain table — defender terrain bonus is sufficient), `validation.py` (reuse "attack" action), `main.py` (verify passthrough only)
+
+**Total estimated tests: ~115**
 
 ---
 
@@ -811,7 +830,7 @@ True combined arms coordination — "bombard with artillery THEN infantry follow
 | Starting marshals (Drouot + PrinceAugust) | 1/5 | ~5 | Data entry |
 | Battle report artillery observations | 1/5 | ~5 | Template additions |
 
-**TOTAL: 1 session (Opus). ~115 tests.**
+**TOTAL: 2 sessions (Opus). ~115 tests (~75 Session 1, ~40 Session 2).**
 
 ---
 
