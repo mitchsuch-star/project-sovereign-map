@@ -43,7 +43,7 @@ All major Phase 6 features shipped:
 
 ## Recent Sessions
 
-### Feb 17 (Session 39: Strategic Reroute Wastes 2 Turns)
+### Feb 17 (Session 40: Strategic Reroute Wastes 2 Turns)
 
 **3 bugs fixed, 4 new tests.**
 
