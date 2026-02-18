@@ -4,6 +4,7 @@
 > **Complexity:** Medium (1 session)
 > **Prerequisites:** None (economy, recruitment, buildings, combat all complete)
 > **Reviewed:** February 2026 — all numbers evaluated, edge cases resolved.
+> **Post-review fixes (Feb 2026):** AI pool/cost awareness, Berthier voice, dynamic messages, unified cost method, robust backward compat. See §Review Fixes Applied.
 
 ---
 
@@ -17,6 +18,8 @@ The core tension: infantry marshals are cheap to reinforce; cavalry marshals are
 
 **No artillery pool yet.** Artillery unit type doesn't exist. When it's built, its pool gets added with the same pattern.
 
+**Emergent morale bonus:** Cavalry recruits (5k) dilute veteran morale less than infantry recruits (10k). This is intentional — the smaller batch means cavalry marshals recover battle-readiness faster after reinforcement, partially compensating for the cost premium.
+
 ---
 
 ## All Numbers (Final)
@@ -27,6 +30,7 @@ The core tension: infantry marshals are cheap to reinforce; cavalry marshals are
 # ═══════ MANPOWER POOL CONSTANTS ═══════
 INFANTRY_RECRUIT_AMOUNT = 10000        # Troops per infantry recruit (unchanged)
 CAVALRY_RECRUIT_AMOUNT = 5000          # Troops per cavalry recruit (half infantry — precious)
+INFANTRY_RECRUIT_GOLD_COST_BASE = 200  # Gold cost for infantry recruit (existing behavior)
 CAVALRY_RECRUIT_GOLD_COST_BASE = 300   # Gold cost for cavalry recruit (vs 200 infantry)
 INFANTRY_BASE_REGEN = 5000             # Per nation per turn (fast — infantry isn't the bottleneck)
 CAVALRY_BASE_REGEN = 500               # Per nation per turn (slow — this IS the bottleneck)
@@ -34,6 +38,13 @@ PLAINS_CAVALRY_REGEN = 500             # Bonus per plains region controlled
 STABLES_CAVALRY_REGEN = 750            # Bonus per stables building owned
 MAX_INFANTRY_POOL = 100000             # Pool cap
 MAX_CAVALRY_POOL = 30000               # Pool cap
+
+# Default starting pools (also used for backward compat)
+DEFAULT_MANPOWER_POOLS = {
+    "France": {"infantry": 80000, "cavalry": 15000},
+    "Britain": {"infantry": 50000, "cavalry": 8000},
+    "Prussia": {"infantry": 60000, "cavalry": 10000},
+}
 ```
 
 ### How Marshal Type Determines Recruitment
@@ -63,6 +74,8 @@ No choice needed — the system derives recruit type from `marshal.cavalry`. The
 | Britain | 1 (Netherlands) | 500 | 1,000/turn | 1,750/turn | 2,500/turn |
 | Prussia | 0 | 500 | 500/turn | 1,250/turn | 2,000/turn |
 
+> **Note:** Stables columns require controlling a capital/major_city/city region with a free building slot. On the Waterloo map, Britain starts with only Netherlands (rural, 0 building slots) — stables require conquering a city first.
+
 ### Stables Building
 
 | Property | Value |
@@ -72,6 +85,8 @@ No choice needed — the system derives recruit type from `marshal.cavalry`. The
 | Allowed in | capital, major_city, city |
 | Uses building slot | Yes (competes with Market, Depot, Fort, Training Ground) |
 | Cavalry regen bonus | +750/turn to nation's cavalry pool |
+| Damaged stables | Do NOT contribute to regen (`has_building` defaults to `functional_only=True`) |
+| Under construction | Do NOT contribute to regen (not yet in `buildings` list) |
 
 ---
 
@@ -159,10 +174,10 @@ recruit_type = "cavalry" if getattr(marshal, 'cavalry', False) else "infantry"
 # Set batch size and cost based on type
 if recruit_type == "cavalry":
     NEW_TROOPS = CAVALRY_RECRUIT_AMOUNT       # 5,000
-    gold_cost = self._calculate_cavalry_recruit_cost(region, world)  # Base 300g
+    gold_cost = self._calculate_recruit_cost(region, world, base_cost=CAVALRY_RECRUIT_GOLD_COST_BASE)
 else:
     NEW_TROOPS = INFANTRY_RECRUIT_AMOUNT      # 10,000
-    gold_cost = self._calculate_recruit_cost(region, world)          # Base 200g (existing)
+    gold_cost = self._calculate_recruit_cost(region, world, base_cost=INFANTRY_RECRUIT_GOLD_COST_BASE)
 
 # Check pool
 pool = world.manpower_pools.get(acting_nation, {})
@@ -172,40 +187,72 @@ if available < NEW_TROOPS:
     turns_until = max(1, (NEW_TROOPS - available + regen_rate - 1) // regen_rate)
     return {
         "success": False,
-        "message": f"Insufficient {recruit_type} manpower! Pool: {available:,}, need: {NEW_TROOPS:,}. "
-                   f"Recovering +{regen_rate:,}/turn — available in ~{turns_until} turn{'s' if turns_until > 1 else ''}."
+        "message": f"Berthier consults his ledgers. 'Sire, our {recruit_type} reserves are insufficient. "
+                   f"Pool: {available:,}, need: {NEW_TROOPS:,}. "
+                   f"Recovering +{regen_rate:,}/turn — available in ~{turns_until} turn{\"s\" if turns_until > 1 else \"\"}.'"
     }
 
 # Draw from pool
 world.manpower_pools[acting_nation][recruit_type] -= NEW_TROOPS
+
+# Update base_message to reflect actual recruit type and amount
+# (replaces all three existing hardcoded "10,000 troops" message templates)
+type_label = recruit_type
+if marshal_specified:
+    base_message = f"{marshal.name} recruits {NEW_TROOPS:,} {type_label} at {marshal.location}"
+elif location_specified:
+    base_message = f"{marshal.name} recruits {NEW_TROOPS:,} {type_label} for {location_specified} ({distance} regions away)"
+else:
+    base_message = f"{marshal.name} recruits {NEW_TROOPS:,} {type_label} (nearest to capital)"
 
 # Existing morale dilution unchanged
 # Existing gold deduction unchanged (using type-specific cost)
 # Existing marshal.add_troops(NEW_TROOPS) unchanged
 ```
 
-### Cavalry Gold Cost
+### Unified Gold Cost Method (replaces separate cavalry/infantry methods)
 
 ```python
-def _calculate_cavalry_recruit_cost(self, region, world) -> int:
-    """Calculate cavalry recruitment gold cost. Same modifiers as infantry but higher base."""
-    base_cost = CAVALRY_RECRUIT_GOLD_COST_BASE  # 300
+def _calculate_recruit_cost(self, region, world, base_cost: int = 200) -> int:
+    """Calculate recruitment gold cost based on region properties.
+
+    Priority: Capital discount wins over settling premium.
+    Parameterized base_cost: 200 for infantry, 300 for cavalry.
+    """
+    # Capital discount: 25% off (checked first — always wins)
     if region.region_type == "capital":
-        return int(base_cost * 0.75)  # 225
+        return int(base_cost * 0.75)  # 150 infantry / 225 cavalry
+
+    # Settling stability premium: 50% more (stability 51-75)
     if 51 <= region.stability <= 75:
-        return int(base_cost * 1.50)  # 450
-    return base_cost  # 300
+        return int(base_cost * 1.50)  # 300 infantry / 450 cavalry
+
+    return base_cost  # 200 infantry / 300 cavalry
 ```
 
-### Player says "recruit cavalry for Davout"?
+**Note:** This replaces the existing `_calculate_recruit_cost` (add `base_cost` parameter with default 200 for backward compat) and removes the need for a separate `_calculate_cavalry_recruit_cost`.
 
-If the player explicitly says "recruit cavalry" for an infantry marshal, soft clarification in the response:
+### Soft Correction: Player says "recruit cavalry for Davout"
+
+If the player explicitly says "recruit cavalry" for an infantry marshal, Berthier provides a gentle correction:
 
 ```
-Marshal Davout commands infantry. 10,000 infantry recruited.
+Berthier notes: 'Marshal Davout commands infantry, Sire.' 10,000 infantry recruited at Lyon.
 ```
 
-The system ignores the type keyword and recruits based on marshal type. No error, no confusion — just a gentle correction.
+The system ignores the type keyword and recruits based on marshal type. No error, no confusion — just an in-character clarification.
+
+### Berthier Voice for ALL Recruit Errors
+
+All recruitment failure messages should use Berthier's voice, matching the garrison pattern:
+
+| Error | Message |
+|-------|---------|
+| Pool empty | `"Berthier consults his ledgers. 'Sire, our cavalry reserves are insufficient. Pool: 0, need: 5,000. Recovering +2,000/turn — available in ~3 turns.'"` |
+| Insufficient gold | `"Berthier shakes his head. 'The treasury cannot support this, Sire. Need 300 gold, have 250.'"` |
+| Wrong controller | `"Berthier frowns. 'We do not control {region}, Your Majesty. Recruitment is impossible there.'"` |
+| Unstable region | `"Berthier advises caution. '{region} is in {label} (stability {n}/100). The populace will not answer our call until stability exceeds 50.'"` |
+| No marshal available | `"Berthier scans the dispatches. 'No marshal is available to receive reinforcements at {region}, Sire.'"` |
 
 ---
 
@@ -215,7 +262,11 @@ The system ignores the type keyword and recruits based on marshal type. No error
 
 ```python
 def _process_manpower_regen(self):
-    """Regenerate manpower pools per nation. Called during advance_turn."""
+    """Regenerate manpower pools per nation. Called during advance_turn.
+
+    Nations with 0 regions still get base regen (represents national reserves,
+    overseas recruitment, etc.). Territory bonuses require actual control.
+    """
     all_nations = [self.player_nation] + list(self.enemy_nations)
     for nation in all_nations:
         if nation not in self.manpower_pools:
@@ -223,7 +274,7 @@ def _process_manpower_regen(self):
 
         controlled = [r for r in self.regions.values() if r.controller == nation]
 
-        # Infantry: generous base regen
+        # Infantry: generous base regen (no territory dependency)
         inf_regen = INFANTRY_BASE_REGEN
 
         # Cavalry: slow base + territory bonuses
@@ -239,7 +290,7 @@ def _process_manpower_regen(self):
         pool["cavalry"] = min(pool["cavalry"] + cav_regen, MAX_CAVALRY_POOL)
 ```
 
-### Helper for cavalry regen rate (used in error messages)
+### Helper for cavalry regen rate (used in error messages + AI decisions)
 
 ```python
 def get_cavalry_regen_rate(self, nation: str) -> int:
@@ -339,15 +390,80 @@ def _find_best_stables_region(self, nation: str, world) -> Optional[str]:
     return candidates[0][1]
 ```
 
-### AI Recruit Type
+### AI Recruit: Pool + Cost Awareness
 
-Trivial — derived from marshal type:
+**Critical fix:** AI must check pool availability AND use correct gold costs before attempting recruit. Without this, a failed cavalry recruit adds `"recruit"` to `skip_actions`, blocking ALL recruitment (including affordable infantry) for the rest of the turn.
+
+Modify `_pick_admin_action` recruit cost estimation (both Priority 1 and Priority 7):
 
 ```python
-recruit_type = "cavalry" if getattr(marshal, 'cavalry', False) else "infantry"
+# In _pick_admin_action, when evaluating recruit:
+if weakest:
+    is_cavalry = getattr(weakest, 'cavalry', False)
+
+    # Check pool availability BEFORE attempting
+    recruit_type = "cavalry" if is_cavalry else "infantry"
+    needed = CAVALRY_RECRUIT_AMOUNT if is_cavalry else INFANTRY_RECRUIT_AMOUNT
+    pool = world.manpower_pools.get(nation, {})
+    if pool.get(recruit_type, 0) < needed:
+        weakest = None  # Pool empty — skip this marshal, try others
+
+if weakest:
+    is_cavalry = getattr(weakest, 'cavalry', False)
+    base_cost = CAVALRY_RECRUIT_GOLD_COST_BASE if is_cavalry else INFANTRY_RECRUIT_GOLD_COST_BASE
+
+    region = world.get_region(weakest.location)
+    recruit_cost = base_cost
+    if region and getattr(region, 'is_capital', False):
+        recruit_cost = int(base_cost * 0.75)
+    elif region and 51 <= getattr(region, 'stability', 100) <= 75:
+        recruit_cost = int(base_cost * 1.50)
+
+    if treasury >= recruit_cost and region and getattr(region, 'stability', 100) > 50:
+        return {
+            "action": "recruit",
+            "marshal": weakest.name,
+            "target": weakest.location
+        }
 ```
 
-Add `"recruit_type": recruit_type` to AI recruit command dicts. The executor handles pool checks from there.
+**Also modify `_find_weakest_marshal_for_admin`** to skip marshals whose pool is empty:
+
+```python
+def _find_weakest_marshal_for_admin(self, nation: str, world, threshold: float = None) -> Optional['Marshal']:
+    """Find the weakest marshal below recruitment threshold.
+
+    Skips marshals whose manpower pool can't support a recruit.
+    """
+    if threshold is None:
+        threshold = self.AI_RECRUITMENT_THRESHOLD
+    weakest = None
+    lowest_ratio = threshold
+
+    for marshal in world.marshals.values():
+        if marshal.nation != nation or marshal.strength <= 0:
+            continue
+        starting = getattr(marshal, 'starting_strength', marshal.strength)
+        if starting <= 0:
+            continue
+        ratio = marshal.strength / starting
+        if ratio < threshold and ratio < lowest_ratio:
+            # Check pool availability
+            recruit_type = "cavalry" if getattr(marshal, 'cavalry', False) else "infantry"
+            needed = CAVALRY_RECRUIT_AMOUNT if recruit_type == "cavalry" else INFANTRY_RECRUIT_AMOUNT
+            pool = world.manpower_pools.get(nation, {})
+            if pool.get(recruit_type, 0) < needed:
+                continue  # Pool can't support this marshal's recruit type
+
+            region = world.get_region(marshal.location)
+            if region and region.controller == nation:
+                lowest_ratio = ratio
+                weakest = marshal
+
+    return weakest
+```
+
+**Why this matters:** The AI admin loop (`execute_admin_phase`) adds failed action types to `skip_actions`. If cavalry recruit fails → `"recruit"` is skipped entirely → AI can't recruit infantry either. Pool pre-check prevents this cascade.
 
 ---
 
@@ -359,15 +475,17 @@ Add `"recruit_type": recruit_type` to AI recruit command dicts. The executor han
 # to_dict()
 "manpower_pools": {k: v.copy() for k, v in self.manpower_pools.items()},
 
-# from_dict()
-world.manpower_pools = {k: v.copy() for k, v in data.get("manpower_pools", {}).items()}
-# Backward compat: if no manpower_pools in save, initialize defaults
-if not world.manpower_pools:
-    world.manpower_pools = {
-        "France": {"infantry": 80000, "cavalry": 15000},
-        "Britain": {"infantry": 50000, "cavalry": 8000},
-        "Prussia": {"infantry": 60000, "cavalry": 10000},
-    }
+# from_dict() — robust backward compat
+raw_pools = data.get("manpower_pools", {})
+world.manpower_pools = {k: v.copy() for k, v in raw_pools.items()}
+# Fill missing nations or missing pool types from defaults
+for nation, defaults in DEFAULT_MANPOWER_POOLS.items():
+    if nation not in world.manpower_pools:
+        world.manpower_pools[nation] = defaults.copy()
+    else:
+        for pool_type, default_val in defaults.items():
+            if pool_type not in world.manpower_pools[nation]:
+                world.manpower_pools[nation][pool_type] = default_val
 ```
 
 ### Marshal
@@ -384,7 +502,7 @@ No changes. `cavalry: bool` already serializes. No new fields.
 
 No changes needed to the recruit block. The `recruit_type` is determined by marshal type in the executor, not parsed from the command. The existing `"recruit"` parsing stays as-is.
 
-However, if we want the soft correction message ("Marshal Davout commands infantry"), the mock parser can optionally extract a `requested_type` for the executor to compare against:
+However, if we want the soft correction message ("Berthier notes: Marshal Davout commands infantry"), the mock parser can optionally extract a `requested_type` for the executor to compare against:
 
 ```python
 # Optional: extract what the player ASKED for (for soft correction message)
@@ -397,6 +515,8 @@ else:
 ```
 
 This is purely for flavor messaging, not mechanics.
+
+**Known quirk:** "reinforce" is checked before "recruit" in the mock parser elif chain (`llm_client.py:575`). Commands like "recruit reinforcements" will match "reinforce" (substring of "reinforcements") and route to strategic SUPPORT instead of recruit. This is pre-existing behavior. Players should use "recruit for Ney" or "recruit at Paris", not "reinforce."
 
 ### LLM Parser (prompt_builder.py)
 
@@ -432,23 +552,28 @@ lines.append(f"\n  ═══════ MANPOWER ═══════")
 lines.append(f"  Infantry Pool: {inf_pool:,} (+{INFANTRY_BASE_REGEN:,}/turn)")
 lines.append(f"  Cavalry Pool:  {cav_pool:,} (+{cav_regen:,}/turn)")
 if cav_pool < CAVALRY_RECRUIT_AMOUNT:
-    lines.append(f"  [WARNING] Cavalry pool too low to recruit! (need {CAVALRY_RECRUIT_AMOUNT:,})")
+    lines.append(f"  Berthier warns: 'Cavalry reserves dangerously low, Sire.' (need {CAVALRY_RECRUIT_AMOUNT:,} to recruit)")
 ```
 
 ### Recruitment result messages
 
 Infantry:
 ```
-10,000 infantry recruited at Paris for Marshal Davout.
+Berthier reports: 10,000 infantry recruited at Paris for Marshal Davout.
 Infantry pool: 80,000 → 70,000. Cost: 200g.
 Morale: 85% -> 82%
 ```
 
 Cavalry:
 ```
-5,000 cavalry recruited at Paris for Marshal Ney.
+Berthier reports: 5,000 cavalry recruited at Paris for Marshal Ney.
 Cavalry pool: 15,000 → 10,000. Cost: 300g.
 Morale: 90% -> 88%
+```
+
+Pool status line after recruit (append to success message):
+```
+{recruit_type.title()} pool: {available:,} → {available - NEW_TROOPS:,}
 ```
 
 ---
@@ -463,13 +588,20 @@ Minimal — no new UI needed beyond what economy report shows. Manpower info rid
 
 | Edge Case | Resolution |
 |-----------|-----------|
-| Player says "recruit cavalry for Davout" | Soft correction: "Marshal Davout commands infantry. 10,000 infantry recruited." Recruits infantry, no error. |
+| Player says "recruit cavalry for Davout" | Soft correction via Berthier: "Marshal Davout commands infantry, Sire." Recruits infantry, no error. |
 | Player says bare "recruit at Belgium" | Finds nearest marshal, determines type from `marshal.cavalry`. Works exactly as before. |
 | Two marshals (1 cav, 1 inf) in same region | `find_nearest_marshal_to_region` picks one. Player can specify "recruit for Ney" for precision. |
-| Cavalry pool empty, player tries to recruit for Ney | Blocked with clear message: "Insufficient cavalry manpower! Pool: 0, need: 5,000. Recovering +2,000/turn — available in ~3 turns." |
+| Cavalry pool empty, player tries to recruit for Ney | Blocked with Berthier message: pool amount, need amount, regen rate, turns estimate. |
 | Nation has no cavalry marshals (Prussia) | Cavalry pool exists but is never drawn from. Sits at cap. No harm. |
 | Garrison detachments | Garrisons use `take_casualties()` as before. No pool interaction. Garrisons are static defenders, not recruitable. |
 | Broken marshal (2k troops) recruited back to 7k | Pool drawn normally. No special cases for broken marshals. |
+| Nation with 0 regions | Still gets base regen (500 cavalry, 5000 infantry). Represents national reserves. No territory bonuses. |
+| Player says "reinforce Ney's troops" | Pre-existing: "reinforce" matches strategic SUPPORT before "recruit". Use "recruit for Ney" instead. |
+| AI cavalry recruit costs more than infantry | AI checks `marshal.cavalry` and uses correct base cost (300 vs 200) before attempting. Prevents skip_actions cascade. |
+| AI pool empty for one type but not other | `_find_weakest_marshal_for_admin` skips marshals whose pool can't support them. Infantry recruit still works if cavalry pool is empty. |
+| Damaged stables | `has_building("stables")` defaults to `functional_only=True` — damaged stables don't contribute regen. |
+| Stables under construction | Not yet in `buildings` list — no regen bonus until construction completes. |
+| Partial/corrupted save data | `from_dict` fills missing nations and pool types from `DEFAULT_MANPOWER_POOLS`. |
 
 ---
 
@@ -498,53 +630,49 @@ Current numbers are tuned for the 13-region Waterloo map (4 plains regions). For
 
 ---
 
+## Review Fixes Applied
+
+Fixes from post-review (February 2026). Each addresses a specific finding from the spec review.
+
+| # | Severity | Fix | Section |
+|---|----------|-----|---------|
+| 1 | Critical | AI checks `marshal.cavalry` for correct gold cost (300 vs 200) before attempting recruit | §AI Recruit: Pool + Cost Awareness |
+| 2 | Critical | AI checks pool availability in `_find_weakest_marshal_for_admin` — skips marshals whose pool is empty | §AI Recruit: Pool + Cost Awareness |
+| 3 | Critical | Dynamic `{NEW_TROOPS:,} {type_label}` in all three `base_message` templates (was hardcoded "10,000 troops") | §Modified `_execute_recruit` |
+| 4 | Important | Unified `_calculate_recruit_cost(region, world, base_cost=200)` — one method with parameterized base, not two | §Unified Gold Cost Method |
+| 5 | Important | All recruit errors use Berthier voice (matches garrison pattern in executor.py) | §Berthier Voice for ALL Recruit Errors |
+| 6 | Important | Robust backward compat: fills missing nations AND missing pool types, not just fully-absent key | §Serialization |
+| 7 | Minor | Documented "reinforce" vs "recruit" parser ordering quirk | §Parser Changes, §Edge Cases |
+| 8 | Minor | Documented damaged/under-construction stables don't give regen | §Stables Building, §Edge Cases |
+| 9 | Minor | Documented 0-region base regen as intentional | §Regen Processing, §Edge Cases |
+| 10 | Minor | Added `INFANTRY_RECRUIT_GOLD_COST_BASE = 200` constant (was magic number, now explicit) | §Constants |
+| 11 | Minor | Removed dead `"recruit_type"` from AI command dicts (executor ignores it — derives from marshal.cavalry) | §AI Recruit |
+| 12 | Minor | Added emergent morale dilution note to Design Intent | §Design Intent |
+| 13 | Minor | Stables regen table footnote about Britain needing to conquer cities first | §Regen Scenarios |
+
+---
+
 ## Implementation Session
 
 ### Single Session (Sonnet)
 
-**Scope:** manpower_pools on WorldState, modify recruit for pool drawing + type-based costs, stables building, economy display, AI stables + recruit type, mock parser tweaks.
+**Scope:** manpower_pools on WorldState, modify recruit for pool drawing + type-based costs, stables building, economy display, AI pool/cost-aware recruit, Berthier voice errors, mock parser tweaks.
 
 **Files modified (7):**
 
 | File | Changes |
 |------|---------|
-| `world_state.py` | `manpower_pools` init, `_process_manpower_regen()`, `get_cavalry_regen_rate()`, serialization, constants |
+| `world_state.py` | `manpower_pools` init, `DEFAULT_MANPOWER_POOLS`, `_process_manpower_regen()`, `get_cavalry_regen_rate()`, serialization (robust backward compat), constants |
 | `region.py` | Add `"stables"` to `BUILDING_TYPES` |
-| `executor.py` | Modify `_execute_recruit` (pool drawing, type from marshal.cavalry, cavalry cost), `_extract_building_type` (stables keyword), `_execute_economy` (manpower section) |
-| `enemy_ai.py` | `_should_build_stables()`, `_find_best_stables_region()`, priority 4.5 stables, recruit_type in command dicts |
+| `executor.py` | Modify `_execute_recruit` (pool drawing, type from marshal.cavalry, dynamic messages, Berthier voice errors), parameterize `_calculate_recruit_cost(base_cost=200)`, `_extract_building_type` (stables keyword), `_execute_economy` (manpower section) |
+| `enemy_ai.py` | `_should_build_stables()`, `_find_best_stables_region()`, priority 4.5 stables, pool+cost-aware recruit in `_pick_admin_action` and `_find_weakest_marshal_for_admin` |
 | `llm_client.py` | Optional: extract `requested_type` for soft correction message |
 | `prompt_builder.py` | Update few-shot examples (no recruit_type in output) |
 | `main.py` | Verify recruit endpoint passes through correctly (likely no change needed) |
 
 **No changes to:** `marshal.py`, `combat.py`, `battle_report.py`, `validation.py`
 
-**Estimated tests: ~35-45**
-- Starting pool initialization per nation
-- Infantry marshal recruit draws from infantry pool (10k, 200g)
-- Cavalry marshal recruit draws from cavalry pool (5k, 300g)
-- Pool empty blocks recruitment (with helpful error message + regen rate + turns estimate)
-- Cavalry recruit capital discount (225g)
-- Cavalry recruit stability premium (450g)
-- Pool regen: base rates correct
-- Pool regen: plains bonus applied per region
-- Pool regen: stables bonus applied per building
-- Pool regen: multiple bonuses stack correctly
-- Pool caps enforced (doesn't exceed max)
-- Stables building: added to BUILDING_TYPES, construction, completion
-- Stables keyword extraction ("stable", "horse")
-- Serialization roundtrip (save/load preserves manpower_pools)
-- Backward compat: old saves without manpower_pools get defaults
-- Economy report shows infantry pool + regen rate
-- Economy report shows cavalry pool + regen rate
-- Economy report shows warning when cavalry pool too low
-- "recruit cavalry for Davout" → recruits infantry with soft correction
-- "recruit for Ney" → auto-cavalry
-- "recruit at Paris" with cavalry marshal nearest → cavalry
-- AI recruit type derived from marshal.cavalry
-- AI builds stables when cavalry pool low + has cavalry marshal
-- AI skips stables when no cavalry marshals in nation
-- AI skips stables when cavalry pool healthy
-- AI stables: prefers plains regions
+**Estimated tests: ~40-50**
 
 **Smoke test gate:**
 ```bash
@@ -556,7 +684,7 @@ curl -X POST http://127.0.0.1:8005/command -H "Content-Type: application/json" \
 curl -X POST http://127.0.0.1:8005/command -H "Content-Type: application/json" \
   -d '{"command": "recruit for Ney"}' | python -m json.tool
 
-# Economy report (should show manpower section)
+# Economy report (should show manpower section with Berthier warning if low)
 curl -X POST http://127.0.0.1:8005/command -H "Content-Type: application/json" \
   -d '{"command": "economy"}' | python -m json.tool
 
@@ -569,23 +697,57 @@ curl -X POST http://127.0.0.1:8005/command -H "Content-Type: application/json" \
 
 ## Testing Checklist
 
+### Core Functionality
 - [ ] Starting pool initialization per nation (France 80k/15k, Britain 50k/8k, Prussia 60k/10k)
 - [ ] Infantry marshal recruit → infantry pool, 10k troops, 200g base
 - [ ] Cavalry marshal recruit → cavalry pool, 5k troops, 300g base
-- [ ] Pool empty → blocked with clear error (pool amount, need amount, regen rate, turns estimate)
+- [ ] Pool empty → blocked with Berthier error (pool amount, need amount, regen rate, turns estimate)
 - [ ] Cavalry recruit: capital discount (225g), stability premium (450g)
-- [ ] Per-turn regen: infantry base rate (5,000)
+- [ ] Pool doesn't go negative (5000 pool, 5000 recruit → 0)
+- [ ] Dynamic message shows correct troop count and type ("5,000 cavalry" / "10,000 infantry")
+
+### Regen
+- [ ] Per-turn regen: infantry base rate (5,000) regardless of territory
 - [ ] Per-turn regen: cavalry base rate (500)
 - [ ] Per-turn regen: plains bonus (+500 per plains region)
 - [ ] Per-turn regen: stables bonus (+750 per stables building)
+- [ ] Per-turn regen: multiple bonuses stack correctly
 - [ ] Pool caps enforced (100k infantry, 30k cavalry)
+- [ ] Damaged stables excluded from regen
+- [ ] Under-construction stables excluded from regen
+- [ ] Regen after territory loss (lose plains → lower cavalry regen)
+- [ ] Nation with 0 regions still gets base regen
+- [ ] `get_cavalry_regen_rate` returns same value as `_process_manpower_regen` computes
+
+### Stables
 - [ ] Stables building: in BUILDING_TYPES, constructs, completes
 - [ ] Stables keyword matching ("stable", "horse")
+
+### Serialization
 - [ ] Serialization roundtrip (manpower_pools survives save/load)
 - [ ] Backward compat: old saves without manpower_pools get correct defaults
-- [ ] Economy report: shows pools, regen rates, low-cavalry warning
-- [ ] "recruit cavalry for Davout" → infantry recruited, soft correction message
-- [ ] AI: derives recruit_type from marshal.cavalry
-- [ ] AI: builds stables when cavalry pool < 60% cap + has cavalry marshal
-- [ ] AI: skips stables when no cavalry marshals in nation
-- [ ] AI: stables placement prefers plains regions
+- [ ] Backward compat: partial saves (missing nation or pool type) get filled from defaults
+
+### Display
+- [ ] Economy report: shows pools, regen rates, Berthier low-cavalry warning
+- [ ] Recruit success message includes pool change line
+- [ ] All recruit errors use Berthier voice
+
+### Player Parsing
+- [ ] "recruit cavalry for Davout" → infantry recruited, Berthier soft correction
+- [ ] "recruit for Ney" → auto-cavalry
+- [ ] "recruit at Paris" with cavalry marshal nearest → cavalry
+
+### AI Behavior
+- [ ] AI recruit uses correct gold cost for cavalry marshals (300 base, not 200)
+- [ ] AI skips recruit when pool empty for that marshal's type
+- [ ] AI can still recruit infantry after cavalry pool is empty (no skip_actions cascade)
+- [ ] AI builds stables when cavalry pool < 60% cap + has cavalry marshal
+- [ ] AI skips stables when no cavalry marshals in nation
+- [ ] AI skips stables when cavalry pool healthy
+- [ ] AI stables: prefers plains regions
+
+### Interaction Tests
+- [ ] Two recruits same turn: infantry for Davout + cavalry for Ney (both pools drain independently)
+- [ ] Morale dilution: 5k cavalry into 50k army vs 10k infantry into 30k army (different results)
+- [ ] Unified cost method: `_calculate_recruit_cost(region, world, base_cost=300)` returns 225 at capital
