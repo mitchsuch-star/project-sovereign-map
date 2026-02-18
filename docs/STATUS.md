@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2878** (verified, 3 skipped) |
+| **Tests Passing** | **2884** (verified, 3 skipped) |
 
 | **Current Phase** | Phase 6.5 **IN PROGRESS** — Bombardment Parts 1-2 complete, Parts 3-5 remaining |
 | **Blockers** | None |
@@ -80,7 +80,7 @@ All major Phase 6 features shipped:
 - Added redemption event handler in main command response builder
 - Bombardment-triggered friendly fire redemption now flows to Godot
 
-**Tests:** 17 new tests in `test_bombardment.py` (TestCollateralDamage: 16 tests, TestRegionNameTargeting: 1 test). **2878 total passing**, 3 skipped. Zero regressions.
+**Tests:** 23 new tests in `test_bombardment.py` (TestCollateralDamage: 16 tests, TestRegionNameTargeting: 1 test, TestCollateralTargetDestruction: 2 tests, TestRedemptionEventStructure: 1 test, TestBombardmentEndpointWiring: 3 tests). **2884 total passing**, 3 skipped. Zero regressions.
 
 ---
 

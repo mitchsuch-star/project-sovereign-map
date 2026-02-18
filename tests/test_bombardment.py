@@ -1,14 +1,17 @@
 """
-Tests for Bombardment System (Phase 6.5 — Session 48)
+Tests for Bombardment System (Phase 6.5 — Sessions 48-49)
 
 Covers BOMBARDMENT_SPEC.md:
   §17.1 — Core Bombardment
   §17.2 — Terrain Modifiers
+  §17.3 — Collateral Damage
   + Serialization round-trip
+  + Endpoint wiring
 """
 
 import pytest
 from unittest.mock import patch
+from fastapi.testclient import TestClient
 from backend.models.marshal import Marshal, create_starting_marshals, create_enemy_marshals
 from backend.models.world_state import WorldState
 from backend.models.region import TERRAIN_BOMBARDMENT_MODIFIER
@@ -909,3 +912,283 @@ class TestRegionNameTargeting:
         assert result.get("action") == "bombardment"
         # Primary target should be Wellington (strongest at 70k)
         assert result["bombardment_result"]["defender"]["name"] == "Wellington"
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# GAP-CLOSING TESTS (Session 49 confidence hardening)
+# ════════════════════════════════════════════════════════════════════════════════
+
+class TestCollateralTargetDestruction:
+    """Verify collateral target destruction path (broken state via stray shells)."""
+
+    def test_collateral_destroys_weak_force(self):
+        """Collateral damage can destroy a very weak force in the target region."""
+        world = _make_world()
+        art = _make_artillery(name="ArtDest", location="Belgium", strength=50000)
+        world.marshals["ArtDest"] = art
+
+        # Primary target at Waterloo
+        world.marshals["Wellington"].location = "Waterloo"
+        world.marshals["Wellington"].strength = 68000
+
+        # Weak secondary force that will be destroyed by collateral
+        weak = _make_infantry(name="WeakForce", location="Waterloo",
+                              strength=50, nation="Britain")
+        world.marshals["WeakForce"] = weak
+
+        # Clear others from Waterloo
+        for name in list(world.marshals.keys()):
+            m = world.marshals[name]
+            if m.name not in ("ArtDest", "Wellington", "WeakForce"):
+                if m.location == "Waterloo":
+                    m.location = "Vienna"
+
+        executor = CommandExecutor()
+        gs = {"world": world}
+
+        # Force collateral hit with no variance
+        with patch("random.uniform", return_value=1.0), \
+             patch("random.random", return_value=0.1):  # Force 40% hit
+            result = executor._execute_bombardment(
+                art, world.marshals["Wellington"], world, gs)
+
+        assert result["success"]
+        # WeakForce should be broken (strength 50 < collateral damage)
+        assert world.marshals["WeakForce"].broken
+        # WeakForce moved to spawn (break system gives survivors)
+        spawn = getattr(weak, 'spawn_location', None)
+        if spawn:
+            assert weak.location == spawn
+        # Collateral entry should exist
+        collateral_names = [c["name"] for c in result["bombardment_result"]["collateral"]]
+        assert "WeakForce" in collateral_names
+
+    def test_collateral_destruction_does_not_capture_region(self):
+        """Collateral destruction does NOT trigger region capture."""
+        world = _make_world()
+        art = _make_artillery(name="ArtNoCap", location="Belgium", strength=50000)
+        world.marshals["ArtNoCap"] = art
+
+        world.marshals["Wellington"].location = "Waterloo"
+        world.marshals["Wellington"].strength = 68000
+
+        # Only defender at Waterloo besides Wellington is this weak force
+        weak = _make_infantry(name="WeakBrit", location="Waterloo",
+                              strength=10, nation="Britain")
+        world.marshals["WeakBrit"] = weak
+
+        for name in list(world.marshals.keys()):
+            m = world.marshals[name]
+            if m.name not in ("ArtNoCap", "Wellington", "WeakBrit"):
+                if m.location == "Waterloo":
+                    m.location = "Vienna"
+
+        target_region = world.get_region("Waterloo")
+        original_controller = target_region.controller
+
+        executor = CommandExecutor()
+        gs = {"world": world}
+
+        with patch("random.uniform", return_value=1.0), \
+             patch("random.random", return_value=0.1):
+            executor._execute_bombardment(
+                art, world.marshals["Wellington"], world, gs)
+
+        # Region controller unchanged — artillery doesn't capture
+        assert target_region.controller == original_controller
+
+
+class TestRedemptionEventStructure:
+    """Verify redemption event has correct structure when triggered by friendly fire."""
+
+    def test_redemption_event_has_required_fields(self):
+        """Redemption event from friendly fire has type, marshal, trust, message, options."""
+        world = _make_world()
+        art = _make_artillery(name="ArtRedemp", location="Belgium", strength=25000)
+        world.marshals["ArtRedemp"] = art
+
+        world.marshals["Wellington"].location = "Waterloo"
+        world.marshals["Wellington"].strength = 68000
+
+        # Friendly marshal at target with trust near threshold
+        world.marshals["Davout"].location = "Waterloo"
+        world.marshals["Davout"].strength = 40000
+        world.marshals["Davout"].trust.set(22)  # Will drop to 17 (below 20)
+        world.marshals["Davout"].redemption_pending = False
+
+        for name in list(world.marshals.keys()):
+            m = world.marshals[name]
+            if m.name not in ("ArtRedemp", "Wellington", "Davout"):
+                if m.location == "Waterloo":
+                    m.location = "Vienna"
+
+        executor = CommandExecutor()
+        gs = {"world": world}
+
+        with patch("random.uniform", return_value=1.0), \
+             patch("random.random", return_value=0.1):
+            result = executor._execute_bombardment(
+                art, world.marshals["Wellington"], world, gs)
+
+        # Redemption event should be present with correct structure
+        redemption = result.get("redemption_event")
+        assert redemption is not None, "Redemption event should be triggered"
+        assert redemption["type"] == "redemption_event"
+        assert redemption["marshal"] == "Davout"
+        assert isinstance(redemption["trust"], int)
+        assert redemption["trust"] == 17
+        assert "message" in redemption
+        assert isinstance(redemption["options"], list)
+        assert len(redemption["options"]) >= 1
+        # At minimum, grant_autonomy should always be available
+        option_ids = [o["id"] for o in redemption["options"]]
+        assert "grant_autonomy" in option_ids
+
+
+class TestBombardmentEndpointWiring:
+    """Verify bombardment results flow through main.py to API response."""
+
+    @pytest.fixture
+    def client(self):
+        from backend.main import app
+        return TestClient(app)
+
+    @pytest.fixture
+    def bombardment_world(self):
+        """Set up world for bombardment via API endpoint."""
+        import backend.main as main_module
+        from backend.models.world_state import WorldState
+        world = WorldState()
+        main_module.world = world
+        main_module.game_state = {"world": world}
+
+        # Place Drouot (artillery) at Belgium, Wellington at Waterloo (adjacent)
+        world.marshals["Drouot"].location = "Belgium"
+        world.marshals["Drouot"].strength = 25000
+
+        world.marshals["Wellington"].location = "Waterloo"
+        world.marshals["Wellington"].strength = 68000
+
+        # Suppress objections — set all French marshals to Loyal trust
+        for m in world.marshals.values():
+            if m.nation == "France":
+                m.trust.set(100)
+
+        # Clear engagement blockers — no enemies in Belgium
+        for name in list(world.marshals.keys()):
+            m = world.marshals[name]
+            if m.name != "Drouot" and m.location == "Belgium" and m.nation != "France":
+                m.location = "Vienna"
+
+        return world
+
+    def test_bombardment_result_in_api_response(self, client, bombardment_world):
+        """POST /command with bombardment returns bombardment_result in response."""
+        # Ensure clean state — no pending objections, sufficient AP
+        bombardment_world.actions_remaining = 5
+        bombardment_world.pending_objection = None
+        bombardment_world.pending_strategic_objection = None
+
+        # May need multiple attempts — V2 concerns can still fire at high trust
+        for _ in range(5):
+            bombardment_world.marshals["Drouot"].bombardments_this_turn = 0
+            bombardment_world.marshals["Drouot"].attacks_this_turn = 0
+            bombardment_world.marshals["Drouot"].in_combat_this_turn = False
+            bombardment_world.marshals["Wellington"].strength = 68000
+            bombardment_world.actions_remaining = 5
+            bombardment_world.pending_objection = None
+
+            response = client.post("/command", json={"command": "Drouot, bombard Wellington"})
+            assert response.status_code == 200
+            data = response.json()
+
+            # If objection fired, proceed through it
+            if data.get("awaiting_response"):
+                client.post("/respond_to_objection", json={"choice": "insist"})
+                continue
+
+            assert data.get("success") is True
+            assert data.get("action") == "bombardment"
+            assert "bombardment_result" in data
+            br = data["bombardment_result"]
+            assert "attacker" in br
+            assert "defender" in br
+            assert "collateral" in br
+            assert isinstance(br["collateral"], list)
+            assert isinstance(br["attacker"]["casualties"], int)
+            assert isinstance(br["defender"]["casualties"], int)
+            return  # Test passed
+
+        pytest.fail("Bombardment never executed after 5 attempts (objections kept firing)")
+
+    def test_bombardment_collateral_in_api_response(self, client, bombardment_world):
+        """Collateral data flows through main.py to API response."""
+        # Add Uxbridge at Waterloo for collateral
+        bombardment_world.marshals["Uxbridge"].location = "Waterloo"
+        bombardment_world.marshals["Uxbridge"].strength = 30000
+
+        # Run many times to eventually get a collateral hit (40% chance)
+        got_collateral = False
+        for _ in range(20):
+            # Reset state between attempts
+            bombardment_world.marshals["Drouot"].bombardments_this_turn = 0
+            bombardment_world.marshals["Drouot"].attacks_this_turn = 0
+            bombardment_world.marshals["Drouot"].in_combat_this_turn = False
+            bombardment_world.marshals["Wellington"].strength = 68000
+            bombardment_world.marshals["Uxbridge"].strength = 30000
+            bombardment_world.actions_remaining = 5
+            bombardment_world.pending_objection = None
+            bombardment_world.pending_strategic_objection = None
+
+            response = client.post("/command", json={"command": "Drouot, bombard Wellington"})
+            data = response.json()
+            if data.get("success") and data.get("bombardment_result"):
+                collateral = data["bombardment_result"].get("collateral", [])
+                if len(collateral) > 0:
+                    got_collateral = True
+                    # Verify collateral structure
+                    for entry in collateral:
+                        assert "name" in entry
+                        assert "nation" in entry
+                        assert "casualties" in entry
+                        assert "friendly_fire" in entry
+                    break
+
+        assert got_collateral, "Expected at least one collateral hit in 20 attempts (p(none) = 0.6^20 = 0.004%)"
+
+    def test_redemption_event_in_api_response(self, client, bombardment_world):
+        """Friendly fire redemption event flows through main.py to API response."""
+        # Place Davout (France) at Waterloo with low trust
+        # NOTE: Davout trust is set LOW for redemption — but Drouot trust stays
+        # at 100 (from fixture) to prevent objections on the bombarding marshal
+        bombardment_world.marshals["Davout"].location = "Waterloo"
+        bombardment_world.marshals["Davout"].strength = 40000
+
+        # Run until collateral hits Davout (40% chance per attempt)
+        got_redemption = False
+        for _ in range(30):
+            # Reset state each attempt
+            bombardment_world.marshals["Drouot"].bombardments_this_turn = 0
+            bombardment_world.marshals["Drouot"].attacks_this_turn = 0
+            bombardment_world.marshals["Drouot"].in_combat_this_turn = False
+            bombardment_world.marshals["Wellington"].strength = 68000
+            bombardment_world.marshals["Davout"].strength = 40000
+            bombardment_world.marshals["Davout"].trust.set(22)
+            bombardment_world.marshals["Davout"].redemption_pending = False
+            bombardment_world.actions_remaining = 5
+            bombardment_world.pending_objection = None
+            bombardment_world.pending_strategic_objection = None
+            bombardment_world.pending_redemption = None
+
+            response = client.post("/command", json={"command": "Drouot, bombard Wellington"})
+            data = response.json()
+
+            if data.get("redemption_event"):
+                got_redemption = True
+                assert data["redemption_event"]["marshal"] == "Davout"
+                assert data["redemption_event"]["type"] == "redemption_event"
+                assert data.get("state") == "awaiting_redemption_choice"
+                assert isinstance(data["redemption_event"]["options"], list)
+                break
+
+        assert got_redemption, "Expected redemption trigger in 30 attempts (Davout at trust 22, 40% collateral chance)"
