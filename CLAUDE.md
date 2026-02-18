@@ -243,6 +243,9 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | Move leaks fogged enemies | `_execute_move` destination check must be fog-filtered for player marshals (below PARTIAL → walk in blind) |
 | Any personality reroutes around destination | `_handle_blocked_path` must check `blocked_region == destination` for ALL personalities — halt instead of reroute |
 | Attack suggestion reveals fogged enemies | Out-of-range target list and literal popup must fog-filter to PARTIAL+ visibility |
+| PURSUE/SUPPORT "no path" on reroute | `destination = order.target` is marshal name for PURSUE/SUPPORT — resolve to `target_marshal.location` before pathfinding |
+| Stale icons missing after enemy moves | `get_filtered_game_state_summary()` must inject `intel.known_marshals` into `fogged_forces` for STALE regions (dedup vs visible enemies) |
+| Enemy attrition visible in reports | Attrition events need `nation` field for fog filter to identify player vs enemy |
 
 ---
 

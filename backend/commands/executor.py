@@ -4234,6 +4234,11 @@ RETREAT RECOVERY (3 turns):
         if personality == "literal":
             # Silently reroute around ALL enemy regions
             destination = order.target_snapshot_location or order.target
+            # For PURSUE/SUPPORT, target is a marshal name — resolve to region
+            if destination and destination not in world.regions:
+                target_marshal = world.get_marshal(destination)
+                if target_marshal:
+                    destination = target_marshal.location
             enemy_regions = [
                 rn for rn in world.regions
                 if world.get_enemies_in_region(rn, marshal.nation)

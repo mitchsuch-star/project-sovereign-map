@@ -372,6 +372,11 @@ class StrategicExecutor:
         elif choice == "go_around":
             # Recalculate path avoiding ALL enemy regions (not just the one)
             destination = order.target_snapshot_location or order.target
+            # For PURSUE/SUPPORT, target is a marshal name — resolve to region
+            if destination and destination not in world.regions:
+                target_marshal = world.get_marshal(destination)
+                if target_marshal:
+                    destination = target_marshal.location
             enemy_regions = self._get_enemy_occupied_regions(
                 marshal.nation, world, marshal=marshal)
             # MOVE_TO and HOLD use weighted pathfinding for terrain-aware rerouting
@@ -1837,6 +1842,11 @@ class StrategicExecutor:
 
         if personality == "literal":
             destination = order.target_snapshot_location or order.target
+            # For PURSUE/SUPPORT, target is a marshal name — resolve to region
+            if destination and destination not in world.regions:
+                target_marshal = world.get_marshal(destination)
+                if target_marshal:
+                    destination = target_marshal.location
 
             # Session 37: If enemy is AT the destination, don't reroute — halt
             # and report. Rerouting around the destination itself is nonsensical.
@@ -1897,6 +1907,11 @@ class StrategicExecutor:
 
         elif personality == "aggressive":
             destination = order.target_snapshot_location or order.target
+            # For PURSUE/SUPPORT, target is a marshal name — resolve to region
+            if destination and destination not in world.regions:
+                target_marshal = world.get_marshal(destination)
+                if target_marshal:
+                    destination = target_marshal.location
 
             # Session 37: If enemy is AT the destination, auto-attack or
             # ask player without go_around (can't reroute around destination)
@@ -1985,6 +2000,11 @@ class StrategicExecutor:
 
         else:  # cautious (and balanced/loyal) — always ask
             destination = order.target_snapshot_location or order.target
+            # For PURSUE/SUPPORT, target is a marshal name — resolve to region
+            if destination and destination not in world.regions:
+                target_marshal = world.get_marshal(destination)
+                if target_marshal:
+                    destination = target_marshal.location
 
             # Track contact to prevent infinite interrupt loop next turn
             order.last_contact_enemy = enemy.name

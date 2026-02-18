@@ -356,3 +356,45 @@ class TestFilterTacticalEvents:
         }]
         result = _filter_tactical_events(events, world)
         assert len(result) == 1
+
+    def test_enemy_attrition_with_nation_field_suppressed_in_fog(self):
+        """Enemy attrition events with nation field should be suppressed in fogged regions."""
+        world = _make_world_with_visibility({"Bavaria": STALE})
+        events = [{
+            "type": "supply_attrition",
+            "marshal": "Wellington",
+            "nation": "Britain",
+            "region": "Bavaria",
+            "losses": 1000,
+            "message": "Supply shortage at Bavaria: Wellington loses 1,000 troops"
+        }]
+        result = _filter_tactical_events(events, world)
+        assert len(result) == 0, "Enemy attrition in fogged region should be suppressed"
+
+    def test_player_attrition_always_shown(self):
+        """Player attrition events should always be shown regardless of visibility."""
+        world = WorldState()
+        events = [{
+            "type": "supply_attrition",
+            "marshal": "Ney",
+            "nation": "France",
+            "region": "Bavaria",
+            "losses": 500,
+            "message": "Supply shortage at Bavaria: Ney loses 500 troops"
+        }]
+        result = _filter_tactical_events(events, world)
+        assert len(result) == 1, "Player attrition should always be visible"
+
+    def test_enemy_attrition_shown_at_full_visibility(self):
+        """Enemy attrition in FULL visibility regions should be shown."""
+        world = _make_world_with_visibility({"Bavaria": FULL})
+        events = [{
+            "type": "supply_attrition",
+            "marshal": "Wellington",
+            "nation": "Britain",
+            "region": "Bavaria",
+            "losses": 1000,
+            "message": "Supply shortage at Bavaria: Wellington loses 1,000 troops"
+        }]
+        result = _filter_tactical_events(events, world)
+        assert len(result) == 1, "Enemy attrition at FULL visibility should be shown"

@@ -2844,3 +2844,115 @@ class TestGenericTargetResolutionAllTypes:
             if result.get("state") == "awaiting_clarification":
                 assert "strategic_type" in result, \
                     f"{stype} clarification missing strategic_type"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PURSUE MARSHAL-NAME-AS-DESTINATION BUG (Session 38)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestPursueMarshalNameResolution:
+    """
+    Tests for the bug where PURSUE/SUPPORT used marshal names as region names
+    in pathfinding, causing 'No path' / 'Path blocked, no alternate route' errors.
+    """
+
+    def test_pursue_literal_reroutes_around_blocking_enemy(self, world, game_state, executor):
+        """Literal marshal should reroute when first step blocked during PURSUE.
+
+        Scenario: Grouchy (literal) in Belgium, Wellington in Bavaria, Blucher in Rhine.
+        Path Belgium→Rhine blocked by Blucher. Grouchy should reroute via Paris→Lyon→Bavaria.
+        """
+        grouchy = world.get_marshal("Grouchy")
+        wellington = world.get_marshal("Wellington")
+        blucher = world.get_marshal("Blucher")
+
+        grouchy.location = "Belgium"
+        wellington.location = "Bavaria"
+        blucher.location = "Rhine"
+
+        # Give enough AP
+        world.actions_remaining = 5
+
+        parsed = {
+            "success": True,
+            "command": {
+                "marshal": "Grouchy",
+                "action": "attack",
+                "target": "Wellington",
+                "target_type": "marshal",
+            },
+            "is_strategic": True,
+            "strategic_type": "PURSUE",
+            "raw_input": "Grouchy pursue Wellington",
+        }
+
+        with _suppress_output():
+            result = executor.execute(parsed, game_state)
+
+        # Should succeed — not blocked
+        assert result.get("success") is True, \
+            f"PURSUE should succeed with reroute, got: {result.get('message', '')}"
+        # Grouchy should have a strategic order
+        assert grouchy.strategic_order is not None, "Should have strategic order"
+        assert grouchy.strategic_order.command_type == "PURSUE"
+
+    def test_pursue_blocked_path_reroute_resolves_marshal_to_region(self, world, game_state, strategic_executor):
+        """_handle_blocked_path should resolve marshal name to region for PURSUE."""
+        grouchy = world.get_marshal("Grouchy")
+        wellington = world.get_marshal("Wellington")
+        blucher = world.get_marshal("Blucher")
+
+        grouchy.location = "Paris"
+        wellington.location = "Bavaria"
+        blucher.location = "Lyon"  # Blocks Paris→Lyon→Bavaria
+
+        # Set up PURSUE order with path through Lyon
+        _set_strategic_order(grouchy, "PURSUE", "Wellington",
+                             target_type="marshal",
+                             path=["Lyon", "Bavaria"])
+
+        with _suppress_output():
+            reports = strategic_executor.process_strategic_orders(world, game_state)
+
+        grouchy_reports = [r for r in reports if r.get("marshal") == "Grouchy"]
+        assert len(grouchy_reports) > 0, "Should have a report for Grouchy"
+        report = grouchy_reports[0]
+        # Should reroute or report contact — NOT break with "no alternate route"
+        # because the destination (Wellington→Bavaria) is a valid region
+        assert "no alternate route" not in report.get("message", "").lower() or \
+               report.get("order_status") != "broken", \
+            f"Should not fail with 'no alternate route' — marshal name must resolve to region. Got: {report.get('message')}"
+
+    def test_go_around_interrupt_resolves_marshal_name(self, world, game_state, strategic_executor):
+        """'go_around' interrupt for PURSUE should resolve marshal name to region."""
+        grouchy = world.get_marshal("Grouchy")
+        wellington = world.get_marshal("Wellington")
+        blucher = world.get_marshal("Blucher")
+
+        grouchy.location = "Paris"
+        wellington.location = "Bavaria"
+        blucher.location = "Rhine"
+
+        # Set up PURSUE with blocked path
+        order = _set_strategic_order(grouchy, "PURSUE", "Wellington",
+                                     target_type="marshal",
+                                     path=["Rhine", "Bavaria"])
+        order.last_contact_enemy = "Blucher"
+        order.last_contact_turn = world.current_turn
+
+        # Set up interrupt
+        grouchy.pending_interrupt = {
+            "interrupt_type": "contact",
+            "enemy": "Blucher",
+            "location": "Rhine",
+            "options": ["attack", "go_around", "hold_position", "cancel_order"]
+        }
+
+        with _suppress_output():
+            result = strategic_executor.handle_response(
+                "Grouchy", "contact", "go_around", world, game_state)
+
+        # Should find a path — not fail with None path
+        assert result is not None, "go_around should return a result"
+        assert result.get("success") is not False or "no safe path" not in result.get("message", "").lower(), \
+            f"go_around should resolve marshal name to region for pathfinding. Got: {result.get('message')}"

@@ -570,7 +570,7 @@ class LLMClient:
             "journey to", "relocate to", "deploy to",
         ]) or re.search(r'\bmove\b', command_lower):
             action = "move"
-        elif "scout" in command_lower or "reconnaissance" in command_lower:
+        elif "scout" in command_lower or "reconnaissance" in command_lower or "recon" in command_lower or "acout" in command_lower or "scou" in command_lower:
             action = "scout"
         elif "reinforce" in command_lower or re.search(r'\bsupport\b', command_lower):
             action = "move"  # Strategic parser upgrades to SUPPORT

@@ -857,3 +857,88 @@ class TestEphemeralMarshalPresent:
         # Paris is own territory without marshal — Step 1 gives PARTIAL military
         intel = world.get_region_intel("Paris")
         assert intel.visibility == PARTIAL
+
+
+# ============================================================================
+# STALE INTEL MAP DATA INJECTION (Session 38)
+# ============================================================================
+
+class TestStaleIntelMapInjection:
+    """Test that stale intel injects frozen snapshots into fogged_forces for Godot."""
+
+    def test_stale_ghost_shows_when_enemies_left(self):
+        """When enemies leave a scouted region, stale intel injects fogged_forces."""
+        world = WorldState()
+        # Move all British out of Waterloo
+        for m in world.marshals.values():
+            if m.nation == "Britain" and m.location == "Waterloo":
+                m.location = "Bavaria"
+
+        # Scout Waterloo with Wellington snapshot
+        intel = world.get_region_intel("Waterloo")
+        intel.refresh(FULL, "scout", turn=1, marshals=[
+            {"name": "Wellington", "nation": "Britain", "strength": 50000,
+             "band": get_strength_band(50000)}
+        ], total_strength=50000)
+
+        # Decay to stale
+        intel.decay(current_turn=4)
+        assert intel.visibility == STALE
+
+        filtered = world.get_filtered_game_state_summary()
+        wloo = filtered["map_data"]["Waterloo"]
+        assert len(wloo["fogged_forces"]) == 1
+        assert wloo["fogged_forces"][0]["name"] == "Wellington"
+        assert wloo["fogged_forces"][0]["fog_level"] == STALE
+
+    def test_stale_ghost_cleared_when_visible_elsewhere(self):
+        """Stale ghost disappears when enemy is visible at FULL/PARTIAL elsewhere."""
+        world = WorldState()
+        # Move all British out of Waterloo
+        for m in world.marshals.values():
+            if m.nation == "Britain" and m.location == "Waterloo":
+                m.location = "Bavaria"
+
+        # Scout Waterloo with Wellington snapshot
+        intel_w = world.get_region_intel("Waterloo")
+        intel_w.refresh(FULL, "scout", turn=1, marshals=[
+            {"name": "Wellington", "nation": "Britain", "strength": 50000,
+             "band": get_strength_band(50000)}
+        ], total_strength=50000)
+
+        # Decay Waterloo to stale
+        intel_w.decay(current_turn=4)
+
+        # Now see Wellington at Bavaria (move Ney there for FULL visibility)
+        world.marshals["Ney"].location = "Bavaria"
+        world.current_turn = 4
+        world.calculate_visibility()
+
+        filtered = world.get_filtered_game_state_summary()
+        wloo = filtered["map_data"]["Waterloo"]
+        bav = filtered["map_data"]["Bavaria"]
+
+        # Ghost should be gone — Wellington visible at Bavaria
+        assert len(wloo["fogged_forces"]) == 0, "Stale ghost should clear when enemy visible elsewhere"
+        assert any(m["name"] == "Wellington" for m in bav["marshals"]), \
+            "Wellington should be visible at Bavaria"
+
+    def test_stale_ghost_only_for_enemy_marshals(self):
+        """Stale injection should not include player's own marshals."""
+        world = WorldState()
+
+        # Use Marseille (empty region, no initial marshals)
+        # Create stale intel with a French marshal snapshot (edge case)
+        intel = world.get_region_intel("Marseille")
+        intel.refresh(FULL, "scout", turn=1, marshals=[
+            {"name": "Ney", "nation": "France", "strength": 30000,
+             "band": get_strength_band(30000)}
+        ], total_strength=30000)
+
+        # Move Ney away (already at Belgium by default) and decay
+        intel.decay(current_turn=4)
+
+        filtered = world.get_filtered_game_state_summary()
+        marseille = filtered["map_data"]["Marseille"]
+        # Own marshal should NOT appear as fogged ghost
+        assert len(marseille["fogged_forces"]) == 0, "Player marshals should not appear as stale ghosts"

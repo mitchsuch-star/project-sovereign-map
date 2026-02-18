@@ -2030,6 +2030,7 @@ class WorldState:
                     events.append({
                         "type": "supply_attrition",
                         "marshal": m.name,
+                        "nation": m.nation,
                         "region": region.name,
                         "losses": int(losses),
                         "message": f"Supply shortage at {region.name}: {m.name} loses {losses:,} troops"
@@ -2649,6 +2650,16 @@ class WorldState:
         summary = self.get_game_state_summary()
 
         # Filter map_data: redact enemy marshals and economic data by visibility
+        # First pass: collect enemy marshals visible at FULL/PARTIAL so stale
+        # ghosts are suppressed when we have current intel on them elsewhere.
+        visible_enemy_names = set()
+        for region_name, region_data in summary["map_data"].items():
+            rgn_intel = self.get_region_intel(region_name)
+            if rgn_intel.visibility in (FULL, PARTIAL):
+                for md in region_data["marshals"]:
+                    if md["nation"] != self.player_nation:
+                        visible_enemy_names.add(md["name"])
+
         filtered_map = {}
         for region_name, region_data in summary["map_data"].items():
             intel = self.get_region_intel(region_name)
@@ -2728,7 +2739,6 @@ class WorldState:
                     # PARTIAL/STALE: enemy goes into fogged_forces (not marshals).
                     # Godot renders everything in marshals[] as map icons — putting
                     # band-only enemies there would show "0 troops" on the map.
-                    # fogged_forces is ignored by current Godot; Phase 6.5 handles it.
                     band = get_strength_band(marshal_data["strength"])
                     filtered_marshal = {
                         "name": marshal_data["name"],
@@ -2739,6 +2749,22 @@ class WorldState:
                     filtered_region["fogged_forces"].append(filtered_marshal)
                 # LAST_KNOWN / UNKNOWN: enemy marshals hidden from map_data
                 # (their last known position is in the intel store, not live map data)
+
+            # STALE intel injection: if enemies moved away but we have a frozen
+            # snapshot, inject those as fogged_forces so Godot shows stale icons.
+            # Only inject if no live enemies were already added to fogged_forces.
+            # Skip marshals already visible at FULL/PARTIAL elsewhere (no ghost duplicates).
+            if intel.visibility == STALE and not filtered_region["fogged_forces"]:
+                for known in intel.known_marshals:
+                    name = known.get("name", "Unknown")
+                    if (known.get("nation") != self.player_nation
+                            and name not in visible_enemy_names):
+                        filtered_region["fogged_forces"].append({
+                            "name": name,
+                            "nation": known.get("nation", "Unknown"),
+                            "strength_band": known.get("band", "unknown"),
+                            "fog_level": STALE,
+                        })
 
             filtered_map[region_name] = filtered_region
 

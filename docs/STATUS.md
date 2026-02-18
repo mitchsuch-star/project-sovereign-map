@@ -10,7 +10,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2611** (verified, 3 skipped) |
+| **Tests Passing** | **2625** (verified, 3 skipped) |
 | **Current Phase** | Phase 6: **IN PROGRESS** (2 items remaining: Manpower Pools, Artillery Unit Type) |
 | **Blockers** | None |
 | **Phases Complete** | 1, 2, 2.5, 2.9, 3, 4, 5.1, 5.2, 5.3, M, V2a, 6.1, 6.2, 6-Save/Load, 6-Berthier, 6-BattleReport, 6-EventLog, 6-FogOfWar |
@@ -50,6 +50,29 @@
 ---
 
 ## Recently Completed
+
+### Feb 17 (Session 38b: Bug Batch — Scout, Attrition Fog, Pursue Reroute, Stale Icons)
+
+**5 bugs fixed, 9 new tests.**
+
+**Bug 1 — Scout typo "acout" parsed as attack (llm_client.py):**
+- Mock parser had no fuzzy matching for scout. Added "acout", "scou", "recon" as scout keyword aliases.
+
+**Bug 2 — Enemy attrition visible to player (world_state.py + main.py):**
+- Supply attrition events lacked `nation` field. Fog filter couldn't identify enemy attrition and leaked it at PARTIAL visibility. Fix: added `nation: m.nation` to attrition event dict.
+
+**Bug 3 — PURSUE blocked at issuance for literal marshals (executor.py + strategic.py):**
+- When PURSUE/SUPPORT orders hit a blocked path and tried to reroute, `destination = order.target` used the marshal name (e.g. "Wellington") as a region name for pathfinding. `find_path("Belgium", "Wellington")` → None → "Path blocked, no alternate route". Fixed in 6 locations across executor.py and strategic.py — all now resolve marshal names to their locations.
+
+**Bug 4 — Stale intel icons not showing (world_state.py):**
+- `get_filtered_game_state_summary()` only iterated live marshals per region. For STALE regions where enemies moved away, `fogged_forces` was always empty. Fix: inject frozen `intel.known_marshals` snapshot into `fogged_forces` for STALE regions. Dedup pass prevents ghost duplicates when enemy is visible at FULL/PARTIAL elsewhere.
+
+**Not a bug — Adjacent intel decay:**
+- Adjacency continuously refreshes intel each turn (by design). Intel only decays after the adjacent marshal moves away.
+
+**Tests:** 2625 passing (+9), 3 skipped
+
+---
 
 ### Feb 17 (Fog of War Audit — Full Coverage)
 
