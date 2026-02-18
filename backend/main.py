@@ -506,6 +506,17 @@ def execute_command(request: CommandRequest):
             return cleaned
 
         # ════════════════════════════════════════════════════════════
+        # CHECK FOR STRATEGIC INTERRUPT: Blocked path, cannon fire popup
+        # (Session 39: was missing — pending_interrupt dropped at response build)
+        # ════════════════════════════════════════════════════════════
+        if result.get("pending_interrupt"):
+            print("[INTERRUPT] STRATEGIC INTERRUPT - Returning full result to frontend")
+            cleaned = {k: v for k, v in result.items() if k != "new_state"}
+            cleaned["action_summary"] = world.get_action_summary()
+            cleaned["game_state"] = world.get_filtered_game_state_summary()
+            return cleaned
+
+        # ════════════════════════════════════════════════════════════
         # CHECK FOR CAPTURE CHOICE (Phase 6.2.E): Plunder or Secure popup
         # ════════════════════════════════════════════════════════════
         if result.get("pending_capture_choice"):
@@ -751,6 +762,14 @@ def respond_to_objection(request: ObjectionResponse):
         }
         if result.get("battle_report"):
             response["battle_report"] = result["battle_report"]
+
+        # ════════════════════════════════════════════════════════════
+        # STRATEGIC INTERRUPT: Post-objection command may hit blocked path
+        # (Session 39: pending_interrupt was being dropped here)
+        # ════════════════════════════════════════════════════════════
+        if result.get("pending_interrupt"):
+            response["pending_interrupt"] = result["pending_interrupt"]
+            response["requires_input"] = True
 
         # ════════════════════════════════════════════════════════════
         # REDEMPTION EVENT: Check if trust dropped to critical level

@@ -56,7 +56,10 @@ All major Phase 6 features shipped:
 **Bug 3 — Reroute ignores just-discovered blocked region (strategic.py):**
 - `_handle_blocked_path` used fog-aware `_get_enemy_occupied_regions` for avoid list, which could miss the blocked region if fog hadn't been updated yet. Physical encounter is authoritative. Fix: always include `blocked_region` in avoid list.
 
-**Combined effect:** Literal marshal rerouting now reroutes AND moves on the same turn (1 turn instead of 3).
+**Bug 4 — Strategic interrupt shows in action log not popup (main.py + main.gd):**
+- `pending_interrupt` field from executor was dropped by both `/command` (missing early return) and `/respond_to_objection` (not included in response dict) endpoints. Godot's `_on_objection_response` also lacked a `pending_interrupt` check. User's scenario: Davout objects → "proceed" → blocked path → interrupt text in log instead of popup. Fix: added early return in `/command`, passthrough in `/respond_to_objection`, and popup trigger in `_on_objection_response`. Audit confirmed all other popup-triggering fields are properly wired.
+
+**Combined effect:** Literal marshal rerouting now reroutes AND moves on the same turn (1 turn instead of 3). Non-literal interrupt popups now display correctly.
 
 **Tests:** 2629 passing (+4), 3 skipped
 

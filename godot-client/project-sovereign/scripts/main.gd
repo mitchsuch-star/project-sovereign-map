@@ -1080,6 +1080,14 @@ func _on_objection_response(response):
 		_show_redemption_dialog(response.redemption_event)
 		return  # Don't re-enable input until redemption resolved
 
+	# Check for strategic interrupt (post-objection command hit blocked path)
+	if response.has("pending_interrupt") and response.pending_interrupt:
+		# Show the command result message first
+		if response.has("message") and response.message:
+			_display_result(response)
+		_show_interrupt_popup(response.pending_interrupt)
+		return  # Don't re-enable input until interrupt resolved
+
 	# Re-enable input (normal flow)
 	set_input_enabled(true)
 
