@@ -604,6 +604,13 @@ def execute_command(request: CommandRequest):
             response["bombardment_result"] = result["bombardment_result"]
             response["action"] = "bombardment"
 
+        # Redemption event (bombardment friendly fire can trigger this — §4.4)
+        if result.get("redemption_event"):
+            response["state"] = "awaiting_redemption_choice"
+            response["redemption_event"] = result["redemption_event"]
+            world.pending_redemption = result["redemption_event"]
+            print(f"[ALERT] REDEMPTION TRIGGERED for {result['redemption_event']['marshal']}")
+
         # Berthier's After-Action Report
         if result.get("battle_report"):
             response["battle_report"] = result["battle_report"]

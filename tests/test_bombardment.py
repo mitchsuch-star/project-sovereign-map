@@ -584,3 +584,328 @@ class TestBombardmentEdgeCases:
             result = executor._execute_bombardment(art, world.marshals["Wellington"], world, gs)
 
         assert result.get("bombardment_advisory") is None
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# §17.3 — COLLATERAL DAMAGE (Session 49)
+# ════════════════════════════════════════════════════════════════════════════════
+
+class TestCollateralDamage:
+    """Collateral damage tests from §17.3."""
+
+    def _setup_collateral(self, friendly_in_target=False, extra_enemies=True):
+        """
+        Set up bombardment with additional forces in target region.
+
+        Args:
+            friendly_in_target: If True, place a French marshal at Waterloo
+            extra_enemies: If True, place Uxbridge at Waterloo alongside Wellington
+        """
+        world, art, executor, gs = _setup_bombardment(def_str=68000)
+
+        # Move other marshals away to control the test
+        for name in list(world.marshals.keys()):
+            m = world.marshals[name]
+            if m.name not in ("TestArt", "Wellington") and m.location == "Waterloo":
+                m.location = "Vienna"
+
+        if extra_enemies:
+            # Put Uxbridge at Waterloo as a secondary target
+            world.marshals["Uxbridge"].location = "Waterloo"
+            world.marshals["Uxbridge"].strength = 30000
+
+        if friendly_in_target:
+            # Put Davout at Waterloo — friendly fire scenario
+            world.marshals["Davout"].location = "Waterloo"
+            world.marshals["Davout"].strength = 40000
+
+        return world, art, executor, gs
+
+    def test_collateral_40_percent_chance(self):
+        """40% chance of collateral on each non-primary force in region."""
+        hits = 0
+        trials = 500
+        for _ in range(trials):
+            world, art, executor, gs = self._setup_collateral(extra_enemies=True)
+            with patch("random.uniform", return_value=1.0):
+                result = executor._execute_bombardment(
+                    art, world.marshals["Wellington"], world, gs)
+            if len(result["bombardment_result"]["collateral"]) > 0:
+                hits += 1
+
+        # Expected ~40%, allow reasonable margin (35%-45%)
+        hit_rate = hits / trials
+        assert 0.30 < hit_rate < 0.50, f"Collateral hit rate {hit_rate:.2%} outside expected ~40%"
+
+    def test_collateral_damage_is_25_percent_of_primary(self):
+        """Collateral damage is ~25% of primary raw damage."""
+        # Force collateral to always hit (random.random returns 0.0 < 0.40)
+        collateral_damages = []
+        primary_damages = []
+
+        for _ in range(200):
+            world, art, executor, gs = self._setup_collateral(extra_enemies=True)
+            with patch("random.uniform", return_value=1.0), \
+                 patch("random.random", return_value=0.1):  # Always hits (< 0.40)
+                result = executor._execute_bombardment(
+                    art, world.marshals["Wellington"], world, gs)
+
+            br = result["bombardment_result"]
+            primary_damages.append(br["defender"]["casualties"])
+            if br["collateral"]:
+                collateral_damages.append(br["collateral"][0]["casualties"])
+
+        if collateral_damages:
+            avg_primary = sum(primary_damages) / len(primary_damages)
+            avg_collateral = sum(collateral_damages) / len(collateral_damages)
+            # Collateral should be ~25% of primary
+            ratio = avg_collateral / avg_primary if avg_primary > 0 else 0
+            assert 0.15 < ratio < 0.35, \
+                f"Collateral/primary ratio {ratio:.2f} outside expected ~25%"
+
+    def test_collateral_hits_friendly_forces(self):
+        """Friendly forces in target region take collateral damage."""
+        world, art, executor, gs = self._setup_collateral(
+            friendly_in_target=True, extra_enemies=False)
+        davout_before = world.marshals["Davout"].strength
+
+        with patch("random.uniform", return_value=1.0), \
+             patch("random.random", return_value=0.1):  # Force collateral hit
+            result = executor._execute_bombardment(
+                art, world.marshals["Wellington"], world, gs)
+
+        br = result["bombardment_result"]
+        # Davout should appear in collateral
+        davout_hit = [c for c in br["collateral"] if c["name"] == "Davout"]
+        assert len(davout_hit) == 1, "Davout should be hit by collateral"
+        assert davout_hit[0]["friendly_fire"] is True
+        assert davout_hit[0]["casualties"] > 0
+        # Davout should have lost strength
+        assert world.marshals["Davout"].strength < davout_before
+
+    def test_friendly_fire_trust_penalty(self):
+        """Friendly fire triggers -5 trust penalty."""
+        world, art, executor, gs = self._setup_collateral(
+            friendly_in_target=True, extra_enemies=False)
+        trust_before = world.marshals["Davout"].trust.value
+
+        with patch("random.uniform", return_value=1.0), \
+             patch("random.random", return_value=0.1):  # Force collateral hit
+            executor._execute_bombardment(
+                art, world.marshals["Wellington"], world, gs)
+
+        # Trust should drop by 5
+        assert world.marshals["Davout"].trust.value == trust_before - 5
+
+    def test_friendly_fire_relationship_penalty(self):
+        """Friendly fire triggers -1 relationship with artillery marshal."""
+        world, art, executor, gs = self._setup_collateral(
+            friendly_in_target=True, extra_enemies=False)
+        rel_before = world.marshals["Davout"].get_relationship("TestArt")
+
+        with patch("random.uniform", return_value=1.0), \
+             patch("random.random", return_value=0.1):
+            executor._execute_bombardment(
+                art, world.marshals["Wellington"], world, gs)
+
+        # Relationship should drop by 1
+        assert world.marshals["Davout"].get_relationship("TestArt") == rel_before - 1
+
+    def test_friendly_fire_redemption_threshold(self):
+        """Friendly fire trust drop to <= 20 triggers redemption event."""
+        world, art, executor, gs = self._setup_collateral(
+            friendly_in_target=True, extra_enemies=False)
+        # Set trust to 22 — after -5 drop it becomes 17 (below 20)
+        world.marshals["Davout"].trust.set(22)
+        world.marshals["Davout"].redemption_pending = False
+
+        with patch("random.uniform", return_value=1.0), \
+             patch("random.random", return_value=0.1):
+            result = executor._execute_bombardment(
+                art, world.marshals["Wellington"], world, gs)
+
+        assert world.marshals["Davout"].trust.value == 17
+        assert result.get("redemption_event") is not None
+        assert result["redemption_event"]["marshal"] == "Davout"
+        assert world.marshals["Davout"].redemption_pending is True
+
+    def test_no_redemption_when_trust_above_threshold(self):
+        """No redemption when trust stays above 20 after penalty."""
+        world, art, executor, gs = self._setup_collateral(
+            friendly_in_target=True, extra_enemies=False)
+        world.marshals["Davout"].trust.set(50)
+
+        with patch("random.uniform", return_value=1.0), \
+             patch("random.random", return_value=0.1):
+            result = executor._execute_bombardment(
+                art, world.marshals["Wellington"], world, gs)
+
+        assert world.marshals["Davout"].trust.value == 45  # 50 - 5
+        assert result.get("redemption_event") is None
+
+    def test_collateral_array_structure(self):
+        """Collateral array entries have correct structure."""
+        world, art, executor, gs = self._setup_collateral(extra_enemies=True)
+
+        with patch("random.uniform", return_value=1.0), \
+             patch("random.random", return_value=0.1):
+            result = executor._execute_bombardment(
+                art, world.marshals["Wellington"], world, gs)
+
+        br = result["bombardment_result"]
+        assert isinstance(br["collateral"], list)
+        for entry in br["collateral"]:
+            assert "name" in entry
+            assert "nation" in entry
+            assert "casualties" in entry
+            assert "friendly_fire" in entry
+            assert isinstance(entry["casualties"], int)
+            assert isinstance(entry["friendly_fire"], bool)
+
+    def test_collateral_does_not_affect_garrisons(self):
+        """Capital garrisons and detachments are NOT affected by collateral."""
+        world, art, executor, gs = self._setup_collateral(extra_enemies=False)
+        # Set up a garrison at Waterloo
+        target_region = world.get_region("Waterloo")
+        target_region.garrison_strength = 15000
+        garrison_before = target_region.garrison_strength
+
+        with patch("random.uniform", return_value=1.0), \
+             patch("random.random", return_value=0.1):
+            executor._execute_bombardment(
+                art, world.marshals["Wellington"], world, gs)
+
+        # Garrison should be unchanged (collateral only hits marshals)
+        assert target_region.garrison_strength == garrison_before
+
+    def test_collateral_does_not_affect_detachment_garrisons(self):
+        """Player garrison detachments are NOT affected by collateral."""
+        world, art, executor, gs = self._setup_collateral(extra_enemies=False)
+        target_region = world.get_region("Waterloo")
+        target_region.garrison_detachment = True
+        target_region.garrison_strength = 10000
+        garrison_before = target_region.garrison_strength
+
+        with patch("random.uniform", return_value=1.0), \
+             patch("random.random", return_value=0.1):
+            executor._execute_bombardment(
+                art, world.marshals["Wellington"], world, gs)
+
+        assert target_region.garrison_strength == garrison_before
+
+    def test_collateral_morale_minus_1(self):
+        """Collateral targets lose 1 morale."""
+        world, art, executor, gs = self._setup_collateral(extra_enemies=True)
+        uxbridge_morale_before = world.marshals["Uxbridge"].morale
+
+        with patch("random.uniform", return_value=1.0), \
+             patch("random.random", return_value=0.1):
+            executor._execute_bombardment(
+                art, world.marshals["Wellington"], world, gs)
+
+        # Uxbridge should lose 1 morale from collateral
+        assert world.marshals["Uxbridge"].morale == uxbridge_morale_before - 1
+
+    def test_no_collateral_when_no_other_forces(self):
+        """No collateral when only the primary target is in the region."""
+        world, art, executor, gs = self._setup_collateral(
+            extra_enemies=False, friendly_in_target=False)
+
+        with patch("random.uniform", return_value=1.0):
+            result = executor._execute_bombardment(
+                art, world.marshals["Wellington"], world, gs)
+
+        assert result["bombardment_result"]["collateral"] == []
+
+    def test_collateral_skips_broken_marshals(self):
+        """Broken marshals in region are skipped for collateral."""
+        world, art, executor, gs = self._setup_collateral(extra_enemies=True)
+        world.marshals["Uxbridge"].broken = True
+
+        with patch("random.uniform", return_value=1.0), \
+             patch("random.random", return_value=0.1):
+            result = executor._execute_bombardment(
+                art, world.marshals["Wellington"], world, gs)
+
+        # Uxbridge should NOT appear in collateral (broken)
+        names = [c["name"] for c in result["bombardment_result"]["collateral"]]
+        assert "Uxbridge" not in names
+
+    def test_collateral_in_event_log(self):
+        """Bombardment event log includes collateral data."""
+        world, art, executor, gs = self._setup_collateral(extra_enemies=True)
+        initial_events = len(world.event_log)
+
+        with patch("random.uniform", return_value=1.0), \
+             patch("random.random", return_value=0.1):
+            executor._execute_bombardment(
+                art, world.marshals["Wellington"], world, gs)
+
+        last_event = world.event_log[-1]
+        assert last_event["type"] == "bombardment"
+        assert isinstance(last_event["collateral"], list)
+        assert len(last_event["collateral"]) > 0  # Uxbridge hit
+
+    def test_collateral_message_in_narrative(self):
+        """Collateral damage appears in the narrative message."""
+        world, art, executor, gs = self._setup_collateral(extra_enemies=True)
+
+        with patch("random.uniform", return_value=1.0), \
+             patch("random.random", return_value=0.1):
+            result = executor._execute_bombardment(
+                art, world.marshals["Wellington"], world, gs)
+
+        # Check narrative includes collateral info
+        assert "Collateral" in result["message"] or "collateral" in result["message"].lower()
+
+    def test_enemy_collateral_not_friendly_fire(self):
+        """Enemy forces hit by collateral are NOT flagged as friendly fire."""
+        world, art, executor, gs = self._setup_collateral(extra_enemies=True)
+
+        with patch("random.uniform", return_value=1.0), \
+             patch("random.random", return_value=0.1):
+            result = executor._execute_bombardment(
+                art, world.marshals["Wellington"], world, gs)
+
+        for entry in result["bombardment_result"]["collateral"]:
+            if entry["name"] == "Uxbridge":
+                assert entry["friendly_fire"] is False
+                assert entry["nation"] != "France"
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# §4.4 — REGION-NAME TARGET AUTO-SELECTION (Session 49)
+# ════════════════════════════════════════════════════════════════════════════════
+
+class TestRegionNameTargeting:
+    """Region-name bombardment target auto-selection tests."""
+
+    def test_region_name_selects_strongest_enemy(self):
+        """When bombarding a region name, strongest enemy is selected as primary."""
+        world = _make_world()
+        art = _make_artillery(name="ArtReg", location="Belgium", strength=25000)
+        world.marshals["ArtReg"] = art
+
+        # Put two enemies at Waterloo with different strengths
+        world.marshals["Wellington"].location = "Waterloo"
+        world.marshals["Wellington"].strength = 70000
+        world.marshals["Uxbridge"].location = "Waterloo"
+        world.marshals["Uxbridge"].strength = 30000
+
+        # Move others away
+        for name in list(world.marshals.keys()):
+            m = world.marshals[name]
+            if m.name not in ("ArtReg", "Wellington", "Uxbridge"):
+                if m.location in ("Waterloo", "Belgium"):
+                    m.location = "Vienna"
+
+        executor = CommandExecutor()
+        gs = {"world": world}
+
+        with patch("random.uniform", return_value=1.0):
+            result = executor._execute_attack(art, "Waterloo", world, gs)
+
+        # Should bombard (artillery in different region)
+        assert result.get("action") == "bombardment"
+        # Primary target should be Wellington (strongest at 70k)
+        assert result["bombardment_result"]["defender"]["name"] == "Wellington"

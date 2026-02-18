@@ -18,7 +18,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Completed in Phase 6
 
-Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-Battle Analysis, Turn Events Log, Reinforcements, Attrition, City Fortification, Fog of War (COMPLETE: Sessions 33-36), Player Garrison Command (Session 31: 2 AP, cap 3/nation, map overlay), Enemy AI Garrison (P6.75: Building Blocks, 20k threshold, 1/nation/turn, P4.25 sub-5k awareness, `garrison_detachment` rename), Manpower Pools (Session 41: infantry/cavalry reserves, stables building, AI awareness), Artillery Unit Type (Sessions 42-44: Drouot/PrinceAugust, can't attack after move, no advance on win, cavalry counter, 2x fort degradation, artillery manpower pool, exhaustion exemption, bombardment streak, Berthier advisory, personality objections, AI positioning/screening/anti-oscillation, Godot HUD + bombardment advisory handler, ranged bombardment 50% return casualties). See `docs/STATUS.md` for details.
+Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-Battle Analysis, Turn Events Log, Reinforcements, Attrition, City Fortification, Fog of War (COMPLETE: Sessions 33-36), Player Garrison Command (Session 31: 2 AP, cap 3/nation, map overlay), Enemy AI Garrison (P6.75: Building Blocks, 20k threshold, 1/nation/turn, P4.25 sub-5k awareness, `garrison_detachment` rename), Manpower Pools (Session 41: infantry/cavalry reserves, stables building, AI awareness), Artillery Unit Type (Sessions 42-44, 48-49: Drouot/PrinceAugust, can't attack after move, no advance on win, cavalry counter, 2x fort degradation, artillery manpower pool, exhaustion exemption, bombardment streak, Berthier advisory, personality objections, AI positioning/screening/anti-oscillation, Godot HUD + bombardment advisory handler, dedicated bombardment resolution with terrain modifiers, collateral damage with friendly fire penalties). See `docs/STATUS.md` for details.
 
 ### Deferred from Phase 6
 
@@ -96,7 +96,8 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | Fog of war | `docs/FOG_OF_WAR_SPEC.md`, `backend/models/intel.py`, `backend/intel_report.py`, `map.gd` (fog overlay + fogged icons) |
 | Strategic commands + fog | `docs/FOG_OF_WAR_SPEC.md` §5, `backend/commands/strategic.py` |
 | Manpower pools / recruitment | `world_state.py` (manpower constants, `_process_manpower_regen`), `executor.py` (`_execute_recruit`), `enemy_ai.py` (P1/P4.5/P7 pool checks) |
-| Artillery mechanics | `marshal.py` (artillery flag, moved_this_turn, defense modifier), `combat.py` (cavalry counter, fort degradation, ranged bombardment 50% return), `executor.py` (attack block, no advance, charge ban) |
+| Artillery mechanics | `marshal.py` (artillery flag, moved_this_turn, defense modifier), `combat.py` (cavalry counter, fort degradation), `executor.py` (attack block, no advance, charge ban, `_execute_bombardment` collateral) |
+| Bombardment collateral | `executor.py` (`_execute_bombardment` collateral loop), `trust.py` (modify), `disobedience.py` (_create_redemption_event), `main.py` (redemption pass-through) |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`
 For Enemy AI details: `docs/ENEMY_AI_REFERENCE.md`
@@ -247,6 +248,9 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | Enemy attrition visible in reports | Attrition events need `nation` field for fog filter to identify player vs enemy |
 | Literal reroute wastes a turn | Reroute handler must attempt move on new path before returning; init path must call `_handle_first_step_blocked` |
 | Reroute ignores blocked region in fog | `_handle_blocked_path` must always include `blocked_region` in avoid list (physical encounter is authoritative) |
+| Bombardment collateral missing | Check `all_in_region` excludes defender, broken, retreating; `random.random() < 0.40` for 40% chance |
+| Friendly fire trust not dropping | Check `force.nation == marshal.nation` and `force.trust.modify(-5)` in collateral loop |
+| Region-name bombardment hits wrong target | `_execute_attack` must select strongest enemy via `max(all_enemies, key=strength)` when `not enemy_by_name` |
 
 ---
 
@@ -269,24 +273,27 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 
 ## Commands
 
+**IMPORTANT (Windows/WSL):** Use Windows-style paths with the venv Python. Unix-style `python -m pytest` silently fails on this WSL setup.
+
 ```bash
 # Backend
-python backend/main.py                    # Runs on port 8005
+".venv\Scripts\python.exe" backend/main.py    # Runs on port 8005
 
-# Tests
-pytest tests/ -v                          # Full suite
-pytest tests/ -v --tb=no -q              # Quick count
-pytest tests/test_objection_v2.py -v     # V2 tests only
+# Tests (MUST use Windows paths — see note above)
+cd "C:\Users\User\PycharmProjects\project-sovereign-map"
+".venv\Scripts\python.exe" -m pytest tests/ -v                          # Full suite
+".venv\Scripts\python.exe" -m pytest tests/ -v --tb=no -q              # Quick count
+".venv\Scripts\python.exe" -m pytest tests/test_objection_v2.py -v     # V2 tests only
 
 # Coverage
-pytest tests/ --cov=backend --cov-report=term-missing -v --tb=no -q
+".venv\Scripts\python.exe" -m pytest tests/ --cov=backend --cov-report=term-missing -v --tb=no -q
 
 # Lint
 ruff check backend/                     # Check for issues
 ruff check backend/ --fix               # Auto-fix safe issues
 
 # Validate mod
-python -m backend.modding.validator path/to/mod.json
+".venv\Scripts\python.exe" -m backend.modding.validator path/to/mod.json
 ```
 
 ---

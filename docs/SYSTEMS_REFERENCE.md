@@ -1400,6 +1400,36 @@ return_casualties = int(marshal.strength × 0.015 × uniform(0.80, 1.20))
 
 **Per-turn limit:** `bombardments_this_turn` field on marshal, reset to 0 in `advance_turn()`. Max 2 bombardments per turn.
 
+### Collateral Damage (Session 49)
+
+After primary bombardment resolves, stray shells can hit other forces in the target region:
+
+```
+For each non-primary marshal in target region (strength > 0, not broken/retreating):
+  40% chance of hit:
+    collateral_raw = primary_raw_damage × 0.25
+    collateral_casualties = int(collateral_raw × uniform(0.80, 1.20))
+    force.take_casualties(collateral_casualties)
+    force.adjust_morale(-1)
+```
+
+**Friendly fire:** When collateral hits a marshal of the same nation as the artillery:
+- Trust penalty: -5 on the hit marshal
+- Relationship penalty: -1 between hit marshal and artillery marshal
+- If trust drops to <= 20, normal redemption event triggers
+
+**Region-name targeting:** When player says "bombard Waterloo" (region name, not marshal name), the strongest enemy marshal in that region is auto-selected as the primary target. Other marshals become collateral candidates.
+
+**Scope:** Collateral only affects marshal objects. Capital garrisons and player garrison detachments (region attributes) are NOT affected.
+
+**Collateral array in result dict and event log:**
+```python
+"collateral": [
+    {"name": "Uxbridge", "nation": "Britain", "casualties": 998, "friendly_fire": False},
+    {"name": "Davout", "nation": "France", "casualties": 750, "friendly_fire": True},
+]
+```
+
 ### Key Files
 
 | File | What changed |

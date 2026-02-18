@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 18, 2026 (Session 48)
+> **Last Updated:** February 18, 2026 (Session 49)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2861** (verified, 3 skipped) |
+| **Tests Passing** | **2878** (verified, 3 skipped) |
 
-| **Current Phase** | Phase 6.5 **IN PROGRESS** — Bombardment Part 1 complete, Parts 2-5 remaining |
+| **Current Phase** | Phase 6.5 **IN PROGRESS** — Bombardment Parts 1-2 complete, Parts 3-5 remaining |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,11 +19,10 @@
 
 ## Next Steps
 
-1. **Bombardment Part 2: Collateral Damage & Region Targeting** — Session 49. See `BOMBARDMENT_SPEC.md` §7-8.
-2. **Bombardment Part 3: Counter-Battery Fire** — Session 50. See `BOMBARDMENT_SPEC.md` §9.
-3. **Bombardment Part 4: AI Bombardment + Godot Frontend** — Sessions 51-52. See `BOMBARDMENT_SPEC.md` §10-12.
-4. **Pause menu** — Phase 6.5, Esc → Save/Load/Settings/Quit
-5. **Phase 7: Multi-marshal battles + Combined Arms + Square Formation + V2b** — Sessions 53-54 (combined arms, square) deferred here to build alongside multi-marshal combat. See BOMBARDMENT_SPEC.md §15, ROADMAP.md Phase 7.
+1. **Bombardment Part 3: Counter-Battery Fire** — Session 50. See `BOMBARDMENT_SPEC.md` §9.
+2. **Bombardment Part 4: AI Bombardment + Godot Frontend** — Sessions 51-52. See `BOMBARDMENT_SPEC.md` §10-12.
+3. **Pause menu** — Phase 6.5, Esc → Save/Load/Settings/Quit
+4. **Phase 7: Multi-marshal battles + Combined Arms + Square Formation + V2b** — Sessions 53-54 (combined arms, square) deferred here to build alongside multi-marshal combat. See BOMBARDMENT_SPEC.md §15, ROADMAP.md Phase 7.
 
 ---
 
@@ -47,6 +46,43 @@ All major Phase 6 features shipped:
 ---
 
 ## Recent Sessions
+
+### Feb 18 (Session 49: Bombardment Part 2 — Collateral Damage + Event Log)
+
+**Collateral damage system, friendly fire penalties, and region-name targeting.**
+
+**Collateral Damage (executor.py `_execute_bombardment`):**
+- After primary bombardment resolves, iterates all non-primary marshals in target region
+- 40% chance per force, 25% of primary raw damage (±20% variance)
+- Collateral morale penalty: -1 per hit
+- Broken/retreating/dead marshals excluded from collateral
+- Collateral target destroyed → uses `_apply_forced_retreat_or_break()` for consistent break behavior
+- Scope: marshal objects only — capital garrisons and player garrison detachments unaffected
+
+**Friendly Fire Penalties:**
+- When collateral hits a marshal of same nation as artillery:
+  - Trust -5 on the hit marshal
+  - Relationship -1 between hit marshal and artillery marshal
+  - Redemption threshold check: trust <= 20 triggers normal redemption event
+- Narrative message clearly labels friendly fire vs enemy collateral
+
+**Region-Name Target Auto-Selection (executor.py `_execute_attack`):**
+- "Bombard Waterloo" (region name) auto-selects strongest enemy marshal as primary target
+- Weaker enemies at same location become collateral candidates
+- Only triggers for artillery bombarding from different region
+
+**Event Log & Result Dict:**
+- `collateral` array populated (was `[]` stub from Session 48)
+- Each entry: `{name, nation, casualties, friendly_fire}`
+- Collateral in both event log and `bombardment_result` nested object
+
+**main.py Pass-Through:**
+- Added redemption event handler in main command response builder
+- Bombardment-triggered friendly fire redemption now flows to Godot
+
+**Tests:** 17 new tests in `test_bombardment.py` (TestCollateralDamage: 16 tests, TestRegionNameTargeting: 1 test). **2878 total passing**, 3 skipped. Zero regressions.
+
+---
 
 ### Feb 18 (Session 48: Bombardment Part 1 — Core Resolution & Terrain)
 

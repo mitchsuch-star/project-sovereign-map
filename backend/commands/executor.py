@@ -2209,10 +2209,76 @@ RETREAT RECOVERY (3 turns):
         # ════════════════════════════════════════════════════════════
         defender.adjust_morale(-3)
 
+        # Capture target location before defender might be broken/moved
+        target_location = defender.location
+
+        # ════════════════════════════════════════════════════════════
+        # COLLATERAL DAMAGE (§4.4): Shells hit other forces in target region
+        # 40% chance per non-primary marshal, 25% of primary raw damage
+        # Affects marshals only — not capital garrisons or detachments
+        # ════════════════════════════════════════════════════════════
+        collateral_results = []
+        collateral_messages = []
+        friendly_fire_redemption = None
+
+        all_in_region = [
+            m for m in world.get_marshals_in_region(target_location)
+            if m.name != defender.name and m.strength > 0
+            and not getattr(m, 'broken', False)
+            and not getattr(m, 'retreating', False)
+        ]
+
+        for force in all_in_region:
+            if random.random() < 0.40:
+                collateral_raw = raw_damage * 0.25  # 25% of primary raw damage
+                collateral_variance = random.uniform(0.80, 1.20)
+                collateral_casualties = int(collateral_raw * collateral_variance)
+
+                if collateral_casualties > 0:
+                    force.take_casualties(collateral_casualties)
+                    force.adjust_morale(-1)
+
+                    is_friendly = (force.nation == marshal.nation)
+
+                    collateral_entry = {
+                        "name": force.name,
+                        "nation": force.nation,
+                        "casualties": int(collateral_casualties),
+                        "friendly_fire": is_friendly,
+                    }
+                    collateral_results.append(collateral_entry)
+
+                    if is_friendly:
+                        collateral_messages.append(
+                            f"  FRIENDLY FIRE: {force.name} ({marshal.nation}) "
+                            f"— {collateral_casualties:,} casualties from stray shells!"
+                        )
+                        # Trust penalty: -5 (§4.4)
+                        force.trust.modify(-5)
+                        # Relationship penalty: -1 with artillery marshal
+                        force.modify_relationship(marshal.name, -1)
+
+                        # Redemption threshold check (§4.4)
+                        if (force.trust.value <= 20
+                                and not getattr(force, 'redemption_pending', False)
+                                and force.nation == world.player_nation):
+                            force.redemption_pending = True
+                            friendly_fire_redemption = (
+                                world.disobedience_system._create_redemption_event(
+                                    force, world))
+                    else:
+                        collateral_messages.append(
+                            f"  Collateral: {force.name} ({force.nation}) "
+                            f"— {collateral_casualties:,} casualties from stray shells"
+                        )
+
+                    # Collateral target destroyed
+                    if force.strength <= 0 and force.name in world.marshals:
+                        self._apply_forced_retreat_or_break(force, marshal, world)
+
         # ════════════════════════════════════════════════════════════
         # BOMBARDMENT STREAK TRACKING
         # ════════════════════════════════════════════════════════════
-        target_location = defender.location
         if target_location == getattr(marshal, 'last_bombardment_target', None):
             marshal.bombardment_streak += 1
         else:
@@ -2271,6 +2337,10 @@ RETREAT RECOVERY (3 turns):
         if enemy_destroyed:
             destroyed_note = destroyed_msg  # Contains break/shatter message from existing system
 
+        collateral_note = ""
+        if collateral_messages:
+            collateral_note = "\n\n  -- Collateral Damage --\n" + "\n".join(collateral_messages)
+
         message = (
             f"{'=' * 40}\n"
             f"  BOMBARDMENT: {marshal.name} → {defender.name}\n"
@@ -2283,7 +2353,7 @@ RETREAT RECOVERY (3 turns):
             f"  Return fire/wear: {attacker_casualties:,} "
             f"({marshal.name}: {int(marshal.strength + attacker_casualties):,} → {int(marshal.strength):,})\n"
             f"  Defender morale: {int(defender.morale)}%"
-            f"{fort_note}{destroyed_note}"
+            f"{fort_note}{destroyed_note}{collateral_note}"
         )
 
         # ════════════════════════════════════════════════════════════
@@ -2319,7 +2389,7 @@ RETREAT RECOVERY (3 turns):
             "fort_degraded": fortification_degraded,
             "fort_old": fortification_old,
             "fort_new": fortification_new,
-            "collateral": [],  # Session 49: collateral damage (not yet implemented)
+            "collateral": collateral_results,
         }
         world.log_event(bombardment_event)
 
@@ -2353,7 +2423,7 @@ RETREAT RECOVERY (3 turns):
                 "fort_old": fortification_old,
                 "fort_new": fortification_new,
                 "bombardments_remaining": int(bombardments_remaining),
-                "collateral": [],  # Session 49
+                "collateral": collateral_results,
             },
             "events": [bombardment_event],
             "new_state": game_state,
@@ -2361,6 +2431,10 @@ RETREAT RECOVERY (3 turns):
 
         if bombardment_advisory:
             result["bombardment_advisory"] = bombardment_advisory
+
+        # Friendly fire redemption event (§4.4)
+        if friendly_fire_redemption:
+            result["redemption_event"] = friendly_fire_redemption
 
         return result
 
@@ -2799,6 +2873,24 @@ RETREAT RECOVERY (3 turns):
         if not enemy_marshal:
             # Check if target is a region with enemies (use resolved_target for regions)
             enemy_marshal = world.get_enemy_at_location_for_nation(resolved_target, marshal.nation)
+
+        # ════════════════════════════════════════════════════════════
+        # BOMBARDMENT: Region-name targeting selects strongest enemy (§4.4)
+        # When artillery bombards a region name, pick the strongest enemy
+        # marshal as the primary target. Other marshals take collateral.
+        # ════════════════════════════════════════════════════════════
+        if (enemy_marshal and not enemy_by_name
+                and getattr(marshal, 'artillery', False)
+                and marshal.location != (enemy_marshal.location or "")):
+            all_enemies_at_target = [
+                m for m in world.marshals.values()
+                if m.location == resolved_target
+                and m.nation != marshal.nation
+                and m.strength > 0
+                and not getattr(m, 'broken', False)
+            ]
+            if len(all_enemies_at_target) > 1:
+                enemy_marshal = max(all_enemies_at_target, key=lambda m: m.strength)
 
         if not enemy_marshal:
             # No enemy found - target should already be resolved, get the region
