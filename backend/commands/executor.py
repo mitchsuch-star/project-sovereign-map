@@ -1441,6 +1441,10 @@ RETREAT RECOVERY (3 turns):
             result = self._execute_general_attack(command, game_state)
         elif command_type == "auto_assign_attack":
             result = self._execute_auto_assign_attack(command, game_state)
+        elif command_type == "auto_assign_bombardment":
+            result = self._execute_auto_assign_bombardment(command, game_state)
+        elif command_type == "auto_assign_scout":
+            result = self._execute_auto_assign_scout(command, game_state)
         elif command_type == "general_retreat":
             result = self._execute_general_retreat(command, game_state)
         elif command_type == "general_defensive":
@@ -5903,6 +5907,166 @@ RETREAT RECOVERY (3 turns):
             result["capture_data"] = world.pending_capture_choice
 
         return result
+
+    def _execute_auto_assign_bombardment(self, command: Dict, game_state: Dict) -> Dict:
+        """
+        Execute bombardment with auto-assigned artillery marshal.
+        Example: "bombard Rhine" or "bombard Wellington" (no marshal named).
+        Selects nearest artillery marshal with bombardments remaining.
+        Future-proof: supports multiple artillery marshals.
+        """
+        target = command.get("target")
+        world: WorldState = game_state.get("world")
+
+        if not world:
+            return {"success": False, "message": "Error: No world state"}
+
+        # Find all player artillery marshals
+        artillery_marshals = [
+            m for m in world.get_player_marshals()
+            if getattr(m, 'artillery', False)
+            and m.strength > 0
+        ]
+
+        if not artillery_marshals:
+            return {
+                "success": False,
+                "message": "No artillery marshals available for bombardment."
+            }
+
+        # Filter to those with bombardments remaining this turn
+        ready_artillery = [
+            m for m in artillery_marshals
+            if getattr(m, 'bombardments_this_turn', 0) < 2
+        ]
+
+        if not ready_artillery:
+            names = ", ".join(m.name for m in artillery_marshals)
+            return {
+                "success": False,
+                "message": f"All artillery marshals have used their bombardments this turn. ({names}: max 2 per turn)"
+            }
+
+        if not target:
+            # "bombard" alone with no target — pick nearest enemy for closest artillery
+            best_marshal = None
+            best_enemy = None
+            best_distance = 999
+            for m in ready_artillery:
+                nearest = world.find_nearest_enemy(m.location)
+                if nearest:
+                    enemy, dist = nearest
+                    if enemy.strength > 0 and dist <= 2 and dist < best_distance:
+                        best_marshal = m
+                        best_enemy = enemy
+                        best_distance = dist
+            if not best_marshal:
+                return {
+                    "success": False,
+                    "message": "No enemies within bombardment range of any artillery marshal.",
+                    "suggestion": "Name a target: 'bombard Rhine' or 'bombard Wellington'"
+                }
+            target = best_enemy.name
+
+        # Route through the specific attack executor with auto-selected artillery marshal
+        # Build a command dict as if the player named the marshal
+        routed_command = dict(command)
+        # Resolve target location for distance sorting
+        target_location = None
+        enemy = world.get_enemy_by_name(target)
+        if enemy and enemy.strength > 0:
+            target_location = enemy.location
+        else:
+            target_region, error = self._fuzzy_match_region(target, world)
+            if not error and target_region:
+                target_location = target_region.name if hasattr(target_region, 'name') else target
+
+        if not target_location:
+            return {
+                "success": False,
+                "message": f"Unknown bombardment target: {target}"
+            }
+
+        # Sort artillery by distance to target (nearest first), strength as tiebreaker
+        candidates = []
+        for m in ready_artillery:
+            dist = world.get_distance(m.location, target_location)
+            if dist is not None and dist <= 2:  # Bombardment range: adjacent (1) or same region
+                candidates.append((m, dist))
+
+        if not candidates:
+            names = ", ".join(f"{m.name} at {m.location}" for m in ready_artillery)
+            return {
+                "success": False,
+                "message": f"No artillery in bombardment range of {target}.",
+                "suggestion": f"Available artillery: {names}"
+            }
+
+        candidates.sort(key=lambda x: (x[1], -x[0].strength))
+        chosen_marshal = candidates[0][0]
+
+        # Route to specific attack with chosen artillery marshal
+        routed_command["marshal"] = chosen_marshal.name
+        routed_command["type"] = "specific"
+        return self._execute_specific(routed_command, game_state)
+
+    def _execute_auto_assign_scout(self, command: Dict, game_state: Dict) -> Dict:
+        """
+        Execute scout with auto-assigned marshal.
+        Example: "scout Rhine" (no marshal named).
+        Selects nearest player marshal within scout range of target.
+        """
+        target = command.get("target")
+        world: WorldState = game_state.get("world")
+
+        if not world or not target:
+            return {"success": False, "message": "Error: No target or world state"}
+
+        # Fuzzy match target region
+        target_region, error = self._fuzzy_match_region(target, world)
+        if error:
+            return error
+
+        target_name = target_region.name if hasattr(target_region, 'name') else target
+
+        # Find player marshals that can scout this target
+        from backend.models.personality_modifiers import get_scout_range_bonus
+        base_scout_range = 2
+
+        player_marshals = world.get_player_marshals()
+        candidates = []  # (marshal, distance)
+
+        for m in player_marshals:
+            if m.strength <= 0:
+                continue
+            # Check retreat/broken blocking
+            if getattr(m, 'retreating', False) and getattr(m, 'retreat_recovery', 0) < 3:
+                continue
+            if getattr(m, 'broken', False):
+                continue
+
+            scout_bonus = get_scout_range_bonus(getattr(m, 'personality', 'unknown'))
+            max_range = base_scout_range + scout_bonus
+            dist = world.get_distance(m.location, target_name)
+            if dist is not None and dist <= max_range:
+                candidates.append((m, dist))
+
+        if not candidates:
+            return {
+                "success": False,
+                "message": f"No marshals in scout range of {target_name}.",
+                "suggestion": "Name a specific marshal or move closer first."
+            }
+
+        # Sort by distance (nearest first), then strength as tiebreaker
+        candidates.sort(key=lambda x: (x[1], -x[0].strength))
+        chosen_marshal = candidates[0][0]
+
+        # Route to specific scout with chosen marshal
+        routed_command = dict(command)
+        routed_command["marshal"] = chosen_marshal.name
+        routed_command["type"] = "specific"
+        return self._execute_specific(routed_command, game_state)
 
     def _execute_general_retreat(self, command: Dict, game_state: Dict) -> Dict:
         """

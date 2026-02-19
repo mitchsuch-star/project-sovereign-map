@@ -251,6 +251,8 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | Bombardment collateral missing | Check `all_in_region` excludes defender, broken, retreating; `random.random() < 0.40` for 40% chance |
 | Friendly fire trust not dropping | Check `force.nation == marshal.nation` and `force.trust.modify(-5)` in collateral loop |
 | Region-name bombardment hits wrong target | `_execute_attack` must select strongest enemy via `max(all_enemies, key=strength)` when `not enemy_by_name` |
+| "bombard Rhine" picks wrong marshal | Must route to `auto_assign_bombardment` in parser `_classify_command()`, not generic `auto_assign_attack` |
+| Target word matched as marshal name | Parser fuzzy matching must skip words that match existing `llm_result["target"]` |
 
 ---
 

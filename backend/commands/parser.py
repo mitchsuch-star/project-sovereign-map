@@ -126,8 +126,15 @@ class CommandParser:
             if llm_result.get("action") in meta_actions:
                 return (llm_result, None)  # Don't try to find a marshal
 
+            # Skip fuzzy marshal matching if target already identified
+            existing_target = (llm_result.get("target") or "").lower()
+
             words = command_text.split()
             for word in words:
+                # Skip words that match the already-parsed target (e.g., "Rhine" in "bombard Rhine")
+                if existing_target and word.lower() == existing_target:
+                    continue
+
                 # Skip very short words, common words, and action keywords
                 # BUG-002 FIX: Added help, wait, hold, retreat, fortify, drill, etc.
                 skip_words = [
@@ -144,6 +151,7 @@ class CommandParser:
                     "someone", "somebody", "anyone", "whoever",
                     "support", "pursue", "chase", "hunt", "intercept",
                     "cancel", "halt", "abort", "stop",
+                    "bombard", "barrage", "shell", "cannonade", "garrison",
                 ]
                 if len(word) < 2 or word.lower() in skip_words:
                     continue
@@ -415,6 +423,9 @@ class CommandParser:
             "warning": warning
         }
 
+    # Bombardment keywords for auto-assign routing (checked against raw input)
+    BOMBARD_KEYWORDS = ["bombard", "barrage", "shell ", "cannonade"]
+
     def _classify_command(self, parsed_command: Dict, raw_input: str) -> str:
         """
         Classify the type of command.
@@ -435,8 +446,14 @@ class CommandParser:
             return "specific"
 
         # No marshal specified - classify as general order based on action
+        # Check raw input for bombardment keywords (routes to artillery auto-assign)
+        raw_lower = raw_input.lower()
+        is_bombardment = any(kw in raw_lower for kw in self.BOMBARD_KEYWORDS)
+
         if action == "attack":
-            if not target:
+            if is_bombardment:
+                return "auto_assign_bombardment"  # "bombard Rhine" - find nearest artillery
+            elif not target:
                 return "general_attack"  # "attack" alone - find nearest enemy
             else:
                 return "auto_assign_attack"  # "attack Wellington" - find closest marshal to target
@@ -444,6 +461,10 @@ class CommandParser:
             return "general_retreat"  # All forces retreat
         elif action == "defend":
             return "general_defensive"  # All forces defend
+        elif action == "scout":
+            if target:
+                return "auto_assign_scout"  # "scout Rhine" - find nearest marshal in range
+            # "scout" alone with no target or marshal → fall through to specific (will error helpfully)
 
         # Default fallback
         return "specific"

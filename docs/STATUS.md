@@ -75,7 +75,19 @@ All major Phase 6 features shipped:
 - Tab key toggles terminal panel visibility (when command input not focused)
 - Full panel collapses (header, output, input) and restores cleanly
 
-**Tests:** 2987 passing, 3 skipped. Zero regressions (no new backend logic, UI-only additions).
+**Auto-Assign Fixes (parser.py + executor.py):**
+- `bombard Rhine` (no marshal) now auto-selects nearest artillery marshal with bombardments remaining
+  - Future-proof: supports multiple artillery marshals (sorts by distance, picks nearest in range)
+  - Error messages for: exhausted bombardments, no artillery in range, no target
+  - `barrage` / `shell` / `cannonade` keywords also route correctly
+- `scout Rhine` (no marshal) now auto-selects nearest marshal within scout range
+  - Respects personality scout range bonus (Davout +1)
+  - Filters broken/retreating marshals
+  - Error messages for: no marshals in range
+- Parser fix: words matching existing target (e.g., "Rhine") no longer fuzzy-match to marshal names
+- Added `bombard`, `barrage`, `shell`, `cannonade`, `garrison` to fuzzy match skip_words
+
+**Tests:** 2987 passing, 3 skipped. Zero regressions. 5 targeted auto-assign pipeline tests verified.
 
 ---
 
