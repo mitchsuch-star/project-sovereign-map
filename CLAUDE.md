@@ -252,6 +252,11 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | Friendly fire trust not dropping | Check `force.nation == marshal.nation` and `force.trust.modify(-5)` in collateral loop |
 | Region-name bombardment hits wrong target | `_execute_attack` must select strongest enemy via `max(all_enemies, key=strength)` when `not enemy_by_name` |
 | "bombard Rhine" picks wrong marshal | Must route to `auto_assign_bombardment` in parser `_classify_command()`, not generic `auto_assign_attack` |
+| AI fortify→unfortify→fortify loop | P3 `_check_threats()` re-fortifies without checking cooldown/`_unfortified_this_turn` — bypasses P5 guards |
+| Artillery never bombards (AI) | P3 catches cautious artillery before P4 bombardment | Add artillery exemption in P3 fortify block |
+| Enemy 0 actions after ~4 turns | All P8 cautious marshals return None when refortify blocked | P8 must return `wait` instead of None |
+| Enemy battles missing from popup | Fog filter compares marshal name (string) against attacker/defender (dict) — always False | Extract `.get("name")` from dict before comparing |
+| Enemy bombardment not in popup | Fog filter only checks `type == "battle"`, dialog only handles battle/conquest events | Add `"bombardment"` to both |
 | Target word matched as marshal name | Parser fuzzy matching must skip words that match existing `llm_result["target"]` |
 
 ---

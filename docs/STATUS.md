@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 18, 2026 (Session 53)
+> **Last Updated:** February 19, 2026 (Session 54 — AI Fix)
 
 ---
 
@@ -44,6 +44,29 @@ All major Phase 6 features shipped:
 ---
 
 ## Recent Sessions
+
+### Feb 19 (Session 54: Enemy AI Total Inaction Fix + Bombardment Display)
+
+**Fixed 5 interconnected bugs causing enemy AI to take 0 meaningful actions after ~4 turns. Fixed fog filter suppressing all enemy battle/bombardment reports. Added bombardment display to enemy phase popup.**
+
+**Enemy AI Fixes (enemy_ai.py):**
+- **P3 refortify guards:** `_check_threats()` now checks `_unfortified_this_turn` and `ai_refortify_cooldown` before fortifying. Previously P3 bypassed all anti-oscillation guards, causing fortify→unfortify→fortify loops that consumed all AP.
+- **Artillery P3 exemption:** Artillery marshals skip P3 fortify and fall through to P4 bombardment. Previously PrinceAugust would fortify instead of bombarding.
+- **P8 refortify guard:** `_get_default_action()` refortify check expanded to include `_unfortified_this_turn` (was only checking cooldown).
+- **P8 wait fallback:** Returns `wait` instead of `None` when refortify is blocked, preventing "all marshals skip → 0 actions" pattern.
+- **Surrounded attack fallback:** When stagnation >= 3 and all adjacent regions have enemies (can't move), marshal attacks weakest adjacent enemy as desperate breakout.
+
+**Fog Filter Fixes (main.py):**
+- **Dict/string comparison bug:** Battle events store attacker/defender as dicts (`{"name": ..., "casualties": ...}`), but fog filter compared them directly as strings. `pm.name in (attacker, defender)` was always False. Now extracts `.get("name")` before comparison.
+- **Bombardment events ignored:** Fog filter only checked `type == "battle"`, missing `type == "bombardment"`. Enemy bombardments on player marshals were silently suppressed.
+
+**Bombardment Display (enemy_phase_dialog.gd):**
+- Enemy phase popup now handles bombardment event type (was only battle/conquest)
+- Action label shows "bombards" instead of "attacks" for bombardment actions
+- New `_format_bombardment()` for event details and `_format_bombardment_report()` for structured report
+
+**Bombardment Colors (main.gd):**
+- Player-side bombardment report replaced uniform CCCCCC (near-white) with differentiated colors: enemy casualties red, own casualties green, terrain warm gray, fort degradation orange
 
 ### Feb 18 (Session 53: UI Polish — Help, Unit Types, Minimize, Ammo)
 

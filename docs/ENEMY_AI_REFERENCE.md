@@ -527,6 +527,7 @@ Prevents marshals getting stuck doing nothing. Persisted on `world.ai_stagnation
 | 3 | Unfortify + move toward nearest ally |
 | 4 | Lower attack threshold by 20% |
 | 5+ | Lower threshold by 10% more (floor 0.3) |
+| 3+ (surrounded) | Attack weakest adjacent enemy if no safe move exists |
 
 **Resets on:** Attack (win/lose), capture region, move toward enemy, consolidation move.
 **NOT meaningful:** defend, drill, wait.
@@ -536,9 +537,12 @@ Prevents marshals getting stuck doing nothing. Persisted on `world.ai_stagnation
 When stagnation forces a marshal to unfortify (at stagnation >= 3), a 2-turn **re-fortify cooldown** is set on that marshal. This prevents the fortify→unfortify oscillation loop where marshals would fortify, get forced to unfortify by stagnation, then immediately re-fortify.
 
 - Stored in `world.ai_refortify_cooldown` (Dict[str, int])
-- Blocks P5 (fortification) and P8 (default fortify) when cooldown > 0
+- Blocks P3 (threat fortify), P5 (fortification), and P8 (default fortify) when cooldown > 0
+- Also blocked when marshal is in `_unfortified_this_turn` set (same-turn guard)
 - Decremented at start of each `process_nation_turn()`
 - Removed when it reaches 0
+- **Artillery exemption:** Artillery marshals skip P3 fortify entirely (fall through to P4 bombardment)
+- **P8 wait fallback:** When refortify is blocked and marshal isn't fortified, P8 returns `wait` instead of `None` (prevents all-marshals-skip-→-0-actions pattern)
 
 ### Cautious Advance
 
@@ -702,6 +706,11 @@ The AI performs an admin phase each turn (before combat actions) using admin AP.
 | Infinite loop on wait | Free action doesn't decrement budget | Check `max_free_actions` safeguard |
 | Fortified enemy attacks | Missing state check | Add `fortified` check in `_find_attack_opportunity()` |
 | Region not captured | No defender to defeat | Design issue - need explicit capture action |
+| Fortify→unfortify loop | P3 re-fortifies without checking cooldown | Fixed: P3 now checks `_unfortified_this_turn` + `ai_refortify_cooldown` |
+| Artillery never bombards | P3 catches artillery before P4 | Fixed: Artillery exempt from P3 fortify |
+| Enemy 0 actions per turn | All marshals return None from P8 | Fixed: P8 returns `wait` when refortify blocked |
+| Enemy battles not in popup | Fog filter dict/string comparison | Fixed: Extract `.get("name")` from attacker/defender dicts |
+| Enemy bombardment not shown | Fog filter + dialog miss bombardment type | Fixed: Check `"bombardment"` event type in both |
 
 ### Debug Commands
 
