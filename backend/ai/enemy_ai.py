@@ -1800,11 +1800,21 @@ class EnemyAI:
                         "target": "defensive"
                     }
                 # Already defensive - fortify if not already
-                if not getattr(marshal, 'fortified', False):
-                    return {
-                        "marshal": marshal.name,
-                        "action": "fortify"
-                    }
+                # Respect stagnation anti-oscillation guards
+                refortify_blocked = (
+                    marshal.name in getattr(self, '_unfortified_this_turn', set())
+                    or world.ai_refortify_cooldown.get(marshal.name, 0) > 0
+                )
+                if not refortify_blocked:
+                    # Artillery should bombard, not fortify — let P4 handle
+                    if getattr(marshal, 'artillery', False):
+                        return None
+                    if not getattr(marshal, 'fortified', False):
+                        return {
+                            "marshal": marshal.name,
+                            "action": "fortify"
+                        }
+                # If blocked from fortifying, fall through to let P4+ handle it
             # Aggressive marshals might still attack (handled in attack priority)
 
         return None
@@ -2496,6 +2506,24 @@ class EnemyAI:
                             "target": fallback
                         }
 
+                    # Can't move anywhere (surrounded) — try attacking weakest adjacent enemy
+                    if stagnation >= 3:
+                        weakest_adjacent = None
+                        weakest_strength = float('inf')
+                        for adj_name in marshal_region.adjacent_regions:
+                            for enemy in [m for m in world.marshals.values()
+                                         if m.location == adj_name and m.nation != nation and m.strength > 0]:
+                                if enemy.strength < weakest_strength:
+                                    weakest_adjacent = enemy
+                                    weakest_strength = enemy.strength
+                        if weakest_adjacent:
+                            print(f"  [STAGNATION] {marshal.name}: Surrounded, attacking {weakest_adjacent.name} (desperate)")
+                            return {
+                                "marshal": marshal.name,
+                                "action": "attack",
+                                "target": weakest_adjacent.name
+                            }
+
         # ── TURN 3+: Lower attack threshold and try attacking ──
         if stagnation >= 3:
             enemies = world.get_enemies_of_nation(nation)
@@ -3162,12 +3190,22 @@ class EnemyAI:
                     "target": "defensive"
                 }
             # Already defensive - fortify if not already (and not on re-fortify cooldown)
-            refortify_blocked = world.ai_refortify_cooldown.get(marshal.name, 0) > 0
+            refortify_blocked = (
+                marshal.name in getattr(self, '_unfortified_this_turn', set())
+                or world.ai_refortify_cooldown.get(marshal.name, 0) > 0
+            )
             if not getattr(marshal, 'fortified', False) and not refortify_blocked:
                 ai_debug("  -> P8: Fortify (defensive, not fortified)")
                 return {
                     "marshal": marshal.name,
                     "action": "fortify"
+                }
+            # Can't fortify (cooldown/unfortified this turn) — wait instead of ending turn
+            if not getattr(marshal, 'fortified', False) and refortify_blocked:
+                ai_debug("  -> P8: Can't fortify (cooldown), waiting")
+                return {
+                    "marshal": marshal.name,
+                    "action": "wait"
                 }
             # Already defensive AND fortified - check if there's ANYTHING useful
             # If fortification opportunity check (P3.5) already decided to stay

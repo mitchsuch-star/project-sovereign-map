@@ -745,9 +745,14 @@ func _display_berthier_report(report: Dictionary):
 func _display_bombardment_report(result: Dictionary):
 	"""Display Berthier's bombardment report with casualty summary and observation."""
 	var COLOR_BERTHIER = "B8860B"   # Dark goldenrod for header
-	var COLOR_REPORT = "CCCCCC"     # Light gray for report lines
+	var COLOR_CASUALTY = "a0a0a8"   # Info gray for stats
+	var COLOR_ENEMY_CAS = "cd5c5c"  # Red for enemy casualties
+	var COLOR_OWN_CAS = "8fbc8f"    # Muted green for own (low) casualties
+	var COLOR_TERRAIN = "b0a890"    # Warm gray for terrain info
+	var COLOR_FORT = "daa06d"       # Battle orange for fort degradation
 	var COLOR_OBSERVATION = "DAA520" # Goldenrod for Berthier's quote
 	var COLOR_FRIENDLY = "cd6b6b"   # Muted red for friendly fire
+	var COLOR_REMAINING = "a0a0a8"  # Info gray for remaining count
 
 	add_output("[color=#" + COLOR_BERTHIER + "]--- Bombardment Report ---[/color]")
 
@@ -776,11 +781,11 @@ func _display_bombardment_report(result: Dictionary):
 		terrain_label = terrain_name + " (-" + str(100 - terrain_pct) + "% damage)"
 	else:
 		terrain_label = terrain_name + " (no modifier)"
-	add_output("[color=#" + COLOR_REPORT + "]  Terrain: " + terrain_label + "[/color]")
+	add_output("[color=#" + COLOR_TERRAIN + "]  Terrain: " + terrain_label + "[/color]")
 
-	# Casualty summary
-	add_output("[color=#" + COLOR_REPORT + "]  Enemy casualties: " + def_name + " " + _format_number(def_cas) + " (remaining: " + _format_number(def_rem) + ", morale: " + str(def_morale) + "%)[/color]")
-	add_output("[color=#" + COLOR_REPORT + "]  Return fire: " + atk_name + " " + _format_number(atk_cas) + " (remaining: " + _format_number(atk_rem) + ")[/color]")
+	# Casualty summary — enemy in red, own in green
+	add_output("[color=#" + COLOR_ENEMY_CAS + "]  Enemy casualties: " + def_name + " " + _format_number(def_cas) + " (remaining: " + _format_number(def_rem) + ", morale: " + str(def_morale) + "%)[/color]")
+	add_output("[color=#" + COLOR_OWN_CAS + "]  Return fire: " + atk_name + " " + _format_number(atk_cas) + " (remaining: " + _format_number(atk_rem) + ")[/color]")
 
 	# Fort degradation
 	var fort_degraded = result.get("fort_degraded", false)
@@ -788,14 +793,14 @@ func _display_bombardment_report(result: Dictionary):
 		var fort_old = int(result.get("fort_old", 0) * 100)
 		var fort_new = int(result.get("fort_new", 0) * 100)
 		if fort_new <= 0:
-			add_output("[color=#" + COLOR_BATTLE + "]  Fortifications DESTROYED! (" + str(fort_old) + "% -> 0%)[/color]")
+			add_output("[color=#" + COLOR_FORT + "]  Fortifications DESTROYED! (" + str(fort_old) + "% -> 0%)[/color]")
 		else:
-			add_output("[color=#" + COLOR_REPORT + "]  Fort degraded: " + str(fort_old) + "% -> " + str(fort_new) + "%[/color]")
+			add_output("[color=#" + COLOR_FORT + "]  Fort degraded: " + str(fort_old) + "% -> " + str(fort_new) + "%[/color]")
 
 	# Collateral damage
 	var collateral = result.get("collateral", [])
 	if collateral is Array and collateral.size() > 0:
-		add_output("[color=#" + COLOR_REPORT + "]  -- Collateral Damage --[/color]")
+		add_output("[color=#" + COLOR_CASUALTY + "]  -- Collateral Damage --[/color]")
 		for c in collateral:
 			var c_name = str(c.get("name", "Unknown"))
 			var c_nation = str(c.get("nation", ""))
@@ -804,11 +809,11 @@ func _display_bombardment_report(result: Dictionary):
 			if is_friendly:
 				add_output("[color=#" + COLOR_FRIENDLY + "]  FRIENDLY FIRE: " + c_name + " (" + c_nation + ") — " + _format_number(c_cas) + " casualties[/color]")
 			else:
-				add_output("[color=#" + COLOR_REPORT + "]  " + c_name + " (" + c_nation + ") — " + _format_number(c_cas) + " casualties[/color]")
+				add_output("[color=#" + COLOR_ENEMY_CAS + "]  " + c_name + " (" + c_nation + ") — " + _format_number(c_cas) + " casualties[/color]")
 
 	# Bombardments remaining
 	var remaining = int(result.get("bombardments_remaining", 0))
-	add_output("[color=#" + COLOR_REPORT + "]  Bombardments remaining today: " + str(remaining) + "[/color]")
+	add_output("[color=#" + COLOR_REMAINING + "]  Bombardments remaining today: " + str(remaining) + "[/color]")
 
 	# Berthier's observation
 	var obs = str(result.get("berthier_observation", ""))

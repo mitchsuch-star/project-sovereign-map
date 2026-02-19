@@ -131,9 +131,13 @@ def _filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
                 for evt in events:
                     if isinstance(evt, dict):
                         # Battle events with player involvement
-                        if evt.get("type") == "battle":
+                        if evt.get("type") in ("battle", "bombardment"):
                             attacker = evt.get("attacker", "")
                             defender = evt.get("defender", "")
+                            # attacker/defender can be dicts ({"name": ..., "casualties": ...})
+                            # or strings — extract name safely for comparison
+                            attacker_name = attacker.get("name", "") if isinstance(attacker, dict) else attacker
+                            defender_name = defender.get("name", "") if isinstance(defender, dict) else defender
                             attacker_nation = evt.get("attacker_nation", "")
                             defender_nation = evt.get("defender_nation", "")
                             if (attacker_nation == player_nation or
@@ -142,7 +146,7 @@ def _filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
                                 break
                             # Also check marshal names against player marshals
                             for pm in world_state.get_player_marshals():
-                                if pm.name in (attacker, defender):
+                                if pm.name in (attacker_name, defender_name):
                                     involves_player = True
                                     break
 

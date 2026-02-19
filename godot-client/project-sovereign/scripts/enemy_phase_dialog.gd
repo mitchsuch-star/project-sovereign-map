@@ -112,9 +112,15 @@ func _format_action(action: Dictionary) -> String:
 	elif nation != "":
 		action_str = nation + " "
 
+	# Detect bombardment (AI sends action="attack" but result has bombardment_result)
+	var is_bombardment = action.has("bombardment_result")
+
 	match action_type:
 		"attack":
-			action_str += "attacks " + target
+			if is_bombardment:
+				action_str += "bombards " + target
+			else:
+				action_str += "attacks " + target
 		"move":
 			action_str += "moves to " + target
 		"defend":
@@ -156,6 +162,9 @@ func _format_action(action: Dictionary) -> String:
 		if event.get("type") == "battle":
 			print("[ENEMY_PHASE_DEBUG] Calling _format_battle for battle event")
 			result += _format_battle(event)
+		elif event.get("type") == "bombardment":
+			print("[ENEMY_PHASE_DEBUG] Calling _format_bombardment for bombardment event")
+			result += _format_bombardment(event)
 		elif event.get("type") == "conquest":
 			var region = event.get("region", "territory")
 			var capture_choice = event.get("capture_choice", "")
@@ -169,6 +178,10 @@ func _format_action(action: Dictionary) -> String:
 	# Berthier's After-Action Report (if battle occurred)
 	if action.has("battle_report"):
 		result += _format_berthier_report(action.battle_report)
+
+	# Bombardment report (if bombardment occurred)
+	if action.has("bombardment_result"):
+		result += _format_bombardment_report(action.bombardment_result)
 
 	return result
 
@@ -268,6 +281,65 @@ func _format_berthier_report(report: Dictionary) -> String:
 	var observation = report.get("observation", "")
 	if observation != "":
 		result += "[color=#" + COLOR_OBS + "]    Berthier: \"" + observation + "\"[/color]\n"
+
+	return result
+
+func _format_bombardment(event: Dictionary) -> String:
+	"""Format bombardment event details."""
+	var result = ""
+	var COLOR_BOMBARD = "daa06d"  # Same as COLOR_BATTLE
+	var COLOR_CASUALTY = "a0a0a8"  # Same as COLOR_INFO
+
+	var attacker_name = str(event.get("attacker", "Artillery"))
+	var defender_name = str(event.get("defender", "Enemy"))
+	var atk_location = str(event.get("attacker_location", ""))
+	var def_location = str(event.get("defender_location", ""))
+	var def_casualties = int(event.get("defender_casualties", 0))
+	var atk_casualties = int(event.get("attacker_casualties", 0))
+
+	result += "[color=#" + COLOR_BOMBARD + "]    Bombardment of " + def_location + "[/color]\n"
+	result += "[color=#" + COLOR_CASUALTY + "]    " + attacker_name + " fires from " + atk_location + " on " + defender_name + "[/color]\n"
+	result += "[color=#" + COLOR_ERROR + "]    " + defender_name + ": " + _format_number(def_casualties) + " casualties[/color]\n"
+	result += "[color=#" + COLOR_CASUALTY + "]    " + attacker_name + ": " + _format_number(atk_casualties) + " return fire[/color]\n"
+
+	# Fort degradation
+	if event.get("fort_degraded", false):
+		var fort_old = int(event.get("fort_old", 0) * 100)
+		var fort_new = int(event.get("fort_new", 0) * 100)
+		if fort_new <= 0:
+			result += "[color=#" + COLOR_BOMBARD + "]    Fortifications DESTROYED![/color]\n"
+		else:
+			result += "[color=#" + COLOR_CASUALTY + "]    Fort degraded: " + str(fort_old) + "% -> " + str(fort_new) + "%[/color]\n"
+
+	return result
+
+func _format_bombardment_report(bombard_result: Dictionary) -> String:
+	"""Format bombardment result details for enemy phase dialog."""
+	var result = ""
+	var COLOR_BERTHIER = "B8860B"
+	var COLOR_RPT = "AAAAAA"
+	var COLOR_OBS = "DAA520"
+
+	result += "[color=#" + COLOR_BERTHIER + "]    --- Bombardment Report ---[/color]\n"
+
+	var atk = bombard_result.get("attacker", {})
+	var defn = bombard_result.get("defender", {})
+
+	var atk_name = str(atk.get("name", "Artillery"))
+	var def_name = str(defn.get("name", "Enemy"))
+	var def_cas = int(defn.get("casualties", 0))
+	var def_rem = int(defn.get("remaining", 0))
+	var def_morale = int(defn.get("morale", 100))
+	var atk_cas = int(atk.get("casualties", 0))
+	var atk_rem = int(atk.get("remaining", 0))
+
+	result += "[color=#" + COLOR_RPT + "]    " + def_name + ": " + _format_number(def_cas) + " casualties, " + _format_number(def_rem) + " remaining, morale " + str(def_morale) + "%[/color]\n"
+	result += "[color=#" + COLOR_RPT + "]    " + atk_name + ": " + _format_number(atk_cas) + " return fire, " + _format_number(atk_rem) + " remaining[/color]\n"
+
+	# Berthier observation
+	var obs = str(bombard_result.get("berthier_observation", ""))
+	if obs != "" and obs != "null":
+		result += "[color=#" + COLOR_OBS + "]    Berthier: \"" + obs + "\"[/color]\n"
 
 	return result
 
