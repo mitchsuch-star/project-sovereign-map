@@ -1272,6 +1272,35 @@ async def delete_save_endpoint(request: DeleteSaveRequest):
 
 
 # ════════════════════════════════════════════════════════════
+# CAMPAIGN LOG ENDPOINT (Phase 6.5)
+# ════════════════════════════════════════════════════════════
+
+@app.get("/campaign_log")
+def get_campaign_log():
+    """Get fog-filtered campaign event log grouped by turn (descending)."""
+    from backend.campaign_log import filter_campaign_log, format_event_oneliner, CATEGORY_MAP
+
+    filtered = filter_campaign_log(world.event_log, world)
+
+    # Group by turn descending
+    turns = {}
+    for event in filtered:
+        t = event.get("turn", 0)
+        if t not in turns:
+            turns[t] = []
+        turns[t].append({
+            **{k: (int(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else v)
+               for k, v in event.items() if k != "battle_report"},
+            "display": format_event_oneliner(event),
+            "category": CATEGORY_MAP.get(event.get("type", ""), "unknown"),
+        })
+
+    sorted_turns = [{"turn": int(t), "events": evts}
+                    for t, evts in sorted(turns.items(), reverse=True)]
+    return {"turns": sorted_turns, "current_turn": int(world.current_turn)}
+
+
+# ════════════════════════════════════════════════════════════
 # DEBUG ENDPOINTS (Only available when DEBUG_MODE = True)
 # ════════════════════════════════════════════════════════════
 

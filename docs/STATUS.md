@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3006** (verified, 3 skipped) |
+| **Tests Passing** | **3063** (verified, 3 skipped) |
 
-| **Current Phase** | Phase 6.5 **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Wire Marshal Abilities COMPLETE, 9 items remaining). **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md`. Remaining 6.5: Notification System, Strategic Ledger, Marshal Management UI, Campaign Log, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer |
+| **Current Phase** | Phase 6.5 **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Wire Marshal Abilities COMPLETE, Campaign Log COMPLETE, 8 items remaining). **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md`. Remaining 6.5: Notification System, Strategic Ledger, Marshal Management UI, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,7 +19,7 @@
 
 ## Next Steps
 
-1. **Phase 6.5 remaining** — Notification System, Strategic Ledger, Marshal Management UI, Campaign Log, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer
+1. **Phase 6.5 remaining** — Notification System, Strategic Ledger, Marshal Management UI, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer
 2. **Phase 7 Core: Multi-Marshal Coordination** — 6 sessions (57-61, 64), ~190 new tests. "Position IS Coordination" — combined arms (+10-20%), relationship-scaled coordination (+3%/+5% per ally), dedicated coordination (+5%/+5% from co-location or SUPPORT), adjacent support (+2% per adjacent), reinforcement (Grouchy Rule), win/loss relationship formula (dynamic relationships). Hard cap: +25% atk/+20% def. Each session includes basic combat display messages. Highest risk: Session 61 (reinforcement + physical relocation). First session: Combined Arms Detection (S57). Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md` (audit corrections still apply to all sessions including deferred ones).
 3. **Phase 7b (immediately after 7 Core):** Casualty Distribution (S62 — `resolve_battle()` contract change, deferred for playtest data), AI Coordination Enhancements (S63 — P4.6/P4.76/P4.77/P4.78), Full Battle Reports + Berthier Observations (S65), Godot Tooltips + Tutorial + Integration Audit (S66), Tactical Triangle Completion (Square Formation + Artillery SUPPORT auto-bombardment + Artillery Overwatch — linked group), V2b Defiance/Vindication, Jealousy system, Coalition Trigger, Cross-nation coordination (Britain/Prussia), Gneisenau Staff Work (1805 only).
 
@@ -45,6 +45,38 @@ All major Phase 6 features shipped:
 ---
 
 ## Recent Sessions
+
+### Feb 20 (Campaign Log — Phase 6.5)
+
+**Fog-filtered campaign event log with Godot overlay. Player can browse all narrative events grouped by turn.**
+
+**New files:**
+- `backend/campaign_log.py` — 14-type whitelist, fog filter (reuses `get_region_intel()`), category mapping, one-liner formatter with safe `.get()` defaults
+- `godot-client/project-sovereign/scenes/campaign_log.tscn` + `scripts/campaign_log.gd` — CanvasLayer 102 overlay, turn-grouped expandable sections, BBCode events with category-colored icons, click-to-close
+- `tests/test_campaign_log.py` — 57 tests (type whitelist, fog filtering, one-liner formatting, safe defaults, endpoint structure)
+
+**Backend:**
+- `GET /campaign_log` endpoint — groups events by turn descending, strips `battle_report`, wraps numbers in `int()`, adds `display` one-liner + `category`
+- Bankruptcy events always shown (public knowledge — the world would know)
+- Added `location` field to `marshal_recovered` and `desertion` events in `world_state.py` — previously these enemy events were invisible in the campaign log due to missing region data for fog checks
+
+**Godot:**
+- LOG button (top-right, gold text) + L key toggle + Esc to close
+- Expand/collapse per turn (most recent expanded by default)
+- Blocked while pause menu open and vice versa
+- `api_client.gd` — `get_campaign_log()` method
+
+**Event categories (14 types):**
+- Combat: battle, bombardment, retreat, marshal_broken, marshal_recovered
+- Territory: region_captured
+- Economy: recruitment, building_started, building_completed, building_damaged, bankruptcy, desertion
+- Command: objection, strategic_order
+
+**Fog rules:** Player events always shown. Battles need player marshal OR FULL visibility. Retreat/broken/recovered need PARTIAL+. Enemy economy needs PARTIAL+. Bankruptcy always visible. Objections/strategic orders always visible.
+
+**Tests:** 3063 passing (+57 new), 3 skipped. Zero regressions.
+
+---
 
 ### Feb 20 (Wire Marshal Abilities)
 

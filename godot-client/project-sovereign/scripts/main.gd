@@ -27,6 +27,7 @@ extends Control
 @onready var bottom_left_ui = $BottomLeftUI
 @onready var minimize_button = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/TitleRow/MinimizeButton
 @onready var restore_button = $RestoreButton
+@onready var log_button = $LogButton
 
 # Map reference
 @onready var map_area = $MapArea
@@ -59,6 +60,9 @@ var interrupt_queue: Array = []  # Queue of interrupts to show one at a time
 
 # Pause Menu (Phase 6.5)
 var pause_menu = null
+
+# Campaign Log (Phase 6.5)
+var campaign_log = null
 
 # API Client
 var api_client = null
@@ -227,6 +231,14 @@ func _ready():
 		pause_menu.load_requested.connect(_on_pause_load_requested)
 		print("✓ PauseMenu ready!")
 
+	# Load and setup Campaign Log (Phase 6.5)
+	var campaign_log_scene = load("res://scenes/campaign_log.tscn")
+	if campaign_log_scene:
+		campaign_log = campaign_log_scene.instantiate()
+		add_child(campaign_log)
+		campaign_log.closed.connect(_on_campaign_log_closed)
+		print("✓ CampaignLog ready!")
+
 	# Connect signals
 	if not send_button.pressed.is_connected(_on_send_button_pressed):
 		send_button.pressed.connect(_on_send_button_pressed)
@@ -245,6 +257,10 @@ func _ready():
 		minimize_button.pressed.connect(_minimize_terminal)
 	if not restore_button.pressed.is_connected(_restore_terminal):
 		restore_button.pressed.connect(_restore_terminal)
+
+	# LOG button (Campaign Log)
+	if not log_button.pressed.is_connected(_on_log_button_pressed):
+		log_button.pressed.connect(_on_log_button_pressed)
 
 	# Start disabled until connected
 	set_input_enabled(false)
@@ -393,14 +409,26 @@ func _unhandled_input(event):
 	if event is InputEventKey and event.pressed and not event.echo:
 		# Esc key: Smart context-aware (Phase 6.5)
 		# If command_input focused → gui_input handler already consumed it (release_focus)
+		# If campaign log open → close it
 		# If pause menu open → close it
 		# If no dialog open → open pause menu
 		if event.keycode == KEY_ESCAPE:
+			if campaign_log and campaign_log.visible:
+				campaign_log.close_log()
+				get_viewport().set_input_as_handled()
+				return
 			if pause_menu and pause_menu.visible:
 				pause_menu.close_menu()
 			elif not _is_any_dialog_open():
 				if pause_menu:
 					pause_menu.open_menu()
+			get_viewport().set_input_as_handled()
+			return
+
+		# Block all hotkeys while campaign log is open
+		if campaign_log and campaign_log.visible:
+			if event.keycode == KEY_L:
+				campaign_log.close_log()
 			get_viewport().set_input_as_handled()
 			return
 
@@ -419,6 +447,12 @@ func _unhandled_input(event):
 		elif event.keycode == KEY_TAB:
 			if not command_input.has_focus():
 				_toggle_terminal()
+				get_viewport().set_input_as_handled()
+		# L key for Campaign Log
+		elif event.keycode == KEY_L:
+			if not command_input.has_focus():
+				if campaign_log:
+					campaign_log.open_log(api_client)
 				get_viewport().set_input_as_handled()
 
 func _minimize_terminal():
@@ -2019,6 +2053,8 @@ func _is_any_dialog_open() -> bool:
 		return true
 	if clarification_popup and clarification_popup.visible:
 		return true
+	if campaign_log and campaign_log.visible:
+		return true
 	return false
 
 func _on_pause_save_requested():
@@ -2037,3 +2073,12 @@ func _on_pause_save_result(response):
 func _on_pause_load_requested():
 	"""Handle Load Game from pause menu."""
 	_show_load_dialog()
+
+func _on_log_button_pressed():
+	"""Handle LOG button press — open campaign log overlay."""
+	if campaign_log and not _is_any_dialog_open():
+		campaign_log.open_log(api_client)
+
+func _on_campaign_log_closed():
+	"""Handle campaign log overlay closed."""
+	pass

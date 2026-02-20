@@ -103,6 +103,14 @@ func list_saves(callback: Callable):
 	if error != OK:
 		print("ERROR: HTTP request failed with code: ", error)
 
+func get_campaign_log(callback: Callable):
+	"""Get fog-filtered campaign event log grouped by turn."""
+	pending_callback = callback
+	var url = API_URL + "/campaign_log"
+	var error = http_request.request(url)
+	if error != OK:
+		print("ERROR: HTTP request failed with code: ", error)
+
 func send_strategic_response(marshal_name: String, response_type: String, choice: String, callback: Callable):
 	"""Send player's response to a strategic command interrupt (Phase J)."""
 	pending_callback = callback

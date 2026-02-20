@@ -2242,6 +2242,7 @@ class WorldState:
                             "nation": nation,
                             "amount": int(loss),
                             "cause": "bankruptcy",
+                            "location": marshal.location,
                         })
 
         # Log bankruptcy event (for any level of bankruptcy)
@@ -3426,6 +3427,7 @@ class WorldState:
                             "marshal": marshal.name,
                             "nation": getattr(marshal, "nation", ""),
                             "recovery_type": "retreat",
+                            "location": marshal.location,
                         })
 
             # ════════════════════════════════════════════════════════════
@@ -3465,6 +3467,7 @@ class WorldState:
                             "marshal": marshal.name,
                             "nation": getattr(marshal, "nation", ""),
                             "recovery_type": "broken",
+                            "location": marshal.location,
                         })
 
             # ════════════════════════════════════════════════════════════
