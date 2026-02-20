@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** February 20, 2026 (Phase 7 Scope Decision — Core/7b Split)
+> **Last Updated:** February 20, 2026 (Campaign Log)
 
 ---
 
@@ -13,7 +13,7 @@
 | 1-5.3 | Foundation through AI Fixes | COMPLETE |
 | **V2a** | **Objection System Refactor** | **COMPLETE** |
 | **6** | **Core Campaign Systems** | **COMPLETE** |
-| **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE Sessions 48-52, Pause Menu COMPLETE Session 56) |
+| **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE Sessions 48-52, Pause Menu COMPLETE Session 56, Campaign Log COMPLETE) |
 | **7 Core** | **Multi-Marshal Coordination** | **Spec COMPLETE + AUDITED + SCOPED.** 6 sessions (57-61, 64). ~190 tests. |
 | 7b | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b, Coalition, Jealousy | Planned (deferred from 7 Core) |
 | 8 | Diplomacy & Peace | Planned |
@@ -41,7 +41,7 @@
 | 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 2987 (verified Feb 20, 2026)
+**Total Tests:** 3063 (verified Feb 20, 2026)
 
 ---
 
@@ -153,7 +153,7 @@ Uses read-only modifier snapshots taken BEFORE state-consuming `get_attack_modif
 | Notification System | Alerts for key events (invasions, deaths, diplomacy) | Medium | Planned |
 | Strategic Ledger | Overview screen: all marshals, armies, nations | Medium | Planned |
 | Marshal Management UI | View/manage all marshals, relationships, recruit | Medium | Planned |
-| Campaign Log | Scrollable history of major events | Low | Planned. EL1-EL5 prereqs resolved (Session 31). |
+| Campaign Log | Scrollable history of major events | Low | **COMPLETE.** Fog-filtered 14-type event log, Godot overlay (L key), 57 tests. Bankruptcy public knowledge. |
 | Tooltips | Hover info on regions, marshals, nations | Low | Planned |
 | **Campaign Briefing Screen** | Turn-start summary: "France controls 8 regions. Coalition threat: rising. Ney is restless." Template-driven. | Low | Planned |
 | **Marshal Report** | Per-turn one-liner per marshal: "Ney: attacked Wellington, lost 8k, trust 72 (stable)." | Low | Planned |

@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 20, 2026 (Wire Marshal Abilities)
+> **Last Updated:** February 20, 2026 (Campaign Log)
 
 ---
 
