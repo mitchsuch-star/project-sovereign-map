@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 19, 2026 (Session 55 — Bugfix Batch)
+> **Last Updated:** February 19, 2026 (Session 56 — Pause Menu)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2986** (verified, 3 skipped, 1 flaky) |
+| **Tests Passing** | **2987** (verified, 3 skipped, 1 flaky) |
 
-| **Current Phase** | Phase 6.5 **IN PROGRESS** — Bombardment COMPLETE (Parts 1-5), Pause Menu remaining |
+| **Current Phase** | Phase 6.5 **IN PROGRESS** — Bombardment COMPLETE (Parts 1-5), Pause Menu COMPLETE (Session 56). Remaining: Notification System, Strategic Ledger, Marshal Management UI, Campaign Log, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer, Wire Marshal Abilities |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,7 +19,7 @@
 
 ## Next Steps
 
-1. **Pause menu** — Phase 6.5, Esc → Save/Load/Settings/Quit
+1. **Phase 6.5 remaining** — Notification System, Strategic Ledger, Marshal Management UI, Campaign Log, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer, Wire Marshal Abilities
 2. **Phase 7: Multi-marshal battles + Combined Arms + Square Formation + V2b** — Sessions 53-54 (combined arms, square) deferred here to build alongside multi-marshal combat. See BOMBARDMENT_SPEC.md §15, ROADMAP.md Phase 7.
 
 ---
@@ -44,6 +44,24 @@ All major Phase 6 features shipped:
 ---
 
 ## Recent Sessions
+
+### Feb 19 (Session 56: Pause Menu — Phase 6.5)
+
+**Implemented Smart Esc pause menu overlay.**
+
+**New files:**
+- `pause_menu.tscn` + `pause_menu.gd` — CanvasLayer 101, modal overlay with darkened background
+- 4 buttons: Save Game (quicksave via existing endpoint), Load Game (opens existing load dialog), Settings (stub label), Quit to Desktop
+
+**Smart Esc logic (main.gd `_unhandled_input`):**
+- If command_input focused → unfocus it (existing behavior, unchanged)
+- If pause menu open → close it
+- If no dialog open → open pause menu
+- All hotkeys (E, Tab) blocked while pause menu is open
+
+**Visual style:** Matches existing Ink & Iron theme — dark panel (0.08, 0.1, 0.15), gold border (0.85, 0.75, 0.55), cream text, Quit button in muted red. Click outside modal closes it.
+
+**Tests:** 2987 passed, 3 skipped. Zero regressions (backend-only tests, Godot changes are frontend-only).
 
 ### Feb 19 (Session 55: Bugfix Batch — Fort Degradation Reports + Decimal Cleanup)
 

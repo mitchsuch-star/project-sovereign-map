@@ -25,9 +25,13 @@ Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-B
 - Sieges → deferred to 1805 (current fort + contested capture sufficient for 13-region map)
 - Pause menu → Phase 6.5
 
+### Completed in Phase 6.5
+
+Bombardment system (Sessions 48-52), Pause menu (Session 56: Smart Esc, modal overlay, Save/Load/Settings stub/Quit).
+
 ### Up Next
 
-- **Phase 6.5:** Pause menu (Esc → Save/Load/Settings/Quit)
+- **Phase 6.5 remaining:** Notification System, Strategic Ledger, Marshal Management UI, Campaign Log, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer, Wire Marshal Abilities
 
 See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 
@@ -70,6 +74,7 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | `game_manager.gd` | Game state coordination |
 | `map.gd` | Map rendering, fog overlay, fogged enemy icons |
 | `main.gd` | Terminal UI, response handling |
+| `pause_menu.gd` | Pause menu overlay (Phase 6.5) |
 
 ---
 

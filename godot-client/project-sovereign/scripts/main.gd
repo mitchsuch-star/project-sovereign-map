@@ -57,6 +57,9 @@ var clarification_popup = null
 var pending_strategic_response = null  # Store response for post-report flow
 var interrupt_queue: Array = []  # Queue of interrupts to show one at a time
 
+# Pause Menu (Phase 6.5)
+var pause_menu = null
+
 # API Client
 var api_client = null
 
@@ -214,6 +217,15 @@ func _ready():
 		clarification_popup.clarification_choice.connect(_on_clarification_choice_made)
 		clarification_popup.cancelled.connect(_on_clarification_cancelled)
 		print("✓ ClarificationPopup ready!")
+
+	# Load and setup Pause Menu (Phase 6.5)
+	var pause_menu_scene = load("res://scenes/pause_menu.tscn")
+	if pause_menu_scene:
+		pause_menu = pause_menu_scene.instantiate()
+		add_child(pause_menu)
+		pause_menu.save_requested.connect(_on_pause_save_requested)
+		pause_menu.load_requested.connect(_on_pause_load_requested)
+		print("✓ PauseMenu ready!")
 
 	# Connect signals
 	if not send_button.pressed.is_connected(_on_send_button_pressed):
@@ -379,6 +391,24 @@ func _on_end_turn_pressed():
 func _unhandled_input(event):
 	"""Handle hotkeys when command input is not focused."""
 	if event is InputEventKey and event.pressed and not event.echo:
+		# Esc key: Smart context-aware (Phase 6.5)
+		# If command_input focused → gui_input handler already consumed it (release_focus)
+		# If pause menu open → close it
+		# If no dialog open → open pause menu
+		if event.keycode == KEY_ESCAPE:
+			if pause_menu and pause_menu.visible:
+				pause_menu.close_menu()
+			elif not _is_any_dialog_open():
+				if pause_menu:
+					pause_menu.open_menu()
+			get_viewport().set_input_as_handled()
+			return
+
+		# Block all hotkeys while pause menu is open
+		if pause_menu and pause_menu.visible:
+			get_viewport().set_input_as_handled()
+			return
+
 		# E key for End Turn (only when not typing in command input)
 		if event.keycode == KEY_E:
 			# Don't trigger if command input has focus
@@ -1963,3 +1993,47 @@ func _on_clarification_cancelled():
 	add_output("[color=#" + COLOR_INFO + "]Order cancelled.[/color]")
 	set_input_enabled(true)
 	command_input.grab_focus()
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# PAUSE MENU (Phase 6.5)
+# ════════════════════════════════════════════════════════════════════════════
+
+func _is_any_dialog_open() -> bool:
+	"""Check if any modal dialog is currently visible."""
+	if objection_dialog and objection_dialog.visible:
+		return true
+	if redemption_dialog and redemption_dialog.visible:
+		return true
+	if enemy_phase_dialog and enemy_phase_dialog.visible:
+		return true
+	if glorious_charge_dialog and glorious_charge_dialog.visible:
+		return true
+	if capture_choice_dialog and capture_choice_dialog.visible:
+		return true
+	if load_dialog and load_dialog.visible:
+		return true
+	if strategic_report_popup and strategic_report_popup.visible:
+		return true
+	if interrupt_popup and interrupt_popup.visible:
+		return true
+	if clarification_popup and clarification_popup.visible:
+		return true
+	return false
+
+func _on_pause_save_requested():
+	"""Handle Save Game from pause menu."""
+	add_output("[color=#" + COLOR_INFO + "]Saving game...[/color]")
+	api_client.save_game("quicksave", _on_pause_save_result)
+
+func _on_pause_save_result(response):
+	"""Handle save result from pause menu."""
+	if response.success:
+		add_output("[color=#" + COLOR_SUCCESS + "]Game saved successfully.[/color]")
+	else:
+		add_output("[color=#" + COLOR_ERROR + "]Save failed: " + str(response.get("message", "Unknown error")) + "[/color]")
+	add_output("")
+
+func _on_pause_load_requested():
+	"""Handle Load Game from pause menu."""
+	_show_load_dialog()

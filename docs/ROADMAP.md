@@ -13,7 +13,7 @@
 | 1-5.3 | Foundation through AI Fixes | COMPLETE |
 | **V2a** | **Objection System Refactor** | **COMPLETE** |
 | **6** | **Core Campaign Systems** | **COMPLETE** |
-| **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE Sessions 48-52, Pause Menu remaining) |
+| **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE Sessions 48-52, Pause Menu COMPLETE Session 56) |
 | 7 | Multi-Marshal, Relationships & Coalitions | Planned |
 | 8 | Diplomacy & Peace | Planned |
 | 8.5 | Events, Goals & National Identity | Planned |
@@ -158,7 +158,7 @@ Uses read-only modifier snapshots taken BEFORE state-consuming `get_attack_modif
 | **Marshal Report** | Per-turn one-liner per marshal: "Ney: attacked Wellington, lost 8k, trust 72 (stable)." | Low | Planned |
 | **Tutorial Infrastructure** | `TutorialManager` for staged popups/highlights. Content populated in Pre-EA. | Medium | Planned |
 | **Map Renderer** | EU4-style bitmap map integration (using commissioned art from Phase 6). Includes fog of war visual layer (region tinting/overlays for UNKNOWN/STALE/etc.) | High | Planned |
-| **Pause Menu** | Esc → Save/Load/Settings/Quit (wraps Phase 6 save/load endpoints) | Low | Planned |
+| **Pause Menu** | Esc → Save/Load/Settings/Quit (wraps Phase 6 save/load endpoints) | Low | **COMPLETE** (Session 56). Smart Esc: unfocus input → open menu → close menu. CanvasLayer 101, modal overlay, Save/Load/Settings stub/Quit. |
 | **Wire Marshal Abilities** | Wire all unwired abilities in combat.py: Drouot (fort degradation), Wellington (terrain defense), Blucher (pursuit damage), Uxbridge (pursuit casualties), Gneisenau (ally bonus) | Medium | Planned |
 
 ### Map Renderer Notes
