@@ -158,20 +158,120 @@ Uses read-only modifier snapshots taken BEFORE state-consuming `get_attack_modif
 | **Campaign Briefing Screen** | Turn-start summary: "France controls 8 regions. Coalition threat: rising. Ney is restless." Template-driven. | Low | Planned |
 | **Marshal Report** | Per-turn one-liner per marshal: "Ney: attacked Wellington, lost 8k, trust 72 (stable)." | Low | Planned |
 | **Tutorial Infrastructure** | `TutorialManager` for staged popups/highlights. Content populated in Pre-EA. | Medium | Planned |
-| **Map Renderer** | EU4-style bitmap map integration (using commissioned art from Phase 6). Includes fog of war visual layer (region tinting/overlays for UNKNOWN/STALE/etc.) | High | Planned |
+| **Map Renderer** | EU4-style bitmap map integration. 3 workstreams: (1) art integration — visual map Sprite2D, province color map hit detection, nation color shader, fog shader, highlight shader; (2) sprite assets — marshal icons, garrison shields, unit badges, status indicators, building/watchtower icons; (3) code refactor — rip out all procedural drawing from map.gd, sprite-based rendering, UI-based tooltips, color map input handling. See Map Renderer Notes below. | High | Planned |
 | **Pause Menu** | Esc → Save/Load/Settings/Quit (wraps Phase 6 save/load endpoints) | Low | **COMPLETE** (Session 56). Smart Esc: unfocus input → open menu → close menu. CanvasLayer 101, modal overlay, Save/Load/Settings stub/Quit. |
 | **Wire Marshal Abilities** | Wire all unwired abilities in combat.py: Drouot (fort degradation), Wellington (terrain defense), Blucher (pursuit damage), Uxbridge (pursuit casualties), Gneisenau (ally bonus) | Medium | Planned |
 
 ### Map Renderer Notes
 
-Build the Godot map renderer against the commissioned bitmap art:
-- `Sprite2D` for visual map layer
-- Hidden `Image` for province color map (hit detection)
-- Province hover highlighting (shader-based color swap)
-- Zoom/pan controls
-- Marshal sprites as clickable `Node2D` positioned on provinces
-- Dynamic nation coloring on conquest
-- Greyed-out unplayable provinces visible but non-interactive
+The map transition replaces ALL procedural drawing in `map.gd` (circles, lines, draw_string) with commissioned art + sprite assets. Five workstreams: art integration, sprite assets, scene architecture, code refactor, validation & polish.
+
+#### A. Art Integration (requires commissioned map)
+
+1. **Visual map layer** — `Sprite2D` for the pretty map (what the player sees). Artist draws borders, terrain features, region labels, coastlines, cities. PNG format (lossless). Artist and dev must agree on exact pixel dimensions upfront.
+2. **Province color map** — Hidden `Image` loaded in memory (NOT as texture — need pixel-level `get_pixel()` access). Each province is a unique flat RGB color, pixel-aligned to visual map. **CRITICAL: No anti-aliasing, no dithering, no JPEG compression on this file.** Anti-aliased border pixels blend two province colors and match NEITHER in the lookup table — hit detection breaks silently. PNG only. Must be same dimensions as visual map.
+3. **Province definition mapping** — JSON data file mapping each RGB color `[r, g, b]` to a region name. Must be loadable by both Godot (for hit detection) and backend (for validation). Include a "no province" sentinel color for ocean/empty space (e.g., pure black `[0,0,0]`). Example: `{"128,0,0": "Paris", "0,128,0": "Belgium", ...}`.
+4. **Region anchor points** — Per-province `Vector2` coordinates for placing unit icons, garrison indicators, building icons. Either artist marks anchor positions in a reference layer or derive center-of-mass programmatically from the color map. Replaces current `REGION_POSITIONS` dict. Include in the JSON definition file alongside RGB colors.
+5. **Nation color shader** — Fragment shader reads province color map as a uniform texture, compares pixel to active province colors, swaps to nation color. Pass per-province controller data as a uniform (texture or array). Must handle: conquest mid-game (province changes color), neutral regions (light green), unplayable provinces (grey).
+6. **Fog of war shader** — Per-province darkening/overlay based on visibility level (5 tiers: FULL → no overlay, PARTIAL → slight dim, STALE → medium grey, LAST_KNOWN → dark grey, UNKNOWN → near-black). Replaces current `FOG_OVERLAYS` color constants drawn over circles. Pass per-province visibility as uniform data alongside the nation color shader (can be combined into one shader pass).
+7. **Province highlight shader** — When mouse hovers a province, pass the hovered province's RGB color as a uniform. Shader highlights all pixels matching that color on the visual map (glow, brightened border, pulse). Separate selected vs hovered states (different highlight colors).
+8. **Greyed-out unplayable provinces** — Provinces in the art but not wired for gameplay. Shader desaturates/dims them. Non-interactive: color map lookup returns province ID but game ignores input on unwired provinces.
+
+#### B. Sprite Assets (commission alongside or after map)
+
+All icons become proper textures instead of procedural `draw_rect`/`draw_arc`/`draw_string`. **Pack all sprites into a single spritesheet/atlas** for draw call batching (important at 80+ provinces with multiple icons each).
+
+9. **Marshal unit sprites** — Per-nation variants (France/Britain/Prussia/Austria/Neutral). Small flag or officer icon. Plus fogged/silhouette versions with "?" overlay for PARTIAL/STALE enemies. Need enough visual distinction at small sizes (map may be zoomed out).
+10. **Garrison shield sprite** — Small shield icon. Tint per nation at runtime via `modulate` (one base asset) or per-nation variants if tinting looks wrong.
+11. **Unit type badges** — Infantry (crossed rifles), Cavalry (horseshoe/sabre), Artillery (cannon) — small overlay on or beside marshal sprite. Must read clearly at default zoom.
+12. **Status indicator sprites** — Fortified (rampart), Retreating (arrows), Broken (skull), Drilling (crossed swords), Shock Ready (lightning), Strategic Order (scroll/banner), Holding (anchor). Small enough to stack beside marshal sprite without clutter.
+13. **Building icons** — Supply Depot, Fortification, Training Ground, Market, Stables. Plus damaged variant (cracked/red tint) and under-construction variant (scaffold). Displayed on the province near anchor point.
+14. **Watchtower sprite** — Active (tower with flag), Under Construction (scaffold), Damaged (crumbling). Positioned on province.
+15. **Bombardment indicator** — Cannon flash or smoke puff for bombardment events (transient, shown during bombardment resolution).
+
+#### C. Scene Architecture (design before coding)
+
+16. **Scene tree hierarchy** — MapArea becomes a proper scene (`.tscn`) with structured children instead of a flat Control with `_draw()`. Hierarchy:
+    ```
+    MapArea (Node2D)
+    ├── Camera2D (zoom/pan)
+    ├── VisualMap (Sprite2D — the pretty map)
+    ├── NationColorOverlay (Sprite2D + shader — province nation tinting)
+    ├── FogOverlay (Sprite2D + shader — per-province fog darkening)
+    ├── HighlightOverlay (Sprite2D + shader — hover/select glow)
+    ├── BuildingLayer (Node2D — building icon sprites per province)
+    ├── GarrisonLayer (Node2D — garrison shield sprites per province)
+    ├── MarshalLayer (Node2D — marshal unit sprites, stacked per province)
+    ├── StatusLayer (Node2D — fortified/retreating/broken indicators)
+    └── TooltipPanel (CanvasLayer — PanelContainer + Labels, screen-space)
+    ```
+    Z-order: map → nation color → fog → highlight → buildings → garrisons → marshals → status → tooltips. Tooltips on a CanvasLayer so they render in screen space regardless of zoom/pan.
+
+17. **Camera2D instead of manual transform** — Replace `draw_set_transform(pan_offset, 0.0, Vector2(zoom_level, zoom_level))` with a proper Camera2D node. Built-in zoom, pan, smoothing. Set `Camera2D.limit_left/right/top/bottom` to map pixel bounds — prevents panning into empty space. Zoom-to-cursor logic adapts from current `_zoom_at_point()`.
+
+18. **Marshal sprite stacking** — Multiple marshals in one province (Phase 7 encourages co-location) need a spreading algorithm. Options: horizontal fan-out from anchor point, or grid layout. Cap visible icons (e.g., 6) with a "+N more" indicator if exceeded. Must not overlap garrison shield below or region label. Current code already handles this with offset math — port the layout logic to position child sprites.
+
+19. **Sprite atlas** — All marshal/garrison/status/building icons in a single `AtlasTexture` spritesheet. Godot batches draw calls for sprites sharing a texture. At 80+ provinces × 3-4 icons each = 300+ sprites — batching matters.
+
+20. **Preserve `update_all_regions()` contract** — `main.gd` calls `map_area.update_all_regions(map_data)` from 10+ places. The function signature and data format must NOT change. Internally, it switches from setting dict values + `queue_redraw()` to showing/hiding/repositioning child sprite nodes and updating shader uniforms. This is the primary integration point — getting this right prevents regressions across the entire frontend.
+
+#### D. Code Refactor (after art + sprites delivered)
+
+21. **Rip out procedural drawing** — Remove `_draw_regions()`, `_draw_connections()`, `_draw_marshal_icons()`, `_draw_fogged_force_icons()`, `_draw_garrison_indicator()`, `_draw_tooltip()`, `_draw_fogged_tooltip()`, `_draw_region_tooltip()`, and all `draw_circle`/`draw_arc`/`draw_rect`/`draw_line`/`draw_string` calls from `map.gd`. The entire `_draw()` override goes away. Remove `queue_redraw()` calls (no longer needed — Godot scene tree handles rendering).
+
+22. **Input refactor** — Replace distance-to-circle hit detection with color map pixel lookup. `_gui_input()` reads pixel from hidden Image at mouse position (accounting for Camera2D transform), looks up province in definition dict. Return "no province" for ocean/empty pixels. Emit `region_hovered(region_name)` and `region_clicked(region_name)` signals.
+
+23. **Sprite-based unit rendering** — Marshal icons, garrison shields, status indicators become `Sprite2D` child nodes positioned at region anchor points. `update_all_regions()` iterates game state and shows/hides/repositions sprites. Pool sprite nodes (pre-create a max count, show/hide as needed) rather than add/remove children every update.
+
+24. **UI-based tooltips** — Replace manual `draw_string` tooltip rendering (~400 lines across 3 functions) with a `PanelContainer` + `VBoxContainer` + `Label` nodes on a CanvasLayer. Populate label text on hover. Clamp tooltip position to screen bounds (prevent off-screen overflow). Three tooltip variants preserved: marshal (full detail), fogged force (name/band/intel), region (controller/terrain/economy/buildings). Tooltip theming: dark panel, gold accents, consistent with BottomLeftUI aesthetic.
+
+25. **Zoom/pan via Camera2D** — Remove manual `zoom_level`, `pan_offset`, `draw_set_transform()`, `_zoom_at_point()`. Use Camera2D with `zoom` property and `position` for pan. Keep: mouse wheel zoom toward cursor, middle-click drag pan, arrow key pan. Add: map edge clamping (can't pan past map bounds).
+
+26. **Remove dead constants** — Delete `REGION_POSITIONS` (replaced by anchor points from definition file), `REGION_CONNECTIONS` (adjacency is visual on real map), `FOG_OVERLAYS` (replaced by shader uniforms). Keep `COLORS` dict — still needed to pass nation colors as shader uniforms.
+
+27. **Clean up debug prints** — Remove all `FORTIFY_DEBUG`, `TOOLTIP DEBUG`, `print("Clicked region:")` statements from map.gd. Replace with conditional debug overlay (togglable in settings).
+
+28. **`_on_region_clicked` signal emission** — Currently just `print()`. Must emit a signal that `main.gd` can connect to. Use case: clicking a province could pre-fill the command input with a region name, show a context panel, or select a marshal in that province.
+
+#### E. Validation, Polish & Edge Cases
+
+29. **Color map validation script** — Python script (runs at asset delivery) that: (a) loads the color map PNG, (b) extracts all unique RGB colors, (c) checks every color has an entry in the definition JSON, (d) checks every entry in the definition JSON exists in the color map, (e) flags any colors that appear fewer than N pixels (likely anti-aliasing artifacts that shouldn't be there). Run this BEFORE integration.
+
+30. **Coordinate system alignment** — Godot Y-axis increases downward, same as image coordinates. Confirm artist delivers map with north at top. Anchor points are in image pixel coordinates. Camera2D position maps directly. No coordinate inversion needed (but verify).
+
+31. **Memory budget** — 4K visual map: ~30MB uncompressed RGBA in memory. 4K color map: ~30MB as Image (pixel access, not GPU texture). Total ~60MB for maps alone. Acceptable on desktop. If targeting lower-spec machines, consider 2K with upscale shader, or compress visual map (color map must stay uncompressed for pixel-exact reads).
+
+32. **Tooltip off-screen clamping** — Current tooltips can overflow past window edge (tooltip_pos = mouse + offset, no bounds check). New tooltip PanelContainer must clamp: if tooltip would extend past right edge, flip to left of cursor. Same for bottom edge.
+
+33. **Multi-marshal overlap prevention** — With 5+ marshals in one province (Phase 7 co-location), sprite icons pile up. Need: max visible count with "+N" overflow badge, or dynamic icon scaling that shrinks icons when count exceeds threshold. Test with worst case: 6 marshals + garrison + 2 buildings + watchtower on one province.
+
+34. **Fog transition smoothness** — When visibility level changes (e.g., scout reveals UNKNOWN → FULL), the shader should transition smoothly (0.3s fade) rather than snapping. Tween the fog uniform value per province. Low priority but high polish.
+
+35. **Zoom-level-dependent detail** — At maximum zoom-out, marshal name labels become unreadable. Options: hide name labels below a zoom threshold (show only icon), or scale label font with zoom. Building/watchtower icons may also need to hide at extreme zoom-out. At maximum zoom-in, show more detail (exact troop count on marshal sprite?).
+
+36. **Minimap** — At 80+ provinces with zoom, player needs spatial awareness. Small minimap in corner showing full map with a viewport rectangle indicating current view. Implementation: `SubViewport` rendering the map at small scale into a `TextureRect`, overlaid with a rectangle showing Camera2D's visible area. Low priority for 13 provinces, essential for 80+.
+
+37. **Edge-of-screen pan** — Mouse at screen edge scrolls the map (standard in strategy games). Detectable in `_process()`: if mouse x < 20px, pan left. Optional toggle in settings (some players prefer drag-only). Low priority.
+
+38. **Keyboard navigation** — Home key centers camera on capital. Number keys or hotkeys jump to specific marshals. Not a blocker but the Camera2D architecture should support `camera.position = anchor_points["Paris"]` for instant jumps.
+
+39. **Incremental transition strategy** — Don't flip everything at once. Phases:
+    - **Step 1:** Load visual map as Sprite2D background behind existing procedural drawing. Verify scaling/positioning.
+    - **Step 2:** Implement color map pixel lookup alongside existing circle hit detection. Verify both agree.
+    - **Step 3:** Replace procedural marshal icons with sprites. Keep old tooltips.
+    - **Step 4:** Replace procedural tooltips with UI nodes.
+    - **Step 5:** Switch to Camera2D, remove manual transform.
+    - **Step 6:** Enable shaders (nation color, fog, highlight). Remove remaining procedural drawing.
+    - **Step 7:** Remove all dead code, constants, debug prints.
+    Each step is independently testable and the map is functional throughout.
+
+40. **main.tscn scene update** — Current scene tree has `MapArea` as a plain `Control` node with `map.gd` script. Must be restructured: either convert to a packed scene (`map.tscn`) instanced in main, or rebuild the node tree in `main.tscn` directly. The `@onready var map_area = $MapArea` reference in `main.gd` must still resolve.
+
+41. **Regression test: all 5 fog levels** — After refactor, manually verify each visibility state renders correctly: FULL (clear, all data), PARTIAL (slight dim, fogged enemy silhouettes with strength bands), STALE (medium fog, stale ghost icons), LAST_KNOWN (dark, minimal data), UNKNOWN (near-black, no military intel). Current code handles all 5 — the refactor must preserve every behavior.
+
+42. **Regression test: all tooltip variants** — Marshal tooltip (20+ fields: name, nation, strength, morale, movement, skills, personality, trust, vindication, stance, unit type, drilling, fortified, retreating, broken, abilities, strategic order, artillery ammo). Fogged force tooltip (name, nation, strength band, intel quality). Region tooltip (name, controller, type, terrain, income, stability, supply, garrison, war damage, buildings, construction, watchtower). Every field must survive the refactor.
+
+43. **Debug overlay toggle** — Development aid: key shortcut to show the color map instead of the visual map, display anchor points as dots, show province RGB values on hover. Strip from release build or gate behind debug setting.
 
 ### Option C: Partial Europe Wiring
 
