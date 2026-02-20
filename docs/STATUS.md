@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 20, 2026 (Phase 7 Scope Decision — Core/7b Split)
+> **Last Updated:** February 20, 2026 (Wire Marshal Abilities)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2988** (verified, 3 skipped, 1 flaky) |
+| **Tests Passing** | **3006** (verified, 3 skipped) |
 
-| **Current Phase** | Phase 6.5 **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, 10 items remaining). **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md`. Remaining 6.5: Notification System, Strategic Ledger, Marshal Management UI, Campaign Log, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer, Wire Marshal Abilities |
+| **Current Phase** | Phase 6.5 **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Wire Marshal Abilities COMPLETE, 9 items remaining). **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md`. Remaining 6.5: Notification System, Strategic Ledger, Marshal Management UI, Campaign Log, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,7 +19,7 @@
 
 ## Next Steps
 
-1. **Phase 6.5 remaining** — Notification System, Strategic Ledger, Marshal Management UI, Campaign Log, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer, Wire Marshal Abilities
+1. **Phase 6.5 remaining** — Notification System, Strategic Ledger, Marshal Management UI, Campaign Log, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer
 2. **Phase 7 Core: Multi-Marshal Coordination** — 6 sessions (57-61, 64), ~190 new tests. "Position IS Coordination" — combined arms (+10-20%), relationship-scaled coordination (+3%/+5% per ally), dedicated coordination (+5%/+5% from co-location or SUPPORT), adjacent support (+2% per adjacent), reinforcement (Grouchy Rule), win/loss relationship formula (dynamic relationships). Hard cap: +25% atk/+20% def. Each session includes basic combat display messages. Highest risk: Session 61 (reinforcement + physical relocation). First session: Combined Arms Detection (S57). Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md` (audit corrections still apply to all sessions including deferred ones).
 3. **Phase 7b (immediately after 7 Core):** Casualty Distribution (S62 — `resolve_battle()` contract change, deferred for playtest data), AI Coordination Enhancements (S63 — P4.6/P4.76/P4.77/P4.78), Full Battle Reports + Berthier Observations (S65), Godot Tooltips + Tutorial + Integration Audit (S66), Tactical Triangle Completion (Square Formation + Artillery SUPPORT auto-bombardment + Artillery Overwatch — linked group), V2b Defiance/Vindication, Jealousy system, Coalition Trigger, Cross-nation coordination (Britain/Prussia), Gneisenau Staff Work (1805 only).
 
@@ -45,6 +45,19 @@ All major Phase 6 features shipped:
 ---
 
 ## Recent Sessions
+
+### Feb 20 (Wire Marshal Abilities)
+
+- **Drouot "Sage of the Grand Army":** Fort degradation 10% → 15% on attack (combat.py degradation block)
+- **Wellington "Reverse Slope Defense":** +5% flat defense always (marshal.py get_defense_modifier, Golden Rule #1)
+- **Blucher "Vorwärts!":** +3k pursuit casualties on enemy forced retreat, floor 1000 (combat.py pursuit block)
+- **Uxbridge "Pursuit Master":** +5k pursuit casualties on retreat, cavalry-only, floor 1000 (combat.py pursuit block)
+- **Gneisenau "Staff Work":** Deferred to Phase 7 Session 58 (needs coordination transient fields)
+- Updated all ability effect strings from TODO to actual descriptions
+- New result dict fields: `drouot_ability_triggered`, `pursuit_damage`, `pursuit_message`
+- Moved `attacker_won`/`attacker_lost` computation earlier in resolve_battle() for pursuit access
+- Tests: 36 → 54 in test_marshal_abilities.py (+18 new tests), full suite 3006 passed
+- Map Renderer roadmap expanded to 43-item transition plan (art, sprites, code refactor)
 
 ### Feb 20 (Phase 7 Scope Decision — Core/7b Split)
 

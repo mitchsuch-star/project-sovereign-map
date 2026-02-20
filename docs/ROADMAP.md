@@ -160,7 +160,7 @@ Uses read-only modifier snapshots taken BEFORE state-consuming `get_attack_modif
 | **Tutorial Infrastructure** | `TutorialManager` for staged popups/highlights. Content populated in Pre-EA. | Medium | Planned |
 | **Map Renderer** | EU4-style bitmap map integration. 3 workstreams: (1) art integration — visual map Sprite2D, province color map hit detection, nation color shader, fog shader, highlight shader; (2) sprite assets — marshal icons, garrison shields, unit badges, status indicators, building/watchtower icons; (3) code refactor — rip out all procedural drawing from map.gd, sprite-based rendering, UI-based tooltips, color map input handling. See Map Renderer Notes below. | High | Planned |
 | **Pause Menu** | Esc → Save/Load/Settings/Quit (wraps Phase 6 save/load endpoints) | Low | **COMPLETE** (Session 56). Smart Esc: unfocus input → open menu → close menu. CanvasLayer 101, modal overlay, Save/Load/Settings stub/Quit. |
-| **Wire Marshal Abilities** | Wire all unwired abilities in combat.py: Drouot (fort degradation), Wellington (terrain defense), Blucher (pursuit damage), Uxbridge (pursuit casualties), Gneisenau (ally bonus) | Medium | Planned |
+| **Wire Marshal Abilities** | Wired 4 abilities: Drouot 15% fort degradation, Wellington +5% flat defense, Blucher 3k pursuit, Uxbridge 5k pursuit (cavalry). Gneisenau deferred to Phase 7 Session 58. 54 tests (was 36). | Medium | **Complete** |
 
 ### Map Renderer Notes
 

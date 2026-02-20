@@ -108,7 +108,40 @@ if drilling or drilling_locked:
 modifier *= (1.0 - recklessness_defense_penalty)
 
 return modifier
+
+# Wellington's "Reverse Slope Defense": +5% defense always
+if ability.name == "Reverse Slope Defense":
+    modifier *= 1.05
 ```
+
+### Marshal Signature Abilities
+
+Each marshal has a unique ability defined in `marshal.py` ability dict (4 string fields: name, description, trigger, effect). Abilities are wired in either `marshal.py` (modifier-based) or `combat.py` (post-resolution effects), respecting Golden Rule #1.
+
+| Marshal | Ability | Effect | Trigger | Location | Status |
+|---------|---------|--------|---------|----------|--------|
+| Ney | Bravest of the Brave | +2 Shock when attacking | `when_attacking` | `combat.py` (shock block) | Wired (Phase 2.3) |
+| Drouot | Sage of the Grand Army | Fort degradation 10% → 15% on attack | `when_attacking_fortified` | `combat.py` (degradation block) | Wired (Phase 6.5) |
+| Wellington | Reverse Slope Defense | +5% flat defense always | `when_defending` | `marshal.py` `get_defense_modifier()` | Wired (Phase 6.5) |
+| Blucher | Vorwärts! | +3k pursuit casualties on retreat, floor 1000 | `when_enemy_retreats` | `combat.py` (pursuit block) | Wired (Phase 6.5) |
+| Uxbridge | Pursuit Master | +5k pursuit casualties on retreat (cavalry), floor 1000 | `when_enemy_retreats` | `combat.py` (pursuit block) | Wired (Phase 6.5) |
+| Davout | Iron Marshal | Prevents first morale drop below 50 | `morale_drops_below_50` | — | Deferred (morale rework) |
+| Grouchy | Literal Obedience | Never questions orders | `receiving_orders` | `disobedience.py` (partial) | Deferred |
+| Gneisenau | Staff Work | +5% atk/def to allies in region | `when_in_same_region_as_ally` | — | Deferred (Phase 7 S58) |
+| PrinceAugust | Prussian Gunnery | No-op by design | `when_bombarding` | — | No-op |
+
+**Pursuit system (Phase 6.5):**
+- Fires when attacker wins AND defender has `forced_retreat=True` (morale ≤ 25)
+- Only attacker's ability applies (no stacking)
+- Uxbridge requires `cavalry=True` — infantry with same ability dict won't fire
+- Floor: defender strength cannot go below 1000
+- Pursuit casualties added to `defender_casualties` in result dict (included in totals)
+- Result dict fields: `pursuit_damage` (int), `pursuit_message` (string or None)
+
+**Fort degradation ability (Phase 6.5):**
+- Base rates: infantry 5%, artillery 10%, Drouot 15%
+- Only fires when `defender.defense_bonus > 0`
+- Result dict field: `drouot_ability_triggered` (string or None)
 
 ### Combat Modifier Tables by Personality
 
