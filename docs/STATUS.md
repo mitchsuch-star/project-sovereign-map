@@ -11,7 +11,7 @@
 |--------|-------|
 | **Tests Passing** | **2987** (verified, 3 skipped, 1 flaky) |
 
-| **Current Phase** | Phase 6.5 **IN PROGRESS** — Bombardment COMPLETE (Parts 1-5), Pause Menu COMPLETE (Session 56). Remaining: Notification System, Strategic Ledger, Marshal Management UI, Campaign Log, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer, Wire Marshal Abilities |
+| **Current Phase** | Phase 6.5 **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, 10 items remaining). **Phase 7 Spec COMPLETE** — Multi-Marshal Coordination (Sessions 57-65, ~340 new tests). See `MULTI_MARSHAL_SPEC.md`. Remaining 6.5: Notification System, Strategic Ledger, Marshal Management UI, Campaign Log, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer, Wire Marshal Abilities |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -20,7 +20,8 @@
 ## Next Steps
 
 1. **Phase 6.5 remaining** — Notification System, Strategic Ledger, Marshal Management UI, Campaign Log, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer, Wire Marshal Abilities
-2. **Phase 7: Multi-marshal battles + Combined Arms + Square Formation + V2b** — Sessions 53-54 (combined arms, square) deferred here to build alongside multi-marshal combat. See BOMBARDMENT_SPEC.md §15, ROADMAP.md Phase 7.
+2. **Phase 7: Multi-Marshal Coordination** — Spec COMPLETE (`MULTI_MARSHAL_SPEC.md`). Sessions 57-65. "Position IS Coordination" — automatic positional bonuses, combined arms, relationship-scaled coordination, adjacent reinforcement, casualty distribution, AI P4.6 coordinated attacks, Godot UI. ~340 new tests. First session: Combined Arms Detection (S57).
+3. **Phase 7b (deferred from 7):** Square Formation, Artillery SUPPORT auto-bombardment, V2b Defiance/Vindication, Jealousy system, Coalition Trigger, Gneisenau Staff Work (1805 only).
 
 ---
 

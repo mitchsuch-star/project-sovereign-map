@@ -32,6 +32,8 @@ Bombardment system (Sessions 48-52), Pause menu (Session 56: Smart Esc, modal ov
 ### Up Next
 
 - **Phase 6.5 remaining:** Notification System, Strategic Ledger, Marshal Management UI, Campaign Log, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer, Wire Marshal Abilities
+- **Phase 7: Multi-Marshal Coordination** — Spec COMPLETE (`docs/MULTI_MARSHAL_SPEC.md`). Sessions 57-65. Combined arms, coordination bonuses, SUPPORT enhancement, adjacent reinforcement, casualty distribution, AI P4.6, Godot UI. ~340 new tests.
+- **Phase 7b (deferred):** Square Formation, Artillery SUPPORT auto-bombardment, V2b, Jealousy, Coalition Trigger, Gneisenau Staff Work (1805)
 
 See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 
@@ -82,7 +84,8 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 
 | If you're modifying... | Read these first |
 |------------------------|------------------|
-| Combat damage/modifiers | `marshal.py` (get_*_modifier), `combat.py` (resolve_combat) |
+| Combat damage/modifiers | `marshal.py` (get_*_modifier), `combat.py` (resolve_combat), `docs/MULTI_MARSHAL_SPEC.md` (coordination bonuses) |
+| Multi-marshal coordination | `docs/MULTI_MARSHAL_SPEC.md`, `executor.py` (_calculate_coordination_context), `marshal.py` (transient bonus fields) |
 | Marshal abilities | `personality_modifiers.py`, `marshal.py`, `combat.py` |
 | Fortify/Drill mechanics | `executor.py` (_execute_fortify/drill), `marshal.py`, `world_state.py` (_process_tactical_states) |
 | Disobedience/Trust | `disobedience.py`, `objection_v2.py`, `personality.py` |
@@ -318,7 +321,8 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | Phase timeline | `docs/ROADMAP.md` |
 | Game systems (combat, trust, disobedience, LLM, cavalry, strategic) | `docs/SYSTEMS_REFERENCE.md` |
 | Enemy AI decision tree | `docs/ENEMY_AI_REFERENCE.md` |
-| V2b objection plans (Phase 7) | `docs/OBJECTION_V2.md` |
+| V2b objection plans (Phase 7b) | `docs/OBJECTION_V2.md` |
+| Multi-marshal coordination spec (Phase 7) | `docs/MULTI_MARSHAL_SPEC.md` |
 | Save format / serialization | `docs/SAVE_FORMAT_REFERENCE.md` |
 | Fog of war spec | `docs/FOG_OF_WAR_SPEC.md` |
 | Modding guide | `docs/MODDING_FORMAT.md` |

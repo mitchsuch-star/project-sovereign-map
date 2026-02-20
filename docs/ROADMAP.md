@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** February 13, 2026 (Session 36: Fog of War COMPLETE)
+> **Last Updated:** February 19, 2026 (Phase 7 Spec: Multi-Marshal Coordination)
 
 ---
 
@@ -14,7 +14,8 @@
 | **V2a** | **Objection System Refactor** | **COMPLETE** |
 | **6** | **Core Campaign Systems** | **COMPLETE** |
 | **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE Sessions 48-52, Pause Menu COMPLETE Session 56) |
-| 7 | Multi-Marshal, Relationships & Coalitions | Planned |
+| **7** | **Multi-Marshal Coordination** | **Spec COMPLETE** — see `MULTI_MARSHAL_SPEC.md`. Sessions 57-65. |
+| 7b | Square Formation, V2b, Coalition, Jealousy | Planned (deferred from 7) |
 | 8 | Diplomacy & Peace | Planned |
 | 8.5 | Events, Goals & National Identity | Planned |
 | -- | **STEAM PAGE + LLC** | **After 8.5** |
@@ -40,7 +41,7 @@
 | 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 2861 (verified Feb 18, 2026)
+**Total Tests:** 2987 (verified Feb 19, 2026)
 
 ---
 
@@ -181,28 +182,37 @@ Wire ~80-100 provinces for EA v1. Remaining provinces from the 120-150 in the ar
 
 ---
 
-## Phase 7: Multi-Marshal, Relationships & Coalition Trigger
+## Phase 7: Multi-Marshal Coordination
 
-**Goal:** Multiple marshals fight together, relationships have gameplay impact, coalitions threaten the player.
+**Goal:** "Position IS Coordination" — automatic positional bonuses make multi-marshal positioning the core strategic skill. Relationships have real mechanical impact. AI coordinates deliberately.
+
+**Design Principle:** All coordination bonuses are automatic and positional. No new command syntax. Building Blocks principle — enemy AI benefits identically from the same passive bonuses. See `docs/MULTI_MARSHAL_SPEC.md` for full spec.
+
+| Feature | Description | Complexity | Sessions | Status |
+|---------|-------------|------------|----------|--------|
+| **Combined arms bonus** | 2/3 unit types: +10% atk/+5% def. 3/3: +20%/+10%. Not relationship-scaled. | Medium | 57 | Planned |
+| **Coordination bonus** | +3% atk/+5% def per same-region ally. Relationship-scaled (Hostile 0% → Devoted 150%). | Medium | 58 | Planned |
+| **SUPPORT order enhancement** | Flat +5%/+5% for explicit SUPPORT. Relationship trajectory effects. SUPPORT objections for hostile/rival. | Medium | 59 | Planned |
+| **Adjacent reinforcement** | Deterministic arrival score (logistics + relationship + terrain ± variance). Physical relocation. Works on defense. | High | 60 | Planned |
+| **Casualty distribution** | Same-region proportional, SUPPORT half-proportional, reinforcement 50%. Hostile 0%. | Medium | 61 | Planned |
+| **AI P4.6: Coordinated attack** | Proactive pincer positioning. Combined arms grouping. Coordination-aware attack assessment. | High | 62 | Planned |
+| **Battle reports & Berthier** | 7 coordination observation categories. Pre-battle coordination preview. | Medium | 63 | Planned |
+| **Godot coordination UI** | Relationship tooltips, coordination preview, battle report integration. | Medium | 64 | Planned |
+| **Integration audit** | Cross-system audit, edge cases, doc updates. ~340 new tests total. | Low | 65 | Planned |
+
+### Phase 7b (Deferred from Phase 7)
+
+Items that build on coordination data but are NOT in the Phase 7 spec:
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| Multi-marshal battles | Combined strength in single fight | High | Planned |
-| Command structure | Senior marshal leads combined force | Medium | Planned |
-| Coordination bonus/penalty | Relationships affect combined combat | Medium | Planned |
-| **Combined arms bonus** | 2 unit types +10%, 3 types +20% attack. Rewards artillery→infantry→cavalry sequence. See BOMBARDMENT_SPEC.md §15 Session 53. | Medium | Planned |
-| **Square formation** | Infantry anti-cavalry stance (-40% cav dmg), vulnerable to artillery (+50%). Completes tactical triangle. See BOMBARDMENT_SPEC.md §15 Session 54. | Medium | Planned |
-| Strategic + Relationships | "Support Ney" -> reaction based on feelings | Medium | Planned |
-| Jealousy system | Marshal getting all glory -> others resent | Medium | Planned |
-| Rivalry resolved event | Two marshals fight together successfully -> trust boost | Low | Planned |
-| **Coalition Trigger** | Threat level ticks up -> nations join against you -> war declarations (moved from Phase 8) | Medium | Planned |
-| **V2b: Defiance/Vindication** | STRONG/EXTREME concerns can trigger defiance. See OBJECTION_V2.md. | Medium | Planned |
-
-### Coalition Trigger (Split from Phase 8)
-
-The coalition MECHANIC is a number going up and triggering war declarations. It doesn't need the full diplomatic conversation system. Threat level = regions controlled + recent conquests + army size. Thresholds trigger warnings, then coalition formation. This is the core "France can't steamroll" mechanic.
-
-Coalition members get funding from Britain (off-map funder, see Phase 11). Coalition wars test the vassal loyalty system.
+| **Square formation** | Infantry anti-cavalry stance (-40% cav dmg), vulnerable to artillery (+50%). Completes tactical triangle. | Medium | Deferred |
+| **Artillery SUPPORT auto-bombardment** | Artillery on SUPPORT auto-bombards before supported marshal's combat. Pairs with square formation. | Medium | Deferred (TODO) |
+| **V2b: Defiance/Vindication** | STRONG/EXTREME concerns trigger defiance. See OBJECTION_V2.md. Scaffolding from V2a ready. | Medium | Deferred |
+| **Jealousy system** | Marshal getting all glory → others resent. Needs multi-marshal battle data. | Medium | Deferred |
+| **Rivalry resolved event** | Rival marshals fight successfully → trust boost. Needs multi-marshal battle data. | Low | Deferred |
+| **Coalition Trigger** | Threat level ticks up → war declarations. Core "France can't steamroll" mechanic. | Medium | Deferred |
+| **Gneisenau Staff Work** | +10% ally bonus — Coalition-specific advantage. Deferred to 1805 full campaign. | Low | Deferred (1805) |
 
 ### V2b Audit Findings (from V2a audit)
 
@@ -212,7 +222,7 @@ Items scaffolded in V2a that need wiring in V2b:
 - **Idle marshal objection:** Moved to V2a Unit 6 (see V2a section above).
 - **Aggressive trigger escalation:** Aggressive personality stance_change to defensive is always MILD. Should escalate to MODERATE/STRONG when weak enemy is adjacent (beatable odds). Mirror `evaluate_cautious` ratio-based scaling pattern but inverted — aggressive gets MORE opposed when fight looks winnable.
 
-### AI Enhancements for Scale
+### AI Enhancements for Scale (1805)
 
 **AP Scaling:** With 15-20 enemy marshals, 4 AP per nation causes action starvation. AP should reflect national bureaucratic capacity:
 
@@ -227,18 +237,16 @@ Items scaffolded in V2a that need wiring in V2b:
 
 Additional: tiered actions (free basic actions for idle marshals, AP only for offensive), strategic order conflict detection.
 
-**AI Coordination:** Aggressive marshals dogpiling same target, cautious marshals turtling forever. Needs coordination logic beyond round-robin. Investigate: shared target assignment, threat-based distribution, personality-aware theater commands.
-
 ### AI Enhancement: Combined Strength Evaluation (IMPLEMENTED)
 
-AI evaluates attack decisions using combined strength of all friendly marshals in the same region. Affects DECISION-MAKING only. Actual coordinated attacks (combined damage) planned for this phase.
+AI evaluates attack decisions using combined strength of all friendly marshals in the same region. Affects DECISION-MAKING only. Phase 7 coordination system gives these decisions mechanical teeth.
 
 ### AI Enhancement: P0 Survival Instinct
 
 If marshal strength < 20% of starting_strength AND enemy in same region -> ALWAYS retreat regardless of personality. Threshold personality-adjusted: Cautious 30%, Normal 20%, Aggressive 15%.
 
-**Dependencies:** Phase 6.5 (Marshal Management UI), Phase 6 (economy for coalition impact)
-**Exit Criteria:** Multi-marshal commands work, relationships affect outcomes, coalitions form and threaten player
+**Dependencies:** Phase 6 (economy, supply attrition, artillery unit type)
+**Exit Criteria:** Coordination bonuses apply automatically in combat, relationships affect coordination quality, AI positions deliberately for combined arms, ~340 new tests, battle reports surface coordination
 
 ---
 
@@ -623,7 +631,7 @@ Lighter version of communication cutoff: orders to distant marshals take effect 
 4. **Commission Europe map art** (2-4 week lead time, parallel with Phase 6)
 5. Phase 6: Economy, Manpower, Terrain, Fog, **Save/Load**, **Berthier**, **Post-battle analysis**
 6. Phase 6.5: Notifications, Ledger, Marshal UI, **Campaign Briefing**, **Marshal Report**, **Tutorial infra**, **Map Renderer**
-7. Phase 7: Multi-marshal, Relationships, **Coalition Trigger**, **V2b**, **AI scaling/coordination**
+7. Phase 7: Multi-Marshal Coordination (Sessions 57-65), then Phase 7b: Square Formation, V2b, Coalition Trigger
 8. Phase 8: **Diplomacy Chat**, Peace Treaties, Leader Personalities
 9. Phase 8.5: **Events, Gazette, Marshal Voice, Grouchy LLM, Intercepted Dispatches, Creative Commands, Napoleon Comparison**
 10. **STEAM PAGE + LLC** (marshal voice, gazette, audio, EU4 map all working)
