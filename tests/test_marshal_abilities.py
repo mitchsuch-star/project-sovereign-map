@@ -1,12 +1,16 @@
 """
-Test Marshal Signature Abilities (Phase 2.3)
+Test Marshal Signature Abilities (Phase 2.3, Phase 6.5 wiring)
 
 Tests unique abilities for each marshal:
-- Ney: "Bravest of the Brave" - +2 Shock when attacking (IMPLEMENTED)
-- Davout: "Iron Marshal" - Prevents first morale drop below 50 (TODO: Phase 2.4)
-- Grouchy: "Literal Obedience" - Never questions orders (TODO: Phase 2.4)
-- Wellington: "Reverse Slope Defense" - +2 Defense on Hills/Forest (TODO: Terrain system)
-- Blücher: "Vorwärts!" - +1 pursuit damage after winning (TODO: Phase 2.6)
+- Ney: "Bravest of the Brave" - +2 Shock when attacking (IMPLEMENTED Phase 2.3)
+- Davout: "Iron Marshal" - Prevents first morale drop below 50 (deferred — needs morale rework)
+- Grouchy: "Literal Obedience" - Never questions orders (wired via disobedience.py, not combat)
+- Wellington: "Reverse Slope Defense" - +5% flat defense always (IMPLEMENTED Phase 6.5)
+- Drouot: "Sage of the Grand Army" - 15% fort degradation on attack (IMPLEMENTED Phase 6.5)
+- Blucher: "Vorwärts!" - +3k pursuit damage on retreat (IMPLEMENTED Phase 6.5)
+- Uxbridge: "Pursuit Master" - +5k pursuit damage on retreat, cavalry (IMPLEMENTED Phase 6.5)
+- Gneisenau: "Staff Work" - +5% atk/def to allies (deferred to Phase 7 Session 58)
+- PrinceAugust: "Prussian Gunnery" - no-op by design
 """
 
 import pytest
@@ -106,7 +110,6 @@ class TestNeyBravestOfTheBrave:
         result = combat.resolve_battle(blucher, ney)
 
         # Ney's ability should NOT trigger (he's defending)
-        # Note: Blücher's ability is also not implemented yet
         ability_msg = result.get("ability_triggered")
         if ability_msg:
             assert "Ney" not in ability_msg, "Ney's ability shouldn't trigger when defending"
@@ -200,7 +203,7 @@ class TestNeyBravestOfTheBrave:
 
 
 class TestDavoutIronMarshal:
-    """Test Davout's 'Iron Marshal' ability (TODO: Phase 2.4)."""
+    """Test Davout's 'Iron Marshal' ability (deferred — needs morale rework)."""
 
     def test_davout_has_ability(self):
         """Verify Davout has the Iron Marshal ability defined."""
@@ -212,17 +215,16 @@ class TestDavoutIronMarshal:
         assert "TODO" in davout.ability["effect"], "Should be marked as TODO"
 
     def test_davout_ability_not_implemented_yet(self):
-        """Verify Davout's ability is not yet implemented (awaiting Phase 2.4)."""
+        """Verify Davout's ability is not yet implemented (awaiting morale rework)."""
         marshals = create_starting_marshals()
         davout = marshals["Davout"]
 
         # For now, just verify the structure exists
         assert "Prevents first morale drop below 50" in davout.ability["effect"]
-        # TODO Phase 2.4: Test that Davout's morale doesn't drop below 50 on first attempt
 
 
 class TestGrouchyLiteralObedience:
-    """Test Grouchy's 'Literal Obedience' ability (TODO: Phase 2.4)."""
+    """Test Grouchy's 'Literal Obedience' ability (wired via disobedience.py)."""
 
     def test_grouchy_has_ability(self):
         """Verify Grouchy has the Literal Obedience ability defined."""
@@ -241,11 +243,124 @@ class TestGrouchyLiteralObedience:
         # For now, just verify the structure exists
         assert "Never questions orders" in grouchy.ability["effect"] or \
                "always obeys exactly" in grouchy.ability["effect"]
-        # TODO Phase 2.4: Test that Grouchy never takes initiative in order delay system
 
+
+# ════════════════════════════════════════════════════════════════
+# DROUOT — "Sage of the Grand Army" (Phase 6.5)
+# Fort degradation 10% → 15% when attacking fortified positions
+# ════════════════════════════════════════════════════════════════
+
+class TestDrouotSageOfTheGrandArmy:
+    """Test Drouot's 'Sage of the Grand Army' ability — enhanced fort degradation."""
+
+    def test_drouot_has_ability(self):
+        """Verify Drouot has the Sage of the Grand Army ability defined."""
+        marshals = create_starting_marshals()
+        drouot = marshals["Drouot"]
+
+        assert drouot.ability["name"] == "Sage of the Grand Army"
+        assert drouot.ability["trigger"] == "when_attacking_fortified"
+        assert "15%" in drouot.ability["effect"]
+
+    def test_drouot_fort_degradation_15_percent(self):
+        """Drouot degrades fort by 15% (not the base 10% for artillery)."""
+        marshals = create_starting_marshals()
+        drouot = marshals["Drouot"]
+        drouot.strength = 30000
+        drouot.morale = 100
+
+        defender = Marshal("Defender", "Paris", 30000, "cautious")
+        defender.morale = 100
+        defender.defense_bonus = 0.30  # 30% fort bonus
+
+        combat = CombatResolver()
+        result = combat.resolve_battle(drouot, defender)
+
+        # Drouot's ability: 15% degradation instead of 10%
+        assert result["fortification_degraded"] is True
+        assert result["fortification_old"] == 0.30
+        assert result["fortification_new"] == 0.15  # 0.30 - 0.15 = 0.15
+
+    def test_drouot_ability_message_in_result(self):
+        """Drouot's ability trigger message appears in result dict."""
+        marshals = create_starting_marshals()
+        drouot = marshals["Drouot"]
+        drouot.strength = 30000
+        drouot.morale = 100
+
+        defender = Marshal("Defender", "Paris", 30000, "cautious")
+        defender.morale = 100
+        defender.defense_bonus = 0.20
+
+        combat = CombatResolver()
+        result = combat.resolve_battle(drouot, defender)
+
+        assert result.get("drouot_ability_triggered") is not None
+        assert "Sage of the Grand Army" in result["drouot_ability_triggered"]
+
+    def test_drouot_no_bonus_when_unfortified(self):
+        """Drouot gets no special degradation when attacking unfortified defender."""
+        marshals = create_starting_marshals()
+        drouot = marshals["Drouot"]
+        drouot.strength = 30000
+        drouot.morale = 100
+
+        defender = Marshal("Defender", "Paris", 30000, "cautious")
+        defender.morale = 100
+        defender.defense_bonus = 0.0  # No fortification
+
+        combat = CombatResolver()
+        result = combat.resolve_battle(drouot, defender)
+
+        # No fort to degrade
+        assert result["fortification_degraded"] is False
+        assert result.get("drouot_ability_triggered") is None
+
+    def test_regular_artillery_degrades_10_percent(self):
+        """Non-Drouot artillery still degrades fort by 10% (base rate)."""
+        enemies = create_enemy_marshals()
+        prince_august = enemies["PrinceAugust"]
+        prince_august.strength = 30000
+        prince_august.morale = 100
+
+        defender = Marshal("Defender", "Paris", 30000, "cautious")
+        defender.morale = 100
+        defender.defense_bonus = 0.30
+
+        combat = CombatResolver()
+        result = combat.resolve_battle(prince_august, defender)
+
+        # Base artillery: 10% degradation
+        assert result["fortification_degraded"] is True
+        assert result["fortification_old"] == 0.30
+        assert result["fortification_new"] == 0.20  # 0.30 - 0.10 = 0.20
+        assert result.get("drouot_ability_triggered") is None
+
+    def test_infantry_degrades_5_percent(self):
+        """Non-artillery infantry degrades fort by 5% (base rate)."""
+        attacker = Marshal("Infantry", "Belgium", 30000, "aggressive")
+        attacker.morale = 100
+
+        defender = Marshal("Defender", "Paris", 30000, "cautious")
+        defender.morale = 100
+        defender.defense_bonus = 0.30
+
+        combat = CombatResolver()
+        result = combat.resolve_battle(attacker, defender)
+
+        # Base infantry: 5% degradation
+        assert result["fortification_degraded"] is True
+        assert result["fortification_old"] == 0.30
+        assert result["fortification_new"] == 0.25  # 0.30 - 0.05 = 0.25
+
+
+# ════════════════════════════════════════════════════════════════
+# WELLINGTON — "Reverse Slope Defense" (Phase 6.5)
+# +5% flat defense bonus always when defending
+# ════════════════════════════════════════════════════════════════
 
 class TestWellingtonReverseSlopeDefense:
-    """Test Wellington's 'Reverse Slope Defense' ability (TODO: Terrain system)."""
+    """Test Wellington's 'Reverse Slope Defense' ability — +5% flat defense."""
 
     def test_wellington_has_ability(self):
         """Verify Wellington has the Reverse Slope Defense ability defined."""
@@ -253,22 +368,116 @@ class TestWellingtonReverseSlopeDefense:
         wellington = enemies["Wellington"]
 
         assert wellington.ability["name"] == "Reverse Slope Defense"
-        assert "defending_in_hills_or_forest" in wellington.ability["trigger"]
-        assert "TODO" in wellington.ability["effect"], "Should be marked as TODO"
+        assert wellington.ability["trigger"] == "when_defending"
+        assert "+5%" in wellington.ability["effect"]
 
-    def test_wellington_ability_not_implemented_yet(self):
-        """Verify Wellington's ability is not yet implemented (awaiting terrain system)."""
+    def test_wellington_defense_modifier_includes_ability(self):
+        """Wellington's get_defense_modifier() includes +5% from ability."""
         enemies = create_enemy_marshals()
         wellington = enemies["Wellington"]
 
-        # For now, just verify the structure exists
-        assert "+2 Defense" in wellington.ability["effect"]
-        assert "Hills or Forest" in wellington.ability["effect"]
-        # TODO: Test that Wellington gets +2 Defense on Hills/Forest terrain
+        # Reset to neutral stance to isolate the ability bonus
+        from backend.models.marshal import Stance
+        wellington.stance = Stance.NEUTRAL
+        wellington.defense_bonus = 0.0  # No fortify
+        wellington.drilling = False
+        wellington.drilling_locked = False
 
+        # Wellington's modifier should include 1.05 from ability
+        modifier = wellington.get_defense_modifier()
+
+        # Personality modifier is also applied. Get the personality-only modifier
+        # by checking a non-Wellington marshal with same personality.
+        reference = Marshal("Reference", "Paris", 50000, "cautious")
+        reference.stance = Stance.NEUTRAL
+        reference.defense_bonus = 0.0
+        reference.drilling = False
+        reference.drilling_locked = False
+        ref_modifier = reference.get_defense_modifier()
+
+        # Wellington should be ~5% higher than a generic cautious marshal
+        ratio = modifier / ref_modifier
+        assert 1.04 <= ratio <= 1.06, \
+            f"Wellington should be ~5% higher defense than baseline. Ratio: {ratio:.4f}"
+
+    def test_wellington_ability_stacks_with_fortify(self):
+        """Wellington's +5% stacks multiplicatively with fortify bonus."""
+        enemies = create_enemy_marshals()
+        wellington = enemies["Wellington"]
+
+        from backend.models.marshal import Stance
+        wellington.stance = Stance.NEUTRAL
+        wellington.defense_bonus = 0.20  # 20% fort bonus
+        wellington.drilling = False
+        wellington.drilling_locked = False
+
+        modifier = wellington.get_defense_modifier()
+
+        # Should include: (1.0 + 0.20) * 1.05 * personality
+        # = 1.20 * 1.05 * personality = 1.26 * personality
+        # Just verify it's higher than 1.20 * personality
+        reference = Marshal("Reference", "Paris", 50000, "cautious")
+        reference.stance = Stance.NEUTRAL
+        reference.defense_bonus = 0.20
+        reference.drilling = False
+        reference.drilling_locked = False
+        ref_modifier = reference.get_defense_modifier()
+
+        assert modifier > ref_modifier, \
+            f"Wellington ({modifier:.4f}) should be higher than generic cautious ({ref_modifier:.4f}) with same fort"
+
+    def test_generic_marshal_no_ability_defense_bonus(self):
+        """A marshal without Reverse Slope Defense gets no ability bonus."""
+        marshal = Marshal("Generic", "Paris", 50000, "cautious")
+        from backend.models.marshal import Stance
+        marshal.stance = Stance.NEUTRAL
+        marshal.defense_bonus = 0.0
+        marshal.drilling = False
+        marshal.drilling_locked = False
+
+        modifier = marshal.get_defense_modifier()
+
+        # Create identical marshal, both should match
+        marshal2 = Marshal("Generic2", "Paris", 50000, "cautious")
+        marshal2.stance = Stance.NEUTRAL
+        marshal2.defense_bonus = 0.0
+        marshal2.drilling = False
+        marshal2.drilling_locked = False
+
+        modifier2 = marshal2.get_defense_modifier()
+
+        assert abs(modifier - modifier2) < 0.001, \
+            f"Two generic marshals should have same modifier: {modifier:.4f} vs {modifier2:.4f}"
+
+    def test_wellington_no_bonus_when_attacking(self):
+        """Wellington's defense ability doesn't affect attack modifier."""
+        enemies = create_enemy_marshals()
+        wellington = enemies["Wellington"]
+
+        from backend.models.marshal import Stance
+        wellington.stance = Stance.NEUTRAL
+
+        # get_attack_modifier should not include the +5%
+        reference = Marshal("Reference", "Paris", 50000, "cautious")
+        reference.stance = Stance.NEUTRAL
+
+        well_atk = wellington.get_attack_modifier()
+        ref_atk = reference.get_attack_modifier()
+
+        # Attack modifiers should be similar (both cautious personality)
+        # Wellington's ability is defense-only
+        ratio = well_atk / ref_atk if ref_atk > 0 else 1.0
+        assert 0.95 <= ratio <= 1.05, \
+            f"Wellington attack shouldn't differ much from generic cautious. Ratio: {ratio:.4f}"
+
+
+# ════════════════════════════════════════════════════════════════
+# BLUCHER — "Vorwärts!" (Phase 6.5)
+# +3k pursuit damage when enemy retreats, floor 1000
+# ════════════════════════════════════════════════════════════════
 
 class TestBlucherVorwarts:
-    """Test Blücher's 'Vorwärts!' ability (TODO: Phase 2.6)."""
+    """Test Blücher's 'Vorwärts!' ability — pursuit damage on retreat."""
 
     def test_blucher_has_ability(self):
         """Verify Blücher has the Vorwärts! ability defined."""
@@ -276,91 +485,95 @@ class TestBlucherVorwarts:
         blucher = enemies["Blucher"]
 
         assert blucher.ability["name"] == "Vorwärts!"
-        assert blucher.ability["trigger"] == "after_winning_battle"
-        assert "TODO" in blucher.ability["effect"], "Should be marked as TODO"
+        assert blucher.ability["trigger"] == "when_enemy_retreats"
+        assert "3,000" in blucher.ability["effect"]
 
-    def test_blucher_ability_not_implemented_yet(self):
-        """Verify Blücher's ability is not yet implemented (awaiting Phase 2.6)."""
+    def test_blucher_pursuit_damage_on_forced_retreat(self):
+        """Blücher inflicts 3k pursuit damage when enemy forced to retreat."""
         enemies = create_enemy_marshals()
         blucher = enemies["Blucher"]
+        blucher.strength = 60000
+        blucher.morale = 100
 
-        # For now, just verify the structure exists
-        assert "+1 pursuit damage" in blucher.ability["effect"] or \
-               "pursuit" in blucher.ability["effect"].lower()
-        # TODO Phase 2.6: Test that Blücher inflicts extra casualties on retreating enemies
+        # Weak defender will be forced to retreat (morale drops below 25)
+        defender = Marshal("WeakDefender", "Paris", 15000, "cautious")
+        defender.morale = 30  # Low morale, will likely trigger forced retreat
 
+        combat = CombatResolver()
 
-class TestGneisenauStaffWork:
-    """Test Gneisenau's 'Staff Work' ability (TODO: Phase 6)."""
+        # Run multiple times to find a case where defender retreats
+        pursuit_triggered = False
+        for _ in range(50):
+            blucher.strength = 60000
+            blucher.morale = 100
+            defender.strength = 15000
+            defender.morale = 30
 
-    def test_gneisenau_exists(self):
-        """Verify Gneisenau is created in enemy marshals."""
+            result = combat.resolve_battle(blucher, defender)
+
+            if result.get("pursuit_damage", 0) > 0:
+                pursuit_triggered = True
+                assert result["pursuit_damage"] == 3000 or result["pursuit_damage"] < 3000
+                assert result["pursuit_message"] is not None
+                assert "Vorwärts!" in result["pursuit_message"]
+                # Defender should have at least 1000 strength (floor)
+                assert result["defender"]["remaining"] >= 1000
+                break
+
+        assert pursuit_triggered, "Blücher's pursuit should trigger at least once in 50 battles against weak defender"
+
+    def test_blucher_pursuit_floor_at_1000(self):
+        """Pursuit damage cannot reduce defender below 1000 strength."""
         enemies = create_enemy_marshals()
-        assert "Gneisenau" in enemies, "Gneisenau should exist in enemy marshals"
-
-    def test_gneisenau_is_prussian(self):
-        """Verify Gneisenau belongs to Prussia."""
-        enemies = create_enemy_marshals()
-        gneisenau = enemies["Gneisenau"]
-        assert gneisenau.nation == "Prussia", f"Gneisenau should be Prussian, got {gneisenau.nation}"
-
-    def test_gneisenau_personality(self):
-        """Verify Gneisenau has cautious personality."""
-        enemies = create_enemy_marshals()
-        gneisenau = enemies["Gneisenau"]
-        assert gneisenau.personality == "cautious", f"Gneisenau should be cautious, got {gneisenau.personality}"
-
-    def test_gneisenau_is_infantry(self):
-        """Verify Gneisenau is infantry (not cavalry)."""
-        enemies = create_enemy_marshals()
-        gneisenau = enemies["Gneisenau"]
-        assert gneisenau.cavalry is False, "Gneisenau should not be cavalry"
-        assert gneisenau.movement_range == 1, f"Infantry should have movement_range=1, got {gneisenau.movement_range}"
-
-    def test_gneisenau_has_ability(self):
-        """Verify Gneisenau has the Staff Work ability defined."""
-        enemies = create_enemy_marshals()
-        gneisenau = enemies["Gneisenau"]
-
-        assert gneisenau.ability["name"] == "Staff Work"
-        assert gneisenau.ability["trigger"] == "when_in_same_region_as_ally"
-        assert "TODO" in gneisenau.ability["effect"], "Should be marked as TODO"
-
-    def test_gneisenau_blucher_relationship(self):
-        """Verify Gneisenau and Blücher have bidirectional +2 relationship."""
-        enemies = create_enemy_marshals()
-        gneisenau = enemies["Gneisenau"]
         blucher = enemies["Blucher"]
+        blucher.strength = 80000
+        blucher.morale = 100
 
-        # Bidirectional relationship: both should be +2
-        gneisenau_to_blucher = gneisenau.get_relationship("Blucher")
-        blucher_to_gneisenau = blucher.get_relationship("Gneisenau")
+        # Create a defender that will end up very weak after combat
+        defender = Marshal("Fragile", "Paris", 8000, "cautious")
+        defender.morale = 20  # Will definitely retreat
 
-        assert gneisenau_to_blucher == 2, f"Gneisenau->Blücher should be +2, got {gneisenau_to_blucher}"
-        assert blucher_to_gneisenau == 2, f"Blücher->Gneisenau should be +2, got {blucher_to_gneisenau}"
+        combat = CombatResolver()
 
-    def test_gneisenau_starts_with_blucher(self):
-        """Verify Gneisenau starts in the same location as Blücher."""
+        for _ in range(50):
+            blucher.strength = 80000
+            blucher.morale = 100
+            defender.strength = 8000
+            defender.morale = 20
+
+            result = combat.resolve_battle(blucher, defender)
+
+            if result["defender"]["forced_retreat"]:
+                # Even with pursuit, defender should never go below 1000
+                assert result["defender"]["remaining"] >= 1000, \
+                    f"Defender should have >= 1000 after pursuit, got {result['defender']['remaining']}"
+
+    def test_blucher_no_pursuit_when_not_winning(self):
+        """Blücher doesn't get pursuit damage if he doesn't win."""
         enemies = create_enemy_marshals()
-        gneisenau = enemies["Gneisenau"]
         blucher = enemies["Blucher"]
+        blucher.strength = 10000  # Weak attacker
+        blucher.morale = 50
 
-        assert gneisenau.location == blucher.location, \
-            f"Gneisenau ({gneisenau.location}) should start with Blücher ({blucher.location})"
+        defender = Marshal("StrongDefender", "Paris", 80000, "cautious")
+        defender.morale = 100
 
-    def test_prussia_has_three_marshals(self):
-        """Verify Prussia now has three marshals: Blücher, Gneisenau, and PrinceAugust."""
-        enemies = create_enemy_marshals()
-        prussian_marshals = [name for name, m in enemies.items() if m.nation == "Prussia"]
+        combat = CombatResolver()
+        result = combat.resolve_battle(blucher, defender)
 
-        assert len(prussian_marshals) == 3, f"Prussia should have 3 marshals, got {len(prussian_marshals)}"
-        assert "Blucher" in prussian_marshals, "Blücher should be Prussian"
-        assert "Gneisenau" in prussian_marshals, "Gneisenau should be Prussian"
-        assert "PrinceAugust" in prussian_marshals, "PrinceAugust should be Prussian"
+        # Blucher is unlikely to win here, but even if defender retreats
+        # attacker_won must be True for pursuit to fire
+        if not result.get("attacker_won", False):
+            assert result.get("pursuit_damage", 0) == 0
 
+
+# ════════════════════════════════════════════════════════════════
+# UXBRIDGE — "Pursuit Master" (Phase 6.5)
+# +5k pursuit damage when cavalry runs down retreating enemies, floor 1000
+# ════════════════════════════════════════════════════════════════
 
 class TestUxbridgePursuitMaster:
-    """Test Uxbridge's 'Pursuit Master' ability (TODO: combat.py implementation)."""
+    """Test Uxbridge's 'Pursuit Master' ability — cavalry pursuit damage."""
 
     def test_uxbridge_exists(self):
         """Verify Uxbridge is created in enemy marshals."""
@@ -393,7 +606,91 @@ class TestUxbridgePursuitMaster:
 
         assert uxbridge.ability["name"] == "Pursuit Master"
         assert uxbridge.ability["trigger"] == "when_enemy_retreats"
-        assert "TODO" in uxbridge.ability["effect"], "Should be marked as TODO"
+        assert "5,000" in uxbridge.ability["effect"]
+
+    def test_uxbridge_pursuit_damage_on_forced_retreat(self):
+        """Uxbridge inflicts 5k pursuit damage when enemy forced to retreat."""
+        enemies = create_enemy_marshals()
+        uxbridge = enemies["Uxbridge"]
+        uxbridge.strength = 50000
+        uxbridge.morale = 100
+
+        defender = Marshal("WeakDefender", "Paris", 15000, "cautious")
+        defender.morale = 30
+
+        combat = CombatResolver()
+
+        pursuit_triggered = False
+        for _ in range(50):
+            uxbridge.strength = 50000
+            uxbridge.morale = 100
+            defender.strength = 15000
+            defender.morale = 30
+
+            result = combat.resolve_battle(uxbridge, defender)
+
+            if result.get("pursuit_damage", 0) > 0:
+                pursuit_triggered = True
+                assert result["pursuit_message"] is not None
+                assert "Pursuit Master" in result["pursuit_message"]
+                assert result["defender"]["remaining"] >= 1000
+                break
+
+        assert pursuit_triggered, "Uxbridge's pursuit should trigger at least once in 50 battles"
+
+    def test_uxbridge_pursuit_requires_cavalry(self):
+        """Pursuit Master requires cavalry flag — infantry with same ability dict doesn't fire."""
+        # Create infantry marshal with Pursuit Master ability (hypothetical)
+        fake_uxbridge = Marshal(
+            "FakeUxbridge", "Belgium", 50000, "aggressive",
+            ability={
+                "name": "Pursuit Master",
+                "description": "Test",
+                "trigger": "when_enemy_retreats",
+                "effect": "Test"
+            }
+        )
+        fake_uxbridge.cavalry = False  # Infantry, not cavalry
+        fake_uxbridge.morale = 100
+
+        defender = Marshal("Fragile", "Paris", 8000, "cautious")
+        defender.morale = 20
+
+        combat = CombatResolver()
+
+        for _ in range(50):
+            fake_uxbridge.strength = 50000
+            fake_uxbridge.morale = 100
+            defender.strength = 8000
+            defender.morale = 20
+
+            result = combat.resolve_battle(fake_uxbridge, defender)
+
+            # Even if defender retreats, Pursuit Master should NOT fire (no cavalry)
+            assert result.get("pursuit_damage", 0) == 0, \
+                "Pursuit Master should not fire for infantry"
+
+    def test_uxbridge_pursuit_floor_at_1000(self):
+        """Uxbridge pursuit damage cannot reduce defender below 1000."""
+        enemies = create_enemy_marshals()
+        uxbridge = enemies["Uxbridge"]
+
+        defender = Marshal("Fragile", "Paris", 8000, "cautious")
+        defender.morale = 20
+
+        combat = CombatResolver()
+
+        for _ in range(50):
+            uxbridge.strength = 50000
+            uxbridge.morale = 100
+            defender.strength = 8000
+            defender.morale = 20
+
+            result = combat.resolve_battle(uxbridge, defender)
+
+            if result["defender"]["forced_retreat"]:
+                assert result["defender"]["remaining"] >= 1000, \
+                    f"Defender should have >= 1000 after pursuit, got {result['defender']['remaining']}"
 
     def test_uxbridge_wellington_relationship(self):
         """Verify Uxbridge and Wellington have bidirectional +1 relationship."""
@@ -401,7 +698,6 @@ class TestUxbridgePursuitMaster:
         uxbridge = enemies["Uxbridge"]
         wellington = enemies["Wellington"]
 
-        # Bidirectional relationship: both should be +1
         uxbridge_to_wellington = uxbridge.get_relationship("Wellington")
         wellington_to_uxbridge = wellington.get_relationship("Uxbridge")
 
@@ -441,14 +737,87 @@ class TestUxbridgePursuitMaster:
         enemies = create_enemy_marshals()
         uxbridge = enemies["Uxbridge"]
 
-        # Recklessness field should exist and start at 0
         assert hasattr(uxbridge, 'recklessness'), "Uxbridge should have recklessness field"
         assert uxbridge.recklessness == 0, f"Recklessness should start at 0, got {uxbridge.recklessness}"
-
-        # is_reckless_cavalry should be True (aggressive + cavalry)
         assert uxbridge.is_reckless_cavalry is True, \
             "Uxbridge (aggressive + cavalry) should have is_reckless_cavalry=True"
 
+
+# ════════════════════════════════════════════════════════════════
+# GNEISENAU — "Staff Work" (deferred to Phase 7 Session 58)
+# ════════════════════════════════════════════════════════════════
+
+class TestGneisenauStaffWork:
+    """Test Gneisenau's 'Staff Work' ability (deferred to Phase 7)."""
+
+    def test_gneisenau_exists(self):
+        """Verify Gneisenau is created in enemy marshals."""
+        enemies = create_enemy_marshals()
+        assert "Gneisenau" in enemies, "Gneisenau should exist in enemy marshals"
+
+    def test_gneisenau_is_prussian(self):
+        """Verify Gneisenau belongs to Prussia."""
+        enemies = create_enemy_marshals()
+        gneisenau = enemies["Gneisenau"]
+        assert gneisenau.nation == "Prussia", f"Gneisenau should be Prussian, got {gneisenau.nation}"
+
+    def test_gneisenau_personality(self):
+        """Verify Gneisenau has cautious personality."""
+        enemies = create_enemy_marshals()
+        gneisenau = enemies["Gneisenau"]
+        assert gneisenau.personality == "cautious", f"Gneisenau should be cautious, got {gneisenau.personality}"
+
+    def test_gneisenau_is_infantry(self):
+        """Verify Gneisenau is infantry (not cavalry)."""
+        enemies = create_enemy_marshals()
+        gneisenau = enemies["Gneisenau"]
+        assert gneisenau.cavalry is False, "Gneisenau should not be cavalry"
+        assert gneisenau.movement_range == 1, f"Infantry should have movement_range=1, got {gneisenau.movement_range}"
+
+    def test_gneisenau_has_ability(self):
+        """Verify Gneisenau has the Staff Work ability defined (deferred)."""
+        enemies = create_enemy_marshals()
+        gneisenau = enemies["Gneisenau"]
+
+        assert gneisenau.ability["name"] == "Staff Work"
+        assert gneisenau.ability["trigger"] == "when_in_same_region_as_ally"
+        assert "deferred" in gneisenau.ability["effect"].lower()
+
+    def test_gneisenau_blucher_relationship(self):
+        """Verify Gneisenau and Blücher have bidirectional +2 relationship."""
+        enemies = create_enemy_marshals()
+        gneisenau = enemies["Gneisenau"]
+        blucher = enemies["Blucher"]
+
+        gneisenau_to_blucher = gneisenau.get_relationship("Blucher")
+        blucher_to_gneisenau = blucher.get_relationship("Gneisenau")
+
+        assert gneisenau_to_blucher == 2, f"Gneisenau->Blücher should be +2, got {gneisenau_to_blucher}"
+        assert blucher_to_gneisenau == 2, f"Blücher->Gneisenau should be +2, got {blucher_to_gneisenau}"
+
+    def test_gneisenau_starts_with_blucher(self):
+        """Verify Gneisenau starts in the same location as Blücher."""
+        enemies = create_enemy_marshals()
+        gneisenau = enemies["Gneisenau"]
+        blucher = enemies["Blucher"]
+
+        assert gneisenau.location == blucher.location, \
+            f"Gneisenau ({gneisenau.location}) should start with Blücher ({blucher.location})"
+
+    def test_prussia_has_three_marshals(self):
+        """Verify Prussia now has three marshals: Blücher, Gneisenau, and PrinceAugust."""
+        enemies = create_enemy_marshals()
+        prussian_marshals = [name for name, m in enemies.items() if m.nation == "Prussia"]
+
+        assert len(prussian_marshals) == 3, f"Prussia should have 3 marshals, got {len(prussian_marshals)}"
+        assert "Blucher" in prussian_marshals, "Blücher should be Prussian"
+        assert "Gneisenau" in prussian_marshals, "Gneisenau should be Prussian"
+        assert "PrinceAugust" in prussian_marshals, "PrinceAugust should be Prussian"
+
+
+# ════════════════════════════════════════════════════════════════
+# CROSS-ABILITY INTEGRATION TESTS
+# ════════════════════════════════════════════════════════════════
 
 class TestAbilityIntegration:
     """Test that ability system integrates properly with combat."""
@@ -469,11 +838,55 @@ class TestAbilityIntegration:
         combat = CombatResolver()
         result = combat.resolve_battle(ney, wellington)
 
-        # Should have ability_triggered field (even if None)
         assert "ability_triggered" in result
 
+    def test_combat_result_includes_pursuit_fields(self):
+        """Verify combat results include pursuit_damage and pursuit_message fields."""
+        attacker = Marshal("Attacker", "Belgium", 50000, "aggressive")
+        attacker.morale = 100
+        defender = Marshal("Defender", "Paris", 50000, "cautious")
+        defender.morale = 100
+
+        combat = CombatResolver()
+        result = combat.resolve_battle(attacker, defender)
+
+        assert "pursuit_damage" in result
+        assert "pursuit_message" in result
+
+    def test_combat_result_includes_drouot_field(self):
+        """Verify combat results include drouot_ability_triggered field."""
+        attacker = Marshal("Attacker", "Belgium", 50000, "aggressive")
+        attacker.morale = 100
+        defender = Marshal("Defender", "Paris", 50000, "cautious")
+        defender.morale = 100
+
+        combat = CombatResolver()
+        result = combat.resolve_battle(attacker, defender)
+
+        assert "drouot_ability_triggered" in result
+
+    def test_non_ability_attacker_no_pursuit(self):
+        """Marshal without pursuit ability doesn't get pursuit damage."""
+        attacker = Marshal("Generic", "Belgium", 80000, "aggressive")
+        attacker.morale = 100
+
+        defender = Marshal("Weak", "Paris", 8000, "cautious")
+        defender.morale = 20
+
+        combat = CombatResolver()
+
+        for _ in range(50):
+            attacker.strength = 80000
+            attacker.morale = 100
+            defender.strength = 8000
+            defender.morale = 20
+
+            result = combat.resolve_battle(attacker, defender)
+            assert result.get("pursuit_damage", 0) == 0, \
+                "Marshal without pursuit ability shouldn't get pursuit damage"
+
     def test_non_ney_attacker_no_ability_triggered(self):
-        """Verify non-Ney attackers don't trigger abilities (others not implemented yet)."""
+        """Verify non-Ney attackers don't trigger the Ney ability."""
         marshals = create_starting_marshals()
         enemies = create_enemy_marshals()
 
@@ -488,9 +901,27 @@ class TestAbilityIntegration:
         combat = CombatResolver()
         result = combat.resolve_battle(davout, blucher)
 
-        # Davout's ability is not implemented yet
         ability_msg = result.get("ability_triggered")
-        assert ability_msg is None, "Non-Ney attackers shouldn't trigger abilities yet"
+        assert ability_msg is None, "Non-Ney attackers shouldn't trigger Ney's ability"
+
+    def test_prince_august_no_special_bonus(self):
+        """PrinceAugust's 'Prussian Gunnery' is a no-op — no special degradation."""
+        enemies = create_enemy_marshals()
+        pa = enemies["PrinceAugust"]
+        pa.strength = 30000
+        pa.morale = 100
+
+        defender = Marshal("Defender", "Paris", 30000, "cautious")
+        defender.morale = 100
+        defender.defense_bonus = 0.30
+
+        combat = CombatResolver()
+        result = combat.resolve_battle(pa, defender)
+
+        # PrinceAugust is artillery → 10% base degradation, NOT 15% (Drouot only)
+        assert result["fortification_degraded"] is True
+        assert result["fortification_new"] == 0.20  # 0.30 - 0.10
+        assert result.get("drouot_ability_triggered") is None
 
 
 if __name__ == "__main__":

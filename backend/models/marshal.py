@@ -839,6 +839,11 @@ class Marshal:
         if recklessness_penalty > 0:
             modifier *= (1.0 - recklessness_penalty)
 
+        # Wellington's "Reverse Slope Defense": +5% defense always when defending
+        if (hasattr(self, 'ability')
+                and self.ability.get("name") == "Reverse Slope Defense"):
+            modifier *= 1.05
+
         return modifier
 
     def get_effective_skill(self, skill_name: str) -> int:
@@ -1278,7 +1283,7 @@ def create_starting_marshals() -> dict[str, Marshal]:
                 "name": "Sage of the Grand Army",
                 "description": "Drouot's precise artillery fire is devastatingly accurate",
                 "trigger": "when_attacking_fortified",
-                "effect": "+2 fort degradation per bombardment (DEFERRED — Phase 6.5 ability wiring pass)"
+                "effect": "Fort degradation 10% → 15% when attacking fortified positions"
             },
             starting_trust=80,
             artillery=True,
@@ -1342,8 +1347,8 @@ def create_enemy_marshals() -> dict[str, Marshal]:
             ability={
                 "name": "Reverse Slope Defense",
                 "description": "Wellington masters defensive terrain, hiding troops behind hills",
-                "trigger": "defending_in_hills_or_forest",
-                "effect": "+2 Defense skill when defending on Hills or Forest terrain (TODO: Terrain system)"
+                "trigger": "when_defending",
+                "effect": "+5% flat defense bonus when defending"
             },
             starting_trust=80,  # Wellington trusts his government
             spawn_location="Waterloo"  # TODO: Change to London (Britain capital) when map expanded (see ROADMAP.md EA Launch)
@@ -1368,7 +1373,7 @@ def create_enemy_marshals() -> dict[str, Marshal]:
                 "name": "Pursuit Master",
                 "description": "Uxbridge's cavalry excels at running down broken enemies",
                 "trigger": "when_enemy_retreats",
-                "effect": "+50% casualties inflicted during pursuit (TODO: implement in combat.py)"
+                "effect": "+5,000 pursuit casualties when cavalry runs down retreating enemies (floor 1000)"
             },
             starting_trust=75,
             cavalry=True,  # Cavalry commander - enables Recklessness system (aggressive + cavalry)
@@ -1392,8 +1397,8 @@ def create_enemy_marshals() -> dict[str, Marshal]:
             ability={
                 "name": "Vorwärts!",
                 "description": "Blücher's aggressive pursuit inflicts extra casualties on retreating enemies",
-                "trigger": "after_winning_battle",
-                "effect": "+1 pursuit damage to retreating enemies (TODO: Phase 2.6 pursuit system)"
+                "trigger": "when_enemy_retreats",
+                "effect": "+3,000 pursuit casualties to retreating enemies (floor 1000)"
             },
             starting_trust=70,  # Blucher trusts Prussia's king
             spawn_location="Netherlands"  # TODO: Change to Berlin (Prussia capital) when map expanded (see ROADMAP.md EA Launch)
@@ -1417,7 +1422,7 @@ def create_enemy_marshals() -> dict[str, Marshal]:
                 "name": "Staff Work",
                 "description": "Gneisenau's meticulous planning improves army coordination",
                 "trigger": "when_in_same_region_as_ally",
-                "effect": "+10% combat bonus to allies in same region (TODO: Phase 6)"
+                "effect": "+5% atk/def to allies in same region (deferred to Phase 7 Session 58 — needs coordination fields)"
             },
             starting_trust=75,  # Gneisenau serves Prussia faithfully
             spawn_location="Netherlands"  # TODO: Change to Berlin (Prussia capital) when map expanded (see ROADMAP.md EA Launch)

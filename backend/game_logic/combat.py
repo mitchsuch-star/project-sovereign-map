@@ -171,15 +171,18 @@ class CombatResolver:
 
         # SIGNATURE ABILITY: Ney's "Bravest of the Brave" (Phase 2.3)
         # When attacking, Ney gets +2 Shock
-        # TODO: Only Ney's ability is wired up here. Other marshal abilities are defined
-        # in marshal.py create_starting_marshals() but NOT triggered in combat:
-        #   - Davout "Iron Marshal": morale-drop prevention (needs morale system)
-        #   - Wellington "Reverse Slope Defense": +2 def on terrain (needs terrain system)
-        #   - Uxbridge "Pursuit Master": +50% pursuit casualties (needs pursuit system)
-        #   - Blucher "Vorwärts!": +1 pursuit damage (needs pursuit system)
-        #   - Gneisenau "Staff Work": +10% ally bonus (needs Phase 6 coordination)
-        # Each marshal's personality DOES have working mechanics via personality_modifiers.py
-        # (Counter-Punch, Precision Execution, etc.) — those are separate from ability dicts.
+        #
+        # Wired abilities (Phase 6.5):
+        #   - Ney "Bravest of the Brave": +2 Shock when attacking (here)
+        #   - Drouot "Sage of the Grand Army": +5% fort degradation (fort degradation block below)
+        #   - Wellington "Reverse Slope Defense": +5% defense always (marshal.py get_defense_modifier)
+        #   - Blucher "Vorwärts!": 3k pursuit damage on retreat (pursuit block below)
+        #   - Uxbridge "Pursuit Master": 5k pursuit damage on retreat (pursuit block below)
+        # Unwired:
+        #   - Davout "Iron Marshal": morale-drop prevention (deferred — needs morale rework)
+        #   - Grouchy "Literal Obedience": order compliance (wired via disobedience.py, not combat)
+        #   - Gneisenau "Staff Work": ally bonus (deferred to Phase 7 Session 58 — needs coordination fields)
+        #   - PrinceAugust "Prussian Gunnery": no-op by design
         ability_message = None
         if hasattr(attacker, 'ability') and attacker.ability.get("trigger") == "when_attacking":
             if attacker.ability.get("name") == "Bravest of the Brave":
@@ -551,6 +554,43 @@ class CombatResolver:
         if defender_forced_retreat:
             retreat_message += f"\n\n⚠️ {defender.name}'s troops are BROKEN (morale {int(defender.morale)}%)! FORCED RETREAT!"
 
+        # Victory flags (used by pursuit, recklessness, and result dict)
+        attacker_won = outcome in ["attacker_victory", "attacker_tactical_victory"]
+        attacker_lost = outcome in ["defender_victory", "defender_tactical_victory", "mutual_destruction"]
+
+        # ════════════════════════════════════════════════════════════
+        # PURSUIT DAMAGE: Attacker abilities that punish retreating enemies
+        # Blucher "Vorwärts!" — 3k extra casualties on retreat
+        # Uxbridge "Pursuit Master" — 5k extra casualties on retreat (cavalry)
+        # Only fires when defender is forced to retreat. Floor at 1000 strength.
+        # If multiple pursuit abilities somehow apply, use highest only.
+        # ════════════════════════════════════════════════════════════
+        pursuit_damage = 0
+        pursuit_message = None
+        if defender_forced_retreat and attacker_won:
+            attacker_ability_name = ""
+            if hasattr(attacker, 'ability'):
+                attacker_ability_name = attacker.ability.get("name", "")
+
+            if attacker_ability_name == "Pursuit Master" and getattr(attacker, 'cavalry', False):
+                pursuit_damage = 5000
+                pursuit_message = f"🐴 {attacker.name}'s '{attacker.ability['name']}' — cavalry runs down the retreating enemy! (+{pursuit_damage:,} pursuit casualties)"
+            elif attacker_ability_name == "Vorwärts!":
+                pursuit_damage = 3000
+                pursuit_message = f"⚔️ {attacker.name}'s '{attacker.ability['name']}' — relentless pursuit inflicts extra casualties! (+{pursuit_damage:,} pursuit casualties)"
+
+            if pursuit_damage > 0 and defender.strength > 0:
+                old_strength = defender.strength
+                defender.strength = max(1000, defender.strength - pursuit_damage)
+                actual_pursuit = old_strength - defender.strength
+                if actual_pursuit > 0:
+                    defender_casualties += actual_pursuit
+                    retreat_message += f"\n\n{pursuit_message}"
+                else:
+                    # Defender already at or below floor
+                    pursuit_damage = 0
+                    pursuit_message = None
+
         # ════════════════════════════════════════════════════════════
         # CAVALRY RECKLESSNESS (Phase 3): Update attacker's recklessness
         # - Increment on attack WIN (not glorious_charge, which resets)
@@ -558,8 +598,6 @@ class CombatResolver:
         # - Glorious charge resets are handled in executor._execute_glorious_charge
         # ════════════════════════════════════════════════════════════
         recklessness_message = None
-        attacker_won = outcome in ["attacker_victory", "attacker_tactical_victory"]
-        attacker_lost = outcome in ["defender_victory", "defender_tactical_victory", "mutual_destruction"]
 
         if hasattr(attacker, 'is_reckless_cavalry') and attacker.is_reckless_cavalry:
             old_recklessness = getattr(attacker, 'recklessness', 0)
@@ -600,9 +638,16 @@ class CombatResolver:
         fortification_degraded = False
         fortification_old = 0.0
         fortification_new = 0.0
+        drouot_ability_message = None
         if getattr(defender, 'defense_bonus', 0) > 0:
             fortification_old = defender.defense_bonus
             degradation_amount = 0.10 if getattr(attacker, 'artillery', False) else 0.05
+            # Drouot's "Sage of the Grand Army": +5% fort degradation on attack
+            if (hasattr(attacker, 'ability')
+                    and attacker.ability.get("name") == "Sage of the Grand Army"
+                    and attacker.ability.get("trigger") == "when_attacking_fortified"):
+                degradation_amount = 0.15
+                drouot_ability_message = f"{attacker.name}'s '{attacker.ability['name']}' — precise artillery fire degrades fortifications faster!"
             defender.defense_bonus = max(0, round(defender.defense_bonus - degradation_amount, 2))
             fortification_new = defender.defense_bonus
             fortification_degraded = True
@@ -656,6 +701,11 @@ class CombatResolver:
             "fortification_degraded": fortification_degraded,
             "fortification_old": fortification_old,
             "fortification_new": fortification_new,
+            # Drouot ability (Phase 6.5: Marshal abilities wiring)
+            "drouot_ability_triggered": drouot_ability_message,
+            # Pursuit damage (Phase 6.5: Blucher/Uxbridge abilities)
+            "pursuit_damage": int(pursuit_damage),
+            "pursuit_message": pursuit_message,
         }
         result_dict["battle_report"] = generate_battle_report(result_dict)
 
