@@ -2278,3 +2278,71 @@ Manpower pools are displayed permanently in the Godot status bar alongside Turn,
 | `main.gd` | `_apply_manpower()`, `_update_manpower_display()`, 10 update sites |
 | `llm_client.py` | Optional `requested_type` extraction for soft correction |
 | `schemas.py` | `requested_type` field on ParseResult |
+
+
+## 11. Campaign Log
+
+Fog-filtered event log overlay (Phase 6.5). Player can browse all narrative events grouped by turn.
+
+### Event Types (14)
+
+| Category | Types |
+|----------|-------|
+| Combat | `battle`, `bombardment`, `retreat`, `marshal_broken`, `marshal_recovered` |
+| Territory | `region_captured` |
+| Economy | `recruitment`, `building_started`, `building_completed`, `building_damaged`, `bankruptcy`, `desertion` |
+| Command | `objection`, `strategic_order` |
+
+### Fog Filtering Rules
+
+| Event type | Rule |
+|-----------|------|
+| Player-nation events | Always shown |
+| `objection`, `strategic_order` | Always shown (player-generated) |
+| `battle`, `bombardment` | Player marshal involved OR region FULL visibility |
+| `retreat`, `marshal_broken`, `marshal_recovered` | Player marshal involved OR region PARTIAL+ |
+| `region_captured` (enemy) | Region PARTIAL+ |
+| `bankruptcy` | Always shown (public knowledge) |
+| Economy events (enemy) | Region PARTIAL+ |
+| `intel_updated`, `intel_decayed`, `target_not_found` | Never shown (not in whitelist) |
+
+### One-Liner Format
+
+All one-liners include nation tags on marshal names: `Ney (France)`, `Wellington (Britain)`.
+Missing nation fields gracefully omit the tag.
+
+| Type | Format |
+|------|--------|
+| battle | `Ney (France) attacked Wellington (Britain) at Waterloo — Ney victory (8,000 / 5,000 casualties)` |
+| bombardment | `Drouot (France) bombarded Waterloo — 3,000 casualties` |
+| retreat | `Wellington (Britain) retreated from Waterloo to Brussels` |
+| marshal_broken | `Wellington (Britain) was broken at Waterloo` |
+| marshal_recovered | `Wellington (Britain) recovered at Brussels` |
+| region_captured | `Brussels captured by France (secure)` |
+| recruitment | `Ney (France) recruited 5,000 infantry` |
+| building_started | `Construction started: Stables in Paris` |
+| building_completed | `Construction complete: Stables in Paris` |
+| building_damaged | `Building damaged: Stables in Waterloo` |
+| bankruptcy | `Britain treasury bankrupt — desertion imminent` |
+| desertion | `Desertion: Wellington (Britain) lost 2,000 troops` |
+| objection | `Ney objected to attack (overruled)` |
+| strategic_order | `Ney ordered to move to Brussels` |
+
+### Godot Overlay
+
+- Toggle: L key or LOG button. Close: Esc or click outside.
+- CanvasLayer 102 (above pause menu 101).
+- Turn headers expand/collapse on click. Most recent turn expanded by default.
+- Empty turns (0 events after fog filtering) hidden.
+- Turn 0 displayed as "Turn 0 — Setup".
+- Category-colored BBCode icons: combat (gold X), territory (green >), economy (warm $), command (lavender !).
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `backend/campaign_log.py` | Type whitelist, fog filter, category map, one-liner formatter |
+| `backend/main.py` | `GET /campaign_log` endpoint (groups by turn, strips battle_report, int wrapping) |
+| `godot-client/.../campaign_log.gd` | Overlay UI, expand/collapse, BBCode rendering |
+| `godot-client/.../campaign_log.tscn` | Scene layout |
+| `tests/test_campaign_log.py` | 57 tests (whitelist, fog, format, defaults, endpoint) |

@@ -46,6 +46,29 @@ All major Phase 6 features shipped:
 
 ## Recent Sessions
 
+### Feb 20 (Campaign Log Polish — Phase 6.5)
+
+**Fixed expand/collapse bug, added nation tags to one-liners, improved event formatting.**
+
+**Godot fix (campaign_log.gd):**
+- **Expand/collapse bug:** `queue_free()` on re-open left dying nodes in tree, causing name collisions. New nodes got auto-renamed, so `get_node_or_null()` found the wrong (dying) container. Fix: `remove_child()` before `queue_free()` so names are immediately freed.
+- **Empty turn hiding:** Turns with 0 visible events after fog filtering are now skipped entirely.
+- **Turn 0 display:** Shows "Turn 0 — Setup" instead of plain "Turn 0".
+
+**One-liner formatting (campaign_log.py):**
+- **Nation tags on all marshal names:** `Ney (France) attacked Wellington (Britain)` — player can identify friend/foe at a glance without memorizing rosters. Uses `_name_tag()` helper; graceful fallback when nation field is missing.
+- **Battle:** Now shows both sides' casualties: `(8,000 / 5,000 casualties)` instead of just attacker losses.
+- **Retreat:** Includes destination: `retreated from Waterloo to Paris`.
+- **Marshal recovered:** Includes location when available.
+- **Region captured:** Shows method: `Brussels captured by France (secure)`.
+- **Objection:** Shows action and resolution: `Ney objected to attack (overruled)`.
+- **Strategic order:** Humanized order type: `move to` instead of `MOVE_TO`.
+
+**Endpoint (main.py):**
+- Empty turns (0 events) filtered from response before sending to Godot.
+
+**Tests:** 3063 passing (57 campaign log, updated assertions), 3 skipped. Zero regressions.
+
 ### Feb 20 (Campaign Log — Phase 6.5)
 
 **Fog-filtered campaign event log with Godot overlay. Player can browse all narrative events grouped by turn.**

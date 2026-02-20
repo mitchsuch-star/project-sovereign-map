@@ -58,9 +58,12 @@ func close_log():
 
 func _on_campaign_log_received(response):
 	"""Build the turn-grouped event list from backend response."""
-	# Clear previous entries (keep empty_label as template)
-	for child in turn_list.get_children():
+	# Clear previous entries — remove_child BEFORE queue_free to avoid
+	# name collisions on re-open (queue_free doesn't remove immediately)
+	var children_snapshot = turn_list.get_children()
+	for child in children_snapshot:
 		if child != empty_label:
+			turn_list.remove_child(child)
 			child.queue_free()
 
 	if not response.get("success", false):
@@ -87,11 +90,16 @@ func _on_campaign_log_received(response):
 		var events = turn_block.get("events", [])
 		var event_count = events.size()
 
+		# Hide empty turns (0 visible events after fog filtering)
+		if event_count == 0:
+			continue
+
 		turn_data[turn_num] = events
 
-		# Turn header button
+		# Turn header button — Turn 0 shows as "Setup"
 		var header_btn = Button.new()
-		header_btn.text = "Turn %d  —  %d event%s" % [turn_num, event_count, "" if event_count == 1 else "s"]
+		var turn_label = "Turn 0 — Setup" if turn_num == 0 else "Turn %d" % turn_num
+		header_btn.text = "%s  —  %d event%s" % [turn_label, event_count, "" if event_count == 1 else "s"]
 		header_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		header_btn.add_theme_color_override("font_color", Color(0.85, 0.75, 0.55, 1))
 		header_btn.add_theme_color_override("font_hover_color", Color(1, 0.95, 0.75, 1))

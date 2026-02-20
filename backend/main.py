@@ -1295,8 +1295,10 @@ def get_campaign_log():
             "category": CATEGORY_MAP.get(event.get("type", ""), "unknown"),
         })
 
+    # Hide empty turns (0 visible events after fog filtering)
     sorted_turns = [{"turn": int(t), "events": evts}
-                    for t, evts in sorted(turns.items(), reverse=True)]
+                    for t, evts in sorted(turns.items(), reverse=True)
+                    if evts]
     return {"turns": sorted_turns, "current_turn": int(world.current_turn)}
 
 

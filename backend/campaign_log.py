@@ -192,12 +192,20 @@ def filter_campaign_log(event_log: list, world_state) -> list:
     return filtered
 
 
+def _name_tag(name: str, nation: str) -> str:
+    """Format 'Name (Nation)' when nation is available, else just 'Name'."""
+    if nation:
+        return f"{name} ({nation})"
+    return name
+
+
 def format_event_oneliner(event: dict) -> str:
     """
     Produce a human-readable one-liner for a campaign log event.
 
     Uses .get() with safe defaults throughout — missing fields produce
-    graceful degradation rather than crashes.
+    graceful degradation rather than crashes.  Nation tags are appended
+    to marshal names so the player can identify friend/foe at a glance.
 
     Args:
         event: A single event dict from the event log
@@ -209,50 +217,72 @@ def format_event_oneliner(event: dict) -> str:
 
     if event_type == "battle":
         attacker = event.get("attacker", "Unknown")
+        atk_nation = event.get("attacker_nation", "")
         defender = event.get("defender", "Unknown")
+        def_nation = event.get("defender_nation", "")
         location = event.get("location", "unknown location")
         outcome = event.get("outcome", "")
-        casualties = event.get("attacker_casualties", 0)
+        atk_cas = event.get("attacker_casualties", 0)
+        def_cas = event.get("defender_casualties", 0)
         if outcome == "attacker_wins":
             result = f"{attacker} victory"
         elif outcome == "defender_wins":
             result = f"{defender} victory"
         else:
             result = "draw"
-        return f"{attacker} attacked {defender} at {location} — {result} (lost {casualties:,})"
+        return (f"{_name_tag(attacker, atk_nation)} attacked "
+                f"{_name_tag(defender, def_nation)} at {location} — "
+                f"{result} ({atk_cas:,} / {def_cas:,} casualties)")
 
     if event_type == "bombardment":
         attacker = event.get("attacker", "Unknown")
+        atk_nation = event.get("attacker_nation", "")
         location = (event.get("defender_location")
                     or event.get("attacker_location")
                     or "unknown location")
         defender_casualties = event.get("defender_casualties", 0)
-        return f"{attacker} bombarded {location} — {defender_casualties:,} casualties"
+        return (f"{_name_tag(attacker, atk_nation)} bombarded {location} — "
+                f"{defender_casualties:,} casualties")
 
     if event_type == "retreat":
         marshal = event.get("marshal", "Unknown")
+        nation = event.get("nation", "")
         from_loc = event.get("from", "unknown")
-        return f"{marshal} retreated from {from_loc}"
+        to_loc = event.get("to", "")
+        tag = _name_tag(marshal, nation)
+        if to_loc:
+            return f"{tag} retreated from {from_loc} to {to_loc}"
+        return f"{tag} retreated from {from_loc}"
 
     if event_type == "marshal_broken":
         marshal = event.get("marshal", "Unknown")
+        nation = event.get("nation", "")
         location = event.get("location", "unknown location")
-        return f"{marshal} was broken at {location}"
+        return f"{_name_tag(marshal, nation)} was broken at {location}"
 
     if event_type == "marshal_recovered":
         marshal = event.get("marshal", "Unknown")
-        return f"{marshal} recovered"
+        nation = event.get("nation", "")
+        location = event.get("location", "")
+        tag = _name_tag(marshal, nation)
+        if location:
+            return f"{tag} recovered at {location}"
+        return f"{tag} recovered"
 
     if event_type == "region_captured":
         captured_by = event.get("captured_by", "Unknown")
         region = event.get("region", "unknown region")
-        return f"{captured_by} captured {region}"
+        method = event.get("method", "")
+        if method:
+            return f"{region} captured by {captured_by} ({method})"
+        return f"{region} captured by {captured_by}"
 
     if event_type == "recruitment":
         marshal = event.get("marshal", "Unknown")
+        nation = event.get("nation", "")
         amount = event.get("amount", 0)
         recruit_type = event.get("recruit_type", "infantry")
-        return f"{marshal} recruited {amount:,} {recruit_type}"
+        return f"{_name_tag(marshal, nation)} recruited {amount:,} {recruit_type}"
 
     if event_type == "building_started":
         building = (event.get("building") or "building").replace("_", " ").title()
@@ -275,19 +305,31 @@ def format_event_oneliner(event: dict) -> str:
 
     if event_type == "desertion":
         marshal = event.get("marshal", "Unknown")
+        nation = event.get("nation", "")
         amount = event.get("amount", 0)
-        return f"Desertion: {marshal} lost {amount:,} troops"
+        return f"Desertion: {_name_tag(marshal, nation)} lost {amount:,} troops"
 
     if event_type == "objection":
         marshal = event.get("marshal", "Unknown")
+        action = event.get("action", "")
+        resolution = event.get("resolution", "")
+        if action and resolution:
+            return f"{marshal} objected to {action} ({resolution})"
+        if action:
+            return f"{marshal} objected to {action}"
         return f"{marshal} objected to order"
 
     if event_type == "strategic_order":
         marshal = event.get("marshal", "Unknown")
         order_type = event.get("order_type", "UNKNOWN")
+        # Human-readable order type (MOVE_TO → "move to", HOLD → "hold", etc.)
+        display_order = {
+            "MOVE_TO": "move to", "HOLD": "hold",
+            "SUPPORT": "support", "PURSUE": "pursue",
+        }.get(order_type, order_type.lower().replace("_", " "))
         destination = event.get("destination", "")
         if destination:
-            return f"{marshal} ordered to {order_type} {destination}"
-        return f"{marshal} ordered to {order_type}"
+            return f"{marshal} ordered to {display_order} {destination}"
+        return f"{marshal} ordered to {display_order}"
 
     return f"Event: {event_type}"

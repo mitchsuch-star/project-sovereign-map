@@ -350,13 +350,14 @@ class TestOneLinerFormatting:
     def test_battle_attacker_wins(self):
         event = {
             "type": "battle", "attacker": "Ney", "defender": "Wellington",
+            "attacker_nation": "France", "defender_nation": "Britain",
             "location": "Waterloo", "outcome": "attacker_wins",
-            "attacker_casualties": 8000,
+            "attacker_casualties": 8000, "defender_casualties": 5000,
         }
         result = format_event_oneliner(event)
-        assert "Ney attacked Wellington at Waterloo" in result
+        assert "Ney (France) attacked Wellington (Britain) at Waterloo" in result
         assert "Ney victory" in result
-        assert "8,000" in result
+        assert "8,000 / 5,000 casualties" in result
 
     def test_battle_defender_wins(self):
         event = {
@@ -386,14 +387,16 @@ class TestOneLinerFormatting:
         assert "3,000" in result
 
     def test_retreat(self):
-        event = {"type": "retreat", "marshal": "Ney", "from": "Waterloo", "to": "Paris"}
+        event = {"type": "retreat", "marshal": "Ney", "nation": "France",
+                 "from": "Waterloo", "to": "Paris"}
         result = format_event_oneliner(event)
-        assert "Ney retreated from Waterloo" in result
+        assert "Ney (France) retreated from Waterloo to Paris" in result
 
     def test_marshal_broken(self):
-        event = {"type": "marshal_broken", "marshal": "Ney", "location": "Waterloo"}
+        event = {"type": "marshal_broken", "marshal": "Ney", "nation": "France",
+                 "location": "Waterloo"}
         result = format_event_oneliner(event)
-        assert "Ney was broken at Waterloo" in result
+        assert "Ney (France) was broken at Waterloo" in result
 
     def test_marshal_recovered(self):
         event = {"type": "marshal_recovered", "marshal": "Ney"}
@@ -403,12 +406,13 @@ class TestOneLinerFormatting:
     def test_region_captured(self):
         event = {"type": "region_captured", "captured_by": "France", "region": "Brussels"}
         result = format_event_oneliner(event)
-        assert "France captured Brussels" in result
+        assert "Brussels captured by France" in result
 
     def test_recruitment(self):
-        event = {"type": "recruitment", "marshal": "Ney", "amount": 5000, "recruit_type": "infantry"}
+        event = {"type": "recruitment", "marshal": "Ney", "nation": "France",
+                 "amount": 5000, "recruit_type": "infantry"}
         result = format_event_oneliner(event)
-        assert "Ney recruited 5,000 infantry" in result
+        assert "Ney (France) recruited 5,000 infantry" in result
 
     def test_building_started(self):
         event = {"type": "building_started", "building": "stables", "region": "Paris"}
@@ -431,9 +435,9 @@ class TestOneLinerFormatting:
         assert "France treasury bankrupt" in result
 
     def test_desertion(self):
-        event = {"type": "desertion", "marshal": "Ney", "amount": 2000}
+        event = {"type": "desertion", "marshal": "Ney", "nation": "France", "amount": 2000}
         result = format_event_oneliner(event)
-        assert "Ney lost 2,000 troops" in result
+        assert "Ney (France) lost 2,000 troops" in result
 
     def test_objection(self):
         event = {"type": "objection", "marshal": "Ney"}
@@ -444,13 +448,13 @@ class TestOneLinerFormatting:
         event = {"type": "strategic_order", "marshal": "Ney",
                  "order_type": "MOVE_TO", "destination": "Brussels"}
         result = format_event_oneliner(event)
-        assert "Ney ordered to MOVE_TO Brussels" in result
+        assert "Ney ordered to move to Brussels" in result
 
     def test_strategic_order_without_destination(self):
         event = {"type": "strategic_order", "marshal": "Ney",
                  "order_type": "HOLD", "destination": ""}
         result = format_event_oneliner(event)
-        assert "Ney ordered to HOLD" in result
+        assert "Ney ordered to hold" in result
         assert "Brussels" not in result
 
     def test_unknown_type_fallback(self):
@@ -470,6 +474,7 @@ class TestSafeDefaults:
         event = {"type": "battle"}
         result = format_event_oneliner(event)
         assert "Unknown" in result
+        assert "casualties" in result
 
     def test_bombardment_missing_fields(self):
         event = {"type": "bombardment"}
@@ -484,7 +489,7 @@ class TestSafeDefaults:
     def test_region_captured_missing_fields(self):
         event = {"type": "region_captured"}
         result = format_event_oneliner(event)
-        assert "captured" in result
+        assert "captured by" in result
 
     def test_recruitment_missing_fields(self):
         event = {"type": "recruitment"}
