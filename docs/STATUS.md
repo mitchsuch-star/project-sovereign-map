@@ -11,7 +11,7 @@
 |--------|-------|
 | **Tests Passing** | **2987** (verified, 3 skipped, 1 flaky) |
 
-| **Current Phase** | Phase 6.5 **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, 10 items remaining). **Phase 7 Spec COMPLETE** — Multi-Marshal Coordination (Sessions 57-65, ~340 new tests). See `MULTI_MARSHAL_SPEC.md`. Remaining 6.5: Notification System, Strategic Ledger, Marshal Management UI, Campaign Log, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer, Wire Marshal Abilities |
+| **Current Phase** | Phase 6.5 **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, 10 items remaining). **Phase 7 Spec COMPLETE** — Multi-Marshal Coordination (Sessions 57-66, ~340 new tests). See `MULTI_MARSHAL_SPEC.md`. Remaining 6.5: Notification System, Strategic Ledger, Marshal Management UI, Campaign Log, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer, Wire Marshal Abilities |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -20,8 +20,8 @@
 ## Next Steps
 
 1. **Phase 6.5 remaining** — Notification System, Strategic Ledger, Marshal Management UI, Campaign Log, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer, Wire Marshal Abilities
-2. **Phase 7: Multi-Marshal Coordination** — Spec COMPLETE (`MULTI_MARSHAL_SPEC.md`). Sessions 57-65. "Position IS Coordination" — automatic positional bonuses, combined arms, relationship-scaled coordination, adjacent reinforcement, casualty distribution, AI P4.6 coordinated attacks, Godot UI. ~340 new tests. First session: Combined Arms Detection (S57).
-3. **Phase 7b (deferred from 7):** Square Formation, Artillery SUPPORT auto-bombardment, V2b Defiance/Vindication, Jealousy system, Coalition Trigger, Gneisenau Staff Work (1805 only).
+2. **Phase 7: Multi-Marshal Coordination** — Spec COMPLETE (`MULTI_MARSHAL_SPEC.md`). Sessions 57-66 (10 sessions). "Position IS Coordination" — combined arms (+10-20%), relationship-scaled coordination (+3%/+5% per ally), dedicated coordination (+5%/+5% from co-location or SUPPORT), adjacent support (+2% per adjacent), reinforcement (Grouchy Rule), casualty distribution (proportional), AI P4.6 coordinated attacks, win/loss relationship formula, Godot UI. ~340 new tests. Hard cap: +25% atk/+20% def. Highest risk: Sessions 61 (reinforcement) and 62 (casualty distribution). First session: Combined Arms Detection (S57).
+3. **Phase 7b (deferred from 7):** Tactical Triangle Completion (Square Formation + Artillery SUPPORT auto-bombardment + Artillery Overwatch — linked group, ship together), V2b Defiance/Vindication, Jealousy system, Coalition Trigger, Gneisenau Staff Work (1805 only).
 
 ---
 

@@ -32,8 +32,8 @@ Bombardment system (Sessions 48-52), Pause menu (Session 56: Smart Esc, modal ov
 ### Up Next
 
 - **Phase 6.5 remaining:** Notification System, Strategic Ledger, Marshal Management UI, Campaign Log, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer, Wire Marshal Abilities
-- **Phase 7: Multi-Marshal Coordination** — Spec COMPLETE (`docs/MULTI_MARSHAL_SPEC.md`). Sessions 57-65. Combined arms, coordination bonuses, SUPPORT enhancement, adjacent reinforcement, casualty distribution, AI P4.6, Godot UI. ~340 new tests.
-- **Phase 7b (deferred):** Square Formation, Artillery SUPPORT auto-bombardment, V2b, Jealousy, Coalition Trigger, Gneisenau Staff Work (1805)
+- **Phase 7: Multi-Marshal Coordination** — Spec COMPLETE (`docs/MULTI_MARSHAL_SPEC.md`). Sessions 57-66 (10 sessions). Combined arms, coordination bonuses, dedicated coordination (co-location + SUPPORT), adjacent support, reinforcement (Grouchy Rule), casualty distribution, AI P4.6, win/loss relationships, battle reports, Godot UI. ~340 new tests. Hard cap: +25% atk/+20% def.
+- **Phase 7b (deferred):** Tactical Triangle (Square Formation + Artillery SUPPORT auto-bombardment + Artillery Overwatch — linked group), V2b, Jealousy, Coalition Trigger, Gneisenau Staff Work (1805)
 
 See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 

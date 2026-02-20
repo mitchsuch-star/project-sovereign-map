@@ -14,8 +14,8 @@
 | **V2a** | **Objection System Refactor** | **COMPLETE** |
 | **6** | **Core Campaign Systems** | **COMPLETE** |
 | **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE Sessions 48-52, Pause Menu COMPLETE Session 56) |
-| **7** | **Multi-Marshal Coordination** | **Spec COMPLETE** — see `MULTI_MARSHAL_SPEC.md`. Sessions 57-65. |
-| 7b | Square Formation, V2b, Coalition, Jealousy | Planned (deferred from 7) |
+| **7** | **Multi-Marshal Coordination** | **Spec COMPLETE** — see `MULTI_MARSHAL_SPEC.md`. Sessions 57-66. |
+| 7b | Tactical Triangle, V2b, Coalition, Jealousy | Planned (deferred from 7) |
 | 8 | Diplomacy & Peace | Planned |
 | 8.5 | Events, Goals & National Identity | Planned |
 | -- | **STEAM PAGE + LLC** | **After 8.5** |
@@ -186,31 +186,43 @@ Wire ~80-100 provinces for EA v1. Remaining provinces from the 120-150 in the ar
 
 **Goal:** "Position IS Coordination" — automatic positional bonuses make multi-marshal positioning the core strategic skill. Relationships have real mechanical impact. AI coordinates deliberately.
 
-**Design Principle:** All coordination bonuses are automatic and positional. No new command syntax. Building Blocks principle — enemy AI benefits identically from the same passive bonuses. See `docs/MULTI_MARSHAL_SPEC.md` for full spec.
+**Design Principle:** All coordination bonuses are automatic and positional. No new command syntax. Building Blocks principle — enemy AI benefits identically from the same passive bonuses. See `docs/MULTI_MARSHAL_SPEC.md` for full spec (20 sections, all design decisions locked).
 
-| Feature | Description | Complexity | Sessions | Status |
-|---------|-------------|------------|----------|--------|
-| **Combined arms bonus** | 2/3 unit types: +10% atk/+5% def. 3/3: +20%/+10%. Not relationship-scaled. | Medium | 57 | Planned |
-| **Coordination bonus** | +3% atk/+5% def per same-region ally. Relationship-scaled (Hostile 0% → Devoted 150%). | Medium | 58 | Planned |
-| **SUPPORT order enhancement** | Flat +5%/+5% for explicit SUPPORT. Relationship trajectory effects. SUPPORT objections for hostile/rival. | Medium | 59 | Planned |
-| **Adjacent reinforcement** | Deterministic arrival score (logistics + relationship + terrain ± variance). Physical relocation. Works on defense. | High | 60 | Planned |
-| **Casualty distribution** | Same-region proportional, SUPPORT half-proportional, reinforcement 50%. Hostile 0%. | Medium | 61 | Planned |
-| **AI P4.6: Coordinated attack** | Proactive pincer positioning. Combined arms grouping. Coordination-aware attack assessment. | High | 62 | Planned |
-| **Battle reports & Berthier** | 7 coordination observation categories. Pre-battle coordination preview. | Medium | 63 | Planned |
-| **Godot coordination UI** | Relationship tooltips, coordination preview, battle report integration. | Medium | 64 | Planned |
-| **Integration audit** | Cross-system audit, edge cases, doc updates. ~340 new tests total. | Low | 65 | Planned |
+**Architecture:** Coordination bonuses flow through transient fields on Marshal, read by `get_attack_modifier()` / `get_defense_modifier()` (Golden Rule #1). `combat.py` reads them, never recalculates. AI earns bonuses through co-location duration (not strategic commands it cannot issue).
+
+| Session | Feature | Description | Complexity | Tests | Status |
+|---------|---------|-------------|------------|-------|--------|
+| **57** | **Combined arms** | 1/3=0%, 2/3=+10%/+5%, 3/3=+20%/+10%. Unit type diversity, NOT relationship-scaled. | Medium | ~35 | Planned |
+| **58** | **Coordination bonus + hard cap** | +3% atk/+5% def per ally, relationship-scaled (Hostile 0%→Devoted 150%). Hard cap: +25% atk/+20% def. | Medium | ~35 | Planned |
+| **59** | **Dedicated coordination + co-location** | +5%/+5% flat from 2-turn co-location (both sides) OR SUPPORT order (player, immediate). New serialized fields. | Medium | ~30 | Planned |
+| **60** | **Adjacent support bonus** | +2% atk per adjacent friendly marshal. Not relationship-scaled. | Low | ~20 | Planned |
+| **61** | **Adjacent reinforcement** | The Grouchy Rule. Deterministic arrival score. Physical relocation. Defense works. **HIGHEST RISK.** | High | ~45 | Planned |
+| **62** | **Casualty distribution** | `resolve_battle(apply_casualties=False)`. Proportional by strength. Hostile = 0%. **SECOND HIGHEST RISK.** | High | ~40 | Planned |
+| **63** | **AI enhancements** | P4.6 coordinated attack, P4.75 mod, P4.76 co-location persistence, P4.77 cross-nation, P4.78 defensive positioning. | High | ~35 | Planned |
+| **64** | **Win/loss relationships** | Shared battle → relationship check. Severity-scaled. 3-turn cooldown. Rivalry Resolved (natural from formula). | Medium | ~25 | Planned |
+| **65** | **Battle reports & Berthier** | 5 coordination observation categories. Pre-battle coordination preview. Coordination messages. | Medium | ~25 | Planned |
+| **66** | **Godot UI + integration audit** | Tooltips, tutorial popup, display formatting, cross-system audit, doc updates. ~340 new tests total. | Medium | ~50 | Planned |
+
+**Key formulas:** Combined arms (type count), Coordination (per-ally × relationship scaling), Arrival score (logistics 5/turn + relationship ±20 + terrain ±10 + personality ±5 ± variance, threshold >60), Casualty distribution (proportional by strength, 2 tiers).
 
 ### Phase 7b (Deferred from Phase 7)
 
 Items that build on coordination data but are NOT in the Phase 7 spec:
 
+**Linked Group — Tactical Triangle Completion (must ship together):**
+
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| **Square formation** | Infantry anti-cavalry stance (-40% cav dmg), vulnerable to artillery (+50%). Completes tactical triangle. | Medium | Deferred |
-| **Artillery SUPPORT auto-bombardment** | Artillery on SUPPORT auto-bombards before supported marshal's combat. Pairs with square formation. | Medium | Deferred (TODO) |
+| **Square Formation** | Infantry anti-cavalry stance (-40% cav dmg), vulnerable to artillery (+50%). Completes tactical triangle. | Medium | Deferred |
+| **Artillery SUPPORT auto-bombardment** | Artillery on SUPPORT auto-bombards before supported marshal's combat. Pairs with square formation. | Medium | Deferred |
+| **Artillery Overwatch** | Passive -3% attack debuff on enemies in same region as friendly artillery. | Low | Deferred |
+
+**Other deferred items:**
+
+| Feature | Description | Complexity | Status |
+|---------|-------------|------------|--------|
 | **V2b: Defiance/Vindication** | STRONG/EXTREME concerns trigger defiance. See OBJECTION_V2.md. Scaffolding from V2a ready. | Medium | Deferred |
-| **Jealousy system** | Marshal getting all glory → others resent. Needs multi-marshal battle data. | Medium | Deferred |
-| **Rivalry resolved event** | Rival marshals fight successfully → trust boost. Needs multi-marshal battle data. | Low | Deferred |
+| **Jealousy system** | Marshal getting all glory → others resent. Needs multi-marshal battle data from Phase 7. | Medium | Deferred |
 | **Coalition Trigger** | Threat level ticks up → war declarations. Core "France can't steamroll" mechanic. | Medium | Deferred |
 | **Gneisenau Staff Work** | +10% ally bonus — Coalition-specific advantage. Deferred to 1805 full campaign. | Low | Deferred (1805) |
 
@@ -631,7 +643,7 @@ Lighter version of communication cutoff: orders to distant marshals take effect 
 4. **Commission Europe map art** (2-4 week lead time, parallel with Phase 6)
 5. Phase 6: Economy, Manpower, Terrain, Fog, **Save/Load**, **Berthier**, **Post-battle analysis**
 6. Phase 6.5: Notifications, Ledger, Marshal UI, **Campaign Briefing**, **Marshal Report**, **Tutorial infra**, **Map Renderer**
-7. Phase 7: Multi-Marshal Coordination (Sessions 57-65), then Phase 7b: Square Formation, V2b, Coalition Trigger
+7. Phase 7: Multi-Marshal Coordination (Sessions 57-66, ~340 tests), then Phase 7b: Tactical Triangle (Square/Artillery SUPPORT/Overwatch), V2b, Coalition Trigger
 8. Phase 8: **Diplomacy Chat**, Peace Treaties, Leader Personalities
 9. Phase 8.5: **Events, Gazette, Marshal Voice, Grouchy LLM, Intercepted Dispatches, Creative Commands, Napoleon Comparison**
 10. **STEAM PAGE + LLC** (marshal voice, gazette, audio, EU4 map all working)

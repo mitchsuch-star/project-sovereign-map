@@ -1,1114 +1,1614 @@
-# Phase 7: Multi-Marshal Coordination Spec
+# Phase 7: Multi-Marshal Coordination — Implementation Spec
 
-> **Design Principle: "Position IS Coordination"**
-> All coordination bonuses are automatic and positional. No new command syntax.
-> The player's skill is maneuvering marshals into position. The AI's skill is its positioning logic.
-> Both benefit identically from the same passive bonuses — Building Blocks principle.
-
+> **Status:** FINAL IMPLEMENTATION SPEC
+> **Sessions:** 57-66 (10 sessions)
+> **Est. New Tests:** ~340
+> **Baseline Tests:** 2987 (pre-Phase 7)
 > **Last Updated:** February 19, 2026
-> **Phase:** 7 — Multi-Marshal Coordination
-> **Sessions:** 57–65 (estimated 9 sessions)
 
 ---
 
 ## Table of Contents
 
-1. [Design Summary](#1-design-summary)
-2. [Combined Arms Bonus](#2-combined-arms-bonus)
+1. [Design Principles](#1-design-principles)
+2. [Combined Arms Detection](#2-combined-arms-detection)
 3. [Coordination Bonus](#3-coordination-bonus)
-4. [SUPPORT Order Enhancement](#4-support-order-enhancement)
-5. [Adjacent Reinforcement](#5-adjacent-reinforcement)
-6. [Casualty Distribution](#6-casualty-distribution)
-7. [Supply Interaction](#7-supply-interaction)
-8. [AI Coordination — P4.6](#8-ai-coordination--p46)
-9. [Battle Reports & UI](#9-battle-reports--ui)
-10. [Session Plan](#10-session-plan)
-11. [Deferred Items](#11-deferred-items)
-12. [Gotchas & Implementation Notes](#12-gotchas--implementation-notes)
+4. [Dedicated Coordination Bonus](#4-dedicated-coordination-bonus)
+5. [Adjacent Support Bonus](#5-adjacent-support-bonus)
+6. [SUPPORT Strategic Objection](#6-support-strategic-objection)
+7. [Adjacent Reinforcement](#7-adjacent-reinforcement)
+8. [Casualty Distribution](#8-casualty-distribution)
+9. [Win/Loss Relationship Formula](#9-winloss-relationship-formula)
+10. [AI Enhancements](#10-ai-enhancements)
+11. [Coordination Preview & Battle Reports](#11-coordination-preview--battle-reports)
+12. [Godot UI: Tooltips, Readiness, Display](#12-godot-ui-tooltips-readiness-display)
+13. [Supply Interaction](#13-supply-interaction)
+14. [Popup & Information Architecture](#14-popup--information-architecture)
+15. [Implementation Sessions](#15-implementation-sessions)
+16. [Files Touched](#16-files-touched)
+17. [Golden Rules & Gotchas](#17-golden-rules--gotchas)
+18. [Deferred Items](#18-deferred-items)
+19. [Phase 6.5 Sequencing](#19-phase-65-sequencing)
+20. [Glossary](#20-glossary)
 
 ---
 
-## 1. Design Summary
+## 1. Design Principles
+
+### Position IS Coordination
+
+All coordination bonuses are **automatic and positional**. No new command syntax. The player types "Ney, attack Wellington" and gets bonuses if they positioned well. Zero new commands to learn.
 
 ### Bonus Hierarchy
 
-| Priority | Bonus | Source | Relationship-Scaled? |
-|----------|-------|--------|---------------------|
-| **PRIMARY** | Combined arms | Unit type diversity in region | No |
-| **SECONDARY** | Coordination | Per-ally stat-based bonus | Yes |
-| **TERTIARY** | SUPPORT order | Flat bonus from explicit order | No (flat) |
+```
+PRIMARY:   Combined Arms  (+10-20% atk, +5-10% def) — unit type diversity
+SECONDARY: Coordination   (+3% atk / +5% def per ally) — relationship-scaled
+TERTIARY:  Dedicated Coordination (+5%/+5% flat) — time or AP investment
+ADJACENT:  Adjacent Support (+2% atk per adjacent ally) — positional pressure
 
-### Core Rules
+HARD CAP: +25% attack / +20% defense from ALL coordination sources combined
+          (combined arms + per-ally coordination + dedicated + adjacent)
+```
 
-- **Flanking** (attacks from different regions) and **coordination** (same-region stacking) are complementary opposites — both valid, no double-dipping concern.
-- A flanking attack CAN also benefit from coordination bonuses if allies are co-located with the attacker.
-- **Both sides** get coordination bonuses — attackers benefit from allies in their region, defenders benefit from allies in their region.
-- Broken, retreating, and retreat-recovering marshals contribute **nothing** to coordination or combined arms.
-- Garrison detachments (player or capital) do NOT count for combined arms or coordination.
+Flanking (different regions) and coordination (same region) are complementary **opposite** strategies. Both are valid. They never conflict — a marshal attacks from ONE region and gets bonuses from that context only.
+
+### Building Blocks
+
+Every coordination mechanic works identically for player and AI. Same formulas, same thresholds, same bonuses. The AI earns dedicated coordination through co-location duration, not through strategic commands it cannot issue.
+
+### Golden Rule #1 Compliance
+
+All coordination bonuses flow through `marshal.get_attack_modifier()` and `marshal.get_defense_modifier()` via transient fields. `combat.py` reads them, never recalculates. The single-source pattern is preserved.
 
 ---
 
-## 2. Combined Arms Bonus
+## 2. Combined Arms Detection
 
-### Design
+### Unit Types
 
-The tactical triangle: Infantry ↔ Cavalry ↔ Artillery. Having diverse unit types in the same region creates combined arms synergy. This is the **largest** coordination bonus and represents Napoleonic combined-arms doctrine.
+| Type | Current French | Current Coalition |
+|------|---------------|-------------------|
+| Infantry | Davout, Grouchy | Wellington, Blucher, Gneisenau |
+| Cavalry | Ney | Uxbridge |
+| Artillery | Drouot | PrinceAugust |
 
-### Detection Logic
+### Bonus Values
 
-For a given marshal about to fight, count the **distinct unit types** among all eligible friendly marshals in the same region (including the fighting marshal):
+| Types Present | Attack Bonus | Defense Bonus |
+|---------------|-------------|--------------|
+| 1 of 3 | +0% | +0% |
+| 2 of 3 | +10% | +5% |
+| 3 of 3 | +20% | +10% |
+
+### Rules
+
+- NOT relationship-scaled. Unit type diversity, not marshal opinions.
+- Check all non-broken, non-retreating, non-recovering same-nation marshals in region.
+- Unit type PRESENCE confers bonus even if that type isn't the one attacking/defending.
+- Garrison detachments (region property) do NOT count.
+- **Fortified marshals STILL count** toward unit type for combined arms. Their presence (type) matters, not their posture.
+
+### Implementation
 
 ```python
-def get_combined_arms_in_region(marshal, world):
-    """Count distinct unit types among eligible allies in marshal's region."""
+def _count_unit_types(self, region_name: str, nation: str, world: WorldState) -> int:
+    """Count distinct unit types among eligible marshals in a region."""
     types = set()
     for m in world.marshals.values():
-        if (m.location == marshal.location
-                and m.nation == marshal.nation
+        if (m.location == region_name
+                and m.nation == nation
                 and m.strength > 0
                 and not getattr(m, 'broken', False)
                 and not getattr(m, 'retreated_this_turn', False)
-                and not getattr(m, 'retreat_recovery', 0) > 0):
+                and getattr(m, 'retreat_recovery', 0) == 0):
             if getattr(m, 'artillery', False):
                 types.add('artillery')
             elif getattr(m, 'cavalry', False):
                 types.add('cavalry')
             else:
                 types.add('infantry')
-    return types
+    return len(types)
+
+def _get_combined_arms_bonus(self, type_count: int) -> tuple[float, float]:
+    """Returns (attack_bonus, defense_bonus) as decimals."""
+    if type_count >= 3:
+        return (0.20, 0.10)
+    elif type_count == 2:
+        return (0.10, 0.05)
+    return (0.0, 0.0)
 ```
 
-### Bonus Values
-
-| Unit Types Present | Attack Bonus | Defense Bonus |
-|-------------------|-------------|--------------|
-| 1 of 3 | +0% | +0% |
-| 2 of 3 | +10% | +5% |
-| 3 of 3 (all types) | +20% | +10% |
-
-### Rules
-
-- **NOT relationship-scaled** — unit types coordinate regardless of personal feelings between marshals.
-- Applies to **whoever is attacking/defending** from that region. A non-artillery marshal benefits from artillery presence.
-- Garrison detachments do NOT count toward combined arms (they're a regional property, not a marshal).
-- Broken, retreating, and retreat-recovering marshals do NOT count.
-- The fighting marshal's own type counts (a solo infantry marshal has 1 type present).
-
-### Implementation
-
-Combined arms bonus feeds into `get_attack_modifier()` and `get_defense_modifier()` via new transient fields set before combat:
+### Transient Fields (marshal.py)
 
 ```python
-# Set on marshal BEFORE combat resolution
-marshal.combined_arms_attack_bonus = 0.0   # 0.0, 0.10, or 0.20
-marshal.combined_arms_defense_bonus = 0.0  # 0.0, 0.05, or 0.10
+# Added to __init__ — NOT serialized
+self.combined_arms_attack_bonus: float = 0.0
+self.combined_arms_defense_bonus: float = 0.0
 ```
 
-These are transient — calculated fresh before each battle, never serialized.
+Applied in `get_attack_modifier()` and `get_defense_modifier()` via `getattr` with 0.0 default:
+
+```python
+# At END of get_attack_modifier(), before return:
+modifier *= (1.0 + getattr(self, 'combined_arms_attack_bonus', 0.0))
+```
 
 ---
 
 ## 3. Coordination Bonus
 
-### Design
+### Per-Ally Bonus
 
-Per-ally bonus for each friendly marshal in the same region. Scaled by the relationship between the fighting marshal and each supporting ally.
+For each eligible same-nation ally in the same region:
 
-### Bonus Values (Per Supporting Ally)
-
-| Bonus | Base Value |
-|-------|-----------|
+| Metric | Base Value |
+|--------|-----------|
 | Attack | +3% per ally |
 | Defense | +5% per ally |
 
 ### Relationship Scaling
 
-The relationship is **asymmetric** — what the fighting marshal thinks of the ally determines the scaling:
+The bonus scales by what the **fighting marshal** thinks of the ally:
 
-| Relationship | Value | Scaling | Attack (per ally) | Defense (per ally) |
-|---|---|---|---|---|
-| Hostile | -2 | 0% | +0% | +0% |
-| Rival | -1 | 50% | +1.5% | +2.5% |
-| Professional | 0 | 100% | +3% | +5% |
-| Friendly | +1 | 125% | +3.75% | +6.25% |
-| Devoted | +2 | 150% | +4.5% | +7.5% |
+| Relationship | Value | Scaling | Effective Attack | Effective Defense |
+|-------------|-------|---------|-----------------|------------------|
+| Hostile | -2 | 0.00 (0%) | +0% | +0% |
+| Rival | -1 | 0.50 (50%) | +1.5% | +2.5% |
+| Professional | 0 | 1.00 (100%) | +3% | +5% |
+| Friendly | +1 | 1.25 (125%) | +3.75% | +6.25% |
+| Devoted | +2 | 1.50 (150%) | +4.5% | +7.5% |
 
-### Scaling Formula
+### Eligibility Filters
 
-```python
-RELATIONSHIP_SCALING = {
-    -2: 0.0,    # Hostile — refuses to coordinate
-    -1: 0.50,   # Rival — grudging
-    0:  1.0,    # Professional — standard
-    1:  1.25,   # Friendly — seamless
-    2:  1.50,   # Devoted — fight as one
-}
+An ally contributes coordination if ALL of:
+- Same nation as fighting marshal
+- Same region as fighting marshal
+- `strength > 0`
+- NOT `broken`
+- NOT `retreated_this_turn`
+- `retreat_recovery == 0`
 
-def calculate_coordination_bonus(marshal, world):
-    """Calculate total coordination attack/defense bonus from same-region allies."""
-    atk_bonus = 0.0
-    def_bonus = 0.0
+### Fortification Rule
 
-    for ally in world.marshals.values():
-        if (ally.name != marshal.name
-                and ally.location == marshal.location
-                and ally.nation == marshal.nation
-                and ally.strength > 0
-                and not getattr(ally, 'broken', False)
-                and not getattr(ally, 'retreated_this_turn', False)
-                and not getattr(ally, 'retreat_recovery', 0) > 0):
-            rel = marshal.get_relationship(ally.name)
-            scale = RELATIONSHIP_SCALING.get(rel, 1.0)
-            atk_bonus += 0.03 * scale
-            def_bonus += 0.05 * scale
-
-    return atk_bonus, def_bonus
-```
-
-### Rules
-
-- Broken/retreating/recovering marshals: contribute **0%** coordination.
-- Just-retreated marshals: no bonuses until retreat recovery completes (existing recovery system).
-- Fortified marshals: DO contribute coordination bonuses to attackers in the same region (you're fortified, but your cannons still provide covering fire). Exception: fortification's own defense bonus is unchanged.
-- No hard stacking cap — supply attrition (§7) is the natural limiter.
+- **Fortified non-artillery marshals:** DEFENSE coordination only. They provide covering fire and fallback positions but are committed to defense, not available for offensive coordination. Attack coordination = 0.
+- **Fortified artillery:** BOTH attack and defense coordination. Artillery fires from fixed positions regardless of fortification status.
+- **Combined arms:** Unaffected by fortification — type presence still counts.
 
 ### Implementation
 
-Like combined arms, coordination bonus feeds into modifier methods via transient fields:
-
 ```python
-# Set on marshal BEFORE combat resolution
-marshal.coordination_attack_bonus = 0.0   # Sum of per-ally bonuses
-marshal.coordination_defense_bonus = 0.0  # Sum of per-ally bonuses
+def _calculate_coordination_bonus(self, marshal, allies, world) -> tuple[float, float]:
+    """Calculate per-ally coordination bonus for a marshal."""
+    total_atk = 0.0
+    total_def = 0.0
+
+    SCALING = {-2: 0.0, -1: 0.50, 0: 1.0, 1: 1.25, 2: 1.50}
+
+    for ally in allies:
+        rel = marshal.get_relationship(ally.name)
+        scale = SCALING.get(rel, 1.0)
+
+        is_fortified_non_artillery = (
+            getattr(ally, 'fortified', False)
+            and not getattr(ally, 'artillery', False)
+        )
+
+        # Attack coordination: skip fortified non-artillery
+        if not is_fortified_non_artillery:
+            total_atk += 0.03 * scale
+
+        # Defense coordination: all eligible allies contribute
+        total_def += 0.05 * scale
+
+    return (total_atk, total_def)
 ```
 
-Transient, never serialized.
+### Transient Fields (marshal.py)
+
+```python
+self.coordination_attack_bonus: float = 0.0
+self.coordination_defense_bonus: float = 0.0
+```
 
 ---
 
-## 4. SUPPORT Order Enhancement
+## 4. Dedicated Coordination Bonus
 
-### Current State
+### Definition
 
-The SUPPORT strategic order (`strategic.py:_execute_support`) moves a marshal toward an allied marshal and auto-follows. When co-located, the support marshal stays with the ally. Currently provides **zero combat bonus** beyond co-location.
+A flat +5% attack / +5% defense bonus representing marshals who have committed to operating together. Two paths to earn it — same mechanical bonus, different trigger:
 
-### Enhancement
+### Path A — Co-Location Duration (Both Player and AI)
 
-SUPPORT-ordered marshals who are co-located with their target get a flat bonus **on top of** passive coordination:
+Two same-nation marshals co-located for **2 consecutive turns** automatically earn the bonus. No command needed. No AP cost. The cost is opportunity — that marshal spent 2 turns in one place instead of elsewhere.
 
-| Bonus | Value | Relationship-Scaled? |
-|-------|-------|---------------------|
-| Attack | +5% | No — player spent 2 AP, order is complied with |
-| Defense | +5% | No |
+### Path B — SUPPORT Strategic Order (Player Only, Immediate)
 
-**Total SUPPORT ally contribution (Professional relationship):**
-- Attack: +3% (coordination) + 5% (SUPPORT) = +8%
-- Defense: +5% (coordination) + 5% (SUPPORT) = +10%
+The SUPPORT strategic order grants the bonus **immediately** at co-location (turn 0). The 2 AP buys the ramp-up time. In a fast-moving battle, SUPPORT is worth the AP. In a static defensive position, wait 2 turns and save the AP.
 
-**Total SUPPORT ally contribution (Devoted relationship):**
-- Attack: +4.5% (coordination) + 5% (SUPPORT) = +9.5%
-- Defense: +7.5% (coordination) + 5% (SUPPORT) = +12.5%
+### Architectural Note — AI Cannot Use Strategic Commands
 
-### Detection
+The AI's architecture is fundamentally different from the player's:
 
-When calculating coordination bonuses, check if the ally has a `StrategicOrder` of type `SUPPORT` targeting the fighting marshal AND is in the same region:
-
-```python
-# In coordination calculation, after base coordination:
-if ally has active SUPPORT order targeting marshal AND ally.location == marshal.location:
-    atk_bonus += 0.05
-    def_bonus += 0.05
+```
+PLAYER: Natural language → parser → _execute_strategic_command() → StrategicOrder
+AI:     Priority tree → _evaluate_marshal() → _execute_action() → executor.execute()
 ```
 
-### SUPPORT Relationship Effects (Deterministic with Variance)
+The AI never touches the parser. Strategic commands (`SUPPORT`, `HOLD`, `MOVE_TO`, `PURSUE`) go through `executor._execute_strategic_command()`, triggered by the parser detecting strategic intent. The AI sends only immediate tactical actions (`attack`, `move`, `defend`, `fortify`, `drill`, `wait`, `stance_change`, `recruit`). The co-location duration path IS the Building Blocks equivalent for AI. This is correct and intentional.
 
-SUPPORT orders between marshals with different relationships affect relationship trajectory over time. These use deterministic thresholds + small random variance (same principle as the objection system):
+### Tracking
 
-| Condition | Effect | Mechanism |
-|-----------|--------|-----------|
-| Hostile marshal forced into SUPPORT | Relationship degrades -1 every 3 turns on SUPPORT | Deterministic counter |
-| Rival on SUPPORT + win battle together | 30% ± 10% chance relationship improves to Professional | Threshold + variance |
-| Friendly/Devoted on SUPPORT + win together | 15% ± 5% chance relationship improves +1 | Threshold + variance |
-| Any SUPPORT + lose battle together | 10% ± 5% chance relationship degrades -1 ("blamed for failure") | Threshold + variance |
-
-Relationship changes capped at [-2, +2] (existing system).
-
-### SUPPORT Objection Tie-in
-
-When a SUPPORT order is issued between low-relationship marshals, the V2a objection system evaluates:
-- Hostile (-2): STRONG objection ("I will NOT serve under that fool!")
-- Rival (-1): MODERATE objection ("Must I really march alongside him?")
-- Professional (0): No objection
-- Friendly/Devoted: No objection, positive flavor text
-
-This uses the existing `pending_strategic_objection` field and V2a infrastructure. Full V2b defiance escalation is deferred (see §11).
-
-### AI and SUPPORT
-
-**AI does NOT have explicit SUPPORT command.** AI gets coordination bonuses through POSITIONING only (P4.75, P4.8, P4.6). This is the Building Blocks principle — same mechanical bonuses, different interface.
-
-However, AI marshals who are co-located due to P4.75 (ally support) positioning get a **random chance** to benefit from SUPPORT-equivalent coordination:
+New persistent field on Marshal:
 
 ```python
-# In AI coordination calculation:
-# If AI ally moved to this region specifically to support (P4.75 intent):
-# 25% chance per turn of "clicking" into dedicated support posture
-# Once active, provides the +5%/+5% SUPPORT bonus
-# Tracked via marshal field: ai_support_posture (bool, transient)
+# marshal.py __init__
+self.co_location_turns: Dict[str, int] = {}  # ally_name -> first turn of current streak
 ```
 
-This is surfaced in Berthier end-of-turn reports: "Intelligence suggests Blucher has organized his forces to directly support Wellington's defense."
+**Serialization required:**
+```python
+# to_dict():
+"co_location_turns": self.co_location_turns.copy(),
 
-### Artillery on SUPPORT — Auto-Bombardment (TODO)
+# from_dict():
+marshal.co_location_turns = data.get("co_location_turns", {})
+```
 
-**Deferred.** When implemented:
-- Artillery on SUPPORT auto-bombards before supported marshal's combat (pre-battle bombardment)
-- Full collateral/friendly-fire rules apply
-- No extra AP cost (part of the SUPPORT order)
-- Pairs with square formation design — artillery bombards infantry in square = tactical triangle completion
+### Per-Turn Update
 
-See §11 Deferred Items.
+In `world_state.py _process_tactical_states()` or new helper called from `advance_turn()`:
+
+```python
+def _update_co_location_tracking(self):
+    """Update co-location turn counters for dedicated coordination bonus."""
+    for marshal in self.marshals.values():
+        if marshal.strength <= 0:
+            marshal.co_location_turns = {}
+            continue
+
+        allies_here = {
+            m.name for m in self.marshals.values()
+            if m.location == marshal.location
+            and m.nation == marshal.nation
+            and m.name != marshal.name
+            and m.strength > 0
+            and not getattr(m, 'broken', False)
+        }
+
+        # Remove allies no longer co-located
+        for name in list(marshal.co_location_turns.keys()):
+            if name not in allies_here:
+                del marshal.co_location_turns[name]
+
+        # Add new co-located allies (start counting from this turn)
+        for ally_name in allies_here:
+            if ally_name not in marshal.co_location_turns:
+                marshal.co_location_turns[ally_name] = self.current_turn
+```
+
+### Bonus Check (in coordination context calculation)
+
+```python
+def _has_dedicated_support(self, marshal, same_region_allies, world) -> bool:
+    """Check if marshal qualifies for +5%/+5% dedicated coordination bonus."""
+    # Path A: Co-location duration (2+ turns with any ally here)
+    for ally in same_region_allies:
+        start_turn = marshal.co_location_turns.get(ally.name)
+        if start_turn is not None and world.current_turn - start_turn >= 2:
+            return True
+
+    # Path B: Active SUPPORT order targeting this marshal (immediate)
+    for ally in same_region_allies:
+        order = getattr(ally, 'strategic_order', None)
+        if (order
+                and order.command_type == "SUPPORT"
+                and order.target == marshal.name):
+            return True
+
+    return False
+```
+
+### Self-Balancing
+
+Hostile marshals co-located 2 turns get +5% dedicated bonus but 0% coordination scaling from each other. Total benefit: only +5% from dedicated, nothing from per-ally coordination. No special-casing needed — the relationship system handles it.
+
+### Transient Field
+
+```python
+self.dedicated_coordination_bonus: float = 0.0  # Set to 0.05 when earned
+```
 
 ---
 
-## 5. Adjacent Reinforcement
+## 5. Adjacent Support Bonus
 
-### Design
+### Definition
 
-Adjacent friendly marshals have a chance to physically arrive at the battle region before combat resolves. This represents rapid forced marches to the sound of the guns (Blucher at Waterloo being the canonical example).
-
-### Arrival Score Formula
-
-```
-arrival_score = BASE + (logistics_skill × 5) + relationship_mod + terrain_penalty + random_variance
-
-BASE = 50
-THRESHOLD = 60 (must exceed to arrive)
-```
-
-| Component | Values |
-|-----------|--------|
-| Base | 50 |
-| Logistics skill | +5 per point (range: +5 to +25 for skill 1-5) |
-| Relationship: Hostile (-2) | -20 |
-| Relationship: Rival (-1) | -10 |
-| Relationship: Professional (0) | +0 |
-| Relationship: Friendly (+1) | +10 |
-| Relationship: Devoted (+2) | +20 |
-| Terrain: Plains/Urban/River | +0 |
-| Terrain: Forest | -10 |
-| Terrain: Hills | -10 |
-| Terrain: Mountains | -20 |
-| Random variance | ±8 (uniform) |
-
-### Examples
-
-| Marshal | Logistics | Relationship | Terrain | Score Range | Arrives? |
-|---------|-----------|-------------|---------|-------------|----------|
-| Blucher (log 4, Devoted to Wellington) | +20 | +20 | Plains 0 | 82-98 | Always |
-| Grouchy (log 3, Professional to Ney) | +15 | 0 | Forest -10 | 47-63 | Sometimes |
-| Ney (log 2, Hostile to Davout) | +10 | -20 | Plains 0 | 32-48 | Never |
-| Davout (log 5, Rival to Ney) | +25 | -10 | Hills -10 | 47-63 | Sometimes |
++2% attack per adjacent friendly marshal. Represents positional pressure from nearby forces without requiring co-location.
 
 ### Rules
 
-1. **Physical movement:** Arriving marshal physically relocates to the battle region. They stay there after battle — permanent repositioning.
-2. **Timing:** Reinforcement check happens BEFORE `resolve_battle()`. Arriving marshals get full same-region coordination and combined arms bonuses for that battle.
-3. **Defense too:** Works on defense. If Wellington is attacked and Blucher is adjacent, Blucher gets a reinforcement check to join the defense.
-4. **Multiple arrivals:** Each adjacent friendly marshal gets an independent arrival check. Multiple reinforcements possible.
-5. **Eligibility filters:**
-   - Must be adjacent (1 region away)
-   - Must be same nation
-   - Must have strength > 0
-   - Must NOT be broken, retreating, or in retreat recovery
-   - Must NOT have already acted this turn (for player marshals, AP-consuming actions)
-   - Must NOT be engaged (enemy in same region)
-   - Must NOT be fortified (dug in, not mobile)
-6. **Terrain penalty:** Based on terrain of the region the reinforcing marshal is LEAVING (marching out of mountains is hard).
-7. **No AP cost:** Reinforcement is reactive, not a player command. It's a check that happens automatically.
-8. **Berthier reporting:**
-   - Success: "Blucher's corps arrives on Wellington's flank! [Devoted: +20 logistics bonus]"
-   - Failure: "Grouchy fails to arrive in time, Your Majesty. [Forest terrain: -10 penalty]"
+- NOT relationship-scaled (purely positional).
+- Calculated BEFORE reinforcement checks run.
+- Marshals who arrive via reinforcement: **convert** from adjacent (+2%) to same-region (full coordination). Never both.
+- Marshals who fail to arrive: **remain** in adjacent count (+2%).
+- Same eligibility filters as coordination (not broken, not retreating, not recovering).
+- Fortified and HOLD marshals contribute adjacent support (they're physically present in adjacent region even if dug in).
 
-### Implementation Location
-
-Reinforcement calculation happens in `executor.py` inside `_execute_attack`, BEFORE the call to `resolve_battle()`. The flow:
+### Implementation Order in _execute_attack
 
 ```
-1. Validate attack (existing)
-2. Calculate adjacent reinforcements (NEW)
-   - For each adjacent friendly marshal, compute arrival score
-   - If score > 60, move marshal to battle region
-3. Calculate combined arms (NEW) — now includes any arriving marshals
-4. Calculate coordination bonuses (NEW) — now includes any arriving marshals
-5. Set transient bonus fields on attacker and defender
-6. Call resolve_battle() (existing — uses modifier methods that read transient fields)
-7. Distribute casualties (NEW — §6)
-8. Clear transient fields
+1. Count adjacent friendly marshals → adjacent_support = count * 0.02
+2. Run reinforcement checks (§7)
+3. Arriving marshals: remove from adjacent count, add to same-region allies
+4. Recalculate: adjacent_support = remaining_adjacent_count * 0.02
+5. Calculate same-region coordination (§3) with updated ally list
+```
+
+### Transient Field
+
+```python
+self.adjacent_support_bonus: float = 0.0
 ```
 
 ---
 
-## 6. Casualty Distribution
+## 6. SUPPORT Strategic Objection
 
-### Design
+### Already Implemented
 
-When a marshal fights with allies in the same region, casualties are distributed among all participating marshals rather than falling entirely on the primary combatant.
+Strategic objections to SUPPORT, HOLD, PURSUE, MOVE_TO are implemented in V2a Phase M. See `OBJECTION_V2.md` and `SYSTEMS_REFERENCE.md` §4 Strategic Commands.
 
-### Distribution Rules
+What exists:
+- `_execute_strategic_command()` calls `evaluate_strategic_situation()`
+- Uses `world.pending_strategic_objection` (separate from tactical `world.pending_objection`)
+- Cautious marshals object to SUPPORT through danger (path crosses enemy territory) — severity 0.65
+- Full trust/insist/compromise wired
 
-| Ally Type | Casualty Share |
-|-----------|---------------|
-| Same-region passive ally | Proportional by strength fraction |
-| SUPPORT-ordered ally | Half-proportional (support posture, not front line) |
-| Adjacent reinforcement | 40-60% of proportional (arrived late) |
-| Hostile ally (0% coordination) | 0% casualties — they refused to participate |
+### Phase 7 Additions — Verify and Add If Missing
 
-### Proportional Calculation
+Check `objection_v2.py` `evaluate_strategic_situation()` for these triggers:
+
+| Personality | Trigger | Severity | Message | Compromise |
+|-------------|---------|----------|---------|------------|
+| Aggressive (Ney) | Defensive SUPPORT (target is fortified/cautious/retreating ally) | 0.55 (Major) | "You want me to nursemaid Davout?!" | Offensive SUPPORT if enemy adjacent to target |
+| Aggressive (Ney) | Offensive SUPPORT (target is attacking/aggressive ally) | No objection | N/A — he wants to fight | N/A |
+| Cautious (Davout) | SUPPORT of reckless ally (target is aggressive + recklessness >= 2) | 0.50 (Major) | "Supporting Ney's recklessness risks us both." | Timed SUPPORT (3 turns) |
+
+If these triggers are already present in the existing `evaluate_strategic_situation()`, document and move on. If missing, add them using the existing trigger pattern.
+
+---
+
+## 7. Adjacent Reinforcement
+
+### Definition
+
+Adjacent marshals can physically move to the battle region and participate BEFORE combat resolves.
+
+### Arrival Score Formula
 
 ```python
-# After resolve_battle() returns total casualties for the side:
-total_casualties = battle_result["attacker_casualties"]  # or defender
+def calculate_reinforcement_score(reinforcing_marshal, primary_combatant, world):
+    """Deterministic base + small random variance."""
+    base = 50
+    logistics = reinforcing_marshal.skills.get("logistics", 5)
+    logistics_bonus = logistics * 5
 
-# Calculate each marshal's share
-participating = []  # List of (marshal, weight)
-for ally in same_region_allies:
-    if ally is SUPPORT-ordered:
-        weight = ally.strength * 0.5   # Half-proportional
-    elif ally arrived via reinforcement:
-        weight = ally.strength * 0.5   # 40-60%, use 0.5 as midpoint
-    elif ally.get_relationship(primary.name) == -2:  # Hostile
-        weight = 0  # Refused to participate
+    rel = reinforcing_marshal.get_relationship(primary_combatant.name)
+    RELATIONSHIP_MOD = {-2: -20, -1: -10, 0: 0, 1: +10, 2: +20}
+    rel_mod = RELATIONSHIP_MOD.get(rel, 0)
+
+    # Terrain of DEPARTING region (how hard is it to march out)
+    departing_region = world.get_region(reinforcing_marshal.location)
+    terrain = departing_region.terrain if departing_region else "plains"
+    TERRAIN_PENALTY = {
+        "plains": 0, "forest": -10, "hills": -5,
+        "mountains": -20, "urban": 0, "river_crossing": -5
+    }
+    terrain_mod = TERRAIN_PENALTY.get(terrain, 0)
+
+    # Personality modifier
+    PERSONALITY_MOD = {
+        "aggressive": +5,   # Wants to fight — charges toward cannon fire
+        "cautious": -5,     # Cautious about rushing in
+        "literal": 0,       # Handled by Grouchy Rule — never reaches here
+        "balanced": 0,
+        "loyal": +3,        # Follows the call of duty
+    }
+    personality_mod = PERSONALITY_MOD.get(reinforcing_marshal.personality, 0)
+
+    # SUPPORT order targeting combatant: +10 (standing readiness)
+    support_bonus = 0
+    order = getattr(reinforcing_marshal, 'strategic_order', None)
+    if (order
+            and order.command_type == "SUPPORT"
+            and order.target == primary_combatant.name):
+        support_bonus = 10
+
+    # Random variance: ±8
+    variance = random.randint(-8, 8)
+
+    score = base + logistics_bonus + rel_mod + terrain_mod + personality_mod + support_bonus + variance
+    return score
+
+# Threshold: score > 60 → arrives
+```
+
+### The Grouchy Rule (Most Important Mechanic in This Spec)
+
+**Check personality BEFORE calculating arrival score.** If the marshal is Literal AND has no active SUPPORT order targeting the combatant AND has no PURSUE order targeting the same battle: skip arrival score entirely. Log failure with personality message.
+
+```python
+# In _calculate_reinforcements():
+for candidate in adjacent_friendly_marshals:
+    # ═══ THE GROUCHY RULE ═══
+    if candidate.personality == "literal":
+        has_relevant_order = False
+        order = getattr(candidate, 'strategic_order', None)
+        if order:
+            if (order.command_type == "SUPPORT"
+                    and order.target == primary_combatant.name):
+                has_relevant_order = True
+            elif (order.command_type == "PURSUE"
+                    and order.target == defender.name):  # or attacker for defense
+                has_relevant_order = True
+
+        if not has_relevant_order:
+            reinforcement_results.append({
+                "marshal": candidate.name,
+                "arrived": False,
+                "reason": "literal_personality",
+                "score": None,
+                "message": (
+                    f"{candidate.name} continues to follow standing orders. "
+                    f"The sound of cannon fire grows louder behind him."
+                )
+            })
+            continue
+
+    # ═══ NORMAL ARRIVAL CHECK ═══
+    score = calculate_reinforcement_score(candidate, primary_combatant, world)
+    arrived = score > 60
+    # ...
+```
+
+**Player counter:** Issue "Grouchy, support Ney" → SUPPORT order overrides Literal personality.
+
+**AI Literal marshals:** Same rule. AI may choose not to spend actions positioning Literal marshals for SUPPORT, making them unreliable reinforcers. Thematically perfect.
+
+### Reinforcement Eligibility
+
+A marshal can reinforce if ALL of:
+1. Same nation as primary combatant
+2. In an adjacent region (at START of attack — chain reinforcement excluded)
+3. `strength > 0`
+4. NOT `broken`
+5. NOT `retreated_this_turn`
+6. `retreat_recovery == 0`
+7. NOT `fortified` (dug in, can't march)
+8. NOT on HOLD strategic order (`holding_position == True`)
+9. NOT currently engaged (no enemy in their region)
+10. NOT `drilling` or `drilling_locked`
+11. NOT `reinforced_this_turn` (already reinforced another battle)
+
+### Reinforcement Into Enemy Territory
+
+Exception to normal movement rules. Skip territory control check from `_execute_move()`. The marshal enters to **fight**, not occupy. Territory control is determined by the battle outcome normally. The existing eligibility filters (above) handle all important restrictions.
+
+Building Blocks: AI adjacent allies reinforce into player-controlled regions on identical terms.
+
+### After Battle
+
+- **Battle won:** Reinforcing marshal stays in the new region.
+- **Battle lost + forced retreat:** Reinforcing marshal retreats WITH the primary combatant. Same retreat logic, same region selection.
+- **Reinforcing marshal state:** `reinforced_this_turn = True` (prevents further orders this turn). Transient, cleared at turn start.
+
+### Chain Reinforcement — EXCLUDED
+
+Only marshals adjacent at the START of the attack get reinforcement checks. If Blucher reinforces Wellington (moving from Netherlands to Waterloo), Gneisenau (adjacent to Netherlands) does NOT get a secondary reinforcement check for the same battle.
+
+### Inline-Dramatic Display
+
+Reinforcement arrival/failure uses highlighted inline blocks in terminal output. NOT a popup dialog. Non-dismissable. Visually impossible to miss.
+
+**Arrival (personality-flavored):**
+```
+┌─────────────────────────────────────────────────┐
+│  REINFORCEMENT: Blucher arrives!                 │
+│  "Marshal Forward" crashes through the tree      │
+│  line with 55,000 Prussians.                     │
+│  Devoted to Wellington: +20 arrival bonus        │
+│  Combined arms: Infantry + Infantry (unchanged)  │
+└─────────────────────────────────────────────────┘
+```
+
+**Failure — Grouchy Rule (gold border):**
+```
+┌─────────────────────────────────────────────────┐
+│  GROUCHY CONTINUES EAST                          │
+│  The marshal can hear the guns from Waterloo.    │
+│  His orders are clear. He continues his march    │
+│  as instructed.                                  │
+│  [Literal personality: SUPPORT order required     │
+│   to reinforce]                                  │
+└─────────────────────────────────────────────────┘
+```
+
+**Failure — Low Score:**
+```
+┌─────────────────────────────────────────────────┐
+│  Gneisenau fails to arrive                       │
+│  The forest roads defeated even Gneisenau's      │
+│  meticulous planning. Score: 58 (needed >60)     │
+│  Logistics 9, Friendly +10, Forest -10           │
+└─────────────────────────────────────────────────┘
+```
+
+### Coordination Failure Consequences
+
+When a non-Literal, non-Hostile adjacent marshal **fails** arrival (low score, not personality refusal):
+- Trust -3 on the failing marshal ("failed to march to the guns")
+
+Exceptions (no penalty):
+- Hostile refusals: principle-based, no penalty
+- Literal non-arrivals: followed orders correctly, no penalty
+- Fortified/HOLD marshals: not eligible, no check, no penalty
+
+---
+
+## 8. Casualty Distribution
+
+### 2 Tiers Only
+
+| Tier | Who | Share |
+|------|-----|-------|
+| **Participating** | All same-nation marshals in region at time of combat. Proportional by strength fraction. | Full proportional |
+| **Non-Participating** | Hostile marshals (0% coordination scaling = refused to fight). | 0% — takes no casualties |
+
+### Rules
+
+- Adjacent reinforcements who ARRIVE = PARTICIPATING (they're physically in the region).
+- Adjacent reinforcements who FAIL = not in region. 0% casualties.
+- Primary combatant takes no extra share — already absorbs brunt through `resolve_battle()`.
+- Hostile marshals in the region: dead weight. 0% coordination, 0% casualties, but eat supply.
+
+### Implementation — resolve_battle Contract Change
+
+**This is the highest-risk change in the spec.**
+
+Add `apply_casualties: bool = True` parameter to `resolve_battle()`:
+
+```python
+def resolve_battle(
+    self,
+    attacker: Marshal,
+    defender: Marshal,
+    terrain: str = "open",
+    flanking_bonus: int = 0,
+    flanking_message: str = None,
+    glorious_charge: bool = False,
+    fortification_bonus: float = 0.0,
+    apply_casualties: bool = True,  # NEW
+) -> Dict:
+```
+
+When `apply_casualties=False`:
+- Calculate casualties normally (all modifier math unchanged).
+- Return `attacker_raw_casualties` and `defender_raw_casualties` in result dict.
+- Do NOT modify `attacker.strength` or `defender.strength`.
+- Do NOT trigger forced retreat or broken state.
+- Caller is responsible for distributing and applying casualties.
+
+**Call site audit (5 resolve_battle calls in executor.py + 1 charge):**
+
+| Call Site | Location | Action Needed |
+|-----------|----------|---------------|
+| `_execute_attack` main battle | ~line 3211 | Change to `apply_casualties=False` when coordination active. Distribute after. |
+| Sally attack 1 (HOLD aggressive) | ~line 5457 | Keep `apply_casualties=True`. Sally is single-marshal combat. |
+| Sally attack 2 (cautious nearest) | ~line 5608 | Keep `apply_casualties=True`. Single-marshal. |
+| Sally attack 3 (literal nearest) | ~line 5744 | Keep `apply_casualties=True`. Single-marshal. |
+| Glorious Charge | ~line 8513 | Keep `apply_casualties=True`. Single-marshal charge. |
+| Garrison combat | `_resolve_garrison_combat` | N/A — uses region property, not Marshal. |
+
+**Only `_execute_attack` changes.** All other call sites are single-marshal combat and keep `apply_casualties=True`.
+
+### Casualty Distribution Logic
+
+```python
+def _distribute_casualties(self, raw_casualties: int, participants: list[Marshal],
+                           excluded_hostile: list[Marshal]) -> dict:
+    """Distribute casualties proportionally among participating marshals."""
+    if not participants:
+        return {}
+
+    total_strength = sum(m.strength for m in participants)
+    if total_strength <= 0:
+        return {}
+
+    distribution = {}
+    remaining = raw_casualties
+
+    for i, marshal in enumerate(participants):
+        if i == len(participants) - 1:
+            # Last marshal gets remainder (avoids rounding errors)
+            share = remaining
+        else:
+            fraction = marshal.strength / total_strength
+            share = int(raw_casualties * fraction)
+            remaining -= share
+
+        share = min(share, marshal.strength)  # Can't lose more than you have
+        marshal.strength = max(0, marshal.strength - share)
+        distribution[marshal.name] = share
+
+    return distribution
+```
+
+---
+
+## 9. Win/Loss Relationship Formula
+
+### Trigger
+
+After `resolve_battle()` with 2+ same-nation marshals participating (via same-region coordination, SUPPORT, or reinforcement arrival). Each **pair** gets an independent check.
+
+### Severity Definition
+
+```python
+def calculate_battle_severity(winner_casualties, loser_casualties):
+    """Decisive / standard / narrow based on casualty exchange ratio."""
+    if loser_casualties <= 0:
+        return "decisive"
+    ratio = winner_casualties / max(loser_casualties, 1)
+    if ratio < 0.5:
+        return "decisive"   # Winner took less than half loser's casualties
+    elif ratio > 0.8:
+        return "narrow"     # Close fight, nearly even
     else:
-        weight = ally.strength  # Full proportional
-
-# Primary combatant
-participating.append((primary, primary.strength))
-
-total_weight = sum(w for _, w in participating)
-for marshal, weight in participating:
-    if total_weight > 0:
-        share = total_casualties * (weight / total_weight)
-        marshal.strength -= int(share)
-        marshal.strength = max(0, marshal.strength)
+        return "standard"
 ```
 
-### Edge Cases
-
-- **Primary combatant does NOT take an extra share.** The primary already absorbs the brunt through `resolve_battle()`. Supporting casualties are ADDITIONAL spread.
-
-Wait — clarification needed. `resolve_battle()` returns casualties for the attacker side. Those casualties are currently applied entirely to the primary combatant. With casualty distribution, those same casualties get spread across all participants. The primary combatant's individual casualties go DOWN, while allies absorb part of the total. The total damage to the side remains the same.
+### WIN Formula
 
 ```
-Before: Primary takes 100% of 5000 casualties = 5000
-After:  Primary (20k, weight 20k) + Ally (10k, weight 10k) = 30k total weight
-        Primary: 5000 * (20/30) = 3333
-        Ally:    5000 * (10/30) = 1667
+score = BASE(30) + severity_bonus + rel_modifier + variance(±10)
+
+severity_bonus:  decisive +15, standard 0, narrow -10
+rel_modifier:    Hostile -20, Rival 0, Professional 0, Friendly -10, Devoted -20
+variance:        random.randint(-10, 10)
+
+Threshold: score > 50 → relationship improves +1
 ```
 
-- **Marshal reaches 0 strength:** Uses existing `_apply_forced_retreat_or_break()` for consistent break behavior.
-- **Hostile ally at 0% scaling / 0% casualties:** They are physically present but not participating. They don't take casualties and don't provide bonuses. This creates a situation where a Hostile marshal is dead weight in the region — eating supply but contributing nothing.
+### LOSS Formula
 
-### Morale Distribution
+```
+score = BASE(15) + severity_bonus + rel_modifier + variance(±10)
 
-Supporting marshals who take casualties also take a morale hit:
-- -1 morale per 1000 casualties absorbed (same rate as primary combatant)
-- Minimum morale 0 (existing floor)
+severity_bonus:  decisive +10, standard 0, narrow -5
+rel_modifier:    Hostile +15, Rival +5, Professional 0, Friendly 0, Devoted 0
+variance:        random.randint(-10, 10)
 
----
+Threshold: score > 50 → relationship degrades -1
+```
 
-## 7. Supply Interaction
+### Asymmetry (Intentional)
 
-### Design
+Winning together builds bonds faster than losing destroys them. Decisive wins with Rivals sometimes improve (+15 + 0 ± 10 = 35-55 → ~30% chance). Hostile marshals almost never improve from wins (30 + 15 - 20 ± 10 = 15-35 → never). Losing together rarely degrades Professional+ relationships (15 + 0 + 0 ± 10 = 5-25 → never reaches 50).
 
-No new supply systems needed. The existing supply capacity system naturally limits stacking.
+### Caps
 
-### How It Works
+- ±1 per battle maximum.
+- ±1 per 3 turns cooldown (track `last_relationship_change_turn: Dict[str, int]` per marshal). New serialized field.
+- Existing [-2, +2] range cap remains.
 
-- Region `supply_capacity` (from `region.py`) is **shared** across all marshals in the region.
-- At end of turn, `process_supply_attrition()` in `world_state.py` divides region capacity equally among all marshals present.
-- A reinforcing marshal who joins a region immediately dilutes the supply pool for that turn's end-of-turn attrition calculation.
-- No attrition exemption for reinforcement — they arrived, they eat supply.
+### Rivalry Resolved — IN PHASE 7 (Not Deferred)
 
-### Emergent Balance
+When Rival marshals fight together and win, the formula above handles it naturally. Decisive win: ~30% chance to improve to Professional. This is the highest narrative payoff of the relationship system at minimal implementation cost — the data is already computed in the coordination context.
 
-- A region comfortably supplying 2 marshals becomes strained when a 3rd arrives.
-- Cycling marshals in and out bleeds everyone's supply each cycle.
-- Natural pressure to redistribute after battle: the stack is expensive to maintain.
-- Works identically for offensive and defensive reinforcement — consistent rule.
-- **No new code required** — existing supply math handles this automatically.
+### REPLACES Original §4 SUPPORT Relationship Effects
 
----
+The original spec had 4 separate probabilistic systems for SUPPORT relationship changes (hostile degradation timer, rival improvement, friendly improvement, shared defeat). **All replaced** by this unified formula. SUPPORT marshals participate in the same battle → same formula. No separate SUPPORT relationship code.
 
-## 8. AI Coordination — P4.6
-
-### New Priority: Coordinated Attack Setup
-
-**Position in priority chain:** Between P4.5 (undefended capture) and P4.75 (ally support).
-
-P4.6 never fires over an undefended capture opportunity — free regions always take priority.
-
-### Trigger Conditions
+### Implementation
 
 ```python
-def _find_coordinated_attack_opportunity(self, marshal, nation, world):
-    """P4.6: Proactively position for coordinated attack with nearby ally."""
+def check_shared_battle_relationship(marshal_a, marshal_b, battle_result, won: bool, world):
+    """Check if shared battle changes relationship. Returns int change (-1, 0, +1)."""
+    current_rel = marshal_a.get_relationship(marshal_b.name)
 
-    # 1. Find same-nation allies within 2 regions
-    nearby_allies = []
-    for ally in world.marshals.values():
-        if (ally.name != marshal.name
-                and ally.nation == nation
-                and ally.strength > 0
-                and not getattr(ally, 'broken', False)
-                and not getattr(ally, 'retreated_this_turn', False)):
-            distance = world.get_distance(marshal.location, ally.location)
-            if distance is not None and 1 <= distance <= 2:
-                # Relationship check: Rival (-1) or better
-                rel = marshal.get_relationship(ally.name)
-                if rel >= -1:
-                    nearby_allies.append((ally, distance))
+    # Cooldown check
+    last_change = getattr(marshal_a, 'last_relationship_change_turn', {})
+    last_turn = last_change.get(marshal_b.name, -99)
+    if world.current_turn - last_turn < 3:
+        return 0
 
-    if not nearby_allies:
-        return None
+    winner_cas = battle_result.get("attacker_casualties", 0)
+    loser_cas = battle_result.get("defender_casualties", 0)
+    # Swap if defender won
+    if battle_result.get("victor") == battle_result.get("defender", {}).get("name"):
+        winner_cas, loser_cas = loser_cas, winner_cas
 
-    # 2. Find viable enemy targets reachable by both
-    for ally, ally_dist in nearby_allies:
-        combined_strength = marshal.strength + ally.strength
-        # Check regions adjacent to both marshal and ally
-        for target_region in self._get_shared_targets(marshal, ally, world):
-            enemies = world.get_enemies_in_region(target_region, nation)
-            if not enemies:
+    severity = calculate_battle_severity(winner_cas, loser_cas)
+
+    if won:
+        base = 30
+        sev_bonus = {"decisive": 15, "standard": 0, "narrow": -10}[severity]
+        rel_mod = {-2: -20, -1: 0, 0: 0, 1: -10, 2: -20}[current_rel]
+    else:
+        base = 15
+        sev_bonus = {"decisive": 10, "standard": 0, "narrow": -5}[severity]
+        rel_mod = {-2: 15, -1: 5, 0: 0, 1: 0, 2: 0}[current_rel]
+
+    variance = random.randint(-10, 10)
+    score = base + sev_bonus + rel_mod + variance
+
+    if score > 50:
+        change = 1 if won else -1
+        marshal_a.modify_relationship(marshal_b.name, change)
+        # Record cooldown
+        if not hasattr(marshal_a, 'last_relationship_change_turn'):
+            marshal_a.last_relationship_change_turn = {}
+        marshal_a.last_relationship_change_turn[marshal_b.name] = world.current_turn
+        return change
+
+    return 0
+```
+
+### New Serialized Field
+
+```python
+# marshal.py __init__
+self.last_relationship_change_turn: Dict[str, int] = {}
+
+# to_dict():
+"last_relationship_change_turn": self.last_relationship_change_turn.copy(),
+
+# from_dict():
+marshal.last_relationship_change_turn = data.get("last_relationship_change_turn", {})
+```
+
+---
+
+## 10. AI Enhancements
+
+### P4.6: Coordinated Attack Setup (NEW — between P4.5 and P4.75)
+
+```python
+def _find_coordinated_attack(self, marshal, nation, world):
+    """Find opportunity for 2-marshal pincer attack."""
+    # Never fires over undefended capture (P4.5 wins priority)
+
+    allies = [
+        m for m in world.marshals.values()
+        if m.nation == nation
+        and m.name != marshal.name
+        and m.strength > 0
+        and not getattr(m, 'broken', False)
+        and marshal.get_relationship(m.name) >= -1  # Rival or better
+    ]
+
+    for ally in allies:
+        # Find enemy reachable by both within 2 moves
+        for enemy in world.marshals.values():
+            if enemy.nation == nation or enemy.strength <= 0:
                 continue
-            enemy_strength = sum(e.strength for e in enemies)
 
-            # 3. Combined gives 1.5:1 advantage where solo doesn't
-            solo_ratio = marshal.strength / max(enemy_strength, 1)
-            combined_ratio = combined_strength / max(enemy_strength, 1)
+            my_dist = world.get_distance(marshal.location, enemy.location)
+            ally_dist = world.get_distance(ally.location, enemy.location)
+
+            if my_dist > 2 or ally_dist > 2:
+                continue
+
+            combined = marshal.strength + ally.strength
+            solo_ratio = marshal.strength / max(enemy.strength, 1)
+            combined_ratio = combined / max(enemy.strength, 1)
+
+            # Only coordinate when combined gives 1.5:1 but solo doesn't
             if combined_ratio >= 1.5 and solo_ratio < 1.5:
-                # 4. Move toward staging position
-                return self._plan_coordinated_move(marshal, ally, target_region, world)
+                # Move toward enemy (staging position)
+                if my_dist > 1:
+                    path = world.find_path(marshal.location, enemy.location)
+                    if path and len(path) > 1:
+                        return {"marshal": marshal.name, "action": "move", "target": path[1]}
 
     return None
 ```
 
+### P4.75 Modification: Relationship-Aware Ally Support
+
+Modify existing `_find_ally_support_opportunity()`:
+
+```python
+# After checking ally needs support, BEFORE deciding to move:
+rel = marshal.get_relationship(ally.name)
+if rel == -2:  # Hostile — won't support
+    continue
+
+# Score allies by relationship — Devoted allies get priority
+# (sort allies by relationship descending before the loop)
+allies.sort(key=lambda a: marshal.get_relationship(a.name), reverse=True)
+```
+
+Wellington and Blucher are Devoted (+2). Each PRIORITIZES supporting the other when threatened.
+
+### P4.76: Co-Location Persistence (NEW — after P4.75)
+
+```python
+def _should_maintain_co_location(self, marshal, nation, world):
+    """Stay co-located with ally to earn dedicated coordination bonus."""
+    for ally in world.marshals.values():
+        if (ally.nation == nation
+                and ally.name != marshal.name
+                and ally.location == marshal.location
+                and ally.strength > 0
+                and marshal.get_relationship(ally.name) >= -1):  # Rival or better
+
+            # Check if ally is threatened
+            ally_region = world.get_region(ally.location)
+            if not ally_region:
+                continue
+            enemies_near = any(
+                e.location in ally_region.adjacent_regions or e.location == ally.location
+                for e in world.marshals.values()
+                if e.nation != nation and e.strength > 0
+            )
+
+            if enemies_near:
+                # Co-located 1+ turn with threatened ally: STAY
+                start = marshal.co_location_turns.get(ally.name)
+                if start is not None and world.current_turn - start >= 1:
+                    return True  # Stay for dedicated bonus next turn
+
+    return False
+```
+
+This returns `True` to signal the AI should NOT move this marshal. Integrated into priority chain as a guard before P7 strategic movement.
+
+### P4.77: Cross-Nation Adjacency Awareness (NEW)
+
+In `_consider_strategic_move()`, add scoring for allied nation marshal proximity:
+
+```python
+# When evaluating candidate regions for strategic movement:
+for ally in world.marshals.values():
+    if (ally.nation != nation
+            and ally.nation != world.player_nation  # Same side
+            and ally.strength > 0):
+        rel = marshal.get_relationship(ally.name)
+        if rel >= 1:  # Friendly or Devoted
+            if ally.location in candidate_region.adjacent_regions:
+                score += rel * 3  # Devoted=+6, Friendly=+3
+```
+
+Wellington and Blucher independently decide to stay near each other via Devoted relationship. No cross-nation coordination needed — emergent from individual decisions.
+
+### P4.78: Defensive Reinforcement Positioning (NEW — priority ~91.5, lowest)
+
+```python
+def _find_defensive_reinforcement_position(self, marshal, nation, world):
+    """Position adjacent to threatened ally for reinforcement readiness."""
+    for ally in world.marshals.values():
+        if ally.nation != marshal.nation or ally.name == marshal.name:
+            continue
+        if ally.strength <= 0 or getattr(ally, 'broken', False):
+            continue
+
+        rel = marshal.get_relationship(ally.name)
+        if rel < 0:  # Rival or worse — won't position for them
+            continue
+
+        ally_region = world.get_region(ally.location)
+        if not ally_region:
+            continue
+
+        # Ally threatened?
+        enemies_near = any(
+            e.location in ally_region.adjacent_regions or e.location == ally.location
+            for e in world.marshals.values()
+            if e.nation == world.player_nation and e.strength > 0
+        )
+        if not enemies_near:
+            continue
+
+        # Already adjacent? Stay.
+        if ally.location in world.get_region(marshal.location).adjacent_regions:
+            return None
+
+        # Can get adjacent in 1 move?
+        for adj in ally_region.adjacent_regions:
+            if world.get_distance(marshal.location, adj) <= marshal.movement_range:
+                return {"marshal": marshal.name, "action": "move", "target": adj}
+
+    return None
+```
+
+**Defer if scope pressure:** This is the lowest-priority AI enhancement. Cut if behind schedule.
+
+### AI Coordination Estimate
+
+When AI evaluates enemy defensive coordination, use **+8% per ally** (not +5%). Closer to realistic without making AI passive.
+
 ### AI Combined Arms Awareness
 
-The AI actively tries to group unit types for combined arms bonus when positioning:
+In P7 strategic movement, prefer destinations that complete unit type combinations:
 
 ```python
-# In P4.6 and P7 strategic move scoring:
-# Prefer destinations where combined arms types would be present
-types_at_destination = get_unit_types_in_region(destination, nation, world)
-marshal_type = get_unit_type(marshal)
-if marshal_type not in types_at_destination and len(types_at_destination) >= 1:
-    score += 8  # Moving here creates combined arms
-if len(types_at_destination) >= 2 and marshal_type not in types_at_destination:
-    score += 15  # Moving here completes the triangle
+# Score candidate regions by combined arms potential
+allies_at_dest = [m for m in world.marshals.values()
+                  if m.location == candidate and m.nation == nation and m.strength > 0]
+types_at_dest = set()
+for a in allies_at_dest:
+    types_at_dest.add('artillery' if getattr(a, 'artillery', False) else
+                      'cavalry' if getattr(a, 'cavalry', False) else 'infantry')
+# Add this marshal's type
+my_type = 'artillery' if getattr(marshal, 'artillery', False) else \
+          'cavalry' if getattr(marshal, 'cavalry', False) else 'infantry'
+types_with_me = types_at_dest | {my_type}
+# Score: 3 types = +10, 2 types (was 1) = +5
+if len(types_with_me) > len(types_at_dest):
+    score += 5 * (len(types_with_me) - len(types_at_dest))
 ```
 
-### AI Assessment of Player Coordination
+### AI Ney-Davout Rule
 
-When the AI evaluates whether to attack a region (P0, P4), it must factor in the player's coordination bonuses:
+AI never coordinates Ney and Davout. Their Hostile relationship means:
+- 0% coordination bonus
+- Ney will never reinforce Davout (Hostile → score base 50 + logistics - 20 = always fails)
+- P4.75 filtered by `rel == -2` check → never moves to support Hostile marshal
 
-```python
-# In _find_attack_opportunity and P0 engagement:
-# Estimate defender's coordination bonus
-defender_allies_in_region = count eligible allies
-estimated_defense_boost = 1.0 + (defender_allies_in_region * 0.05)  # Conservative
-# Use estimated_defense_boost in ratio calculation
-effective_enemy_strength = enemy_strength * estimated_defense_boost
-```
+### Gneisenau Staff Work
 
-This prevents the AI from charging into well-coordinated defenses.
-
-### AI SUPPORT-Equivalent Posture
-
-AI marshals positioned together via P4.75 have a 25% chance per turn of achieving "dedicated support posture" — a transient flag that grants the +5%/+5% SUPPORT bonus. This is surfaced in Berthier reports.
-
-```python
-# On AI marshal co-located with ally due to P4.75 positioning:
-# At start of enemy phase, 25% chance:
-if random.random() < 0.25:
-    ai_marshal.ai_support_posture = True  # Transient, cleared each turn
-```
+No special ability for Waterloo scenario. Deferred to 1805 full campaign. Greyed-out tooltip: "Staff Work — activates in full campaign."
 
 ---
 
-## 9. Battle Reports & UI
-
-### Berthier Coordination Report
-
-After every battle involving coordination, Berthier reports a concise summary. This is a **new observation category** in `battle_report.py`, not a replacement for existing observations.
-
-**Format (single summary line per battle):**
-
-```
-"Davout's corps provided supporting fire (+3% attack). Combined arms: infantry + artillery (+10% attack, +5% defense)."
-```
-
-```
-"Wellington fights alone — Blucher's Prussians failed to arrive from Belgium (forest terrain, -10 penalty)."
-```
-
-```
-"Three corps converge! Ney, Davout, and Drouot fight together. Combined arms bonus: all three types present (+20% attack, +10% defense). Davout provides reluctant support (Rival: +1.5% attack, +2.5% defense)."
-```
-
-### Coordination Report Categories
-
-| Category | Priority | Trigger |
-|----------|----------|---------|
-| `coordination_full_triangle` | 1 | All 3 unit types + 2+ allies |
-| `coordination_combined_arms` | 2 | 2+ unit types present |
-| `coordination_reinforcement_success` | 3 | Adjacent marshal arrived |
-| `coordination_reinforcement_failure` | 4 | Adjacent marshal failed to arrive |
-| `coordination_hostile_refusal` | 5 | Hostile ally in region, 0% scaling |
-| `coordination_devoted_synergy` | 6 | Devoted ally, 150% scaling |
-| `coordination_basic` | 7 | Any coordination bonus active |
+## 11. Coordination Preview & Battle Reports
 
 ### Pre-Battle Coordination Preview
 
-Before the player commits to an attack, show a preview of coordination bonuses. This is returned in the attack validation response (when attack is valid but before execution):
+Shown **BEFORE** the player commits — inline terminal text, informational only.
 
-```json
-{
-  "coordination_preview": {
-    "allies_in_region": [
-      {"name": "Davout", "relationship": "Rival", "atk_bonus": 1.5, "def_bonus": 2.5},
-      {"name": "Drouot", "relationship": "Friendly", "atk_bonus": 3.75, "def_bonus": 6.25}
-    ],
-    "combined_arms": {"types": ["infantry", "cavalry", "artillery"], "atk_bonus": 20, "def_bonus": 10},
-    "support_bonus": {"active": true, "marshal": "Drouot", "atk_bonus": 5, "def_bonus": 5},
-    "adjacent_reinforcements": [
-      {"name": "Murat", "estimated_arrival": "likely", "logistics": 3, "relationship": "Professional"}
-    ],
-    "total_estimated_atk_bonus": 30.25,
-    "total_estimated_def_bonus": 22.75
-  }
-}
+**Timing in _execute_attack flow:**
+```
+validate → objection check → objection resolution → COORDINATION PREVIEW → resolve_battle
 ```
 
-This is displayed in Godot BEFORE the attack resolves, allowing the player to understand the positioning advantage.
-
-### Marshal Relationship Display
-
-Relationships MUST be visible in the UI. Add to existing marshal hover tooltip in `map.gd`:
+The preview calculates what bonuses will apply IF the player attacks:
 
 ```
-MARSHAL NEY (France)
-Strength: 25,000 | Morale: 78%
-CAVALRY: Can attack 2 tiles away
-Trust: 65 (Moderate)
----
-Relationships:
-  Davout: Hostile (-2) ⊘
-  Drouot: Professional (0)
-  Murat: Friendly (+1) ★
+═══ COORDINATION PREVIEW ═══
+Combined Arms: Infantry + Cavalry (2/3) → +10% atk, +5% def
+Coordination: Davout (+1.5% atk, +2.5% def — Rival)
+Dedicated: YES (+5%/+5% — co-located 3 turns)
+Adjacent: Drouot (1 region away, 72% reinforcement)
+TOTAL ESTIMATED: +18.5% atk, +12.5% def
+Cap applied: +18.5% atk (under +25% cap)
+═══════════════════════════
 ```
 
-Icons: ⊘ (hostile/rival warning), ★ (friendly/devoted indicator). Color-coded: red for hostile/rival, white for professional, gold for friendly/devoted.
+Same-region only — no adjacent estimates in preview (those are in tooltip). The preview shows what IS guaranteed, not what MIGHT happen via reinforcement.
+
+### Battle Report Integration
+
+Expandable section in terminal output. NOT a separate screen.
+
+**Collapsed (default):**
+```
+═══════════════════════════════════════
+  BATTLE: Ney attacks Wellington
+═══════════════════════════════════════
+  RESULT: VICTORY — Wellington retreats!
+  Casualties: Ney 3,200 / Wellington 5,800
+  Combined Arms: Infantry + Cavalry (+10% atk)
+  Coordination: Davout (+1.5% atk, Rival)
+  Reinforcement: Blucher arrived! (+4.5% def for Wellington)
+  [DETAIL] for full breakdown
+═══════════════════════════════════════
+```
+
+**Expanded (button click in Godot):**
+```
+  ── MODIFIER BREAKDOWN ──
+  Ney (attacker):
+    Stance: Aggressive (+15%)
+    Personality: +15% base attack
+    Combined Arms: +10% (infantry + cavalry, 2/3)
+    Coordination: +1.5% (Davout, Rival ×0.5)
+    Dedicated: +5% (co-located 3 turns)
+    Adjacent: +2% (Drouot, failed to arrive)
+    TOTAL: ×1.49
+
+  Wellington (defender):
+    Stance: Defensive (+15%)
+    Fortification: +12%
+    Coordination: +7.5% (Blucher, Devoted ×1.5)
+    Combined Arms: +5% (infantry + infantry, 1/3)
+    TOTAL: ×1.40
+
+  ── CASUALTY DISTRIBUTION ──
+    Ney: 2,400 (primary)
+    Davout: 800 (proportional)
+
+  ── REINFORCEMENT ──
+    Blucher: ARRIVED (score 92, threshold 60)
+      Logistics 5 (+25), Devoted (+20), Plains (+0), Aggressive (+5)
+    Drouot: FAILED (score 54, threshold 60)
+      Logistics 4 (+20), Professional (+0), Forest (-10), Cautious (-5)
+
+  ── BERTHIER'S OBSERVATION ──
+  "Our combined arms proved decisive, Sire, though Davout's
+   coordination was... reluctant."
+```
+
+### Berthier Observation Categories
+
+Add to existing `battle_report.py` observation priorities:
+
+| Priority | Category | Condition |
+|----------|----------|-----------|
+| P0.5 | `coordination_full_triangle` | All 3 unit types present |
+| P0.7 | `coordination_reinforcement_arrival` | Any reinforcement arrived |
+| P0.8 | `coordination_reinforcement_failure` | Any reinforcement failed (especially Grouchy) |
+| P12 | `coordination_hostile_refused` | Hostile ally provided 0% coordination |
+| P13 | `coordination_devoted_synergy` | Devoted ally provided 150% coordination |
+
+These insert into the existing priority chain. P0.5-P0.8 fire BEFORE other observations (coordination is the big story). P12-P13 fire as fallback alternatives to default.
 
 ---
 
-## 10. Session Plan
+## 12. Godot UI: Tooltips, Readiness, Display
 
-### Session 57: Combined Arms Detection & Bonus Application
+### Defensive Readiness Tooltip
 
-**Goal:** Detect unit types in a region and apply combined arms bonus to combat.
+When hovering a region with 2+ friendly marshals:
 
-**Files Modified:**
-| File | Changes |
-|------|---------|
-| `backend/models/marshal.py` | Add transient fields: `combined_arms_attack_bonus`, `combined_arms_defense_bonus`, `coordination_attack_bonus`, `coordination_defense_bonus`, `support_order_bonus` (all default 0.0). Wire into `get_attack_modifier()` and `get_defense_modifier()`. |
-| `backend/game_logic/combat.py` | Add combined arms message to tactical_prefix when bonus > 0. |
-| `backend/commands/executor.py` | Add `_calculate_coordination_context()` helper. Call before `resolve_battle()` in `_execute_attack`. Set transient fields on both attacker and defender. Clear after battle. |
-| `backend/models/world_state.py` | Add `get_allied_marshals_in_region(marshal)` and `get_unit_types_in_region(region, nation)` helpers. |
+```
+═══ RHINE ═══
+Terrain: Hills (+15% def)
+Control: France
+Supply: 35,000 / 40,000
 
-**New Files:**
-| File | Purpose |
-|------|---------|
-| `tests/test_combined_arms.py` | Combined arms detection, bonus application, edge cases |
+MARSHALS:
+  Ney (Cavalry) — 25,000 | Morale 78%
+  Davout (Infantry) — 30,000 | Morale 85%
 
-**Tests (~45):**
-- Unit type detection: infantry, cavalry, artillery identification (3)
-- 1 type → no bonus (3)
-- 2 types → +10%/+5% (6: each pair of types × attack/defense)
-- 3 types → +20%/+10% (3)
-- Broken marshal excluded (3)
-- Retreating marshal excluded (3)
-- Retreat-recovering marshal excluded (3)
-- Garrison detachment excluded (3)
-- Modifier integration: combined arms feeds into get_attack_modifier (3)
-- Modifier integration: combined arms feeds into get_defense_modifier (3)
-- Both sides get bonuses independently (2)
-- Solo marshal: no combined arms (1)
-- Combined arms message in combat tactical_prefix (3)
-- Serialization: transient fields NOT serialized (2)
-- Full integration: attack with combined arms through executor (4)
+COORDINATION READINESS:
+  Combined Arms: 2/3 (Infantry + Cavalry) → +10% atk, +5% def
+  Coordination: Ney↔Davout (Hostile) → +0% mutual
+  Dedicated: Not yet (co-located 1 turn, need 2)
+  Total if attacking: +10% atk
+  Total if defending: +5% def
 
-**Smoke Test Gate:** `curl -X POST http://127.0.0.1:8005/command -H "Content-Type: application/json" -d '{"command": "Ney attack Wellington"}'` with Drouot in same region → battle report shows combined arms bonus.
+ADJACENT REINFORCEMENT:
+  Drouot (Artillery, 1 region away)
+    ● 72% arrival — Log 4, Professional, Hills -5
+    Would complete triangle → +20% atk, +10% def
+```
 
----
+### Color coding
 
-### Session 58: Coordination Bonus (Relationship-Scaled)
+- Hostile/Rival: red
+- Professional: white/default
+- Friendly/Devoted: gold
+- Reinforcement probability: green >80%, yellow 40-80%, red <40%
 
-**Goal:** Per-ally coordination bonuses with relationship scaling.
+### Enemy Region (PARTIAL+ visibility)
 
-**Files Modified:**
-| File | Changes |
-|------|---------|
-| `backend/commands/executor.py` | Extend `_calculate_coordination_context()` to compute per-ally coordination bonuses with relationship scaling. |
-| `backend/models/marshal.py` | Coordination transient fields already added in S57. Verify `get_attack_modifier()` and `get_defense_modifier()` apply them correctly. |
-| `backend/game_logic/combat.py` | Add coordination message to tactical_prefix when bonus > 0. Include relationship labels. |
-| `backend/game_logic/battle_report.py` | Add coordination observation categories (§9 table). |
+```
+═══ WATERLOO ═══
+Terrain: Plains
+Control: Britain
 
-**New Files:**
-| File | Purpose |
-|------|---------|
-| `tests/test_coordination_bonus.py` | Relationship scaling, per-ally calculation, stacking |
+ENEMY FORCES:
+  Wellington (Infantry, ~65k)
+  Blucher (Infantry, ~55k)
 
-**Tests (~50):**
-- Hostile (0% scaling): 0 bonus (3)
-- Rival (50% scaling): half bonus (3)
-- Professional (100%): full bonus (3)
-- Friendly (125%): 1.25x bonus (3)
-- Devoted (150%): 1.5x bonus (3)
-- Asymmetric relationships: A→B hostile, B→A professional (4)
-- Multiple allies: bonuses stack additively (4)
-- Combined arms + coordination interact correctly (multiplicative in modifier) (4)
-- Defender gets coordination from their allies (4)
-- Attacker gets coordination from their allies (4)
-- Broken ally: 0 contribution (2)
-- Fortified ally: still contributes coordination (2)
-- Retreat-recovering ally: 0 contribution (2)
-- Coordination message in combat output (3)
-- Battle report coordination observations (6 categories × 1 test) (6)
-- Integration: full attack with coordination through executor (3)
+EST. COORDINATION:
+  Likely strong (Devoted pair)
+  Combined Arms: 1/3 (Infantry only)
+```
 
-**Smoke Test Gate:** Attack with Davout (Rival to Ney) in same region → battle report shows "Davout provides reluctant support (Rival: +1.5% attack)."
+### Relationship Display in Marshal Tooltip
 
----
+Add to existing marshal tooltip (below unit type, trust):
 
-### Session 59: SUPPORT Order Enhancement
+```
+  Relationships:
+    Davout: Hostile (-2) [red]
+    Grouchy: Professional (0)
+    Drouot: Professional (0)
+```
 
-**Goal:** SUPPORT order provides flat +5%/+5% bonus. Relationship effects on SUPPORT. SUPPORT objection for hostile/rival.
+### First-Time Coordination Tutorial (Inline-Dramatic)
 
-**Files Modified:**
-| File | Changes |
-|------|---------|
-| `backend/commands/executor.py` | In `_calculate_coordination_context()`, detect active SUPPORT orders targeting the fighting marshal. Apply +5%/+5% flat bonus. |
-| `backend/commands/strategic.py` | Track SUPPORT relationship effects: degradation counter for hostile, improvement chance on battle win. New helper `_process_support_relationship_effects()` called after battle involving SUPPORT marshal. |
-| `backend/commands/objection_v2.py` | New SUPPORT objection triggers: Hostile → STRONG, Rival → MODERATE. Add to `evaluate_strategic_objection()`. |
-| `backend/commands/disobedience.py` | SUPPORT objection flavor text (hostile refusal, rival reluctance). |
+Fires ONCE per campaign: the first time combined arms bonuses apply in any battle. Displayed as an inline-dramatic gold border block in terminal output, NOT a popup dialog (zero new popup types).
 
-**New Files:**
-| File | Purpose |
-|------|---------|
-| `tests/test_support_enhancement.py` | SUPPORT bonus, relationship effects, objections |
+```
+┌─────────────────────────────────────────────────┐
+│  BERTHIER'S REPORT                               │
+│                                                  │
+│  "Sire, our marshals fight as one corps for the  │
+│  first time! The combined arms of infantry and   │
+│  cavalry proved decisive."                       │
+│                                                  │
+│  Position different unit types together for       │
+│  combined arms bonuses. Coordination improves     │
+│  with strong relationships between marshals.      │
+└─────────────────────────────────────────────────┘
+```
 
-**Tests (~40):**
-- SUPPORT ally: +5%/+5% on top of coordination (4)
-- SUPPORT not relationship-scaled (3)
-- SUPPORT detection: must have active order targeting this marshal (3)
-- SUPPORT detection: must be co-located (3)
-- No SUPPORT order: no extra bonus (2)
-- SUPPORT + coordination + combined arms stacking (3)
-- Hostile degradation: -1 every 3 turns on SUPPORT (3)
-- Rival improvement: ~30% on shared victory (3)
-- Friendly improvement: ~15% on shared victory (2)
-- Shared defeat degradation: ~10% chance (2)
-- Relationship changes respect [-2, +2] cap (2)
-- SUPPORT objection: Hostile → STRONG (3)
-- SUPPORT objection: Rival → MODERATE (3)
-- SUPPORT objection: Professional → no objection (1)
-- Objection flavor text exists for hostile/rival (2)
-- Integration: full SUPPORT flow through strategic.py (2)
+Track with `coordination_tutorial_shown: bool` on WorldState (serialized). Check before displaying inline-dramatic block.
 
 ---
 
-### Session 60: Adjacent Reinforcement
+## 13. Supply Interaction
 
-**Goal:** Adjacent marshals can arrive before combat. Deterministic arrival score + variance.
+### No New Supply Code Required
 
-**Files Modified:**
-| File | Changes |
-|------|---------|
-| `backend/commands/executor.py` | Add `_calculate_reinforcements()` in `_execute_attack`, called BEFORE `resolve_battle()`. Arriving marshals physically relocate. Results feed into coordination/combined arms calculation. |
-| `backend/models/world_state.py` | Add `get_adjacent_friendly_marshals(marshal)` helper. Add `calculate_reinforcement_score(reinforcing_marshal, target_marshal)` with the full formula. |
-| `backend/models/region.py` | Add `TERRAIN_REINFORCEMENT_PENALTY` dict (mirrors movement cost concept). |
-| `backend/game_logic/battle_report.py` | Reinforcement success/failure observation categories. |
+The existing supply system already punishes stacking. From `world_state.py:process_supply_attrition()`:
 
-**New Files:**
-| File | Purpose |
-|------|---------|
-| `tests/test_reinforcement.py` | Arrival score, terrain, relationship, edge cases |
+```python
+total = sum(m.strength for m in marshals_here)
+base_cap = region.supply_capacity
+# Per-marshal attrition based on total excess
+```
 
-**Tests (~55):**
-- Base score calculation (3)
-- Logistics skill bonus: skill 1-5 range (5)
-- Relationship modifiers: all 5 levels (5)
-- Terrain penalties: all 6 terrains (6)
-- Random variance within ±8 (3)
-- Threshold: score > 60 arrives, ≤ 60 doesn't (4)
-- Physical relocation: marshal moves to battle region (3)
-- Permanent positioning: marshal stays after battle (2)
-- Defense reinforcement: works when player is defender (4)
-- Multiple adjacent marshals: independent checks (3)
-- Eligibility: broken excluded (2)
-- Eligibility: retreating excluded (2)
-- Eligibility: engaged (enemy in same region) excluded (2)
-- Eligibility: fortified excluded (2)
-- Eligibility: already acted this turn excluded (2)
-- Arriving marshal gets full coordination + combined arms (3)
-- Berthier success message (2)
-- Berthier failure message (2)
-- No eligible adjacent marshals: no check (1)
-- Integration: full attack with reinforcement through executor (4)
+When 3 marshals (90k total) sit in a 40k capacity region, `excess_ratio = 125%`, all three take 5% attrition per turn. This IS the natural limiter on coordination stacking.
 
-**Smoke Test Gate:** Curl attack with Blucher adjacent to Wellington. Blucher (Devoted, high logistics) should arrive reliably. Battle report shows arrival.
+### Reinforcement and Supply
+
+A reinforcing marshal joins the region and dilutes the supply pool for that turn's attrition check. This is natural — more troops, more supply strain. No exemption needed.
+
+### Home Territory Bonus
+
+Existing 1.5x supply capacity on home territory applies normally to coordinated stacks. Defending at home is more sustainable than attacking abroad.
 
 ---
 
-### Session 61: Casualty Distribution
+## 14. Popup & Information Architecture
 
-**Goal:** Casualties spread across participating marshals proportionally.
+### The Rule
 
-**Files Modified:**
-| File | Changes |
-|------|---------|
-| `backend/commands/executor.py` | Add `_distribute_casualties()` called AFTER `resolve_battle()`. Replaces direct strength subtraction with proportional distribution. |
-| `backend/game_logic/combat.py` | `resolve_battle()` returns raw casualties but does NOT apply them directly to marshal strength when coordination flag is set. Returns `{..., "apply_casualties": False}` when caller will handle distribution. |
-| `backend/game_logic/battle_report.py` | Casualty distribution details in report. |
+A coordination event gets a popup IF AND ONLY IF it requires a player **DECISION** or represents a **DRAMATIC TURNING POINT** worth interrupting for. Everything else is inline.
 
-**New Files:**
-| File | Purpose |
-|------|---------|
-| `tests/test_casualty_distribution.py` | Proportional, SUPPORT, reinforcement, hostile, edge cases |
+### Classification
 
-**Tests (~40):**
-- Proportional by strength: 20k + 10k → 2/3 and 1/3 (4)
-- SUPPORT marshal: half-proportional weight (4)
-- Adjacent reinforcement: 50% weight (4)
-- Hostile marshal: 0 weight, 0 casualties (3)
-- Primary combatant casualty reduction (3)
-- Marshal reaches 0 strength → break system (3)
-- Morale hit on supporting marshals: -1 per 1000 (3)
-- Single marshal (no allies): existing behavior unchanged (3)
-- Total casualties remain the same (conservation check) (3)
-- Three marshals: complex proportional (3)
-- SUPPORT + passive + reinforcement mixed distribution (3)
-- Integration: full battle with casualty distribution (4)
+| Event | Display Type | Justification |
+|-------|-------------|---------------|
+| SUPPORT objection (Hostile/Rival) | **REAL POPUP** (existing objection system) | Player must decide trust/insist/compromise |
+| First-time coordination tutorial | **INLINE-DRAMATIC** (once per campaign, gold border) | Teaching moment, fires once. No decision needed → not a popup. |
+| Reinforcement arrival (Blucher arrives) | **INLINE-DRAMATIC** (gold border block in terminal) | Dramatic but no decision needed |
+| Reinforcement failure (Grouchy continues east) | **INLINE-DRAMATIC** (gold border block in terminal) | The game's signature moment |
+| Coordination bonuses applied | INLINE TERMINAL TEXT | Math, not drama |
+| Combined arms bonus | INLINE TERMINAL TEXT | One-line summary |
+| Casualty distribution | INLINE TERMINAL TEXT | Numbers in battle result |
+| Pre-battle coordination preview | INLINE TERMINAL TEXT | Informational, before battle |
+| Adjacent support bonus | INLINE TERMINAL TEXT | One-line note |
+| AI coordination observed | END-OF-TURN DIALOG (existing enemy phase) | One line in consolidated dialog |
+| Relationship change | END-OF-TURN SUMMARY | One line: "Davout's opinion improved" |
+| Supply warnings (stacking) | END-OF-TURN SUMMARY | One line if relevant |
+| Detailed coordination math | LOG ONLY (campaign log) | For curious players |
+| Co-location tracking updates | SILENT | Internal bookkeeping |
+| AI positioning decisions | SILENT | Internal |
 
----
+### Total New Popup Types: 0
 
-### Session 62: AI P4.6 — Coordinated Attack Setup
-
-**Goal:** Enemy AI proactively positions for coordinated attacks. AI considers coordination bonuses in attack decisions.
-
-**Files Modified:**
-| File | Changes |
-|------|---------|
-| `backend/ai/enemy_ai.py` | Add `_find_coordinated_attack_opportunity()` at P4.6. Add combined arms awareness to P7 scoring. Add coordination bonus estimation to P0/P4 attack strength assessment. Add AI support posture chance (25% per turn). |
-| `backend/game_logic/turn_manager.py` | Clear `ai_support_posture` flags at start of enemy phase. |
-
-**New Files:**
-| File | Purpose |
-|------|---------|
-| `tests/test_ai_coordination.py` | P4.6 triggers, combined arms grouping, coordination assessment |
-
-**Tests (~45):**
-- P4.6 trigger: ally within 2 regions + viable target + combined ratio ≥ 1.5 (4)
-- P4.6 skip: solo ratio already ≥ 1.5 (no need for coordination) (2)
-- P4.6 skip: ally too far (distance > 2) (2)
-- P4.6 skip: Hostile relationship (2)
-- P4.6 priority: fires after P4.5 undefended capture (3)
-- P4.6 priority: fires before P4.75 ally support (2)
-- Combined arms awareness: AI prefers completing triangle (4)
-- Combined arms awareness: AI groups artillery with infantry (3)
-- Attack assessment: defender coordination factored in (4)
-- Attack assessment: solo attack discouraged against coordinated defense (3)
-- AI support posture: 25% activation chance (3)
-- AI support posture: provides +5%/+5% when active (2)
-- AI support posture: cleared each turn (2)
-- Wellington-Blucher coordination: Devoted pair coordinates (4)
-- Ney-Davout: Hostile pair never coordinates (3)
-- Full integration: AI turn with P4.6 positioning (2)
+Zero new dialog popups. The first-time coordination tutorial uses inline-dramatic (gold border block), not a popup — it requires no decision. All coordination information rides existing display channels. The only popup-producing events are SUPPORT objections, which use the existing V2a objection system.
 
 ---
 
-### Session 63: Battle Reports & Berthier Integration
+## 15. Implementation Sessions
 
-**Goal:** Coordination bonuses surface in battle reports, Berthier observations, and turn summaries.
+### Session 57: Combined Arms Detection
 
-**Files Modified:**
-| File | Changes |
-|------|---------|
-| `backend/game_logic/battle_report.py` | 7 new coordination observation categories with templates. Coordination summary line in `generate_battle_report()`. |
-| `backend/commands/executor.py` | Pass coordination context to `generate_battle_report()`. Include coordination_preview in attack validation response. |
-| `backend/main.py` | Pass through `coordination_preview` and `coordination_report` fields in API response. |
+**Goal:** Detect unit type diversity in regions, apply bonuses through transient fields.
 
-**New Files:**
-| File | Purpose |
-|------|---------|
-| `tests/test_coordination_reports.py` | Report generation, observation selection, preview format |
+**Files:**
+- `marshal.py` — Add transient fields: `combined_arms_attack_bonus`, `combined_arms_defense_bonus`. Add to `get_attack_modifier()` and `get_defense_modifier()` via `getattr`.
+- `executor.py` — New `_calculate_coordination_context()` method (combined arms portion only). Call from `_execute_attack()` BEFORE `resolve_battle()`.
+- `combat.py` — Add combined arms message to `tactical_prefix` (read-only, no recalculation).
+- `battle_report.py` — Add combined arms to snapshot.
 
 **Tests (~35):**
-- Coordination summary line format (4)
-- Observation priority ordering (7 categories) (7)
-- Combined arms message variants (3)
-- Reinforcement success/failure messages (4)
-- Hostile refusal message (2)
-- Devoted synergy message (2)
-- Coordination preview JSON structure (4)
-- Preview includes all bonus sources (3)
-- Preview with no coordination: empty/null (2)
-- Integration: full battle → report includes coordination (4)
-- AI battle reports surface coordination (2)
-- Berthier AI SUPPORT posture observation (2)
+- 1/3, 2/3, 3/3 unit type detection
+- Broken/retreating/recovering exclusion
+- Garrison detachment exclusion
+- Fortified marshals still count for type
+- Bonus values correct
+- Transient fields reset after combat
+- Modifier integration (attack and defense)
+- Both sides get independent combined arms
+- Snapshot captures combined arms
+
+**Godot Smoke Test:** `curl` attack with 2 marshals same region, verify combined arms message in response.
 
 ---
 
-### Session 64: Godot Frontend — Coordination Display
+### Session 58: Coordination Bonus + Hard Cap
 
-**Goal:** Player sees coordination bonuses in tooltips, pre-battle preview, and battle reports.
+**Goal:** Per-ally relationship-scaled coordination. Hard cap on total coordination.
 
-**Files Modified:**
-| File | Changes |
-|------|---------|
-| `godot-client/.../map.gd` | Add relationship display to marshal tooltip. Show coordination indicators on map (visual cue when multiple friendly marshals in region). |
-| `godot-client/.../main.gd` | Handle `coordination_preview` in command response — display before attack executes. Handle `coordination_report` in battle result display. |
+**Files:**
+- `marshal.py` — Add transient fields: `coordination_attack_bonus`, `coordination_defense_bonus`. Apply in modifier methods.
+- `executor.py` — Extend `_calculate_coordination_context()` with per-ally coordination calculation, relationship scaling, hard cap enforcement.
 
-**Tests:** Backend-only tests from prior sessions cover data. Godot changes are manual smoke test.
+**Tests (~35):**
+- Per-ally bonus values at each relationship level (-2 through +2)
+- Asymmetric relationships (Ney→Davout vs Davout→Ney)
+- Fortified non-artillery excluded from attack coordination
+- Fortified artillery contributes both
+- Multiple allies stack additively
+- Hard cap: +25% attack enforced
+- Hard cap: +20% defense enforced
+- Cap applies AFTER all sources summed
+- Solo marshal = 0 coordination
 
-**Smoke Test Gate (MANDATORY — test ALL of these with curl + Godot):**
-1. Marshal tooltip shows relationships with color coding
-2. Attack with ally in region → coordination preview displayed before result
-3. Battle report shows coordination summary line
-4. Reinforcement arrival displayed in battle result
-5. Reinforcement failure displayed in battle result
-6. Combined arms indicator visible in attack with multiple unit types
-7. Enemy turn report shows AI coordination when applicable
+**Gate:** Combined arms + coordination visible in `curl` attack result.
 
 ---
 
-### Session 65: Integration Audit & Edge Cases
+### Session 59: Dedicated Coordination + Co-Location Tracking
 
-**Goal:** Full system audit, edge case fixes, documentation updates.
+**Goal:** +5%/+5% bonus from co-location duration or SUPPORT order. New serialized field.
 
-**Files Modified:**
-| File | Changes |
-|------|---------|
-| `docs/SYSTEMS_REFERENCE.md` | Add §11 Multi-Marshal Coordination section |
-| `docs/SAVE_FORMAT_REFERENCE.md` | Document any new serialized fields |
-| `docs/ENEMY_AI_REFERENCE.md` | Add P4.6, combined arms awareness, coordination assessment |
-| `docs/TUTORIAL_SCRIPT.md` | Add coordination tutorial content |
-| `docs/MANUAL_TEST_PLAN.md` | Add coordination manual test scenarios |
-
-**New Files:**
-| File | Purpose |
-|------|---------|
-| `tests/test_coordination_integration.py` | Cross-system integration, save/load, AI full game |
+**Files:**
+- `marshal.py` — Add `co_location_turns: Dict[str, int]`, `last_relationship_change_turn: Dict[str, int]`, `dedicated_coordination_bonus` (transient). Serialize both persistent fields.
+- `world_state.py` — Add `_update_co_location_tracking()` called from `advance_turn()`.
+- `executor.py` — Extend `_calculate_coordination_context()` with dedicated bonus check.
 
 **Tests (~30):**
-- Save/load: coordination-relevant state survives roundtrip (4)
-- Serialization enforcement: new fields (if any) pass enforcement test (2)
-- AI full turn: P4.6 fires, coordination bonuses apply, casualties distribute (4)
-- Player full turn: attack + SUPPORT + reinforcement + combined arms (4)
-- Both sides coordinated: attacker and defender coordination (3)
-- Fortified ally contributes coordination to attacker (2)
-- Retreat into coordinated region: no immediate bonus (2)
-- Strategic order conflicts: SUPPORT + MOVE_TO (2)
-- Flanking + coordination: both apply without conflict (3)
-- Supply pressure: 3+ marshals in region → attrition (2)
-- Edge: all marshals broken → no coordination (1)
-- Edge: single marshal in region → no coordination bonus (1)
+- Co-location tracking: counter starts, increments, resets on separation
+- 2-turn threshold: no bonus at 1 turn, bonus at 2 turns
+- SUPPORT order grants immediate bonus (turn 0)
+- Serialization round-trip for `co_location_turns`
+- Serialization round-trip for `last_relationship_change_turn`
+- Dead marshal counter cleared
+- Broken marshal counter cleared
+- Both paths produce same +5%/+5% value
+- `test_serialization_enforcement.py` passes
 
-**Final Audit Checklist:**
-- [ ] All `int()` wrapping for Godot values
-- [ ] Serialization enforcement passes
-- [ ] No floats in API responses
-- [ ] Enemy AI gets identical bonuses (Building Blocks)
-- [ ] SUPPORT bonus is flat (not relationship-scaled)
-- [ ] Combined arms is NOT relationship-scaled
-- [ ] Broken/retreating excluded from all bonuses
-- [ ] Garrison detachments excluded from combined arms
-- [ ] Battle reports surface all coordination info
+---
+
+### Session 60: Adjacent Support Bonus
+
+**Goal:** +2% per adjacent friendly marshal, integration with coordination pipeline.
+
+**Files:**
+- `marshal.py` — Add `adjacent_support_bonus` transient field. Apply in `get_attack_modifier()`.
+- `executor.py` — Extend `_calculate_coordination_context()` with adjacent ally counting. Calculate BEFORE reinforcement checks (Session 61).
+
+**Tests (~20):**
+- Adjacent count correct (1, 2, 3 adjacent allies)
+- Non-adjacent allies excluded
+- Broken/retreating excluded
+- HOLD/fortified allies still count (physically present)
+- Bonus is +2% per ally, correct value
+- NOT relationship-scaled
+- Enemy marshals excluded
+- Adjacent bonus appears in attack modifier
+
+**Gate:** `curl` attack with adjacent ally shows +2% adjacent bonus in result.
+
+---
+
+### Session 61: Adjacent Reinforcement
+
+**Goal:** The Grouchy Rule. Adjacent marshals physically relocate to battle region.
+
+**HIGHEST RISK SESSION.** Marshal state changes mid-turn. Physical relocation before combat.
+
+**Files:**
+- `executor.py` — New `_calculate_reinforcements()` method. The Grouchy Rule (Literal personality check). Arrival score formula. Physical relocation. `reinforced_this_turn` transient flag. Integration into `_execute_attack()` flow.
+- `marshal.py` — Add `reinforced_this_turn: bool` (transient, not serialized). Cleared at turn start in `world_state.py`.
+- `world_state.py` — Clear `reinforced_this_turn` at turn start.
+- `combat.py` — No changes (reinforcement is pre-combat, not mid-combat).
+
+**Tests (~45):**
+- Grouchy Rule: Literal personality blocks reinforcement without SUPPORT
+- Grouchy Rule: SUPPORT order overrides Literal block
+- Grouchy Rule: PURSUE order targeting same battle overrides Literal block
+- Arrival score formula: each component (logistics, relationship, terrain, personality, variance, SUPPORT bonus)
+- Threshold >60: arrives
+- Threshold <=60: fails
+- Physical relocation: marshal location changes to battle region
+- `reinforced_this_turn` prevents further orders
+- Reinforcement into enemy territory: territory control unchanged
+- Multiple reinforcements: each checked independently
+- Chain reinforcement excluded: only pre-battle adjacency
+- Eligibility filters: broken, retreating, fortified, HOLD, engaged, drilling excluded
+- Defensive reinforcement: AI attacks player, adjacent ally reinforces
+- Reinforcement + retreat: reinforcer retreats with primary if battle lost
+- Adjacent → reinforcement conversion: +2% adjacent removed, full coordination added
+- Trust -3 on non-Literal, non-Hostile failure
+- No trust penalty on Literal or Hostile failures
+- Fog of war: reinforcement events visible to player regardless of fog (physical presence)
+
+**Gotcha — fog/event logging:** When reinforcing marshal relocates, fog of war intel must update. `update_intel_from_battle()` already fires after battle — confirm it sees the reinforcer's new position. If the reinforcer was in a different fog zone, their departure reveals intel about the departure region.
+
+**Gotcha — `reinforced_this_turn` and strategic orders:** A marshal with an active strategic order (MOVE_TO, PURSUE) who reinforces a battle has their order disrupted. The reinforcement physically moves them. The strategic order's path is now invalid. After reinforcement, clear the strategic order: `marshal.strategic_order = None`. The marshal is now in a new region and needs new orders.
+
+**Gate:** Godot smoke test with Literal marshal adjacent to battle. Verify inline-dramatic Grouchy message appears.
+
+---
+
+### Session 62: Casualty Distribution
+
+**Goal:** Proportional casualties across participating marshals.
+
+**SECOND HIGHEST RISK SESSION.** Changes `resolve_battle()` contract.
+
+**Files:**
+- `combat.py` — Add `apply_casualties: bool = True` parameter. When False, return raw casualties without modifying marshal strength. Do not trigger forced retreat/broken.
+- `executor.py` — In `_execute_attack()` only: call with `apply_casualties=False` when coordination active. New `_distribute_casualties()`. Apply casualties, then check forced retreat/broken for each participant.
+- Verify all other `resolve_battle()` call sites (5) keep `apply_casualties=True`.
+
+**Tests (~40):**
+- `apply_casualties=False`: raw casualties returned, strength unchanged
+- `apply_casualties=True`: existing behavior preserved (regression)
+- Distribution proportional by strength
+- Hostile marshal: 0 casualties
+- Reinforcement arrival: participating, takes casualties
+- Reinforcement failure: not in region, no casualties
+- Total distributed casualties == raw casualties (no rounding leakage)
+- Each participant checks broken/retreat independently after distribution
+- All 5 other call sites unaffected (regression tests)
+- Solo marshal: no distribution (existing behavior)
+- Strength can't go below 0
+
+**Call site audit checklist (verify each):**
+- [ ] `_execute_attack` main: `apply_casualties=False` when coordinated
+- [ ] Sally 1 (HOLD aggressive): `apply_casualties=True` — single marshal
+- [ ] Sally 2 (cautious nearest): `apply_casualties=True` — single marshal
+- [ ] Sally 3 (literal nearest): `apply_casualties=True` — single marshal
+- [ ] Glorious Charge: `apply_casualties=True` — single marshal
+- [ ] Garrison combat: N/A (different function)
+
+---
+
+### Session 63: AI Enhancements
+
+**Goal:** P4.6, P4.75 modification, P4.76, P4.77, P4.78, coordination estimates, combined arms awareness.
+
+**Files:**
+- `enemy_ai.py` — New `_find_coordinated_attack()` (P4.6), modify `_find_ally_support_opportunity()` (P4.75), new `_should_maintain_co_location()` (P4.76), cross-nation scoring in `_consider_strategic_move()` (P4.77), new `_find_defensive_reinforcement_position()` (P4.78). Update attack threshold estimates (+8% per ally).
+
+**Tests (~35):**
+- P4.6: coordinated attack setup fires when combined > 1.5x but solo < 1.5x
+- P4.6: doesn't fire over undefended capture
+- P4.6: relationship >= Rival required
+- P4.75: Hostile marshal excluded from support
+- P4.75: Devoted ally prioritized over Professional
+- P4.76: stays co-located when ally threatened and been there 1+ turn
+- P4.76: doesn't stay if no threat
+- P4.77: cross-nation Devoted allies score higher for adjacency
+- P4.78: positions adjacent to threatened ally (if reachable)
+- P4.78: doesn't move if already adjacent
+- AI coordination estimate: +8% per ally in defensive assessment
+- Combined arms: AI moves to complete triangle when possible
+- Ney-Davout: AI never coordinates them (Hostile filter)
+- AI gets same coordination bonuses in battle (Building Blocks)
+- AI earns dedicated bonus after 2 turns co-located
+
+---
+
+### Session 64: Win/Loss Relationship Formula
+
+**Goal:** Shared battle → relationship check. Rivalry Resolved.
+
+**Files:**
+- `executor.py` — Call `check_shared_battle_relationship()` after coordinated battle resolves.
+- New module or function in `marshal.py` / `executor.py` — Formula implementation.
+- `marshal.py` — `last_relationship_change_turn` serialization (done in Session 59).
+
+**Tests (~25):**
+- WIN decisive + Rival → sometimes improves (~30%)
+- WIN standard + Professional → never improves
+- WIN decisive + Hostile → never improves
+- LOSS decisive + Hostile → sometimes degrades (shared suffering mechanic)
+- LOSS narrow + Professional → never degrades
+- Cooldown: no change within 3 turns of last change
+- Cap: ±1 per battle
+- Range cap: can't exceed +2 or go below -2
+- Asymmetric: A's relationship with B can change independently of B with A
+- Multiple pairs: 3 marshals = 3 pair checks
+- Loss degradation rarer than win improvement (asymmetry)
+- Serialization of `last_relationship_change_turn`
+
+---
+
+### Session 65: Battle Reports & Berthier Coordination Observations
+
+**Goal:** Coordination info in battle reports, Berthier observations, pre-battle preview.
+
+**Files:**
+- `battle_report.py` — New observation categories (P0.5 full triangle, P0.7 reinforcement arrival, P0.8 reinforcement failure, P12 hostile refusal, P13 devoted synergy). Snapshot coordination bonuses.
+- `executor.py` — Pre-battle coordination preview (inline terminal text). Reinforcement inline-dramatic messages.
+- `combat.py` — Coordination messages in `tactical_prefix`.
+
+**Tests (~25):**
+- Observation priority: full triangle wins over individual coordination
+- Observation: Grouchy failure has specific template
+- Observation: Devoted synergy noted
+- Observation: Hostile refusal noted
+- Preview: shows combined arms, coordination, estimated adjacent
+- Preview: cap shown if applied
+- Snapshot: all coordination fields captured
+- Messages: combined arms, per-ally coordination, dedicated support
+
+---
+
+### Session 66: Godot UI + Integration Audit + Docs
+
+**Goal:** Tooltips, tutorial inline-dramatic, display formatting, cross-system audit, doc updates.
+
+**Files:**
+- `map.gd` — Defensive readiness tooltip, relationship display, reinforcement probability, color coding.
+- `main.gd` — Inline-dramatic display for reinforcement. Coordination preview display. Battle report expansion. First-time coordination tutorial (inline-dramatic, once per campaign).
+- `world_state.py` — `coordination_tutorial_shown: bool` (serialized).
+- `enemy_phase_dialog.gd` — AI coordination observations in enemy phase.
+- All docs — Update CLAUDE.md, STATUS.md, ROADMAP.md, SYSTEMS_REFERENCE.md, SAVE_FORMAT_REFERENCE.md, ENEMY_AI_REFERENCE.md.
+
+**Tests (~50):**
+- Serialization enforcement: all new fields (co_location_turns, last_relationship_change_turn, coordination_tutorial_shown)
+- Full integration: 3-marshal coordinated attack with combined arms, reinforcement, relationship check
+- Full integration: defensive coordination with AI attack
+- Full integration: Grouchy Rule + SUPPORT override
+- Full integration: hostile ally dead weight (0 coordination, 0 casualties, eats supply)
+- Full integration: hard cap enforcement at maximum stack
+- Full integration: save/load round-trip preserves all coordination state
+- Endpoint wiring: all new fields appear in API response
+- int() wrapping: all numeric returns to Godot
+- Edge case: all marshals in one region (supply attrition check)
+- Edge case: artillery-only stack
+- Edge case: 4 marshals, all hostile to each other
+
+**Godot Smoke Test Checklist:**
+- [ ] Combined arms message in battle result
+- [ ] Coordination bonus shown for allies
+- [ ] Inline-dramatic reinforcement arrival
+- [ ] Inline-dramatic Grouchy failure
+- [ ] Defensive readiness in tooltip
 - [ ] Relationship display in marshal tooltip
-- [ ] Pre-battle preview shows coordination
+- [ ] First-time coordination tutorial (inline-dramatic, once only)
+- [ ] Enemy phase shows AI coordination
+- [ ] Battle detail expandable section
+- [ ] Supply attrition warning for large stacks
 
 ---
 
-## 11. Deferred Items
+## 16. Files Touched
 
-Items explicitly NOT in this spec. Track in ROADMAP.md.
+### Backend
 
-| Item | Deferred To | Reason |
-|------|-------------|--------|
-| **Square Formation** | Phase 7b or later | Full tactical triangle (infantry squares vs cavalry, vulnerable to artillery). Pairs with artillery SUPPORT auto-bombardment. Design pending. |
-| **Artillery SUPPORT Auto-Bombardment** | With Square Formation | Pre-battle bombardment from SUPPORT artillery. Needs square formation for the triangle to close. Full collateral rules apply. |
-| **V2b Defiance/Vindication** | Phase 7b | STRONG/EXTREME concerns trigger defiance. Spec in OBJECTION_V2.md. Scaffolding from V2a ready. |
-| **Jealousy System** | Phase 7b | Marshal getting all glory → others resent. Needs multi-marshal combat data to calculate. |
-| **Coalition Trigger** | Phase 7b or Phase 8 | Threat level → war declarations. Moved from Phase 8 but not in coordination spec. |
-| **Gneisenau Staff Work** | 1805 Campaign | "+10% ally bonus" — Coalition-specific advantage. Greyed-out tooltip in current UI: "Staff Work — activates in full campaign." |
-| **Rivalry Resolved Event** | Phase 7b | Rival marshals fight successfully → trust boost. Needs multi-marshal battle data. |
-| **Strategic Ledger** | Phase 6.5 remaining | Full strategic overview UI. |
-| **AP Scaling for 1805** | 1805 Campaign | Per-nation AP varies by bureaucratic capacity. |
-| **AI Fog of War** | 1805 Campaign | AI gets fog at 80+ regions. |
+| File | Sessions | Changes |
+|------|----------|---------|
+| `marshal.py` | 57-60, 64 | Transient fields (6), persistent fields (2), modifier method extensions, co-location tracking |
+| `executor.py` | 57-62, 64-65 | `_calculate_coordination_context()`, `_calculate_reinforcements()`, `_distribute_casualties()`, pre-battle preview, relationship check calls |
+| `combat.py` | 57, 62, 65 | Combined arms message, `apply_casualties` parameter, coordination messages |
+| `battle_report.py` | 57, 65 | Coordination snapshots, 5 new observation categories |
+| `enemy_ai.py` | 63 | P4.6, P4.75 mod, P4.76, P4.77, P4.78, coordination estimates |
+| `world_state.py` | 59, 61, 66 | `_update_co_location_tracking()`, `reinforced_this_turn` clear, `coordination_tutorial_shown` |
+| `objection_v2.py` | 59 | Verify/add SUPPORT personality triggers |
+| `region.py` | — | No changes |
+| `strategic.py` | — | No changes (SUPPORT already works) |
 
----
+### Frontend
 
-## 12. Gotchas & Implementation Notes
+| File | Sessions | Changes |
+|------|----------|---------|
+| `map.gd` | 66 | Defensive readiness tooltip, relationship display, reinforcement probability, color coding |
+| `main.gd` | 66 | Inline-dramatic display, coordination preview, battle report expansion, tutorial inline-dramatic |
+| `enemy_phase_dialog.gd` | 66 | AI coordination observations |
 
-### Golden Rule #1 Compliance
+### Docs
 
-All coordination bonuses MUST flow through `get_attack_modifier()` / `get_defense_modifier()` in `marshal.py`. These methods currently don't take a `world` parameter. The solution:
-
-**Pre-calculate and set transient fields** before combat in `executor.py`:
-
-```python
-# In _execute_attack, BEFORE resolve_battle():
-context = self._calculate_coordination_context(attacker, defender, world)
-attacker.combined_arms_attack_bonus = context["attacker_ca_atk"]
-attacker.combined_arms_defense_bonus = context["attacker_ca_def"]
-attacker.coordination_attack_bonus = context["attacker_coord_atk"]
-attacker.coordination_defense_bonus = context["attacker_coord_def"]
-# ... same for defender ...
-
-result = resolve_battle(attacker, defender, ...)
-
-# AFTER resolve_battle():
-self._distribute_casualties(attacker, defender, context, result)
-
-# Clear transient fields
-attacker.combined_arms_attack_bonus = 0.0
-# ... etc ...
-```
-
-This avoids changing the signature of modifier methods.
-
-### Modifier Application in marshal.py
-
-Add to the END of `get_attack_modifier()`:
-
-```python
-# Multi-marshal coordination bonuses (set externally before combat)
-ca_bonus = getattr(self, 'combined_arms_attack_bonus', 0.0)
-if ca_bonus > 0:
-    modifier *= (1.0 + ca_bonus)
-
-coord_bonus = getattr(self, 'coordination_attack_bonus', 0.0)
-if coord_bonus > 0:
-    modifier *= (1.0 + coord_bonus)
-
-support_bonus = getattr(self, 'support_order_bonus', 0.0)
-if support_bonus > 0:
-    modifier *= (1.0 + support_bonus)
-```
-
-Using `getattr` with defaults means existing tests don't need the fields — they default to 0.0 (no bonus).
-
-### Serialization Warning
-
-Transient coordination fields (`combined_arms_attack_bonus`, `coordination_attack_bonus`, etc.) are calculated fresh before each battle and cleared after. They MUST NOT be serialized. The `test_serialization_enforcement.py` test will flag them if accidentally added to `to_dict()`.
-
-However, if any NEW persistent fields are added (e.g., `ai_support_posture`), they MUST be serialized. Review list:
-- `ai_support_posture` (bool, transient — cleared each enemy phase, no serialization needed)
-- Relationship changes from SUPPORT are persisted through existing `relationships` dict serialization.
-
-### Combat.py Casualty Application
-
-Currently `resolve_battle()` directly modifies `attacker.strength` and `defender.strength`. With casualty distribution, we need `resolve_battle()` to return casualties WITHOUT applying them when a coordination flag is set. Two options:
-
-**Option A (recommended):** Add `apply_casualties=True` parameter to `resolve_battle()`. When `False`, return casualties in result dict but don't modify marshal strength. Executor handles distribution.
-
-**Option B:** Always apply to primary, then redistribute (swap casualties between primary and allies). More complex, harder to reason about.
-
-Go with Option A. Minimal change to combat.py, clean separation.
-
-### AI Action Ordering
-
-AI marshals act in priority order (highest priority first, via `get_marshal_priority()`). If AI Marshal A gets a coordination bonus from Marshal B being nearby, and then Marshal B moves away, the bonus was "real" because B was there when A fought. The existing priority system handles this:
-- Combat-engaged marshals act first (P0)
-- Marshals currently in combat zones get high priority
-- P4.6 positioning actions happen AFTER immediate combat priorities
-
-Verify during Session 62 that the ordering doesn't create paradoxes.
-
-### Reinforcement and Turn Actions
-
-A marshal who reinforces an adjacent battle has NOT "acted" in the formal AP sense — reinforcement is reactive, not a player command. However, the marshal physically moved to a new region. This creates a question: can that marshal still act on their own AP?
-
-**Rule:** A marshal who reinforces is marked as `reinforced_this_turn = True` (transient flag). This:
-- Prevents them from also being ordered to attack/move (they already moved)
-- Does NOT consume player AP (the reinforcement was automatic)
-- Is cleared at turn start
-
-### Pre-Battle Preview Flow
-
-The coordination preview must happen AFTER attack validation but BEFORE execution. The current flow in `_execute_attack` is:
-
-```
-validate → resolve_battle → return result
-```
-
-We need:
-
-```
-validate → calculate coordination preview → return preview to frontend
-(player sees preview, command auto-continues)
-→ resolve_battle with coordination → return result
-```
-
-**Implementation:** The preview is calculated as part of the attack response. It doesn't pause for player confirmation — it's informational only, displayed alongside the battle result. This avoids adding a new back-and-forth API call.
-
-### Supply Impact Verification
-
-Verify that `process_supply_attrition()` in `world_state.py` already divides supply capacity among all marshals in a region. If it calculates per-marshal independently, the stacking penalty is already there. If not, this is the one place in §7 that needs a code change.
-
-Current code (verify during Session 57): `process_supply_attrition()` iterates marshals per region and checks if `marshal.strength > supply_capacity`. If multiple marshals share a region, each is checked against the full capacity independently. **This needs to change** — capacity should be divided among all marshals present.
-
-### Test Count Summary
-
-| Session | New Tests | Running Total |
-|---------|-----------|---------------|
-| 57: Combined Arms | ~45 | ~3032 |
-| 58: Coordination Bonus | ~50 | ~3082 |
-| 59: SUPPORT Enhancement | ~40 | ~3122 |
-| 60: Adjacent Reinforcement | ~55 | ~3177 |
-| 61: Casualty Distribution | ~40 | ~3217 |
-| 62: AI P4.6 | ~45 | ~3262 |
-| 63: Battle Reports | ~35 | ~3297 |
-| 64: Godot Frontend | 0 (manual) | ~3297 |
-| 65: Integration Audit | ~30 | ~3327 |
-| **Total Phase 7** | **~340** | **~3327** |
+| File | Session | Changes |
+|------|---------|---------|
+| `CLAUDE.md` | 66 | Phase 7 complete, Phase 7b next, new file references |
+| `STATUS.md` | 66 | Test count, session history, phase status |
+| `ROADMAP.md` | 66 | Phase 7 table updated, Phase 7b deferred items |
+| `SYSTEMS_REFERENCE.md` | 66 | New §11 Multi-Marshal Coordination |
+| `SAVE_FORMAT_REFERENCE.md` | 66 | New serialized fields |
+| `ENEMY_AI_REFERENCE.md` | 66 | P4.6, P4.76, P4.77, P4.78 |
 
 ---
 
-## Appendix: Modifier Stack Example
+## 17. Golden Rules & Gotchas
 
-**Scenario:** Ney (cavalry, aggressive) attacks Wellington. Davout (infantry, Rival to Ney) is in same region on SUPPORT. Drouot (artillery, Friendly to Ney) is in same region passively. Murat (cavalry, Professional to Ney) reinforces from adjacent region.
+### Golden Rules
 
-**Combined Arms:** Infantry (Davout) + Cavalry (Ney, Murat) + Artillery (Drouot) = 3/3 → +20% attack, +10% defense
+1. **Combat modifiers: SINGLE SOURCE in marshal.py.** All coordination bonuses applied via transient fields in `get_attack_modifier()` / `get_defense_modifier()`. `combat.py` reads them, never recalculates.
 
-**Coordination (Ney's perspective):**
-- Davout (Rival, 50%): +1.5% atk, +2.5% def
-- Drouot (Friendly, 125%): +3.75% atk, +6.25% def
-- Murat (Professional, 100%): +3% atk, +5% def
-- Total: +8.25% atk, +13.75% def
+2. **All numbers to Godot: `int()`.** All coordination percentages, casualty counts, strength values.
 
-**SUPPORT (Davout on SUPPORT for Ney):**
-- +5% atk, +5% def (flat)
+3. **Transient fields: NOT serialized.** `combined_arms_attack_bonus`, `coordination_attack_bonus`, `dedicated_coordination_bonus`, `adjacent_support_bonus` — all cleared between combats. Only `co_location_turns` and `last_relationship_change_turn` are serialized.
 
-**Ney's Total Coordination Bonus:**
-- Attack: 20% (CA) + 8.25% (coord) + 5% (SUPPORT) = +33.25%
-- Defense: 10% (CA) + 13.75% (coord) + 5% (SUPPORT) = +28.75%
+4. **State clearing: AFTER reading.** Transient fields set by `_calculate_coordination_context()`, read by `get_*_modifier()`, cleared after `resolve_battle()` returns.
 
-**Plus Ney's existing modifiers:** aggressive stance (+15% atk), personality (+15% atk base), recklessness, etc.
+5. **Both sides get independent coordination.** Attacker coordination from attacker's allies. Defender coordination from defender's allies. Calculated separately.
 
-**Casualty Distribution (if 5000 total attacker casualties):**
-- Ney: 25k strength, weight 25k → 25/62.5 = 40% → 2000
-- Davout: 20k strength, weight 10k (SUPPORT half) → 10/62.5 = 16% → 800
-- Drouot: 15k strength, weight 15k → 15/62.5 = 24% → 1200
-- Murat: 25k strength, weight 12.5k (reinforcement 50%) → 12.5/62.5 = 20% → 1000
-- Total: 5000 ✓
+### Gotchas
+
+| Issue | Solution |
+|-------|----------|
+| Reinforcement relocates marshal mid-turn | Strategic order invalidated — clear `marshal.strategic_order = None` after relocation |
+| Reinforced marshal in new fog zone | `update_intel_from_battle()` fires after battle, sees new positions |
+| `apply_casualties=False` affects other call sites | ONLY change `_execute_attack`. All 5 other call sites keep `True`. |
+| Casualty distribution rounding | Last participant gets remainder to prevent leakage |
+| Hard cap race condition | Calculate ALL sources first, THEN cap before applying to transient fields |
+| Co-location tracking after death | Dead marshal → clear their `co_location_turns` dict |
+| SUPPORT order + reinforcement | SUPPORT marshal gets both: +5% dedicated AND arrival score +10 |
+| HOLD + SUPPORT mutual exclusion | One `strategic_order` field. Issuing SUPPORT replaces HOLD. |
+| Defensive reinforcement steals player agency | HOLD order blocks reinforcement. Player uses HOLD to prevent unwanted relocation. |
+| Combined arms after reinforcement | Recalculate combined arms AFTER reinforcements arrive (new unit types may join) |
+| Tutorial fires multiple times | `coordination_tutorial_shown` on WorldState (serialized), checked before inline-dramatic display |
+| Coordination preview + objection timing | Preview calculates AFTER objection resolves, not before |
+| AI P4.6 fires over undefended capture | P4.6 priority is AFTER P4.5 (undefended capture). Never supersedes free regions. |
+
+---
+
+## 18. Deferred Items
+
+### Linked Group (Must Ship Together)
+
+These three complete the tactical triangle. All must implement as a single unit:
+
+| Feature | Phase | Description |
+|---------|-------|-------------|
+| **Square Formation** | 7b | Infantry anti-cavalry stance (-40% cav dmg), vulnerable to artillery (+50%) |
+| **Artillery SUPPORT auto-bombardment** | 7b | Artillery on SUPPORT auto-bombards before supported marshal's combat |
+| **Artillery Overwatch** | 7b | Passive -3% attack debuff on enemies in same region as friendly artillery |
+
+**Documentation requirement:** List as "Tactical Triangle Completion" group in ROADMAP.md, STATUS.md, CLAUDE.md. When any one is picked up, all three come with it.
+
+### Other Deferred Items
+
+| Feature | Phase | Notes |
+|---------|-------|-------|
+| V2b: Defiance/Vindication | 7b | STRONG/EXTREME concerns trigger defiance. Scaffolding ready. |
+| Jealousy system | 7b | Marshal getting all glory → others resent. Needs multi-marshal battle data from Phase 7. |
+| Coalition Trigger | 7b | Threat level → war declarations. Core "France can't steamroll" mechanic. |
+| Gneisenau Staff Work | 1805 | +10% ally bonus. Coalition-specific advantage for full campaign only. |
+
+---
+
+## 19. Phase 6.5 Sequencing
+
+Phase 6.5 will be COMPLETE before Phase 7 implementation begins. All 10 remaining items ship first:
+
+| 6.5 Feature | Phase 7 Interaction |
+|-------------|-------------------|
+| **Notification System** | Coordination events use notification infrastructure |
+| **Strategic Ledger** | Multi-marshal positioning requires overview screen |
+| **Marshal Management UI** | Relationship display needs a home |
+| **Campaign Log** | Coordination events should log |
+| **Tooltips** | Phase 7 adds coordination/relationship info to tooltips |
+| **Campaign Briefing** | Coordination readiness in turn-start summary |
+| **Marshal Report** | Per-turn coordination contributions |
+| **Tutorial Infrastructure** | First-time coordination tutorial uses this |
+| **Map Renderer** | Blocked on art commission — critical path for EA |
+| **Wire Marshal Abilities** | Some abilities interact with coordination (Gneisenau deferred) |
+
+Phase 7 Session 66 (Godot UI) depends on tooltip infrastructure existing. If tooltip system is built in Phase 6.5, Session 66 extends it. If not, Session 66 must build the tooltip foundation first (adds scope).
+
+---
+
+## 20. Glossary
+
+| Term | Definition |
+|------|-----------|
+| **Combined Arms** | Bonus from having multiple unit types (infantry/cavalry/artillery) in same region |
+| **Coordination** | Per-ally bonus, relationship-scaled |
+| **Dedicated Coordination** | Flat +5%/+5% from 2-turn co-location or SUPPORT order |
+| **Adjacent Support** | +2% attack per adjacent friendly marshal |
+| **Hard Cap** | +25% attack / +20% defense maximum from all coordination sources |
+| **The Grouchy Rule** | Literal personality marshals never auto-reinforce without explicit SUPPORT order |
+| **Arrival Score** | Deterministic base + variance formula determining reinforcement success (threshold >60) |
+| **Participating** | Marshals in region during combat — take proportional casualties |
+| **Non-Participating** | Hostile marshals — 0% coordination, 0% casualties |
+| **Building Blocks** | Player and AI use same actions, same executor, same rules |
+| **Transient Field** | Marshal field set before combat, read by modifier methods, cleared after. NOT serialized. |
+| **Tactical Triangle** | Infantry ↔ Cavalry ↔ Artillery rock-paper-scissors. Phase 7b completes it with Square Formation. |
