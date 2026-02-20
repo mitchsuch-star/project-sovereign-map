@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** February 20, 2026 (Campaign Log)
+> **Last Updated:** February 20, 2026 (Morning Dispatch)
 
 ---
 
@@ -13,7 +13,7 @@
 | 1-5.3 | Foundation through AI Fixes | COMPLETE |
 | **V2a** | **Objection System Refactor** | **COMPLETE** |
 | **6** | **Core Campaign Systems** | **COMPLETE** |
-| **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE Sessions 48-52, Pause Menu COMPLETE Session 56, Campaign Log COMPLETE) |
+| **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE Sessions 48-52, Pause Menu COMPLETE Session 56, Campaign Log COMPLETE, Morning Dispatch COMPLETE) |
 | **7 Core** | **Multi-Marshal Coordination** | **Spec COMPLETE + AUDITED + SCOPED.** 6 sessions (57-61, 64). ~190 tests. |
 | 7b | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b, Coalition, Jealousy | Planned (deferred from 7 Core) |
 | 8 | Diplomacy & Peace | Planned |
@@ -41,7 +41,7 @@
 | 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 3063 (verified Feb 20, 2026)
+**Total Tests:** 3120 (verified Feb 20, 2026)
 
 ---
 
@@ -155,8 +155,7 @@ Uses read-only modifier snapshots taken BEFORE state-consuming `get_attack_modif
 | Marshal Management UI | View/manage all marshals, relationships, recruit | Medium | Planned |
 | Campaign Log | Scrollable history of major events | Low | **COMPLETE.** Fog-filtered 14-type event log, Godot overlay (L key), 57 tests. Bankruptcy public knowledge. |
 | Tooltips | Hover info on regions, marshals, nations | Low | Planned |
-| **Campaign Briefing Screen** | Turn-start summary: "France controls 8 regions. Coalition threat: rising. Ney is restless." Template-driven. | Low | Planned |
-| **Marshal Report** | Per-turn one-liner per marshal: "Ney: attacked Wellington, lost 8k, trust 72 (stable)." | Low | Planned |
+| **Campaign Briefing + Marshal Report** | Morning Dispatch: Berthier's turn-start briefing with SITUATION (regions, treasury, fog-filtered enemy strength ratio), MARSHAL STATUS (per-marshal table with status/trust/morale), INTELLIGENCE (fog-filtered enemy sightings), and Berthier's closing note. Terminal output via `add_output()`, no popup. Backend: `dispatch.py`. 50 tests. | Low | **COMPLETE** |
 | **Tutorial Infrastructure** | `TutorialManager` for staged popups/highlights. Content populated in Pre-EA. | Medium | Planned |
 | **Map Renderer** | EU4-style bitmap map integration. 3 workstreams: (1) art integration — visual map Sprite2D, province color map hit detection, nation color shader, fog shader, highlight shader; (2) sprite assets — marshal icons, garrison shields, unit badges, status indicators, building/watchtower icons; (3) code refactor — rip out all procedural drawing from map.gd, sprite-based rendering, UI-based tooltips, color map input handling. See Map Renderer Notes below. | High | Planned |
 | **Pause Menu** | Esc → Save/Load/Settings/Quit (wraps Phase 6 save/load endpoints) | Low | **COMPLETE** (Session 56). Smart Esc: unfocus input → open menu → close menu. CanvasLayer 101, modal overlay, Save/Load/Settings stub/Quit. |
@@ -755,7 +754,7 @@ Lighter version of communication cutoff: orders to distant marshals take effect 
 3. Post-V2a: TUTORIAL_SCRIPT.md, doc updates
 4. **Commission Europe map art** (2-4 week lead time, parallel with Phase 6)
 5. Phase 6: Economy, Manpower, Terrain, Fog, **Save/Load**, **Berthier**, **Post-battle analysis**
-6. Phase 6.5: Notifications, Ledger, Marshal UI, **Campaign Briefing**, **Marshal Report**, **Tutorial infra**, **Map Renderer**
+6. Phase 6.5: Notifications, Ledger, Marshal UI, ~~Campaign Briefing~~, ~~Marshal Report~~ (shipped as Morning Dispatch), **Tutorial infra**, **Map Renderer**
 7. Phase 7 Core: Multi-Marshal Coordination (Sessions 57-61 + 64, 6 sessions, ~190 tests) — combined arms, coordination bonuses, Grouchy Rule, dynamic relationships
 7b. Phase 7b: Casualty Distribution (S62), AI Coordination (S63), Battle Reports (S65), Godot UI (S66), Tactical Triangle, V2b, Coalition Trigger
 8. Phase 8: **Diplomacy Chat**, Peace Treaties, Leader Personalities

@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 20, 2026 (Campaign Log)
+> **Last Updated:** February 20, 2026 (Morning Dispatch)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3063** (verified, 3 skipped) |
+| **Tests Passing** | **3120** (verified, 3 skipped) |
 
-| **Current Phase** | Phase 6.5 **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Wire Marshal Abilities COMPLETE, Campaign Log COMPLETE, 8 items remaining). **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md`. Remaining 6.5: Notification System, Strategic Ledger, Marshal Management UI, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer |
+| **Current Phase** | Phase 6.5 **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Wire Marshal Abilities COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, 6 items remaining). **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md`. Remaining 6.5: Notification System, Strategic Ledger, Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,7 +19,7 @@
 
 ## Next Steps
 
-1. **Phase 6.5 remaining** — Notification System, Strategic Ledger, Marshal Management UI, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer
+1. **Phase 6.5 remaining** — Notification System, Strategic Ledger, Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer
 2. **Phase 7 Core: Multi-Marshal Coordination** — 6 sessions (57-61, 64), ~190 new tests. "Position IS Coordination" — combined arms (+10-20%), relationship-scaled coordination (+3%/+5% per ally), dedicated coordination (+5%/+5% from co-location or SUPPORT), adjacent support (+2% per adjacent), reinforcement (Grouchy Rule), win/loss relationship formula (dynamic relationships). Hard cap: +25% atk/+20% def. Each session includes basic combat display messages. Highest risk: Session 61 (reinforcement + physical relocation). First session: Combined Arms Detection (S57). Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md` (audit corrections still apply to all sessions including deferred ones).
 3. **Phase 7b (immediately after 7 Core):** Casualty Distribution (S62 — `resolve_battle()` contract change, deferred for playtest data), AI Coordination Enhancements (S63 — P4.6/P4.76/P4.77/P4.78), Full Battle Reports + Berthier Observations (S65), Godot Tooltips + Tutorial + Integration Audit (S66), Tactical Triangle Completion (Square Formation + Artillery SUPPORT auto-bombardment + Artillery Overwatch — linked group), V2b Defiance/Vindication, Jealousy system, Coalition Trigger, Cross-nation coordination (Britain/Prussia), Gneisenau Staff Work (1805 only).
 
@@ -45,6 +45,32 @@ All major Phase 6 features shipped:
 ---
 
 ## Recent Sessions
+
+### Feb 20 (Morning Dispatch — Phase 6.5)
+
+**Berthier's Morning Dispatch: structured turn-start briefing rendered as terminal output.**
+
+Replaces "Campaign Briefing" and "Marshal Report" roadmap items with a single integrated dispatch.
+
+**New file:** `backend/game_logic/dispatch.py` — `build_morning_dispatch(world)` returns structured dict with four sections:
+- **SITUATION:** Player/enemy region counts, treasury with delta, fog-filtered enemy strength ratio (estimated from intel band midpoints for PARTIAL/STALE, exact for FULL, zero for UNKNOWN). Bankrupt flag.
+- **MARSHAL STATUS:** Per-French-marshal table: name, location, strength, derived status (broken > retreating > strategic > drilling > fortified > artillery > idle_restless > awaiting), trust/morale warnings.
+- **INTELLIGENCE:** Fog-filtered enemy sightings aggregated from RegionIntel. Deduplicated by marshal name (best visibility wins). Strength displayed as exact number (FULL), band string (PARTIAL), or frozen snapshot (STALE).
+- **Berthier's closing note:** Priority-based template: broken marshal > bankrupt > treasury bleeding > aggressive idle 4+ > all ready > default.
+
+**Wiring:** Both end-turn paths (manual `_execute_end_turn` and auto-advance when AP exhausted) build and attach `morning_dispatch` to result. `main.py` passes through to Godot. Godot `_display_morning_dispatch()` renders with BBCode in `_display_result()` after `_display_turn_change()`.
+
+**Godot:** `COLOR_BERTHIER` and `COLOR_OBSERVATION` promoted to class-level constants. ASCII status icons (safe for all fonts). Column alignment via space padding.
+
+**Design decisions:**
+- Enemy strength is fog-filtered (band midpoints for PARTIAL/STALE) — intentionally underestimates when visibility is low (cost of poor intelligence). Shown as "Estimated enemy strength: X% of French forces."
+- Neutral regions (controller=None) counted as neither player nor enemy.
+- Broken/retreating marshals excluded from French strength total.
+- No new endpoints, no new Godot scenes — terminal output only.
+
+**Display ordering:** Dispatch renders LAST (after enemy phase popup dismiss and strategic reports), right before player gets control. Tactical events (attrition, construction, etc.) absorbed into dispatch's TURN EVENTS section — no more ugly standalone lines. Enemy phase text removed from terminal (popup is sufficient, campaign log has the full record).
+
+**Tests:** 57 new (situation, fog-filtered strength, marshal status, intelligence, turn events, Berthier note, integration, no-floats enforcement). **3120 total passing**, 3 skipped, 0 regressions.
 
 ### Feb 20 (Campaign Log Polish — Phase 6.5)
 

@@ -27,11 +27,11 @@ Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-B
 
 ### Completed in Phase 6.5
 
-Bombardment system (Sessions 48-52), Pause menu (Session 56: Smart Esc, modal overlay, Save/Load/Settings stub/Quit), Wire Marshal Abilities (Drouot 15% fort degradation, Wellington +5% defense, Blucher 3k pursuit, Uxbridge 5k pursuit; Gneisenau deferred to Phase 7), Campaign Log (fog-filtered event log overlay, 14 event types, L key toggle, 57 tests).
+Bombardment system (Sessions 48-52), Pause menu (Session 56: Smart Esc, modal overlay, Save/Load/Settings stub/Quit), Wire Marshal Abilities (Drouot 15% fort degradation, Wellington +5% defense, Blucher 3k pursuit, Uxbridge 5k pursuit; Gneisenau deferred to Phase 7), Campaign Log (fog-filtered event log overlay, 14 event types, L key toggle, 57 tests), Morning Dispatch (Berthier's turn-start briefing: SITUATION + MARSHAL STATUS + INTELLIGENCE + TURN EVENTS + Berthier note, fog-filtered enemy strength ratio, absorbs tactical events, 57 tests).
 
 ### Up Next
 
-- **Phase 6.5 remaining:** Notification System, Strategic Ledger, Marshal Management UI, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer (art integration + sprite assets + procedural drawing rip-out — see ROADMAP.md Map Renderer Notes)
+- **Phase 6.5 remaining:** Notification System, Strategic Ledger, Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer (art integration + sprite assets + procedural drawing rip-out — see ROADMAP.md Map Renderer Notes)
 - **Phase 7 Core: Multi-Marshal Coordination** — Spec in `docs/MULTI_MARSHAL_SPEC.md` + `docs/PHASE7_SPEC_AMENDMENTS.md`. **6 sessions (57-61, 64).** Combined arms (+10-20%), relationship-scaled coordination (+3%/+5% per ally), dedicated coordination (co-location + SUPPORT), adjacent support (+2% per adjacent), reinforcement (Grouchy Rule), win/loss relationship formula. ~190 new tests. Hard cap: +25% atk/+20% def. Each session includes basic combat display messages. Presentation absorbed into feature sessions (no separate display session).
 - **Phase 7b:** Casualty Distribution (Session 62 — `resolve_battle()` contract change, deferred for playtest data), AI Coordination Enhancements (Session 63 — P4.6/P4.76/P4.77/P4.78), Full Battle Reports + Berthier Observations (Session 65), Godot Tooltips + Tutorial + Integration Audit (Session 66), Tactical Triangle (Square Formation + Artillery SUPPORT auto-bombardment + Artillery Overwatch — linked group), V2b, Jealousy, Coalition Trigger, Gneisenau Staff Work (1805). ~150 tests from deferred Phase 7 sessions.
 
@@ -60,6 +60,7 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | `backend/campaign_log.py` | Campaign log fog filter + one-liner formatter |
 | `backend/game_logic/combat.py` | Combat resolution, messages |
 | `backend/game_logic/battle_report.py` | Post-battle modifier snapshots, report generation, Berthier observations |
+| `backend/game_logic/dispatch.py` | Morning Dispatch builder (fog-filtered turn-start briefing) |
 | `backend/game_logic/turn_manager.py` | Turn flow, enemy phase |
 | `backend/ai/enemy_ai.py` | Enemy AI decision tree (P1-P8) |
 | `backend/ai/llm_client.py` | LLM integration (fast parser + Anthropic) |

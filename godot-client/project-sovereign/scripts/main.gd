@@ -42,6 +42,9 @@ var redemption_dialog = null
 var enemy_phase_dialog = null
 var pending_enemy_phase_response = null  # Store response to check game_over after dismissal
 
+# Morning Dispatch — stored for display after all dialogs are dismissed
+var pending_dispatch_data = null
+
 # Glorious Charge Dialog (Phase 3 Cavalry Recklessness)
 var glorious_charge_dialog = null
 
@@ -96,6 +99,8 @@ const COLOR_MARSHAL = "c9b8e0"     # Lavender for marshal responses
 const COLOR_CONQUEST = "90d890"    # Bright green for conquests
 const COLOR_FEEDBACK = "b8a0d9"    # Soft purple/lavender for AI feedback
 const COLOR_DISPATCH = "c9b878"    # Warm gold for field dispatches (MILD flavor)
+const COLOR_BERTHIER = "B8860B"    # Dark goldenrod for Berthier dispatch headers
+const COLOR_OBSERVATION = "DAA520"  # Goldenrod for Berthier closing notes
 
 # Message history limit (prevents infinite growth)
 const MAX_MESSAGES = 100
@@ -615,9 +620,7 @@ func _on_command_result(response):
 		# Format and display result based on event type
 		_display_result(response)
 
-		# Display tactical events (supply attrition, etc.) from turn resolution
-		if response.has("tactical_events"):
-			_display_tactical_events(response.tactical_events)
+		# Tactical events absorbed into Morning Dispatch (no separate display)
 
 		# Check for enemy phase (from end_turn)
 		# NOTE: No total_actions > 0 gate — dialog shows even with 0 enemy actions
@@ -648,6 +651,9 @@ func _on_command_result(response):
 			if response.game_state.game_over:
 				_show_game_over_screen(response.game_state)
 				return  # Don't auto-focus input
+
+		# Morning Dispatch — displayed last, right before player gets control
+		_show_pending_dispatch()
 
 	else:
 		add_output("[color=#" + COLOR_ERROR + "]" + response.message + "[/color]")
@@ -701,6 +707,9 @@ func _display_result(response):
 			_show_action_cost(action_info)
 		"turn_end":
 			_display_turn_change(events[0])
+			# Morning Dispatch — stored for display after all dialogs (enemy phase, strategic reports)
+			if response.has("morning_dispatch"):
+				pending_dispatch_data = response.morning_dispatch
 		_:
 			add_output("[color=#" + COLOR_SUCCESS + "]" + message + "[/color]")
 			_show_action_cost(action_info)
@@ -924,33 +933,180 @@ func _display_turn_change(event: Dictionary):
 	add_output("[color=#" + COLOR_SUCCESS + "]Actions refreshed: " + str(int(max_actions)) + "/" + str(int(max_actions)) + "[/color]")
 	add_output("")
 
-func _display_tactical_events(tactical_events):
-	"""Display tactical events from turn resolution (supply attrition, construction, occupation, etc.)."""
-	if tactical_events is Array and tactical_events.size() > 0:
-		for event in tactical_events:
-			var event_type = event.get("type", "")
-			if event_type == "supply_attrition":
-				var marshal_name = event.get("marshal", "Unknown")
-				var region_name = event.get("region", "Unknown")
-				var losses = int(event.get("losses", 0))
-				add_output("[color=#" + COLOR_ERROR + "]Supply shortage at " + region_name + ": " + marshal_name + " loses " + _format_number(losses) + " troops[/color]")
-			elif event_type == "bankruptcy_desertion":
-				var marshal_name = event.get("marshal", "Unknown")
-				var losses = int(event.get("losses", 0))
-				var remaining = int(event.get("remaining", 0))
-				add_output("[color=#" + COLOR_ERROR + "]DESERTION: " + marshal_name + " loses " + _format_number(losses) + " troops (" + _format_number(remaining) + " remaining)[/color]")
-			elif event_type == "construction_complete":
-				var msg = event.get("message", "Construction complete.")
-				add_output("[color=#" + COLOR_GOLD + "]" + msg + "[/color]")
-			elif event_type == "occupation_complete":
-				var msg = event.get("message", "Siege complete.")
-				add_output("[color=#" + COLOR_GOLD + "]" + msg + "[/color]")
-			elif event_type == "occupation_continues":
-				var msg = event.get("message", "Siege continues.")
-				add_output("[color=#" + COLOR_INFO + "]" + msg + "[/color]")
-			elif event_type == "occupation_abandoned":
-				var msg = event.get("message", "Siege abandoned.")
-				add_output("[color=#" + COLOR_ERROR + "]" + msg + "[/color]")
+func _display_morning_dispatch(data: Dictionary):
+	"""Display Berthier's Morning Dispatch — structured turn-start briefing (Phase 6.5).
+
+	Renders SITUATION, MARSHAL STATUS, INTELLIGENCE, and Berthier's closing note
+	as formatted terminal output. All data is fog-filtered by the backend.
+	"""
+	var turn_num = int(data.get("turn", 0))
+	var situation = data.get("situation", {})
+	var marshals_list = data.get("marshals", [])
+	var intel_list = data.get("intelligence", [])
+	var berthier_note = str(data.get("berthier_note", "Your orders, Sire."))
+
+	# ═══ DISPATCH HEADER ═══
+	add_output("[color=#" + COLOR_BERTHIER + "]════════════════════════════════════[/color]")
+	add_output("[color=#" + COLOR_BERTHIER + "]  MORNING DISPATCH — Turn " + str(turn_num) + "[/color]")
+	add_output("[color=#" + COLOR_INFO + "]  Chief of Staff Berthier reporting[/color]")
+	add_output("[color=#" + COLOR_BERTHIER + "]════════════════════════════════════[/color]")
+	add_output("")
+
+	# ═══ SITUATION ═══
+	add_output("[color=#" + COLOR_BERTHIER + "]SITUATION[/color]")
+	var player_regions = int(situation.get("player_regions", 0))
+	var enemy_regions = int(situation.get("enemy_regions", 0))
+	var treasury = int(situation.get("treasury", 0))
+	var treasury_delta = int(situation.get("treasury_delta", 0))
+	var bankrupt = situation.get("bankrupt", false)
+	var strength_pct = int(situation.get("strength_ratio_pct", 0))
+
+	# Treasury line
+	var delta_sign = "+" if treasury_delta >= 0 else ""
+	var delta_color = COLOR_SUCCESS if treasury_delta >= 0 else COLOR_ERROR
+	add_output("[color=#" + COLOR_INFO + "]  France holds " + str(player_regions) + " regions. Treasury: " + _format_number(treasury) + "g [/color][color=#" + delta_color + "](" + delta_sign + str(treasury_delta) + ")[/color]")
+
+	# Enemy regions + estimated strength
+	if bankrupt:
+		add_output("[color=#" + COLOR_ERROR + "]  BANKRUPT — Treasury exhausted. Troops desert.[/color]")
+	else:
+		add_output("[color=#" + COLOR_INFO + "]  Enemy nations hold " + str(enemy_regions) + " regions. Estimated enemy strength: " + str(strength_pct) + "% of French forces.[/color]")
+	add_output("")
+
+	# ═══ MARSHAL STATUS ═══
+	if marshals_list.size() > 0:
+		add_output("[color=#" + COLOR_BERTHIER + "]MARSHAL STATUS[/color]")
+		for m in marshals_list:
+			var m_name = str(m.get("name", "?"))
+			var m_loc = str(m.get("location", "?"))
+			var m_str = int(m.get("strength", 0))
+			var m_status = str(m.get("status", "awaiting"))
+			var m_note = str(m.get("status_note", ""))
+			var m_trust = int(m.get("trust", 75))
+			var m_trust_notable = m.get("trust_notable", false)
+			var m_morale = int(m.get("morale", 100))
+			var m_morale_warning = m.get("morale_warning", false)
+
+			# Status icon
+			var icon = ""
+			match m_status:
+				"awaiting":
+					icon = "-"
+				"drilling":
+					icon = "*"
+				"fortified":
+					icon = "#"
+				"retreating":
+					icon = "<"
+				"broken":
+					icon = "!"
+				"en_route":
+					icon = ">"
+				"idle_restless":
+					icon = "-"
+				"artillery":
+					icon = "+"
+				_:
+					icon = "-"
+
+			# Build the line
+			var line = "  " + icon + " "
+			line += m_name
+			# Pad name to ~14 chars for alignment
+			while line.length() < 18:
+				line += " "
+			line += m_loc
+			while line.length() < 34:
+				line += " "
+			line += _format_number(m_str)
+			while line.length() < 44:
+				line += " "
+			line += m_note
+
+			# Append trust/morale warnings
+			if m_trust_notable and m_trust < 55:
+				line += " Trust:" + str(m_trust)
+			if m_morale_warning:
+				line += " Morale:" + str(m_morale) + "%"
+
+			# Color based on status
+			var line_color = COLOR_INFO
+			if m_status == "broken":
+				line_color = COLOR_ERROR
+			elif m_status == "retreating":
+				line_color = COLOR_ERROR
+			elif m_status == "idle_restless":
+				line_color = COLOR_BATTLE
+
+			add_output("[color=#" + line_color + "]" + line + "[/color]")
+		add_output("")
+
+	# ═══ INTELLIGENCE ═══
+	add_output("[color=#" + COLOR_BERTHIER + "]INTELLIGENCE[/color]")
+	if intel_list.size() == 0:
+		add_output("[color=#" + COLOR_INFO + "]  No enemy forces in observation range.[/color]")
+	else:
+		for intel in intel_list:
+			var i_name = str(intel.get("name", "?"))
+			var i_loc = str(intel.get("location", "?"))
+			var i_strength = str(intel.get("strength_display", "?"))
+			var i_vis = str(intel.get("visibility", "unknown"))
+			var i_turn = int(intel.get("intel_turn", 0))
+
+			var vis_label = ""
+			var vis_color = COLOR_INFO
+			match i_vis:
+				"full":
+					vis_label = "[confirmed]"
+					vis_color = COLOR_SUCCESS
+				"partial":
+					vis_label = "[partial]"
+					vis_color = COLOR_INFO
+				"stale":
+					vis_label = "[stale - T" + str(i_turn) + "]"
+					vis_color = COLOR_BATTLE
+				"last_known":
+					vis_label = "[last known - T" + str(i_turn) + "]"
+					vis_color = COLOR_ERROR
+				_:
+					vis_label = ""
+
+			var intel_line = "  " + i_name
+			while intel_line.length() < 18:
+				intel_line += " "
+			intel_line += i_loc
+			while intel_line.length() < 34:
+				intel_line += " "
+			intel_line += i_strength
+
+			add_output("[color=#" + COLOR_INFO + "]" + intel_line + " [/color][color=#" + vis_color + "]" + vis_label + "[/color]")
+	add_output("")
+
+	# ═══ TURN EVENTS ═══
+	var turn_events = data.get("turn_events", [])
+	if turn_events.size() > 0:
+		add_output("[color=#" + COLOR_BERTHIER + "]TURN EVENTS[/color]")
+		for evt in turn_events:
+			var evt_msg = str(evt.get("message", ""))
+			var evt_sev = str(evt.get("severity", "info"))
+			var evt_color = COLOR_INFO
+			if evt_sev == "warning":
+				evt_color = COLOR_ERROR
+			elif evt_sev == "good":
+				evt_color = COLOR_SUCCESS
+			add_output("[color=#" + evt_color + "]  " + evt_msg + "[/color]")
+		add_output("")
+
+	# ═══ BERTHIER'S NOTE ═══
+	add_output("[color=#" + COLOR_OBSERVATION + "]  Berthier: \"" + berthier_note + "\"[/color]")
+	add_output("[color=#" + COLOR_BERTHIER + "]════════════════════════════════════[/color]")
+	add_output("")
+
+func _show_pending_dispatch():
+	"""Display pending morning dispatch if any, then clear it."""
+	if pending_dispatch_data != null:
+		_display_morning_dispatch(pending_dispatch_data)
+		pending_dispatch_data = null
 
 func _display_turn_advance(action_info: Dictionary):
 	"""Display automatic turn advancement when actions run out."""
@@ -1523,16 +1679,8 @@ func _show_mild_dispatches(response):
 
 func _on_enemy_phase_dismissed():
 	"""Handle enemy phase dialog dismissal."""
-	# Show enemy phase summary in command output after dialog dismissed
-	# so the player has a text record in the command history.
-	if pending_enemy_phase_response != null:
-		var ep = pending_enemy_phase_response.get("enemy_phase", {})
-		var summary_lines = ep.get("summary", [])
-		if summary_lines.size() > 0:
-			add_output("[color=#" + COLOR_GOLD + "]═══ ENEMY PHASE ═══[/color]")
-			for line in summary_lines:
-				add_output("[color=#" + COLOR_INFO + "]" + str(line) + "[/color]")
-			add_output("")
+	# Enemy phase text removed from terminal — popup is sufficient,
+	# campaign log has the full record.
 
 	# Show MILD dispatches after enemy phase (V2a: atmosphere text)
 	if pending_enemy_phase_response != null:
@@ -1556,6 +1704,9 @@ func _on_enemy_phase_dismissed():
 			return  # Don't re-enable input until reports dismissed
 
 		pending_enemy_phase_response = null
+
+	# Morning Dispatch — displayed last, right before player gets control
+	_show_pending_dispatch()
 
 	set_input_enabled(true)
 	command_input.grab_focus()
@@ -1919,6 +2070,10 @@ func _on_strategic_report_dismissed():
 
 	pending_strategic_response = null
 	pending_enemy_phase_response = null
+
+	# Morning Dispatch — displayed last, right before player gets control
+	_show_pending_dispatch()
+
 	set_input_enabled(true)
 	command_input.grab_focus()
 

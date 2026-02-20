@@ -693,6 +693,10 @@ def execute_command(request: CommandRequest):
             response["show_independent_command_report"] = True
             response["independent_command_report"] = result.get("independent_command_report", [])
 
+        # Morning Dispatch — Berthier's turn-start briefing (Phase 6.5)
+        if result.get("morning_dispatch"):
+            response["morning_dispatch"] = result["morning_dispatch"]
+
         return response
     except Exception as e:
         print(f"[ERROR]: {e}")

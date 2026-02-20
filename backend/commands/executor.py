@@ -263,31 +263,12 @@ class CommandExecutor:
         turn_manager = TurnManager(world, executor=self)
         turn_result = turn_manager.end_turn(game_state)  # Pass game_state for enemy AI
 
-        # Build message with tactical events
+        # Build message — enemy phase text and turn events removed from terminal
+        # (enemy phase shown in popup dialog, turn events absorbed into Morning Dispatch)
         message = f"Turn {turn_result['turn_ended']} ended. Turn {turn_result['next_turn']} begins!"
 
-        # Add enemy phase summary if present
         enemy_phase = turn_result.get("enemy_phase")
-        if enemy_phase and enemy_phase.get("total_actions", 0) > 0:
-            message += "\n\n═══ ENEMY PHASE ═══"
-            for summary in enemy_phase.get("summary", []):
-                message += f"\n{summary}"
-
-            # Check for enemy victory
-            if enemy_phase.get("enemy_victory"):
-                ev = enemy_phase["enemy_victory"]
-                message += f"\n\n⚠️ {ev['message']}"
-
-        # Add tactical event messages (includes drill, fortify, retreat, cavalry, reckless charges)
-        tactical_messages = []
         tactical_events = turn_result.get("tactical_events", [])
-        for event in tactical_events:
-            event_msg = event.get("message", "")
-            if event_msg:
-                tactical_messages.append(event_msg)
-
-        if tactical_messages:
-            message += "\n\n--- TURN EVENTS ---\n" + "\n".join(tactical_messages)
 
         # Add Independent Command Report to message (Phase 2.5)
         # NOTE: Action names must be player-readable — never show raw internal names
@@ -400,6 +381,11 @@ class CommandExecutor:
         if world.pending_capture_choice:
             result["pending_capture_choice"] = True
             result["capture_data"] = world.pending_capture_choice
+
+        # Morning Dispatch — Berthier's turn-start briefing (Phase 6.5)
+        # Tactical events absorbed into dispatch's TURN EVENTS section
+        from backend.game_logic.dispatch import build_morning_dispatch
+        result["morning_dispatch"] = build_morning_dispatch(world, tactical_events)
 
         # Autosave at start of new turn (non-blocking — don't fail if autosave fails)
         from backend.save_manager import autosave
@@ -1551,18 +1537,14 @@ RETREAT RECOVERY (3 turns):
             result["action_info"]["turn_advanced"] = True
             result["action_info"]["new_turn"] = turn_result.get("next_turn")
 
-            # Add enemy phase results to the response
+            # Add enemy phase results to the response (popup dialog, no terminal text)
             if turn_result.get("enemy_phase"):
                 result["enemy_phase"] = turn_result["enemy_phase"]
-                result["message"] = result.get("message", "") + "\n\n" + turn_result.get("message", "")
 
-            # Add tactical events
+            # Tactical events — absorbed into Morning Dispatch's TURN EVENTS section
             tactical_events = turn_result.get("tactical_events", [])
             if tactical_events:
-                tactical_messages = [e.get("message", "") for e in tactical_events if e.get("message")]
-                if tactical_messages:
-                    result["message"] = result.get("message", "") + "\n\n--- TURN EVENTS ---\n" + "\n".join(tactical_messages)
-                    result["tactical_events"] = tactical_events
+                result["tactical_events"] = tactical_events
                 # Hoist battle_report from tactical events (auto-charge) to result level
                 for te in tactical_events:
                     if te.get("battle_report"):
@@ -1624,6 +1606,10 @@ RETREAT RECOVERY (3 turns):
             if turn_result.get("victory_check", {}).get("game_over"):
                 result["game_over"] = True
                 result["victory"] = turn_result["victory_check"].get("result")
+
+            # Morning Dispatch — Berthier's turn-start briefing (Phase 6.5, auto-advance path)
+            from backend.game_logic.dispatch import build_morning_dispatch
+            result["morning_dispatch"] = build_morning_dispatch(world, tactical_events)
 
             # Autosave at start of new turn (auto-advance path, mirrors _execute_end_turn)
             from backend.save_manager import autosave
