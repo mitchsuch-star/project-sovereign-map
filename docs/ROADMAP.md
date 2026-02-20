@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** February 19, 2026 (Phase 7 Spec: Multi-Marshal Coordination)
+> **Last Updated:** February 20, 2026 (Phase 7 Spec Audit + Amendments)
 
 ---
 
@@ -14,7 +14,7 @@
 | **V2a** | **Objection System Refactor** | **COMPLETE** |
 | **6** | **Core Campaign Systems** | **COMPLETE** |
 | **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE Sessions 48-52, Pause Menu COMPLETE Session 56) |
-| **7** | **Multi-Marshal Coordination** | **Spec COMPLETE** — see `MULTI_MARSHAL_SPEC.md`. Sessions 57-66. |
+| **7** | **Multi-Marshal Coordination** | **Spec COMPLETE + AUDITED** — see `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md`. Sessions 57-66. |
 | 7b | Tactical Triangle, V2b, Coalition, Jealousy | Planned (deferred from 7) |
 | 8 | Diplomacy & Peace | Planned |
 | 8.5 | Events, Goals & National Identity | Planned |
@@ -41,7 +41,7 @@
 | 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 2987 (verified Feb 19, 2026)
+**Total Tests:** 2987 (verified Feb 20, 2026)
 
 ---
 

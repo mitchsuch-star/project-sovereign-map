@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 19, 2026 (Session 56 — Pause Menu)
+> **Last Updated:** February 20, 2026 (Phase 7 Pre-Implementation Audit)
 
 ---
 
@@ -11,7 +11,7 @@
 |--------|-------|
 | **Tests Passing** | **2987** (verified, 3 skipped, 1 flaky) |
 
-| **Current Phase** | Phase 6.5 **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, 10 items remaining). **Phase 7 Spec COMPLETE** — Multi-Marshal Coordination (Sessions 57-66, ~340 new tests). See `MULTI_MARSHAL_SPEC.md`. Remaining 6.5: Notification System, Strategic Ledger, Marshal Management UI, Campaign Log, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer, Wire Marshal Abilities |
+| **Current Phase** | Phase 6.5 **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, 10 items remaining). **Phase 7 Spec COMPLETE + AUDITED** — Multi-Marshal Coordination (Sessions 57-66, ~340 new tests). See `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md` (3 critical, 7 design gap, 3 minor fixes). Remaining 6.5: Notification System, Strategic Ledger, Marshal Management UI, Campaign Log, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer, Wire Marshal Abilities |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -20,7 +20,7 @@
 ## Next Steps
 
 1. **Phase 6.5 remaining** — Notification System, Strategic Ledger, Marshal Management UI, Campaign Log, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer, Wire Marshal Abilities
-2. **Phase 7: Multi-Marshal Coordination** — Spec COMPLETE (`MULTI_MARSHAL_SPEC.md`). Sessions 57-66 (10 sessions). "Position IS Coordination" — combined arms (+10-20%), relationship-scaled coordination (+3%/+5% per ally), dedicated coordination (+5%/+5% from co-location or SUPPORT), adjacent support (+2% per adjacent), reinforcement (Grouchy Rule), casualty distribution (proportional), AI P4.6 coordinated attacks, win/loss relationship formula, Godot UI. ~340 new tests. Hard cap: +25% atk/+20% def. Highest risk: Sessions 61 (reinforcement) and 62 (casualty distribution). First session: Combined Arms Detection (S57).
+2. **Phase 7: Multi-Marshal Coordination** — Spec COMPLETE + AUDITED (`MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md`). Sessions 57-66 (10 sessions). "Position IS Coordination" — combined arms (+10-20%), relationship-scaled coordination (+3%/+5% per ally), dedicated coordination (+5%/+5% from co-location or SUPPORT), adjacent support (+2% per adjacent), reinforcement (Grouchy Rule), casualty distribution (proportional), AI P4.6 coordinated attacks, win/loss relationship formula, Godot UI. ~340 new tests. Hard cap: +25% atk/+20% def. Highest risk: Sessions 61 (reinforcement) and 62 (casualty distribution). First session: Combined Arms Detection (S57). **Audit found 3 critical issues (resolve_battle side effects, victor determination, cross-nation coordination) — all resolved in amendments doc.**
 3. **Phase 7b (deferred from 7):** Tactical Triangle Completion (Square Formation + Artillery SUPPORT auto-bombardment + Artillery Overwatch — linked group, ship together), V2b Defiance/Vindication, Jealousy system, Coalition Trigger, Gneisenau Staff Work (1805 only).
 
 ---
@@ -45,6 +45,26 @@ All major Phase 6 features shipped:
 ---
 
 ## Recent Sessions
+
+### Feb 20 (Phase 7 Pre-Implementation Audit)
+
+**Comprehensive audit of Phase 7 Multi-Marshal Coordination spec against existing codebase.**
+
+**New file:** `docs/PHASE7_SPEC_AMENDMENTS.md` — authoritative amendments document. Where it conflicts with original spec, amendments win.
+
+**Audit scope:** Verified all integration points across `marshal.py`, `combat.py`, `executor.py`, `world_state.py`, `enemy_ai.py`, `objection_v2.py`, `region.py`, `battle_report.py`, `test_serialization_enforcement.py`.
+
+**Findings (20 total):**
+- **3 Critical:** (C1) `resolve_battle()` has 5 side-effect categories, not 2 — `apply_casualties=False` must defer morale, battles_won/lost, counter_punch, recklessness in addition to strength and retreat. (C2) Victor determination is wrong when `apply_casualties=False` — must use projected strength, not actual. (C3) Wellington-Blucher coordination example impossible — different nations can't coordinate in Phase 7.
+- **7 Design Gaps:** (D1) `holding_position` bug when SUPPORT replaces HOLD. (D2) Who gets battles_won/lost in coordinated battles. (D3) Hostile + SUPPORT = Participating for casualties but 0% coordination. (D4) Ordered pairs for relationship formula. (D5) Transient fields bypass serialization via getattr pattern. (D6) Tutorial fires player-side only. (D7) Reinforcer retreat location timing.
+- **3 Interesting (keep):** (I1) France exclusive 3/3 combined arms. (I2) Ney-Davout 15% from hatred. (I3) Devoted reinforcement 95% reliable with 1-in-20 fumble roll.
+- **7 Minor:** Formula wording, threshold notes, cap documentation, serialization pattern, template placeholders, cross-nation TODO comment.
+
+**Session readiness:** Sessions 57-60 ready immediately. Sessions 61-62 (highest risk) require C1/C2 amendments. All findings documented with specific session tags.
+
+**Tests:** 2987 passed, 3 skipped. No code changes — audit only.
+
+---
 
 ### Feb 19 (Session 56: Pause Menu — Phase 6.5)
 
@@ -701,6 +721,10 @@ New `_consider_garrison()` in `enemy_ai.py`. Priority between drill/supply (P6-6
 | `full_game.py` dead code with stale terrain | Low | 3 `resolve_battle()` calls hardcode `terrain="open"`. File is dead code. |
 | Multi-nation battle report perspective | Low | combat.py hardcodes player_nation="France". Post-EA requires threading world.player_nation. |
 | France hardcoded as player nation | Low | Multiple systems assume France. Post-EA multi-nation play requires threading player_nation throughout. |
+| `holding_position` not cleared on strategic order replacement | Medium | `executor.py:4172-4175` — replacing HOLD with another strategic order (SUPPORT/PURSUE/MOVE_TO) does NOT clear `holding_position`. Only cancel path (line 8372) and tactical override (line 937) clear it. Fix in Phase 7 Session 61. See `PHASE7_SPEC_AMENDMENTS.md` D1. |
+| `resolve_battle()` has 5 categories of side effects | High | When Phase 7 adds `apply_casualties=False`, must defer: strength, morale, battles_won/lost, counter_punch, recklessness. Spec originally only identified 2. See `PHASE7_SPEC_AMENDMENTS.md` C1. |
+| Cross-nation coordination impossible (Britain/Prussia) | Medium | All coordination eligibility requires same nation. Wellington-Blucher Devoted relationship is decorative in Phase 7. Deferred to Phase 7b with Coalition Trigger. See `PHASE7_SPEC_AMENDMENTS.md` C3. |
+| Missing SUPPORT objection triggers | Low | `objection_v2.py` only has SUPPORT path danger check (cautious). Missing: aggressive objects to defensive SUPPORT, cautious objects to supporting reckless ally. Add in Phase 7 Session 59. |
 
 ---
 
@@ -720,6 +744,8 @@ python backend/main.py                    # Backend on port 8005
 | Need | Read |
 |------|------|
 | Phase timeline | `ROADMAP.md` |
+| Phase 7 spec | `MULTI_MARSHAL_SPEC.md` |
+| Phase 7 audit amendments | `PHASE7_SPEC_AMENDMENTS.md` |
 | Game systems reference | `SYSTEMS_REFERENCE.md` |
 | Enemy AI | `ENEMY_AI_REFERENCE.md` |
 | V2b objection preview | `OBJECTION_V2.md` |

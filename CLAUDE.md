@@ -85,7 +85,7 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | If you're modifying... | Read these first |
 |------------------------|------------------|
 | Combat damage/modifiers | `marshal.py` (get_*_modifier), `combat.py` (resolve_combat), `docs/MULTI_MARSHAL_SPEC.md` (coordination bonuses) |
-| Multi-marshal coordination | `docs/MULTI_MARSHAL_SPEC.md`, `executor.py` (_calculate_coordination_context), `marshal.py` (transient bonus fields) |
+| Multi-marshal coordination | `docs/MULTI_MARSHAL_SPEC.md`, `docs/PHASE7_SPEC_AMENDMENTS.md` (amendments override spec), `executor.py` (_calculate_coordination_context), `marshal.py` (transient bonus fields) |
 | Marshal abilities | `personality_modifiers.py`, `marshal.py`, `combat.py` |
 | Fortify/Drill mechanics | `executor.py` (_execute_fortify/drill), `marshal.py`, `world_state.py` (_process_tactical_states) |
 | Disobedience/Trust | `disobedience.py`, `objection_v2.py`, `personality.py` |
@@ -323,6 +323,7 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | Enemy AI decision tree | `docs/ENEMY_AI_REFERENCE.md` |
 | V2b objection plans (Phase 7b) | `docs/OBJECTION_V2.md` |
 | Multi-marshal coordination spec (Phase 7) | `docs/MULTI_MARSHAL_SPEC.md` |
+| Phase 7 audit amendments (overrides spec) | `docs/PHASE7_SPEC_AMENDMENTS.md` |
 | Save format / serialization | `docs/SAVE_FORMAT_REFERENCE.md` |
 | Fog of war spec | `docs/FOG_OF_WAR_SPEC.md` |
 | Modding guide | `docs/MODDING_FORMAT.md` |
