@@ -2378,6 +2378,51 @@ class TestBugFixes:
         # Should still have order active (not arrived yet)
         assert grouchy.strategic_order is not None
 
+    def test_hold_replaced_by_new_order_clears_holding_position(self, world, game_state, strategic_executor):
+        """Bug D1: Replacing HOLD with another strategic order must clear holding_position.
+
+        Previously, issuing PURSUE/MOVE_TO/SUPPORT over an existing HOLD left
+        holding_position = True, causing the marshal to behave as if still holding
+        (e.g., blocking reinforcement eligibility in Phase 7).
+        """
+        grouchy = world.get_marshal("Grouchy")
+        grouchy.location = "Belgium"
+
+        # Set up a HOLD order with holding_position active
+        _set_strategic_order(grouchy, "HOLD", "Belgium",
+                             started_turn=world.current_turn - 1)
+        grouchy.holding_position = True
+        grouchy.hold_region = "Belgium"
+
+        # Verify HOLD state is set
+        assert grouchy.holding_position is True
+        assert grouchy.hold_region == "Belgium"
+
+        # Now issue a new strategic order that replaces HOLD
+        from backend.commands.executor import CommandExecutor
+        executor = CommandExecutor()
+        result = executor.execute(
+            {
+                "is_strategic": True,
+                "strategic_type": "MOVE_TO",
+                "command": {
+                    "marshal": "Grouchy",
+                    "action": "move",
+                    "target": "Rhine",
+                },
+            },
+            game_state,
+        )
+
+        # holding_position must be cleared
+        assert grouchy.holding_position is False, \
+            "holding_position was not cleared when HOLD was replaced by MOVE_TO"
+        assert grouchy.hold_region == "", \
+            "hold_region was not cleared when HOLD was replaced by MOVE_TO"
+        # New order should be set
+        assert grouchy.strategic_order is not None
+        assert grouchy.strategic_order.command_type == "MOVE_TO"
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # BUG FIX TESTS: Cannon Fire Redirect + Strategic Init

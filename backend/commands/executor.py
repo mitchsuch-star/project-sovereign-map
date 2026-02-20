@@ -4172,6 +4172,10 @@ RETREAT RECOVERY (3 turns):
         # Cancel any existing strategic order
         if marshal.strategic_order:
             print(f"[STRATEGIC] {marshal.name}'s previous order cancelled by new order")
+            # Clear HOLD state if previous order was HOLD (mirrors pattern at line 937)
+            if marshal.strategic_order.command_type == "HOLD":
+                marshal.holding_position = False
+                marshal.hold_region = ""
         marshal.strategic_order = order
 
         # Log strategic order event

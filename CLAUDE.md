@@ -32,8 +32,8 @@ Bombardment system (Sessions 48-52), Pause menu (Session 56: Smart Esc, modal ov
 ### Up Next
 
 - **Phase 6.5 remaining:** Notification System, Strategic Ledger, Marshal Management UI, Campaign Log, Tooltips, Campaign Briefing, Marshal Report, Tutorial Infrastructure, Map Renderer, Wire Marshal Abilities
-- **Phase 7: Multi-Marshal Coordination** — Spec COMPLETE (`docs/MULTI_MARSHAL_SPEC.md`). Sessions 57-66 (10 sessions). Combined arms, coordination bonuses, dedicated coordination (co-location + SUPPORT), adjacent support, reinforcement (Grouchy Rule), casualty distribution, AI P4.6, win/loss relationships, battle reports, Godot UI. ~340 new tests. Hard cap: +25% atk/+20% def.
-- **Phase 7b (deferred):** Tactical Triangle (Square Formation + Artillery SUPPORT auto-bombardment + Artillery Overwatch — linked group), V2b, Jealousy, Coalition Trigger, Gneisenau Staff Work (1805)
+- **Phase 7 Core: Multi-Marshal Coordination** — Spec in `docs/MULTI_MARSHAL_SPEC.md` + `docs/PHASE7_SPEC_AMENDMENTS.md`. **6 sessions (57-61, 64).** Combined arms (+10-20%), relationship-scaled coordination (+3%/+5% per ally), dedicated coordination (co-location + SUPPORT), adjacent support (+2% per adjacent), reinforcement (Grouchy Rule), win/loss relationship formula. ~190 new tests. Hard cap: +25% atk/+20% def. Each session includes basic combat display messages. Presentation absorbed into feature sessions (no separate display session).
+- **Phase 7b:** Casualty Distribution (Session 62 — `resolve_battle()` contract change, deferred for playtest data), AI Coordination Enhancements (Session 63 — P4.6/P4.76/P4.77/P4.78), Full Battle Reports + Berthier Observations (Session 65), Godot Tooltips + Tutorial + Integration Audit (Session 66), Tactical Triangle (Square Formation + Artillery SUPPORT auto-bombardment + Artillery Overwatch — linked group), V2b, Jealousy, Coalition Trigger, Gneisenau Staff Work (1805). ~150 tests from deferred Phase 7 sessions.
 
 See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 

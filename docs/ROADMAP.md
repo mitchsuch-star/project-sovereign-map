@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** February 20, 2026 (Phase 7 Spec Audit + Amendments)
+> **Last Updated:** February 20, 2026 (Phase 7 Scope Decision — Core/7b Split)
 
 ---
 
@@ -14,8 +14,8 @@
 | **V2a** | **Objection System Refactor** | **COMPLETE** |
 | **6** | **Core Campaign Systems** | **COMPLETE** |
 | **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE Sessions 48-52, Pause Menu COMPLETE Session 56) |
-| **7** | **Multi-Marshal Coordination** | **Spec COMPLETE + AUDITED** — see `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md`. Sessions 57-66. |
-| 7b | Tactical Triangle, V2b, Coalition, Jealousy | Planned (deferred from 7) |
+| **7 Core** | **Multi-Marshal Coordination** | **Spec COMPLETE + AUDITED + SCOPED.** 6 sessions (57-61, 64). ~190 tests. |
+| 7b | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b, Coalition, Jealousy | Planned (deferred from 7 Core) |
 | 8 | Diplomacy & Peace | Planned |
 | 8.5 | Events, Goals & National Identity | Planned |
 | -- | **STEAM PAGE + LLC** | **After 8.5** |
@@ -182,32 +182,43 @@ Wire ~80-100 provinces for EA v1. Remaining provinces from the 120-150 in the ar
 
 ---
 
-## Phase 7: Multi-Marshal Coordination
+## Phase 7 Core: Multi-Marshal Coordination
 
-**Goal:** "Position IS Coordination" — automatic positional bonuses make multi-marshal positioning the core strategic skill. Relationships have real mechanical impact. AI coordinates deliberately.
+**Goal:** "Position IS Coordination" — automatic positional bonuses make multi-marshal positioning the core strategic skill. Relationships have real mechanical impact and evolve through shared experience.
 
-**Design Principle:** All coordination bonuses are automatic and positional. No new command syntax. Building Blocks principle — enemy AI benefits identically from the same passive bonuses. See `docs/MULTI_MARSHAL_SPEC.md` for full spec (20 sections, all design decisions locked).
+**Design Principle:** All coordination bonuses are automatic and positional. No new command syntax. Building Blocks principle — enemy AI benefits identically from the same passive bonuses. See `docs/MULTI_MARSHAL_SPEC.md` for full spec + `docs/PHASE7_SPEC_AMENDMENTS.md` for audit corrections.
 
 **Architecture:** Coordination bonuses flow through transient fields on Marshal, read by `get_attack_modifier()` / `get_defense_modifier()` (Golden Rule #1). `combat.py` reads them, never recalculates. AI earns bonuses through co-location duration (not strategic commands it cannot issue).
 
+**Scope Decision (Feb 20, 2026):** Full spec is 10 sessions (57-66, ~340 tests). Phase 7 Core ships 6 sessions. Sessions 62 (casualty distribution), 63 (AI coordination enhancements), 65 (full battle reports), 66 (Godot tooltips/tutorial/audit) deferred to Phase 7b. Rationale: Core delivers all player-facing coordination mechanics + the Grouchy Rule + dynamic relationships. Casualty distribution deferred because (a) it modifies `resolve_battle()` contract (highest-risk change in spec), (b) coordination works without it (allies provide bonuses, primary combatant absorbs casualties), and (c) playtest data should inform the proportional distribution design. AI enhancements deferred because AI already benefits from passive coordination when co-located. Each core session includes basic combat display messages — no separate presentation session needed.
+
+### Phase 7 Core Sessions
+
 | Session | Feature | Description | Complexity | Tests | Status |
 |---------|---------|-------------|------------|-------|--------|
-| **57** | **Combined arms** | 1/3=0%, 2/3=+10%/+5%, 3/3=+20%/+10%. Unit type diversity, NOT relationship-scaled. | Medium | ~35 | Planned |
-| **58** | **Coordination bonus + hard cap** | +3% atk/+5% def per ally, relationship-scaled (Hostile 0%→Devoted 150%). Hard cap: +25% atk/+20% def. | Medium | ~35 | Planned |
-| **59** | **Dedicated coordination + co-location** | +5%/+5% flat from 2-turn co-location (both sides) OR SUPPORT order (player, immediate). New serialized fields. | Medium | ~30 | Planned |
-| **60** | **Adjacent support bonus** | +2% atk per adjacent friendly marshal. Not relationship-scaled. | Low | ~20 | Planned |
-| **61** | **Adjacent reinforcement** | The Grouchy Rule. Deterministic arrival score. Physical relocation. Defense works. **HIGHEST RISK.** | High | ~45 | Planned |
-| **62** | **Casualty distribution** | `resolve_battle(apply_casualties=False)`. Proportional by strength. Hostile = 0%. **SECOND HIGHEST RISK.** | High | ~40 | Planned |
-| **63** | **AI enhancements** | P4.6 coordinated attack, P4.75 mod, P4.76 co-location persistence, P4.77 cross-nation, P4.78 defensive positioning. | High | ~35 | Planned |
-| **64** | **Win/loss relationships** | Shared battle → relationship check. Severity-scaled. 3-turn cooldown. Rivalry Resolved (natural from formula). | Medium | ~25 | Planned |
-| **65** | **Battle reports & Berthier** | 5 coordination observation categories. Pre-battle coordination preview. Coordination messages. | Medium | ~25 | Planned |
-| **66** | **Godot UI + integration audit** | Tooltips, tutorial popup, display formatting, cross-system audit, doc updates. ~340 new tests total. | Medium | ~50 | Planned |
+| **57** | **Combined arms** | 1/3=0%, 2/3=+10%/+5%, 3/3=+20%/+10%. Unit type diversity, NOT relationship-scaled. Includes basic combat message. | Medium | ~35 | Planned |
+| **58** | **Coordination bonus + hard cap** | +3% atk/+5% def per ally, relationship-scaled (Hostile 0%→Devoted 150%). Hard cap: +25% atk/+20% def. Includes per-ally message. | Medium | ~35 | Planned |
+| **59** | **Dedicated coordination + co-location** | +5%/+5% flat from 2-turn co-location (both sides) OR SUPPORT order (player, immediate). New serialized fields. Includes status message. | Medium | ~30 | Planned |
+| **60** | **Adjacent support bonus** | +2% atk per adjacent friendly marshal. Not relationship-scaled. Includes adjacent count message. | Low | ~20 | Planned |
+| **61** | **Adjacent reinforcement** | The Grouchy Rule. Deterministic arrival score. Physical relocation. Inline-dramatic display. **HIGHEST RISK.** | High | ~45 | Planned |
+| **64** | **Win/loss relationships** | Shared battle → relationship check. Severity-scaled. 3-turn cooldown. Rivalry Resolved. Relationship change notification. | Medium | ~25 | Planned |
 
-**Key formulas:** Combined arms (type count), Coordination (per-ally × relationship scaling), Arrival score (logistics 5/turn + relationship ±20 + terrain ±10 + personality ±5 ± variance, threshold >60), Casualty distribution (proportional by strength, 2 tiers).
+**Key formulas:** Combined arms (type count), Coordination (per-ally × relationship scaling), Arrival score (logistics ×5 + relationship ±20 + terrain ±10 + personality ±5 ± variance, threshold >60/65), Win/loss (severity-scaled, asymmetric: winning together builds faster than losing destroys).
 
-### Phase 7b (Deferred from Phase 7)
+**Note on casualty model:** Without Session 62, combat remains 1v1 between primary attacker/defender. Allied marshals provide coordination bonuses and share retreat fate (Session 61 reinforcement) but do not take proportional casualties. This is a simplification, not a bug. Supply attrition limits stacking. Session 62 in Phase 7b upgrades this to full proportional distribution.
 
-Items that build on coordination data but are NOT in the Phase 7 spec:
+### Phase 7b
+
+Items deferred from Phase 7 Core + items that build on coordination data:
+
+**Deferred from Phase 7 Core (ship first in 7b):**
+
+| Session | Feature | Description | Complexity | Tests | Status |
+|---------|---------|-------------|------------|-------|--------|
+| **62** | **Casualty distribution** | `resolve_battle(apply_casualties=False)`. Proportional by strength. Hostile = 0%. See amendments C1/C2 for full contract. | High | ~40 | Deferred |
+| **63** | **AI enhancements** | P4.6 coordinated attack, P4.75 mod, P4.76 co-location persistence, P4.77 cross-nation, P4.78 defensive positioning. | High | ~35 | Deferred |
+| **65** | **Battle reports & Berthier** | 5 coordination observation categories. Pre-battle coordination preview. Full Berthier observations. | Medium | ~25 | Deferred |
+| **66** | **Godot UI + integration audit** | Tooltips, tutorial inline-dramatic, display formatting, cross-system audit, doc updates. | Medium | ~50 | Deferred |
 
 **Linked Group — Tactical Triangle Completion (must ship together):**
 
@@ -224,6 +235,7 @@ Items that build on coordination data but are NOT in the Phase 7 spec:
 | **V2b: Defiance/Vindication** | STRONG/EXTREME concerns trigger defiance. See OBJECTION_V2.md. Scaffolding from V2a ready. | Medium | Deferred |
 | **Jealousy system** | Marshal getting all glory → others resent. Needs multi-marshal battle data from Phase 7. | Medium | Deferred |
 | **Coalition Trigger** | Threat level ticks up → war declarations. Core "France can't steamroll" mechanic. | Medium | Deferred |
+| **Cross-nation coordination** | Coalition partners (Britain/Prussia) coordinate. Requires Coalition Trigger or `allied_nations` mapping. See amendments C3. | Medium | Deferred |
 | **Gneisenau Staff Work** | +10% ally bonus — Coalition-specific advantage. Deferred to 1805 full campaign. | Low | Deferred (1805) |
 
 ### V2b Audit Findings (from V2a audit)
@@ -258,7 +270,8 @@ AI evaluates attack decisions using combined strength of all friendly marshals i
 If marshal strength < 20% of starting_strength AND enemy in same region -> ALWAYS retreat regardless of personality. Threshold personality-adjusted: Cautious 30%, Normal 20%, Aggressive 15%.
 
 **Dependencies:** Phase 6 (economy, supply attrition, artillery unit type)
-**Exit Criteria:** Coordination bonuses apply automatically in combat, relationships affect coordination quality, AI positions deliberately for combined arms, ~340 new tests, battle reports surface coordination
+**Phase 7 Core Exit Criteria:** Coordination bonuses apply automatically in combat, relationships affect and evolve through coordination quality, Grouchy Rule fires with inline-dramatic narrative, ~190 new tests, basic coordination messages in combat output
+**Phase 7b Exit Criteria:** Proportional casualty distribution, AI deliberately seeks coordination, full battle reports with Berthier coordination observations, Godot tooltips with reinforcement probabilities, tactical triangle complete
 
 ---
 
@@ -643,7 +656,8 @@ Lighter version of communication cutoff: orders to distant marshals take effect 
 4. **Commission Europe map art** (2-4 week lead time, parallel with Phase 6)
 5. Phase 6: Economy, Manpower, Terrain, Fog, **Save/Load**, **Berthier**, **Post-battle analysis**
 6. Phase 6.5: Notifications, Ledger, Marshal UI, **Campaign Briefing**, **Marshal Report**, **Tutorial infra**, **Map Renderer**
-7. Phase 7: Multi-Marshal Coordination (Sessions 57-66, ~340 tests), then Phase 7b: Tactical Triangle (Square/Artillery SUPPORT/Overwatch), V2b, Coalition Trigger
+7. Phase 7 Core: Multi-Marshal Coordination (Sessions 57-61 + 64, 6 sessions, ~190 tests) — combined arms, coordination bonuses, Grouchy Rule, dynamic relationships
+7b. Phase 7b: Casualty Distribution (S62), AI Coordination (S63), Battle Reports (S65), Godot UI (S66), Tactical Triangle, V2b, Coalition Trigger
 8. Phase 8: **Diplomacy Chat**, Peace Treaties, Leader Personalities
 9. Phase 8.5: **Events, Gazette, Marshal Voice, Grouchy LLM, Intercepted Dispatches, Creative Commands, Napoleon Comparison**
 10. **STEAM PAGE + LLC** (marshal voice, gazette, audio, EU4 map all working)
@@ -663,7 +677,7 @@ Lighter version of communication cutoff: orders to distant marshals take effect 
                            |
 Phase 6 (Economy/Terrain/Save) --+--> Phase 6.5 (UI/Info/Map Renderer)
                                  |          |
-                                 |          +--> Phase 7 (Multi-marshal + Coalitions + V2b)
+                                 |          +--> Phase 7 Core --> Phase 7b (Casualties + AI + Triangle + V2b)
                                  |                    |
                                  |                    +--> Phase 8 (Diplomacy/Peace)
                                  |                              |
