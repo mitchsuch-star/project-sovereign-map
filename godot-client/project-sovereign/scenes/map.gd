@@ -430,7 +430,7 @@ func _draw_garrison_indicator(region_pos: Vector2, garrison_data: Dictionary, co
 	elif strength >= 1000:
 		label = str(int(strength / 1000)) + "k"
 	else:
-		label = str(strength)
+		label = str(int(strength))
 
 	var label_size = font.get_string_size(label, HORIZONTAL_ALIGNMENT_CENTER, -1, 9)
 	var label_pos = indicator_pos - Vector2(label_size.x / 2, -4)
@@ -684,12 +684,12 @@ func _draw_tooltip():
 	text_y += line_spacing
 
 	# Line 4: Morale
-	var morale_text = "Morale: " + str(morale) + "%"
+	var morale_text = "Morale: " + str(int(morale)) + "%"
 	draw_string(font, Vector2(text_x, text_y + 11), morale_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
 	text_y += line_spacing
 
 	# Line 5: Movement range
-	var movement_text = "Movement: Range " + str(movement_range)
+	var movement_text = "Movement: Range " + str(int(movement_range))
 	draw_string(font, Vector2(text_x, text_y + 11), movement_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color.WHITE)
 	text_y += line_spacing
 
@@ -701,9 +701,9 @@ func _draw_tooltip():
 
 		# Skills on one line: Shock/Defense/Tactical
 		var skills_text = "Skills: "
-		skills_text += "Shock " + str(shock_skill)
-		skills_text += " | Def " + str(defense_skill)
-		skills_text += " | Tac " + str(tactical_skill)
+		skills_text += "Shock " + str(int(shock_skill))
+		skills_text += " | Def " + str(int(defense_skill))
+		skills_text += " | Tac " + str(int(tactical_skill))
 		var skills_color = Color(0.6, 0.8, 0.6)  # Light green
 		draw_string(font, Vector2(text_x, text_y + 11), skills_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, skills_color)
 		text_y += line_spacing
@@ -727,20 +727,20 @@ func _draw_tooltip():
 		elif trust < 60:
 			trust_color = Color(0.85, 0.75, 0.5)  # Orange
 
-		var trust_text = "Trust: " + str(trust) + " (" + trust_label + ")"
+		var trust_text = "Trust: " + str(int(trust)) + " (" + trust_label + ")"
 		draw_string(font, Vector2(text_x, text_y + 11), trust_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, trust_color)
 		text_y += line_spacing
 
 		# Vindication
 		var vindication_text = "Track record: "
 		if vindication >= 3:
-			vindication_text += "Often right +" + str(vindication)
+			vindication_text += "Often right +" + str(int(vindication))
 		elif vindication >= 1:
-			vindication_text += "Good +" + str(vindication)
+			vindication_text += "Good +" + str(int(vindication))
 		elif vindication <= -3:
-			vindication_text += "Often wrong " + str(vindication)
+			vindication_text += "Often wrong " + str(int(vindication))
 		elif vindication <= -1:
-			vindication_text += "Mixed " + str(vindication)
+			vindication_text += "Mixed " + str(int(vindication))
 		else:
 			vindication_text += "Neutral"
 
@@ -793,7 +793,7 @@ func _draw_tooltip():
 			var drill_text = ""
 			var drill_color = Color(0.9, 0.7, 0.3)  # Orange/gold
 			if drilling_locked:
-				drill_text = "DRILLING (Locked) - Ready turn " + str(drill_complete_turn)
+				drill_text = "DRILLING (Locked) - Ready turn " + str(int(drill_complete_turn))
 				drill_color = Color(0.9, 0.5, 0.3)  # Darker orange for locked
 			else:
 				drill_text = "DRILLING - Will lock next turn"
@@ -802,7 +802,7 @@ func _draw_tooltip():
 
 		# Shock bonus (from completed drill)
 		if shock_bonus > 0:
-			var shock_text = "SHOCK READY: +" + str(shock_bonus * 10) + "% attack bonus"
+			var shock_text = "SHOCK READY: +" + str(int(shock_bonus * 10)) + "% attack bonus"
 			var shock_color = Color(0.3, 0.9, 0.3)  # Bright green
 			draw_string(font, Vector2(text_x, text_y + 11), shock_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, shock_color)
 			text_y += line_spacing
@@ -830,19 +830,19 @@ func _draw_tooltip():
 				"at_floor":
 					direction_symbol = " ━"
 					if fortify_floor > 0:
-						direction_info = " (floor: " + str(fortify_floor) + "%)"
+						direction_info = " (floor: " + str(int(fortify_floor)) + "%)"
 					else:
 						direction_info = " (collapsed)"
 					fort_color = Color(0.7, 0.7, 0.5)  # Yellow-gray
 				"cavalry_limit":
 					direction_symbol = " ⚠"
-					direction_info = " (cavalry: " + str(fortify_turns_until_decay) + " turns left)"
+					direction_info = " (cavalry: " + str(int(fortify_turns_until_decay)) + " turns left)"
 					fort_color = Color(0.9, 0.5, 0.3)  # Orange-red
 				_:
 					direction_symbol = ""
 					direction_info = ""
 
-			var fort_text = "FORTIFIED: +" + str(fort_percent) + "%" + direction_symbol + direction_info
+			var fort_text = "FORTIFIED: +" + str(int(fort_percent)) + "%" + direction_symbol + direction_info
 			draw_string(font, Vector2(text_x, text_y + 11), fort_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, fort_color)
 			text_y += line_spacing
 
@@ -850,14 +850,14 @@ func _draw_tooltip():
 		if retreating:
 			var retreat_penalties = {0: "-45%", 1: "-30%", 2: "-15%", 3: "0%"}
 			var penalty = retreat_penalties.get(retreat_recovery, "?")
-			var retreat_text = "RETREATING: " + penalty + " effectiveness (stage " + str(retreat_recovery) + "/3)"
+			var retreat_text = "RETREATING: " + penalty + " effectiveness (stage " + str(int(retreat_recovery)) + "/3)"
 			var retreat_color = Color(0.9, 0.5, 0.5)  # Red/pink
 			draw_string(font, Vector2(text_x, text_y + 11), retreat_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, retreat_color)
 			text_y += line_spacing
 
 		# Broken army state (surrounded + forced retreat)
 		if broken:
-			var turns_left = 4 - broken_recovery
+			var turns_left = int(4 - int(broken_recovery))
 			var broken_text = "💀 BROKEN: Recruit only (" + str(turns_left) + " turns to recover)"
 			var broken_color = Color(0.8, 0.2, 0.2)  # Dark red
 			draw_string(font, Vector2(text_x, text_y + 11), broken_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, broken_color)
@@ -869,7 +869,7 @@ func _draw_tooltip():
 
 		# Ney: Restlessness (turns defensive counter)
 		if turns_in_defensive_stance > 0:
-			var restless_text = "RESTLESS: " + str(turns_in_defensive_stance) + "/3 turns defensive"
+			var restless_text = "RESTLESS: " + str(int(turns_in_defensive_stance)) + "/3 turns defensive"
 			if turns_in_defensive_stance >= 3:
 				restless_text += " (objecting!)"
 			var restless_color = Color(0.9, 0.7, 0.4)  # Yellow-orange
@@ -907,7 +907,7 @@ func _draw_tooltip():
 
 		# Artillery: Bombardment ammo remaining (Session 53)
 		if artillery:
-			var remaining = max(0, 2 - bombardments_this_turn)
+			var remaining = int(max(0, 2 - int(bombardments_this_turn)))
 			var ammo_text = "Bombardments: " + str(remaining) + "/2 remaining"
 			var ammo_color = Color(0.4, 0.8, 0.4)  # Green
 			if remaining == 0:
@@ -917,9 +917,9 @@ func _draw_tooltip():
 			draw_string(font, Vector2(text_x, text_y + 11), ammo_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, ammo_color)
 			text_y += line_spacing
 
-func _format_number(num: int) -> String:
+func _format_number(num) -> String:
 	"""Format number with comma separators (72000 → 72,000)."""
-	var num_str = str(num)
+	var num_str = str(int(num))
 	var result = ""
 	var count = 0
 
@@ -1046,9 +1046,9 @@ func _draw_region_tooltip():
 		text_y += line_spacing
 
 	# Line 4: Income (effective/base)
-	var income_text = "Income: " + str(effective_income)
+	var income_text = "Income: " + str(int(effective_income))
 	if effective_income != income_value:
-		income_text += " (base " + str(income_value) + ")"
+		income_text += " (base " + str(int(income_value)) + ")"
 	var income_color = Color(0.9, 0.85, 0.4)  # Gold
 	draw_string(font, Vector2(text_x, text_y + 11), income_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, income_color)
 	text_y += line_spacing
@@ -1061,7 +1061,7 @@ func _draw_region_tooltip():
 		stability_color = Color(0.85, 0.5, 0.3)  # Orange for Unrest
 	elif stability <= 75:
 		stability_color = Color(0.85, 0.75, 0.4)  # Yellow for Settling
-	var stability_text = "Stability: " + str(stability) + "% (" + stability_label + ")"
+	var stability_text = "Stability: " + str(int(stability)) + "% (" + stability_label + ")"
 	draw_string(font, Vector2(text_x, text_y + 11), stability_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, stability_color)
 	text_y += line_spacing
 
@@ -1087,7 +1087,7 @@ func _draw_region_tooltip():
 
 	# War damage (only if > 0)
 	if war_damage > 0:
-		var dmg_text = "War Damage: " + str(war_damage) + "%"
+		var dmg_text = "War Damage: " + str(int(war_damage)) + "%"
 		var dmg_color = Color(0.85, 0.4, 0.4)  # Red
 		draw_string(font, Vector2(text_x, text_y + 11), dmg_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, dmg_color)
 		text_y += line_spacing
@@ -1098,7 +1098,7 @@ func _draw_region_tooltip():
 		var used_slots = buildings.size()
 		if construction != null:
 			used_slots += 1
-		var buildings_header = "Buildings (" + str(used_slots) + "/" + str(max_slots) + "):"
+		var buildings_header = "Buildings (" + str(int(used_slots)) + "/" + str(int(max_slots)) + "):"
 		draw_string(font, Vector2(text_x, text_y + 11), buildings_header, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.7, 0.8, 0.9))
 		text_y += line_spacing
 
@@ -1116,7 +1116,7 @@ func _draw_region_tooltip():
 		if construction != null:
 			var c_name = construction.get("type", "unknown").replace("_", " ").capitalize()
 			var c_turns = construction.get("turns_remaining", 0)
-			var c_text = "  " + c_name + " (" + str(c_turns) + " turns)"
+			var c_text = "  " + c_name + " (" + str(int(c_turns)) + " turns)"
 			var c_color = Color(0.85, 0.75, 0.4)  # Yellow
 			draw_string(font, Vector2(text_x, text_y + 11), c_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, c_color)
 			text_y += line_spacing

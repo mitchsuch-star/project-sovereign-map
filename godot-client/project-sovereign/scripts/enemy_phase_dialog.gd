@@ -244,6 +244,15 @@ func _format_battle(event: Dictionary) -> String:
 	if defender.get("forced_retreat", false):
 		result += "[color=#" + COLOR_ERROR + "]    " + defender_name + " forced to retreat![/color]\n"
 
+	# Fort degradation
+	if event.get("fortification_degraded", false):
+		var fort_old = int(event.get("fortification_old", 0) * 100)
+		var fort_new = int(event.get("fortification_new", 0) * 100)
+		if fort_new <= 0:
+			result += "[color=#" + COLOR_INFO + "]    Fortifications DESTROYED! (" + str(fort_old) + "% -> 0%)[/color]\n"
+		else:
+			result += "[color=#" + COLOR_INFO + "]    Fort degraded: " + str(fort_old) + "% -> " + str(fort_new) + "%[/color]\n"
+
 	return result
 
 func _format_berthier_report(report: Dictionary) -> String:
@@ -376,9 +385,9 @@ func _is_player_marshal(name: String) -> bool:
 	var player_marshals = ["Ney", "Davout", "Grouchy"]
 	return name in player_marshals
 
-func _format_number(num: int) -> String:
+func _format_number(num) -> String:
 	"""Format number with comma separators."""
-	var s = str(num)
+	var s = str(int(num))
 	var result = ""
 	var count = 0
 	for i in range(s.length() - 1, -1, -1):

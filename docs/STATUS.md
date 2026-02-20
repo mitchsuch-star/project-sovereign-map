@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 19, 2026 (Session 54 — AI Fix)
+> **Last Updated:** February 19, 2026 (Session 55 — Bugfix Batch)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **2987** (verified, 3 skipped) |
+| **Tests Passing** | **2986** (verified, 3 skipped, 1 flaky) |
 
 | **Current Phase** | Phase 6.5 **IN PROGRESS** — Bombardment COMPLETE (Parts 1-5), Pause Menu remaining |
 | **Blockers** | None |
@@ -44,6 +44,24 @@ All major Phase 6 features shipped:
 ---
 
 ## Recent Sessions
+
+### Feb 19 (Session 55: Bugfix Batch — Fort Degradation Reports + Decimal Cleanup)
+
+**Fixed enemy attack fort degradation missing from end-of-turn reports. Cleaned up all decimal/float display across Godot UI.**
+
+**Fort Degradation in Enemy Attacks (combat.py, executor.py, enemy_phase_dialog.gd):**
+- `log_battle_event` dict in combat.py now includes `fortification_degraded`, `fortification_old`, `fortification_new` fields
+- Attack result `events` list in executor.py now includes the same three fort degradation fields
+- Enemy phase dialog `_format_battle()` now displays fort degradation: "Fort degraded: X% -> Y%" or "Fortifications DESTROYED!"
+- Previously enemy attacks that degraded player fortifications showed no fort info in the end-of-turn popup
+
+**Decimal/Float Cleanup (map.gd, main.gd, enemy_phase_dialog.gd):**
+- Root cause: GDScript JSON parser can return floats for integer JSON values (e.g., `0` becomes `0.0`)
+- Fixed "Bombardments: 2.0/2 remaining" — `int()` wrap on `bombardments_this_turn` subtraction
+- Wrapped 20+ tooltip display values with `int()`: morale, movement range, skills, trust, vindication, drill turn, shock bonus, fort percentage, fortify floor, cavalry turns, retreat stage, broken recovery, restless turns, income, stability, war damage, building slots, construction turns, garrison strength, recklessness, autonomy turns
+- Made all three `_format_number()` functions accept untyped input with internal `int()` conversion — prevents comma-formatting from breaking on float strings like "72000.0"
+
+**Tests:** 2986 passed, 3 skipped, 1 pre-existing flaky (probabilistic dice test). Zero regressions.
 
 ### Feb 19 (Session 54: Enemy AI Total Inaction Fix + Bombardment Display)
 

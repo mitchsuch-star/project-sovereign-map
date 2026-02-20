@@ -1064,9 +1064,9 @@ func _update_manpower_display():
 	else:
 		art_value.add_theme_color_override("font_color", Color(0.75, 0.7, 0.85))
 
-func _format_number(num: int) -> String:
+func _format_number(num) -> String:
 	"""Format number with comma separators."""
-	var s = str(num)
+	var s = str(int(num))
 	var result = ""
 	var count = 0
 	for i in range(s.length() - 1, -1, -1):
@@ -1395,7 +1395,7 @@ func _on_redemption_response(response):
 			add_output("[color=#" + COLOR_SUCCESS + "]   AUTONOMY GRANTED[/color]")
 			add_output("[color=#" + COLOR_SUCCESS + "]═══════════════════════════════════════[/color]")
 			add_output("[color=#" + COLOR_MARSHAL + "]" + response.message + "[/color]")
-			var turns = response.get("autonomy_turns", 3)
+			var turns = int(response.get("autonomy_turns", 3))
 			add_output("[color=#" + COLOR_INFO + "]The marshal will act independently for " + str(turns) + " turns.[/color]")
 
 		elif choice == "dismiss":
@@ -1675,7 +1675,7 @@ func _show_glorious_charge_dialog(response):
 	# Show notification in log
 	add_output("")
 	add_output("[color=#" + COLOR_BATTLE + "]🐴 " + pending_charge_marshal + "'s blood is up![/color]")
-	add_output("[color=#" + COLOR_INFO + "]Recklessness at " + str(recklessness) + "/4 - Glorious Charge available![/color]")
+	add_output("[color=#" + COLOR_INFO + "]Recklessness at " + str(int(recklessness)) + "/4 - Glorious Charge available![/color]")
 	add_output("")
 
 	# Check if dialog exists

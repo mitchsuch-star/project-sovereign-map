@@ -3394,6 +3394,10 @@ RETREAT RECOVERY (3 turns):
                 "attacker_forced_retreat": battle_result.get("attacker", {}).get("forced_retreat", False),
                 "defender_forced_retreat": battle_result.get("defender", {}).get("forced_retreat", False),
                 "cavalry_terrain_message": battle_result.get("cavalry_terrain_message"),
+                # Fort degradation (for enemy phase dialog display)
+                "fortification_degraded": battle_result.get("fortification_degraded", False),
+                "fortification_old": battle_result.get("fortification_old", 0),
+                "fortification_new": battle_result.get("fortification_new", 0),
             }],
             "new_state": game_state
         }

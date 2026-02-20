@@ -677,6 +677,10 @@ class CombatResolver:
             "attacker_casualties": int(attacker_casualties),
             "defender_casualties": int(defender_casualties),
             "battle_report": result_dict["battle_report"],
+            # Fort degradation (for enemy phase dialog display)
+            "fortification_degraded": fortification_degraded,
+            "fortification_old": fortification_old,
+            "fortification_new": fortification_new,
         }
         return result_dict
 
