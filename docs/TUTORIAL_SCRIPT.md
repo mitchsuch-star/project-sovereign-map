@@ -2,7 +2,7 @@
 
 > **Living document. Updated every phase. Feeds the Pre-EA tutorial.**
 > **Format: What the player needs to learn, and how to teach it.**
-> **Last Updated:** February 11, 2026 (Session 32: Fog of War section added)
+> **Last Updated:** February 19, 2026 (Session 55: Artillery, Manpower, Garrison, Starting Forces catchup)
 
 ---
 
@@ -23,7 +23,7 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 | Commands are typed, not clicked | First prompt: "Type an order for Ney, e.g. 'Ney, attack Wellington'" | Must-know |
 | Marshals have names | Label marshals on map, first prompt names them | Must-know |
 | Two AP pools: 4 combat + 2 admin per turn | AP counters visible: "4 military actions, 2 admin actions remaining" | Must-know |
-| Combat AP: attack, move, scout, defend, drill, fortify, stance | Tooltip on first action: "Military orders cost combat AP" | Must-know |
+| Combat AP: attack, move, scout, defend, drill, fortify, stance, garrison (2 AP) | Tooltip on first action: "Military orders cost combat AP" | Must-know |
 | Admin AP: recruit, build, repair | Tooltip on first admin action: "Administration costs admin AP" | Must-know |
 | Unused admin AP earns 75 gold each | End-of-turn summary shows admin bonus: "Saved 1 admin action: +75 gold" | Should-know |
 | Move to adjacent regions | "Ney, move to Belgium" as first order suggestion | Must-know |
@@ -40,17 +40,19 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 
 | Concept | Teach by | Priority |
 |---------|----------|----------|
-| You command 3 French marshals | Campaign briefing: "Your marshals: Ney (72,000, Belgium), Davout (48,000, Paris), Grouchy (33,000, Waterloo)" | Must-know |
-| Enemy has 4 marshals across 2 nations | Scout reveals: "Wellington (68k) and Uxbridge (18k) at Waterloo. Blucher (55k) and Gneisenau (45k) in Netherlands." | Must-know |
+| You command 4 French marshals | Campaign briefing: "Your marshals: Ney (72k, Belgium), Davout (48k, Paris), Grouchy (33k, Belgium), Drouot (25k, Paris)" | Must-know |
+| Enemy has 5 marshals across 2 nations | Scout reveals: "Wellington (68k) and Uxbridge (18k) at Waterloo. Blucher (55k), Gneisenau (45k), and PrinceAugust (20k) in Netherlands." | Must-know |
+| 3 unit types: infantry, cavalry, artillery | Tooltip on each marshal shows unit type badge | Must-know |
 | France controls 6 regions, Coalition controls 7 | Map shows controlled regions by color at start | Should-know |
-| Ney is cavalry (2-tile range, can charge) | Tooltip on Ney: "Cavalry commander — can attack enemies 2 regions away" | Should-know |
+| Ney is cavalry (2-tile range, can charge) | Tooltip on Ney: "CAVALRY — can attack enemies 2 regions away" | Should-know |
+| Drouot is artillery (ranged bombardment) | Tooltip on Drouot: "ARTILLERY — cannot attack after moving" | Should-know |
 | Davout is the best tactician (skill 10) | Tooltip on Davout: "Master tactician — strongest defensive modifiers" | Nice-to-know |
 
 ## Personality & Objections (Phase 2-3, V2a)
 
 | Concept | Teach by | Priority |
 |---------|----------|----------|
-| Marshals have personalities | Brief intro: "Ney is aggressive. Davout is cautious. Grouchy follows orders exactly." | Must-know |
+| Marshals have personalities | Brief intro: "Ney is aggressive. Davout is cautious. Drouot is cautious. Grouchy follows orders exactly." | Must-know |
 | Personality affects combat modifiers | Tooltip: "Ney gets +15% attack. Davout gets +20% defense when outnumbered." | Should-know |
 | Personality-specific fortify caps | Tooltip: "Davout fortifies faster (max 20%). Ney's cap is lower (max 10%)." | Nice-to-know |
 | Marshals can object to orders | Scripted: Ney objects to first defensive order on turn 2 | Must-know |
@@ -73,6 +75,27 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 | Terrain blocks charges (forest, mountains, urban) | If charge blocked: "Terrain prevents cavalry charge. Normal attack instead." | Should-know |
 | Charge redirect to alternative target | If primary target on bad terrain but alternative exists, popup offers redirect | Nice-to-know |
 | Restrain resets recklessness | Tooltip: "'Ney, restrain' resets recklessness to 0" | Should-know |
+
+## Artillery & Bombardment (Phase 6)
+
+| Concept | Teach by | Priority |
+|---------|----------|----------|
+| Artillery is the third unit type | Tooltip on Drouot: "ARTILLERY — ranged bombardment specialist" | Must-know |
+| Artillery cannot attack after moving | Error: "Drouot's guns need time to set up — cannot attack this turn" | Must-know |
+| Bombardment hits from adjacent region | "Drouot, bombard Wellington" — fires from one region away | Must-know |
+| 2 bombardments per turn limit | Counter: "Bombardments: 1/2 remaining" (color-coded green/yellow/red) | Should-know |
+| Bombardment does not capture regions | Tooltip: "Artillery doesn't advance — send infantry to take the ground" | Should-know |
+| Terrain affects bombardment damage | Post-bombardment: "Plains +10%, Mountains -40%" | Should-know |
+| Artillery degrades forts 2x faster | Post-bombardment: "Fortifications crumbling — 10% degraded" (vs 5% for infantry) | Should-know |
+| Cavalry counters artillery (+30%) | Warning when cavalry attacks Drouot: "Cavalry overruns the guns!" | Should-know |
+| Artillery gets -25% defense if it moved this turn | Tooltip: "Guns still unlimbering — defense reduced" | Nice-to-know |
+| Artillery is exempt from exhaustion | Tooltip: "Sustained bombardment is artillery's function" | Nice-to-know |
+| Bombardment streak tracks consecutive hits | After 2nd hit on same target: "Bombardment streak: 2 — zeroed in" | Nice-to-know |
+| Berthier advises when forts crumble | Advisory: "Fortifications are crumbling. An infantry assault would have favorable odds." | Should-know |
+| Collateral damage hits other forces in target region | Post-bombardment: "Collateral: Uxbridge took 480 casualties" | Should-know |
+| Friendly fire possible with collateral | Warning (red): "FRIENDLY FIRE — allied marshal caught in bombardment!" Trust penalty. | Should-know |
+| HOLD order auto-bombards for artillery | "Drouot, hold Belgium" — automatically bombards adjacent enemies each turn | Nice-to-know |
+| PURSUE blocked for artillery | Error: "Artillery cannot pursue — use 'march to' instead" | Should-know |
 
 ## Strategic Commands (Phase 5.2)
 
@@ -122,25 +145,42 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 | Battles cause war damage (reduces income) | Post-battle: "War damage: +10% (major battle: +20%). Recovers 2%/turn" | Should-know |
 | Recruiting blocked in low-stability regions | Error: "Cannot recruit — stability 45 (need 51+)" | Must-know |
 
+### Manpower Pools (Phase 6)
+
+| Concept | Teach by | Priority |
+|---------|----------|----------|
+| Nation-level manpower reserves gate recruitment | HUD bar: "Inf: 80,000  Cav: 15,000  Art: 10,000" — depletes on recruit | Must-know |
+| 3 pool types match unit types | Infantry pool for Davout/Grouchy, cavalry for Ney, artillery for Drouot | Must-know |
+| Pools regenerate each turn | Economy report: "Infantry +5k/turn, Cavalry +500 base, Artillery +300 base" | Should-know |
+| Cavalry regen boosted by plains regions | Each controlled plains region: +500 cavalry/turn | Should-know |
+| Artillery regen boosted by urban regions | Each controlled urban region: +200 artillery/turn | Should-know |
+| Stables building boosts cavalry regen | "Build stables in Paris" — +750 cavalry regen/turn | Should-know |
+| Pool caps prevent hoarding | Caps: infantry 100k, cavalry 30k, artillery 20k | Nice-to-know |
+| HUD color warns on low pools | Green → orange → red as pools deplete | Should-know |
+| Recruit batch size varies by type | Infantry 10k, cavalry 5k, artillery 3k per recruit action | Should-know |
+| Recruit cost varies by type | Infantry 200g, cavalry 300g, artillery 400g (before region discount) | Should-know |
+
 ### Recruitment
 
 | Concept | Teach by | Priority |
 |---------|----------|----------|
-| Recruit adds 10,000 troops to nearest marshal | "Recruit for Ney" — costs 1 admin AP + gold | Must-know |
-| Recruit cost varies: capital 150g, stable 200g, settling 300g | Tooltip: "Recruit in Paris for a 25% discount" | Should-know |
+| Recruit adds troops based on marshal type | "Recruit for Ney" — 5k cavalry, costs 1 admin AP + 300g | Must-know |
+| Recruit cost varies by region: capital 75%, stable 100%, settling 150% | Tooltip: "Recruit in Paris for a 25% discount" | Should-know |
 | Green recruits have 40% morale (dilutes army) | Post-recruit: "Morale: 80% -> 66% (raw conscripts lower average)" | Should-know |
 | Must control the region to recruit there | Error if recruiting in enemy territory | Must-know |
+| Pool must have enough reserves | Error: "Insufficient cavalry reserves (need 5,000, have 2,000)" | Must-know |
 
 ### Buildings
 
 | Concept | Teach by | Priority |
 |---------|----------|----------|
 | Build structures in regions you control | "'Build market in Paris' — costs admin AP + gold" | Should-know |
-| 4 building types with different effects | Help text lists building types | Should-know |
+| 5 building types with different effects | Help text lists building types | Should-know |
 | Supply Depot (300g, 2 turns): +10k supply, halves movement attrition nearby | Tooltip: "Depots project logistics to adjacent regions" | Should-know |
 | Fortification (400g, 3 turns): defense bonus + contested capture holdout | Tooltip: "Fortified regions hold out even after army retreats" | Should-know |
 | Training Ground (250g, 2 turns): recruits start at 70% morale | Tooltip: "Trained recruits barely dilute veteran armies" | Nice-to-know |
 | Market (350g, 2 turns): +25% region income | Tooltip: "Paris market: 300g -> 375g/turn" | Should-know |
+| Stables (300g, 2 turns): +750 cavalry regen/turn | Tooltip: "Stables breed warhorses for cavalry reinforcements" | Should-know |
 | Building slots: capital 2, city/major_city 1, town/rural 0 | Error: "Rural regions cannot support buildings" | Should-know |
 | Repair damaged buildings (1 admin AP + 150g) | "'Repair building in Paris' — restores damaged structure" | Should-know |
 | Repair war damage (1 admin AP + 150g, -15% damage) | "'Repair Paris' — reduces war damage" | Should-know |
@@ -164,6 +204,22 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 | Moving through enemy fortification: +4% harassment | "Enemy fortification inflicts 4% harassment losses" | Should-know |
 | Supply depots halve movement attrition nearby | "Forward supply lines reduce march losses" | Nice-to-know |
 | Friendly stable regions: no supply attrition | "Home territory with stability 76+ has no supply drain" | Nice-to-know |
+
+## Garrisons (Phase 6)
+
+| Concept | Teach by | Priority |
+|---------|----------|----------|
+| Capitals have built-in garrisons (15,000) | Map shows garrison shield below capital circle with strength | Must-know |
+| Capital garrisons must be reduced below 5,000 before capture | Error: "Cannot capture — garrison still holds at 12,000" | Must-know |
+| Capital garrisons regenerate +2,000/turn | Turn summary: "Paris garrison: 13,000 → 15,000 (max)" | Should-know |
+| Capital garrison gets terrain + fort defense bonuses | Tooltip: "Garrison effective defense boosted by urban terrain and fortification" | Nice-to-know |
+| Player can place garrison detachments | "'Davout, garrison' — detaches 3,000 troops to defend this region" (2 AP) | Should-know |
+| Garrison command costs 2 AP | AP counter: "Garrison costs 2 military AP" | Should-know |
+| Marshal needs 8,000+ troops to garrison | Error: "Insufficient strength to garrison (need 8,000)" | Should-know |
+| Nation cap of 3 garrisons (includes capital) | Warning: "France already has 3 garrisons (cap reached)" | Should-know |
+| Player garrisons fight to destruction | Tooltip: "Detachment garrisons don't collapse at 5,000 — they hold to the last man" | Nice-to-know |
+| Player garrisons don't regenerate | Unlike capital garrisons, detachments don't heal over time | Nice-to-know |
+| Map shows garrison shields | Colored shield below region with strength ("3k", "15k", dimmed under fog) | Should-know |
 
 ## Fog of War (Phase 6 — Fog)
 
@@ -226,23 +282,32 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 
 ## Short Waterloo Scenario (Pre-EA)
 
-10-15 turn guided scenario using current 13-region map. 40-turn max game. Teaches:
-1. Turn 1: Issue first order (move). Introduce 2 AP pools (4 combat, 2 admin). Type 'economy' to see treasury.
+10-15 turn guided scenario using current 13-region map. 40-turn max game. Victory: control 10+ regions at turn 40 or total conquest. Teaches:
+1. Turn 1: Issue first order (move). Introduce 2 AP pools (4 combat, 2 admin). Type 'economy' to see treasury. Note manpower HUD.
 2. Turn 2: Ney objects (scripted) — learn Trust/Insist/Compromise. See MILD "Field Dispatches" in log.
 3. Turn 3: Attack enemy — learn combat, terrain bonuses, post-battle damage.
-4. Turn 4: Strategic command — learn multi-turn orders (MOVE_TO). See AP cost difference (2 vs 1).
-5. Turn 5: Capture a region — learn Plunder/Secure choice. Check economy impact.
-6. Turn 6: Recruit troops, build a market — learn admin AP. See morale dilution from recruits.
-7. Turn 7-10: Play freely with gentle tooltips (cavalry charges, supply, fortification).
-8. Win/lose condition: take Waterloo or lose all marshals.
+4. Turn 4: Bombard with Drouot — learn artillery bombardment from range. Note: can't attack after moving.
+5. Turn 5: Strategic command — learn multi-turn orders (MOVE_TO). See AP cost difference (2 vs 1).
+6. Turn 6: Capture a region — learn Plunder/Secure choice. Note capital garrison blocks easy capture. Check economy impact.
+7. Turn 7: Recruit troops, build a market — learn admin AP and manpower pools. See morale dilution from recruits.
+8. Turn 8-12: Play freely with gentle tooltips (cavalry charges, garrison placement, supply, fortification, fog of war).
+9. Win/lose condition: control 10 regions or take all enemy territory. Lose if Paris falls or all marshals destroyed.
 
 ### Starting Map Reference
 
-**French (Player):** Paris (capital, urban, 300g), Belgium (town, plains, 100g), Lyon (major_city, hills, 200g), Brittany (rural, forest, 50g), Bordeaux (rural, plains, 50g), Marseille (city, plains, 150g). Starting gold: 600.
+**French (Player):** Paris (capital, urban, 300g), Belgium (town, plains, 100g), Lyon (major_city, hills, 200g), Brittany (rural, forest, 50g), Bordeaux (rural, plains, 50g), Marseille (city, plains, 150g). Starting gold: 600. Manpower: 80k inf / 15k cav / 10k art.
+
+Marshals: Ney (72k, Belgium, cavalry, aggressive), Davout (48k, Paris, infantry, cautious), Grouchy (33k, Belgium, infantry, literal), Drouot (25k, Paris, artillery, cautious).
 
 **British:** Netherlands (rural, plains, 50g), Waterloo (rural, hills, 50g), Milan (city, urban, 150g), Geneva (town, mountains, 100g). Starting gold: 1,500.
 
+Marshals: Wellington (68k, Waterloo, infantry, cautious), Uxbridge (18k, Waterloo, cavalry, aggressive).
+
 **Prussian:** Rhine (town, river_crossing, 100g), Bavaria (town, hills, 100g), Vienna (major_city, urban, 200g). Starting gold: 800.
+
+Marshals: Blucher (55k, Netherlands, infantry, aggressive), Gneisenau (45k, Netherlands, infantry, cautious), PrinceAugust (20k, Netherlands, artillery, cautious).
+
+**All capitals start with 15,000 garrison troops.** Victory requires 10 regions (of 13).
 
 ---
 
