@@ -31,7 +31,9 @@ Bombardment system (Sessions 48-52), Pause menu (Session 56: Smart Esc, modal ov
 
 ### Up Next
 
-- **Phase 6.5 remaining:** Strategic Ledger, Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer (art integration + sprite assets + procedural drawing rip-out — see ROADMAP.md Map Renderer Notes)
+- **Top Bar Framework + Dispatch (Session A):** Unified top bar (CanvasLayer 75), campaign log refactor (layer 50), notification bar repositioning, input blocking refactor (terminal stays active during screens), dispatch re-read screen, Generals placeholder. Spec: `docs/TOP_BAR_SPEC.md`.
+- **Strategic Ledger (Session B):** `ledger.py` backend builder (5 sections: forces, territories, economy, intel, manpower), `GET /ledger` endpoint, sub-tabbed Godot screen. ~40 tests. Spec: `docs/TOP_BAR_SPEC.md`.
+- **Phase 6.5 remaining after Sessions A+B:** Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer (art integration + sprite assets + procedural drawing rip-out — see ROADMAP.md Map Renderer Notes)
 - **Phase 7 Core: Multi-Marshal Coordination** — Spec in `docs/MULTI_MARSHAL_SPEC.md` + `docs/PHASE7_SPEC_AMENDMENTS.md`. **6 sessions (57-61, 64).** Combined arms (+10-20%), relationship-scaled coordination (+3%/+5% per ally), dedicated coordination (co-location + SUPPORT), adjacent support (+2% per adjacent), reinforcement (Grouchy Rule), win/loss relationship formula. ~190 new tests. Hard cap: +25% atk/+20% def. Each session includes basic combat display messages. Presentation absorbed into feature sessions (no separate display session).
 - **Phase 7b:** Casualty Distribution (Session 62 — `resolve_battle()` contract change, deferred for playtest data), AI Coordination Enhancements (Session 63 — P4.6/P4.76/P4.77/P4.78), Full Battle Reports + Berthier Observations (Session 65), Godot Tooltips + Tutorial + Integration Audit (Session 66), Tactical Triangle (Square Formation + Artillery SUPPORT auto-bombardment + Artillery Overwatch — linked group), V2b, Jealousy, Coalition Trigger, Gneisenau Staff Work (1805). ~150 tests from deferred Phase 7 sessions.
 
@@ -330,6 +332,7 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | Multi-marshal coordination spec (Phase 7) | `docs/MULTI_MARSHAL_SPEC.md` |
 | Phase 7 audit amendments (overrides spec) | `docs/PHASE7_SPEC_AMENDMENTS.md` |
 | Save format / serialization | `docs/SAVE_FORMAT_REFERENCE.md` |
+| Top bar + ledger + dispatch spec | `docs/TOP_BAR_SPEC.md` |
 | Fog of war spec | `docs/FOG_OF_WAR_SPEC.md` |
 | Modding guide | `docs/MODDING_FORMAT.md` |
 | Adding marshals or strategic commands | `docs/ADDING_CONTENT.md` |

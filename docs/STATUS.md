@@ -11,7 +11,7 @@
 |--------|-------|
 | **Tests Passing** | **3190** (verified, 3 skipped) |
 
-| **Current Phase** | Phase 6.5 **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Wire Marshal Abilities COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE + AUDITED, 5 items remaining). **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md`. Remaining 6.5: Strategic Ledger, Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer |
+| **Current Phase** | Phase 6.5 **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Wire Marshal Abilities COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE + AUDITED, 5 items remaining). **Next up: Top Bar Framework + Dispatch (Session A), Strategic Ledger (Session B).** Spec: `docs/TOP_BAR_SPEC.md`. Remaining after: Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer. **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,9 +19,11 @@
 
 ## Next Steps
 
-1. **Phase 6.5 remaining** — Strategic Ledger, Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer
-2. **Phase 7 Core: Multi-Marshal Coordination** — 6 sessions (57-61, 64), ~190 new tests. "Position IS Coordination" — combined arms (+10-20%), relationship-scaled coordination (+3%/+5% per ally), dedicated coordination (+5%/+5% from co-location or SUPPORT), adjacent support (+2% per adjacent), reinforcement (Grouchy Rule), win/loss relationship formula (dynamic relationships). Hard cap: +25% atk/+20% def. Each session includes basic combat display messages. Highest risk: Session 61 (reinforcement + physical relocation). First session: Combined Arms Detection (S57). Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md` (audit corrections still apply to all sessions including deferred ones).
-3. **Phase 7b (immediately after 7 Core):** Casualty Distribution (S62 — `resolve_battle()` contract change, deferred for playtest data), AI Coordination Enhancements (S63 — P4.6/P4.76/P4.77/P4.78), Full Battle Reports + Berthier Observations (S65), Godot Tooltips + Tutorial + Integration Audit (S66), Tactical Triangle Completion (Square Formation + Artillery SUPPORT auto-bombardment + Artillery Overwatch — linked group), V2b Defiance/Vindication, Jealousy system, Coalition Trigger, Cross-nation coordination (Britain/Prussia), Gneisenau Staff Work (1805 only).
+1. **Top Bar Framework + Dispatch Re-read (Session A)** — Unified top bar (CanvasLayer 75), campaign log refactor (layer 50), notification bar repositioning, input blocking refactor (terminal stays active), dispatch re-read screen, Generals placeholder. Spec: `docs/TOP_BAR_SPEC.md`. ~5 backend tests.
+2. **Strategic Ledger (Session B)** — `ledger.py` with 5 sections (forces, territories, economy, intel, manpower), `GET /ledger` endpoint, sub-tabbed Godot screen. ~40 backend tests. Spec: `docs/TOP_BAR_SPEC.md`.
+3. **Phase 6.5 remaining after Sessions A+B** — Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer
+4. **Phase 7 Core: Multi-Marshal Coordination** — 6 sessions (57-61, 64), ~190 new tests. "Position IS Coordination" — combined arms (+10-20%), relationship-scaled coordination (+3%/+5% per ally), dedicated coordination (+5%/+5% from co-location or SUPPORT), adjacent support (+2% per adjacent), reinforcement (Grouchy Rule), win/loss relationship formula (dynamic relationships). Hard cap: +25% atk/+20% def. Each session includes basic combat display messages. Highest risk: Session 61 (reinforcement + physical relocation). First session: Combined Arms Detection (S57). Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md` (audit corrections still apply to all sessions including deferred ones).
+5. **Phase 7b (immediately after 7 Core):** Casualty Distribution (S62 — `resolve_battle()` contract change, deferred for playtest data), AI Coordination Enhancements (S63 — P4.6/P4.76/P4.77/P4.78), Full Battle Reports + Berthier Observations (S65), Godot Tooltips + Tutorial + Integration Audit (S66), Tactical Triangle Completion (Square Formation + Artillery SUPPORT auto-bombardment + Artillery Overwatch — linked group), V2b Defiance/Vindication, Jealousy system, Coalition Trigger, Cross-nation coordination (Britain/Prussia), Gneisenau Staff Work (1805 only).
 
 ---
 
