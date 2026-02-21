@@ -1943,6 +1943,7 @@ class StrategicExecutor:
         """Complete a strategic order successfully."""
         order = marshal.strategic_order
         cmd_type = order.command_type if order else "unknown"
+        target = order.target if order else ""
         print(f"[STRATEGIC] {marshal.name}: ORDER COMPLETE - {reason}")
         marshal.strategic_order = None
 
@@ -1955,6 +1956,20 @@ class StrategicExecutor:
         is_literal = marshal.personality == "literal"
         if is_literal:
             marshal.trust.modify(5)
+
+        # Notification: strategic order complete (player marshals only)
+        if getattr(marshal, 'nation', '') == getattr(world, 'player_nation', 'France'):
+            from backend.notifications import (
+                create_notification, NotificationPriority, STRATEGIC_ORDER_COMPLETE,
+            )
+            world.notifications.add(create_notification(
+                notification_type=STRATEGIC_ORDER_COMPLETE,
+                priority=NotificationPriority.HIGH,
+                title=f"{marshal.name} arrived",
+                message=f"{marshal.name} has completed their {cmd_type} order — arrived at {marshal.location}.",
+                turn_created=int(world.current_turn),
+                details={"marshal": marshal.name, "order_type": cmd_type, "target": target},
+            ))
 
         return {
             "marshal": marshal.name,

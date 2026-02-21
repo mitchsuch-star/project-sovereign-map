@@ -706,6 +706,11 @@ class CombatResolver:
             # Pursuit damage (Phase 6.5: Blucher/Uxbridge abilities)
             "pursuit_damage": int(pursuit_damage),
             "pursuit_message": pursuit_message,
+            # Notification flags for executor.py to create notifications
+            "counter_punch_earned": bool(getattr(defender, 'counter_punch_available', False)
+                                         and getattr(defender, 'personality', '') == 'cautious'
+                                         and outcome in ("defender_victory", "defender_tactical_victory", "stalemate")),
+            "drill_cancelled": bool(is_drilling),
         }
         result_dict["battle_report"] = generate_battle_report(result_dict)
 

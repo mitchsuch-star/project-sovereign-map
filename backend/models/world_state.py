@@ -264,6 +264,13 @@ class WorldState:
         self.event_log: List[Dict[str, Any]] = []
 
         # ============================================================
+        # NOTIFICATION SYSTEM - EU4-style persistent alerts (Phase 6.5)
+        # ============================================================
+        # Persists across turns until player dismisses.
+        from backend.notifications import NotificationCollector
+        self.notifications: NotificationCollector = NotificationCollector()
+
+        # ============================================================
         # FOG OF WAR - Intel tracking per region (Phase 6 Session 33)
         # ============================================================
         # Dict of region_name -> RegionIntel objects
@@ -1983,9 +1990,32 @@ class WorldState:
                     art_regen += URBAN_ARTILLERY_REGEN
 
             pool = self.manpower_pools[nation]
+
+            # Track pools that were at 0 before regen (for replenished notification)
+            was_depleted = {}
+            if nation == self.player_nation:
+                for pool_type in ("infantry", "cavalry", "artillery"):
+                    was_depleted[pool_type] = pool.get(pool_type, 0) == 0
+
             pool["infantry"] = min(pool["infantry"] + inf_regen, MAX_INFANTRY_POOL)
             pool["cavalry"] = min(pool["cavalry"] + cav_regen, MAX_CAVALRY_POOL)
             pool["artillery"] = min(pool.get("artillery", 0) + art_regen, MAX_ARTILLERY_POOL)
+
+            # Trigger 6b: Manpower pool replenished notification
+            if nation == self.player_nation:
+                from backend.notifications import (
+                    create_notification, NotificationPriority, MANPOWER_REPLENISHED,
+                )
+                for pool_type in ("infantry", "cavalry", "artillery"):
+                    if was_depleted.get(pool_type) and pool[pool_type] > 0:
+                        self.notifications.add(create_notification(
+                            notification_type=MANPOWER_REPLENISHED,
+                            priority=NotificationPriority.NORMAL,
+                            title=f"{pool_type.title()} reserves restored",
+                            message=f"Our {pool_type} manpower reserves have begun recovering. Recruitment is available again.",
+                            turn_created=int(self.current_turn),
+                            details={"pool_type": pool_type, "available": int(pool[pool_type])},
+                        ))
 
     def get_cavalry_regen_rate(self, nation: str) -> int:
         """Calculate current cavalry regen rate for a nation (for display/error messages)."""
@@ -2224,6 +2254,41 @@ class WorldState:
             messages.append(f"{nation} treasury remains in deficit! Troops grow restless. One more turn and soldiers will desert.")
         elif bt >= 3:
             messages.append(f"{nation} has been bankrupt for {bt} turns! Troops are deserting!")
+
+        # Trigger 8: Bankruptcy tier escalation notification (player only)
+        if nation == self.player_nation:
+            from backend.notifications import (
+                create_notification, NotificationPriority, BANKRUPTCY_ESCALATION,
+            )
+            if bt == 1:
+                self.notifications.add(create_notification(
+                    notification_type=BANKRUPTCY_ESCALATION,
+                    priority=NotificationPriority.HIGH,
+                    title="Treasury in deficit",
+                    message="The treasury is in deficit. Upkeep halved as mercy, but continued deficit will cause desertion.",
+                    turn_created=int(self.current_turn),
+                    details={"tier": 1, "bankruptcy_turns": bt},
+                ))
+            elif bt == 2:
+                self.notifications.add(create_notification(
+                    notification_type=BANKRUPTCY_ESCALATION,
+                    priority=NotificationPriority.CRITICAL,
+                    title="Desertion imminent",
+                    message="The treasury remains in deficit. Troops grow restless — one more turn and soldiers will desert.",
+                    turn_created=int(self.current_turn),
+                    details={"tier": 2, "bankruptcy_turns": bt},
+                ))
+            elif bt >= 3:
+                self.notifications.add(create_notification(
+                    notification_type=BANKRUPTCY_ESCALATION,
+                    priority=NotificationPriority.CRITICAL,
+                    title="Troops deserting",
+                    message=f"Bankrupt for {bt} turns. Troops are deserting — 5% strength lost per marshal this turn.",
+                    turn_created=int(self.current_turn),
+                    details={"tier": 3, "bankruptcy_turns": bt},
+                ))
+
+        if bt >= 3:
             for marshal in self.marshals.values():
                 if marshal.nation == nation and marshal.strength > 0:
                     loss = marshal.strength * 5 // 100  # 5% rounded down
@@ -2416,6 +2481,9 @@ class WorldState:
             # ═══════ EVENT LOG ═══════
             "event_log": [e.copy() for e in self.event_log],
 
+            # ═══════ NOTIFICATIONS (Phase 6.5) ═══════
+            "notifications": self.notifications.to_list(),
+
             # ═══════ FOG OF WAR (Phase 6 Session 33) ═══════
             "intel": {name: ri.to_dict() for name, ri in self.intel.items()},
         }
@@ -2525,6 +2593,11 @@ class WorldState:
 
         # ═══════ EVENT LOG ═══════
         world.event_log = [e.copy() for e in data.get("event_log", [])]
+
+        # ═══════ NOTIFICATIONS (Phase 6.5) ═══════
+        from backend.notifications import NotificationCollector
+        notifications_data = data.get("notifications", [])
+        world.notifications = NotificationCollector.from_list(notifications_data)
 
         # ═══════ FOG OF WAR (Phase 6 Session 33) ═══════
         # Backward compat: old saves have no intel key → empty dict
@@ -3864,6 +3937,19 @@ class WorldState:
                     auto_charge_event["battle_report"] = combat_result["battle_report"]
                 events.append(auto_charge_event)
                 debug_print(f"  [AUTO-CHARGE DEBUG] Event appended, events count: {len(events)}")
+                # Notification: reckless cavalry auto-action (player only)
+                if getattr(marshal, 'nation', '') == self.player_nation:
+                    from backend.notifications import (
+                        create_notification, NotificationPriority, RECKLESS_CAVALRY_ACTION,
+                    )
+                    self.notifications.add(create_notification(
+                        notification_type=RECKLESS_CAVALRY_ACTION,
+                        priority=NotificationPriority.CRITICAL,
+                        title=f"{marshal.name} acting alone!",
+                        message=f"{marshal.name} has gone reckless and charged {enemy.name} at {enemy.location} without orders!",
+                        turn_created=int(self.current_turn),
+                        details={"marshal": marshal.name, "target": enemy.name, "action": "charge"},
+                    ))
             else:
                 # Out of range - auto-move toward enemy
                 # Find path toward enemy
@@ -3891,6 +3977,19 @@ class WorldState:
                     })
 
                     debug_print(f"  [RECKLESS MOVE] {marshal.name} auto-moves {old_location} -> {next_region}")
+                    # Notification: reckless cavalry auto-move (player only)
+                    if getattr(marshal, 'nation', '') == self.player_nation:
+                        from backend.notifications import (
+                            create_notification, NotificationPriority, RECKLESS_CAVALRY_ACTION,
+                        )
+                        self.notifications.add(create_notification(
+                            notification_type=RECKLESS_CAVALRY_ACTION,
+                            priority=NotificationPriority.CRITICAL,
+                            title=f"{marshal.name} acting alone!",
+                            message=f"{marshal.name} has gone reckless and advanced toward {enemy.name} without orders!",
+                            turn_created=int(self.current_turn),
+                            details={"marshal": marshal.name, "target": enemy.name, "action": "move"},
+                        ))
                 else:
                     # Can't find path - stuck
                     events.append({

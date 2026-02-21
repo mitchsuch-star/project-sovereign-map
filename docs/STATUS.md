@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 20, 2026 (Morning Dispatch)
+> **Last Updated:** February 21, 2026 (Notification System)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3120** (verified, 3 skipped) |
+| **Tests Passing** | **3171** (verified, 3 skipped) |
 
-| **Current Phase** | Phase 6.5 **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Wire Marshal Abilities COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, 6 items remaining). **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md`. Remaining 6.5: Notification System, Strategic Ledger, Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer |
+| **Current Phase** | Phase 6.5 **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Wire Marshal Abilities COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE, 5 items remaining). **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md`. Remaining 6.5: Strategic Ledger, Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,7 +19,7 @@
 
 ## Next Steps
 
-1. **Phase 6.5 remaining** — Notification System, Strategic Ledger, Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer
+1. **Phase 6.5 remaining** — Strategic Ledger, Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer
 2. **Phase 7 Core: Multi-Marshal Coordination** — 6 sessions (57-61, 64), ~190 new tests. "Position IS Coordination" — combined arms (+10-20%), relationship-scaled coordination (+3%/+5% per ally), dedicated coordination (+5%/+5% from co-location or SUPPORT), adjacent support (+2% per adjacent), reinforcement (Grouchy Rule), win/loss relationship formula (dynamic relationships). Hard cap: +25% atk/+20% def. Each session includes basic combat display messages. Highest risk: Session 61 (reinforcement + physical relocation). First session: Combined Arms Detection (S57). Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md` (audit corrections still apply to all sessions including deferred ones).
 3. **Phase 7b (immediately after 7 Core):** Casualty Distribution (S62 — `resolve_battle()` contract change, deferred for playtest data), AI Coordination Enhancements (S63 — P4.6/P4.76/P4.77/P4.78), Full Battle Reports + Berthier Observations (S65), Godot Tooltips + Tutorial + Integration Audit (S66), Tactical Triangle Completion (Square Formation + Artillery SUPPORT auto-bombardment + Artillery Overwatch — linked group), V2b Defiance/Vindication, Jealousy system, Coalition Trigger, Cross-nation coordination (Britain/Prussia), Gneisenau Staff Work (1805 only).
 
@@ -45,6 +45,41 @@ All major Phase 6 features shipped:
 ---
 
 ## Recent Sessions
+
+### Feb 21 (Notification System — Phase 6.5)
+
+**EU4-style persistent notification bar for important game events.**
+
+**New files:**
+- `backend/notifications.py` — `NotificationPriority` enum (NORMAL/HIGH/CRITICAL), `create_notification()` factory, `NotificationCollector` class (add, dismiss, serialize). 10 notification type constants.
+- `godot-client/project-sovereign/scenes/notification_bar.tscn` + `scripts/notification_bar.gd` — Control node (not CanvasLayer) at top-right below LOG button. Color-coded icon buttons per priority (red/orange/blue). Click to expand details panel, X to dismiss. Calls backend dismiss endpoint.
+- `tests/test_notifications.py` — 51 tests covering priority enum, factory, collector, WorldState integration, 6 trigger integration tests, dispatch severity/whitelist.
+
+**Backend — 9 notification triggers:**
+1. Strategic order complete (HIGH) — `strategic.py _complete_order()`
+2. Forced retreat + order voided (CRITICAL) — `executor.py _apply_forced_retreat_or_break()`, both retreat and broken paths
+3. Friendly fire trust (HIGH) — `executor.py _execute_bombardment()` collateral loop
+4. Reckless cavalry action (CRITICAL) — `world_state.py _process_reckless_cavalry_turn_start()`, both charge and move
+5. Counter-punch earned (HIGH) — `combat.py` flag in result_dict → `executor.py _process_combat_notifications()`
+6. Manpower depleted/replenished (HIGH/NORMAL) — `executor.py _execute_recruit()` + `world_state.py _process_manpower_regen()`
+7. Enemy nation eliminated (NORMAL) — `turn_manager.py`
+8. Bankruptcy tier escalation (HIGH tier 1, CRITICAL tier 2-3) — `world_state.py process_bankruptcy_desertion()`
+9. Drill cancelled (HIGH) — `combat.py` flag → `executor.py _process_combat_notifications()`
+
+**API wiring:**
+- Notifications included in ALL `/command` response paths (8 early-return paths + final response)
+- `POST /notifications/dismiss` — dismiss by ID or "all"
+- `GET /notifications` — get pending list
+
+**Dispatch fixes (Task 1 & 2):**
+- Fixed severity: 7 types promoted to warning (fortify_decayed, fortify_collapsed, counter_punch_expired, capital_proximity_alert, auto_glorious_charge, reckless_move, reckless_no_target), 1 to good (broken_recovered)
+- Wired `_DISPATCH_EVENT_TYPES` whitelist filter (was dead code), expanded from 14 to 28 event types
+
+**Godot wiring:**
+- `api_client.gd`: `dismiss_notification()`, `dismiss_all_notifications()`
+- `main.gd`: notification bar loaded in `_ready()`, updated in `_on_command_result()` before enemy phase check
+
+**Tests:** 51 new. **3171 total passing**, 3 skipped, 0 regressions.
 
 ### Feb 20 (Morning Dispatch — Phase 6.5)
 

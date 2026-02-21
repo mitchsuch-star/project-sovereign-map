@@ -393,6 +393,8 @@ def execute_command(request: CommandRequest):
                     cleaned = {k: v for k, v in result.items() if k != "new_state"}
                     cleaned["action_summary"] = world.get_action_summary()
                     cleaned["game_state"] = world.get_filtered_game_state_summary()
+                    if world.notifications.has_pending():
+                        cleaned["notifications"] = world.notifications.get_pending()
                     return cleaned
 
         # Parse command
@@ -485,6 +487,8 @@ def execute_command(request: CommandRequest):
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
             cleaned["game_state"] = world.get_filtered_game_state_summary()
+            if world.notifications.has_pending():
+                cleaned["notifications"] = world.notifications.get_pending()
             return cleaned
 
         if result.get("pending_objection"):
@@ -492,6 +496,8 @@ def execute_command(request: CommandRequest):
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
             cleaned["game_state"] = world.get_filtered_game_state_summary()
+            if world.notifications.has_pending():
+                cleaned["notifications"] = world.notifications.get_pending()
             return cleaned
 
         # ════════════════════════════════════════════════════════════
@@ -502,6 +508,8 @@ def execute_command(request: CommandRequest):
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
             cleaned["game_state"] = world.get_filtered_game_state_summary()
+            if world.notifications.has_pending():
+                cleaned["notifications"] = world.notifications.get_pending()
             return cleaned
 
         # ════════════════════════════════════════════════════════════
@@ -512,6 +520,8 @@ def execute_command(request: CommandRequest):
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
             cleaned["game_state"] = world.get_filtered_game_state_summary()
+            if world.notifications.has_pending():
+                cleaned["notifications"] = world.notifications.get_pending()
             return cleaned
 
         # ════════════════════════════════════════════════════════════
@@ -523,6 +533,8 @@ def execute_command(request: CommandRequest):
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
             cleaned["game_state"] = world.get_filtered_game_state_summary()
+            if world.notifications.has_pending():
+                cleaned["notifications"] = world.notifications.get_pending()
             return cleaned
 
         # ════════════════════════════════════════════════════════════
@@ -533,6 +545,8 @@ def execute_command(request: CommandRequest):
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
             cleaned["game_state"] = world.get_filtered_game_state_summary()
+            if world.notifications.has_pending():
+                cleaned["notifications"] = world.notifications.get_pending()
             return cleaned
 
         # Get action summary
@@ -696,6 +710,10 @@ def execute_command(request: CommandRequest):
         # Morning Dispatch — Berthier's turn-start briefing (Phase 6.5)
         if result.get("morning_dispatch"):
             response["morning_dispatch"] = result["morning_dispatch"]
+
+        # Notifications — persistent alerts for Godot notification bar
+        if world.notifications.has_pending():
+            response["notifications"] = world.notifications.get_pending()
 
         return response
     except Exception as e:
@@ -1304,6 +1322,30 @@ def get_campaign_log():
                     for t, evts in sorted(turns.items(), reverse=True)
                     if evts]
     return {"turns": sorted_turns, "current_turn": int(world.current_turn)}
+
+
+# ════════════════════════════════════════════════════════════
+# NOTIFICATION ENDPOINTS (Phase 6.5)
+# ════════════════════════════════════════════════════════════
+
+@app.post("/notifications/dismiss")
+async def dismiss_notification(request: Request):
+    """Dismiss a notification by ID, or dismiss all if id='all'."""
+    data = await request.json()
+    notification_id = data.get("id")
+    if not notification_id:
+        return {"success": False, "message": "Missing notification id"}
+    if notification_id == "all":
+        count = world.notifications.dismiss_all()
+        return {"success": True, "dismissed": int(count)}
+    dismissed = world.notifications.dismiss(notification_id)
+    return {"success": dismissed, "dismissed": 1 if dismissed else 0}
+
+
+@app.get("/notifications")
+def get_notifications():
+    """Get all pending notifications."""
+    return {"notifications": world.notifications.get_pending()}
 
 
 # ════════════════════════════════════════════════════════════

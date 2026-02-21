@@ -125,6 +125,26 @@ func send_strategic_response(marshal_name: String, response_type: String, choice
 	if error != OK:
 		print("ERROR: HTTP request failed with code: ", error)
 
+func dismiss_notification(notification_id: String, callback: Callable):
+	"""Dismiss a single notification by ID."""
+	pending_callback = callback
+	var url = API_URL + "/notifications/dismiss"
+	var headers = ["Content-Type: application/json"]
+	var body = JSON.stringify({"id": notification_id})
+	var error = http_request.request(url, headers, HTTPClient.METHOD_POST, body)
+	if error != OK:
+		print("ERROR: HTTP request failed with code: ", error)
+
+func dismiss_all_notifications(callback: Callable):
+	"""Dismiss all pending notifications."""
+	pending_callback = callback
+	var url = API_URL + "/notifications/dismiss"
+	var headers = ["Content-Type: application/json"]
+	var body = JSON.stringify({"id": "all"})
+	var error = http_request.request(url, headers, HTTPClient.METHOD_POST, body)
+	if error != OK:
+		print("ERROR: HTTP request failed with code: ", error)
+
 func _on_request_completed(result, response_code, headers, body):
 	var response_text = body.get_string_from_utf8()
 	

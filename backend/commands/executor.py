@@ -1739,6 +1739,38 @@ RETREAT RECOVERY (3 turns):
             event["location"] = location
             world.log_event(event)
 
+    def _process_combat_notifications(self, battle_result: Dict, attacker, defender, world) -> None:
+        """Create notifications for combat side effects (counter-punch earned, drill cancelled)."""
+        from backend.notifications import (
+            create_notification, NotificationPriority,
+            COUNTER_PUNCH_EARNED, DRILL_CANCELLED,
+        )
+        player_nation = getattr(world, 'player_nation', 'France')
+
+        # Counter-punch earned: defender earned a free attack
+        if battle_result.get("counter_punch_earned"):
+            if getattr(defender, 'nation', '') == player_nation:
+                world.notifications.add(create_notification(
+                    notification_type=COUNTER_PUNCH_EARNED,
+                    priority=NotificationPriority.HIGH,
+                    title=f"{defender.name} — free attack!",
+                    message=f"{defender.name} earned a free attack from their defensive victory. Use within 2 turns or the opportunity expires.",
+                    turn_created=int(world.current_turn),
+                    details={"marshal": defender.name},
+                ))
+
+        # Drill cancelled: defender's drill training destroyed
+        if battle_result.get("drill_cancelled"):
+            if getattr(defender, 'nation', '') == player_nation:
+                world.notifications.add(create_notification(
+                    notification_type=DRILL_CANCELLED,
+                    priority=NotificationPriority.HIGH,
+                    title=f"{defender.name} drill lost",
+                    message=f"{defender.name}'s drill training was destroyed by the enemy attack. All progress lost — must restart from scratch.",
+                    turn_created=int(world.current_turn),
+                    details={"marshal": defender.name},
+                ))
+
     def _handle_forced_retreat(
         self,
         battle_result: Dict,
@@ -2047,6 +2079,19 @@ RETREAT RECOVERY (3 turns):
                     marshal.hold_region = ""
                 else:
                     strategic_msg = f" {marshal.name}'s {cmd_type} order is cancelled!"
+                # Notification: forced retreat voided strategic order (player only)
+                if getattr(marshal, 'nation', '') == getattr(world, 'player_nation', 'France'):
+                    from backend.notifications import (
+                        create_notification, NotificationPriority, FORCED_RETREAT_ORDER_VOIDED,
+                    )
+                    world.notifications.add(create_notification(
+                        notification_type=FORCED_RETREAT_ORDER_VOIDED,
+                        priority=NotificationPriority.CRITICAL,
+                        title=f"{marshal.name} orders lost",
+                        message=f"{marshal.name} was forced to retreat to {retreat_to}. Their {cmd_type} order has been cancelled.",
+                        turn_created=int(world.current_turn),
+                        details={"marshal": marshal.name, "order_type": cmd_type, "retreat_to": retreat_to},
+                    ))
                 marshal.strategic_order = None
             marshal.move_to(retreat_to)  # Use move_to() for proper state clearing
             # Clear artillery bombardment state — forced retreat breaks sustained fire
@@ -2128,6 +2173,19 @@ RETREAT RECOVERY (3 turns):
                     strategic_msg = f" {marshal.name}'s HOLD position at {old_loc} is lost!"
                 else:
                     strategic_msg = f" {marshal.name}'s {cmd_type} order is void!"
+                # Notification: broken army voided strategic order (player only)
+                if getattr(marshal, 'nation', '') == getattr(world, 'player_nation', 'France'):
+                    from backend.notifications import (
+                        create_notification, NotificationPriority, FORCED_RETREAT_ORDER_VOIDED,
+                    )
+                    world.notifications.add(create_notification(
+                        notification_type=FORCED_RETREAT_ORDER_VOIDED,
+                        priority=NotificationPriority.CRITICAL,
+                        title=f"{marshal.name} orders lost",
+                        message=f"{marshal.name}'s army was shattered at {old_loc}. Their {cmd_type} order is void.",
+                        turn_created=int(world.current_turn),
+                        details={"marshal": marshal.name, "order_type": cmd_type, "location": old_loc},
+                    ))
                 marshal.strategic_order = None
 
             survival_percent = int(survival_rate * 100)
@@ -2273,6 +2331,20 @@ RETREAT RECOVERY (3 turns):
                         force.trust.modify(-5)
                         # Relationship penalty: -1 with artillery marshal
                         force.modify_relationship(marshal.name, -1)
+                        # Notification: friendly fire trust penalty (player only)
+                        if force.nation == getattr(world, 'player_nation', 'France'):
+                            from backend.notifications import (
+                                create_notification, NotificationPriority, FRIENDLY_FIRE_TRUST,
+                            )
+                            trust_val = int(force.trust.value)
+                            world.notifications.add(create_notification(
+                                notification_type=FRIENDLY_FIRE_TRUST,
+                                priority=NotificationPriority.HIGH,
+                                title=f"Friendly fire — {force.name}",
+                                message=f"{force.name} caught in {marshal.name}'s bombardment. Trust dropped to {trust_val}.",
+                                turn_created=int(world.current_turn),
+                                details={"victim": force.name, "bombarder": marshal.name, "trust": trust_val},
+                            ))
 
                         # Redemption threshold check (§4.4)
                         if (force.trust.value <= 20
@@ -3205,6 +3277,9 @@ RETREAT RECOVERY (3 turns):
 
         # Log battle event
         self._log_battle_event(battle_result, battle_region_name, world)
+
+        # Combat notifications (counter-punch earned, drill cancelled)
+        self._process_combat_notifications(battle_result, marshal, enemy_marshal, world)
 
         # Fog of War (Session 34A): Battle grants FULL visibility on battle region
         world.update_intel_from_battle(battle_region_name, world.current_turn)
@@ -6446,6 +6521,20 @@ RETREAT RECOVERY (3 turns):
         # --- Draw from manpower pool ---
         world.manpower_pools[acting_nation][recruit_type] -= NEW_TROOPS
         pool_after = world.manpower_pools[acting_nation][recruit_type]
+
+        # Trigger 6: Manpower pool depleted notification
+        if pool_after == 0 and acting_nation == getattr(world, 'player_nation', 'France'):
+            from backend.notifications import (
+                create_notification, NotificationPriority, MANPOWER_DEPLETED,
+            )
+            world.notifications.add(create_notification(
+                notification_type=MANPOWER_DEPLETED,
+                priority=NotificationPriority.HIGH,
+                title=f"{recruit_type.title()} pool exhausted",
+                message=f"Our {recruit_type} manpower reserves are completely spent. Recruitment will be unavailable until reserves regenerate.",
+                turn_created=int(world.current_turn),
+                details={"pool_type": recruit_type, "nation": acting_nation},
+            ))
 
         # --- Morale dilution ---
         marshal = world.get_marshal(recipient)

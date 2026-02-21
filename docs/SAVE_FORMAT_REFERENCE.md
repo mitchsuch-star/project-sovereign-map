@@ -63,6 +63,8 @@ A future save/load system should use this as the specification.
 
   "event_log": [],
 
+  "notifications": [],
+
   "intel": {
     "Paris": { ... },
     "Belgium": { ... }
@@ -108,6 +110,7 @@ A future save/load system should use this as the specification.
 | `battles_this_turn` | list | [] | Battles this turn (Phase 5.2) |
 | `command_history` | list | [] | LLM command context |
 | `event_log` | list | [] | Structured game event history. Each entry is a dict with `type`, `turn`, and event-specific fields. Accumulates across full game, never cleared. Used by Campaign Log, Gazette. |
+| `notifications` | list | [] | Pending notification alerts. Each entry: `{id, type, priority, title, message, turn_created, details}`. Persists until player dismisses. Serialized via `NotificationCollector.to_list()/from_list()`. |
 | `intel` | dict | {} | Map of region_name -> RegionIntel. Fog of war intel store. Empty dict for backward compat (old saves populate via `calculate_visibility()` on load). |
 
 ---

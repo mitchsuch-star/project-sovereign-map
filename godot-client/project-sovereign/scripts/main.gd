@@ -67,6 +67,9 @@ var pause_menu = null
 # Campaign Log (Phase 6.5)
 var campaign_log = null
 
+# Notification Bar (Phase 6.5)
+var notification_bar = null
+
 # API Client
 var api_client = null
 
@@ -243,6 +246,14 @@ func _ready():
 		add_child(campaign_log)
 		campaign_log.closed.connect(_on_campaign_log_closed)
 		print("✓ CampaignLog ready!")
+
+	# Load and setup Notification Bar (Phase 6.5)
+	var notification_bar_scene = load("res://scenes/notification_bar.tscn")
+	if notification_bar_scene:
+		notification_bar = notification_bar_scene.instantiate()
+		add_child(notification_bar)
+		notification_bar.set_api_client(api_client)
+		print("✓ NotificationBar ready!")
 
 	# Connect signals
 	if not send_button.pressed.is_connected(_on_send_button_pressed):
@@ -621,6 +632,11 @@ func _on_command_result(response):
 		_display_result(response)
 
 		# Tactical events absorbed into Morning Dispatch (no separate display)
+
+		# Update notification bar with any pending notifications
+		# (must be before enemy_phase dialog check — that returns early)
+		if notification_bar and response.has("notifications"):
+			notification_bar.update_notifications(response.notifications)
 
 		# Check for enemy phase (from end_turn)
 		# NOTE: No total_actions > 0 gate — dialog shows even with 0 enemy actions

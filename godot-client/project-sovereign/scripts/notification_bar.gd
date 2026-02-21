@@ -1,0 +1,236 @@
+extends Control
+
+# =============================================================================
+# PROJECT SOVEREIGN - Notification Bar (Phase 6.5)
+# =============================================================================
+# EU4-style persistent notification icons. Non-blocking, sits at top-right
+# below LOG button. Each notification is a small colored icon that expands
+# on click to show details. Dismiss with X button.
+# =============================================================================
+
+signal notification_dismissed(notification_id: String)
+
+# Priority colors (match backend NotificationPriority enum values)
+const PRIORITY_COLORS = {
+	2: Color(0.85, 0.25, 0.25, 1.0),   # CRITICAL — red
+	1: Color(0.85, 0.6, 0.2, 1.0),     # HIGH — orange
+	0: Color(0.35, 0.55, 0.75, 1.0),   # NORMAL — blue
+}
+
+# Priority border colors (lighter variants for icon borders)
+const PRIORITY_BORDER_COLORS = {
+	2: Color(1.0, 0.4, 0.4, 1.0),
+	1: Color(1.0, 0.75, 0.35, 1.0),
+	0: Color(0.5, 0.7, 0.9, 1.0),
+}
+
+# Priority icons (text characters for icon buttons)
+const PRIORITY_ICONS = {
+	2: "!!",   # CRITICAL
+	1: "!",    # HIGH
+	0: "i",    # NORMAL
+}
+
+@onready var icon_container: HBoxContainer = $IconContainer
+var expanded_panel: PanelContainer = null
+var current_notifications: Array = []
+var api_client = null
+
+
+func _ready():
+	# Start hidden — only show when notifications exist
+	visible = false
+
+
+func set_api_client(client):
+	"""Set the API client reference for dismiss calls."""
+	api_client = client
+
+
+func update_notifications(notifications: Array):
+	"""Replace all notification icons with the provided list."""
+	current_notifications = notifications
+
+	# Clear existing icons
+	for child in icon_container.get_children():
+		icon_container.remove_child(child)
+		child.queue_free()
+
+	# Close expanded panel if open
+	_close_expanded_panel()
+
+	if notifications.is_empty():
+		visible = false
+		return
+
+	visible = true
+
+	# Create icon buttons sorted by priority (CRITICAL first)
+	for notif in notifications:
+		var btn = _create_notification_icon(notif)
+		icon_container.add_child(btn)
+
+
+func _create_notification_icon(notif: Dictionary) -> Button:
+	"""Create a small colored icon button for a notification."""
+	var priority = int(notif.get("priority", 0))
+	var color = PRIORITY_COLORS.get(priority, PRIORITY_COLORS[0])
+	var border_color = PRIORITY_BORDER_COLORS.get(priority, PRIORITY_BORDER_COLORS[0])
+	var icon_text = PRIORITY_ICONS.get(priority, "i")
+
+	var btn = Button.new()
+	btn.custom_minimum_size = Vector2(28, 28)
+	btn.text = icon_text
+	btn.tooltip_text = str(notif.get("title", "Notification"))
+
+	# Style the button
+	var style = StyleBoxFlat.new()
+	style.bg_color = Color(color.r, color.g, color.b, 0.85)
+	style.border_width_left = 1
+	style.border_width_top = 1
+	style.border_width_right = 1
+	style.border_width_bottom = 1
+	style.border_color = border_color
+	style.corner_radius_top_left = 4
+	style.corner_radius_top_right = 4
+	style.corner_radius_bottom_right = 4
+	style.corner_radius_bottom_left = 4
+	style.content_margin_left = 4.0
+	style.content_margin_right = 4.0
+	style.content_margin_top = 2.0
+	style.content_margin_bottom = 2.0
+	btn.add_theme_stylebox_override("normal", style)
+
+	# Hover style (brighter)
+	var hover_style = style.duplicate()
+	hover_style.bg_color = Color(color.r * 1.2, color.g * 1.2, color.b * 1.2, 0.95)
+	btn.add_theme_stylebox_override("hover", hover_style)
+
+	# Pressed style
+	var pressed_style = style.duplicate()
+	pressed_style.bg_color = Color(color.r * 0.8, color.g * 0.8, color.b * 0.8, 0.95)
+	btn.add_theme_stylebox_override("pressed", pressed_style)
+
+	btn.add_theme_font_size_override("font_size", 11)
+	btn.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+
+	# Store notification data on the button
+	btn.set_meta("notification_data", notif)
+	btn.pressed.connect(_on_icon_pressed.bind(btn))
+
+	return btn
+
+
+func _on_icon_pressed(btn: Button):
+	"""Expand notification details when icon is clicked."""
+	var notif = btn.get_meta("notification_data")
+	if not notif:
+		return
+
+	# Toggle: if already showing this notification, close it
+	if expanded_panel and expanded_panel.has_meta("notification_id") and expanded_panel.get_meta("notification_id") == notif.get("id", ""):
+		_close_expanded_panel()
+		return
+
+	_close_expanded_panel()
+	_show_expanded_panel(notif)
+
+
+func _show_expanded_panel(notif: Dictionary):
+	"""Show expanded notification details panel below the icon bar."""
+	var priority = int(notif.get("priority", 0))
+	var color = PRIORITY_COLORS.get(priority, PRIORITY_COLORS[0])
+	var border_color = PRIORITY_BORDER_COLORS.get(priority, PRIORITY_BORDER_COLORS[0])
+
+	expanded_panel = PanelContainer.new()
+	expanded_panel.set_meta("notification_id", notif.get("id", ""))
+
+	# Style the panel
+	var panel_style = StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.08, 0.1, 0.15, 0.95)
+	panel_style.border_width_left = 2
+	panel_style.border_width_top = 2
+	panel_style.border_width_right = 2
+	panel_style.border_width_bottom = 2
+	panel_style.border_color = border_color
+	panel_style.corner_radius_top_left = 6
+	panel_style.corner_radius_top_right = 6
+	panel_style.corner_radius_bottom_right = 6
+	panel_style.corner_radius_bottom_left = 6
+	panel_style.content_margin_left = 12.0
+	panel_style.content_margin_top = 8.0
+	panel_style.content_margin_right = 12.0
+	panel_style.content_margin_bottom = 8.0
+	expanded_panel.add_theme_stylebox_override("panel", panel_style)
+
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 4)
+	expanded_panel.add_child(vbox)
+
+	# Header row: title + dismiss button
+	var header = HBoxContainer.new()
+	vbox.add_child(header)
+
+	var title_label = Label.new()
+	title_label.text = str(notif.get("title", "Notification"))
+	title_label.add_theme_color_override("font_color", color)
+	title_label.add_theme_font_size_override("font_size", 13)
+	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header.add_child(title_label)
+
+	var dismiss_btn = Button.new()
+	dismiss_btn.text = "X"
+	dismiss_btn.custom_minimum_size = Vector2(24, 24)
+	dismiss_btn.add_theme_font_size_override("font_size", 10)
+	dismiss_btn.add_theme_color_override("font_color", Color(0.7, 0.7, 0.75, 1))
+	dismiss_btn.pressed.connect(_on_dismiss_pressed.bind(notif.get("id", "")))
+	header.add_child(dismiss_btn)
+
+	# Message body
+	var message_label = Label.new()
+	message_label.text = str(notif.get("message", ""))
+	message_label.add_theme_color_override("font_color", Color(0.8, 0.8, 0.82, 1))
+	message_label.add_theme_font_size_override("font_size", 11)
+	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	message_label.custom_minimum_size = Vector2(280, 0)
+	vbox.add_child(message_label)
+
+	# Position panel below the notification bar
+	expanded_panel.position = Vector2(0, 36)
+	add_child(expanded_panel)
+
+
+func _close_expanded_panel():
+	"""Close the expanded detail panel."""
+	if expanded_panel:
+		remove_child(expanded_panel)
+		expanded_panel.queue_free()
+		expanded_panel = null
+
+
+func _on_dismiss_pressed(notification_id: String):
+	"""Dismiss a notification — remove locally and tell backend."""
+	_close_expanded_panel()
+
+	# Remove from local list
+	current_notifications = current_notifications.filter(
+		func(n): return n.get("id", "") != notification_id
+	)
+
+	# Refresh icons
+	update_notifications(current_notifications)
+
+	# Tell backend
+	if api_client:
+		api_client.dismiss_notification(notification_id, func(_response): pass)
+
+	notification_dismissed.emit(notification_id)
+
+
+func dismiss_all():
+	"""Dismiss all notifications."""
+	_close_expanded_panel()
+	current_notifications = []
+	update_notifications([])
+	if api_client:
+		api_client.dismiss_all_notifications(func(_response): pass)

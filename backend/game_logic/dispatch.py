@@ -319,15 +319,25 @@ def _build_intelligence(world, player_nation: str) -> List[Dict[str, Any]]:
 # TURN EVENTS (absorbed from tactical events)
 # ============================================================================
 
-# Event types relevant to the dispatch (player-visible turn events)
+# Event types relevant to the dispatch (player-visible turn events).
+# Acts as a WHITELIST: only these event types appear in the TURN EVENTS section.
 _DISPATCH_EVENT_TYPES = {
+    # Warning severity
     "supply_attrition", "bankruptcy_desertion",
+    "occupation_abandoned", "cavalry_defensive_reset",
+    "cavalry_fortify_reset", "fortify_decayed",
+    "fortify_collapsed", "counter_punch_expired",
+    "capital_proximity_alert", "auto_glorious_charge",
+    "reckless_move",
+    # Good severity
     "construction_complete", "occupation_complete",
-    "occupation_continues", "occupation_abandoned",
-    "garrison_regen", "retreat_recovery",
-    "drill_complete", "drill_locked", "drill_started",
+    "drill_complete", "retreat_recovery",
+    "garrison_regen", "broken_recovered",
+    # Info severity (no special highlight)
+    "occupation_continues", "drill_locked", "drill_started",
     "fortify_complete", "fortify_started",
-    "cavalry_defensive_reset", "cavalry_fortify_reset",
+    "fortify_strengthened", "fortify_stable",
+    "broken_recovery", "reckless_no_target",
 }
 
 
@@ -347,6 +357,10 @@ def _build_turn_events(
         if not msg:
             continue
 
+        # Whitelist filter: only dispatch-relevant event types
+        if event_type not in _DISPATCH_EVENT_TYPES:
+            continue
+
         # Filter: only show events relevant to player nation
         event_nation = event.get("nation")
         marshal_name = event.get("marshal", "")
@@ -356,11 +370,14 @@ def _build_turn_events(
         severity = "info"
         if event_type in ("supply_attrition", "bankruptcy_desertion",
                           "occupation_abandoned", "cavalry_defensive_reset",
-                          "cavalry_fortify_reset"):
+                          "cavalry_fortify_reset", "fortify_decayed",
+                          "fortify_collapsed", "counter_punch_expired",
+                          "capital_proximity_alert", "auto_glorious_charge",
+                          "reckless_move", "reckless_no_target"):
             severity = "warning"
         elif event_type in ("construction_complete", "occupation_complete",
                             "drill_complete", "retreat_recovery",
-                            "garrison_regen"):
+                            "garrison_regen", "broken_recovered"):
             severity = "good"
 
         result.append({"message": msg, "severity": severity})
