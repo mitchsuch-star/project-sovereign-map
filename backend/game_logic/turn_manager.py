@@ -463,18 +463,20 @@ class TurnManager:
                 debug_print(f"\n{nation} has no marshals remaining - skipping")
                 results["summary"].append(f"{nation}: No marshals (eliminated?)")
 
-                # Trigger 7: Enemy nation eliminated notification
-                from backend.notifications import (
-                    create_notification, NotificationPriority, NATION_ELIMINATED,
-                )
-                self.world.notifications.add(create_notification(
-                    notification_type=NATION_ELIMINATED,
-                    priority=NotificationPriority.NORMAL,
-                    title=f"{nation} eliminated",
-                    message=f"{nation} has no marshals remaining. Their forces are spent.",
-                    turn_created=int(self.world.current_turn),
-                    details={"nation": nation},
-                ))
+                # Trigger 7: Enemy nation eliminated notification (first detection only)
+                if nation not in self.world.eliminated_nations_notified:
+                    self.world.eliminated_nations_notified.add(nation)
+                    from backend.notifications import (
+                        create_notification, NotificationPriority, NATION_ELIMINATED,
+                    )
+                    self.world.notifications.add(create_notification(
+                        notification_type=NATION_ELIMINATED,
+                        priority=NotificationPriority.NORMAL,
+                        title=f"{nation} eliminated",
+                        message=f"{nation} has no marshals remaining. Their forces are spent.",
+                        turn_created=int(self.world.current_turn),
+                        details={"nation": nation},
+                    ))
 
                 continue
 

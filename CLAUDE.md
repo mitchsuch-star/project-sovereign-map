@@ -27,7 +27,7 @@ Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-B
 
 ### Completed in Phase 6.5
 
-Bombardment system (Sessions 48-52), Pause menu (Session 56: Smart Esc, modal overlay, Save/Load/Settings stub/Quit), Wire Marshal Abilities (Drouot 15% fort degradation, Wellington +5% defense, Blucher 3k pursuit, Uxbridge 5k pursuit; Gneisenau deferred to Phase 7), Campaign Log (fog-filtered event log overlay, 14 event types, L key toggle, 57 tests), Morning Dispatch (Berthier's turn-start briefing: SITUATION + MARSHAL STATUS + INTELLIGENCE + TURN EVENTS + Berthier note, fog-filtered enemy strength ratio, absorbs tactical events, 57 tests), Notification System (EU4-style persistent alerts, 9 triggers, 3 priority levels, dismiss API, Godot notification bar, dispatch severity fixes + whitelist wiring, 51 tests).
+Bombardment system (Sessions 48-52), Pause menu (Session 56: Smart Esc, modal overlay, Save/Load/Settings stub/Quit), Wire Marshal Abilities (Drouot 15% fort degradation, Wellington +5% defense, Blucher 3k pursuit, Uxbridge 5k pursuit; Gneisenau deferred to Phase 7), Campaign Log (fog-filtered event log overlay, 14 event types, L key toggle, 57 tests), Morning Dispatch (Berthier's turn-start briefing: SITUATION + MARSHAL STATUS + INTELLIGENCE + TURN EVENTS + Berthier note, fog-filtered enemy strength ratio, absorbs tactical events, 57 tests), Notification System (EU4-style persistent alerts, 9 triggers, 3 priority levels, dismiss API, Godot notification bar, dispatch severity fixes + whitelist wiring, 70 tests — audited: whitelist event name fix, endpoint passthrough fix, accumulation prevention, turn display, manpower auto-dismiss).
 
 ### Up Next
 

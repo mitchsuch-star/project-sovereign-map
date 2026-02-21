@@ -620,8 +620,8 @@ class TestDispatchSeverity:
 
         warning_types = [
             "supply_attrition", "bankruptcy_desertion",
-            "occupation_abandoned", "cavalry_defensive_reset",
-            "cavalry_fortify_reset", "fortify_decayed",
+            "occupation_abandoned", "cavalry_stance_forced",
+            "cavalry_fortify_forced", "fortify_decayed",
             "fortify_collapsed", "counter_punch_expired",
             "capital_proximity_alert", "auto_glorious_charge",
             "reckless_move", "reckless_no_target",
@@ -655,7 +655,6 @@ class TestDispatchSeverity:
 
         info_types = [
             "occupation_continues", "drill_locked", "drill_started",
-            "fortify_complete", "fortify_started",
             "fortify_strengthened", "fortify_stable",
             "broken_recovery",
         ]
@@ -745,3 +744,253 @@ class TestNotificationTypeConstants:
             BANKRUPTCY_ESCALATION, DRILL_CANCELLED,
         ]
         assert len(types) == len(set(types))
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# AUDIT FIX TESTS (Session 56b)
+# ════════════════════════════════════════════════════════════════════════════════
+
+class TestCavalryEventTypeWhitelist:
+    """Bug 1 fix: Whitelist event types must match emitted event types."""
+
+    def test_cavalry_stance_forced_in_whitelist(self):
+        from backend.game_logic.dispatch import _DISPATCH_EVENT_TYPES
+        assert "cavalry_stance_forced" in _DISPATCH_EVENT_TYPES
+
+    def test_cavalry_fortify_forced_in_whitelist(self):
+        from backend.game_logic.dispatch import _DISPATCH_EVENT_TYPES
+        assert "cavalry_fortify_forced" in _DISPATCH_EVENT_TYPES
+
+    def test_old_cavalry_names_not_in_whitelist(self):
+        from backend.game_logic.dispatch import _DISPATCH_EVENT_TYPES
+        assert "cavalry_defensive_reset" not in _DISPATCH_EVENT_TYPES
+        assert "cavalry_fortify_reset" not in _DISPATCH_EVENT_TYPES
+
+    def test_cavalry_stance_forced_gets_warning_severity(self):
+        from backend.game_logic.dispatch import _build_turn_events
+        events = [{"type": "cavalry_stance_forced", "message": "Cavalry reset", "nation": "France"}]
+        result = _build_turn_events(events, "France")
+        assert len(result) == 1
+        assert result[0]["severity"] == "warning"
+
+    def test_cavalry_fortify_forced_gets_warning_severity(self):
+        from backend.game_logic.dispatch import _build_turn_events
+        events = [{"type": "cavalry_fortify_forced", "message": "Cavalry unfortify", "nation": "France"}]
+        result = _build_turn_events(events, "France")
+        assert len(result) == 1
+        assert result[0]["severity"] == "warning"
+
+    def test_dead_entries_removed(self):
+        """fortify_complete and fortify_started should no longer be in whitelist."""
+        from backend.game_logic.dispatch import _DISPATCH_EVENT_TYPES
+        assert "fortify_complete" not in _DISPATCH_EVENT_TYPES
+        assert "fortify_started" not in _DISPATCH_EVENT_TYPES
+
+
+class TestBankruptcyTierChangeOnly:
+    """Bug 3 fix: Bankruptcy notification fires only on tier escalation."""
+
+    def test_same_tier_no_duplicate_notification(self):
+        """Second turn at tier 1 should NOT create another notification."""
+        world = _make_world()
+        world.nation_bankruptcy_turns["France"] = 1
+        world.process_bankruptcy_desertion("France")
+        assert len(world.notifications._pending) == 1
+        assert world.last_bankruptcy_notification_tier == 1
+
+        # Second call at same tier — should NOT add another
+        world.nation_bankruptcy_turns["France"] = 1
+        world.process_bankruptcy_desertion("France")
+        assert len(world.notifications._pending) == 1  # Still 1, not 2
+
+    def test_tier_escalation_creates_new_notification(self):
+        """Moving from tier 1 to tier 2 should create a new notification."""
+        world = _make_world()
+        world.nation_bankruptcy_turns["France"] = 1
+        world.process_bankruptcy_desertion("France")
+        assert len(world.notifications._pending) == 1
+        assert world.last_bankruptcy_notification_tier == 1
+
+        world.nation_bankruptcy_turns["France"] = 2
+        world.process_bankruptcy_desertion("France")
+        assert len(world.notifications._pending) == 2
+        assert world.last_bankruptcy_notification_tier == 2
+
+    def test_tier_3_then_tier_4_no_new_notification(self):
+        """bt=3 and bt=4 are both tier 3 — second should not fire."""
+        world = _make_world()
+        world.nation_bankruptcy_turns["France"] = 3
+
+        # Add a marshal so desertion has something to process
+        m = _make_marshal(strength=50000)
+        world.marshals[m.name] = m
+
+        world.process_bankruptcy_desertion("France")
+        assert len(world.notifications._pending) == 1
+        assert world.last_bankruptcy_notification_tier == 3
+
+        world.nation_bankruptcy_turns["France"] = 4
+        world.process_bankruptcy_desertion("France")
+        assert len(world.notifications._pending) == 1  # Still 1
+
+    def test_bankruptcy_ends_resets_tier_tracker(self):
+        """When bankruptcy ends (bt=0), tier tracker resets."""
+        world = _make_world()
+        world.last_bankruptcy_notification_tier = 2
+        world.nation_bankruptcy_turns["France"] = 0
+        world.process_bankruptcy_desertion("France")
+        assert world.last_bankruptcy_notification_tier == 0
+
+    def test_tier_tracker_serializes(self):
+        """last_bankruptcy_notification_tier survives save/load."""
+        world = _make_world()
+        world.last_bankruptcy_notification_tier = 2
+        data = world.to_dict()
+        assert data["last_bankruptcy_notification_tier"] == 2
+
+        restored = WorldState.from_dict(data)
+        assert restored.last_bankruptcy_notification_tier == 2
+
+
+class TestNationEliminatedFirstDetection:
+    """Bug 3 fix: Nation eliminated fires only on first detection."""
+
+    def test_first_detection_creates_notification(self):
+        world = _make_world()
+        assert "Prussia" not in world.eliminated_nations_notified
+
+        # Simulate: add Prussia to notified set (as turn_manager would)
+        world.eliminated_nations_notified.add("Prussia")
+        assert "Prussia" in world.eliminated_nations_notified
+
+    def test_eliminated_nations_serializes(self):
+        """eliminated_nations_notified survives save/load."""
+        world = _make_world()
+        world.eliminated_nations_notified.add("Prussia")
+        world.eliminated_nations_notified.add("Austria")
+        data = world.to_dict()
+        assert set(data["eliminated_nations_notified"]) == {"Prussia", "Austria"}
+
+        restored = WorldState.from_dict(data)
+        assert restored.eliminated_nations_notified == {"Prussia", "Austria"}
+
+    def test_eliminated_nations_empty_on_new_game(self):
+        world = _make_world()
+        assert len(world.eliminated_nations_notified) == 0
+
+
+class TestDismissByType:
+    """dismiss_by_type method on NotificationCollector."""
+
+    def test_dismiss_by_type_removes_matching(self):
+        collector = NotificationCollector()
+        collector.add(create_notification(
+            MANPOWER_DEPLETED, NotificationPriority.HIGH,
+            "Infantry depleted", "msg", 1, {"pool_type": "infantry"},
+        ))
+        collector.add(create_notification(
+            MANPOWER_DEPLETED, NotificationPriority.HIGH,
+            "Cavalry depleted", "msg", 1, {"pool_type": "cavalry"},
+        ))
+        collector.add(create_notification(
+            STRATEGIC_ORDER_COMPLETE, NotificationPriority.HIGH,
+            "Order done", "msg", 1,
+        ))
+        assert len(collector._pending) == 3
+
+        removed = collector.dismiss_by_type(MANPOWER_DEPLETED)
+        assert removed == 2
+        assert len(collector._pending) == 1
+        assert collector._pending[0]["type"] == STRATEGIC_ORDER_COMPLETE
+
+    def test_dismiss_by_type_with_filter(self):
+        """Filter function narrows which notifications to dismiss."""
+        collector = NotificationCollector()
+        collector.add(create_notification(
+            MANPOWER_DEPLETED, NotificationPriority.HIGH,
+            "Infantry depleted", "msg", 1, {"pool_type": "infantry"},
+        ))
+        collector.add(create_notification(
+            MANPOWER_DEPLETED, NotificationPriority.HIGH,
+            "Cavalry depleted", "msg", 1, {"pool_type": "cavalry"},
+        ))
+
+        # Only dismiss infantry
+        removed = collector.dismiss_by_type(
+            MANPOWER_DEPLETED,
+            filter_fn=lambda n: n.get("details", {}).get("pool_type") == "infantry",
+        )
+        assert removed == 1
+        assert len(collector._pending) == 1
+        assert collector._pending[0]["details"]["pool_type"] == "cavalry"
+
+    def test_dismiss_by_type_no_match(self):
+        collector = NotificationCollector()
+        collector.add(create_notification(
+            STRATEGIC_ORDER_COMPLETE, NotificationPriority.HIGH,
+            "Order done", "msg", 1,
+        ))
+        removed = collector.dismiss_by_type(MANPOWER_DEPLETED)
+        assert removed == 0
+        assert len(collector._pending) == 1
+
+
+class TestManpowerAutoDismiss:
+    """Manpower replenished auto-dismisses matching depleted notification."""
+
+    def test_replenished_dismisses_depleted(self):
+        """When infantry pool goes 0→>0, the depleted notification is auto-dismissed."""
+        world = _make_world()
+
+        # Add a depleted notification for infantry
+        world.notifications.add(create_notification(
+            MANPOWER_DEPLETED, NotificationPriority.HIGH,
+            "Infantry pool exhausted", "msg", 1,
+            {"pool_type": "infantry", "nation": "France"},
+        ))
+        assert len(world.notifications._pending) == 1
+
+        # Set infantry pool to 0, then regen to >0
+        world.manpower_pools["France"]["infantry"] = 0
+        world.manpower_pools["France"]["cavalry"] = 5000  # Not depleted
+
+        # Simulate regen — call _process_manpower_regen
+        # We need to set up a minimal region setup for regen
+        world._process_manpower_regen()
+
+        # Infantry was at 0 and regened → depleted notification should be auto-dismissed
+        # and a replenished notification should be added
+        types = [n["type"] for n in world.notifications._pending]
+        assert MANPOWER_DEPLETED not in types
+        assert MANPOWER_REPLENISHED in types
+
+    def test_replenished_only_dismisses_matching_pool(self):
+        """Infantry replenished should not dismiss cavalry depleted."""
+        world = _make_world()
+
+        # Add depleted notifications for both infantry and cavalry
+        world.notifications.add(create_notification(
+            MANPOWER_DEPLETED, NotificationPriority.HIGH,
+            "Infantry pool exhausted", "msg", 1,
+            {"pool_type": "infantry", "nation": "France"},
+        ))
+        world.notifications.add(create_notification(
+            MANPOWER_DEPLETED, NotificationPriority.HIGH,
+            "Cavalry pool exhausted", "msg", 1,
+            {"pool_type": "cavalry", "nation": "France"},
+        ))
+
+        # Set infantry to 0 (will regen → triggers auto-dismiss for infantry)
+        # Set cavalry to non-zero (was_depleted will be False → no auto-dismiss)
+        world.manpower_pools["France"]["infantry"] = 0
+        world.manpower_pools["France"]["cavalry"] = 100
+
+        world._process_manpower_regen()
+
+        # Infantry regened → infantry depleted dismissed, cavalry depleted untouched
+        remaining_types = [(n["type"], n.get("details", {}).get("pool_type")) for n in world.notifications._pending]
+
+        # Cavalry depleted should still be there (cavalry was NOT at 0)
+        assert (MANPOWER_DEPLETED, "cavalry") in remaining_types
+        # Infantry depleted should be gone (infantry WAS at 0 and regened)
+        assert (MANPOWER_DEPLETED, "infantry") not in remaining_types

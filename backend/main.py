@@ -828,6 +828,10 @@ def respond_to_objection(request: ObjectionResponse):
             world.pending_redemption = result["redemption_event"]
             print(f"[ALERT] REDEMPTION TRIGGERED for {result['redemption_event']['marshal']}")
 
+        # Notifications — insist can cause battle → combat notifications
+        if world.notifications.has_pending():
+            response["notifications"] = world.notifications.get_pending()
+
         return response
     except Exception as e:
         print(f"[ERROR] handling objection response: {e}")
@@ -999,6 +1003,9 @@ def respond_to_glorious_charge(request: GloriousChargeResponse):
         }
         if result.get("battle_report"):
             response["battle_report"] = result["battle_report"]
+        # Notifications — charge combat can trigger counter-punch/drill-cancelled
+        if world.notifications.has_pending():
+            response["notifications"] = world.notifications.get_pending()
         return response
     except Exception as e:
         print(f"[ERROR] handling Glorious Charge response: {e}")
@@ -1032,7 +1039,7 @@ def handle_strategic_response(request: StrategicInterruptResponse):
             request.choice, world, game_state
         )
 
-        return {
+        response = {
             "success": result.get("success", False),
             "message": result.get("message", "Response processed"),
             "order_cleared": result.get("order_cleared", False),
@@ -1041,6 +1048,10 @@ def handle_strategic_response(request: StrategicInterruptResponse):
             "action_summary": world.get_action_summary(),
             "game_state": world.get_filtered_game_state_summary()
         }
+        # Notifications — interrupt responses can trigger actions
+        if world.notifications.has_pending():
+            response["notifications"] = world.notifications.get_pending()
+        return response
     except Exception as e:
         print(f"[ERROR] handling strategic response: {e}")
         import traceback

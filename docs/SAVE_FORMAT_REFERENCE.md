@@ -64,6 +64,8 @@ A future save/load system should use this as the specification.
   "event_log": [],
 
   "notifications": [],
+  "last_bankruptcy_notification_tier": 0,
+  "eliminated_nations_notified": [],
 
   "intel": {
     "Paris": { ... },
@@ -111,6 +113,8 @@ A future save/load system should use this as the specification.
 | `command_history` | list | [] | LLM command context |
 | `event_log` | list | [] | Structured game event history. Each entry is a dict with `type`, `turn`, and event-specific fields. Accumulates across full game, never cleared. Used by Campaign Log, Gazette. |
 | `notifications` | list | [] | Pending notification alerts. Each entry: `{id, type, priority, title, message, turn_created, details}`. Persists until player dismisses. Serialized via `NotificationCollector.to_list()/from_list()`. |
+| `last_bankruptcy_notification_tier` | int | 0 | Last bankruptcy tier for which a notification was fired (0-3). Prevents per-turn spam. Resets to 0 when bankruptcy ends. |
+| `eliminated_nations_notified` | list | [] | Nation names already notified as eliminated. Prevents per-turn spam. Serialized as list, deserialized to set. |
 | `intel` | dict | {} | Map of region_name -> RegionIntel. Fog of war intel store. Empty dict for backward compat (old saves populate via `calculate_visibility()` on load). |
 
 ---

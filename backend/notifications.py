@@ -96,6 +96,27 @@ class NotificationCollector:
         self._pending.clear()
         return count
 
+    def dismiss_by_type(self, notification_type: str, filter_fn=None) -> int:
+        """Dismiss all notifications of a given type, optionally filtered.
+
+        Args:
+            notification_type: The notification type string to match.
+            filter_fn: Optional callable(notification_dict) -> bool.
+                       Only dismiss notifications where filter_fn returns True.
+                       If None, dismisses all of the given type.
+
+        Returns count dismissed.
+        """
+        before = len(self._pending)
+        self._pending = [
+            n for n in self._pending
+            if not (
+                n.get("type") == notification_type
+                and (filter_fn is None or filter_fn(n))
+            )
+        ]
+        return before - len(self._pending)
+
     def has_pending(self) -> bool:
         """Check if there are any pending notifications."""
         return len(self._pending) > 0

@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3171** (verified, 3 skipped) |
+| **Tests Passing** | **3190** (verified, 3 skipped) |
 
-| **Current Phase** | Phase 6.5 **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Wire Marshal Abilities COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE, 5 items remaining). **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md`. Remaining 6.5: Strategic Ledger, Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer |
+| **Current Phase** | Phase 6.5 **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Wire Marshal Abilities COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE + AUDITED, 5 items remaining). **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md`. Remaining 6.5: Strategic Ledger, Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -45,6 +45,24 @@ All major Phase 6 features shipped:
 ---
 
 ## Recent Sessions
+
+### Feb 21 (Notification System Audit — Phase 6.5)
+
+**Post-implementation audit of notification system. 4 bugs fixed, 2 features added.**
+
+**Bug 1 (MEDIUM) — Dispatch whitelist mismatch:** Whitelist referenced `cavalry_defensive_reset` / `cavalry_fortify_reset` but world_state.py emits `cavalry_stance_forced` / `cavalry_fortify_forced`. Cavalry events never appeared in Morning Dispatch. Fixed whitelist + severity list + tests.
+
+**Bug 2 (MEDIUM) — Missing notification passthrough:** 3 endpoints (`respond_to_objection`, `respond_to_glorious_charge`, `strategic_response`) didn't include notifications in response. Combat notifications from these paths were delayed until next `/command`. Fixed: added `world.notifications.has_pending()` check to all 3.
+
+**Bug 3 (LOW) — Notification accumulation:** Bankruptcy notifications fired every turn at same tier (5 turns = 5 notifications). Nation eliminated fired every enemy phase. Fixed: `last_bankruptcy_notification_tier` (resets when bankruptcy ends) and `eliminated_nations_notified` set (first detection only). Both serialized.
+
+**Bug 4 (LOW) — Dead whitelist entries:** Removed `fortify_complete` and `fortify_started` from dispatch whitelist (never emitted by any backend code).
+
+**Feature: Turn display in Godot:** Expanded notification panel now shows "(Turn X)" between title and dismiss button.
+
+**Feature: Manpower auto-dismiss:** `dismiss_by_type(type, filter_fn)` method on NotificationCollector. When `manpower_replenished` fires, auto-dismisses matching `manpower_depleted` notification for same pool type.
+
+**Tests:** 19 new (6 cavalry whitelist, 5 bankruptcy tier-change, 3 nation-eliminated, 3 dismiss_by_type, 2 manpower auto-dismiss). **3190 total passing**, 3 skipped, 0 regressions. Serialization enforcement 16/16.
 
 ### Feb 21 (Notification System — Phase 6.5)
 

@@ -178,6 +178,15 @@ func _show_expanded_panel(notif: Dictionary):
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title_label)
 
+	# Turn indicator (between title and dismiss button)
+	var turn_created = notif.get("turn_created", 0)
+	if turn_created > 0:
+		var turn_label = Label.new()
+		turn_label.text = "(Turn " + str(int(turn_created)) + ")"
+		turn_label.add_theme_color_override("font_color", Color(0.55, 0.55, 0.6, 1))
+		turn_label.add_theme_font_size_override("font_size", 10)
+		header.add_child(turn_label)
+
 	var dismiss_btn = Button.new()
 	dismiss_btn.text = "X"
 	dismiss_btn.custom_minimum_size = Vector2(24, 24)

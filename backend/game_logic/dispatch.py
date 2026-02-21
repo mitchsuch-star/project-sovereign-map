@@ -324,8 +324,8 @@ def _build_intelligence(world, player_nation: str) -> List[Dict[str, Any]]:
 _DISPATCH_EVENT_TYPES = {
     # Warning severity
     "supply_attrition", "bankruptcy_desertion",
-    "occupation_abandoned", "cavalry_defensive_reset",
-    "cavalry_fortify_reset", "fortify_decayed",
+    "occupation_abandoned", "cavalry_stance_forced",
+    "cavalry_fortify_forced", "fortify_decayed",
     "fortify_collapsed", "counter_punch_expired",
     "capital_proximity_alert", "auto_glorious_charge",
     "reckless_move",
@@ -335,7 +335,6 @@ _DISPATCH_EVENT_TYPES = {
     "garrison_regen", "broken_recovered",
     # Info severity (no special highlight)
     "occupation_continues", "drill_locked", "drill_started",
-    "fortify_complete", "fortify_started",
     "fortify_strengthened", "fortify_stable",
     "broken_recovery", "reckless_no_target",
 }
@@ -369,8 +368,8 @@ def _build_turn_events(
 
         severity = "info"
         if event_type in ("supply_attrition", "bankruptcy_desertion",
-                          "occupation_abandoned", "cavalry_defensive_reset",
-                          "cavalry_fortify_reset", "fortify_decayed",
+                          "occupation_abandoned", "cavalry_stance_forced",
+                          "cavalry_fortify_forced", "fortify_decayed",
                           "fortify_collapsed", "counter_punch_expired",
                           "capital_proximity_alert", "auto_glorious_charge",
                           "reckless_move", "reckless_no_target"):

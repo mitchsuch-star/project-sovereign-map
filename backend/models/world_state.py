@@ -269,6 +269,10 @@ class WorldState:
         # Persists across turns until player dismisses.
         from backend.notifications import NotificationCollector
         self.notifications: NotificationCollector = NotificationCollector()
+        # Track last notified bankruptcy tier to prevent per-turn spam
+        self.last_bankruptcy_notification_tier: int = 0
+        # Track nations already notified as eliminated to prevent per-turn spam
+        self.eliminated_nations_notified: set = set()
 
         # ============================================================
         # FOG OF WAR - Intel tracking per region (Phase 6 Session 33)
@@ -2004,10 +2008,16 @@ class WorldState:
             # Trigger 6b: Manpower pool replenished notification
             if nation == self.player_nation:
                 from backend.notifications import (
-                    create_notification, NotificationPriority, MANPOWER_REPLENISHED,
+                    create_notification, NotificationPriority,
+                    MANPOWER_REPLENISHED, MANPOWER_DEPLETED,
                 )
                 for pool_type in ("infantry", "cavalry", "artillery"):
                     if was_depleted.get(pool_type) and pool[pool_type] > 0:
+                        # Auto-dismiss the depleted notification for this pool type
+                        self.notifications.dismiss_by_type(
+                            MANPOWER_DEPLETED,
+                            filter_fn=lambda n, pt=pool_type: n.get("details", {}).get("pool_type") == pt,
+                        )
                         self.notifications.add(create_notification(
                             notification_type=MANPOWER_REPLENISHED,
                             priority=NotificationPriority.NORMAL,
@@ -2243,6 +2253,9 @@ class WorldState:
         bt = self.nation_bankruptcy_turns.get(nation, 0)
 
         if bt == 0:
+            # Reset tier tracker when bankruptcy ends
+            if nation == self.player_nation:
+                self.last_bankruptcy_notification_tier = 0
             return {"bankrupt": False, "messages": [], "desertions": []}
 
         messages = []
@@ -2256,37 +2269,41 @@ class WorldState:
             messages.append(f"{nation} has been bankrupt for {bt} turns! Troops are deserting!")
 
         # Trigger 8: Bankruptcy tier escalation notification (player only)
+        # Only fire on tier CHANGE — not every turn at the same tier.
         if nation == self.player_nation:
             from backend.notifications import (
                 create_notification, NotificationPriority, BANKRUPTCY_ESCALATION,
             )
-            if bt == 1:
-                self.notifications.add(create_notification(
-                    notification_type=BANKRUPTCY_ESCALATION,
-                    priority=NotificationPriority.HIGH,
-                    title="Treasury in deficit",
-                    message="The treasury is in deficit. Upkeep halved as mercy, but continued deficit will cause desertion.",
-                    turn_created=int(self.current_turn),
-                    details={"tier": 1, "bankruptcy_turns": bt},
-                ))
-            elif bt == 2:
-                self.notifications.add(create_notification(
-                    notification_type=BANKRUPTCY_ESCALATION,
-                    priority=NotificationPriority.CRITICAL,
-                    title="Desertion imminent",
-                    message="The treasury remains in deficit. Troops grow restless — one more turn and soldiers will desert.",
-                    turn_created=int(self.current_turn),
-                    details={"tier": 2, "bankruptcy_turns": bt},
-                ))
-            elif bt >= 3:
-                self.notifications.add(create_notification(
-                    notification_type=BANKRUPTCY_ESCALATION,
-                    priority=NotificationPriority.CRITICAL,
-                    title="Troops deserting",
-                    message=f"Bankrupt for {bt} turns. Troops are deserting — 5% strength lost per marshal this turn.",
-                    turn_created=int(self.current_turn),
-                    details={"tier": 3, "bankruptcy_turns": bt},
-                ))
+            current_tier = min(bt, 3)  # bt 1→tier 1, bt 2→tier 2, bt 3+→tier 3
+            if current_tier > self.last_bankruptcy_notification_tier:
+                self.last_bankruptcy_notification_tier = current_tier
+                if current_tier == 1:
+                    self.notifications.add(create_notification(
+                        notification_type=BANKRUPTCY_ESCALATION,
+                        priority=NotificationPriority.HIGH,
+                        title="Treasury in deficit",
+                        message="The treasury is in deficit. Upkeep halved as mercy, but continued deficit will cause desertion.",
+                        turn_created=int(self.current_turn),
+                        details={"tier": 1, "bankruptcy_turns": bt},
+                    ))
+                elif current_tier == 2:
+                    self.notifications.add(create_notification(
+                        notification_type=BANKRUPTCY_ESCALATION,
+                        priority=NotificationPriority.CRITICAL,
+                        title="Desertion imminent",
+                        message="The treasury remains in deficit. Troops grow restless — one more turn and soldiers will desert.",
+                        turn_created=int(self.current_turn),
+                        details={"tier": 2, "bankruptcy_turns": bt},
+                    ))
+                elif current_tier == 3:
+                    self.notifications.add(create_notification(
+                        notification_type=BANKRUPTCY_ESCALATION,
+                        priority=NotificationPriority.CRITICAL,
+                        title="Troops deserting",
+                        message=f"Bankrupt for {bt} turns. Troops are deserting — 5% strength lost per marshal this turn.",
+                        turn_created=int(self.current_turn),
+                        details={"tier": 3, "bankruptcy_turns": bt},
+                    ))
 
         if bt >= 3:
             for marshal in self.marshals.values():
@@ -2483,6 +2500,8 @@ class WorldState:
 
             # ═══════ NOTIFICATIONS (Phase 6.5) ═══════
             "notifications": self.notifications.to_list(),
+            "last_bankruptcy_notification_tier": int(self.last_bankruptcy_notification_tier),
+            "eliminated_nations_notified": list(self.eliminated_nations_notified),
 
             # ═══════ FOG OF WAR (Phase 6 Session 33) ═══════
             "intel": {name: ri.to_dict() for name, ri in self.intel.items()},
@@ -2598,6 +2617,8 @@ class WorldState:
         from backend.notifications import NotificationCollector
         notifications_data = data.get("notifications", [])
         world.notifications = NotificationCollector.from_list(notifications_data)
+        world.last_bankruptcy_notification_tier = data.get("last_bankruptcy_notification_tier", 0)
+        world.eliminated_nations_notified = set(data.get("eliminated_nations_notified", []))
 
         # ═══════ FOG OF WAR (Phase 6 Session 33) ═══════
         # Backward compat: old saves have no intel key → empty dict
