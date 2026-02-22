@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 21, 2026 (Session A: Top Bar + Dispatch)
+> **Last Updated:** February 21, 2026 (Session B: Strategic Ledger)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3198** (verified, 3 skipped) |
+| **Tests Passing** | **3252** (verified, 3 skipped) |
 
-| **Current Phase** | Phase 6.5 **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Wire Marshal Abilities COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE + AUDITED, Top Bar + Dispatch COMPLETE, 4 items remaining). **Next up: Strategic Ledger (Session B).** Spec: `docs/TOP_BAR_SPEC.md`. Remaining after: Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer. **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. |
+| **Current Phase** | Phase 6.5 **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Wire Marshal Abilities COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE + AUDITED, Top Bar + Dispatch COMPLETE, Strategic Ledger COMPLETE, 3 items remaining). Remaining: Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer. **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,8 +19,7 @@
 
 ## Next Steps
 
-1. **Strategic Ledger (Session B)** — `ledger.py` with 5 sections (forces, territories, economy, intel, manpower), `GET /ledger` endpoint, sub-tabbed Godot screen. ~40 backend tests. Spec: `docs/TOP_BAR_SPEC.md`.
-2. **Phase 6.5 remaining after Session B** — Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer
+1. **Phase 6.5 remaining** — Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer
 4. **Phase 7 Core: Multi-Marshal Coordination** — 6 sessions (57-61, 64), ~190 new tests. "Position IS Coordination" — combined arms (+10-20%), relationship-scaled coordination (+3%/+5% per ally), dedicated coordination (+5%/+5% from co-location or SUPPORT), adjacent support (+2% per adjacent), reinforcement (Grouchy Rule), win/loss relationship formula (dynamic relationships). Hard cap: +25% atk/+20% def. Each session includes basic combat display messages. Highest risk: Session 61 (reinforcement + physical relocation). First session: Combined Arms Detection (S57). Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md` (audit corrections still apply to all sessions including deferred ones).
 5. **Phase 7b (immediately after 7 Core):** Casualty Distribution (S62 — `resolve_battle()` contract change, deferred for playtest data), AI Coordination Enhancements (S63 — P4.6/P4.76/P4.77/P4.78), Full Battle Reports + Berthier Observations (S65), Godot Tooltips + Tutorial + Integration Audit (S66), Tactical Triangle Completion (Square Formation + Artillery SUPPORT auto-bombardment + Artillery Overwatch — linked group), V2b Defiance/Vindication, Jealousy system, Coalition Trigger, Cross-nation coordination (Britain/Prussia), Gneisenau Staff Work (1805 only).
 
@@ -46,6 +45,25 @@ All major Phase 6 features shipped:
 ---
 
 ## Recent Sessions
+
+### Feb 21 (Session B: Strategic Ledger — Phase 6.5)
+
+**5-section strategic ledger backend + sub-tabbed Godot screen. 54 new tests, 3252 total.**
+
+**New files:**
+- `backend/game_logic/ledger.py` — `build_strategic_ledger(world)` with forces, territories, economy, intel, manpower sections. All values int()-wrapped. Fog-filtered intel. Uses `BAND_MIDPOINTS` for estimated strength.
+- `godot-client/.../strategic_ledger.gd` + `strategic_ledger.tscn` — CanvasLayer 50 sub-tabbed screen. 5 tabs (FORCES, TERRITORIES, ECONOMY, INTELLIGENCE, MANPOWER). Number keys 1-5 switch tabs. Color coding for status, trust, morale, supply, bankruptcy, manpower pools.
+- `tests/test_ledger.py` — 54 tests: status priority chain (6), special flags (4), strategic orders (5), type detection (1), supply status (3), war_damage (1), income (1), buildings (3), garrison (1), no fortification_level (1), occupant count (1), economy (5), intel visibility tiers (4), nation summaries (2), unknown count (1), manpower regen (3), turns_until_full (3), costs (1), pools (1), no-float (1), endpoint (2).
+
+**Backend changes:**
+- `world_state.py`: `get_manpower_regen_rates(nation)` extracted — single source of truth for regen calculation. `_process_manpower_regen()` + `get_cavalry_regen_rate()` + `get_artillery_regen_rate()` now delegate to it.
+- `main.py`: `GET /ledger` endpoint
+- `api_client.gd`: `get_ledger()` method
+
+**Godot changes:**
+- `main.gd`: Strategic ledger loaded and registered with top_bar as "ledger" in `_ready()`
+
+---
 
 ### Feb 21 (Session A: Top Bar Framework + Dispatch — Phase 6.5)
 

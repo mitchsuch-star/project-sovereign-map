@@ -2373,7 +2373,7 @@ Unified top bar UI framework (Session A). Controller-based architecture: top bar
 | Key | Action |
 |-----|--------|
 | L | Event Log (campaign log) |
-| T | Ledger (future — Session B) |
+| T | Ledger (strategic overview) |
 | G | Generals (placeholder — disabled) |
 | D | Dispatch re-read |
 | Esc | Close screen first, then pause menu |
@@ -2393,6 +2393,18 @@ Unified top bar UI framework (Session A). Controller-based architecture: top bar
 - Godot `dispatch_view.gd` renders BBCode (duplicated from main.gd — documented tech debt)
 - Empty dispatch shows "No dispatch available yet."
 
+### Strategic Ledger (Session B)
+
+- Backend: `build_strategic_ledger(world)` in `ledger.py` with 5 sections: forces, territories, economy, intel, manpower
+- All values `int()` wrapped — no floats to Godot
+- Forces: status priority chain (broken > retreating > drilling > fortified > strategic modes > idle), special flags, strategic order summary
+- Territories: supply status (OK / Over capacity, no "Strained"), war_damage as `int(war_damage * 100)`, income via `get_effective_income()`, no `fortification_level` field
+- Economy: treasury, income, upkeep, net, bankruptcy, construction queue, income breakdown
+- Intel: fog-filtered enemy sightings, BAND_MIDPOINTS for estimated strength, nation summaries, unknown region count
+- Manpower: `get_manpower_regen_rates(nation)` extracted as single source of truth (used by both `_process_manpower_regen()` and ledger), dynamic regen rates, `turns_until_full` calculation
+- `GET /ledger` endpoint
+- Godot: sub-tabbed screen (CanvasLayer 50), number keys 1-5 switch tabs, color coding for status/trust/morale/supply/bankruptcy/manpower
+
 ### Key Files
 
 | File | Purpose |
@@ -2401,6 +2413,10 @@ Unified top bar UI framework (Session A). Controller-based architecture: top bar
 | `godot-client/.../top_bar.tscn` | CanvasLayer 75, bar layout with buttons + notification area + turn label |
 | `godot-client/.../dispatch_view.gd` | Dispatch re-read screen (CanvasLayer 50) |
 | `godot-client/.../dispatch_view.tscn` | Dispatch scene layout |
+| `godot-client/.../strategic_ledger.gd` | Strategic ledger screen (CanvasLayer 50), 5 sub-tabs |
+| `godot-client/.../strategic_ledger.tscn` | Ledger scene layout |
 | `backend/game_logic/dispatch.py` | Morning dispatch builder (also stores on WorldState) |
-| `backend/main.py` | `GET /dispatch` endpoint |
+| `backend/game_logic/ledger.py` | Strategic ledger builder (5 sections) |
+| `backend/main.py` | `GET /dispatch`, `GET /ledger` endpoints |
 | `tests/test_dispatch_view.py` | 8 tests (storage, serialization, endpoint, no-float) |
+| `tests/test_ledger.py` | 54 tests (all sections + cross-cutting) |

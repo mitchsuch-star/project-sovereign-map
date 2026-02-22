@@ -1351,6 +1351,20 @@ def get_dispatch():
 
 
 # ════════════════════════════════════════════════════════════
+# STRATEGIC LEDGER ENDPOINT (Session B)
+# ════════════════════════════════════════════════════════════
+
+@app.get("/ledger")
+def get_ledger():
+    """Get the strategic ledger for the ledger screen."""
+    if not game_state.get("world"):
+        return {"success": False, "message": "No active game"}
+    from backend.game_logic.ledger import build_strategic_ledger
+    ledger = build_strategic_ledger(world)
+    return {"success": True, "ledger": ledger}
+
+
+# ════════════════════════════════════════════════════════════
 # NOTIFICATION ENDPOINTS (Phase 6.5)
 # ════════════════════════════════════════════════════════════
 

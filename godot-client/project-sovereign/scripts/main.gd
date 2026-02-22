@@ -269,6 +269,15 @@ func _ready():
 			top_bar.register_screen("dispatch", dispatch_view)
 		print("✓ DispatchView ready!")
 
+	# Load and setup Strategic Ledger (Session B)
+	var ledger_scene = load("res://scenes/strategic_ledger.tscn")
+	if ledger_scene:
+		var strategic_ledger = ledger_scene.instantiate()
+		add_child(strategic_ledger)
+		if top_bar:
+			top_bar.register_screen("ledger", strategic_ledger)
+		print("✓ StrategicLedger ready!")
+
 	# Load and setup Notification Bar (Phase 6.5) — reparented into top bar
 	var notification_bar_scene = load("res://scenes/notification_bar.tscn")
 	if notification_bar_scene:

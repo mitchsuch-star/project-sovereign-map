@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** February 21, 2026 (Session A: Top Bar + Dispatch)
+> **Last Updated:** February 21, 2026 (Session B: Strategic Ledger)
 
 ---
 
@@ -13,7 +13,7 @@
 | 1-5.3 | Foundation through AI Fixes | COMPLETE |
 | **V2a** | **Objection System Refactor** | **COMPLETE** |
 | **6** | **Core Campaign Systems** | **COMPLETE** |
-| **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE, Top Bar + Dispatch COMPLETE. Next: Strategic Ledger Session B) |
+| **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE, Top Bar + Dispatch COMPLETE, Strategic Ledger COMPLETE. Remaining: Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer) |
 | **7 Core** | **Multi-Marshal Coordination** | **Spec COMPLETE + AUDITED + SCOPED.** 6 sessions (57-61, 64). ~190 tests. |
 | 7b | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b, Coalition, Jealousy | Planned (deferred from 7 Core) |
 | 8 | Diplomacy & Peace | Planned |
@@ -152,7 +152,7 @@ Uses read-only modifier snapshots taken BEFORE state-consuming `get_attack_modif
 |---------|-------------|------------|--------|
 | Notification System | EU4-style persistent alerts for important game events | Medium | **COMPLETE** (Session 56: 9 triggers, NotificationCollector, priority tiers, Godot notification bar, dismiss endpoint. Session 56b audit: whitelist fix, passthrough fix, accumulation fix, auto-dismiss, 70 tests) |
 | **Top Bar Framework** | Unified top bar (CanvasLayer 75) with screen buttons, notification icons, turn counter. Controller for all info screens. Campaign log refactor (layer 50), notification bar repositioning, input blocking refactor, dispatch re-read screen. Spec: `TOP_BAR_SPEC.md` Session A. | Medium | **COMPLETE** (Session A: top_bar.gd/tscn, dispatch_view.gd/tscn, input refactor, 8 tests) |
-| **Strategic Ledger** | 5-section overview: forces, territories, economy, intel, manpower. `ledger.py` backend builder + sub-tabbed Godot screen. Fog-filtered intel. Spec: `TOP_BAR_SPEC.md` Session B. ~40 tests. | Medium | Planned |
+| **Strategic Ledger** | 5-section overview: forces, territories, economy, intel, manpower. `ledger.py` backend builder + sub-tabbed Godot screen. Fog-filtered intel. Spec: `TOP_BAR_SPEC.md` Session B. 54 tests. | Medium | **COMPLETE** (Session B: ledger.py, strategic_ledger.gd/tscn, get_manpower_regen_rates extraction, 54 tests) |
 | Marshal Management UI | View/manage all marshals, relationships, recruit | Medium | Planned |
 | Campaign Log | Scrollable history of major events | Low | **COMPLETE.** Fog-filtered 14-type event log, Godot overlay (L key), 57 tests. Bankruptcy public knowledge. |
 | Tooltips | Hover info on regions, marshals, nations | Low | Planned |

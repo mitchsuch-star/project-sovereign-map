@@ -987,3 +987,47 @@ Verify manpower HUD updates after each interaction type:
 1. Note turn counter in top bar
 2. End a turn
 **Expected:** Turn counter updates to match new turn number.
+
+## Strategic Ledger Smoke Tests (Session B)
+
+### LG1. Forces tab renders
+1. Press T — ledger opens on FORCES tab
+2. Verify all player marshals listed with name, type, location, strength, morale, trust, status
+**Expected:** All 4 French marshals visible. Trust/morale color coded (red < 30/40, orange < 55/60).
+
+### LG2. Territories tab renders
+1. Open ledger (T), press 2 — TERRITORIES tab
+2. Verify player-controlled regions listed with income, stability, supply status
+**Expected:** French-controlled regions shown. Supply "Over capacity" in red if applicable.
+
+### LG3. Economy tab renders
+1. Open ledger (T), press 3 — ECONOMY tab
+2. Verify treasury, income, upkeep, net, income breakdown
+**Expected:** Net shown in green (positive) or red (negative). Bankruptcy in red if active.
+
+### LG4. Intelligence tab renders
+1. Open ledger (T), press 4 — INTELLIGENCE tab
+2. Verify known enemies listed with visibility tier labels
+**Expected:** Visibility color coding: confirmed (green), partial (grey), stale (orange), last known (red).
+
+### LG5. Manpower tab renders
+1. Open ledger (T), press 5 — MANPOWER tab
+2. Verify infantry, cavalry, artillery pools with regen rates and turns to full
+**Expected:** Depleted pools (0) in red, low pools in orange.
+
+### LG6. Sub-tab switching (1-5 keys)
+1. Open ledger (T)
+2. Press 1, 2, 3, 4, 5 — tabs switch
+3. Press 1-5 while ledger is closed — nothing happens
+**Expected:** Number keys only work when ledger is visible.
+
+### LG7. T key toggles ledger
+1. Press T — ledger opens
+2. Press T — ledger closes
+3. Open event log (L), press T — log closes, ledger opens
+**Expected:** One screen at a time. Toggle behavior.
+
+### LG8. Screen closes on turn change
+1. Open ledger (T)
+2. Press E (end turn)
+**Expected:** Ledger closes before enemy phase dialog.

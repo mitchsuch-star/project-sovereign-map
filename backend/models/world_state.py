@@ -1980,24 +1980,10 @@ class WorldState:
             if nation not in self.manpower_pools:
                 continue
 
-            controlled = [r for r in self.regions.values() if r.controller == nation]
-
-            # Infantry: generous base regen (no territory dependency)
-            inf_regen = INFANTRY_BASE_REGEN
-
-            # Cavalry: slow base + territory bonuses
-            cav_regen = CAVALRY_BASE_REGEN
-            for region in controlled:
-                if region.terrain == "plains":
-                    cav_regen += PLAINS_CAVALRY_REGEN
-                if region.has_building("stables"):
-                    cav_regen += STABLES_CAVALRY_REGEN
-
-            # Artillery: slow base + urban territory bonuses (arsenals)
-            art_regen = ARTILLERY_BASE_REGEN
-            for region in controlled:
-                if region.terrain == "urban":
-                    art_regen += URBAN_ARTILLERY_REGEN
+            rates = self.get_manpower_regen_rates(nation)
+            inf_regen = rates["infantry"]
+            cav_regen = rates["cavalry"]
+            art_regen = rates["artillery"]
 
             pool = self.manpower_pools[nation]
 
@@ -2033,25 +2019,44 @@ class WorldState:
                             details={"pool_type": pool_type, "available": int(pool[pool_type])},
                         ))
 
-    def get_cavalry_regen_rate(self, nation: str) -> int:
-        """Calculate current cavalry regen rate for a nation (for display/error messages)."""
+    def get_manpower_regen_rates(self, nation: str) -> Dict[str, int]:
+        """Calculate current manpower regen rates for all pool types.
+
+        Returns {"infantry": int, "cavalry": int, "artillery": int}.
+        Single source of truth — used by _process_manpower_regen() and ledger.py.
+        """
         controlled = [r for r in self.regions.values() if r.controller == nation]
-        rate = CAVALRY_BASE_REGEN
+
+        # Infantry: generous base regen (no territory dependency)
+        inf_regen = INFANTRY_BASE_REGEN
+
+        # Cavalry: slow base + territory bonuses
+        cav_regen = CAVALRY_BASE_REGEN
         for region in controlled:
             if region.terrain == "plains":
-                rate += PLAINS_CAVALRY_REGEN
+                cav_regen += PLAINS_CAVALRY_REGEN
             if region.has_building("stables"):
-                rate += STABLES_CAVALRY_REGEN
-        return rate
+                cav_regen += STABLES_CAVALRY_REGEN
+
+        # Artillery: slow base + urban territory bonuses (arsenals)
+        art_regen = ARTILLERY_BASE_REGEN
+        for region in controlled:
+            if region.terrain == "urban":
+                art_regen += URBAN_ARTILLERY_REGEN
+
+        return {
+            "infantry": int(inf_regen),
+            "cavalry": int(cav_regen),
+            "artillery": int(art_regen),
+        }
+
+    def get_cavalry_regen_rate(self, nation: str) -> int:
+        """Calculate current cavalry regen rate for a nation (for display/error messages)."""
+        return self.get_manpower_regen_rates(nation)["cavalry"]
 
     def get_artillery_regen_rate(self, nation: str) -> int:
         """Calculate current artillery regen rate for a nation."""
-        controlled = [r for r in self.regions.values() if r.controller == nation]
-        rate = ARTILLERY_BASE_REGEN
-        for region in controlled:
-            if region.terrain == "urban":
-                rate += URBAN_ARTILLERY_REGEN
-        return rate
+        return self.get_manpower_regen_rates(nation)["artillery"]
 
     def process_income_phase(self, nation: str = None) -> Dict:
         """Process full income phase for a nation: income - upkeep + admin bonus.
