@@ -192,9 +192,7 @@ func _render_card(m: Dictionary, index: int) -> String:
 		bbcode += "  [color=#" + COLOR_GOLD + "]" + ab_name + "[/color]"
 		if ab_effect != "":
 			bbcode += "  [color=#" + COLOR_INFO + "]" + ab_effect + "[/color]"
-		bbcode += "\n"
-
-	bbcode += "\n"
+		bbcode += "\n\n"
 
 	# ═══════ TRUST & RECORD ═══════
 	var trust_val = int(m.get("trust_value", 70))

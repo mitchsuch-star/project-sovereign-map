@@ -204,9 +204,19 @@ func _show_expanded_panel(notif: Dictionary):
 	message_label.custom_minimum_size = Vector2(280, 0)
 	vbox.add_child(message_label)
 
-	# Position panel below the notification bar (offset accounts for top bar height)
-	expanded_panel.position = Vector2(0, 48)
+	# Position panel below the notification bar, right-aligned so it doesn't overflow the screen
 	add_child(expanded_panel)
+	# Defer positioning so the panel's size is calculated first
+	_position_expanded_panel.call_deferred()
+
+
+func _position_expanded_panel():
+	"""Right-align the expanded panel so its right edge matches the notification area."""
+	if expanded_panel:
+		var panel_width = expanded_panel.size.x
+		if panel_width <= 0:
+			panel_width = 300
+		expanded_panel.position = Vector2(size.x - panel_width, 48)
 
 
 func _close_expanded_panel():
