@@ -91,7 +91,8 @@ class TestStructure:
         """Every marshal dict has all required keys."""
         required_keys = {
             # Identity
-            "name", "nation", "personality", "unit_type", "movement_range", "biography",
+            "name", "nation", "personality", "personality_description",
+            "unit_type", "movement_range", "biography",
             # Ability
             "ability_name", "ability_description", "ability_trigger",
             "ability_effect", "ability_active",
@@ -242,6 +243,47 @@ class TestBiography:
 
 
 # ════════════════════════════════════════════════════════════════════════════════
+# PERSONALITY DESCRIPTION
+# ════════════════════════════════════════════════════════════════════════════════
+
+class TestPersonalityDescription:
+    """Personality type descriptions explain gameplay effects."""
+
+    def test_all_marshals_have_personality_description(self):
+        """Every player marshal has a non-empty personality description."""
+        overview = _get_overview()
+        for m in overview:
+            assert m["personality_description"] != "", (
+                f"{m['name']} has empty personality_description"
+            )
+
+    def test_aggressive_description_mentions_attack(self):
+        """Aggressive personality description mentions attack bonus."""
+        overview = _get_overview()
+        ney = _find_marshal(overview, "Ney")
+        assert "attack" in ney["personality_description"].lower()
+
+    def test_cautious_description_mentions_defense(self):
+        """Cautious personality description mentions defense bonus."""
+        overview = _get_overview()
+        davout = _find_marshal(overview, "Davout")
+        assert "defense" in davout["personality_description"].lower()
+
+    def test_literal_description_mentions_orders(self):
+        """Literal personality description mentions order compliance."""
+        overview = _get_overview()
+        grouchy = _find_marshal(overview, "Grouchy")
+        assert "order" in grouchy["personality_description"].lower()
+
+    def test_three_personality_types_covered(self):
+        """All three personality types have descriptions."""
+        from backend.game_logic.marshal_overview import _PERSONALITY_DESCRIPTIONS
+        assert "aggressive" in _PERSONALITY_DESCRIPTIONS
+        assert "cautious" in _PERSONALITY_DESCRIPTIONS
+        assert "literal" in _PERSONALITY_DESCRIPTIONS
+
+
+# ════════════════════════════════════════════════════════════════════════════════
 # ABILITY DATA
 # ════════════════════════════════════════════════════════════════════════════════
 
@@ -266,17 +308,19 @@ class TestAbility:
         assert ney["ability_name"] == "Bravest of the Brave"
 
     def test_davout_ability_inactive(self):
-        """Davout's Iron Marshal is deferred (inactive)."""
+        """Davout's Iron Marshal is deferred — ability fields empty."""
         overview = _get_overview()
         davout = _find_marshal(overview, "Davout")
         assert davout["ability_active"] is False
-        assert davout["ability_name"] == "Iron Marshal"
+        assert davout["ability_name"] == ""
+        assert davout["ability_effect"] == ""
 
     def test_grouchy_ability_inactive(self):
-        """Grouchy's Literal Obedience is deferred (inactive)."""
+        """Grouchy's Literal Obedience is deferred — ability fields empty."""
         overview = _get_overview()
         grouchy = _find_marshal(overview, "Grouchy")
         assert grouchy["ability_active"] is False
+        assert grouchy["ability_name"] == ""
 
     def test_drouot_ability_active(self):
         """Drouot's Sage of the Grand Army is wired (active)."""

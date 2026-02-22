@@ -130,6 +130,18 @@
 | Pause Menu | Smart Esc → Save/Load/Settings/Quit | Low | **COMPLETE** |
 | Wire Marshal Abilities | Drouot/Wellington/Blucher/Uxbridge wired. Gneisenau deferred to Phase 7. | Medium | **COMPLETE** (54 tests) |
 
+### Special Abilities Exploration (Post-Phase 6.5)
+
+Currently only Ney (Bravest of the Brave: +2 shock) and Drouot (Sage: 15% fort degradation) have wired unique abilities among French marshals. Davout's Iron Marshal (morale floor) and Grouchy's Literal Obedience are personality-type effects, not distinct ability mechanics.
+
+**Design direction:** Not every marshal needs a unique special ability. Some should have personality-driven gameplay (Grouchy's literal compliance IS his identity). Special abilities work best on marshals where the ability creates a distinct tactical decision point:
+- **Ney:** Encourages aggressive use (shock bonus rewards attacking)
+- **Drouot:** Encourages targeting fortified positions (fort degradation)
+- **Davout:** Could get a real Iron Marshal ability — morale floor, or "last stand" defense bonus when below 50% strength
+- **Grouchy:** His literal personality IS his ability — no separate mechanic needed
+
+Evaluate whether to wire Davout's ability (and what it should actually do) during Phase 7b or Pre-EA polish. The Marshal Management screen's `ability_active` flag will surface any new abilities automatically.
+
 ### Map Renderer Notes
 
 The map transition replaces ALL procedural drawing in `map.gd` (circles, lines, draw_string) with commissioned art + sprite assets. Five workstreams: art integration, sprite assets, scene architecture, code refactor, validation & polish.

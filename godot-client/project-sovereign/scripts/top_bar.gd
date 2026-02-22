@@ -189,5 +189,7 @@ func _update_button_highlights():
 		var btn = button_map[sname]
 		if sname == active_screen:
 			btn.add_theme_stylebox_override("normal", _active_style)
+			btn.add_theme_color_override("font_color", Color(0.85, 0.75, 0.55, 1.0))
 		else:
 			btn.add_theme_stylebox_override("normal", _normal_style)
+			btn.add_theme_color_override("font_color", Color(0.75, 0.72, 0.65, 1.0))

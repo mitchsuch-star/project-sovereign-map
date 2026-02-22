@@ -137,12 +137,17 @@ func _render_card(m: Dictionary, index: int) -> String:
 	bbcode += "[color=#" + COLOR_GREY + "]" + key_hint + "[/color]"
 	bbcode += "[color=#" + COLOR_GOLD + "]" + name + "[/color]"
 	bbcode += "  [color=#" + type_color + "][" + unit_type + "][/color]"
-	bbcode += "  [color=#" + COLOR_GREY + "]" + nation + " · " + personality.capitalize() + "[/color]\n"
+	bbcode += "  [color=#" + COLOR_GREY + "]" + nation + "[/color]\n"
 
 	# ═══════ BIOGRAPHY ═══════
 	var bio = str(m.get("biography", ""))
 	if bio != "":
 		bbcode += "[color=#" + COLOR_DIM + "]" + bio + "[/color]\n"
+
+	# ═══════ PERSONALITY ═══════
+	var pers_desc = str(m.get("personality_description", ""))
+	if pers_desc != "":
+		bbcode += "[color=#" + COLOR_INFO + "]" + pers_desc + "[/color]\n"
 
 	bbcode += "\n"
 
@@ -175,20 +180,17 @@ func _render_card(m: Dictionary, index: int) -> String:
 		skill_parts.append(_skill_colored(skill_name.substr(0, 3).to_upper(), val))
 	bbcode += " ".join(skill_parts) + "\n\n"
 
-	# ═══════ ABILITY ═══════
-	var ab_name = str(m.get("ability_name", "None"))
-	var ab_desc = str(m.get("ability_description", ""))
+	# ═══════ ABILITY (only shown if active/wired) ═══════
+	var ab_name = str(m.get("ability_name", ""))
 	var ab_effect = str(m.get("ability_effect", ""))
 	var ab_active = m.get("ability_active", false)
 
-	if ab_active:
+	if ab_active and ab_name != "":
 		bbcode += "  [color=#" + COLOR_GOLD + "]" + ab_name + "[/color]"
-	else:
-		bbcode += "  [color=#" + COLOR_DIM + "]" + ab_name + " (not yet active)[/color]"
-	if ab_effect != "":
-		var effect_color = COLOR_INFO if ab_active else COLOR_DIM
-		bbcode += "  [color=#" + effect_color + "]" + ab_effect + "[/color]"
-	bbcode += "\n\n"
+		if ab_effect != "":
+			bbcode += "  [color=#" + COLOR_INFO + "]" + ab_effect + "[/color]"
+		bbcode += "\n"
+	bbcode += "\n"
 
 	# ═══════ TRUST & RECORD ═══════
 	var trust_val = int(m.get("trust_value", 70))

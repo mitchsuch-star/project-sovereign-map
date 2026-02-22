@@ -26,6 +26,22 @@ _RELATIONSHIP_LABELS = {
 # of wired abilities is static (Ney, Drouot, Wellington, Blucher, Uxbridge).
 _WIRED_ABILITY_MARSHALS = {"Ney", "Drouot", "Wellington", "Blucher", "Uxbridge"}
 
+# Gameplay descriptions for each personality type
+_PERSONALITY_DESCRIPTIONS = {
+    "aggressive": (
+        "Aggressive: +15% attack, +5% more in aggressive stance. "
+        "Fortify capped at 10%. Grows restless if idle too long."
+    ),
+    "cautious": (
+        "Cautious: +20% defense in defensive stance, +10% when outnumbered. "
+        "Fortify up to 20%. Hesitant to attack at bad odds."
+    ),
+    "literal": (
+        "Literal: Follows orders exactly. Strategic commands cost 1 AP instead of 2. "
+        "+15% defense when holding position. Precision execution after completing orders."
+    ),
+}
+
 
 def build_marshal_overview(world) -> List[Dict[str, Any]]:
     """
@@ -89,6 +105,9 @@ def _build_identity(marshal: Marshal) -> Dict[str, Any]:
         "name": marshal.name,
         "nation": marshal.nation,
         "personality": marshal.personality,
+        "personality_description": _PERSONALITY_DESCRIPTIONS.get(
+            marshal.personality, ""
+        ),
         "unit_type": _derive_unit_type(marshal),
         "movement_range": int(marshal.movement_range),
         "biography": marshal.biography,
@@ -96,13 +115,23 @@ def _build_identity(marshal: Marshal) -> Dict[str, Any]:
 
 
 def _build_ability(marshal: Marshal) -> Dict[str, Any]:
-    """Signature ability section."""
+    """Signature ability section. Only includes ability data for wired abilities."""
+    is_active = marshal.name in _WIRED_ABILITY_MARSHALS
+    if is_active:
+        return {
+            "ability_name": marshal.ability.get("name", "None"),
+            "ability_description": marshal.ability.get("description", ""),
+            "ability_trigger": marshal.ability.get("trigger", ""),
+            "ability_effect": marshal.ability.get("effect", ""),
+            "ability_active": True,
+        }
+    # No active ability — omit ability fields entirely
     return {
-        "ability_name": marshal.ability.get("name", "None"),
-        "ability_description": marshal.ability.get("description", ""),
-        "ability_trigger": marshal.ability.get("trigger", ""),
-        "ability_effect": marshal.ability.get("effect", ""),
-        "ability_active": marshal.name in _WIRED_ABILITY_MARSHALS,
+        "ability_name": "",
+        "ability_description": "",
+        "ability_trigger": "",
+        "ability_effect": "",
+        "ability_active": False,
     }
 
 
