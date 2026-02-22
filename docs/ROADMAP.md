@@ -41,7 +41,7 @@
 | 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 3310 (verified Feb 21, 2026)
+**Total Tests:** 3320 (verified Feb 21, 2026)
 
 ---
 
@@ -121,7 +121,7 @@
 | Notification System | EU4-style persistent alerts (9 triggers, 3 priority tiers) | Medium | **COMPLETE** (70 tests) |
 | Top Bar Framework | Unified top bar (CanvasLayer 75), screen controller, dispatch re-read | Medium | **COMPLETE** (8 tests). Spec: `TOP_BAR_SPEC.md`. |
 | Strategic Ledger | 5-section overview: forces, territories, economy, intel, manpower | Medium | **COMPLETE** (54 tests). Spec: `TOP_BAR_SPEC.md`. |
-| Marshal Management UI | View all marshals, relationships, abilities, biography | Medium | **COMPLETE** (58 tests) |
+| Marshal Management UI | View all marshals, relationships, abilities, biography, personality/unit type descriptions | Medium | **COMPLETE** (68 tests) |
 | Campaign Log | Fog-filtered event log, Godot overlay (L key) | Low | **COMPLETE** (57 tests) |
 | Tooltips | Hover info on regions, marshals, nations | Low | Planned |
 | Morning Dispatch | Berthier's turn-start briefing (SITUATION, MARSHAL STATUS, INTELLIGENCE) | Low | **COMPLETE** (57 tests) |

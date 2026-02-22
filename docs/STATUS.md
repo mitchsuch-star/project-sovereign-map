@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3315** (verified, 3 skipped) |
+| **Tests Passing** | **3320** (verified, 3 skipped) |
 
 | **Current Phase** | Phase 6.5 **IN PROGRESS** (3 items remaining: Tooltips, Tutorial Infrastructure, Map Renderer). **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. |
 | **Blockers** | None |
@@ -48,7 +48,7 @@ All major Phase 6 features shipped:
 
 ### Feb 21 (Marshal Management UI)
 
-**Card-based read-only marshal management screen. 63 new tests, 3315 total.**
+**Card-based read-only marshal management screen. 68 new tests, 3320 total.**
 
 - `backend/game_logic/marshal_overview.py` — `build_marshal_overview(world)` returns per-marshal data cards (identity, ability, combat stats, trust/standing, status, unit specifics, relationships). All values int()-wrapped.
 - `backend/models/marshal.py` — `biography` field added to `__init__`, `to_dict()`, `from_dict()`. Historical blurbs set for all 9 marshals (Berthier's voice).
