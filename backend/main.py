@@ -1336,6 +1336,21 @@ def get_campaign_log():
 
 
 # ════════════════════════════════════════════════════════════
+# DISPATCH RE-READ ENDPOINT (Session A)
+# ════════════════════════════════════════════════════════════
+
+@app.get("/dispatch")
+def get_dispatch():
+    """Get the last morning dispatch for re-read screen."""
+    if not game_state.get("world"):
+        return {"success": False, "message": "No active game"}
+    dispatch = world.last_morning_dispatch
+    if not dispatch:
+        return {"success": True, "dispatch": {}}
+    return {"success": True, "dispatch": dispatch}
+
+
+# ════════════════════════════════════════════════════════════
 # NOTIFICATION ENDPOINTS (Phase 6.5)
 # ════════════════════════════════════════════════════════════
 

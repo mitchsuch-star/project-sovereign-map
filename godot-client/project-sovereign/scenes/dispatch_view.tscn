@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3]
 
-[ext_resource type="Script" path="res://scripts/campaign_log.gd" id="1_clog"]
+[ext_resource type="Script" path="res://scripts/dispatch_view.gd" id="1_dview"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.08, 0.1, 0.15, 1)
@@ -18,10 +18,10 @@ content_margin_top = 16.0
 content_margin_right = 20.0
 content_margin_bottom = 16.0
 
-[node name="CampaignLog" type="CanvasLayer"]
+[node name="DispatchView" type="CanvasLayer"]
 layer = 50
 visible = false
-script = ExtResource("1_clog")
+script = ExtResource("1_dview")
 
 [node name="BackgroundOverlay" type="ColorRect" parent="."]
 anchors_preset = 15
@@ -55,7 +55,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.85, 0.75, 0.55, 1)
 theme_override_font_sizes/font_size = 20
-text = "CAMPAIGN LOG"
+text = "MORNING DISPATCH"
 
 [node name="CloseButton" type="Button" parent="PanelContainer/VBoxContainer/HeaderRow"]
 custom_minimum_size = Vector2(32, 32)
@@ -70,15 +70,12 @@ layout_mode = 2
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="TurnList" type="VBoxContainer" parent="PanelContainer/VBoxContainer/ScrollContainer"]
+[node name="ContentLabel" type="RichTextLabel" parent="PanelContainer/VBoxContainer/ScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 4
-
-[node name="EmptyLabel" type="Label" parent="PanelContainer/VBoxContainer/ScrollContainer/TurnList"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.627, 0.627, 0.659, 1)
-theme_override_font_sizes/font_size = 13
-text = "No events recorded."
-horizontal_alignment = 1
+theme_override_font_sizes/normal_font_size = 12
+bbcode_enabled = true
+fit_content = true
+scroll_active = false
+text = "No dispatch available yet."

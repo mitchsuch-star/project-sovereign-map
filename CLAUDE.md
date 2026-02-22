@@ -27,13 +27,12 @@ Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-B
 
 ### Completed in Phase 6.5
 
-Bombardment system (Sessions 48-52), Pause menu (Session 56: Smart Esc, modal overlay, Save/Load/Settings stub/Quit), Wire Marshal Abilities (Drouot 15% fort degradation, Wellington +5% defense, Blucher 3k pursuit, Uxbridge 5k pursuit; Gneisenau deferred to Phase 7), Campaign Log (fog-filtered event log overlay, 14 event types, L key toggle, 57 tests), Morning Dispatch (Berthier's turn-start briefing: SITUATION + MARSHAL STATUS + INTELLIGENCE + TURN EVENTS + Berthier note, fog-filtered enemy strength ratio, absorbs tactical events, 57 tests), Notification System (EU4-style persistent alerts, 9 triggers, 3 priority levels, dismiss API, Godot notification bar, dispatch severity fixes + whitelist wiring, 70 tests — audited: whitelist event name fix, endpoint passthrough fix, accumulation prevention, turn display, manpower auto-dismiss).
+Bombardment system (Sessions 48-52), Pause menu (Session 56: Smart Esc, modal overlay, Save/Load/Settings stub/Quit), Wire Marshal Abilities (Drouot 15% fort degradation, Wellington +5% defense, Blucher 3k pursuit, Uxbridge 5k pursuit; Gneisenau deferred to Phase 7), Campaign Log (fog-filtered event log overlay, 14 event types, L key toggle, 57 tests), Morning Dispatch (Berthier's turn-start briefing: SITUATION + MARSHAL STATUS + INTELLIGENCE + TURN EVENTS + Berthier note, fog-filtered enemy strength ratio, absorbs tactical events, 57 tests), Notification System (EU4-style persistent alerts, 9 triggers, 3 priority levels, dismiss API, Godot notification bar, dispatch severity fixes + whitelist wiring, 70 tests — audited: whitelist event name fix, endpoint passthrough fix, accumulation prevention, turn display, manpower auto-dismiss), Top Bar + Dispatch (Session A: unified top bar CanvasLayer 75, campaign log refactor layer 50, notification bar reparented, input blocking refactor with 3-level dialog detection, dispatch re-read screen, Generals placeholder, 8 tests).
 
 ### Up Next
 
-- **Top Bar Framework + Dispatch (Session A):** Unified top bar (CanvasLayer 75), campaign log refactor (layer 50), notification bar repositioning, input blocking refactor (terminal stays active during screens), dispatch re-read screen, Generals placeholder. Spec: `docs/TOP_BAR_SPEC.md`.
 - **Strategic Ledger (Session B):** `ledger.py` backend builder (5 sections: forces, territories, economy, intel, manpower), `GET /ledger` endpoint, sub-tabbed Godot screen. ~40 tests. Spec: `docs/TOP_BAR_SPEC.md`.
-- **Phase 6.5 remaining after Sessions A+B:** Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer (art integration + sprite assets + procedural drawing rip-out — see ROADMAP.md Map Renderer Notes)
+- **Phase 6.5 remaining after Session B:** Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer (art integration + sprite assets + procedural drawing rip-out — see ROADMAP.md Map Renderer Notes)
 - **Phase 7 Core: Multi-Marshal Coordination** — Spec in `docs/MULTI_MARSHAL_SPEC.md` + `docs/PHASE7_SPEC_AMENDMENTS.md`. **6 sessions (57-61, 64).** Combined arms (+10-20%), relationship-scaled coordination (+3%/+5% per ally), dedicated coordination (co-location + SUPPORT), adjacent support (+2% per adjacent), reinforcement (Grouchy Rule), win/loss relationship formula. ~190 new tests. Hard cap: +25% atk/+20% def. Each session includes basic combat display messages. Presentation absorbed into feature sessions (no separate display session).
 - **Phase 7b:** Casualty Distribution (Session 62 — `resolve_battle()` contract change, deferred for playtest data), AI Coordination Enhancements (Session 63 — P4.6/P4.76/P4.77/P4.78), Full Battle Reports + Berthier Observations (Session 65), Godot Tooltips + Tutorial + Integration Audit (Session 66), Tactical Triangle (Square Formation + Artillery SUPPORT auto-bombardment + Artillery Overwatch — linked group), V2b, Jealousy, Coalition Trigger, Gneisenau Staff Work (1805). ~150 tests from deferred Phase 7 sessions.
 
@@ -63,7 +62,7 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | `backend/game_logic/combat.py` | Combat resolution, messages |
 | `backend/game_logic/battle_report.py` | Post-battle modifier snapshots, report generation, Berthier observations |
 | `backend/notifications.py` | Notification system (EU4-style persistent alerts, collector, dismiss) |
-| `backend/game_logic/dispatch.py` | Morning Dispatch builder (fog-filtered turn-start briefing) |
+| `backend/game_logic/dispatch.py` | Morning Dispatch builder (fog-filtered turn-start briefing), stores last_morning_dispatch on WorldState |
 | `backend/game_logic/turn_manager.py` | Turn flow, enemy phase |
 | `backend/ai/enemy_ai.py` | Enemy AI decision tree (P1-P8) |
 | `backend/ai/llm_client.py` | LLM integration (fast parser + Anthropic) |
@@ -82,8 +81,10 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | `map.gd` | Map rendering, fog overlay, fogged enemy icons |
 | `main.gd` | Terminal UI, response handling |
 | `pause_menu.gd` | Pause menu overlay (Phase 6.5) |
-| `campaign_log.gd` | Campaign log overlay (Phase 6.5) |
-| `notification_bar.gd` | Notification bar (Phase 6.5) |
+| `campaign_log.gd` | Campaign log overlay (Phase 6.5), CanvasLayer 50 |
+| `notification_bar.gd` | Notification bar (Phase 6.5), reparented into top bar |
+| `top_bar.gd` | Top bar controller (Session A): screen management, hotkeys, notifications, turn counter |
+| `dispatch_view.gd` | Dispatch re-read screen (Session A): CanvasLayer 50, BBCode rendering |
 
 ---
 
@@ -113,6 +114,8 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | Manpower pools / recruitment | `world_state.py` (manpower constants, `_process_manpower_regen`), `executor.py` (`_execute_recruit`), `enemy_ai.py` (P1/P4.5/P7 pool checks) |
 | Artillery mechanics | `marshal.py` (artillery flag, moved_this_turn, defense modifier), `combat.py` (cavalry counter, fort degradation), `executor.py` (attack block, no advance, charge ban, `_execute_bombardment` collateral) |
 | Bombardment collateral | `executor.py` (`_execute_bombardment` collateral loop), `trust.py` (modify), `disobedience.py` (_create_redemption_event), `main.py` (redemption pass-through) |
+| Top bar / screen system | `top_bar.gd` (controller), `main.gd` (_on_screen_changed, _is_modal_dialog_open, _is_screen_open, _is_hotkey_blocked), `docs/TOP_BAR_SPEC.md` |
+| Morning dispatch / re-read | `dispatch.py` (build + store), `dispatch_view.gd` (render), `main.gd` (_display_morning_dispatch), `world_state.py` (last_morning_dispatch field) |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`
 For Enemy AI details: `docs/ENEMY_AI_REFERENCE.md`
@@ -273,6 +276,7 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | Enemy battles missing from popup | Fog filter compares marshal name (string) against attacker/defender (dict) — always False | Extract `.get("name")` from dict before comparing |
 | Enemy bombardment not in popup | Fog filter only checks `type == "battle"`, dialog only handles battle/conquest events | Add `"bombardment"` to both |
 | Target word matched as marshal name | Parser fuzzy matching must skip words that match existing `llm_result["target"]` |
+| Godot null "pressed" on startup | `@onready` node paths in .gd must match FULL scene tree in .tscn — verify every intermediate node (e.g. `BarBG/BarLayout`) |
 
 ---
 

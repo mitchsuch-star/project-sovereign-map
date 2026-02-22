@@ -27,7 +27,8 @@ extends Control
 @onready var bottom_left_ui = $BottomLeftUI
 @onready var minimize_button = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/TitleRow/MinimizeButton
 @onready var restore_button = $RestoreButton
-@onready var log_button = $LogButton
+# Top Bar (Session A)
+var top_bar = null
 
 # Map reference
 @onready var map_area = $MapArea
@@ -239,19 +240,43 @@ func _ready():
 		pause_menu.load_requested.connect(_on_pause_load_requested)
 		print("✓ PauseMenu ready!")
 
+	# Load and setup Top Bar (Session A)
+	var top_bar_scene = load("res://scenes/top_bar.tscn")
+	if top_bar_scene:
+		top_bar = top_bar_scene.instantiate()
+		add_child(top_bar)
+		top_bar.set_api_client(api_client)
+		top_bar.screen_changed.connect(_on_screen_changed)
+		print("✓ TopBar ready!")
+
 	# Load and setup Campaign Log (Phase 6.5)
 	var campaign_log_scene = load("res://scenes/campaign_log.tscn")
 	if campaign_log_scene:
 		campaign_log = campaign_log_scene.instantiate()
 		add_child(campaign_log)
-		campaign_log.closed.connect(_on_campaign_log_closed)
 		print("✓ CampaignLog ready!")
 
-	# Load and setup Notification Bar (Phase 6.5)
+	# Register campaign log with top bar
+	if top_bar and campaign_log:
+		top_bar.register_screen("event_log", campaign_log)
+
+	# Load and setup Dispatch View (Session A)
+	var dispatch_view_scene = load("res://scenes/dispatch_view.tscn")
+	if dispatch_view_scene:
+		var dispatch_view = dispatch_view_scene.instantiate()
+		add_child(dispatch_view)
+		if top_bar:
+			top_bar.register_screen("dispatch", dispatch_view)
+		print("✓ DispatchView ready!")
+
+	# Load and setup Notification Bar (Phase 6.5) — reparented into top bar
 	var notification_bar_scene = load("res://scenes/notification_bar.tscn")
 	if notification_bar_scene:
 		notification_bar = notification_bar_scene.instantiate()
-		add_child(notification_bar)
+		if top_bar and top_bar.notification_area:
+			top_bar.notification_area.add_child(notification_bar)
+		else:
+			add_child(notification_bar)
 		notification_bar.set_api_client(api_client)
 		print("✓ NotificationBar ready!")
 
@@ -273,10 +298,6 @@ func _ready():
 		minimize_button.pressed.connect(_minimize_terminal)
 	if not restore_button.pressed.is_connected(_restore_terminal):
 		restore_button.pressed.connect(_restore_terminal)
-
-	# LOG button (Campaign Log)
-	if not log_button.pressed.is_connected(_on_log_button_pressed):
-		log_button.pressed.connect(_on_log_button_pressed)
 
 	# Start disabled until connected
 	set_input_enabled(false)
@@ -423,28 +444,18 @@ func _on_end_turn_pressed():
 func _unhandled_input(event):
 	"""Handle hotkeys when command input is not focused."""
 	if event is InputEventKey and event.pressed and not event.echo:
-		# Esc key: Smart context-aware (Phase 6.5)
-		# If command_input focused → gui_input handler already consumed it (release_focus)
-		# If campaign log open → close it
-		# If pause menu open → close it
-		# If no dialog open → open pause menu
+		# ═══ ESC KEY: Smart context-aware (Phase 6.5 + Session A) ═══
+		# Priority: 1) release focus (gui_input), 2) close screen, 3) close pause, 4) open pause
 		if event.keycode == KEY_ESCAPE:
-			if campaign_log and campaign_log.visible:
-				campaign_log.close_log()
+			if top_bar and top_bar.is_screen_open():
+				top_bar.close_all_screens()
 				get_viewport().set_input_as_handled()
 				return
 			if pause_menu and pause_menu.visible:
 				pause_menu.close_menu()
-			elif not _is_any_dialog_open():
+			elif not _is_modal_dialog_open():
 				if pause_menu:
 					pause_menu.open_menu()
-			get_viewport().set_input_as_handled()
-			return
-
-		# Block all hotkeys while campaign log is open
-		if campaign_log and campaign_log.visible:
-			if event.keycode == KEY_L:
-				campaign_log.close_log()
 			get_viewport().set_input_as_handled()
 			return
 
@@ -453,9 +464,39 @@ func _unhandled_input(event):
 			get_viewport().set_input_as_handled()
 			return
 
+		# ═══ SCREEN HOTKEYS (L, T, G, D) — work even when a screen is open ═══
+		# Only blocked by modal dialogs or text input focus
+		if event.keycode == KEY_L:
+			if not _is_hotkey_blocked():
+				if top_bar:
+					top_bar.toggle_screen("event_log")
+				get_viewport().set_input_as_handled()
+			return
+		if event.keycode == KEY_T:
+			if not _is_hotkey_blocked():
+				if top_bar:
+					top_bar.toggle_screen("ledger")
+				get_viewport().set_input_as_handled()
+			return
+		if event.keycode == KEY_G:
+			if not _is_hotkey_blocked():
+				if top_bar and top_bar.screens.has("generals") and top_bar.screens["generals"] != null:
+					top_bar.toggle_screen("generals")
+				get_viewport().set_input_as_handled()
+			return
+		if event.keycode == KEY_D:
+			if not _is_hotkey_blocked():
+				if top_bar:
+					top_bar.toggle_screen("dispatch")
+				get_viewport().set_input_as_handled()
+			return
+
+		# ═══ MAP / GAME HOTKEYS — blocked when screen is open ═══
+		if _is_screen_open():
+			return
+
 		# E key for End Turn (only when not typing in command input)
 		if event.keycode == KEY_E:
-			# Don't trigger if command input has focus
 			if not command_input.has_focus() and end_turn_button.visible and not end_turn_button.disabled:
 				_execute_end_turn()
 				get_viewport().set_input_as_handled()
@@ -463,12 +504,6 @@ func _unhandled_input(event):
 		elif event.keycode == KEY_TAB:
 			if not command_input.has_focus():
 				_toggle_terminal()
-				get_viewport().set_input_as_handled()
-		# L key for Campaign Log
-		elif event.keycode == KEY_L:
-			if not command_input.has_focus():
-				if campaign_log:
-					campaign_log.open_log(api_client)
 				get_viewport().set_input_as_handled()
 
 func _minimize_terminal():
@@ -644,6 +679,9 @@ func _on_command_result(response):
 		# "No enemy actions this turn." message.
 		if response.has("enemy_phase"):
 			print("ENEMY PHASE DETECTED - showing dialog")
+			# Close screens before showing modal (avoid stale screen behind dialog)
+			if top_bar:
+				top_bar.close_all_screens()
 			set_input_enabled(false)  # Disable input until dismissed
 			var turn = current_turn
 			if response.has("action_summary"):
@@ -917,6 +955,10 @@ func _display_turn_change(event: Dictionary):
 	Backend sends: income, upkeep, spent, net, treasury in turn_end event.
 	All values are int() wrapped by executor.py (Godot crashes on floats).
 	"""
+	# Close all information screens on turn transition (avoid stale data)
+	if top_bar:
+		top_bar.close_all_screens()
+
 	var new_turn = int(event.get("new_turn", 0))
 	var income = int(event.get("income", 0))
 	var upkeep = int(event.get("upkeep", 0))
@@ -1126,6 +1168,10 @@ func _show_pending_dispatch():
 
 func _display_turn_advance(action_info: Dictionary):
 	"""Display automatic turn advancement when actions run out."""
+	# Close all information screens on turn transition (avoid stale data)
+	if top_bar:
+		top_bar.close_all_screens()
+
 	var new_turn = int(action_info.get("new_turn", current_turn + 1))
 	add_output("")
 	add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
@@ -1260,6 +1306,10 @@ func _update_status(action_summary: Dictionary):
 	else:
 		admin_value.add_theme_color_override("font_color", Color(0.6, 0.7, 0.9))  # Blue when available
 	admin_value.text = str(int(admin_actions_remaining)) + "/" + str(int(max_admin_actions))
+
+	# Update top bar turn counter
+	if top_bar:
+		top_bar.update_turn(current_turn)
 
 func _update_gold_display():
 	"""Update treasury display with formatting."""
@@ -2204,8 +2254,9 @@ func _on_clarification_cancelled():
 # PAUSE MENU (Phase 6.5)
 # ════════════════════════════════════════════════════════════════════════════
 
-func _is_any_dialog_open() -> bool:
-	"""Check if any modal dialog is currently visible."""
+func _is_modal_dialog_open() -> bool:
+	"""True when a modal dialog requiring player choice is visible.
+	These block EVERYTHING. Campaign log is NOT a modal — it's a screen."""
 	if objection_dialog and objection_dialog.visible:
 		return true
 	if redemption_dialog and redemption_dialog.visible:
@@ -2224,9 +2275,26 @@ func _is_any_dialog_open() -> bool:
 		return true
 	if clarification_popup and clarification_popup.visible:
 		return true
-	if campaign_log and campaign_log.visible:
-		return true
 	return false
+
+func _is_screen_open() -> bool:
+	"""True when a top bar screen is open. Blocks map, allows terminal."""
+	return top_bar != null and top_bar.is_screen_open()
+
+func _is_hotkey_blocked() -> bool:
+	"""True when hotkeys should not fire (typing or modal open)."""
+	return command_input.has_focus() or _is_modal_dialog_open()
+
+func _on_screen_changed(screen_name: String):
+	"""Handle top bar screen open/close — toggle map interaction."""
+	if screen_name != "":
+		# Screen opened — block map interaction
+		map_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		map_area.panning_enabled = false
+	else:
+		# All screens closed — restore map interaction
+		map_area.mouse_filter = Control.MOUSE_FILTER_STOP
+		map_area.panning_enabled = true
 
 func _on_pause_save_requested():
 	"""Handle Save Game from pause menu."""
@@ -2244,12 +2312,3 @@ func _on_pause_save_result(response):
 func _on_pause_load_requested():
 	"""Handle Load Game from pause menu."""
 	_show_load_dialog()
-
-func _on_log_button_pressed():
-	"""Handle LOG button press — open campaign log overlay."""
-	if campaign_log and not _is_any_dialog_open():
-		campaign_log.open_log(api_client)
-
-func _on_campaign_log_closed():
-	"""Handle campaign log overlay closed."""
-	pass

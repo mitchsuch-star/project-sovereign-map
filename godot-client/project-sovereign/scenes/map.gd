@@ -78,6 +78,9 @@ var pan_start_pos: Vector2 = Vector2.ZERO
 var zoom_tween: Tween = null
 var is_zooming: bool = false
 
+# Top bar screen blocking — set by main.gd when an information screen is open
+var panning_enabled: bool = true
+
 # Pan speeds
 const PAN_SPEED_KEYS: float = 300.0  # pixels per second with arrow keys
 const ZOOM_SPEED: float = 0.1  # zoom increment per wheel notch
@@ -112,13 +115,13 @@ func _process(delta: float):
 	if is_zooming:
 		queue_redraw()
 
-	# Arrow key panning (skip when a text input has focus)
+	# Arrow key panning (skip when a text input has focus or screens block panning)
 	var pan_input = Vector2.ZERO
 	var focused = get_viewport().gui_get_focus_owner()
 	var text_focused = focused is LineEdit or focused is TextEdit
 
-	# Check arrow key inputs
-	if not text_focused:
+	# Check arrow key inputs — blocked when panning_enabled is false (screen open)
+	if not text_focused and panning_enabled:
 		if Input.is_action_pressed("ui_left"):
 			pan_input.x += 1
 		if Input.is_action_pressed("ui_right"):

@@ -3,15 +3,8 @@
 [ext_resource type="Script" path="res://scripts/notification_bar.gd" id="1_nbar"]
 
 [node name="NotificationBar" type="Control"]
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -300.0
-offset_top = 48.0
-offset_right = -90.0
-offset_bottom = 80.0
-grow_horizontal = 0
+layout_mode = 2
+size_flags_horizontal = 3
 script = ExtResource("1_nbar")
 
 [node name="IconContainer" type="HBoxContainer" parent="."]

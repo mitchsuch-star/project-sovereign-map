@@ -63,6 +63,9 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None) -> Dic
         world, player_nation, dispatch["marshals"], dispatch["situation"]
     )
 
+    # Store on world for dispatch re-read screen (Session A)
+    world.last_morning_dispatch = dispatch
+
     return dispatch
 
 

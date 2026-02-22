@@ -2330,8 +2330,8 @@ Missing nation fields gracefully omit the tag.
 
 ### Godot Overlay
 
-- Toggle: L key or LOG button. Close: Esc or click outside.
-- CanvasLayer 102 (above pause menu 101).
+- Toggle: L key via top bar. Close: Esc, click outside, or L again.
+- CanvasLayer 50 (information screen layer, managed by top bar).
 - Turn headers expand/collapse on click. Most recent turn expanded by default.
 - Empty turns (0 events after fog filtering) hidden.
 - Turn 0 displayed as "Turn 0 — Setup".
@@ -2346,3 +2346,61 @@ Missing nation fields gracefully omit the tag.
 | `godot-client/.../campaign_log.gd` | Overlay UI, expand/collapse, BBCode rendering |
 | `godot-client/.../campaign_log.tscn` | Scene layout |
 | `tests/test_campaign_log.py` | 57 tests (whitelist, fog, format, defaults, endpoint) |
+
+## 12. Top Bar & Screen Management
+
+Unified top bar UI framework (Session A). Controller-based architecture: top bar owns buttons and state tracking, screens are independent CanvasLayers.
+
+### Architecture
+
+| Layer | Contents |
+|-------|----------|
+| Base | Map (Control node, no CanvasLayer) |
+| 50 | Information screens (Event Log, Ledger, Generals, Dispatch) |
+| 75 | Top bar + notification expanded detail panel |
+| 100 | Modal dialogs (9 existing: objection, redemption, enemy_phase, etc.) |
+| 101 | Pause menu |
+
+### Behavior
+
+- **One screen at a time.** Opening a new screen closes the current one.
+- **Click active button = toggle off.**
+- **All screens close on turn transition** (both manual and auto-advance paths, plus before enemy phase).
+- **Terminal input stays active** while screens are open. Map interaction is blocked.
+
+### Hotkeys
+
+| Key | Action |
+|-----|--------|
+| L | Event Log (campaign log) |
+| T | Ledger (future — Session B) |
+| G | Generals (placeholder — disabled) |
+| D | Dispatch re-read |
+| Esc | Close screen first, then pause menu |
+
+### Input Blocking (3 levels)
+
+| State | Map | Map hotkeys | Screen hotkeys | Terminal | Esc |
+|-------|-----|-------------|----------------|----------|-----|
+| Nothing open | Yes | Yes | Yes | Yes | Opens pause |
+| Screen open | Blocked | Blocked | Yes (switches) | Yes | Closes screen |
+| Modal open | Blocked | Blocked | Blocked | Blocked | Dialog handles |
+
+### Dispatch Re-read
+
+- Backend stores `last_morning_dispatch` on WorldState each turn (via `build_morning_dispatch()`)
+- `GET /dispatch` endpoint returns stored dispatch
+- Godot `dispatch_view.gd` renders BBCode (duplicated from main.gd — documented tech debt)
+- Empty dispatch shows "No dispatch available yet."
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `godot-client/.../top_bar.gd` | Controller: screen registration, toggle, close, button highlighting |
+| `godot-client/.../top_bar.tscn` | CanvasLayer 75, bar layout with buttons + notification area + turn label |
+| `godot-client/.../dispatch_view.gd` | Dispatch re-read screen (CanvasLayer 50) |
+| `godot-client/.../dispatch_view.tscn` | Dispatch scene layout |
+| `backend/game_logic/dispatch.py` | Morning dispatch builder (also stores on WorldState) |
+| `backend/main.py` | `GET /dispatch` endpoint |
+| `tests/test_dispatch_view.py` | 8 tests (storage, serialization, endpoint, no-float) |

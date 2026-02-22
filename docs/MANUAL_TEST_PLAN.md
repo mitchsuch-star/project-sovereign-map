@@ -935,3 +935,55 @@ Verify manpower HUD updates after each interaction type:
 | `/debug set_manpower <nation> <infantry\|cavalry> <amount>` | Set manpower pool |
 | `/debug ai_turn <nation>` | Force AI turn |
 | `/debug list_marshals` | Show all positions |
+
+## Top Bar Smoke Tests (Session A)
+
+### TB1. Top bar renders on startup
+**Expected:** Top bar visible at top of screen with buttons (Event Log, Ledger, Generals, Dispatch), notification area, turn counter.
+
+### TB2. Event Log toggle (L key + button)
+1. Press L — campaign log opens (centered panel)
+2. Press L again — closes
+3. Click "Event Log" button — opens
+4. Click "Event Log" button again — closes
+**Expected:** One-at-a-time toggling, button highlights when active.
+
+### TB3. Dispatch re-read (D key + button)
+1. End a turn (enemy phase + morning dispatch fires)
+2. Press D — dispatch re-read screen opens showing last dispatch
+3. Press D again — closes
+4. Click Dispatch button — opens
+**Expected:** Same BBCode formatting as terminal dispatch. "No dispatch available yet." on turn 1 before first end turn.
+
+### TB4. Screen switching
+1. Press L (event log opens)
+2. Press D (event log closes, dispatch opens)
+3. Press Esc (dispatch closes)
+**Expected:** Only one screen at a time. Esc closes active screen.
+
+### TB5. Terminal active during screen
+1. Open event log (L)
+2. Type a command in terminal and press Enter
+**Expected:** Command executes normally while screen is open.
+
+### TB6. Map blocked during screen
+1. Open event log (L)
+2. Try arrow key panning — should not pan
+3. Try clicking on map — should not interact
+4. Close screen (L) — panning and clicks work again
+
+### TB7. Screens close on turn transition
+1. Open event log (L)
+2. Press E (end turn)
+**Expected:** Screen closes before enemy phase dialog.
+
+### TB8. Generals button disabled
+**Expected:** Generals button greyed out, G key does nothing.
+
+### TB9. Notification bar in top bar
+**Expected:** Notification icons appear in the right section of the top bar (not floating separately at top-right). Expanded panel drops below correctly.
+
+### TB10. Turn counter updates
+1. Note turn counter in top bar
+2. End a turn
+**Expected:** Turn counter updates to match new turn number.

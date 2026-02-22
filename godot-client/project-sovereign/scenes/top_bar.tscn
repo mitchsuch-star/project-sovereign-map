@@ -1,0 +1,83 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/top_bar.gd" id="1_tbar"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar_bg"]
+bg_color = Color(0.06, 0.08, 0.12, 0.92)
+border_width_bottom = 1
+border_color = Color(0.85, 0.75, 0.55, 0.4)
+content_margin_left = 8.0
+content_margin_top = 4.0
+content_margin_right = 8.0
+content_margin_bottom = 4.0
+
+[node name="TopBar" type="CanvasLayer"]
+layer = 75
+script = ExtResource("1_tbar")
+
+[node name="BarContainer" type="HBoxContainer" parent="."]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 36.0
+grow_horizontal = 2
+theme_override_constants/separation = 0
+
+[node name="BarBG" type="PanelContainer" parent="BarContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_bar_bg")
+
+[node name="BarLayout" type="HBoxContainer" parent="BarContainer/BarBG"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="ScreenButtons" type="HBoxContainer" parent="BarContainer/BarBG/BarLayout"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="EventLogBtn" type="Button" parent="BarContainer/BarBG/BarLayout/ScreenButtons"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.72, 0.65, 1)
+theme_override_colors/font_hover_color = Color(0.85, 0.75, 0.55, 1)
+theme_override_font_sizes/font_size = 12
+text = "Event Log"
+
+[node name="LedgerBtn" type="Button" parent="BarContainer/BarBG/BarLayout/ScreenButtons"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.72, 0.65, 1)
+theme_override_colors/font_hover_color = Color(0.85, 0.75, 0.55, 1)
+theme_override_font_sizes/font_size = 12
+text = "Ledger"
+
+[node name="GeneralsBtn" type="Button" parent="BarContainer/BarBG/BarLayout/ScreenButtons"]
+layout_mode = 2
+disabled = true
+theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
+theme_override_font_sizes/font_size = 12
+text = "Generals"
+
+[node name="DispatchBtn" type="Button" parent="BarContainer/BarBG/BarLayout/ScreenButtons"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.72, 0.65, 1)
+theme_override_colors/font_hover_color = Color(0.85, 0.75, 0.55, 1)
+theme_override_font_sizes/font_size = 12
+text = "Dispatch"
+
+[node name="Spacer" type="Control" parent="BarContainer/BarBG/BarLayout"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="RightSection" type="HBoxContainer" parent="BarContainer/BarBG/BarLayout"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="NotificationArea" type="Control" parent="BarContainer/BarBG/BarLayout/RightSection"]
+layout_mode = 2
+custom_minimum_size = Vector2(200, 0)
+
+[node name="TurnLabel" type="Label" parent="BarContainer/BarBG/BarLayout/RightSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.75, 0.55, 1)
+theme_override_font_sizes/font_size = 13
+text = "Turn 1"

@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 21, 2026 (Notification System)
+> **Last Updated:** February 21, 2026 (Session A: Top Bar + Dispatch)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3190** (verified, 3 skipped) |
+| **Tests Passing** | **3198** (verified, 3 skipped) |
 
-| **Current Phase** | Phase 6.5 **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Wire Marshal Abilities COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE + AUDITED, 5 items remaining). **Next up: Top Bar Framework + Dispatch (Session A), Strategic Ledger (Session B).** Spec: `docs/TOP_BAR_SPEC.md`. Remaining after: Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer. **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. |
+| **Current Phase** | Phase 6.5 **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Wire Marshal Abilities COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE + AUDITED, Top Bar + Dispatch COMPLETE, 4 items remaining). **Next up: Strategic Ledger (Session B).** Spec: `docs/TOP_BAR_SPEC.md`. Remaining after: Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer. **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,9 +19,8 @@
 
 ## Next Steps
 
-1. **Top Bar Framework + Dispatch Re-read (Session A)** — Unified top bar (CanvasLayer 75), campaign log refactor (layer 50), notification bar repositioning, input blocking refactor (terminal stays active), dispatch re-read screen, Generals placeholder. Spec: `docs/TOP_BAR_SPEC.md`. ~5 backend tests.
-2. **Strategic Ledger (Session B)** — `ledger.py` with 5 sections (forces, territories, economy, intel, manpower), `GET /ledger` endpoint, sub-tabbed Godot screen. ~40 backend tests. Spec: `docs/TOP_BAR_SPEC.md`.
-3. **Phase 6.5 remaining after Sessions A+B** — Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer
+1. **Strategic Ledger (Session B)** — `ledger.py` with 5 sections (forces, territories, economy, intel, manpower), `GET /ledger` endpoint, sub-tabbed Godot screen. ~40 backend tests. Spec: `docs/TOP_BAR_SPEC.md`.
+2. **Phase 6.5 remaining after Session B** — Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer
 4. **Phase 7 Core: Multi-Marshal Coordination** — 6 sessions (57-61, 64), ~190 new tests. "Position IS Coordination" — combined arms (+10-20%), relationship-scaled coordination (+3%/+5% per ally), dedicated coordination (+5%/+5% from co-location or SUPPORT), adjacent support (+2% per adjacent), reinforcement (Grouchy Rule), win/loss relationship formula (dynamic relationships). Hard cap: +25% atk/+20% def. Each session includes basic combat display messages. Highest risk: Session 61 (reinforcement + physical relocation). First session: Combined Arms Detection (S57). Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md` (audit corrections still apply to all sessions including deferred ones).
 5. **Phase 7b (immediately after 7 Core):** Casualty Distribution (S62 — `resolve_battle()` contract change, deferred for playtest data), AI Coordination Enhancements (S63 — P4.6/P4.76/P4.77/P4.78), Full Battle Reports + Berthier Observations (S65), Godot Tooltips + Tutorial + Integration Audit (S66), Tactical Triangle Completion (Square Formation + Artillery SUPPORT auto-bombardment + Artillery Overwatch — linked group), V2b Defiance/Vindication, Jealousy system, Coalition Trigger, Cross-nation coordination (Britain/Prussia), Gneisenau Staff Work (1805 only).
 
@@ -47,6 +46,33 @@ All major Phase 6 features shipped:
 ---
 
 ## Recent Sessions
+
+### Feb 21 (Session A: Top Bar Framework + Dispatch — Phase 6.5)
+
+**Unified top bar UI framework replacing scattered hotkeys and overlays. 8 new tests, 3198 total.**
+
+**New files:**
+- `top_bar.gd` + `top_bar.tscn` — CanvasLayer 75 controller with buttons (Event Log, Ledger, Generals, Dispatch), notification area, turn counter. One-screen-at-a-time enforcement, screen_changed signal.
+- `dispatch_view.gd` + `dispatch_view.tscn` — CanvasLayer 50 read-only dispatch re-read. D key or Dispatch button. BBCode rendering duplicated from main.gd (documented tech debt).
+- `tests/test_dispatch_view.py` — 8 tests: storage, serialization roundtrip, endpoint, no-float enforcement.
+
+**Backend changes:**
+- `world_state.py`: `last_morning_dispatch` field + to_dict/from_dict serialization
+- `dispatch.py`: stores dispatch on world after building
+- `main.py`: `GET /dispatch` endpoint
+- `api_client.gd`: `get_dispatch()` method
+
+**Refactored:**
+- Campaign log: layer 102 → 50, removed standalone LogButton from main.tscn
+- Notification bar: reparented into top bar's RightSection (layer 75)
+- main.gd input: `_is_any_dialog_open()` split into `_is_modal_dialog_open()`, `_is_screen_open()`, `_is_hotkey_blocked()`. Map input blocked when screens open (mouse_filter + panning_enabled). Terminal stays active.
+- map.gd: added `panning_enabled` guard in `_process()`
+- Smart Esc: closes screens first, then pause menu
+- Screens close on both turn transition paths + before enemy phase dialog
+- Hotkeys: L (Event Log), T (Ledger), G (Generals placeholder), D (Dispatch)
+- Generals button disabled until future session
+
+---
 
 ### Feb 21 (Notification System Audit — Phase 6.5)
 

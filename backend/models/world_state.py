@@ -275,6 +275,12 @@ class WorldState:
         self.eliminated_nations_notified: set = set()
 
         # ============================================================
+        # MORNING DISPATCH - Last dispatch for re-read screen (Session A)
+        # ============================================================
+        # Stored by build_morning_dispatch() each turn, exposed via GET /dispatch
+        self.last_morning_dispatch: dict = {}
+
+        # ============================================================
         # FOG OF WAR - Intel tracking per region (Phase 6 Session 33)
         # ============================================================
         # Dict of region_name -> RegionIntel objects
@@ -2503,6 +2509,9 @@ class WorldState:
             "last_bankruptcy_notification_tier": int(self.last_bankruptcy_notification_tier),
             "eliminated_nations_notified": list(self.eliminated_nations_notified),
 
+            # ═══════ MORNING DISPATCH (Session A) ═══════
+            "last_morning_dispatch": self.last_morning_dispatch.copy() if self.last_morning_dispatch else {},
+
             # ═══════ FOG OF WAR (Phase 6 Session 33) ═══════
             "intel": {name: ri.to_dict() for name, ri in self.intel.items()},
         }
@@ -2619,6 +2628,9 @@ class WorldState:
         world.notifications = NotificationCollector.from_list(notifications_data)
         world.last_bankruptcy_notification_tier = data.get("last_bankruptcy_notification_tier", 0)
         world.eliminated_nations_notified = set(data.get("eliminated_nations_notified", []))
+
+        # ═══════ MORNING DISPATCH (Session A) ═══════
+        world.last_morning_dispatch = data.get("last_morning_dispatch", {})
 
         # ═══════ FOG OF WAR (Phase 6 Session 33) ═══════
         # Backward compat: old saves have no intel key → empty dict
