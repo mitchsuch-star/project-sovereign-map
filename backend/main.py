@@ -1364,6 +1364,16 @@ def get_ledger():
     return {"success": True, "ledger": ledger}
 
 
+@app.get("/marshal_overview")
+def get_marshal_overview():
+    """Get the marshal overview for the Marshal Management screen."""
+    if not game_state.get("world"):
+        return {"success": False, "message": "No active game"}
+    from backend.game_logic.marshal_overview import build_marshal_overview
+    overview = build_marshal_overview(world)
+    return {"success": True, "marshals": overview}
+
+
 # ════════════════════════════════════════════════════════════
 # NOTIFICATION ENDPOINTS (Phase 6.5)
 # ════════════════════════════════════════════════════════════

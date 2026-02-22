@@ -127,6 +127,14 @@ func get_ledger(callback: Callable):
 	if error != OK:
 		print("ERROR: HTTP request failed with code: ", error)
 
+func get_marshal_overview(callback: Callable):
+	"""Get marshal overview for Marshal Management screen (Phase 6.5)."""
+	pending_callback = callback
+	var url = API_URL + "/marshal_overview"
+	var error = http_request.request(url)
+	if error != OK:
+		print("ERROR: HTTP request failed with code: ", error)
+
 func send_strategic_response(marshal_name: String, response_type: String, choice: String, callback: Callable):
 	"""Send player's response to a strategic command interrupt (Phase J)."""
 	pending_callback = callback

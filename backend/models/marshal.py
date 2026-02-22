@@ -266,6 +266,9 @@ class Marshal:
             "effect": str(ability.get("effect", "none"))
         }
 
+        # Biography — historical flavor text, set in create_starting/enemy_marshals()
+        self.biography: str = ""
+
         # Game state (changes during play)
         self.morale: int = 100
         self.orders_overridden: int = 0
@@ -943,6 +946,7 @@ class Marshal:
             # ═══════ SKILLS & ABILITY ═══════
             "skills": {k: int(v) for k, v in self.skills.items()},
             "ability": self.ability.copy(),
+            "biography": self.biography,
 
             # ═══════ GAME STATE ═══════
             "morale": int(self.morale),
@@ -1068,6 +1072,7 @@ class Marshal:
 
         # ═══════ CORE IDENTITY ═══════
         marshal.starting_strength = data.get("starting_strength", marshal.strength)
+        marshal.biography = data.get("biography", "")
 
         # ═══════ GAME STATE ═══════
         marshal.morale = data.get("morale", 70)
@@ -1292,6 +1297,26 @@ def create_starting_marshals() -> dict[str, Marshal]:
     }
 
     # ════════════════════════════════════════════════════════════
+    # BIOGRAPHY BLURBS — Berthier's briefing to the Emperor
+    # ════════════════════════════════════════════════════════════
+    marshals["Ney"].biography = (
+        "The Bravest of the Brave. Charges before his orders are read. "
+        "Inspires devotion in his men and despair in his staff officers."
+    )
+    marshals["Davout"].biography = (
+        "The Iron Marshal. Has never lost a battle. "
+        "Methodical, unshakeable, and answers only to the Emperor himself."
+    )
+    marshals["Grouchy"].biography = (
+        "Steady and dependable. Follows orders to the letter — no more, no less. "
+        "One prays the orders are correct."
+    )
+    marshals["Drouot"].biography = (
+        "The Sage of the Grand Army. Manages his guns with the precision "
+        "of a watchmaker. Quiet, devout, and devastating."
+    )
+
+    # ════════════════════════════════════════════════════════════
     # WATERLOO SCENARIO: Historical Relationships
     # ════════════════════════════════════════════════════════════
     # Ney-Davout rivalry: Ney hates Davout, Davout merely dislikes Ney
@@ -1454,6 +1479,30 @@ def create_enemy_marshals() -> dict[str, Marshal]:
             spawn_location="Netherlands"
         )
     }
+
+    # ════════════════════════════════════════════════════════════
+    # BIOGRAPHY BLURBS — Berthier's briefing to the Emperor
+    # ════════════════════════════════════════════════════════════
+    enemies["Wellington"].biography = (
+        "The Iron Duke. Master of the reverse slope and the patient defense. "
+        "He does not attack — he lets you destroy yourself."
+    )
+    enemies["Uxbridge"].biography = (
+        "Commands the cavalry with reckless brilliance. "
+        "Where the charge is thickest, Uxbridge will be found."
+    )
+    enemies["Blucher"].biography = (
+        "Marshal Vorwärts. Seventy-three years old and still the first man "
+        "to draw his sword. He does not understand retreat."
+    )
+    enemies["Gneisenau"].biography = (
+        "Blucher's brain. What the old man lacks in strategy, Gneisenau "
+        "provides tenfold. The true architect of Prussian operations."
+    )
+    enemies["PrinceAugust"].biography = (
+        "Commands the Prussian artillery corps. Professional, reliable, "
+        "and content to serve without glory."
+    )
 
     # ════════════════════════════════════════════════════════════
     # WATERLOO SCENARIO: Historical Relationships

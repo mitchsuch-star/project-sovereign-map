@@ -61,8 +61,8 @@ func _ready():
 		"dispatch": dispatch_btn,
 	}
 
-	# Generals placeholder — disabled until future session
-	generals_btn.disabled = true
+	# Generals button — wired to Marshal Management screen (Phase 6.5)
+	generals_btn.disabled = false
 
 	# Apply normal style to all buttons
 	for btn in button_map.values():

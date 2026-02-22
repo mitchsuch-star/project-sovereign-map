@@ -278,6 +278,15 @@ func _ready():
 			top_bar.register_screen("ledger", strategic_ledger)
 		print("✓ StrategicLedger ready!")
 
+	# Load and setup Marshal Management (Phase 6.5)
+	var marshal_mgmt_scene = load("res://scenes/marshal_management.tscn")
+	if marshal_mgmt_scene:
+		var marshal_management = marshal_mgmt_scene.instantiate()
+		add_child(marshal_management)
+		if top_bar:
+			top_bar.register_screen("generals", marshal_management)
+		print("✓ MarshalManagement ready!")
+
 	# Load and setup Notification Bar (Phase 6.5) — reparented into top bar
 	var notification_bar_scene = load("res://scenes/notification_bar.tscn")
 	if notification_bar_scene:

@@ -151,6 +151,7 @@ A future save/load system should use this as the specification.
     "trigger": "when_attacking",
     "effect": "+2 Shock skill when attacking"
   },
+  "biography": "The Bravest of the Brave. Charges before his orders are read...",
 
   "morale": 100,
   "orders_overridden": 0,

@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** February 21, 2026 (Session B: Strategic Ledger)
+> **Last Updated:** February 21, 2026 (Marshal Management UI)
 
 ---
 
@@ -13,7 +13,7 @@
 | 1-5.3 | Foundation through AI Fixes | COMPLETE |
 | **V2a** | **Objection System Refactor** | **COMPLETE** |
 | **6** | **Core Campaign Systems** | **COMPLETE** |
-| **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE, Top Bar + Dispatch COMPLETE, Strategic Ledger COMPLETE. Remaining: Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer) |
+| **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE, Top Bar + Dispatch COMPLETE, Strategic Ledger COMPLETE, Marshal Management UI COMPLETE. Remaining: Tooltips, Tutorial Infrastructure, Map Renderer) |
 | **7 Core** | **Multi-Marshal Coordination** | **Spec COMPLETE + AUDITED + SCOPED.** 6 sessions (57-61, 64). ~190 tests. |
 | 7b | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b, Coalition, Jealousy | Planned (deferred from 7 Core) |
 | 8 | Diplomacy & Peace | Planned |
@@ -41,7 +41,7 @@
 | 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 3198 (verified Feb 21, 2026)
+**Total Tests:** 3310 (verified Feb 21, 2026)
 
 ---
 
@@ -121,7 +121,7 @@
 | Notification System | EU4-style persistent alerts (9 triggers, 3 priority tiers) | Medium | **COMPLETE** (70 tests) |
 | Top Bar Framework | Unified top bar (CanvasLayer 75), screen controller, dispatch re-read | Medium | **COMPLETE** (8 tests). Spec: `TOP_BAR_SPEC.md`. |
 | Strategic Ledger | 5-section overview: forces, territories, economy, intel, manpower | Medium | **COMPLETE** (54 tests). Spec: `TOP_BAR_SPEC.md`. |
-| Marshal Management UI | View/manage all marshals, relationships, recruit | Medium | Planned |
+| Marshal Management UI | View all marshals, relationships, abilities, biography | Medium | **COMPLETE** (58 tests) |
 | Campaign Log | Fog-filtered event log, Godot overlay (L key) | Low | **COMPLETE** (57 tests) |
 | Tooltips | Hover info on regions, marshals, nations | Low | Planned |
 | Morning Dispatch | Berthier's turn-start briefing (SITUATION, MARSHAL STATUS, INTELLIGENCE) | Low | **COMPLETE** (57 tests) |

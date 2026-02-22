@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 21, 2026 (Session B: Strategic Ledger)
+> **Last Updated:** February 21, 2026 (Marshal Management UI)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3252** (verified, 3 skipped) |
+| **Tests Passing** | **3310** (verified, 3 skipped) |
 
-| **Current Phase** | Phase 6.5 **IN PROGRESS** (4 items remaining: Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer). **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. |
+| **Current Phase** | Phase 6.5 **IN PROGRESS** (3 items remaining: Tooltips, Tutorial Infrastructure, Map Renderer). **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,7 +19,7 @@
 
 ## Next Steps
 
-1. **Phase 6.5 remaining** — Marshal Management UI, Tooltips, Tutorial Infrastructure, Map Renderer
+1. **Phase 6.5 remaining** — Tooltips, Tutorial Infrastructure, Map Renderer
 2. **Phase 7 Core: Multi-Marshal Coordination** — 6 sessions (57-61, 64), ~190 new tests. Combined arms, coordination bonuses, dedicated coordination, adjacent support, reinforcement (Grouchy Rule), win/loss relationships. Hard cap: +25% atk/+20% def. Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md`.
 3. **Phase 7b (immediately after 7 Core):** Casualty Distribution, AI Coordination Enhancements, Full Battle Reports, Godot Tooltips/Tutorial, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Cross-nation coordination, Gneisenau Staff Work.
 
@@ -45,6 +45,21 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 6.5 Sessions
+
+### Feb 21 (Marshal Management UI)
+
+**Card-based read-only marshal management screen. 58 new tests, 3310 total.**
+
+- `backend/game_logic/marshal_overview.py` — `build_marshal_overview(world)` returns per-marshal data cards (identity, ability, combat stats, trust/standing, status, unit specifics, relationships). All values int()-wrapped.
+- `backend/models/marshal.py` — `biography` field added to `__init__`, `to_dict()`, `from_dict()`. Historical blurbs set for all 9 marshals (Berthier's voice).
+- `marshal_management.gd/tscn` — CanvasLayer 50, vertical scrollable card list, BBCode rendering, number keys 1-N jump to marshal.
+- `main.py`: `GET /marshal_overview` endpoint.
+- `api_client.gd`: `get_marshal_overview()` method.
+- `top_bar.gd`: Generals button enabled, wired to marshal management screen.
+- `main.gd`: Marshal management scene loaded and registered with top bar.
+- Ability active derivation hardcoded by name (Ney/Drouot/Wellington/Blucher/Uxbridge = active). TODO: Replace with proper `Marshal.ability_wired` field (Phase 7b or Pre-EA).
+
+---
 
 ### Feb 21 (Session B: Strategic Ledger)
 
@@ -116,6 +131,7 @@ All major Phase 6 features shipped:
 | `requires_input` interrupt blocks later marshals | Low | `strategic.py:119` stops processing ALL further marshals when one requires input. |
 | `full_game.py` dead code with stale terrain | Low | 3 `resolve_battle()` calls hardcode `terrain="open"`. File is dead code. |
 | France hardcoded as player nation | Low | Multiple systems assume France. Post-EA multi-nation play requires threading player_nation. |
+| `ability_active` hardcoded by marshal name | Low | `marshal_overview.py` derives ability_active from `_WIRED_ABILITY_MARSHALS` set. Replace with proper `Marshal.ability_wired` field. Pre-EA or Phase 7b. |
 | `resolve_battle()` has 5 categories of side effects | High | Phase 7 `apply_casualties=False` must defer all 5. See `PHASE7_SPEC_AMENDMENTS.md` C1. |
 | Cross-nation coordination impossible (Britain/Prussia) | Medium | Deferred to Phase 7b with Coalition Trigger. See `PHASE7_SPEC_AMENDMENTS.md` C3. |
 | Missing SUPPORT objection triggers | Low | Add in Phase 7 Session 59. |
