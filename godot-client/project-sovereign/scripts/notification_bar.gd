@@ -205,7 +205,7 @@ func _show_expanded_panel(notif: Dictionary):
 	vbox.add_child(message_label)
 
 	# Position panel below the notification bar (offset accounts for top bar height)
-	expanded_panel.position = Vector2(0, 44)
+	expanded_panel.position = Vector2(0, 48)
 	add_child(expanded_panel)
 
 
