@@ -47,22 +47,7 @@
 
 ## V2a: Objection System Refactor
 
-**Goal:** Fix fundamental flaw where trust modifies WHETHER marshals speak instead of HOW they speak.
-
-**Status:** COMPLETE. All 7 units shipped (1216 tests). See `OBJECTION_V2.md`.
-
-**Key Changes:**
-- Deterministic situational triggers (personality x situation -> ConcernLevel)
-- Trust affects consequences only (tone, penalty, compliance)
-- MILD concerns as end-of-turn flavor text, not popups
-- V2b (defiance/vindication escalation) deferred to Phase 7
-
-**New from Session 4 audit:**
-- **Idle marshal objection (Unit 6):** Aggressive marshals idle 2-3 turns -> MILD ("Ney paces restlessly"). 4+ turns -> MODERATE ("Ney demands action"). Cautious at 5 turns. Literal never (Grouchy waits patiently). Add to V2a trigger tables in Unit 6 alongside strategic wiring.
-
-**Post-V2a catch-up (before Phase 6):**
-- Create `docs/TUTORIAL_SCRIPT.md` (living document, updated each phase)
-- Review/update existing docs for Session 4 decisions
+**Status:** COMPLETE. All 7 units shipped (1216 tests). Deterministic situational triggers, trust affects consequences only, MILD concerns as flavor text. V2b (defiance/vindication) deferred to Phase 7b. See `OBJECTION_V2.md`.
 
 ---
 
@@ -72,38 +57,21 @@
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| Economy | Income per region, treasury, upkeep | Medium | **6.2 COMPLETE** (6.2.A-H: region types, income, gold, upkeep, bankruptcy, admin AP, stability, war damage, recruitment, plunder/secure, buildings, supply, movement attrition, contested capture, AI admin, depot forward logistics). Session 24 audit: territory viability, plunder multiplier, AI recruitment/building/supply. Session 26 audit (Opus): 10 P0 bugs fixed (auto-advance data, plunder nation, float wrapping, parser collisions), 10 P1 risks resolved, 7 P2 cleanups. **Economy balance to be revisited for 1805 campaign** (Coalition admin AP dilemma, France dominance, building affordability). |
-| Reinforcements (Enemy) | AI can recruit troops | Low | **DONE** (AI admin phase, Session 23+24) |
-| Manpower Pools | Separate: Infantry, Cavalry, Artillery | Medium | Planned |
-| Attrition | Movement/supply decay | Low | **DONE** (Session 22: supply + movement attrition) |
-| Fog of War | Hidden enemies, scouting required, watchtower building | Medium | **COMPLETE** (Sessions 32-36, 38). Intel model, visibility engine, scout persistence, battle reveal, intel report, filtered game state (29 call sites), PURSUE/SUPPORT/cautious pathfinding fog-aware, enemy phase filtering, tactical event filtering, watchtower building, contact interrupt discovery messages, Davout PURSUE fog-aware objection, V2b TODO markers. 157 fog-specific tests. **Session 38: Map visualization** — region fog overlay (dim/grey/dark by visibility), fogged enemy silhouettes with "?" + strength bands, fog-aware tooltips. See `FOG_OF_WAR_SPEC.md`, `FOG_IMPLEMENTATION_PLAN.md`. |
-| Terrain | Region terrain affects combat/movement | Medium | **6.1.A+B done** (data layer + combat). Movement/pathfinding remaining. |
-| Sieges | Fortified cities require siege mechanics | Medium | **Deferred to 1805** — current fort + contested capture (1-2 turn occupation) sufficient for 13-region map. Full sieges (attrition, starvation, sortie, artillery) revisit when 80-100 regions make longer holdouts strategic. |
-| City Fortification | "Fortify this city" building action | Low | **DONE** (6.2.E: fortification building, 400g/3t, +25% defense. 6.2.F: contested capture holdout.) |
-| Artillery Unit Type | Combat buffs like cavalry | Medium | **DONE** (Session 42: Drouot/PrinceAugust, moved_this_turn lifecycle, cavalry counter +30%, 2x fort degradation, no advance on win, glorious charge ban, artillery manpower pool, 86 tests) |
-| Turn Events Log | Track battles/captures/retreats per turn (feeds gazette) | Low | **COMPLETE** (Session 30: 13 event types, world.event_log, 5 helpers, serialized, 39 tests). EL1-EL5 hardening TODOs resolved in Session 31 (1 bug fixed: auto-charge path wasn't logging battle events). |
-| Player Garrison | Detach 3k troops to garrison a region | Low | **DONE** (Session 31: garrison command, fort degradation, morale warning, capture hint, occupy alias) |
-| Enemy AI Garrison | AI places garrisons via same _execute_garrison (Building Blocks) | Low | **DONE** (P6.75: Building Blocks, 20k threshold, 1/nation/turn, P4.25 sub-5k awareness) |
-| **Save/Load** | Full game state persistence + autosave (moved from Pre-EA) | Low | **COMPLETE** (Session 27: save_manager.py, 4 API endpoints, autosave, terminal commands, load dialog, 38 tests) |
-| **Berthier Parse Recovery** | Failed parses -> Berthier asks clarification in-character (moved from 8.5) | Low | **COMPLETE** (Session 28: prompt_builder.py, llm_client.py, parser.py, main.py. Mock templates + LLM prompt. Reacts to tone. 20 tests.) |
-| **Post-Battle Analysis** | Template breakdown: modifiers, casualties, Berthier observation | Low | **COMPLETE** (Session 29: battle_report.py, snapshots, 15 observation priorities with perspective-aware attacker/defender variants, Godot display, 65 tests) |
-
-### Save/Load Notes
-
-**COMPLETE (Session 27).** `backend/save_manager.py` handles all file I/O. Autosave every turn. Terminal commands "save"/"load". Load dialog popup in Godot. 38 tests. Pause menu (Esc → Save/Load/Settings/Quit) deferred to Phase 6.5 — needed before 1805 EA launch. All phases after this must maintain serialization discipline (already in CLAUDE.md).
-
-### Berthier Parse Recovery
-
-**COMPLETE (Session 28).** Failed commands return in-character Berthier clarification instead of raw errors. Two intercept points: "Unknown action" (before executor) and "Marshal None" (after executor). Mock mode: context-aware templates using real game-state names (3 categories x 2-3 variants). Live mode: one LLM call with Berthier character prompt — reacts to Emperor's tone with flustered dignity. Partial parse info (recognized marshal/target) forwarded for context-aware suggestions. 20 tests.
-
-### Post-Battle Analysis (Berthier's After-Action Report)
-
-**COMPLETE (Session 29).** After every player-visible combat, Berthier delivers a formatted report with:
-- **Modifier breakdown:** All attack/defense modifiers with labels and +/- signs (stance, drill, personality, terrain, fortification, etc.)
-- **Casualty summary:** Original strength, casualties, remaining for both sides
-- **Berthier observation:** One contextual comment from 15 priority categories with perspective-aware attacker/defender variants. Categories: mutual destruction, lost into fortification, lost fort overrun, lost bad stance (attacker/defender), lost terrain disadvantage, lost despite terrain, won heavy casualties, won broke fortification, won fort held, won drilled, lost narrow no drill, lost costly, won decisively, stalemate, default
-
-Uses read-only modifier snapshots taken BEFORE state-consuming `get_attack_modifier()`/`get_defense_modifier()` calls. Perspective-aware: observations always from player's side regardless of who attacks. No LLM needed. Teaches players mechanics through results. All values `int()`-wrapped. 65 tests.
+| Economy | Income per region, treasury, upkeep | Medium | **COMPLETE** (6.2.A-H). Economy balance revisit for 1805. |
+| Reinforcements (Enemy) | AI can recruit troops | Low | **COMPLETE** |
+| Manpower Pools | Separate: Infantry, Cavalry, Artillery | Medium | **COMPLETE** |
+| Attrition | Movement/supply decay | Low | **COMPLETE** |
+| Fog of War | Hidden enemies, scouting required, watchtower building | Medium | **COMPLETE** (Sessions 32-36, 38). 157 tests. See `FOG_OF_WAR_SPEC.md`. |
+| Terrain | Region terrain affects combat/movement | Medium | **COMPLETE** (6.1.A+B). |
+| Sieges | Fortified cities require siege mechanics | Medium | **Deferred to 1805** — fort + contested capture sufficient for 13-region map. |
+| City Fortification | "Fortify this city" building action | Low | **COMPLETE** |
+| Artillery Unit Type | Third marshal type with bombardment | Medium | **COMPLETE** (Sessions 42-44, 48-52). 127+ tests. |
+| Turn Events Log | Track battles/captures/retreats per turn | Low | **COMPLETE** |
+| Player Garrison | Detach 3k troops to garrison a region | Low | **COMPLETE** |
+| Enemy AI Garrison | AI places garrisons via Building Blocks | Low | **COMPLETE** |
+| Save/Load | Full game state persistence + autosave | Low | **COMPLETE** |
+| Berthier Parse Recovery | Failed parses -> in-character clarification | Low | **COMPLETE** |
+| Post-Battle Analysis | Modifier breakdown, casualties, Berthier observation | Low | **COMPLETE** |
 
 ### MAP COMMISSIONING REMINDER
 
@@ -137,7 +105,7 @@ Uses read-only modifier snapshots taken BEFORE state-consuming `get_attack_modif
 
 **Hit detection:** Sample pixel from hidden color map at mouse position -> dictionary lookup -> province ID. O(1), no polygon math.
 
-**Implementation plan:** See `docs/PHASE6_IMPLEMENTATION_PLAN.md` for session-by-session breakdown.
+**Implementation plan:** See `docs/archive/PHASE6_IMPLEMENTATION_PLAN.md` for session-by-session breakdown.
 
 **Dependencies:** None
 **Exit Criteria:** Player manages economy, enemies reinforce, terrain matters, can save/load, failed parses feel in-character
@@ -150,18 +118,17 @@ Uses read-only modifier snapshots taken BEFORE state-consuming `get_attack_modif
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| Notification System | EU4-style persistent alerts for important game events | Medium | **COMPLETE** (Session 56: 9 triggers, NotificationCollector, priority tiers, Godot notification bar, dismiss endpoint. Session 56b audit: whitelist fix, passthrough fix, accumulation fix, auto-dismiss, 70 tests) |
-| **Top Bar Framework** | Unified top bar (CanvasLayer 75) with screen buttons, notification icons, turn counter. Controller for all info screens. Campaign log refactor (layer 50), notification bar repositioning, input blocking refactor, dispatch re-read screen. Spec: `TOP_BAR_SPEC.md` Session A. | Medium | **COMPLETE** (Session A: top_bar.gd/tscn, dispatch_view.gd/tscn, input refactor, 8 tests) |
-| **Strategic Ledger** | 5-section overview: forces, territories, economy, intel, manpower. `ledger.py` backend builder + sub-tabbed Godot screen. Fog-filtered intel. Spec: `TOP_BAR_SPEC.md` Session B. 54 tests. | Medium | **COMPLETE** (Session B: ledger.py, strategic_ledger.gd/tscn, get_manpower_regen_rates extraction, 54 tests) |
+| Notification System | EU4-style persistent alerts (9 triggers, 3 priority tiers) | Medium | **COMPLETE** (70 tests) |
+| Top Bar Framework | Unified top bar (CanvasLayer 75), screen controller, dispatch re-read | Medium | **COMPLETE** (8 tests). Spec: `TOP_BAR_SPEC.md`. |
+| Strategic Ledger | 5-section overview: forces, territories, economy, intel, manpower | Medium | **COMPLETE** (54 tests). Spec: `TOP_BAR_SPEC.md`. |
 | Marshal Management UI | View/manage all marshals, relationships, recruit | Medium | Planned |
-| Campaign Log | Scrollable history of major events | Low | **COMPLETE.** Fog-filtered 14-type event log, Godot overlay (L key), 57 tests. Bankruptcy public knowledge. |
+| Campaign Log | Fog-filtered event log, Godot overlay (L key) | Low | **COMPLETE** (57 tests) |
 | Tooltips | Hover info on regions, marshals, nations | Low | Planned |
-| **Campaign Briefing + Marshal Report** | Morning Dispatch: Berthier's turn-start briefing with SITUATION (regions, treasury, fog-filtered enemy strength ratio), MARSHAL STATUS (per-marshal table with status/trust/morale), INTELLIGENCE (fog-filtered enemy sightings), and Berthier's closing note. Terminal output via `add_output()`, no popup. Backend: `dispatch.py`. 50 tests. | Low | **COMPLETE** |
-| **Dispatch Re-read** | D key to re-read last Morning Dispatch in dedicated screen (CanvasLayer 50). Stores `last_morning_dispatch` on WorldState + serializes. `GET /dispatch` endpoint. Part of Top Bar Session A. | Low | **COMPLETE** (Session A) |
-| **Tutorial Infrastructure** | `TutorialManager` for staged popups/highlights. Content populated in Pre-EA. | Medium | Planned |
-| **Map Renderer** | EU4-style bitmap map integration. 3 workstreams: (1) art integration — visual map Sprite2D, province color map hit detection, nation color shader, fog shader, highlight shader; (2) sprite assets — marshal icons, garrison shields, unit badges, status indicators, building/watchtower icons; (3) code refactor — rip out all procedural drawing from map.gd, sprite-based rendering, UI-based tooltips, color map input handling. See Map Renderer Notes below. | High | Planned |
-| **Pause Menu** | Esc → Save/Load/Settings/Quit (wraps Phase 6 save/load endpoints) | Low | **COMPLETE** (Session 56). Smart Esc: unfocus input → open menu → close menu. CanvasLayer 101, modal overlay, Save/Load/Settings stub/Quit. |
-| **Wire Marshal Abilities** | Wired 4 abilities: Drouot 15% fort degradation, Wellington +5% flat defense, Blucher 3k pursuit, Uxbridge 5k pursuit (cavalry). Gneisenau deferred to Phase 7 Session 58. 54 tests (was 36). | Medium | **Complete** |
+| Morning Dispatch | Berthier's turn-start briefing (SITUATION, MARSHAL STATUS, INTELLIGENCE) | Low | **COMPLETE** (57 tests) |
+| Tutorial Infrastructure | `TutorialManager` for staged popups/highlights | Medium | Planned |
+| Map Renderer | EU4-style bitmap map integration. See Map Renderer Notes below. | High | Planned |
+| Pause Menu | Smart Esc → Save/Load/Settings/Quit | Low | **COMPLETE** |
+| Wire Marshal Abilities | Drouot/Wellington/Blucher/Uxbridge wired. Gneisenau deferred to Phase 7. | Medium | **COMPLETE** (54 tests) |
 
 ### Map Renderer Notes
 

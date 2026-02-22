@@ -347,6 +347,7 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | Manual test plan | `docs/MANUAL_TEST_PLAN.md` |
 | Tutorial content / what to teach | `docs/TUTORIAL_SCRIPT.md` |
 | Playtest evaluation | `docs/PLAYTEST_EVALUATION_PROMPT.md` |
+| Archived specs & session history | `docs/archive/` (ARTILLERY_SPEC, BOMBARDMENT_SPEC, MANPOWER_POOLS_SPEC, SESSION_HISTORY, etc.) |
 
 ## Documentation Rules
 
