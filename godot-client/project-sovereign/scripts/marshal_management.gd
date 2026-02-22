@@ -144,10 +144,13 @@ func _render_card(m: Dictionary, index: int) -> String:
 	if bio != "":
 		bbcode += "[color=#" + COLOR_DIM + "]" + bio + "[/color]\n"
 
-	# ═══════ PERSONALITY ═══════
+	# ═══════ PERSONALITY & UNIT TYPE ═══════
 	var pers_desc = str(m.get("personality_description", ""))
 	if pers_desc != "":
 		bbcode += "[color=#" + COLOR_INFO + "]" + pers_desc + "[/color]\n"
+	var type_desc = str(m.get("unit_type_description", ""))
+	if type_desc != "":
+		bbcode += "[color=#" + COLOR_INFO + "]" + type_desc + "[/color]\n"
 
 	bbcode += "\n"
 
@@ -178,7 +181,7 @@ func _render_card(m: Dictionary, index: int) -> String:
 	for skill_name in ["shock", "defense", "tactical", "logistics", "administration", "command"]:
 		var val = int(skills.get(skill_name, 5))
 		skill_parts.append(_skill_colored(skill_name.substr(0, 3).to_upper(), val))
-	bbcode += " ".join(skill_parts) + "\n\n"
+	bbcode += " ".join(skill_parts) + "\n"
 
 	# ═══════ ABILITY (only shown if active/wired) ═══════
 	var ab_name = str(m.get("ability_name", ""))
@@ -190,6 +193,7 @@ func _render_card(m: Dictionary, index: int) -> String:
 		if ab_effect != "":
 			bbcode += "  [color=#" + COLOR_INFO + "]" + ab_effect + "[/color]"
 		bbcode += "\n"
+
 	bbcode += "\n"
 
 	# ═══════ TRUST & RECORD ═══════

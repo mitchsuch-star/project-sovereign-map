@@ -42,6 +42,22 @@ _PERSONALITY_DESCRIPTIONS = {
     ),
 }
 
+# Gameplay descriptions for each unit type
+_UNIT_TYPE_DESCRIPTIONS = {
+    "Infantry": (
+        "Infantry: Standard movement range of 1. Reliable in all terrain. "
+        "No special restrictions."
+    ),
+    "Cavalry": (
+        "Cavalry: Movement range of 2 — can strike deep. "
+        "Fortify bonus decays after 3 turns. Recklessness builds when attacking repeatedly."
+    ),
+    "Artillery": (
+        "Artillery: Can bombard adjacent regions without entering battle (2 per turn). "
+        "Cannot attack after moving. Does not advance into enemy territory on victory."
+    ),
+}
+
 
 def build_marshal_overview(world) -> List[Dict[str, Any]]:
     """
@@ -101,6 +117,7 @@ def _derive_unit_type(marshal: Marshal) -> str:
 
 def _build_identity(marshal: Marshal) -> Dict[str, Any]:
     """Identity card section."""
+    unit_type = _derive_unit_type(marshal)
     return {
         "name": marshal.name,
         "nation": marshal.nation,
@@ -108,7 +125,8 @@ def _build_identity(marshal: Marshal) -> Dict[str, Any]:
         "personality_description": _PERSONALITY_DESCRIPTIONS.get(
             marshal.personality, ""
         ),
-        "unit_type": _derive_unit_type(marshal),
+        "unit_type": unit_type,
+        "unit_type_description": _UNIT_TYPE_DESCRIPTIONS.get(unit_type, ""),
         "movement_range": int(marshal.movement_range),
         "biography": marshal.biography,
     }

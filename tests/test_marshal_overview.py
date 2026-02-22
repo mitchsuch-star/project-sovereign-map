@@ -92,7 +92,7 @@ class TestStructure:
         required_keys = {
             # Identity
             "name", "nation", "personality", "personality_description",
-            "unit_type", "movement_range", "biography",
+            "unit_type", "unit_type_description", "movement_range", "biography",
             # Ability
             "ability_name", "ability_description", "ability_trigger",
             "ability_effect", "ability_active",
@@ -281,6 +281,48 @@ class TestPersonalityDescription:
         assert "aggressive" in _PERSONALITY_DESCRIPTIONS
         assert "cautious" in _PERSONALITY_DESCRIPTIONS
         assert "literal" in _PERSONALITY_DESCRIPTIONS
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# UNIT TYPE DESCRIPTION
+# ════════════════════════════════════════════════════════════════════════════════
+
+class TestUnitTypeDescription:
+    """Unit type descriptions explain gameplay effects."""
+
+    def test_all_marshals_have_unit_type_description(self):
+        """Every player marshal has a non-empty unit_type_description."""
+        overview = _get_overview()
+        for m in overview:
+            assert m["unit_type_description"] != "", (
+                f"{m['name']} has empty unit_type_description"
+            )
+
+    def test_cavalry_description_mentions_movement(self):
+        """Cavalry description mentions movement range advantage."""
+        overview = _get_overview()
+        ney = _find_marshal(overview, "Ney")
+        assert "movement" in ney["unit_type_description"].lower() or "range" in ney["unit_type_description"].lower()
+
+    def test_artillery_description_mentions_bombard(self):
+        """Artillery description mentions bombardment mechanic."""
+        overview = _get_overview()
+        drouot = _find_marshal(overview, "Drouot")
+        assert "bombard" in drouot["unit_type_description"].lower()
+
+    def test_artillery_description_mentions_cannot_attack_after_move(self):
+        """Artillery description mentions movement restriction."""
+        overview = _get_overview()
+        drouot = _find_marshal(overview, "Drouot")
+        desc = drouot["unit_type_description"].lower()
+        assert "cannot attack after moving" in desc or "attack after moving" in desc
+
+    def test_three_unit_types_covered(self):
+        """All three unit types have descriptions."""
+        from backend.game_logic.marshal_overview import _UNIT_TYPE_DESCRIPTIONS
+        assert "Infantry" in _UNIT_TYPE_DESCRIPTIONS
+        assert "Cavalry" in _UNIT_TYPE_DESCRIPTIONS
+        assert "Artillery" in _UNIT_TYPE_DESCRIPTIONS
 
 
 # ════════════════════════════════════════════════════════════════════════════════
