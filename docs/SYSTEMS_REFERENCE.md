@@ -2429,13 +2429,13 @@ Unified top bar UI framework (Session A). Controller-based architecture: top bar
 
 Adjacent marshals automatically attempt to join ongoing battles before combat resolves. Both attacker and defender sides receive reinforcements independently (Building Blocks — AI uses identical code).
 
-### Eligibility (11 Rules)
+### Eligibility (13 Rules)
 
-A marshal can reinforce if ALL of: same nation, adjacent region (not same region), strength > 0, not broken, not `retreated_this_turn`, `retreat_recovery == 0`, not fortified, not on HOLD (`holding_position`), not engaged (no enemies in their region), not drilling/drilling_locked, not `reinforced_this_turn`.
+A marshal can reinforce if ALL of: same nation, adjacent region (not same region), strength > 0, not broken, not `retreated_this_turn`, `retreat_recovery == 0`, not fortified, not on HOLD (`holding_position`), not engaged (no enemies in their region), not drilling/drilling_locked, not `reinforced_this_turn`, not `moved_this_turn` (A-D2), not Hostile without SUPPORT (A-D4).
 
 ### Grouchy Rule (Personality Gate)
 
-Literal-personality marshals are **blocked from reinforcing** unless they have a SUPPORT or PURSUE strategic order targeting one of the battle participants. This is checked BEFORE arrival score — a blocked literal never rolls.
+Literal-personality marshals are **blocked from reinforcing** unless they have a SUPPORT or PURSUE strategic order targeting a marshal who is **in the battle region** (A-D1 region-match). This is checked BEFORE arrival score — a blocked literal never rolls.
 
 ### Arrival Score Formula
 
@@ -2466,7 +2466,7 @@ When score > 80: 5% failure chance (`random.randint(1, 20) == 1`). Prevents guar
 
 ### Trust Penalty
 
-Failed reinforcement → -3 trust, UNLESS marshal personality is Literal or Hostile.
+Failed reinforcement → -3 trust, UNLESS marshal personality is Literal. (Hostile marshals without SUPPORT are excluded at eligibility by Rule #13 and never enter the pipeline.)
 
 ### Physical Relocation & Ordering (A-C2)
 
@@ -2496,4 +2496,6 @@ On successful arrival:
 | `executor.py` | `_is_reinforcement_eligible()`, `_calculate_arrival_score()`, `_calculate_reinforcements()`, wired into `_execute_attack()` |
 | `marshal.py` | `reinforced_this_turn` field + serialization |
 | `world_state.py` | Turn-start clearing of `reinforced_this_turn` |
+| `objection_v2.py` | §6 SUPPORT objection triggers (aggressive→defensive, cautious→reckless) |
 | `tests/test_reinforcement.py` | 49 tests across 12 classes |
+| `tests/test_reinforcement_edge_cases.py` | 22 tests: rules 12-13, PURSUE region-match, Berthier advisory, SUPPORT objection triggers |

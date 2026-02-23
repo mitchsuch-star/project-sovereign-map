@@ -1117,6 +1117,20 @@ def evaluate_strategic_aggressive(
         # Enemies adjacent but we're not overwhelmingly stronger - HOLD is acceptable
         return ConcernLevel.NONE
 
+    # §6: Aggressive objects to defensive SUPPORT (target fortified/cautious/retreating/broken)
+    if order_type == "SUPPORT":
+        target_marshal = world.marshals.get(target) if target else None
+        if target_marshal:
+            target_is_defensive = (
+                getattr(target_marshal, 'fortified', False)
+                or target_marshal.personality == "cautious"
+                or getattr(target_marshal, 'retreated_this_turn', False)
+                or getattr(target_marshal, 'broken', False)
+            )
+            if target_is_defensive:
+                return ConcernLevel.MODERATE
+        return ConcernLevel.NONE
+
     return ConcernLevel.NONE
 
 
@@ -1183,8 +1197,17 @@ def evaluate_strategic_cautious(
                 return ConcernLevel.MODERATE  # Dangerous path to hold position
         return ConcernLevel.NONE
 
-    # SUPPORT - check path danger
+    # SUPPORT - check reckless ally and path danger
     if order_type == "SUPPORT":
+        # §6: Cautious objects to supporting reckless ally (aggressive + recklessness >= 2)
+        target_marshal = world.marshals.get(target) if target else None
+        if target_marshal:
+            is_reckless = (
+                target_marshal.personality == "aggressive"
+                and getattr(target_marshal, 'recklessness', 0) >= 2
+            )
+            if is_reckless:
+                return ConcernLevel.MODERATE
         if path:
             has_enemies, _ = _path_has_enemies(path, marshal_nation, world)
             if has_enemies:

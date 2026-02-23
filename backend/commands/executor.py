@@ -471,6 +471,21 @@ class CommandExecutor:
         # Rule 11: NOT already reinforced this turn
         if getattr(marshal, 'reinforced_this_turn', False):
             return False
+        # Rule 12: NOT moved_this_turn — troops cannot force-march twice (A-D2)
+        if getattr(marshal, 'moved_this_turn', False):
+            return False
+        # Rule 13: Hostile without SUPPORT cannot auto-reinforce (A-D4)
+        # Hostile auto-reinforcement is net-negative: converts +2% adjacent to 0% coordination
+        rel = marshal.get_relationship(primary.name)
+        if rel == -2:  # Hostile
+            order = getattr(marshal, 'strategic_order', None)
+            has_support_for_primary = (
+                order is not None
+                and order.command_type == "SUPPORT"
+                and order.target == primary.name
+            )
+            if not has_support_for_primary:
+                return False
 
         return True
 
@@ -551,8 +566,9 @@ class CommandExecutor:
                             and order.target == primary.name):
                         has_relevant_order = True
                     elif order.command_type == "PURSUE":
-                        # A-D1 is S61b — for now use name match
-                        if order.target == defender.name:
+                        # A-D1: Region-match — if pursue target is in battle region, it counts
+                        pursue_target = world.marshals.get(order.target)
+                        if pursue_target and pursue_target.location == battle_region:
                             has_relevant_order = True
 
                 if not has_relevant_order:
@@ -577,13 +593,15 @@ class CommandExecutor:
 
             # ═══ VARIABLE THRESHOLD (A-I4) ═══
             order = getattr(candidate, 'strategic_order', None)
-            has_explicit_order = (
-                order is not None
-                and (
-                    (order.command_type == "SUPPORT" and order.target == primary.name)
-                    or (order.command_type == "PURSUE" and order.target == defender.name)
-                )
-            )
+            has_explicit_order = False
+            if order is not None:
+                if order.command_type == "SUPPORT" and order.target == primary.name:
+                    has_explicit_order = True
+                elif order.command_type == "PURSUE":
+                    # A-D1: Region-match for PURSUE threshold too
+                    pursue_tgt = world.marshals.get(order.target)
+                    if pursue_tgt and pursue_tgt.location == battle_region:
+                        has_explicit_order = True
             threshold = 60 if has_explicit_order else 65
             arrived = score > threshold
 
@@ -5074,6 +5092,13 @@ RETREAT RECOVERY (3 turns):
             ally_m = world.get_marshal(target)
             loc = ally_m.location if ally_m else "unknown"
             msg = f"{marshal.name} moves to support {target} (at {loc}).{first_step_msg}"
+            # A-M3: Berthier advisory — fortified marshal cannot reinforce
+            if getattr(marshal, 'fortified', False):
+                msg += (
+                    f"\n\nBerthier: \"Sire, {marshal.name} is ordered to support {target} "
+                    f"but is fortified — they cannot march to reinforce from their current "
+                    f"position. Consider unfortifying, or rely on the co-location coordination bonus.\""
+                )
         else:
             msg = f"{marshal.name} received strategic order: {strategic_type}.{first_step_msg}"
 

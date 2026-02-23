@@ -775,7 +775,8 @@ class TestTrustPenalty:
         assert literal.trust.value == initial_trust
 
     def test_hostile_failure_no_trust_penalty(self):
-        """Hostile relationship failure → no trust penalty."""
+        """Hostile without SUPPORT excluded at eligibility (A-D4 Rule #13).
+        Trust unchanged because they never enter the reinforcement pipeline."""
         primary = _make_marshal(name="Ney", location="Waterloo")
         defender = _make_marshal(name="Well", location="Waterloo",
                                 nation="Britain", strength=40000)
@@ -792,15 +793,10 @@ class TestTrustPenalty:
             results = ex._calculate_reinforcements(
                 primary, defender, "Waterloo", "France", world)
 
-        assert results[0]["arrived"] is False  # Hostile -20 basically guarantees failure
+        # A-D4: Hostile without SUPPORT excluded at eligibility — no result entry
+        assert len(results) == 0
 
-        # Apply trust penalty logic — hostile exemption
-        if not results[0]["arrived"] and results[0]["reason"] != "literal_personality":
-            rel = reinforcer.get_relationship(primary.name)
-            if rel != -2:
-                reinforcer.trust.modify(-3)
-
-        # Hostile exemption: no penalty
+        # Trust unchanged — never entered pipeline
         assert reinforcer.trust.value == initial_trust
 
 

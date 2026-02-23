@@ -31,8 +31,7 @@ Bombardment system (Sessions 48-52), Pause menu (Session 56: Smart Esc, modal ov
 
 ### Up Next
 
-- **Phase 7 Core Session 61b: SUPPORT Command** — Player-issued SUPPORT strategic order. ~30 new tests.
-- **Phase 7 Core remaining:** Session 64 (Win/Loss Relationships). Sessions 57-60 + 61a complete — 190 tests.
+- **Phase 7 Core remaining:** Session 64 (Win/Loss Relationships). Sessions 57-61b complete — 212 tests.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial Infrastructure deferred to Pre-EA.
 - **Phase 7b:** Casualty Distribution (Session 62), AI Coordination Enhancements (Session 63), Full Battle Reports + Berthier Observations (Session 65), Godot Tooltips + Tutorial + Integration Audit (Session 66), Tactical Triangle, V2b, Jealousy, Coalition Trigger, Gneisenau Staff Work (1805). ~150 tests from deferred Phase 7 sessions.
 

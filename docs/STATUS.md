@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 23, 2026 (Session 60: Adjacent Support)
+> **Last Updated:** February 23, 2026 (Session 61b: Reinforcement Edge Cases + SUPPORT Objection Triggers)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3544** (3540 passed, 1 pre-existing flaky, 3 skipped — verified Feb 23) |
+| **Tests Passing** | **3566** (3563 passed, 3 skipped — verified Feb 23) |
 
-| **Current Phase** | Phase 7 Core **IN PROGRESS** (Sessions 57-60, 61a complete, 2 remaining: Sessions 61b, 64). Phase 6.5 Map Renderer art-blocked. |
+| **Current Phase** | Phase 7 Core **IN PROGRESS** (Sessions 57-61b complete, 1 remaining: Session 64). Phase 6.5 Map Renderer art-blocked. |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,10 +19,9 @@
 
 ## Next Steps
 
-1. **Phase 7 Core Session 61b: SUPPORT Command** — Player-issued SUPPORT strategic order.
-2. **Phase 7 Core remaining:** Session 64 (Win/Loss Relationships).
-3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
-4. **Phase 7b (after 7 Core):** Casualty Distribution, AI Coordination Enhancements, Full Battle Reports, Godot Tooltips/Tutorial, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Cross-nation coordination, Gneisenau Staff Work.
+1. **Phase 7 Core remaining:** Session 64 (Win/Loss Relationships).
+2. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
+3. **Phase 7b (after 7 Core):** Casualty Distribution, AI Coordination Enhancements, Full Battle Reports, Godot Tooltips/Tutorial, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Cross-nation coordination, Gneisenau Staff Work.
 
 ---
 
@@ -46,6 +45,18 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7 Core Sessions
+
+### Feb 23 — Session 61b: Reinforcement Edge Cases + SUPPORT Objection Triggers
+
+**22 new tests, 3566 total (3 skipped). Edge cases for reinforcement eligibility, Grouchy Rule upgrade, Berthier advisory, and SUPPORT objection triggers.**
+
+- **Rule #12 — moved_this_turn (A-D2):** Marshals that already moved this turn cannot reinforce (prevents force-marching twice). Blocks artillery that moved from reinforcing.
+- **Rule #13 — Hostile exclusion (A-D4):** Hostile marshals (relationship -2) without a SUPPORT order targeting the primary combatant are excluded from auto-reinforcement. Hostile WITH SUPPORT still passes eligibility (arrives for casualties, 0% coordination per D3).
+- **Grouchy Rule PURSUE region-match (A-D1):** Upgraded from name-match to region-match. Grouchy with `PURSUE Wellington` now arrives at a battle where Wellington is present, even if the primary defender is Blucher.
+- **Berthier fortified SUPPORT advisory (A-M3):** When SUPPORT is issued to a fortified marshal, Berthier warns they cannot march to reinforce. Informational only — does not block the order.
+- **§6 SUPPORT objection triggers:** Two new triggers in `objection_v2.py`: aggressive personality objects to defensive SUPPORT (target fortified/cautious/broken → MODERATE), cautious personality objects to reckless SUPPORT (target aggressive + recklessness ≥ 2 → MODERATE).
+- **Files modified:** `executor.py` (rules 12-13, PURSUE region-match, Berthier advisory), `objection_v2.py` (SUPPORT triggers), `test_reinforcement.py` (updated hostile trust test for A-D4).
+- **Files created:** `tests/test_reinforcement_edge_cases.py` (22 tests across 7 classes).
 
 ### Feb 23 — Session 61a: Adjacent Reinforcement (Arrival Score & Base Reinforcement)
 
