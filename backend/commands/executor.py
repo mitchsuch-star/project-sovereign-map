@@ -221,16 +221,60 @@ class CommandExecutor:
             return (0.10, 0.05)
         return (0.0, 0.0)
 
+    # Relationship → coordination scaling factors (§3 of MULTI_MARSHAL_SPEC)
+    _RELATIONSHIP_SCALING = {-2: 0.0, -1: 0.50, 0: 1.0, 1: 1.25, 2: 1.50}
+
+    def _calculate_per_ally_coordination(self, marshal, allies) -> tuple:
+        """
+        Calculate per-ally relationship-scaled coordination bonus.
+
+        Each eligible ally contributes:
+        - Attack: +3% × relationship_scaling (0.0 to 1.5)
+        - Defense: +5% × relationship_scaling (0.0 to 1.5)
+
+        Fortification rule:
+        - Fortified non-artillery: defense coordination ONLY (no attack contribution)
+        - Fortified artillery: BOTH attack and defense
+
+        Returns:
+            (total_atk, total_def) as floats (e.g. 0.03 = 3%)
+        """
+        total_atk = 0.0
+        total_def = 0.0
+
+        for ally in allies:
+            rel = marshal.get_relationship(ally.name)
+            scale = self._RELATIONSHIP_SCALING.get(rel, 1.0)
+
+            is_fortified_non_artillery = (
+                getattr(ally, 'fortified', False)
+                and not getattr(ally, 'artillery', False)
+            )
+
+            # Attack coordination: skip fortified non-artillery
+            if not is_fortified_non_artillery:
+                total_atk += 0.03 * scale
+
+            # Defense coordination: all eligible allies contribute
+            total_def += 0.05 * scale
+
+        return (total_atk, total_def)
+
     def _calculate_coordination_context(self, primary, world: WorldState) -> dict:
         """
         Calculate coordination bonuses for primary marshal and same-nation allies.
 
-        Session 57: Combined arms only. Sessions 58-61 will add coordination,
-        dedicated, and adjacent bonuses to this method.
+        Session 57: Combined arms detection.
+        Session 58: Per-ally relationship-scaled coordination bonuses.
+        Sessions 59-61 will add dedicated, and adjacent bonuses.
 
-        Sets transient fields on ALL eligible same-nation marshals in region:
+        Each eligible marshal gets their OWN coordination total based on their
+        individual relationships (asymmetric — A→B may differ from B→A).
+
+        Sets transient fields on each eligible marshal:
         - total_coordination_attack_bonus / total_coordination_defense_bonus (capped)
         - _display_combined_arms_atk / _display_combined_arms_def (for battle report)
+        - _display_coordination_atk / _display_coordination_def (for battle report)
 
         Returns context dict for debugging/display.
         """
@@ -241,15 +285,7 @@ class CommandExecutor:
         type_count = self._count_unit_types(region, nation, world)
         combined_arms_atk, combined_arms_def = self._get_combined_arms_bonus(type_count)
 
-        # Sum all coordination sources (Session 57: combined arms only)
-        raw_atk = combined_arms_atk  # + coordination_atk + dedicated_atk + adjacent_atk in later sessions
-        raw_def = combined_arms_def  # + coordination_def + dedicated_def in later sessions
-
-        # Hard cap (applied even though Session 57 alone can't exceed it)
-        capped_atk = min(raw_atk, 0.25)
-        capped_def = min(raw_def, 0.20)
-
-        # Set on ALL eligible same-nation marshals in region (not just primary)
+        # Find all eligible same-nation marshals in region
         eligible = [m for m in world.marshals.values()
                     if m.location == region and m.nation == nation
                     and m.strength > 0
@@ -257,18 +293,32 @@ class CommandExecutor:
                     and not getattr(m, 'retreated_this_turn', False)
                     and getattr(m, 'retreat_recovery', 0) == 0]
 
+        # Each marshal gets their OWN coordination based on their relationships
         for m in eligible:
+            allies_for_m = [a for a in eligible if a.name != m.name]
+            coord_atk, coord_def = self._calculate_per_ally_coordination(m, allies_for_m)
+
+            # Sum all coordination sources
+            raw_atk = combined_arms_atk + coord_atk  # + dedicated_atk + adjacent_atk in later sessions
+            raw_def = combined_arms_def + coord_def  # + dedicated_def in later sessions
+
+            # Hard cap
+            capped_atk = min(raw_atk, 0.25)
+            capped_def = min(raw_def, 0.20)
+
             m.total_coordination_attack_bonus = capped_atk
             m.total_coordination_defense_bonus = capped_def
             m._display_combined_arms_atk = combined_arms_atk
             m._display_combined_arms_def = combined_arms_def
+            m._display_coordination_atk = coord_atk
+            m._display_coordination_def = coord_def
 
         return {
             "type_count": type_count,
             "combined_arms_atk": combined_arms_atk,
             "combined_arms_def": combined_arms_def,
-            "capped_atk": capped_atk,
-            "capped_def": capped_def,
+            "capped_atk": min(combined_arms_atk, 0.25) if not eligible else getattr(primary, 'total_coordination_attack_bonus', 0.0),
+            "capped_def": min(combined_arms_def, 0.20) if not eligible else getattr(primary, 'total_coordination_defense_bonus', 0.0),
             "eligible_marshals": [m.name for m in eligible],
         }
 

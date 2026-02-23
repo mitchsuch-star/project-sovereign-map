@@ -220,8 +220,10 @@ class TestCoordinationContext:
         assert ctx["type_count"] == 2
         assert ctx["combined_arms_atk"] == 0.10
         assert ctx["combined_arms_def"] == 0.05
-        assert inf.total_coordination_attack_bonus == 0.10
-        assert inf.total_coordination_defense_bonus == 0.05
+        # CA 10% + 1 ally at professional (3%) = 13% atk
+        # CA 5% + 1 ally at professional (5%) = 10% def
+        assert inf.total_coordination_attack_bonus == pytest.approx(0.13)
+        assert inf.total_coordination_defense_bonus == pytest.approx(0.10)
 
     def test_coordination_context_sets_on_all_eligible(self):
         inf = _make_marshal(name="Inf1", location="Paris")
@@ -229,9 +231,9 @@ class TestCoordinationContext:
         world = _make_world_with_marshals([inf, cav])
         ex = _executor()
         ex._calculate_coordination_context(inf, world)
-        # Both marshals in the region should get the bonus
-        assert cav.total_coordination_attack_bonus == 0.10
-        assert cav.total_coordination_defense_bonus == 0.05
+        # Both marshals get CA + per-ally coordination (1 ally at professional)
+        assert cav.total_coordination_attack_bonus == pytest.approx(0.13)
+        assert cav.total_coordination_defense_bonus == pytest.approx(0.10)
         assert cav._display_combined_arms_atk == 0.10
         assert cav._display_combined_arms_def == 0.05
 
@@ -241,8 +243,8 @@ class TestCoordinationContext:
         world = _make_world_with_marshals([inf, cav])
         ex = _executor()
         ex._calculate_coordination_context(inf, world)
-        # Verify fields are set
-        assert inf.total_coordination_attack_bonus == 0.10
+        # Verify fields are set (CA 10% + 1 professional ally 3% = 13%)
+        assert inf.total_coordination_attack_bonus == pytest.approx(0.13)
         # Now clear them
         ex._clear_coordination_fields({"Paris"}, world)
         assert inf.total_coordination_attack_bonus == 0.0
@@ -480,21 +482,19 @@ class TestCombatDisplay:
 class TestEdgeCases:
     """Test edge cases and cap verification."""
 
-    def test_hard_cap_applied_even_in_session_57(self):
-        """Cap logic is present — can't exceed +25% atk / +20% def from coordination.
-        Combined arms alone maxes at +20% atk / +10% def, so cap doesn't bite,
-        but verify the code path works."""
+    def test_hard_cap_bites_with_combined_arms_and_coordination(self):
+        """3/3 CA (20% atk) + 2 allies at professional (2×3% = 6%) = 26% → capped to 25%.
+        Defense: 3/3 CA (10%) + 2 allies (2×5% = 10%) = 20% → exactly at cap."""
         inf = _make_marshal(name="Inf1", location="Paris")
         cav = _make_marshal(name="Cav1", location="Paris", cavalry=True)
         art = _make_marshal(name="Art1", location="Paris", artillery=True)
         world = _make_world_with_marshals([inf, cav, art])
         ex = _executor()
         ctx = ex._calculate_coordination_context(inf, world)
-        assert ctx["capped_atk"] == 0.20  # 0.20 < 0.25 cap
-        assert ctx["capped_def"] == 0.10  # 0.10 < 0.20 cap
-        # Verify the cap min() would catch values above the cap
-        assert min(0.30, 0.25) == 0.25
-        assert min(0.25, 0.20) == 0.20
+        # atk: CA 20% + 2 professional allies (6%) = 26% → capped at 25%
+        assert ctx["capped_atk"] == pytest.approx(0.25)
+        # def: CA 10% + 2 professional allies (10%) = 20% → exactly at cap
+        assert ctx["capped_def"] == pytest.approx(0.20)
 
     def test_zero_type_count_returns_zero(self):
         """Empty region returns 0 types."""

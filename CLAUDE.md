@@ -31,8 +31,8 @@ Bombardment system (Sessions 48-52), Pause menu (Session 56: Smart Esc, modal ov
 
 ### Up Next
 
-- **Phase 7 Core Session 58: Per-Ally Coordination Bonuses** — +3%/+5% per ally, relationship-scaled, fortification rule. ~30 new tests.
-- **Phase 7 Core remaining:** Sessions 59 (Dedicated Coordination), 60 (Adjacent Support), 61a (Reinforcement/Grouchy Rule), 61b (SUPPORT Command), 64 (Win/Loss Relationships). Session 57 (Combined Arms Detection) complete — 43 tests.
+- **Phase 7 Core Session 59: Dedicated Coordination** — Co-location tracking, time-based bonus growth. ~30 new tests.
+- **Phase 7 Core remaining:** Sessions 60 (Adjacent Support), 61a (Reinforcement/Grouchy Rule), 61b (SUPPORT Command), 64 (Win/Loss Relationships). Sessions 57 (Combined Arms Detection) and 58 (Per-Ally Coordination Bonuses) complete — 87 tests.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial Infrastructure deferred to Pre-EA.
 - **Phase 7b:** Casualty Distribution (Session 62), AI Coordination Enhancements (Session 63), Full Battle Reports + Berthier Observations (Session 65), Godot Tooltips + Tutorial + Integration Audit (Session 66), Tactical Triangle, V2b, Jealousy, Coalition Trigger, Gneisenau Staff Work (1805). ~150 tests from deferred Phase 7 sessions.
 

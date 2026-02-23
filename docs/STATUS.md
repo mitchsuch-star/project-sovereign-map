@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 23, 2026 (Session 57: Combined Arms Detection)
+> **Last Updated:** February 23, 2026 (Session 58: Per-Ally Coordination Bonuses)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3397** (3394 passed, 3 skipped — verified Feb 23) |
+| **Tests Passing** | **3441** (3438 passed, 3 skipped — verified Feb 23) |
 
-| **Current Phase** | Phase 7 Core **IN PROGRESS** (Session 57/7 complete, 6 remaining: Sessions 58-61a, 61b, 64). Phase 6.5 Map Renderer art-blocked. |
+| **Current Phase** | Phase 7 Core **IN PROGRESS** (Sessions 57-58 complete, 5 remaining: Sessions 59-61a, 61b, 64). Phase 6.5 Map Renderer art-blocked. |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,8 +19,8 @@
 
 ## Next Steps
 
-1. **Phase 7 Core Session 58: Per-Ally Coordination Bonuses** — +3%/+5% per ally, relationship-scaled, fortification rule. ~30 new tests.
-2. **Phase 7 Core remaining:** Sessions 59 (Dedicated Coordination), 60 (Adjacent Support), 61a (Reinforcement/Grouchy Rule), 61b (SUPPORT Command), 64 (Win/Loss Relationships).
+1. **Phase 7 Core Session 59: Dedicated Coordination** — Co-location tracking, time-based bonus growth.
+2. **Phase 7 Core remaining:** Sessions 60 (Adjacent Support), 61a (Reinforcement/Grouchy Rule), 61b (SUPPORT Command), 64 (Win/Loss Relationships).
 3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 4. **Phase 7b (after 7 Core):** Casualty Distribution, AI Coordination Enhancements, Full Battle Reports, Godot Tooltips/Tutorial, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Cross-nation coordination, Gneisenau Staff Work.
 
@@ -46,6 +46,17 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7 Core Sessions
+
+### Feb 23 — Session 58: Per-Ally Coordination Bonuses
+
+**44 new tests, 3438 total (3 skipped). Per-ally relationship-scaled coordination.**
+
+- **Per-ally coordination:** Each eligible ally contributes +3% attack / +5% defense, scaled by relationship: Hostile(0.0) → Rival(0.5) → Professional(1.0) → Friendly(1.25) → Devoted(1.5). Asymmetric — each marshal gets their OWN total based on their relationships.
+- **Fortification rule:** Fortified non-artillery allies give defense coordination only (0% attack). Fortified artillery gives both.
+- **Hard cap enforced:** Combined arms + per-ally coordination summed, then capped at +25% attack / +20% defense. 3/3 France CA (20%) + 2 Professional allies (6%) = 26% → capped at 25%.
+- **S57 tests updated:** 4 tests updated to account for per-ally coordination being additive with combined arms.
+- **Files modified:** `executor.py` (+`_calculate_per_ally_coordination`, `_RELATIONSHIP_SCALING`, extended `_calculate_coordination_context` for per-marshal asymmetric calculation), `tests/test_combined_arms.py` (4 updated tests).
+- **Files created:** `tests/test_coordination_bonus.py` (44 tests across 11 test classes).
 
 ### Feb 23 — Session 57: Combined Arms Detection
 
