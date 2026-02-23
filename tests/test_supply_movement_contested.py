@@ -9,13 +9,11 @@ Covers:
 """
 
 import pytest
-from unittest.mock import patch
 
-from backend.models.region import Region, SUPPLY_BY_TYPE
-from backend.models.marshal import Marshal, Stance
+from backend.models.region import Region
+from backend.models.marshal import Marshal
 from backend.models.world_state import WorldState
 from backend.commands.executor import CommandExecutor
-from backend.game_logic.combat import CombatResolver
 
 
 # ============================================================================
@@ -784,6 +782,11 @@ class TestContestedCapture:
         belgium = world.get_region("Belgium")
         belgium.controller = "Britain"
 
+        # Move enemies far from Belgium so AI phase doesn't disrupt occupation
+        for m in world.marshals.values():
+            if m.nation != "France":
+                m.location = "Rome"
+
         # End turn — occupation should complete, capture choice should be in result
         result = executor.execute({
             "command": {"action": "end_turn"}
@@ -807,8 +810,7 @@ class TestSerializationIntegration:
         """The serialization enforcement test still passes."""
         # Import and run the enforcement test
         from tests.test_serialization_enforcement import (
-            TestMarshalSerializationEnforcement,
-            create_fully_populated_marshal
+            TestMarshalSerializationEnforcement
         )
         test = TestMarshalSerializationEnforcement()
         test.test_all_marshal_fields_serialized()

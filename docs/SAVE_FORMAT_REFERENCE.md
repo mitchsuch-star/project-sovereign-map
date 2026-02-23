@@ -391,6 +391,11 @@ A future save/load system should use this as the specification.
 | `occupation_turns_held` | int | Turns held so far |
 | `occupation_turns_required` | int | Turns needed to complete capture (1 = ungarrisoned, 2 = garrisoned) |
 
+#### Reinforcement (Phase 7 S61a)
+| Field | Type | Description |
+|-------|------|-------------|
+| `reinforced_this_turn` | bool | Whether marshal already reinforced this turn (blocks double-reinforcement, cleared at turn start) |
+
 ---
 
 ## StrategicOrder Format

@@ -297,7 +297,9 @@ class CommandExecutor:
 
         return (len(adjacent_allies), adjacent_allies)
 
-    def _calculate_coordination_context(self, primary, world: WorldState) -> dict:
+    def _calculate_coordination_context(self, primary, world: WorldState,
+                                         reinforcement_results=None,
+                                         exclude_from_adjacent=None) -> dict:
         """
         Calculate coordination bonuses for primary marshal and same-nation allies.
 
@@ -305,6 +307,7 @@ class CommandExecutor:
         Session 58: Per-ally relationship-scaled coordination bonuses.
         Session 59: Dedicated coordination bonus.
         Session 60: Adjacent support bonus (attack-only per A-M2).
+        Session 61a: reinforcement_results parameter for A-C2 SUPPORT timing.
 
         Each eligible marshal gets their OWN coordination total based on their
         individual relationships (asymmetric — A→B may differ from B→A).
@@ -325,7 +328,8 @@ class CommandExecutor:
         combined_arms_atk, combined_arms_def = self._get_combined_arms_bonus(type_count)
 
         # Adjacent support (S60) — ATTACK ONLY per A-M2, calculated ONCE (shared value)
-        adj_count, adj_names = self._count_adjacent_allies(region, nation, world)
+        adj_count, adj_names = self._count_adjacent_allies(
+            region, nation, world, exclude_names=exclude_from_adjacent)
         adjacent_atk = adj_count * 0.02  # +2% per adjacent ally, no defense component
 
         # Find all eligible same-nation marshals in region
@@ -344,7 +348,7 @@ class CommandExecutor:
             # Dedicated coordination bonus (S59): +5%/+5% flat if qualified
             dedicated_atk = 0.0
             dedicated_def = 0.0
-            if allies_for_m and self._has_dedicated_support(m, allies_for_m, world):
+            if allies_for_m and self._has_dedicated_support(m, allies_for_m, world, reinforcement_results):
                 dedicated_atk = 0.05
                 dedicated_def = 0.05
 
@@ -378,11 +382,13 @@ class CommandExecutor:
             "eligible_marshals": [m.name for m in eligible],
         }
 
-    def _has_dedicated_support(self, marshal, same_region_allies, world) -> bool:
+    def _has_dedicated_support(self, marshal, same_region_allies, world,
+                               reinforcement_results=None) -> bool:
         """Check if marshal qualifies for +5%/+5% dedicated coordination bonus.
 
         Path A: Co-location with any ally for 2+ consecutive turns (both player and AI).
         Path B: An ally has an active SUPPORT order targeting this marshal (immediate, one-directional per A-D3).
+        Path B2: An ally arrived via SUPPORT this battle (A-C2 safety net — order not yet cleared).
         """
         # Path A: Co-location duration (2+ turns with any ally here)
         for ally in same_region_allies:
@@ -398,7 +404,217 @@ class CommandExecutor:
                     and order.target == marshal.name):
                 return True
 
+        # Path B2: Arrived via SUPPORT this battle (A-C2 safety net)
+        if reinforcement_results:
+            ally_names = {a.name for a in same_region_allies}
+            for result in reinforcement_results:
+                if (result.get("arrived_via_support")
+                        and result["marshal"] in ally_names):
+                    return True
+
         return False
+
+    # ════════════════════════════════════════════════════════════════════════════════
+    # REINFORCEMENT SYSTEM (Phase 7, Session 61a)
+    # Adjacent marshals physically relocate to the battle region before combat.
+    # ════════════════════════════════════════════════════════════════════════════════
+
+    def _is_reinforcement_eligible(self, marshal, primary, battle_region, nation, world):
+        """Check all 11 eligibility rules for adjacent reinforcement.
+
+        A marshal can reinforce if ALL conditions are met.
+        Rules are from MULTI_MARSHAL_SPEC §7 + amendments.
+        """
+        region = world.get_region(battle_region)
+        if not region:
+            return False
+
+        # Not the primary combatant
+        if marshal.name == primary.name:
+            return False
+        # Rule 1: Same nation
+        if marshal.nation != nation:
+            return False
+        # Rule 2: Adjacent region (not same region, not distant)
+        if marshal.location not in region.adjacent_regions:
+            return False
+        # Rule 3: strength > 0
+        if marshal.strength <= 0:
+            return False
+        # Rule 4: NOT broken
+        if getattr(marshal, 'broken', False):
+            return False
+        # Rule 5: NOT retreated_this_turn
+        if getattr(marshal, 'retreated_this_turn', False):
+            return False
+        # Rule 6: retreat_recovery == 0
+        if getattr(marshal, 'retreat_recovery', 0) != 0:
+            return False
+        # Rule 7: NOT fortified
+        if getattr(marshal, 'fortified', False):
+            return False
+        # Rule 8: NOT on HOLD
+        if getattr(marshal, 'holding_position', False):
+            return False
+        # Rule 9: NOT engaged (no enemy in their region)
+        marshal_region_enemies = [
+            m for m in world.marshals.values()
+            if m.location == marshal.location
+            and m.nation != nation
+            and m.strength > 0
+        ]
+        if marshal_region_enemies:
+            return False
+        # Rule 10: NOT drilling
+        if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+            return False
+        # Rule 11: NOT already reinforced this turn
+        if getattr(marshal, 'reinforced_this_turn', False):
+            return False
+
+        return True
+
+    def _calculate_arrival_score(self, reinforcing_marshal, primary_combatant, world):
+        """Calculate deterministic base + components + random variance.
+
+        Formula from MULTI_MARSHAL_SPEC §7:
+        score = 50 + logistics*5 + relationship_mod + terrain_mod + personality_mod + support_bonus + variance
+        """
+        import random
+
+        base = 50
+
+        logistics = reinforcing_marshal.skills.get("logistics", 5)
+        logistics_bonus = logistics * 5
+
+        rel = reinforcing_marshal.get_relationship(primary_combatant.name)
+        RELATIONSHIP_MOD = {-2: -20, -1: -10, 0: 0, 1: +10, 2: +20}
+        rel_mod = RELATIONSHIP_MOD.get(rel, 0)
+
+        departing_region = world.get_region(reinforcing_marshal.location)
+        terrain = departing_region.terrain if departing_region else "plains"
+        TERRAIN_PENALTY = {
+            "plains": 0, "forest": -10, "hills": -5,
+            "mountains": -20, "urban": 0, "river_crossing": -5,
+        }
+        terrain_mod = TERRAIN_PENALTY.get(terrain, 0)
+
+        PERSONALITY_MOD = {
+            "aggressive": +5, "cautious": -5, "literal": 0,
+            "balanced": 0, "loyal": +3,
+        }
+        personality_mod = PERSONALITY_MOD.get(
+            getattr(reinforcing_marshal, 'personality', 'balanced'), 0
+        )
+
+        # SUPPORT order targeting combatant: +10
+        support_bonus = 0
+        order = getattr(reinforcing_marshal, 'strategic_order', None)
+        if (order
+                and order.command_type == "SUPPORT"
+                and order.target == primary_combatant.name):
+            support_bonus = 10
+
+        variance = random.randint(-8, 8)
+
+        return base + logistics_bonus + rel_mod + terrain_mod + personality_mod + support_bonus + variance
+
+    def _calculate_reinforcements(self, primary, defender, battle_region, nation, world):
+        """Check adjacent marshals for reinforcement arrival.
+
+        Returns list of result dicts with arrival/failure info.
+        Handles: Grouchy Rule, arrival score, variable threshold (A-I4),
+        fumble roll (I3), near-miss tracking (N3).
+        """
+        import random
+
+        reinforcement_results = []
+        region = world.get_region(battle_region)
+        if not region:
+            return reinforcement_results
+
+        # Find eligible adjacent marshals
+        candidates = []
+        for m in world.marshals.values():
+            if not self._is_reinforcement_eligible(m, primary, battle_region, nation, world):
+                continue
+            candidates.append(m)
+
+        for candidate in candidates:
+            # ═══ THE GROUCHY RULE ═══
+            # Check personality BEFORE calculating arrival score
+            if candidate.personality == "literal":
+                has_relevant_order = False
+                order = getattr(candidate, 'strategic_order', None)
+                if order:
+                    if (order.command_type == "SUPPORT"
+                            and order.target == primary.name):
+                        has_relevant_order = True
+                    elif order.command_type == "PURSUE":
+                        # A-D1 is S61b — for now use name match
+                        if order.target == defender.name:
+                            has_relevant_order = True
+
+                if not has_relevant_order:
+                    reinforcement_results.append({
+                        "marshal": candidate.name,
+                        "arrived": False,
+                        "score": None,
+                        "threshold": None,
+                        "reason": "literal_personality",
+                        "near_miss": False,
+                        "near_miss_reason": "",
+                        "has_explicit_order": False,
+                        "message": (
+                            f"{candidate.name} continues to follow standing orders. "
+                            f"The sound of cannon fire grows louder behind him."
+                        ),
+                    })
+                    continue
+
+            # ═══ ARRIVAL SCORE ═══
+            score = self._calculate_arrival_score(candidate, primary, world)
+
+            # ═══ VARIABLE THRESHOLD (A-I4) ═══
+            order = getattr(candidate, 'strategic_order', None)
+            has_explicit_order = (
+                order is not None
+                and (
+                    (order.command_type == "SUPPORT" and order.target == primary.name)
+                    or (order.command_type == "PURSUE" and order.target == defender.name)
+                )
+            )
+            threshold = 60 if has_explicit_order else 65
+            arrived = score > threshold
+
+            # ═══ FUMBLE ROLL (I3) ═══
+            near_miss = False
+            near_miss_reason = ""
+            if arrived and score > 80:
+                if random.randint(1, 20) == 1:  # 5% chance
+                    arrived = False
+                    near_miss = True
+                    near_miss_reason = "Even the best-laid plans can go awry at the crucial moment."
+
+            if arrived:
+                reason = "arrived"
+            elif near_miss:
+                reason = "fate_intervened"
+            else:
+                reason = "low_score"
+
+            reinforcement_results.append({
+                "marshal": candidate.name,
+                "arrived": arrived,
+                "score": int(score),
+                "threshold": int(threshold),
+                "reason": reason,
+                "near_miss": near_miss,
+                "near_miss_reason": near_miss_reason,
+                "has_explicit_order": has_explicit_order,
+            })
+
+        return reinforcement_results
 
     # Transient coordination field names for cleanup after combat (D5 + X1)
     _COORDINATION_FIELDS = [
@@ -3513,11 +3729,62 @@ RETREAT RECOVERY (3 turns):
         battle_region_name = enemy_marshal.location
 
         # ════════════════════════════════════════════════════════════
+        # REINFORCEMENT (Phase 7, Session 61a): Adjacent marshals
+        # physically relocate to battle region before combat.
+        # Must run BEFORE coordination context (A-C2 ordering).
+        # ════════════════════════════════════════════════════════════
+        attacker_reinforcements = self._calculate_reinforcements(
+            marshal, enemy_marshal, battle_region_name, marshal.nation, world
+        )
+        defender_reinforcements = self._calculate_reinforcements(
+            enemy_marshal, marshal, battle_region_name, enemy_marshal.nation, world
+        )
+
+        # Process arrivals — BEFORE coordination context (A-C2)
+        arrived_names = set()
+        for side_primary, results_list in [(marshal, attacker_reinforcements),
+                                           (enemy_marshal, defender_reinforcements)]:
+            for result in results_list:
+                if result["arrived"]:
+                    arriving = world.marshals.get(result["marshal"])
+                    if arriving:
+                        # Record arrived_via_support BEFORE any changes (A-C2)
+                        order = getattr(arriving, 'strategic_order', None)
+                        result["arrived_via_support"] = (
+                            order is not None
+                            and order.command_type == "SUPPORT"
+                            and order.target == side_primary.name
+                        )
+                        # Physical relocation
+                        arriving.location = battle_region_name
+                        arriving.reinforced_this_turn = True
+                        arrived_names.add(arriving.name)
+                        # Clear path (now invalid) but DO NOT clear strategic_order yet (A-C2)
+                        if arriving.strategic_order:
+                            arriving.strategic_order.path = []
+
+        # ════════════════════════════════════════════════════════════
         # COORDINATION (Phase 7, Session 57): Combined arms detection
         # Calculate for BOTH sides independently (A-C3)
+        # S61a: Pass reinforcement_results for A-C2 dedicated support,
+        # exclude arrived names from adjacent count.
         # ════════════════════════════════════════════════════════════
-        attacker_coord = self._calculate_coordination_context(marshal, world)
-        defender_coord = self._calculate_coordination_context(enemy_marshal, world)
+        attacker_coord = self._calculate_coordination_context(
+            marshal, world,
+            reinforcement_results=attacker_reinforcements,
+            exclude_from_adjacent=arrived_names)
+        defender_coord = self._calculate_coordination_context(
+            enemy_marshal, world,
+            reinforcement_results=defender_reinforcements,
+            exclude_from_adjacent=arrived_names)
+
+        # AFTER coordination context — NOW clear strategic orders (A-C2 step 5)
+        for results_list in [attacker_reinforcements, defender_reinforcements]:
+            for result in results_list:
+                if result["arrived"]:
+                    arriving = world.marshals.get(result["marshal"])
+                    if arriving:
+                        arriving.strategic_order = None
 
         # RESOLVE COMBAT with flanking bonus!
         battle_result = self.combat_resolver.resolve_battle(
@@ -3742,6 +4009,31 @@ RETREAT RECOVERY (3 turns):
         if world.pending_capture_choice:
             result["pending_capture_choice"] = True
             result["capture_data"] = world.pending_capture_choice
+
+        # ════════════════════════════════════════════════════════════
+        # REINFORCEMENT TRUST PENALTIES (Session 61a)
+        # Non-Literal, non-Hostile marshals who fail to arrive lose -3 trust.
+        # ════════════════════════════════════════════════════════════
+        all_reinforcements = attacker_reinforcements + defender_reinforcements
+        for reinf_result in all_reinforcements:
+            if not reinf_result["arrived"] and reinf_result["reason"] != "literal_personality":
+                failing = world.marshals.get(reinf_result["marshal"])
+                if failing:
+                    # Determine which primary this marshal was trying to reinforce
+                    primary_name = (
+                        marshal.name if failing.nation == marshal.nation
+                        else enemy_marshal.name
+                    )
+                    rel = failing.get_relationship(primary_name)
+                    if rel != -2:  # Hostile gets no penalty
+                        failing.trust.modify(-3)
+
+        # Attach reinforcement data to result for display (N3)
+        if attacker_reinforcements or defender_reinforcements:
+            result["reinforcement_results"] = {
+                "attacker": attacker_reinforcements,
+                "defender": defender_reinforcements,
+            }
 
         # ════════════════════════════════════════════════════════════
         # EXHAUSTION TRACKING (Phase 3 - Attack Spam Prevention)

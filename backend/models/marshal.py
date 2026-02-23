@@ -473,6 +473,14 @@ class Marshal:
         self.occupation_turns_held: int = 0
         self.occupation_turns_required: int = 0
 
+        # ════════════════════════════════════════════════════════════
+        # REINFORCEMENT SYSTEM (Phase 7, Session 61a)
+        # ════════════════════════════════════════════════════════════
+        # Set True when marshal reinforces an adjacent battle.
+        # Prevents further reinforcement and orders this turn.
+        # Serialized (M4) — cleared at turn start.
+        self.reinforced_this_turn: bool = False
+
     def move_to(self, new_location: str) -> None:
         """
         Move marshal to a new region.
@@ -1086,6 +1094,9 @@ class Marshal:
             "occupation_region": self.occupation_region,
             "occupation_turns_held": int(self.occupation_turns_held),
             "occupation_turns_required": int(self.occupation_turns_required),
+
+            # ═══════ REINFORCEMENT (Phase 7, S61a) ═══════
+            "reinforced_this_turn": self.reinforced_this_turn,
         }
         return data
 
@@ -1217,6 +1228,9 @@ class Marshal:
         marshal.occupation_region = data.get("occupation_region", None)
         marshal.occupation_turns_held = data.get("occupation_turns_held", 0)
         marshal.occupation_turns_required = data.get("occupation_turns_required", 0)
+
+        # ═══════ REINFORCEMENT (Phase 7, S61a) ═══════
+        marshal.reinforced_this_turn = data.get("reinforced_this_turn", False)
 
         return marshal
 

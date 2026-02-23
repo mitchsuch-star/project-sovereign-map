@@ -1656,7 +1656,6 @@ class TestCannonFireLoopPrevention:
 
     def test_cannon_fire_ignored_turn_serialization(self):
         """cannon_fire_ignored_turn survives to_dict/from_dict roundtrip."""
-        from backend.models.marshal import Marshal
         m = Marshal(name="Test", location="Paris", strength=50000,
                     personality="cautious", nation="France")
         m.cannon_fire_ignored_turn = 5
@@ -2546,6 +2545,8 @@ class TestCannonFireEventInFrontendEvents:
 
         ney = world.get_marshal("Ney")
         ney.location = "Belgium"
+        # Prevent Ney from being pulled as reinforcement during AI attacks
+        ney.reinforced_this_turn = True
 
         # Record a battle nearby (not involving Ney)
         world.record_battle("Waterloo", "SomeAttacker", "SomeDefender", "ongoing")

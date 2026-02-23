@@ -19,8 +19,7 @@ Run subset: pytest tests/test_strategic_ui_comprehensive.py -k "test_report" -v
 """
 
 import pytest
-from typing import Dict, List
-from unittest.mock import patch
+from typing import List
 
 from backend.models.marshal import Marshal, StrategicOrder, StrategicCondition
 from backend.models.region import Region
@@ -1896,6 +1895,8 @@ class TestCannonFireSystem:
         davout.location = "Belgium"
         davout.strategic_order = _make_order("MOVE_TO", "Rhine",
                                               path=["Netherlands", "Rhine"])
+        # Prevent Davout from being pulled as reinforcement into Ney's battle
+        davout.reinforced_this_turn = True
 
         # Execute combat
         executor.execute({

@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3495** (3492 passed, 3 skipped — verified Feb 23) |
+| **Tests Passing** | **3544** (3540 passed, 1 pre-existing flaky, 3 skipped — verified Feb 23) |
 
-| **Current Phase** | Phase 7 Core **IN PROGRESS** (Sessions 57-60 complete, 3 remaining: Sessions 61a, 61b, 64). Phase 6.5 Map Renderer art-blocked. |
+| **Current Phase** | Phase 7 Core **IN PROGRESS** (Sessions 57-60, 61a complete, 2 remaining: Sessions 61b, 64). Phase 6.5 Map Renderer art-blocked. |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,8 +19,8 @@
 
 ## Next Steps
 
-1. **Phase 7 Core Session 61a: Reinforcement/Grouchy Rule** — Adjacent marshals can reinforce into ongoing battles.
-2. **Phase 7 Core remaining:** Sessions 61b (SUPPORT Command), 64 (Win/Loss Relationships).
+1. **Phase 7 Core Session 61b: SUPPORT Command** — Player-issued SUPPORT strategic order.
+2. **Phase 7 Core remaining:** Session 64 (Win/Loss Relationships).
 3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 4. **Phase 7b (after 7 Core):** Casualty Distribution, AI Coordination Enhancements, Full Battle Reports, Godot Tooltips/Tutorial, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Cross-nation coordination, Gneisenau Staff Work.
 
@@ -46,6 +46,23 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7 Core Sessions
+
+### Feb 23 — Session 61a: Adjacent Reinforcement (Arrival Score & Base Reinforcement)
+
+**49 new tests, 3544 total (3 skipped, 1 pre-existing flaky). Adjacent marshals physically reinforce into ongoing battles.**
+
+- **Reinforcement system:** Adjacent same-nation marshals automatically attempt to join ongoing battles. 11 eligibility rules (same nation, adjacent, strength > 0, not broken, not retreated, not recovering, not fortified, not on HOLD, not engaged, not drilling, not already reinforced).
+- **Grouchy Rule (personality gate):** Literal-personality marshals CANNOT reinforce unless they have a SUPPORT or PURSUE order targeting a battle participant. Checked before arrival score.
+- **Arrival score formula:** `base(50) + logistics*5 + relationship_mod + terrain_mod + personality_mod + support_bonus + variance(±8)`. Variable threshold: 60 with SUPPORT/PURSUE order, 65 without.
+- **Fumble roll (I3):** 5% failure chance even when score > 80 (`random.randint(1,20) == 1`).
+- **Physical relocation:** Successful reinforcers move to battle region, set `reinforced_this_turn = True`, join coordination calculation. Strategic orders preserved through coordination, then cleared after (A-C2 ordering).
+- **Path B2 dedicated support:** Arrived-via-SUPPORT reinforcers count for `_has_dedicated_support()` coordination check.
+- **Trust penalty:** -3 trust on failed reinforcement (except Literal and Hostile personalities).
+- **Both sides reinforced:** Attacker and defender independently receive reinforcements (Building Blocks — AI uses identical code).
+- **Serialization (M4):** `reinforced_this_turn` field serialized, cleared at turn start.
+- **Files modified:** `executor.py` (+`_is_reinforcement_eligible`, `_calculate_arrival_score`, `_calculate_reinforcements`, extended `_execute_attack`, extended `_calculate_coordination_context`, extended `_has_dedicated_support`), `marshal.py` (+`reinforced_this_turn`), `world_state.py` (turn-start clearing).
+- **Files created:** `tests/test_reinforcement.py` (49 tests across 12 classes).
+- **Regression fixes:** 3 existing integration tests needed isolation from reinforcement side effects (reinforcement pulls adjacent marshals during AI attacks). Fixed by marking test-specific marshals as `reinforced_this_turn = True` or relocating enemies.
 
 ### Feb 23 — Session 60: Adjacent Support
 

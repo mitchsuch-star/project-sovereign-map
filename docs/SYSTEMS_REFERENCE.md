@@ -17,6 +17,9 @@ Consolidated reference for all game systems. Read when modifying related code.
 8. [Economy System](#8-economy-system)
 9. [Fog of War](#9-fog-of-war)
 10. [Manpower Pools](#10-manpower-pools)
+11. [Campaign Log](#11-campaign-log)
+12. [Top Bar & Screen Management](#12-top-bar--screen-management)
+13. [Reinforcement System](#13-reinforcement-system)
 
 ---
 
@@ -2420,3 +2423,77 @@ Unified top bar UI framework (Session A). Controller-based architecture: top bar
 | `backend/main.py` | `GET /dispatch`, `GET /ledger` endpoints |
 | `tests/test_dispatch_view.py` | 8 tests (storage, serialization, endpoint, no-float) |
 | `tests/test_ledger.py` | 54 tests (all sections + cross-cutting) |
+
+
+## 13. Reinforcement System
+
+Adjacent marshals automatically attempt to join ongoing battles before combat resolves. Both attacker and defender sides receive reinforcements independently (Building Blocks — AI uses identical code).
+
+### Eligibility (11 Rules)
+
+A marshal can reinforce if ALL of: same nation, adjacent region (not same region), strength > 0, not broken, not `retreated_this_turn`, `retreat_recovery == 0`, not fortified, not on HOLD (`holding_position`), not engaged (no enemies in their region), not drilling/drilling_locked, not `reinforced_this_turn`.
+
+### Grouchy Rule (Personality Gate)
+
+Literal-personality marshals are **blocked from reinforcing** unless they have a SUPPORT or PURSUE strategic order targeting one of the battle participants. This is checked BEFORE arrival score — a blocked literal never rolls.
+
+### Arrival Score Formula
+
+```
+score = base(50) + logistics*5 + relationship_mod + terrain_mod + personality_mod + support_bonus + variance
+```
+
+| Component | Values |
+|-----------|--------|
+| Base | 50 |
+| Logistics | skill × 5 (range 5–50) |
+| Relationship mod | -2→-20, -1→-10, 0→0, +1→+10, +2→+20 |
+| Terrain penalty (departing) | plains: 0, forest: -10, hills: -5, mountains: -20, urban: 0, river_crossing: -5 |
+| Personality mod | aggressive: +5, cautious: -5, literal: 0, balanced: 0, loyal: +3 |
+| Support bonus | +10 if SUPPORT order targets primary combatant |
+| Variance | random.randint(-8, 8) |
+
+### Variable Threshold
+
+| Condition | Threshold |
+|-----------|-----------|
+| Has SUPPORT or PURSUE order targeting participant | 60 |
+| No relevant order | 65 |
+
+### Fumble Roll (I3)
+
+When score > 80: 5% failure chance (`random.randint(1, 20) == 1`). Prevents guaranteed success even with perfect stats.
+
+### Trust Penalty
+
+Failed reinforcement → -3 trust, UNLESS marshal personality is Literal or Hostile.
+
+### Physical Relocation & Ordering (A-C2)
+
+On successful arrival:
+1. Record `arrived_via_support` flag (if SUPPORT order active)
+2. Relocate marshal to battle region (`marshal.location = battle_region`)
+3. Set `reinforced_this_turn = True`
+4. Clear path (but **NOT** strategic order yet)
+5. Calculate coordination context (order still active for bonuses)
+6. **THEN** clear strategic order (after coordination)
+
+### Interaction with Coordination
+
+- Arrived reinforcers are **excluded** from adjacent ally count (`exclude_from_adjacent` parameter)
+- Arrived reinforcers **join** same-region coordination (counted as allies in battle region)
+- Path B2: Reinforcers who arrived via SUPPORT count for `_has_dedicated_support()` check
+- `reinforcement_results` passed through `_calculate_coordination_context()` → `_has_dedicated_support()`
+
+### Serialization
+
+`reinforced_this_turn` (bool, default False) is serialized on Marshal. Cleared at turn start in `world_state.py`.
+
+### Key Files
+
+| File | What changed |
+|------|-------------|
+| `executor.py` | `_is_reinforcement_eligible()`, `_calculate_arrival_score()`, `_calculate_reinforcements()`, wired into `_execute_attack()` |
+| `marshal.py` | `reinforced_this_turn` field + serialization |
+| `world_state.py` | Turn-start clearing of `reinforced_this_turn` |
+| `tests/test_reinforcement.py` | 49 tests across 12 classes |

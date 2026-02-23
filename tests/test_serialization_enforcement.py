@@ -181,6 +181,9 @@ def create_fully_populated_marshal() -> Marshal:
     marshal.occupation_turns_held = 1
     marshal.occupation_turns_required = 2
 
+    # Reinforcement (Phase 7, S61a)
+    marshal.reinforced_this_turn = True
+
     return marshal
 
 

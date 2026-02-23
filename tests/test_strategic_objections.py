@@ -17,7 +17,7 @@ Future expansion notes:
 """
 
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 from backend.models.world_state import WorldState
 from backend.models.marshal import Marshal, StrategicOrder, StrategicCondition, Stance
 from backend.models.region import Region
@@ -497,6 +497,7 @@ class TestDavoutPursueObjection:
     def test_davout_pursue_threshold_exactly_1_2_is_mild(self, world_with_enemies, executor):
         """V2a: 1.2x ratio is MILD (no popup). Old V1 treated this as popup-worthy.
         V2 design decision: 1.5:1 cautious = MILD (not popup). See OBJECTION_V2.md §7."""
+        from unittest.mock import patch
         world = world_with_enemies
         davout = world.marshals["Davout"]
         davout.strength = 30000
@@ -510,7 +511,9 @@ class TestDavoutPursueObjection:
             "target": "Wellington"
         }
 
-        result = executor.execute(make_strategic_command(command, "PURSUE"), make_game_state(world))
+        # Mock mood variance to stay at base level (docstring: "mock random.random()")
+        with patch("backend.commands.objection_v2.random.random", return_value=0.5):
+            result = executor.execute(make_strategic_command(command, "PURSUE"), make_game_state(world))
 
         # V2a: 1.2x = MILD = no popup, order proceeds
         assert result.get("pending_objection") is not True, "1.2x should be MILD in V2 (no popup)"
