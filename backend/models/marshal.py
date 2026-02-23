@@ -308,6 +308,17 @@ class Marshal:
         self.relationships: Dict[str, int] = {}
 
         # ════════════════════════════════════════════════════════════
+        # CO-LOCATION & RELATIONSHIP TRACKING (Phase 7, Session 59)
+        # ════════════════════════════════════════════════════════════
+        # Tracks consecutive turns co-located with each ally (for dedicated coordination bonus).
+        # Key = ally marshal name, Value = turn when co-location streak started.
+        # Cleared when ally leaves or marshal dies. Threshold: current_turn - start_turn >= 2.
+        self.co_location_turns: Dict[str, int] = {}
+        # Tracks last turn a relationship changed with each ally (for Session 64 cooldown).
+        # Key = ally marshal name, Value = turn of last relationship change.
+        self.last_relationship_change_turn: Dict[str, int] = {}
+
+        # ════════════════════════════════════════════════════════════
         # TACTICAL STATE SYSTEM (Phase 2.6)
         # ════════════════════════════════════════════════════════════
 
@@ -995,6 +1006,10 @@ class Marshal:
             # ═══════ RELATIONSHIPS ═══════
             "relationships": self.relationships.copy(),
 
+            # ═══════ CO-LOCATION & RELATIONSHIP TRACKING (Phase 7, S59) ═══════
+            "co_location_turns": self.co_location_turns.copy(),
+            "last_relationship_change_turn": self.last_relationship_change_turn.copy(),
+
             # ═══════ TACTICAL STATE - DRILL ═══════
             "drilling": self.drilling,
             "drilling_locked": self.drilling_locked,
@@ -1122,6 +1137,10 @@ class Marshal:
 
         # ═══════ RELATIONSHIPS ═══════
         marshal.relationships = data.get("relationships", {}).copy()
+
+        # ═══════ CO-LOCATION & RELATIONSHIP TRACKING (Phase 7, S59) ═══════
+        marshal.co_location_turns = data.get("co_location_turns", {}).copy()
+        marshal.last_relationship_change_turn = data.get("last_relationship_change_turn", {}).copy()
 
         # ═══════ TACTICAL STATE - DRILL ═══════
         marshal.drilling = data.get("drilling", False)

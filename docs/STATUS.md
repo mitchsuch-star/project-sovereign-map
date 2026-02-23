@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 23, 2026 (Session 58: Per-Ally Coordination Bonuses)
+> **Last Updated:** February 23, 2026 (Session 59: Dedicated Coordination)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3441** (3438 passed, 3 skipped — verified Feb 23) |
+| **Tests Passing** | **3472** (3469 passed, 3 skipped — verified Feb 23) |
 
-| **Current Phase** | Phase 7 Core **IN PROGRESS** (Sessions 57-58 complete, 5 remaining: Sessions 59-61a, 61b, 64). Phase 6.5 Map Renderer art-blocked. |
+| **Current Phase** | Phase 7 Core **IN PROGRESS** (Sessions 57-59 complete, 4 remaining: Sessions 60, 61a, 61b, 64). Phase 6.5 Map Renderer art-blocked. |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,8 +19,8 @@
 
 ## Next Steps
 
-1. **Phase 7 Core Session 59: Dedicated Coordination** — Co-location tracking, time-based bonus growth.
-2. **Phase 7 Core remaining:** Sessions 60 (Adjacent Support), 61a (Reinforcement/Grouchy Rule), 61b (SUPPORT Command), 64 (Win/Loss Relationships).
+1. **Phase 7 Core Session 60: Adjacent Support** — Adjacent-region coordination bonus.
+2. **Phase 7 Core remaining:** Sessions 61a (Reinforcement/Grouchy Rule), 61b (SUPPORT Command), 64 (Win/Loss Relationships).
 3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 4. **Phase 7b (after 7 Core):** Casualty Distribution, AI Coordination Enhancements, Full Battle Reports, Godot Tooltips/Tutorial, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Cross-nation coordination, Gneisenau Staff Work.
 
@@ -46,6 +46,18 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7 Core Sessions
+
+### Feb 23 — Session 59: Dedicated Coordination
+
+**31 new tests, 3472 total (3 skipped). Co-location tracking + dedicated coordination bonus.**
+
+- **Co-location tracking:** `_update_co_location_tracking()` in `world_state.py` runs per-turn BEFORE turn increment (A-D7). Tracks `co_location_turns` dict on each marshal: ally_name → start_turn of co-location streak. Clears on separation, death, or broken status.
+- **Dedicated bonus (Path A):** After 2+ consecutive co-located turns (`current_turn - start_turn >= 2`), marshal earns flat +5% attack / +5% defense. Doesn't scale with relationship or stack with multiple qualifying allies.
+- **Dedicated bonus (Path B):** Active SUPPORT order targeting a marshal grants immediate +5%/+5%. One-directional per A-D3 — only the target gets the bonus, not the supporter. Mutual SUPPORT (4 AP) gives both.
+- **Pipeline integration:** Dedicated bonus added to raw sum in `_calculate_coordination_context()` (combined arms + per-ally + dedicated), then hard-capped at +25% atk / +20% def. Display fields `_display_dedicated_atk`/`_display_dedicated_def` set on marshal, already in cleanup list.
+- **Forward-compatibility field:** `last_relationship_change_turn` dict added to marshal (empty until Session 64 populates it). Serialization-enforced.
+- **Files modified:** `marshal.py` (2 new Dict fields in `__init__`/`to_dict`/`from_dict`), `world_state.py` (+`_update_co_location_tracking`, call site in `_process_tactical_states`), `executor.py` (+`_has_dedicated_support`, extended `_calculate_coordination_context`), `tests/test_serialization_enforcement.py` (fixture updated).
+- **Files created:** `tests/test_dedicated_coordination.py` (31 tests across 8 test classes).
 
 ### Feb 23 — Session 58: Per-Ally Coordination Bonuses
 

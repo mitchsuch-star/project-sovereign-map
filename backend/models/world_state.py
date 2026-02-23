@@ -3289,6 +3289,39 @@ class WorldState:
             else:
                 self.victory = "defeat"
 
+    def _update_co_location_tracking(self):
+        """Update co-location turn counters for dedicated coordination bonus.
+
+        Called from _process_tactical_states() BEFORE current_turn increments (A-D7).
+        New entries record start_turn = self.current_turn (the OLD value).
+        Threshold: current_turn - start_turn >= 2 fires at start of 3rd co-location turn.
+        """
+        for marshal in self.marshals.values():
+            # Dead or broken marshals clear all tracking
+            if marshal.strength <= 0 or getattr(marshal, 'broken', False):
+                marshal.co_location_turns = {}
+                continue
+
+            # Find living, non-broken, same-nation allies at same location
+            allies_here = {
+                m.name for m in self.marshals.values()
+                if m.location == marshal.location
+                and m.nation == marshal.nation
+                and m.name != marshal.name
+                and m.strength > 0
+                and not getattr(m, 'broken', False)
+            }
+
+            # Remove allies no longer co-located
+            for name in list(marshal.co_location_turns.keys()):
+                if name not in allies_here:
+                    del marshal.co_location_turns[name]
+
+            # Add new co-located allies (start counting from this turn)
+            for ally_name in allies_here:
+                if ally_name not in marshal.co_location_turns:
+                    marshal.co_location_turns[ally_name] = self.current_turn
+
     def _process_tactical_states(self) -> list:
         """
         Process tactical state changes at end of turn (before turn counter advances).
@@ -3326,6 +3359,13 @@ class WorldState:
                         "nation": marshal.nation,
                         "message": f"{marshal.name}'s SUPPORT order for {target_name} cancelled — {target_name} has broken and is in retreat."
                     })
+
+        # ════════════════════════════════════════════════════════════
+        # CO-LOCATION TRACKING (Phase 7, Session 59)
+        # Must run BEFORE current_turn increments (A-D7).
+        # New entries record start_turn = self.current_turn (the old value).
+        # ════════════════════════════════════════════════════════════
+        self._update_co_location_tracking()
 
         # Track marshals who just got shock bonus (to avoid duplicate reminders)
         just_completed_drill = set()

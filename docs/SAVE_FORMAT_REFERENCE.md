@@ -174,6 +174,9 @@ A future save/load system should use this as the specification.
 
   "relationships": {"Davout": -2, "Grouchy": 0},
 
+  "co_location_turns": {"Davout": 3},
+  "last_relationship_change_turn": {},
+
   "drilling": false,
   "drilling_locked": false,
   "drill_complete_turn": -1,
@@ -291,6 +294,13 @@ A future save/load system should use this as the specification.
 | `autonomous_battles_lost` | int | Losses during autonomy |
 | `autonomous_regions_captured` | int | Captures during autonomy |
 | `trust_warning_shown` | bool | Warning shown at trust < 40 |
+
+#### Relationships & Co-Location (Phase 4 / Phase 7 S59)
+| Field | Type | Description |
+|-------|------|-------------|
+| `relationships` | dict | Marshal name → relationship level (-2 to +2) |
+| `co_location_turns` | dict | Marshal name → turn when co-location streak started |
+| `last_relationship_change_turn` | dict | Marshal name → last turn relationship changed (S64 cooldown) |
 
 #### Tactical State
 | Field | Type | Description |

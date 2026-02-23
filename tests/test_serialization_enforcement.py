@@ -106,6 +106,10 @@ def create_fully_populated_marshal() -> Marshal:
     # Relationships
     marshal.relationships = {"Davout": 1, "Grouchy": -1}
 
+    # Co-location & relationship tracking (Phase 7, S59)
+    marshal.co_location_turns = {"Davout": 3, "Grouchy": 1}
+    marshal.last_relationship_change_turn = {"Davout": 5}
+
     # Tactical state
     marshal.drilling = True
     marshal.drilling_locked = True

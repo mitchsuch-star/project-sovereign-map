@@ -298,9 +298,16 @@ class CommandExecutor:
             allies_for_m = [a for a in eligible if a.name != m.name]
             coord_atk, coord_def = self._calculate_per_ally_coordination(m, allies_for_m)
 
+            # Dedicated coordination bonus (S59): +5%/+5% flat if qualified
+            dedicated_atk = 0.0
+            dedicated_def = 0.0
+            if allies_for_m and self._has_dedicated_support(m, allies_for_m, world):
+                dedicated_atk = 0.05
+                dedicated_def = 0.05
+
             # Sum all coordination sources
-            raw_atk = combined_arms_atk + coord_atk  # + dedicated_atk + adjacent_atk in later sessions
-            raw_def = combined_arms_def + coord_def  # + dedicated_def in later sessions
+            raw_atk = combined_arms_atk + coord_atk + dedicated_atk  # + adjacent_atk in S60
+            raw_def = combined_arms_def + coord_def + dedicated_def  # + adjacent_def in S60
 
             # Hard cap
             capped_atk = min(raw_atk, 0.25)
@@ -312,6 +319,8 @@ class CommandExecutor:
             m._display_combined_arms_def = combined_arms_def
             m._display_coordination_atk = coord_atk
             m._display_coordination_def = coord_def
+            m._display_dedicated_atk = dedicated_atk
+            m._display_dedicated_def = dedicated_def
 
         return {
             "type_count": type_count,
@@ -321,6 +330,28 @@ class CommandExecutor:
             "capped_def": min(combined_arms_def, 0.20) if not eligible else getattr(primary, 'total_coordination_defense_bonus', 0.0),
             "eligible_marshals": [m.name for m in eligible],
         }
+
+    def _has_dedicated_support(self, marshal, same_region_allies, world) -> bool:
+        """Check if marshal qualifies for +5%/+5% dedicated coordination bonus.
+
+        Path A: Co-location with any ally for 2+ consecutive turns (both player and AI).
+        Path B: An ally has an active SUPPORT order targeting this marshal (immediate, one-directional per A-D3).
+        """
+        # Path A: Co-location duration (2+ turns with any ally here)
+        for ally in same_region_allies:
+            start_turn = marshal.co_location_turns.get(ally.name)
+            if start_turn is not None and world.current_turn - start_turn >= 2:
+                return True
+
+        # Path B: Active SUPPORT order from an ally targeting THIS marshal (A-D3: one-directional)
+        for ally in same_region_allies:
+            order = getattr(ally, 'strategic_order', None)
+            if (order
+                    and order.command_type == "SUPPORT"
+                    and order.target == marshal.name):
+                return True
+
+        return False
 
     # Transient coordination field names for cleanup after combat (D5 + X1)
     _COORDINATION_FIELDS = [
