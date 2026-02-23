@@ -42,6 +42,8 @@ Bombardment system (Sessions 48-52), Pause menu (Session 56: Smart Esc, modal ov
 
 **Secondary gate: After completing Session 61b (SUPPORT Command),** remind the user to test the SUPPORT command in Godot. Print the SUPPORT-specific checklist from the same file.
 
+**Phase 7b gates (see `docs/PHASE7_UI_TEST_GATE.md` Gates 3-8):** After Session 62 (Casualty Distribution), After Session 65 (Battle Reports), After Tactical Triangle (linked group), After V2b (Defiance), After Coalition Trigger, Session 66 (final audit IS the gate).
+
 See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 
 ---
