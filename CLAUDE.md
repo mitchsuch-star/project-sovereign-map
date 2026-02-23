@@ -36,6 +36,12 @@ Bombardment system (Sessions 48-52), Pause menu (Session 56: Smart Esc, modal ov
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial Infrastructure deferred to Pre-EA.
 - **Phase 7b:** Casualty Distribution (Session 62), AI Coordination Enhancements (Session 63), Full Battle Reports + Berthier Observations (Session 65), Godot Tooltips + Tutorial + Integration Audit (Session 66), Tactical Triangle, V2b, Jealousy, Coalition Trigger, Gneisenau Staff Work (1805). ~150 tests from deferred Phase 7 sessions.
 
+### UI Test Gates
+
+**MANDATORY: After completing Session 60 (Adjacent Support), BEFORE starting Session 61a, remind the user to run manual UI tests.** Print the full checklist from `docs/PHASE7_UI_TEST_GATE.md` and do not proceed to Session 61a until the user confirms testing is done or explicitly skips.
+
+**Secondary gate: After completing Session 61b (SUPPORT Command),** remind the user to test the SUPPORT command in Godot. Print the SUPPORT-specific checklist from the same file.
+
 See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 
 ---
