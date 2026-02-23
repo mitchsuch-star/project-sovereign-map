@@ -1991,7 +1991,7 @@ Marshal "administration" stat could slow cohesion decay and improve recruitment 
 
 ## Imperial Governance — Marshals as Military Governors
 
-> **CONCEPTUAL** — Future design direction (Phase 8.5/11 timeframe). Not yet specified. Will need proper spec when we get there.
+> **CONCEPTUAL** — Future design direction (Phase 8.5/11 timeframe). **NEEDS SPEC BEFORE IMPLEMENTING.** Raw concept below, design notes at bottom identify critical risks.
 
 ### Core Idea
 
@@ -2044,6 +2044,23 @@ Territory management runs through marshals, not spreadsheets. Conquered regions 
 - **Phase 11 (Vassals):** Vassal creation as the endgame for conquered territory
 - **Existing economy:** Governor personality modifies stability growth rate, income efficiency, war damage recovery
 - **Existing plunder/secure:** Plundered regions generate more governance events (partisan activity)
+
+### Design Notes — Win-More Risk & What Must Be Solved in Spec
+
+**The problem:** If the player is already winning (conquering territory), governance as described above risks being more rewards stacking up — assign the right personality, collect income, conquer more, repeat. Without meaningful resistance, governance is bookkeeping for the winner.
+
+**What the concept does well:**
+- "Best general is also best governor" is a genuine command dilemma — extends the core "people, not systems" philosophy
+- Personality-driven governance is a natural extension of existing personality types
+- Murat betrayal path connects trust → vassal loyalty organically
+
+**What the spec must solve to avoid win-more:**
+- **Governance must drain military strength.** Not just "marshal is here" but real troop commitments — a governor with 15-20k troops tied down permanently. Spain ate 300k French troops historically. Every conquest should weaken the field army.
+- **Bad governance must snowball.** Ney mismanaging Madrid shouldn't be -5% stability — it should spawn partisan forces, cut supply lines, force diverting a second marshal to fix the mess. The Peninsular War is the model: Spain was supposed to be easy and consumed Napoleon's empire.
+- **Player must be unable to govern everything well.** Finite marshals, 80+ provinces. Ungoverned territories deteriorate fast — forcing hard choices about what to hold, what to release, what to vassal out.
+- **Conquest must create problems that demand marshals you need on the frontline.** If governance is a cost of conquest rather than a reward, it becomes the anti-snowball mechanic the game needs. If it's just "assign personality, collect bonus," it's dead weight.
+
+**The spec must answer:** Does this system make conquest feel like a *risk* with ongoing costs, or just a *reward* with flavor text? The former is worth building. The latter is not.
 
 ---
 
