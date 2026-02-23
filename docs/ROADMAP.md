@@ -13,7 +13,7 @@
 | 1-5.3 | Foundation through AI Fixes | COMPLETE |
 | **V2a** | **Objection System Refactor** | **COMPLETE** |
 | **6** | **Core Campaign Systems** | **COMPLETE** |
-| **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE, Top Bar + Dispatch COMPLETE, Strategic Ledger COMPLETE, Marshal Management UI COMPLETE. Remaining: Tooltips, Tutorial Infrastructure, Map Renderer) |
+| **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE, Top Bar + Dispatch COMPLETE, Strategic Ledger COMPLETE, Marshal Management UI COMPLETE, Tooltips ABSORBED into Map Renderer. Remaining: Tutorial Infrastructure, Map Renderer) |
 | **7 Core** | **Multi-Marshal Coordination** | **Spec COMPLETE + AUDITED + SCOPED.** 6 sessions (57-61, 64). ~190 tests. |
 | 7b | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b, Coalition, Jealousy | Planned (deferred from 7 Core) |
 | 8 | Diplomacy & Peace | Planned |
@@ -123,10 +123,10 @@
 | Strategic Ledger | 5-section overview: forces, territories, economy, intel, manpower | Medium | **COMPLETE** (54 tests). Spec: `TOP_BAR_SPEC.md`. |
 | Marshal Management UI | View all marshals, relationships, abilities, biography, personality/unit type descriptions | Medium | **COMPLETE** (68 tests) |
 | Campaign Log | Fog-filtered event log, Godot overlay (L key) | Low | **COMPLETE** (57 tests) |
-| Tooltips | Hover info on regions, marshals, nations | Low | Planned |
+| Tooltips | Hover info on regions, marshals, nations | Low | **Absorbed into Map Renderer** — existing 3 tooltip variants (marshal 20+ fields, fogged force, region 12+ fields) sufficient. Remaining gaps (region occupant summary, off-screen clamping, theming) handled by Map Renderer items 24/32/42 and Phase 7b Session 66. |
 | Morning Dispatch | Berthier's turn-start briefing (SITUATION, MARSHAL STATUS, INTELLIGENCE) | Low | **COMPLETE** (57 tests) |
 | Tutorial Infrastructure | `TutorialManager` for staged popups/highlights | Medium | Planned |
-| Map Renderer | EU4-style bitmap map integration. See Map Renderer Notes below. | High | Planned |
+| Map Renderer | EU4-style bitmap map integration. See Map Renderer Notes below. Includes tech debt cleanup: extract shared `_format_number()` and color palette from 3 UI scripts into `utils.gd` autoload. | High | Planned |
 | Pause Menu | Smart Esc → Save/Load/Settings/Quit | Low | **COMPLETE** |
 | Wire Marshal Abilities | Drouot/Wellington/Blucher/Uxbridge wired. Gneisenau deferred to Phase 7. | Medium | **COMPLETE** (54 tests) |
 
@@ -259,14 +259,6 @@ Wire ~80-100 provinces for EA v1. Remaining provinces from the 120-150 in the ar
 
 **Dependencies:** Phase 6 (needs data to display), commissioned map art
 **Exit Criteria:** Player has clear visibility into game state, map looks professional
-
-### Tech Debt (resolve during Map Renderer refactor)
-
-| Item | Location | Resolution |
-|------|----------|------------|
-| `_format_number()` duplicated 3x | `dispatch_view.gd`, `strategic_ledger.gd`, `marshal_management.gd` | Extract to shared `utils.gd` autoload |
-| Color palette constants duplicated 3x | Same 3 files (+ `campaign_log.gd` has its own subset) | Consolidate into shared `utils.gd` autoload |
-| Marshal scroll hardcoded 320px/card | `marshal_management.gd:70` | Revisit if playtesting shows scroll misalignment |
 
 ---
 
