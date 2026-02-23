@@ -14,6 +14,15 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 - **Phase added:** When this was built
 - **Priority:** Must-know (blocks play), Should-know (improves play), Nice-to-know (depth)
 
+### Update Policy
+
+**Update this doc every phase, not in one big Pre-EA pass.** Adding 3-5 table rows when a feature ships takes 5 minutes. Deferring means reverse-engineering tutorial implications from code months later — entries get missed and nuances are forgotten. The developer who built the feature writes the best tutorial entry.
+
+- Phase 7: Add coordination, adjacent support, reinforcement (Grouchy Rule) entries
+- Phase 8: Add diplomacy chat, peace treaty, leader personality entries
+- Phase 8.5: Add events, gazette, marshal voice entries
+- Pre-EA: Final review pass + build `TutorialManager` + Short Waterloo Scenario scripting
+
 ---
 
 ## Core Concepts (Phase 1-2)

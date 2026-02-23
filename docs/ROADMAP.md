@@ -13,7 +13,7 @@
 | 1-5.3 | Foundation through AI Fixes | COMPLETE |
 | **V2a** | **Objection System Refactor** | **COMPLETE** |
 | **6** | **Core Campaign Systems** | **COMPLETE** |
-| **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE, Top Bar + Dispatch COMPLETE, Strategic Ledger COMPLETE, Marshal Management UI COMPLETE, Tooltips ABSORBED into Map Renderer. Remaining: Tutorial Infrastructure, Map Renderer) |
+| **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE, Top Bar + Dispatch COMPLETE, Strategic Ledger COMPLETE, Marshal Management UI COMPLETE, Tooltips ABSORBED into Map Renderer, Tutorial Infrastructure DEFERRED to Pre-EA. Remaining: Map Renderer — blocked on art commission) |
 | **7 Core** | **Multi-Marshal Coordination** | **Spec COMPLETE + AUDITED + SCOPED.** 6 sessions (57-61, 64). ~190 tests. |
 | 7b | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b, Coalition, Jealousy | Planned (deferred from 7 Core) |
 | 8 | Diplomacy & Peace | Planned |
@@ -125,7 +125,7 @@
 | Campaign Log | Fog-filtered event log, Godot overlay (L key) | Low | **COMPLETE** (57 tests) |
 | Tooltips | Hover info on regions, marshals, nations | Low | **Absorbed into Map Renderer** — existing 3 tooltip variants (marshal 20+ fields, fogged force, region 12+ fields) sufficient. Remaining gaps (region occupant summary, off-screen clamping, theming) handled by Map Renderer items 24/32/42 and Phase 7b Session 66. |
 | Morning Dispatch | Berthier's turn-start briefing (SITUATION, MARSHAL STATUS, INTELLIGENCE) | Low | **COMPLETE** (57 tests) |
-| Tutorial Infrastructure | `TutorialManager` for staged popups/highlights | Medium | Planned |
+| Tutorial Infrastructure | `TutorialManager` for staged popups/highlights | Medium | **Deferred to Pre-EA** — element highlighting is throwaway before Map Renderer, content grows through Phase 8.5, existing popup infrastructure sufficient. Build against stable scene tree + final mechanics during Pre-EA polish. |
 | Map Renderer | EU4-style bitmap map integration. See Map Renderer Notes below. Includes tech debt cleanup: extract shared `_format_number()` and color palette from 3 UI scripts into `utils.gd` autoload. | High | Planned |
 | Pause Menu | Smart Esc → Save/Load/Settings/Quit | Low | **COMPLETE** |
 | Wire Marshal Abilities | Drouot/Wellington/Blucher/Uxbridge wired. Gneisenau deferred to Phase 7. | Medium | **COMPLETE** (54 tests) |
@@ -595,9 +595,11 @@ To beat Britain: exhaust their willingness to fund coalitions (war score / diplo
 
 **Goal:** Game is shippable, onboardable, monetizable.
 
+**Tutorial policy:** TUTORIAL_SCRIPT.md is updated every phase (3-5 rows per feature). `TutorialManager` infrastructure + Short Waterloo Scenario scripting happens here, built against stable Map Renderer scene tree + final mechanics. See TUTORIAL_SCRIPT.md "Update Policy" section.
+
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| Tutorial Content | Populate `TutorialManager` from TUTORIAL_SCRIPT.md | Medium | Planned |
+| Tutorial System + Content | Build `TutorialManager` (deferred from Phase 6.5) + populate from TUTORIAL_SCRIPT.md. Build against stable Map Renderer scene tree. | Medium | Planned |
 | **LLM Monetization** | BYOK + token tiers + payment | High | CRITICAL |
 | **LLM Feature Toggles** | Per-feature model/on-off selection in settings | Low | Planned |
 | At-will Autonomy | Grant autonomy anytime (gold-gated, one admin slot) | Low | Planned |
@@ -735,7 +737,7 @@ Lighter version of communication cutoff: orders to distant marshals take effect 
 3. Post-V2a: TUTORIAL_SCRIPT.md, doc updates
 4. **Commission Europe map art** (2-4 week lead time, parallel with Phase 6)
 5. Phase 6: Economy, Manpower, Terrain, Fog, **Save/Load**, **Berthier**, **Post-battle analysis**
-6. Phase 6.5: Notifications, **Top Bar Framework + Dispatch** (Session A), **Strategic Ledger** (Session B), Marshal UI, ~~Campaign Briefing~~, ~~Marshal Report~~ (shipped as Morning Dispatch), **Tutorial infra**, **Map Renderer**
+6. Phase 6.5: Notifications, **Top Bar Framework + Dispatch** (Session A), **Strategic Ledger** (Session B), Marshal UI, ~~Campaign Briefing~~, ~~Marshal Report~~ (shipped as Morning Dispatch), ~~Tutorial infra~~ (deferred to Pre-EA), **Map Renderer**
 7. Phase 7 Core: Multi-Marshal Coordination (Sessions 57-61 + 64, 6 sessions, ~190 tests) — combined arms, coordination bonuses, Grouchy Rule, dynamic relationships
 7b. Phase 7b: Casualty Distribution (S62), AI Coordination (S63), Battle Reports (S65), Godot UI (S66), Tactical Triangle, V2b, Coalition Trigger
 8. Phase 8: **Diplomacy Chat**, Peace Treaties, Leader Personalities

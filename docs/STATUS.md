@@ -11,7 +11,7 @@
 |--------|-------|
 | **Tests Passing** | **3329** (verified, 3 skipped) |
 
-| **Current Phase** | Phase 6.5 **IN PROGRESS** (2 items remaining: Tutorial Infrastructure, Map Renderer — Tooltips absorbed into Map Renderer). **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. |
+| **Current Phase** | Phase 6.5 **IN PROGRESS** (1 item remaining: Map Renderer — art-blocked. Tooltips absorbed into Map Renderer, Tutorial deferred to Pre-EA). **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,9 +19,10 @@
 
 ## Next Steps
 
-1. **Phase 6.5 remaining** — Tutorial Infrastructure, Map Renderer (Tooltips absorbed into Map Renderer)
-2. **Phase 7 Core: Multi-Marshal Coordination** — 6 sessions (57-61, 64), ~190 new tests. Combined arms, coordination bonuses, dedicated coordination, adjacent support, reinforcement (Grouchy Rule), win/loss relationships. Hard cap: +25% atk/+20% def. Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md`.
-3. **Phase 7b (immediately after 7 Core):** Casualty Distribution, AI Coordination Enhancements, Full Battle Reports, Godot Tooltips/Tutorial, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Cross-nation coordination, Gneisenau Staff Work.
+1. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
+2. **Active next** — Special Abilities Evaluation (Davout Iron Marshal design decision + review other marshals), then Phase 7 Core begins.
+3. **Phase 7 Core: Multi-Marshal Coordination** — 6 sessions (57-61, 64), ~190 new tests. Combined arms, coordination bonuses, dedicated coordination, adjacent support, reinforcement (Grouchy Rule), win/loss relationships. Hard cap: +25% atk/+20% def. Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md`.
+4. **Phase 7b (immediately after 7 Core):** Casualty Distribution, AI Coordination Enhancements, Full Battle Reports, Godot Tooltips/Tutorial, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Cross-nation coordination, Gneisenau Staff Work.
 
 ---
 
