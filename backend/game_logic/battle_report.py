@@ -120,6 +120,11 @@ def snapshot_attacker_modifiers(
     if ca_atk > 0:
         mods.append({"label": "Combined arms", "value": int(round(ca_atk * 100)), "type": "bonus"})
 
+    # --- Adjacent Support (Phase 7, Session 60) — attack-only per A-M2 ---
+    adj_atk = getattr(attacker, '_display_adjacent_atk', 0.0)
+    if adj_atk > 0:
+        mods.append({"label": "Adjacent support", "value": int(round(adj_atk * 100)), "type": "bonus"})
+
     # --- Total Coordination (Phase 7) ---
     total_coord_atk = getattr(attacker, 'total_coordination_attack_bonus', 0.0)
     if total_coord_atk > 0:

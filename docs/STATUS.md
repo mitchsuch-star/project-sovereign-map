@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 23, 2026 (Session 59: Dedicated Coordination)
+> **Last Updated:** February 23, 2026 (Session 60: Adjacent Support)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3472** (3469 passed, 3 skipped — verified Feb 23) |
+| **Tests Passing** | **3495** (3492 passed, 3 skipped — verified Feb 23) |
 
-| **Current Phase** | Phase 7 Core **IN PROGRESS** (Sessions 57-59 complete, 4 remaining: Sessions 60, 61a, 61b, 64). Phase 6.5 Map Renderer art-blocked. |
+| **Current Phase** | Phase 7 Core **IN PROGRESS** (Sessions 57-60 complete, 3 remaining: Sessions 61a, 61b, 64). Phase 6.5 Map Renderer art-blocked. |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,8 +19,8 @@
 
 ## Next Steps
 
-1. **Phase 7 Core Session 60: Adjacent Support** — Adjacent-region coordination bonus.
-2. **Phase 7 Core remaining:** Sessions 61a (Reinforcement/Grouchy Rule), 61b (SUPPORT Command), 64 (Win/Loss Relationships).
+1. **Phase 7 Core Session 61a: Reinforcement/Grouchy Rule** — Adjacent marshals can reinforce into ongoing battles.
+2. **Phase 7 Core remaining:** Sessions 61b (SUPPORT Command), 64 (Win/Loss Relationships).
 3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 4. **Phase 7b (after 7 Core):** Casualty Distribution, AI Coordination Enhancements, Full Battle Reports, Godot Tooltips/Tutorial, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Cross-nation coordination, Gneisenau Staff Work.
 
@@ -46,6 +46,19 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7 Core Sessions
+
+### Feb 23 — Session 60: Adjacent Support
+
+**23 new tests, 3495 total (3 skipped). Adjacent-region coordination bonus (attack-only).**
+
+- **Adjacent support bonus:** Marshals in regions adjacent to a battle provide +2% attack per ally. Purely positional — NOT relationship-scaled. Fortified and HOLD marshals count (physically present). Same eligibility as coordination (not broken, not retreating, not recovering, strength > 0).
+- **Attack-only (A-M2):** Adjacent support adds to `raw_atk` ONLY. Defenders benefit only from same-region allies, not adjacent ones.
+- **Pipeline integration:** `_count_adjacent_allies()` calculates ONCE per battle (shared value for all marshals in region), added to coordination sum BEFORE hard cap. Display field `_display_adjacent_atk` set on all eligible marshals, already in `COORDINATION_FIELDS` cleanup list.
+- **Future-proofing (S61):** `exclude_names` parameter on `_count_adjacent_allies()` for Session 61 reinforcement (arriving marshals removed from adjacent count).
+- **Combat message:** Adjacent support displays in tactical prefix when active.
+- **Battle report:** `_display_adjacent_atk` captured in attacker snapshot as "Adjacent support" modifier.
+- **Files modified:** `executor.py` (+`_count_adjacent_allies`, extended `_calculate_coordination_context`), `combat.py` (adjacent support message), `battle_report.py` (adjacent support snapshot).
+- **Files created:** `tests/test_adjacent_support.py` (23 tests across 7 test classes).
 
 ### Feb 23 — Session 59: Dedicated Coordination
 

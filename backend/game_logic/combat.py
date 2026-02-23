@@ -549,6 +549,11 @@ class CombatResolver:
         if def_ca > 0:
             tactical_prefix += f"\n🛡️ {defender.name}'s combined arms coordination! (+{int(def_ca * 100)}% defense)"
 
+        # Adjacent support message (Phase 7, Session 60): Attack-only per A-M2
+        atk_adj = getattr(attacker, '_display_adjacent_atk', 0.0)
+        if atk_adj > 0:
+            tactical_prefix += f"\n⚔️ Adjacent allies bolster {attacker.name}'s attack! (+{int(atk_adj * 100)}%)"
+
         if tactical_prefix:
             tactical_prefix += "\n"
 

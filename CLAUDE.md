@@ -31,8 +31,8 @@ Bombardment system (Sessions 48-52), Pause menu (Session 56: Smart Esc, modal ov
 
 ### Up Next
 
-- **Phase 7 Core Session 60: Adjacent Support** — Adjacent-region coordination bonus. ~30 new tests.
-- **Phase 7 Core remaining:** Sessions 61a (Reinforcement/Grouchy Rule), 61b (SUPPORT Command), 64 (Win/Loss Relationships). Sessions 57 (Combined Arms Detection), 58 (Per-Ally Coordination Bonuses), and 59 (Dedicated Coordination) complete — 118 tests.
+- **Phase 7 Core Session 61a: Reinforcement/Grouchy Rule** — Adjacent marshals reinforce into ongoing battles. ~30 new tests.
+- **Phase 7 Core remaining:** Sessions 61b (SUPPORT Command), 64 (Win/Loss Relationships). Sessions 57 (Combined Arms Detection), 58 (Per-Ally Coordination Bonuses), 59 (Dedicated Coordination), and 60 (Adjacent Support) complete — 141 tests.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial Infrastructure deferred to Pre-EA.
 - **Phase 7b:** Casualty Distribution (Session 62), AI Coordination Enhancements (Session 63), Full Battle Reports + Berthier Observations (Session 65), Godot Tooltips + Tutorial + Integration Audit (Session 66), Tactical Triangle, V2b, Jealousy, Coalition Trigger, Gneisenau Staff Work (1805). ~150 tests from deferred Phase 7 sessions.
 

@@ -260,13 +260,51 @@ class CommandExecutor:
 
         return (total_atk, total_def)
 
+    def _count_adjacent_allies(self, region_name, nation, world, exclude_names=None):
+        """Count eligible same-nation marshals in regions adjacent to the battle region.
+
+        Adjacent support is ATTACK-ONLY (A-M2). +2% per adjacent ally.
+        Fortified and HOLD marshals count (physically present).
+        NOT relationship-scaled (purely positional).
+
+        Args:
+            region_name: The battle region
+            nation: The nation to filter for
+            world: WorldState
+            exclude_names: Set of marshal names to exclude (used by S61 reinforcement)
+
+        Returns:
+            tuple: (count of adjacent allies, list of adjacent ally names)
+        """
+        if exclude_names is None:
+            exclude_names = set()
+
+        region = world.get_region(region_name)
+        if not region:
+            return (0, [])
+
+        adjacent_allies = []
+        for m in world.marshals.values():
+            if (m.nation == nation
+                    and m.name not in exclude_names
+                    and m.location in region.adjacent_regions
+                    and m.location != region_name
+                    and m.strength > 0
+                    and not getattr(m, 'broken', False)
+                    and not getattr(m, 'retreated_this_turn', False)
+                    and getattr(m, 'retreat_recovery', 0) == 0):
+                adjacent_allies.append(m.name)
+
+        return (len(adjacent_allies), adjacent_allies)
+
     def _calculate_coordination_context(self, primary, world: WorldState) -> dict:
         """
         Calculate coordination bonuses for primary marshal and same-nation allies.
 
         Session 57: Combined arms detection.
         Session 58: Per-ally relationship-scaled coordination bonuses.
-        Sessions 59-61 will add dedicated, and adjacent bonuses.
+        Session 59: Dedicated coordination bonus.
+        Session 60: Adjacent support bonus (attack-only per A-M2).
 
         Each eligible marshal gets their OWN coordination total based on their
         individual relationships (asymmetric — A→B may differ from B→A).
@@ -275,6 +313,7 @@ class CommandExecutor:
         - total_coordination_attack_bonus / total_coordination_defense_bonus (capped)
         - _display_combined_arms_atk / _display_combined_arms_def (for battle report)
         - _display_coordination_atk / _display_coordination_def (for battle report)
+        - _display_adjacent_atk (for battle report, attack-only)
 
         Returns context dict for debugging/display.
         """
@@ -284,6 +323,10 @@ class CommandExecutor:
         # Count distinct unit types among eligible same-nation marshals in region
         type_count = self._count_unit_types(region, nation, world)
         combined_arms_atk, combined_arms_def = self._get_combined_arms_bonus(type_count)
+
+        # Adjacent support (S60) — ATTACK ONLY per A-M2, calculated ONCE (shared value)
+        adj_count, adj_names = self._count_adjacent_allies(region, nation, world)
+        adjacent_atk = adj_count * 0.02  # +2% per adjacent ally, no defense component
 
         # Find all eligible same-nation marshals in region
         eligible = [m for m in world.marshals.values()
@@ -305,9 +348,9 @@ class CommandExecutor:
                 dedicated_atk = 0.05
                 dedicated_def = 0.05
 
-            # Sum all coordination sources
-            raw_atk = combined_arms_atk + coord_atk + dedicated_atk  # + adjacent_atk in S60
-            raw_def = combined_arms_def + coord_def + dedicated_def  # + adjacent_def in S60
+            # Sum all coordination sources — adjacent is attack-only (A-M2)
+            raw_atk = combined_arms_atk + coord_atk + dedicated_atk + adjacent_atk
+            raw_def = combined_arms_def + coord_def + dedicated_def  # NO adjacent_def
 
             # Hard cap
             capped_atk = min(raw_atk, 0.25)
@@ -321,11 +364,15 @@ class CommandExecutor:
             m._display_coordination_def = coord_def
             m._display_dedicated_atk = dedicated_atk
             m._display_dedicated_def = dedicated_def
+            m._display_adjacent_atk = adjacent_atk
 
         return {
             "type_count": type_count,
             "combined_arms_atk": combined_arms_atk,
             "combined_arms_def": combined_arms_def,
+            "adjacent_count": adj_count,
+            "adjacent_names": adj_names,
+            "adjacent_atk": adjacent_atk,
             "capped_atk": min(combined_arms_atk, 0.25) if not eligible else getattr(primary, 'total_coordination_attack_bonus', 0.0),
             "capped_def": min(combined_arms_def, 0.20) if not eligible else getattr(primary, 'total_coordination_defense_bonus', 0.0),
             "eligible_marshals": [m.name for m in eligible],
