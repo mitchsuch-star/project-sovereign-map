@@ -15,7 +15,7 @@ Read this alongside the original spec before each session. Items marked with a s
 
 - ⚡ `[S57]` — Must apply before Session 57 starts (apply NOW)
 - `[S60]` — Apply before Session 60
-- `[S61]` — Apply before Session 61
+- `[S61a]` / `[S61b]` — Apply before Session 61a / 61b (split session)
 - `[S62]` — Apply before Session 62
 - `[S63]` — Apply before Session 63
 - `[S64]` — Apply before Session 64
@@ -198,7 +198,7 @@ Drouot: FAILED (score 54, threshold 60)
 
 ---
 
-### D1 · `holding_position` Not Cleared When Any Strategic Order Replaces HOLD ⚡ `[S61]`
+### D1 · `holding_position` Not Cleared When Any Strategic Order Replaces HOLD ✅ `[S61a — ALREADY FIXED]`
 
 **Confirmed bug:** `executor.py` lines 4172–4175 — when a new strategic order replaces an old one, `holding_position` is NOT explicitly cleared. Only the cancel path (~line 8372) and tactical override path (~line 937) clear it.
 
@@ -347,7 +347,7 @@ if (not world.coordination_tutorial_shown
 
 ---
 
-### D7 · Reinforcer Retreat Destination — Location Timing `[S61]`
+### D7 · Reinforcer Retreat Destination — Location Timing `[S61a]`
 
 **Verify in Session 61:** Confirm `_apply_forced_retreat_or_break()` uses `marshal.location` (the current value, already updated to the battle region at time of reinforcement arrival) — not any cached pre-battle location variable.
 
@@ -391,7 +391,7 @@ This is intentional dark comedy. The +15% is real — but they consume supply, N
 
 ---
 
-### I3 · Devoted Reinforcement — Floor Check Added `[S61]`
+### I3 · Devoted Reinforcement — Floor Check Added `[S61a]`
 
 **Decision:** Add a floor check. Even Devoted pairs fail on minimum variance (~5% chance).
 
@@ -468,7 +468,7 @@ if arrived and score > 80:
 
 ---
 
-### N3 · Near-Miss Data Flow Through Reinforcement Results `[S61]`
+### N3 · Near-Miss Data Flow Through Reinforcement Results `[S61a]`
 
 The I3 fumble roll produces a `near_miss: bool` flag and `near_miss_reason: str` that must flow through the reinforcement system:
 
@@ -522,7 +522,7 @@ With: *"Decisive wins with Rivals sometimes improve (+15 + 0 ± 10 = 35-55 → a
 
 ---
 
-### M4 · `reinforced_this_turn` — Serialized Per-Turn Flag `[S61]`
+### M4 · `reinforced_this_turn` — Serialized Per-Turn Flag `[S61a]`
 
 **Correction to §7:** The spec says `reinforced_this_turn: bool` is "transient, not serialized." This is wrong per existing patterns.
 
@@ -640,7 +640,7 @@ modifier *= (1.0 + getattr(self, 'total_coordination_attack_bonus', 0.0))
 
 ---
 
-### A-C2 · SUPPORT Order Cleared Before Coordination Calculation `[S61]`
+### A-C2 · SUPPORT Order Cleared Before Coordination Calculation `[S61a]`
 
 **Problem:** §7 says "clear `marshal.strategic_order = None` after reinforcement relocation." §4 Path B checks if any ally has a SUPPORT order targeting the combatant. If the order is cleared at relocation (step 2), the dedicated bonus check at step 4 fails — the 2 AP spent on SUPPORT is wasted.
 
@@ -708,7 +708,7 @@ def _has_dedicated_support(self, marshal, same_region_allies, world, reinforceme
 
 ---
 
-### A-D1 · Grouchy Rule PURSUE Check — Region-Match Not Name-Match `[S61]`
+### A-D1 · Grouchy Rule PURSUE Check — Region-Match Not Name-Match `[S61b]`
 
 **Problem:** The spec uses `order.target == defender.name`. If Grouchy has `PURSUE Wellington` and the battle is `Ney attacks Blucher` in a region where Wellington also stands, Grouchy is blocked despite his quarry being present.
 
@@ -723,7 +723,7 @@ elif order.command_type == "PURSUE":
 
 ---
 
-### A-D2 · `moved_this_turn` Missing from Reinforcement Eligibility `[S61]`
+### A-D2 · `moved_this_turn` Missing from Reinforcement Eligibility `[S61b]`
 
 **Problem:** A marshal who moved (via action) could reinforce, effectively moving a second time. Artillery that already moved (losing attack eligibility) could reinforce and move again.
 
@@ -745,7 +745,7 @@ elif order.command_type == "PURSUE":
 
 ---
 
-### A-D4 · Hostile Reinforcement — Excluded Without SUPPORT `[S61]`
+### A-D4 · Hostile Reinforcement — Excluded Without SUPPORT `[S61b]`
 
 **Decision:** Hostile WITHOUT SUPPORT → excluded from auto-reinforcement entirely.
 
@@ -826,7 +826,7 @@ Rivals winning a decisive battle together: ~24% chance of improvement per battle
 
 ---
 
-### A-I4 · Logistics × 5 Kept, No-Order Threshold Raised to 65 `[S61]`
+### A-I4 · Logistics × 5 Kept, No-Order Threshold Raised to 65 `[S61a]`
 
 Davout (logistics 8): base score 90 before relationship/terrain. Always arrives from plains without SUPPORT.
 
@@ -872,7 +872,7 @@ Adjacent support is +2% attack only, no defense component. Defenders benefit onl
 
 ---
 
-### A-M3 · Fortified SUPPORT Marshal — Berthier Advisory `[S61]`
+### A-M3 · Fortified SUPPORT Marshal — Berthier Advisory `[S61b]`
 
 A fortified marshal with a SUPPORT order grants the dedicated bonus but cannot reinforce (eligibility rule #7). The player gets no warning.
 
@@ -908,7 +908,7 @@ Preview shows pre-reinforcement combined arms. Actual battle may get 3/3 if arti
 
 ---
 
-### X2 · I3 Threshold Integrated with A-I4 `[S61]`
+### X2 · I3 Threshold Integrated with A-I4 `[S61a]`
 
 **Problem:** I3 originally hardcoded `arrived = score > 60`. A-I4 introduced a variable threshold (60 with orders, 65 without). Both were tagged `[S61]` but used different threshold values.
 
@@ -924,7 +924,7 @@ Preview shows pre-reinforcement combined arms. Actual battle may get 3/3 if arti
 
 ---
 
-### X4 · D3 Coordination Floor 0% Consistent with A-D4 `[S61/S62]`
+### X4 · D3 Coordination Floor 0% Consistent with A-D4 `[S61b/S62]`
 
 **Problem:** D3 established "0% coordination" as the floor for Hostile+SUPPORT marshals. A-D4 originally included a negative impact roll that could reduce coordination below 0%.
 
@@ -932,7 +932,7 @@ Preview shows pre-reinforcement combined arms. Actual battle may get 3/3 if arti
 
 ---
 
-### X5 · N3 Template Selection Updated for A-D4 `[S61]`
+### X5 · N3 Template Selection Updated for A-D4 `[S61a]`
 
 **Problem:** N3 listed three display templates. A-D4 Hostile+SUPPORT arrivals need a fourth template path.
 
@@ -948,11 +948,14 @@ Preview shows pre-reinforcement combined arms. Actual battle may get 3/3 if arti
 
 ---
 
-### X7 · Session 61 Scope Advisory `[S61]`
+### X7 · Session 61 Split into S61a / S61b `[S61a/b]`
 
-Session 61 carries 11 items — more than any other session and already flagged as "HIGHEST RISK SESSION" in the original spec. The items are: D1, D7, I3, M4, N3, A-C2, A-D1, A-D2, A-D4, A-I4, A-M3.
+Session 61 originally carried 11 items — more than any other session. Now split into two sessions (see PA-3):
 
-**Advisory:** If Session 61 runs long, the following items can safely defer to Session 62 without creating blocking dependencies:
+- **S61a** (6 core items): D1 ✅, D7, I3+A-I4(X2), M4, N3(X5), A-C2
+- **S61b** (4 items): A-D2, A-D4(X4), A-M3, A-D1
+
+The following items in S61b can still defer to S62 without creating blocking dependencies:
 
 | Item | Can Defer? | Reason |
 |---|---|---|
@@ -960,7 +963,7 @@ Session 61 carries 11 items — more than any other session and already flagged 
 | A-D1 (PURSUE region-match) | Yes | Edge case, only matters when multiple enemies share a region |
 | A-D4 (Hostile exclusion rule #13) | Yes | Low probability scenario, -20 penalty already near-blocks |
 
-Core items that MUST ship in Session 61: D1, D7, I3, M4, N3, A-C2, A-D2, A-I4.
+Core items that MUST ship in S61a: D7, I3, M4, N3, A-C2. Core items for S61b: A-D2, A-D4.
 
 ---
 
@@ -972,34 +975,34 @@ Core items that MUST ship in Session 61: D1, D7, I3, M4, N3, A-C2, A-D2, A-I4.
 | C1 | CRITICAL | `apply_casualties=False` defers 5 side effects; caller distributes all (uniform morale, both sides). Morale delta is `int`, scaled from 1v1 projection. | S62 |
 | C2 | CRITICAL | Victor from projected strength (threshold 1.5), never modify `.strength` | S62 |
 | C3 | CRITICAL | Defer cross-nation to 7b; France 3/3 is intentional advantage; patch §2,§3,§7,§11 | S57 ⚡ |
-| D1 | DESIGN GAP | Clear `holding_position` + `hold_region` for ANY strategic order replacing HOLD | S61 |
+| D1 | ✅ FIXED | ~~Clear `holding_position` + `hold_region` for ANY strategic order replacing HOLD~~ Already in codebase (PA-D1) | S61a |
 | D2 | DESIGN GAP | All participating marshals get `battles_won/lost` | S62 |
 | D3 | DESIGN GAP | SUPPORT + Hostile = Participating for casualties, 0% coordination (floor is 0%, never negative) | S62 |
 | D4 | DESIGN GAP | Iterate ordered pairs for relationship formula (6 calls for 3 marshals) | S64 |
 | D5 | DESIGN GAP | Transient fields use `getattr` pattern, NOT `__init__`. **A-C1 supersedes modifier pattern — use single total field.** | S57 ⚡ |
 | D6 | DESIGN GAP | Tutorial fires on player-commanded battle only | S66 |
-| D7 | DESIGN GAP | Verify `marshal.location` timing in retreat; test in S61 | S61 |
+| D7 | DESIGN GAP | Verify `marshal.location` timing in retreat; test in S61a | S61a |
 | I1 | INTERESTING | France 3/3 exclusive — documented as intentional | Keep ✅ |
 | I2 | INTERESTING | Ney-Davout 15% from hatred — dark comedy, keep | Keep ✅ |
-| I3 | INTERESTING | Devoted pairs ~95% arrival: 1-in-20 fumble roll when score > 80. **Uses A-I4 variable threshold.** | S61 |
+| I3 | INTERESTING | Devoted pairs ~95% arrival: 1-in-20 fumble roll when score > 80. **Uses A-I4 variable threshold.** | S61a |
 | N1 | NOTE | Counter-punch fires for primary defender only | S62 |
 | N2 | NOTE | Snapshots capture `total_coordination_*_bonus` + `_display_*` fields BEFORE `get_*_modifier()` | S65 |
-| N3 | NOTE | `near_miss` flag + reason in reinforcement result dict, **4** display templates (incl. Hostile+SUPPORT) | S61 |
+| N3 | NOTE | `near_miss` flag + reason in reinforcement result dict, **4** display templates (incl. Hostile+SUPPORT) | S61a |
 | M1 | MINOR | "Almost never" → "NEVER" for Hostile/Devoted WIN formula. ~30% → ~24%. | S64 |
 | M2 | MINOR | `>50` (not `>=50`) intentional for Hostile LOSS floor | S64 |
 | M3 | MINOR | Cap reachability self-balancing via supply attrition | S60 |
-| M4 | MINOR | `reinforced_this_turn` serialized like `moved_this_turn` | S61 |
+| M4 | MINOR | `reinforced_this_turn` serialized like `moved_this_turn` | S61a |
 | M5 | MINOR | Grouchy Rule coalition AI gap — OK, intentional | No fix ✅ |
 | M6 | MINOR | Extend `_fill()` with `{ally}`, `{relationship}`, coordination placeholders | S65 |
 | M7 | MINOR | Add `TODO-1805` comment on P4.77 cross-nation check | S63 |
 | **AUDIT 2** | | | |
 | A-C1 | CRITICAL | Coordination is additive sum → single multiplier. Four-field `*=` pattern replaced. **Supersedes D5 modifier pattern.** | S57 ⚡ |
-| A-C2 | CRITICAL | SUPPORT order cleared AFTER coordination calc, not at relocation. `arrived_via_support` flag | S61 |
+| A-C2 | CRITICAL | SUPPORT order cleared AFTER coordination calc, not at relocation. `arrived_via_support` flag | S61a |
 | A-C3 | CRITICAL | Defender-side coordination: call `_calculate_coordination_context()` twice. Add to S57/S58 tests | S57 ⚡ |
-| A-D1 | DESIGN GAP | Grouchy PURSUE: region-match not name-match | S61 |
-| A-D2 | DESIGN GAP | `moved_this_turn` = eligibility rule #12 (no double-marching) | S61 |
+| A-D1 | DESIGN GAP | Grouchy PURSUE: region-match not name-match | S61b |
+| A-D2 | DESIGN GAP | `moved_this_turn` = eligibility rule #12 (no double-marching) | S61b |
 | A-D3 | DESIGN GAP | SUPPORT bonus one-directional. Document 4 AP for mutual dedicated bonus | S59 |
-| A-D4 | DESIGN GAP | Hostile auto-reinforcement excluded (rule #13). No impact roll — 0% coordination floor preserved per D3. | S61 |
+| A-D4 | DESIGN GAP | Hostile auto-reinforcement excluded (rule #13). No impact roll — 0% coordination floor preserved per D3. | S61b |
 | A-D5 | — | Resolved by A-D3 | — |
 | A-D6 | DESIGN GAP | Bombardment excluded from coordination — document in §1 | S57 ⚡ |
 | A-D7 | DESIGN GAP | Co-location tracking runs before turn increment in `_process_tactical_states()` | S59 |
@@ -1007,20 +1010,20 @@ Core items that MUST ship in Session 61: D1, D7, I3, M4, N3, A-C2, A-D2, A-I4.
 | A-I1 | INTERESTING | Defense more efficient per-ally — document in §1 as intentional | Keep ✅ |
 | A-I2 | INTERESTING | All defenders take casualties — warn in tutorial | S66 |
 | A-I3 | INTERESTING | Rival → Professional arc: ~24%, ~12 turns. Add Berthier observation P15 | S65 |
-| A-I4 | INTERESTING | Logistics ×5 kept. No-order threshold raised to 65. **Integrated into I3 code block.** | S61 |
+| A-I4 | INTERESTING | Logistics ×5 kept. No-order threshold raised to 65. **Integrated into I3 code block.** | S61a |
 | A-M1 | MINOR | WIN formula: ~30% → ~24%. **Applied inline to M1.** | S64 |
 | A-M2 | MINOR | Adjacent support attack-only — document | S60 |
-| A-M3 | MINOR | Fortified SUPPORT marshal: Berthier advisory | S61 |
+| A-M3 | MINOR | Fortified SUPPORT marshal: Berthier advisory | S61b |
 | A-M4 | MINOR | `coordination_hostile_forced` promoted to P6. **Applied inline to D3.** | S65 |
 | A-M5 | MINOR | Coordination preview: add "Adjacent reinforcements may modify these values" | S65 |
 | **AUDIT 3 (CONSISTENCY)** | | | |
 | X1 | FIX | D5 clearing code updated for A-C1 field names | S57 ⚡ |
-| X2 | FIX | I3 threshold uses A-I4 variable `ARRIVAL_THRESHOLD` | S61 |
+| X2 | FIX | I3 threshold uses A-I4 variable `ARRIVAL_THRESHOLD` | S61a |
 | X3 | FIX | C1 morale delta is `int`, scaling source documented | S62 |
-| X4 | FIX | D3 0% floor consistent with A-D4 (no negative impact roll) | S61/S62 |
-| X5 | FIX | N3 has 4 template paths (added Hostile+SUPPORT) | S61 |
+| X4 | FIX | D3 0% floor consistent with A-D4 (no negative impact roll) | S61b/S62 |
+| X5 | FIX | N3 has 4 template paths (added Hostile+SUPPORT) | S61a |
 | X6 | FIX | N2 snapshot field names updated for A-C1 | S65 |
-| X7 | ADVISORY | Session 61 has 11 items. A-M3, A-D1, A-D4 can defer to S62 if needed. | S61 |
+| X7 | ADVISORY | Session 61 split into S61a (arrival score + base reinforcement) and S61b (Grouchy Rule + Hostile blocking + edge cases). A-M3, A-D1 can defer to S62 if needed. | S61a/b |
 
 ---
 
@@ -1040,18 +1043,19 @@ Core items that MUST ship in Session 61: D1, D7, I3, M4, N3, A-C2, A-D2, A-I4.
 - [ ] **M3**: Cap reachability note in §5
 - [ ] **A-M2**: Adjacent support attack-only — add documentation note
 
-**Before Session 61 — 11 items (highest-risk session — see X7 for deferral options):**
-- [ ] **D1**: Clear `holding_position` + `hold_region` for ANY strategic order replacing HOLD
+**Before Session 61a — Arrival Score & Base Reinforcement (6 core items):**
+- [x] **D1**: ~~Clear `holding_position` + `hold_region` for ANY strategic order replacing HOLD~~ ✅ Already fixed in codebase (PA-D1)
 - [ ] **D7**: Add retreat location timing test
 - [ ] **I3 + A-I4 (X2)**: Variable threshold (60/65) + 1-in-20 fumble roll — single code block
 - [ ] **M4**: Serialize `reinforced_this_turn`
 - [ ] **N3 (X5)**: Wire `near_miss` flag + reason through reinforcement result dict, 4 templates
 - [ ] **A-C2**: SUPPORT order cleared AFTER coordination calc. `arrived_via_support` flag on result dict.
+
+**Before Session 61b — Grouchy Rule, Hostile Blocking & Edge Cases (4 items):**
 - [ ] **A-D2**: Add `moved_this_turn` as eligibility rule #12
 - [ ] **A-D4 (X4)**: Hostile auto-reinforcement blocked (rule #13). No impact roll — 0% floor per D3.
 - [ ] **A-M3**: *(deferrable to S62)* Fortified SUPPORT Berthier advisory
 - [ ] **A-D1**: *(deferrable to S62)* Grouchy PURSUE: region-match not name-match
-- [ ] **A-I4**: *(integrated into I3 above — no separate action)*
 
 **Before Session 62 — 5 items (+any deferred from S61):**
 - [ ] **C1 (X3)**: Full `apply_casualties=False` contract (uniform morale as `int`, both attacker AND defender sides, 1v1-projection scaling)
@@ -1102,10 +1106,13 @@ Full codebase + spec cross-reference audit before Phase 7 implementation begins.
 - **Fix:** Added pre-loop scan in `_process_tactical_states()` that cancels any SUPPORT order targeting a broken or retreating marshal, with event logging.
 - **Status:** ✅ Fixed in codebase
 
-#### PA-3: Session 61 Scope Risk (Advisory)
-- **Severity:** Low (advisory)
-- **Issue:** Session 61 (Reinforcement Arrival) has 11 amendment items in the readiness checklist — more than any other session. High density increases implementation risk.
-- **Recommendation:** Consider splitting into S61a (arrival score formula + base reinforcement) and S61b (Grouchy Rule + Hostile blocking + edge cases) if session runs long. Not a spec change — implementer discretion.
+#### PA-3: Session 61 Split into S61a / S61b (Applied)
+- **Severity:** Medium
+- **Issue:** Session 61 (Reinforcement Arrival) had 11 amendment items — more than any other session and already flagged as "HIGHEST RISK SESSION."
+- **Fix:** Split into two sessions in the readiness checklist:
+  - **S61a** (6 items): Arrival score formula, base reinforcement, near-miss, serialization, SUPPORT clearing, retreat timing
+  - **S61b** (4 items): `moved_this_turn` eligibility, Hostile exclusion, Grouchy PURSUE region-match, fortified SUPPORT advisory
+- **Status:** ✅ Applied to checklist and quick-reference table. D1 removed (already fixed in codebase).
 
 ### Items Already Resolved in Codebase
 
