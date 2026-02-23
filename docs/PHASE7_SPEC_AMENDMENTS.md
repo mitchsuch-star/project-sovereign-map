@@ -1,8 +1,9 @@
 # Phase 7 Multi-Marshal Coordination: Spec Amendments
-> **Status:** FINAL — Three audit passes complete, all findings resolved
+> **Status:** FINAL — Four audit passes complete, all findings resolved
 > **Audit 1:** February 19, 2026 (19 findings)
 > **Audit 2:** February 20, 2026 (20 findings)
 > **Audit 3:** February 20, 2026 (8 consistency fixes across Audit 1/2)
+> **Audit 4:** February 22, 2026 (Pre-implementation design audit — 3 findings, 2 code fixes applied)
 > **Amends:** `docs/MULTI_MARSHAL_SPEC.md`
 > **Authority:** Where this document conflicts with the original spec, **this document wins.**
 
@@ -1078,3 +1079,36 @@ Core items that MUST ship in Session 61: D1, D7, I3, M4, N3, A-C2, A-D2, A-I4.
 **Before Session 66:**
 - [ ] **D6**: Tutorial fires on player-commanded battle only
 - [ ] **A-I2**: Casualty sharing warning in tutorial
+
+---
+
+## Audit 4: Pre-Implementation Design Audit (February 22, 2026)
+
+Full codebase + spec cross-reference audit before Phase 7 implementation begins.
+
+### Findings
+
+#### PA-1: Self-SUPPORT Validation (Code Fix — Applied)
+- **Severity:** Medium
+- **Location:** `executor.py` SUPPORT validation block (~line 3960)
+- **Issue:** No guard preventing a marshal from issuing SUPPORT targeting themselves. Would produce undefined behavior in coordination calculations.
+- **Fix:** Added self-SUPPORT check before ally lookup. Returns clear error: "{name} cannot support themselves."
+- **Status:** ✅ Fixed in codebase
+
+#### PA-2: SUPPORT Cancellation on Target Break (Code Fix — Applied)
+- **Severity:** Medium
+- **Location:** `world_state.py` `_process_tactical_states()`
+- **Issue:** When a marshal breaks/retreats, other marshals with active SUPPORT orders targeting them keep those stale orders. This would cause Phase 7 coordination logic to reference invalid targets.
+- **Fix:** Added pre-loop scan in `_process_tactical_states()` that cancels any SUPPORT order targeting a broken or retreating marshal, with event logging.
+- **Status:** ✅ Fixed in codebase
+
+#### PA-3: Session 61 Scope Risk (Advisory)
+- **Severity:** Low (advisory)
+- **Issue:** Session 61 (Reinforcement Arrival) has 11 amendment items in the readiness checklist — more than any other session. High density increases implementation risk.
+- **Recommendation:** Consider splitting into S61a (arrival score formula + base reinforcement) and S61b (Grouchy Rule + Hostile blocking + edge cases) if session runs long. Not a spec change — implementer discretion.
+
+### Items Already Resolved in Codebase
+
+#### PA-D1: HOLD Clearing on Order Replacement
+- **Originally flagged as:** Potential bug where replacing a HOLD order wouldn't clear `holding_position`/`hold_region`
+- **Status:** ✅ Already fixed in `executor.py` lines 4234-4241. Code clears HOLD state when a new strategic order replaces a HOLD order.

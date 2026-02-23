@@ -4,7 +4,9 @@
 > **Sessions:** 57-66 (10 sessions)
 > **Est. New Tests:** ~340
 > **Baseline Tests:** 2987 (pre-Phase 7)
-> **Last Updated:** February 19, 2026
+> **Last Updated:** February 22, 2026
+>
+> **MANDATORY:** Read `PHASE7_SPEC_AMENDMENTS.md` Session Readiness Checklist before EVERY session. Amendments override this document where they conflict.
 
 ---
 

@@ -3958,6 +3958,13 @@ RETREAT RECOVERY (3 turns):
         # ── Validate target ───────────────────────────────────────────
         # SUPPORT must target a friendly marshal, not a region
         if strategic_type == "SUPPORT":
+            # Self-SUPPORT guard (Phase 7 audit finding)
+            if target and target.lower() == marshal.name.lower():
+                return {
+                    "success": False,
+                    "message": f"{marshal.name} cannot support themselves.",
+                    "suggestion": "SUPPORT targets a different friendly marshal."
+                }
             ally = world.get_marshal(target)
             if not ally:
                 # Check if it's a region name (Bug #4)

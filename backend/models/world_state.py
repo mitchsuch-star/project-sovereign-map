@@ -3305,6 +3305,28 @@ class WorldState:
         events = []
         current_turn = self.current_turn
 
+        # ════════════════════════════════════════════════════════════
+        # SUPPORT CANCELLATION: Cancel SUPPORT orders targeting broken marshals
+        # (Phase 7 audit finding — broken target can't be supported)
+        # ════════════════════════════════════════════════════════════
+        broken_marshal_names = {
+            m.name for m in self.marshals.values()
+            if getattr(m, 'broken', False) or getattr(m, 'retreating', False)
+        }
+        if broken_marshal_names:
+            for marshal in self.marshals.values():
+                order = getattr(marshal, 'strategic_order', None)
+                if order and order.command_type == "SUPPORT" and order.target in broken_marshal_names:
+                    target_name = order.target
+                    marshal.strategic_order = None
+                    events.append({
+                        "type": "support_cancelled",
+                        "marshal": marshal.name,
+                        "target": target_name,
+                        "nation": marshal.nation,
+                        "message": f"{marshal.name}'s SUPPORT order for {target_name} cancelled — {target_name} has broken and is in retreat."
+                    })
+
         # Track marshals who just got shock bonus (to avoid duplicate reminders)
         just_completed_drill = set()
 
