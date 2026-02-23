@@ -424,6 +424,7 @@ Player: "I offer Austria peace if they cede Tyrol"
 | **Light Tech/Reforms** | Simple upgrades: conscription, tactics, administration | Medium | Planned |
 | **Campaign Objectives** | Victory conditions beyond territory (prestige, survival) | Medium | Planned |
 | Historical Moments | Coronation, Tilsit, Retreat from Moscow | Medium | Planned |
+| **Imperial Governance Events** | Marshal-as-governor events, personality-driven regional outcomes. See `FUTURE_DESIGN.md`. | Medium | Planned |
 | **Gazette System** | Period newspaper every 3-5 turns, LLM-generated | Medium | Planned |
 | **Marshal Voice (Tier 1)** | Template personality responses for all events | Low | Planned |
 | **Marshal Voice (Tier 2)** | LLM personality for high-drama moments | Medium | Planned |
@@ -572,6 +573,7 @@ Current: Aggressive, Cautious, Literal. Evaluate whether Loyal or Balanced adds 
 | Vassal Troops | Vassals contribute troops automatically | Low | Planned |
 | Vassal Defection | If coalition threat > loyalty, vassal defects | Medium | Planned |
 | **Authority -> Loyalty** | Napoleon's authority affects all vassal loyalty (1813 snowball) | Low | Planned |
+| **Imperial Governance → Vassals** | Marshals installed as permanent rulers of conquered territory. Trust/personality determines loyalty. See `FUTURE_DESIGN.md`. | Medium | Planned |
 | **Britain Off-Map** | Britain as funder: subsidy pool, expeditionary forces, can't be attacked | Medium | Planned |
 | Continental System | Player action to reduce British income/subsidies | Low | Planned |
 

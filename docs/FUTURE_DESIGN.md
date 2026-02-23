@@ -1987,4 +1987,64 @@ Marshal "administration" stat could slow cohesion decay and improve recruitment 
 
 ---
 
-*Extracted from CLAUDE.md during documentation cleanup. Last updated February 17, 2026.*
+---
+
+## Imperial Governance — Marshals as Military Governors
+
+> **CONCEPTUAL** — Future design direction (Phase 8.5/11 timeframe). Not yet specified. Will need proper spec when we get there.
+
+### Core Idea
+
+Territory management runs through marshals, not spreadsheets. Conquered regions are governed by marshals whose personalities determine outcomes. This creates command dilemmas (your best general is also your best governor — where do you need them more?) and emergent storytelling.
+
+### Wartime Governance
+
+- **Marshal who conquers a region becomes default military governor**
+- Governor personality shapes regional outcomes:
+  - **Methodical (Davout):** Stabilizes fast, generates income efficiently
+  - **Aggressive (Ney):** Suppresses unrest quickly but damages long-term stability
+  - **Cautious:** Maintains order but slowly
+  - **Literal:** Follows procedure — stable but uninspired
+- **A governing marshal is a marshal NOT fighting** — the core tension
+- Player can reassign governance to a different marshal (must be physically present)
+- Governed regions generate events filtered through governor personality (partisan uprising, bread riots, smuggling, local resistance). Governor personality determines response and outcome automatically — player chose the governor, that's their decision
+
+### Post-Peace Transition (Two Paths)
+
+**Vassal creation (Phase 11):**
+- Install a loyal marshal as permanent ruler — they leave your army roster and govern autonomously
+- High-trust marshals stay loyal, low-trust ones may drift or betray (the Murat problem)
+- Vassals send income/troops but make their own decisions based on personality
+
+**Direct integration:**
+- Absorb territory into your empire — no marshal required long-term, but slower to stabilize
+- Requires administrative buildings
+- Less dramatic, more reliable
+
+### Historical Grounding
+
+- Napoleon handed conquered territories to marshals and family as fiefdoms
+- Davout governed Hamburg with iron discipline — profitable and orderly
+- Soult plundered southern Spain and shipped artwork home
+- Murat got Naples and eventually betrayed Napoleon
+- The system worked with the right marshal and collapsed with the wrong one
+
+### Key Design Principles
+
+- Territory problems have **FACES**, not just numbers ("Ney lost control of Madrid again")
+- Best generals are always needed in two places — governance vs. combat
+- Personality matters more than stats for governance — it's a character judgment
+- Long-term consequences emerge from personality-driven governance, not RNG
+- Connects to existing systems: personality types, trust, stability, events, plunder/secure
+
+### Integration Points with Existing Roadmap
+
+- **Phase 8 (Diplomacy):** Peace treaties transition military occupation → formal governance
+- **Phase 8.5 (Events):** Regional governance events (partisan uprising, bread riots, smuggling)
+- **Phase 11 (Vassals):** Vassal creation as the endgame for conquered territory
+- **Existing economy:** Governor personality modifies stability growth rate, income efficiency, war damage recovery
+- **Existing plunder/secure:** Plundered regions generate more governance events (partisan activity)
+
+---
+
+*Extracted from CLAUDE.md during documentation cleanup. Last updated February 22, 2026.*

@@ -66,6 +66,10 @@ This is not random punishment. It's personality-driven drama that the player can
 - Not a historical simulation (it's historically *inspired*)
 - Not multiplayer (single-player campaign focus)
 
+## Territory as Command Dilemma
+
+Conquered territory isn't managed through spreadsheets — it's managed through marshals. Your best general might also be your best governor, and you can't have them in both places. Territory problems have faces, not numbers. This extends the core "people, not systems" philosophy from the battlefield to the empire.
+
 ## Design Philosophy
 
 1. **LLMs explain, react, color — they never cause.** Game mechanics are deterministic. AI adds personality and narrative.
