@@ -29,11 +29,14 @@ Terrain (6.1), Economy (6.2 audited), Save/Load, Berthier Parse Recovery, Post-B
 
 Bombardment system (Sessions 48-52), Pause menu (Session 56: Smart Esc, modal overlay, Save/Load/Settings stub/Quit), Wire Marshal Abilities (Drouot 15% fort degradation, Wellington +5% defense, Blucher 3k pursuit, Uxbridge 5k pursuit, Davout +20% counter-punch mastery; Gneisenau deferred to Phase 7), Campaign Log (fog-filtered event log overlay, 14 event types, L key toggle, 57 tests), Morning Dispatch (Berthier's turn-start briefing: SITUATION + MARSHAL STATUS + INTELLIGENCE + TURN EVENTS + Berthier note, fog-filtered enemy strength ratio, absorbs tactical events, 57 tests), Notification System (EU4-style persistent alerts, 9 triggers, 3 priority levels, dismiss API, Godot notification bar, dispatch severity fixes + whitelist wiring, 70 tests — audited: whitelist event name fix, endpoint passthrough fix, accumulation prevention, turn display, manpower auto-dismiss), Top Bar + Dispatch (Session A: unified top bar CanvasLayer 75, campaign log refactor layer 50, notification bar reparented, input blocking refactor with 3-level dialog detection, dispatch re-read screen, Generals placeholder, 8 tests), Strategic Ledger (Session B: `ledger.py` 5-section backend builder + sub-tabbed Godot screen, `get_manpower_regen_rates()` extraction, 54 tests), Marshal Management UI (card-based read-only marshal screen, `marshal_overview.py` backend builder, biography field on all 9 marshals, G key toggle, ability_active derivation, personality/unit type descriptions, 68 tests), Special Abilities Evaluation (Davout Counter-Punch Mastery, roster planning, UI wiring audit, ADDING_CONTENT.md ability checklist, 22 tests).
 
+### Completed in Phase 7 Core
+
+Combined Arms (Session 57), Coordination Bonus + Hard Cap (Session 58), Dedicated Coordination + Co-Location (Session 59), Adjacent Support Bonus (Session 60), Adjacent Reinforcement Core (Session 61a), Reinforcement Edge Cases + SUPPORT Objection Triggers (Session 61b), Win/Loss Relationship Formula (Session 64: severity-scaled, ordered pairs, strict >50 threshold, 3-turn per-direction cooldown, intentional asymmetry). 7 sessions, ~246 tests.
+
 ### Up Next
 
-- **Phase 7 Core remaining:** Session 64 (Win/Loss Relationships). Sessions 57-61b complete — 212 tests.
-- **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial Infrastructure deferred to Pre-EA.
 - **Phase 7b:** Casualty Distribution (Session 62), AI Coordination Enhancements (Session 63), Full Battle Reports + Berthier Observations (Session 65), Godot Tooltips + Tutorial + Integration Audit (Session 66), Tactical Triangle, V2b, Jealousy, Coalition Trigger, Gneisenau Staff Work (1805). ~150 tests from deferred Phase 7 sessions.
+- **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial Infrastructure deferred to Pre-EA.
 
 ### UI Test Gates
 
@@ -68,6 +71,7 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | `backend/campaign_log.py` | Campaign log fog filter + one-liner formatter |
 | `backend/game_logic/combat.py` | Combat resolution, messages |
 | `backend/game_logic/battle_report.py` | Post-battle modifier snapshots, report generation, Berthier observations |
+| `backend/game_logic/relationship.py` | Win/Loss Relationship Formula (severity, ordered pairs, cooldown) |
 | `backend/notifications.py` | Notification system (EU4-style persistent alerts, collector, dismiss) |
 | `backend/game_logic/dispatch.py` | Morning Dispatch builder (fog-filtered turn-start briefing), stores last_morning_dispatch on WorldState |
 | `backend/game_logic/ledger.py` | Strategic Ledger builder (5 sections: forces, territories, economy, intel, manpower) |
@@ -129,6 +133,7 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | Morning dispatch / re-read | `dispatch.py` (build + store), `dispatch_view.gd` (render), `main.gd` (_display_morning_dispatch), `world_state.py` (last_morning_dispatch field) |
 | Strategic ledger | `ledger.py` (build_strategic_ledger), `strategic_ledger.gd` (render), `world_state.py` (get_manpower_regen_rates), `main.py` (GET /ledger) |
 | Marshal management UI | `marshal_overview.py` (build_marshal_overview), `marshal_management.gd` (render), `marshal.py` (biography field), `main.py` (GET /marshal_overview) |
+| Win/Loss relationships | `relationship.py` (formulas, participants, process), `executor.py` (_execute_attack wiring), `marshal.py` (modify_relationship, last_relationship_change_turn), `docs/MULTI_MARSHAL_SPEC.md` §9, `docs/PHASE7_SPEC_AMENDMENTS.md` [S64] |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`
 For Enemy AI details: `docs/ENEMY_AI_REFERENCE.md`

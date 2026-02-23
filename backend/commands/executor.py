@@ -3827,6 +3827,30 @@ RETREAT RECOVERY (3 turns):
         # Combat notifications (counter-punch earned, drill cancelled)
         self._process_combat_notifications(battle_result, marshal, enemy_marshal, world)
 
+        # ════════════════════════════════════════════════════════════
+        # WIN/LOSS RELATIONSHIP FORMULA (Session 64)
+        # Fires after resolve_battle with 2+ same-nation participants.
+        # Ordered pairs per D4, strict >50 threshold per M2.
+        # Must run BEFORE destruction check (line ~3847) so all
+        # participants are still in world.marshals.
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic.relationship import process_battle_relationships
+        relationship_changes = process_battle_relationships(
+            marshal, enemy_marshal, battle_result, battle_region_name, world
+        )
+        for rc in relationship_changes:
+            world.log_event({
+                "type": "relationship_change",
+                "marshal": rc["marshal"],
+                "toward": rc["toward"],
+                "change": rc["change"],
+                "new_value": rc["new_value"],
+                "new_label": rc["new_label"],
+                "direction": rc["direction"],
+                "nation": rc["nation"],
+                "location": battle_region_name,
+            })
+
         # Fog of War (Session 34A): Battle grants FULL visibility on battle region
         world.update_intel_from_battle(battle_region_name, world.current_turn)
 

@@ -2145,6 +2145,8 @@ class TestFirstStepBlocked:
         Note: Phase M strategic objections now trigger BEFORE first-step blocked.
         This test verifies AP costs are communicated in the objection options.
         """
+        from unittest.mock import patch
+
         davout = world.get_marshal("Davout")
         davout.location = "Belgium"
         # Low trust ensures objection triggers
@@ -2158,7 +2160,10 @@ class TestFirstStepBlocked:
         blucher = world.get_marshal("Blucher")
         blucher.location = "Paris"
 
-        with _suppress_output():
+        # Pin mood variance so MODERATE concern doesn't randomly downgrade to MILD
+        # (apply_mood_variance has 15% chance of -1 level, which would skip the popup)
+        with _suppress_output(), \
+             patch('backend.commands.objection_v2.random.random', return_value=0.5):
             result = executor.execute({
                 "command": {
                     "raw_input": "Davout, march to Bavaria",

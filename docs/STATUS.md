@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 23, 2026 (Session 61b: Reinforcement Edge Cases + SUPPORT Objection Triggers)
+> **Last Updated:** February 23, 2026 (Session 64: Win/Loss Relationship Formula)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3566** (3563 passed, 3 skipped — verified Feb 23) |
+| **Tests Passing** | **3600** (3597 passed, 3 skipped — verified Feb 23) |
 
-| **Current Phase** | Phase 7 Core **IN PROGRESS** (Sessions 57-61b complete, 1 remaining: Session 64). Phase 6.5 Map Renderer art-blocked. |
+| **Current Phase** | Phase 7 Core **COMPLETE** (Sessions 57-61b + 64, all 7 sessions done). Phase 6.5 Map Renderer art-blocked. |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,9 +19,9 @@
 
 ## Next Steps
 
-1. **Phase 7 Core remaining:** Session 64 (Win/Loss Relationships).
-2. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
-3. **Phase 7b (after 7 Core):** Casualty Distribution, AI Coordination Enhancements, Full Battle Reports, Godot Tooltips/Tutorial, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Cross-nation coordination, Gneisenau Staff Work.
+1. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~212 new tests.
+2. **Phase 7b (next):** Casualty Distribution (S62), AI Coordination Enhancements (S63), Full Battle Reports (S65), Godot Tooltips/Tutorial (S66), Tactical Triangle, V2b, Coalition Trigger, Jealousy, Cross-nation coordination, Gneisenau Staff Work.
+3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
 ---
 
@@ -45,6 +45,20 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7 Core Sessions
+
+### Feb 23 — Session 64: Win/Loss Relationship Formula
+
+**34 new tests, 3600 total (3 skipped). Shared battles now trigger relationship checks between co-located same-nation marshals. Phase 7 Core COMPLETE.**
+
+- **`calculate_battle_severity()`:** Categorizes battles as decisive (ratio < 0.5), standard (0.5–0.8), or narrow (> 0.8) based on winner/loser casualty ratio.
+- **`check_shared_battle_relationship()`:** WIN formula (base 30 + severity + rel_mod + variance ±10) and LOSS formula (base 15 + severity + rel_mod + variance ±10). Threshold strict `> 50` (M2). Returns ±1 or 0.
+- **Ordered pairs (D4):** Uses `itertools.permutations` — 3 marshals = 6 independent checks. Cooldown is per-direction (A→B independent of B→A).
+- **Intentional asymmetry (M1/M2):** Hostile WIN max=35 (never improves). Devoted WIN max=35 (never improves). Hostile LOSS max=50 (never degrades — strict > 50). Rival decisive WIN ~24% improvement chance.
+- **Cooldown:** 3 turns per direction, tracked in `last_relationship_change_turn` (serialized in S59).
+- **Participants:** Same-nation marshals in battle region, excluding Hostile without SUPPORT. Primary always included.
+- **Event logging:** Relationship changes logged via `world.log_event()` with type `"relationship_change"`.
+- **Files created:** `backend/game_logic/relationship.py`, `tests/test_relationship_formula.py` (34 tests).
+- **Files modified:** `backend/commands/executor.py` (wired into `_execute_attack()` after combat notifications, before destruction check).
 
 ### Feb 23 — Session 61b: Reinforcement Edge Cases + SUPPORT Objection Triggers
 

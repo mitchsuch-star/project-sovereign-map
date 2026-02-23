@@ -284,7 +284,7 @@ Wire ~80-100 provinces for EA v1. Remaining provinces from the 120-150 in the ar
 | **60** | **Adjacent support bonus** | +2% atk per adjacent friendly marshal. Not relationship-scaled. Includes adjacent count message. | Low | ~20 | Planned |
 | **61a** | **Adjacent reinforcement (core)** | Arrival score formula, base reinforcement, near-miss, serialization, SUPPORT clearing, retreat timing. | High | ~30 | Planned |
 | **61b** | **Adjacent reinforcement (edge cases)** | Grouchy Rule, Hostile exclusion, `moved_this_turn` eligibility, fortified SUPPORT advisory. | Medium | ~15 | Planned |
-| **64** | **Win/loss relationships** | Shared battle → relationship check. Severity-scaled. 3-turn cooldown. Rivalry Resolved. Relationship change notification. | Medium | ~25 | Planned |
+| **64** | **Win/loss relationships** | Shared battle → relationship check. Severity-scaled. 3-turn cooldown. Rivalry Resolved. Relationship change notification. | Medium | 34 | **COMPLETE** |
 
 **Key formulas:** Combined arms (type count), Coordination (per-ally × relationship scaling), Arrival score (logistics ×5 + relationship ±20 + terrain ±10 + personality ±5 ± variance, threshold >60/65), Win/loss (severity-scaled, asymmetric: winning together builds faster than losing destroys).
 

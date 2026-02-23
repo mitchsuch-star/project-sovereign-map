@@ -2499,3 +2499,84 @@ On successful arrival:
 | `objection_v2.py` | §6 SUPPORT objection triggers (aggressive→defensive, cautious→reckless) |
 | `tests/test_reinforcement.py` | 49 tests across 12 classes |
 | `tests/test_reinforcement_edge_cases.py` | 22 tests: rules 12-13, PURSUE region-match, Berthier advisory, SUPPORT objection triggers |
+
+## 14. Win/Loss Relationship Formula
+
+After a shared battle with 2+ same-nation participants, each ordered pair (A, B) rolls independently to check if A's opinion of B changes. Fires after `resolve_battle()` in `_execute_attack()`, before destruction/retreat processing.
+
+### Trigger
+
+- 2+ same-nation marshals in the battle region
+- Both attacker and defender sides processed independently
+- Hostile marshals without SUPPORT order targeting primary are Non-Participating (excluded)
+
+### Battle Severity
+
+Based on winner/loser casualty exchange ratio:
+
+| Severity | Condition |
+|----------|-----------|
+| Decisive | `ratio < 0.5` (winner took less than half loser's casualties) |
+| Standard | `0.5 <= ratio <= 0.8` |
+| Narrow | `ratio > 0.8` (nearly even) |
+
+Special case: `loser_casualties == 0` → always decisive.
+
+### WIN Formula (base 30)
+
+```
+score = 30 + severity_bonus + relationship_modifier + variance
+```
+
+| Component | Values |
+|-----------|--------|
+| Severity bonus | decisive: +15, standard: 0, narrow: -10 |
+| Relationship modifier | Hostile(-2): -20, Rival(-1): 0, Professional(0): 0, Friendly(+1): -10, Devoted(+2): -20 |
+| Variance | random.randint(-10, 10) |
+
+**Threshold:** `score > 50` → relationship improves +1.
+
+### LOSS Formula (base 15)
+
+```
+score = 15 + severity_bonus + relationship_modifier + variance
+```
+
+| Component | Values |
+|-----------|--------|
+| Severity bonus | decisive: +10, standard: 0, narrow: -5 |
+| Relationship modifier | Hostile(-2): +15, Rival(-1): +5, Professional(0): 0, Friendly(+1): 0, Devoted(+2): 0 |
+| Variance | random.randint(-10, 10) |
+
+**Threshold:** `score > 50` → relationship degrades -1.
+
+### Intentional Asymmetry
+
+| Scenario | Max Score | Outcome |
+|----------|-----------|---------|
+| Hostile WIN (decisive) | 30+15-20+10 = **35** | NEVER improves (M1) |
+| Devoted WIN (decisive) | 30+15-20+10 = **35** | NEVER improves (M1) |
+| Rival WIN (decisive) | 30+15+0+10 = **55** | ~24% chance improvement |
+| Hostile LOSS (decisive) | 15+10+15+10 = **50** | NEVER degrades — strict >50 (M2) |
+| Professional LOSS (decisive) | 15+10+0+10 = **35** | NEVER degrades |
+
+### Ordered Pairs (D4)
+
+Uses `itertools.permutations(participants, 2)`. 3 marshals = 6 calls. Each direction (A→B, B→A) is independent — different relationships, different cooldowns, may produce different results.
+
+### Cooldown
+
+3 turns per direction. Tracked in `marshal.last_relationship_change_turn[other_name]`. A→B cooldown does NOT block B→A.
+
+### Range & Per-Battle Cap
+
+- Relationship range: [-2, +2] (enforced by `modify_relationship()`)
+- Per-battle cap: ±1 maximum change per pair per battle
+
+### Key Files
+
+| File | What changed |
+|------|-------------|
+| `backend/game_logic/relationship.py` | `calculate_battle_severity()`, `check_shared_battle_relationship()`, `get_battle_participants()`, `process_battle_relationships()` |
+| `backend/commands/executor.py` | Wired into `_execute_attack()` after combat notifications |
+| `tests/test_relationship_formula.py` | 34 tests across 9 classes |
