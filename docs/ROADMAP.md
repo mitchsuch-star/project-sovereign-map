@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** February 21, 2026 (Marshal Management UI)
+> **Last Updated:** February 22, 2026 (Phase 6.5 UI Audit)
 
 ---
 
@@ -41,7 +41,7 @@
 | 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 3320 (verified Feb 21, 2026)
+**Total Tests:** 3329 (verified Feb 22, 2026)
 
 ---
 
@@ -259,6 +259,14 @@ Wire ~80-100 provinces for EA v1. Remaining provinces from the 120-150 in the ar
 
 **Dependencies:** Phase 6 (needs data to display), commissioned map art
 **Exit Criteria:** Player has clear visibility into game state, map looks professional
+
+### Tech Debt (resolve during Map Renderer refactor)
+
+| Item | Location | Resolution |
+|------|----------|------------|
+| `_format_number()` duplicated 3x | `dispatch_view.gd`, `strategic_ledger.gd`, `marshal_management.gd` | Extract to shared `utils.gd` autoload |
+| Color palette constants duplicated 3x | Same 3 files (+ `campaign_log.gd` has its own subset) | Consolidate into shared `utils.gd` autoload |
+| Marshal scroll hardcoded 320px/card | `marshal_management.gd:70` | Revisit if playtesting shows scroll misalignment |
 
 ---
 

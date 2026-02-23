@@ -220,6 +220,8 @@ func _on_dispatch_received(response):
 
 	content_label.text = bbcode
 
+# TECH DEBT: _format_number() duplicated in dispatch_view.gd, strategic_ledger.gd,
+# marshal_management.gd. Extract to shared utils.gd autoload during Map Renderer refactor.
 func _format_number(n: int) -> String:
 	"""Format number with comma separators (e.g. 80000 -> 80,000)."""
 	var s = str(int(n))

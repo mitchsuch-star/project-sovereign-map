@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 21, 2026 (Marshal Management UI)
+> **Last Updated:** February 22, 2026 (Phase 6.5 UI Audit)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3320** (verified, 3 skipped) |
+| **Tests Passing** | **3329** (verified, 3 skipped) |
 
 | **Current Phase** | Phase 6.5 **IN PROGRESS** (3 items remaining: Tooltips, Tutorial Infrastructure, Map Renderer). **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. |
 | **Blockers** | None |
@@ -45,6 +45,19 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 6.5 Sessions
+
+### Feb 22 (Phase 6.5 UI Audit)
+
+**Code quality audit of all Phase 6.5 menu systems. 9 new tests, 1 pre-existing fix, 3329 total.**
+
+- **Audit scope:** Pause Menu, Campaign Log, Morning Dispatch, Notification Bar, Top Bar, Strategic Ledger, Marshal Management. Checked int() wrapping, serialization, input blocking, CanvasLayer ordering, edge cases, endpoints, test coverage, consistency.
+- **Fixes (bugs):** `/campaign_log` endpoint missing `"success"` key + game state guard. `GET /notifications` missing game state guard. `test_marshal_overview.py::test_endpoint_no_game_returns_error` called `game_state.clear()` without restore, poisoning subsequent tests (caused pre-existing `test_recklessness_2_blocks_defensive_stance` failure).
+- **Fixes (comments):** `campaign_log.gd` layer comment corrected (102 -> 50).
+- **New tests:** 5 endpoint tests for `/campaign_log`, 4 endpoint tests for `/notifications`.
+- **Tech debt documented:** `_format_number()` duplication (3 files), color palette duplication (3+ files), marshal scroll hardcoded 320px/card. All tagged for Map Renderer refactor. Added to ROADMAP.md Tech Debt table.
+- **Hooks fix:** `.claude/settings.local.json` PostToolUse/PreToolUse hooks had bash `$(...)` quoting bug with nested Python parentheses — split into variable assignments.
+
+---
 
 ### Feb 21 (Marshal Management UI)
 

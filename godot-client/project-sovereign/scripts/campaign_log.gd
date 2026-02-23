@@ -4,7 +4,7 @@ extends CanvasLayer
 # PROJECT SOVEREIGN - Campaign Log Overlay (Phase 6.5)
 # =============================================================================
 # Fog-filtered event log grouped by turn. Toggle with L key or LOG button.
-# Layer 102 (above pause menu 101). Click-to-close overlay.
+# Layer 50 (same as other screens; top bar manages one-at-a-time).
 # =============================================================================
 
 signal closed

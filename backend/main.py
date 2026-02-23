@@ -1311,6 +1311,8 @@ async def delete_save_endpoint(request: DeleteSaveRequest):
 @app.get("/campaign_log")
 def get_campaign_log():
     """Get fog-filtered campaign event log grouped by turn (descending)."""
+    if not game_state.get("world"):
+        return {"success": False, "message": "No active game"}
     from backend.campaign_log import filter_campaign_log, format_event_oneliner, CATEGORY_MAP
 
     filtered = filter_campaign_log(world.event_log, world)
@@ -1332,7 +1334,7 @@ def get_campaign_log():
     sorted_turns = [{"turn": int(t), "events": evts}
                     for t, evts in sorted(turns.items(), reverse=True)
                     if evts]
-    return {"turns": sorted_turns, "current_turn": int(world.current_turn)}
+    return {"success": True, "turns": sorted_turns, "current_turn": int(world.current_turn)}
 
 
 # ════════════════════════════════════════════════════════════
@@ -1395,6 +1397,8 @@ async def dismiss_notification(request: Request):
 @app.get("/notifications")
 def get_notifications():
     """Get all pending notifications."""
+    if not game_state.get("world"):
+        return {"success": False, "notifications": []}
     return {"notifications": world.notifications.get_pending()}
 
 

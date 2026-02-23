@@ -21,7 +21,8 @@ signal closed
 @onready var intel_tab = $PanelContainer/VBoxContainer/SubTabRow/IntelTab
 @onready var manpower_tab = $PanelContainer/VBoxContainer/SubTabRow/ManpowerTab
 
-# Color palette
+# Color palette (duplicated across dispatch_view.gd, strategic_ledger.gd,
+# marshal_management.gd — consolidate into shared utils.gd during Map Renderer refactor)
 const COLOR_GOLD = "d9c08c"
 const COLOR_SUCCESS = "8fbc8f"
 const COLOR_ERROR = "cd6b6b"
@@ -455,6 +456,8 @@ func _render_manpower():
 # HELPERS
 # =============================================================================
 
+# TECH DEBT: _format_number() duplicated in dispatch_view.gd, strategic_ledger.gd,
+# marshal_management.gd. Extract to shared utils.gd autoload during Map Renderer refactor.
 func _format_number(n: int) -> String:
 	"""Format number with comma separators (e.g. 80000 -> 80,000)."""
 	var s = str(int(n))

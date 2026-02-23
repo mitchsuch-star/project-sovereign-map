@@ -16,7 +16,8 @@ signal closed
 @onready var scroll_container = $PanelContainer/VBoxContainer/ScrollContainer
 @onready var content_area = $PanelContainer/VBoxContainer/ScrollContainer/ContentArea
 
-# Color palette (matches Ledger aesthetic)
+# Color palette (duplicated across dispatch_view.gd, strategic_ledger.gd,
+# marshal_management.gd — consolidate into shared utils.gd during Map Renderer refactor)
 const COLOR_GOLD = "d9c08c"
 const COLOR_SUCCESS = "8fbc8f"
 const COLOR_ERROR = "cd6b6b"
@@ -66,6 +67,7 @@ func _input(event):
 				return
 		if index >= 0 and index < cached_data.size():
 			# Scroll to marshal card — approximate position based on card height
+			# TECH DEBT: 320px/card is hardcoded. Revisit if playtesting shows scroll misalignment.
 			var scroll_target = index * 320
 			scroll_container.scroll_vertical = scroll_target
 			get_viewport().set_input_as_handled()
@@ -288,6 +290,8 @@ func _render_card(m: Dictionary, index: int) -> String:
 # COLOR HELPERS
 # =============================================================================
 
+# TECH DEBT: _format_number() duplicated in dispatch_view.gd, strategic_ledger.gd,
+# marshal_management.gd. Extract to shared utils.gd autoload during Map Renderer refactor.
 func _format_number(n: int) -> String:
 	"""Format number with comma separators."""
 	var s = str(int(n))

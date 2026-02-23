@@ -553,3 +553,79 @@ class TestEndpointResponse:
         for event_type in CAMPAIGN_LOG_TYPES:
             cat = CATEGORY_MAP.get(event_type)
             assert cat in valid_categories, f"{event_type} has invalid category: {cat}"
+
+
+# ============================================================================
+# ENDPOINT TESTS
+# ============================================================================
+
+class TestEndpoint:
+    """Test the /campaign_log endpoint via TestClient."""
+
+    def test_endpoint_returns_200(self):
+        """GET /campaign_log returns 200 with success=True."""
+        from fastapi.testclient import TestClient
+        from backend.main import app
+
+        client = TestClient(app)
+        response = client.get("/campaign_log")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+
+    def test_endpoint_has_turns_key(self):
+        """Response has 'turns' key with list."""
+        from fastapi.testclient import TestClient
+        from backend.main import app
+
+        client = TestClient(app)
+        response = client.get("/campaign_log")
+        data = response.json()
+        assert "turns" in data
+        assert isinstance(data["turns"], list)
+
+    def test_endpoint_has_current_turn(self):
+        """Response has 'current_turn' as int."""
+        from fastapi.testclient import TestClient
+        from backend.main import app
+
+        client = TestClient(app)
+        response = client.get("/campaign_log")
+        data = response.json()
+        assert "current_turn" in data
+        assert isinstance(data["current_turn"], int)
+
+    def test_endpoint_no_game_returns_error(self):
+        """GET /campaign_log with no world returns error."""
+        from fastapi.testclient import TestClient
+        from backend.main import app, game_state
+
+        saved_world = game_state.get("world")
+        game_state["world"] = None
+
+        try:
+            client = TestClient(app)
+            response = client.get("/campaign_log")
+            data = response.json()
+            assert data["success"] is False
+        finally:
+            game_state["world"] = saved_world
+
+    def test_endpoint_empty_log(self):
+        """GET /campaign_log with no events returns empty turns list."""
+        from fastapi.testclient import TestClient
+        from backend.main import app, game_state
+        import backend.main as main_module
+
+        world = game_state["world"]
+        saved_log = world.event_log[:]
+        world.event_log.clear()
+
+        try:
+            client = TestClient(app)
+            response = client.get("/campaign_log")
+            data = response.json()
+            assert data["success"] is True
+            assert data["turns"] == []
+        finally:
+            world.event_log.extend(saved_log)

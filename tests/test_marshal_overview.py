@@ -767,8 +767,12 @@ class TestEndpoint:
         from backend.main import app, game_state
         from fastapi.testclient import TestClient
 
-        game_state.clear()
-        client = TestClient(app)
-        response = client.get("/marshal_overview")
-        data = response.json()
-        assert data["success"] is False
+        saved_world = game_state.get("world")
+        game_state["world"] = None
+        try:
+            client = TestClient(app)
+            response = client.get("/marshal_overview")
+            data = response.json()
+            assert data["success"] is False
+        finally:
+            game_state["world"] = saved_world

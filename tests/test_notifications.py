@@ -21,7 +21,6 @@ Tests:
 - Dispatch whitelist filtering
 """
 
-import pytest
 
 from backend.notifications import (
     NotificationPriority,
@@ -994,3 +993,79 @@ class TestManpowerAutoDismiss:
         assert (MANPOWER_DEPLETED, "cavalry") in remaining_types
         # Infantry depleted should be gone (infantry WAS at 0 and regened)
         assert (MANPOWER_DEPLETED, "infantry") not in remaining_types
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# ENDPOINT TESTS
+# ════════════════════════════════════════════════════════════════════════════════
+
+class TestNotificationEndpoints:
+    """Test GET /notifications and POST /notifications/dismiss endpoints."""
+
+    def test_get_notifications_returns_200(self):
+        """GET /notifications returns 200 with notifications list."""
+        from fastapi.testclient import TestClient
+        from backend.main import app
+
+        client = TestClient(app)
+        response = client.get("/notifications")
+        assert response.status_code == 200
+        data = response.json()
+        assert "notifications" in data
+        assert isinstance(data["notifications"], list)
+
+    def test_get_notifications_no_game_returns_empty(self):
+        """GET /notifications with no world returns empty list."""
+        from fastapi.testclient import TestClient
+        from backend.main import app, game_state
+
+        saved_world = game_state.get("world")
+        game_state["world"] = None
+
+        try:
+            client = TestClient(app)
+            response = client.get("/notifications")
+            data = response.json()
+            assert data["notifications"] == []
+        finally:
+            game_state["world"] = saved_world
+
+    def test_dismiss_missing_id_returns_error(self):
+        """POST /notifications/dismiss without id returns error."""
+        from fastapi.testclient import TestClient
+        from backend.main import app
+
+        client = TestClient(app)
+        response = client.post("/notifications/dismiss", json={})
+        data = response.json()
+        assert data["success"] is False
+
+    def test_dismiss_all_returns_count(self):
+        """POST /notifications/dismiss with id='all' returns dismissed count."""
+        from fastapi.testclient import TestClient
+        from backend.main import app, game_state
+        import backend.main as main_module
+
+        # Ensure world exists (earlier tests may have cleared game_state)
+        saved = game_state.get("world")
+        if not saved:
+            from backend.models.world_state import WorldState
+            w = WorldState(player_nation="France")
+            game_state["world"] = w
+            main_module.world = w
+
+        world = main_module.world
+        world.notifications.add(create_notification(
+            STRATEGIC_ORDER_COMPLETE, NotificationPriority.HIGH,
+            "Test", "Test message", 1,
+        ))
+
+        try:
+            client = TestClient(app)
+            response = client.post("/notifications/dismiss", json={"id": "all"})
+            data = response.json()
+            assert data["success"] is True
+            assert data["dismissed"] >= 1
+        finally:
+            if not saved:
+                game_state["world"] = saved
