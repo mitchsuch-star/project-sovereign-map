@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3351** (verified, 3 skipped) |
+| **Tests Passing** | **3354** (3351 passed, 3 skipped — verified Feb 22) |
 
-| **Current Phase** | Phase 6.5 **IN PROGRESS** (1 item remaining: Map Renderer — art-blocked. Tooltips absorbed into Map Renderer, Tutorial deferred to Pre-EA). **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. |
+| **Current Phase** | Phase 6.5 **IN PROGRESS** (1 item remaining: Map Renderer — art-blocked. Tooltips absorbed into Map Renderer, Tutorial deferred to Pre-EA). **Phase 7 Core SCOPED** — 7 sessions (57-61a, 61b, 64), ~190 new tests. |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -21,7 +21,7 @@
 
 1. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 2. **Active next** — Phase 7 Core begins (Davout's Counter-Punch Mastery implemented, Special Abilities Evaluation complete).
-3. **Phase 7 Core: Multi-Marshal Coordination** — 6 sessions (57-61, 64), ~190 new tests. Combined arms, coordination bonuses, dedicated coordination, adjacent support, reinforcement (Grouchy Rule), win/loss relationships. Hard cap: +25% atk/+20% def. Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md`.
+3. **Phase 7 Core: Multi-Marshal Coordination** — 7 sessions (57-61a, 61b, 64), ~190 new tests. Combined arms, coordination bonuses, dedicated coordination, adjacent support, reinforcement (Grouchy Rule), win/loss relationships. Hard cap: +25% atk/+20% def. Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md`.
 4. **Phase 7b (immediately after 7 Core):** Casualty Distribution, AI Coordination Enhancements, Full Battle Reports, Godot Tooltips/Tutorial, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Cross-nation coordination, Gneisenau Staff Work.
 
 ---
@@ -61,7 +61,7 @@ All major Phase 6 features shipped:
 
 ### Feb 22 (Phase 6.5 UI Audit)
 
-**Code quality audit of all Phase 6.5 menu systems. 9 new tests, 1 pre-existing fix, 3329 total.**
+**Code quality audit of all Phase 6.5 menu systems. 9 new tests, 1 pre-existing fix, 3354 total.**
 
 - **Audit scope:** Pause Menu, Campaign Log, Morning Dispatch, Notification Bar, Top Bar, Strategic Ledger, Marshal Management. Checked int() wrapping, serialization, input blocking, CanvasLayer ordering, edge cases, endpoints, test coverage, consistency.
 - **Fixes (bugs):** `/campaign_log` endpoint missing `"success"` key + game state guard. `GET /notifications` missing game state guard. `test_marshal_overview.py::test_endpoint_no_game_returns_error` called `game_state.clear()` without restore, poisoning subsequent tests (caused pre-existing `test_recklessness_2_blocks_defensive_stance` failure).

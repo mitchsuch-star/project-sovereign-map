@@ -14,7 +14,7 @@
 | **V2a** | **Objection System Refactor** | **COMPLETE** |
 | **6** | **Core Campaign Systems** | **COMPLETE** |
 | **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE, Top Bar + Dispatch COMPLETE, Strategic Ledger COMPLETE, Marshal Management UI COMPLETE, Tooltips ABSORBED into Map Renderer, Tutorial Infrastructure DEFERRED to Pre-EA. Remaining: Map Renderer — blocked on art commission) |
-| **7 Core** | **Multi-Marshal Coordination** | **Spec COMPLETE + AUDITED + SCOPED.** 6 sessions (57-61, 64). ~190 tests. |
+| **7 Core** | **Multi-Marshal Coordination** | **Spec COMPLETE + AUDITED + SCOPED.** 7 sessions (57-61a, 61b, 64). ~190 tests. |
 | 7b | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b, Coalition, Jealousy | Planned (deferred from 7 Core) |
 | 8 | Diplomacy & Peace | Planned |
 | 8.5 | Events, Goals & National Identity | Planned |
@@ -41,7 +41,7 @@
 | 5.2 | Strategic Commands | ~350 | MOVE_TO, PURSUE, HOLD, SUPPORT, interrupts, modding, Phase M (Strategic Objections) |
 | 5.3 | Enemy AI Fixes | ~15 | Stagnation counter, oscillation fixes, consolidation |
 
-**Total Tests:** 3329 (verified Feb 22, 2026)
+**Total Tests:** 3354 (verified Feb 22, 2026)
 
 ---
 
@@ -282,7 +282,8 @@ Wire ~80-100 provinces for EA v1. Remaining provinces from the 120-150 in the ar
 | **58** | **Coordination bonus + hard cap** | +3% atk/+5% def per ally, relationship-scaled (Hostile 0%→Devoted 150%). Hard cap: +25% atk/+20% def. Includes per-ally message. | Medium | ~35 | Planned |
 | **59** | **Dedicated coordination + co-location** | +5%/+5% flat from 2-turn co-location (both sides) OR SUPPORT order (player, immediate). New serialized fields. Includes status message. | Medium | ~30 | Planned |
 | **60** | **Adjacent support bonus** | +2% atk per adjacent friendly marshal. Not relationship-scaled. Includes adjacent count message. | Low | ~20 | Planned |
-| **61** | **Adjacent reinforcement** | The Grouchy Rule. Deterministic arrival score. Physical relocation. Inline-dramatic display. **HIGHEST RISK.** | High | ~45 | Planned |
+| **61a** | **Adjacent reinforcement (core)** | Arrival score formula, base reinforcement, near-miss, serialization, SUPPORT clearing, retreat timing. | High | ~30 | Planned |
+| **61b** | **Adjacent reinforcement (edge cases)** | Grouchy Rule, Hostile exclusion, `moved_this_turn` eligibility, fortified SUPPORT advisory. | Medium | ~15 | Planned |
 | **64** | **Win/loss relationships** | Shared battle → relationship check. Severity-scaled. 3-turn cooldown. Rivalry Resolved. Relationship change notification. | Medium | ~25 | Planned |
 
 **Key formulas:** Combined arms (type count), Coordination (per-ally × relationship scaling), Arrival score (logistics ×5 + relationship ±20 + terrain ±10 + personality ±5 ± variance, threshold >60/65), Win/loss (severity-scaled, asymmetric: winning together builds faster than losing destroys).
@@ -740,7 +741,7 @@ Lighter version of communication cutoff: orders to distant marshals take effect 
 4. **Commission Europe map art** (2-4 week lead time, parallel with Phase 6)
 5. Phase 6: Economy, Manpower, Terrain, Fog, **Save/Load**, **Berthier**, **Post-battle analysis**
 6. Phase 6.5: Notifications, **Top Bar Framework + Dispatch** (Session A), **Strategic Ledger** (Session B), Marshal UI, ~~Campaign Briefing~~, ~~Marshal Report~~ (shipped as Morning Dispatch), ~~Tutorial infra~~ (deferred to Pre-EA), **Map Renderer**
-7. Phase 7 Core: Multi-Marshal Coordination (Sessions 57-61 + 64, 6 sessions, ~190 tests) — combined arms, coordination bonuses, Grouchy Rule, dynamic relationships
+7. Phase 7 Core: Multi-Marshal Coordination (Sessions 57-61a, 61b, 64 — 7 sessions, ~190 tests) — combined arms, coordination bonuses, Grouchy Rule, dynamic relationships
 7b. Phase 7b: Casualty Distribution (S62), AI Coordination (S63), Battle Reports (S65), Godot UI (S66), Tactical Triangle, V2b, Coalition Trigger
 8. Phase 8: **Diplomacy Chat**, Peace Treaties, Leader Personalities
 9. Phase 8.5: **Events, Gazette, Marshal Voice, Grouchy LLM, Intercepted Dispatches, Creative Commands, Napoleon Comparison**
