@@ -213,6 +213,7 @@ A future save/load system should use this as the specification.
 
   "counter_punch_available": false,
   "counter_punch_turns": 0,
+  "counter_punch_ready": false,
 
   "holding_position": false,
   "hold_region": "",
@@ -343,8 +344,9 @@ A future save/load system should use this as the specification.
 #### Ability State
 | Field | Type | Description |
 |-------|------|-------------|
-| `counter_punch_available` | bool | Davout free attack earned |
+| `counter_punch_available` | bool | Cautious free attack earned (personality trait) |
 | `counter_punch_turns` | int | Turns to use counter-punch |
+| `counter_punch_ready` | bool | Davout Counter-Punch Mastery: +20% next attack after defending |
 | `holding_position` | bool | Grouchy Immovable active |
 | `hold_region` | string | Region where holding |
 

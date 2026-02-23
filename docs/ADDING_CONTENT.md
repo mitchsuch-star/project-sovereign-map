@@ -20,6 +20,8 @@ Step-by-step guides for adding new marshals, personalities, and strategic comman
    - [Adding New Nations](#adding-new-nations)
    - [Adding New Personalities](#adding-new-personalities)
    - [Worked Example: Adding Marshal Murat](#worked-example-adding-marshal-murat)
+   - [Wiring a Special Ability (Full Checklist)](#wiring-a-special-ability-full-checklist)
+   - [1805 Roster Planning Notes](#1805-roster-planning-notes)
 2. [Adding a New Strategic Command Type](#2-adding-a-new-strategic-command-type)
    - [Checklist](#checklist)
    - [Worked Example: PATROL Command](#worked-example-patrol-command)
@@ -1099,6 +1101,241 @@ Adding a marshal requires modifying **at minimum**:
 Time estimate: **20-30 minutes** for a standard marshal with no new mechanics.
 
 If adding new nation or personality: Add **30-60 minutes** for additional files.
+
+If adding a wired special ability: See [Wiring a Special Ability](#wiring-a-special-ability-full-checklist) below.
+
+---
+
+### Wiring a Special Ability (Full Checklist)
+
+Most generals are personality-driven only (aggressive/cautious/literal gives them a complete gameplay identity). Only historically distinguished commanders with a unique tactical identity should get a wired special ability. See `docs/SPECIAL_ABILITIES_EVALUATION.md` for design principles and roster planning.
+
+**If your general has a unique ability that needs to DO something mechanically (not just display text), follow this checklist.**
+
+#### Step 1: Define the Ability on the Marshal
+
+**File:** `backend/models/marshal.py`
+
+Every marshal already has an `ability` dict with 4 string fields. For an unwired ability, these are just display text. For a wired ability, the `trigger` and `effect` fields describe what happens mechanically.
+
+```python
+ability={
+    "name": "Iron Resolve",
+    "description": "Davout builds resolve while fortified, unleashing devastating counterattacks",
+    "trigger": "while_fortified",
+    "effect": "+8% attack per turn fortified (max 3 stacks, consumed on attack)"
+}
+```
+
+#### Step 2: Add State Fields (if ability has state)
+
+**File:** `backend/models/marshal.py`
+
+If the ability tracks state (stacks, cooldowns, flags), add fields to `__init__`:
+
+```python
+# DAVOUT (Cautious) - Iron Resolve tracking
+self.iron_resolve_stacks: int = 0  # Built while fortified, max 3
+```
+
+**MANDATORY:** Add to `to_dict()` AND `from_dict()` with `.get()` default:
+```python
+# to_dict:
+"iron_resolve_stacks": self.iron_resolve_stacks,
+
+# from_dict:
+m.iron_resolve_stacks = data.get("iron_resolve_stacks", 0)
+```
+
+Run: `pytest tests/test_serialization_enforcement.py -v`
+
+#### Step 3: Wire the Mechanical Effect
+
+**File:** `backend/models/marshal.py` (for modifier-based abilities) or `backend/game_logic/combat.py` (for combat-time effects)
+
+**Golden Rule #1:** Combat modifiers live in `marshal.py get_attack_modifier()` / `get_defense_modifier()` ONLY. `combat.py` reads them, never recalculates.
+
+For attack modifier abilities (add to `get_attack_modifier()`):
+```python
+# Iron Resolve: +8% per stack when attacking
+if (hasattr(self, 'ability')
+        and self.ability.get("name") == "Iron Resolve"):
+    stacks = getattr(self, 'iron_resolve_stacks', 0)
+    if stacks > 0:
+        modifier *= (1.0 + stacks * 0.08)
+```
+
+For combat-time abilities (shock bonus, pursuit, fort degradation), add to `combat.py resolve_battle()` following existing patterns (Ney shock at line ~175, pursuit at line ~567, fort degradation at line ~644).
+
+#### Step 4: Add State Processing (if ability has per-turn state)
+
+**File:** `backend/models/world_state.py` in `_process_tactical_states()`
+
+If the ability builds stacks, expires, or changes each turn:
+```python
+# Iron Resolve: increment while fortified (Davout only)
+if (getattr(marshal, 'ability', {}).get("name") == "Iron Resolve"
+        and marshal.is_fortified and getattr(marshal, 'iron_resolve_stacks', 0) < 3):
+    marshal.iron_resolve_stacks += 1
+```
+
+#### Step 5: Add State Consumption/Clearing
+
+**File:** `backend/game_logic/combat.py` or `backend/commands/executor.py`
+
+If stacks are consumed on use:
+```python
+# After get_attack_modifier() reads the value, clear stacks
+if getattr(attacker, 'iron_resolve_stacks', 0) > 0:
+    attacker.iron_resolve_stacks = 0
+```
+
+If state clears on movement, add to `marshal.py move_to()`:
+```python
+# Clear resolve on move
+self.iron_resolve_stacks = 0
+```
+
+#### Step 6: Register as Wired Ability (UI)
+
+**File:** `backend/game_logic/marshal_overview.py`
+
+Add the marshal's name to `_WIRED_ABILITY_MARSHALS`:
+```python
+# NOTE: When adding a new wired ability, update this set AND follow the full
+# checklist in docs/ADDING_CONTENT.md "Wiring a Special Ability" section.
+_WIRED_ABILITY_MARSHALS = {"Ney", "Drouot", "Wellington", "Blucher", "Uxbridge", "Davout"}
+```
+
+This controls the `ability_active` flag sent to Godot's Marshal Management screen.
+
+#### Step 7: Add Battle Report Observation (optional but recommended)
+
+**File:** `backend/game_logic/battle_report.py`
+
+Add Berthier observation templates for when the ability triggers:
+```python
+"iron_resolve_strike": [
+    "The Iron Marshal's patience bore fruit — {marshal}'s deliberate counter-strike hit with devastating force.",
+    "{marshal}'s troops, coiled like a spring after days of fortification, struck with terrible precision.",
+]
+```
+
+Add selection logic in `_pick_observation()` following the existing priority tier pattern.
+
+#### Step 8: Add Modifier Snapshot Label
+
+**File:** `backend/game_logic/battle_report.py` in `snapshot_attacker_modifiers()` or `snapshot_defender_modifiers()`
+
+So the player sees the ability bonus in the battle report modifier breakdown:
+```python
+# Iron Resolve stacks
+resolve_stacks = getattr(attacker, 'iron_resolve_stacks', 0)
+if resolve_stacks > 0:
+    modifiers.append(("Iron Resolve", f"+{resolve_stacks * 8}%"))
+```
+
+#### Step 9: Add to game_state_summary Serialization
+
+**File:** `backend/models/world_state.py` in `get_game_state_summary()`
+
+If the state field needs to be visible to Godot:
+```python
+"iron_resolve_stacks": getattr(m, 'iron_resolve_stacks', 0),
+```
+
+#### Step 10: Write Tests
+
+```python
+class TestIronResolve:
+    def test_resolve_builds_while_fortified(self):
+        """Stacks increment each turn while fortified."""
+        ...
+
+    def test_resolve_caps_at_3(self):
+        """Stacks don't exceed 3."""
+        ...
+
+    def test_resolve_consumed_on_attack(self):
+        """Stacks reset to 0 after attacking."""
+        ...
+
+    def test_resolve_clears_on_move(self):
+        """Stacks reset when marshal moves."""
+        ...
+
+    def test_resolve_boosts_attack_modifier(self):
+        """Each stack adds 8% to attack modifier."""
+        ...
+
+    def test_resolve_serialization(self):
+        """Stacks survive save/load roundtrip."""
+        ...
+```
+
+Run full suite: `".venv\Scripts\python.exe" -m pytest tests/ -v`
+
+#### Step 11: Update Documentation
+
+- `CLAUDE.md` — Add ability to current phase notes
+- `docs/SYSTEMS_REFERENCE.md` — Update Marshal Signature Abilities table
+- `docs/SAVE_FORMAT_REFERENCE.md` — Document new serialized fields
+
+#### Complete File Checklist (Copy-Paste)
+
+```
+WIRING A NEW SPECIAL ABILITY — MANDATORY FILES:
+
+□ marshal.py        — Ability dict in create_*_marshals()
+□ marshal.py        — State fields in __init__ (if stateful)
+□ marshal.py        — to_dict() / from_dict() for state fields
+□ marshal.py        — get_attack_modifier() or get_defense_modifier() (if modifier-based)
+□ marshal.py        — move_to() state clearing (if state clears on move)
+□ combat.py         — resolve_battle() effect (if combat-time trigger)
+□ marshal_overview.py — Add name to _WIRED_ABILITY_MARSHALS set
+□ world_state.py    — _process_tactical_states() (if per-turn state)
+□ world_state.py    — get_game_state_summary() (if Godot needs the state)
+□ executor.py       — State consumption/blocking (if applicable)
+□ battle_report.py  — Modifier snapshot label (recommended)
+□ battle_report.py  — Berthier observation templates (recommended)
+□ tests/            — Ability tests (required)
+□ CLAUDE.md         — Update phase notes
+□ SYSTEMS_REFERENCE.md — Update ability table
+□ SAVE_FORMAT_REFERENCE.md — Document new fields
+
+AUTOMATICALLY HANDLED (no changes needed):
+○ dispatch.py       — No ability display
+○ map.gd            — No ability display in tooltips
+○ marshal_management.gd — Reads whatever backend sends
+○ ledger.py         — No ability display
+○ campaign_log.py   — Events flow through normal channels
+○ parser.py         — Already handled by marshal creation step
+```
+
+#### Common Mistakes When Wiring Abilities
+
+| Mistake | Consequence | Prevention |
+|---------|-------------|------------|
+| Forgot `_WIRED_ABILITY_MARSHALS` | Marshal Management shows ability as "inactive" | Always update `marshal_overview.py` |
+| Modifier in combat.py instead of marshal.py | Violates Golden Rule #1, modifier applied twice or inconsistently | All modifiers in `get_attack_modifier()` / `get_defense_modifier()` ONLY |
+| Forgot to_dict/from_dict | Ability state lost on save/load | Run `test_serialization_enforcement.py` |
+| State cleared before reading | Modifier returns 0 because state was already consumed | Golden Rule #4: get value, use it, THEN clear |
+| Hardcoded personality check instead of ability name | All cautious/aggressive/literal marshals get the ability, not just the intended one | Check `ability.get("name")` not `personality` |
+| No snapshot label in battle_report.py | Player doesn't see ability bonus in battle report | Add to `snapshot_*_modifiers()` |
+| Returned float to Godot | Godot crashes | Golden Rule #2: wrap all numbers with `int()` |
+
+---
+
+### 1805 Roster Planning Notes
+
+For the 1805 full Europe map, every nation needs a roster of generals. Design principles:
+
+1. **Only great generals get unique abilities.** Most are personality-driven only (like Grouchy). Out of ~30-40 total generals, only ~10-12 should have wired abilities.
+2. **Personality IS identity for most generals.** An aggressive cavalry commander already has a complete gameplay identity from personality + unit type mechanics alone.
+3. **One ability per general, maximum.** Keep it simple.
+4. **Abilities should create tactical decisions, not passive bonuses.** The player should have to think about when/how to use the ability.
+
+See `docs/SPECIAL_ABILITIES_EVALUATION.md` for detailed roster estimates, ability candidates per nation, and design principles.
 
 ---
 

@@ -402,6 +402,12 @@ class Marshal:
         self.counter_punch_available: bool = False
         self.counter_punch_turns: int = 0  # Turns remaining to use counter-punch
 
+        # DAVOUT - Counter-Punch Mastery (Iron Marshal ability)
+        # Set True when Davout is defender in ANY combat (win, lose, or draw)
+        # Gives +20% attack on next attack against any target, then clears
+        # Clears at turn end if unused. Does NOT stack (stays boolean).
+        self.counter_punch_ready: bool = False
+
         # GROUCHY (Literal) - Immovable tracking
         # Set True when given hold/defend order
         # Provides +15% defense while holding position
@@ -779,6 +785,14 @@ class Marshal:
         if recklessness_bonus > 0:
             modifier *= (1.0 + recklessness_bonus)
 
+        # Counter-Punch Mastery: Davout's +20% attack after being attacked
+        # See docs/ADDING_CONTENT.md "Wiring a Special Ability" checklist.
+        if (hasattr(self, 'ability')
+                and self.ability.get("name") == "Counter-Punch Mastery"
+                and getattr(self, 'counter_punch_ready', False)):
+            modifier *= 1.20  # +20%
+            self.counter_punch_ready = False  # Consume after use
+
         # Exhaustion penalty (attack spam prevention)
         # Applied AFTER other modifiers (multiplicative with recklessness)
         exhaustion_penalty = self._get_exhaustion_penalty()
@@ -842,7 +856,9 @@ class Marshal:
         if recklessness_penalty > 0:
             modifier *= (1.0 - recklessness_penalty)
 
-        # Wellington's "Reverse Slope Defense": +5% defense always when defending
+        # Signature ability: Wellington's "Reverse Slope Defense" (+5% defense always)
+        # When adding new defense abilities, follow docs/ADDING_CONTENT.md
+        # "Wiring a Special Ability" checklist.
         if (hasattr(self, 'ability')
                 and self.ability.get("name") == "Reverse Slope Defense"):
             modifier *= 1.05
@@ -1028,6 +1044,7 @@ class Marshal:
             # ═══════ DAVOUT-SPECIFIC (COUNTER-PUNCH) ═══════
             "counter_punch_available": self.counter_punch_available,
             "counter_punch_turns": int(self.counter_punch_turns),
+            "counter_punch_ready": self.counter_punch_ready,
 
             # ═══════ GROUCHY-SPECIFIC (HOLDING POSITION) ═══════
             "holding_position": self.holding_position,
@@ -1154,6 +1171,7 @@ class Marshal:
         # ═══════ DAVOUT-SPECIFIC (COUNTER-PUNCH) ═══════
         marshal.counter_punch_available = data.get("counter_punch_available", False)
         marshal.counter_punch_turns = data.get("counter_punch_turns", 0)
+        marshal.counter_punch_ready = data.get("counter_punch_ready", False)
 
         # ═══════ GROUCHY-SPECIFIC (HOLDING POSITION) ═══════
         marshal.holding_position = data.get("holding_position", False)
@@ -1235,10 +1253,10 @@ def create_starting_marshals() -> dict[str, Marshal]:
                 "command": 9        # Iron discipline, feared and respected
             },
             ability={
-                "name": "Iron Marshal",
-                "description": "Davout's iron discipline keeps his army steady under pressure",
-                "trigger": "morale_drops_below_50",
-                "effect": "Prevents first morale drop below 50% (TODO: Phase 2.4 morale system)"
+                "name": "Counter-Punch Mastery",
+                "description": "Davout's counterattacks strike with devastating force after absorbing an enemy assault",
+                "trigger": "after_defending",
+                "effect": "+20% attack on next attack after being attacked"
             },
             starting_trust=85,  # Most trusted marshal, proven record
             spawn_location="Paris"  # French capital - respawn location when broken

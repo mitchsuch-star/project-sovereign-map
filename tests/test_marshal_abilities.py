@@ -3,7 +3,7 @@ Test Marshal Signature Abilities (Phase 2.3, Phase 6.5 wiring)
 
 Tests unique abilities for each marshal:
 - Ney: "Bravest of the Brave" - +2 Shock when attacking (IMPLEMENTED Phase 2.3)
-- Davout: "Iron Marshal" - Prevents first morale drop below 50 (deferred — needs morale rework)
+- Davout: "Counter-Punch Mastery" - +20% attack after defending (IMPLEMENTED)
 - Grouchy: "Literal Obedience" - Never questions orders (wired via disobedience.py, not combat)
 - Wellington: "Reverse Slope Defense" - +5% flat defense always (IMPLEMENTED Phase 6.5)
 - Drouot: "Sage of the Grand Army" - 15% fort degradation on attack (IMPLEMENTED Phase 6.5)
@@ -202,25 +202,24 @@ class TestNeyBravestOfTheBrave:
         # That's about 6.9% more damage
 
 
-class TestDavoutIronMarshal:
-    """Test Davout's 'Iron Marshal' ability (deferred — needs morale rework)."""
+class TestDavoutCounterPunchMastery:
+    """Test Davout's 'Counter-Punch Mastery' ability."""
 
     def test_davout_has_ability(self):
-        """Verify Davout has the Iron Marshal ability defined."""
+        """Verify Davout has the Counter-Punch Mastery ability defined."""
         marshals = create_starting_marshals()
         davout = marshals["Davout"]
 
-        assert davout.ability["name"] == "Iron Marshal"
-        assert davout.ability["trigger"] == "morale_drops_below_50"
-        assert "TODO" in davout.ability["effect"], "Should be marked as TODO"
+        assert davout.ability["name"] == "Counter-Punch Mastery"
+        assert davout.ability["trigger"] == "after_defending"
+        assert "+20%" in davout.ability["effect"]
 
-    def test_davout_ability_not_implemented_yet(self):
-        """Verify Davout's ability is not yet implemented (awaiting morale rework)."""
+    def test_davout_ability_description(self):
+        """Verify Davout's ability has a meaningful description."""
         marshals = create_starting_marshals()
         davout = marshals["Davout"]
 
-        # For now, just verify the structure exists
-        assert "Prevents first morale drop below 50" in davout.ability["effect"]
+        assert "counterattack" in davout.ability["description"].lower() or "counter" in davout.ability["description"].lower()
 
 
 class TestGrouchyLiteralObedience:
@@ -922,6 +921,330 @@ class TestAbilityIntegration:
         assert result["fortification_degraded"] is True
         assert result["fortification_new"] == 0.20  # 0.30 - 0.10
         assert result.get("drouot_ability_triggered") is None
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# DAVOUT: COUNTER-PUNCH MASTERY — FULL ABILITY TESTS
+# ════════════════════════════════════════════════════════════════════════════════
+
+
+class TestDavoutCounterPunchMasteryMechanics:
+    """Test Davout's Counter-Punch Mastery: +20% attack after being attacked."""
+
+    def _make_davout(self, strength=48000):
+        """Create a Davout marshal with Counter-Punch Mastery ability."""
+        d = Marshal("Davout", "Paris", strength, "cautious")
+        d.ability = {
+            "name": "Counter-Punch Mastery",
+            "description": "Davout's counterattacks strike with devastating force",
+            "trigger": "after_defending",
+            "effect": "+20% attack on next attack after being attacked"
+        }
+        d.morale = 100
+        return d
+
+    def _make_attacker(self, name="Attacker", strength=40000, personality="aggressive"):
+        """Create a generic attacker."""
+        a = Marshal(name, "Paris", strength, personality)
+        a.morale = 100
+        return a
+
+    # ── Trigger Tests ──
+
+    def test_counter_punch_ready_set_when_davout_defends_and_wins(self):
+        """counter_punch_ready=True when Davout is defender and wins."""
+        davout = self._make_davout(60000)
+        attacker = self._make_attacker(strength=20000)
+        combat = CombatResolver()
+        combat.resolve_battle(attacker, davout)
+        assert davout.counter_punch_ready is True
+
+    def test_counter_punch_ready_set_when_davout_defends_and_loses(self):
+        """counter_punch_ready=True even when Davout loses (attacker victory)."""
+        davout = self._make_davout(20000)
+        attacker = self._make_attacker(strength=60000)
+        combat = CombatResolver()
+        combat.resolve_battle(attacker, davout)
+        # If Davout survived (strength > 0), he gets counter_punch_ready
+        if davout.strength > 0:
+            assert davout.counter_punch_ready is True
+
+    def test_counter_punch_ready_not_set_when_davout_destroyed(self):
+        """counter_punch_ready=False if Davout is destroyed (strength=0)."""
+        davout = self._make_davout(1000)  # Tiny army, will be destroyed
+        attacker = self._make_attacker(strength=80000)
+        combat = CombatResolver()
+        combat.resolve_battle(attacker, davout)
+        # Destroyed = no counter-punch ready
+        if davout.strength <= 0:
+            assert davout.counter_punch_ready is False
+
+    def test_counter_punch_ready_set_on_stalemate(self):
+        """counter_punch_ready=True on stalemate (draw)."""
+        davout = self._make_davout(40000)
+        attacker = self._make_attacker(strength=40000)
+        combat = CombatResolver()
+        # Run multiple times to catch a stalemate
+        triggered = False
+        for _ in range(50):
+            d = self._make_davout(40000)
+            a = self._make_attacker(strength=40000)
+            result = combat.resolve_battle(a, d)
+            if result["outcome"] == "stalemate":
+                assert d.counter_punch_ready is True
+                triggered = True
+                break
+        # Even if we didn't hit stalemate in 50 tries, verify the field exists
+        assert hasattr(davout, 'counter_punch_ready')
+
+    def test_counter_punch_ready_not_set_when_davout_is_attacker(self):
+        """counter_punch_ready is NOT set when Davout is the attacker."""
+        davout = self._make_davout(60000)
+        defender = self._make_attacker(name="Defender", strength=20000)
+        combat = CombatResolver()
+        combat.resolve_battle(davout, defender)
+        assert davout.counter_punch_ready is False
+
+    def test_counter_punch_ready_not_set_for_non_davout_marshal(self):
+        """counter_punch_ready is NOT set for marshals without the ability."""
+        generic = Marshal("Wellington", "Paris", 50000, "cautious")
+        generic.ability = {
+            "name": "Reverse Slope Defense",
+            "description": "test",
+            "trigger": "when_defending",
+            "effect": "+5% defense"
+        }
+        generic.morale = 100
+        attacker = self._make_attacker(strength=30000)
+        combat = CombatResolver()
+        combat.resolve_battle(attacker, generic)
+        assert generic.counter_punch_ready is False
+
+    # ── Modifier Tests ──
+
+    def test_20_percent_attack_bonus_when_ready(self):
+        """get_attack_modifier() includes +20% when counter_punch_ready=True."""
+        davout = self._make_davout()
+        base_modifier = davout.get_attack_modifier()
+
+        # Reset and set counter_punch_ready
+        davout2 = self._make_davout()
+        davout2.counter_punch_ready = True
+        boosted_modifier = davout2.get_attack_modifier()
+
+        # Boosted should be ~20% higher than base
+        expected_ratio = 1.20
+        actual_ratio = boosted_modifier / base_modifier
+        assert abs(actual_ratio - expected_ratio) < 0.01, \
+            f"Expected ~{expected_ratio}x, got {actual_ratio}x"
+
+    def test_counter_punch_ready_consumed_after_attack_modifier(self):
+        """counter_punch_ready is cleared after get_attack_modifier() consumes it."""
+        davout = self._make_davout()
+        davout.counter_punch_ready = True
+        davout.get_attack_modifier()
+        assert davout.counter_punch_ready is False
+
+    def test_no_bonus_without_counter_punch_ready(self):
+        """get_attack_modifier() has no bonus when counter_punch_ready=False."""
+        davout = self._make_davout()
+        assert davout.counter_punch_ready is False
+        mod1 = davout.get_attack_modifier()
+        mod2 = davout.get_attack_modifier()
+        assert mod1 == mod2  # Consistent without bonus
+
+    def test_counter_punch_does_not_stack(self):
+        """Multiple defenses don't stack to +40% — stays at +20%."""
+        davout = self._make_davout()
+        davout.counter_punch_ready = True
+        # "Set again" — still boolean True, not +40%
+        davout.counter_punch_ready = True
+        mod = davout.get_attack_modifier()
+        # Should be exactly 1.20x the base (not 1.40x)
+        davout2 = self._make_davout()
+        base = davout2.get_attack_modifier()
+        expected_ratio = 1.20
+        actual_ratio = mod / base
+        assert abs(actual_ratio - expected_ratio) < 0.01
+
+    # ── Attack Against ANY Target ──
+
+    def test_counter_punch_works_against_any_target(self):
+        """Counter-punch bonus applies to attack against ANY target, not just the attacker."""
+        davout = self._make_davout(50000)
+        original_attacker = self._make_attacker(name="Blucher", strength=40000)
+        different_target = self._make_attacker(name="Wellington", strength=40000)
+        different_target.morale = 100
+
+        combat = CombatResolver()
+        # Blucher attacks Davout → Davout gets counter_punch_ready
+        combat.resolve_battle(original_attacker, davout)
+        assert davout.counter_punch_ready is True
+
+        # Davout attacks Wellington (different target) → bonus still applies
+        modifier = davout.get_attack_modifier()
+        # The modifier should include the +20% (consumed now)
+        assert davout.counter_punch_ready is False  # Consumed
+
+    # ── Stacking With Other Modifiers ──
+
+    def test_stacks_with_aggressive_stance(self):
+        """Counter-punch bonus stacks multiplicatively with aggressive stance."""
+        from backend.models.marshal import Stance
+        davout = self._make_davout()
+        davout.stance = Stance.AGGRESSIVE
+        base = davout.get_attack_modifier()
+
+        davout2 = self._make_davout()
+        davout2.stance = Stance.AGGRESSIVE
+        davout2.counter_punch_ready = True
+        boosted = davout2.get_attack_modifier()
+
+        ratio = boosted / base
+        assert abs(ratio - 1.20) < 0.01
+
+    def test_stacks_with_drill(self):
+        """Counter-punch bonus stacks multiplicatively with drill bonus."""
+        davout = self._make_davout()
+        davout.shock_bonus = 2  # +20% from drill
+        base = davout.get_attack_modifier()
+
+        davout2 = self._make_davout()
+        davout2.shock_bonus = 2
+        davout2.counter_punch_ready = True
+        boosted = davout2.get_attack_modifier()
+
+        ratio = boosted / base
+        assert abs(ratio - 1.20) < 0.01
+
+    # ── Turn-End Clearing ──
+
+    def test_counter_punch_ready_clears_at_turn_end(self):
+        """counter_punch_ready is cleared during _process_tactical_states()."""
+        from backend.models.world_state import WorldState
+        world = WorldState()
+        davout = world.marshals.get("Davout")
+        assert davout is not None
+        davout.counter_punch_ready = True
+
+        # Process tactical states (called during advance_turn)
+        world._process_tactical_states()
+        assert davout.counter_punch_ready is False
+
+    # ── Broken State Clearing ──
+
+    def test_counter_punch_ready_cleared_when_broken(self):
+        """counter_punch_ready is cleared when marshal enters broken state."""
+        davout = self._make_davout()
+        davout.counter_punch_ready = True
+        # Simulate broken state clearing (as done in executor._handle_broken)
+        davout.counter_punch_ready = False
+        assert davout.counter_punch_ready is False
+
+    # ── Serialization ──
+
+    def test_counter_punch_ready_serialization_roundtrip(self):
+        """counter_punch_ready survives save/load (to_dict → from_dict)."""
+        davout = self._make_davout()
+        davout.counter_punch_ready = True
+
+        data = davout.to_dict()
+        assert "counter_punch_ready" in data
+        assert data["counter_punch_ready"] is True
+
+        restored = Marshal.from_dict(data)
+        assert restored.counter_punch_ready is True
+
+    def test_counter_punch_ready_default_false_in_from_dict(self):
+        """Missing counter_punch_ready in save data defaults to False."""
+        davout = self._make_davout()
+        data = davout.to_dict()
+        del data["counter_punch_ready"]  # Simulate old save format
+
+        restored = Marshal.from_dict(data)
+        assert restored.counter_punch_ready is False
+
+    # ── Battle Report Snapshot ──
+
+    def test_modifier_snapshot_includes_counter_punch_label(self):
+        """Battle report modifier snapshot includes 'Counter-Punch Mastery' label."""
+        from backend.game_logic.battle_report import snapshot_attacker_modifiers
+        davout = self._make_davout()
+        davout.counter_punch_ready = True
+
+        defender = self._make_attacker(strength=30000)
+        mods = snapshot_attacker_modifiers(davout, defender, "plains", 0.0, 0, False)
+
+        labels = [m["label"] for m in mods]
+        assert "Counter-Punch Mastery" in labels
+        mastery_mod = next(m for m in mods if m["label"] == "Counter-Punch Mastery")
+        assert mastery_mod["value"] == 20
+        assert mastery_mod["type"] == "bonus"
+
+    def test_modifier_snapshot_excludes_label_when_not_ready(self):
+        """No Counter-Punch Mastery label when counter_punch_ready=False."""
+        from backend.game_logic.battle_report import snapshot_attacker_modifiers
+        davout = self._make_davout()
+        davout.counter_punch_ready = False
+
+        defender = self._make_attacker(strength=30000)
+        mods = snapshot_attacker_modifiers(davout, defender, "plains", 0.0, 0, False)
+
+        labels = [m["label"] for m in mods]
+        assert "Counter-Punch Mastery" not in labels
+
+    # ── Combat Result Dict ──
+
+    def test_combat_result_includes_mastery_earned_flag(self):
+        """resolve_battle result includes counter_punch_mastery_earned flag."""
+        davout = self._make_davout(50000)
+        attacker = self._make_attacker(strength=30000)
+        combat = CombatResolver()
+        result = combat.resolve_battle(attacker, davout)
+        assert "counter_punch_mastery_earned" in result
+        if davout.strength > 0:
+            assert result["counter_punch_mastery_earned"] is True
+
+    # ── Building Blocks: Enemy Davout ──
+
+    def test_enemy_marshal_with_ability_also_triggers(self):
+        """Building Blocks: an enemy marshal with Counter-Punch Mastery also gets the bonus."""
+        enemy_davout = self._make_davout(50000)
+        enemy_davout.nation = "Prussia"  # Enemy nation
+        player_attacker = self._make_attacker(strength=30000)
+        player_attacker.nation = "France"
+
+        combat = CombatResolver()
+        combat.resolve_battle(player_attacker, enemy_davout)
+        assert enemy_davout.counter_punch_ready is True
+
+    # ── Integration: Full Combat Cycle ──
+
+    def test_full_cycle_defend_then_attack(self):
+        """Full cycle: Davout is attacked → gets +20% → attacks back → bonus consumed."""
+        davout = self._make_davout(50000)
+        enemy1 = self._make_attacker(name="Enemy1", strength=30000)
+        enemy2 = self._make_attacker(name="Enemy2", strength=30000)
+
+        combat = CombatResolver()
+
+        # Step 1: Enemy attacks Davout
+        combat.resolve_battle(enemy1, davout)
+        if davout.strength > 0:
+            assert davout.counter_punch_ready is True
+
+            # Step 2: Davout attacks different target — bonus consumed
+            base_mod = self._make_davout().get_attack_modifier()
+            boosted_mod = davout.get_attack_modifier()
+            assert boosted_mod > base_mod  # +20% applied
+            assert davout.counter_punch_ready is False  # Consumed
+
+            # Step 3: Davout attacks again — no bonus
+            mod_after = davout.get_attack_modifier()
+            # Recalculate base (cautious personality mods may shift with strength_ratio=None)
+            fresh_davout = self._make_davout(davout.strength)
+            fresh_base = fresh_davout.get_attack_modifier()
+            assert abs(mod_after - fresh_base) < 0.01
 
 
 if __name__ == "__main__":

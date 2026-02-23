@@ -2768,6 +2768,7 @@ class WorldState:
                         "turns_in_defensive_stance": int(getattr(m, 'turns_in_defensive_stance', 0)),
                         "counter_punch_available": bool(getattr(m, 'counter_punch_available', False)),
                         "counter_punch_turns": int(getattr(m, 'counter_punch_turns', 0)),
+                        "counter_punch_ready": bool(getattr(m, 'counter_punch_ready', False)),
                         "holding_position": bool(getattr(m, 'holding_position', False)),
                         "hold_region": str(getattr(m, 'hold_region', '')),
                         # Broken army state (surrounded + forced retreat)
@@ -3663,6 +3664,16 @@ class WorldState:
                     })
                 else:
                     debug_print(f"  [COUNTER-PUNCH] {marshal.name} has counter-punch available ({marshal.counter_punch_turns} turns remaining)")
+
+        # ════════════════════════════════════════════════════════════
+        # COUNTER-PUNCH MASTERY EXPIRATION (Davout's Iron Marshal ability)
+        # counter_punch_ready is earned when Davout defends, used on next attack.
+        # Clears at turn end if unused — does not persist across turns.
+        # ════════════════════════════════════════════════════════════
+        for marshal in self.marshals.values():
+            if getattr(marshal, 'counter_punch_ready', False):
+                marshal.counter_punch_ready = False
+                debug_print(f"  [COUNTER-PUNCH MASTERY EXPIRED] {marshal.name}'s counter-punch mastery bonus has passed")
 
         # ════════════════════════════════════════════════════════════
         # PRECISION EXECUTION COUNTDOWN (Phase 5.2 - Grouchy/Literal)

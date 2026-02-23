@@ -21,10 +21,10 @@ _RELATIONSHIP_LABELS = {
     2: "Devoted",
 }
 
-# TODO (Phase 7b or Pre-EA): Replace hardcoded ability_active check with proper
-# Marshal.ability_wired field. Currently derived from marshal name since the set
-# of wired abilities is static (Ney, Drouot, Wellington, Blucher, Uxbridge).
-_WIRED_ABILITY_MARSHALS = {"Ney", "Drouot", "Wellington", "Blucher", "Uxbridge"}
+# Marshals whose unique abilities are actively wired (mechanically functional).
+# When adding a new wired ability, add the marshal name here AND follow the full
+# checklist in docs/ADDING_CONTENT.md → "Wiring a Special Ability" section.
+_WIRED_ABILITY_MARSHALS = {"Ney", "Davout", "Drouot", "Wellington", "Blucher", "Uxbridge"}
 
 # Gameplay descriptions for each personality type
 _PERSONALITY_DESCRIPTIONS = {
@@ -216,6 +216,7 @@ def _build_unit_specifics(marshal: Marshal) -> Dict[str, Any]:
         "cavalry": bool(marshal.cavalry),
         "counter_punch_available": bool(marshal.counter_punch_available),
         "counter_punch_turns": int(marshal.counter_punch_turns),
+        "counter_punch_ready": bool(marshal.counter_punch_ready),
         "holding_position": bool(marshal.holding_position),
         "artillery": bool(marshal.artillery),
         "bombardments_this_turn": int(marshal.bombardments_this_turn),

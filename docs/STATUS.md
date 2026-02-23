@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 22, 2026 (Phase 6.5 UI Audit)
+> **Last Updated:** February 22, 2026 (Davout Counter-Punch Mastery)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3329** (verified, 3 skipped) |
+| **Tests Passing** | **3351** (verified, 3 skipped) |
 
 | **Current Phase** | Phase 6.5 **IN PROGRESS** (1 item remaining: Map Renderer — art-blocked. Tooltips absorbed into Map Renderer, Tutorial deferred to Pre-EA). **Phase 7 Core SCOPED** — 6 sessions (57-61, 64), ~190 new tests. |
 | **Blockers** | None |
@@ -20,7 +20,7 @@
 ## Next Steps
 
 1. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
-2. **Active next** — Special Abilities Evaluation (Davout Iron Marshal design decision + review other marshals), then Phase 7 Core begins.
+2. **Active next** — Phase 7 Core begins (Davout's Counter-Punch Mastery implemented, Special Abilities Evaluation complete).
 3. **Phase 7 Core: Multi-Marshal Coordination** — 6 sessions (57-61, 64), ~190 new tests. Combined arms, coordination bonuses, dedicated coordination, adjacent support, reinforcement (Grouchy Rule), win/loss relationships. Hard cap: +25% atk/+20% def. Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md`.
 4. **Phase 7b (immediately after 7 Core):** Casualty Distribution, AI Coordination Enhancements, Full Battle Reports, Godot Tooltips/Tutorial, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Cross-nation coordination, Gneisenau Staff Work.
 
@@ -46,6 +46,18 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 6.5 Sessions
+
+### Feb 22 (Davout Counter-Punch Mastery + Special Abilities Evaluation)
+
+**Davout's "Counter-Punch Mastery" ability wired. 22 new tests, 3351 total.**
+
+- **Ability:** +20% attack on next attack after Davout is attacked (any combat outcome, any target). Boolean `counter_punch_ready` field — set when defender in combat (if survived), consumed on next `get_attack_modifier()` call, cleared at turn end if unused.
+- **Files modified:** `marshal.py` (field + ability definition + modifier), `combat.py` (trigger + result flag), `battle_report.py` (snapshot label), `marshal_overview.py` (`_WIRED_ABILITY_MARSHALS` + unit specifics), `world_state.py` (turn-end clearing + game state summary), `executor.py` (broken state clearing).
+- **6 wired abilities total:** Ney (+2 shock), Davout (+20% counter-punch), Drouot (15% fort degradation), Wellington (+5% defense), Blucher (+3k pursuit), Uxbridge (+5k pursuit).
+- **Special Abilities Evaluation complete:** `docs/SPECIAL_ABILITIES_EVALUATION.md` — 3 Davout designs proposed, existing abilities reviewed (all balanced for Phase 7), UI surface audit (5 manual / 6 auto), 1805 roster planning principles and candidate lists documented.
+- **ADDING_CONTENT.md expanded:** "Wiring a Special Ability" 16-step checklist, common mistakes table, file audit.
+
+---
 
 ### Feb 22 (Phase 6.5 UI Audit)
 

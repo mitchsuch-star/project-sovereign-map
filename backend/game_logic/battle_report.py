@@ -106,6 +106,11 @@ def snapshot_attacker_modifiers(
         if atk_loc and def_loc and atk_loc != def_loc:
             mods.append({"label": "Ranged bombardment (−50% return fire)", "value": 50, "type": "bonus"})
 
+    # --- Counter-Punch Mastery (Davout's Iron Marshal ability) ---
+    if getattr(attacker, "counter_punch_ready", False):
+        if hasattr(attacker, 'ability') and attacker.ability.get("name") == "Counter-Punch Mastery":
+            mods.append({"label": "Counter-Punch Mastery", "value": 20, "type": "bonus"})
+
     # --- Glorious Charge ---
     if glorious_charge:
         mods.append({"label": "Glorious Charge", "value": 100, "type": "bonus"})

@@ -349,13 +349,13 @@ class TestAbility:
         assert ney["ability_active"] is True
         assert ney["ability_name"] == "Bravest of the Brave"
 
-    def test_davout_ability_inactive(self):
-        """Davout's Iron Marshal is deferred — ability fields empty."""
+    def test_davout_ability_active(self):
+        """Davout's Counter-Punch Mastery is wired (active)."""
         overview = _get_overview()
         davout = _find_marshal(overview, "Davout")
-        assert davout["ability_active"] is False
-        assert davout["ability_name"] == ""
-        assert davout["ability_effect"] == ""
+        assert davout["ability_active"] is True
+        assert davout["ability_name"] == "Counter-Punch Mastery"
+        assert "+20%" in davout["ability_effect"]
 
     def test_grouchy_ability_inactive(self):
         """Grouchy's Literal Obedience is deferred — ability fields empty."""
@@ -372,8 +372,8 @@ class TestAbility:
         assert drouot["ability_name"] == "Sage of the Grand Army"
 
     def test_wired_ability_set_correct(self):
-        """Verify the wired ability set matches Phase 6.5 documentation."""
-        assert _WIRED_ABILITY_MARSHALS == {"Ney", "Drouot", "Wellington", "Blucher", "Uxbridge"}
+        """Verify the wired ability set matches current documentation."""
+        assert _WIRED_ABILITY_MARSHALS == {"Ney", "Davout", "Drouot", "Wellington", "Blucher", "Uxbridge"}
 
 
 # ════════════════════════════════════════════════════════════════════════════════

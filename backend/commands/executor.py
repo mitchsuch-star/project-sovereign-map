@@ -2162,6 +2162,7 @@ RETREAT RECOVERY (3 turns):
             marshal.turns_in_defensive_stance = 0
             marshal.counter_punch_available = False
             marshal.counter_punch_turns = 0
+            marshal.counter_punch_ready = False
             marshal.holding_position = False
             marshal.hold_region = ""
 
@@ -2417,7 +2418,7 @@ RETREAT RECOVERY (3 turns):
         fort_note = ""
         if fortification_degraded:
             if fortification_new <= 0:
-                fort_note = f" The enemy fortifications have been completely destroyed!"
+                fort_note = " The enemy fortifications have been completely destroyed!"
             else:
                 fort_note = f" Enemy fortifications degraded ({int(fortification_old * 100)}% → {int(fortification_new * 100)}%)."
 

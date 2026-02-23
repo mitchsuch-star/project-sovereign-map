@@ -125,7 +125,7 @@ Each marshal has a unique ability defined in `marshal.py` ability dict (4 string
 | Wellington | Reverse Slope Defense | +5% flat defense always | `when_defending` | `marshal.py` `get_defense_modifier()` | Wired (Phase 6.5) |
 | Blucher | Vorwärts! | +3k pursuit casualties on retreat, floor 1000 | `when_enemy_retreats` | `combat.py` (pursuit block) | Wired (Phase 6.5) |
 | Uxbridge | Pursuit Master | +5k pursuit casualties on retreat (cavalry), floor 1000 | `when_enemy_retreats` | `combat.py` (pursuit block) | Wired (Phase 6.5) |
-| Davout | Iron Marshal | Prevents first morale drop below 50 | `morale_drops_below_50` | — | Deferred (morale rework) |
+| Davout | Counter-Punch Mastery | +20% attack after defending (any outcome, any target) | `after_defending` | `marshal.py` `get_attack_modifier()` + `combat.py` (trigger) | Wired |
 | Grouchy | Literal Obedience | Never questions orders | `receiving_orders` | `disobedience.py` (partial) | Deferred |
 | Gneisenau | Staff Work | +5% atk/def to allies in region | `when_in_same_region_as_ally` | — | Deferred (Phase 7 S58) |
 | PrinceAugust | Prussian Gunnery | No-op by design | `when_bombarding` | — | No-op |

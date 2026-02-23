@@ -130,17 +130,19 @@
 | Pause Menu | Smart Esc → Save/Load/Settings/Quit | Low | **COMPLETE** |
 | Wire Marshal Abilities | Drouot/Wellington/Blucher/Uxbridge wired. Gneisenau deferred to Phase 7. | Medium | **COMPLETE** (54 tests) |
 
-### Special Abilities Exploration (Post-Phase 6.5)
+### Special Abilities Exploration (Post-Phase 6.5) — COMPLETE
 
-Currently only Ney (Bravest of the Brave: +2 shock) and Drouot (Sage: 15% fort degradation) have wired unique abilities among French marshals. Davout's Iron Marshal (morale floor) and Grouchy's Literal Obedience are personality-type effects, not distinct ability mechanics.
+**Evaluation complete.** See `docs/SPECIAL_ABILITIES_EVALUATION.md` for full analysis.
 
-**Design direction:** Not every marshal needs a unique special ability. Some should have personality-driven gameplay (Grouchy's literal compliance IS his identity). Special abilities work best on marshals where the ability creates a distinct tactical decision point:
-- **Ney:** Encourages aggressive use (shock bonus rewards attacking)
-- **Drouot:** Encourages targeting fortified positions (fort degradation)
-- **Davout:** Could get a real Iron Marshal ability — morale floor, or "last stand" defense bonus when below 50% strength
-- **Grouchy:** His literal personality IS his ability — no separate mechanic needed
+**Wired abilities (6):** Ney (+2 shock), Davout (+20% attack after defending), Drouot (15% fort degradation), Wellington (+5% defense), Blucher (+3k pursuit), Uxbridge (+5k pursuit). All reviewed and confirmed balanced for Phase 7 coordination mechanics.
 
-Evaluate whether to wire Davout's ability (and what it should actually do) during Phase 7b or Pre-EA polish. The Marshal Management screen's `ability_active` flag will surface any new abilities automatically.
+**Davout's Counter-Punch Mastery — IMPLEMENTED.** +20% attack on next attack after being attacked (any outcome, any target). Combos with cautious personality's free counter-punch for the Auerstedt fantasy. 22 tests.
+
+**Grouchy:** His literal personality IS his ability — no separate mechanic needed.
+
+**1805 roster planning:** Principles documented. Only ~10-12 of ~30-40 total generals across all nations should have unique abilities. Candidates listed per nation. Enemy abilities deferred to 1805 roster build.
+
+**Adding new abilities:** Full checklist added to `docs/ADDING_CONTENT.md` → "Wiring a Special Ability" section (16 steps, common mistakes, auto-detect vs manual wiring audit).
 
 ### Map Renderer Notes
 

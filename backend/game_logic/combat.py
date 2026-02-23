@@ -172,14 +172,15 @@ class CombatResolver:
         # SIGNATURE ABILITY: Ney's "Bravest of the Brave" (Phase 2.3)
         # When attacking, Ney gets +2 Shock
         #
-        # Wired abilities (Phase 6.5):
+        # Wired abilities — see docs/ADDING_CONTENT.md "Wiring a Special Ability"
+        # for the full checklist when adding new abilities:
         #   - Ney "Bravest of the Brave": +2 Shock when attacking (here)
         #   - Drouot "Sage of the Grand Army": +5% fort degradation (fort degradation block below)
         #   - Wellington "Reverse Slope Defense": +5% defense always (marshal.py get_defense_modifier)
         #   - Blucher "Vorwärts!": 3k pursuit damage on retreat (pursuit block below)
         #   - Uxbridge "Pursuit Master": 5k pursuit damage on retreat (pursuit block below)
+        #   - Davout "Counter-Punch Mastery": +20% attack after defending (outcome block below)
         # Unwired:
-        #   - Davout "Iron Marshal": morale-drop prevention (deferred — needs morale rework)
         #   - Grouchy "Literal Obedience": order compliance (wired via disobedience.py, not combat)
         #   - Gneisenau "Staff Work": ally bonus (deferred to Phase 7 Session 58 — needs coordination fields)
         #   - PrinceAugust "Prussian Gunnery": no-op by design
@@ -499,6 +500,15 @@ class CombatResolver:
                     defender.counter_punch_turns = 2  # Survives one turn transition
                     debug_print(f"  [COUNTER-PUNCH EARNED] {defender.name} held the line - can now attack for FREE!")
 
+        # COUNTER-PUNCH MASTERY: Davout's Iron Marshal ability
+        # When Davout is the defender in any combat (win, lose, or draw),
+        # his next attack gets +20%. Only triggers if defender survived.
+        if (defender.strength > 0
+                and hasattr(defender, 'ability')
+                and defender.ability.get("name") == "Counter-Punch Mastery"):
+            defender.counter_punch_ready = True
+            debug_print(f"  [COUNTER-PUNCH MASTERY] {defender.name} absorbs the blow — next attack +20%!")
+
         # Build description with tactical state messages
         base_description = self._generate_description(
             attacker, defender, outcome, attacker_casualties, defender_casualties, attacker_roll
@@ -710,6 +720,10 @@ class CombatResolver:
             "counter_punch_earned": bool(getattr(defender, 'counter_punch_available', False)
                                          and getattr(defender, 'personality', '') == 'cautious'
                                          and outcome in ("defender_victory", "defender_tactical_victory", "stalemate")),
+            # Counter-Punch Mastery: Davout's +20% attack after defending (any outcome)
+            "counter_punch_mastery_earned": bool(getattr(defender, 'counter_punch_ready', False)
+                                                 and hasattr(defender, 'ability')
+                                                 and defender.ability.get("name") == "Counter-Punch Mastery"),
             "drill_cancelled": bool(is_drilling),
         }
         result_dict["battle_report"] = generate_battle_report(result_dict)
