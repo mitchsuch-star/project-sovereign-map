@@ -2062,6 +2062,16 @@ Territory management runs through marshals, not spreadsheets. Conquered regions 
 
 **The spec must answer:** Does this system make conquest feel like a *risk* with ongoing costs, or just a *reward* with flavor text? The former is worth building. The latter is not.
 
+### Design Direction — Garrison as Governance Anchor
+
+**Key insight:** Governance doesn't need a new system — it layers onto the existing garrison mechanic.
+
+- **Garrisoned region = managed.** The marshal's loyal troops maintain order. Governor personality shapes outcomes (Davout's garrison runs tight, Ney's is a mess but at least it's *there*). Garrison costs already exist (2 AP + 3k troops) — governance adds consequences, not new commands.
+- **Ungarrisoned conquered region = unmanaged.** Real consequences: rebel armies spawn, supply lines cut, region flips back to enemy control. These aren't flavor events — they're mechanical threats behind your lines.
+- **Marshal may need to return.** If a garrisoned region destabilizes beyond what the garrison can handle, that marshal has a reason to go *back* — pulling them off the frontline. The garrison has skin in the game for that region.
+- **Natural resource curve.** Early conquests are easy to garrison. Later ones stretch you thin — finite marshals, finite troops, growing frontline. Conquer 6 regions, garrison 2, leave 4 unmanaged = 4 ticking time bombs.
+- **No new command verb.** Garrison already exists. The spec just needs to define what happens to garrisoned vs ungarrisoned conquered territory over time.
+
 ---
 
 *Extracted from CLAUDE.md during documentation cleanup. Last updated February 22, 2026.*
