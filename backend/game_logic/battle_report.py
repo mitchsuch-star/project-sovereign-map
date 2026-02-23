@@ -115,6 +115,18 @@ def snapshot_attacker_modifiers(
     if glorious_charge:
         mods.append({"label": "Glorious Charge", "value": 100, "type": "bonus"})
 
+    # --- Combined Arms (Phase 7, Session 57) ---
+    ca_atk = getattr(attacker, '_display_combined_arms_atk', 0.0)
+    if ca_atk > 0:
+        mods.append({"label": "Combined arms", "value": int(round(ca_atk * 100)), "type": "bonus"})
+
+    # --- Total Coordination (Phase 7) ---
+    total_coord_atk = getattr(attacker, 'total_coordination_attack_bonus', 0.0)
+    if total_coord_atk > 0:
+        # Only show total if different from combined arms (meaning other sources contribute)
+        if abs(total_coord_atk - ca_atk) > 0.001:
+            mods.append({"label": "Coordination (total)", "value": int(round(total_coord_atk * 100)), "type": "bonus"})
+
     return mods
 
 
@@ -189,6 +201,18 @@ def snapshot_defender_modifiers(
     # --- Fortification building bonus ---
     if fortification_bonus > 0:
         mods.append({"label": "Fortification building", "value": int(round(fortification_bonus * 100)), "type": "bonus"})
+
+    # --- Combined Arms (Phase 7, Session 57) ---
+    ca_def = getattr(defender, '_display_combined_arms_def', 0.0)
+    if ca_def > 0:
+        mods.append({"label": "Combined arms", "value": int(round(ca_def * 100)), "type": "bonus"})
+
+    # --- Total Coordination (Phase 7) ---
+    total_coord_def = getattr(defender, 'total_coordination_defense_bonus', 0.0)
+    if total_coord_def > 0:
+        # Only show total if different from combined arms (meaning other sources contribute)
+        if abs(total_coord_def - ca_def) > 0.001:
+            mods.append({"label": "Coordination (total)", "value": int(round(total_coord_def * 100)), "type": "bonus"})
 
     return mods
 

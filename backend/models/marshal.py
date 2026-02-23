@@ -799,6 +799,9 @@ class Marshal:
         if exhaustion_penalty > 0:
             modifier *= (1.0 - exhaustion_penalty)
 
+        # Coordination bonus (Phase 7: set by _calculate_coordination_context, capped)
+        modifier *= (1.0 + getattr(self, 'total_coordination_attack_bonus', 0.0))
+
         return modifier
 
     def get_defense_modifier(self, is_outnumbered: bool = False) -> float:
@@ -862,6 +865,9 @@ class Marshal:
         if (hasattr(self, 'ability')
                 and self.ability.get("name") == "Reverse Slope Defense"):
             modifier *= 1.05
+
+        # Coordination bonus (Phase 7: set by _calculate_coordination_context, capped)
+        modifier *= (1.0 + getattr(self, 'total_coordination_defense_bonus', 0.0))
 
         return modifier
 

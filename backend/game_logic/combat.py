@@ -540,6 +540,15 @@ class CombatResolver:
             tactical_prefix += f"\n🐴 {cavalry_counter_message}"
         if glorious_charge_message:
             tactical_prefix += f"\n{glorious_charge_message}"
+
+        # Combined arms message (Phase 7, Session 57): Read-only from transient fields
+        atk_ca = getattr(attacker, '_display_combined_arms_atk', 0.0)
+        def_ca = getattr(defender, '_display_combined_arms_def', 0.0)
+        if atk_ca > 0:
+            tactical_prefix += f"\n⚔️ {attacker.name}'s combined arms coordination! (+{int(atk_ca * 100)}% attack)"
+        if def_ca > 0:
+            tactical_prefix += f"\n🛡️ {defender.name}'s combined arms coordination! (+{int(def_ca * 100)}% defense)"
+
         if tactical_prefix:
             tactical_prefix += "\n"
 

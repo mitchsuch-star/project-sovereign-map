@@ -171,6 +171,124 @@ class CommandExecutor:
                 "suggestions": result["suggestions"]
             })
 
+    # ════════════════════════════════════════════════════════════════════════════════
+    # MULTI-MARSHAL COORDINATION (Phase 7, Session 57+)
+    # Combined arms detection, coordination bonuses, dedicated support, adjacent support.
+    # Session 57: Combined arms only. Later sessions add other coordination sources.
+    # ════════════════════════════════════════════════════════════════════════════════
+
+    def _count_unit_types(self, region: str, nation: str, world: WorldState) -> int:
+        """
+        Count distinct unit types among eligible same-nation marshals in a region.
+
+        Eligible: alive (strength > 0), not broken, not retreating, not recovering.
+        Garrison detachments do NOT count (region property, not marshal).
+        Fortified marshals DO count — their presence matters.
+
+        Returns 1-3 (infantry, cavalry, artillery).
+        """
+        types_seen = set()
+        for m in world.marshals.values():
+            if m.location != region or m.nation != nation:
+                continue
+            if m.strength <= 0:
+                continue
+            if getattr(m, 'broken', False):
+                continue
+            if getattr(m, 'retreated_this_turn', False):
+                continue
+            if getattr(m, 'retreat_recovery', 0) > 0:
+                continue
+            # Determine unit type
+            if getattr(m, 'artillery', False):
+                types_seen.add('artillery')
+            elif getattr(m, 'cavalry', False):
+                types_seen.add('cavalry')
+            else:
+                types_seen.add('infantry')
+        return len(types_seen)
+
+    def _get_combined_arms_bonus(self, type_count: int) -> tuple:
+        """
+        Get combined arms attack/defense bonus from unit type diversity.
+
+        Returns (attack_bonus, defense_bonus) as floats.
+        1 type = (0.0, 0.0), 2 types = (0.10, 0.05), 3 types = (0.20, 0.10).
+        """
+        if type_count >= 3:
+            return (0.20, 0.10)
+        elif type_count >= 2:
+            return (0.10, 0.05)
+        return (0.0, 0.0)
+
+    def _calculate_coordination_context(self, primary, world: WorldState) -> dict:
+        """
+        Calculate coordination bonuses for primary marshal and same-nation allies.
+
+        Session 57: Combined arms only. Sessions 58-61 will add coordination,
+        dedicated, and adjacent bonuses to this method.
+
+        Sets transient fields on ALL eligible same-nation marshals in region:
+        - total_coordination_attack_bonus / total_coordination_defense_bonus (capped)
+        - _display_combined_arms_atk / _display_combined_arms_def (for battle report)
+
+        Returns context dict for debugging/display.
+        """
+        region = primary.location
+        nation = primary.nation
+
+        # Count distinct unit types among eligible same-nation marshals in region
+        type_count = self._count_unit_types(region, nation, world)
+        combined_arms_atk, combined_arms_def = self._get_combined_arms_bonus(type_count)
+
+        # Sum all coordination sources (Session 57: combined arms only)
+        raw_atk = combined_arms_atk  # + coordination_atk + dedicated_atk + adjacent_atk in later sessions
+        raw_def = combined_arms_def  # + coordination_def + dedicated_def in later sessions
+
+        # Hard cap (applied even though Session 57 alone can't exceed it)
+        capped_atk = min(raw_atk, 0.25)
+        capped_def = min(raw_def, 0.20)
+
+        # Set on ALL eligible same-nation marshals in region (not just primary)
+        eligible = [m for m in world.marshals.values()
+                    if m.location == region and m.nation == nation
+                    and m.strength > 0
+                    and not getattr(m, 'broken', False)
+                    and not getattr(m, 'retreated_this_turn', False)
+                    and getattr(m, 'retreat_recovery', 0) == 0]
+
+        for m in eligible:
+            m.total_coordination_attack_bonus = capped_atk
+            m.total_coordination_defense_bonus = capped_def
+            m._display_combined_arms_atk = combined_arms_atk
+            m._display_combined_arms_def = combined_arms_def
+
+        return {
+            "type_count": type_count,
+            "combined_arms_atk": combined_arms_atk,
+            "combined_arms_def": combined_arms_def,
+            "capped_atk": capped_atk,
+            "capped_def": capped_def,
+            "eligible_marshals": [m.name for m in eligible],
+        }
+
+    # Transient coordination field names for cleanup after combat (D5 + X1)
+    _COORDINATION_FIELDS = [
+        'total_coordination_attack_bonus', 'total_coordination_defense_bonus',
+        '_display_combined_arms_atk', '_display_combined_arms_def',
+        '_display_coordination_atk', '_display_coordination_def',
+        '_display_dedicated_atk', '_display_dedicated_def',
+        '_display_adjacent_atk',
+    ]
+
+    def _clear_coordination_fields(self, regions: set, world: WorldState) -> None:
+        """Clear all transient coordination fields from marshals in the given regions."""
+        for m in world.marshals.values():
+            if m.location in regions:
+                for attr in self._COORDINATION_FIELDS:
+                    if hasattr(m, attr):
+                        setattr(m, attr, 0.0)
+
     def _fuzzy_match_enemy(self, enemy_name: str, world: WorldState, attacker_nation: str = None) -> Tuple[Optional[object], Optional[Dict]]:
         """
         Try to find enemy marshal with fuzzy matching for typo tolerance.
@@ -3266,6 +3384,13 @@ RETREAT RECOVERY (3 turns):
         pre_battle_defender_strength = enemy_marshal.strength
         battle_region_name = enemy_marshal.location
 
+        # ════════════════════════════════════════════════════════════
+        # COORDINATION (Phase 7, Session 57): Combined arms detection
+        # Calculate for BOTH sides independently (A-C3)
+        # ════════════════════════════════════════════════════════════
+        attacker_coord = self._calculate_coordination_context(marshal, world)
+        defender_coord = self._calculate_coordination_context(enemy_marshal, world)
+
         # RESOLVE COMBAT with flanking bonus!
         battle_result = self.combat_resolver.resolve_battle(
             attacker=marshal,
@@ -3275,6 +3400,13 @@ RETREAT RECOVERY (3 turns):
             flanking_message=flanking_message,
             fortification_bonus=fort_bonus
         )
+
+        # Clear coordination transient fields (D5 + X1)
+        involved_regions = {marshal.location}
+        if enemy_marshal.strength > 0:
+            involved_regions.add(enemy_marshal.location)
+        involved_regions.add(battle_region_name)
+        self._clear_coordination_fields(involved_regions, world)
 
         # Log battle event
         self._log_battle_event(battle_result, battle_region_name, world)
@@ -3962,8 +4094,11 @@ RETREAT RECOVERY (3 turns):
             if target and target.lower() == marshal.name.lower():
                 return {
                     "success": False,
-                    "message": f"{marshal.name} cannot support themselves.",
-                    "suggestion": "SUPPORT targets a different friendly marshal."
+                    "message": f"Berthier pauses. 'Sire, {marshal.name} cannot be ordered to support himself. SUPPORT coordinates with a different marshal.'",
+                    "suggestion": "Available French marshals: " + ", ".join(
+                        m.name for m in world.marshals.values()
+                        if m.nation == marshal.nation and m.name != marshal.name
+                    )
                 }
             ally = world.get_marshal(target)
             if not ally:

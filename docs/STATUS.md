@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 22, 2026 (Davout Counter-Punch Mastery)
+> **Last Updated:** February 23, 2026 (Session 57: Combined Arms Detection)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3354** (3351 passed, 3 skipped — verified Feb 22) |
+| **Tests Passing** | **3397** (3394 passed, 3 skipped — verified Feb 23) |
 
-| **Current Phase** | Phase 6.5 **IN PROGRESS** (1 item remaining: Map Renderer — art-blocked. Tooltips absorbed into Map Renderer, Tutorial deferred to Pre-EA). **Phase 7 Core SCOPED** — 7 sessions (57-61a, 61b, 64), ~190 new tests. |
+| **Current Phase** | Phase 7 Core **IN PROGRESS** (Session 57/7 complete, 6 remaining: Sessions 58-61a, 61b, 64). Phase 6.5 Map Renderer art-blocked. |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,10 +19,10 @@
 
 ## Next Steps
 
-1. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
-2. **Active next** — Phase 7 Core begins (Davout's Counter-Punch Mastery implemented, Special Abilities Evaluation complete).
-3. **Phase 7 Core: Multi-Marshal Coordination** — 7 sessions (57-61a, 61b, 64), ~190 new tests. Combined arms, coordination bonuses, dedicated coordination, adjacent support, reinforcement (Grouchy Rule), win/loss relationships. Hard cap: +25% atk/+20% def. Spec in `MULTI_MARSHAL_SPEC.md` + `PHASE7_SPEC_AMENDMENTS.md`.
-4. **Phase 7b (immediately after 7 Core):** Casualty Distribution, AI Coordination Enhancements, Full Battle Reports, Godot Tooltips/Tutorial, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Cross-nation coordination, Gneisenau Staff Work.
+1. **Phase 7 Core Session 58: Per-Ally Coordination Bonuses** — +3%/+5% per ally, relationship-scaled, fortification rule. ~30 new tests.
+2. **Phase 7 Core remaining:** Sessions 59 (Dedicated Coordination), 60 (Adjacent Support), 61a (Reinforcement/Grouchy Rule), 61b (SUPPORT Command), 64 (Win/Loss Relationships).
+3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
+4. **Phase 7b (after 7 Core):** Casualty Distribution, AI Coordination Enhancements, Full Battle Reports, Godot Tooltips/Tutorial, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Cross-nation coordination, Gneisenau Staff Work.
 
 ---
 
@@ -42,6 +42,22 @@ All major Phase 6 features shipped:
 - **Enemy AI Garrison (P6.75):** Building Blocks, 20k threshold, 1/nation/turn, P4.25 sub-5k awareness
 - **Manpower Pools:** Nation-level infantry/cavalry/artillery reserves gate recruitment. Stables building. AI pool/cost awareness.
 - **Artillery Unit Type:** Third marshal type (Drouot/PrinceAugust). Can't attack after moving, no advance on win, cavalry counter, 2x fort degradation. Bombardment system with terrain modifiers, collateral damage, AI bombardment. 127+ tests.
+
+---
+
+## Phase 7 Core Sessions
+
+### Feb 23 — Session 57: Combined Arms Detection
+
+**43 new tests, 3394 total (3 skipped). Phase 7 Core begins.**
+
+- **Combined arms detection:** Count distinct unit types (infantry/cavalry/artillery) among eligible same-nation marshals in a region. 2 types = +10% atk / +5% def. 3 types = +20% atk / +10% def. France is the only nation capable of 3/3 (structural player advantage).
+- **Transient field pattern (D5):** Coordination bonuses set dynamically via `_calculate_coordination_context()`, read via `getattr(self, field, 0.0)`, cleared after combat. NOT in `__init__`, NOT serialized.
+- **Single multiplier (A-C1):** `total_coordination_attack_bonus` / `total_coordination_defense_bonus` — one line each in `get_attack_modifier()` / `get_defense_modifier()`. All future coordination sources (per-ally, dedicated, adjacent) sum into this single field, then cap at +25% atk / +20% def.
+- **Both sides calculated (A-C3):** `_calculate_coordination_context()` called for attacker AND defender independently before `resolve_battle()`.
+- **Bombardment excluded (A-D6):** Coordination not wired into bombardment path.
+- **Files modified:** `executor.py` (+`_count_unit_types`, `_get_combined_arms_bonus`, `_calculate_coordination_context`, `_clear_coordination_fields`, attack wiring), `marshal.py` (1 line each in atk/def modifiers), `combat.py` (combined arms tactical_prefix message), `battle_report.py` (snapshot captures CA + total coordination).
+- **Files created:** `tests/test_combined_arms.py` (43 tests across 8 test classes).
 
 ---
 

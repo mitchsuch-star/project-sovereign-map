@@ -31,10 +31,10 @@ Bombardment system (Sessions 48-52), Pause menu (Session 56: Smart Esc, modal ov
 
 ### Up Next
 
-- **Phase 6.5 remaining:** Map Renderer only (art integration + sprite assets + procedural drawing rip-out — blocked on art commission, see ROADMAP.md Map Renderer Notes). Tooltips absorbed into Map Renderer. Tutorial Infrastructure deferred to Pre-EA.
-- **Active next:** **Phase 7 Core** begins (Special Abilities Evaluation complete, Davout's Counter-Punch Mastery wired. Map Renderer is art-blocked, not a code blocker).
-- **Phase 7 Core: Multi-Marshal Coordination** — Spec in `docs/MULTI_MARSHAL_SPEC.md` + `docs/PHASE7_SPEC_AMENDMENTS.md`. **7 sessions (57-61a, 61b, 64).** Combined arms (+10-20%), relationship-scaled coordination (+3%/+5% per ally), dedicated coordination (co-location + SUPPORT), adjacent support (+2% per adjacent), reinforcement (Grouchy Rule), win/loss relationship formula. ~190 new tests. Hard cap: +25% atk/+20% def. Each session includes basic combat display messages. Presentation absorbed into feature sessions (no separate display session).
-- **Phase 7b:** Casualty Distribution (Session 62 — `resolve_battle()` contract change, deferred for playtest data), AI Coordination Enhancements (Session 63 — P4.6/P4.76/P4.77/P4.78), Full Battle Reports + Berthier Observations (Session 65), Godot Tooltips + Tutorial + Integration Audit (Session 66), Tactical Triangle (Square Formation + Artillery SUPPORT auto-bombardment + Artillery Overwatch — linked group), V2b, Jealousy, Coalition Trigger, Gneisenau Staff Work (1805). ~150 tests from deferred Phase 7 sessions.
+- **Phase 7 Core Session 58: Per-Ally Coordination Bonuses** — +3%/+5% per ally, relationship-scaled, fortification rule. ~30 new tests.
+- **Phase 7 Core remaining:** Sessions 59 (Dedicated Coordination), 60 (Adjacent Support), 61a (Reinforcement/Grouchy Rule), 61b (SUPPORT Command), 64 (Win/Loss Relationships). Session 57 (Combined Arms Detection) complete — 43 tests.
+- **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial Infrastructure deferred to Pre-EA.
+- **Phase 7b:** Casualty Distribution (Session 62), AI Coordination Enhancements (Session 63), Full Battle Reports + Berthier Observations (Session 65), Godot Tooltips + Tutorial + Integration Audit (Session 66), Tactical Triangle, V2b, Jealousy, Coalition Trigger, Gneisenau Staff Work (1805). ~150 tests from deferred Phase 7 sessions.
 
 See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 
