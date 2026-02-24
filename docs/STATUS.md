@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3647** (3644 passed, 3 skipped — verified Feb 23) |
+| **Tests Passing** | **3663** (3660 passed, 3 skipped — verified Feb 23, post-review) |
 
 | **Current Phase** | Phase 7b **IN PROGRESS** (Session 62 complete, remaining: S63, S65, S66, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau). |
 | **Blockers** | None |
@@ -48,7 +48,7 @@ All major Phase 6 features shipped:
 
 ### Feb 23 — Session 62: Casualty Distribution
 
-**47 new tests, 3647 total (3 skipped). Multi-marshal battles now distribute casualties proportionally among participants. First Phase 7b session.**
+**63 tests (47 original + 16 post-review), 3663 total (3 skipped). Multi-marshal battles now distribute casualties proportionally among participants. First Phase 7b session.**
 
 - **`resolve_battle(apply_casualties=False)`:** New contract per C1/C2. Computes all combat math but defers 5 side effect categories (casualties, morale, battles_won/lost, counter-punch, recklessness) to caller. Returns raw casualties, morale deltas (as int), and projected-strength outcome.
 - **Fortification degradation KEPT** inside resolve_battle (battle-triggered per C1).
@@ -60,7 +60,13 @@ All major Phase 6 features shipped:
 - **Pursuit damage** handled in executor for coordinated battles (primary attacker ability vs primary defender).
 
 **Files modified:** `combat.py` (apply_casualties parameter + `_build_deferred_result`), `executor.py` (`_distribute_casualties`, `_get_casualty_participants`, `_execute_attack` coordination branch).
-**Files created:** `tests/test_casualty_distribution.py` (47 tests, 6 classes).
+**Files created:** `tests/test_casualty_distribution.py` (63 tests, 8 classes).
+
+**Post-review fixes (Opus code review):**
+- **C-1 (CRITICAL):** Fixed `relationship.py` reading non-existent top-level `"attacker_casualties"` key. Now reads from nested `battle_result["attacker"]["casualties"]` (correct for both normal and deferred paths). Removed fake top-level keys from test helper `_make_battle_result()`.
+- **W-1 (WARNING):** Moved SUPPORT order clearing in `executor.py` from before combat to after `process_battle_relationships()`, so Hostile+SUPPORT reinforcements participate in relationship checks.
+- **W-2 (WARNING):** Documented rounding cap limitation in `_distribute_casualties()` (excess from overkill on small units not redistributed — acceptable as overkill).
+- **16 new tests:** TG1 (primary destroyed), TG2 (asymmetric 2v1), TG3 (AI participants), TG5 (Davout non-primary), TG6 (conformance: nested keys, no top-level keys, deferred raw keys, relationship reads nested), W-1 timing (3 tests).
 
 ---
 

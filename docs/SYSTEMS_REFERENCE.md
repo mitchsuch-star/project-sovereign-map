@@ -2537,7 +2537,7 @@ On successful arrival:
 
 ## 14. Win/Loss Relationship Formula
 
-After a shared battle with 2+ same-nation participants, each ordered pair (A, B) rolls independently to check if A's opinion of B changes. Fires after `resolve_battle()` in `_execute_attack()`, before destruction/retreat processing.
+After a shared battle with 2+ same-nation participants, each ordered pair (A, B) rolls independently to check if A's opinion of B changes. Fires after `resolve_battle()` in `_execute_attack()`, before destruction/retreat processing. Casualties are read from `battle_result["attacker"]["casualties"]` (nested dict — both normal and deferred paths). SUPPORT orders are preserved through relationship processing so Hostile+SUPPORT marshals are correctly detected as Participating.
 
 ### Trigger
 
@@ -2613,5 +2613,6 @@ Uses `itertools.permutations(participants, 2)`. 3 marshals = 6 calls. Each direc
 | File | What changed |
 |------|-------------|
 | `backend/game_logic/relationship.py` | `calculate_battle_severity()`, `check_shared_battle_relationship()`, `get_battle_participants()`, `process_battle_relationships()` |
-| `backend/commands/executor.py` | Wired into `_execute_attack()` after combat notifications |
+| `backend/commands/executor.py` | Wired into `_execute_attack()` after combat notifications; SUPPORT clearing deferred to after relationship processing |
 | `tests/test_relationship_formula.py` | 34 tests across 9 classes |
+| `tests/test_casualty_distribution.py` | 63 tests (includes W-1 timing + conformance tests) |

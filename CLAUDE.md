@@ -35,7 +35,7 @@ Combined Arms (Session 57), Coordination Bonus + Hard Cap (Session 58), Dedicate
 
 ### Completed in Phase 7b
 
-Casualty Distribution (Session 62: `resolve_battle(apply_casualties=False)` deferred-casualty contract, proportional distribution by strength, Hostile exclusion with SUPPORT override per D3, uniform morale deltas, primary-only recklessness/counter-punch, per-participant forced retreat, C2 projected-strength victor, 47 tests).
+Casualty Distribution (Session 62: `resolve_battle(apply_casualties=False)` deferred-casualty contract, proportional distribution by strength, Hostile exclusion with SUPPORT override per D3, uniform morale deltas, primary-only recklessness/counter-punch, per-participant forced retreat, C2 projected-strength victor, 63 tests).
 
 ### Up Next
 

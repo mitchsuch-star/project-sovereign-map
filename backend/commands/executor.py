@@ -741,7 +741,11 @@ class CommandExecutor:
         if remainder > 0:
             shares[sorted_active[0].name] += remainder
 
-        # Cap each share at marshal's current strength
+        # Cap each share at marshal's current strength.
+        # NOTE (W-2): If capping reduces a share, the excess is NOT redistributed.
+        # This means sum(shares) may be < raw_casualties in edge cases where a
+        # small marshal would be killed multiple times over.  Acceptable: the
+        # "lost" casualties represent overkill on a destroyed unit.
         for p in sorted_active:
             shares[p.name] = min(shares[p.name], p.strength)
 
@@ -3902,13 +3906,9 @@ RETREAT RECOVERY (3 turns):
             enemy_marshal, battle_region_name, enemy_marshal.nation, world)
         is_coordinated_battle = (len(atk_participants) >= 2 or len(def_participants) >= 2)
 
-        # AFTER coordination context — NOW clear strategic orders (A-C2 step 5)
-        for results_list in [attacker_reinforcements, defender_reinforcements]:
-            for result in results_list:
-                if result["arrived"]:
-                    arriving = world.marshals.get(result["marshal"])
-                    if arriving:
-                        arriving.strategic_order = None
+        # NOTE: Strategic order clearing for arrived reinforcements is DEFERRED
+        # until after process_battle_relationships() so Hostile+SUPPORT marshals
+        # are correctly detected as Participating in relationship checks (W-1 fix).
 
         # ════════════════════════════════════════════════════════════
         # RESOLVE COMBAT
@@ -4091,6 +4091,16 @@ RETREAT RECOVERY (3 turns):
                 "nation": rc["nation"],
                 "location": battle_region_name,
             })
+
+        # NOW clear strategic orders for arrived reinforcements (A-C2 step 5).
+        # Deferred to here so Hostile+SUPPORT marshals participate in
+        # relationship checks above (W-1 fix, Session 62 post-review).
+        for results_list in [attacker_reinforcements, defender_reinforcements]:
+            for result in results_list:
+                if result["arrived"]:
+                    arriving = world.marshals.get(result["marshal"])
+                    if arriving:
+                        arriving.strategic_order = None
 
         # Fog of War (Session 34A): Battle grants FULL visibility on battle region
         world.update_intel_from_battle(battle_region_name, world.current_turn)

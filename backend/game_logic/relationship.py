@@ -61,13 +61,15 @@ def check_shared_battle_relationship(marshal_a, marshal_b, battle_result, won, w
         return 0
 
     # Determine winner/loser casualties for severity
-    attacker_cas = battle_result.get("attacker_casualties", 0)
-    defender_cas = battle_result.get("defender_casualties", 0)
+    # Casualties are nested: battle_result["attacker"]["casualties"]
+    # (both normal and deferred paths in combat.py use this structure)
+    attacker_info = battle_result.get("attacker", {})
+    defender_info = battle_result.get("defender", {})
+    attacker_cas = attacker_info.get("casualties", 0) if isinstance(attacker_info, dict) else 0
+    defender_cas = defender_info.get("casualties", 0) if isinstance(defender_info, dict) else 0
 
     # victor is a string (marshal name) or None
     victor = battle_result.get("victor")
-    # attacker is a dict with "name" key
-    attacker_info = battle_result.get("attacker", {})
     attacker_name = attacker_info.get("name") if isinstance(attacker_info, dict) else None
 
     # Assign winner/loser casualties based on who won

@@ -81,8 +81,6 @@ def _make_battle_result(victor_name=None, attacker_name="Atk",
             "morale": 40,
             "forced_retreat": False,
         },
-        "attacker_casualties": int(attacker_cas),
-        "defender_casualties": int(defender_cas),
     }
 
 
