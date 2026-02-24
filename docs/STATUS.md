@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 23, 2026 (Session 64: Win/Loss Relationship Formula)
+> **Last Updated:** February 23, 2026 (Session 62: Casualty Distribution)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3600** (3597 passed, 3 skipped — verified Feb 23) |
+| **Tests Passing** | **3647** (3644 passed, 3 skipped — verified Feb 23) |
 
-| **Current Phase** | Phase 7 Core **COMPLETE** (Sessions 57-61b + 64, all 7 sessions done). Phase 6.5 Map Renderer art-blocked. |
+| **Current Phase** | Phase 7b **IN PROGRESS** (Session 62 complete, remaining: S63, S65, S66, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau). |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -20,7 +20,7 @@
 ## Next Steps
 
 1. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~212 new tests.
-2. **Phase 7b (next):** Casualty Distribution (S62), AI Coordination Enhancements (S63), Full Battle Reports (S65), Godot Tooltips/Tutorial (S66), Tactical Triangle, V2b, Coalition Trigger, Jealousy, Cross-nation coordination, Gneisenau Staff Work.
+2. **Phase 7b: IN PROGRESS.** Session 62 (Casualty Distribution) complete. Next: AI Coordination Enhancements (S63), Full Battle Reports (S65), Godot Tooltips/Tutorial (S66), Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau Staff Work.
 3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
 ---
@@ -41,6 +41,26 @@ All major Phase 6 features shipped:
 - **Enemy AI Garrison (P6.75):** Building Blocks, 20k threshold, 1/nation/turn, P4.25 sub-5k awareness
 - **Manpower Pools:** Nation-level infantry/cavalry/artillery reserves gate recruitment. Stables building. AI pool/cost awareness.
 - **Artillery Unit Type:** Third marshal type (Drouot/PrinceAugust). Can't attack after moving, no advance on win, cavalry counter, 2x fort degradation. Bombardment system with terrain modifiers, collateral damage, AI bombardment. 127+ tests.
+
+---
+
+## Phase 7b Sessions
+
+### Feb 23 — Session 62: Casualty Distribution
+
+**47 new tests, 3647 total (3 skipped). Multi-marshal battles now distribute casualties proportionally among participants. First Phase 7b session.**
+
+- **`resolve_battle(apply_casualties=False)`:** New contract per C1/C2. Computes all combat math but defers 5 side effect categories (casualties, morale, battles_won/lost, counter-punch, recklessness) to caller. Returns raw casualties, morale deltas (as int), and projected-strength outcome.
+- **Fortification degradation KEPT** inside resolve_battle (battle-triggered per C1).
+- **C2 projected-strength victor:** Uses `attacker.strength - casualties` for outcome determination. 1.5 threshold matches normal path.
+- **`_distribute_casualties()`:** Proportional by strength fraction. Remainder to strongest marshal. Cap at marshal strength. Sum matches raw total exactly.
+- **`_get_casualty_participants()`:** Mirrors `get_battle_participants()` for D3 Hostile+SUPPORT detection. Must run BEFORE strategic orders cleared.
+- **Per-participant effects:** Uniform morale delta (psychological), individual battles_won/lost, independent forced retreat check.
+- **Primary-only effects:** Recklessness (attacker), counter-punch (defender), counter-punch mastery (Davout).
+- **Pursuit damage** handled in executor for coordinated battles (primary attacker ability vs primary defender).
+
+**Files modified:** `combat.py` (apply_casualties parameter + `_build_deferred_result`), `executor.py` (`_distribute_casualties`, `_get_casualty_participants`, `_execute_attack` coordination branch).
+**Files created:** `tests/test_casualty_distribution.py` (47 tests, 6 classes).
 
 ---
 

@@ -651,6 +651,102 @@ class CommandExecutor:
                     if hasattr(m, attr):
                         setattr(m, attr, 0.0)
 
+    # ════════════════════════════════════════════════════════════════════════════
+    # CASUALTY DISTRIBUTION (Phase 7, Session 62)
+    # Distributes raw casualties proportionally among participating marshals.
+    # ════════════════════════════════════════════════════════════════════════════
+
+    def _get_casualty_participants(self, primary, battle_region: str, nation: str,
+                                    world: WorldState) -> list:
+        """Get participating marshals for casualty distribution.
+
+        Includes:
+        - Primary combatant (always)
+        - Same-nation allies in region: alive, not broken/retreating/recovering
+        - Hostile+SUPPORT marshals (D3: participating for casualties, 0% coordination)
+
+        Excludes:
+        - Hostile marshals WITHOUT active SUPPORT order targeting primary (Non-Participating)
+
+        Must be called BEFORE strategic orders are cleared so SUPPORT detection works.
+        """
+        participants = [primary]
+
+        for m in world.marshals.values():
+            if m.name == primary.name:
+                continue
+            if m.location != battle_region or m.nation != nation:
+                continue
+            if m.strength <= 0:
+                continue
+            if getattr(m, 'broken', False):
+                continue
+            if getattr(m, 'retreated_this_turn', False):
+                continue
+            if getattr(m, 'retreat_recovery', 0) > 0:
+                continue
+
+            # Hostile without SUPPORT = Non-Participating (D3/X4)
+            rel = m.get_relationship(primary.name)
+            if rel == -2:
+                order = getattr(m, 'strategic_order', None)
+                has_support = (
+                    order is not None
+                    and getattr(order, 'command_type', None) == "SUPPORT"
+                    and getattr(order, 'target', None) == primary.name
+                )
+                if not has_support:
+                    continue
+
+            participants.append(m)
+
+        return participants
+
+    def _distribute_casualties(self, raw_casualties: int, participants: list) -> dict:
+        """Distribute casualties proportionally among participating marshals.
+
+        Returns: dict of marshal_name -> int(casualties)
+
+        Rules:
+        - Proportional by strength fraction: marshal_strength / total_strength * raw_casualties
+        - Round DOWN each marshal's share (int())
+        - Assign remainder to strongest marshal (no rounding leakage)
+        - Share capped at marshal's current strength (can't go below 0)
+        - Total distributed == raw_casualties when raw_casualties <= total_strength
+        """
+        if not participants:
+            return {}
+
+        # Filter out dead participants
+        active = [p for p in participants if p.strength > 0]
+        if not active:
+            return {}
+
+        total_strength = sum(p.strength for p in active)
+        if total_strength <= 0:
+            return {}
+
+        # Sort by strength descending (strongest first for remainder assignment)
+        sorted_active = sorted(active, key=lambda p: p.strength, reverse=True)
+
+        # Compute proportional shares (round down)
+        shares = {}
+        for p in sorted_active:
+            fraction = p.strength / total_strength
+            shares[p.name] = int(raw_casualties * fraction)
+
+        # Assign remainder to strongest marshal
+        assigned = sum(shares.values())
+        remainder = raw_casualties - assigned
+        if remainder > 0:
+            shares[sorted_active[0].name] += remainder
+
+        # Cap each share at marshal's current strength
+        for p in sorted_active:
+            shares[p.name] = min(shares[p.name], p.strength)
+
+        return shares
+
     def _fuzzy_match_enemy(self, enemy_name: str, world: WorldState, attacker_nation: str = None) -> Tuple[Optional[object], Optional[Dict]]:
         """
         Try to find enemy marshal with fuzzy matching for typo tolerance.
@@ -3796,6 +3892,16 @@ RETREAT RECOVERY (3 turns):
             reinforcement_results=defender_reinforcements,
             exclude_from_adjacent=arrived_names)
 
+        # ════════════════════════════════════════════════════════════
+        # [S62] CASUALTY DISTRIBUTION: Build participant lists BEFORE
+        # clearing strategic orders (so SUPPORT detection works for D3).
+        # ════════════════════════════════════════════════════════════
+        atk_participants = self._get_casualty_participants(
+            marshal, battle_region_name, marshal.nation, world)
+        def_participants = self._get_casualty_participants(
+            enemy_marshal, battle_region_name, enemy_marshal.nation, world)
+        is_coordinated_battle = (len(atk_participants) >= 2 or len(def_participants) >= 2)
+
         # AFTER coordination context — NOW clear strategic orders (A-C2 step 5)
         for results_list in [attacker_reinforcements, defender_reinforcements]:
             for result in results_list:
@@ -3804,15 +3910,150 @@ RETREAT RECOVERY (3 turns):
                     if arriving:
                         arriving.strategic_order = None
 
-        # RESOLVE COMBAT with flanking bonus!
-        battle_result = self.combat_resolver.resolve_battle(
-            attacker=marshal,
-            defender=enemy_marshal,
-            terrain=battle_terrain,
-            flanking_bonus=flanking_bonus,
-            flanking_message=flanking_message,
-            fortification_bonus=fort_bonus
-        )
+        # ════════════════════════════════════════════════════════════
+        # RESOLVE COMBAT
+        # Solo battles (1v1): apply_casualties=True — zero behavior change.
+        # Coordinated battles (2+ on either side): apply_casualties=False,
+        # caller distributes among participants (Session 62).
+        # ════════════════════════════════════════════════════════════
+        if is_coordinated_battle:
+            battle_result = self.combat_resolver.resolve_battle(
+                attacker=marshal,
+                defender=enemy_marshal,
+                terrain=battle_terrain,
+                flanking_bonus=flanking_bonus,
+                flanking_message=flanking_message,
+                fortification_bonus=fort_bonus,
+                apply_casualties=False,
+            )
+
+            # Distribute raw casualties proportionally among participants
+            atk_distribution = self._distribute_casualties(
+                battle_result["attacker_raw_casualties"], atk_participants)
+            def_distribution = self._distribute_casualties(
+                battle_result["defender_raw_casualties"], def_participants)
+
+            outcome = battle_result["raw_outcome"]
+            atk_won = outcome in ("attacker_victory", "attacker_tactical_victory")
+            atk_lost = outcome in ("defender_victory", "defender_tactical_victory", "mutual_destruction")
+            def_won = outcome in ("defender_victory", "defender_tactical_victory")
+
+            # ── Apply per-participant effects (C1 caller responsibilities) ──
+
+            # ATTACKER SIDE
+            for p in atk_participants:
+                p.take_casualties(atk_distribution.get(p.name, 0))
+                p.adjust_morale(battle_result["attacker_morale_delta"])  # UNIFORM morale
+                if atk_won:
+                    p.battles_won += 1
+                elif atk_lost:
+                    p.battles_lost += 1
+
+            # DEFENDER SIDE
+            for p in def_participants:
+                p.take_casualties(def_distribution.get(p.name, 0))
+                p.adjust_morale(battle_result["defender_morale_delta"])  # UNIFORM morale
+                if def_won:
+                    p.battles_won += 1
+                elif atk_won or outcome == "mutual_destruction":
+                    p.battles_lost += 1
+
+            # ── PRIMARY-ONLY EFFECTS ──
+
+            # Recklessness: primary attacker only (N1)
+            # Note: glorious_charge paths redirect to _execute_glorious_charge before
+            # reaching this code, so recklessness always applies here.
+            if hasattr(marshal, 'is_reckless_cavalry') and marshal.is_reckless_cavalry:
+                if atk_won:
+                    marshal._increment_recklessness()
+                elif atk_lost:
+                    marshal.reset_recklessness()
+
+            # Counter-punch: primary defender only (N1)
+            if outcome in ("defender_victory", "defender_tactical_victory", "stalemate"):
+                if getattr(enemy_marshal, 'personality', '') == 'cautious':
+                    enemy_marshal.counter_punch_available = True
+                    enemy_marshal.counter_punch_turns = 2
+
+            # Counter-Punch Mastery (Davout ability): primary defender only
+            if (enemy_marshal.strength > 0
+                    and hasattr(enemy_marshal, 'ability')
+                    and enemy_marshal.ability.get("name") == "Counter-Punch Mastery"):
+                enemy_marshal.counter_punch_ready = True
+
+            # ── Update battle_result with post-distribution state ──
+            # Downstream code reads these fields for movement, conquest, retreat.
+            battle_result["attacker"]["remaining"] = int(marshal.strength)
+            battle_result["attacker"]["morale"] = int(marshal.morale)
+            battle_result["defender"]["remaining"] = int(enemy_marshal.strength)
+            battle_result["defender"]["morale"] = int(enemy_marshal.morale)
+
+            # Set forced_retreat flags per-primary for _handle_forced_retreat
+            FORCED_RETREAT_THRESHOLD = 25
+            battle_result["attacker"]["forced_retreat"] = (
+                marshal.strength > 0 and marshal.morale <= FORCED_RETREAT_THRESHOLD
+            )
+            battle_result["defender"]["forced_retreat"] = (
+                enemy_marshal.strength > 0 and enemy_marshal.morale <= FORCED_RETREAT_THRESHOLD
+            )
+
+            # Set notification flags for _process_combat_notifications
+            battle_result["counter_punch_earned"] = bool(
+                getattr(enemy_marshal, 'counter_punch_available', False)
+                and getattr(enemy_marshal, 'personality', '') == 'cautious'
+                and outcome in ("defender_victory", "defender_tactical_victory", "stalemate")
+            )
+            battle_result["counter_punch_mastery_earned"] = bool(
+                getattr(enemy_marshal, 'counter_punch_ready', False)
+                and hasattr(enemy_marshal, 'ability')
+                and enemy_marshal.ability.get("name") == "Counter-Punch Mastery"
+            )
+
+            # Pursuit damage: primary attacker vs primary defender only
+            if battle_result["defender"]["forced_retreat"] and atk_won:
+                attacker_ability_name = ""
+                if hasattr(marshal, 'ability'):
+                    attacker_ability_name = marshal.ability.get("name", "")
+
+                pursuit_damage = 0
+                pursuit_message = None
+                if attacker_ability_name == "Pursuit Master" and getattr(marshal, 'cavalry', False):
+                    pursuit_damage = 5000
+                    pursuit_message = (
+                        f"🐴 {marshal.name}'s '{marshal.ability['name']}' — "
+                        f"cavalry runs down the retreating enemy! (+{pursuit_damage:,} pursuit casualties)"
+                    )
+                elif attacker_ability_name == "Vorwärts!":
+                    pursuit_damage = 3000
+                    pursuit_message = (
+                        f"⚔️ {marshal.name}'s '{marshal.ability['name']}' — "
+                        f"relentless pursuit inflicts extra casualties! (+{pursuit_damage:,} pursuit casualties)"
+                    )
+
+                if pursuit_damage > 0 and enemy_marshal.strength > 0:
+                    old_strength = enemy_marshal.strength
+                    enemy_marshal.strength = max(1000, enemy_marshal.strength - pursuit_damage)
+                    actual_pursuit = old_strength - enemy_marshal.strength
+                    if actual_pursuit > 0:
+                        battle_result["pursuit_damage"] = int(actual_pursuit)
+                        battle_result["pursuit_message"] = pursuit_message
+
+            # Store distribution info for event logging
+            battle_result["casualty_distribution"] = {
+                "attacker_side": atk_distribution,
+                "defender_side": def_distribution,
+            }
+
+        else:
+            # Solo battle — existing behavior unchanged (apply_casualties=True default)
+            battle_result = self.combat_resolver.resolve_battle(
+                attacker=marshal,
+                defender=enemy_marshal,
+                terrain=battle_terrain,
+                flanking_bonus=flanking_bonus,
+                flanking_message=flanking_message,
+                fortification_bonus=fort_bonus,
+            )
 
         # Clear coordination transient fields (D5 + X1)
         involved_regions = {marshal.location}
@@ -3831,8 +4072,8 @@ RETREAT RECOVERY (3 turns):
         # WIN/LOSS RELATIONSHIP FORMULA (Session 64)
         # Fires after resolve_battle with 2+ same-nation participants.
         # Ordered pairs per D4, strict >50 threshold per M2.
-        # Must run BEFORE destruction check (line ~3847) so all
-        # participants are still in world.marshals.
+        # Must run BEFORE destruction check so all participants
+        # are still in world.marshals.
         # ════════════════════════════════════════════════════════════
         from backend.game_logic.relationship import process_battle_relationships
         relationship_changes = process_battle_relationships(
@@ -3888,6 +4129,23 @@ RETREAT RECOVERY (3 turns):
         forced_retreat_msg = self._handle_forced_retreat(
             battle_result, marshal, enemy_marshal, world
         )
+
+        # [S62] Handle forced retreat for non-primary participants in coordinated battles
+        if is_coordinated_battle:
+            for p in atk_participants:
+                if p.name != marshal.name and p.strength > 0 and p.morale <= 25:
+                    msg = self._apply_forced_retreat_or_break(p, enemy_marshal, world)
+                    if msg:
+                        forced_retreat_msg += "\n" + msg
+            for p in def_participants:
+                if p.name != enemy_marshal.name and p.strength > 0 and p.morale <= 25:
+                    msg = self._apply_forced_retreat_or_break(p, marshal, world)
+                    if msg:
+                        forced_retreat_msg += "\n" + msg
+            # Clean up destroyed non-primary participants
+            for p in atk_participants + def_participants:
+                if p.name not in (marshal.name, enemy_marshal.name) and p.strength <= 0:
+                    world.marshals.pop(p.name, None)
 
         # ===== ATTACKER MOVEMENT & REGION CONQUEST LOGIC =====
         conquered = False

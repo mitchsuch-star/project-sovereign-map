@@ -336,6 +336,41 @@ combat.py (snapshots + generate_battle_report)
 
 **Key code:** `battle_report.py` (snapshots + report), `combat.py:~189` (snapshot insertion point), `combat.py:~561` (return dict), `main.gd::_display_berthier_report()`
 
+### Casualty Distribution (Session 62)
+
+When 2+ same-nation marshals are in the battle region, casualties are distributed proportionally among participants instead of being applied entirely to the primary combatant.
+
+**`resolve_battle(apply_casualties=False)` contract (C1/C2):**
+- Computes all combat math (modifiers, dice, casualties) normally
+- Returns raw casualties, morale deltas (int), and projected-strength outcome
+- Does NOT modify marshal state (except fortification degradation — battle-triggered)
+- Caller distributes casualties and applies effects per-participant
+
+**Distribution formula:**
+- Each participant's share = `int(raw_casualties * (participant.strength / total_strength))`
+- Remainder (from rounding) assigned to strongest marshal
+- Capped at each marshal's current strength
+
+**Participant eligibility:**
+- Same-nation, in battle region, alive, not broken/retreating/recovering
+- Hostile relationship (-2) WITHOUT SUPPORT order → Non-Participating (0% casualties)
+- Hostile relationship (-2) WITH active SUPPORT order → Participating (D3: takes casualties, 0% coordination)
+
+**Per-participant effects:**
+- Casualties: proportional by strength
+- Morale: UNIFORM delta (same for all on that side — psychological, not physical)
+- battles_won/lost: all participants increment
+
+**Primary-only effects:**
+- Recklessness increment/reset: primary attacker only
+- Counter-punch (cautious): primary defender only
+- Counter-Punch Mastery (Davout): primary defender only
+- Pursuit damage: primary attacker ability vs primary defender
+
+**Solo battles (1v1):** `apply_casualties=True` (default) — zero behavior change.
+
+**Key code:** `combat.py::_build_deferred_result()`, `executor.py::_distribute_casualties()`, `executor.py::_get_casualty_participants()`, `executor.py::_execute_attack()` coordination branch.
+
 ---
 
 ## 2. Disobedience & Trust

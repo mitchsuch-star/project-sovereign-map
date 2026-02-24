@@ -33,9 +33,13 @@ Bombardment system (Sessions 48-52), Pause menu (Session 56: Smart Esc, modal ov
 
 Combined Arms (Session 57), Coordination Bonus + Hard Cap (Session 58), Dedicated Coordination + Co-Location (Session 59), Adjacent Support Bonus (Session 60), Adjacent Reinforcement Core (Session 61a), Reinforcement Edge Cases + SUPPORT Objection Triggers (Session 61b), Win/Loss Relationship Formula (Session 64: severity-scaled, ordered pairs, strict >50 threshold, 3-turn per-direction cooldown, intentional asymmetry). 7 sessions, ~246 tests.
 
+### Completed in Phase 7b
+
+Casualty Distribution (Session 62: `resolve_battle(apply_casualties=False)` deferred-casualty contract, proportional distribution by strength, Hostile exclusion with SUPPORT override per D3, uniform morale deltas, primary-only recklessness/counter-punch, per-participant forced retreat, C2 projected-strength victor, 47 tests).
+
 ### Up Next
 
-- **Phase 7b:** Casualty Distribution (Session 62), AI Coordination Enhancements (Session 63), Full Battle Reports + Berthier Observations (Session 65), Godot Tooltips + Tutorial + Integration Audit (Session 66), Tactical Triangle, V2b, Jealousy, Coalition Trigger, Gneisenau Staff Work (1805). ~150 tests from deferred Phase 7 sessions.
+- **Phase 7b remaining:** AI Coordination Enhancements (Session 63), Full Battle Reports + Berthier Observations (Session 65), Godot Tooltips + Tutorial + Integration Audit (Session 66), Tactical Triangle, V2b, Jealousy, Coalition Trigger, Gneisenau Staff Work (1805). ~110 tests from deferred Phase 7 sessions.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial Infrastructure deferred to Pre-EA.
 
 ### UI Test Gates

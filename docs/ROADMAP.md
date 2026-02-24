@@ -298,7 +298,7 @@ Items deferred from Phase 7 Core + items that build on coordination data:
 
 | Session | Feature | Description | Complexity | Tests | Status |
 |---------|---------|-------------|------------|-------|--------|
-| **62** | **Casualty distribution** | `resolve_battle(apply_casualties=False)`. Proportional by strength. Hostile = 0%. See amendments C1/C2 for full contract. | High | ~40 | Deferred |
+| **62** | **Casualty distribution** | `resolve_battle(apply_casualties=False)`. Proportional by strength. Hostile = 0%. See amendments C1/C2 for full contract. | High | 47 | **COMPLETE** |
 | **63** | **AI enhancements** | P4.6 coordinated attack, P4.75 mod, P4.76 co-location persistence, P4.77 cross-nation, P4.78 defensive positioning. | High | ~35 | Deferred |
 | **65** | **Battle reports & Berthier** | 5 coordination observation categories. Pre-battle coordination preview. Full Berthier observations. | Medium | ~25 | Deferred |
 | **66** | **Godot UI + integration audit** | Tooltips, tutorial inline-dramatic, display formatting, cross-system audit, doc updates. | Medium | ~50 | Deferred |

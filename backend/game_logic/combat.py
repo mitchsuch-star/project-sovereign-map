@@ -100,7 +100,8 @@ class CombatResolver:
             flanking_bonus: int = 0,
             flanking_message: str = None,
             glorious_charge: bool = False,
-            fortification_bonus: float = 0.0
+            fortification_bonus: float = 0.0,
+            apply_casualties: bool = True,
     ) -> Dict:
         """
         Resolve a battle between two marshals using 2d6 dice system.
@@ -433,6 +434,31 @@ class CombatResolver:
         # Capture original strengths for casualty-scaled morale
         attacker_original_strength = attacker.strength
         defender_original_strength = defender.strength
+
+        # ════════════════════════════════════════════════════════════════
+        # [S62] DEFERRED CASUALTY PATH — coordinated multi-marshal battles
+        # When apply_casualties=False, compute ALL combat math but do NOT
+        # modify marshal state. Returns raw results for caller to distribute
+        # among participants. Fortification degradation KEPT (battle-triggered).
+        # See PHASE7_SPEC_AMENDMENTS C1/C2 for the full contract.
+        # ════════════════════════════════════════════════════════════════
+        if not apply_casualties:
+            return self._build_deferred_result(
+                attacker, defender,
+                attacker_casualties, defender_casualties,
+                attacker_original_strength, defender_original_strength,
+                attacker_roll, terrain, flanking_bonus, flanking_message,
+                glorious_charge,
+                # Message variables computed above
+                ability_message, drill_bonus_message, fortify_bonus_message,
+                drilling_penalty_message, exhaustion_message,
+                attacker_stance_message, defender_stance_message,
+                attacker_personality_message, defender_personality_message,
+                terrain_defense_message, cavalry_terrain_message,
+                cavalry_counter_message, glorious_charge_message,
+                attacker_modifier_snapshot, defender_modifier_snapshot,
+                is_drilling,
+            )
 
         # Apply casualties FIRST (this was missing!)
         attacker.take_casualties(attacker_casualties)
@@ -926,6 +952,219 @@ class CombatResolver:
         }
 
         return descriptions.get(outcome, "Battle concluded.")
+
+    def _build_deferred_result(
+            self,
+            attacker, defender,
+            attacker_casualties, defender_casualties,
+            attacker_original_strength, defender_original_strength,
+            attacker_roll, terrain, flanking_bonus, flanking_message,
+            glorious_charge,
+            ability_message, drill_bonus_message, fortify_bonus_message,
+            drilling_penalty_message, exhaustion_message,
+            attacker_stance_message, defender_stance_message,
+            attacker_personality_message, defender_personality_message,
+            terrain_defense_message, cavalry_terrain_message,
+            cavalry_counter_message, glorious_charge_message,
+            attacker_modifier_snapshot, defender_modifier_snapshot,
+            is_drilling,
+    ) -> Dict:
+        """Build result dict for apply_casualties=False (Session 62).
+
+        Computes projected outcome (C2), morale deltas (int per X3),
+        and fortification degradation. Does NOT modify marshal state
+        except fort degradation (battle-triggered per C1).
+        """
+        # Casualty rates for morale scaling (same formula as normal path)
+        atk_casualty_rate = attacker_casualties / max(attacker_original_strength, 1)
+        def_casualty_rate = defender_casualties / max(defender_original_strength, 1)
+
+        def _scaled_morale_loss(casualty_rate: float, base_loss: int) -> int:
+            severity = min(casualty_rate / 0.15, 2.5)
+            return max(base_loss, int(base_loss * severity))
+
+        # C2: Victor from PROJECTED strength (never modify .strength)
+        projected_atk = attacker.strength - attacker_casualties
+        projected_def = defender.strength - defender_casualties
+
+        if projected_atk <= 0 and projected_def <= 0:
+            victor = None
+            outcome = "mutual_destruction"
+            atk_morale_delta = 0
+            def_morale_delta = 0
+        elif projected_atk <= 0:
+            victor = defender
+            outcome = "defender_victory"
+            def_morale_delta = 10
+            atk_morale_delta = -_scaled_morale_loss(atk_casualty_rate, 20)
+        elif projected_def <= 0:
+            victor = attacker
+            outcome = "attacker_victory"
+            atk_morale_delta = 10
+            def_morale_delta = -_scaled_morale_loss(def_casualty_rate, 20)
+        else:
+            # Both survive — tactical result
+            # CRITICAL: 1.5 threshold MUST match line ~477 in normal path
+            if attacker_casualties > defender_casualties * 1.5:
+                victor = defender
+                outcome = "defender_tactical_victory"
+                def_morale_delta = 5
+                atk_morale_delta = -_scaled_morale_loss(atk_casualty_rate, 10)
+            elif defender_casualties > attacker_casualties * 1.5:
+                victor = attacker
+                outcome = "attacker_tactical_victory"
+                atk_morale_delta = 5
+                def_morale_delta = -_scaled_morale_loss(def_casualty_rate, 10)
+            else:
+                victor = None
+                outcome = "stalemate"
+                atk_morale_delta = -_scaled_morale_loss(atk_casualty_rate, 5)
+                def_morale_delta = -_scaled_morale_loss(def_casualty_rate, 5)
+
+        # Fortification degradation — KEEP inside (battle-triggered per C1)
+        fortification_degraded = False
+        fortification_old = 0.0
+        fortification_new = 0.0
+        drouot_ability_message = None
+        if getattr(defender, 'defense_bonus', 0) > 0:
+            fortification_old = defender.defense_bonus
+            degradation_amount = 0.10 if getattr(attacker, 'artillery', False) else 0.05
+            if (hasattr(attacker, 'ability')
+                    and attacker.ability.get("name") == "Sage of the Grand Army"
+                    and attacker.ability.get("trigger") == "when_attacking_fortified"):
+                degradation_amount = 0.15
+                drouot_ability_message = (
+                    f"{attacker.name}'s '{attacker.ability['name']}' — "
+                    f"precise artillery fire degrades fortifications faster!"
+                )
+            defender.defense_bonus = max(0, round(defender.defense_bonus - degradation_amount, 2))
+            fortification_new = defender.defense_bonus
+            fortification_degraded = True
+
+        # Victory flags
+        attacker_won = outcome in ["attacker_victory", "attacker_tactical_victory"]
+
+        # Build description (tactical prefix + base narrative, no retreat/recklessness)
+        base_description = self._generate_description(
+            attacker, defender, outcome, attacker_casualties, defender_casualties, attacker_roll
+        )
+        tactical_prefix = ""
+        if attacker_stance_message:
+            tactical_prefix += f"\n⚔️ {attacker_stance_message}"
+        if attacker_personality_message:
+            tactical_prefix += f"\n🔥 {attacker_personality_message}"
+        if defender_stance_message:
+            tactical_prefix += f"\n🛡️ {defender_stance_message}"
+        if defender_personality_message:
+            tactical_prefix += f"\n🛡️ {defender_personality_message}"
+        if drill_bonus_message:
+            tactical_prefix += f"\n⚔️ {drill_bonus_message}"
+        if fortify_bonus_message:
+            tactical_prefix += f"\n🏰 {fortify_bonus_message}"
+        if drilling_penalty_message:
+            tactical_prefix += f"\n⚠️ {drilling_penalty_message}"
+        if exhaustion_message:
+            tactical_prefix += f"\n😓 {exhaustion_message}"
+        if terrain_defense_message:
+            tactical_prefix += f"\n🏔️ {terrain_defense_message}"
+        if cavalry_terrain_message:
+            tactical_prefix += f"\n🐴 {cavalry_terrain_message}"
+        if cavalry_counter_message:
+            tactical_prefix += f"\n🐴 {cavalry_counter_message}"
+        if glorious_charge_message:
+            tactical_prefix += f"\n{glorious_charge_message}"
+
+        # Combined arms messages (Phase 7)
+        atk_ca = getattr(attacker, '_display_combined_arms_atk', 0.0)
+        def_ca = getattr(defender, '_display_combined_arms_def', 0.0)
+        if atk_ca > 0:
+            tactical_prefix += f"\n⚔️ {attacker.name}'s combined arms coordination! (+{int(atk_ca * 100)}% attack)"
+        if def_ca > 0:
+            tactical_prefix += f"\n🛡️ {defender.name}'s combined arms coordination! (+{int(def_ca * 100)}% defense)"
+        atk_adj = getattr(attacker, '_display_adjacent_atk', 0.0)
+        if atk_adj > 0:
+            tactical_prefix += f"\n⚔️ Adjacent allies bolster {attacker.name}'s attack! (+{int(atk_adj * 100)}%)"
+        if tactical_prefix:
+            tactical_prefix += "\n"
+
+        from backend.game_logic.battle_report import generate_battle_report
+
+        result_dict = {
+            "outcome": outcome,
+            "victor": victor.name if victor else None,
+            "attacker": {
+                "name": attacker.name,
+                "casualties": int(attacker_casualties),
+                "remaining": int(attacker.strength),  # UNMODIFIED — caller distributes
+                "morale": int(attacker.morale),  # UNMODIFIED — caller applies
+                "forced_retreat": False,  # Deferred to caller
+            },
+            "defender": {
+                "name": defender.name,
+                "casualties": int(defender_casualties),
+                "remaining": int(defender.strength),  # UNMODIFIED
+                "morale": int(defender.morale),  # UNMODIFIED
+                "forced_retreat": False,  # Deferred to caller
+            },
+            "terrain": terrain,
+            "attacker_roll": attacker_roll,
+            "ability_triggered": ability_message,
+            "drill_bonus_triggered": drill_bonus_message,
+            "fortify_bonus_triggered": fortify_bonus_message,
+            "drilling_penalty_triggered": drilling_penalty_message,
+            "attacker_stance_triggered": attacker_stance_message,
+            "defender_stance_triggered": defender_stance_message,
+            "attacker_personality_triggered": attacker_personality_message,
+            "defender_personality_triggered": defender_personality_message,
+            "flanking_bonus": int(flanking_bonus),
+            "flanking_message": flanking_message,
+            "glorious_charge": glorious_charge,
+            "attacker_won": attacker_won,
+            "terrain_defense_message": terrain_defense_message,
+            "cavalry_terrain_message": cavalry_terrain_message,
+            "cavalry_counter_message": cavalry_counter_message,
+            "description": tactical_prefix + base_description,
+            "attacker_nation": getattr(attacker, "nation", ""),
+            "defender_nation": getattr(defender, "nation", ""),
+            "attacker_original_strength": int(attacker_original_strength),
+            "defender_original_strength": int(defender_original_strength),
+            "modifier_snapshot": {
+                "attacker": attacker_modifier_snapshot,
+                "defender": defender_modifier_snapshot,
+            },
+            "fortification_degraded": fortification_degraded,
+            "fortification_old": fortification_old,
+            "fortification_new": fortification_new,
+            "drouot_ability_triggered": drouot_ability_message,
+            "pursuit_damage": 0,  # Deferred to caller
+            "pursuit_message": None,
+            "counter_punch_earned": False,  # Deferred to caller
+            "counter_punch_mastery_earned": False,  # Deferred to caller
+            "drill_cancelled": bool(is_drilling),
+            # ═══ NEW: Raw data for caller to distribute (Session 62) ═══
+            "attacker_raw_casualties": int(attacker_casualties),
+            "defender_raw_casualties": int(defender_casualties),
+            "attacker_morale_delta": int(atk_morale_delta),
+            "defender_morale_delta": int(def_morale_delta),
+            "raw_outcome": outcome,
+        }
+        result_dict["battle_report"] = generate_battle_report(result_dict)
+        result_dict["log_battle_event"] = {
+            "type": "battle",
+            "attacker": attacker.name,
+            "attacker_nation": getattr(attacker, "nation", ""),
+            "defender": defender.name,
+            "defender_nation": getattr(defender, "nation", ""),
+            "location": "",  # Caller fills in
+            "outcome": outcome,
+            "attacker_casualties": int(attacker_casualties),
+            "defender_casualties": int(defender_casualties),
+            "battle_report": result_dict["battle_report"],
+            "fortification_degraded": fortification_degraded,
+            "fortification_old": fortification_old,
+            "fortification_new": fortification_new,
+        }
+        return result_dict
 
 
 # Test code
