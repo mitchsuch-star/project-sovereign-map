@@ -1409,6 +1409,17 @@ class EnemyAI:
         ai_debug("  P4.5: No capture opportunity found")
 
         # ════════════════════════════════════════════════════════════
+        # PRIORITY 4.6: COORDINATED ATTACK SETUP
+        # Move to stage coordinated attack when solo can't but combined could
+        # ════════════════════════════════════════════════════════════
+        ai_debug("  P4.6: Checking coordinated attack opportunities...")
+        coord_action = self._find_coordinated_attack(marshal, nation, world)
+        if coord_action:
+            ai_debug(f"  -> P4.6 Coordinated Attack: {coord_action}")
+            return (coord_action, 4)
+        ai_debug("  P4.6: No coordination opportunity found")
+
+        # ════════════════════════════════════════════════════════════
         # PRIORITY 4.75: ALLY SUPPORT
         # If an ally is in combat or outnumbered, move to support them
         # This is higher priority than fortifying/drilling
@@ -1528,6 +1539,15 @@ class EnemyAI:
         move_action = self._consider_strategic_move(marshal, nation, world)
         if move_action:
             return (move_action, 7)
+
+        # ════════════════════════════════════════════════════════════
+        # PRIORITY 4.78: DEFENSIVE REINFORCEMENT POSITIONING
+        # Move adjacent to threatened ally for reinforcement readiness
+        # ════════════════════════════════════════════════════════════
+        reinforce_action = self._find_defensive_reinforcement_position(marshal, nation, world)
+        if reinforce_action:
+            ai_debug(f"  -> P4.78 Defensive Reinforcement: {reinforce_action}")
+            return (reinforce_action, 7)
 
         # ─── P7.5: STAGNATION ESCALATION ──────────────────────────────────────
 
@@ -1925,6 +1945,14 @@ class EnemyAI:
         if not marshal_region:
             return None
 
+        # Pre-compute co-located ally count for coordination estimate (+8% per ally)
+        co_located_ally_count = len([
+            a for a in world.marshals.values()
+            if a.nation == nation and a.name != marshal.name
+            and a.location == marshal.location and a.strength > 0
+            and not getattr(a, 'broken', False)
+        ])
+
         # Find attackable targets with smart evaluation
         valid_targets = []
 
@@ -1959,6 +1987,11 @@ class EnemyAI:
                 base_ratio = combined_strength / enemy.strength
                 # Calculate effective ratio considering target's tactical state
                 effective_ratio = self._evaluate_target_ratio(base_ratio, enemy, world)
+
+                # +8% coordination estimate per co-located ally (inflate perceived ratio)
+                if co_located_ally_count > 0:
+                    effective_ratio += 0.08 * co_located_ally_count
+                    ai_debug(f"      Coordination estimate: +{co_located_ally_count * 8}% ({co_located_ally_count} allies)")
 
                 ai_debug(f"    Target in range: {enemy.name} at {enemy.location} (dist={distance})")
                 if combined_strength > marshal.strength:
@@ -2281,15 +2314,20 @@ class EnemyAI:
             return None
 
         # Get all allies from same nation (excluding self)
+        # P4.75 relationship filter: exclude Hostile (-2), prioritize by relationship
         allies = [
             m for m in world.marshals.values()
             if m.nation == nation
             and m.name != marshal.name
             and m.strength > 0
+            and marshal.get_relationship(m.name) >= -1  # Hostile excluded
         ]
 
         if not allies:
             return None
+
+        # Sort by relationship descending: Devoted first, then Friendly, Professional, Rival
+        allies.sort(key=lambda a: marshal.get_relationship(a.name), reverse=True)
 
         marshal_region = world.get_region(marshal.location)
         if not marshal_region:
@@ -2880,6 +2918,14 @@ class EnemyAI:
         visited = getattr(self, '_marshal_visited_locations', {}).get(marshal.name, set())
 
         # ════════════════════════════════════════════════════════════
+        # P4.76: CO-LOCATION PERSISTENCE GUARD
+        # Don't move away from co-located ally when threat is nearby
+        # ════════════════════════════════════════════════════════════
+        if self._should_maintain_co_location(marshal, nation, world):
+            ai_debug(f"  P4.76: {marshal.name} maintaining co-location with ally — skipping P7 movement")
+            return None
+
+        # ════════════════════════════════════════════════════════════
         # ARTILLERY P7: Use position scoring for destination selection
         # ════════════════════════════════════════════════════════════
         if getattr(marshal, 'artillery', False):
@@ -2915,13 +2961,14 @@ class EnemyAI:
             # Move toward nearest enemy
             nearest = min(enemies, key=lambda e: world.get_distance(marshal.location, e.location))
 
-            # Find adjacent region closest to enemy
+            # Find adjacent region closest to enemy, with P4.77 + combined arms tiebreakers
             marshal_region = world.get_region(marshal.location)
             if not marshal_region:
                 return None
 
             best_dest = None
-            best_distance = world.get_distance(marshal.location, nearest.location)
+            best_score = -999
+            current_distance = world.get_distance(marshal.location, nearest.location)
 
             for adj_name in marshal_region.adjacent_regions:
                 # Skip visited locations — one hop per action, revisiting = backtracking
@@ -2936,9 +2983,17 @@ class EnemyAI:
                     continue
 
                 dist = world.get_distance(adj_name, nearest.location)
-                if dist < best_distance:
+                if dist >= current_distance:
+                    continue  # Must reduce distance to enemy
+
+                # Scoring: distance reduction (primary), ally adjacency + combined arms (tiebreakers)
+                score = (current_distance - dist) * 1000
+                score += self._get_ally_adjacency_bonus(adj_name, marshal, nation, world)
+                score += self._get_combined_arms_bonus(adj_name, marshal, nation, world)
+
+                if score > best_score:
+                    best_score = score
                     best_dest = adj_name
-                    best_distance = dist
 
             if best_dest:
                 return {
@@ -2986,6 +3041,10 @@ class EnemyAI:
                                   if m.nation == nation and m.name != marshal.name]
                     if allies_there:
                         score += 5
+                    # P4.77: Ally adjacency bonus (relationship-weighted)
+                    score += self._get_ally_adjacency_bonus(adj_name, marshal, nation, world)
+                    # Combined arms awareness
+                    score += self._get_combined_arms_bonus(adj_name, marshal, nation, world)
 
                     if score > best_score:
                         best_score = score
@@ -3014,7 +3073,7 @@ class EnemyAI:
                     current_dist = world.get_distance(marshal.location, nearest.location)
 
                     best_dest = None
-                    best_distance = current_dist
+                    best_score = -999
 
                     for adj_name in marshal_region.adjacent_regions:
                         if adj_name in visited:
@@ -3025,9 +3084,17 @@ class EnemyAI:
                         if enemies_there:
                             continue
                         dist = world.get_distance(adj_name, nearest.location)
-                        if dist < best_distance:
+                        if dist >= current_dist:
+                            continue  # Must reduce distance
+
+                        # Scoring: distance reduction (primary), ally adjacency + combined arms (tiebreakers)
+                        score = (current_dist - dist) * 1000
+                        score += self._get_ally_adjacency_bonus(adj_name, marshal, nation, world)
+                        score += self._get_combined_arms_bonus(adj_name, marshal, nation, world)
+
+                        if score > best_score:
+                            best_score = score
                             best_dest = adj_name
-                            best_distance = dist
 
                     if best_dest:
                         ai_debug(f"    P7: Cautious advance toward {nearest.name} via {best_dest} (stagnation={stagnation})")
@@ -4335,13 +4402,24 @@ class EnemyAI:
         # safer and tactically superior one region behind, where it
         # can still provide adjacent support fire (+2% per S60) and
         # bombard via the screen.
+        # Stagnation override: when idle 3+ turns, reduce penalty
+        # (reluctant but willing to advance to break paralysis).
+        stagnation = world.ai_stagnation_turns.get(marshal.name, 0)
         if is_frontline:
-            if has_local_infantry:
-                # Infantry screens this position — mild penalty
-                score -= 30
+            if stagnation >= 3:
+                # Stagnation override — reduced penalty
+                if has_local_infantry:
+                    score -= 10  # Reduced from -30
+                else:
+                    score -= 20  # Reduced from -50
+                ai_debug(f"    Artillery stagnation override: reduced frontline penalty (stagnation={stagnation})")
             else:
-                # No infantry screen on the enemy border — very exposed
-                score -= 50
+                if has_local_infantry:
+                    # Infantry screens this position — mild penalty
+                    score -= 30
+                else:
+                    # No infantry screen on the enemy border — very exposed
+                    score -= 50
 
         # ── Behind-screen bonus ──────────────────────────────────
         # If friendly infantry holds an adjacent front-line region,
@@ -4417,6 +4495,347 @@ class EnemyAI:
             return None
         candidates.sort(reverse=True)
         return candidates[0][1]
+
+    # ════════════════════════════════════════════════════════════════════
+    # SESSION 63: AI COORDINATION ENHANCEMENTS
+    # ════════════════════════════════════════════════════════════════════
+
+    def _should_maintain_co_location(self, marshal: Marshal, nation: str, world: WorldState) -> bool:
+        """P4.76: Should marshal stay co-located with ally near a threat?
+
+        Returns True if marshal should NOT move away from current position
+        because they are co-located with an ally near an enemy threat and
+        have been settled here (not just arrived).
+        """
+        # Must not have moved this turn (settled here, not just arrived)
+        if getattr(marshal, 'moved_this_turn', False):
+            return False
+
+        # Check for co-located same-nation allies
+        co_located_allies = [
+            m for m in world.marshals.values()
+            if m.nation == nation and m.name != marshal.name
+            and m.location == marshal.location and m.strength > 0
+            and not getattr(m, 'broken', False)
+        ]
+        if not co_located_allies:
+            return False
+
+        # Check if current or adjacent region has enemy threat
+        marshal_region = world.get_region(marshal.location)
+        if not marshal_region:
+            return False
+
+        # Enemy in same region
+        enemies_here = [
+            m for m in world.marshals.values()
+            if m.location == marshal.location and m.nation != nation and m.strength > 0
+        ]
+        if enemies_here:
+            return True
+
+        # Enemy in adjacent region
+        for adj_name in marshal_region.adjacent_regions:
+            for m in world.marshals.values():
+                if m.location == adj_name and m.nation != nation and m.strength > 0:
+                    ai_debug(f"    P4.76: {marshal.name} maintaining co-location — threat at {adj_name}")
+                    return True
+
+        return False
+
+    def _find_coordinated_attack(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
+        """P4.6: Move to stage coordinated attack when solo can't but combined could.
+
+        Fires when:
+        - Adjacent enemy exists
+        - Solo ratio < 1.5x (can't comfortably attack alone)
+        - Nearby allies (within 2 distance, relationship >= Rival) would push combined > 1.5x
+        - Returns MOVE toward allies to co-locate for next turn's attack
+        """
+        if getattr(marshal, 'fortified', False):
+            return None
+        if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+            return None
+
+        marshal_region = world.get_region(marshal.location)
+        if not marshal_region:
+            return None
+
+        # For each adjacent enemy-held region with defenders
+        for adj_name in marshal_region.adjacent_regions:
+            enemies_there = [
+                m for m in world.marshals.values()
+                if m.location == adj_name and m.nation != nation and m.strength > 0
+            ]
+            if not enemies_there:
+                continue  # Skip undefended — P4.5 handles
+
+            enemy_strength = sum(e.strength for e in enemies_there)
+            if enemy_strength == 0:
+                continue
+
+            solo_ratio = marshal.strength / enemy_strength
+            if solo_ratio >= 1.5:
+                continue  # Can handle solo, no coordination needed
+
+            # Find co-located allies with relationship >= Rival for combined estimate
+            co_located_allies = [
+                m for m in world.marshals.values()
+                if m.nation == nation and m.name != marshal.name
+                and m.location == marshal.location and m.strength > 0
+                and not getattr(m, 'broken', False)
+                and not getattr(m, 'retreated_this_turn', False)
+                and marshal.get_relationship(m.name) >= -1  # >= Rival
+            ]
+
+            # Find nearby allies (within 2 distance, not co-located) with relationship >= Rival
+            nearby_allies = [
+                m for m in world.marshals.values()
+                if m.nation == nation and m.name != marshal.name
+                and m.strength > 0 and m.location != marshal.location
+                and not getattr(m, 'broken', False)
+                and not getattr(m, 'retreated_this_turn', False)
+                and marshal.get_relationship(m.name) >= -1  # >= Rival
+                and 0 < world.get_distance(marshal.location, m.location) <= 2
+            ]
+
+            if not nearby_allies and not co_located_allies:
+                continue
+
+            # Check if combined strength would exceed 1.5x
+            combined = marshal.strength
+            combined += sum(a.strength for a in co_located_allies)
+            combined += sum(a.strength for a in nearby_allies)
+            combined_ratio = combined / enemy_strength
+
+            if combined_ratio < 1.5:
+                continue  # Even combined, not enough
+
+            # Need to bring in nearby allies — move toward the nearest one
+            if nearby_allies:
+                best_ally = min(nearby_allies, key=lambda a: world.get_distance(marshal.location, a.location))
+                visited = getattr(self, '_marshal_visited_locations', {}).get(marshal.name, set())
+
+                best_move = None
+                best_score = -999
+
+                for move_adj in marshal_region.adjacent_regions:
+                    if move_adj in visited:
+                        continue
+                    # Don't move into enemies
+                    enemies_blocking = [
+                        m for m in world.marshals.values()
+                        if m.location == move_adj and m.nation != nation and m.strength > 0
+                    ]
+                    if enemies_blocking:
+                        continue
+                    dist = world.get_distance(move_adj, best_ally.location)
+                    current_dist = world.get_distance(marshal.location, best_ally.location)
+                    if dist < current_dist:
+                        score = (current_dist - dist) * 100
+                        if score > best_score:
+                            best_score = score
+                            best_move = move_adj
+
+                if best_move:
+                    ai_debug(f"    P4.6: {marshal.name} staging coordinated attack — moving toward {best_ally.name} at {best_ally.location}")
+                    return {
+                        "marshal": marshal.name,
+                        "action": "move",
+                        "target": best_move
+                    }
+
+        return None
+
+    def _find_defensive_reinforcement_position(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
+        """P4.78: Move adjacent to threatened ally for reinforcement readiness.
+
+        Fires when:
+        - Ally with relationship >= Rival is threatened (enemy adjacent)
+        - Marshal is NOT already adjacent to that ally
+        - Can reach a position adjacent to the threatened ally
+        """
+        if getattr(marshal, 'fortified', False):
+            return None
+        if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+            return None
+
+        marshal_region = world.get_region(marshal.location)
+        if not marshal_region:
+            return None
+
+        # Find allies with relationship >= Rival
+        allies = [
+            m for m in world.marshals.values()
+            if m.nation == nation and m.name != marshal.name and m.strength > 0
+            and not getattr(m, 'broken', False)
+            and marshal.get_relationship(m.name) >= -1  # >= Rival
+        ]
+
+        if not allies:
+            return None
+
+        # Find threatened allies (enemy in or adjacent to their region)
+        threatened_allies = []
+        for ally in allies:
+            ally_region = world.get_region(ally.location)
+            if not ally_region:
+                continue
+
+            is_threatened = False
+            # Enemies in same region as ally
+            for m in world.marshals.values():
+                if m.location == ally.location and m.nation != nation and m.strength > 0:
+                    is_threatened = True
+                    break
+            # Enemies adjacent to ally
+            if not is_threatened:
+                for adj_name in ally_region.adjacent_regions:
+                    for m in world.marshals.values():
+                        if m.location == adj_name and m.nation != nation and m.strength > 0:
+                            is_threatened = True
+                            break
+                    if is_threatened:
+                        break
+
+            if is_threatened:
+                threatened_allies.append(ally)
+
+        if not threatened_allies:
+            return None
+
+        # Check if already adjacent to or co-located with any threatened ally
+        for ally in threatened_allies:
+            if ally.location == marshal.location:
+                return None  # Already co-located
+            if ally.location in marshal_region.adjacent_regions:
+                return None  # Already adjacent
+
+        # Find best move toward a threatened ally
+        visited = getattr(self, '_marshal_visited_locations', {}).get(marshal.name, set())
+        best_move = None
+        best_score = -999
+
+        for ally in threatened_allies:
+            ally_region = world.get_region(ally.location)
+            if not ally_region:
+                continue
+
+            for adj_name in marshal_region.adjacent_regions:
+                if adj_name in visited:
+                    continue
+                adj_region = world.get_region(adj_name)
+                if not adj_region:
+                    continue
+
+                # Position must be near ally (co-located or adjacent to ally)
+                is_near_ally = (adj_name == ally.location or adj_name in ally_region.adjacent_regions)
+                if not is_near_ally:
+                    continue
+
+                # Don't move into enemy-occupied regions
+                enemies_there = [
+                    m for m in world.marshals.values()
+                    if m.location == adj_name and m.nation != nation and m.strength > 0
+                ]
+                if enemies_there:
+                    continue
+
+                score = 10  # Base score for being near ally
+                # Prefer positions also adjacent to enemy (enables own attacks)
+                for adj2 in adj_region.adjacent_regions:
+                    for m in world.marshals.values():
+                        if m.location == adj2 and m.nation != nation and m.strength > 0:
+                            score += 5
+                            break
+                    if score > 10:
+                        break  # Found enemy adjacency, don't double-count
+
+                if score > best_score:
+                    best_score = score
+                    best_move = adj_name
+
+        if best_move:
+            ai_debug(f"    P4.78: {marshal.name} moving to {best_move} for defensive reinforcement")
+            return {
+                "marshal": marshal.name,
+                "action": "move",
+                "target": best_move
+            }
+
+        return None
+
+    def _get_ally_adjacency_bonus(self, region_name: str, marshal: Marshal, nation: str, world: WorldState) -> int:
+        """P4.77: Score bonus for being adjacent to allied marshals, weighted by relationship.
+
+        Devoted (+2): +10, Professional/Friendly (0/+1): +5, Rival/Hostile: 0.
+        Applies to same-nation AND coalition allies (not player nation).
+        """
+        bonus = 0
+        region = world.get_region(region_name)
+        if not region:
+            return 0
+
+        check_locations = {region_name} | set(region.adjacent_regions)
+
+        for m in world.marshals.values():
+            if m.name == marshal.name or m.strength <= 0:
+                continue
+            if m.location not in check_locations:
+                continue
+
+            # Cross-nation ally scoring for strategic movement
+            # Current check works because coalition is always AI, France is always player.
+            # TODO-1805: Replace with _are_allied(ally.nation, marshal.nation) check
+            # when France can be AI-controlled or multiple player nations exist.
+            is_ally = (m.nation == nation) or (m.nation != nation and m.nation != world.player_nation)
+            if not is_ally:
+                continue
+
+            rel = marshal.get_relationship(m.name)
+            if rel >= 2:  # Devoted
+                bonus += 10
+            elif rel >= 0:  # Professional or Friendly
+                bonus += 5
+            # Rival (-1) or Hostile (-2): no bonus
+
+        return bonus
+
+    def _get_combined_arms_bonus(self, region_name: str, marshal: Marshal, nation: str, world: WorldState) -> int:
+        """Score bonus for positions that complete the infantry/cavalry/artillery triangle.
+
+        If two of three unit types are already co-located at a position and
+        this marshal would be the third type, returns +20.
+        """
+        units_there = [
+            m for m in world.marshals.values()
+            if m.location == region_name and m.nation == nation
+            and m.name != marshal.name and m.strength > 0
+        ]
+        if not units_there:
+            return 0
+
+        has_infantry = any(not getattr(m, 'cavalry', False) and not getattr(m, 'artillery', False) for m in units_there)
+        has_cavalry = any(getattr(m, 'cavalry', False) for m in units_there)
+        has_artillery = any(getattr(m, 'artillery', False) for m in units_there)
+
+        # What type is this marshal?
+        is_cavalry = getattr(marshal, 'cavalry', False)
+        is_artillery = getattr(marshal, 'artillery', False)
+        is_infantry = not is_cavalry and not is_artillery
+
+        # Check if marshal would add the missing type to complete the triangle
+        existing_types = sum([has_infantry, has_cavalry, has_artillery])
+        would_add_new = (
+            (is_infantry and not has_infantry) or
+            (is_cavalry and not has_cavalry) or
+            (is_artillery and not has_artillery)
+        )
+
+        if would_add_new and existing_types == 2:
+            return 20  # Completing the full triangle
+
+        return 0
 
     def _find_damaged_building_region(self, nation: str, world) -> Optional[Dict]:
         """Find a region with a damaged building, prioritizing high-income regions.

@@ -138,11 +138,16 @@ The AI evaluates each marshal and assigns a **priority score** (lower = more urg
 | P4 | Attack (standard) | 75 | Valid target + meets threshold |
 | P4.25 | Garrison Assault | 77 | Adjacent garrisoned capital — strength ratio vs threshold |
 | P4.5 | Capture Undefended | 80 | Adjacent undefended enemy region (skips garrisoned capitals) |
-| P4.6 | Consolidation | 78 | Weak marshal joins strong ally within 3 distance |
+| P4.6 | Coordinated Attack Setup | 78 | Combined > 1.5x but solo < 1.5x, relationship >= Rival |
+| P4.75 | Ally Support | 78 | Move toward outnumbered/engaged ally (relationship >= Rival, Devoted priority) |
+| P4.8 | Consolidation | 78 | Weak marshal joins strong ally within 3 distance |
 | P5 | Fortification | 85 | Cautious + no attack target |
 | P6 | Drilling | 90 | Aggressive + position secure |
 | P6.5 | Supply Awareness | 91 | Supply excess > 50% — mildly relocate to better-supplied region |
-| P7 | Strategic Movement | 92 | Can advance toward enemy |
+| P6.75 | Garrison Placement | 91 | Place capital garrison (max 1 per nation per turn) |
+| P7 | Strategic Movement | 92 | Can advance toward enemy (P4.76 co-location guard, P4.77 cross-nation scoring) |
+| P4.78 | Defensive Reinforcement | 92 | Move adjacent to threatened Rival+ ally for reinforcement readiness |
+| P7.5 | Stagnation Breaker | 93 | Graduated escalation: Turn 2 unfortify, Turn 3+ lowered attack threshold |
 | P8 | Default | 95 | Stance adjustment or wait |
 
 ### Priority 6.5: Supply Awareness
@@ -156,6 +161,76 @@ Triggered when marshal is in a region where supply excess exceeds 50% and no hig
 - Picks the region with best `supply_capacity - total_troops_there` margin
 - Will not move if no adjacent region has positive net margin (stays and takes attrition)
 - This is a mild optimization, not a panic reaction — the AI will not abandon combat positions or skip attacks to avoid attrition
+
+### Priority 4.6: Coordinated Attack Setup (Session 63)
+
+Stages coordinated attacks when the marshal can't attack alone but combined force with nearby allies would succeed.
+
+**Trigger:** Adjacent enemy exists AND solo ratio < 1.5x AND nearby allies (within 2 distance) with relationship >= Rival would push combined ratio > 1.5x.
+
+**Behavior:**
+- Scans adjacent enemy-held regions for defenders
+- Excludes undefended regions (P4.5 handles those)
+- Counts co-located + nearby allies with relationship >= Rival (-1)
+- Hostile (-2) allies excluded from combined strength
+- Returns MOVE toward nearest eligible ally to co-locate
+- Once co-located, P4 (normal attack) handles the actual attack using combined strength
+
+### Priority 4.75: Ally Support — Relationship Filtering (Session 63)
+
+Enhanced existing ally support with relationship awareness.
+
+**Changes from base P4.75:**
+- Hostile (-2) allies filtered out — will not receive support
+- Candidates sorted by relationship: Devoted (+2) → Friendly (+1) → Professional (0) → Rival (-1)
+- Ties broken by threat level (existing behavior preserved)
+
+### Priority 4.76: Co-Location Persistence Guard (Session 63)
+
+**Not a standalone priority** — implemented as an early-return guard inside `_consider_strategic_move()`.
+
+**Trigger:** Marshal co-located with same-nation ally AND hasn't moved this turn (settled) AND enemy threat in current or adjacent region.
+
+**Behavior:**
+- Returns None from `_consider_strategic_move()`, preventing P7 movement
+- Marshal falls through to P7.5/P8 (typically waits)
+- Prevents AI from moving away from a beneficial co-located position near threats
+- Does NOT fire if marshal just arrived (moved_this_turn = True) or if no threat nearby
+
+### Priority 4.77: Cross-Nation Adjacency Scoring (Session 63)
+
+**Not a standalone priority** — scoring modifier inside `_consider_strategic_move()`.
+
+**Scoring bonuses for candidate movement positions:**
+- Adjacent to Devoted (+2) ally: +10 score
+- Adjacent to Professional (0) or Friendly (+1) ally: +5 score
+- Adjacent to Rival (-1) or Hostile (-2): 0 bonus
+- Applied as tiebreaker alongside combined arms awareness (+20 for completing triangle)
+- Works for same-nation and coalition allies (not player nation)
+
+### Priority 4.78: Defensive Reinforcement Positioning (Session 63)
+
+Moves adjacent to a threatened ally for reinforcement readiness. Fires after P7, before P7.5.
+
+**Trigger:** Ally with relationship >= Rival is threatened (enemy in or adjacent to their region) AND marshal is NOT already adjacent to or co-located with that ally.
+
+**Behavior:**
+- Finds all threatened allies (enemy adjacent), filtered by relationship >= Rival
+- If already adjacent to any threatened ally, returns None (already positioned)
+- Among reachable positions adjacent to ally, prefers those also adjacent to enemy
+- Returns MOVE to best position, or None if unreachable
+
+### Attack Threshold +8% Coordination Estimate (Session 63)
+
+In `_find_attack_opportunity()`, the effective strength ratio is inflated by +0.08 per co-located ally. Additive: solo ratio 1.1 + 2 allies = 1.26. Makes AI slightly more willing to attack when it has friends nearby. Personality thresholds (cautious 1.3, balanced 1.0, aggressive 0.7) are NOT changed.
+
+### Artillery Stagnation Override (Session 63)
+
+In `_score_artillery_position()`, when `ai_stagnation_turns >= 3`, frontline avoidance penalties are reduced:
+- Unscreened frontline: -50 → -20
+- Screened frontline: -30 → -10
+- Non-artillery marshals unaffected (they don't use this scoring method)
+- Prevents artillery paralysis when the front line collapses around it
 
 ### Priority 1: Retreat Recovery
 

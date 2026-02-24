@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 23, 2026 (Post-S62 Hotfix: Artillery Positioning + Casualty Reduction)
+> **Last Updated:** February 24, 2026 (Session 63: AI Coordination Enhancements)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3685** (3682 passed, 3 skipped — verified Feb 23, post-hotfix) |
+| **Tests Passing** | **3720** (3717 passed, 3 skipped — verified Feb 24, Session 63) |
 
-| **Current Phase** | Phase 7b **IN PROGRESS** (Session 62 complete, remaining: S63, S65, S66, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau). |
+| **Current Phase** | Phase 7b **IN PROGRESS** (Session 63 complete, remaining: S65, S66, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau). |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -20,7 +20,7 @@
 ## Next Steps
 
 1. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~212 new tests.
-2. **Phase 7b: IN PROGRESS.** Session 62 (Casualty Distribution) complete. Next: AI Coordination Enhancements (S63), Full Battle Reports + Reinforcement Reporting (S65 — must notify player when allies reinforce, fail to arrive, or move autonomously via strategic orders), Godot Tooltips/Tutorial (S66), Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau Staff Work.
+2. **Phase 7b: IN PROGRESS.** Session 63 (AI Coordination Enhancements) complete. Next: Full Battle Reports + Reinforcement Reporting (S65 — must notify player when allies reinforce, fail to arrive, or move autonomously via strategic orders), Godot Tooltips/Tutorial (S66), Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau Staff Work.
 3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
 ---
@@ -46,13 +46,29 @@ All major Phase 6 features shipped:
 
 ## Phase 7b Sessions
 
+### Feb 24 — Session 63: AI Coordination Enhancements
+
+**35 new tests, 3720 total (3 skipped). AI now uses relationships and coordination awareness for smarter multi-marshal behavior.**
+
+- **P4.6 Coordinated Attack Setup:** AI marshals move to stage coordinated attacks when solo ratio < 1.5x but combined with nearby allies (within 2 distance, relationship >= Rival) would exceed 1.5x. Returns MOVE toward nearest eligible ally.
+- **P4.75 Relationship Filtering:** Ally support now excludes Hostile (-2) allies and prioritizes by relationship (Devoted > Friendly > Professional > Rival). Sorting ensures best relationships supported first.
+- **P4.76 Co-Location Persistence Guard:** Inside `_consider_strategic_move()`, prevents marshal from moving away when co-located with ally near enemy threat and settled (not moved this turn). Falls through to wait/P8.
+- **P4.77 Cross-Nation Adjacency Scoring:** Strategic movement now scores candidate positions by ally adjacency: Devoted +10, Professional/Friendly +5, Rival/Hostile 0. Applied as tiebreaker in aggressive, cautious fallback, and cautious advance paths. TODO-1805 comment for coalition detection.
+- **P4.78 Defensive Reinforcement:** After P7, before P7.5. Moves adjacent to threatened Rival+ ally for reinforcement readiness. Prefers positions also adjacent to enemy. Returns None if already adjacent or ally not threatened.
+- **Attack Threshold +8%:** `_find_attack_opportunity()` inflates effective ratio by +0.08 per co-located ally. Additive: solo 1.1 + 2 allies = 1.26. Personality thresholds unchanged.
+- **Stagnation Override:** Artillery frontline penalty reduced when stagnation >= 3: unscreened -50 → -20, screened -30 → -10. Non-artillery unaffected.
+- **Combined Arms Awareness:** +20 score bonus in P7 for positions completing the infantry/cavalry/artillery triangle (2 types present, marshal is 3rd).
+
+**Files modified:** `enemy_ai.py` (5 new methods, 3 modified methods, 2 helper methods), `SYSTEMS_REFERENCE.md`, `STATUS.md`, `ENEMY_AI_REFERENCE.md`.
+**Files created:** `tests/test_ai_coordination.py` (35 tests, 9 classes).
+
 ### Feb 23 — Post-S62 Hotfix: Artillery Positioning + Casualty Reduction
 
 **22 new tests, 3685 total (3 skipped). Two artillery fixes from playtest observation.**
 
 - **Artillery AI frontline avoidance:** `_score_artillery_position()` now penalizes front-line regions (adjacent to enemy territory). Unscreened frontline: -50. Screened frontline (co-located infantry): -30. New "behind-screen" bonus (+15) for non-frontline positions with adjacent infantry holding the front line. Fixes observed behavior of artillery advancing into freshly-conquered regions instead of staying in rear bombardment positions.
 - **Artillery casualty reduction in combined arms:** `_distribute_casualties()` now applies 50% casualty reduction to artillery when fighting alongside non-artillery units (rear-position advantage). Remainder goes to strongest non-artillery marshal. No reduction when artillery fights alone or with only other artillery. `ARTILLERY_CASUALTY_FACTOR = 0.5` class constant.
-- **Session 63 decisions needed:** (1) Should frontline penalty values (-50/-30) be tuned differently at scale? (2) Does P7 stagnation breaker override frontline avoidance (artillery forced to advance after N idle turns)? (3) Should cavalry screens partially reduce frontline penalty (e.g., -40 instead of -50)?
+- **Session 63 decisions resolved:** (1) Frontline penalty values (-50/-30): **Keep current values.** Tuning deferred to 1805 region wiring — more rear positions available at 80+ regions. (2) Stagnation breaker vs frontline avoidance: **Stagnation overrides with reduced penalty.** When artillery idle 3+ turns (stagnation counter active), reduce frontline penalty from -50 to -20 (reluctant but willing). Prevents artillery paralysis when front line collapses around it. (3) Cavalry screens and frontline penalty: **Already handled.** Screened frontline is -30 (vs unscreened -50), cavalry counts as screen. No further reduction needed.
 
 **Files modified:** `enemy_ai.py` (`_score_artillery_position` frontline penalty + behind-screen bonus), `executor.py` (`_distribute_casualties` artillery reduction + `ARTILLERY_CASUALTY_FACTOR`).
 **Files created:** `tests/test_artillery_hotfix.py` (22 tests, 5 classes).

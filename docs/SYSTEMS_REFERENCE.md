@@ -349,6 +349,7 @@ When 2+ same-nation marshals are in the battle region, casualties are distribute
 **Distribution formula:**
 - Each participant's share = `int(raw_casualties * (participant.strength / total_strength))`
 - **Artillery rear-position advantage:** When fighting alongside non-artillery units, artillery takes 50% of proportional share (`ARTILLERY_CASUALTY_FACTOR = 0.5`). No reduction when fighting alone or with only other artillery.
+- **Cavalry receives NO casualty reduction** in combined arms. Cavalry charges and takes full proportional casualties — their combined arms benefit comes from combat bonuses (+10%/+20% attack, +5%/+10% defense), not reduced losses. This makes cavalry feel powerful but vulnerable: the decisive arm that wins battles at a cost. Infantry absorbs the bulk of casualties as the frontline unit type.
 - Remainder (from rounding) assigned to strongest non-artillery marshal (falls back to strongest overall if all artillery)
 - Capped at each marshal's current strength
 
