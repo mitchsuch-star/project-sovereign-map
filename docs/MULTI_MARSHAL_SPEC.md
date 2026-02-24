@@ -1427,7 +1427,7 @@ Zero new dialog popups. The first-time coordination tutorial uses inline-dramati
 
 **Files:**
 - `battle_report.py` — New observation categories (P0.5 full triangle, P0.7 reinforcement arrival, P0.8 reinforcement failure, P12 hostile refusal, P13 devoted synergy). Snapshot coordination bonuses.
-- `executor.py` — Pre-battle coordination preview (inline terminal text). Reinforcement inline-dramatic messages.
+- `executor.py` — Pre-battle coordination preview (inline terminal text). Reinforcement inline-dramatic messages: player must be told when allies arrive ("Soult has marched from Lyon to reinforce your attack!"), when they fail to arrive, and when enemy reinforcements arrive (fog-filtered). Also notify when allies move autonomously via strategic orders (PURSUE/SUPPORT relocation).
 - `combat.py` — Coordination messages in `tactical_prefix`.
 
 **Tests (~25):**

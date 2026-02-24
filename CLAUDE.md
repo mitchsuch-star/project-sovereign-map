@@ -35,7 +35,7 @@ Combined Arms (Session 57), Coordination Bonus + Hard Cap (Session 58), Dedicate
 
 ### Completed in Phase 7b
 
-Casualty Distribution (Session 62: `resolve_battle(apply_casualties=False)` deferred-casualty contract, proportional distribution by strength, Hostile exclusion with SUPPORT override per D3, uniform morale deltas, primary-only recklessness/counter-punch, per-participant forced retreat, C2 projected-strength victor, 63 tests).
+Casualty Distribution (Session 62: `resolve_battle(apply_casualties=False)` deferred-casualty contract, proportional distribution by strength, Hostile exclusion with SUPPORT override per D3, uniform morale deltas, primary-only recklessness/counter-punch, per-participant forced retreat, C2 projected-strength victor, 63 tests). Post-S62 Hotfix: artillery AI frontline avoidance (`_score_artillery_position` -50/-30 penalty + +15 behind-screen bonus), artillery 50% casualty reduction in combined arms (`ARTILLERY_CASUALTY_FACTOR`), 22 tests.
 
 ### Up Next
 
@@ -131,7 +131,7 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | Fog of war | `docs/FOG_OF_WAR_SPEC.md`, `backend/models/intel.py`, `backend/intel_report.py`, `map.gd` (fog overlay + fogged icons) |
 | Strategic commands + fog | `docs/FOG_OF_WAR_SPEC.md` §5, `backend/commands/strategic.py` |
 | Manpower pools / recruitment | `world_state.py` (manpower constants, `_process_manpower_regen`), `executor.py` (`_execute_recruit`), `enemy_ai.py` (P1/P4.5/P7 pool checks) |
-| Artillery mechanics | `marshal.py` (artillery flag, moved_this_turn, defense modifier), `combat.py` (cavalry counter, fort degradation), `executor.py` (attack block, no advance, charge ban, `_execute_bombardment` collateral) |
+| Artillery mechanics | `marshal.py` (artillery flag, moved_this_turn, defense modifier), `combat.py` (cavalry counter, fort degradation), `executor.py` (attack block, no advance, charge ban, `_execute_bombardment` collateral, `_distribute_casualties` 50% reduction with non-artillery), `enemy_ai.py` (`_score_artillery_position` frontline penalty + behind-screen bonus) |
 | Bombardment collateral | `executor.py` (`_execute_bombardment` collateral loop), `trust.py` (modify), `disobedience.py` (_create_redemption_event), `main.py` (redemption pass-through) |
 | Top bar / screen system | `top_bar.gd` (controller), `main.gd` (_on_screen_changed, _is_modal_dialog_open, _is_screen_open, _is_hotkey_blocked), `docs/TOP_BAR_SPEC.md` |
 | Morning dispatch / re-read | `dispatch.py` (build + store), `dispatch_view.gd` (render), `main.gd` (_display_morning_dispatch), `world_state.py` (last_morning_dispatch field) |

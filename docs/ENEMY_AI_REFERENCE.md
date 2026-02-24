@@ -594,6 +594,8 @@ AI artillery behavior for ranged bombardment. The executor routes artillery atta
 
 **P7 Anti-Oscillation:** Artillery with adjacent targets stays put (skips P7 movement) to continue bombarding.
 
+**P7 Frontline Avoidance:** Artillery position scoring penalizes front-line regions (adjacent to enemy territory): -50 without infantry screen, -30 with co-located infantry. Non-frontline positions behind infantry on the front line get +15 bonus. Prevents artillery advancing into freshly-conquered contested regions.
+
 ---
 
 ## Admin Phase

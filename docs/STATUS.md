@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 23, 2026 (Session 62: Casualty Distribution)
+> **Last Updated:** February 23, 2026 (Post-S62 Hotfix: Artillery Positioning + Casualty Reduction)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3663** (3660 passed, 3 skipped — verified Feb 23, post-review) |
+| **Tests Passing** | **3685** (3682 passed, 3 skipped — verified Feb 23, post-hotfix) |
 
 | **Current Phase** | Phase 7b **IN PROGRESS** (Session 62 complete, remaining: S63, S65, S66, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau). |
 | **Blockers** | None |
@@ -20,7 +20,7 @@
 ## Next Steps
 
 1. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~212 new tests.
-2. **Phase 7b: IN PROGRESS.** Session 62 (Casualty Distribution) complete. Next: AI Coordination Enhancements (S63), Full Battle Reports (S65), Godot Tooltips/Tutorial (S66), Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau Staff Work.
+2. **Phase 7b: IN PROGRESS.** Session 62 (Casualty Distribution) complete. Next: AI Coordination Enhancements (S63), Full Battle Reports + Reinforcement Reporting (S65 — must notify player when allies reinforce, fail to arrive, or move autonomously via strategic orders), Godot Tooltips/Tutorial (S66), Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau Staff Work.
 3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
 ---
@@ -45,6 +45,17 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7b Sessions
+
+### Feb 23 — Post-S62 Hotfix: Artillery Positioning + Casualty Reduction
+
+**22 new tests, 3685 total (3 skipped). Two artillery fixes from playtest observation.**
+
+- **Artillery AI frontline avoidance:** `_score_artillery_position()` now penalizes front-line regions (adjacent to enemy territory). Unscreened frontline: -50. Screened frontline (co-located infantry): -30. New "behind-screen" bonus (+15) for non-frontline positions with adjacent infantry holding the front line. Fixes observed behavior of artillery advancing into freshly-conquered regions instead of staying in rear bombardment positions.
+- **Artillery casualty reduction in combined arms:** `_distribute_casualties()` now applies 50% casualty reduction to artillery when fighting alongside non-artillery units (rear-position advantage). Remainder goes to strongest non-artillery marshal. No reduction when artillery fights alone or with only other artillery. `ARTILLERY_CASUALTY_FACTOR = 0.5` class constant.
+- **Session 63 decisions needed:** (1) Should frontline penalty values (-50/-30) be tuned differently at scale? (2) Does P7 stagnation breaker override frontline avoidance (artillery forced to advance after N idle turns)? (3) Should cavalry screens partially reduce frontline penalty (e.g., -40 instead of -50)?
+
+**Files modified:** `enemy_ai.py` (`_score_artillery_position` frontline penalty + behind-screen bonus), `executor.py` (`_distribute_casualties` artillery reduction + `ARTILLERY_CASUALTY_FACTOR`).
+**Files created:** `tests/test_artillery_hotfix.py` (22 tests, 5 classes).
 
 ### Feb 23 — Session 62: Casualty Distribution
 

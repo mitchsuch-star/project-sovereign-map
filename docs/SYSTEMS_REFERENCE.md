@@ -348,7 +348,8 @@ When 2+ same-nation marshals are in the battle region, casualties are distribute
 
 **Distribution formula:**
 - Each participant's share = `int(raw_casualties * (participant.strength / total_strength))`
-- Remainder (from rounding) assigned to strongest marshal
+- **Artillery rear-position advantage:** When fighting alongside non-artillery units, artillery takes 50% of proportional share (`ARTILLERY_CASUALTY_FACTOR = 0.5`). No reduction when fighting alone or with only other artillery.
+- Remainder (from rounding) assigned to strongest non-artillery marshal (falls back to strongest overall if all artillery)
 - Capped at each marshal's current strength
 
 **Participant eligibility:**
@@ -1428,9 +1429,11 @@ After artillery bombardment, if defender's `defense_bonus <= 0` AND region `fort
 **Position Scoring (`_score_artillery_position`):**
 - +30 hills terrain
 - +25 adjacent fortified enemy
-- +20 friendly infantry screen present
+- +20 friendly infantry screen co-located, +10 adjacent
 - -30 exposed to enemy cavalry (within 2, no screen)
 - +10 own territory
+- **Frontline penalty:** -50 if on enemy border without infantry screen, -30 with co-located infantry screen. Prevents artillery advancing to front-line regions.
+- **Behind-screen bonus:** +15 if not on front line AND friendly infantry holds an adjacent front-line region. Rewards safe rear positions for bombardment support.
 
 **Helper Functions:**
 - `_artillery_has_screen(marshal, nation, world)` — friendly non-cavalry, non-artillery in same/adjacent region

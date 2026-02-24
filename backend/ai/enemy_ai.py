@@ -4272,7 +4272,12 @@ class EnemyAI:
         return False
 
     def _score_artillery_position(self, region_name: str, marshal: Marshal, nation: str, world: WorldState) -> int:
-        """Score a candidate position for AI artillery. Higher = better."""
+        """Score a candidate position for AI artillery. Higher = better.
+
+        Artillery prefers rear positions behind infantry screens over
+        front-line co-location.  Front-line = any adjacent region is
+        enemy-controlled.
+        """
         region = world.get_region(region_name)
         if not region:
             return -1000
@@ -4289,9 +4294,11 @@ class EnemyAI:
             score += 20
 
         # Prefer positions adjacent to enemy positions (+15, +25 if fortified)
+        is_frontline = False
         for adj_name in region.adjacent_regions:
             adj_region = world.get_region(adj_name)
             if adj_region and adj_region.controller and adj_region.controller != nation:
+                is_frontline = True
                 score += 15
                 for m in world.marshals.values():
                     if m.location == adj_name and m.nation != nation and m.strength > 0:
@@ -4300,12 +4307,14 @@ class EnemyAI:
 
         # Prefer positions with friendly infantry screen (+20 same, +10 adjacent)
         has_screen = False
+        has_local_infantry = False
         for m in world.marshals.values():
             if m.name != marshal.name and m.nation == nation and m.strength > 0:
                 if not getattr(m, 'cavalry', False) and not getattr(m, 'artillery', False):
                     if m.location == region_name:
                         score += 20
                         has_screen = True
+                        has_local_infantry = True
                     elif m.location in region.adjacent_regions:
                         score += 10
                         has_screen = True
@@ -4320,6 +4329,39 @@ class EnemyAI:
         # Own territory preferred (+10)
         if region.controller == nation:
             score += 10
+
+        # ── Frontline avoidance ──────────────────────────────────
+        # Artillery should NOT advance onto the front line.  It is
+        # safer and tactically superior one region behind, where it
+        # can still provide adjacent support fire (+2% per S60) and
+        # bombard via the screen.
+        if is_frontline:
+            if has_local_infantry:
+                # Infantry screens this position — mild penalty
+                score -= 30
+            else:
+                # No infantry screen on the enemy border — very exposed
+                score -= 50
+
+        # ── Behind-screen bonus ──────────────────────────────────
+        # If friendly infantry holds an adjacent front-line region,
+        # this position is safely behind the screen — ideal for
+        # artillery bombardment support.
+        if not is_frontline:
+            for m in world.marshals.values():
+                if m.name != marshal.name and m.nation == nation and m.strength > 0:
+                    if not getattr(m, 'cavalry', False) and not getattr(m, 'artillery', False):
+                        if m.location in region.adjacent_regions:
+                            inf_region = world.get_region(m.location)
+                            if inf_region:
+                                inf_on_front = any(
+                                    world.get_region(a) and world.get_region(a).controller
+                                    and world.get_region(a).controller != nation
+                                    for a in inf_region.adjacent_regions
+                                )
+                                if inf_on_front:
+                                    score += 15  # Behind an infantry screen on the front
+                                    break  # Count once
 
         return score
 

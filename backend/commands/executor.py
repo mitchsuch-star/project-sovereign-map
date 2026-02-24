@@ -702,6 +702,10 @@ class CommandExecutor:
 
         return participants
 
+    # Artillery takes 50% of proportional casualties when fighting
+    # alongside non-artillery units (positioned behind front lines).
+    ARTILLERY_CASUALTY_FACTOR = 0.5
+
     def _distribute_casualties(self, raw_casualties: int, participants: list) -> dict:
         """Distribute casualties proportionally among participating marshals.
 
@@ -710,9 +714,11 @@ class CommandExecutor:
         Rules:
         - Proportional by strength fraction: marshal_strength / total_strength * raw_casualties
         - Round DOWN each marshal's share (int())
-        - Assign remainder to strongest marshal (no rounding leakage)
+        - Artillery rear-position advantage: when fighting alongside non-artillery
+          units, artillery takes 50% of proportional share (the "saved" casualties
+          are not redistributed — they represent positioning advantage)
+        - Assign remainder to strongest non-artillery marshal (or strongest overall)
         - Share capped at marshal's current strength (can't go below 0)
-        - Total distributed == raw_casualties when raw_casualties <= total_strength
         """
         if not participants:
             return {}
@@ -729,17 +735,28 @@ class CommandExecutor:
         # Sort by strength descending (strongest first for remainder assignment)
         sorted_active = sorted(active, key=lambda p: p.strength, reverse=True)
 
+        # Artillery casualty reduction: only when fighting with non-artillery allies
+        has_non_artillery = any(not getattr(p, 'artillery', False) for p in active)
+
         # Compute proportional shares (round down)
         shares = {}
         for p in sorted_active:
             fraction = p.strength / total_strength
-            shares[p.name] = int(raw_casualties * fraction)
+            raw_share = int(raw_casualties * fraction)
+            # Artillery positioned behind lines takes fewer casualties
+            if getattr(p, 'artillery', False) and has_non_artillery:
+                raw_share = int(raw_share * self.ARTILLERY_CASUALTY_FACTOR)
+            shares[p.name] = raw_share
 
-        # Assign remainder to strongest marshal
+        # Assign remainder to strongest non-artillery marshal (artillery is
+        # behind the lines so excess casualties fall on front-line troops).
+        # Fall back to strongest overall if all participants are artillery.
         assigned = sum(shares.values())
         remainder = raw_casualties - assigned
         if remainder > 0:
-            shares[sorted_active[0].name] += remainder
+            non_artillery = [p for p in sorted_active if not getattr(p, 'artillery', False)]
+            remainder_target = non_artillery[0] if non_artillery else sorted_active[0]
+            shares[remainder_target.name] += remainder
 
         # Cap each share at marshal's current strength.
         # NOTE (W-2): If capping reduces a share, the excess is NOT redistributed.
