@@ -300,32 +300,43 @@ After every player-visible combat, `battle_report.py` generates a structured rep
 
 **Architecture:**
 - **Snapshots** taken BEFORE `get_attack_modifier()`/`get_defense_modifier()` (which consume one-shot bonuses like strategic_combat_bonus)
-- `snapshot_attacker_modifiers()` — reads stance, drill/shock, strategic bonus (peek only, NOT zeroed), personality, recklessness, exhaustion, cavalry terrain, flanking, glorious charge
-- `snapshot_defender_modifiers()` — reads stance, fortify bonus, strategic defense (peek only), drilling penalty, personality, recklessness, terrain defense, fortification building
+- `snapshot_attacker_modifiers()` — reads stance, drill/shock, strategic bonus (peek only, NOT zeroed), personality, recklessness, exhaustion, cavalry terrain, flanking, glorious charge, per-ally coordination, dedicated coordination (Session 65)
+- `snapshot_defender_modifiers()` — reads stance, fortify bonus, strategic defense (peek only), drilling penalty, personality, recklessness, terrain defense, fortification building, per-ally coordination, dedicated coordination (Session 65)
 - `generate_battle_report(battle_result, player_nation)` — assembles modifier_breakdown, casualty_summary, observation
 
-**Perspective-aware observations:** Berthier always speaks from Napoleon's side. `_pick_observation()` uses `attacker_nation`/`defender_nation` from the battle result to determine which side is French. When the enemy attacks a French marshal, "we won" means the defender (our marshal) won. Templates use `{marshal}` and `{enemy}` placeholders filled by the appropriate side. The `player_nation` param (default "France") is passed from `combat.py`.
+**Perspective-aware observations:** Berthier always speaks from Napoleon's side. `_pick_observation()` uses `attacker_nation`/`defender_nation` from the battle result to determine which side is French. When the enemy attacks a French marshal, "we won" means the defender (our marshal) won. Templates use `{marshal}`, `{enemy}`, `{ally}`, `{relationship}`, `{coordination_bonus}`, and `{arrival_score}` placeholders filled via `.replace()` (graceful degradation — unfilled placeholders become empty strings). The `player_nation` param (default "France") is passed from `combat.py`.
 
 **Observation priorities** (first match wins, `random.choice()` from 2-3 templates):
 
 | Priority | Condition (from French perspective) |
 |----------|-----------|
+| 0.5 | Full combined arms triangle (3 unit types co-located) — Session 65 |
+| 0.7 | Reinforcement arrived (ally marched onto field) — Session 65 |
+| 0.8 | Reinforcement failed (ally didn't arrive in time) — Session 65 |
 | 1 | Mutual destruction (both sides lost >50%) |
 | 2 | We lost + enemy had fortification |
 | 3 | We lost + bad stance matchup (aggressive into defensive) |
 | 4 | We lost + enemy had terrain advantage >= 15% |
 | 5 | We won + heavy casualties (>40% of our original strength) |
+| 5.5 | Hostile marshal fought alongside under SUPPORT order — Session 65 |
 | 6 | We won + broke through enemy fortification |
 | 7 | We won + our troops were drilled |
 | 8 | We lost + no drill + narrow margin (<15% of our strength) |
 | 9 | We won decisively (2:1+ casualty ratio in our favor) |
 | 10 | Stalemate |
-| 11 | Default |
+| 11 | Default combat observation |
+| 12 | Hostile marshal stood idle (refused coordination) — Session 65 |
+| 13 | Devoted synergy (devoted ally amplified coordination) — Session 65 |
+| 15 | Rival relationship improved after shared battle — Session 65 |
+
+**Two-pass observation picking (Session 65):** Initial observation picked inside `resolve_battle()` (combat.py), which has no coordination/reinforcement/relationship data. After `executor.py` injects `coordination_context`, `reinforcement_results_for_report`, and `relationship_changes` into the battle result dict, the observation is re-picked if any coordination data is present. This avoids modifying `combat.py`.
 
 **Data flow:**
 ```
 combat.py (snapshots + generate_battle_report)
-  → resolve_battle() return dict includes "battle_report"
+  → resolve_battle() return dict includes "battle_report" (initial observation)
+  → executor.py injects coordination_context, reinforcement_results_for_report,
+    relationship_changes → re-picks observation with full data
   → executor.py (5 passthrough sites: attack, 3 sally, charge)
   → world_state.py (1 passthrough: auto-charge event)
   → main.py (1 passthrough block)

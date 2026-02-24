@@ -3928,6 +3928,42 @@ RETREAT RECOVERY (3 turns):
         # are correctly detected as Participating in relationship checks (W-1 fix).
 
         # ════════════════════════════════════════════════════════════
+        # PRE-BATTLE COORDINATION PREVIEW (Session 65, A-M5)
+        # Shows estimated coordination bonuses BEFORE combat resolves.
+        # Only shown for player-nation attacks with active coordination.
+        # ════════════════════════════════════════════════════════════
+        coordination_preview = None
+        if marshal.nation == world.player_nation:
+            total_atk = getattr(marshal, 'total_coordination_attack_bonus', 0.0)
+            total_def = getattr(marshal, 'total_coordination_defense_bonus', 0.0)
+            if total_atk > 0 or total_def > 0:
+                preview_lines = []
+                ca_atk = getattr(marshal, '_display_combined_arms_atk', 0.0)
+                ca_def = getattr(marshal, '_display_combined_arms_def', 0.0)
+                coord_atk = getattr(marshal, '_display_coordination_atk', 0.0)
+                coord_def = getattr(marshal, '_display_coordination_def', 0.0)
+                ded_atk = getattr(marshal, '_display_dedicated_atk', 0.0)
+                ded_def = getattr(marshal, '_display_dedicated_def', 0.0)
+                adj_atk = getattr(marshal, '_display_adjacent_atk', 0.0)
+
+                if ca_atk > 0 or ca_def > 0:
+                    type_count = attacker_coord.get("type_count", 0)
+                    preview_lines.append(
+                        f"Combined Arms: {type_count}/3 types -> +{int(ca_atk * 100)}% atk, +{int(ca_def * 100)}% def")
+                if coord_atk > 0 or coord_def > 0:
+                    preview_lines.append(
+                        f"Coordination: +{int(coord_atk * 100)}% atk, +{int(coord_def * 100)}% def")
+                if ded_atk > 0 or ded_def > 0:
+                    preview_lines.append(
+                        f"Dedicated: +{int(ded_atk * 100)}% atk, +{int(ded_def * 100)}% def")
+                if adj_atk > 0:
+                    preview_lines.append(f"Adjacent: +{int(adj_atk * 100)}% atk")
+                preview_lines.append(
+                    f"TOTAL: +{int(total_atk * 100)}% atk, +{int(total_def * 100)}% def")
+                preview_lines.append("Note: Adjacent reinforcements may modify these values.")
+                coordination_preview = "\n".join(preview_lines)
+
+        # ════════════════════════════════════════════════════════════
         # RESOLVE COMBAT
         # Solo battles (1v1): apply_casualties=True — zero behavior change.
         # Coordinated battles (2+ on either side): apply_casualties=False,
@@ -4072,6 +4108,43 @@ RETREAT RECOVERY (3 turns):
                 fortification_bonus=fort_bonus,
             )
 
+        # ════════════════════════════════════════════════════════════
+        # COORDINATION CONTEXT FOR BATTLE REPORT (Session 65)
+        # Inject data before clearing transient fields so
+        # _pick_observation() can use coordination-specific priorities.
+        # ════════════════════════════════════════════════════════════
+        coord_context = {
+            "type_count": attacker_coord.get("type_count", 0),
+            "hostile_forced_participants": [],
+            "hostile_refused": [],
+            "devoted_allies": [],
+        }
+        # Classify our (attacker-side) participants by relationship
+        if is_coordinated_battle:
+            for p in atk_participants:
+                if p.name == marshal.name:
+                    continue
+                rel = p.get_relationship(marshal.name)
+                if rel == -2:
+                    # Hostile — check for SUPPORT order
+                    order = getattr(p, 'strategic_order', None)
+                    has_support = (
+                        order is not None
+                        and order.command_type == "SUPPORT"
+                        and order.target == marshal.name
+                    )
+                    if has_support:
+                        coord_context["hostile_forced_participants"].append(p.name)
+                    else:
+                        coord_context["hostile_refused"].append(p.name)
+                elif rel == 2:
+                    coord_context["devoted_allies"].append(p.name)
+        battle_result["coordination_context"] = coord_context
+        battle_result["reinforcement_results_for_report"] = {
+            "attacker": attacker_reinforcements,
+            "defender": defender_reinforcements,
+        }
+
         # Clear coordination transient fields (D5 + X1)
         involved_regions = {marshal.location}
         if enemy_marshal.strength > 0:
@@ -4108,6 +4181,30 @@ RETREAT RECOVERY (3 turns):
                 "nation": rc["nation"],
                 "location": battle_region_name,
             })
+
+        # ════════════════════════════════════════════════════════════
+        # RE-PICK OBSERVATION WITH COORDINATION DATA (Session 65)
+        # Now that coordination_context, reinforcement data, and
+        # relationship_changes are all available, re-evaluate the
+        # Berthier observation. Coordination priorities (P0.5-P15)
+        # may override the initial observation from resolve_battle().
+        # ════════════════════════════════════════════════════════════
+        battle_result["relationship_changes"] = relationship_changes
+        if (coord_context.get("type_count", 0) >= 3
+                or coord_context.get("hostile_forced_participants")
+                or coord_context.get("hostile_refused")
+                or coord_context.get("devoted_allies")
+                or attacker_reinforcements or defender_reinforcements
+                or relationship_changes):
+            from backend.game_logic.battle_report import _pick_observation
+            new_observation = _pick_observation(battle_result, world.player_nation)
+            if "battle_report" in battle_result:
+                battle_result["battle_report"]["observation"] = new_observation
+            # Also update the log event's embedded report
+            if "log_battle_event" in battle_result:
+                log_report = battle_result["log_battle_event"].get("battle_report")
+                if log_report:
+                    log_report["observation"] = new_observation
 
         # NOW clear strategic orders for arrived reinforcements (A-C2 step 5).
         # Deferred to here so Hostile+SUPPORT marshals participate in
@@ -4326,6 +4423,24 @@ RETREAT RECOVERY (3 turns):
         # Berthier's After-Action Report
         if battle_result.get("battle_report"):
             result["battle_report"] = battle_result["battle_report"]
+
+        # Pre-battle coordination preview (Session 65)
+        if coordination_preview:
+            result["coordination_preview"] = coordination_preview
+
+        # Reinforcement notification messages (Session 65)
+        reinf_messages = []
+        for r in attacker_reinforcements:
+            if r.get("arrived"):
+                reinf_messages.append(
+                    f"{r['marshal']} arrived to reinforce {marshal.name}! "
+                    f"(score {int(r.get('score', 0))}, threshold {int(r.get('threshold', 60))})")
+            else:
+                reason = r.get("reason", "unknown")
+                reinf_messages.append(
+                    f"{r['marshal']} failed to arrive. ({reason})")
+        if reinf_messages:
+            result["reinforcement_messages"] = reinf_messages
 
         # Mark as free action for Davout's Counter-Punch
         if is_counter_punch:

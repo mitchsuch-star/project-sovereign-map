@@ -956,3 +956,388 @@ class TestPerspectiveFlip:
         assert any(p in obs.lower() for p in loss_phrases), (
             f"Expected loss-related observation: {obs}"
         )
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# COORDINATION OBSERVATION TESTS (Session 65)
+# ════════════════════════════════════════════════════════════════════════════════
+
+class TestCoordinationObservations:
+    """Test coordination-specific Berthier observations (P0.5-P15)."""
+
+    def _make_result(self, outcome="attacker_tactical_victory",
+                     atk_cas=5000, def_cas=8000,
+                     atk_orig=50000, def_orig=68000,
+                     atk_nation="France", def_nation="Britain",
+                     atk_name="Ney", def_name="Wellington",
+                     coordination_context=None,
+                     reinforcement_results=None,
+                     relationship_changes=None):
+        """Create a battle result with optional coordination data."""
+        return {
+            "outcome": outcome,
+            "attacker": {"name": atk_name, "casualties": atk_cas,
+                         "remaining": atk_orig - atk_cas},
+            "defender": {"name": def_name, "casualties": def_cas,
+                         "remaining": def_orig - def_cas},
+            "attacker_nation": atk_nation,
+            "defender_nation": def_nation,
+            "attacker_original_strength": atk_orig,
+            "defender_original_strength": def_orig,
+            "modifier_snapshot": {"attacker": [], "defender": []},
+            "coordination_context": coordination_context or {},
+            "reinforcement_results_for_report": reinforcement_results or {},
+            "relationship_changes": relationship_changes or [],
+        }
+
+    # ── P0.5: Full Triangle ────────────────────────────────────
+
+    def test_full_triangle_fires_with_3_types(self):
+        """P0.5: 3/3 unit types should trigger coordination_full_triangle."""
+        result = self._make_result(
+            coordination_context={"type_count": 3},
+        )
+        obs = _pick_observation(result, player_nation="France")
+        triangle_phrases = ["triangle", "three arms", "infantry, cavalry, and guns",
+                            "combined arms"]
+        assert any(p in obs.lower() for p in triangle_phrases), (
+            f"Expected full triangle observation: {obs}"
+        )
+
+    def test_full_triangle_does_not_fire_with_2_types(self):
+        """P0.5: 2/3 unit types should NOT trigger full triangle."""
+        result = self._make_result(
+            coordination_context={"type_count": 2},
+        )
+        obs = _pick_observation(result, player_nation="France")
+        triangle_phrases = ["triangle", "three arms"]
+        assert not any(p in obs.lower() for p in triangle_phrases), (
+            f"Should not trigger full triangle with 2 types: {obs}"
+        )
+
+    def test_full_triangle_overrides_other_observations(self):
+        """P0.5 fires BEFORE other observations (highest coordination priority)."""
+        result = self._make_result(
+            outcome="attacker_tactical_victory",
+            atk_cas=25000, atk_orig=50000,  # would normally trigger won_heavy_casualties
+            coordination_context={"type_count": 3},
+        )
+        obs = _pick_observation(result, player_nation="France")
+        # Full triangle should override won_heavy_casualties
+        triangle_phrases = ["triangle", "three arms", "infantry, cavalry, and guns",
+                            "combined arms"]
+        assert any(p in obs.lower() for p in triangle_phrases), (
+            f"Full triangle should override heavy casualties: {obs}"
+        )
+
+    # ── P0.7: Reinforcement Arrival ────────────────────────────
+
+    def test_reinforcement_arrival_fires(self):
+        """P0.7: Ally arrival should trigger reinforcement observation."""
+        result = self._make_result(
+            reinforcement_results={
+                "attacker": [{"marshal": "Davout", "arrived": True, "score": 82, "threshold": 60}],
+                "defender": [],
+            },
+        )
+        obs = _pick_observation(result, player_nation="France")
+        arrival_phrases = ["arrived", "arrival", "reinforcement", "marched onto"]
+        assert any(p in obs.lower() for p in arrival_phrases), (
+            f"Expected reinforcement arrival observation: {obs}"
+        )
+        assert "Davout" in obs, f"Expected ally name in observation: {obs}"
+
+    def test_reinforcement_arrival_has_no_unfilled_placeholders(self):
+        """Arrival observation must not contain literal {ally} or {arrival_score}."""
+        result = self._make_result(
+            reinforcement_results={
+                "attacker": [{"marshal": "Davout", "arrived": True, "score": 71, "threshold": 60}],
+                "defender": [],
+            },
+        )
+        obs = _pick_observation(result, player_nation="France")
+        assert "{ally}" not in obs
+        assert "{arrival_score}" not in obs
+        assert "{marshal}" not in obs
+
+    # ── P0.8: Reinforcement Failure ────────────────────────────
+
+    def test_reinforcement_failure_fires(self):
+        """P0.8: Ally failure should trigger failure observation."""
+        result = self._make_result(
+            reinforcement_results={
+                "attacker": [{"marshal": "Grouchy", "arrived": False, "score": 45, "threshold": 60}],
+                "defender": [],
+            },
+        )
+        obs = _pick_observation(result, player_nation="France")
+        failure_phrases = ["failed", "never came", "without", "where was"]
+        assert any(p in obs.lower() for p in failure_phrases), (
+            f"Expected reinforcement failure observation: {obs}"
+        )
+        assert "Grouchy" in obs, f"Expected ally name in observation: {obs}"
+
+    def test_arrival_overrides_failure(self):
+        """P0.7 fires before P0.8 — arrival takes priority when both exist."""
+        result = self._make_result(
+            reinforcement_results={
+                "attacker": [
+                    {"marshal": "Davout", "arrived": True, "score": 82, "threshold": 60},
+                    {"marshal": "Grouchy", "arrived": False, "score": 45, "threshold": 60},
+                ],
+                "defender": [],
+            },
+        )
+        obs = _pick_observation(result, player_nation="France")
+        # Arrival (P0.7) should fire, not failure (P0.8)
+        arrival_phrases = ["arrived", "arrival", "reinforcement", "marched onto"]
+        assert any(p in obs.lower() for p in arrival_phrases), (
+            f"Arrival should override failure: {obs}"
+        )
+
+    # ── P5.5: Hostile Forced (D3/A-M4) ────────────────────────
+
+    def test_hostile_forced_fires(self):
+        """P5.5: Hostile marshal with SUPPORT should trigger forced observation."""
+        result = self._make_result(
+            outcome="attacker_tactical_victory",
+            coordination_context={"hostile_forced_participants": ["Ney"]},
+        )
+        obs = _pick_observation(result, player_nation="France")
+        hostile_phrases = ["teeth gritted", "under protest", "as strangers",
+                           "numbers if not cooperation"]
+        assert any(p in obs.lower() for p in hostile_phrases), (
+            f"Expected hostile forced observation: {obs}"
+        )
+
+    def test_hostile_forced_does_not_fire_without_participants(self):
+        """P5.5: Empty list should not trigger."""
+        result = self._make_result(
+            coordination_context={"hostile_forced_participants": []},
+        )
+        obs = _pick_observation(result, player_nation="France")
+        hostile_phrases = ["teeth gritted", "under protest", "as strangers"]
+        assert not any(p in obs.lower() for p in hostile_phrases), (
+            f"Should not trigger hostile forced with empty list: {obs}"
+        )
+
+    # ── P12: Hostile Refused ────────────────────────────────────
+
+    def test_hostile_refused_fires(self):
+        """P12: Hostile ally in region without SUPPORT should trigger refusal."""
+        # Must set a scenario where nothing else triggers first (stalemate + no mods)
+        result = self._make_result(
+            outcome="stalemate",
+            atk_cas=5000, def_cas=5000,
+            coordination_context={"hostile_refused": ["Ney"]},
+        )
+        # Note: stalemate fires at P10, which is BEFORE P12
+        # So hostile_refused can only fire if stalemate doesn't.
+        # Actually stalemate DOES fire. Let me choose an outcome that falls to default.
+        result["outcome"] = "attacker_tactical_victory"
+        result["attacker"]["casualties"] = 1000  # not heavy (< 40%)
+        obs = _pick_observation(result, player_nation="France")
+        # P9 (won_decisively) checks if enemy_casualties >= our_casualties * 2
+        # 8000 >= 1000 * 2 = True → fires P9 decisively
+        # Need to make casualty ratio not trigger P9 either
+        result["attacker"]["casualties"] = 5000
+        result["defender"]["casualties"] = 6000  # not 2:1
+        obs = _pick_observation(result, player_nation="France")
+        hostile_phrases = ["stood idle", "no aid", "hostile indifference"]
+        assert any(p in obs.lower() for p in hostile_phrases), (
+            f"Expected hostile refused observation: {obs}"
+        )
+
+    # ── P13: Devoted Synergy ────────────────────────────────────
+
+    def test_devoted_synergy_fires(self):
+        """P13: Devoted ally should trigger synergy observation."""
+        result = self._make_result(
+            outcome="attacker_tactical_victory",
+            atk_cas=5000, def_cas=6000,  # narrow win, not decisive
+            coordination_context={"devoted_allies": ["Davout"]},
+        )
+        obs = _pick_observation(result, player_nation="France")
+        devoted_phrases = ["devotion", "one mind", "devoted"]
+        assert any(p in obs.lower() for p in devoted_phrases), (
+            f"Expected devoted synergy observation: {obs}"
+        )
+
+    # ── P15: Rival→Professional Improvement ─────────────────────
+
+    def test_rival_improved_fires(self):
+        """P15: Relationship improvement should trigger observation."""
+        result = self._make_result(
+            outcome="attacker_tactical_victory",
+            atk_cas=5000, def_cas=6000,
+            relationship_changes=[{
+                "marshal": "Ney", "toward": "Davout",
+                "change": 1, "new_value": 0, "new_label": "Professional",
+                "direction": "improved", "nation": "France",
+            }],
+        )
+        obs = _pick_observation(result, player_nation="France")
+        improved_phrases = ["shifting", "warming"]
+        assert any(p in obs.lower() for p in improved_phrases), (
+            f"Expected rival improvement observation: {obs}"
+        )
+
+    def test_rival_improved_does_not_fire_for_enemy_nation(self):
+        """P15: Enemy nation relationship changes should NOT trigger."""
+        result = self._make_result(
+            outcome="attacker_tactical_victory",
+            atk_cas=5000, def_cas=6000,
+            relationship_changes=[{
+                "marshal": "Blucher", "toward": "Gneisenau",
+                "change": 1, "new_value": 0, "new_label": "Professional",
+                "direction": "improved", "nation": "Prussia",
+            }],
+        )
+        obs = _pick_observation(result, player_nation="France")
+        improved_phrases = ["shifting", "warming"]
+        assert not any(p in obs.lower() for p in improved_phrases), (
+            f"Enemy nation improvement should not fire P15: {obs}"
+        )
+
+    # ── Solo Battle: No Coordination Observations ───────────────
+
+    def test_solo_battle_no_coordination_observations(self):
+        """Solo battles (no coordination data) should produce no coordination observations."""
+        result = self._make_result()
+        obs = _pick_observation(result, player_nation="France")
+        coord_phrases = ["triangle", "reinforcement", "arrived", "teeth gritted",
+                         "hostile indifference", "devotion", "shifting"]
+        assert not any(p in obs.lower() for p in coord_phrases), (
+            f"Solo battle should have no coordination observation: {obs}"
+        )
+
+    def test_empty_coordination_context_no_observations(self):
+        """Explicit empty coordination context should not trigger coordination observations."""
+        result = self._make_result(
+            coordination_context={
+                "type_count": 0,
+                "hostile_forced_participants": [],
+                "hostile_refused": [],
+                "devoted_allies": [],
+            },
+        )
+        obs = _pick_observation(result, player_nation="France")
+        coord_phrases = ["triangle", "teeth gritted", "hostile indifference",
+                         "devotion"]
+        assert not any(p in obs.lower() for p in coord_phrases), (
+            f"Empty coordination should produce no coordination observation: {obs}"
+        )
+
+    # ── _fill() Placeholder Tests ───────────────────────────────
+
+    def test_fill_handles_ally_placeholder(self):
+        """_fill() with ally kwarg should replace {ally}."""
+        result = self._make_result(
+            reinforcement_results={
+                "attacker": [{"marshal": "TestAlly", "arrived": True, "score": 90, "threshold": 60}],
+                "defender": [],
+            },
+        )
+        obs = _pick_observation(result, player_nation="France")
+        assert "TestAlly" in obs, f"Expected 'TestAlly' in observation: {obs}"
+        assert "{ally}" not in obs
+
+    def test_fill_handles_missing_extra_keys_gracefully(self):
+        """Templates with coordination placeholders should not crash when keys absent."""
+        # A standard battle with no coordination data — the _fill() with .replace()
+        # should handle {ally} in templates gracefully if the template has no placeholders
+        result = self._make_result()
+        obs = _pick_observation(result, player_nation="France")
+        assert isinstance(obs, str)
+        assert len(obs) > 0
+
+    # ── Snapshot Capture Tests ──────────────────────────────────
+
+    def test_snapshot_captures_per_ally_coordination_atk(self):
+        """Attacker snapshot should capture _display_coordination_atk."""
+        atk = _make_marshal(name="Ney", personality="aggressive", cavalry=True)
+        atk._display_coordination_atk = 0.03
+        defn = _make_marshal(name="Wellington", nation="Britain")
+        mods = snapshot_attacker_modifiers(atk, defn, "plains", 0.0, 0, False)
+        m = _find_mod(mods, "per-ally coordination", "bonus")
+        assert m is not None
+        assert m["value"] == 3
+
+    def test_snapshot_captures_dedicated_coordination_atk(self):
+        """Attacker snapshot should capture _display_dedicated_atk."""
+        atk = _make_marshal(name="Ney", personality="aggressive", cavalry=True)
+        atk._display_dedicated_atk = 0.05
+        defn = _make_marshal(name="Wellington", nation="Britain")
+        mods = snapshot_attacker_modifiers(atk, defn, "plains", 0.0, 0, False)
+        m = _find_mod(mods, "dedicated coordination", "bonus")
+        assert m is not None
+        assert m["value"] == 5
+
+    def test_snapshot_captures_per_ally_coordination_def(self):
+        """Defender snapshot should capture _display_coordination_def."""
+        defn = _make_marshal(name="Wellington", nation="Britain")
+        defn._display_coordination_def = 0.05
+        atk = _make_marshal(name="Ney")
+        mods = snapshot_defender_modifiers(defn, atk, "plains", 0.0)
+        m = _find_mod(mods, "per-ally coordination", "bonus")
+        assert m is not None
+        assert m["value"] == 5
+
+    def test_snapshot_captures_dedicated_coordination_def(self):
+        """Defender snapshot should capture _display_dedicated_def."""
+        defn = _make_marshal(name="Wellington", nation="Britain")
+        defn._display_dedicated_def = 0.05
+        atk = _make_marshal(name="Ney")
+        mods = snapshot_defender_modifiers(defn, atk, "plains", 0.0)
+        m = _find_mod(mods, "dedicated coordination", "bonus")
+        assert m is not None
+        assert m["value"] == 5
+
+    def test_snapshot_omits_zero_coordination(self):
+        """Snapshot should not include coordination entries when zero."""
+        atk = _make_marshal(name="Ney")
+        defn = _make_marshal(name="Wellington", nation="Britain")
+        mods = snapshot_attacker_modifiers(atk, defn, "plains", 0.0, 0, False)
+        assert _find_mod(mods, "per-ally coordination") is None
+        assert _find_mod(mods, "dedicated coordination") is None
+
+    # ── Bombardment Regression ──────────────────────────────────
+
+    def test_bombardment_report_unaffected_by_coordination(self):
+        """Bombardment reports should not be affected by coordination changes."""
+        from backend.game_logic.battle_report import generate_bombardment_report
+        data = {
+            "attacker_name": "Drouot",
+            "defender_name": "Wellington",
+            "defender_remaining": 50000,
+            "defender_original": 60000,
+            "defender_casualties": 5000,
+            "terrain": "plains",
+            "terrain_modifier": 1.0,
+            "fort_degraded": False,
+            "collateral": [],
+        }
+        obs = generate_bombardment_report(data)
+        assert isinstance(obs, str)
+        assert len(obs) > 0
+        # Should NOT contain coordination-specific text
+        coord_phrases = ["triangle", "reinforcement", "devoted", "hostile"]
+        assert not any(p in obs.lower() for p in coord_phrases), (
+            f"Bombardment should not have coordination text: {obs}"
+        )
+
+    # ── Priority Ordering Tests ─────────────────────────────────
+
+    def test_full_triangle_fires_before_mutual_destruction(self):
+        """P0.5 (full triangle) should fire before P1 (mutual destruction)."""
+        result = self._make_result(
+            outcome="mutual_destruction",
+            coordination_context={"type_count": 3},
+        )
+        obs = _pick_observation(result, player_nation="France")
+        # Full triangle should fire (P0.5) even with mutual destruction (P1)
+        triangle_phrases = ["triangle", "three arms", "infantry, cavalry, and guns",
+                            "combined arms"]
+        assert any(p in obs.lower() for p in triangle_phrases), (
+            f"Full triangle should fire before mutual destruction: {obs}"
+        )

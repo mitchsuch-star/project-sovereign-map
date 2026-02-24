@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 24, 2026 (Session 63: AI Coordination Enhancements)
+> **Last Updated:** February 24, 2026 (Session 65: Full Battle Reports + Berthier Coordination Observations)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3720** (3717 passed, 3 skipped — verified Feb 24, Session 63) |
+| **Tests Passing** | **3741** (3738 passed, 3 skipped — verified Feb 24, Session 65) |
 
-| **Current Phase** | Phase 7b **IN PROGRESS** (Session 63 complete, remaining: S65, S66, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau). |
+| **Current Phase** | Phase 7b **IN PROGRESS** (Session 65 complete, remaining: S66, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau). |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -20,7 +20,7 @@
 ## Next Steps
 
 1. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~212 new tests.
-2. **Phase 7b: IN PROGRESS.** Session 63 (AI Coordination Enhancements) complete. Next: Full Battle Reports + Reinforcement Reporting (S65 — must notify player when allies reinforce, fail to arrive, or move autonomously via strategic orders), Godot Tooltips/Tutorial (S66), Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau Staff Work.
+2. **Phase 7b: IN PROGRESS.** Session 65 (Full Battle Reports + Berthier Coordination Observations) complete. Next: Godot Tooltips/Tutorial/Integration Audit (S66), Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau Staff Work.
 3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
 ---
@@ -45,6 +45,28 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7b Sessions
+
+### Feb 24 — Session 65: Full Battle Reports + Berthier Coordination Observations
+
+**24 new tests (89 total in test_battle_report.py), 3741 total (3 skipped). Berthier now comments on coordination, reinforcements, relationships, and hostile dynamics.**
+
+- **7 new observation categories** added to `_pick_observation()` priority chain:
+  - P0.5: Full combined arms triangle (infantry + cavalry + artillery)
+  - P0.7: Reinforcement arrival (ally marched onto the field)
+  - P0.8: Reinforcement failure (ally failed to arrive)
+  - P5.5: Hostile forced (hostile marshal fought alongside under SUPPORT order)
+  - P12: Hostile refused (hostile marshal stood idle)
+  - P13: Devoted synergy (devoted ally coordination bonus)
+  - P15: Rival improved (relationship improvement after shared battle)
+- **`_fill()` template system** converted from `.format()` to `.replace()` for graceful degradation. 4 new placeholders: `{ally}`, `{relationship}`, `{coordination_bonus}`, `{arrival_score}`.
+- **Snapshot extensions:** `snapshot_attacker_modifiers()` and `snapshot_defender_modifiers()` now capture per-ally coordination and dedicated coordination bonuses.
+- **Coordination context injection:** `executor.py` injects `coordination_context`, `reinforcement_results_for_report`, and `relationship_changes` into `battle_result` dict after `resolve_battle()`. Observation re-picked with full data.
+- **Pre-battle coordination preview:** Player sees coordination bonus breakdown before battle resolves (when coordination bonuses are active).
+- **Reinforcement notification messages:** Added to executor result dict for Godot rendering (deferred to S66).
+- **Two-pass observation picking:** Initial pick inside `resolve_battle()` (no coordination data), re-pick in `executor.py` after all data injected.
+
+**Files modified:** `battle_report.py` (7 templates, `_fill()` rewrite, 7 priority levels, 2 snapshot extensions), `executor.py` (coordination injection, observation re-pick, preview, reinforcement messages).
+**Files modified (tests):** `test_battle_report.py` (+24 tests in `TestCoordinationObservations` class).
 
 ### Feb 24 — Session 63: AI Coordination Enhancements
 

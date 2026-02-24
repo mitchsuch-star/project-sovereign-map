@@ -120,6 +120,16 @@ def snapshot_attacker_modifiers(
     if ca_atk > 0:
         mods.append({"label": "Combined arms", "value": int(round(ca_atk * 100)), "type": "bonus"})
 
+    # --- Per-Ally Coordination (Phase 7, Session 58/65) ---
+    coord_atk = getattr(attacker, '_display_coordination_atk', 0.0)
+    if coord_atk > 0:
+        mods.append({"label": "Per-ally coordination", "value": int(round(coord_atk * 100)), "type": "bonus"})
+
+    # --- Dedicated Coordination (Phase 7, Session 59/65) ---
+    ded_atk = getattr(attacker, '_display_dedicated_atk', 0.0)
+    if ded_atk > 0:
+        mods.append({"label": "Dedicated coordination", "value": int(round(ded_atk * 100)), "type": "bonus"})
+
     # --- Adjacent Support (Phase 7, Session 60) — attack-only per A-M2 ---
     adj_atk = getattr(attacker, '_display_adjacent_atk', 0.0)
     if adj_atk > 0:
@@ -211,6 +221,16 @@ def snapshot_defender_modifiers(
     ca_def = getattr(defender, '_display_combined_arms_def', 0.0)
     if ca_def > 0:
         mods.append({"label": "Combined arms", "value": int(round(ca_def * 100)), "type": "bonus"})
+
+    # --- Per-Ally Coordination (Phase 7, Session 58/65) ---
+    coord_def = getattr(defender, '_display_coordination_def', 0.0)
+    if coord_def > 0:
+        mods.append({"label": "Per-ally coordination", "value": int(round(coord_def * 100)), "type": "bonus"})
+
+    # --- Dedicated Coordination (Phase 7, Session 59/65) ---
+    ded_def = getattr(defender, '_display_dedicated_def', 0.0)
+    if ded_def > 0:
+        mods.append({"label": "Dedicated coordination", "value": int(round(ded_def * 100)), "type": "bonus"})
 
     # --- Total Coordination (Phase 7) ---
     total_coord_def = getattr(defender, 'total_coordination_defense_bonus', 0.0)
@@ -370,6 +390,39 @@ _OBSERVATIONS = {
         "Sire, our own forces were caught in {marshal}'s bombardment. Regrettable, but unavoidable.",
         "{marshal}'s shells struck friend as well as foe. The price of area bombardment.",
     ],
+    # ── Coordination observations (Phase 7, Session 65) ──
+    "coordination_full_triangle": [
+        "Infantry, cavalry, and guns — the full triangle of arms! {marshal}'s combined arms proved textbook Napoleonic doctrine, Sire.",
+        "Three arms working as one! {marshal}'s infantry holds, cavalry flanks, artillery breaks. This is how wars are won.",
+        "The full combined arms triangle was deployed, Sire. {marshal} commands a truly integrated force.",
+    ],
+    "coordination_reinforcement_arrival": [
+        "{ally} arrived to reinforce {marshal}! The timely arrival swung the battle in our favor, Sire.",
+        "Reinforcements! {ally} marched onto the field beside {marshal}. The enemy's advantage melted away.",
+        "{ally}'s timely arrival bolstered {marshal}'s position. Well-coordinated, Sire.",
+    ],
+    "coordination_reinforcement_failure": [
+        "{ally} failed to arrive in time. {marshal}'s army fought without expected support.",
+        "Where was {ally}? {marshal} held the field alone — reinforcement never came.",
+        "{marshal} fought without {ally}'s support. The roads, or the will, proved insufficient.",
+    ],
+    "coordination_hostile_forced": [
+        "{ally}'s presence brought numbers if not cooperation, Sire. They fought — as ordered — but every step beside {marshal} was teeth gritted.",
+        "{ally} fought alongside {marshal} under protest. The SUPPORT order was obeyed, but coordination was nonexistent.",
+        "Under your orders, {ally} marched beside {marshal}. They bled together — but fought as strangers.",
+    ],
+    "coordination_hostile_refused": [
+        "{ally} stood idle while {marshal} fought. Their hostility runs deeper than duty, Sire.",
+        "{marshal} received no aid from {ally}. Hostile indifference — they watched from the same field.",
+    ],
+    "coordination_devoted_synergy": [
+        "{ally}'s devotion amplified {marshal}'s coordination beyond the ordinary. A remarkable synergy, Sire.",
+        "{marshal} and {ally} fought as one mind. Devoted allies make the finest corps.",
+    ],
+    "coordination_rival_improved": [
+        "Sire, I believe {marshal}'s opinion of {ally} is... shifting.",
+        "An interesting development, Sire. {marshal} may be warming to {ally} after their shared ordeal.",
+    ],
     "default": [
         "The engagement proceeded as one might expect, Sire.",
         "A standard affair. Nothing unusual to report.",
@@ -442,8 +495,49 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
                     return m.get("value", 0)
         return 0
 
-    def _fill(template: str) -> str:
-        return template.format(marshal=our_name, enemy=enemy_name)
+    def _fill(template: str, **extra) -> str:
+        result = template
+        result = result.replace("{marshal}", our_name)
+        result = result.replace("{enemy}", enemy_name)
+        # Coordination placeholders (Session 65, M6)
+        result = result.replace("{ally}", extra.get("ally", ""))
+        result = result.replace("{relationship}", extra.get("relationship", ""))
+        result = result.replace("{coordination_bonus}", extra.get("coordination_bonus", ""))
+        result = result.replace("{arrival_score}", extra.get("arrival_score", ""))
+        return result
+
+    # ════════════════════════════════════════════════════════════════════════
+    # COORDINATION OBSERVATIONS (Session 65)
+    # Data injected by executor.py after resolve_battle() returns.
+    # When called from inside resolve_battle (first pass), these dicts are
+    # empty and all coordination checks are no-ops.
+    # ════════════════════════════════════════════════════════════════════════
+    coordination = battle_result.get("coordination_context", {})
+    reinforcement_data = battle_result.get("reinforcement_results_for_report", {})
+    relationship_changes = battle_result.get("relationship_changes", [])
+
+    # Perspective-correct reinforcement data: our side's reinforcements
+    our_reinforcements = reinforcement_data.get(
+        "attacker" if we_are_attacker else "defender", [])
+
+    # Priority 0.5: Full combined arms triangle (3/3 unit types) — our side
+    if coordination.get("type_count", 0) >= 3:
+        return _fill(random.choice(_OBSERVATIONS["coordination_full_triangle"]))
+
+    # Priority 0.7: Reinforcement arrived (our side)
+    arrived = [r for r in our_reinforcements if r.get("arrived")]
+    if arrived:
+        ally_name = arrived[0].get("marshal", "")
+        score = str(arrived[0].get("score", ""))
+        return _fill(random.choice(_OBSERVATIONS["coordination_reinforcement_arrival"]),
+                     ally=ally_name, arrival_score=score)
+
+    # Priority 0.8: Reinforcement failed (our side)
+    failed = [r for r in our_reinforcements if not r.get("arrived")]
+    if failed:
+        ally_name = failed[0].get("marshal", "")
+        return _fill(random.choice(_OBSERVATIONS["coordination_reinforcement_failure"]),
+                     ally=ally_name)
 
     # Priority 1: Mutual destruction
     if outcome == "mutual_destruction":
@@ -476,6 +570,12 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     # Priority 5: We won + heavy casualties (>40% of our original)
     if we_won and our_original > 0 and our_casualties > our_original * 0.40:
         return _fill(random.choice(_OBSERVATIONS["won_heavy_casualties"]))
+
+    # Priority 5.5 (coordination): Hostile marshal forced to fight via SUPPORT (D3/A-M4)
+    hostile_forced = coordination.get("hostile_forced_participants", [])
+    if hostile_forced:
+        return _fill(random.choice(_OBSERVATIONS["coordination_hostile_forced"]),
+                     ally=hostile_forced[0])
 
     # Priority 6: We won + fortifications were involved
     # 6a: We attacked and broke through enemy fort
@@ -557,7 +657,29 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     if outcome == "stalemate":
         return _fill(random.choice(_OBSERVATIONS["stalemate"]))
 
-    # Priority 11: Default
+    # Priority 12 (coordination): Hostile ally in region with 0% coordination (no SUPPORT)
+    hostile_refused = coordination.get("hostile_refused", [])
+    if hostile_refused:
+        return _fill(random.choice(_OBSERVATIONS["coordination_hostile_refused"]),
+                     ally=hostile_refused[0])
+
+    # Priority 13 (coordination): Devoted ally provided 150% coordination
+    devoted_allies = coordination.get("devoted_allies", [])
+    if devoted_allies:
+        return _fill(random.choice(_OBSERVATIONS["coordination_devoted_synergy"]),
+                     ally=devoted_allies[0])
+
+    # Priority 15 (coordination): Rival→Professional relationship improvement (A-I3)
+    player_rel_improvements = [
+        r for r in relationship_changes
+        if r.get("nation") == player_nation and r.get("direction") == "improved"
+    ]
+    if player_rel_improvements:
+        rc = player_rel_improvements[0]
+        return _fill(random.choice(_OBSERVATIONS["coordination_rival_improved"]),
+                     ally=rc.get("toward", ""))
+
+    # Priority 16: Default
     return _fill(random.choice(_OBSERVATIONS["default"]))
 
 
