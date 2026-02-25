@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 25, 2026 (Session 67: Square Formation)
+> **Last Updated:** February 25, 2026 (Session 68: Auto-Bombardment + Overwatch)
 
 ---
 
@@ -9,10 +9,10 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3926** (3926 passed, 3 skipped — verified Feb 25, Session 67) |
+| **Tests Passing** | **3980** (3980 passed, 3 skipped — verified Feb 25, Session 68) |
 
-| **Current Phase** | Phase 7b **IN PROGRESS** (Session 67 complete, remaining: Session 68 Auto-Bombardment + Overwatch, V2b, Jealousy, Gneisenau). Coalition Trigger moved to Phase 8. |
-| **Blockers** | V2b, Jealousy need DESIGN GATE approval before coding. Tactical Triangle Session 68 next. |
+| **Current Phase** | Phase 7b **IN PROGRESS** (Tactical Triangle COMPLETE — Sessions 67-68. Remaining: V2b, Jealousy, Gneisenau). Coalition Trigger moved to Phase 8. |
+| **Blockers** | V2b, Jealousy need DESIGN GATE approval before coding. Gate 5 UI test pending. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
@@ -20,7 +20,7 @@
 ## Next Steps
 
 1. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~246 new tests.
-2. **Phase 7b: IN PROGRESS.** Session 67 (Square Formation) complete — 48 new tests. **Next up: Session 68 (Auto-Bombardment + Overwatch, ~45 tests).** See `docs/TACTICAL_TRIANGLE_SPEC.md`. Remaining after Triangle: V2b (NEEDS DESIGN), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
+2. **Phase 7b: IN PROGRESS.** Tactical Triangle COMPLETE (Sessions 67-68). **Gate 5 UI test pending.** Remaining: V2b (NEEDS DESIGN), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
 3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
 ---
@@ -64,6 +64,19 @@ All major Phase 6 features shipped:
 
 **Files modified:** `marshal.py` (field, defense modifier, serialization), `combat.py` (cavalry -40%, artillery +50%, deferred path fix), `executor.py` (form_square, break_square, auto-break, bombardment bonus, coordination exclusions, reinforcement rule, SUPPORT advisory), `world_state.py` (AP costs, tactical state clearing), `objection_v2.py` (4 triggers), `enemy_ai.py` (P2.5), `battle_report.py` (3 observations, snapshots), `validation.py`, `parser.py`, `llm_client.py` (mock keywords).
 **Files created:** `tests/test_square_formation.py` (48 tests, 12 classes).
+
+### Feb 25 — Session 68: Auto-Bombardment + Overwatch (Tactical Triangle Part B)
+
+**54 new tests, 3980 total (3 skipped). Artillery on SUPPORT auto-bombards before supported marshal's attack. Enemy artillery passively debuffs attackers (overwatch).**
+
+- **Auto-Bombardment:** Artillery with SUPPORT order targeting attacker X fires `_execute_bombardment()` against defender BEFORE `resolve_battle()`. Same damage formula, collateral, fort degradation. Fires for both player and AI (Building Blocks). Does NOT consume AP. Increments `bombardments_this_turn`. Dead-defender early exit skips resolve_battle entirely.
+- **Overwatch:** Enemy artillery in defender's region applies -3% attack per gun, capped at 3 guns (-9% max). Transient `overwatch_penalty` field on marshal, applied in `get_attack_modifier()` after coordination bonus. NOT serialized. Cleared via `_COORDINATION_FIELDS` after combat.
+- **AI awareness:** `_evaluate_target_ratio()` factors overwatch into ratio calculation — discourages attacking well-defended positions with artillery overwatch.
+- **Battle report:** 3 new Berthier observation categories (support_bombardment_effective, support_bombardment_minimal, overwatch_repelled). Overwatch penalty snapshot entry. `{artillery}` placeholder in `_fill()`.
+- **Fog of war:** Auto-bombardment from adjacent region gives defender PARTIAL intel on source region via `update_intel_from_transit()`.
+
+**Files modified:** `marshal.py` (overwatch_penalty in get_attack_modifier), `executor.py` (_calculate_overwatch, auto-bombardment loop, dead-defender check, _COORDINATION_FIELDS), `battle_report.py` (3 observations, snapshot, placeholder), `enemy_ai.py` (overwatch factor).
+**Files created:** `tests/test_auto_bombardment_overwatch.py` (54 tests, 7 classes).
 
 ### Feb 25 — AI Recapture + Quality Fixes (Hotfix)
 

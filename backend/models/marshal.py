@@ -829,6 +829,11 @@ class Marshal:
         # Coordination bonus (Phase 7: set by _calculate_coordination_context, capped)
         modifier *= (1.0 + getattr(self, 'total_coordination_attack_bonus', 0.0))
 
+        # Overwatch penalty (Phase 7b: enemy artillery suppression)
+        # Transient field set by _calculate_overwatch() in executor.py.
+        # NOT serialized — read via getattr, cleared after combat.
+        modifier *= (1.0 - getattr(self, 'overwatch_penalty', 0.0))
+
         return modifier
 
     def get_defense_modifier(self, is_outnumbered: bool = False) -> float:

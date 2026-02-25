@@ -1697,6 +1697,93 @@ Snapshot entries: "Square formation (vs cavalry)" penalty 40%, "Square formation
 
 ---
 
+## 16b. Auto-Bombardment & Overwatch (Session 68)
+
+### Auto-Bombardment (SUPPORT Artillery Pre-Fire)
+
+When a marshal attacks, all same-nation artillery on SUPPORT targeting that marshal automatically fire bombardment against the defender BEFORE `resolve_battle()`.
+
+**Timing:** After `_calculate_coordination_context()` and overwatch, before `resolve_battle()`.
+
+**Eligibility (all required):**
+- Same nation as the attacker
+- `artillery == True`
+- Active SUPPORT order targeting the attacker (`strategic_order.command_type == "SUPPORT"` and `strategic_order.target == attacker.name`)
+- `bombardments_this_turn < 2`
+- `strength > 0`
+- NOT `broken`, NOT `retreated_this_turn`, NOT `retreat_recovery > 0`, NOT `moved_this_turn`
+- Adjacent to or co-located with battle region
+
+**Behavior:**
+- Calls existing `_execute_bombardment()` — same damage formula, collateral, fort degradation, streak
+- Does NOT consume player AP
+- Fires for BOTH player and AI attacks (Building Blocks principle)
+- Only fires when supported marshal is the ATTACKER (not when they're defending)
+- Increments `bombardments_this_turn` on the artillery marshal
+
+**Dead-Defender Check:** If bombardment kills the defender (`strength <= 0`):
+- Loop breaks (remaining artillery don't fire)
+- `resolve_battle()` is skipped entirely
+- Defender removed from `world.marshals`
+- Attacker advances (unless artillery) and attempts capture
+
+**Fog of War:** When auto-bombardment fires from an adjacent region (not co-located) and the defender is the player nation, the player gets PARTIAL intel on the artillery's source region via `update_intel_from_transit()`.
+
+**Note:** SUPPORT order is cleared post-battle by the reinforcement system (A-C2 step 5) because artillery "arrives" as an adjacent reinforcer. This is existing Session 61a behavior.
+
+### Overwatch (Passive Artillery Defense)
+
+Enemy artillery in the defender's region passively debuffs all attackers by -3% per eligible gun, capped at 3 guns (-9% max).
+
+**Where applied:** `marshal.py get_attack_modifier()` — after coordination bonus, before return.
+
+**Field:** `overwatch_penalty` (transient, NOT serialized). Set via assignment, read via `getattr(m, 'overwatch_penalty', 0.0)`. Cleared after combat via `_COORDINATION_FIELDS`.
+
+**Eligibility (all required):**
+- In the defender's region (same location as battle)
+- Different nation from attacker
+- `artillery == True`
+- `strength > 0`
+- NOT `broken`, NOT `retreated_this_turn`, NOT `retreat_recovery > 0`, NOT `moved_this_turn`
+
+**Cap:** `min(artillery_count, 3)`, penalty = `capped * 0.03`.
+
+**Does NOT apply to:**
+- Bombardment (ranged fire, separate code path)
+- Coordination cap (independent of coordination bonus)
+
+### AI Awareness
+
+`_evaluate_target_ratio()` in `enemy_ai.py` factors overwatch into ratio calculation:
+- Counts same-nation artillery in target's region
+- Applies `(1.0 - capped_art * 0.03)` multiplier to effective ratio
+- Eligible checks match executor overwatch checks
+
+### Battle Report
+
+3 new Berthier observation categories:
+
+| Key | Priority | Condition | Templates |
+|-----|----------|-----------|-----------|
+| `support_bombardment_effective` | 0.6 | Auto-bombardment fired, significant damage | 3 templates with `{artillery}` placeholder |
+| `support_bombardment_minimal` | 0.6 | Auto-bombardment fired, minimal damage | 3 templates with `{artillery}` placeholder |
+| `overwatch_repelled` | 6f | Overwatch active (≥1 enemy artillery in region) | 3 templates |
+
+Snapshot entries:
+- "Artillery overwatch" penalty (int % value) in `snapshot_attacker_modifiers()`
+- `{artillery}` placeholder in `_fill()` for support bombardment templates
+
+### Key Files
+
+| File | What changed |
+|------|-------------|
+| `marshal.py` | `overwatch_penalty` in `get_attack_modifier()` (transient, not serialized) |
+| `executor.py` | `_calculate_overwatch()`, auto-bombardment loop in `_execute_attack()`, dead-defender early exit, `overwatch_penalty` in `_COORDINATION_FIELDS` |
+| `battle_report.py` | 3 observation categories, snapshot entry, `{artillery}` placeholder |
+| `enemy_ai.py` | Overwatch factor in `_evaluate_target_ratio()` |
+
+---
+
 ## 7. Redemption System
 
 ### Trigger

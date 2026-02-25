@@ -648,6 +648,7 @@ class CommandExecutor:
         '_display_coordination_atk', '_display_coordination_def',
         '_display_dedicated_atk', '_display_dedicated_def',
         '_display_adjacent_atk',
+        'overwatch_penalty',  # Session 68: enemy artillery suppression (transient)
     ]
 
     def _clear_coordination_fields(self, regions: set, world: WorldState) -> None:
@@ -657,6 +658,42 @@ class CommandExecutor:
                 for attr in self._COORDINATION_FIELDS:
                     if hasattr(m, attr):
                         setattr(m, attr, 0.0)
+
+    def _calculate_overwatch(self, attacker, atk_participants, defender_region_name: str, world: WorldState) -> int:
+        """Count enemy artillery in defender's region, apply overwatch penalty to all attackers.
+
+        Session 68: Artillery Overwatch — enemy artillery passively debuffs attackers
+        by -3% per gun (capped at 3 guns = -9% max).
+
+        Sets transient `overwatch_penalty` on each attacking participant.
+        Returns the count of eligible overwatch artillery (for reporting).
+        """
+        enemy_artillery_count = 0
+        overwatch_artillery_names = []
+        for m in world.marshals.values():
+            if (m.location == defender_region_name
+                    and m.nation != attacker.nation
+                    and getattr(m, 'artillery', False)
+                    and m.strength > 0
+                    and not getattr(m, 'broken', False)
+                    and not getattr(m, 'retreated_this_turn', False)
+                    and getattr(m, 'retreat_recovery', 0) == 0
+                    and not getattr(m, 'moved_this_turn', False)):
+                enemy_artillery_count += 1
+                overwatch_artillery_names.append(m.name)
+
+        capped = min(enemy_artillery_count, 3)  # -9% max
+        penalty = capped * 0.03
+
+        if penalty > 0:
+            # Apply to ALL attacking participants — the guns suppress the entire assault
+            all_attackers = [attacker] + [p for p in (atk_participants or []) if p.name != attacker.name]
+            for combatant in all_attackers:
+                combatant.overwatch_penalty = penalty
+            print(f"  [OVERWATCH] {capped} enemy artillery in {defender_region_name}: "
+                  f"-{int(penalty * 100)}% attack ({', '.join(overwatch_artillery_names[:3])})")
+
+        return capped
 
     # ════════════════════════════════════════════════════════════════════════════
     # CASUALTY DISTRIBUTION (Phase 7, Session 62)
@@ -3983,6 +4020,149 @@ RETREAT RECOVERY (3 turns):
         # Battle History screen (Phase 8.5).
 
         # ════════════════════════════════════════════════════════════
+        # ARTILLERY OVERWATCH (Session 68): Enemy artillery in defender's
+        # region passively debuffs all attackers by -3% per gun.
+        # Must run BEFORE resolve_battle so penalty applies to combat.
+        # Overwatch is NOT coordination — does not count toward cap.
+        # Does NOT apply to bombardment (ranged fire, separate path).
+        # ════════════════════════════════════════════════════════════
+        overwatch_count = self._calculate_overwatch(
+            marshal, atk_participants, battle_region_name, world)
+
+        # ════════════════════════════════════════════════════════════
+        # SUPPORT AUTO-BOMBARDMENT (Session 68): Artillery on SUPPORT
+        # targeting the attacker fires preparatory bombardment BEFORE
+        # resolve_battle(). Defender takes damage first.
+        # Does NOT fire on defensive battles (only when supported
+        # marshal is the ATTACKER). Does NOT consume player AP.
+        # ════════════════════════════════════════════════════════════
+        auto_bombardment_messages = []
+        auto_bombardment_results = []
+        support_bombardment_total_damage = 0
+
+        for m in list(world.marshals.values()):
+            if m.nation != marshal.nation:
+                continue
+            if not getattr(m, 'artillery', False):
+                continue
+            order = getattr(m, 'strategic_order', None)
+            if order is None or order.command_type != "SUPPORT" or order.target != marshal.name:
+                continue
+            # Eligibility checks
+            if getattr(m, 'moved_this_turn', False):
+                continue
+            if getattr(m, 'bombardments_this_turn', 0) >= 2:
+                continue
+            if m.strength <= 0:
+                continue
+            if getattr(m, 'broken', False):
+                continue
+            if getattr(m, 'retreated_this_turn', False):
+                continue
+            if getattr(m, 'retreat_recovery', 0) > 0:
+                continue
+            # Must be adjacent to or co-located with battle region
+            m_region = world.get_region(m.location)
+            if m.location != battle_region_name:
+                if not m_region or battle_region_name not in m_region.adjacent_regions:
+                    continue
+
+            # Fire auto-bombardment against defender
+            print(f"  [AUTO-BOMBARD] {m.name} (SUPPORT {marshal.name}) fires on {enemy_marshal.name}")
+            bombard_result = self._execute_bombardment(m, enemy_marshal, world, game_state)
+
+            if bombard_result.get("success"):
+                auto_bombardment_results.append(bombard_result)
+                br = bombard_result.get("bombardment_result", {})
+                def_cas = br.get("defender", {}).get("casualties", 0)
+                support_bombardment_total_damage += def_cas
+                auto_bombardment_messages.append(
+                    f"Artillery support: {m.name}'s guns bombard {enemy_marshal.name}'s position! "
+                    f"({def_cas:,} casualties)"
+                )
+
+                # Fog of war: auto-bombardment from adjacent region gives
+                # defender PARTIAL intel on artillery's source region
+                if (m.location != battle_region_name
+                        and enemy_marshal.nation == getattr(world, 'player_nation', 'France')):
+                    world.update_intel_from_transit(m.location, world.current_turn)
+
+                # Early exit: defender destroyed by bombardment
+                if enemy_marshal.strength <= 0:
+                    print(f"  [AUTO-BOMBARD] Defender {enemy_marshal.name} destroyed by bombardment!")
+                    break
+
+        # ════════════════════════════════════════════════════════════
+        # DEAD-DEFENDER CHECK: If auto-bombardment killed the defender,
+        # skip resolve_battle entirely. Attacker wins with 0 casualties.
+        # ════════════════════════════════════════════════════════════
+        if enemy_marshal.strength <= 0 and auto_bombardment_results:
+            # Clear coordination + overwatch fields before returning
+            involved_regions = {marshal.location, battle_region_name}
+            self._clear_coordination_fields(involved_regions, world)
+
+            # Remove destroyed defender
+            world.marshals.pop(enemy_marshal.name, None)
+
+            # Advance attacker if not artillery
+            advance_msg = ""
+            if not getattr(marshal, 'artillery', False) and marshal.location != battle_region_name:
+                marshal.move_to(battle_region_name)
+                advance_msg = f" {marshal.name} advances into {battle_region_name}."
+
+            # Attempt capture
+            conquest_msg = ""
+            target_region = world.get_region(battle_region_name)
+            if (target_region and target_region.controller != marshal.nation
+                    and not getattr(marshal, 'artillery', False)):
+                remaining_defenders = [
+                    m for m in world.marshals.values()
+                    if m.location == battle_region_name and m.strength > 0 and m.nation != marshal.nation
+                ]
+                if not remaining_defenders:
+                    capture_result = self._attempt_region_capture(
+                        marshal, battle_region_name, world, game_state, had_garrison=True)
+                    if capture_result.get("captured"):
+                        conquest_msg = f" {battle_region_name} captured by {marshal.nation}!"
+
+            preamble = "\n".join(auto_bombardment_messages)
+            main_msg = (
+                f"The preparatory bombardment destroyed {enemy_marshal.name}. "
+                f"{marshal.name} advances unopposed."
+            )
+
+            # Fog of War: battle visibility
+            world.update_intel_from_battle(battle_region_name, world.current_turn)
+
+            result = {
+                "success": True,
+                "action": "attack",
+                "message": f"{preamble}\n\n{main_msg}{advance_msg}{conquest_msg}",
+                "auto_bombardment": True,
+                "auto_bombardment_results": [
+                    r.get("bombardment_result", {}) for r in auto_bombardment_results
+                ],
+                "events": [{
+                    "type": "battle",
+                    "attacker": {"name": marshal.name},
+                    "defender": {"name": enemy_marshal.name},
+                    "location": battle_region_name,
+                    "outcome": "attacker_victory",
+                    "auto_bombardment_kill": True,
+                }],
+                "new_state": game_state,
+            }
+            if counter_punch_message:
+                result["message"] = counter_punch_message + result["message"]
+            if drill_cancelled_message:
+                result["message"] = drill_cancelled_message + result["message"]
+            if covering_message:
+                result["message"] = covering_message + result["message"]
+            if cavalry_charge_message:
+                result["message"] = cavalry_charge_message + result["message"]
+            return result
+
+        # ════════════════════════════════════════════════════════════
         # RESOLVE COMBAT
         # Solo battles (1v1): apply_casualties=True — zero behavior change.
         # Coordinated battles (2+ on either side): apply_casualties=False,
@@ -4164,6 +4344,9 @@ RETREAT RECOVERY (3 turns):
             "attacker": attacker_reinforcements,
             "defender": defender_reinforcements,
         }
+        # Session 68: Inject auto-bombardment and overwatch data for observation re-pick
+        battle_result["support_bombardment_total_damage"] = support_bombardment_total_damage
+        battle_result["overwatch_count"] = overwatch_count
 
         # Clear coordination transient fields (D5 + X1)
         involved_regions = {marshal.location}
@@ -4210,12 +4393,19 @@ RETREAT RECOVERY (3 turns):
         # may override the initial observation from resolve_battle().
         # ════════════════════════════════════════════════════════════
         battle_result["relationship_changes"] = relationship_changes
+        # Session 68: inject auto-bombardment results for observation re-pick
+        if auto_bombardment_results:
+            battle_result["auto_bombardment_results"] = [
+                r.get("bombardment_result", {}) for r in auto_bombardment_results
+            ]
         if (coord_context.get("type_count", 0) >= 3
                 or coord_context.get("hostile_forced_participants")
                 or coord_context.get("hostile_refused")
                 or coord_context.get("devoted_allies")
                 or attacker_reinforcements or defender_reinforcements
-                or relationship_changes):
+                or relationship_changes
+                or support_bombardment_total_damage > 0
+                or overwatch_count > 0):
             from backend.game_logic.battle_report import _pick_observation
             new_observation = _pick_observation(battle_result, world.player_nation)
             if "battle_report" in battle_result:
@@ -4428,8 +4618,13 @@ RETREAT RECOVERY (3 turns):
         # NOTE: Forced retreat was already handled above (before movement/conquest check)
         # forced_retreat_msg is already set
 
+        # Build auto-bombardment preamble (Session 68) — prepended before combat description
+        auto_bombard_preamble = ""
+        if auto_bombardment_messages:
+            auto_bombard_preamble = "\n".join(auto_bombardment_messages) + "\n\n"
+
         # Build final message with optional drill cancellation prefix, counter-punch, cavalry charge, and covering
-        battle_message = counter_punch_message + cavalry_charge_message + covering_message + flanking_prefix + battle_result["description"] + destroyed_msg + movement_msg + conquest_msg + vindication_msg + forced_retreat_msg
+        battle_message = counter_punch_message + cavalry_charge_message + covering_message + flanking_prefix + auto_bombard_preamble + battle_result["description"] + destroyed_msg + movement_msg + conquest_msg + vindication_msg + forced_retreat_msg
         if drill_cancelled_message:
             battle_message = drill_cancelled_message + battle_message
 
@@ -4472,6 +4667,19 @@ RETREAT RECOVERY (3 turns):
         # Berthier's After-Action Report
         if battle_result.get("battle_report"):
             result["battle_report"] = battle_result["battle_report"]
+
+        # Auto-bombardment data (Session 68): pass through for Godot display
+        if auto_bombardment_results:
+            result["auto_bombardment"] = True
+            result["auto_bombardment_results"] = [
+                r.get("bombardment_result", {}) for r in auto_bombardment_results
+            ]
+            result["support_bombardment_total_damage"] = int(support_bombardment_total_damage)
+
+        # Overwatch data (Session 68): pass through for battle report
+        if overwatch_count > 0:
+            result["overwatch_count"] = int(overwatch_count)
+            result["overwatch_penalty_pct"] = int(overwatch_count * 3)
 
         # Coordination preview removed — narrative observation only (Gate 4).
 

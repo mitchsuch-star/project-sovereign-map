@@ -39,16 +39,16 @@ Casualty Distribution (Session 62: `resolve_battle(apply_casualties=False)` defe
 
 ### Up Next
 
-- **Phase 7b remaining:** Tactical Triangle (Sessions 67-68: DESIGN APPROVED, see `docs/TACTICAL_TRIANGLE_SPEC.md`), V2b (NEEDS DESIGN), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
+- **Phase 7b remaining:** ~~Tactical Triangle~~ (COMPLETE — Sessions 67-68, 102 tests), V2b (NEEDS DESIGN), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial Infrastructure deferred to Pre-EA.
 
 ### Design Decisions Required (DO NOT CODE WITHOUT USER APPROVAL)
 
 **MANDATORY GATE: The following features have open design decisions. Do NOT begin implementation until the user has explicitly approved the design for each. Ask the user to resolve these decisions before writing any code.**
 
-#### ~~Tactical Triangle~~ — DESIGN APPROVED
+#### ~~Tactical Triangle~~ — COMPLETE
 
-Design approved. See `docs/TACTICAL_TRIANGLE_SPEC.md`. Sessions 67 (Square Formation, ~40 tests) + 68 (Auto-Bombardment + Overwatch, ~45 tests).
+Sessions 67 (Square Formation, 48 tests) + 68 (Auto-Bombardment + Overwatch, 54 tests) shipped. See `docs/TACTICAL_TRIANGLE_SPEC.md`. Gate 5 UI test pending.
 
 #### V2b: Defiance/Vindication — Needs decision:
 - Hard cap 40% — confirmed?

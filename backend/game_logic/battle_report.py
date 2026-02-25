@@ -122,6 +122,12 @@ def snapshot_attacker_modifiers(
     if glorious_charge:
         mods.append({"label": "Glorious Charge", "value": 100, "type": "bonus"})
 
+    # --- Overwatch penalty (Session 68) ---
+    overwatch_penalty = getattr(attacker, "overwatch_penalty", 0.0)
+    if overwatch_penalty > 0:
+        pct = int(round(overwatch_penalty * 100))
+        mods.append({"label": "Artillery overwatch", "value": pct, "type": "penalty"})
+
     # --- Coordination bonuses (Phase 7, Sessions 57-65) ---
     # Combined arms, per-ally coordination, dedicated coordination, adjacent
     # support, and total coordination are intentionally OMITTED from the
@@ -402,6 +408,21 @@ _OBSERVATIONS = {
         "Sire, I believe {marshal}'s opinion of {ally} is... shifting.",
         "An interesting development, Sire. {marshal} may be warming to {ally} after their shared ordeal.",
     ],
+    # ── Auto-Bombardment + Overwatch observations (Phase 7b, Session 68) ──
+    "support_bombardment_effective": [
+        "{artillery}'s preparatory bombardment was devastating. {marshal}'s charge met a shaken enemy.",
+        "The guns of {artillery} softened the enemy before {marshal}'s assault. Textbook combined arms, Sire.",
+        "{artillery}'s fire support proved decisive. {enemy} was already reeling when {marshal} struck.",
+    ],
+    "support_bombardment_minimal": [
+        "{artillery}'s guns fired in support, though the terrain blunted their effect.",
+        "{artillery} provided covering fire, but the ground offered {enemy} too much shelter.",
+    ],
+    "overwatch_repelled": [
+        "The enemy advance faltered under {artillery}'s watchful guns. Even without a full bombardment, the artillery's presence was felt.",
+        "{artillery}'s overwatch suppressed the enemy assault. The guns need not fire to inspire caution.",
+        "The mere presence of {artillery}'s battery discouraged {enemy}'s attack. Artillery overwatch proved its worth.",
+    ],
     # ── Square Formation observations (Phase 7b, Session 67) ──
     "square_cavalry_repulsed": [
         "{marshal}'s square held firm against {enemy}'s cavalry, Sire. The bayonets turned aside the charge.",
@@ -500,6 +521,8 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
         result = result.replace("{relationship}", extra.get("relationship", ""))
         result = result.replace("{coordination_bonus}", extra.get("coordination_bonus", ""))
         result = result.replace("{arrival_score}", extra.get("arrival_score", ""))
+        # Session 68: artillery name placeholder
+        result = result.replace("{artillery}", extra.get("artillery", ""))
         return result
 
     # ════════════════════════════════════════════════════════════════════════
@@ -541,6 +564,23 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
         failed_names = " and ".join(r.get("marshal", "") for r in failed)
         return _fill(random.choice(_OBSERVATIONS["coordination_reinforcement_failure"]),
                      ally=failed_names)
+
+    # Priority 0.6: Support auto-bombardment (Session 68)
+    support_bombardment_damage = battle_result.get("support_bombardment_total_damage", 0)
+    if support_bombardment_damage > 0 and we_are_attacker:
+        # Find the artillery that provided support (first SUPPORT artillery on our side)
+        support_artillery_name = ""
+        for m_data in battle_result.get("auto_bombardment_results", []):
+            atk_data = m_data.get("attacker", {})
+            if atk_data.get("name"):
+                support_artillery_name = atk_data["name"]
+                break
+        if support_bombardment_damage > defender_original * 0.05:
+            return _fill(random.choice(_OBSERVATIONS["support_bombardment_effective"]),
+                         artillery=support_artillery_name)
+        else:
+            return _fill(random.choice(_OBSERVATIONS["support_bombardment_minimal"]),
+                         artillery=support_artillery_name)
 
     # Priority 1: Mutual destruction
     if outcome == "mutual_destruction":
@@ -644,6 +684,17 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     # Square held on defense (defender had square bonus)
     if _has_mod(our_mods, "square formation", "bonus") and not we_lost and not we_are_attacker:
         return _fill(random.choice(_OBSERVATIONS["square_held_defense"]))
+
+    # Priority 6f: Overwatch observation (Session 68)
+    # Fires when overwatch was active AND defender won.
+    # overwatch_count is always attacker-perspective (enemy artillery in defender's region).
+    # If we are defender and we won, our artillery provided the overwatch.
+    # If we are attacker and we lost, enemy artillery provided overwatch against us.
+    overwatch_count_val = battle_result.get("overwatch_count", 0)
+    if overwatch_count_val > 0:
+        if (we_won and not we_are_attacker) or (we_lost and we_are_attacker):
+            return _fill(random.choice(_OBSERVATIONS["overwatch_repelled"]),
+                         artillery="our artillery")
 
     # Priority 7: We won + our side had drill bonus
     if we_won and _has_mod(our_mods, "drill", "bonus"):

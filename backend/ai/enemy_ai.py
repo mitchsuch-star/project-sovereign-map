@@ -1902,6 +1902,25 @@ class EnemyAI:
                 effective_ratio *= 1.30  # +30% bonus for vulnerable target
                 bonuses_applied.append("EXPOSED_RETREATING +30%")
 
+        # OVERWATCH (Session 68): Enemy artillery in target's region penalizes attacker
+        # -3% per non-broken, non-moved artillery (capped at 3 = -9%)
+        if world:
+            enemy_art_in_target = 0
+            for m in world.marshals.values():
+                if (m.location == target.location
+                        and m.nation == target.nation
+                        and getattr(m, 'artillery', False)
+                        and m.strength > 0
+                        and not getattr(m, 'broken', False)
+                        and not getattr(m, 'retreated_this_turn', False)
+                        and getattr(m, 'retreat_recovery', 0) == 0
+                        and not getattr(m, 'moved_this_turn', False)):
+                    enemy_art_in_target += 1
+            capped_art = min(enemy_art_in_target, 3)
+            if capped_art > 0:
+                effective_ratio *= (1.0 - capped_art * 0.03)
+                bonuses_applied.append(f"OVERWATCH -{capped_art * 3}%")
+
         # Floor at 0 (shouldn't happen, but be safe)
         effective_ratio = max(0.0, effective_ratio)
 

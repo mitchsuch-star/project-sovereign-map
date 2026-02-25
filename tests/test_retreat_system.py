@@ -12,7 +12,7 @@ Tests the following features implemented today:
 
 import pytest
 from backend.models.world_state import WorldState
-from backend.models.marshal import Marshal, Stance
+from backend.models.marshal import Marshal
 from backend.commands.executor import CommandExecutor
 from backend.ai.enemy_ai import EnemyAI
 
@@ -160,8 +160,10 @@ class TestAIExposedTargetBonus:
         ney = world.marshals.get("Ney")
         if ney:
             # Setup: Ney retreated and is alone (no ally to cover)
+            # Use Waterloo (enemy territory) so no French allies provide
+            # overwatch or covering.  Drouot (artillery) stays in Paris.
             ney.retreated_this_turn = True
-            ney.location = "Paris"  # Alone
+            ney.location = "Waterloo"
 
             # Base ratio
             base_ratio = 1.0
