@@ -3896,12 +3896,14 @@ RETREAT RECOVERY (3 turns):
                         # (Gate 4: artillery reinforces via fire support, not advance)
                         if getattr(arriving, 'artillery', False):
                             # Artillery provides coordination bonus from adjacent
-                            # position but does NOT advance to front line
+                            # position but does NOT advance to front line.
+                            # NOT added to arrived_names — artillery remains
+                            # countable as an adjacent ally for +2% attack bonus.
                             artillery_reinforced_adjacent.append(arriving)
                         else:
                             arriving.location = battle_region_name
+                            arrived_names.add(arriving.name)
                         arriving.reinforced_this_turn = True
-                        arrived_names.add(arriving.name)
                         # Clear path (now invalid) but DO NOT clear strategic_order yet (A-C2)
                         if arriving.strategic_order:
                             arriving.strategic_order.path = []

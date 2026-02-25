@@ -138,7 +138,7 @@ class TestAutoRouteAttackCoordination:
         """Auto-assign 'attack Waterloo' goes through _execute_attack."""
         random.seed(42)
         ney = self.world.get_marshal("Ney")
-        ney.location = "Rhineland"
+        ney.location = "Belgium"
         ney.strength = 30000
 
         wellington = self.world.get_marshal("Wellington")
@@ -196,7 +196,7 @@ class TestArtilleryReinforcementNoAdvance:
         ney.strength = 30000
 
         drouot = self.world.get_marshal("Drouot")
-        drouot.location = "Rhineland"  # Adjacent to Waterloo
+        drouot.location = "Belgium"  # Adjacent to Waterloo
         drouot.strength = 20000
 
         wellington = self.world.get_marshal("Wellington")
@@ -213,7 +213,7 @@ class TestArtilleryReinforcementNoAdvance:
         if drouot_after:
             assert drouot_after.location != "Waterloo", \
                 "Artillery should NOT advance to battle region on reinforcement"
-            assert drouot_after.location == "Rhineland", \
+            assert drouot_after.location == "Belgium", \
                 "Artillery should stay in original adjacent position"
 
     def test_infantry_still_relocates_on_reinforcement(self):
@@ -224,7 +224,7 @@ class TestArtilleryReinforcementNoAdvance:
         ney.strength = 30000
 
         davout = self.world.get_marshal("Davout")
-        davout.location = "Rhineland"  # Adjacent to Waterloo
+        davout.location = "Belgium"  # Adjacent to Waterloo
         davout.strength = 25000
 
         wellington = self.world.get_marshal("Wellington")
@@ -248,7 +248,7 @@ class TestArtilleryReinforcementNoAdvance:
         ney.strength = 30000
 
         drouot = self.world.get_marshal("Drouot")
-        drouot.location = "Rhineland"  # Adjacent
+        drouot.location = "Belgium"  # Adjacent
         drouot.strength = 20000
 
         wellington = self.world.get_marshal("Wellington")
@@ -262,7 +262,7 @@ class TestArtilleryReinforcementNoAdvance:
         if drouot_after and drouot_after.reinforced_this_turn:
             # If artillery reinforced, it should have the flag
             # but NOT have moved
-            assert drouot_after.location == "Rhineland"
+            assert drouot_after.location == "Belgium"
 
     def test_artillery_participates_in_casualty_distribution(self):
         """Artillery that reinforced from adjacent still takes casualties."""
@@ -272,7 +272,7 @@ class TestArtilleryReinforcementNoAdvance:
         ney.strength = 30000
 
         drouot = self.world.get_marshal("Drouot")
-        drouot.location = "Rhineland"  # Adjacent
+        drouot.location = "Belgium"  # Adjacent
         drouot.strength = 20000
         initial_drouot_strength = drouot.strength
 
@@ -289,3 +289,51 @@ class TestArtilleryReinforcementNoAdvance:
             # (unless battle was a total rout with 0 return fire)
             # At minimum, verify the marshal is still tracked
             assert drouot_after is not None
+
+    def test_artillery_still_counts_as_adjacent_ally_for_coordination(self):
+        """Artillery that stays adjacent is NOT excluded from adjacent ally count.
+
+        Gate 4 gap fix: artillery must NOT be added to arrived_names
+        (which becomes exclude_from_adjacent), so it still provides
+        the +2% adjacent support attack bonus.
+        """
+        random.seed(42)
+        ney = self.world.get_marshal("Ney")
+        ney.location = "Waterloo"
+        ney.strength = 30000
+
+        drouot = self.world.get_marshal("Drouot")
+        drouot.location = "Belgium"  # Adjacent to Waterloo
+        drouot.strength = 20000
+
+        wellington = self.world.get_marshal("Wellington")
+        wellington.location = "Waterloo"
+        wellington.strength = 35000
+
+        # Directly test coordination context calculation AFTER simulating
+        # the arrival loop logic (artillery stays adjacent, not in arrived_names)
+        arrived_names = set()  # Artillery NOT added here
+
+        adj_count, adj_names = self.executor._count_adjacent_allies(
+            "Waterloo", "France", self.world, exclude_names=arrived_names)
+
+        # Drouot is in Belgium (adjacent to Waterloo) and NOT excluded
+        assert "Drouot" in adj_names, \
+            "Artillery in adjacent region should count as adjacent ally"
+        assert adj_count >= 1
+
+    def test_infantry_excluded_from_adjacent_after_arrival(self):
+        """Infantry that arrived IS excluded from adjacent count (moved to battle region)."""
+        davout = self.world.get_marshal("Davout")
+        davout.location = "Belgium"  # Adjacent
+        davout.strength = 25000
+
+        # Simulate arrival: infantry moves to Waterloo, added to arrived_names
+        arrived_names = {"Davout"}
+
+        adj_count, adj_names = self.executor._count_adjacent_allies(
+            "Waterloo", "France", self.world, exclude_names=arrived_names)
+
+        # Davout is excluded because he relocated to battle region
+        assert "Davout" not in adj_names, \
+            "Arrived infantry should be excluded from adjacent ally count"

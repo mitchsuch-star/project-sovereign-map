@@ -2531,8 +2531,9 @@ On successful arrival:
 
 ### Interaction with Coordination
 
-- Arrived reinforcers are **excluded** from adjacent ally count (`exclude_from_adjacent` parameter)
-- Arrived reinforcers **join** same-region coordination (counted as allies in battle region)
+- Arrived reinforcers (non-artillery) are **excluded** from adjacent ally count (`exclude_from_adjacent` parameter) because they relocated to battle region and are now same-region allies
+- **Artillery exception (Gate 4):** artillery is NOT added to `arrived_names`/`exclude_from_adjacent` because it stays in its adjacent position — still counts as adjacent ally for +2% attack bonus
+- Arrived non-artillery reinforcers **join** same-region coordination (counted as allies in battle region)
 - Path B2: Reinforcers who arrived via SUPPORT count for `_has_dedicated_support()` check
 - `reinforcement_results` passed through `_calculate_coordination_context()` → `_has_dedicated_support()`
 
