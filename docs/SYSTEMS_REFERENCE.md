@@ -1808,7 +1808,7 @@ Gold is tracked per nation in `world_state.nation_gold` dict:
 
 ```python
 self.nation_gold = {
-    "France": 600,   # Player starting gold
+    "France": 800,   # Player starting gold
     "Britain": 800,  # Naval/trade wealth
     "Prussia": 300,  # Smaller economy
 }
@@ -1883,7 +1883,7 @@ Example: Paris (300 base), Unrest (50 stability = 0.25 mod), 0.10 damage → `in
 
 ### Serialization
 
-- `nation_gold` serialized as `{"France": 600, "Britain": 800, ...}` in `to_dict()`
+- `nation_gold` serialized as `{"France": 800, "Britain": 800, ...}` in `to_dict()`
 - `gold` key still emitted for backward compatibility (player nation's gold)
 - `from_dict()` prefers `nation_gold` key; falls back to old `gold` field for pre-6.2 saves
 - `region_type` serialized on each Region; defaults to `"town"` if missing (backward compat)
@@ -1974,17 +1974,14 @@ Four building types, constructed via `build <type> at <region>`:
 | Capital | 50,000 |
 | Major City | 40,000 |
 | City | 30,000 |
-| Town | 20,000 |
+| Town | 25,000 |
 | Rural | 15,000 |
 
 Supply depot adds +10,000 to base. Terrain modifier applied (mountains 0.5x, urban 1.2x, etc.). Capacity is a computed property — not serialized.
 
 **Home Territory Supply Bonus:** Marshals in their own nation's territory get 1.5x effective supply capacity. This means defending home territory is more sustainable than invading, and reduces turtling advantage since defenders take less attrition. Calculated per-marshal based on whether the region's controller matches the marshal's nation.
 
-**Supply Attrition:** Runs during turn resolution (after stability/war damage recovery, before bankruptcy). Calculated per-marshal with individual effective capacity. When total troops in a region exceed a marshal's effective capacity:
-- 0-25% excess: 1% attrition
-- 25-50% excess: 3% attrition
-- >50% excess: 5% attrition
+**Supply Attrition:** Runs during turn resolution (after stability/war damage recovery, before bankruptcy). Calculated per-marshal with individual effective capacity. When total troops in a region exceed a marshal's effective capacity, attrition is continuous: `min(0.03, excess_ratio * 0.015)` where `excess_ratio = (total_troops - capacity) / capacity`. This replaces the old tiered system (1%/3%/5%) with a smooth curve that caps at 3%.
 
 **Movement Attrition:** Applied every time a marshal moves. Base rate 1% (retreat 0.5%). Large armies (>20k) get a size penalty: `min(0.02, (strength - 20000) / 500000)` capped at 2%. Total rate on plains: 1% (20k) to 3% (120k+). Terrain multiplier from destination (mountains 2.0x, etc.). Moving through enemy fortified region adds 4% harassment. Enemy garrison detachments add 2% harassment (stacks with fort for 6% total). Capital garrisons do NOT cause harassment. Cavalry 2-tile moves apply attrition for both tiles. Broken army flee to capital: no attrition (already shattered). **Friendly stable territory (own region, stability 76+): no march attrition** — good roads and supply lines eliminate march losses.
 
@@ -2097,6 +2094,12 @@ AI nations get an admin phase each turn, using the same executor as the player (
 
 **UI wiring:**
 - Occupation fields (`occupation_region`, `occupation_turns_held`, `occupation_turns_required`) added to `tactical_state` dict in `main.py::_get_map_data()` for Godot marshal tooltip display
+
+### AI Homeland Defense (P3.7)
+
+When a nation has lost regions it originally controlled, the AI redirects the nearest available marshal to recapture. Evaluated between P3.5 (Fortification Opportunity) and P4 (Attack Opportunity). Tracks claimed targets in `_homeland_recapture_targets` to prevent multiple marshals converging on the same region. Uses `world.nation_starting_regions` to identify lost territory.
+
+**Key code:** `enemy_ai.py::_find_homeland_recapture()`, `world_state.py::nation_starting_regions`
 
 ---
 

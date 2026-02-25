@@ -7871,7 +7871,7 @@ RETREAT RECOVERY (3 turns):
 
             # Execute stance change first
             marshal.stance = Stance.DEFENSIVE
-            stance_message = "[Auto-shifted to DEFENSIVE stance first] "
+            stance_message = "[Auto-shifted to DEFENSIVE stance first — cost 2 AP: 1 for stance change + 1 for fortify] "
 
         # ════════════════════════════════════════════════════════════
         # PERSONALITY-SPECIFIC FORTIFY (Phase 2.8)

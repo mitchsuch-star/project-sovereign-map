@@ -687,6 +687,9 @@ class EnemyAI:
         # AI Garrison: 1 per nation per turn cap (prevents AP waste)
         self._garrison_placed_this_turn: bool = False
 
+        # Homeland defense: track regions claimed for recapture this turn (prevent duplication)
+        self._recapture_targets_claimed: set = set()
+
         # Get this nation's marshals
         marshals = world.get_marshals_by_nation(nation)
 
@@ -877,7 +880,13 @@ class EnemyAI:
                 m.name == m_name and getattr(m, 'fortified', False)
                 for m in world.get_marshals_by_nation(nation)
             ):
-                meaningful_actions.add(m_name)  # First fortify is meaningful
+                # Balance patch: First fortify only meaningful if enemy within 2 regions.
+                # Fortifying with no nearby threat is stalling, not defending.
+                marshal_obj = next((m for m in world.get_marshals_by_nation(nation) if m.name == m_name), None)
+                if marshal_obj and world.is_enemy_nearby(marshal_obj.location, nation, max_distance=2):
+                    meaningful_actions.add(m_name)  # First fortify near enemy is meaningful
+                else:
+                    print(f"  [STAGNATION] {m_name} fortified but no enemy within 2 regions - not meaningful")
 
         stagnation_forced = getattr(self, '_unfortified_this_turn', set())
         for m in world.get_marshals_by_nation(nation):
@@ -1372,6 +1381,17 @@ class EnemyAI:
         if fortification_opportunity:
             self._unfortified_this_turn.add(marshal.name)
             return (fortification_opportunity, 3)  # High priority - unlocks attack/capture
+
+        # ════════════════════════════════════════════════════════════
+        # PRIORITY 3.7: HOMELAND DEFENSE (Balance Patch)
+        # Recapture lost territory the nation started with.
+        # Higher priority than opportunistic attacks (P4) but lower
+        # than immediate threats (P3) and fortification opportunities (P3.5).
+        # ════════════════════════════════════════════════════════════
+        homeland_action = self._find_homeland_defense(marshal, nation, world)
+        if homeland_action:
+            ai_debug(f"  -> P3.7 Homeland Defense: {homeland_action}")
+            return (homeland_action, 3)
 
         # ════════════════════════════════════════════════════════════
         # PRIORITY 4: ATTACK OPPORTUNITY
@@ -2154,6 +2174,160 @@ class EnemyAI:
             "action": "attack",
             "target": target.name
         }
+
+    # ═══════════════════════════════════════════════════════════════════
+    # P3.7: HOMELAND DEFENSE (Balance Patch)
+    # When a nation has lost regions it originally controlled, redirect
+    # the nearest available marshal to recapture them.
+    # ═══════════════════════════════════════════════════════════════════
+
+    def _find_homeland_defense(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
+        """
+        Check if this marshal should recapture lost homeland territory.
+
+        Only fires if:
+        - The nation has lost territory it started with
+        - This marshal is the nearest to a lost region (within 3 hops)
+        - The lost region hasn't been claimed by another marshal this turn
+        - The marshal isn't engaged/broken/retreating/fortified/drilling
+        """
+        # Cannot respond if locked into current activity
+        if getattr(marshal, 'fortified', False):
+            return None
+        if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+            return None
+
+        # Get starting regions for this nation
+        starting_regions = world.nation_starting_regions.get(nation, [])
+        if not starting_regions:
+            return None
+
+        # Find lost regions (started as ours, now controlled by someone else)
+        lost_regions = []
+        for region_name in starting_regions:
+            region = world.get_region(region_name)
+            if region and region.controller != nation:
+                lost_regions.append(region_name)
+
+        if not lost_regions:
+            return None
+
+        # Filter out regions already claimed by another marshal this turn
+        claimed = getattr(self, '_recapture_targets_claimed', set())
+        unclaimed_lost = [r for r in lost_regions if r not in claimed]
+        if not unclaimed_lost:
+            return None
+
+        # Find the nearest lost region this marshal can reach (within 3 hops)
+        marshal_region = world.get_region(marshal.location)
+        if not marshal_region:
+            return None
+
+        best_target = None
+        best_dist = 999
+        best_value = 0
+
+        for lost_name in unclaimed_lost:
+            dist = world.get_distance(marshal.location, lost_name)
+            if dist > 3:
+                continue
+            lost_region = world.get_region(lost_name)
+            value = (lost_region.income_value if lost_region else 0) + (100 if lost_region and lost_region.is_capital else 0)
+            # Prefer closer, higher-value targets
+            if dist < best_dist or (dist == best_dist and value > best_value):
+                best_target = lost_name
+                best_dist = dist
+                best_value = value
+
+        if not best_target:
+            return None
+
+        # Check if another marshal from this nation is already closer
+        nation_marshals = world.get_marshals_by_nation(nation)
+        my_dist = best_dist
+        for other in nation_marshals:
+            if other.name == marshal.name:
+                continue
+            if other.strength <= 0:
+                continue
+            other_dist = world.get_distance(other.location, best_target)
+            if other_dist < my_dist:
+                # Someone else is closer — don't duplicate effort
+                return None
+
+        # Determine action: move toward or attack/capture if adjacent
+        if best_dist == 0:
+            # Standing on a lost region that we don't control — shouldn't happen
+            # (region controller would have changed on capture), but safety fallback
+            return None
+
+        lost_region = world.get_region(best_target)
+
+        if best_dist == 1:
+            # Adjacent — check if defended
+            defenders = [m for m in world.marshals.values()
+                        if m.location == best_target and m.strength > 0 and m.nation != nation]
+
+            if not defenders:
+                # Check garrison
+                garrison = getattr(lost_region, 'garrison_strength', 0) or 0
+                detachment = getattr(lost_region, 'garrison_detachment', False)
+                if garrison >= 5000 or (detachment and garrison > 0):
+                    # Garrisoned — only attack if strong enough
+                    if marshal.strength >= garrison * 1.5:
+                        print(f"  [HOMELAND DEFENSE] {marshal.name} assaulting garrison at {best_target} ({garrison:,} troops)")
+                        self._recapture_targets_claimed.add(best_target)
+                        return {"marshal": marshal.name, "action": "attack", "target": best_target}
+                    return None
+                # Undefended — capture it
+                print(f"  [HOMELAND DEFENSE] {marshal.name} recapturing undefended {best_target}")
+                self._recapture_targets_claimed.add(best_target)
+                return {"marshal": marshal.name, "action": "attack", "target": best_target}
+            else:
+                # Defended — evaluate attack if ratio favorable
+                total_enemy = sum(d.strength for d in defenders)
+                personality = getattr(marshal, 'personality_type', None)
+                personality_name = personality.value if personality else 'balanced'
+                threshold = 0.8 if personality_name == 'aggressive' else 1.2
+                ratio = marshal.strength / total_enemy if total_enemy > 0 else 999
+                if ratio >= threshold:
+                    print(f"  [HOMELAND DEFENSE] {marshal.name} attacking {best_target} (ratio {ratio:.1f} vs threshold {threshold})")
+                    self._recapture_targets_claimed.add(best_target)
+                    return {"marshal": marshal.name, "action": "attack", "target": best_target}
+                return None
+        else:
+            # 2-3 hops away — move toward it
+            # Find best adjacent region that reduces distance
+            best_step = None
+            best_step_score = -999
+            visited = getattr(self, '_marshal_visited_locations', {}).get(marshal.name, set())
+
+            for adj_name in marshal_region.adjacent_regions:
+                if adj_name in visited:
+                    continue
+                # Don't move into enemy-occupied region
+                enemies_there = [m for m in world.marshals.values()
+                                if m.location == adj_name and m.strength > 0 and m.nation != nation]
+                if enemies_there:
+                    continue
+                adj_dist = world.get_distance(adj_name, best_target)
+                if adj_dist >= best_dist:
+                    continue  # Must reduce distance
+                score = (best_dist - adj_dist) * 1000
+                # Prefer friendly territory
+                adj_region = world.get_region(adj_name)
+                if adj_region and adj_region.controller == nation:
+                    score += 10
+                if score > best_step_score:
+                    best_step_score = score
+                    best_step = adj_name
+
+            if best_step:
+                print(f"  [HOMELAND DEFENSE] {marshal.name} moving toward lost {best_target} via {best_step} (dist {best_dist}->{best_dist-1})")
+                self._recapture_targets_claimed.add(best_target)
+                return {"marshal": marshal.name, "action": "move", "target": best_step}
+
+        return None
 
     def _find_undefended_capture(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
         """
@@ -3103,6 +3277,25 @@ class EnemyAI:
                             "action": "move",
                             "target": best_dest
                         }
+
+                    # Balance patch: Fallback when no distance-reducing move exists.
+                    # Pick any safe adjacent friendly region to avoid dead-end stagnation.
+                    if stagnation >= 2:
+                        for adj_name in marshal_region.adjacent_regions:
+                            if adj_name in visited:
+                                continue
+                            enemies_there = [m for m in world.get_marshals_in_region(adj_name)
+                                            if m.nation != nation and m.strength > 0]
+                            if enemies_there:
+                                continue
+                            adj_region = world.get_region(adj_name)
+                            if adj_region and adj_region.controller == nation:
+                                ai_debug(f"    P7: Cautious fallback to friendly {adj_name} (stagnation={stagnation})")
+                                return {
+                                    "marshal": marshal.name,
+                                    "action": "move",
+                                    "target": adj_name
+                                }
 
         return None
 

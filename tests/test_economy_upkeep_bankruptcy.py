@@ -9,9 +9,7 @@ Tests:
 - Serialization roundtrip
 """
 
-import pytest
 from backend.models.world_state import WorldState
-from backend.models.marshal import Marshal
 from backend.commands.executor import CommandExecutor, ADMIN_ACTIONS
 
 
@@ -91,17 +89,19 @@ class TestUpkeepCalculation:
     def test_upkeep_multiple_marshals(self):
         """Sum of individual upkeeps for all French marshals."""
         world = fresh_world()
-        # Default French marshals: Ney 72000, Davout 48000, Grouchy 33000, Drouot 25000
-        # (72000//1000)*5 + (48000//1000)*5 + (33000//1000)*5 + (25000//1000)*5 = 360 + 240 + 165 + 125 = 890
+        # Default French marshals: Ney 72000, Davout 48000, Grouchy 28000, Drouot 25000
+        # (72000//1000)*5 + (48000//1000)*5 + (28000//1000)*5 + (25000//1000)*5 = 360 + 240 + 140 + 125 = 865
+        # Balance patch: Grouchy 28k
         result = world.calculate_turn_upkeep("France")
-        assert result["total"] == 890
+        assert result["total"] == 865
 
     def test_upkeep_non_player_nation(self):
         """Can calculate upkeep for Britain."""
         world = fresh_world()
-        # Wellington 68000, Uxbridge 18000 -> (68*5) + (18*5) = 340 + 90 = 430
+        # Wellington 52000, Uxbridge 18000 -> (52*5) + (18*5) = 260 + 90 = 350
+        # Balance patch: Wellington 52k
         result = world.calculate_turn_upkeep("Britain")
-        assert result["total"] == 430
+        assert result["total"] == 350
 
     def test_upkeep_nation_with_no_marshals(self):
         """Nation with no marshals -> 0 upkeep."""
@@ -130,9 +130,10 @@ class TestUpkeepCalculation:
         """Upkeep halved when nation is bankrupt."""
         world = fresh_world()
         world.nation_bankruptcy_turns["France"] = 1
-        # Normal upkeep would be 890 for default French marshals (Ney+Davout+Grouchy+Drouot)
+        # Normal upkeep would be 865 for default French marshals (Ney+Davout+Grouchy+Drouot)
+        # Balance patch: Grouchy 28k
         result = world.calculate_turn_upkeep("France")
-        assert result["total"] == 890 // 2  # 445
+        assert result["total"] == 865 // 2  # 432
         assert result["halved"] is True
 
     def test_upkeep_not_halved_when_solvent(self):

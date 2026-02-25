@@ -85,22 +85,26 @@ class WorldState:
         self.marshals.update(create_starting_marshals())  # Add French marshals
         self.marshals.update(create_enemy_marshals())  # Add enemy marshals
 
-        # Set up initial control
+        # Nation starting regions — tracks original territory for homeland defense AI
+        # Populated by _setup_initial_control() below
+        self.nation_starting_regions: Dict[str, list] = {}
+
+        # Set up initial control (also populates nation_starting_regions)
         self._setup_initial_control()
 
         # Game state - ALL INTEGERS
         self.current_turn: int = 1
         self.max_turns: int = 40
-        # Phase 6.2 Audit Fix #1: Starting gold adjusted for Coalition viability
-        # Post-territory-expansion economics (5g upkeep per 1000 troops):
-        #   France:  income 850, upkeep 765 (Ney 72k + Davout 48k + Grouchy 33k), net +85.
-        #            Admin AP bonus (150g if unused) → net +235. Comfortable.
+        # Balance patch: Economy rebalanced for 4-marshal France (includes Drouot)
+        # Economics (5g upkeep per 1000 troops):
+        #   France:  income 850, upkeep 865 (Ney 72k + Davout 48k + Grouchy 28k + Drouot 25k), net -15.
+        #            Admin AP bonus (150g if unused) → net +135. Manageable.
         #   Britain: income 350 (Netherlands+Waterloo+Milan+Geneva), upkeep 430, net -80.
         #            Admin AP bonus → net +70. 1500 starting gold provides buffer.
-        #   Prussia: income 400 (Rhine+Bavaria+Vienna), upkeep 500, net -100.
-        #            Admin AP bonus → net +50. 800 starting gold provides buffer.
+        #   Prussia: income 400 (Rhine+Bavaria+Vienna), upkeep 600, net -200.
+        #            Admin AP bonus → net -50. 800 gold + bankruptcy mercy stabilizes.
         self.nation_gold: Dict[str, int] = {
-            "France": 600,
+            "France": 800,       # Balance patch: was 600, raised for 5-turn buffer
             "Britain": 1500,
             "Prussia": 800,
         }
@@ -740,6 +744,13 @@ class WorldState:
         for region in self.regions.values():
             if region.is_capital:
                 region.garrison_strength = 15000
+
+        # Record starting regions for each nation (used by AI homeland defense)
+        starting_map: Dict[str, list] = {}
+        for region in self.regions.values():
+            if region.controller:
+                starting_map.setdefault(region.controller, []).append(region.name)
+        self.nation_starting_regions = starting_map
 
     # ========================================
     # REGION QUERIES (Generic, works for any nation)
@@ -1568,6 +1579,15 @@ class WorldState:
 
         return 999  # Not reachable
 
+    def is_enemy_nearby(self, region_name: str, nation: str, max_distance: int = 2) -> bool:
+        """Check if any enemy marshal is within max_distance of the given region."""
+        for marshal in self.marshals.values():
+            if marshal.nation != nation and marshal.strength > 0:
+                dist = self.get_distance(region_name, marshal.location)
+                if dist <= max_distance:
+                    return True
+        return False
+
     # ========================================
     # BATTLE TRACKING (Phase 5.2 - cannon fire detection)
     # ========================================
@@ -2165,12 +2185,9 @@ class WorldState:
                 if cap <= 0 or total <= cap:
                     continue
                 excess_ratio = (total - cap) / cap
-                if excess_ratio <= 0.25:
-                    attrition = 0.01
-                elif excess_ratio <= 0.50:
-                    attrition = 0.03
-                else:
-                    attrition = 0.05
+                # Balance patch: continuous formula replaces hard tiers
+                # Scales smoothly from 0% to 3% cap, avoids cliff effects
+                attrition = min(0.03, excess_ratio * 0.015)
                 losses = int(m.strength * attrition)
                 if losses > 0:
                     m.strength = max(0, m.strength - losses)
@@ -2492,6 +2509,7 @@ class WorldState:
             "gold_spent_this_turn": self.gold_spent_this_turn.copy(),
 
             # ═══════ ENEMY AI ═══════
+            "nation_starting_regions": {k: list(v) for k, v in self.nation_starting_regions.items()},
             "ai_stagnation_turns": self.ai_stagnation_turns.copy(),
             "ai_failed_action_cooldowns": {k: v.copy() for k, v in self.ai_failed_action_cooldowns.items()},
             "ai_refortify_cooldown": self.ai_refortify_cooldown.copy(),
@@ -2612,6 +2630,7 @@ class WorldState:
         world.gold_spent_this_turn = data.get("gold_spent_this_turn", {}).copy()
 
         # ═══════ ENEMY AI ═══════
+        world.nation_starting_regions = {k: list(v) for k, v in data.get("nation_starting_regions", {}).items()}
         world.ai_stagnation_turns = data.get("ai_stagnation_turns", {}).copy()
         world.ai_failed_action_cooldowns = {k: v.copy() for k, v in data.get("ai_failed_action_cooldowns", {}).items()}
         world.ai_refortify_cooldown = data.get("ai_refortify_cooldown", {}).copy()

@@ -7,9 +7,7 @@ Covers: mixed nations same region, neutral regions, controller changes, edge cas
 Run with: pytest tests/test_home_territory_supply.py -v
 """
 
-import pytest
 from backend.models.world_state import WorldState
-from backend.models.marshal import Marshal
 
 
 class TestHomeSupplyBonusBasic:
@@ -31,14 +29,14 @@ class TestHomeSupplyBonusBasic:
 
     def test_home_territory_no_attrition_under_15x_cap(self):
         """Marshal at home should use 1.5x capacity — no attrition if within that."""
-        # Belgium: town, plains. Base capacity = 20000 * 1.0 = 20000
-        # Home 1.5x = 30000
+        # Belgium: town, plains. Base capacity = 25000 * 1.0 = 25000
+        # Home 1.5x = 37500
         belgium = self.world.get_region("Belgium")
         belgium.controller = "France"
 
         ney = self.world.marshals["Ney"]
         ney.location = "Belgium"
-        ney.strength = 25000  # Over base 20k but under 1.5x = 30k
+        ney.strength = 30000  # Over base 25k but under 1.5x = 37500
 
         events = self.world.process_supply_attrition()
         ney_events = [e for e in events if e.get("marshal") == "Ney"]
@@ -51,7 +49,7 @@ class TestHomeSupplyBonusBasic:
 
         ney = self.world.marshals["Ney"]
         ney.location = "Belgium"
-        ney.strength = 25000  # Over base 20k
+        ney.strength = 30000  # Over base 25k
 
         events = self.world.process_supply_attrition()
         ney_events = [e for e in events if e.get("marshal") == "Ney"]
@@ -59,21 +57,20 @@ class TestHomeSupplyBonusBasic:
 
     def test_home_vs_away_differential(self):
         """Same region, same troop count — invader should take more attrition."""
-        # Test invader
+        # Test invader — need strength > base cap (25000) to trigger attrition
         belgium = self.world.get_region("Belgium")
         belgium.controller = "Britain"
 
         ney = self.world.marshals["Ney"]
         ney.location = "Belgium"
-        ney.strength = 25000
-        ney_original = ney.strength
+        ney.strength = 40000  # Over base 25k (away) and over home 37500 (home)
 
         events = self.world.process_supply_attrition()
         ney_events = [e for e in events if e.get("marshal") == "Ney"]
         invader_losses = sum(e["losses"] for e in ney_events)
 
         # Reset and test defender
-        ney.strength = 25000
+        ney.strength = 40000
         belgium.controller = "France"
 
         events2 = self.world.process_supply_attrition()
@@ -115,9 +112,9 @@ class TestMixedNationsSameRegion:
         wellington.location = "Belgium"
         wellington.strength = 15000
 
-        # Total = 30000, base cap = 20000, home cap = 30000
-        # Ney (home): total 30000 <= home cap 30000 -> no attrition
-        # Wellington (away): total 30000 > base cap 20000, excess = 50% -> 3% attrition
+        # Total = 30000, base cap = 25000, home cap = 37500
+        # Ney (home): total 30000 <= home cap 37500 -> no attrition
+        # Wellington (away): total 30000 > base cap 25000, excess_ratio = 0.2 -> continuous attrition
         events = self.world.process_supply_attrition()
 
         ney_events = [e for e in events if e.get("marshal") == "Ney"]
@@ -139,8 +136,8 @@ class TestMixedNationsSameRegion:
         wellington.location = "Belgium"
         wellington.strength = 15000
 
-        # Total = 30000, base cap = 20000 for both
-        # Both excess 50% -> 3% attrition each
+        # Total = 30000, base cap = 25000 for both
+        # Both excess_ratio = 0.2 -> continuous attrition each
         events = self.world.process_supply_attrition()
 
         ney_events = [e for e in events if e.get("marshal") == "Ney"]
@@ -150,8 +147,8 @@ class TestMixedNationsSameRegion:
         assert len(wellington_events) > 0
 
 
-class TestSupplyAttritionTiers:
-    """Test the three attrition tiers with home territory bonus."""
+class TestSupplyAttritionContinuous:
+    """Test the continuous attrition formula with home territory bonus."""
 
     def setup_method(self):
         self.world = WorldState()
@@ -159,68 +156,73 @@ class TestSupplyAttritionTiers:
             m.location = "Paris"
             m.strength = 5000
 
-    def test_tier1_1pct_attrition(self):
-        """0-25% excess over capacity -> 1% attrition."""
-        # Belgium base cap = 20000. We want 0-25% excess = 20001 to 25000
-        belgium = self.world.get_region("Belgium")
-        belgium.controller = "Britain"  # Away territory for French
-
-        ney = self.world.marshals["Ney"]
-        ney.location = "Belgium"
-        ney.strength = 24000  # 20% excess (4000/20000)
-
-        events = self.world.process_supply_attrition()
-        ney_events = [e for e in events if e.get("marshal") == "Ney"]
-        assert len(ney_events) == 1
-        # 1% of 24000 = 240
-        assert ney_events[0]["losses"] == 240
-
-    def test_tier2_3pct_attrition(self):
-        """25-50% excess over capacity -> 3% attrition."""
+    def test_small_excess_continuous_attrition(self):
+        """Small excess over capacity: continuous formula scales smoothly."""
+        # Belgium base cap = 25000 (away territory for French)
         belgium = self.world.get_region("Belgium")
         belgium.controller = "Britain"
 
         ney = self.world.marshals["Ney"]
         ney.location = "Belgium"
-        ney.strength = 28000  # 40% excess (8000/20000)
+        ney.strength = 30000  # excess_ratio = (30000-25000)/25000 = 0.2
+        # attrition = min(0.03, 0.2 * 0.015) = 0.003
+        # losses = int(30000 * 0.003) = 90
 
         events = self.world.process_supply_attrition()
         ney_events = [e for e in events if e.get("marshal") == "Ney"]
         assert len(ney_events) == 1
-        # 3% of 28000 = 840
-        assert ney_events[0]["losses"] == 840
+        assert ney_events[0]["losses"] == 90
 
-    def test_tier3_5pct_attrition(self):
-        """>50% excess over capacity -> 5% attrition."""
+    def test_moderate_excess_continuous_attrition(self):
+        """Moderate excess: attrition scales proportionally."""
         belgium = self.world.get_region("Belgium")
         belgium.controller = "Britain"
 
         ney = self.world.marshals["Ney"]
         ney.location = "Belgium"
-        ney.strength = 35000  # 75% excess (15000/20000)
+        ney.strength = 40000  # excess_ratio = (40000-25000)/25000 = 0.6
+        # attrition = min(0.03, 0.6 * 0.015) = 0.009
+        # losses = int(40000 * 0.009) = 360
 
         events = self.world.process_supply_attrition()
         ney_events = [e for e in events if e.get("marshal") == "Ney"]
         assert len(ney_events) == 1
-        # 5% of 35000 = 1750
-        assert ney_events[0]["losses"] == 1750
+        assert ney_events[0]["losses"] == 360
 
-    def test_home_territory_shifts_tier_down(self):
-        """Home territory bonus should shift excess calculation down a tier."""
-        # Belgium base cap = 20000, home cap = 30000
+    def test_severe_excess_hits_attrition_cap(self):
+        """Extreme excess hits the 3% attrition cap."""
+        belgium = self.world.get_region("Belgium")
+        belgium.controller = "Britain"
+
+        ney = self.world.marshals["Ney"]
+        ney.location = "Belgium"
+        ney.strength = 80000  # excess_ratio = (80000-25000)/25000 = 2.2
+        # attrition = min(0.03, 2.2 * 0.015) = 0.03 (capped)
+        # losses = int(80000 * 0.03) = 2400
+
+        events = self.world.process_supply_attrition()
+        ney_events = [e for e in events if e.get("marshal") == "Ney"]
+        assert len(ney_events) == 1
+        assert ney_events[0]["losses"] == 2400
+
+    def test_home_territory_reduces_attrition(self):
+        """Home territory 1.5x bonus reduces attrition vs away territory."""
+        # Belgium base cap = 25000, home cap = 37500
         belgium = self.world.get_region("Belgium")
         belgium.controller = "France"
 
         ney = self.world.marshals["Ney"]
         ney.location = "Belgium"
-        ney.strength = 35000  # Away: 75% excess -> tier 3 (5%)
-        # Home: total 35000 vs cap 30000 = 16.7% excess -> tier 1 (1%)
+        ney.strength = 45000
+        # Home: excess_ratio = (45000-37500)/37500 = 0.2
+        # attrition = min(0.03, 0.2 * 0.015) = 0.003
+        # losses = int(45000 * 0.003) = 135
+        # (Away would be: excess_ratio = 0.8, attrition = 0.012, losses = 540)
 
         events = self.world.process_supply_attrition()
         ney_events = [e for e in events if e.get("marshal") == "Ney"]
         assert len(ney_events) == 1
-        # 1% of 35000 = 350 (home territory), NOT 5% = 1750
-        assert ney_events[0]["losses"] == 350
+        assert ney_events[0]["losses"] == 135
 
     def test_no_attrition_under_capacity(self):
         """Under capacity -> 0 attrition regardless of territory."""
@@ -229,7 +231,7 @@ class TestSupplyAttritionTiers:
 
         ney = self.world.marshals["Ney"]
         ney.location = "Belgium"
-        ney.strength = 15000  # Under 20k base cap
+        ney.strength = 20000  # Under 25k base cap
 
         events = self.world.process_supply_attrition()
         ney_events = [e for e in events if e.get("marshal") == "Ney"]

@@ -185,9 +185,9 @@ class TestPerNationGold:
     """Tests for nation_gold dict and gold convenience property."""
 
     def test_starting_gold_france(self):
-        """France starts with 600 gold."""
+        """France starts with 800 gold."""  # Balance patch: France 800
         world = WorldState()
-        assert world.nation_gold["France"] == 600
+        assert world.nation_gold["France"] == 800  # Balance patch: France 800
 
     def test_starting_gold_britain(self):
         """Britain starts with 1500 gold."""
@@ -202,7 +202,7 @@ class TestPerNationGold:
     def test_gold_property_reads_player_nation(self):
         """world.gold returns player nation's gold."""
         world = WorldState(player_nation="France")
-        assert world.gold == 600
+        assert world.gold == 800  # Balance patch: France 800
 
     def test_gold_property_writes_player_nation(self):
         """world.gold = X writes to player nation's gold."""
@@ -243,7 +243,7 @@ class TestNationGoldSerialization:
         world = WorldState()
         d = world.to_dict()
         assert "nation_gold" in d
-        assert d["nation_gold"]["France"] == 600
+        assert d["nation_gold"]["France"] == 800  # Balance patch: France 800
         assert d["nation_gold"]["Britain"] == 1500
         assert d["nation_gold"]["Prussia"] == 800
 

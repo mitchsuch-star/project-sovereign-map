@@ -135,6 +135,7 @@ The AI evaluates each marshal and assigns a **priority score** (lower = more urg
 | P3 | Threat Response / Attack | 75 | Meets personality threshold |
 | P3.25 | Counter-punch | — | Cautious: free attack after defense |
 | P3.5 | Fortification Check | 77 | Unfortify if opportunity exists |
+| P3.7 | Homeland Defense | 77 | Nation has lost originally-controlled regions — redirect nearest marshal to recapture |
 | P4 | Attack (standard) | 75 | Valid target + meets threshold |
 | P4.25 | Garrison Assault | 77 | Adjacent garrisoned capital — strength ratio vs threshold |
 | P4.5 | Capture Undefended | 80 | Adjacent undefended enemy region (skips garrisoned capitals) |
@@ -261,6 +262,10 @@ Triggered when a stronger enemy is adjacent.
 **AI Behavior by Personality:**
 - **Cautious:** Switch to defensive stance, then fortify
 - **Aggressive:** May still attack (handled in P4)
+
+### Priority 3.7: Homeland Defense
+
+When a nation has lost regions it originally controlled (tracked via `world.nation_starting_regions`), the nearest available marshal is redirected to recapture. Claimed targets are tracked in `_homeland_recapture_targets` to prevent multiple marshals converging on the same region.
 
 ### Priority 4: Attack Opportunity
 
@@ -606,6 +611,7 @@ Prevents marshals getting stuck doing nothing. Persisted on `world.ai_stagnation
 
 **Resets on:** Attack (win/lose), capture region, move toward enemy, consolidation move.
 **NOT meaningful:** defend, drill, wait.
+**Stagnation fix:** Fortify only counts as meaningful (resets stagnation) if an enemy is within 2 regions. Fortifying with no nearby threat is treated as stagnation.
 
 ### Re-Fortify Cooldown
 
@@ -627,6 +633,8 @@ Cautious AI marshals (Wellington, Blucher) now advance toward the nearest enemy 
 3. Stagnation counter >= 1
 
 This prevents the cautious AI from camping indefinitely. The marshal finds an adjacent region that is closer to the nearest enemy and moves there. This is evaluated during P7 (Strategic Movement).
+
+**Fallback:** When no distance-reducing move exists and stagnation >= 2, the marshal falls back to any safe adjacent friendly region rather than staying stuck. This handles map topologies where the shortest path requires moving laterally first.
 
 ### Garrison Assault (P4.25)
 
@@ -840,4 +848,4 @@ for r in results:
 ---
 
 *Last updated: February 2026*
-*Recent additions: P4.6 coordinated attack, P4.75 hostile exclusion, P4.76 co-location persistence, P4.77 cross-nation adjacency, P4.78 defensive positioning, +8% coordination estimate, artillery stagnation override*
+*Recent additions: P3.7 homeland defense, P4.6 coordinated attack, P4.75 hostile exclusion, P4.76 co-location persistence, P4.77 cross-nation adjacency, P4.78 defensive positioning, +8% coordination estimate, artillery stagnation override, stagnation fortify fix, cautious advance fallback*

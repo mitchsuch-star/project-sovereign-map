@@ -22,8 +22,8 @@ A future save/load system should use this as the specification.
   "player_nation": "France",
   "current_turn": 1,
   "max_turns": 40,
-  "gold": 600,
-  "nation_gold": {"France": 600, "Britain": 800, "Prussia": 300},
+  "gold": 800,
+  "nation_gold": {"France": 800, "Britain": 800, "Prussia": 300},
   "manpower_pools": {
     "France": {"infantry": 80000, "cavalry": 15000, "artillery": 10000},
     "Britain": {"infantry": 50000, "cavalry": 8000, "artillery": 5000},
@@ -69,6 +69,12 @@ A future save/load system should use this as the specification.
 
   "coordination_tutorial_shown": false,
 
+  "nation_starting_regions": {
+    "France": ["Paris", "Lyon", "Brittany", "Bordeaux", "Marseille"],
+    "Britain": ["London", "Waterloo"],
+    "Prussia": ["Berlin", "Netherlands", "Rhine", "Cologne", "Hamburg"]
+  },
+
   "last_morning_dispatch": {},
 
   "intel": {
@@ -86,8 +92,8 @@ A future save/load system should use this as the specification.
 | `player_nation` | string | "France" | Nation controlled by player |
 | `current_turn` | int | 1 | Current turn number |
 | `max_turns` | int | 40 | Maximum turns before game ends |
-| `gold` | int | 600 | Player's treasury (backward compat, reads from nation_gold) |
-| `nation_gold` | dict | {"France": 600, ...} | Per-nation treasury |
+| `gold` | int | 800 | Player's treasury (backward compat, reads from nation_gold) |
+| `nation_gold` | dict | {"France": 800, ...} | Per-nation treasury |
 | `manpower_pools` | dict | DEFAULT_MANPOWER_POOLS | Per-nation infantry/cavalry/artillery reserve pools |
 | `game_over` | bool | false | Whether game has ended |
 | `victory` | string\|null | null | "victory", "defeat", or null |
@@ -121,6 +127,7 @@ A future save/load system should use this as the specification.
 | `eliminated_nations_notified` | list | [] | Nation names already notified as eliminated. Prevents per-turn spam. Serialized as list, deserialized to set. |
 | `last_morning_dispatch` | dict | {} | Last morning dispatch dict for dispatch re-read screen (Session A). Stored by `build_morning_dispatch()`. Contains turn, situation, marshals, intelligence, turn_events, berthier_note. All primitives, no circular refs. |
 | `coordination_tutorial_shown` | bool | false | Whether the first-time coordination tutorial has been shown (Session 66). Set to true after first player combined arms attack. |
+| `nation_starting_regions` | Dict[str, list] | {} | Starting regions per nation at game start, used by AI homeland defense. Key: nation name, Value: list of region names. Empty dict for legacy saves. |
 | `intel` | dict | {} | Map of region_name -> RegionIntel. Fog of war intel store. Empty dict for backward compat (old saves populate via `calculate_visibility()` on load). |
 
 ---

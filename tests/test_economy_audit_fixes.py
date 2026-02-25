@@ -12,8 +12,6 @@ Covers:
 
 import pytest
 from backend.models.world_state import WorldState
-from backend.models.region import Region, REGIONS_DATA, BUILDING_TYPES
-from backend.models.marshal import Marshal
 from backend.commands.executor import CommandExecutor
 from backend.ai.enemy_ai import EnemyAI
 
@@ -50,9 +48,9 @@ class TestCoalitionTerritories:
         assert world.nation_gold["Prussia"] == 800
 
     def test_france_starting_gold_unchanged(self):
-        """France starting gold unchanged at 600."""
+        """France starting gold unchanged at 800."""  # Balance patch: France 800
         world = make_world()
-        assert world.nation_gold["France"] == 600
+        assert world.nation_gold["France"] == 800  # Balance patch: France 800
 
     def test_britain_controls_milan(self):
         """Milan is now British-controlled (was Neutral)."""

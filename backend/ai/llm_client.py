@@ -605,16 +605,17 @@ class LLMClient:
             action = "drill"
         # Stance system (Phase 2.7) - Check for stance-related commands
         # Supports: "Ney aggressive", "go aggressive", "aggressive stance", "be aggressive", etc.
-        elif any(kw in command_lower for kw in ["aggressive stance", "go aggressive", "adopt aggressive",
-                                                  "be aggressive", "attack stance", "offensive stance",
-                                                  "take aggressive", "switch to aggressive"]):
+        elif any(kw in command_lower for kw in ["aggressive stance", "stance aggressive", "go aggressive",
+                                                  "adopt aggressive", "be aggressive", "attack stance",
+                                                  "offensive stance", "take aggressive",
+                                                  "switch to aggressive"]):
             action = "stance_change"
-        elif any(kw in command_lower for kw in ["defensive stance", "go defensive", "adopt defensive",
-                                                  "be defensive", "defense stance", "take defensive",
-                                                  "switch to defensive"]):
+        elif any(kw in command_lower for kw in ["defensive stance", "stance defensive", "go defensive",
+                                                  "adopt defensive", "be defensive", "defense stance",
+                                                  "take defensive", "switch to defensive"]):
             action = "stance_change"
-        elif any(kw in command_lower for kw in ["neutral stance", "go neutral", "adopt neutral",
-                                                  "return to neutral", "take neutral",
+        elif any(kw in command_lower for kw in ["neutral stance", "stance neutral", "go neutral",
+                                                  "adopt neutral", "return to neutral", "take neutral",
                                                   "switch to neutral"]):
             action = "stance_change"
         # Simple stance words - "Ney aggressive", "aggressive", "Davout defensive"
@@ -623,8 +624,8 @@ class LLMClient:
             action = "stance_change"
         elif re.search(r'\bdefensive\b', command_lower):
             action = "stance_change"
-        elif re.search(r'\bneutral\b', command_lower) and "stance" not in command_lower:
-            # "neutral" alone (but "neutral stance" already caught above)
+        elif re.search(r'\bneutral\b', command_lower):
+            # "neutral" alone or "stance neutral" (compound phrases already caught above)
             action = "stance_change"
         elif any(kw in command_lower for kw in ["repair ", "fix ", "restore "]):
             action = "repair"

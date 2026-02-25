@@ -1303,7 +1303,7 @@ def create_starting_marshals() -> dict[str, Marshal]:
         "Grouchy": Marshal(
             name="Grouchy",
             location="Belgium",
-            strength=33000,
+            strength=28000,  # Balance patch: was 33000, reduced for economy balance
             personality="literal",
             nation="France",
             movement_range=1,  # Infantry commander
@@ -1414,7 +1414,7 @@ def create_enemy_marshals() -> dict[str, Marshal]:
         "Wellington": Marshal(
             name="Wellington",
             location="Waterloo",
-            strength=68000,
+            strength=52000,  # Balance patch: was 68000, reduced to make beatable by 2-marshal assault
             personality="cautious",
             nation="Britain",
             tactical_skill=10,  # Defensive genius, never lost a battle

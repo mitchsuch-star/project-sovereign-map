@@ -102,7 +102,7 @@ SUPPLY_BY_TYPE = {
     "capital": 50000,
     "major_city": 40000,
     "city": 30000,
-    "town": 20000,
+    "town": 25000,       # Balance patch: was 20000, raised to reduce Belgium chokepoint attrition
     "rural": 15000,
 }
 
