@@ -135,7 +135,7 @@ The AI evaluates each marshal and assigns a **priority score** (lower = more urg
 | P3 | Threat Response / Attack | 75 | Meets personality threshold |
 | P3.25 | Counter-punch | — | Cautious: free attack after defense |
 | P3.5 | Fortification Check | 77 | Unfortify if opportunity exists |
-| P3.7 | Homeland Defense | 77 | Nation has lost originally-controlled regions — redirect nearest marshal to recapture |
+| P3.7 | Homeland Defense | 77 | Nation has lost originally-controlled regions — redirect nearest available marshal to recapture (capital=priority 2, range 6/unlimited, deathball split, enemy pathfinding for capitals) |
 | P4 | Attack (standard) | 75 | Valid target + meets threshold |
 | P4.25 | Garrison Assault | 77 | Adjacent garrisoned capital — strength ratio vs threshold |
 | P4.5 | Capture Undefended | 80 | Adjacent undefended enemy region (skips garrisoned capitals) |
@@ -263,9 +263,24 @@ Triggered when a stronger enemy is adjacent.
 - **Cautious:** Switch to defensive stance, then fortify
 - **Aggressive:** May still attack (handled in P4)
 
-### Priority 3.7: Homeland Defense
+### Priority 3.7: Homeland Defense (Recapture System)
 
-When a nation has lost regions it originally controlled (tracked via `world.nation_starting_regions`), the nearest available marshal is redirected to recapture. Claimed targets are tracked in `_homeland_recapture_targets` to prevent multiple marshals converging on the same region.
+When a nation has lost regions it originally controlled (tracked via `world.nation_starting_regions`), available marshals are redirected to recapture.
+
+**Capital Elevation:** When the nation's capital is lost, homeland defense fires BEFORE P3 threat response at priority 2 (survival-level). This ensures capital recapture is never blocked by cautious marshals fortifying.
+
+**Range:** 6 hops for normal regions, unlimited for capitals (was: 3 hops for all).
+
+**P3 Throttling:** When 2+ regions are lost, only 1 marshal per nation stays on P3 threat defense. The rest fall through to P3.7 homeland recapture, preventing the entire army from turtling while territory is lost.
+
+**Deathball Prevention:** The "someone closer" check now requires the closer marshal to be *available* (not fortified, drilling, broken, or recovering). Marshals track their assigned recapture target (`_recapture_marshal_assignments`) so multiple marshals split across different lost regions instead of all converging on one.
+
+**Enemy Pathfinding:** For capital recapture only, marshals can path through enemy-occupied regions if they have at least 50% of the enemy's strength (P0 engagement handles the fight on arrival). Non-capital recapture still blocks enemy-occupied regions.
+
+**Stagnation Fixes:**
+- Skipped marshals (priority 999) now have their stagnation counter incremented
+- Stagnation breaker returns `wait` instead of `None` (makes marshal visible to tracker)
+- Cautious advance fallback allows non-friendly territory at stagnation >= 3
 
 ### Priority 4: Attack Opportunity
 

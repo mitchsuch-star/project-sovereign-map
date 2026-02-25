@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 24, 2026 (Session 66: Godot UI + Integration Audit)
+> **Last Updated:** February 25, 2026 (AI Recapture + Quality Fixes)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3799** (3799 passed, 3 skipped — verified Feb 24, Session 66 complete) |
+| **Tests Passing** | **3877** (3877 passed, 3 skipped — verified Feb 25, AI Recapture session) |
 
-| **Current Phase** | Phase 7b **IN PROGRESS** (Session 66 complete, remaining: Tactical Triangle, V2b, Jealousy, Gneisenau). Coalition Trigger moved to Phase 8. |
+| **Current Phase** | Phase 7b **IN PROGRESS** (Session 66 complete + AI Recapture hotfix, remaining: Tactical Triangle, V2b, Jealousy, Gneisenau). Coalition Trigger moved to Phase 8. |
 | **Blockers** | V2b, Jealousy need DESIGN GATE approval before coding. Tactical Triangle DESIGN APPROVED (Sessions 67-68). |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -20,7 +20,7 @@
 ## Next Steps
 
 1. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~246 new tests.
-2. **Phase 7b: IN PROGRESS.** Session 66 (Godot UI + Integration Audit) complete. **Next up: Tactical Triangle (Sessions 67-68, DESIGN APPROVED).** See `docs/TACTICAL_TRIANGLE_SPEC.md`. Session 67 = Square Formation (~40 tests), Session 68 = Auto-Bombardment + Overwatch (~45 tests). Remaining after Triangle: V2b (NEEDS DESIGN), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
+2. **Phase 7b: IN PROGRESS.** Session 66 (Godot UI + Integration Audit) complete. AI Recapture hotfix applied (35 new tests). **Next up: Tactical Triangle (Sessions 67-68, DESIGN APPROVED).** See `docs/TACTICAL_TRIANGLE_SPEC.md`. Session 67 = Square Formation (~40 tests), Session 68 = Auto-Bombardment + Overwatch (~45 tests). Remaining after Triangle: V2b (NEEDS DESIGN), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
 3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
 ---
@@ -45,6 +45,22 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7b Sessions
+
+### Feb 25 — AI Recapture + Quality Fixes (Hotfix)
+
+**35 new tests, 3877 total (3 skipped). Fixes AI failure to recapture lost territory ("Southern Bypass" exploit).**
+
+Playtesting revealed the AI fails to recapture lost territory — the player could capture 5+ enemy regions completely unopposed. Seven fixes applied to `enemy_ai.py`:
+
+1. **Capital-Elevated Homeland Defense:** When capital lost, P3.7 fires BEFORE P3 at priority 2 (survival-level). Capital recapture can't be blocked by cautious fortifying.
+2. **Extended Range:** Homeland defense range increased from 3 to 6 hops; unlimited for capitals.
+3. **P3 Throttling:** When 2+ regions lost, only 1 marshal per nation stays on P3 threat defense. Rest fall through to P3.7 recapture.
+4. **Deathball Fix:** "Someone closer" check now requires the closer marshal to be *available* (not fortified/drilling/broken). Marshal→target assignments tracked to split across multiple lost regions.
+5. **Enemy Pathfinding:** Capital recapture allows movement through enemy-occupied regions if marshal has 50%+ of enemy strength.
+6. **Stagnation Fix:** Skipped marshals (priority 999) now increment stagnation. Stagnation breaker returns `wait` instead of `None`.
+7. **Cautious Advance Fix:** At stagnation >= 3, cautious advance fallback allows non-friendly territory (untraps map-edge marshals).
+
+New helpers: `_is_capital_lost()`, `_count_lost_regions()`, `_nation_has_threat_responder()`. New tracking fields: `_recapture_marshal_assignments`, `_threat_responder_assigned`.
 
 ### Feb 24 — Session 66: Godot UI + Integration Audit
 

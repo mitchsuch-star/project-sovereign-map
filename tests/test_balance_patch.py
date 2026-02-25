@@ -328,6 +328,7 @@ class TestHomelandDefenseAI:
         from backend.commands.executor import CommandExecutor
         ai = EnemyAI(CommandExecutor())
         ai._recapture_targets_claimed = set()
+        ai._recapture_marshal_assignments = {}
         ai._marshal_visited_locations = {}
         ai._unfortified_this_turn = set()
 
@@ -346,6 +347,7 @@ class TestHomelandDefenseAI:
         from backend.commands.executor import CommandExecutor
         ai = EnemyAI(CommandExecutor())
         ai._recapture_targets_claimed = set()
+        ai._recapture_marshal_assignments = {}
 
         blucher = world.marshals["Blucher"]
         blucher.location = "Bavaria"
@@ -361,6 +363,7 @@ class TestHomelandDefenseAI:
         from backend.commands.executor import CommandExecutor
         ai = EnemyAI(CommandExecutor())
         ai._recapture_targets_claimed = set()
+        ai._recapture_marshal_assignments = {}
         ai._marshal_visited_locations = {}
 
         blucher = world.marshals["Blucher"]
@@ -373,6 +376,7 @@ class TestHomelandDefenseAI:
         from backend.commands.executor import CommandExecutor
         ai = EnemyAI(CommandExecutor())
         ai._recapture_targets_claimed = {"Rhine"}  # Already claimed
+        ai._recapture_marshal_assignments = {}
         ai._marshal_visited_locations = {}
 
         blucher = world.marshals["Blucher"]
@@ -388,6 +392,7 @@ class TestHomelandDefenseAI:
         from backend.commands.executor import CommandExecutor
         ai = EnemyAI(CommandExecutor())
         ai._recapture_targets_claimed = set()
+        ai._recapture_marshal_assignments = {}
         ai._marshal_visited_locations = {}
 
         # Gneisenau in Bavaria (adjacent to Rhine, dist=1)
@@ -412,6 +417,7 @@ class TestHomelandDefenseAI:
         from backend.commands.executor import CommandExecutor
         ai = EnemyAI(CommandExecutor())
         ai._recapture_targets_claimed = set()
+        ai._recapture_marshal_assignments = {}
         ai._marshal_visited_locations = {}
 
         # Put a weak French marshal in Rhine
@@ -434,6 +440,7 @@ class TestHomelandDefenseAI:
         from backend.commands.executor import CommandExecutor
         ai = EnemyAI(CommandExecutor())
         ai._recapture_targets_claimed = set()
+        ai._recapture_marshal_assignments = {}
         ai._marshal_visited_locations = {}
 
         # Put a strong French marshal in Rhine
@@ -454,6 +461,7 @@ class TestHomelandDefenseAI:
         from backend.commands.executor import CommandExecutor
         ai = EnemyAI(CommandExecutor())
         ai._recapture_targets_claimed = set()
+        ai._recapture_marshal_assignments = {}
         ai._marshal_visited_locations = {"Blucher": set()}
 
         # Blucher in Vienna (2 hops from Rhine: Vienna→Bavaria→Rhine)
@@ -532,6 +540,8 @@ class TestCautiousAdvanceFallback:
         ai._attacked_targets_this_turn = set()
         ai._garrison_placed_this_turn = False
         ai._recapture_targets_claimed = set()
+        ai._recapture_marshal_assignments = {}
+        ai._threat_responder_assigned = set()
         ai._pending_intents = {}
         ai._current_world = world
 

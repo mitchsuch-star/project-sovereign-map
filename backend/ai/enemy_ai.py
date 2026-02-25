@@ -690,6 +690,12 @@ class EnemyAI:
         # Homeland defense: track regions claimed for recapture this turn (prevent duplication)
         self._recapture_targets_claimed: set = set()
 
+        # Homeland defense: track marshal→target assignments (prevents deathball)
+        self._recapture_marshal_assignments: Dict[str, str] = {}
+
+        # Threat response: limit to 1 marshal per nation when 2+ regions lost
+        self._threat_responder_assigned: set = set()
+
         # Get this nation's marshals
         marshals = world.get_marshals_by_nation(nation)
 
@@ -888,6 +894,14 @@ class EnemyAI:
                 else:
                     print(f"  [STAGNATION] {m_name} fortified but no enemy within 2 regions - not meaningful")
 
+        # Track which marshals appeared in results at all (even non-meaningful)
+        marshals_who_acted = set()
+        for r in results:
+            ai_action = r.get("ai_action", {})
+            m_name = ai_action.get("marshal", "") if ai_action else r.get("marshal", "")
+            if m_name:
+                marshals_who_acted.add(m_name)
+
         stagnation_forced = getattr(self, '_unfortified_this_turn', set())
         for m in world.get_marshals_by_nation(nation):
             if m.name in meaningful_actions:
@@ -900,7 +914,14 @@ class EnemyAI:
                     if world.ai_stagnation_turns.get(m.name, 0) > 0:
                         print(f"  [STAGNATION RESET] {m.name} took meaningful action - counter reset")
                     world.ai_stagnation_turns[m.name] = 0
+            elif m.name not in marshals_who_acted:
+                # Marshal was SKIPPED entirely (priority 999) — still counts as idle
+                old = world.ai_stagnation_turns.get(m.name, 0)
+                world.ai_stagnation_turns[m.name] = old + 1
+                if world.ai_stagnation_turns[m.name] >= 2:
+                    print(f"  [STAGNATION] {m.name} SKIPPED (no action) for {world.ai_stagnation_turns[m.name]} turns")
             else:
+                # Took action but not meaningful
                 old = world.ai_stagnation_turns.get(m.name, 0)
                 world.ai_stagnation_turns[m.name] = old + 1
                 if world.ai_stagnation_turns[m.name] >= 2:
@@ -1348,11 +1369,34 @@ class EnemyAI:
         # ─── P3-P4: DEFENSIVE & TACTICAL PRIORITIES ──────────────────────────
 
         # ════════════════════════════════════════════════════════════
+        # CAPITAL RECAPTURE (elevated P3.7 → priority 2)
+        # When the nation has lost its capital, homeland defense fires
+        # BEFORE P3 threat response to ensure capital recapture is
+        # never blocked by cautious marshals fortifying.
+        # ════════════════════════════════════════════════════════════
+        capital_lost = self._is_capital_lost(nation, world)
+        regions_lost = self._count_lost_regions(nation, world)
+
+        if capital_lost:
+            homeland_action = self._find_homeland_defense(marshal, nation, world)
+            if homeland_action:
+                ai_debug(f"  -> P3.7 CAPITAL RECAPTURE (elevated): {homeland_action}")
+                return (homeland_action, 2)  # Priority 2 = survival-level
+
+        # ════════════════════════════════════════════════════════════
         # PRIORITY 3: THREAT RESPONSE
+        # When 2+ regions lost, only 1 marshal per nation stays on P3
+        # defense — the rest fall through to P3.7 homeland defense.
         # ════════════════════════════════════════════════════════════
         threat_action = self._check_threats(marshal, nation, world)
         if threat_action:
-            return (threat_action, 3)
+            if regions_lost >= 2 and self._nation_has_threat_responder(nation):
+                # Already have a threat responder — this marshal should recapture instead
+                ai_debug("  P3: Threat detected but nation already has responder — falling through to P3.7")
+            else:
+                if regions_lost >= 2:
+                    self._threat_responder_assigned.add(nation)
+                return (threat_action, 3)
 
         # ════════════════════════════════════════════════════════════
         # PRIORITY 3.25: COUNTER-PUNCH (FREE ATTACK AFTER DEFENDING)
@@ -1387,6 +1431,8 @@ class EnemyAI:
         # Recapture lost territory the nation started with.
         # Higher priority than opportunistic attacks (P4) but lower
         # than immediate threats (P3) and fortification opportunities (P3.5).
+        # Now reachable for cautious marshals when 2+ regions lost
+        # (P3 only claims 1 threat responder per nation).
         # ════════════════════════════════════════════════════════════
         homeland_action = self._find_homeland_defense(marshal, nation, world)
         if homeland_action:
@@ -2181,13 +2227,31 @@ class EnemyAI:
     # the nearest available marshal to recapture them.
     # ═══════════════════════════════════════════════════════════════════
 
+    def _is_capital_lost(self, nation: str, world: WorldState) -> bool:
+        """Check if this nation has lost its capital region."""
+        starting = world.nation_starting_regions.get(nation, [])
+        for region_name in starting:
+            region = world.get_region(region_name)
+            if region and region.is_capital and region.controller != nation:
+                return True
+        return False
+
+    def _count_lost_regions(self, nation: str, world: WorldState) -> int:
+        """Count how many starting regions this nation has lost."""
+        starting = world.nation_starting_regions.get(nation, [])
+        return sum(1 for r in starting if world.get_region(r) and world.get_region(r).controller != nation)
+
+    def _nation_has_threat_responder(self, nation: str) -> bool:
+        """Check if a marshal from this nation has already been assigned as threat responder this turn."""
+        return nation in self._threat_responder_assigned
+
     def _find_homeland_defense(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
         """
         Check if this marshal should recapture lost homeland territory.
 
         Only fires if:
         - The nation has lost territory it started with
-        - This marshal is the nearest to a lost region (within 3 hops)
+        - This marshal is the nearest to a lost region (within range: 6 for normal, unlimited for capital)
         - The lost region hasn't been claimed by another marshal this turn
         - The marshal isn't engaged/broken/retreating/fortified/drilling
         """
@@ -2218,7 +2282,8 @@ class EnemyAI:
         if not unclaimed_lost:
             return None
 
-        # Find the nearest lost region this marshal can reach (within 3 hops)
+        # Find the nearest lost region this marshal can reach
+        # Range: 6 for normal regions, unlimited for capitals
         marshal_region = world.get_region(marshal.location)
         if not marshal_region:
             return None
@@ -2228,11 +2293,13 @@ class EnemyAI:
         best_value = 0
 
         for lost_name in unclaimed_lost:
-            dist = world.get_distance(marshal.location, lost_name)
-            if dist > 3:
-                continue
             lost_region = world.get_region(lost_name)
-            value = (lost_region.income_value if lost_region else 0) + (100 if lost_region and lost_region.is_capital else 0)
+            is_capital = lost_region and lost_region.is_capital
+            max_range = 999 if is_capital else 6  # Was: 3 for all
+            dist = world.get_distance(marshal.location, lost_name)
+            if dist > max_range:
+                continue
+            value = (lost_region.income_value if lost_region else 0) + (100 if is_capital else 0)
             # Prefer closer, higher-value targets
             if dist < best_dist or (dist == best_dist and value > best_value):
                 best_target = lost_name
@@ -2242,18 +2309,34 @@ class EnemyAI:
         if not best_target:
             return None
 
-        # Check if another marshal from this nation is already closer
+        # Check if another AVAILABLE marshal from this nation is strictly closer
+        # and hasn't already claimed a different target (prevents deathball)
         nation_marshals = world.get_marshals_by_nation(nation)
         my_dist = best_dist
+        someone_closer = False
         for other in nation_marshals:
             if other.name == marshal.name:
                 continue
             if other.strength <= 0:
                 continue
+            # Skip unavailable marshals — they can't actually recapture
+            if getattr(other, 'fortified', False):
+                continue
+            if getattr(other, 'drilling', False) or getattr(other, 'drilling_locked', False):
+                continue
+            if getattr(other, 'broken', False) or getattr(other, 'retreat_recovery', 0) > 0:
+                continue
+            # Only skip if other is STRICTLY closer AND hasn't claimed a different target
             other_dist = world.get_distance(other.location, best_target)
-            if other_dist < my_dist:
-                # Someone else is closer — don't duplicate effort
-                return None
+            assignments = getattr(self, '_recapture_marshal_assignments', {})
+            if other_dist < my_dist and other.name not in assignments:
+                someone_closer = True
+                break
+        if someone_closer:
+            return None
+
+        # Record this marshal's target assignment (prevents deathball)
+        self._recapture_marshal_assignments[marshal.name] = best_target
 
         # Determine action: move toward or attack/capture if adjacent
         if best_dist == 0:
@@ -2296,20 +2379,30 @@ class EnemyAI:
                     return {"marshal": marshal.name, "action": "attack", "target": best_target}
                 return None
         else:
-            # 2-3 hops away — move toward it
+            # 2+ hops away — move toward it
             # Find best adjacent region that reduces distance
             best_step = None
             best_step_score = -999
             visited = getattr(self, '_marshal_visited_locations', {}).get(marshal.name, set())
 
+            # For capital recapture, allow moving through enemy-occupied regions
+            # if marshal is strong enough to fight through (P0 engagement handles the fight)
+            target_region = world.get_region(best_target)
+            is_capital_target = target_region and target_region.is_capital
+
             for adj_name in marshal_region.adjacent_regions:
                 if adj_name in visited:
                     continue
-                # Don't move into enemy-occupied region
+                # Check for enemy-occupied region
                 enemies_there = [m for m in world.marshals.values()
                                 if m.location == adj_name and m.strength > 0 and m.nation != nation]
                 if enemies_there:
-                    continue
+                    if not is_capital_target:
+                        continue  # Normal: skip enemy-occupied
+                    total_enemy = sum(e.strength for e in enemies_there)
+                    if marshal.strength < total_enemy * 0.5:
+                        continue  # Too weak even for desperate march
+                    # Otherwise allow — P0 will handle the fight when we arrive
                 adj_dist = world.get_distance(adj_name, best_target)
                 if adj_dist >= best_dist:
                     continue  # Must reduce distance
@@ -2318,6 +2411,9 @@ class EnemyAI:
                 adj_region = world.get_region(adj_name)
                 if adj_region and adj_region.controller == nation:
                     score += 10
+                # Penalize enemy-occupied routes (prefer safe routes if available)
+                if enemies_there:
+                    score -= 500
                 if score > best_step_score:
                     best_step_score = score
                     best_step = adj_name
@@ -2762,7 +2858,9 @@ class EnemyAI:
                                 "target": enemy.name
                             }
 
-        return None
+        # Stagnation breaker exhausted all options — return wait so the marshal
+        # is visible to the stagnation tracker (None causes it to be skipped)
+        return {"marshal": marshal.name, "action": "wait"}
 
     def _consider_consolidation(self, marshal: Marshal, nation: str, world: WorldState) -> Optional[Dict]:
         """
@@ -3279,7 +3377,8 @@ class EnemyAI:
                         }
 
                     # Balance patch: Fallback when no distance-reducing move exists.
-                    # Pick any safe adjacent friendly region to avoid dead-end stagnation.
+                    # Pick any safe adjacent region to avoid dead-end stagnation.
+                    # At stagnation >= 3, allow ANY safe region (not just friendly).
                     if stagnation >= 2:
                         for adj_name in marshal_region.adjacent_regions:
                             if adj_name in visited:
@@ -3289,8 +3388,11 @@ class EnemyAI:
                             if enemies_there:
                                 continue
                             adj_region = world.get_region(adj_name)
-                            if adj_region and adj_region.controller == nation:
-                                ai_debug(f"    P7: Cautious fallback to friendly {adj_name} (stagnation={stagnation})")
+                            if not adj_region:
+                                continue
+                            # At stagnation >= 3, any safe region is acceptable
+                            if adj_region.controller == nation or stagnation >= 3:
+                                ai_debug(f"    P7: Cautious fallback to {adj_name} (stagnation={stagnation}, friendly={adj_region.controller == nation})")
                                 return {
                                     "marshal": marshal.name,
                                     "action": "move",
