@@ -2641,3 +2641,41 @@ Uses `itertools.permutations(participants, 2)`. 3 marshals = 6 calls. Each direc
 | `backend/commands/executor.py` | Wired into `_execute_attack()` after combat notifications; SUPPORT clearing deferred to after relationship processing |
 | `tests/test_relationship_formula.py` | 34 tests across 9 classes |
 | `tests/test_casualty_distribution.py` | 63 tests (includes W-1 timing + conformance tests) |
+
+## 15. Phase 7 UI Integration (Session 66)
+
+### Coordination Readiness Tooltip (map.gd)
+
+Region tooltips show coordination readiness when 2+ player marshals are co-located:
+- **Combined arms count:** Number of distinct unit types (infantry/cavalry/artillery)
+- **Co-location pairs:** Per-pair status ("dedicated" if ≥2 turns, "X turns" if accumulating)
+
+Marshal tooltips show color-coded relationship lines: Hostile (red), Rival (orange), Professional (white), Friendly (green), Devoted (gold).
+
+### Inline-Dramatic Reinforcement Display (main.gd)
+
+Gold-bordered BBCode blocks for reinforcement arrival (green) and failure (red). Zero new popup types per MULTI_MARSHAL_SPEC §14.
+
+### First-Time Coordination Tutorial
+
+Fires ONCE per campaign when player's marshals achieve combined arms (type_count >= 2) in attack. Tracked by `coordination_tutorial_shown: bool` on WorldState. Displays Berthier's report explaining combined arms bonuses, relationship-based coordination improvement, and proportional casualty sharing.
+
+### Backend Data for Tooltips
+
+`get_game_state_summary()` includes per-player-marshal:
+- `relationships`: dict of marshal_name → {value: int, label: str}
+- `co_location_turns`: dict of ally_name → int (turns co-located)
+
+All values `int()`-wrapped for Godot safety.
+
+### Key Files
+
+| File | What changed |
+|------|-------------|
+| `backend/commands/executor.py` | Tutorial trigger after coordination context calculation |
+| `backend/models/world_state.py` | `coordination_tutorial_shown` field + relationship/co-location in game state summary |
+| `backend/main.py` | `reinforcement_messages` and `coordination_tutorial` passthrough |
+| `godot-client/project-sovereign/scripts/main.gd` | `_display_reinforcement_messages()`, `_display_coordination_tutorial()` |
+| `godot-client/project-sovereign/scenes/map.gd` | Relationship lines in marshal tooltip, coordination readiness in region tooltip |
+| `godot-client/project-sovereign/scripts/enemy_phase_dialog.gd` | Reinforcement messages in enemy phase battles |
+| `tests/test_session66_integration.py` | 29 tests across 7 classes |

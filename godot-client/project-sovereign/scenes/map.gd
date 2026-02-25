@@ -633,6 +633,12 @@ func _draw_tooltip():
 	if artillery:
 		tactical_lines += 1
 
+	# Session 66: Relationships for tooltip
+	var relationships = hovered_marshal.get("relationships", {})
+	var relationship_lines = 0
+	if relationships.size() > 0:
+		relationship_lines = 1 + relationships.size()  # Header + one line per relationship
+
 	# Calculate tooltip height based on whether we have debug info
 	var base_lines = 5  # Name, nation, troops, morale, movement
 	var skills_lines = 0
@@ -645,13 +651,15 @@ func _draw_tooltip():
 	var line_spacing = 16
 	var extra_spacing = 8  # After name and nation sections
 	var padding = 10
-	var tooltip_height = padding * 2 + (base_lines * line_spacing) + (skills_lines * line_spacing) + (debug_lines * line_spacing) + (tactical_lines * line_spacing) + (extra_spacing * 2)
+	var tooltip_height = padding * 2 + (base_lines * line_spacing) + (skills_lines * line_spacing) + (debug_lines * line_spacing) + (tactical_lines * line_spacing) + (relationship_lines * line_spacing) + (extra_spacing * 2)
 	if skills_lines > 0:
 		tooltip_height += extra_spacing  # Extra spacing before skills section
 	if debug_lines > 0:
 		tooltip_height += extra_spacing  # Extra spacing before debug section
 	if tactical_lines > 0:
 		tooltip_height += extra_spacing  # Extra spacing before tactical section
+	if relationship_lines > 0:
+		tooltip_height += extra_spacing  # Extra spacing before relationships section
 
 	# Tooltip dimensions
 	var tooltip_size = Vector2(240, tooltip_height)
@@ -920,6 +928,35 @@ func _draw_tooltip():
 			draw_string(font, Vector2(text_x, text_y + 11), ammo_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, ammo_color)
 			text_y += line_spacing
 
+		# ═══════════════════════════════════════════════════════════
+		# SESSION 66: RELATIONSHIP DISPLAY
+		# Color-coded: Hostile=red, Rival=orange, Professional=white,
+		#              Friendly=green, Devoted=gold
+		# ═══════════════════════════════════════════════════════════
+		if relationships.size() > 0:
+			text_y += extra_spacing
+			draw_string(font, Vector2(text_x, text_y + 11), "Relationships:", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.8, 0.8, 0.8))
+			text_y += line_spacing
+			for rel_name in relationships:
+				var rel_data = relationships[rel_name]
+				var rel_value = int(rel_data.get("value", 0))
+				var rel_label = str(rel_data.get("label", "Professional"))
+				var rel_color = Color.WHITE  # Professional default
+				match rel_value:
+					-2:
+						rel_color = Color(0.9, 0.3, 0.3)  # Red — Hostile
+					-1:
+						rel_color = Color(0.9, 0.6, 0.3)  # Orange — Rival
+					0:
+						rel_color = Color(0.8, 0.8, 0.8)  # White — Professional
+					1:
+						rel_color = Color(0.4, 0.9, 0.4)  # Green — Friendly
+					2:
+						rel_color = Color(1.0, 0.84, 0.0)  # Gold — Devoted
+				var rel_text = "  " + rel_name + ": " + rel_label + " (" + str(rel_value) + ")"
+				draw_string(font, Vector2(text_x, text_y + 11), rel_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, rel_color)
+				text_y += line_spacing
+
 func _format_number(num) -> String:
 	"""Format number with comma separators (72000 → 72,000)."""
 	var num_str = str(int(num))
@@ -1002,11 +1039,27 @@ func _draw_region_tooltip():
 		if construction != null:
 			line_count += 1
 
+	# Session 66: Count coordination readiness lines
+	var coord_lines = 0
+	var coord_marshals_in_region = data.get("marshals", [])
+	var coord_friendly_count = 0
+	for cm in coord_marshals_in_region:
+		if cm.get("relationships", {}).size() > 0:
+			coord_friendly_count += 1
+	if coord_friendly_count >= 2:
+		coord_lines += 2  # Header + combined arms line
+		# Pairs: n*(n-1)/2
+		var pairs = coord_friendly_count * (coord_friendly_count - 1) / 2
+		coord_lines += int(pairs)
+		line_count += coord_lines
+
 	var line_spacing = 16
 	var padding = 10
 	var extra_spacing = 8
 	var tooltip_height = padding * 2 + (line_count * line_spacing) + extra_spacing * 2
-	var tooltip_size = Vector2(260, tooltip_height)
+	if coord_lines > 0:
+		tooltip_height += extra_spacing  # Extra spacing before coordination section
+	var tooltip_size = Vector2(280 if coord_lines > 0 else 260, tooltip_height)
 	var tooltip_pos = mouse_position + Vector2(15, 15)
 
 	# Draw panel — slightly different tint for non-full visibility
@@ -1123,6 +1176,85 @@ func _draw_region_tooltip():
 			var c_color = Color(0.85, 0.75, 0.4)  # Yellow
 			draw_string(font, Vector2(text_x, text_y + 11), c_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, c_color)
 			text_y += line_spacing
+
+	# ═══════════════════════════════════════════════════════════
+	# SESSION 66: COORDINATION READINESS
+	# Show when 2+ friendly marshals in region
+	# ═══════════════════════════════════════════════════════════
+	var marshals_in_region = data.get("marshals", [])
+	var friendly_marshals: Array = []
+	for m in marshals_in_region:
+		if m.get("relationships", {}).size() > 0:  # Player marshals have relationships
+			friendly_marshals.append(m)
+
+	if friendly_marshals.size() >= 2:
+		text_y += extra_spacing
+		draw_string(font, Vector2(text_x, text_y + 11), "COORDINATION READINESS:", HORIZONTAL_ALIGNMENT_LEFT, -1, 11, Color(0.85, 0.75, 0.55))
+		text_y += line_spacing
+
+		# Count unit types present
+		var has_infantry = false
+		var has_cavalry = false
+		var has_artillery = false
+		for m in friendly_marshals:
+			var ts = m.get("tactical_state", {})
+			if ts.get("cavalry", false):
+				has_cavalry = true
+			elif ts.get("artillery", false):
+				has_artillery = true
+			else:
+				has_infantry = true
+
+		var type_count = 0
+		var type_names: Array = []
+		if has_infantry:
+			type_count += 1
+			type_names.append("Inf")
+		if has_cavalry:
+			type_count += 1
+			type_names.append("Cav")
+		if has_artillery:
+			type_count += 1
+			type_names.append("Art")
+
+		var ca_text = "  Combined Arms: " + str(type_count) + "/3 (" + ", ".join(PackedStringArray(type_names)) + ")"
+		var ca_color = Color(0.5, 0.85, 0.5) if type_count >= 2 else Color(0.7, 0.7, 0.7)
+		draw_string(font, Vector2(text_x, text_y + 11), ca_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, ca_color)
+		text_y += line_spacing
+
+		# Show co-location status for each pair
+		for i in range(friendly_marshals.size()):
+			for j in range(i + 1, friendly_marshals.size()):
+				var m_a = friendly_marshals[i]
+				var m_b = friendly_marshals[j]
+				var name_a = str(m_a.get("name", ""))
+				var name_b = str(m_b.get("name", ""))
+
+				# Relationship between them
+				var rels_a = m_a.get("relationships", {})
+				var rel_to_b = rels_a.get(name_b, {})
+				var rel_label = str(rel_to_b.get("label", "Professional"))
+				var rel_val = int(rel_to_b.get("value", 0))
+
+				# Co-location turns
+				var co_loc = m_a.get("co_location_turns", {})
+				var co_turns = int(co_loc.get(name_b, 0))
+				var dedicated = co_turns >= 2
+
+				var pair_color = Color(0.8, 0.8, 0.8)
+				match rel_val:
+					-2: pair_color = Color(0.9, 0.3, 0.3)
+					-1: pair_color = Color(0.9, 0.6, 0.3)
+					1: pair_color = Color(0.4, 0.9, 0.4)
+					2: pair_color = Color(1.0, 0.84, 0.0)
+
+				var pair_text = "  " + name_a + "<>" + name_b + ": " + rel_label
+				if dedicated:
+					pair_text += " [Dedicated]"
+				else:
+					pair_text += " (" + str(co_turns) + " turns)"
+				draw_string(font, Vector2(text_x, text_y + 11), pair_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, pair_color)
+				text_y += line_spacing
 
 func update_region(region_name: String, controller: String, marshal: String = ""):
 	"""Update a region's state (called from backend response)."""

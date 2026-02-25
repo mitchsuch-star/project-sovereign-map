@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 24, 2026 (Gate 4 Fixes: Berthier narrative voice, auto-assign coordination, artillery reinforcement)
+> **Last Updated:** February 24, 2026 (Session 66: Godot UI + Integration Audit)
 
 ---
 
@@ -9,10 +9,10 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3767** (3767 passed, 3 skipped — verified Feb 24, Gate 4 remaining fixes + Berthier reinforcement naming) |
+| **Tests Passing** | **3796** (3796 passed, 3 skipped — verified Feb 24, Session 66 complete) |
 
-| **Current Phase** | Phase 7b **IN PROGRESS** (Session 65 + Gate 4 complete, remaining: S66, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau). |
-| **Blockers** | None |
+| **Current Phase** | Phase 7b **IN PROGRESS** (Session 66 complete, remaining: Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau). |
+| **Blockers** | Tactical Triangle, V2b, Coalition Trigger, Jealousy all need DESIGN GATE approval before coding. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
@@ -20,7 +20,7 @@
 ## Next Steps
 
 1. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~212 new tests.
-2. **Phase 7b: IN PROGRESS.** Session 65 (Full Battle Reports + Berthier Coordination Observations) complete. Next: Godot Tooltips/Tutorial/Integration Audit (S66), Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau Staff Work.
+2. **Phase 7b: IN PROGRESS.** Session 66 (Godot UI + Integration Audit) complete. Remaining: Tactical Triangle (linked group, NEEDS DESIGN), V2b (NEEDS DESIGN), Coalition Trigger (NEEDS DESIGN), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805).
 3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
 ---
@@ -45,6 +45,22 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7b Sessions
+
+### Feb 24 — Session 66: Godot UI + Integration Audit
+
+**29 new tests, 3796 total (3 skipped). UI integration for Phase 7 coordination features + cross-system audit + confidence report.**
+
+- **Coordination readiness tooltip (map.gd):** Region tooltip now shows combined arms count and co-location status (dedicated vs accumulating) for player marshal pairs. Marshal tooltip shows color-coded relationship lines (Hostile=red, Rival=orange, Professional=white, Friendly=green, Devoted=gold).
+- **Inline-dramatic reinforcement display (main.gd):** Gold-bordered BBCode blocks for reinforcement arrival (green) and failure (red). Zero new popup types per MULTI_MARSHAL_SPEC §14.
+- **First-time coordination tutorial (executor.py + world_state.py):** Fires ONCE per campaign on first player combined arms attack (type_count >= 2). Tracked by `coordination_tutorial_shown: bool` on WorldState. Displays Berthier's report explaining combined arms, coordination improvement, and casualty sharing.
+- **Enemy phase reinforcement display (enemy_phase_dialog.gd):** Reinforcement messages shown in enemy phase battle summaries.
+- **Backend data for tooltips (world_state.py):** `get_game_state_summary()` now includes per-player-marshal `relationships` dict (value + label) and `co_location_turns` dict. All values `int()`-wrapped.
+- **API passthrough (main.py):** `reinforcement_messages` and `coordination_tutorial` fields wired through POST /command response.
+- **Reinforcement message polish:** Replaced internal reason codes (`literal_personality`, `fate_intervened`, `low_score`) with Berthier-voice narrative text. Removed raw score/threshold from arrival messages.
+- **Integration audit:** Full cross-system confidence report. All Phase 7 areas scored ≥97%. No bugs found.
+
+**Files modified:** `executor.py` (tutorial trigger), `world_state.py` (field + summary data), `main.py` (passthrough), `main.gd` (reinforcement + tutorial display), `map.gd` (tooltips), `enemy_phase_dialog.gd` (reinforcement display).
+**Files created:** `tests/test_session66_integration.py` (29 tests: 7 classes covering serialization, tutorial trigger, game state summary, reinforcement messages, edge cases, full battle integration, filtered summary).
 
 ### Feb 24 — Gate 4 Remaining Fixes + Berthier Reinforcement Naming
 

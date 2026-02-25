@@ -281,6 +281,12 @@ class WorldState:
         self.last_morning_dispatch: dict = {}
 
         # ============================================================
+        # COORDINATION TUTORIAL (Session 66)
+        # ============================================================
+        # Fires ONCE per campaign: first time player's marshals get combined arms bonus
+        self.coordination_tutorial_shown: bool = False
+
+        # ============================================================
         # FOG OF WAR - Intel tracking per region (Phase 6 Session 33)
         # ============================================================
         # Dict of region_name -> RegionIntel objects
@@ -2517,6 +2523,9 @@ class WorldState:
             # ═══════ MORNING DISPATCH (Session A) ═══════
             "last_morning_dispatch": self.last_morning_dispatch.copy() if self.last_morning_dispatch else {},
 
+            # ═══════ COORDINATION TUTORIAL (Session 66) ═══════
+            "coordination_tutorial_shown": self.coordination_tutorial_shown,
+
             # ═══════ FOG OF WAR (Phase 6 Session 33) ═══════
             "intel": {name: ri.to_dict() for name, ri in self.intel.items()},
         }
@@ -2636,6 +2645,9 @@ class WorldState:
 
         # ═══════ MORNING DISPATCH (Session A) ═══════
         world.last_morning_dispatch = data.get("last_morning_dispatch", {})
+
+        # ═══════ COORDINATION TUTORIAL (Session 66) ═══════
+        world.coordination_tutorial_shown = data.get("coordination_tutorial_shown", False)
 
         # ═══════ FOG OF WAR (Phase 6 Session 33) ═══════
         # Backward compat: old saves have no intel key → empty dict
@@ -2791,6 +2803,24 @@ class WorldState:
                         "artillery": bool(getattr(m, 'artillery', False)),
                         "bombardments_this_turn": int(getattr(m, 'bombardments_this_turn', 0)),
                     }
+
+                    # Session 66: Relationships for tooltip display
+                    relationships = {}
+                    for other_name, other_m in self.marshals.items():
+                        if other_m.nation == self.player_nation and other_name != m.name:
+                            rel_val = m.get_relationship(other_name)
+                            rel_label = Marshal.get_relationship_label(rel_val)
+                            relationships[other_name] = {
+                                "value": int(rel_val),
+                                "label": rel_label,
+                            }
+                    marshal_data["relationships"] = relationships
+
+                    # Session 66: Co-location turns for coordination readiness
+                    co_loc = {}
+                    for ally_name, start_turn in getattr(m, 'co_location_turns', {}).items():
+                        co_loc[ally_name] = int(self.current_turn - start_turn)
+                    marshal_data["co_location_turns"] = co_loc
 
                 marshals_data.append(marshal_data)
 

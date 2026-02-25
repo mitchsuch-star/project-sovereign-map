@@ -633,6 +633,14 @@ def execute_command(request: CommandRequest):
         if result.get("battle_report"):
             response["battle_report"] = result["battle_report"]
 
+        # Reinforcement notification messages (Session 65/66)
+        if result.get("reinforcement_messages"):
+            response["reinforcement_messages"] = result["reinforcement_messages"]
+
+        # First-time coordination tutorial (Session 66)
+        if result.get("coordination_tutorial"):
+            response["coordination_tutorial"] = result["coordination_tutorial"]
+
         # V2a: Include mild concerns for turn log display
         # BUG FIX: Only send mild_concerns from the result dict (end_turn path).
         # Previously, the elif fallback sent world.mild_concerns_this_turn on EVERY

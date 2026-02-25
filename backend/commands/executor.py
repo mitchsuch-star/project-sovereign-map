@@ -4447,17 +4447,46 @@ RETREAT RECOVERY (3 turns):
 
         # Coordination preview removed — narrative observation only (Gate 4).
 
-        # Reinforcement notification messages (Session 65)
+        # ════════════════════════════════════════════════════════════
+        # FIRST-TIME COORDINATION TUTORIAL (Session 66)
+        # Fires ONCE per campaign when player's marshals achieve combined arms.
+        # ════════════════════════════════════════════════════════════
+        if (not world.coordination_tutorial_shown
+                and attacker_coord.get("type_count", 0) >= 2
+                and marshal.nation == world.player_nation):
+            world.coordination_tutorial_shown = True
+            result["coordination_tutorial"] = {
+                "title": "BERTHIER'S REPORT",
+                "message": (
+                    '"Sire, our marshals fight as one corps for the first time! '
+                    'The combined arms of infantry and cavalry proved decisive."'
+                ),
+                "tip": (
+                    "Position different unit types together for combined arms bonuses. "
+                    "Coordination improves with strong relationships between marshals."
+                ),
+                "warning": (
+                    "When marshals coordinate, casualties are shared. "
+                    "All friendly marshals in a battle region take proportional "
+                    "damage — even those not directly targeted."
+                ),
+            }
+
+        # Reinforcement notification messages (Session 65/66)
         reinf_messages = []
         for r in attacker_reinforcements:
             if r.get("arrived"):
                 reinf_messages.append(
-                    f"{r['marshal']} arrived to reinforce {marshal.name}! "
-                    f"(score {int(r.get('score', 0))}, threshold {int(r.get('threshold', 60))})")
+                    f"{r['marshal']}'s forces arrived to reinforce {marshal.name}!")
             else:
                 reason = r.get("reason", "unknown")
-                reinf_messages.append(
-                    f"{r['marshal']} failed to arrive. ({reason})")
+                if reason == "literal_personality":
+                    friendly_reason = f"{r['marshal']} awaits explicit orders and did not march to the sound of the guns."
+                elif reason == "fate_intervened":
+                    friendly_reason = f"{r['marshal']} was nearly in position, but fate intervened at the crucial moment."
+                else:
+                    friendly_reason = f"{r['marshal']} could not reach the battlefield in time."
+                reinf_messages.append(friendly_reason)
         if reinf_messages:
             result["reinforcement_messages"] = reinf_messages
 

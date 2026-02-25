@@ -10,8 +10,8 @@ A future save/load system should use this as the specification.
 ## Version
 
 - **Format version:** 1.0
-- **Last updated:** 2026-02-21
-- **Compatible with:** Phase 6.5 Session A (Top Bar Framework + Dispatch)
+- **Last updated:** 2026-02-24
+- **Compatible with:** Phase 7b Session 66 (Godot UI + Integration Audit)
 
 ## Top-Level Structure (WorldState)
 
@@ -67,6 +67,8 @@ A future save/load system should use this as the specification.
   "last_bankruptcy_notification_tier": 0,
   "eliminated_nations_notified": [],
 
+  "coordination_tutorial_shown": false,
+
   "last_morning_dispatch": {},
 
   "intel": {
@@ -118,6 +120,7 @@ A future save/load system should use this as the specification.
 | `last_bankruptcy_notification_tier` | int | 0 | Last bankruptcy tier for which a notification was fired (0-3). Prevents per-turn spam. Resets to 0 when bankruptcy ends. |
 | `eliminated_nations_notified` | list | [] | Nation names already notified as eliminated. Prevents per-turn spam. Serialized as list, deserialized to set. |
 | `last_morning_dispatch` | dict | {} | Last morning dispatch dict for dispatch re-read screen (Session A). Stored by `build_morning_dispatch()`. Contains turn, situation, marshals, intelligence, turn_events, berthier_note. All primitives, no circular refs. |
+| `coordination_tutorial_shown` | bool | false | Whether the first-time coordination tutorial has been shown (Session 66). Set to true after first player combined arms attack. |
 | `intel` | dict | {} | Map of region_name -> RegionIntel. Fog of war intel store. Empty dict for backward compat (old saves populate via `calculate_visibility()` on load). |
 
 ---

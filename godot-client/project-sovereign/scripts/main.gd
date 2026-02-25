@@ -786,9 +786,17 @@ func _display_result(response):
 			add_output("[color=#" + COLOR_SUCCESS + "]" + message + "[/color]")
 			_show_action_cost(action_info)
 
+	# Reinforcement inline-dramatic display (Session 66) — before Berthier report
+	if response.has("reinforcement_messages"):
+		_display_reinforcement_messages(response.reinforcement_messages)
+
 	# Berthier's After-Action Report — shown after any combat event type
 	if response.has("battle_report"):
 		_display_berthier_report(response.battle_report)
+
+	# First-time coordination tutorial (Session 66)
+	if response.has("coordination_tutorial"):
+		_display_coordination_tutorial(response.coordination_tutorial)
 
 	# Berthier's Bombardment Report — shown after bombardment actions
 	if response.has("bombardment_result"):
@@ -885,6 +893,52 @@ func _display_berthier_report(report: Dictionary):
 	if observation != "":
 		add_output("[color=#" + COLOR_OBSERVATION + "]  Berthier: \"" + observation + "\"[/color]")
 
+	add_output("")
+
+func _display_reinforcement_messages(messages: Array):
+	"""Display reinforcement arrival/failure as gold-bordered inline-dramatic blocks."""
+	var COLOR_REINF_BORDER = "d9c08c"   # Gold border
+	var COLOR_REINF_ARRIVE = "90d890"   # Green for arrivals
+	var COLOR_REINF_FAIL = "cd6b6b"     # Red for failures
+
+	for msg in messages:
+		var text = str(msg)
+		var is_arrival = text.find("arrived") >= 0
+		if is_arrival:
+			add_output("[color=#" + COLOR_REINF_BORDER + "]┌─── REINFORCEMENT ───┐[/color]")
+			add_output("[color=#" + COLOR_REINF_ARRIVE + "]  " + text + "[/color]")
+			add_output("[color=#" + COLOR_REINF_BORDER + "]└─────────────────────┘[/color]")
+		else:
+			add_output("[color=#" + COLOR_REINF_BORDER + "]┌─── REINFORCEMENT ───┐[/color]")
+			add_output("[color=#" + COLOR_REINF_FAIL + "]  " + text + "[/color]")
+			add_output("[color=#" + COLOR_REINF_BORDER + "]└─────────────────────┘[/color]")
+
+func _display_coordination_tutorial(tutorial: Dictionary):
+	"""Display first-time coordination tutorial as gold-bordered inline-dramatic block."""
+	var COLOR_TUTORIAL_BORDER = "d9c08c"  # Gold border
+	var COLOR_TUTORIAL_TITLE = "B8860B"   # Dark goldenrod
+	var COLOR_TUTORIAL_TEXT = "DAA520"     # Goldenrod
+	var COLOR_TUTORIAL_TIP = "8fbc8f"     # Soft green for tips
+	var COLOR_TUTORIAL_WARN = "cd6b6b"    # Muted red for warning
+
+	var title = str(tutorial.get("title", "BERTHIER'S REPORT"))
+	var message = str(tutorial.get("message", ""))
+	var tip = str(tutorial.get("tip", ""))
+	var warning = str(tutorial.get("warning", ""))
+
+	add_output("")
+	add_output("[color=#" + COLOR_TUTORIAL_BORDER + "]┌─────────────────────────────────────────────────┐[/color]")
+	add_output("[color=#" + COLOR_TUTORIAL_TITLE + "]  " + title + "[/color]")
+	add_output("[color=#" + COLOR_TUTORIAL_BORDER + "]  ─────────────────────────────────────────────── [/color]")
+	if message != "":
+		add_output("[color=#" + COLOR_TUTORIAL_TEXT + "]  " + message + "[/color]")
+		add_output("")
+	if tip != "":
+		add_output("[color=#" + COLOR_TUTORIAL_TIP + "]  " + tip + "[/color]")
+		add_output("")
+	if warning != "":
+		add_output("[color=#" + COLOR_TUTORIAL_WARN + "]  " + warning + "[/color]")
+	add_output("[color=#" + COLOR_TUTORIAL_BORDER + "]└─────────────────────────────────────────────────┘[/color]")
 	add_output("")
 
 func _display_bombardment_report(result: Dictionary):

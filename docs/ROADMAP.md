@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** February 22, 2026 (Phase 6.5 UI Audit)
+> **Last Updated:** February 24, 2026 (Phase 7b Session 66)
 
 ---
 
@@ -302,7 +302,7 @@ Items deferred from Phase 7 Core + items that build on coordination data:
 | **63** | **AI enhancements** | P4.6 coordinated attack, P4.75 mod, P4.76 co-location persistence, P4.77 cross-nation, P4.78 defensive positioning. | High | 35 | **COMPLETE** |
 | **65** | **Battle reports & Berthier** | 7 coordination observation categories. Berthier names all reinforcers (arrival/failure/mixed). Full observations. | Medium | 24 | **COMPLETE** |
 | Gate 4 | **Combat path fixes** | general_attack delegation, reinforcer stalemate retreat, auto-assign delegation, artillery no-advance, Berthier narrative voice. | Medium | 23 | **COMPLETE** |
-| **66** | **Godot UI + integration audit** | Tooltips, tutorial inline-dramatic, display formatting, cross-system audit, doc updates. | Medium | ~50 | Deferred |
+| **66** | **Godot UI + integration audit** | Tooltips, tutorial inline-dramatic, display formatting, cross-system audit, doc updates. | Medium | 29 | **COMPLETE** |
 
 **Linked Group — Tactical Triangle Completion (must ship together):**
 

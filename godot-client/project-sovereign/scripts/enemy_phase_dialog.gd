@@ -183,6 +183,14 @@ func _format_action(action: Dictionary) -> String:
 	if action.has("bombardment_result"):
 		result += _format_bombardment_report(action.bombardment_result)
 
+	# Session 66: Reinforcement messages (from coordinated battles)
+	if action.has("reinforcement_messages"):
+		var reinf_msgs = action.get("reinforcement_messages", [])
+		for msg in reinf_msgs:
+			var msg_text = str(msg)
+			var reinf_color = COLOR_SUCCESS if msg_text.find("arrived") >= 0 else COLOR_ERROR
+			result += "[color=#" + reinf_color + "]    " + msg_text + "[/color]\n"
+
 	return result
 
 func _format_battle(event: Dictionary) -> String:
