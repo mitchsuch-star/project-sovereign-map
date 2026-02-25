@@ -306,19 +306,21 @@ Items deferred from Phase 7 Core + items that build on coordination data:
 
 **Linked Group — Tactical Triangle Completion (must ship together):**
 
+**⚠️ DESIGN GATE: All 3 features have open design decisions. DO NOT begin implementation until the user has explicitly approved the full design. See CLAUDE.md "Design Decisions Required" section for the complete list of questions that must be answered first.**
+
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| **Square Formation** | Infantry anti-cavalry stance (-40% cav dmg), vulnerable to artillery (+50%). Completes tactical triangle. | Medium | Deferred |
-| **Artillery SUPPORT auto-bombardment** | Artillery on SUPPORT auto-bombards before supported marshal's combat. Pairs with square formation. | Medium | Deferred |
-| **Artillery Overwatch** | Passive -3% attack debuff on enemies in same region as friendly artillery. | Low | Deferred |
+| **Square Formation** | **Infantry-only** (NOT cavalry like Ney) anti-cavalry stance (-40% cav dmg), vulnerable to artillery (+50%). Completes tactical triangle. Open: mechanic type, AP cost, AI usage, stance interaction, duration. | Medium | Deferred — NEEDS DESIGN |
+| **Artillery SUPPORT auto-bombardment** | Artillery on SUPPORT auto-bombards before supported marshal's combat. Pairs with square formation. Open: auto vs manual, frequency, collateral rules. | Medium | Deferred — NEEDS DESIGN |
+| **Artillery Overwatch** | Passive -3% attack debuff on enemies in same region as friendly artillery. Open: flat vs fog-filtered, stacking, scope. | Low | Deferred — NEEDS DESIGN |
 
 **Other deferred items:**
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| **V2b: Defiance/Vindication** | STRONG/EXTREME concerns trigger defiance. See OBJECTION_V2.md. Scaffolding from V2a ready. | Medium | Deferred |
-| **Jealousy system** | Marshal getting all glory → others resent. Needs multi-marshal battle data from Phase 7. | Medium | Deferred |
-| **Coalition Trigger** | Threat level ticks up → war declarations. Core "France can't steamroll" mechanic. | Medium | Deferred |
+| **V2b: Defiance/Vindication** | STRONG/EXTREME concerns trigger defiance. See OBJECTION_V2.md. Scaffolding from V2a ready. Open: hard cap, failure consequence, decay model, aggressive escalation. | Medium | Deferred — NEEDS DESIGN |
+| **Jealousy system** | Marshal getting all glory → others resent. Needs multi-marshal battle data from Phase 7. Open: trigger threshold, consequence type, duration, objection interaction. | Medium | Deferred — NEEDS DESIGN |
+| **Coalition Trigger** | Threat level ticks up → war declarations. Core "France can't steamroll" mechanic. Open: threat model, warning period, diplomacy interaction, auto-war vs pressure. | Medium | Deferred — NEEDS DESIGN |
 | **Cross-nation coordination** | Coalition partners (Britain/Prussia) coordinate. Requires Coalition Trigger or `allied_nations` mapping. See amendments C3. | Medium | Deferred |
 | **Gneisenau Staff Work** | +10% ally bonus — Coalition-specific advantage. Deferred to 1805 full campaign. | Low | Deferred (1805) |
 

@@ -42,6 +42,47 @@ Casualty Distribution (Session 62: `resolve_battle(apply_casualties=False)` defe
 - **Phase 7b remaining:** Godot Tooltips + Tutorial + Integration Audit (Session 66), Tactical Triangle, V2b, Jealousy, Coalition Trigger, Gneisenau Staff Work (1805). ~51 tests from deferred Phase 7 sessions.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial Infrastructure deferred to Pre-EA.
 
+### Design Decisions Required (DO NOT CODE WITHOUT USER APPROVAL)
+
+**MANDATORY GATE: The following features have open design decisions. Do NOT begin implementation until the user has explicitly approved the design for each. Ask the user to resolve these decisions before writing any code.**
+
+#### Tactical Triangle (linked group — all 3 ship together, DO NOT code piecemeal)
+
+1. **Square Formation** — Infantry-only (Davout, Grouchy, etc. — NOT cavalry like Ney). Needs decision:
+   - Mechanic type: strategic order ("form square") vs new stance vs auto-adapt?
+   - AP cost?
+   - How does AI use it?
+   - Interaction with existing stances (can you be aggressive AND in square?)
+   - Duration: until cancelled, or until end of turn?
+
+2. **Artillery SUPPORT auto-bombardment** — Needs decision:
+   - Auto-bombard on SUPPORT, or require separate BOMBARD order?
+   - Does it fire before every combat the supported marshal is in, or once per turn?
+   - Collateral damage rules: same as manual bombardment?
+
+3. **Artillery Overwatch** — Needs decision:
+   - Flat -3% aura on all enemies in region, or fog-filtered?
+   - Does it stack with multiple artillery in region?
+   - Does it apply to bombardment targets or only combat?
+
+#### V2b: Defiance/Vindication — Needs decision:
+- Hard cap 40% — confirmed?
+- Failed defiance = full obedience (order executes as stated) or marshal does preferred action?
+- Vindication decay: automatic (-1 per 3 idle turns) or event-triggered?
+- Aggressive trigger escalation: scale with beatable odds? (see ROADMAP.md V2b audit)
+
+#### Jealousy System — Needs decision:
+- Trigger: >50% casualties in coordinated battle, or different threshold?
+- Consequence: trust -5 toward glory-stealer, or morale penalty, or both?
+- Duration: one-time, 3-turn persistent, or escalating?
+- Can jealousy trigger objections (feeds into V2b)?
+
+#### Coalition Trigger — Needs decision:
+- Threat calculation: simple (region count), complex (regions + strength + rate), or per-nation perception?
+- Warning period: how many turns before declaration?
+- Can diplomacy (Phase 8) peel off coalition members?
+- Does coalition auto-declare war, or is it a diplomatic pressure mechanic?
+
 ### UI Test Gates
 
 **MANDATORY: After completing Session 60 (Adjacent Support), BEFORE starting Session 61a, remind the user to run manual UI tests.** Print the full checklist from `docs/PHASE7_UI_TEST_GATE.md` and do not proceed to Session 61a until the user confirms testing is done or explicitly skips.
