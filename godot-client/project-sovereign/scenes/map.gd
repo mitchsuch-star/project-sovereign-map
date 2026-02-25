@@ -629,6 +629,9 @@ func _draw_tooltip():
 		tactical_lines += 1
 	if in_strategic_mode:
 		tactical_lines += 1
+	# Square formation (Session 67)
+	if tactical_state.get("square_formation", false):
+		tactical_lines += 1
 	# Artillery bombardment ammo (only for artillery marshals)
 	if artillery:
 		tactical_lines += 1
@@ -785,7 +788,7 @@ func _draw_tooltip():
 
 			# Square formation display (Session 67)
 			if tactical_state.get("square_formation", false):
-				var square_text = "SQUARE FORMATION (+5% def, cavalry -40%, artillery +50% vuln)"
+				var square_text = "SQUARE (+5% def, cav -40%, arty +50%)"
 				var square_color = Color(0.9, 0.8, 0.3)  # Gold/yellow
 				draw_string(font, Vector2(text_x, text_y + 11), square_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, square_color)
 				text_y += line_spacing
