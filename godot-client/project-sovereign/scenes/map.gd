@@ -783,6 +783,13 @@ func _draw_tooltip():
 			draw_string(font, Vector2(text_x, text_y + 11), stance_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, stance_color)
 			text_y += line_spacing
 
+			# Square formation display (Session 67)
+			if tactical_state.get("square_formation", false):
+				var square_text = "SQUARE FORMATION (+5% def, cavalry -40%, artillery +50% vuln)"
+				var square_color = Color(0.9, 0.8, 0.3)  # Gold/yellow
+				draw_string(font, Vector2(text_x, text_y + 11), square_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, square_color)
+				text_y += line_spacing
+
 		# Unit type display (Session 53: CAVALRY/INFANTRY/ARTILLERY)
 		if tactical_state.size() > 0:
 			var type_text = ""

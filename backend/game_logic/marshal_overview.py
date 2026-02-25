@@ -207,6 +207,7 @@ def _build_current_status(marshal: Marshal) -> Dict[str, Any]:
         "idle_turns": int(marshal.idle_turns),
         "is_autonomous": bool(marshal.autonomous),
         "autonomy_reason": marshal.autonomy_reason,
+        "square_formation": bool(marshal.square_formation),
     }
 
 

@@ -2831,6 +2831,8 @@ class WorldState:
                         # Unit type and artillery state (Session 53)
                         "artillery": bool(getattr(m, 'artillery', False)),
                         "bombardments_this_turn": int(getattr(m, 'bombardments_this_turn', 0)),
+                        # Square formation (Session 67)
+                        "square_formation": bool(getattr(m, 'square_formation', False)),
                     }
 
                     # Session 66: Relationships for tooltip display

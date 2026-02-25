@@ -235,6 +235,8 @@ func _render_card(m: Dictionary, index: int) -> String:
 		if shock > 0:
 			drill_txt += " (+" + str(shock * 10) + "% shock)"
 		flags.append("[color=#" + COLOR_BLUE + "]" + drill_txt + "[/color]")
+	if m.get("square_formation", false):
+		flags.append("[color=#" + COLOR_GOLD + "]SQUARE (+5% def, cav -40%, arty +50% vuln)[/color]")
 	if m.get("is_autonomous", false):
 		var reason = str(m.get("autonomy_reason", ""))
 		flags.append("[color=#" + COLOR_ORANGE + "]AUTONOMOUS" + (" (" + reason + ")" if reason != "" else "") + "[/color]")
