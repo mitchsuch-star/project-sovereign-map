@@ -39,31 +39,16 @@ Casualty Distribution (Session 62: `resolve_battle(apply_casualties=False)` defe
 
 ### Up Next
 
-- **Phase 7b remaining:** Tactical Triangle (NEEDS DESIGN), V2b (NEEDS DESIGN), Jealousy (NEEDS DESIGN), Coalition Trigger (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805).
+- **Phase 7b remaining:** Tactical Triangle (Sessions 67-68: DESIGN APPROVED, see `docs/TACTICAL_TRIANGLE_SPEC.md`), V2b (NEEDS DESIGN), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial Infrastructure deferred to Pre-EA.
 
 ### Design Decisions Required (DO NOT CODE WITHOUT USER APPROVAL)
 
 **MANDATORY GATE: The following features have open design decisions. Do NOT begin implementation until the user has explicitly approved the design for each. Ask the user to resolve these decisions before writing any code.**
 
-#### Tactical Triangle (linked group — all 3 ship together, DO NOT code piecemeal)
+#### ~~Tactical Triangle~~ — DESIGN APPROVED
 
-1. **Square Formation** — Infantry-only (Davout, Grouchy, etc. — NOT cavalry like Ney). Needs decision:
-   - Mechanic type: strategic order ("form square") vs new stance vs auto-adapt?
-   - AP cost?
-   - How does AI use it?
-   - Interaction with existing stances (can you be aggressive AND in square?)
-   - Duration: until cancelled, or until end of turn?
-
-2. **Artillery SUPPORT auto-bombardment** — Needs decision:
-   - Auto-bombard on SUPPORT, or require separate BOMBARD order?
-   - Does it fire before every combat the supported marshal is in, or once per turn?
-   - Collateral damage rules: same as manual bombardment?
-
-3. **Artillery Overwatch** — Needs decision:
-   - Flat -3% aura on all enemies in region, or fog-filtered?
-   - Does it stack with multiple artillery in region?
-   - Does it apply to bombardment targets or only combat?
+Design approved. See `docs/TACTICAL_TRIANGLE_SPEC.md`. Sessions 67 (Square Formation, ~40 tests) + 68 (Auto-Bombardment + Overwatch, ~45 tests).
 
 #### V2b: Defiance/Vindication — Needs decision:
 - Hard cap 40% — confirmed?
@@ -77,11 +62,9 @@ Casualty Distribution (Session 62: `resolve_battle(apply_casualties=False)` defe
 - Duration: one-time, 3-turn persistent, or escalating?
 - Can jealousy trigger objections (feeds into V2b)?
 
-#### Coalition Trigger — Needs decision:
-- Threat calculation: simple (region count), complex (regions + strength + rate), or per-nation perception?
-- Warning period: how many turns before declaration?
-- Can diplomacy (Phase 8) peel off coalition members?
-- Does coalition auto-declare war, or is it a diplomatic pressure mechanic?
+#### ~~Coalition Trigger~~ — Moved to Phase 8 (Diplomacy)
+
+Coalition mechanics are inherently diplomatic — threat calculation, warning periods, and coalition formation only make sense alongside peace treaties and nation relations. Design deferred to Phase 8.
 
 ### UI Test Gates
 
@@ -179,6 +162,7 @@ See `docs/STATUS.md` for session state, `docs/ROADMAP.md` for timeline.
 | Strategic ledger | `ledger.py` (build_strategic_ledger), `strategic_ledger.gd` (render), `world_state.py` (get_manpower_regen_rates), `main.py` (GET /ledger) |
 | Marshal management UI | `marshal_overview.py` (build_marshal_overview), `marshal_management.gd` (render), `marshal.py` (biography field), `main.py` (GET /marshal_overview) |
 | Win/Loss relationships | `relationship.py` (formulas, participants, process), `executor.py` (_execute_attack wiring), `marshal.py` (modify_relationship, last_relationship_change_turn), `docs/MULTI_MARSHAL_SPEC.md` §9, `docs/PHASE7_SPEC_AMENDMENTS.md` [S64] |
+| Square formation / Tactical Triangle | `docs/TACTICAL_TRIANGLE_SPEC.md`, `marshal.py` (square_formation, overwatch_penalty), `combat.py` (cavalry -40%, artillery +50%), `executor.py` (form_square, auto-bombardment, overwatch calc) |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`
 For Enemy AI details: `docs/ENEMY_AI_REFERENCE.md`
@@ -400,6 +384,7 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | V2b objection plans (Phase 7b) | `docs/OBJECTION_V2.md` |
 | Multi-marshal coordination spec (Phase 7) | `docs/MULTI_MARSHAL_SPEC.md` |
 | Phase 7 audit amendments (overrides spec) | `docs/PHASE7_SPEC_AMENDMENTS.md` |
+| Tactical Triangle (Square + Auto-Bombardment + Overwatch) | `docs/TACTICAL_TRIANGLE_SPEC.md` |
 | Save format / serialization | `docs/SAVE_FORMAT_REFERENCE.md` |
 | Top bar + ledger + dispatch spec | `docs/TOP_BAR_SPEC.md` |
 | Fog of war spec | `docs/FOG_OF_WAR_SPEC.md` |

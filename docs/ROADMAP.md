@@ -15,7 +15,7 @@
 | **6** | **Core Campaign Systems** | **COMPLETE** |
 | **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE, Top Bar + Dispatch COMPLETE, Strategic Ledger COMPLETE, Marshal Management UI COMPLETE, Tooltips ABSORBED into Map Renderer, Tutorial Infrastructure DEFERRED to Pre-EA. Remaining: Map Renderer — blocked on art commission) |
 | **7 Core** | **Multi-Marshal Coordination** | **Spec COMPLETE + AUDITED + SCOPED.** 7 sessions (57-61a, 61b, 64). ~246 tests. |
-| 7b | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b, Coalition, Jealousy | Planned (deferred from 7 Core) |
+| 7b | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b, Jealousy | Planned (deferred from 7 Core). Coalition Trigger moved to Phase 8. |
 | 8 | Diplomacy & Peace | Planned |
 | 8.5 | Events, Goals & National Identity | Planned |
 | -- | **STEAM PAGE + LLC** | **After 8.5** |
@@ -304,15 +304,14 @@ Items deferred from Phase 7 Core + items that build on coordination data:
 | Gate 4 | **Combat path fixes** | general_attack delegation, reinforcer stalemate retreat, auto-assign delegation, artillery no-advance, Berthier narrative voice. | Medium | 23 | **COMPLETE** |
 | **66** | **Godot UI + integration audit** | Tooltips, tutorial inline-dramatic, display formatting, cross-system audit, doc updates. | Medium | 32 | **COMPLETE** |
 
-**Linked Group — Tactical Triangle Completion (must ship together):**
+**Linked Group — Tactical Triangle Completion (2 sessions):**
 
-**⚠️ DESIGN GATE: All 3 features have open design decisions. DO NOT begin implementation until the user has explicitly approved the full design. See CLAUDE.md "Design Decisions Required" section for the complete list of questions that must be answered first.**
+Design approved. See `docs/TACTICAL_TRIANGLE_SPEC.md` for full spec.
 
-| Feature | Description | Complexity | Status |
-|---------|-------------|------------|--------|
-| **Square Formation** | **Infantry-only** (NOT cavalry like Ney) anti-cavalry stance (-40% cav dmg), vulnerable to artillery (+50%). Completes tactical triangle. Open: mechanic type, AP cost, AI usage, stance interaction, duration. | Medium | Deferred — NEEDS DESIGN |
-| **Artillery SUPPORT auto-bombardment** | Artillery on SUPPORT auto-bombards before supported marshal's combat. Pairs with square formation. Open: auto vs manual, frequency, collateral rules. | Medium | Deferred — NEEDS DESIGN |
-| **Artillery Overwatch** | Passive -3% attack debuff on enemies in same region as friendly artillery. Open: flat vs fog-filtered, stacking, scope. | Low | Deferred — NEEDS DESIGN |
+| Session | Feature | Description | Complexity | Est. Tests | Status |
+|---------|---------|-------------|------------|------------|--------|
+| **67** | **Square Formation** | Infantry-only anti-cavalry stance (-40% cav dmg), vulnerable to artillery (+50%), +5% defense. Auto-break on move/attack. 1 AP. AI P2.5. 3 objection triggers. | Medium | ~40 | Planned — DESIGN APPROVED |
+| **68** | **Auto-Bombardment + Overwatch** | Artillery on SUPPORT auto-bombards before combat. Passive -3% attack debuff per friendly artillery in region (cap -9%). | Medium | ~45 | Planned — DESIGN APPROVED |
 
 **Other deferred items:**
 
@@ -320,9 +319,10 @@ Items deferred from Phase 7 Core + items that build on coordination data:
 |---------|-------------|------------|--------|
 | **V2b: Defiance/Vindication** | STRONG/EXTREME concerns trigger defiance. See OBJECTION_V2.md. Scaffolding from V2a ready. Open: hard cap, failure consequence, decay model, aggressive escalation. | Medium | Deferred — NEEDS DESIGN |
 | **Jealousy system** | Marshal getting all glory → others resent. Needs multi-marshal battle data from Phase 7. Open: trigger threshold, consequence type, duration, objection interaction. | Medium | Deferred — NEEDS DESIGN |
-| **Coalition Trigger** | Threat level ticks up → war declarations. Core "France can't steamroll" mechanic. Open: threat model, warning period, diplomacy interaction, auto-war vs pressure. | Medium | Deferred — NEEDS DESIGN |
 | **Cross-nation coordination** | Coalition partners (Britain/Prussia) coordinate. Requires Coalition Trigger or `allied_nations` mapping. See amendments C3. | Medium | Deferred |
 | **Gneisenau Staff Work** | +10% ally bonus — Coalition-specific advantage. Deferred to 1805 full campaign. | Low | Deferred (1805) |
+
+**Moved to Phase 8:** Coalition Trigger — threat mechanics are inherently diplomatic and should ship alongside peace treaties and nation relations.
 
 ### V2b Audit Findings (from V2a audit)
 
@@ -357,7 +357,7 @@ If marshal strength < 20% of starting_strength AND enemy in same region -> ALWAY
 
 **Dependencies:** Phase 6 (economy, supply attrition, artillery unit type)
 **Phase 7 Core Exit Criteria:** Coordination bonuses apply automatically in combat, relationships affect and evolve through coordination quality, Grouchy Rule fires with inline-dramatic narrative, ~190 new tests, basic coordination messages in combat output
-**Phase 7b Exit Criteria:** Proportional casualty distribution, AI deliberately seeks coordination, full battle reports with Berthier coordination observations, Godot tooltips with reinforcement probabilities, tactical triangle complete
+**Phase 7b Exit Criteria:** Proportional casualty distribution, AI deliberately seeks coordination, full battle reports with Berthier coordination observations, Godot tooltips with reinforcement probabilities, tactical triangle complete, V2b defiance/vindication
 
 ---
 
@@ -378,8 +378,9 @@ If marshal strength < 20% of starting_strength AND enemy in same region -> ALWAY
 | **AI Proposals** | AI offers peace, makes demands — LLM voices the proposal | Medium | Planned |
 | **War Score** | Visual progress toward victory/defeat, drives peace treaty acceptance | Low | Planned |
 | **Threat Indicator** | Coalition threat level, visible diplomatic pressure buildup | Low | Planned |
+| **Coalition Trigger** | Threat level ticks up → war declarations. Core "France can't steamroll" mechanic. Moved from Phase 7b — inherently diplomatic. | Medium | Planned — NEEDS DESIGN |
 
-**Note:** Coalition TRIGGER moved to Phase 7. This phase handles the diplomatic conversation layer and peace mechanics.
+**Note:** Coalition Trigger moved here from Phase 7b — threat calculation, warning periods, and coalition formation only make sense alongside peace treaties and nation relations.
 
 **Note:** War Score and Threat Indicator moved from Phase 6 — both are only meaningful when they drive peace negotiations and diplomatic pressure. Without diplomacy, war score is a cosmetic number and threat indicator has no mechanic to trigger. Building them here avoids premature design that Phase 8 diplomacy would likely need to revise.
 
@@ -410,8 +411,8 @@ Player: "I offer Austria peace if they cede Tyrol"
 | Frederick William | Prussia | Cautious | Deferential, follows strongest ally, hedges |
 | Castlereagh | Britain | Pragmatic | Subsidy offers, cold cost-benefit, funds coalitions |
 
-**Dependencies:** Phase 6 (economy for peace terms), Phase 7 (coalitions for diplomatic context)
-**Exit Criteria:** Can negotiate peace, AI diplomacy feels alive, leaders have distinct voices
+**Dependencies:** Phase 6 (economy for peace terms), Phase 7 (coordination for diplomatic context)
+**Exit Criteria:** Can negotiate peace, AI diplomacy feels alive, leaders have distinct voices, coalition trigger functional
 
 ---
 
@@ -595,7 +596,7 @@ To beat Britain: exhaust their willingness to fund coalitions (war score / diplo
 
 **Naval abstraction deferred to Post-EA** (when Britain becomes playable with its own map provinces).
 
-**Dependencies:** Phase 7 (coalition trigger), Phase 8 (diplomacy for vassal creation)
+**Dependencies:** Phase 8 (coalition trigger + diplomacy for vassal creation)
 **Exit Criteria:** France has client states, vassals can defect, Britain funds enemies
 
 ---
@@ -748,7 +749,7 @@ Lighter version of communication cutoff: orders to distant marshals take effect 
 5. Phase 6: Economy, Manpower, Terrain, Fog, **Save/Load**, **Berthier**, **Post-battle analysis**
 6. Phase 6.5: Notifications, **Top Bar Framework + Dispatch** (Session A), **Strategic Ledger** (Session B), Marshal UI, ~~Campaign Briefing~~, ~~Marshal Report~~ (shipped as Morning Dispatch), ~~Tutorial infra~~ (deferred to Pre-EA), **Map Renderer**
 7. Phase 7 Core: Multi-Marshal Coordination (Sessions 57-61a, 61b, 64 — 7 sessions, ~246 tests) — combined arms, coordination bonuses, Grouchy Rule, dynamic relationships
-7b. Phase 7b: Casualty Distribution (S62), AI Coordination (S63), Battle Reports + Reinforcement Reporting (S65), Godot UI (S66), Tactical Triangle, V2b, Coalition Trigger
+7b. Phase 7b: Casualty Distribution (S62), AI Coordination (S63), Battle Reports + Reinforcement Reporting (S65), Godot UI (S66), Tactical Triangle (S67-68), V2b, Jealousy
 8. Phase 8: **Diplomacy Chat**, Peace Treaties, Leader Personalities
 9. Phase 8.5: **Events, Gazette, Marshal Voice, Grouchy LLM, Intercepted Dispatches, Creative Commands, Napoleon Comparison**
 10. **STEAM PAGE + LLC** (marshal voice, gazette, audio, EU4 map all working)

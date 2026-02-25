@@ -11,8 +11,8 @@
 |--------|-------|
 | **Tests Passing** | **3799** (3799 passed, 3 skipped — verified Feb 24, Session 66 complete) |
 
-| **Current Phase** | Phase 7b **IN PROGRESS** (Session 66 complete, remaining: Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau). |
-| **Blockers** | Tactical Triangle, V2b, Coalition Trigger, Jealousy all need DESIGN GATE approval before coding. |
+| **Current Phase** | Phase 7b **IN PROGRESS** (Session 66 complete, remaining: Tactical Triangle, V2b, Jealousy, Gneisenau). Coalition Trigger moved to Phase 8. |
+| **Blockers** | V2b, Jealousy need DESIGN GATE approval before coding. Tactical Triangle DESIGN APPROVED (Sessions 67-68). |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
@@ -20,7 +20,7 @@
 ## Next Steps
 
 1. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~246 new tests.
-2. **Phase 7b: IN PROGRESS.** Session 66 (Godot UI + Integration Audit) complete. Remaining: Tactical Triangle (linked group, NEEDS DESIGN), V2b (NEEDS DESIGN), Coalition Trigger (NEEDS DESIGN), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805).
+2. **Phase 7b: IN PROGRESS.** Session 66 (Godot UI + Integration Audit) complete. **Next up: Tactical Triangle (Sessions 67-68, DESIGN APPROVED).** See `docs/TACTICAL_TRIANGLE_SPEC.md`. Session 67 = Square Formation (~40 tests), Session 68 = Auto-Bombardment + Overwatch (~45 tests). Remaining after Triangle: V2b (NEEDS DESIGN), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
 3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
 ---
