@@ -861,6 +861,28 @@ class EnemyAI:
                 print(f"  Maximum total actions reached for {nation}")
                 break
 
+        # Update attack futility tracker: increment for failed attacks on fortified,
+        # reset on success. Prevents endlessly attacking impregnable positions.
+        for r in results:
+            ai_action = r.get("ai_action", {})
+            action = ai_action.get("action", "") if ai_action else r.get("action", "")
+            m_name = ai_action.get("marshal", "") if ai_action else r.get("marshal", "")
+            if action == "attack" and m_name:
+                events = r.get("events", [])
+                for e in events:
+                    if e.get("type") == "battle":
+                        defender_name = e.get("defender", {}).get("name", "")
+                        key = f"{m_name}:{defender_name}"
+                        if e.get("victor") == m_name or e.get("region_conquered") or e.get("enemy_destroyed"):
+                            # Success — reset futility
+                            world.ai_attack_futility.pop(key, None)
+                        else:
+                            # Failed attack — increment futility counter
+                            world.ai_attack_futility[key] = world.ai_attack_futility.get(key, 0) + 1
+                            count = world.ai_attack_futility[key]
+                            if count >= 3:
+                                print(f"  [FUTILITY] {m_name} has failed {count}x against {defender_name} — will avoid if fortified")
+
         # Fix #1: Update stagnation counters per marshal
         # A marshal is "idle" if they only waited, defended-while-fortified, or changed stance
         # Attacks that achieve nothing (no conquest, no kill) also count as idle
@@ -2083,6 +2105,26 @@ class EnemyAI:
             valid_targets = filtered_targets
             if not valid_targets:
                 ai_debug("    No new targets available (all already attacked this turn)")
+                return None
+
+        # Filter out fortified targets that have been attacked 3+ times without success
+        # Prevents endlessly throwing troops at an impregnable position
+        futility = world.ai_attack_futility
+        futile_targets = []
+        non_futile = []
+        for entry in valid_targets:
+            e, br, er, d = entry
+            key = f"{marshal.name}:{e.name}"
+            if futility.get(key, 0) >= 3 and getattr(e, 'fortified', False):
+                futile_targets.append(e.name)
+            else:
+                non_futile.append(entry)
+        if futile_targets:
+            ai_debug(f"    Filtered {len(futile_targets)} futile targets (3+ failed attacks on fortified): {futile_targets}")
+            print(f"  [FUTILITY] {marshal.name} giving up on fortified targets: {futile_targets}")
+            valid_targets = non_futile
+            if not valid_targets:
+                ai_debug("    No targets remaining after futility filter")
                 return None
 
         # Get attack threshold with mood variance (controlled randomness)
@@ -3482,12 +3524,12 @@ class EnemyAI:
             # Already aggressive - check if we should retreat (badly outnumbered)
             # Fix #2: Don't retreat if we just advanced toward enemy via P7
             advanced = getattr(self, '_advanced_this_turn', set())
+            enemies = world.get_enemies_of_nation(marshal.nation)
+            adjacent_enemies = [
+                e for e in enemies
+                if world.get_distance(marshal.location, e.location) <= 1 and e.strength > 0
+            ]
             if marshal.name not in advanced:
-                enemies = world.get_enemies_of_nation(marshal.nation)
-                adjacent_enemies = [
-                    e for e in enemies
-                    if world.get_distance(marshal.location, e.location) <= 1 and e.strength > 0
-                ]
                 if adjacent_enemies:
                     strongest_enemy = max(adjacent_enemies, key=lambda e: e.strength)
                     ratio = marshal.strength / strongest_enemy.strength if strongest_enemy.strength > 0 else 999
@@ -3505,8 +3547,15 @@ class EnemyAI:
             else:
                 ai_debug(f"  -> P8: Suppressing retreat - {marshal.name} advanced via P7 this turn")
 
-            # No retreat needed - wait (save action for next turn)
-            ai_debug("  -> P8: Already aggressive, waiting")
+            # Already aggressive with no retreat needed and no adjacent enemies.
+            # If no adjacent enemies at all, marshal is in optimal aggressive state —
+            # return None to signal "nothing useful" and end turn early (like cautious P8).
+            if not adjacent_enemies:
+                ai_debug("  -> P8: Already aggressive, no adjacent enemies, nothing to do")
+                print(f"  [P8 OPTIMAL] {marshal.name} is aggressive with nothing to do - ending turn")
+                return None
+            # Adjacent enemies exist but not badly outnumbered — wait for next evaluation
+            ai_debug("  -> P8: Already aggressive, waiting (enemies nearby)")
             return {
                 "marshal": marshal.name,
                 "action": "wait"
@@ -3950,6 +3999,8 @@ class EnemyAI:
                         "target": adj_name
                     }
                     ai_debug(f"    [INTENT STORED] {marshal.name} will capture {adj_name} after unfortify")
+                    # Set 2-turn refortify cooldown to prevent fortify-unfortify oscillation
+                    world.ai_refortify_cooldown[marshal.name] = 2
                     return {
                         "marshal": marshal.name,
                         "action": "unfortify"
@@ -4032,6 +4083,8 @@ class EnemyAI:
                         "target": capture_target
                     }
                     ai_debug(f"    [INTENT STORED] {marshal.name} will capture {capture_target} after unfortify")
+                # Set 2-turn refortify cooldown to prevent fortify-unfortify oscillation
+                world.ai_refortify_cooldown[marshal.name] = 2
                 return {
                     "marshal": marshal.name,
                     "action": "unfortify"

@@ -10103,10 +10103,16 @@ RETREAT RECOVERY (3 turns):
         if choice == "trust" and alternative:
             # Execute the marshal's suggested alternative
             order_to_execute = alternative
+            # Ensure marshal name is in the alternative dict (generated alternatives
+            # may omit it, but handlers like _execute_fortify need it)
+            if "marshal" not in order_to_execute or not order_to_execute["marshal"]:
+                order_to_execute["marshal"] = marshal_name
             execute_msg = f"{marshal_name} executes their alternative plan."
         elif choice == "compromise" and compromise:
             # Execute compromise action
             order_to_execute = compromise
+            if "marshal" not in order_to_execute or not order_to_execute["marshal"]:
+                order_to_execute["marshal"] = marshal_name
             execute_msg = f"{marshal_name} executes the compromise plan."
         else:
             # Execute original order (insist or trust with no alternative)

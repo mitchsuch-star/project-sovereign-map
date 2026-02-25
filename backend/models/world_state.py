@@ -243,6 +243,12 @@ class WorldState:
         # Key: marshal_name, Value: turns remaining before re-fortify allowed
         self.ai_refortify_cooldown: Dict[str, int] = {}
 
+        # AI Attack Futility Tracker (persists across turns, read/written by EnemyAI)
+        # Tracks consecutive failed attacks against fortified targets to prevent
+        # endlessly throwing troops at an impregnable position.
+        # Format: {(attacker_name, defender_name): consecutive_losses}
+        self.ai_attack_futility: Dict[str, int] = {}
+
         # Battle tracking for naming and history
         # Active battles: region_name -> battle info dict
         self.active_battles: Dict[str, Dict] = {}
@@ -2513,6 +2519,7 @@ class WorldState:
             "ai_stagnation_turns": self.ai_stagnation_turns.copy(),
             "ai_failed_action_cooldowns": {k: v.copy() for k, v in self.ai_failed_action_cooldowns.items()},
             "ai_refortify_cooldown": self.ai_refortify_cooldown.copy(),
+            "ai_attack_futility": self.ai_attack_futility.copy(),
             "enemy_nations": self.enemy_nations.copy(),
             "nation_actions": self.nation_actions.copy(),
             "active_battles": {k: v.copy() for k, v in self.active_battles.items()},
@@ -2634,6 +2641,7 @@ class WorldState:
         world.ai_stagnation_turns = data.get("ai_stagnation_turns", {}).copy()
         world.ai_failed_action_cooldowns = {k: v.copy() for k, v in data.get("ai_failed_action_cooldowns", {}).items()}
         world.ai_refortify_cooldown = data.get("ai_refortify_cooldown", {}).copy()
+        world.ai_attack_futility = data.get("ai_attack_futility", {}).copy()
         world.enemy_nations = data.get("enemy_nations", ["Britain", "Prussia"]).copy()
         world.nation_actions = data.get("nation_actions", {"Britain": 4, "Prussia": 4}).copy()
         world.active_battles = {k: v.copy() for k, v in data.get("active_battles", {}).items()}
