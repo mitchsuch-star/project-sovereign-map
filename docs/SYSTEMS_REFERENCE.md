@@ -2529,6 +2529,14 @@ On successful arrival:
 6. **THEN** clear strategic order (after coordination)
 7. Artillery reinforcements explicitly added to casualty distribution participants despite not being in battle region
 
+### Retreat on Loss
+
+Reinforcers who relocated to the battle region return to their pre-arrival location if their side loses (spec: "reinforcer retreats with primary if battle lost"). Implemented via `reinforcer_origin` dict that tracks each reinforcer's location before relocation. After combat:
+- If attacker lost: attacker-side reinforcers return to origin
+- If defender lost: defender-side reinforcers return to origin
+- Artillery never relocated in the first place (stays at origin regardless)
+- Morale-based forced retreat (`<= 25`) runs first and takes priority
+
 ### Interaction with Coordination
 
 - Arrived reinforcers (non-artillery) are **excluded** from adjacent ally count (`exclude_from_adjacent` parameter) because they relocated to battle region and are now same-region allies

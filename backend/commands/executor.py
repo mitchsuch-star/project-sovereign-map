@@ -3879,6 +3879,9 @@ RETREAT RECOVERY (3 turns):
         arrived_names = set()
         # Artillery that reinforced but stayed in adjacent position (Gate 4 fix)
         artillery_reinforced_adjacent = []
+        # Track pre-arrival locations for retreat-on-loss (Gate 4: spec says
+        # "reinforcer retreats with primary if battle lost")
+        reinforcer_origin = {}  # marshal_name -> original_location
         for side_primary, results_list in [(marshal, attacker_reinforcements),
                                            (enemy_marshal, defender_reinforcements)]:
             for result in results_list:
@@ -3892,6 +3895,8 @@ RETREAT RECOVERY (3 turns):
                             and order.command_type == "SUPPORT"
                             and order.target == side_primary.name
                         )
+                        # Save origin for retreat-on-loss BEFORE relocation
+                        reinforcer_origin[arriving.name] = arriving.location
                         # Physical relocation — artillery stays in adjacent position
                         # (Gate 4: artillery reinforces via fire support, not advance)
                         if getattr(arriving, 'artillery', False):
@@ -4253,6 +4258,36 @@ RETREAT RECOVERY (3 turns):
                     msg = self._apply_forced_retreat_or_break(p, marshal, world)
                     if msg:
                         forced_retreat_msg += "\n" + msg
+
+            # ── Gate 4: Reinforcer retreat-on-loss ──
+            # Spec: "reinforcer retreats with primary if battle lost"
+            # Reinforcers who relocated to battle region must return to
+            # their origin if their side lost, even if morale > 25.
+            # (Morale-based retreat above handles the broken case;
+            # this handles the "orderly withdrawal" case.)
+            if atk_lost:
+                for p in atk_participants:
+                    origin = reinforcer_origin.get(p.name)
+                    if (origin and p.name != marshal.name
+                            and p.strength > 0
+                            and not getattr(p, 'broken', False)
+                            and not getattr(p, 'retreated_this_turn', False)
+                            and p.location == battle_region_name):
+                        p.location = origin
+                        forced_retreat_msg += (
+                            f"\n{p.name} withdraws to {origin} after the defeat.")
+            if atk_won:
+                for p in def_participants:
+                    origin = reinforcer_origin.get(p.name)
+                    if (origin and p.name != enemy_marshal.name
+                            and p.strength > 0
+                            and not getattr(p, 'broken', False)
+                            and not getattr(p, 'retreated_this_turn', False)
+                            and p.location == battle_region_name):
+                        p.location = origin
+                        forced_retreat_msg += (
+                            f"\n{p.name} withdraws to {origin} after the defeat.")
+
             # Clean up destroyed non-primary participants
             for p in atk_participants + def_participants:
                 if p.name not in (marshal.name, enemy_marshal.name) and p.strength <= 0:

@@ -217,28 +217,28 @@ class TestArtilleryReinforcementNoAdvance:
                 "Artillery should stay in original adjacent position"
 
     def test_infantry_still_relocates_on_reinforcement(self):
-        """Non-artillery marshals still relocate to battle region on arrival."""
+        """Non-artillery marshals relocate on arrival AND stay if attacker wins."""
         random.seed(42)
         ney = self.world.get_marshal("Ney")
         ney.location = "Waterloo"
-        ney.strength = 30000
+        ney.strength = 60000  # Strong enough to win
 
         davout = self.world.get_marshal("Davout")
         davout.location = "Belgium"  # Adjacent to Waterloo
-        davout.strength = 25000
+        davout.strength = 40000
 
         wellington = self.world.get_marshal("Wellington")
         wellington.location = "Waterloo"
-        wellington.strength = 40000
+        wellington.strength = 25000  # Weaker so attacker wins
 
         result = self.executor._execute_attack(
             ney, "Wellington", self.world, self.game_state)
 
-        # If Davout reinforced and survived, he should be in Waterloo
+        # If Davout reinforced and attacker won, he should be in Waterloo
         davout_after = self.world.marshals.get("Davout")
         if davout_after and davout_after.reinforced_this_turn:
             assert davout_after.location == "Waterloo", \
-                "Infantry should advance to battle region on reinforcement"
+                "Infantry should stay in battle region when attacker wins"
 
     def test_artillery_reinforcement_still_gets_flag(self):
         """Artillery that reinforced from adjacent still gets reinforced_this_turn."""
@@ -337,3 +337,85 @@ class TestArtilleryReinforcementNoAdvance:
         # Davout is excluded because he relocated to battle region
         assert "Davout" not in adj_names, \
             "Arrived infantry should be excluded from adjacent ally count"
+
+
+# ════════════════════════════════════════════════════════════
+# ISSUE 3b: Reinforcers retreat on loss
+# ════════════════════════════════════════════════════════════
+
+class TestReinforcerRetreatOnLoss:
+    """Reinforcers who relocated to battle region return to origin if their side lost."""
+
+    def setup_method(self):
+        self.world = WorldState()
+        self.executor = CommandExecutor()
+        self.game_state = {"world": self.world}
+
+    def test_reinforcer_returns_to_origin_on_attacker_loss(self):
+        """Davout reinforces from Belgium, attacker loses → Davout returns to Belgium."""
+        random.seed(99)
+        ney = self.world.get_marshal("Ney")
+        ney.location = "Waterloo"
+        ney.strength = 20000  # Weak attacker
+
+        davout = self.world.get_marshal("Davout")
+        davout.location = "Belgium"  # Adjacent to Waterloo
+        davout.strength = 25000
+
+        wellington = self.world.get_marshal("Wellington")
+        wellington.location = "Waterloo"
+        wellington.strength = 50000  # Much stronger
+
+        self.executor._execute_attack(
+            ney, "Wellington", self.world, self.game_state)
+
+        davout_after = self.world.marshals.get("Davout")
+        if davout_after and davout_after.reinforced_this_turn:
+            assert davout_after.location == "Belgium", \
+                "Reinforcer should return to origin when attacker loses"
+
+    def test_reinforcer_stays_on_attacker_win(self):
+        """Davout reinforces from Belgium, attacker wins → Davout stays in Waterloo."""
+        random.seed(42)
+        ney = self.world.get_marshal("Ney")
+        ney.location = "Waterloo"
+        ney.strength = 60000  # Strong attacker
+
+        davout = self.world.get_marshal("Davout")
+        davout.location = "Belgium"  # Adjacent to Waterloo
+        davout.strength = 40000
+
+        wellington = self.world.get_marshal("Wellington")
+        wellington.location = "Waterloo"
+        wellington.strength = 25000  # Weaker
+
+        self.executor._execute_attack(
+            ney, "Wellington", self.world, self.game_state)
+
+        davout_after = self.world.marshals.get("Davout")
+        if davout_after and davout_after.reinforced_this_turn:
+            assert davout_after.location == "Waterloo", \
+                "Reinforcer should stay in battle region when attacker wins"
+
+    def test_artillery_reinforcer_stays_at_origin_regardless(self):
+        """Artillery stays at origin whether attacker wins or loses (never relocates)."""
+        random.seed(99)
+        ney = self.world.get_marshal("Ney")
+        ney.location = "Waterloo"
+        ney.strength = 20000
+
+        drouot = self.world.get_marshal("Drouot")
+        drouot.location = "Belgium"  # Adjacent
+        drouot.strength = 20000
+
+        wellington = self.world.get_marshal("Wellington")
+        wellington.location = "Waterloo"
+        wellington.strength = 50000
+
+        self.executor._execute_attack(
+            ney, "Wellington", self.world, self.game_state)
+
+        drouot_after = self.world.marshals.get("Drouot")
+        if drouot_after:
+            assert drouot_after.location == "Belgium", \
+                "Artillery should always stay at origin (never relocates)"

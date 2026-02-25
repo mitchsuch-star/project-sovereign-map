@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3753** (3750 passed, 3 skipped — verified Feb 24, Gate 4 Fixes) |
+| **Tests Passing** | **3756** (3753 passed, 3 skipped — verified Feb 24, Gate 4 Fixes) |
 
 | **Current Phase** | Phase 7b **IN PROGRESS** (Session 65 complete, remaining: S66, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau). |
 | **Blockers** | None |
@@ -48,14 +48,15 @@ All major Phase 6 features shipped:
 
 ### Feb 24 — Gate 4 Fixes (Post-Session 65)
 
-**12 new tests, 3753 total (3 skipped). Three UI testing issues fixed before Session 66.**
+**15 new tests, 3756 total (3 skipped). Three UI testing issues + reinforcer retreat-on-loss fixed before Session 66.**
 
 - **Issue 1 — Berthier narrative voice:** Removed coordination modifier entries (Combined arms, Per-ally coordination, Dedicated coordination, Adjacent support, Coordination total) from `snapshot_attacker_modifiers()` and `snapshot_defender_modifiers()`. Coordination info now conveyed only through Berthier's narrative observation templates (already prose). Removed dead `coordination_preview` generation from executor. Detailed coordination numbers deferred to Battle History screen (Phase 8.5).
 - **Issue 2 — Auto-routed attack missing coordination:** Rewrote `_execute_auto_assign_attack()` to delegate to `_execute_attack()` after finding nearest marshal (Building Blocks principle). Eliminated ~300 lines of duplicated combat logic. All attack paths now include full coordination, reinforcement, relationship, and battle report support.
-- **Issue 3 — Artillery advancing on reinforcement:** Artillery reinforcing from adjacent no longer relocates to battle region. Provides fire support from adjacent position (not advance). Still gets `reinforced_this_turn` flag. Explicitly added to casualty distribution participants despite not being in battle region. **Coordination gap fix:** artillery NOT added to `arrived_names` (which becomes `exclude_from_adjacent`), so artillery still counts as adjacent ally for +2% attack bonus. Without this fix, artillery would provide zero coordination bonus (excluded from both same-region and adjacent counts).
+- **Issue 3 — Artillery advancing on reinforcement:** Artillery reinforcing from adjacent no longer relocates to battle region. Provides fire support from adjacent position (not advance). Still gets `reinforced_this_turn` flag. Explicitly added to casualty distribution participants despite not being in battle region. **Coordination gap fix:** artillery NOT added to `arrived_names` (which becomes `exclude_from_adjacent`), so artillery still counts as adjacent ally for +2% attack bonus.
+- **Issue 3b — Reinforcer retreat-on-loss:** Reinforcers who relocated to battle region now return to their origin if their side lost (spec: "reinforcer retreats with primary if battle lost"). Tracks pre-arrival locations in `reinforcer_origin` dict. After combat, if `atk_lost`, attacker-side reinforcers return; if `atk_won`, defender-side reinforcers return. Morale-based forced retreat (<=25) still runs first for broken armies.
 
-**Files modified:** `battle_report.py` (removed coordination from modifier snapshots), `executor.py` (auto-assign delegation, artillery reinforcement no-advance + coordination gap fix, coordination preview removal).
-**Files created:** `tests/test_gate4_fixes.py` (12 tests: 3 Berthier narrative, 3 auto-assign delegation, 6 artillery reinforcement including coordination gap).
+**Files modified:** `battle_report.py` (removed coordination from modifier snapshots), `executor.py` (auto-assign delegation, artillery no-advance + coordination gap, reinforcer retreat-on-loss, coordination preview removal).
+**Files created:** `tests/test_gate4_fixes.py` (15 tests: 3 Berthier narrative, 3 auto-assign delegation, 6 artillery reinforcement, 3 retreat-on-loss).
 **Files updated:** `test_auto_assign_attack.py` (1 assertion fix), `test_battle_report.py` (4 tests), `test_combined_arms.py` (4 tests), `test_coordination_bonus.py` (2 tests).
 
 ### Feb 24 — Session 65: Full Battle Reports + Berthier Coordination Observations

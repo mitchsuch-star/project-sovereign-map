@@ -295,6 +295,7 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | AI fortify→unfortify→fortify loop | P3 `_check_threats()` re-fortifies without checking cooldown/`_unfortified_this_turn` — bypasses P5 guards |
 | Artillery never bombards (AI) | P3 catches cautious artillery before P4 bombardment | Add artillery exemption in P3 fortify block |
 | Artillery reinforcement gives 0 coordination | Artillery added to `arrived_names` → excluded from both same-region AND adjacent counts | Only add non-artillery to `arrived_names`; artillery stays countable as adjacent ally |
+| Reinforcer stays after battle lost | Relocation happens before combat, no rollback on loss | Track `reinforcer_origin`, send back to origin if side lost after combat |
 | Enemy 0 actions after ~4 turns | All P8 cautious marshals return None when refortify blocked | P8 must return `wait` instead of None |
 | Enemy battles missing from popup | Fog filter compares marshal name (string) against attacker/defender (dict) — always False | Extract `.get("name")` from dict before comparing |
 | Enemy bombardment not in popup | Fog filter only checks `type == "battle"`, dialog only handles battle/conquest events | Add `"bombardment"` to both |
