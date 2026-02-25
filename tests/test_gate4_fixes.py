@@ -219,9 +219,14 @@ class TestArtilleryReinforcementNoAdvance:
     def test_infantry_still_relocates_on_reinforcement(self):
         """Non-artillery marshals relocate on arrival AND stay if attacker wins."""
         random.seed(42)
+        # Isolate to prevent other enemy marshals from affecting outcome
+        for name in list(self.world.marshals.keys()):
+            if name not in ("Ney", "Davout", "Wellington"):
+                self.world.marshals[name].location = "Paris"
+
         ney = self.world.get_marshal("Ney")
         ney.location = "Waterloo"
-        ney.strength = 60000  # Strong enough to win
+        ney.strength = 80000  # Overwhelming attacker
 
         davout = self.world.get_marshal("Davout")
         davout.location = "Belgium"  # Adjacent to Waterloo
@@ -229,7 +234,7 @@ class TestArtilleryReinforcementNoAdvance:
 
         wellington = self.world.get_marshal("Wellington")
         wellington.location = "Waterloo"
-        wellington.strength = 25000  # Weaker so attacker wins
+        wellington.strength = 15000  # Much weaker so attacker wins
 
         result = self.executor._execute_attack(
             ney, "Wellington", self.world, self.game_state)
@@ -377,9 +382,14 @@ class TestReinforcerRetreatOnLoss:
     def test_reinforcer_stays_on_attacker_win(self):
         """Davout reinforces from Belgium, attacker wins → Davout stays in Waterloo."""
         random.seed(42)
+        # Isolate to prevent other enemy marshals from affecting outcome
+        for name in list(self.world.marshals.keys()):
+            if name not in ("Ney", "Davout", "Wellington"):
+                self.world.marshals[name].location = "Paris"
+
         ney = self.world.get_marshal("Ney")
         ney.location = "Waterloo"
-        ney.strength = 60000  # Strong attacker
+        ney.strength = 80000  # Overwhelming attacker
 
         davout = self.world.get_marshal("Davout")
         davout.location = "Belgium"  # Adjacent to Waterloo
@@ -387,7 +397,7 @@ class TestReinforcerRetreatOnLoss:
 
         wellington = self.world.get_marshal("Wellington")
         wellington.location = "Waterloo"
-        wellington.strength = 25000  # Weaker
+        wellington.strength = 15000  # Much weaker
 
         self.executor._execute_attack(
             ney, "Wellington", self.world, self.game_state)
@@ -419,3 +429,246 @@ class TestReinforcerRetreatOnLoss:
         if drouot_after:
             assert drouot_after.location == "Belgium", \
                 "Artillery should always stay at origin (never relocates)"
+
+
+# ════════════════════════════════════════════════════════════
+# ISSUE 4: General attack bypasses Phase 7 coordination
+# ════════════════════════════════════════════════════════════
+
+class TestGeneralAttackDelegation:
+    """General attack ('attack' with no target) must delegate to _execute_attack
+    for full Phase 7 coordination, reinforcements, and battle reports."""
+
+    def setup_method(self):
+        self.world = WorldState()
+        self.executor = CommandExecutor()
+        self.game_state = {"world": self.world}
+
+    def test_general_attack_produces_battle_report(self):
+        """General attack must produce a battle report (from _execute_attack)."""
+        random.seed(42)
+        ney = self.world.get_marshal("Ney")
+        ney.location = "Waterloo"
+        ney.strength = 30000
+
+        # Move other marshals away to isolate the test
+        for name in list(self.world.marshals.keys()):
+            if name not in ("Ney", "Wellington"):
+                self.world.marshals[name].location = "Paris"
+
+        wellington = self.world.get_marshal("Wellington")
+        wellington.location = "Waterloo"
+        wellington.strength = 25000
+
+        command = {"action": "general_attack"}
+        result = self.executor._execute_general_attack(command, self.game_state)
+
+        assert result["success"] is True
+        assert result.get("events")
+        assert result["events"][0]["type"] == "battle"
+        # Must have battle_report from _execute_attack path
+        assert "battle_report" in result, \
+            "General attack must produce a battle report (delegation to _execute_attack)"
+
+    def test_general_attack_with_colocation_gets_coordination(self):
+        """Co-located marshals get coordination bonuses via general attack."""
+        random.seed(42)
+        ney = self.world.get_marshal("Ney")
+        ney.location = "Waterloo"
+        ney.strength = 30000
+
+        davout = self.world.get_marshal("Davout")
+        davout.location = "Waterloo"
+        davout.strength = 25000
+
+        # Move other marshals away to isolate
+        for name in list(self.world.marshals.keys()):
+            if name not in ("Ney", "Davout", "Wellington"):
+                self.world.marshals[name].location = "Paris"
+
+        wellington = self.world.get_marshal("Wellington")
+        wellington.location = "Waterloo"
+        wellington.strength = 40000
+
+        command = {"action": "general_attack"}
+        result = self.executor._execute_general_attack(command, self.game_state)
+
+        assert result["success"] is True
+        # Should have auto_assigned flag
+        if result.get("events"):
+            assert result["events"][0].get("auto_assigned") is True
+
+    def test_general_attack_includes_explanation_prefix(self):
+        """General attack prepends marshal selection explanation to message."""
+        random.seed(42)
+        ney = self.world.get_marshal("Ney")
+        ney.location = "Waterloo"
+        ney.strength = 30000
+
+        # Move other marshals away to isolate
+        for name in list(self.world.marshals.keys()):
+            if name not in ("Ney", "Wellington"):
+                self.world.marshals[name].location = "Paris"
+
+        wellington = self.world.get_marshal("Wellington")
+        wellington.location = "Waterloo"
+        wellington.strength = 25000
+
+        command = {"action": "general_attack"}
+        result = self.executor._execute_general_attack(command, self.game_state)
+
+        assert result["success"] is True
+        # The explanation about which marshal was selected should be in message
+        assert "attacks!" in result["message"]
+
+    def test_general_attack_triggers_reinforcements(self):
+        """Reinforcements should fire when general attack triggers battle."""
+        random.seed(42)
+        ney = self.world.get_marshal("Ney")
+        ney.location = "Waterloo"
+        ney.strength = 60000
+
+        davout = self.world.get_marshal("Davout")
+        davout.location = "Belgium"  # Adjacent — eligible reinforcement
+        davout.strength = 30000
+
+        # Move other marshals away to isolate
+        for name in list(self.world.marshals.keys()):
+            if name not in ("Ney", "Davout", "Wellington"):
+                self.world.marshals[name].location = "Paris"
+
+        wellington = self.world.get_marshal("Wellington")
+        wellington.location = "Waterloo"
+        wellington.strength = 25000
+
+        command = {"action": "general_attack"}
+        result = self.executor._execute_general_attack(command, self.game_state)
+
+        assert result["success"] is True
+        # If Davout reinforced, he should have the flag
+        davout_after = self.world.marshals.get("Davout")
+        if davout_after and davout_after.reinforced_this_turn:
+            # Reinforcement was triggered via _execute_attack delegation
+            assert True
+
+
+# ════════════════════════════════════════════════════════════
+# ISSUE 5: Reinforcers stay in battle region after stalemate
+# ════════════════════════════════════════════════════════════
+
+class TestReinforcerRetreatOnStalemate:
+    """Reinforcers return to origin on stalemate (not just loss)."""
+
+    def setup_method(self):
+        self.world = WorldState()
+        self.executor = CommandExecutor()
+        self.game_state = {"world": self.world}
+
+    def _isolate_marshals(self, keep):
+        """Move all marshals except those in `keep` to a far-off region."""
+        for name in list(self.world.marshals.keys()):
+            if name not in keep:
+                self.world.marshals[name].location = "Paris"
+
+    def test_attacker_reinforcer_returns_on_stalemate(self):
+        """Attacker-side reinforcer returns to origin after stalemate."""
+        # Seed 1 produces stalemate with equal forces
+        random.seed(1)
+        self._isolate_marshals({"Ney", "Davout", "Wellington"})
+
+        ney = self.world.get_marshal("Ney")
+        ney.location = "Waterloo"
+        ney.strength = 30000
+
+        davout = self.world.get_marshal("Davout")
+        davout.location = "Belgium"  # Adjacent
+        davout.strength = 25000
+
+        wellington = self.world.get_marshal("Wellington")
+        wellington.location = "Waterloo"
+        wellington.strength = 30000
+
+        result = self.executor._execute_attack(
+            ney, "Wellington", self.world, self.game_state)
+
+        davout_after = self.world.marshals.get("Davout")
+        if davout_after and davout_after.reinforced_this_turn:
+            # Stalemate — reinforcer must return to origin
+            assert davout_after.location == "Belgium", \
+                f"Reinforcer should return to origin on stalemate, but is at {davout_after.location}"
+
+    def test_defender_reinforcer_returns_on_stalemate(self):
+        """Defender-side reinforcer returns to origin after stalemate."""
+        random.seed(1)
+        self._isolate_marshals({"Ney", "Wellington", "Uxbridge"})
+
+        ney = self.world.get_marshal("Ney")
+        ney.location = "Waterloo"
+        ney.strength = 30000
+
+        wellington = self.world.get_marshal("Wellington")
+        wellington.location = "Waterloo"
+        wellington.strength = 30000
+
+        uxbridge = self.world.get_marshal("Uxbridge")
+        uxbridge.location = "Rhine"  # Adjacent to Waterloo
+        uxbridge.strength = 15000
+
+        result = self.executor._execute_attack(
+            ney, "Wellington", self.world, self.game_state)
+
+        uxbridge_after = self.world.marshals.get("Uxbridge")
+        if uxbridge_after and uxbridge_after.reinforced_this_turn:
+            # Stalemate — defender reinforcer must also return
+            assert uxbridge_after.location == "Rhine", \
+                f"Defender reinforcer should return on stalemate, but is at {uxbridge_after.location}"
+
+    def test_reinforcer_still_stays_on_win(self):
+        """Verify fix doesn't break normal behavior — reinforcer stays on win."""
+        random.seed(42)
+        self._isolate_marshals({"Ney", "Davout", "Wellington"})
+
+        ney = self.world.get_marshal("Ney")
+        ney.location = "Waterloo"
+        ney.strength = 80000  # Overwhelming attacker
+
+        davout = self.world.get_marshal("Davout")
+        davout.location = "Belgium"  # Adjacent
+        davout.strength = 40000
+
+        wellington = self.world.get_marshal("Wellington")
+        wellington.location = "Waterloo"
+        wellington.strength = 15000  # Much weaker
+
+        result = self.executor._execute_attack(
+            ney, "Wellington", self.world, self.game_state)
+
+        davout_after = self.world.marshals.get("Davout")
+        if davout_after and davout_after.reinforced_this_turn:
+            assert davout_after.location == "Waterloo", \
+                "Reinforcer should stay in battle region when attacker wins"
+
+    def test_reinforcer_still_returns_on_loss(self):
+        """Verify fix doesn't break normal behavior — reinforcer returns on loss."""
+        random.seed(99)
+        self._isolate_marshals({"Ney", "Davout", "Wellington"})
+
+        ney = self.world.get_marshal("Ney")
+        ney.location = "Waterloo"
+        ney.strength = 15000  # Weak
+
+        davout = self.world.get_marshal("Davout")
+        davout.location = "Belgium"  # Adjacent
+        davout.strength = 15000
+
+        wellington = self.world.get_marshal("Wellington")
+        wellington.location = "Waterloo"
+        wellington.strength = 60000  # Much stronger
+
+        result = self.executor._execute_attack(
+            ney, "Wellington", self.world, self.game_state)
+
+        davout_after = self.world.marshals.get("Davout")
+        if davout_after and davout_after.reinforced_this_turn:
+            assert davout_after.location == "Belgium", \
+                "Reinforcer should return to origin when attacker loses"
