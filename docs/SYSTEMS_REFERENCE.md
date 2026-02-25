@@ -300,8 +300,8 @@ After every player-visible combat, `battle_report.py` generates a structured rep
 
 **Architecture:**
 - **Snapshots** taken BEFORE `get_attack_modifier()`/`get_defense_modifier()` (which consume one-shot bonuses like strategic_combat_bonus)
-- `snapshot_attacker_modifiers()` — reads stance, drill/shock, strategic bonus (peek only, NOT zeroed), personality, recklessness, exhaustion, cavalry terrain, flanking, glorious charge, per-ally coordination, dedicated coordination (Session 65)
-- `snapshot_defender_modifiers()` — reads stance, fortify bonus, strategic defense (peek only), drilling penalty, personality, recklessness, terrain defense, fortification building, per-ally coordination, dedicated coordination (Session 65)
+- `snapshot_attacker_modifiers()` — reads stance, drill/shock, strategic bonus (peek only, NOT zeroed), personality, recklessness, exhaustion, cavalry terrain, flanking, glorious charge, counter-punch mastery. Coordination entries (combined arms, per-ally, dedicated, adjacent, total) intentionally omitted (Gate 4) — Berthier's narrative observation handles coordination; detailed numbers deferred to Battle History screen (Phase 8.5).
+- `snapshot_defender_modifiers()` — reads stance, fortify bonus, strategic defense (peek only), drilling penalty, personality, recklessness, terrain defense, fortification building. Coordination entries intentionally omitted (Gate 4).
 - `generate_battle_report(battle_result, player_nation)` — assembles modifier_breakdown, casualty_summary, observation
 
 **Perspective-aware observations:** Berthier always speaks from Napoleon's side. `_pick_observation()` uses `attacker_nation`/`defender_nation` from the battle result to determine which side is French. When the enemy attacks a French marshal, "we won" means the defender (our marshal) won. Templates use `{marshal}`, `{enemy}`, `{ally}`, `{relationship}`, `{coordination_bonus}`, and `{arrival_score}` placeholders filled via `.replace()` (graceful degradation — unfilled placeholders become empty strings). The `player_nation` param (default "France") is passed from `combat.py`.
@@ -2522,11 +2522,12 @@ Failed reinforcement → -3 trust, UNLESS marshal personality is Literal. (Hosti
 
 On successful arrival:
 1. Record `arrived_via_support` flag (if SUPPORT order active)
-2. Relocate marshal to battle region (`marshal.location = battle_region`)
-3. Set `reinforced_this_turn = True`
+2. Relocate marshal to battle region (`marshal.location = battle_region`) — **except artillery** (Gate 4: artillery provides fire support from adjacent position, does NOT advance to front line)
+3. Set `reinforced_this_turn = True` (all unit types, including artillery)
 4. Clear path (but **NOT** strategic order yet)
 5. Calculate coordination context (order still active for bonuses)
 6. **THEN** clear strategic order (after coordination)
+7. Artillery reinforcements explicitly added to casualty distribution participants despite not being in battle region
 
 ### Interaction with Coordination
 

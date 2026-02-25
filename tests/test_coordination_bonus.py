@@ -572,7 +572,7 @@ class TestBattleReportSnapshots:
     """Test that battle report captures coordination display fields."""
 
     def test_snapshot_shows_coordination_total_when_different_from_ca(self):
-        """When total coordination differs from CA, 'Coordination (total)' shows up."""
+        """Coordination entries intentionally omitted from snapshots (conveyed via Berthier narrative)."""
         attacker = _make_marshal(name="Atk")
         defender = _make_marshal(name="Def", nation="Britain")
         attacker._display_combined_arms_atk = 0.10
@@ -581,13 +581,11 @@ class TestBattleReportSnapshots:
             attacker, defender, "plains", 0.0, 0, False
         )
         labels = [m["label"] for m in mods]
-        assert "Combined arms" in labels
-        assert "Coordination (total)" in labels
-        total_mod = next(m for m in mods if m["label"] == "Coordination (total)")
-        assert total_mod["value"] == 13
+        assert "Combined arms" not in labels
+        assert "Coordination (total)" not in labels
 
     def test_snapshot_defender_coordination_total(self):
-        """Defender snapshot also shows coordination total when > CA."""
+        """Defender coordination entries intentionally omitted from snapshots (conveyed via Berthier narrative)."""
         attacker = _make_marshal(name="Atk")
         defender = _make_marshal(name="Def", nation="Britain")
         defender._display_combined_arms_def = 0.05
@@ -596,9 +594,8 @@ class TestBattleReportSnapshots:
             defender, attacker, "plains", 0.0
         )
         labels = [m["label"] for m in mods]
-        assert "Coordination (total)" in labels
-        total_mod = next(m for m in mods if m["label"] == "Coordination (total)")
-        assert total_mod["value"] == 10
+        assert "Combined arms" not in labels
+        assert "Coordination (total)" not in labels
 
 
 # ════════════════════════════════════════════════════════════════════════════════

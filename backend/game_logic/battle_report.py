@@ -115,32 +115,14 @@ def snapshot_attacker_modifiers(
     if glorious_charge:
         mods.append({"label": "Glorious Charge", "value": 100, "type": "bonus"})
 
-    # --- Combined Arms (Phase 7, Session 57) ---
-    ca_atk = getattr(attacker, '_display_combined_arms_atk', 0.0)
-    if ca_atk > 0:
-        mods.append({"label": "Combined arms", "value": int(round(ca_atk * 100)), "type": "bonus"})
-
-    # --- Per-Ally Coordination (Phase 7, Session 58/65) ---
-    coord_atk = getattr(attacker, '_display_coordination_atk', 0.0)
-    if coord_atk > 0:
-        mods.append({"label": "Per-ally coordination", "value": int(round(coord_atk * 100)), "type": "bonus"})
-
-    # --- Dedicated Coordination (Phase 7, Session 59/65) ---
-    ded_atk = getattr(attacker, '_display_dedicated_atk', 0.0)
-    if ded_atk > 0:
-        mods.append({"label": "Dedicated coordination", "value": int(round(ded_atk * 100)), "type": "bonus"})
-
-    # --- Adjacent Support (Phase 7, Session 60) — attack-only per A-M2 ---
-    adj_atk = getattr(attacker, '_display_adjacent_atk', 0.0)
-    if adj_atk > 0:
-        mods.append({"label": "Adjacent support", "value": int(round(adj_atk * 100)), "type": "bonus"})
-
-    # --- Total Coordination (Phase 7) ---
-    total_coord_atk = getattr(attacker, 'total_coordination_attack_bonus', 0.0)
-    if total_coord_atk > 0:
-        # Only show total if different from combined arms (meaning other sources contribute)
-        if abs(total_coord_atk - ca_atk) > 0.001:
-            mods.append({"label": "Coordination (total)", "value": int(round(total_coord_atk * 100)), "type": "bonus"})
+    # --- Coordination bonuses (Phase 7, Sessions 57-65) ---
+    # Combined arms, per-ally coordination, dedicated coordination, adjacent
+    # support, and total coordination are intentionally OMITTED from the
+    # modifier breakdown.  Berthier's narrative observation (see
+    # coordination_* templates in _OBSERVATIONS) conveys coordination info
+    # in prose.  Detailed numbers will appear in the Battle History screen
+    # (Phase 8.5).  The bonuses still affect combat via marshal transient
+    # fields — they are just not shown as raw stats here.
 
     return mods
 
@@ -217,27 +199,8 @@ def snapshot_defender_modifiers(
     if fortification_bonus > 0:
         mods.append({"label": "Fortification building", "value": int(round(fortification_bonus * 100)), "type": "bonus"})
 
-    # --- Combined Arms (Phase 7, Session 57) ---
-    ca_def = getattr(defender, '_display_combined_arms_def', 0.0)
-    if ca_def > 0:
-        mods.append({"label": "Combined arms", "value": int(round(ca_def * 100)), "type": "bonus"})
-
-    # --- Per-Ally Coordination (Phase 7, Session 58/65) ---
-    coord_def = getattr(defender, '_display_coordination_def', 0.0)
-    if coord_def > 0:
-        mods.append({"label": "Per-ally coordination", "value": int(round(coord_def * 100)), "type": "bonus"})
-
-    # --- Dedicated Coordination (Phase 7, Session 59/65) ---
-    ded_def = getattr(defender, '_display_dedicated_def', 0.0)
-    if ded_def > 0:
-        mods.append({"label": "Dedicated coordination", "value": int(round(ded_def * 100)), "type": "bonus"})
-
-    # --- Total Coordination (Phase 7) ---
-    total_coord_def = getattr(defender, 'total_coordination_defense_bonus', 0.0)
-    if total_coord_def > 0:
-        # Only show total if different from combined arms (meaning other sources contribute)
-        if abs(total_coord_def - ca_def) > 0.001:
-            mods.append({"label": "Coordination (total)", "value": int(round(total_coord_def * 100)), "type": "bonus"})
+    # --- Coordination bonuses (Phase 7, Sessions 57-65) ---
+    # Intentionally omitted — see comment in snapshot_attacker_modifiers().
 
     return mods
 

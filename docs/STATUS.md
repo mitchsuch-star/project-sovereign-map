@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 24, 2026 (Session 65: Full Battle Reports + Berthier Coordination Observations)
+> **Last Updated:** February 24, 2026 (Gate 4 Fixes: Berthier narrative voice, auto-assign coordination, artillery reinforcement)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3741** (3738 passed, 3 skipped — verified Feb 24, Session 65) |
+| **Tests Passing** | **3751** (3748 passed, 3 skipped — verified Feb 24, Gate 4 Fixes) |
 
 | **Current Phase** | Phase 7b **IN PROGRESS** (Session 65 complete, remaining: S66, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau). |
 | **Blockers** | None |
@@ -46,6 +46,18 @@ All major Phase 6 features shipped:
 
 ## Phase 7b Sessions
 
+### Feb 24 — Gate 4 Fixes (Post-Session 65)
+
+**10 new tests, 3751 total (3 skipped). Three UI testing issues fixed before Session 66.**
+
+- **Issue 1 — Berthier narrative voice:** Removed coordination modifier entries (Combined arms, Per-ally coordination, Dedicated coordination, Adjacent support, Coordination total) from `snapshot_attacker_modifiers()` and `snapshot_defender_modifiers()`. Coordination info now conveyed only through Berthier's narrative observation templates (already prose). Removed dead `coordination_preview` generation from executor. Detailed coordination numbers deferred to Battle History screen (Phase 8.5).
+- **Issue 2 — Auto-routed attack missing coordination:** Rewrote `_execute_auto_assign_attack()` to delegate to `_execute_attack()` after finding nearest marshal (Building Blocks principle). Eliminated ~300 lines of duplicated combat logic. All attack paths now include full coordination, reinforcement, relationship, and battle report support.
+- **Issue 3 — Artillery advancing on reinforcement:** Artillery reinforcing from adjacent no longer relocates to battle region. Provides coordination bonus from adjacent position (fire support, not advance). Still gets `reinforced_this_turn` flag. Explicitly added to casualty distribution participants despite not being in battle region.
+
+**Files modified:** `battle_report.py` (removed coordination from modifier snapshots), `executor.py` (auto-assign delegation, artillery reinforcement no-advance, coordination preview removal).
+**Files created:** `tests/test_gate4_fixes.py` (10 tests, 4 classes).
+**Files updated:** `test_auto_assign_attack.py` (1 assertion fix), `test_battle_report.py` (4 tests), `test_combined_arms.py` (4 tests), `test_coordination_bonus.py` (2 tests).
+
 ### Feb 24 — Session 65: Full Battle Reports + Berthier Coordination Observations
 
 **24 new tests (89 total in test_battle_report.py), 3741 total (3 skipped). Berthier now comments on coordination, reinforcements, relationships, and hostile dynamics.**
@@ -59,9 +71,9 @@ All major Phase 6 features shipped:
   - P13: Devoted synergy (devoted ally coordination bonus)
   - P15: Rival improved (relationship improvement after shared battle)
 - **`_fill()` template system** converted from `.format()` to `.replace()` for graceful degradation. 4 new placeholders: `{ally}`, `{relationship}`, `{coordination_bonus}`, `{arrival_score}`.
-- **Snapshot extensions:** `snapshot_attacker_modifiers()` and `snapshot_defender_modifiers()` now capture per-ally coordination and dedicated coordination bonuses.
+- **Snapshot extensions:** `snapshot_attacker_modifiers()` and `snapshot_defender_modifiers()` originally captured per-ally coordination and dedicated coordination bonuses. **Removed in Gate 4 fixes** — coordination conveyed via narrative observation only; detailed numbers deferred to Battle History screen (Phase 8.5).
 - **Coordination context injection:** `executor.py` injects `coordination_context`, `reinforcement_results_for_report`, and `relationship_changes` into `battle_result` dict after `resolve_battle()`. Observation re-picked with full data.
-- **Pre-battle coordination preview:** Player sees coordination bonus breakdown before battle resolves (when coordination bonuses are active).
+- **Pre-battle coordination preview:** Originally showed coordination bonus breakdown before battle resolves. **Removed in Gate 4 fixes** — Godot never consumed it; narrative observation handles coordination storytelling.
 - **Reinforcement notification messages:** Added to executor result dict for Godot rendering (deferred to S66).
 - **Two-pass observation picking:** Initial pick inside `resolve_battle()` (no coordination data), re-pick in `executor.py` after all data injected.
 

@@ -3877,6 +3877,8 @@ RETREAT RECOVERY (3 turns):
 
         # Process arrivals — BEFORE coordination context (A-C2)
         arrived_names = set()
+        # Artillery that reinforced but stayed in adjacent position (Gate 4 fix)
+        artillery_reinforced_adjacent = []
         for side_primary, results_list in [(marshal, attacker_reinforcements),
                                            (enemy_marshal, defender_reinforcements)]:
             for result in results_list:
@@ -3890,8 +3892,14 @@ RETREAT RECOVERY (3 turns):
                             and order.command_type == "SUPPORT"
                             and order.target == side_primary.name
                         )
-                        # Physical relocation
-                        arriving.location = battle_region_name
+                        # Physical relocation — artillery stays in adjacent position
+                        # (Gate 4: artillery reinforces via fire support, not advance)
+                        if getattr(arriving, 'artillery', False):
+                            # Artillery provides coordination bonus from adjacent
+                            # position but does NOT advance to front line
+                            artillery_reinforced_adjacent.append(arriving)
+                        else:
+                            arriving.location = battle_region_name
                         arriving.reinforced_this_turn = True
                         arrived_names.add(arriving.name)
                         # Clear path (now invalid) but DO NOT clear strategic_order yet (A-C2)
@@ -3921,47 +3929,24 @@ RETREAT RECOVERY (3 turns):
             marshal, battle_region_name, marshal.nation, world)
         def_participants = self._get_casualty_participants(
             enemy_marshal, battle_region_name, enemy_marshal.nation, world)
+
+        # Gate 4: Artillery that reinforced from adjacent (didn't relocate)
+        # must still participate in casualty distribution
+        for art in artillery_reinforced_adjacent:
+            if art.nation == marshal.nation and art not in atk_participants:
+                atk_participants.append(art)
+            elif art.nation == enemy_marshal.nation and art not in def_participants:
+                def_participants.append(art)
+
         is_coordinated_battle = (len(atk_participants) >= 2 or len(def_participants) >= 2)
 
         # NOTE: Strategic order clearing for arrived reinforcements is DEFERRED
         # until after process_battle_relationships() so Hostile+SUPPORT marshals
         # are correctly detected as Participating in relationship checks (W-1 fix).
 
-        # ════════════════════════════════════════════════════════════
-        # PRE-BATTLE COORDINATION PREVIEW (Session 65, A-M5)
-        # Shows estimated coordination bonuses BEFORE combat resolves.
-        # Only shown for player-nation attacks with active coordination.
-        # ════════════════════════════════════════════════════════════
-        coordination_preview = None
-        if marshal.nation == world.player_nation:
-            total_atk = getattr(marshal, 'total_coordination_attack_bonus', 0.0)
-            total_def = getattr(marshal, 'total_coordination_defense_bonus', 0.0)
-            if total_atk > 0 or total_def > 0:
-                preview_lines = []
-                ca_atk = getattr(marshal, '_display_combined_arms_atk', 0.0)
-                ca_def = getattr(marshal, '_display_combined_arms_def', 0.0)
-                coord_atk = getattr(marshal, '_display_coordination_atk', 0.0)
-                coord_def = getattr(marshal, '_display_coordination_def', 0.0)
-                ded_atk = getattr(marshal, '_display_dedicated_atk', 0.0)
-                ded_def = getattr(marshal, '_display_dedicated_def', 0.0)
-                adj_atk = getattr(marshal, '_display_adjacent_atk', 0.0)
-
-                if ca_atk > 0 or ca_def > 0:
-                    type_count = attacker_coord.get("type_count", 0)
-                    preview_lines.append(
-                        f"Combined Arms: {type_count}/3 types -> +{int(ca_atk * 100)}% atk, +{int(ca_def * 100)}% def")
-                if coord_atk > 0 or coord_def > 0:
-                    preview_lines.append(
-                        f"Coordination: +{int(coord_atk * 100)}% atk, +{int(coord_def * 100)}% def")
-                if ded_atk > 0 or ded_def > 0:
-                    preview_lines.append(
-                        f"Dedicated: +{int(ded_atk * 100)}% atk, +{int(ded_def * 100)}% def")
-                if adj_atk > 0:
-                    preview_lines.append(f"Adjacent: +{int(adj_atk * 100)}% atk")
-                preview_lines.append(
-                    f"TOTAL: +{int(total_atk * 100)}% atk, +{int(total_def * 100)}% def")
-                preview_lines.append("Note: Adjacent reinforcements may modify these values.")
-                coordination_preview = "\n".join(preview_lines)
+        # Coordination preview removed — Berthier's narrative observation
+        # handles coordination storytelling; detailed numbers deferred to
+        # Battle History screen (Phase 8.5).
 
         # ════════════════════════════════════════════════════════════
         # RESOLVE COMBAT
@@ -4424,9 +4409,7 @@ RETREAT RECOVERY (3 turns):
         if battle_result.get("battle_report"):
             result["battle_report"] = battle_result["battle_report"]
 
-        # Pre-battle coordination preview (Session 65)
-        if coordination_preview:
-            result["coordination_preview"] = coordination_preview
+        # Coordination preview removed — narrative observation only (Gate 4).
 
         # Reinforcement notification messages (Session 65)
         reinf_messages = []
@@ -6634,7 +6617,7 @@ RETREAT RECOVERY (3 turns):
         """
         Execute attack with auto-assigned marshal.
         Example: "Attack Wellington" or "Attack Rhine"
-        Handles both enemy marshals and regions (defended or undefended).
+        Delegates to _execute_attack() after finding nearest marshal (Building Blocks).
         """
         target = command.get("target")
         world: WorldState = game_state.get("world")
@@ -6646,132 +6629,24 @@ RETREAT RECOVERY (3 turns):
         enemy = world.get_enemy_by_name(target)
 
         if enemy:
-            # Check if already destroyed
             if enemy.strength <= 0:
                 return {
                     "success": False,
                     "message": f"{target} has already been destroyed!"
                 }
-
-            # Found enemy marshal by name - attack at their location
+            # Found enemy marshal — find nearest player marshal to attack
             result = world.find_nearest_marshal_to_region(enemy.location)
-
             if not result:
                 return {"success": False, "message": f"No marshals in range of {target}"}
-
             nearest_marshal, distance = result
 
-            # ============================================================
-            # FLANKING SYSTEM (Phase 2.5): Record attack and calculate bonus
-            # ============================================================
-            origin_region = nearest_marshal.location
-            target_location = enemy.location
-
-            world.record_attack(nearest_marshal.name, origin_region, target_location)
-            flanking_info = world.calculate_flanking_bonus(target_location)
-            flanking_bonus = flanking_info["bonus"]
-            flanking_message = world.get_flanking_message(nearest_marshal.name, origin_region, target_location)
-
-            # Read terrain from defender's region
-            sally2_defender_region = world.get_region(enemy.location)
-            sally2_terrain = sally2_defender_region.terrain if sally2_defender_region else "plains"
-            sally2_fort_bonus = 0.25 if sally2_defender_region and sally2_defender_region.has_building("fortification") else 0.0
-
-            # Capture pre-battle strengths for war damage threshold (Phase 6.2.C)
-            pre_battle_atk = nearest_marshal.strength
-            pre_battle_def = enemy.strength
-
-            # Execute attack with flanking
-            battle_result = self.combat_resolver.resolve_battle(
-                attacker=nearest_marshal,
-                defender=enemy,
-                terrain=sally2_terrain,
-                flanking_bonus=flanking_bonus,
-                flanking_message=flanking_message,
-                fortification_bonus=sally2_fort_bonus
-            )
-
-            # Log battle event
-            self._log_battle_event(battle_result, target_location, world)
-
-            # Fog of War (Session 34A): Battle grants FULL visibility on battle region
-            world.update_intel_from_battle(target_location, world.current_turn)
-
-            # Apply war damage + stability hit to battle region (Phase 6.2.C)
-            self._apply_battle_effects_to_region(
-                target_location, pre_battle_atk, pre_battle_def, world
-            )
-
-            # Record battle for cannon fire detection
-            world.record_battle(target_location, nearest_marshal.name, enemy.name,
-                                battle_result.get("outcome", "unknown"))
-
-            enemy_destroyed = enemy.strength <= 0
-
-            # Remove dead enemy
-            if enemy_destroyed:
-                print(f"[REMOVED] {enemy.name} from world state")
-                world.marshals.pop(enemy.name, None)
-            if nearest_marshal.strength <= 0:
-                world.marshals.pop(nearest_marshal.name, None)
-
-            # Build message with flanking info
-            flanking_prefix = ""
-            if flanking_message:
-                flanking_prefix = f"\n{flanking_message}\n"
-
-            # ============================================================
-            # VINDICATION SYSTEM: Resolve post-battle trust/authority
-            # ============================================================
-            vindication_msg = ""
-            vindication_result = None
-
-            if battle_result["victor"] == nearest_marshal.name:
-                battle_outcome = "victory"
-            elif battle_result["victor"] == enemy.name:
-                battle_outcome = "defeat"
-            else:
-                battle_outcome = "draw"
-
-            if world.vindication_tracker.has_pending(nearest_marshal.name):
-                vindication_result = world.vindication_tracker.resolve_battle(
-                    marshal_name=nearest_marshal.name,
-                    result=battle_outcome,
-                    game_state=world
-                )
-                if vindication_result:
-                    vindication_msg = f"\n\n{vindication_result['message']}"
-
-            # Handle forced retreat for broken armies
-            forced_retreat_msg = self._handle_forced_retreat(
-                battle_result, nearest_marshal, enemy, world
-            )
-
-            sally2_result = {
-                "success": True,
-                "message": f"{nearest_marshal.name} (auto-assigned) attacks {target}!{flanking_prefix} {battle_result['description']}{vindication_msg}{forced_retreat_msg}",
-                "events": [{
-                    "type": "battle",
-                    "battle_name": f"Battle of {enemy.location}",
-                    "marshal": nearest_marshal.name,
-                    "auto_assigned": True,
-                    "attacker": battle_result["attacker"],
-                    "defender": battle_result["defender"],
-                    "outcome": battle_result["outcome"],
-                    "victor": battle_result["victor"],
-                    "enemy_destroyed": enemy_destroyed,
-                    "flanking_bonus": flanking_bonus,
-                    "flanking_origins": list(flanking_info["unique_origins"]) if flanking_info["unique_origins"] else [],
-                    "vindication": vindication_result,
-                    "attacker_forced_retreat": battle_result.get("attacker", {}).get("forced_retreat", False),
-                    "defender_forced_retreat": battle_result.get("defender", {}).get("forced_retreat", False)
-                }],
-                "new_state": game_state
-            }
-            # Berthier's After-Action Report
-            if battle_result.get("battle_report"):
-                sally2_result["battle_report"] = battle_result["battle_report"]
-            return sally2_result
+            # Delegate to _execute_attack with full coordination support
+            attack_result = self._execute_attack(nearest_marshal, target, world, game_state)
+            # Tag as auto-assigned for UI display
+            if attack_result.get("events"):
+                for ev in attack_result["events"]:
+                    ev["auto_assigned"] = True
+            return attack_result
 
         # SECOND: Check if target is a region name with fuzzy matching
         target_region, error = self._fuzzy_match_region(target, world)
@@ -6779,7 +6654,6 @@ RETREAT RECOVERY (3 turns):
         if error:
             return error
 
-        # Get the corrected target name
         target_name = target_region.name if hasattr(target_region, 'name') else target
 
         # Find nearest marshal to this region
@@ -6790,204 +6664,13 @@ RETREAT RECOVERY (3 turns):
 
         nearest_marshal, distance = result
 
-        # Check for defenders in the region
-        enemies_there = [e for e in world.get_enemy_marshals()
-                         if e.location == target_name and e.strength > 0]
-
-        if enemies_there:
-            # DEFENDED - Fight the first enemy
-            enemy = enemies_there[0]
-
-            # ============================================================
-            # FLANKING SYSTEM (Phase 2.5): Record attack and calculate bonus
-            # ============================================================
-            origin_region = nearest_marshal.location
-            target_location = target_name
-
-            world.record_attack(nearest_marshal.name, origin_region, target_location)
-            flanking_info = world.calculate_flanking_bonus(target_location)
-            flanking_bonus = flanking_info["bonus"]
-            flanking_message = world.get_flanking_message(nearest_marshal.name, origin_region, target_location)
-
-            # Read terrain from defender's region
-            sally3_defender_region = world.get_region(enemy.location)
-            sally3_terrain = sally3_defender_region.terrain if sally3_defender_region else "plains"
-            sally3_fort_bonus = 0.25 if sally3_defender_region and sally3_defender_region.has_building("fortification") else 0.0
-
-            # Capture pre-battle strengths for war damage threshold (Phase 6.2.C)
-            pre_battle_atk = nearest_marshal.strength
-            pre_battle_def = enemy.strength
-
-            battle_result = self.combat_resolver.resolve_battle(
-                attacker=nearest_marshal,
-                defender=enemy,
-                terrain=sally3_terrain,
-                flanking_bonus=flanking_bonus,
-                flanking_message=flanking_message,
-                fortification_bonus=sally3_fort_bonus
-            )
-
-            # Log battle event
-            self._log_battle_event(battle_result, target_name, world)
-
-            # Fog of War (Session 34A): Battle grants FULL visibility on battle region
-            world.update_intel_from_battle(target_name, world.current_turn)
-
-            # Apply war damage + stability hit to battle region (Phase 6.2.C)
-            self._apply_battle_effects_to_region(
-                target_name, pre_battle_atk, pre_battle_def, world
-            )
-
-            # Record battle for cannon fire detection
-            world.record_battle(target_name, nearest_marshal.name, enemy.name,
-                                battle_result.get("outcome", "unknown"))
-
-            # Check for destroyed armies
-            enemy_destroyed = enemy.strength <= 0
-            attacker_destroyed = nearest_marshal.strength <= 0
-
-            # CRITICAL: Remove destroyed marshals immediately
-            if enemy_destroyed:
-                print(f"[REMOVED] {enemy.name} from world state")
-                world.marshals.pop(enemy.name, None)
-
-            if attacker_destroyed:
-                world.marshals.pop(nearest_marshal.name, None)
-
-            # Check for conquest
-            conquered = False
-            conquest_msg = ""
-
-            # Check for region conquest after enemy destroyed
-            # ENEMY AI FIX: Use attacker's nation, not hardcoded player_nation
-            if enemy_destroyed:
-                remaining_defenders = [m for m in world.marshals.values()
-                                     if m.location == target_name and m.strength > 0 and m.nation != nearest_marshal.nation]
-                if not remaining_defenders:
-                    capture_result = self._attempt_region_capture(
-                        nearest_marshal, target_name, world, game_state, had_garrison=True)
-                    if capture_result["captured"]:
-                        conquered = True
-                        conquest_msg = f" {target_name} has been captured by {nearest_marshal.nation}!"
-                    elif capture_result["occupation_started"]:
-                        conquest_msg = f" {capture_result['message']}"
-
-            # Build message with flanking info
-            flanking_prefix = ""
-            if flanking_message:
-                flanking_prefix = f"\n{flanking_message}\n"
-
-            # ============================================================
-            # VINDICATION SYSTEM: Resolve post-battle trust/authority
-            # ============================================================
-            vindication_msg = ""
-            vindication_result = None
-
-            if battle_result["victor"] == nearest_marshal.name:
-                battle_outcome = "victory"
-            elif battle_result["victor"] == enemy.name:
-                battle_outcome = "defeat"
-            else:
-                battle_outcome = "draw"
-
-            if world.vindication_tracker.has_pending(nearest_marshal.name):
-                vindication_result = world.vindication_tracker.resolve_battle(
-                    marshal_name=nearest_marshal.name,
-                    result=battle_outcome,
-                    game_state=world
-                )
-                if vindication_result:
-                    vindication_msg = f"\n\n{vindication_result['message']}"
-
-            # Handle forced retreat for broken armies
-            forced_retreat_msg = self._handle_forced_retreat(
-                battle_result, nearest_marshal, enemy, world
-            )
-
-            auto_result = {
-                "success": True,
-                "message": f"{nearest_marshal.name} attacks {enemy.name} at {target_name}!{flanking_prefix} {battle_result['description']}{conquest_msg}{vindication_msg}{forced_retreat_msg}",
-                "events": [{
-                    "type": "battle",
-                    "battle_name": f"Battle of {target_name}",
-                    "marshal": nearest_marshal.name,
-                    "auto_assigned": True,
-                    "attacker": battle_result["attacker"],
-                    "defender": battle_result["defender"],
-                    "outcome": battle_result["outcome"],
-                    "victor": battle_result["victor"],
-                    "region_conquered": conquered,
-                    "enemy_destroyed": enemy_destroyed,
-                    "attacker_forced_retreat": battle_result.get("attacker", {}).get("forced_retreat", False),
-                    "defender_forced_retreat": battle_result.get("defender", {}).get("forced_retreat", False),
-                    "flanking_bonus": flanking_bonus,
-                    "flanking_origins": list(flanking_info["unique_origins"]) if flanking_info["unique_origins"] else [],
-                    "vindication": vindication_result
-                }],
-                "new_state": game_state
-            }
-            # Berthier's After-Action Report
-            if battle_result.get("battle_report"):
-                auto_result["battle_report"] = battle_result["battle_report"]
-            # Phase 6.2.E: Flag pending capture choice
-            if world.pending_capture_choice:
-                auto_result["pending_capture_choice"] = True
-                auto_result["capture_data"] = world.pending_capture_choice
-            return auto_result
-
-        # UNDEFENDED - Instant capture!
-        # ENEMY AI FIX: Use attacker's nation, not hardcoded player_nation
-        if target_region.controller == nearest_marshal.nation:
-            return {
-                "success": True,
-                "message": f"{target_name} is already controlled by {nearest_marshal.nation}",
-                "events": [],
-                "new_state": game_state
-            }
-
-        # Capture undefended region!
-        old_controller = target_region.controller
-        capture_result = self._attempt_region_capture(
-            nearest_marshal, target_name, world, game_state, had_garrison=False)
-
-        if capture_result["occupation_started"]:
-            return {
-                "success": True,
-                "message": f"{nearest_marshal.name} marches into {target_name} unopposed! {capture_result['message']}",
-                "occupation_started": True,
-                "events": [{
-                    "type": "occupation_started",
-                    "marshal": nearest_marshal.name,
-                    "region": target_name,
-                    "turns_required": capture_result["turns_required"],
-                }],
-                "new_state": game_state
-            }
-
-        # Instant capture
-        capture_message = f"{nearest_marshal.name} marches into {target_name} unopposed! Captured: {old_controller} → {nearest_marshal.nation}"
-        conquest_event = {
-            "type": "conquest",
-            "marshal": nearest_marshal.name,
-            "region": target_name,
-            "previous_controller": old_controller,
-            "unopposed": True,
-        }
-        if capture_result.get("capture_choice"):
-            conquest_event["capture_choice"] = capture_result["capture_choice"]
-        result = {
-            "success": True,
-            "message": capture_message,
-            "events": [conquest_event],
-            "new_state": game_state
-        }
-
-        if nearest_marshal.nation == world.player_nation and world.pending_capture_choice:
-            result["message"] += "\nYour forces have taken the region! How shall they behave?"
-            result["pending_capture_choice"] = True
-            result["capture_data"] = world.pending_capture_choice
-
-        return result
+        # Delegate to _execute_attack with full coordination support
+        attack_result = self._execute_attack(nearest_marshal, target_name, world, game_state)
+        # Tag as auto-assigned for UI display
+        if attack_result.get("events"):
+            for ev in attack_result["events"]:
+                ev["auto_assigned"] = True
+        return attack_result
 
     def _execute_auto_assign_bombardment(self, command: Dict, game_state: Dict) -> Dict:
         """

@@ -1254,44 +1254,40 @@ class TestCoordinationObservations:
     # ── Snapshot Capture Tests ──────────────────────────────────
 
     def test_snapshot_captures_per_ally_coordination_atk(self):
-        """Attacker snapshot should capture _display_coordination_atk."""
+        """Attacker snapshot intentionally omits per-ally coordination (conveyed via Berthier narrative)."""
         atk = _make_marshal(name="Ney", personality="aggressive", cavalry=True)
         atk._display_coordination_atk = 0.03
         defn = _make_marshal(name="Wellington", nation="Britain")
         mods = snapshot_attacker_modifiers(atk, defn, "plains", 0.0, 0, False)
         m = _find_mod(mods, "per-ally coordination", "bonus")
-        assert m is not None
-        assert m["value"] == 3
+        assert m is None
 
     def test_snapshot_captures_dedicated_coordination_atk(self):
-        """Attacker snapshot should capture _display_dedicated_atk."""
+        """Attacker snapshot intentionally omits dedicated coordination (conveyed via Berthier narrative)."""
         atk = _make_marshal(name="Ney", personality="aggressive", cavalry=True)
         atk._display_dedicated_atk = 0.05
         defn = _make_marshal(name="Wellington", nation="Britain")
         mods = snapshot_attacker_modifiers(atk, defn, "plains", 0.0, 0, False)
         m = _find_mod(mods, "dedicated coordination", "bonus")
-        assert m is not None
-        assert m["value"] == 5
+        assert m is None
 
     def test_snapshot_captures_per_ally_coordination_def(self):
-        """Defender snapshot should capture _display_coordination_def."""
+        """Defender snapshot intentionally omits per-ally coordination (conveyed via Berthier narrative)."""
         defn = _make_marshal(name="Wellington", nation="Britain")
         defn._display_coordination_def = 0.05
         atk = _make_marshal(name="Ney")
         mods = snapshot_defender_modifiers(defn, atk, "plains", 0.0)
         m = _find_mod(mods, "per-ally coordination", "bonus")
-        assert m is not None
-        assert m["value"] == 5
+        assert m is None
 
     def test_snapshot_captures_dedicated_coordination_def(self):
-        """Defender snapshot should capture _display_dedicated_def."""
+        """Defender snapshot intentionally omits dedicated coordination (conveyed via Berthier narrative)."""
         defn = _make_marshal(name="Wellington", nation="Britain")
         defn._display_dedicated_def = 0.05
         atk = _make_marshal(name="Ney")
         mods = snapshot_defender_modifiers(defn, atk, "plains", 0.0)
         m = _find_mod(mods, "dedicated coordination", "bonus")
-        assert m is not None
-        assert m["value"] == 5
+        assert m is None
 
     def test_snapshot_omits_zero_coordination(self):
         """Snapshot should not include coordination entries when zero."""

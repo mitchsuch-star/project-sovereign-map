@@ -8,11 +8,8 @@ These are the two main "auto" attack paths:
 Coverage targets: executor.py lines 4503-4638, 4778-5129
 """
 
-import pytest
 from backend.models.world_state import WorldState
-from backend.models.marshal import Marshal
 from backend.commands.executor import CommandExecutor
-from backend.game_logic.combat import CombatResolver
 
 
 class TestAutoAssignAttackByEnemyName:
@@ -146,7 +143,7 @@ class TestAutoAssignAttackByRegion:
         assert result["events"][0]["type"] == "battle"
 
     def test_attack_undefended_region_already_owned(self):
-        """Attacking a region you already own returns info message."""
+        """Attacking a region you already own returns info message (no AP consumed)."""
         ney = self.world.get_marshal("Ney")
         ney.location = "Paris"
 
@@ -154,7 +151,8 @@ class TestAutoAssignAttackByRegion:
         command = {"action": "auto_assign_attack", "target": "Paris"}
         result = self.executor._execute_auto_assign_attack(command, self.game_state)
 
-        assert result["success"] is True
+        # _execute_attack returns success=False for already-owned region (no AP consumed)
+        assert result["success"] is False
         assert "already controlled" in result["message"].lower()
 
     def test_attack_undefended_enemy_region_captures(self):

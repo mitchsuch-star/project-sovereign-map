@@ -423,6 +423,7 @@ Player: "I offer Austria peace if they cede Tyrol"
 | **National Flavor** | France FEELS different from Austria | Medium | Planned |
 | **Light Tech/Reforms** | Simple upgrades: conscription, tactics, administration | Medium | Planned |
 | **Campaign Objectives** | Victory conditions beyond territory (prestige, survival) | Medium | Planned |
+| **Battle History Screen** | Detailed past-battle viewer (ledger sub-tab or standalone). Full modifier breakdowns including coordination stats (combined arms %, per-ally %, dedicated %, adjacent %, total). Replaces coordination data removed from Berthier's Report modifier snapshots in Gate 4. | Low | Planned |
 | Historical Moments | Coronation, Tilsit, Retreat from Moscow | Medium | Planned |
 | **Imperial Governance Events** | Marshal-as-governor events, personality-driven regional outcomes. See `FUTURE_DESIGN.md`. | Medium | Planned |
 | **Gazette System** | Period newspaper every 3-5 turns, LLM-generated | Medium | Planned |
