@@ -2678,4 +2678,4 @@ All values `int()`-wrapped for Godot safety.
 | `godot-client/project-sovereign/scripts/main.gd` | `_display_reinforcement_messages()`, `_display_coordination_tutorial()` |
 | `godot-client/project-sovereign/scenes/map.gd` | Relationship lines in marshal tooltip, coordination readiness in region tooltip |
 | `godot-client/project-sovereign/scripts/enemy_phase_dialog.gd` | Reinforcement messages in enemy phase battles |
-| `tests/test_session66_integration.py` | 29 tests across 7 classes |
+| `tests/test_session66_integration.py` | 32 tests across 7 classes |

@@ -60,7 +60,7 @@ All major Phase 6 features shipped:
 - **Integration audit:** Full cross-system confidence report. All Phase 7 areas scored ≥97%. No bugs found.
 
 **Files modified:** `executor.py` (tutorial trigger), `world_state.py` (field + summary data), `main.py` (passthrough), `main.gd` (reinforcement + tutorial display), `map.gd` (tooltips), `enemy_phase_dialog.gd` (reinforcement display).
-**Files created:** `tests/test_session66_integration.py` (29 tests: 7 classes covering serialization, tutorial trigger, game state summary, reinforcement messages, edge cases, full battle integration, filtered summary).
+**Files created:** `tests/test_session66_integration.py` (32 tests: 7 classes covering serialization, tutorial trigger, game state summary, reinforcement messages, edge cases, full battle integration, filtered summary).
 
 ### Feb 24 — Gate 4 Remaining Fixes + Berthier Reinforcement Naming
 
