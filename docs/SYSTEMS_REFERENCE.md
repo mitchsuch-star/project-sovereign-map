@@ -20,6 +20,8 @@ Consolidated reference for all game systems. Read when modifying related code.
 11. [Campaign Log](#11-campaign-log)
 12. [Top Bar & Screen Management](#12-top-bar--screen-management)
 13. [Reinforcement System](#13-reinforcement-system)
+14. [Win/Loss Relationship Formula](#14-winloss-relationship-formula)
+15. [Phase 7 UI Integration (Session 66)](#15-phase-7-ui-integration-session-66)
 
 ---
 
@@ -1138,7 +1140,7 @@ When a player issues a tactical command to a marshal with an active strategic or
 - **Override actions** (attack, move, defend): Silently cancel strategic order, execute tactical
 - **Non-override actions** (wait, scout): Execute alongside strategic order
 - **Explicit cancel** ("halt", "cancel"): Cost 1 action, -3 trust
-- Implementation location: `executor.py _check_strategic_override()` (planned)
+- Implementation location: `executor.py` (inline in `execute()` — override handled via direct strategic order cancellation)
 
 ---
 

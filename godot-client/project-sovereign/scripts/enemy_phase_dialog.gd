@@ -390,7 +390,7 @@ func _get_nation_color(nation: String) -> String:
 
 func _is_player_marshal(name: String) -> bool:
 	"""Check if marshal belongs to player (France)."""
-	var player_marshals = ["Ney", "Davout", "Grouchy"]
+	var player_marshals = ["Ney", "Davout", "Grouchy", "Drouot"]
 	return name in player_marshals
 
 func _format_number(num) -> String:

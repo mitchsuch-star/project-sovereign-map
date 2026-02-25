@@ -715,8 +715,8 @@ class CommandExecutor:
         - Proportional by strength fraction: marshal_strength / total_strength * raw_casualties
         - Round DOWN each marshal's share (int())
         - Artillery rear-position advantage: when fighting alongside non-artillery
-          units, artillery takes 50% of proportional share (the "saved" casualties
-          are not redistributed — they represent positioning advantage)
+          units, artillery takes 50% of proportional share (the saved casualties
+          are redistributed to front-line troops via the remainder mechanism)
         - Assign remainder to strongest non-artillery marshal (or strongest overall)
         - Share capped at marshal's current strength (can't go below 0)
         """
@@ -4275,7 +4275,7 @@ RETREAT RECOVERY (3 turns):
                             and p.location == battle_region_name):
                         p.location = origin
                         forced_retreat_msg += (
-                            f"\n{p.name} withdraws to {origin} after the defeat.")
+                            f"\n{p.name} withdraws to {origin} after the battle.")
             if not def_won:
                 for p in def_participants:
                     origin = reinforcer_origin.get(p.name)
@@ -4286,7 +4286,7 @@ RETREAT RECOVERY (3 turns):
                             and p.location == battle_region_name):
                         p.location = origin
                         forced_retreat_msg += (
-                            f"\n{p.name} withdraws to {origin} after the defeat.")
+                            f"\n{p.name} withdraws to {origin} after the battle.")
 
             # Clean up destroyed non-primary participants
             for p in atk_participants + def_participants:
@@ -4522,7 +4522,7 @@ RETREAT RECOVERY (3 turns):
         # ════════════════════════════════════════════════════════════
         all_reinforcements = attacker_reinforcements + defender_reinforcements
         for reinf_result in all_reinforcements:
-            if not reinf_result["arrived"] and reinf_result["reason"] != "literal_personality":
+            if not reinf_result["arrived"] and reinf_result["reason"] not in ("literal_personality", "fate_intervened"):
                 failing = world.marshals.get(reinf_result["marshal"])
                 if failing:
                     # Determine which primary this marshal was trying to reinforce

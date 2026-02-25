@@ -259,6 +259,7 @@ A future save/load system should use this as the specification.
 | `cavalry` | bool | Whether marshal commands cavalry |
 | `artillery` | bool | Whether marshal commands artillery (mutually exclusive with cavalry) |
 | `moved_this_turn` | bool | Whether artillery moved this turn (blocks attack, -25% defense) |
+| `biography` | string | Marshal biography text for Marshal Management UI |
 
 #### Skills (6-Skill System)
 | Skill | Range | Description |
@@ -381,6 +382,7 @@ A future save/load system should use this as the specification.
 | `last_bombardment_target` | string\|null | Region of last bombardment target (null if never bombarded or after move) |
 | `bombardment_streak` | int | Consecutive attacks on same target (resets on move or target change) |
 | `bombardments_this_turn` | int | Number of bombardments fired this turn (max 2, reset at turn start) |
+| `cannon_fire_ignored_turn` | int\|null | Turn when marshal ignored cannon fire (personality trigger, null if never) |
 
 #### Idle Tracking (V2a)
 | Field | Type | Description |

@@ -839,5 +839,5 @@ for r in results:
 
 ---
 
-*Last updated: January 2025*
-*Bugs fixed: Turn advancement, fortified attack, infinite loop, drill self-detection*
+*Last updated: February 2026*
+*Recent additions: P4.6 coordinated attack, P4.75 hostile exclusion, P4.76 co-location persistence, P4.77 cross-nation adjacency, P4.78 defensive positioning, +8% coordination estimate, artillery stagnation override*

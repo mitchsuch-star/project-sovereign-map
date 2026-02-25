@@ -19,7 +19,7 @@
 
 ## Next Steps
 
-1. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~212 new tests.
+1. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~246 new tests.
 2. **Phase 7b: IN PROGRESS.** Session 66 (Godot UI + Integration Audit) complete. Remaining: Tactical Triangle (linked group, NEEDS DESIGN), V2b (NEEDS DESIGN), Coalition Trigger (NEEDS DESIGN), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805).
 3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
