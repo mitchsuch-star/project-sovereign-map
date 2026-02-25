@@ -3961,6 +3961,7 @@ RETREAT RECOVERY (3 turns):
         # Coordinated battles (2+ on either side): apply_casualties=False,
         # caller distributes among participants (Session 62).
         # ════════════════════════════════════════════════════════════
+        atk_distribution = {}  # Per-marshal casualty map (populated in coordinated path)
         if is_coordinated_battle:
             battle_result = self.combat_resolver.resolve_battle(
                 attacker=marshal,
@@ -4474,10 +4475,12 @@ RETREAT RECOVERY (3 turns):
 
         # Reinforcement notification messages (Session 65/66)
         reinf_messages = []
+        arrived_names = []
         for r in attacker_reinforcements:
             if r.get("arrived"):
                 reinf_messages.append(
                     f"{r['marshal']}'s forces arrived to reinforce {marshal.name}!")
+                arrived_names.append(r["marshal"])
             else:
                 reason = r.get("reason", "unknown")
                 if reason == "literal_personality":
@@ -4487,6 +4490,19 @@ RETREAT RECOVERY (3 turns):
                 else:
                     friendly_reason = f"{r['marshal']} could not reach the battlefield in time."
                 reinf_messages.append(friendly_reason)
+
+        # Aggregate ally casualties (Session 66)
+        if arrived_names and atk_distribution:
+            ally_casualties = sum(
+                atk_distribution.get(name, 0) for name in arrived_names)
+            if ally_casualties > 0:
+                if len(arrived_names) == 1:
+                    reinf_messages.append(
+                        f"His supporting ally lost {int(ally_casualties):,} men.")
+                else:
+                    reinf_messages.append(
+                        f"His supporting allies lost {int(ally_casualties):,} men combined.")
+
         if reinf_messages:
             result["reinforcement_messages"] = reinf_messages
 

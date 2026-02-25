@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3796** (3796 passed, 3 skipped — verified Feb 24, Session 66 complete) |
+| **Tests Passing** | **3799** (3799 passed, 3 skipped — verified Feb 24, Session 66 complete) |
 
 | **Current Phase** | Phase 7b **IN PROGRESS** (Session 66 complete, remaining: Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau). |
 | **Blockers** | Tactical Triangle, V2b, Coalition Trigger, Jealousy all need DESIGN GATE approval before coding. |
@@ -48,7 +48,7 @@ All major Phase 6 features shipped:
 
 ### Feb 24 — Session 66: Godot UI + Integration Audit
 
-**29 new tests, 3796 total (3 skipped). UI integration for Phase 7 coordination features + cross-system audit + confidence report.**
+**32 new tests, 3799 total (3 skipped). UI integration for Phase 7 coordination features + cross-system audit + confidence report.**
 
 - **Coordination readiness tooltip (map.gd):** Region tooltip now shows combined arms count and co-location status (dedicated vs accumulating) for player marshal pairs. Marshal tooltip shows color-coded relationship lines (Hostile=red, Rival=orange, Professional=white, Friendly=green, Devoted=gold).
 - **Inline-dramatic reinforcement display (main.gd):** Gold-bordered BBCode blocks for reinforcement arrival (green) and failure (red). Zero new popup types per MULTI_MARSHAL_SPEC §14.

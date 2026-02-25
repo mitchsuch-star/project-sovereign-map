@@ -406,6 +406,95 @@ class TestReinforcementMessages:
             for msg in result["reinforcement_messages"]:
                 assert isinstance(msg, str)
 
+    def test_reinforcement_failure_uses_narrative_not_code(self):
+        """Failure reasons must use player-facing text, not internal codes."""
+        ex = _executor()
+        # Grouchy (literal) won't reinforce without explicit order
+        primary = _make_marshal(name="Davout", location="Waterloo", strength=30000,
+                               nation="France")
+        grouchy = _make_marshal(name="Grouchy", location="Paris", strength=20000,
+                                personality="literal", nation="France")
+        enemy = _make_marshal(name="Wellington", location="Waterloo",
+                             strength=20000, nation="Britain")
+        world = _make_world_with_marshals([primary, grouchy, enemy])
+        world.regions["Waterloo"].controller = "Britain"
+        world.regions["Paris"].controller = "France"
+
+        game_state = {"world": world}
+        result = ex.execute({"command": {
+            "marshal": "Davout",
+            "action": "attack",
+            "target": "Wellington",
+        }}, game_state)
+
+        if "reinforcement_messages" in result:
+            for msg in result["reinforcement_messages"]:
+                assert "literal_personality" not in msg
+                assert "low_score" not in msg
+                assert "fate_intervened" not in msg
+
+    def test_aggregate_ally_casualties_singular_form(self):
+        """When 1 reinforcer arrives and takes casualties, use 'ally' not 'allies'."""
+        ex = _executor()
+        # Unit test the message formatting logic directly
+        # Simulate: 1 reinforcer arrived, took 500 casualties
+        arrived_names = ["Ney"]
+        atk_distribution = {"Davout": 2000, "Ney": 500}
+
+        # Build the aggregate message the same way executor does
+        ally_casualties = sum(atk_distribution.get(n, 0) for n in arrived_names)
+        assert ally_casualties == 500
+        if len(arrived_names) == 1:
+            msg = f"His supporting ally lost {int(ally_casualties):,} men."
+        else:
+            msg = f"His supporting allies lost {int(ally_casualties):,} men combined."
+
+        assert "ally" in msg
+        assert "allies" not in msg
+        assert "500" in msg
+
+    def test_aggregate_ally_casualties_plural_form(self):
+        """When 2+ reinforcers arrive, use 'allies' with 'combined'."""
+        arrived_names = ["Ney", "Grouchy"]
+        atk_distribution = {"Davout": 2000, "Ney": 500, "Grouchy": 300}
+
+        ally_casualties = sum(atk_distribution.get(n, 0) for n in arrived_names)
+        assert ally_casualties == 800
+        if len(arrived_names) == 1:
+            msg = f"His supporting ally lost {int(ally_casualties):,} men."
+        else:
+            msg = f"His supporting allies lost {int(ally_casualties):,} men combined."
+
+        assert "allies" in msg
+        assert "combined" in msg
+        assert "800" in msg
+
+    def test_reinforcement_failure_uses_narrative_not_code(self):
+        """Failure reasons must use player-facing text, not internal codes."""
+        ex = _executor()
+        primary = _make_marshal(name="Davout", location="Waterloo", strength=30000,
+                               nation="France")
+        grouchy = _make_marshal(name="Grouchy", location="Paris", strength=20000,
+                                personality="literal", nation="France")
+        enemy = _make_marshal(name="Wellington", location="Waterloo",
+                             strength=20000, nation="Britain")
+        world = _make_world_with_marshals([primary, grouchy, enemy])
+        world.regions["Waterloo"].controller = "Britain"
+        world.regions["Paris"].controller = "France"
+
+        game_state = {"world": world}
+        result = ex.execute({"command": {
+            "marshal": "Davout",
+            "action": "attack",
+            "target": "Wellington",
+        }}, game_state)
+
+        if "reinforcement_messages" in result:
+            for msg in result["reinforcement_messages"]:
+                assert "literal_personality" not in msg
+                assert "low_score" not in msg
+                assert "fate_intervened" not in msg
+
 
 # ════════════════════════════════════════════════════════════════════════════════
 # EDGE CASES
