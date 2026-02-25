@@ -1230,6 +1230,14 @@ TACTICAL COMMANDS:
   scout      - Reconnaissance of nearby regions
                "scout Rhine" / "Davout, scout" (area scan)
 
+  form square - Infantry forms anti-cavalry square (1 AP)
+               "Ney, form square" - Cavalry attacks deal -40% damage.
+               WARNING: Artillery deals +50% damage to squares!
+               Breaks automatically when given any other order.
+
+  break square - Return to line formation (FREE action)
+               "Ney, break square"
+
 STANCE COMMANDS:
   aggressive - +15% attack, -10% defense
                "Ney, aggressive" / "Ney, go aggressive"
@@ -1325,6 +1333,9 @@ RETREAT RECOVERY (3 turns):
 
     def execute(self, parsed_command: Dict, game_state: Dict) -> Dict:
         """Execute a command against the current game state."""
+        # Clear transient square-break notification (set by _auto_break_square)
+        self._pending_square_break_msg = ""
+
         world: WorldState = game_state.get("world")
 
         if not world:
@@ -2162,6 +2173,11 @@ RETREAT RECOVERY (3 turns):
         if mild_message and result.get("success"):
             result["message"] = mild_message + result.get("message", "")
             result["mild_objection"] = True
+
+        # Prepend square-break notification if auto-break fired (Session 67 fix)
+        if self._pending_square_break_msg and result.get("success") and result.get("message"):
+            result["message"] = self._pending_square_break_msg + "\n" + result["message"]
+            self._pending_square_break_msg = ""  # Consume
 
         # ════════════════════════════════════════════════════════════
         # AUTO-END TURN: When actions exhausted, call end_turn properly
@@ -5182,6 +5198,9 @@ RETREAT RECOVERY (3 turns):
         target = command.get("target")
         target_type = command.get("target_type", "region")
         snapshot = parsed_command.get("target_snapshot_location")
+
+        # Auto-break square formation (Session 67: "any strategic command breaks square")
+        self._auto_break_square(marshal, strategic_type or "strategic order")
 
         print(f"[STRATEGIC] Creating {strategic_type} order for {marshal.name} -> {target}")
 
@@ -8216,7 +8235,10 @@ RETREAT RECOVERY (3 turns):
         if getattr(marshal, 'strategic_order', None):
             marshal.strategic_order = None
         display = _action_display_name(action_name) if action_name else "act"
-        return f"\n[Square broken — {marshal.name} breaks formation to {display}]"
+        msg = f"\n[Square broken — {marshal.name} breaks formation to {display}]"
+        # Store for execute() to prepend to result message
+        self._pending_square_break_msg = msg
+        return msg
 
     def _execute_form_square(self, command: Dict, game_state: Dict) -> Dict:
         """
@@ -8267,16 +8289,15 @@ RETREAT RECOVERY (3 turns):
                 "message": f"{marshal.name} is retreating and cannot form square."
             }
 
-        # Mutual exclusion: square ↔ fortify
+        # Mutual exclusion: square ↔ fortify — forming square auto-breaks fortification
+        fortify_break_msg = ""
         if getattr(marshal, 'fortified', False):
-            return {
-                "success": False,
-                "message": (
-                    f"{marshal.name} is fortified and cannot form square. "
-                    f"Fortified positions and square formation are incompatible — "
-                    f"unfortify first if you want to form square."
-                )
-            }
+            old_bonus = int(getattr(marshal, 'defense_bonus', 0) * 100)
+            marshal.fortified = False
+            marshal.defense_bonus = 0.0
+            fortify_break_msg = (
+                f"[{marshal.name} abandons fortified position (+{old_bonus}% defense) to form square]\n"
+            )
 
         # Cannot form square while drilling
         if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
@@ -8298,10 +8319,11 @@ RETREAT RECOVERY (3 turns):
                 marshal.hold_region = ""
             strategic_cancel_msg = f" Strategic order ({old_order.command_type}) cancelled."
 
-        message = (
+        message = fortify_break_msg + (
             f"{marshal.name} forms square at {marshal.location}! "
             f"Bayonets bristle in all directions. (+5% defense, cavalry -40%, "
-            f"but artillery +50% damage vs packed ranks){strategic_cancel_msg}"
+            f"but artillery +50% damage vs packed ranks){strategic_cancel_msg}\n"
+            f"Any order — even one that fails — will break the discipline required to hold square."
         )
 
         return {

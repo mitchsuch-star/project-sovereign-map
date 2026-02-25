@@ -184,15 +184,19 @@ class TestFormSquare:
         assert result["success"] is False
         assert "already" in result["message"].lower()
 
-    def test_form_square_while_fortified_blocked(self):
+    def test_form_square_while_fortified_auto_breaks_fortify(self):
+        """Forming square auto-breaks fortification (mutually exclusive)."""
         world, davout = _make_world_with_infantry()
         davout.fortified = True
         davout.defense_bonus = 0.05
         executor = _make_executor()
         result = executor._execute_form_square(
             {"marshal": davout.name}, {"world": world})
-        assert result["success"] is False
-        assert "fortified" in result["message"].lower()
+        assert result["success"] is True
+        assert davout.square_formation is True
+        assert davout.fortified is False
+        assert davout.defense_bonus == 0.0
+        assert "abandons fortified" in result["message"].lower()
 
     def test_form_square_cancels_strategic_order(self):
         world, davout = _make_world_with_infantry()
@@ -607,3 +611,141 @@ class TestValidation:
     def test_break_square_in_valid_actions(self):
         from backend.ai.validation import VALID_ACTIONS
         assert "break_square" in VALID_ACTIONS
+
+
+# ════════════════════════════════════════════════════════════════════════
+# 13. AUDIT FIXES — Edge cases from tactical triangle audit
+# ════════════════════════════════════════════════════════════════════════
+
+class TestAutoBreakMessageWiring:
+    """Tests for auto-break message appearing in player-facing response."""
+
+    def test_auto_break_message_on_successful_move(self):
+        """Square break message should appear when action succeeds."""
+        world, davout = _make_world_with_infantry("Paris")
+        davout.square_formation = True
+        executor = _make_executor()
+        result = executor.execute(
+            {"command": {"marshal": "Davout", "action": "move", "target": "Belgium"}},
+            {"world": world})
+        assert result["success"] is True
+        assert "square broken" in result["message"].lower()
+
+    def test_auto_break_message_hidden_on_failed_action(self):
+        """Square break message should NOT appear when action fails."""
+        world, davout = _make_world_with_infantry()
+        davout.square_formation = True
+        davout.drilling = True  # Already drilling — drill will fail
+        executor = _make_executor()
+        result = executor.execute(
+            {"command": {"marshal": "Davout", "action": "drill"}},
+            {"world": world})
+        assert result["success"] is False
+        assert "square broken" not in result["message"].lower()
+
+    def test_auto_break_message_on_successful_attack(self):
+        """Square break message prepended to attack result."""
+        world, davout = _make_world_with_infantry("Belgium")
+        davout.square_formation = True
+        davout.strength = 50000  # Ensure good odds so cautious doesn't object
+        # Place a weak enemy to attack
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Belgium"
+        wellington.strength = 5000
+        executor = _make_executor()
+        result = executor.execute(
+            {"command": {"marshal": "Davout", "action": "attack", "target": "Wellington"}},
+            {"world": world})
+        assert result["success"] is True
+        assert "square broken" in result["message"].lower()
+
+
+class TestFormSquareBreaksFortify:
+    """Form square auto-breaks fortification (mutual exclusion)."""
+
+    def test_form_square_clears_fortified_flag(self):
+        world, davout = _make_world_with_infantry()
+        davout.fortified = True
+        davout.defense_bonus = 0.10
+        executor = _make_executor()
+        result = executor._execute_form_square(
+            {"marshal": davout.name}, {"world": world})
+        assert result["success"] is True
+        assert davout.fortified is False
+        assert davout.defense_bonus == 0.0
+        assert davout.square_formation is True
+
+    def test_form_square_fortify_break_message(self):
+        world, davout = _make_world_with_infantry()
+        davout.fortified = True
+        davout.defense_bonus = 0.07
+        executor = _make_executor()
+        result = executor._execute_form_square(
+            {"marshal": davout.name}, {"world": world})
+        assert "abandons fortified" in result["message"].lower()
+        assert "7%" in result["message"]  # Shows old defense bonus
+
+
+class TestStrategicCommandBreaksSquare:
+    """Strategic commands should auto-break square formation."""
+
+    def test_pursue_breaks_square(self):
+        world, davout = _make_world_with_infantry()
+        davout.square_formation = True
+        # Place enemy for pursue target
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Rhine"
+        executor = _make_executor()
+        result = executor.execute(
+            {"command": {"marshal": "Davout", "action": "move", "target": "Wellington",
+                         "target_type": "marshal"},
+             "is_strategic": True, "strategic_type": "PURSUE"},
+            {"world": world})
+        assert davout.square_formation is False
+
+    def test_hold_breaks_square(self):
+        world, davout = _make_world_with_infantry()
+        davout.square_formation = True
+        executor = _make_executor()
+        result = executor.execute(
+            {"command": {"marshal": "Davout", "action": "hold", "target": "Belgium",
+                         "target_type": "region"},
+             "is_strategic": True, "strategic_type": "HOLD"},
+            {"world": world})
+        assert davout.square_formation is False
+
+    def test_support_breaks_square(self):
+        world, davout = _make_world_with_infantry("Paris")
+        davout.square_formation = True
+        ney = world.get_marshal("Ney")
+        ney.location = "Belgium"
+        executor = _make_executor()
+        result = executor.execute(
+            {"command": {"marshal": "Davout", "action": "move", "target": "Ney",
+                         "target_type": "marshal"},
+             "is_strategic": True, "strategic_type": "SUPPORT"},
+            {"world": world})
+        assert davout.square_formation is False
+
+
+class TestHelpMenuIncludesSquare:
+    """Help text should include square formation commands."""
+
+    def test_help_mentions_form_square(self):
+        executor = _make_executor()
+        world = WorldState()
+        result = executor._execute_help({}, {"world": world})
+        assert "form square" in result["message"].lower()
+
+    def test_help_mentions_break_square(self):
+        executor = _make_executor()
+        world = WorldState()
+        result = executor._execute_help({}, {"world": world})
+        assert "break square" in result["message"].lower()
+
+    def test_help_mentions_cavalry_warning(self):
+        executor = _make_executor()
+        world = WorldState()
+        result = executor._execute_help({}, {"world": world})
+        assert "-40%" in result["message"]
+        assert "+50%" in result["message"]
