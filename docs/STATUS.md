@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3756** (3753 passed, 3 skipped — verified Feb 24, Gate 4 Fixes) |
+| **Tests Passing** | **3767** (3767 passed, 3 skipped — verified Feb 24, Gate 4 remaining fixes + Berthier reinforcement naming) |
 
-| **Current Phase** | Phase 7b **IN PROGRESS** (Session 65 complete, remaining: S66, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau). |
+| **Current Phase** | Phase 7b **IN PROGRESS** (Session 65 + Gate 4 complete, remaining: S66, Tactical Triangle, V2b, Coalition Trigger, Jealousy, Gneisenau). |
 | **Blockers** | None |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -45,6 +45,15 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7b Sessions
+
+### Feb 24 — Gate 4 Remaining Fixes + Berthier Reinforcement Naming
+
+**23 gate4 tests + 4 new observation tests, 3767 total (3 skipped). Two critical combat path bugs fixed + Berthier now names all reinforcers.**
+
+- **Issue 4 — General attack bypasses Phase 7:** `_execute_general_attack_combat()` called `resolve_battle()` directly, skipping coordination/reinforcements/casualty distribution/relationships/reports. Rewritten to delegate to `_execute_attack()` (same pattern as auto-assign fix). Eliminated ~100 lines of duplicated combat code.
+- **Issue 5 — Reinforcer stalemate stranding:** Reinforcers stayed in battle region after stalemate (neither `atk_lost` nor `atk_won` matched). Changed `if atk_lost:` → `if not atk_won:` and `if atk_won:` → `if not def_won:` so both sides' reinforcers return on any non-win.
+- **Berthier reinforcement naming:** P0.7 observation now names ALL marshals who arrived and ALL who failed. New "mixed" template category for when some arrived and some didn't. E.g. "Davout arrived to reinforce Ney, but Grouchy failed to reach the field in time."
+- **Test isolation fixes:** 2 pre-existing tests fixed to isolate marshals (Uxbridge at Waterloo contaminated force ratios).
 
 ### Feb 24 — Gate 4 Fixes (Post-Session 65)
 
