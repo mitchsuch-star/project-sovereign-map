@@ -364,6 +364,11 @@ _OBSERVATIONS = {
         "Reinforcements! {ally} marched onto the field beside {marshal}. The enemy's advantage melted away.",
         "{ally}'s timely arrival bolstered {marshal}'s position. Well-coordinated, Sire.",
     ],
+    "coordination_reinforcement_mixed": [
+        "{ally} arrived to reinforce {marshal}, but {failed_ally} failed to reach the field in time.",
+        "Reinforcements from {ally} bolstered {marshal}'s position — though {failed_ally} never arrived, Sire.",
+        "{ally}'s timely arrival aided {marshal}. {failed_ally}, however, was conspicuously absent.",
+    ],
     "coordination_reinforcement_failure": [
         "{ally} failed to arrive in time. {marshal}'s army fought without expected support.",
         "Where was {ally}? {marshal} held the field alone — reinforcement never came.",
@@ -464,6 +469,7 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
         result = result.replace("{enemy}", enemy_name)
         # Coordination placeholders (Session 65, M6)
         result = result.replace("{ally}", extra.get("ally", ""))
+        result = result.replace("{failed_ally}", extra.get("failed_ally", ""))
         result = result.replace("{relationship}", extra.get("relationship", ""))
         result = result.replace("{coordination_bonus}", extra.get("coordination_bonus", ""))
         result = result.replace("{arrival_score}", extra.get("arrival_score", ""))
@@ -487,20 +493,27 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     if coordination.get("type_count", 0) >= 3:
         return _fill(random.choice(_OBSERVATIONS["coordination_full_triangle"]))
 
-    # Priority 0.7: Reinforcement arrived (our side)
+    # Priority 0.7: Reinforcement results (our side)
     arrived = [r for r in our_reinforcements if r.get("arrived")]
-    if arrived:
-        ally_name = arrived[0].get("marshal", "")
-        score = str(arrived[0].get("score", ""))
-        return _fill(random.choice(_OBSERVATIONS["coordination_reinforcement_arrival"]),
-                     ally=ally_name, arrival_score=score)
-
-    # Priority 0.8: Reinforcement failed (our side)
     failed = [r for r in our_reinforcements if not r.get("arrived")]
+
+    if arrived and failed:
+        # Mixed: some arrived, some didn't — mention both
+        arrived_names = " and ".join(r.get("marshal", "") for r in arrived)
+        failed_names = " and ".join(r.get("marshal", "") for r in failed)
+        return _fill(random.choice(_OBSERVATIONS["coordination_reinforcement_mixed"]),
+                     ally=arrived_names, failed_ally=failed_names)
+
+    if arrived:
+        ally_names = " and ".join(r.get("marshal", "") for r in arrived)
+        return _fill(random.choice(_OBSERVATIONS["coordination_reinforcement_arrival"]),
+                     ally=ally_names)
+
+    # Priority 0.8: All reinforcements failed (our side)
     if failed:
-        ally_name = failed[0].get("marshal", "")
+        failed_names = " and ".join(r.get("marshal", "") for r in failed)
         return _fill(random.choice(_OBSERVATIONS["coordination_reinforcement_failure"]),
-                     ally=ally_name)
+                     ally=failed_names)
 
     # Priority 1: Mutual destruction
     if outcome == "mutual_destruction":

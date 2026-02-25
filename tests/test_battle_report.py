@@ -1077,8 +1077,8 @@ class TestCoordinationObservations:
         )
         assert "Grouchy" in obs, f"Expected ally name in observation: {obs}"
 
-    def test_arrival_overrides_failure(self):
-        """P0.7 fires before P0.8 — arrival takes priority when both exist."""
+    def test_mixed_arrival_and_failure_mentions_both(self):
+        """P0.7 mixed: when some arrive and some fail, both are named."""
         result = self._make_result(
             reinforcement_results={
                 "attacker": [
@@ -1089,11 +1089,54 @@ class TestCoordinationObservations:
             },
         )
         obs = _pick_observation(result, player_nation="France")
-        # Arrival (P0.7) should fire, not failure (P0.8)
-        arrival_phrases = ["arrived", "arrival", "reinforcement", "marched onto"]
-        assert any(p in obs.lower() for p in arrival_phrases), (
-            f"Arrival should override failure: {obs}"
+        assert "Davout" in obs, f"Expected arrived ally name: {obs}"
+        assert "Grouchy" in obs, f"Expected failed ally name: {obs}"
+
+    def test_multiple_arrivals_names_all(self):
+        """P0.7: Multiple arrivals should name all marshals."""
+        result = self._make_result(
+            reinforcement_results={
+                "attacker": [
+                    {"marshal": "Davout", "arrived": True, "score": 82, "threshold": 60},
+                    {"marshal": "Drouot", "arrived": True, "score": 75, "threshold": 60},
+                ],
+                "defender": [],
+            },
         )
+        obs = _pick_observation(result, player_nation="France")
+        assert "Davout" in obs, f"Expected first ally name: {obs}"
+        assert "Drouot" in obs, f"Expected second ally name: {obs}"
+
+    def test_multiple_failures_names_all(self):
+        """P0.8: Multiple failures should name all marshals."""
+        result = self._make_result(
+            reinforcement_results={
+                "attacker": [
+                    {"marshal": "Grouchy", "arrived": False, "score": 45, "threshold": 60},
+                    {"marshal": "Drouot", "arrived": False, "score": 50, "threshold": 60},
+                ],
+                "defender": [],
+            },
+        )
+        obs = _pick_observation(result, player_nation="France")
+        assert "Grouchy" in obs, f"Expected first failed name: {obs}"
+        assert "Drouot" in obs, f"Expected second failed name: {obs}"
+
+    def test_mixed_no_unfilled_placeholders(self):
+        """Mixed observation must not contain unfilled {failed_ally} placeholder."""
+        result = self._make_result(
+            reinforcement_results={
+                "attacker": [
+                    {"marshal": "Davout", "arrived": True, "score": 82, "threshold": 60},
+                    {"marshal": "Grouchy", "arrived": False, "score": 45, "threshold": 60},
+                ],
+                "defender": [],
+            },
+        )
+        obs = _pick_observation(result, player_nation="France")
+        assert "{ally}" not in obs
+        assert "{failed_ally}" not in obs
+        assert "{marshal}" not in obs
 
     # ── P5.5: Hostile Forced (D3/A-M4) ────────────────────────
 
