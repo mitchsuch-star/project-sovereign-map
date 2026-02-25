@@ -14,24 +14,21 @@ Design principles:
 - Same building blocks as player (attack, move, fortify, drill, etc.)
 - No special enemy combat logic - same executor handles everything
 
-FUTURE IMPROVEMENTS (TODO):
+FUTURE IMPROVEMENTS (tied to ROADMAP.md):
 - Alliance Coordination: Britain/Prussia share intel and coordinate
-  - When one nation spots weakness, inform allies
-  - Coordinate pincer attacks from multiple directions
-- Strategic Objectives: AI picks high-level goals
-  - "Capture Belgium" drives multiple marshals toward same area
-  - "Defend Capital" prioritizes defense over attacks
-- Nation-Level Strategy Layer: Above marshal decisions
-  - Allocate resources between defense and offense
-  - Decide when to go all-in vs conservative
-- Flanking Coordination: Multiple marshals attack same target from different directions
-  - Requires multi-marshal battle support
+  → Phase 8 (Diplomacy: Alliances, Coalition Trigger)
+  Partial: P4.75/P4.77 cross-nation support already works (Session 63)
+- Strategic Objectives: AI picks high-level goals ("Capture Belgium", "Defend Capital")
+  → Phase 8.5 (National Goals) + 1805 (AI Enhancements for Scale)
+- Nation-Level Strategy Layer: Allocate resources between defense and offense
+  → 1805 (AP Scaling, Tiered Nation AI)
+- Flanking Coordination: Multiple marshals deliberately attack same target
+  → Post-EA (Advanced AI). Partial: P4.6 coordinated attack setup (Session 63)
 - Round-Robin Action Distribution: Spread actions among marshals
-  - Currently greedy (best marshal gets all actions)
-  - More realistic: each marshal gets 1 action, then cycle
-- Retreat Awareness: AI knows retreat is FREE
-  - Use retreat strategically to reposition
-  - Retreat from bad engagement to regroup
+  → 1805 (AP Scaling section: "tiered actions for idle marshals")
+  Partial: _marshals_done_this_turn prevents monopolization
+- Retreat Awareness: AI uses retreat strategically to reposition
+  → Post-EA (Advanced AI)
 
 IMPLEMENTED:
 - P0 Engagement Check: When engaged with enemy in same region, AI MUST:
@@ -1438,10 +1435,9 @@ class EnemyAI:
         # PRIORITY 3.5: FORTIFICATION OPPORTUNITY CHECK
         # If fortified, check if there's a high-value opportunity worth
         # abandoning fortification for (undefended region, overwhelming odds)
-        # TODO (Phase 5.3): Residual 2-turn fortify micro-oscillation possible.
-        # _unfortified_this_turn only prevents same-turn re-fortify; next-turn
-        # re-fortify then P3.5 unfortify is still possible. Stagnation counter
-        # is the backstop. Consider a 2-turn cooldown on re-fortify if observed.
+        # RESOLVED: 2-turn refortify cooldown (ai_refortify_cooldown) now set
+        # on every unfortify path (CHECK 0/1/2/3 + stagnation). Prevents
+        # next-turn re-fortify oscillation. Stagnation counter is the backstop.
         # ════════════════════════════════════════════════════════════
         fortification_opportunity = self._check_fortification_opportunity(marshal, nation, world)
         if fortification_opportunity:
@@ -3567,10 +3563,7 @@ class EnemyAI:
                 m for m in world.marshals.values()
                 if m.location == marshal.location and m.nation != marshal.nation and m.strength > 0
             ]
-            # DEBUG: Print what we're seeing
-            print(f"  [P8 DEBUG] {marshal.name} at {marshal.location}, nation={marshal.nation}")
-            print(f"  [P8 DEBUG] All marshals: {[(m.name, m.location, m.nation, m.strength) for m in world.marshals.values()]}")
-            print(f"  [P8 DEBUG] Enemies in region: {[(e.name, e.location, e.nation, e.strength) for e in enemies_in_region]}")
+            ai_debug(f"  P8: {marshal.name} at {marshal.location}, enemies_in_region={[e.name for e in enemies_in_region]}")
             if enemies_in_region:
                 # Engaged! Attack the weakest enemy we can beat
                 weakest = min(enemies_in_region, key=lambda e: e.strength)
@@ -3680,7 +3673,7 @@ class EnemyAI:
                 return adj_name
 
         # Surrounded - no retreat possible
-        # TODO: Handle encirclement (same as player) (see ROADMAP.md Phase 6)
+        # TODO-1805: Handle encirclement (surrender/last stand). Not needed for 13-region map.
         return None
 
     def _get_nation_capital(self, nation: str, world: WorldState) -> Optional[str]:
@@ -3886,7 +3879,7 @@ class EnemyAI:
         """
         Check if a region is an enemy capital.
 
-        TODO: Implement proper capital system. For now, hardcode known capitals.
+        TODO-1805: Implement proper capital system from region data. Hardcoded for 13-region map.
         """
         # Hardcoded capitals for current test map
         capitals = {
@@ -3964,6 +3957,8 @@ class EnemyAI:
 
             if ratio >= threshold * 0.8:  # Slightly lower threshold when engaged
                 ai_debug(f"    -> Unfortifying to attack engaged enemy (ratio {ratio:.2f} vs threshold {threshold:.2f})")
+                # Set 2-turn refortify cooldown to prevent fortify-unfortify oscillation
+                world.ai_refortify_cooldown[marshal.name] = 2
                 return {
                     "marshal": marshal.name,
                     "action": "unfortify"
@@ -4142,6 +4137,8 @@ class EnemyAI:
                     distance = world.get_distance(marshal.location, ally.location)
                     if distance <= 3:  # Within reachable distance
                         print(f"  [FORTIFICATION CHECK] {marshal.name}: Ally {ally.name} needs help ({help_reason}) - unfortifying to support")
+                        # Set 2-turn refortify cooldown to prevent fortify-unfortify oscillation
+                        world.ai_refortify_cooldown[marshal.name] = 2
                         return {
                             "marshal": marshal.name,
                             "action": "unfortify"

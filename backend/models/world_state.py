@@ -246,7 +246,7 @@ class WorldState:
         # AI Attack Futility Tracker (persists across turns, read/written by EnemyAI)
         # Tracks consecutive failed attacks against fortified targets to prevent
         # endlessly throwing troops at an impregnable position.
-        # Format: {(attacker_name, defender_name): consecutive_losses}
+        # Format: {"attacker_name:defender_name": consecutive_losses}
         self.ai_attack_futility: Dict[str, int] = {}
 
         # Battle tracking for naming and history

@@ -630,8 +630,9 @@ Prevents marshals getting stuck doing nothing. Persisted on `world.ai_stagnation
 
 ### Re-Fortify Cooldown
 
-When stagnation forces a marshal to unfortify (at stagnation >= 3), a 2-turn **re-fortify cooldown** is set on that marshal. This prevents the fortify→unfortify oscillation loop where marshals would fortify, get forced to unfortify by stagnation, then immediately re-fortify.
+Every unfortify path sets a 2-turn **re-fortify cooldown** on the marshal. This prevents the fortify→unfortify oscillation loop.
 
+- **Set by:** Stagnation breaker (P7.5), P3.5 CHECK 0 (engaged), CHECK 1 (capture opportunity), CHECK 2 (reposition), CHECK 3 (ally support)
 - Stored in `world.ai_refortify_cooldown` (Dict[str, int])
 - Blocks P3 (threat fortify), P5 (fortification), and P8 (default fortify) when cooldown > 0
 - Also blocked when marshal is in `_unfortified_this_turn` set (same-turn guard)
@@ -639,6 +640,17 @@ When stagnation forces a marshal to unfortify (at stagnation >= 3), a 2-turn **r
 - Removed when it reaches 0
 - **Artillery exemption:** Artillery marshals skip P3 fortify entirely (fall through to P4 bombardment)
 - **P8 wait fallback:** When refortify is blocked and marshal isn't fortified, P8 returns `wait` instead of `None` (prevents all-marshals-skip-→-0-actions pattern)
+
+### Attack Futility Tracker
+
+Prevents AI from endlessly attacking an impregnable fortified position (e.g., Wellington attacking Davout's fortress 10+ times).
+
+- Stored in `world.ai_attack_futility` (Dict[str, int]), key format `"attacker:defender"`
+- After each nation's actions, battle events are scanned: victories reset the counter, losses increment it
+- When counter >= 3 AND target is still fortified, `_find_attack_opportunity()` filters that target out
+- If target unfortifies, the filter is bypassed (situation changed — retry is reasonable)
+- Resets on: victory, region conquest, enemy destroyed
+- Persists across turns (serialized)
 
 ### Cautious Advance
 
@@ -736,62 +748,60 @@ The AI performs an admin phase each turn (before combat actions) using admin AP.
 
 ## TODOs and Future Work
 
-### High Priority
+All TODOs are tied to specific ROADMAP.md phases. Nothing is orphaned.
 
-```python
-# TODO: Flanking coordination
-# AI should explicitly coordinate attacks for flanking bonus
-# Currently relies on natural occurrence
+### Done (remove on next doc cleanup)
 
-# DONE: Undefended region capture
-# AI now uses "attack" action on undefended enemy regions to capture them
-# Added _find_undefended_capture() method at Priority 4.5
-# Future: Region fortifications (buildings) could slow capture
+| Item | Status | When |
+|------|--------|------|
+| Undefended region capture | DONE | P4.5 |
+| Enemy recruiting | DONE | Phase 6 (economy + admin phase) |
+| Round-robin action distribution | DONE (partial) | `_marshals_done_this_turn` prevents monopolization |
+| Defending key regions | DONE | P3.7 homeland defense + capital elevation |
+| Allied coordination (basic) | DONE (partial) | P4.6/P4.75/P4.77 cross-nation (Session 63) |
 
-# TODO: Enemy recruiting
-# Requires economy system (gold, income, upkeep)
-# Currently enemies cannot recruit
-```
+### Phase 7b (Tactical Triangle)
 
-### Medium Priority
+| Item | Roadmap | Notes |
+|------|---------|-------|
+| Square formation AI (P2.5) | Session 67 | AI forms square when cavalry threatens |
+| Auto-bombardment + overwatch AI | Session 68 | AI SUPPORT artillery auto-bombards |
 
-```python
-# TODO: Round-robin action distribution
-# Currently greedy (best action wins)
-# Should distribute actions more evenly across marshals
+### Phase 8 (Diplomacy)
 
-# TODO: Defending key regions
-# AI should prioritize defending capitals and last regions
-# Currently only threat response (adjacent enemies)
+| Item | Roadmap | Notes |
+|------|---------|-------|
+| Full alliance coordination | Phase 8: Alliances | Britain/Prussia share intel, coordinate strategy |
+| Nation surrender conditions | Phase 8: Peace Treaties | Nations sue for peace when losing |
+| Coalition trigger awareness | Phase 8: Coalition Trigger | AI reacts to threat level |
 
-# TODO: Enemy cavalry limits
-# Cavalry should have 3-turn defensive/fortified caps like player
-# Currently not checked for enemies
-```
+### Phase 8.5 (Events & National Identity)
 
-### Low Priority (Early Access)
+| Item | Roadmap | Notes |
+|------|---------|-------|
+| Strategic objectives | Phase 8.5: National Goals | "Capture Belgium" drives multiple marshals |
+| LLM-enhanced decisions | Phase 8.5: Marshal Voice Tier 2 | LLM for high-drama AI moments |
 
-```python
-# TODO: Dynamic relevance
-# Portugal can become important mid-game
-# Currently all nations have fixed behavior
+### 1805 Campaign
 
-# TODO: Allied coordination
-# Multiple nations should coordinate strategy
-# Currently each nation acts independently
+| Item | Roadmap | Notes |
+|------|---------|-------|
+| AP scaling per nation | 1805: AI Enhancements for Scale | France 5, Russia 3, etc. |
+| Nation-level strategy layer | 1805: Tiered Nation AI | Above-marshal resource allocation |
+| AI fog of war | 1805: AI Fog of War | Softer fog, `get_visible_enemies_near()` toggle |
+| Proper capital system | 1805 | Replace hardcoded capitals with region data |
+| Encirclement handling | 1805 | Surrender/last stand when surrounded |
+| `_are_allied()` check | 1805 | Replace hardcoded coalition assumption |
+| Dynamic nation relevance | 1805 | Portugal becomes important mid-game |
+| Enemy cavalry limits | 1805 | 3-turn defensive/fortified caps (same as player) |
 
-# TODO: LLM-enhanced decisions
-# Use LLM for strategic decisions, not just rules
-# Currently pure decision tree
+### Post-EA
 
-# TODO: Nation surrender conditions
-# Nations should sue for peace when losing badly
-# Currently fight to the last marshal
-
-# TODO: Fog of war for enemies
-# Enemies should have limited information
-# Currently perfect information
-```
+| Item | Roadmap | Notes |
+|------|---------|-------|
+| Deliberate flanking coordination | Post-EA: Advanced AI | Multiple marshals attack from different directions |
+| Strategic retreat | Post-EA: Advanced AI | Use retreat to reposition |
+| Full round-robin | Post-EA: Advanced AI | Each marshal gets 1 action, then cycle |
 
 ---
 
@@ -811,6 +821,9 @@ The AI performs an admin phase each turn (before combat actions) using admin AP.
 | Enemy 0 actions per turn | All marshals return None from P8 | Fixed: P8 returns `wait` when refortify blocked |
 | Enemy battles not in popup | Fog filter dict/string comparison | Fixed: Extract `.get("name")` from attacker/defender dicts |
 | Enemy bombardment not shown | Fog filter + dialog miss bombardment type | Fixed: Check `"bombardment"` event type in both |
+| Wellington attacks same fort forever | No futility tracking | Fixed: `ai_attack_futility` tracker skips fortified targets after 3+ failed attacks |
+| Uxbridge permanently idle | Aggressive P8 returned wait with no enemies | Fixed: Aggressive P8 returns None (end turn early) when no adjacent enemies |
+| Trust objection "Marshal None" | Alternative/compromise dicts missing marshal name | Fixed: Inject `marshal_name` before execution in `_execute_post_objection` |
 
 ### Debug Commands
 
