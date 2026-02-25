@@ -95,6 +95,13 @@ def snapshot_attacker_modifiers(
     if getattr(attacker, "cavalry", False) and getattr(defender, "artillery", False):
         mods.append({"label": "Cavalry counter (vs artillery)", "value": 30, "type": "bonus"})
 
+    # --- Square formation interactions (Session 67) ---
+    if getattr(defender, "square_formation", False):
+        if getattr(attacker, "cavalry", False):
+            mods.append({"label": "Square formation (vs cavalry)", "value": 40, "type": "penalty"})
+        elif getattr(attacker, "artillery", False):
+            mods.append({"label": "Square formation (vs artillery)", "value": 50, "type": "bonus"})
+
     # --- Flanking bonus ---
     if flanking_bonus > 0:
         mods.append({"label": "Flanking", "value": int(flanking_bonus), "type": "bonus"})
@@ -198,6 +205,10 @@ def snapshot_defender_modifiers(
     # --- Fortification building bonus ---
     if fortification_bonus > 0:
         mods.append({"label": "Fortification building", "value": int(round(fortification_bonus * 100)), "type": "bonus"})
+
+    # --- Square formation defense bonus (Session 67) ---
+    if getattr(defender, "square_formation", False):
+        mods.append({"label": "Square formation", "value": 5, "type": "bonus"})
 
     # --- Coordination bonuses (Phase 7, Sessions 57-65) ---
     # Intentionally omitted — see comment in snapshot_attacker_modifiers().
@@ -390,6 +401,22 @@ _OBSERVATIONS = {
     "coordination_rival_improved": [
         "Sire, I believe {marshal}'s opinion of {ally} is... shifting.",
         "An interesting development, Sire. {marshal} may be warming to {ally} after their shared ordeal.",
+    ],
+    # ── Square Formation observations (Phase 7b, Session 67) ──
+    "square_cavalry_repulsed": [
+        "{marshal}'s square held firm against {enemy}'s cavalry, Sire. The bayonets turned aside the charge.",
+        "The square formation proved its worth. {enemy}'s horsemen could not break {marshal}'s bristling ranks.",
+        "{enemy}'s cavalry dashed themselves against {marshal}'s square. A textbook defense, Sire.",
+    ],
+    "square_artillery_punished": [
+        "{marshal}'s square was a perfect target for {enemy}'s guns, Sire. Packed ranks invite canister.",
+        "The square that saved {marshal} from cavalry now condemned them to {enemy}'s artillery fire.",
+        "{enemy}'s gunners found {marshal}'s dense formation an unmissable target. The cost was terrible.",
+    ],
+    "square_held_defense": [
+        "{marshal}'s square formation provided a solid defensive anchor, Sire.",
+        "The square held its ground. {marshal}'s infantry stood like a fortress on the field.",
+        "{marshal}'s men formed square and weathered the storm. Discipline held the line.",
     ],
     "default": [
         "The engagement proceeded as one might expect, Sire.",
@@ -606,6 +633,17 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
         if _has_mod(our_mods, "cavalry counter (vs artillery)", "bonus"):
             # We used cavalry counter bonus against their artillery — already covered above
             pass
+
+    # Priority 6e: Square formation interactions (Session 67)
+    # Cavalry repulsed by square
+    if _has_mod(their_mods, "square formation (vs cavalry)", "penalty") and not we_lost:
+        return _fill(random.choice(_OBSERVATIONS["square_cavalry_repulsed"]))
+    # Artillery punished square
+    if _has_mod(our_mods, "square formation (vs artillery)", "bonus") and we_won:
+        return _fill(random.choice(_OBSERVATIONS["square_artillery_punished"]))
+    # Square held on defense (defender had square bonus)
+    if _has_mod(our_mods, "square formation", "bonus") and not we_lost and not we_are_attacker:
+        return _fill(random.choice(_OBSERVATIONS["square_held_defense"]))
 
     # Priority 7: We won + our side had drill bonus
     if we_won and _has_mod(our_mods, "drill", "bonus"):

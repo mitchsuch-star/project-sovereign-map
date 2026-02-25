@@ -481,6 +481,14 @@ class Marshal:
         # Serialized (M4) — cleared at turn start.
         self.reinforced_this_turn: bool = False
 
+        # ════════════════════════════════════════════════════════════
+        # SQUARE FORMATION (Phase 7b, Session 67)
+        # ════════════════════════════════════════════════════════════
+        # Infantry-only anti-cavalry stance. Mutually exclusive with fortify.
+        # Cavalry -40% damage, artillery +50% damage, bombardment +50%/-15 morale.
+        # +5% defense modifier. Auto-breaks on any active order except wait/end_turn.
+        self.square_formation: bool = False
+
     def move_to(self, new_location: str) -> None:
         """
         Move marshal to a new region.
@@ -885,6 +893,10 @@ class Marshal:
                 and self.ability.get("name") == "Reverse Slope Defense"):
             modifier *= 1.05
 
+        # Square formation: +5% defense (tight formation, mutual support)
+        if getattr(self, 'square_formation', False):
+            modifier *= 1.05
+
         # Coordination bonus (Phase 7: set by _calculate_coordination_context, capped)
         modifier *= (1.0 + getattr(self, 'total_coordination_defense_bonus', 0.0))
 
@@ -1097,6 +1109,9 @@ class Marshal:
 
             # ═══════ REINFORCEMENT (Phase 7, S61a) ═══════
             "reinforced_this_turn": self.reinforced_this_turn,
+
+            # ═══════ SQUARE FORMATION (Phase 7b, S67) ═══════
+            "square_formation": self.square_formation,
         }
         return data
 
@@ -1231,6 +1246,9 @@ class Marshal:
 
         # ═══════ REINFORCEMENT (Phase 7, S61a) ═══════
         marshal.reinforced_this_turn = data.get("reinforced_this_turn", False)
+
+        # ═══════ SQUARE FORMATION (Phase 7b, S67) ═══════
+        marshal.square_formation = data.get("square_formation", False)
 
         return marshal
 

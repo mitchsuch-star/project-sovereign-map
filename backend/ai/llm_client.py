@@ -638,6 +638,17 @@ class LLMClient:
             "leave a garrison", "station troops",
         ]):
             action = "garrison"
+        # Square formation (Session 67) — Tactical Triangle Part A
+        elif any(kw in command_lower for kw in [
+            "form square", "form a square", "square formation", "into square",
+            "form up square",
+        ]):
+            action = "form_square"
+        elif any(kw in command_lower for kw in [
+            "break square", "leave square", "exit square", "break formation",
+            "return to line", "line formation",
+        ]):
+            action = "break_square"
         # ═══════ ADD NEW ACTION KEYWORDS HERE ═══════
         # When adding a new action, add an elif block above this comment.
         # Also update: validation.py VALID_ACTIONS, parser.py valid_actions,

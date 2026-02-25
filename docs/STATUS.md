@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 25, 2026 (AI Recapture + Quality Fixes)
+> **Last Updated:** February 25, 2026 (Session 67: Square Formation)
 
 ---
 
@@ -9,10 +9,10 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3877** (3877 passed, 3 skipped — verified Feb 25, AI Recapture session) |
+| **Tests Passing** | **3926** (3926 passed, 3 skipped — verified Feb 25, Session 67) |
 
-| **Current Phase** | Phase 7b **IN PROGRESS** (Session 66 complete + AI Recapture hotfix, remaining: Tactical Triangle, V2b, Jealousy, Gneisenau). Coalition Trigger moved to Phase 8. |
-| **Blockers** | V2b, Jealousy need DESIGN GATE approval before coding. Tactical Triangle DESIGN APPROVED (Sessions 67-68). |
+| **Current Phase** | Phase 7b **IN PROGRESS** (Session 67 complete, remaining: Session 68 Auto-Bombardment + Overwatch, V2b, Jealousy, Gneisenau). Coalition Trigger moved to Phase 8. |
+| **Blockers** | V2b, Jealousy need DESIGN GATE approval before coding. Tactical Triangle Session 68 next. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
@@ -20,7 +20,7 @@
 ## Next Steps
 
 1. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~246 new tests.
-2. **Phase 7b: IN PROGRESS.** Session 66 (Godot UI + Integration Audit) complete. AI Recapture hotfix applied (35 new tests). **Next up: Tactical Triangle (Sessions 67-68, DESIGN APPROVED).** See `docs/TACTICAL_TRIANGLE_SPEC.md`. Session 67 = Square Formation (~40 tests), Session 68 = Auto-Bombardment + Overwatch (~45 tests). Remaining after Triangle: V2b (NEEDS DESIGN), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
+2. **Phase 7b: IN PROGRESS.** Session 67 (Square Formation) complete — 48 new tests. **Next up: Session 68 (Auto-Bombardment + Overwatch, ~45 tests).** See `docs/TACTICAL_TRIANGLE_SPEC.md`. Remaining after Triangle: V2b (NEEDS DESIGN), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
 3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
 ---
@@ -45,6 +45,25 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7b Sessions
+
+### Feb 25 — Session 67: Square Formation (Tactical Triangle Part A)
+
+**48 new tests, 3926 total (3 skipped). Infantry can now form square — devastating vs cavalry, vulnerable to artillery.**
+
+- **Form Square action (1 AP):** Infantry-only (not cavalry, not artillery). Sets `square_formation = True`. Mutually exclusive with fortified. Cancels active strategic orders (including HOLD with holding_position/hold_region clearing). Blocked when broken, retreating, drilling, already in square.
+- **Break Square action (0 AP, free):** Clears `square_formation`. Free action — doesn't consume AP.
+- **Auto-break:** Square automatically breaks on any active order (attack, move, fortify, drill, recruit, garrison, stance_change, glorious_charge). Preserves immersion — marshals don't stay in square while marching.
+- **Combat interactions:** Cavalry attacking square suffers -40% damage (`shock_multiplier *= 0.60`). Artillery attacking square deals +50% damage (`shock_multiplier *= 1.50`). Square provides +5% defense modifier. Both normal and deferred casualty paths handle these.
+- **Bombardment:** +50% bombardment damage vs square (`square_bombardment_bonus = 1.50`). Extra -15 morale penalty (total -18: 3 base + 15 square). Packed formation = perfect artillery target.
+- **Coordination:** Square marshals contribute defense-only coordination (0% attack, same as fortified). Excluded from adjacent ally support count. Cannot reinforce while in square (Rule #15).
+- **V2a objections (4 triggers):** Aggressive objects to form_square → MODERATE ("Let me CHARGE them!"). Cautious objects when fortified → MILD. Cautious objects when artillery adjacent but no cavalry → MILD. Universal: both cavalry AND artillery adjacent → MILD.
+- **Enemy AI (P2.5):** Between P2 (survival) and P3 (threats). Infantry forms square when enemy cavalry adjacent + no enemy artillery + cooldown expired. Breaks square when no cavalry threat. Anti-oscillation cooldown of 2 turns after breaking.
+- **Battle report:** 3 new Berthier observation categories (square_cavalry_repulsed, square_artillery_punished, square_held_defense). Snapshot entries for cavalry penalty, artillery bonus, and defense bonus.
+- **Serialization:** `square_formation` field in `to_dict()`/`from_dict()` with `.get()` default False.
+- **Tactical state clearing:** Square clears on broken/retreat in `_process_tactical_states()`. AI cooldown decrements per turn.
+
+**Files modified:** `marshal.py` (field, defense modifier, serialization), `combat.py` (cavalry -40%, artillery +50%, deferred path fix), `executor.py` (form_square, break_square, auto-break, bombardment bonus, coordination exclusions, reinforcement rule, SUPPORT advisory), `world_state.py` (AP costs, tactical state clearing), `objection_v2.py` (4 triggers), `enemy_ai.py` (P2.5), `battle_report.py` (3 observations, snapshots), `validation.py`, `parser.py`, `llm_client.py` (mock keywords).
+**Files created:** `tests/test_square_formation.py` (48 tests, 12 classes).
 
 ### Feb 25 — AI Recapture + Quality Fixes (Hotfix)
 

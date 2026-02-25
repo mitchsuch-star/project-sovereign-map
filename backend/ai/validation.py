@@ -46,6 +46,9 @@ VALID_ACTIONS: Set[str] = {
     "economy",    # Display treasury/income/upkeep breakdown
     # Garrison command (Session 31) — detach troops to defend a region
     "garrison",   # Leave garrison detachment in current region
+    # Square formation (Session 67) — Tactical Triangle Part A
+    "form_square",   # Infantry anti-cavalry formation (1 AP)
+    "break_square",  # Return to line formation (free)
     # ═══════ ADD NEW ACTIONS HERE ═══════
     # This is the SINGLE SOURCE OF TRUTH for valid LLM actions.
     # Also update: llm_client.py keywords, parser.py valid_actions,

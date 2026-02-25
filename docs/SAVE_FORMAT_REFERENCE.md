@@ -10,8 +10,8 @@ A future save/load system should use this as the specification.
 ## Version
 
 - **Format version:** 1.0
-- **Last updated:** 2026-02-24
-- **Compatible with:** Phase 7b Session 66 (Godot UI + Integration Audit)
+- **Last updated:** 2026-02-25
+- **Compatible with:** Phase 7b Session 67 (Square Formation)
 
 ## Top-Level Structure (WorldState)
 
@@ -243,6 +243,8 @@ A future save/load system should use this as the specification.
 
   "idle_turns": 0,
 
+  "square_formation": false,
+
   "occupation_region": null,
   "occupation_turns_held": 0,
   "occupation_turns_required": 0
@@ -322,6 +324,7 @@ A future save/load system should use this as the specification.
 | `shock_bonus` | int | +2 = +20% attack from drill |
 | `fortified` | bool | Currently fortified |
 | `defense_bonus` | float | 0.0-0.20, decimal (0.16 = 16%) |
+| `square_formation` | bool | In square formation (Session 67). +5% def, cavalry -40%, artillery +50% |
 
 #### Strategic Order System (Phase 5.2)
 | Field | Type | Description |

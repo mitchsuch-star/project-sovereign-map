@@ -1578,6 +1578,125 @@ Artillery marshals on strategic HOLD auto-bombard adjacent enemies instead of us
 
 ---
 
+## 6b. Square Formation (Session 67 — Tactical Triangle Part A)
+
+Infantry marshals can form a defensive square — highly effective against cavalry but vulnerable to artillery fire. Part of the Tactical Triangle (infantry ↔ cavalry ↔ artillery).
+
+### Actions
+
+| Action | AP | Type | Description |
+|--------|-----|------|-------------|
+| `form_square` | 1 | Normal | Infantry enters square formation |
+| `break_square` | 0 | Free | Returns to line formation |
+
+### Eligibility (form_square)
+
+| Check | Blocks if |
+|-------|-----------|
+| Unit type | `cavalry == True` or `artillery == True` |
+| Already square | `square_formation == True` |
+| Fortified | `fortified == True` (mutual exclusion) |
+| Broken | `broken == True` |
+| Retreating | `retreating == True` |
+| Drilling | `drilling == True` or `drilling_locked == True` |
+
+### Combat Interactions
+
+| Attacker Type | Effect | Implementation |
+|---------------|--------|----------------|
+| Cavalry vs Square | -40% damage (`shock_multiplier *= 0.60`) | `combat.py` |
+| Artillery vs Square | +50% damage (`shock_multiplier *= 1.50`) | `combat.py` |
+| Infantry vs Square | No special modifier | — |
+| Square defense | +5% defense modifier | `marshal.py get_defense_modifier()` |
+
+Both normal and deferred (`apply_casualties=False`) combat paths handle these interactions.
+
+### Bombardment vs Square
+
+- **+50% damage:** `square_bombardment_bonus = 1.50` applied to `raw_damage` in `_execute_bombardment()`
+- **-15 extra morale:** Total morale hit = -18 (3 base + 15 square penalty)
+- Packed formation is a perfect artillery target
+
+### Auto-Break
+
+Square automatically breaks when marshal receives any active order:
+
+| Breaks on | Does NOT break on |
+|-----------|-------------------|
+| attack, move, fortify, drill, recruit, garrison, stance_change, glorious_charge | form_square, break_square, wait, end_turn |
+
+`_auto_break_square(marshal, action_name)` called at top of each `_execute_*` method. Returns message string for display.
+
+### Coordination & Reinforcement
+
+| Rule | Effect |
+|------|--------|
+| Attack coordination | 0% (excluded, same as fortified) |
+| Defense coordination | Normal (still contributes) |
+| Adjacent support | Excluded from count |
+| Reinforcement | Cannot reinforce (Rule #15) |
+
+### Strategic Order Cancellation
+
+Forming square cancels any active strategic order, including HOLD with `holding_position` and `hold_region` clearing.
+
+### Objection Triggers (V2a)
+
+| Personality | Trigger | Level |
+|-------------|---------|-------|
+| Aggressive | form_square (any) | MODERATE |
+| Cautious | form_square when fortified | MILD |
+| Cautious | form_square when artillery adjacent, no cavalry | MILD |
+| Universal | form_square when both cavalry AND artillery adjacent | MILD |
+
+### Enemy AI (P2.5)
+
+Between P2 (critical survival) and P3 (threat response):
+
+- **Form square:** When infantry + enemy cavalry adjacent/co-located + no enemy artillery adjacent/co-located + cooldown <= 0
+- **Break square:** When in square + no enemy cavalry adjacent/co-located. Sets `ai_square_cooldown = 2`
+- **Anti-oscillation:** Cooldown decrements per turn in `_process_tactical_states()`. Uses transient `ai_square_cooldown` field (not serialized, managed via `getattr/setattr`)
+
+### Tactical State Clearing
+
+- Square clears on `broken == True` or `retreating == True` (in `_process_tactical_states()`)
+- AI cooldown decrements each turn
+
+### Battle Report
+
+3 new Berthier observation categories (Priority 6e):
+
+| Key | Condition | Templates |
+|-----|-----------|-----------|
+| `square_cavalry_repulsed` | Cavalry attacker + defender in square | 3 templates |
+| `square_artillery_punished` | Artillery attacker + defender in square | 3 templates |
+| `square_held_defense` | Defender in square + defender won | 3 templates |
+
+Snapshot entries: "Square formation (vs cavalry)" penalty 40%, "Square formation (vs artillery)" bonus 50%, "Square formation" defense bonus 5%.
+
+### Serialization
+
+| Field | Type | Default | Location |
+|-------|------|---------|----------|
+| `square_formation` | bool | false | `marshal.py` `to_dict()`/`from_dict()` |
+
+### Key Files
+
+| File | What changed |
+|------|-------------|
+| `marshal.py` | `square_formation` field, +5% defense modifier, serialization |
+| `combat.py` | Cavalry -40%, artillery +50%, deferred path params |
+| `executor.py` | `_execute_form_square`, `_execute_break_square`, `_auto_break_square`, bombardment bonus, coordination exclusions, reinforcement Rule #15, SUPPORT advisory |
+| `world_state.py` | AP costs (1/0), tactical state clearing, AI cooldown decrement |
+| `objection_v2.py` | 4 triggers (aggressive, cautious×2, universal) |
+| `enemy_ai.py` | P2.5 form/break square logic |
+| `battle_report.py` | 3 observations, snapshot entries |
+| `validation.py` | `form_square`, `break_square` in VALID_ACTIONS |
+| `parser.py` | `form_square`, `break_square` in valid_actions |
+| `llm_client.py` | Mock parser keywords |
+
+---
+
 ## 7. Redemption System
 
 ### Trigger

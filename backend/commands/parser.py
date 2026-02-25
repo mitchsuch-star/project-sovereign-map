@@ -65,6 +65,9 @@ class CommandParser:
             "economy",   # Display treasury/income/upkeep (free action)
             # Garrison command (Session 31)
             "garrison",  # Detach troops to garrison a region
+            # Square formation (Session 67) — Tactical Triangle Part A
+            "form_square",   # Infantry anti-cavalry formation (1 AP)
+            "break_square",  # Return to line formation (free)
         ]
 
         # Valid stances for stance_change command (Phase 2.7)

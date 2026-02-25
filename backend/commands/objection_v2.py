@@ -784,6 +784,10 @@ def evaluate_aggressive(marshal, action: str, order: Dict, game_state) -> Concer
             return ConcernLevel.MODERATE  # "There's an enemy right there!"
         return ConcernLevel.NONE
 
+    # Square formation — aggressive marshals want to charge, not stand still
+    if action == "form_square":
+        return ConcernLevel.MODERATE  # "Square?! Let me CHARGE them!"
+
     # Defensive stance change — aggressive marshals dislike ANY defensive posture,
     # matching the unconditional MILD on the "defend" action above.
     # V2b: escalate to MODERATE/STRONG when weak enemy is adjacent (beatable odds).
@@ -905,6 +909,34 @@ def evaluate_cautious(marshal, action: str, order: Dict, game_state) -> ConcernL
                             if getattr(m, 'defense_bonus', 0) > 0.05:
                                 return ConcernLevel.MODERATE  # "Their walls still stand — give me one more day!"
 
+    # Square formation — cautious marshal notices tactical problems
+    if action == "form_square":
+        # Already fortified — square would abandon earthworks for less protection
+        if getattr(marshal, 'fortified', False):
+            return ConcernLevel.MILD  # "We've built earthworks — square is worse!"
+        # Enemy artillery adjacent but no cavalry — square invites shells
+        has_cavalry = False
+        has_artillery = False
+        world = _get_world(game_state)
+        if world:
+            region = world.get_region(marshal.location) if hasattr(world, 'get_region') else None
+            if region:
+                for adj_name in region.adjacent_regions:
+                    for m in world.get_enemies_in_region(adj_name, marshal.nation):
+                        if getattr(m, 'cavalry', False) and m.strength > 0:
+                            has_cavalry = True
+                        if getattr(m, 'artillery', False) and m.strength > 0:
+                            has_artillery = True
+                # Also check same region
+                for m in world.get_enemies_in_region(marshal.location, marshal.nation):
+                    if getattr(m, 'cavalry', False) and m.strength > 0:
+                        has_cavalry = True
+                    if getattr(m, 'artillery', False) and m.strength > 0:
+                        has_artillery = True
+        if has_artillery and not has_cavalry:
+            return ConcernLevel.MILD  # "Their guns will punish us — I see no cavalry"
+        return ConcernLevel.NONE
+
     # Aggressive stance change
     if action == "stance_change":
         # BUG FIX: order.get('target', '') returns None when key exists with value None
@@ -959,6 +991,23 @@ def evaluate_situation(marshal, action: str, order: Dict, game_state) -> Concern
     Returns:
         ConcernLevel for this situation
     """
+    # Universal trigger: form_square with both cavalry AND artillery nearby
+    if action == "form_square":
+        world = _get_world(game_state)
+        if world:
+            has_cavalry = False
+            has_artillery = False
+            region = world.get_region(marshal.location) if hasattr(world, 'get_region') else None
+            if region:
+                for adj_name in list(region.adjacent_regions) + [marshal.location]:
+                    for m in world.get_enemies_in_region(adj_name, marshal.nation):
+                        if getattr(m, 'cavalry', False) and m.strength > 0:
+                            has_cavalry = True
+                        if getattr(m, 'artillery', False) and m.strength > 0:
+                            has_artillery = True
+            if has_cavalry and has_artillery:
+                return ConcernLevel.MILD  # "Both cavalry and guns threaten us"
+
     personality = getattr(marshal, 'personality', 'balanced').lower()
     evaluator = PERSONALITY_EVALUATORS.get(personality)
 

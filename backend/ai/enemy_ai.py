@@ -1385,6 +1385,50 @@ class EnemyAI:
                 if action:
                     return (action, 2)
 
+        # ════════════════════════════════════════════════════════════
+        # PRIORITY 2.5: SQUARE FORMATION (Session 67)
+        # Infantry-only (not cavalry, not artillery).
+        # Form square when cavalry adjacent and no artillery adjacent.
+        # Break square when no cavalry adjacent.
+        # Anti-oscillation: ai_square_cooldown blocks re-forming for 2 turns.
+        # ════════════════════════════════════════════════════════════
+        is_infantry = (not getattr(marshal, 'cavalry', False)
+                       and not getattr(marshal, 'artillery', False))
+        if is_infantry:
+            in_square = getattr(marshal, 'square_formation', False)
+
+            # Check for adjacent cavalry and artillery threats
+            adj_cavalry = False
+            adj_artillery = False
+            region_obj = world.get_region(marshal.location)
+            if region_obj:
+                check_regions = list(region_obj.adjacent_regions) + [marshal.location]
+                for check_name in check_regions:
+                    for m in world.get_enemies_in_region(check_name, nation):
+                        if getattr(m, 'cavalry', False) and m.strength > 0:
+                            adj_cavalry = True
+                        if getattr(m, 'artillery', False) and m.strength > 0:
+                            adj_artillery = True
+
+            if in_square:
+                # BREAK square if no cavalry threat
+                if not adj_cavalry:
+                    ai_debug("  P2.5: No cavalry threat — breaking square")
+                    marshal.ai_square_cooldown = 2  # Anti-oscillation cooldown
+                    return ({
+                        "marshal": marshal.name,
+                        "action": "break_square",
+                    }, 2)
+            else:
+                # FORM square if cavalry adjacent, no artillery, and not on cooldown
+                cooldown = getattr(marshal, 'ai_square_cooldown', 0)
+                if adj_cavalry and not adj_artillery and cooldown <= 0:
+                    ai_debug("  P2.5: Cavalry threat, no artillery — forming square")
+                    return ({
+                        "marshal": marshal.name,
+                        "action": "form_square",
+                    }, 2)
+
         # ─── P3-P4: DEFENSIVE & TACTICAL PRIORITIES ──────────────────────────
 
         # ════════════════════════════════════════════════════════════

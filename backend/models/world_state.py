@@ -166,6 +166,8 @@ class WorldState:
             "end_turn": 0,  # Free action
             "economy": 0,  # Free action (Phase 6.2.G)
             "garrison": 2,  # Session 31: Detach troops (2 AP — real commitment)
+            "form_square": 1,  # Session 67: Form square formation (1 AP)
+            "break_square": 0,  # Session 67: Break square (free action)
         }
 
         # ============================================================
@@ -3620,6 +3622,18 @@ class WorldState:
                         "message": f"{marshal.name}'s fortifications strengthen: +{new_percent}% defense" +
                                   (" (MAX)" if new_bonus >= max_bonus_rate else f" (max {max_percent}%)")
                     })
+
+            # ════════════════════════════════════════════════════════════
+            # SQUARE FORMATION: Clear on broken/retreat, decrement AI cooldown
+            # (Session 67 — Tactical Triangle Part A)
+            # ════════════════════════════════════════════════════════════
+            if getattr(marshal, 'square_formation', False):
+                if getattr(marshal, 'broken', False) or getattr(marshal, 'retreating', False):
+                    marshal.square_formation = False
+            # Decrement AI square cooldown (transient, NOT serialized)
+            ai_sq_cd = getattr(marshal, 'ai_square_cooldown', 0)
+            if ai_sq_cd > 0:
+                marshal.ai_square_cooldown = ai_sq_cd - 1
 
             # ════════════════════════════════════════════════════════════
             # RETREAT RECOVERY PROGRESSION

@@ -43,6 +43,8 @@ _ACTION_DISPLAY_NAMES = {
     "defend": "defends",
     "fortify": "fortifies",
     "unfortify": "abandons fortification",
+    "form_square": "forms square",
+    "break_square": "breaks square",
     "drill": "drills",
     "stance_change": "changes stance",
     "retreat": "retreats to",
@@ -250,9 +252,10 @@ class CommandExecutor:
                 getattr(ally, 'fortified', False)
                 and not getattr(ally, 'artillery', False)
             )
+            is_in_square = getattr(ally, 'square_formation', False)
 
-            # Attack coordination: skip fortified non-artillery
-            if not is_fortified_non_artillery:
+            # Attack coordination: skip fortified non-artillery and square formation
+            if not is_fortified_non_artillery and not is_in_square:
                 total_atk += 0.03 * scale
 
             # Defense coordination: all eligible allies contribute
@@ -292,7 +295,8 @@ class CommandExecutor:
                     and m.strength > 0
                     and not getattr(m, 'broken', False)
                     and not getattr(m, 'retreated_this_turn', False)
-                    and getattr(m, 'retreat_recovery', 0) == 0):
+                    and getattr(m, 'retreat_recovery', 0) == 0
+                    and not getattr(m, 'square_formation', False)):
                 adjacent_allies.append(m.name)
 
         return (len(adjacent_allies), adjacent_allies)
@@ -473,6 +477,9 @@ class CommandExecutor:
             return False
         # Rule 12: NOT moved_this_turn — troops cannot force-march twice (A-D2)
         if getattr(marshal, 'moved_this_turn', False):
+            return False
+        # Rule 15: NOT in square formation (can't march while formed square)
+        if getattr(marshal, 'square_formation', False):
             return False
         # Rule 13: Hostile without SUPPORT cannot auto-reinforce (A-D4)
         # Hostile auto-reinforcement is net-negative: converts +2% adjacent to 0% coordination
@@ -1368,7 +1375,7 @@ RETREAT RECOVERY (3 turns):
         # retreat is FREE (costs 0 actions - strategic withdrawal)
         # debug is FREE (for testing abilities)
         # economy/treasury/finances are FREE information commands (Phase 6.2.G)
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances"]
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square"]
 
         # Check if action costs points
         action_costs_point = action not in free_actions
@@ -1998,6 +2005,10 @@ RETREAT RECOVERY (3 turns):
             result = self._execute_fortify(command, game_state)
         elif action == "unfortify":
             result = self._execute_unfortify(command, game_state)
+        elif action == "form_square":
+            result = self._execute_form_square(command, game_state)
+        elif action == "break_square":
+            result = self._execute_break_square(command, game_state)
         # ════════════════════════════════════════════════════════════
         # STANCE SYSTEM (Phase 2.7)
         # ════════════════════════════════════════════════════════════
@@ -2258,6 +2269,10 @@ RETREAT RECOVERY (3 turns):
             return self._execute_fortify(command, game_state)
         elif action == "unfortify":
             return self._execute_unfortify(command, game_state)
+        elif action == "form_square":
+            return self._execute_form_square(command, game_state)
+        elif action == "break_square":
+            return self._execute_break_square(command, game_state)
         elif action == "stance_change":
             return self._execute_stance_change(command, game_state)
         elif action == "debug":
@@ -2844,7 +2859,12 @@ RETREAT RECOVERY (3 turns):
         # if streak >= 5: damage_multiplier *= 0.50
         # elif streak >= 3: damage_multiplier *= 0.75
 
-        raw_damage = defender.strength * base_rate * damage_multiplier * terrain_mod
+        # SQUARE FORMATION (Session 67): +50% bombardment damage vs packed square
+        square_bombardment_bonus = 1.0
+        if getattr(defender, 'square_formation', False):
+            square_bombardment_bonus = 1.50
+
+        raw_damage = defender.strength * base_rate * damage_multiplier * terrain_mod * square_bombardment_bonus
         variance = random.uniform(0.80, 1.20)
         defender_casualties = int(raw_damage * variance)
 
@@ -2878,8 +2898,12 @@ RETREAT RECOVERY (3 turns):
         # ════════════════════════════════════════════════════════════
         # MORALE EFFECTS (§4.7)
         # Defender: -3 per bombardment. Attacker: None.
+        # SQUARE FORMATION (Session 67): Extra -15 morale (packed troops panic under shells)
         # ════════════════════════════════════════════════════════════
-        defender.adjust_morale(-3)
+        bombardment_morale = -3
+        if getattr(defender, 'square_formation', False):
+            bombardment_morale -= 15
+        defender.adjust_morale(bombardment_morale)
 
         # Capture target location before defender might be broken/moved
         target_location = defender.location
@@ -3156,6 +3180,9 @@ RETREAT RECOVERY (3 turns):
             skip_reckless_popup: If True, skip the recklessness popup check.
                                  Used when called from respond_to_glorious_charge.
         """
+        # Auto-break square formation (Session 67)
+        self._auto_break_square(marshal, "attack")
+
         # ════════════════════════════════════════════════════════════
         # COUNTER-PUNCH CHECK (Phase 2.8): Davout's free attack after defending
         # If Davout has counter_punch_available, this attack costs 0 actions
@@ -5580,12 +5607,18 @@ RETREAT RECOVERY (3 turns):
             ally_m = world.get_marshal(target)
             loc = ally_m.location if ally_m else "unknown"
             msg = f"{marshal.name} moves to support {target} (at {loc}).{first_step_msg}"
-            # A-M3: Berthier advisory — fortified marshal cannot reinforce
+            # A-M3: Berthier advisory — fortified/square marshal cannot reinforce
             if getattr(marshal, 'fortified', False):
                 msg += (
                     f"\n\nBerthier: \"Sire, {marshal.name} is ordered to support {target} "
                     f"but is fortified — they cannot march to reinforce from their current "
                     f"position. Consider unfortifying, or rely on the co-location coordination bonus.\""
+                )
+            elif getattr(marshal, 'square_formation', False):
+                msg += (
+                    f"\n\nBerthier: \"Sire, {marshal.name} is ordered to support {target} "
+                    f"but is in square formation — they cannot march to reinforce. "
+                    f"Consider breaking square first.\""
                 )
         else:
             msg = f"{marshal.name} received strategic order: {strategic_type}.{first_step_msg}"
@@ -5944,6 +5977,9 @@ RETREAT RECOVERY (3 turns):
 
     def _execute_move(self, marshal, target, world: WorldState, game_state) -> Dict:
         """Execute a move order."""
+        # Auto-break square formation (Session 67)
+        self._auto_break_square(marshal, "move")
+
         # ════════════════════════════════════════════════════════════
         # DRILL STATE CHECK: Handle drilling marshal trying to move
         # ════════════════════════════════════════════════════════════
@@ -7102,6 +7138,9 @@ RETREAT RECOVERY (3 turns):
 
         # --- Determine recruit type from marshal ---
         recruit_marshal = world.get_marshal(recipient)
+        # Auto-break square formation (Session 67)
+        if recruit_marshal:
+            self._auto_break_square(recruit_marshal, "recruit")
         if getattr(recruit_marshal, 'artillery', False):
             recruit_type = "artillery"
         elif getattr(recruit_marshal, 'cavalry', False):
@@ -7343,6 +7382,9 @@ RETREAT RECOVERY (3 turns):
                 "success": False,
                 "message": f"Berthier frowns. 'I know no marshal named {marshal_name}, Your Majesty.'"
             }
+
+        # Auto-break square formation (Session 67)
+        self._auto_break_square(marshal, "garrison")
 
         region_name = marshal.location
         region = world.regions.get(region_name)
@@ -7711,6 +7753,9 @@ RETREAT RECOVERY (3 turns):
         if error:
             return error
 
+        # Auto-break square formation (Session 67)
+        self._auto_break_square(marshal, "drill")
+
         # Check if already drilling
         if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
             return {
@@ -7799,6 +7844,9 @@ RETREAT RECOVERY (3 turns):
         marshal, error = self._fuzzy_match_marshal(marshal_name, world)
         if error:
             return error
+
+        # Auto-break square formation (Session 67) — fortify replaces square
+        self._auto_break_square(marshal, "fortify")
 
         # Check if already fortified
         if getattr(marshal, 'fortified', False):
@@ -7939,6 +7987,165 @@ RETREAT RECOVERY (3 turns):
             result["variable_action_cost"] = 1 + stance_transition_cost
 
         return result
+
+    # ════════════════════════════════════════════════════════════════════════
+    # SQUARE FORMATION (Phase 7b, Session 67) — Tactical Triangle Part A
+    # ════════════════════════════════════════════════════════════════════════
+
+    def _auto_break_square(self, marshal, action_name: str = "") -> str:
+        """Auto-break square formation when marshal takes an active action.
+
+        Called at the TOP of _execute_attack, _execute_move, _execute_fortify,
+        _execute_drill, _execute_recruit, _execute_garrison, _execute_stance_change,
+        _execute_glorious_charge. NOT called for form_square, break_square, wait, end_turn.
+
+        Returns message string if square was broken, empty string otherwise.
+        """
+        if not getattr(marshal, 'square_formation', False):
+            return ""
+        marshal.square_formation = False
+        # Cancel any strategic order (breaking formation to act)
+        if getattr(marshal, 'strategic_order', None):
+            marshal.strategic_order = None
+        display = _action_display_name(action_name) if action_name else "act"
+        return f"\n[Square broken — {marshal.name} breaks formation to {display}]"
+
+    def _execute_form_square(self, command: Dict, game_state: Dict) -> Dict:
+        """
+        Form square formation — infantry anti-cavalry defense.
+
+        Costs 1 AP. Infantry only. Mutually exclusive with fortify.
+        Provides +5% defense, -40% incoming cavalry damage, +50% incoming artillery damage.
+        Cancels any active strategic order.
+        """
+        marshal_name = command.get("marshal")
+        world: WorldState = game_state.get("world")
+
+        if not world:
+            return {"success": False, "message": "Error: No world state available"}
+
+        marshal, error = self._fuzzy_match_marshal(marshal_name, world)
+        if error:
+            return error
+
+        # Already in square
+        if getattr(marshal, 'square_formation', False):
+            return {
+                "success": False,
+                "message": f"{marshal.name} is already in square formation."
+            }
+
+        # Infantry only — cavalry and artillery cannot form square
+        if getattr(marshal, 'cavalry', False):
+            return {
+                "success": False,
+                "message": f"{marshal.name}'s cavalry cannot form an infantry square!"
+            }
+        if getattr(marshal, 'artillery', False):
+            return {
+                "success": False,
+                "message": f"{marshal.name}'s artillery cannot form an infantry square!"
+            }
+
+        # Cannot form square while broken/retreating
+        if getattr(marshal, 'broken', False):
+            return {
+                "success": False,
+                "message": f"{marshal.name}'s troops are broken and cannot form square."
+            }
+        if getattr(marshal, 'retreating', False):
+            return {
+                "success": False,
+                "message": f"{marshal.name} is retreating and cannot form square."
+            }
+
+        # Mutual exclusion: square ↔ fortify
+        if getattr(marshal, 'fortified', False):
+            return {
+                "success": False,
+                "message": (
+                    f"{marshal.name} is fortified and cannot form square. "
+                    f"Fortified positions and square formation are incompatible — "
+                    f"unfortify first if you want to form square."
+                )
+            }
+
+        # Cannot form square while drilling
+        if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+            return {
+                "success": False,
+                "message": f"{marshal.name} is drilling and cannot form square."
+            }
+
+        # Form square
+        marshal.square_formation = True
+
+        # Cancel strategic order (forming square is a defensive stance commitment)
+        strategic_cancel_msg = ""
+        if getattr(marshal, 'strategic_order', None):
+            old_order = marshal.strategic_order
+            marshal.strategic_order = None
+            if old_order.command_type == "HOLD":
+                marshal.holding_position = False
+                marshal.hold_region = ""
+            strategic_cancel_msg = f" Strategic order ({old_order.command_type}) cancelled."
+
+        message = (
+            f"{marshal.name} forms square at {marshal.location}! "
+            f"Bayonets bristle in all directions. (+5% defense, cavalry -40%, "
+            f"but artillery +50% damage vs packed ranks){strategic_cancel_msg}"
+        )
+
+        return {
+            "success": True,
+            "message": message,
+            "events": [{
+                "type": "form_square",
+                "marshal": marshal.name,
+                "location": marshal.location,
+            }],
+            "new_state": game_state
+        }
+
+    def _execute_break_square(self, command: Dict, game_state: Dict) -> Dict:
+        """
+        Break square formation — free action (0 AP).
+
+        Returns troops to normal line formation.
+        """
+        marshal_name = command.get("marshal")
+        world: WorldState = game_state.get("world")
+
+        if not world:
+            return {"success": False, "message": "Error: No world state available"}
+
+        marshal, error = self._fuzzy_match_marshal(marshal_name, world)
+        if error:
+            return error
+
+        if not getattr(marshal, 'square_formation', False):
+            return {
+                "success": False,
+                "message": f"{marshal.name} is not in square formation."
+            }
+
+        marshal.square_formation = False
+
+        message = (
+            f"{marshal.name} breaks square and returns to line formation at {marshal.location}."
+        )
+
+        return {
+            "success": True,
+            "message": message,
+            "free_action": True,
+            "events": [{
+                "type": "break_square",
+                "marshal": marshal.name,
+                "location": marshal.location,
+            }],
+            "new_state": game_state
+        }
 
     def _execute_unfortify(self, command: Dict, game_state: Dict) -> Dict:
         """
@@ -8879,6 +9086,9 @@ RETREAT RECOVERY (3 turns):
         if error:
             return error
 
+        # Auto-break square formation (Session 67)
+        self._auto_break_square(marshal, "stance_change")
+
         # Parse target stance
         stance_map = {
             "neutral": Stance.NEUTRAL,
@@ -9162,6 +9372,9 @@ RETREAT RECOVERY (3 turns):
         - respond_to_glorious_charge (popup response)
         - auto-charge at recklessness 4+
         """
+        # Auto-break square formation (Session 67)
+        self._auto_break_square(marshal, "attack")
+
         # ARTILLERY: Guns don't charge
         if getattr(marshal, 'artillery', False):
             return {
@@ -10182,7 +10395,7 @@ RETREAT RECOVERY (3 turns):
 
         # Check action economy
         # FIX: Added "retreat" - must match main execute() free_actions list
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat"]
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "break_square"]
         action_costs_point = action not in free_actions
 
         if action_costs_point:
@@ -10272,6 +10485,10 @@ RETREAT RECOVERY (3 turns):
             result = self._execute_drill(command, game_state)
         elif action == "unfortify":
             result = self._execute_unfortify(command, game_state)
+        elif action == "form_square":
+            result = self._execute_form_square(command, game_state)
+        elif action == "break_square":
+            result = self._execute_break_square(command, game_state)
         elif action == "retreat":
             marshal = world.get_marshal(marshal_name)
             if marshal:

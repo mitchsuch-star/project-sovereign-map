@@ -322,6 +322,23 @@ class CombatResolver:
             shock_multiplier *= 1.30
             cavalry_counter_message = f"{attacker.name}'s cavalry overruns {defender.name}'s gun line! (+30% attack)"
 
+        # ════════════════════════════════════════════════════════════
+        # SQUARE FORMATION INTERACTIONS (Phase 7b, Session 67)
+        # Target-type interactions: depends on ATTACKER's type vs DEFENDER's state.
+        # -40% cavalry damage against square (horses refuse bayonet wall)
+        # +50% artillery damage against square (packed ranks, can't miss)
+        # Infantry vs square: no special modifier
+        # ════════════════════════════════════════════════════════════
+        square_cavalry_message = None
+        square_artillery_message = None
+        if getattr(defender, 'square_formation', False):
+            if getattr(attacker, 'cavalry', False):
+                shock_multiplier *= 0.60  # -40% damage
+                square_cavalry_message = f"{defender.name}'s square holds firm! {attacker.name}'s cavalry charge is blunted. (-40% cavalry damage)"
+            elif getattr(attacker, 'artillery', False):
+                shock_multiplier *= 1.50  # +50% damage
+                square_artillery_message = f"{defender.name}'s packed square is a perfect target for {attacker.name}'s guns! (+50% artillery damage)"
+
         # Apply DEFENSE skill to defender protection (reduces casualties taken)
         # Higher defense = fewer casualties taken
         # defense_skill // 2 gives 0 to 5 percentage points of protection
@@ -458,6 +475,7 @@ class CombatResolver:
                 cavalry_counter_message, glorious_charge_message,
                 attacker_modifier_snapshot, defender_modifier_snapshot,
                 is_drilling,
+                square_cavalry_message, square_artillery_message,
             )
 
         # Apply casualties FIRST (this was missing!)
@@ -564,6 +582,10 @@ class CombatResolver:
             tactical_prefix += f"\n🐴 {cavalry_terrain_message}"
         if cavalry_counter_message:
             tactical_prefix += f"\n🐴 {cavalry_counter_message}"
+        if square_cavalry_message:
+            tactical_prefix += f"\n🛡️ {square_cavalry_message}"
+        if square_artillery_message:
+            tactical_prefix += f"\n💥 {square_artillery_message}"
         if glorious_charge_message:
             tactical_prefix += f"\n{glorious_charge_message}"
 
@@ -968,6 +990,7 @@ class CombatResolver:
             cavalry_counter_message, glorious_charge_message,
             attacker_modifier_snapshot, defender_modifier_snapshot,
             is_drilling,
+            square_cavalry_message=None, square_artillery_message=None,
     ) -> Dict:
         """Build result dict for apply_casualties=False (Session 62).
 
@@ -1071,6 +1094,10 @@ class CombatResolver:
             tactical_prefix += f"\n🐴 {cavalry_terrain_message}"
         if cavalry_counter_message:
             tactical_prefix += f"\n🐴 {cavalry_counter_message}"
+        if square_cavalry_message:
+            tactical_prefix += f"\n🛡️ {square_cavalry_message}"
+        if square_artillery_message:
+            tactical_prefix += f"\n💥 {square_artillery_message}"
         if glorious_charge_message:
             tactical_prefix += f"\n{glorious_charge_message}"
 
