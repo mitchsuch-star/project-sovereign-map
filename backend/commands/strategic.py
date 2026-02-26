@@ -47,6 +47,17 @@ class StrategicExecutor:
         """
         self.executor = command_executor
 
+    @staticmethod
+    def _attach_redemption_if_needed(result: Dict, marshal, world) -> Dict:
+        """Check redemption threshold after a trust penalty and attach to result."""
+        if not (marshal and world and hasattr(world, 'disobedience_system')):
+            return result
+        event = world.disobedience_system.check_redemption_threshold(marshal, world)
+        if event:
+            result["redemption_event"] = event
+            result["state"] = "awaiting_redemption_choice"
+        return result
+
     def process_strategic_orders(self, world, game_state: Dict) -> List[Dict]:
         """
         Process strategic orders for all player marshals.
@@ -287,7 +298,7 @@ class StrategicExecutor:
             move_result = self._execute_movement_step(marshal, world, game_state)
             move_msg = move_result.get("message", "") if move_result else ""
 
-            return {
+            return self._attach_redemption_if_needed({
                 "success": True,
                 "message": f"{marshal.name} reluctantly continues the march, "
                            f"ignoring cannon fire at {battle_location}. {move_msg}".strip(),
@@ -295,7 +306,7 @@ class StrategicExecutor:
                 "trust_change": trust_change,
                 "action_taken": "continue_order",
                 "movement_executed": bool(move_result and move_result.get("success"))
-            }
+            }, marshal, world)
 
         elif choice == "hold_position":
             # Cancel order, stay put
@@ -304,14 +315,14 @@ class StrategicExecutor:
             trust_change = -3
             if hasattr(marshal, 'trust'):
                 marshal.trust.modify(trust_change)
-            return {
+            return self._attach_redemption_if_needed({
                 "success": True,
                 "message": f"{marshal.name} halts and holds position, "
                            f"abandoning {cmd_flavor}.",
                 "order_cleared": True,
                 "trust_change": trust_change,
                 "action_taken": "hold_position"
-            }
+            }, marshal, world)
 
         return {"success": False, "message": f"Unknown cannon_fire choice: {choice}"}
 
@@ -418,14 +429,14 @@ class StrategicExecutor:
             trust_change = 0 if is_first_step else -3
             if trust_change != 0 and hasattr(marshal, 'trust'):
                 marshal.trust.modify(trust_change)
-            return {
+            return self._attach_redemption_if_needed({
                 "success": True,
                 "message": f"{marshal.name} holds position, "
                            f"abandoning {_strategic_command_flavor(order.command_type)}.",
                 "order_cleared": True,
                 "trust_change": trust_change,
                 "action_taken": "hold_position"
-            }
+            }, marshal, world)
 
         elif choice == "cancel_order":
             marshal.strategic_order = None
@@ -434,13 +445,13 @@ class StrategicExecutor:
             trust_change = 0 if is_first_step else -3
             if trust_change != 0 and hasattr(marshal, 'trust'):
                 marshal.trust.modify(trust_change)
-            return {
+            return self._attach_redemption_if_needed({
                 "success": True,
                 "message": f"{marshal.name} cancels {_strategic_command_flavor(order.command_type)}.",
                 "order_cleared": True,
                 "trust_change": trust_change,
                 "action_taken": "cancel_order"
-            }
+            }, marshal, world)
 
         return {"success": False, "message": f"Unknown blocked_path choice: {choice}"}
 
@@ -495,13 +506,13 @@ class StrategicExecutor:
             trust_change = -3
             if hasattr(marshal, 'trust'):
                 marshal.trust.modify(trust_change)
-            return {
+            return self._attach_redemption_if_needed({
                 "success": True,
                 "message": f"{marshal.name} abandons reinforcement orders for {ally_name}.",
                 "order_cleared": True,
                 "trust_change": trust_change,
                 "action_taken": "cancel_support"
-            }
+            }, marshal, world)
 
         return {"success": False, "message": f"Unknown ally_moving choice: {choice}"}
 
@@ -528,26 +539,26 @@ class StrategicExecutor:
             trust_change = -3
             if hasattr(marshal, 'trust'):
                 marshal.trust.modify(trust_change)
-            return {
+            return self._attach_redemption_if_needed({
                 "success": True,
                 "message": f"{marshal.name} holds position after the engagement with {enemy_name}.",
                 "order_cleared": True,
                 "trust_change": trust_change,
                 "action_taken": "hold_position"
-            }
+            }, marshal, world)
 
         elif choice == "cancel_order":
             marshal.strategic_order = None
             trust_change = -3
             if hasattr(marshal, 'trust'):
                 marshal.trust.modify(trust_change)
-            return {
+            return self._attach_redemption_if_needed({
                 "success": True,
                 "message": f"{marshal.name} abandons the order and awaits new instructions.",
                 "order_cleared": True,
                 "trust_change": trust_change,
                 "action_taken": "cancel_order"
-            }
+            }, marshal, world)
 
         return {"success": False, "message": f"Unknown combat_stalemate choice: {choice}"}
 

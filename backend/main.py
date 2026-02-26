@@ -1066,6 +1066,12 @@ def handle_strategic_response(request: StrategicInterruptResponse):
             "action_summary": world.get_action_summary(),
             "game_state": world.get_filtered_game_state_summary()
         }
+        # Redemption event from strategic trust penalty
+        if result.get("redemption_event"):
+            response["state"] = "awaiting_redemption_choice"
+            response["redemption_event"] = result["redemption_event"]
+            world.pending_redemption = result["redemption_event"]
+            print(f"[ALERT] REDEMPTION TRIGGERED for {result['redemption_event']['marshal']}")
         # Notifications — interrupt responses can trigger actions
         if world.notifications.has_pending():
             response["notifications"] = world.notifications.get_pending()

@@ -3989,6 +3989,11 @@ class WorldState:
                               f"(Auto-switched to AGGRESSIVE stance. Trust: -3 for misusing cavalry)"
                 })
 
+                # Redemption check after cavalry trust penalty
+                redemption = self.disobedience_system.check_redemption_threshold(marshal, self)
+                if redemption:
+                    events.append({"type": "redemption_event", "redemption_event": redemption})
+
                 debug_print(f"  [CAVALRY LIMIT] {marshal.name}: forced stance change after {turns_defensive} turns")
 
             # Check fortify limit (triggers at turn 4, after 3 full turns)
@@ -4007,6 +4012,11 @@ class WorldState:
                     "message": f"🐴 {marshal.name}'s cavalry abandons fortifications! Horses cannot dig trenches.\n"
                               f"(Auto-unfortified. Trust: -3 for misusing cavalry)"
                 })
+
+                # Redemption check after cavalry trust penalty
+                redemption = self.disobedience_system.check_redemption_threshold(marshal, self)
+                if redemption:
+                    events.append({"type": "redemption_event", "redemption_event": redemption})
 
                 debug_print(f"  [CAVALRY LIMIT] {marshal.name}: forced unfortify after {turns_fortified} turns")
 

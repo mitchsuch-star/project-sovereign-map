@@ -985,13 +985,14 @@ class CommandExecutor:
 
         # Hoist battle_report from tactical events (e.g. auto-charge) to result level
         # so Godot's _display_berthier_report() can find it at response.battle_report
+        tactical_battle_report = None
+        tactical_redemption = None
         for te in tactical_events:
-            if te.get("battle_report"):
+            if te.get("battle_report") and not tactical_battle_report:
                 # Use first battle report found (auto-charge is typically the only one)
                 tactical_battle_report = te["battle_report"]
-                break
-        else:
-            tactical_battle_report = None
+            if te.get("redemption_event") and not tactical_redemption:
+                tactical_redemption = te["redemption_event"]
 
         # Build result with all data for frontend
         result = {
@@ -1004,6 +1005,8 @@ class CommandExecutor:
         }
         if tactical_battle_report:
             result["battle_report"] = tactical_battle_report
+        if tactical_redemption:
+            result["redemption_event"] = tactical_redemption
 
         # Add Independent Command Report for autonomous marshals (Phase 2.5)
         if turn_result.get("show_independent_command_report"):
@@ -3110,9 +3113,11 @@ RETREAT RECOVERY (3 turns):
                             ))
 
                         # Redemption threshold check (§4.4)
-                        friendly_fire_redemption = (
-                            world.disobedience_system.check_redemption_threshold(force, world)
-                            or friendly_fire_redemption)
+                        # Only trigger for first victim — game handles one
+                        # redemption at a time; others fire on next action.
+                        if not friendly_fire_redemption:
+                            friendly_fire_redemption = (
+                                world.disobedience_system.check_redemption_threshold(force, world))
                     else:
                         collateral_messages.append(
                             f"  Collateral: {force.name} ({force.nation}) "
