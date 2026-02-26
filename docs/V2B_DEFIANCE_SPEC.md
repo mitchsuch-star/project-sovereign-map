@@ -95,6 +95,8 @@ Marshals only defy orders they'd object to. Half the cells are naturally empty.
 | **Cautious** | — (wouldn't object) | Fortify (dig in) | — (wouldn't object) | Fortify | Fortify |
 | **Literal** | — (never defies) | — (never defies) | — (never defies) | — (never defies) | — (never defies) |
 
+**Aggressive defiance targeting:** Uses `_execute_auto_assign_attack()` targeting logic (finds nearest enemy marshal, no named target required).
+
 **If preferred action is blocked** (no enemy to attack, already fortified, etc.): fallback = `wait` (sulk). Still costs AP. Defiance outcome = inconclusive (no vindication change, no authority change, just cooldown).
 
 **AP cost:** Original action's AP cost is charged. Already pre-checked before objection fired (executor.py bypass hierarchy runs AP check at step 13, objection at step 14).
@@ -149,33 +151,45 @@ Per-marshal integer. Existing field: `marshal.vindication_score` (range -5 to +5
 
 New field: `marshal.last_objection_turn` (int, default 0). Updated whenever an objection fires for this marshal (any concern level, including MILD).
 
-Decay check runs during `advance_turn()` in `world_state.py`:
+Decay check runs during `advance_turn()` in `world_state.py`. **Symmetric:** both positive and negative scores decay toward 0.
 
 ```python
 # In _process_tactical_states() or dedicated _process_vindication_decay()
 for marshal in self.marshals.values():
     if marshal.nation == self.player_nation and marshal.strength > 0:
         turns_idle = self.current_turn - marshal.last_objection_turn
-        if turns_idle >= 3 and marshal.vindication_score > 0:
-            marshal.vindication_score = max(0, marshal.vindication_score - 1)
+        if turns_idle >= 3 and marshal.vindication_score != 0:
+            if marshal.vindication_score > 0:
+                marshal.vindication_score -= 1  # Proven-right fades
+            else:
+                marshal.vindication_score += 1  # Proven-wrong also fades
             # Reset timer so next decay is 3 turns from now
             marshal.last_objection_turn = self.current_turn
 ```
 
-### Vindication Escalation
+### Vindication Escalation / De-escalation
 
-Vindication stacks can escalate a concern by +1 level (max one step):
+Vindication stacks shift a concern by ±1 level (max one step):
 
+**Positive vindication (marshal proven right) → escalation:**
 - MILD → MODERATE: yes
 - MODERATE → STRONG: yes
 - MILD → STRONG: **never** (single step only)
 - MODERATE → EXTREME: **never** (single step only)
 
-**Ordering:** `base trigger → vindication escalation (+1 max) → mood variance (±1)`.
+**Negative vindication (marshal proven wrong) → de-escalation ("boy who cried wolf"):**
+- MODERATE → MILD: yes
+- STRONG → MODERATE: yes (removes defiance eligibility)
+- EXTREME → STRONG: yes
+- MILD → NONE: **never** (even a discredited marshal still gets to grumble)
+
+**Ordering:** `base trigger → vindication shift (+1 or -1 max) → mood variance (±1)`.
 
 Maximum possible escalation from base = +2 levels (vindication +1, then mood +1). MILD can reach STRONG (vindication → MODERATE, mood → STRONG). MODERATE can reach EXTREME (vindication → STRONG, mood → EXTREME). These are rare compound events — correct behavior.
 
-**Trigger condition:** `marshal.vindication_score > 0` (any positive vindication enables escalation).
+Maximum possible de-escalation from base = -2 levels (vindication -1, then mood -1). STRONG can drop to MILD. EXTREME can drop to MODERATE.
+
+**Trigger condition:** `marshal.vindication_score > 0` enables escalation. `marshal.vindication_score < 0` enables de-escalation. Score of 0 = no shift.
 
 ### Defensive Vindication
 
@@ -214,6 +228,8 @@ Global stat per player. Existing class: `AuthorityTracker` in `backend/models/au
 **Major victory definition:** Won battle while outnumbered (pre-battle attacker strength < defender strength) OR captured an enemy capital region.
 
 **Major defeat definition:** Lost battle while outnumbering enemy (pre-battle attacker strength > defender strength) OR lost a capital region.
+
+**Hook timing:** Authority check runs in `executor.py` after advance-after-win logic (not immediately after `resolve_battle()`), so territory capture is visible when evaluating "major victory." The battle_result dict + region controller change are both available at this point.
 
 **Authority clamped 0-100.** Enforce in `AuthorityTracker` when modifying.
 
@@ -315,11 +331,29 @@ Fires at **order issuance** via `evaluate_strategic_situation()` → `pending_st
 |--------|--------|
 | **Insist** | SUPPORT order executes. Trust penalty per CONSEQUENCE_TABLE (HOSTILE tier = -15). Defiance can fire (15% base + mods). |
 | **Trust** | Order cancelled, AP refunded. Trust +5/+8 (STRONG gain). Marshal stays put. |
-| **Compromise** | Timed SUPPORT — 3 turns then auto-cancels. Trust +3. |
+| **Compromise** | Timed SUPPORT — 3 turns then auto-cancels. Trust +3. Implementation: set `order.cancel_after_turn = current_turn + 3`, check in `strategic.py` per-turn execution (matches existing timed HOLD pattern from Phase M). |
 
 ### Defiance Interaction
 
 If aggressive marshal's concern reaches STRONG (hostile target) and player insists, defiance can fire. Defiant action per fallback table: attack nearest enemy instead of supporting.
+
+### SUPPORT Order Lifecycle (Reference)
+
+SUPPORT orders **persist indefinitely by default**. They clear via:
+
+| Trigger | Type | File |
+|---------|------|------|
+| Ally reached + ally safe (no adjacent enemies) | Auto-complete | `strategic.py` |
+| Ally wins battle (if `until_battle_won` condition set) | Auto-complete | `strategic.py` |
+| Ally destroyed | Auto-break | `strategic.py` |
+| Marshal reinforces into battle | Auto-clear | `executor.py` |
+| Player overrides with another action | Manual | `executor.py` |
+| Player cancels (cancel/halt/stop/abort) | Manual | `executor.py` |
+| Forced retreat | Auto-clear | `executor.py` |
+| Form square | Manual | `executor.py` |
+| Path permanently blocked | Auto-break | `executor.py` |
+
+The timed SUPPORT compromise (3-turn auto-cancel) adds a 10th path via `order.cancel_after_turn`.
 
 ### Forced SUPPORT Consequences
 
@@ -522,14 +556,18 @@ After Session 1, before fog migration. Fog changes are highest-risk (8+ function
 - Retreat success = survived (strength > 0)
 - Sulk/wait = inconclusive (no vindication change)
 
-### Vindication (~15 tests)
+### Vindication (~20 tests)
 
-- Decay: -1 per 3 idle turns
+- Positive decay: -1 per 3 idle turns toward 0
+- Negative decay: +1 per 3 idle turns toward 0 (symmetric)
 - Decay timer resets on any objection
 - Escalation: MILD→MODERATE with positive vindication
 - Escalation: MODERATE→STRONG with positive vindication
 - No double-step escalation (MILD cannot reach STRONG via vindication alone)
-- Ordering: vindication escalation before mood variance
+- De-escalation: MODERATE→MILD with negative vindication ("boy who cried wolf")
+- De-escalation: STRONG→MODERATE with negative vindication (removes defiance eligibility)
+- MILD never drops to NONE (floor)
+- Ordering: vindication shift before mood variance
 - Defensive vindication wiring (hold = +1, lose = -1, no attack = cleared)
 
 ### Authority (~15 tests)
@@ -570,7 +608,7 @@ After Session 1, before fog migration. Fog changes are highest-risk (8+ function
 - Notification fires on defiance
 - Campaign log entry on defiance
 
-**Estimated total: ~135 tests across 2 sessions.**
+**Estimated total: ~140 tests across 2 sessions.**
 
 ---
 
@@ -625,3 +663,7 @@ After Session 1, before fog migration. Fog changes are highest-risk (8+ function
 | Escalation ordering | Mood→vindication, vindication→mood | **Vindication→mood** | Rare compound events (MODERATE→EXTREME) are correct behavior |
 | Authority bounds | Unbounded, 0-100, 0-150 | **0-100** | Simple, clean, starting value is ceiling |
 | Defiance AP cost | Defiant action's cost, original action's cost | **Original action's cost** | Player budgeted for it; already pre-checked |
+| Negative vindication decay | No decay, symmetric decay | **Symmetric** | Marshal proven wrong 15 turns ago shouldn't carry that forever |
+| Negative vindication de-escalation | No effect, symmetric de-escalation | **Symmetric ("boy who cried wolf")** | Discredited marshal's concerns carry less weight. MILD floors at MILD. |
+| Timed SUPPORT implementation | New `turns_remaining` field, `cancel_after_turn` check | **`cancel_after_turn`** | Matches existing timed HOLD pattern from Phase M. No new fields. |
+| Defiant attack targeting | Named target required, auto-assign | **Auto-assign** | Uses existing `_execute_auto_assign_attack()`. No named target needed. |

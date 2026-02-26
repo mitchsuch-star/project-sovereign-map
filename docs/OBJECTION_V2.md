@@ -23,4 +23,4 @@ Full spec: **`docs/V2B_DEFIANCE_SPEC.md`**
 - Session 1: Core mechanics (defiance, vindication, authority, serialization)
 - Session 2: Fog migration + relationship triggers + polish
 - Code review checkpoint between sessions
-- ~135 estimated tests
+- ~140 estimated tests
