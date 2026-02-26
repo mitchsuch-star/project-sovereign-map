@@ -10135,6 +10135,9 @@ RETREAT RECOVERY (3 turns):
         # Clear the pending strategic objection BEFORE re-execution
         world.pending_strategic_objection = None
 
+        # Record response in authority tracker (V2a wiring)
+        world.authority_tracker.record_response(choice)
+
         # Re-execute the strategic command with objection_response
         result = self._handle_strategic_objection_response(
             marshal=marshal,
@@ -10456,6 +10459,9 @@ RETREAT RECOVERY (3 turns):
 
         # Clear the pending objection
         world.pending_objection = None
+
+        # Note: record_response() already called inside disobedience_system.handle_response()
+        # (disobedience.py:1121) — do NOT call again here to avoid double-recording.
 
         # Log objection event (MODERATE+ only — MILD concerns are not logged here)
         world.log_event({

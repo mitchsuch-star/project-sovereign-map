@@ -1,9 +1,10 @@
 # V2b: Defiance / Vindication / Authority — Implementation Spec
 
-> **Status:** DESIGN LOCKED. Ready for implementation.
+> **Status:** DESIGN LOCKED + AUDITED. All 9 edge cases resolved. Ready for implementation.
 > **Prerequisite:** V2a complete (1216 tests). All scaffolding in place.
 > **Model:** Sonnet — patterns clear from V2a, well-specified, mostly wiring.
-> **Estimated:** 2 sessions (1: mechanics, 2: fog + triggers + polish).
+> **Estimated:** 4 sessions (0: prerequisite fix, 1: core mechanics, 2: fog migration, 3: frontend + UI tests).
+> **Confidence protocol:** Each session ends with a confidence report. Do not proceed until 100%.
 
 ---
 
@@ -95,7 +96,7 @@ Marshals only defy orders they'd object to. Half the cells are naturally empty.
 | **Cautious** | — (wouldn't object) | Fortify (dig in) | — (wouldn't object) | Fortify | Fortify |
 | **Literal** | — (never defies) | — (never defies) | — (never defies) | — (never defies) | — (never defies) |
 
-**Aggressive defiance targeting:** Uses `_execute_auto_assign_attack()` targeting logic (finds nearest enemy marshal, no named target required).
+**Aggressive defiance targeting:** Uses `_execute_auto_assign_attack()` targeting logic (finds nearest enemy marshal, no named target required). **Exception:** If defiant marshal has `artillery=True`, use `_execute_auto_assign_bombardment()` instead (artillery can't melee attack).
 
 **If preferred action is blocked** (no enemy to attack, already fortified, etc.): fallback = `wait` (sulk). Still costs AP. Defiance outcome = inconclusive (no vindication change, no authority change, just cooldown).
 
@@ -107,31 +108,38 @@ Marshals only defy orders they'd object to. Half the cells are naturally empty.
 def defiance_succeeded(marshal, defiance_action, battle_result, pre_battle_strength):
     """Determine if a marshal's defiant action proved correct.
 
-    Returns True if the marshal's unauthorized action had a good outcome.
-    Used to determine vindication/authority/trust changes.
+    Returns:
+        True  — marshal was RIGHT (won cleanly, held position, survived retreat)
+        False — marshal was WRONG (lost, pyrrhic victory, broken)
+        None  — INCONCLUSIVE (sulked/waited, no testable outcome)
+
+    Used to determine vindication/authority/trust changes via 4-row outcome table.
     """
     if defiance_action == "attack":
         won = battle_result["attacker"]["won"]
         casualties = battle_result["attacker"]["casualties"]
         casualty_pct = casualties / pre_battle_strength if pre_battle_strength > 0 else 1.0
         return won and casualty_pct < 0.50  # Won AND not pyrrhic
-    elif defiance_action in ("defend", "fortify", "wait"):
+    elif defiance_action in ("defend", "fortify"):
         return not marshal.is_broken and not marshal.is_retreating
     elif defiance_action == "retreat":
         return marshal.strength > 0  # Survived
+    elif defiance_action == "wait":
+        return None  # Sulk/wait-fallback = inconclusive
     else:
-        return False  # Sulking/wait-fallback = inconclusive, never vindicated
+        return None  # Unknown action = inconclusive
 ```
 
 ### Defiance Outcome Table
 
-| Outcome | Trust | Vindication | Authority | Cooldown |
-|---------|-------|-------------|-----------|----------|
-| Defiance succeeds, marshal **RIGHT** | +2 | +1 | -5 | 3 turns |
-| Defiance succeeds, marshal **WRONG** | -5 | Reset to 0 | +3 | 3 turns |
-| Roll **fails**, marshal obeys | -3 | Reset to 0 | No change | 1 turn |
+| Outcome | `defiance_succeeded()` | Trust | Vindication | Authority | Cooldown |
+|---------|----------------------|-------|-------------|-----------|----------|
+| Defiance succeeds, marshal **RIGHT** | `True` | +2 | +1 | -5 | 3 turns |
+| Defiance succeeds, marshal **WRONG** | `False` | -5 | Reset to 0 | +3 | 3 turns |
+| Defiance succeeds, **INCONCLUSIVE** (sulk) | `None` | 0 | No change | No change | 3 turns |
+| Roll **fails**, marshal obeys | N/A | -3 | Reset to 0 | No change | 1 turn |
 
-**Cooldown:** Set `marshal.defiance_cooldown_until = world.current_turn + N` (N=3 for success, N=1 for failed roll).
+**Cooldown:** Set `marshal.defiance_cooldown_until = world.current_turn + N` (N=3 for any defiance that fires, N=1 for failed roll).
 
 ---
 
@@ -172,6 +180,7 @@ for marshal in self.marshals.values():
 Vindication stacks shift a concern by ±1 level (max one step):
 
 **Positive vindication (marshal proven right) → escalation:**
+- NONE → MILD: **never** (vindication never creates fake objections about orders the marshal is fine with)
 - MILD → MODERATE: yes
 - MODERATE → STRONG: yes
 - MILD → STRONG: **never** (single step only)
@@ -195,7 +204,14 @@ Maximum possible de-escalation from base = -2 levels (vindication -1, then mood 
 
 Existing scaffolding: `VindicationTracker.pending_defensive_vindication` (dict, serialized, currently unwired).
 
-Wire into `turn_manager.py` enemy phase: when enemy attacks a marshal with pending defensive vindication and that marshal holds → vindication +1. If marshal loses → vindication -1. If no attack → cleared after 1 turn (stale).
+**Creation:** When player chooses "trust" on an objection where the marshal's preferred alternative was defend/fortify/hold, add entry: `pending_defensive_vindication[marshal_name] = {"turn": current_turn}`.
+
+**Resolution:** Wire into `turn_manager.py` enemy phase. When enemy attacks a marshal with pending defensive vindication:
+- Marshal holds (not broken, not retreating) → vindication +1, entry cleared
+- Marshal loses (broken or retreating) → vindication -1, entry cleared
+- **First battle only** — if multiple enemies attack, first battle result resolves the entry
+
+**Staleness:** Entries >5 turns old with no enemy attack are cleared during `advance_turn()`. The marshal's caution was neither proven right nor wrong — threat never materialized.
 
 ---
 
@@ -225,9 +241,9 @@ Global stat per player. Existing class: `AuthorityTracker` in `backend/models/au
 | Major defeat | -5 | `executor.py` after `resolve_battle()` |
 | Excessive trusting | -2 or -3 | `authority_tracker.record_response()` |
 
-**Major victory definition:** Won battle while outnumbered (pre-battle attacker strength < defender strength) OR captured an enemy capital region.
+**Major victory definition:** Won battle while outnumbered (pre-battle attacker strength < defender strength) OR captured an enemy capital region. Authority change fires **ONCE per battle** — multiple qualifying criteria do not stack (+5, not +10).
 
-**Major defeat definition:** Lost battle while outnumbering enemy (pre-battle attacker strength > defender strength) OR lost a capital region.
+**Major defeat definition:** Lost battle while outnumbering enemy (pre-battle attacker strength > defender strength) OR lost a capital region. Same once-per-battle rule (-5, not -10).
 
 **Hook timing:** Authority check runs in `executor.py` after advance-after-win logic (not immediately after `resolve_battle()`), so territory capture is visible when evaluating "major victory." The battle_result dict + region controller change are both available at this point.
 
@@ -274,6 +290,8 @@ def check_excessive_trust(authority_tracker, current_turn):
 ```
 
 **Why ratio-based:** Scales naturally to any roster size (5 marshals or 20). A global count threshold breaks at 1805 scale.
+
+**IMPORTANT:** `check_excessive_trust()` **REPLACES** the trust-ratio penalty branch in `_evaluate_authority()`. Remove the old `trust_ratio > 0.80 → -5` and `trust_ratio > 0.60 → -2` lines from `_evaluate_authority()`. Keep the insist recovery (`insist_ratio > 0.80 → +1`) and balanced recovery (`0.30 ≤ trust_ratio ≤ 0.60 → +1`) branches. Single source of truth — do not allow both old and new penalties to stack.
 
 ---
 
@@ -331,7 +349,7 @@ Fires at **order issuance** via `evaluate_strategic_situation()` → `pending_st
 |--------|--------|
 | **Insist** | SUPPORT order executes. Trust penalty per CONSEQUENCE_TABLE (HOSTILE tier = -15). Defiance can fire (15% base + mods). |
 | **Trust** | Order cancelled, AP refunded. Trust +5/+8 (STRONG gain). Marshal stays put. |
-| **Compromise** | Timed SUPPORT — 3 turns then auto-cancels. Trust +3. Implementation: set `order.cancel_after_turn = current_turn + 3`, check in `strategic.py` per-turn execution (matches existing timed HOLD pattern from Phase M). |
+| **Compromise** | Timed SUPPORT — 3 turns then auto-cancels. Trust +3. Implementation: set `condition.max_turns = 3` with `order.started_turn = current_turn`. Existing `strategic.py` per-turn expiry code handles the rest (same pattern as timed HOLD/PURSUE). |
 
 ### Defiance Interaction
 
@@ -353,7 +371,7 @@ SUPPORT orders **persist indefinitely by default**. They clear via:
 | Form square | Manual | `executor.py` |
 | Path permanently blocked | Auto-break | `executor.py` |
 
-The timed SUPPORT compromise (3-turn auto-cancel) adds a 10th path via `order.cancel_after_turn`.
+The timed SUPPORT compromise (3-turn auto-cancel) adds a 10th path via `condition.max_turns` expiry (same mechanism as timed HOLD/PURSUE).
 
 ### Forced SUPPORT Consequences
 
@@ -384,7 +402,7 @@ Add `"defiance"` to the event type whitelist in `backend/campaign_log.py`.
 
 One-liner format: `"Turn {turn}: {marshal} defied orders and {defiance_action} instead."`
 
-### Berthier Flavor Text (6 minimum)
+### Berthier Flavor Text (8 minimum)
 
 **Defiance success, marshal right (2 variants):**
 - "Despite your express command, {marshal} {action}... and proved the wiser for it."
@@ -393,6 +411,10 @@ One-liner format: `"Turn {turn}: {marshal} defied orders and {defiance_action} i
 **Defiance success, marshal wrong (2 variants):**
 - "{marshal} defied your authority and {action}. The results speak for themselves — poorly."
 - "Acting against your express command, {marshal} {action}. It did not go well."
+
+**Defiance inconclusive — sulk (2 variants):**
+- "{marshal} defied your order... and then stood idle. The army watched in bewildered silence."
+- "{marshal} refused to act on your command, yet offered no alternative. A wasted day."
 
 **Failed roll, complied reluctantly (2 variants):**
 - "{marshal}'s hand trembled on the hilt, but discipline held... barely."
@@ -488,127 +510,354 @@ If a marshal in square formation triggers an objection and defies:
 
 ## 9. Implementation Plan
 
-### Session 1: Core Mechanics
+### Confidence Reporting Protocol
 
-1. **New marshal fields:** `last_objection_turn`, `defiance_cooldown_until` + serialization
-2. **`calculate_defiance_chance()`** — new function in `objection_v2.py` or new `defiance.py`
-3. **Defiance roll** — wire into `_execute_post_objection()` in `executor.py` after "insist" response
-4. **Defiant action execution** — fallback table lookup, execute via existing `_execute_*` methods
-5. **`defiance_succeeded()`** — outcome evaluation after defiant action resolves
-6. **Outcome application** — trust/vindication/authority changes per outcome table
-7. **Vindication escalation** — insert between base trigger and mood variance in `evaluate_situation()`
-8. **Vindication decay** — add to `advance_turn()` in `world_state.py`
-9. **Defensive vindication wiring** — connect `pending_defensive_vindication` in `turn_manager.py`
-10. **Authority major victory/defeat** — hook in `executor.py` after `resolve_battle()`
-11. **Excessive trust penalty** — ratio-based check in `AuthorityTracker.record_response()`
-12. **`recent_responses` format migration** — enrich with turn numbers, backward-compatible deserialize
-13. **Rename V1 cap** — `MAX_MAJOR_OBJECTIONS_PER_TURN` → `MAX_OBJECTION_POPUPS_PER_TURN`
-14. **Notification** — add `MARSHAL_DEFIED_ORDER` type
-15. **Campaign log** — add `"defiance"` event type
-16. **Berthier flavor text** — 6 templates
-17. **Serialization enforcement** — run `test_serialization_enforcement.py`
+After EACH session, the implementer must report:
 
-### Session 2: Fog Migration + Triggers + Polish
+```
+SESSION N CONFIDENCE REPORT
+═══════════════════════════
+Tests written: X passed / Y total
+Edge cases verified: [list each EC-# tested]
+Regressions checked: [list existing test suites re-run]
+Confidence: XX% (explain any <100%)
+Blockers for next session: [none / list]
+```
 
-1. **Fog helper migration** — 8+ functions in `objection_v2.py`
-2. **New fog-specific triggers** — 4 situations per personality
-3. **Relationship-based SUPPORT objection** — new trigger in `evaluate_strategic_situation()`
-4. **Compromise: timed SUPPORT** — 3-turn auto-cancel variant
-5. **`main.py` passthrough** — defiance result fields in POST /command response
-6. **Godot integration** — defiance message display in `main.gd`
-7. **Full test suite**
-8. **Doc updates** — STATUS.md, SYSTEMS_REFERENCE.md, SAVE_FORMAT_REFERENCE.md, CLAUDE.md
+Do NOT proceed to the next session until confidence = 100% on the current one.
+If confidence < 100%, identify what's blocking and fix it before moving on.
 
-### Code Review Checkpoint
+---
 
-After Session 1, before fog migration. Fog changes are highest-risk (8+ function modifications in a 1390-line file). Review Session 1's test coverage and defiance flow before proceeding.
+### Session 0: Prerequisite Bug Fix (15 min)
+
+**Goal:** Fix pre-existing V2a wiring gap. Authority system is inert without this.
+
+1. **Wire `record_response()` in V2a path** — add `world.authority_tracker.record_response(choice)` to the V2a objection response handler in `executor.py` (`handle_objection_response()`). Currently only called from V1 path in `disobedience.py`.
+2. **Test:** Write 3 tests confirming `record_response()` is called on trust/insist/compromise responses via V2a path and `recent_responses` list populates correctly.
+3. **Run full existing test suite** — confirm zero regressions.
+
+**Confidence gate:** All existing tests pass + 3 new tests pass. This is a bug fix, not a feature.
+
+**Edge cases to verify:**
+- Strategic objection responses also call `record_response()` (both `pending_objection` and `pending_strategic_objection` paths)
+- `record_response()` returns threshold event dict when authority crosses 70/50/30 — verify event is passed through to API response
+
+---
+
+### Session 1: Core Mechanics — Defiance + Vindication + Authority
+
+**Goal:** Full defiance/vindication/authority mechanics, testable without fog or UI.
+
+**Part A — Infrastructure (low risk)**
+
+1. **New marshal fields:** `last_objection_turn` (int, 0), `defiance_cooldown_until` (int, 0) + to_dict/from_dict
+2. **`recent_responses` format migration** — `List[str]` → `List[Dict]` with `{"choice": str, "turn": int}`. Backward-compatible from_dict. Update `record_response(choice, current_turn=0)` signature.
+3. **Excessive trust penalty** — `check_excessive_trust()` in `authority.py`. **REPLACES** the trust-ratio branch in `_evaluate_authority()` (remove old `trust_ratio > 0.80` → `-5` and `trust_ratio > 0.60` → `-2` lines). Keep insist/balanced recovery branches.
+4. **Rename V1 cap** — `MAX_MAJOR_OBJECTIONS_PER_TURN` → `MAX_OBJECTION_POPUPS_PER_TURN`
+5. **Notification** — add `MARSHAL_DEFIED_ORDER` type (HIGH priority)
+6. **Campaign log** — add `"defiance"` event type to whitelist
+7. **Serialization enforcement** — run `test_serialization_enforcement.py`
+
+**Part B — Defiance Core (medium risk)**
+
+8. **`calculate_defiance_chance()`** — new function in `defiance.py` (new file). Formula from §1. Hard cap 0.40.
+9. **Defiance fallback table** — `get_defiant_action(marshal, original_action)` in `defiance.py`. Returns action string. Artillery marshals route to `_execute_auto_assign_bombardment()`, not `_execute_auto_assign_attack()`.
+10. **`defiance_succeeded()`** — returns `True` (right), `False` (wrong), or `None` (inconclusive/sulk). Three-way return, not boolean.
+11. **Defiance roll** — wire into `_execute_post_objection()` in `executor.py` after "insist" + STRONG/EXTREME
+12. **Defiant action execution** — execute via existing `_execute_*` methods
+13. **Outcome application** — 4-row outcome table:
+
+| Outcome | Trust | Vindication | Authority | Cooldown |
+|---------|-------|-------------|-----------|----------|
+| Marshal **RIGHT** (`True`) | +2 | +1 | -5 | 3 turns |
+| Marshal **WRONG** (`False`) | -5 | Reset to 0 | +3 | 3 turns |
+| **INCONCLUSIVE** sulk (`None`) | 0 | No change | No change | 3 turns |
+| Roll **fails**, obeys | -3 | Reset to 0 | No change | 1 turn |
+
+**Part C — Vindication + Authority (medium risk)**
+
+14. **Vindication escalation** — insert between base trigger and mood variance in executor.py objection flow. Guards: NONE never promotes (same principle as mood variance). `vindication_score > 0` → escalate +1. `vindication_score < 0` → de-escalate -1. MILD floor (never drops to NONE).
+15. **Vindication decay** — add `_process_vindication_decay()` to `advance_turn()` in `world_state.py`. -1 per 3 idle turns, symmetric, timer resets.
+16. **Defensive vindication creation** — when player chooses "trust" and marshal's alternative was defend/fortify/hold, add entry to `pending_defensive_vindication` as `{marshal_name: {"turn": current_turn}}`.
+17. **Defensive vindication resolution** — wire in `turn_manager.py` enemy phase. First battle resolves (+1 hold / -1 lose). Stale entries (>5 turns, no attack) cleared.
+18. **Authority major victory/defeat** — hook in `executor.py` after `resolve_battle()` + advance-after-win. +5 outnumbered win or capital capture. -5 outnumbering loss or capital loss. Fires ONCE per battle (multiple criteria don't stack).
+19. **Berthier flavor text** — 8 templates (2 right, 2 wrong, 2 failed roll, 2 inconclusive/sulk)
+
+**Part D — Relationship SUPPORT Objection (low risk, no fog dependency)**
+
+20. **Relationship-based trigger** — add to `evaluate_strategic_situation()` in `objection_v2.py`. Aggressive+hostile → STRONG. Cautious+hostile → MODERATE. Literal → NONE. Rival → MILD. Runs BEFORE personality evaluator, takes priority if higher.
+21. **Timed SUPPORT compromise** — use `condition.max_turns = 3` with `order.started_turn = current_turn`. Existing strategic.py expiry code handles the rest. Do NOT use `cancel_after_turn` (field doesn't exist).
+22. **`main.py` passthrough** — defiance result fields in POST /command response
+
+**Edge cases to verify in Session 1:**
+- EC-1: Sulk returns `None` from `defiance_succeeded()`, outcome = INCONCLUSIVE row
+- EC-2: NONE concern + positive vindication stays NONE (no fake objections)
+- EC-4: Old trust-ratio penalty removed from `_evaluate_authority()`, only `check_excessive_trust()` applies
+- EC-5: Battle meeting multiple authority criteria → fires once (+5 or -5, not +10)
+- EC-6: Timed SUPPORT uses `condition.max_turns`, not `cancel_after_turn`
+- EC-8: Defensive vindication created on "trust" when alternative was defend/fortify/hold
+- EC-9: Artillery marshal defiance routes to `_execute_auto_assign_bombardment()`
+- Vindication score at boundaries (-5, +5) — clamp works correctly
+- Defiance chance with all modifiers maxed — hard cap holds at 0.40
+- Cooldown math: turn 10 + 3 = cooldown_until 13, turn 13 can defy (< not <=)
+
+**Confidence gate:** All Session 1 tests pass + full existing suite passes + all EC-# items verified.
+
+---
+
+### Session 2: Fog-of-War Migration
+
+**Goal:** Switch objection helpers from omniscient to fog-filtered. Pure fog work, nothing else.
+
+**Step 1 — Infrastructure (2 helpers)**
+
+1. **Update `get_visible_enemies_near()`** — swap from raw `world.marshals` scan to fog-filtered via `world.get_intel()` / `world.get_visible_enemies_in_region()`. Only returns enemies at PARTIAL+ visibility.
+2. **Add `get_target_intel_level(target_name, marshal, world)`** — new helper for Type B queries (specific named target). Returns visibility level (UNKNOWN/STALE/PARTIAL/FULL) for a given enemy marshal from the perspective of the querying marshal.
+
+**Step 2 — Type A: Scan Queries (3 leaf changes → 3 auto-propagate)**
+
+3. **`_check_enemy_adjacent()`** — route through `get_visible_enemies_near()`. LEAF.
+4. **`_get_friendly_to_enemy_ratio()`** — route through `get_visible_enemies_near()`. At PARTIAL, use strength band midpoint. At UNKNOWN, enemy contributes 0. LEAF.
+5. **`_path_crosses_enemy()` / `_path_has_enemies()`** — per-region fog check along path. Only detect PARTIAL+ enemies. LEAF.
+6. Auto-propagated (no code changes needed):
+   - `_get_enemy_to_friendly_ratio()` — delegates to `_get_friendly_to_enemy_ratio()`
+   - `_is_outnumbered_2to1()` — delegates to `_get_enemy_to_friendly_ratio()`
+   - `_is_actually_threatened()` — delegates to `_check_enemy_in_region()` + `_check_enemy_adjacent()`
+
+**Step 3 — Type B: Target Info Queries (2 functions)**
+
+7. **`_get_attack_odds_ratio()`** — use `get_target_intel_level()`. FULL = exact strength. PARTIAL = band midpoint. STALE/UNKNOWN = return 1.0 (can't assess).
+8. **`_check_attack_target_fortified()`** — use `get_target_intel_level()`. FULL = real fort status. Anything less = return False (don't know).
+
+**Step 4 — New Fog-Specific Triggers (4 situations)**
+
+9. **Attack into UNKNOWN region** — cautious: MODERATE→STRONG. Aggressive: no concern.
+10. **Attack on STALE intel (3+ turns old)** — cautious: MODERATE. Aggressive: MILD at most.
+11. **Refuse attack when scout shows weakness** — cautious: no concern. Aggressive: MODERATE→STRONG.
+12. **PURSUE with no intel on target** — cautious: STRONG. Aggressive: MILD. Literal: depends on clarity.
+
+These integrate as additional checks in `evaluate_cautious_*` and `evaluate_aggressive_*`.
+
+**Edge cases to verify in Session 2:**
+- EC-3: Multi-battle defensive vindication — first battle resolves, entry cleared
+- Marshal's own region always FULL (Step 0 rule) — enemies in same region always visible
+- STALE threshold: `current_turn - last_updated_turn >= 3`
+- Cautious attacks fortified target at PARTIAL visibility — no fort bump (can't see fort)
+- Fog-filtered ratios: 0 visible enemies → ratio 999.0 (no enemies nearby), not 0
+- Path with mix of PARTIAL/UNKNOWN regions — only PARTIAL+ enemies detected
+- `_check_enemy_in_region()` unchanged (own region = FULL, always sees co-located enemies)
+- Aggressive marshal attacking into UNKNOWN → no objection (aggressive doesn't care about fog)
+
+**Confidence gate:** All Session 2 tests pass + Session 1 tests still pass + full existing suite passes.
+
+---
+
+### Session 3: Frontend + Polish + UI Tests
+
+**Goal:** Wire everything to Godot, generate Gate 6 UI test checklist, update docs.
+
+1. **Godot integration** — defiance message display in `main.gd`. Show defiant action result, Berthier text, trust/authority changes.
+2. **Marshal management screen** — vindication score visible on marshal cards (if not already).
+3. **Authority display** — authority level visible in strategic ledger or dispatch.
+4. **Doc updates** — STATUS.md, SYSTEMS_REFERENCE.md, SAVE_FORMAT_REFERENCE.md, CLAUDE.md
+5. **Generate Gate 6 UI test checklist** — comprehensive manual test plan (see §10.8)
+
+**Confidence gate:** Docs updated + UI test checklist generated + curl test of all new API fields confirms correct data reaches frontend.
 
 ---
 
 ## 10. Test Plan Outline
 
-### Defiance Mechanics (~30 tests)
+### 10.1 Session 0: Prerequisite Fix (~5 tests)
 
-- `calculate_defiance_chance`: base rates for STRONG/EXTREME
-- Hard cap at 40% with max modifiers
+- `record_response()` called on V2a tactical "trust" response
+- `record_response()` called on V2a tactical "insist" response
+- `record_response()` called on V2a strategic objection response
+- `recent_responses` list populates correctly after multiple responses
+- Threshold event returned when authority crosses 70/50/30
+
+### 10.2 Defiance Mechanics (~30 tests)
+
+- `calculate_defiance_chance`: base rates for STRONG (15%) / EXTREME (35%)
+- Hard cap at 40% with all modifiers maxed positive
 - Returns 0.0 for MILD/MODERATE
 - Grouchy (literal) always returns 0.0
-- Cooldown blocks defiance
-- Vindication modifier (+10% per stack)
-- Authority modifier (-10%/0%/+10%)
-- Trust tier modifier (+15%/0%/-10%)
-- Authority clamped 0-100
+- Cooldown blocks defiance (turn < cooldown_until)
+- Cooldown boundary: turn == cooldown_until → CAN defy (< not <=)
+- Vindication modifier (+10% per stack, tested at 0, +3, +5, -5)
+- Authority modifier (-10% at ≥80 / 0% at 50-79 / +10% at <50)
+- Trust tier modifier (+15% at ≤20 / 0% at 21-79 / -10% at ≥80)
+- Negative vindication makes chance go to 0 (clamped, not negative)
+- Authority clamped 0-100 after all modifications
 
-### Defiance Actions (~15 tests)
+### 10.3 Defiance Actions (~18 tests)
 
-- Aggressive fallback table (defend→attack, retreat→attack, SUPPORT→attack, MOVE_TO→attack)
-- Cautious fallback table (attack→fortify, SUPPORT→fortify, MOVE_TO→fortify)
+- Aggressive fallback: defend→attack, fortify→attack, hold→attack, wait→attack, retreat→attack, SUPPORT→attack, MOVE_TO→attack
+- Cautious fallback: attack→fortify, SUPPORT→fortify, MOVE_TO→fortify
+- Literal: ALL actions → never defies (returns None)
 - Blocked preferred action → wait (sulk)
-- AP charged from original action
+- AP charged = original action's AP cost (not defiant action's cost)
+- Artillery aggressive defiance routes to `_execute_auto_assign_bombardment()` (EC-9)
+- Non-artillery aggressive defiance routes to `_execute_auto_assign_attack()`
 
-### Defiance Outcomes (~20 tests)
+### 10.4 Defiance Outcomes (~25 tests)
 
-- Success + right: trust +2, vindication +1, authority -5, 3-turn cooldown
-- Success + wrong: trust -5, vindication reset, authority +3, 3-turn cooldown
-- Failed roll: trust -3, vindication reset, no authority change, 1-turn cooldown
-- Pyrrhic victory (>50% casualties) = not vindicated
-- Defend/fortify success = not broken and not retreating
-- Retreat success = survived (strength > 0)
-- Sulk/wait = inconclusive (no vindication change)
+- RIGHT (True): trust +2, vindication +1, authority -5, 3-turn cooldown
+- WRONG (False): trust -5, vindication reset to 0, authority +3, 3-turn cooldown
+- **INCONCLUSIVE (None):** trust 0, vindication unchanged, authority unchanged, 3-turn cooldown (EC-1)
+- Failed roll: trust -3, vindication reset to 0, no authority change, 1-turn cooldown
+- Pyrrhic victory (>50% casualties) = WRONG not RIGHT
+- Defend/fortify success = not broken and not retreating → RIGHT
+- Defend/fortify but broken → WRONG
+- Retreat success = survived (strength > 0) → RIGHT
+- Sulk/wait fallback = INCONCLUSIVE (None), not WRONG (EC-1)
+- Defiance + square formation: aggressive attack auto-breaks square, attack proceeds
 
-### Vindication (~20 tests)
+### 10.5 Vindication (~25 tests)
 
 - Positive decay: -1 per 3 idle turns toward 0
 - Negative decay: +1 per 3 idle turns toward 0 (symmetric)
-- Decay timer resets on any objection
+- Decay at boundary: score 1 → 0, score -1 → 0 (stops at zero)
+- Decay timer resets on any objection (including MILD)
+- No decay when vindication_score == 0
+- No decay for dead marshals (strength <= 0)
 - Escalation: MILD→MODERATE with positive vindication
 - Escalation: MODERATE→STRONG with positive vindication
-- No double-step escalation (MILD cannot reach STRONG via vindication alone)
-- De-escalation: MODERATE→MILD with negative vindication ("boy who cried wolf")
+- **NONE never escalates** — NONE + positive vindication stays NONE (EC-2)
+- No double-step: MILD cannot reach STRONG via vindication alone
+- De-escalation: MODERATE→MILD with negative vindication
 - De-escalation: STRONG→MODERATE with negative vindication (removes defiance eligibility)
-- MILD never drops to NONE (floor)
-- Ordering: vindication shift before mood variance
-- Defensive vindication wiring (hold = +1, lose = -1, no attack = cleared)
+- EXTREME→STRONG de-escalation works
+- **MILD never drops to NONE** (floor, both vindication and mood)
+- Ordering: base trigger → vindication shift → mood variance
+- Compound event: MILD + vindication(+1) + mood(+1) → STRONG (rare but correct)
+- Defensive vindication creation: "trust" on defend/fortify/hold alternative → entry added
+- Defensive vindication resolution: hold → +1, lose → -1
+- Defensive vindication stale: >5 turns no attack → cleared (EC-8)
+- Defensive vindication multi-battle: first battle resolves, entry cleared (EC-3)
 
-### Authority (~15 tests)
+### 10.6 Authority (~20 tests)
 
-- Major victory: +5 (outnumbered win or capital capture)
-- Major defeat: -5 (outnumbering loss or capital loss)
-- Excessive trust ratio >0.65 in 10 turns: -2
-- Excessive trust ratio >0.80 in 10 turns: -3
-- Minimum 3 responses before penalty fires
-- Authority clamp 0-100
-- `recent_responses` format migration (bare strings → dicts)
+- Major victory: +5 (outnumbered win)
+- Major victory: +5 (capital capture)
+- Major victory: both criteria met → +5 once, not +10 (EC-5)
+- Major defeat: -5 (outnumbering loss)
+- Major defeat: -5 (capital loss)
+- Excessive trust ratio >0.65 in 10-turn window: -2
+- Excessive trust ratio >0.80 in 10-turn window: -3
+- Minimum 3 responses before penalty fires (< 3 → 0)
+- Old trust-ratio penalty in `_evaluate_authority()` REMOVED (EC-4)
+- Insist/balanced recovery in `_evaluate_authority()` still works
+- Authority clamp: never below 0, never above 100
+- `recent_responses` format migration: bare strings → dicts with turn 0
+- `recent_responses` time window: entries from >10 turns ago excluded
+- Old save with string responses loads correctly and decays naturally
 
-### Relationship SUPPORT Objection (~10 tests)
+### 10.7 Relationship SUPPORT Objection (~12 tests)
 
-- Aggressive + hostile target → STRONG
-- Cautious + hostile target → MODERATE
+- Aggressive + hostile (-2) target → STRONG
+- Cautious + hostile (-2) target → MODERATE
 - Literal + hostile target → NONE
-- Any + rival target → MILD
-- Relationship check runs before personality evaluation
-- Compromise: timed 3-turn SUPPORT
-- Defiance from hostile SUPPORT → attack instead
+- Any personality + rival (-1) target → MILD (no popup)
+- Relationship check runs BEFORE personality evaluator
+- Higher of relationship/personality concern wins (max, not replace)
+- Compromise: timed 3-turn SUPPORT uses `condition.max_turns = 3` (EC-6)
+- Timed SUPPORT auto-expires after 3 turns via existing strategic.py code
+- Defiance from hostile SUPPORT (aggressive): attacks nearest enemy instead
+- Defiance from hostile SUPPORT (cautious, MODERATE): no defiance possible (MODERATE < STRONG)
+- Forced hostile SUPPORT: 0% coordination (existing D3 rule, regression check)
+- Hostile SUPPORT >30% casualties: campaign log entry, no mechanical effect
 
-### Fog Migration (~20 tests)
+### 10.8 Fog Migration (~25 tests)
 
-- Each migrated helper returns fog-filtered results
-- Attack into UNKNOWN: cautious MODERATE→STRONG, aggressive no concern
-- Attack on STALE intel: cautious MODERATE
-- PURSUE with no intel: cautious STRONG
-- Strength bands used at PARTIAL visibility, exact at FULL
+- `get_visible_enemies_near()` returns only PARTIAL+ enemies
+- `get_visible_enemies_near()` excludes UNKNOWN/STALE enemies
+- `get_target_intel_level()` returns correct level for FULL/PARTIAL/STALE/UNKNOWN targets
+- `_check_enemy_adjacent()`: no false positives from fogged enemies
+- `_get_friendly_to_enemy_ratio()`: PARTIAL uses strength band midpoint
+- `_get_friendly_to_enemy_ratio()`: UNKNOWN enemies = 0 contribution
+- `_get_attack_odds_ratio()`: FULL = exact, PARTIAL = band midpoint, STALE/UNKNOWN = 1.0
+- `_check_attack_target_fortified()`: FULL = real status, other = False
+- `_path_crosses_enemy()`: only detects PARTIAL+ enemies along path
+- Marshal's own region: always FULL (co-located enemies always visible)
+- `_check_enemy_in_region()`: unchanged (own region = FULL)
+- Fog trigger: cautious attack into UNKNOWN → MODERATE→STRONG
+- Fog trigger: aggressive attack into UNKNOWN → no concern
+- Fog trigger: cautious attack on STALE intel → MODERATE
+- Fog trigger: aggressive attack on STALE → MILD at most
+- Fog trigger: aggressive, scout shows weakness → MODERATE→STRONG
+- Fog trigger: cautious PURSUE no intel → STRONG
+- Fog trigger: aggressive PURSUE no intel → MILD
+- Delegation chain: `_is_outnumbered_2to1()` inherits fog from `_get_enemy_to_friendly_ratio()`
+- Delegation chain: `_is_actually_threatened()` inherits fog from `_check_enemy_adjacent()`
 
-### Integration (~10 tests)
+### 10.9 Integration (~12 tests)
 
-- Full defiance flow: objection → insist → defiance roll → defiant action → outcome
-- Defiance + strategic order cancellation
-- Defiance + coordination disruption
-- Defiance + square formation auto-break
-- Serialization round-trip with all new fields
-- Notification fires on defiance
+- Full defiance flow: objection → insist → defiance roll → defiant action → outcome → trust/vindication/authority changes
+- Full defiance flow with INCONCLUSIVE (sulk): same flow, no stat changes, cooldown applied
+- Defiance + strategic order: SUPPORT defied → order never registered → ally loses coordination
+- Defiance + square formation: auto-break square → defiant attack proceeds
+- Serialization round-trip with all new fields (marshal, authority_tracker)
+- Serialization round-trip with old save format (backward compat migration)
+- Notification fires on defiance event (MARSHAL_DEFIED_ORDER, HIGH priority)
 - Campaign log entry on defiance
+- Berthier flavor text selection: right/wrong/inconclusive/failed — correct template category
+- API response contains defiance fields (curl test)
+- Authority event passthrough to API when threshold crossed during response
 
-**Estimated total: ~140 tests across 2 sessions.**
+### 10.10 Gate 6 UI Test Checklist (Generated After Session 3)
+
+To be generated as update to `docs/PHASE7_UI_TEST_GATE.md` Gate 6 section.
+
+Covers:
+
+#### Defiance Display
+- [ ] STRONG/EXTREME objection → player insists → defiance message appears (distinct from objection popup)
+- [ ] Defiance RIGHT: Berthier text shows marshal was vindicated, trust +2 visible
+- [ ] Defiance WRONG: Berthier text shows marshal failed, trust -5 visible
+- [ ] Defiance INCONCLUSIVE (sulk): message shows marshal refused but did nothing
+- [ ] Failed roll: "discipline held" message appears, no defiance
+- [ ] MODERATE objection: NO defiance possible (regression check)
+- [ ] MILD concern: flavor text only, no popup, no defiance (regression check)
+
+#### Vindication Display
+- [ ] Marshal management screen shows vindication score for each marshal
+- [ ] Vindication score updates visible after defiance resolution
+- [ ] Vindication decay observable over 3+ turns of no objections
+
+#### Authority Display
+- [ ] Authority level visible in strategic ledger or dispatch
+- [ ] Authority threshold event ("Whispers of Weakness" etc.) appears as notification
+- [ ] Excessive trust pattern shows authority decline over multiple objection responses
+
+#### Relationship SUPPORT
+- [ ] Order hostile marshal to SUPPORT rival → objection popup fires
+- [ ] Aggressive + hostile: STRONG concern, defiance possible after insist
+- [ ] Cautious + hostile: MODERATE concern, no defiance
+- [ ] Compromise: timed 3-turn SUPPORT → auto-expires, notification sent
+- [ ] Literal + hostile: no objection (regression check)
+
+#### Fog-Aware Objections
+- [ ] Attack into UNKNOWN region: cautious marshal objects, aggressive doesn't
+- [ ] Attack with STALE intel: cautious shows concern
+- [ ] Objection text references fog state ("we know nothing of that region")
+- [ ] No objections about enemies the marshal can't see (fog leak regression)
+
+#### Notification & Log
+- [ ] Defiance notification appears in notification bar (HIGH priority)
+- [ ] Defiance event appears in campaign log with correct one-liner
+- [ ] Dismissing defiance notification works
+
+#### Regression Checks
+- [ ] Normal 1v1 combat still works
+- [ ] Save/load preserves all new fields (vindication, cooldown, authority, recent_responses)
+- [ ] Old saves load correctly (backward-compatible defaults)
+- [ ] Marshal management screen loads without errors
+- [ ] All 10 existing notification types still work
+- [ ] Strategic orders (SUPPORT/PURSUE/HOLD/MOVE_TO) still function normally
+
+**Estimated total: ~172 tests across 3 sessions + UI gate checklist.**
 
 ---
 
@@ -631,20 +880,21 @@ After Session 1, before fog migration. Fog changes are highest-risk (8+ function
 
 ## Appendix B: Files Modified by V2b
 
-| File | Scope | Risk |
-|------|-------|------|
-| `objection_v2.py` | 8 fog helpers + vindication escalation + relationship trigger | **HIGH** (1390 lines, core objection logic) |
-| `executor.py` | Post-objection defiance flow + authority hooks | MEDIUM (large file, well-structured insertion points) |
-| `world_state.py` | Vindication decay in advance_turn | LOW (small addition) |
-| `turn_manager.py` | Defensive vindication wiring | LOW (small addition) |
-| `marshal.py` | 2 new int fields + serialization | LOW (standard pattern) |
-| `authority.py` | Authority clamp + enriched recent_responses + excessive trust check | LOW-MEDIUM |
-| `vindication.py` | Remove TODOs (logic moves to world_state/turn_manager) | LOW |
-| `disobedience.py` | Rename constant | LOW |
-| `notifications.py` | 1 new notification type | LOW |
-| `campaign_log.py` | 1 new event type in whitelist | LOW |
-| `main.py` | Passthrough defiance result fields | LOW |
-| `main.gd` | Display defiance messages | LOW (frontend) |
+| File | Scope | Risk | Session |
+|------|-------|------|---------|
+| `defiance.py` (NEW) | `calculate_defiance_chance()`, fallback table, `defiance_succeeded()` | LOW (new file, no conflicts) | 1 |
+| `objection_v2.py` | 8 fog helpers + vindication escalation + relationship trigger | **HIGH** (1390 lines, core objection logic) | 1 (escalation + relationship) + 2 (fog) |
+| `executor.py` | Post-objection defiance flow + authority hooks + `record_response()` wiring | MEDIUM (large file, well-structured insertion points) | 0 + 1 |
+| `world_state.py` | Vindication decay + stale defensive vindication cleanup in advance_turn | LOW (small addition) | 1 |
+| `turn_manager.py` | Defensive vindication resolution in enemy phase | LOW (small addition) | 1 |
+| `marshal.py` | 2 new int fields + serialization | LOW (standard pattern) | 1 |
+| `authority.py` | Replace trust-ratio penalty + enriched recent_responses + excessive trust check | LOW-MEDIUM | 1 |
+| `vindication.py` | Remove TODOs (logic moves to world_state/turn_manager) | LOW | 1 |
+| `disobedience.py` | Rename constant | LOW | 1 |
+| `notifications.py` | 1 new notification type | LOW | 1 |
+| `campaign_log.py` | 1 new event type in whitelist | LOW | 1 |
+| `main.py` | Passthrough defiance result fields | LOW | 1 |
+| `main.gd` | Display defiance messages | LOW (frontend) | 3 |
 
 ## Appendix C: Decision Rationale Log
 
@@ -665,5 +915,5 @@ After Session 1, before fog migration. Fog changes are highest-risk (8+ function
 | Defiance AP cost | Defiant action's cost, original action's cost | **Original action's cost** | Player budgeted for it; already pre-checked |
 | Negative vindication decay | No decay, symmetric decay | **Symmetric** | Marshal proven wrong 15 turns ago shouldn't carry that forever |
 | Negative vindication de-escalation | No effect, symmetric de-escalation | **Symmetric ("boy who cried wolf")** | Discredited marshal's concerns carry less weight. MILD floors at MILD. |
-| Timed SUPPORT implementation | New `turns_remaining` field, `cancel_after_turn` check | **`cancel_after_turn`** | Matches existing timed HOLD pattern from Phase M. No new fields. |
+| Timed SUPPORT implementation | New `turns_remaining` field, `cancel_after_turn` check, `condition.max_turns` | **`condition.max_turns`** | Reuses existing timed HOLD/PURSUE pattern. Zero new fields or infrastructure. |
 | Defiant attack targeting | Named target required, auto-assign | **Auto-assign** | Uses existing `_execute_auto_assign_attack()`. No named target needed. |
