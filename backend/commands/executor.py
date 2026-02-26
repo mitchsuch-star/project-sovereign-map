@@ -1505,7 +1505,7 @@ RETREAT RECOVERY (3 turns):
         # Note: stance_change added for personality conflicts with stance orders
         # Note: retreat added for aggressive marshals who object to fleeing
         # Note: drill, wait, hold added - aggressive marshals object to these (especially with enemy nearby)
-        objection_actions = ["attack", "defend", "move", "scout", "recruit", "fortify", "stance_change", "retreat", "drill", "wait", "hold"]
+        objection_actions = ["attack", "defend", "move", "scout", "recruit", "fortify", "stance_change", "retreat", "drill", "wait", "hold", "form_square"]
 
         # Phase M: Strategic commands use strategic objection, not tactical
         is_strategic_command = parsed_command.get("is_strategic", False)
@@ -1763,6 +1763,27 @@ RETREAT RECOVERY (3 turns):
                             "success": False,
                             "message": f"{marshal_name} is not in danger. No retreat necessary.",
                             "suggestion": "Use 'move' to reposition instead."
+                        }
+
+                # ═══════════════════════════════════════════════════════════
+                # FORM_SQUARE PRE-VALIDATION — BEFORE objection
+                # Aggressive infantry only — cavalry (Ney) blocked by pre-validation. Future 1805 marshals.
+                # ═══════════════════════════════════════════════════════════
+                if action == 'form_square':
+                    if getattr(marshal, 'square_formation', False):
+                        return {
+                            "success": False,
+                            "message": f"{marshal.name} is already in square formation."
+                        }
+                    if getattr(marshal, 'cavalry', False):
+                        return {
+                            "success": False,
+                            "message": f"{marshal.name}'s cavalry cannot form an infantry square!"
+                        }
+                    if getattr(marshal, 'artillery', False):
+                        return {
+                            "success": False,
+                            "message": f"{marshal.name}'s artillery cannot form an infantry square!"
                         }
 
                 # ═══════════════════════════════════════════════════════════
@@ -5582,6 +5603,21 @@ RETREAT RECOVERY (3 turns):
                                 },
                             ]
 
+                        # Fallback: If V2 triggered MODERATE+ but V1 produced no options,
+                        # build default insist/trust/compromise with aggressive preferred chain
+                        if not v1_options and strategic_concern >= ConcernLevel.MODERATE:
+                            from backend.commands.disobedience import _get_aggressive_preferred, _build_strategic_options
+                            preferred = _get_aggressive_preferred(marshal, world) if marshal.personality == 'aggressive' else None
+                            compromise = {"action": strategic_type.lower(), "max_turns": 3}
+                            v1_options = _build_strategic_options(
+                                marshal,
+                                preferred,
+                                compromise,
+                                f"Proceed with {strategic_type}",
+                                f"Accept: Timed {strategic_type} (3 turns)",
+                                strategic_type
+                            )
+
                         # V2b: Use relationship message if this is a relationship-triggered SUPPORT objection
                         if (relationship_concern >= ConcernLevel.MILD
                                 and strategic_type == "SUPPORT"
@@ -6051,8 +6087,8 @@ RETREAT RECOVERY (3 turns):
             # ═══════════════════════════════════════════════════════════
             # PROCEED (insist): Execute original order, V2 scaled penalty
             # ═══════════════════════════════════════════════════════════
-            if hasattr(marshal, 'trust'):
-                marshal.trust.modify(v2_insist_penalty)
+            if hasattr(marshal, 'modify_trust'):
+                marshal.modify_trust(v2_insist_penalty)
 
             # Continue with normal strategic order creation
             # Return None to let flow continue
@@ -6062,8 +6098,8 @@ RETREAT RECOVERY (3 turns):
             # ═══════════════════════════════════════════════════════════
             # PREFERRED (trust): Execute marshal's action, V2 scaled gain, 1 AP
             # ═══════════════════════════════════════════════════════════
-            if hasattr(marshal, 'trust'):
-                marshal.trust.modify(v2_trust_gain)
+            if hasattr(marshal, 'modify_trust'):
+                marshal.modify_trust(v2_trust_gain)
 
             if not preferred_action:
                 return {
@@ -6084,6 +6120,7 @@ RETREAT RECOVERY (3 turns):
                         "marshal": marshal.name,
                         "action": pref_action,
                         "target": pref_target,
+                        "objection_response": "preferred",  # L2 fix: skip re-evaluation
                     },
                     "is_strategic": True,
                     "strategic_type": pref_strategic_type,
@@ -6101,18 +6138,19 @@ RETREAT RECOVERY (3 turns):
                     "action": pref_action,
                     "target": pref_target,
                 }
-                result = self.execute({"command": tactical_cmd}, game_state)
+                # Use _execute_post_objection to bypass re-entrant objection checks
+                parsed_for_post = {"command": tactical_cmd}
+                result = self._execute_post_objection(parsed_for_post, game_state, marshal.name)
                 result["variable_action_cost"] = 1
                 result["trust_change"] = v2_trust_gain
-                result["_ap_consumed_by_execute"] = True  # execute() already consumed AP
                 return result
 
         elif response == "compromise":
             # ═══════════════════════════════════════════════════════════
             # COMPROMISE: Execute modified order, V2 flat +3, 2 AP
             # ═══════════════════════════════════════════════════════════
-            if hasattr(marshal, 'trust'):
-                marshal.trust.modify(v2_compromise_gain)
+            if hasattr(marshal, 'modify_trust'):
+                marshal.modify_trust(v2_compromise_gain)
 
             if not compromise_data:
                 return {
@@ -10288,11 +10326,15 @@ RETREAT RECOVERY (3 turns):
             # Track via flag so we can skip it in the fallthrough path.
             v2_insist_penalty = original_command.get("v2_insist_penalty", -10)
             _trust_penalty_applied = False
-            if hasattr(marshal, 'trust'):
-                marshal.trust.modify(v2_insist_penalty)
+            if hasattr(marshal, 'modify_trust'):
+                marshal.modify_trust(v2_insist_penalty)
                 _trust_penalty_applied = True
 
-            defiance_chance = calculate_defiance_chance(marshal, concern_level_val, world)
+            # N7 fix: No defiance if marshal is broken/retreating (stale objection via save/load)
+            if getattr(marshal, 'broken', False) or getattr(marshal, 'retreating', False):
+                defiance_chance = 0.0
+            else:
+                defiance_chance = calculate_defiance_chance(marshal, concern_level_val, world)
             defiance_roll = random.random()
 
             if defiance_roll < defiance_chance:
@@ -10306,11 +10348,11 @@ RETREAT RECOVERY (3 turns):
                 if defiant_action is None:
                     defiant_action = "wait"
 
-                # Consume 2 AP for strategic defiance (matches strategic insist cost)
-                is_literal = getattr(marshal, 'personality', '') == 'literal'
-                strategic_cost = 1 if is_literal else 2
-                for _ in range(min(strategic_cost, world.actions_remaining)):
-                    world.use_action(strategic_type)
+                # N3 fix: AP follows action taken — defiant action is always tactical (1 AP)
+                # The marshal ignores the strategic order and does their own thing.
+                defiance_free_actions = ["retreat", "break_square"]
+                if defiant_action not in defiance_free_actions:
+                    world.use_action(defiant_action)
 
                 pre_battle_strength = marshal.strength
                 defiant_command = {"action": defiant_action, "marshal": marshal_name}
@@ -10325,7 +10367,12 @@ RETREAT RECOVERY (3 turns):
                         defiant_action = "wait"
                         defiant_execution = self._execute_wait(marshal, world, game_state)
                 elif defiant_action == "attack":
-                    defiant_execution = self._execute_auto_assign_attack(defiant_command, game_state)
+                    nearest = world.find_nearest_enemy(marshal.location)
+                    if nearest:
+                        defiant_execution = self._execute_attack(marshal, nearest[0].name, world, game_state)
+                    else:
+                        defiant_action = "wait"
+                        defiant_execution = self._execute_wait(marshal, world, game_state)
                     if not defiant_execution.get("success"):
                         defiant_action = "wait"
                         defiant_execution = self._execute_wait(marshal, world, game_state)
@@ -10805,7 +10852,11 @@ RETREAT RECOVERY (3 turns):
                 create_notification, NotificationPriority, MARSHAL_DEFIED_ORDER
             )
 
-            defiance_chance = calculate_defiance_chance(marshal, concern_level_val, world)
+            # N7 fix: No defiance if marshal is broken/retreating (stale objection via save/load)
+            if getattr(marshal, 'broken', False) or getattr(marshal, 'retreating', False):
+                defiance_chance = 0.0
+            else:
+                defiance_chance = calculate_defiance_chance(marshal, concern_level_val, world)
             defiance_roll = random.random()
 
             if defiance_roll < defiance_chance:
@@ -10819,10 +10870,10 @@ RETREAT RECOVERY (3 turns):
                 if defiant_action is None:
                     defiant_action = "wait"
 
-                # M5 fix: Consume 1 AP for the defiant action up front.
-                # Direct method calls below bypass _execute_post_objection to
-                # avoid double AP consumption.
-                world.use_action(original_action)
+                # N3 fix: AP follows action taken — charge for defiant action, not original
+                defiance_free_actions = ["retreat", "break_square"]
+                if defiant_action not in defiance_free_actions:
+                    world.use_action(defiant_action)
 
                 # Execute defiant action
                 pre_battle_strength = marshal.strength
@@ -10840,7 +10891,12 @@ RETREAT RECOVERY (3 turns):
                         defiant_action = "wait"
                         defiant_execution = self._execute_wait(marshal, world, game_state)
                 elif defiant_action == "attack":
-                    defiant_execution = self._execute_auto_assign_attack(defiant_command, game_state)
+                    nearest = world.find_nearest_enemy(marshal.location)
+                    if nearest:
+                        defiant_execution = self._execute_attack(marshal, nearest[0].name, world, game_state)
+                    else:
+                        defiant_action = "wait"
+                        defiant_execution = self._execute_wait(marshal, world, game_state)
                     if not defiant_execution.get("success"):
                         defiant_action = "wait"
                         defiant_execution = self._execute_wait(marshal, world, game_state)
@@ -11107,7 +11163,7 @@ RETREAT RECOVERY (3 turns):
 
         # Check action economy
         # FIX: Added "retreat" - must match main execute() free_actions list
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "break_square"]
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square"]
         action_costs_point = action not in free_actions
 
         if action_costs_point:
@@ -11229,24 +11285,30 @@ RETREAT RECOVERY (3 turns):
         # Consume action if successful
         # BUG FIX: Must handle variable_action_cost (stance_change costs 0-2 AP).
         # Previously called world.use_action() once which only deducts 1 AP.
+        # N2 fix: Admin actions (recruit, build, repair) use admin AP pool.
+        is_admin = action in {"recruit", "build", "repair"}
         action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
         if result.get("success", False) and action_costs_point:
-            variable_cost = result.get("variable_action_cost")
-            if variable_cost is not None:
-                if variable_cost > 0:
-                    if world.actions_remaining < variable_cost:
-                        return {
-                            "success": False,
-                            "message": f"Not enough actions! Need {variable_cost}, have {world.actions_remaining}.",
-                            "actions_remaining": int(world.actions_remaining),
-                        }
-                    for _ in range(variable_cost):
-                        action_result = world.use_action(action)
-                else:
-                    # Free transition (e.g. returning to neutral)
-                    action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
+            if is_admin:
+                world.use_admin_action(1)
+                action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 1}
             else:
-                action_result = world.use_action(action)
+                variable_cost = result.get("variable_action_cost")
+                if variable_cost is not None:
+                    if variable_cost > 0:
+                        if world.actions_remaining < variable_cost:
+                            return {
+                                "success": False,
+                                "message": f"Not enough actions! Need {variable_cost}, have {world.actions_remaining}.",
+                                "actions_remaining": int(world.actions_remaining),
+                            }
+                        for _ in range(variable_cost):
+                            action_result = world.use_action(action)
+                    else:
+                        # Free transition (e.g. returning to neutral)
+                        action_result = {"turn_advanced": False, "new_turn": None, "action_cost": 0}
+                else:
+                    action_result = world.use_action(action)
 
         # Add action info to result
         result["action_info"] = {

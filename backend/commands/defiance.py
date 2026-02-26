@@ -245,7 +245,7 @@ def apply_defiance_outcome(marshal, outcome, world):
         result["outcome_type"] = "failed_roll"
 
         # Apply
-        marshal.trust.modify(-3)
+        marshal.modify_trust(-3)
         old_v = marshal.vindication_score
         marshal.vindication_score = 0  # Reset
         result["vindication_change"] = marshal.vindication_score - old_v
@@ -261,7 +261,7 @@ def apply_defiance_outcome(marshal, outcome, world):
         result["cooldown_turns"] = 3
         result["outcome_type"] = "right"
 
-        marshal.trust.modify(+2)
+        marshal.modify_trust(+2)
         old_v = marshal.vindication_score
         marshal.vindication_score = max(-5, min(5, old_v + 1))
         result["vindication_change"] = marshal.vindication_score - old_v
@@ -275,7 +275,7 @@ def apply_defiance_outcome(marshal, outcome, world):
         result["cooldown_turns"] = 3
         result["outcome_type"] = "wrong"
 
-        marshal.trust.modify(-5)
+        marshal.modify_trust(-5)
         old_v = marshal.vindication_score
         marshal.vindication_score = 0  # Reset
         result["vindication_change"] = marshal.vindication_score - old_v

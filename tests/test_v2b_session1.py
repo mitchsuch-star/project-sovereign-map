@@ -56,6 +56,10 @@ class MockMarshal:
         self._acted_this_turn = False
         self._relationships = {}
 
+    def modify_trust(self, delta):
+        """Wrapper matching real Marshal.modify_trust() — modifies trust and checks redemption."""
+        return self.trust.modify(delta)
+
     def get_relationship(self, target_name):
         return self._relationships.get(target_name, 0)
 

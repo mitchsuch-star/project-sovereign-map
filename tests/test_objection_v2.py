@@ -739,13 +739,14 @@ class TestEvaluateAggressive:
         concern = evaluate_aggressive(marshal, "fortify", {"action": "fortify"}, game_state)
         assert concern == ConcernLevel.MILD  # No enemy
 
-    def test_retreat_not_threatened_is_strong(self):
-        """Retreat when not actually threatened is STRONG concern."""
+    def test_retreat_not_threatened_is_mild(self):
+        """Retreat when not actually threatened — pre-validation blocks this before objection,
+        but if it reaches the evaluator, returns MILD (dead STRONG trigger removed)."""
         marshal = MockMarshal(personality="aggressive", location="Belgium")
         game_state = self._make_game_state(marshal, adjacent_to_marshal=["Paris"])
 
         concern = evaluate_aggressive(marshal, "retreat", {"action": "retreat"}, game_state)
-        assert concern == ConcernLevel.STRONG
+        assert concern == ConcernLevel.MILD
 
     def test_retreat_threatened_not_outnumbered_is_mild(self):
         """Retreat when threatened but not outnumbered is MILD."""

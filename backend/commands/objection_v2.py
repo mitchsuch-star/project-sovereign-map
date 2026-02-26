@@ -856,11 +856,8 @@ def evaluate_aggressive(marshal, action: str, order: Dict, game_state) -> Concer
             return ConcernLevel.STRONG  # "We have clear advantage, let me attack!"
         return ConcernLevel.MODERATE  # "Enemy is right there, I want to attack"
 
-    # Retreat action
+    # Retreat action (pre-validation blocks retreat when not threatened — no STRONG trigger here)
     if action == "retreat":
-        if not _is_actually_threatened(marshal, game_state):
-            return ConcernLevel.STRONG  # "Retreat from what? There's no enemy!"
-
         # Check morale for retreat acceptance
         morale = getattr(marshal, 'morale', 100)
         if _is_outnumbered_2to1(marshal, game_state) and morale <= 40:
