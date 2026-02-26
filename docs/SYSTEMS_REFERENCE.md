@@ -1935,7 +1935,7 @@ Snapshot entries:
 
 ### Trigger
 
-When trust falls to <=20, a redemption event triggers via `check_redemption_threshold()` in `disobedience.py`. The centralized helper gates on: trust <= 20, not already pending, not on cooldown, player nation only. Wired at: V1 objection resolution, tactical defiance success, strategic defiance success, strategic endpoint fallthrough, and bombardment collateral.
+When trust falls to <=20, a redemption event triggers via `check_redemption_threshold()` in `disobedience.py`. The centralized helper gates on: trust <= 20, not already pending, not autonomous, not administrative, not on cooldown, player nation only. Wired at: V1 objection resolution, tactical defiance success, strategic defiance success, strategic endpoint fallthrough, bombardment collateral, strategic interrupt trust penalties (7 sites), and cavalry forced-stance/unfortify penalties. Godot frontend handles redemption_event in `_on_command_result`, `_on_objection_response`, `_on_interrupt_response`, and deferred through the end-turn dialog chain (`_on_enemy_phase_dismissed`, `_on_strategic_report_dismissed`, `_process_next_interrupt`).
 
 ### Available Options
 

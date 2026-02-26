@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 26, 2026 (V2b: Redemption System Interaction Gaps + Cooldown)
+> **Last Updated:** February 26, 2026 (V2b: Redemption Audit — Frontend Wiring + Integration Tests)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4197** (4197 passed, 3 skipped — verified Feb 26, Redemption V2b Audit Fixes) |
+| **Tests Passing** | **4201** (4201 passed, 3 skipped — verified Feb 26, Redemption Frontend Wiring + Integration Tests) |
 
 | **Current Phase** | Phase 7b **IN PROGRESS** (Tactical Triangle + V2b COMPLETE. Remaining: Jealousy, Gneisenau). Coalition Trigger moved to Phase 8. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE. Gate 5+6 UI tests pending. |
@@ -45,6 +45,19 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7b Sessions
+
+### Feb 26 — V2b: Redemption Frontend Wiring + Integration Tests
+
+**4201 tests (3 skipped). Audited all redemption paths, fixed Godot frontend gaps, added integration tests.**
+
+- **Godot `_on_command_result`:** Added missing `redemption_event` check for bombardment friendly fire and non-end-turn commands. Previously, redemption dialog was never shown for these paths.
+- **Godot end-turn chain:** Added deferred redemption checks at all 3 terminal points: `_on_enemy_phase_dismissed`, `_on_strategic_report_dismissed`, `_process_next_interrupt`. Cavalry trust penalty redemption now shows after enemy phase/reports/interrupts.
+- **Godot `_on_interrupt_response`:** Added `redemption_event` check for fresh strategic interrupt responses where trust penalty crosses threshold.
+- **Morning dispatch fix:** Added missing `_show_pending_dispatch()` calls in interrupt→redemption exit paths (Locations 4+5).
+- **Administrative guard:** `check_redemption_threshold()` now blocks administrative marshals (out of play, strength=0).
+- **3 integration tests:** Full executor-level verification that `_execute_bombardment` and `_execute_end_turn` propagate `redemption_event` to top-level result dict.
+
+**Files modified:** `main.gd` (5 insertion points + 2 dispatch fixes), `disobedience.py` (admin guard), `test_redemption_v2b.py` (+4 tests: admin guard + 3 integration).
 
 ### Feb 26 — V2b: Redemption Audit Fixes (B2/B5/F1/F2)
 

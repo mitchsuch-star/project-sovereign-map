@@ -127,6 +127,20 @@ class TestCheckRedemptionThreshold:
         assert result is None
         assert ney.redemption_pending is False
 
+    def test_no_fire_for_administrative_marshal(self):
+        """Administrative marshal (out of play) does NOT trigger redemption."""
+        ney = self.world.get_marshal("Ney")
+        ney.trust.set(15)
+        ney.redemption_pending = False
+        ney.administrative = True
+        ney.administrative_strength = 50000
+        ney.strength = 0
+
+        result = self.disobedience.check_redemption_threshold(ney, self.world)
+
+        assert result is None
+        assert ney.redemption_pending is False
+
 
 class TestRedemptionCooldown:
     """Tests for cooldown set on redemption resolution."""
@@ -482,3 +496,105 @@ class TestMultiMarshalBombardmentRedemption:
         assert ney.redemption_pending is True
         # Second marshal is NOT stuck pending
         assert davout.redemption_pending is False
+
+
+class TestIntegrationRedemptionPropagation:
+    """Integration tests: verify executor methods return redemption_event at top level of result dict.
+
+    Unlike the component-level tests above (which test the helper function directly),
+    these tests call the actual executor methods and verify the redemption_event
+    propagates through the full flow to the result dict that reaches the API.
+    """
+
+    def test_bombardment_friendly_fire_produces_top_level_redemption(self):
+        """Bombardment collateral on friendly marshal crossing trust threshold
+        produces redemption_event in the executor result dict."""
+        from unittest.mock import patch
+
+        world = WorldState()
+        executor = CommandExecutor()
+        game_state = {"world": world}
+
+        # Drouot (French artillery) bombards from Belgium into Waterloo
+        drouot = world.get_marshal("Drouot")
+        drouot.location = "Belgium"
+
+        # Ney (French cavalry) is co-located with the enemy at Waterloo
+        ney = world.get_marshal("Ney")
+        ney.location = "Waterloo"
+        ney.trust.set(21)  # -5 friendly fire penalty → 16, crossing <= 20 threshold
+        ney.redemption_pending = False
+
+        # Wellington (enemy) is the bombardment target at Waterloo
+        wellington = world.get_marshal("Wellington")
+        wellington.location = "Waterloo"
+
+        # Patch random: force collateral hit (0.01 < 0.40) and normalize variance
+        with patch("random.random", return_value=0.01), \
+             patch("random.uniform", return_value=1.0):
+            result = executor._execute_bombardment(drouot, wellington, world, game_state)
+
+        assert result["success"] is True, f"Bombardment failed: {result.get('message')}"
+        assert "redemption_event" in result, (
+            "Executor result missing 'redemption_event' — friendly fire trust penalty "
+            "should have crossed threshold and produced redemption"
+        )
+        assert result["redemption_event"]["marshal"] == "Ney"
+        assert result["redemption_event"]["type"] == "redemption_event"
+        assert ney.redemption_pending is True
+        # Trust should have dropped by 5 (from 21 to 16)
+        assert ney.trust.value <= 20
+
+    def test_end_turn_cavalry_trust_penalty_produces_top_level_redemption(self):
+        """End-turn cavalry forced stance change pushing trust to threshold
+        produces redemption_event in the executor result dict."""
+        from backend.models.marshal import Stance
+
+        world = WorldState()
+        executor = CommandExecutor()
+        game_state = {"world": world}
+
+        # Ney is French cavalry — set up defensive stance for 3 turns
+        ney = world.get_marshal("Ney")
+        ney.trust.set(23)  # -3 cavalry penalty → 20, exactly at <= 20 threshold
+        ney.redemption_pending = False
+        ney.stance = Stance.DEFENSIVE
+        ney.turns_in_defensive_stance = 3  # Triggers forced stance change
+
+        result = executor._execute_end_turn({}, game_state)
+
+        assert result["success"] is True, f"End turn failed: {result.get('message')}"
+        assert "redemption_event" in result, (
+            "Executor result missing 'redemption_event' — cavalry trust penalty "
+            "should have crossed threshold during advance_turn and been hoisted to top level"
+        )
+        redemption = result["redemption_event"]
+        assert redemption["marshal"] == "Ney"
+        assert redemption["type"] == "redemption_event"
+        assert ney.redemption_pending is True
+
+    def test_end_turn_cavalry_trust_24_no_redemption(self):
+        """End-turn cavalry forced stance change from trust 24 → 21 does NOT
+        produce redemption_event (stays above threshold)."""
+        from backend.models.marshal import Stance
+
+        world = WorldState()
+        executor = CommandExecutor()
+        game_state = {"world": world}
+
+        # Ney is French cavalry — trust 24, penalty -3 → 21 (above threshold)
+        ney = world.get_marshal("Ney")
+        ney.trust.set(24)
+        ney.redemption_pending = False
+        ney.stance = Stance.DEFENSIVE
+        ney.turns_in_defensive_stance = 3  # Triggers forced stance change
+
+        result = executor._execute_end_turn({}, game_state)
+
+        assert result["success"] is True, f"End turn failed: {result.get('message')}"
+        assert result.get("redemption_event") is None, (
+            "Executor result should NOT have 'redemption_event' — trust dropped to 21 "
+            "which is above the <= 20 threshold"
+        )
+        assert ney.redemption_pending is False
+        assert ney.trust.value == 21

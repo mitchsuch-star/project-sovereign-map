@@ -657,6 +657,25 @@ func _on_command_result(response):
 		_show_interrupt_popup(response.pending_interrupt)
 		return  # Don't re-enable input until choice made
 
+	# Check for redemption event (bombardment friendly fire, cavalry, etc.)
+	# End-turn responses with enemy_phase defer redemption to post-enemy-phase flow
+	if response.has("redemption_event") and not response.has("enemy_phase"):
+		if response.success:
+			if response.has("action_summary"):
+				_update_status(response.action_summary)
+			if response.has("game_state") and response.game_state.has("gold"):
+				gold = int(response.game_state.gold)
+				_update_gold_display()
+			if response.has("game_state") and response.game_state.has("manpower_pools"):
+				_apply_manpower(response.game_state.manpower_pools)
+			if response.has("game_state") and response.game_state.has("map_data"):
+				map_area.update_all_regions(response.game_state.map_data)
+			if notification_bar and response.has("notifications"):
+				notification_bar.update_notifications(response.notifications)
+			_display_result(response)
+		_show_redemption_dialog(response.redemption_event)
+		return  # Don't re-enable input until redemption resolved
+
 	# Re-enable input
 	set_input_enabled(true)
 
@@ -1971,6 +1990,13 @@ func _on_enemy_phase_dismissed():
 			_show_strategic_reports(response)
 			return  # Don't re-enable input until reports dismissed
 
+		# Check for deferred redemption (cavalry trust penalty from end-turn)
+		if response.has("redemption_event"):
+			pending_enemy_phase_response = null
+			_show_pending_dispatch()
+			_show_redemption_dialog(response.redemption_event)
+			return  # Don't re-enable input until redemption resolved
+
 		pending_enemy_phase_response = null
 
 	# Morning Dispatch — displayed last, right before player gets control
@@ -2336,6 +2362,14 @@ func _on_strategic_report_dismissed():
 				_show_game_over_screen(response.game_state)
 				return
 
+		# Check for deferred redemption (cavalry trust penalty from end-turn)
+		if response.has("redemption_event"):
+			pending_strategic_response = null
+			pending_enemy_phase_response = null
+			_show_pending_dispatch()
+			_show_redemption_dialog(response.redemption_event)
+			return  # Don't re-enable input until redemption resolved
+
 	pending_strategic_response = null
 	pending_enemy_phase_response = null
 
@@ -2392,6 +2426,15 @@ func _on_interrupt_response(response):
 	else:
 		add_output("[color=#" + COLOR_ERROR + "]" + response.get("message", "Error processing response.") + "[/color]")
 
+	# Check for redemption event from strategic interrupt trust penalty
+	if response.has("redemption_event"):
+		interrupt_queue.clear()  # Redemption takes priority
+		pending_strategic_response = null
+		pending_enemy_phase_response = null
+		_show_pending_dispatch()
+		_show_redemption_dialog(response.redemption_event)
+		return  # Don't re-enable input until redemption resolved
+
 	# Process next interrupt in queue
 	_process_next_interrupt()
 
@@ -2402,6 +2445,14 @@ func _process_next_interrupt():
 		var next_interrupt = interrupt_queue.pop_front()
 		_show_interrupt_popup(next_interrupt)
 	else:
+		# Check for deferred redemption (cavalry trust penalty from end-turn)
+		if pending_strategic_response and pending_strategic_response.has("redemption_event"):
+			var event = pending_strategic_response.redemption_event
+			pending_strategic_response = null
+			pending_enemy_phase_response = null
+			_show_pending_dispatch()
+			_show_redemption_dialog(event)
+			return  # Don't re-enable input until redemption resolved
 		# All interrupts processed
 		pending_strategic_response = null
 		pending_enemy_phase_response = null

@@ -1519,6 +1519,8 @@ class DisobedienceSystem:
             return None
         if getattr(marshal, 'autonomous', False):
             return None
+        if getattr(marshal, 'administrative', False):
+            return None
         if getattr(marshal, 'nation', '') != getattr(world, 'player_nation', 'France'):
             return None
         # Cooldown: skip if recently resolved
