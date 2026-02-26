@@ -855,6 +855,32 @@ If a safe path exists (no longer than 2x the direct path), compromise offers "Ac
 | TRUST_MIN/MAX | 0/100 | `trust.py` |
 | AUTHORITY_MIN/MAX | 0/100 | `authority.py` |
 
+### Post-Objection Action Routing (`_execute_post_objection`)
+
+Single choke point for all post-objection execution (trust/insist/compromise). Defiance bypasses this entirely.
+
+| Action | Handler | AP Pool | Signature | Notes |
+|--------|---------|---------|-----------|-------|
+| attack | `_execute_attack(marshal, target, world, game_state)` | Military | Marshal obj + target name | |
+| defend | `_execute_defend(marshal, world, game_state)` | Military | Marshal obj | |
+| move | `_execute_move(marshal, target, world, game_state)` | Military | Marshal obj + target name | |
+| scout | `_execute_scout(marshal, target, world, game_state)` | Military | Marshal obj + target name | |
+| recruit | `_execute_recruit(command, game_state)` | Admin | Command dict | |
+| build | `_execute_build(command, game_state)` | Admin | Command dict | |
+| repair | `_execute_repair(command, game_state)` | Admin | Command dict | |
+| fortify | `_execute_fortify(command, game_state)` | Military | Command dict | |
+| drill | `_execute_drill(command, game_state)` | Military | Command dict | |
+| unfortify | `_execute_unfortify(command, game_state)` | Military | Command dict | |
+| form_square | `_execute_form_square(command, game_state)` | Military | Command dict | |
+| break_square | `_execute_break_square(command, game_state)` | Free | Command dict | |
+| retreat | `_execute_retreat_action(marshal, world, game_state)` | Free | Marshal obj | |
+| stance_change | `_execute_stance_change(command, game_state)` | Military | Command dict | Variable cost (0-2 AP) |
+| hold | `_execute_hold(marshal, world, game_state)` | Military | Marshal obj | |
+| wait | `_execute_wait(marshal, world, game_state)` | Military | Marshal obj | |
+| bombardment | `_execute_bombardment(marshal, target, world, game_state)` | Military | Marshal + nearest enemy | Added Session 7b-audit |
+| garrison | `_execute_garrison(command, game_state)` | Military | Command dict | Added Session 7b-audit |
+| strategic | `_execute_strategic_command(parsed, command, game_state)` | Military | Via strategic routing | Only if `is_strategic` flag set |
+
 ### Known Limitations
 
 **Phase 3 Features (Not Yet Implemented):**

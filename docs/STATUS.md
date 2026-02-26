@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 26, 2026 (V2b Audit Pass 3: Master Rules + Exhaustive Combo Audit)
+> **Last Updated:** February 26, 2026 (V2b Audit Pass 4: Post-Objection Routing Audit)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4165** (4165 passed, 3 skipped — verified Feb 26, V2b Audit Pass 2) |
+| **Tests Passing** | **4172** (4172 passed, 3 skipped — verified Feb 26, V2b Audit Pass 4) |
 
 | **Current Phase** | Phase 7b **IN PROGRESS** (Tactical Triangle + V2b COMPLETE. Remaining: Jealousy, Gneisenau). Coalition Trigger moved to Phase 8. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE. Gate 5+6 UI tests pending. |
@@ -45,6 +45,19 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7b Sessions
+
+### Feb 26 — V2b Audit Pass 4: Post-Objection Routing Audit
+
+**4172 tests (3 skipped). Audited `_execute_post_objection()` — the OUTPUT side of objection resolution. 1 BUG fixed, 2 GAPs closed, routing table documented.**
+
+- **BUG (AP pre-check):** Admin actions (recruit/build/repair) in `_execute_post_objection` were gated on military AP pool (`world.actions_remaining`). With 0 military AP but >0 admin AP, these would be wrongly rejected. Split pre-check: admin actions check `admin_actions_remaining`, military actions check `actions_remaining`.
+- **GAP (bombardment handler):** Added bombardment to the elif chain — finds nearest enemy, calls `_execute_bombardment`. Unreachable today (no personality generates bombardment as alternative) but prevents silent "Unknown action" if reached.
+- **GAP (garrison handler):** Added garrison to the elif chain — routes to `_execute_garrison(command, game_state)`. Same rationale.
+- **Verified clean:** Defiance signature parity (tactical/strategic identical), trust change timing (intentionally before execution), `_trust_penalty_applied` flag scoping, re-entrant objection prevention, marshal field injection, `target_stance` field preservation.
+- **7 new tests:** `TestPostObjectionRoutingAudit` — admin AP gate (recruit/build/repair at 0 military AP), military AP gate, admin AP exhaustion, bombardment handler, garrison handler.
+- **Routing table added to SYSTEMS_REFERENCE.md** — 19-row table covering all action handlers, AP pools, and signatures.
+
+**Files modified:** `executor.py` (AP pre-check split + bombardment/garrison handlers), `test_objection_v2.py` (7 new tests), `SYSTEMS_REFERENCE.md` (routing table), `STATUS.md`.
 
 ### Feb 26 — V2b Audit Pass 3: Master Rules + Exhaustive Combo Audit
 

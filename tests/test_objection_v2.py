@@ -1927,3 +1927,161 @@ class TestV2aAPPreCheck:
         assert result.get("success") is True
         # Should have consumed 2 AP (aggressive→defensive)
         assert world.actions_remaining == 2
+
+
+class TestPostObjectionRoutingAudit:
+    """Audit: _execute_post_objection routing completeness and AP pool correctness."""
+
+    def test_post_objection_recruit_at_zero_military_ap(self):
+        """BUG fix: recruit uses admin AP pool. Should not be blocked by 0 military AP."""
+        from backend.commands.executor import CommandExecutor
+
+        world = TestV2aIntegrationFixtures.make_integration_world()
+        executor = CommandExecutor()
+
+        # Zero military AP, but admin AP available
+        world.actions_remaining = 0
+        world.admin_actions_remaining = 2
+
+        # Place Davout in a French region for recruit to work
+        davout = world.marshals["Davout"]
+        davout.location = "Paris"
+
+        parsed_command = {
+            "success": True,
+            "command": {"action": "recruit", "marshal": "Davout", "target": "Paris"}
+        }
+        game_state = {"world": world}
+
+        result = executor._execute_post_objection(parsed_command, game_state, "Davout")
+
+        # Should NOT be blocked by the AP pre-check ("No actions remaining")
+        # It may fail for other reasons (e.g. recruit conditions), but NOT the gate.
+        assert "No actions remaining" not in result.get("message", "")
+
+    def test_post_objection_build_at_zero_military_ap(self):
+        """BUG fix: build uses admin AP pool. Should not be blocked by 0 military AP."""
+        from backend.commands.executor import CommandExecutor
+
+        world = TestV2aIntegrationFixtures.make_integration_world()
+        executor = CommandExecutor()
+
+        world.actions_remaining = 0
+        world.admin_actions_remaining = 2
+
+        parsed_command = {
+            "success": True,
+            "command": {"action": "build", "marshal": "Davout", "target": "Paris",
+                        "building_type": "supply_depot"}
+        }
+        game_state = {"world": world}
+
+        result = executor._execute_post_objection(parsed_command, game_state, "Davout")
+
+        # Should NOT be blocked by "No actions remaining"
+        assert "No actions remaining" not in result.get("message", "")
+
+    def test_post_objection_repair_at_zero_military_ap(self):
+        """BUG fix: repair uses admin AP pool. Should not be blocked by 0 military AP."""
+        from backend.commands.executor import CommandExecutor
+
+        world = TestV2aIntegrationFixtures.make_integration_world()
+        executor = CommandExecutor()
+
+        world.actions_remaining = 0
+        world.admin_actions_remaining = 2
+
+        parsed_command = {
+            "success": True,
+            "command": {"action": "repair", "marshal": "Davout", "target": "Paris"}
+        }
+        game_state = {"world": world}
+
+        result = executor._execute_post_objection(parsed_command, game_state, "Davout")
+
+        # Should NOT be blocked by "No actions remaining"
+        assert "No actions remaining" not in result.get("message", "")
+
+    def test_post_objection_attack_blocked_at_zero_military_ap(self):
+        """Military actions should still be blocked when military AP is 0."""
+        from backend.commands.executor import CommandExecutor
+
+        world = TestV2aIntegrationFixtures.make_integration_world()
+        executor = CommandExecutor()
+
+        world.actions_remaining = 0
+        world.admin_actions_remaining = 2
+
+        parsed_command = {
+            "success": True,
+            "command": {"action": "attack", "marshal": "Davout", "target": "Blucher"}
+        }
+        game_state = {"world": world}
+
+        result = executor._execute_post_objection(parsed_command, game_state, "Davout")
+
+        assert result.get("success") is False
+        assert "No actions remaining" in result.get("message", "")
+
+    def test_post_objection_admin_blocked_at_zero_admin_ap(self):
+        """Admin actions should be blocked when admin AP is 0, even with military AP."""
+        from backend.commands.executor import CommandExecutor
+
+        world = TestV2aIntegrationFixtures.make_integration_world()
+        executor = CommandExecutor()
+
+        world.actions_remaining = 4
+        world.admin_actions_remaining = 0
+
+        parsed_command = {
+            "success": True,
+            "command": {"action": "recruit", "marshal": "Davout", "target": "Paris"}
+        }
+        game_state = {"world": world}
+
+        result = executor._execute_post_objection(parsed_command, game_state, "Davout")
+
+        assert result.get("success") is False
+        assert "administrative" in result.get("message", "").lower()
+
+    def test_post_objection_bombardment_handler_exists(self):
+        """GAP fix: bombardment should not hit 'Unknown action'."""
+        from backend.commands.executor import CommandExecutor
+
+        world = TestV2aIntegrationFixtures.make_integration_world()
+        executor = CommandExecutor()
+
+        # Make Davout artillery and place enemy adjacent
+        davout = world.marshals["Davout"]
+        davout.is_artillery = True
+        davout.location = "Belgium"
+        # Blucher is in Rhine (adjacent to Belgium)
+
+        parsed_command = {
+            "success": True,
+            "command": {"action": "bombardment", "marshal": "Davout"}
+        }
+        game_state = {"world": world}
+
+        result = executor._execute_post_objection(parsed_command, game_state, "Davout")
+
+        # Should NOT be "Unknown action"
+        assert "Unknown action" not in result.get("message", "")
+
+    def test_post_objection_garrison_handler_exists(self):
+        """GAP fix: garrison should not hit 'Unknown action'."""
+        from backend.commands.executor import CommandExecutor
+
+        world = TestV2aIntegrationFixtures.make_integration_world()
+        executor = CommandExecutor()
+
+        parsed_command = {
+            "success": True,
+            "command": {"action": "garrison", "marshal": "Davout", "target": "Belgium"}
+        }
+        game_state = {"world": world}
+
+        result = executor._execute_post_objection(parsed_command, game_state, "Davout")
+
+        # Should NOT be "Unknown action" — may fail for other reasons (strength, etc.)
+        assert "Unknown action" not in result.get("message", "")

@@ -11213,7 +11213,14 @@ RETREAT RECOVERY (3 turns):
         action_costs_point = action not in free_actions
 
         if action_costs_point:
-            if world.actions_remaining <= 0:
+            is_admin = action in ADMIN_ACTIONS
+            if is_admin:
+                if world.admin_actions_remaining <= 0:
+                    return {
+                        "success": False,
+                        "message": "No administrative actions remaining this turn!"
+                    }
+            elif world.actions_remaining <= 0:
                 return {
                     "success": False,
                     "message": "No actions remaining this turn!"
@@ -11325,6 +11332,22 @@ RETREAT RECOVERY (3 turns):
                 result = self._execute_wait(marshal, world, game_state)
             else:
                 result = {"success": False, "message": f"Marshal {marshal_name} not found"}
+        elif action == "bombardment":
+            # GAP fix: bombardment handler (unreachable today, but prevents silent
+            # "Unknown action" if future alternatives/compromises produce it)
+            marshal = world.get_marshal(marshal_name)
+            if marshal:
+                nearest = world.find_nearest_enemy(marshal.location)
+                if nearest and nearest[1] <= 2:
+                    result = self._execute_bombardment(marshal, nearest[0], world, game_state)
+                else:
+                    result = {"success": False, "message": f"{marshal_name} has no valid bombardment target in range."}
+            else:
+                result = {"success": False, "message": f"Marshal {marshal_name} not found"}
+        elif action == "garrison":
+            # GAP fix: garrison handler (unreachable today, but prevents silent
+            # "Unknown action" if future alternatives/compromises produce it)
+            result = self._execute_garrison(command, game_state)
         else:
             result = {"success": False, "message": f"Unknown action: {action}"}
 
