@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4190** (4190 passed, 3 skipped — verified Feb 26, Redemption V2b Gaps) |
+| **Tests Passing** | **4197** (4197 passed, 3 skipped — verified Feb 26, Redemption V2b Audit Fixes) |
 
 | **Current Phase** | Phase 7b **IN PROGRESS** (Tactical Triangle + V2b COMPLETE. Remaining: Jealousy, Gneisenau). Coalition Trigger moved to Phase 8. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE. Gate 5+6 UI tests pending. |
@@ -45,6 +45,18 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7b Sessions
+
+### Feb 26 — V2b: Redemption Audit Fixes (B2/B5/F1/F2)
+
+**4197 tests (3 skipped). Fixed all audit findings from redemption V2b review.**
+
+- **B2 (autonomous guard):** `check_redemption_threshold()` now returns None for autonomous marshals — prevents redundant popup during autonomy.
+- **B5 (multi-marshal bombardment):** Replaced `or`-chain with first-wins guard (`if not friendly_fire_redemption`). Second marshal's trust still drops but doesn't get stuck with `redemption_pending = True`.
+- **F1 (strategic interrupt wiring):** All 7 trust-penalty return sites in `strategic.py` now call `_attach_redemption_if_needed()`. Added `redemption_event` pass-through to `/strategic_response` endpoint in `main.py`.
+- **F2 (cavalry wiring):** Both cavalry forced-stance and forced-unfortify `-3` penalties in `world_state.py` now call `check_redemption_threshold()`. Events hoisted through `tactical_events` in `_execute_end_turn`.
+- **7 new tests:** Autonomous guard, strategic cancel triggers/doesn't trigger, cavalry stance/fortify/no-trigger, multi-marshal first-wins.
+
+**Files modified:** `disobedience.py` (autonomous guard), `executor.py` (bombardment first-wins + tactical_events hoist), `strategic.py` (helper + 7 return sites), `world_state.py` (2 cavalry sites), `main.py` (/strategic_response pass-through), `test_redemption_v2b.py` (+7 tests).
 
 ### Feb 26 — V2b: Redemption System Interaction Gaps + 5-Turn Cooldown
 
