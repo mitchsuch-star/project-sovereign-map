@@ -1570,7 +1570,7 @@ These three complete the tactical triangle. All must implement as a single unit:
 
 | Feature | Phase | Notes |
 |---------|-------|-------|
-| V2b: Defiance/Vindication | 7b | STRONG/EXTREME concerns trigger defiance. Scaffolding ready. |
+| V2b: Defiance/Vindication | 7b | MODERATE/STRONG/EXTREME concerns trigger defiance (5%/15%/35% base). Scaffolding ready. |
 | Jealousy system | 7b | Marshal getting all glory → others resent. Needs multi-marshal battle data from Phase 7. |
 | Coalition Trigger | 7b | Threat level → war declarations. Core "France can't steamroll" mechanic. |
 | Gneisenau Staff Work | 1805 | +10% ally bonus. Coalition-specific advantage for full campaign only. |

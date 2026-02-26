@@ -317,7 +317,7 @@ Design approved. See `docs/TACTICAL_TRIANGLE_SPEC.md` for full spec.
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| **V2b: Defiance/Vindication** | STRONG/EXTREME concerns trigger defiance. 40% hard cap, vindication decay, authority feedback loop, fog migration, relationship SUPPORT objections. Full spec: `V2B_DEFIANCE_SPEC.md`. Sessions 0-3 + audit cleanup. | Medium | **COMPLETE** |
+| **V2b: Defiance/Vindication** | MODERATE/STRONG/EXTREME concerns trigger defiance (5%/15%/35% base). 40% hard cap, vindication decay, authority feedback loop, fog migration, relationship SUPPORT objections. Full spec: `V2B_DEFIANCE_SPEC.md`. Sessions 0-3 + audit cleanup. | Medium | **COMPLETE** |
 | **Jealousy system** | Marshal getting all glory → others resent. Needs multi-marshal battle data from Phase 7. Open: trigger threshold, consequence type, duration, objection interaction. | Medium | Deferred — NEEDS DESIGN |
 | **Cross-nation coordination** | Coalition partners (Britain/Prussia) coordinate. Requires Coalition Trigger or `allied_nations` mapping. See amendments C3. | Medium | Deferred |
 | **Gneisenau Staff Work** | +10% ally bonus — Coalition-specific advantage. Deferred to 1805 full campaign. | Low | Deferred (1805) |

@@ -148,23 +148,23 @@ These 3 features ship together. Test after all 3 are complete.
 
 ## Gate 6: After V2b (Defiance/Vindication/Authority)
 
-V2b upgrades STRONG/EXTREME concerns to defiance events. Sessions 0-2 implemented backend mechanics; Session 3 wired the frontend.
+V2b upgrades MODERATE/STRONG/EXTREME concerns to defiance events. Sessions 0-2 implemented backend mechanics; Session 3 wired the frontend. MODERATE has a low 5% base chance for tension on every override.
 
 ### Setup
 
 1. Start backend with `LLM_MODE=mock`: `.venv\Scripts\python.exe backend/main.py`
 2. Launch Godot client
-3. To trigger defiance: need a STRONG/EXTREME objection + insist. Use aggressive marshal (Ney) with low trust + high vindication, or cautious marshal with hostile relationship SUPPORT order.
+3. To trigger defiance: need a MODERATE/STRONG/EXTREME objection + insist. Use aggressive marshal (Ney) with low trust + high vindication, or cautious marshal with hostile relationship SUPPORT order.
 
 ### Defiance Display
-- [ ] STRONG/EXTREME objection → player insists → defiance message appears (bordered "DEFIANCE" block, distinct from objection popup)
+- [ ] MODERATE/STRONG/EXTREME objection → player insists → defiance message appears (bordered "DEFIANCE" block, distinct from objection popup)
 - [ ] Defiance RIGHT: outcome shows "VINDICATED — Marshal was right" in green, trust +2 visible
 - [ ] Defiance WRONG: outcome shows "FAILURE — Marshal was wrong" in red, trust -5 visible
 - [ ] Defiance INCONCLUSIVE (sulk): message shows "INCONCLUSIVE — No clear result"
 - [ ] Failed roll: normal message includes "discipline held" Berthier flavor text (no defiance block)
 - [ ] Berthier flavor text appears in defiance block (goldenrod color)
 - [ ] Authority change shown in defiance block when applicable (-5 right, +3 wrong)
-- [ ] MODERATE objection → insist: NO defiance possible (regression check)
+- [ ] MODERATE defiance rare (~5% base) but possible — not a regression
 - [ ] MILD concern: flavor text only, no popup, no defiance (regression check)
 
 ### Vindication Display
@@ -186,7 +186,7 @@ V2b upgrades STRONG/EXTREME concerns to defiance events. Sessions 0-2 implemente
 ### Relationship SUPPORT
 - [ ] Order hostile marshal to SUPPORT rival → objection popup fires
 - [ ] Aggressive + hostile target: STRONG concern, defiance possible after insist
-- [ ] Cautious + hostile target: MODERATE concern, no defiance
+- [ ] Cautious + hostile target: MODERATE concern, low defiance chance (5% base)
 - [ ] Compromise: timed 3-turn SUPPORT → auto-expires after 3 turns
 - [ ] Literal + hostile target: no objection (regression check)
 

@@ -1,7 +1,7 @@
 """
 Defiance System for Project Sovereign (V2b Session 1)
 
-Post-insist event: after player sees STRONG/EXTREME objection and insists,
+Post-insist event: after player sees MODERATE/STRONG/EXTREME objection and insists,
 the marshal may defy the order and act on their own judgment.
 
 Three core functions:
@@ -21,7 +21,7 @@ from backend.commands.objection_v2 import ConcernLevel
 def calculate_defiance_chance(marshal, concern_level, world) -> float:
     """Calculate probability of marshal defying a direct order.
 
-    Only fires on STRONG/EXTREME concerns after player insists.
+    Fires on MODERATE/STRONG/EXTREME concerns after player insists.
     Returns 0.0-0.40 (hard-capped).
 
     Args:
@@ -32,7 +32,7 @@ def calculate_defiance_chance(marshal, concern_level, world) -> float:
     Returns:
         Float probability (0.0 to 0.40)
     """
-    if concern_level < ConcernLevel.STRONG:
+    if concern_level < ConcernLevel.MODERATE:
         return 0.0
 
     # Cooldown check
@@ -44,7 +44,9 @@ def calculate_defiance_chance(marshal, concern_level, world) -> float:
         return 0.0
 
     # Base chances
-    if concern_level == ConcernLevel.STRONG:
+    if concern_level == ConcernLevel.MODERATE:
+        base = 0.05  # 5%
+    elif concern_level == ConcernLevel.STRONG:
         base = 0.15  # 15%
     else:  # EXTREME
         base = 0.35  # 35%

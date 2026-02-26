@@ -622,7 +622,7 @@ Fires ONCE per battle (multiple criteria don't stack):
 
 ### Defiance System (V2b)
 
-Post-insist event: after player sees STRONG/EXTREME objection and insists, the marshal may defy the order.
+Post-insist event: after player sees MODERATE/STRONG/EXTREME objection and insists, the marshal may defy the order.
 
 #### Defiance Chance Formula
 
@@ -630,6 +630,7 @@ Post-insist event: after player sees STRONG/EXTREME objection and insists, the m
 
 | Component | Value |
 |-----------|-------|
+| Base (MODERATE) | 5% |
 | Base (STRONG) | 15% |
 | Base (EXTREME) | 35% |
 | Vindication | +10% per vindication stack |

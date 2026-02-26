@@ -11,7 +11,7 @@ Full spec: **`docs/V2B_DEFIANCE_SPEC.md`**
 
 ### Quick Summary
 
-- **Defiance:** STRONG/EXTREME concerns can trigger marshal defiance after player insists. 15-35% base, 40% hard cap. Personality-preferred fallback action.
+- **Defiance:** MODERATE/STRONG/EXTREME concerns can trigger marshal defiance after player insists. 5-35% base, 40% hard cap. Personality-preferred fallback action.
 - **Vindication:** Per-marshal score (-5 to +5). +10% defiance per stack. Decays -1 per 3 idle turns.
 - **Authority:** Global 0-100. High (≥80) suppresses defiance -10%. Low (<50) emboldens +10%. Changed by defiance outcomes, major battles, excessive trusting.
 - **Fog migration:** 8+ objection helpers switch from omniscient to fog-filtered data.

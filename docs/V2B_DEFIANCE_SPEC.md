@@ -26,7 +26,7 @@ Objection popup → Player clicks "Insist" → Defiance roll
   → If fails: "Ney's hand trembles... but discipline holds."
 ```
 
-Defiance ONLY fires on STRONG (`ConcernLevel.STRONG = 3`) or EXTREME (`ConcernLevel.EXTREME = 4`). MILD and MODERATE never trigger defiance.
+Defiance fires on MODERATE (`ConcernLevel.MODERATE = 2`), STRONG (`ConcernLevel.STRONG = 3`), or EXTREME (`ConcernLevel.EXTREME = 4`). MILD never triggers defiance. MODERATE has a low 5% base to add tension to every override without making defiance routine.
 
 ### Defiance Chance Formula
 
@@ -34,10 +34,10 @@ Defiance ONLY fires on STRONG (`ConcernLevel.STRONG = 3`) or EXTREME (`ConcernLe
 def calculate_defiance_chance(marshal, concern_level, world):
     """Calculate probability of marshal defying a direct order.
 
-    Only fires on STRONG/EXTREME concerns after player insists.
+    Fires on MODERATE/STRONG/EXTREME concerns after player insists.
     Returns 0.0-0.40 (hard-capped).
     """
-    if concern_level < ConcernLevel.STRONG:
+    if concern_level < ConcernLevel.MODERATE:
         return 0.0
 
     # Cooldown check
@@ -188,7 +188,7 @@ Vindication stacks shift a concern by ±1 level (max one step):
 
 **Negative vindication (marshal proven wrong) → de-escalation ("boy who cried wolf"):**
 - MODERATE → MILD: yes
-- STRONG → MODERATE: yes (removes defiance eligibility)
+- STRONG → MODERATE: yes (reduces defiance from 15% to 5% base)
 - EXTREME → STRONG: yes
 - MILD → NONE: **never** (even a discredited marshal still gets to grumble)
 
@@ -482,7 +482,7 @@ Step 14b:   Vindication escalation (+1 max if vindication_score > 0)  [NEW]
 Step 14c:   Mood variance (±1, existing)
 Step 15:    Popup shown to player (MODERATE+)
 Step 16:    Player response (insist/trust/compromise)
-Step 17:    If insist + STRONG/EXTREME: defiance roll  [NEW]
+Step 17:    If insist + MODERATE/STRONG/EXTREME: defiance roll  [NEW]
 Step 18:    Execute original order or defiant action
 ```
 
@@ -564,7 +564,7 @@ If confidence < 100%, identify what's blocking and fix it before moving on.
 8. **`calculate_defiance_chance()`** — new function in `defiance.py` (new file). Formula from §1. Hard cap 0.40.
 9. **Defiance fallback table** — `get_defiant_action(marshal, original_action)` in `defiance.py`. Returns action string. Artillery marshals route to `_execute_auto_assign_bombardment()`, not `_execute_auto_assign_attack()`.
 10. **`defiance_succeeded()`** — returns `True` (right), `False` (wrong), or `None` (inconclusive/sulk). Three-way return, not boolean.
-11. **Defiance roll** — wire into `_execute_post_objection()` in `executor.py` after "insist" + STRONG/EXTREME
+11. **Defiance roll** — wire into `_execute_post_objection()` in `executor.py` after "insist" + MODERATE/STRONG/EXTREME
 12. **Defiant action execution** — execute via existing `_execute_*` methods
 13. **Outcome application** — 4-row outcome table:
 
@@ -679,9 +679,9 @@ These integrate as additional checks in `evaluate_cautious_*` and `evaluate_aggr
 
 ### 10.2 Defiance Mechanics (~30 tests)
 
-- `calculate_defiance_chance`: base rates for STRONG (15%) / EXTREME (35%)
+- `calculate_defiance_chance`: base rates for MODERATE (5%) / STRONG (15%) / EXTREME (35%)
 - Hard cap at 40% with all modifiers maxed positive
-- Returns 0.0 for MILD/MODERATE
+- Returns 0.0 for MILD only
 - Grouchy (literal) always returns 0.0
 - Cooldown blocks defiance (turn < cooldown_until)
 - Cooldown boundary: turn == cooldown_until → CAN defy (< not <=)
@@ -727,7 +727,7 @@ These integrate as additional checks in `evaluate_cautious_*` and `evaluate_aggr
 - **NONE never escalates** — NONE + positive vindication stays NONE (EC-2)
 - No double-step: MILD cannot reach STRONG via vindication alone
 - De-escalation: MODERATE→MILD with negative vindication
-- De-escalation: STRONG→MODERATE with negative vindication (removes defiance eligibility)
+- De-escalation: STRONG→MODERATE with negative vindication (reduces defiance from 15% to 5% base)
 - EXTREME→STRONG de-escalation works
 - **MILD never drops to NONE** (floor, both vindication and mood)
 - Ordering: base trigger → vindication shift → mood variance
@@ -765,7 +765,7 @@ These integrate as additional checks in `evaluate_cautious_*` and `evaluate_aggr
 - Compromise: timed 3-turn SUPPORT uses `condition.max_turns = 3` (EC-6)
 - Timed SUPPORT auto-expires after 3 turns via existing strategic.py code
 - Defiance from hostile SUPPORT (aggressive): attacks nearest enemy instead
-- Defiance from hostile SUPPORT (cautious, MODERATE): no defiance possible (MODERATE < STRONG)
+- Defiance from hostile SUPPORT (cautious, MODERATE): low defiance chance (5% base)
 - Forced hostile SUPPORT: 0% coordination (existing D3 rule, regression check)
 - Hostile SUPPORT >30% casualties: campaign log entry, no mechanical effect
 
@@ -813,12 +813,12 @@ To be generated as update to `docs/PHASE7_UI_TEST_GATE.md` Gate 6 section.
 Covers:
 
 #### Defiance Display
-- [ ] STRONG/EXTREME objection → player insists → defiance message appears (distinct from objection popup)
+- [ ] MODERATE/STRONG/EXTREME objection → player insists → defiance message appears (distinct from objection popup)
 - [ ] Defiance RIGHT: Berthier text shows marshal was vindicated, trust +2 visible
 - [ ] Defiance WRONG: Berthier text shows marshal failed, trust -5 visible
 - [ ] Defiance INCONCLUSIVE (sulk): message shows marshal refused but did nothing
 - [ ] Failed roll: "discipline held" message appears, no defiance
-- [ ] MODERATE objection: NO defiance possible (regression check)
+- [ ] MODERATE defiance rare (~5% base) but possible
 - [ ] MILD concern: flavor text only, no popup, no defiance (regression check)
 
 #### Vindication Display
@@ -834,7 +834,7 @@ Covers:
 #### Relationship SUPPORT
 - [ ] Order hostile marshal to SUPPORT rival → objection popup fires
 - [ ] Aggressive + hostile: STRONG concern, defiance possible after insist
-- [ ] Cautious + hostile: MODERATE concern, no defiance
+- [ ] Cautious + hostile: MODERATE concern, low defiance chance (5% base)
 - [ ] Compromise: timed 3-turn SUPPORT → auto-expires, notification sent
 - [ ] Literal + hostile: no objection (regression check)
 
@@ -908,7 +908,7 @@ Covers:
 | Trust penalty model | Count-based, per-marshal, ratio-based | **Ratio-based** | Scales to any roster size; >65% = -2, >80% = -3 |
 | Trust penalty window | 5, 10, 15 turns | **10 turns** | Short enough to reward change, long enough to detect patterns |
 | Hostile SUPPORT (aggressive) | MODERATE, STRONG | **STRONG** | Historical resonance (Bernadotte at Jena). Defiance can fire. |
-| Hostile SUPPORT (cautious) | MILD, MODERATE, STRONG | **MODERATE** | Professional reluctance, no defiance risk. Personality distinction. |
+| Hostile SUPPORT (cautious) | MILD, MODERATE, STRONG | **MODERATE** | Professional reluctance, low defiance risk (5% base). Personality distinction. |
 | Cooperation floor | Hard block at trust 0, no floor | **No floor** | Soft costs self-regulate; hard floor removes agency in desperate situations |
 | Escalation ordering | Mood→vindication, vindication→mood | **Vindication→mood** | Rare compound events (MODERATE→EXTREME) are correct behavior |
 | Authority bounds | Unbounded, 0-100, 0-150 | **0-100** | Simple, clean, starting value is ceiling |
