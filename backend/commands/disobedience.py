@@ -144,6 +144,7 @@ def can_drill(marshal, game_state) -> bool:
     - Already drilling or drilling_locked
     - Fortified
     - Retreating
+    - In aggressive stance (executor blocks drill in aggressive stance)
     - Enemy in same region (can't train with enemy attacking!)
     """
     if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
@@ -151,6 +152,11 @@ def can_drill(marshal, game_state) -> bool:
     if getattr(marshal, 'fortified', False):
         return False
     if getattr(marshal, 'retreating', False):
+        return False
+
+    # ⚠️3 fix: Aggressive stance blocks drill (mirrors executor pre-validation)
+    from backend.models.marshal import Stance
+    if getattr(marshal, 'stance', Stance.NEUTRAL) == Stance.AGGRESSIVE:
         return False
 
     # Check for enemies in same region
@@ -197,6 +203,117 @@ def can_change_stance(marshal, target_stance: str) -> bool:
         return False
 
     return current_stance != target
+
+
+def can_fortify(marshal, game_state) -> bool:
+    """
+    Check if marshal can legally fortify.
+
+    Blocked if:
+    - Already fortified
+    - Drilling or drilling_locked
+    - Retreating
+    - In aggressive stance (executor blocks fortify in aggressive stance)
+    """
+    if getattr(marshal, 'fortified', False):
+        return False
+    if getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False):
+        return False
+    if getattr(marshal, 'retreating', False):
+        return False
+
+    from backend.models.marshal import Stance
+    if getattr(marshal, 'stance', Stance.NEUTRAL) == Stance.AGGRESSIVE:
+        return False
+
+    return True
+
+
+def _can_execute_suggestion(marshal, action_dict, game_state) -> bool:
+    """
+    Master Rule #1: Validate whether a suggested alternative action is actually
+    executable by the marshal. Used to filter fallback chains so we never suggest
+    actions that would fail executor pre-validation.
+
+    Args:
+        marshal: The marshal who would execute
+        action_dict: Dict with 'action', 'target', etc.
+        game_state: Current game state
+
+    Returns:
+        True if the action would pass basic pre-validation
+    """
+    action = action_dict.get('action', '').lower()
+    target = action_dict.get('target', '')
+
+    # Attack: needs a valid target enemy
+    if action == 'attack':
+        if not target:
+            return False
+        world = getattr(game_state, 'world', game_state) if game_state else None
+        if not world or not hasattr(world, 'marshals'):
+            return False
+        enemy = world.marshals.get(target)
+        if not enemy or enemy.strength <= 0:
+            return False
+        if getattr(marshal, 'fortified', False):
+            return False
+        return True
+
+    # Move: needs valid destination, not fortified
+    if action == 'move':
+        if not target:
+            return False
+        if getattr(marshal, 'fortified', False):
+            return False
+        return True
+
+    # Defend: always valid
+    if action == 'defend':
+        return True
+
+    # Drill: delegate to can_drill
+    if action == 'drill':
+        return can_drill(marshal, game_state)
+
+    # Fortify: delegate to can_fortify
+    if action == 'fortify':
+        return can_fortify(marshal, game_state)
+
+    # Stance change: delegate to can_change_stance
+    if action == 'stance_change':
+        target_stance = action_dict.get('target_stance') or target or ''
+        if not target_stance:
+            return False
+        return can_change_stance(marshal, target_stance)
+
+    # Retreat: needs danger
+    if action == 'retreat':
+        if getattr(marshal, 'retreating', False):
+            return False
+        if marshal.location == "Paris":
+            return False
+        world = getattr(game_state, 'world', game_state) if game_state else None
+        if world and hasattr(world, 'is_in_danger'):
+            return world.is_in_danger(marshal.name)
+        return False
+
+    # Recruit: generally always valid
+    if action == 'recruit':
+        return True
+
+    # Form square: needs infantry (not cavalry/artillery), not already in square
+    if action == 'form_square':
+        if getattr(marshal, 'square_formation', False):
+            return False
+        if getattr(marshal, 'cavalry', False):
+            return False
+        if getattr(marshal, 'artillery', False):
+            return False
+        return True
+
+    # Default: assume valid for unknown actions
+    return True
 
 
 def get_enemies_in_region(marshal, game_state) -> List:
@@ -684,12 +801,17 @@ class DisobedienceSystem:
             'awaiting_choice': True,
         }
 
-    def _generate_alternative(self, marshal, order: Dict, game_state) -> Dict:
+    def _generate_alternative(self, marshal, order: Dict, game_state) -> Optional[Dict]:
         """
         Generate marshal's suggested alternative based on personality.
 
-        Uses get_valid_actions() to ensure only executable actions are suggested.
-        ONLY uses: attack, defend, move (the 3 core actions)
+        Master Rule #1: Every candidate is validated via _can_execute_suggestion()
+        before being returned. Returns None if no valid alternative exists
+        (caller must demote to MILD per Master Rule #2).
+
+        # TODO (V2b Session 2): Switch to fog-filtered helpers.
+        # Currently uses omniscient get_enemies_in_range/_get_strength_ratio_for_alternative.
+        # V2 triggers already use fog-aware helpers — this creates a perception mismatch.
         """
         # ════════════════════════════════════════════════════════════
         # RETREAT STATE: Force RECRUIT as alternative (no nonsense suggestions)
@@ -710,47 +832,53 @@ class DisobedienceSystem:
         attack_target = enemies[0].name if enemies else None
         move_target = self._get_move_toward_enemy(marshal, game_state)
 
+        # Helper: build candidate and validate
+        def _attack(target):
+            return {'action': 'attack', 'target': target}
+
+        def _move(target):
+            return {'action': 'move', 'target': target}
+
+        def _defend():
+            return {'action': 'defend', 'target': marshal.location}
+
+        def _drill():
+            return {'action': 'drill', 'target': marshal.location}
+
+        def _fortify():
+            return {'action': 'fortify', 'target': marshal.location}
+
+        def _stance(stance):
+            return {'action': 'stance_change', 'target': stance, 'target_stance': stance}
+
+        def _retreat():
+            return {'action': 'retreat', 'target': 'toward_paris'}
+
+        def _first_valid(candidates):
+            """Master Rule #1: return first executable candidate, or None."""
+            for c in candidates:
+                if c is not None and _can_execute_suggestion(marshal, c, game_state):
+                    return c
+            return None
+
         # ════════════════════════════════════════════════════════════
         # AGGRESSIVE: Wants action - attack if possible, else move toward enemy
         # ════════════════════════════════════════════════════════════
         if personality == Personality.AGGRESSIVE:
-            if action == 'defend':
-                if attack_target:
-                    return {'action': 'attack', 'target': attack_target}
-                if move_target:
-                    return {'action': 'move', 'target': move_target}
-                # No valid aggressive alternative — aggressive stance shows intent
-                return {'action': 'stance_change', 'target': 'aggressive', 'target_stance': 'aggressive'}
-
-            # FIX: Aggressive marshal ordered to fortify - suggest attack or drill
-            if action == 'fortify':
-                if attack_target:
-                    return {'action': 'attack', 'target': attack_target}
-                # If no enemy nearby, suggest drill (at least it leads to +Shock)
-                if can_drill(marshal, game_state):
-                    return {'action': 'drill', 'target': marshal.location}
-                # Can't drill — move toward nearest enemy
-                if move_target:
-                    return {'action': 'move', 'target': move_target}
-                # No options — aggressive stance
-                return {'action': 'stance_change', 'target': 'aggressive', 'target_stance': 'aggressive'}
-
-            # Aggressive marshal ordered to drill - wants to march toward enemy
-            if action == 'drill':
-                if attack_target:
-                    return {'action': 'attack', 'target': attack_target}
-                if move_target:
-                    return {'action': 'move', 'target': move_target}
-                # No enemies reachable — aggressive stance shows intent
-                return {'action': 'stance_change', 'target': 'aggressive', 'target_stance': 'aggressive'}
-
-            # Aggressive marshal ordered to hold/wait/form_square — same as defend
-            if action in ('hold', 'wait', 'form_square'):
-                if attack_target:
-                    return {'action': 'attack', 'target': attack_target}
-                if move_target:
-                    return {'action': 'move', 'target': move_target}
-                return {'action': 'stance_change', 'target': 'aggressive', 'target_stance': 'aggressive'}
+            # All defensive/passive actions use the same aggressive fallback chain
+            if action in ('defend', 'fortify', 'hold', 'wait', 'form_square', 'drill',
+                          'retreat', 'stance_change'):
+                candidates = [
+                    _attack(attack_target) if attack_target else None,
+                    _move(move_target) if move_target else None,
+                    _drill() if action != 'drill' else None,  # Don't suggest what was ordered
+                    _stance('aggressive'),
+                ]
+                result = _first_valid(candidates)
+                if result:
+                    return result
+                # Fallback exhausted — return None (caller demotes to MILD)
+                return None
 
         # ════════════════════════════════════════════════════════════
         # CAUTIOUS: Context-aware alternatives based on odds
@@ -761,189 +889,215 @@ class DisobedienceSystem:
                 strength_ratio = self._get_strength_ratio_for_alternative(marshal, order.get('target'), game_state)
 
                 if strength_ratio is not None:
-                    if strength_ratio <= 0.33:  # 3:1+ outnumbered - RETREAT (too dangerous to hold)
-                        is_retreating = getattr(marshal, 'retreating', False)
-                        if not is_retreating and marshal.location != "Paris":
-                            return {'action': 'retreat', 'target': 'toward_paris'}
-                        return {'action': 'defend', 'target': marshal.location}
-                    elif strength_ratio <= 0.5:  # 2:1 outnumbered - FORTIFY (dig in for maximum defense)
-                        is_fortified = getattr(marshal, 'fortified', False)
-                        is_drilling = getattr(marshal, 'drilling', False) or getattr(marshal, 'drilling_locked', False)
-                        is_retreating = getattr(marshal, 'retreating', False)
-                        if not is_fortified and not is_drilling and not is_retreating:
-                            return {'action': 'fortify', 'target': marshal.location}
-                        return {'action': 'defend', 'target': marshal.location}
-                    else:  # 1.5:1 - DEFENSIVE STANCE (careful posture, not full fortification)
-                        return {'action': 'stance_change', 'target': 'defensive', 'target_stance': 'defensive'}
+                    if strength_ratio <= 0.33:  # 3:1+ outnumbered
+                        candidates = [_retreat(), _fortify(), _defend()]
+                    elif strength_ratio <= 0.5:  # 2:1 outnumbered
+                        candidates = [_fortify(), _stance('defensive'), _defend()]
+                    else:  # 1.5:1 — mild concern area
+                        candidates = [_stance('defensive'), _fortify(), _defend()]
+                else:
+                    candidates = [_stance('defensive'), _fortify(), _defend()]
 
-                # Default: defend
-                return {'action': 'defend', 'target': marshal.location}
+                result = _first_valid(candidates)
+                if result:
+                    return result
+                return None
+
+            # Move through enemy territory — cautious wants safety
+            if action == 'move':
+                candidates = [_fortify(), _stance('defensive'), _defend()]
+                result = _first_valid(candidates)
+                if result:
+                    return result
+                return None
+
+            # Defend/fortify with artillery streak — wants to keep bombarding
+            if action in ('defend', 'fortify'):
+                candidates = [
+                    _attack(attack_target) if attack_target else None,
+                    _move(move_target) if move_target else None,
+                    _stance('defensive'),
+                ]
+                result = _first_valid(candidates)
+                if result:
+                    return result
+                return None
 
         # ════════════════════════════════════════════════════════════
         # BALANCED/LITERAL/LOYAL: Context-dependent
+        # No V2 evaluator — no current marshals use this personality.
+        # Build when balanced/loyal marshals ship (1805 expansion).
         # ════════════════════════════════════════════════════════════
         elif personality in (Personality.BALANCED, Personality.LITERAL, Personality.LOYAL):
             if action == 'attack':
-                return {'action': 'defend', 'target': marshal.location}
-            elif action == 'defend' and attack_target:
-                return {'action': 'attack', 'target': attack_target}
+                return _first_valid([_defend()])
+            elif action == 'defend':
+                return _first_valid([
+                    _attack(attack_target) if attack_target else None,
+                    _move(move_target) if move_target else None,
+                ])
 
         # ════════════════════════════════════════════════════════════
         # DEFAULT FALLBACK: Opposite action with validation
         # ════════════════════════════════════════════════════════════
         if action == 'attack':
-            return {'action': 'defend', 'target': marshal.location}
+            return _first_valid([_defend()])
         elif action == 'defend':
-            if attack_target:
-                return {'action': 'attack', 'target': attack_target}
-            if move_target:
-                return {'action': 'move', 'target': move_target}
-            return {'action': 'defend', 'target': marshal.location}
+            return _first_valid([
+                _attack(attack_target) if attack_target else None,
+                _move(move_target) if move_target else None,
+            ])
         elif action == 'move':
-            return {'action': 'fortify', 'target': marshal.location}
+            return _first_valid([_fortify(), _defend()])
         else:
-            return {'action': 'defend', 'target': marshal.location}
+            return _first_valid([_defend()])
 
     def _find_compromise(
         self,
         marshal,
         original: Dict,
-        alternative: Dict,
+        alternative: Optional[Dict],
         game_state
     ) -> Optional[Dict]:
         """
         Find valid compromise between original order and alternative.
 
-        Context-aware and personality-driven:
-        - Checks what actions are actually LEGAL
-        - Picks compromises that fit marshal's personality
-        - Falls back gracefully when preferred options aren't available
+        Master Rule #1: All candidates validated via _can_execute_suggestion().
+        Returns None if no distinct compromise exists (caller demotes to MILD).
 
-        Priority order for AGGRESSIVE (wants action):
-        1. aggressive_stance (if near enemies, ready to charge)
-        2. drill (if no enemies in region, prepare for shock attack)
-        3. move toward enemy (if valid move exists)
-        4. defend (last resort)
+        The compromise must differ from BOTH the original action AND the preferred
+        alternative. If it matches either, it's not a real compromise.
 
-        Priority order for CAUTIOUS (wants safety):
-        1. defensive_stance (careful posture)
-        2. fortify (if can fortify)
-        3. defend (hold position)
+        # TODO (V2b Session 2): Switch to fog-filtered helpers.
+        # Currently uses omniscient get_enemies_in_range/_get_strength_ratio_for_alternative.
+        # V2 triggers already use fog-aware helpers — this creates a perception mismatch.
         """
         orig_action = original.get('action', '').lower()
-        alt_action = alternative.get('action', '').lower()
+        alt_action = (alternative.get('action', '') if alternative else '').lower()
         personality = get_personality(marshal.personality)
 
         # Get context
+        move_target = self._get_move_toward_enemy(marshal, game_state)
         enemies_in_range = get_enemies_in_range(marshal, game_state)
-        enemies_in_region = get_enemies_in_region(marshal, game_state)
-        has_enemies_nearby = len(enemies_in_range) > 0
-        is_engaged = len(enemies_in_region) > 0
+
+        # Helper: candidates that differ from both original and preferred
+        def _first_valid_distinct(candidates):
+            """Return first executable candidate that differs from original and preferred."""
+            for c in candidates:
+                if c is None:
+                    continue
+                if not _can_execute_suggestion(marshal, c, game_state):
+                    continue
+                c_action = c.get('action', '').lower()
+                c_target = (c.get('target_stance') or c.get('target', '')).lower()
+                # Must differ from original
+                if c_action == orig_action:
+                    # Same action type — check if target also matches
+                    orig_target = (original.get('target_stance') or original.get('target', '')).lower()
+                    if c_target == orig_target:
+                        continue
+                # Must differ from preferred alternative
+                if alternative and c_action == alt_action:
+                    alt_target = (alternative.get('target_stance') or alternative.get('target', '')).lower()
+                    if c_target == alt_target:
+                        continue
+                return c
+            return None
+
+        # Shorthand builders
+        def _defend():
+            return {'action': 'defend', 'target': marshal.location}
+
+        def _drill():
+            return {'action': 'drill', 'target': marshal.location}
+
+        def _fortify():
+            return {'action': 'fortify', 'target': marshal.location}
+
+        def _stance(s):
+            return {'action': 'stance_change', 'target': s, 'target_stance': s}
+
+        def _move_enemy():
+            return {'action': 'move', 'target': move_target} if move_target else None
+
+        def _attack_nearest():
+            return {'action': 'attack', 'target': enemies_in_range[0].name} if enemies_in_range else None
 
         # ════════════════════════════════════════════════════════════
-        # AGGRESSIVE MARSHAL: Player wants passive, marshal wants action
-        # Compromise leans toward action-readiness
+        # AGGRESSIVE MARSHAL: Compromise leans toward action-readiness
         # ════════════════════════════════════════════════════════════
         if personality == Personality.AGGRESSIVE:
-            # Player ordering defensive action (defend, fortify, defensive_stance)
-            if orig_action in ('defend', 'fortify', 'defensive_stance', 'stance_change', 'drill', 'move', 'hold', 'wait', 'form_square'):
-                # Near enemies? Aggressive stance = ready to charge
-                if has_enemies_nearby and can_change_stance(marshal, 'aggressive'):
-                    return {
-                        'action': 'stance_change',
-                        'target': 'aggressive',
-                        'target_stance': 'aggressive',
-                    }
-
-                # No enemies in region? Drill for shock bonus (skip if original action is drill)
-                if orig_action != 'drill' and not is_engaged and can_drill(marshal, game_state):
-                    return {
-                        'action': 'drill',
-                        'target': marshal.location,
-                    }
-
-                # Can move toward enemy?
-                move_target = self._get_move_toward_enemy(marshal, game_state)
-                if move_target:
-                    return {'action': 'move', 'target': move_target}
-
-                # Fallback: defend (at least stay mobile)
-                return {'action': 'defend', 'target': marshal.location}
+            candidates = [
+                _stance('aggressive'),
+                _drill() if orig_action != 'drill' else None,
+                _move_enemy(),
+                _defend(),
+            ]
+            return _first_valid_distinct(candidates)
 
         # ════════════════════════════════════════════════════════════
-        # CAUTIOUS MARSHAL: Player wants aggression, marshal wants safety
-        # Compromise leans toward defensive readiness
+        # CAUTIOUS MARSHAL: Compromise leans toward defensive readiness
         # ════════════════════════════════════════════════════════════
         elif personality == Personality.CAUTIOUS:
-            # Player ordering aggressive action (attack, aggressive_stance)
-            if orig_action in ('attack', 'aggressive_stance', 'stance_change', 'move'):
-                # Defensive stance = careful but not immobile
-                # Skip if Trust already offers stance_change(defensive) to avoid duplicate
-                alt_is_defensive_stance = (
-                    alt_action == 'stance_change' and
-                    (alternative.get('target_stance') or alternative.get('target', '')).lower() == 'defensive'
-                )
-                if not alt_is_defensive_stance and can_change_stance(marshal, 'defensive'):
-                    return {
-                        'action': 'stance_change',
-                        'target': 'defensive',
-                        'target_stance': 'defensive',
-                    }
-
-                # Can fortify? Dig in for safety (skip if Trust already offers fortify)
-                is_fortified = getattr(marshal, 'fortified', False)
-                alt_is_fortify = (alt_action == 'fortify')
-                if not alt_is_fortify and not is_fortified and not is_engaged and can_drill(marshal, game_state):
-                    # Use can_drill check as proxy for "not blocked"
-                    return {
-                        'action': 'fortify',
-                        'target': marshal.location,
-                    }
-
-                # Fallback: defend (always distinct from attack/move/stance_change)
-                return {'action': 'defend', 'target': marshal.location}
+            candidates = [
+                _stance('defensive'),
+                _fortify(),
+                _defend(),
+            ]
+            return _first_valid_distinct(candidates)
 
         # ════════════════════════════════════════════════════════════
         # OTHER PERSONALITIES / FALLBACK: Use COMPROMISE_RULES table
+        # Gaps in table are fine — caught by Master Rule #2 if no valid
+        # distinct compromise exists.
         # ════════════════════════════════════════════════════════════
         compromise_action = COMPROMISE_RULES.get((orig_action, alt_action))
         if not compromise_action:
             compromise_action = COMPROMISE_RULES.get((alt_action, orig_action))
 
         if compromise_action:
-            # Find a valid target for this compromise action
             if compromise_action == 'defend':
-                return {'action': 'defend', 'target': marshal.location}
-
+                c = _defend()
             elif compromise_action == 'move':
-                move_target = self._get_move_toward_enemy(marshal, game_state)
-                if move_target:
-                    return {'action': 'move', 'target': move_target}
-                return {'action': 'defend', 'target': marshal.location}
-
+                c = _move_enemy()
+                if not c:
+                    c = _defend()
             elif compromise_action == 'attack':
-                if enemies_in_range:
-                    return {'action': 'attack', 'target': enemies_in_range[0].name}
-                move_target = self._get_move_toward_enemy(marshal, game_state)
-                if move_target:
-                    return {'action': 'move', 'target': move_target}
-                return {'action': 'defend', 'target': marshal.location}
-
+                c = _attack_nearest()
+                if not c:
+                    c = _move_enemy()
+                if not c:
+                    c = _defend()
             elif compromise_action == 'drill':
-                if can_drill(marshal, game_state):
-                    return {'action': 'drill', 'target': marshal.location}
-                return {'action': 'defend', 'target': marshal.location}
-
+                c = _drill()
+                if not _can_execute_suggestion(marshal, c, game_state):
+                    c = _defend()
             elif compromise_action == 'neutral_stance':
-                if can_change_stance(marshal, 'neutral'):
-                    return {'action': 'stance_change', 'target': 'neutral', 'target_stance': 'neutral'}
-                return {'action': 'defend', 'target': marshal.location}
-
+                c = _stance('neutral')
+                if not _can_execute_suggestion(marshal, c, game_state):
+                    c = _defend()
+            elif compromise_action == 'fortify':
+                c = _fortify()
+                if not _can_execute_suggestion(marshal, c, game_state):
+                    c = _defend()
             else:
-                return {'action': compromise_action, 'target': marshal.location}
+                c = {'action': compromise_action, 'target': marshal.location}
 
-        # No compromise rule found - return defend as safe fallback
-        return {'action': 'defend', 'target': marshal.location}
+            # Validate the compromise is distinct from both original and preferred
+            if c and _can_execute_suggestion(marshal, c, game_state):
+                c_action = c.get('action', '').lower()
+                c_target = (c.get('target_stance') or c.get('target', '')).lower()
+                orig_target = (original.get('target_stance') or original.get('target', '')).lower()
+                is_same_as_original = (c_action == orig_action and c_target == orig_target)
+                is_same_as_alt = False
+                if alternative:
+                    alt_target = (alternative.get('target_stance') or alternative.get('target', '')).lower()
+                    is_same_as_alt = (c_action == alt_action and c_target == alt_target)
+                if not is_same_as_original and not is_same_as_alt:
+                    return c
+
+        # No valid distinct compromise found
+        return None
 
     def _get_move_toward_enemy(self, marshal, game_state) -> Optional[str]:
         """

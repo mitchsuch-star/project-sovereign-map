@@ -1113,7 +1113,9 @@ def evaluate_situation(marshal, action: str, order: Dict, game_state) -> Concern
     Returns:
         ConcernLevel for this situation
     """
-    # Universal trigger: form_square with both cavalry AND artillery nearby
+    # Intentional: universal MILD fires before personality evaluator when BOTH
+    # cavalry AND artillery adjacent. Ambiguous tactical situation = grumble only.
+    # Aggressive MODERATE only fires for cavalry-only threat (clear bad call).
     if action == "form_square":
         world = _get_world(game_state)
         if world:
@@ -1134,7 +1136,8 @@ def evaluate_situation(marshal, action: str, order: Dict, game_state) -> Concern
     evaluator = PERSONALITY_EVALUATORS.get(personality)
 
     if evaluator is None:
-        # Unknown personality (balanced, loyal, etc.) = no objection in V2a
+        # No V2 evaluator — no current marshals use balanced/loyal personality.
+        # Build when balanced/loyal marshals ship (1805 expansion).
         return ConcernLevel.NONE
 
     return evaluator(marshal, action, order, game_state)

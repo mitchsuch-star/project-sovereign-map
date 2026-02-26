@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** February 24, 2026 (Phase 7b Session 66)
+> **Last Updated:** February 26, 2026 (V2b Objection Audit Cleanup)
 
 ---
 
@@ -15,7 +15,7 @@
 | **6** | **Core Campaign Systems** | **COMPLETE** |
 | **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE, Top Bar + Dispatch COMPLETE, Strategic Ledger COMPLETE, Marshal Management UI COMPLETE, Tooltips ABSORBED into Map Renderer, Tutorial Infrastructure DEFERRED to Pre-EA. Remaining: Map Renderer — blocked on art commission) |
 | **7 Core** | **Multi-Marshal Coordination** | **Spec COMPLETE + AUDITED + SCOPED.** 7 sessions (57-61a, 61b, 64). ~246 tests. |
-| 7b | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b, Jealousy | Planned (deferred from 7 Core). Coalition Trigger moved to Phase 8. |
+| 7b | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b, Jealousy | **IN PROGRESS** — V2b COMPLETE, Tactical Triangle COMPLETE. Remaining: Jealousy (NEEDS DESIGN), Gneisenau (1805). Coalition Trigger moved to Phase 8. |
 | 8 | Diplomacy & Peace | Planned |
 | 8.5 | Events, Goals & National Identity | Planned |
 | -- | **STEAM PAGE + LLC** | **After 8.5** |
@@ -317,20 +317,21 @@ Design approved. See `docs/TACTICAL_TRIANGLE_SPEC.md` for full spec.
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| **V2b: Defiance/Vindication** | STRONG/EXTREME concerns trigger defiance. 40% hard cap, vindication decay, authority feedback loop, fog migration, relationship SUPPORT objections. Full spec: `V2B_DEFIANCE_SPEC.md`. ~135 est. tests, 2 sessions. | Medium | **DESIGN LOCKED** — ready for implementation |
+| **V2b: Defiance/Vindication** | STRONG/EXTREME concerns trigger defiance. 40% hard cap, vindication decay, authority feedback loop, fog migration, relationship SUPPORT objections. Full spec: `V2B_DEFIANCE_SPEC.md`. Sessions 0-3 + audit cleanup. | Medium | **COMPLETE** |
 | **Jealousy system** | Marshal getting all glory → others resent. Needs multi-marshal battle data from Phase 7. Open: trigger threshold, consequence type, duration, objection interaction. | Medium | Deferred — NEEDS DESIGN |
 | **Cross-nation coordination** | Coalition partners (Britain/Prussia) coordinate. Requires Coalition Trigger or `allied_nations` mapping. See amendments C3. | Medium | Deferred |
 | **Gneisenau Staff Work** | +10% ally bonus — Coalition-specific advantage. Deferred to 1805 full campaign. | Low | Deferred (1805) |
 
 **Moved to Phase 8:** Coalition Trigger — threat mechanics are inherently diplomatic and should ship alongside peace treaties and nation relations.
 
-### V2b Audit Findings (from V2a audit)
+### V2b Audit Findings (from V2a audit) — RESOLVED
 
-Items scaffolded in V2a that need wiring in V2b:
-- **Defensive vindication:** `pending_defensive_vindication` field exists and serializes, but nothing in turn_manager.py reads/writes it.
-- **Vindication decay:** Spec says -1 per 3 turns of no objection activity. Not implemented.
+All items shipped in V2b Sessions 0-3 + audit cleanup:
+- **Defensive vindication:** Wired in Session 1 (creation, resolution, stale clearing).
+- **Vindication decay:** Implemented (-1 per 3 turns of no objection activity).
 - **Idle marshal objection:** Moved to V2a Unit 6 (see V2a section above).
-- **Aggressive trigger escalation:** Aggressive personality stance_change to defensive is always MILD. Should escalate to MODERATE/STRONG when weak enemy is adjacent (beatable odds). Mirror `evaluate_cautious` ratio-based scaling pattern but inverted — aggressive gets MORE opposed when fight looks winnable.
+- **Aggressive trigger escalation:** Wired via vindication escalation (v_score > 0 → +1 ConcernLevel).
+- **Objection audit cleanup:** Master Rules #1/#2 — validated fallback chains + exhaust→MILD demotion. 10 flagged issues fixed, 4 design notes documented.
 
 ### AI Enhancements for Scale (1805)
 

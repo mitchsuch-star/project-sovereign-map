@@ -754,37 +754,51 @@ Takes priority if higher than personality-based concern. Includes timed SUPPORT 
 
 ### Alternative Generation by Personality
 
+All candidates validated via `_can_execute_suggestion()` (Master Rule #1). If entire chain exhausts, returns None → executor demotes to MILD (Master Rule #2).
+
 #### AGGRESSIVE
-When ordered to defend/wait/hold/form_square/fortify:
-- If enemy in range: Suggest **Attack**
-- If no enemy but can move toward one: Suggest **Move**
-- If neither: Suggest **Aggressive Stance** (fallback)
-
-When ordered to drill:
-- If enemy in range: Suggest **Attack**
-- If no enemy but can move toward one: Suggest **Move**
-- Otherwise: Suggest **Aggressive Stance**
-
-When ordered to defend with no enemies nearby:
-- Suggest **Aggressive Stance** (not defend — ensures Trust differs from original)
+When ordered to defend/fortify/hold/wait/form_square/drill/retreat/stance_change — unified fallback chain:
+1. **Attack** nearest enemy (if target exists)
+2. **Move** toward enemy (if valid path)
+3. **Drill** (if not the ordered action and can_drill passes)
+4. **Aggressive Stance** (if can change)
+5. → None (demote to MILD)
 
 #### CAUTIOUS (Context-Aware)
 When ordered to attack:
-- If 3:1+ outnumbered: Suggest **Retreat** (too dangerous to hold)
-- If 2:1 outnumbered: Suggest **Fortify** (dig in for maximum defense)
-- If 1.5:1 outnumbered: Suggest **Defensive Stance** (careful posture)
-- Otherwise: Suggest **Defend**
+- 3:1+ outnumbered: **Retreat** → **Fortify** → **Defend**
+- 2:1 outnumbered: **Fortify** → **Defensive Stance** → **Defend**
+- 1.5:1 or default: **Defensive Stance** → **Fortify** → **Defend**
 
-| Odds Against | Suggested Alternative | Rationale |
-|--------------|----------------------|-----------|
-| 3:1+ outnumbered | **RETREAT** | Too dangerous to hold |
-| 2:1 outnumbered | **FORTIFY** | Dig in for maximum defense |
-| 1.5:1 outnumbered | **DEFENSIVE STANCE** | Careful posture |
+When ordered to move (through enemy): **Fortify** → **Defensive Stance** → **Defend**
+
+When ordered to defend/fortify (artillery streak): **Attack** → **Move** → **Defensive Stance** → None
 
 #### BALANCED/LITERAL/LOYAL
-- Attack ordered: Suggest **Defend**
-- Defend ordered (with enemy nearby): Suggest **Attack**
+- Attack ordered: **Defend**
+- Defend ordered (with enemy nearby): **Attack** → **Move**
 - Otherwise: Follow default fallback
+
+### Compromise Generation by Personality
+
+Compromises must differ from BOTH original order AND preferred alternative. Validated via `_can_execute_suggestion()`.
+
+#### AGGRESSIVE
+Chain: **Aggressive Stance** → **Drill** (skip if ordered) → **Move toward enemy** → **Defend**
+
+#### CAUTIOUS
+Chain: **Defensive Stance** → **Fortify** → **Defend**
+
+#### Other / COMPROMISE_RULES table
+Falls through to static table. If no distinct compromise found → None (demote to MILD).
+
+### Master Rule #2: Exhaust→MILD Demotion
+
+After `_generate_alternative` and `_find_compromise` run, executor validates:
+- If preferred is None → demote
+- If preferred == original → demote
+- If preferred == compromise → demote
+Demoted concerns become MILD (flavor text, no popup). This catches mood-variance-promoted MILDs that can't produce real popups.
 
 ### Strategic Command Objections (Phase M)
 

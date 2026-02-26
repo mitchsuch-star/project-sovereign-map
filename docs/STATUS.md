@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 26, 2026 (V2b Audit Pass 2: Objection Table Gaps + Defiance Wiring)
+> **Last Updated:** February 26, 2026 (V2b Audit Pass 3: Master Rules + Exhaustive Combo Audit)
 
 ---
 
@@ -45,6 +45,20 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7b Sessions
+
+### Feb 26 — V2b Audit Pass 3: Master Rules + Exhaustive Combo Audit
+
+**4165 tests (3 skipped). Exhaustive audit of every personality × action combination through V2 trigger + V1 alternative/compromise. Two master rules implemented. 10 flagged issues fixed, 4 design notes documented.**
+
+**Master Rule #1 — Validate before suggesting:** New `_can_execute_suggestion()` helper validates every fallback candidate. New `can_fortify()` helper. `can_drill()` now checks aggressive stance. All fallback chains loop through candidates, skip invalid options, return first valid.
+
+**Master Rule #2 — Exhaust→MILD demotion:** Post-alternative-generation check in executor. If preferred==compromise, or preferred==original, or no valid alternatives exist → demote to MILD (grumble, no popup). Never show popup with fake choices.
+
+**10 issues fixed:** ⚠️1 (aggressive preferred==compromise across 6 actions), ⚠️2 (already in aggressive stance), ⚠️3 (drill suggested but blocked by aggressive stance), ⚠️4 (cautious fortify both=defend), ⚠️5 (aggressive retreat mood variance), ⚠️6 (aggressive stance_change mood variance), ⚠️8 (cautious move already fortified), ⚠️9 (cautious defend all-buttons-identical), ⚠️10 (cautious fortify artillery both=defend).
+
+**4 design notes documented:** D1 (fog disconnect V2↔V1 — TODO comment added), D2 (balanced/loyal V1 triggers orphaned — comment added), D3 (universal form_square MILD suppresses aggressive MODERATE — intentional, comment added), D4 (COMPROMISE_RULES gaps — caught by Master Rule #2).
+
+**Files modified:** `disobedience.py` (`_can_execute_suggestion`, `can_fortify`, `can_drill` stance check, `_generate_alternative` rewrite, `_find_compromise` rewrite), `executor.py` (Master Rule #2 demotion block), `objection_v2.py` (design comments D2/D3).
 
 ### Feb 26 — V2b Audit Pass 2: Objection Table Gaps + Defiance Wiring
 
