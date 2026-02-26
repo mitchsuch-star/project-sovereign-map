@@ -6104,6 +6104,7 @@ RETREAT RECOVERY (3 turns):
                 result = self.execute({"command": tactical_cmd}, game_state)
                 result["variable_action_cost"] = 1
                 result["trust_change"] = v2_trust_gain
+                result["_ap_consumed_by_execute"] = True  # execute() already consumed AP
                 return result
 
         elif response == "compromise":
@@ -10264,7 +10265,161 @@ RETREAT RECOVERY (3 turns):
         world.pending_strategic_objection = None
 
         # Record response in authority tracker (V2b: enriched with turn)
-        world.authority_tracker.record_response(choice, world.current_turn)
+        authority_event = world.authority_tracker.record_response(choice, world.current_turn)
+
+        # ════════════════════════════════════════════════════════════
+        # C1 fix: V2b STRATEGIC DEFIANCE CHECK
+        # Mirror of tactical defiance (Step 17): after "insist" + STRONG/EXTREME
+        # ════════════════════════════════════════════════════════════
+        concern_level_str = objection.get("concern_level", "NONE")
+        concern_level_val = ConcernLevel[concern_level_str] if concern_level_str in ConcernLevel.__members__ else ConcernLevel.NONE
+
+        if choice == "insist" and marshal and concern_level_val >= ConcernLevel.STRONG:
+            from backend.commands.defiance import (
+                calculate_defiance_chance, get_defiant_action,
+                defiance_succeeded, apply_defiance_outcome
+            )
+            from backend.notifications import (
+                create_notification, NotificationPriority, MARSHAL_DEFIED_ORDER
+            )
+
+            # Apply insist trust penalty up front (normally done by
+            # _handle_strategic_objection_response, but defiance may return early).
+            # Track via flag so we can skip it in the fallthrough path.
+            v2_insist_penalty = original_command.get("v2_insist_penalty", -10)
+            _trust_penalty_applied = False
+            if hasattr(marshal, 'trust'):
+                marshal.trust.modify(v2_insist_penalty)
+                _trust_penalty_applied = True
+
+            defiance_chance = calculate_defiance_chance(marshal, concern_level_val, world)
+            defiance_roll = random.random()
+
+            if defiance_roll < defiance_chance:
+                # ═══ STRATEGIC DEFIANCE FIRES ═══
+                print(f"  [DEFIANCE] {marshal_name} defies strategic order ({strategic_type})! "
+                      f"(roll={defiance_roll:.2f} < chance={defiance_chance:.2f})")
+
+                original_action = strategic_type  # e.g., "HOLD", "SUPPORT", "PURSUE"
+                defiant_action = get_defiant_action(marshal, original_action)
+
+                if defiant_action is None:
+                    defiant_action = "wait"
+
+                # Consume 2 AP for strategic defiance (matches strategic insist cost)
+                is_literal = getattr(marshal, 'personality', '') == 'literal'
+                strategic_cost = 1 if is_literal else 2
+                for _ in range(min(strategic_cost, world.actions_remaining)):
+                    world.use_action(strategic_type)
+
+                pre_battle_strength = marshal.strength
+                defiant_command = {"action": defiant_action, "marshal": marshal_name}
+
+                if defiant_action == "bombardment":
+                    nearest = world.find_nearest_enemy(marshal.location)
+                    if nearest and nearest[1] <= 2:
+                        defiant_execution = self._execute_bombardment(
+                            marshal, nearest[0], world, game_state
+                        )
+                    else:
+                        defiant_action = "wait"
+                        defiant_execution = self._execute_wait(marshal, world, game_state)
+                elif defiant_action == "attack":
+                    defiant_execution = self._execute_auto_assign_attack(defiant_command, game_state)
+                    if not defiant_execution.get("success"):
+                        defiant_action = "wait"
+                        defiant_execution = self._execute_wait(marshal, world, game_state)
+                elif defiant_action == "fortify":
+                    defiant_execution = self._execute_fortify(
+                        {"marshal": marshal_name}, game_state
+                    )
+                    if not defiant_execution.get("success"):
+                        defiant_action = "wait"
+                        defiant_execution = self._execute_wait(marshal, world, game_state)
+                else:
+                    defiant_execution = self._execute_wait(marshal, world, game_state)
+
+                # Evaluate outcome
+                battle_result = defiant_execution.get("battle_result") or defiant_execution.get("bombardment_result")
+                outcome = defiance_succeeded(marshal, defiant_action, battle_result, pre_battle_strength)
+
+                # Apply outcome table
+                outcome_result = apply_defiance_outcome(marshal, outcome, world)
+
+                # M3 fix: register defensive vindication for deferred evaluation
+                if defiant_action == "fortify" and defiant_execution.get("success"):
+                    world.vindication_tracker.pending_defensive_vindication[marshal_name] = {
+                        "turn": world.current_turn,
+                        "source": "defiance",
+                    }
+
+                # Fire notification
+                world.notifications.add(create_notification(
+                    MARSHAL_DEFIED_ORDER,
+                    NotificationPriority.HIGH,
+                    f"{marshal_name} defied your strategic order!",
+                    f"{marshal_name} defied your order to {_action_display_name(strategic_type)} "
+                    f"and chose to {_action_display_name(defiant_action)} instead.",
+                    world.current_turn,
+                ))
+
+                # Log campaign event
+                world.log_event({
+                    "type": "defiance",
+                    "marshal": marshal_name,
+                    "original_action": strategic_type,
+                    "defiance_action": defiant_action,
+                    "outcome": outcome_result["outcome_type"],
+                    "turn": world.current_turn,
+                })
+
+                # Build response
+                action_desc = _action_display_name(defiant_action)
+                defiance_message = (
+                    f"Despite your insistence, {marshal_name} {action_desc} instead of "
+                    f"{_action_display_name(strategic_type)}!\n\n"
+                    f"{outcome_result['berthier_text']}"
+                )
+                if defiant_execution.get("message"):
+                    defiance_message += f"\n\n{defiant_execution['message']}"
+
+                result = {
+                    "success": True,
+                    "message": defiance_message,
+                    "objection_resolved": True,
+                    "choice": choice,
+                    "disobeyed": False,
+                    "defiance": True,
+                    "defiance_action": defiant_action,
+                    "defiance_outcome": outcome_result["outcome_type"],
+                    "trust_change": v2_insist_penalty + outcome_result["trust_change"],
+                    "authority_change": outcome_result["authority_change"],
+                    "berthier_text": outcome_result["berthier_text"],
+                    "events": defiant_execution.get("events", []),
+                    "action_info": defiant_execution.get("action_info", {"remaining": world.actions_remaining}),
+                    "action_summary": world.get_action_summary(),
+                    "new_state": game_state,
+                }
+                if defiant_execution.get("battle_report"):
+                    result["battle_report"] = defiant_execution["battle_report"]
+                if authority_event:
+                    result["authority_event"] = authority_event
+                return result
+
+            else:
+                # ═══ STRATEGIC DEFIANCE ROLL FAILS — marshal obeys reluctantly ═══
+                print(f"  [DEFIANCE] Strategic roll failed for {marshal_name} "
+                      f"(roll={defiance_roll:.2f} >= chance={defiance_chance:.2f})")
+                from backend.commands.defiance import apply_defiance_outcome
+                outcome_result = apply_defiance_outcome(marshal, "failed_roll", world)
+                _failed_roll_berthier = outcome_result["berthier_text"]
+
+            # Trust penalty was already applied above — zero out to prevent
+            # _handle_strategic_objection_response from applying it again.
+            if _trust_penalty_applied:
+                original_command["v2_insist_penalty"] = 0
+        else:
+            _failed_roll_berthier = None
 
         # Re-execute the strategic command with objection_response
         result = self._handle_strategic_objection_response(
@@ -10289,10 +10444,40 @@ RETREAT RECOVERY (3 turns):
             # Execute the strategic command (this will skip objection check)
             result = self._execute_strategic_command(parsed_command, original_command, game_state)
 
-        return result if result else {
-            "success": False,
-            "message": "Failed to process strategic objection response"
-        }
+        # Append failed-roll Berthier text if defiance roll failed
+        if _failed_roll_berthier and result and result.get("message"):
+            result["message"] = result["message"] + "\n\n" + _failed_roll_berthier
+
+        if not result:
+            result = {
+                "success": False,
+                "message": "Failed to process strategic objection response"
+            }
+
+        # ════════════════════════════════════════════════════════════
+        # AP CONSUMPTION for strategic objection response (non-defiance)
+        # Defiance consumes AP in the defiance block above.
+        # Trust → tactical preferred goes through execute() which already consumed AP.
+        # All other paths (insist/proceed, trust → strategic, compromise) need AP here.
+        # ════════════════════════════════════════════════════════════
+        if (result.get("success") and not result.get("_ap_consumed_by_execute")
+                and not result.get("pending_objection")):
+            variable_cost = result.get("variable_action_cost", 2)
+            if variable_cost > 0:
+                for _ in range(min(variable_cost, world.actions_remaining)):
+                    world.use_action(strategic_type or "strategic")
+                result["action_info"] = {
+                    "cost": variable_cost,
+                    "remaining": world.actions_remaining,
+                    "turn_advanced": False,
+                    "new_turn": None,
+                }
+
+        # M2 fix: pass through authority threshold event if one crossed
+        if authority_event and isinstance(result, dict):
+            result["authority_event"] = authority_event
+
+        return result
 
     # ============================================================
     # CAPTURE CHOICE SYSTEM (Phase 6.2.E)
@@ -10634,42 +10819,56 @@ RETREAT RECOVERY (3 turns):
                 if defiant_action is None:
                     defiant_action = "wait"
 
+                # M5 fix: Consume 1 AP for the defiant action up front.
+                # Direct method calls below bypass _execute_post_objection to
+                # avoid double AP consumption.
+                world.use_action(original_action)
+
                 # Execute defiant action
                 pre_battle_strength = marshal.strength
                 defiant_command = {"action": defiant_action, "marshal": marshal_name}
 
-                if defiant_action in ("attack", "bombardment"):
-                    # Use auto-assign targeting (no named target needed)
-                    if defiant_action == "bombardment":
-                        defiant_execution = self._execute_auto_assign_bombardment(defiant_command, game_state)
-                    else:
-                        defiant_execution = self._execute_auto_assign_attack(defiant_command, game_state)
-
-                    # Check if attack actually happened
-                    if not defiant_execution.get("success"):
-                        # No enemy to attack — fallback to wait (sulk)
-                        defiant_action = "wait"
-                        defiant_execution = self._execute_post_objection(
-                            {"success": True, "command": {"action": "wait", "marshal": marshal_name}},
-                            game_state, marshal_name
+                if defiant_action == "bombardment":
+                    # m2 fix: call _execute_bombardment directly with the specific
+                    # defiant marshal — auto-assign would pick from ALL artillery.
+                    nearest = world.find_nearest_enemy(marshal.location)
+                    if nearest and nearest[1] <= 2:
+                        defiant_execution = self._execute_bombardment(
+                            marshal, nearest[0], world, game_state
                         )
+                    else:
+                        defiant_action = "wait"
+                        defiant_execution = self._execute_wait(marshal, world, game_state)
+                elif defiant_action == "attack":
+                    defiant_execution = self._execute_auto_assign_attack(defiant_command, game_state)
+                    if not defiant_execution.get("success"):
+                        defiant_action = "wait"
+                        defiant_execution = self._execute_wait(marshal, world, game_state)
                 elif defiant_action == "fortify":
-                    defiant_execution = self._execute_post_objection(
-                        {"success": True, "command": {"action": "fortify", "marshal": marshal_name}},
-                        game_state, marshal_name
+                    defiant_execution = self._execute_fortify(
+                        {"marshal": marshal_name}, game_state
                     )
+                    # C1.2 fix: fortify may fail (AGGRESSIVE stance, engaged, etc.)
+                    if not defiant_execution.get("success"):
+                        defiant_action = "wait"
+                        defiant_execution = self._execute_wait(marshal, world, game_state)
                 else:  # wait / sulk
-                    defiant_execution = self._execute_post_objection(
-                        {"success": True, "command": {"action": "wait", "marshal": marshal_name}},
-                        game_state, marshal_name
-                    )
+                    defiant_execution = self._execute_wait(marshal, world, game_state)
 
                 # Evaluate outcome
-                battle_result = defiant_execution.get("battle_result")
+                battle_result = defiant_execution.get("battle_result") or defiant_execution.get("bombardment_result")
                 outcome = defiance_succeeded(marshal, defiant_action, battle_result, pre_battle_strength)
 
                 # Apply outcome table
                 outcome_result = apply_defiance_outcome(marshal, outcome, world)
+
+                # M3 fix: register defensive vindication for deferred evaluation
+                # (fortify defiance can't be assessed immediately — needs enemy attack)
+                if defiant_action == "fortify" and defiant_execution.get("success"):
+                    world.vindication_tracker.pending_defensive_vindication[marshal_name] = {
+                        "turn": world.current_turn,
+                        "source": "defiance",
+                    }
 
                 # Fire notification
                 world.notifications.add(create_notification(

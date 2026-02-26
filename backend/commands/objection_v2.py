@@ -576,8 +576,8 @@ def _check_enemy_in_region(marshal, game_state) -> bool:
     """
     Check if any enemy is in the same region as the marshal.
 
-    TODO (V2b): Fog-aware. Marshal's own region is always FULL (Step 0),
-    so enemies in same region are always visible. No change needed for V2b.
+    V2b: Fog-aware. Marshal's own region is always FULL (Step 0),
+    so enemies in same region are always visible. No change needed.
 
     Args:
         marshal: The marshal to check
@@ -638,7 +638,7 @@ def _get_enemy_to_friendly_ratio(marshal, game_state) -> float:
     Higher ratio = we are outnumbered.
     Used for cautious personality attack risk assessment.
 
-    TODO (V2b): Fog-aware. Delegates to _get_friendly_to_enemy_ratio(),
+    V2b: Fog-aware. Delegates to _get_friendly_to_enemy_ratio(),
     so fog filtering there automatically propagates here.
 
     Args:
@@ -663,7 +663,7 @@ def _is_outnumbered_2to1(marshal, game_state) -> bool:
     Used for aggressive retreat exception: aggressive marshal accepts retreat
     if actually outnumbered 2:1+ AND morale is low.
 
-    TODO (V2b): Fog-aware. Delegates to _get_enemy_to_friendly_ratio(),
+    V2b: Fog-aware. Delegates to _get_enemy_to_friendly_ratio(),
     so fog filtering there automatically propagates here.
 
     Args:
@@ -681,7 +681,7 @@ def _is_actually_threatened(marshal, game_state) -> bool:
     """
     Check if marshal faces a genuine threat (enemy in region or adjacent).
 
-    TODO (V2b): Fog-aware. Delegates to _check_enemy_in_region() and
+    V2b: Fog-aware. Delegates to _check_enemy_in_region() and
     _check_enemy_adjacent(), so fog filtering there propagates here.
 
     Args:
@@ -1150,11 +1150,10 @@ def evaluate_situation(marshal, action: str, order: Dict, game_state) -> Concern
 
 def _check_enemies_adjacent_to_region(region_name: str, marshal_nation: str, world) -> bool:
     """
-    Check if any enemies are adjacent to a specific region.
+    Check if any visible enemies are adjacent to a specific region.
 
-    TODO (V2b): Fog-aware. Should only count enemies at PARTIAL+ visibility
-    in adjacent regions. Use get_visible_enemies_near() instead of
-    direct world.get_enemies_in_region() calls.
+    V2b: Fog-aware. Only counts enemies at PARTIAL+ visibility in adjacent
+    regions. Uses get_visible_enemies_near() for fog filtering.
 
     Args:
         region_name: Name of the region to check
@@ -1162,33 +1161,30 @@ def _check_enemies_adjacent_to_region(region_name: str, marshal_nation: str, wor
         world: WorldState for context
 
     Returns:
-        True if at least one enemy is in an adjacent region
+        True if at least one visible enemy is in an adjacent region
     """
     if not world:
         return False
 
-    region = world.get_region(region_name) if hasattr(world, 'get_region') else None
-    if not region:
-        return False
+    enemies = get_visible_enemies_near(region_name, marshal_nation, world)
 
-    for adj_name in region.adjacent_regions:
-        if hasattr(world, 'get_enemies_in_region'):
-            enemies = world.get_enemies_in_region(adj_name, marshal_nation)
-            if enemies:
-                return True
+    # Filter: only adjacent regions (not same region)
+    for e in enemies:
+        if e["location"] != region_name:
+            return True
 
     return False
 
 
 def _get_pursue_target_ratio(marshal, target_name: str, world) -> float:
     """
-    Get strength ratio for PURSUE target.
+    Get strength ratio for PURSUE target (fog-aware).
 
     Returns target_strength / marshal_strength.
     Higher = more dangerous for pursuer.
 
-    TODO (V2b): Fog-aware. At FULL, use exact strength. At PARTIAL, use
-    band midpoint. At STALE/UNKNOWN, return 1.0 (unknown).
+    V2b: At FULL, use exact strength. At PARTIAL, use band midpoint.
+    At STALE/LAST_KNOWN/UNKNOWN, return 1.0 (can't assess odds).
 
     Args:
         marshal: The pursuing marshal
@@ -1208,7 +1204,17 @@ def _get_pursue_target_ratio(marshal, target_name: str, world) -> float:
     if marshal.strength <= 0:
         return 999.0  # Infinite danger
 
-    return target_marshal.strength / marshal.strength
+    # Fog check: visibility determines strength accuracy
+    visibility = get_target_intel_level(target_name, marshal, world)
+
+    if visibility == _FULL:
+        return target_marshal.strength / marshal.strength
+    elif visibility == _PARTIAL:
+        estimated = _get_band_midpoint_for_strength(target_marshal.strength)
+        return estimated / marshal.strength
+    else:
+        # STALE/LAST_KNOWN/UNKNOWN: can't assess danger
+        return 1.0
 
 
 def _path_has_enemies(path: list, marshal_nation: str, world) -> tuple:

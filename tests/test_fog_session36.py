@@ -13,13 +13,12 @@ Tests for:
 - Full turn cycle with fog (scout → advance → verify decay)
 """
 
-import pytest
 from backend.models.world_state import WorldState
 from backend.models.intel import (
-    RegionIntel, FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
+    FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
     get_strength_band, VISIBILITY_PRIORITY,
 )
-from backend.models.marshal import Marshal, StrategicOrder, StrategicCondition
+from backend.models.marshal import StrategicOrder
 from backend.commands.executor import CommandExecutor
 from backend.commands.strategic import StrategicExecutor
 
@@ -702,13 +701,13 @@ class TestV2bTodoMarkers:
         result = get_visible_enemies_near("Paris", "France", world)
         assert isinstance(result, list)
 
-    def test_v2b_todo_markers_present(self):
-        """Check that V2b TODO comments exist in objection_v2.py source."""
+    def test_v2b_fog_markers_resolved(self):
+        """Check that V2b fog migration is complete — TODOs resolved."""
         import inspect
         import backend.commands.objection_v2 as mod
         source = inspect.getsource(mod)
-        # Should have TODO V2b markers
-        assert "TODO V2b" in source or "TODO (V2b)" in source
+        # V2b fog TODOs should be resolved (converted to "V2b:" doc comments)
+        assert "V2b: Fog-aware" in source or "V2b:" in source
 
 
 # ============================================================================

@@ -16,7 +16,6 @@ import random
 from typing import Optional
 
 from backend.commands.objection_v2 import ConcernLevel
-from backend.models.personality import Personality
 
 
 def calculate_defiance_chance(marshal, concern_level, world) -> float:
@@ -41,13 +40,7 @@ def calculate_defiance_chance(marshal, concern_level, world) -> float:
         return 0.0
 
     # Literal personality never defies (Grouchy bypass)
-    personality_type = getattr(marshal, 'personality_type', None)
-    if personality_type is None:
-        # Derive from string personality
-        personality_str = getattr(marshal, 'personality', '')
-        if personality_str == 'literal':
-            return 0.0
-    elif personality_type == Personality.LITERAL:
+    if getattr(marshal, 'personality', '') == 'literal':
         return 0.0
 
     # Base chances
@@ -140,7 +133,7 @@ def defiance_succeeded(marshal, defiance_action: str, battle_result, pre_battle_
     if defiance_action == "wait":
         return None  # Sulk/wait-fallback = inconclusive
 
-    if defiance_action in ("attack", "bombardment"):
+    if defiance_action == "attack":
         if battle_result is None:
             return None  # No battle happened (e.g., no enemy found)
         won = battle_result.get("attacker", {}).get("won", False)
@@ -148,8 +141,23 @@ def defiance_succeeded(marshal, defiance_action: str, battle_result, pre_battle_
         casualty_pct = casualties / pre_battle_strength if pre_battle_strength > 0 else 1.0
         return won and casualty_pct < 0.50  # Won AND not pyrrhic
 
+    if defiance_action == "bombardment":
+        if battle_result is None:
+            return None  # No bombardment happened
+        # Bombardment has no "won" flag — evaluate by damage inflicted.
+        # RIGHT if defender took significant casualties (10%+ of attacker strength)
+        # and attacker took light casualties (< 20% of own strength).
+        defender_casualties = battle_result.get("defender", {}).get("casualties", 0)
+        attacker_casualties = battle_result.get("attacker", {}).get("casualties", 0)
+        dealt_significant = defender_casualties > (pre_battle_strength * 0.10)
+        took_light = attacker_casualties < (pre_battle_strength * 0.20)
+        return dealt_significant and took_light
+
     if defiance_action in ("defend", "fortify"):
-        return not getattr(marshal, 'broken', False) and not getattr(marshal, 'retreating', False)
+        # Deferred evaluation: fortify/defend can't be assessed immediately.
+        # Register a defensive vindication entry and return INCONCLUSIVE.
+        # The vindication tracker will resolve when the enemy attacks (or not).
+        return None
 
     if defiance_action == "retreat":
         return marshal.strength > 0  # Survived
@@ -232,14 +240,15 @@ def apply_defiance_outcome(marshal, outcome, world):
     if outcome == "failed_roll":
         # Roll fails, marshal obeys reluctantly
         result["trust_change"] = -3
-        result["vindication_change"] = 0  # Reset to 0
         result["authority_change"] = 0
         result["cooldown_turns"] = 1
         result["outcome_type"] = "failed_roll"
 
         # Apply
         marshal.trust.modify(-3)
+        old_v = marshal.vindication_score
         marshal.vindication_score = 0  # Reset
+        result["vindication_change"] = marshal.vindication_score - old_v
         marshal.defiance_cooldown_until = world.current_turn + 1
         result["berthier_text"] = get_berthier_defiance_text("failed_roll", marshal.name)
         return result
@@ -262,13 +271,14 @@ def apply_defiance_outcome(marshal, outcome, world):
     elif outcome is False:
         # Marshal WRONG — defiance succeeded, proved incorrect
         result["trust_change"] = -5
-        result["vindication_change"] = 0  # Reset to 0
         result["authority_change"] = +3
         result["cooldown_turns"] = 3
         result["outcome_type"] = "wrong"
 
         marshal.trust.modify(-5)
+        old_v = marshal.vindication_score
         marshal.vindication_score = 0  # Reset
+        result["vindication_change"] = marshal.vindication_score - old_v
         world.authority_tracker.modify_authority(+3)
         marshal.defiance_cooldown_until = world.current_turn + 3
 

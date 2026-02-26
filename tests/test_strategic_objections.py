@@ -456,13 +456,19 @@ class TestDavoutPursueObjection:
     def test_davout_objects_to_pursue_bad_odds(self, mock_rng, world_with_enemies, executor):
         """Davout should object to PURSUE when target is significantly stronger.
         V2a: 2.0x ratio = MODERATE (popup). Trust doesn't affect trigger.
+        V2b: Fog-aware ratio uses band midpoint at PARTIAL visibility.
         Mock mood variance to prevent random downgrade to MILD."""
         world = world_with_enemies
         davout = world.marshals["Davout"]
         davout.strength = 30000
 
         wellington = world.marshals["Wellington"]
-        wellington.strength = 60000  # 2.0x Davout's strength → V2 MODERATE
+        # V2b fog-aware: at PARTIAL visibility, strength uses band midpoint.
+        # 75k → "massive force" band → midpoint 85k. 85k/30k ≈ 2.83 → MODERATE+.
+        wellington.strength = 75000
+
+        # Ensure fresh visibility calc so Davout has PARTIAL on Netherlands
+        world.calculate_visibility()
 
         command = {
             "marshal": "Davout",
@@ -473,6 +479,32 @@ class TestDavoutPursueObjection:
         result = executor.execute(make_strategic_command(command, "PURSUE"), make_game_state(world))
 
         assert result.get("pending_objection") is True, "Davout should object to PURSUE at 2:1 odds"
+        assert result["objection"].get("concern_level") in ("MODERATE", "STRONG", "EXTREME")
+
+    @patch('backend.commands.objection_v2.random.random', return_value=0.5)
+    def test_davout_objects_pursue_exact_2to1_at_full_visibility(self, mock_rng, world_with_enemies, executor):
+        """At FULL visibility, exact 2:1 ratio triggers MODERATE objection."""
+        world = world_with_enemies
+        davout = world.marshals["Davout"]
+        davout.strength = 30000
+
+        wellington = world.marshals["Wellington"]
+        wellington.strength = 60000  # Exact 2:1 ratio
+
+        # Grant FULL visibility on Netherlands so exact strength is used
+        world.calculate_visibility()
+        intel = world.get_region_intel("Netherlands")
+        intel.visibility = "full"
+
+        command = {
+            "marshal": "Davout",
+            "action": "pursue",
+            "target": "Wellington"
+        }
+
+        result = executor.execute(make_strategic_command(command, "PURSUE"), make_game_state(world))
+
+        assert result.get("pending_objection") is True, "Davout should object at exact 2:1 with FULL visibility"
         assert result["objection"].get("concern_level") in ("MODERATE", "STRONG", "EXTREME")
 
     def test_davout_no_objection_pursue_good_odds(self, world_with_enemies, executor):

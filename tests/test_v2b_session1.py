@@ -229,16 +229,19 @@ class TestDefianceOutcome:
         marshal = MockMarshal()
         assert defiance_succeeded(marshal, "attack", result, 30000) is False
 
-    def test_defend_held(self):
+    def test_defend_inconclusive(self):
+        """M3 fix: Defend/fortify defiance uses deferred evaluation (INCONCLUSIVE).
+        Cannot assess immediately whether defensive posture was correct."""
         marshal = MockMarshal()
         marshal.broken = False
         marshal.retreating = False
-        assert defiance_succeeded(marshal, "defend", None, 30000) is True
+        assert defiance_succeeded(marshal, "defend", None, 30000) is None
 
-    def test_defend_broken(self):
+    def test_fortify_inconclusive(self):
+        """M3 fix: Fortify defiance also deferred — always INCONCLUSIVE."""
         marshal = MockMarshal()
-        marshal.broken = True
-        assert defiance_succeeded(marshal, "defend", None, 30000) is False
+        marshal.broken = True  # Even if broken, still inconclusive (deferred)
+        assert defiance_succeeded(marshal, "fortify", None, 30000) is None
 
     def test_no_battle_inconclusive(self):
         marshal = MockMarshal()
@@ -295,7 +298,8 @@ class TestDefianceOutcomeTable:
         result = apply_defiance_outcome(marshal, "failed_roll", world)
 
         assert result["trust_change"] == -3
-        assert result["vindication_change"] == 0  # Reset flag
+        # M4 fix: vindication_change reports actual change (was 2, reset to 0 = -2)
+        assert result["vindication_change"] == -2
         assert result["cooldown_turns"] == 1
         assert result["outcome_type"] == "failed_roll"
         assert marshal.vindication_score == 0  # Reset
