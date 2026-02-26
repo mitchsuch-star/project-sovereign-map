@@ -146,25 +146,71 @@ These 3 features ship together. Test after all 3 are complete.
 
 ---
 
-## Gate 6: After V2b (Defiance/Vindication)
+## Gate 6: After V2b (Defiance/Vindication/Authority)
 
-V2b upgrades STRONG/EXTREME concerns to defiance events.
+V2b upgrades STRONG/EXTREME concerns to defiance events. Sessions 0-2 implemented backend mechanics; Session 3 wired the frontend.
 
-### Checklist
+### Setup
 
-#### Defiance Popup
-- [ ] STRONG/EXTREME objections show defiance popup (different from MODERATE objection popup)
-- [ ] Defiance popup offers appropriate choices
-- [ ] Trust consequences display correctly
+1. Start backend with `LLM_MODE=mock`: `.venv\Scripts\python.exe backend/main.py`
+2. Launch Godot client
+3. To trigger defiance: need a STRONG/EXTREME objection + insist. Use aggressive marshal (Ney) with low trust + high vindication, or cautious marshal with hostile relationship SUPPORT order.
 
-#### Vindication
-- [ ] Vindication score changes visible in marshal management screen
-- [ ] Vindication decay works over turns (if displayed)
+### Defiance Display
+- [ ] STRONG/EXTREME objection → player insists → defiance message appears (bordered "DEFIANCE" block, distinct from objection popup)
+- [ ] Defiance RIGHT: outcome shows "VINDICATED — Marshal was right" in green, trust +2 visible
+- [ ] Defiance WRONG: outcome shows "FAILURE — Marshal was wrong" in red, trust -5 visible
+- [ ] Defiance INCONCLUSIVE (sulk): message shows "INCONCLUSIVE — No clear result"
+- [ ] Failed roll: normal message includes "discipline held" Berthier flavor text (no defiance block)
+- [ ] Berthier flavor text appears in defiance block (goldenrod color)
+- [ ] Authority change shown in defiance block when applicable (-5 right, +3 wrong)
+- [ ] MODERATE objection → insist: NO defiance possible (regression check)
+- [ ] MILD concern: flavor text only, no popup, no defiance (regression check)
 
-#### Regression Checks
-- [ ] MILD concerns still appear as flavor text only (no popup)
-- [ ] MODERATE objections still work as before (proceed/accept alternative)
-- [ ] Marshal management screen still loads without errors
+### Vindication Display
+- [ ] Marshal management screen (G key) shows vindication score for each marshal
+- [ ] Positive vindication shown in green with + sign
+- [ ] Negative vindication shown in red
+- [ ] Zero vindication shown in neutral color
+- [ ] Vindication score updates visible after defiance resolution (reload marshal management)
+- [ ] Vindication decay observable over 3+ turns of no objections (score decrements toward 0)
+
+### Authority Display
+- [ ] Authority value + label visible in strategic ledger (T key → Forces tab) header
+- [ ] Authority visible in morning dispatch SITUATION section
+- [ ] Authority visible in dispatch re-read screen (D key) SITUATION section
+- [ ] Authority color: green at ≥80 (Strong), neutral at 50-79 (Normal), red at <50 (Weak)
+- [ ] Authority threshold event ("Whispers of Weakness" etc.) appears as bordered block when threshold crossed
+- [ ] Excessive trust pattern shows authority decline over multiple objection responses
+
+### Relationship SUPPORT
+- [ ] Order hostile marshal to SUPPORT rival → objection popup fires
+- [ ] Aggressive + hostile target: STRONG concern, defiance possible after insist
+- [ ] Cautious + hostile target: MODERATE concern, no defiance
+- [ ] Compromise: timed 3-turn SUPPORT → auto-expires after 3 turns
+- [ ] Literal + hostile target: no objection (regression check)
+
+### Fog-Aware Objections
+- [ ] Attack into UNKNOWN region: cautious marshal objects (STRONG), aggressive doesn't
+- [ ] Attack with STALE intel (3+ turns old): cautious shows MODERATE concern
+- [ ] No objections about enemies the marshal can't see (fog leak regression)
+
+### Notification & Log
+- [ ] Defiance notification appears in notification bar (HIGH priority, red)
+- [ ] Defiance event appears in campaign log with correct one-liner
+- [ ] Dismissing defiance notification works
+- [ ] Authority threshold notification appears when authority crosses 70/50/30
+
+### Regression Checks
+- [ ] Normal 1v1 combat still works
+- [ ] Save/load preserves all new fields (vindication, cooldown, authority, recent_responses format)
+- [ ] Old saves load correctly (backward-compatible defaults)
+- [ ] Marshal management screen loads without errors
+- [ ] All 10 existing notification types still work
+- [ ] Strategic orders (SUPPORT/PURSUE/HOLD/MOVE_TO) still function normally
+- [ ] V1 disobedience path still works (disobeyed flag)
+- [ ] Redemption dialog still triggers at critical trust levels
+- [ ] Battle reports display correctly (no V2b interference)
 
 ---
 

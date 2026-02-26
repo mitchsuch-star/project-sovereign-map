@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 25, 2026 (V2b Session 2: Fog-of-War Migration)
+> **Last Updated:** February 25, 2026 (V2b Session 3: Frontend + Polish + UI Tests)
 
 ---
 
@@ -9,10 +9,10 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4164** (4164 passed, 3 skipped — verified Feb 25, V2b Session 2) |
+| **Tests Passing** | **4164** (4164 passed, 3 skipped — verified Feb 25, V2b Session 3) |
 
-| **Current Phase** | Phase 7b **IN PROGRESS** (Tactical Triangle + V2b Sessions 1-2 COMPLETE. Remaining: V2b Session 3, Jealousy, Gneisenau). Coalition Trigger moved to Phase 8. |
-| **Blockers** | V2b Session 3 (frontend) ready. Jealousy NEEDS DESIGN GATE. Gate 5 UI test pending. |
+| **Current Phase** | Phase 7b **IN PROGRESS** (Tactical Triangle + V2b COMPLETE. Remaining: Jealousy, Gneisenau). Coalition Trigger moved to Phase 8. |
+| **Blockers** | Jealousy NEEDS DESIGN GATE. Gate 5+6 UI tests pending. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
@@ -20,7 +20,7 @@
 ## Next Steps
 
 1. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~246 new tests.
-2. **Phase 7b: IN PROGRESS.** Tactical Triangle COMPLETE (Sessions 67-68). V2b Sessions 1-2 COMPLETE. **Gate 5 UI test pending.** Remaining: V2b Session 3 (frontend), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
+2. **Phase 7b: IN PROGRESS.** Tactical Triangle COMPLETE (Sessions 67-68). V2b COMPLETE (Sessions 0-3). **Gates 5+6 UI tests pending.** Remaining: Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
 3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
 ---
@@ -45,6 +45,18 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7b Sessions
+
+### Feb 25 — V2b Session 3: Frontend + Polish + UI Tests
+
+**0 new tests (frontend-only session), 4164 total (3 skipped). V2b fully wired to Godot — defiance, authority, and vindication visible in-game. Gate 6 UI test checklist expanded.**
+
+- **Defiance display (main.gd):** Bordered "DEFIANCE" block in terminal output when marshal defies. Shows defiance action, outcome label (VINDICATED/FAILURE/INCONCLUSIVE/DISCIPLINE HELD), Berthier flavor text, trust/authority stat changes. Color-coded by outcome (green right, red wrong, neutral inconclusive). Authority threshold events displayed as separate bordered "AUTHORITY" block.
+- **Authority display (ledger + dispatch):** Authority value + label (Strong/Normal/Weak) added to strategic ledger Forces tab header (`ledger.py` + `strategic_ledger.gd`), morning dispatch SITUATION section (`dispatch.py` + `main.gd`), and dispatch re-read screen (`dispatch_view.gd`). Color-coded: green ≥80, neutral 50-79, red <50.
+- **Vindication display:** Already wired in Sessions 1-2 (marshal management cards show vindication score with color coding). No changes needed.
+- **Gate 6 UI test checklist:** Expanded from ~10 items to 45+ items across 8 categories: Defiance Display, Vindication Display, Authority Display, Relationship SUPPORT, Fog-Aware Objections, Notification & Log, Regression Checks.
+- **Doc updates:** STATUS.md, SYSTEMS_REFERENCE.md (V2b frontend display table), SAVE_FORMAT_REFERENCE.md (version bump), CLAUDE.md (phase status), PHASE7_UI_TEST_GATE.md (Gate 6 expanded).
+
+**Files modified:** `main.gd` (defiance + authority display, objection response handling), `strategic_ledger.gd` (authority in forces header), `dispatch_view.gd` (authority in situation), `ledger.py` (authority fields), `dispatch.py` (authority fields).
 
 ### Feb 25 — V2b Session 2: Fog-of-War Migration
 

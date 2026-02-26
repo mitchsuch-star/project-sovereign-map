@@ -11,7 +11,6 @@ from typing import Dict, List, Optional, Any
 
 from backend.models.intel import (
     FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
-    STRENGTH_BANDS, get_strength_band,
 )
 
 
@@ -105,6 +104,15 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
     else:
         strength_ratio_pct = 999  # Edge case: no French forces
 
+    # Authority — global player stat (V2b)
+    authority = int(world.authority_tracker.authority) if hasattr(world, 'authority_tracker') else 100
+    if authority >= 80:
+        authority_label = "Strong"
+    elif authority >= 50:
+        authority_label = "Normal"
+    else:
+        authority_label = "Weak"
+
     return {
         "player_regions": int(player_regions),
         "enemy_regions": int(enemy_regions),
@@ -112,6 +120,8 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
         "treasury_delta": treasury_delta,
         "bankrupt": bankrupt,
         "strength_ratio_pct": strength_ratio_pct,
+        "authority": int(authority),
+        "authority_label": authority_label,
     }
 
 

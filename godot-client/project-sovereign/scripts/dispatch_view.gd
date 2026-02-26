@@ -89,6 +89,16 @@ func _on_dispatch_received(response):
 		bbcode += "[color=#" + COLOR_ERROR + "]  BANKRUPT — Treasury exhausted. Troops desert.[/color]\n"
 	else:
 		bbcode += "[color=#" + COLOR_INFO + "]  Enemy nations hold " + str(enemy_regions) + " regions. Estimated enemy strength: " + str(strength_pct) + "% of French forces.[/color]\n"
+
+	# Authority (V2b)
+	var authority = int(situation.get("authority", 100))
+	var authority_label = str(situation.get("authority_label", "Normal"))
+	var auth_color = COLOR_INFO
+	if authority >= 80:
+		auth_color = COLOR_SUCCESS
+	elif authority < 50:
+		auth_color = COLOR_ERROR
+	bbcode += "[color=#" + COLOR_INFO + "]  Your authority: [/color][color=#" + auth_color + "]" + str(authority) + " (" + authority_label + ")[/color]\n"
 	bbcode += "\n"
 
 	# ═══ MARSHAL STATUS ═══

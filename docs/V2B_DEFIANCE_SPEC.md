@@ -1,10 +1,10 @@
 # V2b: Defiance / Vindication / Authority — Implementation Spec
 
-> **Status:** DESIGN LOCKED + AUDITED. All 9 edge cases resolved. Ready for implementation.
+> **Status:** COMPLETE. All 4 sessions shipped (0-3). 4164 tests passing. All confidence gates 100%.
 > **Prerequisite:** V2a complete (1216 tests). All scaffolding in place.
 > **Model:** Sonnet — patterns clear from V2a, well-specified, mostly wiring.
-> **Estimated:** 4 sessions (0: prerequisite fix, 1: core mechanics, 2: fog migration, 3: frontend + UI tests).
-> **Confidence protocol:** Each session ends with a confidence report. Do not proceed until 100%.
+> **Delivered:** 4 sessions (0: prerequisite fix, 1: core mechanics, 2: fog migration, 3: frontend + UI tests).
+> **Confidence protocol:** Each session ends with a confidence report. All 4 sessions reached 100%.
 
 ---
 

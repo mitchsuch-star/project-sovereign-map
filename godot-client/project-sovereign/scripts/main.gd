@@ -1021,6 +1021,79 @@ func _display_bombardment_report(result: Dictionary):
 
 	add_output("")
 
+func _display_defiance_result(response: Dictionary):
+	"""Display V2b defiance result — marshal defied a direct order."""
+	var outcome = str(response.get("defiance_outcome", ""))
+	var defiance_action = str(response.get("defiance_action", ""))
+	var berthier_text = str(response.get("berthier_text", ""))
+	var trust_change = int(response.get("trust_change", 0))
+	var authority_change = int(response.get("authority_change", 0))
+	var message = str(response.get("message", ""))
+
+	# Defiance header — distinct from normal objection
+	add_output("")
+	add_output("[color=#" + COLOR_ERROR + "]┌─────── DEFIANCE ───────┐[/color]")
+
+	# Main message (e.g. "Despite your insistence, Ney attacked instead!")
+	if message != "":
+		add_output("[color=#" + COLOR_MARSHAL + "]  " + message + "[/color]")
+
+	# Outcome label with color coding
+	var outcome_color = COLOR_INFO
+	var outcome_label = ""
+	match outcome:
+		"right":
+			outcome_color = COLOR_SUCCESS
+			outcome_label = "VINDICATED — Marshal was right"
+		"wrong":
+			outcome_color = COLOR_ERROR
+			outcome_label = "FAILURE — Marshal was wrong"
+		"inconclusive":
+			outcome_color = COLOR_INFO
+			outcome_label = "INCONCLUSIVE — No clear result"
+		"failed_roll":
+			outcome_color = COLOR_DISPATCH
+			outcome_label = "DISCIPLINE HELD — Marshal obeyed reluctantly"
+
+	if outcome_label != "":
+		add_output("[color=#" + outcome_color + "]  " + outcome_label + "[/color]")
+
+	# Stat changes
+	var stat_parts = []
+	if trust_change != 0:
+		var sign = "+" if trust_change > 0 else ""
+		var tc_color = COLOR_SUCCESS if trust_change > 0 else COLOR_ERROR
+		stat_parts.append("[color=#" + tc_color + "]Trust " + sign + str(trust_change) + "[/color]")
+	if authority_change != 0:
+		var sign = "+" if authority_change > 0 else ""
+		var ac_color = COLOR_SUCCESS if authority_change > 0 else COLOR_ERROR
+		stat_parts.append("[color=#" + ac_color + "]Authority " + sign + str(authority_change) + "[/color]")
+
+	if stat_parts.size() > 0:
+		add_output("  " + "  ".join(stat_parts))
+
+	# Berthier's flavor text
+	if berthier_text != "" and berthier_text != "null":
+		add_output("[color=#" + COLOR_OBSERVATION + "]  Berthier: \"" + berthier_text + "\"[/color]")
+
+	add_output("[color=#" + COLOR_ERROR + "]└────────────────────────┘[/color]")
+	add_output("")
+
+func _display_authority_event(authority_event: Dictionary):
+	"""Display authority threshold event (e.g. 'Whispers of Weakness')."""
+	var title = str(authority_event.get("title", "Authority Changed"))
+	var message = str(authority_event.get("message", ""))
+	var authority = int(authority_event.get("authority", 0))
+
+	add_output("")
+	add_output("[color=#" + COLOR_GOLD + "]┌─── AUTHORITY ───┐[/color]")
+	add_output("[color=#" + COLOR_GOLD + "]  " + title + "[/color]")
+	if message != "":
+		add_output("[color=#" + COLOR_DISPATCH + "]  " + message + "[/color]")
+	add_output("[color=#" + COLOR_INFO + "]  Authority: " + str(authority) + "[/color]")
+	add_output("[color=#" + COLOR_GOLD + "]└─────────────────┘[/color]")
+	add_output("")
+
 func _display_turn_change(event: Dictionary):
 	"""Display turn end notification with full financial summary.
 
@@ -1101,6 +1174,16 @@ func _display_morning_dispatch(data: Dictionary):
 		add_output("[color=#" + COLOR_ERROR + "]  BANKRUPT — Treasury exhausted. Troops desert.[/color]")
 	else:
 		add_output("[color=#" + COLOR_INFO + "]  Enemy nations hold " + str(enemy_regions) + " regions. Estimated enemy strength: " + str(strength_pct) + "% of French forces.[/color]")
+
+	# Authority (V2b)
+	var authority = int(situation.get("authority", 100))
+	var authority_label = str(situation.get("authority_label", "Normal"))
+	var auth_color = COLOR_INFO
+	if authority >= 80:
+		auth_color = COLOR_SUCCESS
+	elif authority < 50:
+		auth_color = COLOR_ERROR
+	add_output("[color=#" + COLOR_INFO + "]  Your authority: [/color][color=#" + auth_color + "]" + str(authority) + " (" + authority_label + ")[/color]")
 	add_output("")
 
 	# ═══ MARSHAL STATUS ═══
@@ -1561,12 +1644,51 @@ func _on_objection_response(response):
 	print("OBJECTION RESPONSE RECEIVED:")
 	print("  success: ", response.get("success", false))
 	print("  disobeyed: ", response.get("disobeyed", false))
+	print("  defiance: ", response.get("defiance", false))
 	print("  has redemption_event: ", response.has("redemption_event"))
 	print("  state: ", response.get("state", "none"))
 	print("=".repeat(60) + "\n")
 
 	# ════════════════════════════════════════════════════════════
-	# CHECK FOR DISOBEY: Marshal refused to obey
+	# CHECK FOR DEFIANCE (V2b): Marshal defied a direct order
+	# ════════════════════════════════════════════════════════════
+	if response.get("defiance", false):
+		_display_defiance_result(response)
+
+		# Update status and state
+		if response.has("action_summary"):
+			_update_status(response.action_summary)
+		if response.has("game_state") and response.game_state.has("gold"):
+			gold = int(response.game_state.gold)
+			_update_gold_display()
+		if response.has("game_state") and response.game_state.has("manpower_pools"):
+			_apply_manpower(response.game_state.manpower_pools)
+		if response.has("game_state") and response.game_state.has("map_data"):
+			map_area.update_all_regions(response.game_state.map_data)
+
+		# Battle report if defiant action caused combat
+		if response.has("battle_report"):
+			_display_berthier_report(response.battle_report)
+
+		# Notifications
+		if notification_bar and response.has("notifications"):
+			notification_bar.update_notifications(response.notifications)
+
+		# Authority threshold event
+		if response.has("authority_event"):
+			_display_authority_event(response.authority_event)
+
+		# Check for redemption event triggered by defiance trust penalty
+		if response.has("redemption_event"):
+			_show_redemption_dialog(response.redemption_event)
+			return
+
+		set_input_enabled(true)
+		command_input.grab_focus()
+		return
+
+	# ════════════════════════════════════════════════════════════
+	# CHECK FOR DISOBEY (V1): Marshal refused to obey
 	# ════════════════════════════════════════════════════════════
 	if response.get("disobeyed", false):
 		add_output("[color=#" + COLOR_ERROR + "]⚠ DISOBEDIENCE![/color]")
@@ -1638,6 +1760,14 @@ func _on_objection_response(response):
 
 		# Display result
 		_display_result(response)
+
+		# Authority threshold event (V2b)
+		if response.has("authority_event"):
+			_display_authority_event(response.authority_event)
+
+		# Notifications
+		if notification_bar and response.has("notifications"):
+			notification_bar.update_notifications(response.notifications)
 
 		# Check for game over
 		if response.has("game_state") and response.game_state.has("game_over"):

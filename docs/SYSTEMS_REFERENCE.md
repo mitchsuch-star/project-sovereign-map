@@ -700,6 +700,16 @@ When issuing SUPPORT orders, relationship with the target marshal is checked:
 
 Takes priority if higher than personality-based concern. Includes timed SUPPORT compromise option (`condition.max_turns = 3`).
 
+### V2b Frontend Display (Session 3)
+
+| Data | Display Location | File |
+|------|-----------------|------|
+| Defiance result (action, outcome, Berthier text, stat changes) | Bordered "DEFIANCE" block in terminal | `main.gd` `_display_defiance_result()` |
+| Authority threshold event | Bordered "AUTHORITY" block in terminal | `main.gd` `_display_authority_event()` |
+| Authority value + label | Strategic ledger Forces tab header | `ledger.py` + `strategic_ledger.gd` |
+| Authority value + label | Morning dispatch SITUATION section | `dispatch.py` + `dispatch_view.gd` + `main.gd` |
+| Vindication score | Marshal management cards | `marshal_overview.py` + `marshal_management.gd` (already wired Sessions 1-2) |
+
 ### Compromise Rules
 
 #### Basic Action Compromises

@@ -18,7 +18,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Phase 7b remaining:** V2b Session 3 (frontend — see `docs/V2B_DEFIANCE_SPEC.md`), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
+- **Phase 7b remaining:** V2b COMPLETE (Sessions 0-3). Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial Infrastructure deferred to Pre-EA.
 
 ### Design Decisions Required (DO NOT CODE WITHOUT USER APPROVAL)
@@ -33,7 +33,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### UI Test Gates
 
-Gate 5 (Tactical Triangle) pending. See `docs/PHASE7_UI_TEST_GATE.md` for all gate checklists.
+Gates 5 (Tactical Triangle) and 6 (V2b Defiance) pending. See `docs/PHASE7_UI_TEST_GATE.md` for all gate checklists.
 
 ---
 

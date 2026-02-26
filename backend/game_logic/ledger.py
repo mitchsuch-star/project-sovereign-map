@@ -11,7 +11,7 @@ import math
 from typing import Dict, Any
 
 from backend.models.intel import (
-    FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
+    FULL, PARTIAL, STALE, UNKNOWN,
     get_strength_band,
 )
 from backend.game_logic.dispatch import BAND_MIDPOINTS
@@ -36,12 +36,23 @@ def build_strategic_ledger(world) -> Dict[str, Any]:
     """
     player = world.player_nation
 
+    # Authority — global player stat (V2b)
+    authority = int(world.authority_tracker.authority) if hasattr(world, 'authority_tracker') else 100
+    if authority >= 80:
+        authority_label = "Strong"
+    elif authority >= 50:
+        authority_label = "Normal"
+    else:
+        authority_label = "Weak"
+
     return {
         "forces": _build_forces(world, player),
         "territories": _build_territories(world, player),
         "economy": _build_economy(world, player),
         "intel": _build_intel(world, player),
         "manpower": _build_manpower(world, player),
+        "authority": int(authority),
+        "authority_label": authority_label,
     }
 
 

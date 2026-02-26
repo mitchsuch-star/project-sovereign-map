@@ -170,6 +170,16 @@ func _render_forces():
 	var bbcode = ""
 	bbcode += "[color=#" + COLOR_HEADER + "]═══ FORCES ═══[/color]\n\n"
 
+	# Authority — global player stat (V2b)
+	var authority = int(cached_data.get("authority", 100))
+	var authority_label = str(cached_data.get("authority_label", "Normal"))
+	var auth_color = COLOR_INFO
+	if authority >= 80:
+		auth_color = COLOR_SUCCESS
+	elif authority < 50:
+		auth_color = COLOR_ERROR
+	bbcode += "Authority: [color=#" + auth_color + "]" + str(authority) + " (" + authority_label + ")[/color]\n\n"
+
 	if forces.size() == 0:
 		bbcode += "[color=#" + COLOR_INFO + "]No marshals available.[/color]\n"
 		content_area.text = bbcode

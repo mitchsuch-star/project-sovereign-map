@@ -11,7 +11,7 @@ A future save/load system should use this as the specification.
 
 - **Format version:** 1.0
 - **Last updated:** 2026-02-25
-- **Compatible with:** Phase 7b Session 67 (Square Formation)
+- **Compatible with:** Phase 7b V2b Session 3 (Defiance/Vindication/Authority frontend)
 
 ## Top-Level Structure (WorldState)
 
