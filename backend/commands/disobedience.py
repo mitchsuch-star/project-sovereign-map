@@ -1368,20 +1368,14 @@ class DisobedienceSystem:
 
         # ════════════════════════════════════════════════════════════
         # BUG FIX: Check for redemption event at trust ≤ 20
-        # FIX: Only trigger once per marshal (check redemption_pending)
+        # FIX: Only trigger once per marshal (check redemption_pending + cooldown)
         # ════════════════════════════════════════════════════════════
-        redemption_event = None
         if marshal and hasattr(marshal, 'trust'):
-            current_trust = marshal.trust.value
-            already_pending = getattr(marshal, 'redemption_pending', False)
-            print(f"  [TRUST CHECK] {marshal_name} at {current_trust}, " +
-                  f"redemption_triggered={'YES' if current_trust <= 20 and not already_pending else 'NO'}")
+            print(f"  [TRUST CHECK] {marshal_name} at {marshal.trust.value}, "
+                  f"pending={getattr(marshal, 'redemption_pending', False)}")
 
-            if current_trust <= 20 and not already_pending:
-                marshal.redemption_pending = True  # FIX: Mark as pending to prevent re-trigger
-                # Pass world for option availability checks
-                world = getattr(game_state, 'world', game_state) if game_state else None
-                redemption_event = self._create_redemption_event(marshal, world)
+        world = getattr(game_state, 'world', game_state) if game_state else None
+        redemption_event = self.check_redemption_threshold(marshal, world) if marshal else None
 
         result = {
             'type': 'objection_resolved',
@@ -1511,6 +1505,28 @@ class DisobedienceSystem:
             'options': options,
         }
 
+    def check_redemption_threshold(self, marshal, world) -> Optional[Dict]:
+        """Check if marshal's trust crossed the redemption threshold (<=20).
+
+        Centralizes the redemption gate used at multiple points in executor.py.
+        Returns redemption event dict if threshold crossed, None otherwise.
+        """
+        if not (marshal and hasattr(marshal, 'trust')):
+            return None
+        if marshal.trust.value > 20:
+            return None
+        if getattr(marshal, 'redemption_pending', False):
+            return None
+        if getattr(marshal, 'nation', '') != getattr(world, 'player_nation', 'France'):
+            return None
+        # Cooldown: skip if recently resolved
+        cooldown = getattr(marshal, 'redemption_cooldown_until', 0)
+        if getattr(world, 'current_turn', 0) < cooldown:
+            return None
+
+        marshal.redemption_pending = True
+        return self._create_redemption_event(marshal, world)
+
     def handle_redemption_response(
         self,
         redemption_event: Dict,
@@ -1554,6 +1570,8 @@ class DisobedienceSystem:
 
         # FIX: Clear redemption_pending flag now that we're resolving it
         marshal.redemption_pending = False
+        # 5-turn cooldown to prevent rapid re-trigger
+        marshal.redemption_cooldown_until = getattr(world, 'current_turn', 0) + 5
 
         # ════════════════════════════════════════════════════════════════════════════
         # GRANT AUTONOMY - Marshal acts independently for 3 turns

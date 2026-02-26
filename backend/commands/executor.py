@@ -3110,13 +3110,9 @@ RETREAT RECOVERY (3 turns):
                             ))
 
                         # Redemption threshold check (§4.4)
-                        if (force.trust.value <= 20
-                                and not getattr(force, 'redemption_pending', False)
-                                and force.nation == world.player_nation):
-                            force.redemption_pending = True
-                            friendly_fire_redemption = (
-                                world.disobedience_system._create_redemption_event(
-                                    force, world))
+                        friendly_fire_redemption = (
+                            world.disobedience_system.check_redemption_threshold(force, world)
+                            or friendly_fire_redemption)
                     else:
                         collateral_messages.append(
                             f"  Collateral: {force.name} ({force.nation}) "
@@ -10475,6 +10471,9 @@ RETREAT RECOVERY (3 turns):
                 # Apply outcome table
                 outcome_result = apply_defiance_outcome(marshal, outcome, world)
 
+                # Redemption check: insist penalty or defiance outcome may push trust <= 20
+                _strat_redemption = world.disobedience_system.check_redemption_threshold(marshal, world)
+
                 # M3 fix: register defensive vindication for deferred evaluation
                 if defiant_action == "fortify" and defiant_execution.get("success"):
                     world.vindication_tracker.pending_defensive_vindication[marshal_name] = {
@@ -10533,6 +10532,9 @@ RETREAT RECOVERY (3 turns):
                     result["battle_report"] = defiant_execution["battle_report"]
                 if authority_event:
                     result["authority_event"] = authority_event
+                if _strat_redemption:
+                    result["redemption_event"] = _strat_redemption
+                    result["state"] = "awaiting_redemption_choice"
                 return result
 
             else:
@@ -10605,6 +10607,14 @@ RETREAT RECOVERY (3 turns):
         # M2 fix: pass through authority threshold event if one crossed
         if authority_event and isinstance(result, dict):
             result["authority_event"] = authority_event
+
+        # Redemption check: proceed penalty, failed_roll -3, or strategic response
+        # trust change may have crossed threshold
+        if result and isinstance(result, dict) and not result.get("redemption_event"):
+            _final_redemption = world.disobedience_system.check_redemption_threshold(marshal, world)
+            if _final_redemption:
+                result["redemption_event"] = _final_redemption
+                result["state"] = "awaiting_redemption_choice"
 
         return result
 
@@ -11000,6 +11010,11 @@ RETREAT RECOVERY (3 turns):
                 # Apply outcome table
                 outcome_result = apply_defiance_outcome(marshal, outcome, world)
 
+                # Redemption check: insist penalty or defiance outcome may push trust <= 20
+                _redemption_event = response_result.get("redemption_event")
+                if not _redemption_event:
+                    _redemption_event = world.disobedience_system.check_redemption_threshold(marshal, world)
+
                 # M3 fix: register defensive vindication for deferred evaluation
                 # (fortify defiance can't be assessed immediately — needs enemy attack)
                 if defiant_action == "fortify" and defiant_execution.get("success"):
@@ -11058,6 +11073,9 @@ RETREAT RECOVERY (3 turns):
                     result["battle_report"] = defiant_execution["battle_report"]
                 if authority_event:
                     result["authority_event"] = authority_event
+                if _redemption_event:
+                    result["redemption_event"] = _redemption_event
+                    result["state"] = "awaiting_redemption_choice"
                 return result
 
             else:

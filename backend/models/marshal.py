@@ -288,6 +288,7 @@ class Marshal:
         self.autonomy_turns: int = 0   # Turns remaining in autonomy
         self.autonomy_reason: str = ""  # Why autonomous ("redemption", "communication_cut", etc.)
         self.redemption_pending: bool = False  # FIX: Track if redemption event already triggered
+        self.redemption_cooldown_until: int = 0  # Turn when redemption can next fire (5-turn cooldown)
 
         # Autonomy Performance Tracking (for evaluation when autonomy ends)
         self.autonomous_battles_won: int = 0
@@ -1033,6 +1034,7 @@ class Marshal:
             "autonomy_turns": int(self.autonomy_turns),
             "autonomy_reason": self.autonomy_reason,
             "redemption_pending": self.redemption_pending,
+            "redemption_cooldown_until": int(self.redemption_cooldown_until),
             "autonomous_battles_won": int(self.autonomous_battles_won),
             "autonomous_battles_lost": int(self.autonomous_battles_lost),
             "autonomous_regions_captured": int(self.autonomous_regions_captured),
@@ -1175,6 +1177,7 @@ class Marshal:
         marshal.autonomy_turns = data.get("autonomy_turns", 0)
         marshal.autonomy_reason = data.get("autonomy_reason", "")
         marshal.redemption_pending = data.get("redemption_pending", False)
+        marshal.redemption_cooldown_until = data.get("redemption_cooldown_until", 0)
         marshal.autonomous_battles_won = data.get("autonomous_battles_won", 0)
         marshal.autonomous_battles_lost = data.get("autonomous_battles_lost", 0)
         marshal.autonomous_regions_captured = data.get("autonomous_regions_captured", 0)

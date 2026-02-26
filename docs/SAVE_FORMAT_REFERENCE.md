@@ -305,6 +305,7 @@ A future save/load system should use this as the specification.
 | `autonomy_turns` | int | Turns remaining in autonomy |
 | `autonomy_reason` | string | "redemption", "communication_cut" |
 | `redemption_pending` | bool | Redemption event triggered |
+| `redemption_cooldown_until` | int | Turn when redemption can next fire (5-turn cooldown, V2b) |
 | `autonomous_battles_won` | int | Wins during autonomy |
 | `autonomous_battles_lost` | int | Losses during autonomy |
 | `autonomous_regions_captured` | int | Captures during autonomy |
