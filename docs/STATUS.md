@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 26, 2026 (V2b Audit Pass 4: Post-Objection Routing Audit)
+> **Last Updated:** February 26, 2026 (V2b: Redemption System Interaction Gaps + Cooldown)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4172** (4172 passed, 3 skipped — verified Feb 26, V2b Audit Pass 4) |
+| **Tests Passing** | **4190** (4190 passed, 3 skipped — verified Feb 26, Redemption V2b Gaps) |
 
 | **Current Phase** | Phase 7b **IN PROGRESS** (Tactical Triangle + V2b COMPLETE. Remaining: Jealousy, Gneisenau). Coalition Trigger moved to Phase 8. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE. Gate 5+6 UI tests pending. |
@@ -45,6 +45,19 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7b Sessions
+
+### Feb 26 — V2b: Redemption System Interaction Gaps + 5-Turn Cooldown
+
+**4190 tests (3 skipped). Fixed V2b defiance paths bypassing redemption event propagation. Added centralized helper + 5-turn cooldown.**
+
+- **Bug:** V2b defiance early-return branches in executor.py bypassed redemption propagation — `redemption_pending` got stuck True because events were created but never delivered to frontend.
+- **Centralized helper:** `check_redemption_threshold()` in `disobedience.py` — single gate for trust <= 20, not pending, not on cooldown, player-only. Replaces 7-line inline checks.
+- **3 executor.py insertion points:** Tactical defiance success (Gap 1-2), strategic defiance success (Gap 3), strategic endpoint fallthrough (Gaps 4-5).
+- **Bombardment refactor:** Replaced inline bombardment collateral check with centralized helper call.
+- **5-turn cooldown:** `redemption_cooldown_until = current_turn + 5` set on resolution. Prevents rapid re-trigger spam.
+- **18 new tests:** `test_redemption_v2b.py` — threshold helper (8 tests), cooldown lifecycle (3), tactical defiance (1), strategic defiance (2), bombardment regression (2), serialization (2).
+
+**Files modified:** `marshal.py` (new field), `disobedience.py` (helper + cooldown), `executor.py` (3 wiring points + bombardment refactor), `SAVE_FORMAT_REFERENCE.md`, `SYSTEMS_REFERENCE.md`, `test_redemption_v2b.py` (new).
 
 ### Feb 26 — V2b Audit Pass 4: Post-Objection Routing Audit
 

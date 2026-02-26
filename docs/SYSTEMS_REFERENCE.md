@@ -1935,7 +1935,7 @@ Snapshot entries:
 
 ### Trigger
 
-When trust falls to <=20, a redemption event triggers.
+When trust falls to <=20, a redemption event triggers via `check_redemption_threshold()` in `disobedience.py`. The centralized helper gates on: trust <= 20, not already pending, not on cooldown, player nation only. Wired at: V1 objection resolution, tactical defiance success, strategic defiance success, strategic endpoint fallthrough, and bombardment collateral.
 
 ### Available Options
 
@@ -1951,6 +1951,7 @@ When trust falls to <=20, a redemption event triggers.
 2. **Admin Cap:** Maximum 1 marshal can be in administrative role at a time
 3. **Admin Troops Frozen:** Troops stay with admin marshal (stored in `administrative_strength`)
 4. **Dismiss Range Limit:** Troops only transfer to ally within 3 regions, otherwise disband
+5. **5-Turn Cooldown:** After resolving a redemption event, the same marshal cannot trigger another for 5 turns (`redemption_cooldown_until = current_turn + 5`)
 
 ### Redemption Choices (from disobedience reference)
 
@@ -1963,6 +1964,8 @@ When trust falls to <=20, a redemption event triggers.
 ### State Fields (Marshal)
 
 ```python
+marshal.redemption_pending = True       # Redemption event triggered, awaiting choice
+marshal.redemption_cooldown_until = 12  # Turn when redemption can next fire
 marshal.administrative = True           # In admin role
 marshal.administrative_strength = 72000 # Stored troop count
 marshal.administrative_location = "Belgium"  # Stored location
