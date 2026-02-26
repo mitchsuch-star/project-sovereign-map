@@ -19,9 +19,11 @@
 
 ## Next Steps
 
-1. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~246 new tests.
-2. **Phase 7b: IN PROGRESS.** Tactical Triangle COMPLETE (Sessions 67-68). V2b COMPLETE (Sessions 0-3). **Gates 5+6 UI tests pending.** Remaining: Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
-3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
+1. **Strategic Order UI** — Dedicated standing orders screen (next up). Ledger Forces tab has per-marshal order data; need consolidated view with order timeline, cancel/modify, and topbar hotkey.
+2. **Timed SUPPORT fix** — Timer counts from issuance, not arrival. 3-turn compromise burns travel time, leaving 1-2 turns of actual support. Needs design: count from arrival, or increase duration to compensate.
+3. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~246 new tests.
+4. **Phase 7b: IN PROGRESS.** Tactical Triangle COMPLETE (Sessions 67-68). V2b COMPLETE (Sessions 0-3). **Gates 5+6 UI tests pending.** Remaining: Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
+5. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
 ---
 

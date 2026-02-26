@@ -348,7 +348,7 @@ Fires at **order issuance** via `evaluate_strategic_situation()` → `pending_st
 | Choice | Effect |
 |--------|--------|
 | **Insist** | SUPPORT order executes. Trust penalty per CONSEQUENCE_TABLE (HOSTILE tier = -15). Defiance can fire (15% base + mods). |
-| **Trust** | Order cancelled, AP refunded. Trust +5/+8 (STRONG gain). Marshal stays put. |
+| **Trust** | SUPPORT order not created. Marshal executes preferred tactical action instead (1 AP). Trust +5/+8 (STRONG gain). |
 | **Compromise** | Timed SUPPORT — 3 turns then auto-cancels. Trust +3. Implementation: set `condition.max_turns = 3` with `order.started_turn = current_turn`. Existing `strategic.py` per-turn expiry code handles the rest (same pattern as timed HOLD/PURSUE). |
 
 ### Defiance Interaction
