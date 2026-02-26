@@ -8723,6 +8723,8 @@ RETREAT RECOVERY (3 turns):
                           "  • freeze <marshal> - Toggle AI freeze (marshal won't act)\n"
                           "  • set_autonomy <marshal> [turns] - Toggle autonomous (Phase 2.5)\n"
                           "  • set_trust <marshal> <0-100> - Set trust level\n"
+                          "  • set_vindication <marshal> <-5 to 5> - Set vindication score\n"
+                          "  • set_authority <0-100> - Set player authority level\n"
                           "\n== Redemption Testing (Phase 3) ==\n"
                           "  • dismiss <marshal> - Directly dismiss (bypass disobedience)\n"
                           "  • admin <marshal> - Toggle administrative role\n"
@@ -8942,6 +8944,19 @@ RETREAT RECOVERY (3 turns):
             old = world.manpower_pools[nation][pool_type]
             world.manpower_pools[nation][pool_type] = max(0, value)
             return {"success": True, "message": f"DEBUG: {nation} {pool_type}: {old:,} -> {world.manpower_pools[nation][pool_type]:,}"}
+
+        elif ability == "set_authority":
+            if len(parts) < 2:
+                return {"success": False, "message": "Usage: /debug set_authority <0-100>"}
+            try:
+                value = int(parts[1])
+                value = max(0, min(100, value))
+            except ValueError:
+                return {"success": False, "message": "Authority must be a number 0-100"}
+            old = int(world.authority_tracker.authority)
+            world.authority_tracker.authority = value
+            label = world.authority_tracker.get_authority_label()
+            return {"success": True, "message": f"DEBUG: Authority: {old} -> {value} ({label})"}
 
         elif ability == "set_controller":
             if len(parts) < 3:
@@ -9187,6 +9202,27 @@ RETREAT RECOVERY (3 turns):
             return {
                 "success": True,
                 "message": f"DEBUG: {marshal.name}'s trust: {old_trust} -> {amount}{trust_status}"
+            }
+
+        elif ability == "set_vindication":
+            if len(parts) < 3:
+                return {"success": False, "message": "Usage: /debug set_vindication <marshal> <-5 to 5>"}
+            try:
+                amount = int(parts[2])
+                amount = max(-5, min(5, amount))
+            except ValueError:
+                return {"success": False, "message": "Vindication must be a number -5 to 5"}
+
+            old_vind = getattr(marshal, 'vindication_score', 0)
+            marshal.vindication_score = amount
+            effect = ""
+            if amount > 0:
+                effect = " [ESCALATES objections +1 level, INCREASES defiance chance]"
+            elif amount < 0:
+                effect = " [DE-ESCALATES objections -1 level, DECREASES defiance chance]"
+            return {
+                "success": True,
+                "message": f"DEBUG: {marshal.name}'s vindication: {old_vind} -> {amount}{effect}"
             }
 
         elif ability == "set_fortified":
