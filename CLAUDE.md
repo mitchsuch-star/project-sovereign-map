@@ -18,18 +18,12 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Phase 7b remaining:** V2b (NEEDS DESIGN), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
+- **Phase 7b remaining:** V2b (DESIGN LOCKED — see `docs/V2B_DEFIANCE_SPEC.md`), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial Infrastructure deferred to Pre-EA.
 
 ### Design Decisions Required (DO NOT CODE WITHOUT USER APPROVAL)
 
 **MANDATORY GATE: Do NOT implement until the user explicitly approves the design.**
-
-#### V2b: Defiance/Vindication — Needs decision:
-- Hard cap 40% — confirmed?
-- Failed defiance = full obedience or marshal does preferred action?
-- Vindication decay: automatic (-1 per 3 idle turns) or event-triggered?
-- Aggressive trigger escalation: scale with beatable odds?
 
 #### Jealousy System — Needs decision:
 - Trigger: >50% casualties in coordinated battle, or different threshold?
@@ -104,7 +98,7 @@ Gate 5 (Tactical Triangle) pending. See `docs/PHASE7_UI_TEST_GATE.md` for all ga
 | Multi-marshal coordination | `docs/MULTI_MARSHAL_SPEC.md`, `executor.py` (_calculate_coordination_context), `marshal.py` (transient bonus fields) |
 | Marshal abilities | `personality_modifiers.py`, `marshal.py`, `combat.py`, `docs/ADDING_CONTENT.md` (wiring checklist), `marshal_overview.py` (_WIRED_ABILITY_MARSHALS) |
 | Fortify/Drill mechanics | `executor.py` (_execute_fortify/drill), `marshal.py`, `world_state.py` (_process_tactical_states) |
-| Disobedience/Trust | `disobedience.py`, `objection_v2.py`, `personality.py` |
+| Disobedience/Trust | `disobedience.py`, `objection_v2.py`, `personality.py`, `docs/V2B_DEFIANCE_SPEC.md` |
 | Cavalry limits | `world_state.py` (_check_cavalry_limits), `marshal.py` (cavalry counters) |
 | Terrain system | `region.py` (constants, Region class), `combat.py` (_get_terrain_bonus), `executor.py` (5 resolve_battle calls, charge blocking) |
 | Turn processing | `world_state.py` (advance_turn), `executor.py` (_execute_end_turn) |
@@ -116,7 +110,7 @@ Gate 5 (Tactical Triangle) pending. See `docs/PHASE7_UI_TEST_GATE.md` for all ga
 | Fort degradation | `combat.py` (resolve_combat degradation block), `battle_report.py` (P6c observations) |
 | Supply attrition | `world_state.py` (process_supply_attrition), `region.py` (supply_capacity) |
 | Strategic commands | `strategic.py`, `strategic_parser.py`, `executor.py` |
-| Objection V2 system | `objection_v2.py`, `docs/OBJECTION_V2.md` |
+| Objection V2 system | `objection_v2.py`, `docs/OBJECTION_V2.md`, `docs/V2B_DEFIANCE_SPEC.md` |
 | Fog of war | `docs/FOG_OF_WAR_SPEC.md`, `backend/models/intel.py`, `backend/intel_report.py`, `map.gd` (fog overlay + fogged icons) |
 | Strategic commands + fog | `docs/FOG_OF_WAR_SPEC.md` §5, `backend/commands/strategic.py` |
 | Manpower pools / recruitment | `world_state.py` (manpower constants, `_process_manpower_regen`), `executor.py` (`_execute_recruit`), `enemy_ai.py` (P1/P4.5/P7 pool checks) |
@@ -311,7 +305,7 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | Phase timeline | `docs/ROADMAP.md` |
 | Game systems (combat, trust, disobedience, LLM, cavalry, strategic) | `docs/SYSTEMS_REFERENCE.md` |
 | Enemy AI decision tree | `docs/ENEMY_AI_REFERENCE.md` |
-| V2b objection plans (Phase 7b) | `docs/OBJECTION_V2.md` |
+| V2b defiance/vindication/authority spec | `docs/V2B_DEFIANCE_SPEC.md` |
 | Multi-marshal coordination spec (Phase 7) | `docs/MULTI_MARSHAL_SPEC.md` |
 | Tactical Triangle (Square + Auto-Bombardment + Overwatch) | `docs/TACTICAL_TRIANGLE_SPEC.md` |
 | Save format / serialization | `docs/SAVE_FORMAT_REFERENCE.md` |
