@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 25, 2026 (V2b Session 1: Core Mechanics)
+> **Last Updated:** February 25, 2026 (V2b Session 2: Fog-of-War Migration)
 
 ---
 
@@ -9,10 +9,10 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4076** (4076 passed, 3 skipped — verified Feb 25, V2b Session 1) |
+| **Tests Passing** | **4164** (4164 passed, 3 skipped — verified Feb 25, V2b Session 2) |
 
-| **Current Phase** | Phase 7b **IN PROGRESS** (Tactical Triangle + V2b Session 1 COMPLETE. Remaining: V2b Sessions 2-3, Jealousy, Gneisenau). Coalition Trigger moved to Phase 8. |
-| **Blockers** | V2b Session 2 (fog migration) ready. Jealousy NEEDS DESIGN GATE. Gate 5 UI test pending. |
+| **Current Phase** | Phase 7b **IN PROGRESS** (Tactical Triangle + V2b Sessions 1-2 COMPLETE. Remaining: V2b Session 3, Jealousy, Gneisenau). Coalition Trigger moved to Phase 8. |
+| **Blockers** | V2b Session 3 (frontend) ready. Jealousy NEEDS DESIGN GATE. Gate 5 UI test pending. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
@@ -20,7 +20,7 @@
 ## Next Steps
 
 1. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~246 new tests.
-2. **Phase 7b: IN PROGRESS.** Tactical Triangle COMPLETE (Sessions 67-68). V2b Session 1 COMPLETE. **Gate 5 UI test pending.** Remaining: V2b Session 2 (fog migration), V2b Session 3 (frontend), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
+2. **Phase 7b: IN PROGRESS.** Tactical Triangle COMPLETE (Sessions 67-68). V2b Sessions 1-2 COMPLETE. **Gate 5 UI test pending.** Remaining: V2b Session 3 (frontend), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
 3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
 ---
@@ -45,6 +45,20 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7b Sessions
+
+### Feb 25 — V2b Session 2: Fog-of-War Migration
+
+**88 new tests, 4164 total (3 skipped). Objection system now fog-aware — marshals object based on what they can see, not omniscient data.**
+
+- **Step 1 — Fog infrastructure:** Added `_get_region_visibility()` helper (Step 0 rule: own region always FULL). Added `get_target_intel_level()` for Type B target queries. Rewrote `get_visible_enemies_near()` to return fog-filtered dicts (name, strength, visibility, location) instead of raw marshal objects. At PARTIAL, strength replaced by band midpoint (2500/10000/27500/55000/85000).
+- **Step 2 — Type A scan queries (3 leaf → 3 auto-propagate):** Rewrote `_check_enemy_adjacent()`, `_get_friendly_to_enemy_ratio()`, `_path_crosses_enemy()`/`_path_has_enemies()` to use fog-filtered data. Only PARTIAL+ enemies detected. Zero visible enemies → ratio 999.0. Auto-propagated: `_get_enemy_to_friendly_ratio()`, `_is_outnumbered_2to1()`, `_is_actually_threatened()`.
+- **Step 3 — Type B target queries (2 functions):** Rewrote `_get_attack_odds_ratio()` (FULL=exact, PARTIAL=band midpoint, STALE/UNKNOWN=1.0) and `_check_attack_target_fortified()` (only True at FULL visibility).
+- **Step 4 — Fog-specific triggers (4 new):** #9: Cautious attack UNKNOWN → STRONG. #10: Attack STALE → cautious MODERATE, aggressive MILD. #11: Scout-shows-weakness handled by fog-filtered ratio logic (no visible enemies = "defending nothing"). #12: PURSUE no intel → cautious STRONG, aggressive MILD.
+- **MockWorld upgraded:** Added `_MockRegionIntel`, `get_region_intel()`, `set_region_visibility()` to test mock, defaulting to FULL visibility to preserve all pre-fog tests.
+- **Edge cases verified:** Step 0 own-region rule, PARTIAL band midpoints, UNKNOWN→999.0 ratio, mixed-visibility paths, fortification hidden below FULL, `_check_enemy_in_region()` unchanged, aggressive ignores fog for attacks.
+
+**Files modified:** `objection_v2.py` (9 functions rewritten + 4 new triggers + fog imports/helpers), `test_objection_v2.py` (MockWorld fog support).
+**Files created:** `tests/test_v2b_fog_migration.py` (88 tests, 19 classes).
 
 ### Feb 25 — Session 67: Square Formation (Tactical Triangle Part A)
 

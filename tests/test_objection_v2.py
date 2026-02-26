@@ -9,7 +9,6 @@ Unit 1: Core Data Structures
 - Mood variance
 """
 
-import pytest
 from unittest.mock import patch
 
 from backend.commands.objection_v2 import (
@@ -37,11 +36,7 @@ from backend.commands.objection_v2 import (
     _check_enemy_adjacent,
     _check_enemy_in_region,
     _get_friendly_to_enemy_ratio,
-    _get_enemy_to_friendly_ratio,
     _is_outnumbered_2to1,
-    _is_actually_threatened,
-    _path_crosses_enemy,
-    # Unit 3: Strategic evaluators
     evaluate_strategic_aggressive,
     evaluate_strategic_cautious,
     evaluate_strategic_literal,
@@ -538,11 +533,20 @@ class MockRegion:
         self.controller = controller
 
 
+class _MockRegionIntel:
+    """Mock region intel for fog-of-war support in tests.
+    Defaults to FULL visibility (preserves pre-fog omniscient behavior).
+    """
+    def __init__(self, visibility="full"):
+        self.visibility = visibility
+
+
 class MockWorld:
     """Mock world for testing."""
     def __init__(self, marshals=None, regions=None):
         self.marshals = marshals or {}
         self.regions = regions or {}
+        self._intel = {}  # {region_name: _MockRegionIntel}
 
     def find_path(self, start, end):
         """Simple mock pathfinding - returns direct path via regions."""
@@ -562,6 +566,16 @@ class MockWorld:
                     return [start, mid, end]
 
         return None
+
+    def get_region_intel(self, region_name):
+        """Return intel for a region. Defaults to FULL visibility (omniscient)."""
+        if region_name not in self._intel:
+            self._intel[region_name] = _MockRegionIntel("full")
+        return self._intel[region_name]
+
+    def set_region_visibility(self, region_name, visibility):
+        """Test helper: set fog visibility for a specific region."""
+        self._intel[region_name] = _MockRegionIntel(visibility)
 
 
 class MockGameState:
@@ -1518,7 +1532,6 @@ class TestV2aTacticalIntegration:
     def test_tactical_objection_full_path_trust(self, mock_rng):
         """Full tactical path: Davout attacks bad odds → popup → trust → trust gain."""
         from backend.commands.executor import CommandExecutor
-        from backend.commands.objection_v2 import calculate_trust_gain, ConcernLevel, TrustTier
 
         world = TestV2aIntegrationFixtures.make_integration_world()
         executor = CommandExecutor()

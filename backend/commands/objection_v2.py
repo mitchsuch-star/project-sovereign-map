@@ -25,6 +25,7 @@ from typing import Dict, Optional
 import random
 
 
+
 # ════════════════════════════════════════════════════════════════════════════
 # CORE ENUMS
 # ════════════════════════════════════════════════════════════════════════════
@@ -384,17 +385,118 @@ def _get_world(game_state) -> Optional:
     return game_state
 
 
-def get_visible_enemies_near(region_name: str, nation: str, world) -> list:
+# V2b fog-of-war imports (Session 2)
+from backend.models.intel import (
+    FULL as _FULL, PARTIAL as _PARTIAL, STALE as _STALE,
+    LAST_KNOWN as _LAST_KNOWN, UNKNOWN as _UNKNOWN,
+)
+
+# Re-export for test access
+FOG_FULL = _FULL
+FOG_PARTIAL = _PARTIAL
+FOG_STALE = _STALE
+FOG_LAST_KNOWN = _LAST_KNOWN
+FOG_UNKNOWN = _UNKNOWN
+
+
+# Strength band midpoints for PARTIAL visibility ratio estimation.
+# Derived from STRENGTH_BANDS in intel.py: use range midpoint for each band.
+_BAND_MIDPOINTS = {
+    0: 0,           # "no forces": 0
+    5000: 2500,     # "screening force": 1-4,999 → midpoint 2,500
+    15000: 10000,   # "small force": 5,000-14,999 → midpoint 10,000
+    40000: 27500,   # "substantial force": 15,000-39,999 → midpoint 27,500
+    70000: 55000,   # "large force": 40,000-69,999 → midpoint 55,000
+}
+_BAND_MIDPOINT_MASSIVE = 85000  # "massive force": 70,000+ → estimate 85,000
+
+
+def _get_band_midpoint_for_strength(strength: int) -> int:
+    """Convert exact troop strength to band midpoint estimate.
+
+    Used for PARTIAL visibility: marshal sees strength band, not exact numbers.
+    Returns the midpoint of whichever band the strength falls into.
     """
-    Get visible enemies in and adjacent to a region, respecting fog of war.
+    if strength <= 0:
+        return 0
+    if strength < 5000:
+        return 2500
+    if strength < 15000:
+        return 10000
+    if strength < 40000:
+        return 27500
+    if strength < 70000:
+        return 55000
+    return _BAND_MIDPOINT_MASSIVE
 
-    Currently returns actual (omniscient) data — same as direct world access.
-    In V2b, this will be swapped to fog-filtered data using
-    world.get_visible_enemies_in_region() for each checked region.
 
-    This is the single point of change for V2b fog integration in the
-    objection system. All 12 helper functions above should eventually
-    delegate enemy lookups through this helper.
+def _get_region_visibility(region_name: str, nation: str, world) -> str:
+    """Get visibility level for a region from a nation's perspective.
+
+    Step 0 rule: if a friendly marshal is present in the region, always FULL.
+    Otherwise reads from the intel store.
+
+    Args:
+        region_name: Region to check
+        nation: The viewing nation
+        world: WorldState
+
+    Returns:
+        Visibility level string (FULL/PARTIAL/STALE/LAST_KNOWN/UNKNOWN)
+    """
+    # Step 0: Friendly marshal present → FULL (regardless of intel store state)
+    if hasattr(world, 'marshals'):
+        for m in world.marshals.values():
+            if m.nation == nation and m.strength > 0 and m.location == region_name:
+                return _FULL
+
+    # Read from intel store
+    if hasattr(world, 'get_region_intel'):
+        intel = world.get_region_intel(region_name)
+        return intel.visibility
+
+    return _UNKNOWN
+
+
+def get_target_intel_level(target_name: str, marshal, world) -> str:
+    """Get visibility level for a specific named enemy marshal.
+
+    Type B query: used when objection helpers need info about a specific
+    target (e.g., attack target strength, fortification status).
+
+    Marshal's own region always returns FULL (Step 0 rule).
+
+    Args:
+        target_name: Name of the enemy marshal to check
+        marshal: The querying marshal (for perspective/location)
+        world: WorldState
+
+    Returns:
+        Visibility level string (FULL/PARTIAL/STALE/LAST_KNOWN/UNKNOWN)
+    """
+    if not world or not target_name:
+        return _UNKNOWN
+
+    target_marshal = world.marshals.get(target_name) if hasattr(world, 'marshals') else None
+    if not target_marshal or target_marshal.strength <= 0:
+        return _UNKNOWN
+
+    # Co-located enemies always visible (Step 0: marshal's own region = FULL)
+    if target_marshal.location == marshal.location:
+        return _FULL
+
+    marshal_nation = getattr(marshal, 'nation', 'France')
+    return _get_region_visibility(target_marshal.location, marshal_nation, world)
+
+
+def get_visible_enemies_near(region_name: str, nation: str, world) -> list:
+    """Get visible enemies in and adjacent to a region, respecting fog of war.
+
+    V2b: Only returns enemies at PARTIAL+ visibility. STALE/LAST_KNOWN/UNKNOWN
+    enemies are invisible to the objection system (can't worry about what you
+    can't see).
+
+    At FULL: exact strength. At PARTIAL: strength band midpoint estimate.
 
     Args:
         region_name: Region to check (center of search)
@@ -402,7 +504,8 @@ def get_visible_enemies_near(region_name: str, nation: str, world) -> list:
         world: WorldState for context
 
     Returns:
-        List of enemy marshal objects (currently omniscient, V2b: fog-filtered)
+        List of dicts: [{name, strength, visibility, location}, ...]
+        strength is exact (FULL) or band midpoint (PARTIAL).
     """
     if not world or not hasattr(world, 'marshals'):
         return []
@@ -417,50 +520,54 @@ def get_visible_enemies_near(region_name: str, nation: str, world) -> list:
     enemies = []
     seen_names = set()
     for rn in check_regions:
+        visibility = _get_region_visibility(rn, nation, world)
+
+        # Only PARTIAL+ visibility (STALE/LAST_KNOWN/UNKNOWN = invisible)
+        if visibility not in (_FULL, _PARTIAL):
+            continue
+
         for m in world.marshals.values():
             if (m.nation != nation and m.strength > 0
                     and m.location == rn and m.name not in seen_names):
-                enemies.append(m)
+                if visibility == _FULL:
+                    strength = m.strength
+                else:  # PARTIAL
+                    strength = _get_band_midpoint_for_strength(m.strength)
+                enemies.append({
+                    "name": m.name,
+                    "strength": strength,
+                    "visibility": visibility,
+                    "location": rn,
+                })
                 seen_names.add(m.name)
 
     return enemies
 
 
 def _check_enemy_adjacent(marshal, game_state) -> bool:
-    """
-    Check if any enemy is adjacent to the marshal.
+    """Check if any visible enemy is adjacent to the marshal.
 
-    TODO (V2b): Fog-aware. Currently reads world.marshals directly (omniscient).
-    In V2b, should use get_visible_enemies_near() to only see enemies at
-    PARTIAL+ visibility. Cautious marshals can't worry about unseen enemies.
+    V2b: Fog-aware via get_visible_enemies_near(). Only sees enemies at
+    PARTIAL+ visibility. Marshals can't worry about unseen enemies.
 
     Args:
         marshal: The marshal to check
         game_state: Current game state
 
     Returns:
-        True if at least one enemy is adjacent
+        True if at least one visible enemy is in an adjacent region
     """
     world = _get_world(game_state)
     if not world:
         return False
 
     marshal_nation = getattr(marshal, 'nation', 'France')
-    marshal_location = marshal.location
+    enemies = get_visible_enemies_near(marshal.location, marshal_nation, world)
 
-    # Get adjacent regions
-    region = world.regions.get(marshal_location) if hasattr(world, 'regions') else None
-    if not region:
-        return False
-
-    adjacent_regions = region.adjacent_regions
-
-    # Check for enemies in adjacent regions
-    if hasattr(world, 'marshals'):
-        for enemy in world.marshals.values():
-            if enemy.nation != marshal_nation and enemy.strength > 0:
-                if enemy.location in adjacent_regions:
-                    return True
+    # Filter: only adjacent regions (not same region)
+    for e in enemies:
+        if e["location"] != marshal.location:
+            return True
 
     return False
 
@@ -495,47 +602,31 @@ def _check_enemy_in_region(marshal, game_state) -> bool:
 
 
 def _get_friendly_to_enemy_ratio(marshal, game_state) -> float:
-    """
-    Get ratio of friendly strength to nearby enemy strength.
+    """Get ratio of friendly strength to nearby visible enemy strength.
 
-    Higher ratio = we outnumber them.
-    Used for aggressive personality "why are we defending when we outnumber them?"
-
-    TODO (V2b): Fog-aware. Should only count enemies at PARTIAL+ visibility.
-    At PARTIAL, use strength band midpoint instead of exact strength.
-    At UNKNOWN, enemy contributes 0 to ratio (not seen).
+    V2b: Fog-aware via get_visible_enemies_near(). Only counts enemies at
+    PARTIAL+ visibility. At PARTIAL, uses strength band midpoint estimate.
+    UNKNOWN/STALE enemies contribute 0 (not visible).
 
     Args:
         marshal: The marshal to check
         game_state: Current game state
 
     Returns:
-        Ratio (friendly/enemy). Returns 0.0 if no enemies, 999.0 if only friendlies.
+        Ratio (friendly/enemy). Returns 999.0 if no visible enemies nearby.
     """
     world = _get_world(game_state)
     if not world:
         return 1.0
 
     marshal_nation = getattr(marshal, 'nation', 'France')
-    marshal_location = marshal.location
+    enemies = get_visible_enemies_near(marshal.location, marshal_nation, world)
 
-    # Get adjacent regions
-    region = world.regions.get(marshal_location) if hasattr(world, 'regions') else None
-    if not region:
-        return 1.0
-
-    adjacent_and_here = list(region.adjacent_regions) + [marshal_location]
-
-    # Sum enemy strength in adjacent regions + current region
-    enemy_strength = 0
-    if hasattr(world, 'marshals'):
-        for enemy in world.marshals.values():
-            if enemy.nation != marshal_nation and enemy.strength > 0:
-                if enemy.location in adjacent_and_here:
-                    enemy_strength += enemy.strength
+    # Sum visible enemy strength (already adjusted: exact at FULL, midpoint at PARTIAL)
+    enemy_strength = sum(e["strength"] for e in enemies)
 
     if enemy_strength == 0:
-        return 999.0  # No enemies nearby
+        return 999.0  # No visible enemies nearby
 
     return marshal.strength / enemy_strength
 
@@ -604,13 +695,10 @@ def _is_actually_threatened(marshal, game_state) -> bool:
 
 
 def _path_crosses_enemy(marshal, target, game_state) -> bool:
-    """
-    Check if path to target crosses through enemy-occupied territory.
+    """Check if path to target crosses through visible enemy-occupied territory.
 
-    Used for cautious MOVE objection: "marching through enemy territory is risky"
-
-    TODO (V2b): Fog-aware. Should only detect enemies at PARTIAL+ visibility
-    along the path. Walking into fogged enemies is a surprise, not a known risk.
+    V2b: Fog-aware. Only detects enemies at PARTIAL+ visibility along path.
+    Walking into fogged enemies is a surprise, not a known risk.
 
     Args:
         marshal: The marshal moving
@@ -618,13 +706,12 @@ def _path_crosses_enemy(marshal, target, game_state) -> bool:
         game_state: Current game state
 
     Returns:
-        True if path crosses enemy-occupied regions
+        True if path crosses regions with visible enemies
     """
     world = _get_world(game_state)
     if not world:
         return False
 
-    # Get path from world's pathfinding
     if hasattr(world, 'find_path'):
         path = world.find_path(marshal.location, target)
         if not path or len(path) < 2:
@@ -634,6 +721,11 @@ def _path_crosses_enemy(marshal, target, game_state) -> bool:
 
         # Check intermediate regions (not start, not destination)
         for region_name in path[1:-1]:
+            # Fog check: only detect PARTIAL+ enemies
+            visibility = _get_region_visibility(region_name, marshal_nation, world)
+            if visibility not in (_FULL, _PARTIAL):
+                continue
+
             if hasattr(world, 'marshals'):
                 for enemy in world.marshals.values():
                     if enemy.nation != marshal_nation and enemy.strength > 0:
@@ -644,12 +736,10 @@ def _path_crosses_enemy(marshal, target, game_state) -> bool:
 
 
 def _check_attack_target_fortified(marshal, order: Dict, game_state) -> bool:
-    """
-    Check if attack target is fortified.
+    """Check if attack target is fortified (fog-aware).
 
-    TODO (V2b): Fog-aware. Fortification status only visible at FULL.
-    At PARTIAL/STALE, marshal doesn't know if target is fortified.
-    Should return False for non-FULL visibility targets.
+    V2b: Fortification status only visible at FULL. At PARTIAL or below,
+    marshal doesn't know if target is fortified → returns False.
 
     Args:
         marshal: The attacking marshal
@@ -657,7 +747,7 @@ def _check_attack_target_fortified(marshal, order: Dict, game_state) -> bool:
         game_state: Current game state
 
     Returns:
-        True if target marshal is fortified
+        True if target is fortified AND visible at FULL
     """
     world = _get_world(game_state)
     if not world:
@@ -665,6 +755,11 @@ def _check_attack_target_fortified(marshal, order: Dict, game_state) -> bool:
 
     target_name = order.get('target')
     if not target_name or not hasattr(world, 'marshals'):
+        return False
+
+    # Fog check: fort status only visible at FULL
+    visibility = get_target_intel_level(target_name, marshal, world)
+    if visibility != _FULL:
         return False
 
     target_marshal = world.marshals.get(target_name)
@@ -675,15 +770,13 @@ def _check_attack_target_fortified(marshal, order: Dict, game_state) -> bool:
 
 
 def _get_attack_odds_ratio(marshal, order: Dict, game_state) -> float:
-    """
-    Get strength ratio for attack target.
+    """Get strength ratio for attack target (fog-aware).
+
+    V2b: FULL = exact strength. PARTIAL = band midpoint estimate.
+    STALE/UNKNOWN = 1.0 (can't assess odds).
 
     Returns enemy_strength / marshal_strength.
     Higher = more dangerous for attacker.
-
-    TODO (V2b): Fog-aware. At FULL, use exact strength (current behavior).
-    At PARTIAL, use strength band midpoint estimate. At STALE/UNKNOWN,
-    return 1.0 (unknown odds — can't assess danger).
 
     Args:
         marshal: The attacking marshal
@@ -708,7 +801,17 @@ def _get_attack_odds_ratio(marshal, order: Dict, game_state) -> float:
     if marshal.strength <= 0:
         return 999.0  # Infinite danger
 
-    return target_marshal.strength / marshal.strength
+    # Fog check: visibility determines strength accuracy
+    visibility = get_target_intel_level(target_name, marshal, world)
+
+    if visibility == _FULL:
+        return target_marshal.strength / marshal.strength
+    elif visibility == _PARTIAL:
+        estimated = _get_band_midpoint_for_strength(target_marshal.strength)
+        return estimated / marshal.strength
+    else:
+        # STALE/LAST_KNOWN/UNKNOWN: can't assess danger
+        return 1.0
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -777,6 +880,17 @@ def evaluate_aggressive(marshal, action: str, order: Dict, game_state) -> Concer
             target_marshal = world.get_marshal(target_name) if hasattr(world, 'get_marshal') else None
             if target_marshal and getattr(target_marshal, 'defense_bonus', 0) == 0 and target_marshal.strength < 8000:
                 return ConcernLevel.MILD  # "The target is already broken — save my powder"
+
+    # V2b fog trigger #10: Attack on STALE intel — aggressive: MILD at most
+    # Aggressive normally doesn't object to attacks, but stale intel is a concern
+    if action == "attack":
+        target_name = order.get('target')
+        if target_name:
+            world_obj = _get_world(game_state)
+            if world_obj:
+                visibility = get_target_intel_level(target_name, marshal, world_obj)
+                if visibility in (_STALE, _LAST_KNOWN):
+                    return ConcernLevel.MILD  # "Our information is old, but let's go!"
 
     # Drill with enemy nearby
     if action == "drill":
@@ -852,6 +966,17 @@ def evaluate_cautious(marshal, action: str, order: Dict, game_state) -> ConcernL
                     return ConcernLevel.MILD  # "The target is already broken — save my powder"
 
             return ConcernLevel.NONE  # Cautious artillery doesn't object to bombardment itself
+
+        # V2b fog triggers #9/#10: Attack with poor intel
+        target_name = order.get('target')
+        if target_name:
+            world_obj = _get_world(game_state)
+            if world_obj:
+                visibility = get_target_intel_level(target_name, marshal, world_obj)
+                if visibility in (_UNKNOWN, ):
+                    return ConcernLevel.STRONG  # #9: "We know nothing of that region!"
+                if visibility in (_STALE, _LAST_KNOWN):
+                    return ConcernLevel.MODERATE  # #10: "Our intelligence is days old..."
 
         ratio = _get_attack_odds_ratio(marshal, order, game_state)
 
@@ -1087,11 +1212,10 @@ def _get_pursue_target_ratio(marshal, target_name: str, world) -> float:
 
 
 def _path_has_enemies(path: list, marshal_nation: str, world) -> tuple:
-    """
-    Check if path crosses any enemy-occupied regions.
+    """Check if path crosses any visible enemy-occupied regions.
 
-    TODO (V2b): Fog-aware. Should only detect enemies at PARTIAL+ visibility
-    along the path. Fogged enemies are unknown — marshal can't object about them.
+    V2b: Fog-aware. Only detects enemies at PARTIAL+ visibility along path.
+    Fogged enemies are unknown — marshal can't object about them.
 
     Args:
         path: List of region names
@@ -1106,6 +1230,11 @@ def _path_has_enemies(path: list, marshal_nation: str, world) -> tuple:
 
     enemy_regions = []
     for region_name in path:
+        # Fog check: only detect PARTIAL+ enemies
+        visibility = _get_region_visibility(region_name, marshal_nation, world)
+        if visibility not in (_FULL, _PARTIAL):
+            continue
+
         if hasattr(world, 'get_enemies_in_region'):
             enemies = world.get_enemies_in_region(region_name, marshal_nation)
             if enemies:
@@ -1166,6 +1295,16 @@ def evaluate_strategic_aggressive(
         # Enemies adjacent but we're not overwhelmingly stronger - HOLD is acceptable
         return ConcernLevel.NONE
 
+    # V2b fog trigger #12: PURSUE with no intel on target — aggressive: MILD
+    if order_type == "PURSUE":
+        # Only fire fog trigger if target exists (non-existent = executor error, not fog concern)
+        target_marshal = world.marshals.get(target) if target else None
+        if target_marshal and target_marshal.strength > 0:
+            visibility = get_target_intel_level(target, marshal, world)
+            if visibility in (_UNKNOWN, _LAST_KNOWN):
+                return ConcernLevel.MILD  # "I'll find them... but we know nothing"
+        return ConcernLevel.NONE
+
     # §6: Aggressive objects to defensive SUPPORT (target fortified/cautious/retreating/broken)
     if order_type == "SUPPORT":
         target_marshal = world.marshals.get(target) if target else None
@@ -1215,6 +1354,14 @@ def evaluate_strategic_cautious(
 
     # PURSUE - check target strength ratio
     if order_type == "PURSUE":
+        # V2b fog trigger #12: PURSUE with no intel on target — cautious: STRONG
+        # Only fire if target exists (non-existent = executor error, not fog concern)
+        target_marshal = world.marshals.get(target) if target else None
+        if target_marshal and target_marshal.strength > 0:
+            visibility = get_target_intel_level(target, marshal, world)
+            if visibility in (_UNKNOWN, _LAST_KNOWN):
+                return ConcernLevel.STRONG  # "We don't know where they are or their strength!"
+
         ratio = _get_pursue_target_ratio(marshal, target, world)
 
         if ratio >= 5.0:

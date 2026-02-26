@@ -2526,12 +2526,20 @@ AI is omniscient on 13 regions (spec §9.1). Uses `world.marshals` and `get_enem
 
 ### Objection System + Fog
 
-Davout PURSUE objection (disobedience.py) is fog-aware:
-- FULL: Objects on exact odds (ratio >= 1.2)
-- PARTIAL: Objects on band comparison
-- STALE/UNKNOWN: Objects on staleness ("X-day-old intelligence")
+**V1 (disobedience.py):** Davout PURSUE objection is fog-aware (FULL: exact odds, PARTIAL: band comparison, STALE/UNKNOWN: staleness objection).
 
-V2b TODO markers at 12 helper functions in `objection_v2.py`. `get_visible_enemies_near()` helper ready for V2b swap.
+**V2a (objection_v2.py) — fog-migrated in V2b Session 2:** All objection helpers now use fog-filtered data. Key behaviors:
+
+- **Step 0 rule:** Own region always FULL visibility (friendly marshal present → sees everything). Enforced in `_get_region_visibility()`.
+- **Type A scan queries** (`_check_enemy_adjacent`, `_get_friendly_to_enemy_ratio`, `_path_crosses_enemy`/`_path_has_enemies`): Only detect enemies at PARTIAL+ visibility. STALE/UNKNOWN enemies invisible. Zero visible enemies → ratio 999.0.
+- **Type B target queries** (`_get_attack_odds_ratio`, `_check_attack_target_fortified`): FULL=exact data, PARTIAL=band midpoint strength, STALE/UNKNOWN=1.0 odds / no fort info.
+- **Band midpoints:** At PARTIAL visibility, exact strength replaced by band midpoint (2500/10000/27500/55000/85000) for ratio calculations.
+- **4 fog-specific triggers:**
+  - Attack into UNKNOWN: cautious → STRONG, aggressive → no concern
+  - Attack on STALE intel: cautious → MODERATE, aggressive → MILD
+  - Scout-shows-weakness: handled by fog-filtered ratio (no visible enemies = "defending nothing")
+  - PURSUE no intel: cautious → STRONG, aggressive → MILD
+- **Auto-propagated functions** (`_get_enemy_to_friendly_ratio`, `_is_outnumbered_2to1`, `_is_actually_threatened`): Fog-aware via delegation — no code changes needed.
 
 ### Map Visualization (Godot)
 
