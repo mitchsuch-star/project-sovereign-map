@@ -19,7 +19,6 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 ### Up Next
 
 - **Strategic Order UI** — Dedicated standing orders screen with consolidated view, order timeline, topbar hotkey. Next session.
-- **Timed SUPPORT fix** — Timer counts from issuance not arrival; 3-turn compromise wastes travel time. Needs design decision.
 - **Phase 7b remaining:** V2b COMPLETE (Sessions 0-3 + audit cleanup). Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial Infrastructure deferred to Pre-EA.
 

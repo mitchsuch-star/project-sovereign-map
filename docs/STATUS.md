@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4201** (4201 passed, 3 skipped — verified Feb 26, Redemption Frontend Wiring + Integration Tests) |
+| **Tests Passing** | **4208** (4208 passed, 3 skipped — verified Feb 26, Strategic Compromise First-Step + Timer Fix) |
 
 | **Current Phase** | Phase 7b **IN PROGRESS** (Tactical Triangle + V2b COMPLETE. Remaining: Jealousy, Gneisenau). Coalition Trigger moved to Phase 8. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE. Gate 5+6 UI tests pending. |
@@ -20,7 +20,7 @@
 ## Next Steps
 
 1. **Strategic Order UI** — Dedicated standing orders screen (next up). Ledger Forces tab has per-marshal order data; need consolidated view with order timeline, cancel/modify, and topbar hotkey.
-2. **Timed SUPPORT fix** — Timer counts from issuance, not arrival. 3-turn compromise burns travel time, leaving 1-2 turns of actual support. Needs design: count from arrival, or increase duration to compensate.
+2. ~~**Timed SUPPORT fix**~~ **FIXED.** Compromise first-step + arrived_turn timer. See session below.
 3. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~246 new tests.
 4. **Phase 7b: IN PROGRESS.** Tactical Triangle COMPLETE (Sessions 67-68). V2b COMPLETE (Sessions 0-3). **Gates 5+6 UI tests pending.** Remaining: Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
 5. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
@@ -47,6 +47,17 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7b Sessions
+
+### Feb 26 — Strategic Compromise First-Step + Timed SUPPORT Timer Fix
+
+**4208 tests (3 skipped). Fixed two bugs in strategic compromise orders.**
+
+- **Bug 1: Compromise orders skip first-step execution.** All compromise paths in `_handle_strategic_objection_response` created the `StrategicOrder` but never executed immediate movement. Normal strategic orders move on issuance turn; compromise orders sat idle for a turn. Fixed by adding first-step movement block to the compromise handler. Affects all 4 order types (MOVE_TO, PURSUE, HOLD, SUPPORT).
+- **Bug 2: Timed SUPPORT timer counts travel time.** `_check_condition` used `started_turn` for `max_turns` expiry. A 3-turn timed SUPPORT issued 2 hops away gave only 1 turn of actual support. Fixed by adding `arrived_turn` field to `StrategicOrder` — set when SUPPORT marshal first co-locates with ally, used as timer anchor in `_check_condition` for SUPPORT orders. Timer doesn't start until arrival.
+- **Compromise message fix:** Timed SUPPORT compromise previously said "agrees to hold position" — now says "agrees to support {target}".
+- **V2B spec fix:** Trust choice incorrectly said "AP refunded" — AP is never charged during objection (deferred). Fixed to accurate description.
+
+**Files modified:** `marshal.py` (arrived_turn field + serialization), `strategic.py` (_check_condition SUPPORT timer, _execute_support arrival recording), `executor.py` (compromise first-step block, normal SUPPORT arrived_turn recording), `V2B_DEFIANCE_SPEC.md`, `SAVE_FORMAT_REFERENCE.md`, `test_strategic_bugfixes.py` (+7 tests).
 
 ### Feb 26 — V2b: Redemption Frontend Wiring + Integration Tests
 

@@ -124,6 +124,10 @@ class StrategicOrder:
     # Artillery HOLD bombardment: locked target for consistent fire
     bombardment_target: Optional[str] = None
 
+    # Timed SUPPORT: turn when marshal actually arrived at ally's location
+    # Used instead of started_turn for max_turns expiry so travel doesn't count
+    arrived_turn: Optional[int] = None
+
     def to_dict(self) -> Dict:
         """Serialize for save/load."""
         return {
@@ -145,6 +149,7 @@ class StrategicOrder:
             "combat_attempts": self.combat_attempts,
             "objection_resolved": self.objection_resolved,
             "bombardment_target": self.bombardment_target,
+            "arrived_turn": self.arrived_turn,
         }
 
     @classmethod
@@ -172,6 +177,7 @@ class StrategicOrder:
             combat_attempts=data.get("combat_attempts", 0),
             objection_resolved=data.get("objection_resolved", False),
             bombardment_target=data.get("bombardment_target"),
+            arrived_turn=data.get("arrived_turn"),
         )
 
 

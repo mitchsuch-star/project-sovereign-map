@@ -1542,6 +1542,10 @@ class StrategicExecutor:
 
         # With ally?
         if marshal.location == ally.location:
+            # Record arrival turn for timed SUPPORT (so timer counts from arrival, not issuance)
+            if order.arrived_turn is None:
+                order.arrived_turn = world.current_turn
+
             # Check if battle_won condition met
             if order.condition and order.condition.until_battle_won:
                 if getattr(ally, 'last_combat_result', None) == "victory":
@@ -1648,6 +1652,10 @@ class StrategicExecutor:
                 world.update_intel_from_transit(transit_region, world.current_turn)
 
         if moves_made:
+            # Record arrival if we reached the ally this turn
+            if marshal.location == ally.location and order.arrived_turn is None:
+                order.arrived_turn = world.current_turn
+
             distance = world.get_distance(marshal.location, ally.location)
             return {
                 "marshal": marshal.name,
@@ -1864,7 +1872,16 @@ class StrategicExecutor:
         order = marshal.strategic_order
 
         if condition.max_turns is not None:
-            turns_active = world.current_turn - order.started_turn
+            # SUPPORT: count from arrival at ally, not from issuance
+            # (travel time shouldn't eat into the "3 turns of support" the player agreed to)
+            if order.command_type == "SUPPORT":
+                if order.arrived_turn is None:
+                    # Haven't reached ally yet — timer hasn't started
+                    turns_active = 0
+                else:
+                    turns_active = world.current_turn - order.arrived_turn
+            else:
+                turns_active = world.current_turn - order.started_turn
             if turns_active >= condition.max_turns:
                 # Personality-appropriate completion message for HOLD
                 if order.command_type == "HOLD":

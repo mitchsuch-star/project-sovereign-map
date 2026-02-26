@@ -456,6 +456,7 @@ A future save/load system should use this as the specification.
 | `last_combat_turn` | int\|null | Combat loop prevention |
 | `last_combat_result` | string\|null | "victory", "defeat", "stalemate" |
 | `bombardment_target` | string\|null | Locked target for artillery HOLD |
+| `arrived_turn` | int\|null | (SUPPORT) Turn when marshal first reached ally. Timed SUPPORT counts from this, not started_turn. |
 
 ---
 

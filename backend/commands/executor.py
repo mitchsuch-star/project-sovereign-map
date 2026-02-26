@@ -6027,6 +6027,16 @@ RETREAT RECOVERY (3 turns):
                     first_step_msg = f" Cavalry charges through {' -> '.join(moved_regions)}."
                 else:
                     first_step_msg = f" Moves to {moved_regions[0]}."
+            # Record arrival if first step reached ally
+            ally_m = world.get_marshal(target)
+            if ally_m and marshal.location == ally_m.location and order.arrived_turn is None:
+                order.arrived_turn = world.current_turn
+
+        # ── SUPPORT already co-located: set arrived_turn immediately ──
+        if strategic_type == "SUPPORT" and order.arrived_turn is None:
+            ally_m = world.get_marshal(target)
+            if ally_m and marshal.location == ally_m.location:
+                order.arrived_turn = world.current_turn
 
         # ── Build response ────────────────────────────────────────────
         remaining = len(order.path) if order.path else 0
@@ -6269,15 +6279,72 @@ RETREAT RECOVERY (3 turns):
                         marshal.holding_position = True
                         marshal.hold_region = hold_location
 
+            # ── Execute first step immediately (same as normal strategic path) ──
+            # Without this, compromise orders lose a turn sitting idle.
+            first_step_msg = ""
+            if order.path:
+                movement_range = getattr(marshal, 'movement_range', 1)
+                steps = min(movement_range, len(order.path))
+                moved_regions = []
+                for _i in range(steps):
+                    if not order.path:
+                        break
+                    next_region = order.path[0]
+                    enemies = world.get_enemies_in_region(next_region, marshal.nation)
+                    if enemies:
+                        if not moved_regions:
+                            blocked_result = self._handle_first_step_blocked(
+                                marshal, enemies, next_region, world, game_state)
+                            if blocked_result is not None:
+                                return blocked_result
+                            first_step_msg = f" Adjusting route to avoid {next_region}."
+                            if order.path:
+                                next_region = order.path[0]
+                                enemies = world.get_enemies_in_region(next_region, marshal.nation)
+                                if enemies:
+                                    break
+                            else:
+                                break
+                        else:
+                            break
+                    move_result = self.execute(
+                        {"command": {
+                            "marshal": marshal.name,
+                            "action": "move",
+                            "target": next_region,
+                            "_strategic_execution": True,
+                        }},
+                        game_state
+                    )
+                    if move_result.get("success"):
+                        order.path.pop(0)
+                        moved_regions.append(next_region)
+                    else:
+                        break
+                if moved_regions:
+                    if len(moved_regions) > 1:
+                        first_step_msg = f" Cavalry charges through {' -> '.join(moved_regions)}."
+                    else:
+                        first_step_msg = f" Moves to {moved_regions[0]}."
+
+                # SUPPORT: if first step reached ally, record arrival
+                if strategic_type == "SUPPORT":
+                    ally = world.get_marshal(target)
+                    if ally and marshal.location == ally.location and order.arrived_turn is None:
+                        order.arrived_turn = world.current_turn
+
             # Build success message
             if condition and condition.max_turns:
-                msg = f"{marshal.name} agrees to hold position for {condition.max_turns} turns."
+                if strategic_type == "SUPPORT":
+                    msg = f"{marshal.name} agrees to support {target} for {condition.max_turns} turns.{first_step_msg}"
+                else:
+                    msg = f"{marshal.name} agrees to hold position for {condition.max_turns} turns.{first_step_msg}"
             elif condition and condition.auto_cancel_below_ratio:
-                msg = f"{marshal.name} will pursue cautiously, breaking off if odds turn against us."
+                msg = f"{marshal.name} will pursue cautiously, breaking off if odds turn against us.{first_step_msg}"
             elif compromise_data.get("safe_path"):
-                msg = f"{marshal.name} will take a safer route to {target}."
+                msg = f"{marshal.name} will take a safer route to {target}.{first_step_msg}"
             else:
-                msg = f"{marshal.name} agrees to the compromise."
+                msg = f"{marshal.name} agrees to the compromise.{first_step_msg}"
 
             return {
                 "success": True,
@@ -6285,9 +6352,9 @@ RETREAT RECOVERY (3 turns):
                 "strategic_order_created": True,
                 "strategic_type": strategic_type,
                 "target": target,
-                "path": path,
+                "path": order.path,  # Updated path after first-step movement
                 "variable_action_cost": 2,
-                "trust_change": 3,
+                "trust_change": v2_compromise_gain,
                 "compromise_applied": True,
             }
 
