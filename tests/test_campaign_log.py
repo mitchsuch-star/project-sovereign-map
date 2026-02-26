@@ -5,14 +5,13 @@ Tests fog-filtered event log: type whitelist, fog rules, one-liner formatting,
 endpoint response structure.
 """
 
-import pytest
 from backend.campaign_log import (
     CAMPAIGN_LOG_TYPES,
     CATEGORY_MAP,
     filter_campaign_log,
     format_event_oneliner,
 )
-from backend.models.intel import FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN
+from backend.models.intel import FULL, PARTIAL, STALE, UNKNOWN
 from backend.models.world_state import WorldState
 
 
@@ -79,9 +78,9 @@ class TestTypeWhitelist:
         assert result[0]["type"] == "battle"
         assert result[1]["type"] == "recruitment"
 
-    def test_fourteen_types_in_constant(self):
-        """Verify the type set has exactly 14 entries."""
-        assert len(CAMPAIGN_LOG_TYPES) == 14
+    def test_fifteen_types_in_constant(self):
+        """Verify the type set has exactly 15 entries (14 original + defiance)."""
+        assert len(CAMPAIGN_LOG_TYPES) == 15
 
     def test_all_types_have_categories(self):
         """Every campaign log type should have a category mapping."""
@@ -615,7 +614,6 @@ class TestEndpoint:
         """GET /campaign_log with no events returns empty turns list."""
         from fastapi.testclient import TestClient
         from backend.main import app, game_state
-        import backend.main as main_module
 
         world = game_state["world"]
         saved_log = world.event_log[:]

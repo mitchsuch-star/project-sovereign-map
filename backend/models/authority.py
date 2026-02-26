@@ -3,6 +3,11 @@ Authority Tracker for Project Sovereign (Phase 2 - Disobedience)
 
 Tracks Napoleon's perceived authority to prevent "always trust marshals" exploit.
 If player always defers to marshals, authority erodes and marshals become less obedient.
+
+V2b additions:
+- Enriched recent_responses format: List[Dict] with {"choice": str, "turn": int}
+- check_excessive_trust(): Ratio-based penalty replacing old count-based system
+- modify_authority(): Clamped 0-100 setter for external callers
 """
 
 from typing import Optional, Dict, List
@@ -22,6 +27,11 @@ class AuthorityTracker:
     - Authority 70: "Whispers of Weakness" - minor warning
     - Authority 50: "Loss of Respect" - marshals start testing limits
     - Authority 30: "Emperor in Name Only" - open challenges
+
+    Authority tiers for defiance (SEPARATE from get_obedience_modifier/get_severity_modifier):
+    - >= 80: Strong leader (-10% defiance chance)
+    - 50-79: Normal (0% defiance modifier)
+    - < 50: Weak leader (+10% defiance chance)
     """
 
     # Authority threshold events
@@ -46,15 +56,21 @@ class AuthorityTracker:
     def __init__(self):
         """Initialize authority tracker."""
         self.authority: int = 100  # Napoleon starts fully authoritative
-        self.recent_responses: List[str] = []  # Last 10 responses
+        # V2b: Enriched format — List[Dict] with {"choice": str, "turn": int}
+        # Backward compat: from_dict handles bare strings (legacy saves)
+        self.recent_responses: List[Dict] = []
         self._crossed_thresholds: List[int] = []  # Track which events have triggered
 
-    def record_response(self, choice: str) -> Optional[Dict]:
+    def record_response(self, choice: str, current_turn: int = 0) -> Optional[Dict]:
         """
         Record player response to objection.
 
+        V2b: Accepts current_turn for time-windowed penalty calculation.
+        Stores enriched format {"choice": str, "turn": int}.
+
         Args:
             choice: 'trust', 'insist', or 'compromise'
+            current_turn: Current game turn number (default 0 for backward compat)
 
         Returns:
             Event dict if threshold crossed, None otherwise
@@ -62,36 +78,57 @@ class AuthorityTracker:
         if choice not in ('trust', 'insist', 'compromise'):
             return None
 
-        self.recent_responses.append(choice)
+        self.recent_responses.append({"choice": choice, "turn": int(current_turn)})
         if len(self.recent_responses) > 10:
             self.recent_responses.pop(0)
+
+        # Apply excessive trust penalty (V2b, replaces old trust-ratio branch)
+        penalty = check_excessive_trust(self, current_turn)
+        if penalty != 0:
+            self.authority = max(0, min(100, self.authority + penalty))
 
         self._evaluate_authority()
 
         return self._check_events()
 
     def _evaluate_authority(self) -> None:
-        """Evaluate authority based on recent response pattern."""
+        """
+        Evaluate authority based on recent response pattern.
+
+        V2b: Trust-ratio penalty REMOVED (replaced by check_excessive_trust
+        in record_response). Only insist recovery and balanced recovery remain.
+        """
         if len(self.recent_responses) < 5:
             return
 
-        trust_ratio = self.recent_responses.count('trust') / len(self.recent_responses)
-        insist_ratio = self.recent_responses.count('insist') / len(self.recent_responses)
+        # Extract choices from enriched format
+        choices = [r["choice"] if isinstance(r, dict) else r for r in self.recent_responses]
+        total = len(choices)
+        trust_ratio = choices.count('trust') / total
+        insist_ratio = choices.count('insist') / total
 
-        # Always trusting = weak leader
-        if trust_ratio > 0.80:
-            self.authority = max(0, self.authority - 5)
-        elif trust_ratio > 0.60:
-            self.authority = max(0, self.authority - 2)
+        # V2b: Trust-ratio penalty REMOVED — handled by check_excessive_trust()
+        # Only insist recovery and balanced recovery remain.
 
         # Always insisting = tyrant (but maintains authority)
-        elif insist_ratio > 0.80:
+        if insist_ratio > 0.80:
             # Authority stays high but trust suffers (handled elsewhere)
             self.authority = min(100, self.authority + 1)
 
         # Balanced approach = healthy leadership
         elif 0.30 <= trust_ratio <= 0.60:
             self.authority = min(100, self.authority + 1)
+
+    def modify_authority(self, delta: int) -> None:
+        """
+        Modify authority by delta, clamped 0-100.
+
+        Used by external callers (defiance outcomes, major victory/defeat).
+
+        Args:
+            delta: Amount to change (+/-)
+        """
+        self.authority = max(0, min(100, self.authority + delta))
 
     def get_trust_gain_modifier(self) -> float:
         """
@@ -106,7 +143,8 @@ class AuthorityTracker:
         if len(self.recent_responses) < 5:
             return 1.0
 
-        trust_ratio = self.recent_responses.count('trust') / len(self.recent_responses)
+        choices = [r["choice"] if isinstance(r, dict) else r for r in self.recent_responses]
+        trust_ratio = choices.count('trust') / len(choices)
 
         if trust_ratio > 0.80:
             return 0.5  # Severe penalty for always trusting
@@ -194,10 +232,11 @@ class AuthorityTracker:
         Returns:
             Dict with authority info
         """
-        if len(self.recent_responses) < 5:
+        choices = [r["choice"] if isinstance(r, dict) else r for r in self.recent_responses]
+        if len(choices) < 5:
             pattern = "insufficient_data"
         else:
-            trust_ratio = self.recent_responses.count('trust') / len(self.recent_responses)
+            trust_ratio = choices.count('trust') / len(choices)
             if trust_ratio > 0.60:
                 pattern = "permissive"
             elif trust_ratio < 0.30:
@@ -217,65 +256,59 @@ class AuthorityTracker:
         return f"AuthorityTracker(authority={self.authority}, responses={len(self.recent_responses)})"
 
     def to_dict(self) -> dict:
-        """Serialize authority tracker for save/load."""
+        """Serialize authority tracker for save/load.
+
+        V2b: recent_responses stored as List[Dict] with {"choice", "turn"}.
+        """
         return {
             "authority": self.authority,
-            "recent_responses": self.recent_responses.copy(),
+            "recent_responses": [
+                r if isinstance(r, dict) else {"choice": r, "turn": 0}
+                for r in self.recent_responses
+            ],
             "_crossed_thresholds": self._crossed_thresholds.copy()
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> 'AuthorityTracker':
-        """Deserialize authority tracker from save/load data."""
+        """Deserialize authority tracker from save/load data.
+
+        V2b: Backward compatible — bare strings treated as legacy format.
+        """
         tracker = cls()
         tracker.authority = data.get("authority", 100)
-        tracker.recent_responses = data.get("recent_responses", []).copy()
+        raw = data.get("recent_responses", [])
+        tracker.recent_responses = [
+            r if isinstance(r, dict) else {"choice": r, "turn": 0}
+            for r in raw
+        ]
         tracker._crossed_thresholds = data.get("_crossed_thresholds", []).copy()
         return tracker
 
 
-# Test code
-if __name__ == "__main__":
-    print("=" * 60)
-    print("AUTHORITY TRACKER TEST")
-    print("=" * 60)
+def check_excessive_trust(authority_tracker, current_turn: int) -> int:
+    """Check if player is trusting too often (pushover behavior).
 
-    tracker = AuthorityTracker()
-    print(f"\nInitial: {tracker}")
-    print(f"Status: {tracker.get_status()}")
+    Uses a 10-turn sliding window. Only fires when >= 3 responses in window.
 
-    # Simulate always trusting
-    print("\n" + "=" * 60)
-    print("SIMULATING ALWAYS TRUSTING")
-    print("=" * 60)
+    Returns authority penalty (0, -2, or -3).
+    Called from record_response() after each objection response.
+    """
+    recent = [
+        r for r in authority_tracker.recent_responses
+        if isinstance(r, dict) and r.get("turn", 0) >= current_turn - 10
+    ]
 
-    for i in range(10):
-        event = tracker.record_response('trust')
-        print(f"Response {i+1}: trust -> Authority: {tracker.authority}")
-        if event:
-            print(f"  EVENT: {event['name']} - {event['description']}")
+    total = len(recent)
+    if total < 3:  # Not enough data to judge
+        return 0
 
-    print(f"\nFinal status: {tracker.get_status()}")
-    print(f"Trust gain modifier: {tracker.get_trust_gain_modifier()}")
-    print(f"Obedience modifier: {tracker.get_obedience_modifier()}")
+    trust_count = sum(1 for r in recent if r.get("choice") == "trust")
+    ratio = trust_count / total
 
-    # Reset and test balanced approach
-    print("\n" + "=" * 60)
-    print("SIMULATING BALANCED APPROACH")
-    print("=" * 60)
-
-    tracker = AuthorityTracker()
-    responses = ['trust', 'insist', 'compromise', 'trust', 'insist',
-                 'compromise', 'trust', 'compromise', 'insist', 'trust']
-
-    for i, response in enumerate(responses):
-        event = tracker.record_response(response)
-        print(f"Response {i+1}: {response} -> Authority: {tracker.authority}")
-        if event:
-            print(f"  EVENT: {event['name']}")
-
-    print(f"\nFinal status: {tracker.get_status()}")
-
-    print("\n" + "=" * 60)
-    print("TEST COMPLETE!")
-    print("=" * 60)
+    if ratio > 0.80:    # 80%+ = egregious pushover
+        return -3
+    elif ratio > 0.65:  # 65%+ = concerning pattern
+        return -2
+    else:
+        return 0

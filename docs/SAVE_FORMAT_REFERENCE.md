@@ -295,6 +295,8 @@ A future save/load system should use this as the specification.
 | `vindication_score` | int | -5 to +5, affects objection boldness |
 | `recent_battles` | list | Last 3 battle results |
 | `recent_overrides` | list | Last 5 override events (bool) |
+| `last_objection_turn` | int | Turn of last objection (V2b vindication decay timer) |
+| `defiance_cooldown_until` | int | Turn when defiance becomes available again (V2b) |
 
 #### Autonomy System
 | Field | Type | Description |
@@ -558,7 +560,11 @@ A future save/load system should use this as the specification.
 ```json
 {
   "authority": 100,
-  "recent_responses": ["trust", "insist", "compromise"],
+  "recent_responses": [
+    {"choice": "trust", "turn": 1},
+    {"choice": "insist", "turn": 2},
+    {"choice": "compromise", "turn": 3}
+  ],
   "_crossed_thresholds": [70]
 }
 ```
@@ -568,7 +574,7 @@ A future save/load system should use this as the specification.
 | Field | Type | Description |
 |-------|------|-------------|
 | `authority` | int | 0-100, Napoleon's authority |
-| `recent_responses` | list | Last 10 responses ("trust", "insist", "compromise") |
+| `recent_responses` | list | Last 10 enriched responses. Each entry: `{"choice": str, "turn": int}`. V2b format — backward-compatible from_dict accepts bare strings. |
 | `_crossed_thresholds` | list | Threshold events already triggered (70, 50, 30) |
 
 ---

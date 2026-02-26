@@ -71,6 +71,10 @@ def _make_strategic_objection(world, marshal_name="Ney"):
 class TestTacticalAuthorityWiring:
     """Verify tactical objection responses are recorded in authority tracker."""
 
+    def _get_choices(self, responses):
+        """Extract choice strings from enriched recent_responses (V2b format)."""
+        return [r["choice"] if isinstance(r, dict) else r for r in responses]
+
     def test_trust_records_in_authority(self):
         """Tactical 'trust' response records in authority tracker."""
         world = WorldState()
@@ -83,7 +87,8 @@ class TestTacticalAuthorityWiring:
 
         executor.handle_objection_response("trust", game_state)
 
-        assert "trust" in world.authority_tracker.recent_responses
+        choices = self._get_choices(world.authority_tracker.recent_responses)
+        assert "trust" in choices
 
     def test_insist_records_in_authority(self):
         """Tactical 'insist' response records in authority tracker."""
@@ -95,7 +100,8 @@ class TestTacticalAuthorityWiring:
 
         executor.handle_objection_response("insist", game_state)
 
-        assert "insist" in world.authority_tracker.recent_responses
+        choices = self._get_choices(world.authority_tracker.recent_responses)
+        assert "insist" in choices
 
     def test_compromise_records_in_authority(self):
         """Tactical 'compromise' response records in authority tracker."""
@@ -109,7 +115,8 @@ class TestTacticalAuthorityWiring:
 
         executor.handle_objection_response("compromise", game_state)
 
-        assert "compromise" in world.authority_tracker.recent_responses
+        choices = self._get_choices(world.authority_tracker.recent_responses)
+        assert "compromise" in choices
 
     def test_tactical_does_not_double_record(self):
         """Tactical path records exactly once (via disobedience_system.handle_response)."""
@@ -122,11 +129,16 @@ class TestTacticalAuthorityWiring:
         executor.handle_objection_response("trust", game_state)
 
         # Should record exactly once, not twice
-        assert world.authority_tracker.recent_responses.count("trust") == 1
+        choices = self._get_choices(world.authority_tracker.recent_responses)
+        assert choices.count("trust") == 1
 
 
 class TestStrategicAuthorityWiring:
     """Verify strategic objection responses are recorded in authority tracker."""
+
+    def _get_choices(self, responses):
+        """Extract choice strings from enriched recent_responses (V2b format)."""
+        return [r["choice"] if isinstance(r, dict) else r for r in responses]
 
     def test_strategic_trust_records(self):
         """Strategic 'trust' response records 'trust' in authority tracker."""
@@ -141,8 +153,9 @@ class TestStrategicAuthorityWiring:
         executor.handle_objection_response("trust", game_state)
 
         # Should use original choice string "trust", not mapped "preferred"
-        assert "trust" in world.authority_tracker.recent_responses
-        assert "preferred" not in world.authority_tracker.recent_responses
+        choices = self._get_choices(world.authority_tracker.recent_responses)
+        assert "trust" in choices
+        assert "preferred" not in choices
 
     def test_strategic_insist_records(self):
         """Strategic 'insist' response records 'insist' in authority tracker."""
@@ -154,8 +167,9 @@ class TestStrategicAuthorityWiring:
 
         executor.handle_objection_response("insist", game_state)
 
-        assert "insist" in world.authority_tracker.recent_responses
-        assert "proceed" not in world.authority_tracker.recent_responses
+        choices = self._get_choices(world.authority_tracker.recent_responses)
+        assert "insist" in choices
+        assert "proceed" not in choices
 
     def test_strategic_compromise_records(self):
         """Strategic 'compromise' response records 'compromise' in authority tracker."""
@@ -167,7 +181,8 @@ class TestStrategicAuthorityWiring:
 
         executor.handle_objection_response("compromise", game_state)
 
-        assert "compromise" in world.authority_tracker.recent_responses
+        choices = self._get_choices(world.authority_tracker.recent_responses)
+        assert "compromise" in choices
 
 
 class TestAuthorityThresholdEvent:
@@ -190,4 +205,6 @@ class TestAuthorityThresholdEvent:
 
         # After 6 trust responses, authority should have dropped
         assert world.authority_tracker.authority < initial_authority
-        assert world.authority_tracker.recent_responses.count("trust") == 6
+        choices = [r["choice"] if isinstance(r, dict) else r
+                   for r in world.authority_tracker.recent_responses]
+        assert choices.count("trust") == 6

@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 25, 2026 (Session 68: Auto-Bombardment + Overwatch)
+> **Last Updated:** February 25, 2026 (V2b Session 1: Core Mechanics)
 
 ---
 
@@ -9,10 +9,10 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **3980** (3980 passed, 3 skipped — verified Feb 25, Session 68) |
+| **Tests Passing** | **4076** (4076 passed, 3 skipped — verified Feb 25, V2b Session 1) |
 
-| **Current Phase** | Phase 7b **IN PROGRESS** (Tactical Triangle COMPLETE — Sessions 67-68. Remaining: V2b, Jealousy, Gneisenau). Coalition Trigger moved to Phase 8. |
-| **Blockers** | V2b, Jealousy need DESIGN GATE approval before coding. Gate 5 UI test pending. |
+| **Current Phase** | Phase 7b **IN PROGRESS** (Tactical Triangle + V2b Session 1 COMPLETE. Remaining: V2b Sessions 2-3, Jealousy, Gneisenau). Coalition Trigger moved to Phase 8. |
+| **Blockers** | V2b Session 2 (fog migration) ready. Jealousy NEEDS DESIGN GATE. Gate 5 UI test pending. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
@@ -20,7 +20,7 @@
 ## Next Steps
 
 1. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~246 new tests.
-2. **Phase 7b: IN PROGRESS.** Tactical Triangle COMPLETE (Sessions 67-68). **Gate 5 UI test pending.** Remaining: V2b (NEEDS DESIGN), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
+2. **Phase 7b: IN PROGRESS.** Tactical Triangle COMPLETE (Sessions 67-68). V2b Session 1 COMPLETE. **Gate 5 UI test pending.** Remaining: V2b Session 2 (fog migration), V2b Session 3 (frontend), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
 3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
 ---

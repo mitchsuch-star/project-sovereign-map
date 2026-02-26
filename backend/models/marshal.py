@@ -489,6 +489,16 @@ class Marshal:
         # +5% defense modifier. Auto-breaks on any active order except wait/end_turn.
         self.square_formation: bool = False
 
+        # ════════════════════════════════════════════════════════════
+        # DEFIANCE SYSTEM (Phase 7b, V2b Session 1)
+        # ════════════════════════════════════════════════════════════
+        # last_objection_turn: Turn of most recent objection for this marshal.
+        #   Used for vindication decay (-1 per 3 idle turns).
+        # defiance_cooldown_until: Turn number when defiance becomes available again.
+        #   After defiance fires: cooldown 3 turns. After failed roll: cooldown 1 turn.
+        self.last_objection_turn: int = 0
+        self.defiance_cooldown_until: int = 0
+
     def move_to(self, new_location: str) -> None:
         """
         Move marshal to a new region.
@@ -1117,6 +1127,10 @@ class Marshal:
 
             # ═══════ SQUARE FORMATION (Phase 7b, S67) ═══════
             "square_formation": self.square_formation,
+
+            # ═══════ DEFIANCE SYSTEM (V2b, S1) ═══════
+            "last_objection_turn": int(self.last_objection_turn),
+            "defiance_cooldown_until": int(self.defiance_cooldown_until),
         }
         return data
 
@@ -1254,6 +1268,10 @@ class Marshal:
 
         # ═══════ SQUARE FORMATION (Phase 7b, S67) ═══════
         marshal.square_formation = data.get("square_formation", False)
+
+        # ═══════ DEFIANCE SYSTEM (V2b, S1) ═══════
+        marshal.last_objection_turn = data.get("last_objection_turn", 0)
+        marshal.defiance_cooldown_until = data.get("defiance_cooldown_until", 0)
 
         return marshal
 

@@ -1292,6 +1292,58 @@ STRATEGIC_EVALUATORS = {
 }
 
 
+def _evaluate_relationship_support(marshal, target: str, game_state) -> ConcernLevel:
+    """V2b: Relationship-based SUPPORT objection.
+
+    Fires at order issuance when marshal is ordered to SUPPORT a hostile/rival target.
+    Relationship check takes priority over personality if higher.
+
+    | Personality | Target Relationship | ConcernLevel |
+    |---|---|---|
+    | Aggressive | Hostile (-2) | STRONG |
+    | Cautious | Hostile (-2) | MODERATE |
+    | Literal | Hostile (-2) | NONE |
+    | Any | Rival (-1) | MILD |
+
+    Args:
+        marshal: The marshal receiving the SUPPORT order
+        target: Target marshal name
+        game_state: Game state dict
+
+    Returns:
+        ConcernLevel based on relationship (NONE if no relationship concern)
+    """
+    if not target:
+        return ConcernLevel.NONE
+
+    personality = getattr(marshal, 'personality', 'balanced').lower()
+    if personality == 'literal':
+        return ConcernLevel.NONE  # Literal follows orders regardless
+
+    # Get relationship toward target
+    rel = marshal.get_relationship(target) if hasattr(marshal, 'get_relationship') else 0
+
+    if rel == -2:  # Hostile
+        if personality == 'aggressive':
+            return ConcernLevel.STRONG
+        elif personality == 'cautious':
+            return ConcernLevel.MODERATE
+        # Other personalities with hostile: MODERATE as default
+        return ConcernLevel.MODERATE
+    elif rel == -1:  # Rival
+        return ConcernLevel.MILD
+
+    return ConcernLevel.NONE
+
+
+# V2b: Relationship-based SUPPORT objection message templates
+RELATIONSHIP_SUPPORT_MESSAGES = {
+    ConcernLevel.STRONG: "You ask me to bleed for {target}? That man would see me destroyed!",
+    ConcernLevel.MODERATE: "Supporting {target}... I have reservations, but I will comply.",
+    ConcernLevel.MILD: "{target}... I have my doubts about that one.",
+}
+
+
 def evaluate_strategic_situation(
     marshal,
     order_type: str,
@@ -1303,6 +1355,7 @@ def evaluate_strategic_situation(
     Main dispatcher: evaluate concern level for strategic commands.
 
     Routes to personality-specific evaluator. Unknown personalities return NONE.
+    V2b: Relationship-based SUPPORT check runs first, takes priority if higher.
 
     Args:
         marshal: The marshal receiving the order
@@ -1314,14 +1367,20 @@ def evaluate_strategic_situation(
     Returns:
         ConcernLevel for this situation
     """
+    # V2b: Relationship-based SUPPORT objection (fires before personality)
+    relationship_concern = ConcernLevel.NONE
+    if order_type == "SUPPORT":
+        relationship_concern = _evaluate_relationship_support(marshal, target, game_state)
+
     personality = getattr(marshal, 'personality', 'balanced').lower()
     evaluator = STRATEGIC_EVALUATORS.get(personality)
 
-    if evaluator is None:
-        # Unknown personality (balanced, loyal, etc.) = no objection in V2a
-        return ConcernLevel.NONE
+    personality_concern = ConcernLevel.NONE
+    if evaluator is not None:
+        personality_concern = evaluator(marshal, order_type, target, path, game_state)
 
-    return evaluator(marshal, order_type, target, path, game_state)
+    # Relationship concern takes priority if higher
+    return max(relationship_concern, personality_concern)
 
 
 # ════════════════════════════════════════════════════════════════════════════

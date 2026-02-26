@@ -32,6 +32,7 @@ MANPOWER_REPLENISHED = "manpower_replenished"
 NATION_ELIMINATED = "nation_eliminated"
 BANKRUPTCY_ESCALATION = "bankruptcy_escalation"
 DRILL_CANCELLED = "drill_cancelled"
+MARSHAL_DEFIED_ORDER = "marshal_defied_order"  # V2b: HIGH priority
 
 
 def create_notification(

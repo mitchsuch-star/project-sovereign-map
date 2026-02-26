@@ -6,7 +6,6 @@ Coverage targets: severity.py lines 143, 164-173, 195-198, 212-265
                   authority.py lines 63-90, 113-148, 179-263
 """
 
-import pytest
 from backend.commands.severity import (
     get_trust_modifier,
     get_vindication_modifier,
@@ -15,7 +14,6 @@ from backend.commands.severity import (
     get_authority_modifier,
     apply_variance,
     get_severity_label,
-    calculate_objection_severity,
     calculate_strategic_severity,
     get_severity_breakdown,
 )
@@ -508,15 +506,34 @@ class TestAuthorityTracker:
         """to_dict/from_dict should preserve state."""
         tracker = AuthorityTracker()
         tracker.authority = 75
-        tracker.recent_responses = ["trust", "insist", "compromise"]
+        # V2b: enriched format with dicts
+        tracker.recent_responses = [
+            {"choice": "trust", "turn": 1},
+            {"choice": "insist", "turn": 2},
+            {"choice": "compromise", "turn": 3},
+        ]
         tracker._crossed_thresholds = [70]
 
         data = tracker.to_dict()
         restored = AuthorityTracker.from_dict(data)
 
         assert restored.authority == 75
-        assert restored.recent_responses == ["trust", "insist", "compromise"]
+        assert len(restored.recent_responses) == 3
+        assert restored.recent_responses[0]["choice"] == "trust"
+        assert restored.recent_responses[1]["choice"] == "insist"
+        assert restored.recent_responses[2]["choice"] == "compromise"
         assert restored._crossed_thresholds == [70]
+
+    def test_serialization_legacy_bare_strings(self):
+        """from_dict handles legacy bare string recent_responses."""
+        tracker = AuthorityTracker()
+        data = tracker.to_dict()
+        data["recent_responses"] = ["trust", "insist"]
+
+        restored = AuthorityTracker.from_dict(data)
+        assert len(restored.recent_responses) == 2
+        assert restored.recent_responses[0]["choice"] == "trust"
+        assert restored.recent_responses[0]["turn"] == 0
 
     def test_reset_threshold_tracking(self):
         """reset_threshold_tracking clears crossed thresholds."""

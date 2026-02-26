@@ -20,11 +20,14 @@ from backend.commands.severity import calculate_objection_severity
 from backend.models.personality import Personality, get_personality
 
 
-# Maximum major objections per turn (V1 legacy - prevents decision fatigue)
+# Maximum objection popups per turn (cascade breaker — do NOT remove).
 # V2a uses per-marshal cap only (world.objection_popups_this_turn).
-# This constant is only referenced by DisobedienceSystem.evaluate_order() (V1 code path).
-# Kept for backward compatibility with any remaining V1 callers.
-MAX_MAJOR_OBJECTIONS_PER_TURN = 2
+# This constant is referenced by DisobedienceSystem.evaluate_order() (V1 code path).
+# V2b rename: was MAX_MAJOR_OBJECTIONS_PER_TURN. MILD concerns (no popup) uncapped.
+MAX_OBJECTION_POPUPS_PER_TURN = 2
+
+# Backward-compat alias — legacy code and tests may reference old name
+MAX_MAJOR_OBJECTIONS_PER_TURN = MAX_OBJECTION_POPUPS_PER_TURN
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -1116,9 +1119,11 @@ class DisobedienceSystem:
         elif hasattr(game_state, 'world') and hasattr(game_state.world, 'authority_tracker'):
             authority = game_state.world.authority_tracker
 
-        # Record response in authority tracker
+        # Record response in authority tracker (V2b: enriched with current_turn)
+        authority_event = None
         if authority:
-            authority.record_response(choice)
+            current_turn = getattr(game_state, 'current_turn', 0)
+            authority_event = authority.record_response(choice, current_turn)
 
         # Track trust change for redemption check
         trust_change = 0
@@ -1210,6 +1215,10 @@ class DisobedienceSystem:
         if redemption_event:
             result['redemption_event'] = redemption_event
             result['state'] = 'awaiting_redemption_choice'
+
+        # V2b: Pass authority event through to caller
+        if authority_event:
+            result['authority_event'] = authority_event
 
         return result
 

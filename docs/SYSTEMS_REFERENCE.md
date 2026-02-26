@@ -601,11 +601,104 @@ Random variance is applied based on severity level:
 | Balanced (30-60%) | +1 per response | Good leadership |
 | Mostly Insist | +1 (maintain) | Firm leadership |
 
+#### Excessive Trust Penalty (V2b)
+
+`check_excessive_trust()` runs on every `record_response()`. Uses a 10-turn sliding window:
+- **>80% trust** in window (min 3 responses): -3 authority
+- **>65% trust** in window (min 3 responses): -2 authority
+- Replaces the old trust-ratio branch in `_evaluate_authority()`
+
+#### Authority Major Victory/Defeat (V2b)
+
+Fires ONCE per battle (multiple criteria don't stack):
+- **+5 authority**: Outnumbered win (attacker ≤ defender strength) or capital capture
+- **-5 authority**: Outnumbering loss (attacker > defender strength) or capital loss
+
 #### Threshold Events
 
 - **Authority 70**: "Some marshals grow bold, sensing leniency."
 - **Authority 50**: "The command structure wavers. Marshals question openly."
 - **Authority 30**: "Your authority has collapsed. Expect frequent defiance."
+
+### Defiance System (V2b)
+
+Post-insist event: after player sees STRONG/EXTREME objection and insists, the marshal may defy the order.
+
+#### Defiance Chance Formula
+
+`base + vindication_mod + authority_mod + trust_mod + variance` (hard cap 0.40)
+
+| Component | Value |
+|-----------|-------|
+| Base (STRONG) | 15% |
+| Base (EXTREME) | 35% |
+| Vindication | +10% per vindication stack |
+| Authority ≥80 | -10% (strong leader suppresses) |
+| Authority <50 | +10% (weak leader emboldens) |
+| Trust ≤20 | +15% (broken trust) |
+| Trust ≥80 | -10% (loyal) |
+| Variance | ±8% random |
+| **Hard cap** | **40%** |
+
+Special: Literal personality (Grouchy) NEVER defies. Cooldown prevents re-defiance (3 turns after defiance, 1 turn after failed roll).
+
+#### Defiance Fallback Table
+
+| Personality | Defiant Action | When Ordered To |
+|-------------|---------------|-----------------|
+| Aggressive | Attack (bombardment if artillery) | defend, fortify, hold, wait, retreat, SUPPORT, MOVE_TO |
+| Cautious | Fortify | attack, SUPPORT, MOVE_TO |
+| Literal | Never defies | — |
+
+#### Defiance Outcome Table
+
+| Outcome | Trust | Vindication | Authority | Cooldown |
+|---------|-------|-------------|-----------|----------|
+| Marshal **RIGHT** (`True`) | +2 | +1 | -5 | 3 turns |
+| Marshal **WRONG** (`False`) | -5 | Reset to 0 | +3 | 3 turns |
+| **INCONCLUSIVE** sulk (`None`) | 0 | No change | No change | 3 turns |
+| Roll **fails**, obeys | -3 | Reset to 0 | No change | 1 turn |
+
+#### Defiance Success Criteria
+
+- **Attack/bombardment**: Won AND casualties < 50% (not pyrrhic)
+- **Defend/fortify**: Not broken AND not retreating
+- **Retreat**: Marshal survived (strength > 0)
+- **Wait/sulk**: Always inconclusive
+
+### Vindication Escalation (V2b)
+
+Inserted between base objection trigger and mood variance:
+- `vindication_score > 0` → escalate concern +1 level (e.g. MILD→MODERATE)
+- `vindication_score < 0` → de-escalate concern -1 level
+- NONE never promotes (prevents fake objections from vindication alone)
+- MILD is the floor (never drops to NONE from de-escalation)
+
+#### Vindication Decay
+
+`_process_vindication_decay()` runs each turn in `advance_turn()`:
+- -1 per 3 idle turns (no objection), symmetric toward 0
+- Timer resets after each decay tick
+- Stale defensive vindication entries (>5 turns old, no enemy attack) are cleared
+
+#### Defensive Vindication
+
+Created when player chooses "trust" and marshal's alternative was defend/fortify/hold:
+- Stored in `vindication_tracker.pending_defensive_vindication`
+- Resolved after enemy phase: held position = +1, broken/retreating = -1
+- Stale entries (>5 turns, no attack) are cleared during vindication decay
+
+### Relationship-Based SUPPORT Objection (V2b)
+
+When issuing SUPPORT orders, relationship with the target marshal is checked:
+| Personality | Hostile (-2) | Rival (-1) | Neutral+ |
+|-------------|-------------|------------|----------|
+| Aggressive | STRONG | MILD | NONE |
+| Cautious | MODERATE | MILD | NONE |
+| Literal | NONE | NONE | NONE |
+| Other | MILD | NONE | NONE |
+
+Takes priority if higher than personality-based concern. Includes timed SUPPORT compromise option (`condition.max_turns = 3`).
 
 ### Compromise Rules
 

@@ -36,6 +36,7 @@ CAMPAIGN_LOG_TYPES = {
     # Command
     "objection",
     "strategic_order",
+    "defiance",
 }
 
 # ============================================================================
@@ -57,6 +58,7 @@ CATEGORY_MAP = {
     "desertion": "economy",
     "objection": "command",
     "strategic_order": "command",
+    "defiance": "command",
 }
 
 
@@ -129,7 +131,7 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             continue
 
         # Command events (player-generated) — always show
-        if event_type in ("objection", "strategic_order"):
+        if event_type in ("objection", "strategic_order", "defiance"):
             filtered.append(event)
             continue
 
@@ -331,5 +333,10 @@ def format_event_oneliner(event: dict) -> str:
         if destination:
             return f"{marshal} ordered to {display_order} {destination}"
         return f"{marshal} ordered to {display_order}"
+
+    if event_type == "defiance":
+        marshal = event.get("marshal", "Unknown")
+        defiance_action = event.get("defiance_action", "acted independently")
+        return f"{marshal} defied orders and {defiance_action} instead"
 
     return f"Event: {event_type}"

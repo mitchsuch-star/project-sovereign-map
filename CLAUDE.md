@@ -18,7 +18,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Phase 7b remaining:** V2b (DESIGN LOCKED — see `docs/V2B_DEFIANCE_SPEC.md`), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
+- **Phase 7b remaining:** V2b Sessions 2-3 (fog migration + frontend — see `docs/V2B_DEFIANCE_SPEC.md`), Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial Infrastructure deferred to Pre-EA.
 
 ### Design Decisions Required (DO NOT CODE WITHOUT USER APPROVAL)
@@ -48,6 +48,7 @@ Gate 5 (Tactical Triangle) pending. See `docs/PHASE7_UI_TEST_GATE.md` for all ga
 | `backend/commands/parser.py` | Command parsing, fuzzy matching |
 | `backend/commands/disobedience.py` | V1 objection system, trust values |
 | `backend/commands/objection_v2.py` | V2a objection system (ConcernLevel triggers) |
+| `backend/commands/defiance.py` | V2b defiance system (chance calc, fallback table, outcomes) |
 | `backend/commands/strategic.py` | Strategic order per-turn executor |
 | `backend/commands/vindication.py` | Vindication tracker |
 | `backend/models/marshal.py` | Marshal class, combat modifiers, states, serialization |

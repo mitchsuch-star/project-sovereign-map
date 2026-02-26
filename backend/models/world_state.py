@@ -3218,6 +3218,12 @@ class WorldState:
         # NOTE: _last_tactical_events stored AFTER all events collected (see below)
 
         # ════════════════════════════════════════════════════════════
+        # V2b: VINDICATION DECAY — -1 per 3 idle turns, symmetric toward 0
+        # Also clears stale defensive vindication entries (>5 turns old)
+        # ════════════════════════════════════════════════════════════
+        self._process_vindication_decay()
+
+        # ════════════════════════════════════════════════════════════
         # PROCESS CONSTRUCTION TIMERS (Phase 6.2.E)
         # ════════════════════════════════════════════════════════════
         construction_events = self.process_construction_timers()
@@ -3864,6 +3870,39 @@ class WorldState:
             marshal.idle_turns = getattr(marshal, 'idle_turns', 0) + 1
 
         return events
+
+    def _process_vindication_decay(self) -> None:
+        """V2b: Vindication decay — -1 per 3 idle turns, symmetric toward 0.
+
+        Also clears stale defensive vindication entries (>5 turns old).
+        Runs during advance_turn(), before turn counter increments.
+        """
+        for marshal in self.marshals.values():
+            if marshal.nation != self.player_nation or marshal.strength <= 0:
+                continue
+
+            # Vindication score decay
+            v_score = getattr(marshal, 'vindication_score', 0)
+            last_obj = getattr(marshal, 'last_objection_turn', 0)
+            turns_idle = self.current_turn - last_obj
+
+            if turns_idle >= 3 and v_score != 0:
+                if v_score > 0:
+                    marshal.vindication_score -= 1
+                else:
+                    marshal.vindication_score += 1
+                # Reset timer so next decay is 3 turns from now
+                marshal.last_objection_turn = self.current_turn
+
+        # Clear stale defensive vindication entries (>5 turns old)
+        if hasattr(self, 'vindication_tracker'):
+            stale_names = []
+            for name, entry in self.vindication_tracker.pending_defensive_vindication.items():
+                entry_turn = entry.get("turn", 0)
+                if self.current_turn - entry_turn > 5:
+                    stale_names.append(name)
+            for name in stale_names:
+                del self.vindication_tracker.pending_defensive_vindication[name]
 
     def get_last_tactical_events(self) -> list:
         """Get tactical events from the last turn advance."""

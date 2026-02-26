@@ -13,6 +13,7 @@ TODO (Future): Multi-Army Battles
 - Combined strength calculations with command bonuses
 - Coordinated attacks with flanking bonuses
 """
+import random
 from typing import Dict, List, Optional, Tuple
 from backend.models.world_state import (
     WorldState,
@@ -1806,7 +1807,27 @@ RETREAT RECOVERY (3 turns):
                     # NOTE: game_state (method param) already has {"world": world, ...}
                     # V2 evaluators extract world via _get_world(game_state)
                     base_concern = evaluate_situation(marshal, action, command, game_state)
-                    concern = apply_mood_variance(base_concern)
+
+                    # V2b Step 14b: Vindication escalation/de-escalation (+1 or -1 max)
+                    # Ordering: base trigger → vindication shift → mood variance
+                    # NONE never escalates (no fake objections about orders marshal is fine with)
+                    # MILD never drops below MILD (even discredited marshal still grumbles)
+                    vindication_shifted = base_concern
+                    v_score = getattr(marshal, 'vindication_score', 0)
+                    if v_score > 0 and base_concern != ConcernLevel.NONE:
+                        # Positive vindication → escalate +1 (marshal proven right, bolder)
+                        new_val = min(base_concern.value + 1, ConcernLevel.EXTREME.value)
+                        vindication_shifted = ConcernLevel(new_val)
+                    elif v_score < 0 and base_concern != ConcernLevel.NONE:
+                        # Negative vindication → de-escalate -1 ("boy who cried wolf")
+                        new_val = max(base_concern.value - 1, ConcernLevel.MILD.value)
+                        vindication_shifted = ConcernLevel(new_val)
+
+                    concern = apply_mood_variance(vindication_shifted)
+
+                    # V2b: Update last_objection_turn for any concern (including MILD)
+                    if base_concern != ConcernLevel.NONE:
+                        marshal.last_objection_turn = world.current_turn
 
                     # Get trust tier for consequence scaling
                     trust_tier = get_trust_tier(marshal.trust.value)
@@ -4634,6 +4655,56 @@ RETREAT RECOVERY (3 turns):
         # NOTE: Forced retreat was already handled above (before movement/conquest check)
         # forced_retreat_msg is already set
 
+        # ════════════════════════════════════════════════════════════
+        # V2b: AUTHORITY MAJOR VICTORY / DEFEAT (+5 / -5)
+        # Fires ONCE per battle (multiple criteria don't stack).
+        # Runs after advance-after-win so territory capture is visible.
+        # Only for player-nation battles.
+        # ════════════════════════════════════════════════════════════
+        player_nation = world.player_nation
+        player_is_attacker = marshal.nation == player_nation
+        player_is_defender = enemy_marshal.nation == player_nation if enemy_marshal.strength > 0 or enemy_destroyed else False
+        # Also check original nation for destroyed marshals
+        if not player_is_defender and hasattr(enemy_marshal, 'nation'):
+            player_is_defender = enemy_marshal.nation == player_nation
+
+        if player_is_attacker or player_is_defender:
+            outcome = battle_result.get("raw_outcome", battle_result.get("outcome", ""))
+            atk_won = "attacker" in outcome and "victory" in outcome
+            def_won = "defender" in outcome and "victory" in outcome
+
+            # Determine if player won or lost
+            player_won = (player_is_attacker and atk_won) or (player_is_defender and def_won)
+            player_lost = (player_is_attacker and def_won) or (player_is_defender and atk_won)
+
+            if player_won:
+                # Major victory: outnumbered win OR captured enemy capital
+                outnumbered = pre_battle_attacker_strength < pre_battle_defender_strength
+                if player_is_defender:
+                    # Defender was outnumbered if attacker was larger
+                    outnumbered = pre_battle_defender_strength < pre_battle_attacker_strength
+                capital_captured = False
+                if conquered:
+                    target_reg = world.get_region(target_location)
+                    if target_reg and getattr(target_reg, 'is_capital', False):
+                        capital_captured = True
+                if outnumbered or capital_captured:
+                    world.authority_tracker.modify_authority(+5)
+
+            elif player_lost:
+                # Major defeat: outnumbering loss OR lost capital
+                outnumbering = pre_battle_attacker_strength > pre_battle_defender_strength
+                if player_is_defender:
+                    # Defender was outnumbering if defender was larger
+                    outnumbering = pre_battle_defender_strength > pre_battle_attacker_strength
+                capital_lost = False
+                target_reg = world.get_region(target_location)
+                if target_reg and getattr(target_reg, 'is_capital', False):
+                    if target_reg.controller != player_nation:
+                        capital_lost = True
+                if outnumbering or capital_lost:
+                    world.authority_tracker.modify_authority(-5)
+
         # Build auto-bombardment preamble (Session 68) — prepended before combat description
         auto_bombard_preamble = ""
         if auto_bombardment_messages:
@@ -5422,7 +5493,20 @@ RETREAT RECOVERY (3 turns):
                 base_concern = evaluate_strategic_situation(
                     marshal, strategic_type, target, path, game_state
                 )
-                strategic_concern = apply_mood_variance(base_concern)
+
+                # V2b: Vindication escalation/de-escalation (same as tactical path)
+                vindication_shifted = base_concern
+                v_score = getattr(marshal, 'vindication_score', 0)
+                if v_score > 0 and base_concern != ConcernLevel.NONE:
+                    new_val = min(base_concern.value + 1, ConcernLevel.EXTREME.value)
+                    vindication_shifted = ConcernLevel(new_val)
+                elif v_score < 0 and base_concern != ConcernLevel.NONE:
+                    new_val = max(base_concern.value - 1, ConcernLevel.MILD.value)
+                    vindication_shifted = ConcernLevel(new_val)
+                strategic_concern = apply_mood_variance(vindication_shifted)
+                # Track last objection turn for vindication decay
+                if base_concern != ConcernLevel.NONE:
+                    marshal.last_objection_turn = world.current_turn
 
                 if strategic_concern == ConcernLevel.MILD:
                     # MILD: Flavor text in turn log, order proceeds
@@ -5469,10 +5553,54 @@ RETREAT RECOVERY (3 turns):
                         # Extract options from V1 if available, otherwise build minimal
                         v1_options = v1_objection.get("options", []) if v1_objection else []
 
-                        message = self._generate_objection_message(
-                            marshal, strategic_type.lower(), command,
-                            strategic_concern, tone
+                        # V2b: Relationship-based SUPPORT — generate options if V1 didn't
+                        from backend.commands.objection_v2 import (
+                            _evaluate_relationship_support, RELATIONSHIP_SUPPORT_MESSAGES
                         )
+                        relationship_concern = ConcernLevel.NONE
+                        if strategic_type == "SUPPORT":
+                            relationship_concern = _evaluate_relationship_support(
+                                marshal, target, game_state
+                            )
+                        if relationship_concern >= ConcernLevel.MODERATE and not v1_options:
+                            # Build relationship-specific options with timed SUPPORT compromise
+                            v1_options = [
+                                {
+                                    "type": "insist",
+                                    "text": f"Insist: SUPPORT {target} as ordered",
+                                },
+                                {
+                                    "type": "trust",
+                                    "text": "Trust: Cancel the SUPPORT order",
+                                    "action": "cancel",
+                                    "target": target,
+                                },
+                                {
+                                    "type": "compromise",
+                                    "text": "Compromise: Timed SUPPORT (3 turns)",
+                                    "compromise": {"max_turns": 3},
+                                },
+                            ]
+
+                        # V2b: Use relationship message if this is a relationship-triggered SUPPORT objection
+                        if (relationship_concern >= ConcernLevel.MILD
+                                and strategic_type == "SUPPORT"
+                                and relationship_concern >= strategic_concern):
+                            rel_msg_template = RELATIONSHIP_SUPPORT_MESSAGES.get(
+                                relationship_concern, ""
+                            )
+                            if rel_msg_template:
+                                message = f'"{marshal.name}: {rel_msg_template.format(target=target)}"'
+                            else:
+                                message = self._generate_objection_message(
+                                    marshal, strategic_type.lower(), command,
+                                    strategic_concern, tone
+                                )
+                        else:
+                            message = self._generate_objection_message(
+                                marshal, strategic_type.lower(), command,
+                                strategic_concern, tone
+                            )
 
                         objection = {
                             # V2 fields
@@ -10135,8 +10263,8 @@ RETREAT RECOVERY (3 turns):
         # Clear the pending strategic objection BEFORE re-execution
         world.pending_strategic_objection = None
 
-        # Record response in authority tracker (V2a wiring)
-        world.authority_tracker.record_response(choice)
+        # Record response in authority tracker (V2b: enriched with turn)
+        world.authority_tracker.record_response(choice, world.current_turn)
 
         # Re-execute the strategic command with objection_response
         result = self._handle_strategic_objection_response(
@@ -10460,8 +10588,10 @@ RETREAT RECOVERY (3 turns):
         # Clear the pending objection
         world.pending_objection = None
 
-        # Note: record_response() already called inside disobedience_system.handle_response()
-        # (disobedience.py:1121) — do NOT call again here to avoid double-recording.
+        # Note: record_response() called inside disobedience_system.handle_response()
+        # (disobedience.py:1124, V2b enriched with current_turn). Do NOT call again.
+        # Capture authority event from the response_result if threshold crossed.
+        authority_event = response_result.get("authority_event")
 
         # Log objection event (MODERATE+ only — MILD concerns are not logged here)
         world.log_event({
@@ -10472,6 +10602,138 @@ RETREAT RECOVERY (3 turns):
             "target": (objection.get("original_order") or {}).get("target", ""),
             "resolution": choice,
         })
+
+        # ════════════════════════════════════════════════════════════
+        # V2b DEFIANCE CHECK (Step 17 in bypass hierarchy)
+        # After "insist" + STRONG/EXTREME: defiance roll
+        # ════════════════════════════════════════════════════════════
+        concern_level_str = objection.get("concern_level", "NONE")
+        concern_level_val = ConcernLevel[concern_level_str] if concern_level_str in ConcernLevel.__members__ else ConcernLevel.NONE
+        marshal = world.get_marshal(marshal_name)
+
+        if choice == "insist" and marshal and concern_level_val >= ConcernLevel.STRONG:
+            from backend.commands.defiance import (
+                calculate_defiance_chance, get_defiant_action,
+                defiance_succeeded, apply_defiance_outcome
+            )
+            from backend.notifications import (
+                create_notification, NotificationPriority, MARSHAL_DEFIED_ORDER
+            )
+
+            defiance_chance = calculate_defiance_chance(marshal, concern_level_val, world)
+            defiance_roll = random.random()
+
+            if defiance_roll < defiance_chance:
+                # ═══ DEFIANCE FIRES ═══
+                print(f"  [DEFIANCE] {marshal_name} defies order! (roll={defiance_roll:.2f} < chance={defiance_chance:.2f})")
+
+                original_action = (objection.get("original_order") or {}).get("action", "")
+                defiant_action = get_defiant_action(marshal, original_action)
+
+                # If preferred action blocked, fallback to wait (sulk)
+                if defiant_action is None:
+                    defiant_action = "wait"
+
+                # Execute defiant action
+                pre_battle_strength = marshal.strength
+                defiant_command = {"action": defiant_action, "marshal": marshal_name}
+
+                if defiant_action in ("attack", "bombardment"):
+                    # Use auto-assign targeting (no named target needed)
+                    if defiant_action == "bombardment":
+                        defiant_execution = self._execute_auto_assign_bombardment(defiant_command, game_state)
+                    else:
+                        defiant_execution = self._execute_auto_assign_attack(defiant_command, game_state)
+
+                    # Check if attack actually happened
+                    if not defiant_execution.get("success"):
+                        # No enemy to attack — fallback to wait (sulk)
+                        defiant_action = "wait"
+                        defiant_execution = self._execute_post_objection(
+                            {"success": True, "command": {"action": "wait", "marshal": marshal_name}},
+                            game_state, marshal_name
+                        )
+                elif defiant_action == "fortify":
+                    defiant_execution = self._execute_post_objection(
+                        {"success": True, "command": {"action": "fortify", "marshal": marshal_name}},
+                        game_state, marshal_name
+                    )
+                else:  # wait / sulk
+                    defiant_execution = self._execute_post_objection(
+                        {"success": True, "command": {"action": "wait", "marshal": marshal_name}},
+                        game_state, marshal_name
+                    )
+
+                # Evaluate outcome
+                battle_result = defiant_execution.get("battle_result")
+                outcome = defiance_succeeded(marshal, defiant_action, battle_result, pre_battle_strength)
+
+                # Apply outcome table
+                outcome_result = apply_defiance_outcome(marshal, outcome, world)
+
+                # Fire notification
+                world.notifications.add(create_notification(
+                    MARSHAL_DEFIED_ORDER,
+                    NotificationPriority.HIGH,
+                    f"{marshal_name} defied your order!",
+                    f"{marshal_name} defied your order to {_action_display_name(original_action)} "
+                    f"and chose to {_action_display_name(defiant_action)} instead.",
+                    world.current_turn,
+                ))
+
+                # Log campaign event
+                world.log_event({
+                    "type": "defiance",
+                    "marshal": marshal_name,
+                    "original_action": original_action,
+                    "defiance_action": defiant_action,
+                    "outcome": outcome_result["outcome_type"],
+                    "turn": world.current_turn,
+                })
+
+                # Build response
+                action_desc = _action_display_name(defiant_action)
+                defiance_message = (
+                    f"Despite your insistence, {marshal_name} {action_desc} instead!\n\n"
+                    f"{outcome_result['berthier_text']}"
+                )
+                if defiant_execution.get("message"):
+                    defiance_message += f"\n\n{defiant_execution['message']}"
+
+                result = {
+                    "success": True,
+                    "message": defiance_message,
+                    "objection_resolved": True,
+                    "choice": choice,
+                    "disobeyed": False,
+                    "defiance": True,
+                    "defiance_action": defiant_action,
+                    "defiance_outcome": outcome_result["outcome_type"],
+                    "trust_change": response_result.get("trust_change", 0) + outcome_result["trust_change"],
+                    "authority_change": response_result.get("authority_change", 0) + outcome_result["authority_change"],
+                    "berthier_text": outcome_result["berthier_text"],
+                    "events": defiant_execution.get("events", []),
+                    "action_info": defiant_execution.get("action_info", {"remaining": world.actions_remaining}),
+                    "action_summary": world.get_action_summary(),
+                    "new_state": game_state,
+                }
+                if defiant_execution.get("battle_report"):
+                    result["battle_report"] = defiant_execution["battle_report"]
+                if authority_event:
+                    result["authority_event"] = authority_event
+                return result
+
+            else:
+                # ═══ DEFIANCE ROLL FAILS — marshal obeys reluctantly ═══
+                print(f"  [DEFIANCE] Roll failed for {marshal_name} (roll={defiance_roll:.2f} >= chance={defiance_chance:.2f})")
+                from backend.commands.defiance import apply_defiance_outcome
+                outcome_result = apply_defiance_outcome(marshal, "failed_roll", world)
+
+                # Add failed-roll trust/authority changes to response
+                response_result["trust_change"] = response_result.get("trust_change", 0) + outcome_result["trust_change"]
+                response_result["message"] = (
+                    response_result.get("message", "") + "\n\n" + outcome_result["berthier_text"]
+                )
 
         # ════════════════════════════════════════════════════════════
         # BUG FIX #1: Check for DISOBEY - execute ALTERNATIVE instead
@@ -10537,8 +10799,21 @@ RETREAT RECOVERY (3 turns):
                 result["redemption_event"] = response_result["redemption_event"]
                 result["state"] = "awaiting_redemption_choice"
                 print("  [ALERT] REDEMPTION EVENT attached to disobey response")
+            if authority_event:
+                result["authority_event"] = authority_event
 
             return result
+
+        # ════════════════════════════════════════════════════════════
+        # V2b: DEFENSIVE VINDICATION CREATION
+        # When player trusts + marshal's alternative was defend/fortify/hold
+        # ════════════════════════════════════════════════════════════
+        if choice == "trust" and alternative:
+            alt_action = alternative.get("action", "")
+            if alt_action in ("defend", "fortify", "hold") and marshal:
+                world.vindication_tracker.pending_defensive_vindication[marshal_name] = {
+                    "turn": world.current_turn
+                }
 
         # ════════════════════════════════════════════════════════════
         # BUG FIX #2: Check for REDEMPTION EVENT - return with event
@@ -10609,6 +10884,8 @@ RETREAT RECOVERY (3 turns):
             result["redemption_event"] = response_result["redemption_event"]
             result["state"] = "awaiting_redemption_choice"
             print("  [ALERT] REDEMPTION EVENT attached to response")
+        if authority_event:
+            result["authority_event"] = authority_event
 
         return result
 

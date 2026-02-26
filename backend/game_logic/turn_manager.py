@@ -526,6 +526,9 @@ class TurnManager:
                 nation_summary += f": {', '.join(action_types)}"
             results["summary"].append(nation_summary)
 
+        # V2b: Resolve defensive vindication for player marshals attacked during enemy phase
+        self._resolve_defensive_vindication()
+
         # Final check for enemy win condition (if not already found)
         if "enemy_victory" not in results:
             enemy_victory = self._check_enemy_victory()
@@ -538,6 +541,52 @@ class TurnManager:
         debug_print("=" * 70)
 
         return results
+
+    def _resolve_defensive_vindication(self) -> None:
+        """V2b: Resolve defensive vindication after enemy phase.
+
+        If an enemy attacked a player marshal with pending defensive vindication:
+        - Marshal held (not broken, not retreating) → vindication +1
+        - Marshal lost (broken or retreating) → vindication -1
+        - First battle only — entry cleared after resolution
+
+        Uses battles_this_turn to detect which player marshals were attacked.
+        """
+        if not hasattr(self.world, 'vindication_tracker'):
+            return
+        pending = self.world.vindication_tracker.pending_defensive_vindication
+        if not pending:
+            return
+
+        # Check which player marshals were involved in battles this turn
+        resolved = []
+        for marshal_name in list(pending.keys()):
+            marshal = self.world.get_marshal(marshal_name)
+            if marshal is None:
+                # Marshal destroyed — clear entry
+                resolved.append(marshal_name)
+                continue
+
+            # Check if this marshal was attacked (appeared as defender in any battle)
+            was_attacked = False
+            for battle in getattr(self.world, 'battles_this_turn', []):
+                # battles_this_turn stores {"location", "attacker", "defender", "outcome"}
+                if battle.get("defender") == marshal_name:
+                    was_attacked = True
+                    break
+
+            if was_attacked:
+                # Resolve: held = not broken and not retreating
+                if getattr(marshal, 'broken', False) or getattr(marshal, 'retreating', False):
+                    # Marshal lost — vindication -1
+                    marshal.vindication_score = max(-5, marshal.vindication_score - 1)
+                else:
+                    # Marshal held — vindication +1
+                    marshal.vindication_score = min(5, marshal.vindication_score + 1)
+                resolved.append(marshal_name)
+
+        for name in resolved:
+            pending.pop(name, None)
 
     def _check_enemy_victory(self) -> Optional[Dict]:
         """

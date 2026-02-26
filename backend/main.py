@@ -818,6 +818,16 @@ def respond_to_objection(request: ObjectionResponse):
         if result.get("battle_report"):
             response["battle_report"] = result["battle_report"]
 
+        # V2b: Defiance passthrough
+        if result.get("defiance"):
+            response["defiance"] = True
+            response["defiance_action"] = result.get("defiance_action")
+            response["defiance_outcome"] = result.get("defiance_outcome")
+            response["berthier_text"] = result.get("berthier_text", "")
+        # V2b: Authority event passthrough
+        if result.get("authority_event"):
+            response["authority_event"] = result["authority_event"]
+
         # ════════════════════════════════════════════════════════════
         # STRATEGIC INTERRUPT: Post-objection command may hit blocked path
         # (Session 39: pending_interrupt was being dropped here)
