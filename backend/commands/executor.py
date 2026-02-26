@@ -8673,6 +8673,7 @@ RETREAT RECOVERY (3 turns):
         - /debug set_strength <marshal> <amount>: Set marshal strength
         - /debug set_morale <marshal> <amount>: Set marshal morale (0-100)
         - /debug set_trust <marshal> <0-100>: Set marshal trust (for testing objections)
+        - /debug set_relationship <marshal> <target> <-2 to 2>: Set relationship (-2=hostile to 2=devoted)
         - /debug set_fortified <marshal>: Toggle fortified status
         - /debug set_manpower <nation> <infantry|cavalry> <amount>: Set manpower pool
 
@@ -8725,6 +8726,7 @@ RETREAT RECOVERY (3 turns):
                           "  • set_autonomy <marshal> [turns] - Toggle autonomous (Phase 2.5)\n"
                           "  • set_trust <marshal> <0-100> - Set trust level\n"
                           "  • set_vindication <marshal> <-5 to 5> - Set vindication score\n"
+                          "  • set_relationship <marshal> <target> <-2 to 2> - Set relationship\n"
                           "  • set_authority <0-100> - Set player authority level\n"
                           "\n== Redemption Testing (Phase 3) ==\n"
                           "  • dismiss <marshal> - Directly dismiss (bypass disobedience)\n"
@@ -9224,6 +9226,29 @@ RETREAT RECOVERY (3 turns):
             return {
                 "success": True,
                 "message": f"DEBUG: {marshal.name}'s vindication: {old_vind} -> {amount}{effect}"
+            }
+
+        elif ability == "set_relationship":
+            if len(parts) < 4:
+                return {"success": False, "message": "Usage: /debug set_relationship <marshal> <target_marshal> <-2 to 2>"}
+            target_name = parts[2]
+            target_marshal, t_error = self._fuzzy_match_marshal(target_name, world)
+            if t_error:
+                return t_error
+            if target_marshal.name == marshal.name:
+                return {"success": False, "message": "A marshal cannot have a relationship with themselves."}
+            try:
+                value = int(parts[3])
+                value = max(-2, min(2, value))
+            except ValueError:
+                return {"success": False, "message": "Relationship must be a number -2 to 2"}
+
+            old_rel = marshal.get_relationship(target_marshal.name)
+            marshal.set_relationship(target_marshal.name, value)
+            label = marshal.get_relationship_label(value)
+            return {
+                "success": True,
+                "message": f"DEBUG: {marshal.name}'s relationship with {target_marshal.name}: {old_rel} -> {value} ({label})"
             }
 
         elif ability == "set_fortified":
