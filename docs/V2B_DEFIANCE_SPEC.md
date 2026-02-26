@@ -1,6 +1,6 @@
 # V2b: Defiance / Vindication / Authority — Implementation Spec
 
-> **Status:** COMPLETE. All 4 sessions shipped (0-3). 4164 tests passing. All confidence gates 100%.
+> **Status:** COMPLETE. All 4 sessions shipped (0-3) + audit pass 2. 4165 tests passing. All confidence gates 100%.
 > **Prerequisite:** V2a complete (1216 tests). All scaffolding in place.
 > **Model:** Sonnet — patterns clear from V2a, well-specified, mostly wiring.
 > **Delivered:** 4 sessions (0: prerequisite fix, 1: core mechanics, 2: fog migration, 3: frontend + UI tests).
@@ -96,11 +96,11 @@ Marshals only defy orders they'd object to. Half the cells are naturally empty.
 | **Cautious** | — (wouldn't object) | Fortify (dig in) | — (wouldn't object) | Fortify | Fortify |
 | **Literal** | — (never defies) | — (never defies) | — (never defies) | — (never defies) | — (never defies) |
 
-**Aggressive defiance targeting:** Uses `_execute_auto_assign_attack()` targeting logic (finds nearest enemy marshal, no named target required). **Exception:** If defiant marshal has `artillery=True`, use `_execute_auto_assign_bombardment()` instead (artillery can't melee attack).
+**Aggressive defiance targeting:** Uses `world.find_nearest_enemy()` to resolve target, then calls `_execute_attack()` with the nearest enemy name. **Exception:** If defiant marshal has `artillery=True`, uses bombardment instead (artillery can't melee attack). If no enemy found or attack fails, falls back to `wait` (sulk).
 
 **If preferred action is blocked** (no enemy to attack, already fortified, etc.): fallback = `wait` (sulk). Still costs AP. Defiance outcome = inconclusive (no vindication change, no authority change, just cooldown).
 
-**AP cost:** Original action's AP cost is charged. Already pre-checked before objection fired (executor.py bypass hierarchy runs AP check at step 13, objection at step 14).
+**AP cost:** The defiant action's AP cost is charged (not the original order's cost). The defiant action is what actually executes, so AP follows what was done. Broken/retreating marshals cannot defy (guard check before defiance roll).
 
 ### Defiance Success Definition
 
@@ -912,7 +912,7 @@ Covers:
 | Cooperation floor | Hard block at trust 0, no floor | **No floor** | Soft costs self-regulate; hard floor removes agency in desperate situations |
 | Escalation ordering | Mood→vindication, vindication→mood | **Vindication→mood** | Rare compound events (MODERATE→EXTREME) are correct behavior |
 | Authority bounds | Unbounded, 0-100, 0-150 | **0-100** | Simple, clean, starting value is ceiling |
-| Defiance AP cost | Defiant action's cost, original action's cost | **Original action's cost** | Player budgeted for it; already pre-checked |
+| Defiance AP cost | Defiant action's cost, original action's cost | **Defiant action's cost** | AP follows the action actually taken, not the order that was disobeyed |
 | Negative vindication decay | No decay, symmetric decay | **Symmetric** | Marshal proven wrong 15 turns ago shouldn't carry that forever |
 | Negative vindication de-escalation | No effect, symmetric de-escalation | **Symmetric ("boy who cried wolf")** | Discredited marshal's concerns carry less weight. MILD floors at MILD. |
 | Timed SUPPORT implementation | New `turns_remaining` field, `cancel_after_turn` check, `condition.max_turns` | **`condition.max_turns`** | Reuses existing timed HOLD/PURSUE pattern. Zero new fields or infrastructure. |

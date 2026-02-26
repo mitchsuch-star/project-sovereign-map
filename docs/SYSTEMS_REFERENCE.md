@@ -640,7 +640,7 @@ Post-insist event: after player sees STRONG/EXTREME objection and insists, the m
 | Variance | ±8% random |
 | **Hard cap** | **40%** |
 
-Special: Literal personality (Grouchy) NEVER defies. Cooldown prevents re-defiance (3 turns after defiance, 1 turn after failed roll).
+Special: Literal personality (Grouchy) NEVER defies. Broken/retreating marshals cannot defy. Cooldown prevents re-defiance (3 turns after defiance, 1 turn after failed roll). AP cost follows the defiant action taken (not the original order).
 
 #### Defiance Fallback Table
 
@@ -719,7 +719,7 @@ Takes priority if higher than personality-based concern. Includes timed SUPPORT 
 | Attack | Defend | **Move** (approach but don't engage) |
 | Defend | Attack | **Move** (advance cautiously) |
 | Attack | Move | **Move** |
-| Move | Attack | **Move** |
+| Move | Attack | **Defend** (hold ground) |
 | Move | Defend | **Defend** |
 | Defend | Move | **Move** |
 
@@ -742,7 +742,7 @@ Takes priority if higher than personality-based concern. Includes timed SUPPORT 
 |---------------|---------------|------------|
 | Retreat | Defend | **Defend** (hold, don't flee) |
 | Retreat | Attack | **Defend** (neither attack nor flee) |
-| Defend | Retreat | **Defend** |
+| Defend | Retreat | **Fortify** (dig in) |
 | Attack | Retreat | **Defend** |
 
 #### Stance Compromises
@@ -755,14 +755,18 @@ Takes priority if higher than personality-based concern. Includes timed SUPPORT 
 ### Alternative Generation by Personality
 
 #### AGGRESSIVE
-When ordered to defend/wait/fortify:
+When ordered to defend/wait/hold/form_square/fortify:
 - If enemy in range: Suggest **Attack**
 - If no enemy but can move toward one: Suggest **Move**
-- If neither: Suggest **Defend** (fallback)
+- If neither: Suggest **Aggressive Stance** (fallback)
 
-When ordered to fortify:
+When ordered to drill:
 - If enemy in range: Suggest **Attack**
-- Otherwise: Suggest **Drill** (at least builds shock bonus)
+- If no enemy but can move toward one: Suggest **Move**
+- Otherwise: Suggest **Aggressive Stance**
+
+When ordered to defend with no enemies nearby:
+- Suggest **Aggressive Stance** (not defend — ensures Trust differs from original)
 
 #### CAUTIOUS (Context-Aware)
 When ordered to attack:

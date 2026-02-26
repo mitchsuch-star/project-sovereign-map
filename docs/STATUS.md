@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 25, 2026 (V2b Session 3: Frontend + Polish + UI Tests)
+> **Last Updated:** February 26, 2026 (V2b Audit Pass 2: Objection Table Gaps + Defiance Wiring)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4164** (4164 passed, 3 skipped — verified Feb 25, V2b Session 3) |
+| **Tests Passing** | **4165** (4165 passed, 3 skipped — verified Feb 26, V2b Audit Pass 2) |
 
 | **Current Phase** | Phase 7b **IN PROGRESS** (Tactical Triangle + V2b COMPLETE. Remaining: Jealousy, Gneisenau). Coalition Trigger moved to Phase 8. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE. Gate 5+6 UI tests pending. |
@@ -45,6 +45,21 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7b Sessions
+
+### Feb 26 — V2b Audit Pass 2: Objection Table Gaps + Defiance Wiring
+
+**1 new test (updated), 4165 total (3 skipped). Comprehensive audit of objection alternative tables, defiance wiring, and trust modification paths. 23 issues found and fixed.**
+
+- **C1 (CRITICAL):** `stance` action name → `stance_change` with `target_stance` field in disobedience.py alternative generation.
+- **C2 (CRITICAL):** `form_square` added to `objection_actions` in executor.py with pre-validation guards (already in square, cavalry, artillery).
+- **H1 (HIGH):** Defiant attack now resolves nearest enemy target via `world.find_nearest_enemy()` instead of calling `_execute_auto_assign_attack()` with no target. Falls back to wait if no enemy found or attack fails.
+- **M1-M4:** Scout target resolves marshal name→region. Aggressive+drill preferred diversified (move toward enemy/stance_change). No-enemies aggressive fallback returns `stance_change(aggressive)` instead of `defend`. Drill suggestions check prerequisites.
+- **L1-L3:** Strategic trust paths use `_execute_post_objection()` to avoid re-entrant objections. `trust.modify()` → `modify_trust()` in defiance.py (3 locations) and executor.py (4 locations) to preserve redemption clearing.
+- **N1-N7:** Free actions synced in post-objection. Admin AP routing in post-objection. Defiance AP charges for defiant action (not original). Broken/retreating guard before defiance roll. Dead code removed from objection_v2.py.
+- **Final re-audit (6 additional):** Empty popups when V2 triggers MODERATE+ but V1 has no handler (aggressive HOLD+enemies, SUPPORT defensive target). Hold/wait/form_square aggressive handlers added. Compromise dedup logic prevents Trust=Compromise duplicates.
+- **Compromise rules updated:** `(move, attack)→defend` (hold ground), `(defend, retreat)→fortify` (dig in).
+
+**Files modified:** `disobedience.py` (12+ edits), `executor.py` (14+ edits), `defiance.py` (3 edits), `objection_v2.py` (dead code removal), `test_v2b_session1.py` (MockMarshal fix), `test_objection_v2.py` (updated expectation).
 
 ### Feb 25 — V2b Session 3: Frontend + Polish + UI Tests
 
