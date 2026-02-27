@@ -51,8 +51,8 @@ All major Phase 6 features shipped:
 **4208 tests (3 skipped). New "Orders" tab (tab 6) in Strategic Ledger with consolidated order view and cancel buttons.**
 
 - **Backend `_build_orders()`:** New section builder in `ledger.py`. Returns active orders (marshal, order type, target, path remaining, condition text, issued/arrived turn) followed by idle marshals. Helper functions: `_derive_order_display_name()`, `_derive_condition_text()` (reads StrategicCondition for human-readable status).
-- **`POST /cancel_order` endpoint:** New endpoint in `main.py`. Takes `{"marshal": "Ney"}`, calls existing `_execute_cancel()`, deducts 1 AP (matches typed cancel cost). Respects `no_action_cost` for graceful cancels (no active order).
-- **Godot Orders tab:** 6th tab button in `strategic_ledger.tscn`. `strategic_ledger.gd` updated: `@onready` ref, `tab_buttons` array, `KEY_6` handler, `_render_orders()` with BBCode `[url=cancel:MarshalName]` meta links for cancel buttons. `meta_clicked` signal wired for cancel → refresh flow.
+- **`POST /cancel_order` endpoint:** New endpoint in `main.py`. Takes `{"marshal": "Ney"}`, calls existing `_execute_cancel()`. AP pre-check rejects at 0 AP. Deducts 1 AP on success (matches typed cancel cost). Respects `no_action_cost` for graceful cancels (no active order).
+- **Godot Orders tab:** 6th tab button in `strategic_ledger.tscn`. `strategic_ledger.gd` updated: `@onready` ref, `tab_buttons` array, `KEY_6` handler, `_render_orders()` with BBCode `[url=cancel:MarshalName]` meta links for cancel buttons. Cancel buttons greyed out (non-clickable) when AP = 0. `meta_clicked` signal wired for cancel → refresh flow.
 - **`cancel_strategic_order()`:** New POST function in `api_client.gd`.
 
 **Files modified:** `ledger.py` (_build_orders + helpers + return dict), `main.py` (POST /cancel_order), `strategic_ledger.tscn` (OrdersTab node), `strategic_ledger.gd` (tab 6 + render + cancel wiring), `api_client.gd` (cancel_strategic_order).

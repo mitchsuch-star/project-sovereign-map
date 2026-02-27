@@ -1401,6 +1401,15 @@ async def cancel_order(request: Request):
     if not game_state.get("world"):
         return {"success": False, "message": "No active game"}
 
+    # AP pre-check (matches typed cancel command flow)
+    if world.actions_remaining <= 0:
+        return {
+            "success": False,
+            "message": "No actions remaining this turn.",
+            "action_summary": world.get_action_summary(),
+            "game_state": world.get_filtered_game_state_summary(),
+        }
+
     command = {"action": "cancel", "marshal": marshal_name}
     result = executor._execute_cancel(command, game_state)
 

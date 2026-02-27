@@ -54,6 +54,7 @@ def build_strategic_ledger(world) -> Dict[str, Any]:
         "orders": _build_orders(world, player),
         "authority": int(authority),
         "authority_label": authority_label,
+        "actions_remaining": int(world.actions_remaining),
     }
 
 

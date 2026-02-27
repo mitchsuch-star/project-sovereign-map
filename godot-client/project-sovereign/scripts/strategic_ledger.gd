@@ -475,6 +475,8 @@ func _render_manpower():
 
 func _render_orders():
 	var orders = cached_data.get("orders", [])
+	var ap_remaining = int(cached_data.get("actions_remaining", 1))
+	var can_cancel = ap_remaining > 0
 	var bbcode = ""
 	bbcode += "[color=#" + COLOR_HEADER + "]═══ STANDING ORDERS ═══[/color]\n\n"
 
@@ -482,6 +484,9 @@ func _render_orders():
 		bbcode += "[color=#" + COLOR_INFO + "]No marshals available.[/color]\n"
 		content_area.text = bbcode
 		return
+
+	if not can_cancel:
+		bbcode += "[color=#" + COLOR_GREY + "]No actions remaining — cancel unavailable this turn.[/color]\n\n"
 
 	var has_active = false
 	var has_idle = false
@@ -510,7 +515,10 @@ func _render_orders():
 
 		bbcode += "  │ " + condition
 
-		bbcode += "  [url=cancel:" + mname + "][color=#" + COLOR_ERROR + "][Cancel][/color][/url]"
+		if can_cancel:
+			bbcode += "  [url=cancel:" + mname + "][color=#" + COLOR_ERROR + "][Cancel][/color][/url]"
+		else:
+			bbcode += "  [color=#" + COLOR_GREY + "][Cancel][/color]"
 		bbcode += "\n\n"
 
 	# Separator between active and idle
