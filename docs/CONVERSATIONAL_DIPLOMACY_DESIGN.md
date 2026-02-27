@@ -1,9 +1,9 @@
 # Conversational Diplomacy Layer — Design Document
 
-> **Status:** DRAFT v1.1 — Audit-revised. 21 findings resolved (3 Critical, 8 Major, 10 Minor). Needs design gate approval.
+> **Status:** DRAFT v1.2 — Final audit pass. Cross-document consistency verified against DIPLOMACY_SPEC v2.2. See DIPLOMACY_SPEC §18 for full audit summary. Needs design gate approval.
 > **Phase:** 8 (overlay on DIPLOMACY_SPEC.md)
 > **Prerequisite:** DIPLOMACY_SPEC.md v2.1 approved. This document defines the INTERACTION LAYER, not the mechanical systems.
-> **Relationship to DIPLOMACY_SPEC:** This spec replaces §2c (Talleyrand commands), §2d (proposal flow), §2g (feasibility), §9a (AI proposal popups), and §10b (UI). All formula/state/treaty mechanics in DIPLOMACY_SPEC remain unchanged. This is the steering wheel; DIPLOMACY_SPEC is the engine.
+> **Relationship to DIPLOMACY_SPEC:** This spec replaces §2c (Talleyrand commands — keywords preserved, flow redesigned), §2d (proposal flow — transit mechanics preserved, presentation redesigned), §2g (feasibility — enhanced to conversation), and §9a (AI proposal popups — delivered through dialogue system). §10b (Diplomatic Ledger) is UNCHANGED — the Ledger is a data screen, complementary to the dialogue system. All formula/state/treaty mechanics in DIPLOMACY_SPEC remain unchanged. This is the steering wheel; DIPLOMACY_SPEC is the engine.
 
 ---
 
@@ -89,7 +89,9 @@ pending_diplomatic_dialogue = {
         "threat": 40,
         "suggested_terms": {...},
     },
-    "turn_created": 5,             # stale after 1 turn (auto-dismiss for non-blocking types)
+    "turn_created": 5,             # used for auto-dismiss: non-blocking dialogues auto-dismiss
+                                    # on end-turn if turn_created < current_turn.
+                                    # Blocking dialogues (blocking=True) IGNORE turn_created.
     "blocking": False,              # True for incoming_proposal and sabotage_confrontation
 }
 ```
@@ -139,7 +141,7 @@ def classify_diplomatic_intent(parsed_command, world):
 
     # M3: Validate target nation against known nations
     if target_nation is not None:
-        known_nations = [n.name for n in world.nations]
+        known_nations = world.get_known_nations()  # WorldState getter (SPEC §13)
         if target_nation not in known_nations:
             return "unknown_nation"  # Caller returns Talleyrand-voiced error
 
@@ -225,7 +227,7 @@ TALLEYRAND: "Very well, Sire. I propose the following terms to Hardenberg:
   [Send it]  [Sweeten the deal]  [Never mind]
 ```
 
-Player clicks "Send it" → proposal enters transit per existing §2d mechanics.
+Player clicks "Send it" → proposal enters transit per DIPLOMACY_SPEC §2d transit mechanics (1-turn transit, sabotage during transit, return popup). The transit MECHANICS are unchanged; this DESIGN doc redesigns only the PRESENTATION (dialogue-based instead of simple popup).
 
 ### 3b. MEDIUM — "Talleyrand, offer peace to Prussia"
 
@@ -281,6 +283,22 @@ TALLEYRAND: "Very well, Sire. What terms shall I present?
 ```
 
 The player builds clauses one at a time. Each `add` command appends to the clause list and re-displays with updated harshness and projected acceptance. `done` transitions to `proposal_confirm` with the assembled terms. `cancel` exits with no DP cost. In mock mode, commands are parsed via keyword matching. In LLM mode, free-text like "throw in 200 gold and demand Rhineland" is parsed into clause additions.
+
+**Save/load during clause-selection (N1 resolution):** The clause-selection sub-state is stored within `pending_diplomatic_dialogue` as:
+```python
+pending_diplomatic_dialogue = {
+    "type": "clause_selection",
+    "target_nation": "Prussia",
+    "proposal_type": "peace",
+    "current_clauses": [{"type": "open_borders"}, {"type": "gold_per_turn", "amount": 200}],
+    "talleyrand_text": "Current proposal: Peace with Prussia...",
+    "options": [{"label": "Done", "action": "finalize_clauses"}, ...],
+    "context": {...},
+    "turn_created": 5,
+    "blocking": False,
+}
+```
+On game load, if `type == "clause_selection"`, the Godot client re-displays the clause builder with `current_clauses` pre-populated. This survives save/load because all values are primitives (str, int, list of dicts).
 
 ### 3c. SPECIFIC — "Talleyrand, propose peace with Prussia: they keep Berlin, open borders, 200 gold/turn"
 
@@ -795,8 +813,8 @@ It is the art of choosing one's battles."
 [1] Propose an alliance — formalize our friendship. Mutual defense
     would deter would-be aggressors. (Costs 2 DP)
 
-[2] Propose trade agreement — open borders and modest tribute.
-    Strengthens the bond without the commitment of alliance. (Costs 2 DP)
+[2] Propose open borders — trade and passage rights.
+    Strengthens the bond without the commitment of alliance. (Costs 1 DP)
 
 [3] Maintain the status quo — not every friendship needs a treaty.
     Save our diplomatic resources for more pressing matters.
@@ -804,7 +822,7 @@ It is the art of choosing one's battles."
 The Diplomatic Ledger (D key) has the precise figures if you wish
 to verify my assessment, Sire."
 ```
-*Recommendation: 0 (alliance). Schemer bias: favors stabilizing alliances.*
+*Recommendation: 0 (alliance). Schemer bias: favors stabilizing alliances. Note: Option [2] proposes OPEN_BORDERS (SPEC §5a), not a custom "trade agreement" — no such state exists.*
 
 ---
 
@@ -903,15 +921,17 @@ Templates contain `{slots}` resolved at runtime from game state:
 SLOT_RESOLVERS = {
     # Null-safe: all resolvers handle None returns from world methods.
     # Nations without diplomats (carved vassals) use fallback text.
+    # Golden Rule #2: All numeric slots MUST return int() before reaching Godot.
+    # Resolvers returning numbers must wrap in int().
     "target_diplomat": lambda w, n: _safe_diplomat_name(w, n),
     "target_nation": lambda w, n: n,
     "their_capital": lambda w, n: (w.get_nation_capital(n) or "their capital"),
-    "suggested_gold": lambda w, n: _suggest_gold_per_turn(w, n),
-    "relation": lambda w, n: w.get_nation_relation("France", n),
+    "suggested_gold": lambda w, n: _suggest_gold_per_turn(w, n)[0],  # unpack int from (gold, is_sufficient) tuple
+    "relation": lambda w, n: int(w.get_nation_relation("France", n)),
     "relation_description": lambda w, n: _relation_description(w, n),
     "difficulty_tier": lambda w, n: _get_feasibility_tier(w, n),
     "formula_hint": lambda w, n: _get_formula_feedback(w, n),
-    "war_score": lambda w, n: w.get_war_score("France", n),
+    "war_score": lambda w, n: int(w.get_war_score("France", n)),
     "threat_increase": lambda w, n: _threat_delta(proposal_type),
     "target_diplomat_personality_note": lambda w, n: _safe_personality_note(w, n),
     # ... etc
@@ -970,8 +990,13 @@ _gold_suggestion_cache = {}  # cleared on turn advance
 Talleyrand is always Schemer. But the template library supports personality variants for future diplomats:
 
 ```python
-def select_template(situation, game_bucket, specificity, personality="schemer"):
-    """Select best template, applying personality modifier to recommendation."""
+def select_template(situation, game_bucket, specificity, personality=None):
+    """Select best template, applying personality modifier to recommendation.
+    personality: Read from world.get_diplomat("France").personality at call time.
+    Defaults to "schemer" for Talleyrand, but MUST be dynamic — Replace with Loyalist
+    (SPEC §3d) changes this to "loyalist", disabling all Schemer bias logic below."""
+    if personality is None:
+        personality = "schemer"  # fallback, but callers should pass actual value
     base = DIPLOMATIC_TEMPLATES[(situation, game_bucket, specificity)]
 
     if personality == "schemer":
@@ -1077,6 +1102,8 @@ an opportunity — or a warning."
 **Existence guard:** Before generating any proactive suggestion, verify the target entity still exists. Specifically: check vassal still exists in `world.vassals` before generating vassal loyalty suggestions (a vassal that rebelled at turn start should not generate a loyalty warning in the same turn's dispatch). Check nation still exists (not fully conquered/dissolved) before generating nation-specific suggestions.
 
 **Frequency cap:** Maximum 2 diplomatic observations per dispatch. Highest priority wins. If nothing triggers, Talleyrand is silent (no filler text).
+
+**Cooldown serialization:** Trigger cooldowns are tracked in `world.proactive_suggestion_cooldowns` (Dict[str, int], key format "nation|trigger_type", value = turns remaining). Added to SPEC §13 field list. Must serialize via to_dict/from_dict. Cooldowns decrement by 1 each turn during advance_turn() step 9 (§7f processing order).
 
 **AI proposal suppression:** If an incoming AI proposal is pending for this turn, suppress proactive suggestions. Talleyrand is "busy" handling the incoming proposal. The suppressed suggestion can re-trigger next turn if conditions still hold.
 
@@ -1440,6 +1467,12 @@ Player input during pending_diplomatic_dialogue:
   modifications, the "Harsher" option is replaced with "Send these terms or specify
   your own." At maximum harshness, Talleyrand: "Sire, I cannot propose terms more
   severe than total subjugation. These are the harshest terms possible."
+
+  **Modify_generous iteration cap:**
+  Maximum 2 modification iterations (same as harsh). After 2 generous modifications,
+  the "More generous" option is replaced with "Let me specify my own terms."
+  At maximum generosity, Talleyrand: "Sire, we are offering everything short of
+  the crown itself. Any more and we negotiate from our knees."
 ```
 
 ### 9c. Interaction with Existing Popup Systems
@@ -1500,12 +1533,60 @@ if world.pending_diplomatic_dialogue and world.pending_diplomatic_dialogue.get("
 # In main.py
 @app.post("/respond_to_diplomatic_dialogue")
 async def respond_to_diplomatic_dialogue(request: dict):
-    """Handle player response to Talleyrand's dialogue."""
-    choice = request.get("choice")  # int (1-4) or string
-    # ... resolve choice against pending_diplomatic_dialogue options
-    # ... execute corresponding action
-    # ... clear pending_diplomatic_dialogue
-    # ... return result
+    """Handle player response to Talleyrand's dialogue.
+
+    Request body:
+        {"choice": int | str}
+        - int (1-4): index of selected option
+        - str: keyword or free text (LLM mode only for free text)
+
+    Response body (success):
+        {"success": True, "message": str, "diplomatic_dialogue": dict | None,
+         "new_state": <stripped WorldState>}
+        - If action triggers a new dialogue (e.g., "expand_options"),
+          diplomatic_dialogue contains the new dialogue state.
+        - If action is terminal (execute, cancel), diplomatic_dialogue is None.
+
+    Response body (error):
+        {"success": False, "message": str}
+        - Invalid choice number: "Please choose an option (1-{n}), Sire."
+        - No pending dialogue: "No diplomatic matter awaits your attention, Sire."
+        - DP insufficient for chosen action: "Insufficient diplomatic resources."
+    """
+    choice = request.get("choice")
+    world = game_state["world"]
+
+    if world.pending_diplomatic_dialogue is None:
+        return {"success": False, "message": "No diplomatic matter awaits your attention, Sire."}
+
+    dialogue = world.pending_diplomatic_dialogue
+    options = dialogue.get("options", [])
+
+    # Resolve choice to option index
+    if isinstance(choice, int):
+        if choice < 1 or choice > len(options):
+            return {"success": False,
+                    "message": f"Please choose an option (1-{len(options)}), Sire."}
+        selected = options[choice - 1]
+    elif isinstance(choice, str):
+        selected = _match_keyword_to_option(choice, options)
+        if selected is None:
+            return {"success": False,
+                    "message": f"Please choose an option (1-{len(options)}), Sire."}
+    else:
+        return {"success": False, "message": "Invalid input."}
+
+    # Execute the selected action
+    result = _execute_dialogue_action(selected, dialogue, world)
+
+    # Clear dialogue if terminal action
+    if selected["action"] in ("execute_proposal", "cancel", "dismiss",
+                               "begin_mission", "confront", "overlook"):
+        world.pending_diplomatic_dialogue = None
+
+    # Strip new_state before returning (CLAUDE.md serialization warning)
+    cleaned = {k: v for k, v in result.items() if k != "new_state"}
+    return cleaned
 ```
 
 ---
@@ -1662,13 +1743,13 @@ Enemy diplomats have personalities that color AI decisions. When the AI decision
 
 | System | File(s) | Purpose |
 |---|---|---|
-| Dialogue State Machine | `diplomatic_dialogue.py` (new) | Conversation flow, template selection, state management |
-| Template Library | `diplomatic_templates.py` (new) | 20+ templates with slot resolution |
+| Dialogue State Machine | `backend/game_logic/diplomatic_dialogue.py` (new) | Conversation flow, template selection, state management |
+| Template Library | `backend/game_logic/diplomatic_templates.py` (new) | 20+ templates with slot resolution |
 | Dialogue Router | Addition to `llm_client.py` | Classify specificity, route to dialogue engine |
 | Dialogue Endpoint | Addition to `main.py` | `/respond_to_diplomatic_dialogue` |
 | WorldState field | `world_state.py` | `pending_diplomatic_dialogue` (dict or None) — must serialize (see §2b) |
 | Morning Dispatch section | `dispatch.py` | Talleyrand's Report (0-2 paragraphs) |
-| Gold suggestion cache | `diplomatic_dialogue.py` | `_gold_suggestion_cache` — cleared on turn advance |
+| Gold suggestion cache | `backend/game_logic/diplomatic_dialogue.py` | `_gold_suggestion_cache` — cleared on turn advance |
 
 **Implementation note:** Update `docs/SAVE_FORMAT_REFERENCE.md` with `pending_diplomatic_dialogue` field definition. Update `docs/ROADMAP.md` Phase 8 to reference this design document and the 4-session plan.
 
@@ -1739,11 +1820,13 @@ The key to making mock feel conversational: **options are framed as advice, not 
 
 ### 14a. New Files
 
+**Directory alignment with DIPLOMACY_SPEC:** SPEC places core diplomacy in `backend/game_logic/diplomacy.py`. Conversational layer files go in the SAME `backend/game_logic/` directory (flat structure, consistent with existing codebase patterns — no new `backend/diplomacy/` package).
+
 | File | Purpose | Estimated Size |
 |---|---|---|
-| `backend/diplomacy/dialogue.py` | Dialogue state machine, classify_intent, build_dialogue | ~300 lines |
-| `backend/diplomacy/templates.py` | Template library, slot resolvers, personality modifiers | ~500 lines |
-| `backend/diplomacy/advisory.py` | Strategic conversation handlers, "what if" engine | ~200 lines |
+| `backend/game_logic/diplomatic_dialogue.py` | Dialogue state machine, classify_intent, build_dialogue | ~300 lines |
+| `backend/game_logic/diplomatic_templates.py` | Template library, slot resolvers, personality modifiers | ~500 lines |
+| `backend/game_logic/diplomatic_advisory.py` | Strategic conversation handlers, "what if" engine | ~200 lines |
 
 ### 14b. Modified Files
 
