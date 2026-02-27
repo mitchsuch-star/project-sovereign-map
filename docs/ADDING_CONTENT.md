@@ -26,6 +26,17 @@ Step-by-step guides for adding new marshals, personalities, and strategic comman
    - [Checklist](#checklist)
    - [Worked Example: PATROL Command](#worked-example-patrol-command)
    - [Common Pitfalls (Strategic Commands)](#common-pitfalls-strategic-commands)
+3. [Expanding the Map](#3-expanding-the-map)
+   - [Region Data Questionnaire](#region-data-questionnaire)
+   - [Complete File Reference (Regions)](#complete-file-reference-regions)
+   - [Step-by-Step: Adding a New Region](#step-by-step-adding-a-new-region)
+   - [Step-by-Step: Renaming a Region](#step-by-step-renaming-a-region)
+   - [Grep Verification Commands](#grep-verification-commands)
+   - [Adjacency Validation Script](#adjacency-validation-script)
+   - [Test Fix Guide](#test-fix-guide)
+   - [Victory Threshold Scaling](#victory-threshold-scaling)
+   - [Common Pitfalls (Map Expansion)](#common-pitfalls-map-expansion)
+   - [Quick Reference: Current 13-Region Map](#quick-reference-current-13-region-map)
 
 ---
 
@@ -1506,3 +1517,589 @@ Add tests in `tests/` covering:
 3. **Return `order_status`** in result dict -- `"active"`, `"completed"`, or `"paused"`
 4. **Handle retreat recovery** -- check at top of handler, not just in `_execute_strategic_turn()`
 5. **Test serialization** -- if you add fields to StrategicOrder, they MUST survive to_dict/from_dict roundtrip
+
+---
+
+## 3. Expanding the Map
+
+Step-by-step guide for adding new regions, renaming existing regions, or expanding from the 13-region Western Europe map to a full European map.
+
+**Difficulty:** 7/10 -- Region data is duplicated across ~10 files and referenced by name in 80+ test files. Missing one file = silent bugs or crashes.
+
+> **Key insight:** Region names are string identifiers, not enums. There is no single registry that auto-propagates. Every file that hardcodes a region name must be updated manually.
+
+---
+
+### Region Data Questionnaire
+
+Fill out this sheet for EACH new region before modifying any code:
+
+```
++-------------------------------------------------------------+
+| REGION DATA SHEET                                           |
++-------------------------------------------------------------+
+|                                                             |
+| IDENTITY                                                    |
+| ----------------------------------------------------------- |
+| Name: _______________________________________________       |
+|   (Must be unique, Title Case, no spaces in key)           |
+|                                                             |
+| TERRAIN                                                     |
+| ----------------------------------------------------------- |
+| Terrain: [ ] plains    [ ] forest    [ ] hills              |
+|          [ ] mountains [ ] urban     [ ] river_crossing     |
+|                                                             |
+|   (See VALID_TERRAINS in region.py for full set)           |
+|   (Terrain affects: defense bonus, movement cost,          |
+|    supply modifier, cavalry effectiveness, charge           |
+|    blocking, bombardment modifier)                          |
+|                                                             |
+| ECONOMY                                                     |
+| ----------------------------------------------------------- |
+| Region Type: [ ] capital      (income: 300, 2 build slots) |
+|              [ ] major_city   (income: 200, 1 build slot)  |
+|              [ ] city         (income: 150, 1 build slot)  |
+|              [ ] town         (income: 100, 0 build slots) |
+|              [ ] rural        (income:  50, 0 build slots) |
+|                                                             |
+| Income Override: _____ (leave blank to use type default)    |
+|                                                             |
+| GEOGRAPHY                                                   |
+| ----------------------------------------------------------- |
+| Adjacent Regions: _____________________________________     |
+|   (Comma-separated list. MUST be bidirectional —           |
+|    if A lists B, then B must list A)                        |
+|                                                             |
+| Is Capital: [ ] Yes  [ ] No                                 |
+|   (Capitals get 15,000 starting garrison)                  |
+|                                                             |
+| CONTROL                                                     |
+| ----------------------------------------------------------- |
+| Starting Controller: [ ] France    [ ] Britain              |
+|                      [ ] Prussia   [ ] Austria              |
+|                      [ ] Neutral   [ ] New Nation: ____     |
+|                                                             |
+| DISPLAY (Godot)                                             |
+| ----------------------------------------------------------- |
+| Map Position (pixels): X=_____ Y=_____                      |
+|   (Relative to existing map — check map.gd REGION_POSITIONS)|
+|                                                             |
+| Grid Position (row, col): row=_____ col=_____               |
+|   (For LLM strategic parser — check strategic_parser.py)   |
+|                                                             |
++-------------------------------------------------------------+
+```
+
+---
+
+### Complete File Reference (Regions)
+
+Every file that contains hardcoded region names or region structure data, in dependency order.
+
+#### Backend Files (MUST modify for any region change)
+
+| # | File | What to Update | Hardcoded Region Names |
+|---|------|----------------|------------------------|
+| 1 | `backend/models/region.py` | `REGIONS_DATA` dict — add/rename region entry with adjacency, income, terrain, region_type, is_capital | All 13 region names + adjacency lists |
+| 2 | `backend/commands/parser.py` | `self.known_regions` list (~line 77) — sync with REGIONS_DATA | All 13 region names |
+| 3 | `backend/models/world_state.py` | `_setup_initial_control()` (~line 721) — set controller for new regions | French starting regions + control_map |
+| 4 | `backend/ai/strategic_parser.py` | `REGION_POSITIONS` dict (~line 33) — add (row, col) grid coordinates | All 13 region names |
+| 5 | `backend/ai/enemy_ai.py` | Nation capital mappings (~lines 3751, 3949) — update if adding nation capitals | "Paris", "Netherlands", "Rhine", "Vienna" |
+
+#### Backend Files (Update IF applicable)
+
+| # | File | What to Update | When |
+|---|------|----------------|------|
+| 6 | `backend/game_logic/turn_manager.py` | `_check_victory_conditions()` (~line 667) — victory/defeat thresholds reference "Paris" and hardcoded region counts (12, 10) | If changing capital or total region count |
+| 7 | `backend/commands/executor.py` | Fallback spawn/retreat locations default to "Paris" (~lines 2887, 7635, 7645) | If changing French capital |
+| 8 | `backend/commands/disobedience.py` | "Paris" capital checks for objection triggers (~lines 294, 413, 625) | If changing French capital |
+| 9 | `backend/ai/llm_client.py` | Mock parser target keywords (~line 682) — add region name keywords for test parser | If new region names need mock parser recognition |
+| 10 | `backend/ai/prompt_builder.py` | Few-shot examples reference region names (~44 references) — update examples for LLM context | If renaming regions or adding many new ones |
+
+#### Frontend Files (MUST modify)
+
+| # | File | What to Update | Notes |
+|---|------|----------------|-------|
+| 11 | `godot-client/.../scenes/map.gd` | `REGION_POSITIONS` dict (~line 4) — pixel coordinates for rendering | Must match backend region.py exactly |
+| 12 | `godot-client/.../scenes/map.gd` | `REGION_CONNECTIONS` dict (~line 21) — adjacency for drawing edges | Must match backend region.py adjacency |
+
+#### Test Files (Fix after backend/frontend)
+
+| Category | Approximate Count | Nature of References |
+|----------|-------------------|---------------------|
+| Region name strings in test setup | 80+ files | Marshals placed at "Paris", "Belgium", etc. |
+| Adjacency assertions | ~15 files | Tests that check specific neighbors |
+| Region count assertions | ~10 files | `len(regions) == 13`, victory threshold checks |
+| Economy/income tests | ~8 files | Tests that check specific region income values |
+
+#### Documentation Files (Update last)
+
+| File | What to Update |
+|------|----------------|
+| `CLAUDE.md` | Valid Regions table in Quick Reference |
+| `docs/ADDING_CONTENT.md` | Quick Reference table at end of this section |
+| `docs/SAVE_FORMAT_REFERENCE.md` | Region field documentation if new fields added |
+| `docs/SYSTEMS_REFERENCE.md` | Map description, region count references |
+| `docs/MANUAL_TEST_PLAN.md` | Test scenarios referencing specific regions |
+
+---
+
+### Step-by-Step: Adding a New Region
+
+#### Step 1: Add to REGIONS_DATA (Source of Truth)
+
+**File:** `backend/models/region.py` (~line 326)
+
+```python
+# Add to REGIONS_DATA dict:
+"Hamburg": {
+    "adjacent": ["Netherlands", "Rhine"],  # Must be bidirectional!
+    "income": 150,
+    "is_capital": False,
+    "terrain": "plains",
+    "region_type": "city"
+},
+```
+
+**CRITICAL:** Update the adjacency lists of ALL neighboring regions too:
+
+```python
+# Netherlands BEFORE:
+"Netherlands": {
+    "adjacent": ["Belgium"],
+    ...
+}
+# Netherlands AFTER:
+"Netherlands": {
+    "adjacent": ["Belgium", "Hamburg"],  # Added Hamburg
+    ...
+}
+```
+
+#### Step 2: Update Parser Region List
+
+**File:** `backend/commands/parser.py` (~line 77)
+
+```python
+self.known_regions = [
+    "Paris", "Belgium", "Netherlands", "Waterloo", "Rhine",
+    "Bavaria", "Vienna", "Lyon", "Milan", "Marseille",
+    "Geneva", "Brittany", "Bordeaux",
+    "Hamburg",  # Added
+]
+```
+
+#### Step 3: Set Initial Controller
+
+**File:** `backend/models/world_state.py` in `_setup_initial_control()` (~line 735)
+
+```python
+control_map = {
+    # ...existing entries...
+    "Hamburg": "Prussia",   # Or whichever nation controls it
+}
+```
+
+If adding to France's starting territory, add to the `french_regions` list instead (~line 724).
+
+#### Step 4: Add Grid Coordinates for LLM Parser
+
+**File:** `backend/ai/strategic_parser.py` (~line 33)
+
+```python
+REGION_POSITIONS: Dict[str, Tuple[int, int]] = {
+    # ...existing entries...
+    "Hamburg":      (0, 2),   # North, east of Netherlands
+}
+```
+
+These are rough grid positions used by the LLM for directional context, not pixel coordinates.
+
+#### Step 5: Update Enemy AI Capital Mappings (if new nation)
+
+**File:** `backend/ai/enemy_ai.py` (~lines 3751, 3949)
+
+Only needed if the new region is a new nation's capital:
+
+```python
+nation_capitals = {
+    "France": "Paris",
+    "Britain": "Netherlands",
+    "Prussia": "Rhine",
+    "Austria": "Vienna",
+    "NewNation": "Hamburg",  # Add if new nation
+}
+```
+
+#### Step 6: Update Victory Thresholds
+
+**File:** `backend/game_logic/turn_manager.py` (~line 698)
+
+The current thresholds are hardcoded for 13 regions:
+- Total victory: control 12+ regions
+- Time victory: control 10+ regions at turn limit
+- Defeat: lose "Paris"
+
+See [Victory Threshold Scaling](#victory-threshold-scaling) for the formula.
+
+#### Step 7: Update Mock Parser (if needed)
+
+**File:** `backend/ai/llm_client.py` (~line 682)
+
+If the new region name contains keywords that conflict with action parsing (e.g., a region named "Charge" or "Retreat"), add explicit handling:
+
+```python
+# Add region name as target keyword if needed
+elif "hamburg" in command_lower:
+    target = "Hamburg"
+```
+
+#### Step 8: Update Godot Map
+
+**File:** `godot-client/.../scenes/map.gd`
+
+Add to BOTH dicts:
+
+```gdscript
+# REGION_POSITIONS (~line 4):
+const REGION_POSITIONS = {
+    # ...existing...
+    "Hamburg": Vector2(520, 130),   # Pixel position on map
+}
+
+# REGION_CONNECTIONS (~line 21):
+const REGION_CONNECTIONS = {
+    # ...existing...
+    "Hamburg": ["Netherlands", "Rhine"],
+    # Also update Netherlands and Rhine entries:
+    "Netherlands": ["Belgium", "Hamburg"],
+    "Rhine": ["Belgium", "Bavaria", "Lyon", "Hamburg"],
+}
+```
+
+#### Step 9: Run Adjacency Validation
+
+See [Adjacency Validation Script](#adjacency-validation-script) below.
+
+#### Step 10: Fix Tests (Batched)
+
+See [Test Fix Guide](#test-fix-guide) below.
+
+#### Step 11: Update Documentation
+
+Update the region tables in:
+- `CLAUDE.md` (Valid Regions quick reference)
+- This file (Quick Reference at bottom of section 3)
+- `docs/SYSTEMS_REFERENCE.md` (if it references region count)
+
+---
+
+### Step-by-Step: Renaming a Region
+
+Renaming is harder than adding because every string reference must change.
+
+#### Step 1: Global Search First
+
+Before changing anything, find ALL references:
+
+```bash
+# Find every file mentioning the old name
+rg "OldName" --type py --type gdscript -l
+rg "OldName" tests/ -l
+rg "OldName" docs/ -l
+```
+
+#### Step 2: Update Source of Truth
+
+**File:** `backend/models/region.py` — Change the key in `REGIONS_DATA` AND every adjacency list that references the old name.
+
+#### Step 3: Update All Backend Files
+
+Follow the [Complete File Reference](#complete-file-reference-regions) table — every file in the "MUST modify" section needs the old name replaced with the new name.
+
+#### Step 4: Update All Test Files
+
+Use the batch approach in [Test Fix Guide](#test-fix-guide).
+
+#### Step 5: Verify with Grep
+
+```bash
+# Should return ZERO results after renaming:
+rg "OldName" --type py -l
+rg "OldName" --type gdscript -l
+```
+
+---
+
+### Grep Verification Commands
+
+Run these AFTER making changes to verify nothing was missed.
+
+```bash
+# 1. List all files referencing a specific region name
+rg "RegionName" --type py -l
+rg "RegionName" --type gdscript -l
+
+# 2. Find all hardcoded region name strings in backend (not comments)
+rg '"(Paris|Belgium|Netherlands|Waterloo|Rhine|Bavaria|Vienna|Lyon|Milan|Marseille|Geneva|Brittany|Bordeaux)"' backend/ --type py
+
+# 3. Find all files importing from region.py
+rg "from backend.models.region import" --type py
+
+# 4. Find adjacency references (to check bidirectionality)
+rg "adjacent" backend/models/region.py
+
+# 5. Find victory threshold references
+rg "victory|regions.*>=|player_regions" backend/game_logic/turn_manager.py
+
+# 6. Find "Paris" as capital/fallback (must update if capital changes)
+rg '"Paris"' backend/ --type py -n
+
+# 7. Count test files referencing regions (to estimate fix scope)
+rg '"(Paris|Belgium|Netherlands|Waterloo|Rhine|Bavaria|Vienna|Lyon|Milan|Marseille|Geneva|Brittany|Bordeaux)"' tests/ -l | wc -l
+
+# 8. Verify Godot map matches backend
+# (manual: compare REGION_POSITIONS keys in map.gd with REGIONS_DATA keys in region.py)
+```
+
+---
+
+### Adjacency Validation Script
+
+Run this after any adjacency change to verify bidirectional consistency:
+
+```python
+"""Verify all region adjacencies are bidirectional."""
+from backend.models.region import REGIONS_DATA
+
+errors = []
+for name, data in REGIONS_DATA.items():
+    for adj in data["adjacent"]:
+        if adj not in REGIONS_DATA:
+            errors.append(f"  {name} lists '{adj}' but '{adj}' doesn't exist")
+        elif name not in REGIONS_DATA[adj]["adjacent"]:
+            errors.append(f"  {name} -> {adj} but {adj} does NOT -> {name}")
+
+if errors:
+    print("ADJACENCY ERRORS:")
+    for e in errors:
+        print(e)
+else:
+    print(f"OK: All {len(REGIONS_DATA)} regions have bidirectional adjacency.")
+```
+
+Save as `scripts/validate_adjacency.py` and run:
+
+```bash
+".venv\Scripts\python.exe" scripts/validate_adjacency.py
+```
+
+Or run inline:
+
+```bash
+".venv\Scripts\python.exe" -c "
+from backend.models.region import REGIONS_DATA
+errors = []
+for name, data in REGIONS_DATA.items():
+    for adj in data['adjacent']:
+        if adj not in REGIONS_DATA:
+            errors.append(f'{name} -> {adj} (missing)')
+        elif name not in REGIONS_DATA[adj]['adjacent']:
+            errors.append(f'{name} -> {adj} (one-way)')
+print('ERRORS:' if errors else f'OK: {len(REGIONS_DATA)} regions valid')
+for e in errors: print(f'  {e}')
+"
+```
+
+---
+
+### Test Fix Guide
+
+After expanding the map, expect 20-80 test failures depending on the scope of changes. Fix them in this order (each category unlocks the next):
+
+#### Category 1: String Renames (if renaming regions)
+
+**Pattern:** Tests that reference old region names as string literals.
+
+```python
+# BEFORE:
+marshal.location = "OldName"
+# AFTER:
+marshal.location = "NewName"
+```
+
+**Batch approach:**
+```bash
+# Find all test files with old name
+rg "OldName" tests/ -l
+
+# Preview replacements (don't auto-replace — some may be in comments or expected output)
+rg "OldName" tests/ -n
+```
+
+Fix manually — automated find/replace can break test logic if the region name appears in message assertions.
+
+#### Category 2: Adjacency Fixes
+
+**Pattern:** Tests that assert specific neighbors or test movement between specific regions.
+
+```python
+# Test assumes Belgium is adjacent to Rhine — verify this is still true
+assert world.regions["Belgium"].is_adjacent_to("Rhine")
+```
+
+Fix: Update adjacency assertions to match new map layout.
+
+#### Category 3: Region Count Fixes
+
+**Pattern:** Tests that assert `len(regions) == 13` or check player region counts.
+
+```python
+# BEFORE (13-region map):
+assert len(world.regions) == 13
+# AFTER (19-region map):
+assert len(world.regions) == 19
+```
+
+**Key files:**
+- `tests/test_cautious_advance_cooldown.py` — victory threshold test (10 regions)
+- Any test checking `len(world.get_player_regions())`
+
+#### Category 4: Economy Fixes
+
+**Pattern:** Tests that assert total income, gold calculations, or economic balance based on specific region counts.
+
+```python
+# Total income changes when you add new regions
+assert world.calculate_total_income("France") == expected_new_total
+```
+
+#### Category 5: Control Map Fixes
+
+**Pattern:** Tests that set up specific world states with hardcoded controllers.
+
+```python
+# If a test sets up "all regions French" it needs to include new regions
+for region in world.regions.values():
+    region.controller = "France"
+# This pattern is safe — it adapts automatically
+```
+
+Tests that set specific regions by name need manual updates.
+
+---
+
+### Victory Threshold Scaling
+
+Current thresholds (13-region map):
+
+| Condition | Current Value | Formula |
+|-----------|--------------|---------|
+| Total victory | 12 regions | `total_regions - 1` (allow 1 holdout) |
+| Time victory | 10 regions | `ceil(total_regions * 0.77)` (~77% control) |
+| Defeat | Lose "Paris" | Capital loss (unchanged by map size) |
+
+**When expanding to N regions:**
+
+```python
+# In turn_manager.py _check_victory_conditions():
+total = len(self.world.regions)
+total_victory_threshold = total - 1           # Near-total conquest
+time_victory_threshold = math.ceil(total * 0.77)  # ~77% control at time limit
+```
+
+**Examples:**
+
+| Map Size | Total Victory | Time Victory |
+|----------|---------------|--------------|
+| 13 regions | 12 | 10 |
+| 19 regions | 18 | 15 |
+| 25 regions | 24 | 20 |
+| 30 regions | 29 | 24 |
+
+> **Note:** The current thresholds are hardcoded integers, not formulas. When expanding the map, either replace with dynamic formulas or update the hardcoded values.
+
+---
+
+### Common Pitfalls (Map Expansion)
+
+#### Pitfall 1: One-Way Adjacency
+
+**WRONG:**
+```python
+"Hamburg": {
+    "adjacent": ["Netherlands", "Rhine"],
+    ...
+}
+# But Netherlands still has: "adjacent": ["Belgium"]
+# Hamburg can reach Netherlands, but Netherlands can't reach Hamburg!
+```
+
+**RIGHT:** Always update BOTH sides. Run the adjacency validation script.
+
+#### Pitfall 2: Triple Duplication (Backend + Godot + Parser)
+
+Region data exists in THREE places that must stay synchronized:
+1. `region.py` — `REGIONS_DATA` (source of truth)
+2. `map.gd` — `REGION_POSITIONS` + `REGION_CONNECTIONS` (rendering)
+3. `parser.py` — `self.known_regions` (command parsing)
+
+Missing any one of these causes:
+- Missing from region.py: Region doesn't exist in game
+- Missing from map.gd: Region exists but invisible on map
+- Missing from parser.py: Player commands can't target the region
+
+#### Pitfall 3: Forgetting strategic_parser.py Grid Coordinates
+
+`REGION_POSITIONS` in `strategic_parser.py` (~line 33) is a SEPARATE dict from the one in `map.gd`. It uses (row, col) grid coordinates for LLM direction context, not pixel positions. Forgetting this causes the LLM to give incorrect directional suggestions.
+
+#### Pitfall 4: Victory Thresholds Left at Old Values
+
+After adding 6 regions (13 → 19), if victory thresholds stay at 12/10, the game becomes too easy — the player only needs to control 63% of the map for total victory instead of 92%.
+
+#### Pitfall 5: Mock Parser Keyword Conflicts
+
+The mock parser in `llm_client.py` matches region names by substring. If a new region name contains an action keyword (e.g., "Charge-ville", "Retreat-burg"), the mock parser may misparse commands. Check keyword ordering — more specific matches must come BEFORE generic ones.
+
+#### Pitfall 6: "Paris" Hardcoded as Capital
+
+At least 6 backend files hardcode "Paris" as the French capital for:
+- Defeat condition (turn_manager.py)
+- Fallback spawn location (executor.py)
+- Retreat-to-safety logic (disobedience.py, executor.py)
+
+If adding a second French capital or changing the capital, grep for `"Paris"` across all backend files.
+
+#### Pitfall 7: Nation Starting Regions Not Updated
+
+`_setup_initial_control()` in `world_state.py` has TWO lists:
+- `french_regions` — hardcoded list of French starting territory
+- `control_map` — dict mapping each non-French region to a controller
+
+New regions MUST appear in exactly one of these. Missing from both = uncontrolled region (no income for anyone). Present in both = last write wins.
+
+#### Pitfall 8: Godot Connections Not Matching Backend Adjacency
+
+`REGION_CONNECTIONS` in `map.gd` is used for drawing connection lines on the map. If it doesn't match `REGIONS_DATA` adjacency in `region.py`, the map shows incorrect connections. Always update both simultaneously.
+
+---
+
+### Quick Reference: Current 13-Region Map
+
+| Region | Terrain | Type | Income | Capital | Controller | Adjacent To |
+|--------|---------|------|--------|---------|------------|-------------|
+| Paris | urban | capital | 300 | Yes | France | Belgium, Waterloo, Brittany, Lyon |
+| Belgium | plains | town | 100 | No | France | Paris, Netherlands, Waterloo, Rhine |
+| Netherlands | plains | rural | 50 | No | Britain | Belgium |
+| Waterloo | hills | rural | 50 | No | Britain | Belgium, Paris |
+| Rhine | river_crossing | town | 100 | No | Prussia | Belgium, Bavaria, Lyon |
+| Bavaria | hills | town | 100 | No | Prussia | Rhine, Vienna, Lyon |
+| Vienna | urban | major_city | 200 | No | Prussia | Bavaria, Milan |
+| Lyon | hills | major_city | 200 | No | France | Paris, Rhine, Bavaria, Marseille, Milan |
+| Milan | urban | city | 150 | No | Britain | Lyon, Vienna, Geneva |
+| Marseille | plains | city | 150 | No | France | Lyon, Geneva |
+| Geneva | mountains | town | 100 | No | Britain | Marseille, Milan, Bordeaux |
+| Brittany | forest | rural | 50 | No | France | Paris, Bordeaux |
+| Bordeaux | plains | rural | 50 | No | France | Brittany, Geneva |
+
+**Update this table whenever the map changes.**
