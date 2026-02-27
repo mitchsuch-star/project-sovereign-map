@@ -34,10 +34,13 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 - §6b Rivalry Confrontation: Deferred to v3.1 implementation
 - Full spec: `docs/JEALOUSY_SPEC.md`
 
-#### Diplomacy System — v2.0 spec, needs design gate approval:
-- Full audit revision: 40+ findings addressed (4 Critical, 8 Major, 5 Exploits, 14 Edge Cases)
-- Key decisions: 4 DP starting, passive vassal management, decisive battles in war score, HOSTILE_NEUTRAL eliminated
-- Walking skeleton: 5 sessions estimated
+#### Diplomacy System — v2.1 spec (audit-revised), needs design gate approval:
+- Audit revision complete: 45 findings resolved (3 Critical, 8 Major, 8 Minor, 11 Exploits, 15 Edge Cases)
+- New mechanics: Vassal Carving (§8f), Feasibility Requests (§2g), Formula Feedback (§6f), Harshness Table (§6c.1)
+- Metternich → Schemer (skill 9), Einsiedel → Dove. All 4 personality types in use
+- Session plan: 6 sessions (1A/1B split, 3A/3B split, all HIGH risk)
+- 2 deferred items: E7 defiance floor redesign (needs Building Blocks alignment), AI-AI diplomacy (Session 6)
+- Self-audit score: 73/80. Resolution log: `docs/AUDIT_RESOLUTION_LOG.md`
 - Full spec: `docs/DIPLOMACY_SPEC.md`
 
 

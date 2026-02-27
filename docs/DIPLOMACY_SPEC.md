@@ -1,6 +1,6 @@
 # Diplomacy System — Design Spec
 
-> **Status:** DRAFT v2.0 — Full audit revision. 40+ findings addressed. Self-audit: 68/80 (Grade A). Needs final design gate approval before implementation.
+> **Status:** DRAFT v2.1 — Audit-revised (DIPLOMACY_AUDIT_RESULTS.md). All Critical/Major findings resolved or explicitly deferred. Self-audit: 73/80 (Grade A). Needs final design gate approval before implementation.
 > **Phase:** 8
 > **Prerequisite:** Phase 7b COMPLETE. Jealousy system implementation may run in parallel.
 > **Companion:** COALITION_SPEC.md (builds on this spec — threat level, coalition formation, coordinated AI). War score formula now defined inline (§6e) — COALITION_SPEC builds on it but no longer owns it.
@@ -32,6 +32,11 @@ Historical anchor: Napoleon's diplomatic failures were as decisive as his milita
 **Britain is special:** No capital on the map, no regions to conquer. British power is projected through continental holdings (Netherlands, Waterloo, Hanover) and naval supremacy (abstracted as economic/strategic effects — see §1d). Britain can lose all continental territory and still be at war. Peace with Britain requires diplomatic resolution, not military conquest. This makes them the diplomatic endgame — you can't just march to London.
 
 **Nation-specific AP:** Reflects administrative capacity. France (4) is the most capable. Austria (3) is bureaucratic. Saxony (2) is tiny. This matters for treaty clauses that cost AP/turn — paying 1 AP/turn when you only have 2 is crippling.
+
+**Terminology (m8):** Throughout this spec, "nation relations" (range -100 to +100, per nation pair) are DISTINCT from "marshal relationships" (range -2 to +2, per marshal pair, existing system). These are separate systems:
+- **Nation relations** track diplomatic sentiment between countries (e.g., France-Prussia = -60).
+- **Marshal relationships** track personal bonds between commanders (e.g., Ney-Davout = -1).
+Winning battles can improve war score (affects nation relations indirectly) AND marshal relationships (directly via Win/Loss formula). But they are independent values stored in different fields. Code should use `nation_relations` for diplomacy and `marshal.get_relationship()` for marshal interactions.
 
 ### 1b. Expanded Map (18 Regions)
 
@@ -154,6 +159,8 @@ This creates the diplomatic tension: France is stronger than Britain+Prussia alo
 
 **British Naval Income:** Britain receives +300 gold/turn from naval supremacy (trade dominance, colonial revenue). This is an abstracted effect — no ship-to-ship combat. Can be reduced via Continental System diplomatic action (see §5d). This makes Britain economically resilient despite small continental holdings.
 
+**Starting trade income (from PEACE states, §7e):** France at PEACE with Austria (+50 bilateral) and Saxony (+50 bilateral) = +100 gold/turn additional income at game start. Austria at PEACE with France (+50) and Saxony (+50) = +100 additional. These are reflected in the "approx" income column above but worth noting explicitly — diplomatic downgrades directly impact economy.
+
 **Manpower Pools (new nations):**
 
 ```python
@@ -206,10 +213,10 @@ Each nation has a diplomatic representative. The player commands Talleyrand. Ene
 
 | Type | Effect | Archetype |
 |------|--------|-----------|
-| **Schemer** | Best diplomatic stats. May "diplomatically defy" at low authority/trust. Substitutes what HE thinks is best — not betrayal, course correction. | Talleyrand |
+| **Schemer** | Best diplomatic stats. May "diplomatically defy" at low authority/trust. Substitutes what HE thinks is best — not betrayal, course correction. | Talleyrand, Metternich |
 | **Loyalist** | Moderate stats, never sabotages, always reliable. | Caulaincourt |
 | **Hawk** | Penalties to peace proposals, bonuses to demands/ultimatums. Objects to generous terms. | Hardenberg |
-| **Dove** | Bonuses to peace/alliance, penalties to harsh demands. Objects to conquest-driven proposals. | Metternich |
+| **Dove** | Bonuses to peace/alliance, penalties to harsh demands. Objects to conquest-driven proposals. | Einsiedel |
 
 ### 2b. Diplomatic Representatives
 
@@ -218,8 +225,8 @@ Each nation has a diplomatic representative. The player commands Talleyrand. Ene
 | **France** | **Talleyrand** | Schemer | 10 | "The devil's diplomat. Serves France — or rather, serves what he believes France should be. Not always the same thing." |
 | **Britain** | **Castlereagh** | Hawk | 7 | "Cold, calculating, implacable. Views any French advantage as a threat to the balance of power." |
 | **Prussia** | **Hardenberg** | Hawk | 6 | "Prussian pride dressed in diplomatic language. Demands respect, offers little." |
-| **Austria** | **Metternich** | Dove | 8 | "The spider of European diplomacy. Prefers the web to the sword. Will join whoever seems likely to win." |
-| **Saxony** | **Count Einsiedel** | Loyalist | 4 | "A minor court's minor diplomat. Follows orders, keeps his head down, hopes Saxony survives." |
+| **Austria** | **Metternich** | Schemer | 9 | "The spider of European diplomacy. Delays commitment, builds leverage, strikes when the moment is right. Arranged Napoleon's marriage to buy time, then used armed mediation to justify switching sides. Will join whoever seems most likely to prevail — but always extracts a price." |
+| **Saxony** | **Count Einsiedel** | Dove | 4 | "A minor court's minor diplomat. Hopes for peace, fears aggression, and prays Saxony survives the storm. Objects to any proposal that might provoke a larger power." |
 
 **Diplomat Skill affects:**
 - Acceptance formula bonus (§6)
@@ -261,6 +268,7 @@ Talleyrand is the diplomatic equivalent of Berthier + a marshal combined. He:
 - `gather intel/spy/investigate` → GATHER_INTEL mission (§2e)
 - `undermine/weaken/sabotage alliance` → UNDERMINE_ALLIANCE mission (§2e)
 - `downgrade/reduce/withdraw` → diplomatic state downgrade (§5b.1)
+- `what would it take/can we/is it possible/how hard/feasibility` → feasibility request (§2g)
 - Target nation parsed from command: "with Prussia", "to Austria", etc.
 
 ### 2d. Proposal Flow — "Talleyrand Goes, Comes Back"
@@ -398,6 +406,59 @@ Step 4 — LLM integration (prompt_builder.py):
   - VALID_ACTIONS updated with diplomatic action types
 ```
 
+### 2g. Diplomatic Feasibility Requests
+
+The player can consult Talleyrand for feasibility assessments before committing DP to proposals. This is the diplomatic equivalent of asking Berthier for a situation report.
+
+**Commands:**
+```
+"Talleyrand, what would it take to get peace with Prussia?"
+"Talleyrand, can we flip Austria?"
+"Talleyrand, how hard would it be to vassalize Saxony?"
+"Talleyrand, should I focus on sweetening the deal or improving relations first?"
+```
+
+**Mechanics:**
+- **Cost: 0 DP.** Consulting your diplomat is free — you're asking for advice, not taking action.
+- **Talleyrand state: ADVISING** (momentary — resolves same turn, does not block proposals or missions).
+- Talleyrand evaluates the acceptance formula behind the scenes and reports in natural language.
+
+**Feasibility report contents:**
+1. **Largest negative factor** (maps formula component to natural language — see §6f feedback table)
+2. **Most promising lever** ("A decisive military victory would shift the balance" / "Improving relations over 3-4 turns would open the door")
+3. **Difficulty assessment:** One of 5 tiers:
+   - "Virtually certain" (projected acceptance >= 70)
+   - "Achievable with modest effort" (50-69)
+   - "Challenging but possible with concessions" (35-49)
+   - "Very difficult without military pressure" (20-34)
+   - "Nearly impossible under current conditions" (<20)
+
+**Schemer bias (Talleyrand's personality colors his advice):**
+- When threat_level > 50, Talleyrand overstates difficulty of aggressive proposals by one tier ("Challenging" reported as "Very difficult") — he wants to restrain French expansion.
+- When relation with target > +20, Talleyrand understates difficulty by one tier — he favors deals with nations he respects.
+- Bias is NOT applied to the actual acceptance formula — only to the reported tier. The player can learn to calibrate Talleyrand's assessments over time.
+- In mock mode: bias applied deterministically based on threat/relation thresholds.
+- In LLM mode: formula components passed as context, LLM generates the assessment with personality coloring.
+
+**Discovery:** If the player acts on a biased assessment and the result differs from what Talleyrand predicted, a Morning Dispatch note hints at the discrepancy: "Talleyrand's assessment of the Prussian court appears to have been... optimistic." This trains the player to question Talleyrand's advice without explicitly revealing the bias mechanic.
+
+**Edge cases:**
+- Feasibility for a nation you're already negotiating with: returns "A proposal is already in transit. Talleyrand suggests patience."
+- Feasibility for vassalage when OPEN_BORDERS not yet achieved (E3 fix): "Talleyrand notes that formal diplomatic relations must be established first."
+- Feasibility during IN_TRANSIT: allowed (momentary ADVISING doesn't conflict with transit).
+
+**Mock mode implementation:** Keyword detection for "what would it take", "can we", "is it possible", "how hard", "feasibility", "realistic", "should I focus". Returns template keyed to the largest formula component:
+```python
+# Template selection based on largest negative component:
+if abs(relation_modifier) > abs(all_others):
+    hint = "Relations are the key obstacle" if negative else "Goodwill is our strongest asset"
+elif abs(war_score_modifier) > abs(all_others):
+    hint = "Military position drives this negotiation"
+elif abs(threat_modifier) > abs(all_others):
+    hint = "Fear of French expansion is the barrier"
+# ... etc for each component
+```
+
 **Mock parser keywords for diplomatic routing** (added to `llm_client.py` ~line 416):
 ```python
 # Diplomatic command detection (check BEFORE marshal commands)
@@ -443,6 +504,8 @@ Floor:    0.02 (Schemer minimum — Talleyrand is NEVER fully tamed)
 ```
 
 **Schemer minimum (E4 fix):** Unlike combat marshals (who CAN reach 0% defiance), Talleyrand always has a 2% baseline. This is the Schemer personality expressing itself — he's the greatest diplomat of his era and always reserves the right to "adjust" your proposals. A player who maxes authority AND trust still faces a 1-in-50 chance of sabotage. This prevents the exploit of trivially neutralizing defiance through high stats.
+
+**E7 DEFERRED — Defiance floor redesign:** The audit recommended considering raising the floor to 5% for more gameplay visibility. This decision is deferred to the next design session. The defiance system should align with the Building Blocks principle — diplomatic defiance should mirror the combat defiance pattern (V2b) in its probability structure. A comprehensive review of the Schemer minimum floor, the probability curve, and how it integrates with the objection system (V2a pattern) will be conducted before implementation. For now, 2% remains the spec value.
 
 **Example scenarios:**
 - Authority 85, Trust 75: 0.05 - 0.05 - 0.05 = -0.05 → Floor 0.02 (2% — Schemer minimum)
@@ -544,7 +607,7 @@ Maximum DP per turn: 5
 Minimum DP per turn: 1 (hard floor — always at least 1 diplomatic action)
 ```
 
-**France at game start: 2 base + 1 (Talleyrand skill 10) + 1 (authority ~60) = 4 DP/turn.**
+**France at game start: 2 base + 1 (Talleyrand skill 10) + 1 (authority ~100, well above ≥60 threshold) = 4 DP/turn.**
 
 The authority threshold was lowered from 80 to 60 so France starts with meaningful diplomatic capacity (4 DP). Dropping below authority 60 costs 1 DP — creating real stakes for authority management. Maximum increased to 5 to leave room for authority 80+ bonus future expansion if needed.
 
@@ -580,7 +643,7 @@ DP does NOT accumulate between turns. Use it or lose it. This forces priority de
 | France | 2 | +1 (Talleyrand 10) | +1 (auth ~60) | **4** | Player nation |
 | Britain | 2 | +1 (Castlereagh 7+) | +0 | **3** | No capital on map (no capital penalty) |
 | Prussia | 2 | +0 (Hardenberg 6) | +0 | **2** | Tight economy, tight diplomacy |
-| Austria | 2 | +1 (Metternich 8) | +0 | **3** | Metternich compensates for bureaucracy |
+| Austria | 2 | +1 (Metternich 9) | +0 | **3** | Metternich compensates for bureaucracy |
 | Saxony | 2 | +0 (Einsiedel 4) | +0 | **2** | Minor power, -1 skill penalty → effective 1 DP (costs +1) |
 
 AI DP generation uses `_calculate_dp(diplomat, nation_authority)` — same function as player. No hardcoded pools. AI nations that gain/lose authority (from losing wars, breaking treaties) see DP change dynamically.
@@ -621,7 +684,7 @@ ALLIANCE → DEFENSIVE_ALLIANCE → NON_AGGRESSION → OPEN_BORDERS → PEACE
 Special transitions:
   Any state → WAR (war declaration, always possible, costs vary)
   VASSAL → WAR (rebellion — vassal breaks free)
-  PEACE/above → VASSAL (negotiated vassalage — requires acceptance formula)
+  OPEN_BORDERS/above → VASSAL (negotiated vassalage — requires OPEN_BORDERS minimum + acceptance formula. Prevents Turn-1 vassalage exploit — E3 fix)
   WAR + conquest → VASSAL (military vassalage — hold capital + high war score)
 ```
 
@@ -657,8 +720,22 @@ After an armistice expires or is broken, the same nation pair cannot enter anoth
 | OPEN_BORDERS → NON_AGGRESSION | 1 | Relation > 0 | |
 | NON_AGGRESSION → DEF_ALLIANCE | 2 | Relation > +20 | |
 | DEF_ALLIANCE → ALLIANCE | 2 | Relation > +40 | |
-| Any → VASSAL (treaty) | 3 | Relation > +20 OR war score > 60 | |
+| OPEN_BORDERS/above → VASSAL (treaty) | 3 | Relation > +20 OR war score > 60. Requires OPEN_BORDERS minimum (E3). | |
 | Any → WAR | 1 | None | Costs relation -30, threat +20 |
+
+### 5b.3. Conflicting Alliance Obligations (M5)
+
+A nation cannot maintain ALLIANCE or DEFENSIVE_ALLIANCE with two nations that are at WAR with each other. This is the most historically significant diplomatic scenario — Napoleon constantly tried to separate coalition members.
+
+**When a new alliance creates a conflict:**
+- The conflicting nation must choose which alliance to maintain.
+- **AI resolution:** Choose the alliance with the higher-relation partner. If tied, choose the alliance with the more powerful partner (higher total army strength).
+- **Player resolution (if player alliance causes conflict):** Confrontation popup: "Sire, our alliance with Prussia conflicts with their existing alliance with Britain, whom we are at war with. Prussia must choose." (Player observes the outcome — the choice is Prussia's.)
+- The dropped alliance follows standard downgrade penalties (§5b.1).
+
+**Timing:** Conflict check runs immediately when a new alliance is ratified or when war is declared. The conflicting nation resolves the conflict on their next turn (AI phase).
+
+**Edge case:** If France allies with Prussia (who has DEFENSIVE_ALLIANCE with Britain), and France is at WAR with Britain: Prussia must choose between France and Britain. Given starting relations (Prussia-Britain +60 vs France-Prussia starting negative), Prussia would choose Britain in most scenarios. The player must improve France-Prussia relations ABOVE the Britain-Prussia level before attempting this.
 
 ### 5c. War Declaration Rules
 
@@ -672,6 +749,8 @@ Declaring war on a neutral/friendly nation:
 
 **Casus Belli (reduces penalties):**
 If the target broke a treaty, attacked your ally, or controls your core territory, the aggressor penalty is halved (-15 → -7 relation with others, threat +10 instead of +20). Casus belli is tracked automatically from treaty breaks and attacks.
+
+**Metternich's Armed Mediation (DD8 — Schemer-specific AI behavior):** When Metternich (Schemer personality) proposes peace to France and the proposal is REJECTED, Austria gains +5 to their next war declaration's coalition bonus (if they declare war within 5 turns). This captures Metternich's historical tactic of using failed peace talks as a casus belli — his "armed mediation" at Dresden (1813) presented deliberately harsh terms, and when Napoleon rejected them, Metternich used the rejection to justify joining the Sixth Coalition. This is an AI-only behavior — it does not apply to Talleyrand (who doesn't declare wars on France's behalf).
 
 ### 5d. Continental System (Special Action)
 
@@ -691,6 +770,16 @@ Continental System:
          Refusal costs France 5 relation with that nation
          Each participating nation checks: relation with France > +10
            AND relation with Britain < +30 (won't sacrifice good British ties)
+
+  Participation check (m4 — specifies which formula applies):
+    This is NOT the full §6 acceptance formula. It's a simplified check:
+      continue_participating = (relation_with_france > +10)
+                             AND (relation_with_britain < +30)
+                             AND (NOT at_war_with_france)
+    If any condition fails: nation withdraws. No personality modifier,
+    no deal_sweetener, no diplomat skill — those apply to PROPOSALS only.
+    Participation is binary: you're in or you're out, based on relations.
+    Check runs at start of turn, before trade income processing.
 ```
 
 The Continental System is historically the centerpiece of Napoleonic economic warfare. It creates diplomatic tension — France must maintain good relations with continental powers to enforce the blockade, while Britain tries to undermine it.
@@ -765,24 +854,31 @@ When non-France nations propose AGAINST France:
 
 **Deal Sweetener (treaty clauses offered by proposer):**
 ```
-Gold lump sum:       +1 per 200 gold offered
-Gold per turn:       +3 per 100 gold/turn offered
-Infantry manpower:   +2 per 5000 troops offered
-Cavalry manpower:    +4 per 2500 cavalry offered (precious)
-Artillery manpower:  +5 per 1500 artillery offered (rare)
-Unit swap (offered): +3 per unit trade favorable to target
-AP per turn:         +8 per AP/turn offered (most valuable)
-Territory:           +5 per region ceded
-Open borders:        +3
-Protection:          +5 (guarantee of defense)
+Gold lump sum:            +1 per 200 gold offered
+Gold per turn:            +3 per 100 gold/turn offered
+Manpower per turn (NEW):  +2 per 2000 infantry/turn offered (ongoing recruitment commitment)
+Infantry manpower:        +2 per 5000 troops offered (one-time)
+Cavalry manpower:         +4 per 2500 cavalry offered (precious)
+Artillery manpower:       +5 per 1500 artillery offered (rare)
+Unit swap (offered):      +3 per unit trade favorable to target
+AP per turn (offered):    +8 per AP/turn offered (most valuable sweetener)
+Territory:                +5 per region ceded
+Open borders:             +3
+Protection:               +5 (guarantee of defense — reduced to +3 when guarantor
+                               already at war with all of target's enemies, per E8)
 ```
+
+**DEAL SWEETENER CAP: +30 maximum** from all sweetener clauses combined. Prevents gold-dumping exploits where a wealthy France overwhelms the formula with raw concessions. The cap forces the player to address the actual diplomatic obstacles (relations, threat, war score) rather than just throwing gold at the problem. Per-turn commitments count toward the cap at the listed values.
+
+**Per-turn commitments are more valuable:** Per-turn clauses (gold/turn, manpower/turn, AP/turn) represent ongoing commitments — reliable income streams for the recipient, ongoing drains for the giver. This makes them inherently more interesting tradeoffs than lump sums. Per-turn clauses can be broken (treaty-break mechanic applies — see §7d).
 
 **Deal Demands (clauses demanded — NEGATIVE modifiers):**
 ```
-Gold/turn demanded:   -2 per 100 gold/turn
-Territory demanded:   -5 per region
-AP/turn demanded:     -25 per AP/turn (WAR REPARATION — nearly impossible)
-Unit swap (demanded): -2 per unit trade unfavorable to target
+Gold/turn demanded:       -2 per 100 gold/turn
+Manpower/turn demanded:   -3 per 2000 infantry/turn (ongoing drain)
+Territory demanded:       -5 per region
+AP/turn demanded:         -25 per AP/turn (WAR REPARATION — nearly impossible)
+Unit swap (demanded):     -2 per unit trade unfavorable to target
 ```
 
 **Diplomat Skill Bonus:**
@@ -797,10 +893,10 @@ Example: Talleyrand (10) vs Hardenberg (6) → +8
 
 | Target Personality | Peace/Alliance Proposals | Harsh Demands/Ultimatums |
 |-------------------|--------------------------|--------------------------|
-| Dove (Metternich) | +10 | -10 |
+| Dove (Einsiedel) | +10 | -10 |
 | Hawk (Castlereagh, Hardenberg) | -5 | +5 |
-| Loyalist (Einsiedel) | +0 | +0 |
-| Schemer (Talleyrand, if receiving) | +5 | +5 (respects boldness) |
+| Loyalist | +0 | +0 |
+| Schemer (Talleyrand, Metternich) | +5 | +5 (respects boldness) |
 
 ### 6c. Worked Example
 
@@ -833,6 +929,57 @@ Total:                          21 → still REJECT, but closer
 ```
 
 Still rejected. France needs to either improve relations first, win more battles, or reduce threat. Diplomacy is hard.
+
+### 6c.1. Harshness Value Table (C2 Resolution)
+
+The `harshness` score in §7b requires each clause type to have a defined **value** so harshness can be calculated deterministically. Value represents the strategic weight of a clause — how much it "costs" the recipient.
+
+**Clause Value Table:**
+
+| Clause Type | Value (per unit) | Notes |
+|-------------|-----------------|-------|
+| Gold lump sum | 1 per 200 gold | Low value — one-time, easy to absorb |
+| Gold/turn | 3 per 100 gold/turn | Higher — ongoing drain |
+| Manpower/turn | 4 per 2000 infantry/turn | Ongoing recruitment commitment |
+| Infantry (one-time) | 2 per 5000 troops | Moderate — recoverable |
+| Cavalry (one-time) | 4 per 2500 cavalry | Precious — slow to rebuild |
+| Artillery (one-time) | 5 per 1500 artillery | Rare — very slow to rebuild |
+| Unit swap | 3 per trade | Moderate — depends on direction |
+| AP/turn | 10 per AP/turn | Extremely high — sovereignty cost |
+| Territory | 8 per region | High — permanent loss |
+| Open borders | 2 | Low — reversible |
+| Military access | 3 | Moderate — security risk |
+| Protection guarantee | 4 | Moderate — commitment risk |
+| Continental System | 3 | Moderate — economic cost |
+
+**Harshness calculation:**
+```python
+def calculate_harshness(clauses):
+    """Returns harshness score -1.0 to +1.0."""
+    value_demanded = sum(clause_value(c) for c in clauses if c.direction == "demand")
+    value_offered = sum(clause_value(c) for c in clauses if c.direction == "offer")
+    total = value_demanded + value_offered
+    if total == 0:
+        return 0.0  # No clauses — neutral
+    return max(-1.0, min(1.0, (value_demanded - value_offered) / total))
+```
+
+**Worked example:**
+```
+France proposes peace with Prussia:
+  Demands: Rhineland (territory, value 8) + 200 gold/turn (value 6)
+  Offers:  Open borders (value 2) + 5000 infantry (value 2)
+
+  value_demanded = 8 + 6 = 14
+  value_offered = 2 + 2 = 4
+  total = 14 + 4 = 18
+  harshness = (14 - 4) / 18 = 0.56
+
+  Result: Moderate harshness. Dove penalty would not apply (needs > 0.6).
+  Hawk bonus would not apply (needs > 0.6). Close to the line.
+```
+
+**Escalating treaty harshness (DD8-4):** If the target nation was previously defeated (had a treaty imposed on them in a prior war), acceptance of harsh terms is +5 easier. Previously broken nations accept subjugation more readily. This creates the historical pattern where each successive treaty against the same nation was harsher (Pressburg 1805 < Schönbrunn 1809). Tracked via `world.previous_treaties` — if target appears as treaty recipient with harshness > 0.3, the +5 bonus applies.
 
 ### 6d. Special Acceptance Bonuses
 
@@ -894,6 +1041,47 @@ Total capped at ±100.
 
 **Implementation:** `_calculate_war_score(nation_a, nation_b, world)` in `diplomacy.py`. Called during `advance_turn()` for all active wars. Stored in `world.war_scores`.
 
+### 6f. Acceptance Formula Player Feedback (DD4)
+
+When a proposal succeeds or fails, the player needs to know WHY. Every proposal response includes a natural-language hint mapping the largest formula component to actionable feedback. This is the diplomatic equivalent of Berthier's battle report observations.
+
+**Response feedback by outcome:**
+- **REJECT responses include:** "Talleyrand reports the key obstacle was [largest negative component]."
+- **COUNTER_OFFER responses include:** "The sticking point appears to be [second-largest negative component]."
+- **ACCEPT responses include:** "The decisive factor was [largest positive component]." (reinforces what worked)
+
+**Component-to-natural-language mapping:**
+
+| Component | Negative Phrasing | Positive Phrasing |
+|---|---|---|
+| relation_modifier | "deep-seated hostility" | "goodwill between our nations" |
+| threat_modifier | "fear of French expansion" | "France's measured approach" |
+| war_score_modifier | "our military position is weak" | "our military dominance" |
+| deal_sweetener | "insufficient concessions" | "generous terms" |
+| personality_modifier | "personal opposition from their diplomat" | "diplomatic rapport" |
+| diplomat_skill_bonus | "their diplomat outmaneuvered us" | "Talleyrand's superior skill" |
+| base_disposition | "fundamental resistance to this type of agreement" | "natural willingness to negotiate" |
+
+**Implementation:**
+```python
+def get_formula_feedback(components, outcome):
+    """Return natural-language feedback for the largest contributor."""
+    if outcome == "REJECT":
+        # Find largest negative component
+        worst = min(components.items(), key=lambda x: x[1])
+        return NEGATIVE_PHRASING[worst[0]]
+    elif outcome == "ACCEPT":
+        # Find largest positive component
+        best = max(components.items(), key=lambda x: x[1])
+        return POSITIVE_PHRASING[best[0]]
+    else:  # COUNTER_OFFER
+        sorted_neg = sorted(components.items(), key=lambda x: x[1])
+        return NEGATIVE_PHRASING[sorted_neg[1][0]] if len(sorted_neg) > 1 else NEGATIVE_PHRASING[sorted_neg[0][0]]
+```
+
+**Mock mode:** Template strings keyed to the component name. No LLM needed.
+**LLM mode:** Components passed as context, LLM generates a 1-2 sentence Talleyrand-flavored assessment.
+
 ---
 
 ## §7. Treaty System
@@ -904,12 +1092,13 @@ Total capped at ±100.
 |--------|-----------|-------------------|-------|
 | **Gold lump sum** | Either | One-time gold transfer | Paid on treaty ratification |
 | **Gold/turn** | Either | Recurring payment each turn | Checked at income phase |
+| **Manpower/turn (infantry)** | Either | Recurring recruitment commitment (2000 infantry/turn) | Per-turn drain on manpower pool. Breakable via treaty-break. |
 | **Manpower (infantry)** | Either | One-time troop transfer to infantry pool | Specified amount |
 | **Cavalry for artillery** | Either | Unit type swap — cavalry pool → artillery pool | Historically common (nations had different strengths) |
 | **Artillery for cavalry** | Either | Reverse unit swap — artillery pool → cavalry pool | Austria had great cavalry, France great artillery |
 | **Gold for manpower** | Either | Buy recruits from ally (gold → infantry/cav/art pool) | Rate: 200g per 5000 infantry, 300g per 2500 cavalry, 400g per 1500 artillery |
 | **Manpower for gold** | Either | Sell recruits for treasury (pool → gold) | Reverse of above |
-| **AP/turn** | Either | Lose AP each turn | WAR REPARATION TIER — see §7c |
+| **AP/turn** | Either | Lose/gain AP each turn | WAR REPARATION TIER when demanded (§7c). Can also be OFFERED as a sweetener (+8 per AP/turn, most valuable). |
 | **Territory** | Either | Cede specific regions | Controller changes, stability drops to 50 |
 | **Open borders** | Mutual | Movement through territory | Cannot station troops (must keep moving) |
 | **Military access** | One-way | Their troops can enter your territory | Stronger than open borders |
@@ -935,7 +1124,7 @@ Each clause contributes to deal_sweetener in acceptance formula.
 ```
 
 **Harsh vs Generous:**
-The formula uses a `harshness` score derived from clause balance:
+The formula uses a `harshness` score derived from clause balance. **Clause values defined in §6c.1 (Harshness Value Table).**
 ```
 harshness = (value_demanded - value_offered) / total_deal_value
   0.0 = perfectly balanced
@@ -944,6 +1133,7 @@ harshness = (value_demanded - value_offered) / total_deal_value
 
 Dove targets get +10 acceptance for harshness < 0.3 (generous)
 Hawk targets get +5 acceptance for harshness > 0.6 (respects strength)
+Schemer targets get +5 for any harshness (respects boldness — see §6b personality table)
 ```
 
 ### 7c. AP Treaty Clauses — War Reparation Tier
@@ -981,6 +1171,7 @@ This makes AP in treaties a late-game dominance move, not a routine negotiation 
   - Threat level: +15
   - Casus belli granted to victim
   - If breaking alliance/defensive alliance: more severe (-40 relation, +25 threat)
+  - **Post-break state (E11):** Breaking a treaty returns to the state one level below the broken treaty. Breaking ALLIANCE → DEFENSIVE_ALLIANCE. Breaking PEACE → WAR. Breaking ARMISTICE → WAR. Breaking NON_AGGRESSION → OPEN_BORDERS. This prevents exploits where breaking a high-level treaty drops you all the way to WAR.
 
 ### 7e. Trade Income Integration
 
@@ -1079,6 +1270,11 @@ When loyalty hits 0:
 - Relation with former vassal: -50
 - **Cascade risk:** If lord has other vassals, they each get -10 loyalty ("if Saxony can break free...")
 
+**Cascade tipping point (DD8 — Leipzig moment):** When France's war score drops below -30 against ANY enemy, all vassals with loyalty < 50 make a simultaneous loyalty check. Each vassal rolls: if `random.random() < (50 - loyalty) / 100`, the vassal rebels immediately regardless of current loyalty (as long as loyalty < 50). This creates a dramatic "the empire crumbles" moment rather than slow individual rebellions. Historically, Bavaria's defection at Ried triggered a cascade — Wurttemberg, Saxony, and others defected at Leipzig within days.
+- The tipping point fires at MOST once per war (tracked per war pair). A second war score drop below -30 in the same war does not re-trigger.
+- Vassals with loyalty >= 50 are immune to the cascade check (they're loyal enough to hold).
+- The cascade check runs during `advance_turn()`, after war score recalculation, before normal loyalty processing.
+
 **Rebellion warning thresholds:**
 - Loyalty < 40: Morning Dispatch warning ("Talleyrand reports unrest in Saxony")
 - Loyalty < 20: Morning Dispatch urgent ("Saxony is on the verge of rebellion")
@@ -1097,6 +1293,83 @@ When loyalty hits 0:
 - Player sees: Morning Dispatch "Talleyrand reports Prussian agents in Dresden"
 - Counter: "Invest in vassal" (§4b) — 1 DP + 200 gold → +10 loyalty
 - **Courting cooldown:** Same nation can only court same vassal every 3 turns
+
+### 8f. Vassal Carving from Conquered Territory (DD1)
+
+After conquering enemy regions, France can **carve new vassal entities** from that territory — turning conquered regions into new minor vassal states. This mirrors Napoleon's creation of the Confederation of the Rhine, Kingdom of Westphalia, and Duchy of Warsaw.
+
+**Requirements:**
+- Hold the target region(s)
+- War score > 40 against the original owner
+- 2 DP cost (diplomatic action — creating a new political entity)
+- Region must be a non-capital enemy region (cannot carve from capitals — those are for full-nation vassalization)
+
+**Commands:**
+```
+"Talleyrand, carve a vassal from Rhineland"              → Auto-named "Duchy of Rhineland"
+"Talleyrand, create vassal from Rhineland, Bavaria"       → Multi-region carved vassal
+"Talleyrand, rename Duchy of Rhineland to Confederation"  → Player rename (polish feature)
+```
+
+**What a carved vassal IS:**
+- A territory + tribute source + buffer zone + rebellion risk
+- Gets: a name (auto-generated "Duchy of [Region]" or player-chosen), controlled regions, autonomy level (defaults to SATELLITE), starting loyalty based on conquest conditions
+- Starting loyalty: 15 + (5 × turns held before carving). Longer occupation → more stable.
+- Receives tribute obligations per §8c (75% income at SATELLITE)
+
+**What a carved vassal is NOT:**
+- NOT a full nation — no diplomat, no DP, no independent treaty capability
+- NOT represented in the acceptance formula as a negotiating party
+- Does NOT get its own marshals initially (garrison units only — controlled by nearest French marshal or by AI as detachment)
+- Does NOT contribute to the diplomacy UI beyond a line in the Diplomatic Ledger Vassal tab
+
+**Scaling by nation size (user requirement — can't fully vassalize huge nations):**
+- Small nations (1-2 regions, e.g., Saxony): Can be vassalized whole via treaty or conquest. Standard paths.
+- Medium nations (3-4 regions, e.g., Austria): Can be vassalized whole via conquest (hold capital + war score > 60), but carving is cheaper. Carving 1-2 regions costs 2 DP each. Full vassalization costs 3 DP + overwhelming war score.
+- Large nations (5+ regions, e.g., theoretical expanded Prussia): Cannot be fully vassalized in one action. Must either: (a) carve regions piecemeal (2 DP per carve), or (b) reduce them to 2-3 regions via carving THEN vassalize the rump state. This prevents "conquer Berlin → vassalize all of Prussia instantly" exploits.
+
+**Granting carved regions to existing vassals:**
+- "Talleyrand, grant Rhineland to Saxony" — transfers carved vassal territory to an existing vassal nation.
+- The carved vassal entity dissolves; its regions merge into the recipient's territory.
+- Recipient vassal: +10 loyalty ("France rewards faithful service")
+- Recipient vassal: inherits the region's income
+- Cost: 1 DP
+- Requirement: recipient must be a current vassal of France
+
+**What happens when carved regions are liberated?**
+- If the original owner (or any enemy) captures a carved vassal's region: the carved vassal loses that region.
+- If ALL regions of a carved vassal are liberated: the carved vassal entity dissolves. Morning Dispatch: "The Duchy of Rhineland has ceased to exist."
+- The original owner regains the region. Their war score improves.
+- Liberation does NOT automatically grant the region back to the original nation in peace talks — it must be negotiated or held militarily.
+
+**What if the parent nation demands carved regions back in peace talks?**
+- Territory demands in peace proposals (§7a) can target carved vassal regions.
+- "Prussia demands: return of Rhineland" → acceptance formula applies normally.
+- If France accepts: carved vassal loses the region (or dissolves if it was the last region).
+- If carved vassal region is demanded AND France's war score is negative: the demand gets +5 bonus ("returning stolen territory").
+- Carved regions ceded in peace return to the original nation's direct control (not as a new vassal).
+
+**Interaction with existing vassal loyalty:**
+- Carving from a nation you're at war with: +5 threat level per carve (expanding empire).
+- Existing vassals: no direct loyalty impact from carving enemy territory. But cascade applies if carved vassals rebel (§8d).
+- Carved vassals ARE subject to enemy courting (§8e) — enemies can destabilize your creations.
+
+**Serialization:**
+```python
+# Carved vassals use the same vassals dict with an additional "carved" flag:
+# Key: carved vassal name (e.g., "Duchy of Rhineland")
+# Value: {"lord": "France", "loyalty": int, "autonomy": 1, # SATELLITE default
+#   "investment_cooldown": int, "path": "carved",
+#   "carved_from": "Prussia",  # Original nation
+#   "regions": ["Rhineland"],  # Controlled regions
+#   "created_turn": int}
+```
+
+**Edge cases:**
+- Carving the same region twice: blocked ("This territory is already administered as the Duchy of Rhineland").
+- Carving while at peace with the original owner: blocked (requires war score > 40, which implies active war or recent war).
+- Carved vassal with 0 loyalty: rebellion — regions become contested (no nation controls them until occupied). Unlike full vassals, carved vassals don't "return to their nation" on rebellion — they become neutral/contested.
+- Multiple carved vassals rebelling simultaneously: each processed independently per §8d cascade rules.
 
 ---
 
@@ -1154,13 +1427,33 @@ Queue visible in Diplomatic Ledger Tab 4:
 
 Uses the same acceptance formula (§6). The AI doesn't cheat — it evaluates proposals identically to how the player's proposals would be evaluated in reverse.
 
-**Counter-offer logic:**
-When acceptance_score is 30-49 (COUNTER_OFFER range), the AI generates a modified proposal:
-- If too harsh: removes most expensive clause the player demanded
-- If too generous: AI adds a clause they want
-- Counter-offers are free for the AI (same as player — responding costs 0 DP)
+**Counter-offer generation algorithm (M3 — deterministic for Building Blocks):**
+
+When acceptance_score is 30-49 (COUNTER_OFFER range), the AI generates a modified proposal using this algorithm:
+
+```
+Step 1: Calculate per-clause acceptance impact using deal_sweetener values (§6b).
+Step 2: Identify the single clause with the largest NEGATIVE impact on the AI's acceptance.
+Step 3: Remove that clause from the proposal.
+Step 4: Recalculate. If still in counter-offer range (30-49), add the cheapest clause
+        the AI would like (from the per-nation desire table below).
+Step 5: If modified proposal score >= 50: present as counter-offer.
+        If modified proposal score still < 30: REJECT instead (counter-offer impossible).
+
+Per-nation desire table (what each nation wants in counter-offers):
+  Prussia: Territory (Saxony > any other), Gold lump sum
+  Austria: Open borders, Protection guarantee, Gold/turn
+  Britain: Continental System lifted, Gold lump sum, Territory (continental holdings)
+  Saxony:  Protection guarantee, Gold/turn, Survival (no territory demands)
+```
+
+Counter-offers are free for the AI (same as player — responding costs 0 DP). The algorithm is fully deterministic — mock mode produces identical counter-offers to LLM mode.
 
 ### 9c. AI-AI Diplomacy
+
+> **DEFERRED TO SESSION 6 (Polish).** AI-AI diplomacy is not part of the Walking Skeleton. The core experience works without it — nations only interact with the player in Sessions 1-5. AI-AI diplomacy adds immersion but is not mechanically required. The system described below is the target design for Session 6.
+>
+> **Impact of deferral:** The world feels less alive without AI-AI diplomacy. Alliance shifts between AI nations won't happen dynamically. The player won't see "Britain and Austria have signed a defensive alliance" events. This is acceptable for initial playtesting — the player's own diplomatic choices are the priority.
 
 Nations negotiate with each other automatically. This makes the world feel alive.
 
@@ -1175,7 +1468,13 @@ Nations negotiate with each other automatically. This makes the world feel alive
 - Fog-filtered: player needs PARTIAL+ intel on at least one party to learn about the treaty
 - Some AI-AI diplomacy is hidden (especially anti-France coordination) — creates discovery moments
 
-**AI-AI acceptance:** Same formula, both sides. Metternich's high skill gives Austria an advantage in AI-AI negotiations. Castlereagh's Hawk personality makes British alliance proposals slightly harder to reject (aura of strength).
+**AI-AI acceptance:** Same formula, both sides. Metternich's Schemer personality and high skill (9) gives Austria an advantage in AI-AI negotiations — he "course-corrects" Austrian proposals toward strategic advantage, just as Talleyrand does for France. Castlereagh's Hawk personality makes British alliance proposals slightly harder to reject (aura of strength).
+
+**British Subsidy Mechanic (DD8 — historical):** Britain historically financed coalitions with subsidies of 1.25M pounds per 100,000 troops/year. As an AI diplomatic behavior, Britain spends gold to improve relations with coalition partners:
+- When Britain is at WAR with France AND has gold > 500: Britain allocates 200 gold/turn to the coalition partner with the lowest relation to Britain (minimum relation > -20).
+- Effect: +5 relation/turn with that partner (cheaper than a full IMPROVE_RELATIONS mission because Britain's wealth IS its diplomatic tool).
+- This is a passive AI behavior, not a proposal — no DP cost, no acceptance check. It represents Britain's structural economic advantage.
+- Player can counter by: winning militarily (reduces British continental holdings → less gold), Continental System (reduces naval income), or diplomatic outreach to the subsidy target.
 
 ---
 
@@ -1231,7 +1530,7 @@ Same pattern as Strategic Ledger. CanvasLayer 50. Shows:
 │     Active treaties: Alliance (Britain) │
 │                                         │
 │ [3] AUSTRIA      PEACE      Rel: -30   │
-│     Metternich (Dove)       Skill: 8    │
+│     Metternich (Schemer)    Skill: 9    │
 │     Regions: 4              Army: 60k   │
 │     Treaties: Def.Alliance (Brit, Prus) │
 │                                         │
@@ -1277,7 +1576,7 @@ Threat level bar, coalition risk assessment, contributing factors.
 
 | System | Connection |
 |--------|-----------|
-| **Authority** | Low authority → Talleyrand defiance chance increases. Authority > 80 → +1 DP. |
+| **Authority** | Low authority → Talleyrand defiance chance increases. Authority >= 60 → +1 DP. |
 | **Trust** | Talleyrand has his own trust value (starts at 55 — Schemer felt from day one). Low trust → sabotage chance increases. |
 | **Morning Dispatch** | Diplomatic events, Talleyrand warnings, AI proposals, treaty changes, sabotage discovery |
 | **Campaign Log** | Treaty signed, alliance formed, vassal acquired, sabotage discovered, war declared |
@@ -1288,6 +1587,55 @@ Threat level bar, coalition risk assessment, contributing factors.
 | **Fog of War** | See §11 |
 | **Objection System** | Talleyrand uses same V2a objection pattern (MILD/MODERATE/STRONG) |
 | **Defiance System** | Talleyrand diplomatic defiance uses same probability curve pattern as V2b |
+
+### 10d. Dispatch Event Types (M1)
+
+Following the JEALOUSY_SPEC pattern, all diplomatic dispatch events are enumerated:
+
+| Event Type | When | Template | Priority |
+|---|---|---|---|
+| `diplomatic_proposal_sent` | Talleyrand departs with proposal | "Talleyrand has departed for the {nation} court." | LOW |
+| `diplomatic_proposal_returned` | Talleyrand returns with response | "Talleyrand returns from {nation} with a response." | HIGH |
+| `diplomatic_sabotage_discovered` | Sabotage detected (§3c) | "Talleyrand altered your proposal to {nation}. He {change_description}." | HIGH |
+| `diplomatic_treaty_signed` | Treaty ratified | "{nation_a} and {nation_b} have signed a {treaty_type}." | MEDIUM |
+| `diplomatic_treaty_broken` | Treaty broken | "{nation} has broken the {treaty_type}." | HIGH |
+| `diplomatic_war_declared` | War declaration | "{nation} has declared war on {target}." | HIGH |
+| `diplomatic_vassal_unrest` | Vassal loyalty < 40 | "Talleyrand reports unrest in {nation}." | MEDIUM |
+| `diplomatic_vassal_rebellion_imminent` | Vassal loyalty < 10 | "{nation} is on the verge of rebellion!" | HIGH |
+| `diplomatic_vassal_rebellion` | Vassal loyalty = 0 | "{nation} has rebelled!" | HIGH |
+| `diplomatic_ai_proposal` | AI sends proposal to player | "A {nation} envoy has arrived with a proposal." | HIGH |
+| `diplomatic_mission_progress` | Ongoing mission tick | "Talleyrand's efforts in {nation} continue. Relations now at {value}." | LOW |
+| `diplomatic_mission_paused` | DP insufficient for mission | "Talleyrand's diplomatic efforts curtailed — insufficient resources." | MEDIUM |
+| `diplomatic_mission_cancelled` | Mission auto-cancelled (3+ paused turns) | "Talleyrand's diplomatic efforts in {nation} have collapsed." | HIGH |
+| `diplomatic_feasibility_report` | Feasibility request result (§2g) | "Talleyrand assesses: {difficulty_tier}. {hint}." | LOW |
+| `diplomatic_alliance_cascade` | Alliance triggers war entry | "{nation} enters the war via alliance with {ally}." | HIGH |
+| `diplomatic_vassal_courting` | Enemy courting detected (60% chance) | "Talleyrand reports {enemy} agents in {vassal_capital}." | MEDIUM |
+| `diplomatic_continental_system` | Nation joins/leaves Continental System | "{nation} has {joined/withdrawn from} the Continental System." | MEDIUM |
+| `diplomatic_carved_vassal_created` | Vassal carved from enemy territory | "The {carved_name} has been established under French protection." | MEDIUM |
+| `diplomatic_carved_vassal_dissolved` | Carved vassal lost all regions | "The {carved_name} has ceased to exist." | HIGH |
+| `diplomatic_defection_cascade` | Tipping point triggered (DD8-2) | "The empire trembles — multiple vassals are wavering!" | HIGH |
+
+Events are added to the dispatch whitelist in `dispatch.py`. Fog-filtered per existing rules (§11).
+
+### 10e. Notification Templates (M2)
+
+Following the existing notification system pattern (V2b), all diplomatic notification types with priority levels:
+
+| Notification Type | Priority | Template | Dismiss |
+|---|---|---|---|
+| `DIPLOMATIC_PROPOSAL` | HIGH | "{nation} envoy: {proposal_type}" | On response |
+| `TREATY_SIGNED` | MEDIUM | "Treaty with {nation}: {treaty_type}" | Manual |
+| `TREATY_BROKEN` | HIGH | "{nation} broke {treaty_type}" | Manual |
+| `SABOTAGE_DISCOVERED` | HIGH | "Diplomatic discrepancy detected" | Manual |
+| `VASSAL_REBELLION_IMMINENT` | HIGH | "{nation}: IMMINENT REBELLION" | Manual |
+| `VASSAL_REBELLION` | HIGH | "{nation} has broken free!" | Auto (5 turns) |
+| `ALLIANCE_CASCADE_WAR` | HIGH | "{nation} enters war via alliance" | Auto (3 turns) |
+| `WAR_DECLARED` | HIGH | "{nation} declares war" | Auto (3 turns) |
+| `VASSAL_COURTING_DETECTED` | MEDIUM | "{enemy} agents in {vassal}" | Manual |
+| `DP_INSUFFICIENT` | MEDIUM | "Diplomatic resources low" | Auto (1 turn) |
+| `DEFECTION_CASCADE` | HIGH | "Multiple vassals wavering!" | Manual |
+
+Priority determines display order and persistence. HIGH notifications persist until dismissed or auto-expire. MEDIUM notifications are shown once in the notification bar.
 
 ---
 
@@ -1349,6 +1697,18 @@ Intelligence accuracy scales with Talleyrand's skill:
 
 **EC-J: DP at 0, AI sends proposal.** Responding to AI proposals costs 0 DP. Player can always accept/reject. Counter-offer costs 1 DP and is blocked if DP = 0.
 
+**EC-K.1: Vassal Marshal Assimilation (M4).** When Saxony becomes a French vassal, Reynier (and any other vassal nation marshals at PUPPET/SATELLITE level) transitions to player control. Specific mechanics:
+- **Trust:** Starts at 40 (reluctant service — below default 60, reflecting forced allegiance).
+- **Dict membership:** Joins `world.marshals` dict immediately (Golden Rule #3 — all marshals in ONE dict).
+- **Relationships:** Existing relationships with Saxony entities preserved. Relationships with all French marshals set to Professional (0) — no history of working together.
+- **Personality:** Unchanged (Reynier stays Literal).
+- **Biography:** Updated to note vassalage: "Now serving France as Saxony's contribution to the alliance."
+- **Commands:** Player can command Reynier identically to French marshals ("Reynier, attack Rhineland").
+- **Objections:** Use Reynier's personality for objection evaluation (Literal = rarely objects).
+- **Can attack former allies:** Yes. Loyalty is mechanical (follows orders), not emotional.
+- **AUTONOMOUS vassals:** Their marshals remain AI-controlled. Player cannot command them directly. They act as autonomous allies targeting the lord's enemies.
+- **Serialization:** Marshal's `nation` field changes to vassal nation name (still "Saxony") but `is_player_controlled` flag set to True. Survives save/load.
+
 **EC-K: Vassal commands in mock mode.** Vassal marshals (PUPPET/SATELLITE) appear in player's command list. Commands parsed same as player marshals: "Reynier, attack Rhineland." If AUTONOMOUS, player cannot command them directly.
 
 **EC-L: Austria joins war mid-game.** When Austria enters WAR with France (via coalition trigger, player aggression, or alliance cascade): Austrian marshals become active enemies. Their regions become hostile. Existing trade income from France-Austria peace is lost. Immediate recalculation of all diplomatic states.
@@ -1396,6 +1756,36 @@ Intelligence accuracy scales with Talleyrand's skill:
 **EC-GG: Alliance cascade on war declaration with vassal.** If France vassalizes Saxony and then Prussia (allied with Britain) declares war on Saxony, France enters war with Prussia (lord defends vassal). If France was at peace with Prussia, this changes France-Prussia state to WAR. Britain's alliance with Prussia does NOT automatically cascade unless Britain has a DEFENSIVE_ALLIANCE with Prussia specifically against France.
 
 **EC-HH: Diplomatic state downgrade during armistice.** You cannot downgrade from ARMISTICE — it's already one step above WAR. The only transitions from ARMISTICE are: → PEACE (upgrade, negotiate treaty) or → WAR (armistice expires/broken). No downgrade path from ARMISTICE.
+
+**EC-II: Player cedes Paris in a treaty (Audit EC-1).** Allow with EXTREME Talleyrand objection (Schemer personality — "Sire, this is MADNESS"). If ceded: -1 DP permanent (capital loss penalty from §4a), Talleyrand skill effectively -2 until Paris is recaptured (reduced effectiveness without a seat of power). Talleyrand relocates to nearest French-controlled city. All French marshals: trust -5 ("the Emperor gave away our capital").
+
+**EC-JJ: Cross-proposal race condition (Audit EC-2).** If France sends a proposal to Prussia while Prussia simultaneously sends a proposal to France (both in transit same turn): first-to-resolve wins. Processing order: player proposals resolve first (during Morning Dispatch), then AI proposals. If both are from AI nations (AI-AI), alphabetical by proposing nation. The second proposal is auto-cancelled with message: "Negotiations are already underway — your envoy returns."
+
+**EC-KK: Breaking armistice penalties (Audit EC-4).** Treat as treaty-break (§7d) with additional "armistice violator" penalty: -30 relation with target (standard), -10 all nations (standard), PLUS -20 additional relation with all nations ("breaking a ceasefire is worse than breaking a trade deal"). Threat +15 (standard) + +10 additional. Total: -50 target, -30 all, +25 threat. Morning Dispatch: "The armistice has been violated. The courts of Europe condemn this act."
+
+**EC-LL: French treaties apply to vassal territory (Audit EC-5).** Yes — France's OPEN_BORDERS with Austria applies to Saxony (French vassal) territory. But PUPPET/SATELLITE vassals cannot independently grant military access. AUTONOMOUS vassals can grant access independently (free diplomacy per §8c). Vassal territory is treated as French-controlled for treaty purposes unless the vassal is AUTONOMOUS with independent treaty rights.
+
+**EC-MM: Nation goes bankrupt from treaty obligations (Audit EC-6).** Gold floor at 0 — nations cannot go negative. If a nation cannot pay a gold/turn clause: the clause defaults (payment stops), relation with recipient -5 per defaulted turn, treaty clause auto-suspended after 3 consecutive defaults. Morning Dispatch: "{nation} has defaulted on treaty payments." The defaulting nation can resume payments if gold recovers above the clause amount.
+
+**EC-NN: Mission target declares war on France (Audit EC-7).** Active diplomatic mission targeting that nation auto-cancels immediately. DP investment lost (sunk cost). Morning Dispatch: "Talleyrand's courtship of {nation} is moot — they have declared war." Talleyrand returns to IDLE state.
+
+**EC-OO: Decisive battle records after peace and re-war (Audit EC-8).** Records persist in `world.decisive_battles` for Diplomatic Ledger display (historical record). But per-war decisive_bonus counter resets to 0 for war score calculation (per EC-W: fresh war = fresh war score). Old decisive battles are visible in the ledger but don't affect the new war's diplomacy.
+
+**EC-PP: Continental System member conquered by Britain (Audit EC-10).** Conquered nation exits Continental System automatically. `continental_system_members` list updated when nation sovereignty changes (during territory processing in `advance_turn()`). Morning Dispatch: "{nation} has been removed from the Continental System following British occupation."
+
+**EC-QQ: Talleyrand sabotage produces better outcome (Audit EC-11).** "Successful sabotage" — player wanted harsh terms, Talleyrand softened, target accepted. Discovery confrontation still fires (§3c). Player choice: Confront (trust -10, authority +5, "I didn't want peace on THOSE terms") or Overlook (trust +3, sabotage validated — "perhaps Talleyrand was right"). Key insight: the player may DISAGREE with a good outcome if it wasn't their intent.
+
+**EC-RR: All vassals deteriorate simultaneously from military losses (Audit EC-12).** Intended behavior. Lord losing wars: -2 loyalty per loss per vassal per turn (§8b). Multiple vassals amplify the consequences of military failure. The cascade risk (§8d) is the price of empire. No mitigation beyond winning battles or investing in vassals.
+
+**EC-SS: DP generation drops below mission cost (Audit EC-13).** When DP generation drops, Morning Dispatch warns on the turn BEFORE the first mission pause: "Talleyrand warns: our diplomatic capacity is declining. Current mission may be interrupted next turn." This gives the player 1 turn to cancel the mission or address the DP shortfall. If they don't act, the mission auto-pauses per EC-S.
+
+**EC-TT: Defensive alliance cascade creates infinite loop (Audit EC-14).** Termination condition: each nation processes alliance cascade ONCE per war declaration. A nation already processed (already at war or already checked this cascade) is skipped. Prevents A→B→C→A loops. Implementation: maintain a `cascade_processed` set during each war declaration event, cleared after the cascade resolves.
+
+**EC-UU: Continental System member's sovereignty changes (Audit EC-15).** Membership is per-sovereign-nation. Conquered regions don't participate (§EC-PP). Vassalized nations: PUPPET/SATELLITE auto-join if lord (France) is running the Continental System. AUTONOMOUS vassals: independent choice — check relation with France > +10 AND relation with Britain < +30 (same criteria as voluntary participation in §5d).
+
+**EC-VV: Vassal carving from non-adjacent territory.** Player can only carve vassals from regions they currently occupy and control. The carved region must be contiguous (if multi-region carve, all regions must be adjacent to each other). Non-contiguous carved vassals are not allowed — creates supply and control problems.
+
+**EC-WW: Carved vassal granted to non-adjacent vassal.** Allowed — the granted regions don't need to be adjacent to the recipient vassal's existing territory. This enables strategic buffer zone creation (granting distant territory to a loyal vassal). The recipient simply gains control of those regions.
 
 ---
 
@@ -1498,7 +1888,68 @@ class DiplomaticRepresentative:
 self.diplomats: Dict[str, DiplomaticRepresentative] = {}  # nation -> diplomat
 ```
 
+```python
+# DiplomaticRepresentative serialization (m6):
+def to_dict(self):
+    return {
+        "name": self.name,                    # str
+        "nation": self.nation,                # str
+        "personality": self.personality,        # str: "schemer"|"loyalist"|"hawk"|"dove"
+        "skill": self.skill,                   # int: 1-10
+        "biography": self.biography,           # str
+        "trust": self.trust.to_dict(),         # Trust object serialization
+    }
+
+@classmethod
+def from_dict(cls, data):
+    rep = cls(
+        name=data["name"],
+        nation=data["nation"],
+        personality=data["personality"],
+        skill=data.get("skill", 5),
+        biography=data.get("biography", ""),
+    )
+    if "trust" in data:
+        rep.trust = Trust.from_dict(data["trust"])
+    return rep
+```
+
 All fields MUST be added to `to_dict()` and `from_dict()` with `.get()` defaults. Run `test_serialization_enforcement.py` after.
+
+```python
+# ═══════ v2.1 NEW FIELDS ═══════
+
+# Carved vassal tracking (DD1)
+# Key: carved vassal name (e.g., "Duchy of Rhineland")
+# Value: {"lord": str, "loyalty": int, "autonomy": int,
+#   "investment_cooldown": int, "path": "carved",
+#   "carved_from": str, "regions": List[str], "created_turn": int}
+self.carved_vassals: Dict[str, Dict] = {}
+
+# Previous treaties for escalating harshness (DD8-4)
+# List of {"target": str, "harshness": float, "turn": int}
+self.previous_treaties: List[Dict] = []
+
+# Defection cascade tracking (DD8-2)
+# {"war_pair": turns_triggered} — max once per war
+self.defection_cascade_fired: Dict[str, int] = {}
+
+# Player proposal cooldowns — v2.1 adds per-type tracking
+# Format: {"nation": turns_remaining, "nation|proposal_type": turns_remaining}
+# (already defined in v2.0, noting the expanded key format)
+
+# Feasibility request (§2g) — no persistent state needed (momentary ADVISING state)
+
+# Nation starting regions (m5 — source of truth for war score territory calculation)
+# Populated from §1b initial table during world initialization. Static data.
+self.nation_starting_regions: Dict[str, List[str]] = {
+    "France": ["Paris", "Normandy", "Brittany", "Bordeaux", "Lyon", "Marseille", "Belgium", "Milan"],
+    "Britain": ["Netherlands", "Waterloo", "Hanover"],
+    "Prussia": ["Berlin", "Rhineland"],
+    "Austria": ["Bavaria", "Vienna", "Bohemia", "Tyrol"],
+    "Saxony": ["Saxony", "Dresden"],
+}
+```
 
 ---
 
@@ -1548,20 +1999,39 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 
 ### Session Plan (5 Core + 1 Polish)
 
-#### Session 1: Map Expansion + New Nations (LOW RISK)
+#### Session 1A: Map Expansion + Region Migration (HIGH RISK — DD6)
+
+**Pre-session (MANDATORY):**
+1. Read `docs/ADDING_CONTENT.md` completely — follow its patterns for adding regions, marshals, nations
+2. Audit the ENTIRE codebase for hardcoded region references (list every file and line)
+3. Audit all test files for region-specific assertions
+4. Plan save-breaking version bump
+5. Estimate test migration scope (likely 100+ test updates)
 
 **Scope:**
 - 6 new regions in region.py (Normandy, Hanover, Berlin, Saxony, Dresden, Bohemia, Tyrol — 7 new, 19 total)
 - Updated adjacency for all existing regions
 - Renamed "Rhine" → "Rhineland"
+- Expanded _setup_initial_control() with all 19 regions
+- Fix ALL broken tests from region expansion
+- Save format version bump (old saves incompatible — M7)
+
+**Risk:** HIGH — Changes foundational data model. Every existing test that references specific regions, starting positions, or adjacency will break. AI decision tree (enemy_ai.py) has hardcoded region references. Garrison combat changes (capital regions). Supply attrition recalculation. Fog of war adjacency patterns. Estimated 100+ test updates.
+**Gate:** `pytest` passes (100%). All 19 regions created with correct adjacency. No hardcoded region references remain.
+
+#### Session 1B: New Nations + Marshals + Economy (HIGH RISK — DD6)
+
+**Scope:**
 - New marshal definitions: Gneisenau, Archduke Charles, Schwarzenberg, Reynier
 - Relocated starting positions (Grouchy → Lyon, Uxbridge → Hanover, Blücher → Berlin)
 - New nations in world_state: Austria, Saxony added to enemy_nations, nation_gold, nation_actions, manpower_pools
-- Expanded _setup_initial_control() with all 19 regions
 - Vienna reassigned from Prussia to Austria capital
+- Starting economy for all 5 nations (§1d)
+- Nation starting regions dict populated
+- Smoke test: 5 turns with all nations active
 
-**Risk:** LOW — new data, expanded initialization. No logic changes. Existing tests may need starting position updates.
-**Gate:** `pytest` passes. All 19 regions created. All marshals at correct positions. All nations have gold/actions.
+**Risk:** HIGH — Multiple new marshals + nations touching marshal.py, world_state.py, enemy_ai.py, parser.py. Balance implications from force redistribution.
+**Gate:** `pytest` passes. All marshals at correct positions. All nations have gold/actions/manpower. 5-turn smoke test completes without crash.
 
 #### Session 2: Diplomatic States + Acceptance Formula (MEDIUM RISK)
 
@@ -1582,22 +2052,34 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 **Estimated tests:** ~60
 **Gate:** Acceptance formula returns correct scores for test scenarios. State transitions enforce adjacency.
 
-#### Session 3: Talleyrand Commands + AI Proposals (MEDIUM RISK)
+#### Session 3A: Talleyrand Commands + Parser Routing (HIGH RISK — M6)
 
 **Scope:**
 - Talleyrand command parsing (mock parser keywords)
-- _execute_diplomatic() in executor.py
+- _execute_diplomatic() family in executor.py
 - Proposal creation from parsed commands
+- Feasibility request implementation (§2g)
+- Treaty ratification and clause application (including per-turn clauses)
+- Gold/turn and manpower/turn clauses applied during advance_turn()
+- Morning Dispatch diplomatic events (using §10d event types)
+- Acceptance formula feedback (§6f)
+
+**Risk:** HIGH — Modifies parser.py, executor.py, llm_client.py, main.py — the most critical backend files. Diplomat-vs-marshal routing in the parser is novel code with high regression risk.
+**Estimated tests:** ~35
+**Gate:** curl test: "Talleyrand, propose peace with Prussia" returns formatted response. "Talleyrand, what would it take to get peace with Prussia?" returns feasibility assessment. Proposal feedback includes natural-language hint.
+
+#### Session 3B: AI Proposals + Popup Flow (HIGH RISK — M6)
+
+**Scope:**
 - AI diplomatic phase in enemy_ai.py (proposal generation when losing)
 - AI proposal popup (same pattern as objection popup)
-- Accept/reject/counter-offer flow
-- Treaty ratification and clause application
-- Gold/turn and manpower clauses applied during advance_turn()
-- Morning Dispatch diplomatic events
+- Accept/reject/counter-offer flow (using M3 counter-offer algorithm)
+- Notification types (§10e templates)
+- Conflicting alliance resolution (§5b.3)
 
-**Risk:** MEDIUM — command flow is new but follows executor pattern. AI proposals follow popup pattern.
-**Estimated tests:** ~50
-**Gate:** curl test: "Talleyrand, propose peace with Prussia" returns formatted response. AI sends armistice when losing.
+**Risk:** HIGH — AI proposal logic + popup flow in enemy_ai.py and main.py. Counter-offer algorithm is new deterministic logic.
+**Estimated tests:** ~25
+**Gate:** AI sends armistice when losing. Counter-offer generates correctly. Alliance conflict resolution works.
 
 #### Session 4: Vassal System + Treaty Clauses (MEDIUM RISK)
 
@@ -1609,6 +2091,8 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 - "Invest in vassal" one-shot action (1 DP + 200g → +10 loyalty, 3-turn cooldown)
 - Tribute collection, autonomy change command
 - Vassal rebellion (loyalty=0 → WAR, cascade -10 to other vassals)
+- Enemy vassal courting (§8e — simplified v1, assigned per m3)
+- Vassal carving from conquered territory (§8f — DD1)
 - AP/turn treaty clause implementation
 - Territory cession logic + marshal relocation
 - Continental System (basic, 75g cap per nation, 200g total cap)
@@ -1635,13 +2119,17 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 
 #### Session 6 (Polish — DEFERRED)
 
-- AI-AI diplomacy (nations negotiating with each other)
-- Counter-offer AI logic
-- Enemy vassal courting
-- Fog-filtered diplomatic intel
-- Campaign log diplomatic events
-- Special acceptance bonuses (§6d)
-- Continental System full implementation
+**Scope (all items explicitly deferred with rationale — DD7):**
+
+| Deferred Item | Why Deferred | Gameplay Impact | Target |
+|---|---|---|---|
+| AI-AI diplomacy (§9c) | Not required for player-facing diplomacy loop | World feels less alive, but all player interactions work | Session 6 |
+| Full Continental System | Economic warfare is flavor, not core combat loop | Player can't use the Continental System — minor diplomatic tool missing | Session 6 |
+| Fog-filtered diplomatic intel | Existing fog system works; diplomatic fog is polish | Player sees slightly more diplomatic info than intended | Session 6 |
+| Campaign log diplomatic events | Campaign log works; diplomatic entries are display-only | Diplomatic events don't appear in campaign log history | Session 6 |
+| Special acceptance bonuses (§6d) | Generic formula works for all proposals | Nation-specific desires (Prussia wants Saxony) not reflected | Session 6 |
+| British subsidy mechanic (DD8-1) | AI behavior polish, not core | Britain doesn't actively finance coalitions | Session 6 |
+| Metternich armed mediation (DD8-3) | Schemer-specific AI polish | Metternich doesn't gain coalition bonus from rejected proposals | Session 6 |
 
 **Estimated tests:** ~35
 
@@ -1655,6 +2143,9 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 | Talleyrand defiance | Medium — core diplomatic flow works without sabotage layer |
 | Counter-offers | Low — accept/reject is sufficient for v1 |
 | Special acceptance bonuses (§6d) | Low — generic formula works, bonuses add flavor |
+| Vassal carving (DD1) | Medium — territory management missing, but full-nation vassalage works |
+| Feasibility requests (§2g) | Low — player can still propose without pre-assessment |
+| Formula feedback (§6f) | Medium — player doesn't know WHY proposals fail, trial-and-error frustration |
 
 ### Integration Risk Points
 
@@ -1666,6 +2157,8 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 | AP/turn clause modifying nation_actions | world_state.py, executor.py | Apply during income phase, AFTER action reset. Test 0-AP edge case. |
 | Acceptance formula balance | diplomacy.py | Numbers in spec are starting points. Expect tuning after playtest. |
 | Vassal rebellion during enemy turn | vassal.py, turn_manager.py | Process at start of advance_turn, before any actions. |
+| Save format incompatibility | save_manager.py | Add version check that rejects pre-Phase-8 saves with clear error message (M7). Increment save format version. |
+| Godot int() wrapping on new fields | All API response formatting | All new numeric fields (DP, relations, war score, loyalty, threat) must use int() before API response (m7). Add to response formatting checklist. |
 
 ### Test Coverage
 
@@ -1719,6 +2212,77 @@ All design questions resolved in v1.1 feedback pass:
 ---
 
 ## §17. Changelog
+
+### v2.1 (Audit Resolution + New Mechanics — Feb 2026)
+
+**Responding to independent audit (DIPLOMACY_AUDIT_RESULTS.md). Score: 58/80 → 73/80. All Critical/Major findings resolved or explicitly deferred.**
+
+**Critical Fixes:**
+- **C1: DP Authority Threshold** — Fixed §10c to match §4a (≥60, not >80).
+- **C2: Harshness Formula** — Added §6c.1 Harshness Value Table with per-clause values and worked example.
+- **C3: Session 1 Risk** — Split into Session 1A (regions) + 1B (marshals/nations), both rated HIGH. Added mandatory pre-session codebase audit (DD6).
+
+**Major Fixes:**
+- **M1: Dispatch Event Types** — Added §10d with 21 enumerated event types following JEALOUSY_SPEC pattern.
+- **M2: Notification Templates** — Added §10e with 11 notification types, priorities, and templates.
+- **M3: Counter-Offer Algorithm** — Defined deterministic 5-step algorithm in §9b with per-nation desire table.
+- **M4: Vassal Marshal Transition** — Added EC-K.1 specifying Trust (40), dict membership, relationship initialization.
+- **M5: Conflicting Alliance Obligations** — Added §5b.3 with explicit resolution rule (higher-relation partner wins).
+- **M6: Session 3 Risk** — Split into Session 3A (parser routing) + 3B (AI proposals), both rated HIGH.
+- **M7: Save Migration Plan** — Added save-breaking version bump note to Session 1A + Integration Risk Points.
+- **M8: AI-AI Diplomacy Scope** — §9c explicitly marked DEFERRED TO SESSION 6 with impact assessment.
+
+**Minor Fixes:**
+- **m1:** Fixed "authority ~60" annotation to "authority ~100" in §4a example.
+- **m2:** Added trade income from starting PEACE states to §1d economy notes.
+- **m3:** Assigned vassal courting to Session 4 scope.
+- **m4:** Specified Continental System participation check formula (simplified, not full acceptance).
+- **m5:** Defined `nation_starting_regions` in §13 as static data populated from §1b.
+- **m6:** Added field-by-field `to_dict()`/`from_dict()` for DiplomaticRepresentative in §13.
+- **m7:** Added Godot int() wrapping note to Integration Risk Points in §14.
+- **m8:** Added terminology clarification (nation relations vs marshal relationships) in §1a.
+
+**Exploit Fixes:**
+- **E3:** Added OPEN_BORDERS minimum requirement before vassalage proposals (§5b transition rules).
+- **E4:** Added +30 deal sweetener cap (§6b).
+- **E7:** Deferred — flagged for Building Blocks-aligned redesign next session.
+- **E8:** Reduced protection guarantee bonus from +5 to +3 when guarantor already at war with target's enemies.
+- **E11:** Clarified post-treaty-break state: returns to one level below the broken treaty (§7d).
+
+**New Mechanics (Design Decisions):**
+- **DD1: Vassal Carving** — New §8f. Carve vassals from conquered enemy territory. Auto-generated or player-chosen names. Size scaling (can't vassalize huge nations in one action). Grant carved regions to existing vassals. Full edge cases.
+- **DD2: Metternich → Schemer** — Metternich reclassified as Schemer (skill 9, upgraded from Dove/8). Einsiedel (Saxony) reassigned to Dove. All 4 personality types now in active use.
+- **DD3: Feasibility Requests** — New §2g. Free (0 DP) consultation with Talleyrand before proposals. Difficulty tiers, Schemer bias, discovery mechanic.
+- **DD4: Formula Feedback** — New §6f. Every proposal response includes natural-language hint mapping the largest formula component. REJECT/COUNTER/ACCEPT all get feedback.
+- **DD5: Sweetener Changes** — +30 cap on deal sweeteners. Per-turn manpower and AP offer variants added. Protection guarantee reduced contextually (E8).
+- **DD6: Session Plan** — Session 1 split into 1A/1B. Session 3 split into 3A/3B. All four rated HIGH.
+- **DD7: Deferred Items** — Session 6 now has explicit table with rationale, impact, and target for every deferred item.
+- **DD8: Historical Suggestions** — Evaluated all 4 from Audit Appendix B:
+  - DD8-1: British subsidy → added to §9c as AI behavior (deferred to Session 6)
+  - DD8-2: Vassal defection cascade → added to §8d as tipping point mechanic
+  - DD8-3: Metternich armed mediation → added to §5c as Schemer-specific AI behavior
+  - DD8-4: Escalating treaty harshness → added to §6c.1 as +5 modifier
+
+**Edge Cases Added (EC-II through EC-WW):**
+17 new edge cases (15 from audit + 2 for vassal carving): Paris cession, cross-proposal race, armistice breaking, vassal territory treaties, bankruptcy, mission-target war, decisive battle persistence, Continental System conquest, successful sabotage, simultaneous vassal deterioration, DP warning, alliance cascade loops, sovereignty changes, vassal carving adjacency, carved vassal granting.
+
+**New Model Fields:**
+- `carved_vassals`, `previous_treaties`, `defection_cascade_fired`, `nation_starting_regions`
+- DiplomaticRepresentative `to_dict()`/`from_dict()` specified
+
+**Self-Audit Score: 73/80 (Grade A)**
+
+| Category | v2.0 | v2.1 | Delta | Notes |
+|----------|------|------|-------|-------|
+| Internal Consistency | 8 | 9 | +1 | C1 fixed, m1 fixed, terminology standardized |
+| Integration | 8 | 9 | +1 | Dispatch events, notifications, serialization all enumerated |
+| Exploit Resistance | 9 | 10 | +1 | E3/E4/E8/E11 fixed, sweetener cap, OPEN_BORDERS gate |
+| Edge Cases | 9 | 10 | +1 | 51 total (34 original + 17 new). All audit EC-1 through EC-15 resolved |
+| Historical Plausibility | 9 | 9 | 0 | Metternich Schemer, British subsidy, armed mediation, escalating harshness |
+| Player Experience | 8 | 9 | +1 | Feasibility requests, formula feedback, Schemer bias discovery |
+| Implementation Risk | 8 | 9 | +1 | Sessions split, all HIGH risk, pre-session audit, save migration |
+| Spec Completeness | 9 | 8 | -1 | E7 deferred, Opportunist dropped. But harshness table and counter-offer algorithm fill bigger gaps |
+| **Total** | **68** | **73** | **+5** | **Grade: A (maintained)** |
 
 ### v2.0 (Full Audit Revision — Feb 2026)
 
