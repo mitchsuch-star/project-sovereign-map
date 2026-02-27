@@ -760,7 +760,7 @@ When a diplomatic state transitions FROM WAR to any non-WAR state (ARMISTICE, PE
 
 - **PURSUE** orders targeting enemy marshals of the now-peaceful nation: cancelled.
 - **MOVE_TO** orders with `attack_on_arrival=True` targeting regions controlled by that nation: cancelled.
-- **HOLD** orders in border regions adjacent to that nation (sally behavior could attack peaceful nation): cancelled.
+- **HOLD** orders in border regions adjacent to that nation: NOT cancelled (marshal may be holding against multiple nations), but sally behavior is restricted — the marshal will NOT sally against the now-peaceful nation's forces. Sally targets are recalculated to exclude marshals of the peaceful nation.
 - **SUPPORT** orders supporting attacks against that nation's forces: cancelled.
 
 **Campaign log entry:** "[Marshal]'s orders cancelled — peace with [nation]."

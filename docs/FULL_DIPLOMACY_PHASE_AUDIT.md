@@ -680,13 +680,13 @@ M8 resolves the only gap (float math in acceptance formula). All 7 golden rules 
 Breakdown: 27 + 14 + 12 + 8 + 10 = 71/80 from scored dimensions. Edge case coverage now comprehensive (23 audit-discovered cases all have specified behavior). Innovation and fun assessment unchanged (high marks). Remaining 9 points deducted for:
 - Session plan risk unchanged (SPEC 1A map expansion remains EXTREME risk)
 - Enemy diplomat personality asymmetry still needs v2 (documented but not resolved)
-- 3 minor robustness concerns identified below
+- 2 minor robustness concerns identified below (N2 resolved post-audit)
 
 ### New Findings Discovered During Re-Read
 
 **N1 (Minor): Clause-selection save/load.** The new M1 clause-selection UI (DESIGN §3b) introduces a multi-step flow where the player builds clauses one at a time. If the player saves mid-clause-building, the `pending_diplomatic_dialogue` would need to store the partial clause list in its `context` dict. This is likely fine (all primitives), but should be explicitly documented: "Partial clause list survives save/load in `pending_diplomatic_dialogue.context.clauses_so_far`."
 
-**N2 (Minor): §5b.4 HOLD cancellation scope.** The HOLD cancellation rule ("HOLD orders in border regions adjacent to that nation: cancelled") is broader than necessary. A marshal on HOLD might be positioned against multiple nations. A more precise rule: "HOLD orders whose sally target list included marshals of the now-peaceful nation have their sally behavior restricted — they will NOT sally against the peaceful nation's forces, but the HOLD order itself persists." This avoids unnecessarily cancelling defensive positions. Recommend revisiting during implementation.
+**N2 (Minor — RESOLVED): §5b.4 HOLD cancellation scope.** Originally too broad (cancelled all HOLD orders in border regions). Narrowed: HOLD orders persist, but sally behavior is restricted — marshal will NOT sally against the peaceful nation's forces. Sally targets recalculated to exclude peaceful nation's marshals. This preserves defensive positions against other threats.
 
 **N3 (Minor): Replace with Loyalist aide — personality_modifiers impact.** The C4 fix introduces personality change from Schemer to Loyalist. The `personality_modifiers.py` file applies combat bonuses by personality type. Talleyrand is NOT a combat unit (he's a DiplomaticRepresentative, not a Marshal), so this doesn't affect combat. But if diplomatic personality modifiers are later added to the personality_modifiers system (e.g., Schemer gets +2 on acceptance formula), the Loyalist replacement would lose that bonus. Currently safe — diplomatic skill bonus is on the DiplomaticRepresentative class directly, not routed through personality_modifiers.py.
 
