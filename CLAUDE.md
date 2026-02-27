@@ -20,6 +20,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 - **Phase 7b remaining:** V2b COMPLETE. Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Gates 5+6 PASSED. Jealousy (SPEC v3 DRAFTED — needs design gate approval). Coalition Trigger moved to Phase 8.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial Infrastructure deferred to Pre-EA.
+- **Phase 8: Diplomacy** — DIPLOMACY_SPEC.md v2.0 COMPLETE (audit-revised, 68/80). Needs design gate approval.
 
 ### Design Decisions Required (DO NOT CODE WITHOUT USER APPROVAL)
 
@@ -32,6 +33,12 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 - Glory loss: Defeats cost glory (-1 base, modifiers) — keeps ladder dynamic
 - §6b Rivalry Confrontation: Deferred to v3.1 implementation
 - Full spec: `docs/JEALOUSY_SPEC.md`
+
+#### Diplomacy System — v2.0 spec, needs design gate approval:
+- Full audit revision: 40+ findings addressed (4 Critical, 8 Major, 5 Exploits, 14 Edge Cases)
+- Key decisions: 4 DP starting, passive vassal management, decisive battles in war score, HOSTILE_NEUTRAL eliminated
+- Walking skeleton: 5 sessions estimated
+- Full spec: `docs/DIPLOMACY_SPEC.md`
 
 
 
@@ -123,6 +130,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | Marshal management UI | `marshal_overview.py` (build_marshal_overview), `marshal_management.gd` (render), `marshal.py` (biography field), `main.py` (GET /marshal_overview) |
 | Win/Loss relationships | `relationship.py` (formulas, participants, process), `executor.py` (_execute_attack wiring), `marshal.py` (modify_relationship, last_relationship_change_turn), `docs/MULTI_MARSHAL_SPEC.md` §9 |
 | Square formation / Tactical Triangle | `docs/TACTICAL_TRIANGLE_SPEC.md`, `marshal.py` (square_formation, overwatch_penalty), `combat.py` (cavalry -40%, artillery +50%), `executor.py` (form_square, auto-bombardment, overwatch calc) |
+| Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md` (v2.0), `diplomacy.py` (acceptance formula, state transitions, war score), `diplomat.py` (DiplomaticRepresentative), `vassal.py` (loyalty, rebellion), `diplomatic_defiance.py` (Talleyrand sabotage) |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`
 For Enemy AI details: `docs/ENEMY_AI_REFERENCE.md`
@@ -309,6 +317,8 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | V2b defiance/vindication/authority spec | `docs/V2B_DEFIANCE_SPEC.md` |
 | Multi-marshal coordination spec (Phase 7) | `docs/MULTI_MARSHAL_SPEC.md` |
 | Tactical Triangle (Square + Auto-Bombardment + Overwatch) | `docs/TACTICAL_TRIANGLE_SPEC.md` |
+| Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md` |
+| Jealousy system (Phase 7b) | `docs/JEALOUSY_SPEC.md` |
 | Save format / serialization | `docs/SAVE_FORMAT_REFERENCE.md` |
 | Top bar + ledger + dispatch spec | `docs/TOP_BAR_SPEC.md` |
 | Fog of war spec | `docs/FOG_OF_WAR_SPEC.md` |

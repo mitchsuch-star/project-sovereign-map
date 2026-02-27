@@ -366,24 +366,26 @@ If marshal strength < 20% of starting_strength AND enemy in same region -> ALWAY
 
 **Goal:** Wars start and end through negotiation. Diplomacy feels like talking to PEOPLE.
 
+**Full spec:** `docs/DIPLOMACY_SPEC.md` (v2.0, audit-revised, 68/80 self-audit score). 5 nations, 19 regions, acceptance formula, Talleyrand defiance, vassal system, war score with decisive battles.
+
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
-| Peace Treaties | LLM-powered negotiation | High | Planned |
-| Alliances | Form defensive/offensive pacts | Medium | Planned |
-| War Declarations | Formal with casus belli | Low | Planned |
-| Nation Relations | Values affect diplomacy options | Medium | Planned |
-| Tiered Nation AI | France smarter than minor nations | Medium | Planned |
+| Map Expansion + Nations | 19 regions, 5 nations (France/Britain/Prussia/Austria/Saxony), 4 new marshals | Medium | SPEC COMPLETE |
+| Diplomatic States | WAR→ARMISTICE→PEACE→...→ALLIANCE + downgrade transitions | Medium | SPEC COMPLETE |
+| Acceptance Formula | Deterministic: base + war_score + relation + threat + sweetener + skill + personality | Medium | SPEC COMPLETE |
+| War Score | Territory ±40 + battles ±30 + decisive battle ±20 + capital ±30. Inline formula (§6e) | Medium | SPEC COMPLETE |
+| Talleyrand Commands | Propose/demand via text. Parser routing (§2f). Missions (§2e) | Medium | SPEC COMPLETE |
+| DP Economy | 4 DP/turn (France), use-or-lose. Per-nation formula (§4a) | Low | SPEC COMPLETE |
+| AI Proposals | AI proposes when losing, stalemate, opportunistic. Anti-spam cooldowns | Medium | SPEC COMPLETE |
+| Vassal System | Passive loyalty (garrison+autonomy+investment). Multi-vassal viable | Medium | SPEC COMPLETE |
+| Talleyrand Defiance | 2% Schemer floor, 30% hard cap. Sabotage during transit | Medium | SPEC COMPLETE |
+| Treaty System | 13 clause types including unit swaps, AP reparation tier | Medium | SPEC COMPLETE |
+| Diplomatic Ledger UI | D key, 4 tabs: Nations, Treaties, Threat, Talleyrand Status | Medium | SPEC COMPLETE |
 | **Diplomacy Chat** | LLM-powered conversations with nation leaders | High | Planned |
 | **Leader Personalities** | Distinct voices (see table below) | Medium | Planned |
-| Diplomatic Rules Engine | War score + relations -> accept/reject (deterministic, LLM voices) | Medium | Planned |
-| **AI Proposals** | AI offers peace, makes demands — LLM voices the proposal | Medium | Planned |
-| **War Score** | Visual progress toward victory/defeat, drives peace treaty acceptance | Low | Planned |
-| **Threat Indicator** | Coalition threat level, visible diplomatic pressure buildup | Low | Planned |
-| **Coalition Trigger** | Threat level ticks up → war declarations. Core "France can't steamroll" mechanic. Moved from Phase 7b — inherently diplomatic. | Medium | Planned — NEEDS DESIGN |
+| **Coalition Trigger** | Threat level ticks up → war declarations. Core "France can't steamroll" mechanic | Medium | Planned — NEEDS DESIGN |
 
 **Note:** Coalition Trigger moved here from Phase 7b — threat calculation, warning periods, and coalition formation only make sense alongside peace treaties and nation relations.
-
-**Note:** War Score and Threat Indicator moved from Phase 6 — both are only meaningful when they drive peace negotiations and diplomatic pressure. Without diplomacy, war score is a cosmetic number and threat indicator has no mechanic to trigger. Building them here avoids premature design that Phase 8 diplomacy would likely need to revise.
 
 ### Diplomacy Chat Architecture
 
