@@ -1,6 +1,6 @@
 # Conversational Diplomacy Layer — Design Document
 
-> **Status:** DRAFT v1.0 — Design phase. Needs design gate approval.
+> **Status:** DRAFT v1.1 — Audit-revised. 21 findings resolved (3 Critical, 8 Major, 10 Minor). Needs design gate approval.
 > **Phase:** 8 (overlay on DIPLOMACY_SPEC.md)
 > **Prerequisite:** DIPLOMACY_SPEC.md v2.1 approved. This document defines the INTERACTION LAYER, not the mechanical systems.
 > **Relationship to DIPLOMACY_SPEC:** This spec replaces §2c (Talleyrand commands), §2d (proposal flow), §2g (feasibility), §9a (AI proposal popups), and §10b (UI). All formula/state/treaty mechanics in DIPLOMACY_SPEC remain unchanged. This is the steering wheel; DIPLOMACY_SPEC is the engine.
@@ -89,9 +89,22 @@ pending_diplomatic_dialogue = {
         "threat": 40,
         "suggested_terms": {...},
     },
-    "turn_created": 5,             # stale after 1 turn (auto-dismiss)
+    "turn_created": 5,             # stale after 1 turn (auto-dismiss for non-blocking types)
+    "blocking": False,              # True for incoming_proposal and sabotage_confrontation
 }
 ```
+
+**Serialization rules:** `pending_diplomatic_dialogue` must survive save/load. All values are primitives (str, int, bool, list, dict) — no object references. The `context` sub-dict stores snapshots, not live references. Serialization pattern:
+
+```python
+# In world_state.py to_dict():
+"pending_diplomatic_dialogue": self.pending_diplomatic_dialogue,  # already primitive-only
+
+# In world_state.py from_dict():
+world.pending_diplomatic_dialogue = d.get("pending_diplomatic_dialogue", None)
+```
+
+Run `pytest tests/test_serialization_enforcement.py -v` after implementation. Update `docs/SAVE_FORMAT_REFERENCE.md` with the new field.
 
 ### 2c. Dialogue Types
 
@@ -102,9 +115,9 @@ pending_diplomatic_dialogue = {
 | `proposal_execute` | Specific command (full clause list) | Objects or executes (existing §2d flow) | 1-2 exchanges |
 | `advisory` | "What about Austria?" / "Who's the threat?" | Strategic analysis, recommendations | 2-3 exchanges |
 | `feasibility` | "What would it take to...?" | Formula-backed assessment with Schemer bias | 1 exchange |
-| `incoming_proposal` | AI sends proposal | Presents proposal with his spin | 2 exchanges |
-| `sabotage_confrontation` | Sabotage discovered | Dramatic reveal, player choice | 2 exchanges |
-| `proactive_suggestion` | Talleyrand notices an opportunity | Morning Dispatch suggestion | 1-2 exchanges |
+| `incoming_proposal` | AI sends proposal | Presents proposal with his spin | 2 exchanges | **blocking** |
+| `sabotage_confrontation` | Sabotage discovered | Dramatic reveal, player choice | 2 exchanges | **blocking** |
+| `proactive_suggestion` | Talleyrand notices an opportunity | Morning Dispatch suggestion | 1-2 exchanges | non-blocking |
 
 ### 2d. The Command → Dialogue Router
 
@@ -114,10 +127,21 @@ When the parser detects a Talleyrand-addressed command, it classifies specificit
 def classify_diplomatic_intent(parsed_command, world):
     """Classify player command into specificity level + dialogue type."""
 
-    has_target_nation = parsed_command.get("target_nation") is not None
+    target_nation = parsed_command.get("target_nation")
     has_proposal_type = parsed_command.get("proposal_type") is not None
     has_clauses = len(parsed_command.get("clauses", [])) > 0
     is_question = parsed_command.get("is_question", False)
+    has_diplomatic_keywords = parsed_command.get("has_diplomatic_keywords", True)
+
+    # M6: Military command addressed to Talleyrand — no diplomatic keywords found
+    if not has_diplomatic_keywords and not is_question:
+        return "not_diplomatic"  # Caller returns Talleyrand deflection (see below)
+
+    # M3: Validate target nation against known nations
+    if target_nation is not None:
+        known_nations = [n.name for n in world.nations]
+        if target_nation not in known_nations:
+            return "unknown_nation"  # Caller returns Talleyrand-voiced error
 
     if is_question:
         return "advisory"  # or "feasibility" based on keywords
@@ -126,10 +150,16 @@ def classify_diplomatic_intent(parsed_command, world):
         return "proposal_execute"   # SPECIFIC — full terms provided
     elif has_proposal_type:
         return "proposal_confirm"   # MEDIUM — type known, terms needed
-    elif has_target_nation:
+    elif target_nation:
         return "proposal_options"   # VAGUE with target — what to do WITH them
     else:
         return "proposal_options"   # VAGUE — what to do AT ALL
+
+# Error responses (Talleyrand-voiced):
+# "not_diplomatic" → "Sire, I am a diplomat, not a general. Perhaps you
+#   meant to address one of your marshals?"
+# "unknown_nation" → "Sire, I am not aware of a nation called {input}.
+#   Our diplomatic landscape includes {known_nations_list}."
 ```
 
 ---
@@ -245,6 +275,19 @@ territory demand. We can always revisit Rhineland later.
 
 This is a **diplomatic objection** — the same MILD/MODERATE/STRONG pattern from combat, but expressed as part of the conversation rather than as a separate popup system. See §10 for the full objection design.
 
+### 3d. Fast-Track for Specific + Agree
+
+When a SPECIFIC command is unambiguous AND Talleyrand agrees (no objection), skip the full dialogue and execute immediately with a brief confirmation:
+
+```
+PLAYER: "Talleyrand, propose peace to Saxony with open borders"
+
+TALLEYRAND: "At once, Sire. I shall deliver these terms to Einsiedel.
+Expect a response by next turn. (2 DP spent)"
+```
+
+This is a 1-exchange fast path — no options popup, no confirmation step. The command executes directly via the existing DIPLOMACY_SPEC §2d flow. This preserves conversation depth for vague commands and objections while eliminating friction for clear, uncontroversial orders. T7 ("A reasonable proposal, Sire") is the template — when Talleyrand agrees AND the command is fully specified, present only `[Send] [Wait, let me reconsider]` with Send as the default.
+
 ---
 
 ## §4. Mock Template Library
@@ -288,7 +331,7 @@ def get_game_bucket(target_nation, world):
 
 **Specificity levels:** `vague`, `medium`, `specific` (from §3)
 
-### 4b. Template Library — 20 Core Templates
+### 4b. Template Library — 27 Core Templates
 
 ---
 
@@ -299,17 +342,17 @@ def get_game_bucket(target_nation, world):
 situation is dire. Three paths present themselves:
 
 [1] Offer generous peace — end hostilities now, preserve our strength
-    for other fronts. Terms: open borders, {suggested_gold} gold/turn.
+    for other fronts. Terms: open borders, {suggested_gold} gold/turn. (Costs 2 DP)
 
 [2] Press for submission — demand territory and tribute. {target_nation}
-    may refuse, but our position has never been stronger.
+    may refuse, but our position has never been stronger. (Costs 2 DP)
 
 [3] Continue fighting — total military victory opens the door to
     vassalage. But every turn of war risks Austrian intervention.
 
 I counsel peace, Sire. A magnanimous victor is a feared one."
 ```
-*Recommendation: 0 (peace). Schemer bias: prefers restrained expansion.*
+*Recommendation: 0 (peace). Schemer bias: prefers restrained expansion. Options [1] and [2] cost 2 DP — shown in option descriptions.*
 
 ---
 
@@ -320,10 +363,10 @@ I counsel peace, Sire. A magnanimous victor is a feared one."
 untenable. {target_diplomat} smells blood. Our options are limited:
 
 [1] Sue for armistice — buy time to regroup. We will pay dearly, but
-    we will survive.
+    we will survive. (Costs 1 DP)
 
 [2] Approach a third party — {neutral_nation} might mediate. It would
-    cost us diplomatic capital but avoid direct humiliation.
+    cost us diplomatic capital but avoid direct humiliation. (Costs 2 DP)
 
 [3] Fight on — military reversal changes everything. But if it doesn't
     come soon, the terms will only grow harsher.
@@ -341,10 +384,10 @@ An armistice now, Sire. Pride is a luxury we cannot afford."
 a decision. {target_diplomat} knows this as well as we do.
 
 [1] Propose peace — both sides keep current holdings. Open borders
-    and modest tribute would sweeten the deal.
+    and modest tribute would sweeten the deal. (Costs 2 DP)
 
 [2] Propose armistice — a breathing space. Three turns to reposition
-    before deciding on peace or renewed offensive.
+    before deciding on peace or renewed offensive. (Costs 1 DP)
 
 [3] Escalate — one decisive battle could break the stalemate. But
     defeat would leave us exposed.
@@ -367,7 +410,9 @@ while we still negotiate from a position of equality."
   {target_nation} pays {suggested_gold} gold per turn.
   {optional_clause}
 
-My assessment: {difficulty_tier}. {formula_hint}.
+My assessment: {difficulty_tier}. {formula_hint}. (Costs 2 DP)
+
+The Diplomatic Ledger (D key) has the precise figures, Sire.
 
 [Send these terms]  [More generous]  [Harsher]  [Let me specify]"
 ```
@@ -387,7 +432,10 @@ My assessment: {difficulty_tier}. {formula_hint}.
 
 {target_diplomat_personality_note}
 
-My assessment: {difficulty_tier}. {formula_hint}.
+My assessment: {difficulty_tier}. {formula_hint}. (Costs 2 DP)
+
+Of course, Sire, this is merely my assessment. The Ledger may tell
+a different story.
 
 [Propose alliance]  [Start with non-aggression first]
 [What would they want in return?]"
@@ -407,7 +455,7 @@ but our military position is compelling. The terms that might work:
   Protection guarantee from France.
   {suggested_sweetener}
 
-My assessment: {difficulty_tier}. {formula_hint}.
+My assessment: {difficulty_tier}. {formula_hint}. (Costs 2 DP)
 
 Be warned, Sire — vassalage raises threat by {threat_increase} with
 every court in Europe. Is it worth the cost?
@@ -511,6 +559,8 @@ Relations stand at {relation} — {relation_description}.
 {threat_assessment}
 
 {recommendation}
+
+The Diplomatic Ledger (D key) has the precise figures if you wish to verify.
 
 [Thank you]  [What should we do about it?]  [How do we improve relations?]"
 ```
@@ -655,15 +705,173 @@ Currently {current_status}. {tradeoff_note}
 ```
 *{tradeoff_note}: "This would mean pausing my current work on Austria" or "I am currently idle — an efficient use of my time."*
 
+---
+
+**T21: VAGUE + WAR + WINNING_SLIGHTLY**
+
+```
+"We hold the advantage against {target_nation}, Sire, though not yet
+decisively. {target_diplomat} is under pressure but not desperate.
+
+[1] Offer generous peace now — lock in our gains before the tide turns.
+    Open borders and {suggested_gold} gold/turn. (Costs 2 DP)
+
+[2] Push for better terms — one more victory would strengthen our hand
+    considerably. Continue fighting with an eye toward a stronger peace.
+
+[3] Propose an armistice — freeze the lines while we address other fronts.
+    Less commitment than peace, but buys time. (Costs 1 DP)
+
+Our position is good but not commanding, Sire. I favor peace while fortune
+smiles on us — but I understand the temptation to press further."
+```
+*Recommendation: 0 (peace). Schemer bias: moderate expansion aversion.*
+
+---
+
+**T22: VAGUE + WAR + LOSING_SLIGHTLY**
+
+```
+"The situation with {target_nation} grows concerning, Sire. Our war score
+stands at {war_score} — not catastrophic, but the trend is unfavorable.
+{target_diplomat} senses opportunity.
+
+[1] Sue for peace — accept moderate terms now before they worsen. The
+    longer we wait, the harsher {target_diplomat}'s demands. (Costs 2 DP)
+
+[2] Propose armistice — stop the bleeding without conceding defeat.
+    Three turns to regroup. (Costs 1 DP)
+
+[3] Fight on — a single victory reverses the dynamic entirely. But
+    defeat would make the eventual peace far more expensive.
+
+I would not normally counsel retreat, Sire, but diplomacy is not retreat.
+It is the art of choosing one's battles."
+```
+*Recommendation: 0 (peace). Schemer bias: strongly favors de-escalation when losing.*
+
+---
+
+**T23: VAGUE + PEACE + FRIENDLY (post-peace, ally management)**
+
+```
+"Our relations with {target_nation} are {relation_description}, Sire.
+{target_diplomat} {friendly_posture}. A fine foundation to build upon.
+
+[1] Propose an alliance — formalize our friendship. Mutual defense
+    would deter would-be aggressors. (Costs 2 DP)
+
+[2] Propose trade agreement — open borders and modest tribute.
+    Strengthens the bond without the commitment of alliance. (Costs 2 DP)
+
+[3] Maintain the status quo — not every friendship needs a treaty.
+    Save our diplomatic resources for more pressing matters.
+
+The Diplomatic Ledger (D key) has the precise figures if you wish
+to verify my assessment, Sire."
+```
+*Recommendation: 0 (alliance). Schemer bias: favors stabilizing alliances.*
+
+---
+
+**T24: MEDIUM (PEACE) + WAR + LOSING**
+
+```
+"Peace, Sire? Under these circumstances, it will not come cheaply.
+{target_diplomat} holds the stronger hand — our war score stands at
+{war_score}. To have any hope of acceptance, I suggest:
+
+  Peace treaty. France offers open borders.
+  France pays {suggested_gold} gold per turn.
+  {optional_concession}
+
+My assessment: {difficulty_tier}. {formula_hint}. (Costs 2 DP)
+
+I will not deceive you, Sire — these are hard terms. But they are
+better than the terms we will face in three more turns of defeats.
+
+[Send these terms]  [Less generous — I won't grovel]  [Let me specify]
+[Not now — we fight on]"
+```
+*{optional_concession}: territory cession if war_score < -30.*
+
+---
+
+**T25: MEDIUM (ALLIANCE) + PEACE + NEUTRAL**
+
+```
+"An alliance with {target_nation}? Ambitious, Sire. {target_diplomat}
+is neither hostile nor friendly — relations stand at {relation}.
+An alliance from neutral ground requires incentive:
+
+  Defensive alliance with open borders.
+  France offers {suggested_gold} gold per turn as a gesture.
+  {optional_sweetener}
+
+My assessment: {difficulty_tier}. {formula_hint}. (Costs 2 DP)
+
+{target_diplomat_personality_note}
+
+Of course, Sire, there is a cheaper path — improving relations first
+makes the eventual alliance less expensive. The choice is yours.
+
+[Propose alliance]  [Improve relations first (mission)]
+[Start with non-aggression]  [Let me specify]"
+```
+*{optional_sweetener}: protection guarantee if threat > 30.*
+
+---
+
+**T26: SPECIFIC + TALLEYRAND_OBJECTS (STRONG)**
+
+```
+"Sire — I must speak plainly. These terms are {objection_reason}.
+{target_diplomat} will not merely refuse — {strong_prediction}.
+
+{strategic_warning}
+
+I have served France through revolution and empire. I tell you now:
+this course leads to {dire_consequence}. I urge you to reconsider.
+
+My alternative: {modification_summary}.
+
+[Send my terms as ordered]  [Use your suggestion]  [Modify terms]"
+```
+*STRONG objection language: "will unite every court in Europe against us" / "is how empires fall" / "guarantees a coalition." Defiance possible on "Send my terms as ordered."*
+
+---
+
+**T27: FEASIBILITY — CHALLENGING (30-49 projected acceptance)**
+
+```
+"Can we reach terms with {target_nation}? Possible, Sire, but it
+will require effort — and perhaps concessions.
+
+The key factor working for us: {largest_positive}.
+Working against us: {largest_negative}.
+
+I would rate this as: {difficulty_tier} — not impossible, but far
+from certain.
+
+The most effective path: {actionable_hint}. Alternatively,
+{fallback_approach} would improve our odds over {turns_estimate} turns.
+
+[Proceed with a proposal]  [Improve relations first]
+[What exactly would tip the scales?]  [Not now]"
+```
+*Covers the 30-49 "interesting middle" that T14 (achievable, 50+) and T15 (impossible, <30) don't address.*
+
 ### 4c. Dynamic Slot Resolution
 
 Templates contain `{slots}` resolved at runtime from game state:
 
 ```python
 SLOT_RESOLVERS = {
-    "target_diplomat": lambda w, n: w.get_diplomat(n).name,
+    # Null-safe: all resolvers handle None returns from world methods.
+    # Nations without diplomats (carved vassals) use fallback text.
+    "target_diplomat": lambda w, n: _safe_diplomat_name(w, n),
     "target_nation": lambda w, n: n,
-    "their_capital": lambda w, n: w.get_nation_capital(n),
+    "their_capital": lambda w, n: (w.get_nation_capital(n) or "their capital"),
     "suggested_gold": lambda w, n: _suggest_gold_per_turn(w, n),
     "relation": lambda w, n: w.get_nation_relation("France", n),
     "relation_description": lambda w, n: _relation_description(w, n),
@@ -671,8 +879,22 @@ SLOT_RESOLVERS = {
     "formula_hint": lambda w, n: _get_formula_feedback(w, n),
     "war_score": lambda w, n: w.get_war_score("France", n),
     "threat_increase": lambda w, n: _threat_delta(proposal_type),
+    "target_diplomat_personality_note": lambda w, n: _safe_personality_note(w, n),
     # ... etc
 }
+
+def _safe_diplomat_name(world, nation):
+    """Null-safe diplomat name — carved vassals may lack diplomats."""
+    diplomat = world.get_diplomat(nation)
+    return diplomat.name if diplomat else "their representatives"
+
+def _safe_personality_note(world, nation):
+    """Null-safe personality note — returns empty string for nations without diplomats."""
+    diplomat = world.get_diplomat(nation)
+    if not diplomat:
+        return ""
+    # ... personality-based note generation
+
 
 def _relation_description(world, nation):
     """Natural language for relation value."""
@@ -684,14 +906,29 @@ def _relation_description(world, nation):
     return "deeply hostile — war may be inevitable"
 
 def _suggest_gold_per_turn(world, nation):
-    """Suggest gold amount that would make acceptance formula work."""
-    # Find gold/turn that pushes deal_sweetener high enough
-    # Start at 100, increment by 50 until projected acceptance > 45
+    """Suggest gold amount that would make acceptance formula work.
+    Returns (gold_amount, is_sufficient) tuple.
+    Cached per (nation, turn) to avoid repeated calculation."""
+    cache_key = (nation, world.turn)
+    if cache_key in _gold_suggestion_cache:
+        return _gold_suggestion_cache[cache_key]
+
     for gold in range(100, 501, 50):
         projected = _project_acceptance(world, nation, gold_per_turn=gold)
         if projected > 45:
-            return gold
-    return 300  # cap suggestion
+            _gold_suggestion_cache[cache_key] = (gold, True)
+            return (gold, True)
+
+    # No amount of gold works — template should switch to honest assessment
+    _gold_suggestion_cache[cache_key] = (500, False)
+    return (500, False)
+
+_gold_suggestion_cache = {}  # cleared on turn advance
+
+# When is_sufficient is False, template text changes:
+# Instead of "{suggested_gold} gold/turn should suffice"
+# Use: "No amount of gold alone will overcome {largest_negative}.
+#       Military pressure or relation improvement is needed first."
 ```
 
 ### 4d. Personality Modifier on Template Selection
@@ -709,8 +946,16 @@ def select_template(situation, game_bucket, specificity, personality="schemer"):
         # Shifts recommendation toward survival when losing
         if game_bucket == "winning_comfortably":
             base["recommendation"] = 0  # Always recommend peace when winning
-        # Add Schemer-flavored asides
-        base["text"] += "\n\n" + random.choice(SCHEMER_ASIDES[situation])
+        # Add Schemer-flavored asides — vary insertion point to avoid
+        # mechanical feeling (before recommendation, between options, as postscript)
+        aside = random.choice(SCHEMER_ASIDES[situation])
+        insertion = random.choice(["before_recommendation", "after_options", "postscript"])
+        if insertion == "before_recommendation":
+            base["text"] = base["text"].replace("{recommendation_line}", aside + "\n\n{recommendation_line}")
+        elif insertion == "postscript":
+            base["text"] += "\n\n" + aside
+        else:  # after_options (default)
+            base["text"] += "\n\n" + aside
 
     return base
 
@@ -796,6 +1041,8 @@ an opportunity — or a warning."
 | No diplomatic action taken for 3+ turns | Once | LOW | "Sire, the diplomatic front has been quiet. Perhaps too quiet." |
 
 **Frequency cap:** Maximum 2 diplomatic observations per dispatch. Highest priority wins. If nothing triggers, Talleyrand is silent (no filler text).
+
+**AI proposal suppression:** If an incoming AI proposal is pending for this turn, suppress proactive suggestions. Talleyrand is "busy" handling the incoming proposal. The suppressed suggestion can re-trigger next turn if conditions still hold.
 
 **Player acts on suggestion:** The `[Ask Talleyrand to elaborate]` button opens a `proposal_options` dialogue for that nation. The suggestion is the entry point to a conversation, not a standalone notification.
 
@@ -919,6 +1166,17 @@ ADVISORY_KEYWORDS = {
     "can we": "feasibility",
     "how do we": "recommend_action",
 }
+
+# m7: Question detection for mock parser — needed for is_question field
+def _detect_question(text):
+    """Detect if text is a question (advisory routing depends on this)."""
+    text = text.strip()
+    if text.endswith("?"):
+        return True
+    lower = text.lower()
+    question_starters = ["what", "who", "how", "should", "can", "could",
+                         "will", "would", "is", "are", "do", "does"]
+    return any(lower.startswith(s + " ") for s in question_starters)
 ```
 
 ### 8b. Five Advisory Conversation Examples
@@ -1025,6 +1283,12 @@ alliance — or at minimum, non-aggression — changes everything.
 
 *Mock mode: Iterates over all nations, generates one-liner per nation based on (state, relation, war_score). Recommendation = nation with worst relation that isn't at war, or nation most likely to join coalition.*
 
+**Overview template variants (prevent pattern fatigue in mock mode):** The open-ended overview has 4 structural variants, randomly selected:
+1. **Standard** — iterates all nations alphabetically (Example 4 above).
+2. **Threat-first** — leads with the biggest threat nation, then others briefly: "The Austrian question dominates everything else, Sire. ..."
+3. **Opportunity-first** — leads with the best opportunity: "Good news first, Sire — Saxony is ripe for alliance. Now, the challenges..."
+4. **Comparative** — picks the two most important nations and compares them directly: "The question, Sire, is whether Austria or Prussia poses the greater danger..."
+
 **Example 5: "What Would It Take"**
 
 ```
@@ -1094,34 +1358,78 @@ Player input during pending_diplomatic_dialogue:
     → Execute matched option
   Is it a free text response?
     → LLM mode: parse intent, map to closest option or generate new response
-    → Mock mode: "I'm not sure what you mean, Sire. Please choose: [1-4]"
+    → Mock mode (1st attempt): "I'm not sure what you mean, Sire. Please choose: [1-4]"
+    → Mock mode (2nd+ attempt): "Please choose an option (1-{n}), Sire.
+      If you'd like to cancel this conversation, type 'cancel'."
   ↓
   Option action:
     "execute_proposal" → Enter proposal transit (§2d of DIPLOMACY_SPEC)
-    "modify_harsh" → New dialogue with harsher terms
+    "modify_harsh" → New dialogue with harsher terms (max 2 iterations — see below)
     "modify_generous" → New dialogue with softer terms
     "expand_options" → New dialogue listing clause types
     "begin_mission" → Start diplomatic mission (§2e)
-    "elaborate" → New dialogue with more detail (depth +1, max 3)
+    "elaborate" → New dialogue with more detail (depth +1, max 3 — see below)
     "cancel" → Clear dialogue, no action
+
+  **Depth enforcement (advisory conversations):**
+  At depth 3, all options must be terminal actions only (execute, dismiss, cancel,
+  begin_mission). No "Tell me more" or "Elaborate" options appear. The template
+  selection logic strips non-terminal options at max depth.
+
+  **Modify_harsh iteration cap:**
+  Maximum 2 modification iterations (original → harsher → even harsher). After 2
+  modifications, the "Harsher" option is replaced with "Send these terms or specify
+  your own." At maximum harshness, Talleyrand: "Sire, I cannot propose terms more
+  severe than total subjugation. These are the harshest terms possible."
 ```
 
 ### 9c. Interaction with Existing Popup Systems
 
-**Blocking rules:**
-- Diplomatic dialogue blocks military commands (can't attack while Talleyrand is presenting options)
-- Objection popup takes priority over diplomatic dialogue (shouldn't co-occur, but if it does, objection wins)
-- AI proposal popups are delivered through the diplomatic dialogue system (T9/T10/T11 templates)
-- Diplomatic dialogue auto-dismisses if player ends turn without responding
+**Blocking priority hierarchy (strict, highest wins):**
 
-**Existing popup compatibility:**
+1. `pending_objection` — combat/tactical objections (always top priority)
+2. `pending_strategic_objection` — strategic order objections
+3. `pending_diplomatic_dialogue` (blocking=True) — incoming AI proposals, sabotage confrontation
+4. `pending_diplomatic_dialogue` (blocking=False) — player-initiated dialogues (advisory, proposal_options, etc.)
+
+When a higher-priority state is set, lower-priority states are preserved but not displayed. The player resolves them in priority order. Strategic per-turn execution (`_strategic_execution = True`) ignores `pending_diplomatic_dialogue` entirely — it's autonomous and doesn't require player input.
+
+**Blocking vs non-blocking dialogues:**
+
+| Dialogue Type | Blocking? | End-Turn Behavior |
+|---|---|---|
+| `incoming_proposal` | **Yes** | Blocks end-turn. Player MUST respond (Accept/Reject/Counter). |
+| `sabotage_confrontation` | **Yes** | Blocks end-turn. Player MUST choose (Confront/Overlook). |
+| `proposal_options` | No | Auto-dismisses on end-turn. |
+| `proposal_confirm` | No | Auto-dismisses on end-turn. |
+| `proposal_execute` | No | Auto-dismisses on end-turn. |
+| `advisory` | No | Auto-dismisses on end-turn. |
+| `feasibility` | No | Auto-dismisses on end-turn. |
+| `proactive_suggestion` | No | Auto-dismisses on end-turn. |
+
+**Auto-dismiss trace:** When a non-blocking dialogue is auto-dismissed on end-turn, add a Morning Dispatch note: "Your discussion about {target_nation} was not concluded. Talleyrand awaits your direction." This prevents player confusion when context is lost between turns.
+
+**Blocking dialogue response message (with current options):**
 
 ```python
 # In executor.py, add to the pending check hierarchy:
 if world.pending_diplomatic_dialogue is not None:
+    dialogue = world.pending_diplomatic_dialogue
+    # Include current options so player knows HOW to respond
+    option_labels = [f"[{i+1}] {o['label']}" for i, o in enumerate(dialogue.get("options", []))]
+    options_text = "  ".join(option_labels)
     return {
         "success": False,
-        "message": "Talleyrand awaits your response.",
+        "message": f"Talleyrand awaits your response regarding {dialogue.get('target_nation', 'diplomacy')}. {options_text}",
+        "awaiting_diplomatic_response": True,
+        "diplomatic_dialogue": dialogue,
+    }
+
+# End-turn blocking check:
+if world.pending_diplomatic_dialogue and world.pending_diplomatic_dialogue.get("blocking"):
+    return {
+        "success": False,
+        "message": "You must respond to the diplomatic matter before ending the turn.",
         "awaiting_diplomatic_response": True,
         "diplomatic_dialogue": world.pending_diplomatic_dialogue,
     }
@@ -1299,8 +1607,11 @@ Enemy diplomats have personalities that color AI decisions. When the AI decision
 | Template Library | `diplomatic_templates.py` (new) | 20+ templates with slot resolution |
 | Dialogue Router | Addition to `llm_client.py` | Classify specificity, route to dialogue engine |
 | Dialogue Endpoint | Addition to `main.py` | `/respond_to_diplomatic_dialogue` |
-| WorldState field | `world_state.py` | `pending_diplomatic_dialogue` (dict or None) |
+| WorldState field | `world_state.py` | `pending_diplomatic_dialogue` (dict or None) — must serialize (see §2b) |
 | Morning Dispatch section | `dispatch.py` | Talleyrand's Report (0-2 paragraphs) |
+| Gold suggestion cache | `diplomatic_dialogue.py` | `_gold_suggestion_cache` — cleared on turn advance |
+
+**Implementation note:** Update `docs/SAVE_FORMAT_REFERENCE.md` with `pending_diplomatic_dialogue` field definition. Update `docs/ROADMAP.md` Phase 8 to reference this design document and the 4-session plan.
 
 ---
 
@@ -1355,7 +1666,7 @@ The key to making mock feel conversational: **options are framed as advice, not 
 
 ### 13b. What's Hardest to Get Right
 
-1. **Template variety.** 20 base templates × 5 game state buckets × 5 nations = 500 potential combinations. Most will share templates with slot substitution, but enough variety to avoid repetition requires careful writing.
+1. **Template variety.** 27 base templates × 5 game state buckets × 5 nations = 675 potential combinations. Most share templates with slot substitution; advisory overview has 4 structural variants to prevent pattern fatigue.
 
 2. **Schemer bias calibration.** Too subtle = invisible = pointless. Too obvious = annoying = player always ignores Talleyrand. The 70/30 split needs playtesting.
 
@@ -1386,13 +1697,17 @@ The key to making mock feel conversational: **options are framed as advice, not 
 | `backend/game_logic/dispatch.py` | Add Talleyrand's Report section to morning dispatch (~80 lines) |
 | `godot-client/.../main.gd` | Diplomatic dialogue popup rendering and input handling (~150 lines) |
 
-### 14c. Implementation Order
+### 14c. Implementation Order (4 Sessions)
 
-**Session A (Foundation):** Dialogue state machine + template library + 10 core templates + endpoint. Player can have basic conversations with Talleyrand about proposals. Vague/medium/specific all work.
+**Session A (Foundation):** Dialogue state machine + template library + 10 core templates + endpoint + nation validation + null safety. Player can have basic conversations with Talleyrand about proposals. Vague/medium/specific all work. Fast-track for specific+agree. Serialization enforcement.
 
-**Session B (Depth):** Advisory conversations + proactive suggestions + remaining templates. "What if" questions work. Morning Dispatch integration.
+**Session B (Conversations):** Advisory conversations + proactive suggestions + remaining templates (T21-T27) + advisory variants. "What if" questions work. Morning Dispatch integration (Talleyrand's Report). Question detection in mock parser.
 
-**Session C (Polish):** Enemy diplomat voices + sabotage confrontation popup + Schemer bias calibration + Godot UI polish. Full system playable.
+**Session C (Objections & Confrontation):** Merged diplomatic objections + sabotage confrontation popup (T17 + discovery logic) + enemy diplomat voices + Talleyrand defiance trigger point wiring.
+
+**Session D (UI + Polish):** Godot popup rendering + Schemer bias calibration (playtesting) + blocking/auto-dismiss behavior + DP cost display + Ledger cross-references + overview template variants. Full system playable.
+
+**Note:** Update ROADMAP.md Phase 8 to replace "Diplomacy Chat" with "Conversational Diplomacy Layer (4 sessions)" and reference this design document.
 
 ### 14d. Test Strategy
 
