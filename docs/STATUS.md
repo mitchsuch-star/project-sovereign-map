@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4208** (4208 passed, 3 skipped — verified Feb 26, Strategic Compromise First-Step + Timer Fix) |
+| **Tests Passing** | **4208** (4208 passed, 3 skipped — verified Feb 26, Strategic Order UI) |
 
-| **Current Phase** | Phase 7b **V2b COMPLETE** (playtested). Tactical Triangle COMPLETE. Remaining: Jealousy (NEEDS DESIGN), Gneisenau (deferred to 1805). Coalition Trigger moved to Phase 8. |
+| **Current Phase** | Phase 7b **V2b COMPLETE** (playtested). Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Remaining: Jealousy (NEEDS DESIGN), Gneisenau (deferred to 1805). Coalition Trigger moved to Phase 8. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE. Gate 5+6 UI tests pending. |
 | **Code Coverage** | ~71% (backend/) |
 
