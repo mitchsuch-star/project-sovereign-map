@@ -18,18 +18,18 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Phase 7b remaining:** V2b COMPLETE. Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Gates 5+6 PASSED. Jealousy (NEEDS DESIGN). Coalition Trigger moved to Phase 8.
+- **Phase 7b remaining:** V2b COMPLETE. Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Gates 5+6 PASSED. Jealousy (SPEC v3 DRAFTED — needs design gate approval). Coalition Trigger moved to Phase 8.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial Infrastructure deferred to Pre-EA.
 
 ### Design Decisions Required (DO NOT CODE WITHOUT USER APPROVAL)
 
 **MANDATORY GATE: Do NOT implement until the user explicitly approves the design.**
 
-#### Jealousy System — Needs decision:
-- Trigger: >50% casualties in coordinated battle, or different threshold?
-- Consequence: trust -5 toward glory-stealer, or morale penalty, or both?
-- Duration: one-time, 3-turn persistent, or escalating?
-- Can jealousy trigger objections (feeds into V2b)?
+#### Jealousy System — v3 spec drafted, needs final approval:
+- Core design settled: Glory Ladder targeting, personality expressions, escalation, rivalry confrontation events
+- Literal expression selected: Candidate B (Vindicated Garrison / Obsessive Competence)
+- Remaining design needed: Top of glory ladder buff (see JEALOUSY_SPEC.md §1 note)
+- Full spec: `docs/JEALOUSY_SPEC.md`
 
 
 
