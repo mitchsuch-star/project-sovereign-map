@@ -25,10 +25,12 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 **MANDATORY GATE: Do NOT implement until the user explicitly approves the design.**
 
-#### Jealousy System — v3 spec drafted, needs final approval:
-- Core design settled: Glory Ladder targeting, personality expressions, escalation, rivalry confrontation events
-- Literal expression selected: Candidate B (Vindicated Garrison / Obsessive Competence)
-- Remaining design needed: Top of glory ladder buff (see JEALOUSY_SPEC.md §1 note)
+#### Jealousy System — v3.1 spec, needs final approval:
+- Core design settled: Glory Ladder targeting, personality expressions, escalation, confrontation popups
+- Literal expression: Candidate B (Vindicated Garrison / Obsessive Competence)
+- Top of ladder: +1 all core stats (shock/fire/admin) while #1 — designed, needs approval
+- Glory loss: Defeats cost glory (-1 base, modifiers) — keeps ladder dynamic
+- §6b Rivalry Confrontation: Deferred to v3.1 implementation
 - Full spec: `docs/JEALOUSY_SPEC.md`
 
 

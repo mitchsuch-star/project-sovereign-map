@@ -1,9 +1,9 @@
 # Jealousy System — Design Spec
 
-> **Status:** DRAFT v3 — Needs design gate approval before implementation.
+> **Status:** DRAFT v3.1 — Needs design gate approval before implementation.
 > **Phase:** 7b (final item before Phase 8)
 > **Prerequisite:** V2b Defiance COMPLETE, Tactical Triangle COMPLETE, Relationship system COMPLETE.
-> **v3 Changes:** Glory Ladder targeting, Candidate B selected for Literal, confrontation events with randomness, autonomous attack AP cost removed, Promise Glory simplified, Cautious resolution softened, relationship-scaled thresholds, rate limiting. See §17 for full changelog.
+> **v3.1 Changes:** Top of ladder = +1 all stats, glory loss mechanic, §6b deferred, §7 simplified, Literal trigger clarified, escalation tier 3 clarified, confrontation popup timing. See §17 for full changelog.
 
 ---
 
@@ -24,15 +24,26 @@ Historical anchor: Marshal rivalries were Napoleon's constant headache. Ney and 
 Track a **glory score** per marshal, not raw battle wins. Rolling 5-turn window. Glory captures *magnitude* of achievement — a marshal who won two garrison stomps shouldn't trigger jealousy in one who won a decisive pitched battle.
 
 ```
-Glory per battle:
+Glory from VICTORIES:
   Base:             +1 per victory
   Decisive win:     +1 bonus (casualty ratio >= 2:1 in your favor)
   Territory taken:  +1 bonus (captured a region this battle)
   Outnumbered:      +1 bonus (won when enemy had more troops)
   Garrison stomp:   +0 (defeating a garrison — no glory in that)
+
+Glory from DEFEATS (v3.1 — keeps the ladder dynamic):
+  Base:             -1 per defeat
+  Decisive loss:    -1 extra (casualty ratio >= 2:1 against you — humiliation)
+  Territory lost:   -1 extra (lost a region this battle)
+  Outnumbered loss: +0 reduction (no shame in losing to superior numbers)
+  Garrison defense: -0 (garrison losses are expected, no dishonor)
+
+  Floor: A marshal's glory score cannot go below 0.
 ```
 
-Each glory event is stored as `(turn_number, glory_points)`. At evaluation, sum points within the 5-turn window.
+Losses keep the ladder fluid — you can fall as well as rise. A string of defeats drops you, potentially making you jealous of someone who passed you. A cautious marshal who avoids battle preserves glory; a reckless one who loses bleeds it. But losing while outnumbered carries no stigma — the shame is in losing battles you should have won.
+
+Each glory event is stored as `(turn_number, glory_points)` where points can be negative. At evaluation, sum points within the 5-turn window (floor at 0).
 
 ### The Glory Ladder (v3 — replaces dogpile targeting)
 
@@ -73,9 +84,26 @@ Glory rankings this window:
 
 Three DIFFERENT rivalries instead of everyone piling on Davout. Each pair has its own dynamics, resolution path, and escalation history.
 
-### Top of Ladder Buff
+### Top of Ladder Buff — "Crowned with Glory"
 
-> **NEEDS DESIGN:** The marshal at the top of the glory ladder (highest glory score) should get some kind of buff or recognition. They've earned it — they're the army's star performer. Ideas: morale boost, authority contribution, "Hero of the Campaign" dispatch title, recruitment bonus in their region. Design TBD — do NOT implement without approval.
+The marshal at the top of the glory ladder gets **+1 to all core stats** (shock, fire, admin) while they hold the position. This is a meaningful power spike — it literally levels them up. The buff transfers when someone else takes the top spot.
+
+```
+While #1 on glory ladder (glory > 0):
+  +1 shock, +1 fire, +1 admin
+
+Implementation: Route through get_effective_skill() — derivable from glory
+  ladder position. No new persistent field needed. Buff is transient:
+  recalculated each turn from current ladder state.
+
+Self-balancing: Being on top makes others jealous of you (they see the
+  delta). The reward for excellence creates friction. Historically accurate —
+  Napoleon's most decorated marshals were the most resented.
+
+Announced in Morning Dispatch when the top position changes:
+  "Berthier notes that Davout's recent victories have made him the
+   most celebrated commander in the army. (+1 shock, +1 fire, +1 admin)"
+```
 
 ### Ties on the Ladder
 
@@ -197,7 +225,9 @@ Each personality type expresses jealousy differently. The core output is always 
 
 Grouchy's actual pursuit of the Prussians was competent. He found them, engaged them at Wavre, did his job. The catastrophe was that his excellent work on the wrong objective meant he wasn't where Napoleon needed him. The failure was strategic, not tactical. Jealous Grouchy recreates this exact dilemma.
 
-**Trigger:** DIFFERENT from other personalities. Literals don't care about glory — they care about being treated as competent. Literal jealousy triggers when the marshal has been on **HOLD or garrison duty for 3+ consecutive turns** while other same-nation marshals received attack or move orders. They resent being sidelined, not outshone.
+**Trigger:** DIFFERENT from other personalities. Literals don't care about glory — they care about being treated as competent. Literal jealousy triggers when the marshal has been on **HOLD or garrison duty for 3+ consecutive turns** while other same-nation marshals are actively engaged. They resent being sidelined, not outshone.
+
+**"Actively engaged" means:** At least one other same-nation marshal has an active non-HOLD strategic order (MOVE_TO, PURSUE, SUPPORT) OR received a tactical attack/move command this turn. If ALL marshals are idle/on HOLD, Grouchy doesn't feel sidelined — everyone's waiting. The trigger is differential treatment, not absolute inactivity.
 
 **Three effects:**
 - **Intel Enhancement** (`calculate_visibility`) — Grouchy's scouting output increases. Adjacent regions get boosted visibility (PARTIAL -> FULL, UNKNOWN -> PARTIAL). He's sending out extra patrols, mapping enemy supply lines, tracking movements. The player gets *better* intelligence from Grouchy's sector than anywhere else.
@@ -321,9 +351,15 @@ When jealousy fires for the **first time** between two marshals, create a popup 
 
 Subsequent jealousy triggers between the same pair use the standard popup-free flow (just Morning Dispatch events). Only the FIRST occurrence gets the confrontation choice.
 
+### Confrontation Popup Timing
+
+The confrontation popup appears at the **start of the NEXT turn** (during Morning Dispatch phase), not during the turn jealousy fires. Jealousy evaluation runs at end-of-turn; showing a popup mid-evaluation would interrupt the player's mental model. Start-of-turn is when the player is already processing information and making decisions.
+
 ---
 
-## 6b. Rivalry Confrontation Event (v3 — NEW)
+## 6b. Rivalry Confrontation Event (v3 — DEFERRED TO v3.1)
+
+> **DEFERRED:** Full probability tables, authority-gated mediation, and "Separate Them" persistence flag deferred to v3.1 implementation. Relationship transitions already have mechanical consequences through coordination/objection/defiance systems — the confrontation event adds narrative flavor, not core gameplay. Implement after jealousy core (Sessions 1-3) is playtested.
 
 Separate from jealousy confrontation. Fires when a relationship **transitions** downward: Professional(0) -> Rival(-1) or Rival(-1) -> Hostile(-2). Creates a dramatic moment with player agency and randomness on all options.
 
@@ -400,13 +436,14 @@ When a jealous Aggressive marshal launches an autonomous attack, target selectio
 ```
 Priority:
   1. Weakest adjacent enemy (easiest glory — desperate, not smart)
-  2. Enemy that the jealousy target recently defeated (steal THEIR glory)
-  3. Any adjacent enemy
-  4. No target available -> no autonomous action (just relationship penalty)
+  2. Any adjacent enemy
+  3. No target available -> no autonomous action (just relationship penalty)
 
 NOT: the strategically optimal target
 NOT: the strongest enemy (they want glory, not death)
 ```
+
+> **v3.1 CUT:** "Steal target's glory" (attack enemy the target recently defeated) removed. Required tracking which enemies each marshal defeated — untracked state. Weakest adjacent is sufficient glory-seeking behavior.
 
 **Advance Warning:** Autonomous attack is announced **1 turn in advance** via Morning Dispatch turn events:
 
@@ -554,7 +591,7 @@ Escalation activates when:
 
 **2nd escalation:** Permanent -1 relationship (does NOT restore on jealousy resolution). This feeds into SUPPORT objections and coordination penalties permanently.
 
-**3rd escalation:** Mutual jealousy — if A becomes jealous of B again, B **automatically** becomes jealous of A. Creates the Ney-Davout spiral. The player's only option is to physically separate them (assign to different fronts) or accept permanent friction.
+**3rd escalation:** Mutual jealousy — if A becomes jealous of B again, B **automatically** becomes jealous of A regardless of glory ladder position. B's jealousy target is forced to A specifically (overrides normal ladder lookup). B gets full personality expression (autonomous attack if Aggressive, etc.). Creates the Ney-Davout spiral. The player's only option is to physically separate them (assign to different fronts) or accept permanent friction.
 
 ### Escalation Tracking
 
@@ -821,7 +858,7 @@ This skeleton is playtest-able before building confrontation popups, escalation,
 
 ## 14. What This Spec Does NOT Cover
 
-- **Top of ladder buff** — NEEDS DESIGN. The marshal at the top of the glory ladder should get some recognition. See §1 note.
+- **Top of ladder buff** — DESIGNED (v3.1). +1 all core stats while #1. See §1.
 - **Coalition Trigger** — moved to Phase 8
 - **Council command** ("to my tent" active resolution) — deferred to Phase 8 or later
 - **Enemy marshal jealousy UI** — enemy gets mechanical core (same formulas), not player-facing UI (popups, warnings). See §9b.
@@ -940,36 +977,19 @@ If jealous Grouchy's region is attacked and he's pushed back via forced retreat,
 
 ## 18. Design Review Findings (Feb 27, 2026)
 
-### 18a. Top of Ladder Buff — Candidates
+### 18a. Top of Ladder Buff — "Crowned with Glory" (APPROVED DIRECTION)
 
-> **NEEDS DESIGN APPROVAL.** Pick one before implementation.
+**Selected design: +1 to all core stats (shock, fire, admin)** while #1 on the glory ladder. See §1 for full specification.
 
-#### Candidate A: "Hero of the Army" — Morale Regeneration (RECOMMENDED)
+**Why stat boost over alternatives:**
+- **Morale regen** (rejected): Too passive. Player doesn't feel it happening. Recovery speed is invisible.
+- **Authority contribution** (rejected): Creates feedback loop (authority suppresses jealousy → top marshal stays on top forever). Self-defeating.
+- **Recruitment bonus** (rejected): Location-gated and niche. Only matters in manpower-rich regions.
+- **Stat boost** (selected): Immediately visible in combat. "Literally levels you up." Player FEELS the difference when their star performer hits harder, defends better, and manages supply more efficiently. The buff transfers when the position changes — creates genuine excitement about ladder movement.
 
-+5 morale regeneration per turn for the top glory marshal. Troops fight harder near a living legend.
+**Interaction with glory loss mechanic:** Losses can knock a marshal off the top. The stat buff transfers to whoever takes #1. This means the top position is contested, not permanent. A marshal who rests on laurels can lose the crown to someone still fighting. The ladder is a living thing.
 
-- **Implementation:** One line in `_process_tactical_states()`. Derivable from `get_glory_score()` — no new field.
-- **Interaction:** Morale → `get_combat_effectiveness()` (100 morale = 1.5x). Top marshal recovers from losses ~1 turn faster.
-- **Perverse incentives:** LOW. Can't easily game who's on top — glory comes from battle outcomes. Being on top makes others jealous (self-balancing).
-- **Historical anchor:** Napoleon's Bulletins named specific marshals, boosting morale army-wide. Davout after Austerlitz, Ney at Friedland.
-
-#### Candidate B: "Emperor's Favor" — Authority Contribution
-
-+2 authority per turn for the top glory marshal. Army's faith in leadership reinforced by visible success.
-
-- **Implementation:** +2 in `advance_turn()`. Guard: only if top glory > 0.
-- **Interaction:** Authority → jealousy suppression (>70), defiance chance. Creates positive feedback loop: top marshal → +authority → jealousy suppressed.
-- **Perverse incentives:** MODERATE. Player might funnel all glory to one marshal to keep authority high. Loop bounded by authority cap (100) and drain from other sources.
-- **Historical anchor:** Napoleon's authority was directly tied to his marshals' victories. When they won, his prestige soared.
-
-#### Candidate C: "Star of the Campaign" — Title + Recruitment Bonus
-
-Title in dispatch/marshal management + 20% recruitment bonus in the hero's region.
-
-- **Implementation:** Check glory ladder in `_execute_recruit()`, 1.2x multiplier. Title in `marshal_overview.py` + `dispatch.py`. 3-4 lines.
-- **Interaction:** Recruitment only — no combat, trust, authority, or relationship effects. Locationally gated (depleted region = no benefit).
-- **Perverse incentives:** LOW. Can't exploit without the marshal being in a manpower-rich region.
-- **Historical anchor:** Recruitment followed military fame. After Austerlitz, French recruiting offices saw volunteer spikes.
+**Self-balancing:** +1 all stats makes the top marshal more effective → they win more → they stay on top → others get more jealous → more friction. The reward for excellence is power AND a target on your back.
 
 ### 18b. Edge Cases (from design review)
 
@@ -1015,19 +1035,28 @@ Title in dispatch/marshal management + 20% recruitment bonus in the hero's regio
 
 ## 17. Changelog
 
-### v3.1 (Design Review Pass — Feb 27, 2026)
+### v3.1 (Design Review + Feedback Pass — Feb 27, 2026)
 
-Design review with historical analysis, friction audit, and implementation planning.
+Design review with historical analysis, friction audit, implementation planning. Followed by user feedback pass with 7 directed changes.
 
-**Merged into spec:**
+**Merged into spec (design review):**
 - §13 rewritten with 3+1 session plan (was outline only). Walking skeleton defined. Risk assessment per session.
-- §18a: Three top-of-ladder buff candidates (Morale Regen recommended, needs approval).
+- §18a: Top of ladder buff candidates evaluated.
 - §18b: 14 edge cases (EC-A through EC-N) identified during review.
 - §18c: Design suggestions — cautious visibility, rivalry deferral, literal dispatch downgrade, targeting simplification.
 
+**User feedback changes (v3.1b):**
+- §7: Cut "steal target's glory" priority #2. Simplified autonomous attack to 3 priorities.
+- §6b: Rivalry Confrontation deferred entirely to v3.1 implementation.
+- §3: Literal trigger clarified — "actively engaged" defined (non-HOLD strategic order OR tactical command this turn).
+- §10: Escalation tier 3 mutual clarified — B's target forced to A specifically, overrides ladder lookup.
+- §6: Confrontation popup timing added — start of NEXT turn, not during evaluation.
+- §1: Top of ladder redesigned as +1 all core stats (shock/fire/admin). Morale regen rejected.
+- §1: Glory loss mechanic added — defeats cost glory (-1 base, -1 decisive, -1 territory lost, outnumbered exempt). Keeps ladder dynamic.
+- §18a: Updated to reflect stat boost selection with rationale.
+
 **Deferred to v3.1 implementation:**
 - Rivalry Confrontation (§6b) — highest complexity, lowest marginal gameplay value.
-- Top of ladder buff — needs design gate approval.
 - "Separate Them" persistence flag.
 
 ### v3 (Design Review Session — Feb 2026)
