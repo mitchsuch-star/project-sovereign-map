@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 26, 2026 (V2b: Redemption Audit — Frontend Wiring + Integration Tests)
+> **Last Updated:** February 26, 2026 (V2b COMPLETE — playtested and signed off)
 
 ---
 
@@ -11,7 +11,7 @@
 |--------|-------|
 | **Tests Passing** | **4208** (4208 passed, 3 skipped — verified Feb 26, Strategic Compromise First-Step + Timer Fix) |
 
-| **Current Phase** | Phase 7b **IN PROGRESS** (Tactical Triangle + V2b COMPLETE. Remaining: Jealousy, Gneisenau). Coalition Trigger moved to Phase 8. |
+| **Current Phase** | Phase 7b **V2b COMPLETE** (playtested). Tactical Triangle COMPLETE. Remaining: Jealousy (NEEDS DESIGN), Gneisenau (deferred to 1805). Coalition Trigger moved to Phase 8. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE. Gate 5+6 UI tests pending. |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,11 +19,10 @@
 
 ## Next Steps
 
-1. **Strategic Order UI** — Dedicated standing orders screen (next up). Ledger Forces tab has per-marshal order data; need consolidated view with order timeline, cancel/modify, and topbar hotkey.
-2. ~~**Timed SUPPORT fix**~~ **FIXED.** Compromise first-step + arrived_turn timer. See session below.
-3. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~246 new tests.
-4. **Phase 7b: IN PROGRESS.** Tactical Triangle COMPLETE (Sessions 67-68). V2b COMPLETE (Sessions 0-3). **Gates 5+6 UI tests pending.** Remaining: Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
-5. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
+1. **Strategic Order UI** — New "Orders" tab in Strategic Ledger (tab 6). Shows all standing orders with cancel buttons. No spec needed — follows existing ledger tab pattern.
+2. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~246 new tests.
+3. **Phase 7b: V2b COMPLETE** (playtested, signed off). Tactical Triangle COMPLETE (Sessions 67-68). V2b Sessions 0-3 + audit cleanup + compromise bugfix. **Gates 5+6 UI tests pending.** Remaining: Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
+4. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
 ---
 
