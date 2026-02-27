@@ -659,7 +659,20 @@ All remaining fields MUST be added to `to_dict()` and `from_dict()` with `.get()
 
 ---
 
-## 13. Implementation Outline
+## 13. Implementation Plan
+
+### Walking Skeleton (Minimum Viable Jealousy)
+
+80% of gameplay value with ~40% of implementation cost:
+
+1. Glory tracking + ladder ranking
+2. Trigger evaluation (relationship-scaled thresholds)
+3. Aggressive expression: autonomous attack (the signature moment)
+4. Temporary -1 relationship (cascades through existing coordination/objection automatically)
+5. Duration timer + resolution conditions
+6. Berthier pre-warning + fire notification
+
+This skeleton is playtest-able before building confrontation popups, escalation, or enemy building blocks.
 
 ### Files to Modify
 
@@ -690,9 +703,100 @@ All remaining fields MUST be added to `to_dict()` and `from_dict()` with `.get()
 - `record_glory(marshal, turn, battle_result)` — add glory event after battle
 - `evaluate_rivalry_confrontation(marshal_a, marshal_b, transition, world)` — rivalry event with randomness
 
+### Session Plan (3 Core + 1 Polish)
+
+#### Session 1: Glory + Trigger + Core Mechanics (LOW RISK)
+
+**Scope:**
+- New file: `backend/game_logic/jealousy.py`
+- Glory event recording after battles (in `executor.py`)
+- `get_glory_score()` with 5-turn window
+- `find_jealousy_target()` — glory ladder, one rung above
+- `evaluate_jealousy()` — threshold check with relationship scaling
+- `apply_jealousy()` — set fields, temporary -1 relationship
+- `clear_jealousy()` — restore relationship, clear fields
+- Duration timer in `advance_turn()`
+- New marshal fields: `jealous_of`, `jealousy_turns_remaining`, `glory_events`, `consecutive_hold_turns`
+- Serialization for all new fields
+- Authority suppression (>70) and acceleration (<30)
+- Suppression conditions (broken, retreating, Devoted)
+
+**Reuses:** Relationship system (modify_relationship), advance_turn pattern, personality checks.
+**Risk:** LOW — new file, new fields, straightforward logic. No existing code modified beyond advance_turn wiring and post-battle glory recording.
+**Estimated tests:** ~40
+
+**Gate:** `pytest` passes. Manual test: play 5 turns, see jealousy fire in test output.
+
+#### Session 2: Personality Expressions + Resolution (MEDIUM RISK)
+
+**Scope:**
+- Aggressive: autonomous attack (advance warning, target priority, +15% solo buff, 0% coordination hard override, unavailability)
+- Cautious: dispatch flavor text (coordination withholding is automatic via -1 relationship)
+- Literal: trigger (consecutive HOLD), intel enhancement in `calculate_visibility()`, reassignment dispatch event
+- Resolution conditions per personality
+- Surge buff (1-turn post-resolution)
+- Ladder shift resolution (passing target clears jealousy)
+- Morning dispatch events: restlessness, fired, autonomous warning, target notice, resolved, surge, ladder shift
+- Campaign log: jealousy event type + formatter variants
+- Battle report: jealousy-aware Berthier observations
+
+**Reuses:** Attack execution, calculate_visibility, dispatch builder, campaign log patterns, battle report observation system.
+**Risk:** MEDIUM — autonomous attack inserts into executor flow. Model after existing autonomous/redemption attack pattern.
+**Highest-risk point:** Autonomous attack in executor.py — needs to bypass normal command flow (no parser, no AP, no objection) while still using `_execute_attack()`. Use `is_player_action=False`.
+**Estimated tests:** ~50
+
+**Gate:** `pytest` passes. curl test: end turn triggers jealousy evaluation. Autonomous attack fires correctly.
+
+#### Session 3: Confrontation + Escalation + Enemy (MEDIUM RISK)
+
+**Scope:**
+- Confrontation popup (first-time per pair): Acknowledge/Promise/Rebuke
+- Escalation system: history tracking, progressive effects (warning → permanent damage → mutual)
+- Enemy Building Blocks: same evaluation for enemy marshals, authority proxy, no UI layer
+- Rate limiting: max 2 fires/turn, 1 popup/turn, overflow queuing
+- Notification types: JEALOUSY_CONFRONTATION
+- Battle report: enemy jealousy observations
+
+**Reuses:** Popup/objection patterns in executor.py → main.py → Godot. Notification system. Enemy AI evaluation in turn_manager.
+**Risk:** MEDIUM — confrontation popup follows existing objection pattern. Escalation derived from history list (clean). Enemy evaluation is player evaluation with UI stripped.
+**Estimated tests:** ~45
+
+**Gate:** `pytest` passes. Full integration: jealousy fires, popup appears, escalation triggers, enemy jealousy observable.
+
+#### Session 4 (v3.1 Polish — DEFERRED)
+
+- Rivalry Confrontation event (§6b) — probability tables, authority-gated mediation, "Separate Them" flag
+- Separation management flag + dispatch warnings
+- Top of ladder buff (see §18a for candidates — needs design approval)
+- Any edge cases from playtesting
+
+**Estimated tests:** ~30
+
+### What Can Be Deferred to v3.1
+
+| Feature | Impact of Deferral |
+|---------|-------------------|
+| Rivalry Confrontation (§6b) | Low — relationship transitions already have mechanical consequences. Narrative flavor only. |
+| "Separate Them" flag | Low — player can track this mentally. |
+| Top of ladder buff | Low — doesn't affect jealousy mechanics. Pure bonus. |
+| Escalation tiers 2-3 | Medium — tier 1 (warning) is the most common. Tiers 2-3 require 3+ lifetime triggers, rare in 25-turn Waterloo. |
+
+### Integration Risk Points
+
+| Risk | File(s) | Mitigation |
+|------|---------|------------|
+| Autonomous attack bypassing normal flow | executor.py | Model after autonomous/redemption attack pattern. Use `_execute_attack()` with `is_player_action=False`. |
+| calculate_visibility modification for Literal | world_state.py | Additive visibility boost, not replacement. Test fog leak regression. |
+| Glory recording timing | executor.py | Record AFTER `process_battle_relationships()` runs. Same timing as relationship processing. |
+| Advance warning state across turns | marshal.py, world_state.py | `jealousy_autonomous_warned` bool, cleared on cancel or attack. Simple state machine. |
+| Confrontation popup wiring | executor.py, main.py | Follows objection popup pattern exactly. Use `world.pending_jealousy_confrontation`. |
+| Enemy jealousy in turn_manager | turn_manager.py, enemy_ai.py | Evaluate after enemy phase actions resolve. Same timing as player jealousy. |
+
 ### Test Coverage
 
-- **Glory Ladder:** Correct target identification (one rung above), tie handling, top-of-ladder has no target
+~165 tests across 4 sessions. Key areas:
+
+- **Glory Ladder:** Target identification (one rung above), tie handling, top-of-ladder has no target
 - **Ladder shift resolution:** Passing target clears jealousy with surge buff, escalation history still records
 - **Relationship-scaled thresholds:** Devoted immune, Friendly delta>=4, Professional delta>=2, Rival delta>=1, Hostile delta>=1+idle
 - **Trigger:** Glory delta vs threshold, idle acceleration, Literal consecutive HOLD trigger, authority acceleration/suppression
@@ -710,8 +814,8 @@ All remaining fields MUST be added to `to_dict()` and `from_dict()` with `.get()
 - **Pre-warning:** Restlessness dispatch event at threshold-1, target notification
 - **Serialization:** All new fields round-trip, derivable fields NOT serialized
 - **Suppression:** Authority > 70, capital threatened, broken/retreating marshals, Devoted immunity
-- **Enemy jealousy (Building Blocks §9b):** Enemy glory ladder evaluates same formula, enemy relationship degrades same as player, enemy coordination automatically affected (zero new code), enemy authority proxy (capital/region control), Devoted enemy pairs immune, battle report observes enemy jealousy, fog-filtered dispatch intel on enemy friction
-- **Edge cases:** Both marshals jealous of each other (mutual from escalation), jealousy during retreat (suppressed), Hostile floor (expression fires, no further relationship effect), ties on ladder (worse relationship tiebreak)
+- **Enemy jealousy (Building Blocks §9b):** Same formulas, same thresholds, same cascade. Authority proxy. Devoted enemy pairs immune. Battle report observes enemy friction.
+- **Edge cases:** See §18b for full list
 
 ---
 
@@ -834,7 +938,97 @@ If jealous Grouchy's region is attacked and he's pushed back via forced retreat,
 
 ---
 
+## 18. Design Review Findings (Feb 27, 2026)
+
+### 18a. Top of Ladder Buff — Candidates
+
+> **NEEDS DESIGN APPROVAL.** Pick one before implementation.
+
+#### Candidate A: "Hero of the Army" — Morale Regeneration (RECOMMENDED)
+
++5 morale regeneration per turn for the top glory marshal. Troops fight harder near a living legend.
+
+- **Implementation:** One line in `_process_tactical_states()`. Derivable from `get_glory_score()` — no new field.
+- **Interaction:** Morale → `get_combat_effectiveness()` (100 morale = 1.5x). Top marshal recovers from losses ~1 turn faster.
+- **Perverse incentives:** LOW. Can't easily game who's on top — glory comes from battle outcomes. Being on top makes others jealous (self-balancing).
+- **Historical anchor:** Napoleon's Bulletins named specific marshals, boosting morale army-wide. Davout after Austerlitz, Ney at Friedland.
+
+#### Candidate B: "Emperor's Favor" — Authority Contribution
+
++2 authority per turn for the top glory marshal. Army's faith in leadership reinforced by visible success.
+
+- **Implementation:** +2 in `advance_turn()`. Guard: only if top glory > 0.
+- **Interaction:** Authority → jealousy suppression (>70), defiance chance. Creates positive feedback loop: top marshal → +authority → jealousy suppressed.
+- **Perverse incentives:** MODERATE. Player might funnel all glory to one marshal to keep authority high. Loop bounded by authority cap (100) and drain from other sources.
+- **Historical anchor:** Napoleon's authority was directly tied to his marshals' victories. When they won, his prestige soared.
+
+#### Candidate C: "Star of the Campaign" — Title + Recruitment Bonus
+
+Title in dispatch/marshal management + 20% recruitment bonus in the hero's region.
+
+- **Implementation:** Check glory ladder in `_execute_recruit()`, 1.2x multiplier. Title in `marshal_overview.py` + `dispatch.py`. 3-4 lines.
+- **Interaction:** Recruitment only — no combat, trust, authority, or relationship effects. Locationally gated (depleted region = no benefit).
+- **Perverse incentives:** LOW. Can't exploit without the marshal being in a manpower-rich region.
+- **Historical anchor:** Recruitment followed military fame. After Austerlitz, French recruiting offices saw volunteer spikes.
+
+### 18b. Edge Cases (from design review)
+
+**EC-A: Defensive glory.** Glory formula says "garrison stomp = +0" but doesn't address defensive victories. If Grouchy defends his garrison against an attacker and wins, does he earn glory? **Clarify: "Base: +1 per victory" includes defensive victories.** Garrison stomp exemption applies only to attackers defeating a garrison.
+
+**EC-B: Autonomous attack + strategic orders.** If jealous Ney has an active MOVE_TO/PURSUE, the autonomous attack disrupts the path. **Rule: Autonomous attack clears any active strategic order** (same pattern as reinforcement relocation in MULTI_MARSHAL_SPEC).
+
+**EC-C: Steal target's glory (§7 priority #2).** "Enemy that the jealousy target recently defeated" requires tracking which enemies a marshal defeated — not tracked anywhere in current system. **Recommendation: Cut priority #2.** Weakest adjacent enemy is sufficient glory-seeking behavior.
+
+**EC-D: Literal trigger — what counts as "garrison duty"?** Trigger is HOLD strategic order or explicit garrison command, NOT just being physically near a garrison. If ALL marshals are on HOLD, the "while others received orders" condition is false — Grouchy's jealousy doesn't trigger.
+
+**EC-E: Jealousy + defiance cascade.** Jealous Ney ordered to SUPPORT Davout → relationship SUPPORT objection fires (Rival/Hostile) → player insists → defiance may fire → Ney attacks instead of supporting. This is a 4-step cascade. **This is intended behavior** (Bernadotte at Jena). Document as expected interaction, not a bug.
+
+**EC-F: Resolution + relationship processing timing.** If battle resolves jealousy, the -1 temp relationship should restore BEFORE `process_battle_relationships()` runs on that battle. **Ordering: resolve jealousy → restore relationship → process battle relationships.**
+
+**EC-G: Bidirectional jealousy (pre-escalation).** Two marshals can independently become jealous of each other through normal ladder mechanics without escalation tier 3. Escalation "mutual" at tier 3 is about *automatic* triggering, not about prohibiting natural bidirectional jealousy.
+
+**EC-H: Capital threatened suppression vs. helpful autonomous attack.** If the jealous aggressive marshal would attack the enemy threatening the capital, suppression still prevents it. **Correct** — survival overrides pettiness, player should be commanding defense.
+
+**EC-I: Promise Glory with 0 AP.** Gray out the option at display time. Don't let player select then fail at execution.
+
+**EC-J: Evaluation order + rate limiting.** Evaluate ALL marshals first (snapshot who crosses threshold), THEN apply rate limiting to sorted list. Don't interleave evaluation and application — relationship changes from early fires could affect later threshold checks.
+
+**EC-K: Aggressive resolution — raw or effective strength?** "Win where enemy strength >= 70% of yours" uses **raw strength** (pre-modifier, pre-coordination). Glory is about fighting someone your size, not about modifier advantages.
+
+**EC-L: Cautious resolution — "2+ allies present."** The cautious marshal must be IN the battle AND 2+ OTHER same-nation marshals must also participate. 3+ total including the cautious marshal.
+
+**EC-M: Enemy "home regions" for authority proxy.** Define per faction. For Waterloo: regions controlled at game start by that faction. Must be reconstructible from static data (region.py starting controller), not a serialized field.
+
+**EC-N: Enemy autonomous attack + AI priority chain.** Aggressive enemy marshal's jealousy-driven autonomous attack inserts after P1 (broken recovery) but before P2 (defend capital). Survival priorities override jealousy.
+
+### 18c. Design Review Suggestions
+
+**Cautious expression visibility (§3 Cautious).** The 50% coordination reduction is mechanically correct but the player may not feel it. Promote the existing "campaign log flavor: critical reports undermining the rival" to a guaranteed dispatch event: *"Davout's reports on Ney's forces have become... sparse. Do not expect full cooperation."* Surfaces the jealousy without adding mechanics.
+
+**Rivalry Confrontation (§6b) complexity.** The probability tables have ~30+ values to balance. Consider collapsing to 2 outcome bands per option (e.g., 75%/25%) instead of 3-4. Alternatively, defer the entire §6b to v3.1 — relationship transitions already have mechanical consequences through coordination/objection systems.
+
+**Literal reassignment dispatch.** Downgrade from popup to dispatch event. It's informational (not an objection), and making it a dispatch event lets the player read it at their pace without interrupting command flow.
+
+**Autonomous attack targeting.** Cut priority #2 (steal target's glory) per EC-C above. Simplifies to: weakest adjacent → any adjacent → no action.
+
+---
+
 ## 17. Changelog
+
+### v3.1 (Design Review Pass — Feb 27, 2026)
+
+Design review with historical analysis, friction audit, and implementation planning.
+
+**Merged into spec:**
+- §13 rewritten with 3+1 session plan (was outline only). Walking skeleton defined. Risk assessment per session.
+- §18a: Three top-of-ladder buff candidates (Morale Regen recommended, needs approval).
+- §18b: 14 edge cases (EC-A through EC-N) identified during review.
+- §18c: Design suggestions — cautious visibility, rivalry deferral, literal dispatch downgrade, targeting simplification.
+
+**Deferred to v3.1 implementation:**
+- Rivalry Confrontation (§6b) — highest complexity, lowest marginal gameplay value.
+- Top of ladder buff — needs design gate approval.
+- "Separate Them" persistence flag.
 
 ### v3 (Design Review Session — Feb 2026)
 
