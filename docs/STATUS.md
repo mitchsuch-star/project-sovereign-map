@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 26, 2026 (V2b COMPLETE — playtested and signed off)
+> **Last Updated:** February 26, 2026 (Strategic Order UI — Orders tab added to Strategic Ledger)
 
 ---
 
@@ -19,10 +19,9 @@
 
 ## Next Steps
 
-1. **Strategic Order UI** — New "Orders" tab in Strategic Ledger (tab 6). Shows all standing orders with cancel buttons. No spec needed — follows existing ledger tab pattern.
-2. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~246 new tests.
-3. **Phase 7b: V2b COMPLETE** (playtested, signed off). Tactical Triangle COMPLETE (Sessions 67-68). V2b Sessions 0-3 + audit cleanup + compromise bugfix. **Gates 5+6 UI tests pending.** Remaining: Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
-4. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
+1. **Phase 7 Core: COMPLETE.** All 7 sessions shipped (57-61b + 64). ~246 new tests.
+2. **Phase 7b: V2b COMPLETE** (playtested, signed off). Tactical Triangle COMPLETE (Sessions 67-68). V2b Sessions 0-3 + audit cleanup + compromise bugfix. **Gates 5+6 UI tests pending.** Remaining: Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
+3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
 ---
 
@@ -46,6 +45,17 @@ All major Phase 6 features shipped:
 ---
 
 ## Phase 7b Sessions
+
+### Feb 26 — Strategic Order UI (Orders Tab in Strategic Ledger)
+
+**4208 tests (3 skipped). New "Orders" tab (tab 6) in Strategic Ledger with consolidated order view and cancel buttons.**
+
+- **Backend `_build_orders()`:** New section builder in `ledger.py`. Returns active orders (marshal, order type, target, path remaining, condition text, issued/arrived turn) followed by idle marshals. Helper functions: `_derive_order_display_name()`, `_derive_condition_text()` (reads StrategicCondition for human-readable status).
+- **`POST /cancel_order` endpoint:** New endpoint in `main.py`. Takes `{"marshal": "Ney"}`, calls existing `_execute_cancel()`, deducts 1 AP (matches typed cancel cost). Respects `no_action_cost` for graceful cancels (no active order).
+- **Godot Orders tab:** 6th tab button in `strategic_ledger.tscn`. `strategic_ledger.gd` updated: `@onready` ref, `tab_buttons` array, `KEY_6` handler, `_render_orders()` with BBCode `[url=cancel:MarshalName]` meta links for cancel buttons. `meta_clicked` signal wired for cancel → refresh flow.
+- **`cancel_strategic_order()`:** New POST function in `api_client.gd`.
+
+**Files modified:** `ledger.py` (_build_orders + helpers + return dict), `main.py` (POST /cancel_order), `strategic_ledger.tscn` (OrdersTab node), `strategic_ledger.gd` (tab 6 + render + cancel wiring), `api_client.gd` (cancel_strategic_order).
 
 ### Feb 26 — Strategic Compromise First-Step + Timed SUPPORT Timer Fix
 

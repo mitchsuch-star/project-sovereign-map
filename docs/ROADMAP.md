@@ -120,7 +120,7 @@
 |---------|-------------|------------|--------|
 | Notification System | EU4-style persistent alerts (9 triggers, 3 priority tiers) | Medium | **COMPLETE** (70 tests) |
 | Top Bar Framework | Unified top bar (CanvasLayer 75), screen controller, dispatch re-read | Medium | **COMPLETE** (8 tests). Spec: `TOP_BAR_SPEC.md`. |
-| Strategic Ledger | 5-section overview: forces, territories, economy, intel, manpower | Medium | **COMPLETE** (54 tests). Spec: `TOP_BAR_SPEC.md`. |
+| Strategic Ledger | 6-section overview: forces, territories, economy, intel, manpower, orders (with cancel buttons) | Medium | **COMPLETE** (54 tests). Spec: `TOP_BAR_SPEC.md`. |
 | Marshal Management UI | View all marshals, relationships, abilities, biography, personality/unit type descriptions | Medium | **COMPLETE** (68 tests) |
 | Campaign Log | Fog-filtered event log, Godot overlay (L key) | Low | **COMPLETE** (57 tests) |
 | Tooltips | Hover info on regions, marshals, nations | Low | **Absorbed into Map Renderer** — existing 3 tooltip variants (marshal 20+ fields, fogged force, region 12+ fields) sufficient. Remaining gaps (region occupant summary, off-screen clamping, theming) handled by Map Renderer items 24/32/42 and Phase 7b Session 66. |

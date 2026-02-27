@@ -135,6 +135,16 @@ func get_marshal_overview(callback: Callable):
 	if error != OK:
 		print("ERROR: HTTP request failed with code: ", error)
 
+func cancel_strategic_order(marshal_name: String, callback: Callable):
+	"""Cancel a marshal's strategic order via the Orders tab."""
+	pending_callback = callback
+	var url = API_URL + "/cancel_order"
+	var headers = ["Content-Type: application/json"]
+	var body = JSON.stringify({"marshal": marshal_name})
+	var error = http_request.request(url, headers, HTTPClient.METHOD_POST, body)
+	if error != OK:
+		print("ERROR: HTTP request failed with code: ", error)
+
 func send_strategic_response(marshal_name: String, response_type: String, choice: String, callback: Callable):
 	"""Send player's response to a strategic command interrupt (Phase J)."""
 	pending_callback = callback

@@ -3,9 +3,9 @@ extends CanvasLayer
 # =============================================================================
 # PROJECT SOVEREIGN - Strategic Ledger Screen (Session B)
 # =============================================================================
-# 5-section sub-tabbed screen. CanvasLayer 50.
-# Tabs: FORCES, TERRITORIES, ECONOMY, INTELLIGENCE, MANPOWER
-# Number keys 1-5 switch sub-tabs (guarded by visible check).
+# 6-section sub-tabbed screen. CanvasLayer 50.
+# Tabs: FORCES, TERRITORIES, ECONOMY, INTELLIGENCE, MANPOWER, ORDERS
+# Number keys 1-6 switch sub-tabs (guarded by visible check).
 # =============================================================================
 
 signal closed
@@ -20,6 +20,7 @@ signal closed
 @onready var economy_tab = $PanelContainer/VBoxContainer/SubTabRow/EconomyTab
 @onready var intel_tab = $PanelContainer/VBoxContainer/SubTabRow/IntelTab
 @onready var manpower_tab = $PanelContainer/VBoxContainer/SubTabRow/ManpowerTab
+@onready var orders_tab = $PanelContainer/VBoxContainer/SubTabRow/OrdersTab
 
 # Color palette (duplicated across dispatch_view.gd, strategic_ledger.gd,
 # marshal_management.gd — consolidate into shared utils.gd during Map Renderer refactor)
@@ -33,7 +34,7 @@ const COLOR_GREY = "808080"
 const COLOR_HEADER = "B8860B"
 
 # State
-var current_tab: int = 0  # 0=forces, 1=territories, 2=economy, 3=intel, 4=manpower
+var current_tab: int = 0  # 0=forces, 1=territories, 2=economy, 3=intel, 4=manpower, 5=orders
 var cached_data: Dictionary = {}
 var tab_buttons: Array = []
 
@@ -45,9 +46,12 @@ func _ready():
 	close_button.pressed.connect(close_view)
 	background_overlay.gui_input.connect(_on_overlay_input)
 
-	tab_buttons = [forces_tab, territories_tab, economy_tab, intel_tab, manpower_tab]
+	tab_buttons = [forces_tab, territories_tab, economy_tab, intel_tab, manpower_tab, orders_tab]
 	for i in range(tab_buttons.size()):
 		tab_buttons[i].pressed.connect(_on_tab_pressed.bind(i))
+
+	# Wire meta_clicked for cancel buttons in Orders tab
+	content_area.meta_clicked.connect(_on_meta_clicked)
 
 	# Build tab styles
 	_active_tab_style = StyleBoxFlat.new()
@@ -86,14 +90,19 @@ func _input(event):
 				_switch_tab(3)
 			KEY_5:
 				_switch_tab(4)
+			KEY_6:
+				_switch_tab(5)
 			_:
 				switched = false
 		if switched:
 			get_viewport().set_input_as_handled()
 
 
+var _api_client_ref = null
+
 func open(api_client):
 	"""Fetch ledger from backend and display it."""
+	_api_client_ref = api_client
 	content_area.text = "[color=#" + COLOR_INFO + "]Loading ledger...[/color]"
 	current_tab = 0
 	show()
@@ -159,6 +168,8 @@ func _render_current_tab():
 			_render_intel()
 		4:
 			_render_manpower()
+		5:
+			_render_orders()
 
 
 # =============================================================================
@@ -460,6 +471,83 @@ func _render_manpower():
 		bbcode += "\n\n"
 
 	content_area.text = bbcode
+
+
+func _render_orders():
+	var orders = cached_data.get("orders", [])
+	var bbcode = ""
+	bbcode += "[color=#" + COLOR_HEADER + "]═══ STANDING ORDERS ═══[/color]\n\n"
+
+	if orders.size() == 0:
+		bbcode += "[color=#" + COLOR_INFO + "]No marshals available.[/color]\n"
+		content_area.text = bbcode
+		return
+
+	var has_active = false
+	var has_idle = false
+
+	# Active orders first
+	for o in orders:
+		if not o.get("has_order", false):
+			continue
+		has_active = true
+		var mname = str(o.get("marshal", "?"))
+		var order_type = str(o.get("order_type", "?"))
+		var target = str(o.get("target", ""))
+		var location = str(o.get("location", "?"))
+		var condition = str(o.get("condition", ""))
+		var path_left = int(o.get("path_remaining", 0))
+
+		bbcode += "  [color=#" + COLOR_GOLD + "]" + mname + "[/color]"
+		bbcode += " at " + location + "\n"
+
+		bbcode += "    " + order_type.to_upper()
+		if target != "" and target != "generic":
+			bbcode += " " + target
+
+		if path_left > 0:
+			bbcode += "  (" + str(path_left) + " regions left)"
+
+		bbcode += "  │ " + condition
+
+		bbcode += "  [url=cancel:" + mname + "][color=#" + COLOR_ERROR + "][Cancel][/color][/url]"
+		bbcode += "\n\n"
+
+	# Separator between active and idle
+	if has_active:
+		for o in orders:
+			if not o.get("has_order", false):
+				has_idle = true
+				break
+		if has_idle:
+			bbcode += "[color=#" + COLOR_GREY + "]─────────────────────────────────────────────────────[/color]\n"
+
+	# Idle marshals
+	for o in orders:
+		if o.get("has_order", false):
+			continue
+		var mname = str(o.get("marshal", "?"))
+		var location = str(o.get("location", "?"))
+		bbcode += "  [color=#" + COLOR_GREY + "]" + mname
+		bbcode += " at " + location
+		bbcode += "  │ No active orders"
+		bbcode += "[/color]\n"
+
+	content_area.text = bbcode
+
+
+func _on_meta_clicked(meta):
+	var meta_str = str(meta)
+	if meta_str.begins_with("cancel:"):
+		var marshal_name = meta_str.substr(7)
+		if _api_client_ref:
+			_api_client_ref.cancel_strategic_order(marshal_name, _on_cancel_result)
+
+
+func _on_cancel_result(_response):
+	# Refresh the ledger to reflect the cancelled order
+	if _api_client_ref:
+		_api_client_ref.get_ledger(_on_ledger_received)
 
 
 # =============================================================================

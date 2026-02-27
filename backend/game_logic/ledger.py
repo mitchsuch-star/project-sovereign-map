@@ -1,5 +1,5 @@
 """
-Strategic Ledger — 5-section backend builder (Session B)
+Strategic Ledger — 6-section backend builder (Session B + Orders tab)
 
 Builds a structured dict for the Godot Strategic Ledger screen.
 All values int()-wrapped per CLAUDE.md rule: "All numbers to Godot: int()".
@@ -31,7 +31,7 @@ def build_strategic_ledger(world) -> Dict[str, Any]:
         world: WorldState instance
 
     Returns:
-        Dict with forces, territories, economy, intel, manpower sections.
+        Dict with forces, territories, economy, intel, manpower, orders sections.
         All numeric values int()-wrapped.
     """
     player = world.player_nation
@@ -51,6 +51,7 @@ def build_strategic_ledger(world) -> Dict[str, Any]:
         "economy": _build_economy(world, player),
         "intel": _build_intel(world, player),
         "manpower": _build_manpower(world, player),
+        "orders": _build_orders(world, player),
         "authority": int(authority),
         "authority_label": authority_label,
     }
@@ -419,3 +420,98 @@ def _build_manpower(world, player: str) -> dict:
         }
 
     return result
+
+
+# ============================================================================
+# ORDERS SECTION
+# ============================================================================
+
+_ORDER_DISPLAY_NAMES = {
+    "MOVE_TO": "Move To",
+    "PURSUE": "Pursue",
+    "HOLD": "Hold",
+    "SUPPORT": "Support",
+}
+
+
+def _derive_order_display_name(command_type: str) -> str:
+    return _ORDER_DISPLAY_NAMES.get(command_type, command_type)
+
+
+def _derive_condition_text(order, world) -> str:
+    """Derive human-readable condition text from StrategicCondition."""
+    cond = order.condition
+    if cond is None:
+        if order.command_type == "MOVE_TO":
+            remaining = len(order.path)
+            if remaining > 0:
+                return f"{remaining} region(s) left"
+            return "arriving"
+        if order.command_type == "PURSUE":
+            return "tracking"
+        if order.command_type == "HOLD":
+            return "indefinite"
+        if order.command_type == "SUPPORT":
+            return "active"
+        return "active"
+
+    if cond.max_turns is not None:
+        ref_turn = order.arrived_turn if order.arrived_turn is not None else order.started_turn
+        elapsed = world.current_turn - ref_turn
+        remaining = max(0, cond.max_turns - elapsed)
+        return f"{remaining} turn(s) remaining"
+    if cond.until_relieved:
+        return "until relieved"
+    if cond.until_battle_won:
+        return "until battle won"
+    if cond.until_marshal_arrives:
+        return f"until {cond.until_marshal_arrives} arrives"
+    if cond.until_marshal_destroyed:
+        return f"until {cond.until_marshal_destroyed} destroyed"
+    return "active"
+
+
+def _build_orders(world, player: str) -> list:
+    """Build orders section: per player marshal strategic order status."""
+    active_orders = []
+    idle_marshals = []
+
+    for marshal in world.marshals.values():
+        if marshal.nation != player:
+            continue
+
+        order = marshal.strategic_order
+        if order is not None:
+            condition_text = _derive_condition_text(order, world)
+
+            active_orders.append({
+                "marshal": marshal.name,
+                "unit_type": _derive_unit_type(marshal),
+                "location": marshal.location,
+                "order_type": _derive_order_display_name(order.command_type),
+                "order_type_raw": order.command_type,
+                "target": order.target,
+                "path_remaining": int(len(order.path)),
+                "turns_active": int(world.current_turn - order.started_turn),
+                "condition": condition_text,
+                "issued_turn": int(order.started_turn),
+                "arrived_turn": int(order.arrived_turn) if order.arrived_turn is not None else -1,
+                "has_order": True,
+            })
+        else:
+            idle_marshals.append({
+                "marshal": marshal.name,
+                "unit_type": _derive_unit_type(marshal),
+                "location": marshal.location,
+                "order_type": "No active orders",
+                "order_type_raw": "",
+                "target": "",
+                "path_remaining": 0,
+                "turns_active": 0,
+                "condition": "idle",
+                "issued_turn": 0,
+                "arrived_turn": -1,
+                "has_order": False,
+            })
+
+    return active_orders + idle_marshals

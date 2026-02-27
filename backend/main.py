@@ -1390,6 +1390,30 @@ def get_ledger():
     return {"success": True, "ledger": ledger}
 
 
+@app.post("/cancel_order")
+async def cancel_order(request: Request):
+    """Cancel a marshal's strategic order from the Orders tab."""
+    data = await request.json()
+    marshal_name = data.get("marshal")
+    if not marshal_name:
+        return {"success": False, "message": "No marshal specified."}
+
+    if not game_state.get("world"):
+        return {"success": False, "message": "No active game"}
+
+    command = {"action": "cancel", "marshal": marshal_name}
+    result = executor._execute_cancel(command, game_state)
+
+    # Deduct 1 AP for successful cancels (matches typed "cancel" command flow)
+    if result.get("success") and not result.get("no_action_cost"):
+        world.use_action("cancel")
+
+    cleaned = {k: v for k, v in result.items() if k != "new_state"}
+    cleaned["action_summary"] = world.get_action_summary()
+    cleaned["game_state"] = world.get_filtered_game_state_summary()
+    return cleaned
+
+
 @app.get("/marshal_overview")
 def get_marshal_overview():
     """Get the marshal overview for the Marshal Management screen."""

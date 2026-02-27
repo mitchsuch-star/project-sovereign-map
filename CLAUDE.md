@@ -18,8 +18,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Strategic Order UI** — New "Orders" tab (tab 6) in Strategic Ledger with consolidated view, cancel buttons. Next session.
-- **Phase 7b remaining:** V2b COMPLETE (playtested, signed off). Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
+- **Phase 7b remaining:** V2b COMPLETE (playtested, signed off). Strategic Order UI COMPLETE. Jealousy (NEEDS DESIGN), Gneisenau Staff Work (deferred to 1805). Coalition Trigger moved to Phase 8 (Diplomacy).
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial Infrastructure deferred to Pre-EA.
 
 ### Design Decisions Required (DO NOT CODE WITHOUT USER APPROVAL)
@@ -63,7 +62,7 @@ Gates 5 (Tactical Triangle) and 6 (V2b Defiance) pending. See `docs/PHASE7_UI_TE
 | `backend/game_logic/relationship.py` | Win/Loss Relationship Formula (severity, ordered pairs, cooldown) |
 | `backend/notifications.py` | Notification system (EU4-style persistent alerts, collector, dismiss) |
 | `backend/game_logic/dispatch.py` | Morning Dispatch builder (fog-filtered turn-start briefing), stores last_morning_dispatch on WorldState |
-| `backend/game_logic/ledger.py` | Strategic Ledger builder (5 sections: forces, territories, economy, intel, manpower) |
+| `backend/game_logic/ledger.py` | Strategic Ledger builder (6 sections: forces, territories, economy, intel, manpower, orders) |
 | `backend/game_logic/marshal_overview.py` | Marshal Management builder (player marshal cards with identity, ability, stats, trust, status, relationships) |
 | `backend/game_logic/turn_manager.py` | Turn flow, enemy phase |
 | `backend/ai/enemy_ai.py` | Enemy AI decision tree (P1-P8) |
@@ -87,7 +86,7 @@ Gates 5 (Tactical Triangle) and 6 (V2b Defiance) pending. See `docs/PHASE7_UI_TE
 | `notification_bar.gd` | Notification bar (Phase 6.5), reparented into top bar |
 | `top_bar.gd` | Top bar controller (Session A): screen management, hotkeys, notifications, turn counter |
 | `dispatch_view.gd` | Dispatch re-read screen (Session A): CanvasLayer 50, BBCode rendering |
-| `strategic_ledger.gd` | Strategic Ledger screen (Session B): CanvasLayer 50, 5 sub-tabs, number key switching |
+| `strategic_ledger.gd` | Strategic Ledger screen (Session B): CanvasLayer 50, 6 sub-tabs, number key switching, Orders tab cancel buttons |
 | `marshal_management.gd` | Marshal Management screen: CanvasLayer 50, card-based marshal view, G key toggle |
 
 ---
