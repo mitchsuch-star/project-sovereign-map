@@ -599,3 +599,100 @@ Three unique gameplay layers:
 The design is ambitious, innovative, and sound. The seams between the two specs need the 5 critical fixes above, but the architecture is correct. The fun factor is genuinely high — the Schemer bias meta-game, the sabotage reveal, and the military-diplomatic feedback loop are each individually better than most strategy games' entire diplomacy systems. Together, they're the feature that makes Ink & Iron unique.
 
 **Ship it (after fixing the criticals).**
+
+---
+
+## Re-Audit After Fixes
+
+**Date:** 2026-02-27
+**Fixes applied:** 5 Critical, 9 Major, 11 Minor = 25 total findings resolved.
+**Cross-reference fix:** §3d → §3e renumbering propagated to both specs (2 references updated).
+
+### Critical Finding Resolution
+
+| ID | Finding | Fix Applied | Verified? | Notes |
+|----|---------|-------------|-----------|-------|
+| C1 | DP deduction timing unspecified | Added explicit timing to DESIGN §9b: "DP deducted on `execute_proposal`, not conversation start. Cancel = 0 DP." | ✓ RESOLVED | Placed directly in the option action flow where execute_proposal is defined. Data flow is clean: player explores → picks Send → DP deducted → transit begins. |
+| C2 | `pending_diplomatic_proposal` conflicts with `pending_diplomatic_dialogue` | Removed field from SPEC §S13, replaced with explanatory comment. All proposal presentation routes through `pending_diplomatic_dialogue`. | ✓ RESOLVED | Verified no remaining references to `pending_diplomatic_proposal` in either spec. Raw data correctly split: `proposal_in_transit` (outgoing) and `diplomatic_queue` (incoming). |
+| C3 | Strategic military orders don't auto-cancel on peace | Added §5b.4 with comprehensive auto-cancellation rules for PURSUE, MOVE_TO, HOLD, SUPPORT. Campaign log + dispatch notifications specified. | ✓ RESOLVED | Also covers M5 (territory cession path invalidation) in the same section with re-pathfinding logic. Reverse case (peace→war) explicitly documented as NOT auto-cancelling. |
+| C4 | Talleyrand trust redemption at ≤20 has no specified behavior | Added §3d with 3 diplomat-specific options: Apologize (trust+15, authority-5), Replace with Loyalist (skill 6, trust 50, irreversible), Continue (authority-10). No dismiss option. | ✓ RESOLVED | Cross-references updated (old §3d Objections → new §3e). Repeat redemption and post-Replace behavior documented. |
+| C5 | War declaration cascade while proposal in transit | Added to §5c: auto-cancel in-transit proposals on cascade, DP refund, notification. Covers both cascade and direct war declaration on target. | ✓ RESOLVED | References EC-NN for mission auto-cancel on the same event. Data flow: cascade fires → check proposal_in_transit target → cancel + refund + notify. |
+
+### Major Finding Resolution
+
+| ID | Finding | Fix Applied | Verified? | Notes |
+|----|---------|-------------|-----------|-------|
+| M1 | "Specify your own" clause-selection UI undefined | Added terminal UI spec to DESIGN §3b: numbered clause types, add/remove/done/cancel commands, harshness preview on each add. | ✓ RESOLVED | Both mock mode (keyword parsing) and LLM mode (free-text) paths specified. |
+| M2 | Save/load mid-dialogue display trigger unspecified | Added to DESIGN §9a: blocking dialogues display immediately on load, non-blocking display on next input. References Godot handler pattern. | ✓ RESOLVED | Follows existing `pending_objection` load pattern. |
+| M3 | 0 DP + vague dialogue shows unaffordable options | Added DP cost display per option, "(insufficient DP)" label, Talleyrand dialogue acknowledgment. Example format provided. | ✓ RESOLVED | Soft-blocking prevents frustrating dead-end conversations. |
+| M4 | Two blocking dialogues same turn: order undefined | Added to SPEC §9a: AI proposals first (AI phase), sabotage during dispatch. Queuing for second event. Mid-turn resolution. | ✓ RESOLVED | Deterministic order eliminates the race condition. |
+| M5 | Territory cession invalidates MOVE_TO paths | Covered in §5b.4 (C3 fix): re-pathfind through friendly territory, cancel with notification if no valid path. | ✓ RESOLVED | Subsection of the broader strategic order auto-cancellation system. |
+| M6 | Carved vassal contiguity break undefined | Added to SPEC §8f: largest contiguous chunk retained, disconnected regions revert to original owner (contested). Tie-breaking by income. | ✓ RESOLVED | Clean rule that doesn't require complex multi-region tracking. |
+| M7 | Vassal territory cession has no loyalty penalty | Added to SPEC §7a: PUPPET/SATELLITE allowed (loyalty -20/region), AUTONOMOUS blocked (vassal must consent). | ✓ RESOLVED | Scales naturally — ceding 3 regions = -60 loyalty, likely triggering rebellion. |
+| M8 | Acceptance score uses float math, needs int() | Added `int(round(raw_score))` to §6a formula definition. References Golden Rule #2. | ✓ RESOLVED | Rounding before truncation prevents systematic bias at thresholds. |
+| M9 | Proactive suggestion fires for vassal that just rebelled | Added existence guard to DESIGN §5d: check vassal/nation exists before generating suggestions. | ✓ RESOLVED | Simple guard at the top of the suggestion generation logic. |
+
+### Minor Finding Resolution
+
+| ID | Status | Notes |
+|----|--------|-------|
+| m1 | ✓ Applied | Schemer bias now fully condition-based (deterministic). 70/30 ratio is emergent. |
+| m2 | ✓ Applied | MEDIUM path Schemer bias documented as intentional. Ledger referenced as verification tool. |
+| m3 | ✓ Applied | Feasibility for multi-step transitions reports first achievable step. |
+| m4 | ✓ Applied | Suppressed AI proposals documented: not queued, AI re-evaluates each turn. |
+| m5 | ✓ Applied | Counter-offer at 0 DP: Talleyrand acknowledges constraint, renegotiate soft-blocked. |
+| m6 | ✓ Applied | Harshness calculation pinned to `diplomacy.py` (single source). |
+| m7 | ✓ Applied | Vassal marshal clean slate documented as intentional design. |
+| m8 | ✓ Applied | Advisory available during IN_TRANSIT (network of agents). Proposal creation blocked. |
+| m9 | ✓ Applied | Alliance cascade bypasses armistice cooldowns (forced entry). |
+| m10 | ✓ Applied | Mission resumes when Talleyrand returns to IDLE (after all resolution including renegotiation). |
+| m11 | ✓ Applied | Proactive suggestion trigger-to-dialogue-type routing table added. |
+
+### Re-Scored Task Dimensions
+
+**Task 1: Cross-Document Integration — 27/30 (was 22/30)**
+
+| Dimension | Old | New | Change |
+|-----------|-----|-----|--------|
+| Mechanical Handoff | 7/10 | 9/10 | C1 (DP timing) + M1 (clause UI) resolve the two gaps. -1 for minor: HOLD cancellation in §5b.4 could be more precise about sally-specific triggers. |
+| State Consistency | 7/10 | 9/10 | C2 (field conflict) + M2 (save/load) resolve the two gaps. -1 for: save/load of clause-selection mid-flow (M1's new UI) isn't specified — what if player saves during clause building? |
+| Formula Integration | 8/10 | 9/10 | m2 (Schemer bias documented) + M8 (int rounding) resolve the two gaps. -1 for: the condition-based bias (m1) changes the probability profile — previously "30% random" is now "whenever conditions match." Playtesting needs to verify the effective frequency is still ~30%. |
+
+**Task 3: Building Blocks Compliance — 14/15 (was 12/15)**
+
+| Sub-dimension | Old | New | Change |
+|---------------|-----|-----|--------|
+| Enemy AI Uses Same Systems | 4/5 | 4/5 | Unchanged — v2 personality wiring still needed. |
+| Executor Is Deterministic | 4/5 | 5/5 | m1 eliminates the random.random() concern in Schemer bias. |
+| Single Source of Truth | 4/5 | 5/5 | m6 pins harshness to diplomacy.py. |
+
+**Task 4: Session Plan Feasibility — 12/15 (unchanged)**
+No fixes targeted session plan structure. Risk assessment and dependency graph remain the same.
+
+**Task 5: Fun Audit — 8/10 (unchanged)**
+Fixes improve robustness but don't change the player experience assessment. The fun comes from character and mechanics, which were already solid.
+
+**Task 6: Golden Rule Compliance — 10/10 (was 9/10)**
+M8 resolves the only gap (float math in acceptance formula). All 7 golden rules now fully satisfied.
+
+### New Overall Grade: 91/100
+
+Breakdown: 27 + 14 + 12 + 8 + 10 = 71/80 from scored dimensions. Edge case coverage now comprehensive (23 audit-discovered cases all have specified behavior). Innovation and fun assessment unchanged (high marks). Remaining 9 points deducted for:
+- Session plan risk unchanged (SPEC 1A map expansion remains EXTREME risk)
+- Enemy diplomat personality asymmetry still needs v2 (documented but not resolved)
+- 3 minor robustness concerns identified below
+
+### New Findings Discovered During Re-Read
+
+**N1 (Minor): Clause-selection save/load.** The new M1 clause-selection UI (DESIGN §3b) introduces a multi-step flow where the player builds clauses one at a time. If the player saves mid-clause-building, the `pending_diplomatic_dialogue` would need to store the partial clause list in its `context` dict. This is likely fine (all primitives), but should be explicitly documented: "Partial clause list survives save/load in `pending_diplomatic_dialogue.context.clauses_so_far`."
+
+**N2 (Minor): §5b.4 HOLD cancellation scope.** The HOLD cancellation rule ("HOLD orders in border regions adjacent to that nation: cancelled") is broader than necessary. A marshal on HOLD might be positioned against multiple nations. A more precise rule: "HOLD orders whose sally target list included marshals of the now-peaceful nation have their sally behavior restricted — they will NOT sally against the peaceful nation's forces, but the HOLD order itself persists." This avoids unnecessarily cancelling defensive positions. Recommend revisiting during implementation.
+
+**N3 (Minor): Replace with Loyalist aide — personality_modifiers impact.** The C4 fix introduces personality change from Schemer to Loyalist. The `personality_modifiers.py` file applies combat bonuses by personality type. Talleyrand is NOT a combat unit (he's a DiplomaticRepresentative, not a Marshal), so this doesn't affect combat. But if diplomatic personality modifiers are later added to the personality_modifiers system (e.g., Schemer gets +2 on acceptance formula), the Loyalist replacement would lose that bonus. Currently safe — diplomatic skill bonus is on the DiplomaticRepresentative class directly, not routed through personality_modifiers.py.
+
+### Summary
+
+All 5 Critical and 9 Major findings are fully resolved. All 11 Minor findings are applied. 3 new minor findings discovered (N1-N3), none requiring immediate action. The specs are now internally consistent, cross-referenced correctly, and mechanically complete.
+
+**Grade change: 79/100 → 91/100.**
+**Status: Ready for implementation.**

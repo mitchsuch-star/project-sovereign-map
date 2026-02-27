@@ -281,7 +281,7 @@ Diplomatic proposals are NOT instant. You tell Talleyrand what you want. He trav
 TURN 1: Player issues proposal command
   "Talleyrand, propose peace with Prussia: they keep Berlin, open borders, 200 gold/turn"
   → DP spent immediately (2 DP for peace proposal)
-  → Talleyrand objection check fires (§3d). If player insists, defiance roll (§3a).
+  → Talleyrand objection check fires (§3e). If player insists, defiance roll (§3a).
   → Talleyrand "departs" — proposal is IN TRANSIT for 1 turn
   → Morning Dispatch next turn: "Talleyrand has departed for the Prussian court."
   → Sabotage (if defiance triggered) is applied NOW, during transit
@@ -361,7 +361,7 @@ Same pattern as military strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT). Tall
 **Mission rules:**
 - **One mission at a time.** Choosing IMPROVE_RELATIONS with Austria cancels any active mission. Talleyrand's attention is finite.
 - **DP deducted at start of turn.** If you can't afford the mission, it auto-pauses (Morning Dispatch: "Talleyrand's diplomatic efforts have been curtailed — insufficient resources").
-- **Proposals interrupt missions temporarily.** If you send a proposal while Talleyrand is on a mission, the mission pauses for the transit turn. It resumes when he returns.
+- **Proposals interrupt missions temporarily.** If you send a proposal while Talleyrand is on a mission, the mission pauses for the transit turn. It resumes when Talleyrand returns to IDLE state — after ALL proposal resolution, including renegotiation rounds. If renegotiation extends the proposal to 2+ turns of transit, the mission stays paused for the full duration.
 - **Cancellation is free** (0 DP, same as strategic order cancel).
 - **Mission effects are cumulative per turn.** IMPROVE_RELATIONS running for 3 turns = +15 total relation.
 - **Enemy diplomats run missions too (Building Blocks).** AI nations assign their diplomats to missions using the same costs and effects. AI mission priorities follow §9 decision tree.
@@ -446,6 +446,7 @@ The player can consult Talleyrand for feasibility assessments before committing 
 - Feasibility for a nation you're already negotiating with: returns "A proposal is already in transit. Talleyrand suggests patience."
 - Feasibility for vassalage when OPEN_BORDERS not yet achieved (E3 fix): "Talleyrand notes that formal diplomatic relations must be established first."
 - Feasibility during IN_TRANSIT: allowed (momentary ADVISING doesn't conflict with transit).
+- **Multi-step transitions:** If the requested goal requires multiple state transitions (e.g., WAR → ALLIANCE requires WAR → ARMISTICE → PEACE → OPEN_BORDERS → NON_AGGRESSION → DEFENSIVE_ALLIANCE → ALLIANCE), Talleyrand reports the FIRST achievable step, not the final goal. Example: "An alliance with Prussia requires first establishing peace, then building through several stages. The first step — armistice — would require [feasibility assessment for armistice]." This prevents misleading feasibility scores for distant goals.
 
 **Mock mode implementation:** Keyword detection for "what would it take", "can we", "is it possible", "how hard", "feasibility", "realistic", "should I focus". Returns template keyed to the largest formula component:
 ```python
@@ -564,7 +565,21 @@ Sabotage is discoverable. Two detection paths:
 - Notification (HIGH): "Diplomatic discrepancy discovered"
 - Player can: confront Talleyrand (trust -10, authority +5, defiance cooldown 5 turns) or overlook it (trust +3, Talleyrand gains confidence → defiance chance doesn't change)
 
-### 3d. Talleyrand's Objections (Pre-Proposal)
+### 3d. Talleyrand's Redemption Event (Trust ≤ 20)
+
+When Talleyrand's trust drops to 20 or below, a redemption event fires — same V2b pattern as combat marshals. However, Talleyrand **cannot be dismissed** (EC-M: he's not a military unit; losing him disables the entire diplomacy system). His redemption options are diplomat-specific:
+
+| Option | Effect | Notes |
+|--------|--------|-------|
+| **Apologize** | Trust +15, Authority -5 | Napoleon admits he pushed too hard. Relationship stabilizes. |
+| **Replace with Loyalist aide** | Personality changes from Schemer to Loyalist. Skill drops to 6 (from 10). Trust resets to 50. | France gets a compliant diplomat at the cost of brilliance. Schemer bias disappears — no more sabotage, but no more genius either. Irreversible. |
+| **Continue with strained relations** | Trust stays at current value. Authority -10. | Napoleon refuses to bend. The working relationship is damaged but functional. |
+
+**Narrative:** Each option is presented as a dramatic conversation scene (DESIGN layer handles the text). The choice reveals the player's leadership style — conciliatory, pragmatic, or stubborn.
+
+**Repeat redemption:** If trust drops to ≤20 again after Apologize or Continue, the same event fires again. After Replace with Loyalist, the new personality prevents further redemption events (Loyalist trust dynamics follow the standard V2b pattern, and a Loyalist with skill 6 rarely triggers defiance).
+
+### 3e. Talleyrand's Objections (Pre-Proposal)
 
 Before defiance rolls, Talleyrand can object to proposals — same pattern as marshal objections:
 
@@ -723,6 +738,8 @@ After an armistice expires or is broken, the same nation pair cannot enter anoth
 | OPEN_BORDERS/above → VASSAL (treaty) | 3 | Relation > +20 OR war score > 60. Requires OPEN_BORDERS minimum (E3). | |
 | Any → WAR | 1 | None | Costs relation -30, threat +20 |
 
+**Alliance cascade bypasses armistice cooldowns:** War declarations caused by defensive alliance cascade (ally attacked → you enter WAR) bypass armistice cooldowns entirely. These are forced entries into war, not voluntary — the cooldown only prevents voluntary armistice-chaining. If France attacks Austria (Prussia's defensive ally), Prussia enters WAR with France regardless of any existing armistice cooldown between France and Prussia.
+
 ### 5b.3. Conflicting Alliance Obligations (M5)
 
 A nation cannot maintain ALLIANCE or DEFENSIVE_ALLIANCE with two nations that are at WAR with each other. This is the most historically significant diplomatic scenario — Napoleon constantly tried to separate coalition members.
@@ -736,6 +753,22 @@ A nation cannot maintain ALLIANCE or DEFENSIVE_ALLIANCE with two nations that ar
 **Timing:** Conflict check runs immediately when a new alliance is ratified or when war is declared. The conflicting nation resolves the conflict on their next turn (AI phase).
 
 **Edge case:** If France allies with Prussia (who has DEFENSIVE_ALLIANCE with Britain), and France is at WAR with Britain: Prussia must choose between France and Britain. Given starting relations (Prussia-Britain +60 vs France-Prussia starting negative), Prussia would choose Britain in most scenarios. The player must improve France-Prussia relations ABOVE the Britain-Prussia level before attempting this.
+
+### 5b.4. Strategic Order Auto-Cancellation on Diplomatic State Change
+
+When a diplomatic state transitions FROM WAR to any non-WAR state (ARMISTICE, PEACE, etc.), all active strategic military orders targeting that nation's marshals are automatically cancelled:
+
+- **PURSUE** orders targeting enemy marshals of the now-peaceful nation: cancelled.
+- **MOVE_TO** orders with `attack_on_arrival=True` targeting regions controlled by that nation: cancelled.
+- **HOLD** orders in border regions adjacent to that nation (sally behavior could attack peaceful nation): cancelled.
+- **SUPPORT** orders supporting attacks against that nation's forces: cancelled.
+
+**Campaign log entry:** "[Marshal]'s orders cancelled — peace with [nation]."
+**Morning Dispatch:** "Following the diplomatic resolution with [nation], the following orders have been cancelled: [list]."
+
+**Reverse case (peace → war):** When a diplomatic state transitions TO WAR (war declaration, alliance cascade), existing strategic orders are NOT auto-cancelled. The player may want their marshals to continue current operations. However, HOLD orders in border regions now allow sally behavior against the newly hostile nation.
+
+**Territory cession path invalidation (M5):** When territory controller changes (via treaty cession or conquest), all active strategic orders whose planned paths include the changed region are invalidated. The system attempts re-pathfinding through friendly territory. If no valid path exists, the order is cancelled with notification: "[Marshal]'s route to [destination] is no longer viable — order cancelled."
 
 ### 5c. War Declaration Rules
 
@@ -751,6 +784,15 @@ Declaring war on a neutral/friendly nation:
 If the target broke a treaty, attacked your ally, or controls your core territory, the aggressor penalty is halved (-15 → -7 relation with others, threat +10 instead of +20). Casus belli is tracked automatically from treaty breaks and attacks.
 
 **Metternich's Armed Mediation (DD8 — Schemer-specific AI behavior):** When Metternich (Schemer personality) proposes peace to France and the proposal is REJECTED, Austria gains +5 to their next war declaration's coalition bonus (if they declare war within 5 turns). This captures Metternich's historical tactic of using failed peace talks as a casus belli — his "armed mediation" at Dresden (1813) presented deliberately harsh terms, and when Napoleon rejected them, Metternich used the rejection to justify joining the Sixth Coalition. This is an AI-only behavior — it does not apply to Talleyrand (who doesn't declare wars on France's behalf).
+
+**In-transit proposal cancellation on war cascade:** When a war declaration cascade (via defensive alliance trigger) creates a WAR state with a nation that has an in-transit proposal (player proposal being carried by Talleyrand), the in-transit proposal is auto-cancelled immediately:
+- DP refunded to the player.
+- `proposal_in_transit` cleared.
+- Talleyrand returns to IDLE.
+- Notification (HIGH): "War with [nation] has been declared — your pending proposal is void."
+- Morning Dispatch: "Talleyrand's mission to [nation] is moot — hostilities have commenced."
+- This also applies when the player declares war directly on a nation they have a proposal in transit to.
+- If Talleyrand was on a diplomatic mission targeting the now-hostile nation, that mission also auto-cancels (per EC-NN).
 
 ### 5d. Continental System (Special Action)
 
@@ -802,6 +844,10 @@ acceptance_score = base_disposition
                  + deal_sweetener
                  + diplomat_skill_bonus
                  + personality_modifier
+
+Final score: acceptance_score = int(round(raw_score))
+  (Golden Rule #2: all numbers to Godot must be int(). Round before truncating
+   to avoid systematic bias — e.g., 49.7 rounds to 50, not truncates to 49.)
 
 Threshold: acceptance_score >= 50 → ACCEPT
            acceptance_score 30-49 → COUNTER_OFFER (AI proposes modified terms)
@@ -952,7 +998,9 @@ The `harshness` score in §7b requires each clause type to have a defined **valu
 | Protection guarantee | 4 | Moderate — commitment risk |
 | Continental System | 3 | Moderate — economic cost |
 
-**Harshness calculation:**
+**Harshness calculation (single source: `diplomacy.py`):**
+The `calculate_harshness()` function lives in `diplomacy.py` alongside `_calculate_acceptance()` — both are single-source formula functions. DESIGN's template layer reads the harshness value from `diplomacy.py`; it never recalculates independently.
+
 ```python
 def calculate_harshness(clauses):
     """Returns harshness score -1.0 to +1.0."""
@@ -1104,6 +1152,10 @@ def get_formula_feedback(components, outcome):
 | **Military access** | One-way | Their troops can enter your territory | Stronger than open borders |
 | **Continental System** | France→target | Target closes ports to Britain | See §5d |
 | **Protection guarantee** | One-way | Guarantor enters WAR if target is attacked | |
+
+**Vassal territory in treaties:** Ceding vassal territory in a peace treaty depends on autonomy level:
+- **PUPPET/SATELLITE:** Allowed — the lord controls their territory. Loyalty penalty: -20 per region ceded. Morning Dispatch: "Saxony protests the cession of Dresden — loyalty has dropped significantly."
+- **AUTONOMOUS:** Blocked — autonomous vassals have independent territory that cannot be traded without their consent (which they won't give). Talleyrand: "Sire, Saxony governs its own territory. We cannot cede what we do not control."
 
 **Unit trade notes:** Cavalry-for-artillery swaps create interesting gameplay. Trade excess cavalry to Saxony for gold. Austria offers artillery in exchange for open borders — do you take the guns and let them march through? Talleyrand might sabotage a unit trade by offering MORE than authorized ("I gave them 2,000 cavalry instead of 1,000 — they were much more amenable").
 
@@ -1336,6 +1388,8 @@ After conquering enemy regions, France can **carve new vassal entities** from th
 - Cost: 1 DP
 - Requirement: recipient must be a current vassal of France
 
+**Contiguity break on partial region loss:** If region loss breaks contiguity (e.g., carved vassal has regions A-B-C, enemy retakes B), the carved vassal retains the largest contiguous chunk. Disconnected regions revert to the original owner's control (contested status). Morning Dispatch: "The Duchy of Rhineland has been split — [region] has been lost to [nation] control." If multiple chunks are equal size, retain the chunk containing the region with the highest income.
+
 **What happens when carved regions are liberated?**
 - If the original owner (or any enemy) captures a carved vassal's region: the carved vassal loses that region.
 - If ALL regions of a carved vassal are liberated: the carved vassal entity dissolves. Morning Dispatch: "The Duchy of Rhineland has ceased to exist."
@@ -1404,10 +1458,18 @@ Rate limits:
 Priority when multiple queued:
   P1 > P2 > ... > P7 (highest urgency first)
   Same priority: most recent proposal wins
+  Suppressed proposals are NOT queued — AI re-evaluates conditions each turn.
+  If conditions still hold next turn, the AI may generate the same proposal again.
 
 Queue visible in Diplomatic Ledger Tab 4:
   "Pending envoys: Austria (alliance proposal, arrives next turn)"
 ```
+
+**Blocking dialogue priority — same-turn conflicts:** When multiple blocking diplomatic events occur on the same turn (e.g., AI proposal + sabotage discovery), only one can occupy `pending_diplomatic_dialogue` at a time. Resolution order:
+1. AI proposals are delivered first (during AI phase, before Morning Dispatch).
+2. Sabotage discovery is checked during Morning Dispatch building (after AI proposals).
+3. Whichever fires first sets `pending_diplomatic_dialogue`. The other is queued in `diplomatic_queue` and delivered on the next turn after the first is resolved.
+4. If the player resolves the first blocking dialogue mid-turn, the queued event fires immediately.
 
 **Talleyrand's assessment:** Every incoming AI proposal includes a 1-2 sentence assessment from Talleyrand. This is flavor text shaped by his personality (Schemer — strategic calculation). In mock mode, keyed to proposal type + war score + relation. Talleyrand might recommend accepting a bad deal if it serves his long-term vision, or rejecting a good deal if it makes France look weak.
 
@@ -1700,7 +1762,7 @@ Intelligence accuracy scales with Talleyrand's skill:
 **EC-K.1: Vassal Marshal Assimilation (M4).** When Saxony becomes a French vassal, Reynier (and any other vassal nation marshals at PUPPET/SATELLITE level) transitions to player control. Specific mechanics:
 - **Trust:** Starts at 40 (reluctant service — below default 60, reflecting forced allegiance).
 - **Dict membership:** Joins `world.marshals` dict immediately (Golden Rule #3 — all marshals in ONE dict).
-- **Relationships:** Existing relationships with Saxony entities preserved. Relationships with all French marshals set to Professional (0) — no history of working together.
+- **Relationships:** Existing relationships with Saxony entities preserved. Relationships with all French marshals set to Professional (0) — no history of working together. **Intentional design:** Assimilated vassal marshals start with a clean diplomatic slate. Previous battle-earned hostilities are forgiven — vassalage represents a political fresh start, not a continuation of wartime grudges.
 - **Personality:** Unchanged (Reynier stays Literal).
 - **Biography:** Updated to note vassalage: "Now serving France as Saxony's contribution to the alliance."
 - **Commands:** Player can command Reynier identically to French marshals ("Reynier, attack Rhineland").
@@ -1817,8 +1879,11 @@ self.active_treaties: Dict[str, List[Dict]] = {}
 # Key: "nation_a|nation_b", Value: int (-100 to +100, positive = nation_a winning)
 self.war_scores: Dict[str, int] = {}
 
-# Pending diplomatic proposal (popup for player — returned from transit)
-self.pending_diplomatic_proposal: Optional[Dict] = None
+# REMOVED: pending_diplomatic_proposal — superseded by CONVERSATIONAL_DIPLOMACY_DESIGN's
+# pending_diplomatic_dialogue (§2b). All proposal presentation (incoming AI proposals,
+# returned player proposals) routes through pending_diplomatic_dialogue. Raw proposal
+# data lives in proposal_in_transit (outgoing) or diplomatic_queue (incoming AI proposals
+# awaiting presentation).
 
 # Proposal in transit (Talleyrand is traveling — resolves next turn)
 # {"target_nation": str, "original_proposal": dict, "actual_proposal": dict,

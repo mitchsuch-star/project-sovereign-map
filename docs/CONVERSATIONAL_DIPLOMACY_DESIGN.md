@@ -199,6 +199,15 @@ to address the Austrian question."
 
 **In mock mode:** Template selected by (target_nation_state=WAR, game_state_bucket=WINNING, relation_bucket=HOSTILE). Options are mechanically generated from available diplomatic actions. Talleyrand's recommendation is the option with the highest projected acceptance score (§6) — with Schemer bias applied.
 
+**DP cost display on options:** Each option displays its DP cost. Options costing more than the player's current DP show "(insufficient DP)" and selecting them triggers Talleyrand: "We lack the diplomatic capital for that, Sire. Perhaps something more modest." Options that cost 0 DP (advisory, feasibility, mission cancel) are always available. Example:
+```
+  [1] Offer generous peace (2 DP)
+  [2] Press for favorable terms (2 DP)
+  [3] Armistice — buy time (1 DP)
+  [4] Ignore Prussia for now (0 DP)
+```
+If player has 1 DP, options 1 and 2 show "(insufficient DP)" and are soft-blocked.
+
 **In LLM mode:** Same options, same recommendation, but Talleyrand's voice is richer. The LLM gets the template structure as a skeleton and fills in characterful prose.
 
 **Player picks option 1 → transitions to `proposal_confirm`:**
@@ -225,7 +234,7 @@ Player knows WHAT they want (peace) but not the terms. Talleyrand fills in detai
 **What happens:**
 1. Talleyrand evaluates what terms would make the acceptance formula hit ~50 (the ACCEPT threshold)
 2. He presents a package — his "best guess" at what would work
-3. Schemer bias: he may inflate concessions slightly ("a protection guarantee costs us nothing") to favor his preferred outcome
+3. Schemer bias: he may inflate concessions slightly ("a protection guarantee costs us nothing") to favor his preferred outcome. **Design note:** This is intentional — Talleyrand's bias DOES affect mechanical outcomes in the MEDIUM path through the player's trust. If the player sends Talleyrand's suggested terms without checking the Ledger, they may send overly generous proposals. The Strategic Ledger (D key) exists as the player's verification tool. Learning to cross-check Talleyrand's suggestions against the raw numbers IS the trust-calibration meta-game
 
 **Example:**
 
@@ -246,13 +255,38 @@ and Hardenberg's temperament, I'd suggest offering:
   [Send these terms]  [More generous]  [Harsher]  [Let me specify]
 ```
 
-**"Let me specify" opens a clause-selection flow** — the player can manually add/remove clauses. This is the bridge between conversational and mechanical interfaces. In mock mode, it presents a checklist of available clause types with their values.
+**"Let me specify" opens a clause-selection flow** — the player can manually add/remove clauses. This is the bridge between conversational and mechanical interfaces.
+
+**Clause-selection UI (terminal interface):**
+
+```
+TALLEYRAND: "Very well, Sire. What terms shall I present?
+
+  Current proposal: Peace with Prussia
+  Clauses so far: (none)
+
+  Available clause types:
+    [1] Gold lump sum — "add gold 500"
+    [2] Gold/turn — "add gold_per_turn 200"
+    [3] Territory (demand) — "demand Rhineland"
+    [4] Territory (offer) — "offer Saxony"
+    [5] Open borders — "add open_borders"
+    [6] Military access — "add military_access"
+    [7] Protection guarantee — "add protection"
+    [8] Manpower — "add infantry 5000"
+    [9] Unit trade — "add cavalry_for_artillery 2500"
+
+  Commands: 'add [clause]', 'remove [#]', 'done', 'cancel'
+  Type 'done' when finished to see Talleyrand's assessment."
+```
+
+The player builds clauses one at a time. Each `add` command appends to the clause list and re-displays with updated harshness and projected acceptance. `done` transitions to `proposal_confirm` with the assembled terms. `cancel` exits with no DP cost. In mock mode, commands are parsed via keyword matching. In LLM mode, free-text like "throw in 200 gold and demand Rhineland" is parsed into clause additions.
 
 ### 3c. SPECIFIC — "Talleyrand, propose peace with Prussia: they keep Berlin, open borders, 200 gold/turn"
 
 The existing spec behavior. Talleyrand evaluates the specific terms and either:
 - **Executes** if he agrees (or if trust/authority are high enough)
-- **Objects** if he disagrees (MILD/MODERATE/STRONG per §3d of DIPLOMACY_SPEC)
+- **Objects** if he disagrees (MILD/MODERATE/STRONG per §3e of DIPLOMACY_SPEC)
 - **Suggests modification** if the terms are close but suboptimal
 
 **Example — terms Talleyrand dislikes (too harsh):**
@@ -1010,7 +1044,7 @@ Talleyrand's Schemer personality biases his conversation in specific, predictabl
 | Player proposing war on neutral | STRONG objection, threat-based | "This is how coalitions are born, Sire" (genuine wisdom AND self-interest) |
 | Vassal being harsh | Pushes for generous terms | "A willing vassal is worth ten conquered provinces" |
 
-**The 70/30 rule in mock mode:** 70% of the time, template selection ignores bias (Talleyrand's advice matches the formula). 30% of the time (when bias conditions are met), the selected template shifts the recommendation by one option toward Talleyrand's preferred outcome. The mechanical data (acceptance scores, war scores) is always accurate in the dialogue — only the RECOMMENDATION is biased.
+**The 70/30 rule in mock mode (condition-based, not random):** Bias triggers when ALL of a row's bias conditions in the table above are met (e.g., threat > 50 for "overstates risk" bias, relation > +20 for "understates difficulty" bias). When bias conditions are NOT met, the recommendation is formula-optimal (no shift). When conditions ARE met, the selected template shifts the recommendation by one option toward Talleyrand's preferred outcome. This makes bias fully deterministic — same game state always produces the same recommendation. The "70/30" ratio emerges from how often bias conditions are satisfied across typical gameplay, not from a random roll. The mechanical data (acceptance scores, war scores) is always accurate in the dialogue — only the RECOMMENDATION is biased.
 
 ### 5d. Proactive Suggestions — "Talleyrand's Report"
 
@@ -1040,11 +1074,25 @@ an opportunity — or a warning."
 | Alliance expired or degraded automatically | Immediate | HIGH | "Our alliance with Austria is deteriorating..." |
 | No diplomatic action taken for 3+ turns | Once | LOW | "Sire, the diplomatic front has been quiet. Perhaps too quiet." |
 
+**Existence guard:** Before generating any proactive suggestion, verify the target entity still exists. Specifically: check vassal still exists in `world.vassals` before generating vassal loyalty suggestions (a vassal that rebelled at turn start should not generate a loyalty warning in the same turn's dispatch). Check nation still exists (not fully conquered/dissolved) before generating nation-specific suggestions.
+
 **Frequency cap:** Maximum 2 diplomatic observations per dispatch. Highest priority wins. If nothing triggers, Talleyrand is silent (no filler text).
 
 **AI proposal suppression:** If an incoming AI proposal is pending for this turn, suppress proactive suggestions. Talleyrand is "busy" handling the incoming proposal. The suppressed suggestion can re-trigger next turn if conditions still hold.
 
-**Player acts on suggestion:** The `[Ask Talleyrand to elaborate]` button opens a `proposal_options` dialogue for that nation. The suggestion is the entry point to a conversation, not a standalone notification.
+**Player acts on suggestion:** The `[Ask Talleyrand to elaborate]` button opens a dialogue whose type depends on the trigger:
+
+| Trigger Type | Elaboration Routes To | Rationale |
+|---|---|---|
+| Diplomatic opportunity (acceptance crossed 50) | `proposal_options` | Opportunity → actionable proposal |
+| War score shifted | `advisory` | Military update → strategic analysis |
+| Enemy courting vassal | `advisory` | Threat → threat assessment |
+| Vassal loyalty drop | `advisory` | Warning → situation analysis |
+| Relation threshold crossed | `advisory` or `proposal_options` (if positive threshold) | Depends on direction — positive = opportunity, negative = warning |
+| Alliance decay | `advisory` | Degradation → what to do about it |
+| No diplomatic action for 3+ turns | `proposal_options` | Nudge toward action |
+
+Not all suggestions lead to proposals. Threat assessments and loyalty warnings route to advisory conversations, not proposal builders.
 
 ---
 
@@ -1079,6 +1127,8 @@ When proposals reach the enemy court, the acceptance formula decides the outcome
 | REJECT | Fearful, formal. "Einsiedel pales but delivers his message. 'Saxony cannot accept terms that would render the kingdom... insolvent. We beg France's understanding.'" |
 
 ### 6b. Talleyrand's Commentary on Enemy Responses
+
+**Counter-offer at 0 DP:** When the player receives a counter-offer but has 0 DP (cannot afford to renegotiate at 1 DP), Talleyrand's recommendation acknowledges the constraint: "I'd suggest we renegotiate, but we lack the diplomatic capital. Accept or reject — those are our options, Sire." The [Renegotiate] option shows "(1 DP — insufficient)" and is soft-blocked.
 
 After delivering the enemy's response, Talleyrand adds his own assessment:
 
@@ -1150,6 +1200,8 @@ Talleyrand's verbal relation estimates have an accuracy band based on his skill 
 ### 8a. The Advisory Pattern
 
 The player can ask Talleyrand strategic questions. These aren't proposals — they're conversations about the state of the world.
+
+**Availability during IN_TRANSIT:** Advisory questions are available even when Talleyrand is IN_TRANSIT carrying a proposal. Narratively, Talleyrand's network of agents and correspondents keeps him informed even while traveling. Mechanically, advisory is a 0-DP momentary state that doesn't conflict with transit. Proposal creation remains blocked during IN_TRANSIT (only one proposal at a time).
 
 **Mock mode keyword detection:**
 
@@ -1343,6 +1395,8 @@ Diplomatic conversations appear as full-width popups in the terminal area, simil
 ╚══════════════════════════════════════════════════════════════╝
 ```
 
+**Save/load mid-dialogue:** On game load, check `pending_diplomatic_dialogue`. If present and `blocking=True`, display the popup immediately (same pattern as `pending_objection` load handling). If present and `blocking=False`, display on next player input (non-blocking dialogues don't interrupt the load flow). The Godot client checks the field in its `_on_game_loaded()` handler and calls `_display_diplomatic_dialogue()` if set.
+
 **Player responds by:**
 - Pressing number keys (1-4) — fast, works in mock and LLM mode
 - Typing a free response — LLM mode parses intent, mock mode tries keyword match and falls back to "Please choose an option (1-4)"
@@ -1362,8 +1416,13 @@ Player input during pending_diplomatic_dialogue:
     → Mock mode (2nd+ attempt): "Please choose an option (1-{n}), Sire.
       If you'd like to cancel this conversation, type 'cancel'."
   ↓
+  **DP deduction timing:** DP is deducted when `execute_proposal` fires (when the
+  player confirms "Send it"), NOT when the conversation begins. Cancelling a
+  conversation at any point costs 0 DP. The player can explore options, modify
+  terms, and consult Talleyrand freely — only the final "Send" commits resources.
+
   Option action:
-    "execute_proposal" → Enter proposal transit (§2d of DIPLOMACY_SPEC)
+    "execute_proposal" → Enter proposal transit (§2d of DIPLOMACY_SPEC). DP deducted HERE.
     "modify_harsh" → New dialogue with harsher terms (max 2 iterations — see below)
     "modify_generous" → New dialogue with softer terms
     "expand_options" → New dialogue listing clause types
