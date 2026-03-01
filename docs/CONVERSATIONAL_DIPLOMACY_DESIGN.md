@@ -1,6 +1,6 @@
 # Conversational Diplomacy Layer — Design Document
 
-> **Status:** DRAFT v1.2 — Final audit pass. Cross-document consistency verified against DIPLOMACY_SPEC v2.2. See DIPLOMACY_SPEC §18 for full audit summary. Needs design gate approval.
+> **Status:** APPROVED v1.2 — Design gate passed. Sessions unified into DIPLOMACY_SPEC §14 (7-session plan). Cross-document consistency verified against DIPLOMACY_SPEC v2.2.
 > **Phase:** 8 (overlay on DIPLOMACY_SPEC.md)
 > **Prerequisite:** DIPLOMACY_SPEC.md v2.1 approved. This document defines the INTERACTION LAYER, not the mechanical systems.
 > **Relationship to DIPLOMACY_SPEC:** This spec replaces §2c (Talleyrand commands — keywords preserved, flow redesigned), §2d (proposal flow — transit mechanics preserved, presentation redesigned), §2g (feasibility — enhanced to conversation), and §9a (AI proposal popups — delivered through dialogue system). §10b (Diplomatic Ledger) is UNCHANGED — the Ledger is a data screen, complementary to the dialogue system. All formula/state/treaty mechanics in DIPLOMACY_SPEC remain unchanged. This is the steering wheel; DIPLOMACY_SPEC is the engine.
@@ -1816,44 +1816,43 @@ The key to making mock feel conversational: **options are framed as advice, not 
 
 ---
 
-## §14. Implementation Sketch
+## §14. Implementation Plan — Unified with DIPLOMACY_SPEC
+
+> **The conversation layer sessions (A-D) are merged into DIPLOMACY_SPEC §14's unified 7-session plan.** This section preserves file and test details; see DIPLOMACY_SPEC §14 for the authoritative session timeline.
 
 ### 14a. New Files
 
-**Directory alignment with DIPLOMACY_SPEC:** SPEC places core diplomacy in `backend/game_logic/diplomacy.py`. Conversational layer files go in the SAME `backend/game_logic/` directory (flat structure, consistent with existing codebase patterns — no new `backend/diplomacy/` package).
+**Directory:** `backend/game_logic/` (flat structure, consistent with existing codebase patterns).
 
-| File | Purpose | Estimated Size |
-|---|---|---|
-| `backend/game_logic/diplomatic_dialogue.py` | Dialogue state machine, classify_intent, build_dialogue | ~300 lines |
-| `backend/game_logic/diplomatic_templates.py` | Template library, slot resolvers, personality modifiers | ~500 lines |
-| `backend/game_logic/diplomatic_advisory.py` | Strategic conversation handlers, "what if" engine | ~200 lines |
+| File | Purpose | Estimated Size | Unified Session |
+|---|---|---|---|
+| `backend/game_logic/diplomatic_dialogue.py` | Dialogue state machine, classify_intent, build_dialogue | ~300 lines | Session 3 |
+| `backend/game_logic/diplomatic_templates.py` | Template library, slot resolvers, personality modifiers | ~500 lines | Session 3 |
+| `backend/game_logic/diplomatic_advisory.py` | Strategic conversation handlers, "what if" engine | ~200 lines | Session 4 |
 
 ### 14b. Modified Files
 
-| File | Changes |
-|---|---|
-| `backend/ai/llm_client.py` | Add diplomatic keyword detection before marshal detection (~50 lines) |
-| `backend/commands/executor.py` | Add `pending_diplomatic_dialogue` blocking check; dialogue response handler (~100 lines) |
-| `backend/models/world_state.py` | Add `pending_diplomatic_dialogue` field + serialization (~15 lines) |
-| `backend/main.py` | Add `/respond_to_diplomatic_dialogue` endpoint; wire dialogue into command flow (~60 lines) |
-| `backend/game_logic/dispatch.py` | Add Talleyrand's Report section to morning dispatch (~80 lines) |
-| `godot-client/.../main.gd` | Diplomatic dialogue popup rendering and input handling (~150 lines) |
+| File | Changes | Unified Session |
+|---|---|---|
+| `backend/ai/llm_client.py` | Add diplomatic keyword detection before marshal detection (~50 lines) | Session 3 |
+| `backend/commands/executor.py` | Add `pending_diplomatic_dialogue` blocking check; dialogue response handler (~100 lines) | Session 3 |
+| `backend/models/world_state.py` | Add `pending_diplomatic_dialogue` field + serialization (~15 lines) | Session 3 |
+| `backend/main.py` | Add `/respond_to_diplomatic_dialogue` endpoint; wire dialogue into command flow (~60 lines) | Session 3 |
+| `backend/game_logic/dispatch.py` | Add Talleyrand's Report section to morning dispatch (~80 lines) | Session 4 |
+| `godot-client/.../main.gd` | Diplomatic dialogue popup rendering and input handling (~150 lines) | Session 7 |
 
-### 14c. Implementation Order (4 Sessions)
+### 14c. Session Mapping (Old → Unified)
 
-**Session A (Foundation):** Dialogue state machine + template library + 10 core templates + endpoint + nation validation + null safety. Player can have basic conversations with Talleyrand about proposals. Vague/medium/specific all work. Fast-track for specific+agree. Serialization enforcement.
-
-**Session B (Conversations):** Advisory conversations + proactive suggestions + remaining templates (T21-T27) + advisory variants. "What if" questions work. Morning Dispatch integration (Talleyrand's Report). Question detection in mock parser.
-
-**Session C (Objections & Confrontation):** Merged diplomatic objections + sabotage confrontation popup (T17 + discovery logic) + enemy diplomat voices + Talleyrand defiance trigger point wiring.
-
-**Session D (UI + Polish):** Godot popup rendering + Schemer bias calibration (playtesting) + blocking/auto-dismiss behavior + DP cost display + Ledger cross-references + overview template variants. Full system playable.
-
-**Note:** Update ROADMAP.md Phase 8 to replace "Diplomacy Chat" with "Conversational Diplomacy Layer (4 sessions)" and reference this design document.
+| Old Session | Merged Into | DIPLOMACY_SPEC Session |
+|---|---|---|
+| **A** (Foundation) | Dialogue state machine + 10 templates + endpoint | **Session 3** (Talleyrand Commands) |
+| **B** (Conversations) | Advisory + proactive + remaining templates | **Session 4** (AI Proposals) |
+| **C** (Objections) | Merged objections + sabotage confrontation + voices | **Session 6** (Defiance) |
+| **D** (UI + Polish) | Godot popup + calibration + blocking behavior | **Session 7** (Ledger UI + Polish) |
 
 ### 14d. Test Strategy
 
-- **Template coverage:** Each template renders without errors for all 5 nations × all game state buckets
+- **Template coverage:** Each template renders without errors for all 5 nations x all game state buckets
 - **Dialogue flow:** Each dialogue type completes without stale state
 - **Specificity routing:** Vague/medium/specific commands route correctly
 - **Option execution:** Each option in each template produces the correct mechanical action

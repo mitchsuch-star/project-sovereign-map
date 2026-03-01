@@ -1,6 +1,6 @@
 # Diplomacy System — Design Spec
 
-> **Status:** DRAFT v2.2 — Final audit pass. 72 findings across both specs (7 Critical, 19 Major, 17 Minor resolved). Score: 97/100. See §18 for full audit summary. Needs final design gate approval before implementation.
+> **Status:** APPROVED v2.2 — Design gate passed. Session plan unified with CONVERSATIONAL_DIPLOMACY_DESIGN (7 sessions). 72 findings resolved (7 Critical, 19 Major, 17 Minor). Score: 97/100. See §18 for full audit summary.
 > **Phase:** 8
 > **Prerequisite:** Phase 7b COMPLETE. Jealousy system implementation may run in parallel.
 > **Companion:** COALITION_SPEC.md (builds on this spec — threat level, coalition formation, coordinated AI). War score formula now defined inline (§6e) — COALITION_SPEC builds on it but no longer owns it.
@@ -38,11 +38,9 @@ Historical anchor: Napoleon's diplomatic failures were as decisive as his milita
 - **Marshal relationships** track personal bonds between commanders (e.g., Ney-Davout = -1).
 Winning battles can improve war score (affects nation relations indirectly) AND marshal relationships (directly via Win/Loss formula). But they are independent values stored in different fields. Code should use `nation_relations` for diplomacy and `marshal.get_relationship()` for marshal interactions.
 
-### 1b. Expanded Map (18 Regions)
+### 1b. Expanded Map (19 Regions)
 
-Expanded from 13 to 18. Goals: French strategic depth, Waterloo deathball broken, Austria on eastern edge, Saxony as central buffer. Layout designed to translate to 1805 full European map.
-
-**APPROVED: 19 regions confirmed. Adjacency and starting forces need playtesting.**
+Expanded from 13 to 19. Goals: French strategic depth, Waterloo deathball broken, Austria on eastern edge, Saxony as central buffer. Layout designed to translate to 1805 full European map.
 
 ```
                     [Netherlands]---[Hanover]---[Berlin]
@@ -59,8 +57,6 @@ Expanded from 13 to 18. Goals: French strategic depth, Waterloo deathball broken
               [Bordeaux]            |             |
                    |            [Milan]-----------+
               [Lyon]---[Marseille]
-                                \
-                              [Milan]
 
 (Simplified — see adjacency table for exact connections)
 ```
@@ -2176,15 +2172,20 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 
 ### New Files
 
-| File | Purpose |
-|------|---------|
-| `backend/game_logic/diplomacy.py` | Core diplomatic engine: acceptance formula, state transitions, treaty evaluation, DP management |
-| `backend/game_logic/vassal.py` | Vassal loyalty, tribute, rebellion, autonomy |
-| `backend/models/diplomat.py` | DiplomaticRepresentative class, diplomatic personality definitions |
-| `backend/commands/diplomatic_defiance.py` | Talleyrand's defiance: probability curve, sabotage application, discovery |
-| `godot-client/.../diplomatic_ledger.gd` | Diplomatic Ledger screen |
+| File | Purpose | Session |
+|------|---------|---------|
+| `backend/game_logic/diplomacy.py` | Core diplomatic engine: acceptance formula, state transitions, treaty evaluation, DP management | 2 |
+| `backend/models/diplomat.py` | DiplomaticRepresentative class, diplomatic personality definitions | 2 |
+| `backend/game_logic/diplomatic_dialogue.py` | Dialogue state machine, classify_intent, build_dialogue | 3 |
+| `backend/game_logic/diplomatic_templates.py` | Template library, slot resolvers, personality modifiers | 3 |
+| `backend/game_logic/diplomatic_advisory.py` | Strategic conversation handlers, "what if" engine | 4 |
+| `backend/game_logic/vassal.py` | Vassal loyalty, tribute, rebellion, autonomy | 5 |
+| `backend/commands/diplomatic_defiance.py` | Talleyrand's defiance: probability curve, sabotage application, discovery | 6 |
+| `godot-client/.../diplomatic_ledger.gd` | Diplomatic Ledger screen | 7 |
 
-### Session Plan (5 Core + 1 Polish)
+### Unified Session Plan (7 Sessions)
+
+> **Unified with CONVERSATIONAL_DIPLOMACY_DESIGN.md §14.** The conversation layer sessions (A-D) are merged into the mechanical sessions below where they share dependencies. This is the single implementation timeline for all of Phase 8.
 
 #### Session 1A: Map Expansion + Region Migration (HIGH RISK — DD6)
 
@@ -2239,9 +2240,11 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 **Estimated tests:** ~60
 **Gate:** Acceptance formula returns correct scores for test scenarios. State transitions enforce adjacency.
 
-#### Session 3A: Talleyrand Commands + Parser Routing (HIGH RISK — M6)
+#### Session 3: Talleyrand Commands + Conversational Dialogue Foundation (HIGH RISK)
 
-**Scope:**
+> **Merges:** DIPLOMACY_SPEC Session 3A + CONVERSATIONAL_DIPLOMACY_DESIGN Session A
+
+**Scope (mechanical):**
 - Talleyrand command parsing (mock parser keywords)
 - _execute_diplomatic() family in executor.py
 - Proposal creation from parsed commands
@@ -2251,24 +2254,44 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 - Morning Dispatch diplomatic events (using §10d event types)
 - Acceptance formula feedback (§6f)
 
-**Risk:** HIGH — Modifies parser.py, executor.py, llm_client.py, main.py — the most critical backend files. Diplomat-vs-marshal routing in the parser is novel code with high regression risk.
-**Estimated tests:** ~35
-**Gate:** curl test: "Talleyrand, propose peace with Prussia" returns formatted response. "Talleyrand, what would it take to get peace with Prussia?" returns feasibility assessment. Proposal feedback includes natural-language hint.
+**Scope (conversation layer — from CONV_DESIGN Session A):**
+- New file: `backend/game_logic/diplomatic_dialogue.py` (~300 lines)
+- New file: `backend/game_logic/diplomatic_templates.py` (~500 lines)
+- Dialogue state machine + `pending_diplomatic_dialogue` field
+- 10 core templates (T1-T10) covering proposal_options, proposal_confirm, proposal_execute
+- `/respond_to_diplomatic_dialogue` endpoint
+- Specificity routing: vague/medium/specific all work
+- Fast-track for specific+agree (skip dialogue, execute directly)
+- Serialization enforcement for `pending_diplomatic_dialogue`
 
-#### Session 3B: AI Proposals + Popup Flow (HIGH RISK — M6)
+**Risk:** HIGH — Modifies parser.py, executor.py, llm_client.py, main.py — the most critical backend files. Diplomat-vs-marshal routing in the parser is novel code with high regression risk. Dialogue state machine adds new blocking behavior.
+**Estimated tests:** ~55
+**Gate:** curl test: "Talleyrand, propose peace with Prussia" returns dialogue with options. "Talleyrand, what would it take to get peace with Prussia?" returns feasibility assessment. Vague/medium/specific commands route correctly. Dialogue serializes through save/load.
 
-**Scope:**
+#### Session 4: AI Proposals + Advisory Conversations (HIGH RISK)
+
+> **Merges:** DIPLOMACY_SPEC Session 3B + CONVERSATIONAL_DIPLOMACY_DESIGN Session B
+
+**Scope (mechanical):**
 - AI diplomatic phase in enemy_ai.py (proposal generation when losing)
 - AI proposal popup (same pattern as objection popup)
 - Accept/reject/counter-offer flow (using M3 counter-offer algorithm)
 - Notification types (§10e templates)
 - Conflicting alliance resolution (§5b.3)
 
-**Risk:** HIGH — AI proposal logic + popup flow in enemy_ai.py and main.py. Counter-offer algorithm is new deterministic logic.
-**Estimated tests:** ~25
-**Gate:** AI sends armistice when losing. Counter-offer generates correctly. Alliance conflict resolution works.
+**Scope (conversation layer — from CONV_DESIGN Session B):**
+- New file: `backend/game_logic/diplomatic_advisory.py` (~200 lines)
+- Advisory conversations ("What about Austria?", "Who's the threat?")
+- Proactive suggestions (Talleyrand notices opportunity → Morning Dispatch)
+- Remaining templates T11-T20 (incoming_proposal, advisory, feasibility, proactive)
+- Question detection in mock parser
+- Morning Dispatch integration (Talleyrand's Report section)
 
-#### Session 4: Vassal System + Treaty Clauses (MEDIUM RISK)
+**Risk:** HIGH — AI proposal logic + popup flow in enemy_ai.py and main.py. Counter-offer algorithm is new deterministic logic. Advisory conversations add depth.
+**Estimated tests:** ~40
+**Gate:** AI sends armistice when losing. Counter-offer generates correctly. "What about Austria?" returns advisory dialogue. Proactive suggestions appear in Morning Dispatch.
+
+#### Session 5: Vassal System + Treaty Clauses (MEDIUM RISK)
 
 **Scope:**
 - New file: `backend/game_logic/vassal.py`
@@ -2288,37 +2311,54 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 **Estimated tests:** ~45
 **Gate:** Vassal loyalty ticks. Rebellion fires at 0. Tribute collected. AP clause reduces actions.
 
-#### Session 5: Talleyrand Defiance + Diplomatic Ledger UI (MEDIUM RISK)
+#### Session 6: Talleyrand Defiance + Diplomatic Objections/Confrontation (MEDIUM RISK)
 
-**Scope:**
+> **Merges:** DIPLOMACY_SPEC Session 5 + CONVERSATIONAL_DIPLOMACY_DESIGN Session C
+
+**Scope (mechanical):**
 - New file: `backend/commands/diplomatic_defiance.py`
 - Talleyrand defiance probability curve
 - Sabotage application (proposal modification)
 - Discovery mechanics
 - Talleyrand objections (V2a pattern)
-- Diplomatic Ledger Godot UI (D key)
-- Nation cards, treaty display, threat level
 - Notification types
 
-**Risk:** MEDIUM — defiance follows existing V2b pattern. Godot UI follows Strategic Ledger pattern.
-**Estimated tests:** ~40
-**Gate:** Talleyrand sabotages with correct probability. Ledger screen opens and displays data.
+**Scope (conversation layer — from CONV_DESIGN Session C):**
+- Merged diplomatic objections into conversation flow (not separate popups)
+- Sabotage confrontation popup (template T17 + discovery logic)
+- Enemy diplomat voices (personality-keyed response variations)
+- Talleyrand defiance trigger point wiring into dialogue state machine
+- Templates T21-T27 (sabotage_confrontation, objection variants)
 
-#### Session 6 (Polish — DEFERRED)
+**Risk:** MEDIUM — defiance follows existing V2b pattern. Conversation integration adds complexity but builds on Session 3 dialogue foundation.
+**Estimated tests:** ~50
+**Gate:** Talleyrand sabotages with correct probability. Sabotage discovery triggers confrontation dialogue. Diplomatic objections merge into conversation flow. Enemy diplomat voices vary by personality.
 
-**Scope (all items explicitly deferred with rationale — DD7):**
+#### Session 7: Diplomatic Ledger UI + Polish (MEDIUM RISK)
 
-| Deferred Item | Why Deferred | Gameplay Impact | Target |
-|---|---|---|---|
-| AI-AI diplomacy (§9c) | Not required for player-facing diplomacy loop | World feels less alive, but all player interactions work | Session 6 |
-| Full Continental System | Economic warfare is flavor, not core combat loop | Player can't use the Continental System — minor diplomatic tool missing | Session 6 |
-| Fog-filtered diplomatic intel | Existing fog system works; diplomatic fog is polish | Player sees slightly more diplomatic info than intended | Session 6 |
-| Campaign log diplomatic events | Campaign log works; diplomatic entries are display-only | Diplomatic events don't appear in campaign log history | Session 6 |
-| Special acceptance bonuses (§6d) | Generic formula works for all proposals | Nation-specific desires (Prussia wants Saxony) not reflected | Session 6 |
-| British subsidy mechanic (DD8-1) | AI behavior polish, not core | Britain doesn't actively finance coalitions | Session 6 |
-| Metternich armed mediation (DD8-3) | Schemer-specific AI polish | Metternich doesn't gain coalition bonus from rejected proposals | Session 6 |
+> **Merges:** DIPLOMACY_SPEC Session 6 + CONVERSATIONAL_DIPLOMACY_DESIGN Session D
 
-**Estimated tests:** ~35
+**Scope (UI):**
+- Diplomatic Ledger Godot UI (D key) — nation cards, treaty display, threat level
+- Godot diplomatic dialogue popup rendering and input handling
+- Schemer bias calibration (playtesting)
+- Blocking/auto-dismiss dialogue behavior
+- DP cost display in dialogue options
+- Ledger cross-references from dialogue
+
+**Scope (deferred mechanical items — DD7):**
+
+| Deferred Item | Why Deferred | Gameplay Impact |
+|---|---|---|
+| AI-AI diplomacy (§9c) | Not required for player-facing diplomacy loop | World feels less alive, but all player interactions work |
+| Full Continental System | Economic warfare is flavor, not core combat loop | Minor diplomatic tool missing |
+| Fog-filtered diplomatic intel | Existing fog system works; diplomatic fog is polish | Player sees slightly more diplomatic info than intended |
+| Campaign log diplomatic events | Campaign log works; diplomatic entries are display-only | Diplomatic events don't appear in campaign log history |
+| Special acceptance bonuses (§6d) | Generic formula works for all proposals | Nation-specific desires not reflected |
+| British subsidy mechanic (DD8-1) | AI behavior polish, not core | Britain doesn't actively finance coalitions |
+| Metternich armed mediation (DD8-3) | Schemer-specific AI polish | Metternich doesn't gain coalition bonus |
+
+**Estimated tests:** ~45
 
 ### What Can Be Deferred
 
@@ -2349,7 +2389,7 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 
 ### Test Coverage
 
-~250 tests across 5 sessions. Key areas:
+~310 tests across 7 sessions. Key areas:
 
 - **Map:** 19 regions created, adjacency bidirectional, all nations assigned correct starting regions
 - **Marshals:** New marshals created, starting positions correct, stats reasonable

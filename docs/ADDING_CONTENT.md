@@ -1,6 +1,6 @@
 # Adding Content Guide
 
-Step-by-step guides for adding new marshals, personalities, and strategic commands.
+Step-by-step guides for adding new marshals, personalities, strategic commands, diplomatic representatives, and diplomatic actions.
 
 ---
 
@@ -37,6 +37,26 @@ Step-by-step guides for adding new marshals, personalities, and strategic comman
    - [Victory Threshold Scaling](#victory-threshold-scaling)
    - [Common Pitfalls (Map Expansion)](#common-pitfalls-map-expansion)
    - [Quick Reference: Current 13-Region Map](#quick-reference-current-13-region-map)
+4. [Adding a Diplomatic Representative](#4-adding-a-diplomatic-representative)
+   - [Diplomat vs Marshal](#diplomat-vs-marshal)
+   - [Diplomatic Personality Types](#diplomatic-personality-types)
+   - [Diplomat Data Questionnaire](#diplomat-data-questionnaire)
+   - [Complete File Reference (Diplomats)](#complete-file-reference-diplomats)
+   - [Step-by-Step: Adding a Diplomat](#step-by-step-adding-a-diplomat)
+   - [Serialization Checklist (Diplomats)](#serialization-checklist-diplomats)
+   - [Common Pitfalls (Diplomats)](#common-pitfalls-diplomats)
+   - [Quick Reference: Current Diplomats](#quick-reference-current-diplomats)
+5. [Adding a Diplomatic Action](#5-adding-a-diplomatic-action)
+   - [Diplomatic Action Checklist](#diplomatic-action-checklist)
+   - [DP Cost Reference](#dp-cost-reference)
+   - [Complete File Reference (Diplomatic Actions)](#complete-file-reference-diplomatic-actions)
+   - [Common Pitfalls (Diplomatic Actions)](#common-pitfalls-diplomatic-actions)
+6. [Adding Dialogue Templates](#6-adding-dialogue-templates)
+   - [Template Structure](#template-structure)
+   - [Slot Resolvers](#slot-resolvers)
+   - [Personality Modifiers in Templates](#personality-modifiers-in-templates)
+   - [Template Validation](#template-validation)
+   - [Quick Reference: Dialogue Types](#quick-reference-dialogue-types)
 
 ---
 
@@ -872,7 +892,22 @@ Marshal(
 
 ### Adding New Nations
 
-If adding a marshal for a nation not yet in the game:
+Complete guide for adding a nation to the game. Nations require military infrastructure (marshals, regions, economy) AND diplomatic infrastructure (representative, states, relations).
+
+#### Pre-Flight Questions
+
+- [ ] **Nation name:** (e.g., "Austria", "Russia")
+- [ ] **Starting diplomatic state vs France:** WAR / PEACE / ALLIANCE / etc.
+- [ ] **Starting relation with France:** -100 to +100
+- [ ] **Capital region:** Name (or None for off-map like Britain)
+- [ ] **Controlled regions at game start:** List of region names
+- [ ] **AP per turn:** Reflects administrative capacity (France=4, major=3-4, minor=2)
+- [ ] **Starting gold:** Economy baseline
+- [ ] **Manpower pools:** {infantry, cavalry, artillery}
+- [ ] **Marshals:** At least 1 (see Adding a New Marshal above)
+- [ ] **Diplomatic representative:** Name, personality, skill (see Section 4)
+- [ ] **Relations with ALL other nations:** -100 to +100 per pair
+- [ ] **Diplomatic states with ALL other nations:** Per pair
 
 #### 1. Add Nation Color (Godot)
 
@@ -884,29 +919,157 @@ const COLORS = {
 }
 ```
 
-#### 2. Add to Enemy Nations List
+#### 2. Add to Enemy Nations List + Economy
 
 ```python
-# world_state.py line ~114
+# world_state.py
 self.enemy_nations: List[str] = ["Britain", "Prussia", "NewNation"]
 
-# Also add actions per nation
+# Actions per nation (AP/turn)
 self.nation_actions: Dict[str, int] = {
     "Britain": 4,
     "Prussia": 4,
-    "NewNation": 3,  # Adjust as appropriate
+    "NewNation": 3,  # Adjust: major=3-4, minor=2
+}
+
+# Starting gold
+self.nation_gold: Dict[str, int] = {
+    # ...existing...
+    "NewNation": 600,
 }
 ```
 
-#### 3. Set Up Initial Region Control
+#### 3. Add Capital to NATION_CAPITALS
 
 ```python
-# world_state.py in _setup_initial_control()
-control_map = {
+# region.py
+NATION_CAPITALS = {
     # ...existing...
-    "RegionName": "NewNation",
+    "NewNation": "CapitalRegionName",  # or None for off-map (Britain)
 }
 ```
+
+#### 4. Set Up Region Control
+
+Each region owned by the new nation needs `starting_controller` in `REGIONS_DATA`:
+
+```python
+# region.py REGIONS_DATA
+"NewRegion": {
+    "adjacent": [...],
+    "terrain": "plains",
+    "region_type": "town",
+    "income": 100,
+    "supply_capacity": 3,
+    "starting_controller": "NewNation",  # REQUIRED
+    "grid_position": (row, col),
+}
+```
+
+#### 5. Add Manpower Pools
+
+```python
+# world_state.py DEFAULT_MANPOWER_POOLS
+DEFAULT_MANPOWER_POOLS = {
+    # ...existing...
+    "NewNation": {"infantry": 40000, "cavalry": 5000, "artillery": 3000},
+}
+```
+
+#### 6. Add Nation Authority (Diplomacy)
+
+```python
+# world_state.py — AI nation authority for DP generation
+self.nation_authority: Dict[str, int] = {
+    # ...existing...
+    "NewNation": 60,  # Default 60 for all AI nations
+}
+```
+
+#### 7. Add Starting Diplomatic States
+
+Add diplomatic state entries for EVERY nation pair involving the new nation:
+
+```python
+# world_state.py or diplomacy.py initialization
+# Key format: "NationA|NationB" (alphabetical order)
+self.diplomatic_states["France|NewNation"] = "PEACE"
+self.diplomatic_states["Britain|NewNation"] = "PEACE"
+self.diplomatic_states["NewNation|Prussia"] = "PEACE"
+# ... one entry per pair
+```
+
+Valid states: `WAR`, `ARMISTICE`, `PEACE`, `OPEN_BORDERS`, `NON_AGGRESSION`, `DEFENSIVE_ALLIANCE`, `ALLIANCE`, `VASSAL`
+
+#### 8. Add Starting Nation Relations
+
+```python
+# Key format: same alphabetical "NationA|NationB"
+self.nation_relations["France|NewNation"] = -30   # -100 to +100
+self.nation_relations["Britain|NewNation"] = +40
+# ... one entry per pair
+```
+
+#### 9. Add Nation Starting Regions (War Score Reference)
+
+```python
+# world_state.py — static reference for war score territory calculation
+self.nation_starting_regions["NewNation"] = ["Region1", "Region2", "Region3"]
+```
+
+#### 10. Assign Diplomatic Representative
+
+See [Section 4: Adding a Diplomatic Representative](#4-adding-a-diplomatic-representative) for full details.
+
+```python
+# In diplomacy initialization
+self.diplomats["NewNation"] = DiplomaticRepresentative(
+    name="DiplomatName",
+    nation="NewNation",
+    personality="hawk",  # schemer/loyalist/hawk/dove
+    skill=6,             # 1-10
+    biography="...",
+)
+```
+
+#### 11. Wire Enemy AI
+
+```python
+# enemy_ai.py — AI needs to know about the new nation
+# Add to any nation-specific logic (P1-P8 priority tree)
+# New nation marshals use the same executor as all other nations
+```
+
+#### 12. Update Parsers
+
+```python
+# parser.py — add new nation's marshals to known_enemies
+known_enemies = ["Wellington", "Uxbridge", "Blucher", "Gneisenau", "NewMarshal"]
+
+# llm_client.py — add nation name to mock parser nation detection
+# prompt_builder.py — include nation in diplomatic context
+```
+
+#### Validation Checklist (New Nations)
+
+- [ ] Godot color defined in `map.gd`
+- [ ] Added to `enemy_nations` list
+- [ ] `nation_actions` entry (AP/turn)
+- [ ] `nation_gold` entry (starting gold)
+- [ ] Capital in `NATION_CAPITALS` (region.py)
+- [ ] All controlled regions have `starting_controller` set
+- [ ] `DEFAULT_MANPOWER_POOLS` entry
+- [ ] `nation_authority` entry
+- [ ] Diplomatic states for ALL nation pairs
+- [ ] Nation relations for ALL nation pairs
+- [ ] `nation_starting_regions` entry
+- [ ] At least 1 marshal created (see Adding a Marshal)
+- [ ] Diplomatic representative assigned (see Section 4)
+- [ ] Enemy AI handles new nation
+- [ ] Parser knows new nation's marshals
+- [ ] All new fields in `to_dict()` / `from_dict()`
+- [ ] `pytest tests/test_serialization_enforcement.py -v` passes
+- [ ] Regions appear on Godot map (`map.gd` REGION_POSITIONS + REGION_CONNECTIONS)
 
 ---
 
@@ -2029,3 +2192,427 @@ Capital lookups now use `NATION_CAPITALS` in `region.py` (single source of truth
 | Bordeaux | plains | rural | 50 | No | France | Brittany, Geneva |
 
 **Update this table whenever the map changes.**
+
+---
+
+## 4. Adding a Diplomatic Representative
+
+Complete guide for adding new diplomatic representatives. Diplomats are NOT marshals — they are a separate entity class (`DiplomaticRepresentative`) with different mechanics.
+
+---
+
+### Diplomat vs Marshal
+
+| Aspect | Marshal | Diplomat |
+|--------|---------|----------|
+| Class | `Marshal` | `DiplomaticRepresentative` |
+| Storage | `world.marshals` dict | `world.diplomats` dict (keyed by nation) |
+| Personality types | aggressive, cautious, literal, balanced, loyal | schemer, loyalist, hawk, dove |
+| Trust | Yes (Trust class) | Yes (Trust class) |
+| Skills | tactical, shock, defense, logistics, admin, command | skill (single value, 1-10) |
+| Combat | Yes | No |
+| Actions | Move, attack, defend, fortify, etc. | Propose, negotiate, advise, gather intel, etc. |
+| Disobedience | V2b defiance system | Diplomatic defiance (sabotage in transit) |
+| Economy | AP (action points) | DP (diplomatic points) |
+
+---
+
+### Diplomatic Personality Types
+
+| Type | Effect | Archetype |
+|------|--------|-----------|
+| **Schemer** | Best stats. May sabotage proposals at low authority/trust — substitutes what HE thinks is best. | Talleyrand (10), Metternich (9) |
+| **Loyalist** | Moderate stats, never sabotages, always reliable. No defiance risk. | Caulaincourt |
+| **Hawk** | Penalties to peace proposals, bonuses to demands/ultimatums. Objects to generous terms. | Castlereagh (7), Hardenberg (6) |
+| **Dove** | Bonuses to peace/alliance, penalties to harsh demands. Objects to conquest-driven proposals. | Einsiedel (4) |
+
+> **IMPORTANT:** Diplomatic personality types are SEPARATE from marshal personality types. A nation's marshal can be `cautious` while its diplomat is `hawk`. They are independent systems.
+
+---
+
+### Diplomat Data Questionnaire
+
+Answer these before implementation:
+
+- [ ] **Name:** Diplomat's name (e.g., "Metternich")
+- [ ] **Nation:** Which nation they represent
+- [ ] **Personality:** schemer / loyalist / hawk / dove
+- [ ] **Skill:** 1-10 (affects acceptance formula bonus, DP efficiency, sabotage detection)
+- [ ] **Starting Trust:** Default 55 for Schemers, 65 for others (adjustable)
+- [ ] **Biography:** 1-2 sentence character description for UI display
+
+---
+
+### Complete File Reference (Diplomats)
+
+| File | What to modify | Notes |
+|------|---------------|-------|
+| `backend/game_logic/diplomat.py` | `DiplomaticRepresentative` class | Add to starting diplomat creation |
+| `backend/models/world_state.py` | `self.diplomats` dict | Keyed by nation name |
+| `backend/game_logic/diplomacy.py` | Acceptance formula | Skill affects `skill_bonus` term |
+| `backend/game_logic/diplomatic_templates.py` | Voice/personality templates | Personality affects template selection |
+| `backend/game_logic/diplomatic_dialogue.py` | Dialogue state machine | Personality affects Talleyrand's framing |
+| `backend/game_logic/diplomatic_defiance.py` | Sabotage mechanics | Only relevant for Schemer personality |
+| `backend/ai/llm_client.py` | Mock parser | Add diplomat name to keyword detection |
+| `backend/ai/prompt_builder.py` | LLM context | Include diplomat personality in prompts |
+| `backend/main.py` | API response | Include diplomat info in diplomatic endpoints |
+| `backend/game_logic/marshal_overview.py` | Diplomat cards (if shown) | Separate from marshal cards |
+
+---
+
+### Step-by-Step: Adding a Diplomat
+
+#### Step 1: Add to Diplomat Creation
+
+```python
+# diplomat.py — in create_starting_diplomats() or equivalent
+diplomats["NewNation"] = DiplomaticRepresentative(
+    name="DiplomatName",
+    nation="NewNation",
+    personality="hawk",      # schemer/loyalist/hawk/dove
+    skill=6,                 # 1-10
+    biography="Brief character description for UI display.",
+)
+```
+
+#### Step 2: Add Personality-Specific Modifiers
+
+```python
+# diplomacy.py — acceptance formula personality modifier
+DIPLOMAT_PERSONALITY_MODIFIERS = {
+    "schemer": {"peace": +5, "alliance": +5, "demand": +3, "vassal": +3},
+    "loyalist": {"peace": 0, "alliance": 0, "demand": 0, "vassal": 0},
+    "hawk": {"peace": -5, "alliance": -3, "demand": +5, "vassal": +5},
+    "dove": {"peace": +5, "alliance": +5, "demand": -5, "vassal": -5},
+}
+```
+
+#### Step 3: Add Voice Templates
+
+```python
+# diplomatic_templates.py — add personality-keyed response variations
+# Each diplomat personality type needs response flavor text
+# See Section 6 for full template guide
+```
+
+#### Step 4: Add to Parser (if player-commandable)
+
+Only Talleyrand is player-commanded in current design. Enemy diplomats are AI-driven. If adding a player diplomat:
+
+```python
+# llm_client.py — add to mock parser diplomatic keyword detection
+# parser.py — add diplomat name recognition
+```
+
+#### Step 5: Serialization
+
+```python
+# DiplomaticRepresentative must implement to_dict() / from_dict()
+def to_dict(self):
+    return {
+        "name": self.name,
+        "nation": self.nation,
+        "personality": self.personality,
+        "skill": self.skill,
+        "biography": self.biography,
+        "trust": self.trust.to_dict(),
+    }
+
+@classmethod
+def from_dict(cls, data):
+    rep = cls(
+        name=data["name"],
+        nation=data["nation"],
+        personality=data["personality"],
+        skill=data.get("skill", 5),
+        biography=data.get("biography", ""),
+    )
+    if "trust" in data:
+        rep.trust = Trust.from_dict(data["trust"])
+    return rep
+```
+
+#### Step 6: Run Tests
+
+```bash
+".venv\Scripts\python.exe" -m pytest tests/test_serialization_enforcement.py -v
+```
+
+---
+
+### Serialization Checklist (Diplomats)
+
+- [ ] `to_dict()` includes ALL fields (name, nation, personality, skill, biography, trust)
+- [ ] `from_dict()` uses `.get()` with defaults for all fields
+- [ ] Trust object serialized via `trust.to_dict()` / `Trust.from_dict()`
+- [ ] `world.diplomats` dict serialized in `WorldState.to_dict()`
+- [ ] `world.diplomats` dict restored in `WorldState.from_dict()`
+- [ ] `SAVE_FORMAT_REFERENCE.md` updated with new diplomat fields
+
+---
+
+### Common Pitfalls (Diplomats)
+
+#### Pitfall 1: Diplomat in marshals dict
+Diplomats are NOT marshals. Never add a `DiplomaticRepresentative` to `world.marshals`. They go in `world.diplomats`.
+
+#### Pitfall 2: Confusing personality systems
+Marshal personalities (`aggressive`/`cautious`/`literal`) and diplomat personalities (`schemer`/`loyalist`/`hawk`/`dove`) are completely independent. Don't use marshal personality enums for diplomats.
+
+#### Pitfall 3: Missing nation pairing
+When adding a diplomat for a new nation, you must also add diplomatic states and nation relations for ALL pairs involving that nation. See [Adding New Nations](#adding-new-nations) step 7-8.
+
+#### Pitfall 4: Schemer trust starting value
+Schemers should start with lower trust (55) to reflect their unreliable nature. Other types start at 65. This affects defiance probability from turn 1.
+
+#### Pitfall 5: Skill affects formula
+Diplomat skill feeds into the acceptance formula: `skill_bonus = (player_diplomat.skill - target_diplomat.skill) * 2`. Adding a high-skill diplomat to a minor nation will make them harder to negotiate with. Balance accordingly.
+
+---
+
+### Quick Reference: Current Diplomats
+
+| Nation | Representative | Personality | Skill | Trust | Notes |
+|--------|---------------|-------------|-------|-------|-------|
+| France | Talleyrand | Schemer | 10 | 55 | Player's diplomat, can sabotage |
+| Britain | Castlereagh | Hawk | 7 | — | Anti-French, opposes generous terms |
+| Prussia | Hardenberg | Hawk | 6 | — | Demands respect, offers little |
+| Austria | Metternich | Schemer | 9 | — | Spider diplomat, delays & leverages |
+| Saxony | Einsiedel | Dove | 4 | — | Fears aggression, hopes for peace |
+
+---
+
+## 5. Adding a Diplomatic Action
+
+Guide for adding new diplomatic action types to the game. Diplomatic actions are commands the player gives to Talleyrand (or AI gives to their diplomat).
+
+---
+
+### Diplomatic Action Checklist
+
+Follow this checklist for EVERY new diplomatic action:
+
+1. **Define the action**
+   - [ ] Action name (internal): e.g., `IMPROVE_RELATIONS`
+   - [ ] Display name: e.g., "Improve Relations"
+   - [ ] DP cost: How many diplomatic points it costs
+   - [ ] Duration: Instant, 1-turn transit, or multi-turn mission
+   - [ ] Can Talleyrand sabotage it? (Schemer defiance)
+
+2. **Add to validation**
+   - [ ] Add to `VALID_DIPLOMATIC_ACTIONS` in `validation.py`
+   - [ ] Add display name to `_DIPLOMATIC_ACTION_DISPLAY_NAMES`
+
+3. **Add executor handler**
+   - [ ] Add `_execute_diplomatic_[action]()` in `executor.py`
+   - [ ] Check DP cost before execution
+   - [ ] Handle proposal-in-transit if multi-turn
+   - [ ] Return result dict with all required fields
+
+4. **Add parser support**
+   - [ ] Add keywords to mock parser in `llm_client.py`
+   - [ ] Add to `valid_diplomatic_actions` in parser
+   - [ ] Add few-shot example in `prompt_builder.py` if complex
+
+5. **Add dialogue template**
+   - [ ] Add template(s) in `diplomatic_templates.py` (see Section 6)
+   - [ ] Cover all specificity levels (VAGUE/MEDIUM/SPECIFIC)
+
+6. **Add to diplomatic dialogue flow**
+   - [ ] Wire into `diplomatic_dialogue.py` intent classification
+   - [ ] Add option generation for this action type
+
+7. **Serialization**
+   - [ ] Any new state fields → `to_dict()` / `from_dict()`
+   - [ ] Run serialization enforcement test
+
+8. **Update docs**
+   - [ ] `DIPLOMACY_SPEC.md` — add to relevant section
+   - [ ] `SYSTEMS_REFERENCE.md` — add to diplomatic actions list
+   - [ ] `SAVE_FORMAT_REFERENCE.md` — if new fields
+
+---
+
+### DP Cost Reference
+
+| Action | DP Cost | Duration | Notes |
+|--------|---------|----------|-------|
+| Peace proposal | 2 | 1-turn transit | Core diplomatic action |
+| Alliance proposal | 2 | 1-turn transit | Requires PEACE+ state |
+| Vassal proposal | 3 | 1-turn transit | Expensive, high-stakes |
+| Demand/ultimatum | 2 | 1-turn transit | Hawk bonus, Dove penalty |
+| Improve relations | 1 | Multi-turn mission | +3 relation/turn for 3 turns |
+| Gather intel | 1 | Multi-turn mission | Reveals nation state info |
+| Undermine alliance | 2 | Multi-turn mission | Risky, can backfire |
+| Invest in vassal | 1 | Instant | +10 loyalty, cooldown |
+| Downgrade relation | 1 | Instant | Step down diplomatic state |
+| Feasibility request | 0 | Instant | "What would it take?" — free |
+
+> **Golden Rule:** DP are use-it-or-lose-it. Unspent DP do NOT carry over between turns.
+
+---
+
+### Complete File Reference (Diplomatic Actions)
+
+| File | What to modify |
+|------|---------------|
+| `backend/ai/validation.py` | `VALID_DIPLOMATIC_ACTIONS` (single source of truth for LLM) |
+| `backend/commands/executor.py` | `_execute_diplomatic_[action]()` handler |
+| `backend/commands/parser.py` | Diplomatic action recognition |
+| `backend/ai/llm_client.py` | Mock parser keyword detection for diplomatic commands |
+| `backend/ai/prompt_builder.py` | LLM few-shot examples for diplomatic commands |
+| `backend/game_logic/diplomacy.py` | Action mechanics (acceptance formula, state transitions) |
+| `backend/game_logic/diplomatic_dialogue.py` | Dialogue flow for the action |
+| `backend/game_logic/diplomatic_templates.py` | Mock templates for the action |
+| `backend/game_logic/diplomatic_defiance.py` | Sabotage rules (if applicable) |
+| `backend/main.py` | API endpoint wiring |
+
+---
+
+### Common Pitfalls (Diplomatic Actions)
+
+#### Pitfall 1: Forgetting DP check
+Always check `world.diplomatic_points >= cost` before executing a diplomatic action. Unlike AP (checked centrally), DP must be checked per-action.
+
+#### Pitfall 2: Missing transit handling
+Proposals that go through Talleyrand require 1-turn transit via `proposal_in_transit`. Don't make proposals instant — the travel turn is where defiance/sabotage happens.
+
+#### Pitfall 3: Cooldown tracking
+Most diplomatic actions have per-nation cooldowns to prevent spam. Store in `player_proposal_cooldowns` with key format `"nation"` or `"nation|type"`.
+
+#### Pitfall 4: Nation relation key ordering
+Keys for `diplomatic_states`, `nation_relations`, and `war_scores` use alphabetical ordering: `"Austria|France"` not `"France|Austria"`. Use `"|".join(sorted([nation_a, nation_b]))`.
+
+#### Pitfall 5: Diplomatic actions are NOT combat actions
+Diplomatic actions use DP, not AP. They go through the diplomatic dialogue flow, not the standard command executor. Don't add diplomatic actions to the regular `VALID_ACTIONS` list — use `VALID_DIPLOMATIC_ACTIONS`.
+
+---
+
+## 6. Adding Dialogue Templates
+
+Guide for adding new mock dialogue templates to the conversational diplomacy system. Templates are used in mock mode (no LLM) to generate Talleyrand's voice and provide player options.
+
+---
+
+### Template Structure
+
+Each template in `diplomatic_templates.py` follows this structure:
+
+```python
+{
+    "id": "T28",                          # Unique template ID
+    "type": "proposal_options",            # Dialogue type (see Quick Reference below)
+    "trigger": "vague_peace_winning",      # When this template activates
+    "talleyrand_text": "Sire, {nation} grows weary. Their war score of {war_score} "
+                       "suggests they may be... amenable to terms. Shall I propose "
+                       "a {suggested_state}?",
+    "options": [
+        {
+            "label": "Do it",
+            "description": "Send proposal with Talleyrand's suggested terms",
+            "action": "execute_proposal",
+        },
+        {
+            "label": "Harsher terms",
+            "description": "Demand more — Talleyrand may object",
+            "action": "modify_harsh",
+        },
+        {
+            "label": "Never mind",
+            "description": "Cancel this diplomatic action",
+            "action": "cancel",
+        },
+    ],
+    "personality_variants": {
+        "schemer": "Sire, {nation} is weakening. A shrewd offer now could end this "
+                   "war on OUR terms... if you'll trust my judgment.",
+        "loyalist": "Sire, {nation}'s position deteriorates. Shall I convey "
+                    "your terms for peace?",
+    },
+}
+```
+
+---
+
+### Slot Resolvers
+
+Templates use `{slot}` placeholders resolved at runtime from game state:
+
+| Slot | Source | Example |
+|------|--------|---------|
+| `{nation}` | Target nation name | "Prussia" |
+| `{war_score}` | `world.get_war_score(player, target)` | "35" |
+| `{relation}` | `world.get_nation_relation(player, target)` | "-60" |
+| `{threat}` | `world.threat_level` | "40" |
+| `{diplomatic_state}` | `world.get_diplomatic_state(player, target)` | "WAR" |
+| `{suggested_state}` | Computed from acceptance formula | "PEACE" |
+| `{diplomat_name}` | Target nation's diplomat name | "Hardenberg" |
+| `{diplomat_personality}` | Target diplomat personality type | "hawk" |
+| `{territory_count}` | Regions controlled by target | "3" |
+| `{acceptance_score}` | Acceptance formula result (display) | "42" |
+
+When adding a new slot:
+1. Define the resolver function in `diplomatic_templates.py`
+2. Add to the slot resolution dict
+3. Use in template text with `{slot_name}` syntax
+4. Ensure the source data is available on WorldState (add getter if needed)
+
+---
+
+### Personality Modifiers in Templates
+
+Talleyrand's personality (Schemer) biases his presentation. The `personality_variants` dict in each template provides alternate text:
+
+- **Schemer (70/30 rule):** 70% honest framing, 30% manipulative framing. The 30% activates based on CONDITIONS (low authority, low trust, Talleyrand disagrees with the proposal), not random dice.
+- **Loyalist:** Straightforward, no spin.
+- **Hawk:** Frames peace as weakness, pushes for demands.
+- **Dove:** Frames demands as risky, pushes for peace.
+
+Enemy diplomat personalities affect how they respond (template selection for incoming proposals):
+
+```python
+# Template selection for incoming AI proposal
+def get_incoming_template(diplomat_personality, proposal_type):
+    """Select template based on enemy diplomat's personality."""
+    key = f"incoming_{proposal_type}_{diplomat_personality}"
+    return TEMPLATES.get(key, TEMPLATES[f"incoming_{proposal_type}_default"])
+```
+
+---
+
+### Template Validation
+
+After adding templates, verify:
+
+- [ ] All `{slot}` placeholders have corresponding resolvers
+- [ ] Every dialogue type has at least one template
+- [ ] Personality variants provided for at least `schemer` (Talleyrand's type)
+- [ ] Options have valid `action` strings that `diplomatic_dialogue.py` handles
+- [ ] Template renders without errors for all 5 nations
+- [ ] Template renders for all relevant game state buckets (winning/losing/neutral)
+
+Run template tests:
+```bash
+".venv\Scripts\python.exe" -m pytest tests/test_diplomatic_templates.py -v
+```
+
+---
+
+### Quick Reference: Dialogue Types
+
+| Type | Trigger | Depth | Blocking? |
+|------|---------|-------|-----------|
+| `proposal_options` | Vague command ("deal with Prussia") | 2 exchanges | No |
+| `proposal_confirm` | Medium command ("offer peace to Prussia") | 2 exchanges | No |
+| `proposal_execute` | Specific command (full clause list) | 1-2 exchanges | No |
+| `advisory` | "What about Austria?" / strategic questions | 2-3 exchanges | No |
+| `feasibility` | "What would it take to...?" | 1 exchange | No |
+| `incoming_proposal` | AI sends proposal to player | 2 exchanges | **Yes** |
+| `sabotage_confrontation` | Talleyrand sabotage discovered | 2 exchanges | **Yes** |
+| `proactive_suggestion` | Talleyrand notices opportunity | 1-2 exchanges | No |
+
+**Blocking dialogues** must be resolved before the player can take other actions. Non-blocking dialogues auto-dismiss on end-turn if `turn_created < current_turn`.
+
+#### Current Template Count: 27 core templates (T1-T27)
+
+See `CONVERSATIONAL_DIPLOMACY_DESIGN.md` §4 for the full template library.

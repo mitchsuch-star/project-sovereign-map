@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 1, 2026 (Region Data Rationalization — centralized hardcoded region data)
+> **Last Updated:** March 1, 2026 (Diplomacy Readiness Audit — design gates approved, session plans unified)
 
 ---
 
@@ -19,9 +19,17 @@
 
 ## Next Steps
 
-1. **Jealousy system** — NEEDS DESIGN GATE. See CLAUDE.md for open questions.
-2. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
-3. **Phase 8: Diplomacy & Peace** — Next major feature phase. Coalition Trigger, peace treaties, LLM-powered negotiation.
+1. **Phase 8: Diplomacy** — DESIGN GATE APPROVED (both specs). Unified 7-session plan:
+   - Session 1A: Map Expansion (13→19 regions) — HIGH RISK
+   - Session 1B: Nations + Marshals + Economy (Austria, Saxony, 4 new marshals)
+   - Session 2: Diplomatic States + Acceptance Formula + Diplomat class
+   - Session 3: Talleyrand Commands + Conversational Dialogue Foundation
+   - Session 4: AI Proposals + Advisory Conversations
+   - Session 5: Vassal System + Treaty Clauses
+   - Session 6: Talleyrand Defiance + Diplomatic Objections/Confrontation
+   - Session 7: Diplomatic Ledger UI + Polish
+2. **Jealousy system** — NEEDS DESIGN GATE. See CLAUDE.md for open questions.
+3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
 ---
 
@@ -45,6 +53,17 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 1 — Diplomacy Readiness Audit + Design Gate Approvals
+
+Comprehensive audit of diplomacy implementation readiness. Both specs approved for implementation.
+
+- **DIPLOMACY_SPEC.md v2.2 — APPROVED.** Fixed §1b heading (18→19 regions), removed duplicate Milan from ASCII art.
+- **CONVERSATIONAL_DIPLOMACY_DESIGN.md v1.2 — APPROVED.** Session plan unified with DIPLOMACY_SPEC.
+- **Session plan reconciled:** Merged DIPLOMACY_SPEC's 6 sessions + CONV_DESIGN's 4 sessions into unified 7-session plan (eliminated duplication where conversation layer builds on mechanical sessions).
+- **ADDING_CONTENT.md expanded** (+586 lines): New sections for Adding Diplomatic Representatives, Adding Diplomatic Actions, Adding Dialogue Templates. Expanded "Adding New Nations" from 3 steps → 12 steps with validation checklist.
+- **CLAUDE.md updated:** Design gate approved, conversation layer files added to file reference table.
+- **No code changes.** Documentation-only session.
 
 ### Mar 1 — Region Data Rationalization
 
