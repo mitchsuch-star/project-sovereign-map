@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** February 26, 2026 (V2b Objection Audit Cleanup)
+> **Last Updated:** March 1, 2026 (Coalition Spec v1.0 drafted)
 
 ---
 
@@ -383,7 +383,7 @@ If marshal strength < 20% of starting_strength AND enemy in same region -> ALWAY
 | Diplomatic Ledger UI | D key, 4 tabs: Nations, Treaties, Threat, Talleyrand Status | Medium | SPEC COMPLETE |
 | **Diplomacy Chat** | LLM-powered conversations with nation leaders | High | Planned |
 | **Leader Personalities** | Distinct voices (see table below) | Medium | Planned |
-| **Coalition Trigger** | Threat level ticks up → war declarations. Core "France can't steamroll" mechanic | Medium | Planned — NEEDS DESIGN |
+| **Coalition Trigger** | Threat level ticks up → war declarations. Core "France can't steamroll" mechanic | Medium | **SPEC DRAFTED** (v1.0) — `COALITION_SPEC.md`. Option B leader, no shared fog, threat-from-success. Needs design gate approval. |
 
 **Note:** Coalition Trigger moved here from Phase 7b — threat calculation, warning periods, and coalition formation only make sense alongside peace treaties and nation relations.
 
