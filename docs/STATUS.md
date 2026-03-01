@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** February 26, 2026 (Strategic Order UI — Orders tab added to Strategic Ledger)
+> **Last Updated:** March 1, 2026 (Region Data Rationalization — centralized hardcoded region data)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4208** (4208 passed, 3 skipped — verified Feb 26, Strategic Order UI) |
+| **Tests Passing** | **4211** (4211 passed, 3 skipped — verified Mar 1, Region Data Rationalization) |
 
 | **Current Phase** | Phase 7b **V2b COMPLETE** (playtested). Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Gates 5+6 PASSED. Remaining: Jealousy (NEEDS DESIGN). Coalition Trigger moved to Phase 8. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE. |
@@ -41,6 +41,14 @@ All major Phase 6 features shipped:
 - **Enemy AI Garrison (P6.75):** Building Blocks, 20k threshold, 1/nation/turn, P4.25 sub-5k awareness
 - **Manpower Pools:** Nation-level infantry/cavalry/artillery reserves gate recruitment. Stables building. AI pool/cost awareness.
 - **Artillery Unit Type:** Third marshal type (Drouot/PrinceAugust). Can't attack after moving, no advance on win, cavalry counter, 2x fort degradation. Bombardment system with terrain modifiers, collateral damage, AI bombardment. 127+ tests.
+
+---
+
+## Infrastructure Sessions
+
+### Mar 1 — Region Data Rationalization
+
+Centralized hardcoded region data into `region.py` REGIONS_DATA (single source of truth). Added `starting_controller`, `grid_position`, `NATION_CAPITALS`, `get_starting_controllers()`. Files that previously required manual sync now auto-derive: `parser.py` (known_regions), `strategic_parser.py` (REGION_POSITIONS), `world_state.py` (_setup_initial_control), `enemy_ai.py` (capital lookups), `turn_manager.py` (victory thresholds), `executor.py`/`disobedience.py` (capital references). New `tests/test_map_consistency.py` validates Godot map.gd stays in sync with backend. Files-to-touch for map expansion reduced from ~10 to ~3. Updated ADDING_CONTENT.md throughout. **4211 tests passing.**
 
 ---
 

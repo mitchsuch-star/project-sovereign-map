@@ -323,99 +323,142 @@ class Region:
 
 
 # Map data: 13 regions of Western Europe
+# starting_controller: Nation that controls this region at game start
+# grid_position: (row, col) for LLM strategic direction resolution (row=0 north, col=0 west)
 REGIONS_DATA = {
     "Paris": {
         "adjacent": ["Belgium", "Waterloo", "Brittany", "Lyon"],
         "income": 300,
         "is_capital": True,
         "terrain": "urban",
-        "region_type": "capital"
+        "region_type": "capital",
+        "starting_controller": "France",
+        "grid_position": (2, 1),
     },
     "Belgium": {
         "adjacent": ["Paris", "Netherlands", "Waterloo", "Rhine"],
         "income": 100,
         "is_capital": False,
         "terrain": "plains",
-        "region_type": "town"
+        "region_type": "town",
+        "starting_controller": "France",
+        "grid_position": (1, 1),
     },
     "Netherlands": {
         "adjacent": ["Belgium"],
         "income": 50,
         "is_capital": False,
         "terrain": "plains",
-        "region_type": "rural"
+        "region_type": "rural",
+        "starting_controller": "Britain",
+        "grid_position": (0, 1),
     },
     "Waterloo": {
         "adjacent": ["Belgium", "Paris"],
         "income": 50,
         "is_capital": False,
         "terrain": "hills",
-        "region_type": "rural"
+        "region_type": "rural",
+        "starting_controller": "Britain",
+        "grid_position": (1, 2),
     },
     "Rhine": {
         "adjacent": ["Belgium", "Bavaria", "Lyon"],
         "income": 100,
         "is_capital": False,
         "terrain": "river_crossing",
-        "region_type": "town"
+        "region_type": "town",
+        "starting_controller": "Prussia",
+        "grid_position": (1, 3),
     },
     "Bavaria": {
         "adjacent": ["Rhine", "Vienna", "Lyon"],
         "income": 100,
         "is_capital": False,
         "terrain": "hills",
-        "region_type": "town"
+        "region_type": "town",
+        "starting_controller": "Prussia",
+        "grid_position": (2, 4),
     },
     "Vienna": {
         "adjacent": ["Bavaria", "Milan"],
         "income": 200,
         "is_capital": False,
         "terrain": "urban",
-        "region_type": "major_city"
+        "region_type": "major_city",
+        "starting_controller": "Prussia",
+        "grid_position": (3, 5),
     },
     "Lyon": {
         "adjacent": ["Paris", "Rhine", "Bavaria", "Marseille", "Milan"],
         "income": 200,
         "is_capital": False,
         "terrain": "hills",
-        "region_type": "major_city"
+        "region_type": "major_city",
+        "starting_controller": "France",
+        "grid_position": (3, 2),
     },
     "Milan": {
         "adjacent": ["Lyon", "Vienna", "Geneva"],
         "income": 150,
         "is_capital": False,
         "terrain": "urban",
-        "region_type": "city"
+        "region_type": "city",
+        "starting_controller": "Britain",
+        "grid_position": (4, 3),
     },
     "Marseille": {
         "adjacent": ["Lyon", "Geneva"],
         "income": 150,
         "is_capital": False,
         "terrain": "plains",
-        "region_type": "city"
+        "region_type": "city",
+        "starting_controller": "France",
+        "grid_position": (5, 2),
     },
     "Geneva": {
         "adjacent": ["Marseille", "Milan", "Bordeaux"],
         "income": 100,
         "is_capital": False,
         "terrain": "mountains",
-        "region_type": "town"
+        "region_type": "town",
+        "starting_controller": "Britain",
+        "grid_position": (4, 2),
     },
     "Brittany": {
         "adjacent": ["Paris", "Bordeaux"],
         "income": 50,
         "is_capital": False,
         "terrain": "forest",
-        "region_type": "rural"
+        "region_type": "rural",
+        "starting_controller": "France",
+        "grid_position": (2, 0),
     },
     "Bordeaux": {
         "adjacent": ["Brittany", "Geneva"],
         "income": 50,
         "is_capital": False,
         "terrain": "plains",
-        "region_type": "rural"
+        "region_type": "rural",
+        "starting_controller": "France",
+        "grid_position": (4, 0),
     }
 }
+
+# Nation capitals / home regions (single source of truth)
+# Britain/Prussia use proxy "home" regions since London/Berlin aren't on the 13-region map.
+# When Phase 8 adds those cities, switch to deriving from is_capital + capital_of field.
+NATION_CAPITALS = {
+    "France": "Paris",
+    "Britain": "Netherlands",   # Proxy — no London on test map
+    "Prussia": "Rhine",         # Proxy — no Berlin on test map
+    "Austria": "Vienna",
+}
+
+
+def get_starting_controllers() -> Dict[str, str]:
+    """Return {region_name: nation} for initial setup."""
+    return {name: data["starting_controller"] for name, data in REGIONS_DATA.items()}
 
 
 def create_regions() -> dict[str, Region]:

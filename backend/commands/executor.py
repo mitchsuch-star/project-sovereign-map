@@ -7376,8 +7376,9 @@ RETREAT RECOVERY (3 turns):
 
         # BUG-010 FIX: Find marshals that are actually in danger
         marshals_in_danger = []
+        capital = world.player_capital
         for marshal in player_marshals:
-            if marshal.location == "Paris":
+            if capital and marshal.location == capital:
                 continue
             if getattr(marshal, 'retreating', False):
                 continue  # Already retreating
@@ -7632,7 +7633,8 @@ RETREAT RECOVERY (3 turns):
             recruitment_location = location_specified
 
         else:
-            result = world.find_nearest_marshal_to_region("Paris")
+            capital = world.player_capital or "Paris"
+            result = world.find_nearest_marshal_to_region(capital)
 
             if not result:
                 return {
@@ -7642,7 +7644,7 @@ RETREAT RECOVERY (3 turns):
 
             marshal, distance = result
             recipient = marshal.name
-            recruitment_location = "Paris"
+            recruitment_location = capital
 
         # --- Determine recruit type from marshal ---
         recruit_marshal = world.get_marshal(recipient)

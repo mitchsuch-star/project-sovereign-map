@@ -10,7 +10,7 @@ Includes Disobedience System (Phase 2):
 """
 
 from typing import Dict, List, Optional, Tuple, Any, Set
-from backend.models.region import Region, create_regions, CHARGE_BLOCKED_TERRAIN, TERRAIN_MOVEMENT_COST
+from backend.models.region import Region, create_regions, CHARGE_BLOCKED_TERRAIN, TERRAIN_MOVEMENT_COST, NATION_CAPITALS, get_starting_controllers  # noqa: F401 - used in methods below
 from backend.models.marshal import Marshal, create_starting_marshals, create_enemy_marshals
 from backend.models.authority import AuthorityTracker
 from backend.commands.vindication import VindicationTracker
@@ -719,33 +719,13 @@ class WorldState:
         return result
 
     def _setup_initial_control(self) -> None:
-        """Set up which nation controls which regions at start."""
-        # France starts controlling these regions
-        french_regions = ["Paris", "Belgium", "Lyon", "Brittany", "Bordeaux"]
+        """Set up which nation controls which regions at start.
 
-        for region_name in french_regions:
+        Derives controllers from region.py starting_controller field (single source of truth).
+        """
+        for region_name, nation in get_starting_controllers().items():
             if region_name in self.regions:
-                self.regions[region_name].controller = "France"
-
-        # Other nations control remaining regions
-        # Phase 6.2 Audit Fix #1: Coalition territory expansion
-        # Austria is inactive in the Waterloo scenario (no marshals).
-        # Reassign Austria/Neutral territories to active Coalition nations
-        # so Britain and Prussia have viable economies.
-        control_map = {
-            "Netherlands": "Britain",
-            "Waterloo": "Britain",
-            "Milan": "Britain",       # Coalition control of northern Italy
-            "Rhine": "Prussia",
-            "Bavaria": "Prussia",     # Prussian sphere of influence
-            "Vienna": "Prussia",      # Eastern Coalition territory
-            "Marseille": "France",
-            "Geneva": "Britain",      # Alpine corridor connecting to Milan
-        }
-
-        for region_name, controller in control_map.items():
-            if region_name in self.regions:
-                self.regions[region_name].controller = controller
+                self.regions[region_name].controller = nation
 
         # Capital garrisons: all capital regions start with a 15,000 garrison
         # Garrisons defend the capital when no marshal is present
@@ -778,6 +758,15 @@ class WorldState:
     def get_region(self, region_name: str) -> Optional[Region]:
         """Get a specific region by name."""
         return self.regions.get(region_name)
+
+    def get_nation_capital(self, nation: str) -> Optional[str]:
+        """Get the capital/home region for a nation."""
+        return NATION_CAPITALS.get(nation)
+
+    @property
+    def player_capital(self) -> Optional[str]:
+        """Convenience: player nation's capital."""
+        return self.get_nation_capital(self.player_nation)
 
     # ========================================
     # MARSHAL QUERIES
@@ -4326,10 +4315,11 @@ class WorldState:
         if not safe_regions:
             return None  # Surrounded! No retreat possible
 
-        # Retreat toward Paris (capital)
-        closest_to_paris = min(safe_regions,
-                               key=lambda r: self.get_distance(r, "Paris"))
-        return closest_to_paris
+        # Retreat toward capital
+        capital = self.player_capital or "Paris"
+        closest_to_capital = min(safe_regions,
+                                 key=lambda r: self.get_distance(r, capital))
+        return closest_to_capital
 
     # ========================================
     # FLANKING SYSTEM (Phase 2.5)

@@ -1524,9 +1524,9 @@ Add tests in `tests/` covering:
 
 Step-by-step guide for adding new regions, renaming existing regions, or expanding from the 13-region Western Europe map to a full European map.
 
-**Difficulty:** 7/10 -- Region data is duplicated across ~10 files and referenced by name in 80+ test files. Missing one file = silent bugs or crashes.
+**Difficulty:** 4/10 -- Backend region data auto-derives from `REGIONS_DATA` in `region.py` (single source of truth). Only `map.gd` (Godot) requires manual sync. Test files (~80+) still reference region names by string and need batch updates.
 
-> **Key insight:** Region names are string identifiers, not enums. There is no single registry that auto-propagates. Every file that hardcodes a region name must be updated manually.
+> **Key insight:** After rationalization, adding a region requires updating `region.py` REGIONS_DATA (with `starting_controller` + `grid_position`) and `map.gd`. Parser, strategic_parser, world_state initial control, enemy_ai capitals, and victory thresholds all auto-derive. `tests/test_map_consistency.py` catches backend/Godot drift.
 
 ---
 
@@ -1598,23 +1598,30 @@ Every file that contains hardcoded region names or region structure data, in dep
 
 #### Backend Files (MUST modify for any region change)
 
-| # | File | What to Update | Hardcoded Region Names |
-|---|------|----------------|------------------------|
-| 1 | `backend/models/region.py` | `REGIONS_DATA` dict — add/rename region entry with adjacency, income, terrain, region_type, is_capital | All 13 region names + adjacency lists |
-| 2 | `backend/commands/parser.py` | `self.known_regions` list (~line 77) — sync with REGIONS_DATA | All 13 region names |
-| 3 | `backend/models/world_state.py` | `_setup_initial_control()` (~line 721) — set controller for new regions | French starting regions + control_map |
-| 4 | `backend/ai/strategic_parser.py` | `REGION_POSITIONS` dict (~line 33) — add (row, col) grid coordinates | All 13 region names |
-| 5 | `backend/ai/enemy_ai.py` | Nation capital mappings (~lines 3751, 3949) — update if adding nation capitals | "Paris", "Netherlands", "Rhine", "Vienna" |
+| # | File | What to Update | Notes |
+|---|------|----------------|-------|
+| 1 | `backend/models/region.py` | `REGIONS_DATA` dict — add/rename region entry with adjacency, income, terrain, region_type, is_capital, `starting_controller`, `grid_position`. Update `NATION_CAPITALS` if adding a new nation capital. | **Single source of truth.** parser.py, strategic_parser.py, world_state.py, and enemy_ai.py all derive from here automatically. |
 
 #### Backend Files (Update IF applicable)
 
 | # | File | What to Update | When |
 |---|------|----------------|------|
-| 6 | `backend/game_logic/turn_manager.py` | `_check_victory_conditions()` (~line 667) — victory/defeat thresholds reference "Paris" and hardcoded region counts (12, 10) | If changing capital or total region count |
-| 7 | `backend/commands/executor.py` | Fallback spawn/retreat locations default to "Paris" (~lines 2887, 7635, 7645) | If changing French capital |
-| 8 | `backend/commands/disobedience.py` | "Paris" capital checks for objection triggers (~lines 294, 413, 625) | If changing French capital |
-| 9 | `backend/ai/llm_client.py` | Mock parser target keywords (~line 682) — add region name keywords for test parser | If new region names need mock parser recognition |
-| 10 | `backend/ai/prompt_builder.py` | Few-shot examples reference region names (~44 references) — update examples for LLM context | If renaming regions or adding many new ones |
+| 2 | `backend/ai/llm_client.py` | Mock parser target keywords (~line 682) — add region name keywords for test parser | If new region names need mock parser recognition |
+| 3 | `backend/ai/prompt_builder.py` | Few-shot examples reference region names (~44 references) — update examples for LLM context | If renaming regions or adding many new ones |
+
+#### Auto-derived files (NO manual update needed)
+
+These files now derive their region data from `region.py` automatically:
+
+| File | What's Derived |
+|------|---------------|
+| `backend/commands/parser.py` | `known_regions` list — from `REGIONS_DATA.keys()` |
+| `backend/ai/strategic_parser.py` | `REGION_POSITIONS` grid coordinates — from `grid_position` field |
+| `backend/models/world_state.py` | `_setup_initial_control()` — from `starting_controller` field |
+| `backend/ai/enemy_ai.py` | Capital lookups — from `WorldState.get_nation_capital()` → `NATION_CAPITALS` |
+| `backend/game_logic/turn_manager.py` | Victory thresholds — derived from `len(world.regions)` |
+| `backend/commands/executor.py` | Recruitment location — from `world.player_capital` |
+| `backend/commands/disobedience.py` | Capital checks — from `world.player_capital` |
 
 #### Frontend Files (MUST modify)
 
@@ -1657,7 +1664,9 @@ Every file that contains hardcoded region names or region structure data, in dep
     "income": 150,
     "is_capital": False,
     "terrain": "plains",
-    "region_type": "city"
+    "region_type": "city",
+    "starting_controller": "Prussia",       # Which nation controls at game start
+    "grid_position": (0, 2),                # (row, col) for LLM direction context
 },
 ```
 
@@ -1676,85 +1685,15 @@ Every file that contains hardcoded region names or region structure data, in dep
 }
 ```
 
-#### Step 2: Update Parser Region List
+#### Step 2: Update Godot Map (only manual sync required)
 
-**File:** `backend/commands/parser.py` (~line 77)
+**Steps 2-6 of the old guide are now auto-derived from REGIONS_DATA.** Parser, strategic_parser, world_state initial control, enemy_ai capitals, and victory thresholds all derive automatically.
 
-```python
-self.known_regions = [
-    "Paris", "Belgium", "Netherlands", "Waterloo", "Rhine",
-    "Bavaria", "Vienna", "Lyon", "Milan", "Marseille",
-    "Geneva", "Brittany", "Bordeaux",
-    "Hamburg",  # Added
-]
-```
+If adding a new nation capital, update `NATION_CAPITALS` in `region.py`.
 
-#### Step 3: Set Initial Controller
+If the region name conflicts with mock parser action keywords, update `backend/ai/llm_client.py` (~line 682).
 
-**File:** `backend/models/world_state.py` in `_setup_initial_control()` (~line 735)
-
-```python
-control_map = {
-    # ...existing entries...
-    "Hamburg": "Prussia",   # Or whichever nation controls it
-}
-```
-
-If adding to France's starting territory, add to the `french_regions` list instead (~line 724).
-
-#### Step 4: Add Grid Coordinates for LLM Parser
-
-**File:** `backend/ai/strategic_parser.py` (~line 33)
-
-```python
-REGION_POSITIONS: Dict[str, Tuple[int, int]] = {
-    # ...existing entries...
-    "Hamburg":      (0, 2),   # North, east of Netherlands
-}
-```
-
-These are rough grid positions used by the LLM for directional context, not pixel coordinates.
-
-#### Step 5: Update Enemy AI Capital Mappings (if new nation)
-
-**File:** `backend/ai/enemy_ai.py` (~lines 3751, 3949)
-
-Only needed if the new region is a new nation's capital:
-
-```python
-nation_capitals = {
-    "France": "Paris",
-    "Britain": "Netherlands",
-    "Prussia": "Rhine",
-    "Austria": "Vienna",
-    "NewNation": "Hamburg",  # Add if new nation
-}
-```
-
-#### Step 6: Update Victory Thresholds
-
-**File:** `backend/game_logic/turn_manager.py` (~line 698)
-
-The current thresholds are hardcoded for 13 regions:
-- Total victory: control 12+ regions
-- Time victory: control 10+ regions at turn limit
-- Defeat: lose "Paris"
-
-See [Victory Threshold Scaling](#victory-threshold-scaling) for the formula.
-
-#### Step 7: Update Mock Parser (if needed)
-
-**File:** `backend/ai/llm_client.py` (~line 682)
-
-If the new region name contains keywords that conflict with action parsing (e.g., a region named "Charge" or "Retreat"), add explicit handling:
-
-```python
-# Add region name as target keyword if needed
-elif "hamburg" in command_lower:
-    target = "Hamburg"
-```
-
-#### Step 8: Update Godot Map
+#### Step 3: Update Godot Map
 
 **File:** `godot-client/.../scenes/map.gd`
 
@@ -1777,15 +1716,15 @@ const REGION_CONNECTIONS = {
 }
 ```
 
-#### Step 9: Run Adjacency Validation
+#### Step 4: Run Adjacency Validation
 
-See [Adjacency Validation Script](#adjacency-validation-script) below.
+See [Adjacency Validation Script](#adjacency-validation-script) below. Also run `tests/test_map_consistency.py` to verify Godot matches backend.
 
-#### Step 10: Fix Tests (Batched)
+#### Step 5: Fix Tests (Batched)
 
 See [Test Fix Guide](#test-fix-guide) below.
 
-#### Step 11: Update Documentation
+#### Step 6: Update Documentation
 
 Update the region tables in:
 - `CLAUDE.md` (Valid Regions quick reference)
@@ -1813,9 +1752,9 @@ rg "OldName" docs/ -l
 
 **File:** `backend/models/region.py` — Change the key in `REGIONS_DATA` AND every adjacency list that references the old name.
 
-#### Step 3: Update All Backend Files
+#### Step 3: Update Backend + Godot
 
-Follow the [Complete File Reference](#complete-file-reference-regions) table — every file in the "MUST modify" section needs the old name replaced with the new name.
+Update `REGIONS_DATA` in `region.py` (auto-derived files will pick it up). Update `map.gd` REGION_POSITIONS and REGION_CONNECTIONS. Check `llm_client.py` and `prompt_builder.py` for old name references.
 
 #### Step 4: Update All Test Files
 
@@ -2037,46 +1976,33 @@ time_victory_threshold = math.ceil(total * 0.77)  # ~77% control at time limit
 
 **RIGHT:** Always update BOTH sides. Run the adjacency validation script.
 
-#### Pitfall 2: Triple Duplication (Backend + Godot + Parser)
+#### Pitfall 2: Backend + Godot Duplication
 
-Region data exists in THREE places that must stay synchronized:
-1. `region.py` — `REGIONS_DATA` (source of truth)
-2. `map.gd` — `REGION_POSITIONS` + `REGION_CONNECTIONS` (rendering)
-3. `parser.py` — `self.known_regions` (command parsing)
+Region data exists in TWO places that must stay synchronized:
+1. `region.py` — `REGIONS_DATA` (source of truth — parser.py, strategic_parser.py, world_state.py, enemy_ai.py all auto-derive)
+2. `map.gd` — `REGION_POSITIONS` + `REGION_CONNECTIONS` (rendering — GDScript can't import Python)
 
-Missing any one of these causes:
-- Missing from region.py: Region doesn't exist in game
-- Missing from map.gd: Region exists but invisible on map
-- Missing from parser.py: Player commands can't target the region
+`tests/test_map_consistency.py` catches drift between them. Missing from region.py: Region doesn't exist in game. Missing from map.gd: Region exists but invisible on map.
 
-#### Pitfall 3: Forgetting strategic_parser.py Grid Coordinates
+#### Pitfall 3: Forgetting grid_position in REGIONS_DATA
 
-`REGION_POSITIONS` in `strategic_parser.py` (~line 33) is a SEPARATE dict from the one in `map.gd`. It uses (row, col) grid coordinates for LLM direction context, not pixel positions. Forgetting this causes the LLM to give incorrect directional suggestions.
+Each region in `REGIONS_DATA` needs a `grid_position: (row, col)` field. `strategic_parser.py` derives `REGION_POSITIONS` from this automatically. Forgetting it causes a `KeyError` at import time. The grid uses (row=0 north, col=0 west) — it's separate from map.gd pixel positions.
 
-#### Pitfall 4: Victory Thresholds Left at Old Values
+#### Pitfall 4: Victory Thresholds (Auto-Scaled)
 
-After adding 6 regions (13 → 19), if victory thresholds stay at 12/10, the game becomes too easy — the player only needs to control 63% of the map for total victory instead of 92%.
+Victory thresholds in `turn_manager.py` are now derived from `len(world.regions)`: total victory = `total - 1`, time victory = `ceil(total * 0.77)`. No manual update needed.
 
 #### Pitfall 5: Mock Parser Keyword Conflicts
 
 The mock parser in `llm_client.py` matches region names by substring. If a new region name contains an action keyword (e.g., "Charge-ville", "Retreat-burg"), the mock parser may misparse commands. Check keyword ordering — more specific matches must come BEFORE generic ones.
 
-#### Pitfall 6: "Paris" Hardcoded as Capital
+#### Pitfall 6: Nation Capitals (Auto-Derived)
 
-At least 6 backend files hardcode "Paris" as the French capital for:
-- Defeat condition (turn_manager.py)
-- Fallback spawn location (executor.py)
-- Retreat-to-safety logic (disobedience.py, executor.py)
+Capital lookups now use `NATION_CAPITALS` in `region.py` (single source of truth). If adding a new nation's capital, update `NATION_CAPITALS`. All backend files (executor, turn_manager, disobedience, enemy_ai) derive from `world.player_capital` / `world.get_nation_capital()`.
 
-If adding a second French capital or changing the capital, grep for `"Paris"` across all backend files.
+#### Pitfall 7: starting_controller in REGIONS_DATA
 
-#### Pitfall 7: Nation Starting Regions Not Updated
-
-`_setup_initial_control()` in `world_state.py` has TWO lists:
-- `french_regions` — hardcoded list of French starting territory
-- `control_map` — dict mapping each non-French region to a controller
-
-New regions MUST appear in exactly one of these. Missing from both = uncontrolled region (no income for anyone). Present in both = last write wins.
+`_setup_initial_control()` in `world_state.py` derives controllers from the `starting_controller` field in each `REGIONS_DATA` entry. New regions MUST have this field set. Missing it causes a `KeyError` at game start.
 
 #### Pitfall 8: Godot Connections Not Matching Backend Adjacency
 

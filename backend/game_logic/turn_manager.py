@@ -680,11 +680,12 @@ class TurnManager:
         player_marshals = self.world.get_player_marshals()
 
         # Check defeat conditions first
-        if "Paris" not in player_regions:
+        capital = self.world.player_capital
+        if capital and capital not in player_regions:
             return {
                 "game_over": True,
                 "result": "defeat",
-                "reason": "Capital (Paris) has fallen!"
+                "reason": f"Capital ({capital}) has fallen!"
             }
 
         if not player_marshals or all(m.strength <= 0 for m in player_marshals):
@@ -694,8 +695,9 @@ class TurnManager:
                 "reason": "All armies destroyed!"
             }
 
-        # Check victory conditions
-        if len(player_regions) >= 12:  # All regions
+        # Check victory conditions — derived from total region count
+        total = len(self.world.regions)
+        if len(player_regions) >= total - 1:  # Total victory
             return {
                 "game_over": True,
                 "result": "victory",
@@ -704,7 +706,7 @@ class TurnManager:
 
         if self.world.current_turn > self.world.max_turns:
             # Already handled in world.advance_turn(), but check here too
-            if len(player_regions) >= 10:
+            if len(player_regions) >= int(total * 0.77):  # Time victory (~77%)
                 return {
                     "game_over": True,
                     "result": "victory",

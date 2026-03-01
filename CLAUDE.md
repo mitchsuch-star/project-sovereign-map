@@ -63,7 +63,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | `backend/commands/vindication.py` | Vindication tracker |
 | `backend/models/marshal.py` | Marshal class, combat modifiers, states, serialization |
 | `backend/models/world_state.py` | Game state, turn processing, action economy |
-| `backend/models/region.py` | 13 regions with adjacency |
+| `backend/models/region.py` | 13 regions (REGIONS_DATA source of truth), terrain/region type constants, NATION_CAPITALS, starting_controller, grid_position |
 | `backend/models/personality.py` | PersonalityType enum |
 | `backend/models/personality_modifiers.py` | Combat bonuses by personality |
 | `backend/campaign_log.py` | Campaign log fog filter + one-liner formatter |

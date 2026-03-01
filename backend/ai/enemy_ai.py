@@ -3740,25 +3740,8 @@ class EnemyAI:
         return None
 
     def _get_nation_capital(self, nation: str, world: WorldState) -> Optional[str]:
-        """
-        Get the capital/home region for a nation.
-
-        For current 13-region test map, uses approximate "home" regions.
-        For full 1805 map, will use actual capitals.
-        """
-        # Current test map capitals/home regions
-        capitals = {
-            "France": "Paris",
-            "Britain": "Netherlands",  # No London yet - Netherlands is British-controlled
-            "Prussia": "Rhine",        # No Berlin yet - Rhine is Prussian area
-            "Austria": "Vienna",       # Vienna exists in test map
-        }
-        capital = capitals.get(nation)
-
-        # Verify region exists in current map
-        if capital and world.get_region(capital):
-            return capital
-        return None
+        """Get the capital/home region for a nation. Delegates to WorldState."""
+        return world.get_nation_capital(nation)
 
     def _get_path_to_target(
         self,
@@ -3939,29 +3922,14 @@ class EnemyAI:
         return (True, f"Safe: {effective_enemies} effective enemies (tolerance: {tolerance})")
 
     def _is_enemy_capital(self, region_name: str, nation: str, world: WorldState) -> bool:
-        """
-        Check if a region is an enemy capital.
-
-        TODO-1805: Implement proper capital system from region data. Hardcoded for 13-region map.
-        """
-        # Hardcoded capitals for current test map
-        capitals = {
-            "France": "Paris",
-            "Britain": "London",      # Not on current map
-            "Prussia": "Berlin",      # Not on current map
-            "Austria": "Vienna",
-        }
-
+        """Check if a region is an enemy capital. Delegates to WorldState."""
         region = world.get_region(region_name)
         if not region:
             return False
-
-        controller = region.controller
-        if controller == nation:
+        if region.controller == nation:
             return False  # Already ours, not enemy capital
-
         # Check if this is the capital of the controlling nation
-        return capitals.get(controller) == region_name
+        return world.get_nation_capital(region.controller) == region_name
 
     def _check_fortification_opportunity(
         self,

@@ -30,20 +30,12 @@ except ImportError:
 # Approximate grid positions (row=0 is north, col=0 is west) for direction resolution.
 # These are rough geographic placements — no real coordinates needed.
 
+# Derived from region.py grid_position (single source of truth)
+from backend.models.region import REGIONS_DATA as _REGIONS_DATA
+
 REGION_POSITIONS: Dict[str, Tuple[int, int]] = {
-    "Netherlands":  (0, 1),
-    "Belgium":      (1, 1),
-    "Waterloo":     (1, 2),
-    "Rhine":        (1, 3),
-    "Brittany":     (2, 0),
-    "Paris":        (2, 1),
-    "Bavaria":      (2, 4),
-    "Lyon":         (3, 2),
-    "Vienna":       (3, 5),
-    "Bordeaux":     (4, 0),
-    "Geneva":       (4, 2),
-    "Milan":        (4, 3),
-    "Marseille":    (5, 2),
+    name: data["grid_position"]
+    for name, data in _REGIONS_DATA.items()
 }
 
 # Direction keywords → (row_delta, col_delta) where negative row = north, positive col = east

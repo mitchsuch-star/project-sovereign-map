@@ -291,11 +291,13 @@ def _can_execute_suggestion(marshal, action_dict, game_state) -> bool:
     if action == 'retreat':
         if getattr(marshal, 'retreating', False):
             return False
-        if marshal.location == "Paris":
-            return False
         world = getattr(game_state, 'world', game_state) if game_state else None
-        if world and hasattr(world, 'is_in_danger'):
-            return world.is_in_danger(marshal.name)
+        if world:
+            capital = getattr(world, 'player_capital', None)
+            if capital and marshal.location == capital:
+                return False
+            if hasattr(world, 'is_in_danger'):
+                return world.is_in_danger(marshal.name)
         return False
 
     # Recruit: generally always valid
@@ -410,11 +412,13 @@ def get_valid_actions(marshal, game_state) -> List[Dict]:
             "description": f"Abandon fortified position at {marshal.location}"
         })
 
-    # Retreat: Always available (free action) unless already retreating or at Paris
-    if not is_retreating and marshal.location != "Paris":
+    # Retreat: Always available (free action) unless already retreating or at capital
+    world = getattr(game_state, 'world', game_state) if game_state else None
+    capital = getattr(world, 'player_capital', None) if world else None
+    if not is_retreating and (not capital or marshal.location != capital):
         valid.append({
             "action": "retreat",
-            "target": "toward_paris",
+            "target": "toward_capital",
             "description": "Retreat toward Paris (free, -45% effectiveness, recovers over 3 turns)"
         })
 

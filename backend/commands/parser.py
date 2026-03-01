@@ -73,12 +73,9 @@ class CommandParser:
         # Valid stances for stance_change command (Phase 2.7)
         self.valid_stances = ["neutral", "defensive", "aggressive"]
 
-        # Known regions for fuzzy matching
-        self.known_regions = [
-            "Paris", "Belgium", "Netherlands", "Waterloo", "Rhine",
-            "Bavaria", "Vienna", "Lyon", "Milan", "Marseille",
-            "Geneva", "Brittany", "Bordeaux"
-        ]
+        # Known regions for fuzzy matching — derived from region.py (single source of truth)
+        from backend.models.region import REGIONS_DATA
+        self.known_regions = list(REGIONS_DATA.keys())
 
         # Known enemy marshals
         self.known_enemies = ["Wellington", "Uxbridge", "Blucher", "Gneisenau"]
