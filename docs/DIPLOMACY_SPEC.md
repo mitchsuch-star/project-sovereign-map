@@ -1,6 +1,6 @@
 # Diplomacy System — Design Spec
 
-> **Status:** APPROVED v2.2 — Design gate passed. Session plan unified with CONVERSATIONAL_DIPLOMACY_DESIGN (7 sessions). 72 findings resolved (7 Critical, 19 Major, 17 Minor). Score: 97/100. See §18 for full audit summary.
+> **Status:** APPROVED v2.4 — Pre-implementation audit complete. 4 CRITICAL + 4 MAJOR findings resolved (Geneva removal, Berlin income, economy table, Session 1A scope). See §17 changelog. Score: 97/100. See §18 for full audit summary.
 > **Phase:** 8
 > **Prerequisite:** Phase 7b COMPLETE. Jealousy system implementation may run in parallel.
 > **Companion:** COALITION_SPEC.md (builds on this spec — threat level, coalition formation, coordinated AI). War score formula now defined inline (§6e) — COALITION_SPEC builds on it but no longer owns it.
@@ -42,6 +42,8 @@ Winning battles can improve war score (affects nation relations indirectly) AND 
 
 Expanded from 13 to 19. Goals: French strategic depth, Waterloo deathball broken, Austria on eastern edge, Saxony as central buffer. Layout designed to translate to 1805 full European map.
 
+**Region changes from 13-region map:** Geneva removed (absorbed into Tyrol/Milan corridor — its adjacencies to Marseille, Milan, and Bordeaux are redistributed). Rhine renamed to Rhineland. 7 new regions added (Normandy, Hanover, Berlin, Saxony, Dresden, Bohemia, Tyrol). Net: 13 − 1 (Geneva) + 7 new = **19 regions.**
+
 ```
                     [Netherlands]---[Hanover]---[Berlin]
                      /        \        |    \      |
@@ -76,7 +78,7 @@ Expanded from 13 to 19. Goals: French strategic depth, Waterloo deathball broken
 | 9 | **Netherlands** | rural | plains | 50 | Britain | British continental |
 | 10 | **Waterloo** | rural | hills | 50 | Britain | Wellington's position |
 | 11 | **Hanover** | town | plains | 100 | Britain | British crown territory |
-| 12 | **Berlin** | capital | urban | 250 | Prussia | NEW — Prussian capital |
+| 12 | **Berlin** | capital | urban | 300 | Prussia | NEW — Prussian capital |
 | 13 | **Rhineland** | town | river_crossing | 100 | Prussia | Renamed from "Rhine" |
 | 14 | **Saxony** | city | plains | 150 | Saxony | NEW — buffer state |
 | 15 | **Dresden** | town | hills | 100 | Saxony | NEW — Saxon capital |
@@ -86,6 +88,8 @@ Expanded from 13 to 19. Goals: French strategic depth, Waterloo deathball broken
 | 19 | **Tyrol** | town | mountains | 100 | Austria | NEW — Alpine barrier |
 
 **19 regions confirmed.** Dresden gives Saxony a proper capital — "capture Dresden" is a clearer objective than "occupy the Saxony region." One extra region is worth it for QA coverage of vassalage gameplay.
+
+**Capital note:** Paris, Berlin, and Vienna use `region_type: "capital"` (300 income, 2 building slots) AND `is_capital: True`. Dresden uses `region_type: "town"` (100 income, 0 building slots) but still has `is_capital: True` — it's a minor nation's capital with capital mechanics (garrison, capture threat) but town-level economy. This is intentional: Saxony is a minor power and shouldn't have capital-tier income.
 
 #### Adjacency Table
 
@@ -147,15 +151,22 @@ This creates the diplomatic tension: France is stronger than Britain+Prussia alo
 
 | Nation | Starting Gold | Income (approx) | Upkeep (5g/1000) | Net/Turn | Notes |
 |--------|--------------|------------------|-------------------|----------|-------|
-| France | 800 | 1,150 | 865 | +285 | 8 regions, strong economy. R5: Saxony OB adds +50 vs PEACE |
-| Britain | 1,500 | 200 + 300 naval | 380 | +120 | 3 regions + naval income |
-| Prussia | 800 | 350 | 360 | -10 | 2 regions, tight economy |
-| Austria | 600 | 650 | 300 | +350 | 4 regions, not at war (no war costs) |
-| Saxony | 200 | 300 | 90 | +210 | 2 regions, small army. R1: 18k troops, R5: OB trade +100 bilateral |
+| France | 800 | 1,100 | 865 | +235 | 8 regions. Trade income separate (see below). |
+| Britain | 1,500 | 200 + 300 naval | 380 | +120 | 3 regions + naval income. Trade income separate. |
+| Prussia | 800 | 400 | 360 | +40 | 2 regions, tight economy. Trade income separate. |
+| Austria | 600 | 650 | 300 | +350 | 4 regions, not at war (no war costs). Trade income separate. |
+| Saxony | 200 | 250 | 90 | +160 | 2 regions, small army. R1: 18k troops. Trade income separate. |
 
 **British Naval Income:** Britain receives +300 gold/turn from naval supremacy (trade dominance, colonial revenue). This is an abstracted effect — no ship-to-ship combat. Can be reduced via Continental System diplomatic action (see §5d). This makes Britain economically resilient despite small continental holdings.
 
-**Starting trade income (from diplomatic states, §7e):** France at PEACE with Austria (+50 bilateral) and OPEN_BORDERS with Saxony (+100 bilateral, per R5) = +150 gold/turn additional income at game start. Austria at PEACE with France (+50) and Saxony (+50) = +100 additional. These are reflected in the "approx" income column above but worth noting explicitly — diplomatic downgrades directly impact economy.
+**Starting trade income (from diplomatic states, §7e):** The income column above shows **region income only** (+ British naval). All trade income from §7e diplomatic states is applied separately during `advance_turn()`. Full trade income breakdown at game start:
+- **France:** +50 (Austria PEACE) + 100 (Saxony OB) = **+150** neutral trade
+- **Britain:** +200 (Prussia ALLIANCE) + 150 (Austria NON_AGG) + 50 (Saxony PEACE) = **+400** alliance trade
+- **Prussia:** +200 (Britain ALLIANCE) + 150 (Austria DEF_ALLIANCE) + 50 (Saxony PEACE) = **+400** alliance trade
+- **Austria:** +50 (France PEACE) + 150 (Britain NON_AGG) + 150 (Prussia DEF_ALLIANCE) + 50 (Saxony PEACE) = **+400** alliance trade
+- **Saxony:** +100 (France OB) + 50 (Britain PEACE) + 50 (Prussia PEACE) + 50 (Austria PEACE) = **+250** mixed trade
+
+**BALANCE NOTE:** Alliance trade income makes breaking enemy alliances a powerful economic weapon. If France flips Prussia to PEACE (losing Britain ALLIANCE), Prussia loses 200g/turn and Britain loses 200g/turn. This is the economic dimension of diplomacy — the §1d table shows the base economy WITHOUT alliance trade to illustrate how vulnerable nations are if isolated.
 
 **Manpower Pools (new nations):**
 
@@ -2183,7 +2194,7 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 
 | File | Changes |
 |------|---------|
-| `backend/models/region.py` | 6 new regions in REGIONS_DATA, updated adjacency for existing regions |
+| `backend/models/region.py` | 7 new regions, 1 removed (Geneva), 1 renamed (Rhine→Rhineland), updated adjacency for all regions |
 | `backend/models/marshal.py` | New marshal definitions (Gneisenau, Archduke Charles, Schwarzenberg, Reynier), relocated starting positions |
 | `backend/models/world_state.py` | New nations in enemy_nations, nation_gold, nation_actions, manpower_pools. New diplomatic state fields. Expanded _setup_initial_control(). DP in advance_turn(). |
 | `backend/commands/executor.py` | New _execute_diplomatic() family. Talleyrand command routing. Treaty application. |
@@ -2224,15 +2235,32 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 5. Estimate test migration scope (likely 100+ test updates)
 
 **Scope:**
-- 7 new regions in region.py (Normandy, Hanover, Berlin, Saxony, Dresden, Bohemia, Tyrol — 7 new + 12 existing = 19 total)
-- Updated adjacency for all existing regions
-- Renamed "Rhine" → "Rhineland"
-- Expanded _setup_initial_control() with all 19 regions
+- 7 new regions in REGIONS_DATA (Normandy, Hanover, Berlin, Saxony, Dresden, Bohemia, Tyrol)
+- 1 region **removed:** Geneva (adjacencies redistributed to Tyrol/Milan/Marseille/Bordeaux corridors)
+- 1 region **renamed:** Rhine → Rhineland (all references including mock parser, prompt_builder, docstrings)
+- **Existing region changes:**
+  - Vienna: income 200→300, major_city→capital, is_capital=True, controller Prussia→Austria, adjacency adds Bohemia+Tyrol
+  - Bavaria: controller Prussia→Austria, adjacency adds Saxony+Tyrol, removes Lyon
+  - Paris: adjacency adds Normandy+Bordeaux, removes Waterloo
+  - Waterloo: adjacency removes Paris, adds Netherlands+Hanover
+  - Brittany: adjacency removes Paris, adds Normandy
+  - Bordeaux: adjacency removes Geneva, adds Paris+Lyon+Marseille
+  - Lyon: adjacency removes Bavaria, adds Bordeaux+Rhineland(was Rhine)
+  - Marseille: adjacency removes Geneva, adds Bordeaux+Milan
+  - Belgium: adjacency adds Normandy+Rhineland(was Rhine)
+  - Milan: adjacency removes Geneva, adds Marseille+Tyrol
+  - Netherlands: adjacency adds Waterloo+Hanover
+- Updated `NATION_CAPITALS`: Prussia "Rhine"→"Berlin", add Saxony→"Dresden"
+- `_setup_initial_control()` auto-derives from REGIONS_DATA — no manual expansion needed
+- **Victory threshold:** Update `turn_manager.py` enemy victory from `>= 10` to `>= int(total * 0.75)` (scales with region count)
+- **Hardcoded reference cleanup:** prompt_builder.py (geographic layout, fallback region list), llm_client.py (mock parser region targets), executor.py (docstring examples), world_state.py (economic balance comments), region.py (header comment "13 regions")
 - Fix ALL broken tests from region expansion
 - Save format version bump (old saves incompatible — M7)
 
+**Austria/Saxony controller note:** Session 1A sets `starting_controller` to "Austria"/"Saxony" on regions, but these nations aren't added to `enemy_nations`/`nation_gold`/`nation_actions` until Session 1B. This is safe — controller strings are just strings, and the AI only processes nations in `enemy_nations`. These regions will sit inert until Session 1B activates them.
+
 **Risk:** HIGH — Changes foundational data model. Every existing test that references specific regions, starting positions, or adjacency will break. AI decision tree (enemy_ai.py) has hardcoded region references. Garrison combat changes (capital regions). Supply attrition recalculation. Fog of war adjacency patterns. Estimated 100+ test updates.
-**Gate:** `pytest` passes (100%). All 19 regions created with correct adjacency. No hardcoded region references remain.
+**Gate:** `pytest` passes (100%). All 19 regions created with correct adjacency. No hardcoded Geneva/Rhine references remain. Victory threshold scales with region count.
 
 #### Session 1B: New Nations + Marshals + Economy (HIGH RISK — DD6)
 
@@ -2486,6 +2514,22 @@ All design questions resolved in v1.1 feedback pass:
 ---
 
 ## §17. Changelog
+
+### v2.4 (Pre-Implementation Audit — Mar 2026)
+
+**Session 1A readiness audit. 4 CRITICAL + 4 MAJOR findings resolved.**
+
+**Critical Fixes:**
+- **C1: Geneva removal undocumented** — §1b now explicitly states Geneva is removed (13 − 1 + 7 = 19). Design rationale added.
+- **C2: Berlin income 250 vs REGION_TYPE_INCOME["capital"]=300** — Berlin income changed to 300 to match the capital type invariant. §1d Prussia income updated (350→400, net −10→+40).
+- **C3: §1d economy table inconsistent with §7e trade income** — Table now shows region income only (no trade). Trade income breakdown added below with per-nation totals. Balance note explains alliance trade as diplomatic weapon.
+- **C4: Victory threshold hardcoded at 10** — Session 1A scope now includes victory threshold recalibration to `>= int(total * 0.75)`.
+
+**Major Fixes:**
+- **M1: Session 1A scope understated** — Expanded to list ALL changes: Geneva removal, Rhine rename, Vienna/Bavaria controller changes, all adjacency rewrites, NATION_CAPITALS update, hardcoded reference cleanup list, victory threshold.
+- **M2: Austria/Saxony controller note** — Added note that Session 1A sets controller strings before nations exist in world_state (safe — controller is just a string).
+- **M3: Dresden capital note** — Added clarification that Dresden uses `region_type: "town"` with `is_capital: True` (minor nation capital with town-level economy).
+- **M4: Files to Modify table** — Fixed "6 new regions" to "7 new regions, 1 removed (Geneva), 1 renamed".
 
 ### v2.3 (Master Audit — Mar 2026)
 
