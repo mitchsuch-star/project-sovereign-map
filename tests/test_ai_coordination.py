@@ -497,6 +497,8 @@ class TestAllyAdjacencyScoring:
         world.marshals["Wellington"] = enemy
         world.marshals["Blucher"] = ally
         world.player_nation = "France"
+        # Coalition must be at WAR with France for get_enemies_of_nation to find targets
+        world.diplomatic_states["Coalition|France"] = "WAR"
 
         marshal.set_relationship("Blucher", 2)  # Devoted
 
@@ -674,6 +676,8 @@ class TestAttackThresholdCoordination:
         world.marshals["Soult"] = ally2
         world.marshals["Wellington"] = defender
         world.player_nation = "France"
+        # Coalition must be at WAR with France for get_enemies_of_nation to find targets
+        world.diplomatic_states["Coalition|France"] = "WAR"
 
         # Combined strength for ratio: 21k + 5k + 5k = 31k. Base ratio: 31k/20k = 1.55
         # Plus +8% * 2 allies = +0.16 → effective ratio ~1.71

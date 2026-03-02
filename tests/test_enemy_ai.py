@@ -161,7 +161,7 @@ class TestTargetEvaluation:
         ney = self.world.get_marshal("Ney")
         ney.retreated_this_turn = True
         # No ally in same region = exposed
-        ney.location = "Lyon"  # Move away from others
+        ney.location = "Bordeaux"  # Move away from others (Lyon has Grouchy)
 
         base_ratio = 1.0
         effective_ratio = self.ai._evaluate_target_ratio(base_ratio, ney, self.world)

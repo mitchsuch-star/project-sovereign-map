@@ -46,9 +46,8 @@ class TestRecaptureCore:
         # Move Blucher to Vienna (2 hops from Rhine: Vienna→Bavaria→Rhine)
         blucher = world.marshals["Blucher"]
         blucher.location = "Vienna"
-        # Move other Prussians far away
+        # Move other Prussian far away
         world.marshals["Gneisenau"].location = "Milan"
-        world.marshals["PrinceAugust"].location = "Milan"
         ai._marshal_visited_locations = {"Blucher": set()}
 
         action = ai._find_homeland_defense(blucher, "Prussia", world)
@@ -90,7 +89,6 @@ class TestRecaptureCore:
             if m.nation == "France":
                 m.location = "Bordeaux"
         world.marshals["Gneisenau"].location = "Brittany"  # far away
-        world.marshals["PrinceAugust"].location = "Brittany"
         ai._marshal_visited_locations = {"Blucher": set()}
 
         # Put Blucher at Lyon — dist to Berlin is 4+ hops
@@ -171,6 +169,8 @@ class TestRecaptureCore:
 
         blucher = world.marshals["Blucher"]
         blucher.location = "Bavaria"
+        # Move Gneisenau away so "someone closer" doesn't block Blucher
+        world.marshals["Gneisenau"].location = "Milan"
 
         action = ai._find_homeland_defense(blucher, "Prussia", world)
         assert action is not None
@@ -186,9 +186,8 @@ class TestRecaptureCore:
 
         blucher = world.marshals["Blucher"]
         blucher.location = "Bavaria"
-        # Move others away
+        # Move other Prussian away
         world.marshals["Gneisenau"].location = "Vienna"
-        world.marshals["PrinceAugust"].location = "Vienna"
 
         action = ai._find_homeland_defense(blucher, "Prussia", world)
         assert action is not None
@@ -213,10 +212,10 @@ class TestDeathballSplitting:
         _lose_region(world, "Berlin")
 
         # Put all Prussians at Hanover (adjacent to Berlin, 2 hops from Rhineland)
-        for name in ["Blucher", "Gneisenau", "PrinceAugust"]:
+        for name in ["Blucher", "Gneisenau"]:
             world.marshals[name].location = "Hanover"
         ai._marshal_visited_locations = {
-            "Blucher": set(), "Gneisenau": set(), "PrinceAugust": set()
+            "Blucher": set(), "Gneisenau": set()
         }
 
         # First marshal claims one target
@@ -247,7 +246,6 @@ class TestDeathballSplitting:
         # Blucher in Vienna (dist=2) should NOT be blocked by fortified Gneisenau
         blucher = world.marshals["Blucher"]
         blucher.location = "Vienna"
-        world.marshals["PrinceAugust"].location = "Milan"
         ai._marshal_visited_locations = {"Blucher": set()}
 
         action = ai._find_homeland_defense(blucher, "Prussia", world)
@@ -266,7 +264,6 @@ class TestDeathballSplitting:
 
         blucher = world.marshals["Blucher"]
         blucher.location = "Vienna"
-        world.marshals["PrinceAugust"].location = "Milan"
         ai._marshal_visited_locations = {"Blucher": set()}
 
         action = ai._find_homeland_defense(blucher, "Prussia", world)
@@ -286,7 +283,6 @@ class TestDeathballSplitting:
 
         blucher = world.marshals["Blucher"]
         blucher.location = "Vienna"
-        world.marshals["PrinceAugust"].location = "Milan"
         ai._marshal_visited_locations = {"Blucher": set()}
 
         action = ai._find_homeland_defense(blucher, "Prussia", world)
@@ -304,7 +300,6 @@ class TestDeathballSplitting:
         blucher.location = "Vienna"
         gneisenau = world.marshals["Gneisenau"]
         gneisenau.location = "Vienna"
-        world.marshals["PrinceAugust"].location = "Milan"
         ai._marshal_visited_locations = {"Blucher": set(), "Gneisenau": set()}
 
         action1 = ai._find_homeland_defense(blucher, "Prussia", world)
@@ -345,7 +340,6 @@ class TestPathfindingThroughEnemy:
 
         # Move others far away so "someone closer" doesn't block
         world.marshals["Gneisenau"].location = "Marseille"
-        world.marshals["PrinceAugust"].location = "Marseille"
         ai._marshal_visited_locations = {"Blucher": set()}
 
         action = ai._find_homeland_defense(blucher, "Prussia", world)
@@ -375,7 +369,6 @@ class TestPathfindingThroughEnemy:
         world.marshals["WeakFrench2"] = weak_french2
 
         world.marshals["Gneisenau"].location = "Netherlands"
-        world.marshals["PrinceAugust"].location = "Netherlands"
         ai._marshal_visited_locations = {"Blucher": set()}
 
         action = ai._find_homeland_defense(blucher, "Prussia", world)
@@ -406,7 +399,6 @@ class TestPathfindingThroughEnemy:
         world.marshals["StrongFrench"] = strong_french
 
         world.marshals["Blucher"].location = "Netherlands"
-        world.marshals["PrinceAugust"].location = "Netherlands"
         ai._marshal_visited_locations = {"Gneisenau": set()}
 
         action = ai._find_homeland_defense(gneisenau, "Prussia", world)
@@ -436,9 +428,8 @@ class TestPathfindingThroughEnemy:
                                   personality="cautious", nation="France")
         world.marshals["ModFrench"] = moderate_french
 
-        # Move others far away so "someone closer" doesn't block
+        # Move other Prussian far away so "someone closer" doesn't block
         world.marshals["Gneisenau"].location = "Marseille"
-        world.marshals["PrinceAugust"].location = "Marseille"
         ai._marshal_visited_locations = {"Blucher": set()}
 
         action = ai._find_homeland_defense(blucher, "Prussia", world)
@@ -467,13 +458,13 @@ class TestRecaptureIntegration:
 
         # At least one Prussian marshal should get a homeland defense action
         found_action = False
-        for name in ["Blucher", "Gneisenau", "PrinceAugust"]:
+        for name in ["Blucher", "Gneisenau"]:
             marshal = world.marshals[name]
             # Put them at Hanover (adjacent to Berlin, 2 hops from Rhineland)
             marshal.location = "Hanover"
             ai._marshal_visited_locations[name] = set()
 
-        for name in ["Blucher", "Gneisenau", "PrinceAugust"]:
+        for name in ["Blucher", "Gneisenau"]:
             marshal = world.marshals[name]
             action = ai._find_homeland_defense(marshal, "Prussia", world)
             if action:
@@ -490,7 +481,6 @@ class TestRecaptureIntegration:
 
         blucher = world.marshals["Blucher"]
         world.marshals["Gneisenau"].location = "Milan"
-        world.marshals["PrinceAugust"].location = "Milan"
 
         # Turn 1: Blucher at Vienna (dist 2)
         blucher.location = "Vienna"
@@ -520,6 +510,8 @@ class TestRecaptureIntegration:
 
         blucher = world.marshals["Blucher"]
         blucher.location = "Bavaria"
+        # Move Gneisenau away so "someone closer" doesn't block Blucher
+        world.marshals["Gneisenau"].location = "Milan"
 
         action = ai._find_homeland_defense(blucher, "Prussia", world)
         assert action is not None
@@ -543,7 +535,7 @@ class TestStagnationFixes:
         game_state = {"world": world, "debug_mode": True}
 
         # Set up: Put all Prussians far from enemies so they get skipped
-        for name in ["Blucher", "Gneisenau", "PrinceAugust"]:
+        for name in ["Blucher", "Gneisenau"]:
             m = world.marshals[name]
             m.location = "Vienna"
             m.fortified = True  # Fortified + no threats = likely skipped or wait
@@ -556,8 +548,8 @@ class TestStagnationFixes:
 
         # After the turn, check stagnation was updated for marshals
         # At minimum, stagnation should be tracked
-        total_stagnation = sum(world.ai_stagnation_turns.get(n, 0) for n in ["Blucher", "Gneisenau", "PrinceAugust"])
-        print(f"Stagnation after turn: {dict((n, world.ai_stagnation_turns.get(n, 0)) for n in ['Blucher', 'Gneisenau', 'PrinceAugust'])}")
+        total_stagnation = sum(world.ai_stagnation_turns.get(n, 0) for n in ["Blucher", "Gneisenau"])
+        print(f"Stagnation after turn: {dict((n, world.ai_stagnation_turns.get(n, 0)) for n in ['Blucher', 'Gneisenau'])}")
         # Stagnation should have been tracked (may or may not increment depending on actions)
         assert isinstance(total_stagnation, int)
         print("PASS: Stagnation tracking works for skipped marshals")
@@ -800,7 +792,7 @@ class TestHelperMethods:
         ney.location = "Vienna"
 
         # Move all Prussians to Milan (adjacent to Vienna where Ney is)
-        for name in ["Blucher", "Gneisenau", "PrinceAugust"]:
+        for name in ["Blucher", "Gneisenau"]:
             world.marshals[name].location = "Milan"
 
         # Check that count_lost_regions reports 2

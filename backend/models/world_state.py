@@ -52,9 +52,11 @@ MAX_ARTILLERY_POOL = 20000             # Pool cap
 
 # Default starting pools (also used for backward compat)
 DEFAULT_MANPOWER_POOLS = {
-    "France": {"infantry": 80000, "cavalry": 15000, "artillery": 10000},
-    "Britain": {"infantry": 50000, "cavalry": 8000, "artillery": 5000},
+    "France":  {"infantry": 80000, "cavalry": 15000, "artillery": 10000},
+    "Britain": {"infantry": 50000, "cavalry": 8000,  "artillery": 5000},
     "Prussia": {"infantry": 60000, "cavalry": 10000, "artillery": 5000},
+    "Austria": {"infantry": 40000, "cavalry": 5000,  "artillery": 3000},
+    "Saxony":  {"infantry": 20000, "cavalry": 3000,  "artillery": 2000},
 }
 
 
@@ -106,6 +108,8 @@ class WorldState:
             "France": 800,       # Balance patch: was 600, raised for 5-turn buffer
             "Britain": 1500,
             "Prussia": 800,
+            "Austria": 600,
+            "Saxony": 200,
         }
         # ═══════ MANPOWER POOLS (Phase 6) ═══════
         # Nation-level reserve pools that gate recruitment.
@@ -219,14 +223,14 @@ class WorldState:
 
         # Explicit list of enemy nations (not derived from marshals)
         # Nations exist even if all their marshals are destroyed
-        # TODO: Expand to full nation system with gold, diplomacy, etc. (see ROADMAP.md Phase 6+)
-        self.enemy_nations: List[str] = ["Britain", "Prussia"]
+        self.enemy_nations: List[str] = ["Britain", "Prussia", "Austria", "Saxony"]
 
-        # Actions per nation (configurable for future nation-specific economies)
-        # TODO: Future expansion - France 5, Austria 3, Russia 3, etc. (see ROADMAP.md Phase 6+)
+        # Actions per nation
         self.nation_actions: Dict[str, int] = {
             "Britain": 4,
             "Prussia": 4,
+            "Austria": 3,
+            "Saxony": 2,
         }
 
         # AI Stagnation Counter (persists across turns, read/written by EnemyAI)
@@ -306,6 +310,37 @@ class WorldState:
         # calculate_visibility() runs after load to populate correctly.
         self.intel: Dict[str, Any] = {}
 
+        # ============================================================
+        # DIPLOMACY - Nation-pair states and relations (Phase 8 data layer)
+        # ============================================================
+        # Keys are alphabetically-sorted "NationA|NationB" pairs
+        # States: WAR, PEACE, NON_AGGRESSION, OPEN_BORDERS, DEFENSIVE_ALLIANCE, ALLIANCE
+        self.diplomatic_states: Dict[str, str] = {
+            "Austria|Britain": "NON_AGGRESSION",
+            "Austria|France": "PEACE",
+            "Austria|Prussia": "DEFENSIVE_ALLIANCE",
+            "Austria|Saxony": "PEACE",
+            "Britain|France": "WAR",
+            "Britain|Prussia": "ALLIANCE",
+            "Britain|Saxony": "PEACE",
+            "France|Prussia": "WAR",
+            "France|Saxony": "OPEN_BORDERS",
+            "Prussia|Saxony": "PEACE",
+        }
+        # Numeric relations: -100 (hostile) to +100 (allied)
+        self.nation_relations: Dict[str, int] = {
+            "Austria|Britain": 40,
+            "Austria|France": -30,
+            "Austria|Prussia": 30,
+            "Austria|Saxony": 10,
+            "Britain|France": -80,
+            "Britain|Prussia": 60,
+            "Britain|Saxony": 0,
+            "France|Prussia": -40,
+            "France|Saxony": 40,
+            "Prussia|Saxony": -10,
+        }
+
         # Calculate initial visibility so turn 1 starts with correct fog state
         # (French regions FULL, adjacent PARTIAL, rest UNKNOWN)
         self._intel_events_this_turn = []  # Init before first calculate_visibility
@@ -336,6 +371,29 @@ class WorldState:
     @bankruptcy_turns.setter
     def bankruptcy_turns(self, value: int):
         self.nation_bankruptcy_turns[self.player_nation] = int(value)
+
+    # ========================================
+    # DIPLOMACY HELPERS (Phase 8 data layer)
+    # ========================================
+
+    def _make_diplo_key(self, nation_a: str, nation_b: str) -> str:
+        """Create alphabetically-sorted nation pair key."""
+        return "|".join(sorted([nation_a, nation_b]))
+
+    def is_at_war(self, nation_a: str, nation_b: str) -> bool:
+        """Check if two nations are at war."""
+        return self.diplomatic_states.get(self._make_diplo_key(nation_a, nation_b)) == "WAR"
+
+    def get_diplomatic_state(self, nation_a: str, nation_b: str) -> str:
+        """Get diplomatic state between two nations. Defaults to PEACE."""
+        return self.diplomatic_states.get(self._make_diplo_key(nation_a, nation_b), "PEACE")
+
+    def modify_nation_relation(self, nation_a: str, nation_b: str, delta: int) -> int:
+        """Modify relation between two nations. Clamped to [-100, 100]."""
+        key = self._make_diplo_key(nation_a, nation_b)
+        new_val = max(-100, min(100, self.nation_relations.get(key, 0) + delta))
+        self.nation_relations[key] = new_val
+        return new_val
 
     # ========================================
     # EVENT LOG HELPERS
@@ -1007,34 +1065,39 @@ class WorldState:
         """
         Get all marshals that are enemies of a specific nation.
 
+        Only returns marshals whose nation is AT WAR with the given nation.
         Used by enemy AI to find attack targets.
 
         Args:
             nation: The nation whose enemies we want
 
         Returns:
-            List of Marshal objects that are enemies of the given nation
+            List of Marshal objects that are at war with the given nation
         """
         return [
             marshal for marshal in self.marshals.values()
-            if marshal.nation != nation and marshal.strength > 0
+            if marshal.nation != nation
+            and marshal.strength > 0
+            and self.is_at_war(nation, marshal.nation)
         ]
 
     def get_enemy_by_name_for_nation(self, name: str, attacker_nation: str) -> Optional[Marshal]:
         """
         Get an enemy marshal by name from the perspective of a specific nation.
 
-        Used by attack logic to find target marshal when attacker is not the player.
+        Only returns marshal if their nation is AT WAR with attacker_nation.
 
         Args:
             name: Name of the target marshal
             attacker_nation: Nation doing the attacking
 
         Returns:
-            Marshal if found and is enemy of attacker_nation, None otherwise
+            Marshal if found and is at war with attacker_nation, None otherwise
         """
         marshal = self.marshals.get(name)
-        if marshal and marshal.nation != attacker_nation and marshal.strength > 0:
+        if (marshal and marshal.nation != attacker_nation
+                and marshal.strength > 0
+                and self.is_at_war(attacker_nation, marshal.nation)):
             return marshal
         return None
 
@@ -1042,17 +1105,21 @@ class WorldState:
         """
         Get enemy marshal at a location from the perspective of a specific nation.
 
+        Only returns marshal if their nation is AT WAR with attacker_nation.
+
         Args:
             location: Region name to check
             attacker_nation: Nation doing the attacking
 
         Returns:
-            First enemy marshal at location with strength > 0
+            First enemy marshal at location that is at war, with strength > 0
         """
         for marshal in self.marshals.values():
-            if marshal.location == location and marshal.nation != attacker_nation:
-                if marshal.strength > 0:
-                    return marshal
+            if (marshal.location == location
+                    and marshal.nation != attacker_nation
+                    and marshal.strength > 0
+                    and self.is_at_war(attacker_nation, marshal.nation)):
+                return marshal
         return None
 
     # ========================================
@@ -1933,11 +2000,17 @@ class WorldState:
                 "war_damage": int(region.war_damage * 100)  # int % (0-100) for Godot
             })
 
+        # British naval income — abstracted trade dominance / colonial revenue
+        naval_income = 300 if nation == "Britain" else 0
+        total_income += naval_income
+        # TODO: Trade income (deferred to Session 2)
+
         return {
             "income": total_income,
             "breakdown": {
                 "regions": len(nation_regions),
                 "base_income": sum(self.regions[r].income_value for r in nation_regions),
+                "naval_income": naval_income,
                 "total": total_income,
                 "region_details": region_breakdown
             },
@@ -2543,6 +2616,10 @@ class WorldState:
 
             # ═══════ FOG OF WAR (Phase 6 Session 33) ═══════
             "intel": {name: ri.to_dict() for name, ri in self.intel.items()},
+
+            # ═══════ DIPLOMACY (Phase 8 data layer) ═══════
+            "diplomatic_states": self.diplomatic_states.copy(),
+            "nation_relations": self.nation_relations.copy(),
         }
 
     @classmethod
@@ -2572,6 +2649,8 @@ class WorldState:
                 "France": 600,
                 "Britain": 800,
                 "Prussia": 300,
+                "Austria": 600,
+                "Saxony": 200,
             }
             world.nation_gold[world.player_nation] = int(old_gold)
         world.game_over = data.get("game_over", False)
@@ -2632,8 +2711,8 @@ class WorldState:
         world.ai_failed_action_cooldowns = {k: v.copy() for k, v in data.get("ai_failed_action_cooldowns", {}).items()}
         world.ai_refortify_cooldown = data.get("ai_refortify_cooldown", {}).copy()
         world.ai_attack_futility = data.get("ai_attack_futility", {}).copy()
-        world.enemy_nations = data.get("enemy_nations", ["Britain", "Prussia"]).copy()
-        world.nation_actions = data.get("nation_actions", {"Britain": 4, "Prussia": 4}).copy()
+        world.enemy_nations = data.get("enemy_nations", ["Britain", "Prussia", "Austria", "Saxony"]).copy()
+        world.nation_actions = data.get("nation_actions", {"Britain": 4, "Prussia": 4, "Austria": 3, "Saxony": 2}).copy()
         world.active_battles = {k: v.copy() for k, v in data.get("active_battles", {}).items()}
         world.battle_history = [b.copy() for b in data.get("battle_history", [])]
 
@@ -2671,6 +2750,10 @@ class WorldState:
         # calculate_visibility() will be called after load to populate correctly
         intel_data = data.get("intel", {})
         world.intel = {name: RegionIntel.from_dict(ri_data) for name, ri_data in intel_data.items()}
+
+        # ═══════ DIPLOMACY (Phase 8 data layer) ═══════
+        world.diplomatic_states = data.get("diplomatic_states", {}).copy()
+        world.nation_relations = {k: int(v) for k, v in data.get("nation_relations", {}).items()}
 
         return world
 

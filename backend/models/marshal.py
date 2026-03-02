@@ -915,6 +915,11 @@ class Marshal:
                 and self.ability.get("name") == "Reverse Slope Defense"):
             modifier *= 1.05
 
+        # Archduke Charles's "Habsburg Resolve" (+3% defense always)
+        if (hasattr(self, 'ability')
+                and self.ability.get("name") == "Habsburg Resolve"):
+            modifier *= 1.03
+
         # Square formation: +5% defense (tight formation, mutual support)
         if getattr(self, 'square_formation', False):
             modifier *= 1.05
@@ -1352,7 +1357,7 @@ def create_starting_marshals() -> dict[str, Marshal]:
         ),
         "Grouchy": Marshal(
             name="Grouchy",
-            location="Belgium",
+            location="Lyon",
             strength=28000,  # Balance patch: was 33000, reduced for economy balance
             personality="literal",
             nation="France",
@@ -1455,11 +1460,7 @@ def create_enemy_marshals() -> dict[str, Marshal]:
     Returns:
         Dictionary of marshal_name -> Marshal object
     """
-    # NOTE: Enemy spawn_location is currently their starting region.
-    # TODO: In future, enemies should spawn at their nation's capital:
-    # - Wellington → London (Britain capital)
-    # - Blucher → Berlin (Prussia capital)
-    # For now, they respawn at their starting positions.
+    # Enemy spawn locations match NATION_CAPITALS in region.py
     enemies = {
         "Wellington": Marshal(
             name="Wellington",
@@ -1483,12 +1484,12 @@ def create_enemy_marshals() -> dict[str, Marshal]:
                 "effect": "+5% flat defense bonus when defending"
             },
             starting_trust=80,  # Wellington trusts his government
-            spawn_location="Waterloo"  # TODO: Change to London (Britain capital) when map expanded (see ROADMAP.md EA Launch)
+            spawn_location="Netherlands"  # Britain capital proxy
         ),
         "Uxbridge": Marshal(
             name="Uxbridge",
-            location="Waterloo",
-            strength=18000,  # Cavalry corps - smaller than infantry
+            location="Hanover",
+            strength=24000,
             personality="aggressive",
             nation="Britain",
             movement_range=2,  # Cavalry commander - can attack 2 regions away
@@ -1509,12 +1510,12 @@ def create_enemy_marshals() -> dict[str, Marshal]:
             },
             starting_trust=75,
             cavalry=True,  # Cavalry commander - enables Recklessness system (aggressive + cavalry)
-            spawn_location="Waterloo"  # TODO: Change to London (Britain capital) when map expanded (see ROADMAP.md EA Launch)
+            spawn_location="Netherlands"  # Britain capital proxy
         ),
         "Blucher": Marshal(
             name="Blucher",
-            location="Netherlands",
-            strength=55000,
+            location="Berlin",
+            strength=40000,
             personality="aggressive",
             nation="Prussia",
             tactical_skill=7,  # Aggressive and determined, but impetuous
@@ -1533,12 +1534,12 @@ def create_enemy_marshals() -> dict[str, Marshal]:
                 "effect": "+3,000 pursuit casualties to retreating enemies (floor 1000)"
             },
             starting_trust=70,  # Blucher trusts Prussia's king
-            spawn_location="Netherlands"  # TODO: Change to Berlin (Prussia capital) when map expanded (see ROADMAP.md EA Launch)
+            spawn_location="Berlin"  # Prussia capital
         ),
         "Gneisenau": Marshal(
             name="Gneisenau",
-            location="Netherlands",
-            strength=45000,
+            location="Rhineland",
+            strength=32000,
             personality="cautious",
             nation="Prussia",
             tactical_skill=8,  # Brilliant strategist and planner
@@ -1557,34 +1558,80 @@ def create_enemy_marshals() -> dict[str, Marshal]:
                 "effect": "+5% atk/def to allies in same region (deferred to Phase 7 Session 58 — needs coordination fields)"
             },
             starting_trust=75,  # Gneisenau serves Prussia faithfully
-            spawn_location="Netherlands"  # TODO: Change to Berlin (Prussia capital) when map expanded (see ROADMAP.md EA Launch)
+            spawn_location="Berlin"  # Prussia capital
         ),
-        "PrinceAugust": Marshal(
-            name="PrinceAugust",
-            location="Netherlands",
-            strength=20000,
+        "ArchdukeCharles": Marshal(
+            name="ArchdukeCharles",
+            location="Vienna",
+            strength=35000,
             personality="cautious",
-            nation="Prussia",
-            movement_range=1,
-            tactical_skill=7,
+            nation="Austria",
+            tactical_skill=8,
             skills={
-                "tactical": 7,
-                "shock": 6,
-                "defense": 6,
-                "logistics": 6,
-                "administration": 5,
-                "command": 6
+                "tactical": 7,      # Solid tactician
+                "shock": 5,         # Not an attacker
+                "defense": 8,       # Strong defender — Aspern-Essling victor
+                "logistics": 7,     # Good organizer
+                "administration": 7,  # Military reformer
+                "command": 7        # Respected Habsburg commander
             },
             ability={
-                "name": "Prussian Gunnery",
-                "description": "Disciplined Prussian artillery fire",
-                "trigger": "when_attacking_fortified",
-                "effect": "Standard artillery (no special bonus)"
+                "name": "Habsburg Resolve",
+                "description": "Archduke Charles steadies the line with calm under fire",
+                "trigger": "when_defending",
+                "effect": "+3% flat defense bonus when defending"
+            },
+            starting_trust=75,
+            spawn_location="Vienna"  # Austria capital
+        ),
+        "Schwarzenberg": Marshal(
+            name="Schwarzenberg",
+            location="Bohemia",
+            strength=25000,
+            personality="cautious",
+            nation="Austria",
+            tactical_skill=6,
+            skills={
+                "tactical": 5,      # Mediocre tactician
+                "shock": 4,         # Reluctant attacker
+                "defense": 6,       # Adequate defender
+                "logistics": 6,     # Adequate organizer
+                "administration": 6,  # Competent administrator
+                "command": 5        # Coalition figurehead, not inspirational
+            },
+            ability={
+                "name": "Coalition Coordinator",
+                "description": "Schwarzenberg excels at holding multinational forces together",
+                "trigger": "when_in_same_region_as_ally",
+                "effect": "No mechanical effect (placeholder for Phase 8 coalition coordination)"
             },
             starting_trust=70,
-            artillery=True,
-            spawn_location="Netherlands"
-        )
+            spawn_location="Vienna"  # Austria capital
+        ),
+        "Reynier": Marshal(
+            name="Reynier",
+            location="Dresden",
+            strength=18000,
+            personality="literal",
+            nation="Saxony",
+            tactical_skill=5,
+            skills={
+                "tactical": 5,      # Average tactician
+                "shock": 5,         # Average
+                "defense": 5,       # Average
+                "logistics": 5,     # Average
+                "administration": 5,  # Average
+                "command": 5        # Competent but uninspired
+            },
+            ability={
+                "name": "Saxon Discipline",
+                "description": "Reynier maintains strict order in his Saxon corps",
+                "trigger": "passive",
+                "effect": "No mechanical effect (placeholder)"
+            },
+            starting_trust=65,
+            spawn_location="Dresden"  # Saxony capital
+        ),
     }
 
     # ════════════════════════════════════════════════════════════
@@ -1606,15 +1653,23 @@ def create_enemy_marshals() -> dict[str, Marshal]:
         "Blucher's brain. What the old man lacks in strategy, Gneisenau "
         "provides tenfold. The true architect of Prussian operations."
     )
-    enemies["PrinceAugust"].biography = (
-        "Commands the Prussian artillery corps. Professional, reliable, "
-        "and content to serve without glory."
+    enemies["ArchdukeCharles"].biography = (
+        "The only man to beat Napoleon in open battle — at Aspern-Essling. "
+        "Cautious but capable, he is Austria's finest general."
+    )
+    enemies["Schwarzenberg"].biography = (
+        "A diplomat in uniform. Commanded the Allied army at Leipzig but "
+        "prefers negotiation to bloodshed. Cautious to a fault."
+    )
+    enemies["Reynier"].biography = (
+        "A French-born general in Saxon service. Competent and obedient, "
+        "he follows orders to the letter and asks no questions."
     )
 
     # ════════════════════════════════════════════════════════════
-    # WATERLOO SCENARIO: Historical Relationships
+    # HISTORICAL RELATIONSHIPS
     # ════════════════════════════════════════════════════════════
-    # Wellington-Blucher: Devoted allies (future-proofing for Coalition coordination)
+    # Wellington-Blucher: Devoted allies
     enemies["Wellington"].set_relationship("Blucher", 2)
     enemies["Blucher"].set_relationship("Wellington", 2)
 
@@ -1638,15 +1693,30 @@ def create_enemy_marshals() -> dict[str, Marshal]:
     enemies["Uxbridge"].set_relationship("Gneisenau", 0)
     enemies["Gneisenau"].set_relationship("Uxbridge", 0)
 
-    # PrinceAugust — Prussian artillery, professional relationships
-    enemies["PrinceAugust"].set_relationship("Blucher", 1)
-    enemies["PrinceAugust"].set_relationship("Gneisenau", 1)
-    enemies["PrinceAugust"].set_relationship("Wellington", 0)
-    enemies["PrinceAugust"].set_relationship("Uxbridge", 0)
-    enemies["Blucher"].set_relationship("PrinceAugust", 1)
-    enemies["Gneisenau"].set_relationship("PrinceAugust", 1)
-    enemies["Wellington"].set_relationship("PrinceAugust", 0)
-    enemies["Uxbridge"].set_relationship("PrinceAugust", 0)
+    # Austria — Archduke Charles and Schwarzenberg
+    enemies["ArchdukeCharles"].set_relationship("Schwarzenberg", 1)
+    enemies["Schwarzenberg"].set_relationship("ArchdukeCharles", 1)
+
+    # Austria-Prussia cross-nation (DEFENSIVE_ALLIANCE per §1e)
+    enemies["ArchdukeCharles"].set_relationship("Blucher", 0)
+    enemies["Blucher"].set_relationship("ArchdukeCharles", 0)
+    enemies["ArchdukeCharles"].set_relationship("Gneisenau", 0)
+    enemies["Gneisenau"].set_relationship("ArchdukeCharles", 0)
+    enemies["Schwarzenberg"].set_relationship("Blucher", 0)
+    enemies["Blucher"].set_relationship("Schwarzenberg", 0)
+    enemies["Schwarzenberg"].set_relationship("Gneisenau", 0)
+    enemies["Gneisenau"].set_relationship("Schwarzenberg", 0)
+
+    # Austria-Britain cross-nation (NON_AGGRESSION per §1e)
+    enemies["ArchdukeCharles"].set_relationship("Wellington", 0)
+    enemies["Wellington"].set_relationship("ArchdukeCharles", 0)
+    enemies["Schwarzenberg"].set_relationship("Wellington", 0)
+    enemies["Wellington"].set_relationship("Schwarzenberg", 0)
+
+    # Reynier (Saxony) — neutral with everyone
+    for name in ["Wellington", "Uxbridge", "Blucher", "Gneisenau", "ArchdukeCharles", "Schwarzenberg"]:
+        enemies["Reynier"].set_relationship(name, 0)
+        enemies[name].set_relationship("Reynier", 0)
 
     return enemies
 

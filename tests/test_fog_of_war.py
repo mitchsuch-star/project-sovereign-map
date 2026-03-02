@@ -13,14 +13,11 @@ Tests for:
 - Serialization enforcement
 """
 
-import pytest
 from backend.models.intel import (
     RegionIntel, FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
     VISIBILITY_PRIORITY, get_strength_band,
-    FRESH_TURNS, STALE_TURN_START, LAST_KNOWN_TURN_START,
 )
 from backend.models.world_state import WorldState
-from backend.models.marshal import Marshal
 
 
 # ============================================================================
@@ -351,12 +348,12 @@ class TestGameInitVisibility:
             intel = world.get_region_intel(region_name)
             assert intel.region_name == region_name
 
-    def test_lyon_adjacent_to_davout(self):
-        """Lyon (French, adjacent to Davout in Paris) should be at least PARTIAL."""
+    def test_lyon_has_grouchy_full(self):
+        """Lyon (French, Grouchy stationed here) should be FULL."""
         world = WorldState()
         lyon_intel = world.get_region_intel("Lyon")
-        # Lyon is French-controlled AND adjacent to Davout → PARTIAL from own_territory
-        assert lyon_intel.visibility == PARTIAL
+        # Lyon has Grouchy (French marshal) → FULL from marshal_present
+        assert lyon_intel.visibility == FULL
 
     def test_bordeaux_french_no_marshal_partial(self):
         """Bordeaux (French, no marshal nearby, but own territory) should be PARTIAL."""
@@ -468,19 +465,19 @@ class TestUpdateIntelFromScout:
 
     def test_scout_captures_enemy_data(self):
         world = WorldState()
-        # Gneisenau is in Netherlands at start
-        world.update_intel_from_scout("Netherlands", turn=1)
-        intel = world.get_region_intel("Netherlands")
+        # Wellington is at Waterloo at start (enemy from France's POV)
+        world.update_intel_from_scout("Waterloo", turn=1)
+        intel = world.get_region_intel("Waterloo")
         assert intel.visibility == FULL
         names = [m["name"] for m in intel.known_marshals]
-        assert "Blucher" in names or "Gneisenau" in names
+        assert "Wellington" in names
         assert intel.exact_strength is not None
         assert intel.exact_strength > 0
 
     def test_scout_empty_region(self):
         world = WorldState()
-        world.update_intel_from_scout("Vienna", turn=1)
-        intel = world.get_region_intel("Vienna")
+        world.update_intel_from_scout("Tyrol", turn=1)
+        intel = world.get_region_intel("Tyrol")
         assert intel.visibility == FULL
         assert intel.known_marshals == []
         assert intel.strength_band == "no forces"

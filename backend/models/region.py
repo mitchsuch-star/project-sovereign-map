@@ -363,7 +363,7 @@ REGIONS_DATA = {
         "grid_position": (1, 3),
     },
     "Rhineland": {
-        "adjacent": ["Belgium", "Bavaria", "Lyon"],
+        "adjacent": ["Belgium", "Bavaria", "Lyon", "Saxony"],
         "income": 100,
         "is_capital": False,
         "terrain": "river_crossing",
@@ -462,7 +462,7 @@ REGIONS_DATA = {
         "grid_position": (0, 5),
     },
     "Saxony": {
-        "adjacent": ["Hanover", "Berlin", "Bavaria", "Dresden", "Bohemia"],
+        "adjacent": ["Hanover", "Berlin", "Bavaria", "Dresden", "Bohemia", "Rhineland"],
         "income": 150,
         "is_capital": False,
         "terrain": "plains",

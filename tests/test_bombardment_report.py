@@ -264,12 +264,12 @@ class TestGenerateBombardmentReport:
     def test_uses_correct_names(self):
         """Observation should reference the correct marshal and enemy names."""
         data = _make_bombardment_data(
-            attacker_name="PrinceAugust",
+            attacker_name="Blucher",
             defender_name="Davout",
         )
         result = generate_bombardment_report(data)
         # Default case: effective bombardment, should mention at least one name
-        assert "PrinceAugust" in result or "Davout" in result
+        assert "Blucher" in result or "Davout" in result
 
     def test_destroyed_case(self):
         """Destroyed defender produces target_broken observation."""
@@ -470,7 +470,6 @@ class TestBombardmentReportInExecutor:
         # Move defender to a mountainous region
         # We need to use a region with mountains terrain
         # Let's check what regions have mountains terrain
-        from backend.models.region import Region
         for region in world.regions.values():
             if region.terrain == "mountains":
                 world.marshals["Wellington"].location = region.name

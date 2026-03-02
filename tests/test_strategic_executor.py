@@ -2035,8 +2035,10 @@ class TestFirstStepBlocked:
         gneisenau.location = "Normandy"  # Block Normandy route
         uxbridge = world.get_marshal("Uxbridge")
         uxbridge.location = "Netherlands"  # Block Netherlands route
-        prince_august = world.get_marshal("PrinceAugust")
-        prince_august.location = "Waterloo"  # Block Waterloo route
+        # Block Waterloo route with another enemy
+        schwarzenberg = world.get_marshal("ArchdukeCharles")
+        if schwarzenberg:
+            schwarzenberg.location = "Waterloo"
 
         with _suppress_output():
             result = executor.execute({
@@ -2169,8 +2171,10 @@ class TestFirstStepBlocked:
         gneisenau.location = "Normandy"
         uxbridge = world.get_marshal("Uxbridge")
         uxbridge.location = "Netherlands"
-        prince_august = world.get_marshal("PrinceAugust")
-        prince_august.location = "Waterloo"
+        # Block Waterloo route with another enemy
+        archduke = world.get_marshal("ArchdukeCharles")
+        if archduke:
+            archduke.location = "Waterloo"
 
         # Pin mood variance so MODERATE concern doesn't randomly downgrade to MILD
         # (apply_mood_variance has 15% chance of -1 level, which would skip the popup)
@@ -2377,6 +2381,10 @@ class TestBugFixes:
         """Infantry (movement_range=1) should move exactly 1 region per strategic turn."""
         grouchy = world.get_marshal("Grouchy")
         grouchy.location = "Rhineland"  # Adjacent to Bavaria in new map
+        # Move Gneisenau away from Rhineland so Grouchy isn't engaged
+        gneisenau = world.get_marshal("Gneisenau")
+        if gneisenau:
+            gneisenau.location = "Berlin"
         # Ensure infantry
         assert getattr(grouchy, 'movement_range', 1) == 1
 

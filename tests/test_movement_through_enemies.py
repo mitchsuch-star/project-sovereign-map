@@ -12,7 +12,6 @@ Tests cover:
 5. Enemy AI follows same rules (building blocks principle)
 """
 
-import pytest
 from backend.models.world_state import WorldState
 from backend.commands.executor import CommandExecutor
 
@@ -129,9 +128,6 @@ class TestMoveNoEnemyNormalRules:
         gneisenau = world.get_marshal("Gneisenau")
         if gneisenau:
             gneisenau.location = "Rhineland"
-        prince_august = world.get_marshal("PrinceAugust")
-        if prince_august:
-            prince_august.location = "Rhineland"
 
         # Belgium is adjacent to Netherlands (British territory, now undefended)
         # Should be allowed since no enemy marshal at destination
@@ -316,6 +312,12 @@ class TestCavalryCannotLeapfrog:
         wellington = world.get_marshal("Wellington")
         wellington.location = "Lyon"
 
+        # Move Gneisenau away from Rhineland - Rhineland is also a middle
+        # region between Belgium and Lyon, so any enemy there blocks the charge
+        gneisenau = world.get_marshal("Gneisenau")
+        if gneisenau:
+            gneisenau.location = "Berlin"
+
         # Verify path is clear (no enemies in Paris)
         enemies_in_paris = [
             m for m in world.get_marshals_in_region("Paris")
@@ -370,9 +372,6 @@ class TestEdgeCases:
         gneisenau = world.get_marshal("Gneisenau")
         if gneisenau:
             gneisenau.location = "Rhineland"
-        prince_august = world.get_marshal("PrinceAugust")
-        if prince_august:
-            prince_august.location = "Rhineland"
 
         # Ney should still be able to move to Netherlands (enemy territory, now undefended)
         # since Davout is friendly, not an enemy

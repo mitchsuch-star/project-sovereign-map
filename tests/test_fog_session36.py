@@ -252,6 +252,11 @@ class TestMultipleEnemiesSameRegionPartial:
             uxbridge.location = "Vienna"
             uxbridge.strength = 30000
 
+        # Move Austrian marshals away so only Wellington+Uxbridge count at Vienna
+        for m in world.marshals.values():
+            if m.nation == "Austria" and m.location == "Vienna":
+                m.location = "Tyrol"
+
         # Put a French marshal adjacent to Vienna (Bavaria) for PARTIAL
         davout = world.marshals["Davout"]
         davout.location = "Bavaria"

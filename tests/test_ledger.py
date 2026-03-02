@@ -9,13 +9,11 @@ import pytest
 
 from backend.models.world_state import (
     WorldState,
-    MAX_INFANTRY_POOL, MAX_CAVALRY_POOL, MAX_ARTILLERY_POOL,
-    INFANTRY_RECRUIT_AMOUNT, CAVALRY_RECRUIT_AMOUNT, ARTILLERY_RECRUIT_AMOUNT,
-    INFANTRY_BASE_REGEN, CAVALRY_BASE_REGEN, ARTILLERY_BASE_REGEN,
+    MAX_INFANTRY_POOL, CAVALRY_BASE_REGEN, ARTILLERY_BASE_REGEN,
     PLAINS_CAVALRY_REGEN, STABLES_CAVALRY_REGEN, URBAN_ARTILLERY_REGEN,
 )
-from backend.models.marshal import Marshal, StrategicOrder, Stance
-from backend.models.intel import RegionIntel, FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN
+from backend.models.marshal import StrategicOrder
+from backend.models.intel import FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN
 from backend.game_logic.ledger import build_strategic_ledger
 
 
@@ -531,6 +529,10 @@ def test_intel_stale_visibility():
 def test_intel_last_known_visibility():
     """LAST_KNOWN shows 'unknown' strength."""
     world = _make_world()
+    # Move Gneisenau far from French marshals so no PARTIAL data exists at Rhineland
+    world.marshals["Gneisenau"].location = "Tyrol"
+    # Recalculate visibility after moving marshal
+    world.calculate_visibility()
     intel = world.get_region_intel("Netherlands")
     intel.visibility = LAST_KNOWN
     intel.known_marshals = [
@@ -661,7 +663,6 @@ def test_manpower_turns_until_full_no_regen():
     # Infantry base regen is always 5000, so it won't be 0
     # For this test, let's manually check the logic: if regen == 0, turns_until_full == -1
     # We can test by checking the formula rather than the exact scenario
-    from backend.game_logic.ledger import _build_manpower
     # Mock a world with 0 regen — just verify the formula path
     world.manpower_pools["France"]["infantry"] = 50000
     ledger = build_strategic_ledger(world)
@@ -703,7 +704,7 @@ def test_no_floats_in_ledger():
 def test_endpoint_returns_valid_response():
     """GET /ledger endpoint returns valid response structure."""
     from fastapi.testclient import TestClient
-    from backend.main import app, game_state
+    from backend.main import app
 
     client = TestClient(app)
     response = client.get("/ledger")

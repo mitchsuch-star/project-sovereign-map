@@ -19,11 +19,9 @@ Key Mechanics:
 - "charge" command: Player can trigger Glorious Charge at recklessness >= 1
 """
 
-import pytest
 from backend.models.world_state import WorldState
 from backend.commands.executor import CommandExecutor
 from backend.models.marshal import Marshal
-from backend.models.personality import Personality
 
 
 def make_command(action: str, marshal: str, target: str = None) -> dict:
@@ -551,8 +549,8 @@ class TestAutoChargeAtFour:
         # Move ALL enemies outside Ney's 2-tile range
         wellington.location = "Vienna"  # 3 hops from Paris
         blucher.location = "Vienna"     # Both far away
-        # Also move Uxbridge, Gneisenau, and PrinceAugust if they exist
-        for name in ["Uxbridge", "Gneisenau", "PrinceAugust"]:
+        # Also move Uxbridge and Gneisenau if they exist
+        for name in ["Uxbridge", "Gneisenau"]:
             m = world.get_marshal(name)
             if m:
                 m.location = "Vienna"

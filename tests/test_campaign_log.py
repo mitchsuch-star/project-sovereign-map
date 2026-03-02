@@ -264,7 +264,7 @@ class TestFogFiltering:
         """Enemy bombardments in UNKNOWN regions should be hidden."""
         world = _make_world_with_visibility({"Vienna": UNKNOWN})
         events = [
-            {"type": "bombardment", "turn": 1, "attacker": "PrinceAugust",
+            {"type": "bombardment", "turn": 1, "attacker": "Blucher",
              "attacker_nation": "Prussia", "defender": "Schwarzenberg",
              "defender_nation": "Austria", "attacker_location": "Vienna"},
         ]
@@ -275,7 +275,7 @@ class TestFogFiltering:
         """Enemy bombardments in FULL regions should be shown."""
         world = _make_world_with_visibility({"Waterloo": FULL})
         events = [
-            {"type": "bombardment", "turn": 1, "attacker": "PrinceAugust",
+            {"type": "bombardment", "turn": 1, "attacker": "Blucher",
              "attacker_nation": "Prussia", "defender": "Wellington",
              "defender_nation": "Britain", "attacker_location": "Waterloo"},
         ]
@@ -287,7 +287,7 @@ class TestFogFiltering:
         # Attacker is in fogged region, but shells land in FULL region
         world = _make_world_with_visibility({"Rhineland": UNKNOWN, "Waterloo": FULL})
         events = [
-            {"type": "bombardment", "turn": 1, "attacker": "PrinceAugust",
+            {"type": "bombardment", "turn": 1, "attacker": "Blucher",
              "attacker_nation": "Prussia", "defender": "Wellington",
              "defender_nation": "Britain",
              "attacker_location": "Rhineland", "defender_location": "Waterloo"},

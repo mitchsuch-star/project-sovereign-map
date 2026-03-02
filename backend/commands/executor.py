@@ -1790,6 +1790,22 @@ RETREAT RECOVERY (3 turns):
                         }
 
                 # ═══════════════════════════════════════════════════════════
+                # RECKLESSNESS STANCE CHECK — Validation BEFORE objection
+                # High recklessness blocks defensive/neutral stance changes.
+                # Must run before objection so mood variance can't escalate
+                # a MILD objection to MODERATE and bypass the real block.
+                # ═══════════════════════════════════════════════════════════
+                if action == 'stance_change' and getattr(marshal, 'is_reckless_cavalry', False):
+                    target_stance_raw_reck = (command.get('target_stance') or command.get('target') or '').lower()
+                    can_use, block_reason = marshal.can_use_stance(target_stance_raw_reck)
+                    if not can_use:
+                        return {
+                            "success": False,
+                            "message": block_reason,
+                            "recklessness": getattr(marshal, 'recklessness', 0)
+                        }
+
+                # ═══════════════════════════════════════════════════════════
                 # AP PRE-CHECK — Validation BEFORE objection
                 # If the player doesn't have enough AP, fail immediately.
                 # Without this, an objection fires and then "proceed" fails
@@ -8735,7 +8751,7 @@ RETREAT RECOVERY (3 turns):
         - /debug restless <marshal>: Set turns_in_defensive_stance to trigger restlessness
         - /debug cavalry <marshal>: Toggle cavalry status
         - /debug hold <marshal>: Set holding_position = True
-        - /debug ai_turn <nation>: Force AI turn for nation (Britain/Prussia)
+        - /debug ai_turn <nation>: Force AI turn for nation (Britain/Prussia/Austria/Saxony)
         - /debug ai_state <marshal>: Show AI evaluation for marshal
         - /debug set_retreat <marshal>: Set retreated_this_turn = True
         - /debug set_recovery <marshal> <turns>: Set retreat_recovery (0-3)
@@ -8782,7 +8798,7 @@ RETREAT RECOVERY (3 turns):
                           "    (decay starts at turn 4-8 depending on personality)\n"
                           "\n== AI Testing ==\n"
                           "  • freeze_enemies - Toggle freeze ALL enemies (AI skips them)\n"
-                          "  • ai_turn <nation> - Force AI turn (Britain/Prussia)\n"
+                          "  • ai_turn <nation> - Force AI turn (Britain/Prussia/Austria/Saxony)\n"
                           "  • ai_state <marshal> - Show AI evaluation\n"
                           "\n== State Manipulation ==\n"
                           "  • set_location <marshal> <region> - Teleport ANY marshal\n"
@@ -8843,10 +8859,10 @@ RETREAT RECOVERY (3 turns):
 
         elif ability == "ai_turn":
             if len(parts) < 2:
-                return {"success": False, "message": "Usage: /debug ai_turn <nation>\nNations: Britain, Prussia"}
+                return {"success": False, "message": "Usage: /debug ai_turn <nation>\nNations: Britain, Prussia, Austria, Saxony"}
             nation = parts[1].capitalize()
-            if nation not in ["Britain", "Prussia"]:
-                return {"success": False, "message": f"Unknown nation: {nation}\nAvailable: Britain, Prussia"}
+            if nation not in world.enemy_nations:
+                return {"success": False, "message": f"Unknown nation: {nation}\nAvailable: {', '.join(world.enemy_nations)}"}
 
             # Import and run AI
             from backend.ai.enemy_ai import EnemyAI
@@ -9032,7 +9048,7 @@ RETREAT RECOVERY (3 turns):
 
         elif ability == "set_controller":
             if len(parts) < 3:
-                return {"success": False, "message": "Usage: /debug set_controller <region> <nation>\nNations: France, Britain, Prussia (or 'none')"}
+                return {"success": False, "message": "Usage: /debug set_controller <region> <nation>\nNations: France, Britain, Prussia, Austria, Saxony (or 'none')"}
             nation = parts[-1]
             region_name = " ".join(parts[1:-1])
             region = world.get_region(region_name)

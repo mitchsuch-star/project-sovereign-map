@@ -85,7 +85,7 @@ class TestStructure:
         assert "Blucher" not in names
         assert "Uxbridge" not in names
         assert "Gneisenau" not in names
-        assert "PrinceAugust" not in names
+        assert "ArchdukeCharles" not in names
 
     def test_all_required_keys_present(self):
         """Every marshal dict has all required keys."""

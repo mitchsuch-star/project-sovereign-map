@@ -438,9 +438,9 @@ class TestSquareObjections:
         from backend.commands.objection_v2 import evaluate_cautious, ConcernLevel
         world = WorldState()
         m = Marshal("Test", "Belgium", 20000, "cautious", "France")
-        # Place enemy artillery adjacent (Belgium is adjacent to Rhine)
-        prince_august = world.get_marshal("PrinceAugust")
-        prince_august.location = "Rhineland"  # Adjacent to Belgium
+        # Place a synthetic enemy artillery adjacent (Belgium is adjacent to Rhine)
+        synth_art = Marshal("SynthArt", "Rhineland", 20000, "cautious", "Prussia", artillery=True)
+        world.marshals["SynthArt"] = synth_art
         # Move enemy cavalry away so only artillery is adjacent
         uxbridge = world.get_marshal("Uxbridge")
         uxbridge.location = "Vienna"  # Far from Belgium
@@ -461,8 +461,8 @@ class TestSquareObjections:
         # Place both enemy cavalry and artillery nearby
         uxbridge = world.get_marshal("Uxbridge")
         uxbridge.location = "Belgium"
-        prince_august = world.get_marshal("PrinceAugust")
-        prince_august.location = "Belgium"
+        synth_art = Marshal("SynthArt", "Belgium", 20000, "cautious", "Prussia", artillery=True)
+        world.marshals["SynthArt"] = synth_art
         level = evaluate_situation(m, "form_square", {}, {"world": world})
         assert level == ConcernLevel.MILD
 

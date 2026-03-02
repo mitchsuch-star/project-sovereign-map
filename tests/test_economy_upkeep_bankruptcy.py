@@ -98,15 +98,15 @@ class TestUpkeepCalculation:
     def test_upkeep_non_player_nation(self):
         """Can calculate upkeep for Britain."""
         world = fresh_world()
-        # Wellington 52000, Uxbridge 18000 -> (52*5) + (18*5) = 260 + 90 = 350
-        # Balance patch: Wellington 52k
+        # Wellington 52000, Uxbridge 24000 -> (52*5) + (24*5) = 260 + 120 = 380
         result = world.calculate_turn_upkeep("Britain")
-        assert result["total"] == 350
+        assert result["total"] == 380
 
     def test_upkeep_nation_with_no_marshals(self):
         """Nation with no marshals -> 0 upkeep."""
         world = fresh_world()
-        result = world.calculate_turn_upkeep("Austria")
+        # Use a nation that truly has no marshals (Spain doesn't exist)
+        result = world.calculate_turn_upkeep("Spain")
         assert result["total"] == 0
         assert len(result["breakdown"]) == 0
 

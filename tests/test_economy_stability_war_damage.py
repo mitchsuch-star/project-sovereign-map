@@ -14,8 +14,7 @@ Tests cover:
 - Serialization roundtrip and backward compat
 """
 
-import pytest
-from backend.models.region import Region, REGION_TYPE_INCOME
+from backend.models.region import Region
 from backend.models.world_state import WorldState
 
 
@@ -799,10 +798,11 @@ class TestRegressionCompatibility:
             )
 
     def test_income_sum_matches_old_calculation(self):
-        """calculate_turn_income matches old sum(income_value) at game start."""
+        """calculate_turn_income matches old sum(income_value) + naval at game start."""
         world = WorldState()
         for nation in ["France", "Britain", "Prussia"]:
             result = world.calculate_turn_income(nation)
             nation_regions = world.get_nation_regions(nation)
             old_sum = sum(world.regions[r].income_value for r in nation_regions)
-            assert result["income"] == old_sum
+            naval = result["breakdown"].get("naval_income", 0)
+            assert result["income"] == old_sum + naval

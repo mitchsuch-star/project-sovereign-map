@@ -204,21 +204,22 @@ def has_enemy_in_same_region(marshal: Marshal, world: WorldState) -> bool:
     for m in world.marshals.values():
         if (m.location == marshal.location and
             m.nation != marshal.nation and
-            m.strength > 0):
+            m.strength > 0 and
+            world.is_at_war(marshal.nation, m.nation)):
             return True
     return False
 
 
 def has_adjacent_enemies(marshal: Marshal, world: WorldState) -> bool:
     """
-    Check if any enemy marshal is in an adjacent region.
+    Check if any enemy marshal (at war) is in an adjacent region.
 
     Args:
         marshal: The marshal to check
         world: Current world state
 
     Returns:
-        True if at least one enemy is adjacent
+        True if at least one enemy at war is adjacent
     """
     current_region = world.get_region(marshal.location)
     if not current_region:
@@ -228,21 +229,22 @@ def has_adjacent_enemies(marshal: Marshal, world: WorldState) -> bool:
     for m in world.marshals.values():
         if (m.nation != marshal.nation and
             m.strength > 0 and
-            m.location in adjacent):
+            m.location in adjacent and
+            world.is_at_war(marshal.nation, m.nation)):
             return True
     return False
 
 
 def can_crush_adjacent_enemy(marshal: Marshal, world: WorldState) -> bool:
     """
-    Check if marshal can easily defeat an adjacent enemy (2:1+ ratio).
+    Check if marshal can easily defeat an adjacent enemy at war (2:1+ ratio).
 
     Args:
         marshal: The marshal to check
         world: Current world state
 
     Returns:
-        True if strength ratio > 2:1 against any adjacent enemy
+        True if strength ratio > 2:1 against any adjacent enemy at war
     """
     current_region = world.get_region(marshal.location)
     if not current_region:
@@ -252,7 +254,8 @@ def can_crush_adjacent_enemy(marshal: Marshal, world: WorldState) -> bool:
     for m in world.marshals.values():
         if (m.nation != marshal.nation and
             m.strength > 0 and
-            m.location in adjacent):
+            m.location in adjacent and
+            world.is_at_war(marshal.nation, m.nation)):
             # Check if we have 2:1 advantage
             if m.strength > 0 and marshal.strength / m.strength >= 2.0:
                 return True
@@ -1182,12 +1185,15 @@ class EnemyAI:
         # capture it immediately! (e.g., Prussia starts at British Netherlands)
         # ════════════════════════════════════════════════════════════
         current_region = world.get_region(marshal.location)
-        if current_region and current_region.controller != nation and current_region.controller != "Neutral":
+        if (current_region and current_region.controller != nation
+                and current_region.controller != "Neutral"
+                and world.is_at_war(nation, current_region.controller)):
             enemies_here = [
                 m for m in world.marshals.values()
                 if m.location == marshal.location
                 and m.nation != marshal.nation
                 and m.strength > 0
+                and world.is_at_war(nation, m.nation)
             ]
             # Region with garrison >= 5000 is NOT undefended — requires assault via P4
             has_garrison = current_region.garrison_strength >= 5000
@@ -1242,6 +1248,7 @@ class EnemyAI:
             if m.location == marshal.location
             and m.nation != marshal.nation
             and m.strength > 0
+            and world.is_at_war(marshal.nation, m.nation)
         ]
 
         print(f"  [P0 ENGAGEMENT] {marshal.name} at {marshal.location}: enemies = {[e.name for e in enemies_in_region]}")
@@ -2569,6 +2576,11 @@ class EnemyAI:
                 ai_debug("        -> Skip: Neutral")
                 continue
 
+            # Skip regions controlled by nations we're not at war with
+            if not world.is_at_war(nation, adj_region.controller):
+                ai_debug(f"        -> Skip: not at war with {adj_region.controller}")
+                continue
+
             # Check if undefended (no enemy marshals present AND no garrison)
             defenders = [m for m in world.marshals.values()
                         if m.location == adj_name and m.strength > 0 and m.nation != nation]
@@ -2645,6 +2657,9 @@ class EnemyAI:
             if adj_region.garrison_strength < 5000 and not adj_region.garrison_detachment:
                 continue
             if adj_region.controller == nation:
+                continue
+            # Skip garrisons of nations we're not at war with
+            if adj_region.controller and not world.is_at_war(nation, adj_region.controller):
                 continue
 
             # Calculate garrison effective defense for AI decision
@@ -3109,6 +3124,7 @@ class EnemyAI:
         enemies_in_region = [
             m for m in world.marshals.values()
             if m.location == marshal.location and m.nation != marshal.nation and m.strength > 0
+            and world.is_at_war(marshal.nation, m.nation)
         ]
         if enemies_in_region:
             ai_debug(f"    P5: Can't fortify - engaged with {[e.name for e in enemies_in_region]}")
@@ -3522,6 +3538,7 @@ class EnemyAI:
         enemies_in_region = [
             m for m in world.marshals.values()
             if m.location == marshal.location and m.nation != marshal.nation and m.strength > 0
+            and world.is_at_war(marshal.nation, m.nation)
         ]
         print(f"  [P8 UNIVERSAL] {marshal.name} at {marshal.location}: enemies_in_region = {[e.name for e in enemies_in_region]}")
 
@@ -3625,6 +3642,7 @@ class EnemyAI:
             enemies_in_region = [
                 m for m in world.marshals.values()
                 if m.location == marshal.location and m.nation != marshal.nation and m.strength > 0
+                and world.is_at_war(marshal.nation, m.nation)
             ]
             ai_debug(f"  P8: {marshal.name} at {marshal.location}, enemies_in_region={[e.name for e in enemies_in_region]}")
             if enemies_in_region:
@@ -4063,7 +4081,8 @@ class EnemyAI:
                 if not enemies_at_dest:
                     # No enemies at destination - might be worth moving there
                     # But check if it's a useful destination (not just wandering)
-                    if adj_region.controller != nation and adj_region.controller != "Neutral":
+                    if (adj_region.controller != nation and adj_region.controller != "Neutral"
+                            and world.is_at_war(nation, adj_region.controller)):
                         # Could capture this region
                         is_safe, _ = self._evaluate_capture_safety(marshal, adj_name, nation, world)
                         if is_safe:

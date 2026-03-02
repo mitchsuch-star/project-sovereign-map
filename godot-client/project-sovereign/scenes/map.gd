@@ -29,7 +29,7 @@ const REGION_CONNECTIONS = {
 	"Belgium": ["Paris", "Normandy", "Netherlands", "Waterloo", "Rhineland"],
 	"Netherlands": ["Belgium", "Waterloo", "Hanover"],
 	"Waterloo": ["Belgium", "Netherlands", "Hanover"],
-	"Rhineland": ["Belgium", "Bavaria", "Lyon"],
+	"Rhineland": ["Belgium", "Bavaria", "Lyon", "Saxony"],
 	"Bavaria": ["Rhineland", "Saxony", "Vienna", "Tyrol"],
 	"Vienna": ["Bavaria", "Bohemia", "Tyrol", "Milan"],
 	"Lyon": ["Paris", "Bordeaux", "Marseille", "Rhineland", "Milan"],
@@ -40,7 +40,7 @@ const REGION_CONNECTIONS = {
 	"Normandy": ["Paris", "Belgium", "Brittany"],
 	"Hanover": ["Netherlands", "Waterloo", "Saxony", "Berlin"],
 	"Berlin": ["Hanover", "Saxony", "Bohemia"],
-	"Saxony": ["Hanover", "Berlin", "Bavaria", "Dresden", "Bohemia"],
+	"Saxony": ["Hanover", "Berlin", "Bavaria", "Dresden", "Bohemia", "Rhineland"],
 	"Dresden": ["Saxony", "Bohemia"],
 	"Bohemia": ["Berlin", "Saxony", "Dresden", "Vienna"],
 	"Tyrol": ["Bavaria", "Vienna", "Milan"]

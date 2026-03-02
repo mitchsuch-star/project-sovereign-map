@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 2, 2026 (Session 1A — Map Expansion 13→19 regions)
+> **Last Updated:** March 2, 2026 (Session 1B — Nations + Marshals + Diplomacy Foundation)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4210** (4210 passed, 1 pre-existing failure, 3 skipped — verified Mar 2, Session 1A) |
+| **Tests Passing** | **4264** (4264 passed, 3 skipped — verified Mar 2, Session 1B) |
 
-| **Current Phase** | Phase 8: Diplomacy. **Session 1A COMPLETE** (19-region map). Next: Session 1B. |
+| **Current Phase** | Phase 8: Diplomacy. **Session 1B COMPLETE** (5 nations, 12 marshals, diplomacy data). Next: Session 2. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,9 +19,9 @@
 
 ## Next Steps
 
-1. **Phase 8: Diplomacy** — **Session 1A COMPLETE.** Unified 8-session plan:
+1. **Phase 8: Diplomacy** — **Session 1B COMPLETE.** Unified 8-session plan:
    - ~~Session 1A: Map Expansion (13→19 regions)~~ — **DONE** (19 regions, 5 nations, all adjacencies verified, FORMAT_VERSION 2)
-   - Session 1B: Nations + Marshals + Economy (Austria, Saxony activation, 4 new marshals)
+   - ~~Session 1B: Nations + Marshals + Economy~~ — **DONE** (Austria/Saxony activated, PrinceAugust removed, 4 new marshals, diplomatic_states/nation_relations data, British naval income, is_at_war() gating on all enemy AI paths, 56 new gate tests)
    - Session 2: Diplomatic States + Acceptance Formula + Diplomat class
    - Session 3: Talleyrand Commands + Conversational Dialogue Foundation
    - Session 4: AI Proposals + Advisory Conversations
@@ -49,7 +49,7 @@ All major Phase 6 features shipped:
 - **Player Garrison Command:** 2 AP, cap 3/nation, map overlay
 - **Enemy AI Garrison (P6.75):** Building Blocks, 20k threshold, 1/nation/turn, P4.25 sub-5k awareness
 - **Manpower Pools:** Nation-level infantry/cavalry/artillery reserves gate recruitment. Stables building. AI pool/cost awareness.
-- **Artillery Unit Type:** Third marshal type (Drouot/PrinceAugust). Can't attack after moving, no advance on win, cavalry counter, 2x fort degradation. Bombardment system with terrain modifiers, collateral damage, AI bombardment. 127+ tests.
+- **Artillery Unit Type:** Third marshal type (Drouot). Can't attack after moving, no advance on win, cavalry counter, 2x fort degradation. Bombardment system with terrain modifiers, collateral damage, AI bombardment. 127+ tests.
 
 ---
 

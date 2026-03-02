@@ -459,7 +459,11 @@ class LLMClient:
             ("soult", "Soult"),
             ("lannes", "Lannes"),
             ("drouot", "Drouot"),
-            ("prince august", "PrinceAugust"),
+            ("archduke charles", "ArchdukeCharles"),
+            ("archduke", "ArchdukeCharles"),
+            ("schwarzenberg", "Schwarzenberg"),
+            ("reynier", "Reynier"),
+            ("gneisenau", "Gneisenau"),
         ]
 
         # Find which marshal appears FIRST in the command

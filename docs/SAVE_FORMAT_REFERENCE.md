@@ -57,6 +57,8 @@ A future save/load system should use this as the specification.
 
   "enemy_nations": ["Britain", "Prussia", "Austria", "Saxony"],
   "nation_actions": {"Britain": 4, "Prussia": 4},
+  "diplomatic_states": {"Austria|Britain": "NON_AGGRESSION", "Austria|France": "PEACE", ...},
+  "nation_relations": {"Austria|Britain": 0, "Austria|France": -20, ...},
   "active_battles": {},
   "battle_history": [],
 
@@ -121,6 +123,8 @@ A future save/load system should use this as the specification.
 | `ai_refortify_cooldown` | dict | {} | Per-marshal re-fortify cooldown turns {marshal_name: int}. Set to 2 when stagnation forces unfortify, decremented each turn. Blocks P5/P8 fortify while active. |
 | `enemy_nations` | list | ["Britain", "Prussia", "Austria", "Saxony"] | AI-controlled nations |
 | `nation_actions` | dict | {} | Actions per nation |
+| `diplomatic_states` | dict | {} | Bilateral diplomatic state per nation-pair. Keys alphabetically sorted ("Austria\|Britain"). Values: WAR, PEACE, NON_AGGRESSION, OPEN_BORDERS, DEFENSIVE_ALLIANCE, ALLIANCE. Empty dict for legacy saves. |
+| `nation_relations` | dict | {} | Bilateral relation score per nation-pair (-100 to +100). Same key format as diplomatic_states. Empty dict for legacy saves. |
 | `active_battles` | dict | {} | Currently ongoing battles |
 | `battle_history` | list | [] | Completed battle records |
 | `battles_this_turn` | list | [] | Battles this turn (Phase 5.2) |

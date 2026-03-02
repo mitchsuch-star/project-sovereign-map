@@ -133,7 +133,9 @@ Each marshal has a unique ability defined in `marshal.py` ability dict (4 string
 | Davout | Counter-Punch Mastery | +20% attack after defending (any outcome, any target) | `after_defending` | `marshal.py` `get_attack_modifier()` + `combat.py` (trigger) | Wired |
 | Grouchy | Literal Obedience | Never questions orders | `receiving_orders` | `disobedience.py` (partial) | Deferred |
 | Gneisenau | Staff Work | +5% atk/def to allies in region | `when_in_same_region_as_ally` | — | Deferred (Phase 7 S58) |
-| PrinceAugust | Prussian Gunnery | No-op by design | `when_bombarding` | — | No-op |
+| ArchdukeCharles | Habsburg Resolve | +3% flat defense always | `when_defending` | `marshal.py` `get_defense_modifier()` | Wired (Phase 8 S1B) |
+| Schwarzenberg | — | — | — | — | Deferred |
+| Reynier | — | — | — | — | Deferred |
 
 **Pursuit system (Phase 6.5):**
 - Fires when attacker wins AND defender has `forced_retreat=True` (morale ≤ 25)
@@ -1544,7 +1546,6 @@ Artillery units are a third marshal type alongside infantry and cavalry. They pr
 | Marshal | Nation | Location | Strength | Personality |
 |---------|--------|----------|----------|-------------|
 | Drouot | France | Paris | 25,000 | cautious |
-| PrinceAugust | Prussia | Netherlands | 20,000 | cautious |
 
 ### Exhaustion Exemption (Session 2)
 
@@ -1721,7 +1722,7 @@ Artillery marshals on strategic HOLD auto-bombard adjacent enemies instead of us
 | `battle_report.py` | Artillery observation templates, exhaustion snapshot skip for artillery, **6 bombardment observation categories + `_pick_bombardment_observation()` + `generate_bombardment_report()` (Session 52)** |
 | `objection_v2.py` | **5 artillery triggers: ordered_into_melee (STRONG), reckless_repositioning (MODERATE), ordered_to_cease_fire (MODERATE), wasted_fire (MILD), last_shot_advisory (MILD) (Session 51)** |
 | `disobedience.py` | **5 artillery flavor text keys under cautious personality (Session 51)** |
-| `llm_client.py` | Artillery keywords (bombard, barrage, shell, cannonade), Drouot/PrinceAugust in known_marshals |
+| `llm_client.py` | Artillery keywords (bombard, barrage, shell, cannonade), Drouot in known_marshals |
 | `prompt_builder.py` | Drouot bombardment few-shot example |
 
 ---
@@ -2627,7 +2628,7 @@ Marshal type (`cavalry: bool`, `artillery: bool`) auto-determines which pool is 
 
 | Marshal type | Pool | Batch | Gold cost | Example |
 |-------------|------|-------|-----------|---------|
-| `artillery: True` | artillery | 3,000 | 400g base | Drouot, PrinceAugust |
+| `artillery: True` | artillery | 3,000 | 400g base | Drouot |
 | `cavalry: True` | cavalry | 5,000 | 300g base | Ney, Uxbridge |
 | neither | infantry | 10,000 | 200g base | Davout, Wellington |
 

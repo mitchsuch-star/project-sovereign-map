@@ -141,12 +141,12 @@ class TestMultiTurnIntegration:
 
         blucher = self.world.get_marshal("Blucher")
         _isolate_marshal(self.world, "Blucher", "Prussia")
-        blucher.location = "Netherlands"
+        blucher.location = "Belgium"
         blucher.strength = 55000
 
         # Place enemy just barely below normal threshold
         ney = self.world.get_marshal("Ney")
-        ney.location = "Belgium"
+        ney.location = "Rhineland"
         ney.strength = 100000  # Ratio = 0.55, above aggressive 0.7? No — below.
 
         self.world.ai_stagnation_turns["Blucher"] = 3
@@ -817,12 +817,12 @@ class TestAntiStagnationSystems:
         """Stagnation=3 should reduce attack threshold."""
         blucher = self.world.get_marshal("Blucher")
         _isolate_marshal(self.world, "Blucher", "Prussia")
-        blucher.location = "Netherlands"
+        blucher.location = "Belgium"
         blucher.strength = 40000
 
         # Enemy adjacent, ratio below normal aggressive threshold (0.7) but above reduced
         ney = self.world.get_marshal("Ney")
-        ney.location = "Belgium"
+        ney.location = "Rhineland"
         ney.strength = 100000  # Ratio 0.4
 
         # At stagnation=3: threshold 0.7 - 0.2 = 0.5 → ratio 0.4 still below

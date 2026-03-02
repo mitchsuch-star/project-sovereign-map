@@ -184,7 +184,9 @@ class CombatResolver:
         # Unwired:
         #   - Grouchy "Literal Obedience": order compliance (wired via disobedience.py, not combat)
         #   - Gneisenau "Staff Work": ally bonus (deferred to Phase 7 Session 58 — needs coordination fields)
-        #   - PrinceAugust "Prussian Gunnery": no-op by design
+        #   - ArchdukeCharles "Habsburg Resolve": +3% defense (wired below in defending abilities)
+        #   - Schwarzenberg "Coalition Coordinator": placeholder (Phase 8)
+        #   - Reynier "Saxon Discipline": placeholder
         ability_message = None
         if hasattr(attacker, 'ability') and attacker.ability.get("trigger") == "when_attacking":
             if attacker.ability.get("name") == "Bravest of the Brave":

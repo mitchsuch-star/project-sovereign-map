@@ -50,7 +50,7 @@ Berthier responds: *"Davout orders the regiments into square! Bayonets bristle o
 
 Uxbridge's cavalry charges. The square holds. -40% to Uxbridge's attack. The cavalry wheels away, bloodied.
 
-But then PrinceAugust's guns open up. +50% bombardment damage. The packed formation shudders under the shells.
+But then enemy guns open up. +50% bombardment damage. The packed formation shudders under the shells.
 
 The player must decide: stay in square and absorb the shelling, or break square and risk the cavalry returning?
 
@@ -387,7 +387,7 @@ This rewards keeping artillery positioned well — even when they're not activel
 
 **Clarified direction:** Overwatch is a **transient attacker debuff**. When the attacker's target region contains enemy (from attacker's perspective) artillery, the attacker suffers -3% per enemy artillery unit in the region.
 
-In practice for the player: if Drouot is in Belgium and Wellington attacks Belgium, Wellington gets -3% attack. If Ney attacks a region where PrinceAugust is stationed, Ney gets -3%.
+In practice for the player: if Drouot is in Belgium and Wellington attacks Belgium, Wellington gets -3% attack. If Ney attacks a region where enemy artillery is stationed, Ney gets -3%.
 
 **Where it lives (Golden Rule #1):**
 

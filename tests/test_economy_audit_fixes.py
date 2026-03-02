@@ -93,10 +93,10 @@ class TestCoalitionTerritories:
         assert len(french_regions) == 8
 
     def test_britain_income_calculation(self):
-        """Britain income should be 200/turn (Netherlands 50 + Waterloo 50 + Hanover 100)."""
+        """Britain income should be 500/turn (Netherlands 50 + Waterloo 50 + Hanover 100 + 300 naval)."""
         world = make_world()
         income = world.calculate_turn_income("Britain")
-        assert income["income"] == 200
+        assert income["income"] == 500
 
     def test_prussia_income_calculation(self):
         """Prussia income should be 400/turn (Rhineland 100 + Berlin 300)."""

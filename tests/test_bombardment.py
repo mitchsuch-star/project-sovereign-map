@@ -225,10 +225,12 @@ class TestCoreBombardment:
 
         # Block all retreat routes from Waterloo so Wellington breaks instead of retreating.
         # Waterloo adj: Belgium, Netherlands, Hanover
-        # Belgium has French marshals (blocked). Netherlands has Prussians (blocked as non-British).
-        # Block Hanover with a French marshal so no safe retreat exists.
-        blocker = _make_infantry(name="Blocker", location="Hanover", strength=10000, nation="France")
-        world.marshals["Blocker"] = blocker
+        # Belgium has French marshals (blocked).
+        # Block Netherlands and Hanover with French marshals so no safe retreat exists.
+        blocker1 = _make_infantry(name="Blocker1", location="Hanover", strength=10000, nation="France")
+        blocker2 = _make_infantry(name="Blocker2", location="Netherlands", strength=10000, nation="France")
+        world.marshals["Blocker1"] = blocker1
+        world.marshals["Blocker2"] = blocker2
 
         with patch("random.uniform", return_value=1.0):
             result = executor._execute_bombardment(art, well, world, gs)
@@ -527,8 +529,10 @@ class TestBombardmentEdgeCases:
 
         # Block all retreat routes from Waterloo so Wellington breaks instead of retreating.
         # Waterloo adj: Belgium, Netherlands, Hanover
-        blocker = _make_infantry(name="Blocker", location="Hanover", strength=10000, nation="France")
-        world.marshals["Blocker"] = blocker
+        blocker1 = _make_infantry(name="Blocker1", location="Hanover", strength=10000, nation="France")
+        blocker2 = _make_infantry(name="Blocker2", location="Netherlands", strength=10000, nation="France")
+        world.marshals["Blocker1"] = blocker1
+        world.marshals["Blocker2"] = blocker2
 
         # 1 strength — will be reduced to 0 by bombardment, triggering break
         with patch("random.uniform", return_value=1.0):
@@ -957,10 +961,12 @@ class TestCollateralTargetDestruction:
 
         # Block all retreat routes from Waterloo so WeakForce breaks instead of retreating.
         # Waterloo adj: Belgium, Netherlands, Hanover
-        # Belgium has ArtDest (France) -> blocked. Netherlands has Prussians -> blocked (non-British).
-        # Block Hanover with a French marshal.
-        blocker = _make_infantry(name="Blocker", location="Hanover", strength=10000, nation="France")
-        world.marshals["Blocker"] = blocker
+        # Belgium has ArtDest (France) -> blocked.
+        # Block Netherlands and Hanover with French marshals.
+        blocker1 = _make_infantry(name="Blocker1", location="Hanover", strength=10000, nation="France")
+        blocker2 = _make_infantry(name="Blocker2", location="Netherlands", strength=10000, nation="France")
+        world.marshals["Blocker1"] = blocker1
+        world.marshals["Blocker2"] = blocker2
 
         executor = CommandExecutor()
         gs = {"world": world}

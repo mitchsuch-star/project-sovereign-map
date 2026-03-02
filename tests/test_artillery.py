@@ -28,7 +28,6 @@ from backend.models.world_state import (
     ARTILLERY_RECRUIT_AMOUNT, ARTILLERY_RECRUIT_GOLD_COST_BASE,
     ARTILLERY_BASE_REGEN, URBAN_ARTILLERY_REGEN, MAX_ARTILLERY_POOL,
     DEFAULT_MANPOWER_POOLS,
-    INFANTRY_RECRUIT_AMOUNT, CAVALRY_RECRUIT_AMOUNT,
 )
 from backend.game_logic.combat import CombatResolver
 from backend.commands.executor import CommandExecutor
@@ -910,32 +909,23 @@ class TestStartingMarshals:
         drouot = create_starting_marshals()["Drouot"]
         assert drouot.personality == "cautious"
 
-    def test_prince_august_exists(self):
+    def test_drouot_is_only_artillery(self):
+        """Drouot should be the only artillery marshal in the game."""
+        french = create_starting_marshals()
         enemies = create_enemy_marshals()
-        assert "PrinceAugust" in enemies
-
-    def test_prince_august_is_artillery(self):
-        pa = create_enemy_marshals()["PrinceAugust"]
-        assert pa.artillery is True
-        assert pa.cavalry is False
-
-    def test_prince_august_nation_prussia(self):
-        pa = create_enemy_marshals()["PrinceAugust"]
-        assert pa.nation == "Prussia"
-
-    def test_prince_august_at_netherlands(self):
-        pa = create_enemy_marshals()["PrinceAugust"]
-        assert pa.location == "Netherlands"
+        all_marshals = {**french, **enemies}
+        artillery_marshals = [name for name, m in all_marshals.items() if m.artillery]
+        assert artillery_marshals == ["Drouot"], f"Only Drouot should be artillery, got {artillery_marshals}"
 
     def test_france_has_four_marshals(self):
         marshals = create_starting_marshals()
         assert len(marshals) == 4
 
-    def test_total_marshals_nine(self):
-        """4 French + 5 enemy = 9 total marshals."""
+    def test_total_marshals_eleven(self):
+        """4 French + 7 enemy = 11 total marshals."""
         french = create_starting_marshals()
         enemies = create_enemy_marshals()
-        assert len(french) + len(enemies) == 9
+        assert len(french) + len(enemies) == 11
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -978,16 +968,16 @@ class TestAIMinimal:
         """AI should check artillery pool when recruiting for artillery marshal."""
         from backend.ai.enemy_ai import EnemyAI
         world = _make_world()
-        pa = world.marshals.get("PrinceAugust")
-        if pa:
-            pa.strength = 5000  # Very weak, below threshold
+        # Create a synthetic Prussian artillery marshal to test pool check
+        synth_art = _make_artillery(name="SynthArt", location="Berlin", strength=5000, nation="Prussia")
+        world.marshals["SynthArt"] = synth_art
 
         executor = CommandExecutor()
         ai = EnemyAI(executor)
         # Drain artillery pool
         world.manpower_pools["Prussia"]["artillery"] = 0
         weakest = ai._find_weakest_marshal_for_admin("Prussia", world)
-        # PrinceAugust should be skipped because artillery pool is empty
+        # SynthArt should be skipped because artillery pool is empty
         if weakest:
             assert not getattr(weakest, 'artillery', False), \
                 "Should not select artillery marshal when pool is empty"
@@ -996,11 +986,14 @@ class TestAIMinimal:
         """AI should not build stables for artillery marshals."""
         from backend.ai.enemy_ai import EnemyAI
         world = _make_world()
-        # Remove all non-artillery Prussian marshals — only keep PrinceAugust (artillery)
+        # Remove all non-artillery Prussian marshals, then add a synthetic artillery
         to_remove = [name for name, m in world.marshals.items()
-                     if m.nation == "Prussia" and not getattr(m, 'artillery', False)]
+                     if m.nation == "Prussia"]
         for name in to_remove:
             del world.marshals[name]
+        # Add a synthetic Prussian artillery
+        synth_art = _make_artillery(name="SynthArt", location="Berlin", strength=20000, nation="Prussia")
+        world.marshals["SynthArt"] = synth_art
 
         executor = CommandExecutor()
         ai = EnemyAI(executor)

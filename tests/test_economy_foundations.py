@@ -318,12 +318,13 @@ class TestCalculateTurnIncome:
         assert result["breakdown"]["regions"] == len(france_regions)
 
     def test_britain_income(self):
-        """Britain income from its controlled regions."""
+        """Britain income from its controlled regions plus naval income."""
         world = WorldState()
         result = world.calculate_turn_income("Britain")
         brit_regions = world.get_nation_regions("Britain")
-        expected = sum(world.regions[r].income_value for r in brit_regions)
-        assert result["income"] == expected
+        expected_region = sum(world.regions[r].income_value for r in brit_regions)
+        naval_income = result["breakdown"].get("naval_income", 0)
+        assert result["income"] == expected_region + naval_income
 
     def test_prussia_income(self):
         """Prussia income from its controlled regions."""

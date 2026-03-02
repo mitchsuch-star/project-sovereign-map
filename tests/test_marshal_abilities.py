@@ -10,7 +10,6 @@ Tests unique abilities for each marshal:
 - Blucher: "Vorwärts!" - +3k pursuit damage on retreat (IMPLEMENTED Phase 6.5)
 - Uxbridge: "Pursuit Master" - +5k pursuit damage on retreat, cavalry (IMPLEMENTED Phase 6.5)
 - Gneisenau: "Staff Work" - +5% atk/def to allies (deferred to Phase 7 Session 58)
-- PrinceAugust: "Prussian Gunnery" - no-op by design
 """
 
 import pytest
@@ -317,17 +316,16 @@ class TestDrouotSageOfTheGrandArmy:
 
     def test_regular_artillery_degrades_10_percent(self):
         """Non-Drouot artillery still degrades fort by 10% (base rate)."""
-        enemies = create_enemy_marshals()
-        prince_august = enemies["PrinceAugust"]
-        prince_august.strength = 30000
-        prince_august.morale = 100
+        # Create a synthetic non-Drouot artillery marshal
+        generic_art = Marshal("GenericArt", "Paris", 30000, "cautious", "Prussia", artillery=True)
+        generic_art.morale = 100
 
         defender = Marshal("Defender", "Paris", 30000, "cautious")
         defender.morale = 100
         defender.defense_bonus = 0.30
 
         combat = CombatResolver()
-        result = combat.resolve_battle(prince_august, defender)
+        result = combat.resolve_battle(generic_art, defender)
 
         # Base artillery: 10% degradation
         assert result["fortification_degraded"] is True
@@ -703,14 +701,13 @@ class TestUxbridgePursuitMaster:
         assert uxbridge_to_wellington == 1, f"Uxbridge->Wellington should be +1, got {uxbridge_to_wellington}"
         assert wellington_to_uxbridge == 1, f"Wellington->Uxbridge should be +1, got {wellington_to_uxbridge}"
 
-    def test_uxbridge_starts_with_wellington(self):
-        """Verify Uxbridge starts in the same location as Wellington."""
+    def test_uxbridge_starts_at_hanover(self):
+        """Verify Uxbridge starts at Hanover."""
         enemies = create_enemy_marshals()
         uxbridge = enemies["Uxbridge"]
-        wellington = enemies["Wellington"]
 
-        assert uxbridge.location == wellington.location, \
-            f"Uxbridge ({uxbridge.location}) should start with Wellington ({wellington.location})"
+        assert uxbridge.location == "Hanover", \
+            f"Uxbridge should start at Hanover, got {uxbridge.location}"
 
     def test_britain_has_two_marshals(self):
         """Verify Britain now has two marshals: Wellington and Uxbridge."""
@@ -727,7 +724,7 @@ class TestUxbridgePursuitMaster:
         uxbridge = enemies["Uxbridge"]
         wellington = enemies["Wellington"]
 
-        assert uxbridge.strength == 18000, f"Uxbridge should have 18000 strength, got {uxbridge.strength}"
+        assert uxbridge.strength == 24000, f"Uxbridge should have 24000 strength, got {uxbridge.strength}"
         assert uxbridge.strength < wellington.strength, \
             f"Uxbridge ({uxbridge.strength}) should be smaller than Wellington ({wellington.strength})"
 
@@ -794,24 +791,22 @@ class TestGneisenauStaffWork:
         assert gneisenau_to_blucher == 2, f"Gneisenau->Blücher should be +2, got {gneisenau_to_blucher}"
         assert blucher_to_gneisenau == 2, f"Blücher->Gneisenau should be +2, got {blucher_to_gneisenau}"
 
-    def test_gneisenau_starts_with_blucher(self):
-        """Verify Gneisenau starts in the same location as Blücher."""
+    def test_gneisenau_starts_at_rhineland(self):
+        """Verify Gneisenau starts at Rhineland."""
         enemies = create_enemy_marshals()
         gneisenau = enemies["Gneisenau"]
-        blucher = enemies["Blucher"]
 
-        assert gneisenau.location == blucher.location, \
-            f"Gneisenau ({gneisenau.location}) should start with Blücher ({blucher.location})"
+        assert gneisenau.location == "Rhineland", \
+            f"Gneisenau should start at Rhineland, got {gneisenau.location}"
 
-    def test_prussia_has_three_marshals(self):
-        """Verify Prussia now has three marshals: Blücher, Gneisenau, and PrinceAugust."""
+    def test_prussia_has_two_marshals(self):
+        """Verify Prussia has two marshals: Blucher and Gneisenau."""
         enemies = create_enemy_marshals()
         prussian_marshals = [name for name, m in enemies.items() if m.nation == "Prussia"]
 
-        assert len(prussian_marshals) == 3, f"Prussia should have 3 marshals, got {len(prussian_marshals)}"
-        assert "Blucher" in prussian_marshals, "Blücher should be Prussian"
+        assert len(prussian_marshals) == 2, f"Prussia should have 2 marshals, got {len(prussian_marshals)}"
+        assert "Blucher" in prussian_marshals, "Blucher should be Prussian"
         assert "Gneisenau" in prussian_marshals, "Gneisenau should be Prussian"
-        assert "PrinceAugust" in prussian_marshals, "PrinceAugust should be Prussian"
 
 
 # ════════════════════════════════════════════════════════════════
@@ -903,21 +898,20 @@ class TestAbilityIntegration:
         ability_msg = result.get("ability_triggered")
         assert ability_msg is None, "Non-Ney attackers shouldn't trigger Ney's ability"
 
-    def test_prince_august_no_special_bonus(self):
-        """PrinceAugust's 'Prussian Gunnery' is a no-op — no special degradation."""
-        enemies = create_enemy_marshals()
-        pa = enemies["PrinceAugust"]
-        pa.strength = 30000
-        pa.morale = 100
+    def test_generic_artillery_no_special_bonus(self):
+        """Generic artillery has no special degradation bonus (Drouot only)."""
+        # Create a synthetic non-Drouot artillery marshal
+        generic_art = Marshal("GenericArt", "Paris", 30000, "cautious", "Prussia", artillery=True)
+        generic_art.morale = 100
 
         defender = Marshal("Defender", "Paris", 30000, "cautious")
         defender.morale = 100
         defender.defense_bonus = 0.30
 
         combat = CombatResolver()
-        result = combat.resolve_battle(pa, defender)
+        result = combat.resolve_battle(generic_art, defender)
 
-        # PrinceAugust is artillery → 10% base degradation, NOT 15% (Drouot only)
+        # Generic artillery → 10% base degradation, NOT 15% (Drouot only)
         assert result["fortification_degraded"] is True
         assert result["fortification_new"] == 0.20  # 0.30 - 0.10
         assert result.get("drouot_ability_triggered") is None

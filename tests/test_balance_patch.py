@@ -158,7 +158,9 @@ class TestContinuousAttritionFormula:
         """Belgium with Ney+Grouchy should have lower attrition than old 5% tier."""
         world = WorldState()
 
-        # Default: Ney 72k + Grouchy 28k in Belgium = 100k total
+        # Grouchy now starts at Lyon; move him to Belgium for this test
+        world.marshals["Grouchy"].location = "Belgium"
+        # Ney 72k + Grouchy 28k in Belgium = 100k total
         # Belgium: town (25k) * plains (1.0) = 25k, home 1.5x = 37.5k
         # excess = (100k - 37.5k) / 37.5k = 1.667
         # attrition = min(0.03, 1.667 * 0.015) = 0.025
@@ -339,6 +341,9 @@ class TestHomelandDefenseAI:
         blucher = world.marshals["Blucher"]
         blucher.location = "Bavaria"
 
+        # Move Gneisenau away from Rhineland so Blucher is closest
+        world.marshals["Gneisenau"].location = "Berlin"
+
         action = ai._find_homeland_defense(blucher, "Prussia", world)
         assert action is not None
         assert action["action"] == "attack"  # Adjacent + undefended = capture
@@ -428,7 +433,10 @@ class TestHomelandDefenseAI:
                              personality="cautious", nation="France")
         world.marshals["TestFrench"] = weak_french
 
-        # Blucher (55k) in Bavaria, adjacent to Rhine with 5k defender → 11:1 ratio
+        # Move Gneisenau away from Rhineland so Blucher is closest
+        world.marshals["Gneisenau"].location = "Berlin"
+
+        # Blucher (40k) in Bavaria, adjacent to Rhine with 5k defender → 8:1 ratio
         blucher = world.marshals["Blucher"]
         blucher.location = "Bavaria"
 
@@ -472,8 +480,7 @@ class TestHomelandDefenseAI:
         blucher.location = "Vienna"
 
         # Move other marshals far away so Blucher is closest
-        for name in ["Gneisenau", "PrinceAugust"]:
-            world.marshals[name].location = "Milan"
+        world.marshals["Gneisenau"].location = "Milan"
 
         action = ai._find_homeland_defense(blucher, "Prussia", world)
         assert action is not None
@@ -491,9 +498,10 @@ class TestStagnationFix:
         from backend.commands.executor import CommandExecutor
         ai = EnemyAI(CommandExecutor())
 
-        # Move all enemies far away from Bordeaux
-        for name in ["Wellington", "Uxbridge", "Blucher", "Gneisenau", "PrinceAugust"]:
-            world.marshals[name].location = "Netherlands"
+        # Move all non-Prussian marshals far away so Vienna is isolated
+        for m in world.marshals.values():
+            if m.nation != "Prussia":
+                m.location = "Netherlands"  # 4 hops from Vienna
 
         # Put a Prussian marshal alone in Vienna (far from French)
         gneisenau = world.marshals["Gneisenau"]
@@ -550,7 +558,7 @@ class TestCautiousAdvanceFallback:
         ai._current_world = world
 
         # Clear enemies from adjacent regions so movement is possible
-        for name in ["Blucher", "Gneisenau", "PrinceAugust", "Uxbridge"]:
+        for name in ["Blucher", "Gneisenau", "Uxbridge"]:
             world.marshals[name].location = "Netherlands"
 
         action = ai._consider_strategic_move(wellington, "Britain", world)

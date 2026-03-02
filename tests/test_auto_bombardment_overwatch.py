@@ -80,7 +80,7 @@ def _make_world_for_overwatch():
     wellington.strength = 30000
     wellington.morale = 80
 
-    # Synthetic British artillery for overwatch (PrinceAugust is Prussian)
+    # Synthetic British artillery for overwatch
     brit_art = Marshal("BritArt", "Waterloo", 20000, "cautious", "Britain", artillery=True)
     world.marshals["BritArt"] = brit_art
 
@@ -408,16 +408,16 @@ class TestAutoBombardmentAdvanced:
         blucher.location = "Belgium"
         blucher.strength = 40000
 
-        prince = world.get_marshal("PrinceAugust")
-        prince.location = "Belgium"
-        prince.strength = 20000
-        prince.bombardments_this_turn = 0
-        prince.moved_this_turn = False
-        prince.strategic_order = StrategicOrder(
+        # Create synthetic Prussian artillery for SUPPORT
+        synth_art = Marshal("PrussArt", "Belgium", 20000, "cautious", "Prussia", artillery=True)
+        synth_art.bombardments_this_turn = 0
+        synth_art.moved_this_turn = False
+        synth_art.strategic_order = StrategicOrder(
             command_type="SUPPORT", target="Blucher",
             target_type="marshal", started_turn=1,
-            original_command="PrinceAugust support Blucher", path=[],
+            original_command="PrussArt support Blucher", path=[],
         )
+        world.marshals["PrussArt"] = synth_art
 
         davout = world.get_marshal("Davout")
         davout.location = "Waterloo"
@@ -425,8 +425,8 @@ class TestAutoBombardmentAdvanced:
 
         result = _execute_attack(world, "Blucher", "Davout")
 
-        # PrinceAugust should have fired in support of Blucher
-        assert prince.bombardments_this_turn >= 1
+        # PrussArt should have fired in support of Blucher
+        assert synth_art.bombardments_this_turn >= 1
 
     def test_support_order_bombardment_fires_before_clear(self):
         """Auto-bombardment fires even though reinforcement system later clears order."""
@@ -488,27 +488,27 @@ class TestAutoBombardmentAdvanced:
         blucher.location = "Belgium"
         blucher.strength = 40000
 
-        prince = world2.get_marshal("PrinceAugust")
-        prince.location = "Belgium"
-        prince.strength = 20000
-        prince.bombardments_this_turn = 0
-        prince.moved_this_turn = False
-        prince.strategic_order = StrategicOrder(
+        # Create synthetic Prussian artillery for SUPPORT
+        synth_art2 = Marshal("PrussArt", "Belgium", 20000, "cautious", "Prussia", artillery=True)
+        synth_art2.bombardments_this_turn = 0
+        synth_art2.moved_this_turn = False
+        synth_art2.strategic_order = StrategicOrder(
             command_type="SUPPORT", target="Blucher",
             target_type="marshal", started_turn=1,
-            original_command="PrinceAugust support Blucher", path=[],
+            original_command="PrussArt support Blucher", path=[],
         )
+        world2.marshals["PrussArt"] = synth_art2
 
         ney2 = world2.get_marshal("Ney")
         ney2.location = "Waterloo"
         ney2.strength = 30000
 
-        # Blucher (Belgium) attacks Ney (Waterloo), PrinceAugust auto-bombards
+        # Blucher (Belgium) attacks Ney (Waterloo), PrussArt auto-bombards
         # Ney is France (player) — should get PARTIAL intel
         result2 = _execute_attack(world2, "Blucher", "Ney")
 
         # Verify the attack happened
-        assert result2["success"] or prince.bombardments_this_turn >= 1
+        assert result2["success"] or synth_art2.bombardments_this_turn >= 1
 
     def test_auto_bombardment_zero_strength_artillery_skipped(self):
         """Artillery with 0 strength doesn't fire."""
@@ -920,14 +920,14 @@ class TestAutoBombardmentOverwatchIntegration:
             original_command="Drouot support Ney", path=[],
         )
 
-        # British side: Wellington + PrinceAugust (overwatch)
+        # British side: Wellington + synthetic enemy artillery (overwatch)
         wellington = world.get_marshal("Wellington")
         wellington.location = "Waterloo"
         wellington.strength = 30000
 
-        prince = world.get_marshal("PrinceAugust")
-        prince.location = "Waterloo"
-        prince.strength = 20000
+        # Create synthetic enemy artillery for overwatch
+        enemy_art = Marshal("EnemyArt", "Waterloo", 20000, "cautious", "Britain", artillery=True)
+        world.marshals["EnemyArt"] = enemy_art
 
         result = _execute_attack(world, "Ney", "Wellington")
 

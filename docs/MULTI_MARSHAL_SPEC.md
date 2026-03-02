@@ -73,7 +73,7 @@ All coordination bonuses flow through `marshal.get_attack_modifier()` and `marsh
 |------|---------------|-------------------|
 | Infantry | Davout, Grouchy | Wellington, Blucher, Gneisenau |
 | Cavalry | Ney | Uxbridge |
-| Artillery | Drouot | PrinceAugust |
+| Artillery | Drouot | — |
 
 ### Bonus Values
 

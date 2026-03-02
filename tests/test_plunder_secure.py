@@ -1,7 +1,6 @@
 """Tests for Phase 6.2.E: Plunder/Secure capture choice system."""
 import pytest
 from backend.models.world_state import WorldState
-from backend.models.marshal import Marshal
 from backend.commands.executor import CommandExecutor
 
 
@@ -353,6 +352,10 @@ class TestPlunderedFlagLifecycle:
         region.controller = "France"
         region.plundered = True
         region.stability = 45
+        # Move any French marshals away from Lyon so no garrison bonus
+        for m in world.marshals.values():
+            if m.location == "Lyon" and m.nation == "France":
+                m.location = "Paris"
 
         world.process_stability_growth()
         # Stability grows to 50 (45 + 5 base), still <= 50

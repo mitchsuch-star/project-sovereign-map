@@ -568,7 +568,8 @@ Enemy jealousy creates **opportunities** the player can observe and exploit:
 
 In the Waterloo scenario specifically, enemy jealousy rarely fires:
 - Wellington and Blucher are Devoted (+2) — **immune**
-- Other Coalition marshals (Uxbridge, Gneisenau, PrinceAugust) are Professional or better with their leads
+- Other Coalition marshals (Uxbridge, Gneisenau) are Professional or better with their leads
+- Austrian marshals (ArchdukeCharles, Schwarzenberg) and Saxon Reynier have no jealousy relationships yet
 
 The system matters more at 1805 scale where Austria might have 4-5 marshals with real rivalry potential, and where the player can strategically exploit enemy friction. Implementing now ensures Building Blocks compliance and prevents a structural rewrite later.
 
