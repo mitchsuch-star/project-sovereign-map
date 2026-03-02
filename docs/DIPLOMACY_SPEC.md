@@ -1,6 +1,6 @@
 # Diplomacy System — Design Spec
 
-> **Status:** APPROVED v2.4 — Pre-implementation audit complete. 4 CRITICAL + 4 MAJOR findings resolved (Geneva removal, Berlin income, economy table, Session 1A scope). See §17 changelog. Score: 97/100. See §18 for full audit summary.
+> **Status:** APPROVED v2.5 — Session 1B readiness audit complete. v2.5: 4 CRITICAL + 3 HIGH findings (PrinceAugust removal, AI PEACE-state gating, marshal stat mismatches, trade income scope). v2.4: 4 CRITICAL + 4 MAJOR (Geneva removal, Berlin income, economy table, Session 1A scope). See §17 changelog.
 > **Phase:** 8
 > **Prerequisite:** Phase 7b COMPLETE. Jealousy system implementation may run in parallel.
 > **Companion:** COALITION_SPEC.md (builds on this spec — threat level, coalition formation, coordinated AI). War score formula now defined inline (§6e) — COALITION_SPEC builds on it but no longer owns it.
@@ -2257,43 +2257,90 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 - Fix ALL broken tests from region expansion
 - Save format version bump (old saves incompatible — M7)
 
-**Austria/Saxony controller note:** Session 1A sets `starting_controller` to "Austria"/"Saxony" on regions, but these nations aren't added to `enemy_nations`/`nation_gold`/`nation_actions` until Session 1B. This is safe — controller strings are just strings, and the AI only processes nations in `enemy_nations`. These regions will sit inert until Session 1B activates them.
+**Austria/Saxony controller note:** Session 1A sets `starting_controller` to "Austria"/"Saxony" on regions, but these nations aren't added to `enemy_nations`/`nation_gold`/`nation_actions` until Session 1B. This is safe — controller strings are just strings, and the AI only processes nations in `enemy_nations`. These regions sit inert until Session 1B activates them. *(Resolved in Session 1B — nations fully activated with AI turns, diplomatic data, and is_at_war() gating.)*
 
 **Risk:** HIGH — Changes foundational data model. Every existing test that references specific regions, starting positions, or adjacency will break. AI decision tree (enemy_ai.py) has hardcoded region references. Garrison combat changes (capital regions). Supply attrition recalculation. Fog of war adjacency patterns. Estimated 100+ test updates.
 **Gate:** `pytest` passes (100%). All 19 regions created with correct adjacency. No hardcoded Geneva/Rhine references remain. Victory threshold scales with region count.
 
 #### Session 1B: New Nations + Marshals + Economy (HIGH RISK — DD6)
 
-**Scope:**
-- New marshal definitions: Gneisenau, Archduke Charles, Schwarzenberg, Reynier
-- Relocated starting positions (Grouchy → Lyon, Uxbridge → Hanover, Blücher → Berlin)
-- New nations in world_state: Austria, Saxony added to enemy_nations, nation_gold, nation_actions, manpower_pools
-- Vienna reassigned from Prussia to Austria capital
-- Starting economy for all 5 nations (§1d)
-- Nation starting regions dict populated
-- Smoke test: 5 turns with all nations active
+**Pre-session (MANDATORY):**
+1. Audit codebase for hardcoded `["Britain", "Prussia"]` references (world_state.py init, from_dict defaults, executor debug commands)
+2. Verify REGIONS_DATA starting_controller values match §1c (Austria/Saxony regions correct from 1A)
+3. Confirm PrinceAugust is NOT in §1c — removal is intentional (see below)
+4. **Fix Session 1A adjacency bug:** Rhineland↔Saxony connection missing from REGIONS_DATA. Spec §1b says both are adjacent. Code has Rhineland: `[Belgium, Bavaria, Lyon]` (missing Saxony) and Saxony: `[Hanover, Berlin, Bavaria, Dresden, Bohemia]` (missing Rhineland). Add "Saxony" to Rhineland's adjacent list and "Rhineland" to Saxony's adjacent list. Critical for crossroads design.
 
-**Risk:** HIGH — Multiple new marshals + nations touching marshal.py, world_state.py, enemy_ai.py, parser.py. Balance implications from force redistribution.
-**Gate:** `pytest` passes. All marshals at correct positions. All nations have gold/actions/manpower. 5-turn smoke test completes without crash.
+**Scope:**
+
+*Marshals:*
+- **Remove** PrinceAugust (Prussian artillery placeholder). Not in §1c. Prussia = 2 marshals / 72k total per spec. Keeping breaks force balance math the entire diplomacy system was designed around. Clean removal from `create_enemy_marshals()`, parser, mock parser, prompt_builder.
+- **New** marshal definitions: Gneisenau (Prussia, Rhineland, 32k, cautious), Archduke Charles (Austria, Vienna, 35k, cautious), Schwarzenberg (Austria, Bohemia, 25k, cautious), Reynier (Saxony, Dresden, 18k, literal)
+- **Relocated** starting positions: Grouchy Belgium→Lyon, Uxbridge Waterloo→Hanover, Blücher Netherlands→Berlin
+- **Strength adjustments** to match §1c: Uxbridge 18k→24k, Blücher 55k→40k, Gneisenau 45k→32k
+- **Spawn locations** fixed to NATION_CAPITALS: Wellington/Uxbridge→Netherlands (British proxy), Blücher/Gneisenau→Berlin, Archduke Charles/Schwarzenberg→Vienna, Reynier→Dresden
+- **Cross-nation relationships:** New marshals default to 0 (Professional) with all existing marshals. No hand-crafted cross-nation opinions needed — organic relationships emerge through combat in Session 2+.
+
+*Nations:*
+- Austria, Saxony added to `enemy_nations`, `nation_gold`, `nation_actions`, `manpower_pools`
+- Vienna already reassigned from Prussia to Austria capital (Session 1A)
+- Nation starting regions dict populated (auto-derived from REGIONS_DATA)
+- Update `from_dict()` backward-compat defaults to include Austria/Saxony for: `enemy_nations`, `nation_gold`, `nation_actions`, `manpower_pools`
+
+*Economy:*
+- Starting economy for all 5 nations per §1d region income
+- **British naval income:** Wire +300 gold/turn flat bonus in `calculate_turn_income()`. This is base economy, not diplomacy. Britain runs a massive deficit without it (3 continental regions = 200 income vs 380 upkeep).
+- **Trade income: DEFERRED to Session 2.** The §1d trade income breakdown (France +150, Britain +400, etc.) requires diplomatic state mechanics to calculate. Session 1B economy will be lower than the §1d "Net/Turn" column until trade is wired. Add comment in code and STATUS.md.
+
+*Minimal diplomatic data (required for AI safety):*
+- Add `diplomatic_states: Dict[str, str]` to WorldState per §13 — key format `"NationA|NationB"` (alphabetical order). Pre-populated from §1e (10 nation pairs). Example: `{"Austria|France": "PEACE", "Britain|France": "WAR", "France|Saxony": "OPEN_BORDERS", ...}`.
+- Add `nation_relations: Dict[str, int]` to WorldState per §13 — same key format. Pre-populated from §1e. Example: `{"Austria|France": -30, "Britain|France": -80, "France|Saxony": 40, ...}`.
+- Add `is_at_war(nation_a, nation_b) -> bool` helper — builds key from sorted pair, checks `diplomatic_states` for WAR state.
+- Add `get_diplomatic_state(nation_a, nation_b) -> str` getter — returns state string, defaults to "PEACE" for unknown pairs.
+- Add `modify_nation_relation(nation_a, nation_b, delta) -> int` helper — applies delta, clamps to [-100, +100] per §13.
+- **Fix `get_enemies_of_nation()`** — add `and self.is_at_war(nation, marshal.nation)` filter. CRITICAL: without this, Austria/Saxony AI attacks France on turn 1 despite being at PEACE.
+- Serialization: `diplomatic_states` and `nation_relations` in `to_dict()`/`from_dict()` with empty-dict defaults for backward compat. Key format is already string (no tuple serialization needed).
+- **NO diplomatic mechanics:** No proposals, transitions, acceptance formula, Talleyrand, DP system. Data structures only. Session 2 builds on this foundation.
+
+*Debug:*
+- Update `/debug ai_turn` validation to accept all 5 nations (was hardcoded Britain/Prussia)
+- Update `/debug set_controller` help text for 5 nations
+
+**Risk:** HIGH — Multiple new marshals + nations touching marshal.py, world_state.py, enemy_ai.py, parser.py. Balance implications from force redistribution. PrinceAugust removal touches tests, docs, and AI bombardment references. Diplomatic data structures are new state that must serialize correctly.
+
+**Gate:**
+- `pytest` passes (100%). All broken PrinceAugust references cleaned up.
+- All 11 marshals at correct positions per §1c (not 12 — PrinceAugust removed).
+- All nations have gold/actions/manpower matching §1d.
+- `is_at_war("France", "Britain")` returns True. `is_at_war("France", "Austria")` returns False.
+- Austria/Saxony marshals do NOT attack France during 5-turn smoke test (PEACE nations idle or reposition within own territory).
+- Britain/Prussia AI behavior unchanged from pre-1B (attacks France normally).
+- British income includes +300 naval.
+- Save/load round-trip preserves all new fields (diplomatic_states, nation_relations, new marshals).
+- 5-turn smoke test: all 5 nations process turns without crash.
 
 #### Session 2: Diplomatic States + Acceptance Formula (MEDIUM RISK)
+
+**Builds on Session 1B:** `diplomatic_states` dict, `nation_relations` dict, `is_at_war()`, and `get_diplomatic_state()` already exist from 1B. Session 2 adds MECHANICS on top of the data structures: transitions, validation, formulas, and diplomat objects. Trade income from §1d trade breakdown is wired here (not 1B).
 
 **Scope:**
 - New file: `backend/game_logic/diplomacy.py`
 - New file: `backend/models/diplomat.py`
-- DiplomaticRepresentative class
-- Diplomatic state tracking (nation pairs)
+- DiplomaticRepresentative class (Talleyrand + 4 enemy diplomats per §2b)
 - State transition validation (upgrade adjacency + downgrade §5b.1 + armistice cooldown §5b.2)
-- Acceptance formula (all components)
+- Acceptance formula (all 9 components per §6)
 - War score calculation (§6e: territory ±40 + battles ±30 + decisive ±20 + capital ±30)
 - Military Supremacy modifier (§6b.1: war score ≥70 + hold capital → +25 acceptance)
-- Nation relation tracking
-- DP generation + spending
-- Serialization for all new fields
+- Nation relation modification mechanics (relation change from battles, treaties, etc.)
+- Trade income wiring: diplomatic state → gold/turn per §5a trade values, applied in `advance_turn()`
+- DP generation + spending (§4)
+- Movement restrictions for PEACE/WAR states (§5a: cannot enter territory without attacking in WAR, cannot enter at all in PEACE)
+- Player war declaration mechanics (attacking a PEACE nation → auto-declares WAR, applies relation/threat penalties per §5b.1)
+- DEFENSIVE_ALLIANCE cascade: if France attacks Austria, Prussia auto-enters WAR with France (§5a)
+- Serialization for all new fields (diplomat objects, DP pool, war score, armistice cooldowns)
 
 **Risk:** MEDIUM — core formula with many modifiers needs careful balancing. But formula is deterministic and testable.
 **Estimated tests:** ~60
-**Gate:** Acceptance formula returns correct scores for test scenarios. State transitions enforce adjacency.
+**Gate:** Acceptance formula returns correct scores for test scenarios. State transitions enforce adjacency. Trade income applied correctly. War declaration triggers state change + cascades.
 
 #### Session 3: Talleyrand Commands + Conversational Dialogue Foundation (HIGH RISK)
 
@@ -2455,6 +2502,8 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 |------|---------|------------|
 | Map expansion breaks existing tests | region.py, world_state.py, many test files | Run full test suite after Session 1. Fix hardcoded region expectations. |
 | Marshal relocation breaks balance | marshal.py, enemy_ai.py | Playtest 5 turns after Session 1. Adjust strength if needed. |
+| PrinceAugust removal breaks references | marshal.py, llm_client.py, combat.py, enemy_ai.py, tests, docs (SYSTEMS_REFERENCE, MULTI_MARSHAL_SPEC, TACTICAL_TRIANGLE_SPEC, JEALOUSY_SPEC, STATUS) | Grep for "PrinceAugust"/"Prince August"/"prince_august" across entire codebase and docs. Update all references. |
+| PEACE nations attacking France | enemy_ai.py, world_state.py | `is_at_war()` gate on `get_enemies_of_nation()`. Smoke test: Austria/Saxony must NOT attack France in 5-turn test. |
 | DP generation in advance_turn | world_state.py | Simple reset — low risk. Test DP edge cases (0 DP, max DP). |
 | AP/turn clause modifying nation_actions | world_state.py, executor.py | Apply during income phase, AFTER action reset. Test 0-AP edge case. |
 | Acceptance formula balance | diplomacy.py | Numbers in spec are starting points. Expect tuning after playtest. |
@@ -2514,6 +2563,26 @@ All design questions resolved in v1.1 feedback pass:
 ---
 
 ## §17. Changelog
+
+### v2.5 (Session 1B Readiness Audit — Mar 2026)
+
+**Session 1B pre-implementation review. 4 CRITICAL + 3 HIGH findings resolved.**
+
+**Critical Fixes:**
+- **C1: AI attacks PEACE nations** — Session 1B now includes minimal `diplomatic_states` dict, `nation_relations` dict, `is_at_war()` helper, and `get_enemies_of_nation()` filter. Without this, adding Austria/Saxony to `enemy_nations` causes their AI to attack France immediately despite PEACE state.
+- **C2: PrinceAugust not in §1c** — Session 1B scope now explicitly says "Remove PrinceAugust." Was a pre-Phase-8 artillery placeholder. Not in §1c marshal table. Keeping breaks force balance (Prussia 72k → 92k).
+- **C3: 7 marshal stat mismatches** — Session 1B scope now explicitly lists strength changes (Uxbridge 18k→24k, Blücher 55k→40k, Gneisenau 45k→32k) alongside location changes. Previous scope only mentioned locations.
+- **C4: Wrong spawn locations** — Session 1B scope now includes spawn_location fixes for all enemy marshals to use NATION_CAPITALS.
+
+**High Fixes:**
+- **H1: Trade income scope confusion** — Session 1B scope now explicitly states "Trade income: DEFERRED to Session 2" with rationale. Session 2 scope updated to include trade income wiring.
+- **H2: British naval income missing** — Session 1B scope now includes +300/turn naval income as base economy (not diplomacy).
+- **H3: Session 2 boundary unclear** — Session 2 scope now says "Builds on Session 1B" and clarifies it adds mechanics (transitions, formulas, DP) on top of 1B data structures.
+
+**Other:**
+- Integration Risk Points table: added PrinceAugust removal risk and PEACE-nation attack risk with mitigations.
+- Session 1A "inert" note: marked as resolved in Session 1B.
+- Session 1B gate criteria expanded: is_at_war() correctness, Austria/Saxony non-aggression, naval income, save/load round-trip.
 
 ### v2.4 (Pre-Implementation Audit — Mar 2026)
 
