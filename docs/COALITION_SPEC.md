@@ -1,4 +1,4 @@
-# COALITION_SPEC.md — v1.0
+# COALITION_SPEC.md — v1.1
 
 > **Companion to:** DIPLOMACY_SPEC.md v2.2
 > **Status:** DRAFT — Awaiting design gate approval
@@ -50,9 +50,10 @@ Threat is tracked on `WorldState.threat_level`, clamped `int(0–100)`.
 |---------|--------|--------------|------------------|
 | Declare war | +20 | On declaration (DIPLOMACY_SPEC §5c) | Direct aggression alarms all courts |
 | Capture enemy capital | +15 | When capital region controller changes to France | Ulm, Vienna, Berlin — each shocked Europe |
-| Vassalize a nation | +10 | On vassalage acceptance/conquest (DIPLOMACY_SPEC §8) | Rhine Confederation terrified everyone |
+| Vassalize a nation (treaty) | +5 | On treaty vassalage acceptance (DIPLOMACY_SPEC §8a) | Willing client states cause less alarm |
+| Vassalize a nation (conquest) | +25 | On military vassalage (DIPLOMACY_SPEC §8a) | Forced subjugation terrifies all courts |
 | Win any battle | +3 | On `resolve_combat` where France wins | Military dominance signals threat |
-| Win decisive battle | +5 | Additional, when casualty ratio > 2:1 AND total casualties > 5000 | Austerlitz, Jena — decisive victories escalate fear |
+| Win decisive battle | +5 | Additional, when casualty ratio > 2:1 AND total casualties > 10,000 (per DIPLOMACY_SPEC §6e) | Austerlitz, Jena — decisive victories escalate fear |
 | Annex territory in peace deal | +8 per region | On peace treaty acceptance that transfers regions | Treaty of Tilsit drove the Fifth Coalition |
 | Control >60% of regions (12+) | +1/turn | During `advance_turn` | Continental dominance |
 | Control >70% of regions (14+) | +2/turn | During `advance_turn` (replaces +1) | Near-total hegemony |
@@ -78,7 +79,9 @@ Threat is tracked on `WorldState.threat_level`, clamped `int(0–100)`.
 
 **Decay formula:**
 ```python
-peace_nations = [n for n in ALL_NATIONS if get_diplomatic_state(france, n) in ("PEACE", "NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE") and n not in vassals]
+peace_nations = [n for n in ALL_NATIONS if n != france  # Exclude self!
+                 and get_diplomatic_state(france, n) in ("PEACE", "NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE")
+                 and n not in vassals]
 raw_decay = 1 + len(peace_nations)  # 1 base + 1 per peaceful nation
 decay = min(raw_decay, 3)  # Cap at 3
 # Continental System bonus (separate, not subject to cap)
@@ -86,6 +89,8 @@ if len(world.continental_system_members) >= 2:
     decay += 1
 threat_level = max(0, threat_level - decay + threat_gained_this_turn)
 ```
+
+**IMPORTANT:** `ALL_NATIONS` must exclude France from the peace nation count. The `get_diplomatic_state()` default for a self-pair would return "PEACE" and incorrectly inflate decay.
 
 **Starting game:** France at peace with Austria + Saxony, at war with Britain + Prussia.
 Decay = 1 + 2 = 3 (at cap). Net: -3/turn when no events occur.
@@ -104,12 +109,14 @@ Decay = 1 + 2 = 3 (at cap). Net: -3/turn when no events occur.
 | 4 | Capture Berlin (capital) | +15+3 | -3 | 20 |
 | 5 | Advance, no battle | 0 | -3 | 17 |
 | 6 | Win battle | +3 | -3 | 17 |
-| 7 | Vassalize Saxony | +10 | -2 | 25 |
-| 8 | Declare war on Austria | +20 | -1 | 44 |
-| 9 | Capture Vienna (capital) | +15+3 | -1 | 61 |
+| 7 | Vassalize Saxony (conquest) | +25 | -2 | 40 |
+| 8 | Declare war on Austria | +20 | -1 | 59 |
+| 9 | Capture Vienna (capital) | +15+3 | -1 | 76 |
 | 10 | — | — | — | **BREWING (turn 9)** |
 
-Coalition brewing starts turn 9. Player has 3 turns to defuse. If they don't, coalition declares turn 12. This gives approximately 12 turns of aggressive play before coalition pressure, which feels right — it's the mid-game pivot point.
+Coalition brewing starts turn 9 (threat crossed 60 on turn 8, but at 59 — actually crosses 60 on turn 9 capture of Vienna at 76). Player has 3 turns to defuse. If they don't, coalition declares turn 12. Note: with conquest vassalization (+25 instead of +10), threat accumulates faster — this creates tighter pressure on aggressive players who conquer rather than negotiate. Treaty vassalization (+5) would delay brewing by several turns.
+
+> **Correction from v1.0:** Vassalization threat now uses DIPLOMACY_SPEC §8a values (+5 treaty, +25 conquest) instead of flat +10. Worked example uses conquest path. Treaty vassalization of Saxony (+5 instead of +25) would yield net threat 20 at turn 7, 39 at turn 8, 56 at turn 9 — brewing wouldn't start until turn 10-11, rewarding diplomatic over military vassalization.
 
 **Cautious player scenario (never declares war on Austria):**
 
@@ -178,6 +185,16 @@ When threat first reaches 60:
 
 **On countdown expiry (0 turns remaining):** Coalition declares (§3e).
 
+**Processing order (CRITICAL):** During `advance_turn()`, threat processing runs in this order:
+1. Apply all threat sources from this turn's actions (battles, captures, vassalization).
+2. Apply threat decay (§2b formula).
+3. Check vassalization/diplomatic changes that affect qualifying nations.
+4. Re-check qualifying nations list.
+5. If brewing active: decrement countdown. If countdown = 0 AND qualifying nations > 0 AND threat ≥ 40 → declare. If threat < 40 OR qualifying nations = 0 → cancel.
+6. If NOT brewing: check if threat ≥ 60 → start brewing. If threat ≥ 80 → instant declaration.
+
+This order means: decay applies BEFORE threshold checks. If decay brings threat from 62 to 59, but momentum rule applies (only cancels below 40), brewing continues. If decay brings threat from 42 to 39, brewing cancels.
+
 ### §3d. Instant Declaration (Threat 80+)
 
 If threat reaches 80 at any point (even during an existing brewing window):
@@ -235,27 +252,23 @@ When a coalition forms, the leader is the member with the highest **leadership s
 
 ```python
 def coalition_leadership_score(nation, world):
-    military = sum(m.strength for m in world.marshals.values() if m.nation == nation and m.strength > 0)
-    hostility = abs(world.get_relation("France", nation))
+    military = sum(m.strength for m in world.marshals.values()
+                   if m.nation == nation and m.strength > 0) // 1000  # In thousands!
+    hostility = abs(world.get_nation_relation("France", nation))
     authority = world.nation_authority.get(nation, 60)
     return int(military + hostility + authority)
 ```
 
-**Components:**
-- **Military strength:** Total troop count across all marshals of that nation.
-- **Hostility:** Absolute value of relation to France (more hostile = more motivated to lead).
-- **Authority:** Nation's internal authority score (DIPLOMACY_SPEC §13).
+**Components (all normalized to similar scale, ~0-100 each):**
+- **Military strength:** Total troop count in thousands (`// 1000`). Range: 0-100+.
+- **Hostility:** Absolute value of relation to France (more hostile = more motivated to lead). Range: 0-100.
+- **Authority:** Nation's internal authority score (DIPLOMACY_SPEC §13). Range: 0-100.
 
 **Tiebreaker:** If scores are equal, the nation with more marshals leads. If still tied, alphabetical.
 
 **At game start (if coalition formed turn 1, hypothetically):**
-- Britain: 76k troops + 80 hostility + 60 authority = 76080 (but this is in raw units — normalize below)
-- Prussia: 72k + 60 + 60 = 72120
-
-> **Implementation note:** Military strength should be in thousands (76, 72) for sane math:
-> `military = sum(m.strength for m in ...) // 1000`
-> Britain: 76 + 80 + 60 = **216**. Prussia: 72 + 60 + 60 = **192**. Austria: 60 + 30 + 60 = **150**.
-> Britain leads. Historically correct — Britain financed and organized most coalitions.
+- Britain: 76 + 80 + 60 = **216**. Prussia: 72 + 60 + 60 = **192**. Austria: 60 + 30 + 60 = **150**.
+- Britain leads. Historically correct — Britain financed and organized most coalitions.
 
 ### §4b. Leader Transition
 
@@ -297,12 +310,13 @@ While a coalition is active, all coalition members receive:
 
 If **Britain** is a coalition member (regardless of leadership), the British subsidy mechanic from DIPLOMACY_SPEC §9c activates:
 
-- Britain allocates **200 gold/turn** to the coalition member with the lowest gold reserves.
+- Britain allocates **200 gold/turn** to the coalition partner with the lowest relation to Britain (minimum relation > -20, per DIPLOMACY_SPEC §9c).
+- Effect: +5 relation/turn with that partner (Britain's wealth IS its diplomatic tool).
 - No DP cost. Passive AI behavior.
 - Requires Britain to have gold > 500.
 - Player can counter via Continental System (reduces British naval income) or military conquest (reduces British holdings).
 
-This is not a coalition-specific mechanic — it's an existing DIPLOMACY_SPEC feature that naturally activates during coalition wars.
+This is not a coalition-specific mechanic — it's an existing DIPLOMACY_SPEC feature that naturally activates during coalition wars. **Note:** The recipient is chosen by lowest relation to Britain, not lowest gold reserves — Britain subsidizes to strengthen political bonds, not just fill treasuries.
 
 ---
 
@@ -355,7 +369,7 @@ def get_coalition_friction(nation_a, nation_b, world):
         return 0.25   # Near-hostile "allies"
 ```
 
-Applied as a multiplier to the P4.77 adjacency bonus when the adjacent ally is from a different coalition nation. Same-nation allies always get full bonus.
+Applied as a multiplier to the P4.77 adjacency bonus when the adjacent ally is from a different coalition nation. Same-nation allies always get full bonus. **Golden Rule #2:** The result of `int(adjacency_bonus * friction)` must be used — friction returns float, final value must be int() before reaching Godot.
 
 **Example:** Austria (relation +30 with Prussia) gets full adjacency bonus near Prussian marshals. But if Austria's relation with Prussia drops to -10 (perhaps France diplomatically drove a wedge), the bonus is halved. This rewards diplomatic play against the coalition.
 
@@ -379,7 +393,7 @@ Individual coalition members can be peaced out through standard DIPLOMACY_SPEC b
 1. **Player initiates:** "Talleyrand, propose peace to Austria" (2 DP).
 2. **Acceptance formula** (DIPLOMACY_SPEC §6) applies normally, with one modifier:
    - **Coalition loyalty penalty:** -15 to acceptance score while in an active coalition. Members are reluctant to break ranks.
-   - This penalty decreases as the member's war exhaustion rises: `penalty = max(-15 + war_exhaustion // 10, 0)`. A battered Austria with high war exhaustion becomes increasingly willing to negotiate.
+   - This penalty decreases as the member's war exhaustion rises: `penalty = min(-15 + war_exhaustion // 10, 0)`. A battered Austria with high war exhaustion becomes increasingly willing to negotiate. At 0 exhaustion: penalty = -15. At 100 exhaustion: penalty = -5. At 150+: penalty = 0.
 3. **If accepted:** Nation leaves coalition. Relation with remaining coalition members: -15 ("betrayal").
 4. **Coalition persistence check:** If < 2 members remain, coalition dissolves (§7).
 
@@ -649,6 +663,28 @@ self.coalition_count = data.get("coalition_count", 0)
 
 **`threat_level` already exists** in DIPLOMACY_SPEC §13. No duplication needed.
 
+### §10e. Implementation File Locations
+
+Coalition logic lives in the existing diplomacy engine — no new files for Session 7:
+
+| Function | File | Notes |
+|----------|------|-------|
+| `process_threat_sources()` | `diplomacy.py` | Called from executor after battles, captures, vassalization |
+| `process_threat_decay()` | `diplomacy.py` | Called from `advance_turn()` |
+| `check_coalition_formation()` | `diplomacy.py` | Called from `advance_turn()` after threat processing |
+| `evaluate_coalition_posture()` | `diplomacy.py` | Called during enemy AI phase |
+| `get_coalition_friction()` | `diplomacy.py` | Called from `enemy_ai.py` adjacency scoring |
+| `get_convergence_bias()` | `enemy_ai.py` | Inline in P7 movement scoring (small addition) |
+| Coalition UI templates | `diplomatic_templates.py` | 7 new template categories (§8d) |
+| Coalition declaration popup | `main.gd` | Same pattern as defiance confrontation popups |
+| Coalition notifications | `notifications.py` | 7 new notification types (§9b) |
+
+**Hook points in existing code:**
+- `executor.py` `_execute_attack()`: call `process_threat_sources()` after battle win
+- `executor.py` `_execute_end_turn()`: call `process_threat_decay()` + `check_coalition_formation()`
+- `enemy_ai.py` P7: add convergence bias to movement score
+- `enemy_ai.py` P4.77: replace `is_ally` hack with coalition membership check
+
 ---
 
 ## §11. Edge Cases
@@ -669,7 +705,7 @@ self.coalition_count = data.get("coalition_count", 0)
 
 **Scenario:** France vassalizes Saxony during the 3-turn brewing window. Saxony was a qualifying nation.
 
-**Rule:** Remove Saxony from qualifying nations. If qualifying nations drops to zero, cancel brewing. (Vassalization also adds +10 threat, which might push threat higher — but vassals can't be in coalitions.)
+**Rule:** Remove Saxony from qualifying nations. If qualifying nations drops to zero, cancel brewing. (Vassalization also adds +5/+25 threat per §2a, which might push threat higher — but vassals can't be in coalitions.)
 
 ### EC-4: All coalition members peaced out on same turn
 
@@ -731,6 +767,24 @@ If Britain has zero continental territory, they become a "phantom belligerent" �
 
 **Rule:** New coalition forms normally. Named "The Second [Leader] Coalition." Members may differ from the first (if relations changed). The coalition_count field tracks this.
 
+### EC-13: Coalition member at zero military strength
+
+**Scenario:** All of Austria's marshals are at 0 strength during a coalition war. Austria has no fighting capability.
+
+**Rule:** Austria remains a coalition member. Zero-strength members still count for membership (they may recruit/reinforce). However, if Austria's war exhaustion is high enough, the AI will seek peace (DIPLOMACY_SPEC §9a P1: losing badly → armistice/peace). If Austria signs separate peace, coalition membership check proceeds normally. Austria's leadership score drops to near-zero (0 military + hostility + authority), so leadership naturally transfers to a stronger member.
+
+### EC-14: Nation rejoins coalition after leaving
+
+**Scenario:** Austria peaced out of a coalition (turn 20). On turn 23, France declares war on Austria again. The original coalition (Britain + Prussia) still exists.
+
+**Rule:** Austria enters WAR with France but does NOT automatically rejoin the existing coalition. Austria fights as an individual belligerent. However, on the next coalition formation check, if a NEW coalition would form (threat ≥ 60, brewing, etc.), Austria qualifies and joins the new coalition along with existing belligerents. There is no mechanism for mid-war coalition joining — this prevents the exploit of cycling peace→war to repeatedly trigger coalition coordination bonuses.
+
+### EC-15: Threat gained and decay cancel to exactly threshold
+
+**Scenario:** Threat is 57. France wins a battle (+3 → 60). Decay is -3 (→ 57). Net: exactly 57.
+
+**Rule:** Per processing order (§3c): sources are applied first (57 + 3 = 60), THEN decay (60 - 3 = 57). Threshold check happens AFTER both. Final threat 57 < 60 → no brewing. The momentary crossing to 60 does NOT trigger brewing because the threshold check is on the final value after all processing.
+
 ---
 
 ## §12. Worked Examples
@@ -781,17 +835,17 @@ If Britain has zero continental territory, they become a "phantom belligerent" �
 
 ## §13. Session Plan
 
-Coalition features integrate into the DIPLOMACY_SPEC §14 seven-session implementation plan:
+Coalition features integrate into the DIPLOMACY_SPEC §14 unified session plan. Session numbering matches DIPLOMACY_SPEC and STATUS.md:
 
-| Session | Coalition Features | Dependencies |
-|---------|-------------------|--------------|
-| **DD3** (Nation Relations) | Threat accumulation (§2). Threat display in Ledger Tab 3. Threat sources tracking. | Requires nation relations from DD2. |
-| **DD4** (War & Peace) | Coalition qualifying check (§3b). No formation yet — just tracking who would qualify. | Requires war/peace states from DD3. |
-| **DD5** (Vassals) | Vassalization threat (+10). Vassal exclusion from coalition. | Requires vassal system from DD5. |
-| **DD6** (Talleyrand) | Pre-coalition warnings (§8a). Coalition advisory templates. | Requires Talleyrand from DD6. |
-| **DD7** (Coalition — NEW SESSION) | Full coalition system: formation (§3), structure (§4), AI behavior (§5), breaking (§6), dissolution (§7). Coalition declaration popup. Morning Dispatch coalition section. | Requires all DD1-DD6 systems. |
+| DIPLOMACY Session | Coalition Features | Dependencies |
+|-------------------|-------------------|--------------|
+| **Session 2** (Diplomatic States + Acceptance Formula) | Threat accumulation (§2). Threat display in Ledger Tab 3. Threat sources tracking. | Requires nation relations from Session 1B. |
+| **Session 3** (Talleyrand Commands + Dialogue) | Coalition qualifying check (§3b). No formation yet — just tracking who would qualify. | Requires war/peace states from Session 2. |
+| **Session 5** (Vassals) | Vassalization threat (+5/+25 per path). Vassal exclusion from coalition. | Requires vassal system from Session 5. |
+| **Session 6** (Talleyrand Defiance) | Pre-coalition warnings (§8a). Coalition advisory templates. | Requires Talleyrand from Session 3+. |
+| **Session 7** (Coalition — NEW SESSION) | Full coalition system: formation (§3), structure (§4), AI behavior (§5), breaking (§6), dissolution (§7). Coalition declaration popup. Morning Dispatch coalition section. | Requires all Sessions 1-6 systems. |
 
-**DD7 implementation order:**
+**Session 7 implementation order:**
 1. Formation logic: brewing window, qualifying check, declaration trigger.
 2. Coalition structure: leader selection, posture determination.
 3. AI behavior: convergence bias, friction modifier, `is_ally` update.
@@ -800,7 +854,7 @@ Coalition features integrate into the DIPLOMACY_SPEC §14 seven-session implemen
 6. UI: popup, notifications, ledger tab, dispatch section.
 7. Edge case handling + tests.
 
-**Estimated test count:** ~35-45 tests for DD7 (formation: 10, structure: 5, AI: 8, breaking: 8, dissolution: 5, edge cases: 10).
+**Estimated test count:** ~35-45 tests for Session 7 (formation: 10, structure: 5, AI: 8, breaking: 8, dissolution: 5, edge cases: 10).
 
 ---
 
@@ -829,12 +883,14 @@ Coalition features integrate into the DIPLOMACY_SPEC §14 seven-session implemen
 |--------------------------|---------------------|-------------|
 | §5c: War declaration +20 threat | §2a: Same value, same trigger | YES |
 | §6: Acceptance formula | §6a: Used for separate peace with coalition loyalty modifier | YES — additive modifier |
+| §6e: Decisive battle (ratio >2:1, casualties >10,000) | §2a: Same definition, +5 threat | YES (v1.1 fix — was 5000 in v1.0) |
 | §8: Vassal system | §3b: Vassals excluded from coalition | YES |
+| §8a: Vassalage threat (+5 treaty, +25 conquest) | §2a: Matches per-path values | YES (v1.1 fix — was flat +10 in v1.0) |
 | §8d: Cascade tipping point | §6e: Referenced, not duplicated | YES |
-| §9c: British subsidies | §4e: Referenced, activates during coalition | YES |
+| §9c: British subsidies (lowest relation, not gold) | §4e: Matches — lowest relation to Britain | YES (v1.1 fix — was "lowest gold" in v1.0) |
 | §10a: Top bar threat indicator | §9a: Extends with coalition-specific states | YES — additive |
 | §13: WorldState fields | §10a: New fields added, threat_level reused | YES |
-| §14: Session plan | §13: DD7 added as coalition session | YES — extends plan |
+| §14: Session plan (Sessions 1A-7) | §13: Session 7 added as coalition session | YES — uses same session numbering (v1.1 fix) |
 
 ### §14c. Golden Rule Compliance
 
@@ -862,22 +918,223 @@ These are intentionally deferred to playtesting rather than over-designed:
 
 ---
 
+## §16. Starting Situation Balance Analysis
+
+> **Purpose:** Validate that the Waterloo testbed scenario provides viable diplomatic paths for the player. The game is more fun (and better for testing) when diplomacy can actually shift the balance rather than France just fighting everyone alone.
+
+### §16a. Five Diplomatic Paths
+
+#### Path 1: Saxony Alliance/Vassalage (EASY — Tutorial Target)
+
+**Starting:** OPEN_BORDERS (R5), relation +40, 18k troops (R1), 2 regions (Saxony, Dresden).
+
+**Alliance path:** OPEN_BORDERS → NON_AGGRESSION → DEFENSIVE_ALLIANCE → ALLIANCE. Each step: 1 proposal (1 turn transit + acceptance check). With Talleyrand (skill 10) vs Einsiedel (Dove, skill 4): diplomat bonus +12, personality ~+5, relation +20. Every step scores 57+ → instant ACCEPT.
+
+**Timeline:** 3 proposals × 1 turn each = **3 turns to full alliance** (if player prioritizes it).
+
+**Vassalage path:** Already at OPEN_BORDERS (R5, satisfies E3 prerequisite). Vassalage acceptance = base 10 + relation 20 + diplomat 12 + Dove -10 = 32 → COUNTER_OFFER. With moderate sweetener (+18): 50 → ACCEPT. **1-2 turns to vassalize.**
+
+**Value:** Saxony at 18k (R1) is meaningful. As an ally: swings close battles, controls the central European crossroads. As a vassal: ~300g/turn tribute, 18k troops under player control, buffer zone shielding French flanks.
+
+**Assessment:** Saxony is the diplomacy tutorial — easy to acquire, teaches the system. R1 makes the reward worth the effort. R5 removes 1 busywork step (proposing OPEN_BORDERS to a nation already in your orbit) while preserving the meaningful choice (vassalize vs ally).
+
+#### Path 2: Prussia Flip (VERY HARD — Potentially Too Hard)
+
+**Starting:** WAR, relation -60, 72k troops (Blücher + Gneisenau), Hawk diplomat (Hardenberg, skill 6).
+
+**Required steps:** Win battles → build war score → offer armistice/peace → improve relations → upgrade through diplomatic states → eventually ALLIANCE.
+
+**Armistice acceptance (France proposing, war score +40):**
 ```
-COALITION_SPEC CONFIDENCE REPORT
-=================================
-Threat accumulation:                    COMPLETE
-Formation mechanics:                    COMPLETE
+Base 20 (winning side) + war_score 12 + relation -30 + diplomat +8 + Hawk -5 = 5 → REJECT
+```
+
+**Even at war score +60 with relation improved to -30:**
+```
+Base 30 (peace) + war_score 18 + relation -15 + diplomat +8 + Hawk -5 + sweetener +20 = 56 → ACCEPT (barely)
+```
+
+This requires: capturing Berlin, winning 5+ battles (including a decisive one), running 3+ IMPROVE_RELATIONS missions during the war, AND offering generous terms. Realistically **12-15 turns** to peace, then another **10-15 turns** to alliance.
+
+**Timeline:** 20-25 turns total to flip Prussia. In a 25-30 turn game, this is the **entire game**. Viable but only as a game-long strategic commitment.
+
+**Assessment:** This is appropriate difficulty for flipping a major enemy. The player should feel like flipping Prussia is a momentous achievement, not routine. No change needed.
+
+#### Path 3: Austria Courtship (BLOCKED by Alliance Network)
+
+**Starting:** PEACE, relation -30, 60k troops, DEFENSIVE_ALLIANCE with Britain AND Prussia.
+
+**The problem:** Even if France improves relations with Austria to +20, attempting ALLIANCE triggers §5b.3 (conflicting alliance obligations). Austria must choose between France and Britain. At Austria-Britain relation +40 vs France-Austria +20: Austria chooses Britain.
+
+**To ally Austria, France must either:**
+1. Get France-Austria relation ABOVE Austria-Britain (+40) — requires 70+ points of improvement from -30, which is 7+ IMPROVE_RELATIONS missions at 2 DP each = months of effort.
+2. Make peace with Britain first — removing the alliance conflict. But peace with Britain is endgame-tier difficulty (see Path 4).
+3. Diplomatically damage Austria-Britain relations — no direct mechanic for this exists.
+
+**Attack path:** France CAN attack Austria without triggering new wars (Britain/Prussia already at war). But this pushes Austria into the coalition (relation drops further) and adds threat.
+
+**Assessment:** Austria is CORRECTLY a swing state that's hard to court. The DEFENSIVE_ALLIANCE with Britain is the real blocker. See §16b for a recommended adjustment that makes this path viable without making it easy.
+
+#### Path 4: Britain Peace (ENDGAME ONLY)
+
+**Starting:** WAR, relation -80, off-map, Hawk diplomat (Castlereagh, skill 7).
+
+**Peace acceptance (war score +80, max practically achievable):**
+```
+Base 30 + war_score 24 + relation -40 + diplomat +6 + Hawk -5 = 15 → REJECT
+```
+
+Even at maximum war score with territory sweetener (+30 cap): 15 + 30 = 45 → COUNTER_OFFER.
+
+Peace with Britain requires: capturing ALL continental holdings (Netherlands, Waterloo, Hanover), winning several decisive battles, AND offering generous terms. Plus improving relations from -80.
+
+**Assessment:** Correctly endgame-only. Britain is the permanent strategic pressure that forces the player to manage threat and coalitions. No change needed.
+
+#### Path 5: Diplomatic Victory (CURRENTLY NOT VIABLE)
+
+The ideal game offers three strategic approaches:
+1. **Military dominance:** Crush Prussia, then Austria, manage coalitions. **VIABLE.**
+2. **Diplomatic finesse:** Flip Prussia, ally Austria, isolate Britain. **NOT VIABLE** — takes 20-25 turns for Prussia alone, Austria blocked by alliance network.
+3. **Mixed:** Beat Prussia militarily, court Austria diplomatically. **PARTIALLY VIABLE** — but Austria courtship blocked by §5b.3.
+
+**Root cause:** The acceptance formula makes diplomatic approaches extremely slow against hostile nations. The starting relations are too hostile for diplomacy to be a primary strategy within the game's timeframe.
+
+### §16b. Balance Recommendations
+
+> **Constraint:** Changes must serve BOTH the Waterloo testbed AND translate sensibly to the 1805 campaign. No Waterloo-only hacks.
+
+#### R1: Boost Saxony Starting Strength (10k → 18k)
+
+Saxony at 10k is too weak to matter as an ally. At 18k with a reasonable position (Dresden is the crossroads of central Europe), Saxony becomes a meaningful early-game ally — enough to swing a close battle.
+
+**Justification:** Historically, Saxon forces at Waterloo-era numbered ~20k. The Rhine Confederation contributed ~160k across all members. 18k for a single German state is conservative.
+
+**Impact:** If France vassalizes Saxony, they gain 18k (more meaningful tribute + military support). If they ally Saxony, 18k + DEFENSIVE_ALLIANCE creates a central European buffer that Austria must respect.
+
+#### R2: Downgrade Austria-Britain to NON_AGGRESSION (was DEFENSIVE_ALLIANCE)
+
+**Current:** Britain ↔ Austria: DEFENSIVE_ALLIANCE. This makes Austrian alliance with France impossible (§5b.3 conflict).
+
+**Proposed:** Britain ↔ Austria: NON_AGGRESSION. Austria ↔ Prussia: DEFENSIVE_ALLIANCE remains.
+
+**Justification:** Historically, Austria was the most uncommitted member of any anti-French coalition. They repeatedly negotiated with Napoleon (marriage alliance 1810, armed mediation 1813). A NON_AGGRESSION pact with Britain (rather than DEFENSIVE_ALLIANCE) means Austria CAN be courted by France without triggering alliance conflict — but it's still hard (relation -30, must improve significantly).
+
+**Impact:** Creates a genuine "Austria courtship" path. France must choose between improving Austria relations (costly DP investment) vs conquering Austria (adds massive threat). Both are viable but mutually exclusive, creating a real strategic decision.
+
+**1805 translation:** In 1805, Austria was NOT formally allied with Britain until they joined the Third Coalition — NON_AGGRESSION is more historically accurate.
+
+#### R3: Add "Battlefield Diplomacy" Bonus
+
+When France offers peace/armistice to a nation France has a POSITIVE war score against, add +10 acceptance bonus ("military reality demands negotiation"). This makes winning on the battlefield translate more directly into diplomatic leverage.
+
+**Current:** War score of +40 only gives +12 acceptance. A player who has crushed an enemy army still faces near-impossible acceptance scores because of hostile relations.
+
+**Proposed:** When war_score > 20 and proposer is winning: +10 flat acceptance bonus (stacks with war score modifier). This represents "they can see they're losing."
+
+**Cap:** This bonus does NOT apply to vassalage proposals (already covered by Military Supremacy §6b.1 at war score ≥ 70).
+
+**Impact:** At war score +40 with the battlefield bonus: acceptance jumps from +12 to +22 from war_score-related modifiers. Combined with sweetener and diplomat skill, this makes mid-war peace proposals viable without requiring 7+ turns of IMPROVE_RELATIONS.
+
+**Where to define:** DIPLOMACY_SPEC §6b as a new component of the acceptance formula. Not a coalition-specific mechanic.
+
+#### R4: Prussia Starting Relation -40 (was -60)
+
+**Current:** France ↔ Prussia: -60. This makes diplomatic resolution extremely difficult (contributes -30 to acceptance).
+
+**Proposed:** France ↔ Prussia: -40. Still hostile (at WAR), but leaves more room for war-time diplomacy.
+
+**Justification:** Prussia at Waterloo was a reluctant belligerent — they had been Napoleon's ally just 3 years earlier (1812). -40 better reflects the ambiguity of the relationship.
+
+**Impact:** Relation contribution to acceptance moves from -30 to -20. Combined with R3, an armistice with Prussia after capturing Berlin becomes:
+```
+Base 20 + war_score 12 + relation -20 + battlefield +10 + diplomat +8 + Hawk -5 = 25 → REJECT (close)
+```
+With sweetener (+10): 35 → COUNTER_OFFER. This feels right — hard but achievable.
+
+**1805 translation:** In 1805, Prussia was neutral (relation ~0). In 1806, France-Prussia relations were -40 to -50 before Jena. -40 is appropriate for the Waterloo period.
+
+#### R5: Saxony Starting Diplomatic State OPEN_BORDERS (was PEACE)
+
+**Current:** France ↔ Saxony: PEACE (French-leaning). Player must propose open borders before any further diplomacy.
+
+**Proposed:** France ↔ Saxony: OPEN_BORDERS. Relation remains +40.
+
+**Justification:** Saxony was in the Confederation of the Rhine from 1806 — French troops moved freely through Saxon territory. Starting at OPEN_BORDERS reflects the existing friendly relationship without giving away the diplomatic endpoint (alliance or vassalage). The player still makes the meaningful choice: vassalize (3 DP, harsh) or pursue alliance (1 DP per step, gradual).
+
+**Impact:**
+- Saves 1 turn and 1 DP on any Saxony diplomatic path (vassalage in 1-2 turns, alliance in 3 turns)
+- Trade income: +100 bilateral (up from +50 at PEACE) — minor economy boost for both sides
+- France starting income increases by +50 gold/turn (OPEN_BORDERS +100 bilateral replaces PEACE +50 bilateral)
+- Vassalage acceptance from OPEN_BORDERS: base 10 + relation 20 + diplomat 12 + Dove ~-10 = 32 (COUNTER_OFFER). With moderate sweetener (+18): 50 → ACCEPT. Still requires a real diplomatic decision, not free.
+- Does NOT grant military access (OPEN_BORDERS allows movement through, not stationing)
+
+**1805 translation:** In 1805, Saxony was nominally neutral but French-leaning. OPEN_BORDERS is historically accurate for the pre-Confederation period.
+
+#### Summary: Starting Relation & State Adjustments
+
+| Pair | Current | Proposed | Rationale |
+|------|---------|----------|-----------|
+| France ↔ Prussia | -60 | -40 | More historically accurate, opens diplomatic path |
+| France ↔ Saxony (state) | PEACE | OPEN_BORDERS | Reflects existing French orbit, saves 1 step |
+| France ↔ Saxony (relation) | +40 | +40 | No change — already correct |
+| France ↔ Austria | -30 | -30 | No change — already correct |
+| France ↔ Britain | -80 | -80 | No change — correctly endgame |
+| Britain ↔ Austria | +40 (DEF_ALLIANCE) | +40 (NON_AGGRESSION) | Removes alliance conflict blocker |
+| Saxony starting troops | 10k | 18k | Makes ally worth having |
+
+#### Path Viability After Adjustments
+
+| Path | Before | After | Notes |
+|------|--------|-------|-------|
+| Saxony ally | EASY (but worthless) | EASY (meaningful, faster) | R1: 18k troops matter, R5: 1 fewer step |
+| Saxony vassal | 3 turns | 1-2 turns | R5: already at OPEN_BORDERS |
+| Prussia flip | 20-25 turns (game-long) | 12-18 turns (late-game) | R3+R4: faster diplomacy |
+| Austria courtship | BLOCKED | HARD but viable | R2: removes alliance conflict |
+| Britain peace | Endgame only | Endgame only | No change — correct |
+| Diplomatic victory | Not viable | Viable (ambitious) | All paths now reachable |
+
+### §16c. Design Gate Required
+
+**The balance adjustments in §16b affect DIPLOMACY_SPEC §1e (starting relations and diplomatic states) and §1c (starting forces).** These changes need user approval before implementation. Specifically:
+
+1. **R1 (Saxony 18k):** Modify Reynier starting strength in §1c
+2. **R2 (Austria-Britain NON_AGGRESSION):** Modify §1e starting diplomatic states
+3. **R3 (Battlefield Diplomacy):** New acceptance formula component in DIPLOMACY_SPEC §6b
+4. **R4 (Prussia -40):** Modify §1e starting relations
+5. **R5 (Saxony OPEN_BORDERS):** Modify §1e starting diplomatic states, §1c trade income
+
+These are additive changes — they don't break any existing spec mechanics. But they change the fundamental strategic texture of the game and should be playtested.
+
+---
+
+```
+COALITION_SPEC v1.1 CONFIDENCE REPORT
+=======================================
+Threat accumulation:                    COMPLETE (v1.1: per-path vassalage, decisive threshold fixed)
+Formation mechanics:                    COMPLETE (v1.1: processing order specified)
 Leader question resolved:               YES — chosen option: B (Leader Sets Strategy)
 AI behavior specified:                  COMPLETE
-Breaking mechanics:                     COMPLETE
+Breaking mechanics:                     COMPLETE (v1.1: loyalty penalty formula fixed)
 Dissolution rules:                      COMPLETE
 Talleyrand integration:                 COMPLETE
 UI/feedback specified:                  COMPLETE
 Serialization complete:                 COMPLETE
-Edge cases (10+ required):              12/10
-Session plan mapped:                    YES
-Cross-doc consistency with DIPLOMACY_SPEC: VERIFIED
+Edge cases (10+ required):              15/10 (v1.1: +3 new: zero-strength, rejoin, threshold exact)
+Session plan mapped:                    YES (v1.1: aligned to DIPLOMACY_SPEC session numbering)
+Cross-doc consistency with DIPLOMACY_SPEC: VERIFIED (v1.1: 4 mismatches fixed)
 Golden Rule compliance:                 ALL 7 CHECKED
 
-OVERALL CONFIDENCE: 93/100
+v1.1 AUDIT FIXES (from comprehensive adversarial audit):
+  CRITICAL: Coalition loyalty penalty formula used max() instead of min() — fixed
+  CRITICAL: Vassalage threat was flat +10, DIPLOMACY_SPEC §8a uses +5/+25 per path — aligned
+  CRITICAL: Decisive battle threshold was 5000, DIPLOMACY_SPEC §6e uses 10,000 — aligned
+  MAJOR:    Leadership score used raw troop count, should use //1000 — fixed in function
+  MAJOR:    British subsidy criteria was "lowest gold," DIPLOMACY_SPEC §9c uses "lowest relation" — aligned
+  MAJOR:    Session naming used DD# scheme, should use Session # matching DIPLOMACY_SPEC §14 — aligned
+  MAJOR:    Decay formula didn't exclude France from ALL_NATIONS — self-exclusion guard added
+  MAJOR:    Processing order (threat → decay → threshold check) was unspecified — added to §3c
+  MINOR:    Friction multiplier returns float, needs int() wrapping before Godot — noted in §5c
+  MINOR:    Worked example updated for conquest vassalage (+25), added treaty comparison note
+
+OVERALL CONFIDENCE: 95/100
 ```

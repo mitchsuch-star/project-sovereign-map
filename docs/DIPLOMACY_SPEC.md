@@ -133,13 +133,13 @@ Expanded from 13 to 19. Goals: French strategic depth, Waterloo deathball broken
 | **Prussia** | Gneisenau | Rhineland | 32,000 | Cautious | Infantry | NEW marshal, Prussian second-in-command |
 | **Austria** | Archduke Charles | Vienna | 35,000 | Cautious | Infantry | NEW — Austria's best general |
 | **Austria** | Schwarzenberg | Bohemia | 25,000 | Cautious | Infantry | NEW — cautious coalition commander |
-| **Saxony** | Reynier | Dresden | 10,000 | Literal | Infantry | NEW — historical Saxon commander |
+| **Saxony** | Reynier | Dresden | 18,000 | Literal | Infantry | NEW — historical Saxon commander. Adjusted from 10k per COALITION_SPEC §16b R1. |
 
 **Force balance:**
 - France: 173,000 total (4 marshals, 8 regions)
 - Coalition at war: Britain 76,000 + Prussia 72,000 = 148,000 (4 marshals, 5 regions)
-- Neutral: Austria 60,000 (2 marshals, 4 regions), Saxony 10,000 (1 marshal, 2 regions)
-- **If Austria joins coalition:** 208,000 vs France 173,000 (+ potential Saxony 10,000)
+- Neutral: Austria 60,000 (2 marshals, 4 regions), Saxony 18,000 (1 marshal, 2 regions)
+- **If Austria joins coalition:** 208,000 vs France 173,000 (+ potential Saxony 18,000)
 
 This creates the diplomatic tension: France is stronger than Britain+Prussia alone, but if Austria joins, France is outnumbered. The player MUST either prevent Austrian entry or flip Prussia.
 
@@ -147,15 +147,15 @@ This creates the diplomatic tension: France is stronger than Britain+Prussia alo
 
 | Nation | Starting Gold | Income (approx) | Upkeep (5g/1000) | Net/Turn | Notes |
 |--------|--------------|------------------|-------------------|----------|-------|
-| France | 800 | 1,100 | 865 | +235 | 8 regions, strong economy |
+| France | 800 | 1,150 | 865 | +285 | 8 regions, strong economy. R5: Saxony OB adds +50 vs PEACE |
 | Britain | 1,500 | 200 + 300 naval | 380 | +120 | 3 regions + naval income |
 | Prussia | 800 | 350 | 360 | -10 | 2 regions, tight economy |
 | Austria | 600 | 650 | 300 | +350 | 4 regions, not at war (no war costs) |
-| Saxony | 200 | 250 | 50 | +200 | 2 regions, tiny army |
+| Saxony | 200 | 300 | 90 | +210 | 2 regions, small army. R1: 18k troops, R5: OB trade +100 bilateral |
 
 **British Naval Income:** Britain receives +300 gold/turn from naval supremacy (trade dominance, colonial revenue). This is an abstracted effect — no ship-to-ship combat. Can be reduced via Continental System diplomatic action (see §5d). This makes Britain economically resilient despite small continental holdings.
 
-**Starting trade income (from PEACE states, §7e):** France at PEACE with Austria (+50 bilateral) and Saxony (+50 bilateral) = +100 gold/turn additional income at game start. Austria at PEACE with France (+50) and Saxony (+50) = +100 additional. These are reflected in the "approx" income column above but worth noting explicitly — diplomatic downgrades directly impact economy.
+**Starting trade income (from diplomatic states, §7e):** France at PEACE with Austria (+50 bilateral) and OPEN_BORDERS with Saxony (+100 bilateral, per R5) = +150 gold/turn additional income at game start. Austria at PEACE with France (+50) and Saxony (+50) = +100 additional. These are reflected in the "approx" income column above but worth noting explicitly — diplomatic downgrades directly impact economy.
 
 **Manpower Pools (new nations):**
 
@@ -165,7 +165,7 @@ DEFAULT_MANPOWER_POOLS = {
     "Britain": {"infantry": 50000, "cavalry": 8000,  "artillery": 5000},
     "Prussia": {"infantry": 60000, "cavalry": 10000, "artillery": 5000},
     "Austria": {"infantry": 40000, "cavalry": 5000,  "artillery": 3000},
-    "Saxony":  {"infantry": 15000, "cavalry": 2000,  "artillery": 1000},
+    "Saxony":  {"infantry": 20000, "cavalry": 3000,  "artillery": 2000},
 }
 ```
 
@@ -176,9 +176,9 @@ DEFAULT_MANPOWER_POOLS = {
 | France ↔ Britain | WAR | Active war from game start |
 | France ↔ Prussia | WAR | Active war from game start |
 | France ↔ Austria | PEACE | Not at war, but relation -30 signals hostility. Austria watching. |
-| France ↔ Saxony | PEACE (French-leaning) | Friendly terms, open to alliance/vassalage |
+| France ↔ Saxony | OPEN_BORDERS (French-leaning) | Historical Confederation of Rhine orbit. Satisfies vassalage prerequisite (E3). See COALITION_SPEC §16b R5. |
 | Britain ↔ Prussia | ALLIANCE | Coalition partners |
-| Britain ↔ Austria | DEFENSIVE_ALLIANCE | Will join if Austria is attacked |
+| Britain ↔ Austria | NON_AGGRESSION | Austria uncommitted — can be courted by France. Adjusted from DEFENSIVE_ALLIANCE per COALITION_SPEC §16b R2. |
 | Britain ↔ Saxony | PEACE | Neutral |
 | Prussia ↔ Austria | DEFENSIVE_ALLIANCE | Coalition partners |
 | Prussia ↔ Saxony | PEACE | Neighbors, Prussia covets Saxony |
@@ -189,7 +189,7 @@ DEFAULT_MANPOWER_POOLS = {
 | Pair | Relation | Why |
 |------|----------|-----|
 | France ↔ Britain | -80 | Ancient rivals, active war |
-| France ↔ Prussia | -60 | At war, but historically flippable |
+| France ↔ Prussia | -40 | At war, but historically flippable. Adjusted from -60 per COALITION_SPEC §16b R4. |
 | France ↔ Austria | -30 | Hostile but not committed |
 | France ↔ Saxony | +40 | French-leaning, historical Confederation of the Rhine |
 | Britain ↔ Prussia | +60 | Coalition allies |

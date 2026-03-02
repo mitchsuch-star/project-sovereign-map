@@ -366,7 +366,7 @@ If marshal strength < 20% of starting_strength AND enemy in same region -> ALWAY
 
 **Goal:** Wars start and end through negotiation. Diplomacy feels like talking to PEOPLE.
 
-**Full spec:** `docs/DIPLOMACY_SPEC.md` (v2.0, audit-revised, 68/80 self-audit score). 5 nations, 19 regions, acceptance formula, Talleyrand defiance, vassal system, war score with decisive battles.
+**Full spec:** `docs/DIPLOMACY_SPEC.md` (v2.2, score 97/100) + `docs/COALITION_SPEC.md` (v1.1, score 95/100). 5 nations, 19 regions, acceptance formula, Talleyrand defiance, vassal system, war score, coalition formation/breaking.
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
@@ -383,9 +383,25 @@ If marshal strength < 20% of starting_strength AND enemy in same region -> ALWAY
 | Diplomatic Ledger UI | D key, 4 tabs: Nations, Treaties, Threat, Talleyrand Status | Medium | SPEC COMPLETE |
 | **Diplomacy Chat** | LLM-powered conversations with nation leaders | High | Planned |
 | **Leader Personalities** | Distinct voices (see table below) | Medium | Planned |
-| **Coalition Trigger** | Threat level ticks up → war declarations. Core "France can't steamroll" mechanic | Medium | **SPEC DRAFTED** (v1.0) — `COALITION_SPEC.md`. Option B leader, no shared fog, threat-from-success. Needs design gate approval. |
+| **Coalition System** | Threat-from-success, 3-tier formation (murmurs/brewing/declaration), coalition structure (leader sets posture), coalition AI (convergence bias, friction), breaking (separate peace, decisive victory, diplomatic wedge), dissolution (cooldown) | Medium | **SPEC v1.1** — `COALITION_SPEC.md`. Audit-revised: 10 findings fixed (3 CRITICAL, 4 MAJOR). ~35-45 tests. |
 
-**Note:** Coalition Trigger moved here from Phase 7b — threat calculation, warning periods, and coalition formation only make sense alongside peace treaties and nation relations.
+**Note:** Coalition moved here from Phase 7b — threat calculation, warning periods, and coalition formation only make sense alongside peace treaties and nation relations.
+
+### Phase 8 Unified Session Plan
+
+| Session | Name | Key Features | Estimated Tests | Complexity |
+|---------|------|--------------|-----------------|------------|
+| **1A** | Map Expansion | 13→19 regions, adjacency, region data migration | ~30 | HIGH |
+| **1B** | Nations + Marshals + Economy | Austria, Saxony, 4 new marshals, starting economy | ~30 | HIGH |
+| **2** | Diplomatic States + Acceptance Formula | State transitions, acceptance formula, war score, DP | ~60 | MEDIUM |
+| **3** | Talleyrand Commands + Dialogue | Proposal flow, dialogue state machine, 10 templates | ~55 | HIGH |
+| **4** | AI Proposals + Advisory | AI diplomatic phase, counter-offers, advisory conversations | ~40 | HIGH |
+| **5** | Vassal System + Treaty Clauses | Loyalty, tribute, rebellion, carving, Continental System | ~45 | MEDIUM |
+| **6** | Talleyrand Defiance + Objections | Sabotage, discovery, diplomatic confrontation | ~50 | MEDIUM |
+| **7** | Coalition System (NEW) | Formation, structure, AI, breaking, dissolution, UI | ~35-45 | MEDIUM |
+| **8** | Diplomatic Ledger UI + Polish | 4-tab ledger, threat display, coalition status, polish | ~20 | MEDIUM |
+
+**Total estimated tests: ~365-375.** Critical path: Sessions 1A/1B (HIGH RISK) → 2 → 3/4 → 5 → 6 → 7 → 8.
 
 ### Diplomacy Chat Architecture
 
@@ -753,7 +769,7 @@ Lighter version of communication cutoff: orders to distant marshals take effect 
 6. Phase 6.5: Notifications, **Top Bar Framework + Dispatch** (Session A), **Strategic Ledger** (Session B), Marshal UI, ~~Campaign Briefing~~, ~~Marshal Report~~ (shipped as Morning Dispatch), ~~Tutorial infra~~ (deferred to Pre-EA), **Map Renderer**
 7. Phase 7 Core: Multi-Marshal Coordination (Sessions 57-61a, 61b, 64 — 7 sessions, ~246 tests) — combined arms, coordination bonuses, Grouchy Rule, dynamic relationships
 7b. Phase 7b: Casualty Distribution (S62), AI Coordination (S63), Battle Reports + Reinforcement Reporting (S65), Godot UI (S66), Tactical Triangle (S67-68), V2b, Jealousy
-8. Phase 8: **Diplomacy Chat**, Peace Treaties, Leader Personalities
+8. Phase 8: **Diplomacy** (8 sessions: Map Expansion, Nations, States+Formula, Talleyrand, AI Proposals, Vassals, Defiance, **Coalition**, Ledger UI). ~365 tests.
 9. Phase 8.5: **Events, Gazette, Marshal Voice, Grouchy LLM, Intercepted Dispatches, Creative Commands, Napoleon Comparison**
 10. **STEAM PAGE + LLC** (marshal voice, gazette, audio, EU4 map all working)
 11. Phase 9: Advisors (minimal: stats + flavor + named voices)

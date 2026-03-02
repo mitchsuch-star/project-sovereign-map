@@ -20,11 +20,23 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 - **Phase 7b remaining:** V2b COMPLETE. Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Gates 5+6 PASSED. Jealousy (SPEC v3 DRAFTED — needs design gate approval). Coalition Trigger moved to Phase 8.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial Infrastructure deferred to Pre-EA.
-- **Phase 8: Diplomacy** — DIPLOMACY_SPEC.md v2.2 APPROVED + CONVERSATIONAL_DIPLOMACY_DESIGN v1.2 APPROVED + COALITION_SPEC.md v1.0 DRAFTED (needs gate). Unified 7+1 session plan. Score: 97/100.
+- **Phase 8: Diplomacy** — DIPLOMACY_SPEC.md v2.2 APPROVED + CONVERSATIONAL_DIPLOMACY_DESIGN v1.2 APPROVED + COALITION_SPEC.md v1.1 AUDIT-REVISED (needs gate). Unified 8-session plan. Scores: Diplomacy 97/100, Coalition 95/100.
 
 ### Design Decisions Required (DO NOT CODE WITHOUT USER APPROVAL)
 
 **MANDATORY GATE: Do NOT implement until the user explicitly approves the design.**
+
+#### Coalition Spec v1.1 — needs design gate approval:
+- Audit-revised: 10 findings fixed (3 CRITICAL formula bugs, 4 MAJOR cross-doc mismatches)
+- Full spec: `docs/COALITION_SPEC.md`
+
+#### Starting Situation Balance (COALITION_SPEC §16) — needs approval:
+- R1: Saxony 10k → 18k starting troops (meaningful ally) — APPLIED to DIPLOMACY_SPEC §1c
+- R2: Austria-Britain DEFENSIVE_ALLIANCE → NON_AGGRESSION (removes §5b.3 blocker) — APPLIED to DIPLOMACY_SPEC §1e
+- R3: Battlefield Diplomacy bonus (+10 acceptance when war score > 20, new DIPLOMACY_SPEC §6b component) — SPECIFIED, not yet added to DIPLOMACY_SPEC §6b
+- R4: France-Prussia relation -60 → -40 (faster diplomatic flip path) — APPLIED to DIPLOMACY_SPEC §1e
+- R5: France-Saxony starting state PEACE → OPEN_BORDERS (saves 1 step, historical) — APPLIED to DIPLOMACY_SPEC §1e
+- Full analysis: `docs/COALITION_SPEC.md` §16
 
 #### Jealousy System — v3.1 spec, needs final approval:
 - Core design settled: Glory Ladder targeting, personality expressions, escalation, confrontation popups

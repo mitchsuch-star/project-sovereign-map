@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 1, 2026 (Coalition Spec v1.0 drafted)
+> **Last Updated:** March 1, 2026 (Coalition Spec v1.1 audit + balance recommendations applied to DIPLOMACY_SPEC)
 
 ---
 
@@ -12,14 +12,14 @@
 | **Tests Passing** | **4211** (4211 passed, 3 skipped — verified Mar 1, Region Data Rationalization) |
 
 | **Current Phase** | Phase 7b **V2b COMPLETE** (playtested). Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Gates 5+6 PASSED. Remaining: Jealousy (NEEDS DESIGN). Coalition Trigger moved to Phase 8. |
-| **Blockers** | Jealousy NEEDS DESIGN GATE. Coalition Spec DRAFTED (v1.0) — needs design gate approval. |
+| **Blockers** | Jealousy NEEDS DESIGN GATE. Coalition Spec v1.1 AUDIT-REVISED — needs design gate. Balance recs R1-R5 APPLIED to DIPLOMACY_SPEC (needs gate before Session 1B). |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
 
 ## Next Steps
 
-1. **Phase 8: Diplomacy** — DESIGN GATE APPROVED (both specs). COALITION_SPEC.md v1.0 DRAFTED. Unified 7+1 session plan:
+1. **Phase 8: Diplomacy** — DESIGN GATE APPROVED (both specs). COALITION_SPEC.md v1.1 AUDIT-REVISED. Unified 8-session plan:
    - Session 1A: Map Expansion (13→19 regions) — HIGH RISK
    - Session 1B: Nations + Marshals + Economy (Austria, Saxony, 4 new marshals)
    - Session 2: Diplomatic States + Acceptance Formula + Diplomat class
@@ -27,9 +27,9 @@
    - Session 4: AI Proposals + Advisory Conversations
    - Session 5: Vassal System + Treaty Clauses
    - Session 6: Talleyrand Defiance + Diplomatic Objections/Confrontation
-   - Session 7 (DD7 — NEW): Coalition system (formation, structure, AI, breaking, dissolution)
+   - Session 7: Coalition system (formation, structure, AI, breaking, dissolution) — ~35-45 tests
    - Session 8: Diplomatic Ledger UI + Polish
-2. **Coalition Spec v1.0** — DRAFTED, needs design gate approval. Option B leader (leader sets posture, not linchpin). No shared fog (allies know positions only). Threat-from-success model. See `docs/COALITION_SPEC.md`.
+2. **Coalition Spec v1.1** — AUDIT-REVISED, needs design gate approval. 10 findings fixed (3 CRITICAL, 4 MAJOR). Balance analysis (§16) with 5 recommendations (R1-R5) APPLIED to DIPLOMACY_SPEC §1c/§1e: Saxony 18k troops, Austria-Britain NON_AGGRESSION, Prussia -40, Saxony OPEN_BORDERS. R3 (Battlefield Diplomacy) specified but not yet added to DIPLOMACY_SPEC §6b. All need design gate before Session 1B. See `docs/COALITION_SPEC.md`.
 3. **Jealousy system** — NEEDS DESIGN GATE. See CLAUDE.md for open questions.
 4. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
@@ -56,14 +56,16 @@ All major Phase 6 features shipped:
 
 ## Infrastructure Sessions
 
-### Mar 1 — COALITION_SPEC.md v1.0 Drafted
+### Mar 1 — COALITION_SPEC.md v1.1 (Drafted + Audit-Revised)
 
-Coalition system design spec created as companion to DIPLOMACY_SPEC.md v2.2.
+Coalition system design spec created as companion to DIPLOMACY_SPEC.md v2.2. Comprehensive adversarial audit applied same session.
 
-- **COALITION_SPEC.md v1.0 — DRAFT.** 15 sections, 12 edge cases, 93/100 confidence. Covers: threat accumulation (8 sources, 7 reductions), coalition formation (40/60/80 thresholds with 3-turn brewing window), Option B leader system (leader sets strategic posture), coalition AI (no shared fog — allies know positions only, convergence bias, historical friction), 4 breaking methods (separate peace, decisive victory, diplomatic wedge, Continental System), dissolution rules (2+ member persistence, 5-turn cooldown).
-- **Key design decisions:** Threat from success (winning generates threat). Decay: -1 base -1/peaceful nation (max -3). Battle wins generate +3 threat (+5 additional for decisive). No shared coalition fog — historically accurate, preserves defeat-in-detail. Leader sets posture (aggressive/defensive/cautious) but leadership transitions on peace-out (no "kill leader, kill coalition" cheese).
-- **Session plan:** Coalition features slot into DD7 (new session between Talleyrand and Ledger UI). ~35-45 tests estimated.
-- **STATUS.md and ROADMAP.md updated.**
+- **COALITION_SPEC.md v1.1 — AUDIT-REVISED.** 16 sections (+§16 Balance Analysis), 15 edge cases, 95/100 confidence. Covers: threat accumulation (9 sources including per-path vassalage, 7 reductions), coalition formation (40/60/80 thresholds with 3-turn brewing window + processing order), Option B leader system (leader sets strategic posture), coalition AI (no shared fog, convergence bias, historical friction), 4 breaking methods (separate peace, decisive victory, diplomatic wedge, Continental System), dissolution rules (2+ member persistence, 5-turn cooldown), implementation file locations (§10e).
+- **v1.1 audit fixes (10 findings):** 3 CRITICAL (loyalty penalty formula, vassalage threat mismatch, decisive battle threshold), 4 MAJOR (leadership score units, British subsidy criteria, session naming, decay self-count, processing order), 3 MINOR (friction int(), worked example, edge cases).
+- **Balance analysis (§16):** 5 diplomatic paths analyzed (Saxony/Prussia/Austria/Britain/diplomatic victory). 5 recommendations (R1-R5): Saxony 18k, Austria-Britain NON_AGGRESSION, Prussia -40, battlefield diplomacy bonus, Saxony OPEN_BORDERS starting state. R1/R2/R4/R5 APPLIED to DIPLOMACY_SPEC §1c/§1e. R3 specified but pending §6b addition. Design gate required for all.
+- **DIPLOMACY_SPEC edits:** §1c Reynier 10k→18k, manpower pools updated, force balance updated. §1d economy tables updated (France +50 income from Saxony OB, Saxony upkeep recalculated). §1e starting states: France-Saxony PEACE→OPEN_BORDERS, Britain-Austria DEF_ALLIANCE→NON_AGGRESSION, France-Prussia -60→-40.
+- **Session plan:** Coalition features in Session 7 (unified numbering with DIPLOMACY_SPEC). ~35-45 tests estimated.
+- **STATUS.md, ROADMAP.md, CLAUDE.md updated.**
 
 ### Mar 1 — Diplomacy Readiness Audit + Design Gate Approvals
 
