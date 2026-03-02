@@ -121,6 +121,11 @@ Run `pytest tests/test_serialization_enforcement.py -v` after implementation. Up
 | `sabotage_confrontation` | Sabotage discovered | Dramatic reveal, player choice | 2 exchanges | **blocking** |
 | `proactive_suggestion` | Talleyrand notices an opportunity | Morning Dispatch suggestion | 1-2 exchanges | non-blocking |
 
+**Implementation notes (from master audit):**
+- **Universal dismiss:** All non-blocking dialogues should include a "Never mind" / "Dismiss" option that clears the dialogue with no DP cost or consequence. Blocking dialogues (`incoming_proposal`, `sabotage_confrontation`) must NOT have a dismiss option — player must respond.
+- **Mission pause during confrontation:** If `sabotage_confrontation` fires while Talleyrand has an `active_diplomatic_mission`, the mission pauses (`paused=True`) until the confrontation resolves. After resolution, mission resumes or is cancelled per player choice.
+- **is_enemy() and vassals:** When vassalization changes a nation's allegiance, `is_enemy()` checks must consult `world.vassals` dict — a vassalized nation's marshals are no longer enemies. Implementation should check `enemy_nations` AND `vassals` to determine hostility.
+
 ### 2d. The Command → Dialogue Router
 
 When the parser detects a Talleyrand-addressed command, it classifies specificity before routing:
@@ -1839,7 +1844,7 @@ The key to making mock feel conversational: **options are framed as advice, not 
 | `backend/models/world_state.py` | Add `pending_diplomatic_dialogue` field + serialization (~15 lines) | Session 3 |
 | `backend/main.py` | Add `/respond_to_diplomatic_dialogue` endpoint; wire dialogue into command flow (~60 lines) | Session 3 |
 | `backend/game_logic/dispatch.py` | Add Talleyrand's Report section to morning dispatch (~80 lines) | Session 4 |
-| `godot-client/.../main.gd` | Diplomatic dialogue popup rendering and input handling (~150 lines) | Session 7 |
+| `godot-client/.../main.gd` | Diplomatic dialogue popup rendering and input handling (~150 lines) | Session 8 |
 
 ### 14c. Session Mapping (Old → Unified)
 
@@ -1848,7 +1853,7 @@ The key to making mock feel conversational: **options are framed as advice, not 
 | **A** (Foundation) | Dialogue state machine + 10 templates + endpoint | **Session 3** (Talleyrand Commands) |
 | **B** (Conversations) | Advisory + proactive + remaining templates | **Session 4** (AI Proposals) |
 | **C** (Objections) | Merged objections + sabotage confrontation + voices | **Session 6** (Defiance) |
-| **D** (UI + Polish) | Godot popup + calibration + blocking behavior | **Session 7** (Ledger UI + Polish) |
+| **D** (UI + Polish) | Godot popup + calibration + blocking behavior | **Session 8** (Ledger UI + Polish) |
 
 ### 14d. Test Strategy
 

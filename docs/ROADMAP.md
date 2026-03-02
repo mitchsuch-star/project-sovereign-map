@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** March 1, 2026 (Coalition Spec v1.0 drafted)
+> **Last Updated:** March 2, 2026 (Master Audit — all 3 diplomacy specs approved, GO for Session 1A)
 
 ---
 
@@ -16,7 +16,7 @@
 | **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE, Top Bar + Dispatch COMPLETE, Strategic Ledger COMPLETE, Marshal Management UI COMPLETE, Tooltips ABSORBED into Map Renderer, Tutorial Infrastructure DEFERRED to Pre-EA. Remaining: Map Renderer — blocked on art commission) |
 | **7 Core** | **Multi-Marshal Coordination** | **Spec COMPLETE + AUDITED + SCOPED.** 7 sessions (57-61a, 61b, 64). ~246 tests. |
 | 7b | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b, Jealousy | **IN PROGRESS** — V2b COMPLETE, Tactical Triangle COMPLETE. Remaining: Jealousy (NEEDS DESIGN), Gneisenau (1805). Coalition Trigger moved to Phase 8. |
-| 8 | Diplomacy & Peace | Planned |
+| **8** | **Diplomacy & Peace** | **ALL SPECS APPROVED — GO for Session 1A** |
 | 8.5 | Events, Goals & National Identity | Planned |
 | -- | **STEAM PAGE + LLC** | **After 8.5** |
 | 9 | Advisors (Minimal) | Planned |
@@ -366,7 +366,7 @@ If marshal strength < 20% of starting_strength AND enemy in same region -> ALWAY
 
 **Goal:** Wars start and end through negotiation. Diplomacy feels like talking to PEOPLE.
 
-**Full spec:** `docs/DIPLOMACY_SPEC.md` (v2.2, score 97/100) + `docs/COALITION_SPEC.md` (v1.1, score 95/100). 5 nations, 19 regions, acceptance formula, Talleyrand defiance, vassal system, war score, coalition formation/breaking.
+**Full spec:** `docs/DIPLOMACY_SPEC.md` (v2.3, master-audited) + `docs/CONVERSATIONAL_DIPLOMACY_DESIGN.md` (v1.2, master-audited) + `docs/COALITION_SPEC.md` (v1.1, master-audited). 5 nations, 19 regions, acceptance formula, Talleyrand defiance, vassal system, war score, coalition formation/breaking. Master audit: 4 CRITICAL + 4 MAJOR findings fixed. Fun score 81/100.
 
 | Feature | Description | Complexity | Status |
 |---------|-------------|------------|--------|
@@ -383,7 +383,7 @@ If marshal strength < 20% of starting_strength AND enemy in same region -> ALWAY
 | Diplomatic Ledger UI | D key, 4 tabs: Nations, Treaties, Threat, Talleyrand Status | Medium | SPEC COMPLETE |
 | **Diplomacy Chat** | LLM-powered conversations with nation leaders | High | Planned |
 | **Leader Personalities** | Distinct voices (see table below) | Medium | Planned |
-| **Coalition System** | Threat-from-success, 3-tier formation (murmurs/brewing/declaration), coalition structure (leader sets posture), coalition AI (convergence bias, friction), breaking (separate peace, decisive victory, diplomatic wedge), dissolution (cooldown) | Medium | **SPEC v1.1** — `COALITION_SPEC.md`. Audit-revised: 10 findings fixed (3 CRITICAL, 4 MAJOR). ~35-45 tests. |
+| **Coalition System** | Threat-from-success, 3-tier formation (murmurs/brewing/declaration), coalition structure (leader sets posture), coalition AI (convergence bias, friction), breaking (separate peace, decisive victory, diplomatic wedge), dissolution (cooldown) | Medium | **SPEC v1.1 APPROVED** — `COALITION_SPEC.md`. Master-audited. ~55 tests (Session 7). |
 
 **Note:** Coalition moved here from Phase 7b — threat calculation, warning periods, and coalition formation only make sense alongside peace treaties and nation relations.
 
@@ -398,7 +398,7 @@ If marshal strength < 20% of starting_strength AND enemy in same region -> ALWAY
 | **4** | AI Proposals + Advisory | AI diplomatic phase, counter-offers, advisory conversations | ~40 | HIGH |
 | **5** | Vassal System + Treaty Clauses | Loyalty, tribute, rebellion, carving, Continental System | ~45 | MEDIUM |
 | **6** | Talleyrand Defiance + Objections | Sabotage, discovery, diplomatic confrontation | ~50 | MEDIUM |
-| **7** | Coalition System (NEW) | Formation, structure, AI, breaking, dissolution, UI | ~35-45 | MEDIUM |
+| **7** | Coalition System (NEW) | Formation, structure, AI, breaking, dissolution, British subsidy | ~55 | HIGH |
 | **8** | Diplomatic Ledger UI + Polish | 4-tab ledger, threat display, coalition status, polish | ~20 | MEDIUM |
 
 **Total estimated tests: ~365-375.** Critical path: Sessions 1A/1B (HIGH RISK) → 2 → 3/4 → 5 → 6 → 7 → 8.

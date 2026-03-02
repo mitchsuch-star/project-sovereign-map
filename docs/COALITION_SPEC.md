@@ -64,6 +64,7 @@ Threat is tracked on `WorldState.threat_level`, clamped `int(0–100)`.
 - "Capture enemy capital" stacks with "Win any battle" if a battle was fought for the capital.
 - Region control % uses `len(france_controlled) / len(all_regions)`. France starts with 8/19 = 42%.
 - All values are `int()`. No fractional threat.
+- **Alliance formation does NOT generate threat.** Only aggressive actions (war, conquest, vassalization, battles, annexation) raise threat. Defensive alliances formed by other nations are their response to threat, not a source of it.
 
 ### §2b. Threat Reduction Table
 
@@ -198,9 +199,10 @@ This order means: decay applies BEFORE threshold checks. If decay brings threat 
 ### §3d. Instant Declaration (Threat 80+)
 
 If threat reaches 80 at any point (even during an existing brewing window):
-- Skip remaining countdown.
+- **Overrides active brewing** — skip remaining countdown, cancel brewing state.
 - Coalition declares immediately.
 - Talleyrand reaction: "It is too late, Sire. All of Europe has turned against us." (If he warned previously and was ignored.)
+- Implementation: check instant threshold (step 6 in §3c) AFTER checking brewing (step 5). If brewing countdown just expired AND threat ≥ 80, the declaration happens via step 5 — step 6 is a fallback for when brewing wasn't active.
 
 ### §3e. Coalition Declaration
 
@@ -284,6 +286,14 @@ If no valid successor exists (< 2 members), the coalition dissolves (§7).
 
 ### §4c. Strategic Posture
 
+**Coalition war score** is the weighted average of individual member war scores against France, weighted by each member's current army size (total troops across all marshals). Formula:
+
+```
+coalition_war_score = sum(war_score[member|France] * army_size[member] for member in members) // sum(army_size[member] for member in members)
+```
+
+If no member is at war with France (shouldn't happen in an active coalition, but defensive), coalition war score = 0. All values are `int()`.
+
 The coalition leader determines the coalition's **strategic posture**, reassessed each turn during the enemy AI phase. The posture biases AI decision-making for all coalition members.
 
 | Posture | Condition | AI Effect |
@@ -317,6 +327,8 @@ If **Britain** is a coalition member (regardless of leadership), the British sub
 - Player can counter via Continental System (reduces British naval income) or military conquest (reduces British holdings).
 
 This is not a coalition-specific mechanic — it's an existing DIPLOMACY_SPEC feature that naturally activates during coalition wars. **Note:** The recipient is chosen by lowest relation to Britain, not lowest gold reserves — Britain subsidizes to strengthen political bonds, not just fill treasuries.
+
+**Implementation session:** Session 7 (Coalition). British subsidy is implemented alongside coalition logic since coalitions are the primary context where subsidies matter.
 
 ---
 
@@ -381,6 +393,8 @@ Coalition AI uses the **same executor** as player and individual AI. No special 
 3. Adjacency scoring (tactical positioning)
 
 All of which use existing systems.
+
+**Bilateral wars with non-France nations:** Coalition members may have pre-existing bilateral wars or diplomatic states with non-coalition nations (e.g., Austria at war with Saxony). These are **unaffected** by coalition membership — the coalition is specifically anti-France. Pre-existing wars continue independently. Coalition strategic posture only affects movement decisions against French-controlled territory.
 
 ---
 
@@ -614,6 +628,14 @@ self.active_coalition: Optional[Dict] = None   # See §10b
 self.coalition_brewing: Optional[Dict] = None  # See §10c
 self.coalition_cooldown: int = 0               # Turns until new coalition can form
 self.coalition_count: int = 0                  # Total coalitions formed this game (for naming)
+
+# War exhaustion per nation (used in §6a coalition loyalty penalty formula)
+# Key: nation name. Value: int 0-200 CLAMPED.
+# Increases: +casualties_taken // 1000 after each battle (capped at +20 per battle).
+# Increases: +5 per turn while at war with France.
+# Decreases: -5 per turn while at peace with France (floor 0).
+# Historical basis: prolonged war weakens resolve — a battered Austria becomes willing to negotiate.
+self.war_exhaustion: Dict[str, int] = {}  # Default 0 for all nations
 ```
 
 ### §10b. Active Coalition Dict
@@ -652,6 +674,7 @@ All new fields use standard patterns:
 "coalition_brewing": self.coalition_brewing,
 "coalition_cooldown": self.coalition_cooldown,
 "coalition_count": self.coalition_count,
+"war_exhaustion": self.war_exhaustion,
 
 # from_dict
 self.threat_sources_this_turn = data.get("threat_sources_this_turn", [])
@@ -659,6 +682,7 @@ self.active_coalition = data.get("active_coalition", None)
 self.coalition_brewing = data.get("coalition_brewing", None)
 self.coalition_cooldown = data.get("coalition_cooldown", 0)
 self.coalition_count = data.get("coalition_count", 0)
+self.war_exhaustion = data.get("war_exhaustion", {})
 ```
 
 **`threat_level` already exists** in DIPLOMACY_SPEC §13. No duplication needed.
@@ -1137,4 +1161,11 @@ v1.1 AUDIT FIXES (from comprehensive adversarial audit):
   MINOR:    Worked example updated for conquest vassalage (+25), added treaty comparison note
 
 OVERALL CONFIDENCE: 95/100
+
+v1.2 MASTER AUDIT FIXES (Mar 2026 — final pre-implementation audit):
+  CRITICAL: war_exhaustion field was used in §6a formula but never defined — added to §10a
+  MAJOR:    "coalition war score" used in §4c thresholds but never defined — added formula
+  MAJOR:    British subsidy session dependency — moved to Session 7 scope
+  Added war_exhaustion to §10d serialization checklist
+  Added implementation session note to §4e
 ```

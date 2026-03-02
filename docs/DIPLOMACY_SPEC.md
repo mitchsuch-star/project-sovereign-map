@@ -965,6 +965,14 @@ Example: Talleyrand (10) vs Hardenberg (6) → +8
 | Loyalist | +0 | +0 |
 | Schemer (Talleyrand, Metternich) | +5 (pragmatic openness) | +5 (respects boldness) |
 
+**Battlefield Diplomacy Bonus (COALITION_SPEC §16 R3):**
+```
+When war_score > 20 (proposer winning): +10 acceptance.
+Only applies to peace/armistice proposals during active war.
+Historical basis: military pressure makes diplomacy more persuasive.
+Does NOT stack with Military Supremacy modifier (§6b.1) — use whichever is higher.
+```
+
 ### 6c. Worked Example
 
 **France proposes peace with Prussia. War score +20 (France slightly ahead). Relation -60. Threat 40. Talleyrand (10) proposes. Hardenberg (6) receives. France offers: Prussia keeps Berlin, open borders, 200 gold/turn.**
@@ -1277,17 +1285,21 @@ TRADE_INCOME = {
 All diplomatic per-turn processing runs WITHIN `advance_turn()` in this strict order:
 
 ```
-1. DP regeneration — calculate new DP from formula (§4a)
-2. Mission DP deduction — deduct active mission costs (§2e)
-   (If DP insufficient after regeneration, mission pauses — EC-S)
-3. Mission effects — apply relation changes, intel collection, etc.
-4. War score recalculation — territory + battles + capital (§6e)
-5. Defection cascade check — if war score < -30, check vassals (§8d)
-6. Vassal loyalty processing — autonomy drift, garrison, passive modifiers (§8b)
-7. Vassal rebellion check — loyalty = 0 → rebellion fires (§8d)
-8. Armistice expiration — minimum 3 turns reached (§5b.2)
-9. Cooldown decrements — ai_proposal_cooldowns, player_proposal_cooldowns,
-   armistice_cooldowns, vassal investment cooldowns (all -1/turn)
+1.  DP regeneration — calculate new DP from formula (§4a)
+2.  Mission DP deduction — deduct active mission costs (§2e)
+    (If DP insufficient after regeneration, mission pauses — EC-S)
+3.  Mission effects — apply relation changes, intel collection, etc.
+4.  War score recalculation — territory + battles + capital (§6e)
+5.  Defection cascade check — if war score < -30, check vassals (§8d)
+6.  Vassal loyalty processing — autonomy drift, garrison, passive modifiers (§8b)
+7.  Vassal rebellion check — loyalty = 0 → rebellion fires (§8d)
+8.  Armistice expiration — minimum 3 turns reached (§5b.2)
+9.  Cooldown decrements — ai_proposal_cooldowns, player_proposal_cooldowns,
+    armistice_cooldowns, vassal investment cooldowns (all -1/turn)
+9a. War exhaustion update — +5/turn at war with France, -5/turn at peace (COALITION_SPEC §10a)
+9b. Threat accumulation — apply battle/capture/control sources from this turn (COALITION_SPEC §2a)
+9c. Threat decay — max(2, threat // 10) per turn (COALITION_SPEC §2b)
+9d. Coalition check — brewing countdown, formation threshold, instant ≥80 (COALITION_SPEC §3c)
 10. Income phase — region income, trade income (§7e), treaty clause gold/turn
 11. Treaty obligation checks — gold/turn defaults (EC-MM)
 12. Continental System participation check (§5d)
@@ -1295,7 +1307,7 @@ All diplomatic per-turn processing runs WITHIN `advance_turn()` in this strict o
 14. Proactive suggestion evaluation — triggers for Morning Dispatch (DESIGN §5d)
 ```
 
-This order ensures: DP is available before mission deduction, war score is fresh before cascade checks, loyalty is processed before rebellion, and income is calculated with current diplomatic states.
+This order ensures: DP is available before mission deduction, war score is fresh before cascade checks, loyalty is processed before rebellion, threat is fresh before coalition checks (decay applies BEFORE threshold — see COALITION_SPEC §3c), and income is calculated with current diplomatic states.
 
 ---
 
@@ -1583,7 +1595,7 @@ Counter-offers are free for the AI (same as player — responding costs 0 DP). T
 
 ### 9c. AI-AI Diplomacy
 
-> **DEFERRED TO SESSION 6 (Polish).** AI-AI diplomacy is not part of the Walking Skeleton. The core experience works without it — nations only interact with the player in Sessions 1-5. AI-AI diplomacy adds immersion but is not mechanically required. The system described below is the target design for Session 6.
+> **DEFERRED TO SESSION 8 (Ledger UI + Polish).** AI-AI diplomacy is not part of the Walking Skeleton. The core experience works without it — nations only interact with the player in Sessions 1-6. AI-AI diplomacy adds immersion but is not mechanically required. The system described below is the target design for Session 8.
 >
 > **Impact of deferral:** The world feels less alive without AI-AI diplomacy. Alliance shifts between AI nations won't happen dynamically. The player won't see "Britain and Austria have signed a defensive alliance" events. This is acceptable for initial playtesting — the player's own diplomatic choices are the priority.
 
@@ -2117,6 +2129,21 @@ self.previous_treaties: List[Dict] = []
 # {"war_pair": turns_triggered} — max once per war
 self.defection_cascade_fired: Dict[str, int] = {}
 
+# ═══════ COALITION FIELDS (from COALITION_SPEC §10a) ═══════
+# These fields are defined in COALITION_SPEC.md — listed here for completeness.
+# Canonical definition: COALITION_SPEC §10a-d.
+self.threat_sources_this_turn: List[Dict] = []  # UI breakdown of threat changes
+self.active_coalition: Optional[Dict] = None     # See COALITION_SPEC §10b
+self.coalition_brewing: Optional[Dict] = None    # See COALITION_SPEC §10c
+self.coalition_cooldown: int = 0                 # Turns until new coalition can form
+self.coalition_count: int = 0                    # Total coalitions formed this game
+
+# War exhaustion per nation (COALITION_SPEC §6a + §10a)
+# Key: nation name. Value: int 0-200 CLAMPED.
+# +casualties_taken//1000 per battle (cap +20), +5/turn at war with France, -5/turn at peace.
+# Used in coalition loyalty penalty formula: penalty = min(-15 + war_exhaustion // 10, 0)
+self.war_exhaustion: Dict[str, int] = {}
+
 # Player proposal cooldowns — v2.1 adds per-type tracking
 # Format: {"nation": turns_remaining, "nation|proposal_type": turns_remaining}
 # (already defined in v2.0, noting the expanded key format)
@@ -2181,11 +2208,11 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 | `backend/game_logic/diplomatic_advisory.py` | Strategic conversation handlers, "what if" engine | 4 |
 | `backend/game_logic/vassal.py` | Vassal loyalty, tribute, rebellion, autonomy | 5 |
 | `backend/commands/diplomatic_defiance.py` | Talleyrand's defiance: probability curve, sabotage application, discovery | 6 |
-| `godot-client/.../diplomatic_ledger.gd` | Diplomatic Ledger screen | 7 |
+| `godot-client/.../diplomatic_ledger.gd` | Diplomatic Ledger screen | 8 |
 
-### Unified Session Plan (7 Sessions)
+### Unified Session Plan (8 Sessions)
 
-> **Unified with CONVERSATIONAL_DIPLOMACY_DESIGN.md §14.** The conversation layer sessions (A-D) are merged into the mechanical sessions below where they share dependencies. This is the single implementation timeline for all of Phase 8.
+> **Unified with CONVERSATIONAL_DIPLOMACY_DESIGN.md §14 and COALITION_SPEC.md.** The conversation layer sessions (A-D) are merged into the mechanical sessions below where they share dependencies. Coalition (Session 7) added per ROADMAP. This is the single implementation timeline for all of Phase 8.
 
 #### Session 1A: Map Expansion + Region Migration (HIGH RISK — DD6)
 
@@ -2334,9 +2361,30 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 **Estimated tests:** ~50
 **Gate:** Talleyrand sabotages with correct probability. Sabotage discovery triggers confrontation dialogue. Diplomatic objections merge into conversation flow. Enemy diplomat voices vary by personality.
 
-#### Session 7: Diplomatic Ledger UI + Polish (MEDIUM RISK)
+#### Session 7: Coalition System (HIGH RISK)
 
-> **Merges:** DIPLOMACY_SPEC Session 6 + CONVERSATIONAL_DIPLOMACY_DESIGN Session D
+> **Implements:** COALITION_SPEC.md (full). Builds on threat_level from Session 2.
+
+**Scope:**
+- Threat accumulation from all 9 sources (COALITION_SPEC §2a)
+- Threat decay formula (COALITION_SPEC §2b)
+- War exhaustion tracking per nation (COALITION_SPEC §10a — new field)
+- Coalition brewing (3-turn countdown) + instant formation at threat ≥80
+- Coalition structure: leader selection, strategic posture, coordination bonus
+- Coalition AI behavior: coordinated attacks, resource sharing
+- Coalition breaking: separate peace with loyalty penalty (§6a), decisive victory impact (§6b)
+- Coalition dissolution conditions (§7)
+- British subsidy mechanic (COALITION_SPEC §4e / DIPLOMACY_SPEC §9c) — **moved from Session 8 deferred list**
+- Integration: steps 9a-9d in §7f processing order
+- Serialization: 6 new fields (threat_sources_this_turn, active_coalition, coalition_brewing, coalition_cooldown, coalition_count, war_exhaustion)
+
+**Risk:** HIGH — threat + formation + AI coordination + posture. Many moving parts. war_exhaustion is new field.
+**Estimated tests:** ~55
+**Gate:** Threat accumulates from battles/captures. Coalition forms after 3-turn countdown at threat ≥60. Instant at ≥80. Separate peace reduces coalition. Coalition dissolves when <2 members. War exhaustion tracks correctly.
+
+#### Session 8: Diplomatic Ledger UI + Polish (MEDIUM RISK)
+
+> **Merges:** DIPLOMACY_SPEC Session 6 (old 7) + CONVERSATIONAL_DIPLOMACY_DESIGN Session D
 
 **Scope (UI):**
 - Diplomatic Ledger Godot UI (D key) — nation cards, treaty display, threat level
@@ -2355,7 +2403,6 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 | Fog-filtered diplomatic intel | Existing fog system works; diplomatic fog is polish | Player sees slightly more diplomatic info than intended |
 | Campaign log diplomatic events | Campaign log works; diplomatic entries are display-only | Diplomatic events don't appear in campaign log history |
 | Special acceptance bonuses (§6d) | Generic formula works for all proposals | Nation-specific desires not reflected |
-| British subsidy mechanic (DD8-1) | AI behavior polish, not core | Britain doesn't actively finance coalitions |
 | Metternich armed mediation (DD8-3) | Schemer-specific AI polish | Metternich doesn't gain coalition bonus |
 
 **Estimated tests:** ~45
@@ -2389,7 +2436,7 @@ This skeleton is playtest-able before building vassals, Continental System, or T
 
 ### Test Coverage
 
-~310 tests across 7 sessions. Key areas:
+~365 tests across 8 sessions. Key areas:
 
 - **Map:** 19 regions created, adjacency bidirectional, all nations assigned correct starting regions
 - **Marshals:** New marshals created, starting positions correct, stats reasonable
@@ -2440,6 +2487,28 @@ All design questions resolved in v1.1 feedback pass:
 
 ## §17. Changelog
 
+### v2.3 (Master Audit — Mar 2026)
+
+**Final pre-implementation master audit across all 3 specs. 4 CRITICAL + 4 MAJOR findings resolved.**
+
+**Critical Fixes:**
+- **C1: `war_exhaustion` undefined** — Defined in COALITION_SPEC §10a (Dict[str,int], 0-200, +casualties//1000 per battle, ±5/turn at war/peace) and cross-referenced in §13.
+- **C2: Session plan mismatch** — §14 updated from 7→8 sessions. Session 7 = Coalition (NEW), Session 8 = Ledger UI (was 7). CONV_DESIGN §14c updated.
+- **C3: §7f missing coalition processing** — Added steps 9a (war exhaustion), 9b (threat accumulation), 9c (threat decay), 9d (coalition check) between steps 9 and 10.
+- **C4: Coalition fields missing from §13** — Added cross-reference block for 6 COALITION_SPEC fields (threat_sources_this_turn, active_coalition, coalition_brewing, coalition_cooldown, coalition_count, war_exhaustion).
+
+**Major Fixes:**
+- **M1: "Coalition war score" undefined** — Defined in COALITION_SPEC §4c as weighted average of member war scores, weighted by army size.
+- **M2: CONV_DESIGN §14c wrong session** — Fixed D→Session 8 (was Session 7). Also fixed main.gd file table.
+- **M3: British subsidy dependency** — Moved from Session 8 deferred list to Session 7 (Coalition) scope.
+- **M4: Battlefield Diplomacy missing from §6b** — Added as new acceptance component: +10 when war_score > 20. Non-stacking with Military Supremacy.
+
+**Stale Reference Fixes:**
+- §9c: "DEFERRED TO SESSION 6 (Polish)" → "DEFERRED TO SESSION 8 (Ledger UI + Polish)"
+- DD8-1 changelog: "deferred to Session 6" → "implemented in Session 7 — Coalition"
+- DD7 changelog: "Session 6 deferred table" → "Session 8 deferred table"
+- Test count: ~310 → ~365 across 8 sessions
+
 ### v2.1 (Audit Resolution + New Mechanics — Feb 2026)
 
 **Responding to independent audit (DIPLOMACY_AUDIT_RESULTS.md). Score: 58/80 → 73/80. All Critical/Major findings resolved or explicitly deferred.**
@@ -2457,7 +2526,7 @@ All design questions resolved in v1.1 feedback pass:
 - **M5: Conflicting Alliance Obligations** — Added §5b.3 with explicit resolution rule (higher-relation partner wins).
 - **M6: Session 3 Risk** — Split into Session 3A (parser routing) + 3B (AI proposals), both rated HIGH.
 - **M7: Save Migration Plan** — Added save-breaking version bump note to Session 1A + Integration Risk Points.
-- **M8: AI-AI Diplomacy Scope** — §9c explicitly marked DEFERRED TO SESSION 6 with impact assessment.
+- **M8: AI-AI Diplomacy Scope** — §9c explicitly marked DEFERRED TO SESSION 8 with impact assessment.
 
 **Minor Fixes:**
 - **m1:** Fixed "authority ~60" annotation to "authority ~100" in §4a example.
@@ -2483,9 +2552,9 @@ All design questions resolved in v1.1 feedback pass:
 - **DD4: Formula Feedback** — New §6f. Every proposal response includes natural-language hint mapping the largest formula component. REJECT/COUNTER/ACCEPT all get feedback.
 - **DD5: Sweetener Changes** — +30 cap on deal sweeteners. Per-turn manpower and AP offer variants added. Protection guarantee reduced contextually (E8).
 - **DD6: Session Plan** — Session 1 split into 1A/1B. Session 3 split into 3A/3B. All four rated HIGH.
-- **DD7: Deferred Items** — Session 6 now has explicit table with rationale, impact, and target for every deferred item.
+- **DD7: Deferred Items** — Session 8 now has explicit table with rationale, impact, and target for every deferred item.
 - **DD8: Historical Suggestions** — Evaluated all 4 from Audit Appendix B:
-  - DD8-1: British subsidy → added to §9c as AI behavior (deferred to Session 6)
+  - DD8-1: British subsidy → added to §9c as AI behavior (implemented in Session 7 — Coalition)
   - DD8-2: Vassal defection cascade → added to §8d as tipping point mechanic
   - DD8-3: Metternich armed mediation → added to §5c as Schemer-specific AI behavior
   - DD8-4: Escalating treaty harshness → added to §6c.1 as +5 modifier

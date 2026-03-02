@@ -20,25 +20,19 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 - **Phase 7b remaining:** V2b COMPLETE. Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Gates 5+6 PASSED. Jealousy (SPEC v3 DRAFTED — needs design gate approval). Coalition Trigger moved to Phase 8.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial Infrastructure deferred to Pre-EA.
-- **Phase 8: Diplomacy** — DIPLOMACY_SPEC.md v2.2 APPROVED + CONVERSATIONAL_DIPLOMACY_DESIGN v1.2 APPROVED + COALITION_SPEC.md v1.1 AUDIT-REVISED (needs gate). Unified 8-session plan. Scores: Diplomacy 97/100, Coalition 95/100.
+- **Phase 8: Diplomacy** — ALL 3 SPECS APPROVED + MASTER-AUDITED. Unified 8-session plan (1A/1B/2/3/4/5/6/7-Coalition/8-UI). Master audit: 4 CRITICAL + 4 MAJOR findings fixed. Fun score 81/100. **GO for Session 1A.**
 
-### Design Decisions Required (DO NOT CODE WITHOUT USER APPROVAL)
+### Design Gates
 
-**MANDATORY GATE: Do NOT implement until the user explicitly approves the design.**
+#### APPROVED — Coalition Spec v1.1:
+- Master-audited: 4 CRITICAL + 4 MAJOR findings fixed. `docs/COALITION_SPEC.md`
+- **Approved Mar 2, 2026.** Ready for Session 7 implementation.
 
-#### Coalition Spec v1.1 — needs design gate approval:
-- Audit-revised: 10 findings fixed (3 CRITICAL formula bugs, 4 MAJOR cross-doc mismatches)
-- Full spec: `docs/COALITION_SPEC.md`
+#### APPROVED — Starting Situation Balance (COALITION_SPEC §16):
+- R1: Saxony 18k troops — APPLIED to §1c. R2: Austria-Britain NON_AGGRESSION — APPLIED to §1e. R3: Battlefield Diplomacy +10 — APPLIED to §6b. R4: Prussia -40 — APPLIED to §1e. R5: Saxony OPEN_BORDERS — APPLIED to §1e.
+- **Approved Mar 2, 2026.** All 5 changes in DIPLOMACY_SPEC.
 
-#### Starting Situation Balance (COALITION_SPEC §16) — needs approval:
-- R1: Saxony 10k → 18k starting troops (meaningful ally) — APPLIED to DIPLOMACY_SPEC §1c
-- R2: Austria-Britain DEFENSIVE_ALLIANCE → NON_AGGRESSION (removes §5b.3 blocker) — APPLIED to DIPLOMACY_SPEC §1e
-- R3: Battlefield Diplomacy bonus (+10 acceptance when war score > 20, new DIPLOMACY_SPEC §6b component) — SPECIFIED, not yet added to DIPLOMACY_SPEC §6b
-- R4: France-Prussia relation -60 → -40 (faster diplomatic flip path) — APPLIED to DIPLOMACY_SPEC §1e
-- R5: France-Saxony starting state PEACE → OPEN_BORDERS (saves 1 step, historical) — APPLIED to DIPLOMACY_SPEC §1e
-- Full analysis: `docs/COALITION_SPEC.md` §16
-
-#### Jealousy System — v3.1 spec, needs final approval:
+#### Jealousy System — v3.1 spec, needs final approval (DO NOT CODE WITHOUT USER APPROVAL):
 - Core design settled: Glory Ladder targeting, personality expressions, escalation, confrontation popups
 - Literal expression: Candidate B (Vindicated Garrison / Obsessive Competence)
 - Top of ladder: +1 all core stats (shock/fire/admin) while #1 — designed, needs approval

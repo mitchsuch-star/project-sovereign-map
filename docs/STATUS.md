@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 1, 2026 (Coalition Spec v1.1 audit + balance recommendations applied to DIPLOMACY_SPEC)
+> **Last Updated:** March 2, 2026 (Master Audit — all 3 diplomacy specs approved)
 
 ---
 
@@ -11,15 +11,15 @@
 |--------|-------|
 | **Tests Passing** | **4211** (4211 passed, 3 skipped — verified Mar 1, Region Data Rationalization) |
 
-| **Current Phase** | Phase 7b **V2b COMPLETE** (playtested). Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Gates 5+6 PASSED. Remaining: Jealousy (NEEDS DESIGN). Coalition Trigger moved to Phase 8. |
-| **Blockers** | Jealousy NEEDS DESIGN GATE. Coalition Spec v1.1 AUDIT-REVISED — needs design gate. Balance recs R1-R5 APPLIED to DIPLOMACY_SPEC (needs gate before Session 1B). |
+| **Current Phase** | Phase 7b **V2b COMPLETE** (playtested). Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Gates 5+6 PASSED. Remaining: Jealousy (NEEDS DESIGN). Phase 8 — ALL SPECS APPROVED, GO for Session 1A. |
+| **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8 implementation. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
 
 ## Next Steps
 
-1. **Phase 8: Diplomacy** — DESIGN GATE APPROVED (both specs). COALITION_SPEC.md v1.1 AUDIT-REVISED. Unified 8-session plan:
+1. **Phase 8: Diplomacy** — ALL 3 SPECS APPROVED + MASTER-AUDITED. **GO for Session 1A.** Unified 8-session plan:
    - Session 1A: Map Expansion (13→19 regions) — HIGH RISK
    - Session 1B: Nations + Marshals + Economy (Austria, Saxony, 4 new marshals)
    - Session 2: Diplomatic States + Acceptance Formula + Diplomat class
@@ -27,11 +27,10 @@
    - Session 4: AI Proposals + Advisory Conversations
    - Session 5: Vassal System + Treaty Clauses
    - Session 6: Talleyrand Defiance + Diplomatic Objections/Confrontation
-   - Session 7: Coalition system (formation, structure, AI, breaking, dissolution) — ~35-45 tests
+   - Session 7: Coalition System (formation, structure, AI, breaking, dissolution) — ~55 tests
    - Session 8: Diplomatic Ledger UI + Polish
-2. **Coalition Spec v1.1** — AUDIT-REVISED, needs design gate approval. 10 findings fixed (3 CRITICAL, 4 MAJOR). Balance analysis (§16) with 5 recommendations (R1-R5) APPLIED to DIPLOMACY_SPEC §1c/§1e: Saxony 18k troops, Austria-Britain NON_AGGRESSION, Prussia -40, Saxony OPEN_BORDERS. R3 (Battlefield Diplomacy) specified but not yet added to DIPLOMACY_SPEC §6b. All need design gate before Session 1B. See `docs/COALITION_SPEC.md`.
-3. **Jealousy system** — NEEDS DESIGN GATE. See CLAUDE.md for open questions.
-4. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
+2. **Jealousy system** — NEEDS DESIGN GATE (separate track). See CLAUDE.md.
+3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
 ---
 
@@ -55,6 +54,27 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 2 — Master Pre-Implementation Audit (All 3 Diplomacy Specs)
+
+Final adversarial audit across DIPLOMACY_SPEC.md v2.2, CONVERSATIONAL_DIPLOMACY_DESIGN.md v1.2, and COALITION_SPEC.md v1.1. All specs approved for implementation.
+
+- **Audit scope:** 5,514 lines across 3 specs. 14 edge cases stress-tested. Fun score: 81/100 (no blockers).
+- **4 CRITICAL findings fixed:**
+  - C1: `war_exhaustion` field was used in COALITION_SPEC §6a formula but never defined — added to §10a + DIPLOMACY_SPEC §13.
+  - C2: Session plan mismatch (7 vs 8 sessions) — DIPLOMACY_SPEC §14 and CONV_DESIGN §14c updated to 8-session plan.
+  - C3: §7f missing coalition processing — steps 9a-9d added (war exhaustion, threat accumulation, decay, coalition check).
+  - C4: 5 coalition WorldState fields missing from DIPLOMACY_SPEC §13 — cross-reference block added.
+- **4 MAJOR findings fixed:**
+  - M1: "Coalition war score" undefined — formula defined in COALITION_SPEC §4c (army-weighted average).
+  - M2: CONV_DESIGN §14c wrong session mapping — D→Session 8 (was 7).
+  - M3: British subsidy dependency — moved from Session 8 deferred to Session 7 (Coalition) scope.
+  - M4: Battlefield Diplomacy bonus missing from §6b — added as 9th acceptance component (+10 when war_score > 20).
+- **5 minor fixes:** Instant overrides brewing note (§3d), alliance threat clarification (§2a), bilateral wars note (§5), universal dismiss option, mission-pause-during-confrontation.
+- **Stale references cleaned:** 5 outdated session numbers corrected across DIPLOMACY_SPEC.
+- **Design gates approved:** Coalition Spec v1.1 and Starting Situation Balance (R1-R5) both approved. Jealousy remains separate track.
+- **DIPLOMACY_SPEC bumped to v2.3.** COALITION_SPEC confidence report updated.
+- **Verdict: GO for Session 1A.**
 
 ### Mar 1 — COALITION_SPEC.md v1.1 (Drafted + Audit-Revised)
 
