@@ -10,7 +10,7 @@ Run with: pytest tests/test_cautious_advance_cooldown.py -v
 
 import pytest
 from backend.models.world_state import WorldState
-from backend.models.marshal import Marshal, Stance
+from backend.models.marshal import Stance
 from backend.commands.executor import CommandExecutor
 from backend.ai.enemy_ai import EnemyAI
 
@@ -27,7 +27,7 @@ class TestCautiousAdvance:
     def test_cautious_advances_with_stagnation_1(self):
         """Cautious marshal should advance when stagnation >= 1 and not fortified."""
         wellington = self.world.marshals["Wellington"]
-        wellington.location = "Geneva"  # Far from French — no threat
+        wellington.location = "Tyrol"  # Far from French — no threat
         wellington.strength = 50000
         wellington.fortified = False
 
@@ -40,7 +40,7 @@ class TestCautiousAdvance:
     def test_cautious_does_not_advance_when_fortified(self):
         """Fortified cautious marshal should not get cautious advance."""
         wellington = self.world.marshals["Wellington"]
-        wellington.location = "Geneva"
+        wellington.location = "Tyrol"
         wellington.strength = 50000
         wellington.fortified = True
 
@@ -53,7 +53,7 @@ class TestCautiousAdvance:
     def test_cautious_does_not_advance_with_stagnation_0(self):
         """Cautious marshal should not advance with stagnation 0."""
         wellington = self.world.marshals["Wellington"]
-        wellington.location = "Geneva"
+        wellington.location = "Tyrol"
         wellington.strength = 50000
         wellington.fortified = False
 
@@ -65,7 +65,7 @@ class TestCautiousAdvance:
     def test_cautious_advance_moves_toward_enemy(self):
         """Advance should move toward nearest enemy, not away."""
         wellington = self.world.marshals["Wellington"]
-        wellington.location = "Geneva"  # Mountains, far from action
+        wellington.location = "Tyrol"  # Mountains, far from action
         wellington.strength = 50000
         wellington.fortified = False
 
@@ -79,11 +79,11 @@ class TestCautiousAdvance:
         result = self.ai._consider_strategic_move(wellington, "Britain", self.world)
         if result and result["action"] == "move":
             target = result["target"]
-            current_dist = self.world.get_distance("Geneva", ney.location)
+            current_dist = self.world.get_distance("Tyrol", ney.location)
             new_dist = self.world.get_distance(target, ney.location)
             assert new_dist <= current_dist, (
                 f"Should move closer: {target} (dist {new_dist}) "
-                f"vs Geneva (dist {current_dist})")
+                f"vs Tyrol (dist {current_dist})")
 
     def test_cautious_wont_advance_into_enemy_region(self):
         """Cautious advance should not move into region with enemy marshal."""
@@ -120,7 +120,7 @@ class TestRefortifyCooldown:
     def test_cooldown_set_on_stagnation_unfortify(self):
         """Stagnation unfortify should set 2-turn cooldown."""
         wellington = self.world.marshals["Wellington"]
-        wellington.location = "Geneva"
+        wellington.location = "Tyrol"
         wellington.strength = 50000
         wellington.fortified = True
 
@@ -136,7 +136,7 @@ class TestRefortifyCooldown:
     def test_cooldown_blocks_p5_fortify(self):
         """P5 fortify should be blocked when cooldown is active."""
         wellington = self.world.marshals["Wellington"]
-        wellington.location = "Geneva"
+        wellington.location = "Tyrol"
         wellington.strength = 50000
         wellington.fortified = False
         wellington.stance = Stance.DEFENSIVE
@@ -152,7 +152,7 @@ class TestRefortifyCooldown:
         self.world.ai_refortify_cooldown["Wellington"] = 1
 
         wellington = self.world.marshals["Wellington"]
-        wellington.location = "Geneva"
+        wellington.location = "Tyrol"
         wellington.strength = 50000
         wellington.fortified = False
         wellington.stance = Stance.DEFENSIVE
@@ -196,7 +196,7 @@ class TestRefortifyCooldown:
     def test_cooldown_after_expiry_allows_fortify(self):
         """After cooldown expires, marshal should be able to fortify again."""
         wellington = self.world.marshals["Wellington"]
-        wellington.location = "Geneva"
+        wellington.location = "Tyrol"
         wellington.strength = 50000
         wellington.fortified = False
         wellington.stance = Stance.DEFENSIVE
@@ -244,19 +244,19 @@ class TestVictoryThreshold:
             # 9 < 10, so timed victory should NOT trigger
             assert result.get("result") != "victory" or result.get("reason") != "Survived and control majority of Europe!"
 
-    def test_player_wins_with_10_regions(self):
-        """Player should win timed victory with 10+ regions."""
+    def test_player_wins_with_15_regions(self):
+        """Player should win timed victory with 15+ regions (75% of 19)."""
         world = WorldState()
         executor = CommandExecutor()
 
-        # Give France 10 regions — ensure Paris is one of them
+        # Give France 15 regions — ensure Paris is one of them
         paris = world.get_region("Paris")
         paris.controller = "France"
         count = 1
         for region in world.regions.values():
             if region.name == "Paris":
                 continue
-            if count < 10:
+            if count < 15:
                 region.controller = "France"
                 count += 1
             else:
@@ -271,7 +271,7 @@ class TestVictoryThreshold:
         result = tm._check_victory_conditions()
 
         france_regions = sum(1 for r in world.regions.values() if r.controller == "France")
-        assert france_regions == 10
+        assert france_regions == 15
         assert result.get("game_over") == True
         assert result.get("result") == "victory"
 

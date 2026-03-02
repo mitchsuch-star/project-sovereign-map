@@ -76,15 +76,15 @@ def world():
     w.regions = {
         "Paris":       _make_region("Paris", ["Belgium", "Lyon"], "France"),
         "Belgium":     _make_region("Belgium", ["Paris", "Waterloo", "Netherlands"], "France"),
-        "Netherlands": _make_region("Netherlands", ["Belgium", "Rhine"], "Britain"),
+        "Netherlands": _make_region("Netherlands", ["Belgium", "Rhineland"], "Britain"),
         "Waterloo":    _make_region("Waterloo", ["Belgium", "Ligny"], "Britain"),
         "Lyon":        _make_region("Lyon", ["Paris", "Marseille"], "France"),
         "Marseille":   _make_region("Marseille", ["Lyon"], "France"),
         "Ligny":       _make_region("Ligny", ["Waterloo", "Wavre"], "Prussia"),
         "Wavre":       _make_region("Wavre", ["Ligny", "Munich"], "France"),
-        "Rhine":       _make_region("Rhine", ["Netherlands", "Berlin", "Munich"], "Prussia"),
-        "Berlin":      _make_region("Berlin", ["Rhine"], "Prussia"),
-        "Munich":      _make_region("Munich", ["Wavre", "Rhine", "Vienna"], "France"),
+        "Rhineland":       _make_region("Rhineland", ["Netherlands", "Berlin", "Munich"], "Prussia"),
+        "Berlin":      _make_region("Berlin", ["Rhineland"], "Prussia"),
+        "Munich":      _make_region("Munich", ["Wavre", "Rhineland", "Vienna"], "France"),
         "Vienna":      _make_region("Vienna", ["Munich"], "France"),
     }
 
@@ -1504,7 +1504,7 @@ class TestSupportHandler:
 
         # Give Ney a strategic move order
         ney = world.get_marshal("Ney")
-        ney.strategic_order = _make_order("MOVE_TO", "Rhine", path=["Netherlands", "Rhine"])
+        ney.strategic_order = _make_order("MOVE_TO", "Rhineland", path=["Netherlands", "Rhineland"])
 
         reports = strategic_executor.process_strategic_orders(world, game_state)
         report = [r for r in reports if r["marshal"] == "Davout"][0]
@@ -1893,8 +1893,8 @@ class TestCannonFireSystem:
         # Davout is cautious, 1 region away (Belgium adjacent to Waterloo)
         davout = world.get_marshal("Davout")
         davout.location = "Belgium"
-        davout.strategic_order = _make_order("MOVE_TO", "Rhine",
-                                              path=["Netherlands", "Rhine"])
+        davout.strategic_order = _make_order("MOVE_TO", "Rhineland",
+                                              path=["Netherlands", "Rhineland"])
         # Prevent Davout from being pulled as reinforcement into Ney's battle
         davout.reinforced_this_turn = True
 

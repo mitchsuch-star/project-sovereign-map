@@ -131,7 +131,7 @@ def create_fully_populated_marshal() -> Marshal:
         original_command="March to Vienna",
         path=["Paris", "Lyon", "Milan", "Vienna"]
     )
-    marshal.pending_interrupt = {"type": "blocked_path", "location": "Rhine"}
+    marshal.pending_interrupt = {"type": "blocked_path", "location": "Rhineland"}
 
     # Combat tracking
     marshal.in_combat_this_turn = True
@@ -285,7 +285,7 @@ class TestStrategicOrderSerializationEnforcement:
             target_type="enemy_marshal",
             started_turn=1,
             original_command="Pursue Blucher",
-            path=["Paris", "Rhine", "Berlin"],
+            path=["Paris", "Rhineland", "Berlin"],
             follow_if_moves=True,
             join_combat=True,
             target_snapshot_location="Berlin",

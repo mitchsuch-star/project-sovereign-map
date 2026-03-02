@@ -9,15 +9,13 @@ Covers:
 """
 
 import json
-import os
-import shutil
 import pytest
 from pathlib import Path
 from unittest.mock import patch
 
 from backend.save_manager import (
     save_game, load_game, autosave, list_saves, delete_save,
-    ensure_save_dir, SAVE_DIR, AUTOSAVE_FILENAME, FORMAT_VERSION,
+    AUTOSAVE_FILENAME, FORMAT_VERSION,
 )
 from backend.models.world_state import WorldState
 from backend.models.marshal import Stance
@@ -275,7 +273,7 @@ class TestLoadGameErrors:
     def test_load_missing_world_state(self, test_save_dir):
         filepath = test_save_dir / "no_world.json"
         with open(filepath, 'w') as f:
-            json.dump({"metadata": {"save_name": "No World"}}, f)
+            json.dump({"metadata": {"save_name": "No World", "format_version": FORMAT_VERSION}}, f)
 
         result = load_game(filepath)
         assert result["success"] is False
@@ -396,19 +394,19 @@ class TestRoundtripTransientData:
 class TestBackwardCompat:
     """Old/malformed save files still load."""
 
-    def test_missing_metadata_still_loads(self, test_save_dir, world):
-        """Save file with no metadata key still loads."""
+    def test_missing_metadata_rejected_as_old_format(self, test_save_dir, world):
+        """Save file with no metadata key is rejected (defaults to format_version 1 < current)."""
         filepath = test_save_dir / "no_meta.json"
         data = {"world_state": world.to_dict()}
         with open(filepath, 'w') as f:
             json.dump(data, f)
 
         result = load_game(filepath)
-        assert result["success"]
-        assert result["metadata"] == {}
+        assert result["success"] is False
+        assert "incompatible" in result["message"].lower()
 
-    def test_old_format_version_still_loads(self, test_save_dir, world):
-        """Save with format_version 0 still loads."""
+    def test_old_format_version_rejected(self, test_save_dir, world):
+        """Save with old format_version is rejected (13-region map incompatible)."""
         filepath = test_save_dir / "old_version.json"
         data = {
             "metadata": {"format_version": 0, "save_name": "Old"},
@@ -418,8 +416,8 @@ class TestBackwardCompat:
             json.dump(data, f)
 
         result = load_game(filepath)
-        assert result["success"]
-        assert result["metadata"]["format_version"] == 0
+        assert result["success"] is False
+        assert "incompatible" in result["message"].lower()
 
     def test_extra_unknown_fields_ignored(self, test_save_dir, world):
         """Save file with extra keys still loads."""
@@ -428,7 +426,7 @@ class TestBackwardCompat:
         world_dict["some_future_field"] = "some_value"
         world_dict["another_new_thing"] = 42
         data = {
-            "metadata": {"format_version": 1, "save_name": "Extra"},
+            "metadata": {"format_version": FORMAT_VERSION, "save_name": "Extra"},
             "world_state": world_dict
         }
         with open(filepath, 'w') as f:
@@ -447,7 +445,7 @@ class TestBackwardCompat:
         world_dict.pop("admin_actions_remaining", None)
         world_dict.pop("gold_spent_this_turn", None)
         data = {
-            "metadata": {"format_version": 1},
+            "metadata": {"format_version": FORMAT_VERSION},
             "world_state": world_dict
         }
         with open(filepath, 'w') as f:

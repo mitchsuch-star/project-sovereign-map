@@ -11,7 +11,7 @@ Run with: pytest tests/test_enemy_ai.py -v
 import pytest
 import random
 from backend.models.world_state import WorldState
-from backend.models.marshal import Marshal, Stance
+from backend.models.marshal import Stance
 from backend.commands.executor import CommandExecutor
 from backend.ai.enemy_ai import EnemyAI
 
@@ -227,9 +227,9 @@ class TestPriorityDecisions:
         # Get action for Wellington
         action, priority = self.ai._evaluate_marshal(wellington, "Britain", self.world)
 
-        # Should be defensive action (stance change, wait, defend, or retreat to flee)
+        # Should be defensive action (stance change, wait, defend, retreat, or move to safe location)
         if action:
-            valid_recovery_actions = ["stance_change", "wait", "defend", "retreat"]
+            valid_recovery_actions = ["stance_change", "wait", "defend", "retreat", "move"]
             assert action.get("action") in valid_recovery_actions, \
                 f"Recovery marshal should do defensive action, got {action.get('action')}"
         print(f"P1 recovery: action={action}, priority={priority}")
@@ -585,7 +585,7 @@ class TestSafetyChecks:
 
         assert result is not None, "Should unfortify to support ally in combat"
         assert result["action"] == "unfortify", f"Expected unfortify, got {result['action']}"
-        print(f"Ally support: Gneisenau unfortifies to help Blucher")
+        print("Ally support: Gneisenau unfortifies to help Blucher")
 
 
 class TestNationProcessing:
@@ -1093,10 +1093,12 @@ class TestHelperFunctions:
         ney = self.world.get_marshal("Ney")
         grouchy = self.world.get_marshal("Grouchy")
 
-        # Far away — move Grouchy away from Belgium so no French adjacent to Netherlands
+        # Far away — move ALL non-Prussian marshals away so no enemies adjacent to Netherlands
+        # Netherlands adj: Belgium, Waterloo, Hanover
         blucher.location = "Netherlands"
-        ney.location = "Paris"
-        grouchy.location = "Paris"
+        for m in self.world.marshals.values():
+            if m.nation != "Prussia":
+                m.location = "Marseille"
         assert not has_adjacent_enemies(blucher, self.world)
 
         # Adjacent (Belgium is adjacent to Netherlands)
@@ -1110,6 +1112,11 @@ class TestHelperFunctions:
 
         blucher = self.world.get_marshal("Blucher")
         grouchy = self.world.get_marshal("Grouchy")
+
+        # Move ALL non-Prussian marshals away first, then place only Grouchy adjacent
+        for m in self.world.marshals.values():
+            if m.nation != "Prussia":
+                m.location = "Marseille"
 
         blucher.location = "Netherlands"
         grouchy.location = "Belgium"
@@ -1367,9 +1374,13 @@ class TestBugFix3_PathValidation:
 
     def test_path_blocked_by_enemy(self):
         """Path through region with enemy should be blocked."""
-        # Setup: Uxbridge in Waterloo, Ney in Brittany, Davout in Paris
-        # Path from Waterloo to Brittany goes through Belgium then Brittany
-        # But if we put Davout in an intermediate region on the path...
+        # Path from Waterloo to Brittany goes through Belgium then Normandy
+        # Move ALL French marshals away first, then place Davout as blocker
+
+        # Move all French marshals away so they don't interfere
+        for m in self.world.marshals.values():
+            if m.nation == "France":
+                m.location = "Marseille"
 
         # First find the actual path
         path = self.ai._get_path_to_target("Waterloo", "Brittany", self.world)
@@ -1533,7 +1544,7 @@ class TestBugFix5_CautiousCapture:
         grouchy = self.world.get_marshal("Grouchy")
 
         # Netherlands adjacent: Belgium, Rhine
-        ney.location = "Rhine"
+        ney.location = "Rhineland"
         ney.strength = 20000
         davout.location = "Paris"  # Not adjacent
         grouchy.location = "Paris"  # Not adjacent
@@ -1567,7 +1578,7 @@ class TestBugFix5_CautiousCapture:
 
         # Total adjacent enemy strength = 30000 (10000 each)
         # Gneisenau strength = 90000, ratio = 3:1
-        ney.location = "Rhine"
+        ney.location = "Rhineland"
         ney.strength = 10000
         davout.location = "Brittany"  # Check if adjacent to Netherlands
         davout.strength = 10000

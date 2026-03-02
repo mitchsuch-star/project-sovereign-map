@@ -76,7 +76,7 @@ class TestCoordinatedAttack:
                                  personality="aggressive", nation="Coalition")
         ally = _make_marshal(name="Blucher", location="Waterloo", strength=15000,
                              personality="cautious", nation="Coalition")
-        defender = _make_marshal(name="Davout", location="Rhine", strength=20000,
+        defender = _make_marshal(name="Davout", location="Rhineland", strength=20000,
                                  nation="France")
 
         world.marshals["Ney"] = attacker
@@ -104,7 +104,7 @@ class TestCoordinatedAttack:
         world.marshals["Ney"] = attacker
         world.marshals["Blucher"] = ally
         world.player_nation = "France"
-        world.get_region("Rhine").controller = "France"
+        world.get_region("Rhineland").controller = "France"
 
         result = self.ai._find_coordinated_attack(attacker, "Coalition", world)
         assert result is None
@@ -118,7 +118,7 @@ class TestCoordinatedAttack:
                                  personality="aggressive", nation="Coalition")
         ally = _make_marshal(name="Blucher", location="Waterloo", strength=15000,
                              personality="cautious", nation="Coalition")
-        defender = _make_marshal(name="Davout", location="Rhine", strength=20000,
+        defender = _make_marshal(name="Davout", location="Rhineland", strength=20000,
                                  nation="France")
 
         world.marshals["Ney"] = attacker
@@ -142,7 +142,7 @@ class TestCoordinatedAttack:
                                  personality="aggressive", nation="Coalition")
         ally = _make_marshal(name="Blucher", location="Waterloo", strength=15000,
                              personality="cautious", nation="Coalition")
-        defender = _make_marshal(name="Davout", location="Rhine", strength=20000,
+        defender = _make_marshal(name="Davout", location="Rhineland", strength=20000,
                                  nation="France")
 
         world.marshals["Ney"] = attacker
@@ -164,7 +164,7 @@ class TestCoordinatedAttack:
         attacker.fortified = True
         ally = _make_marshal(name="Blucher", location="Waterloo", strength=15000,
                              personality="cautious", nation="Coalition")
-        defender = _make_marshal(name="Davout", location="Rhine", strength=20000,
+        defender = _make_marshal(name="Davout", location="Rhineland", strength=20000,
                                  nation="France")
 
         world.marshals["Ney"] = attacker
@@ -229,9 +229,9 @@ class TestAllySupport:
                                        strength=30000, nation="France")
 
         # Devoted ally at Rhine (outnumbered)
-        devoted_ally = _make_marshal(name="Blucher", location="Rhine", strength=10000,
+        devoted_ally = _make_marshal(name="Blucher", location="Rhineland", strength=10000,
                                      personality="cautious", nation="Coalition")
-        enemy_at_rhine = _make_marshal(name="WellingtonB", location="Rhine",
+        enemy_at_rhine = _make_marshal(name="WellingtonB", location="Rhineland",
                                        strength=30000, nation="France")
 
         world.marshals["Ney"] = supporter
@@ -266,9 +266,9 @@ class TestAllySupport:
                                        strength=30000, nation="France")
 
         # Friendly ally at Rhine (outnumbered)
-        friendly_ally = _make_marshal(name="Blucher", location="Rhine", strength=10000,
+        friendly_ally = _make_marshal(name="Blucher", location="Rhineland", strength=10000,
                                       personality="cautious", nation="Coalition")
-        enemy_at_rhine = _make_marshal(name="EnemyB", location="Rhine",
+        enemy_at_rhine = _make_marshal(name="EnemyB", location="Rhineland",
                                        strength=30000, nation="France")
 
         world.marshals["Ney"] = supporter
@@ -309,7 +309,7 @@ class TestCoLocationPersistence:
                                 personality="aggressive", nation="Coalition")
         ally = _make_marshal(name="Blucher", location="Belgium", strength=25000,
                              personality="cautious", nation="Coalition")
-        enemy = _make_marshal(name="Davout", location="Rhine", strength=40000,
+        enemy = _make_marshal(name="Davout", location="Rhineland", strength=40000,
                               nation="France")
 
         world.marshals["Ney"] = marshal
@@ -353,7 +353,7 @@ class TestCoLocationPersistence:
                                 personality="aggressive", nation="Coalition")
         ally = _make_marshal(name="Blucher", location="Belgium", strength=25000,
                              personality="cautious", nation="Coalition")
-        enemy = _make_marshal(name="Davout", location="Rhine", strength=40000,
+        enemy = _make_marshal(name="Davout", location="Rhineland", strength=40000,
                               nation="France")
 
         world.marshals["Ney"] = marshal
@@ -373,7 +373,7 @@ class TestCoLocationPersistence:
 
         marshal = _make_marshal(name="Ney", location="Belgium", strength=30000,
                                 personality="aggressive", nation="Coalition")
-        enemy = _make_marshal(name="Davout", location="Rhine", strength=40000,
+        enemy = _make_marshal(name="Davout", location="Rhineland", strength=40000,
                               nation="France")
 
         world.marshals["Ney"] = marshal
@@ -393,7 +393,7 @@ class TestCoLocationPersistence:
                                 personality="aggressive", nation="Coalition")
         ally = _make_marshal(name="Blucher", location="Belgium", strength=25000,
                              personality="cautious", nation="Coalition")
-        enemy = _make_marshal(name="Davout", location="Rhine", strength=40000,
+        enemy = _make_marshal(name="Davout", location="Rhineland", strength=40000,
                               nation="France")
 
         world.marshals["Ney"] = marshal
@@ -523,12 +523,13 @@ class TestDefensiveReinforcement:
         world.marshals.clear()
 
         # Marshal at Paris, ally at Rhine (threatened by enemy at Bavaria)
-        # Paris adj: Belgium, Waterloo, Brittany, Lyon
+        # Paris adj: Normandy, Belgium, Lyon, Bordeaux
         # Rhine adj: Belgium, Bavaria, Lyon
-        # Lyon is adjacent to both Paris and Rhine — valid move
+        # Both Belgium and Lyon are adjacent to both Paris and Rhine.
+        # Neither is adj to Bavaria (enemy). Scoring should be equal.
         marshal = _make_marshal(name="Ney", location="Paris", strength=30000,
                                 personality="aggressive", nation="Coalition")
-        ally = _make_marshal(name="Blucher", location="Rhine", strength=20000,
+        ally = _make_marshal(name="Blucher", location="Rhineland", strength=20000,
                              personality="cautious", nation="Coalition")
         enemy = _make_marshal(name="Wellington", location="Bavaria", strength=30000,
                               nation="France")
@@ -543,8 +544,8 @@ class TestDefensiveReinforcement:
         result = self.ai._find_defensive_reinforcement_position(marshal, "Coalition", world)
         assert result is not None
         assert result["action"] == "move"
-        # Should move to Lyon (adjacent to both Paris and Rhine)
-        assert result["target"] == "Lyon"
+        # Should move to Belgium or Lyon (both adjacent to Paris and Rhine)
+        assert result["target"] in ("Belgium", "Lyon")
 
     def test_no_move_if_already_adjacent(self):
         """Already adjacent to threatened ally → don't move."""
@@ -554,7 +555,7 @@ class TestDefensiveReinforcement:
         # Marshal at Belgium (adjacent to Rhine), ally at Rhine (threatened)
         marshal = _make_marshal(name="Ney", location="Belgium", strength=30000,
                                 personality="aggressive", nation="Coalition")
-        ally = _make_marshal(name="Blucher", location="Rhine", strength=20000,
+        ally = _make_marshal(name="Blucher", location="Rhineland", strength=20000,
                              personality="cautious", nation="Coalition")
         enemy = _make_marshal(name="Wellington", location="Bavaria", strength=30000,
                               nation="France")
@@ -576,7 +577,7 @@ class TestDefensiveReinforcement:
 
         marshal = _make_marshal(name="Ney", location="Paris", strength=30000,
                                 personality="aggressive", nation="Coalition")
-        ally = _make_marshal(name="Blucher", location="Rhine", strength=20000,
+        ally = _make_marshal(name="Blucher", location="Rhineland", strength=20000,
                              personality="cautious", nation="Coalition")
         enemy = _make_marshal(name="Wellington", location="Bavaria", strength=30000,
                               nation="France")
@@ -602,7 +603,7 @@ class TestDefensiveReinforcement:
         # But Geneva is NOT adj to Rhine
         marshal = _make_marshal(name="Ney", location="Marseille", strength=30000,
                                 personality="aggressive", nation="Coalition")
-        ally = _make_marshal(name="Blucher", location="Rhine", strength=20000,
+        ally = _make_marshal(name="Blucher", location="Rhineland", strength=20000,
                              personality="cautious", nation="Coalition")
         enemy = _make_marshal(name="Wellington", location="Bavaria", strength=30000,
                               nation="France")
@@ -626,7 +627,7 @@ class TestDefensiveReinforcement:
 
         marshal = _make_marshal(name="Ney", location="Paris", strength=30000,
                                 personality="aggressive", nation="Coalition")
-        ally = _make_marshal(name="Blucher", location="Rhine", strength=20000,
+        ally = _make_marshal(name="Blucher", location="Rhineland", strength=20000,
                              personality="cautious", nation="Coalition")
         # No enemies at all
 
@@ -665,7 +666,7 @@ class TestAttackThresholdCoordination:
         ally2 = _make_marshal(name="Soult", location="Belgium", strength=5000,
                               personality="cautious", nation="Coalition")
         # Enemy adjacent at Rhine
-        defender = _make_marshal(name="Wellington", location="Rhine", strength=20000,
+        defender = _make_marshal(name="Wellington", location="Rhineland", strength=20000,
                                  nation="France")
 
         world.marshals["Ney"] = attacker
@@ -690,7 +691,7 @@ class TestAttackThresholdCoordination:
         # Cautious marshal (threshold ~1.3). Solo ratio ~0.8 (below threshold).
         attacker = _make_marshal(name="Ney", location="Belgium", strength=16000,
                                  personality="cautious", nation="Coalition")
-        defender = _make_marshal(name="Wellington", location="Rhine", strength=20000,
+        defender = _make_marshal(name="Wellington", location="Rhineland", strength=20000,
                                  nation="France")
 
         world.marshals["Ney"] = attacker
@@ -725,7 +726,7 @@ class TestStagnationOverride:
 
         # Belgium is frontline (Rhine is enemy-controlled)
         world.get_region("Belgium").controller = "Coalition"
-        world.get_region("Rhine").controller = "France"
+        world.get_region("Rhineland").controller = "France"
 
         # No stagnation — full penalty
         world.ai_stagnation_turns["Drouot"] = 0
@@ -753,7 +754,7 @@ class TestStagnationOverride:
         world.player_nation = "France"
 
         world.get_region("Belgium").controller = "Coalition"
-        world.get_region("Rhine").controller = "France"
+        world.get_region("Rhineland").controller = "France"
 
         # No stagnation — screened penalty -30
         world.ai_stagnation_turns["Drouot"] = 0
@@ -778,7 +779,7 @@ class TestStagnationOverride:
         world.player_nation = "France"
 
         world.get_region("Belgium").controller = "Coalition"
-        world.get_region("Rhine").controller = "France"
+        world.get_region("Rhineland").controller = "France"
 
         # _score_artillery_position is only called for artillery, but
         # verify infantry doesn't have special handling.
@@ -898,7 +899,7 @@ class TestIntegration:
                             personality="aggressive", nation="Coalition")
         davout = _make_marshal(name="Davout", location="Waterloo", strength=15000,
                                personality="cautious", nation="Coalition")
-        defender = _make_marshal(name="Wellington", location="Rhine", strength=20000,
+        defender = _make_marshal(name="Wellington", location="Rhineland", strength=20000,
                                  nation="France")
 
         world.marshals["Ney"] = ney
@@ -931,7 +932,7 @@ class TestIntegration:
                                 personality="aggressive", nation="Coalition")
         ally = _make_marshal(name="Soult", location="Waterloo", strength=15000,
                              personality="cautious", nation="Coalition")
-        defender = _make_marshal(name="Wellington", location="Rhine", strength=20000,
+        defender = _make_marshal(name="Wellington", location="Rhineland", strength=20000,
                                  nation="France")
 
         world.marshals["Ney"] = marshal
@@ -954,7 +955,7 @@ class TestIntegration:
         # but has a threatened ally to reinforce.
         marshal = _make_marshal(name="Ney", location="Paris", strength=30000,
                                 personality="cautious", nation="Coalition")
-        ally = _make_marshal(name="Blucher", location="Rhine", strength=20000,
+        ally = _make_marshal(name="Blucher", location="Rhineland", strength=20000,
                              personality="cautious", nation="Coalition")
         enemy = _make_marshal(name="Wellington", location="Bavaria", strength=30000,
                               nation="France")
@@ -989,7 +990,7 @@ class TestIntegration:
                                 personality="aggressive", nation="Coalition")
         ally = _make_marshal(name="Blucher", location="Belgium", strength=20000,
                              personality="cautious", nation="Coalition")
-        enemy = _make_marshal(name="Wellington", location="Rhine", strength=50000,
+        enemy = _make_marshal(name="Wellington", location="Rhineland", strength=50000,
                               nation="France")
 
         world.marshals["Ney"] = marshal

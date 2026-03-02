@@ -597,7 +597,7 @@ class TestHelperFunctions:
         marshal = MockMarshal(location="Belgium")
         world = MockWorld(
             marshals={"Ally": MockMarshal(name="Ally", location="Paris")},
-            regions={"Belgium": MockRegion("Belgium", ["Paris", "Rhine"])}
+            regions={"Belgium": MockRegion("Belgium", ["Paris", "Rhineland"])}
         )
         game_state = MockGameState(world)
         assert _check_enemy_adjacent(marshal, game_state) is False
@@ -605,10 +605,10 @@ class TestHelperFunctions:
     def test_check_enemy_adjacent_enemy_adjacent(self):
         """Returns True when enemy in adjacent region."""
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world = MockWorld(
             marshals={"Marshal": marshal, "Wellington": enemy},
-            regions={"Belgium": MockRegion("Belgium", ["Rhine", "Paris"])}
+            regions={"Belgium": MockRegion("Belgium", ["Rhineland", "Paris"])}
         )
         game_state = MockGameState(world)
         assert _check_enemy_adjacent(marshal, game_state) is True
@@ -619,7 +619,7 @@ class TestHelperFunctions:
         enemy = MockMarshal(name="Wellington", location="Spain", nation="Britain")
         world = MockWorld(
             marshals={"Marshal": marshal, "Wellington": enemy},
-            regions={"Belgium": MockRegion("Belgium", ["Rhine", "Paris"])}
+            regions={"Belgium": MockRegion("Belgium", ["Rhineland", "Paris"])}
         )
         game_state = MockGameState(world)
         assert _check_enemy_adjacent(marshal, game_state) is False
@@ -649,10 +649,10 @@ class TestHelperFunctions:
     def test_get_friendly_to_enemy_ratio_outnumber_enemy(self):
         """Returns correct ratio when outnumbering enemy."""
         marshal = MockMarshal(location="Belgium", strength=100000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=50000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=50000)
         world = MockWorld(
             marshals={"Marshal": marshal, "Wellington": enemy},
-            regions={"Belgium": MockRegion("Belgium", ["Rhine"])}
+            regions={"Belgium": MockRegion("Belgium", ["Rhineland"])}
         )
         game_state = MockGameState(world)
         ratio = _get_friendly_to_enemy_ratio(marshal, game_state)
@@ -661,10 +661,10 @@ class TestHelperFunctions:
     def test_is_outnumbered_2to1(self):
         """Correctly identifies 2:1 disadvantage."""
         marshal = MockMarshal(location="Belgium", strength=30000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=60000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=60000)
         world = MockWorld(
             marshals={"Marshal": marshal, "Wellington": enemy},
-            regions={"Belgium": MockRegion("Belgium", ["Rhine"])}
+            regions={"Belgium": MockRegion("Belgium", ["Rhineland"])}
         )
         game_state = MockGameState(world)
         assert _is_outnumbered_2to1(marshal, game_state) is True
@@ -672,10 +672,10 @@ class TestHelperFunctions:
     def test_not_outnumbered_2to1(self):
         """Correctly identifies when NOT at 2:1 disadvantage."""
         marshal = MockMarshal(location="Belgium", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=60000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=60000)
         world = MockWorld(
             marshals={"Marshal": marshal, "Wellington": enemy},
-            regions={"Belgium": MockRegion("Belgium", ["Rhine"])}
+            regions={"Belgium": MockRegion("Belgium", ["Rhineland"])}
         )
         game_state = MockGameState(world)
         assert _is_outnumbered_2to1(marshal, game_state) is False
@@ -707,8 +707,8 @@ class TestEvaluateAggressive:
     def test_defend_enemy_adjacent_equal_forces_is_moderate(self):
         """Defend with enemy adjacent at equal strength is MODERATE."""
         marshal = MockMarshal(personality="aggressive", location="Belgium", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=50000)
-        game_state = self._make_game_state(marshal, [enemy], ["Rhine"])
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=50000)
+        game_state = self._make_game_state(marshal, [enemy], ["Rhineland"])
 
         concern = evaluate_aggressive(marshal, "defend", {"action": "defend"}, game_state)
         assert concern == ConcernLevel.MODERATE
@@ -716,8 +716,8 @@ class TestEvaluateAggressive:
     def test_defend_enemy_adjacent_2to1_advantage_is_strong(self):
         """Defend with 2:1 advantage is STRONG concern (wants to attack)."""
         marshal = MockMarshal(personality="aggressive", location="Belgium", strength=100000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=50000)
-        game_state = self._make_game_state(marshal, [enemy], ["Rhine"])
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=50000)
+        game_state = self._make_game_state(marshal, [enemy], ["Rhineland"])
 
         concern = evaluate_aggressive(marshal, "defend", {"action": "defend"}, game_state)
         assert concern == ConcernLevel.STRONG
@@ -725,8 +725,8 @@ class TestEvaluateAggressive:
     def test_defend_enemy_adjacent_3to1_advantage_is_extreme(self):
         """Defend with 3:1+ advantage is EXTREME concern."""
         marshal = MockMarshal(personality="aggressive", location="Belgium", strength=150000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=50000)
-        game_state = self._make_game_state(marshal, [enemy], ["Rhine"])
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=50000)
+        game_state = self._make_game_state(marshal, [enemy], ["Rhineland"])
 
         concern = evaluate_aggressive(marshal, "defend", {"action": "defend"}, game_state)
         assert concern == ConcernLevel.EXTREME
@@ -751,8 +751,8 @@ class TestEvaluateAggressive:
     def test_retreat_threatened_not_outnumbered_is_mild(self):
         """Retreat when threatened but not outnumbered is MILD."""
         marshal = MockMarshal(personality="aggressive", location="Belgium", strength=60000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=60000)
-        game_state = self._make_game_state(marshal, [enemy], ["Rhine"])
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=60000)
+        game_state = self._make_game_state(marshal, [enemy], ["Rhineland"])
 
         concern = evaluate_aggressive(marshal, "retreat", {"action": "retreat"}, game_state)
         assert concern == ConcernLevel.MILD
@@ -760,8 +760,8 @@ class TestEvaluateAggressive:
     def test_retreat_outnumbered_low_morale_is_none(self):
         """Retreat when outnumbered 2:1 AND low morale is accepted (NONE)."""
         marshal = MockMarshal(personality="aggressive", location="Belgium", strength=30000, morale=30)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=60000)
-        game_state = self._make_game_state(marshal, [enemy], ["Rhine"])
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=60000)
+        game_state = self._make_game_state(marshal, [enemy], ["Rhineland"])
 
         concern = evaluate_aggressive(marshal, "retreat", {"action": "retreat"}, game_state)
         assert concern == ConcernLevel.NONE
@@ -769,8 +769,8 @@ class TestEvaluateAggressive:
     def test_drill_enemy_adjacent_is_moderate(self):
         """Drill with enemy adjacent is MODERATE concern."""
         marshal = MockMarshal(personality="aggressive", location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
-        game_state = self._make_game_state(marshal, [enemy], ["Rhine"])
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
+        game_state = self._make_game_state(marshal, [enemy], ["Rhineland"])
 
         concern = evaluate_aggressive(marshal, "drill", {"action": "drill"}, game_state)
         assert concern == ConcernLevel.MODERATE
@@ -825,8 +825,8 @@ class TestEvaluateCautious:
     def test_attack_even_odds_is_none(self):
         """Attack at even odds is acceptable (NONE)."""
         marshal = MockMarshal(personality="cautious", location="Belgium", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=50000)
-        game_state = self._make_game_state(marshal, [enemy], ["Rhine"])
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=50000)
+        game_state = self._make_game_state(marshal, [enemy], ["Rhineland"])
 
         concern = evaluate_cautious(marshal, "attack", {"action": "attack", "target": "Wellington"}, game_state)
         assert concern == ConcernLevel.NONE
@@ -834,8 +834,8 @@ class TestEvaluateCautious:
     def test_attack_1_5_to_1_disadvantage_is_mild(self):
         """Attack at 1.5:1 disadvantage is MILD (V1 was MAJOR, V2 is MILD)."""
         marshal = MockMarshal(personality="cautious", location="Belgium", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=75000)
-        game_state = self._make_game_state(marshal, [enemy], ["Rhine"])
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=75000)
+        game_state = self._make_game_state(marshal, [enemy], ["Rhineland"])
 
         concern = evaluate_cautious(marshal, "attack", {"action": "attack", "target": "Wellington"}, game_state)
         assert concern == ConcernLevel.MILD
@@ -843,8 +843,8 @@ class TestEvaluateCautious:
     def test_attack_2_to_1_disadvantage_is_moderate(self):
         """Attack at 2:1 disadvantage is MODERATE."""
         marshal = MockMarshal(personality="cautious", location="Belgium", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=100000)
-        game_state = self._make_game_state(marshal, [enemy], ["Rhine"])
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=100000)
+        game_state = self._make_game_state(marshal, [enemy], ["Rhineland"])
 
         concern = evaluate_cautious(marshal, "attack", {"action": "attack", "target": "Wellington"}, game_state)
         assert concern == ConcernLevel.MODERATE
@@ -852,8 +852,8 @@ class TestEvaluateCautious:
     def test_attack_3_to_1_disadvantage_is_strong(self):
         """Attack at 3:1 disadvantage is STRONG."""
         marshal = MockMarshal(personality="cautious", location="Belgium", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=150000)
-        game_state = self._make_game_state(marshal, [enemy], ["Rhine"])
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=150000)
+        game_state = self._make_game_state(marshal, [enemy], ["Rhineland"])
 
         concern = evaluate_cautious(marshal, "attack", {"action": "attack", "target": "Wellington"}, game_state)
         assert concern == ConcernLevel.STRONG
@@ -861,8 +861,8 @@ class TestEvaluateCautious:
     def test_attack_5_to_1_disadvantage_is_extreme(self):
         """Attack at 5:1+ disadvantage is EXTREME (suicide mission)."""
         marshal = MockMarshal(personality="cautious", location="Belgium", strength=20000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=100000)
-        game_state = self._make_game_state(marshal, [enemy], ["Rhine"])
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=100000)
+        game_state = self._make_game_state(marshal, [enemy], ["Rhineland"])
 
         concern = evaluate_cautious(marshal, "attack", {"action": "attack", "target": "Wellington"}, game_state)
         assert concern == ConcernLevel.EXTREME
@@ -871,10 +871,10 @@ class TestEvaluateCautious:
         """Attacking fortified position increases concern by 1 level."""
         marshal = MockMarshal(personality="cautious", location="Belgium", strength=50000)
         enemy = MockMarshal(
-            name="Wellington", location="Rhine", nation="Britain",
+            name="Wellington", location="Rhineland", nation="Britain",
             strength=50000, fortified=True
         )
-        game_state = self._make_game_state(marshal, [enemy], ["Rhine"])
+        game_state = self._make_game_state(marshal, [enemy], ["Rhineland"])
 
         concern = evaluate_cautious(marshal, "attack", {"action": "attack", "target": "Wellington"}, game_state)
         # Even odds (NONE) + fortified bump = MILD
@@ -884,10 +884,10 @@ class TestEvaluateCautious:
         """Attacking fortified at 3:1 disadvantage is EXTREME (STRONG + bump)."""
         marshal = MockMarshal(personality="cautious", location="Belgium", strength=50000)
         enemy = MockMarshal(
-            name="Wellington", location="Rhine", nation="Britain",
+            name="Wellington", location="Rhineland", nation="Britain",
             strength=150000, fortified=True
         )
-        game_state = self._make_game_state(marshal, [enemy], ["Rhine"])
+        game_state = self._make_game_state(marshal, [enemy], ["Rhineland"])
 
         concern = evaluate_cautious(marshal, "attack", {"action": "attack", "target": "Wellington"}, game_state)
         # 3:1 (STRONG) + fortified bump = EXTREME
@@ -897,19 +897,19 @@ class TestEvaluateCautious:
         """Move with safe path is acceptable (NONE)."""
         marshal = MockMarshal(personality="cautious", location="Belgium")
         regions = {
-            "Belgium": MockRegion("Belgium", ["Rhine"]),
-            "Rhine": MockRegion("Rhine", ["Belgium", "Bavaria"]),
+            "Belgium": MockRegion("Belgium", ["Rhineland"]),
+            "Rhineland": MockRegion("Rhineland", ["Belgium", "Bavaria"]),
         }
         game_state = MockGameState(MockWorld({"Marshal": marshal}, regions))
 
-        concern = evaluate_cautious(marshal, "move", {"action": "move", "target": "Rhine"}, game_state)
+        concern = evaluate_cautious(marshal, "move", {"action": "move", "target": "Rhineland"}, game_state)
         assert concern == ConcernLevel.NONE
 
     def test_aggressive_stance_enemy_adjacent_is_mild(self):
         """Aggressive stance with enemy adjacent is MILD concern."""
         marshal = MockMarshal(personality="cautious", location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
-        game_state = self._make_game_state(marshal, [enemy], ["Rhine"])
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
+        game_state = self._make_game_state(marshal, [enemy], ["Rhineland"])
 
         concern = evaluate_cautious(
             marshal, "stance_change",
@@ -969,10 +969,10 @@ class TestEvaluateSituation:
     def test_routes_to_cautious(self):
         """Routes cautious personality to correct evaluator."""
         marshal = MockMarshal(personality="cautious", location="Belgium", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=100000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=100000)
         world = MockWorld(
             marshals={"Marshal": marshal, "Wellington": enemy},
-            regions={"Belgium": MockRegion("Belgium", ["Rhine"])}
+            regions={"Belgium": MockRegion("Belgium", ["Rhineland"])}
         )
         game_state = MockGameState(world)
 
@@ -1046,8 +1046,8 @@ class TestStrategicHelperFunctions:
         world = MockWorldWithHelpers(
             marshals={"Marshal": marshal},
             regions={
-                "Belgium": MockRegion("Belgium", ["Rhine", "Paris"]),
-                "Rhine": MockRegion("Rhine", ["Belgium"]),
+                "Belgium": MockRegion("Belgium", ["Rhineland", "Paris"]),
+                "Rhineland": MockRegion("Rhineland", ["Belgium"]),
                 "Paris": MockRegion("Paris", ["Belgium"]),
             }
         )
@@ -1057,12 +1057,12 @@ class TestStrategicHelperFunctions:
     def test_check_enemies_adjacent_to_region_enemy_present(self):
         """Returns True when enemy in adjacent region."""
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world = MockWorldWithHelpers(
             marshals={"Marshal": marshal, "Wellington": enemy},
             regions={
-                "Belgium": MockRegion("Belgium", ["Rhine", "Paris"]),
-                "Rhine": MockRegion("Rhine", ["Belgium"]),
+                "Belgium": MockRegion("Belgium", ["Rhineland", "Paris"]),
+                "Rhineland": MockRegion("Rhineland", ["Belgium"]),
             }
         )
         result = _check_enemies_adjacent_to_region("Belgium", "France", world)
@@ -1071,7 +1071,7 @@ class TestStrategicHelperFunctions:
     def test_get_pursue_target_ratio(self):
         """Returns correct strength ratio for PURSUE."""
         marshal = MockMarshal(location="Belgium", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=100000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=100000)
         world = MockWorldWithHelpers(
             marshals={"Marshal": marshal, "Wellington": enemy},
             regions={}
@@ -1093,21 +1093,21 @@ class TestStrategicHelperFunctions:
             marshals={"Marshal": marshal},
             regions={}
         )
-        has_enemies, regions = _path_has_enemies(["Belgium", "Rhine"], "France", world)
+        has_enemies, regions = _path_has_enemies(["Belgium", "Rhineland"], "France", world)
         assert has_enemies is False
         assert regions == []
 
     def test_path_has_enemies_dangerous_path(self):
         """Returns True for path crossing enemy region."""
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world = MockWorldWithHelpers(
             marshals={"Marshal": marshal, "Wellington": enemy},
             regions={}
         )
-        has_enemies, regions = _path_has_enemies(["Belgium", "Rhine", "Bavaria"], "France", world)
+        has_enemies, regions = _path_has_enemies(["Belgium", "Rhineland", "Bavaria"], "France", world)
         assert has_enemies is True
-        assert "Rhine" in regions
+        assert "Rhineland" in regions
 
 
 class TestEvaluateStrategicAggressive:
@@ -1126,8 +1126,8 @@ class TestEvaluateStrategicAggressive:
         """HOLD with no enemies nearby is MODERATE concern."""
         marshal = MockMarshal(personality="aggressive", location="Belgium")
         regions = {
-            "Belgium": MockRegion("Belgium", ["Rhine", "Paris"]),
-            "Rhine": MockRegion("Rhine", ["Belgium"]),
+            "Belgium": MockRegion("Belgium", ["Rhineland", "Paris"]),
+            "Rhineland": MockRegion("Rhineland", ["Belgium"]),
             "Paris": MockRegion("Paris", ["Belgium"]),
         }
         game_state = self._make_game_state(marshal, regions=regions)
@@ -1138,10 +1138,10 @@ class TestEvaluateStrategicAggressive:
     def test_hold_enemies_adjacent_equal_forces_is_none(self):
         """HOLD with enemies adjacent but no overwhelming advantage is NONE."""
         marshal = MockMarshal(personality="aggressive", location="Belgium", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=50000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=50000)
         regions = {
-            "Belgium": MockRegion("Belgium", ["Rhine"]),
-            "Rhine": MockRegion("Rhine", ["Belgium"]),
+            "Belgium": MockRegion("Belgium", ["Rhineland"]),
+            "Rhineland": MockRegion("Rhineland", ["Belgium"]),
         }
         game_state = self._make_game_state(marshal, [enemy], regions)
 
@@ -1151,10 +1151,10 @@ class TestEvaluateStrategicAggressive:
     def test_hold_enemies_adjacent_2to1_advantage_is_strong(self):
         """HOLD with 2:1 advantage triggers STRONG concern."""
         marshal = MockMarshal(personality="aggressive", location="Belgium", strength=100000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=50000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=50000)
         regions = {
-            "Belgium": MockRegion("Belgium", ["Rhine"]),
-            "Rhine": MockRegion("Rhine", ["Belgium"]),
+            "Belgium": MockRegion("Belgium", ["Rhineland"]),
+            "Rhineland": MockRegion("Rhineland", ["Belgium"]),
         }
         game_state = self._make_game_state(marshal, [enemy], regions)
 
@@ -1164,10 +1164,10 @@ class TestEvaluateStrategicAggressive:
     def test_hold_enemies_adjacent_3to1_advantage_is_extreme(self):
         """HOLD with 3:1+ advantage triggers EXTREME concern."""
         marshal = MockMarshal(personality="aggressive", location="Belgium", strength=150000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=50000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=50000)
         regions = {
-            "Belgium": MockRegion("Belgium", ["Rhine"]),
-            "Rhine": MockRegion("Rhine", ["Belgium"]),
+            "Belgium": MockRegion("Belgium", ["Rhineland"]),
+            "Rhineland": MockRegion("Rhineland", ["Belgium"]),
         }
         game_state = self._make_game_state(marshal, [enemy], regions)
 
@@ -1187,7 +1187,7 @@ class TestEvaluateStrategicAggressive:
         marshal = MockMarshal(personality="aggressive", location="Belgium")
         game_state = self._make_game_state(marshal)
 
-        concern = evaluate_strategic_aggressive(marshal, "MOVE_TO", "Bavaria", ["Belgium", "Rhine"], game_state)
+        concern = evaluate_strategic_aggressive(marshal, "MOVE_TO", "Bavaria", ["Belgium", "Rhineland"], game_state)
         assert concern == ConcernLevel.NONE
 
 
@@ -1206,7 +1206,7 @@ class TestEvaluateStrategicCautious:
     def test_pursue_even_odds_is_none(self):
         """PURSUE at even odds is acceptable."""
         marshal = MockMarshal(personality="cautious", location="Belgium", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=50000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=50000)
         game_state = self._make_game_state(marshal, [enemy])
 
         concern = evaluate_strategic_cautious(marshal, "PURSUE", "Wellington", [], game_state)
@@ -1215,7 +1215,7 @@ class TestEvaluateStrategicCautious:
     def test_pursue_1_2_to_1_disadvantage_is_mild(self):
         """PURSUE at 1.2:1 disadvantage is MILD (old threshold, now no popup)."""
         marshal = MockMarshal(personality="cautious", location="Belgium", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=60000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=60000)
         game_state = self._make_game_state(marshal, [enemy])
 
         concern = evaluate_strategic_cautious(marshal, "PURSUE", "Wellington", [], game_state)
@@ -1224,7 +1224,7 @@ class TestEvaluateStrategicCautious:
     def test_pursue_1_5_to_1_disadvantage_is_mild(self):
         """PURSUE at 1.5:1 disadvantage is MILD (V2: was MAJOR, now MILD)."""
         marshal = MockMarshal(personality="cautious", location="Belgium", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=75000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=75000)
         game_state = self._make_game_state(marshal, [enemy])
 
         concern = evaluate_strategic_cautious(marshal, "PURSUE", "Wellington", [], game_state)
@@ -1233,7 +1233,7 @@ class TestEvaluateStrategicCautious:
     def test_pursue_2_to_1_disadvantage_is_moderate(self):
         """PURSUE at 2:1 disadvantage is MODERATE."""
         marshal = MockMarshal(personality="cautious", location="Belgium", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=100000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=100000)
         game_state = self._make_game_state(marshal, [enemy])
 
         concern = evaluate_strategic_cautious(marshal, "PURSUE", "Wellington", [], game_state)
@@ -1242,7 +1242,7 @@ class TestEvaluateStrategicCautious:
     def test_pursue_3_to_1_disadvantage_is_strong(self):
         """PURSUE at 3:1 disadvantage is STRONG."""
         marshal = MockMarshal(personality="cautious", location="Belgium", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=150000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=150000)
         game_state = self._make_game_state(marshal, [enemy])
 
         concern = evaluate_strategic_cautious(marshal, "PURSUE", "Wellington", [], game_state)
@@ -1251,7 +1251,7 @@ class TestEvaluateStrategicCautious:
     def test_pursue_5_to_1_disadvantage_is_extreme(self):
         """PURSUE at 5:1+ disadvantage is EXTREME."""
         marshal = MockMarshal(personality="cautious", location="Belgium", strength=20000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=100000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=100000)
         game_state = self._make_game_state(marshal, [enemy])
 
         concern = evaluate_strategic_cautious(marshal, "PURSUE", "Wellington", [], game_state)
@@ -1263,18 +1263,18 @@ class TestEvaluateStrategicCautious:
         game_state = self._make_game_state(marshal)
 
         concern = evaluate_strategic_cautious(
-            marshal, "MOVE_TO", "Bavaria", ["Belgium", "Rhine", "Bavaria"], game_state
+            marshal, "MOVE_TO", "Bavaria", ["Belgium", "Rhineland", "Bavaria"], game_state
         )
         assert concern == ConcernLevel.NONE
 
     def test_move_to_dangerous_path_is_moderate(self):
         """MOVE_TO through enemy territory is MODERATE."""
         marshal = MockMarshal(personality="cautious", location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         game_state = self._make_game_state(marshal, [enemy])
 
         concern = evaluate_strategic_cautious(
-            marshal, "MOVE_TO", "Bavaria", ["Belgium", "Rhine", "Bavaria"], game_state
+            marshal, "MOVE_TO", "Bavaria", ["Belgium", "Rhineland", "Bavaria"], game_state
         )
         assert concern == ConcernLevel.MODERATE
 
@@ -1289,11 +1289,11 @@ class TestEvaluateStrategicCautious:
     def test_hold_distant_dangerous_path_is_moderate(self):
         """HOLD at distant location through danger is MODERATE."""
         marshal = MockMarshal(personality="cautious", location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         game_state = self._make_game_state(marshal, [enemy])
 
         concern = evaluate_strategic_cautious(
-            marshal, "HOLD", "Bavaria", ["Belgium", "Rhine", "Bavaria"], game_state
+            marshal, "HOLD", "Bavaria", ["Belgium", "Rhineland", "Bavaria"], game_state
         )
         assert concern == ConcernLevel.MODERATE
 
@@ -1310,11 +1310,11 @@ class TestEvaluateStrategicCautious:
     def test_support_dangerous_path_is_moderate(self):
         """SUPPORT through enemy territory is MODERATE."""
         marshal = MockMarshal(personality="cautious", location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         game_state = self._make_game_state(marshal, [enemy])
 
         concern = evaluate_strategic_cautious(
-            marshal, "SUPPORT", "Ney", ["Belgium", "Rhine", "Bavaria"], game_state
+            marshal, "SUPPORT", "Ney", ["Belgium", "Rhineland", "Bavaria"], game_state
         )
         assert concern == ConcernLevel.MODERATE
 
@@ -1329,7 +1329,7 @@ class TestEvaluateStrategicLiteral:
 
         for order_type in ["HOLD", "PURSUE", "MOVE_TO", "SUPPORT"]:
             concern = evaluate_strategic_literal(
-                marshal, order_type, "Target", ["Belgium", "Rhine"], game_state
+                marshal, order_type, "Target", ["Belgium", "Rhineland"], game_state
             )
             assert concern == ConcernLevel.NONE, f"Literal should return NONE for {order_type}"
 
@@ -1341,8 +1341,8 @@ class TestEvaluateStrategicSituation:
         """Routes aggressive personality to correct evaluator."""
         marshal = MockMarshal(personality="aggressive", location="Belgium")
         regions = {
-            "Belgium": MockRegion("Belgium", ["Rhine"]),
-            "Rhine": MockRegion("Rhine", ["Belgium"]),
+            "Belgium": MockRegion("Belgium", ["Rhineland"]),
+            "Rhineland": MockRegion("Rhineland", ["Belgium"]),
         }
         world = MockWorldWithHelpers({"Marshal": marshal}, regions)
         game_state = {"world": world}
@@ -1354,7 +1354,7 @@ class TestEvaluateStrategicSituation:
     def test_routes_to_cautious(self):
         """Routes cautious personality to correct evaluator."""
         marshal = MockMarshal(personality="cautious", location="Belgium", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=100000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=100000)
         world = MockWorldWithHelpers({"Marshal": marshal, "Wellington": enemy}, {})
         game_state = {"world": world}
 
@@ -1381,7 +1381,7 @@ class TestEvaluateStrategicSituation:
     def test_case_insensitive_personality(self):
         """Personality matching is case-insensitive."""
         marshal = MockMarshal(personality="CAUTIOUS", location="Belgium", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=100000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=100000)
         world = MockWorldWithHelpers({"Marshal": marshal, "Wellington": enemy}, {})
         game_state = {"world": world}
 
@@ -1496,11 +1496,11 @@ class TestV2aIntegrationFixtures:
         world.marshals = {}
         world.regions = {
             "Paris": Region("Paris", ["Belgium", "Brittany"], "France", 100),
-            "Belgium": Region("Belgium", ["Paris", "Rhine", "Netherlands"], "France", 80),
-            "Rhine": Region("Rhine", ["Belgium", "Bavaria"], "Prussia", 60),
+            "Belgium": Region("Belgium", ["Paris", "Rhineland", "Netherlands"], "France", 80),
+            "Rhineland": Region("Rhineland", ["Belgium", "Bavaria"], "Prussia", 60),
             "Netherlands": Region("Netherlands", ["Belgium"], "Britain", 70),
             "Brittany": Region("Brittany", ["Paris"], "France", 50),
-            "Bavaria": Region("Bavaria", ["Rhine"], "Prussia", 60),
+            "Bavaria": Region("Bavaria", ["Rhineland"], "Prussia", 60),
         }
 
         davout = Marshal("Davout", "Belgium", 25000, "cautious", "France")
@@ -1515,7 +1515,7 @@ class TestV2aIntegrationFixtures:
         ney.trust.set(50)
         world.marshals["Ney"] = ney
 
-        blucher = Marshal("Blucher", "Rhine", 60000, "aggressive", "Prussia")
+        blucher = Marshal("Blucher", "Rhineland", 60000, "aggressive", "Prussia")
         blucher.morale = 85
         world.marshals["Blucher"] = blucher
 
@@ -1538,7 +1538,7 @@ class TestV2aTacticalIntegration:
         executor = CommandExecutor()
 
         davout = world.marshals["Davout"]
-        davout.location = "Rhine"  # Same region as Blucher (60k vs 25k = 2.4x ratio)
+        davout.location = "Rhineland"  # Same region as Blucher (60k vs 25k = 2.4x ratio)
         initial_trust = davout.trust.value
 
         command = {"command": {"marshal": "Davout", "action": "attack", "target": "Blucher"}}
@@ -1574,7 +1574,7 @@ class TestV2aTacticalIntegration:
         executor = CommandExecutor()
 
         davout = world.marshals["Davout"]
-        davout.location = "Rhine"
+        davout.location = "Rhineland"
         initial_trust = davout.trust.value
 
         command = {"command": {"marshal": "Davout", "action": "attack", "target": "Blucher"}}
@@ -1605,7 +1605,7 @@ class TestV2aTacticalIntegration:
         executor = CommandExecutor()
 
         davout = world.marshals["Davout"]
-        davout.location = "Rhine"
+        davout.location = "Rhineland"
         initial_trust = davout.trust.value
 
         command = {"command": {"marshal": "Davout", "action": "attack", "target": "Blucher"}}
@@ -1755,7 +1755,7 @@ class TestV2aIdleTurnsIntegration:
         from backend.models.marshal import Marshal
 
         world = WorldState()
-        blucher = Marshal("Blucher", "Rhine", 35000, "aggressive", "Prussia")
+        blucher = Marshal("Blucher", "Rhineland", 35000, "aggressive", "Prussia")
         blucher.idle_turns = 0
         world.marshals["Blucher"] = blucher
         world.player_nation = "France"
@@ -1825,7 +1825,7 @@ class TestV2aAlreadyInStanceNoMild:
 
         # Enemy adjacent to trigger aggressive personality's MILD for defensive
         blucher = world.marshals["Blucher"]
-        blucher.location = "Rhine"  # Adjacent to Belgium
+        blucher.location = "Rhineland"  # Adjacent to Belgium
 
         command = {"command": {"marshal": "Ney", "action": "stance_change", "target": "defensive"}}
         game_state = {"world": world}
@@ -1878,7 +1878,7 @@ class TestV2aAPPreCheck:
 
         # Enemy adjacent so objection WOULD fire if AP check didn't catch it first
         blucher = world.marshals["Blucher"]
-        blucher.location = "Rhine"  # Adjacent
+        blucher.location = "Rhineland"  # Adjacent
 
         # Only 1 AP left — aggressive→defensive costs 2
         world.actions_remaining = 1

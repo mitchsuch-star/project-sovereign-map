@@ -56,7 +56,7 @@ Davout was Napoleon's finest corps commander — methodical, devastating in defe
 | Phase 7 coordination | Stacks multiplicatively with coordination bonuses (combined arms, relationship, adjacent support). Hard cap (+25% atk) applies to coordination bonuses only, not marshal abilities. A fully-wound Davout with allies is devastating but requires 3+ turns of setup. |
 | Morale | No interaction. Resolve doesn't affect morale. |
 | Trust | No interaction. Building resolve doesn't affect trust. |
-| Strategic orders (HOLD) | HOLD order keeps Davout in place and fortified → naturally builds resolve. Player can issue "Davout, hold Rhine" and watch him build up over 3 turns. |
+| Strategic orders (HOLD) | HOLD order keeps Davout in place and fortified → naturally builds resolve. Player can issue "Davout, hold Rhineland" and watch him build up over 3 turns. |
 
 **Why it feels like Davout:**
 - **Deliberate:** Requires 1-3 turns of patient fortification — no instant gratification
@@ -76,7 +76,7 @@ Compare to Ney with drill + aggressive stance:
 Davout's max is significantly below Ney's — appropriate because Davout also gets superior defense. The tradeoff: Ney hits harder but crumbles, Davout is indestructible but slower to wind up.
 
 **Degenerate strategy check:**
-- "Turtle forever": Stacks cap at 3 (3 turns), no benefit past that. Enemy can bypass a stationary Davout on the 13-region map.
+- "Turtle forever": Stacks cap at 3 (3 turns), no benefit past that. Enemy can bypass a stationary Davout on the 19-region map.
 - "Never move Davout": Viable strategy but enemy AI will eventually attack or bypass. Stacks are only useful when Davout ATTACKS, forcing eventual action.
 - "Counter-punch abuse": Requires enemy to attack Davout. Player can't force this. If enemy avoids Davout, resolve stacks go unused — self-balancing.
 

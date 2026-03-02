@@ -389,13 +389,13 @@ class TestParseResultRoundtrip:
             command_type="strategic",
             marshals=["Grouchy"],
             action="move",
-            target="Rhine",
+            target="Rhineland",
             is_strategic=True,
             strategic_type="MOVE_TO",
             strategic_condition={"max_turns": 5},
             ambiguity=15,
             strategic_score=60,
-            interpreted_target="Rhine",
+            interpreted_target="Rhineland",
             interpretation_reason="nearest enemy position",
             alternatives=["Bavaria", "Belgium"],
             mode="anthropic",
@@ -406,14 +406,14 @@ class TestParseResultRoundtrip:
         assert d["is_strategic"] is True
         assert d["strategic_type"] == "MOVE_TO"
         assert d["strategic_condition"] == {"max_turns": 5}
-        assert d["interpreted_target"] == "Rhine"
+        assert d["interpreted_target"] == "Rhineland"
         assert d["alternatives"] == ["Bavaria", "Belgium"]
 
         restored = ParseResult.from_dict(d)
         assert restored.is_strategic is True
         assert restored.strategic_type == "MOVE_TO"
         assert restored.strategic_condition == {"max_turns": 5}
-        assert restored.interpreted_target == "Rhine"
+        assert restored.interpreted_target == "Rhineland"
         assert restored.alternatives == ["Bavaria", "Belgium"]
 
     def test_tactical_parse_result_roundtrip(self):

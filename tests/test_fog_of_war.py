@@ -152,7 +152,7 @@ class TestRegionIntelSerialization:
         assert restored.known_marshals[0]["name"] == "Wellington"
 
     def test_roundtrip_stale(self):
-        intel = RegionIntel("Rhine")
+        intel = RegionIntel("Rhineland")
         intel.refresh(FULL, "scout", turn=1, marshals=[{"name": "Blucher", "nation": "Prussia", "strength": 55000}],
                       total_strength=55000, morale=70, stance="neutral")
         # Force to stale
@@ -183,7 +183,7 @@ class TestDecayTimeline:
     """Test intel decay over multiple turns."""
 
     def test_full_stays_fresh_for_2_turns(self):
-        intel = RegionIntel("Rhine")
+        intel = RegionIntel("Rhineland")
         intel.refresh(FULL, "scout", turn=1, marshals=[], total_strength=0)
         # Turn 2: 1 turn since update — still FULL
         intel.decay(current_turn=2)
@@ -193,7 +193,7 @@ class TestDecayTimeline:
         assert intel.visibility == FULL
 
     def test_full_degrades_to_stale_at_turn_3(self):
-        intel = RegionIntel("Rhine")
+        intel = RegionIntel("Rhineland")
         intel.refresh(FULL, "scout", turn=1, marshals=[], total_strength=50000, morale=70, stance="neutral")
         # Turn 4: 3 turns since update → STALE
         intel.decay(current_turn=4)
@@ -202,7 +202,7 @@ class TestDecayTimeline:
         assert intel.morale is None
 
     def test_stale_degrades_to_last_known_at_turn_5(self):
-        intel = RegionIntel("Rhine")
+        intel = RegionIntel("Rhineland")
         intel.refresh(FULL, "scout", turn=1, marshals=[{"name": "Blucher", "nation": "Prussia"}], total_strength=50000)
         # Decay to STALE first
         intel.decay(current_turn=4)
@@ -214,7 +214,7 @@ class TestDecayTimeline:
         assert intel.known_marshals[0]["name"] == "Blucher"
 
     def test_last_known_persists_indefinitely(self):
-        intel = RegionIntel("Rhine")
+        intel = RegionIntel("Rhineland")
         intel.refresh(FULL, "scout", turn=1, marshals=[{"name": "Blucher", "nation": "Prussia"}], total_strength=50000)
         intel.decay(current_turn=6)
         assert intel.visibility == LAST_KNOWN
@@ -224,7 +224,7 @@ class TestDecayTimeline:
         assert intel.known_marshals[0]["name"] == "Blucher"
 
     def test_unknown_does_not_decay(self):
-        intel = RegionIntel("Rhine")
+        intel = RegionIntel("Rhineland")
         assert intel.visibility == UNKNOWN
         intel.decay(current_turn=50)
         assert intel.visibility == UNKNOWN
@@ -267,7 +267,7 @@ class TestStaleSnapshotPersistence:
 
     def test_decay_never_queries_live_data(self):
         """Decay path only changes visibility level, never touches known_marshals."""
-        intel = RegionIntel("Rhine")
+        intel = RegionIntel("Rhineland")
         original_marshals = [{"name": "Blucher", "nation": "Prussia", "strength": 55000}]
         intel.refresh(FULL, "scout", turn=1, marshals=original_marshals, total_strength=55000)
 
@@ -368,7 +368,7 @@ class TestGameInitVisibility:
     def test_rhine_adjacent_to_ney(self):
         """Rhine (Prussian, adjacent to Belgium where Ney is) should be PARTIAL."""
         world = WorldState()
-        rhine_intel = world.get_region_intel("Rhine")
+        rhine_intel = world.get_region_intel("Rhineland")
         assert rhine_intel.visibility == PARTIAL
         assert rhine_intel.intel_source == "adjacent"
 
@@ -636,7 +636,7 @@ class TestMultiTurnIntegration:
             world.current_turn = t
             world.calculate_visibility()
             world.decay_intel()
-            rhine = world.get_region_intel("Rhine")
+            rhine = world.get_region_intel("Rhineland")
             assert rhine.visibility == PARTIAL, f"Expected PARTIAL at turn {t}"
 
     def test_own_region_always_partial_minimum(self):
@@ -823,7 +823,7 @@ class TestEphemeralMarshalPresent:
         assert intel.visibility == FULL
 
         # Ney leaves, enemy moves in
-        ney.location = "Rhine"
+        ney.location = "Rhineland"
         wellington.location = "Bavaria"
         world.current_turn = 2
         world.calculate_visibility()

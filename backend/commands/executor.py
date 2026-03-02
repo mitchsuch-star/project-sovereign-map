@@ -1214,7 +1214,7 @@ MILITARY COMMANDS:
                "recruit" / "Ney, recruit"
 
   bombardment - Artillery fires on adjacent region (max 2/turn)
-               "Drouot, bombard Rhine" / "Drouot, attack Rhine"
+               "Drouot, bombard Rhineland" / "Drouot, attack Rhineland"
                Cannot attack after moving. Terrain affects damage.
 
   garrison   - Leave detachment to defend a region (2 AP)
@@ -1232,7 +1232,7 @@ TACTICAL COMMANDS:
                "Ney, drill" - Locked on turn 2, cannot receive orders
 
   scout      - Reconnaissance of nearby regions
-               "scout Rhine" / "Davout, scout" (area scan)
+               "scout Rhineland" / "Davout, scout" (area scan)
 
   form square - Infantry forms anti-cavalry square (1 AP)
                "Ney, form square" - Cavalry attacks deal -40% damage.
@@ -1260,7 +1260,7 @@ STRATEGIC COMMANDS (2 AP, multi-turn):
   support    - March to reinforce an allied marshal
                "Ney, support Davout" / "Ney, reinforce Davout"
   hold       - Hold position and auto-bombard (artillery)
-               "Drouot, hold Rhine"
+               "Drouot, hold Rhineland"
   cancel     - Cancel a strategic order (1 AP)
                "cancel Ney" / "halt Ney" / "stop Ney"
 
@@ -7199,7 +7199,7 @@ RETREAT RECOVERY (3 turns):
     def _execute_auto_assign_bombardment(self, command: Dict, game_state: Dict) -> Dict:
         """
         Execute bombardment with auto-assigned artillery marshal.
-        Example: "bombard Rhine" or "bombard Wellington" (no marshal named).
+        Example: "bombard Rhineland" or "bombard Wellington" (no marshal named).
         Selects nearest artillery marshal with bombardments remaining.
         Future-proof: supports multiple artillery marshals.
         """
@@ -7252,7 +7252,7 @@ RETREAT RECOVERY (3 turns):
                 return {
                     "success": False,
                     "message": "No enemies within bombardment range of any artillery marshal.",
-                    "suggestion": "Name a target: 'bombard Rhine' or 'bombard Wellington'"
+                    "suggestion": "Name a target: 'bombard Rhineland' or 'bombard Wellington'"
                 }
             target = best_enemy.name
 
@@ -7301,7 +7301,7 @@ RETREAT RECOVERY (3 turns):
     def _execute_auto_assign_scout(self, command: Dict, game_state: Dict) -> Dict:
         """
         Execute scout with auto-assigned marshal.
-        Example: "scout Rhine" (no marshal named).
+        Example: "scout Rhineland" (no marshal named).
         Selects nearest player marshal within scout range of target.
         """
         target = command.get("target")

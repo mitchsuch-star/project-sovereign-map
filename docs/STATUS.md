@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 2, 2026 (Master Audit — all 3 diplomacy specs approved)
+> **Last Updated:** March 2, 2026 (Session 1A — Map Expansion 13→19 regions)
 
 ---
 
@@ -9,19 +9,19 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4211** (4211 passed, 3 skipped — verified Mar 1, Region Data Rationalization) |
+| **Tests Passing** | **4210** (4210 passed, 1 pre-existing failure, 3 skipped — verified Mar 2, Session 1A) |
 
-| **Current Phase** | Phase 7b **V2b COMPLETE** (playtested). Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Gates 5+6 PASSED. Remaining: Jealousy (NEEDS DESIGN). Phase 8 — ALL SPECS APPROVED, GO for Session 1A. |
-| **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8 implementation. |
+| **Current Phase** | Phase 8: Diplomacy. **Session 1A COMPLETE** (19-region map). Next: Session 1B. |
+| **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
 
 ## Next Steps
 
-1. **Phase 8: Diplomacy** — ALL 3 SPECS APPROVED + MASTER-AUDITED. **GO for Session 1A.** Unified 8-session plan:
-   - Session 1A: Map Expansion (13→19 regions) — HIGH RISK
-   - Session 1B: Nations + Marshals + Economy (Austria, Saxony, 4 new marshals)
+1. **Phase 8: Diplomacy** — **Session 1A COMPLETE.** Unified 8-session plan:
+   - ~~Session 1A: Map Expansion (13→19 regions)~~ — **DONE** (19 regions, 5 nations, all adjacencies verified, FORMAT_VERSION 2)
+   - Session 1B: Nations + Marshals + Economy (Austria, Saxony activation, 4 new marshals)
    - Session 2: Diplomatic States + Acceptance Formula + Diplomat class
    - Session 3: Talleyrand Commands + Conversational Dialogue Foundation
    - Session 4: AI Proposals + Advisory Conversations

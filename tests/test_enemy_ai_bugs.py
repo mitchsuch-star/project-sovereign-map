@@ -28,7 +28,7 @@ class TestSurvivalModeP35(object):
         # Blucher at Rhine, fortified, critically low strength
         blucher = world.get_marshal("Blucher")
         if blucher:
-            blucher.location = "Rhine"
+            blucher.location = "Rhineland"
             blucher.strength = 1301  # Below 25% of starting ~72000
             blucher.starting_strength = 72000
             blucher.fortified = True
@@ -36,7 +36,7 @@ class TestSurvivalModeP35(object):
             blucher.stance = blucher.stance  # keep current
 
         # Make sure Rhine is Prussia-controlled
-        rhine = world.get_region("Rhine")
+        rhine = world.get_region("Rhineland")
         if rhine:
             rhine.controller = "Prussia"
 
@@ -90,7 +90,7 @@ class TestSurvivalModeP35(object):
         blucher.fortified = False
 
         # No adjacent enemies - move all French marshals far away
-        blucher.location = "Rhine"
+        blucher.location = "Rhineland"
         for m in world.marshals.values():
             if m.nation == "France":
                 m.location = "Marseille"
@@ -113,7 +113,7 @@ class TestSurvivalModeP35(object):
         # Put Blucher in survival mode
         blucher.strength = 1000
         blucher.starting_strength = 72000
-        blucher.location = "Rhine"
+        blucher.location = "Rhineland"
 
         # Gneisenau should be healthy
         gneisenau.strength = 50000
@@ -143,7 +143,7 @@ class TestP1CaptureCurrentRegion(object):
     def test_distance_same_region_is_zero(self):
         """get_distance(X, X) should return 0."""
         world = WorldState()
-        assert world.get_distance("Rhine", "Rhine") == 0
+        assert world.get_distance("Rhineland", "Rhineland") == 0
         assert world.get_distance("Paris", "Paris") == 0
         assert world.get_distance("Belgium", "Belgium") == 0
 

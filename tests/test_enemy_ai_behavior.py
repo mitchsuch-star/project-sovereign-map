@@ -9,10 +9,8 @@ Run with: pytest tests/test_enemy_ai_behavior.py -v
 """
 
 import pytest
-import random
-from unittest.mock import patch
 from backend.models.world_state import WorldState
-from backend.models.marshal import Marshal, Stance
+from backend.models.marshal import Stance
 from backend.commands.executor import CommandExecutor
 from backend.ai.enemy_ai import EnemyAI, get_marshal_priority
 from backend.game_logic.turn_manager import TurnManager
@@ -484,12 +482,12 @@ class TestAdversarialBoardStates:
         gneisenau.strength = 10000
 
         blucher = self.world.get_marshal("Blucher")
-        blucher.location = "Rhine"  # Adjacent to Bavaria
+        blucher.location = "Rhineland"  # Adjacent to Bavaria
         blucher.strength = 55000
 
         # Place strong French nearby
         ney = self.world.get_marshal("Ney")
-        ney.location = "Geneva"  # Adjacent to Bavaria
+        ney.location = "Tyrol"  # Adjacent to Bavaria
         ney.strength = 50000
 
         action, _ = self.ai._evaluate_marshal(gneisenau, "Prussia", self.world)
@@ -732,14 +730,16 @@ class TestAntiStagnationSystems:
         """Fortified marshal with undefended enemy region adjacent should unfortify."""
         wellington = self.world.get_marshal("Wellington")
         _isolate_marshal(self.world, "Wellington", "Britain")
-        wellington.location = "Waterloo"
+        wellington.location = "Netherlands"
         wellington.fortified = True
         wellington.defense_bonus = 0.10
 
         # Belgium is French-controlled, no defenders
+        # Netherlands adj: Belgium, Waterloo, Hanover
         self.world.regions["Belgium"].controller = "France"
+        # Move ALL non-British marshals away so none are adjacent or co-located
         for m in self.world.marshals.values():
-            if m.nation == "France":
+            if m.nation != "Britain":
                 m.location = "Marseille"
 
         action = self.ai._check_fortification_opportunity(wellington, "Britain", self.world)
@@ -755,12 +755,12 @@ class TestAntiStagnationSystems:
         gneisenau.strength = 10000
 
         blucher = self.world.get_marshal("Blucher")
-        blucher.location = "Rhine"  # 1 away from Bavaria
+        blucher.location = "Rhineland"  # 1 away from Bavaria
         blucher.strength = 55000
 
         # Strong enemy nearby
         ney = self.world.get_marshal("Ney")
-        ney.location = "Geneva"  # Adjacent to Bavaria
+        ney.location = "Tyrol"  # Adjacent to Bavaria
         ney.strength = 50000
 
         action = self.ai._consider_consolidation(gneisenau, "Prussia", self.world)
@@ -776,7 +776,7 @@ class TestAntiStagnationSystems:
         gneisenau.retreat_recovery = 2
 
         ney = self.world.get_marshal("Ney")
-        ney.location = "Geneva"
+        ney.location = "Tyrol"
         ney.strength = 50000
 
         action = self.ai._consider_consolidation(gneisenau, "Prussia", self.world)
@@ -790,7 +790,7 @@ class TestAntiStagnationSystems:
         gneisenau.broken = True
 
         ney = self.world.get_marshal("Ney")
-        ney.location = "Geneva"
+        ney.location = "Tyrol"
         ney.strength = 50000
 
         action = self.ai._consider_consolidation(gneisenau, "Prussia", self.world)
@@ -933,7 +933,7 @@ class TestNationActionDistribution:
         # Move all non-French, non-British away from Uxbridge
         for m in self.world.marshals.values():
             if m.nation == "Prussia":
-                m.location = "Rhine"
+                m.location = "Rhineland"
 
         w_priority = get_marshal_priority(wellington, self.world)
         u_priority = get_marshal_priority(uxbridge, self.world)

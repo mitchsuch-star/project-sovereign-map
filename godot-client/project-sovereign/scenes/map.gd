@@ -1,37 +1,49 @@
 extends Control
 
-# Region positions from SVG map
+# Region positions on map (19 regions)
 const REGION_POSITIONS = {
 	"Paris": Vector2(300, 350),
 	"Belgium": Vector2(400, 250),
 	"Netherlands": Vector2(450, 150),
-	"Waterloo": Vector2(400, 350),
-	"Rhine": Vector2(600, 300),
+	"Waterloo": Vector2(500, 300),
+	"Rhineland": Vector2(600, 300),
 	"Bavaria": Vector2(750, 400),
-	"Vienna": Vector2(950, 450),
-	"Lyon": Vector2(500, 450),
-	"Marseille": Vector2(450, 600),
-	"Geneva": Vector2(600, 650),
-	"Milan": Vector2(800, 600),
-	"Brittany": Vector2(200, 300),
-	"Bordeaux": Vector2(250, 550)
+	"Vienna": Vector2(1000, 450),
+	"Lyon": Vector2(400, 500),
+	"Marseille": Vector2(350, 650),
+	"Milan": Vector2(700, 600),
+	"Brittany": Vector2(150, 400),
+	"Bordeaux": Vector2(200, 600),
+	"Normandy": Vector2(200, 250),
+	"Hanover": Vector2(650, 150),
+	"Berlin": Vector2(800, 100),
+	"Saxony": Vector2(700, 250),
+	"Dresden": Vector2(800, 300),
+	"Bohemia": Vector2(850, 200),
+	"Tyrol": Vector2(800, 500)
 }
 
 # Region adjacencies (from region.py)
 const REGION_CONNECTIONS = {
-	"Paris": ["Belgium", "Waterloo", "Brittany", "Lyon"],
-	"Belgium": ["Paris", "Netherlands", "Waterloo", "Rhine"],
-	"Netherlands": ["Belgium"],
-	"Waterloo": ["Belgium", "Paris"],
-	"Rhine": ["Belgium", "Bavaria", "Lyon"],
-	"Bavaria": ["Rhine", "Vienna", "Lyon"],
-	"Vienna": ["Bavaria", "Milan"],
-	"Lyon": ["Paris", "Rhine", "Bavaria", "Marseille", "Milan"],
-	"Milan": ["Lyon", "Vienna", "Geneva"],
-	"Marseille": ["Lyon", "Geneva"],
-	"Geneva": ["Marseille", "Milan", "Bordeaux"],
-	"Brittany": ["Paris", "Bordeaux"],
-	"Bordeaux": ["Brittany", "Geneva"]
+	"Paris": ["Normandy", "Belgium", "Lyon", "Bordeaux"],
+	"Belgium": ["Paris", "Normandy", "Netherlands", "Waterloo", "Rhineland"],
+	"Netherlands": ["Belgium", "Waterloo", "Hanover"],
+	"Waterloo": ["Belgium", "Netherlands", "Hanover"],
+	"Rhineland": ["Belgium", "Bavaria", "Lyon"],
+	"Bavaria": ["Rhineland", "Saxony", "Vienna", "Tyrol"],
+	"Vienna": ["Bavaria", "Bohemia", "Tyrol", "Milan"],
+	"Lyon": ["Paris", "Bordeaux", "Marseille", "Rhineland", "Milan"],
+	"Milan": ["Lyon", "Marseille", "Tyrol", "Vienna"],
+	"Marseille": ["Lyon", "Bordeaux", "Milan"],
+	"Brittany": ["Normandy", "Bordeaux"],
+	"Bordeaux": ["Brittany", "Paris", "Lyon", "Marseille"],
+	"Normandy": ["Paris", "Belgium", "Brittany"],
+	"Hanover": ["Netherlands", "Waterloo", "Saxony", "Berlin"],
+	"Berlin": ["Hanover", "Saxony", "Bohemia"],
+	"Saxony": ["Hanover", "Berlin", "Bavaria", "Dresden", "Bohemia"],
+	"Dresden": ["Saxony", "Bohemia"],
+	"Bohemia": ["Berlin", "Saxony", "Dresden", "Vienna"],
+	"Tyrol": ["Bavaria", "Vienna", "Milan"]
 }
 
 # Color scheme
@@ -40,6 +52,7 @@ const COLORS = {
 	"Britain": Color(0.863, 0.078, 0.235),  # Crimson
 	"Prussia": Color(0.2, 0.2, 0.2),        # Dark Gray (Prussian Iron)
 	"Austria": Color(1.0, 0.843, 0.0),      # Gold
+	"Saxony": Color(0.4, 0.6, 0.3),         # Olive Green
 	"Neutral": Color(0.565, 0.933, 0.565),  # Light Green
 	"connection": Color(0.6, 0.6, 0.6)      # Gray
 }
@@ -91,8 +104,8 @@ func _ready():
 	_initialize_map()
 
 	# Center camera on map
-	# Map bounds approximately: x(200-950), y(150-650)
-	var map_center = Vector2(575, 400)
+	# Map bounds approximately: x(150-1000), y(100-650)
+	var map_center = Vector2(550, 375)
 	var viewport_size = size
 	if viewport_size.x > 0 and viewport_size.y > 0:
 		pan_offset = (viewport_size / 2) - map_center

@@ -75,9 +75,9 @@ def _make_pursue_order(target_name, started_turn=1):
     )
 
 
-# Map reference: Paris adjacent to [Belgium, Waterloo, Brittany, Lyon]
-# Belgium adjacent to [Paris, Netherlands, Waterloo, Rhine]
-# Waterloo adjacent to [Paris, Belgium, Netherlands]
+# Map reference: Paris adjacent to [Normandy, Belgium, Lyon, Bordeaux]
+# Belgium adjacent to [Paris, Normandy, Netherlands, Waterloo, Rhineland]
+# Waterloo adjacent to [Belgium, Netherlands, Hanover]
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -231,9 +231,9 @@ class TestArrivalScore:
         """Mountains → -20 penalty."""
         reinforcer = _make_marshal(name="R", location="Milan",
                                    personality="balanced", logistics=0)
-        primary = _make_marshal(name="P", location="Geneva")
+        primary = _make_marshal(name="P", location="Tyrol")
         world = _make_world_with_marshals([reinforcer, primary])
-        # Milan terrain is mountains
+        # Milan terrain is urban (not mountains)
         ex = _executor()
 
         with patch('random.randint', return_value=0):
@@ -881,7 +881,7 @@ class TestBothSides:
 
     def test_both_sides_reinforcements_independent(self):
         """Each side gets own independent reinforcement checks."""
-        # Battle in Belgium: adjacent to Netherlands, Paris, Waterloo, Rhine
+        # Battle in Belgium: adjacent to Paris, Normandy, Netherlands, Waterloo, Rhineland
         attacker = _make_marshal(name="Blucher", location="Belgium",
                                  nation="Prussia", strength=40000,
                                  personality="aggressive")
@@ -923,7 +923,7 @@ class TestRetreatDestination:
 
         # Retreat would use marshal.location which is now "Waterloo"
         assert reinforcer.location == "Waterloo"
-        # Adjacent to Waterloo (for valid retreat) includes Paris, Belgium, Netherlands
+        # Adjacent to Waterloo (for valid retreat) includes Belgium, Netherlands, Hanover
         world = WorldState()
         region = world.get_region("Waterloo")
         assert "Belgium" in region.adjacent_regions  # Can retreat back to origin

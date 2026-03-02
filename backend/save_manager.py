@@ -29,7 +29,7 @@ from backend.models.world_state import WorldState
 
 SAVE_DIR = Path("saves")
 AUTOSAVE_FILENAME = "autosave.json"
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
 MAX_MANUAL_SAVES = 10
 
 
@@ -94,6 +94,13 @@ def load_game(filepath: Path) -> Dict:
 
         metadata = save_data.get("metadata", {})
         world_data = save_data.get("world_state")
+
+        # Hard break: reject saves from 13-region map (format version 1)
+        save_version = metadata.get("format_version", 1)
+        if save_version < FORMAT_VERSION:
+            return {"success": False,
+                    "message": "This save is from a 13-region map and is incompatible with the current version.",
+                    "world": None, "metadata": metadata}
 
         if world_data is None:
             return {"success": False, "message": "Invalid save file: no world_state", "world": None, "metadata": metadata}

@@ -18,7 +18,7 @@ Napoleonic warfare was defined by uncertainty. Commanders made decisions based o
 - All commands into fog are allowed — armies marched into the unknown constantly
 - Fog creates new objection triggers that are dramatically richer than visible-but-risky situations
 - The system scales naturally: adjacency covers a fixed radius, not a percentage of the map
-- AI is omniscient on 13 regions (too small for AI fog to matter), revisit at 80+
+- AI is omniscient on 19 regions (too small for AI fog to matter), revisit at 80+
 
 ---
 
@@ -303,7 +303,7 @@ The UI shows watchtower status alongside other region info: "Watchtower: active"
 
 ### 7.3 Strategic Value
 
-- On 13 regions: 2-3 watchtowers on border regions can cover most of the map via adjacency. Fog is thin but watchtowers still cost gold and build time. Acceptable — the design scales correctly even if less impactful at small scale.
+- On 19 regions: 3-4 watchtowers on border regions can cover most of the map via adjacency. Fog is thin but watchtowers still cost gold and build time. Acceptable — the design scales correctly even if less impactful at small scale.
 - On 80+ regions: Watchtower networks become essential infrastructure. Building a "picket line" along your frontier is a real strategic investment. You can't watchtower the whole border, so you choose where to invest.
 - Creates build priority tension: fortify the border (fortification) or watch it (watchtower)? Both cost gold and AP.
 
@@ -337,7 +337,7 @@ If you scout a region already visible via watchtower:
 ### 9.1 Current Phase (13 Regions)
 
 **AI is omniscient.** The enemy AI sees all player positions, strengths, and movements with perfect information. This is intentional:
-- 13 regions is too small for AI fog to create meaningful decisions
+- 19 regions is too small for AI fog to create meaningful decisions
 - AI already struggles with decision-making; information constraints would make it worse
 - France historically had the best intelligence network — asymmetry is thematically justified
 - The Building Blocks principle (AI uses same systems as player) is preserved for ACTIONS, not for INFORMATION
@@ -489,7 +489,7 @@ See `FOG_IMPLEMENTATION_PLAN.md` for full checklists, ordering dependencies, and
 
 | Item | Reason | When |
 |------|--------|------|
-| AI fog of war | 13 regions too small, AI too fragile | EA 1805 (80+ regions) |
+| AI fog of war | 19 regions too small, AI too fragile | EA 1805 (80+ regions) |
 | V2b objection triggers | Requires V2b system (Phase 7) | Phase 7 |
 | Spy network (passive intel) | Complexity, no existing system to hook into | Phase 8.5 (Events) or Post-EA |
 | Captured dispatches | Requires Events system | Phase 8.5 |

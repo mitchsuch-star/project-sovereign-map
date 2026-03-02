@@ -97,7 +97,7 @@ class TestFrontlineAvoidance:
         # France controls Paris + Belgium, Britain controls Rhine
         world.get_region("Paris").controller = "France"
         world.get_region("Belgium").controller = "France"
-        world.get_region("Rhine").controller = "Britain"
+        world.get_region("Rhineland").controller = "Britain"
 
         # Belgium is frontline (adjacent to Rhine=enemy)
         score_frontline = self.ai._score_artillery_position("Belgium", art, "France", world)
@@ -125,7 +125,7 @@ class TestFrontlineAvoidance:
 
         world.get_region("Paris").controller = "France"
         world.get_region("Belgium").controller = "France"
-        world.get_region("Rhine").controller = "Britain"
+        world.get_region("Rhineland").controller = "Britain"
 
         # Belgium: frontline + co-located infantry
         score_screened_frontline = self.ai._score_artillery_position("Belgium", art, "France", world)
@@ -151,13 +151,13 @@ class TestFrontlineAvoidance:
         world.get_region("Paris").controller = "France"
         world.get_region("Netherlands").controller = "France"
         world.get_region("Waterloo").controller = "France"
-        world.get_region("Rhine").controller = "Britain"  # Only enemy
+        world.get_region("Rhineland").controller = "Britain"  # Only enemy
 
         # Score with enemy adjacent (frontline: 1 enemy border)
         score_with_enemy = self.ai._score_artillery_position("Belgium", art, "France", world)
 
         # Now make Rhine friendly — no longer frontline
-        world.get_region("Rhine").controller = "France"
+        world.get_region("Rhineland").controller = "France"
         score_no_enemy = self.ai._score_artillery_position("Belgium", art, "France", world)
 
         # Removing enemy border removes +15 (enemy adj) but also removes -50 (frontline penalty)
@@ -178,7 +178,7 @@ class TestFrontlineAvoidance:
         world.marshals["Ney"] = cav
 
         world.get_region("Belgium").controller = "France"
-        world.get_region("Rhine").controller = "Britain"
+        world.get_region("Rhineland").controller = "Britain"
 
         # Belgium: frontline with cavalry (NOT infantry screen)
         score_with_cav = self.ai._score_artillery_position("Belgium", art, "France", world)
@@ -216,7 +216,7 @@ class TestBehindScreenBonus:
 
         world.get_region("Paris").controller = "France"
         world.get_region("Belgium").controller = "France"
-        world.get_region("Rhine").controller = "Britain"
+        world.get_region("Rhineland").controller = "Britain"
 
         # Paris: not frontline, infantry at adjacent Belgium which IS frontline
         score_behind = self.ai._score_artillery_position("Paris", art, "France", world)
@@ -235,13 +235,13 @@ class TestBehindScreenBonus:
         world.marshals.clear()
 
         art = _make_artillery(name="Drouot", location="Belgium", nation="France")
-        inf = _make_infantry(name="Soult", location="Rhine", nation="France")
+        inf = _make_infantry(name="Soult", location="Rhineland", nation="France")
         world.marshals["Drouot"] = art
         world.marshals["Soult"] = inf
 
         # Belgium adj to Rhine (France), but also adj to Netherlands
         world.get_region("Belgium").controller = "France"
-        world.get_region("Rhine").controller = "France"
+        world.get_region("Rhineland").controller = "France"
         world.get_region("Netherlands").controller = "Britain"
 
         # Belgium IS frontline (adj to Netherlands=enemy)
@@ -263,7 +263,7 @@ class TestBehindScreenBonus:
 
         world.get_region("Paris").controller = "France"
         world.get_region("Belgium").controller = "France"
-        world.get_region("Rhine").controller = "Britain"
+        world.get_region("Rhineland").controller = "Britain"
         # Make Paris clearly non-frontline
         world.get_region("Waterloo").controller = "France"
         world.get_region("Brittany").controller = "France"
@@ -311,7 +311,7 @@ class TestIntegratedPositioning:
         # France just conquered Belgium, enemy still controls Rhine
         world.get_region("Paris").controller = "France"
         world.get_region("Belgium").controller = "France"
-        world.get_region("Rhine").controller = "Britain"
+        world.get_region("Rhineland").controller = "Britain"
         world.get_region("Waterloo").controller = "France"
         world.get_region("Brittany").controller = "France"
         world.get_region("Lyon").controller = "France"
@@ -342,7 +342,7 @@ class TestIntegratedPositioning:
 
         world.get_region("Paris").controller = "France"
         world.get_region("Belgium").controller = "France"
-        world.get_region("Rhine").controller = "Britain"
+        world.get_region("Rhineland").controller = "Britain"
         world.get_region("Waterloo").controller = "France"
         world.get_region("Brittany").controller = "France"
         world.get_region("Lyon").controller = "France"
@@ -490,7 +490,7 @@ class TestEdgeCases:
 
         world.get_region("Belgium").controller = "France"
         world.get_region("Netherlands").controller = "Britain"
-        world.get_region("Rhine").controller = "Britain"
+        world.get_region("Rhineland").controller = "Britain"
 
         # Belgium has 2 enemy-adjacent regions but frontline flag is binary
         score = self.ai._score_artillery_position("Belgium", art, "France", world)
@@ -524,19 +524,22 @@ class TestEdgeCases:
 
         art = _make_artillery(name="Drouot", location="Paris", nation="France")
         inf1 = _make_infantry(name="Soult", location="Belgium", nation="France")
-        inf2 = _make_infantry(name="Davout", location="Waterloo", nation="France")
+        # Bordeaux is adj to Paris. Make it frontline by setting Marseille to enemy.
+        inf2 = _make_infantry(name="Davout", location="Bordeaux", nation="France")
         world.marshals["Drouot"] = art
         world.marshals["Soult"] = inf1
         world.marshals["Davout"] = inf2
 
         world.get_region("Paris").controller = "France"
         world.get_region("Belgium").controller = "France"
-        world.get_region("Waterloo").controller = "France"
-        world.get_region("Rhine").controller = "Britain"
-        world.get_region("Brittany").controller = "France"
+        world.get_region("Bordeaux").controller = "France"
+        world.get_region("Rhineland").controller = "Britain"
+        world.get_region("Normandy").controller = "France"
         world.get_region("Lyon").controller = "France"
+        world.get_region("Marseille").controller = "Britain"  # Makes Bordeaux frontline
 
         # Two infantry on the front line adjacent to Paris
+        # (Belgium: adj to Rhineland=Britain, Bordeaux: adj to Marseille=Britain)
         score_two = self.ai._score_artillery_position("Paris", art, "France", world)
 
         # Remove one

@@ -243,19 +243,19 @@ STRATEGIC_COMMAND_EXAMPLES = [
         }
     },
     {
-        "input": "Grouchy, march to Rhine",
+        "input": "Grouchy, march to Rhineland",
         "output": {
             "matched": True,
             "command_type": "strategic",
             "marshals": ["Grouchy"],
             "action": "move",
-            "target": "Rhine",
+            "target": "Rhineland",
             "is_strategic": True,
             "strategic_type": "MOVE_TO",
             "strategic_condition": None,
             "ambiguity": 5,
             "strategic_score": 60,
-            "interpretation": "Standing order: Grouchy marches to Rhine",
+            "interpretation": "Standing order: Grouchy marches to Rhineland",
         }
     },
     {
@@ -390,10 +390,9 @@ Players may use directions instead of region names. Resolve to the actual region
 - "pursue the enemy" → target the nearest enemy marshal (set target to generic)
 
 Geographic layout (approximate):
-  North: Netherlands, Belgium  |  Northeast: Waterloo, Rhine
-  Central: Paris               |  East: Bavaria, Vienna
-  South: Lyon, Marseille       |  Southwest: Bordeaux, Brittany
-  Southeast: Geneva, Milan
+  North: Netherlands, Hanover, Berlin  |  Northeast: Saxony, Bohemia
+  Central-West: Normandy, Paris, Belgium, Waterloo  |  Central-East: Rhineland, Dresden
+  South-West: Brittany, Bordeaux, Lyon, Marseille  |  South-East: Bavaria, Vienna, Tyrol, Milan
 
 If you can resolve a direction to a specific region, set the target to that region name (low ambiguity).
 If you cannot determine the specific region, set target to "generic" and ambiguity to 60+.
@@ -534,7 +533,7 @@ def _get_regions_list(game_state: Dict[str, Any]) -> str:
         return ", ".join(regions)
 
     # Fallback to known regions if map_data not available
-    return "Paris, Belgium, Netherlands, Waterloo, Rhine, Bavaria, Vienna, Lyon, Milan, Marseille, Geneva, Brittany, Bordeaux"
+    return "Paris, Belgium, Netherlands, Waterloo, Rhineland, Bavaria, Vienna, Lyon, Milan, Marseille, Brittany, Bordeaux, Normandy, Hanover, Berlin, Saxony, Dresden, Bohemia, Tyrol"
 
 
 def _format_examples() -> str:

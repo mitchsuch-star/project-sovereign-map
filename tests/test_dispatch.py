@@ -16,7 +16,7 @@ import pytest
 from backend.models.marshal import Marshal, StrategicOrder
 from backend.models.world_state import WorldState
 from backend.models.intel import (
-    RegionIntel, FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
+    FULL, PARTIAL, STALE, LAST_KNOWN,
 )
 from backend.game_logic.dispatch import (
     build_morning_dispatch,
@@ -82,10 +82,10 @@ class TestSituation:
     def test_region_counts(self):
         world = _make_world()
         sit = _build_situation(world, "France")
-        # Default Waterloo scenario: France has 5 regions, enemies have 8
+        # 19-region map: France has 8 regions, enemies have 11
         assert sit["player_regions"] >= 1
         assert sit["enemy_regions"] >= 1
-        assert sit["player_regions"] + sit["enemy_regions"] <= 13
+        assert sit["player_regions"] + sit["enemy_regions"] <= 19
 
     def test_treasury_is_int(self):
         world = _make_world()
@@ -127,7 +127,7 @@ class TestSituation:
         sit = _build_situation(world, "France")
         # Should have fewer enemy regions now
         total = sit["player_regions"] + sit["enemy_regions"]
-        assert total < 13  # At least one uncontrolled
+        assert total < 19  # At least one uncontrolled
 
 
 class TestFogFilteredStrength:

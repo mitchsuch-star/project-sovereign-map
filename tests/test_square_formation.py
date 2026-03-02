@@ -440,7 +440,7 @@ class TestSquareObjections:
         m = Marshal("Test", "Belgium", 20000, "cautious", "France")
         # Place enemy artillery adjacent (Belgium is adjacent to Rhine)
         prince_august = world.get_marshal("PrinceAugust")
-        prince_august.location = "Rhine"  # Adjacent to Belgium
+        prince_august.location = "Rhineland"  # Adjacent to Belgium
         # Move enemy cavalry away so only artillery is adjacent
         uxbridge = world.get_marshal("Uxbridge")
         uxbridge.location = "Vienna"  # Far from Belgium
@@ -694,7 +694,7 @@ class TestStrategicCommandBreaksSquare:
         davout.square_formation = True
         # Place enemy for pursue target
         wellington = world.get_marshal("Wellington")
-        wellington.location = "Rhine"
+        wellington.location = "Rhineland"
         executor = _make_executor()
         result = executor.execute(
             {"command": {"marshal": "Davout", "action": "move", "target": "Wellington",

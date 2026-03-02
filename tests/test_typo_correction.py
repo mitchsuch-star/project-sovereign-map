@@ -20,9 +20,10 @@ class TestFuzzyMatcherDirectly:
 
     def test_bordeaux_typo(self):
         fm = FuzzyMatcher()
-        regions = ["Paris", "Belgium", "Netherlands", "Waterloo", "Rhine",
+        regions = ["Paris", "Belgium", "Netherlands", "Waterloo", "Rhineland",
                    "Bavaria", "Vienna", "Lyon", "Milan", "Marseille",
-                   "Geneva", "Brittany", "Bordeaux"]
+                   "Tyrol", "Brittany", "Bordeaux", "Normandy", "Hanover",
+                   "Berlin", "Saxony", "Dresden", "Bohemia"]
         result = fm.match_with_context("bordeuex", regions)
         assert result["action"] in ("exact", "auto_correct"), \
             f"FuzzyMatcher didn't auto-correct 'bordeuex': {result}"
@@ -30,9 +31,10 @@ class TestFuzzyMatcherDirectly:
 
     def test_belguim_typo(self):
         fm = FuzzyMatcher()
-        regions = ["Paris", "Belgium", "Netherlands", "Waterloo", "Rhine",
+        regions = ["Paris", "Belgium", "Netherlands", "Waterloo", "Rhineland",
                    "Bavaria", "Vienna", "Lyon", "Milan", "Marseille",
-                   "Geneva", "Brittany", "Bordeaux"]
+                   "Tyrol", "Brittany", "Bordeaux", "Normandy", "Hanover",
+                   "Berlin", "Saxony", "Dresden", "Bohemia"]
         result = fm.match_with_context("Belguim", regions)
         assert result["action"] in ("exact", "auto_correct"), \
             f"FuzzyMatcher didn't auto-correct 'Belguim': {result}"

@@ -641,7 +641,7 @@ class TestBannedActions:
         art = _make_artillery(name="ArtPursue", location="Paris")
         world.marshals["ArtPursue"] = art
         # Move Wellington to Rhine (not adjacent to Paris) so PURSUE would normally trigger
-        world.marshals["Wellington"].location = "Rhine"
+        world.marshals["Wellington"].location = "Rhineland"
 
         executor = CommandExecutor()
         game_state = {"world": world}

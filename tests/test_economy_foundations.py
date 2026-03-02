@@ -120,8 +120,8 @@ class TestRegionIncomeValues:
         assert REGIONS_DATA["Paris"]["income"] == 300
 
     def test_major_cities_200(self):
-        """Vienna and Lyon are major_city with 200 income."""
-        for name in ["Vienna", "Lyon"]:
+        """Lyon is major_city with 200 income."""
+        for name in ["Lyon"]:
             assert REGIONS_DATA[name]["region_type"] == "major_city"
             assert REGIONS_DATA[name]["income"] == 200
 
@@ -132,8 +132,8 @@ class TestRegionIncomeValues:
             assert REGIONS_DATA[name]["income"] == 150
 
     def test_towns_100(self):
-        """Belgium, Rhine, Bavaria, Geneva are town with 100 income."""
-        for name in ["Belgium", "Rhine", "Bavaria", "Geneva"]:
+        """Belgium, Rhineland, Bavaria, Tyrol, Normandy, Hanover, Dresden are town with 100 income."""
+        for name in ["Belgium", "Rhineland", "Bavaria", "Tyrol", "Normandy", "Hanover", "Dresden"]:
             assert REGIONS_DATA[name]["region_type"] == "town"
             assert REGIONS_DATA[name]["income"] == 100
 
@@ -143,9 +143,9 @@ class TestRegionIncomeValues:
             assert REGIONS_DATA[name]["region_type"] == "rural"
             assert REGIONS_DATA[name]["income"] == 50
 
-    def test_all_13_regions_have_region_type(self):
+    def test_all_19_regions_have_region_type(self):
         """Every region in REGIONS_DATA has a region_type."""
-        assert len(REGIONS_DATA) == 13
+        assert len(REGIONS_DATA) == 19
         for name, data in REGIONS_DATA.items():
             assert "region_type" in data, f"{name} missing region_type"
             assert data["region_type"] in VALID_REGION_TYPES, f"{name} has invalid type"
@@ -162,7 +162,7 @@ class TestRegionIncomeValues:
         """create_regions() sets region_type from REGIONS_DATA."""
         regions = create_regions()
         assert regions["Paris"].region_type == "capital"
-        assert regions["Vienna"].region_type == "major_city"
+        assert regions["Vienna"].region_type == "capital"
         assert regions["Milan"].region_type == "city"
         assert regions["Belgium"].region_type == "town"
         assert regions["Brittany"].region_type == "rural"
@@ -173,7 +173,7 @@ class TestRegionIncomeValues:
         assert regions["Paris"].income_value == 300
         assert regions["Lyon"].income_value == 200
         assert regions["Marseille"].income_value == 150
-        assert regions["Rhine"].income_value == 100
+        assert regions["Rhineland"].income_value == 100
         assert regions["Bordeaux"].income_value == 50
 
 

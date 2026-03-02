@@ -611,7 +611,7 @@ class TestReinforcerRetreatOnStalemate:
         wellington.strength = 30000
 
         uxbridge = self.world.get_marshal("Uxbridge")
-        uxbridge.location = "Rhine"  # Adjacent to Waterloo
+        uxbridge.location = "Rhineland"  # Adjacent to Waterloo
         uxbridge.strength = 15000
 
         result = self.executor._execute_attack(
@@ -620,7 +620,7 @@ class TestReinforcerRetreatOnStalemate:
         uxbridge_after = self.world.marshals.get("Uxbridge")
         if uxbridge_after and uxbridge_after.reinforced_this_turn:
             # Stalemate — defender reinforcer must also return
-            assert uxbridge_after.location == "Rhine", \
+            assert uxbridge_after.location == "Rhineland", \
                 f"Defender reinforcer should return on stalemate, but is at {uxbridge_after.location}"
 
     def test_reinforcer_still_stays_on_win(self):

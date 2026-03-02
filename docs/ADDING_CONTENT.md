@@ -36,7 +36,7 @@ Step-by-step guides for adding new marshals, personalities, strategic commands, 
    - [Test Fix Guide](#test-fix-guide)
    - [Victory Threshold Scaling](#victory-threshold-scaling)
    - [Common Pitfalls (Map Expansion)](#common-pitfalls-map-expansion)
-   - [Quick Reference: Current 13-Region Map](#quick-reference-current-13-region-map)
+   - [Quick Reference: Current 19-Region Map](#quick-reference-current-19-region-map)
 4. [Adding a Diplomatic Representative](#4-adding-a-diplomatic-representative)
    - [Diplomat vs Marshal](#diplomat-vs-marshal)
    - [Diplomatic Personality Types](#diplomatic-personality-types)
@@ -699,7 +699,7 @@ Marshal(
 ```python
 Marshal(
     name="SomeGeneral",
-    location="London",  # London doesn't exist in the 13-region test map!
+    location="London",  # London doesn't exist in the 19-region test map!
     ...
 )
 ```
@@ -707,8 +707,9 @@ Marshal(
 **RIGHT:**
 ```python
 # Check backend/models/region.py for valid regions:
-# Paris, Belgium, Netherlands, Waterloo, Rhine, Bavaria, Vienna,
-# Lyon, Marseille, Geneva, Milan, Brittany, Bordeaux
+# Paris, Belgium, Netherlands, Waterloo, Rhineland, Bavaria, Vienna,
+# Lyon, Marseille, Milan, Brittany, Bordeaux, Normandy, Hanover,
+# Berlin, Saxony, Dresden, Bohemia, Tyrol
 Marshal(
     name="SomeGeneral",
     location="Vienna",  # Valid region
@@ -812,17 +813,23 @@ Marshal(
 |--------|-------------------|-------|
 | Paris | France | French capital |
 | Belgium | France | Ney's start |
+| Normandy | France | Western depth |
 | Lyon | France | Interior France |
 | Brittany | France | Western France |
 | Bordeaux | France | Southwestern France |
 | Marseille | France | Mediterranean |
-| Netherlands | Britain | Blucher's start |
+| Milan | France | French Italy |
+| Netherlands | Britain | British continental |
 | Waterloo | Britain | Wellington's start |
-| Rhine | Prussia | German territories |
-| Bavaria | Austria | German territories |
+| Hanover | Britain | British crown territory |
+| Rhineland | Prussia | German territories |
+| Berlin | Prussia | Prussian capital |
+| Saxony | Saxony | Central buffer state |
+| Dresden | Saxony | Saxon capital |
+| Bavaria | Austria | Austrian sphere |
 | Vienna | Austria | Austrian capital |
-| Milan | Neutral | Northern Italy |
-| Geneva | Neutral | Swiss region |
+| Bohemia | Austria | Northern Austria |
+| Tyrol | Austria | Alpine barrier |
 
 #### Personality Types
 
@@ -1685,7 +1692,7 @@ Add tests in `tests/` covering:
 
 ## 3. Expanding the Map
 
-Step-by-step guide for adding new regions, renaming existing regions, or expanding from the 13-region Western Europe map to a full European map.
+Step-by-step guide for adding new regions, renaming existing regions, or expanding from the 19-region Western/Central Europe map to a full European map.
 
 **Difficulty:** 4/10 -- Backend region data auto-derives from `REGIONS_DATA` in `region.py` (single source of truth). Only `map.gd` (Godot) requires manual sync. Test files (~80+) still reference region names by string and need batch updates.
 
@@ -1823,7 +1830,7 @@ These files now derive their region data from `region.py` automatically:
 ```python
 # Add to REGIONS_DATA dict:
 "Hamburg": {
-    "adjacent": ["Netherlands", "Rhine"],  # Must be bidirectional!
+    "adjacent": ["Netherlands", "Rhineland"],  # Must be bidirectional!
     "income": 150,
     "is_capital": False,
     "terrain": "plains",
@@ -1872,10 +1879,10 @@ const REGION_POSITIONS = {
 # REGION_CONNECTIONS (~line 21):
 const REGION_CONNECTIONS = {
     # ...existing...
-    "Hamburg": ["Netherlands", "Rhine"],
-    # Also update Netherlands and Rhine entries:
+    "Hamburg": ["Netherlands", "Rhineland"],
+    # Also update Netherlands and Rhineland entries:
     "Netherlands": ["Belgium", "Hamburg"],
-    "Rhine": ["Belgium", "Bavaria", "Lyon", "Hamburg"],
+    "Rhineland": ["Belgium", "Saxony", "Bavaria", "Lyon", "Hamburg"],
 }
 ```
 
@@ -1943,7 +1950,7 @@ rg "RegionName" --type py -l
 rg "RegionName" --type gdscript -l
 
 # 2. Find all hardcoded region name strings in backend (not comments)
-rg '"(Paris|Belgium|Netherlands|Waterloo|Rhine|Bavaria|Vienna|Lyon|Milan|Marseille|Geneva|Brittany|Bordeaux)"' backend/ --type py
+rg '"(Paris|Belgium|Netherlands|Waterloo|Rhineland|Bavaria|Vienna|Lyon|Milan|Marseille|Brittany|Bordeaux|Normandy|Hanover|Berlin|Saxony|Dresden|Bohemia|Tyrol)"' backend/ --type py
 
 # 3. Find all files importing from region.py
 rg "from backend.models.region import" --type py
@@ -1958,7 +1965,7 @@ rg "victory|regions.*>=|player_regions" backend/game_logic/turn_manager.py
 rg '"Paris"' backend/ --type py -n
 
 # 7. Count test files referencing regions (to estimate fix scope)
-rg '"(Paris|Belgium|Netherlands|Waterloo|Rhine|Bavaria|Vienna|Lyon|Milan|Marseille|Geneva|Brittany|Bordeaux)"' tests/ -l | wc -l
+rg '"(Paris|Belgium|Netherlands|Waterloo|Rhineland|Bavaria|Vienna|Lyon|Milan|Marseille|Brittany|Bordeaux|Normandy|Hanover|Berlin|Saxony|Dresden|Bohemia|Tyrol)"' tests/ -l | wc -l
 
 # 8. Verify Godot map matches backend
 # (manual: compare REGION_POSITIONS keys in map.gd with REGIONS_DATA keys in region.py)
@@ -2046,8 +2053,8 @@ Fix manually — automated find/replace can break test logic if the region name 
 **Pattern:** Tests that assert specific neighbors or test movement between specific regions.
 
 ```python
-# Test assumes Belgium is adjacent to Rhine — verify this is still true
-assert world.regions["Belgium"].is_adjacent_to("Rhine")
+# Test assumes Belgium is adjacent to Rhineland — verify this is still true
+assert world.regions["Belgium"].is_adjacent_to("Rhineland")
 ```
 
 Fix: Update adjacency assertions to match new map layout.
@@ -2057,9 +2064,9 @@ Fix: Update adjacency assertions to match new map layout.
 **Pattern:** Tests that assert `len(regions) == 13` or check player region counts.
 
 ```python
-# BEFORE (13-region map):
+# BEFORE (old 13-region map):
 assert len(world.regions) == 13
-# AFTER (19-region map):
+# AFTER (current 19-region map):
 assert len(world.regions) == 19
 ```
 
@@ -2093,7 +2100,7 @@ Tests that set specific regions by name need manual updates.
 
 ### Victory Threshold Scaling
 
-Current thresholds (13-region map):
+Current thresholds (19-region map):
 
 | Condition | Current Value | Formula |
 |-----------|--------------|---------|
@@ -2130,7 +2137,7 @@ time_victory_threshold = math.ceil(total * 0.77)  # ~77% control at time limit
 **WRONG:**
 ```python
 "Hamburg": {
-    "adjacent": ["Netherlands", "Rhine"],
+    "adjacent": ["Netherlands", "Rhineland"],
     ...
 }
 # But Netherlands still has: "adjacent": ["Belgium"]
@@ -2173,23 +2180,29 @@ Capital lookups now use `NATION_CAPITALS` in `region.py` (single source of truth
 
 ---
 
-### Quick Reference: Current 13-Region Map
+### Quick Reference: Current 19-Region Map
 
 | Region | Terrain | Type | Income | Capital | Controller | Adjacent To |
 |--------|---------|------|--------|---------|------------|-------------|
-| Paris | urban | capital | 300 | Yes | France | Belgium, Waterloo, Brittany, Lyon |
-| Belgium | plains | town | 100 | No | France | Paris, Netherlands, Waterloo, Rhine |
-| Netherlands | plains | rural | 50 | No | Britain | Belgium |
-| Waterloo | hills | rural | 50 | No | Britain | Belgium, Paris |
-| Rhine | river_crossing | town | 100 | No | Prussia | Belgium, Bavaria, Lyon |
-| Bavaria | hills | town | 100 | No | Prussia | Rhine, Vienna, Lyon |
-| Vienna | urban | major_city | 200 | No | Prussia | Bavaria, Milan |
-| Lyon | hills | major_city | 200 | No | France | Paris, Rhine, Bavaria, Marseille, Milan |
-| Milan | urban | city | 150 | No | Britain | Lyon, Vienna, Geneva |
-| Marseille | plains | city | 150 | No | France | Lyon, Geneva |
-| Geneva | mountains | town | 100 | No | Britain | Marseille, Milan, Bordeaux |
-| Brittany | forest | rural | 50 | No | France | Paris, Bordeaux |
-| Bordeaux | plains | rural | 50 | No | France | Brittany, Geneva |
+| Paris | urban | capital | 300 | Yes | France | Normandy, Belgium, Lyon, Bordeaux |
+| Normandy | plains | town | 100 | No | France | Paris, Brittany, Belgium |
+| Brittany | forest | rural | 50 | No | France | Normandy, Bordeaux |
+| Bordeaux | plains | rural | 50 | No | France | Brittany, Paris, Lyon, Marseille |
+| Lyon | hills | major_city | 200 | No | France | Paris, Bordeaux, Marseille, Rhineland, Milan |
+| Marseille | plains | city | 150 | No | France | Lyon, Bordeaux, Milan |
+| Belgium | plains | town | 100 | No | France | Paris, Normandy, Netherlands, Waterloo, Rhineland |
+| Milan | urban | city | 150 | No | France | Lyon, Marseille, Tyrol, Vienna |
+| Netherlands | plains | rural | 50 | No | Britain | Belgium, Waterloo, Hanover |
+| Waterloo | hills | rural | 50 | No | Britain | Belgium, Netherlands, Hanover |
+| Hanover | plains | town | 100 | No | Britain | Netherlands, Waterloo, Saxony, Berlin |
+| Berlin | urban | capital | 300 | Yes | Prussia | Hanover, Saxony, Bohemia |
+| Rhineland | river_crossing | town | 100 | No | Prussia | Belgium, Lyon, Saxony, Bavaria |
+| Saxony | plains | city | 150 | No | Saxony | Hanover, Berlin, Rhineland, Bavaria, Bohemia, Dresden |
+| Dresden | hills | town | 100 | Yes | Saxony | Saxony, Bohemia |
+| Bavaria | hills | town | 100 | No | Austria | Rhineland, Saxony, Vienna, Tyrol |
+| Vienna | urban | capital | 300 | Yes | Austria | Bavaria, Bohemia, Tyrol, Milan |
+| Bohemia | forest | city | 150 | No | Austria | Berlin, Saxony, Dresden, Vienna |
+| Tyrol | mountains | town | 100 | No | Austria | Bavaria, Vienna, Milan |
 
 **Update this table whenever the map changes.**
 

@@ -18,14 +18,14 @@ python backend/main.py
 
 ```
 /debug set_location Ney Belgium
-/debug set_location Wellington Rhine
+/debug set_location Wellington Rhineland
 /debug freeze Wellington
 
 Ney, scout Belgium          # 3 AP left
 Davout, scout Lyon           # 2 AP left
 Grouchy, scout Waterloo      # 1 AP left
 
-Ney, march to Rhine
+Ney, march to Rhineland
 ```
 **Expected:** "Not enough actions! Need 2, have 1."
 
@@ -33,7 +33,7 @@ Ney, march to Rhine
 
 ```
 # Fresh turn (4 AP)
-Ney, march to Rhine
+Ney, march to Rhineland
 ```
 **Expected:** Success, 2 AP remaining. Ney starts marching.
 
@@ -84,9 +84,9 @@ Ney, attack Wellington
 /debug set_location Ney Paris
 /debug set_strength Ney 72000
 
-Ney, march to Rhine
+Ney, march to Rhineland
 ```
-**Expected:** Ney auto-attacks Wellington (72k vs 50k, ratio >= 0.7). No popup. If wins, continues to Rhine.
+**Expected:** Ney auto-attacks Wellington (72k vs 50k, ratio >= 0.7). No popup. If wins, continues to Rhineland.
 
 ### 2B. Aggressive (Ney) -- bad odds -> popup
 
@@ -95,12 +95,12 @@ Ney, march to Rhine
 /debug set_strength Ney 30000
 /debug set_strength Wellington 100000
 
-Ney, march to Rhine
+Ney, march to Rhineland
 ```
 **Expected:** Blocked path popup with options: attack, go_around, hold_position, cancel_order.
 
 - Test attack: Ney attacks (bad odds)
-- Test go_around: Ney reroutes (Paris->Lyon->Rhine)
+- Test go_around: Ney reroutes (Paris->Lyon->Rhineland)
 - Test hold_position: Ney stops, order paused (-3 trust if mid-march)
 - Test cancel_order: Order cancelled
 
@@ -110,7 +110,7 @@ Ney, march to Rhine
 /debug set_location Davout Paris
 /debug set_strength Davout 72000
 
-Davout, march to Rhine
+Davout, march to Rhineland
 ```
 **Expected:** Blocked path popup EVEN with good odds (cautious always asks).
 
@@ -119,9 +119,9 @@ Davout, march to Rhine
 ```
 /debug set_location Grouchy Paris
 
-Grouchy, march to Rhine
+Grouchy, march to Rhineland
 ```
-**Expected:** NO popup. Grouchy silently reroutes around Belgium (Paris->Lyon->Rhine). Message mentions alternate path.
+**Expected:** NO popup. Grouchy silently reroutes around Belgium (Paris->Lyon->Rhineland). Message mentions alternate path.
 
 ### 2E. First-step cancel has 0 trust penalty
 
@@ -129,7 +129,7 @@ Grouchy, march to Rhine
 /debug set_location Ney Paris
 /debug set_strength Wellington 100000
 
-Ney, march to Rhine
+Ney, march to Rhineland
 # Popup appears -> click cancel_order
 ```
 **Expected:** Order cancelled, 0 trust penalty (first step, not mid-march).
@@ -151,7 +151,7 @@ Ney, march to Rhine
 ### 3A. Aggressive -- gets interrupt
 
 ```
-Ney, march to Rhine
+Ney, march to Rhineland
 # End turn so Ney moves
 end turn
 # Next turn -- if Ney is within 2 regions of a battle, cannon fire triggers
@@ -163,7 +163,7 @@ end turn
 ```
 /debug set_location Grouchy Lyon
 
-Grouchy, march to Rhine
+Grouchy, march to Rhineland
 end turn
 ```
 **Expected:** Grouchy continues march silently. No cannon fire popup EVER (The Grouchy Moment).
@@ -176,7 +176,7 @@ end turn
 
 ```
 /debug set_location Ney Belgium
-/debug set_location Wellington Rhine
+/debug set_location Wellington Rhineland
 /debug freeze Wellington
 /debug set_strength Ney 72000
 /debug set_strength Wellington 40000
@@ -187,7 +187,7 @@ end turn
 ```
 Ney, pursue Wellington
 end turn
-# Ney reaches Rhine, fights Wellington
+# Ney reaches Rhineland, fights Wellington
 ```
 **Expected:** Combat happens. Order shows "completed" regardless of outcome (win/lose/stalemate). NO stalemate popup.
 
@@ -195,12 +195,12 @@ end turn
 
 ```
 /debug set_location Davout Belgium
-/debug set_location Wellington Rhine
+/debug set_location Wellington Rhineland
 
 Davout, pursue Wellington
 end turn
 ```
-**Expected:** Davout arrives at Rhine. Message: "Davout has located Wellington at Rhine and awaits orders." Order completed. No auto-attack (cautious).
+**Expected:** Davout arrives at Rhineland. Message: "Davout has located Wellington at Rhineland and awaits orders." Order completed. No auto-attack (cautious).
 
 ---
 
@@ -476,7 +476,7 @@ Davout, support Ney
 
 ```
 # Move Ney after Davout starts supporting
-Ney, move to Rhine
+Ney, move to Rhineland
 end turn
 ```
 **Expected:** If Davout is cautious, ally_moving interrupt popup. Options: follow, hold_current, cancel_support.
@@ -514,7 +514,7 @@ Verifies that aggressive marshals on strategic orders don't get infinite free at
 ### 17A. First encounter -- auto-attack
 
 ```
-Ney, march to Rhine
+Ney, march to Rhineland
 ```
 **Expected:** Ney auto-attacks Wellington (ratio >= 0.7). If victory, continues. If stalemate, shows interrupt popup: "Ney attacked Wellington during march but the battle was inconclusive."
 

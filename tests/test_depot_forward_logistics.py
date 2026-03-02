@@ -7,10 +7,7 @@ Covers:
 - AI depot placement preference for border regions
 """
 
-import pytest
 
-from backend.models.region import Region
-from backend.models.marshal import Marshal
 from backend.models.world_state import WorldState
 from backend.commands.executor import CommandExecutor
 from backend.ai.enemy_ai import EnemyAI
@@ -55,11 +52,11 @@ class TestDepotProjection:
         ney.strength = 20000
         ney.location = "Belgium"
 
-        # Paris is adjacent to Waterloo. Put a depot in Paris (French controlled).
-        paris = world.get_region("Paris")
-        add_depot(paris)
+        # Belgium is adjacent to Waterloo. Put a depot in Belgium (French controlled).
+        belgium = world.get_region("Belgium")
+        add_depot(belgium)
 
-        # Waterloo is enemy territory (adjacent to Paris).
+        # Waterloo is enemy territory (adjacent to Belgium).
         waterloo = world.get_region("Waterloo")
         waterloo.controller = "Britain"
 
@@ -116,8 +113,9 @@ class TestDepotProjection:
         ney.strength = 20000
         ney.location = "Belgium"
 
-        paris = world.get_region("Paris")
-        add_depot(paris, damaged=True)
+        # Belgium is adjacent to Waterloo, but depot is damaged.
+        belgium = world.get_region("Belgium")
+        add_depot(belgium, damaged=True)
 
         waterloo = world.get_region("Waterloo")
         waterloo.controller = "Britain"
@@ -136,10 +134,9 @@ class TestDepotProjection:
         ney.strength = 20000
         ney.location = "Belgium"
 
-        # Paris is captured by Britain and has a depot
-        paris = world.get_region("Paris")
-        paris.controller = "Britain"
-        add_depot(paris)
+        # Netherlands is British and adjacent to Waterloo — enemy depot
+        netherlands = world.get_region("Netherlands")
+        add_depot(netherlands)
 
         waterloo = world.get_region("Waterloo")
         waterloo.controller = "Britain"
@@ -155,21 +152,22 @@ class TestDepotProjection:
         executor = make_executor()
         ney = world.get_marshal("Ney")
         ney.strength = 20000
-        ney.location = "Belgium"
+        ney.location = "Paris"
 
-        # Waterloo is adjacent to both Paris and Belgium.
-        # Put depots in both Paris and Belgium (both French).
+        # Lyon is adjacent to both Paris and Bordeaux (both French).
+        # Put depots in both Paris and Bordeaux.
         paris = world.get_region("Paris")
         add_depot(paris)
-        belgium = world.get_region("Belgium")
-        add_depot(belgium)
+        bordeaux = world.get_region("Bordeaux")
+        add_depot(bordeaux)
 
-        waterloo = world.get_region("Waterloo")
-        waterloo.controller = "Britain"
+        lyon = world.get_region("Lyon")
+        lyon.controller = "Britain"
 
-        result = executor._calculate_movement_attrition(ney, "Waterloo", world)
+        result = executor._calculate_movement_attrition(ney, "Lyon", world)
 
-        # Still 0.5x, not 0.25x
+        # Lyon terrain = hills (1.2x). Still 0.5x, not 0.25x
+        # base 1% * 1.2x = 1.2%, with depot 0.5x = 0.6% -> 120
         assert result["march_losses"] == 120
         assert result["depot_bonus"] is True
 
@@ -186,10 +184,10 @@ class TestDepotProjection:
         lyon = world.get_region("Lyon")
         add_depot(lyon)
 
-        rhine = world.get_region("Rhine")
+        rhine = world.get_region("Rhineland")
         rhine.controller = "Prussia"
 
-        result = executor._calculate_movement_attrition(ney, "Rhine", world)
+        result = executor._calculate_movement_attrition(ney, "Rhineland", world)
 
         # Rhine: river_crossing terrain, movement_cost 1.5x
         # base 1% * 1.5 = 1.5% -> 300 without depot
@@ -205,8 +203,9 @@ class TestDepotProjection:
         ney.strength = 20000
         ney.location = "Belgium"
 
-        paris = world.get_region("Paris")
-        add_depot(paris)
+        # Belgium is adjacent to Waterloo. Depot in Belgium (French).
+        belgium = world.get_region("Belgium")
+        add_depot(belgium)
 
         # Make Waterloo neutral
         waterloo = world.get_region("Waterloo")
@@ -302,17 +301,17 @@ class TestDepotNonInteraction:
         executor = make_executor()
         ney = world.get_marshal("Ney")
         ney.strength = 20000
-        ney.location = "Marseille"
+        ney.location = "Milan"
 
-        # Geneva: mountains terrain (2.0x), adjacent to Marseille
-        geneva = world.get_region("Geneva")
-        geneva.controller = "Britain"
+        # Tyrol: mountains terrain (2.0x), adjacent to Milan
+        tyrol = world.get_region("Tyrol")
+        tyrol.controller = "Britain"
 
-        # Depot in Marseille (adjacent to Geneva)
-        marseille = world.get_region("Marseille")
-        add_depot(marseille)
+        # Depot in Milan (adjacent to Tyrol)
+        milan = world.get_region("Milan")
+        add_depot(milan)
 
-        result = executor._calculate_movement_attrition(ney, "Geneva", world)
+        result = executor._calculate_movement_attrition(ney, "Tyrol", world)
 
         # Mountains: base 1% * 2.0x = 2.0%, with depot 0.5x = 1.0% -> 200
         assert result["march_losses"] == 200
@@ -329,8 +328,9 @@ class TestDepotNonInteraction:
         ney.strength = 50000
         ney.location = "Belgium"
 
-        paris = world.get_region("Paris")
-        add_depot(paris)
+        # Belgium is adjacent to Waterloo. Put depot in Belgium.
+        belgium = world.get_region("Belgium")
+        add_depot(belgium)
 
         waterloo = world.get_region("Waterloo")
         waterloo.controller = "Britain"
@@ -339,7 +339,7 @@ class TestDepotNonInteraction:
 
         # Reset strength for control test
         ney.strength = 50000
-        paris.buildings.clear()
+        belgium.buildings.clear()
         result_without = executor._calculate_movement_attrition(ney, "Waterloo", world)
 
         # Match production code's step-by-step floating point arithmetic:
@@ -368,19 +368,27 @@ class TestAIDepotPlacement:
         world = fresh_world()
         ai = EnemyAI(make_executor())
 
-        # Give Prussia both major_city regions: Vienna and Lyon.
-        # Vienna adj: Bavaria, Milan. Lyon adj: Paris, Rhine, Bavaria, Marseille, Milan.
-        # Make all adjacent regions Prussian EXCEPT Paris (France) — so Lyon borders enemy.
-        for name in ["Vienna", "Lyon", "Bavaria", "Rhine", "Milan", "Marseille"]:
+        # Give Prussia a cluster of regions. We want two city-tier candidates:
+        # Milan (city, interior) vs Marseille (city, border — adj to Bordeaux=France).
+        # Surround Milan with all-Prussia neighbors so it's interior.
+        # Leave Marseille adjacent to Bordeaux (France) so it borders enemy.
+        for name in ["Lyon", "Bavaria", "Rhineland", "Milan", "Marseille",
+                      "Bohemia", "Tyrol", "Vienna"]:
             region = world.get_region(name)
             region.controller = "Prussia"
             region.stability = 80
 
-        # Paris stays French. Lyon is adjacent to Paris → Lyon borders enemy.
-        # Vienna adj = Bavaria (Prussia) + Milan (Prussia) → Vienna is interior.
-        # Both are major_city tier. Lyon should be preferred (borders enemy).
+        # Give existing depots to higher-tier regions so city tier is tested:
+        # Berlin (capital), Vienna (capital), Lyon (major_city)
+        add_depot(world.get_region("Berlin"))
+        add_depot(world.get_region("Vienna"))
+        add_depot(world.get_region("Lyon"))
+
+        # Milan adj: Lyon(Prussia), Marseille(Prussia), Tyrol(Prussia), Vienna(Prussia) → interior
+        # Marseille adj: Lyon(Prussia), Bordeaux(France), Milan(Prussia) → borders France
+        # Both are city tier. Marseille should be preferred (borders enemy).
         result = ai._find_best_depot_region("Prussia", world)
-        assert result == "Lyon"
+        assert result == "Marseille"
 
     def test_ai_falls_back_when_no_border(self):
         """If no candidates border enemies, AI still picks by type priority."""
@@ -414,7 +422,7 @@ class TestAIDepotPlacement:
         milan = world.get_region("Milan")
         milan.controller = "Prussia"
         milan.stability = 80
-        # Milan adj: Lyon (France), Vienna (Prussia), Geneva (Britain) → borders enemy
+        # Milan adj: Lyon (France), Marseille (France), Tyrol (Prussia), Vienna (Prussia) → borders enemy
 
         # Vienna adj: Bavaria (Prussia), Milan (Prussia) → interior.
         # major_city > city tier, so Vienna picked despite being interior.

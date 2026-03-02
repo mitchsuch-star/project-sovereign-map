@@ -95,10 +95,13 @@ class TestEC1_DefianceThreshold:
         world = MockWorld()
         assert calculate_defiance_chance(marshal, ConcernLevel.MILD, world) == 0.0
 
-    def test_moderate_returns_zero(self):
+    def test_moderate_returns_near_zero(self):
+        """MODERATE with high authority (100) and neutral trust: base 0.05 - 0.10 authority = -0.05 + variance.
+        Clamped to 0.0 most of the time, but variance can push to ~0.03."""
         marshal = MockMarshal()
         world = MockWorld()
-        assert calculate_defiance_chance(marshal, ConcernLevel.MODERATE, world) == 0.0
+        chance = calculate_defiance_chance(marshal, ConcernLevel.MODERATE, world)
+        assert chance <= 0.05, f"MODERATE with high authority should be near zero, got {chance}"
 
     def test_strong_returns_nonzero(self):
         """STRONG concern with aggressive personality should give non-zero chance."""

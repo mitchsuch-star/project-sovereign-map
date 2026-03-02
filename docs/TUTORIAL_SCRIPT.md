@@ -49,10 +49,10 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 
 | Concept | Teach by | Priority |
 |---------|----------|----------|
-| You command 4 French marshals | Campaign briefing: "Your marshals: Ney (72k, Belgium), Davout (48k, Paris), Grouchy (33k, Belgium), Drouot (25k, Paris)" | Must-know |
-| Enemy has 5 marshals across 2 nations | Scout reveals: "Wellington (68k) and Uxbridge (18k) at Waterloo. Blucher (55k), Gneisenau (45k), and PrinceAugust (20k) in Netherlands." | Must-know |
+| You command 4 French marshals | Campaign briefing: "Your marshals: Ney (72k, Belgium), Davout (48k, Paris), Grouchy (28k, Lyon), Drouot (25k, Paris)" | Must-know |
+| Enemy has 4 marshals across 2 nations at war, plus neutral Austria (2) and Saxony (1) | Scout reveals: "Wellington (52k) at Waterloo. Uxbridge (24k) at Hanover. Blucher (40k) at Berlin. Gneisenau (32k) at Rhineland." | Must-know |
 | 3 unit types: infantry, cavalry, artillery | Tooltip on each marshal shows unit type badge | Must-know |
-| France controls 6 regions, Coalition controls 7 | Map shows controlled regions by color at start | Should-know |
+| France controls 8 regions, Coalition controls 5, neutral 6 | Map shows controlled regions by color at start | Should-know |
 | Ney is cavalry (2-tile range, can charge) | Tooltip on Ney: "CAVALRY — can attack enemies 2 regions away" | Should-know |
 | Drouot is artillery (ranged bombardment) | Tooltip on Drouot: "ARTILLERY — cannot attack after moving" | Should-know |
 | Davout is the best tactician (skill 10) | Tooltip on Davout: "Master tactician — strongest defensive modifiers" | Nice-to-know |
@@ -291,7 +291,7 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 
 ## Short Waterloo Scenario (Pre-EA)
 
-10-15 turn guided scenario using current 13-region map. 40-turn max game. Victory: control 10+ regions at turn 40 or total conquest. Teaches:
+10-15 turn guided scenario using current 19-region map. 40-turn max game. Victory: control 15+ regions at turn 40 or total conquest. Teaches:
 1. Turn 1: Issue first order (move). Introduce 2 AP pools (4 combat, 2 admin). Type 'economy' to see treasury. Note manpower HUD.
 2. Turn 2: Ney objects (scripted) — learn Trust/Insist/Compromise. See MILD "Field Dispatches" in log.
 3. Turn 3: Attack enemy — learn combat, terrain bonuses, post-battle damage.
@@ -300,23 +300,31 @@ Every time a feature is added, add an entry here. When Pre-EA tutorial content i
 6. Turn 6: Capture a region — learn Plunder/Secure choice. Note capital garrison blocks easy capture. Check economy impact.
 7. Turn 7: Recruit troops, build a market — learn admin AP and manpower pools. See morale dilution from recruits.
 8. Turn 8-12: Play freely with gentle tooltips (cavalry charges, garrison placement, supply, fortification, fog of war).
-9. Win/lose condition: control 10 regions or take all enemy territory. Lose if Paris falls or all marshals destroyed.
+9. Win/lose condition: control 15 regions or take all enemy territory. Lose if Paris falls or all marshals destroyed.
 
 ### Starting Map Reference
 
-**French (Player):** Paris (capital, urban, 300g), Belgium (town, plains, 100g), Lyon (major_city, hills, 200g), Brittany (rural, forest, 50g), Bordeaux (rural, plains, 50g), Marseille (city, plains, 150g). Starting gold: 600. Manpower: 80k inf / 15k cav / 10k art.
+**French (Player):** Paris (capital, urban, 300g), Belgium (town, plains, 100g), Normandy (town, plains, 100g), Lyon (major_city, hills, 200g), Brittany (rural, forest, 50g), Bordeaux (rural, plains, 50g), Marseille (city, plains, 150g), Milan (city, urban, 150g). Starting gold: 800. Manpower: 80k inf / 15k cav / 10k art.
 
-Marshals: Ney (72k, Belgium, cavalry, aggressive), Davout (48k, Paris, infantry, cautious), Grouchy (33k, Belgium, infantry, literal), Drouot (25k, Paris, artillery, cautious).
+Marshals: Ney (72k, Belgium, cavalry, aggressive), Davout (48k, Paris, infantry, cautious), Grouchy (28k, Lyon, infantry, literal), Drouot (25k, Paris, artillery, cautious).
 
-**British:** Netherlands (rural, plains, 50g), Waterloo (rural, hills, 50g), Milan (city, urban, 150g), Geneva (town, mountains, 100g). Starting gold: 1,500.
+**British:** Netherlands (rural, plains, 50g), Waterloo (rural, hills, 50g), Hanover (town, plains, 100g). Starting gold: 1,500.
 
-Marshals: Wellington (68k, Waterloo, infantry, cautious), Uxbridge (18k, Waterloo, cavalry, aggressive).
+Marshals: Wellington (52k, Waterloo, infantry, cautious), Uxbridge (24k, Hanover, cavalry, aggressive).
 
-**Prussian:** Rhine (town, river_crossing, 100g), Bavaria (town, hills, 100g), Vienna (major_city, urban, 200g). Starting gold: 800.
+**Prussian:** Berlin (capital, urban, 300g), Rhineland (town, river_crossing, 100g). Starting gold: 800.
 
-Marshals: Blucher (55k, Netherlands, infantry, aggressive), Gneisenau (45k, Netherlands, infantry, cautious), PrinceAugust (20k, Netherlands, artillery, cautious).
+Marshals: Blucher (40k, Berlin, infantry, aggressive), Gneisenau (32k, Rhineland, infantry, cautious).
 
-**All capitals start with 15,000 garrison troops.** Victory requires 10 regions (of 13).
+**Austrian:** Vienna (capital, urban, 300g), Bavaria (town, hills, 100g), Bohemia (city, forest, 150g), Tyrol (town, mountains, 100g). Starting gold: 600. At PEACE with France (relation -30).
+
+Marshals: Archduke Charles (35k, Vienna, infantry, cautious), Schwarzenberg (25k, Bohemia, infantry, cautious).
+
+**Saxon:** Dresden (town, hills, 100g), Saxony (city, plains, 150g). Starting gold: 200. At PEACE with France (French-leaning, relation +40).
+
+Marshals: Reynier (18k, Dresden, infantry, literal).
+
+**All capitals start with 15,000 garrison troops.** Victory requires 15 regions (of 19).
 
 ---
 

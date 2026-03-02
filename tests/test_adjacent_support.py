@@ -52,8 +52,8 @@ def _executor():
     return CommandExecutor()
 
 
-# Map reference: Paris adjacent to [Belgium, Waterloo, Brittany, Lyon]
-# Belgium adjacent to [Paris, Netherlands, Waterloo, Rhine]
+# Map reference: Paris adjacent to [Normandy, Belgium, Lyon, Bordeaux]
+# Belgium adjacent to [Paris, Normandy, Netherlands, Waterloo, Rhine]
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -94,7 +94,7 @@ class TestAdjacentCount:
         primary = _make_marshal(name="Ney", location="Paris")
         adj1 = _make_marshal(name="Davout", location="Belgium")
         adj2 = _make_marshal(name="Soult", location="Lyon")
-        adj3 = _make_marshal(name="Lannes", location="Brittany")  # adjacent to Paris
+        adj3 = _make_marshal(name="Lannes", location="Bordeaux")  # adjacent to Paris
         world = _make_world_with_marshals([primary, adj1, adj2, adj3])
         ex = _executor()
 
@@ -316,7 +316,7 @@ class TestPipelineIntegration:
         art = _make_marshal(name="Drouot", location="Paris", artillery=True)
         adj1 = _make_marshal(name="Davout", location="Belgium")
         adj2 = _make_marshal(name="Soult", location="Lyon")
-        adj3 = _make_marshal(name="Lannes", location="Brittany")
+        adj3 = _make_marshal(name="Lannes", location="Bordeaux")
         world = _make_world_with_marshals([inf, cav, art, adj1, adj2, adj3])
         ex = _executor()
 

@@ -690,8 +690,8 @@ class LLMClient:
             target = "Brittany"
         elif "bordeaux" in command_lower:
             target = "Bordeaux"
-        elif "rhine" in command_lower:
-            target = "Rhine"
+        elif "rhineland" in command_lower or "rhine" in command_lower:
+            target = "Rhineland"
         elif "bavaria" in command_lower:
             target = "Bavaria"
         elif "vienna" in command_lower:
@@ -700,8 +700,20 @@ class LLMClient:
             target = "Milan"
         elif "marseille" in command_lower:
             target = "Marseille"
-        elif "geneva" in command_lower:
-            target = "Geneva"
+        elif "normandy" in command_lower:
+            target = "Normandy"
+        elif "hanover" in command_lower:
+            target = "Hanover"
+        elif "berlin" in command_lower:
+            target = "Berlin"
+        elif "saxony" in command_lower:
+            target = "Saxony"
+        elif "dresden" in command_lower:
+            target = "Dresden"
+        elif "bohemia" in command_lower:
+            target = "Bohemia"
+        elif "tyrol" in command_lower:
+            target = "Tyrol"
         elif "netherlands" in command_lower:
             target = "Netherlands"
 

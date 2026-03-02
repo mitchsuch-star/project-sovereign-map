@@ -2014,7 +2014,7 @@ See `docs/TERRAIN_SPEC.md` for full spec. Implementation details:
 - **Executor**: All 5 `resolve_battle()` call sites in `executor.py` read terrain from defender's region. Charge blocking at two layers: popup suppression (with redirect to alternatives) + safety net fallthrough to normal attack.
 - **Charge redirect**: When charge blocked by terrain at recklessness 3, executor scans for alternative enemies within cavalry range on allowed terrain. Offers redirect popup if found, falls through to normal attack if not. `cavalry_terrain_message` forwarded as separate field through `main.py`.
 - **Auto-charge**: `world_state.py` auto-charge at recklessness 4+ reads terrain and blocks charge bonus on mountains/forest/urban (downgrades to normal attack, recklessness preserved).
-- **REGIONS_DATA**: All 13 regions assigned terrain. Distribution: plains(4), hills(3), urban(3), mountains(1), forest(1), river_crossing(1).
+- **REGIONS_DATA**: All 19 regions assigned terrain. Distribution: plains(6), hills(4), urban(4), forest(2), mountains(1), river_crossing(1). Note: "urban" counts regions with `terrain: "urban"` (Paris, Berlin, Vienna, Milan).
 - **Serialization**: `terrain` field roundtrips through `to_dict()`/`from_dict()`. Missing terrain defaults to "plains" (backward compat).
 
 ### Weighted Pathfinding (6.1.C)
@@ -2147,10 +2147,10 @@ Each region has a `region_type` field that determines its base income:
 
 | Region Type | Income | Examples |
 |-------------|--------|----------|
-| `capital` | 300 | Paris |
-| `major_city` | 200 | Vienna, Lyon |
-| `city` | 150 | Milan, Marseille |
-| `town` | 100 | Belgium, Rhine, Bavaria, Geneva |
+| `capital` | 300 | Paris, Berlin, Vienna |
+| `major_city` | 200 | Lyon |
+| `city` | 150 | Milan, Marseille, Saxony, Bohemia |
+| `town` | 100 | Belgium, Rhineland, Bavaria, Normandy, Hanover, Dresden, Tyrol |
 | `rural` | 50 | Netherlands, Waterloo, Brittany, Bordeaux |
 
 **Constants (single source of truth in `region.py`):**
@@ -2580,7 +2580,7 @@ Dedicated field on Region (not a building slot). Every region type allowed.
 
 ### AI and Fog
 
-AI is omniscient on 13 regions (spec §9.1). Uses `world.marshals` and `get_enemies_in_region()` directly. Only display paths use fog-filtered helpers. Auto-charge ignores fog (spec §9.2 — reckless cavalry finds trouble). Revisit at 80+ regions for EA 1805.
+AI is omniscient on 19 regions (spec §9.1). Uses `world.marshals` and `get_enemies_in_region()` directly. Only display paths use fog-filtered helpers. Auto-charge ignores fog (spec §9.2 — reckless cavalry finds trouble). Revisit at 80+ regions for EA 1805.
 
 ### Objection System + Fog
 

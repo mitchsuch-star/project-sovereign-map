@@ -37,11 +37,11 @@ def world_with_french_marshals():
     world.marshals = {}
     world.regions = {
         "Paris": Region("Paris", ["Belgium", "Brittany"], "France", 100),
-        "Belgium": Region("Belgium", ["Paris", "Rhine", "Netherlands"], "France", 80),
-        "Rhine": Region("Rhine", ["Belgium", "Bavaria"], "Prussia", 60),
+        "Belgium": Region("Belgium", ["Paris", "Rhineland", "Netherlands"], "France", 80),
+        "Rhineland": Region("Rhineland", ["Belgium", "Bavaria"], "Prussia", 60),
         "Netherlands": Region("Netherlands", ["Belgium"], "Britain", 70),
         "Brittany": Region("Brittany", ["Paris"], "France", 50),
-        "Bavaria": Region("Bavaria", ["Rhine", "Austria"], "Prussia", 60),
+        "Bavaria": Region("Bavaria", ["Rhineland", "Austria"], "Prussia", 60),
         "Austria": Region("Austria", ["Bavaria"], "Austria", 80)
         }
 
@@ -78,7 +78,7 @@ def world_with_enemies(world_with_french_marshals):
     wellington.morale = 90
     world.marshals["Wellington"] = wellington
 
-    blucher = Marshal("Blucher", "Rhine", 35000, "aggressive", "Prussia")
+    blucher = Marshal("Blucher", "Rhineland", 35000, "aggressive", "Prussia")
     blucher.morale = 85
     world.marshals["Blucher"] = blucher
 
@@ -705,7 +705,7 @@ class TestDavoutMoveToObjection:
 
         # Blucher at Rhine - path to Bavaria goes through him
         blucher = world.marshals["Blucher"]
-        blucher.location = "Rhine"
+        blucher.location = "Rhineland"
 
         command = {
             "marshal": "Davout",
@@ -746,7 +746,7 @@ class TestDavoutMoveToPreferred:
         davout.location = "Belgium"
 
         blucher = world.marshals["Blucher"]
-        blucher.location = "Rhine"
+        blucher.location = "Rhineland"
 
         command = {
             "marshal": "Davout",
@@ -777,7 +777,7 @@ class TestDavoutMoveToCompromise:
         world.regions["France"] = Region("France", ["Belgium", "Bavaria"], "France", 70)
 
         blucher = world.marshals["Blucher"]
-        blucher.location = "Rhine"
+        blucher.location = "Rhineland"
 
         command = {
             "marshal": "Davout",
@@ -792,7 +792,7 @@ class TestDavoutMoveToCompromise:
             order = davout.strategic_order
             if order:
                 # Path should avoid Rhine (enemy location)
-                assert "Rhine" not in order.path, "Compromise path should avoid enemies"
+                assert "Rhineland" not in order.path, "Compromise path should avoid enemies"
 
     def test_davout_move_compromise_hidden_if_no_safe_path(self, world_with_enemies, executor):
         """Compromise hidden when ALL paths cross enemies."""
@@ -802,7 +802,7 @@ class TestDavoutMoveToCompromise:
 
         # Block all paths with enemies
         blucher = world.marshals["Blucher"]
-        blucher.location = "Rhine"  # Blocks main path
+        blucher.location = "Rhineland"  # Blocks main path
 
         wellington = world.marshals["Wellington"]
         wellington.location = "Netherlands"  # Blocks alternative
@@ -849,7 +849,7 @@ class TestDavoutHoldDangerousPath:
 
         # Blucher at Rhine - path to Bavaria goes through him
         blucher = world.marshals["Blucher"]
-        blucher.location = "Rhine"
+        blucher.location = "Rhineland"
 
         command = {
             "marshal": "Davout",
@@ -903,7 +903,7 @@ class TestDavoutHoldDangerousPath:
         davout.trust.set(15)
 
         blucher = world.marshals["Blucher"]
-        blucher.location = "Rhine"
+        blucher.location = "Rhineland"
 
         command = {
             "marshal": "Davout",
@@ -941,7 +941,7 @@ class TestDavoutSupportDangerousPath:
         ney.location = "Bavaria"
 
         blucher = world.marshals["Blucher"]
-        blucher.location = "Rhine"
+        blucher.location = "Rhineland"
 
         command = {
             "marshal": "Davout",
@@ -984,7 +984,7 @@ class TestDavoutSupportDangerousPath:
         ney.location = "Bavaria"
 
         blucher = world.marshals["Blucher"]
-        blucher.location = "Rhine"
+        blucher.location = "Rhineland"
 
         command = {
             "marshal": "Davout",
@@ -1019,7 +1019,7 @@ class TestNoSafePathEdgeCases:
         # Belgium -> Rhine -> Bavaria -> Austria
         # Block Rhine with Blucher, and add another enemy at Netherlands
         blucher = world.marshals["Blucher"]
-        blucher.location = "Rhine"
+        blucher.location = "Rhineland"
 
         wellington = world.marshals["Wellington"]
         wellington.location = "Netherlands"
@@ -1058,7 +1058,7 @@ class TestNoSafePathEdgeCases:
 
         # Block all paths with enemies
         blucher = world.marshals["Blucher"]
-        blucher.location = "Rhine"
+        blucher.location = "Rhineland"
 
         wellington = world.marshals["Wellington"]
         wellington.location = "Netherlands"
@@ -1086,7 +1086,7 @@ class TestNoSafePathEdgeCases:
         davout.trust.set(15)
 
         blucher = world.marshals["Blucher"]
-        blucher.location = "Rhine"
+        blucher.location = "Rhineland"
 
         wellington = world.marshals["Wellington"]
         wellington.location = "Netherlands"
@@ -1157,7 +1157,7 @@ class TestGrouchyNoObjection:
         grouchy.location = "Belgium"
 
         blucher = world.marshals["Blucher"]
-        blucher.location = "Rhine"
+        blucher.location = "Rhineland"
 
         command = {
             "marshal": "Grouchy",

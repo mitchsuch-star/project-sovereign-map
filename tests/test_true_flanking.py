@@ -60,7 +60,7 @@ class TestFlankingBasics:
         world = WorldState()
 
         r1 = world.record_attack("Ney", "Belgium", "Waterloo")
-        r2 = world.record_attack("Davout", "Rhine", "Waterloo")
+        r2 = world.record_attack("Davout", "Rhineland", "Waterloo")
         r3 = world.record_attack("Grouchy", "Paris", "Waterloo")
 
         assert r1["timestamp"] == 1
@@ -110,14 +110,14 @@ class TestTwoAttackersDifferentOrigins:
 
         # Classic flanking: attack from two sides
         world.record_attack("Ney", "Belgium", "Waterloo")
-        world.record_attack("Davout", "Rhine", "Waterloo")
+        world.record_attack("Davout", "Rhineland", "Waterloo")
 
         result = world.calculate_flanking_bonus("Waterloo")
 
         assert result["bonus"] == 1
         assert result["num_origins"] == 2
         assert "Belgium" in result["unique_origins"]
-        assert "Rhine" in result["unique_origins"]
+        assert "Rhineland" in result["unique_origins"]
         assert result["message"] == "Flanking maneuver!"
 
     def test_two_origins_with_multiple_attackers_each(self):
@@ -127,8 +127,8 @@ class TestTwoAttackersDifferentOrigins:
         # 2 from Belgium, 2 from Rhine
         world.record_attack("Ney", "Belgium", "Waterloo")
         world.record_attack("Marshal1", "Belgium", "Waterloo")
-        world.record_attack("Davout", "Rhine", "Waterloo")
-        world.record_attack("Marshal2", "Rhine", "Waterloo")
+        world.record_attack("Davout", "Rhineland", "Waterloo")
+        world.record_attack("Marshal2", "Rhineland", "Waterloo")
 
         result = world.calculate_flanking_bonus("Waterloo")
 
@@ -145,7 +145,7 @@ class TestThreeAttackersThreeOrigins:
 
         # Triple pincer
         world.record_attack("Ney", "Belgium", "Waterloo")
-        world.record_attack("Davout", "Rhine", "Waterloo")
+        world.record_attack("Davout", "Rhineland", "Waterloo")
         world.record_attack("Grouchy", "Paris", "Waterloo")
 
         result = world.calculate_flanking_bonus("Waterloo")
@@ -165,7 +165,7 @@ class TestThreeAttackersTwoOrigins:
         # Two from Belgium, one from Rhine
         world.record_attack("Ney", "Belgium", "Waterloo")
         world.record_attack("Davout", "Belgium", "Waterloo")
-        world.record_attack("Grouchy", "Rhine", "Waterloo")
+        world.record_attack("Grouchy", "Rhineland", "Waterloo")
 
         result = world.calculate_flanking_bonus("Waterloo")
 
@@ -182,7 +182,7 @@ class TestFourPlusOrigins:
 
         # Complete encirclement
         world.record_attack("Ney", "Belgium", "Waterloo")
-        world.record_attack("Davout", "Rhine", "Waterloo")
+        world.record_attack("Davout", "Rhineland", "Waterloo")
         world.record_attack("Grouchy", "Paris", "Waterloo")
         world.record_attack("Murat", "Lyon", "Waterloo")
 
@@ -198,7 +198,7 @@ class TestFourPlusOrigins:
 
         # More than 4 origins
         world.record_attack("M1", "Belgium", "Waterloo")
-        world.record_attack("M2", "Rhine", "Waterloo")
+        world.record_attack("M2", "Rhineland", "Waterloo")
         world.record_attack("M3", "Paris", "Waterloo")
         world.record_attack("M4", "Lyon", "Waterloo")
         world.record_attack("M5", "Brittany", "Waterloo")
@@ -217,14 +217,14 @@ class TestFlankingMessages:
         world = WorldState()
 
         world.record_attack("Ney", "Belgium", "Waterloo")
-        world.record_attack("Davout", "Rhine", "Waterloo")
+        world.record_attack("Davout", "Rhineland", "Waterloo")
 
         # Get message for Davout (second attacker)
-        message = world.get_flanking_message("Davout", "Rhine", "Waterloo")
+        message = world.get_flanking_message("Davout", "Rhineland", "Waterloo")
 
         assert message is not None
         assert "Davout" in message
-        assert "Rhine" in message
+        assert "Rhineland" in message
         assert "Belgium" in message  # First attacker's origin
         assert "+1" in message
 
@@ -233,7 +233,7 @@ class TestFlankingMessages:
         world = WorldState()
 
         world.record_attack("Ney", "Belgium", "Waterloo")
-        world.record_attack("Davout", "Rhine", "Waterloo")
+        world.record_attack("Davout", "Rhineland", "Waterloo")
         world.record_attack("Grouchy", "Paris", "Waterloo")
 
         message = world.get_flanking_message("Grouchy", "Paris", "Waterloo")
@@ -249,7 +249,7 @@ class TestFlankingMessages:
         world = WorldState()
 
         world.record_attack("Ney", "Belgium", "Waterloo")
-        world.record_attack("Davout", "Rhine", "Waterloo")
+        world.record_attack("Davout", "Rhineland", "Waterloo")
         world.record_attack("Grouchy", "Paris", "Waterloo")
         world.record_attack("Murat", "Lyon", "Waterloo")
 
@@ -280,7 +280,7 @@ class TestTurnResetClearsTracking:
 
         # Record some attacks
         world.record_attack("Ney", "Belgium", "Waterloo")
-        world.record_attack("Davout", "Rhine", "Waterloo")
+        world.record_attack("Davout", "Rhineland", "Waterloo")
 
         assert len(world.attacks_this_turn) > 0
 
@@ -296,7 +296,7 @@ class TestTurnResetClearsTracking:
 
         # Build up flanking bonus
         world.record_attack("Ney", "Belgium", "Waterloo")
-        world.record_attack("Davout", "Rhine", "Waterloo")
+        world.record_attack("Davout", "Rhineland", "Waterloo")
 
         result_before = world.calculate_flanking_bonus("Waterloo")
         assert result_before["bonus"] == 1
@@ -313,7 +313,7 @@ class TestTurnResetClearsTracking:
 
         # Record attacks
         world.record_attack("Ney", "Belgium", "Waterloo")
-        world.record_attack("Davout", "Rhine", "Waterloo")
+        world.record_attack("Davout", "Rhineland", "Waterloo")
 
         # End turn (force_end_turn is the actual method name)
         world.force_end_turn()
@@ -329,7 +329,7 @@ class TestTurnResetClearsTracking:
 
         # Record attacks
         world.record_attack("Ney", "Belgium", "Waterloo")
-        world.record_attack("Davout", "Rhine", "Waterloo")
+        world.record_attack("Davout", "Rhineland", "Waterloo")
 
         # Use all actions and advance turn
         # Note: use_action() no longer auto-advances (by design - executor handles this)
@@ -434,7 +434,7 @@ class TestFlankingDifferentTargets:
 
         # Build flanking on Waterloo
         world.record_attack("Ney", "Belgium", "Waterloo")
-        world.record_attack("Davout", "Rhine", "Waterloo")
+        world.record_attack("Davout", "Rhineland", "Waterloo")
 
         # Vienna has no attacks
         waterloo_result = world.calculate_flanking_bonus("Waterloo")
@@ -456,7 +456,7 @@ class TestFlankingEdgeCases:
 
         # Same attacker, but from different origins (unrealistic but tests logic)
         world.record_attack("Ney", "Belgium", "Waterloo")
-        world.record_attack("Ney", "Rhine", "Waterloo")
+        world.record_attack("Ney", "Rhineland", "Waterloo")
 
         result = world.calculate_flanking_bonus("Waterloo")
 
@@ -496,7 +496,7 @@ class TestFlankingIntegrationWithWorldState:
         # Do some other stuff (simulate other actions)
         world.actions_remaining = 3  # Plenty of actions left
 
-        world.record_attack("Davout", "Rhine", "Waterloo")
+        world.record_attack("Davout", "Rhineland", "Waterloo")
 
         # Should still be same turn
         assert world.current_turn == start_turn
@@ -511,7 +511,7 @@ class TestFlankingIntegrationWithWorldState:
 
         # Turn 1 attacks
         world.record_attack("Ney", "Belgium", "Waterloo")
-        world.record_attack("Davout", "Rhine", "Waterloo")
+        world.record_attack("Davout", "Rhineland", "Waterloo")
 
         result_turn1 = world.calculate_flanking_bonus("Waterloo")
         assert result_turn1["bonus"] == 1

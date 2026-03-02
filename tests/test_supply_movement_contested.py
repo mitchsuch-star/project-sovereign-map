@@ -53,9 +53,9 @@ class TestSupplyCapacity:
     def test_major_city_supply_capacity(self):
         """Major city supply capacity from type + terrain."""
         world = fresh_world()
-        vienna = world.get_region("Vienna")
-        # major_city = 40000 * urban 1.2 = 48000
-        assert vienna.supply_capacity == 48000
+        lyon = world.get_region("Lyon")
+        # major_city = 40000 * hills 0.9 = 36000
+        assert lyon.supply_capacity == 36000
 
     def test_city_supply_capacity(self):
         """City supply capacity."""
@@ -81,9 +81,9 @@ class TestSupplyCapacity:
     def test_mountains_reduce_supply(self):
         """Mountain terrain halves supply capacity."""
         world = fresh_world()
-        geneva = world.get_region("Geneva")
+        tyrol = world.get_region("Tyrol")
         # town = 25000 * mountains 0.5 = 12500
-        assert geneva.supply_capacity == 12500
+        assert tyrol.supply_capacity == 12500
 
     def test_supply_depot_adds_capacity(self):
         """Supply depot building adds 10,000 to base before terrain modifier."""
@@ -289,8 +289,8 @@ class TestMovementAttrition:
         executor = make_executor()
         marshal = world.get_marshal("Grouchy")
         marshal.strength = 20000
-        # Geneva is mountains (2.0x)
-        result = executor._calculate_movement_attrition(marshal, "Geneva", world)
+        # Tyrol is mountains (2.0x)
+        result = executor._calculate_movement_attrition(marshal, "Tyrol", world)
         expected = int(20000 * 0.01 * 2.0)
         assert result["march_losses"] == expected
 

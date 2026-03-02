@@ -210,15 +210,18 @@ class TestFrenchEconomy:
 
         assert world.nation_gold["France"] == 800
 
-    def test_french_economy_near_breakeven(self):
-        """French net income (without admin bonus) should be within ±30g of zero."""
+    def test_french_economy_positive(self):
+        """French net income should be positive with 8 regions (1100 income - 865 upkeep = +235)."""
         world = WorldState()
 
         income = world.calculate_turn_income("France")["income"]
         upkeep = world.calculate_turn_upkeep("France")["total"]
         net = income - upkeep
-        # Should be roughly -15 (850 income - 865 upkeep)
-        assert -30 <= net <= 0, f"French net income {net} not in expected range"
+        # 8 regions: income 1100 (Paris 300 + Belgium 100 + Lyon 200 + Marseille 150
+        #   + Brittany 50 + Bordeaux 50 + Normandy 100 + Milan 150)
+        # Upkeep: 865 (Ney 72k + Davout 48k + Grouchy 28k + Drouot 25k = 173k troops, 5g per 1000)
+        assert net > 0, f"French net income {net} should be positive with 8 regions"
+        assert 200 <= net <= 270, f"French net income {net} not in expected range"
 
     def test_other_starting_strengths_unchanged(self):
         """Ney, Davout, Drouot should be unchanged."""
@@ -246,21 +249,21 @@ class TestNationStartingRegions:
         world = WorldState()
 
         france_regions = set(world.nation_starting_regions["France"])
-        expected = {"Paris", "Belgium", "Lyon", "Brittany", "Bordeaux", "Marseille"}
+        expected = {"Paris", "Belgium", "Lyon", "Brittany", "Bordeaux", "Marseille", "Normandy", "Milan"}
         assert france_regions == expected
 
     def test_britain_starting_regions(self):
         world = WorldState()
 
         britain_regions = set(world.nation_starting_regions["Britain"])
-        expected = {"Netherlands", "Waterloo", "Milan", "Geneva"}
+        expected = {"Netherlands", "Waterloo", "Hanover"}
         assert britain_regions == expected
 
     def test_prussia_starting_regions(self):
         world = WorldState()
 
         prussia_regions = set(world.nation_starting_regions["Prussia"])
-        expected = {"Rhine", "Bavaria", "Vienna"}
+        expected = {"Rhineland", "Berlin"}
         assert prussia_regions == expected
 
     def test_serialization_round_trip(self):
@@ -293,9 +296,9 @@ class TestIsEnemyNearby:
     def test_enemy_two_hops(self):
         world = WorldState()
 
-        # Wellington in Waterloo, 2 hops from Paris (Waterloo→Belgium→Paris or Waterloo→Paris)
-        # Actually Waterloo is adjacent to Paris per region data
-        assert world.is_enemy_nearby("Paris", "France", max_distance=1)
+        # Wellington in Waterloo, 2 hops from Paris (Waterloo→Belgium→Paris)
+        # Waterloo is NOT adjacent to Paris — goes through Belgium
+        assert world.is_enemy_nearby("Paris", "France", max_distance=2)
 
     def test_no_enemy_nearby(self):
         world = WorldState()
@@ -312,7 +315,7 @@ class TestHomelandDefenseAI:
         world = WorldState()
 
         # France captures Rhine
-        world.regions["Rhine"].controller = "France"
+        world.regions["Rhineland"].controller = "France"
         return world
 
     def test_ai_detects_lost_territory(self):
@@ -320,7 +323,7 @@ class TestHomelandDefenseAI:
         world = self._setup_world_lost_territory()
         lost = [r for r in world.nation_starting_regions.get("Prussia", [])
                 if world.regions[r].controller != "Prussia"]
-        assert "Rhine" in lost
+        assert "Rhineland" in lost
 
     def test_homeland_defense_moves_toward_lost_region(self):
         """The nearest Prussian marshal should try to recapture lost Rhine."""
@@ -339,7 +342,7 @@ class TestHomelandDefenseAI:
         action = ai._find_homeland_defense(blucher, "Prussia", world)
         assert action is not None
         assert action["action"] == "attack"  # Adjacent + undefended = capture
-        assert action["target"] == "Rhine"
+        assert action["target"] == "Rhineland"
 
     def test_homeland_defense_skips_fortified_marshal(self):
         """Fortified marshals should not respond to homeland defense."""
@@ -375,7 +378,7 @@ class TestHomelandDefenseAI:
         world = self._setup_world_lost_territory()
         from backend.commands.executor import CommandExecutor
         ai = EnemyAI(CommandExecutor())
-        ai._recapture_targets_claimed = {"Rhine"}  # Already claimed
+        ai._recapture_targets_claimed = {"Rhineland"}  # Already claimed
         ai._recapture_marshal_assignments = {}
         ai._marshal_visited_locations = {}
 
@@ -421,7 +424,7 @@ class TestHomelandDefenseAI:
         ai._marshal_visited_locations = {}
 
         # Put a weak French marshal in Rhine
-        weak_french = Marshal(name="TestFrench", location="Rhine", strength=5000,
+        weak_french = Marshal(name="TestFrench", location="Rhineland", strength=5000,
                              personality="cautious", nation="France")
         world.marshals["TestFrench"] = weak_french
 
@@ -432,7 +435,7 @@ class TestHomelandDefenseAI:
         action = ai._find_homeland_defense(blucher, "Prussia", world)
         assert action is not None
         assert action["action"] == "attack"
-        assert action["target"] == "Rhine"
+        assert action["target"] == "Rhineland"
 
     def test_homeland_defense_wont_attack_strong_defender(self):
         """Should NOT attack if defender is too strong."""
@@ -444,7 +447,7 @@ class TestHomelandDefenseAI:
         ai._marshal_visited_locations = {}
 
         # Put a strong French marshal in Rhine
-        strong_french = Marshal(name="TestFrench", location="Rhine", strength=80000,
+        strong_french = Marshal(name="TestFrench", location="Rhineland", strength=80000,
                                personality="cautious", nation="France")
         world.marshals["TestFrench"] = strong_french
 
@@ -518,10 +521,11 @@ class TestCautiousAdvanceFallback:
         from backend.commands.executor import CommandExecutor
         ai = EnemyAI(CommandExecutor())
 
-        # Put Wellington in Geneva (mountain dead-end: adjacent to Marseille, Milan, Bordeaux)
+        # Put Wellington in Tyrol (mountain region: adjacent to Bavaria, Vienna, Milan)
         wellington = world.marshals["Wellington"]
-        wellington.location = "Geneva"
+        wellington.location = "Tyrol"
         wellington.fortified = False
+        world.regions["Tyrol"].controller = "Britain"
 
         # Set stagnation to 2 (triggers fallback)
         world.ai_stagnation_turns["Wellington"] = 2
@@ -533,7 +537,7 @@ class TestCautiousAdvanceFallback:
         world, ai, wellington = self._setup_stuck_cautious()
 
         # Setup AI turn state
-        ai._marshal_visited_locations = {"Wellington": {"Geneva"}}
+        ai._marshal_visited_locations = {"Wellington": {"Tyrol"}}
         ai._unfortified_this_turn = set()
         ai._stance_changed_this_turn = set()
         ai._advanced_this_turn = set()
@@ -552,8 +556,8 @@ class TestCautiousAdvanceFallback:
         action = ai._consider_strategic_move(wellington, "Britain", world)
         # Should find a fallback move since distance reduction isn't possible
         # OR should return None if all adjacent regions are not Britain-controlled
-        # Geneva is adjacent to: Marseille (France), Milan (Britain), Bordeaux (France)
-        # Milan is Britain-controlled, so Wellington should move there
+        # Tyrol is adjacent to: Bavaria (Austria), Vienna (Austria), Milan (France)
+        # None are Britain-controlled by default, but test is defensive (checks if action is not None)
         if action is not None:
             assert action["action"] == "move"
 

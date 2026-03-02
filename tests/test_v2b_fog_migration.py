@@ -134,10 +134,10 @@ def _make_standard_world():
     All regions default to FULL visibility.
     """
     regions = {
-        "Belgium": MockRegion("Belgium", ["Rhine", "Paris"]),
-        "Rhine": MockRegion("Rhine", ["Belgium", "Bavaria"]),
+        "Belgium": MockRegion("Belgium", ["Rhineland", "Paris"]),
+        "Rhineland": MockRegion("Rhineland", ["Belgium", "Bavaria"]),
         "Paris": MockRegion("Paris", ["Belgium"]),
-        "Bavaria": MockRegion("Bavaria", ["Rhine", "Austria"]),
+        "Bavaria": MockRegion("Bavaria", ["Rhineland", "Austria"]),
         "Austria": MockRegion("Austria", ["Bavaria"]),
     }
     return MockWorld(marshals={}, regions=regions)
@@ -199,16 +199,16 @@ class TestGetRegionVisibility:
     def test_no_friendly_marshal_uses_intel(self):
         """Without friendly marshal, reads from intel store."""
         world = _make_standard_world()
-        world.set_visibility("Rhine", "partial")
-        assert _get_region_visibility("Rhine", "France", world) == FOG_PARTIAL
+        world.set_visibility("Rhineland", "partial")
+        assert _get_region_visibility("Rhineland", "France", world) == FOG_PARTIAL
 
     def test_enemy_marshal_does_not_grant_full(self):
         """Enemy marshal in region doesn't trigger Step 0 for player."""
         world = _make_standard_world()
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "stale")
-        assert _get_region_visibility("Rhine", "France", world) == FOG_STALE
+        world.set_visibility("Rhineland", "stale")
+        assert _get_region_visibility("Rhineland", "France", world) == FOG_STALE
 
     def test_dead_friendly_does_not_grant_full(self):
         """Dead friendly marshal (strength <= 0) doesn't trigger Step 0."""
@@ -244,28 +244,28 @@ class TestGetTargetIntelLevel:
     def test_target_in_full_region(self):
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world.marshals["Marshal"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "full")
+        world.set_visibility("Rhineland", "full")
         assert get_target_intel_level("Wellington", marshal, world) == FOG_FULL
 
     def test_target_in_partial_region(self):
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world.marshals["Marshal"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "partial")
+        world.set_visibility("Rhineland", "partial")
         assert get_target_intel_level("Wellington", marshal, world) == FOG_PARTIAL
 
     def test_target_in_stale_region(self):
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world.marshals["Marshal"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "stale")
+        world.set_visibility("Rhineland", "stale")
         assert get_target_intel_level("Wellington", marshal, world) == FOG_STALE
 
     def test_target_in_unknown_region(self):
@@ -285,7 +285,7 @@ class TestGetTargetIntelLevel:
     def test_dead_target_returns_unknown(self):
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        dead = MockMarshal(name="Dead", location="Rhine", nation="Britain", strength=0)
+        dead = MockMarshal(name="Dead", location="Rhineland", nation="Britain", strength=0)
         world.marshals["Dead"] = dead
         assert get_target_intel_level("Dead", marshal, world) == FOG_UNKNOWN
 
@@ -300,10 +300,10 @@ class TestGetVisibleEnemiesNear:
     def test_full_visibility_returns_exact_strength(self):
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", strength=25000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=42000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=42000)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "full")
+        world.set_visibility("Rhineland", "full")
 
         enemies = get_visible_enemies_near("Belgium", "France", world)
         assert len(enemies) == 1
@@ -314,10 +314,10 @@ class TestGetVisibleEnemiesNear:
     def test_partial_visibility_returns_band_midpoint(self):
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", strength=25000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=42000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=42000)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "partial")
+        world.set_visibility("Rhineland", "partial")
 
         enemies = get_visible_enemies_near("Belgium", "France", world)
         assert len(enemies) == 1
@@ -328,10 +328,10 @@ class TestGetVisibleEnemiesNear:
         """STALE enemies are invisible to the objection system."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "stale")
+        world.set_visibility("Rhineland", "stale")
 
         enemies = get_visible_enemies_near("Belgium", "France", world)
         assert len(enemies) == 0
@@ -339,10 +339,10 @@ class TestGetVisibleEnemiesNear:
     def test_unknown_visibility_returns_empty(self):
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "unknown")
+        world.set_visibility("Rhineland", "unknown")
 
         enemies = get_visible_enemies_near("Belgium", "France", world)
         assert len(enemies) == 0
@@ -350,10 +350,10 @@ class TestGetVisibleEnemiesNear:
     def test_last_known_visibility_returns_empty(self):
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "last_known")
+        world.set_visibility("Rhineland", "last_known")
 
         enemies = get_visible_enemies_near("Belgium", "France", world)
         assert len(enemies) == 0
@@ -376,12 +376,12 @@ class TestGetVisibleEnemiesNear:
         """Adjacent regions with different visibility levels."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", nation="France")
-        enemy_full = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=20000)
+        enemy_full = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=20000)
         enemy_unknown = MockMarshal(name="Blucher", location="Paris", nation="Prussia", strength=30000)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy_full
         world.marshals["Blucher"] = enemy_unknown
-        world.set_visibility("Rhine", "full")
+        world.set_visibility("Rhineland", "full")
         world.set_visibility("Paris", "unknown")
 
         enemies = get_visible_enemies_near("Belgium", "France", world)
@@ -398,10 +398,10 @@ class TestGetVisibleEnemiesNear:
     def test_dead_enemies_excluded(self):
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        dead = MockMarshal(name="Dead", location="Rhine", nation="Britain", strength=0)
+        dead = MockMarshal(name="Dead", location="Rhineland", nation="Britain", strength=0)
         world.marshals["Ney"] = marshal
         world.marshals["Dead"] = dead
-        world.set_visibility("Rhine", "full")
+        world.set_visibility("Rhineland", "full")
         enemies = get_visible_enemies_near("Belgium", "France", world)
         assert len(enemies) == 0
 
@@ -417,20 +417,20 @@ class TestCheckEnemyAdjacentFog:
     def test_enemy_adjacent_full_visibility(self):
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "full")
+        world.set_visibility("Rhineland", "full")
 
         assert _check_enemy_adjacent(marshal, MockGameState(world)) is True
 
     def test_enemy_adjacent_partial_visibility(self):
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "partial")
+        world.set_visibility("Rhineland", "partial")
 
         assert _check_enemy_adjacent(marshal, MockGameState(world)) is True
 
@@ -438,20 +438,20 @@ class TestCheckEnemyAdjacentFog:
         """STALE enemies not detected — no false positives from fog."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "stale")
+        world.set_visibility("Rhineland", "stale")
 
         assert _check_enemy_adjacent(marshal, MockGameState(world)) is False
 
     def test_enemy_adjacent_unknown_invisible(self):
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "unknown")
+        world.set_visibility("Rhineland", "unknown")
 
         assert _check_enemy_adjacent(marshal, MockGameState(world)) is False
 
@@ -493,10 +493,10 @@ class TestFriendlyToEnemyRatioFog:
     def test_full_visibility_exact_ratio(self):
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=25000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=25000)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "full")
+        world.set_visibility("Rhineland", "full")
 
         ratio = _get_friendly_to_enemy_ratio(marshal, MockGameState(world))
         assert ratio == pytest.approx(2.0)  # 50000/25000
@@ -506,10 +506,10 @@ class TestFriendlyToEnemyRatioFog:
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", strength=50000)
         # Enemy has 42000 (band "large force" 40k-70k, midpoint 55000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=42000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=42000)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "partial")
+        world.set_visibility("Rhineland", "partial")
 
         ratio = _get_friendly_to_enemy_ratio(marshal, MockGameState(world))
         assert ratio == pytest.approx(50000 / 55000)  # Uses midpoint 55000
@@ -518,10 +518,10 @@ class TestFriendlyToEnemyRatioFog:
         """EC: 0 visible enemies → ratio 999.0 (no enemies nearby), not 0."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=25000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=25000)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "unknown")  # Enemy invisible
+        world.set_visibility("Rhineland", "unknown")  # Enemy invisible
 
         ratio = _get_friendly_to_enemy_ratio(marshal, MockGameState(world))
         assert ratio == 999.0
@@ -530,10 +530,10 @@ class TestFriendlyToEnemyRatioFog:
         """STALE enemies contribute 0 to ratio (invisible)."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=25000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=25000)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "stale")
+        world.set_visibility("Rhineland", "stale")
 
         ratio = _get_friendly_to_enemy_ratio(marshal, MockGameState(world))
         assert ratio == 999.0
@@ -546,10 +546,10 @@ class TestAutoPropagation:
         """_get_enemy_to_friendly_ratio delegates to _get_friendly_to_enemy_ratio."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=25000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=25000)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "unknown")
+        world.set_visibility("Rhineland", "unknown")
 
         # No visible enemies → friendly_ratio = 999.0 → enemy_ratio = 0.0
         ratio = _get_enemy_to_friendly_ratio(marshal, MockGameState(world))
@@ -560,10 +560,10 @@ class TestAutoPropagation:
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", strength=25000)
         # Enemy is 60000 (2.4:1) but STALE → invisible
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=60000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=60000)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "stale")
+        world.set_visibility("Rhineland", "stale")
 
         assert _is_outnumbered_2to1(marshal, MockGameState(world)) is False  # Can't see enemy
 
@@ -571,10 +571,10 @@ class TestAutoPropagation:
         """_is_actually_threatened delegates to _check_enemy_in_region + _check_enemy_adjacent."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "unknown")
+        world.set_visibility("Rhineland", "unknown")
 
         # Enemy adjacent but invisible
         assert _is_actually_threatened(marshal, MockGameState(world)) is False
@@ -586,20 +586,20 @@ class TestPathCrossesEnemyFog:
     def test_path_enemy_full_detected(self):
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "full")
+        world.set_visibility("Rhineland", "full")
 
         assert _path_crosses_enemy(marshal, "Bavaria", MockGameState(world)) is True
 
     def test_path_enemy_partial_detected(self):
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "partial")
+        world.set_visibility("Rhineland", "partial")
 
         assert _path_crosses_enemy(marshal, "Bavaria", MockGameState(world)) is True
 
@@ -607,20 +607,20 @@ class TestPathCrossesEnemyFog:
         """UNKNOWN enemies along path are not detected."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "unknown")
+        world.set_visibility("Rhineland", "unknown")
 
         assert _path_crosses_enemy(marshal, "Bavaria", MockGameState(world)) is False
 
     def test_path_enemy_stale_not_detected(self):
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "stale")
+        world.set_visibility("Rhineland", "stale")
 
         assert _path_crosses_enemy(marshal, "Bavaria", MockGameState(world)) is False
 
@@ -629,10 +629,10 @@ class TestPathCrossesEnemyFog:
         # Path: Belgium → Rhine (PARTIAL, enemy) → Bavaria (UNKNOWN, enemy)
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        enemy1 = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy1 = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy1
-        world.set_visibility("Rhine", "partial")
+        world.set_visibility("Rhineland", "partial")
 
         # Rhine is intermediate, so enemy there is detected
         assert _path_crosses_enemy(marshal, "Bavaria", MockGameState(world)) is True
@@ -643,21 +643,21 @@ class TestPathHasEnemiesFog:
 
     def test_enemies_at_full_detected(self):
         world = _make_standard_world()
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "full")
+        world.set_visibility("Rhineland", "full")
 
-        has, regions = _path_has_enemies(["Belgium", "Rhine", "Bavaria"], "France", world)
+        has, regions = _path_has_enemies(["Belgium", "Rhineland", "Bavaria"], "France", world)
         assert has is True
-        assert "Rhine" in regions
+        assert "Rhineland" in regions
 
     def test_enemies_at_unknown_not_detected(self):
         world = _make_standard_world()
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "unknown")
+        world.set_visibility("Rhineland", "unknown")
 
-        has, regions = _path_has_enemies(["Belgium", "Rhine", "Bavaria"], "France", world)
+        has, regions = _path_has_enemies(["Belgium", "Rhineland", "Bavaria"], "France", world)
         assert has is False
         assert len(regions) == 0
 
@@ -673,10 +673,10 @@ class TestAttackOddsRatioFog:
     def test_full_visibility_exact_ratio(self):
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", strength=25000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=50000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=50000)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "full")
+        world.set_visibility("Rhineland", "full")
 
         ratio = _get_attack_odds_ratio(marshal, {"target": "Wellington"}, MockGameState(world))
         assert ratio == pytest.approx(2.0)  # 50000/25000
@@ -685,10 +685,10 @@ class TestAttackOddsRatioFog:
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", strength=25000)
         # Enemy 42000 → band "large force" → midpoint 55000
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=42000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=42000)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "partial")
+        world.set_visibility("Rhineland", "partial")
 
         ratio = _get_attack_odds_ratio(marshal, {"target": "Wellington"}, MockGameState(world))
         assert ratio == pytest.approx(55000 / 25000)
@@ -697,10 +697,10 @@ class TestAttackOddsRatioFog:
         """STALE: can't assess danger → 1.0."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", strength=25000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=100000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=100000)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "stale")
+        world.set_visibility("Rhineland", "stale")
 
         ratio = _get_attack_odds_ratio(marshal, {"target": "Wellington"}, MockGameState(world))
         assert ratio == 1.0
@@ -735,10 +735,10 @@ class TestAttackTargetFortifiedFog:
     def test_full_visibility_sees_fortified(self):
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", fortified=True)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", fortified=True)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "full")
+        world.set_visibility("Rhineland", "full")
 
         assert _check_attack_target_fortified(marshal, {"target": "Wellington"}, MockGameState(world)) is True
 
@@ -746,30 +746,30 @@ class TestAttackTargetFortifiedFog:
         """EC: Cautious attacks fortified target at PARTIAL — no fort bump (can't see fort)."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", fortified=True)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", fortified=True)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "partial")
+        world.set_visibility("Rhineland", "partial")
 
         assert _check_attack_target_fortified(marshal, {"target": "Wellington"}, MockGameState(world)) is False
 
     def test_stale_cannot_see_fort(self):
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", fortified=True)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", fortified=True)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "stale")
+        world.set_visibility("Rhineland", "stale")
 
         assert _check_attack_target_fortified(marshal, {"target": "Wellington"}, MockGameState(world)) is False
 
     def test_unknown_cannot_see_fort(self):
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", fortified=True)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", fortified=True)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "unknown")
+        world.set_visibility("Rhineland", "unknown")
 
         assert _check_attack_target_fortified(marshal, {"target": "Wellington"}, MockGameState(world)) is False
 
@@ -827,10 +827,10 @@ class TestFogTriggerAttackStale:
         """Cautious marshal: STALE target → MODERATE."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", personality="cautious", strength=25000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=25000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=25000)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "stale")
+        world.set_visibility("Rhineland", "stale")
 
         concern = evaluate_cautious(marshal, "attack", {"target": "Wellington"}, MockGameState(world))
         assert concern == ConcernLevel.MODERATE
@@ -840,10 +840,10 @@ class TestFogTriggerAttackStale:
         """LAST_KNOWN also triggers MODERATE (even older than STALE)."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", personality="cautious", strength=25000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=25000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=25000)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "last_known")
+        world.set_visibility("Rhineland", "last_known")
 
         concern = evaluate_cautious(marshal, "attack", {"target": "Wellington"}, MockGameState(world))
         assert concern == ConcernLevel.MODERATE
@@ -853,10 +853,10 @@ class TestFogTriggerAttackStale:
         """Aggressive marshal: STALE target → MILD at most."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", personality="aggressive", strength=25000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=25000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=25000)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "stale")
+        world.set_visibility("Rhineland", "stale")
 
         concern = evaluate_aggressive(marshal, "attack", {"target": "Wellington"}, MockGameState(world))
         assert concern == ConcernLevel.MILD
@@ -873,10 +873,10 @@ class TestFogTriggerScoutShowsWeakness:
         """FULL visibility, 3:1 advantage → EXTREME (refuses non-attack)."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", personality="aggressive", strength=60000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=20000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=20000)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "full")
+        world.set_visibility("Rhineland", "full")
 
         concern = evaluate_aggressive(marshal, "defend", {}, MockGameState(world))
         assert concern == ConcernLevel.EXTREME
@@ -886,10 +886,10 @@ class TestFogTriggerScoutShowsWeakness:
         """UNKNOWN visibility → no visible enemies → MILD (defending nothing)."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", personality="aggressive", strength=60000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=20000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=20000)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "unknown")
+        world.set_visibility("Rhineland", "unknown")
 
         concern = evaluate_aggressive(marshal, "defend", {}, MockGameState(world))
         assert concern == ConcernLevel.MILD  # Can't see enemy, "defending nothing"
@@ -899,10 +899,10 @@ class TestFogTriggerScoutShowsWeakness:
         """Cautious: no concern about refusing to attack (happy to defend)."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", personality="cautious", strength=60000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=20000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=20000)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "full")
+        world.set_visibility("Rhineland", "full")
 
         concern = evaluate_cautious(marshal, "defend", {}, MockGameState(world))
         assert concern == ConcernLevel.NONE
@@ -958,10 +958,10 @@ class TestFogTriggerPursueNoIntel:
         """FULL visibility → falls through to ratio check (existing behavior)."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", personality="cautious", strength=25000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=50000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=50000)
         world.marshals["Davout"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "full")
+        world.set_visibility("Rhineland", "full")
 
         concern = evaluate_strategic_cautious(
             marshal, "PURSUE", "Wellington", [], MockGameState(world))
@@ -1014,11 +1014,11 @@ class TestEdgeCasesSession2:
         """Cautious attacks fortified target at PARTIAL — no fort bump (can't see fort)."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", personality="cautious", strength=25000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain",
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain",
                            strength=42000, fortified=True)
         world.marshals["Davout"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "partial")
+        world.set_visibility("Rhineland", "partial")
 
         concern = evaluate_cautious(
             marshal, "attack", {"target": "Wellington"}, MockGameState(world))
@@ -1031,10 +1031,10 @@ class TestEdgeCasesSession2:
         """0 visible enemies → ratio 999.0 (not 0)."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=25000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=25000)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "unknown")
+        world.set_visibility("Rhineland", "unknown")
 
         ratio = _get_friendly_to_enemy_ratio(marshal, MockGameState(world))
         assert ratio == 999.0  # Not 0
@@ -1059,17 +1059,17 @@ class TestEdgeCasesSession2:
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", personality="cautious")
         # Rhine: PARTIAL with enemy, Bavaria: UNKNOWN with enemy
-        enemy1 = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy1 = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         enemy2 = MockMarshal(name="Blucher", location="Bavaria", nation="Prussia")
         world.marshals["Davout"] = marshal
         world.marshals["Wellington"] = enemy1
         world.marshals["Blucher"] = enemy2
-        world.set_visibility("Rhine", "partial")
+        world.set_visibility("Rhineland", "partial")
         world.set_visibility("Bavaria", "unknown")
 
-        has, regions = _path_has_enemies(["Belgium", "Rhine", "Bavaria"], "France", world)
+        has, regions = _path_has_enemies(["Belgium", "Rhineland", "Bavaria"], "France", world)
         assert has is True
-        assert "Rhine" in regions
+        assert "Rhineland" in regions
         assert "Bavaria" not in regions  # UNKNOWN not detected
 
     @patch('backend.commands.objection_v2.random.random', return_value=0.5)
@@ -1079,11 +1079,11 @@ class TestEdgeCasesSession2:
         """
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", personality="cautious", strength=25000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=25000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=25000)
         world.marshals["Davout"] = marshal
         world.marshals["Wellington"] = enemy
         # Explicitly set stale (3 turns since update)
-        world.set_visibility("Rhine", "stale")
+        world.set_visibility("Rhineland", "stale")
 
         concern = evaluate_cautious(
             marshal, "attack", {"target": "Wellington"}, MockGameState(world))
@@ -1094,10 +1094,10 @@ class TestEdgeCasesSession2:
         """FULL visibility → normal ratio-based assessment, no fog trigger."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", personality="cautious", strength=25000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=25000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=25000)
         world.marshals["Davout"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "full")
+        world.set_visibility("Rhineland", "full")
 
         concern = evaluate_cautious(
             marshal, "attack", {"target": "Wellington"}, MockGameState(world))
@@ -1131,10 +1131,10 @@ class TestEvaluateSituationFogIntegration:
     def test_aggressive_dispatches_with_fog(self, mock_rng):
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", personality="aggressive", strength=25000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=25000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=25000)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "stale")
+        world.set_visibility("Rhineland", "stale")
 
         concern = evaluate_situation(
             marshal, "attack", {"target": "Wellington"}, MockGameState(world))
@@ -1182,10 +1182,10 @@ class TestFullVisibilityPreservesExisting:
         """Full visibility: exact ratio-based concern."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", personality="cautious", strength=10000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=50000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=50000)
         world.marshals["Davout"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "full")
+        world.set_visibility("Rhineland", "full")
 
         concern = evaluate_cautious(
             marshal, "attack", {"target": "Wellington"}, MockGameState(world))
@@ -1197,11 +1197,11 @@ class TestFullVisibilityPreservesExisting:
         """Full visibility: fort bump works."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", personality="cautious", strength=25000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain",
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain",
                            strength=37500, fortified=True)
         world.marshals["Davout"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "full")
+        world.set_visibility("Rhineland", "full")
 
         concern = evaluate_cautious(
             marshal, "attack", {"target": "Wellington"}, MockGameState(world))
@@ -1213,10 +1213,10 @@ class TestFullVisibilityPreservesExisting:
         """Full visibility: aggressive defend trigger works."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", personality="aggressive", strength=50000)
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain", strength=25000)
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain", strength=25000)
         world.marshals["Ney"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "full")
+        world.set_visibility("Rhineland", "full")
 
         concern = evaluate_aggressive(marshal, "defend", {}, MockGameState(world))
         # 50000/25000 = 2.0 → STRONG
@@ -1227,10 +1227,10 @@ class TestFullVisibilityPreservesExisting:
         """Full visibility: path danger still detected."""
         world = _make_standard_world()
         marshal = MockMarshal(location="Belgium", personality="cautious")
-        enemy = MockMarshal(name="Wellington", location="Rhine", nation="Britain")
+        enemy = MockMarshal(name="Wellington", location="Rhineland", nation="Britain")
         world.marshals["Davout"] = marshal
         world.marshals["Wellington"] = enemy
-        world.set_visibility("Rhine", "full")
+        world.set_visibility("Rhineland", "full")
 
         concern = evaluate_cautious(
             marshal, "move", {"target": "Bavaria"}, MockGameState(world))

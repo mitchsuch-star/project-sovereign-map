@@ -162,7 +162,7 @@ class TestForcedRetreatIntoUnknown:
         # Vienna (adjacent to Bavaria) should be PARTIAL
         assert world.get_region_intel("Vienna").visibility == PARTIAL
         # Rhine (adjacent to Bavaria) should be PARTIAL (or better if own territory)
-        rhine_intel = world.get_region_intel("Rhine")
+        rhine_intel = world.get_region_intel("Rhineland")
         assert VISIBILITY_PRIORITY[rhine_intel.visibility] >= VISIBILITY_PRIORITY[PARTIAL]
 
 
@@ -366,7 +366,7 @@ class TestContactInterruptFogDiscovery:
 
         # Use Rhine as the blocked region (not adjacent to any French marshal)
         ney.location = "Belgium"
-        wellington.location = "Rhine"
+        wellington.location = "Rhineland"
 
         # Move other French marshals away
         davout = world.marshals["Davout"]
@@ -379,7 +379,7 @@ class TestContactInterruptFogDiscovery:
         world.calculate_visibility()
 
         # Check Rhine visibility — Belgium is adjacent to Rhine, so Ney sees it as PARTIAL
-        rhine_intel = world.get_region_intel("Rhine")
+        rhine_intel = world.get_region_intel("Rhineland")
         # Since Belgium→Rhine is adjacent and Ney is in Belgium, Rhine gets PARTIAL
         # For a true discovery test, we need the enemy in a region not adjacent to ANY French marshal
         # Let's put enemy at Vienna and French at Paris

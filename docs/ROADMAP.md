@@ -63,7 +63,7 @@
 | Attrition | Movement/supply decay | Low | **COMPLETE** |
 | Fog of War | Hidden enemies, scouting required, watchtower building | Medium | **COMPLETE** (Sessions 32-36, 38). 157 tests. See `FOG_OF_WAR_SPEC.md`. |
 | Terrain | Region terrain affects combat/movement | Medium | **COMPLETE** (6.1.A+B). |
-| Sieges | Fortified cities require siege mechanics | Medium | **Deferred to 1805** — fort + contested capture sufficient for 13-region map. |
+| Sieges | Fortified cities require siege mechanics | Medium | **Deferred to 1805** — fort + contested capture sufficient for 19-region map. |
 | City Fortification | "Fortify this city" building action | Low | **COMPLETE** |
 | Artillery Unit Type | Third marshal type with bombardment | Medium | **COMPLETE** (Sessions 42-44, 48-52). 127+ tests. |
 | Turn Events Log | Track battles/captures/retreats per turn | Low | **COMPLETE** |
@@ -643,7 +643,7 @@ To beat Britain: exhaust their willingness to fund coalitions (war score / diplo
 | **Full Flavor Toggle** | Tier 3 marshal voice (opt-in with cost warning) | Low | Planned |
 | **LLM Cost Display** | Per-feature token usage in settings | Low | Planned |
 | **Voice-to-Text** | Speak orders naturally — feeds into existing parser pipeline | Medium | Planned |
-| **Short Waterloo Scenario** | 10-15 turn tutorial scenario, 3 marshals, reuse current 13-region data | Medium | Planned |
+| **Short Waterloo Scenario** | 10-15 turn tutorial scenario, 3 marshals, reuse current 19-region data | Medium | Planned |
 
 ### LLM Settings UI
 
@@ -696,7 +696,7 @@ Killer feature for the "talk to your marshals" fantasy. Player speaks commands, 
 
 ### Economy Rebalance for 1805
 
-The 13-region tutorial map has known balance tensions surfaced by Session 26 Opus audit:
+The 19-region map has known balance tensions surfaced by Session 26 Opus audit:
 - **Admin AP bonus (150g) is disproportionately important** — 9-43% of a nation's income. Creates strong disincentive for Coalition AI to recruit/build.
 - **Coalition death spiral** — battle losses → recruitment needs → lost admin bonus → deficit → bankruptcy → desertion → more losses.
 - **France cannot go bankrupt** under normal play (+85 to +235/turn). Bankruptcy is Coalition-only.
@@ -711,7 +711,7 @@ These are acceptable for the tutorial scenario (France should feel dominant). Fo
 
 ### AI Fog of War for 1805
 
-At 13 regions, AI omniscience is fine — too few regions for fog to matter strategically. At 80+ regions, omniscient AI feels unfair (it always knows where you are, you never know where it is). Options to evaluate:
+At 19 regions, AI omniscience is fine — too few regions for fog to matter strategically. At 80+ regions, omniscient AI feels unfair (it always knows where you are, you never know where it is). Options to evaluate:
 - AI gets fog but with bonuses (wider adjacency range, faster intel updates)
 - AI fog is "softer" — PARTIAL everywhere instead of UNKNOWN
 - AI uses watchtowers and scouts like the player but with priority logic already built

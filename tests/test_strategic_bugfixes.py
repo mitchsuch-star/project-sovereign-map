@@ -417,7 +417,7 @@ class TestCompromiseFirstStep:
         # Put enemy in Rhine to trigger cautious objection for move through enemy territory
         blucher = world.get_marshal("Blucher")
         if blucher:
-            blucher.location = "Rhine"
+            blucher.location = "Rhineland"
 
         # Issue MOVE_TO to a destination that requires travel
         parsed = {
@@ -453,10 +453,11 @@ class TestTimedSupportArrivalTimer:
         davout.location = "Paris"
 
         # Put an enemy adjacent to Davout so SUPPORT doesn't auto-complete (ally not safe)
-        # Use Waterloo (adjacent to Paris) — NOT on Ney's path (Belgium->Paris)
+        # Use Lyon (adjacent to Paris) — NOT on Ney's path (Belgium->Paris)
+        # (Waterloo is no longer adjacent to Paris in the expanded map)
         wellington = world.get_marshal("Wellington")
         if wellington:
-            wellington.location = "Waterloo"  # Adjacent to Paris
+            wellington.location = "Lyon"  # Adjacent to Paris
 
         # Clear enemies from Belgium so Ney can move freely
         blucher = world.get_marshal("Blucher")
@@ -517,7 +518,7 @@ class TestTimedSupportArrivalTimer:
         # Put enemy near Grouchy so SUPPORT doesn't auto-complete
         blucher = world.get_marshal("Blucher")
         if blucher:
-            blucher.location = "Rhine"  # Adjacent to Lyon
+            blucher.location = "Rhineland"  # Adjacent to Lyon
 
         # Order issued turn 1
         order = StrategicOrder(

@@ -9,6 +9,7 @@ Includes Disobedience System (Phase 2):
 - DisobedienceSystem: Handles marshal objections
 """
 
+import math
 from typing import Dict, List, Optional, Tuple, Any, Set
 from backend.models.region import Region, create_regions, CHARGE_BLOCKED_TERRAIN, TERRAIN_MOVEMENT_COST, NATION_CAPITALS, get_starting_controllers  # noqa: F401 - used in methods below
 from backend.models.marshal import Marshal, create_starting_marshals, create_enemy_marshals
@@ -97,12 +98,10 @@ class WorldState:
         self.max_turns: int = 40
         # Balance patch: Economy rebalanced for 4-marshal France (includes Drouot)
         # Economics (5g upkeep per 1000 troops):
-        #   France:  income 850, upkeep 865 (Ney 72k + Davout 48k + Grouchy 28k + Drouot 25k), net -15.
-        #            Admin AP bonus (150g if unused) → net +135. Manageable.
-        #   Britain: income 350 (Netherlands+Waterloo+Milan+Geneva), upkeep 430, net -80.
-        #            Admin AP bonus → net +70. 1500 starting gold provides buffer.
-        #   Prussia: income 400 (Rhine+Bavaria+Vienna), upkeep 600, net -200.
-        #            Admin AP bonus → net -50. 800 gold + bankruptcy mercy stabilizes.
+        #   France:  income 1100 (Paris+Belgium+Lyon+Marseille+Brittany+Bordeaux+Normandy+Milan)
+        #   Britain: income 200 (Netherlands+Waterloo+Hanover)
+        #   Prussia: income 400 (Rhineland+Berlin)
+        #   Austria/Saxony: not in economy yet (static, added in 1B)
         self.nation_gold: Dict[str, int] = {
             "France": 800,       # Balance patch: was 600, raised for 5-turn buffer
             "Britain": 1500,
@@ -3342,7 +3341,8 @@ class WorldState:
         if self.current_turn > self.max_turns:
             self.game_over = True
             player_regions = len(self.get_player_regions())
-            if player_regions >= 10:
+            victory_threshold = math.ceil(len(self.regions) * 0.75)
+            if player_regions >= victory_threshold:
                 self.victory = "victory"
             else:
                 self.victory = "defeat"

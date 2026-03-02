@@ -13,13 +13,11 @@ Tests for:
 - Edge cases (all region types, construction timer, multiple watchtowers)
 """
 
-import pytest
 from unittest.mock import patch
 from backend.models.world_state import WorldState
-from backend.models.region import Region, BUILDING_TYPES
+from backend.models.region import Region
 from backend.models.intel import (
-    FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
-    RegionIntel, FRESH_TURNS, STALE_TURN_START, LAST_KNOWN_TURN_START,
+    FULL, PARTIAL, STALE,
 )
 from backend.commands.executor import CommandExecutor
 
@@ -405,9 +403,9 @@ class TestWatchtowerScoutSynergy:
         # No watchtower near Rhine
 
         world.current_turn = 1
-        world.update_intel_from_scout("Rhine", turn=1)
+        world.update_intel_from_scout("Rhineland", turn=1)
 
-        rhine_intel = world.get_region_intel("Rhine")
+        rhine_intel = world.get_region_intel("Rhineland")
         assert rhine_intel.visibility == FULL
         assert rhine_intel.last_updated_turn == 1  # No bonus
 
@@ -721,15 +719,15 @@ class TestAIWatchtowerBuilding:
         from backend.ai.enemy_ai import EnemyAI
         ai = EnemyAI(executor=get_executor())
 
-        # Put damaged watchtower in a Britain region (Milan is Britain-controlled)
-        milan = world.get_region("Milan")
-        assert milan.controller == "Britain"
-        milan.watchtower = "damaged"
+        # Put damaged watchtower in a Britain region (Hanover is Britain-controlled)
+        hanover = world.get_region("Hanover")
+        assert hanover.controller == "Britain"
+        hanover.watchtower = "damaged"
 
         result = ai._find_damaged_building_region("Britain", world)
         assert result is not None
         assert result["building_type"] == "watchtower"
-        assert result["region"] == "Milan"
+        assert result["region"] == "Hanover"
 
 
 # ============================================================================
@@ -915,7 +913,7 @@ class TestWatchtowerEdgeCases:
 
         # All watchtowers provide adjacency visibility
         # Check regions adjacent to watchtower regions
-        for rn in ["Waterloo", "Netherlands", "Rhine", "Bordeaux"]:
+        for rn in ["Waterloo", "Netherlands", "Rhineland", "Bordeaux"]:
             intel = world.get_region_intel(rn)
             # These should have at least PARTIAL from watchtower or other source
             assert intel.visibility in (FULL, PARTIAL), f"{rn} should be visible, got {intel.visibility}"

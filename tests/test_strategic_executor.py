@@ -386,7 +386,7 @@ class TestPursueCommand:
 
         # Move Ney far from all enemies for a clean path test
         ney.location = "Bordeaux"
-        wellington.location = "Rhine"
+        wellington.location = "Rhineland"
         # Move other enemies away too
         for name, m in world.marshals.items():
             if m.nation != ney.nation and m.name != "Wellington":
@@ -593,7 +593,7 @@ class TestSupportCommand:
         ney = world.get_marshal("Ney")
 
         # Ney has a strategic order (is moving)
-        _set_strategic_order(ney, "MOVE_TO", "Rhine")
+        _set_strategic_order(ney, "MOVE_TO", "Rhineland")
 
         # Davout supports Ney but they're not together
         if davout.location == ney.location:
@@ -1264,7 +1264,7 @@ class TestInterruptResponse:
         davout = world.get_marshal("Davout")
         davout.personality = "cautious"
         davout.location = "Paris"
-        _set_strategic_order(davout, "MOVE_TO", "Rhine", path=["Lyon", "Belgium", "Rhine"])
+        _set_strategic_order(davout, "MOVE_TO", "Rhineland", path=["Lyon", "Belgium", "Rhineland"])
 
         davout.pending_interrupt = {
             "interrupt_type": "cannon_fire",
@@ -1294,7 +1294,7 @@ class TestInterruptResponse:
         davout = world.get_marshal("Davout")
         davout.personality = "cautious"
         davout.location = "Paris"
-        _set_strategic_order(davout, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+        _set_strategic_order(davout, "MOVE_TO", "Rhineland", path=["Belgium", "Rhineland"])
 
         davout.pending_interrupt = {
             "interrupt_type": "cannon_fire",
@@ -1354,8 +1354,8 @@ class TestInterruptResponse:
         wellington = world.get_marshal("Wellington")
         wellington.location = "Belgium"
 
-        _set_strategic_order(davout, "MOVE_TO", "Rhine",
-                             path=["Belgium", "Rhine"])
+        _set_strategic_order(davout, "MOVE_TO", "Rhineland",
+                             path=["Belgium", "Rhineland"])
 
         davout.pending_interrupt = {
             "interrupt_type": "contact",
@@ -1381,7 +1381,7 @@ class TestInterruptResponse:
         davout = world.get_marshal("Davout")
         davout.personality = "cautious"
         davout.location = "Paris"
-        _set_strategic_order(davout, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+        _set_strategic_order(davout, "MOVE_TO", "Rhineland", path=["Belgium", "Rhineland"])
 
         davout.pending_interrupt = {
             "interrupt_type": "contact",
@@ -1411,7 +1411,7 @@ class TestInterruptResponse:
         davout.location = "Paris"
 
         ney = world.get_marshal("Ney")
-        ney.location = "Rhine"  # Ally moved here
+        ney.location = "Rhineland"  # Ally moved here
 
         _set_strategic_order(davout, "SUPPORT", "Ney",
                              target_type="friendly_marshal",
@@ -1420,7 +1420,7 @@ class TestInterruptResponse:
         davout.pending_interrupt = {
             "interrupt_type": "ally_moving",
             "ally": "Ney",
-            "ally_destination": "Rhine",
+            "ally_destination": "Rhineland",
             "options": ["follow", "hold_current", "cancel_support"]
         }
 
@@ -1465,7 +1465,7 @@ class TestInterruptResponse:
         """Invalid choice returns error."""
         ney = world.get_marshal("Ney")
         ney.location = "Paris"
-        _set_strategic_order(ney, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+        _set_strategic_order(ney, "MOVE_TO", "Rhineland", path=["Belgium", "Rhineland"])
 
         ney.pending_interrupt = {
             "interrupt_type": "contact",
@@ -1483,7 +1483,7 @@ class TestInterruptResponse:
         """Response with no pending interrupt returns error."""
         ney = world.get_marshal("Ney")
         ney.location = "Paris"
-        _set_strategic_order(ney, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+        _set_strategic_order(ney, "MOVE_TO", "Rhineland", path=["Belgium", "Rhineland"])
         ney.pending_interrupt = None
 
         result = strategic_executor.handle_response(
@@ -1499,7 +1499,7 @@ class TestInterruptResponse:
         davout = world.get_marshal("Davout")
         davout.personality = "cautious"
         davout.location = "Paris"
-        _set_strategic_order(davout, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+        _set_strategic_order(davout, "MOVE_TO", "Rhineland", path=["Belgium", "Rhineland"])
 
         davout.pending_interrupt = {
             "interrupt_type": "cannon_fire",
@@ -1526,7 +1526,7 @@ class TestCannonFireLoopPrevention:
         davout = world.get_marshal("Davout")
         davout.personality = "cautious"
         davout.location = "Paris"
-        _set_strategic_order(davout, "MOVE_TO", "Rhine", path=["Lyon", "Belgium", "Rhine"])
+        _set_strategic_order(davout, "MOVE_TO", "Rhineland", path=["Lyon", "Belgium", "Rhineland"])
 
         davout.pending_interrupt = {
             "interrupt_type": "cannon_fire",
@@ -1550,7 +1550,7 @@ class TestCannonFireLoopPrevention:
         davout = world.get_marshal("Davout")
         davout.personality = "cautious"
         davout.location = "Paris"
-        _set_strategic_order(davout, "MOVE_TO", "Rhine", path=["Lyon", "Belgium", "Rhine"])
+        _set_strategic_order(davout, "MOVE_TO", "Rhineland", path=["Lyon", "Belgium", "Rhineland"])
 
         davout.pending_interrupt = {
             "interrupt_type": "cannon_fire",
@@ -1596,7 +1596,7 @@ class TestCannonFireLoopPrevention:
         davout = world.get_marshal("Davout")
         davout.personality = "cautious"
         davout.location = "Paris"
-        _set_strategic_order(davout, "MOVE_TO", "Rhine", path=["Lyon", "Belgium", "Rhine"])
+        _set_strategic_order(davout, "MOVE_TO", "Rhineland", path=["Lyon", "Belgium", "Rhineland"])
 
         # Turn 1: Cannon fire interrupt
         davout.pending_interrupt = {
@@ -1631,16 +1631,16 @@ class TestCannonFireLoopPrevention:
         ney = world.get_marshal("Ney")
         ney.personality = "cautious"
         ney.location = "Belgium"
-        _set_strategic_order(ney, "MOVE_TO", "Bavaria", path=["Rhine", "Bavaria"])
+        _set_strategic_order(ney, "MOVE_TO", "Bavaria", path=["Rhineland", "Bavaria"])
 
         # Enemy blocks Rhine
         wellington = world.get_marshal("Wellington")
-        wellington.location = "Rhine"
+        wellington.location = "Rhineland"
 
         ney.pending_interrupt = {
             "interrupt_type": "contact",
             "enemy": "Wellington",
-            "location": "Rhine",
+            "location": "Rhineland",
             "options": ["attack", "go_around", "hold_position", "cancel_order"]
         }
 
@@ -1681,7 +1681,7 @@ class TestMovementEnforcement:
         wellington = world.get_marshal("Wellington")
         wellington.location = "Belgium"
 
-        _set_strategic_order(ney, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+        _set_strategic_order(ney, "MOVE_TO", "Rhineland", path=["Belgium", "Rhineland"])
 
         with _suppress_output():
             reports = strategic_executor.process_strategic_orders(world, game_state)
@@ -1702,8 +1702,8 @@ class TestMovementEnforcement:
         blucher = world.get_marshal("Blucher")
         blucher.location = "Waterloo"
 
-        _set_strategic_order(davout, "MOVE_TO", "Rhine",
-                             path=["Belgium", "Rhine"])
+        _set_strategic_order(davout, "MOVE_TO", "Rhineland",
+                             path=["Belgium", "Rhineland"])
 
         davout.pending_interrupt = {
             "interrupt_type": "contact",
@@ -1763,7 +1763,7 @@ class TestCancelCommand:
         """Cancel clears marshal's strategic order."""
         ney = world.get_marshal("Ney")
         ney.location = "Paris"
-        _set_strategic_order(ney, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+        _set_strategic_order(ney, "MOVE_TO", "Rhineland", path=["Belgium", "Rhineland"])
         assert ney.in_strategic_mode
 
         with _suppress_output():
@@ -1780,7 +1780,7 @@ class TestCancelCommand:
         """Cancel consumes 1 action."""
         ney = world.get_marshal("Ney")
         ney.location = "Paris"
-        _set_strategic_order(ney, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+        _set_strategic_order(ney, "MOVE_TO", "Rhineland", path=["Belgium", "Rhineland"])
 
         actions_before = world.actions_remaining
 
@@ -1796,7 +1796,7 @@ class TestCancelCommand:
         """Cancel applies -3 trust (mid-march, not first-step)."""
         ney = world.get_marshal("Ney")
         ney.location = "Paris"
-        _set_strategic_order(ney, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"],
+        _set_strategic_order(ney, "MOVE_TO", "Rhineland", path=["Belgium", "Rhineland"],
                              started_turn=world.current_turn - 2)
 
         trust_before = ney.trust.value if hasattr(ney, 'trust') else None
@@ -1815,7 +1815,7 @@ class TestCancelCommand:
         """Cancel also clears pending interrupt."""
         ney = world.get_marshal("Ney")
         ney.location = "Paris"
-        _set_strategic_order(ney, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+        _set_strategic_order(ney, "MOVE_TO", "Rhineland", path=["Belgium", "Rhineland"])
         ney.pending_interrupt = {
             "interrupt_type": "cannon_fire",
             "options": ["investigate", "continue_order", "hold_position"]
@@ -1968,7 +1968,7 @@ class TestFirstStepBlocked:
                     "raw_input": "Ney, march to Rhine",
                     "marshal": "Ney",
                     "action": "move",
-                    "target": "Rhine",
+                    "target": "Rhineland",
                 },
                 "is_strategic": True,
                 "strategic_type": "MOVE_TO",
@@ -1996,7 +1996,7 @@ class TestFirstStepBlocked:
                     "raw_input": "Ney, march to Rhine",
                     "marshal": "Ney",
                     "action": "move",
-                    "target": "Rhine",
+                    "target": "Rhineland",
                 },
                 "is_strategic": True,
                 "strategic_type": "MOVE_TO",
@@ -2024,12 +2024,19 @@ class TestFirstStepBlocked:
 
         # Put enemy at Rhine (on path to Bavaria)
         wellington = world.get_marshal("Wellington")
-        wellington.location = "Rhine"
+        wellington.location = "Rhineland"
         wellington.strength = 30000
 
-        # Also block other paths with enemies
+        # Block ALL alternate paths from Belgium so cautious pathfinder can't
+        # find a safe route (falls back to direct path through enemy territory)
         blucher = world.get_marshal("Blucher")
-        blucher.location = "Paris"  # Block fallback
+        blucher.location = "Paris"  # Block Paris route
+        gneisenau = world.get_marshal("Gneisenau")
+        gneisenau.location = "Normandy"  # Block Normandy route
+        uxbridge = world.get_marshal("Uxbridge")
+        uxbridge.location = "Netherlands"  # Block Netherlands route
+        prince_august = world.get_marshal("PrinceAugust")
+        prince_august.location = "Waterloo"  # Block Waterloo route
 
         with _suppress_output():
             result = executor.execute({
@@ -2071,7 +2078,7 @@ class TestFirstStepBlocked:
                     "raw_input": "Grouchy, march to Rhine",
                     "marshal": "Grouchy",
                     "action": "move",
-                    "target": "Rhine",
+                    "target": "Rhineland",
                 },
                 "is_strategic": True,
                 "strategic_type": "MOVE_TO",
@@ -2090,7 +2097,7 @@ class TestFirstStepBlocked:
 
         davout = world.get_marshal("Davout")
         davout.location = "Paris"
-        _set_strategic_order(davout, "MOVE_TO", "Rhine", path=["Belgium", "Rhine"])
+        _set_strategic_order(davout, "MOVE_TO", "Rhineland", path=["Belgium", "Rhineland"])
 
         # Set up first-step interrupt
         davout.pending_interrupt = {
@@ -2118,13 +2125,13 @@ class TestFirstStepBlocked:
 
         davout = world.get_marshal("Davout")
         davout.location = "Belgium"  # Already moved from Paris
-        _set_strategic_order(davout, "MOVE_TO", "Rhine", path=["Rhine"])
+        _set_strategic_order(davout, "MOVE_TO", "Rhineland", path=["Rhineland"])
 
         # Set up mid-march interrupt (NOT first step)
         davout.pending_interrupt = {
             "interrupt_type": "contact",
             "enemy": "Wellington",
-            "location": "Rhine",
+            "location": "Rhineland",
             "is_first_step": False,  # Explicitly NOT first step
             "options": ["attack", "go_around", "hold_position", "cancel_order"]
         }
@@ -2152,13 +2159,18 @@ class TestFirstStepBlocked:
         # Low trust ensures objection triggers
         davout.trust.set(15)
 
-        # Block the only path to Bavaria
+        # Block ALL paths from Belgium to Bavaria with enemies so cautious
+        # pathfinder can't find a safe route (falls back to direct path)
         wellington = world.get_marshal("Wellington")
-        wellington.location = "Rhine"
-
-        # Block fallback
+        wellington.location = "Rhineland"
         blucher = world.get_marshal("Blucher")
         blucher.location = "Paris"
+        gneisenau = world.get_marshal("Gneisenau")
+        gneisenau.location = "Normandy"
+        uxbridge = world.get_marshal("Uxbridge")
+        uxbridge.location = "Netherlands"
+        prince_august = world.get_marshal("PrinceAugust")
+        prince_august.location = "Waterloo"
 
         # Pin mood variance so MODERATE concern doesn't randomly downgrade to MILD
         # (apply_mood_variance has 15% chance of -1 level, which would skip the popup)
@@ -2209,7 +2221,7 @@ class TestCavalryFirstStep:
                     "raw_input": "Ney, march to Rhine",
                     "marshal": "Ney",
                     "action": "move",
-                    "target": "Rhine",
+                    "target": "Rhineland",
                 },
                 "is_strategic": True,
                 "strategic_type": "MOVE_TO",
@@ -2219,7 +2231,7 @@ class TestCavalryFirstStep:
 
         # Cavalry should move 2 regions on first step (Paris -> Belgium -> Rhine)
         assert result.get("success") is True
-        assert ney.location == "Rhine", f"Ney should be at Rhine (moved 2 regions), but is at {ney.location}"
+        assert ney.location == "Rhineland", f"Ney should be at Rhine (moved 2 regions), but is at {ney.location}"
 
     def test_infantry_first_step_moves_one_region(self, world, game_state, executor):
         """Infantry moves only 1 region on MOVE_TO command first-step."""
@@ -2239,7 +2251,7 @@ class TestCavalryFirstStep:
                     "raw_input": "Davout, march to Rhine",
                     "marshal": "Davout",
                     "action": "move",
-                    "target": "Rhine",
+                    "target": "Rhineland",
                 },
                 "is_strategic": True,
                 "strategic_type": "MOVE_TO",
@@ -2269,7 +2281,7 @@ class TestBugFixes:
         ney.location = "Paris"
 
         # Simulate: order was issued THIS turn (turn 1) with first step already done
-        _set_strategic_order(ney, "MOVE_TO", "Rhine", path=["Lyon", "Rhine"],
+        _set_strategic_order(ney, "MOVE_TO", "Rhineland", path=["Lyon", "Rhineland"],
                              started_turn=world.current_turn)
         ney.strategic_order.issued_turn = world.current_turn
 
@@ -2364,7 +2376,7 @@ class TestBugFixes:
     def test_strategic_infantry_moves_one_per_turn(self, world, game_state, strategic_executor):
         """Infantry (movement_range=1) should move exactly 1 region per strategic turn."""
         grouchy = world.get_marshal("Grouchy")
-        grouchy.location = "Lyon"
+        grouchy.location = "Rhineland"  # Adjacent to Bavaria in new map
         # Ensure infantry
         assert getattr(grouchy, 'movement_range', 1) == 1
 
@@ -2412,7 +2424,7 @@ class TestBugFixes:
                 "command": {
                     "marshal": "Grouchy",
                     "action": "move",
-                    "target": "Rhine",
+                    "target": "Rhineland",
                 },
             },
             game_state,
@@ -2444,7 +2456,7 @@ class TestAggressiveRedirectActuallyMoves:
         ney.location = "Paris"
 
         # Record battle at Rhine (not involving Ney)
-        world.record_battle("Rhine", "SomeAttacker", "SomeDefender", "ongoing")
+        world.record_battle("Rhineland", "SomeAttacker", "SomeDefender", "ongoing")
 
         # Give Ney order going elsewhere (e.g. Brittany)
         _set_strategic_order(ney, "MOVE_TO", "Brittany", path=["Brittany"])
@@ -2518,12 +2530,12 @@ class TestAggressiveRedirectActuallyMoves:
         ney.movement_range = 1  # Override to infantry for this test
 
         # Battle at Rhine (distance 2: Paris -> Lyon -> Rhine or Paris -> Belgium -> Rhine)
-        world.record_battle("Rhine", "SomeAttacker", "SomeDefender", "ongoing")
+        world.record_battle("Rhineland", "SomeAttacker", "SomeDefender", "ongoing")
 
         # No enemies at Rhine to attack
         # Move all enemies away from Rhine
         for m in world.marshals.values():
-            if m.location == "Rhine":
+            if m.location == "Rhineland":
                 m.location = "Vienna"
 
         _set_strategic_order(ney, "MOVE_TO", "Brittany", path=["Brittany"])
@@ -2643,14 +2655,14 @@ class TestInvestigateResponseActuallyMoves:
             f"Expected Davout at Paris (first step Lyon->Waterloo), got {davout.location}"
 
     def test_investigate_attacks_when_adjacent(self, world, game_state, strategic_executor):
-        """Davout at Paris, enemy at Waterloo (adjacent). Investigate should attack."""
+        """Davout at Belgium, enemy at Waterloo (adjacent). Investigate should attack."""
         davout = world.get_marshal("Davout")
-        davout.location = "Paris"
+        davout.location = "Belgium"
 
         wellington = world.get_marshal("Wellington")
         wellington.location = "Waterloo"
 
-        _set_strategic_order(davout, "MOVE_TO", "Vienna", path=["Lyon", "Bavaria", "Vienna"])
+        _set_strategic_order(davout, "MOVE_TO", "Vienna", path=["Rhineland", "Bavaria", "Vienna"])
 
         davout.pending_interrupt = {
             "interrupt_type": "cannon_fire",
@@ -2708,20 +2720,23 @@ class TestCardinalDirectionResolution:
         from backend.ai.strategic_parser import resolve_direction
         world = WorldState()
         result = resolve_direction("Paris", "south", world)
-        assert result == "Lyon"  # Lyon is south of Paris
+        # Bordeaux (4,0) has largest south component from Paris (2,2)
+        assert result == "Bordeaux"
 
     def test_west_from_paris(self):
         from backend.ai.strategic_parser import resolve_direction
         world = WorldState()
         result = resolve_direction("Paris", "west", world)
-        assert result == "Brittany"  # Brittany is west of Paris
+        # Bordeaux (4,0) has largest west component from Paris (2,2)
+        # (Brittany is no longer adjacent to Paris)
+        assert result == "Bordeaux"
 
     def test_east_from_paris(self):
         from backend.ai.strategic_parser import resolve_direction
         world = WorldState()
         result = resolve_direction("Paris", "east", world)
-        # Waterloo is east of Paris (col 2 vs col 1)
-        assert result == "Waterloo"
+        # No adjacent region is east of Paris — all have col <= Paris col (2)
+        assert result is None
 
     def test_front_resolves_toward_enemy(self):
         from backend.ai.strategic_parser import resolve_direction
@@ -2919,7 +2934,7 @@ class TestPursueMarshalNameResolution:
 
         grouchy.location = "Belgium"
         wellington.location = "Bavaria"
-        blucher.location = "Rhine"
+        blucher.location = "Rhineland"
 
         # Give enough AP
         world.actions_remaining = 5
@@ -2982,12 +2997,12 @@ class TestPursueMarshalNameResolution:
 
         grouchy.location = "Paris"
         wellington.location = "Bavaria"
-        blucher.location = "Rhine"
+        blucher.location = "Rhineland"
 
         # Set up PURSUE with blocked path
         order = _set_strategic_order(grouchy, "PURSUE", "Wellington",
                                      target_type="marshal",
-                                     path=["Rhine", "Bavaria"])
+                                     path=["Rhineland", "Bavaria"])
         order.last_contact_enemy = "Blucher"
         order.last_contact_turn = world.current_turn
 
@@ -2995,7 +3010,7 @@ class TestPursueMarshalNameResolution:
         grouchy.pending_interrupt = {
             "interrupt_type": "contact",
             "enemy": "Blucher",
-            "location": "Rhine",
+            "location": "Rhineland",
             "options": ["attack", "go_around", "hold_position", "cancel_order"]
         }
 
@@ -3047,7 +3062,7 @@ class TestRerouteThenMove:
                     "raw_input": "Grouchy, march to Rhine",
                     "marshal": "Grouchy",
                     "action": "move",
-                    "target": "Rhine",
+                    "target": "Rhineland",
                 },
                 "is_strategic": True,
                 "strategic_type": "MOVE_TO",
@@ -3082,7 +3097,7 @@ class TestRerouteThenMove:
             if m.nation != "France" and m.name != "Blucher":
                 m.location = "Paris" if m.nation != "France" else m.location
 
-        _set_strategic_order(grouchy, "MOVE_TO", "Rhine", path=["Bavaria", "Rhine"])
+        _set_strategic_order(grouchy, "MOVE_TO", "Rhineland", path=["Bavaria", "Rhineland"])
 
         with _suppress_output():
             reports = strategic_executor.process_strategic_orders(world, game_state)
@@ -3111,7 +3126,7 @@ class TestRerouteThenMove:
         grouchy.location = "Vienna"
 
         wellington = world.get_marshal("Wellington")
-        wellington.location = "Rhine"
+        wellington.location = "Rhineland"
         blucher = world.get_marshal("Blucher")
         blucher.location = "Bavaria"
 
@@ -3121,8 +3136,8 @@ class TestRerouteThenMove:
                 m.location = "Paris" if m.nation != "France" else m.location
 
         _set_strategic_order(grouchy, "PURSUE", "Wellington",
-                             target_type="marshal", path=["Bavaria", "Rhine"],
-                             target_snapshot_location="Rhine")
+                             target_type="marshal", path=["Bavaria", "Rhineland"],
+                             target_snapshot_location="Rhineland")
 
         with _suppress_output():
             reports = strategic_executor.process_strategic_orders(world, game_state)
@@ -3160,7 +3175,7 @@ class TestRerouteThenMove:
                     "raw_input": "Ney, march to Rhine",
                     "marshal": "Ney",
                     "action": "move",
-                    "target": "Rhine",
+                    "target": "Rhineland",
                 },
                 "is_strategic": True,
                 "strategic_type": "MOVE_TO",

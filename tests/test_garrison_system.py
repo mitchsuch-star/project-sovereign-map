@@ -5,15 +5,13 @@ Tests garrison combat, regeneration, collapse threshold, fort bonuses,
 AI garrison assault (P4.25), AI P4.5 skip, P-1 garrison awareness,
 and capital proximity alerts.
 
-NOTE: Only Paris is a capital in the 13-region map. Garrison tests use
-British marshals attacking Paris (the French capital with 15k garrison).
+NOTE: Capitals include Paris, Vienna, Berlin, and Dresden in the 19-region map.
+Garrison tests use British marshals attacking Paris (the French capital with 15k garrison).
 
 Run with: pytest tests/test_garrison_system.py -v
 """
 
-import pytest
 from backend.models.world_state import WorldState
-from backend.models.marshal import Marshal, Stance
 from backend.models.region import TERRAIN_DEFENSE_BONUS
 from backend.commands.executor import CommandExecutor
 from backend.ai.enemy_ai import EnemyAI
@@ -31,12 +29,13 @@ class TestGarrisonInit:
                 assert region.garrison_strength == 15000, (
                     f"{region.name} is capital but garrison={region.garrison_strength}")
 
-    def test_only_paris_is_capital(self):
-        """Only Paris should be a capital in the 13-region map."""
+    def test_all_capitals_present(self):
+        """All capital regions should be correctly marked in the 19-region map."""
         world = WorldState()
         capitals = [r for r in world.regions.values() if r.is_capital]
-        assert len(capitals) == 1
-        assert capitals[0].name == "Paris"
+        capital_names = sorted([c.name for c in capitals])
+        expected = sorted(["Paris", "Vienna", "Berlin", "Dresden"])
+        assert capital_names == expected, f"Expected capitals {expected}, got {capital_names}"
 
     def test_non_capitals_have_zero_garrison(self):
         """Non-capital regions should have 0 garrison."""
@@ -119,7 +118,7 @@ class TestGarrisonCombat:
 
     Uses British marshals attacking Paris (French capital, urban terrain).
     Paris terrain: urban (0.20 defense bonus).
-    Paris adjacent: Belgium, Waterloo, Brittany, Lyon.
+    Paris adjacent: Normandy, Belgium, Lyon, Bordeaux.
     """
 
     def setup_method(self):
@@ -474,10 +473,10 @@ class TestCapitalProximityAlerts:
 
     def test_no_alert_when_no_enemy_nearby(self):
         """Should not generate alert when no enemy adjacent to capital."""
-        # Move all enemies far from Paris (Paris adj: Belgium, Waterloo, Brittany, Lyon)
+        # Move all enemies far from Paris (Paris adj: Normandy, Belgium, Lyon, Bordeaux)
         for m in self.world.marshals.values():
             if m.nation != "France":
-                m.location = "Geneva"  # Far from Paris
+                m.location = "Tyrol"  # Far from Paris
 
         tm = TurnManager(self.world, self.executor)
         alerts = tm._check_capital_proximity()
@@ -515,7 +514,7 @@ class TestCapitalProximityAlerts:
         wellington.strength = 50000
 
         blucher = self.world.marshals["Blucher"]
-        blucher.location = "Waterloo"  # Also adjacent to Paris
+        blucher.location = "Normandy"  # Also adjacent to Paris
         blucher.strength = 40000
 
         tm = TurnManager(self.world, self.executor)

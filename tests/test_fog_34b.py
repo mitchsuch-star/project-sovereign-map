@@ -320,7 +320,7 @@ class TestPursueFog:
         pursuer.location = "Paris"
         # Move Wellington away entirely
         wellington = world.get_marshal("Wellington")
-        wellington.location = "Rhine"
+        wellington.location = "Rhineland"
 
         result = strategic_exec._execute_pursue(pursuer, world, game_state)
         # Should head toward Netherlands (most recent), not Waterloo
@@ -748,7 +748,7 @@ class TestTacticalEventFiltering:
         events = [
             {"type": "intel_updated", "region": "Waterloo", "new_visibility": "full",
              "old_visibility": "unknown", "source": "scout"},
-            {"type": "intel_decayed", "region": "Rhine", "old_visibility": "full",
+            {"type": "intel_decayed", "region": "Rhineland", "old_visibility": "full",
              "new_visibility": "stale"},
             {"type": "target_not_found", "marshal": "Davout", "target": "Wellington",
              "region": "Waterloo", "intel_age": 3},
@@ -1178,7 +1178,7 @@ class TestPursuePersonalityFogMatrix:
         clear_all_intel(world)
 
         # Set STALE intel on a distant region where Wellington "was" seen
-        set_intel(world, "Rhine", STALE,
+        set_intel(world, "Rhineland", STALE,
                   marshals=[{"name": "Wellington", "nation": "Britain"}],
                   turn=1)
 
@@ -1192,7 +1192,7 @@ class TestPursuePersonalityFogMatrix:
             if m.nation != "France" and m.name not in ("Wellington", "Uxbridge"):
                 m.location = "Vienna"
         wellington = world.get_marshal("Wellington")
-        wellington.location = "Rhine"
+        wellington.location = "Rhineland"
 
         pursuer, order = self._setup_pursue(world, "Davout", "Wellington")
 

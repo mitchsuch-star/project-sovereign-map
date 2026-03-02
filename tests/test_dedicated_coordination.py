@@ -99,7 +99,7 @@ class TestCoLocationTracking:
         assert "B" in a.co_location_turns
 
         # B moves away
-        b.location = "Rhine"
+        b.location = "Rhineland"
         world._update_co_location_tracking()
 
         assert a.co_location_turns == {}
@@ -349,7 +349,7 @@ class TestDedicatedBonusPathB:
         """Ally has SUPPORT targeting someone else → no dedicated bonus."""
         davout = _make_marshal(name="Davout", location="Paris")
         ney = _make_marshal(name="Ney", location="Paris")
-        grouchy = _make_marshal(name="Grouchy", location="Rhine", personality="literal")
+        grouchy = _make_marshal(name="Grouchy", location="Rhineland", personality="literal")
         ney.strategic_order = StrategicOrder(
             command_type="SUPPORT", target="Grouchy",
             target_type="marshal", started_turn=1,
@@ -571,8 +571,8 @@ class TestDedicatedBothSides:
 
     def test_defender_can_have_dedicated_bonus(self):
         """Defender with 2-turn co-location gets +5%/+5%."""
-        d1 = _make_marshal(name="D1", location="Rhine", nation="Prussia")
-        d2 = _make_marshal(name="D2", location="Rhine", nation="Prussia")
+        d1 = _make_marshal(name="D1", location="Rhineland", nation="Prussia")
+        d2 = _make_marshal(name="D2", location="Rhineland", nation="Prussia")
         world = _make_world_with_marshals([d1, d2], current_turn=1)
         ex = _executor()
 

@@ -52,54 +52,54 @@ class TestCoalitionTerritories:
         world = make_world()
         assert world.nation_gold["France"] == 800  # Balance patch: France 800
 
-    def test_britain_controls_milan(self):
-        """Milan is now British-controlled (was Neutral)."""
+    def test_milan_controlled_by_france(self):
+        """Milan is French-controlled."""
         world = make_world()
-        assert world.regions["Milan"].controller == "Britain"
+        assert world.regions["Milan"].controller == "France"
 
-    def test_prussia_controls_bavaria(self):
-        """Bavaria is now Prussian-controlled (was Austria)."""
+    def test_bavaria_controlled_by_austria(self):
+        """Bavaria is Austrian-controlled."""
         world = make_world()
-        assert world.regions["Bavaria"].controller == "Prussia"
+        assert world.regions["Bavaria"].controller == "Austria"
 
-    def test_prussia_controls_vienna(self):
-        """Vienna is now Prussian-controlled (was Austria)."""
+    def test_vienna_controlled_by_austria(self):
+        """Vienna is Austrian-controlled (capital)."""
         world = make_world()
-        assert world.regions["Vienna"].controller == "Prussia"
+        assert world.regions["Vienna"].controller == "Austria"
 
-    def test_geneva_is_british(self):
-        """Geneva is British-controlled (Alpine corridor to Milan)."""
+    def test_hanover_is_british(self):
+        """Hanover is British-controlled."""
         world = make_world()
-        assert world.regions["Geneva"].controller == "Britain"
+        assert world.regions["Hanover"].controller == "Britain"
 
-    def test_britain_has_four_regions(self):
-        """Britain should have 4 regions: Netherlands, Waterloo, Milan, Geneva."""
+    def test_britain_has_three_regions(self):
+        """Britain should have 3 regions: Netherlands, Waterloo, Hanover."""
         world = make_world()
         british_regions = world.get_nation_regions("Britain")
-        assert len(british_regions) == 4
-        assert set(british_regions) == {"Netherlands", "Waterloo", "Milan", "Geneva"}
+        assert len(british_regions) == 3
+        assert set(british_regions) == {"Netherlands", "Waterloo", "Hanover"}
 
-    def test_prussia_has_three_regions(self):
-        """Prussia should have 3 regions: Rhine, Bavaria, Vienna."""
+    def test_prussia_has_two_regions(self):
+        """Prussia should have 2 regions: Rhineland, Berlin."""
         world = make_world()
         prussian_regions = world.get_nation_regions("Prussia")
-        assert len(prussian_regions) == 3
-        assert set(prussian_regions) == {"Rhine", "Bavaria", "Vienna"}
+        assert len(prussian_regions) == 2
+        assert set(prussian_regions) == {"Rhineland", "Berlin"}
 
-    def test_france_has_six_regions(self):
-        """France should still have 6 regions."""
+    def test_france_has_eight_regions(self):
+        """France should have 8 regions."""
         world = make_world()
         french_regions = world.get_nation_regions("France")
-        assert len(french_regions) == 6
+        assert len(french_regions) == 8
 
     def test_britain_income_calculation(self):
-        """Britain income should be 350/turn (Netherlands 50 + Waterloo 50 + Milan 150 + Geneva 100)."""
+        """Britain income should be 200/turn (Netherlands 50 + Waterloo 50 + Hanover 100)."""
         world = make_world()
         income = world.calculate_turn_income("Britain")
-        assert income["income"] == 350
+        assert income["income"] == 200
 
     def test_prussia_income_calculation(self):
-        """Prussia income should be 400/turn (Rhine 100 + Bavaria 100 + Vienna 200)."""
+        """Prussia income should be 400/turn (Rhineland 100 + Berlin 300)."""
         world = make_world()
         income = world.calculate_turn_income("Prussia")
         assert income["income"] == 400
@@ -283,19 +283,19 @@ class TestAIBuildsMarketsDepots:
         """AI should find highest-income region without a market."""
         world = make_world()
         ai = EnemyAI.__new__(EnemyAI)
-        # Prussia controls Rhine(100), Bavaria(100), Vienna(200)
-        # Vienna is highest income, major_city type — should be picked
+        # Prussia controls Rhineland(100, town) and Berlin(300, capital)
+        # Berlin is highest income, capital type — should be picked
         result = ai._find_best_market_region("Prussia", world)
-        assert result == "Vienna"
+        assert result == "Berlin"
 
     def test_ai_does_not_build_market_if_exists(self):
         """AI should not build market if region already has one."""
         world = make_world()
         ai = EnemyAI.__new__(EnemyAI)
-        # Add market to Vienna
-        world.regions["Vienna"].buildings.append({"type": "market", "damaged": False})
+        # Add market to Berlin
+        world.regions["Berlin"].buildings.append({"type": "market", "damaged": False})
         # Now no other Prussian region is a city/major_city/capital with slots
-        # Rhine and Bavaria are towns (0 slots)
+        # Rhineland is a town (0 slots)
         result = ai._find_best_market_region("Prussia", world)
         assert result is None
 
@@ -366,12 +366,12 @@ class TestAISupplyAttritionSurvival:
         """Supply relocation should be P6.5 (mild), not P0 (panic)."""
         world = make_world()
         ai = EnemyAI(world)
-        # Set up: single British marshal at Geneva (mountains, town)
-        # Geneva supply: 20000 * 0.5 = 10000
+        # Set up: single British marshal at Tyrol (mountains, town)
+        # Tyrol supply: 25000 * 0.5 = 12500
         wellington = world.marshals["Wellington"]
-        wellington.location = "Geneva"
+        wellington.location = "Tyrol"
         wellington.strength = 60000
-        world.regions["Geneva"].controller = "Britain"
+        world.regions["Tyrol"].controller = "Britain"
 
         action, priority = ai._evaluate_marshal(wellington, "Britain", world)
         if action and action.get("action") == "move":
@@ -400,7 +400,7 @@ class TestAISupplyAttritionSurvival:
         wellington.location = "Milan"
         # Milan: city (30k) * urban (1.2) = 36000 capacity
         wellington.strength = 50000  # 39% over → tier 2 (3%) — NOT crisis
-        world.regions["Milan"].controller = "Britain"
+        world.regions["Milan"].controller = "Britain"  # Override for test (default is France)
 
         action, priority = ai._evaluate_marshal(wellington, "Britain", world)
         # Should NOT trigger supply move (excess < 50%)

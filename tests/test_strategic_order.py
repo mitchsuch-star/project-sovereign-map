@@ -232,7 +232,7 @@ class TestWorldStateBattleTracking:
             result="ongoing"
         )
 
-        nearby = world.get_battles_within_range("Rhine", 1)
+        nearby = world.get_battles_within_range("Rhineland", 1)
         # Spain and Rhine are far apart
         assert len(nearby) == 0
 

@@ -129,7 +129,7 @@ Expanded from 13 to 19. Goals: French strategic depth, Waterloo deathball broken
 |--------|---------|----------|----------|-------------|------|-------|
 | **France** | Ney | Belgium | 72,000 | Aggressive | Cavalry | Unchanged |
 | **France** | Davout | Paris | 48,000 | Cautious | Infantry | Unchanged |
-| **France** | Grouchy | Lyon | 28,000 | Literal | Infantry | MOVED from Waterloo → Lyon (deathball fix) |
+| **France** | Grouchy | Lyon | 28,000 | Literal | Infantry | MOVED from Belgium → Lyon (deathball fix) |
 | **France** | Drouot | Paris | 25,000 | Cautious | Artillery | Unchanged |
 | **Britain** | Wellington | Waterloo | 52,000 | Cautious | Infantry | Unchanged |
 | **Britain** | Uxbridge | Hanover | 24,000 | Aggressive | Cavalry | MOVED from Netherlands → Hanover |

@@ -249,8 +249,8 @@ class TestRegionTerrainSerialization:
 class TestRegionsDataTerrain:
     """Verify REGIONS_DATA terrain assignments and create_regions()."""
 
-    def test_all_13_regions_have_terrain(self):
-        assert len(REGIONS_DATA) == 13
+    def test_all_19_regions_have_terrain(self):
+        assert len(REGIONS_DATA) == 19
         for name, data in REGIONS_DATA.items():
             assert "terrain" in data, f"Region '{name}' missing terrain in REGIONS_DATA"
             assert data["terrain"] in VALID_TERRAINS, (
@@ -264,12 +264,12 @@ class TestRegionsDataTerrain:
             t = data["terrain"]
             terrain_counts[t] = terrain_counts.get(t, 0) + 1
 
-        assert terrain_counts["plains"] == 4     # Belgium, Netherlands, Marseille, Bordeaux
-        assert terrain_counts["hills"] == 3      # Waterloo, Bavaria, Lyon
-        assert terrain_counts["urban"] == 3      # Paris, Vienna, Milan
-        assert terrain_counts["mountains"] == 1  # Geneva
-        assert terrain_counts["forest"] == 1     # Brittany
-        assert terrain_counts["river_crossing"] == 1  # Rhine
+        assert terrain_counts["plains"] == 7     # Belgium, Netherlands, Marseille, Bordeaux, Normandy, Hanover, Saxony
+        assert terrain_counts["hills"] == 4      # Waterloo, Bavaria, Lyon, Dresden
+        assert terrain_counts["urban"] == 4      # Paris, Vienna, Milan, Berlin
+        assert terrain_counts["mountains"] == 1  # Tyrol
+        assert terrain_counts["forest"] == 2     # Brittany, Bohemia
+        assert terrain_counts["river_crossing"] == 1  # Rhineland
 
     def test_every_terrain_type_used(self):
         """All 6 terrain types must appear at least once."""
@@ -280,14 +280,14 @@ class TestRegionsDataTerrain:
         """Verify key historical assignments."""
         assert REGIONS_DATA["Paris"]["terrain"] == "urban"
         assert REGIONS_DATA["Waterloo"]["terrain"] == "hills"
-        assert REGIONS_DATA["Rhine"]["terrain"] == "river_crossing"
-        assert REGIONS_DATA["Geneva"]["terrain"] == "mountains"
+        assert REGIONS_DATA["Rhineland"]["terrain"] == "river_crossing"
+        assert REGIONS_DATA["Tyrol"]["terrain"] == "mountains"
         assert REGIONS_DATA["Brittany"]["terrain"] == "forest"
         assert REGIONS_DATA["Belgium"]["terrain"] == "plains"
 
     def test_create_regions_assigns_terrain(self):
         regions = create_regions()
-        assert len(regions) == 13
+        assert len(regions) == 19
         for name, region in regions.items():
             expected_terrain = REGIONS_DATA[name]["terrain"]
             assert region.terrain == expected_terrain, (
@@ -298,10 +298,10 @@ class TestRegionsDataTerrain:
         """Spot-check computed properties after create_regions()."""
         regions = create_regions()
 
-        # Geneva = mountains
-        assert regions["Geneva"].defense_bonus == 0.25
-        assert regions["Geneva"].movement_cost == 2.0
-        assert regions["Geneva"].cavalry_effectiveness == 0.3
+        # Tyrol = mountains
+        assert regions["Tyrol"].defense_bonus == 0.25
+        assert regions["Tyrol"].movement_cost == 2.0
+        assert regions["Tyrol"].cavalry_effectiveness == 0.3
 
         # Belgium = plains
         assert regions["Belgium"].defense_bonus == 0.0
@@ -340,5 +340,5 @@ class TestTerrainScalability:
         # (This is a design assertion - the actual test is that create_regions
         # uses data.get("terrain", "plains"), verified by code inspection)
         regions = create_regions()
-        # If create_regions ignored REGIONS_DATA terrain, Geneva would be plains
-        assert regions["Geneva"].terrain == "mountains"
+        # If create_regions ignored REGIONS_DATA terrain, Tyrol would be plains
+        assert regions["Tyrol"].terrain == "mountains"

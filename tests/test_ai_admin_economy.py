@@ -15,7 +15,6 @@ Tests:
 
 import pytest
 from backend.models.world_state import WorldState
-from backend.models.marshal import Marshal
 from backend.commands.executor import CommandExecutor
 from backend.ai.enemy_ai import EnemyAI
 
@@ -188,12 +187,11 @@ class TestAIAdminBuild:
         executor = CommandExecutor()
         ai = EnemyAI(executor)
 
-        # Find unfortified border region helper should skip non-buildable types
-        # Britain's starting regions are: Belgium (town), Netherlands (rural), Waterloo (rural), Milan (city)
-        # Belgium, Netherlands, Waterloo are not buildable (need capital/major_city/city)
-        # Milan IS a city and borders France (Lyon), so it's a valid buildable border region
+        # Britain's starting regions: Netherlands (rural), Waterloo (rural), Hanover (town)
+        # None are buildable (need capital/major_city/city)
+        # So there are no valid buildable border regions for Britain
         result = ai._find_unfortified_border_region("Britain", world)
-        assert result == "Milan", f"Milan should be the only buildable border region for Britain, got {result}"
+        assert result is None, f"Britain has no buildable border regions, got {result}"
 
 
 # ═══════════════════════════════════════════════════════════════════

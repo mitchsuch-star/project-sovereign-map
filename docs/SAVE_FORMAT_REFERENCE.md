@@ -23,11 +23,13 @@ A future save/load system should use this as the specification.
   "current_turn": 1,
   "max_turns": 40,
   "gold": 800,
-  "nation_gold": {"France": 800, "Britain": 800, "Prussia": 300},
+  "nation_gold": {"France": 800, "Britain": 1500, "Prussia": 800, "Austria": 600, "Saxony": 200},
   "manpower_pools": {
     "France": {"infantry": 80000, "cavalry": 15000, "artillery": 10000},
     "Britain": {"infantry": 50000, "cavalry": 8000, "artillery": 5000},
-    "Prussia": {"infantry": 60000, "cavalry": 10000, "artillery": 5000}
+    "Prussia": {"infantry": 60000, "cavalry": 10000, "artillery": 5000},
+    "Austria": {"infantry": 40000, "cavalry": 5000, "artillery": 3000},
+    "Saxony": {"infantry": 20000, "cavalry": 3000, "artillery": 2000}
   },
   "game_over": false,
   "victory": null,
@@ -53,7 +55,7 @@ A future save/load system should use this as the specification.
   "mild_concerns_this_turn": [],
   "objection_popups_this_turn": [],
 
-  "enemy_nations": ["Britain", "Prussia"],
+  "enemy_nations": ["Britain", "Prussia", "Austria", "Saxony"],
   "nation_actions": {"Britain": 4, "Prussia": 4},
   "active_battles": {},
   "battle_history": [],
@@ -70,9 +72,11 @@ A future save/load system should use this as the specification.
   "coordination_tutorial_shown": false,
 
   "nation_starting_regions": {
-    "France": ["Paris", "Lyon", "Brittany", "Bordeaux", "Marseille"],
-    "Britain": ["London", "Waterloo"],
-    "Prussia": ["Berlin", "Netherlands", "Rhine", "Cologne", "Hamburg"]
+    "France": ["Paris", "Belgium", "Normandy", "Lyon", "Brittany", "Bordeaux", "Marseille", "Milan"],
+    "Britain": ["Netherlands", "Waterloo", "Hanover"],
+    "Prussia": ["Berlin", "Rhineland"],
+    "Austria": ["Vienna", "Bavaria", "Bohemia", "Tyrol"],
+    "Saxony": ["Saxony", "Dresden"]
   },
 
   "last_morning_dispatch": {},
@@ -115,7 +119,7 @@ A future save/load system should use this as the specification.
 | `objection_popups_this_turn` | list | [] | V2a: Per-marshal popup cap tracking (cleared each turn) |
 | `ai_failed_action_cooldowns` | dict | {} | AI failed action retry cooldowns {marshal: {action: turns}} |
 | `ai_refortify_cooldown` | dict | {} | Per-marshal re-fortify cooldown turns {marshal_name: int}. Set to 2 when stagnation forces unfortify, decremented each turn. Blocks P5/P8 fortify while active. |
-| `enemy_nations` | list | ["Britain", "Prussia"] | AI-controlled nations |
+| `enemy_nations` | list | ["Britain", "Prussia", "Austria", "Saxony"] | AI-controlled nations |
 | `nation_actions` | dict | {} | Actions per nation |
 | `active_battles` | dict | {} | Currently ongoing battles |
 | `battle_history` | list | [] | Completed battle records |
@@ -261,7 +265,7 @@ A future save/load system should use this as the specification.
 | `strength` | int | Current army size |
 | `starting_strength` | int | Original army size |
 | `personality` | string | "aggressive", "cautious", "literal", "balanced" |
-| `nation` | string | "France", "Britain", "Prussia" |
+| `nation` | string | "France", "Britain", "Prussia", "Austria", "Saxony" |
 | `spawn_location` | string | Capital/respawn region |
 | `movement_range` | int | 1 (infantry) or 2 (cavalry) |
 | `tactical_skill` | int | Legacy skill rating 0-12 |
@@ -738,6 +742,8 @@ When format changes:
 1. Increment `format_version`
 2. Add migration function for old -> new format
 3. Support reading old versions
+
+**Version 2 (Session 1A):** Map expanded from 13 to 19 regions. Hard break — version 1 saves are rejected with a clear message. No migration path (map structure changed too fundamentally).
 
 ### Save File Structure (Pre-EA)
 

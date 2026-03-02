@@ -131,7 +131,7 @@ class CommandParser:
 
             words = command_text.split()
             for word in words:
-                # Skip words that match the already-parsed target (e.g., "Rhine" in "bombard Rhine")
+                # Skip words that match the already-parsed target (e.g., "Rhineland" in "bombard Rhineland")
                 if existing_target and word.lower() == existing_target:
                     continue
 
@@ -452,7 +452,7 @@ class CommandParser:
 
         if action == "attack":
             if is_bombardment:
-                return "auto_assign_bombardment"  # "bombard Rhine" - find nearest artillery
+                return "auto_assign_bombardment"  # "bombard Rhineland" - find nearest artillery
             elif not target:
                 return "general_attack"  # "attack" alone - find nearest enemy
             else:
@@ -463,7 +463,7 @@ class CommandParser:
             return "general_defensive"  # All forces defend
         elif action == "scout":
             if target:
-                return "auto_assign_scout"  # "scout Rhine" - find nearest marshal in range
+                return "auto_assign_scout"  # "scout Rhineland" - find nearest marshal in range
             # "scout" alone with no target or marshal → fall through to specific (will error helpfully)
 
         # Default fallback

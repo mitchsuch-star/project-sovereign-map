@@ -215,7 +215,7 @@ def test_forces_strategic_order_move_to():
     m.strategic_order = StrategicOrder(
         command_type="MOVE_TO", target="Vienna", target_type="region",
         started_turn=1, original_command="move to Vienna",
-        path=["Rhine", "Bavaria", "Vienna"]
+        path=["Rhineland", "Bavaria", "Vienna"]
     )
     ledger = build_strategic_ledger(world)
     g = [f for f in ledger["forces"] if f["name"] == "Grouchy"][0]

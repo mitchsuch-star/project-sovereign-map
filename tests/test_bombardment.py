@@ -12,10 +12,9 @@ Covers BOMBARDMENT_SPEC.md:
 import pytest
 from unittest.mock import patch
 from fastapi.testclient import TestClient
-from backend.models.marshal import Marshal, create_starting_marshals, create_enemy_marshals
+from backend.models.marshal import Marshal
 from backend.models.world_state import WorldState
 from backend.models.region import TERRAIN_BOMBARDMENT_MODIFIER
-from backend.game_logic.combat import CombatResolver
 from backend.commands.executor import CommandExecutor
 
 
@@ -224,6 +223,13 @@ class TestCoreBombardment:
         target_region = world.get_region("Waterloo")
         target_region.controller = "Britain"
 
+        # Block all retreat routes from Waterloo so Wellington breaks instead of retreating.
+        # Waterloo adj: Belgium, Netherlands, Hanover
+        # Belgium has French marshals (blocked). Netherlands has Prussians (blocked as non-British).
+        # Block Hanover with a French marshal so no safe retreat exists.
+        blocker = _make_infantry(name="Blocker", location="Hanover", strength=10000, nation="France")
+        world.marshals["Blocker"] = blocker
+
         with patch("random.uniform", return_value=1.0):
             result = executor._execute_bombardment(art, well, world, gs)
 
@@ -415,8 +421,8 @@ class TestTerrainBombardment:
 
     def test_mountains_gives_minus_40_percent(self):
         """Mountains terrain gives -40% bombardment damage (0.60 modifier)."""
-        # Geneva is mountains, adjacent to Marseille (plains)
-        avg_mountains = self._measure_damage("mountains", "Geneva", "Marseille")
+        # Tyrol is mountains, adjacent to Milan (urban)
+        avg_mountains = self._measure_damage("mountains", "Tyrol", "Milan")
         avg_plains = self._measure_damage("plains", "Marseille", "Lyon")
         # Mountains (0.60) should do less damage than plains (1.10)
         ratio = avg_mountains / avg_plains if avg_plains > 0 else 0
@@ -442,9 +448,9 @@ class TestTerrainBombardment:
 
             # Mountains
             world2 = _make_world()
-            art2 = _make_artillery(name="Art2", location="Marseille", strength=25000)
+            art2 = _make_artillery(name="Art2", location="Milan", strength=25000)
             world2.marshals["Art2"] = art2
-            defender2 = _make_infantry(name="Def2", location="Geneva",
+            defender2 = _make_infantry(name="Def2", location="Tyrol",
                                         strength=50000, nation="Britain")
             world2.marshals["Def2"] = defender2
             executor2 = CommandExecutor()
@@ -518,6 +524,12 @@ class TestBombardmentEdgeCases:
         _execute_bombardment, but direct calls should still be safe."""
         world, art, executor, gs = _setup_bombardment(def_str=1)
         world.marshals["Wellington"].strength = 1
+
+        # Block all retreat routes from Waterloo so Wellington breaks instead of retreating.
+        # Waterloo adj: Belgium, Netherlands, Hanover
+        blocker = _make_infantry(name="Blocker", location="Hanover", strength=10000, nation="France")
+        world.marshals["Blocker"] = blocker
+
         # 1 strength — will be reduced to 0 by bombardment, triggering break
         with patch("random.uniform", return_value=1.0):
             result = executor._execute_bombardment(art, world.marshals["Wellington"], world, gs)
@@ -942,6 +954,13 @@ class TestCollateralTargetDestruction:
             if m.name not in ("ArtDest", "Wellington", "WeakForce"):
                 if m.location == "Waterloo":
                     m.location = "Vienna"
+
+        # Block all retreat routes from Waterloo so WeakForce breaks instead of retreating.
+        # Waterloo adj: Belgium, Netherlands, Hanover
+        # Belgium has ArtDest (France) -> blocked. Netherlands has Prussians -> blocked (non-British).
+        # Block Hanover with a French marshal.
+        blocker = _make_infantry(name="Blocker", location="Hanover", strength=10000, nation="France")
+        world.marshals["Blocker"] = blocker
 
         executor = CommandExecutor()
         gs = {"world": world}

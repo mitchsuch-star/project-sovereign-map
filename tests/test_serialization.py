@@ -781,7 +781,7 @@ class TestVindicationTrackerSerialization:
                 "timestamp": 5
             },
             "Grouchy": {
-                "order": {"action": "hold", "target": "Rhine"},
+                "order": {"action": "hold", "target": "Rhineland"},
                 "timestamp": 7
             }
         }

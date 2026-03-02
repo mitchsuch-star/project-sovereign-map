@@ -285,12 +285,12 @@ class TestFogFiltering:
     def test_bombardment_uses_defender_location(self):
         """Cross-region bombardment should check defender_location for fog."""
         # Attacker is in fogged region, but shells land in FULL region
-        world = _make_world_with_visibility({"Rhine": UNKNOWN, "Waterloo": FULL})
+        world = _make_world_with_visibility({"Rhineland": UNKNOWN, "Waterloo": FULL})
         events = [
             {"type": "bombardment", "turn": 1, "attacker": "PrinceAugust",
              "attacker_nation": "Prussia", "defender": "Wellington",
              "defender_nation": "Britain",
-             "attacker_location": "Rhine", "defender_location": "Waterloo"},
+             "attacker_location": "Rhineland", "defender_location": "Waterloo"},
         ]
         result = filter_campaign_log(events, world)
         assert len(result) == 1, "Should show bombardment when defender_location is FULL"

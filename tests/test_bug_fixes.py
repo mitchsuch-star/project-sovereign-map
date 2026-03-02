@@ -6,39 +6,38 @@ Test suite for bug fixes:
 
 import pytest
 from backend.models.world_state import WorldState
-from backend.models.marshal import Marshal
 from backend.commands.executor import CommandExecutor
 
 
 class TestParisWaterlooAdjacency:
-    """Test that Paris and Waterloo are properly adjacent."""
+    """Test key map adjacencies after 19-region expansion."""
 
-    def test_paris_waterloo_bidirectional_adjacency(self):
-        """Paris and Waterloo should be adjacent in both directions."""
+    def test_paris_belgium_bidirectional_adjacency(self):
+        """Paris and Belgium should be adjacent in both directions."""
         world = WorldState(player_nation="France")
 
         paris = world.get_region("Paris")
-        waterloo = world.get_region("Waterloo")
+        belgium = world.get_region("Belgium")
 
         # Check bidirectional adjacency
-        assert paris.is_adjacent_to("Waterloo"), "Paris should be adjacent to Waterloo"
-        assert waterloo.is_adjacent_to("Paris"), "Waterloo should be adjacent to Paris"
+        assert paris.is_adjacent_to("Belgium"), "Paris should be adjacent to Belgium"
+        assert belgium.is_adjacent_to("Paris"), "Belgium should be adjacent to Paris"
 
     def test_paris_waterloo_distance(self):
-        """Distance between Paris and Waterloo should be 1."""
+        """Distance between Paris and Waterloo should be 2 (through Belgium)."""
         world = WorldState(player_nation="France")
 
         distance = world.get_distance("Paris", "Waterloo")
-        assert distance == 1, f"Paris-Waterloo distance should be 1, got {distance}"
+        assert distance == 2, f"Paris-Waterloo distance should be 2, got {distance}"
 
-    def test_attack_paris_to_waterloo_in_range(self):
-        """Attacking from Paris to Waterloo should be in range."""
+    def test_attack_belgium_to_waterloo_in_range(self):
+        """Attacking from Belgium to Waterloo should be in range."""
         world = WorldState(player_nation="France")
         executor = CommandExecutor()
 
-        # Place Davout in Paris
+        # Place Davout in Belgium (adjacent to Waterloo)
         davout = world.get_marshal("Davout")
-        davout.location = "Paris"
+        davout.location = "Belgium"
 
         # Wellington is at Waterloo
         wellington = world.get_enemy_by_name("Wellington")

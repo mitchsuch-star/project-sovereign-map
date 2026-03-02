@@ -56,7 +56,7 @@ class TestLiteralPersonalityConversion:
     def test_non_literal_personalities_unchanged(self):
         """Cautious and aggressive stay unchanged regardless of nation."""
         # Enemy aggressive stays aggressive
-        aggressive_enemy = Marshal("Blucher", "Rhine", 60000, "aggressive", nation="Prussia")
+        aggressive_enemy = Marshal("Blucher", "Rhineland", 60000, "aggressive", nation="Prussia")
         result = self.ai._get_effective_personality(aggressive_enemy, self.world)
         assert result == "aggressive"
 

@@ -272,10 +272,10 @@ class TestFuzzyMatcherEdgeCases:
     def test_special_characters_in_name(self):
         """Names with special characters should work."""
         matcher = FuzzyMatcher()
-        result = matcher.match_with_context("Rhine", ["Rhine", "Rhineland", "Bavaria"])
+        result = matcher.match_with_context("Rhineland", ["Rhineland", "Rhineland", "Bavaria"])
 
         assert result["action"] == "exact"
-        assert result["match"] == "Rhine"
+        assert result["match"] == "Rhineland"
 
 
 if __name__ == "__main__":

@@ -175,13 +175,13 @@ class TestCoordinationTutorialTrigger:
         """Enemy AI combined arms should not trigger player tutorial."""
         player = _make_marshal(name="Davout", location="Waterloo",
                               strength=30000, nation="France")
-        enemy_inf = _make_marshal(name="Wellington", location="Rhine",
+        enemy_inf = _make_marshal(name="Wellington", location="Rhineland",
                                  strength=25000, nation="Britain")
-        enemy_cav = _make_marshal(name="Blucher", location="Rhine",
+        enemy_cav = _make_marshal(name="Blucher", location="Rhineland",
                                  strength=20000, cavalry=True, nation="Prussia")
         world = _make_world_with_marshals([player, enemy_inf, enemy_cav])
         world.regions["Waterloo"].controller = "France"
-        world.regions["Rhine"].controller = "Britain"
+        world.regions["Rhineland"].controller = "Britain"
 
         ex = _executor()
         game_state = {"world": world}
@@ -378,14 +378,14 @@ class TestReinforcementMessages:
         """When a battle has potential reinforcements, messages should be present."""
         primary = _make_marshal(name="Ney", location="Paris", strength=30000,
                                cavalry=True, nation="France")
-        ally = _make_marshal(name="Davout", location="Rhine", strength=25000,
+        ally = _make_marshal(name="Davout", location="Rhineland", strength=25000,
                             nation="France")
         enemy = _make_marshal(name="Wellington", location="Waterloo",
                              strength=20000, nation="Britain")
 
         world = _make_world_with_marshals([primary, ally, enemy])
         world.regions["Paris"].controller = "France"
-        world.regions["Rhine"].controller = "France"
+        world.regions["Rhineland"].controller = "France"
         world.regions["Waterloo"].controller = "Britain"
 
         # Davout adjacent to Waterloo (depends on adjacency graph)
@@ -601,15 +601,15 @@ class TestFullCoordinatedBattle:
 
     def test_coordinated_attack_produces_battle_report(self):
         """A coordinated attack should produce a battle report with observation."""
-        inf = _make_marshal(name="Davout", location="Paris", strength=30000,
+        inf = _make_marshal(name="Davout", location="Belgium", strength=30000,
                            nation="France")
-        cav = _make_marshal(name="Ney", location="Paris", strength=25000,
+        cav = _make_marshal(name="Ney", location="Belgium", strength=25000,
                            cavalry=True, nation="France")
         enemy = _make_marshal(name="Wellington", location="Waterloo",
                              strength=20000, nation="Britain")
 
         world = _make_world_with_marshals([inf, cav, enemy])
-        world.regions["Paris"].controller = "France"
+        world.regions["Belgium"].controller = "France"
         world.regions["Waterloo"].controller = "Britain"
 
         ex = _executor()

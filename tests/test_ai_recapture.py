@@ -41,7 +41,7 @@ class TestRecaptureCore:
         """Marshal should move toward a lost homeland region."""
         world = WorldState()
         ai = _make_ai()
-        _lose_region(world, "Rhine")
+        _lose_region(world, "Rhineland")
 
         # Move Blucher to Vienna (2 hops from Rhine: Vienna→Bavaria→Rhine)
         blucher = world.marshals["Blucher"]
@@ -62,51 +62,54 @@ class TestRecaptureCore:
         world = WorldState()
         ai = _make_ai()
 
-        # Paris is the only is_capital=True region; it's French.
-        # For Prussia, no region has is_capital=True, so let's test with France losing Paris.
-        # Instead, test the _is_capital_lost + _evaluate_marshal flow for a custom scenario.
-        # We'll make a region capital for testing.
-        world.regions["Vienna"].is_capital = True
-        _lose_region(world, "Vienna")
+        # Prussia capital is Berlin (is_capital=True). Lose it.
+        _lose_region(world, "Berlin")
 
         assert ai._is_capital_lost("Prussia", world)
-        print("PASS: _is_capital_lost detects Vienna loss")
+        print("PASS: _is_capital_lost detects Berlin loss")
 
     def test_extended_range_reaches_distant_regions(self):
         """Extended range (6 hops) should reach distant regions that old 3-hop couldn't."""
         world = WorldState()
         ai = _make_ai()
-        # Prussia starts with: Rhine, Bavaria, Vienna
-        # Lose Vienna — distance from Belgium is 3 hops (Belgium→Rhine→Bavaria→Vienna)
-        # Old range (3) would include this. Lose Rhine too and put marshal at Netherlands.
-        # Netherlands→Belgium→Rhine = 2 hops to Rhine, but we need to test > 3 range.
-        # Better: put Prussian marshal at Netherlands (dist 4 to Vienna via Belgium→Rhine→Bavaria→Vienna)
-        _lose_region(world, "Vienna")
+        # Prussia starts with: Rhineland, Berlin
+        # Lose Berlin. Put Blucher far away at Marseille.
+        # Marseille→Lyon→Rhineland→Belgium→...→Hanover→Berlin = many hops
+        # Actually let's use a simpler path:
+        # Lose Rhineland. Put Blucher at Marseille (dist 3: Marseille→Lyon→Rhineland)
+        # Then move to dist 4: Marseille→Milan→Lyon→Rhineland (via Milan first)
+        # Better: lose Berlin. Put Blucher at Lyon.
+        # Lyon→Rhineland→Belgium→...→Hanover→Berlin = 5 hops
+        # Actually: Lyon→Rhineland→Bavaria→Saxony→Berlin = 4 hops
+        # But Bavaria is Austria, not enemy. Let's just use a simple test.
+        _lose_region(world, "Berlin")
 
         blucher = world.marshals["Blucher"]
-        blucher.location = "Belgium"  # dist to Vienna = 3 (Belgium→Rhine→Bavaria→Vienna)
-        # Move French marshals out of Belgium so path isn't blocked
-        world.marshals["Ney"].location = "Paris"
-        world.marshals["Grouchy"].location = "Paris"
+        # Move French marshals out of path so it isn't blocked
+        for m in world.marshals.values():
+            if m.nation == "France":
+                m.location = "Bordeaux"
         world.marshals["Gneisenau"].location = "Brittany"  # far away
         world.marshals["PrinceAugust"].location = "Brittany"
         ai._marshal_visited_locations = {"Blucher": set()}
 
-        # At old range (3), dist 3 is at the boundary. Let's verify it works at dist 4.
-        blucher.location = "Netherlands"  # dist 4 to Vienna
+        # Put Blucher at Lyon — dist to Berlin is 4+ hops
+        # Lyon→Rhineland→Belgium→...→Hanover→Berlin or
+        # Lyon→Rhineland→Bavaria→Saxony→Berlin (4 hops)
+        blucher.location = "Lyon"
         action = ai._find_homeland_defense(blucher, "Prussia", world)
-        # Old range (3) would miss this. New range (6) should reach it.
+        # Extended range (6) should reach Berlin from Lyon (4 hops)
         assert action is not None
         assert action["action"] == "move"
-        assert action["target"] == "Belgium"  # Step toward Vienna
-        print(f"PASS: Extended range reaches Vienna from Netherlands (4 hops): {action}")
+        assert action["target"] == "Rhineland"  # Step toward Berlin
+        print(f"PASS: Extended range reaches Berlin from Lyon (4+ hops): {action}")
 
     def test_cautious_recaptures_over_fortifying_when_regions_lost(self):
         """When 2+ regions lost, cautious marshals should recapture instead of fortifying."""
         world = WorldState()
         ai = _make_ai()
         # Lose 2 Prussian regions
-        _lose_region(world, "Rhine")
+        _lose_region(world, "Rhineland")
         _lose_region(world, "Bavaria")
 
         gneisenau = world.marshals["Gneisenau"]
@@ -145,10 +148,12 @@ class TestRecaptureCore:
         """Broken/recovering marshals should NOT attempt homeland defense."""
         world = WorldState()
         ai = _make_ai()
-        _lose_region(world, "Rhine")
+        _lose_region(world, "Rhineland")
 
         blucher = world.marshals["Blucher"]
-        blucher.location = "Bavaria"
+        # Place Blucher in a Prussian-controlled region so P-1 "capture current" doesn't fire
+        # (any non-Prussian territory triggers P-1 before recovery check)
+        blucher.location = "Berlin"  # Prussia-controlled, safe
         blucher.retreat_recovery = 2  # In recovery
 
         action, priority = ai._evaluate_marshal(blucher, "Prussia", world)
@@ -160,9 +165,9 @@ class TestRecaptureCore:
         """Homeland defense should attack garrisoned lost region if strong enough."""
         world = WorldState()
         ai = _make_ai()
-        _lose_region(world, "Rhine")
-        world.regions["Rhine"].garrison_strength = 8000
-        world.regions["Rhine"].garrison_detachment = True
+        _lose_region(world, "Rhineland")
+        world.regions["Rhineland"].garrison_strength = 8000
+        world.regions["Rhineland"].garrison_detachment = True
 
         blucher = world.marshals["Blucher"]
         blucher.location = "Bavaria"
@@ -170,14 +175,14 @@ class TestRecaptureCore:
         action = ai._find_homeland_defense(blucher, "Prussia", world)
         assert action is not None
         assert action["action"] == "attack"
-        assert action["target"] == "Rhine"
+        assert action["target"] == "Rhineland"
         print("PASS: Blucher assaults garrison at Rhine")
 
     def test_adjacent_lost_region_immediate_capture(self):
         """Adjacent undefended lost region triggers immediate attack/capture."""
         world = WorldState()
         ai = _make_ai()
-        _lose_region(world, "Rhine")
+        _lose_region(world, "Rhineland")
 
         blucher = world.marshals["Blucher"]
         blucher.location = "Bavaria"
@@ -188,7 +193,7 @@ class TestRecaptureCore:
         action = ai._find_homeland_defense(blucher, "Prussia", world)
         assert action is not None
         assert action["action"] == "attack"
-        assert action["target"] == "Rhine"
+        assert action["target"] == "Rhineland"
         print("PASS: Blucher immediately captures adjacent lost Rhine")
 
 
@@ -203,12 +208,13 @@ class TestDeathballSplitting:
         """3 co-located marshals should split to recapture 2+ different targets."""
         world = WorldState()
         ai = _make_ai()
-        _lose_region(world, "Rhine")
-        _lose_region(world, "Bavaria")
+        # Prussia controls: Rhineland, Berlin. Lose both.
+        _lose_region(world, "Rhineland")
+        _lose_region(world, "Berlin")
 
-        # Put all Prussians in Vienna
+        # Put all Prussians at Hanover (adjacent to Berlin, 2 hops from Rhineland)
         for name in ["Blucher", "Gneisenau", "PrinceAugust"]:
-            world.marshals[name].location = "Vienna"
+            world.marshals[name].location = "Hanover"
         ai._marshal_visited_locations = {
             "Blucher": set(), "Gneisenau": set(), "PrinceAugust": set()
         }
@@ -223,9 +229,7 @@ class TestDeathballSplitting:
         assert action2 is not None
         target2 = action2["target"]
 
-        # They should pick different targets (one Bavaria, one toward Rhine)
-        # Both from Vienna: Bavaria is dist 1, Rhine is dist 2
-        # First gets Bavaria (closer), second should get Rhine
+        # They should pick different targets (one Berlin adj, one toward Rhineland)
         print(f"PASS: Marshal 1 targets {target1}, Marshal 2 targets {target2}")
         assert target1 != target2 or action1["action"] != action2["action"]
 
@@ -233,7 +237,7 @@ class TestDeathballSplitting:
         """Fortified marshal should NOT block 'someone closer' check."""
         world = WorldState()
         ai = _make_ai()
-        _lose_region(world, "Rhine")
+        _lose_region(world, "Rhineland")
 
         # Gneisenau in Bavaria (adjacent, dist=1) but fortified
         gneisenau = world.marshals["Gneisenau"]
@@ -254,7 +258,7 @@ class TestDeathballSplitting:
         """Drilling marshal should NOT block 'someone closer' check."""
         world = WorldState()
         ai = _make_ai()
-        _lose_region(world, "Rhine")
+        _lose_region(world, "Rhineland")
 
         gneisenau = world.marshals["Gneisenau"]
         gneisenau.location = "Bavaria"
@@ -273,7 +277,7 @@ class TestDeathballSplitting:
         """Broken marshal should NOT block 'someone closer' check."""
         world = WorldState()
         ai = _make_ai()
-        _lose_region(world, "Rhine")
+        _lose_region(world, "Rhineland")
 
         gneisenau = world.marshals["Gneisenau"]
         gneisenau.location = "Bavaria"
@@ -293,7 +297,7 @@ class TestDeathballSplitting:
         """Single lost region: only 1 marshal should be assigned."""
         world = WorldState()
         ai = _make_ai()
-        _lose_region(world, "Rhine")
+        _lose_region(world, "Rhineland")
 
         # Both in Vienna (same distance)
         blucher = world.marshals["Blucher"]
@@ -310,7 +314,7 @@ class TestDeathballSplitting:
         actions = [a for a in [action1, action2] if a is not None]
         assert len(actions) >= 1  # At least one acts
         # The claimed set should have Rhine
-        assert "Rhine" in ai._recapture_targets_claimed
+        assert "Rhineland" in ai._recapture_targets_claimed
         print("PASS: Only marshal(s) assigned to single target Rhine")
 
 
@@ -325,35 +329,36 @@ class TestPathfindingThroughEnemy:
         """For capital recapture, marshal can move through enemy-occupied regions."""
         world = WorldState()
         ai = _make_ai()
-        world.regions["Vienna"].is_capital = True
-        _lose_region(world, "Vienna")
+        # Berlin is Prussia's capital (is_capital=True). Lose it.
+        _lose_region(world, "Berlin")
 
-        # Blucher in Rhine, path to Vienna: Rhine→Bavaria→Vienna
-        # Block Bavaria with a weak French marshal
+        # Put Blucher at Bavaria. Path to Berlin: Bavaria→Saxony→Berlin (2 hops).
+        # Block Saxony with a weak enemy — capital recapture should allow through.
         blucher = world.marshals["Blucher"]
-        blucher.location = "Rhine"
+        blucher.location = "Bavaria"
         blucher.strength = 55000
 
-        weak_french = Marshal(name="WeakFrench", location="Bavaria", strength=10000,
+        # Block Saxony (intermediate on path Bavaria→Saxony→Berlin)
+        weak_french = Marshal(name="WeakFrench", location="Saxony", strength=10000,
                               personality="cautious", nation="France")
         world.marshals["WeakFrench"] = weak_french
 
-        # Move others away
-        world.marshals["Gneisenau"].location = "Netherlands"
-        world.marshals["PrinceAugust"].location = "Netherlands"
+        # Move others far away so "someone closer" doesn't block
+        world.marshals["Gneisenau"].location = "Marseille"
+        world.marshals["PrinceAugust"].location = "Marseille"
         ai._marshal_visited_locations = {"Blucher": set()}
 
         action = ai._find_homeland_defense(blucher, "Prussia", world)
         assert action is not None
         assert action["action"] == "move"
-        assert action["target"] == "Bavaria"
-        print("PASS: Blucher moves through enemy Bavaria for capital recapture")
+        assert action["target"] == "Saxony"  # Step toward Berlin via Saxony→Berlin
+        print("PASS: Blucher moves through enemy territory for capital recapture")
 
     def test_non_capital_blocks_enemy_regions(self):
         """Non-capital recapture should still block movement through enemy regions."""
         world = WorldState()
         ai = _make_ai()
-        _lose_region(world, "Rhine")  # Rhine is NOT a capital
+        _lose_region(world, "Rhineland")  # Rhine is NOT a capital
 
         blucher = world.marshals["Blucher"]
         blucher.location = "Lyon"
@@ -417,26 +422,29 @@ class TestPathfindingThroughEnemy:
         """Strong marshal should be willing to fight through for capital recapture."""
         world = WorldState()
         ai = _make_ai()
-        world.regions["Vienna"].is_capital = True
-        _lose_region(world, "Vienna")
+        # Berlin is Prussia's actual capital (is_capital=True). Lose it.
+        _lose_region(world, "Berlin")
 
+        # Put Blucher at Bavaria. Path: Bavaria→Saxony→Berlin (2 hops).
+        # Block Saxony with moderate enemy — strong marshal should fight through.
         blucher = world.marshals["Blucher"]
-        blucher.location = "Rhine"
+        blucher.location = "Bavaria"
         blucher.strength = 55000
 
-        # Moderate enemy in Bavaria
-        moderate_french = Marshal(name="ModFrench", location="Bavaria", strength=25000,
+        # Moderate enemy in Saxony (on the path to Berlin)
+        moderate_french = Marshal(name="ModFrench", location="Saxony", strength=25000,
                                   personality="cautious", nation="France")
         world.marshals["ModFrench"] = moderate_french
 
-        world.marshals["Gneisenau"].location = "Netherlands"
-        world.marshals["PrinceAugust"].location = "Netherlands"
+        # Move others far away so "someone closer" doesn't block
+        world.marshals["Gneisenau"].location = "Marseille"
+        world.marshals["PrinceAugust"].location = "Marseille"
         ai._marshal_visited_locations = {"Blucher": set()}
 
         action = ai._find_homeland_defense(blucher, "Prussia", world)
         assert action is not None
-        assert action["target"] == "Bavaria"
-        print(f"PASS: Strong Blucher fights through Bavaria for capital: {action}")
+        assert action["target"] == "Saxony"
+        print(f"PASS: Strong Blucher fights through Saxony for capital: {action}")
 
 
 # ══════════════════════════════════════════════════════════════════════
@@ -447,23 +455,22 @@ class TestRecaptureIntegration:
     """Integration tests for the full recapture system."""
 
     def test_southern_bypass_ai_responds(self):
-        """AI should respond when player captures Rhine+Bavaria+Vienna (Southern Bypass)."""
+        """AI should respond when player captures both Prussian regions."""
         world = WorldState()
         ai = _make_ai()
-        # Player captures 3 Prussian regions
-        _lose_region(world, "Rhine")
-        _lose_region(world, "Bavaria")
-        _lose_region(world, "Vienna")
+        # Player captures both Prussian regions (Rhineland + Berlin)
+        _lose_region(world, "Rhineland")
+        _lose_region(world, "Berlin")
 
         regions_lost = ai._count_lost_regions("Prussia", world)
-        assert regions_lost == 3
+        assert regions_lost == 2
 
         # At least one Prussian marshal should get a homeland defense action
         found_action = False
         for name in ["Blucher", "Gneisenau", "PrinceAugust"]:
             marshal = world.marshals[name]
-            # Put them in accessible locations
-            marshal.location = "Belgium"
+            # Put them at Hanover (adjacent to Berlin, 2 hops from Rhineland)
+            marshal.location = "Hanover"
             ai._marshal_visited_locations[name] = set()
 
         for name in ["Blucher", "Gneisenau", "PrinceAugust"]:
@@ -474,12 +481,12 @@ class TestRecaptureIntegration:
                 print(f"  {name} -> {action}")
 
         assert found_action
-        print(f"PASS: AI responds to Southern Bypass with {regions_lost} lost regions")
+        print(f"PASS: AI responds to homeland loss with {regions_lost} lost regions")
 
     def test_multi_turn_recapture_progression(self):
         """Marshal moves closer to lost region each turn (simulated)."""
         world = WorldState()
-        _lose_region(world, "Rhine")
+        _lose_region(world, "Rhineland")
 
         blucher = world.marshals["Blucher"]
         world.marshals["Gneisenau"].location = "Milan"
@@ -502,21 +509,21 @@ class TestRecaptureIntegration:
         action2 = ai2._find_homeland_defense(blucher, "Prussia", world)
         assert action2 is not None
         assert action2["action"] == "attack"
-        assert action2["target"] == "Rhine"
+        assert action2["target"] == "Rhineland"
         print("PASS: Multi-turn progression: Vienna→Bavaria→Rhine")
 
     def test_recapture_target_claimed_tracking(self):
         """Marshal assignments should prevent duplication."""
         world = WorldState()
         ai = _make_ai()
-        _lose_region(world, "Rhine")
+        _lose_region(world, "Rhineland")
 
         blucher = world.marshals["Blucher"]
         blucher.location = "Bavaria"
 
         action = ai._find_homeland_defense(blucher, "Prussia", world)
         assert action is not None
-        assert "Rhine" in ai._recapture_targets_claimed
+        assert "Rhineland" in ai._recapture_targets_claimed
         assert "Blucher" in ai._recapture_marshal_assignments
         print(f"PASS: Target tracking works: claimed={ai._recapture_targets_claimed}, assignments={ai._recapture_marshal_assignments}")
 
@@ -576,10 +583,11 @@ class TestStagnationFixes:
         ai = _make_ai()
 
         wellington = world.marshals["Wellington"]
-        wellington.location = "Geneva"
-        # Make Geneva non-adjacent to any friendly British territory
-        # Geneva adjacent: Marseille (France), Milan (Britain), Bordeaux (France)
-        # Milan is British, so that's friendly. We need to lose Milan.
+        wellington.location = "Tyrol"
+        # Make Tyrol non-adjacent to any friendly British territory
+        # Tyrol adjacent: Bavaria (Austria), Vienna (Austria), Milan (France)
+        # None are British, so no friendly territory adjacent.
+        # Lose Milan to remove any potential friendly presence.
         _lose_region(world, "Milan")
 
         world.ai_stagnation_turns["Wellington"] = 3
@@ -679,10 +687,11 @@ class TestRegressionSafety:
         """P1 retreat recovery should override homeland defense."""
         world = WorldState()
         ai = _make_ai()
-        _lose_region(world, "Rhine")
+        _lose_region(world, "Rhineland")
 
         blucher = world.marshals["Blucher"]
-        blucher.location = "Bavaria"
+        # Place at Berlin (Prussian territory) so P-1 "capture current" doesn't fire
+        blucher.location = "Berlin"
         blucher.retreat_recovery = 2
 
         action, priority = ai._evaluate_marshal(blucher, "Prussia", world)
@@ -693,7 +702,7 @@ class TestRegressionSafety:
         """P2 survival should override homeland defense."""
         world = WorldState()
         ai = _make_ai()
-        _lose_region(world, "Rhine")
+        _lose_region(world, "Rhineland")
 
         blucher = world.marshals["Blucher"]
         blucher.location = "Bavaria"
@@ -762,15 +771,13 @@ class TestHelperMethods:
         ai = _make_ai()
         assert ai._count_lost_regions("Prussia", world) == 0
 
-        _lose_region(world, "Rhine")
+        # Prussia controls: Rhineland, Berlin (2 regions total)
+        _lose_region(world, "Rhineland")
         assert ai._count_lost_regions("Prussia", world) == 1
 
-        _lose_region(world, "Bavaria")
+        _lose_region(world, "Berlin")
         assert ai._count_lost_regions("Prussia", world) == 2
-
-        _lose_region(world, "Vienna")
-        assert ai._count_lost_regions("Prussia", world) == 3
-        print("PASS: _count_lost_regions counts correctly: 0→1→2→3")
+        print("PASS: _count_lost_regions counts correctly: 0→1→2")
 
     def test_nation_has_threat_responder(self):
         """_nation_has_threat_responder tracks correctly."""
@@ -784,16 +791,15 @@ class TestHelperMethods:
         """When 2+ regions lost, only 1 marshal per nation stays on P3."""
         world = WorldState()
         ai = _make_ai()
-        _lose_region(world, "Rhine")
-        _lose_region(world, "Bavaria")
+        # Prussia controls Rhineland + Berlin. Lose both.
+        _lose_region(world, "Rhineland")
+        _lose_region(world, "Berlin")
 
         # Put enemy adjacent to all Prussian marshals (to trigger P3)
         ney = world.marshals["Ney"]
         ney.location = "Vienna"
 
-        # Move all Prussians to Vienna (same region as Ney → P0 fires instead)
-        # Actually need them adjacent, not same region
-        # Let's put Prussians in Milan (adjacent to Vienna where Ney is)
+        # Move all Prussians to Milan (adjacent to Vienna where Ney is)
         for name in ["Blucher", "Gneisenau", "PrinceAugust"]:
             world.marshals[name].location = "Milan"
 
