@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 3, 2026 (Post-1B Audit — War Gating Hardening)
+> **Last Updated:** March 3, 2026 (Session 2 — Diplomatic States + Acceptance Formula + Diplomat Class)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4280** (4280 passed, 3 skipped — verified Mar 3, Post-1B Audit) |
+| **Tests Passing** | **4389** (4389 passed, 3 skipped — verified Mar 3, Session 2) |
 
-| **Current Phase** | Phase 8: Diplomacy. **Session 1B COMPLETE** (5 nations, 12 marshals, diplomacy data). Next: Session 2. |
+| **Current Phase** | Phase 8: Diplomacy. **Session 2 COMPLETE** (diplomats, acceptance formula, DP economy, war score, trade income, movement restrictions, war declaration + cascade). Next: Session 3. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,10 +19,10 @@
 
 ## Next Steps
 
-1. **Phase 8: Diplomacy** — **Session 1B COMPLETE.** Unified 8-session plan:
+1. **Phase 8: Diplomacy** — **Session 2 COMPLETE.** Unified 8-session plan:
    - ~~Session 1A: Map Expansion (13→19 regions)~~ — **DONE** (19 regions, 5 nations, all adjacencies verified, FORMAT_VERSION 2)
    - ~~Session 1B: Nations + Marshals + Economy~~ — **DONE** (Austria/Saxony activated, PrinceAugust removed, 4 new marshals, diplomatic_states/nation_relations data, British naval income, is_at_war() gating on all enemy AI paths, 56 new gate tests)
-   - Session 2: Diplomatic States + Acceptance Formula + Diplomat class
+   - ~~Session 2: Diplomatic States + Acceptance Formula + Diplomat class~~ — **DONE** (5 diplomats, acceptance formula with 7 components + military supremacy/battlefield diplomacy, DP economy, war score with 4 components, trade income matching §1d, movement restrictions, war declaration + DEFENSIVE_ALLIANCE cascade, 111 new tests)
    - Session 3: Talleyrand Commands + Conversational Dialogue Foundation
    - Session 4: AI Proposals + Advisory Conversations
    - Session 5: Vassal System + Treaty Clauses
@@ -54,6 +54,17 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 3 — Session 2: Diplomatic States + Acceptance Formula + Diplomat Class
+
+Phase 8 Session 2 implementation. 2 new files, 3 modified files, 111 new tests.
+
+- **`backend/models/diplomat.py`:** DiplomaticRepresentative class. 5 starting diplomats (Talleyrand/Castlereagh/Hardenberg/Metternich/Einsiedel) with personality/skill/trust/biography. Factory function for initialization.
+- **`backend/game_logic/diplomacy.py`:** Core diplomatic engine (pure/deterministic). State transition validation (adjacency enforced, VASSAL requires OPEN_BORDERS+), war score calculation (territory ±40, battles ±30, decisive ±20, capital ±30, total ±100), acceptance formula (7 components + military supremacy/battlefield diplomacy + special bonuses), DP economy (generation formula, cost table with skill penalties), war declaration + DEFENSIVE_ALLIANCE cascade, downgrade transitions with auto-downgrade tracking, trade income, movement restriction validation, battle recording for war score.
+- **WorldState:** 10 new fields (diplomats, diplomatic_points, max_diplomatic_points, nation_authority, war_scores, battle_records, decisive_battles, armistice_cooldowns, previous_treaties, turns_below_threshold). All serialized with backward compat. Trade income + diplomatic processing wired into advance_turn.
+- **Executor:** Diplomatic movement restriction in _execute_move. Auto-war-declaration in _execute_attack. Battle recording for war score after combat.
+- **Gate criteria:** 13/13 met. Acceptance formula reproduces §6c (score < 30 → REJECT). Trade income matches §1d for all 5 nations. Cascade: attack Austria → Prussia enters WAR.
+- **4389 tests passing** (4278 + 111 new, 0 regressions).
 
 ### Mar 3 — Post-1B Audit: War Gating Hardening
 

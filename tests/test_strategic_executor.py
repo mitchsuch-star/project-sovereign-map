@@ -2387,6 +2387,8 @@ class TestBugFixes:
         gneisenau = world.get_marshal("Gneisenau")
         if gneisenau:
             gneisenau.location = "Berlin"
+        # Path goes through Austria — need WAR state for movement
+        world.diplomatic_states[world._make_diplo_key("France", "Austria")] = "WAR"
         # Ensure infantry
         assert getattr(grouchy, 'movement_range', 1) == 1
 
@@ -3139,6 +3141,9 @@ class TestRerouteThenMove:
         wellington.location = "Rhineland"
         blucher = world.get_marshal("Blucher")
         blucher.location = "Bavaria"
+
+        # Path goes through Austria/other nations — need WAR state for movement
+        world.diplomatic_states[world._make_diplo_key("France", "Austria")] = "WAR"
 
         # Clear other enemies from alternate routes
         for m in world.marshals.values():

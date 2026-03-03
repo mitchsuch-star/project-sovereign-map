@@ -20,7 +20,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 - **Phase 7b remaining:** V2b COMPLETE. Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Gates 5+6 PASSED. Jealousy (SPEC v3 DRAFTED — needs design gate approval). Coalition Trigger moved to Phase 8.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial Infrastructure deferred to Pre-EA.
-- **Phase 8: Diplomacy** — ALL 3 SPECS APPROVED + MASTER-AUDITED. Unified 8-session plan (1A/1B/2/3/4/5/6/7-Coalition/8-UI). Master audit: 4 CRITICAL + 4 MAJOR findings fixed. Fun score 81/100. **Sessions 1A+1B COMPLETE.** Next: Session 2 (Diplomatic States + Acceptance Formula + Diplomat class).
+- **Phase 8: Diplomacy** — ALL 3 SPECS APPROVED + MASTER-AUDITED. Unified 8-session plan (1A/1B/2/3/4/5/6/7-Coalition/8-UI). Master audit: 4 CRITICAL + 4 MAJOR findings fixed. Fun score 81/100. **Sessions 1A+1B+2 COMPLETE.** Next: Session 3 (Talleyrand Commands + Conversational Dialogue Foundation).
 
 ### Design Gates
 
@@ -78,6 +78,8 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | `backend/ai/validation.py` | VALID_ACTIONS (single source of truth for LLM) |
 | `backend/ai/prompt_builder.py` | Context-aware LLM prompts |
 | `backend/intel_report.py` | Berthier Intelligence Report (fog-filtered status view) |
+| `backend/models/diplomat.py` | DiplomaticRepresentative class, starting diplomats |
+| `backend/game_logic/diplomacy.py` | Diplomacy engine: transitions, war score, acceptance formula, DP, war declaration, cascade, trade income |
 | `backend/save_manager.py` | Save/load file I/O, autosave |
 
 ### Godot Core
@@ -317,7 +319,7 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | V2b defiance/vindication/authority spec | `docs/V2B_DEFIANCE_SPEC.md` |
 | Multi-marshal coordination spec (Phase 7) | `docs/MULTI_MARSHAL_SPEC.md` |
 | Tactical Triangle (Square + Auto-Bombardment + Overwatch) | `docs/TACTICAL_TRIANGLE_SPEC.md` |
-| Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md` |
+| Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md`, `diplomat.py`, `diplomacy.py` |
 | Coalition system (Phase 8) | `docs/COALITION_SPEC.md` |
 | Jealousy system (Phase 7b) | `docs/JEALOUSY_SPEC.md` |
 | Save format / serialization | `docs/SAVE_FORMAT_REFERENCE.md` |

@@ -341,6 +341,40 @@ class WorldState:
             "Prussia|Saxony": -10,
         }
 
+        # ============================================================
+        # DIPLOMACY - Session 2: Diplomats, DP, war scores, battle tracking
+        # ============================================================
+        from backend.models.diplomat import create_starting_diplomats
+        self.diplomats: Dict[str, Any] = create_starting_diplomats()
+
+        # Diplomatic Points (non-accumulating — reset each turn)
+        self.diplomatic_points: int = 4   # France starting (2 base + 1 skill + 1 authority)
+        self.max_diplomatic_points: int = 5
+
+        # AI Nation authority (0-100, affects DP generation)
+        self.nation_authority: Dict[str, int] = {
+            "Britain": 60, "Prussia": 60, "Austria": 60, "Saxony": 60,
+        }
+
+        # War scores per nation pair (recalculated each turn)
+        self.war_scores: Dict[str, int] = {}
+
+        # Battle records per war (for war score calculation)
+        # Format: {diplo_key: [{turn, winner, attacker, defender, casualties...}]}
+        self.battle_records: Dict[str, List] = {}
+
+        # Decisive battle tracking (max 2 per war)
+        self.decisive_battles: Dict[str, List] = {}
+
+        # Armistice cooldowns: 5-turn cooldown before same pair can re-armistice
+        self.armistice_cooldowns: Dict[str, int] = {}
+
+        # Previous treaties (for escalating harshness check)
+        self.previous_treaties: Dict[str, List] = {}
+
+        # Auto-downgrade tracking: turns below threshold per pair
+        self.turns_below_threshold: Dict[str, int] = {}
+
         # Calculate initial visibility so turn 1 starts with correct fog state
         # (French regions FULL, adjacent PARTIAL, rest UNKNOWN)
         self._intel_events_this_turn = []  # Init before first calculate_visibility
@@ -2628,6 +2662,18 @@ class WorldState:
             # ═══════ DIPLOMACY (Phase 8 data layer) ═══════
             "diplomatic_states": self.diplomatic_states.copy(),
             "nation_relations": self.nation_relations.copy(),
+
+            # ═══════ DIPLOMACY Session 2 ═══════
+            "diplomats": {k: v.to_dict() for k, v in self.diplomats.items()},
+            "diplomatic_points": int(self.diplomatic_points),
+            "max_diplomatic_points": int(self.max_diplomatic_points),
+            "nation_authority": {k: int(v) for k, v in self.nation_authority.items()},
+            "war_scores": {k: int(v) for k, v in self.war_scores.items()},
+            "battle_records": {k: [r.copy() for r in v] for k, v in self.battle_records.items()},
+            "decisive_battles": {k: [r.copy() for r in v] for k, v in self.decisive_battles.items()},
+            "armistice_cooldowns": {k: int(v) for k, v in self.armistice_cooldowns.items()},
+            "previous_treaties": {k: [t.copy() for t in v] for k, v in self.previous_treaties.items()},
+            "turns_below_threshold": {k: int(v) for k, v in self.turns_below_threshold.items()},
         }
 
     @classmethod
@@ -2762,6 +2808,23 @@ class WorldState:
         # ═══════ DIPLOMACY (Phase 8 data layer) ═══════
         world.diplomatic_states = data.get("diplomatic_states", {}).copy()
         world.nation_relations = {k: int(v) for k, v in data.get("nation_relations", {}).items()}
+
+        # ═══════ DIPLOMACY Session 2 ═══════
+        from backend.models.diplomat import DiplomaticRepresentative, create_starting_diplomats
+        diplomats_data = data.get("diplomats", {})
+        if diplomats_data:
+            world.diplomats = {k: DiplomaticRepresentative.from_dict(v) for k, v in diplomats_data.items()}
+        else:
+            world.diplomats = create_starting_diplomats()
+        world.diplomatic_points = int(data.get("diplomatic_points", 4))
+        world.max_diplomatic_points = int(data.get("max_diplomatic_points", 5))
+        world.nation_authority = {k: int(v) for k, v in data.get("nation_authority", {"Britain": 60, "Prussia": 60, "Austria": 60, "Saxony": 60}).items()}
+        world.war_scores = {k: int(v) for k, v in data.get("war_scores", {}).items()}
+        world.battle_records = {k: [r.copy() for r in v] for k, v in data.get("battle_records", {}).items()}
+        world.decisive_battles = {k: [r.copy() for r in v] for k, v in data.get("decisive_battles", {}).items()}
+        world.armistice_cooldowns = {k: int(v) for k, v in data.get("armistice_cooldowns", {}).items()}
+        world.previous_treaties = {k: [t.copy() for t in v] for k, v in data.get("previous_treaties", {}).items()}
+        world.turns_below_threshold = {k: int(v) for k, v in data.get("turns_below_threshold", {}).items()}
 
         return world
 
@@ -3361,11 +3424,27 @@ class WorldState:
                     })
 
         # ════════════════════════════════════════════════════════════
+        # DIPLOMACY PROCESSING (Phase 8 Session 2) — DP regen, war scores,
+        # armistice expiration, cooldowns, auto-downgrade
+        # Runs BEFORE income phase so trade income reflects current states
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic.diplomacy import process_diplomacy_turn, process_trade_income
+        diplo_events = process_diplomacy_turn(self)
+        if diplo_events:
+            tactical_events.extend(diplo_events)
+
+        # ════════════════════════════════════════════════════════════
         # INCOME PHASE (Phase 6.2.B) — ALL nations
         # Calculates income - upkeep + admin bonus, updates gold & bankruptcy
         # ════════════════════════════════════════════════════════════
         for nation in all_nations:
             self.process_income_phase(nation)
+
+        # ════════════════════════════════════════════════════════════
+        # TRADE INCOME (Phase 8 §7e) — bilateral trade from diplomatic states
+        # Applied AFTER region income phase
+        # ════════════════════════════════════════════════════════════
+        process_trade_income(self)
 
         # ════════════════════════════════════════════════════════════
         # MANPOWER REGEN (Phase 6) — after income, before action resets

@@ -59,6 +59,16 @@ A future save/load system should use this as the specification.
   "nation_actions": {"Britain": 4, "Prussia": 4},
   "diplomatic_states": {"Austria|Britain": "NON_AGGRESSION", "Austria|France": "PEACE", ...},
   "nation_relations": {"Austria|Britain": 0, "Austria|France": -20, ...},
+  "diplomats": {"France": {"name": "Talleyrand", "nation": "France", "personality": "schemer", "skill": 10, "trust": 55, "biography": "..."}, ...},
+  "diplomatic_points": 4,
+  "max_diplomatic_points": 5,
+  "nation_authority": {"Britain": 60, "Prussia": 60, "Austria": 60, "Saxony": 60},
+  "war_scores": {},
+  "battle_records": {},
+  "decisive_battles": {},
+  "armistice_cooldowns": {},
+  "previous_treaties": {},
+  "turns_below_threshold": {},
   "active_battles": {},
   "battle_history": [],
 
@@ -125,6 +135,16 @@ A future save/load system should use this as the specification.
 | `nation_actions` | dict | {} | Actions per nation |
 | `diplomatic_states` | dict | {} | Bilateral diplomatic state per nation-pair. Keys alphabetically sorted ("Austria\|Britain"). Values: WAR, PEACE, NON_AGGRESSION, OPEN_BORDERS, DEFENSIVE_ALLIANCE, ALLIANCE. Empty dict for legacy saves. |
 | `nation_relations` | dict | {} | Bilateral relation score per nation-pair (-100 to +100). Same key format as diplomatic_states. Empty dict for legacy saves. |
+| `diplomats` | dict | (5 starting) | DiplomaticRepresentative per nation. Keys: nation name. Values: {name, nation, personality, skill, trust, biography}. Empty dict → creates defaults. |
+| `diplomatic_points` | int | 4 | Player's diplomatic points (non-accumulating, reset each turn). |
+| `max_diplomatic_points` | int | 5 | Maximum DP per turn. |
+| `nation_authority` | dict | {each: 60} | AI nation authority levels (0-100). Affects DP generation. |
+| `war_scores` | dict | {} | War score per active war. Keys: "NationA\|NationB". Values: -100 to +100 (positive = first nation winning). |
+| `battle_records` | dict | {} | Battle records per war for war score. Keys: diplo_key. Values: list of {turn, winner, attacker, defender, casualties}. |
+| `decisive_battles` | dict | {} | Decisive battle records (max 2 per war). Keys: diplo_key. Values: list of {turn, winner, total_casualties, ratio}. |
+| `armistice_cooldowns` | dict | {} | Turns remaining before same pair can re-enter armistice. Keys: diplo_key. Values: int (decrements each turn). |
+| `previous_treaties` | dict | {} | Past treaty records per pair for escalating harshness. Empty for now. |
+| `turns_below_threshold` | dict | {} | Auto-downgrade tracking: consecutive turns relation is 30+ below state threshold. |
 | `active_battles` | dict | {} | Currently ongoing battles |
 | `battle_history` | list | [] | Completed battle records |
 | `battles_this_turn` | list | [] | Battles this turn (Phase 5.2) |

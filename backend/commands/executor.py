@@ -3767,6 +3767,21 @@ RETREAT RECOVERY (3 turns):
             enemy_marshal = world.get_enemy_at_location_for_nation(resolved_target, marshal.nation)
 
         # ════════════════════════════════════════════════════════════
+        # AUTO WAR DECLARATION (Phase 8 Session 2)
+        # If attacking a nation we're not at WAR with, auto-declare war
+        # before proceeding. Costs 1 DP, applies relation penalties.
+        # ════════════════════════════════════════════════════════════
+        if enemy_marshal and not world.is_at_war(marshal.nation, enemy_marshal.nation):
+            from backend.game_logic.diplomacy import declare_war
+            war_result = declare_war(world, marshal.nation, enemy_marshal.nation)
+            if war_result.get("success"):
+                # Deduct DP for player
+                if marshal.nation == world.player_nation:
+                    dp = getattr(world, 'diplomatic_points', 0)
+                    world.diplomatic_points = max(0, dp - war_result.get("dp_cost", 1))
+                # War declared — continue with attack
+
+        # ════════════════════════════════════════════════════════════
         # BOMBARDMENT: Region-name targeting selects strongest enemy (§4.4)
         # When artillery bombards a region name, pick the strongest enemy
         # marshal as the primary target. Other marshals take collateral.
@@ -3796,6 +3811,15 @@ RETREAT RECOVERY (3 turns):
                         "success": False,
                         "message": f"{resolved_target} is already controlled by {marshal.nation}"
                     }
+
+                # Auto-war-declaration for undefended territory (Phase 8 Session 2)
+                if target_region.controller and not world.is_at_war(marshal.nation, target_region.controller):
+                    from backend.game_logic.diplomacy import declare_war, can_enter_territory
+                    if not can_enter_territory(world, marshal.nation, target_region.controller):
+                        war_result = declare_war(world, marshal.nation, target_region.controller)
+                        if war_result.get("success") and marshal.nation == world.player_nation:
+                            dp = getattr(world, 'diplomatic_points', 0)
+                            world.diplomatic_points = max(0, dp - war_result.get("dp_cost", 1))
 
                 # Check for any defenders (marshals from nations other than attacker)
                 defenders = [m for m in world.marshals.values()
@@ -4563,6 +4587,22 @@ RETREAT RECOVERY (3 turns):
         # Record battle for cannon fire detection (hearing the guns)
         world.record_battle(target_location, marshal.name, enemy_marshal.name,
                             battle_result.get("outcome", "unknown"))
+
+        # Record battle for diplomatic war score (Phase 8 Session 2)
+        from backend.game_logic.diplomacy import record_battle as record_diplo_battle
+        outcome = battle_result.get("outcome", "")
+        atk_won = "attacker" in outcome and "victory" in outcome
+        def_won = "defender" in outcome and "victory" in outcome
+        diplo_winner = marshal.nation if atk_won else (enemy_marshal.nation if def_won else None)
+        if diplo_winner:
+            record_diplo_battle(
+                world,
+                attacker_nation=marshal.nation,
+                defender_nation=enemy_marshal.nation,
+                winner_nation=diplo_winner,
+                attacker_casualties=int(battle_result.get("attacker_casualties", 0)),
+                defender_casualties=int(battle_result.get("defender_casualties", 0)),
+            )
 
         # Check if enemy was destroyed
         enemy_destroyed = enemy_marshal.strength <= 0
@@ -6588,6 +6628,22 @@ RETREAT RECOVERY (3 turns):
                     "suggestion": f"Try: '{marshal.name}, attack {enemy_names[0]}'"
                 }
             # Fogged: marshal walks in blind — will discover enemies on arrival
+
+        # ════════════════════════════════════════════════════════════
+        # DIPLOMATIC MOVEMENT RESTRICTION (Phase 8 Session 2)
+        # Cannot enter territory of nations at PEACE/NON_AGGRESSION/ARMISTICE
+        # unless OPEN_BORDERS or above. WAR allows entry (combat handles it).
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic.diplomacy import can_enter_territory
+        dest_controller = target_region.controller if hasattr(target_region, 'controller') else None
+        if dest_controller and dest_controller != marshal.nation:
+            if not can_enter_territory(world, marshal.nation, dest_controller):
+                state = world.get_diplomatic_state(marshal.nation, dest_controller)
+                return {
+                    "success": False,
+                    "message": f"Cannot enter {target_name} — it is controlled by {dest_controller} "
+                               f"(diplomatic state: {state}). Open borders or higher required.",
+                }
 
         distance = world.get_distance(marshal.location, target_name)
         move_range = getattr(marshal, 'movement_range', 1)
