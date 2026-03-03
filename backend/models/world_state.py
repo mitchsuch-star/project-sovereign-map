@@ -854,17 +854,22 @@ class WorldState:
         """
         Get enemy marshals in a region relative to given nation.
 
+        Only returns marshals whose nation is AT WAR with the given nation.
+        This prevents neutral nations (e.g., Austria at PEACE with France)
+        from being treated as enemies for path blocking, threat detection, etc.
+
         Args:
             region: Region name to check
-            nation: The perspective nation (enemies are those with different nation)
+            nation: The perspective nation
 
         Returns:
-            List of enemy marshals with strength > 0
+            List of enemy marshals at war with nation, with strength > 0
         """
         return [m for m in self.marshals.values()
                 if m.location == region
                 and m.nation != nation
-                and m.strength > 0]
+                and m.strength > 0
+                and self.is_at_war(nation, m.nation)]
 
     def get_last_known_location(self, marshal_name: str) -> Optional[tuple]:
         """
@@ -1963,6 +1968,9 @@ class WorldState:
                 continue
             # Skip destroyed marshals
             if marshal.strength <= 0:
+                continue
+            # Skip nations not at war (Phase 8 diplomacy)
+            if not self.is_at_war(nation, marshal.nation):
                 continue
 
             distance = self.get_distance(from_region, marshal.location)

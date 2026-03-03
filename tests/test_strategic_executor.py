@@ -2035,10 +2035,11 @@ class TestFirstStepBlocked:
         gneisenau.location = "Normandy"  # Block Normandy route
         uxbridge = world.get_marshal("Uxbridge")
         uxbridge.location = "Netherlands"  # Block Netherlands route
-        # Block Waterloo route with another enemy
+        # Block Waterloo route with another enemy (Austria must be at war for blocking)
         schwarzenberg = world.get_marshal("ArchdukeCharles")
         if schwarzenberg:
             schwarzenberg.location = "Waterloo"
+        world.diplomatic_states[world._make_diplo_key("France", "Austria")] = "WAR"
 
         with _suppress_output():
             result = executor.execute({
@@ -2171,10 +2172,11 @@ class TestFirstStepBlocked:
         gneisenau.location = "Normandy"
         uxbridge = world.get_marshal("Uxbridge")
         uxbridge.location = "Netherlands"
-        # Block Waterloo route with another enemy
+        # Block Waterloo route with another enemy (Austria must be at war for blocking)
         archduke = world.get_marshal("ArchdukeCharles")
         if archduke:
             archduke.location = "Waterloo"
+        world.diplomatic_states[world._make_diplo_key("France", "Austria")] = "WAR"
 
         # Pin mood variance so MODERATE concern doesn't randomly downgrade to MILD
         # (apply_mood_variance has 15% chance of -1 level, which would skip the popup)

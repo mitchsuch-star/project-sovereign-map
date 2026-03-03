@@ -22,6 +22,7 @@ Consolidated reference for all game systems. Read when modifying related code.
 13. [Reinforcement System](#13-reinforcement-system)
 14. [Win/Loss Relationship Formula](#14-winloss-relationship-formula)
 15. [Phase 7 UI Integration (Session 66)](#15-phase-7-ui-integration-session-66)
+16. [Diplomacy Data Layer](#16-diplomacy-data-layer)
 
 ---
 
@@ -2581,7 +2582,7 @@ Dedicated field on Region (not a building slot). Every region type allowed.
 
 ### AI and Fog
 
-AI is omniscient on 19 regions (spec §9.1). Uses `world.marshals` and `get_enemies_in_region()` directly. Only display paths use fog-filtered helpers. Auto-charge ignores fog (spec §9.2 — reckless cavalry finds trouble). Revisit at 80+ regions for EA 1805.
+AI is omniscient on 19 regions (spec §9.1). Uses `world.marshals` and `get_enemies_in_region()` directly (war-gated — see §16). Only display paths use fog-filtered helpers. Auto-charge ignores fog (spec §9.2 — reckless cavalry finds trouble). Revisit at 80+ regions for EA 1805.
 
 ### Objection System + Fog
 
@@ -3050,3 +3051,61 @@ All values `int()`-wrapped for Godot safety.
 | `godot-client/project-sovereign/scenes/map.gd` | Relationship lines in marshal tooltip, coordination readiness in region tooltip |
 | `godot-client/project-sovereign/scripts/enemy_phase_dialog.gd` | Reinforcement messages in enemy phase battles |
 | `tests/test_session66_integration.py` | 32 tests across 7 classes |
+
+---
+
+## 16. Diplomacy Data Layer
+
+Phase 8 Sessions 1A+1B foundation. Full spec in `docs/DIPLOMACY_SPEC.md`.
+
+### Nations
+
+5 nations: France (player), Britain, Prussia, Austria, Saxony. 19 regions (expanded from 13).
+
+### Diplomatic States
+
+Stored as alphabetically-sorted nation-pair keys in `world.diplomatic_states`:
+- Key format: `"Austria|France"` (always sorted)
+- States: `WAR`, `PEACE`, `NON_AGGRESSION`, `OPEN_BORDERS`, `DEFENSIVE_ALLIANCE`, `ALLIANCE`
+- Default: `PEACE` (via `get_diplomatic_state()` fallback)
+
+Starting states (§1e): France at WAR with Britain + Prussia. Austria at PEACE (hostile). Saxony at PEACE (French-leaning). Austria-Britain NON_AGGRESSION.
+
+### War Gating (CRITICAL)
+
+**`is_at_war()` must gate ALL enemy detection.** Only `WAR` state makes nations enemies.
+
+- `get_enemies_in_region(region, nation)` — filters by `is_at_war()`. Used in 30+ locations (executor, strategic, objections, combat).
+- `_find_nearest_enemy_for_nation(region, nation)` — skips non-war nations. Used for reckless cavalry.
+- Enemy AI inline checks — all `m.nation != nation` patterns in `enemy_ai.py` include `world.is_at_war()`.
+
+**Pattern for enemy detection:**
+```python
+# CORRECT — war-gated
+enemies = [m for m in world.marshals.values()
+           if m.location == region
+           and m.nation != nation
+           and m.strength > 0
+           and world.is_at_war(nation, m.nation)]
+
+# WRONG — treats all non-same nations as enemies
+enemies = [m for m in world.marshals.values()
+           if m.location == region
+           and m.nation != nation
+           and m.strength > 0]
+```
+
+### Nation Relations
+
+`world.nation_relations` — numeric -100 to +100 sentiment per pair. Modified via `modify_nation_relation()`. Used by future diplomatic acceptance formula.
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `world_state.py` | `_make_diplo_key()`, `is_at_war()`, `get_diplomatic_state()`, `modify_nation_relation()`, `get_enemies_in_region()`, `_find_nearest_enemy_for_nation()` |
+| `enemy_ai.py` | All inline enemy checks use `world.is_at_war()` |
+| `region.py` | 19 regions, `NATION_CAPITALS`, `starting_controller` |
+| `marshal.py` | `create_enemy_marshals()` — 7 enemy marshals across 4 nations |
+| `tests/test_session_1b.py` | 56 gate tests for Session 1B |
+| `tests/test_diplomatic_war_gating.py` | 16 regression tests for war gating |

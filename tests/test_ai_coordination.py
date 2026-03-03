@@ -25,6 +25,8 @@ from backend.ai.enemy_ai import EnemyAI
 def _make_world(**overrides):
     """Create a WorldState with default game setup."""
     world = WorldState()
+    # Tests use "Coalition" as the AI nation — ensure it's at war with France
+    world.diplomatic_states["Coalition|France"] = "WAR"
     for k, v in overrides.items():
         setattr(world, k, v)
     return world

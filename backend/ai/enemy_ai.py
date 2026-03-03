@@ -1162,9 +1162,11 @@ class EnemyAI:
             if intent_type == "capture" and intent_target:
                 # Validate intent is still valid (region still undefended and enemy-controlled)
                 region = world.get_region(intent_target)
-                if region and region.controller != nation:
+                if (region and region.controller != nation
+                        and world.is_at_war(nation, region.controller)):
                     defenders = [m for m in world.marshals.values()
-                                if m.location == intent_target and m.nation != nation and m.strength > 0]
+                                if m.location == intent_target and m.nation != nation and m.strength > 0
+                                and world.is_at_war(nation, m.nation)]
                     if not defenders:
                         # Still undefended - execute the capture!
                         print(f"  [INTENT EXECUTED] {marshal.name} capturing {intent_target} (pending from unfortify)")
@@ -2896,7 +2898,8 @@ class EnemyAI:
                         if adj_name in visited:
                             continue
                         enemies_there = [m for m in world.marshals.values()
-                                        if m.location == adj_name and m.nation != nation and m.strength > 0]
+                                        if m.location == adj_name and m.nation != nation and m.strength > 0
+                                        and world.is_at_war(nation, m.nation)]
                         if enemies_there:
                             continue  # Still don't walk into enemy-occupied regions
                         dist = world.get_distance(adj_name, nearest.location)
@@ -2918,6 +2921,7 @@ class EnemyAI:
                         if adj_name not in visited
                         and not any(
                             m.location == adj_name and m.nation != nation and m.strength > 0
+                            and world.is_at_war(nation, m.nation)
                             for m in world.marshals.values()
                         )
                     ]
@@ -2936,7 +2940,8 @@ class EnemyAI:
                         weakest_strength = float('inf')
                         for adj_name in marshal_region.adjacent_regions:
                             for enemy in [m for m in world.marshals.values()
-                                         if m.location == adj_name and m.nation != nation and m.strength > 0]:
+                                         if m.location == adj_name and m.nation != nation and m.strength > 0
+                                         and world.is_at_war(nation, m.nation)]:
                                 if enemy.strength < weakest_strength:
                                     weakest_adjacent = enemy
                                     weakest_strength = enemy.strength
@@ -3052,9 +3057,10 @@ class EnemyAI:
         for adj_name in marshal_region.adjacent_regions:
             if adj_name in visited:
                 continue
-            # Don't walk into enemies
+            # Don't walk into war enemies
             enemies_there = [m for m in world.marshals.values()
-                            if m.location == adj_name and m.nation != nation and m.strength > 0]
+                            if m.location == adj_name and m.nation != nation and m.strength > 0
+                            and world.is_at_war(nation, m.nation)]
             if enemies_there:
                 continue
 
@@ -3293,6 +3299,7 @@ class EnemyAI:
                     m for m in world.marshals.values()
                     if m.nation != nation and m.strength > 0
                     and m.location in marshal_region.adjacent_regions
+                    and world.is_at_war(nation, m.nation)
                 ]
                 if adj_enemies:
                     ai_debug(f"  P7: Artillery {marshal.name} has adjacent targets — staying to bombard")
@@ -3329,7 +3336,9 @@ class EnemyAI:
             for adj_name in marshal_region.adjacent_regions:
                 if adj_name in visited:
                     continue
-                enemies_there = [m for m in world.get_marshals_in_region(adj_name) if m.nation != nation and m.strength > 0]
+                enemies_there = [m for m in world.get_marshals_in_region(adj_name)
+                                if m.nation != nation and m.strength > 0
+                                and world.is_at_war(nation, m.nation)]
                 if enemies_there:
                     continue
                 score = self._score_artillery_position(adj_name, marshal, nation, world)
@@ -3366,7 +3375,8 @@ class EnemyAI:
                     continue
                 # Cannot MOVE into enemy-occupied region - must ATTACK
                 marshals_there = world.get_marshals_in_region(adj_name)
-                enemies_there = [m for m in marshals_there if m.nation != nation and m.strength > 0]
+                enemies_there = [m for m in marshals_there if m.nation != nation and m.strength > 0
+                                and world.is_at_war(nation, m.nation)]
                 if enemies_there:
                     ai_debug(f"    P7: Skipping {adj_name} - enemies present (must attack)")
                     continue
@@ -3415,9 +3425,10 @@ class EnemyAI:
                     if not adj_region:
                         continue
 
-                    # Skip enemy-occupied regions
+                    # Skip enemy-occupied regions (war enemies only)
                     enemies_there = [m for m in world.get_marshals_in_region(adj_name)
-                                   if m.nation != nation and m.strength > 0]
+                                   if m.nation != nation and m.strength > 0
+                                   and world.is_at_war(nation, m.nation)]
                     if enemies_there:
                         continue
 
@@ -3467,9 +3478,10 @@ class EnemyAI:
                     for adj_name in marshal_region.adjacent_regions:
                         if adj_name in visited:
                             continue
-                        # Cannot MOVE into enemy-occupied region
+                        # Cannot MOVE into enemy-occupied region (war enemies only)
                         enemies_there = [m for m in world.get_marshals_in_region(adj_name)
-                                        if m.nation != nation and m.strength > 0]
+                                        if m.nation != nation and m.strength > 0
+                                        and world.is_at_war(nation, m.nation)]
                         if enemies_there:
                             continue
                         dist = world.get_distance(adj_name, nearest.location)
@@ -3501,7 +3513,8 @@ class EnemyAI:
                             if adj_name in visited:
                                 continue
                             enemies_there = [m for m in world.get_marshals_in_region(adj_name)
-                                            if m.nation != nation and m.strength > 0]
+                                            if m.nation != nation and m.strength > 0
+                                            and world.is_at_war(nation, m.nation)]
                             if enemies_there:
                                 continue
                             adj_region = world.get_region(adj_name)
@@ -3732,6 +3745,7 @@ class EnemyAI:
                 enemies_there = [
                     m for m in world.marshals.values()
                     if m.location == adj_name and m.nation != nation and m.strength > 0
+                    and world.is_at_war(nation, m.nation)
                 ]
                 if not enemies_there:
                     safe_regions.append(adj_name)
@@ -3749,6 +3763,7 @@ class EnemyAI:
             enemies_there = [
                 m for m in world.marshals.values()
                 if m.location == adj_name and m.nation != nation and m.strength > 0
+                and world.is_at_war(nation, m.nation)
             ]
             if not enemies_there:
                 return adj_name
@@ -3829,7 +3844,8 @@ class EnemyAI:
         # Check intermediate regions (not start, not destination)
         for region_name in path[1:-1]:
             blockers = [m for m in world.marshals.values()
-                       if m.location == region_name and m.nation != nation and m.strength > 0]
+                       if m.location == region_name and m.nation != nation and m.strength > 0
+                       and world.is_at_war(nation, m.nation)]
             if blockers:
                 ai_debug(f"    [PATH BLOCKED] {blockers[0].name} in {region_name} blocks path")
                 return (True, blockers[0].name)
@@ -3867,12 +3883,12 @@ class EnemyAI:
         if not target:
             return (False, "Invalid region")
 
-        # Count enemies that would be adjacent AFTER we move to target
+        # Count war enemies that would be adjacent AFTER we move to target
         adjacent_enemies = 0
         adjacent_enemy_strength = 0
         for adj_name in target.adjacent_regions:
             for m in world.marshals.values():
-                if m.location == adj_name and m.nation != nation and m.strength > 0:
+                if m.location == adj_name and m.nation != nation and m.strength > 0 and world.is_at_war(nation, m.nation):
                     adjacent_enemies += 1
                     adjacent_enemy_strength += m.strength
 
@@ -3996,6 +4012,7 @@ class EnemyAI:
         enemies_in_region = [
             m for m in world.marshals.values()
             if m.location == marshal.location and m.nation != nation and m.strength > 0
+            and world.is_at_war(nation, m.nation)
         ]
         if enemies_in_region:
             ai_debug(f"    P3.5: ENGAGED while fortified! Enemies in region: {[e.name for e in enemies_in_region]}")
@@ -4154,16 +4171,18 @@ class EnemyAI:
                 if not ally_region:
                     continue
 
-                # Check if ally is in combat (enemy in same region)
+                # Check if ally is in combat (war enemy in same region)
                 enemies_at_ally = [
                     m for m in world.marshals.values()
                     if m.location == ally.location and m.nation != nation and m.strength > 0
+                    and world.is_at_war(nation, m.nation)
                 ]
 
-                # Check if ally is threatened (enemy adjacent and ally outnumbered)
+                # Check if ally is threatened (war enemy adjacent and ally outnumbered)
                 enemies_adjacent_to_ally = [
                     m for m in world.marshals.values()
                     if m.location in ally_region.adjacent_regions and m.nation != nation and m.strength > 0
+                    and world.is_at_war(nation, m.nation)
                 ]
 
                 ally_needs_help = False
@@ -4763,7 +4782,7 @@ class EnemyAI:
                 is_frontline = True
                 score += 15
                 for m in world.marshals.values():
-                    if m.location == adj_name and m.nation != nation and m.strength > 0:
+                    if m.location == adj_name and m.nation != nation and m.strength > 0 and world.is_at_war(nation, m.nation):
                         if getattr(m, 'defense_bonus', 0) > 0:
                             score += 25
 
@@ -4858,8 +4877,10 @@ class EnemyAI:
         best_step = None
         best_step_dist = best_dist
         for adj_name in region.adjacent_regions:
-            # Skip enemy-occupied regions
-            enemies_there = [m for m in world.get_marshals_in_region(adj_name) if m.nation != nation and m.strength > 0]
+            # Skip war-enemy-occupied regions
+            enemies_there = [m for m in world.get_marshals_in_region(adj_name)
+                            if m.nation != nation and m.strength > 0
+                            and world.is_at_war(nation, m.nation)]
             if enemies_there:
                 continue
             d = world.get_distance(adj_name, best_dest)
@@ -4921,18 +4942,19 @@ class EnemyAI:
         if not marshal_region:
             return False
 
-        # Enemy in same region
+        # War enemy in same region
         enemies_here = [
             m for m in world.marshals.values()
             if m.location == marshal.location and m.nation != nation and m.strength > 0
+            and world.is_at_war(nation, m.nation)
         ]
         if enemies_here:
             return True
 
-        # Enemy in adjacent region
+        # War enemy in adjacent region
         for adj_name in marshal_region.adjacent_regions:
             for m in world.marshals.values():
-                if m.location == adj_name and m.nation != nation and m.strength > 0:
+                if m.location == adj_name and m.nation != nation and m.strength > 0 and world.is_at_war(nation, m.nation):
                     ai_debug(f"    P4.76: {marshal.name} maintaining co-location — threat at {adj_name}")
                     return True
 
@@ -4961,6 +4983,7 @@ class EnemyAI:
             enemies_there = [
                 m for m in world.marshals.values()
                 if m.location == adj_name and m.nation != nation and m.strength > 0
+                and world.is_at_war(nation, m.nation)
             ]
             if not enemies_there:
                 continue  # Skip undefended — P4.5 handles
@@ -5017,10 +5040,11 @@ class EnemyAI:
                 for move_adj in marshal_region.adjacent_regions:
                     if move_adj in visited:
                         continue
-                    # Don't move into enemies
+                    # Don't move into war enemies
                     enemies_blocking = [
                         m for m in world.marshals.values()
                         if m.location == move_adj and m.nation != nation and m.strength > 0
+                        and world.is_at_war(nation, m.nation)
                     ]
                     if enemies_blocking:
                         continue
@@ -5078,16 +5102,16 @@ class EnemyAI:
                 continue
 
             is_threatened = False
-            # Enemies in same region as ally
+            # War enemies in same region as ally
             for m in world.marshals.values():
-                if m.location == ally.location and m.nation != nation and m.strength > 0:
+                if m.location == ally.location and m.nation != nation and m.strength > 0 and world.is_at_war(nation, m.nation):
                     is_threatened = True
                     break
-            # Enemies adjacent to ally
+            # War enemies adjacent to ally
             if not is_threatened:
                 for adj_name in ally_region.adjacent_regions:
                     for m in world.marshals.values():
-                        if m.location == adj_name and m.nation != nation and m.strength > 0:
+                        if m.location == adj_name and m.nation != nation and m.strength > 0 and world.is_at_war(nation, m.nation):
                             is_threatened = True
                             break
                     if is_threatened:
@@ -5128,19 +5152,20 @@ class EnemyAI:
                 if not is_near_ally:
                     continue
 
-                # Don't move into enemy-occupied regions
+                # Don't move into war-enemy-occupied regions
                 enemies_there = [
                     m for m in world.marshals.values()
                     if m.location == adj_name and m.nation != nation and m.strength > 0
+                    and world.is_at_war(nation, m.nation)
                 ]
                 if enemies_there:
                     continue
 
                 score = 10  # Base score for being near ally
-                # Prefer positions also adjacent to enemy (enables own attacks)
+                # Prefer positions also adjacent to war enemy (enables own attacks)
                 for adj2 in adj_region.adjacent_regions:
                     for m in world.marshals.values():
-                        if m.location == adj2 and m.nation != nation and m.strength > 0:
+                        if m.location == adj2 and m.nation != nation and m.strength > 0 and world.is_at_war(nation, m.nation):
                             score += 5
                             break
                     if score > 10:

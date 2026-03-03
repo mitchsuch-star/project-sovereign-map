@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 2, 2026 (Session 1B — Nations + Marshals + Diplomacy Foundation)
+> **Last Updated:** March 3, 2026 (Post-1B Audit — War Gating Hardening)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4264** (4264 passed, 3 skipped — verified Mar 2, Session 1B) |
+| **Tests Passing** | **4280** (4280 passed, 3 skipped — verified Mar 3, Post-1B Audit) |
 
 | **Current Phase** | Phase 8: Diplomacy. **Session 1B COMPLETE** (5 nations, 12 marshals, diplomacy data). Next: Session 2. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -54,6 +54,17 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 3 — Post-1B Audit: War Gating Hardening
+
+Audit of Sessions 1A+1B before proceeding to Session 2. Found 1 HIGH + 3 MEDIUM issues:
+
+- **H1 (HIGH):** `get_enemies_in_region()` used `m.nation != nation` without `is_at_war()` check — neutral nations (Austria, Saxony) treated as enemies in 30+ call sites. **Fixed:** Added `self.is_at_war(nation, m.nation)` filter.
+- **M1:** Enemy AI ~25 inline `m.nation != nation` checks in enemy_ai.py lacked war gating. **Fixed:** All inline checks now include `world.is_at_war(nation, m.nation)`.
+- **M2:** `_find_nearest_enemy_for_nation()` (used for reckless cavalry) lacked war check. **Fixed:** Added war state filter.
+- **M3:** Test fixtures for `test_ai_coordination.py` (synthetic "Coalition" nation) and `test_strategic_executor.py` (Austria as path blocker) needed diplomatic state entries. **Fixed.**
+- **16 new regression tests** in `test_diplomatic_war_gating.py` covering: get_enemies_in_region war awareness, _find_nearest_enemy war filtering, AI neutral nation behavior (3 tests incl. 5-turn smoke), strategic path blocking.
+- **4280 tests passing** (up from 4264).
 
 ### Mar 2 — Master Pre-Implementation Audit (All 3 Diplomacy Specs)
 
