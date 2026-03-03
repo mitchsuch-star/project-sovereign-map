@@ -894,6 +894,14 @@ class CommandExecutor:
         if not world:
             return {"success": False, "message": "Error: No world state"}
 
+        # Phase 8 Session 3: Block end-turn if blocking diplomatic dialogue pending
+        if (world.pending_diplomatic_dialogue
+                and world.pending_diplomatic_dialogue.get("blocking")):
+            return {
+                "success": False,
+                "message": "You must respond to the diplomatic matter before ending the turn.",
+            }
+
         # V2a: Capture mild concerns BEFORE end_turn clears them
         # (advance_turn resets mild_concerns_this_turn at start)
         saved_mild_concerns = [c.copy() for c in world.mild_concerns_this_turn]
@@ -1372,6 +1380,20 @@ RETREAT RECOVERY (3 turns):
                 "capture_data": world.pending_capture_choice
             }
 
+        # ============================================================
+        # DIPLOMATIC DIALOGUE CHECK (Phase 8 Session 3)
+        # ============================================================
+        if world.pending_diplomatic_dialogue is not None:
+            dialogue = world.pending_diplomatic_dialogue
+            option_labels = [f"[{i+1}] {o['label']}" for i, o in enumerate(dialogue.get("options", []))]
+            options_text = "  ".join(option_labels)
+            return {
+                "success": False,
+                "message": f"Talleyrand awaits your response regarding {dialogue.get('target_nation', 'diplomacy')}. {options_text}",
+                "awaiting_diplomatic_response": True,
+                "diplomatic_dialogue": dialogue,
+            }
+
         command = parsed_command.get("command", {})
         action = command.get("action", "unknown")
 
@@ -1427,7 +1449,7 @@ RETREAT RECOVERY (3 turns):
         # retreat is FREE (costs 0 actions - strategic withdrawal)
         # debug is FREE (for testing abilities)
         # economy/treasury/finances are FREE information commands (Phase 6.2.G)
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square"]
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error"]
 
         # Check if action costs points
         action_costs_point = action not in free_actions
@@ -2183,6 +2205,13 @@ RETREAT RECOVERY (3 turns):
             result = self._execute_restrain(command, game_state)
         elif action == "cancel":
             result = self._execute_cancel(command, game_state)
+        # ════════════════════════════════════════════════════════════
+        # DIPLOMATIC COMMANDS (Phase 8 Session 3)
+        # ════════════════════════════════════════════════════════════
+        elif action in ("diplomatic_proposal", "diplomatic_mission",
+                        "diplomatic_feasibility", "diplomatic_advisory",
+                        "diplomatic_error"):
+            result = self._execute_diplomatic(command, game_state)
         # Route to appropriate handler
         elif command_type == "specific":
             result = self._execute_specific(command, game_state)
@@ -11021,6 +11050,535 @@ RETREAT RECOVERY (3 turns):
                 "message": "",
             }
 
+    # ════════════════════════════════════════════════════════════
+    # DIPLOMATIC COMMANDS (Phase 8 Session 3)
+    # ════════════════════════════════════════════════════════════
+
+    def _execute_diplomatic(self, command: Dict, game_state: Dict) -> Dict:
+        """Route diplomatic commands to the appropriate handler."""
+        world: WorldState = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "Error: No world state"}
+
+        diplomatic_data = command.get("diplomatic_data", {})
+        action = diplomatic_data.get("action", command.get("action", ""))
+
+        # Error case: military command to Talleyrand
+        if action == "diplomatic_error":
+            return {
+                "success": False,
+                "message": diplomatic_data.get("message",
+                    "Sire, I am a diplomat, not a general. Perhaps you meant to address one of your marshals?"),
+            }
+
+        # Check Talleyrand state — can't negotiate while in transit (EC-Q)
+        talleyrand_state = getattr(world, 'talleyrand_state', 'IDLE')
+        if talleyrand_state == "IN_TRANSIT" and action != "diplomatic_feasibility":
+            return {
+                "success": False,
+                "message": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns.",
+            }
+
+        # Unknown nation error
+        target_nation = diplomatic_data.get("target_nation")
+        if target_nation and target_nation not in ("Britain", "Prussia", "Austria", "Saxony"):
+            return {
+                "success": False,
+                "message": f"Sire, I am not aware of a nation called '{target_nation}'. "
+                           f"Our diplomatic landscape includes Britain, Prussia, Austria, and Saxony.",
+            }
+
+        if action == "diplomatic_proposal":
+            return self._execute_diplomatic_proposal(diplomatic_data, world)
+        elif action == "diplomatic_mission":
+            return self._execute_diplomatic_mission(diplomatic_data, world)
+        elif action == "diplomatic_feasibility":
+            return self._execute_diplomatic_feasibility(diplomatic_data, world)
+        elif action == "diplomatic_advisory":
+            return self._execute_diplomatic_advisory(diplomatic_data, world)
+        else:
+            return {"success": False, "message": f"Unknown diplomatic action: {action}"}
+
+    def _execute_diplomatic_proposal(self, diplomatic_data: Dict, world) -> Dict:
+        """Handle a diplomatic proposal command. Generates dialogue for player choice."""
+        from backend.game_logic.diplomatic_dialogue import (
+            classify_diplomatic_intent, generate_dialogue,
+        )
+        from backend.game_logic.diplomacy import get_dp_cost
+
+        target_nation = diplomatic_data.get("target_nation")
+
+        if not target_nation:
+            # No target — ask which nation
+            world.pending_diplomatic_dialogue = {
+                "type": "proposal_options",
+                "target_nation": "",
+                "talleyrand_text": "Sire, which nation shall I approach? Our diplomatic landscape includes Britain, Prussia, Austria, and Saxony.",
+                "options": [
+                    {"label": "Britain", "description": "Currently at war.", "action": "expand_options",
+                     "terms": {"target_nation": "Britain"}},
+                    {"label": "Prussia", "description": "Currently at war.", "action": "expand_options",
+                     "terms": {"target_nation": "Prussia"}},
+                    {"label": "Austria", "description": "At peace.", "action": "expand_options",
+                     "terms": {"target_nation": "Austria"}},
+                    {"label": "Saxony", "description": "Open borders.", "action": "expand_options",
+                     "terms": {"target_nation": "Saxony"}},
+                ],
+                "context": {},
+                "turn_created": int(world.current_turn),
+                "blocking": False,
+            }
+            return {
+                "success": True,
+                "message": world.pending_diplomatic_dialogue["talleyrand_text"],
+                "diplomatic_dialogue": world.pending_diplomatic_dialogue,
+            }
+
+        # Check proposal cooldown
+        cooldowns = getattr(world, 'player_proposal_cooldowns', {})
+        if target_nation in cooldowns and cooldowns[target_nation] > 0:
+            remaining = cooldowns[target_nation]
+            return {
+                "success": False,
+                "message": f"Talleyrand advises patience, Sire. {target_nation} rejected our last proposal only {remaining} turns ago.",
+            }
+        proposal_type = diplomatic_data.get("proposal_type")
+        if proposal_type:
+            type_key = f"{target_nation}_{proposal_type}"
+            if type_key in cooldowns and cooldowns[type_key] > 0:
+                remaining = cooldowns[type_key]
+                return {
+                    "success": False,
+                    "message": f"Talleyrand advises patience, Sire. {target_nation} rejected our {proposal_type} proposal only {remaining} turns ago.",
+                }
+
+        # Check DP
+        dp_action = f"propose_{proposal_type}" if proposal_type else "propose_peace"
+        talleyrand = world.diplomats.get("France")
+        skill = talleyrand.skill if talleyrand else 5
+        cost = get_dp_cost(dp_action, skill)
+        if world.diplomatic_points < cost:
+            return {
+                "success": False,
+                "message": f"Insufficient Diplomatic Points. This proposal costs {int(cost)} DP, but we only have {int(world.diplomatic_points)}.",
+            }
+
+        # Classify intent and generate dialogue
+        intent = classify_diplomatic_intent(diplomatic_data, world)
+        dialogue = generate_dialogue(intent, diplomatic_data, world)
+
+        # Set pending dialogue
+        world.pending_diplomatic_dialogue = dialogue
+
+        return {
+            "success": True,
+            "message": dialogue.get("talleyrand_text", ""),
+            "diplomatic_dialogue": dialogue,
+        }
+
+    def _execute_diplomatic_mission(self, diplomatic_data: Dict, world) -> Dict:
+        """Handle a diplomatic mission command."""
+        from backend.game_logic.diplomatic_dialogue import (
+            generate_mission_dialogue, MISSION_DP_COSTS,
+        )
+
+        target_nation = diplomatic_data.get("target_nation")
+        mission_type = diplomatic_data.get("mission_type")
+
+        if not target_nation or not mission_type:
+            dialogue = generate_mission_dialogue(diplomatic_data, world)
+            world.pending_diplomatic_dialogue = dialogue
+            return {
+                "success": True,
+                "message": dialogue.get("talleyrand_text", ""),
+                "diplomatic_dialogue": dialogue,
+            }
+
+        # Cancel mission
+        if mission_type == "CANCEL":
+            existing = getattr(world, 'active_diplomatic_mission', None)
+            if not existing:
+                return {"success": False, "message": "There is no active diplomatic mission to cancel."}
+            world.active_diplomatic_mission = None
+            world.talleyrand_state = "IDLE"
+            return {
+                "success": True,
+                "message": f"Talleyrand's mission to {existing.get('target', 'unknown')} has been cancelled.",
+            }
+
+        # Check DP
+        cost = MISSION_DP_COSTS.get(mission_type, 1)
+        if world.diplomatic_points < cost:
+            return {
+                "success": False,
+                "message": f"Insufficient DP for this mission. Costs {int(cost)} DP per turn.",
+            }
+
+        # Generate mission confirmation dialogue
+        dialogue = generate_mission_dialogue(diplomatic_data, world)
+        world.pending_diplomatic_dialogue = dialogue
+        return {
+            "success": True,
+            "message": dialogue.get("talleyrand_text", ""),
+            "diplomatic_dialogue": dialogue,
+        }
+
+    def _execute_diplomatic_feasibility(self, diplomatic_data: Dict, world) -> Dict:
+        """Handle a feasibility check (0 DP cost)."""
+        from backend.game_logic.diplomatic_dialogue import generate_feasibility_dialogue
+
+        dialogue = generate_feasibility_dialogue(diplomatic_data, world)
+        world.pending_diplomatic_dialogue = dialogue
+        return {
+            "success": True,
+            "message": dialogue.get("talleyrand_text", ""),
+            "diplomatic_dialogue": dialogue,
+        }
+
+    def _execute_diplomatic_advisory(self, diplomatic_data: Dict, world) -> Dict:
+        """Handle advisory questions. Stub for Session 4."""
+        target_nation = diplomatic_data.get("target_nation", "")
+        if target_nation:
+            state = world.get_diplomatic_state("France", target_nation)
+            relation = world.nation_relations.get(
+                world._make_diplo_key("France", target_nation), 0)
+            return {
+                "success": True,
+                "message": (
+                    f"Sire, our relations with {target_nation} are currently {state} "
+                    f"(relation: {int(relation)}). I shall prepare a more detailed assessment."
+                ),
+            }
+        return {
+            "success": True,
+            "message": "I shall prepare an assessment, Sire. What nation concerns you?",
+        }
+
+    def handle_diplomatic_dialogue_response(self, choice, game_state: Dict) -> Dict:
+        """Handle player's response to a diplomatic dialogue.
+
+        Args:
+            choice: int (1-based option index) or str (keyword match)
+            game_state: Current game state
+
+        Returns:
+            Result dict with success, message, and any new state.
+        """
+        world: WorldState = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "Error: No world state"}
+
+        if world.pending_diplomatic_dialogue is None:
+            return {"success": False, "message": "No diplomatic matter awaits your attention, Sire."}
+
+        dialogue = world.pending_diplomatic_dialogue
+        options = dialogue.get("options", [])
+
+        # Resolve choice to option
+        selected = None
+        if isinstance(choice, int):
+            if choice < 1 or choice > len(options):
+                return {"success": False, "message": f"Please choose an option (1-{len(options)}), Sire."}
+            selected = options[choice - 1]
+        elif isinstance(choice, str):
+            # Try parsing as int
+            try:
+                idx = int(choice)
+                if 1 <= idx <= len(options):
+                    selected = options[idx - 1]
+            except (ValueError, TypeError):
+                pass
+            # Keyword matching
+            if not selected:
+                choice_lower = choice.lower()
+                for opt in options:
+                    label_lower = opt.get("label", "").lower()
+                    if choice_lower in label_lower or label_lower in choice_lower:
+                        selected = opt
+                        break
+                # Try matching action keywords
+                if not selected:
+                    action_map = {
+                        "dismiss": "dismiss", "cancel": "dismiss", "never mind": "dismiss",
+                        "send": "send", "proceed": "execute_proposal", "yes": "execute_proposal",
+                        "reconsider": "reconsider", "no": "reconsider", "wait": "reconsider",
+                        "harsh": "modify_harsh", "generous": "modify_generous",
+                        "begin": "start_mission", "start": "start_mission",
+                    }
+                    for keyword, action_match in action_map.items():
+                        if keyword in choice_lower:
+                            for opt in options:
+                                if opt.get("action") == action_match:
+                                    selected = opt
+                                    break
+                            if selected:
+                                break
+        else:
+            return {"success": False, "message": f"Please choose an option (1-{len(options)}), Sire."}
+
+        if not selected:
+            return {"success": False, "message": f"Please choose an option (1-{len(options)}), Sire."}
+
+        # Process the selected action
+        action = selected.get("action", "dismiss")
+        return self._process_dialogue_choice(action, selected, dialogue, world)
+
+    def _process_dialogue_choice(self, action: str, selected: Dict,
+                                  dialogue: Dict, world) -> Dict:
+        """Process a player's dialogue choice."""
+        from backend.game_logic.diplomacy import get_dp_cost
+        from backend.game_logic.diplomatic_dialogue import (
+            MISSION_DP_COSTS, MISSION_DESCRIPTIONS, generate_dialogue,
+        )
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+
+        target_nation = dialogue.get("target_nation", "")
+
+        if action == "dismiss":
+            world.pending_diplomatic_dialogue = None
+            return {"success": True, "message": "Very well, Sire."}
+
+        elif action == "reconsider":
+            world.pending_diplomatic_dialogue = None
+            return {"success": True, "message": "Of course, Sire. Take your time."}
+
+        elif action in ("execute_proposal", "send"):
+            terms = selected.get("terms", {})
+            proposal_type = terms.get("proposal_type", "peace")
+
+            # Build proposal for acceptance formula
+            proposal = {
+                "type": proposal_type,
+                "proposer_nation": "France",
+                "target_nation": target_nation,
+                "sweeteners": terms.get("sweeteners", []),
+                "demands": terms.get("demands", []),
+                "clauses": terms.get("clauses", []),
+            }
+
+            # Deduct DP
+            talleyrand = world.diplomats.get("France")
+            skill = talleyrand.skill if talleyrand else 5
+            dp_action = f"propose_{proposal_type}"
+            cost = get_dp_cost(dp_action, skill)
+            if world.diplomatic_points < cost:
+                world.pending_diplomatic_dialogue = None
+                return {
+                    "success": False,
+                    "message": f"Insufficient Diplomatic Points. Need {int(cost)}, have {int(world.diplomatic_points)}.",
+                }
+            world.diplomatic_points -= cost
+
+            # Set Talleyrand in transit
+            # Pause mission if active
+            mission = getattr(world, 'active_diplomatic_mission', None)
+            if mission and not mission.get("paused"):
+                mission["paused"] = True
+
+            world.talleyrand_state = "IN_TRANSIT"
+            world.proposal_in_transit = {
+                "target": target_nation,
+                "proposal": proposal,
+                "turn_sent": int(world.current_turn),
+            }
+
+            # Log event
+            world.log_event({
+                "type": "diplomatic_proposal_sent",
+                "target": target_nation,
+                "proposal_type": proposal_type,
+            })
+
+            world.pending_diplomatic_dialogue = None
+            return {
+                "success": True,
+                "message": (
+                    f"Talleyrand departs for the {target_nation} court with your {proposal_type} proposal. "
+                    f"Expect a response by next turn. ({int(cost)} DP spent)"
+                ),
+            }
+
+        elif action == "modify_harsh":
+            # Generate new dialogue with harsher terms
+            terms = selected.get("terms", {})
+            proposal_type = terms.get("proposal_type", dialogue.get("_proposal_type", "peace"))
+            if not proposal_type:
+                proposal_type = "peace"
+
+            suggested = generate_suggested_terms(target_nation, proposal_type, world)
+            # Make harsher: increase demands
+            for d in suggested.get("demands", []):
+                d["value"] = int(d.get("value", 0) * 1.5)
+            # Remove sweeteners
+            suggested["sweeteners"] = []
+
+            new_dialogue = {
+                "type": "proposal_confirm",
+                "target_nation": target_nation,
+                "talleyrand_text": f"As you wish, Sire. I have drafted harsher terms for {target_nation}.",
+                "options": [
+                    {
+                        "label": "Send these terms",
+                        "description": "Dispatch with these demands.",
+                        "action": "execute_proposal",
+                        "terms": {**suggested, "proposal_type": proposal_type},
+                    },
+                    {
+                        "label": "Even harsher",
+                        "description": "Push harder.",
+                        "action": "modify_harsh",
+                        "terms": {**suggested, "proposal_type": proposal_type},
+                    },
+                    {"label": "Reconsider", "description": "Let me think.", "action": "reconsider"},
+                ],
+                "context": dialogue.get("context", {}),
+                "turn_created": int(world.current_turn),
+                "blocking": False,
+            }
+            world.pending_diplomatic_dialogue = new_dialogue
+            return {
+                "success": True,
+                "message": new_dialogue["talleyrand_text"],
+                "diplomatic_dialogue": new_dialogue,
+            }
+
+        elif action == "modify_generous":
+            terms = selected.get("terms", {})
+            proposal_type = terms.get("proposal_type", dialogue.get("_proposal_type", "peace"))
+            if not proposal_type:
+                proposal_type = "peace"
+
+            suggested = generate_suggested_terms(target_nation, proposal_type, world)
+            # Make more generous: increase sweeteners
+            for s in suggested.get("sweeteners", []):
+                s["value"] = int(s.get("value", 0) * 1.5)
+            # Reduce demands
+            for d in suggested.get("demands", []):
+                d["value"] = int(d.get("value", 0) * 0.5)
+
+            new_dialogue = {
+                "type": "proposal_confirm",
+                "target_nation": target_nation,
+                "talleyrand_text": f"A magnanimous approach, Sire. More generous terms for {target_nation}.",
+                "options": [
+                    {
+                        "label": "Send these terms",
+                        "description": "Dispatch with these generous terms.",
+                        "action": "execute_proposal",
+                        "terms": {**suggested, "proposal_type": proposal_type},
+                    },
+                    {
+                        "label": "Even more generous",
+                        "description": "Offer even more.",
+                        "action": "modify_generous",
+                        "terms": {**suggested, "proposal_type": proposal_type},
+                    },
+                    {"label": "Reconsider", "description": "Let me think.", "action": "reconsider"},
+                ],
+                "context": dialogue.get("context", {}),
+                "turn_created": int(world.current_turn),
+                "blocking": False,
+            }
+            world.pending_diplomatic_dialogue = new_dialogue
+            return {
+                "success": True,
+                "message": new_dialogue["talleyrand_text"],
+                "diplomatic_dialogue": new_dialogue,
+            }
+
+        elif action == "expand_options":
+            # Show available proposal types for a target nation
+            terms = selected.get("terms", {})
+            expand_target = terms.get("target_nation", target_nation)
+            if not expand_target:
+                world.pending_diplomatic_dialogue = None
+                return {"success": True, "message": "Very well, Sire."}
+
+            # Re-route as a vague proposal with the target set
+            diplomatic_data = {
+                "action": "diplomatic_proposal",
+                "diplomat": "Talleyrand",
+                "target_nation": expand_target,
+                "proposal_type": None,
+                "clauses": [],
+                "is_question": False,
+                "has_diplomatic_keywords": True,
+                "tone": "propose",
+                "raw_text": f"propose to {expand_target}",
+            }
+            world.pending_diplomatic_dialogue = None  # Clear current
+            from backend.game_logic.diplomatic_dialogue import (
+                classify_diplomatic_intent, generate_dialogue,
+            )
+            intent = classify_diplomatic_intent(diplomatic_data, world)
+            new_dialogue = generate_dialogue(intent, diplomatic_data, world)
+            world.pending_diplomatic_dialogue = new_dialogue
+            return {
+                "success": True,
+                "message": new_dialogue.get("talleyrand_text", ""),
+                "diplomatic_dialogue": new_dialogue,
+            }
+
+        elif action == "start_mission":
+            terms = selected.get("terms", {})
+            mission_type = terms.get("mission_type", "IMPROVE_RELATIONS")
+            mission_target = terms.get("target_nation", target_nation)
+
+            if not mission_target:
+                world.pending_diplomatic_dialogue = None
+                return {"success": False, "message": "Which nation, Sire?"}
+
+            # Check DP
+            cost = MISSION_DP_COSTS.get(mission_type, 1)
+            if world.diplomatic_points < cost:
+                world.pending_diplomatic_dialogue = None
+                return {
+                    "success": False,
+                    "message": f"Insufficient DP. Mission costs {int(cost)} DP per turn.",
+                }
+
+            # Cancel existing mission
+            world.active_diplomatic_mission = {
+                "type": mission_type,
+                "target": mission_target,
+                "turns_active": 0,
+                "paused": False,
+                "paused_turns": 0,
+            }
+            world.talleyrand_state = "ON_MISSION"
+
+            description = MISSION_DESCRIPTIONS.get(mission_type, "conduct diplomacy with")
+
+            world.log_event({
+                "type": "diplomatic_mission_started",
+                "mission_type": mission_type,
+                "target": mission_target,
+            })
+
+            world.pending_diplomatic_dialogue = None
+            return {
+                "success": True,
+                "message": f"Talleyrand begins efforts to {description} {mission_target}. ({int(cost)} DP/turn)",
+            }
+
+        elif action == "cancel_mission":
+            existing = getattr(world, 'active_diplomatic_mission', None)
+            if not existing:
+                world.pending_diplomatic_dialogue = None
+                return {"success": False, "message": "No active mission to cancel."}
+            old_target = existing.get("target", "unknown")
+            world.active_diplomatic_mission = None
+            world.talleyrand_state = "IDLE"
+            world.pending_diplomatic_dialogue = None
+            return {
+                "success": True,
+                "message": f"Talleyrand's mission to {old_target} has been cancelled.",
+            }
+
+        else:
+            world.pending_diplomatic_dialogue = None
+            return {"success": False, "message": f"Unknown dialogue action: {action}"}
+
     def handle_objection_response(self, choice: str, game_state: Dict) -> Dict:
         """
         Handle player's response to a marshal objection.
@@ -11434,7 +11992,7 @@ RETREAT RECOVERY (3 turns):
 
         # Check action economy
         # FIX: Added "retreat" - must match main execute() free_actions list
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square"]
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error"]
         action_costs_point = action not in free_actions
 
         if action_costs_point:

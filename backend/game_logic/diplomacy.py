@@ -983,8 +983,13 @@ def process_diplomacy_turn(world) -> List[Dict]:
     # ── 1. DP regeneration ──
     _process_dp_regen(world)
 
-    # TODO: 2. Mission DP deduction (Session 3)
-    # TODO: 3. Mission effects (Session 3)
+    # ── 2. Mission DP deduction (Session 3) ──
+    mission_events = _process_mission_dp(world)
+    events.extend(mission_events)
+
+    # ── 3. Mission effects (Session 3) ──
+    effect_events = _process_mission_effects(world)
+    events.extend(effect_events)
 
     # ── 4. War score recalculation ──
     recalculate_war_scores(world)
@@ -1092,6 +1097,180 @@ def _decrement_cooldowns(world) -> None:
     for key in expired:
         del cooldowns[key]
     world.armistice_cooldowns = cooldowns
+
+
+def _process_mission_dp(world) -> List[Dict]:
+    """Deduct DP for active diplomatic mission. Pause if insufficient."""
+    events = []
+    mission = getattr(world, 'active_diplomatic_mission', None)
+    if not mission or mission.get("completed"):
+        return events
+
+    from backend.game_logic.diplomatic_dialogue import MISSION_DP_COSTS
+    cost = MISSION_DP_COSTS.get(mission["type"], 1)
+
+    if mission.get("paused"):
+        # Already paused — check if we can resume
+        if world.diplomatic_points >= cost:
+            # Resume
+            mission["paused"] = False
+            mission["paused_turns"] = 0
+            world.diplomatic_points -= cost
+            mission["turns_active"] = mission.get("turns_active", 0) + 1
+        else:
+            # Still can't afford — increment paused turns
+            mission["paused_turns"] = mission.get("paused_turns", 0) + 1
+    elif world.diplomatic_points >= cost:
+        world.diplomatic_points -= cost
+        mission["turns_active"] = mission.get("turns_active", 0) + 1
+        mission["paused_turns"] = 0
+    else:
+        mission["paused"] = True
+        mission["paused_turns"] = mission.get("paused_turns", 0) + 1
+        events.append({
+            "type": "diplomatic_mission_paused",
+            "target": mission.get("target", ""),
+            "message": "Talleyrand's diplomatic efforts curtailed — insufficient resources.",
+        })
+
+    # Auto-cancel after 3+ consecutive paused turns
+    paused_turns = mission.get("paused_turns", 0)
+    if paused_turns >= 3:
+        target = mission.get("target", "unknown")
+        world.active_diplomatic_mission = None
+        if getattr(world, 'talleyrand_state', '') == "ON_MISSION":
+            world.talleyrand_state = "IDLE"
+        events.append({
+            "type": "diplomatic_mission_cancelled",
+            "target": target,
+            "message": f"Talleyrand's mission to {target} has collapsed after prolonged inactivity.",
+        })
+
+    return events
+
+
+def _process_mission_effects(world) -> List[Dict]:
+    """Apply per-turn mission effects."""
+    events = []
+    mission = getattr(world, 'active_diplomatic_mission', None)
+    if not mission or mission.get("paused") or mission.get("completed"):
+        return events
+
+    from backend.game_logic.diplomatic_dialogue import MISSION_EFFECTS
+    mission_type = mission.get("type", "")
+    effects = MISSION_EFFECTS.get(mission_type, {})
+    target = mission.get("target", "")
+
+    if not target:
+        return events
+
+    # Get Talleyrand skill for bonus calculation
+    diplomats = getattr(world, 'diplomats', {})
+    talleyrand = diplomats.get("France")  # Player's diplomat
+    skill = talleyrand.skill if talleyrand else 5
+
+    # Skill multiplier: 10 → 1.5x, 4-6 → 0.75x, else → 1.0x
+    if skill >= 10:
+        multiplier = 1.5
+    elif 4 <= skill <= 6:
+        multiplier = 0.75
+    else:
+        multiplier = 1.0
+
+    # Apply relation change
+    relation_change = effects.get("relation_change", 0)
+    if relation_change:
+        scaled = int(round(relation_change * multiplier))
+        world.modify_nation_relation("France", target, scaled)
+
+    # GATHER_INTEL: auto-complete after duration turns
+    duration = effects.get("duration")
+    if duration and mission.get("turns_active", 0) >= duration:
+        mission["completed"] = True
+        world.talleyrand_state = "IDLE"
+        events.append({
+            "type": "diplomatic_mission_completed",
+            "target": target,
+            "mission_type": mission_type,
+            "message": f"Talleyrand has completed his intelligence gathering on {target}.",
+        })
+        # Stub: no intel revealed yet (Session 4+)
+
+    # UNDERMINE_ALLIANCE: stub (requires intel system)
+    # COURT_NATION undermine chance: stub
+
+    return events
+
+
+def break_treaty(pair_key: str, breaker_nation: str, world) -> Dict:
+    """Break an active treaty. Costs 1 DP.
+
+    Returns:
+        {"success": bool, "message": str, "relation_changes": list}
+    """
+    active_treaties = getattr(world, 'active_treaties', {})
+    treaty = active_treaties.get(pair_key)
+    if not treaty:
+        return {"success": False, "message": "No active treaty to break."}
+
+    # Cost: 1 DP
+    if world.diplomatic_points < 1:
+        return {"success": False, "message": "Insufficient DP to break treaty (costs 1 DP)."}
+    world.diplomatic_points -= 1
+
+    treaty_type = treaty.get("type", "peace")
+    nations = treaty.get("nations", [])
+    other_nation = [n for n in nations if n != breaker_nation]
+    other = other_nation[0] if other_nation else ""
+
+    # Relation penalties
+    relation_changes = []
+
+    # Target: -30 (or -40 for alliance/defensive_alliance)
+    penalty = -40 if treaty_type in ("alliance", "defensive_alliance") else -30
+    world.modify_nation_relation(breaker_nation, other, penalty)
+    relation_changes.append({"nations": (breaker_nation, other), "delta": penalty})
+
+    # ALL nations: -10
+    all_nations = [world.player_nation] + list(getattr(world, 'enemy_nations', []))
+    for nation in all_nations:
+        if nation != breaker_nation and nation != other:
+            world.modify_nation_relation(breaker_nation, nation, -10)
+            relation_changes.append({"nations": (breaker_nation, nation), "delta": -10})
+
+    # Threat: +15 (or +25 for alliance)
+    # TODO: wire threat system in Session 7
+
+    # Post-break state: one level below broken treaty (E11)
+    post_break_map = {
+        "ALLIANCE": "NON_AGGRESSION",
+        "DEFENSIVE_ALLIANCE": "OPEN_BORDERS",
+        "NON_AGGRESSION": "PEACE",
+        "OPEN_BORDERS": "PEACE",
+        "PEACE": "PEACE",
+    }
+    current_state = world.diplomatic_states.get(pair_key, "PEACE")
+    new_state = post_break_map.get(current_state, "PEACE")
+    world.diplomatic_states[pair_key] = new_state
+
+    # Remove treaty
+    del active_treaties[pair_key]
+
+    # Log
+    world.log_event({
+        "type": "diplomatic_treaty_broken",
+        "breaker": breaker_nation,
+        "other": other,
+        "treaty_type": treaty_type,
+        "new_state": new_state,
+    })
+
+    return {
+        "success": True,
+        "message": f"{breaker_nation} has broken the {treaty_type} with {other}! Relations plummet.",
+        "new_state": new_state,
+        "relation_changes": relation_changes,
+    }
 
 
 def _process_nation_authority(world) -> None:

@@ -375,6 +375,28 @@ class WorldState:
         # Auto-downgrade tracking: turns below threshold per pair
         self.turns_below_threshold: Dict[str, int] = {}
 
+        # ============================================================
+        # DIPLOMACY - Session 3: Dialogue, missions, treaties, proposals
+        # ============================================================
+        # Pending diplomatic dialogue (like pending_objection but for Talleyrand)
+        self.pending_diplomatic_dialogue: Optional[Dict] = None
+
+        # Active diplomatic mission (Talleyrand's ongoing assignment)
+        self.active_diplomatic_mission: Optional[Dict] = None
+        # {"type": "IMPROVE_RELATIONS", "target": "Austria", "turns_active": 0, "paused": False}
+
+        # Talleyrand's current state
+        self.talleyrand_state: str = "IDLE"  # "IDLE" | "IN_TRANSIT" | "ON_MISSION"
+
+        # Proposal in transit (awaiting response next turn)
+        self.proposal_in_transit: Optional[Dict] = None
+
+        # Player proposal cooldowns: nation → turns remaining, type → turns remaining
+        self.player_proposal_cooldowns: Dict[str, int] = {}
+
+        # Active treaties keyed by diplo pair key
+        self.active_treaties: Dict[str, Dict] = {}
+
         # Calculate initial visibility so turn 1 starts with correct fog state
         # (French regions FULL, adjacent PARTIAL, rest UNKNOWN)
         self._intel_events_this_turn = []  # Init before first calculate_visibility
@@ -421,6 +443,10 @@ class WorldState:
     def get_diplomatic_state(self, nation_a: str, nation_b: str) -> str:
         """Get diplomatic state between two nations. Defaults to PEACE."""
         return self.diplomatic_states.get(self._make_diplo_key(nation_a, nation_b), "PEACE")
+
+    def get_known_nations(self) -> list:
+        """Return list of all non-player nation names."""
+        return [n for n in list(getattr(self, 'enemy_nations', [])) if n != self.player_nation]
 
     def modify_nation_relation(self, nation_a: str, nation_b: str, delta: int) -> int:
         """Modify relation between two nations. Clamped to [-100, 100]."""
@@ -2674,6 +2700,14 @@ class WorldState:
             "armistice_cooldowns": {k: int(v) for k, v in self.armistice_cooldowns.items()},
             "previous_treaties": {k: [t.copy() for t in v] for k, v in self.previous_treaties.items()},
             "turns_below_threshold": {k: int(v) for k, v in self.turns_below_threshold.items()},
+
+            # ═══════ DIPLOMACY Session 3 ═══════
+            "pending_diplomatic_dialogue": self.pending_diplomatic_dialogue,
+            "active_diplomatic_mission": self.active_diplomatic_mission,
+            "talleyrand_state": self.talleyrand_state,
+            "proposal_in_transit": self.proposal_in_transit,
+            "player_proposal_cooldowns": {k: int(v) for k, v in self.player_proposal_cooldowns.items()},
+            "active_treaties": {k: v.copy() if isinstance(v, dict) else v for k, v in self.active_treaties.items()},
         }
 
     @classmethod
@@ -2825,6 +2859,14 @@ class WorldState:
         world.armistice_cooldowns = {k: int(v) for k, v in data.get("armistice_cooldowns", {}).items()}
         world.previous_treaties = {k: [t.copy() for t in v] for k, v in data.get("previous_treaties", {}).items()}
         world.turns_below_threshold = {k: int(v) for k, v in data.get("turns_below_threshold", {}).items()}
+
+        # ═══════ DIPLOMACY Session 3 ═══════
+        world.pending_diplomatic_dialogue = data.get("pending_diplomatic_dialogue", None)
+        world.active_diplomatic_mission = data.get("active_diplomatic_mission", None)
+        world.talleyrand_state = data.get("talleyrand_state", "IDLE")
+        world.proposal_in_transit = data.get("proposal_in_transit", None)
+        world.player_proposal_cooldowns = {k: int(v) for k, v in data.get("player_proposal_cooldowns", {}).items()}
+        world.active_treaties = data.get("active_treaties", {}).copy()
 
         return world
 
@@ -3434,6 +3476,27 @@ class WorldState:
             tactical_events.extend(diplo_events)
 
         # ════════════════════════════════════════════════════════════
+        # DIPLOMATIC PROPOSAL RESOLUTION (Phase 8 Session 3)
+        # Check if a proposal in transit should resolve this turn
+        # ════════════════════════════════════════════════════════════
+        proposal_events = self._process_proposal_in_transit()
+        if proposal_events:
+            tactical_events.extend(proposal_events)
+
+        # ════════════════════════════════════════════════════════════
+        # DIPLOMATIC COOLDOWN DECREMENTS (Phase 8 Session 3)
+        # ════════════════════════════════════════════════════════════
+        self._decrement_proposal_cooldowns()
+
+        # ════════════════════════════════════════════════════════════
+        # NON-BLOCKING DIALOGUE AUTO-DISMISS (Phase 8 Session 3)
+        # ════════════════════════════════════════════════════════════
+        if (self.pending_diplomatic_dialogue
+                and not self.pending_diplomatic_dialogue.get("blocking")
+                and self.pending_diplomatic_dialogue.get("turn_created", 0) < self.current_turn):
+            self.pending_diplomatic_dialogue = None
+
+        # ════════════════════════════════════════════════════════════
         # INCOME PHASE (Phase 6.2.B) — ALL nations
         # Calculates income - upkeep + admin bonus, updates gold & bankruptcy
         # ════════════════════════════════════════════════════════════
@@ -3445,6 +3508,12 @@ class WorldState:
         # Applied AFTER region income phase
         # ════════════════════════════════════════════════════════════
         process_trade_income(self)
+
+        # ════════════════════════════════════════════════════════════
+        # TREATY PER-TURN CLAUSES (Phase 8 Session 3 §7f step 10)
+        # Applied after trade income
+        # ════════════════════════════════════════════════════════════
+        self._process_treaty_clauses()
 
         # ════════════════════════════════════════════════════════════
         # MANPOWER REGEN (Phase 6) — after income, before action resets
@@ -3516,6 +3585,224 @@ class WorldState:
                 self.victory = "victory"
             else:
                 self.victory = "defeat"
+
+    # ════════════════════════════════════════════════════════════
+    # DIPLOMATIC ADVANCE_TURN HELPERS (Phase 8 Session 3)
+    # ════════════════════════════════════════════════════════════
+
+    def _process_proposal_in_transit(self) -> list:
+        """Resolve proposals that were sent last turn."""
+        events = []
+        pit = getattr(self, 'proposal_in_transit', None)
+        if not pit:
+            return events
+
+        turn_sent = pit.get("turn_sent", 0)
+        if turn_sent >= self.current_turn:
+            return events  # Not yet — wait until next turn
+
+        from backend.game_logic.diplomacy import calculate_acceptance
+        target = pit.get("target", "")
+        proposal = pit.get("proposal", {})
+
+        # Run acceptance formula
+        result = calculate_acceptance(proposal, self)
+        outcome = result.get("outcome", "REJECT")
+        feedback = result.get("feedback", "")
+
+        if outcome == "ACCEPT":
+            # Apply treaty
+            treaty_event = self._ratify_treaty(target, proposal)
+            events.append({
+                "type": "diplomatic_proposal_returned",
+                "target": target,
+                "outcome": "ACCEPT",
+                "message": f"Talleyrand returns from {target} with excellent news: they have accepted our proposal! {feedback}",
+            })
+            if treaty_event:
+                events.append(treaty_event)
+        elif outcome == "COUNTER_OFFER":
+            # Stub: treat as REJECT with hint (Session 4 adds full counter-offer)
+            events.append({
+                "type": "diplomatic_proposal_returned",
+                "target": target,
+                "outcome": "REJECT",
+                "message": f"Talleyrand returns from {target}. They were not entirely opposed, but could not agree to our terms. {feedback}",
+            })
+            # Set cooldowns
+            self.player_proposal_cooldowns[target] = 3
+            ptype = proposal.get("type", "")
+            if ptype:
+                self.player_proposal_cooldowns[f"{target}_{ptype}"] = 5
+        else:
+            # REJECT
+            events.append({
+                "type": "diplomatic_proposal_returned",
+                "target": target,
+                "outcome": "REJECT",
+                "message": f"Talleyrand returns from {target} empty-handed. The proposal was rejected. {feedback}",
+            })
+            self.player_proposal_cooldowns[target] = 3
+            ptype = proposal.get("type", "")
+            if ptype:
+                self.player_proposal_cooldowns[f"{target}_{ptype}"] = 5
+
+        # Restore Talleyrand state
+        mission = getattr(self, 'active_diplomatic_mission', None)
+        if mission and not mission.get("completed"):
+            self.talleyrand_state = "ON_MISSION"
+            mission["paused"] = False
+        else:
+            self.talleyrand_state = "IDLE"
+
+        self.proposal_in_transit = None
+        return events
+
+    def _ratify_treaty(self, target_nation: str, proposal: Dict) -> Optional[Dict]:
+        """Ratify a treaty: apply state transition and one-time clauses."""
+        from backend.game_logic.diplomatic_templates import calculate_treaty_harshness
+
+        proposal_type = proposal.get("type", "peace")
+        diplo_key = self._make_diplo_key("France", target_nation)
+        current_state = self.get_diplomatic_state("France", target_nation)
+
+        # Map proposal type to target state
+        state_map = {
+            "peace": "PEACE",
+            "armistice": "ARMISTICE",
+            "armistice_losing": "ARMISTICE",
+            "armistice_winning": "ARMISTICE",
+            "alliance": "ALLIANCE",
+            "open_borders": "OPEN_BORDERS",
+            "non_aggression": "NON_AGGRESSION",
+            "vassalage": "VASSAL",
+        }
+        target_state = state_map.get(proposal_type, "PEACE")
+
+        # For upgrades, we may need to jump multiple steps
+        # For now, just set the state directly if the proposal was accepted
+        if current_state != target_state:
+            self.diplomatic_states[diplo_key] = target_state
+
+        # Build treaty record
+        treaty_clauses = []
+        # Process sweeteners as clauses
+        for s in proposal.get("sweeteners", []):
+            treaty_clauses.append({
+                "type": s["type"],
+                "from": "France",
+                "to": target_nation,
+                "amount": int(s.get("value", 0)),
+            })
+        # Process demands as clauses
+        for d in proposal.get("demands", []):
+            treaty_clauses.append({
+                "type": d["type"],
+                "from": target_nation,
+                "to": "France",
+                "amount": int(d.get("value", 0)),
+            })
+
+        # Handle open_borders clause
+        if "open_borders" in proposal.get("clauses", []):
+            if self.get_diplomatic_state("France", target_nation) not in ("OPEN_BORDERS", "NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE"):
+                # Upgrade to at least OPEN_BORDERS
+                from backend.game_logic.diplomacy import _UPGRADE_ORDER
+                curr_state = self.diplomatic_states.get(diplo_key, "PEACE")
+                if curr_state in _UPGRADE_ORDER:
+                    curr_idx = _UPGRADE_ORDER.index(curr_state)
+                    ob_idx = _UPGRADE_ORDER.index("OPEN_BORDERS")
+                    if ob_idx > curr_idx:
+                        self.diplomatic_states[diplo_key] = "OPEN_BORDERS"
+
+        treaty = {
+            "nations": ["France", target_nation],
+            "type": proposal_type,
+            "state_transition": f"{current_state}_TO_{target_state}",
+            "clauses": treaty_clauses,
+            "turn_signed": int(self.current_turn),
+            "harshness": calculate_treaty_harshness({"clauses": treaty_clauses}),
+        }
+
+        # Store treaty
+        self.active_treaties[diplo_key] = treaty
+
+        # Track for escalating harshness
+        if diplo_key not in self.previous_treaties:
+            self.previous_treaties[diplo_key] = []
+        self.previous_treaties[diplo_key].append(treaty.copy())
+
+        # Apply one-time clauses
+        for clause in treaty_clauses:
+            ctype = clause.get("type", "")
+            amount = clause.get("amount", 0)
+            from_nation = clause.get("from", "")
+            to_nation = clause.get("to", "")
+
+            if ctype == "gold_lump":
+                if from_nation in self.nation_gold:
+                    self.nation_gold[from_nation] -= int(amount)
+                if to_nation in self.nation_gold:
+                    self.nation_gold[to_nation] += int(amount)
+            elif ctype == "territory_cede":
+                regions = clause.get("regions", [])
+                for region_name in regions:
+                    if region_name in self.regions:
+                        self.regions[region_name].controller = to_nation
+                        self.regions[region_name].stability = 50
+
+        # Log event
+        self.log_event({
+            "type": "diplomatic_treaty_signed",
+            "nations": ["France", target_nation],
+            "treaty_type": proposal_type,
+            "state_transition": f"{current_state}_TO_{target_state}",
+        })
+
+        return {
+            "type": "diplomatic_treaty_signed",
+            "target": target_nation,
+            "treaty_type": proposal_type,
+            "message": f"Treaty signed: {current_state} → {target_state} with {target_nation}.",
+        }
+
+    def _process_treaty_clauses(self) -> None:
+        """Apply per-turn treaty clauses (gold/turn, manpower/turn)."""
+        for pair_key, treaty in self.active_treaties.items():
+            for clause in treaty.get("clauses", []):
+                ctype = clause.get("type", "")
+                amount = clause.get("amount", 0)
+                from_nation = clause.get("from", "")
+                to_nation = clause.get("to", "")
+
+                if ctype == "gold_per_turn":
+                    if from_nation in self.nation_gold:
+                        self.nation_gold[from_nation] -= int(amount)
+                    if to_nation in self.nation_gold:
+                        self.nation_gold[to_nation] += int(amount)
+                elif ctype == "manpower_per_turn":
+                    # Transfer between manpower pools
+                    from_pool = self.nation_manpower.get(from_nation, {})
+                    to_pool = self.nation_manpower.get(to_nation, {})
+                    transfer = min(int(amount), from_pool.get("infantry", 0))
+                    if from_nation in self.nation_manpower:
+                        self.nation_manpower[from_nation]["infantry"] = max(
+                            0, from_pool.get("infantry", 0) - transfer)
+                    if to_nation in self.nation_manpower:
+                        self.nation_manpower[to_nation]["infantry"] = (
+                            to_pool.get("infantry", 0) + transfer)
+
+    def _decrement_proposal_cooldowns(self) -> None:
+        """Decrement player proposal cooldowns by 1. Remove expired."""
+        cooldowns = getattr(self, 'player_proposal_cooldowns', {})
+        expired = []
+        for key in cooldowns:
+            cooldowns[key] -= 1
+            if cooldowns[key] <= 0:
+                expired.append(key)
+        for key in expired:
+            del cooldowns[key]
+        self.player_proposal_cooldowns = cooldowns
 
     def _update_co_location_tracking(self):
         """Update co-location turn counters for dedicated coordination bonus.

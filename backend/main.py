@@ -549,6 +549,18 @@ def execute_command(request: CommandRequest):
                 cleaned["notifications"] = world.notifications.get_pending()
             return cleaned
 
+        # ════════════════════════════════════════════════════════════
+        # CHECK FOR DIPLOMATIC DIALOGUE (Phase 8 Session 3)
+        # ════════════════════════════════════════════════════════════
+        if result.get("diplomatic_dialogue") or result.get("awaiting_diplomatic_response"):
+            print("[DIPLOMATIC] Diplomatic dialogue - Returning full result to frontend")
+            cleaned = {k: v for k, v in result.items() if k != "new_state"}
+            cleaned["action_summary"] = world.get_action_summary()
+            cleaned["game_state"] = world.get_filtered_game_state_summary()
+            if world.notifications.has_pending():
+                cleaned["notifications"] = world.notifications.get_pending()
+            return cleaned
+
         # Get action summary
         action_summary = world.get_action_summary()
 
@@ -853,6 +865,44 @@ def respond_to_objection(request: ObjectionResponse):
         return response
     except Exception as e:
         print(f"[ERROR] handling objection response: {e}")
+        import traceback
+        traceback.print_exc()
+        return {
+            "success": False,
+            "message": f"Error: {str(e)}",
+            "game_state": world.get_filtered_game_state_summary()
+        }
+
+
+@app.post("/respond_to_diplomatic_dialogue")
+async def respond_to_diplomatic_dialogue(request: dict):
+    """Respond to a diplomatic dialogue from Talleyrand (Phase 8 Session 3).
+
+    Args:
+        request: dict with 'choice' field (int 1-based index or str keyword)
+    """
+    try:
+        choice = request.get("choice")
+        result = executor.handle_diplomatic_dialogue_response(choice, game_state)
+
+        response = {
+            "success": result.get("success", False),
+            "message": result.get("message", "Response processed"),
+            "action_summary": world.get_action_summary(),
+            "game_state": world.get_filtered_game_state_summary(),
+        }
+
+        # Pass through diplomatic dialogue if a new one was generated
+        if result.get("diplomatic_dialogue"):
+            response["diplomatic_dialogue"] = result["diplomatic_dialogue"]
+
+        # Notifications
+        if world.notifications.has_pending():
+            response["notifications"] = world.notifications.get_pending()
+
+        return response
+    except Exception as e:
+        print(f"[ERROR] handling diplomatic dialogue response: {e}")
         import traceback
         traceback.print_exc()
         return {

@@ -447,6 +447,14 @@ class LLMClient:
         command_lower = command_text.lower()
         requested_type = None  # Phase 6: player-requested recruit type (for soft correction)
 
+        # ════════════════════════════════════════════════════════════
+        # DIPLOMAT ROUTING (Phase 8 Session 3): Check for Talleyrand
+        # BEFORE marshal parsing. Diplomatic commands route to
+        # _parse_diplomatic_command() and return early.
+        # ════════════════════════════════════════════════════════════
+        if "talleyrand" in command_lower:
+            return self._parse_diplomatic_command(command_text, command_lower)
+
         # Extract marshal name - find the FIRST mentioned marshal
         marshal = None  # Start with None for general orders
 
@@ -767,6 +775,113 @@ class LLMClient:
             target_stance=target_stance,
             raw_command=command_text,
             requested_type=requested_type,
+        )
+
+
+    def _parse_diplomatic_command(self, command_text: str, command_lower: str) -> ParseResult:
+        """Parse a diplomatic command addressed to Talleyrand.
+
+        Returns a ParseResult with diplomatic action type and metadata.
+        Called when "talleyrand" is detected in the command text.
+        """
+        from backend.game_logic.diplomatic_dialogue import (
+            extract_nation_from_command, extract_proposal_type,
+            extract_mission_type, FEASIBILITY_KEYWORDS,
+        )
+
+        # Extract components
+        target_nation = extract_nation_from_command(command_text)
+        proposal_type = extract_proposal_type(command_text)
+        mission_type = extract_mission_type(command_text)
+        is_question = command_text.strip().endswith("?") or any(
+            kw in command_lower for kw in ["what about", "who", "how is", "status of"])
+
+        # Check for military keywords directed at Talleyrand (error case)
+        military_keywords = ["attack", "charge", "move to", "march to", "defend",
+                             "fortify", "retreat", "scout", "recruit", "drill"]
+        has_military = any(kw in command_lower for kw in military_keywords)
+
+        # Check for diplomatic keywords
+        diplomatic_keywords = [
+            "propose", "offer", "suggest", "negotiate", "demand", "insist",
+            "require", "ultimatum", "improve relations", "court", "charm",
+            "gather intel", "undermine", "reassure", "cancel mission", "halt",
+            "what would it take", "can we", "is it possible", "how hard",
+            "feasibility", "realistic", "peace", "alliance", "treaty",
+            "armistice", "vassalage", "open borders", "non-aggression",
+            "deal with", "talk to", "speak to", "negotiate with",
+            "diplomacy", "diplomatic",
+        ]
+        has_diplomatic = any(kw in command_lower for kw in diplomatic_keywords)
+
+        # Also treat questions as diplomatic
+        has_diplomatic = has_diplomatic or is_question
+
+        # If military command to Talleyrand with no diplomatic keywords
+        if has_military and not has_diplomatic and not mission_type:
+            return ParseResult(
+                matched=True,
+                command_type="diplomatic",
+                marshals=[],
+                action="diplomatic_error",
+                target=None,
+                ambiguity=0,
+                strategic_score=0,
+                interpretation="Military command directed at diplomat",
+                confidence=1.0,
+                mode="mock",
+                key_source=self.key_source,
+                raw_command=command_text,
+                diplomatic_data={
+                    "action": "diplomatic_error",
+                    "diplomat": "Talleyrand",
+                    "error": "military_to_diplomat",
+                    "message": "Sire, I am a diplomat, not a general. Perhaps you meant to address one of your marshals?",
+                },
+            )
+
+        # Determine diplomatic action type
+        if mission_type:
+            action = "diplomatic_mission"
+        elif is_question and any(kw in command_lower for kw in FEASIBILITY_KEYWORDS):
+            action = "diplomatic_feasibility"
+        elif is_question:
+            action = "diplomatic_advisory"
+        elif any(kw in command_lower for kw in ["demand", "insist", "require", "ultimatum"]):
+            action = "diplomatic_proposal"
+            tone = "demand"
+        else:
+            action = "diplomatic_proposal"
+            tone = "propose"
+
+        # Build diplomatic data
+        diplomatic_data = {
+            "action": action,
+            "diplomat": "Talleyrand",
+            "target_nation": target_nation,
+            "proposal_type": proposal_type,
+            "clauses": [],  # TODO: Parse specific clauses from text
+            "mission_type": mission_type,
+            "is_question": is_question,
+            "has_diplomatic_keywords": has_diplomatic,
+            "tone": tone if action == "diplomatic_proposal" else "propose",
+            "raw_text": command_text,
+        }
+
+        return ParseResult(
+            matched=True,
+            command_type="diplomatic",
+            marshals=[],
+            action=action,
+            target=target_nation,
+            ambiguity=5,
+            strategic_score=0,
+            interpretation=f"Diplomatic command: {action} targeting {target_nation or 'unspecified'}",
+            confidence=0.95,
+            mode="mock",
+            key_source=self.key_source,
+            raw_command=command_text,
+            diplomatic_data=diplomatic_data,
         )
 
 

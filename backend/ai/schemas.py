@@ -73,6 +73,7 @@ class ParseResult:
     raw_command: str = ""
     type: Optional[str] = None  # Special type marker (e.g., "debug")
     requested_type: Optional[str] = None  # Phase 6: player-requested recruit type (for soft correction)
+    diplomatic_data: Optional[Dict[str, Any]] = None  # Phase 8 Session 3: Talleyrand command data
 
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -127,6 +128,10 @@ class ParseResult:
         # Phase 6: Requested recruit type (for soft correction)
         if self.requested_type:
             result["requested_type"] = self.requested_type
+
+        # Phase 8 Session 3: Diplomatic command data
+        if self.diplomatic_data:
+            result["diplomatic_data"] = self.diplomatic_data
 
         return result
 

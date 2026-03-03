@@ -69,6 +69,14 @@ A future save/load system should use this as the specification.
   "armistice_cooldowns": {},
   "previous_treaties": {},
   "turns_below_threshold": {},
+
+  "pending_diplomatic_dialogue": null,
+  "active_diplomatic_mission": null,
+  "talleyrand_state": "IDLE",
+  "proposal_in_transit": null,
+  "player_proposal_cooldowns": {},
+  "active_treaties": {},
+
   "active_battles": {},
   "battle_history": [],
 
@@ -145,6 +153,12 @@ A future save/load system should use this as the specification.
 | `armistice_cooldowns` | dict | {} | Turns remaining before same pair can re-enter armistice. Keys: diplo_key. Values: int (decrements each turn). |
 | `previous_treaties` | dict | {} | Past treaty records per pair for escalating harshness. Empty for now. |
 | `turns_below_threshold` | dict | {} | Auto-downgrade tracking: consecutive turns relation is 30+ below state threshold. |
+| `pending_diplomatic_dialogue` | dict/null | null | **Session 3.** Active Talleyrand dialogue awaiting player response. Contains type, target_nation, options, context. |
+| `active_diplomatic_mission` | dict/null | null | **Session 3.** Talleyrand's ongoing mission: {type, target, turns_active, paused, paused_turns}. |
+| `talleyrand_state` | str | "IDLE" | **Session 3.** "IDLE", "IN_TRANSIT", or "ON_MISSION". |
+| `proposal_in_transit` | dict/null | null | **Session 3.** Proposal sent and awaiting resolution next turn: {target, proposal, turn_sent}. |
+| `player_proposal_cooldowns` | dict | {} | **Session 3.** Cooldowns per nation (3 turns) and per type (5 turns) after rejection. |
+| `active_treaties` | dict | {} | **Session 3.** Active treaties keyed by diplo pair key. Contains nations, type, clauses, turn_signed, harshness. |
 | `active_battles` | dict | {} | Currently ongoing battles |
 | `battle_history` | list | [] | Completed battle records |
 | `battles_this_turn` | list | [] | Battles this turn (Phase 5.2) |

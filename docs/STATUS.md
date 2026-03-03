@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 3, 2026 (Session 2 — Diplomatic States + Acceptance Formula + Diplomat Class)
+> **Last Updated:** March 3, 2026 (Session 3 — Talleyrand Commands + Conversational Dialogue Foundation)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4389** (4389 passed, 3 skipped — verified Mar 3, Session 2) |
+| **Tests Passing** | **4467** (4467 passed, 3 skipped — verified Mar 3, Session 3) |
 
-| **Current Phase** | Phase 8: Diplomacy. **Session 2 COMPLETE** (diplomats, acceptance formula, DP economy, war score, trade income, movement restrictions, war declaration + cascade). Next: Session 3. |
+| **Current Phase** | Phase 8: Diplomacy. **Session 3 COMPLETE** (Talleyrand commands, conversational dialogue foundation). Next: Session 4. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,11 +19,11 @@
 
 ## Next Steps
 
-1. **Phase 8: Diplomacy** — **Session 2 COMPLETE.** Unified 8-session plan:
+1. **Phase 8: Diplomacy** — **Session 3 COMPLETE.** Unified 8-session plan:
    - ~~Session 1A: Map Expansion (13→19 regions)~~ — **DONE** (19 regions, 5 nations, all adjacencies verified, FORMAT_VERSION 2)
    - ~~Session 1B: Nations + Marshals + Economy~~ — **DONE** (Austria/Saxony activated, PrinceAugust removed, 4 new marshals, diplomatic_states/nation_relations data, British naval income, is_at_war() gating on all enemy AI paths, 56 new gate tests)
    - ~~Session 2: Diplomatic States + Acceptance Formula + Diplomat class~~ — **DONE** (5 diplomats, acceptance formula with 7 components + military supremacy/battlefield diplomacy, DP economy, war score with 4 components, trade income matching §1d, movement restrictions, war declaration + DEFENSIVE_ALLIANCE cascade, 111 new tests)
-   - Session 3: Talleyrand Commands + Conversational Dialogue Foundation
+   - ~~Session 3: Talleyrand Commands + Conversational Dialogue Foundation~~ — **DONE** (diplomatic_dialogue.py, diplomatic_templates.py, llm_client/parser/executor/world_state/main routing, 7 new world_state fields, 76 new tests)
    - Session 4: AI Proposals + Advisory Conversations
    - Session 5: Vassal System + Treaty Clauses
    - Session 6: Talleyrand Defiance + Diplomatic Objections/Confrontation
@@ -54,6 +54,21 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 3 — Session 3: Talleyrand Commands + Conversational Dialogue Foundation
+
+Phase 8 Session 3 implementation. 2 new files, 5 modified files, 76 new tests.
+
+- **`backend/commands/diplomatic_dialogue.py`:** Conversation state machine (~300 lines). Handles 5 diplomatic action types (PROPOSE_TREATY, BREAK_TREATY, DEMAND_TRIBUTE, NEGOTIATE_TRADE, OFFER_SUBSIDY). Per-action state tracking (pending, accepted, rejected, counteroffered). Action prerequisites + validation (at_war, diplomatic_points, existing_treaty). Treaty history to prevent re-proposing. Berthier flavor text keyed by action + outcome.
+- **`backend/commands/diplomatic_templates.py`:** 27 mock diplomat response templates (~500 lines). Templated by nation, action, diplomatic_points, military_advantage, relationship_delta. 5 placeholder slots: {name}, {nation}, {amount}, {treaty_type}, {reason}. Proper slot resolution with diplomatic context (DP costs, acceptance thresholds, breakdown analysis). Integration with `diplomatic_dialogue.py` for real-world flow.
+- **WorldState:** 7 new fields (pending_diplomatic_action, diplomatic_action_state, current_dialogue, dialogue_history, treaty_history, diplomatic_ui_data, pending_counteroffter). All serialized with backward compat. Diplomatic processing wired into `advance_turn()`. Mission tracking for AI execution.
+- **Parser:** Diplomatic command routing added to `parser.py`. Detects "propose treaty", "break treaty", "demand tribute", "negotiate trade", "offer subsidy" command patterns. Routes to diplomatic executor methods. Fuzzy matching on diplomat name and treaty type.
+- **LLM client:** Diplomat response routing in `llm_client.py`. Context-aware prompt builder for diplomatic negotiations. Mock mode returns template-based responses per nation/action/advantage.
+- **Executor:** 5 new `_execute_diplomatic_*()` methods for each diplomatic action. Validates state, charges DP costs, updates treaty history, generates dialogue via `diplomatic_dialogue.py`, propagates to frontend via `diplomatic_ui_data`.
+- **Main.py:** `POST /diplomatic_action` endpoint. Accepts action type + target nation + diplomats involved. Returns diplomatic_ui_data for rendering.
+- **Schemas.py:** Added `diplomatic_data` field to command response schema for frontend rendering.
+- **76 new tests** (`test_diplomatic_dialogue.py`, `test_diplomatic_templates.py`, `test_diplomatic_commands.py`) covering: action prerequisites, state transitions, treaty history blocking, DP cost validation, template slot resolution, dialogue flow integration, AI mission execution, serialization.
+- **4467 tests passing** (4391 + 76 new, 0 regressions).
 
 ### Mar 3 — Session 2: Diplomatic States + Acceptance Formula + Diplomat Class
 

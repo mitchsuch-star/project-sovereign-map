@@ -286,6 +286,51 @@ class CommandParser:
             # Step 1: Use LLM to parse natural language
             llm_result = self.llm.parse_command(command_text, game_state)
 
+            # ════════════════════════════════════════════════════════════
+            # DIPLOMATIC COMMAND ROUTING (Phase 8 Session 3)
+            # If the parser detected a Talleyrand command, route to
+            # diplomatic processing — skip marshal fuzzy matching entirely.
+            # ════════════════════════════════════════════════════════════
+            if llm_result.get("diplomatic_data"):
+                diplomatic_data = llm_result["diplomatic_data"]
+                action = diplomatic_data.get("action", "diplomatic_proposal")
+
+                # Error case: military command to Talleyrand
+                if action == "diplomatic_error":
+                    return {
+                        "success": True,
+                        "command": {
+                            "marshal": None,
+                            "action": action,
+                            "target": None,
+                            "confidence": 1.0,
+                            "type": "diplomatic",
+                            "raw_command": command_text,
+                            "diplomatic_data": diplomatic_data,
+                        },
+                        "raw_input": command_text,
+                        "strategic_score": 0,
+                        "ambiguity": 0,
+                        "mode": llm_result.get("mode", "mock"),
+                    }
+
+                return {
+                    "success": True,
+                    "command": {
+                        "marshal": None,
+                        "action": action,
+                        "target": diplomatic_data.get("target_nation"),
+                        "confidence": llm_result.get("confidence", 0.95),
+                        "type": "diplomatic",
+                        "raw_command": command_text,
+                        "diplomatic_data": diplomatic_data,
+                    },
+                    "raw_input": command_text,
+                    "strategic_score": 0,
+                    "ambiguity": 5,
+                    "mode": llm_result.get("mode", "mock"),
+                }
+
             # Step 2: Apply fuzzy matching to correct typos
             llm_result, fuzzy_error = self._apply_fuzzy_matching(llm_result, command_text)
 
