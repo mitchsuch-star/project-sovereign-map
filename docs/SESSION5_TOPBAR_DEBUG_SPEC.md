@@ -27,6 +27,16 @@
 - Format: Icon (ship with X) when active, hidden when inactive
 - Tooltip: "Continental System active — N members, blocking Xg British trade"
 
+### War Score Tracker
+- Position: Top bar, grouped with diplomacy indicators
+- Format: Per active war, e.g. `Prussia: +35` / `Austria: -12`
+- Only shown for nations France is currently at WAR with
+- Color: Positive (France winning)=green, 0=white, negative (France losing)=red
+- Sign convention: positive = France advantage, negative = France losing
+- Source: `world.war_scores` (sign-adjusted for France perspective via diplo_key ordering)
+- Updates each turn automatically (war scores recalculated in advance_turn)
+- Tooltip: "War score vs [Nation]. >50 enables harsh demands. <-30 risks vassal defection cascade."
+
 ---
 
 ## Debug Commands
@@ -48,6 +58,11 @@
 ### `debug continental_system [add|remove] [nation]`
 - Adds/removes a nation from Continental System
 - Example: `debug continental_system add France`
+
+### `debug war_score [nation] [value]`
+- Sets war score for France vs nation directly
+- Example: `debug war_score Prussia 85`
+- Handles sign convention (stores raw in diplo_key order)
 
 ---
 
