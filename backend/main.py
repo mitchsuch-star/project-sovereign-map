@@ -727,6 +727,13 @@ def execute_command(request: CommandRequest):
             response["show_independent_command_report"] = True
             response["independent_command_report"] = result.get("independent_command_report", [])
 
+        # AI diplomatic proposal delivered this turn (Phase 8 Session 4)
+        if result.get("ai_proposal"):
+            response["ai_proposal"] = result["ai_proposal"]
+            # Also set diplomatic_dialogue so Godot shows the popup
+            if world.pending_diplomatic_dialogue:
+                response["diplomatic_dialogue"] = world.pending_diplomatic_dialogue
+
         # Morning Dispatch — Berthier's turn-start briefing (Phase 6.5)
         if result.get("morning_dispatch"):
             response["morning_dispatch"] = result["morning_dispatch"]

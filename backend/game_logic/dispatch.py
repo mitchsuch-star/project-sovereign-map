@@ -62,6 +62,9 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None) -> Dic
         world, player_nation, dispatch["marshals"], dispatch["situation"]
     )
 
+    # Talleyrand's Report — proactive diplomatic suggestions (Session 4)
+    dispatch["talleyrand_report"] = _build_talleyrand_report(world, player_nation)
+
     # Store on world for dispatch re-read screen (Session A)
     world.last_morning_dispatch = dispatch
 
@@ -459,3 +462,160 @@ def _pick_berthier_note(
 
     # 6. Default
     return "Your orders, Sire."
+
+
+# ============================================================================
+# TALLEYRAND'S REPORT — Proactive diplomatic suggestions (Phase 8 Session 4)
+# ============================================================================
+
+# Trigger priority levels
+_PROACTIVE_TRIGGERS = [
+    # (trigger_type, priority, cooldown_turns, checker_function)
+    # Priority: lower = higher priority. Max 2 suggestions per dispatch.
+]
+
+
+def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
+    """
+    Build Talleyrand's Report section for the Morning Dispatch.
+
+    Returns list of 0-2 observation dicts with 'message' and 'trigger_type'.
+    Suppressed entirely if an incoming AI proposal is pending this turn.
+
+    Trigger conditions (from CONV_DESIGN §5d):
+    1. Acceptance crossed 50 threshold for a nation
+    2. War score shifted ≥15 in one turn
+    3. Enemy courting vassal (deferred — no vassal system yet)
+    4. Relation threshold crossed (-40, -20, 0, +20, +40)
+    5. No diplomatic action for 3+ turns
+    """
+    # Suppression: if incoming AI proposal pending, Talleyrand is busy
+    pending = getattr(world, 'pending_diplomatic_dialogue', None)
+    if pending and pending.get("type") == "incoming_proposal":
+        return []
+
+    observations = []
+    cooldowns = getattr(world, 'proactive_suggestion_cooldowns', {})
+
+    # Helper: check if a trigger is on cooldown
+    def _on_cooldown(nation: str, trigger_type: str) -> bool:
+        key = f"{nation}|{trigger_type}"
+        return cooldowns.get(key, 0) > 0
+
+    def _set_cooldown(nation: str, trigger_type: str, turns: int) -> None:
+        key = f"{nation}|{trigger_type}"
+        cooldowns[key] = turns
+
+    known_nations = ["Britain", "Prussia", "Austria", "Saxony"]
+
+    for nation in known_nations:
+        if len(observations) >= 2:
+            break
+
+        diplo_key = world._make_diplo_key(player_nation, nation)
+        state = world.get_diplomatic_state(player_nation, nation)
+        relation = world.nation_relations.get(diplo_key, 0)
+
+        # ── Trigger 1: Acceptance crossed 50 (diplomatic opportunity) ──
+        if not _on_cooldown(nation, "acceptance_crossed") and state != "WAR":
+            try:
+                from backend.game_logic.diplomacy import calculate_acceptance
+                hypothetical = {
+                    "type": "peace" if state == "WAR" else "non_aggression",
+                    "proposer_nation": player_nation,
+                    "target_nation": nation,
+                    "sweeteners": [],
+                    "demands": [],
+                    "clauses": [],
+                }
+                result = calculate_acceptance(hypothetical, world)
+                if result["score"] >= 50:
+                    observations.append({
+                        "message": (
+                            f"Sire, I believe {nation} may be ready to discuss "
+                            f"improved relations. The diplomatic winds favor us."
+                        ),
+                        "trigger_type": "acceptance_crossed",
+                        "target_nation": nation,
+                        "priority": 2,
+                        "elaborate_type": "proposal_options",
+                    })
+                    _set_cooldown(nation, "acceptance_crossed", 10)
+            except Exception:
+                pass  # Guard against formula errors
+
+        # ── Trigger 2: War score shift ≥15 ──
+        if not _on_cooldown(nation, "war_score_shift") and state == "WAR":
+            war_score = world.war_scores.get(diplo_key, 0)
+            # Sign adjust for France perspective
+            parts = diplo_key.split("|")
+            if len(parts) == 2 and parts[0] == nation:
+                war_score = -war_score
+            # Check magnitude (we can't track "shift" without history,
+            # so use absolute value as proxy — high war score = noteworthy)
+            if abs(war_score) >= 30:
+                direction = "in our favor" if war_score > 0 else "against us"
+                observations.append({
+                    "message": (
+                        f"The war with {nation} has shifted dramatically {direction}. "
+                        f"War score stands at {int(war_score)}. "
+                        f"This changes our diplomatic options significantly."
+                    ),
+                    "trigger_type": "war_score_shift",
+                    "target_nation": nation,
+                    "priority": 1,
+                    "elaborate_type": "advisory",
+                })
+                _set_cooldown(nation, "war_score_shift", 3)
+
+        # ── Trigger 4: Relation threshold crossed ──
+        thresholds = [-40, -20, 0, 20, 40]
+        if not _on_cooldown(nation, "relation_threshold"):
+            for threshold in thresholds:
+                # Check if relation is near a threshold (within 3 points)
+                if abs(relation - threshold) <= 3:
+                    direction_word = "improved" if relation >= 0 else "deteriorated"
+                    observations.append({
+                        "message": (
+                            f"Relations with {nation} have {direction_word} "
+                            f"to approximately {int(relation)}. "
+                            f"{'This opens new diplomatic possibilities.' if relation >= 0 else 'Caution may be warranted.'}"
+                        ),
+                        "trigger_type": "relation_threshold",
+                        "target_nation": nation,
+                        "priority": 3,
+                        "elaborate_type": "advisory" if relation < 0 else "proposal_options",
+                    })
+                    _set_cooldown(nation, "relation_threshold", 5)
+                    break  # One threshold per nation per dispatch
+
+    # ── Trigger 5: No diplomatic action for 3+ turns ──
+    if len(observations) < 2 and not _on_cooldown("global", "idle_nudge"):
+        mission = getattr(world, 'active_diplomatic_mission', None)
+        transit = getattr(world, 'proposal_in_transit', None)
+        talleyrand_state = getattr(world, 'talleyrand_state', 'IDLE')
+
+        if talleyrand_state == "IDLE" and not mission and not transit:
+            # Check if player has taken any diplomatic action recently
+            # (Simple heuristic: Talleyrand is idle = no recent action)
+            if world.current_turn >= 4:  # Don't nag on early turns
+                observations.append({
+                    "message": (
+                        "Sire, the diplomatic front has been quiet. Perhaps too quiet. "
+                        "Shall I assess our options?"
+                    ),
+                    "trigger_type": "idle_nudge",
+                    "target_nation": "",
+                    "priority": 5,
+                    "elaborate_type": "proposal_options",
+                })
+                _set_cooldown("global", "idle_nudge", 5)
+
+    # Sort by priority (lower = more important), cap at 2
+    observations.sort(key=lambda o: o.get("priority", 99))
+    result = observations[:2]
+
+    # Store cooldowns back
+    world.proactive_suggestion_cooldowns = cooldowns
+
+    return result

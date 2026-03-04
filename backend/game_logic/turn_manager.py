@@ -134,6 +134,16 @@ class TurnManager:
                 }
 
         # ════════════════════════════════════════════════════════════
+        # AI DIPLOMATIC PHASE (Phase 8 Session 4)
+        # Each AI nation evaluates whether to propose a treaty.
+        # Runs AFTER enemy military turns, BEFORE advance_turn.
+        # Max 1 proposal delivered per turn (rest queued).
+        # ════════════════════════════════════════════════════════════
+        ai_proposal_delivered = None
+        if game_state:
+            ai_proposal_delivered = self._process_ai_diplomatic_phase()
+
+        # ════════════════════════════════════════════════════════════
         # STRATEGIC ORDER EXECUTION (Phase 5.2-C)
         # Process player marshals' multi-turn strategic orders.
         # Must run BEFORE advance_turn() to see battles_this_turn
@@ -204,6 +214,10 @@ class TurnManager:
             result["show_independent_command_report"] = autonomous_report.get("show_independent_command_report", False)
             result["independent_command_report"] = autonomous_report.get("independent_command_report", [])
 
+        # Add AI diplomatic proposal if delivered (Phase 8 Session 4)
+        if ai_proposal_delivered:
+            result["ai_proposal"] = ai_proposal_delivered
+
         # Add strategic order reports (Phase 5.2-C)
         if strategic_reports:
             result["strategic_reports"] = strategic_reports
@@ -232,6 +246,42 @@ class TurnManager:
             result["events"] = all_events
 
         return result
+
+    def _process_ai_diplomatic_phase(self) -> Optional[Dict]:
+        """Process AI diplomatic proposals for all enemy nations.
+
+        Phase 8 Session 4: Each AI nation evaluates P1-P7 triggers.
+        Max 1 proposal delivered per turn. Extras queued.
+
+        Returns the delivered dialogue dict if one was created, None otherwise.
+        """
+        from backend.game_logic.ai_diplomacy import (
+            process_diplomatic_phase, deliver_ai_proposal,
+            try_deliver_queued_proposal,
+        )
+
+        world = self.world
+        enemy_nations = list(getattr(world, 'enemy_nations', []))
+        delivered = None
+
+        # Evaluate each AI nation
+        for nation in enemy_nations:
+            proposal = process_diplomatic_phase(nation, world)
+            if proposal and delivered is None:
+                # First proposal this turn — deliver immediately
+                delivered = deliver_ai_proposal(proposal, world)
+                debug_print(f"[DIPLOMACY] {nation} delivered proposal: {proposal.get('proposal_type')}")
+            elif proposal:
+                # Already delivered one — this was queued inside process_diplomatic_phase
+                debug_print(f"[DIPLOMACY] {nation} proposal queued: {proposal.get('proposal_type')}")
+
+        # If nothing delivered from fresh proposals, try the queue
+        if delivered is None:
+            delivered = try_deliver_queued_proposal(world)
+            if delivered:
+                debug_print("[DIPLOMACY] Delivered queued proposal")
+
+        return delivered
 
     def _process_autonomous_marshals(self, game_state: Dict) -> Dict:
         """

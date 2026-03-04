@@ -11236,22 +11236,26 @@ RETREAT RECOVERY (3 turns):
         }
 
     def _execute_diplomatic_advisory(self, diplomatic_data: Dict, world) -> Dict:
-        """Handle advisory questions. Stub for Session 4."""
+        """Handle advisory questions via diplomatic_advisory.py."""
+        from backend.game_logic.diplomatic_advisory import (
+            detect_advisory_type, generate_advisory,
+        )
+
         target_nation = diplomatic_data.get("target_nation", "")
-        if target_nation:
-            state = world.get_diplomatic_state("France", target_nation)
-            relation = world.nation_relations.get(
-                world._make_diplo_key("France", target_nation), 0)
-            return {
-                "success": True,
-                "message": (
-                    f"Sire, our relations with {target_nation} are currently {state} "
-                    f"(relation: {int(relation)}). I shall prepare a more detailed assessment."
-                ),
-            }
+        raw_text = diplomatic_data.get("raw_text", "")
+
+        # Detect advisory subtype from player's question text
+        advisory_type = detect_advisory_type(raw_text) if raw_text else None
+        if not advisory_type:
+            # Default based on whether a nation was mentioned
+            advisory_type = "assess_nation" if target_nation else "compare_threats"
+
+        dialogue = generate_advisory(target_nation or None, advisory_type, world)
+        world.pending_diplomatic_dialogue = dialogue
         return {
             "success": True,
-            "message": "I shall prepare an assessment, Sire. What nation concerns you?",
+            "message": dialogue.get("talleyrand_text", ""),
+            "diplomatic_dialogue": dialogue,
         }
 
     def handle_diplomatic_dialogue_response(self, choice, game_state: Dict) -> Dict:
@@ -11304,6 +11308,10 @@ RETREAT RECOVERY (3 turns):
                         "reconsider": "reconsider", "no": "reconsider", "wait": "reconsider",
                         "harsh": "modify_harsh", "generous": "modify_generous",
                         "begin": "start_mission", "start": "start_mission",
+                        "accept": "accept_ai_proposal", "agree": "accept_ai_proposal",
+                        "reject": "reject_ai_proposal", "decline": "reject_ai_proposal",
+                        "counter": "counter_ai_proposal",
+                        "thank": "dismiss",
                     }
                     for keyword, action_match in action_map.items():
                         if keyword in choice_lower:
@@ -11575,9 +11583,232 @@ RETREAT RECOVERY (3 turns):
                 "message": f"Talleyrand's mission to {old_target} has been cancelled.",
             }
 
+        elif action == "accept_ai_proposal":
+            return self._handle_accept_ai_proposal(dialogue, world)
+
+        elif action == "reject_ai_proposal":
+            return self._handle_reject_ai_proposal(dialogue, world)
+
+        elif action == "counter_ai_proposal":
+            return self._handle_counter_ai_proposal(dialogue, world)
+
+        elif action == "expand_to_proposal":
+            # Advisory drill-down: re-route to proposal dialogue for a nation
+            expand_target = dialogue.get("target_nation", target_nation)
+            if not expand_target:
+                world.pending_diplomatic_dialogue = None
+                return {"success": True, "message": "Very well, Sire."}
+            diplomatic_data = {
+                "action": "diplomatic_proposal",
+                "diplomat": "Talleyrand",
+                "target_nation": expand_target,
+                "proposal_type": None,
+                "clauses": [],
+                "is_question": False,
+                "has_diplomatic_keywords": True,
+                "tone": "propose",
+                "raw_text": f"propose to {expand_target}",
+            }
+            world.pending_diplomatic_dialogue = None
+            from backend.game_logic.diplomatic_dialogue import (
+                classify_diplomatic_intent, generate_dialogue as gen_dlg,
+            )
+            intent = classify_diplomatic_intent(diplomatic_data, world)
+            new_dialogue = gen_dlg(intent, diplomatic_data, world)
+            world.pending_diplomatic_dialogue = new_dialogue
+            return {
+                "success": True,
+                "message": new_dialogue.get("talleyrand_text", ""),
+                "diplomatic_dialogue": new_dialogue,
+            }
+
         else:
             world.pending_diplomatic_dialogue = None
             return {"success": False, "message": f"Unknown dialogue action: {action}"}
+
+    # ═══════════════════════════════════════════════════════════
+    # AI PROPOSAL RESPONSE HANDLERS (Phase 8 Session 4)
+    # ═══════════════════════════════════════════════════════════
+
+    def _handle_accept_ai_proposal(self, dialogue: Dict, world) -> Dict:
+        """Accept an incoming AI proposal. Executes the state transition."""
+        from backend.game_logic.ai_diplomacy import check_alliance_conflict
+
+        context = dialogue.get("context", {})
+        terms = context.get("proposal", {})
+        source_nation = context.get("source_nation", "")
+
+        if not source_nation or not terms:
+            world.pending_diplomatic_dialogue = None
+            return {"success": False, "message": "Error: proposal data missing."}
+
+        proposal_type = terms.get("type", "")
+
+        # Check for conflicting alliances (§5b.3) — only on first pass
+        # (conflict_alert dialogue type means we already showed the warning)
+        if (dialogue.get("type") != "conflict_alert"
+                and proposal_type in ("alliance", "defensive_alliance",
+                                       "ALLIANCE", "DEFENSIVE_ALLIANCE")):
+            new_state = proposal_type.upper()
+            conflict = check_alliance_conflict(source_nation, new_state, world)
+            if conflict:
+                world.pending_diplomatic_dialogue = {
+                    "type": "conflict_alert",
+                    "target_nation": source_nation,
+                    "talleyrand_text": conflict["message"],
+                    "options": [
+                        {
+                            "label": "Accept anyway",
+                            "description": f"Accept alliance despite conflict with {', '.join(conflict['conflicting_nations'])}.",
+                            "action": "accept_ai_proposal",
+                        },
+                        {
+                            "label": "Reject",
+                            "description": "Decline the proposal.",
+                            "action": "reject_ai_proposal",
+                        },
+                    ],
+                    "context": context,
+                    "turn_created": int(world.current_turn),
+                    "blocking": True,
+                }
+                return {
+                    "success": True,
+                    "message": conflict["message"],
+                    "diplomatic_dialogue": world.pending_diplomatic_dialogue,
+                }
+
+        # Execute acceptance via WorldState._ratify_treaty (same path as player proposals)
+        treaty_event = world._ratify_treaty(source_nation, terms)
+        world.pending_diplomatic_dialogue = None
+
+        treaty_msg = ""
+        if treaty_event:
+            treaty_msg = treaty_event.get("message", "")
+
+        world.log_event({
+            "type": "ai_proposal_accepted",
+            "source": source_nation,
+            "proposal_type": proposal_type,
+        })
+
+        return {
+            "success": True,
+            "message": (
+                f"You have accepted {source_nation}'s proposal. {treaty_msg}"
+            ),
+        }
+
+    def _handle_reject_ai_proposal(self, dialogue: Dict, world) -> Dict:
+        """Reject an incoming AI proposal. Applies cooldowns."""
+        from backend.game_logic.ai_diplomacy import apply_rejection_cooldowns
+
+        context = dialogue.get("context", {})
+        terms = context.get("proposal", {})
+        source_nation = context.get("source_nation", "")
+        proposal_type = terms.get("type", "unknown")
+
+        if source_nation:
+            apply_rejection_cooldowns(source_nation, proposal_type, world)
+
+        world.pending_diplomatic_dialogue = None
+
+        world.log_event({
+            "type": "ai_proposal_rejected",
+            "source": source_nation,
+            "proposal_type": proposal_type,
+        })
+
+        return {
+            "success": True,
+            "message": (
+                f"You have rejected {source_nation}'s proposal. "
+                f"Talleyrand will convey your decision."
+            ),
+        }
+
+    def _handle_counter_ai_proposal(self, dialogue: Dict, world) -> Dict:
+        """Generate and present a counter-offer to an AI proposal."""
+        from backend.game_logic.ai_diplomacy import (
+            generate_counter_offer, apply_rejection_cooldowns,
+            _format_proposal_summary,
+        )
+
+        context = dialogue.get("context", {})
+        terms = context.get("proposal", {})
+        source_nation = context.get("source_nation", "")
+
+        if not source_nation or not terms:
+            world.pending_diplomatic_dialogue = None
+            return {"success": False, "message": "Error: proposal data missing."}
+
+        # Counter-offer costs 1 DP
+        if world.diplomatic_points < 1:
+            return {
+                "success": False,
+                "message": "Insufficient Diplomatic Points. Counter-offers cost 1 DP.",
+            }
+        world.diplomatic_points -= 1
+
+        # Run M3 counter-offer algorithm
+        counter_terms = generate_counter_offer(terms, world)
+
+        if counter_terms is None:
+            # Counter failed (score < 30) — auto-reject
+            apply_rejection_cooldowns(source_nation, terms.get("type", "unknown"), world)
+            world.pending_diplomatic_dialogue = None
+
+            world.log_event({
+                "type": "ai_proposal_counter_failed",
+                "source": source_nation,
+            })
+
+            return {
+                "success": True,
+                "message": (
+                    f"Talleyrand attempted to negotiate, but {source_nation} "
+                    f"found our counter-terms unacceptable. The proposal is rejected. "
+                    f"(1 DP spent)"
+                ),
+            }
+
+        # Counter succeeded — present the modified terms
+        counter_summary = _format_proposal_summary(counter_terms)
+
+        world.pending_diplomatic_dialogue = {
+            "type": "counter_offer",
+            "target_nation": source_nation,
+            "talleyrand_text": (
+                f"Sire, I have negotiated modified terms with {source_nation}:\n\n"
+                f"  {counter_summary}\n\n"
+                f"Shall we proceed with these terms?"
+            ),
+            "options": [
+                {
+                    "label": "Accept these terms",
+                    "description": "Accept the counter-offer.",
+                    "action": "accept_ai_proposal",
+                },
+                {
+                    "label": "Reject",
+                    "description": "Decline entirely.",
+                    "action": "reject_ai_proposal",
+                },
+            ],
+            "context": {
+                "proposal": counter_terms,
+                "source_nation": source_nation,
+                "is_counter": True,
+            },
+            "turn_created": int(world.current_turn),
+            "blocking": True,
+        }
+
+        return {
+            "success": True,
+            "message": world.pending_diplomatic_dialogue["talleyrand_text"],
+            "diplomatic_dialogue": world.pending_diplomatic_dialogue,
+        }
 
     def handle_objection_response(self, choice: str, game_state: Dict) -> Dict:
         """

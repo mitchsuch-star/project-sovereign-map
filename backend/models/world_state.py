@@ -397,6 +397,21 @@ class WorldState:
         # Active treaties keyed by diplo pair key
         self.active_treaties: Dict[str, Dict] = {}
 
+        # ============================================================
+        # DIPLOMACY - Session 4: AI proposals, advisory, proactive suggestions
+        # ============================================================
+        # AI proposal cooldowns: "nation|type" → turns remaining
+        self.ai_proposal_cooldowns: Dict[str, int] = {}
+
+        # AI proposal queue: pending proposals waiting for delivery
+        self.diplomatic_queue: List[Dict] = []
+
+        # Proactive suggestion cooldowns: "nation|trigger_type" → turns remaining
+        self.proactive_suggestion_cooldowns: Dict[str, int] = {}
+
+        # Stalemate tracking for AI P2 trigger: nation → consecutive stalemate turns
+        self.ai_stalemate_counters: Dict[str, int] = {}
+
         # Calculate initial visibility so turn 1 starts with correct fog state
         # (French regions FULL, adjacent PARTIAL, rest UNKNOWN)
         self._intel_events_this_turn = []  # Init before first calculate_visibility
@@ -2708,6 +2723,12 @@ class WorldState:
             "proposal_in_transit": self.proposal_in_transit,
             "player_proposal_cooldowns": {k: int(v) for k, v in self.player_proposal_cooldowns.items()},
             "active_treaties": {k: v.copy() if isinstance(v, dict) else v for k, v in self.active_treaties.items()},
+
+            # ═══════ DIPLOMACY Session 4 ═══════
+            "ai_proposal_cooldowns": {k: int(v) for k, v in self.ai_proposal_cooldowns.items()},
+            "diplomatic_queue": [q.copy() for q in self.diplomatic_queue],
+            "proactive_suggestion_cooldowns": {k: int(v) for k, v in self.proactive_suggestion_cooldowns.items()},
+            "ai_stalemate_counters": {k: int(v) for k, v in self.ai_stalemate_counters.items()},
         }
 
     @classmethod
@@ -2867,6 +2888,12 @@ class WorldState:
         world.proposal_in_transit = data.get("proposal_in_transit", None)
         world.player_proposal_cooldowns = {k: int(v) for k, v in data.get("player_proposal_cooldowns", {}).items()}
         world.active_treaties = data.get("active_treaties", {}).copy()
+
+        # ═══════ DIPLOMACY Session 4 ═══════
+        world.ai_proposal_cooldowns = {k: int(v) for k, v in data.get("ai_proposal_cooldowns", {}).items()}
+        world.diplomatic_queue = [q.copy() for q in data.get("diplomatic_queue", [])]
+        world.proactive_suggestion_cooldowns = {k: int(v) for k, v in data.get("proactive_suggestion_cooldowns", {}).items()}
+        world.ai_stalemate_counters = {k: int(v) for k, v in data.get("ai_stalemate_counters", {}).items()}
 
         return world
 
@@ -3489,6 +3516,12 @@ class WorldState:
         self._decrement_proposal_cooldowns()
 
         # ════════════════════════════════════════════════════════════
+        # AI DIPLOMATIC COOLDOWN DECREMENTS (Phase 8 Session 4)
+        # ════════════════════════════════════════════════════════════
+        self._decrement_ai_proposal_cooldowns()
+        self._decrement_proactive_cooldowns()
+
+        # ════════════════════════════════════════════════════════════
         # NON-BLOCKING DIALOGUE AUTO-DISMISS (Phase 8 Session 3)
         # ════════════════════════════════════════════════════════════
         if (self.pending_diplomatic_dialogue
@@ -3803,6 +3836,37 @@ class WorldState:
         for key in expired:
             del cooldowns[key]
         self.player_proposal_cooldowns = cooldowns
+
+    def _decrement_ai_proposal_cooldowns(self) -> None:
+        """Decrement AI proposal cooldowns by 1. Remove expired. Also expire queued proposals."""
+        cooldowns = getattr(self, 'ai_proposal_cooldowns', {})
+        expired = []
+        for key in cooldowns:
+            cooldowns[key] -= 1
+            if cooldowns[key] <= 0:
+                expired.append(key)
+        for key in expired:
+            del cooldowns[key]
+        self.ai_proposal_cooldowns = cooldowns
+
+        # Expire queued proposals older than 3 turns
+        queue = getattr(self, 'diplomatic_queue', [])
+        self.diplomatic_queue = [
+            q for q in queue
+            if self.current_turn - q.get("turn_generated", 0) < 3
+        ]
+
+    def _decrement_proactive_cooldowns(self) -> None:
+        """Decrement proactive suggestion cooldowns by 1. Remove expired."""
+        cooldowns = getattr(self, 'proactive_suggestion_cooldowns', {})
+        expired = []
+        for key in cooldowns:
+            cooldowns[key] -= 1
+            if cooldowns[key] <= 0:
+                expired.append(key)
+        for key in expired:
+            del cooldowns[key]
+        self.proactive_suggestion_cooldowns = cooldowns
 
     def _update_co_location_tracking(self):
         """Update co-location turn counters for dedicated coordination bonus.

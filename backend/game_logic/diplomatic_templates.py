@@ -284,6 +284,351 @@ DIPLOMATIC_TEMPLATES = {
     # T10: MISSION START — handled by generate_mission_dialogue()
     # Template not needed here; logic is in diplomatic_dialogue.py
     # ══════════════════════════════════════════════
+
+    # ══════════════════════════════════════════════════════════════
+    # SESSION 4 TEMPLATES (T11-T20)
+    # ══════════════════════════════════════════════════════════════
+
+    # ══════════════════════════════════════════════
+    # T11: INCOMING PROPOSAL — AI proposes to player
+    # Used by deliver_ai_proposal() in ai_diplomacy.py
+    # ══════════════════════════════════════════════
+    ("incoming_proposal", "WAR", "any"): {
+        "text": (
+            "Sire, {target_diplomat} has arrived with a proposal from {target_nation}:\n\n"
+            "  {proposal_summary}\n\n"
+            "{talleyrand_assessment}"
+        ),
+        "options": [
+            {
+                "label": "Accept",
+                "description": "Ratify the treaty as presented.",
+                "action": "accept_ai_proposal",
+            },
+            {
+                "label": "Reject",
+                "description": "Send the envoy away empty-handed. (Relation -5)",
+                "action": "reject_ai_proposal",
+            },
+            {
+                "label": "Counter-offer",
+                "description": "Propose modified terms. (Costs 1 DP)",
+                "action": "counter_ai_proposal",
+            },
+        ],
+        "recommendation": 0,
+    },
+
+    ("incoming_proposal", "PEACE", "any"): {
+        "text": (
+            "Sire, {target_diplomat} has arrived with a proposal from {target_nation}:\n\n"
+            "  {proposal_summary}\n\n"
+            "{talleyrand_assessment}"
+        ),
+        "options": [
+            {
+                "label": "Accept",
+                "description": "Ratify the proposal.",
+                "action": "accept_ai_proposal",
+            },
+            {
+                "label": "Reject",
+                "description": "Decline. (Relation -5)",
+                "action": "reject_ai_proposal",
+            },
+            {
+                "label": "Counter-offer",
+                "description": "Suggest modified terms. (Costs 1 DP)",
+                "action": "counter_ai_proposal",
+            },
+        ],
+        "recommendation": 0,
+    },
+
+    # ══════════════════════════════════════════════
+    # T12: PROPOSAL WITH TALLEYRAND ASSESSMENT
+    # When Talleyrand adds his own spin on AI proposal
+    # ══════════════════════════════════════════════
+    ("incoming_proposal_assessed", "WAR", "any"): {
+        "text": (
+            "Sire, a proposal from {target_nation}:\n\n"
+            "  {proposal_summary}\n\n"
+            "My assessment: {talleyrand_assessment}\n\n"
+            "The Diplomatic Ledger (D key) has the precise figures."
+        ),
+        "options": [
+            {
+                "label": "Accept",
+                "description": "Accept the terms.",
+                "action": "accept_ai_proposal",
+            },
+            {
+                "label": "Reject",
+                "description": "Refuse. (Relation -5)",
+                "action": "reject_ai_proposal",
+            },
+            {
+                "label": "Counter-offer",
+                "description": "Propose modifications. (1 DP)",
+                "action": "counter_ai_proposal",
+            },
+        ],
+        "recommendation": 0,
+    },
+
+    # ══════════════════════════════════════════════
+    # T13: ADVISORY — Nation status assessment
+    # Used by diplomatic_advisory.py
+    # ══════════════════════════════════════════════
+    ("advisory", "WAR", "any"): {
+        "text": (
+            "You ask about {target_nation}, Sire? Let me assess the situation.\n\n"
+            "{target_nation} is currently at war with France. "
+            "War score: {war_score}. Relation: {relation}.\n\n"
+            "The Diplomatic Ledger (D key) has the precise figures."
+        ),
+        "options": [
+            {
+                "label": "What should we do?",
+                "description": "Ask Talleyrand for a recommendation.",
+                "action": "expand_to_proposal",
+            },
+            {
+                "label": "Thank you",
+                "description": "Dismiss.",
+                "action": "dismiss",
+            },
+        ],
+        "recommendation": 0,
+    },
+
+    ("advisory", "PEACE", "any"): {
+        "text": (
+            "You ask about {target_nation}, Sire?\n\n"
+            "{target_nation} is at peace with France. "
+            "Relation: {relation}. State: {current_state}.\n\n"
+            "The Diplomatic Ledger (D key) has the precise figures."
+        ),
+        "options": [
+            {
+                "label": "What should we do?",
+                "description": "Ask Talleyrand for a recommendation.",
+                "action": "expand_to_proposal",
+            },
+            {
+                "label": "Thank you",
+                "description": "Dismiss.",
+                "action": "dismiss",
+            },
+        ],
+        "recommendation": 0,
+    },
+
+    # ══════════════════════════════════════════════
+    # T14: ADVISORY — Threat assessment (multi-nation)
+    # ══════════════════════════════════════════════
+    ("advisory_threat", "any", "any"): {
+        "text": (
+            "An assessment of the diplomatic landscape, Sire.\n\n"
+            "{threat_analysis}\n\n"
+            "{recommendation}"
+        ),
+        "options": [
+            {
+                "label": "What should we do?",
+                "description": "Ask for a specific recommendation.",
+                "action": "expand_to_proposal",
+            },
+            {
+                "label": "Thank you",
+                "description": "Dismiss.",
+                "action": "dismiss",
+            },
+        ],
+        "recommendation": 0,
+    },
+
+    # ══════════════════════════════════════════════
+    # T15: ADVISORY — Recommendation
+    # ══════════════════════════════════════════════
+    ("advisory_recommendation", "any", "any"): {
+        "text": (
+            "{recommendation_text}\n\n"
+            "The Diplomatic Ledger (D key) has the precise figures, Sire."
+        ),
+        "options": [
+            {
+                "label": "Do it",
+                "description": "Proceed with Talleyrand's suggestion.",
+                "action": "execute_proposal",
+            },
+            {
+                "label": "Tell me more",
+                "description": "Elaborate on the recommendation.",
+                "action": "expand_to_proposal",
+            },
+            {
+                "label": "Not now",
+                "description": "Dismiss.",
+                "action": "dismiss",
+            },
+        ],
+        "recommendation": 0,
+    },
+
+    # ══════════════════════════════════════════════
+    # T16: COUNTER-OFFER PRESENTATION
+    # When M3 algorithm generates a counter-offer
+    # ══════════════════════════════════════════════
+    ("counter_offer", "WAR", "any"): {
+        "text": (
+            "Sire, I have modified the terms. {target_nation} may find these more acceptable:\n\n"
+            "  {counter_summary}\n\n"
+            "My assessment: this counter-offer has improved chances of acceptance."
+        ),
+        "options": [
+            {
+                "label": "Accept counter",
+                "description": "Accept these modified terms.",
+                "action": "accept_ai_proposal",
+            },
+            {
+                "label": "Reject",
+                "description": "Reject the entire negotiation.",
+                "action": "reject_ai_proposal",
+            },
+        ],
+        "recommendation": 0,
+    },
+
+    ("counter_offer", "PEACE", "any"): {
+        "text": (
+            "Sire, I have adjusted the terms for {target_nation}:\n\n"
+            "  {counter_summary}\n\n"
+            "These modified terms should be more palatable."
+        ),
+        "options": [
+            {
+                "label": "Accept counter",
+                "description": "Accept the modified terms.",
+                "action": "accept_ai_proposal",
+            },
+            {
+                "label": "Reject",
+                "description": "Reject entirely.",
+                "action": "reject_ai_proposal",
+            },
+        ],
+        "recommendation": 0,
+    },
+
+    # ══════════════════════════════════════════════
+    # T17: CONFLICT ALERT — Alliance conflict detected
+    # ══════════════════════════════════════════════
+    ("conflict_alert", "any", "any"): {
+        "text": (
+            "Sire, a complication. Accepting this proposal would conflict with "
+            "our existing obligations.\n\n"
+            "{conflict_description}\n\n"
+            "{target_nation} must choose which alliance to honor."
+        ),
+        "options": [
+            {
+                "label": "Accept anyway",
+                "description": "Accept — the conflicting party must decide.",
+                "action": "accept_with_conflict",
+            },
+            {
+                "label": "Reject",
+                "description": "Reject to avoid the conflict.",
+                "action": "reject_ai_proposal",
+            },
+        ],
+        "recommendation": 0,
+    },
+
+    # ══════════════════════════════════════════════
+    # T18: PROPOSAL REJECTED RESPONSE
+    # AI's response to player rejecting their proposal
+    # ══════════════════════════════════════════════
+    ("proposal_rejected", "WAR", "any"): {
+        "text": (
+            "{target_diplomat} receives your rejection with "
+            "{rejection_reaction}. Relations with {target_nation} have cooled."
+        ),
+        "options": [
+            {
+                "label": "So be it",
+                "description": "Dismiss.",
+                "action": "dismiss",
+            },
+        ],
+        "recommendation": 0,
+    },
+
+    ("proposal_rejected", "PEACE", "any"): {
+        "text": (
+            "{target_diplomat} accepts your decision with "
+            "{rejection_reaction}. Relations have shifted."
+        ),
+        "options": [
+            {
+                "label": "Understood",
+                "description": "Dismiss.",
+                "action": "dismiss",
+            },
+        ],
+        "recommendation": 0,
+    },
+
+    # ══════════════════════════════════════════════
+    # T19: FEASIBILITY UPDATE
+    # Updated feasibility after game state changes
+    # ══════════════════════════════════════════════
+    ("feasibility_update", "any", "any"): {
+        "text": (
+            "Sire, the diplomatic landscape has shifted. My previous assessment "
+            "of {target_nation} requires revision.\n\n"
+            "{updated_assessment}"
+        ),
+        "options": [
+            {
+                "label": "Pursue this",
+                "description": "Act on the new assessment.",
+                "action": "execute_proposal",
+            },
+            {
+                "label": "Noted",
+                "description": "Dismiss.",
+                "action": "dismiss",
+            },
+        ],
+        "recommendation": 0,
+    },
+
+    # ══════════════════════════════════════════════
+    # T20: PROACTIVE DISPATCH ENTRY
+    # Talleyrand's observation for Morning Dispatch
+    # ══════════════════════════════════════════════
+    ("proactive_suggestion", "any", "any"): {
+        "text": (
+            "A diplomatic observation, Sire: {observation}\n\n"
+            "{suggested_action_text}"
+        ),
+        "options": [
+            {
+                "label": "Ask Talleyrand to elaborate",
+                "description": "Open a diplomatic conversation.",
+                "action": "elaborate",
+            },
+            {
+                "label": "Dismiss",
+                "description": "Noted.",
+                "action": "dismiss",
+            },
+        ],
+        "recommendation": 0,
+    },
 }
 
 # ═══════ FALLBACK TEMPLATES ═══════

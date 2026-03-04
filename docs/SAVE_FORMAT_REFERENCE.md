@@ -10,8 +10,8 @@ A future save/load system should use this as the specification.
 ## Version
 
 - **Format version:** 1.0
-- **Last updated:** 2026-02-25
-- **Compatible with:** Phase 7b V2b Session 3 (Defiance/Vindication/Authority frontend)
+- **Last updated:** 2026-03-04
+- **Compatible with:** Phase 8 Session 4 (AI Proposals/Counter-Offers/Advisory/Proactive Suggestions)
 
 ## Top-Level Structure (WorldState)
 
@@ -76,6 +76,11 @@ A future save/load system should use this as the specification.
   "proposal_in_transit": null,
   "player_proposal_cooldowns": {},
   "active_treaties": {},
+
+  "ai_proposal_cooldowns": {},
+  "diplomatic_queue": [],
+  "proactive_suggestion_cooldowns": {},
+  "ai_stalemate_counters": {},
 
   "active_battles": {},
   "battle_history": [],
@@ -159,6 +164,10 @@ A future save/load system should use this as the specification.
 | `proposal_in_transit` | dict/null | null | **Session 3.** Proposal sent and awaiting resolution next turn: {target, proposal, turn_sent}. |
 | `player_proposal_cooldowns` | dict | {} | **Session 3.** Cooldowns per nation (3 turns) and per type (5 turns) after rejection. |
 | `active_treaties` | dict | {} | **Session 3.** Active treaties keyed by diplo pair key. Contains nations, type, clauses, turn_signed, harshness. |
+| `ai_proposal_cooldowns` | dict | {} | **Session 4.** AI proposal cooldown timers. Keys: "nation\|nation" or "nation\|type". Values: int (turns remaining). Prevents AI from spamming proposals to the same target or of the same type. |
+| `diplomatic_queue` | list | [] | **Session 4.** Queued AI proposals awaiting player response (max 3, 3-turn expiry). Each entry is a dict with proposal details. Expired entries removed at turn start. |
+| `proactive_suggestion_cooldowns` | dict | {} | **Session 4.** Proactive suggestion cooldowns. Keys: "nation\|trigger_type". Values: int (turns remaining). Prevents repeated advisory suggestions for the same diplomatic opportunity. |
+| `ai_stalemate_counters` | dict | {} | **Session 4.** Consecutive stalemate turns per nation. Keys: nation name. Values: int (turn count). Used by AI to detect prolonged wars and trigger peace proposals. |
 | `active_battles` | dict | {} | Currently ongoing battles |
 | `battle_history` | list | [] | Completed battle records |
 | `battles_this_turn` | list | [] | Battles this turn (Phase 5.2) |

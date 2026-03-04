@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 4, 2026 (Audit 2+3 — Sessions 2+3 verification)
+> **Last Updated:** March 4, 2026 (Session 4 — AI Proposals + Counter-Offers + Advisory + Proactive Suggestions)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4654** (4654 passed, 3 skipped — verified Mar 4, Audit 2+3) |
+| **Tests Passing** | **4697** (4697 passed, 3 skipped — verified Mar 4, Session 4) |
 
-| **Current Phase** | Phase 8: Diplomacy. **Session 3 COMPLETE** (Talleyrand commands, conversational dialogue foundation). Next: Session 4. |
+| **Current Phase** | Phase 8: Diplomacy. **Session 4 COMPLETE** (AI Proposals, Counter-Offers, Advisory, Proactive Suggestions). Next: Session 5. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,12 +19,12 @@
 
 ## Next Steps
 
-1. **Phase 8: Diplomacy** — **Session 3 COMPLETE.** Unified 8-session plan:
+1. **Phase 8: Diplomacy** — **Session 4 COMPLETE.** Unified 8-session plan:
    - ~~Session 1A: Map Expansion (13→19 regions)~~ — **DONE** (19 regions, 5 nations, all adjacencies verified, FORMAT_VERSION 2)
    - ~~Session 1B: Nations + Marshals + Economy~~ — **DONE** (Austria/Saxony activated, PrinceAugust removed, 4 new marshals, diplomatic_states/nation_relations data, British naval income, is_at_war() gating on all enemy AI paths, 56 new gate tests)
    - ~~Session 2: Diplomatic States + Acceptance Formula + Diplomat class~~ — **DONE** (5 diplomats, acceptance formula with 7 components + military supremacy/battlefield diplomacy, DP economy, war score with 4 components, trade income matching §1d, movement restrictions, war declaration + DEFENSIVE_ALLIANCE cascade, 111 new tests)
    - ~~Session 3: Talleyrand Commands + Conversational Dialogue Foundation~~ — **DONE** (diplomatic_dialogue.py, diplomatic_templates.py, llm_client/parser/executor/world_state/main routing, 7 new world_state fields, 76 new tests)
-   - Session 4: AI Proposals + Advisory Conversations
+   - ~~Session 4: AI Proposals + Counter-Offers + Advisory + Proactive Suggestions~~ — **DONE** (ai_diplomacy.py, diplomatic_advisory.py, P1-P7 trigger table, M3 counter-offer algorithm, Talleyrand's Report in dispatch, templates T11-T20, 43 new tests)
    - Session 5: Vassal System + Treaty Clauses
    - Session 6: Talleyrand Defiance + Diplomatic Objections/Confrontation
    - Session 7: Coalition System (formation, structure, AI, breaking, dissolution) — ~55 tests
@@ -54,6 +54,21 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 4 — Session 4: AI Proposals + Counter-Offers + Advisory + Proactive Suggestions
+
+Phase 8 Session 4 implementation. 2 new files, multiple modified files, 43 new tests.
+
+- **`backend/ai/ai_diplomacy.py`:** AI diplomatic proposal engine. P1-P7 trigger table (war exhaustion, opportunity, relationship thresholds, trade potential, threat response, alliance building, subsidy requests). Anti-spam cooldowns per nation per action type. Queue system: max 3 pending proposals, 3-turn expiry for unanswered proposals.
+- **Counter-Offer Algorithm (M3):** AI evaluates player counter-offers: remove worst clause from player perspective → recalculate acceptance → add cheapest desired clause → accept/reject based on updated score. Accept/Reject/Counter-offer actions wired into dialogue handler.
+- **`backend/ai/diplomatic_advisory.py`:** Advisory conversation system. `detect_advisory_type()` classifies player queries (relationship status, proposal evaluation, strategic advice, treaty analysis, general). `generate_advisory()` produces context-aware Talleyrand responses. Wired into executor for "ask Talleyrand" command routing.
+- **Proactive Suggestions (Talleyrand's Report):** New section in Morning Dispatch. 5 trigger types (expiring treaty, deteriorating relationship, diplomatic opportunity, threat warning, trade potential). Frequency caps to prevent spam. Integrated into `dispatch.py` builder.
+- **Templates T11-T20:** 10 new diplomatic templates added to `diplomatic_templates.py` covering AI proposal presentations, counter-offer responses, advisory responses, and proactive suggestion formatting.
+- **WorldState:** 4 new fields serialized (ai_proposal_queue, ai_proposal_cooldowns, advisory_history, proactive_suggestion_cooldowns). All with backward-compatible `.get()` defaults.
+- **Turn Manager Integration:** AI diplomatic phase wired into `turn_manager.py` after enemy turns, before `advance_turn`. AI nations evaluate and generate proposals each turn.
+- **Conflicting Alliance Resolution (§5b.3):** When AI proposes alliance conflicting with existing commitments, system detects and resolves per spec.
+- **43 new tests** covering: AI trigger evaluation, cooldown enforcement, queue limits/expiry, M3 counter-offer algorithm, advisory type detection, advisory generation, proactive suggestion triggers, frequency caps, conflicting alliance resolution, serialization.
+- **4697 tests passing** (4654 + 43 new, 3 skipped, 0 regressions).
 
 ### Mar 4 — Audit 2+3: Sessions 2+3 Verification
 
