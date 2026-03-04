@@ -11,7 +11,7 @@
 |--------|-------|
 | **Tests Passing** | **4945** (4945 passed, 3 skipped — verified Mar 4, Session 7 gap closure) |
 
-| **Current Phase** | Phase 8: Diplomacy. **Session 7 COMPLETE** (Coalition System). Next: Session 8 (Diplomatic Ledger UI + Polish). |
+| **Current Phase** | Phase 8: Diplomacy. **Session 7 COMPLETE** (Coalition System). Next: Sessions 8A–8D (UI + Debug + Polish). See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -28,7 +28,10 @@
    - ~~Session 5: Vassal System + Loyalty~~ — **DONE** (vassal.py core engine, loyalty ticks with 7 modifiers, rebellion+cascade, tribute, investment, autonomy levels, marshal assimilation, AP/turn clause, Continental System, enemy vassal courting, dispatch warnings, 51 new tests)
    - ~~Session 6: Talleyrand Defiance + Diplomatic Objections~~ — **DONE** (diplomatic_defiance.py, defiance probability curve, 5 sabotage types, discovery+confrontation, redemption event, pre-proposal objections, enemy diplomat voices T21-T27, dispatch integration, 76 new tests)
    - ~~Session 7: Coalition System~~ — **DONE** (coalition.py engine, threat accumulation/decay, coalition formation/brewing/instant, leader selection+posture, coalition AI friction+convergence, war exhaustion, British subsidy, loyalty penalty+wedge, dissolution+cooldown, dispatch integration, T28-T34 templates, 80 new tests)
-   - Session 8: Diplomatic Ledger UI + Polish
+   - Session 8A: Backend Ledger Builder + Debug Arsenal
+   - Session 8B: Diplomatic Ledger Godot UI + Top Bar
+   - Session 8C: Popups + Notifications
+   - Session 8D: Dispatch Integration + Polish + Deferred Mechanical
 2. **Jealousy system** — NEEDS DESIGN GATE (separate track). See CLAUDE.md.
 3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 

@@ -16,7 +16,7 @@
 | **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE, Top Bar + Dispatch COMPLETE, Strategic Ledger COMPLETE, Marshal Management UI COMPLETE, Tooltips ABSORBED into Map Renderer, Tutorial Infrastructure DEFERRED to Pre-EA. Remaining: Map Renderer — blocked on art commission) |
 | **7 Core** | **Multi-Marshal Coordination** | **Spec COMPLETE + AUDITED + SCOPED.** 7 sessions (57-61a, 61b, 64). ~246 tests. |
 | 7b | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b, Jealousy | **IN PROGRESS** — V2b COMPLETE, Tactical Triangle COMPLETE. Remaining: Jealousy (NEEDS DESIGN), Gneisenau (1805). Coalition Trigger moved to Phase 8. |
-| **8** | **Diplomacy & Peace** | **ALL SPECS APPROVED — GO for Session 1A** |
+| **8** | **Diplomacy & Peace** | **Sessions 1A–7 COMPLETE. Sessions 8A–8D: UI + Debug + Polish** (see `SESSION_8_PLAN.md`) |
 | 8.5 | Events, Goals & National Identity | Planned |
 | -- | **STEAM PAGE + LLC** | **After 8.5** |
 | 9 | Advisors (Minimal) | Planned |
@@ -399,9 +399,12 @@ If marshal strength < 20% of starting_strength AND enemy in same region -> ALWAY
 | **5** | Vassal System + Treaty Clauses | Loyalty, tribute, rebellion, carving, Continental System | ~45 | MEDIUM |
 | **6** | Talleyrand Defiance + Objections | Sabotage, discovery, diplomatic confrontation | ~50 | MEDIUM |
 | **7** | Coalition System (NEW) | Formation, structure, AI, breaking, dissolution, British subsidy | ~55 | HIGH |
-| **8** | Diplomatic Ledger UI + Polish | 4-tab ledger, threat display, coalition status, polish | ~20 | MEDIUM |
+| **8A** | Backend Ledger + Debug Arsenal | diplomatic_ledger.py, GET /diplomatic_ledger, 10 cheat commands, 8 debug endpoints, pass-throughs | ~55 | LOW |
+| **8B** | Diplomatic Ledger UI + Top Bar | 4-tab Godot ledger (D key), top bar (DP/threat/Talleyrand/envoy), Dispatch→R key | ~15 | MEDIUM |
+| **8C** | Popups + Notifications | 6 popups (coalition/proposal/objection/sabotage/redemption/vassal), 18 notification templates | ~40 | MEDIUM |
+| **8D** | Dispatch + Polish + Deferred | ~20 dispatch event types, campaign log, fog filtering, AI-AI diplomacy, special acceptance bonuses | ~50 | MEDIUM |
 
-**Total estimated tests: ~365-375.** Critical path: Sessions 1A/1B (HIGH RISK) → 2 → 3/4 → 5 → 6 → 7 → 8.
+**Total estimated tests: ~525.** Critical path: Sessions 1A/1B (HIGH RISK) → 2 → 3/4 → 5 → 6 → 7 → 8A → 8B/8C → 8D. Session 8 expanded to 4 sub-sessions per `docs/SESSION_8_PLAN.md`.
 
 ### Diplomacy Chat Architecture
 
@@ -769,7 +772,7 @@ Lighter version of communication cutoff: orders to distant marshals take effect 
 6. Phase 6.5: Notifications, **Top Bar Framework + Dispatch** (Session A), **Strategic Ledger** (Session B), Marshal UI, ~~Campaign Briefing~~, ~~Marshal Report~~ (shipped as Morning Dispatch), ~~Tutorial infra~~ (deferred to Pre-EA), **Map Renderer**
 7. Phase 7 Core: Multi-Marshal Coordination (Sessions 57-61a, 61b, 64 — 7 sessions, ~246 tests) — combined arms, coordination bonuses, Grouchy Rule, dynamic relationships
 7b. Phase 7b: Casualty Distribution (S62), AI Coordination (S63), Battle Reports + Reinforcement Reporting (S65), Godot UI (S66), Tactical Triangle (S67-68), V2b, Jealousy
-8. Phase 8: **Diplomacy** (8 sessions: Map Expansion, Nations, States+Formula, Talleyrand, AI Proposals, Vassals, Defiance, **Coalition**, Ledger UI). ~365 tests.
+8. Phase 8: **Diplomacy** (11 sessions: Map Expansion, Nations, States+Formula, Talleyrand, AI Proposals, Vassals, Defiance, **Coalition**, Ledger Backend+Debug, Ledger UI+Top Bar, Popups+Notifications, Dispatch+Polish). ~525 tests. Session 8 expanded to 8A-8D per `SESSION_8_PLAN.md`.
 9. Phase 8.5: **Events, Gazette, Marshal Voice, Grouchy LLM, Intercepted Dispatches, Creative Commands, Napoleon Comparison**
 10. **STEAM PAGE + LLC** (marshal voice, gazette, audio, EU4 map all working)
 11. Phase 9: Advisors (minimal: stats + flavor + named voices)

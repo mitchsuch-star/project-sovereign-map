@@ -20,7 +20,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 - **Phase 7b remaining:** V2b COMPLETE. Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Gates 5+6 PASSED. Jealousy (SPEC v3 DRAFTED — needs design gate approval). Coalition Trigger moved to Phase 8.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial Infrastructure deferred to Pre-EA.
-- **Phase 8: Diplomacy** — ALL 3 SPECS APPROVED + MASTER-AUDITED. Unified 8-session plan (1A/1B/2/3/4/5/6/7-Coalition/8-UI). Master audit: 4 CRITICAL + 4 MAJOR findings fixed. Fun score 81/100. **Sessions 1A+1B+2+3+4+5+6+7 COMPLETE. Audit 2+3 COMPLETE.** Next: Session 8 (Diplomatic Ledger UI + Polish).
+- **Phase 8: Diplomacy** — ALL 3 SPECS APPROVED + MASTER-AUDITED. Unified 11-session plan (1A/1B/2/3/4/5/6/7-Coalition/8A-8D). Master audit: 4 CRITICAL + 4 MAJOR findings fixed. Fun score 81/100. **Sessions 1A+1B+2+3+4+5+6+7 COMPLETE. Audit 2+3 COMPLETE.** Next: Session 8A (Backend Ledger + Debug Arsenal). Full plan: `docs/SESSION_8_PLAN.md`.
 
 ### Design Gates
 
@@ -329,6 +329,7 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md`, `diplomat.py`, `diplomacy.py` |
 | Coalition system (Phase 8) | `docs/COALITION_SPEC.md` |
 | Jealousy system (Phase 7b) | `docs/JEALOUSY_SPEC.md` |
+| Session 8A-8D plan (UI + debug) | `docs/SESSION_8_PLAN.md` |
 | Save format / serialization | `docs/SAVE_FORMAT_REFERENCE.md` |
 | Top bar + ledger + dispatch spec | `docs/TOP_BAR_SPEC.md` |
 | Fog of war spec | `docs/FOG_OF_WAR_SPEC.md` |
