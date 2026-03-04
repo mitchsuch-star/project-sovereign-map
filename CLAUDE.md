@@ -20,7 +20,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 - **Phase 7b remaining:** V2b COMPLETE. Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Gates 5+6 PASSED. Jealousy (SPEC v3 DRAFTED — needs design gate approval). Coalition Trigger moved to Phase 8.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial Infrastructure deferred to Pre-EA.
-- **Phase 8: Diplomacy** — ALL 3 SPECS APPROVED + MASTER-AUDITED. Unified 8-session plan (1A/1B/2/3/4/5/6/7-Coalition/8-UI). Master audit: 4 CRITICAL + 4 MAJOR findings fixed. Fun score 81/100. **Sessions 1A+1B+2+3+4 COMPLETE. Audit 2+3 COMPLETE.** Next: Session 5 (Vassal System + Loyalty).
+- **Phase 8: Diplomacy** — ALL 3 SPECS APPROVED + MASTER-AUDITED. Unified 8-session plan (1A/1B/2/3/4/5/6/7-Coalition/8-UI). Master audit: 4 CRITICAL + 4 MAJOR findings fixed. Fun score 81/100. **Sessions 1A+1B+2+3+4+5 COMPLETE. Audit 2+3 COMPLETE.** Next: Session 6 (Talleyrand Defiance + Diplomatic Objections).
 
 ### Design Gates
 
@@ -82,6 +82,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | `backend/game_logic/diplomacy.py` | Diplomacy engine: transitions, war score, acceptance formula, DP, war declaration, cascade, trade income |
 | `backend/game_logic/ai_diplomacy.py` | AI proposal generation (P1-P7 triggers), M3 counter-offer, alliance conflict check, anti-spam |
 | `backend/game_logic/diplomatic_advisory.py` | Advisory conversations: threat assessment, nation analysis, action recommendations |
+| `backend/game_logic/vassal.py` | Vassal system: creation, loyalty, rebellion, cascade, tribute, investment, autonomy, marshal assimilation, Continental System |
 | `backend/save_manager.py` | Save/load file I/O, autosave |
 
 ### Godot Core
@@ -134,6 +135,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | Marshal management UI | `marshal_overview.py` (build_marshal_overview), `marshal_management.gd` (render), `marshal.py` (biography field), `main.py` (GET /marshal_overview) |
 | Win/Loss relationships | `relationship.py` (formulas, participants, process), `executor.py` (_execute_attack wiring), `marshal.py` (modify_relationship, last_relationship_change_turn), `docs/MULTI_MARSHAL_SPEC.md` §9 |
 | Square formation / Tactical Triangle | `docs/TACTICAL_TRIANGLE_SPEC.md`, `marshal.py` (square_formation, overwatch_penalty), `combat.py` (cavalry -40%, artillery +50%), `executor.py` (form_square, auto-bombardment, overwatch calc) |
+| Vassal system (Phase 8 S5) | `vassal.py` (all vassal mechanics), `world_state.py` (vassals dict, advance_turn steps 5-7, tribute), `diplomacy.py` (AP clause, Continental System), `turn_manager.py` (enemy courting), `dispatch.py` (Trigger 3 loyalty warnings) |
 | Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md` (v2.2), `docs/CONVERSATIONAL_DIPLOMACY_DESIGN.md` (v1.2), `docs/COALITION_SPEC.md` (v1.0), `diplomacy.py` (acceptance formula, state transitions, war score), `diplomat.py` (DiplomaticRepresentative), `diplomatic_dialogue.py` (conversation state machine), `diplomatic_templates.py` (37 mock templates, slot resolvers), `ai_diplomacy.py` (AI proposal generation, M3 counter-offer, alliance conflict), `diplomatic_advisory.py` (advisory conversations), `vassal.py` (loyalty, rebellion), `diplomatic_defiance.py` (Talleyrand sabotage) |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`
@@ -263,6 +265,8 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | Fog leaks enemy info | Filter to PARTIAL+ visibility for attack suggestions, move destinations, event reports |
 | PURSUE/SUPPORT path error | `order.target` is marshal name — resolve to `target_marshal.location` before pathfinding |
 | Godot null "pressed" on startup | `@onready` node paths must match FULL scene tree in .tscn — verify intermediate nodes |
+| Vassal loyalty unexpected | Check `nation_relations` default — France/Saxony=40, adds +2/turn via relation//20 modifier |
+| AP clause wrong nation | `from_nation` is the penalized nation (loses AP), not `to_nation` |
 
 ---
 

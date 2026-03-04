@@ -49,6 +49,10 @@ VALID_ACTIONS: Set[str] = {
     # Square formation (Session 67) — Tactical Triangle Part A
     "form_square",   # Infantry anti-cavalry formation (1 AP)
     "break_square",  # Return to line formation (free)
+    # Vassal System (Phase 8 Session 5)
+    "invest_vassal",    # Invest in vassal (+10 loyalty)
+    "change_autonomy",  # Change vassal autonomy level
+    "make_vassal",      # Create a vassal
     # ═══════ ADD NEW ACTIONS HERE ═══════
     # This is the SINGLE SOURCE OF TRUTH for valid LLM actions.
     # Also update: llm_client.py keywords, parser.py valid_actions,
@@ -63,6 +67,10 @@ META_ACTIONS: Set[str] = {
     "status",
     "unknown",  # Failed parse, let executor handle error message
     "economy",  # Free info command, no marshal needed (Phase 6.2.G)
+    # Vassal commands (Phase 8 Session 5) — no marshal needed
+    "invest_vassal",
+    "change_autonomy",
+    "make_vassal",
 }
 
 # Valid stances for stance_change action

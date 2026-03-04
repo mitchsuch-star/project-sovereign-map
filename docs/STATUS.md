@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 4, 2026 (Audit 4 — Session 4 Verification)
+> **Last Updated:** March 4, 2026 (Session 5 — Vassal System + Loyalty)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4728** (4728 passed, 3 skipped — verified Mar 4, Audit 4 cleanup) |
+| **Tests Passing** | **4779** (4779 passed, 3 skipped — verified Mar 4, Session 5) |
 
-| **Current Phase** | Phase 8: Diplomacy. **Session 4 COMPLETE** (AI Proposals, Counter-Offers, Advisory, Proactive Suggestions). Next: Session 5. |
+| **Current Phase** | Phase 8: Diplomacy. **Session 5 COMPLETE** (Vassal System + Loyalty). Next: Session 6. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,13 +19,13 @@
 
 ## Next Steps
 
-1. **Phase 8: Diplomacy** — **Session 4 COMPLETE.** Unified 8-session plan:
+1. **Phase 8: Diplomacy** — **Session 5 COMPLETE.** Unified 8-session plan:
    - ~~Session 1A: Map Expansion (13→19 regions)~~ — **DONE** (19 regions, 5 nations, all adjacencies verified, FORMAT_VERSION 2)
    - ~~Session 1B: Nations + Marshals + Economy~~ — **DONE** (Austria/Saxony activated, PrinceAugust removed, 4 new marshals, diplomatic_states/nation_relations data, British naval income, is_at_war() gating on all enemy AI paths, 56 new gate tests)
    - ~~Session 2: Diplomatic States + Acceptance Formula + Diplomat class~~ — **DONE** (5 diplomats, acceptance formula with 7 components + military supremacy/battlefield diplomacy, DP economy, war score with 4 components, trade income matching §1d, movement restrictions, war declaration + DEFENSIVE_ALLIANCE cascade, 111 new tests)
    - ~~Session 3: Talleyrand Commands + Conversational Dialogue Foundation~~ — **DONE** (diplomatic_dialogue.py, diplomatic_templates.py, llm_client/parser/executor/world_state/main routing, 7 new world_state fields, 76 new tests)
    - ~~Session 4: AI Proposals + Counter-Offers + Advisory + Proactive Suggestions~~ — **DONE** (ai_diplomacy.py, diplomatic_advisory.py, P1-P7 trigger table, M3 counter-offer algorithm, Talleyrand's Report in dispatch, templates T11-T20, 43 new tests)
-   - Session 5: Vassal System + Treaty Clauses
+   - ~~Session 5: Vassal System + Loyalty~~ — **DONE** (vassal.py core engine, loyalty ticks with 7 modifiers, rebellion+cascade, tribute, investment, autonomy levels, marshal assimilation, AP/turn clause, Continental System, enemy vassal courting, dispatch warnings, 51 new tests)
    - Session 6: Talleyrand Defiance + Diplomatic Objections/Confrontation
    - Session 7: Coalition System (formation, structure, AI, breaking, dissolution) — ~55 tests
    - Session 8: Diplomatic Ledger UI + Polish

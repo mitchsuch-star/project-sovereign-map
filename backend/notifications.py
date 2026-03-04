@@ -33,6 +33,9 @@ NATION_ELIMINATED = "nation_eliminated"
 BANKRUPTCY_ESCALATION = "bankruptcy_escalation"
 DRILL_CANCELLED = "drill_cancelled"
 MARSHAL_DEFIED_ORDER = "marshal_defied_order"  # V2b: HIGH priority
+# Vassal System notifications (Phase 8 Session 5)
+VASSAL_REBELLION = "vassal_rebellion"              # CRITICAL: vassal rebelled
+VASSAL_LOYALTY_CRITICAL = "vassal_loyalty_critical"  # HIGH: loyalty < 10
 
 
 def create_notification(

@@ -415,6 +415,14 @@ class WorldState:
         # Previous turn's war scores snapshot for Talleyrand Trigger 2 delta detection
         self.previous_war_scores: Dict[str, int] = {}
 
+        # ============================================================
+        # VASSAL SYSTEM (Phase 8 Session 5)
+        # ============================================================
+        self.vassals: Dict[str, Dict] = {}  # nation_name -> vassal state dict
+        self.vassal_investment_cooldowns: Dict[str, int] = {}  # vassal_name -> turns remaining
+        self.cascade_triggered: set = set()  # diplo_keys where cascade already fired
+        self.continental_system_members: List[str] = []  # Nations under Continental System
+
         # Calculate initial visibility so turn 1 starts with correct fog state
         # (French regions FULL, adjacent PARTIAL, rest UNKNOWN)
         self._intel_events_this_turn = []  # Init before first calculate_visibility
@@ -2733,6 +2741,12 @@ class WorldState:
             "proactive_suggestion_cooldowns": {k: int(v) for k, v in self.proactive_suggestion_cooldowns.items()},
             "ai_stalemate_counters": {k: int(v) for k, v in self.ai_stalemate_counters.items()},
             "previous_war_scores": {k: int(v) for k, v in self.previous_war_scores.items()},
+
+            # ═══════ VASSAL SYSTEM (Session 5) ═══════
+            "vassals": {k: v.copy() for k, v in self.vassals.items()},
+            "vassal_investment_cooldowns": {k: int(v) for k, v in self.vassal_investment_cooldowns.items()},
+            "cascade_triggered": list(self.cascade_triggered),
+            "continental_system_members": list(self.continental_system_members),
         }
 
     @classmethod
@@ -2899,6 +2913,12 @@ class WorldState:
         world.proactive_suggestion_cooldowns = {k: int(v) for k, v in data.get("proactive_suggestion_cooldowns", {}).items()}
         world.ai_stalemate_counters = {k: int(v) for k, v in data.get("ai_stalemate_counters", {}).items()}
         world.previous_war_scores = {k: int(v) for k, v in data.get("previous_war_scores", {}).items()}
+
+        # ═══════ VASSAL SYSTEM (Session 5) ═══════
+        world.vassals = {k: v.copy() for k, v in data.get("vassals", {}).items()}
+        world.vassal_investment_cooldowns = {k: int(v) for k, v in data.get("vassal_investment_cooldowns", {}).items()}
+        world.cascade_triggered = set(data.get("cascade_triggered", []))
+        world.continental_system_members = list(data.get("continental_system_members", []))
 
         return world
 
@@ -3527,6 +3547,25 @@ class WorldState:
         self._decrement_proactive_cooldowns()
 
         # ════════════════════════════════════════════════════════════
+        # VASSAL PROCESSING (Phase 8 Session 5, §7f steps 5-7)
+        # Step 5: Defection cascade check (war_score < -30)
+        # Step 6: Loyalty processing (drift + modifiers)
+        # Step 7: Rebellion check (loyalty = 0)
+        # ════════════════════════════════════════════════════════════
+        if self.vassals:
+            from backend.game_logic.vassal import (
+                check_defection_cascade, process_vassal_loyalty,
+                check_vassal_rebellion, decrement_vassal_cooldowns
+            )
+            cascade_events = check_defection_cascade(self)
+            tactical_events.extend(cascade_events)
+            loyalty_events = process_vassal_loyalty(self)
+            tactical_events.extend(loyalty_events)
+            rebellion_events = check_vassal_rebellion(self)
+            tactical_events.extend(rebellion_events)
+            decrement_vassal_cooldowns(self)
+
+        # ════════════════════════════════════════════════════════════
         # NON-BLOCKING DIALOGUE AUTO-DISMISS (Phase 8 Session 3)
         # ════════════════════════════════════════════════════════════
         if (self.pending_diplomatic_dialogue
@@ -3552,6 +3591,13 @@ class WorldState:
         # Applied after trade income
         # ════════════════════════════════════════════════════════════
         self._process_treaty_clauses()
+
+        # ════════════════════════════════════════════════════════════
+        # VASSAL TRIBUTE (Phase 8 Session 5) — after treaty clauses
+        # ════════════════════════════════════════════════════════════
+        if self.vassals:
+            from backend.game_logic.vassal import process_vassal_tribute
+            process_vassal_tribute(self)
 
         # ════════════════════════════════════════════════════════════
         # MANPOWER REGEN (Phase 6) — after income, before action resets
@@ -3836,6 +3882,12 @@ class WorldState:
                     if to_nation in self.nation_manpower:
                         self.nation_manpower[to_nation]["infantry"] = (
                             to_pool.get("infantry", 0) + transfer)
+                elif ctype == "ap_per_turn":
+                    # AP reduction clause (Phase 8 Session 5)
+                    # from_nation is the one losing AP (the penalized nation)
+                    if from_nation in self.nation_actions:
+                        self.nation_actions[from_nation] = max(
+                            1, self.nation_actions[from_nation] - int(amount))
 
     def _decrement_proposal_cooldowns(self) -> None:
         """Decrement player proposal cooldowns by 1. Remove expired."""

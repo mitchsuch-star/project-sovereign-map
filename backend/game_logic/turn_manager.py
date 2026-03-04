@@ -281,6 +281,17 @@ class TurnManager:
             if delivered:
                 debug_print("[DIPLOMACY] Delivered queued proposal")
 
+        # ════════════════════════════════════════════════════════════
+        # VASSAL COURTING (Phase 8 Session 5)
+        # AI nations attempt to court player's vassals
+        # ════════════════════════════════════════════════════════════
+        if world.vassals:
+            from backend.game_logic.vassal import attempt_vassal_courting
+            for nation in enemy_nations:
+                courting_events = attempt_vassal_courting(world, nation)
+                for event in courting_events:
+                    debug_print(f"[VASSAL COURTING] {event.get('message', '')}")
+
         return delivered
 
     def _process_autonomous_marshals(self, game_state: Dict) -> Dict:

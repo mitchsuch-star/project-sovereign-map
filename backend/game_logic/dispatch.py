@@ -485,7 +485,7 @@ def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
     Trigger conditions (from CONV_DESIGN §5d):
     1. Acceptance crossed 50 threshold for a nation
     2. War score shifted ≥15 in one turn
-    3. Enemy courting vassal (deferred — no vassal system yet)
+    3. Vassal loyalty warnings (Phase 8 Session 5)
     4. Relation threshold crossed (-40, -20, 0, +20, +40)
     5. No diplomatic action for 3+ turns
     """
@@ -571,6 +571,26 @@ def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
                     "elaborate_type": "advisory",
                 })
                 _set_cooldown(nation, "war_score_shift", 3)
+
+        # ── Trigger 3: Vassal loyalty warnings (Phase 8 Session 5) ──
+        if (nation in getattr(world, 'vassals', {})
+                and not _on_cooldown(nation, "vassal_loyalty")):
+            vassal_state = world.vassals[nation]
+            if vassal_state.get("lord") == player_nation:
+                loyalty = vassal_state.get("loyalty", 100)
+                if loyalty < 20:
+                    observations.append({
+                        "message": (
+                            f"Sire, our vassal {nation} grows dangerously restless. "
+                            f"Loyalty stands at {int(loyalty)}. "
+                            f"{'Rebellion is imminent!' if loyalty < 10 else 'Urgent intervention may be required.'}"
+                        ),
+                        "trigger_type": "vassal_loyalty",
+                        "target_nation": nation,
+                        "priority": 1 if loyalty < 10 else 2,
+                        "elaborate_type": "advisory",
+                    })
+                    _set_cooldown(nation, "vassal_loyalty", 3)
 
         # ── Trigger 4: Relation threshold crossed ──
         thresholds = [-40, -20, 0, 20, 40]

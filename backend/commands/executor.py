@@ -2212,6 +2212,15 @@ RETREAT RECOVERY (3 turns):
                         "diplomatic_feasibility", "diplomatic_advisory",
                         "diplomatic_error"):
             result = self._execute_diplomatic(command, game_state)
+        # ════════════════════════════════════════════════════════════
+        # VASSAL COMMANDS (Phase 8 Session 5)
+        # ════════════════════════════════════════════════════════════
+        elif action == "invest_vassal":
+            result = self._execute_invest_vassal(command, game_state)
+        elif action == "change_autonomy":
+            result = self._execute_change_autonomy(command, game_state)
+        elif action == "make_vassal":
+            result = self._execute_make_vassal(command, game_state)
         # Route to appropriate handler
         elif command_type == "specific":
             result = self._execute_specific(command, game_state)
@@ -12441,3 +12450,94 @@ RETREAT RECOVERY (3 turns):
             result=result,
             game_state=world
         )
+
+    # ════════════════════════════════════════════════════════════
+    # VASSAL COMMANDS (Phase 8 Session 5)
+    # ════════════════════════════════════════════════════════════
+
+    def _execute_invest_vassal(self, command: Dict, game_state: Dict) -> Dict:
+        """Invest in a vassal: 1 DP + 200g → +10 loyalty."""
+        world: WorldState = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "No active game."}
+
+        target = (command.get("target") or "").strip()
+        if not target:
+            return {"success": False, "message": "Specify which vassal to invest in."}
+
+        from backend.game_logic.vassal import invest_in_vassal
+        result = invest_in_vassal(world, target)
+        if result.get("success"):
+            result["new_state"] = game_state
+        return result
+
+    def _execute_change_autonomy(self, command: Dict, game_state: Dict) -> Dict:
+        """Change vassal autonomy level."""
+        world: WorldState = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "No active game."}
+
+        target = (command.get("target") or "").strip()
+        if not target:
+            return {"success": False, "message": "Specify which vassal."}
+
+        # Parse autonomy level from command
+        from backend.game_logic.vassal import (
+            AUTONOMY_PUPPET, AUTONOMY_SATELLITE, AUTONOMY_AUTONOMOUS,
+            change_vassal_autonomy
+        )
+        raw_text = (command.get("raw_input") or command.get("original_command") or "").lower()
+        if "puppet" in raw_text:
+            new_level = AUTONOMY_PUPPET
+        elif "satellite" in raw_text:
+            new_level = AUTONOMY_SATELLITE
+        elif "autonomous" in raw_text:
+            new_level = AUTONOMY_AUTONOMOUS
+        else:
+            return {
+                "success": False,
+                "message": "Specify autonomy level: puppet, satellite, or autonomous."
+            }
+
+        result = change_vassal_autonomy(world, target, new_level)
+        if result.get("success"):
+            result["new_state"] = game_state
+        return result
+
+    def _execute_make_vassal(self, command: Dict, game_state: Dict) -> Dict:
+        """Create a vassal from treaty or conquest path."""
+        world: WorldState = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "No active game."}
+
+        target = (command.get("target") or "").strip()
+        if not target:
+            return {"success": False, "message": "Specify which nation to vassalize."}
+
+        player = getattr(world, 'player_nation', 'France')
+
+        from backend.game_logic.vassal import (
+            create_vassal_treaty, create_vassal_conquest,
+            assimilate_vassal_marshals, AUTONOMY_PUPPET, AUTONOMY_SATELLITE
+        )
+
+        # Determine path: if at WAR → conquest, if OPEN_BORDERS+ → treaty
+        current_state = world.get_diplomatic_state(player, target)
+        if current_state == "WAR":
+            result = create_vassal_conquest(world, player, target)
+        else:
+            result = create_vassal_treaty(world, player, target)
+
+        if result.get("success"):
+            # Assimilate marshals for PUPPET/SATELLITE
+            vassal_state = world.vassals.get(target, {})
+            autonomy = vassal_state.get("autonomy", AUTONOMY_SATELLITE)
+            if autonomy in (AUTONOMY_PUPPET, AUTONOMY_SATELLITE):
+                assimilated = assimilate_vassal_marshals(world, target)
+                if assimilated:
+                    result["message"] += (
+                        f" Marshals assimilated: {', '.join(assimilated)}."
+                    )
+            result["new_state"] = game_state
+
+        return result

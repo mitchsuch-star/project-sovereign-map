@@ -170,6 +170,10 @@ A future save/load system should use this as the specification.
 | `proactive_suggestion_cooldowns` | dict | {} | **Session 4.** Proactive suggestion cooldowns. Keys: "nation\|trigger_type". Values: int (turns remaining). Prevents repeated advisory suggestions for the same diplomatic opportunity. |
 | `ai_stalemate_counters` | dict | {} | **Session 4.** Consecutive stalemate turns per nation. Keys: nation name. Values: int (turn count). Used by AI to detect prolonged wars and trigger peace proposals. |
 | `previous_war_scores` | dict | {} | **Audit 4.** End-of-turn war score snapshot. Keys: diplo key ("Nation1\|Nation2"). Values: int. Used by Talleyrand Trigger 2 to compute per-turn delta. Snapshotted at end of advance_turn(). |
+| `vassals` | dict | {} | **Session 5.** Vassal state per nation. Keys: nation name. Values: {lord, loyalty, autonomy (0=puppet/1=satellite/2=autonomous), path (treaty/conquest), created_turn, tribute_rate, carved_from, regions}. |
+| `vassal_investment_cooldowns` | dict | {} | **Session 5.** Investment cooldown per vassal. Keys: nation name. Values: int (turns remaining). 3-turn cooldown after invest_in_vassal(). |
+| `cascade_triggered` | list→set | [] | **Session 5.** Defection cascade keys already fired. Serialized as list, deserialized to set. Each key: "vassal\|diplo_key". Prevents cascade from firing twice per war. |
+| `continental_system_members` | list | [] | **Session 5.** Nations participating in the Continental System. PUPPET/SATELLITE vassals auto-join if lord is a member. Members lose trade income with Britain. |
 | `active_battles` | dict | {} | Currently ongoing battles |
 | `battle_history` | list | [] | Completed battle records |
 | `battles_this_turn` | list | [] | Battles this turn (Phase 5.2) |

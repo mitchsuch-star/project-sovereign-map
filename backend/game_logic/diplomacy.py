@@ -1288,3 +1288,70 @@ def _process_nation_authority(world) -> None:
     This function is a placeholder for any per-turn authority processing.
     """
     pass  # Authority changes happen at event time, not during turn processing
+
+
+# ═══════════════════════════════════════════════════════
+# AP/TURN CLAUSE VALIDATION (Phase 8 Session 5)
+# ═══════════════════════════════════════════════════════
+
+def validate_ap_clause(world, target: str) -> bool:
+    """Validate that AP/turn demand is allowed. Requires war_score > 80."""
+    player = getattr(world, 'player_nation', 'France')
+    diplo_key = world._make_diplo_key(player, target)
+    raw_score = world.war_scores.get(diplo_key, 0)
+
+    # Adjust sign for player perspective
+    parts = diplo_key.split("|")
+    if len(parts) == 2 and parts[0] == player:
+        war_score = raw_score
+    else:
+        war_score = -raw_score
+
+    return war_score > 80
+
+
+# ═══════════════════════════════════════════════════════
+# CONTINENTAL SYSTEM (Phase 8 Session 5 §5d)
+# ═══════════════════════════════════════════════════════
+
+def apply_continental_system(world) -> None:
+    """
+    Apply Continental System trade penalties during income phase.
+
+    Members: -75g/turn trade income cap with Britain.
+    Total cap: 200g/turn across all members.
+    PUPPET/SATELLITE vassals auto-join if lord runs system.
+    """
+    members = getattr(world, 'continental_system_members', [])
+    if not members:
+        return
+
+    lord = getattr(world, 'player_nation', 'France')
+
+    # Auto-join PUPPET/SATELLITE vassals
+    from backend.game_logic.vassal import AUTONOMY_PUPPET, AUTONOMY_SATELLITE
+    for vassal_name, state in world.vassals.items():
+        if state["lord"] == lord:
+            autonomy = state.get("autonomy", AUTONOMY_SATELLITE)
+            if autonomy in (AUTONOMY_PUPPET, AUTONOMY_SATELLITE):
+                if vassal_name not in members:
+                    members.append(vassal_name)
+
+    # Cap trade income between Britain and members
+    total_blocked = 0
+    max_total_cap = 200
+    for member in members:
+        if total_blocked >= max_total_cap:
+            break
+        # Check trade income between member and Britain
+        member_state = world.get_diplomatic_state(member, "Britain")
+        trade = TRADE_INCOME.get(member_state, 0)
+        if trade > 0:
+            blocked = min(75, trade, max_total_cap - total_blocked)
+            if member in world.nation_gold:
+                world.nation_gold[member] -= int(blocked)
+            if "Britain" in world.nation_gold:
+                world.nation_gold["Britain"] -= int(blocked)
+            total_blocked += blocked
+
+    world.continental_system_members = members

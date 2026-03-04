@@ -3119,3 +3119,61 @@ enemies = [m for m in world.marshals.values()
 | Prussia | Hardenberg | hawk | 6 | 65 | Demands respect, offers little. |
 | Austria | Metternich | schemer | 9 | 55 | Spider diplomat, delays & leverages. |
 | Saxony | Einsiedel | dove | 4 | 65 | Fears aggression, hopes for peace. |
+
+---
+
+## 17. Vassal System (Phase 8 Session 5)
+
+Nations can become vassals via treaty (requires OPEN_BORDERS+) or conquest. Single source of truth: `backend/game_logic/vassal.py`.
+
+### Autonomy Levels
+
+| Level | Name | Drift/Turn | Tribute Rate | Marshal Control |
+|-------|------|-----------|--------------|-----------------|
+| 0 | Puppet | -4 | 100% | Lord controls (trust=40) |
+| 1 | Satellite | -2 | 75% | Lord controls (trust=40) |
+| 2 | Autonomous | +1 | 50% | Vassal keeps own marshals |
+
+### Loyalty Formula (per turn)
+
+Base drift (autonomy level) + garrison bonus (+5 + min(troops//5000, 3)) + gold investment clause (amount//100) + shared enemy (+2 per shared war) + lord winning battles (+1/win, max +3) + lord losing battles (-2/loss, max -6) + relation modifier (relation//20). Clamped [0, 100].
+
+### Rebellion
+
+Loyalty = 0 triggers: diplomatic state → WAR, assimilated marshals return to vassal nation, all other vassals -10 loyalty (cascade), threat -10, relation -50.
+
+### Defection Cascade
+
+When lord's war_score < -30 AND vassal loyalty < 50: roll `random() < (50-loyalty)/100`. Fires AT MOST once per war pair (tracked in `cascade_triggered`). On success: -20 loyalty.
+
+### Investment
+
+1 DP + 200g → +10 loyalty. 3-turn cooldown per vassal.
+
+### Autonomy Change
+
+1 DP. Upgrade (more autonomy): +10 loyalty. Downgrade (less autonomy): -15 loyalty. Updates tribute rate.
+
+### Continental System
+
+Members lose trade income with Britain (-75g/turn cap per member, 200g/turn total cap). PUPPET/SATELLITE vassals auto-join if lord is a member.
+
+### AP/Turn Treaty Clause
+
+Requires war_score > 80. Reduces target nation's `nation_actions` by amount per turn (minimum 1).
+
+### Enemy Vassal Courting
+
+AI nations with 2+ DP can court player's vassals (loyalty < 50). Cost: 2 DP. Loyalty reduction: -15 (positive relation) or -5 (negative). 3-turn cooldown.
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `vassal.py` | Core engine: creation, loyalty, rebellion, cascade, tribute, investment, autonomy, assimilation, warnings |
+| `world_state.py` | Fields (vassals, cooldowns, cascade_triggered, continental_system_members), advance_turn steps 5-7, AP/turn clause |
+| `diplomacy.py` | AP clause validation, Continental System application |
+| `turn_manager.py` | Enemy vassal courting phase |
+| `dispatch.py` | Vassal loyalty warnings (Trigger 3) |
+| `notifications.py` | VASSAL_REBELLION, VASSAL_LOYALTY_CRITICAL types |
+| `executor.py` | invest_vassal, change_autonomy, make_vassal commands |

@@ -68,6 +68,10 @@ class CommandParser:
             # Square formation (Session 67) — Tactical Triangle Part A
             "form_square",   # Infantry anti-cavalry formation (1 AP)
             "break_square",  # Return to line formation (free)
+            # Vassal System (Phase 8 Session 5)
+            "invest_vassal",    # Invest in vassal (+10 loyalty)
+            "change_autonomy",  # Change vassal autonomy level
+            "make_vassal",      # Create a vassal
         ]
 
         # Valid stances for stance_change command (Phase 2.7)

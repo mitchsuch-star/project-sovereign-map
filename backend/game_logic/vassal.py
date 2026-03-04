@@ -1,0 +1,797 @@
+"""
+Vassal System — Phase 8 Session 5
+
+Single source of truth for vassal mechanics:
+  - Vassalage creation (treaty/conquest paths)
+  - Loyalty processing (drift, garrison, shared enemy, battles, relations)
+  - Rebellion (loyalty=0 → WAR + marshal transfer + cascade)
+  - Defection cascade (war_score < -30 + loyalty < 50)
+  - Tribute collection (gold per tribute_rate)
+  - Investment (1 DP + 200g → +10 loyalty)
+  - Autonomy changes (puppet/satellite/autonomous)
+  - Marshal assimilation (vassal marshals → player pool)
+  - Continental System enforcement
+"""
+
+import random
+from typing import List
+
+# ═══════ AUTONOMY LEVELS ═══════
+AUTONOMY_PUPPET = 0       # -4 drift/turn
+AUTONOMY_SATELLITE = 1    # -2 drift/turn
+AUTONOMY_AUTONOMOUS = 2   # +1 drift/turn
+
+AUTONOMY_DRIFT = {0: -4, 1: -2, 2: 1}
+
+AUTONOMY_NAMES = {0: "Puppet", 1: "Satellite", 2: "Autonomous"}
+
+# ═══════ TRIBUTE RATES ═══════
+TRIBUTE_RATES = {0: 1.0, 1: 0.75, 2: 0.5}  # % of vassal income
+
+# ═══════ INVESTMENT COSTS ═══════
+INVEST_DP_COST = 1
+INVEST_GOLD_COST = 200
+INVEST_LOYALTY_GAIN = 10
+INVEST_COOLDOWN = 3
+
+# ═══════ LOYALTY BOUNDS ═══════
+LOYALTY_MIN = 0
+LOYALTY_MAX = 100
+
+# ═══════ MARSHAL ASSIMILATION ═══════
+ASSIMILATION_TRUST = 40  # Starting trust for assimilated marshals
+
+
+# ═══════════════════════════════════════════════════════
+# VASSAL CREATION
+# ═══════════════════════════════════════════════════════
+
+def create_vassal_treaty(world, lord: str, vassal: str, generosity_bonus: int = 0) -> dict:
+    """
+    Create a vassal via treaty path.
+
+    Requires OPEN_BORDERS+ diplomatic state.
+    Loyalty = 60 + (generosity_bonus * 10), capped at 100.
+    Threat += 5.
+
+    Returns result dict with success/message.
+    """
+    # Validate diplomatic state
+    current_state = world.get_diplomatic_state(lord, vassal)
+    from backend.game_logic.diplomacy import VASSAL_MIN_STATES
+    if current_state not in VASSAL_MIN_STATES:
+        return {
+            "success": False,
+            "message": f"Cannot create vassal via treaty: requires OPEN_BORDERS or above (current: {current_state})."
+        }
+
+    # Check not already a vassal
+    if vassal in world.vassals:
+        return {
+            "success": False,
+            "message": f"{vassal} is already a vassal of {world.vassals[vassal]['lord']}."
+        }
+
+    # Calculate loyalty
+    loyalty = min(LOYALTY_MAX, 60 + (generosity_bonus * 10))
+
+    # Create vassal state
+    world.vassals[vassal] = {
+        "lord": lord,
+        "loyalty": int(loyalty),
+        "autonomy": AUTONOMY_SATELLITE,  # Treaty defaults to SATELLITE
+        "path": "treaty",
+        "created_turn": int(world.current_turn),
+        "tribute_rate": TRIBUTE_RATES[AUTONOMY_SATELLITE],
+        "carved_from": None,
+        "regions": None,
+    }
+
+    # Set diplomatic state to VASSAL
+    diplo_key = world._make_diplo_key(lord, vassal)
+    world.diplomatic_states[diplo_key] = "VASSAL"
+
+    # Threat increase
+    threat = getattr(world, 'threat_level', 0)
+    world.threat_level = int(threat + 5)
+
+    return {
+        "success": True,
+        "message": f"{vassal} has become a {AUTONOMY_NAMES[AUTONOMY_SATELLITE]} vassal of {lord} (loyalty: {int(loyalty)}).",
+        "vassal_state": world.vassals[vassal].copy(),
+    }
+
+
+def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0) -> dict:
+    """
+    Create a vassal via conquest path.
+
+    Loyalty = 20 + (garrison_size // 5000), capped at 100.
+    Threat += 25.
+    Autonomy defaults to PUPPET.
+
+    Returns result dict with success/message.
+    """
+    if vassal in world.vassals:
+        return {
+            "success": False,
+            "message": f"{vassal} is already a vassal of {world.vassals[vassal]['lord']}."
+        }
+
+    loyalty = min(LOYALTY_MAX, 20 + (garrison_size // 5000))
+
+    world.vassals[vassal] = {
+        "lord": lord,
+        "loyalty": int(loyalty),
+        "autonomy": AUTONOMY_PUPPET,
+        "path": "conquest",
+        "created_turn": int(world.current_turn),
+        "tribute_rate": TRIBUTE_RATES[AUTONOMY_PUPPET],
+        "carved_from": None,
+        "regions": None,
+    }
+
+    # Set diplomatic state to VASSAL
+    diplo_key = world._make_diplo_key(lord, vassal)
+    world.diplomatic_states[diplo_key] = "VASSAL"
+
+    # Higher threat for conquest
+    threat = getattr(world, 'threat_level', 0)
+    world.threat_level = int(threat + 25)
+
+    return {
+        "success": True,
+        "message": f"{vassal} has been subjugated as a {AUTONOMY_NAMES[AUTONOMY_PUPPET]} vassal of {lord} (loyalty: {int(loyalty)}).",
+        "vassal_state": world.vassals[vassal].copy(),
+    }
+
+
+# ═══════════════════════════════════════════════════════
+# LOYALTY PROCESSING (advance_turn Step 6)
+# ═══════════════════════════════════════════════════════
+
+def process_vassal_loyalty(world) -> List[dict]:
+    """
+    Process all vassal loyalty modifiers per turn.
+
+    Modifiers:
+    - Autonomy drift: PUPPET -4, SATELLITE -2, AUTONOMOUS +1
+    - Garrison in vassal capital: +5 base + min(garrison_troops//5000, 3)
+    - Gold investment treaty: +1 per 100g/turn from active treaty clause
+    - Shared enemy: +2 per shared war (lord and vassal both at WAR with same)
+    - Lord winning battles: +1 per battle won this turn (max +3)
+    - Lord losing battles: -2 per battle lost this turn (max -6)
+    - Relation modifier: nation_relation(vassal, lord) // 20
+
+    Returns list of event dicts for dispatch.
+    """
+    events = []
+
+    for vassal_name, state in list(world.vassals.items()):
+        lord = state["lord"]
+        old_loyalty = state["loyalty"]
+        delta = 0
+
+        # 1. Autonomy drift
+        autonomy = state.get("autonomy", AUTONOMY_SATELLITE)
+        drift = AUTONOMY_DRIFT.get(autonomy, 0)
+        delta += drift
+
+        # 2. Garrison in vassal capital
+        from backend.models.region import NATION_CAPITALS
+        vassal_capital = NATION_CAPITALS.get(vassal_name)
+        if vassal_capital:
+            region = world.regions.get(vassal_capital)
+            if region:
+                garrison_troops = getattr(region, 'garrison_troops', 0) or 0
+                if garrison_troops > 0 and getattr(region, 'controller', '') == lord:
+                    garrison_bonus = 5 + min(garrison_troops // 5000, 3)
+                    delta += garrison_bonus
+
+        # 3. Gold investment from treaty clauses
+        for pair_key, treaty in getattr(world, 'active_treaties', {}).items():
+            for clause in treaty.get("clauses", []):
+                if (clause.get("type") == "gold_per_turn"
+                        and clause.get("from") == lord
+                        and clause.get("to") == vassal_name):
+                    gold_amount = clause.get("amount", 0)
+                    delta += int(gold_amount) // 100
+
+        # 4. Shared enemy bonus
+        all_nations = ["France", "Britain", "Prussia", "Austria", "Saxony"]
+        for other_nation in all_nations:
+            if other_nation == lord or other_nation == vassal_name:
+                continue
+            lord_state = world.get_diplomatic_state(lord, other_nation)
+            vassal_state_diplo = world.get_diplomatic_state(vassal_name, other_nation)
+            if lord_state == "WAR" and vassal_state_diplo == "WAR":
+                delta += 2
+
+        # 5. Lord winning/losing battles this turn
+        battles = getattr(world, 'battles_this_turn', [])
+        wins = 0
+        losses = 0
+        for battle in battles:
+            victor = battle.get("victor", "")
+            attacker_nation = battle.get("attacker_nation", "")
+            defender_nation = battle.get("defender_nation", "")
+            if attacker_nation == lord or defender_nation == lord:
+                if victor and victor != "draw":
+                    # Check if lord's marshal won
+                    victor_marshal = world.get_marshal(victor)
+                    if victor_marshal and getattr(victor_marshal, 'nation', '') == lord:
+                        wins += 1
+                    else:
+                        losses += 1
+        delta += min(wins, 3)       # +1 per win, max +3
+        delta -= min(losses, 3) * 2  # -2 per loss, max -6
+
+        # 6. Relation modifier
+        diplo_key = world._make_diplo_key(vassal_name, lord)
+        relation = world.nation_relations.get(diplo_key, 0)
+        delta += relation // 20
+
+        # Apply delta
+        new_loyalty = max(LOYALTY_MIN, min(LOYALTY_MAX, old_loyalty + delta))
+        state["loyalty"] = int(new_loyalty)
+
+        # Generate event if significant change
+        if abs(delta) >= 3 or new_loyalty <= 20:
+            events.append({
+                "type": "vassal_loyalty",
+                "vassal": vassal_name,
+                "lord": lord,
+                "old_loyalty": int(old_loyalty),
+                "new_loyalty": int(new_loyalty),
+                "delta": int(delta),
+            })
+
+    return events
+
+
+# ═══════════════════════════════════════════════════════
+# REBELLION CHECK (advance_turn Step 7)
+# ═══════════════════════════════════════════════════════
+
+def check_vassal_rebellion(world) -> List[dict]:
+    """
+    Check for vassal rebellions. Loyalty=0 triggers rebellion.
+
+    Effects:
+    - Set diplomatic state to WAR
+    - Transfer vassal marshals back to vassal nation
+    - Cascade: all other vassals -10 loyalty
+    - Threat -10, relation -50
+
+    Returns list of event dicts.
+    """
+    events = []
+    rebellions = []
+
+    for vassal_name, state in list(world.vassals.items()):
+        if state["loyalty"] <= 0:
+            rebellions.append(vassal_name)
+
+    for vassal_name in rebellions:
+        lord = world.vassals[vassal_name]["lord"]
+
+        # Remove vassal state
+        del world.vassals[vassal_name]
+
+        # Set diplomatic state to WAR
+        diplo_key = world._make_diplo_key(lord, vassal_name)
+        world.diplomatic_states[diplo_key] = "WAR"
+
+        # Transfer vassal marshals back
+        for marshal in list(world.marshals.values()):
+            if (getattr(marshal, 'original_nation', None) == vassal_name
+                    and getattr(marshal, 'nation', '') == lord):
+                marshal.nation = vassal_name
+
+        # Cascade: all other vassals -10 loyalty
+        for other_vassal, other_state in world.vassals.items():
+            if other_state["lord"] == lord:
+                other_state["loyalty"] = max(LOYALTY_MIN, other_state["loyalty"] - 10)
+
+        # Threat -10
+        threat = getattr(world, 'threat_level', 0)
+        world.threat_level = int(max(0, threat - 10))
+
+        # Relation -50
+        world.modify_nation_relation(lord, vassal_name, -50)
+
+        events.append({
+            "type": "vassal_rebellion",
+            "vassal": vassal_name,
+            "lord": lord,
+            "message": f"{vassal_name} has REBELLED! All vassal marshals have returned to {vassal_name}. War declared.",
+        })
+
+    return events
+
+
+# ═══════════════════════════════════════════════════════
+# DEFECTION CASCADE (advance_turn Step 5)
+# ═══════════════════════════════════════════════════════
+
+def check_defection_cascade(world) -> List[dict]:
+    """
+    Check for defection cascade: war_score < -30 + loyalty < 50.
+
+    Random roll: random() < (50 - loyalty) / 100
+    Fires AT MOST once per war (tracked in world.cascade_triggered).
+
+    Returns list of event dicts.
+    """
+    events = []
+    lord = getattr(world, 'player_nation', 'France')
+    cascade_triggered = getattr(world, 'cascade_triggered', set())
+
+    for vassal_name, state in list(world.vassals.items()):
+        if state["lord"] != lord:
+            continue
+
+        loyalty = state["loyalty"]
+        if loyalty >= 50:
+            continue
+
+        # Check if lord is in a war with war_score < -30
+        all_nations = ["France", "Britain", "Prussia", "Austria", "Saxony"]
+        for enemy_nation in all_nations:
+            if enemy_nation == lord or enemy_nation == vassal_name:
+                continue
+
+            war_state = world.get_diplomatic_state(lord, enemy_nation)
+            if war_state != "WAR":
+                continue
+
+            diplo_key = world._make_diplo_key(lord, enemy_nation)
+            raw_score = world.war_scores.get(diplo_key, 0)
+
+            # Adjust sign: negative means lord is losing
+            parts = diplo_key.split("|")
+            if len(parts) == 2 and parts[0] == lord:
+                war_score = raw_score
+            else:
+                war_score = -raw_score
+
+            if war_score >= -30:
+                continue
+
+            # Check if cascade already triggered for this war
+            cascade_key = f"{vassal_name}|{diplo_key}"
+            if cascade_key in cascade_triggered:
+                continue
+
+            # Roll for defection
+            roll_chance = (50 - loyalty) / 100
+            if random.random() < roll_chance:
+                cascade_triggered.add(cascade_key)
+
+                # Vassal defects — reduce loyalty drastically
+                state["loyalty"] = max(LOYALTY_MIN, loyalty - 20)
+
+                events.append({
+                    "type": "vassal_defection_cascade",
+                    "vassal": vassal_name,
+                    "lord": lord,
+                    "war_against": enemy_nation,
+                    "loyalty_before": int(loyalty),
+                    "loyalty_after": int(state["loyalty"]),
+                    "message": f"{vassal_name} is wavering! The war against {enemy_nation} shakes their loyalty.",
+                })
+
+    world.cascade_triggered = cascade_triggered
+    return events
+
+
+# ═══════════════════════════════════════════════════════
+# TRIBUTE PROCESSING
+# ═══════════════════════════════════════════════════════
+
+def process_vassal_tribute(world) -> dict:
+    """
+    Process vassal tribute payments during income phase.
+
+    Each vassal pays tribute_rate * their regional income to their lord.
+    """
+    tribute_events = {}
+
+    for vassal_name, state in world.vassals.items():
+        lord = state["lord"]
+        tribute_rate = state.get("tribute_rate", 0.5)
+
+        # Calculate vassal's base income (simplified: count controlled regions * 50)
+        vassal_income = 0
+        for region_name, region in world.regions.items():
+            if getattr(region, 'controller', '') == vassal_name:
+                vassal_income += 50  # Base region income
+
+        tribute_amount = int(vassal_income * tribute_rate)
+        if tribute_amount <= 0:
+            continue
+
+        # Transfer gold
+        vassal_gold = world.nation_gold.get(vassal_name, 0)
+        actual_tribute = min(tribute_amount, max(0, vassal_gold))
+        if actual_tribute > 0:
+            world.nation_gold[vassal_name] = int(vassal_gold - actual_tribute)
+            lord_gold = world.nation_gold.get(lord, 0)
+            world.nation_gold[lord] = int(lord_gold + actual_tribute)
+
+            tribute_events[vassal_name] = {
+                "amount": int(actual_tribute),
+                "lord": lord,
+            }
+
+    return tribute_events
+
+
+# ═══════════════════════════════════════════════════════
+# INVESTMENT
+# ═══════════════════════════════════════════════════════
+
+def invest_in_vassal(world, vassal_name: str) -> dict:
+    """
+    Invest in vassal: 1 DP + 200g → +10 loyalty.
+
+    Requires:
+    - Vassal exists
+    - Player has DP available
+    - Player has 200+ gold
+    - Not on cooldown (3 turns)
+
+    Returns result dict.
+    """
+    if vassal_name not in world.vassals:
+        return {"success": False, "message": f"{vassal_name} is not a vassal."}
+
+    state = world.vassals[vassal_name]
+    lord = state["lord"]
+
+    # Check cooldown
+    cooldowns = getattr(world, 'vassal_investment_cooldowns', {})
+    if cooldowns.get(vassal_name, 0) > 0:
+        remaining = cooldowns[vassal_name]
+        return {
+            "success": False,
+            "message": f"Investment in {vassal_name} on cooldown ({remaining} turns remaining)."
+        }
+
+    # Check DP
+    dp = getattr(world, 'diplomatic_points', 0)
+    if dp < INVEST_DP_COST:
+        return {
+            "success": False,
+            "message": f"Insufficient diplomatic points ({dp}/{INVEST_DP_COST} required)."
+        }
+
+    # Check gold
+    gold = world.nation_gold.get(lord, 0)
+    if gold < INVEST_GOLD_COST:
+        return {
+            "success": False,
+            "message": f"Insufficient gold ({gold}/{INVEST_GOLD_COST} required)."
+        }
+
+    # Apply investment
+    world.diplomatic_points = int(dp - INVEST_DP_COST)
+    world.nation_gold[lord] = int(gold - INVEST_GOLD_COST)
+    old_loyalty = state["loyalty"]
+    state["loyalty"] = int(min(LOYALTY_MAX, old_loyalty + INVEST_LOYALTY_GAIN))
+    cooldowns[vassal_name] = INVEST_COOLDOWN
+    world.vassal_investment_cooldowns = cooldowns
+
+    return {
+        "success": True,
+        "message": (
+            f"Invested in {vassal_name}: +{INVEST_LOYALTY_GAIN} loyalty "
+            f"({old_loyalty} → {state['loyalty']}). "
+            f"Cost: {INVEST_DP_COST} DP + {INVEST_GOLD_COST}g. "
+            f"Cooldown: {INVEST_COOLDOWN} turns."
+        ),
+    }
+
+
+# ═══════════════════════════════════════════════════════
+# AUTONOMY CHANGES
+# ═══════════════════════════════════════════════════════
+
+def change_vassal_autonomy(world, vassal_name: str, new_level: int) -> dict:
+    """
+    Change vassal autonomy level. Costs 1 DP.
+
+    Upgrading (more autonomy): +10 loyalty
+    Downgrading (less autonomy): -15 loyalty
+
+    Returns result dict.
+    """
+    if vassal_name not in world.vassals:
+        return {"success": False, "message": f"{vassal_name} is not a vassal."}
+
+    if new_level not in AUTONOMY_NAMES:
+        return {"success": False, "message": f"Invalid autonomy level: {new_level}. Use 0 (Puppet), 1 (Satellite), or 2 (Autonomous)."}
+
+    state = world.vassals[vassal_name]
+    old_level = state.get("autonomy", AUTONOMY_SATELLITE)
+
+    if old_level == new_level:
+        return {"success": False, "message": f"{vassal_name} is already {AUTONOMY_NAMES[new_level]}."}
+
+    # Check DP
+    dp = getattr(world, 'diplomatic_points', 0)
+    if dp < 1:
+        return {"success": False, "message": f"Insufficient diplomatic points ({dp}/1 required)."}
+
+    # Apply change
+    world.diplomatic_points = int(dp - 1)
+    state["autonomy"] = int(new_level)
+    state["tribute_rate"] = TRIBUTE_RATES[new_level]
+
+    # Loyalty adjustment
+    if new_level > old_level:
+        # More autonomy = vassal is happier
+        state["loyalty"] = int(min(LOYALTY_MAX, state["loyalty"] + 10))
+        loyalty_msg = "+10 loyalty (increased autonomy)"
+    else:
+        # Less autonomy = vassal is unhappy
+        state["loyalty"] = int(max(LOYALTY_MIN, state["loyalty"] - 15))
+        loyalty_msg = "-15 loyalty (decreased autonomy)"
+
+    return {
+        "success": True,
+        "message": (
+            f"{vassal_name} autonomy changed: "
+            f"{AUTONOMY_NAMES[old_level]} → {AUTONOMY_NAMES[new_level]}. "
+            f"{loyalty_msg}. Tribute rate: {TRIBUTE_RATES[new_level]*100:.0f}%."
+        ),
+    }
+
+
+# ═══════════════════════════════════════════════════════
+# MARSHAL ASSIMILATION (EC-K.1)
+# ═══════════════════════════════════════════════════════
+
+def assimilate_vassal_marshals(world, vassal_name: str) -> List[str]:
+    """
+    Add vassal nation's marshals to the lord's control.
+
+    PUPPET/SATELLITE: marshals become lord-controlled with trust=40.
+    AUTONOMOUS: marshals stay AI-controlled (no assimilation).
+
+    Sets marshal.original_nation for rebellion transfer-back.
+
+    Returns list of assimilated marshal names.
+    """
+    if vassal_name not in world.vassals:
+        return []
+
+    state = world.vassals[vassal_name]
+    lord = state["lord"]
+    autonomy = state.get("autonomy", AUTONOMY_SATELLITE)
+
+    # AUTONOMOUS vassals keep their own marshals
+    if autonomy == AUTONOMY_AUTONOMOUS:
+        return []
+
+    assimilated = []
+    for marshal in list(world.marshals.values()):
+        if getattr(marshal, 'nation', '') == vassal_name:
+            # Record original nation for rebellion transfer-back
+            marshal.original_nation = vassal_name
+            # Transfer to lord
+            marshal.nation = lord
+            # Set trust to assimilation level
+            if hasattr(marshal, 'trust') and hasattr(marshal.trust, 'value'):
+                marshal.trust._value = ASSIMILATION_TRUST
+            # Set Professional relationship baseline
+            marshal.relationship_with_lord = "Professional"
+            assimilated.append(marshal.name)
+
+    return assimilated
+
+
+# ═══════════════════════════════════════════════════════
+# VASSAL WARNINGS
+# ═══════════════════════════════════════════════════════
+
+def get_vassal_warnings(world) -> List[dict]:
+    """
+    Get vassal loyalty warnings.
+
+    <40: warning
+    <20: urgent
+    <10: critical notification
+    """
+    warnings = []
+    for vassal_name, state in world.vassals.items():
+        loyalty = state["loyalty"]
+        if loyalty < 10:
+            warnings.append({
+                "vassal": vassal_name,
+                "loyalty": int(loyalty),
+                "level": "critical",
+                "message": f"{vassal_name} CRITICAL: Loyalty at {int(loyalty)}! Rebellion imminent!",
+            })
+        elif loyalty < 20:
+            warnings.append({
+                "vassal": vassal_name,
+                "loyalty": int(loyalty),
+                "level": "urgent",
+                "message": f"{vassal_name}: Loyalty dangerously low ({int(loyalty)}). Invest or face rebellion.",
+            })
+        elif loyalty < 40:
+            warnings.append({
+                "vassal": vassal_name,
+                "loyalty": int(loyalty),
+                "level": "warning",
+                "message": f"{vassal_name}: Loyalty declining ({int(loyalty)}). Consider intervention.",
+            })
+
+    return warnings
+
+
+# ═══════════════════════════════════════════════════════
+# RELEASE VASSAL
+# ═══════════════════════════════════════════════════════
+
+def release_vassal(world, vassal_name: str, rebellion: bool = False) -> dict:
+    """
+    Release a vassal. Restores their marshals.
+
+    If rebellion=True, this is a forced release from rebellion check.
+    Otherwise it's a voluntary release.
+    """
+    if vassal_name not in world.vassals:
+        return {"success": False, "message": f"{vassal_name} is not a vassal."}
+
+    state = world.vassals[vassal_name]
+    lord = state["lord"]
+
+    # Restore marshals to vassal nation
+    for marshal in list(world.marshals.values()):
+        if getattr(marshal, 'original_nation', None) == vassal_name:
+            marshal.nation = vassal_name
+            if hasattr(marshal, 'original_nation'):
+                delattr(marshal, 'original_nation')
+
+    # Remove vassal state
+    del world.vassals[vassal_name]
+
+    # Set diplomatic state to PEACE (or WAR if rebellion)
+    diplo_key = world._make_diplo_key(lord, vassal_name)
+    if rebellion:
+        world.diplomatic_states[diplo_key] = "WAR"
+    else:
+        world.diplomatic_states[diplo_key] = "PEACE"
+
+    return {
+        "success": True,
+        "message": f"{vassal_name} has been released from vassalage.",
+    }
+
+
+# ═══════════════════════════════════════════════════════
+# COOLDOWN MANAGEMENT
+# ═══════════════════════════════════════════════════════
+
+def decrement_vassal_cooldowns(world) -> None:
+    """Decrement vassal investment cooldowns by 1. Remove expired."""
+    cooldowns = getattr(world, 'vassal_investment_cooldowns', {})
+    expired = []
+    for vassal_name in cooldowns:
+        cooldowns[vassal_name] -= 1
+        if cooldowns[vassal_name] <= 0:
+            expired.append(vassal_name)
+    for vassal_name in expired:
+        del cooldowns[vassal_name]
+    world.vassal_investment_cooldowns = cooldowns
+
+
+# ═══════════════════════════════════════════════════════
+# CONTINENTAL SYSTEM
+# ═══════════════════════════════════════════════════════
+
+def apply_continental_system(world) -> None:
+    """
+    Apply Continental System trade penalties during income phase.
+
+    Members: -75g/turn trade income cap with Britain.
+    Total cap: 200g/turn across all members.
+    PUPPET/SATELLITE auto-join if lord runs system.
+    """
+    members = getattr(world, 'continental_system_members', [])
+    if not members:
+        return
+
+    lord = getattr(world, 'player_nation', 'France')
+
+    # Auto-join PUPPET/SATELLITE vassals
+    for vassal_name, state in world.vassals.items():
+        if state["lord"] == lord:
+            autonomy = state.get("autonomy", AUTONOMY_SATELLITE)
+            if autonomy in (AUTONOMY_PUPPET, AUTONOMY_SATELLITE):
+                if vassal_name not in members:
+                    members.append(vassal_name)
+
+    # Penalty: reduce British trade income from member nations
+    # This is applied by zeroing out trade income between Britain and members
+    for member in members:
+        trade_key_1 = world._make_diplo_key(member, "Britain")
+        # Mark that trade is blocked (processed in trade income phase)
+        if not hasattr(world, '_continental_system_blocked'):
+            world._continental_system_blocked = set()
+        world._continental_system_blocked.add(trade_key_1)
+
+    world.continental_system_members = members
+
+
+# ═══════════════════════════════════════════════════════
+# ENEMY VASSAL COURTING
+# ═══════════════════════════════════════════════════════
+
+def attempt_vassal_courting(world, nation: str) -> List[dict]:
+    """
+    Enemy AI attempts to court player's vassals.
+
+    Conditions:
+    - Nation has 2+ DP
+    - Player has vassals with loyalty < 50
+    Cost: 2 DP
+    Success: loyalty -15 (positive relation) or -5 (negative relation)
+    Anti-spam: 3-turn cooldown per nation per vassal
+
+    Returns list of event dicts.
+    """
+    events = []
+    player = getattr(world, 'player_nation', 'France')
+
+    dp = getattr(world, 'diplomatic_points_nations', {}).get(nation, 0)
+    if dp < 2:
+        return events
+
+    for vassal_name, state in world.vassals.items():
+        if state["lord"] != player:
+            continue
+        if state["loyalty"] >= 50:
+            continue
+
+        # Anti-spam cooldown
+        cooldown_key = f"court|{nation}|{vassal_name}"
+        cooldown = world.ai_proposal_cooldowns.get(cooldown_key, 0)
+        if cooldown > 0:
+            continue
+
+        # Cost 2 DP
+        dp_nations = getattr(world, 'diplomatic_points_nations', {})
+        if dp_nations.get(nation, 0) < 2:
+            continue
+
+        dp_nations[nation] = dp_nations.get(nation, 0) - 2
+
+        # Calculate loyalty reduction
+        diplo_key = world._make_diplo_key(vassal_name, nation)
+        relation = world.nation_relations.get(diplo_key, 0)
+        if relation > 0:
+            loyalty_reduction = 15
+        else:
+            loyalty_reduction = 5
+
+        state["loyalty"] = max(LOYALTY_MIN, state["loyalty"] - loyalty_reduction)
+
+        # Set cooldown
+        world.ai_proposal_cooldowns[cooldown_key] = 3
+
+        events.append({
+            "type": "vassal_courting",
+            "nation": nation,
+            "vassal": vassal_name,
+            "loyalty_reduction": int(loyalty_reduction),
+            "new_loyalty": int(state["loyalty"]),
+            "message": f"{nation} is courting {vassal_name}! Loyalty dropped by {loyalty_reduction}.",
+        })
+
+        # Only court one vassal per nation per turn
+        break
+
+    return events

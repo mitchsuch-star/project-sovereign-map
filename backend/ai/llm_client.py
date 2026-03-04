@@ -661,6 +661,20 @@ class LLMClient:
             "return to line", "line formation",
         ]):
             action = "break_square"
+        # Vassal System (Phase 8 Session 5)
+        elif any(kw in command_lower for kw in [
+            "invest in vassal", "invest vassal", "invest in ",
+        ]):
+            action = "invest_vassal"
+        elif any(kw in command_lower for kw in [
+            "change autonomy", "set autonomy", "make puppet",
+            "make satellite", "make autonomous",
+        ]):
+            action = "change_autonomy"
+        elif any(kw in command_lower for kw in [
+            "make vassal", "vassalize", "subjugate",
+        ]):
+            action = "make_vassal"
         # ═══════ ADD NEW ACTION KEYWORDS HERE ═══════
         # When adding a new action, add an elif block above this comment.
         # Also update: validation.py VALID_ACTIONS, parser.py valid_actions,
