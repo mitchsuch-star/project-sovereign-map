@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 4, 2026 (Session 8A — Backend Ledger + Debug Arsenal)
+> **Last Updated:** March 4, 2026 (Session 8B — Diplomatic Ledger UI + Top Bar)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **5027** (5027 passed, 3 skipped — verified Mar 4, Session 8A) |
+| **Tests Passing** | **5057** (5057 passed, 3 skipped — verified Mar 4, Session 8B) |
 
-| **Current Phase** | Phase 8: Diplomacy. **Session 8A COMPLETE** (Backend Ledger + Debug Arsenal). Next: Sessions 8B–8D (UI + Popups + Polish). See `docs/SESSION_8_PLAN.md`. |
+| **Current Phase** | Phase 8: Diplomacy. **Sessions 8A + 8B COMPLETE** (Backend Ledger + Debug + UI + Top Bar). Next: Sessions 8C–8D (Popups + Notifications + Polish). See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -29,7 +29,7 @@
    - ~~Session 6: Talleyrand Defiance + Diplomatic Objections~~ — **DONE** (diplomatic_defiance.py, defiance probability curve, 5 sabotage types, discovery+confrontation, redemption event, pre-proposal objections, enemy diplomat voices T21-T27, dispatch integration, 76 new tests)
    - ~~Session 7: Coalition System~~ — **DONE** (coalition.py engine, threat accumulation/decay, coalition formation/brewing/instant, leader selection+posture, coalition AI friction+convergence, war exhaustion, British subsidy, loyalty penalty+wedge, dissolution+cooldown, dispatch integration, T28-T34 templates, 80 new tests)
    - ~~Session 8A: Backend Ledger Builder + Debug Arsenal~~ — **DONE** (diplomatic_ledger.py with 4 tabs fog-filtered, GET /diplomatic_ledger endpoint, 7 top-bar fields, 3 popup pass-throughs with clear-after-read, 10 cheat commands with mock parser, calculate_war_score components extension, 8 debug endpoints, get_diplomatic_ledger() in api_client.gd, 82 new tests)
-   - Session 8B: Diplomatic Ledger Godot UI + Top Bar
+   - ~~Session 8B: Diplomatic Ledger Godot UI + Top Bar~~ — **DONE** (diplomatic_ledger.gd/.tscn 4-tab screen, D key for diplomatic ledger, R key for dispatch re-read, top bar DP/threat/Talleyrand/envoy fields with pulse + click, diplomatic fields in /command response, 30 new tests)
    - Session 8C: Popups + Notifications
    - Session 8D: Dispatch Integration + Polish + Deferred Mechanical
 2. **Jealousy system** — NEEDS DESIGN GATE (separate track). See CLAUDE.md.

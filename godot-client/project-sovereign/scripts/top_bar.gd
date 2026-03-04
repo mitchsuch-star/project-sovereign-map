@@ -13,14 +13,25 @@ signal screen_changed(screen_name: String)
 @onready var event_log_btn: Button = $BarContainer/BarBG/BarLayout/ScreenButtons/EventLogBtn
 @onready var ledger_btn: Button = $BarContainer/BarBG/BarLayout/ScreenButtons/LedgerBtn
 @onready var generals_btn: Button = $BarContainer/BarBG/BarLayout/ScreenButtons/GeneralsBtn
+@onready var diplo_ledger_btn: Button = $BarContainer/BarBG/BarLayout/ScreenButtons/DiploLedgerBtn
 @onready var dispatch_btn: Button = $BarContainer/BarBG/BarLayout/ScreenButtons/DispatchBtn
 @onready var notification_area: Control = $BarContainer/BarBG/BarLayout/RightSection/NotificationArea
 @onready var turn_label: Label = $BarContainer/BarBG/BarLayout/RightSection/TurnLabel
 
+# Diplomatic top bar fields (Session 8B)
+@onready var dp_label: Label = $BarContainer/BarBG/BarLayout/RightSection/DPLabel
+@onready var threat_label: Label = $BarContainer/BarBG/BarLayout/RightSection/ThreatLabel
+@onready var talleyrand_label: Label = $BarContainer/BarBG/BarLayout/RightSection/TalleyrandLabel
+@onready var envoy_label: Label = $BarContainer/BarBG/BarLayout/RightSection/EnvoyLabel
+
 # State tracking
-var active_screen: String = ""  # "" = none, "event_log", "ledger", "generals", "dispatch"
+var active_screen: String = ""  # "" = none, "event_log", "ledger", "generals", "diplomatic_ledger", "dispatch"
 var screens: Dictionary = {}    # maps screen name -> node reference
 var api_client = null
+
+# Threat pulse state (Session 8B)
+var _threat_pulse_timer: Timer = null
+var _threat_pulsing: bool = false
 
 # Button -> screen name mapping
 var button_map: Dictionary = {}
@@ -51,6 +62,7 @@ func _ready():
 	event_log_btn.pressed.connect(_on_button_pressed.bind("event_log"))
 	ledger_btn.pressed.connect(_on_button_pressed.bind("ledger"))
 	generals_btn.pressed.connect(_on_button_pressed.bind("generals"))
+	diplo_ledger_btn.pressed.connect(_on_button_pressed.bind("diplomatic_ledger"))
 	dispatch_btn.pressed.connect(_on_button_pressed.bind("dispatch"))
 
 	# Map buttons to screen names
@@ -58,6 +70,7 @@ func _ready():
 		"event_log": event_log_btn,
 		"ledger": ledger_btn,
 		"generals": generals_btn,
+		"diplomatic_ledger": diplo_ledger_btn,
 		"dispatch": dispatch_btn,
 	}
 
@@ -70,6 +83,24 @@ func _ready():
 
 	# Initialize turn label
 	turn_label.text = "Turn 1"
+
+	# Initialize diplomatic fields (Session 8B)
+	dp_label.text = "DP: 0/3"
+	threat_label.text = ""
+	threat_label.visible = false
+	talleyrand_label.text = "Talleyrand: Idle"
+	envoy_label.text = ""
+	envoy_label.visible = false
+
+	# Envoy label click handler
+	envoy_label.mouse_filter = Control.MOUSE_FILTER_STOP
+	envoy_label.gui_input.connect(_on_envoy_input)
+
+	# Threat pulse timer
+	_threat_pulse_timer = Timer.new()
+	_threat_pulse_timer.wait_time = 0.5
+	_threat_pulse_timer.timeout.connect(_on_threat_pulse)
+	add_child(_threat_pulse_timer)
 
 
 func set_api_client(client):
@@ -193,3 +224,84 @@ func _update_button_highlights():
 		else:
 			btn.add_theme_stylebox_override("normal", _normal_style)
 			btn.add_theme_color_override("font_color", Color(0.75, 0.72, 0.65, 1.0))
+
+
+# =============================================================================
+# DIPLOMATIC TOP BAR FIELDS (Session 8B)
+# =============================================================================
+
+signal envoy_clicked
+
+func update_diplomatic_fields(data: Dictionary):
+	"""Update all diplomatic top bar fields from /test poll data."""
+	# DP counter
+	var dp = int(data.get("diplomatic_points", 0))
+	var dp_max = int(data.get("max_diplomatic_points", 3))
+	dp_label.text = "DP: " + str(dp) + "/" + str(dp_max)
+
+	# Threat indicator
+	var threat = int(data.get("threat_level", 0))
+	var brewing = data.get("coalition_brewing", false)
+	if threat < 30:
+		threat_label.visible = false
+		_stop_threat_pulse()
+	elif threat < 60:
+		threat_label.visible = true
+		threat_label.text = "[THREAT]"
+		threat_label.add_theme_color_override("font_color", Color(0.85, 0.65, 0.2, 1.0))
+		if brewing:
+			_start_threat_pulse()
+		else:
+			_stop_threat_pulse()
+	else:
+		threat_label.visible = true
+		threat_label.text = "[THREAT!]"
+		threat_label.add_theme_color_override("font_color", Color(0.85, 0.25, 0.25, 1.0))
+		if brewing:
+			_start_threat_pulse()
+		else:
+			_stop_threat_pulse()
+
+	# Talleyrand status
+	var mission_summary = str(data.get("talleyrand_mission_summary", "Idle"))
+	if mission_summary == "" or mission_summary == "null":
+		mission_summary = "Idle"
+	talleyrand_label.text = "Talleyrand: " + mission_summary
+
+	# Envoy indicator
+	var envoy_count = int(data.get("pending_envoy_count", 0))
+	if envoy_count > 0:
+		envoy_label.visible = true
+		envoy_label.text = "[!] " + str(envoy_count) + " envoy"
+		envoy_label.add_theme_color_override("font_color", Color(0.85, 0.65, 0.2, 1.0))
+	else:
+		envoy_label.visible = false
+
+
+func _start_threat_pulse():
+	"""Start the threat indicator pulsing."""
+	if not _threat_pulsing:
+		_threat_pulsing = true
+		_threat_pulse_timer.start()
+
+
+func _stop_threat_pulse():
+	"""Stop the threat indicator pulsing."""
+	if _threat_pulsing:
+		_threat_pulsing = false
+		_threat_pulse_timer.stop()
+		threat_label.modulate = Color(1, 1, 1, 1)
+
+
+func _on_threat_pulse():
+	"""Toggle threat label visibility for pulse effect."""
+	if threat_label.modulate.a > 0.5:
+		threat_label.modulate = Color(1, 1, 1, 0.3)
+	else:
+		threat_label.modulate = Color(1, 1, 1, 1.0)
+
+
+func _on_envoy_input(event):
+	"""Handle click on envoy indicator — emit signal for main.gd to handle."""
+	if event is InputEventMouseButton and event.pressed:
+		envoy_clicked.emit()

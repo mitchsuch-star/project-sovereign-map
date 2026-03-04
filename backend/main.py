@@ -644,7 +644,14 @@ def execute_command(request: CommandRequest):
             "events": result.get("events", []),
             "action_info": result.get("action_info", {}),
             "action_summary": action_summary,
-            "game_state": world.get_filtered_game_state_summary()
+            "game_state": world.get_filtered_game_state_summary(),
+            # Diplomatic top-bar fields (Session 8B) — piggyback on every command response
+            "diplomatic_points": int(getattr(world, 'diplomatic_points', 0)),
+            "max_diplomatic_points": int(getattr(world, 'max_diplomatic_points', 3)),
+            "talleyrand_mission_summary": _get_talleyrand_mission_summary(world),
+            "threat_level": int(getattr(world, 'threat_level', 0)),
+            "coalition_brewing": getattr(world, 'coalition_brewing', None) is not None,
+            "pending_envoy_count": int(len(getattr(world, 'diplomatic_queue', []))),
         }
 
         # Add feedback if generated

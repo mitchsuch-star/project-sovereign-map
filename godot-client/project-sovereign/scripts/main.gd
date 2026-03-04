@@ -247,6 +247,7 @@ func _ready():
 		add_child(top_bar)
 		top_bar.set_api_client(api_client)
 		top_bar.screen_changed.connect(_on_screen_changed)
+		top_bar.envoy_clicked.connect(_on_envoy_clicked)
 		print("✓ TopBar ready!")
 
 	# Load and setup Campaign Log (Phase 6.5)
@@ -286,6 +287,15 @@ func _ready():
 		if top_bar:
 			top_bar.register_screen("generals", marshal_management)
 		print("✓ MarshalManagement ready!")
+
+	# Load and setup Diplomatic Ledger (Session 8B)
+	var diplo_ledger_scene = load("res://scenes/diplomatic_ledger.tscn")
+	if diplo_ledger_scene:
+		var diplomatic_ledger = diplo_ledger_scene.instantiate()
+		add_child(diplomatic_ledger)
+		if top_bar:
+			top_bar.register_screen("diplomatic_ledger", diplomatic_ledger)
+		print("✓ DiplomaticLedger ready!")
 
 	# Load and setup Notification Bar (Phase 6.5) — reparented into top bar
 	var notification_bar_scene = load("res://scenes/notification_bar.tscn")
@@ -357,6 +367,9 @@ func _on_connection_test(response):
 			_update_gold_display()
 		if response.has("manpower_pools"):
 			_apply_manpower(response.manpower_pools)
+
+		# Update diplomatic top bar fields (Session 8B)
+		_update_diplomatic_top_bar(response)
 
 		# Update map with initial state
 		if response.has("game_state") and response.game_state.has("map_data"):
@@ -482,7 +495,7 @@ func _unhandled_input(event):
 			get_viewport().set_input_as_handled()
 			return
 
-		# ═══ SCREEN HOTKEYS (L, T, G, D) — work even when a screen is open ═══
+		# ═══ SCREEN HOTKEYS (L, T, G, D, R) — work even when a screen is open ═══
 		# Only blocked by modal dialogs or text input focus
 		if event.keycode == KEY_L:
 			if not _is_hotkey_blocked():
@@ -503,6 +516,12 @@ func _unhandled_input(event):
 				get_viewport().set_input_as_handled()
 			return
 		if event.keycode == KEY_D:
+			if not _is_hotkey_blocked():
+				if top_bar:
+					top_bar.toggle_screen("diplomatic_ledger")
+				get_viewport().set_input_as_handled()
+			return
+		if event.keycode == KEY_R:
 			if not _is_hotkey_blocked():
 				if top_bar:
 					top_bar.toggle_screen("dispatch")
@@ -683,6 +702,9 @@ func _on_command_result(response):
 		# Update status displays
 		if response.has("action_summary"):
 			_update_status(response.action_summary)
+
+		# Update diplomatic top bar fields (Session 8B)
+		_update_diplomatic_top_bar(response)
 
 		if response.has("game_state") and response.game_state.has("gold"):
 			gold = int(response.game_state.gold)
@@ -1484,6 +1506,26 @@ func _update_status(action_summary: Dictionary):
 	# Update top bar turn counter
 	if top_bar:
 		top_bar.update_turn(current_turn)
+
+
+func _update_diplomatic_top_bar(response: Dictionary):
+	"""Update diplomatic fields in top bar from /test or /command response."""
+	if not top_bar:
+		return
+	if not top_bar.has_method("update_diplomatic_fields"):
+		return
+	var diplo_data = {}
+	# Check game_state first (command responses), then top-level (connection test)
+	if response.has("diplomatic_points"):
+		diplo_data["diplomatic_points"] = response.get("diplomatic_points", 0)
+		diplo_data["max_diplomatic_points"] = response.get("max_diplomatic_points", 3)
+		diplo_data["threat_level"] = response.get("threat_level", 0)
+		diplo_data["coalition_brewing"] = response.get("coalition_brewing", false)
+		diplo_data["talleyrand_mission_summary"] = response.get("talleyrand_mission_summary", "Idle")
+		diplo_data["pending_envoy_count"] = response.get("pending_envoy_count", 0)
+	if not diplo_data.is_empty():
+		top_bar.update_diplomatic_fields(diplo_data)
+
 
 func _update_gold_display():
 	"""Update treasury display with formatting."""
@@ -2548,6 +2590,13 @@ func _on_screen_changed(screen_name: String):
 		# All screens closed — restore map interaction
 		map_area.mouse_filter = Control.MOUSE_FILTER_STOP
 		map_area.panning_enabled = true
+
+
+func _on_envoy_clicked():
+	"""Handle envoy indicator click — type diplomatic report command."""
+	command_input.text = "Talleyrand, report on the waiting envoy"
+	command_input.grab_focus()
+	command_input.caret_column = command_input.text.length()
 
 func _on_pause_save_requested():
 	"""Handle Save Game from pause menu."""

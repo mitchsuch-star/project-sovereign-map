@@ -2,7 +2,7 @@
 
 > **THE source of truth for all phases and timeline.**
 > **Other docs reference this — phase numbers only exist here.**
-> **Last Updated:** March 4, 2026 (Session 8A Backend Ledger + Debug Arsenal COMPLETE)
+> **Last Updated:** March 4, 2026 (Session 8B Diplomatic Ledger UI + Top Bar COMPLETE)
 
 ---
 
@@ -16,7 +16,7 @@
 | **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE, Top Bar + Dispatch COMPLETE, Strategic Ledger COMPLETE, Marshal Management UI COMPLETE, Tooltips ABSORBED into Map Renderer, Tutorial Infrastructure DEFERRED to Pre-EA. Remaining: Map Renderer — blocked on art commission) |
 | **7 Core** | **Multi-Marshal Coordination** | **Spec COMPLETE + AUDITED + SCOPED.** 7 sessions (57-61a, 61b, 64). ~246 tests. |
 | 7b | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b, Jealousy | **IN PROGRESS** — V2b COMPLETE, Tactical Triangle COMPLETE. Remaining: Jealousy (NEEDS DESIGN), Gneisenau (1805). Coalition Trigger moved to Phase 8. |
-| **8** | **Diplomacy & Peace** | **Sessions 1A–7 + 8A COMPLETE. Sessions 8B–8D: UI + Popups + Polish** (see `SESSION_8_PLAN.md`) |
+| **8** | **Diplomacy & Peace** | **Sessions 1A–7 + 8A + 8B COMPLETE. Sessions 8C–8D: Popups + Notifications + Polish** (see `SESSION_8_PLAN.md`) |
 | 8.5 | Events, Goals & National Identity | Planned |
 | -- | **STEAM PAGE + LLC** | **After 8.5** |
 | 9 | Advisors (Minimal) | Planned |
@@ -400,7 +400,7 @@ If marshal strength < 20% of starting_strength AND enemy in same region -> ALWAY
 | **6** | Talleyrand Defiance + Objections | Sabotage, discovery, diplomatic confrontation | ~50 | MEDIUM |
 | **7** | Coalition System (NEW) | Formation, structure, AI, breaking, dissolution, British subsidy | ~55 | HIGH |
 | **8A** | Backend Ledger + Debug Arsenal | diplomatic_ledger.py, GET /diplomatic_ledger, 10 cheat commands, 8 debug endpoints, pass-throughs | **82** | **COMPLETE** |
-| **8B** | Diplomatic Ledger UI + Top Bar | 4-tab Godot ledger (D key), top bar (DP/threat/Talleyrand/envoy), Dispatch→R key | ~15 | MEDIUM |
+| **8B** | Diplomatic Ledger UI + Top Bar | 4-tab Godot ledger (D key), top bar (DP/threat/Talleyrand/envoy), Dispatch→R key | **30** | **COMPLETE** |
 | **8C** | Popups + Notifications | 6 popups (coalition/proposal/objection/sabotage/redemption/vassal), 18 notification templates | ~40 | MEDIUM |
 | **8D** | Dispatch + Polish + Deferred | ~20 dispatch event types, campaign log, fog filtering, AI-AI diplomacy, special acceptance bonuses | ~50 | MEDIUM |
 
