@@ -32,8 +32,9 @@
    - ~~Session 8B: Diplomatic Ledger Godot UI + Top Bar~~ — **DONE** (diplomatic_ledger.gd/.tscn 4-tab screen, D key for diplomatic ledger, R key for dispatch re-read, top bar DP/threat/Talleyrand/envoy fields with pulse + click, diplomatic fields in /command response, 30 new tests)
    - ~~Session 8C: Popups + Notifications~~ — **DONE** (11 new notification constants, 18 notification fire points wired across coalition/diplomacy/vassal/ai_diplomacy/defiance/dispatch, 6 popup data contracts with clear-after-read, 3 new world_state popup fields serialized, 6 Godot popup scenes with BBCode+signals, priority queue in main.gd, 31 new tests)
    - ~~Session 8D: Dispatch Integration + Polish~~ — **DONE** (20 diplomatic dispatch event types with fog-filtered visibility, queue_dispatch_event helper, campaign log 6 diplomacy event types with one-liner formatters, AI-AI diplomatic phase with 4 triggers + max 2 treaties/turn, special acceptance bonuses for 4 nations, 4 scenario test fixtures, Godot dispatch_view.gd diplomatic section + campaign_log.gd diplomacy category, 57 new tests)
-2. **Jealousy system** — NEEDS DESIGN GATE (separate track). See CLAUDE.md.
-3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
+2. **Diplomacy Audit** — **IN PROGRESS.** Comprehensive audit of entire Phase 8 implementation. Smoke test revealed stuck "Talleyrand waiting response" bug (popup flow sequencing issue). See `docs/DIPLOMACY_AUDIT.md` for full 17-section plan covering popup flow, blocking states, turn integration, formulas, state transitions, defiance, coalition, vassals, AI proposals, ledger UI, dispatch, serialization, cross-system interactions, notifications, debug tools, Claude playtest, and UI test plan.
+3. **Jealousy system** — NEEDS DESIGN GATE (separate track). See CLAUDE.md.
+4. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
 ---
 
