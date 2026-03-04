@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 4, 2026 (Session 7 — Coalition System)
+> **Last Updated:** March 4, 2026 (Session 8A — Backend Ledger + Debug Arsenal)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4945** (4945 passed, 3 skipped — verified Mar 4, Session 7 gap closure) |
+| **Tests Passing** | **5027** (5027 passed, 3 skipped — verified Mar 4, Session 8A) |
 
-| **Current Phase** | Phase 8: Diplomacy. **Session 7 COMPLETE** (Coalition System). Next: Sessions 8A–8D (UI + Debug + Polish). See `docs/SESSION_8_PLAN.md`. |
+| **Current Phase** | Phase 8: Diplomacy. **Session 8A COMPLETE** (Backend Ledger + Debug Arsenal). Next: Sessions 8B–8D (UI + Popups + Polish). See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -28,7 +28,7 @@
    - ~~Session 5: Vassal System + Loyalty~~ — **DONE** (vassal.py core engine, loyalty ticks with 7 modifiers, rebellion+cascade, tribute, investment, autonomy levels, marshal assimilation, AP/turn clause, Continental System, enemy vassal courting, dispatch warnings, 51 new tests)
    - ~~Session 6: Talleyrand Defiance + Diplomatic Objections~~ — **DONE** (diplomatic_defiance.py, defiance probability curve, 5 sabotage types, discovery+confrontation, redemption event, pre-proposal objections, enemy diplomat voices T21-T27, dispatch integration, 76 new tests)
    - ~~Session 7: Coalition System~~ — **DONE** (coalition.py engine, threat accumulation/decay, coalition formation/brewing/instant, leader selection+posture, coalition AI friction+convergence, war exhaustion, British subsidy, loyalty penalty+wedge, dissolution+cooldown, dispatch integration, T28-T34 templates, 80 new tests)
-   - Session 8A: Backend Ledger Builder + Debug Arsenal
+   - ~~Session 8A: Backend Ledger Builder + Debug Arsenal~~ — **DONE** (diplomatic_ledger.py with 4 tabs fog-filtered, GET /diplomatic_ledger endpoint, 7 top-bar fields, 3 popup pass-throughs with clear-after-read, 10 cheat commands with mock parser, calculate_war_score components extension, 8 debug endpoints, get_diplomatic_ledger() in api_client.gd, 82 new tests)
    - Session 8B: Diplomatic Ledger Godot UI + Top Bar
    - Session 8C: Popups + Notifications
    - Session 8D: Dispatch Integration + Polish + Deferred Mechanical
@@ -57,6 +57,21 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 4 — Session 8A: Backend Ledger + Debug Arsenal
+
+Phase 8 Session 8A implementation. 1 new backend file, 1 new test file, 6 modified files, 82 new tests.
+
+- **`backend/game_logic/diplomatic_ledger.py`** (NEW): `build_diplomatic_ledger(world)` returns 4 tabs: nations (per-nation diplomatic state, relation, diplomat, fog-filtered army strength, regions, treaties, vassal eligibility), treaties (active treaty list), threat_coalition (threat level/tier, qualifying nations, brewing/active coalition with fog-filtered member strengths), talleyrand (trust/label, skill, DP, mission, envoy count, sabotage warnings). Fog-filtered army strength: UNKNOWN→"Unknown", STALE→named bands (Negligible/Minor/Considerable/Powerful/Dominant), PARTIAL→~rounded to 5k, FULL→exact. National visibility = best marshal visibility across nation.
+- **`backend/main.py`** (MODIFIED): GET `/diplomatic_ledger` endpoint. 7 top-bar fields in `/test` response (diplomatic_points, max_diplomatic_points, talleyrand_state, talleyrand_mission_summary, threat_level, coalition_brewing, coalition_brewing_turns, pending_envoy_count). Pass-through wiring for 3 popup fields (coalition_popup, diplomatic_sabotage, vassal_rebellion_imminent) with read→include→clear pattern. 8 debug endpoints (/debug/diplomatic_status, war_scores, acceptance_preview, coalition_status, threat_sources, proposal_cooldowns, vassal_loyalty/{nation}, proposal_queue).
+- **`backend/models/world_state.py`** (MODIFIED): 3 new popup fields (coalition_popup, diplomatic_sabotage_popup, vassal_rebellion_imminent_popup). Serialized with backward-compat `.get()` defaults.
+- **`backend/ai/llm_client.py`** (MODIFIED): "cheat " prefix detection in mock parser. Returns ParseResult with cheat_type and cheat_args.
+- **`backend/ai/schemas.py`** (MODIFIED): cheat_type and cheat_args fields added to ParseResult dataclass.
+- **`backend/commands/executor.py`** (MODIFIED): Cheat command routing + `_execute_cheat()` method with 10 commands (set_threat, set_relation, give_dp, trigger_coalition, set_war_exhaustion, set_diplo_state, create_vassal, set_vassal_loyalty, set_talleyrand_trust, queue_ai_proposal). Guard: only available in mock/debug mode.
+- **`backend/game_logic/diplomacy.py`** (MODIFIED): `calculate_war_score()` extended with `return_components` parameter. When True, returns dict with total/territory/battles/decisive/capital breakdown.
+- **`godot-client/.../api_client.gd`** (MODIFIED): `get_diplomatic_ledger()` method added.
+- **82 new tests** in `tests/test_session8a_ledger_debug.py`: 11 test classes covering diplomatic ledger nations (8), army strength fog (12), treaties (3), threat/coalition (9), Talleyrand (9), cheat commands (16), debug endpoints (8), pass-throughs (6), top-bar fields (4), ledger endpoint (3), war score components (3).
+- **5027 tests passing** (4945 + 82 new, 3 skipped, 0 regressions).
 
 ### Mar 4 — Session 7 Gap Closure: Coalition Polish
 

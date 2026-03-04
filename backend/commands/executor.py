@@ -2192,6 +2192,11 @@ RETREAT RECOVERY (3 turns):
         elif action == "stance_change":
             result = self._execute_stance_change(command, game_state)
         # ════════════════════════════════════════════════════════════
+        # CHEAT COMMANDS (Phase 8 Session 8A)
+        # ════════════════════════════════════════════════════════════
+        elif action == "cheat":
+            result = self._execute_cheat(command, game_state)
+        # ════════════════════════════════════════════════════════════
         # DEBUG COMMANDS (Phase 2.8) - Must be before command_type routing
         # ════════════════════════════════════════════════════════════
         elif action == "debug":
@@ -2473,6 +2478,8 @@ RETREAT RECOVERY (3 turns):
             return self._execute_break_square(command, game_state)
         elif action == "stance_change":
             return self._execute_stance_change(command, game_state)
+        elif action == "cheat":
+            return self._execute_cheat(command, game_state)
         elif action == "debug":
             return self._execute_debug(command, game_state)
         else:
@@ -12608,3 +12615,154 @@ RETREAT RECOVERY (3 turns):
             result["new_state"] = game_state
 
         return result
+
+    # ========================================
+    # CHEAT COMMANDS (Phase 8 Session 8A)
+    # ========================================
+
+    def _execute_cheat(self, command: Dict, game_state: Dict) -> Dict:
+        """
+        Execute cheat commands for diplomatic system testing.
+
+        Gated behind mock/debug mode.
+
+        Supported: set_threat, set_relation, give_dp, trigger_coalition,
+        set_war_exhaustion, set_diplo_state, create_vassal,
+        set_vassal_loyalty, set_talleyrand_trust, queue_ai_proposal
+        """
+        import os
+        world: WorldState = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "No active game."}
+
+        # Guard: only available in mock/debug mode
+        llm_mode = os.getenv("LLM_MODE", "mock")
+        debug_mode = game_state.get("debug_mode", False)
+        if llm_mode != "mock" and not debug_mode:
+            return {
+                "success": False,
+                "message": "Cheat commands only available in mock/debug mode.",
+            }
+
+        cheat_type = (command.get("cheat_type") or command.get("target") or "").strip()
+        cheat_args = command.get("cheat_args", [])
+
+        if not cheat_type:
+            return {"success": False, "message": "Usage: cheat <type> <args>"}
+
+        # ── set_threat <value> ──
+        if cheat_type == "set_threat":
+            if not cheat_args:
+                return {"success": False, "message": "Usage: cheat set_threat <value>"}
+            value = max(0, min(100, int(cheat_args[0])))
+            old = world.threat_level
+            world.threat_level = value
+            return {"success": True, "message": f"Threat level: {old} → {value}"}
+
+        # ── set_relation <nation> <value> ──
+        if cheat_type == "set_relation":
+            if len(cheat_args) < 2:
+                return {"success": False, "message": "Usage: cheat set_relation <nation> <value>"}
+            nation = cheat_args[0]
+            value = max(-100, min(100, int(cheat_args[1])))
+            player = world.player_nation
+            key = world._make_diplo_key(player, nation)
+            old = world.nation_relations.get(key, 0)
+            world.nation_relations[key] = value
+            return {"success": True, "message": f"Relation France↔{nation}: {old} → {value}"}
+
+        # ── give_dp <amount> ──
+        if cheat_type == "give_dp":
+            if not cheat_args:
+                return {"success": False, "message": "Usage: cheat give_dp <amount>"}
+            amount = int(cheat_args[0])
+            max_dp = int(getattr(world, 'max_diplomatic_points', 5))
+            old = getattr(world, 'diplomatic_points', 0)
+            world.diplomatic_points = min(old + amount, max_dp)
+            return {"success": True, "message": f"DP: {old} → {world.diplomatic_points} (max {max_dp})"}
+
+        # ── trigger_coalition ──
+        if cheat_type == "trigger_coalition":
+            from backend.game_logic.coalition import get_qualifying_nations, form_coalition
+            qualifying = get_qualifying_nations(world)
+            if not qualifying:
+                return {"success": False, "message": "No qualifying nations for coalition."}
+            result = form_coalition(qualifying, world)
+            return result
+
+        # ── set_war_exhaustion <nation> <value> ──
+        if cheat_type == "set_war_exhaustion":
+            if len(cheat_args) < 2:
+                return {"success": False, "message": "Usage: cheat set_war_exhaustion <nation> <value>"}
+            nation = cheat_args[0]
+            value = max(0, min(100, int(cheat_args[1])))
+            old = world.war_exhaustion.get(nation, 0)
+            world.war_exhaustion[nation] = value
+            return {"success": True, "message": f"War exhaustion {nation}: {old} → {value}"}
+
+        # ── set_diplo_state <nation> <state> ──
+        if cheat_type == "set_diplo_state":
+            if len(cheat_args) < 2:
+                return {"success": False, "message": "Usage: cheat set_diplo_state <nation> <state>"}
+            nation = cheat_args[0]
+            state = cheat_args[1].upper()
+            player = world.player_nation
+            key = world._make_diplo_key(player, nation)
+            old = world.diplomatic_states.get(key, "PEACE")
+            world.diplomatic_states[key] = state
+            return {"success": True, "message": f"Diplomatic state France↔{nation}: {old} → {state}"}
+
+        # ── create_vassal <nation> ──
+        if cheat_type == "create_vassal":
+            if not cheat_args:
+                return {"success": False, "message": "Usage: cheat create_vassal <nation>"}
+            nation = cheat_args[0]
+            from backend.game_logic.vassal import create_vassal_treaty
+            result = create_vassal_treaty(world, "France", nation, 0)
+            return result
+
+        # ── set_vassal_loyalty <nation> <value> ──
+        if cheat_type == "set_vassal_loyalty":
+            if len(cheat_args) < 2:
+                return {"success": False, "message": "Usage: cheat set_vassal_loyalty <nation> <value>"}
+            nation = cheat_args[0]
+            if nation not in world.vassals:
+                return {"success": False, "message": f"{nation} is not a vassal."}
+            value = int(cheat_args[1])
+            old = world.vassals[nation]["loyalty"]
+            world.vassals[nation]["loyalty"] = value
+            return {"success": True, "message": f"Vassal loyalty {nation}: {old} → {value}"}
+
+        # ── set_talleyrand_trust <value> ──
+        if cheat_type == "set_talleyrand_trust":
+            if not cheat_args:
+                return {"success": False, "message": "Usage: cheat set_talleyrand_trust <value>"}
+            diplomats = getattr(world, 'diplomats', {})
+            talleyrand = diplomats.get("France")
+            if not talleyrand:
+                return {"success": False, "message": "No Talleyrand found."}
+            old = talleyrand.trust
+            talleyrand.trust = int(cheat_args[0])
+            return {"success": True, "message": f"Talleyrand trust: {old} → {talleyrand.trust}"}
+
+        # ── queue_ai_proposal <nation> <type> ──
+        if cheat_type == "queue_ai_proposal":
+            if len(cheat_args) < 2:
+                return {"success": False, "message": "Usage: cheat queue_ai_proposal <nation> <type>"}
+            nation = cheat_args[0]
+            proposal_type = cheat_args[1]
+            proposal = {
+                "type": proposal_type,
+                "from_nation": nation,
+                "to_nation": "France",
+                "turn_queued": int(world.current_turn),
+            }
+            if not hasattr(world, 'diplomatic_queue'):
+                world.diplomatic_queue = []
+            world.diplomatic_queue.append(proposal)
+            return {
+                "success": True,
+                "message": f"Queued {proposal_type} proposal from {nation} to France.",
+            }
+
+        return {"success": False, "message": f"Unknown cheat type: {cheat_type}"}

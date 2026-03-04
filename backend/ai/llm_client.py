@@ -494,6 +494,29 @@ class LLMClient:
         # Extract action (ALWAYS set a value)
         action = "unknown"  # Default
 
+        # CHEAT COMMANDS (Session 8A): cheat <type> <args...>
+        if command_lower.startswith("cheat "):
+            cheat_parts = command_text[6:].strip().split()
+            cheat_type = cheat_parts[0] if cheat_parts else ""
+            cheat_args = cheat_parts[1:] if len(cheat_parts) > 1 else []
+            return ParseResult(
+                matched=True,
+                command_type="cheat",
+                marshals=[],
+                action="cheat",
+                target=cheat_type,
+                ambiguity=0,
+                strategic_score=0,
+                interpretation=f"Cheat command: {cheat_type} {' '.join(cheat_args)}",
+                confidence=1.0,
+                mode="mock",
+                key_source=self.key_source,
+                raw_command=command_text,
+                type="cheat",
+                cheat_type=cheat_type,
+                cheat_args=cheat_args,
+            )
+
         # DEBUG COMMANDS: /debug or debug at start of command
         if command_lower.startswith("/debug") or command_lower.startswith("debug "):
             action = "debug"

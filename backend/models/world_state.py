@@ -441,6 +441,14 @@ class WorldState:
         self.coalition_count: int = 0                    # For naming ("Second Coalition")
         self.war_exhaustion: Dict[str, int] = {}         # nation -> int 0-200
 
+        # ============================================================
+        # DIPLOMATIC POPUP FIELDS (Phase 8 Session 8A)
+        # Read → include in response → clear per Golden Rule 4
+        # ============================================================
+        self.coalition_popup: Optional[Dict] = None
+        self.diplomatic_sabotage_popup: Optional[Dict] = None
+        self.vassal_rebellion_imminent_popup: Optional[Dict] = None
+
         # Calculate initial visibility so turn 1 starts with correct fog state
         # (French regions FULL, adjacent PARTIAL, rest UNKNOWN)
         self._intel_events_this_turn = []  # Init before first calculate_visibility
@@ -2779,6 +2787,10 @@ class WorldState:
             "coalition_cooldown": int(self.coalition_cooldown),
             "coalition_count": int(self.coalition_count),
             "war_exhaustion": {k: int(v) for k, v in self.war_exhaustion.items()},
+            # Diplomatic popup fields (Session 8A)
+            "coalition_popup": self.coalition_popup,
+            "diplomatic_sabotage_popup": self.diplomatic_sabotage_popup,
+            "vassal_rebellion_imminent_popup": self.vassal_rebellion_imminent_popup,
         }
 
     @classmethod
@@ -2969,6 +2981,11 @@ class WorldState:
         world.coalition_cooldown = int(data.get("coalition_cooldown", 0))
         world.coalition_count = int(data.get("coalition_count", 0))
         world.war_exhaustion = {k: int(v) for k, v in data.get("war_exhaustion", {}).items()}
+
+        # Diplomatic popup fields (Session 8A)
+        world.coalition_popup = data.get("coalition_popup", None)
+        world.diplomatic_sabotage_popup = data.get("diplomatic_sabotage_popup", None)
+        world.vassal_rebellion_imminent_popup = data.get("vassal_rebellion_imminent_popup", None)
 
         return world
 

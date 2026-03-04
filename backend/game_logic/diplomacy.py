@@ -247,11 +247,14 @@ def get_transition_dp_cost(current_state: str, target_state: str) -> int:
 # WAR SCORE CALCULATION (§6e)
 # ═══════════════════════════════════════════════════════
 
-def calculate_war_score(nation_a: str, nation_b: str, world) -> int:
+def calculate_war_score(nation_a: str, nation_b: str, world, return_components: bool = False):
     """Calculate war score between two nations. Positive = nation_a winning.
 
     Components: territory (±40), battles (±30), decisive (±20), capital (±30).
     Total capped at ±100.
+
+    If return_components=True, returns {"total": int, "territory": int,
+    "battles": int, "decisive": int, "capital": int} instead of int.
     """
     from backend.models.region import NATION_CAPITALS
 
@@ -309,7 +312,17 @@ def calculate_war_score(nation_a: str, nation_b: str, world) -> int:
     capital_score = max(-30, min(30, capital_score))
 
     total = territory_score + battle_score + decisive_score + capital_score
-    return int(max(-100, min(100, total)))
+    total = int(max(-100, min(100, total)))
+
+    if return_components:
+        return {
+            "total": total,
+            "territory": int(territory_score),
+            "battles": int(battle_score),
+            "decisive": int(decisive_score),
+            "capital": int(capital_score),
+        }
+    return total
 
 
 def apply_war_score_decay(world) -> None:

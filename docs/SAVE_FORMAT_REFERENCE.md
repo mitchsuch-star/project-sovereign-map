@@ -196,6 +196,9 @@ A future save/load system should use this as the specification.
 | `coalition_cooldown` | int | 0 | **Session 7.** Post-dissolution cooldown (5 turns). Prevents new coalition formation while > 0. Decremented in process_coalition_turn(). |
 | `coalition_count` | int | 0 | **Session 7.** Total coalitions formed this game. Used for naming ("First Coalition", "Second Coalition", etc.). |
 | `war_exhaustion` | dict | {} | **Session 7.** War exhaustion per nation. Keys: nation name. Values: int 0-200. +casualties//1000 per battle (cap 20), +5/turn at war, -5/turn at peace. Affects coalition loyalty penalty. |
+| `coalition_popup` | dict\|null | null | **Session 8A.** Pending coalition popup data for Godot frontend. Set by coalition formation, cleared after read in /command response. |
+| `diplomatic_sabotage_popup` | dict\|null | null | **Session 8A.** Pending Talleyrand sabotage popup data. Set by sabotage discovery, cleared after read in /command response. |
+| `vassal_rebellion_imminent_popup` | dict\|null | null | **Session 8A.** Pending vassal rebellion warning popup. Set by loyalty check, cleared after read in /command response. |
 | `active_battles` | dict | {} | Currently ongoing battles |
 | `battle_history` | list | [] | Completed battle records |
 | `battles_this_turn` | list | [] | Battles this turn (Phase 5.2) |

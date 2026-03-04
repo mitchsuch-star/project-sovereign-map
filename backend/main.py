@@ -97,6 +97,33 @@ def get_llm_game_state() -> dict:
         "map_data": map_data,
     }
 
+def _get_talleyrand_trust_label(w) -> str:
+    """Get Talleyrand trust label for top bar."""
+    diplomats = getattr(w, 'diplomats', {})
+    talleyrand = diplomats.get(w.player_nation)
+    if not talleyrand:
+        return "UNKNOWN"
+    trust = talleyrand.trust
+    if trust >= 80:
+        return "Loyal"
+    elif trust >= 50:
+        return "Wary"
+    elif trust >= 25:
+        return "Suspicious"
+    else:
+        return "Treacherous"
+
+
+def _get_talleyrand_mission_summary(w) -> str:
+    """Get Talleyrand mission summary for top bar."""
+    mission = getattr(w, 'active_diplomatic_mission', None)
+    if mission and not mission.get("completed"):
+        m_type = mission.get("type", "Unknown")
+        m_target = mission.get("target", "Unknown")
+        return f"{m_type} → {m_target}"
+    return "None"
+
+
 def _filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
     """
     Fog of War (Session 34B): Filter enemy phase actions by player visibility.
@@ -325,7 +352,16 @@ def test_connection():
             "artillery": int(world.manpower_pools.get(world.player_nation, {}).get("artillery", 0)),
         },
         "action_summary": world.get_action_summary(),
-        "game_state": world.get_filtered_game_state_summary()
+        "game_state": world.get_filtered_game_state_summary(),
+        # Diplomatic top-bar fields (Session 8A)
+        "diplomatic_points": int(getattr(world, 'diplomatic_points', 0)),
+        "max_diplomatic_points": int(getattr(world, 'max_diplomatic_points', 3)),
+        "talleyrand_state": _get_talleyrand_trust_label(world),
+        "talleyrand_mission_summary": _get_talleyrand_mission_summary(world),
+        "threat_level": int(getattr(world, 'threat_level', 0)),
+        "coalition_brewing": getattr(world, 'coalition_brewing', None) is not None,
+        "coalition_brewing_turns": int(world.coalition_brewing.get("turns_remaining", 0)) if getattr(world, 'coalition_brewing', None) else None,
+        "pending_envoy_count": int(len(getattr(world, 'diplomatic_queue', []))),
     }
 
 
@@ -737,6 +773,31 @@ def execute_command(request: CommandRequest):
         # Morning Dispatch — Berthier's turn-start briefing (Phase 6.5)
         if result.get("morning_dispatch"):
             response["morning_dispatch"] = result["morning_dispatch"]
+
+        # ════════════════════════════════════════════════════════════
+        # PASS-THROUGH: Diplomatic popups (Session 8A)
+        # Pattern: read field → include in response → clear (Golden Rule 4)
+        # ════════════════════════════════════════════════════════════
+        coalition_popup = getattr(world, 'coalition_popup', None)
+        if coalition_popup is not None:
+            response["coalition_popup"] = coalition_popup
+            world.coalition_popup = None
+        else:
+            response["coalition_popup"] = None
+
+        diplomatic_sabotage = getattr(world, 'diplomatic_sabotage_popup', None)
+        if diplomatic_sabotage is not None:
+            response["diplomatic_sabotage"] = diplomatic_sabotage
+            world.diplomatic_sabotage_popup = None
+        else:
+            response["diplomatic_sabotage"] = None
+
+        vassal_rebellion_imminent = getattr(world, 'vassal_rebellion_imminent_popup', None)
+        if vassal_rebellion_imminent is not None:
+            response["vassal_rebellion_imminent"] = vassal_rebellion_imminent
+            world.vassal_rebellion_imminent_popup = None
+        else:
+            response["vassal_rebellion_imminent"] = None
 
         # Notifications — persistent alerts for Godot notification bar
         if world.notifications.has_pending():
@@ -1447,6 +1508,23 @@ def get_ledger():
     return {"success": True, "ledger": ledger}
 
 
+# ════════════════════════════════════════════════════════════
+# DIPLOMATIC LEDGER ENDPOINT (Session 8A)
+# ════════════════════════════════════════════════════════════
+
+@app.get("/diplomatic_ledger")
+def get_diplomatic_ledger():
+    """Get the diplomatic ledger for the diplomatic ledger screen."""
+    if not game_state.get("world"):
+        return {"success": False, "message": "No active game"}
+    try:
+        from backend.game_logic.diplomatic_ledger import build_diplomatic_ledger
+        ledger = build_diplomatic_ledger(world)
+        return {"success": True, "ledger": ledger}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
 @app.post("/cancel_order")
 async def cancel_order(request: Request):
     """Cancel a marshal's strategic order from the Orders tab."""
@@ -1678,6 +1756,214 @@ async def debug_set_authority(request: Request):
         "new_authority": int(world.authority_tracker.authority),
         "authority_label": world.authority_tracker.get_authority_label()
     }
+
+
+# ════════════════════════════════════════════════════════════
+# DIPLOMATIC DEBUG ENDPOINTS (Session 8A)
+# ════════════════════════════════════════════════════════════
+
+@app.get("/debug/diplomatic_status")
+def debug_diplomatic_status():
+    """DEBUG: Full diplomatic snapshot — states, relations, treaties, vassals, DP, Talleyrand."""
+    if not DEBUG_MODE:
+        return {"success": False, "message": "Debug mode is disabled"}
+
+    # Serialize tuple-keyed dicts as "A_B" strings
+    diplomatic_states = {k: v for k, v in world.diplomatic_states.items()}
+    nation_relations = {k: int(v) for k, v in world.nation_relations.items()}
+    active_treaties = {}
+    for k, v in getattr(world, 'active_treaties', {}).items():
+        active_treaties[k] = v.copy() if isinstance(v, dict) else v
+
+    vassals = {}
+    for k, v in getattr(world, 'vassals', {}).items():
+        vassals[k] = v.copy() if isinstance(v, dict) else v
+
+    diplomats_data = {}
+    for k, v in getattr(world, 'diplomats', {}).items():
+        diplomats_data[k] = v.to_dict() if hasattr(v, 'to_dict') else str(v)
+
+    return {
+        "success": True,
+        "diplomatic_states": diplomatic_states,
+        "nation_relations": nation_relations,
+        "active_treaties": active_treaties,
+        "vassals": vassals,
+        "diplomatic_points": int(getattr(world, 'diplomatic_points', 0)),
+        "max_diplomatic_points": int(getattr(world, 'max_diplomatic_points', 3)),
+        "talleyrand": diplomats_data.get("France", {}),
+    }
+
+
+@app.get("/debug/war_scores")
+def debug_war_scores():
+    """DEBUG: Per nation-pair war score with component breakdown."""
+    if not DEBUG_MODE:
+        return {"success": False, "message": "Debug mode is disabled"}
+
+    from backend.game_logic.diplomacy import calculate_war_score
+    scores = []
+    for diplo_key, state in world.diplomatic_states.items():
+        if state == "WAR":
+            parts = diplo_key.split("|")
+            if len(parts) == 2:
+                components = calculate_war_score(parts[0], parts[1], world, return_components=True)
+                scores.append({
+                    "nation_a": parts[0],
+                    "nation_b": parts[1],
+                    "components": components,
+                    "total": components["total"],
+                })
+
+    return {"success": True, "war_scores": scores}
+
+
+@app.post("/debug/acceptance_preview")
+async def debug_acceptance_preview(request: Request):
+    """DEBUG: Run acceptance formula on a proposal body."""
+    if not DEBUG_MODE:
+        return {"success": False, "message": "Debug mode is disabled"}
+
+    data = await request.json()
+    proposal = data.get("proposal", {})
+    if not proposal:
+        return {"success": False, "message": "No proposal provided."}
+
+    from backend.game_logic.diplomacy import calculate_acceptance
+    result = calculate_acceptance(proposal, world)
+    return {"success": True, "acceptance": result}
+
+
+@app.get("/debug/coalition_status")
+def debug_coalition_status():
+    """DEBUG: Coalition threat, brewing, active coalition snapshot."""
+    if not DEBUG_MODE:
+        return {"success": False, "message": "Debug mode is disabled"}
+
+    from backend.game_logic.coalition import get_qualifying_nations
+    qualifying = get_qualifying_nations(world)
+
+    threat = int(getattr(world, 'threat_level', 0))
+    if threat >= 80:
+        tier = "CRITICAL"
+    elif threat >= 60:
+        tier = "HIGH"
+    elif threat >= 30:
+        tier = "MODERATE"
+    else:
+        tier = "LOW"
+
+    brewing = getattr(world, 'coalition_brewing', None)
+    coalition = getattr(world, 'active_coalition', None)
+
+    return {
+        "success": True,
+        "threat_level": threat,
+        "threat_tier": tier,
+        "brewing": brewing is not None,
+        "brewing_turns": int(brewing.get("turns_remaining", 0)) if brewing else None,
+        "qualifying_nations": qualifying,
+        "active_coalition": coalition.copy() if coalition else None,
+    }
+
+
+@app.get("/debug/threat_sources")
+def debug_threat_sources():
+    """DEBUG: Threat sources this turn."""
+    if not DEBUG_MODE:
+        return {"success": False, "message": "Debug mode is disabled"}
+
+    return {
+        "success": True,
+        "threat_sources_this_turn": list(getattr(world, 'threat_sources_this_turn', [])),
+    }
+
+
+@app.get("/debug/proposal_cooldowns")
+def debug_proposal_cooldowns():
+    """DEBUG: AI and player proposal cooldowns."""
+    if not DEBUG_MODE:
+        return {"success": False, "message": "Debug mode is disabled"}
+
+    return {
+        "success": True,
+        "ai_proposal_cooldowns": dict(getattr(world, 'ai_proposal_cooldowns', {})),
+        "player_proposal_cooldowns": dict(getattr(world, 'player_proposal_cooldowns', {})),
+    }
+
+
+@app.get("/debug/vassal_loyalty/{nation}")
+def debug_vassal_loyalty(nation: str):
+    """DEBUG: Vassal loyalty value + per-modifier breakdown."""
+    if not DEBUG_MODE:
+        return {"success": False, "message": "Debug mode is disabled"}
+
+    if nation not in getattr(world, 'vassals', {}):
+        return {"success": False, "message": f"{nation} is not a vassal."}
+
+    state = world.vassals[nation]
+    lord = state["lord"]
+    loyalty = int(state["loyalty"])
+
+    # Compute modifiers manually to match vassal.py process_vassal_loyalty
+    from backend.game_logic.vassal import AUTONOMY_DRIFT
+    from backend.models.region import NATION_CAPITALS
+
+    autonomy = state.get("autonomy", 1)
+    drift = AUTONOMY_DRIFT.get(autonomy, 0)
+
+    garrison_bonus = 0
+    vassal_capital = NATION_CAPITALS.get(nation)
+    if vassal_capital:
+        region = world.regions.get(vassal_capital)
+        if region:
+            garrison_troops = getattr(region, 'garrison_troops', 0) or 0
+            if garrison_troops > 0 and getattr(region, 'controller', '') == lord:
+                garrison_bonus = 5 + min(garrison_troops // 5000, 3)
+
+    shared_enemy_bonus = 0
+    all_nations = ["France", "Britain", "Prussia", "Austria", "Saxony"]
+    for other_nation in all_nations:
+        if other_nation == lord or other_nation == nation:
+            continue
+        lord_state = world.get_diplomatic_state(lord, other_nation)
+        vassal_state_diplo = world.get_diplomatic_state(nation, other_nation)
+        if lord_state == "WAR" and vassal_state_diplo == "WAR":
+            shared_enemy_bonus += 2
+
+    diplo_key = world._make_diplo_key(nation, lord)
+    relation = world.nation_relations.get(diplo_key, 0)
+    relation_modifier = relation // 20
+
+    return {
+        "success": True,
+        "nation": nation,
+        "loyalty": loyalty,
+        "lord": lord,
+        "modifiers": {
+            "autonomy_drift": drift,
+            "garrison_bonus": garrison_bonus,
+            "shared_enemy_bonus": shared_enemy_bonus,
+            "relation_modifier": relation_modifier,
+        },
+    }
+
+
+@app.get("/debug/proposal_queue")
+def debug_proposal_queue():
+    """DEBUG: Queued AI proposals."""
+    if not DEBUG_MODE:
+        return {"success": False, "message": "Debug mode is disabled"}
+
+    queue = getattr(world, 'diplomatic_queue', [])
+    serialized = []
+    for item in queue:
+        if isinstance(item, dict):
+            serialized.append(item.copy())
+        else:
+            serialized.append(str(item))
+
+    return {"success": True, "diplomatic_queue": serialized}
 
 
 if __name__ == "__main__":

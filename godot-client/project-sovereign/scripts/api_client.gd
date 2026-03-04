@@ -127,6 +127,14 @@ func get_ledger(callback: Callable):
 	if error != OK:
 		print("ERROR: HTTP request failed with code: ", error)
 
+func get_diplomatic_ledger(callback: Callable):
+	"""Get diplomatic ledger for diplomatic ledger screen (Session 8A)."""
+	pending_callback = callback
+	var url = API_URL + "/diplomatic_ledger"
+	var error = http_request.request(url)
+	if error != OK:
+		print("ERROR: HTTP request failed with code: ", error)
+
 func get_marshal_overview(callback: Callable):
 	"""Get marshal overview for Marshal Management screen (Phase 6.5)."""
 	pending_callback = callback

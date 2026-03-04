@@ -20,7 +20,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 - **Phase 7b remaining:** V2b COMPLETE. Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Gates 5+6 PASSED. Jealousy (SPEC v3 DRAFTED — needs design gate approval). Coalition Trigger moved to Phase 8.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial Infrastructure deferred to Pre-EA.
-- **Phase 8: Diplomacy** — ALL 3 SPECS APPROVED + MASTER-AUDITED. Unified 11-session plan (1A/1B/2/3/4/5/6/7-Coalition/8A-8D). Master audit: 4 CRITICAL + 4 MAJOR findings fixed. Fun score 81/100. **Sessions 1A+1B+2+3+4+5+6+7 COMPLETE. Audit 2+3 COMPLETE.** Next: Session 8A (Backend Ledger + Debug Arsenal). Full plan: `docs/SESSION_8_PLAN.md`.
+- **Phase 8: Diplomacy** — ALL 3 SPECS APPROVED + MASTER-AUDITED. Unified 11-session plan (1A/1B/2/3/4/5/6/7-Coalition/8A-8D). Master audit: 4 CRITICAL + 4 MAJOR findings fixed. Fun score 81/100. **Sessions 1A+1B+2+3+4+5+6+7+8A COMPLETE. Audit 2+3 COMPLETE.** Next: Session 8B (Diplomatic Ledger Godot UI + Top Bar). Full plan: `docs/SESSION_8_PLAN.md`.
 
 ### Design Gates
 
@@ -83,6 +83,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | `backend/game_logic/ai_diplomacy.py` | AI proposal generation (P1-P7 triggers), M3 counter-offer, alliance conflict check, anti-spam |
 | `backend/game_logic/diplomatic_advisory.py` | Advisory conversations: threat assessment, nation analysis, action recommendations |
 | `backend/game_logic/coalition.py` | Coalition system: threat accumulation/decay, formation/brewing/instant, leader/posture, AI friction/convergence, war exhaustion, British subsidy, dissolution/cooldown |
+| `backend/game_logic/diplomatic_ledger.py` | Diplomatic Ledger builder (4 tabs: nations, treaties, threat_coalition, talleyrand) with fog-filtered army strength |
 | `backend/game_logic/vassal.py` | Vassal system: creation, loyalty, rebellion, cascade, tribute, investment, autonomy, marshal assimilation, Continental System |
 | `backend/save_manager.py` | Save/load file I/O, autosave |
 
@@ -137,6 +138,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | Win/Loss relationships | `relationship.py` (formulas, participants, process), `executor.py` (_execute_attack wiring), `marshal.py` (modify_relationship, last_relationship_change_turn), `docs/MULTI_MARSHAL_SPEC.md` §9 |
 | Square formation / Tactical Triangle | `docs/TACTICAL_TRIANGLE_SPEC.md`, `marshal.py` (square_formation, overwatch_penalty), `combat.py` (cavalry -40%, artillery +50%), `executor.py` (form_square, auto-bombardment, overwatch calc) |
 | Vassal system (Phase 8 S5) | `vassal.py` (all vassal mechanics), `world_state.py` (vassals dict, advance_turn steps 5-7, tribute), `diplomacy.py` (AP clause, Continental System), `turn_manager.py` (enemy courting), `dispatch.py` (Trigger 3 loyalty warnings) |
+| Diplomatic ledger | `diplomatic_ledger.py` (build_diplomatic_ledger, fog-filtered army strength), `main.py` (GET /diplomatic_ledger, debug endpoints), `world_state.py` (popup fields) |
 | Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md` (v2.2), `docs/CONVERSATIONAL_DIPLOMACY_DESIGN.md` (v1.2), `docs/COALITION_SPEC.md` (v1.1), `diplomacy.py` (acceptance formula, state transitions, war score), `diplomat.py` (DiplomaticRepresentative), `diplomatic_dialogue.py` (conversation state machine), `diplomatic_templates.py` (37 mock templates + T28-T34 coalition, slot resolvers), `ai_diplomacy.py` (AI proposal generation, M3 counter-offer, alliance conflict), `diplomatic_advisory.py` (advisory conversations), `vassal.py` (loyalty, rebellion), `diplomatic_defiance.py` (Talleyrand sabotage), `coalition.py` (threat, formation, AI, breaking, dissolution) |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`

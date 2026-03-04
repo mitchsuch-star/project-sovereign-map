@@ -74,6 +74,8 @@ class ParseResult:
     type: Optional[str] = None  # Special type marker (e.g., "debug")
     requested_type: Optional[str] = None  # Phase 6: player-requested recruit type (for soft correction)
     diplomatic_data: Optional[Dict[str, Any]] = None  # Phase 8 Session 3: Talleyrand command data
+    cheat_type: Optional[str] = None  # Phase 8 Session 8A: Cheat command type
+    cheat_args: List[str] = field(default_factory=list)  # Phase 8 Session 8A: Cheat command args
 
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -132,6 +134,11 @@ class ParseResult:
         # Phase 8 Session 3: Diplomatic command data
         if self.diplomatic_data:
             result["diplomatic_data"] = self.diplomatic_data
+
+        # Phase 8 Session 8A: Cheat command data
+        if self.cheat_type:
+            result["cheat_type"] = self.cheat_type
+            result["cheat_args"] = self.cheat_args
 
         return result
 
