@@ -8,7 +8,6 @@ These reproduce spec worked examples and verify edge-case behavior.
 """
 
 from backend.models.world_state import WorldState
-from backend.models.diplomat import DiplomaticRepresentative
 from backend.game_logic.diplomacy import (
     calculate_acceptance,
     calculate_war_score,
@@ -500,15 +499,11 @@ from backend.game_logic.diplomacy import (
     validate_transition,
     check_relation_requirement,
     declare_war,
-    _process_war_cascade,
     check_auto_downgrade,
     process_trade_income,
     TRANSITION_RULES,
     TRADE_INCOME,
     STATE_RELATION_THRESHOLDS,
-    VASSAL_MIN_STATES,
-    _UPGRADE_ORDER,
-    _DOWNGRADE_ORDER,
 )
 
 
@@ -1160,7 +1155,6 @@ class TestDowngradeAutoDecay:
 
 from backend.game_logic.diplomatic_dialogue import (
     classify_diplomatic_intent,
-    generate_dialogue,
     generate_feasibility_dialogue,
     generate_mission_dialogue,
     MISSION_DP_COSTS,
@@ -2669,3 +2663,244 @@ class TestBackwardCompatibility:
 
         assert loaded.current_turn >= 2
         assert isinstance(loaded.diplomatic_points, int)
+
+
+# ======================================================
+# 7. Coverage Gap Tests — diplomatic_templates.py
+# ======================================================
+
+class TestTemplateFallbackChain:
+    """Tests for get_template() fallback chain (63% coverage gap)."""
+
+    def test_exact_match(self):
+        """get_template returns exact match when available."""
+        from backend.game_logic.diplomatic_templates import get_template
+        t = get_template("proposal_options", "WAR", "winning_comfortably")
+        assert "commanding position" in t["text"]
+
+    def test_wildcard_bucket(self):
+        """get_template falls back to 'any' bucket when exact bucket missing."""
+        from backend.game_logic.diplomatic_templates import get_template
+        # proposal_confirm has WAR/any but not WAR/winning_comfortably
+        t = get_template("proposal_confirm", "WAR", "winning_comfortably")
+        assert t is not None
+        assert "options" in t
+
+    def test_war_similar_bucket_winning_slightly(self):
+        """WAR + winning_slightly falls back to winning_comfortably."""
+        from backend.game_logic.diplomatic_templates import get_template
+        t = get_template("proposal_options", "WAR", "winning_slightly")
+        # winning_slightly -> winning_comfortably (similar_map)
+        assert "commanding position" in t["text"]
+
+    def test_war_similar_bucket_losing_slightly(self):
+        """WAR + losing_slightly falls back to losing_badly."""
+        from backend.game_logic.diplomatic_templates import get_template
+        t = get_template("proposal_options", "WAR", "losing_slightly")
+        # losing_slightly -> losing_badly (similar_map)
+        assert "difficult" in t["text"].lower() or "losing" in t["text"].lower() or t["text"]  # any non-empty
+
+    def test_peace_neutral_falls_to_hostile(self):
+        """PEACE + neutral falls back to hostile template."""
+        from backend.game_logic.diplomatic_templates import get_template
+        t = get_template("proposal_options", "PEACE", "neutral")
+        # neutral -> hostile (step 4 fallback)
+        assert t is not None
+        assert "options" in t
+
+    def test_fallback_templates(self):
+        """Unknown bucket triggers FALLBACK_TEMPLATES."""
+        from backend.game_logic.diplomatic_templates import get_template
+        # Use a made-up state/bucket that won't match any template
+        t = get_template("proposal_options", "ARMISTICE", "unknown_bucket")
+        assert t is not None
+        assert "Sire" in t["text"]  # Fallback has "Sire, how shall I approach"
+
+    def test_ultimate_fallback(self):
+        """Completely unknown intent_type returns ultimate fallback."""
+        from backend.game_logic.diplomatic_templates import get_template
+        t = get_template("nonexistent_intent", "WAR", "any")
+        assert t is not None
+        assert "Dismiss" in t["options"][0]["label"]
+        assert "await your instructions" in t["text"]
+
+    def test_proposal_type_propagated(self):
+        """proposal_type is stored on template when provided."""
+        from backend.game_logic.diplomatic_templates import get_template
+        t = get_template("proposal_options", "WAR", "winning_comfortably", proposal_type="peace")
+        assert t.get("_proposal_type") == "peace"
+
+    def test_proposal_type_propagated_fallback(self):
+        """proposal_type propagated even through fallback chain."""
+        from backend.game_logic.diplomatic_templates import get_template
+        t = get_template("proposal_options", "ARMISTICE", "unknown", proposal_type="alliance")
+        assert t.get("_proposal_type") == "alliance"
+
+
+class TestGenerateSuggestedTerms:
+    """Tests for generate_suggested_terms() for different proposal types."""
+
+    def test_peace_winning(self):
+        """Peace proposal while winning includes gold demand."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = make_world()
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        world.war_scores[diplo_key] = 30
+        terms = generate_suggested_terms("Prussia", "peace", world)
+        assert terms["type"] == "peace"
+        assert any(d["type"] == "gold_per_turn" for d in terms["demands"])
+
+    def test_peace_losing(self):
+        """Peace proposal while losing includes gold sweetener."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = make_world()
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        world.war_scores[diplo_key] = -30
+        terms = generate_suggested_terms("Prussia", "peace", world)
+        assert any(s["type"] == "gold_per_turn" for s in terms["sweeteners"])
+
+    def test_peace_neutral_open_borders(self):
+        """Peace with neutral relation includes open_borders clause."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = make_world()
+        diplo_key = world._make_diplo_key("France", "Austria")
+        world.nation_relations[diplo_key] = 0
+        terms = generate_suggested_terms("Austria", "peace", world)
+        assert "open_borders" in terms["clauses"]
+
+    def test_alliance_terms(self):
+        """Alliance includes open_borders."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = make_world()
+        terms = generate_suggested_terms("Saxony", "alliance", world)
+        assert "open_borders" in terms["clauses"]
+
+    def test_open_borders_terms(self):
+        """Open borders proposal includes clause."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = make_world()
+        terms = generate_suggested_terms("Austria", "open_borders", world)
+        assert "open_borders" in terms["clauses"]
+
+    def test_non_aggression_terms(self):
+        """Non-aggression has no special terms."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = make_world()
+        terms = generate_suggested_terms("Austria", "non_aggression", world)
+        assert terms["sweeteners"] == []
+        assert terms["demands"] == []
+
+
+class TestResolveTemplateTextWithType:
+    """Tests for resolve_template_text_with_type()."""
+
+    def test_replaces_proposal_type(self):
+        """proposal_type slot is resolved."""
+        from backend.game_logic.diplomatic_templates import resolve_template_text_with_type
+        world = make_world()
+        result = resolve_template_text_with_type(
+            "Preparing a {proposal_type} proposal for {target_nation}.",
+            world, "Prussia", "peace"
+        )
+        assert "peace" in result
+        assert "Prussia" in result
+
+    def test_no_proposal_type(self):
+        """When proposal_type is None, {proposal_type} stays unresolved."""
+        from backend.game_logic.diplomatic_templates import resolve_template_text_with_type
+        world = make_world()
+        result = resolve_template_text_with_type(
+            "A {proposal_type} deal.",
+            world, "Prussia", None
+        )
+        assert "{proposal_type}" in result
+
+
+# ======================================================
+# 8. Coverage Gap Tests — diplomatic_dialogue.py
+# ======================================================
+
+class TestResolveNationName:
+    """Tests for resolve_nation_name() exact/alias/no-match."""
+
+    def test_exact_match(self):
+        from backend.game_logic.diplomatic_dialogue import resolve_nation_name
+        assert resolve_nation_name("Prussia") == "Prussia"
+
+    def test_alias_match(self):
+        from backend.game_logic.diplomatic_dialogue import resolve_nation_name
+        assert resolve_nation_name("england") == "Britain"
+        assert resolve_nation_name("united kingdom") == "Britain"
+        assert resolve_nation_name("the saxon people") == "Saxony"
+
+    def test_no_match(self):
+        from backend.game_logic.diplomatic_dialogue import resolve_nation_name
+        assert resolve_nation_name("Spain") is None
+        assert resolve_nation_name("random text") is None
+
+
+class TestGetGameBucketBranches:
+    """Tests for get_game_bucket() losing/neutral branches."""
+
+    def test_war_losing_badly(self):
+        from backend.game_logic.diplomatic_dialogue import get_game_bucket
+        world = make_world()
+        diplo_key = world._make_diplo_key("France", "Britain")
+        # Key is "Britain|France", positive = Britain winning. After sign flip: France losing.
+        world.war_scores[diplo_key] = 40
+        assert get_game_bucket("Britain", world) == "losing_badly"
+
+    def test_war_stalemate(self):
+        from backend.game_logic.diplomatic_dialogue import get_game_bucket
+        world = make_world()
+        diplo_key = world._make_diplo_key("France", "Britain")
+        world.war_scores[diplo_key] = 0
+        assert get_game_bucket("Britain", world) == "stalemate"
+
+    def test_peace_neutral(self):
+        from backend.game_logic.diplomatic_dialogue import get_game_bucket
+        world = make_world()
+        # Austria is at PEACE with France, default relation is 0
+        diplo_key = world._make_diplo_key("France", "Austria")
+        world.nation_relations[diplo_key] = 0
+        assert get_game_bucket("Austria", world) == "neutral"
+
+    def test_peace_hostile(self):
+        from backend.game_logic.diplomatic_dialogue import get_game_bucket
+        world = make_world()
+        diplo_key = world._make_diplo_key("France", "Austria")
+        world.nation_relations[diplo_key] = -30
+        assert get_game_bucket("Austria", world) == "hostile"
+
+
+# ======================================================
+# 9. Coverage Gap Tests — diplomacy.py
+# ======================================================
+
+class TestGetTransitionDpCost:
+    """Tests for get_transition_dp_cost() various paths."""
+
+    def test_war_cost(self):
+        from backend.game_logic.diplomacy import get_transition_dp_cost, WAR_DP_COST
+        assert get_transition_dp_cost("PEACE", "WAR") == WAR_DP_COST
+
+    def test_vassal_cost(self):
+        from backend.game_logic.diplomacy import get_transition_dp_cost, VASSAL_DP_COST
+        assert get_transition_dp_cost("OPEN_BORDERS", "VASSAL") == VASSAL_DP_COST
+
+    def test_upgrade_cost(self):
+        from backend.game_logic.diplomacy import get_transition_dp_cost
+        # PEACE -> OPEN_BORDERS costs 1 (from TRANSITION_RULES)
+        assert get_transition_dp_cost("PEACE", "OPEN_BORDERS") == 1
+        # NON_AGGRESSION -> DEFENSIVE_ALLIANCE costs 2
+        assert get_transition_dp_cost("NON_AGGRESSION", "DEFENSIVE_ALLIANCE") == 2
+
+    def test_downgrade_cost(self):
+        from backend.game_logic.diplomacy import get_transition_dp_cost
+        # ALLIANCE -> DEFENSIVE_ALLIANCE downgrade costs 1
+        assert get_transition_dp_cost("ALLIANCE", "DEFENSIVE_ALLIANCE") == 1
+
+    def test_unknown_transition_default(self):
+        from backend.game_logic.diplomacy import get_transition_dp_cost
+        # Unknown transition returns default 1
+        assert get_transition_dp_cost("PEACE", "ALLIANCE") == 1

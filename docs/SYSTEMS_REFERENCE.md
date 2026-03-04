@@ -3109,3 +3109,13 @@ enemies = [m for m in world.marshals.values()
 | `marshal.py` | `create_enemy_marshals()` — 7 enemy marshals across 4 nations |
 | `tests/test_session_1b.py` | 56 gate tests for Session 1B |
 | `tests/test_diplomatic_war_gating.py` | 16 regression tests for war gating |
+
+### Diplomats
+
+| Nation | Name | Personality | Skill | Trust | Notes |
+|--------|------|-------------|-------|-------|-------|
+| France | Talleyrand | schemer | 10 | 55 | Player's diplomat. DP formula: `2 + skill//3 + authority//20 + capital_bonus`. |
+| Britain | Castlereagh | hawk | 7 | 65 | Implacable. Views French advantage as threat to balance of power. |
+| Prussia | Hardenberg | hawk | 6 | 65 | Demands respect, offers little. |
+| Austria | Metternich | schemer | 9 | 55 | Spider diplomat, delays & leverages. |
+| Saxony | Einsiedel | dove | 4 | 65 | Fears aggression, hopes for peace. |

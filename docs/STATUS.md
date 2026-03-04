@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 3, 2026 (Session 3 — Talleyrand Commands + Conversational Dialogue Foundation)
+> **Last Updated:** March 4, 2026 (Audit 2+3 — Sessions 2+3 verification)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4467** (4467 passed, 3 skipped — verified Mar 3, Session 3) |
+| **Tests Passing** | **4654** (4654 passed, 3 skipped — verified Mar 4, Audit 2+3) |
 
 | **Current Phase** | Phase 8: Diplomacy. **Session 3 COMPLETE** (Talleyrand commands, conversational dialogue foundation). Next: Session 4. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -54,6 +54,16 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 4 — Audit 2+3: Sessions 2+3 Verification
+
+Post-Session 3 audit covering diplomatic states, acceptance formula, diplomat class, Talleyrand commands, and conversational dialogue foundation. Full report: `docs/AUDIT_SESSION_2_3.md`.
+
+- **3 structural checks** (1F, 1I, 1J): All PASS. POST route confirmed. Executor ordering correct (objection → capture → dialogue). advance_turn matches §7f (minor deviation: auto-downgrade before income — no functional impact).
+- **29 new coverage gap tests** appended to `tests/test_audit_2_3.py`: Template fallback chain (9 tests), suggested terms generation (6 tests), resolve_template_text_with_type (2 tests), resolve_nation_name (3 tests), get_game_bucket branches (4 tests), get_transition_dp_cost paths (5 tests).
+- **Diplomat table** added to `docs/SYSTEMS_REFERENCE.md` §16.
+- **0 bugs found.** 4654 tests passing (4625 + 29 new, 0 regressions).
+- **Verdict: PASS — ready for Session 4.**
 
 ### Mar 3 — Session 3: Talleyrand Commands + Conversational Dialogue Foundation
 
