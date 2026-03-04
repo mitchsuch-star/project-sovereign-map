@@ -2112,7 +2112,17 @@ class EnemyAI:
         # Find attackable targets with smart evaluation
         valid_targets = []
 
+        # EC-9: Filter out coalition allies from targets (COALITION_SPEC §11.9)
+        from backend.game_logic.coalition import is_coalition_member, is_coalition_active
+        _coalition_active = is_coalition_active(world)
+        _is_member = _coalition_active and is_coalition_member(nation, world)
+
         for enemy in enemies:
+            # EC-9: Skip coalition allies during coalition war
+            if _is_member and is_coalition_member(enemy.nation, world):
+                ai_debug(f"    P4: Skipping coalition ally {enemy.name} ({enemy.nation})")
+                continue
+
             # Check if in range
             distance = world.get_distance(marshal.location, enemy.location)
             movement_range = getattr(marshal, 'movement_range', 1)

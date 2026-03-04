@@ -3670,6 +3670,20 @@ RETREAT RECOVERY (3 turns):
                 return enemy_error
 
         # ============================================================
+        # EC-9: COALITION MEMBER ATTACK PREVENTION (COALITION_SPEC §11.9)
+        # During coalition war, members cannot attack each other.
+        # ============================================================
+        if enemy_by_name:
+            from backend.game_logic.coalition import is_coalition_member, is_coalition_active
+            if is_coalition_active(world) and \
+               is_coalition_member(marshal.nation, world) and \
+               is_coalition_member(enemy_by_name.nation, world):
+                return {
+                    "success": False,
+                    "message": f"Cannot attack {enemy_by_name.name} — {enemy_by_name.nation} is a coalition ally."
+                }
+
+        # ============================================================
         # RANGE CHECK: Verify target is within marshal's attack range
         # ============================================================
 

@@ -664,6 +664,10 @@ def release_vassal(world, vassal_name: str, rebellion: bool = False) -> dict:
         world.diplomatic_states[diplo_key] = "WAR"
     else:
         world.diplomatic_states[diplo_key] = "PEACE"
+        # Coalition threat reduction: voluntary vassal release (COALITION_SPEC §2b)
+        if lord == getattr(world, 'player_nation', 'France'):
+            from backend.game_logic.coalition import reduce_threat
+            reduce_threat(world, 8, "voluntary_vassal_release")
 
     return {
         "success": True,

@@ -527,12 +527,29 @@ def form_coalition(qualifying_nations: List[str], world) -> Dict:
         if result.get("success"):
             war_events.append(result)
 
-    # Coalition wars don't add threat to France (§3e note: defensive wars)
-    # Undo any threat that declare_war might have added
-    # (declare_war currently has a stub, but future-proof this)
-    # We track what threat was before and restore
-    # Actually: declare_war's threat is stubbed out, and we wire it in
-    # executor/diplomacy only for France-initiated wars. So no undo needed.
+    # Coalition wars don't add threat — declare_war only adds threat
+    # when France is the aggressor, and here the coalition members declare.
+
+    # EC-2: Void any in-transit proposal to a nation joining the coalition
+    pit = getattr(world, 'proposal_in_transit', None)
+    voided_proposal_nation = None
+    if pit:
+        pit_target = pit.get("target", "")
+        if pit_target in all_members:
+            voided_proposal_nation = pit_target
+            world.proposal_in_transit = None
+            # Restore Talleyrand if he was carrying this proposal
+            if getattr(world, 'talleyrand_state', '') == "IN_TRANSIT":
+                mission = getattr(world, 'active_diplomatic_mission', None)
+                if mission and not mission.get("completed"):
+                    world.talleyrand_state = "ON_MISSION"
+                    mission["paused"] = False
+                else:
+                    world.talleyrand_state = "IDLE"
+            # Refund DP spent on the voided proposal
+            dp_cost = pit.get("proposal", {}).get("dp_cost", 0)
+            if dp_cost > 0:
+                world.diplomatic_points = getattr(world, 'diplomatic_points', 0) + int(dp_cost)
 
     # 3. United cause: +10 relation between all coalition members
     for i, m1 in enumerate(all_members):
@@ -603,7 +620,15 @@ def form_coalition(qualifying_nations: List[str], world) -> Dict:
         "threat_level": int(world.threat_level),
     })
 
-    return {
+    # EC-2: Log voided proposal
+    if voided_proposal_nation:
+        world.log_event({
+            "type": "proposal_voided_by_coalition",
+            "target": voided_proposal_nation,
+            "message": f"Envoy to {voided_proposal_nation} recalled — they joined the coalition.",
+        })
+
+    result = {
         "success": True,
         "coalition_name": name,
         "leader": leader,
@@ -621,6 +646,9 @@ def form_coalition(qualifying_nations: List[str], world) -> Dict:
             "quote": "All of Europe stands against you.",
         },
     }
+    if voided_proposal_nation:
+        result["voided_proposal"] = voided_proposal_nation
+    return result
 
 
 # ════════════════════════════════════════════════════════════════

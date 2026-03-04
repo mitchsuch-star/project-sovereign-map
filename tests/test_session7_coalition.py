@@ -805,3 +805,171 @@ class TestProcessCoalitionTurn:
         assert world.active_coalition is None
         dissolution_events = [e for e in events if e.get("type") == "coalition_dissolved"]
         assert len(dissolution_events) > 0
+
+
+# ════════════════════════════════════════════════════════════════
+# GAP FIXES — Session 7 closure
+# ════════════════════════════════════════════════════════════════
+
+class TestGapFixes:
+    """Tests for coalition gaps closed in Session 7 cleanup."""
+
+    # ── Gap 1: Voluntary vassal release reduces threat ──
+
+    def test_voluntary_vassal_release_reduces_threat(self):
+        """release_vassal() with rebellion=False should reduce threat by 8."""
+        from backend.game_logic.vassal import release_vassal
+        world = _make_world(threat_level=50)
+        world.vassals["Saxony"] = {"lord": "France", "loyalty": 60}
+        release_vassal(world, "Saxony", rebellion=False)
+        assert world.threat_level == 42  # 50 - 8
+
+    def test_rebellion_release_does_not_double_reduce(self):
+        """release_vassal() with rebellion=True should NOT call reduce_threat
+        (rebellion path already calls it separately in check_vassal_rebellion)."""
+        world = _make_world(threat_level=50)
+        world.vassals["Saxony"] = {"lord": "France", "loyalty": 60}
+        from backend.game_logic.vassal import release_vassal
+        release_vassal(world, "Saxony", rebellion=True)
+        # rebellion=True doesn't call reduce_threat from release_vassal
+        assert world.threat_level == 50
+
+    def test_vassal_release_non_player_no_threat_change(self):
+        """Releasing a vassal of a non-player lord shouldn't change threat."""
+        world = _make_world(threat_level=50)
+        world.vassals["Saxony"] = {"lord": "Austria", "loyalty": 60}
+        from backend.game_logic.vassal import release_vassal
+        release_vassal(world, "Saxony", rebellion=False)
+        assert world.threat_level == 50
+
+    # ── Gap 2: Generous peace reduces threat ──
+
+    def test_generous_peace_reduces_threat(self):
+        """Peace treaty with sweeteners, no territory demands, and positive
+        war score should reduce threat by 3 (§2b generous peace)."""
+        world = _make_world(threat_level=50)
+        _set_at_war(world, "France", "Austria")
+        # Give France control of 5+ Austrian starting regions so war_score > 20
+        austria_regions = world.nation_starting_regions.get("Austria", [])
+        for rname in austria_regions:
+            if rname in world.regions:
+                world.regions[rname].controller = "France"
+        # Also add battle records to push score above 20
+        diplo_key = world._make_diplo_key("France", "Austria")
+        world.battle_records[diplo_key] = [
+            {"winner": "France"}, {"winner": "France"}, {"winner": "France"},
+        ]
+        proposal = {
+            "type": "peace",
+            "sweeteners": [{"type": "gold_lump", "value": 500}],
+            "demands": [],
+        }
+        world._ratify_treaty("Austria", proposal)
+        assert world.threat_level == 47  # 50 - 3
+
+    def test_non_generous_peace_no_threat_reduction(self):
+        """Peace with territory demands is NOT generous — no threat reduction."""
+        world = _make_world(threat_level=50)
+        _set_at_war(world, "France", "Austria")
+        world.war_scores = {world._make_diplo_key("France", "Austria"): 30}
+        proposal = {
+            "type": "peace",
+            "sweeteners": [{"type": "gold_lump", "value": 200}],
+            "demands": [{"type": "territory_cede", "value": 0, "regions": ["Vienna"]}],
+        }
+        # Need to set up region so territory_cede works
+        vienna = world.get_region("Vienna")
+        if vienna:
+            vienna.controller = "Austria"
+        world._ratify_treaty("Austria", proposal)
+        # Should NOT get -3 because there are territory demands
+        assert world.threat_level == 50
+
+    def test_generous_peace_low_war_score_no_reduction(self):
+        """Low war score (<=20) means peace isn't 'generous' — no threat reduction."""
+        world = _make_world(threat_level=50)
+        _set_at_war(world, "France", "Austria")
+        world.war_scores = {world._make_diplo_key("France", "Austria"): 10}
+        proposal = {
+            "type": "peace",
+            "sweeteners": [{"type": "gold_lump", "value": 500}],
+            "demands": [],
+        }
+        world._ratify_treaty("Austria", proposal)
+        assert world.threat_level == 50
+
+    # ── Gap 3: EC-2 void in-transit proposals on coalition formation ──
+
+    def test_ec2_void_in_transit_proposal(self):
+        """In-transit proposal to a coalition joiner should be voided."""
+        world = _make_world(threat_level=80)
+        world.proposal_in_transit = {
+            "target": "Austria",
+            "proposal": {"type": "peace", "dp_cost": 3},
+            "turn_sent": 1,
+        }
+        world.talleyrand_state = "IN_TRANSIT"
+        _set_relation(world, "France", "Austria", -30)
+        result = form_coalition(["Austria"], world)
+        assert result["success"]
+        assert world.proposal_in_transit is None
+        assert world.talleyrand_state == "IDLE"
+        assert result.get("voided_proposal") == "Austria"
+
+    def test_ec2_unrelated_proposal_not_voided(self):
+        """In-transit proposal to a non-coalition nation should be preserved."""
+        world = _make_world(threat_level=80)
+        world.proposal_in_transit = {
+            "target": "Saxony",
+            "proposal": {"type": "alliance", "dp_cost": 2},
+            "turn_sent": 1,
+        }
+        world.talleyrand_state = "IN_TRANSIT"
+        _set_relation(world, "France", "Austria", -30)
+        _set_relation(world, "France", "Prussia", -30)
+        result = form_coalition(["Austria", "Prussia"], world)
+        assert result["success"]
+        assert world.proposal_in_transit is not None  # Preserved
+        assert world.talleyrand_state == "IN_TRANSIT"
+        assert result.get("voided_proposal") is None
+
+    def test_ec2_dp_refunded(self):
+        """DP should be refunded when a proposal is voided by coalition."""
+        world = _make_world(threat_level=80)
+        world.diplomatic_points = 5
+        world.proposal_in_transit = {
+            "target": "Austria",
+            "proposal": {"type": "peace", "dp_cost": 3},
+            "turn_sent": 1,
+        }
+        world.talleyrand_state = "IN_TRANSIT"
+        _set_relation(world, "France", "Austria", -30)
+        form_coalition(["Austria"], world)
+        assert world.diplomatic_points == 8  # 5 + 3 refunded
+
+    # ── Gap 4: EC-9 coalition member attack prevention ──
+
+    def test_ec9_coalition_members_cannot_attack_each_other(self):
+        """Coalition members should be blocked from attacking each other."""
+        from backend.models.marshal import Marshal
+        from backend.commands.executor import CommandExecutor
+        world = _make_world(threat_level=80)
+        # Set up bilateral WAR between Austria and Prussia
+        _set_at_war(world, "Austria", "Prussia")
+        _set_at_war(world, "France", "Austria")
+        _set_at_war(world, "France", "Prussia")
+        _set_relation(world, "France", "Austria", -30)
+        _set_relation(world, "France", "Prussia", -30)
+        # Form coalition with both
+        form_coalition(["Austria", "Prussia"], world)
+        assert is_coalition_active(world)
+        # Create marshals (name, location, strength, personality, nation)
+        m_austria = Marshal("Schwarzenberg", "Saxony", 20000, "cautious", nation="Austria")
+        m_prussia = Marshal("Blucher", "Saxony", 20000, "aggressive", nation="Prussia")
+        world.marshals["Schwarzenberg"] = m_austria
+        world.marshals["Blucher"] = m_prussia
+        # Try attack
+        executor = CommandExecutor()
+        result = executor._execute_attack(m_austria, "Blucher", world, {"world": world})
+        assert not result["success"]
+        assert "coalition ally" in result["message"]

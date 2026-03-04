@@ -3929,6 +3929,24 @@ class WorldState:
             "state_transition": f"{current_state}_TO_{target_state}",
         })
 
+        # Coalition: generous peace threat reduction (COALITION_SPEC §2b)
+        # "Generous" = France offers peace while winning (war_score > 20)
+        # with sweeteners but no territory demands from the target.
+        if current_state == "WAR" and target_state != "WAR":
+            from backend.game_logic.diplomacy import calculate_war_score
+            from backend.game_logic.coalition import reduce_threat as _reduce_threat
+            france_war_score = calculate_war_score(self.player_nation, target_nation, self)
+            has_sweeteners = any(
+                c.get("from") == self.player_nation
+                for c in treaty_clauses
+            )
+            has_territory_demands = any(
+                c.get("type") == "territory_cede" and c.get("to") == self.player_nation
+                for c in treaty_clauses
+            )
+            if france_war_score > 20 and has_sweeteners and not has_territory_demands:
+                _reduce_threat(self, 3, "generous_peace")
+
         # Coalition: remove member on separate peace (§6a)
         if current_state == "WAR" and target_state != "WAR":
             from backend.game_logic.coalition import is_coalition_member, remove_coalition_member

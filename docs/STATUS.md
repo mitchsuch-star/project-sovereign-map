@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4935** (4935 passed, 3 skipped — verified Mar 4, Session 7) |
+| **Tests Passing** | **4945** (4945 passed, 3 skipped — verified Mar 4, Session 7 gap closure) |
 
 | **Current Phase** | Phase 8: Diplomacy. **Session 7 COMPLETE** (Coalition System). Next: Session 8 (Diplomatic Ledger UI + Polish). |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -54,6 +54,18 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 4 — Session 7 Gap Closure: Coalition Polish
+
+Closed 4 spec gaps + 1 comment cleanup from Session 7 confidence report. 5 files modified, 10 new tests.
+
+- **Gap 1 (vassal.py):** Voluntary vassal release now calls `reduce_threat(world, 8, "voluntary_vassal_release")`. Only fires for player nation lord; rebellion path already handled separately.
+- **Gap 2 (world_state.py):** Generous peace detection in `_ratify_treaty()`. When France signs peace while winning (war_score > 20) with sweeteners but no territory demands, applies -3 threat (`generous_peace`).
+- **Gap 3 / EC-2 (coalition.py):** `form_coalition()` now voids in-transit proposals to joining nations. Restores Talleyrand state, refunds DP, logs event.
+- **Gap 4 / EC-9 (executor.py + enemy_ai.py):** Coalition members blocked from attacking each other. Hard check in `_execute_attack()` + AI target filter skips coalition allies.
+- **Gap 5 (coalition.py):** Replaced confusing 5-line comment about declare_war threat with clear one-liner.
+- **10 new tests** in TestGapFixes class covering all 4 gaps with positive and negative cases.
+- **4945 tests passing** (4935 + 10 new, 3 skipped, 0 regressions).
 
 ### Mar 4 — Session 7: Coalition System
 

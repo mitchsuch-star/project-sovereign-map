@@ -3264,6 +3264,8 @@ Per turn: `-(1 base + peaceful_nations)`, capped at 3 (excluding France and vass
 |---------|--------|------------|
 | Territory return (treaty) | -5 per region | `territory_return` |
 | Vassal rebellion | -10 | `vassal_rebellion` |
+| Voluntary vassal release | -8 | `voluntary_vassal_release` |
+| Generous peace (sweeteners, no territory demands, war_score > 20) | -3 | `generous_peace` |
 
 ### Coalition Formation (§3)
 
@@ -3290,6 +3292,7 @@ Per turn: `-(1 base + peaceful_nations)`, capped at 3 (excluding France and vass
 - **Friction:** Cross-nation coalition coordination reduced by mutual relation: ≥30 → 1.0×, ≥0 → 0.75×, ≥-20 → 0.5×, else → 0.25×.
 - **Attack threshold:** Aggressive posture -0.15 threshold, cautious +0.15.
 - **is_ally replacement:** `is_coalition_member()` replaces the TODO-1805 hack for cross-nation ally detection.
+- **EC-9 member protection:** Coalition members cannot attack each other (executor block + AI target filter). Frozen bilateral conflicts resume on dissolution.
 
 ### Coalition Breaking (§6)
 
@@ -3302,6 +3305,10 @@ Per turn: `-(1 base + peaceful_nations)`, capped at 3 (excluding France and vass
 Triggers: <2 active members, all members at peace with France, or threat < 20 with coalition active.
 
 5-turn cooldown after dissolution. During cooldown, no new coalition can form (unless threat ≥ 90 overrides).
+
+### EC-2: In-Transit Proposal Voiding
+
+When a coalition forms, any in-transit proposal to a joining nation is voided. Talleyrand returns to IDLE (or ON_MISSION if a mission is active), and DP spent on the proposal is refunded.
 
 ### British Subsidy (§4e)
 
