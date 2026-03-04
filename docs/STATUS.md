@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 4, 2026 (Session 4 — AI Proposals + Counter-Offers + Advisory + Proactive Suggestions)
+> **Last Updated:** March 4, 2026 (Audit 4 — Session 4 Verification)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4697** (4697 passed, 3 skipped — verified Mar 4, Session 4) |
+| **Tests Passing** | **4728** (4728 passed, 3 skipped — verified Mar 4, Audit 4 cleanup) |
 
 | **Current Phase** | Phase 8: Diplomacy. **Session 4 COMPLETE** (AI Proposals, Counter-Offers, Advisory, Proactive Suggestions). Next: Session 5. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -69,6 +69,17 @@ Phase 8 Session 4 implementation. 2 new files, multiple modified files, 43 new t
 - **Conflicting Alliance Resolution (§5b.3):** When AI proposes alliance conflicting with existing commitments, system detects and resolves per spec.
 - **43 new tests** covering: AI trigger evaluation, cooldown enforcement, queue limits/expiry, M3 counter-offer algorithm, advisory type detection, advisory generation, proactive suggestion triggers, frequency caps, conflicting alliance resolution, serialization.
 - **4697 tests passing** (4654 + 43 new, 3 skipped, 0 regressions).
+
+### Mar 4 — Audit 4: Session 4 Verification
+
+Post-Session 4 audit covering AI diplomatic proposals, M3 counter-offers, advisory system, Talleyrand's Report, and turn_manager integration.
+
+- **Known gap resolved:** Integration test confirms end_turn → AI diplomatic phase → result dict wiring works correctly. AI proposal appears in result["ai_proposal"] when P1 trigger conditions are met.
+- **27 new tests** in `tests/test_audit_session4.py`: turn_manager integration (3), cooldown lifecycle (4), counter-offer edge cases (3), advisory boundaries (7), dispatch Talleyrand edges (4), old save compatibility (1), conflict alert wiring (3), dead code detection (2).
+- **Findings:** 0 bugs. 3 smells flagged (dead `tick_cooldowns()` function, Talleyrand war score trigger uses magnitude proxy instead of per-turn shift, `_try_add_desired_clauses` narrative mismatch). No blockers for Session 5.
+- **Verdict: PASS.**
+- **3 smells fixed (cleanup pass):** (1) Deleted dead `tick_cooldowns()` from ai_diplomacy.py. (2) Added `previous_war_scores` to WorldState for per-turn delta tracking; Trigger 2 now uses `abs(current - previous) >= 15` instead of magnitude proxy. (3) Clarified NATION_DESIRES / `_try_add_desired_clauses` intent via comments. 4 new tests for delta + serialization.
+- **4728 tests passing** (4697 + 31 audit, 3 skipped, 0 regressions).
 
 ### Mar 4 — Audit 2+3: Sessions 2+3 Verification
 

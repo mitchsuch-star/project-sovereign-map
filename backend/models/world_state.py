@@ -412,6 +412,9 @@ class WorldState:
         # Stalemate tracking for AI P2 trigger: nation → consecutive stalemate turns
         self.ai_stalemate_counters: Dict[str, int] = {}
 
+        # Previous turn's war scores snapshot for Talleyrand Trigger 2 delta detection
+        self.previous_war_scores: Dict[str, int] = {}
+
         # Calculate initial visibility so turn 1 starts with correct fog state
         # (French regions FULL, adjacent PARTIAL, rest UNKNOWN)
         self._intel_events_this_turn = []  # Init before first calculate_visibility
@@ -2729,6 +2732,7 @@ class WorldState:
             "diplomatic_queue": [q.copy() for q in self.diplomatic_queue],
             "proactive_suggestion_cooldowns": {k: int(v) for k, v in self.proactive_suggestion_cooldowns.items()},
             "ai_stalemate_counters": {k: int(v) for k, v in self.ai_stalemate_counters.items()},
+            "previous_war_scores": {k: int(v) for k, v in self.previous_war_scores.items()},
         }
 
     @classmethod
@@ -2894,6 +2898,7 @@ class WorldState:
         world.diplomatic_queue = [q.copy() for q in data.get("diplomatic_queue", [])]
         world.proactive_suggestion_cooldowns = {k: int(v) for k, v in data.get("proactive_suggestion_cooldowns", {}).items()}
         world.ai_stalemate_counters = {k: int(v) for k, v in data.get("ai_stalemate_counters", {}).items()}
+        world.previous_war_scores = {k: int(v) for k, v in data.get("previous_war_scores", {}).items()}
 
         return world
 
@@ -3608,6 +3613,13 @@ class WorldState:
         # Append fog intel events to tactical events (Session 34B)
         if getattr(self, '_intel_events_this_turn', None):
             self._last_tactical_events.extend(self._intel_events_this_turn)
+
+        # ════════════════════════════════════════════════════════════
+        # SNAPSHOT WAR SCORES (Audit 4 Fix 2)
+        # Saved at end of turn so Talleyrand Trigger 2 can compute
+        # per-turn delta instead of using absolute magnitude proxy.
+        # ════════════════════════════════════════════════════════════
+        self.previous_war_scores = {k: int(v) for k, v in self.war_scores.items()}
 
         # Check for game over
         if self.current_turn > self.max_turns:

@@ -544,17 +544,21 @@ def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
             except Exception:
                 pass  # Guard against formula errors
 
-        # ── Trigger 2: War score shift ≥15 ──
+        # ── Trigger 2: War score shift ≥15 (per-turn delta) ──
         if not _on_cooldown(nation, "war_score_shift") and state == "WAR":
-            war_score = world.war_scores.get(diplo_key, 0)
+            raw_score = world.war_scores.get(diplo_key, 0)
+            prev_raw = getattr(world, 'previous_war_scores', {}).get(diplo_key, 0)
             # Sign adjust for France perspective
             parts = diplo_key.split("|")
             if len(parts) == 2 and parts[0] == nation:
-                war_score = -war_score
-            # Check magnitude (we can't track "shift" without history,
-            # so use absolute value as proxy — high war score = noteworthy)
-            if abs(war_score) >= 30:
-                direction = "in our favor" if war_score > 0 else "against us"
+                war_score = -raw_score
+                prev_score = -prev_raw
+            else:
+                war_score = raw_score
+                prev_score = prev_raw
+            delta = war_score - prev_score
+            if abs(delta) >= 15:
+                direction = "in our favor" if delta > 0 else "against us"
                 observations.append({
                     "message": (
                         f"The war with {nation} has shifted dramatically {direction}. "

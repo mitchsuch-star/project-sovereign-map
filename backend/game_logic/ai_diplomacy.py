@@ -44,7 +44,14 @@ QUEUE_MAX_SIZE = 3              # Maximum queued proposals
 QUEUE_EXPIRY_TURNS = 3          # Queued proposals expire after N turns
 
 # Per-nation desire table for counter-offers (§9b)
-# Ordered by preference (most desired first)
+# Ordered by preference (most desired first).
+#
+# DESIGN NOTE: Despite the name, this table describes what each nation is
+# willing to OFFER as additional sweeteners to France in a counter-offer
+# scenario. When France counter-offers, _try_add_desired_clauses picks from
+# this table and adds items as sweeteners (proposer → target = AI → France),
+# which increases France's acceptance score toward the ≥50 threshold.
+# This is intentional — the M3 algorithm optimizes for France's acceptance.
 NATION_DESIRES = {
     "Prussia": [
         {"type": "territory", "value": 1, "clause": "territory_saxony",
@@ -183,19 +190,6 @@ def apply_rejection_cooldowns(nation: str, proposal_type: str, world) -> None:
     type_key = f"{nation}|{proposal_type}"
     cooldowns[nation_key] = int(NATION_REJECTION_COOLDOWN)
     cooldowns[type_key] = int(TYPE_REJECTION_COOLDOWN)
-    _set_cooldowns(world, cooldowns)
-
-
-def tick_cooldowns(world) -> None:
-    """Decrement all cooldowns by 1. Called once per turn from turn_manager."""
-    cooldowns = _get_cooldowns(world)
-    expired = []
-    for key in cooldowns:
-        cooldowns[key] = int(cooldowns[key] - 1)
-        if cooldowns[key] <= 0:
-            expired.append(key)
-    for key in expired:
-        del cooldowns[key]
     _set_cooldowns(world, cooldowns)
 
 
@@ -831,6 +825,9 @@ def _try_add_desired_clauses(
 ) -> Optional[Dict]:
     """Try adding the cheapest desired clause from the nation's desire table.
 
+    The AI nation adds additional sweeteners it offers TO France to bridge
+    the acceptance gap toward ≥50. See NATION_DESIRES design note above.
+
     Returns modified terms if score reaches >= 50, otherwise None.
     """
     import copy
@@ -844,7 +841,7 @@ def _try_add_desired_clauses(
         test_terms = copy.deepcopy(terms)
         dtype = desire.get("type", "")
 
-        # Add as a sweetener from France to the AI nation
+        # Add as a sweetener from the AI nation to France
         if dtype in ("gold_lump", "gold_per_turn", "territory"):
             test_terms["sweeteners"].append({
                 "type": dtype,
