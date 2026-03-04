@@ -2800,8 +2800,9 @@ Unified top bar UI framework (Session A). Controller-based architecture: top bar
 |-----|--------|
 | L | Event Log (campaign log) |
 | T | Ledger (strategic overview) |
-| G | Generals (placeholder — disabled) |
-| D | Dispatch re-read |
+| G | Generals (marshal management) |
+| D | Diplomatic Ledger (4-tab diplomacy view) |
+| R | Dispatch re-read |
 | Esc | Close screen first, then pause menu |
 
 ### Input Blocking (3 levels)
@@ -2831,6 +2832,26 @@ Unified top bar UI framework (Session A). Controller-based architecture: top bar
 - `GET /ledger` endpoint
 - Godot: sub-tabbed screen (CanvasLayer 50), number keys 1-5 switch tabs, color coding for status/trust/morale/supply/bankruptcy/manpower
 
+### Diplomatic Ledger (Session 8B)
+
+- Backend: `build_diplomatic_ledger(world)` in `diplomatic_ledger.py` with 4 tabs: nations, treaties, threat_coalition, talleyrand
+- All values `int()` wrapped — no floats to Godot
+- Nations: diplomatic state (WAR/ALLIANCE/NON_AGGRESSION/NEUTRAL/etc), relation value, fog-filtered army strength via nation-level visibility
+- Treaties: nation pair, type, clauses, duration (int or "permanent"), cancel cost (always 1 DP)
+- Threat & Coalition: threat level (0-100), tier (LOW/MODERATE/HIGH/CRITICAL), bar calculation (20 chars), brewing status, active coalition
+- Talleyrand: trust label (Loyal/Cooperative/Wary/Distrustful/Treacherous), active mission, pending envoy count, DP remaining/max
+- `GET /diplomatic_ledger` endpoint
+- Godot: sub-tabbed screen (CanvasLayer 50), number keys 1-4 switch tabs, BBCode color coding for states/relations/threat
+
+### Top Bar Diplomatic Fields (Session 8B)
+
+- 4 new fields in top bar right section: DP counter, threat indicator, Talleyrand status, envoy indicator
+- DP counter: always visible, format "DP: X/Y"
+- Threat indicator: hidden at ≤29, amber 30-59, red 60+, pulsing when coalition brewing
+- Talleyrand status: shows current mission summary or "Idle"
+- Envoy indicator: hidden at 0, amber badge when >0, clickable (types advisory command)
+- Fields update on every `/command` response via 6 fields: `diplomatic_points`, `max_diplomatic_points`, `threat_level`, `coalition_brewing`, `talleyrand_mission_summary`, `pending_envoy_count`
+
 ### Key Files
 
 | File | Purpose |
@@ -2841,11 +2862,15 @@ Unified top bar UI framework (Session A). Controller-based architecture: top bar
 | `godot-client/.../dispatch_view.tscn` | Dispatch scene layout |
 | `godot-client/.../strategic_ledger.gd` | Strategic ledger screen (CanvasLayer 50), 5 sub-tabs |
 | `godot-client/.../strategic_ledger.tscn` | Ledger scene layout |
+| `godot-client/.../diplomatic_ledger.gd` | Diplomatic ledger screen (CanvasLayer 50), 4 sub-tabs |
+| `godot-client/.../diplomatic_ledger.tscn` | Diplomatic ledger scene layout |
 | `backend/game_logic/dispatch.py` | Morning dispatch builder (also stores on WorldState) |
 | `backend/game_logic/ledger.py` | Strategic ledger builder (5 sections) |
-| `backend/main.py` | `GET /dispatch`, `GET /ledger` endpoints |
+| `backend/game_logic/diplomatic_ledger.py` | Diplomatic ledger builder (4 tabs: nations, treaties, threat, talleyrand) |
+| `backend/main.py` | `GET /dispatch`, `GET /ledger`, `GET /diplomatic_ledger` endpoints |
 | `tests/test_dispatch_view.py` | 8 tests (storage, serialization, endpoint, no-float) |
 | `tests/test_ledger.py` | 54 tests (all sections + cross-cutting) |
+| `tests/test_session8b_ledger_ui.py` | 30 tests (diplomatic ledger data + top bar fields + hotkeys) |
 
 
 ## 13. Reinforcement System

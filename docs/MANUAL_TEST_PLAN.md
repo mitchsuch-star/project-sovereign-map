@@ -948,16 +948,16 @@ Verify manpower HUD updates after each interaction type:
 4. Click "Event Log" button again — closes
 **Expected:** One-at-a-time toggling, button highlights when active.
 
-### TB3. Dispatch re-read (D key + button)
+### TB3. Dispatch re-read (R key + button)
 1. End a turn (enemy phase + morning dispatch fires)
-2. Press D — dispatch re-read screen opens showing last dispatch
-3. Press D again — closes
+2. Press R — dispatch re-read screen opens showing last dispatch
+3. Press R again — closes
 4. Click Dispatch button — opens
 **Expected:** Same BBCode formatting as terminal dispatch. "No dispatch available yet." on turn 1 before first end turn.
 
 ### TB4. Screen switching
 1. Press L (event log opens)
-2. Press D (event log closes, dispatch opens)
+2. Press R (event log closes, dispatch opens)
 3. Press Esc (dispatch closes)
 **Expected:** Only one screen at a time. Esc closes active screen.
 
@@ -977,8 +977,10 @@ Verify manpower HUD updates after each interaction type:
 2. Press E (end turn)
 **Expected:** Screen closes before enemy phase dialog.
 
-### TB8. Generals button disabled
-**Expected:** Generals button greyed out, G key does nothing.
+### TB8. Generals button opens marshal management
+1. Press G — marshal management screen opens
+2. Press G again — closes
+**Expected:** Card-based marshal view with all player marshals.
 
 ### TB9. Notification bar in top bar
 **Expected:** Notification icons appear in the right section of the top bar (not floating separately at top-right). Expanded panel drops below correctly.
@@ -1031,3 +1033,66 @@ Verify manpower HUD updates after each interaction type:
 1. Open ledger (T)
 2. Press E (end turn)
 **Expected:** Ledger closes before enemy phase dialog.
+
+## Diplomatic Ledger Smoke Tests (Session 8B)
+
+> **Estimated time:** 15-20 min.
+
+### DL1. D key opens diplomatic ledger
+1. Press D — diplomatic ledger opens (centered panel, CanvasLayer 50)
+2. Press D again — closes
+3. Click "Diplomacy" button in top bar — opens
+4. Click "Diplomacy" button again — closes
+**Expected:** Toggle behavior, button highlights when active.
+
+### DL2. Nations tab renders (Tab 1)
+1. Open diplomatic ledger (D), should default to Nations tab
+2. Verify all non-France nations listed with name, diplomatic state, relation value, army strength
+**Expected:** WAR in red, ALLIANCE in blue, neutral in white. Negative relations in red, positive in green. Army strength fog-filtered ("~25,000" or "Unknown").
+
+### DL3. Treaties tab renders (Tab 2)
+1. Open diplomatic ledger (D), press 2 — Treaties tab
+2. Verify active treaties listed with nation pair, type, clauses, duration
+**Expected:** Empty list if no treaties. Duration shown as turns or "Permanent". Cancel cost "1 DP" shown.
+
+### DL4. Threat & Coalition tab renders (Tab 3)
+1. Open diplomatic ledger (D), press 3 — Threat & Coalition tab
+2. Verify threat bar (20 chars wide), tier label, brewing status
+**Expected:** Threat bar uses filled/empty characters. Tier colored: LOW=green, MODERATE=amber, HIGH=red, CRITICAL=red+pulsing. Coalition brewing shows turns remaining.
+
+### DL5. Talleyrand tab renders (Tab 4)
+1. Open diplomatic ledger (D), press 4 — Talleyrand tab
+2. Verify trust label, DP remaining/max, active mission, envoy count
+**Expected:** Trust label colored (Loyal=green, Treacherous=red). DP format "X/Y". "Idle" if no mission.
+
+### DL6. Sub-tab switching (1-4 keys)
+1. Open diplomatic ledger (D)
+2. Press 1, 2, 3, 4 — tabs switch, button highlights update
+3. Press 1-4 while ledger is closed — nothing happens
+**Expected:** Number keys only work when diplomatic ledger is visible.
+
+### DL7. Screen switching with other screens
+1. Press T (strategic ledger opens)
+2. Press D (strategic ledger closes, diplomatic ledger opens)
+3. Press L (diplomatic ledger closes, event log opens)
+**Expected:** Only one screen at a time.
+
+### DL8. Top bar DP counter
+**Expected:** "DP: X/Y" always visible in top bar right section. Updates after every command.
+
+### DL9. Top bar threat indicator
+1. Start game (threat 0) — threat indicator hidden
+2. Raise threat above 30 — indicator appears in amber
+3. Raise threat above 60 — indicator turns red
+**Expected:** Threshold-based visibility and coloring.
+
+### DL10. Top bar envoy indicator
+1. Start game (no envoys) — envoy indicator hidden
+2. Get diplomatic proposal from AI — envoy indicator appears with count
+3. Click envoy indicator — auto-types advisory command in terminal
+**Expected:** Clickable, amber badge, hidden when count is 0.
+
+### DL11. R key opens dispatch (rebind from D)
+1. Press R — dispatch re-read opens
+2. Press D — should NOT open dispatch (opens diplomatic ledger instead)
+**Expected:** D=Diplomatic Ledger, R=Dispatch. No conflict.

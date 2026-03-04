@@ -12,8 +12,8 @@
 Unified top bar UI framework replacing scattered hotkeys and overlays. The top bar is the main UI shell for all information screens going forward. Architecture decisions are final — reviewed by Opus, data layer audited.
 
 ```
-[Event Log] [Ledger] [Generals] [Dispatch]          [!][*][!]  Turn 5
- ^^^ bar buttons ^^^                                 ^^^ notifications ^^^
+[Event Log] [Ledger] [Generals] [Diplomacy] [Dispatch]   DP:2/3 [THREAT] Talleyrand:Idle [!]1 envoy  [!][*][!]  Turn 5
+ ^^^ bar buttons ^^^                                     ^^^ diplomatic fields ^^^      ^^^ notifications ^^^
 ```
 
 ---
@@ -29,7 +29,7 @@ Unified top bar UI framework replacing scattered hotkeys and overlays. The top b
 | Layer | Contents |
 |-------|----------|
 | Base  | Map (Control node, no CanvasLayer) |
-| 50    | All information screens (Event Log, Ledger, Generals, Dispatch) |
+| 50    | All information screens (Event Log, Ledger, Generals, Diplomatic Ledger, Dispatch) |
 | 75    | Top bar + notification expanded detail panel |
 | 100   | Modal dialogs -- ALL 9 existing dialogs stay at 100 (objection, redemption, enemy_phase, glorious_charge, capture_choice, load, strategic_report, interrupt, clarification). Do NOT change these. |
 | 101   | Pause menu (unchanged) |
@@ -43,9 +43,10 @@ Top bar is always visible -- dimmed by pause menu overlay, NOT hidden (matches E
 | Key | Action | Notes |
 |-----|--------|-------|
 | L   | Event Log | Existing, rewired through top_bar |
-| T   | Ledger | New -- NOT Tab (Tab already toggles terminal minimize at main.gd:463-466) |
-| G   | Generals | Placeholder -- screen built in future session |
-| D   | Dispatch re-read | New |
+| T   | Ledger | Strategic overview (6 tabs) |
+| G   | Generals | Marshal Management screen |
+| D   | Diplomatic Ledger | 4-tab diplomacy screen (Session 8B). Was Dispatch pre-8B. |
+| R   | Dispatch re-read | Morning dispatch re-read (Session 8B). Moved from D key. |
 | Esc | Close any open screen first, THEN pause menu on second press | Existing Smart Esc pattern extended |
 
 ### Screen behavior
@@ -129,7 +130,7 @@ Minimal changes to integrate into top bar:
 - PanelContainer centered, scrollable, styled to match campaign_log (dark panel bg `Color(0.08, 0.1, 0.15, 1)`, gold border `Color(0.85, 0.75, 0.55, 1)`, corner_radius 8, content_margin 20/16) -- the style is defined inline in campaign_log.tscn as a sub_resource, NOT a shared theme resource, so copy the StyleBoxFlat definition
 - Renders dispatch with the same BBCode formatting as `_display_morning_dispatch()` in main.gd (167 lines, uses 8 COLOR constants: COLOR_BERTHIER, COLOR_INFO, COLOR_ERROR, COLOR_SUCCESS, COLOR_BATTLE, COLOR_OBSERVATION, COLOR_DISPATCH, and `_format_number()` helper). Duplicate the formatting into dispatch_view.gd using RichTextLabel directly instead of `add_output()`. Document as tech debt for future extraction. Format is stable -- duplication is acceptable.
 - Shows "No dispatch available yet." on turn 0 / empty dispatch
-- D key or Dispatch button -> top_bar.toggle_screen("dispatch") -> dispatch_view.open(api_client) -> fetches GET /dispatch -> renders
+- R key or Dispatch button -> top_bar.toggle_screen("dispatch") -> dispatch_view.open(api_client) -> fetches GET /dispatch -> renders
 - Read-only, no interaction besides scrolling
 - Registers with top_bar as "dispatch"
 
@@ -184,7 +185,7 @@ func _is_hotkey_blocked() -> bool:
 - Restore `map_area.mouse_filter = Control.MOUSE_FILTER_STOP` when screen closes
 - Block map hotkeys: arrow keys (panning in map.gd _process), E (end turn) -- guard with `_is_screen_open()`
 - Allow terminal input: player can type commands and submit while reading any screen
-- Screen hotkeys (L, T, G, D) still work for switching between screens -- guard with `_is_hotkey_blocked()` only (not `_is_screen_open()`)
+- Screen hotkeys (L, T, G, D, R) still work for switching between screens -- guard with `_is_hotkey_blocked()` only (not `_is_screen_open()`)
 - Connect to top_bar's `screen_changed` signal to toggle map mouse filter AND `map_area.panning_enabled` (see Edge Case 10)
 
 **All hotkey guards use `_is_hotkey_blocked()`:**
@@ -582,7 +583,7 @@ Each sub-tab clears ContentArea and populates with RichTextLabel or Label nodes.
 
 Three blocking levels in main.gd:
 
-| State | Map clicks | Map hotkeys (arrows, E) | Screen hotkeys (L,T,G,D) | Terminal input | Esc |
+| State | Map clicks | Map hotkeys (arrows, E) | Screen hotkeys (L,T,G,D,R) | Terminal input | Esc |
 |-------|-----------|------------------------|--------------------------|---------------|-----|
 | Nothing open | Yes | Yes | Yes | Yes | Opens pause |
 | Screen open | **Blocked** | **Blocked** | Yes (switches) | **Yes** | Closes screen |
@@ -615,7 +616,7 @@ Three blocking levels in main.gd:
 
 4. **Notification panel + screen overlap:** Notification expanded panel renders at layer 75 (top bar layer), above screens at layer 50. No visual overlap issues. notification_bar is a Control (extends Control, not CanvasLayer), so it inherits its parent's layer.
 
-5. **D/G/T hotkeys while typing:** All guarded by `_is_hotkey_blocked()` which checks `command_input.has_focus()`.
+5. **D/G/T/R hotkeys while typing:** All guarded by `_is_hotkey_blocked()` which checks `command_input.has_focus()`.
 
 6. **Pause menu + top bar:** Top bar stays visible but dimmed by pause overlay (75% opacity ColorRect at layer 101). Turn counter and notifications remain visible-but-dimmed. Matches EU4/CK3 pattern.
 
