@@ -78,9 +78,9 @@ class TestTypeWhitelist:
         assert result[0]["type"] == "battle"
         assert result[1]["type"] == "recruitment"
 
-    def test_fifteen_types_in_constant(self):
-        """Verify the type set has exactly 15 entries (14 original + defiance)."""
-        assert len(CAMPAIGN_LOG_TYPES) == 15
+    def test_twentyone_types_in_constant(self):
+        """Verify the type set has exactly 21 entries (15 original + 6 diplomacy)."""
+        assert len(CAMPAIGN_LOG_TYPES) == 21
 
     def test_all_types_have_categories(self):
         """Every campaign log type should have a category mapping."""
@@ -547,8 +547,8 @@ class TestEndpointResponse:
             assert "battle_report" not in cleaned
 
     def test_category_mapping_complete(self):
-        """All 14 types should have a valid category in CATEGORY_MAP."""
-        valid_categories = {"combat", "territory", "economy", "command"}
+        """All types should have a valid category in CATEGORY_MAP."""
+        valid_categories = {"combat", "territory", "economy", "command", "diplomacy"}
         for event_type in CAMPAIGN_LOG_TYPES:
             cat = CATEGORY_MAP.get(event_type)
             assert cat in valid_categories, f"{event_type} has invalid category: {cat}"

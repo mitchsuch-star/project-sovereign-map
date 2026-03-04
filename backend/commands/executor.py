@@ -11332,6 +11332,14 @@ RETREAT RECOVERY (3 turns):
 
         dialogue = generate_feasibility_dialogue(diplomatic_data, world)
         world.pending_diplomatic_dialogue = dialogue
+
+        # Dispatch event (Session 8D)
+        from backend.game_logic.dispatch import queue_dispatch_event
+        target = diplomatic_data.get("target_nation", "")
+        queue_dispatch_event(world, "diplomatic_feasibility_report",
+                            {"difficulty_tier": dialogue.get("context", {}).get("difficulty_tier", "unknown"),
+                             "hint": "", "nation": target}, "always")
+
         return {
             "success": True,
             "message": dialogue.get("talleyrand_text", ""),
@@ -11499,6 +11507,11 @@ RETREAT RECOVERY (3 turns):
                 "target": target_nation,
                 "proposal_type": proposal_type,
             })
+
+            # Dispatch event (Session 8D)
+            from backend.game_logic.dispatch import queue_dispatch_event
+            queue_dispatch_event(world, "diplomatic_proposal_sent",
+                                {"nation": target_nation}, "always")
 
             world.pending_diplomatic_dialogue = None
             return {

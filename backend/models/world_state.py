@@ -442,6 +442,13 @@ class WorldState:
         self.war_exhaustion: Dict[str, int] = {}         # nation -> int 0-200
 
         # ============================================================
+        # DISPATCH EVENT QUEUE (Phase 8 Session 8D)
+        # Populated by backend systems, consumed by Morning Dispatch builder
+        # Cleared at start of advance_turn() before systems populate new events
+        # ============================================================
+        self.pending_dispatch_events: List[Dict] = []
+
+        # ============================================================
         # DIPLOMATIC POPUP FIELDS (Phase 8 Session 8A)
         # Read → include in response → clear per Golden Rule 4
         # ============================================================
@@ -2791,6 +2798,9 @@ class WorldState:
             "coalition_cooldown": int(self.coalition_cooldown),
             "coalition_count": int(self.coalition_count),
             "war_exhaustion": {k: int(v) for k, v in self.war_exhaustion.items()},
+            # Dispatch event queue (Session 8D)
+            "pending_dispatch_events": [e.copy() for e in self.pending_dispatch_events],
+
             # Diplomatic popup fields (Session 8A)
             "coalition_popup": self.coalition_popup,
             "diplomatic_sabotage_popup": self.diplomatic_sabotage_popup,
@@ -2988,6 +2998,9 @@ class WorldState:
         world.coalition_cooldown = int(data.get("coalition_cooldown", 0))
         world.coalition_count = int(data.get("coalition_count", 0))
         world.war_exhaustion = {k: int(v) for k, v in data.get("war_exhaustion", {}).items()}
+
+        # Dispatch event queue (Session 8D)
+        world.pending_dispatch_events = [e.copy() for e in data.get("pending_dispatch_events", [])]
 
         # Diplomatic popup fields (Session 8A)
         world.coalition_popup = data.get("coalition_popup", None)
@@ -3527,6 +3540,9 @@ class WorldState:
         # Coalition - clear per-turn threat source tracking
         self.threat_sources_this_turn = []
 
+        # Dispatch events - clear before systems populate new events
+        self.pending_dispatch_events = []
+
         # ════════════════════════════════════════════════════════════
         # PROCESS TACTICAL STATES (before turn counter advances!)
         # ════════════════════════════════════════════════════════════
@@ -3664,6 +3680,14 @@ class WorldState:
         tactical_events.extend(coalition_events)
 
         # ════════════════════════════════════════════════════════════
+        # AI-AI DIPLOMACY (Phase 8 Session 8D)
+        # AI nations propose to each other — world feels alive
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic.ai_diplomacy import process_ai_ai_diplomatic_phase
+        ai_ai_events = process_ai_ai_diplomatic_phase(self)
+        tactical_events.extend(ai_ai_events)
+
+        # ════════════════════════════════════════════════════════════
         # NON-BLOCKING DIALOGUE AUTO-DISMISS (Phase 8 Session 3)
         # ════════════════════════════════════════════════════════════
         if (self.pending_diplomatic_dialogue
@@ -3799,6 +3823,8 @@ class WorldState:
         outcome = result.get("outcome", "REJECT")
         feedback = result.get("feedback", "")
 
+        from backend.game_logic.dispatch import queue_dispatch_event
+
         if outcome == "ACCEPT":
             # Apply treaty
             treaty_event = self._ratify_treaty(target, proposal)
@@ -3810,6 +3836,8 @@ class WorldState:
             })
             if treaty_event:
                 events.append(treaty_event)
+            queue_dispatch_event(self, "diplomatic_proposal_returned",
+                                {"nation": target}, "always")
         elif outcome == "COUNTER_OFFER":
             # Stub: treat as REJECT with hint (Session 4 adds full counter-offer)
             events.append({
@@ -3823,6 +3851,8 @@ class WorldState:
             ptype = proposal.get("type", "")
             if ptype:
                 self.player_proposal_cooldowns[f"{target}_{ptype}"] = 5
+            queue_dispatch_event(self, "diplomatic_proposal_returned",
+                                {"nation": target}, "always")
         else:
             # REJECT
             events.append({
@@ -3835,6 +3865,8 @@ class WorldState:
             ptype = proposal.get("type", "")
             if ptype:
                 self.player_proposal_cooldowns[f"{target}_{ptype}"] = 5
+            queue_dispatch_event(self, "diplomatic_proposal_returned",
+                                {"nation": target}, "always")
 
         # Restore Talleyrand state
         mission = getattr(self, 'active_diplomatic_mission', None)
@@ -3967,6 +3999,13 @@ class WorldState:
             f"France and {target_nation} have signed a {proposal_type.replace('_', ' ')}.",
             int(self.current_turn),
         ))
+
+        # Dispatch event (Session 8D)
+        from backend.game_logic.dispatch import queue_dispatch_event
+        queue_dispatch_event(self, "diplomatic_treaty_signed",
+                            {"nation_a": "France", "nation_b": target_nation,
+                             "treaty_type": proposal_type.replace('_', ' ')},
+                            "partial_on_nation")
 
         # Coalition: generous peace threat reduction (COALITION_SPEC §2b)
         # "Generous" = France offers peace while winning (war_score > 20)

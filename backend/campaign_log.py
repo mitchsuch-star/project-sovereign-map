@@ -37,6 +37,13 @@ CAMPAIGN_LOG_TYPES = {
     "objection",
     "strategic_order",
     "defiance",
+    # Diplomacy (Session 8D)
+    "diplomatic_treaty_signed",
+    "diplomatic_war_declared",
+    "diplomatic_vassal_rebellion",
+    "diplomatic_treaty_broken",
+    "diplomatic_alliance_cascade",
+    "diplomatic_ai_ai_treaty",
 }
 
 # ============================================================================
@@ -59,6 +66,13 @@ CATEGORY_MAP = {
     "objection": "command",
     "strategic_order": "command",
     "defiance": "command",
+    # Diplomacy (Session 8D)
+    "diplomatic_treaty_signed": "diplomacy",
+    "diplomatic_war_declared": "diplomacy",
+    "diplomatic_vassal_rebellion": "diplomacy",
+    "diplomatic_treaty_broken": "diplomacy",
+    "diplomatic_alliance_cascade": "diplomacy",
+    "diplomatic_ai_ai_treaty": "diplomacy",
 }
 
 
@@ -189,6 +203,35 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                     filtered.append(event)
             # Bankruptcy/desertion may lack region — check nation match
             # (already handled above by _is_player_event for player nation)
+            continue
+
+        # Diplomacy events (Session 8D): PARTIAL+ on any relevant nation
+        if event_type in ("diplomatic_treaty_signed", "diplomatic_war_declared",
+                          "diplomatic_treaty_broken", "diplomatic_alliance_cascade",
+                          "diplomatic_ai_ai_treaty"):
+            # Check PARTIAL+ on any nation mentioned
+            from backend.game_logic.diplomatic_ledger import _get_nation_visibility
+            nations_to_check = []
+            for key in ("nation", "nation_a", "nation_b", "target", "aggressor"):
+                val = event.get(key)
+                if val:
+                    nations_to_check.append(val)
+            visible = False
+            for nation in nations_to_check:
+                if nation == player_nation:
+                    visible = True
+                    break
+                vis = _get_nation_visibility(nation, world_state)
+                if vis in (FULL, PARTIAL):
+                    visible = True
+                    break
+            if visible:
+                filtered.append(event)
+            continue
+
+        # Vassal rebellion: player vassal always shown
+        if event_type == "diplomatic_vassal_rebellion":
+            filtered.append(event)
             continue
 
     return filtered
@@ -338,5 +381,37 @@ def format_event_oneliner(event: dict) -> str:
         marshal = event.get("marshal", "Unknown")
         defiance_action = event.get("defiance_action", "acted independently")
         return f"{marshal} defied orders and {defiance_action} instead"
+
+    # ── Diplomacy events (Session 8D) ──
+    if event_type == "diplomatic_treaty_signed":
+        nation_a = event.get("nation_a") or (event.get("nations", [None, None])[0] or "Unknown")
+        nation_b = event.get("nation_b") or (event.get("nations", [None, None])[1] if len(event.get("nations", [])) > 1 else "Unknown")
+        treaty_type = (event.get("treaty_type") or "treaty").replace("_", " ")
+        return f"Treaty signed: {nation_a} and {nation_b} ({treaty_type})"
+
+    if event_type == "diplomatic_war_declared":
+        aggressor = event.get("aggressor") or event.get("nation", "Unknown")
+        target = event.get("target", "Unknown")
+        return f"War declared: {aggressor} → {target}"
+
+    if event_type == "diplomatic_vassal_rebellion":
+        nation = event.get("nation") or event.get("vassal", "Unknown")
+        return f"Vassal rebellion: {nation} has broken free!"
+
+    if event_type == "diplomatic_treaty_broken":
+        nation = event.get("breaker") or event.get("nation", "Unknown")
+        treaty_type = (event.get("treaty_type") or "treaty").replace("_", " ")
+        return f"Treaty broken: {nation} — {treaty_type}"
+
+    if event_type == "diplomatic_alliance_cascade":
+        nation = event.get("defender") or event.get("nation", "Unknown")
+        ally = event.get("ally", "Unknown")
+        return f"Alliance cascade: {nation} enters war via {ally}"
+
+    if event_type == "diplomatic_ai_ai_treaty":
+        nation_a = event.get("nation_a", "Unknown")
+        nation_b = event.get("nation_b", "Unknown")
+        treaty_type = (event.get("treaty_type") or "treaty").replace("_", " ")
+        return f"AI-AI treaty: {nation_a} and {nation_b} ({treaty_type})"
 
     return f"Event: {event_type}"

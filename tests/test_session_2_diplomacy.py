@@ -486,7 +486,7 @@ class TestAcceptanceFormula:
         }
 
         result = calculate_acceptance(proposal, world)
-        assert result["components"]["special_bonus"] == 10
+        assert result["components"]["special_desire_bonus"] == 10
 
     def test_special_bonus_saxony_protection(self):
         world = make_world()
@@ -501,7 +501,7 @@ class TestAcceptanceFormula:
         }
 
         result = calculate_acceptance(proposal, world)
-        assert result["components"]["special_bonus"] == 10
+        assert result["components"]["special_desire_bonus"] == 10
 
 
 class TestFeedback:

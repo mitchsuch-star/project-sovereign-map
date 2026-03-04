@@ -22,6 +22,7 @@ const CATEGORY_ICONS = {
 	"territory": "[color=#90d890]>[/color]",
 	"economy": "[color=#d9c08c]$[/color]",
 	"command": "[color=#c9b8e0]![/color]",
+	"diplomacy": "[color=#b0a0d0]D[/color]",
 }
 
 # Category colors for event text
@@ -30,6 +31,7 @@ const CATEGORY_COLORS = {
 	"territory": "90d890",
 	"economy": "d9c08c",
 	"command": "c9b8e0",
+	"diplomacy": "b0a0d0",
 }
 
 # Track which turns are expanded

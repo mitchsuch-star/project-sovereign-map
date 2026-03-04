@@ -95,6 +95,11 @@ def create_vassal_treaty(world, lord: str, vassal: str, generosity_bonus: int = 
     from backend.game_logic.coalition import add_threat
     add_threat(world, 5, "treaty_vassalization")
 
+    # Dispatch event (Session 8D)
+    from backend.game_logic.dispatch import queue_dispatch_event
+    queue_dispatch_event(world, "diplomatic_carved_vassal_created",
+                        {"carved_name": vassal}, "always")
+
     return {
         "success": True,
         "message": f"{vassal} has become a {AUTONOMY_NAMES[AUTONOMY_SATELLITE]} vassal of {lord} (loyalty: {int(loyalty)}).",
@@ -138,6 +143,11 @@ def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0
     # Coalition threat: +25 for conquest vassalization (§2a)
     from backend.game_logic.coalition import add_threat
     add_threat(world, 25, "conquest_vassalization")
+
+    # Dispatch event (Session 8D)
+    from backend.game_logic.dispatch import queue_dispatch_event
+    queue_dispatch_event(world, "diplomatic_carved_vassal_created",
+                        {"carved_name": vassal}, "always")
 
     return {
         "success": True,
@@ -246,6 +256,13 @@ def process_vassal_loyalty(world) -> List[dict]:
                 "delta": int(delta),
             })
 
+        # Dispatch events for vassal unrest (Session 8D)
+        if lord == getattr(world, 'player_nation', 'France'):
+            from backend.game_logic.dispatch import queue_dispatch_event
+            if new_loyalty < 40 and new_loyalty > 10:
+                queue_dispatch_event(world, "diplomatic_vassal_unrest",
+                                    {"nation": vassal_name}, "player_vassal")
+
         # Notification + popup: rebellion imminent (Session 8C)
         if new_loyalty <= 10 and lord == getattr(world, 'player_nation', 'France'):
             from backend.notifications import (
@@ -269,6 +286,10 @@ def process_vassal_loyalty(world) -> List[dict]:
                 "garrison_effect": "Loyalty +10, AP -2 this turn",
                 "accept_effect": "Rebellion proceeds next turn if loyalty reaches 0",
             }
+            # Dispatch event (Session 8D)
+            from backend.game_logic.dispatch import queue_dispatch_event as _qde_vassal
+            _qde_vassal(world, "diplomatic_vassal_rebellion_imminent",
+                        {"nation": vassal_name}, "player_vassal")
 
     # Notification: defection cascade — multiple vassals low (Session 8C)
     low_vassals = [
@@ -287,6 +308,9 @@ def process_vassal_loyalty(world) -> List[dict]:
             "Multiple vassals are wavering — the empire trembles.",
             int(world.current_turn),
         ))
+        # Dispatch event (Session 8D)
+        from backend.game_logic.dispatch import queue_dispatch_event
+        queue_dispatch_event(world, "diplomatic_defection_cascade", {}, "always")
 
     return events
 
@@ -316,6 +340,11 @@ def check_vassal_rebellion(world) -> List[dict]:
 
     for vassal_name in rebellions:
         lord = world.vassals[vassal_name]["lord"]
+
+        # Dispatch event: vassal dissolved (Session 8D)
+        from backend.game_logic.dispatch import queue_dispatch_event
+        queue_dispatch_event(world, "diplomatic_carved_vassal_dissolved",
+                            {"carved_name": vassal_name}, "always")
 
         # Remove vassal state
         del world.vassals[vassal_name]
@@ -361,6 +390,10 @@ def check_vassal_rebellion(world) -> List[dict]:
             "lord": lord,
             "message": f"{vassal_name} has REBELLED! All vassal marshals have returned to {vassal_name}. War declared.",
         })
+        # Dispatch event (Session 8D)
+        from backend.game_logic.dispatch import queue_dispatch_event
+        queue_dispatch_event(world, "diplomatic_vassal_rebellion",
+                            {"nation": vassal_name}, "player_vassal")
 
     return events
 
@@ -437,6 +470,10 @@ def check_defection_cascade(world) -> List[dict]:
                 })
 
     world.cascade_triggered = cascade_triggered
+    # Dispatch: defection cascade summary if any events fired (Session 8D)
+    if events:
+        from backend.game_logic.dispatch import queue_dispatch_event
+        queue_dispatch_event(world, "diplomatic_defection_cascade", {}, "always")
     return events
 
 
@@ -772,6 +809,11 @@ def apply_continental_system(world) -> None:
             if autonomy in (AUTONOMY_PUPPET, AUTONOMY_SATELLITE):
                 if vassal_name not in members:
                     members.append(vassal_name)
+                    # Dispatch event (Session 8D)
+                    from backend.game_logic.dispatch import queue_dispatch_event
+                    queue_dispatch_event(world, "diplomatic_continental_system",
+                                        {"nation": vassal_name, "action": "joined"},
+                                        "partial_on_nation")
 
     # Penalty: reduce British trade income from member nations
     # This is applied by zeroing out trade income between Britain and members
@@ -861,6 +903,16 @@ def attempt_vassal_courting(world, nation: str) -> List[dict]:
             "new_loyalty": int(state["loyalty"]),
             "message": f"{nation} is courting {vassal_name}! Loyalty dropped by {loyalty_reduction}.",
         })
+
+        # Dispatch event — 60% detection at queue time (Session 8D)
+        import random as _rng
+        if _rng.random() < 0.60:
+            from backend.game_logic.dispatch import queue_dispatch_event
+            from backend.models.region import NATION_CAPITALS
+            vassal_capital = NATION_CAPITALS.get(vassal_name, vassal_name)
+            queue_dispatch_event(world, "diplomatic_vassal_courting",
+                                {"enemy": nation, "vassal_capital": vassal_capital},
+                                "detection_60pct")
 
         # Only court one vassal per nation per turn
         break

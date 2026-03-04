@@ -77,6 +77,9 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None) -> Dic
     # Coalition status (Session 7)
     dispatch["coalition_status"] = _build_coalition_section(world, player_nation)
 
+    # Diplomatic events (Session 8D)
+    dispatch["diplomatic_events"] = _build_diplomatic_events_section(world, player_nation)
+
     # Store on world for dispatch re-read screen (Session A)
     world.last_morning_dispatch = dispatch
 
@@ -724,6 +727,11 @@ def _check_talleyrand_session6(dispatch: Dict, world, player_nation: str) -> Non
                 "trust_bonus_if_overlooked": int(3),
             }
 
+            # Dispatch event (Session 8D)
+            queue_dispatch_event(world, "diplomatic_sabotage_discovered",
+                                {"nation": target, "change_description": defiance_type},
+                                "always")
+
             # Campaign log entry
             world.log_event({
                 "type": "diplomatic_discrepancy",
@@ -820,3 +828,177 @@ def _build_coalition_section(world, player_nation: str) -> Optional[Dict]:
             section["qualifying_nations"] = qualifying
 
     return section
+
+
+# ============================================================================
+# SESSION 8D: DIPLOMATIC EVENTS DISPATCH SECTION
+# ============================================================================
+
+# Event text templates — keyed by event type
+_DIPLOMATIC_EVENT_TEMPLATES = {
+    "diplomatic_proposal_sent": "Talleyrand has departed for the {nation} court.",
+    "diplomatic_proposal_returned": "Talleyrand returns from {nation} with a response.",
+    "diplomatic_sabotage_discovered": "Talleyrand altered your proposal to {nation}. He {change_description}.",
+    "diplomatic_treaty_signed": "{nation_a} and {nation_b} have signed a {treaty_type}.",
+    "diplomatic_treaty_broken": "{nation} has broken the {treaty_type}.",
+    "diplomatic_war_declared": "{nation} has declared war on {target}.",
+    "diplomatic_vassal_unrest": "Talleyrand reports unrest in {nation}.",
+    "diplomatic_vassal_rebellion_imminent": "{nation} is on the verge of rebellion!",
+    "diplomatic_vassal_rebellion": "{nation} has rebelled!",
+    "diplomatic_ai_proposal": "A {nation} envoy has arrived with a proposal.",
+    "diplomatic_mission_progress": "Talleyrand's efforts in {nation} continue. Relations now at {value}.",
+    "diplomatic_mission_paused": "Talleyrand's diplomatic efforts curtailed — insufficient resources.",
+    "diplomatic_mission_cancelled": "Talleyrand's efforts in {nation} have collapsed.",
+    "diplomatic_feasibility_report": "Talleyrand assesses: {difficulty_tier}. {hint}",
+    "diplomatic_alliance_cascade": "{nation} enters the war via alliance with {ally}.",
+    "diplomatic_vassal_courting": "Talleyrand reports {enemy} agents in {vassal_capital}.",
+    "diplomatic_continental_system": "{nation} has {action} the Continental System.",
+    "diplomatic_carved_vassal_created": "The {carved_name} has been established under French protection.",
+    "diplomatic_carved_vassal_dissolved": "The {carved_name} has ceased to exist.",
+    "diplomatic_defection_cascade": "The empire trembles — multiple vassals are wavering!",
+    "diplomatic_ai_ai_treaty": "Talleyrand reports: {nation_a} and {nation_b} have signed a {treaty_type}.",
+}
+
+# Priority mapping: LOW for progress/sent/feasibility; MEDIUM for treaty/system; HIGH for rest
+_DIPLOMATIC_EVENT_PRIORITY = {
+    "diplomatic_proposal_sent": "LOW",
+    "diplomatic_proposal_returned": "HIGH",
+    "diplomatic_sabotage_discovered": "HIGH",
+    "diplomatic_treaty_signed": "MEDIUM",
+    "diplomatic_treaty_broken": "HIGH",
+    "diplomatic_war_declared": "HIGH",
+    "diplomatic_vassal_unrest": "MEDIUM",
+    "diplomatic_vassal_rebellion_imminent": "HIGH",
+    "diplomatic_vassal_rebellion": "HIGH",
+    "diplomatic_ai_proposal": "HIGH",
+    "diplomatic_mission_progress": "LOW",
+    "diplomatic_mission_paused": "MEDIUM",
+    "diplomatic_mission_cancelled": "HIGH",
+    "diplomatic_feasibility_report": "LOW",
+    "diplomatic_alliance_cascade": "HIGH",
+    "diplomatic_vassal_courting": "MEDIUM",
+    "diplomatic_continental_system": "MEDIUM",
+    "diplomatic_carved_vassal_created": "MEDIUM",
+    "diplomatic_carved_vassal_dissolved": "HIGH",
+    "diplomatic_defection_cascade": "HIGH",
+    "diplomatic_ai_ai_treaty": "MEDIUM",
+}
+
+
+def queue_dispatch_event(world, event_type: str, template_vars: dict, fog_rule: str) -> None:
+    """Append a diplomatic event to the pending dispatch queue.
+
+    Called by backend systems as events fire. The Morning Dispatch builder
+    consumes and fog-filters these events when building the dispatch.
+
+    Args:
+        world: WorldState instance
+        event_type: One of the _DIPLOMATIC_EVENT_TEMPLATES keys
+        template_vars: Dict of template variable values (e.g. {"nation": "Prussia"})
+        fog_rule: "always" | "partial_on_nation" | "player_vassal" |
+                  "player_mission" | "detection_60pct"
+    """
+    world.pending_dispatch_events.append({
+        "type": event_type,
+        "template_vars": template_vars,
+        "fog_rule": fog_rule,
+    })
+
+
+def _is_dispatch_event_visible(event: dict, world, player_nation: str) -> bool:
+    """Apply fog rules to determine if a diplomatic dispatch event is visible.
+
+    Fog rules (from DIPLOMACY_SPEC §11):
+    - "always": Always shown to player
+    - "partial_on_nation": Visible if PARTIAL+ on any relevant nation
+    - "player_vassal": Visible if nation is player's vassal
+    - "player_mission": Visible if Talleyrand's mission targets that nation
+    - "detection_60pct": Already resolved at queue time (always show if queued)
+    """
+    from backend.game_logic.diplomatic_ledger import _get_nation_visibility
+
+    fog_rule = event.get("fog_rule", "always")
+    template_vars = event.get("template_vars", {})
+
+    if fog_rule == "always":
+        return True
+
+    if fog_rule == "detection_60pct":
+        # Already passed the roll at queue time
+        return True
+
+    if fog_rule == "partial_on_nation":
+        # Check PARTIAL+ on any nation mentioned in template_vars
+        nations_to_check = []
+        for key in ("nation", "nation_a", "nation_b", "target"):
+            val = template_vars.get(key)
+            if val:
+                nations_to_check.append(val)
+        # Player nation events always visible
+        for nation in nations_to_check:
+            if nation == player_nation:
+                return True
+            vis = _get_nation_visibility(nation, world)
+            if vis in (FULL, PARTIAL):
+                return True
+        return False
+
+    if fog_rule == "player_vassal":
+        nation = template_vars.get("nation", "")
+        vassals = getattr(world, 'vassals', {})
+        vassal_state = vassals.get(nation)
+        if vassal_state and vassal_state.get("lord") == player_nation:
+            return True
+        return False
+
+    if fog_rule == "player_mission":
+        mission = getattr(world, 'active_diplomatic_mission', None)
+        if mission:
+            target = mission.get("target_nation", "")
+            if target == template_vars.get("nation", ""):
+                return True
+        return False
+
+    # Unknown fog rule — default show
+    return True
+
+
+def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
+    """Format event text from template + variables."""
+    template = _DIPLOMATIC_EVENT_TEMPLATES.get(event_type, "")
+    if not template:
+        return f"Diplomatic event: {event_type}"
+    try:
+        return template.format(**template_vars)
+    except (KeyError, IndexError):
+        # Graceful fallback if template vars missing
+        return template
+
+
+def _build_diplomatic_events_section(world, player_nation: str) -> list:
+    """Build the DIPLOMATIC EVENTS section from pending dispatch events.
+
+    Pulls world.pending_dispatch_events, applies fog filter, formats text,
+    returns list of {"type", "text", "priority"} dicts.
+    """
+    events = getattr(world, 'pending_dispatch_events', [])
+    if not events:
+        return []
+
+    result = []
+    for event in events:
+        if not _is_dispatch_event_visible(event, world, player_nation):
+            continue
+
+        event_type = event.get("type", "")
+        template_vars = event.get("template_vars", {})
+        text = _format_dispatch_event_text(event_type, template_vars)
+        priority = _DIPLOMATIC_EVENT_PRIORITY.get(event_type, "MEDIUM")
+
+        result.append({
+            "type": event_type,
+            "text": text,
+            "priority": priority,
+        })
+
+    return result

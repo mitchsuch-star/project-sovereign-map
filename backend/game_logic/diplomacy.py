@@ -150,6 +150,10 @@ FEEDBACK_STRINGS = {
         "negative": "fundamental resistance to this type of agreement",
         "positive": "natural willingness to negotiate",
     },
+    "special_desire_bonus": {
+        "negative": "their specific strategic interests were not addressed",
+        "positive": "we addressed their core strategic interest",
+    },
 }
 
 # ═══════ SWEETENER / DEMAND VALUES ═══════
@@ -486,13 +490,26 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     # Use whichever is higher (they don't stack)
     situational_bonus = max(military_supremacy, battlefield_diplomacy)
 
-    # ── Special Acceptance Bonuses (§6d) ──
-    special_bonus = 0
+    # ── Special Desire Bonus (§6d) ──
+    # Nation-specific acceptance bonuses when proposal addresses core interests
+    special_desire_bonus = 0
     clauses = proposal.get("clauses", [])
     target_specials = SPECIAL_BONUSES.get(target, {})
-    for clause_key in clauses:
-        if clause_key in target_specials:
-            special_bonus += target_specials[clause_key]
+    # Check both string clauses and dict clauses
+    for clause in clauses:
+        if isinstance(clause, str):
+            if clause in target_specials:
+                special_desire_bonus += target_specials[clause]
+        elif isinstance(clause, dict):
+            # Handle structured clause dicts: {"type": "territory", "region": "Saxony"}
+            ctype = clause.get("type", "")
+            cregion = clause.get("region", "")
+            # Match territory_X patterns
+            clause_key = f"{ctype}_{cregion.lower()}" if cregion else ctype
+            if clause_key in target_specials:
+                special_desire_bonus += target_specials[clause_key]
+            elif ctype in target_specials:
+                special_desire_bonus += target_specials[ctype]
 
     # ── Escalating Harshness (DD8-4) ──
     harshness_bonus = 0
@@ -513,7 +530,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         + diplomat_skill_bonus
         + personality_mod
         + situational_bonus
-        + special_bonus
+        + special_desire_bonus
         + harshness_bonus
     )
 
@@ -538,7 +555,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         "personality_modifier": personality_mod,
         "military_supremacy": military_supremacy,
         "battlefield_diplomacy": battlefield_diplomacy,
-        "special_bonus": special_bonus,
+        "special_desire_bonus": special_desire_bonus,
         "harshness_bonus": harshness_bonus,
     }
 
@@ -559,7 +576,7 @@ def _generate_feedback(outcome: str, components: Dict) -> str:
     trackable = {
         "base_disposition", "war_score_modifier", "relation_modifier",
         "threat_modifier", "deal_balance", "diplomat_skill_bonus",
-        "personality_modifier",
+        "personality_modifier", "special_desire_bonus",
     }
 
     largest_positive = ("", 0)
@@ -725,6 +742,12 @@ def declare_war(world, aggressor: str, target: str) -> Dict:
         int(world.current_turn),
     ))
 
+    # Dispatch event (Session 8D)
+    from backend.game_logic.dispatch import queue_dispatch_event
+    queue_dispatch_event(world, "diplomatic_war_declared",
+                        {"nation": aggressor, "target": target},
+                        "partial_on_nation")
+
     messages = [f"{aggressor} declares war on {target}!"]
     for c in cascade:
         messages.append(f"{c['defender']} enters the war against {aggressor} in defense of {c['ally']}!")
@@ -787,6 +810,12 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
                     f"{nation} enters the war via alliance with {target}.",
                     int(world.current_turn),
                 ))
+
+                # Dispatch event (Session 8D)
+                from backend.game_logic.dispatch import queue_dispatch_event
+                queue_dispatch_event(world, "diplomatic_alliance_cascade",
+                                    {"nation": nation, "ally": target},
+                                    "partial_on_nation")
 
                 # Recursive cascade: nation's allies may also join
                 sub_cascade = _process_war_cascade(world, aggressor, nation, processed)
@@ -1179,6 +1208,10 @@ def _process_mission_dp(world) -> List[Dict]:
             "target": mission.get("target", ""),
             "message": "Talleyrand's diplomatic efforts curtailed — insufficient resources.",
         })
+        # Dispatch event (Session 8D)
+        from backend.game_logic.dispatch import queue_dispatch_event
+        queue_dispatch_event(world, "diplomatic_mission_paused",
+                            {"nation": mission.get("target", "")}, "player_mission")
 
     # Auto-cancel after 3+ consecutive paused turns
     paused_turns = mission.get("paused_turns", 0)
@@ -1192,6 +1225,10 @@ def _process_mission_dp(world) -> List[Dict]:
             "target": target,
             "message": f"Talleyrand's mission to {target} has collapsed after prolonged inactivity.",
         })
+        # Dispatch event (Session 8D)
+        from backend.game_logic.dispatch import queue_dispatch_event as _qde
+        _qde(world, "diplomatic_mission_cancelled",
+             {"nation": target}, "player_mission")
 
     return events
 
@@ -1229,6 +1266,13 @@ def _process_mission_effects(world) -> List[Dict]:
     if relation_change:
         scaled = int(round(relation_change * multiplier))
         world.modify_nation_relation("France", target, scaled)
+        # Dispatch event (Session 8D)
+        diplo_key = world._make_diplo_key("France", target)
+        current_relation = world.nation_relations.get(diplo_key, 0)
+        from backend.game_logic.dispatch import queue_dispatch_event
+        queue_dispatch_event(world, "diplomatic_mission_progress",
+                            {"nation": target, "value": int(current_relation)},
+                            "player_mission")
 
     # GATHER_INTEL: auto-complete after duration turns
     duration = effects.get("duration")
@@ -1323,6 +1367,12 @@ def break_treaty(pair_key: str, breaker_nation: str, world) -> Dict:
         f"{breaker_nation} has broken the {treaty_type} with {other}.",
         int(world.current_turn),
     ))
+
+    # Dispatch event (Session 8D)
+    from backend.game_logic.dispatch import queue_dispatch_event
+    queue_dispatch_event(world, "diplomatic_treaty_broken",
+                        {"nation": breaker_nation, "treaty_type": treaty_type},
+                        "partial_on_nation")
 
     return {
         "success": True,

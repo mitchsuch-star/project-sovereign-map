@@ -224,6 +224,24 @@ func _on_dispatch_received(response):
 			bbcode += "[color=#" + evt_color + "]  " + evt_msg + "[/color]\n"
 		bbcode += "\n"
 
+	# ═══ DIPLOMATIC EVENTS (Session 8D) ═══
+	var diplo_events = data.get("diplomatic_events", [])
+	if diplo_events.size() > 0:
+		bbcode += "[color=#" + COLOR_BERTHIER + "]DIPLOMATIC EVENTS[/color]\n"
+		for de in diplo_events:
+			var de_text = str(de.get("text", ""))
+			var de_priority = str(de.get("priority", "MEDIUM"))
+			var de_color = COLOR_INFO  # default grey
+			match de_priority:
+				"HIGH":
+					de_color = COLOR_BATTLE  # amber
+				"MEDIUM":
+					de_color = COLOR_INFO    # grey
+				"LOW":
+					de_color = "808088"      # dim grey
+			bbcode += "[color=#" + de_color + "]  " + de_text + "[/color]\n"
+		bbcode += "\n"
+
 	# ═══ BERTHIER'S NOTE ═══
 	bbcode += "[color=#" + COLOR_OBSERVATION + "]  Berthier: \"" + berthier_note + "\"[/color]\n"
 	bbcode += "[color=#" + COLOR_BERTHIER + "]════════════════════════════════════[/color]\n"

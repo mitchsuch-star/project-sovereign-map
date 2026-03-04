@@ -600,6 +600,11 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
 
     world.pending_diplomatic_dialogue = dialogue
 
+    # Dispatch event (Session 8D)
+    from backend.game_logic.dispatch import queue_dispatch_event
+    queue_dispatch_event(world, "diplomatic_ai_proposal",
+                        {"nation": nation}, "always")
+
     # Notification: AI proposal arrived (Session 8C)
     from backend.notifications import (
         create_notification, NotificationPriority, DIPLOMATIC_PROPOSAL,
@@ -965,4 +970,185 @@ def check_alliance_conflict(
             f"{nation} has existing alliance obligations to "
             f"{conflict_names}."
         ),
+    }
+
+
+# ═══════════════════════════════════════════════════════════════
+# AI-AI DIPLOMACY (§9c) — Session 8D
+# ═══════════════════════════════════════════════════════════════
+
+_AI_AI_MAX_TREATIES_PER_TURN = 2
+
+
+def process_ai_ai_diplomatic_phase(world) -> List[Dict]:
+    """Process diplomatic proposals between AI nations (excluding France).
+
+    Called from advance_turn() after the existing AI proposal phase.
+    Anti-spam: max 2 AI-AI treaties per turn total.
+
+    Returns list of treaty event dicts (for campaign log wiring).
+    """
+    player = getattr(world, 'player_nation', 'France')
+    enemy_nations = list(getattr(world, 'enemy_nations', []))
+    treaties_this_turn = 0
+    events = []
+
+    for i, initiator in enumerate(enemy_nations):
+        if treaties_this_turn >= _AI_AI_MAX_TREATIES_PER_TURN:
+            break
+
+        for target in enemy_nations[i + 1:]:
+            if treaties_this_turn >= _AI_AI_MAX_TREATIES_PER_TURN:
+                break
+
+            proposal = _evaluate_ai_ai_proposal(initiator, target, world)
+            if not proposal:
+                continue
+
+            # Check acceptance from both sides
+            acceptance_a = _ai_ai_acceptance(proposal, initiator, target, world)
+            acceptance_b = _ai_ai_acceptance(proposal, target, initiator, world)
+
+            if acceptance_a >= 50 and acceptance_b >= 50:
+                # Ratify immediately (no transit delay for AI-AI)
+                event = _ratify_ai_ai_treaty(initiator, target, proposal, world)
+                if event:
+                    events.append(event)
+                    treaties_this_turn += 1
+
+    return events
+
+
+def _evaluate_ai_ai_proposal(nation_a: str, nation_b: str, world) -> Optional[Dict]:
+    """Evaluate if two AI nations should propose to each other.
+
+    Trigger conditions (per the spec):
+    1. Both at WAR with France AND relation > -20 → DEFENSIVE_ALLIANCE
+    2. One losing badly (war_score < -40) AND other at peace → NON_AGGRESSION
+    3. Both at PEACE with France AND relation > +40 → upgrade treaty one step
+    4. One gold < 200 AND other gold > 400 → trade deal (open_borders)
+    """
+    player = getattr(world, 'player_nation', 'France')
+
+    state_a_france = world.get_diplomatic_state(nation_a, player)
+    state_b_france = world.get_diplomatic_state(nation_b, player)
+    state_ab = world.get_diplomatic_state(nation_a, nation_b)
+
+    diplo_key_ab = world._make_diplo_key(nation_a, nation_b)
+    relation_ab = world.nation_relations.get(diplo_key_ab, 0)
+
+    # Trigger 1: Both at war with France, relation > -20 → DEFENSIVE_ALLIANCE
+    if (state_a_france == "WAR" and state_b_france == "WAR"
+            and relation_ab > -20
+            and state_ab not in ("DEFENSIVE_ALLIANCE", "ALLIANCE")):
+        return {"type": "defensive_alliance", "proposer": nation_a, "target": nation_b}
+
+    # Trigger 2: One losing badly, other at peace → NON_AGGRESSION
+    if state_a_france == "WAR" and state_b_france != "WAR":
+        ws = _get_war_score_for_nation(nation_a, player, world)
+        if ws < -40 and state_ab not in ("NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE"):
+            return {"type": "non_aggression", "proposer": nation_a, "target": nation_b}
+    if state_b_france == "WAR" and state_a_france != "WAR":
+        ws = _get_war_score_for_nation(nation_b, player, world)
+        if ws < -40 and state_ab not in ("NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE"):
+            return {"type": "non_aggression", "proposer": nation_b, "target": nation_a}
+
+    # Trigger 3: Both at peace, relation > +40 → upgrade one step
+    if (state_a_france != "WAR" and state_b_france != "WAR"
+            and relation_ab > 40):
+        from backend.game_logic.diplomacy import _UPGRADE_ORDER
+        if state_ab in _UPGRADE_ORDER:
+            idx = _UPGRADE_ORDER.index(state_ab)
+            if idx < len(_UPGRADE_ORDER) - 1:
+                next_state = _UPGRADE_ORDER[idx + 1]
+                return {"type": next_state.lower(), "proposer": nation_a, "target": nation_b}
+
+    # Trigger 4: One gold < 200, other gold > 400 → open_borders
+    gold_a = world.nation_gold.get(nation_a, 0)
+    gold_b = world.nation_gold.get(nation_b, 0)
+    if state_ab in ("PEACE", "WAR", "ARMISTICE"):
+        if gold_a < 200 and gold_b > 400 and state_ab == "PEACE":
+            return {"type": "open_borders", "proposer": nation_a, "target": nation_b}
+        if gold_b < 200 and gold_a > 400 and state_ab == "PEACE":
+            return {"type": "open_borders", "proposer": nation_b, "target": nation_a}
+
+    return None
+
+
+def _ai_ai_acceptance(proposal: Dict, evaluator: str, other: str, world) -> int:
+    """Simplified acceptance check for AI-AI proposals.
+
+    Uses the same calculate_acceptance formula but with AI nations.
+    """
+    # Build a proposal dict compatible with calculate_acceptance
+    acceptance_proposal = {
+        "type": proposal["type"],
+        "proposer_nation": proposal.get("proposer", other),
+        "target_nation": evaluator,
+        "sweeteners": [],
+        "demands": [],
+        "clauses": [],
+    }
+    result = calculate_acceptance(acceptance_proposal, world)
+    return result["score"]
+
+
+def _ratify_ai_ai_treaty(nation_a: str, nation_b: str, proposal: Dict, world) -> Optional[Dict]:
+    """Ratify an AI-AI treaty. No transit delay — immediate.
+
+    Applies state transition and queues dispatch/campaign log events.
+    """
+    from backend.game_logic.diplomacy import _UPGRADE_ORDER
+
+    proposal_type = proposal["type"]
+    diplo_key = world._make_diplo_key(nation_a, nation_b)
+    current_state = world.get_diplomatic_state(nation_a, nation_b)
+
+    # Map proposal type to target state
+    state_map = {
+        "defensive_alliance": "DEFENSIVE_ALLIANCE",
+        "alliance": "ALLIANCE",
+        "non_aggression": "NON_AGGRESSION",
+        "open_borders": "OPEN_BORDERS",
+        "peace": "PEACE",
+    }
+    target_state = state_map.get(proposal_type)
+    if not target_state:
+        return None
+
+    # Don't downgrade
+    if target_state in _UPGRADE_ORDER and current_state in _UPGRADE_ORDER:
+        if _UPGRADE_ORDER.index(target_state) <= _UPGRADE_ORDER.index(current_state):
+            return None
+
+    # Apply transition
+    world.diplomatic_states[diplo_key] = target_state
+
+    # Improve relations
+    world.modify_nation_relation(nation_a, nation_b, 10)
+
+    treaty_type_display = proposal_type.replace("_", " ").title()
+
+    # Queue dispatch event (fog-filtered)
+    from backend.game_logic.dispatch import queue_dispatch_event
+    queue_dispatch_event(world, "diplomatic_ai_ai_treaty",
+                        {"nation_a": nation_a, "nation_b": nation_b,
+                         "treaty_type": treaty_type_display},
+                        "partial_on_nation")
+
+    # Campaign log event
+    world.log_event({
+        "type": "diplomatic_ai_ai_treaty",
+        "nation_a": nation_a,
+        "nation_b": nation_b,
+        "treaty_type": treaty_type_display,
+        "turn": int(world.current_turn),
+    })
+
+    return {
+        "type": "ai_ai_treaty",
+        "nation_a": nation_a,
+        "nation_b": nation_b,
+        "treaty_type": treaty_type_display,
+        "message": f"{nation_a} and {nation_b} have signed a {treaty_type_display}.",
     }

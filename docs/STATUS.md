@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 4, 2026 (Session 8C — Popups + Notifications)
+> **Last Updated:** March 4, 2026 (Session 8D — Dispatch Integration + Polish)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **5088** (5088 passed, 3 skipped — verified Mar 4, Session 8C) |
+| **Tests Passing** | **5145** (5145 passed, 3 skipped — verified Mar 4, Session 8D) |
 
-| **Current Phase** | Phase 8: Diplomacy. **Sessions 8A + 8B + 8C COMPLETE** (Backend Ledger + Debug + UI + Top Bar + Popups + Notifications). Next: Session 8D (Dispatch Integration + Polish). See `docs/SESSION_8_PLAN.md`. |
+| **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -31,7 +31,7 @@
    - ~~Session 8A: Backend Ledger Builder + Debug Arsenal~~ — **DONE** (diplomatic_ledger.py with 4 tabs fog-filtered, GET /diplomatic_ledger endpoint, 7 top-bar fields, 3 popup pass-throughs with clear-after-read, 10 cheat commands with mock parser, calculate_war_score components extension, 8 debug endpoints, get_diplomatic_ledger() in api_client.gd, 82 new tests)
    - ~~Session 8B: Diplomatic Ledger Godot UI + Top Bar~~ — **DONE** (diplomatic_ledger.gd/.tscn 4-tab screen, D key for diplomatic ledger, R key for dispatch re-read, top bar DP/threat/Talleyrand/envoy fields with pulse + click, diplomatic fields in /command response, 30 new tests)
    - ~~Session 8C: Popups + Notifications~~ — **DONE** (11 new notification constants, 18 notification fire points wired across coalition/diplomacy/vassal/ai_diplomacy/defiance/dispatch, 6 popup data contracts with clear-after-read, 3 new world_state popup fields serialized, 6 Godot popup scenes with BBCode+signals, priority queue in main.gd, 31 new tests)
-   - Session 8D: Dispatch Integration + Polish + Deferred Mechanical
+   - ~~Session 8D: Dispatch Integration + Polish~~ — **DONE** (20 diplomatic dispatch event types with fog-filtered visibility, queue_dispatch_event helper, campaign log 6 diplomacy event types with one-liner formatters, AI-AI diplomatic phase with 4 triggers + max 2 treaties/turn, special acceptance bonuses for 4 nations, 4 scenario test fixtures, Godot dispatch_view.gd diplomatic section + campaign_log.gd diplomacy category, 57 new tests)
 2. **Jealousy system** — NEEDS DESIGN GATE (separate track). See CLAUDE.md.
 3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
