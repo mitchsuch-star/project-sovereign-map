@@ -23,6 +23,7 @@ Consolidated reference for all game systems. Read when modifying related code.
 14. [Win/Loss Relationship Formula](#14-winloss-relationship-formula)
 15. [Phase 7 UI Integration (Session 66)](#15-phase-7-ui-integration-session-66)
 16. [Diplomacy Data Layer](#16-diplomacy-data-layer)
+17. [Coalition System](#17-coalition-system)
 
 ---
 
@@ -3231,3 +3232,98 @@ Tracks last 5 overrides. Dispatch notes: "pessimistic" if good outcome, "prescie
 | `world_state.py` | 3 fields (cooldown, sabotage, override_history), advance_turn processing |
 | `notifications.py` | VASSAL_REBELLION, VASSAL_LOYALTY_CRITICAL types |
 | `executor.py` | invest_vassal, change_autonomy, make_vassal commands |
+
+---
+
+## 17. Coalition System
+
+**File:** `backend/game_logic/coalition.py` (Session 7). **Spec:** `docs/COALITION_SPEC.md` v1.1.
+
+The coalition system creates the core Napoleonic puzzle: the better you play, the harder Europe pushes back.
+
+### Threat Accumulation (§2a)
+
+| Trigger | Amount | Source Key |
+|---------|--------|------------|
+| France wins battle | +3 | `battle_victory` |
+| Decisive victory (ratio >2:1, casualties >10k) | +5 additional | `decisive_victory` |
+| Capital captured by France | +15 | `capital_capture` |
+| France declares war | +20 | `war_declaration` |
+| Diplomatic downgrade | per DOWNGRADE_PENALTIES | `diplomatic_downgrade` |
+| Treaty vassalization | +5 | `treaty_vassalization` |
+| Conquest vassalization | +25 | `conquest_vassalization` |
+| Treaty annexation | +8 per region | `treaty_annex` |
+
+### Threat Decay (§2b)
+
+Per turn: `-(1 base + peaceful_nations)`, capped at 3 (excluding France and vassals from peaceful count). Continental System members provide uncapped additional decay. Threshold checks use FINAL post-decay value (EC-15).
+
+### Threat Reduction
+
+| Trigger | Amount | Source Key |
+|---------|--------|------------|
+| Territory return (treaty) | -5 per region | `territory_return` |
+| Vassal rebellion | -10 | `vassal_rebellion` |
+
+### Coalition Formation (§3)
+
+| Threat Level | Effect |
+|-------------|--------|
+| < 60 | No coalition activity |
+| ≥ 60 | Brewing starts (3-turn countdown) |
+| ≥ 80 | Instant declaration (skip brewing) |
+| ≥ 90 | Overrides 5-turn cooldown |
+
+**Qualifying nations:** relation with France < -10, not a vassal, not already at WAR with France.
+
+**Brewing cancellation:** Threat drops below 40 OR zero qualifying nations remain.
+
+### Coalition Structure (§4)
+
+- **Leader:** Highest score: `military_strength // 1000 + abs(relation_with_france) + authority`. Tiebreak: most marshals, then alphabetical.
+- **Strategic posture:** Based on coalition war score (army-weighted average). Aggressive (war score > 30), cautious (war score < -10), defensive (default). Leader personality can override (aggressive leader → always aggressive if score > 0).
+- **Coalition naming:** "First Coalition", "Second Coalition", etc. Based on `coalition_count`.
+
+### Coalition AI (§5)
+
+- **Convergence bias:** Coalition members' P7 movement scoring adds +12 (aggressive) / +4 (defensive) / +0 (cautious) toward regions adjacent to French territory.
+- **Friction:** Cross-nation coalition coordination reduced by mutual relation: ≥30 → 1.0×, ≥0 → 0.75×, ≥-20 → 0.5×, else → 0.25×.
+- **Attack threshold:** Aggressive posture -0.15 threshold, cautious +0.15.
+- **is_ally replacement:** `is_coalition_member()` replaces the TODO-1805 hack for cross-nation ally detection.
+
+### Coalition Breaking (§6)
+
+- **Loyalty penalty:** `min(-15 + war_exhaustion // 10, 0)` on acceptance formula. Halved via diplomatic wedge (non-WAR relation with any coalition member).
+- **War exhaustion:** +casualties//1000 per battle (cap 20/battle), +5/turn at war, -5/turn at peace. Coalition shock: +5 to all other members on decisive defeat of one member.
+- **Separate peace:** remove_coalition_member() handles leader transition (next-highest score), betrayal penalty (-10 relation with remaining members).
+
+### Dissolution (§7)
+
+Triggers: <2 active members, all members at peace with France, or threat < 20 with coalition active.
+
+5-turn cooldown after dissolution. During cooldown, no new coalition can form (unless threat ≥ 90 overrides).
+
+### British Subsidy (§4e)
+
+200g/turn to coalition member with lowest relation to Britain, if Britain gold > 500 and is a coalition member.
+
+### War Exhaustion Per-Turn
+
+| Condition | Change |
+|-----------|--------|
+| Nation at war with France | +5/turn |
+| Nation at peace with France | -5/turn |
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `coalition.py` | Coalition engine (all logic) |
+| `world_state.py` | 7 fields, advance_turn hook, per-turn clearing, treaty wiring |
+| `executor.py` | Threat after battles, war exhaustion, coalition shock |
+| `diplomacy.py` | War declaration threat, downgrade threat, acceptance formula coalition penalty |
+| `vassal.py` | Vassalization threat via add_threat() |
+| `enemy_ai.py` | Coalition member detection, friction, convergence bias, posture threshold |
+| `dispatch.py` | Coalition section in Morning Dispatch |
+| `diplomatic_templates.py` | T28-T34 templates |
+| `notifications.py` | 7 coalition notification types |

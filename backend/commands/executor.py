@@ -4867,6 +4867,59 @@ RETREAT RECOVERY (3 turns):
                 if outnumbering or capital_lost:
                     world.authority_tracker.modify_authority(-5)
 
+        # ════════════════════════════════════════════════════════════
+        # COALITION: Threat + war exhaustion from battle (Session 7)
+        # France wins: +3. Decisive: +5 additional. Capital: +15.
+        # War exhaustion: +casualties//1000 (cap 20) for losing nation.
+        # Coalition shock: +5 WE to other members on decisive defeat.
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic.coalition import (
+            add_threat, add_war_exhaustion_from_battle, add_coalition_shock
+        )
+        france = world.player_nation
+        atk_cas = int(battle_result.get("attacker_casualties", 0))
+        def_cas = int(battle_result.get("defender_casualties", 0))
+        total_cas = atk_cas + def_cas
+
+        if battle_result.get("victor") == marshal.name and marshal.nation == france:
+            # France won as attacker
+            add_threat(world, 3, "battle_win")
+            # Decisive: ratio > 2:1 AND total casualties > 10,000
+            if def_cas > 0 and atk_cas > 0:
+                ratio = def_cas / atk_cas if atk_cas > 0 else 999
+            elif def_cas > 0:
+                ratio = 999
+            else:
+                ratio = 0
+            if ratio > 2 and total_cas > 10000:
+                add_threat(world, 5, "decisive_victory")
+                add_coalition_shock(enemy_marshal.nation, world)
+            # Capital capture
+            if conquered:
+                cap_reg = world.get_region(target_location)
+                if cap_reg and getattr(cap_reg, 'is_capital', False):
+                    add_threat(world, 15, "capital_capture")
+            # War exhaustion for defender
+            add_war_exhaustion_from_battle(enemy_marshal.nation, def_cas, world)
+
+        elif battle_result.get("victor") == enemy_marshal.name:
+            # France lost (either as attacker or defender)
+            if marshal.nation == france:
+                add_war_exhaustion_from_battle(marshal.nation, atk_cas, world)
+            if enemy_marshal.nation == france:
+                # France won as defender
+                add_threat(world, 3, "battle_win")
+                if atk_cas > 0 and def_cas > 0:
+                    ratio = atk_cas / def_cas if def_cas > 0 else 999
+                elif atk_cas > 0:
+                    ratio = 999
+                else:
+                    ratio = 0
+                if ratio > 2 and total_cas > 10000:
+                    add_threat(world, 5, "decisive_victory")
+                    add_coalition_shock(marshal.nation, world)
+                add_war_exhaustion_from_battle(marshal.nation, atk_cas, world)
+
         # Build auto-bombardment preamble (Session 68) — prepended before combat description
         auto_bombard_preamble = ""
         if auto_bombardment_messages:

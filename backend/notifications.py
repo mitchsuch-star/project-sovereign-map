@@ -36,6 +36,14 @@ MARSHAL_DEFIED_ORDER = "marshal_defied_order"  # V2b: HIGH priority
 # Vassal System notifications (Phase 8 Session 5)
 VASSAL_REBELLION = "vassal_rebellion"              # CRITICAL: vassal rebelled
 VASSAL_LOYALTY_CRITICAL = "vassal_loyalty_critical"  # HIGH: loyalty < 10
+# Coalition System notifications (Phase 8 Session 7)
+COALITION_THREAT_TENSION = "coalition_threat_tension"      # HIGH: threat reached 30+
+COALITION_MURMURS = "coalition_murmurs"                    # HIGH: threat reached 40+
+COALITION_BREWING = "coalition_brewing"                    # CRITICAL: brewing started (60+)
+COALITION_DECLARED = "coalition_declared"                  # CRITICAL: coalition war declared
+COALITION_MEMBER_PEACED = "coalition_member_peaced"        # NORMAL: member signed peace
+COALITION_DISSOLVED = "coalition_dissolved"                # NORMAL: coalition dissolved
+COALITION_COOLDOWN_ENDED = "coalition_cooldown_ended"      # NORMAL: new coalition can form
 
 
 def create_notification(

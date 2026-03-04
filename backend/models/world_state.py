@@ -430,6 +430,17 @@ class WorldState:
         self.pending_talleyrand_sabotage: Optional[Dict] = None  # Active sabotage record
         self.talleyrand_override_history: List[Dict] = []  # Last 5 overrides (proposal_type, result)
 
+        # ============================================================
+        # COALITION SYSTEM (Phase 8 Session 7)
+        # ============================================================
+        self.threat_level: int = 0                       # 0-100 clamped
+        self.threat_sources_this_turn: list = []         # [{"source": str, "amount": int}]
+        self.active_coalition: Optional[Dict] = None     # Dict or None (COALITION_SPEC §10b)
+        self.coalition_brewing: Optional[Dict] = None    # Dict or None (COALITION_SPEC §10c)
+        self.coalition_cooldown: int = 0                 # 5-turn post-dissolution
+        self.coalition_count: int = 0                    # For naming ("Second Coalition")
+        self.war_exhaustion: Dict[str, int] = {}         # nation -> int 0-200
+
         # Calculate initial visibility so turn 1 starts with correct fog state
         # (French regions FULL, adjacent PARTIAL, rest UNKNOWN)
         self._intel_events_this_turn = []  # Init before first calculate_visibility
@@ -2759,6 +2770,15 @@ class WorldState:
             "talleyrand_defiance_cooldown": int(self.talleyrand_defiance_cooldown),
             "pending_talleyrand_sabotage": self.pending_talleyrand_sabotage.copy() if self.pending_talleyrand_sabotage else None,
             "talleyrand_override_history": [h.copy() for h in self.talleyrand_override_history],
+
+            # ═══════ COALITION SYSTEM (Session 7) ═══════
+            "threat_level": int(self.threat_level),
+            "threat_sources_this_turn": [s.copy() for s in self.threat_sources_this_turn],
+            "active_coalition": self.active_coalition.copy() if self.active_coalition else None,
+            "coalition_brewing": self.coalition_brewing.copy() if self.coalition_brewing else None,
+            "coalition_cooldown": int(self.coalition_cooldown),
+            "coalition_count": int(self.coalition_count),
+            "war_exhaustion": {k: int(v) for k, v in self.war_exhaustion.items()},
         }
 
     @classmethod
@@ -2938,6 +2958,17 @@ class WorldState:
         if world.pending_talleyrand_sabotage and isinstance(world.pending_talleyrand_sabotage, dict):
             world.pending_talleyrand_sabotage = world.pending_talleyrand_sabotage.copy()
         world.talleyrand_override_history = [h.copy() for h in data.get("talleyrand_override_history", [])]
+
+        # ═══════ COALITION SYSTEM (Session 7) ═══════
+        world.threat_level = int(data.get("threat_level", 0))
+        world.threat_sources_this_turn = [s.copy() for s in data.get("threat_sources_this_turn", [])]
+        raw_coalition = data.get("active_coalition", None)
+        world.active_coalition = raw_coalition.copy() if isinstance(raw_coalition, dict) else None
+        raw_brewing = data.get("coalition_brewing", None)
+        world.coalition_brewing = raw_brewing.copy() if isinstance(raw_brewing, dict) else None
+        world.coalition_cooldown = int(data.get("coalition_cooldown", 0))
+        world.coalition_count = int(data.get("coalition_count", 0))
+        world.war_exhaustion = {k: int(v) for k, v in data.get("war_exhaustion", {}).items()}
 
         return world
 
@@ -3466,6 +3497,9 @@ class WorldState:
         # Economy - clear per-turn spending tracker
         self.gold_spent_this_turn = {}
 
+        # Coalition - clear per-turn threat source tracking
+        self.threat_sources_this_turn = []
+
         # ════════════════════════════════════════════════════════════
         # PROCESS TACTICAL STATES (before turn counter advances!)
         # ════════════════════════════════════════════════════════════
@@ -3592,6 +3626,15 @@ class WorldState:
             rebellion_events = check_vassal_rebellion(self)
             tactical_events.extend(rebellion_events)
             decrement_vassal_cooldowns(self)
+
+        # ════════════════════════════════════════════════════════════
+        # COALITION PROCESSING (Phase 8 Session 7)
+        # Threat decay, brewing countdown, formation, dissolution
+        # Must run AFTER vassal processing but BEFORE income phase
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic.coalition import process_coalition_turn
+        coalition_events = process_coalition_turn(self)
+        tactical_events.extend(coalition_events)
 
         # ════════════════════════════════════════════════════════════
         # NON-BLOCKING DIALOGUE AUTO-DISMISS (Phase 8 Session 3)
@@ -3869,6 +3912,14 @@ class WorldState:
                     if region_name in self.regions:
                         self.regions[region_name].controller = to_nation
                         self.regions[region_name].stability = 50
+                # Coalition threat: +8 per region annexed by France (§2a)
+                if to_nation == self.player_nation and regions:
+                    from backend.game_logic.coalition import add_threat
+                    add_threat(self, 8 * len(regions), "treaty_annex")
+                # Threat reduction: -5 per region returned by France (§2b)
+                if from_nation == self.player_nation and regions:
+                    from backend.game_logic.coalition import reduce_threat
+                    reduce_threat(self, 5 * len(regions), "territory_return")
 
         # Log event
         self.log_event({
@@ -3877,6 +3928,12 @@ class WorldState:
             "treaty_type": proposal_type,
             "state_transition": f"{current_state}_TO_{target_state}",
         })
+
+        # Coalition: remove member on separate peace (§6a)
+        if current_state == "WAR" and target_state != "WAR":
+            from backend.game_logic.coalition import is_coalition_member, remove_coalition_member
+            if is_coalition_member(target_nation, self):
+                remove_coalition_member(target_nation, self)
 
         return {
             "type": "diplomatic_treaty_signed",

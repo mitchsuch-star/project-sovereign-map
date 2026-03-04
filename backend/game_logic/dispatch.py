@@ -74,6 +74,9 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None) -> Dic
 
     _check_talleyrand_session6(dispatch, world, player_nation)
 
+    # Coalition status (Session 7)
+    dispatch["coalition_status"] = _build_coalition_section(world, player_nation)
+
     # Store on world for dispatch re-read screen (Session A)
     world.last_morning_dispatch = dispatch
 
@@ -719,3 +722,65 @@ def _check_talleyrand_session6(dispatch: Dict, world, player_nation: str) -> Non
             redemption = build_redemption_dialogue(talleyrand, world)
             dispatch["talleyrand_redemption"] = redemption
             world.pending_diplomatic_dialogue = redemption
+
+
+def _build_coalition_section(world, player_nation: str) -> Optional[Dict]:
+    """Build coalition status section for Morning Dispatch (COALITION_SPEC §9c).
+
+    Returns None if threat < 30 (nothing to show).
+    """
+    from backend.game_logic.coalition import (
+        get_threat_tier, get_qualifying_nations, is_coalition_active,
+        THREAT_TENSION_MIN,
+    )
+
+    threat = int(world.threat_level)
+    if threat < THREAT_TENSION_MIN:
+        return None
+
+    tier = get_threat_tier(threat)
+    section = {
+        "threat_level": threat,
+        "tier": tier,
+        "sources": [s.copy() for s in world.threat_sources_this_turn],
+    }
+
+    # Brewing status
+    if world.coalition_brewing:
+        brewing = world.coalition_brewing
+        section["brewing"] = {
+            "qualifying_nations": brewing.get("qualifying_nations", []),
+            "turns_remaining": int(brewing.get("turns_remaining", 0)),
+        }
+
+    # Active coalition details
+    if is_coalition_active(world):
+        coalition = world.active_coalition
+        members_info = []
+        for member in coalition.get("members", []):
+            member_strength = sum(
+                m.strength for m in world.marshals.values()
+                if m.nation == member and m.strength > 0
+            )
+            members_info.append({
+                "nation": member,
+                "war_exhaustion": int(world.war_exhaustion.get(member, 0)),
+                "strength": int(member_strength),
+                "gold": int(world.nation_gold.get(member, 0)),
+            })
+
+        section["active_coalition"] = {
+            "name": coalition.get("name", ""),
+            "leader": coalition.get("leader", ""),
+            "posture": coalition.get("strategic_posture", "defensive"),
+            "formed_turn": int(coalition.get("formed_turn", 0)),
+            "members": members_info,
+        }
+
+    # Qualifying nations (if not brewing/active, show who would join)
+    if not world.coalition_brewing and not is_coalition_active(world):
+        qualifying = get_qualifying_nations(world)
+        if qualifying:
+            section["qualifying_nations"] = qualifying
+
+    return section

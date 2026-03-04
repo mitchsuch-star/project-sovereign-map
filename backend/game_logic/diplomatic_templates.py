@@ -852,6 +852,99 @@ DIPLOMATIC_TEMPLATES = {
     },
 }
 
+# ═══════ COALITION TEMPLATES (T28-T34, Session 7) ═══════
+# Template categories for coalition events. These use coalition-specific slot variables.
+
+COALITION_TEMPLATES = {
+    # T28: Coalition murmur (threat 40-59)
+    "coalition_murmur": {
+        "text": (
+            "Sire, at threat level {threat_level}, the courts of {hostile_nations} "
+            "grow restless. Our recent successes alarm them."
+        ),
+        "priority": "normal",
+    },
+    # T29: Coalition brewing (threat 60+)
+    "coalition_brewing": {
+        "text": (
+            "Your Majesty, I must speak with the utmost urgency. {qualifying_nations} "
+            "are forming a coalition against us. We have {turns_remaining} turns to prevent it. "
+            "Shall I approach the weakest member with terms?"
+        ),
+        "priority": "high",
+    },
+    # T30: Coalition declared
+    "coalition_declared": {
+        "text": (
+            "The {coalition_name} has declared against us. {leader} leads "
+            "{member_list}. All of Europe stands against you, Sire."
+        ),
+        "priority": "critical",
+    },
+    # T31: Coalition member weakening
+    "coalition_member_weak": {
+        "text": (
+            "{nation}'s resolve is faltering. Their war exhaustion has reached "
+            "{war_exhaustion}. They may be amenable to separate terms."
+        ),
+        "priority": "normal",
+    },
+    # T32: Coalition split advice
+    "coalition_advice_split": {
+        "text": (
+            "I recommend approaching {target_nation} with generous peace terms. "
+            "They are the weakest link in the coalition. A separate peace would "
+            "fracture the alliance."
+        ),
+        "priority": "normal",
+    },
+    # T33: Coalition dissolved
+    "coalition_dissolved": {
+        "text": (
+            "The {coalition_name} has collapsed. A moment of respite, Sire. "
+            "But I counsel moderation — harsh demands breed the next coalition."
+        ),
+        "priority": "normal",
+    },
+    # T34: Coalition harsh warning
+    "coalition_harsh_warning": {
+        "text": (
+            "Sire, these terms will add {threat_increase} to our threat level. "
+            "At the current rate, another coalition may form within turns. "
+            "I urge restraint."
+        ),
+        "priority": "normal",
+    },
+}
+
+
+def get_coalition_template(category: str) -> Optional[Dict]:
+    """Get a coalition template by category name."""
+    return COALITION_TEMPLATES.get(category)
+
+
+def resolve_coalition_template(category: str, world, **kwargs) -> Optional[str]:
+    """Resolve a coalition template with slot variables.
+
+    Accepts keyword arguments for coalition-specific slots like
+    threat_level, hostile_nations, qualifying_nations, etc.
+    """
+    template = COALITION_TEMPLATES.get(category)
+    if not template:
+        return None
+
+    text = template["text"]
+    slots = {k: str(v) for k, v in kwargs.items()}
+
+    # Auto-fill from world state
+    slots.setdefault("threat_level", str(int(getattr(world, 'threat_level', 0))))
+
+    try:
+        return text.format_map(_SafeFormatMap(slots))
+    except (KeyError, ValueError):
+        return text
+
+
 # ═══════ FALLBACK TEMPLATES ═══════
 # Used when no exact template match is found
 
@@ -1029,6 +1122,14 @@ def resolve_template_text(text: str, world, target_nation: Optional[str] = None)
 
     # Generic slots
     slots["dp"] = str(int(getattr(world, 'diplomatic_points', 0)))
+
+    # Coalition slots (Session 7)
+    slots["threat_level"] = str(int(getattr(world, 'threat_level', 0)))
+    coalition = getattr(world, 'active_coalition', None)
+    if coalition:
+        slots["coalition_name"] = coalition.get("name", "The Coalition")
+        slots["leader"] = coalition.get("leader", "")
+        slots["member_list"] = ", ".join(coalition.get("members", []))
 
     # Resolve — use .get for safety
     try:

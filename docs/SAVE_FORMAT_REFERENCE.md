@@ -11,7 +11,7 @@ A future save/load system should use this as the specification.
 
 - **Format version:** 1.0
 - **Last updated:** 2026-03-04
-- **Compatible with:** Phase 8 Session 4 (AI Proposals/Counter-Offers/Advisory/Proactive Suggestions)
+- **Compatible with:** Phase 8 Session 7 (Coalition System)
 
 ## Top-Level Structure (WorldState)
 
@@ -86,6 +86,14 @@ A future save/load system should use this as the specification.
   "talleyrand_defiance_cooldown": 0,
   "pending_talleyrand_sabotage": null,
   "talleyrand_override_history": [],
+
+  "threat_level": 0,
+  "threat_sources_this_turn": [],
+  "active_coalition": null,
+  "coalition_brewing": null,
+  "coalition_cooldown": 0,
+  "coalition_count": 0,
+  "war_exhaustion": {},
 
   "active_battles": {},
   "battle_history": [],
@@ -181,6 +189,13 @@ A future save/load system should use this as the specification.
 | `talleyrand_defiance_cooldown` | int | 0 | **Session 6.** Turns remaining on Talleyrand defiance cooldown. Blocks new sabotage when > 0. Decremented in advance_turn(). Set to 5 on confrontation. |
 | `pending_talleyrand_sabotage` | dict\|null | null | **Session 6.** Active sabotage record. Keys: original_proposal, modified_proposal, defiance_type, discovery_chance, turns_hidden, discovered, target_nation. Cleared after confrontation resolution. |
 | `talleyrand_override_history` | list | [] | **Session 6.** Last 5 override records. Each: {proposal_type, override_result ("good"/"bad"), turn}. Used by dispatch honesty note ("pessimistic"/"prescient"). Capped at 5 entries. |
+| `threat_level` | int | 0 | **Session 7.** Coalition threat level (0-100 clamped). Accumulates from aggressive player actions (battles +3, decisive +5, capital +15, war declaration +20, vassalization +5/+25, annexation +8/region). Decays per turn. |
+| `threat_sources_this_turn` | list | [] | **Session 7.** Per-turn threat source log. Each entry: {source: str, amount: int}. Cleared at turn start. Used by dispatch for threat breakdown. |
+| `active_coalition` | dict\|null | null | **Session 7.** Active coalition state. Keys: name, members (list), leader, strategic_posture, formed_turn, war_exhaustion (per-member). null = no active coalition. |
+| `coalition_brewing` | dict\|null | null | **Session 7.** Brewing coalition state. Keys: qualifying_nations, turns_remaining (3→0 countdown), started_turn. null = not brewing. |
+| `coalition_cooldown` | int | 0 | **Session 7.** Post-dissolution cooldown (5 turns). Prevents new coalition formation while > 0. Decremented in process_coalition_turn(). |
+| `coalition_count` | int | 0 | **Session 7.** Total coalitions formed this game. Used for naming ("First Coalition", "Second Coalition", etc.). |
+| `war_exhaustion` | dict | {} | **Session 7.** War exhaustion per nation. Keys: nation name. Values: int 0-200. +casualties//1000 per battle (cap 20), +5/turn at war, -5/turn at peace. Affects coalition loyalty penalty. |
 | `active_battles` | dict | {} | Currently ongoing battles |
 | `battle_history` | list | [] | Completed battle records |
 | `battles_this_turn` | list | [] | Battles this turn (Phase 5.2) |

@@ -407,14 +407,17 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     relation = world.nation_relations.get(diplo_key, 0)
     relation_mod = relation / 2
 
-    # ── Threat Modifier ──
-    # Stub at 0 for now — threat system wired in Session 7 (Coalition)
-    threat = 0  # TODO: Wire threat from coalition system
+    # ── Threat Modifier (COALITION_SPEC §6a) ──
+    threat = int(getattr(world, 'threat_level', 0))
     threat_mod = 0
     if proposer == "France":
         threat_mod = threat * -0.3
     elif target != "France":
         threat_mod = threat * 0.2
+
+    # ── Coalition Loyalty Penalty (COALITION_SPEC §6a/§6c) ──
+    from backend.game_logic.coalition import get_coalition_loyalty_penalty
+    coalition_penalty = get_coalition_loyalty_penalty(target, world)
 
     # ── Deal Balance ──
     sweetener_total = 0.0
@@ -492,6 +495,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         + war_score_mod
         + relation_mod
         + threat_mod
+        + coalition_penalty
         + deal_balance
         + diplomat_skill_bonus
         + personality_mod
@@ -515,6 +519,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         "war_score_modifier": round(war_score_mod, 1),
         "relation_modifier": round(relation_mod, 1),
         "threat_modifier": round(threat_mod, 1),
+        "coalition_penalty": int(coalition_penalty),
         "deal_balance": round(deal_balance, 1),
         "diplomat_skill_bonus": diplomat_skill_bonus,
         "personality_modifier": personality_mod,
@@ -670,8 +675,10 @@ def declare_war(world, aggressor: str, target: str) -> Dict:
             world.modify_nation_relation(aggressor, nation, -15)
             relation_changes.append({"nations": (aggressor, nation), "delta": -15})
 
-    # Threat +20 (stub — TODO: wire threat system in Session 7)
-    # world.threat[aggressor] += 20
+    # Coalition threat: +20 for France declaring war (§2a)
+    if aggressor == world.player_nation:
+        from backend.game_logic.coalition import add_threat
+        add_threat(world, 20, "war_declaration")
 
     # Authority changes for AI nations
     nation_auth = getattr(world, 'nation_authority', {})
@@ -788,8 +795,11 @@ def execute_downgrade(world, nation_a: str, nation_b: str) -> Dict:
             if nation != nation_a and nation != nation_b:
                 world.modify_nation_relation(nation_a, nation, penalties["relation_all"])
 
-    # Threat (stub — TODO: wire threat system)
-    # threat += penalties["threat"]
+    # Coalition threat from downgrade (§2a)
+    threat_amount = penalties.get("threat", 0)
+    if threat_amount > 0 and nation_a == world.player_nation:
+        from backend.game_logic.coalition import add_threat
+        add_threat(world, threat_amount, "diplomatic_downgrade")
 
     world.log_event({
         "type": "diplomatic_downgrade",

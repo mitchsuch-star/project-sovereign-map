@@ -91,9 +91,9 @@ def create_vassal_treaty(world, lord: str, vassal: str, generosity_bonus: int = 
     diplo_key = world._make_diplo_key(lord, vassal)
     world.diplomatic_states[diplo_key] = "VASSAL"
 
-    # Threat increase
-    threat = getattr(world, 'threat_level', 0)
-    world.threat_level = int(threat + 5)
+    # Coalition threat: +5 for treaty vassalization (§2a)
+    from backend.game_logic.coalition import add_threat
+    add_threat(world, 5, "treaty_vassalization")
 
     return {
         "success": True,
@@ -135,9 +135,9 @@ def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0
     diplo_key = world._make_diplo_key(lord, vassal)
     world.diplomatic_states[diplo_key] = "VASSAL"
 
-    # Higher threat for conquest
-    threat = getattr(world, 'threat_level', 0)
-    world.threat_level = int(threat + 25)
+    # Coalition threat: +25 for conquest vassalization (§2a)
+    from backend.game_logic.coalition import add_threat
+    add_threat(world, 25, "conquest_vassalization")
 
     return {
         "success": True,
@@ -293,9 +293,9 @@ def check_vassal_rebellion(world) -> List[dict]:
             if other_state["lord"] == lord:
                 other_state["loyalty"] = max(LOYALTY_MIN, other_state["loyalty"] - 10)
 
-        # Threat -10
-        threat = getattr(world, 'threat_level', 0)
-        world.threat_level = int(max(0, threat - 10))
+        # Coalition threat reduction from rebellion
+        from backend.game_logic.coalition import reduce_threat
+        reduce_threat(world, 10, "vassal_rebellion")
 
         # Relation -50
         world.modify_nation_relation(lord, vassal_name, -50)

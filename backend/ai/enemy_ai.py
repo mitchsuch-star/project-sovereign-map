@@ -2198,6 +2198,17 @@ class EnemyAI:
         # Get attack threshold with mood variance (controlled randomness)
         personality = self._get_effective_personality(marshal, world)
         threshold = self._get_mood_adjusted_threshold(marshal, world)
+
+        # Coalition posture bonus: Aggressive lowers threshold (more attacks),
+        # Defensive raises it (fewer risky attacks). COALITION_SPEC §4c.
+        from backend.game_logic.coalition import is_coalition_member, is_coalition_active
+        if is_coalition_active(world) and is_coalition_member(nation, world):
+            posture = world.active_coalition.get("strategic_posture", "defensive")
+            if posture == "aggressive":
+                threshold = max(0.5, threshold - 0.15)  # More aggressive
+            elif posture == "cautious":
+                threshold = min(2.0, threshold + 0.15)  # More cautious
+
         ai_debug(f"    Attack threshold for {personality}: {threshold:.2f} (mood-adjusted)")
 
         # ════════════════════════════════════════════════════════════
@@ -3389,6 +3400,8 @@ class EnemyAI:
                 score = (current_distance - dist) * 1000
                 score += self._get_ally_adjacency_bonus(adj_name, marshal, nation, world)
                 score += self._get_combined_arms_bonus(adj_name, marshal, nation, world)
+                # Coalition convergence bias (§5b)
+                score += self._get_convergence_bias_score(adj_name, nation, world)
 
                 if score > best_score:
                     best_score = score
@@ -3492,6 +3505,8 @@ class EnemyAI:
                         score = (current_dist - dist) * 1000
                         score += self._get_ally_adjacency_bonus(adj_name, marshal, nation, world)
                         score += self._get_combined_arms_bonus(adj_name, marshal, nation, world)
+                        # Coalition convergence bias (§5b)
+                        score += self._get_convergence_bias_score(adj_name, nation, world)
 
                         if score > best_score:
                             best_score = score
@@ -5204,22 +5219,59 @@ class EnemyAI:
             if m.location not in check_locations:
                 continue
 
-            # Cross-nation ally scoring for strategic movement
-            # Current check works because coalition is always AI, France is always player.
-            # TODO-1805: Replace with _are_allied(ally.nation, marshal.nation) check
-            # when France can be AI-controlled or multiple player nations exist.
-            is_ally = (m.nation == nation) or (m.nation != nation and m.nation != world.player_nation)
+            # Ally check: same nation OR both coalition members (Session 7)
+            from backend.game_logic.coalition import is_coalition_member
+            is_ally = (m.nation == nation)
+            if not is_ally and is_coalition_member(m.nation, world) and is_coalition_member(nation, world):
+                is_ally = True
             if not is_ally:
                 continue
 
             rel = marshal.get_relationship(m.name)
+            raw_bonus = 0
             if rel >= 2:  # Devoted
-                bonus += 10
+                raw_bonus = 10
             elif rel >= 0:  # Professional or Friendly
-                bonus += 5
+                raw_bonus = 5
             # Rival (-1) or Hostile (-2): no bonus
 
+            # Apply coalition friction for cross-nation allies (§5c)
+            if m.nation != nation:
+                from backend.game_logic.coalition import get_coalition_friction
+                friction = get_coalition_friction(m.nation, nation, world)
+                bonus += int(raw_bonus * friction)
+            else:
+                bonus += raw_bonus
+
         return bonus
+
+    def _get_convergence_bias_score(self, region_name: str, nation: str, world: WorldState) -> int:
+        """Coalition convergence bias for P7 movement (COALITION_SPEC §5b).
+
+        Returns score bonus for regions adjacent to French-controlled territory.
+        Only applies to coalition members during an active coalition.
+        """
+        from backend.game_logic.coalition import is_coalition_member, is_coalition_active, get_convergence_bias
+        if not is_coalition_active(world) or not is_coalition_member(nation, world):
+            return 0
+
+        posture = world.active_coalition.get("strategic_posture", "defensive")
+        bias = get_convergence_bias(posture)
+        if bias <= 0:
+            return 0
+
+        france = world.player_nation
+        region = world.get_region(region_name)
+        if not region:
+            return 0
+
+        # Check if any adjacent region is French-controlled
+        for adj_name in region.adjacent_regions:
+            adj = world.get_region(adj_name)
+            if adj and adj.controller == france:
+                return int(bias)
+
+        return 0
 
     def _get_combined_arms_bonus(self, region_name: str, marshal: Marshal, nation: str, world: WorldState) -> int:
         """Score bonus for positions that complete the infantry/cavalry/artillery triangle.

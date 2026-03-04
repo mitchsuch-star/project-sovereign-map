@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 4, 2026 (Session 6 — Talleyrand Defiance + Diplomatic Objections)
+> **Last Updated:** March 4, 2026 (Session 7 — Coalition System)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **4855** (4855 passed, 3 skipped — verified Mar 4, Session 6) |
+| **Tests Passing** | **4935** (4935 passed, 3 skipped — verified Mar 4, Session 7) |
 
-| **Current Phase** | Phase 8: Diplomacy. **Session 6 COMPLETE** (Talleyrand Defiance + Diplomatic Objections). Next: Session 7. |
+| **Current Phase** | Phase 8: Diplomacy. **Session 7 COMPLETE** (Coalition System). Next: Session 8 (Diplomatic Ledger UI + Polish). |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,7 +19,7 @@
 
 ## Next Steps
 
-1. **Phase 8: Diplomacy** — **Session 5 COMPLETE.** Unified 8-session plan:
+1. **Phase 8: Diplomacy** — **Session 7 COMPLETE.** Unified 8-session plan:
    - ~~Session 1A: Map Expansion (13→19 regions)~~ — **DONE** (19 regions, 5 nations, all adjacencies verified, FORMAT_VERSION 2)
    - ~~Session 1B: Nations + Marshals + Economy~~ — **DONE** (Austria/Saxony activated, PrinceAugust removed, 4 new marshals, diplomatic_states/nation_relations data, British naval income, is_at_war() gating on all enemy AI paths, 56 new gate tests)
    - ~~Session 2: Diplomatic States + Acceptance Formula + Diplomat class~~ — **DONE** (5 diplomats, acceptance formula with 7 components + military supremacy/battlefield diplomacy, DP economy, war score with 4 components, trade income matching §1d, movement restrictions, war declaration + DEFENSIVE_ALLIANCE cascade, 111 new tests)
@@ -27,7 +27,7 @@
    - ~~Session 4: AI Proposals + Counter-Offers + Advisory + Proactive Suggestions~~ — **DONE** (ai_diplomacy.py, diplomatic_advisory.py, P1-P7 trigger table, M3 counter-offer algorithm, Talleyrand's Report in dispatch, templates T11-T20, 43 new tests)
    - ~~Session 5: Vassal System + Loyalty~~ — **DONE** (vassal.py core engine, loyalty ticks with 7 modifiers, rebellion+cascade, tribute, investment, autonomy levels, marshal assimilation, AP/turn clause, Continental System, enemy vassal courting, dispatch warnings, 51 new tests)
    - ~~Session 6: Talleyrand Defiance + Diplomatic Objections~~ — **DONE** (diplomatic_defiance.py, defiance probability curve, 5 sabotage types, discovery+confrontation, redemption event, pre-proposal objections, enemy diplomat voices T21-T27, dispatch integration, 76 new tests)
-   - Session 7: Coalition System (formation, structure, AI, breaking, dissolution) — ~55 tests
+   - ~~Session 7: Coalition System~~ — **DONE** (coalition.py engine, threat accumulation/decay, coalition formation/brewing/instant, leader selection+posture, coalition AI friction+convergence, war exhaustion, British subsidy, loyalty penalty+wedge, dissolution+cooldown, dispatch integration, T28-T34 templates, 80 new tests)
    - Session 8: Diplomatic Ledger UI + Polish
 2. **Jealousy system** — NEEDS DESIGN GATE (separate track). See CLAUDE.md.
 3. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
@@ -54,6 +54,22 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 4 — Session 7: Coalition System
+
+Phase 8 Session 7 implementation. 1 new file, 9 modified files, 80 new tests.
+
+- **`backend/game_logic/coalition.py`** (NEW): Complete coalition engine (~530 lines). Threat accumulation (add_threat/reduce_threat, 0-100 clamped). Threat decay (1 base + peaceful nations cap 3, Continental System uncapped). Coalition formation: brewing at ≥60 (3-turn countdown), instant at ≥80, cooldown override at ≥90. Qualifying nations (relation < -10, not vassal, not at war). Leader selection (military//1000 + hostility + authority, tiebreak marshals then alpha). Strategic posture (aggressive/defensive/cautious, leader personality override). Coalition friction (4 tiers: 1.0/0.75/0.5/0.25 by mutual relation). Loyalty penalty (min(-15 + WE//10, 0), wedge halving). War exhaustion (+casualties//1000 per battle cap 20, +5/turn at war, -5/turn at peace, coalition shock +5). British subsidy (200g/turn to lowest-relation partner). Dissolution (<2 members, all peace, or threat <20), 5-turn cooldown. Master per-turn processor (9 steps).
+- **`backend/models/world_state.py`** (MODIFIED): 7 new fields (threat_level, threat_sources_this_turn, active_coalition, coalition_brewing, coalition_cooldown, coalition_count, war_exhaustion). Serialized with backward compat .get() defaults. advance_turn hook after vassal processing calls process_coalition_turn(). Per-turn clearing of threat_sources_this_turn. Treaty ratification wires add_threat(8/region annexed) and reduce_threat(5/region returned). Coalition member removal on separate peace.
+- **`backend/commands/executor.py`** (MODIFIED): Threat wiring after battle resolution. France wins: +3 battle, +5 decisive (ratio >2:1 AND casualties >10k), +15 capital capture. War exhaustion for losing nation. Coalition shock on decisive defeat.
+- **`backend/game_logic/diplomacy.py`** (MODIFIED): War declaration +20 threat. Diplomatic downgrade threat per DOWNGRADE_PENALTIES. Acceptance formula: threat_mod uses real threat_level (was stub), coalition_penalty via get_coalition_loyalty_penalty() added as new component.
+- **`backend/game_logic/vassal.py`** (MODIFIED): Replaced direct threat_level writes with add_threat() calls (treaty vassalization +5, conquest +25, rebellion -10).
+- **`backend/ai/enemy_ai.py`** (MODIFIED): Replaced TODO-1805 is_ally hack with is_coalition_member() check. Coalition friction applied to cross-nation adjacency bonus. New _get_convergence_bias_score() method (+12/+4/0 toward French territory by posture). Posture threshold adjustment in _find_attack_opportunity (aggressive -0.15, cautious +0.15).
+- **`backend/game_logic/dispatch.py`** (MODIFIED): New _build_coalition_section() function. Returns threat level/tier/sources, brewing info, active coalition details (name, leader, posture, per-member stats). Wired into build_morning_dispatch() as dispatch["coalition_status"].
+- **`backend/game_logic/diplomatic_templates.py`** (MODIFIED): 7 new template categories (T28-T34): coalition_murmur, coalition_brewing, coalition_declared, coalition_member_weak, coalition_advice_split, coalition_dissolved, coalition_harsh_warning. New slot resolvers for threat_level, coalition_name, leader, member_list.
+- **`backend/notifications.py`** (MODIFIED): 7 new coalition notification constants (COALITION_THREAT_TENSION through COALITION_COOLDOWN_ENDED).
+- **80 new tests** in `tests/test_session7_coalition.py`: 12 test classes covering threat accumulation (10), threat decay (5), qualifying nations (7), coalition formation (12), coalition structure (8), coalition AI (8), coalition breaking (11), dissolution (5), British subsidy (3), edge cases (6), serialization (2), process_coalition_turn (4).
+- **4935 tests passing** (4855 + 80 new, 3 skipped, 0 regressions).
 
 ### Mar 4 — Session 6: Talleyrand Defiance + Diplomatic Objections
 
