@@ -246,6 +246,48 @@ def process_vassal_loyalty(world) -> List[dict]:
                 "delta": int(delta),
             })
 
+        # Notification + popup: rebellion imminent (Session 8C)
+        if new_loyalty <= 10 and lord == getattr(world, 'player_nation', 'France'):
+            from backend.notifications import (
+                create_notification, NotificationPriority, VASSAL_REBELLION_IMMINENT,
+            )
+            world.notifications.add(create_notification(
+                VASSAL_REBELLION_IMMINENT,
+                NotificationPriority.HIGH,
+                f"{vassal_name} Critical!",
+                f"{vassal_name} loyalty critical ({int(new_loyalty)}) — rebellion imminent.",
+                int(world.current_turn),
+            ))
+            # Set popup data for Godot
+            world.vassal_rebellion_imminent_popup = {
+                "nation": vassal_name,
+                "loyalty": int(new_loyalty),
+                "loyalty_max": int(100),
+                "invest_cost_dp": int(1),
+                "garrison_ap_cost": int(2),
+                "invest_effect": "Loyalty +15, relations +5",
+                "garrison_effect": "Loyalty +10, AP -2 this turn",
+                "accept_effect": "Rebellion proceeds next turn if loyalty reaches 0",
+            }
+
+    # Notification: defection cascade — multiple vassals low (Session 8C)
+    low_vassals = [
+        v for v, s in world.vassals.items()
+        if s.get("loyalty", 100) < 25
+        and s.get("lord") == getattr(world, 'player_nation', 'France')
+    ]
+    if len(low_vassals) >= 2:
+        from backend.notifications import (
+            create_notification, NotificationPriority, DEFECTION_CASCADE,
+        )
+        world.notifications.add(create_notification(
+            DEFECTION_CASCADE,
+            NotificationPriority.HIGH,
+            "Empire Trembles",
+            "Multiple vassals are wavering — the empire trembles.",
+            int(world.current_turn),
+        ))
+
     return events
 
 
@@ -299,6 +341,19 @@ def check_vassal_rebellion(world) -> List[dict]:
 
         # Relation -50
         world.modify_nation_relation(lord, vassal_name, -50)
+
+        # Notification: vassal rebellion (Session 8C)
+        from backend.notifications import (
+            create_notification as _cr_notif, NotificationPriority as _NP,
+        )
+        from backend.notifications import VASSAL_REBELLION as _VR_CONST
+        world.notifications.add(_cr_notif(
+            _VR_CONST,
+            _NP.CRITICAL,
+            f"{vassal_name} REBELLED!",
+            f"{vassal_name} has rebelled against {lord}! War declared.",
+            int(world.current_turn),
+        ))
 
         events.append({
             "type": "vassal_rebellion",
@@ -785,6 +840,18 @@ def attempt_vassal_courting(world, nation: str) -> List[dict]:
 
         # Set cooldown
         world.ai_proposal_cooldowns[cooldown_key] = 3
+
+        # Notification: courting detected (Session 8C)
+        from backend.notifications import (
+            create_notification, NotificationPriority, VASSAL_COURTING_DETECTED,
+        )
+        world.notifications.add(create_notification(
+            VASSAL_COURTING_DETECTED,
+            NotificationPriority.NORMAL,
+            f"{nation} Courts {vassal_name}",
+            f"Enemy agents from {nation} detected courting {vassal_name}.",
+            int(world.current_turn),
+        ))
 
         events.append({
             "type": "vassal_courting",

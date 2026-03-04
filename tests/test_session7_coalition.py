@@ -317,14 +317,18 @@ class TestCoalitionFormation:
         assert "Second" in result["coalition_name"]
 
     def test_coalition_popup_data(self):
-        """Coalition formation returns popup data for Godot."""
+        """Coalition formation returns popup data for Godot (Session 8C contract)."""
         world = _make_world()
         result = form_coalition(["Austria"], world)
         assert "coalition_popup" in result
         popup = result["coalition_popup"]
-        assert "title" in popup
-        assert "combined_strength" in popup
-        assert isinstance(popup["combined_strength"], int)
+        assert "coalition_name" in popup
+        assert "leader" in popup
+        assert "posture" in popup
+        assert "members" in popup
+        assert isinstance(popup["members"], list)
+        assert "combined_strength_display" in popup
+        assert "threat_level" in popup
 
 
 # ════════════════════════════════════════════════════════════════

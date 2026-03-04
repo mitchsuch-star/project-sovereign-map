@@ -599,6 +599,46 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
     }
 
     world.pending_diplomatic_dialogue = dialogue
+
+    # Notification: AI proposal arrived (Session 8C)
+    from backend.notifications import (
+        create_notification, NotificationPriority, DIPLOMATIC_PROPOSAL,
+    )
+    world.notifications.add(create_notification(
+        DIPLOMATIC_PROPOSAL,
+        NotificationPriority.HIGH,
+        f"Envoy from {nation}",
+        f"An envoy from {nation} has arrived with a proposal.",
+        int(world.current_turn),
+    ))
+
+    # Set incoming_proposal_popup for Godot (Session 8C)
+    diplomat_personality = getattr(diplomat, 'personality', 'unknown') if diplomat else "unknown"
+    # Build human-readable clause list
+    clauses = []
+    for d in terms.get("demands", []):
+        clauses.append(f"Demand: {d.get('type', 'unknown')} — {d.get('value', '')}")
+    for s in terms.get("sweeteners", []):
+        clauses.append(f"Offer: {s.get('type', 'unknown')} — {s.get('value', '')}")
+
+    # Find largest positive/negative factor
+    factors = acceptance.get("factors", [])
+    positive_factors = [f for f in factors if f.get("value", 0) > 0]
+    negative_factors = [f for f in factors if f.get("value", 0) < 0]
+    acceptance_hint = positive_factors[0].get("reason", "No strong positives") if positive_factors else "No strong positives identified"
+    rejection_hint = negative_factors[0].get("reason", "No major obstacles") if negative_factors else "No major obstacles identified"
+
+    world.incoming_proposal_popup = {
+        "from_nation": nation,
+        "diplomat_name": diplomat_name,
+        "diplomat_personality": diplomat_personality,
+        "proposal_type": terms.get("type", "unknown"),
+        "clauses": clauses,
+        "talleyrand_assessment": assessment or "Talleyrand has no assessment.",
+        "acceptance_hint": acceptance_hint,
+        "rejection_hint": rejection_hint,
+    }
+
     return dialogue
 
 

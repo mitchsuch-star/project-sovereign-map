@@ -806,6 +806,30 @@ def execute_command(request: CommandRequest):
         else:
             response["vassal_rebellion_imminent"] = None
 
+        # ════════════════════════════════════════════════════════════
+        # PASS-THROUGH: Session 8C popups
+        # ════════════════════════════════════════════════════════════
+        talleyrand_redemption = getattr(world, 'talleyrand_redemption_popup', None)
+        if talleyrand_redemption is not None:
+            response["talleyrand_redemption"] = talleyrand_redemption
+            world.talleyrand_redemption_popup = None
+        else:
+            response["talleyrand_redemption"] = None
+
+        diplomatic_objection = getattr(world, 'diplomatic_objection_popup', None)
+        if diplomatic_objection is not None:
+            response["diplomatic_objection"] = diplomatic_objection
+            world.diplomatic_objection_popup = None
+        else:
+            response["diplomatic_objection"] = None
+
+        incoming_proposal = getattr(world, 'incoming_proposal_popup', None)
+        if incoming_proposal is not None:
+            response["incoming_proposal"] = incoming_proposal
+            world.incoming_proposal_popup = None
+        else:
+            response["incoming_proposal"] = None
+
         # Notifications — persistent alerts for Godot notification bar
         if world.notifications.has_pending():
             response["notifications"] = world.notifications.get_pending()

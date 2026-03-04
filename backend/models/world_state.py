@@ -448,6 +448,10 @@ class WorldState:
         self.coalition_popup: Optional[Dict] = None
         self.diplomatic_sabotage_popup: Optional[Dict] = None
         self.vassal_rebellion_imminent_popup: Optional[Dict] = None
+        # Session 8C popup fields
+        self.talleyrand_redemption_popup: Optional[Dict] = None
+        self.diplomatic_objection_popup: Optional[Dict] = None
+        self.incoming_proposal_popup: Optional[Dict] = None
 
         # Calculate initial visibility so turn 1 starts with correct fog state
         # (French regions FULL, adjacent PARTIAL, rest UNKNOWN)
@@ -2791,6 +2795,9 @@ class WorldState:
             "coalition_popup": self.coalition_popup,
             "diplomatic_sabotage_popup": self.diplomatic_sabotage_popup,
             "vassal_rebellion_imminent_popup": self.vassal_rebellion_imminent_popup,
+            "talleyrand_redemption_popup": self.talleyrand_redemption_popup,
+            "diplomatic_objection_popup": self.diplomatic_objection_popup,
+            "incoming_proposal_popup": self.incoming_proposal_popup,
         }
 
     @classmethod
@@ -2986,6 +2993,9 @@ class WorldState:
         world.coalition_popup = data.get("coalition_popup", None)
         world.diplomatic_sabotage_popup = data.get("diplomatic_sabotage_popup", None)
         world.vassal_rebellion_imminent_popup = data.get("vassal_rebellion_imminent_popup", None)
+        world.talleyrand_redemption_popup = data.get("talleyrand_redemption_popup", None)
+        world.diplomatic_objection_popup = data.get("diplomatic_objection_popup", None)
+        world.incoming_proposal_popup = data.get("incoming_proposal_popup", None)
 
         return world
 
@@ -3945,6 +3955,18 @@ class WorldState:
             "treaty_type": proposal_type,
             "state_transition": f"{current_state}_TO_{target_state}",
         })
+
+        # Notification: treaty signed (Session 8C)
+        from backend.notifications import (
+            create_notification, NotificationPriority, TREATY_SIGNED,
+        )
+        self.notifications.add(create_notification(
+            TREATY_SIGNED,
+            NotificationPriority.NORMAL,
+            f"Treaty with {target_nation}",
+            f"France and {target_nation} have signed a {proposal_type.replace('_', ' ')}.",
+            int(self.current_turn),
+        ))
 
         # Coalition: generous peace threat reduction (COALITION_SPEC §2b)
         # "Generous" = France offers peace while winning (war_score > 20)

@@ -16,7 +16,7 @@
 | **6.5** | **Information & UI Systems** | **IN PROGRESS** (Bombardment COMPLETE, Pause Menu COMPLETE, Campaign Log COMPLETE, Morning Dispatch COMPLETE, Notification System COMPLETE, Top Bar + Dispatch COMPLETE, Strategic Ledger COMPLETE, Marshal Management UI COMPLETE, Tooltips ABSORBED into Map Renderer, Tutorial Infrastructure DEFERRED to Pre-EA. Remaining: Map Renderer — blocked on art commission) |
 | **7 Core** | **Multi-Marshal Coordination** | **Spec COMPLETE + AUDITED + SCOPED.** 7 sessions (57-61a, 61b, 64). ~246 tests. |
 | 7b | Casualty Dist, AI Coord, Reports/UI, Tactical Triangle, V2b, Jealousy | **IN PROGRESS** — V2b COMPLETE, Tactical Triangle COMPLETE. Remaining: Jealousy (NEEDS DESIGN), Gneisenau (1805). Coalition Trigger moved to Phase 8. |
-| **8** | **Diplomacy & Peace** | **Sessions 1A–7 + 8A + 8B COMPLETE. Sessions 8C–8D: Popups + Notifications + Polish** (see `SESSION_8_PLAN.md`) |
+| **8** | **Diplomacy & Peace** | **Sessions 1A–7 + 8A + 8B + 8C COMPLETE. Session 8D: Dispatch Integration + Polish** (see `SESSION_8_PLAN.md`) |
 | 8.5 | Events, Goals & National Identity | Planned |
 | -- | **STEAM PAGE + LLC** | **After 8.5** |
 | 9 | Advisors (Minimal) | Planned |
@@ -401,7 +401,7 @@ If marshal strength < 20% of starting_strength AND enemy in same region -> ALWAY
 | **7** | Coalition System (NEW) | Formation, structure, AI, breaking, dissolution, British subsidy | ~55 | HIGH |
 | **8A** | Backend Ledger + Debug Arsenal | diplomatic_ledger.py, GET /diplomatic_ledger, 10 cheat commands, 8 debug endpoints, pass-throughs | **82** | **COMPLETE** |
 | **8B** | Diplomatic Ledger UI + Top Bar | 4-tab Godot ledger (D key), top bar (DP/threat/Talleyrand/envoy), Dispatch→R key | **30** | **COMPLETE** |
-| **8C** | Popups + Notifications | 6 popups (coalition/proposal/objection/sabotage/redemption/vassal), 18 notification templates | ~40 | MEDIUM |
+| **8C** | Popups + Notifications | 11 notification constants, 18 fire points, 6 popup data contracts, 3 new world_state fields, 6 Godot popup scenes, priority queue | **31** | **COMPLETE** |
 | **8D** | Dispatch + Polish + Deferred | ~20 dispatch event types, campaign log, fog filtering, AI-AI diplomacy, special acceptance bonuses | ~50 | MEDIUM |
 
 **Total estimated tests: ~525.** Critical path: Sessions 1A/1B (HIGH RISK) → 2 → 3/4 → 5 → 6 → 7 → 8A → 8B/8C → 8D. Session 8 expanded to 4 sub-sessions per `docs/SESSION_8_PLAN.md`.

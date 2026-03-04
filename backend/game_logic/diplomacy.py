@@ -713,6 +713,18 @@ def declare_war(world, aggressor: str, target: str) -> Dict:
     # ── DEFENSIVE_ALLIANCE CASCADE ──
     cascade = _process_war_cascade(world, aggressor, target)
 
+    # Notification: war declared (Session 8C)
+    from backend.notifications import (
+        create_notification, NotificationPriority, WAR_DECLARED,
+    )
+    world.notifications.add(create_notification(
+        WAR_DECLARED,
+        NotificationPriority.HIGH,
+        f"War with {target}!" if aggressor == world.player_nation else f"{aggressor} Declares War!",
+        f"{aggressor} has declared war on {target}.",
+        int(world.current_turn),
+    ))
+
     messages = [f"{aggressor} declares war on {target}!"]
     for c in cascade:
         messages.append(f"{c['defender']} enters the war against {aggressor} in defense of {c['ally']}!")
@@ -763,6 +775,18 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
                     "ally": target,
                     "against": aggressor,
                 })
+
+                # Notification: alliance cascade (Session 8C)
+                from backend.notifications import (
+                    create_notification, NotificationPriority, ALLIANCE_CASCADE_WAR,
+                )
+                world.notifications.add(create_notification(
+                    ALLIANCE_CASCADE_WAR,
+                    NotificationPriority.HIGH,
+                    f"{nation} Enters War!",
+                    f"{nation} enters the war via alliance with {target}.",
+                    int(world.current_turn),
+                ))
 
                 # Recursive cascade: nation's allies may also join
                 sub_cascade = _process_war_cascade(world, aggressor, nation, processed)
@@ -1287,6 +1311,18 @@ def break_treaty(pair_key: str, breaker_nation: str, world) -> Dict:
         "treaty_type": treaty_type,
         "new_state": new_state,
     })
+
+    # Notification: treaty broken (Session 8C)
+    from backend.notifications import (
+        create_notification, NotificationPriority, TREATY_BROKEN,
+    )
+    world.notifications.add(create_notification(
+        TREATY_BROKEN,
+        NotificationPriority.HIGH,
+        f"Treaty Broken: {treaty_type}",
+        f"{breaker_nation} has broken the {treaty_type} with {other}.",
+        int(world.current_turn),
+    ))
 
     return {
         "success": True,

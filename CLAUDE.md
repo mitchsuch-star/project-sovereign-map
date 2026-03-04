@@ -20,7 +20,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 - **Phase 7b remaining:** V2b COMPLETE. Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Gates 5+6 PASSED. Jealousy (SPEC v3 DRAFTED — needs design gate approval). Coalition Trigger moved to Phase 8.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial Infrastructure deferred to Pre-EA.
-- **Phase 8: Diplomacy** — ALL 3 SPECS APPROVED + MASTER-AUDITED. Unified 11-session plan (1A/1B/2/3/4/5/6/7-Coalition/8A-8D). Master audit: 4 CRITICAL + 4 MAJOR findings fixed. Fun score 81/100. **Sessions 1A+1B+2+3+4+5+6+7+8A+8B COMPLETE. Audit 2+3 COMPLETE.** Next: Session 8C (Popups + Notifications). Full plan: `docs/SESSION_8_PLAN.md`.
+- **Phase 8: Diplomacy** — ALL 3 SPECS APPROVED + MASTER-AUDITED. Unified 11-session plan (1A/1B/2/3/4/5/6/7-Coalition/8A-8D). Master audit: 4 CRITICAL + 4 MAJOR findings fixed. Fun score 81/100. **Sessions 1A+1B+2+3+4+5+6+7+8A+8B+8C COMPLETE. Audit 2+3 COMPLETE.** Next: Session 8D (Dispatch Integration + Polish). Full plan: `docs/SESSION_8_PLAN.md`.
 
 ### Design Gates
 
@@ -103,6 +103,12 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | `strategic_ledger.gd` | Strategic Ledger screen (Session B): CanvasLayer 50, 6 sub-tabs, number key switching, Orders tab cancel buttons |
 | `marshal_management.gd` | Marshal Management screen: CanvasLayer 50, card-based marshal view, G key toggle |
 | `diplomatic_ledger.gd` | Diplomatic Ledger screen (Session 8B): CanvasLayer 50, 4 sub-tabs (Nations/Treaties/Threat/Talleyrand), D key toggle |
+| `coalition_declaration_popup.gd` | Coalition declaration popup (Session 8C): CanvasLayer 100, BBCode, [Continue] |
+| `incoming_proposal_popup.gd` | AI proposal popup (Session 8C): [Accept][Counter][Reject] |
+| `talleyrand_objection_popup.gd` | Diplomatic objection popup (Session 8C): [Proceed][Modify][Cancel] |
+| `sabotage_discovery_popup.gd` | Sabotage discovery popup (Session 8C): [Confront][Overlook] |
+| `talleyrand_redemption_popup.gd` | Talleyrand redemption popup (Session 8C): [Apologize][Replace][Continue] |
+| `vassal_rebellion_popup.gd` | Vassal rebellion imminent popup (Session 8C): [Invest][Garrison][Accept] |
 
 ---
 

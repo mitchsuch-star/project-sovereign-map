@@ -11241,6 +11241,17 @@ RETREAT RECOVERY (3 turns):
         skill = talleyrand.skill if talleyrand else 5
         cost = get_dp_cost(dp_action, skill)
         if world.diplomatic_points < cost:
+            # Notification: DP insufficient (Session 8C)
+            from backend.notifications import (
+                create_notification, NotificationPriority, DP_INSUFFICIENT,
+            )
+            world.notifications.add(create_notification(
+                DP_INSUFFICIENT,
+                NotificationPriority.NORMAL,
+                "Insufficient DP",
+                f"Insufficient diplomatic points. {int(cost)} DP required, {int(world.diplomatic_points)} available.",
+                int(world.current_turn),
+            ))
             return {
                 "success": False,
                 "message": f"Insufficient Diplomatic Points. This proposal costs {int(cost)} DP, but we only have {int(world.diplomatic_points)}.",
@@ -11292,6 +11303,15 @@ RETREAT RECOVERY (3 turns):
         # Check DP
         cost = MISSION_DP_COSTS.get(mission_type, 1)
         if world.diplomatic_points < cost:
+            # Notification: DP insufficient (Session 8C)
+            from backend.notifications import (
+                create_notification as _cn, NotificationPriority as _NP, DP_INSUFFICIENT as _DPI,
+            )
+            world.notifications.add(_cn(
+                _DPI, _NP.NORMAL, "Insufficient DP",
+                f"Insufficient diplomatic points. {int(cost)} DP required, {int(world.diplomatic_points)} available.",
+                int(world.current_turn),
+            ))
             return {
                 "success": False,
                 "message": f"Insufficient DP for this mission. Costs {int(cost)} DP per turn.",

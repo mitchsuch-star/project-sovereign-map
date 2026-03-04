@@ -628,6 +628,28 @@ def form_coalition(qualifying_nations: List[str], world) -> Dict:
             "message": f"Envoy to {voided_proposal_nation} recalled — they joined the coalition.",
         })
 
+    # 10. Set coalition popup on world state (Session 8C)
+    member_details = []
+    for m in sorted(all_members):
+        m_strength = sum(
+            marshal.strength for marshal in world.marshals.values()
+            if marshal.nation == m and marshal.strength > 0
+        )
+        m_we = int(world.war_exhaustion.get(m, 0))
+        member_details.append({
+            "nation": m,
+            "strength_display": f"{int(m_strength):,}",
+            "war_exhaustion": int(m_we),
+        })
+    world.coalition_popup = {
+        "coalition_name": name,
+        "leader": leader,
+        "posture": posture,
+        "members": member_details,
+        "combined_strength_display": f"{int(combined_strength):,}",
+        "threat_level": int(world.threat_level),
+    }
+
     result = {
         "success": True,
         "coalition_name": name,
@@ -637,14 +659,7 @@ def form_coalition(qualifying_nations: List[str], world) -> Dict:
         "combined_strength": int(combined_strength),
         "new_belligerents": new_belligerents,
         "war_events": war_events,
-        "coalition_popup": {
-            "title": name.upper(),
-            "leader": leader,
-            "members": sorted(all_members),
-            "combined_strength": int(combined_strength),
-            "posture": posture,
-            "quote": "All of Europe stands against you.",
-        },
+        "coalition_popup": world.coalition_popup,
     }
     if voided_proposal_nation:
         result["voided_proposal"] = voided_proposal_nation

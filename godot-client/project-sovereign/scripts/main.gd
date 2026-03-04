@@ -62,6 +62,14 @@ var clarification_popup = null
 var pending_strategic_response = null  # Store response for post-report flow
 var interrupt_queue: Array = []  # Queue of interrupts to show one at a time
 
+# Session 8C Diplomatic Popups
+var coalition_declaration_popup = null
+var incoming_proposal_popup = null
+var talleyrand_objection_popup = null
+var sabotage_discovery_popup = null
+var talleyrand_redemption_popup = null
+var vassal_rebellion_popup = null
+
 # Pause Menu (Phase 6.5)
 var pause_menu = null
 
@@ -230,6 +238,49 @@ func _ready():
 		clarification_popup.clarification_choice.connect(_on_clarification_choice_made)
 		clarification_popup.cancelled.connect(_on_clarification_cancelled)
 		print("✓ ClarificationPopup ready!")
+
+	# ── Session 8C Diplomatic Popups ──
+	var coalition_decl_scene = load("res://scenes/coalition_declaration_popup.tscn")
+	if coalition_decl_scene:
+		coalition_declaration_popup = coalition_decl_scene.instantiate()
+		add_child(coalition_declaration_popup)
+		coalition_declaration_popup.dismissed.connect(_on_coalition_popup_dismissed)
+		print("✓ CoalitionDeclarationPopup ready!")
+
+	var incoming_prop_scene = load("res://scenes/incoming_proposal_popup.tscn")
+	if incoming_prop_scene:
+		incoming_proposal_popup = incoming_prop_scene.instantiate()
+		add_child(incoming_proposal_popup)
+		incoming_proposal_popup.choice_made.connect(_on_incoming_proposal_choice)
+		print("✓ IncomingProposalPopup ready!")
+
+	var talleyrand_obj_scene = load("res://scenes/talleyrand_objection_popup.tscn")
+	if talleyrand_obj_scene:
+		talleyrand_objection_popup = talleyrand_obj_scene.instantiate()
+		add_child(talleyrand_objection_popup)
+		talleyrand_objection_popup.choice_made.connect(_on_talleyrand_objection_choice)
+		print("✓ TalleyrandObjectionPopup ready!")
+
+	var sabotage_scene = load("res://scenes/sabotage_discovery_popup.tscn")
+	if sabotage_scene:
+		sabotage_discovery_popup = sabotage_scene.instantiate()
+		add_child(sabotage_discovery_popup)
+		sabotage_discovery_popup.choice_made.connect(_on_sabotage_discovery_choice)
+		print("✓ SabotageDiscoveryPopup ready!")
+
+	var redemption_scene_8c = load("res://scenes/talleyrand_redemption_popup.tscn")
+	if redemption_scene_8c:
+		talleyrand_redemption_popup = redemption_scene_8c.instantiate()
+		add_child(talleyrand_redemption_popup)
+		talleyrand_redemption_popup.choice_made.connect(_on_talleyrand_redemption_choice)
+		print("✓ TalleyrandRedemptionPopup ready!")
+
+	var vassal_rebel_scene = load("res://scenes/vassal_rebellion_popup.tscn")
+	if vassal_rebel_scene:
+		vassal_rebellion_popup = vassal_rebel_scene.instantiate()
+		add_child(vassal_rebellion_popup)
+		vassal_rebellion_popup.choice_made.connect(_on_vassal_rebellion_choice)
+		print("✓ VassalRebellionPopup ready!")
 
 	# Load and setup Pause Menu (Phase 6.5)
 	var pause_menu_scene = load("res://scenes/pause_menu.tscn")
@@ -656,6 +707,12 @@ func _on_command_result(response):
 		_show_glorious_charge_dialog(response)
 		return  # Don't re-enable input until choice made
 
+	# Priority 3: Coalition Declaration Popup (Session 8C)
+	if response.has("coalition_popup") and response.coalition_popup != null:
+		if coalition_declaration_popup:
+			coalition_declaration_popup.show_coalition(response.coalition_popup)
+			return  # Don't re-enable input until dismissed
+
 	# Check for capture choice (Phase 6.2.E: Plunder or Secure)
 	if response.has("pending_capture_choice") and response.pending_capture_choice:
 		_show_capture_choice_dialog(response)
@@ -666,6 +723,18 @@ func _on_command_result(response):
 		_show_load_dialog()
 		# Don't return — still show the save list message in terminal
 
+	# Priority 5: Diplomatic Objection Popup (Session 8C)
+	if response.has("diplomatic_objection") and response.diplomatic_objection != null:
+		if talleyrand_objection_popup:
+			talleyrand_objection_popup.show_objection(response.diplomatic_objection)
+			return
+
+	# Priority 6: Incoming Proposal Popup (Session 8C)
+	if response.has("incoming_proposal") and response.incoming_proposal != null:
+		if incoming_proposal_popup:
+			incoming_proposal_popup.show_proposal(response.incoming_proposal)
+			return
+
 	# Check for clarification request (Grouchy/literal marshal)
 	if response.has("state") and response.state == "awaiting_clarification":
 		_show_clarification_popup(response)
@@ -675,6 +744,24 @@ func _on_command_result(response):
 	if response.has("pending_interrupt") and response.pending_interrupt:
 		_show_interrupt_popup(response.pending_interrupt)
 		return  # Don't re-enable input until choice made
+
+	# Priority 8: Sabotage Discovery Popup (Session 8C)
+	if response.has("diplomatic_sabotage") and response.diplomatic_sabotage != null:
+		if sabotage_discovery_popup:
+			sabotage_discovery_popup.show_sabotage(response.diplomatic_sabotage)
+			return
+
+	# Priority 9: Talleyrand Redemption Popup (Session 8C)
+	if response.has("talleyrand_redemption") and response.talleyrand_redemption != null:
+		if talleyrand_redemption_popup:
+			talleyrand_redemption_popup.show_redemption(response.talleyrand_redemption)
+			return
+
+	# Priority 10: Vassal Rebellion Imminent Popup (Session 8C)
+	if response.has("vassal_rebellion_imminent") and response.vassal_rebellion_imminent != null:
+		if vassal_rebellion_popup:
+			vassal_rebellion_popup.show_rebellion(response.vassal_rebellion_imminent)
+			return
 
 	# Check for redemption event (bombardment friendly fire, cavalry, etc.)
 	# End-turn responses with enemy_phase defer redemption to post-enemy-phase flow
@@ -2546,6 +2633,63 @@ func _on_clarification_cancelled():
 
 
 # ════════════════════════════════════════════════════════════════════════════
+# SESSION 8C DIPLOMATIC POPUP HANDLERS
+# ════════════════════════════════════════════════════════════════════════════
+
+func _on_coalition_popup_dismissed():
+	"""Handle coalition declaration popup dismissed."""
+	add_output("[color=#e04040]The coalition has declared war on France.[/color]")
+	set_input_enabled(true)
+	command_input.grab_focus()
+
+func _on_incoming_proposal_choice(choice: String, data: Dictionary):
+	"""Handle player response to AI diplomatic proposal."""
+	var from_nation = data.get("from_nation", "Unknown")
+	var command = "Talleyrand, %s the %s proposal" % [choice, from_nation]
+	add_output("[color=#d9c08c]Responding to %s's proposal: %s[/color]" % [from_nation, choice])
+	set_input_enabled(false)
+	api_client.send_command(command, _on_command_result)
+
+func _on_talleyrand_objection_choice(choice: String, data: Dictionary):
+	"""Handle player response to Talleyrand's diplomatic objection."""
+	if choice == "proceed":
+		add_output("[color=#d9c08c]Overriding Talleyrand's objection...[/color]")
+		set_input_enabled(false)
+		api_client.send_command("Talleyrand, proceed with the proposal", _on_command_result)
+	elif choice == "modify":
+		add_output("[color=#d9c08c]Reconsidering the proposal...[/color]")
+		set_input_enabled(true)
+		command_input.grab_focus()
+	else:
+		add_output("[color=#" + COLOR_INFO + "]Proposal cancelled.[/color]")
+		set_input_enabled(true)
+		command_input.grab_focus()
+
+func _on_sabotage_discovery_choice(choice: String, data: Dictionary):
+	"""Handle player response to sabotage discovery."""
+	var target = data.get("target_nation", "unknown")
+	var command = "Talleyrand, I %s your actions regarding %s" % [choice, target]
+	add_output("[color=#d9c08c]%s Talleyrand's sabotage...[/color]" % choice.capitalize())
+	set_input_enabled(false)
+	api_client.send_command(command, _on_command_result)
+
+func _on_talleyrand_redemption_choice(choice: String, data: Dictionary):
+	"""Handle player response to Talleyrand redemption event."""
+	var command = "Talleyrand, %s" % choice
+	add_output("[color=#d9c08c]Talleyrand redemption: %s[/color]" % choice)
+	set_input_enabled(false)
+	api_client.send_command(command, _on_command_result)
+
+func _on_vassal_rebellion_choice(choice: String, data: Dictionary):
+	"""Handle player response to vassal rebellion imminent."""
+	var nation = data.get("nation", "unknown")
+	var command = "Talleyrand, %s regarding %s rebellion" % [choice, nation]
+	add_output("[color=#d9c08c]Vassal %s: %s[/color]" % [nation, choice])
+	set_input_enabled(false)
+	api_client.send_command(command, _on_command_result)
+
+
+# ════════════════════════════════════════════════════════════════════════════
 # PAUSE MENU (Phase 6.5)
 # ════════════════════════════════════════════════════════════════════════════
 
@@ -2569,6 +2713,19 @@ func _is_modal_dialog_open() -> bool:
 	if interrupt_popup and interrupt_popup.visible:
 		return true
 	if clarification_popup and clarification_popup.visible:
+		return true
+	# Session 8C diplomatic popups
+	if coalition_declaration_popup and coalition_declaration_popup.visible:
+		return true
+	if incoming_proposal_popup and incoming_proposal_popup.visible:
+		return true
+	if talleyrand_objection_popup and talleyrand_objection_popup.visible:
+		return true
+	if sabotage_discovery_popup and sabotage_discovery_popup.visible:
+		return true
+	if talleyrand_redemption_popup and talleyrand_redemption_popup.visible:
+		return true
+	if vassal_rebellion_popup and vassal_rebellion_popup.visible:
 		return true
 	return false
 

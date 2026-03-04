@@ -44,6 +44,17 @@ COALITION_DECLARED = "coalition_declared"                  # CRITICAL: coalition
 COALITION_MEMBER_PEACED = "coalition_member_peaced"        # NORMAL: member signed peace
 COALITION_DISSOLVED = "coalition_dissolved"                # NORMAL: coalition dissolved
 COALITION_COOLDOWN_ENDED = "coalition_cooldown_ended"      # NORMAL: new coalition can form
+# Diplomatic notifications (Phase 8 Session 8C)
+DIPLOMATIC_PROPOSAL = "diplomatic_proposal"                    # HIGH: AI envoy arrived
+TREATY_SIGNED = "treaty_signed"                                # MEDIUM: treaty ratified
+TREATY_BROKEN = "treaty_broken"                                # HIGH: treaty broken
+SABOTAGE_DISCOVERED = "sabotage_discovered"                    # HIGH: Talleyrand altered proposal
+VASSAL_REBELLION_IMMINENT = "vassal_rebellion_imminent"         # HIGH: loyalty critical
+ALLIANCE_CASCADE_WAR = "alliance_cascade_war"                  # HIGH: nation entered war via alliance
+WAR_DECLARED = "war_declared"                                  # HIGH: nation declared war
+VASSAL_COURTING_DETECTED = "vassal_courting_detected"          # MEDIUM: enemy courting vassal
+DP_INSUFFICIENT = "dp_insufficient"                            # MEDIUM: not enough DP
+DEFECTION_CASCADE = "defection_cascade"                        # HIGH: multiple vassals wavering
 
 
 def create_notification(

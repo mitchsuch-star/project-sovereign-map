@@ -348,6 +348,17 @@ def _merge_pre_proposal_objection(dialogue: Dict, parsed_command: Dict, world) -
         dialogue["objection_level"] = "strong" if concern >= ConcernLevel.STRONG else "moderate"
         dialogue["blocking"] = False  # Still not a popup — inline in conversation
 
+        # Set diplomatic_objection_popup for Godot (Session 8C)
+        concern_label = "STRONG" if concern >= ConcernLevel.STRONG else "MODERATE"
+        defiance_risk = "High" if concern >= ConcernLevel.STRONG else "Medium"
+        proposal_summary = f"{proposal.get('type', 'unknown')} with {proposal.get('target_nation', 'unknown')}"
+        world.diplomatic_objection_popup = {
+            "concern_level": concern_label,
+            "objection_text": objection_text,
+            "defiance_risk": defiance_risk,
+            "proposal_summary": proposal_summary,
+        }
+
         # Replace options with objection-aware choices
         target_nation = parsed_command.get("target_nation", "")
         dialogue["options"] = [
