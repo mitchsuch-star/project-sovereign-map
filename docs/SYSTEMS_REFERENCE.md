@@ -3175,5 +3175,59 @@ AI nations with 2+ DP can court player's vassals (loyalty < 50). Cost: 2 DP. Loy
 | `diplomacy.py` | AP clause validation, Continental System application |
 | `turn_manager.py` | Enemy vassal courting phase |
 | `dispatch.py` | Vassal loyalty warnings (Trigger 3) |
+
+---
+
+## 18. Talleyrand Defiance System (Phase 8 Session 6)
+
+Talleyrand can secretly modify diplomatic proposals before delivery. Mirrors V2b combat defiance pattern. Single source: `backend/commands/diplomatic_defiance.py`.
+
+### Defiance Probability (§3a)
+
+Base 0.05 + authority modifier + trust modifier. Floor: 0.02 (SCHEMER personality). Cap: 0.30. Loyalist personality: always 0.0. Cooldown (>0): always 0.0.
+
+| Authority | Modifier | Trust | Modifier |
+|-----------|----------|-------|----------|
+| >= 80 | -0.05 | >= 80 | -0.05 |
+| >= 60 | 0.00 | >= 50 | 0.00 |
+| >= 40 | +0.05 | >= 30 | +0.05 |
+| < 40 | +0.15 | < 30 | +0.10 |
+
+### Sabotage Types (§3b)
+
+| Priority | Condition | Type | Effect |
+|----------|-----------|------|--------|
+| 1 | AP/turn demand | ap_downgrade | Converts to 200g/turn |
+| 2 | Unit trade demand | unit_overpay | Doubles unit amount |
+| 3 | 3+ territory demands | softened | Removes 1 territory region |
+| 4 | Harshness > 0.7 | softened | Cuts gold 40% |
+| 5 | Harshness < 0.3 | hardened | Adds/increases gold 30% |
+| 6 | Default | stalled | Delivery delay +1 turn |
+
+### Discovery (§3c)
+
+40% base + 10% per turn hidden (cumulative). Checked during Morning Dispatch. On discovery: confrontation dialogue with Confront (trust -10, authority +5, cooldown 5) or Overlook (trust +3).
+
+### Redemption (§3d)
+
+Fires when trust <= 20 and not Loyalist. 3 choices: Apologize (trust +15, authority -5), Replace with Loyalist (personality→loyalist, skill→6, trust→50), Continue (authority -10).
+
+### Pre-Proposal Objection (§3e)
+
+V2a ConcernLevel pattern: NONE/MILD/MODERATE/STRONG. War declarations default to STRONG unless trust >= 70. Harshness 0.7+ with low trust → STRONG. Merged inline into dialogue flow.
+
+### Override History (§10c)
+
+Tracks last 5 overrides. Dispatch notes: "pessimistic" if good outcome, "prescient" if bad.
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `diplomatic_defiance.py` | Defiance probability, sabotage, discovery, confrontation, redemption, objection |
+| `diplomatic_templates.py` | T21-T27 templates, enemy diplomat voice resolution |
+| `diplomatic_dialogue.py` | Pre-proposal objection merge into dialogue flow |
+| `dispatch.py` | Discovery check, override notes, redemption triggering |
+| `world_state.py` | 3 fields (cooldown, sabotage, override_history), advance_turn processing |
 | `notifications.py` | VASSAL_REBELLION, VASSAL_LOYALTY_CRITICAL types |
 | `executor.py` | invest_vassal, change_autonomy, make_vassal commands |

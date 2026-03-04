@@ -629,6 +629,227 @@ DIPLOMATIC_TEMPLATES = {
         ],
         "recommendation": 0,
     },
+    # ══════════════════════════════════════════════════════════════
+    # SESSION 6 TEMPLATES (T21-T27)
+    # ══════════════════════════════════════════════════════════════
+
+    # ══════════════════════════════════════════════
+    # T21: PRE-PROPOSAL OBJECTION — MILD
+    # Flavor text, no blocking — Talleyrand grumbles
+    # ══════════════════════════════════════════════
+    ("pre_proposal_objection_mild", "any", "any"): {
+        "text": (
+            "{objection_text}\n\n"
+            "Nevertheless, I shall carry out your wishes, Sire."
+        ),
+        "options": [
+            {
+                "label": "Send as ordered",
+                "description": "Dispatch Talleyrand with your original terms.",
+                "action": "send",
+            },
+            {
+                "label": "Reconsider",
+                "description": "Perhaps Talleyrand has a point.",
+                "action": "reconsider",
+            },
+        ],
+        "recommendation": 0,
+    },
+
+    # ══════════════════════════════════════════════
+    # T22: SABOTAGE CONFRONTATION
+    # What was ordered vs what was delivered + reasoning
+    # ══════════════════════════════════════════════
+    ("sabotage_confrontation", "any", "any"): {
+        "text": (
+            "Berthier's agents report that the proposal delivered to "
+            "{target_nation} was not precisely as you ordered.\n\n"
+            "You ordered: {original_summary}\n"
+            "Talleyrand sent: {modified_summary}\n\n"
+            "Talleyrand: \"{sabotage_reasoning}\""
+        ),
+        "options": [
+            {
+                "label": "Confront",
+                "description": "Trust -10, Authority +5, cooldown 5 turns.",
+                "action": "confront_sabotage",
+            },
+            {
+                "label": "Overlook",
+                "description": "Trust +3. Talleyrand gains confidence.",
+                "action": "overlook_sabotage",
+            },
+        ],
+        "recommendation": 0,
+    },
+
+    # ══════════════════════════════════════════════
+    # T23: SABOTAGE CONFRONTATION — OVERLOOK AFTERMATH
+    # Confirmation after overlooking sabotage
+    # ══════════════════════════════════════════════
+    ("sabotage_confrontation_overlook", "any", "any"): {
+        "text": (
+            "You choose to overlook the discrepancy. Talleyrand inclines "
+            "his head — a small acknowledgment that his judgment was trusted."
+        ),
+        "options": [
+            {
+                "label": "Understood",
+                "description": "Dismiss.",
+                "action": "dismiss",
+            },
+        ],
+        "recommendation": 0,
+    },
+
+    # ══════════════════════════════════════════════
+    # T24: ENEMY RESPONSE — HAWK (Castlereagh, Hardenberg)
+    # Grudging accept, demanding counter, contemptuous reject
+    # ══════════════════════════════════════════════
+    ("enemy_response_hawk", "any", "accept"): {
+        "text": (
+            "{target_diplomat} receives your terms with barely concealed displeasure. "
+            "\"We accept — for now. Do not mistake pragmatism for weakness.\""
+        ),
+        "options": [
+            {"label": "Noted", "description": "Dismiss.", "action": "dismiss"},
+        ],
+        "recommendation": 0,
+    },
+    ("enemy_response_hawk", "any", "counter"): {
+        "text": (
+            "{target_diplomat} slams the table. \"These terms are insulting. "
+            "Here is what {target_nation} will accept — and nothing less.\""
+        ),
+        "options": [
+            {"label": "Consider counter", "description": "Review the counter-offer.", "action": "review_counter"},
+            {"label": "Reject", "description": "Refuse.", "action": "reject_ai_proposal"},
+        ],
+        "recommendation": 0,
+    },
+    ("enemy_response_hawk", "any", "reject"): {
+        "text": (
+            "{target_diplomat}'s contempt is palpable. \"You waste our time "
+            "with this? {target_nation} will remember this insult.\""
+        ),
+        "options": [
+            {"label": "So be it", "description": "Dismiss.", "action": "dismiss"},
+        ],
+        "recommendation": 0,
+    },
+
+    # ══════════════════════════════════════════════
+    # T25: ENEMY RESPONSE — SCHEMER (Metternich)
+    # Calculating accept, probing counter, deflecting reject
+    # ══════════════════════════════════════════════
+    ("enemy_response_schemer", "any", "accept"): {
+        "text": (
+            "{target_diplomat} smiles — never a reassuring sign. "
+            "\"An acceptable arrangement. {target_nation} agrees... with interest.\""
+        ),
+        "options": [
+            {"label": "Noted", "description": "Dismiss.", "action": "dismiss"},
+        ],
+        "recommendation": 0,
+    },
+    ("enemy_response_schemer", "any", "counter"): {
+        "text": (
+            "{target_diplomat} examines the terms at length. \"Interesting. "
+            "But perhaps we could adjust... here, and here. "
+            "A small modification that benefits us both.\""
+        ),
+        "options": [
+            {"label": "Consider counter", "description": "Review the counter-offer.", "action": "review_counter"},
+            {"label": "Reject", "description": "Refuse.", "action": "reject_ai_proposal"},
+        ],
+        "recommendation": 0,
+    },
+    ("enemy_response_schemer", "any", "reject"): {
+        "text": (
+            "{target_diplomat} merely raises an eyebrow. \"A pity. "
+            "But doors that close today may open tomorrow. "
+            "{target_nation} is patient.\""
+        ),
+        "options": [
+            {"label": "Understood", "description": "Dismiss.", "action": "dismiss"},
+        ],
+        "recommendation": 0,
+    },
+
+    # ══════════════════════════════════════════════
+    # T26: ENEMY RESPONSE — DOVE (Einsiedel / future diplomats)
+    # Grateful accept, apologetic counter, regretful reject
+    # ══════════════════════════════════════════════
+    ("enemy_response_dove", "any", "accept"): {
+        "text": (
+            "{target_diplomat} visibly relaxes. \"This is most welcome. "
+            "{target_nation} accepts with gratitude and hopes for lasting peace.\""
+        ),
+        "options": [
+            {"label": "Good", "description": "Dismiss.", "action": "dismiss"},
+        ],
+        "recommendation": 0,
+    },
+    ("enemy_response_dove", "any", "counter"): {
+        "text": (
+            "{target_diplomat} wrings his hands. \"We appreciate the gesture, "
+            "truly. But our court requires... adjustments. "
+            "Please, consider this modest counter-proposal.\""
+        ),
+        "options": [
+            {"label": "Consider counter", "description": "Review the counter-offer.", "action": "review_counter"},
+            {"label": "Reject", "description": "Refuse.", "action": "reject_ai_proposal"},
+        ],
+        "recommendation": 0,
+    },
+    ("enemy_response_dove", "any", "reject"): {
+        "text": (
+            "{target_diplomat} looks pained. \"I am sorry, truly. "
+            "{target_nation} cannot accept these terms. "
+            "Perhaps... in time... we might try again?\""
+        ),
+        "options": [
+            {"label": "Perhaps", "description": "Dismiss.", "action": "dismiss"},
+        ],
+        "recommendation": 0,
+    },
+
+    # ══════════════════════════════════════════════
+    # T27: ENEMY RESPONSE — LOYALIST (generic formal)
+    # Formal accept, formal counter, formal reject
+    # ══════════════════════════════════════════════
+    ("enemy_response_loyalist", "any", "accept"): {
+        "text": (
+            "{target_diplomat} delivers the response formally. "
+            "\"{target_nation} accepts the terms as presented.\""
+        ),
+        "options": [
+            {"label": "Noted", "description": "Dismiss.", "action": "dismiss"},
+        ],
+        "recommendation": 0,
+    },
+    ("enemy_response_loyalist", "any", "counter"): {
+        "text": (
+            "{target_diplomat} presents the response with precision. "
+            "\"{target_nation} proposes the following modifications to the terms.\""
+        ),
+        "options": [
+            {"label": "Consider counter", "description": "Review the counter-offer.", "action": "review_counter"},
+            {"label": "Reject", "description": "Refuse.", "action": "reject_ai_proposal"},
+        ],
+        "recommendation": 0,
+    },
+    ("enemy_response_loyalist", "any", "reject"): {
+        "text": (
+            "{target_diplomat} delivers the rejection without emotion. "
+            "\"{target_nation} declines the proposed terms.\""
+        ),
+        "options": [
+            {"label": "Understood", "description": "Dismiss.", "action": "dismiss"},
+        ],
+        "recommendation": 0,
+    },
 }
 
 # ═══════ FALLBACK TEMPLATES ═══════
@@ -886,6 +1107,81 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
         terms["type"] = "armistice_losing" if war_score < 0 else "armistice_winning"
 
     return terms
+
+
+# ═══════ ENEMY DIPLOMAT VOICE RESOLUTION ═══════
+
+# Maps diplomat personality to template key prefix
+_PERSONALITY_TO_TEMPLATE = {
+    "hawk": "enemy_response_hawk",
+    "schemer": "enemy_response_schemer",
+    "dove": "enemy_response_dove",
+    "loyalist": "enemy_response_loyalist",
+}
+
+
+def get_enemy_response_template(
+    target_nation: str,
+    outcome: str,
+    world,
+) -> Dict:
+    """Get personality-keyed enemy response template.
+
+    Looks up the target nation's diplomat personality and returns
+    the appropriate T24-T27 template variant.
+
+    Args:
+        target_nation: The responding nation
+        outcome: "accept", "counter", or "reject"
+        world: WorldState (for diplomat lookup)
+
+    Returns:
+        Template dict with personality-appropriate text
+    """
+    # Look up diplomat personality
+    diplomats = getattr(world, 'diplomats', {})
+    diplomat = diplomats.get(target_nation)
+    personality = getattr(diplomat, 'personality', 'loyalist') if diplomat else 'loyalist'
+
+    template_key = _PERSONALITY_TO_TEMPLATE.get(personality, "enemy_response_loyalist")
+
+    # Try exact match: (template_key, "any", outcome)
+    key = (template_key, "any", outcome)
+    if key in DIPLOMATIC_TEMPLATES:
+        template = _deep_copy_template(DIPLOMATIC_TEMPLATES[key])
+        return template
+
+    # Fallback to loyalist
+    key = ("enemy_response_loyalist", "any", outcome)
+    if key in DIPLOMATIC_TEMPLATES:
+        template = _deep_copy_template(DIPLOMATIC_TEMPLATES[key])
+        return template
+
+    # Ultimate fallback
+    return {
+        "text": f"{target_nation} responds to your proposal.",
+        "options": [
+            {"label": "Noted", "description": "Dismiss.", "action": "dismiss"},
+        ],
+        "recommendation": 0,
+    }
+
+
+def resolve_enemy_response_text(template: Dict, world, target_nation: str) -> str:
+    """Resolve slots in an enemy response template.
+
+    Resolves {target_diplomat} and {target_nation} slots.
+
+    Args:
+        template: Template dict from get_enemy_response_template()
+        world: WorldState
+        target_nation: The responding nation
+
+    Returns:
+        Resolved text string
+    """
+    text = template.get("text", "")
+    return resolve_template_text(text, world, target_nation)
 
 
 def calculate_treaty_harshness(treaty: Dict) -> float:

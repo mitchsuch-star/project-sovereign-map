@@ -83,6 +83,10 @@ A future save/load system should use this as the specification.
   "ai_stalemate_counters": {},
   "previous_war_scores": {},
 
+  "talleyrand_defiance_cooldown": 0,
+  "pending_talleyrand_sabotage": null,
+  "talleyrand_override_history": [],
+
   "active_battles": {},
   "battle_history": [],
 
@@ -174,6 +178,9 @@ A future save/load system should use this as the specification.
 | `vassal_investment_cooldowns` | dict | {} | **Session 5.** Investment cooldown per vassal. Keys: nation name. Values: int (turns remaining). 3-turn cooldown after invest_in_vassal(). |
 | `cascade_triggered` | list→set | [] | **Session 5.** Defection cascade keys already fired. Serialized as list, deserialized to set. Each key: "vassal\|diplo_key". Prevents cascade from firing twice per war. |
 | `continental_system_members` | list | [] | **Session 5.** Nations participating in the Continental System. PUPPET/SATELLITE vassals auto-join if lord is a member. Members lose trade income with Britain. |
+| `talleyrand_defiance_cooldown` | int | 0 | **Session 6.** Turns remaining on Talleyrand defiance cooldown. Blocks new sabotage when > 0. Decremented in advance_turn(). Set to 5 on confrontation. |
+| `pending_talleyrand_sabotage` | dict\|null | null | **Session 6.** Active sabotage record. Keys: original_proposal, modified_proposal, defiance_type, discovery_chance, turns_hidden, discovered, target_nation. Cleared after confrontation resolution. |
+| `talleyrand_override_history` | list | [] | **Session 6.** Last 5 override records. Each: {proposal_type, override_result ("good"/"bad"), turn}. Used by dispatch honesty note ("pessimistic"/"prescient"). Capped at 5 entries. |
 | `active_battles` | dict | {} | Currently ongoing battles |
 | `battle_history` | list | [] | Completed battle records |
 | `battles_this_turn` | list | [] | Battles this turn (Phase 5.2) |

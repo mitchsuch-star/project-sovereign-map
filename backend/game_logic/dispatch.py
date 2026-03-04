@@ -65,6 +65,15 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None) -> Dic
     # Talleyrand's Report — proactive diplomatic suggestions (Session 4)
     dispatch["talleyrand_report"] = _build_talleyrand_report(world, player_nation)
 
+    # ════════════════════════════════════════════════════════════
+    # SESSION 6: Talleyrand sabotage discovery + override notes + redemption
+    # ════════════════════════════════════════════════════════════
+    dispatch["talleyrand_discovery"] = None
+    dispatch["talleyrand_override_note"] = None
+    dispatch["talleyrand_redemption"] = None
+
+    _check_talleyrand_session6(dispatch, world, player_nation)
+
     # Store on world for dispatch re-read screen (Session A)
     world.last_morning_dispatch = dispatch
 
@@ -643,3 +652,70 @@ def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
     world.proactive_suggestion_cooldowns = cooldowns
 
     return result
+
+
+# ============================================================================
+# SESSION 6: Talleyrand Defiance Discovery + Override Notes + Redemption
+# ============================================================================
+
+def _check_talleyrand_session6(dispatch: Dict, world, player_nation: str) -> None:
+    """Check for Talleyrand sabotage discovery, override notes, and redemption.
+
+    Modifies dispatch dict in place. Sets fields:
+    - talleyrand_discovery: confrontation dialogue dict if discovery fires
+    - talleyrand_override_note: string if recent override outcome
+    - talleyrand_redemption: redemption dialogue dict if trust ≤ 20
+
+    Args:
+        dispatch: The dispatch dict being built
+        world: WorldState
+        player_nation: "France"
+    """
+    diplomats = getattr(world, 'diplomats', {})
+    talleyrand = diplomats.get(player_nation)
+    if not talleyrand:
+        return
+
+    # ── 1. Sabotage Discovery Check ──
+    sabotage = getattr(world, 'pending_talleyrand_sabotage', None)
+    if sabotage and not sabotage.get("discovered"):
+        from backend.commands.diplomatic_defiance import (
+            check_sabotage_discovery, build_confrontation_dialogue,
+        )
+        if check_sabotage_discovery(sabotage, world):
+            sabotage["discovered"] = True
+            world.pending_talleyrand_sabotage = sabotage
+
+            # Build confrontation dialogue and set it as pending
+            confrontation = build_confrontation_dialogue(sabotage, talleyrand)
+            confrontation["turn_created"] = int(world.current_turn)
+            dispatch["talleyrand_discovery"] = confrontation
+
+            # Also set on world for the dialogue system to pick up
+            world.pending_diplomatic_dialogue = confrontation
+
+            # Campaign log entry
+            target = sabotage.get("target_nation", "unknown")
+            world.log_event({
+                "type": "diplomatic_discrepancy",
+                "message": f"Talleyrand altered your proposal to {target}.",
+                "turn": int(world.current_turn),
+                "nation": player_nation,
+            })
+
+    # ── 2. Override History Note ──
+    from backend.commands.diplomatic_defiance import get_override_dispatch_note
+    override_note = get_override_dispatch_note(world)
+    if override_note:
+        dispatch["talleyrand_override_note"] = override_note
+
+    # ── 3. Redemption Event Check ──
+    # Only fire if no other dialogue is pending
+    if not world.pending_diplomatic_dialogue:
+        from backend.commands.diplomatic_defiance import (
+            check_talleyrand_redemption, build_redemption_dialogue,
+        )
+        if check_talleyrand_redemption(talleyrand, world):
+            redemption = build_redemption_dialogue(talleyrand, world)
+            dispatch["talleyrand_redemption"] = redemption
+            world.pending_diplomatic_dialogue = redemption

@@ -288,6 +288,86 @@ def generate_dialogue(intent_type: str, parsed_command: Dict, world) -> Dict:
         "blocking": False,
     }
 
+    # ═══════ SESSION 6: Pre-proposal objection merge ═══════
+    # When sending a proposal, evaluate Talleyrand's concern and merge
+    # into the dialogue (not a separate popup per §10a).
+    if intent_type in ("proposal_execute", "proposal_confirm") and target_nation:
+        dialogue = _merge_pre_proposal_objection(dialogue, parsed_command, world)
+
+    return dialogue
+
+
+def _merge_pre_proposal_objection(dialogue: Dict, parsed_command: Dict, world) -> Dict:
+    """Merge Talleyrand's pre-proposal objection into the dialogue flow.
+
+    V2a pattern: MILD = flavor text (no blocking), MODERATE/STRONG = inline
+    options with "Send anyway" / "Modify terms" / "Trust Talleyrand".
+
+    Args:
+        dialogue: The base dialogue dict
+        parsed_command: Original parsed command
+        world: WorldState
+
+    Returns:
+        Modified dialogue dict with objection merged
+    """
+    from backend.commands.diplomatic_defiance import (
+        evaluate_pre_proposal_objection, get_objection_text,
+    )
+
+    # Build a lightweight proposal for objection evaluation
+    proposal = {
+        "type": parsed_command.get("proposal_type", "peace"),
+        "target_nation": parsed_command.get("target_nation", ""),
+        "demands": parsed_command.get("clauses", []),
+        "sweeteners": [],
+    }
+
+    # Get Talleyrand
+    diplomats = getattr(world, 'diplomats', {})
+    talleyrand = diplomats.get("France")
+    if not talleyrand:
+        return dialogue
+
+    concern = evaluate_pre_proposal_objection(proposal, talleyrand, world)
+
+    from backend.commands.objection_v2 import ConcernLevel
+
+    if concern == ConcernLevel.NONE:
+        return dialogue  # No objection
+
+    objection_text = get_objection_text(concern, proposal, talleyrand)
+
+    if concern == ConcernLevel.MILD:
+        # MILD: flavor text prepended, no blocking, no extra options
+        dialogue["talleyrand_text"] = objection_text + "\n\n" + dialogue["talleyrand_text"]
+        dialogue["objection_level"] = "mild"
+    else:
+        # MODERATE/STRONG: inline options merged into dialogue
+        dialogue["talleyrand_text"] = objection_text
+        dialogue["objection_level"] = "strong" if concern >= ConcernLevel.STRONG else "moderate"
+        dialogue["blocking"] = False  # Still not a popup — inline in conversation
+
+        # Replace options with objection-aware choices
+        target_nation = parsed_command.get("target_nation", "")
+        dialogue["options"] = [
+            {
+                "label": "Send my terms as ordered",
+                "description": "Insist on your original proposal. Defiance may trigger during transit.",
+                "action": "send_override",
+            },
+            {
+                "label": "Use Talleyrand's suggestion",
+                "description": "Trust his diplomatic judgment.",
+                "action": "send_suggested",
+            },
+            {
+                "label": "Modify terms",
+                "description": "Reconsider the proposal.",
+                "action": "reconsider",
+            },
+        ]
+
     return dialogue
 
 

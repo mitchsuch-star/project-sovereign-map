@@ -423,6 +423,13 @@ class WorldState:
         self.cascade_triggered: set = set()  # diplo_keys where cascade already fired
         self.continental_system_members: List[str] = []  # Nations under Continental System
 
+        # ============================================================
+        # DIPLOMACY - Session 6: Talleyrand defiance, objections, override tracking
+        # ============================================================
+        self.talleyrand_defiance_cooldown: int = 0       # Turns until defiance can fire again
+        self.pending_talleyrand_sabotage: Optional[Dict] = None  # Active sabotage record
+        self.talleyrand_override_history: List[Dict] = []  # Last 5 overrides (proposal_type, result)
+
         # Calculate initial visibility so turn 1 starts with correct fog state
         # (French regions FULL, adjacent PARTIAL, rest UNKNOWN)
         self._intel_events_this_turn = []  # Init before first calculate_visibility
@@ -2747,6 +2754,11 @@ class WorldState:
             "vassal_investment_cooldowns": {k: int(v) for k, v in self.vassal_investment_cooldowns.items()},
             "cascade_triggered": list(self.cascade_triggered),
             "continental_system_members": list(self.continental_system_members),
+
+            # ═══════ DIPLOMACY Session 6 ═══════
+            "talleyrand_defiance_cooldown": int(self.talleyrand_defiance_cooldown),
+            "pending_talleyrand_sabotage": self.pending_talleyrand_sabotage.copy() if self.pending_talleyrand_sabotage else None,
+            "talleyrand_override_history": [h.copy() for h in self.talleyrand_override_history],
         }
 
     @classmethod
@@ -2919,6 +2931,13 @@ class WorldState:
         world.vassal_investment_cooldowns = {k: int(v) for k, v in data.get("vassal_investment_cooldowns", {}).items()}
         world.cascade_triggered = set(data.get("cascade_triggered", []))
         world.continental_system_members = list(data.get("continental_system_members", []))
+
+        # ═══════ DIPLOMACY Session 6 ═══════
+        world.talleyrand_defiance_cooldown = int(data.get("talleyrand_defiance_cooldown", 0))
+        world.pending_talleyrand_sabotage = data.get("pending_talleyrand_sabotage", None)
+        if world.pending_talleyrand_sabotage and isinstance(world.pending_talleyrand_sabotage, dict):
+            world.pending_talleyrand_sabotage = world.pending_talleyrand_sabotage.copy()
+        world.talleyrand_override_history = [h.copy() for h in data.get("talleyrand_override_history", [])]
 
         return world
 
@@ -3545,6 +3564,15 @@ class WorldState:
         # ════════════════════════════════════════════════════════════
         self._decrement_ai_proposal_cooldowns()
         self._decrement_proactive_cooldowns()
+
+        # ════════════════════════════════════════════════════════════
+        # TALLEYRAND DEFIANCE COOLDOWN (Phase 8 Session 6)
+        # ════════════════════════════════════════════════════════════
+        if self.talleyrand_defiance_cooldown > 0:
+            self.talleyrand_defiance_cooldown -= 1
+        # Track turns hidden for pending sabotage
+        if self.pending_talleyrand_sabotage and not self.pending_talleyrand_sabotage.get("discovered"):
+            self.pending_talleyrand_sabotage["turns_hidden"] = self.pending_talleyrand_sabotage.get("turns_hidden", 0) + 1
 
         # ════════════════════════════════════════════════════════════
         # VASSAL PROCESSING (Phase 8 Session 5, §7f steps 5-7)
