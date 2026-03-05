@@ -1,9 +1,16 @@
 # Diplomacy System Audit Plan
 
 > **Created:** March 4, 2026
-> **Status:** IN PROGRESS
+> **Status:** IN PROGRESS — Part 1 (Sections 1-6) COMPLETE
 > **Scope:** Comprehensive audit of entire Phase 8 diplomacy implementation
 > **Goal:** Find and fix edge cases, stuck states, contradictions, and bugs
+>
+> ### Part 1 Summary (Sections 1-6)
+> - **7 bugs fixed:** 4 CRITICAL popup flow (A-1 through A-4), 1 CRITICAL routing (B-3), 1 safety valve (C-1/C-2), 1 missing state (L-4 VASSAL post_break_map)
+> - **42 new tests** in `tests/test_audit_part1.py`
+> - **5187 total tests pass** (0 failures, 3 skipped)
+> - **5 design notes** (J-5 armistice placeholder, K-5/K-6 alliance conflict, L-3 break cooldown, O-5 redemption+mission)
+> - Files modified: `main.py`, `executor.py`, `world_state.py`, `diplomacy.py`
 
 ---
 
@@ -62,12 +69,12 @@ End Turn Flow:
 
 ### 1.2 Audit Checklist — Popup Flow
 
-- [ ] **A-1:** Fix priority ordering — incoming_proposal popup must NOT preempt enemy phase
-- [ ] **A-2:** Fix "Talleyrand awaiting" response to include `incoming_proposal` popup data (not just `diplomatic_dialogue`)
-- [ ] **A-3:** Add safety valve: if pending_diplomatic_dialogue is blocking but incoming_proposal_popup is None, re-derive popup data from the dialogue dict
-- [ ] **A-4:** Verify all 6 popup types have correct pass-through in main.py
-- [ ] **A-5:** Verify all 6 Godot popup scenes load without errors (_ready() doesn't crash)
-- [ ] **A-6:** Verify Godot signal connections for all 6 popup callbacks
+- [!] **A-1:** Fix priority ordering — incoming_proposal popup must NOT preempt enemy phase. **FIXED:** main.py defers all popups when `enemy_phase` present (popups stay on world for next request).
+- [!] **A-2:** Fix "Talleyrand awaiting" response to include `incoming_proposal` popup data. **FIXED:** diplomatic early return now calls `_include_popup_passthroughs()`.
+- [!] **A-3:** Add safety valve: re-derive popup from dialogue dict. **FIXED:** `_include_popup_passthroughs()` re-derives `incoming_proposal` from `pending_diplomatic_dialogue` when popup field is cleared.
+- [!] **A-4:** Verify all 6 popup types have correct pass-through in main.py. **FIXED:** new `_include_popup_passthroughs()` helper handles all 6 consistently with clear-after-read + None defaults.
+- [ ] **A-5:** Verify all 6 Godot popup scenes load without errors (_ready() doesn't crash) — **DEFERRED** (manual Godot test)
+- [ ] **A-6:** Verify Godot signal connections for all 6 popup callbacks — **DEFERRED** (manual Godot test)
 
 ### 1.3 Popup-to-Backend Response Mapping Audit
 
@@ -82,11 +89,11 @@ Each popup needs three things: world field set → main.py pass-through → Godo
 | Talleyrand redemption | talleyrand_redemption_popup | talleyrand_redemption | line 755 | _on_talleyrand_redemption_choice |
 | Vassal rebellion | vassal_rebellion_imminent_popup | vassal_rebellion_imminent | line 761 | _on_vassal_rebellion_choice |
 
-- [ ] **B-1:** Verify every world field name matches what the setter function uses
-- [ ] **B-2:** Verify every response key matches what Godot checks (`.has("key")`)
-- [ ] **B-3:** Verify every Godot callback sends a valid command the backend can parse
-- [ ] **B-4:** Verify every callback clears pending_diplomatic_dialogue if applicable
-- [ ] **B-5:** Verify clear-after-read pattern in main.py for all 6 popup fields
+- [x] **B-1:** Verify every world field name matches what the setter function uses — **PASS** (all 6 fields verified: coalition_popup, diplomatic_objection_popup→diplomatic_objection, incoming_proposal_popup→incoming_proposal, diplomatic_sabotage_popup→diplomatic_sabotage, talleyrand_redemption_popup→talleyrand_redemption, vassal_rebellion_imminent_popup→vassal_rebellion_imminent)
+- [x] **B-2:** Verify every response key matches what Godot checks — **PASS** (stripped `_popup` suffix matches Godot `.has()` keys)
+- [!] **B-3:** Verify every Godot callback sends a valid command the backend can parse. **BUG FOUND & FIXED:** Godot callbacks send to `/command` endpoint, but executor guard blocks ALL commands when `pending_diplomatic_dialogue` set. **FIXED:** main.py now routes dialogue keywords (accept/reject/counter/etc.) to `handle_diplomatic_dialogue_response()` before executor.
+- [ ] **B-4:** Verify every callback clears pending_diplomatic_dialogue if applicable — **DEFERRED** (manual Godot test)
+- [!] **B-5:** Verify clear-after-read pattern in main.py for all 6 popup fields — **FIXED:** `_include_popup_passthroughs()` handles all 6 with consistent clear-after-read.
 
 ---
 
@@ -96,34 +103,34 @@ Each popup needs three things: world field set → main.py pass-through → Godo
 
 ### 2.1 All Sources That Set blocking=True
 
-- [ ] `deliver_ai_proposal()` (ai_diplomacy.py:601) — AI proposals
-- [ ] `_execute_diplomatic_proposal()` (executor.py:~11196) — Player proposals
-- [ ] `_execute_diplomatic_mission()` (executor.py:~11265) — Mission start
-- [ ] `_execute_diplomatic_feasibility()` (executor.py:~11284) — Feasibility check
-- [ ] `_execute_diplomatic_advisory()` (executor.py:~11322) — Advisory requests
-- [ ] `_execute_diplomatic_error()` (executor.py:~11334) — Error dialogue
-- [ ] `_execute_diplomatic_break()` (executor.py:~11365) — Break treaty
+- [x] `deliver_ai_proposal()` (ai_diplomacy.py:601) — AI proposals — blocking=True, correct
+- [x] `_execute_diplomatic_proposal()` (executor.py:~11196) — Player proposals — blocking=True, correct
+- [x] `_execute_diplomatic_mission()` (executor.py:~11265) — Mission start — blocking=True, correct
+- [x] `_execute_diplomatic_feasibility()` (executor.py:~11284) — Feasibility check — blocking=True, correct
+- [x] `_execute_diplomatic_advisory()` (executor.py:~11322) — Advisory requests — blocking=False, correct (informational)
+- [x] `_execute_diplomatic_error()` (executor.py:~11334) — Error dialogue — blocking=False, correct
+- [x] `_execute_diplomatic_break()` (executor.py:~11365) — Break treaty — blocking=True, correct
 
 For each: verify blocking is set correctly (True for proposals requiring response, False for informational).
 
 ### 2.2 All Sources That Clear pending_diplomatic_dialogue
 
-- [ ] `_handle_diplomatic_dialogue_response()` (executor.py:~11386) — Player responds
-- [ ] Auto-expire in `advance_turn()` (world_state.py:3693-3696) — Only if NOT blocking
-- [ ] Manual clear via debug/cheat commands
+- [x] `_handle_diplomatic_dialogue_response()` (executor.py:~11386) — Player responds — verified, clears dialogue on all paths
+- [x] Auto-expire in `advance_turn()` (world_state.py:3693-3696) — Only if NOT blocking — verified
+- [x] Manual clear via debug/cheat commands — verified (cheat clear_dialogue added)
 
-**Audit question:** If `blocking=True`, can it EVER be auto-cleared? If no, what's the safety valve?
+**Audit answer:** Before this audit, blocking=True could NEVER be auto-cleared. Now:
 
-- [ ] **C-1:** Add a staleness safety valve — if blocking dialogue is >2 turns old, force-clear it
-- [ ] **C-2:** Add debug command to clear stuck diplomatic dialogue
-- [ ] **C-3:** Verify _handle_diplomatic_dialogue_response properly handles all option types (accept, reject, counter, proceed, modify, cancel)
+- [!] **C-1:** Staleness safety valve added — blocking dialogue >2 turns old force-cleared in `advance_turn()`. **FIXED** in world_state.py.
+- [!] **C-2:** Debug command `cheat clear_dialogue` added. **FIXED** in executor.py.
+- [x] **C-3:** Verify _handle_diplomatic_dialogue_response properly handles all option types — **PASS** (accept, reject, counter, proceed, modify, cancel all handled)
 
 ### 2.3 Queue Lifecycle
 
-- [ ] **D-1:** Verify diplomatic_queue max size (3) is enforced
-- [ ] **D-2:** Verify queue items expire after 3 turns
-- [ ] **D-3:** Verify queued proposals deliver when blocking clears
-- [ ] **D-4:** Verify queue doesn't double-deliver (race condition)
+- [x] **D-1:** Verify diplomatic_queue max size (3) is enforced — **PASS** (tested, `_enqueue_proposal` drops lowest-priority when full)
+- [x] **D-2:** Verify queue items expire after 3 turns — **PASS** (tested, `QUEUE_EXPIRY_TURNS` enforced)
+- [x] **D-3:** Verify queued proposals deliver when blocking clears — **PASS** (tested, `try_deliver_queued_proposal` blocked when dialogue pending)
+- [x] **D-4:** Verify queue doesn't double-deliver (race condition) — **PASS** (delivery pops from queue atomically)
 
 ---
 
@@ -150,30 +157,30 @@ The diplomacy system hooks into multiple points in the turn lifecycle. Each inte
 14. Auto-expire non-blocking dialogue (line 3693-3696)
 ```
 
-- [ ] **E-1:** Verify DP regen happens BEFORE mission cost deduction (not after)
-- [ ] **E-2:** Verify war score recalc uses current-turn data (not stale)
-- [ ] **E-3:** Verify vassal rebellion popup set BEFORE coalition processing (order matters for multiple popups)
-- [ ] **E-4:** Verify AI-AI diplomacy doesn't affect player-facing popups
-- [ ] **E-5:** Verify non-blocking dialogue auto-expire logic handles edge case: `turn_created == current_turn` (should NOT expire same turn)
+- [x] **E-1:** Verify DP regen happens BEFORE mission cost deduction — **PASS** (order: regen → deduct → effects)
+- [x] **E-2:** Verify war score recalc uses current-turn data — **PASS** (recalc reads current world state)
+- [x] **E-3:** Verify vassal rebellion popup set BEFORE coalition processing — **PASS** (step 9 before step 10)
+- [x] **E-4:** Verify AI-AI diplomacy doesn't affect player-facing popups — **PASS** (AI-AI skips popup fields)
+- [x] **E-5:** Non-blocking dialogue auto-expire with `turn_created == current_turn` — **PASS** (condition: `turn_created < current_turn`, so same-turn NOT expired)
 
 ### 3.2 AI Diplomatic Phase (turn_manager._process_ai_diplomatic_phase)
 
 Runs AFTER enemy military turns, BEFORE advance_turn.
 
-- [ ] **F-1:** Verify max 1 proposal delivered per turn
-- [ ] **F-2:** Verify proposals queued (not dropped) when blocking dialogue exists
-- [ ] **F-3:** Verify queue delivery attempted when no fresh proposals generated
-- [ ] **F-4:** Verify anti-spam: same nation can't propose again within cooldown
-- [ ] **F-5:** Verify vassal courting doesn't conflict with proposal delivery
+- [x] **F-1:** Verify max 1 proposal delivered per turn — **PASS** (turn_manager delivers at most 1, rest queued)
+- [x] **F-2:** Verify proposals queued (not dropped) when blocking dialogue exists — **PASS** (tested)
+- [x] **F-3:** Verify queue delivery attempted when no fresh proposals generated — **PASS** (`try_deliver_queued_proposal` called in turn flow)
+- [x] **F-4:** Verify anti-spam: same nation can't propose again within cooldown — **PASS** (rejection_cooldowns dict checked)
+- [x] **F-5:** Verify vassal courting doesn't conflict with proposal delivery — **PASS** (courting runs separately, doesn't set blocking dialogue)
 
 ### 3.3 Auto-End Turn Path (executor.py line 2337)
 
 When all actions exhausted, end_turn triggers automatically.
 
-- [ ] **G-1:** Verify auto-end path mirrors _execute_end_turn data capture (mild_concerns, gold_spent)
-- [ ] **G-2:** Verify auto-end path includes morning_dispatch
-- [ ] **G-3:** Verify auto-end path handles AI diplomatic phase correctly
-- [ ] **G-4:** Verify auto-end path popup pass-through matches manual end_turn
+- [x] **G-1:** Verify auto-end path mirrors _execute_end_turn data capture — **PASS** (auto-end calls same TurnManager.end_turn())
+- [x] **G-2:** Verify auto-end path includes morning_dispatch — **PASS** (same code path)
+- [x] **G-3:** Verify auto-end path handles AI diplomatic phase correctly — **PASS** (same TurnManager)
+- [x] **G-4:** Verify auto-end path popup pass-through matches manual end_turn — **PASS** (main.py applies `_include_popup_passthroughs` to all responses)
 
 ---
 
@@ -189,17 +196,17 @@ Score = base_disposition + war_score_mod + relation_mod + threat_mod
       + military_supremacy + battlefield_diplomacy
 ```
 
-- [ ] **H-1:** Verify base_disposition for each AI nation personality
-- [ ] **H-2:** Verify war_score_modifier correctly inverts for attacker vs defender
-- [ ] **H-3:** Verify relation_modifier scales correctly (-100 to +100 → modifier range)
-- [ ] **H-4:** Verify threat_modifier uses coalition threat level
-- [ ] **H-5:** Verify deal_balance: sweetener cap (+30), demands uncapped
-- [ ] **H-6:** Verify diplomat_skill bonus uses Talleyrand's skill vs target diplomat
-- [ ] **H-7:** Verify personality_modifier: Schemer +5, Hawk -5, Dove +10
-- [ ] **H-8:** Verify military_supremacy: +25 only when war_score ≥ 70 AND capital held
-- [ ] **H-9:** Verify battlefield_diplomacy: +10 when war_score > 20
-- [ ] **H-10:** Verify threshold: ≥50 accept, 30-49 counter, <30 reject
-- [ ] **H-11:** Edge case: what happens at exactly 50? Exactly 30?
+- [x] **H-1:** Verify base_disposition for each AI nation personality — **PASS**
+- [x] **H-2:** Verify war_score_modifier correctly inverts for attacker vs defender — **PASS**
+- [x] **H-3:** Verify relation_modifier scales correctly — **PASS**
+- [x] **H-4:** Verify threat_modifier uses coalition threat level — **PASS**
+- [x] **H-5:** Verify deal_balance: sweetener cap (+30), demands uncapped — **PASS**
+- [x] **H-6:** Verify diplomat_skill bonus — **PASS**
+- [x] **H-7:** Verify personality_modifier — **PASS**
+- [x] **H-8:** Verify military_supremacy — **PASS**
+- [x] **H-9:** Verify battlefield_diplomacy — **PASS**
+- [x] **H-10:** Verify threshold: ≥50 accept, 30-49 counter, <30 reject — **PASS**
+- [x] **H-11:** Edge case: exactly 50 → ACCEPT, exactly 30 → COUNTER — **PASS**
 
 ### 4.2 War Score Components
 
@@ -209,14 +216,14 @@ War Score = territory_score (±40) + battle_score (±30)
           Clamped to [-100, +100]
 ```
 
-- [ ] **I-1:** Verify territory_score: regions held vs starting
-- [ ] **I-2:** Verify battle_score: weighted by casualty ratio
-- [ ] **I-3:** Verify decisive_score: decisive battle threshold
-- [ ] **I-4:** Verify capital_score: +30 if holding enemy capital, -30 if yours held
-- [ ] **I-5:** Verify war_score decay per turn
-- [ ] **I-6:** Edge case: war score at ±100 clamping
-- [ ] **I-7:** Edge case: war score with no battles fought
-- [ ] **I-8:** Cross-check: does decisive_battle threshold match COALITION_SPEC value?
+- [x] **I-1:** Verify territory_score — **PASS**
+- [x] **I-2:** Verify battle_score — **PASS**
+- [x] **I-3:** Verify decisive_score — **PASS**
+- [x] **I-4:** Verify capital_score — **PASS**
+- [x] **I-5:** Verify war_score decay per turn — **PASS**
+- [x] **I-6:** Edge case: war score clamped to ±100 — **PASS** (tested)
+- [x] **I-7:** Edge case: war score with no battles = 0 — **PASS** (tested)
+- [x] **I-8:** Cross-check: decisive_battle threshold matches COALITION_SPEC — **PASS**
 
 ---
 
@@ -232,28 +239,28 @@ WAR ↔ ARMISTICE ↔ PEACE ↔ OPEN_BORDERS ↔ NON_AGGRESSION ↔ DEFENSIVE_AL
                                                                                   VASSAL
 ```
 
-- [ ] **J-1:** Verify every valid transition (upgrade + downgrade) is in validate_transition()
-- [ ] **J-2:** Verify skip transitions are blocked (e.g., WAR → PEACE directly)
-- [ ] **J-3:** Verify VASSAL can only be reached from ALLIANCE or via conquest
-- [ ] **J-4:** Verify auto-downgrade thresholds match spec
-- [ ] **J-5:** Verify armistice duration (5 turns?) and auto-transition to PEACE
+- [x] **J-1:** Verify every valid transition is in validate_transition() — **PASS** (tested upgrade + downgrade adjacency)
+- [x] **J-2:** Verify skip transitions are blocked — **PASS** (WAR→PEACE, PEACE→ALLIANCE, ARMISTICE→OPEN_BORDERS all blocked)
+- [x] **J-3:** Verify VASSAL reachability — **PASS** (OPEN_BORDERS+, DEFENSIVE_ALLIANCE, ALLIANCE→VASSAL valid; PEACE, WAR, ARMISTICE→VASSAL blocked)
+- [x] **J-4:** Verify auto-downgrade thresholds match spec — **PASS**
+- [~] **J-5:** Armistice expiration — **NOTE:** `_process_armistice_expiration()` exists but is a placeholder (no-op). Not a bug per se, but incomplete.
 
 ### 5.2 War Declaration & Cascade
 
-- [ ] **K-1:** Verify war declaration sets WAR state bilaterally
-- [ ] **K-2:** Verify DEFENSIVE_ALLIANCE cascade: all allies of target join the war
-- [ ] **K-3:** Verify war declaration threat increase (+20)
-- [ ] **K-4:** Verify war declaration notification sent
-- [ ] **K-5:** Edge case: declaring war on a nation you have ALLIANCE with
-- [ ] **K-6:** Edge case: cascade creating war with your own ally
-- [ ] **K-7:** Verify movement restrictions immediately apply (can't enter WAR nation regions freely)
+- [x] **K-1:** Verify war declaration sets WAR state bilaterally — **PASS** (tested)
+- [x] **K-2:** Verify DEFENSIVE_ALLIANCE cascade — **PASS** (existing tests cover)
+- [x] **K-3:** Verify war declaration threat increase (+20) — **PASS** (tested)
+- [x] **K-4:** Verify war declaration notification sent — **PASS** (tested)
+- [~] **K-5:** Declaring war on ALLIANCE partner — **NOTE:** No alliance conflict check in `declare_war()`. Design decision needed.
+- [~] **K-6:** Cascade creating war with own ally — **NOTE:** No guard against this. Low priority.
+- [x] **K-7:** Movement restrictions apply — **PASS** (existing region access checks)
 
 ### 5.3 Treaty Breaking
 
-- [ ] **L-1:** Verify breaking a treaty applies relation penalty
-- [ ] **L-2:** Verify breaking DEFENSIVE_ALLIANCE notifies allies
-- [ ] **L-3:** Verify breaking treaty has appropriate cooldown
-- [ ] **L-4:** Edge case: breaking treaty with vassal (should trigger rebellion?)
+- [x] **L-1:** Verify breaking a treaty applies relation penalty — **PASS**
+- [x] **L-2:** Verify breaking DEFENSIVE_ALLIANCE notifies allies — **PASS**
+- [~] **L-3:** Treaty break cooldown — **NOTE:** Spec says 5-turn cooldown but NOT implemented. Low priority.
+- [!] **L-4:** Breaking treaty with vassal — VASSAL was MISSING from `post_break_map`. **FIXED:** Added `"VASSAL": "NON_AGGRESSION"` to diplomacy.py.
 
 ---
 
@@ -268,37 +275,37 @@ P = 0.05 + authority_mod + trust_mod + variance
 Clamped [0.02, 0.30]
 ```
 
-- [ ] **M-1:** Verify authority_mod ranges (-0.05 to +0.15)
-- [ ] **M-2:** Verify trust_mod ranges (-0.05 to +0.10)
-- [ ] **M-3:** Verify variance (±0.05) is applied
-- [ ] **M-4:** Verify 2% floor (Schemer personality minimum)
-- [ ] **M-5:** Verify 30% hard cap
-- [ ] **M-6:** Verify defiance cooldown (5 turns after confrontation)
+- [x] **M-1:** Verify authority_mod ranges — **PASS**
+- [x] **M-2:** Verify trust_mod ranges — **PASS**
+- [x] **M-3:** Verify variance (±0.05) is applied — **PASS**
+- [x] **M-4:** Verify 2% floor (Schemer personality minimum) — **PASS** (tested)
+- [x] **M-5:** Verify 30% hard cap — **PASS** (tested)
+- [x] **M-6:** Verify defiance cooldown blocks — **PASS** (tested, returns 0.0 during cooldown)
 
 ### 6.2 Sabotage Types & Discovery
 
-- [ ] **N-1:** Verify all 5 sabotage types (soften, harden, stall, redirect, leak)
-- [ ] **N-2:** Verify discovery rate: 40% base + 10% per turn cumulative
-- [ ] **N-3:** Verify discovery popup (sabotage_discovery_popup) triggers correctly
-- [ ] **N-4:** Verify confront: trust -10, authority +5
-- [ ] **N-5:** Verify overlook: trust +3
-- [ ] **N-6:** Edge case: sabotage on a proposal that gets rejected anyway
+- [x] **N-1:** Verify all 5 sabotage types — **PASS** (soften, harden, stall, redirect, leak all in code)
+- [x] **N-2:** Verify discovery rate: 40% base + 10% per turn — **PASS** (tested base + cumulative)
+- [x] **N-3:** Verify discovery popup triggers — **PASS** (already-discovered returns False)
+- [x] **N-4:** Verify confront: trust -10, authority +5 — **PASS**
+- [x] **N-5:** Verify overlook: trust +3 — **PASS**
+- [x] **N-6:** Sabotage on rejected proposal — **PASS** (sabotage fires during proposal, rejection is separate)
 
 ### 6.3 Redemption Event
 
-- [ ] **O-1:** Verify trust ≤ 20 triggers redemption popup
-- [ ] **O-2:** Verify apologize: trust +15, authority -5
-- [ ] **O-3:** Verify replace: irreversible, skill → 6, defiance floor → 0%
-- [ ] **O-4:** Verify continue: authority -10
-- [ ] **O-5:** Edge case: redemption during active mission (what happens to mission?)
-- [ ] **O-6:** Edge case: trust exactly 20 vs below 20
+- [x] **O-1:** Verify trust ≤ 20 triggers redemption — **PASS** (tested)
+- [x] **O-2:** Verify apologize: trust +15, authority -5 — **PASS**
+- [x] **O-3:** Verify replace: irreversible — **PASS**
+- [x] **O-4:** Verify continue: authority -10 — **PASS**
+- [~] **O-5:** Redemption during active mission — **NOTE:** Not explicitly handled. Mission continues. Low priority.
+- [x] **O-6:** Trust exactly 20 → triggers redemption; 21 → does NOT — **PASS** (tested both)
 
 ### 6.4 Pre-Proposal Objections
 
-- [ ] **P-1:** Verify Talleyrand can object to player proposals (diplomatic_objection_popup)
-- [ ] **P-2:** Verify proceed/modify/cancel options work correctly
-- [ ] **P-3:** Verify objection doesn't fire on free actions (status, help)
-- [ ] **P-4:** Verify objection uses correct field (diplomatic_objection_popup, not pending_objection)
+- [x] **P-1:** Verify Talleyrand can object to player proposals — **PASS** (diplomatic_objection_popup field)
+- [x] **P-2:** Verify proceed/modify/cancel options — **PASS**
+- [~] **P-3:** Objection doesn't fire on free actions — **NOTE:** No explicit free-action filter found. Low priority (objection only fires on diplomatic proposals, not status/help).
+- [x] **P-4:** Verify objection uses correct field — **PASS** (diplomatic_objection_popup, separate from pending_objection)
 
 ---
 

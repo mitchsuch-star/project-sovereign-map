@@ -1333,12 +1333,15 @@ def break_treaty(pair_key: str, breaker_nation: str, world) -> Dict:
     # TODO: wire threat system in Session 7
 
     # Post-break state: one level below broken treaty (E11)
+    # IMPORTANT: Must include ALL diplomatic states. If you add a new
+    # state to the diplomacy chain, add it here too. (Audit fix L-4)
     post_break_map = {
         "ALLIANCE": "NON_AGGRESSION",
         "DEFENSIVE_ALLIANCE": "OPEN_BORDERS",
         "NON_AGGRESSION": "PEACE",
         "OPEN_BORDERS": "PEACE",
         "PEACE": "PEACE",
+        "VASSAL": "NON_AGGRESSION",  # Audit fix L-4
     }
     current_state = world.diplomatic_states.get(pair_key, "PEACE")
     new_state = post_break_map.get(current_state, "PEACE")

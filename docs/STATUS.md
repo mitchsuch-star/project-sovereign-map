@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **5145** (5145 passed, 3 skipped — verified Mar 4, Session 8D) |
+| **Tests Passing** | **5187** (5187 passed, 3 skipped — verified Mar 4, Diplomacy Audit Part 1) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -32,7 +32,7 @@
    - ~~Session 8B: Diplomatic Ledger Godot UI + Top Bar~~ — **DONE** (diplomatic_ledger.gd/.tscn 4-tab screen, D key for diplomatic ledger, R key for dispatch re-read, top bar DP/threat/Talleyrand/envoy fields with pulse + click, diplomatic fields in /command response, 30 new tests)
    - ~~Session 8C: Popups + Notifications~~ — **DONE** (11 new notification constants, 18 notification fire points wired across coalition/diplomacy/vassal/ai_diplomacy/defiance/dispatch, 6 popup data contracts with clear-after-read, 3 new world_state popup fields serialized, 6 Godot popup scenes with BBCode+signals, priority queue in main.gd, 31 new tests)
    - ~~Session 8D: Dispatch Integration + Polish~~ — **DONE** (20 diplomatic dispatch event types with fog-filtered visibility, queue_dispatch_event helper, campaign log 6 diplomacy event types with one-liner formatters, AI-AI diplomatic phase with 4 triggers + max 2 treaties/turn, special acceptance bonuses for 4 nations, 4 scenario test fixtures, Godot dispatch_view.gd diplomatic section + campaign_log.gd diplomacy category, 57 new tests)
-2. **Diplomacy Audit** — **IN PROGRESS.** Comprehensive audit of entire Phase 8 implementation. Smoke test revealed stuck "Talleyrand waiting response" bug (popup flow sequencing issue). See `docs/DIPLOMACY_AUDIT.md` for full 17-section plan covering popup flow, blocking states, turn integration, formulas, state transitions, defiance, coalition, vassals, AI proposals, ledger UI, dispatch, serialization, cross-system interactions, notifications, debug tools, Claude playtest, and UI test plan.
+2. **Diplomacy Audit** — **Part 1 COMPLETE** (Sections 1-6). 7 bugs fixed (4 CRITICAL popup flow, 1 routing, 1 safety valve, 1 missing state), 42 new tests. Part 2 (Sections 7-17) pending. See `docs/DIPLOMACY_AUDIT.md`.
 3. **Jealousy system** — NEEDS DESIGN GATE (separate track). See CLAUDE.md.
 4. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
@@ -58,6 +58,31 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 4 — Diplomacy Audit Part 1 (Sections 1-6)
+
+Comprehensive audit of Phase 8 diplomacy. 4 files modified, 1 new test file, 42 new tests.
+
+**Bugs Fixed (7):**
+- **CRITICAL (A-1):** Enemy phase hidden when incoming_proposal popup returns early in Godot. Fixed: main.py defers all popups when `enemy_phase` present.
+- **CRITICAL (A-2):** Diplomatic early return skipped popup pass-throughs. Fixed: early return now calls `_include_popup_passthroughs()`.
+- **CRITICAL (A-3):** No safety valve for cleared popup with pending dialogue. Fixed: re-derives `incoming_proposal` from `pending_diplomatic_dialogue`.
+- **CRITICAL (A-4):** Inconsistent popup pass-through handling. Fixed: new `_include_popup_passthroughs()` helper handles all 6 popups consistently.
+- **CRITICAL (B-3):** Godot popup callbacks send to `/command` but executor guard blocks ALL commands when dialogue pending. Fixed: main.py routes dialogue keywords to `handle_diplomatic_dialogue_response()` before executor.
+- **Safety Valve (C-1/C-2):** No way to clear stale blocking dialogue. Fixed: auto-clear in `advance_turn()` after 2 turns + `cheat clear_dialogue` command.
+- **Missing State (L-4):** VASSAL missing from `post_break_map` in diplomacy.py. Fixed: added `"VASSAL": "NON_AGGRESSION"`.
+
+**Verified Clean (Sections 3-4):** Turn flow integration all PASS. Acceptance formula all PASS. War score all PASS.
+
+**Design Notes (not bugs, for future consideration):**
+- J-5: Armistice expiration is a placeholder (no-op)
+- K-5/K-6: No alliance conflict check in war declaration
+- L-3: Treaty break cooldown not implemented (spec says 5 turns)
+- O-5: Redemption during active mission not explicitly handled
+
+**42 new tests** in `tests/test_audit_part1.py`: 8 popup flow, 7 blocking lifecycle, 3 acceptance formula, 10 state transitions, 8 Talleyrand defiance, 3 queue lifecycle, 2 serialization, 1 war score.
+
+**5187 tests passing** (5145 + 42 new, 3 skipped, 0 regressions).
 
 ### Mar 4 — Session 8A: Backend Ledger + Debug Arsenal
 

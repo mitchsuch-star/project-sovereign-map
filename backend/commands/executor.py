@@ -897,9 +897,14 @@ class CommandExecutor:
         # Phase 8 Session 3: Block end-turn if blocking diplomatic dialogue pending
         if (world.pending_diplomatic_dialogue
                 and world.pending_diplomatic_dialogue.get("blocking")):
+            dialogue = world.pending_diplomatic_dialogue
+            option_labels = [f"[{i+1}] {o['label']}" for i, o in enumerate(dialogue.get("options", []))]
+            options_text = "  ".join(option_labels)
             return {
                 "success": False,
-                "message": "You must respond to the diplomatic matter before ending the turn.",
+                "message": f"You must respond to the diplomatic matter before ending the turn. {options_text}",
+                "awaiting_diplomatic_response": True,
+                "diplomatic_dialogue": dialogue,
             }
 
         # V2a: Capture mild concerns BEFORE end_turn clears them
@@ -1382,6 +1387,13 @@ RETREAT RECOVERY (3 turns):
 
         # ============================================================
         # DIPLOMATIC DIALOGUE CHECK (Phase 8 Session 3)
+        # WARNING: This guard blocks ALL commands when dialogue is
+        # pending. Dialogue responses (accept/reject/etc.) are routed
+        # BEFORE executor.execute() in main.py's command endpoint.
+        # If adding new dialogue response types, update the keyword
+        # list in main.py (_DIALOGUE_RESPONSE_KEYWORDS). Cheat
+        # commands also cannot pass this guard — test via
+        # _execute_cheat() directly. See DIPLOMACY_AUDIT.md §1.
         # ============================================================
         if world.pending_diplomatic_dialogue is not None:
             dialogue = world.pending_diplomatic_dialogue
@@ -12661,7 +12673,8 @@ RETREAT RECOVERY (3 turns):
 
         Supported: set_threat, set_relation, give_dp, trigger_coalition,
         set_war_exhaustion, set_diplo_state, create_vassal,
-        set_vassal_loyalty, set_talleyrand_trust, queue_ai_proposal
+        set_vassal_loyalty, set_talleyrand_trust, queue_ai_proposal,
+        clear_dialogue
         """
         import os
         world: WorldState = game_state.get("world")
@@ -12797,5 +12810,14 @@ RETREAT RECOVERY (3 turns):
                 "success": True,
                 "message": f"Queued {proposal_type} proposal from {nation} to France.",
             }
+
+        # ── clear_dialogue (Audit fix C-2) ──
+        if cheat_type == "clear_dialogue":
+            had_dialogue = world.pending_diplomatic_dialogue is not None
+            world.pending_diplomatic_dialogue = None
+            world.incoming_proposal_popup = None
+            if had_dialogue:
+                return {"success": True, "message": "Cleared stuck diplomatic dialogue."}
+            return {"success": True, "message": "No dialogue was pending."}
 
         return {"success": False, "message": f"Unknown cheat type: {cheat_type}"}

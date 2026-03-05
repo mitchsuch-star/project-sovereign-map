@@ -3696,6 +3696,20 @@ class WorldState:
             self.pending_diplomatic_dialogue = None
 
         # ════════════════════════════════════════════════════════════
+        # BLOCKING DIALOGUE SAFETY VALVE (Audit fix C-1)
+        # If a blocking dialogue is >2 turns old, force-clear it.
+        # Prevents permanent stuck states from bugs or save/load edge cases.
+        # ════════════════════════════════════════════════════════════
+        if (self.pending_diplomatic_dialogue
+                and self.pending_diplomatic_dialogue.get("blocking")
+                and self.pending_diplomatic_dialogue.get("turn_created", 0) + 2 < self.current_turn):
+            print(f"[SAFETY VALVE] Force-clearing stale blocking dialogue "
+                  f"(created turn {self.pending_diplomatic_dialogue.get('turn_created')}, "
+                  f"current turn {self.current_turn})")
+            self.pending_diplomatic_dialogue = None
+            self.incoming_proposal_popup = None
+
+        # ════════════════════════════════════════════════════════════
         # INCOME PHASE (Phase 6.2.B) — ALL nations
         # Calculates income - upkeep + admin bonus, updates gold & bankruptcy
         # ════════════════════════════════════════════════════════════

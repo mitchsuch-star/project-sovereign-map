@@ -124,6 +124,81 @@ def _get_talleyrand_mission_summary(w) -> str:
     return "None"
 
 
+def _include_popup_passthroughs(response: dict, world) -> None:
+    """Read popup fields from world, include in response, clear from world.
+
+    Audit fix: This was previously only done in the normal response path,
+    but the diplomatic early return skipped it — causing popup data loss.
+    Also used for deferred popup delivery (when enemy_phase defers popups).
+
+    Keys are ALWAYS included (None if not set) so Godot can rely on their presence.
+    """
+    # Coalition declaration popup
+    coalition_popup = getattr(world, 'coalition_popup', None)
+    if coalition_popup is not None:
+        response["coalition_popup"] = coalition_popup
+        world.coalition_popup = None
+    else:
+        response["coalition_popup"] = None
+
+    # Diplomatic sabotage discovery popup
+    diplomatic_sabotage = getattr(world, 'diplomatic_sabotage_popup', None)
+    if diplomatic_sabotage is not None:
+        response["diplomatic_sabotage"] = diplomatic_sabotage
+        world.diplomatic_sabotage_popup = None
+    else:
+        response["diplomatic_sabotage"] = None
+
+    # Vassal rebellion imminent popup
+    vassal_rebellion_imminent = getattr(world, 'vassal_rebellion_imminent_popup', None)
+    if vassal_rebellion_imminent is not None:
+        response["vassal_rebellion_imminent"] = vassal_rebellion_imminent
+        world.vassal_rebellion_imminent_popup = None
+    else:
+        response["vassal_rebellion_imminent"] = None
+
+    # Talleyrand redemption popup
+    talleyrand_redemption = getattr(world, 'talleyrand_redemption_popup', None)
+    if talleyrand_redemption is not None:
+        response["talleyrand_redemption"] = talleyrand_redemption
+        world.talleyrand_redemption_popup = None
+    else:
+        response["talleyrand_redemption"] = None
+
+    # Diplomatic objection popup
+    diplomatic_objection = getattr(world, 'diplomatic_objection_popup', None)
+    if diplomatic_objection is not None:
+        response["diplomatic_objection"] = diplomatic_objection
+        world.diplomatic_objection_popup = None
+    else:
+        response["diplomatic_objection"] = None
+
+    # Incoming proposal popup
+    incoming_proposal = getattr(world, 'incoming_proposal_popup', None)
+    if incoming_proposal is not None:
+        response["incoming_proposal"] = incoming_proposal
+        world.incoming_proposal_popup = None
+    elif (world.pending_diplomatic_dialogue
+          and world.pending_diplomatic_dialogue.get("type") == "incoming_proposal"
+          and "incoming_proposal" not in response):
+        # Safety valve: re-derive popup from pending dialogue
+        # (incoming_proposal_popup may have been cleared in a previous response)
+        dialogue = world.pending_diplomatic_dialogue
+        context = dialogue.get("context", {})
+        response["incoming_proposal"] = {
+            "from_nation": dialogue.get("target_nation", "Unknown"),
+            "diplomat_name": context.get("diplomat_name", "Unknown diplomat"),
+            "diplomat_personality": context.get("diplomat_personality", "unknown"),
+            "proposal_type": context.get("proposal", {}).get("type", "unknown"),
+            "clauses": [],
+            "talleyrand_assessment": dialogue.get("talleyrand_text", ""),
+            "acceptance_hint": "Review the proposal carefully.",
+            "rejection_hint": "",
+        }
+    else:
+        response["incoming_proposal"] = None
+
+
 def _filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
     """
     Fog of War (Session 34B): Filter enemy phase actions by player visibility.
@@ -481,8 +556,35 @@ def execute_command(request: CommandRequest):
                 "game_state": world.get_filtered_game_state_summary(),
             }
 
-        # Execute command
-        result = executor.execute(parsed, game_state)
+        # ════════════════════════════════════════════════════════════
+        # DIPLOMATIC DIALOGUE RESPONSE ROUTING (Audit fix)
+        # Godot popup callbacks send commands to /command (e.g.,
+        # "Talleyrand, accept the Prussia proposal"). When
+        # pending_diplomatic_dialogue is set, the executor guard
+        # blocks ALL commands. Intercept dialogue responses here
+        # and route to handle_diplomatic_dialogue_response().
+        # ════════════════════════════════════════════════════════════
+        if world.pending_diplomatic_dialogue is not None:
+            raw_lower = request.command.lower()
+            _DIALOGUE_RESPONSE_KEYWORDS = [
+                "accept", "reject", "decline", "counter",
+                "proceed", "cancel", "confront", "overlook",
+                "apologize", "replace", "invest", "garrison",
+            ]
+            matched_keyword = None
+            for keyword in _DIALOGUE_RESPONSE_KEYWORDS:
+                if keyword in raw_lower:
+                    matched_keyword = keyword
+                    break
+            if matched_keyword:
+                print(f"[DIPLOMATIC] Routing dialogue response: {matched_keyword}")
+                result = executor.handle_diplomatic_dialogue_response(
+                    matched_keyword, game_state)
+            else:
+                result = executor.execute(parsed, game_state)
+        else:
+            # Execute command
+            result = executor.execute(parsed, game_state)
 
         # ════════════════════════════════════════════════════════════
         # BERTHIER EXECUTOR RECOVERY: Catch "Marshal 'None' not found"
@@ -593,6 +695,11 @@ def execute_command(request: CommandRequest):
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
             cleaned["game_state"] = world.get_filtered_game_state_summary()
+
+            # Audit fix: Include popup pass-throughs on early return
+            # (previously skipped — popups set during end_turn were lost)
+            _include_popup_passthroughs(cleaned, world)
+
             if world.notifications.has_pending():
                 cleaned["notifications"] = world.notifications.get_pending()
             return cleaned
@@ -782,53 +889,16 @@ def execute_command(request: CommandRequest):
             response["morning_dispatch"] = result["morning_dispatch"]
 
         # ════════════════════════════════════════════════════════════
-        # PASS-THROUGH: Diplomatic popups (Session 8A)
+        # PASS-THROUGH: Diplomatic popups (Session 8A + 8C)
         # Pattern: read field → include in response → clear (Golden Rule 4)
+        #
+        # Audit fix: When enemy_phase is present, defer ALL popups.
+        # Popups have early returns in Godot that would block enemy_phase
+        # display. Deferred popups persist on world and get delivered on
+        # the next request (via diplomatic early return or normal path).
         # ════════════════════════════════════════════════════════════
-        coalition_popup = getattr(world, 'coalition_popup', None)
-        if coalition_popup is not None:
-            response["coalition_popup"] = coalition_popup
-            world.coalition_popup = None
-        else:
-            response["coalition_popup"] = None
-
-        diplomatic_sabotage = getattr(world, 'diplomatic_sabotage_popup', None)
-        if diplomatic_sabotage is not None:
-            response["diplomatic_sabotage"] = diplomatic_sabotage
-            world.diplomatic_sabotage_popup = None
-        else:
-            response["diplomatic_sabotage"] = None
-
-        vassal_rebellion_imminent = getattr(world, 'vassal_rebellion_imminent_popup', None)
-        if vassal_rebellion_imminent is not None:
-            response["vassal_rebellion_imminent"] = vassal_rebellion_imminent
-            world.vassal_rebellion_imminent_popup = None
-        else:
-            response["vassal_rebellion_imminent"] = None
-
-        # ════════════════════════════════════════════════════════════
-        # PASS-THROUGH: Session 8C popups
-        # ════════════════════════════════════════════════════════════
-        talleyrand_redemption = getattr(world, 'talleyrand_redemption_popup', None)
-        if talleyrand_redemption is not None:
-            response["talleyrand_redemption"] = talleyrand_redemption
-            world.talleyrand_redemption_popup = None
-        else:
-            response["talleyrand_redemption"] = None
-
-        diplomatic_objection = getattr(world, 'diplomatic_objection_popup', None)
-        if diplomatic_objection is not None:
-            response["diplomatic_objection"] = diplomatic_objection
-            world.diplomatic_objection_popup = None
-        else:
-            response["diplomatic_objection"] = None
-
-        incoming_proposal = getattr(world, 'incoming_proposal_popup', None)
-        if incoming_proposal is not None:
-            response["incoming_proposal"] = incoming_proposal
-            world.incoming_proposal_popup = None
-        else:
-            response["incoming_proposal"] = None
+        if not response.get("enemy_phase"):
+            _include_popup_passthroughs(response, world)
 
         # Notifications — persistent alerts for Godot notification bar
         if world.notifications.has_pending():

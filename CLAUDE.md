@@ -277,6 +277,9 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | Godot null "pressed" on startup | `@onready` node paths must match FULL scene tree in .tscn — verify intermediate nodes |
 | Vassal loyalty unexpected | Check `nation_relations` default — France/Saxony=40, adds +2/turn via relation//20 modifier |
 | AP clause wrong nation | `from_nation` is the penalized nation (loses AP), not `to_nation` |
+| "Talleyrand awaiting" stuck state | Executor dialogue guard blocks ALL commands. Dialogue keywords routed in main.py BEFORE executor — update `_DIALOGUE_RESPONSE_KEYWORDS` for new response types |
+| New diplomatic state missing | Add to `post_break_map` in diplomacy.py AND `validate_transition()` — both must cover all states |
+| Popup not showing after early return | All response paths must call `_include_popup_passthroughs()` — check diplomatic early return in main.py |
 
 ---
 
