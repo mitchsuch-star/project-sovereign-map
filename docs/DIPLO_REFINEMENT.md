@@ -376,29 +376,226 @@ Bundle of easy additions to diplomatic ledger:
 
 ---
 
-## RANK 21+ — Narrative & Feel Improvements (NEEDS DESIGN, lower priority)
+## RANK 21 — Ultimatums / Coercive Diplomacy — NEEDS DESIGN
 
-| # | Item | Description |
-|---|------|-------------|
-| R21 | **Treaty signing ceremonies** | Dramatic template when major treaty is ratified. Talleyrand presents, enemy diplomat reacts. |
-| R22 | **Vassal personality events** | "Saxony requests more autonomy" dialogues, investment flavor, rebellion ultimatum. |
-| R23 | **Continental System drama** | Smuggling events, economic hardship narratives, British countermeasures. |
-| R24 | **Template variety expansion** | More VAGUE path templates, stalemate variants, historical references ("Remember Tilsit"). |
-| R25 | **Marshal morale from diplomacy** | Aggressive marshals approve of war declarations (+trust). Cautious marshals approve of peace. |
-| R26 | **Diplomatic history in ledger** | Past proposals with outcomes. "Proposed peace with Prussia Turn 8 — REJECTED." |
-| R27 | **Strategic order auto-cancel on peace** | Wire §5b.4 — cancel PURSUE/MOVE_TO against now-peaceful nation's marshals. |
-| R28 | **Acceptance score preview** | Show estimated score for a specific proposal before spending DP. |
+**Problem:** No "accept peace or I declare war" mechanic. Napoleon used coercive diplomacy constantly — Metternich's armed mediation is already in the AI but the player has no equivalent tool. All proposals are neutral requests.
+
+**Proposed design:** New command type: "Talleyrand, deliver ultimatum to Prussia: accept peace or face war."
+- Cost: 2 DP (major diplomatic action)
+- Acceptance formula gets a `military_threat` bonus: +15 when player has marshals adjacent to target's territory, +10 otherwise
+- Relation hit regardless of outcome: -10 (ultimatums are aggressive)
+- If REJECTED: player gets a casus belli (halved war declaration penalties per §5c)
+- Talleyrand objects (STRONG) if threat > 50 — "Ultimatums are how coalitions are born, Sire"
+- Keywords: "ultimatum", "demand... or else", "threaten", "final offer"
+
+**Why ranked here:** Adds significant strategic depth and historical accuracy. Napoleon's diplomacy was fundamentally coercive — "negotiate from strength" should be a core tool. Medium implementation difficulty (new acceptance modifier + command wiring + casus belli tracking).
 
 ---
 
-## Items Considered but Deferred (Out of Scope)
+## RANK 22 — Marriage Alliances — NEEDS DESIGN
 
-These are design aspirations noted in the creative audit but deferred to future phases:
+**Problem:** Napoleon's marriage to Marie Louise of Austria (1810) was perhaps the most consequential diplomatic act of his reign, securing 3 years of peace. This system has no personal diplomacy at all. The biggest historical gap.
 
-- **Marriage alliances** — Major new system, not refinement
-- **Multi-party peace conferences** — Requires bilateral-to-multilateral architecture change
-- **Ultimatums / coercive diplomacy** — New command type with new acceptance formula integration
-- **Secret treaties** — Significant new mechanic
-- **Dynastic succession / puppet rulers** — Phase 9+ content
-- **Player-specified counter-offer terms** — Complex UX overhaul (stretch goal of R2)
-- **AI diplomatic memory / trust history** — Nice but low impact for implementation cost
+**Proposed design:** One-shot diplomatic action, not an ongoing system. Marriage is a special clause in alliance proposals.
+- Command: "Talleyrand, propose marriage alliance with Austria"
+- Prerequisite: PEACE or above with target nation. Target must have a royal family (Austria, Prussia, Saxony — not Britain, who has no capital on map).
+- Cost: 3 DP (major commitment)
+- Acceptance formula bonus: +20 (marriages are highly desirable for minor nations seeking protection)
+- Effects on acceptance:
+  - Auto-upgrades to ALLIANCE if not already
+  - Relation +30 (family bond)
+  - 5-turn "honeymoon" immunity — neither side can declare war or downgrade for 5 turns
+  - Threat reduction: -10 (France seen as integrating, not conquering)
+  - Coalition brewing pauses for 3 turns (diplomatic reset)
+- Limit: ONE marriage alliance active at a time. Divorcing (breaking the marriage) costs -50 relation with target, -20 with ALL nations, +25 threat. Historically devastating — Napoleon's divorce of Josephine was scandalous, remarriage was strategic.
+- Talleyrand's role: Schemer personality means he LOVES marriage alliances — no objection, +5 acceptance bonus from Talleyrand's enthusiasm.
+
+**Why ranked here:** Highest historical impact of any missing feature. Creates a dramatic one-time diplomatic event with lasting consequences. Medium-hard difficulty (new clause type, honeymoon state, divorce mechanic).
+
+---
+
+## RANK 23 — Marshal Morale from Diplomacy — NEEDS DESIGN
+
+**Problem:** Declaring war, signing peace, making vassals, breaking alliances — zero impact on marshal trust or morale. Cross-system blind spot. Aggressive marshals should cheer war declarations; cautious marshals should approve of peace.
+
+**Proposed design:** Personality-based trust reactions to diplomatic events:
+
+| Event | Aggressive Marshal | Cautious Marshal | Literal Marshal |
+|-------|-------------------|-----------------|-----------------|
+| War declared | +3 trust | -3 trust | 0 (follows orders) |
+| Peace signed (winning) | -2 trust ("why stop?") | +2 trust | 0 |
+| Peace signed (losing) | -5 trust ("coward!") | +3 trust ("wise") | 0 |
+| Alliance formed | 0 | +2 trust | 0 |
+| Vassal acquired (conquest) | +3 trust | -2 trust | 0 |
+| Vassal acquired (treaty) | -1 trust ("soft") | +2 trust | 0 |
+| Treaty broken | +2 trust ("bold") | -3 trust ("dishonorable") | 0 |
+
+Capped at ±5 trust per turn from diplomatic events. Applied during advance_turn after diplomatic processing.
+
+**Why ranked here:** Creates meaningful cross-system interaction. Marshals should feel like people who have opinions about the war, not just combat units. Easy-medium implementation (trust.modify calls in diplomatic event handlers).
+
+---
+
+## RANK 24 — Treaty Signing Ceremonies — NEEDS DESIGN
+
+**Problem:** After potentially turns of negotiation, the result is "Treaty ratified" — a notification. No ceremony, no drama. The moment should feel earned.
+
+**Proposed design:** When a major treaty is ratified (PEACE, ALLIANCE, VASSAL), generate a ceremony template:
+- Talleyrand presents the treaty with personality-flavored commentary
+- Enemy diplomat reacts (personality-keyed: Hawk grudgingly accepts, Dove celebrates, Schemer calculates)
+- Campaign log entry marked as a "historic event"
+- Example: "At the signing in Paris, Talleyrand presented the Treaty of Berlin with characteristic grace. Hardenberg, jaw clenched, affixed his seal. 'Prussia remembers,' he muttered. Talleyrand smiled. 'I should hope so.'"
+
+3-4 ceremony templates per diplomat personality × proposal type. ~20 new templates total.
+
+**Why ranked here:** High emotional payoff for relatively low implementation cost (template writing + dispatch event type).
+
+---
+
+## RANK 25 — Vassal Personality Events — NEEDS DESIGN
+
+**Problem:** Vassal management is numbers-only. No personality, no unique events, no "Saxony requests autonomy" dialogues. Rebellion is a threshold, not a story.
+
+**Proposed design:** 4-5 vassal event types that fire based on loyalty thresholds:
+- **Loyalty 60+:** "Saxony celebrates the alliance" — flavor dispatch, +3 loyalty
+- **Loyalty 40-59:** "Saxon merchants petition for lower tribute" — choice: reduce tribute (-25% for 3 turns, +10 loyalty) or refuse (-5 loyalty)
+- **Loyalty 20-39:** "Reynier reports Saxon officers meeting secretly" — choice: investigate (spend 1 DP, reveal courting nation) or ignore
+- **Loyalty <20:** "Saxon delegation demands autonomy" — popup: grant autonomy upgrade (+15 loyalty) or refuse (-10 loyalty, +5 threat from oppression narrative)
+- Max 1 event per vassal per 5 turns (no spam)
+
+**Why ranked here:** Vassal system is mechanically complete but narratively empty. Events would make vassals feel like political entities rather than tribute machines.
+
+---
+
+## RANK 26 — Continental System Drama — NEEDS DESIGN
+
+**Problem:** CS is currently "spend DP, reduce a gold counter." Should generate stories.
+
+**Proposed design:**
+- **Smuggling events** (1 per 3 turns while CS active): Random participant caught trading with Britain. Choice: confront (-10 relation, -5 vassal loyalty if vassal, participant withdraws from CS) or overlook (CS effectiveness -25g for that nation, trust +2 from Talleyrand approving pragmatism)
+- **British countermeasures:** When CS has 2+ members, Britain spends extra DP to UNDERMINE one CS participant per turn. Player sees dispatch: "British agents in Dresden encourage trade violations."
+- **Economic hardship:** After 5+ turns of CS, participating nations get -5 relation with France per turn from economic pain. Creates the historical tension where the CS worked but was self-defeating.
+
+**Why ranked here:** The Continental System was Napoleon's most ambitious project AND greatest strategic failure. It should generate stories, not just modify a counter.
+
+---
+
+## RANK 27 — Secret Treaties — NEEDS DESIGN
+
+**Problem:** All treaties are public. Tilsit's secret articles — dividing Europe into French and Russian spheres — can't happen. Reduces diplomatic intrigue.
+
+**Proposed design:** New clause type: "Secret article" in proposals.
+- Cost: +1 DP on top of proposal cost (secrecy is expensive)
+- Secret clauses are not announced in Morning Dispatch or campaign log
+- AI-AI secret treaties are hidden from the player entirely until discovered via GATHER_INTEL mission
+- Discovery: 20% chance per turn that a secret clause is leaked. Leaked clauses cause -15 relation with all nations ("they were dealing behind our backs")
+- Player secret clauses: Talleyrand loves them (Schemer +5 acceptance). If discovered, Talleyrand takes the blame or credit depending on outcome.
+- Example: "Talleyrand, propose peace with Prussia, with a secret article: Prussia withdraws from British alliance within 3 turns"
+
+**Why ranked here:** Adds significant intrigue and replayability. Medium difficulty (new clause flag, visibility filtering, discovery mechanic).
+
+---
+
+## RANK 28 — Template Variety Expansion — NEEDS DESIGN
+
+**Problem:** ~56 unique text blocks. In a 50-turn game: noticeable repetition by turn 25. VAGUE path stalemate templates are most vulnerable (only 3-5 variants).
+
+**Proposed fix:** Add 15-20 new templates:
+- 5 additional VAGUE+WAR templates (war-weariness, flanking opportunity, supply concerns, morale observations, weather/season references)
+- 3 additional VAGUE+PEACE templates (trade opportunity, cultural exchange, border tensions)
+- 5 counter-offer variants per diplomat personality
+- Historical reference library: Talleyrand occasionally references precedents ("This is Austerlitz all over again", "Remember what happened at Tilsit, Sire")
+- Seasonal flavor: "Winter is no time for grand campaigns, Sire. Let us negotiate instead."
+
+**Why ranked here:** Pure content work, no systems changes. High polish value for long games.
+
+---
+
+## RANK 29 — Diplomatic History in Ledger — NEEDS DESIGN
+
+**Problem:** After 20 turns, player can't review past diplomatic interactions. No proposal history.
+
+**Proposed fix:** Track `world.diplomatic_history` list: `[{"turn": 5, "type": "proposal", "from": "France", "to": "Prussia", "proposal_type": "peace", "outcome": "REJECT"}, ...]`. Display in Talleyrand tab or new Tab 5 in diplomatic ledger. Most recent first, max 20 entries.
+
+---
+
+## RANK 30 — Strategic Order Auto-Cancel on Peace — NEEDS DESIGN
+
+**Problem:** §5b.4 specifies auto-cancellation of PURSUE/MOVE_TO orders against now-peaceful nations. Not implemented. Movement restriction compensates but marshal wastes a turn.
+
+**Proposed fix:** In `_ratify_treaty()`, when transitioning from WAR to non-WAR: iterate marshals, cancel PURSUE orders targeting the now-peaceful nation's marshals, cancel MOVE_TO with attack_on_arrival targeting their regions.
+
+---
+
+## RANK 31 — Acceptance Score Preview — NEEDS DESIGN
+
+**Problem:** Player can't see estimated acceptance for a specific proposal config before spending DP. Feasibility gives qualitative tiers only.
+
+**Proposed fix:** Enhance feasibility response to include numerical breakdown when player asks about a specific proposal type + target: "Talleyrand estimates: base 30, relations -20, war score +9, skill +8, personality -5 = **22** (REJECT). Key obstacle: relations." Show components, not just tier.
+
+---
+
+## RANK 32 — Multi-Party Peace Conferences — NEEDS DESIGN
+
+**Problem:** All diplomacy is bilateral. No Congress of Vienna mechanic where 3+ nations negotiate simultaneously.
+
+**Proposed design:** Special action: "Talleyrand, convene a peace conference"
+- Cost: 4 DP (entire turn's diplomatic budget)
+- Prerequisite: France at war with 2+ nations simultaneously
+- All nations at war with France are invited. Each runs acceptance formula independently.
+- Nations that accept: ceasefire for conference duration (2 turns). Nations that reject: war continues.
+- Conference produces a bundled peace proposal addressing all parties simultaneously
+- Player builds one set of terms that applies to all participants (can offer different clauses per nation)
+- Historical: Congress of Erfurt, Congress of Vienna, Treaty of Amiens all involved multiple parties
+
+**Why ranked here:** Architecturally ambitious but historically essential for late-game scenarios. Hard difficulty.
+
+---
+
+## RANK 33 — Dynastic Succession / Puppet Rulers — NEEDS DESIGN
+
+**Problem:** Can't install family members as puppet rulers. Napoleon's primary vassal management tool (Joseph in Spain, Louis in Holland, Jerome in Westphalia, Murat in Naples).
+
+**Proposed design:** When creating a vassal (conquest or treaty), option to "install a Bonaparte":
+- Cost: +1 DP on top of vassalization cost
+- Effect: +15 starting loyalty (family member is loyal by blood), +1 loyalty/turn passive bonus
+- Downside: -10 relation with ALL other nations (nepotism perceived as arrogance), +5 threat
+- Limit: max 2 Bonaparte rulers at once (Napoleon only had so many brothers)
+- If vassal rebels with Bonaparte installed: dramatic narrative event, Bonaparte captured/exiled
+
+**Why ranked here:** Historical flavor but niche mechanic. Only matters for conquest-heavy playstyles.
+
+---
+
+## RANK 34 — AI Diplomatic Memory / Trust History — NEEDS DESIGN
+
+**Problem:** If the player always breaks treaties with a nation, that nation treats next proposal identically. No "fool me twice" mechanic.
+
+**Proposed fix:** Track per-nation `diplomatic_reliability` score: +5 for honoring treaty 10+ turns, -10 for breaking a treaty. Feed into acceptance formula as ±10 max modifier.
+
+---
+
+## RANK 35 — Player-Specified Counter-Offer Terms — NEEDS DESIGN
+
+**Problem:** When responding to AI proposals, "Counter-offer" runs M3 algorithm — player gets no input on what the counter looks like. Black box.
+
+**Proposed fix:** Stretch goal of R2. When player selects [Renegotiate], open clause-selection interface (same as player-initiated proposals). Player builds their counter-terms, Talleyrand carries them, acceptance formula evaluates. Turns counter-offers from "reroll the negotiation" to "I specifically want THIS."
+
+**Why ranked here:** Most impactful UX improvement for diplomacy but requires significant UI work (clause builder in response context, not just proposal context). Hard difficulty.
+
+---
+
+## RANK 36 — Personal Summits — NEEDS DESIGN
+
+**Problem:** No "raft on the Niemen" moments. No face-to-face negotiation where Napoleon's personality directly affects outcomes.
+
+**Proposed design:** Special action: "Talleyrand, arrange a summit with [leader]"
+- Cost: 2 DP + 1 turn of transit
+- Prerequisite: PEACE or ARMISTICE with target
+- Effect: +20 acceptance bonus to any proposal made during the summit turn (personal charisma)
+- Risk: If authority < 40, summit can backfire (Napoleon appears weak → -10 acceptance instead)
+- Talleyrand objects if he thinks the summit is premature
+- One summit per game per nation (diminishing returns on personal meetings)
+- Narrative: Special summit template with dramatic location description
+
+**Why ranked here:** Cool historical flavor but situational. One-per-nation limit constrains impact.
