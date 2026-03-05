@@ -45,6 +45,27 @@ PROPOSAL_TYPE_KEYWORDS = {
     "vassalage": ["vassal", "vassalage", "subjugate", "submit", "submission", "puppet"],
 }
 
+# ═══════ PROPOSAL TYPE DISPLAY NAMES ═══════
+PROPOSAL_TYPE_DISPLAY = {
+    "peace": "Peace Treaty",
+    "alliance": "Full Alliance",
+    "non_aggression": "Non-Aggression Pact",
+    "open_borders": "Open Borders Agreement",
+    "defensive_alliance": "Defensive Alliance",
+    "armistice": "Armistice",
+    "armistice_losing": "Armistice",
+    "armistice_stalemate": "Armistice",
+    "armistice_winning": "Armistice",
+    "vassalage": "Vassalage",
+    "opportunistic": "Non-Aggression Pact",
+}
+
+
+def _display_proposal_type(proposal_type: str) -> str:
+    """Convert internal proposal_type to player-facing display name."""
+    return PROPOSAL_TYPE_DISPLAY.get(proposal_type, proposal_type.replace("_", " ").title())
+
+
 # ═══════ MISSION TYPE KEYWORDS ═══════
 MISSION_TYPE_KEYWORDS = {
     "IMPROVE_RELATIONS": ["improve relations", "build relations", "warm relations", "befriend"],
@@ -243,9 +264,11 @@ def generate_dialogue(intent_type: str, parsed_command: Dict, world) -> Dict:
     # Get template
     template = get_template(intent_type, diplo_state, bucket, proposal_type)
 
-    # Resolve slots in template text
+    # Resolve slots in template text (including {proposal_type})
     talleyrand_text = resolve_template_text(
         template.get("text", ""), world, target_nation)
+    if proposal_type and "{proposal_type}" in talleyrand_text:
+        talleyrand_text = talleyrand_text.replace("{proposal_type}", _display_proposal_type(proposal_type))
 
     # Build options with resolved text
     options = []
@@ -443,15 +466,16 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
         steps = max(0, goal_idx - curr_idx)
 
     # Build assessment text
+    display_type = _display_proposal_type(proposal_type)
     if score >= 50:
         assessment = (
-            f"Sire, {proposal_type} with {target_nation} appears quite achievable. "
+            f"Sire, {display_type} with {target_nation} appears quite achievable. "
             f"My assessment suggests a score of {int(score)} — they would likely accept. "
             f"{feedback}"
         )
     elif score >= 30:
         assessment = (
-            f"Sire, {proposal_type} with {target_nation} is possible but uncertain. "
+            f"Sire, {display_type} with {target_nation} is possible but uncertain. "
             f"My assessment yields {int(score)} — they might counter-offer. "
             f"{feedback}"
         )
@@ -466,7 +490,7 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
         }
         obstacle_text = obstacle_names.get(largest_obstacle, "several factors")
         assessment = (
-            f"Sire, I must be frank — {proposal_type} with {target_nation} faces serious obstacles. "
+            f"Sire, I must be frank — {display_type} with {target_nation} faces serious obstacles. "
             f"My assessment is only {int(score)}. The largest obstacle is {obstacle_text}. "
             f"{feedback}"
         )
@@ -485,7 +509,7 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
         "options": [
             {
                 "label": "Proceed anyway",
-                "description": f"Send the {proposal_type} proposal despite the assessment.",
+                "description": f"Send the {display_type} proposal despite the assessment.",
                 "action": "execute_proposal",
                 "terms": {
                     "proposal_type": proposal_type,

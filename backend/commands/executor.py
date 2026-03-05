@@ -68,6 +68,12 @@ def _action_display_name(action: str) -> str:
     return _ACTION_DISPLAY_NAMES.get(action, action.replace("_", " "))
 
 
+def _proposal_display_name(proposal_type: str) -> str:
+    """Translate internal proposal_type to player-readable text."""
+    from backend.game_logic.diplomatic_dialogue import PROPOSAL_TYPE_DISPLAY
+    return PROPOSAL_TYPE_DISPLAY.get(proposal_type, proposal_type.replace("_", " ").title())
+
+
 class CommandExecutor:
     """
     Executes validated commands and returns results.
@@ -1395,7 +1401,11 @@ RETREAT RECOVERY (3 turns):
         # commands also cannot pass this guard — test via
         # _execute_cheat() directly. See DIPLOMACY_AUDIT.md §1.
         # ============================================================
-        if world.pending_diplomatic_dialogue is not None:
+        command = parsed_command.get("command", {})
+        action = command.get("action", "unknown")
+
+        # Cheat commands bypass dialogue guard
+        if world.pending_diplomatic_dialogue is not None and action != "cheat":
             dialogue = world.pending_diplomatic_dialogue
             option_labels = [f"[{i+1}] {o['label']}" for i, o in enumerate(dialogue.get("options", []))]
             options_text = "  ".join(option_labels)
@@ -1405,9 +1415,6 @@ RETREAT RECOVERY (3 turns):
                 "awaiting_diplomatic_response": True,
                 "diplomatic_dialogue": dialogue,
             }
-
-        command = parsed_command.get("command", {})
-        action = command.get("action", "unknown")
 
         # ════════════════════════════════════════════════════════════
         # META-COMMANDS: save/load — no AP cost, bypass all checks
@@ -11244,7 +11251,7 @@ RETREAT RECOVERY (3 turns):
                 remaining = cooldowns[type_key]
                 return {
                     "success": False,
-                    "message": f"Talleyrand advises patience, Sire. {target_nation} rejected our {proposal_type} proposal only {remaining} turns ago.",
+                    "message": f"Talleyrand advises patience, Sire. {target_nation} rejected our {_proposal_display_name(proposal_type)} proposal only {remaining} turns ago.",
                 }
 
         # Check DP
@@ -11529,7 +11536,7 @@ RETREAT RECOVERY (3 turns):
             return {
                 "success": True,
                 "message": (
-                    f"Talleyrand departs for the {target_nation} court with your {proposal_type} proposal. "
+                    f"Talleyrand departs for the {target_nation} court with your {_proposal_display_name(proposal_type)} proposal. "
                     f"Expect a response by next turn. ({int(cost)} DP spent)"
                 ),
             }
@@ -12812,7 +12819,7 @@ RETREAT RECOVERY (3 turns):
             world.diplomatic_queue.append(proposal)
             return {
                 "success": True,
-                "message": f"Queued {proposal_type} proposal from {nation} to France.",
+                "message": f"Queued {_proposal_display_name(proposal_type)} proposal from {nation} to France.",
             }
 
         # ── clear_dialogue (Audit fix C-2) ──

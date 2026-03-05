@@ -21,7 +21,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 - **Phase 7b remaining:** V2b COMPLETE. Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Gates 5+6 PASSED. Jealousy (SPEC v3 DRAFTED — needs design gate approval). Coalition Trigger moved to Phase 8.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial Infrastructure deferred to Pre-EA.
 - **Phase 8: Diplomacy — COMPLETE.** ALL 11 sessions done (1A through 8D). ~580 tests. Full diplomacy engine shipped. See `docs/SESSION_8_PLAN.md`.
-- **Diplomacy Audit — COMPLETE.** Parts 1-3 done (Sections 1-15 + AI spam fixes). 13 bugs fixed, 118 audit tests. Sections 16-17 (manual Godot) deferred. See `docs/DIPLOMACY_AUDIT.md`.
+- **Diplomacy Audit — COMPLETE.** Parts 1-4 done (Sections 1-16 + playtest). 20 bugs fixed, 145 audit tests. Section 17 (Godot UI) deferred. See `docs/DIPLOMACY_AUDIT.md`.
 
 ### Design Gates
 

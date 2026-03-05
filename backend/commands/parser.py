@@ -126,7 +126,7 @@ class CommandParser:
         elif not llm_result.get("marshal"):
             # BUG-002 FIX: Skip fuzzy marshal matching for meta/help commands
             # Actions that don't require a marshal (meta commands + pending charge responses)
-            meta_actions = ["help", "end_turn", "status", "unknown", "debug", "charge", "restrain", "build", "repair", "economy", "meta_command"]
+            meta_actions = ["help", "end_turn", "status", "unknown", "debug", "charge", "restrain", "build", "repair", "economy", "meta_command", "cheat"]
             if llm_result.get("action") in meta_actions:
                 return (llm_result, None)  # Don't try to find a marshal
 
@@ -368,6 +368,11 @@ class CommandParser:
                 if llm_result["action"] == "stance_change" and llm_result.get("target_stance"):
                     command_dict["target_stance"] = llm_result["target_stance"]
 
+                # Phase 8 Session 8A: Preserve cheat data
+                if llm_result["action"] == "cheat":
+                    command_dict["cheat_type"] = llm_result.get("cheat_type")
+                    command_dict["cheat_args"] = llm_result.get("cheat_args", [])
+
                 result = {
                     "success": True,
                     "command": command_dict,
@@ -439,8 +444,8 @@ class CommandParser:
         marshal = parsed_command.get("marshal")
         action = parsed_command.get("action")
 
-        # Meta commands (save/load) bypass all validation
-        if action == "meta_command":
+        # Meta commands (save/load) and cheat commands bypass all validation
+        if action in ("meta_command", "cheat"):
             return {"valid": True, "warning": None}
 
         # Validation 1: Check action is valid

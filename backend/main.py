@@ -527,49 +527,21 @@ def execute_command(request: CommandRequest):
             })
 
         # ════════════════════════════════════════════════════════════
-        # BERTHIER PARSE RECOVERY: Replace generic "Unknown action"
-        # with in-character Berthier clarification. Only fires for
-        # type-1 parse failures; marshal typos & validation errors
-        # pass through unchanged.
-        # ════════════════════════════════════════════════════════════
-        if not parsed.get("success") and (parsed.get("error") or "").startswith("Unknown action"):
-            berthier_msg = parser.llm.generate_berthier_recovery(
-                raw_command=request.command,
-                game_state=llm_game_state,
-                partial_parse={
-                    "recognized_marshal": parsed.get("partial_marshal"),
-                    "recognized_target": parsed.get("partial_target"),
-                    "raw_input": parsed.get("raw_input", request.command),
-                },
-            )
-            return {
-                "success": False,
-                "message": berthier_msg,
-                "events": [],
-                "action_info": {
-                    "cost": 0,
-                    "remaining": int(world.actions_remaining),
-                    "turn_advanced": False,
-                    "new_turn": None,
-                },
-                "action_summary": world.get_action_summary(),
-                "game_state": world.get_filtered_game_state_summary(),
-            }
-
-        # ════════════════════════════════════════════════════════════
         # DIPLOMATIC DIALOGUE RESPONSE ROUTING (Audit fix)
-        # Godot popup callbacks send commands to /command (e.g.,
-        # "Talleyrand, accept the Prussia proposal"). When
-        # pending_diplomatic_dialogue is set, the executor guard
-        # blocks ALL commands. Intercept dialogue responses here
-        # and route to handle_diplomatic_dialogue_response().
+        # Must run BEFORE Berthier parse recovery — dialogue keywords
+        # like "accept"/"reject" fail parsing and would trigger
+        # Berthier recovery early return, preventing dialogue routing.
         # ════════════════════════════════════════════════════════════
-        if world.pending_diplomatic_dialogue is not None:
+        # Cheat commands bypass dialogue guard
+        is_cheat = parsed.get("success") and parsed.get("command", {}).get("action") == "cheat"
+
+        if world.pending_diplomatic_dialogue is not None and not is_cheat:
             raw_lower = request.command.lower()
             _DIALOGUE_RESPONSE_KEYWORDS = [
                 "accept", "reject", "decline", "counter",
                 "proceed", "cancel", "confront", "overlook",
                 "apologize", "replace", "invest", "garrison",
+                "send", "execute", "reconsider", "modify",
             ]
             matched_keyword = None
             for keyword in _DIALOGUE_RESPONSE_KEYWORDS:
@@ -583,6 +555,36 @@ def execute_command(request: CommandRequest):
             else:
                 result = executor.execute(parsed, game_state)
         else:
+            # ════════════════════════════════════════════════════════════
+            # BERTHIER PARSE RECOVERY: Replace generic "Unknown action"
+            # with in-character Berthier clarification. Only fires for
+            # type-1 parse failures; marshal typos & validation errors
+            # pass through unchanged.
+            # ════════════════════════════════════════════════════════════
+            if not parsed.get("success") and (parsed.get("error") or "").startswith("Unknown action"):
+                berthier_msg = parser.llm.generate_berthier_recovery(
+                    raw_command=request.command,
+                    game_state=llm_game_state,
+                    partial_parse={
+                        "recognized_marshal": parsed.get("partial_marshal"),
+                        "recognized_target": parsed.get("partial_target"),
+                        "raw_input": parsed.get("raw_input", request.command),
+                    },
+                )
+                return {
+                    "success": False,
+                    "message": berthier_msg,
+                    "events": [],
+                    "action_info": {
+                        "cost": 0,
+                        "remaining": int(world.actions_remaining),
+                        "turn_advanced": False,
+                        "new_turn": None,
+                    },
+                    "action_summary": world.get_action_summary(),
+                    "game_state": world.get_filtered_game_state_summary(),
+                }
+
             # Execute command
             result = executor.execute(parsed, game_state)
 

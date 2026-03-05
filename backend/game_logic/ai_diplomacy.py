@@ -695,17 +695,8 @@ def _format_proposal_summary(terms: Dict) -> str:
     target = terms.get("target_nation", "France")
 
     # Type description
-    type_names = {
-        "armistice_losing": "Armistice",
-        "armistice_winning": "Armistice",
-        "peace": "Peace Treaty",
-        "alliance": "Full Alliance",
-        "non_aggression": "Non-Aggression Pact",
-        "open_borders": "Open Borders Agreement",
-        "defensive_alliance": "Defensive Alliance",
-        "vassalage": "Vassalage",
-    }
-    parts.append(f"{type_names.get(proposal_type, proposal_type.title())} "
+    from backend.game_logic.diplomatic_dialogue import PROPOSAL_TYPE_DISPLAY
+    parts.append(f"{PROPOSAL_TYPE_DISPLAY.get(proposal_type, proposal_type.replace('_', ' ').title())} "
                  f"between {proposer} and {target}")
 
     # Sweeteners (what AI offers)

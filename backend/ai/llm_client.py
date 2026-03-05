@@ -721,6 +721,16 @@ class LLMClient:
             target = "Wellington"
         elif "blucher" in command_lower or "blücher" in command_lower:
             target = "Blucher"
+        elif "gneisenau" in command_lower:
+            target = "Gneisenau"
+        elif "archduke charles" in command_lower or "archdukecharles" in command_lower or "archduke" in command_lower:
+            target = "ArchdukeCharles"
+        elif "schwarzenberg" in command_lower:
+            target = "Schwarzenberg"
+        elif "reynier" in command_lower:
+            target = "Reynier"
+        elif "uxbridge" in command_lower:
+            target = "Uxbridge"
         elif "prussian" in command_lower:
             target = "Prussians"
         elif "british" in command_lower:
