@@ -27,6 +27,9 @@
 | BUG-6: Treaty clause gold unenforced | HIGH | R3 | NEEDS DESIGN |
 | BUG-7: Treaty clause gold no floor | MEDIUM | R3 (included) | NEEDS DESIGN |
 | BUG-8: Defensive alliance base disposition | MEDIUM | R7 | NEEDS DESIGN |
+| BUG-9: Talleyrand sabotage/redemption popups unresolvable | CRITICAL | R37 | NEEDS DESIGN |
+| BUG-10: Talleyrand proposal terms show "war score 0" | MEDIUM | R38 | NEEDS DESIGN |
+| BUG-11: DP not visibly displayed in game | INVESTIGATION | R39 | NEEDS DESIGN |
 4. Implementation phase will work through approved items, possibly across multiple sessions
 
 ---
@@ -599,3 +602,112 @@ Capped at ±5 trust per turn from diplomatic events. Applied during advance_turn
 - Narrative: Special summit template with dramatic location description
 
 **Why ranked here:** Cool historical flavor but situational. One-per-nation limit constrains impact.
+
+---
+
+## RANK 37 — Talleyrand Sabotage/Redemption Popups Unresolvable (CRITICAL bug)
+
+### R37: Sabotage Discovery & Redemption Popups Cannot Be Resolved — NEEDS DESIGN
+
+**Problem:** When Talleyrand's sabotage is discovered (or redemption triggers), the popup NEVER appears. Instead, the content dumps into the chat log as plain text. The player cannot interact with it (no Confront/Overlook/Apologize/Replace/Continue buttons), making the sabotage/redemption system completely non-functional. Additionally, the executor has no handlers for these actions even if the popup were shown.
+
+**Root cause (3 layers):**
+
+1. **Popup never triggers in Godot**: The sabotage/redemption data reaches the API response but Godot renders it as chat text instead of triggering the dedicated popup scenes (`sabotage_discovery_popup.gd`, `talleyrand_redemption_popup.gd`). Either `main.gd` doesn't check for the popup fields in the response, or the check runs after the text is already rendered to chat.
+
+2. **Missing action map entries** (`executor.py`, `_process_dialogue_choice()`): Even if the popup were shown, the `action_map` dict has NO entries for sabotage/redemption actions. Keywords "confront", "overlook", "apologize", "replace", "continue" are in `_DIALOGUE_RESPONSE_KEYWORDS` but the executor doesn't know what to do with `confront_sabotage`, `overlook_sabotage`, `redemption_apologize`, `redemption_replace`, or `redemption_continue` actions.
+
+3. **Missing handler functions**: No `_handle_confront_sabotage()`, `_handle_overlook_sabotage()`, etc. exist in the executor. The logic EXISTS in `diplomatic_defiance.py` (`resolve_confrontation()` at line ~416, `apply_redemption_choice()` at line ~544) but is never wired. On failure, `pending_diplomatic_dialogue` is NOT cleared → stuck state.
+
+**Proposed fix:**
+
+1. **Fix popup triggering in Godot**: Ensure `main.gd` checks for `diplomatic_sabotage` / `talleyrand_redemption` fields in the response and calls the popup BEFORE rendering chat text. Verify popup scene nodes are connected in the scene tree.
+
+2. Add entries to `action_map` in `_process_dialogue_choice()`:
+   ```python
+   "confront": "confront_sabotage",
+   "overlook": "overlook_sabotage",
+   "apologize": "redemption_apologize",
+   "replace": "redemption_replace",
+   "continue": "redemption_continue",
+   ```
+
+3. Implement handler functions that call existing `diplomatic_defiance.py` logic:
+   - `_handle_confront_sabotage()` → calls `resolve_confrontation()`
+   - `_handle_overlook_sabotage()` → calls `resolve_confrontation()`
+   - `_handle_redemption_*()` → calls `apply_redemption_choice()`
+
+4. Each handler must clear: `world.pending_diplomatic_dialogue = None`, `world.diplomatic_sabotage_popup = None` / `world.talleyrand_redemption_popup = None`
+
+5. Add failure fallback: if action lookup fails, still clear `pending_diplomatic_dialogue` to prevent stuck state
+
+**Priority:** CRITICAL — sabotage/redemption system entirely non-functional. Should be fixed before any balance work.
+
+---
+
+## RANK 38 — Talleyrand Proposal Terms Phrasing (MEDIUM bug)
+
+### R38: Talleyrand's Terms Show "War Score: 0" and Read Awkwardly — NEEDS DESIGN
+
+**Problem:** Template T6 (`diplomatic_templates.py:176-179`) for proposal confirmation reads:
+
+```
+"Sire, for a {proposal_type} proposal to {target_nation},
+I suggest the following terms. War score: {war_score}, relation: {relation}."
+```
+
+Two issues:
+
+1. **"War score: 0" when not at war**: The slot resolver (`diplomatic_templates.py:1118`) looks up `world.war_scores.get(diplo_key, 0)`. When not at WAR, the key doesn't exist → defaults to 0. Showing "War score: 0" for a peace-time proposal is confusing and nonsensical.
+
+2. **Mechanical phrasing**: "War score: {war_score}, relation: {relation}" reads like debug output, not like Talleyrand speaking. Compare with T1 (line ~26) which uses "War score stands at..." — still mechanical but slightly better. Talleyrand should frame these as diplomatic context, not raw numbers.
+
+**Proposed fix:**
+
+**(A) Conditional war score display:** Only show war score when nations are AT_WAR:
+```python
+if diplomatic_state == "WAR":
+    terms_context = f"The military situation favors {'us' if war_score > 0 else 'them'} — war score {war_score}."
+else:
+    terms_context = ""  # No war score display in peacetime
+```
+
+**(B) Rephrase in Talleyrand's voice:** Replace mechanical format with character-appropriate language:
+- High war score: "Our military position is strong, Sire. They will be... receptive."
+- Low war score: "Our negotiating position is weak. Generous terms may be necessary."
+- Peacetime: "Relations with {nation} stand at {relation}. {qualifier based on value}."
+
+**(C) Move raw numbers to ledger:** Remove numeric war score from Talleyrand's dialogue entirely. Players who want numbers check the Diplomatic Ledger. Talleyrand gives qualitative assessment only.
+
+**My recommendation:** (A) + (C). Hide war score from peacetime proposals, keep qualitative assessment in dialogue, raw numbers stay in the ledger.
+
+---
+
+## RANK 39 — DP Display Investigation (Potential UI bug)
+
+### R39: DP (Diplomatic Points) Not Visibly Displayed — NEEDS DESIGN
+
+**Problem:** User reports DP is not displayed during gameplay.
+
+**Code investigation shows DP IS fully wired:**
+
+| Layer | Status | Location |
+|-------|--------|----------|
+| Backend tracking | ✓ | `world_state.py:351-352` — `diplomatic_points`, `max_diplomatic_points` |
+| API responses | ✓ | `main.py:432-433` (GET /test), `main.py:758-759` (POST /command) |
+| Diplomatic ledger data | ✓ | `diplomatic_ledger.py:355-356` — `dp_remaining`, `dp_max` in Talleyrand tab |
+| Top bar display | ✓ | `top_bar.gd:22` — `DPLabel` node, `top_bar.gd:235-240` — update function |
+| Diplomatic ledger display | ✓ | `diplomatic_ledger.gd:17` — `dp_display` node, lines 140-144 |
+| Update path | ✓ | `main.gd:1598-1614` — `_update_diplomatic_top_bar()` called on poll + command |
+
+**Possible causes (need in-game investigation):**
+
+1. **Scene tree mismatch**: `DPLabel` node path in `top_bar.gd` (`$BarContainer/BarBG/BarLayout/RightSection/DPLabel`) may not match the actual .tscn scene tree → null reference, label never updates
+2. **Label hidden/overlapped**: DPLabel exists but is positioned off-screen or hidden behind another element
+3. **Update not triggering**: `_update_diplomatic_top_bar()` might not fire if the `/test` endpoint response doesn't include diplomatic fields before the game is fully initialized
+4. **Default max mismatch**: API uses `getattr(world, 'max_diplomatic_points', 3)` as default (3) but actual starting value is 5 — if world isn't initialized, display shows "DP: 0/3"
+
+**Next step:** Manual testing required — run the game and check:
+- Does the DPLabel node exist in the top_bar.tscn scene?
+- Does `/test` endpoint return `diplomatic_points` field?
+- Is the label visible but showing wrong values?
