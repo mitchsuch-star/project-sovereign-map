@@ -11810,6 +11810,10 @@ RETREAT RECOVERY (3 turns):
         treaty_event = world._ratify_treaty(source_nation, terms)
         world.pending_diplomatic_dialogue = None
 
+        # Apply acceptance cooldown to prevent immediate follow-up proposals
+        from backend.game_logic.ai_diplomacy import apply_acceptance_cooldown
+        apply_acceptance_cooldown(source_nation, world)
+
         treaty_msg = ""
         if treaty_event:
             treaty_msg = treaty_event.get("message", "")

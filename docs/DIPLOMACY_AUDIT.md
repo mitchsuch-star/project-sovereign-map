@@ -1,7 +1,7 @@
 # Diplomacy System Audit Plan
 
 > **Created:** March 4, 2026
-> **Status:** COMPLETE — Part 1 (Sections 1-6) + Part 2 (Sections 7-15) DONE
+> **Status:** COMPLETE — Part 1 (Sections 1-6) + Part 2 (Sections 7-15) + Part 3 (AI Proposal Spam) DONE
 > **Scope:** Comprehensive audit of entire Phase 8 diplomacy implementation
 > **Goal:** Find and fix edge cases, stuck states, contradictions, and bugs
 >
@@ -18,6 +18,12 @@
 > - **5244 total tests pass** (0 failures, 3 skipped)
 > - **1 design note** (AH-4 marshal auto-ejection on state downgrade)
 > - **3 checklist corrections** (W-2 garrison=+8 not +15, W-3 shared enemy=+2 not +10, X-1 popup at <=10 not <15)
+> - Files modified: `ai_diplomacy.py`, `executor.py`
+>
+> ### Part 3 Summary (AI Proposal Spam — Playtest Finding)
+> - **3 bugs fixed:** 2 MEDIUM (SPAM-1 no acceptance cooldown, SPAM-2 no pending dedup), 1 LOW (SPAM-3 P7 state check)
+> - **19 new tests** in `tests/test_audit_part3.py`
+> - **5263 total tests pass** (0 failures, 3 skipped)
 > - Files modified: `ai_diplomacy.py`, `executor.py`
 > - Sections 16-17 (Claude Playtest, UI Test Plan) deferred — require manual Godot testing
 

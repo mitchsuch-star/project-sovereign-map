@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 4, 2026 (Diplomacy Audit Part 2 — Sections 7-15)
+> **Last Updated:** March 4, 2026 (Diplomacy Audit Part 3 — AI Proposal Spam Fixes)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **5244** (5244 passed, 3 skipped — verified Mar 4, Diplomacy Audit Part 2) |
+| **Tests Passing** | **5263** (5263 passed, 3 skipped — verified Mar 4, Diplomacy Audit Part 3) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -32,7 +32,7 @@
    - ~~Session 8B: Diplomatic Ledger Godot UI + Top Bar~~ — **DONE** (diplomatic_ledger.gd/.tscn 4-tab screen, D key for diplomatic ledger, R key for dispatch re-read, top bar DP/threat/Talleyrand/envoy fields with pulse + click, diplomatic fields in /command response, 30 new tests)
    - ~~Session 8C: Popups + Notifications~~ — **DONE** (11 new notification constants, 18 notification fire points wired across coalition/diplomacy/vassal/ai_diplomacy/defiance/dispatch, 6 popup data contracts with clear-after-read, 3 new world_state popup fields serialized, 6 Godot popup scenes with BBCode+signals, priority queue in main.gd, 31 new tests)
    - ~~Session 8D: Dispatch Integration + Polish~~ — **DONE** (20 diplomatic dispatch event types with fog-filtered visibility, queue_dispatch_event helper, campaign log 6 diplomacy event types with one-liner formatters, AI-AI diplomatic phase with 4 triggers + max 2 treaties/turn, special acceptance bonuses for 4 nations, 4 scenario test fixtures, Godot dispatch_view.gd diplomatic section + campaign_log.gd diplomacy category, 57 new tests)
-2. **Diplomacy Audit** — **COMPLETE.** Part 1 (Sections 1-6): 7 bugs fixed, 42 tests. Part 2 (Sections 7-15): 3 bugs fixed, 57 tests. Total: 10 bugs fixed, 99 audit tests, 123 checklist items verified. Sections 16-17 (manual Godot) deferred. See `docs/DIPLOMACY_AUDIT.md`.
+2. **Diplomacy Audit** — **COMPLETE.** Part 1 (Sections 1-6): 7 bugs fixed, 42 tests. Part 2 (Sections 7-15): 3 bugs fixed, 57 tests. Part 3 (AI Proposal Spam): 3 bugs fixed, 19 tests. Total: 13 bugs fixed, 118 audit tests. Sections 16-17 (manual Godot) deferred. See `docs/DIPLOMACY_AUDIT.md`.
 3. **Jealousy system** — NEEDS DESIGN GATE (separate track). See CLAUDE.md.
 4. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
@@ -58,6 +58,19 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 4 — Diplomacy Audit Part 3 (AI Proposal Spam Fixes)
+
+Playtest-discovered bug: AI nations (especially Saxony) repeatedly offering the same deals. 2 files modified, 1 new test file, 19 new tests.
+
+**Bugs Fixed (3):**
+- **MEDIUM (SPAM-1):** No acceptance cooldown — after accepting a proposal, the same nation could propose again next turn. Now applies a 2-turn nation cooldown on acceptance (vs 3 turns on rejection).
+- **MEDIUM (SPAM-2):** No pending-proposal deduplication — `process_diplomatic_phase` didn't check if a nation already had a proposal in the active dialogue or queue. Added `_has_pending_proposal_from()` guard.
+- **LOW (SPAM-3):** P7 opportunistic trigger proposed NON_AGGRESSION regardless of current diplomatic state — could fire even at ALLIANCE. Now only fires when current state is PEACE or OPEN_BORDERS.
+
+**19 new tests** in `tests/test_audit_part3.py`: 5 acceptance cooldown (constant, blocking, expiry, executor wiring), 6 deduplication (dialogue, queue, empty, blocking, allow-other-nation), 5 P7 state validation (peace, open_borders, non_aggression, alliance, defensive_alliance), 3 integration (accept-then-no-followup, accept-chain-with-cooldowns, alliance-cap).
+
+**5263 tests passing** (5244 + 19 new, 3 skipped, 0 regressions).
 
 ### Mar 4 — Diplomacy Audit Part 2 (Sections 7-15)
 

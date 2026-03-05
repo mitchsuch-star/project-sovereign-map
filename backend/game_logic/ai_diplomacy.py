@@ -40,6 +40,7 @@ from backend.game_logic.diplomatic_dialogue import get_game_bucket
 # Anti-spam cooldown durations (turns)
 NATION_REJECTION_COOLDOWN = 3   # After rejection, nation can't propose for N turns
 TYPE_REJECTION_COOLDOWN = 5     # After rejection of type X, same type can't be proposed for N turns
+NATION_ACCEPTANCE_COOLDOWN = 2  # After acceptance, nation can't propose for N turns
 QUEUE_MAX_SIZE = 3              # Maximum queued proposals
 QUEUE_EXPIRY_TURNS = 3          # Queued proposals expire after N turns
 
@@ -191,6 +192,40 @@ def apply_rejection_cooldowns(nation: str, proposal_type: str, world) -> None:
     cooldowns[nation_key] = int(NATION_REJECTION_COOLDOWN)
     cooldowns[type_key] = int(TYPE_REJECTION_COOLDOWN)
     _set_cooldowns(world, cooldowns)
+
+
+def apply_acceptance_cooldown(nation: str, world) -> None:
+    """Apply a short cooldown after a proposal is accepted.
+
+    Prevents the same nation from immediately proposing the next upgrade
+    on the very next turn (spam prevention).
+    """
+    cooldowns = _get_cooldowns(world)
+    nation_key = f"{nation}|nation"
+    cooldowns[nation_key] = int(NATION_ACCEPTANCE_COOLDOWN)
+    _set_cooldowns(world, cooldowns)
+
+
+def _has_pending_proposal_from(nation: str, world) -> bool:
+    """Check if there's already a pending proposal from this nation.
+
+    Prevents duplicate proposals from the same nation piling up in the
+    queue or generating a new proposal while one is already being shown.
+    """
+    # Check active dialogue
+    pending = getattr(world, 'pending_diplomatic_dialogue', None)
+    if pending:
+        context = pending.get("context", {})
+        if context.get("source_nation") == nation:
+            return True
+
+    # Check queue
+    queue = _get_queue(world)
+    for item in queue:
+        if item.get("source") == nation:
+            return True
+
+    return False
 
 
 def _expire_queue(world) -> None:
@@ -426,6 +461,10 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     if nation == player:
         return None
 
+    # ── Deduplication: skip if this nation already has a pending proposal ──
+    if _has_pending_proposal_from(nation, world):
+        return None
+
     # ── Expire old queue items ──
     _expire_queue(world)
 
@@ -485,9 +524,10 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     # ── P6: Vassal courting [DEFERRED to Session 5] ──
 
     # ── P7: Opportunism — France at war with 2+ AND this nation at peace ──
+    # Only fires if current state is below NON_AGGRESSION (the proposed type)
     if proposal is None and not is_at_war:
         wars_against_france = _count_nations_at_war_with_france(world)
-        if wars_against_france >= 2:
+        if wars_against_france >= 2 and diplo_state in ("PEACE", "OPEN_BORDERS"):
             ptype = "opportunistic"
             if not _is_on_cooldown(nation, ptype, world):
                 terms = _build_proposal_terms(nation, ptype, 0, world)
