@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 4, 2026 (Diplomacy Creative Audit + Refinement Doc)
+> **Last Updated:** March 5, 2026 (Diplo Refinement Design Gate Complete)
 
 ---
 
@@ -34,11 +34,13 @@
    - ~~Session 8D: Dispatch Integration + Polish~~ — **DONE** (20 diplomatic dispatch event types with fog-filtered visibility, queue_dispatch_event helper, campaign log 6 diplomacy event types with one-liner formatters, AI-AI diplomatic phase with 4 triggers + max 2 treaties/turn, special acceptance bonuses for 4 nations, 4 scenario test fixtures, Godot dispatch_view.gd diplomatic section + campaign_log.gd diplomacy category, 57 new tests)
 2. **Diplomacy Audit** — **COMPLETE.** 20 bugs fixed, 145 audit tests. See `docs/DIPLOMACY_AUDIT.md`.
 3. **Diplomacy Creative Audit** — **COMPLETE.** 5-agent deep analysis: balance, historical accuracy, fun, AI behavior, edge cases. Overall score 7.8/10. 8 critical/high bugs found, 10 balance issues, 18 design gaps, 6 AI behavior issues, 7 edge cases. 3 easy fixes applied (treaty cancel/downgrade commands, AI-AI ledger visibility). See `docs/DIPLOMACY_CREATIVE_AUDIT.md`.
-4. **Diplomacy Refinement & Cleanup** — **NEXT SESSION.** 36 ranked items (8 bugs, 12 balance/design fixes, 16 new feature proposals incl. marriages, ultimatums, secret treaties). See `docs/DIPLO_REFINEMENT.md`.
-   - **Next session — Phase A: Design gate.** Walk through all 36 items, approve/modify/reject each. Finalize the spec before any code.
-   - **After design — Phase B: Implementation.** Build approved items (possibly multi-session, working top-down by rank).
-   - **3 items already DONE** (GAP-3 treaty cancel, GAP-5 voluntary downgrade, GAP-6 AI-AI ledger)
-   - **Top priorities:** War score decay fix (R1), counter-offer system (R2), treaty gold enforcement (R3), relation decay + COURT_NATION speed (R4), armistice system (R5)
+4. **Diplomacy Refinement & Cleanup** — **DESIGN GATE COMPLETE.** 60 items reviewed: 41 approved, 16 deferred, 3 done. 4-phase implementation plan. See `docs/DIPLO_REFINEMENT.md`.
+   - **Phase 1 (NEXT): Critical Wiring** — Sabotage/redemption popups (R37/R41), objection overrides (R42), coalition formula (R40), AI-AI cooldown (R43), counter-offer system (R2), keyword audit (R55). 6 fixes.
+   - **Phase 2: State Cleanup** — War score decay (R1a/b), treaty gold (R3), armistice (R5a/b), treaty cleanup on downgrade/rebellion (R45/R46), orders on peace (R47), 10+ minor state fixes. 18 fixes.
+   - **Phase 3: Balance Tuning** — Relation decay (R4a), COURT_NATION speed (R4b), trade diminishing returns (R6), military pressure (R8), battle threshold (R9), coalition stalemate (R11), threat per capture (R16), 4 more. 11 changes.
+   - **Phase 4: Commands & QoL** — War declaration (R10), ultimatums (R21), marshal morale (R23), acceptance preview (R31), AI memory (R34), ledger improvements (R17a-c), diplomatic history (R29), alliance paradox popup (R12). 11 items.
+   - **After Phase 4: UI Test** — Manual playtest in Godot. DP display investigation (R39). Verify all fixes.
+   - **Post-UI-Test: Feature Design Session** — Evaluate deferred features (marriages, secret treaties, conferences, ceremonies, etc). 16 items.
 5. **Jealousy system** — NEEDS DESIGN GATE (separate track). See CLAUDE.md.
 6. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
