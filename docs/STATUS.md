@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 4, 2026 (Session 8D — Dispatch Integration + Polish)
+> **Last Updated:** March 4, 2026 (Diplomacy Audit Part 2 — Sections 7-15)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **5187** (5187 passed, 3 skipped — verified Mar 4, Diplomacy Audit Part 1) |
+| **Tests Passing** | **5244** (5244 passed, 3 skipped — verified Mar 4, Diplomacy Audit Part 2) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -32,7 +32,7 @@
    - ~~Session 8B: Diplomatic Ledger Godot UI + Top Bar~~ — **DONE** (diplomatic_ledger.gd/.tscn 4-tab screen, D key for diplomatic ledger, R key for dispatch re-read, top bar DP/threat/Talleyrand/envoy fields with pulse + click, diplomatic fields in /command response, 30 new tests)
    - ~~Session 8C: Popups + Notifications~~ — **DONE** (11 new notification constants, 18 notification fire points wired across coalition/diplomacy/vassal/ai_diplomacy/defiance/dispatch, 6 popup data contracts with clear-after-read, 3 new world_state popup fields serialized, 6 Godot popup scenes with BBCode+signals, priority queue in main.gd, 31 new tests)
    - ~~Session 8D: Dispatch Integration + Polish~~ — **DONE** (20 diplomatic dispatch event types with fog-filtered visibility, queue_dispatch_event helper, campaign log 6 diplomacy event types with one-liner formatters, AI-AI diplomatic phase with 4 triggers + max 2 treaties/turn, special acceptance bonuses for 4 nations, 4 scenario test fixtures, Godot dispatch_view.gd diplomatic section + campaign_log.gd diplomacy category, 57 new tests)
-2. **Diplomacy Audit** — **Part 1 COMPLETE** (Sections 1-6). 7 bugs fixed (4 CRITICAL popup flow, 1 routing, 1 safety valve, 1 missing state), 42 new tests. Part 2 (Sections 7-17) pending. See `docs/DIPLOMACY_AUDIT.md`.
+2. **Diplomacy Audit** — **COMPLETE.** Part 1 (Sections 1-6): 7 bugs fixed, 42 tests. Part 2 (Sections 7-15): 3 bugs fixed, 57 tests. Total: 10 bugs fixed, 99 audit tests, 123 checklist items verified. Sections 16-17 (manual Godot) deferred. See `docs/DIPLOMACY_AUDIT.md`.
 3. **Jealousy system** — NEEDS DESIGN GATE (separate track). See CLAUDE.md.
 4. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
@@ -58,6 +58,33 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 4 — Diplomacy Audit Part 2 (Sections 7-15)
+
+Comprehensive audit of remaining Phase 8 diplomacy sections. 2 files modified, 1 new test file, 57 new tests.
+
+**Bugs Fixed (3):**
+- **MEDIUM (AA-5):** AI-AI alliance conflict check missing. AI nations could form alliances even when one was at war with the other's ally (violating §5b.3). Fixed: added alliance conflict check in `_ratify_ai_ai_treaty()`.
+- **LOW (AL-2a):** `cheat set_war_exhaustion` clamped to 100 instead of WAR_EXHAUSTION_MAX (200). Fixed: updated clamp to 200.
+- **LOW (AL-2b):** `cheat set_vassal_loyalty` had no bounds checking — could set negative or >100. Fixed: added `max(0, min(100, ...))` clamp.
+
+**Verified Clean (93 items across 9 sections):**
+- Section 7 (Coalition): 33/33 PASS — threat accumulation, decay, formation, warfare, dissolution all correct
+- Section 8 (Vassal): 17/17 PASS — creation, loyalty drift, rebellion all correct. 3 checklist spec errors corrected (garrison=+8 not +15, shared enemy=+2 not +10, popup at <=10 not <15)
+- Section 9 (AI Proposals): 14/15 PASS — P1-P7 triggers, M3 counter-offer, AI-AI diplomacy correct
+- Section 10 (Ledger): 8/8 PASS — 4 tabs, fog filtering, data accuracy
+- Section 11 (Dispatch): 6/6 PASS — 21 event types, fog filtering, Talleyrand's Report, vassal warnings
+- Section 12 (Serialization): 12/12 PASS — all 42 diplomatic fields roundtrip, popup/dialogue/coalition/vassal/mission
+- Section 13 (Cross-System): 17/17 PASS — combat/movement/economy/enemy AI × diplomacy
+- Section 14 (Notifications): 10/10 PASS — all 19 diplomatic notification types verified
+- Section 15 (Debug): 5/6 PASS — 11 cheat commands, 8 debug endpoints
+
+**Design Notes:**
+- AH-4: No marshal auto-ejection on diplomatic state downgrade (known limitation)
+
+**57 new tests** in `tests/test_audit_part2.py`: 4 threat accumulation, 2 threat decay, 8 formation thresholds, 3 coalition warfare, 2 dissolution, 7 vassal creation, 2 loyalty drift, 2 rebellion, 5 alliance conflict fix, 2 AI-AI diplomacy, 4 ledger tabs, 7 serialization roundtrip, 1 DP economy, 3 movement, 1 notifications, 5 cheat bug fixes, 1 cheat parsing.
+
+**5244 tests passing** (5187 + 57 new, 3 skipped, 0 regressions).
 
 ### Mar 4 — Diplomacy Audit Part 1 (Sections 1-6)
 

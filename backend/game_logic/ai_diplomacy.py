@@ -1121,6 +1121,24 @@ def _ratify_ai_ai_treaty(nation_a: str, nation_b: str, proposal: Dict, world) ->
         if _UPGRADE_ORDER.index(target_state) <= _UPGRADE_ORDER.index(current_state):
             return None
 
+    # Alliance conflict check — don't create alliances that conflict with wars
+    if target_state in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+        all_nations = [getattr(world, 'player_nation', 'France')] + list(
+            getattr(world, 'enemy_nations', []))
+        for other in all_nations:
+            if other == nation_a or other == nation_b:
+                continue
+            # A at war with B's ally?
+            if world.is_at_war(nation_a, other):
+                s = world.get_diplomatic_state(nation_b, other)
+                if s in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+                    return None
+            # B at war with A's ally?
+            if world.is_at_war(nation_b, other):
+                s = world.get_diplomatic_state(nation_a, other)
+                if s in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+                    return None
+
     # Apply transition
     world.diplomatic_states[diplo_key] = target_state
 

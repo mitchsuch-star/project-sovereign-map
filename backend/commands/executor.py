@@ -12741,7 +12741,7 @@ RETREAT RECOVERY (3 turns):
             if len(cheat_args) < 2:
                 return {"success": False, "message": "Usage: cheat set_war_exhaustion <nation> <value>"}
             nation = cheat_args[0]
-            value = max(0, min(100, int(cheat_args[1])))
+            value = max(0, min(200, int(cheat_args[1])))
             old = world.war_exhaustion.get(nation, 0)
             world.war_exhaustion[nation] = value
             return {"success": True, "message": f"War exhaustion {nation}: {old} → {value}"}
@@ -12774,7 +12774,7 @@ RETREAT RECOVERY (3 turns):
             nation = cheat_args[0]
             if nation not in world.vassals:
                 return {"success": False, "message": f"{nation} is not a vassal."}
-            value = int(cheat_args[1])
+            value = max(0, min(100, int(cheat_args[1])))
             old = world.vassals[nation]["loyalty"]
             world.vassals[nation]["loyalty"] = value
             return {"success": True, "message": f"Vassal loyalty {nation}: {old} → {value}"}
