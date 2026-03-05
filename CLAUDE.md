@@ -21,7 +21,9 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 - **Phase 7b remaining:** V2b COMPLETE. Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Gates 5+6 PASSED. Jealousy (SPEC v3 DRAFTED — needs design gate approval). Coalition Trigger moved to Phase 8.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial Infrastructure deferred to Pre-EA.
 - **Phase 8: Diplomacy — COMPLETE.** ALL 11 sessions done (1A through 8D). ~580 tests. Full diplomacy engine shipped. See `docs/SESSION_8_PLAN.md`.
-- **Diplomacy Audit — COMPLETE.** Parts 1-4 done (Sections 1-16 + playtest). 20 bugs fixed, 145 audit tests. Section 17 (Godot UI) deferred. See `docs/DIPLOMACY_AUDIT.md`.
+- **Diplomacy Audit — COMPLETE.** Parts 1-4 done (Sections 1-16 + playtest). 20 bugs fixed, 145 audit tests. See `docs/DIPLOMACY_AUDIT.md`.
+- **Diplomacy Creative Audit — COMPLETE.** 7.8/10 overall. 8 critical bugs, 10 balance issues, 18 gaps. 3 easy fixes applied. See `docs/DIPLOMACY_CREATIVE_AUDIT.md`.
+- **Diplomacy Refinement & Cleanup — IN PROGRESS.** 28 ranked items. Design gate needed → then implementation. See `docs/DIPLO_REFINEMENT.md`.
 
 ### Design Gates
 
@@ -340,6 +342,8 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | Multi-marshal coordination spec (Phase 7) | `docs/MULTI_MARSHAL_SPEC.md` |
 | Tactical Triangle (Square + Auto-Bombardment + Overwatch) | `docs/TACTICAL_TRIANGLE_SPEC.md` |
 | Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md`, `diplomat.py`, `diplomacy.py` |
+| Diplomacy refinement plan | `docs/DIPLO_REFINEMENT.md` |
+| Diplomacy creative audit | `docs/DIPLOMACY_CREATIVE_AUDIT.md` |
 | Coalition system (Phase 8) | `docs/COALITION_SPEC.md` |
 | Jealousy system (Phase 7b) | `docs/JEALOUSY_SPEC.md` |
 | Session 8A-8D plan (UI + debug) | `docs/SESSION_8_PLAN.md` |

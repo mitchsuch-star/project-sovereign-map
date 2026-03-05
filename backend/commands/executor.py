@@ -1468,7 +1468,7 @@ RETREAT RECOVERY (3 turns):
         # retreat is FREE (costs 0 actions - strategic withdrawal)
         # debug is FREE (for testing abilities)
         # economy/treasury/finances are FREE information commands (Phase 6.2.G)
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error"]
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade"]
 
         # Check if action costs points
         action_costs_point = action not in free_actions
@@ -2234,7 +2234,8 @@ RETREAT RECOVERY (3 turns):
         # ════════════════════════════════════════════════════════════
         elif action in ("diplomatic_proposal", "diplomatic_mission",
                         "diplomatic_feasibility", "diplomatic_advisory",
-                        "diplomatic_error"):
+                        "diplomatic_error", "diplomatic_break",
+                        "diplomatic_downgrade"):
             result = self._execute_diplomatic(command, game_state)
         # ════════════════════════════════════════════════════════════
         # VASSAL COMMANDS (Phase 8 Session 5)
@@ -11198,6 +11199,10 @@ RETREAT RECOVERY (3 turns):
             return self._execute_diplomatic_feasibility(diplomatic_data, world)
         elif action == "diplomatic_advisory":
             return self._execute_diplomatic_advisory(diplomatic_data, world)
+        elif action == "diplomatic_break":
+            return self._execute_diplomatic_break(diplomatic_data, world)
+        elif action == "diplomatic_downgrade":
+            return self._execute_diplomatic_downgrade(diplomatic_data, world)
         else:
             return {"success": False, "message": f"Unknown diplomatic action: {action}"}
 
@@ -11387,6 +11392,50 @@ RETREAT RECOVERY (3 turns):
             "message": dialogue.get("talleyrand_text", ""),
             "diplomatic_dialogue": dialogue,
         }
+
+    def _execute_diplomatic_break(self, diplomatic_data: Dict, world) -> Dict:
+        """Handle break treaty command. Costs 1 DP."""
+        from backend.game_logic.diplomacy import break_treaty
+
+        target_nation = diplomatic_data.get("target_nation")
+        if not target_nation:
+            return {
+                "success": False,
+                "message": "Sire, which nation's treaty shall I break? Specify: Britain, Prussia, Austria, or Saxony.",
+            }
+
+        player = world.player_nation
+        pair_key = world._make_diplo_key(player, target_nation)
+
+        result = break_treaty(pair_key, player, world)
+        return result
+
+    def _execute_diplomatic_downgrade(self, diplomatic_data: Dict, world) -> Dict:
+        """Handle voluntary downgrade command. Costs 1 DP per downgrade step."""
+        from backend.game_logic.diplomacy import execute_downgrade
+
+        target_nation = diplomatic_data.get("target_nation")
+        if not target_nation:
+            return {
+                "success": False,
+                "message": "Sire, which nation's relations shall I downgrade? Specify: Britain, Prussia, Austria, or Saxony.",
+            }
+
+        player = world.player_nation
+
+        # Check DP before calling (execute_downgrade doesn't check DP itself)
+        dp_cost = 1
+        if world.diplomatic_points < dp_cost:
+            return {
+                "success": False,
+                "message": f"Insufficient Diplomatic Points. Downgrade costs {dp_cost} DP, but we only have {int(world.diplomatic_points)}.",
+            }
+
+        result = execute_downgrade(world, player, target_nation)
+        if result.get("success"):
+            # Deduct DP (execute_downgrade returns dp_cost but doesn't deduct)
+            world.diplomatic_points -= dp_cost
+        return result
 
     def handle_diplomatic_dialogue_response(self, choice, game_state: Dict) -> Dict:
         """Handle player's response to a diplomatic dialogue.
@@ -12362,7 +12411,7 @@ RETREAT RECOVERY (3 turns):
 
         # Check action economy
         # FIX: Added "retreat" - must match main execute() free_actions list
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error"]
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade"]
         action_costs_point = action not in free_actions
 
         if action_costs_point:

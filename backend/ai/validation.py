@@ -53,6 +53,9 @@ VALID_ACTIONS: Set[str] = {
     "invest_vassal",    # Invest in vassal (+10 loyalty)
     "change_autonomy",  # Change vassal autonomy level
     "make_vassal",      # Create a vassal
+    # Diplomatic actions — break/downgrade (Phase 8 wiring)
+    "diplomatic_break",      # Break an active treaty
+    "diplomatic_downgrade",  # Voluntarily downgrade diplomatic state
     # ═══════ ADD NEW ACTIONS HERE ═══════
     # This is the SINGLE SOURCE OF TRUTH for valid LLM actions.
     # Also update: llm_client.py keywords, parser.py valid_actions,
@@ -71,6 +74,9 @@ META_ACTIONS: Set[str] = {
     "invest_vassal",
     "change_autonomy",
     "make_vassal",
+    # Diplomatic actions — no marshal needed
+    "diplomatic_break",
+    "diplomatic_downgrade",
 }
 
 # Valid stances for stance_change action

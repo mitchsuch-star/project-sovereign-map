@@ -169,6 +169,28 @@ def _build_nations(world) -> List[Dict[str, Any]]:
             and nation != player
         )
 
+        # AI-AI relations: show diplomatic states with other AI nations
+        # Fog-filtered: only show if player has PARTIAL+ intel on either nation
+        ai_relations = []
+        nation_vis = _get_nation_visibility(nation, world)
+        nation_vis_priority = VISIBILITY_PRIORITY.get(nation_vis, 0)
+        partial_priority = VISIBILITY_PRIORITY.get(PARTIAL, 3)
+
+        for other_ai in all_nations:
+            if other_ai == nation:
+                continue
+            other_vis = _get_nation_visibility(other_ai, world)
+            other_vis_priority = VISIBILITY_PRIORITY.get(other_vis, 0)
+
+            # Show if player has PARTIAL+ on either nation in the pair
+            if nation_vis_priority >= partial_priority or other_vis_priority >= partial_priority:
+                ai_diplo_key = world._make_diplo_key(nation, other_ai)
+                ai_state = world.diplomatic_states.get(ai_diplo_key, "PEACE")
+                ai_relations.append({
+                    "nation": other_ai,
+                    "state": ai_state,
+                })
+
         nations.append({
             "name": nation,
             "diplomatic_state": diplomatic_state,
@@ -178,6 +200,7 @@ def _build_nations(world) -> List[Dict[str, Any]]:
             "regions_controlled": int(regions_controlled),
             "active_treaties": active_treaties,
             "vassal_eligible": vassal_eligible,
+            "ai_relations": ai_relations,
         })
 
     return nations

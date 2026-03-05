@@ -72,6 +72,9 @@ class CommandParser:
             "invest_vassal",    # Invest in vassal (+10 loyalty)
             "change_autonomy",  # Change vassal autonomy level
             "make_vassal",      # Create a vassal
+            # Diplomatic actions — break/downgrade (Phase 8 wiring)
+            "diplomatic_break",      # Break an active treaty
+            "diplomatic_downgrade",  # Voluntarily downgrade diplomatic state
         ]
 
         # Valid stances for stance_change command (Phase 2.7)
