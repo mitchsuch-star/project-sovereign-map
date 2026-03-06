@@ -1,25 +1,27 @@
 # Diplomacy Refinement & Cleanup
 
 > **Created:** March 4, 2026
-> **Status:** DESIGN GATE COMPLETE — Ready for implementation
-> **Source:** `docs/DIPLOMACY_CREATIVE_AUDIT.md` (5-agent creative audit, 7.8/10 overall) + code audit (March 5, 2026)
-> **Design gate:** March 5, 2026 — all 57 items reviewed, approved/modified/deferred
+> **Status:** R1-R60 APPROVED (design gate March 5). R61-R114 APPROVED (deep audit II gate March 2026).
+> **Source:** Creative audit (7.8/10) + code audit (March 5) + deep audit II (6-agent, March 2026)
 > **Process:** Implement Phases 1-4 -> UI test -> then decide on deferred features
 
 ---
 
 ## Implementation Plan
 
-4 phases of bug fixes, cleanup, and balance. After all 4 phases + UI testing, a separate design session will evaluate deferred features (marriages, secret treaties, conferences, etc).
+6 phases of bug fixes, cleanup, balance, and QoL. Phase 2 split into 2A (diplomacy core) and 2B (vassal + AI-AI + war transitions). After all phases + UI testing, a separate design session will evaluate deferred features.
 
-| Phase | Focus | Items | Est. Scope |
-|-------|-------|-------|------------|
-| **Phase 1** | Critical wiring (highest ROI) | R37/R41, R42, R40, R43, R2, R55 | ~6 fixes |
-| **Phase 2** | State cleanup sweep | R1a/b, R3, R5a/b, R44, R45, R46, R47/R30, R48, R49, R50, R51, R52, R53, R54, R56, R57, R60, R7 | ~18 fixes |
-| **Phase 3** | Balance tuning | R4a, R4b, R6, R8, R9, R11, R14, R15, R16, R18, R20 | ~11 balance changes |
-| **Phase 4** | Commands & QoL | R10, R21, R23, R31, R34, R17a-c, R29, R12, R38 | ~11 features/commands |
-| **UI Test** | Manual playtest in Godot | R39 (DP display investigation), verify all fixes | Godot session |
-| **Future** | Deferred features (post-UI-test design session) | R22, R24-R28, R32, R33, R35, R36, R17d-f, R58, R59 | TBD |
+**114 total items.** 3 DONE, 95 APPROVED, 16 DEFERRED.
+
+| Phase | Focus | Items | Scope |
+|-------|-------|-------|-------|
+| **Phase 1** | Critical wiring | R37/R41, R42, R40, R43, R2, R55, R61-R66, R74, R75, R96, R109 | ~16 fixes |
+| **Phase 2A** | State cleanup — diplomacy core | R1a/b, R3, R5a/b, R44, R45, R47/R30, R48, R49, R51, R52/R64, R53, R54, R56, R57, R7, R67, R80, R82, R83 | ~19 fixes |
+| **Phase 2B** | State cleanup — vassal, AI-AI, war | R46, R50, R60, R68-R73, R81, R97-R102, R105, R107-R108, R110-R111, R113-R114 | ~23 fixes |
+| **Phase 3** | Balance tuning | R4a/b, R6, R8, R9, R11, R14-R16, R18, R20, R104, R106 | ~13 changes |
+| **Phase 4** | Commands, QoL, Popup architecture | R10, R21, R23, R29, R31, R34, R38, R17a-c, R12, R76-R79, R84, R87-R95, R103, R112 | ~27 fixes |
+| **UI Test** | Manual playtest in Godot | R39, R85, R86, verify all fixes | Godot session |
+| **Future** | Deferred features | R22, R24-R28, R32-R33, R35-R36, R17d-f, R58-R59 | TBD |
 
 ---
 
@@ -31,6 +33,7 @@
 4. Items marked **MERGED** are tracked under another item
 5. Items marked **DONE** were fixed during the audit session
 6. `[NEW]` = Found in March 5 code audit (not in original creative audit)
+7. `[DA2]` = Found in Deep Audit II (6-agent deep dive, March 2026)
 
 ---
 
@@ -534,4 +537,743 @@ The March 5 code audit found bugs using these pattern categories (from the origi
 | **Cross-state conflicts** | 1 | R51 dialogue vs coalition |
 | **Dead code** | 1 | R52 duplicate CS |
 
-**Total items:** 60 (R1a-R60), of which 3 DONE, 41 APPROVED, 16 DEFERRED, 23 [NEW] from code audit, 34 from original creative audit.
+**R1-R60 subtotal:** 60 items. 3 DONE, 41 APPROVED, 16 DEFERRED. (23 from code audit, 34 from creative audit.)
+
+---
+
+# DEEP AUDIT II — March 2026
+
+> **Method:** 6 parallel deep-dive agents across diplomacy.py, ai_diplomacy.py, coalition.py, vassal.py, executor.py, main.py, all Godot popup scripts, dispatch.py, dialogue/templates/advisory/ledger, and cross-system interactions.
+> **Status:** APPROVED — all 54 items (R61-R114) approved March 2026.
+> **Result:** 54 new findings. 9 HIGH, 27 MEDIUM, 18 LOW.
+
+## Trend Analysis — What This Audit Revealed
+
+### Trend 1: Vassal System Is the Most Under-Wired Subsystem (11 findings)
+
+The vassal system (Session 5) never received a wiring audit comparable to what core diplomacy got. Findings span:
+- Marshal assimilation not serialized (R61) — **save/load data loss**
+- Rebellion doesn't inverse assimilation (R62)
+- Vassal commands cost military AP on top of DP (R72)
+- Vassal rebellion popup completely non-functional (R74 + R75)
+- Coalition member not removed on vassalization (R68)
+- cascade_triggered never cleared (R69)
+- CS membership not removed on autonomy change (R70)
+- Hardcoded nation lists (R71)
+
+**Conclusion:** The vassal system needs a focused "Vassal Wiring Pass" — recommend expanding Phase 1 or adding Phase 1.5.
+
+### Trend 2: Popup Early-Return Cascade Is a Systemic Design Flaw (9 findings)
+
+Godot's `_on_command_result()` returns early on EVERY popup display. This drops:
+- All other popups in the same response (R76 — data permanently lost)
+- Treasury, AP, map updates (R77)
+- Diplomatic top bar updates (R78)
+- Morning dispatch data (R79)
+- 6 non-diplomatic early returns also skip popup pass-throughs (R87)
+
+This is not individual bugs — it's an architectural pattern. A popup queue + deferred response processing pattern is needed. Recommend grouping into a single "Popup Architecture" fix in Phase 4 or a dedicated sub-phase.
+
+### Trend 3: Dispatch Event Coverage Has Holes (4 findings)
+
+Systems added after the dispatch builder was written don't fire dispatch events:
+- Auto-downgrade: no dispatch, no notification (R80)
+- Coalition transitions: zero dispatch calls (R83)
+- Mission completion: no dispatch event (R92)
+- player_mission fog rule reads wrong key, hiding all mission events (R66)
+
+### Trend 4: Continental System Is Entirely Dead (expands R52)
+
+Not just duplicated code (R52) or weak balance (R18) — `apply_continental_system()` is **never called from the turn loop**. The entire subsystem is non-functional during gameplay. Tests call it directly, masking the problem. R64 upgrades this from "dead code" to "dead subsystem."
+
+### Trend 5: State Cleanup on Transitions Remains the #1 Failure Mode
+
+Adding R62, R68, R69, R70, R80 to the existing R45/R46/R47/R49/R50 brings the total to **10+ state cleanup bugs**. Every state transition path (peace, war, rebellion, vassalization, autonomy change, coalition dissolution) has at least one field that isn't properly cleaned up.
+
+### Trend 6: Fog of War Has 2 Confirmed Leak Points
+
+- R65: Advisory gives exact enemy army strength ratios (no fog filtering)
+- R66: Dispatch fog rule reads `target_nation` but field is stored as `target`
+
+---
+
+## Phase Assignment for New Findings
+
+| Phase | New Items | Count |
+|-------|-----------|-------|
+| **Phase 1** (Critical wiring) | R61-R66, R74, R75, R96, R109 | +10 |
+| **Phase 2A** (Diplomacy core cleanup) | R67, R80, R82, R83 | +4 |
+| **Phase 2B** (Vassal, AI-AI, war cleanup) | R68-R73, R81, R97-R102, R105, R107-R108, R110-R111, R113-R114 | +20 |
+| **Phase 3** (Balance) | R104, R106 | +2 |
+| **Phase 4** (Commands & QoL) | R76-R79, R84, R87-R95, R103, R112 | +16 |
+| **UI Test** | R85, R86 | +2 |
+| **Future** | Deferred features | R22, R24-R28, R32-R33, R35-R36, R17d-f, R58-R59 | TBD |
+
+---
+
+# DEEP AUDIT II — PHASE 1 ADDITIONS (Critical Wiring)
+
+---
+
+### R61: [NEW] original_nation Not Serialized — Save/Load Data Loss — APPROVED
+
+**Problem:** `assimilate_vassal_marshals()` sets `marshal.original_nation` to track which marshals to transfer back on rebellion/release. This field is NOT in `Marshal.to_dict()` or `from_dict()`. After save/load, ALL assimilated marshals lose their origin — rebellion transfers nothing back.
+
+**Fix:**
+1. Add `original_nation` to `Marshal.__init__()` (default `None`)
+2. Add to `to_dict()`: `"original_nation": self.original_nation`
+3. Add to `from_dict()`: `marshal.original_nation = data.get("original_nation", None)`
+4. Run `test_serialization_enforcement.py`
+5. Update `SAVE_FORMAT_REFERENCE.md`
+
+**Files:** `marshal.py`
+**Severity:** HIGH (serialization violation — data loss on save/load)
+
+### R62: [NEW] Rebellion Doesn't Clear original_nation or Reset Trust — APPROVED
+
+**Problem:** When a vassal rebels, marshals are transferred back (nation changed) but:
+1. `original_nation` is NOT cleared (compare `release_vassal()` which does `delattr`)
+2. Trust is NOT reset (stays at assimilation value of 40 — meaningless for an enemy marshal)
+3. `relationship_with_lord` not cleared
+
+If re-vassalized later, `assimilate_vassal_marshals()` finds marshals with stale `original_nation`.
+
+**Fix:**
+1. In `check_vassal_rebellion()` after transfer: `delattr(marshal, 'original_nation')`
+2. Reset `marshal.trust = Trust()` for transferred marshals
+3. Clean up `relationship_with_lord` if it exists
+
+**File:** `vassal.py:357-361`
+**Severity:** HIGH (state corruption — incomplete inverse of assimilation)
+
+### R63: [NEW] break_treaty() Never Adds Threat — TODO Never Wired — APPROVED
+
+**Problem:** `diplomacy.py:1332-1333` has `# TODO: wire threat system in Session 7` with a comment specifying +15/+25 threat for treaty breaking. The `add_threat()` call was never added. Breaking alliances is a significant aggressive action with zero coalition consequence.
+
+**Fix:** Add threat increase after treaty break: `+15` base, `+25` if breaking ALLIANCE.
+
+**File:** `diplomacy.py:1332`
+**Severity:** HIGH (missing threat accumulation — exploit vector)
+
+### R64: [NEW] Continental System Never Called From Turn Loop — APPROVED
+
+**Problem:** `apply_continental_system()` exists in both `diplomacy.py:1429` and `vassal.py:791`, but NEITHER is called from `process_diplomacy_turn()` or `_advance_turn_internal()`. The TODO at `diplomacy.py:1092-1093` was never resolved. Tests call it directly, masking the problem. **The entire Continental System is non-functional during gameplay.**
+
+**Fix:**
+1. Delete `vassal.py` duplicate (already R52)
+2. Call `apply_continental_system(self)` in `world_state.py _advance_turn_internal()` after trade income
+3. Verify correct ordering: trade income → CS reduction → tribute
+
+**Expands:** R52 (was "duplicate code" → now "dead subsystem")
+**Files:** `diplomacy.py`, `world_state.py`
+**Severity:** HIGH (entire subsystem dead)
+
+### R65: [NEW] Advisory Leaks Exact Enemy Strength Through Fog — APPROVED
+
+**Problem:** `diplomatic_advisory.py:588-620` — `_get_nation_total_strength()` reads `marshal.strength` directly for all enemy marshals with NO fog filtering. Player can ask "Talleyrand, assess Prussia" to learn exact force ratios that the diplomatic ledger properly hides behind fog bands.
+
+**Fix:** Use the same fog-filtering logic as `diplomatic_ledger.py` — check `get_nation_visibility()` and apply strength bands (Unknown/Stale/~5k/exact) instead of raw values.
+
+**File:** `diplomatic_advisory.py:588-620`
+**Severity:** HIGH (fog of war violation)
+
+### R66: [NEW] Dispatch Fog Rule "player_mission" Reads Wrong Key — APPROVED
+
+**Problem:** `dispatch.py:957` reads `mission.get("target_nation", "")` but the mission dict stores the target as `"target"` (set in `executor.py:11735`). Key mismatch means `"target_nation"` always returns `""`, and the fog comparison fails. **All dispatch events using the `player_mission` fog rule are silently hidden** — mission progress, paused, and cancelled events never appear in Morning Dispatch.
+
+**Fix:** Change `mission.get("target_nation", "")` to `mission.get("target", "")`.
+
+**File:** `dispatch.py:957`
+**Severity:** HIGH (all mission dispatch events invisible)
+
+### R74: [NEW] Vassal Rebellion Popup Never Sets pending_diplomatic_dialogue — APPROVED
+
+**Problem:** When vassal rebellion is imminent, `vassal.py:278-288` sets `world.vassal_rebellion_imminent_popup` but does NOT set `world.pending_diplomatic_dialogue`. When Godot sends back the popup choice (e.g., "Talleyrand, invest regarding Saxony rebellion"), the routing guard in `main.py:538` checks `pending_diplomatic_dialogue` — it's None, so the entire dialogue routing block is skipped. The command goes to normal parsing, which fails or produces unintended behavior.
+
+**Fix:** Either:
+- (A) Create a `pending_diplomatic_dialogue` entry with invest/garrison/accept options and add handlers to `_process_dialogue_choice()`, OR
+- (B) Create a dedicated `/respond_to_vassal_rebellion` endpoint
+
+Option A is consistent with existing popup patterns.
+
+**Files:** `vassal.py:278`, `executor.py` (add handlers)
+**Severity:** CRITICAL (vassal rebellion popup buttons completely non-functional)
+
+### R75: [NEW] Vassal Rebellion Popup Choices Intercepted by Dialogue Routing — APPROVED
+
+**Problem:** Even if R74 is fixed, the rebellion popup buttons send commands like "Talleyrand, invest regarding Saxony rebellion". The keyword "invest" is in `_DIALOGUE_RESPONSE_KEYWORDS`. If a DIFFERENT `pending_diplomatic_dialogue` exists simultaneously (AI proposal arrived same turn as rebellion warning), the keyword matching intercepts the command and routes it to the wrong dialogue handler.
+
+**Fix:** Depends on R74 fix approach. If using dedicated endpoint (R74-B), this is automatically resolved. If using dialogue pattern (R74-A), ensure vassal rebellion dialogue is mutually exclusive with proposal dialogues (rebellion popup has priority, proposal queued).
+
+**Files:** `main.py:540-556`, `main.gd:2683-2689`
+**Severity:** CRITICAL (popup collision when two events fire same turn — compounds R74)
+
+---
+
+# DEEP AUDIT II — PHASE 2A/2B ADDITIONS (State Cleanup)
+
+---
+
+### R67: [NEW] Shallow Copy of active_coalition/brewing Loses Nested Lists — APPROVED
+
+**Problem:** `world_state.py:2796-2797` uses `.copy()` (shallow) for `active_coalition` and `coalition_brewing`. The `"members"` list is shared between serialized output and live state. `remove_coalition_member()` mutates the list in-place via `.remove()`, corrupting previously-captured serialization snapshots.
+
+**Fix:** Use `copy.deepcopy()` or manually copy nested structures:
+```python
+"active_coalition": copy.deepcopy(self.active_coalition) if self.active_coalition else None,
+```
+
+**File:** `world_state.py:2796-2797`
+**Severity:** MEDIUM (serialization corruption on coalition member removal)
+
+### R68: [NEW] Vassalizing Coalition Member Skips remove_coalition_member() — APPROVED
+
+**Problem:** `create_vassal_conquest()` sets diplomatic state to VASSAL but never calls `remove_coalition_member()`. The nation remains in `coalition["members"]`. Betrayal penalty (-15 relation), leader transition, and notification are all skipped. Compare with peace-transition path in `world_state.py:4042-4046` which properly calls it.
+
+**Fix:** In `create_vassal_conquest()`, after setting VASSAL state, check `world.active_coalition` and call `remove_coalition_member()` if target was a member.
+
+**File:** `vassal.py:110-156`
+**Severity:** MEDIUM (cross-system gap — coalition stale after vassalization)
+
+### R69: [NEW] cascade_triggered Never Cleared on Peace — APPROVED
+
+**Problem:** `vassal.py:416-472` — `cascade_triggered` set tracks `"vassal_name|diplo_key"` entries, meant to fire "at most once per war." But the set is never cleared when war ends. If the same war reignites (peace → re-declare), the cascade is permanently blocked for that pair. Spec says "once per war" but implementation is "once per game."
+
+**Fix:** Clear `world.cascade_triggered` entries for the relevant `diplo_key` when transitioning WAR → PEACE/ARMISTICE.
+
+**File:** `vassal.py`, `diplomacy.py` (state transition code)
+**Severity:** MEDIUM (missing state cleanup — once-per-game instead of once-per-war)
+
+### R70: [NEW] Autonomy Change to AUTONOMOUS Doesn't Remove From CS — APPROVED
+
+**Problem:** `apply_continental_system()` auto-joins PUPPET/SATELLITE vassals to CS. But `change_vassal_autonomy()` doesn't remove a nation from `continental_system_members` when upgrading to AUTONOMOUS. Distinct from R50 (vassal release) — this is about autonomy level change within existing vassalage.
+
+**Fix:** In `change_vassal_autonomy()`, if new level is AUTONOMOUS: `world.continental_system_members.discard(vassal_name)`.
+
+**File:** `vassal.py:592-640`
+**Severity:** MEDIUM (CS membership stale after autonomy change)
+
+### R71: [NEW] Hardcoded Nation List in Vassal Functions — APPROVED
+
+**Problem:** `process_vassal_loyalty()` and `check_defection_cascade()` (vassal.py:211, 427) use `all_nations = ["France", "Britain", "Prussia", "Austria", "Saxony"]` instead of deriving from world state. Inconsistent with `coalition.py` and `diplomacy.py` which use `world.enemy_nations`.
+
+**Fix:** Replace with `[world.player_nation] + list(world.enemy_nations)`.
+
+**File:** `vassal.py:211, 427`
+**Severity:** MEDIUM (breaks modding, inconsistent pattern)
+
+### R72: [NEW] Vassal Commands Consume Military AP — APPROVED
+
+**Problem:** `invest_vassal`, `change_autonomy`, `make_vassal` are NOT in `free_actions` (executor.py:1471) and NOT in `ADMIN_ACTIONS`. They consume 1 military Command Point on success, on top of their DP/gold costs. All other diplomatic actions are correctly in `free_actions`.
+
+**Fix:** Add `"invest_vassal"`, `"change_autonomy"`, `"make_vassal"` to `free_actions` list.
+
+**File:** `executor.py:1471`
+**Severity:** MEDIUM (AP/DP double-cost inconsistency)
+
+### R73: [NEW] /respond_to_diplomatic_dialogue Endpoint Missing Popup Pass-Throughs — APPROVED
+
+**Problem:** `main.py:1048-1083` builds response without calling `_include_popup_passthroughs()`. Accepting a treaty can trigger coalition formation (sets `coalition_popup`), but the popup is not included in the response. It persists until next `/command` request.
+
+**Fix:** Add `_include_popup_passthroughs(response, world)` before return.
+
+**File:** `main.py:1048-1083`
+**Severity:** MEDIUM (popup delivery delay — coalition popup after treaty acceptance)
+
+### R80: [NEW] Auto-Downgrade Has No Dispatch Event or Notification — APPROVED
+
+**Problem:** `check_auto_downgrade()` (diplomacy.py:886-949) fires `log_event()` but never calls `queue_dispatch_event()` and never creates a notification. Event type `"auto_downgrade"` absent from `_DISPATCH_EVENT_TYPES` and `_DIPLOMATIC_EVENT_TEMPLATES`. Alliance collapses happen with zero player visibility.
+
+**Fix:**
+1. Add `queue_dispatch_event()` call in `check_auto_downgrade()`
+2. Add `"auto_downgrade"` to `_DISPATCH_EVENT_TYPES` and `_DIPLOMATIC_EVENT_TEMPLATES` in dispatch.py
+3. Add notification via `world.notifications.add()`
+
+**Files:** `diplomacy.py:886-949`, `dispatch.py`
+**Severity:** MEDIUM (invisible state change — player has no warning)
+
+### R81: [NEW] Ghost Nation Still Processes Diplomacy — APPROVED
+
+**Problem:** Eliminated nations (0 regions, 0 armies) still get DP regenerated (diplomacy.py:1107-1132), receive trade income (diplomacy.py:1134-1155), and participate in AI-AI diplomacy (ai_diplomacy.py:1014). No eliminated check anywhere in the diplomacy loop.
+
+**Fix:** Add early-continue for nations with 0 regions + 0 marshals in `_process_dp_regen()`, `process_trade_income()`, and `process_ai_ai_diplomatic_phase()`.
+
+**Files:** `diplomacy.py`, `ai_diplomacy.py`
+**Severity:** MEDIUM (ghost nations accumulate gold/DP, propose treaties with 0 armies)
+
+### R82: [NEW] {rejection_reaction} Template Slot Never Resolved — APPROVED
+
+**Problem:** T18 `proposal_rejected` templates use `{rejection_reaction}` which is never populated by `resolve_template_text()` or its callers. `_SafeFormatMap` returns the literal `{rejection_reaction}` string. Player sees: "Castlereagh receives your rejection with {rejection_reaction}."
+
+**Fix:** Add `"rejection_reaction"` to template context. Value based on relation level: "cold fury" (<-40), "barely concealed displeasure" (-40 to 0), "diplomatic composure" (0+).
+
+**File:** `diplomatic_templates.py:554-575`, template resolver
+**Severity:** MEDIUM (visible placeholder text in player-facing dialogue)
+
+### R83: [NEW] Coalition Events Have Zero Dispatch Calls — APPROVED
+
+**Problem:** `coalition.py` has zero calls to `queue_dispatch_event()`. Coalition formation, dissolution, brewing-start, and cooldown-end never appear in Morning Dispatch. `dispatch.py` has `_build_coalition_section()` showing current STATE, but specific transition EVENTS are invisible.
+
+**Fix:** Add `queue_dispatch_event()` calls in `form_coalition()`, `dissolve_coalition()`, and brewing-start logic.
+
+**Files:** `coalition.py`, `dispatch.py` (add event templates)
+**Severity:** MEDIUM (coalition transitions invisible in dispatch)
+
+---
+
+# DEEP AUDIT II — PHASE 4 ADDITIONS (Commands & QoL)
+
+---
+
+### R76: [NEW] Multiple Popups in Same Response Lose Second Popup — APPROVED
+
+**Problem:** `_include_popup_passthroughs()` reads ALL popup fields from `world` and clears them. If both `coalition_popup` and `incoming_proposal` have data, both are included in the response, both cleared from world. Godot checks in priority order — first popup fires and returns early. Second popup data exists in response but is never read. Since it was cleared from world, it's **permanently lost**.
+
+**Fix:** Implement popup priority queue:
+1. Backend: only include highest-priority popup in response, leave others on world
+2. OR Godot: store full response, process remaining popups after dismissal
+
+**Files:** `main.py` (_include_popup_passthroughs), `main.gd` (_on_command_result)
+**Severity:** MEDIUM (rare but unrecoverable data loss — lost proposals, sabotage events)
+
+### R77: [NEW] Coalition Popup Dismissal Skips State Display Update — APPROVED
+
+**Problem:** Coalition popup returns early at `main.gd:714`, skipping AP, gold, map, and notification updates. The `_on_coalition_popup_dismissed` handler only adds a log message and re-enables input. Unlike other popups whose follow-up command refreshes state, coalition popup sends no follow-up.
+
+**Fix:** Store response data on popup show, process after dismissal (similar to `pending_enemy_phase_response` pattern).
+
+**File:** `main.gd:710-714, 2639-2643`
+**Severity:** MEDIUM (stale display until next command)
+
+### R78: [NEW] Popup Early Returns Skip _update_diplomatic_top_bar — APPROVED
+
+**Problem:** All 6 diplomatic popup early returns (main.gd:714, 730, 736, 752, 758, 764) skip `_update_diplomatic_top_bar(response)` at line 794. DP remaining, threat level, coalition status in top bar show stale data.
+
+**Fix:** Call `_update_diplomatic_top_bar(response)` before each popup early return.
+
+**File:** `main.gd:710-764`
+**Severity:** MEDIUM (stale top bar data)
+
+### R79: [NEW] Sabotage Popup Early Return Drops Morning Dispatch — APPROVED
+
+**Problem:** Sabotage discovery popup fires during turn-end processing. The early return at main.gd:752 drops the entire turn-end response including morning dispatch data. Dispatch is never stored in `pending_dispatch_data`.
+
+**Fix:** Store morning dispatch data before showing popup, display after dismissal.
+
+**File:** `main.gd:748-752`
+**Severity:** MEDIUM (morning dispatch lost when sabotage discovered)
+
+### R84: [NEW] Threat Tier Notifications Not Dismissed on Form/Dissolve — APPROVED
+
+**Problem:** TENSION/MURMURS notifications persist alongside COALITION_DECLARED. When coalition dissolves, old threat-tier notifications aren't dismissed. Stale "European Courts Concerned" appears alongside coalition warnings.
+
+**Fix:** Dismiss threat-tier notifications when coalition forms; dismiss coalition notifications when coalition dissolves.
+
+**File:** `coalition.py:697-737, 1032-1033`
+**Severity:** LOW (stale notifications)
+
+### R87: [NEW] 6 Non-Diplomatic Early Returns in /command Skip Popup Pass-Throughs — APPROVED
+
+**Problem:** Tactical objection, strategic objection, clarification, glorious charge, strategic interrupt, and capture choice early returns (main.py:625-690, 504-509) don't call `_include_popup_passthroughs()`. If a popup was deferred from a previous turn, it stays on world until a non-early-return command is processed. Chained objections/charges can delay popups indefinitely.
+
+**Fix:** Add `_include_popup_passthroughs(cleaned, world)` to each early return block.
+
+**File:** `main.py:625-690, 504-509`
+**Severity:** LOW (popup delivery delay, not data loss)
+
+### R88: [NEW] /respond_to_objection Missing Popup Pass-Throughs — APPROVED
+
+**Problem:** `/respond_to_objection` endpoint (main.py:970-1045) doesn't call `_include_popup_passthroughs()`. If insisting on an attack triggers combat → war declaration → diplomatic popup, it's not delivered in the response.
+
+**Fix:** Add `_include_popup_passthroughs(response, world)` before return.
+
+**File:** `main.py:970-1045`
+**Severity:** LOW (popup delivery delay)
+
+### R89: [NEW] Counter-Offer DP Failure Doesn't Re-Send Dialogue — APPROVED
+
+**Problem:** `_handle_counter_ai_proposal` DP failure (executor.py:11934-11938) returns error without `diplomatic_dialogue` or `awaiting_diplomatic_response`. The dialogue is still blocking on world but no popup is re-shown. Player must type numbered choices without visible popup.
+
+**Fix:** Include `"diplomatic_dialogue": world.pending_diplomatic_dialogue` and `"awaiting_diplomatic_response": True` in the DP failure return.
+
+**File:** `executor.py:11934-11938`
+**Severity:** LOW (UI confusion — popup disappears but dialogue still blocking)
+
+### R90: [NEW] Mission Against Eliminated Nation Never Auto-Cancels — APPROVED
+
+**Problem:** If Talleyrand is on a mission and the target nation is eliminated, the mission continues: spending DP each turn, modifying relations with a ghost nation, potentially "completing" against zero-region state.
+
+**Fix:** In `_process_mission_effects()`, check if target nation has 0 regions → auto-cancel mission with dispatch event.
+
+**File:** `diplomacy.py:1190-1290`
+**Severity:** LOW (wastes DP on ghost nation)
+
+### R91: [NEW] Dispatch Trigger 1 Proposes Wrong Type for Existing States — APPROVED
+
+**Problem:** `dispatch.py:535-560` — Trigger 1 ("acceptance crossed 50") always proposes `"non_aggression"` regardless of current state. When state is already NON_AGGRESSION: proposes same state. When state is ALLIANCE: proposes downgrade. Should propose next upgrade tier.
+
+**Fix:** Map current state → next upgrade type. Skip if already at ALLIANCE.
+
+**File:** `dispatch.py:535-560`
+**Severity:** LOW (misleading dispatch suggestion)
+
+### R92: [NEW] Mission Completion Has No Dispatch Event — APPROVED
+
+**Problem:** Mission completion (diplomacy.py:1275-1290) calls `log_event()` but not `queue_dispatch_event()`. No `diplomatic_mission_complete` template exists. The payoff of a multi-turn DP investment is invisible in Morning Dispatch.
+
+**Fix:** Add `queue_dispatch_event()` and template for mission completion.
+
+**Files:** `diplomacy.py:1275-1290`, `dispatch.py`
+**Severity:** LOW (invisible milestone)
+
+### R93: [NEW] KNOWN_NATIONS Hardcoded, Excludes Carved Vassals — APPROVED
+
+**Problem:** `diplomatic_dialogue.py:36` — `KNOWN_NATIONS = {"Britain", "Prussia", "Austria", "Saxony"}` is hardcoded. Carved vassals (e.g., "Confederation of the Rhine") are never added. Discussing carved vassals with Talleyrand hits the unknown_nation handler.
+
+**Fix:** Dynamically include vassals from `world.vassals` or `world.enemy_nations`.
+
+**File:** `diplomatic_dialogue.py:36`
+**Severity:** LOW (carved vassals can't be discussed)
+
+### R94: [NEW] int(null) Crash Risk in Diplomatic Ledger — APPROVED
+
+**Problem:** `diplomatic_ledger.gd:142+` uses `int(data.get("key", 0))`. If backend sends `null` value (key present but null), `.get()` returns null and `int(null)` crashes Godot. CLAUDE.md pattern warning applies.
+
+**Fix:** Use `int(data.get("key", 0) if data.get("key", 0) != null else 0)` or backend-side null→0 coercion.
+
+**File:** `diplomatic_ledger.gd:142+` (multiple lines)
+**Severity:** LOW (defensive — backend currently sends integers)
+
+### R95: [NEW] _on_critical_pulse Is a No-Op Stub — APPROVED
+
+**Problem:** `diplomatic_ledger.gd:522-525` — `_on_critical_pulse()` has `pass` body. Timer fires every 0.4 seconds when threat is CRITICAL but does nothing. Appears to be an unfinished pulse animation.
+
+**Fix:** Either implement pulse animation (color flash on threat label) or remove timer.
+
+**File:** `diplomatic_ledger.gd:522-525`
+**Severity:** LOW (cosmetic feature missing)
+
+---
+
+# DEEP AUDIT II — UI TEST ADDITIONS
+
+---
+
+### R85: [NEW] Coalition Leader Never Re-Evaluated Per-Turn — APPROVED
+
+**Problem:** If the coalition leader's armies are destroyed, they retain leadership despite zero military contribution. Re-election only happens via `remove_coalition_member()` (separate peace). A crippled leader influences posture through personality indefinitely.
+
+**Fix:** Add periodic leader re-evaluation in `process_coalition_turn()` when leader's strength drops below 50% of next-strongest member.
+
+**File:** `coalition.py:1036-1039`
+**Severity:** LOW (rare edge case — requires specific combat outcome)
+
+### R86: [NEW] relationship_with_lord Dead Assignment — APPROVED
+
+**Problem:** `vassal.py:680` sets `marshal.relationship_with_lord = "Professional"` — never declared in `__init__`, never serialized, never read. Dead code.
+
+**Fix:** Remove the assignment. If future use intended, add to `__init__`, `to_dict()`, `from_dict()`.
+
+**File:** `vassal.py:680`
+**Severity:** LOW (dead code — cleanup item)
+
+---
+
+## Deep Audit II Bug Cross-Reference
+
+| Audit Finding | Severity | Refinement Item | Phase | Status |
+|---------------|----------|-----------------|-------|--------|
+| original_nation not serialized | HIGH | R61 | 1 | APPROVED |
+| Rebellion doesn't clear original_nation | HIGH | R62 | 1 | APPROVED |
+| break_treaty() never adds threat | HIGH | R63 | 1 | APPROVED |
+| Continental System never called from turn loop | HIGH | R64 | 1 | APPROVED |
+| Advisory leaks exact enemy strength through fog | HIGH | R65 | 1 | APPROVED |
+| Dispatch fog rule reads wrong key | HIGH | R66 | 1 | APPROVED |
+| Shallow copy serialization for coalition | MEDIUM | R67 | 2 | APPROVED |
+| Vassalizing coalition member skips cleanup | MEDIUM | R68 | 2 | APPROVED |
+| cascade_triggered never cleared on peace | MEDIUM | R69 | 2 | APPROVED |
+| Autonomy change doesn't remove from CS | MEDIUM | R70 | 2 | APPROVED |
+| Hardcoded nation list in vassal | MEDIUM | R71 | 2 | APPROVED |
+| Vassal commands consume military AP | MEDIUM | R72 | 2 | APPROVED |
+| /respond_to_diplomatic_dialogue missing popups | MEDIUM | R73 | 2 | APPROVED |
+| Vassal rebellion popup never sets dialogue | MEDIUM | R74 | 1 | APPROVED |
+| Vassal rebellion choices intercepted by routing | MEDIUM | R75 | 1 | APPROVED |
+| Multiple popups lose second popup data | MEDIUM | R76 | 4 | APPROVED |
+| Coalition popup skips state display update | MEDIUM | R77 | 4 | APPROVED |
+| Popup early returns skip top bar update | MEDIUM | R78 | 4 | APPROVED |
+| Sabotage popup drops morning dispatch | MEDIUM | R79 | 4 | APPROVED |
+| Auto-downgrade no dispatch/notification | MEDIUM | R80 | 2 | APPROVED |
+| Ghost nation processes diplomacy | MEDIUM | R81 | 2 | APPROVED |
+| {rejection_reaction} never resolved | MEDIUM | R82 | 2 | APPROVED |
+| Coalition events zero dispatch calls | MEDIUM | R83 | 2 | APPROVED |
+| Threat notifications not dismissed | LOW | R84 | 4 | APPROVED |
+| Coalition leader never re-evaluated | LOW | R85 | UI | APPROVED |
+| relationship_with_lord dead code | LOW | R86 | UI | APPROVED |
+| 6 early returns skip popup pass-throughs | LOW | R87 | 4 | APPROVED |
+| /respond_to_objection missing popups | LOW | R88 | 4 | APPROVED |
+| Counter-offer DP fail no re-send | LOW | R89 | 4 | APPROVED |
+| Mission vs eliminated nation | LOW | R90 | 4 | APPROVED |
+| Trigger 1 wrong proposal type | LOW | R91 | 4 | APPROVED |
+| Mission complete no dispatch | LOW | R92 | 4 | APPROVED |
+| KNOWN_NATIONS excludes vassals | LOW | R93 | 4 | APPROVED |
+| int(null) ledger crash risk | LOW | R94 | 4 | APPROVED |
+| _on_critical_pulse no-op | LOW | R95 | 4 | APPROVED |
+
+---
+
+## Deep Audit II Pattern Summary
+
+| Pattern | Count | Examples |
+|---------|-------|----------|
+| **Missing serialization** | 2 | R61 original_nation, R67 shallow copy |
+| **Code exists but never wired** | 4 | R63 threat on break, R64 CS turn loop, R74 rebellion dialogue, R75 rebellion routing |
+| **Missing state cleanup** | 5 | R62 rebellion cleanup, R68 coalition+vassal, R69 cascade_triggered, R70 CS on autonomy, R84 notifications |
+| **Fog of war leaks** | 2 | R65 advisory strength, R66 dispatch key mismatch |
+| **Popup architecture** | 6 | R76 multi-popup loss, R77/R78/R79 early return drops, R87/R88 endpoint gaps |
+| **Missing dispatch events** | 4 | R80 auto-downgrade, R83 coalition events, R92 mission complete, R66 (hidden by wrong key) |
+| **AP/DP cost errors** | 2 | R72 vassal AP, R89 counter DP re-send |
+| **Display/template issues** | 3 | R82 rejection_reaction, R91 trigger type, R95 pulse stub |
+| **Ghost nation** | 2 | R81 ghost processing, R90 ghost mission |
+| **Hardcoded constants** | 2 | R71 nation list, R93 KNOWN_NATIONS |
+| **Dead code** | 1 | R86 relationship_with_lord |
+
+**Total new items:** 35 (R61-R95). 6 HIGH, 17 MEDIUM, 12 LOW.
+---
+
+# DEEP AUDIT II — LATE FINDINGS (diplomacy.py deep pass)
+
+### R96: [NEW] VASSAL Not in OPEN_MOVEMENT_STATES — Lord Can't Traverse Vassal Territory — APPROVED
+
+**Problem:** `diplomacy.py:40` — `OPEN_MOVEMENT_STATES = {"OPEN_BORDERS", "DEFENSIVE_ALLIANCE", "ALLIANCE"}` does not include `"VASSAL"`. `can_enter_territory()` returns `False` for lord→vassal movement. Player marshals cannot move through vassal territory, and vassal marshals cannot move through lord territory. Fundamentally breaks vassal integration.
+
+**Fix:** Add `"VASSAL"` to `OPEN_MOVEMENT_STATES`.
+
+**File:** `diplomacy.py:40`
+**Severity:** HIGH (vassal territory inaccessible to lord)
+**Phase:** 1
+
+### R97: [NEW] declare_war() and Cascade Don't Clean active_treaties — APPROVED
+
+**Problem:** `declare_war()` (diplomacy.py:680-761) transitions to WAR but does not remove the pair's entry from `active_treaties`. An ALLIANCE treaty with gold/turn and AP/turn clauses continues executing during wartime. `_process_war_cascade()` (line 764) has the same gap for cascading nations. R45 covers `execute_downgrade`, R46 covers rebellion — but declare_war and cascade are separate uncovered paths.
+
+**Fix:** In `declare_war()` and `_process_war_cascade()`, remove `active_treaties[diplo_key]` after state transition.
+
+**File:** `diplomacy.py:680-761, 764-824`
+**Severity:** HIGH (alliance clauses execute during war — gold/AP flow to enemy)
+**Phase:** 2
+
+### R98: [NEW] 4 Public Functions Never Called From Production Code — APPROVED
+
+**Problem:** Four functions are defined with tests but never invoked during gameplay:
+1. `check_relation_requirement()` (line 220) — relation gate for upgrades never enforced
+2. `get_transition_dp_cost()` (line 234) — transition-specific DP costs unused (executor uses `get_dp_cost()`)
+3. `modify_nation_authority()` (line 667) — AI nation authority never changes during gameplay
+4. `validate_ap_clause()` (line 1409) — AP demands never validated against war_score > 80
+
+Items 1 and 4 represent missing validation that should be wired. Items 2 and 3 represent dead/unreachable logic.
+
+**Fix:** Wire #1 into treaty ratification (upgrades require relation threshold). Wire #4 into proposal processing. Evaluate #2/#3 — either wire or remove.
+
+**File:** `diplomacy.py:220, 234, 667, 1409`
+**Severity:** MEDIUM (missing validation — upgrades/demands not properly gated)
+**Phase:** 2
+
+### R99: [NEW] declare_war() Doesn't Check Armistice Cooldowns — APPROVED
+
+**Problem:** `declare_war()` only checks `if current_state == "WAR"` before proceeding. Even after R5b is implemented (armistice cooldowns set), `declare_war()` will bypass them entirely. Player can declare war during armistice cooldown period.
+
+**Fix:** Add armistice cooldown check: `if world.armistice_cooldowns.get(diplo_key, 0) > 0: return error`.
+
+**File:** `diplomacy.py:680-691`
+**Severity:** MEDIUM (armistice cooldown bypass)
+**Phase:** 2
+
+### R100: [NEW] War Cascade Skips Relation Penalties — APPROVED
+
+**Problem:** `_process_war_cascade()` (line 764-824) transitions cascading nations to WAR but applies no relation penalty. Compare `declare_war()` which applies -30 to target, -15 to others. A cascaded nation enters war with no relation change, creating nonsensical state (at WAR with positive relations → favorable acceptance formula for peace).
+
+**Fix:** Apply -20 relation penalty between aggressor and each cascading nation.
+
+**File:** `diplomacy.py:764-824`
+**Severity:** MEDIUM (cascaded wars have no relation impact)
+**Phase:** 2
+
+### R101: [NEW] break_treaty() Doesn't Validate Breaker Is Party to Treaty — APPROVED
+
+**Problem:** `break_treaty(pair_key, breaker_nation, world)` never validates that `breaker_nation` is in the treaty's nations list. If called with a non-party breaker, `other_nation` extraction goes wrong and relation penalties apply to wrong nations. Empty string fallback on line 1315 could trigger `modify_nation_relation` with `""`.
+
+**Fix:** `if breaker_nation not in treaty.get("nations", []): return error`.
+
+**File:** `diplomacy.py:1296-1315`
+**Severity:** MEDIUM (missing input validation)
+**Phase:** 2
+
+### R102: [NEW] Stale war_scores Entries Never Removed — APPROVED
+
+**Problem:** When war ends, `war_scores[diplo_key]` is never deleted. `apply_war_score_decay()` iterates ALL keys including ended wars, slowly decaying toward 0 but never removing. Dict grows unboundedly across multiple wars.
+
+**Fix:** Delete `war_scores[diplo_key]` when transitioning OUT of WAR state (alongside R1b battle_records cleanup).
+
+**File:** `diplomacy.py:332-372`
+**Severity:** LOW (memory waste + serialization bloat)
+**Phase:** 2
+
+### R103: [NEW] Feedback Missing coalition_penalty and harshness_bonus — APPROVED
+
+**Problem:** `_generate_feedback()` (line 576-580) `trackable` set omits `"coalition_penalty"` and `"harshness_bonus"`. If coalition penalty is the dominant negative factor, feedback reports a less impactful component as "key obstacle."
+
+**Fix:** Add both to `trackable` set. Add corresponding entries to `FEEDBACK_STRINGS`.
+
+**File:** `diplomacy.py:576-580`
+**Severity:** LOW (misleading feedback text)
+**Phase:** 4
+
+### R104: [NEW] Sweetener/Demand Value 0 Treated as Flat Rate — APPROVED
+
+**Problem:** `diplomacy.py:444-448` — `sweetener_total += rate * svalue if svalue else rate`. When `svalue=0` (falsy), falls back to `rate` instead of `0`. A sweetener `{"type": "territory", "value": 0}` adds +5 instead of 0.
+
+**Fix:** Use `svalue if svalue is not None else 1` or explicit None check.
+
+**File:** `diplomacy.py:444-448, 456-459`
+**Severity:** LOW (formula edge case — 0-value sweeteners inflated)
+**Phase:** 3
+
+### R105: [NEW] _process_mission_effects Hardcodes "France" — APPROVED
+
+**Problem:** `diplomacy.py:1268` — `world.modify_nation_relation("France", target, scaled)` hardcodes "France" instead of `world.player_nation`. Same on line 1253 with `diplomats.get("France")`. Inconsistent with rest of file which uses `world.player_nation`.
+
+**Fix:** Replace with `world.player_nation`.
+
+**File:** `diplomacy.py:1268, 1253`
+**Severity:** LOW (modding-breaking hardcode)
+**Phase:** 2
+
+---
+
+## Deep Audit II Late Findings Cross-Reference
+
+| Finding | Severity | Item | Phase | Status |
+|---------|----------|------|-------|--------|
+| VASSAL not in OPEN_MOVEMENT_STATES | HIGH | R96 | 1 | APPROVED |
+| declare_war doesn't clean active_treaties | HIGH | R97 | 2 | APPROVED |
+| 4 functions never called from production | MEDIUM | R98 | 2 | APPROVED |
+| declare_war bypasses armistice cooldowns | MEDIUM | R99 | 2 | APPROVED |
+| Cascade skips relation penalties | MEDIUM | R100 | 2 | APPROVED |
+| break_treaty no party validation | MEDIUM | R101 | 2 | APPROVED |
+| Stale war_scores never removed | LOW | R102 | 2 | APPROVED |
+| Feedback missing components | LOW | R103 | 4 | APPROVED |
+| Sweetener 0 = flat rate | LOW | R104 | 3 | APPROVED |
+| Mission hardcodes "France" | LOW | R105 | 2 | APPROVED |
+
+### R106: [NEW] P3 AI Trigger Deferred Despite Threat System Being Complete — APPROVED
+
+**Problem:** `ai_diplomacy.py:511-512` — P3 ("Threat > 60 AND not allied → seek alliance") is stubbed with comment "Returns None — wired when threat system is implemented (Session 7)." The threat system IS implemented (coalition.py, Session 7+8). P3 was never wired. AI nations don't proactively seek alliances when coalition threat rises — they wait passively until coalition forms.
+
+**Fix:** Implement P3: when `world.threat_level > 60` and nation is not allied with France (state < DEFENSIVE_ALLIANCE), propose DEFENSIVE_ALLIANCE or ALLIANCE. Check cooldowns. High priority (priority 3).
+
+**File:** `ai_diplomacy.py:511-512`
+**Severity:** MEDIUM (AI behavior gap — nations should react to rising threat)
+**Phase:** 3
+
+### R107: [NEW] AI-AI Diplomacy Skips Transition Validation — States Can Jump — APPROVED
+
+**Problem:** `_ratify_ai_ai_treaty()` (ai_diplomacy.py:1174) sets `world.diplomatic_states[diplo_key] = target_state` directly without calling `validate_transition()`. AI-AI Trigger 1 proposes DEFENSIVE_ALLIANCE for nations at PEACE — jumping 3 intermediate states (OPEN_BORDERS, NON_AGGRESSION). Player diplomacy must follow step-by-step transitions, but AI-AI bypasses this entirely.
+
+**Fix:** Either:
+- (A) Add `validate_transition()` check before ratification (consistent with player path), or
+- (B) Allow multi-step jumps for AI-AI (faster, arguably appropriate since AI-AI is simplified) but document the design decision
+
+Option A recommended for consistency.
+
+**File:** `ai_diplomacy.py:1127-1174`
+**Severity:** MEDIUM (inconsistent rules — AI-AI gets shortcuts player doesn't)
+**Phase:** 2
+
+### R108: [NEW] AI-AI Ratification Doesn't Create active_treaties Entry — APPROVED
+
+**Problem:** `_ratify_ai_ai_treaty()` changes diplomatic state and improves relations, but never creates an `active_treaties[diplo_key]` entry. Consequences:
+1. AI-AI alliances produce no trade income (process_trade_income reads active_treaties)
+2. AI-AI treaties can't be found by `break_treaty()` (returns "No active treaty to break")
+3. No treaty clause effects (gold/turn, AP/turn) ever apply to AI-AI treaties
+4. Diplomatic ledger Treaties tab won't show AI-AI treaties
+
+**Fix:** Create a basic treaty entry in `active_treaties` with state, parties, and creation turn. No complex clauses needed for AI-AI.
+
+**File:** `ai_diplomacy.py:1173-1203`
+**Severity:** MEDIUM (AI-AI treaties are stateless — no income, no breakability, invisible in ledger)
+**Phase:** 2
+
+### R109: [NEW] defensive_alliance Proposal Type Overwritten to "alliance" — Skips Tier — APPROVED
+
+**Problem:** `ai_diplomacy.py:383` — `_build_proposal_terms` sets `terms["type"] = "alliance"` when handling `"defensive_alliance"` proposals. This was meant to reuse the alliance acceptance formula, but it destroys the proposal type. When ratified, `_ratify_treaty` maps `"alliance"` → `"ALLIANCE"`, skipping DEFENSIVE_ALLIANCE entirely. P4's correct determination of `"defensive_alliance"` via `_determine_upgrade_type()` is silently overwritten.
+
+**Fix:** Keep original type: `terms["type"] = "defensive_alliance"`. Ensure acceptance formula handles the type (R7 adds BASE_DISPOSITION entry).
+
+**File:** `ai_diplomacy.py:383`
+**Severity:** HIGH (AI proposals skip a diplomatic tier — DEFENSIVE_ALLIANCE is unreachable via AI proposals)
+**Phase:** 1
+
+### R110: [NEW] Stalemate Counter Not Reset When War Ends — APPROVED
+
+**Problem:** `ai_diplomacy.py:299-316` — `ai_stalemate_counters` tracks consecutive stalemate turns but is never cleared when war ends. On re-declaration, counter resumes from stale value. Since new wars start at war_score=0 (in stalemate range), P2 fires immediately, causing AI to propose armistice before any battles occur.
+
+**Fix:** Clear `world.ai_stalemate_counters[diplo_key]` when transitioning OUT of WAR state (alongside R1b/R102 war-end cleanup).
+
+**File:** `ai_diplomacy.py:299-316`, `diplomacy.py` (state transition)
+**Severity:** MEDIUM (instant armistice proposal on war re-declaration)
+**Phase:** 2
+
+### R111: [NEW] AI-AI Trigger 3 "armistice" Type Not in Ratification state_map — APPROVED
+
+**Problem:** `_evaluate_ai_ai_proposal` Trigger 3 (line 1087-1095) can generate `{"type": "armistice"}` when two AI nations at war should negotiate. But `_ratify_ai_ai_treaty`'s `state_map` (line 1139-1145) doesn't include `"armistice"`. The proposal is silently discarded. AI nations at war with each other can never negotiate peace via AI-AI diplomacy.
+
+**Fix:** Add `"armistice": "ARMISTICE"` to `state_map` in `_ratify_ai_ai_treaty`.
+
+**File:** `ai_diplomacy.py:1139-1145`
+**Severity:** MEDIUM (AI-AI wars are permanent — no negotiation possible)
+**Phase:** 2
+
+### R112: [NEW] Incoming Proposal Popup Hints Always Show Generic Text — APPROVED
+
+**Problem:** `ai_diplomacy.py:670` — `factors = acceptance.get("factors", [])`. But `calculate_acceptance()` returns key `"components"`, not `"factors"`. Wrong key → always empty list → hints always say "No strong positives identified" / "No major obstacles identified". The actual acceptance data is computed but never shown.
+
+**Fix:** Change `"factors"` to `"components"` on line 670. Adapt the positive/negative factor extraction to read component dict entries.
+
+**File:** `ai_diplomacy.py:670-674`
+**Severity:** MEDIUM (player sees useless generic text instead of actual acceptance factors)
+**Phase:** 4
+
+### R113: [NEW] Counter-Offer Gold Sweetener Not Validated Against Treasury — APPROVED
+
+**Problem:** `ai_diplomacy.py:899-937` — `_try_add_desired_clauses` adds gold lump-sum sweeteners without checking whether the AI nation has enough gold. If accepted, `_ratify_treaty` subtracts the gold → nation treasury goes negative.
+
+**Fix:** Add `if world.nation_gold.get(nation, 0) >= amount` guard before adding gold sweetener clauses.
+
+**File:** `ai_diplomacy.py:899-937`
+**Severity:** MEDIUM (AI nations can go to negative gold via counter-offer acceptance)
+**Phase:** 2
+
+### R114: [NEW] check_alliance_conflict Only Checks One Direction — APPROVED
+
+**Problem:** `ai_diplomacy.py:944-1004` — Player-facing alliance conflict check verifies if the proposed nation's allies are at war with France, but NOT the reverse (if France's allies are at war with the proposed nation). Compare `_ratify_ai_ai_treaty` (line 1155-1171) which correctly checks both directions.
+
+**Fix:** Add reverse check: for each of France's allies, check if they're at war with the proposed nation.
+
+**File:** `ai_diplomacy.py:944-1004`
+**Severity:** LOW (edge case — partially mitigated by defensive cascade)
+**Phase:** 2
+
+---
+
+## Deep Audit II — ai_diplomacy.py Late Findings Cross-Reference
+
+| Finding | Severity | Item | Phase | Status |
+|---------|----------|------|-------|--------|
+| defensive_alliance overwritten to alliance | HIGH | R109 | 1 | APPROVED |
+| Stalemate counter not reset on peace | MEDIUM | R110 | 2 | APPROVED |
+| AI-AI "armistice" not in state_map | MEDIUM | R111 | 2 | APPROVED |
+| Proposal popup hints use wrong key | MEDIUM | R112 | 4 | APPROVED |
+| Counter-offer gold not treasury-validated | MEDIUM | R113 | 2 | APPROVED |
+| Alliance conflict one-direction only | LOW | R114 | 2 | APPROVED |
+
+**Grand total:** 114 items (R1-R114). 3 DONE, 95 APPROVED, 16 DEFERRED.
