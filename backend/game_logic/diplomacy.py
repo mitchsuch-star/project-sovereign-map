@@ -562,9 +562,9 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         svalue = s.get("value", 0)
         rate = SWEETENER_VALUES.get(stype, 0)
         if isinstance(rate, (int, float)) and rate < 1:
-            sweetener_total += svalue * rate
+            sweetener_total += (svalue * rate) if svalue is not None else 0
         else:
-            sweetener_total += rate * svalue if svalue else rate
+            sweetener_total += rate * svalue if svalue is not None else rate
     sweetener_total = min(SWEETENER_CAP, sweetener_total)
 
     demand_total = 0.0
@@ -573,14 +573,14 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         dvalue = d.get("value", 0)
         rate = DEMAND_VALUES.get(dtype, 0)
         if isinstance(rate, (int, float)) and abs(rate) < 1:
-            demand_total += dvalue * rate
+            demand_total += (dvalue * rate) if dvalue is not None else 0
         else:
-            demand_total += rate * dvalue if dvalue else rate
+            demand_total += rate * dvalue if dvalue is not None else rate
 
     deal_balance = sweetener_total + demand_total
 
     # ── Diplomat Skill Bonus ──
-    diplomat_skill_bonus = (proposer_skill - target_skill) * 2
+    diplomat_skill_bonus = max(-8, (proposer_skill - target_skill) * 2)
 
     # ── Personality Modifier ──
     peace_mod, harsh_mod = PERSONALITY_MODIFIERS.get(target_personality, (0, 0))
@@ -606,8 +606,13 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
             and military_supremacy == 0):  # Does NOT stack with Military Supremacy
         battlefield_diplomacy = 10
 
+    # R8: Military pressure from war score
+    military_pressure = 0
+    if war_score > 0:
+        military_pressure = int(min(15, war_score * 0.15))
+
     # Use whichever is higher (they don't stack)
-    situational_bonus = max(military_supremacy, battlefield_diplomacy)
+    situational_bonus = max(military_supremacy, battlefield_diplomacy, military_pressure)
 
     # ── Special Desire Bonus (§6d) ──
     # Nation-specific acceptance bonuses when proposal addresses core interests
@@ -674,6 +679,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         "personality_modifier": personality_mod,
         "military_supremacy": military_supremacy,
         "battlefield_diplomacy": battlefield_diplomacy,
+        "military_pressure": military_pressure,
         "special_desire_bonus": special_desire_bonus,
         "harshness_bonus": harshness_bonus,
     }
@@ -1148,6 +1154,11 @@ def record_battle(world, attacker_nation: str, defender_nation: str,
     if diplo_key not in world.decisive_battles:
         world.decisive_battles[diplo_key] = []
 
+    # R9: Only battles with >= 1000 total casualties count for war score
+    total_casualties = attacker_casualties + defender_casualties
+    if total_casualties < 1000:
+        return
+
     record = {
         "turn": world.current_turn,
         "winner": winner_nation,
@@ -1158,8 +1169,7 @@ def record_battle(world, attacker_nation: str, defender_nation: str,
     }
     world.battle_records[diplo_key].append(record)
 
-    # Check for decisive battle
-    total_casualties = attacker_casualties + defender_casualties
+    # Check for decisive battle (total_casualties already computed above)
     if total_casualties > 10000:
         if attacker_casualties > 0 and defender_casualties > 0:
             ratio = max(attacker_casualties, defender_casualties) / min(attacker_casualties, defender_casualties)
@@ -1235,6 +1245,9 @@ def process_diplomacy_turn(world) -> List[Dict]:
     # ── 4. War score recalculation ──
     recalculate_war_scores(world)
     apply_war_score_decay(world)
+
+    # ── 4a. Relation decay (R4a) ──
+    _process_relation_decay(world)
 
     # TODO: 5. Defection cascade check (Session 5)
     # TODO: 6. Vassal loyalty processing (Session 5)
@@ -1316,17 +1329,39 @@ def _process_dp_regen(world) -> None:
 def process_trade_income(world) -> Dict[str, int]:
     """Calculate and apply trade income from diplomatic states.
 
+    R6: Diminishing returns — partners sorted by state level (best first),
+    rates [1.0, 0.75, 0.50, 0.25]. 5th+ partners get 0.25.
+
     Returns dict of {nation: trade_income} for display.
     """
-    trade_by_nation = {}
+    _DIMINISHING_RATES = [1.0, 0.75, 0.50, 0.25]
+    _STATE_PRIORITY = {"ALLIANCE": 0, "DEFENSIVE_ALLIANCE": 1, "NON_AGGRESSION": 2,
+                       "OPEN_BORDERS": 3, "PEACE": 4}
+
+    # Collect trade partners per nation: {nation: [(partner, trade_amount, state)]}
+    partners_by_nation: Dict[str, list] = {}
     for pair_key, state in world.diplomatic_states.items():
         trade = TRADE_INCOME.get(state, 0)
         if trade > 0:
             parts = pair_key.split("|")
             if len(parts) == 2:
                 nation_a, nation_b = parts
-                trade_by_nation[nation_a] = trade_by_nation.get(nation_a, 0) + trade
-                trade_by_nation[nation_b] = trade_by_nation.get(nation_b, 0) + trade
+                # Skip vassals — tribute replaces trade
+                if nation_a in getattr(world, 'vassals', {}) or nation_b in getattr(world, 'vassals', {}):
+                    continue
+                partners_by_nation.setdefault(nation_a, []).append((nation_b, trade, state))
+                partners_by_nation.setdefault(nation_b, []).append((nation_a, trade, state))
+
+    # Apply diminishing returns per nation
+    trade_by_nation = {}
+    for nation, partners in partners_by_nation.items():
+        # Sort by state priority (best first), tiebreak alphabetical
+        partners.sort(key=lambda p: (_STATE_PRIORITY.get(p[2], 5), p[0]))
+        total = 0
+        for i, (partner, trade_amount, state) in enumerate(partners):
+            rate = _DIMINISHING_RATES[min(i, len(_DIMINISHING_RATES) - 1)]
+            total += int(trade_amount * rate)
+        trade_by_nation[nation] = total
 
     # Apply to nation_gold
     for nation, income in trade_by_nation.items():
@@ -1639,6 +1674,47 @@ def _process_nation_authority(world) -> None:
     This function is a placeholder for any per-turn authority processing.
     """
     pass  # Authority changes happen at event time, not during turn processing
+
+
+def _process_relation_decay(world) -> None:
+    """R4a: Relations drift toward +-10 band each turn.
+
+    Skip pairs that are: vassals, at WAR, in ARMISTICE, or targeted by COURT_NATION mission.
+    Above +10: -1/turn. Below -10: +1/turn.
+    """
+    player = getattr(world, 'player_nation', 'France')
+    all_nations = [player] + list(getattr(world, 'enemy_nations', []))
+
+    # Check for active COURT_NATION mission target (player-side only)
+    court_target = None
+    mission = getattr(world, 'active_diplomatic_mission', None)
+    if mission and mission.get("type") == "COURT_NATION":
+        court_target = mission.get("target")
+
+    vassals = getattr(world, 'vassals', {})
+
+    for i, nation_a in enumerate(all_nations):
+        for nation_b in all_nations[i + 1:]:
+            # Skip vassal pairs
+            if nation_a in vassals or nation_b in vassals:
+                continue
+
+            diplo_key = world._make_diplo_key(nation_a, nation_b)
+            state = world.diplomatic_states.get(diplo_key, "PEACE")
+
+            # Skip WAR and ARMISTICE pairs
+            if state in ("WAR", "ARMISTICE"):
+                continue
+
+            # Skip if COURT_NATION targets either nation in the pair
+            if court_target and court_target in (nation_a, nation_b):
+                continue
+
+            relation = world.nation_relations.get(diplo_key, 0)
+            if relation > 10:
+                world.modify_nation_relation(nation_a, nation_b, -1)
+            elif relation < -10:
+                world.modify_nation_relation(nation_a, nation_b, 1)
 
 
 # ═══════════════════════════════════════════════════════

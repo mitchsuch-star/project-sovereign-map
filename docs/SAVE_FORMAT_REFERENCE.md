@@ -188,6 +188,7 @@ A future save/load system should use this as the specification.
 | `previous_war_scores` | dict | {} | **Audit 4.** End-of-turn war score snapshot. Keys: diplo key ("Nation1\|Nation2"). Values: int. Used by Talleyrand Trigger 2 to compute per-turn delta. Snapshotted at end of advance_turn(). |
 | `vassals` | dict | {} | **Session 5.** Vassal state per nation. Keys: nation name. Values: {lord, loyalty, autonomy (0=puppet/1=satellite/2=autonomous), path (treaty/conquest), created_turn, tribute_rate, carved_from, regions}. |
 | `vassal_investment_cooldowns` | dict | {} | **Session 5.** Investment cooldown per vassal. Keys: nation name. Values: int (turns remaining). 3-turn cooldown after invest_in_vassal(). |
+| `vassal_release_cooldowns` | dict | {} | **Phase 3 R14.** Release cooldown per nation. Keys: nation name. Values: int (turns remaining). 5-turn cooldown after release_vassal() — blocks treaty re-vassalization. |
 | `cascade_triggered` | list→set | [] | **Session 5.** Defection cascade keys already fired. Serialized as list, deserialized to set. Each key: "vassal\|diplo_key". Prevents cascade from firing twice per war. |
 | `continental_system_members` | list | [] | **Session 5.** Nations participating in the Continental System. PUPPET/SATELLITE vassals auto-join if lord is a member. Members lose trade income with Britain. |
 | `talleyrand_defiance_cooldown` | int | 0 | **Session 6.** Turns remaining on Talleyrand defiance cooldown. Blocks new sabotage when > 0. Decremented in advance_turn(). Set to 5 on confrontation. |

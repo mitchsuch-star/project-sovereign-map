@@ -788,13 +788,13 @@ class TestProcessCoalitionTurn:
         assert len(sources) > 0
 
     def test_war_exhaustion_per_turn(self):
-        """WE +5/turn for nations at war, -5/turn for nations at peace."""
+        """R11: WE +8/turn for nations at war (was +5), -5/turn for nations at peace."""
         world = _make_world()
         world.war_exhaustion["Britain"] = 20
         world.war_exhaustion["Austria"] = 20
         # Britain at war, Austria at peace
         process_coalition_turn(world)
-        assert world.war_exhaustion["Britain"] == 25  # +5 (at war)
+        assert world.war_exhaustion["Britain"] == 28  # +8 (at war, R11)
         assert world.war_exhaustion["Austria"] == 15  # -5 (at peace)
 
     def test_posture_updated_each_turn(self):

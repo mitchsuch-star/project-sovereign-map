@@ -427,6 +427,7 @@ class WorldState:
         # ============================================================
         self.vassals: Dict[str, Dict] = {}  # nation_name -> vassal state dict
         self.vassal_investment_cooldowns: Dict[str, int] = {}  # vassal_name -> turns remaining
+        self.vassal_release_cooldowns: Dict[str, int] = {}  # R14: nation_name -> turns remaining
         self.cascade_triggered: set = set()  # diplo_keys where cascade already fired
         self.continental_system_members: List[str] = []  # Nations under Continental System
 
@@ -1367,6 +1368,14 @@ class WorldState:
         old_controller = region.controller
         region.controller = capturing_nation
         region.stability = 25  # Captured regions start at low stability
+
+        # R16: +2 threat per captured region (non-starting territory, France only)
+        if capturing_nation == getattr(self, 'player_nation', 'France'):
+            from backend.models.region import get_starting_controllers
+            starting = get_starting_controllers()
+            if starting.get(region_name) != capturing_nation:
+                from backend.game_logic.coalition import add_threat
+                add_threat(self, 2, "region_capture")
 
         # R81: Check for elimination after capture
         if (old_controller and old_controller != capturing_nation
@@ -2864,6 +2873,7 @@ class WorldState:
             # ═══════ VASSAL SYSTEM (Session 5) ═══════
             "vassals": {k: v.copy() for k, v in self.vassals.items()},
             "vassal_investment_cooldowns": {k: int(v) for k, v in self.vassal_investment_cooldowns.items()},
+            "vassal_release_cooldowns": {k: int(v) for k, v in self.vassal_release_cooldowns.items()},
             "cascade_triggered": list(self.cascade_triggered),
             "continental_system_members": list(self.continental_system_members),
 
@@ -3062,6 +3072,7 @@ class WorldState:
         # ═══════ VASSAL SYSTEM (Session 5) ═══════
         world.vassals = {k: v.copy() for k, v in data.get("vassals", {}).items()}
         world.vassal_investment_cooldowns = {k: int(v) for k, v in data.get("vassal_investment_cooldowns", {}).items()}
+        world.vassal_release_cooldowns = {k: int(v) for k, v in data.get("vassal_release_cooldowns", {}).items()}
         world.cascade_triggered = set(data.get("cascade_triggered", []))
         world.continental_system_members = list(data.get("continental_system_members", []))
 

@@ -18,7 +18,7 @@
 | **Phase 1** | Critical wiring | R37/R41, R42, R40, R43, R2, R55, R61-R66, R74, R75, R96, R109 | ~16 fixes |
 | **Phase 2A** | State cleanup — diplomacy core | R1a/b, R3, R5a/b, R44, R45, R47/R30, R48, R49, R51, R52/R64, R53, R54, R56, R57, R7, R67, R80, R82, R83 | ~19 fixes |
 | **Phase 2B** | State cleanup — vassal, AI-AI, war | R46, R50, R60, R68-R73, R81, R97-R102, R105, R107-R108, R110-R111, R113-R114 | ~23 fixes |
-| **Phase 3** | Balance tuning | R4a/b, R6, R8, R9, R11, R14-R16, R18, R20, R104, R106 | ~13 changes |
+| **Phase 3** | Balance tuning — **DONE** | R4a/b, R6, R8, R9, R11, R14-R16, R18, R20, R104, R106 | 13 changes, 44 tests |
 | **Phase 4** | Commands, QoL, Popup architecture | R10, R21, R23, R29, R31, R34, R38, R17a-c, R12, R76-R79, R84, R87-R95, R103, R112 | ~27 fixes |
 | **UI Test** | Manual playtest in Godot | R39, R85, R86, verify all fixes | Godot session |
 | **Future** | Deferred features | R22, R24-R28, R32-R33, R35-R36, R17d-f, R58-R59 | TBD |
@@ -296,79 +296,56 @@ Non-functional systems that have code but are never reached. Fixing these "turns
 
 ---
 
-# PHASE 3: BALANCE TUNING
+# PHASE 3: BALANCE TUNING — COMPLETE
 
 Working systems that produce degenerate gameplay. Each change is independently testable.
+**All 13 items implemented. 44 tests in `tests/test_phase3_balance.py`.**
 
 ---
 
-### R4a: No Relation Decay — APPROVED
+### R4a: No Relation Decay — DONE
 
-**Problem:** Relations never drift. Zero-maintenance diplomacy after turn 10.
+**Fix:** -1/turn toward 0 for relations > +10 or < -10. Skip WAR/ARMISTICE, vassal pairs, COURT_NATION target. `_process_relation_decay()` in diplomacy.py.
 
-**Fix:** -1/turn toward 0 for relations > +10 or < -10. Skip active mission pairs. Skip vassal pairs.
+### R4b: COURT_NATION Too Fast — DONE
 
-### R4b: COURT_NATION Too Fast — APPROVED (MODIFIED)
+**Fix:** Base relation_change 8→5. With skill 10: +8/turn. With R4a decay: effective +7/turn.
 
-**Problem:** +12 relation/turn flips Austria in 6 turns.
+### R6: Trade Income Snowball — DONE
 
-**Fix:** Option A — reduce base to +5/turn (from +8). With skill 10: +8/turn. Combined with R4a decay, effective rate is +7/turn. Simple, testable.
+**Fix:** Diminishing returns [1.0, 0.75, 0.50, 0.25] per partner sorted by state level. Vassal pairs excluded. `process_trade_income()` rewritten.
 
-### R6: Trade Income Snowball — APPROVED
+### R8: Relation Penalty Dominates Wartime Proposals — DONE
 
-**Problem:** 4 alliances = 800g/turn. Nearly doubles income.
+**Fix:** `military_pressure = int(min(15, war_score * 0.15))`. Added to `max(supremacy, battlefield, pressure)`. Component in acceptance formula.
 
-**Fix:** Diminishing returns per partner: 100%/75%/50%/25%. Max from 4 ALLIANCE partners: 500g. Partners sorted by state level (highest first).
+### R9: Small Battle War Score Farming — DONE
 
-### R8: Relation Penalty Dominates Wartime Proposals — APPROVED
+**Fix:** `record_battle()` early-return for < 1000 total casualties. Decisive battle check (>10k) unaffected.
 
-**Problem:** Military victories can't offset relation penalty. Crushing dominance can't force peace.
+### R11: Coalition Stalemates Last Too Long — DONE
 
-**Fix:** `military_pressure = max(0, war_score * 0.15)` up to +15. Doesn't stack with Military Supremacy — use whichever is higher.
+**Fix:** WE +8/turn (was +5). Coalition member relation friction -2/turn per pair.
 
-### R9: Small Battle War Score Farming — APPROVED (MODIFIED)
+### R14: Vassal Release/Re-Vassalize Threat Exploit — DONE
 
-**Problem:** Every battle = +3 regardless of scale. 500-casualty skirmish = Austerlitz.
+**Fix:** `vassal_release_cooldowns` field on WorldState. 5-turn cooldown after release. Blocks `create_vassal_treaty()` only (conquest bypass OK).
 
-**Fix:** Minimum **1000 total casualties** (modified from proposed 2000 — too high for minor nation battles) for `record_battle()` to count toward war score.
+### R15: AI-AI Diplomacy Never Degrades — DONE
 
-### R11: Coalition Stalemates Last Too Long — APPROVED (MODIFIED)
+**Fix:** `_process_ai_ai_rivalry()`: adjacency rivalry (-3 rel/turn when relation > 0), opportunistic downgrade (2x troops + relation < 30 → one-step down). Runs at start of `process_ai_ai_diplomatic_phase()`.
 
-**Problem:** WE +5/turn = 30 turns to separate peace threshold.
+### R16: Infinite Slow Expansion via Threat Sweet Spot — DONE
 
-**Fix:** Options A+C together. +8/turn passive WE AND -2/turn mutual coalition member relation friction. Creates ~15-turn coalition lifecycle. No auto-armistice (option B too mechanical).
+**Fix:** +2 threat per non-starting region captured by France. In `capture_region()`.
 
-### R14: Vassal Release/Re-Vassalize Threat Exploit — APPROVED
+### R18: Continental System Too Weak — DONE
 
-**Problem:** Vassalize/release cycle = net -3 threat per cycle.
+**Fix:** `CONTINENTAL_SYSTEM: 1` explicit in `MISSION_DP_COSTS` (was defaulting to 1 via `.get()`).
 
-**Fix:** `vassal_release_cooldowns[nation]` — cannot re-vassalize for 5 turns after release.
+### R20: Minor Nation Skill Penalty Too Harsh — DONE
 
-### R15: AI-AI Diplomacy Never Degrades — APPROVED
-
-**Problem:** By turn 20, all AI nations are allied. No betrayals.
-
-**Fix:** Two triggers:
-- **Rivalry:** Two AI nations bordering same contested region AND relation > 0 → -3 relation/turn
-- **Opportunistic downgrade:** Nation A military > 2x Nation B AND relation < +30 → consider downgrade
-
-### R16: Infinite Slow Expansion via Threat Sweet Spot — APPROVED
-
-**Problem:** 1 battle every 2 turns = below threat decay. Indefinite expansion.
-
-**Fix:** +2 threat per region captured (new controller != starting controller).
-
-### R18: Continental System Too Weak — APPROVED (MODIFIED)
-
-**Problem:** 2 DP/turn for modest gold reduction. Always worse than COURT_NATION.
-
-**Fix:** Option A — reduce CS cost to 1 DP/turn. If still weak after testing, revisit option B (diplomatic blocking).
-
-### R20: Minor Nation Skill Penalty Too Harsh — APPROVED
-
-**Problem:** Saxony proposals always fail due to -12 skill differential.
-
-**Fix:** Cap at -8: `diplomat_skill_bonus = max(-8, (proposer_skill - target_skill) * 2)`
+**Fix:** `diplomat_skill_bonus = max(-8, (proposer_skill - target_skill) * 2)`. Negative capped, positive uncapped.
 
 ---
 
@@ -1134,7 +1111,7 @@ Items 1 and 4 represent missing validation that should be wired. Items 2 and 3 r
 **Severity:** LOW (misleading feedback text)
 **Phase:** 4
 
-### R104: [NEW] Sweetener/Demand Value 0 Treated as Flat Rate — APPROVED
+### R104: [NEW] Sweetener/Demand Value 0 Treated as Flat Rate — DONE
 
 **Problem:** `diplomacy.py:444-448` — `sweetener_total += rate * svalue if svalue else rate`. When `svalue=0` (falsy), falls back to `rate` instead of `0`. A sweetener `{"type": "territory", "value": 0}` adds +5 instead of 0.
 
@@ -1171,7 +1148,7 @@ Items 1 and 4 represent missing validation that should be wired. Items 2 and 3 r
 | Sweetener 0 = flat rate | LOW | R104 | 3 | APPROVED |
 | Mission hardcodes "France" | LOW | R105 | 2 | APPROVED |
 
-### R106: [NEW] P3 AI Trigger Deferred Despite Threat System Being Complete — APPROVED
+### R106: [NEW] P3 AI Trigger Deferred Despite Threat System Being Complete — DONE
 
 **Problem:** `ai_diplomacy.py:511-512` — P3 ("Threat > 60 AND not allied → seek alliance") is stubbed with comment "Returns None — wired when threat system is implemented (Session 7)." The threat system IS implemented (coalition.py, Session 7+8). P3 was never wired. AI nations don't proactively seek alliances when coalition threat rises — they wait passively until coalition forms.
 

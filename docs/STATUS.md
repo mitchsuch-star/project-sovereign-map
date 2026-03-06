@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 6, 2026 (Phase 2B+ Confidence Follow-up COMPLETE — 4 sub-fixes, 10 new tests: R98 jump DP wired, R107 downgrade error dict, R81 coalition cleanup, R107 ternary cleanup)
+> **Last Updated:** March 2026 (Phase 3 Balance Tuning COMPLETE — 13 balance items, 44 new tests, 5498 total passing)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **5454** (5454 passed, 3 skipped — verified Mar 6, Phase 2B+ Confidence Follow-up) |
+| **Tests Passing** | **5498** (5498 passed, 3 skipped — verified Phase 3 Balance Tuning) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -39,7 +39,7 @@
    - ~~**Phase 2A: State Cleanup — Diplomacy Core**~~ — **DONE** (17 fixes, 69 tests). War score canonical helper, armistice system, treaty gold floor, cleanup_war_end, dispatch events, template slots, vassal diplomacy reconciliation.
    - ~~**Phase 2B: State Cleanup — Vassal, AI-AI, War**~~ — **DONE** (22 fixes, 50 tests). Rebellion cleanup, vassalizing coalition members, AI-AI ratification bypass, stalemate counter reset, alliance conflict check, declare_war treaty cleanup.
    - ~~**Phase 2B+ Confidence Fixes**~~ — **DONE** (5 fixes, 16 tests + 4 follow-up sub-fixes, 10 tests). R113: gold_per_turn income validation. R98: diplomatic state jumps (cumulative DP) + jump DP wired to executor. R107/R108: unified _ratify_treaty (Building Blocks) + downgrade error dict for player + ternary cleanup. R81: nation elimination removes marshals + coalition member cleanup.
-   - **Phase 3: Balance Tuning** — Relation decay, COURT_NATION speed, trade diminishing returns, military pressure, battle threshold, coalition stalemate, P3 activation. ~13 changes.
+   - ~~**Phase 3: Balance Tuning**~~ — **DONE** (13 balance items, 44 tests). R104 sweetener value=0 bug, R20 diplomat skill cap, R8 military pressure, R6 trade diminishing returns, R18 CS cost, R4b court speed, R9 battle threshold, R4a relation decay, R14 vassal release cooldown, R16 region capture threat, R11 coalition stalemate, R106 P3 AI trigger, R15 AI-AI rivalry.
    - **Phase 4: Commands, QoL, Popup Architecture** — War declaration, ultimatums, acceptance preview, ledger improvements, popup early-return cascade fix, notification cleanup. ~27 fixes.
    - **After Phase 4: UI Test Plan** — Claude generates comprehensive UI test plan. Manual playtest in Godot. DP display investigation (R39). Verify all fixes.
    - **Post-UI-Test: Feature Design Session** — Evaluate deferred nice-to-have features (marriages, secret treaties, conferences, ceremonies, etc). 16 items.

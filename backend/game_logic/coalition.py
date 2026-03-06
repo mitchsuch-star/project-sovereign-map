@@ -912,11 +912,18 @@ def process_coalition_turn(world) -> List[Dict]:
         state = _get_diplo_state(world, france, nation)
         current_we = world.war_exhaustion.get(nation, 0)
         if state == "WAR":
-            new_we = min(current_we + 5, WAR_EXHAUSTION_MAX)
+            new_we = min(current_we + 8, WAR_EXHAUSTION_MAX)  # R11: was +5
         else:
             new_we = max(current_we - 5, 0)
         if new_we != current_we:
             world.war_exhaustion[nation] = int(new_we)
+
+    # ────────── 3b. Coalition member relation friction (R11) ──────────
+    if world.active_coalition:
+        members = world.active_coalition.get("members", [])
+        for i, member_a in enumerate(members):
+            for member_b in members[i + 1:]:
+                world.modify_nation_relation(member_a, member_b, -2)
 
     # ────────── 4. British subsidy (§4e) ──────────
     subsidy_events = _process_british_subsidy(world)

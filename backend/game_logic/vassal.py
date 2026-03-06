@@ -73,6 +73,14 @@ def create_vassal_treaty(world, lord: str, vassal: str, generosity_bonus: int = 
             "message": f"{vassal} is already a vassal of {world.vassals[vassal]['lord']}."
         }
 
+    # R14: Check release cooldown (blocks treaty-cycle exploit)
+    cooldowns = getattr(world, 'vassal_release_cooldowns', {})
+    if cooldowns.get(vassal, 0) > 0:
+        return {
+            "success": False,
+            "message": f"Cannot vassalize {vassal}: recently released ({cooldowns[vassal]} turns remaining)."
+        }
+
     # Calculate loyalty
     loyalty = min(LOYALTY_MAX, 60 + (generosity_bonus * 10))
 
@@ -810,6 +818,11 @@ def release_vassal(world, vassal_name: str, rebellion: bool = False) -> dict:
     # Remove vassal state
     del world.vassals[vassal_name]
 
+    # R14: Set release cooldown (blocks treaty re-vassalization for 5 turns)
+    if not hasattr(world, 'vassal_release_cooldowns'):
+        world.vassal_release_cooldowns = {}
+    world.vassal_release_cooldowns[vassal_name] = 5
+
     # R50: Remove from Continental System on release
     cs_members = getattr(world, 'continental_system_members', [])
     if isinstance(cs_members, set):
@@ -839,7 +852,7 @@ def release_vassal(world, vassal_name: str, rebellion: bool = False) -> dict:
 # ═══════════════════════════════════════════════════════
 
 def decrement_vassal_cooldowns(world) -> None:
-    """Decrement vassal investment cooldowns by 1. Remove expired."""
+    """Decrement vassal investment and release cooldowns by 1. Remove expired."""
     cooldowns = getattr(world, 'vassal_investment_cooldowns', {})
     expired = []
     for vassal_name in cooldowns:
@@ -849,6 +862,16 @@ def decrement_vassal_cooldowns(world) -> None:
     for vassal_name in expired:
         del cooldowns[vassal_name]
     world.vassal_investment_cooldowns = cooldowns
+
+    # R14: Release cooldowns
+    release_cds = getattr(world, 'vassal_release_cooldowns', {})
+    expired_r = [n for n in release_cds if release_cds[n] <= 1]
+    for n in release_cds:
+        if n not in expired_r:
+            release_cds[n] -= 1
+    for n in expired_r:
+        del release_cds[n]
+    world.vassal_release_cooldowns = release_cds
 
 
 # ═══════════════════════════════════════════════════════

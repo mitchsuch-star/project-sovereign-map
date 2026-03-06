@@ -520,8 +520,20 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
             terms = _build_proposal_terms(nation, ptype, war_score, world)
             proposal = _make_proposal(nation, "armistice", 2, terms, world)
 
-    # ── P3: Threat > 60 AND not allied [DEFERRED] ──
-    # Returns None — wired when threat system is implemented (Session 7)
+    # ── P3: Threat > 60 AND not allied → seek alliance (R106) ──
+    if proposal is None and not is_at_war:
+        threat = int(getattr(world, 'threat_level', 0))
+        if threat > 60:
+            if diplo_state not in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
+                if relation > 20:
+                    ptype = "defensive_alliance"
+                elif relation > 0:
+                    ptype = "non_aggression"
+                else:
+                    ptype = None
+                if ptype and not _is_on_cooldown(nation, ptype, world):
+                    terms = _build_proposal_terms(nation, ptype, 0, world)
+                    proposal = _make_proposal(nation, ptype, 3, terms, world)
 
     # ── P4: Relation > +30 AND at peace → propose upgrade ──
     if proposal is None and not is_at_war and relation > 30:
@@ -1038,6 +1050,94 @@ def check_alliance_conflict(
 # AI-AI DIPLOMACY (§9c) — Session 8D
 # ═══════════════════════════════════════════════════════════════
 
+def _process_ai_ai_rivalry(world) -> List[Dict]:
+    """R15: AI-AI diplomacy degradation.
+
+    Trigger 1 — Adjacency Rivalry: AI nations controlling adjacent regions AND relation > 0 → -3 rel/turn.
+    Trigger 2 — Opportunistic Downgrade: AI nation with troops > 2x another AND relation < +30 → one-step downgrade.
+
+    Returns events list for campaign log.
+    """
+    player = getattr(world, 'player_nation', 'France')
+    enemy_nations = list(getattr(world, 'enemy_nations', []))
+    events = []
+
+    # Build territory map: nation → set of regions
+    nation_regions: Dict[str, set] = {}
+    for rname, region in world.regions.items():
+        ctrl = getattr(region, 'controller', None)
+        if ctrl and ctrl != player:
+            nation_regions.setdefault(ctrl, set()).add(rname)
+
+    # Build troop counts per nation
+    nation_troops: Dict[str, int] = {}
+    for marshal in world.marshals.values():
+        if marshal.nation != player:
+            nation_troops[marshal.nation] = nation_troops.get(marshal.nation, 0) + getattr(marshal, 'strength', 0)
+
+    downgraded_this_turn: set = set()  # Track pairs already downgraded
+
+    for i, nation_a in enumerate(enemy_nations):
+        for nation_b in enemy_nations[i + 1:]:
+            diplo_key = world._make_diplo_key(nation_a, nation_b)
+            relation = world.nation_relations.get(diplo_key, 0)
+            state = world.diplomatic_states.get(diplo_key, "PEACE")
+
+            # Trigger 1: Adjacency Rivalry
+            if relation > 0:
+                regions_a = nation_regions.get(nation_a, set())
+                regions_b = nation_regions.get(nation_b, set())
+                adjacent = False
+                for rname in regions_a:
+                    region_obj = world.regions.get(rname)
+                    if region_obj:
+                        for adj in getattr(region_obj, 'adjacent_regions', []):
+                            if adj in regions_b:
+                                adjacent = True
+                                break
+                    if adjacent:
+                        break
+                if adjacent:
+                    world.modify_nation_relation(nation_a, nation_b, -3)
+                    events.append({
+                        "type": "ai_ai_rivalry",
+                        "nations": [nation_a, nation_b],
+                        "message": f"Territorial rivalry between {nation_a} and {nation_b} grows.",
+                    })
+
+            # Trigger 2: Opportunistic Downgrade
+            if relation < 30 and state != "PEACE" and state != "WAR" and state != "ARMISTICE":
+                pair_key = f"{nation_a}|{nation_b}"
+                if pair_key not in downgraded_this_turn:
+                    troops_a = nation_troops.get(nation_a, 0)
+                    troops_b = nation_troops.get(nation_b, 0)
+                    stronger, weaker = (nation_a, nation_b) if troops_a > troops_b else (nation_b, nation_a)
+                    stronger_troops = max(troops_a, troops_b)
+                    weaker_troops = min(troops_a, troops_b)
+                    if weaker_troops > 0 and stronger_troops > 2 * weaker_troops:
+                        from backend.game_logic.diplomacy import _DOWNGRADE_ORDER, DOWNGRADE_PENALTIES
+                        if state in _DOWNGRADE_ORDER:
+                            idx = _DOWNGRADE_ORDER.index(state)
+                            if idx < len(_DOWNGRADE_ORDER) - 1:
+                                new_state = _DOWNGRADE_ORDER[idx + 1]
+                                world.diplomatic_states[diplo_key] = new_state
+                                # Apply relation penalty from DOWNGRADE_PENALTIES
+                                penalty_key = (state, new_state)
+                                penalty = DOWNGRADE_PENALTIES.get(penalty_key, {})
+                                rel_hit = penalty.get("relation_target", -10)
+                                world.modify_nation_relation(nation_a, nation_b, rel_hit)
+                                downgraded_this_turn.add(pair_key)
+                                events.append({
+                                    "type": "ai_ai_downgrade",
+                                    "nations": [nation_a, nation_b],
+                                    "from_state": state,
+                                    "to_state": new_state,
+                                    "message": f"{stronger} has downgraded relations with {weaker}: {state} → {new_state}.",
+                                })
+
+    return events
+
+
 _AI_AI_MAX_TREATIES_PER_TURN = 2
 
 
@@ -1049,6 +1149,9 @@ def process_ai_ai_diplomatic_phase(world) -> List[Dict]:
 
     Returns list of treaty event dicts (for campaign log wiring).
     """
+    # R15: Process AI-AI rivalry degradation first
+    rivalry_events = _process_ai_ai_rivalry(world)
+
     player = getattr(world, 'player_nation', 'France')
     enemy_nations = list(getattr(world, 'enemy_nations', []))
     treaties_this_turn = 0
@@ -1089,7 +1192,7 @@ def process_ai_ai_diplomatic_phase(world) -> List[Dict]:
                     events.append(event)
                     treaties_this_turn += 1
 
-    return events
+    return rivalry_events + events
 
 
 def _evaluate_ai_ai_proposal(nation_a: str, nation_b: str, world) -> Optional[Dict]:

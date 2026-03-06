@@ -613,54 +613,56 @@ class TestDPEconomy:
 # ═══════════════════════════════════════════════════════
 
 class TestTradeIncome:
+    """R6: Trade income with diminishing returns [1.0, 0.75, 0.50, 0.25]."""
+
     def test_france_trade_income(self):
-        """France: +50 (Austria PEACE) + 100 (Saxony OB) = +150."""
+        """France: Saxony OB(100*1.0) + Austria PEACE(50*0.75) = 137."""
         world = make_world()
         pre_gold = world.nation_gold["France"]
         trade = process_trade_income(world)
-        assert trade.get("France", 0) == 150
-        assert world.nation_gold["France"] == pre_gold + 150
+        assert trade.get("France", 0) == 137
+        assert world.nation_gold["France"] == pre_gold + 137
 
     def test_britain_trade_income(self):
-        """Britain: +200 (Prussia ALLIANCE) + 150 (Austria NON_AGG) + 50 (Saxony PEACE) = +400."""
+        """Britain: Prussia ALLIANCE(200*1.0) + Austria NON_AGG(150*0.75) + Saxony PEACE(50*0.50) = 337."""
         world = make_world()
         pre_gold = world.nation_gold["Britain"]
         trade = process_trade_income(world)
-        assert trade.get("Britain", 0) == 400
-        assert world.nation_gold["Britain"] == pre_gold + 400
+        assert trade.get("Britain", 0) == 337
+        assert world.nation_gold["Britain"] == pre_gold + 337
 
     def test_prussia_trade_income(self):
-        """Prussia: +200 (Britain ALLIANCE) + 150 (Austria DEF_ALLIANCE) + 50 (Saxony PEACE) = +400."""
+        """Prussia: Britain ALLIANCE(200*1.0) + Austria DEF_ALL(150*0.75) + Saxony PEACE(50*0.50) = 337."""
         world = make_world()
         trade = process_trade_income(world)
-        assert trade.get("Prussia", 0) == 400
+        assert trade.get("Prussia", 0) == 337
 
     def test_austria_trade_income(self):
-        """Austria: +50 (France PEACE) + 150 (Britain NON_AGG) + 150 (Prussia DEF_ALLIANCE) + 50 (Saxony PEACE) = +400."""
+        """Austria: Prussia DEF_ALL(150*1.0) + Britain NON_AGG(150*0.75) + France PEACE(50*0.50) + Saxony PEACE(50*0.25) = 299."""
         world = make_world()
         trade = process_trade_income(world)
-        assert trade.get("Austria", 0) == 400
+        assert trade.get("Austria", 0) == 299
 
     def test_saxony_trade_income(self):
-        """Saxony: +100 (France OB) + 50 (Britain PEACE) + 50 (Prussia PEACE) + 50 (Austria PEACE) = +250."""
+        """Saxony: France OB(100*1.0) + Austria PEACE(50*0.75) + Britain PEACE(50*0.50) + Prussia PEACE(50*0.25) = 174."""
         world = make_world()
         trade = process_trade_income(world)
-        assert trade.get("Saxony", 0) == 250
+        assert trade.get("Saxony", 0) == 174
 
     def test_war_gives_no_trade(self):
         world = make_world()
         trade = process_trade_income(world)
         # France-Britain and France-Prussia are at WAR — should contribute 0
-        # France total should be 150 (only Austria PEACE + Saxony OB)
-        assert trade.get("France", 0) == 150
+        # France: Saxony OB(100*1.0) + Austria PEACE(50*0.75) = 137
+        assert trade.get("France", 0) == 137
 
     def test_state_change_affects_trade(self):
         world = make_world()
         # Change France-Austria from PEACE to ALLIANCE
         world.diplomatic_states["Austria|France"] = "ALLIANCE"
         trade = process_trade_income(world)
-        # France: 200 (Austria ALLIANCE) + 100 (Saxony OB) = 300
-        assert trade.get("France", 0) == 300
+        # France: ALLIANCE(200*1.0) + Saxony OB(100*0.75) = 200 + 75 = 275
+        assert trade.get("France", 0) == 275
 
 
 # ═══════════════════════════════════════════════════════

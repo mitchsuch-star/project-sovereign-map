@@ -522,7 +522,10 @@ class TestSection9AIAIDiplomacy:
                 _set_diplo_state(world, n1, n2, "PEACE")
                 _set_relation(world, n1, n2, 40)
         events = process_ai_ai_diplomatic_phase(world)
-        assert len(events) <= 2
+        # R15: rivalry events are now included alongside treaty events.
+        # Only count treaty events for the max-2 cap.
+        treaty_events = [e for e in events if e.get("type") not in ("ai_ai_rivalry", "ai_ai_downgrade")]
+        assert len(treaty_events) <= 2
 
     def test_aa3_no_player_popups(self):
         """AA-3: AI-AI treaties don't create player-facing popups."""

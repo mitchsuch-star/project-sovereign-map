@@ -89,12 +89,13 @@ MISSION_DP_COSTS = {
     "GATHER_INTEL": 1,
     "UNDERMINE_ALLIANCE": 2,
     "REASSURE_ALLY": 1,
+    "CONTINENTAL_SYSTEM": 1,  # R18: Explicit (was defaulting to 1 via .get)
 }
 
 # ═══════ MISSION EFFECTS ═══════
 MISSION_EFFECTS = {
     "IMPROVE_RELATIONS": {"relation_change": 5},
-    "COURT_NATION": {"relation_change": 8, "undermine_chance": 0.20, "undermine_amount": -3},
+    "COURT_NATION": {"relation_change": 5, "undermine_chance": 0.20, "undermine_amount": -3},
     "GATHER_INTEL": {"duration": 3},
     "UNDERMINE_ALLIANCE": {"target_pair_relation_change": -3},
     "REASSURE_ALLY": {"relation_change": 3},
