@@ -125,78 +125,78 @@ def _get_talleyrand_mission_summary(w) -> str:
 
 
 def _include_popup_passthroughs(response: dict, world) -> None:
-    """Read popup fields from world, include in response, clear from world.
+    """Read the HIGHEST-PRIORITY popup from world, include in response, clear from world.
 
-    Audit fix: This was previously only done in the normal response path,
-    but the diplomatic early return skipped it — causing popup data loss.
-    Also used for deferred popup delivery (when enemy_phase defers popups).
+    R76 Priority Queue: Only one popup per response cycle. Lower-priority popups
+    remain on world and are delivered in subsequent request cycles.
+
+    Priority order (highest first):
+      1. coalition_popup
+      2. diplomatic_sabotage_popup
+      3. vassal_rebellion_imminent_popup
+      4. talleyrand_redemption_popup
+      5. diplomatic_objection_popup
+      6. incoming_proposal_popup
+      7. alliance_paradox_popup
 
     Keys are ALWAYS included (None if not set) so Godot can rely on their presence.
     """
-    # Coalition declaration popup
-    coalition_popup = getattr(world, 'coalition_popup', None)
-    if coalition_popup is not None:
-        response["coalition_popup"] = coalition_popup
-        world.coalition_popup = None
-    else:
-        response["coalition_popup"] = None
+    # Priority-ordered list: (world_attr, response_key)
+    _POPUP_PRIORITY = [
+        ("coalition_popup", "coalition_popup"),
+        ("diplomatic_sabotage_popup", "diplomatic_sabotage"),
+        ("vassal_rebellion_imminent_popup", "vassal_rebellion_imminent"),
+        ("talleyrand_redemption_popup", "talleyrand_redemption"),
+        ("diplomatic_objection_popup", "diplomatic_objection"),
+        ("incoming_proposal_popup", "incoming_proposal"),
+        ("alliance_paradox_popup", "alliance_paradox_popup"),
+    ]
 
-    # Diplomatic sabotage discovery popup
-    diplomatic_sabotage = getattr(world, 'diplomatic_sabotage_popup', None)
-    if diplomatic_sabotage is not None:
-        response["diplomatic_sabotage"] = diplomatic_sabotage
-        world.diplomatic_sabotage_popup = None
-    else:
-        response["diplomatic_sabotage"] = None
+    # Find highest-priority popup that is set on world
+    winner_attr = None
+    winner_key = None
+    winner_value = None
+    for world_attr, response_key in _POPUP_PRIORITY:
+        value = getattr(world, world_attr, None)
+        if value is not None and winner_attr is None:
+            winner_attr = world_attr
+            winner_key = response_key
+            winner_value = value
 
-    # Vassal rebellion imminent popup
-    vassal_rebellion_imminent = getattr(world, 'vassal_rebellion_imminent_popup', None)
-    if vassal_rebellion_imminent is not None:
-        response["vassal_rebellion_imminent"] = vassal_rebellion_imminent
-        world.vassal_rebellion_imminent_popup = None
-    else:
-        response["vassal_rebellion_imminent"] = None
+    # Include the winner in response and clear from world (Golden Rule 4)
+    if winner_attr is not None:
+        response[winner_key] = winner_value
+        setattr(world, winner_attr, None)
 
-    # Talleyrand redemption popup
-    talleyrand_redemption = getattr(world, 'talleyrand_redemption_popup', None)
-    if talleyrand_redemption is not None:
-        response["talleyrand_redemption"] = talleyrand_redemption
-        world.talleyrand_redemption_popup = None
-    else:
-        response["talleyrand_redemption"] = None
-
-    # Diplomatic objection popup
-    diplomatic_objection = getattr(world, 'diplomatic_objection_popup', None)
-    if diplomatic_objection is not None:
-        response["diplomatic_objection"] = diplomatic_objection
-        world.diplomatic_objection_popup = None
-    else:
-        response["diplomatic_objection"] = None
-
-    # Incoming proposal popup
-    incoming_proposal = getattr(world, 'incoming_proposal_popup', None)
-    if incoming_proposal is not None:
-        response["incoming_proposal"] = incoming_proposal
-        world.incoming_proposal_popup = None
-    elif (world.pending_diplomatic_dialogue
-          and world.pending_diplomatic_dialogue.get("type") == "incoming_proposal"
-          and "incoming_proposal" not in response):
-        # Safety valve: re-derive popup from pending dialogue
-        # (incoming_proposal_popup may have been cleared in a previous response)
-        dialogue = world.pending_diplomatic_dialogue
-        context = dialogue.get("context", {})
-        response["incoming_proposal"] = {
-            "from_nation": dialogue.get("target_nation", "Unknown"),
-            "diplomat_name": context.get("diplomat_name", "Unknown diplomat"),
-            "diplomat_personality": context.get("diplomat_personality", "unknown"),
-            "proposal_type": context.get("proposal", {}).get("type", "unknown"),
-            "clauses": [],
-            "talleyrand_assessment": dialogue.get("talleyrand_text", ""),
-            "acceptance_hint": "Review the proposal carefully.",
-            "rejection_hint": "",
-        }
-    else:
-        response["incoming_proposal"] = None
+    # Set all non-winner response keys to None so Godot can rely on key presence
+    for world_attr, response_key in _POPUP_PRIORITY:
+        if response_key not in response:
+            # Special case: incoming_proposal safety valve from pending dialogue
+            if (response_key == "incoming_proposal"
+                    and world.pending_diplomatic_dialogue
+                    and world.pending_diplomatic_dialogue.get("type") == "incoming_proposal"
+                    and winner_attr is not None):
+                # A higher-priority popup won — don't derive incoming_proposal from dialogue
+                response[response_key] = None
+            elif (response_key == "incoming_proposal"
+                    and winner_attr is None
+                    and world.pending_diplomatic_dialogue
+                    and world.pending_diplomatic_dialogue.get("type") == "incoming_proposal"):
+                # No popup won, but there's a pending incoming proposal dialogue — safety valve
+                dialogue = world.pending_diplomatic_dialogue
+                context = dialogue.get("context", {})
+                response["incoming_proposal"] = {
+                    "from_nation": dialogue.get("target_nation", "Unknown"),
+                    "diplomat_name": context.get("diplomat_name", "Unknown diplomat"),
+                    "diplomat_personality": context.get("diplomat_personality", "unknown"),
+                    "proposal_type": context.get("proposal", {}).get("type", "unknown"),
+                    "clauses": [],
+                    "talleyrand_assessment": dialogue.get("talleyrand_text", ""),
+                    "acceptance_hint": "Review the proposal carefully.",
+                    "rejection_hint": "",
+                }
+            else:
+                response[response_key] = None
 
 
 def _filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
@@ -542,6 +542,7 @@ def execute_command(request: CommandRequest):
                 "proceed", "cancel", "confront", "overlook",
                 "apologize", "replace", "continue", "invest", "garrison",
                 "send", "execute", "reconsider", "modify",
+                "honor", "side",
             ]
             matched_keyword = None
             for keyword in _DIALOGUE_RESPONSE_KEYWORDS:
@@ -627,6 +628,7 @@ def execute_command(request: CommandRequest):
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
             cleaned["game_state"] = world.get_filtered_game_state_summary()
+            _include_popup_passthroughs(cleaned, world)
             if world.notifications.has_pending():
                 cleaned["notifications"] = world.notifications.get_pending()
             return cleaned
@@ -636,6 +638,7 @@ def execute_command(request: CommandRequest):
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
             cleaned["game_state"] = world.get_filtered_game_state_summary()
+            _include_popup_passthroughs(cleaned, world)
             if world.notifications.has_pending():
                 cleaned["notifications"] = world.notifications.get_pending()
             return cleaned
@@ -648,6 +651,7 @@ def execute_command(request: CommandRequest):
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
             cleaned["game_state"] = world.get_filtered_game_state_summary()
+            _include_popup_passthroughs(cleaned, world)
             if world.notifications.has_pending():
                 cleaned["notifications"] = world.notifications.get_pending()
             return cleaned
@@ -660,6 +664,7 @@ def execute_command(request: CommandRequest):
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
             cleaned["game_state"] = world.get_filtered_game_state_summary()
+            _include_popup_passthroughs(cleaned, world)
             if world.notifications.has_pending():
                 cleaned["notifications"] = world.notifications.get_pending()
             return cleaned
@@ -673,6 +678,7 @@ def execute_command(request: CommandRequest):
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
             cleaned["game_state"] = world.get_filtered_game_state_summary()
+            _include_popup_passthroughs(cleaned, world)
             if world.notifications.has_pending():
                 cleaned["notifications"] = world.notifications.get_pending()
             return cleaned
@@ -685,6 +691,7 @@ def execute_command(request: CommandRequest):
             cleaned = {k: v for k, v in result.items() if k != "new_state"}
             cleaned["action_summary"] = world.get_action_summary()
             cleaned["game_state"] = world.get_filtered_game_state_summary()
+            _include_popup_passthroughs(cleaned, world)
             if world.notifications.has_pending():
                 cleaned["notifications"] = world.notifications.get_pending()
             return cleaned
@@ -1028,6 +1035,9 @@ def respond_to_objection(request: ObjectionResponse):
             # Store pending redemption for the endpoint
             world.pending_redemption = result["redemption_event"]
             print(f"[ALERT] REDEMPTION TRIGGERED for {result['redemption_event']['marshal']}")
+
+        # R88: Include popup pass-throughs on objection response
+        _include_popup_passthroughs(response, world)
 
         # Notifications — insist can cause battle → combat notifications
         if world.notifications.has_pending():

@@ -75,6 +75,9 @@ class CommandParser:
             # Diplomatic actions — break/downgrade (Phase 8 wiring)
             "diplomatic_break",      # Break an active treaty
             "diplomatic_downgrade",  # Voluntarily downgrade diplomatic state
+            # Diplomatic actions — Phase 4 (war declaration, ultimatum)
+            "diplomatic_declare_war",  # Declare war on a nation
+            "diplomatic_ultimatum",    # Issue ultimatum to a nation
         ]
 
         # Valid stances for stance_change command (Phase 2.7)

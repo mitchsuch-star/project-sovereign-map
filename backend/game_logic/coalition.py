@@ -80,7 +80,7 @@ def _get_diplo_key(a: str, b: str) -> str:
 
 def _get_relation(world, a: str, b: str) -> int:
     """Get relation between two nations."""
-    return world.nation_relations.get(_get_diplo_key(a, b), 0)
+    return world.nation_relations.get(_get_diplo_key(a, b), 0) or 0
 
 
 def _get_diplo_state(world, a: str, b: str) -> str:
@@ -598,6 +598,10 @@ def form_coalition(qualifying_nations: List[str], world) -> Dict:
         if m.nation in all_members and m.strength > 0
     )
 
+    # R84: Dismiss superseded TENSION/MURMURS notifications on coalition formation
+    world.notifications.dismiss_by_type(COALITION_THREAT_TENSION)
+    world.notifications.dismiss_by_type(COALITION_MURMURS)
+
     # 8. Notification
     world.notifications.add(create_notification(
         COALITION_DECLARED,
@@ -720,6 +724,9 @@ def dissolve_coalition(world, reason: str) -> List[Dict]:
 
     # Clear coalition state
     world.active_coalition = None
+
+    # R84: Dismiss superseded COALITION_DECLARED notification on dissolution
+    world.notifications.dismiss_by_type(COALITION_DECLARED)
 
     # Start cooldown (§7c)
     world.coalition_cooldown = COALITION_COOLDOWN_TURNS

@@ -166,6 +166,18 @@ FEEDBACK_STRINGS = {
         "negative": "their specific strategic interests were not addressed",
         "positive": "we addressed their core strategic interest",
     },
+    "coalition_penalty": {
+        "negative": "coalition loyalty binds them against us",
+        "positive": "coalition obligations have weakened",
+    },
+    "harshness_bonus": {
+        "negative": "memory of past harsh treaties",
+        "positive": "prior harsh terms make them more pliable",
+    },
+    "reliability_modifier": {
+        "negative": "France's reputation for breaking agreements",
+        "positive": "France's record of honoring treaties",
+    },
 }
 
 # ═══════ SWEETENER / DEMAND VALUES ═══════
@@ -643,6 +655,12 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
             harshness_bonus = 5
             break
 
+    # ── Diplomatic Reliability (R34) ──
+    reliability = getattr(world, 'diplomatic_reliability', {})
+    proposer_reliability = reliability.get(proposer, 0)
+    # Cap contribution at +/-10
+    reliability_modifier = max(-10, min(10, proposer_reliability // 5))
+
     # ── Sum ──
     raw_score = (
         base
@@ -656,6 +674,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         + situational_bonus
         + special_desire_bonus
         + harshness_bonus
+        + reliability_modifier
     )
 
     score = int(round(raw_score))
@@ -682,6 +701,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         "military_pressure": military_pressure,
         "special_desire_bonus": special_desire_bonus,
         "harshness_bonus": harshness_bonus,
+        "reliability_modifier": reliability_modifier,
     }
 
     # ── Feedback (§6f) ──
@@ -702,6 +722,7 @@ def _generate_feedback(outcome: str, components: Dict) -> str:
         "base_disposition", "war_score_modifier", "relation_modifier",
         "threat_modifier", "deal_balance", "diplomat_skill_bonus",
         "personality_modifier", "special_desire_bonus",
+        "coalition_penalty", "harshness_bonus", "reliability_modifier",
     }
 
     largest_positive = ("", 0)
@@ -805,8 +826,14 @@ def modify_nation_authority(world, nation: str, delta: int) -> int:
 # WAR DECLARATION & CASCADE
 # ═══════════════════════════════════════════════════════
 
-def declare_war(world, aggressor: str, target: str) -> Dict:
+def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -> Dict:
     """Declare war: transition to WAR, apply penalties, handle cascade.
+
+    Args:
+        world: WorldState
+        aggressor: Nation declaring war
+        target: Nation being declared upon
+        casus_belli: If True, halve relation penalties (R21 ultimatum rejection)
 
     Returns:
         {"success": bool, "message": str, "cascade": list of cascade entries,
@@ -833,17 +860,20 @@ def declare_war(world, aggressor: str, target: str) -> Dict:
     active_treaties = getattr(world, 'active_treaties', {})
     active_treaties.pop(diplo_key, None)
 
-    # Penalties
+    # Penalties (halved with casus belli from rejected ultimatum)
+    penalty_factor = 0.5 if casus_belli else 1.0
     relation_changes = []
-    world.modify_nation_relation(aggressor, target, -30)
-    relation_changes.append({"nations": (aggressor, target), "delta": -30})
+    direct_penalty = int(-30 * penalty_factor)
+    world.modify_nation_relation(aggressor, target, direct_penalty)
+    relation_changes.append({"nations": (aggressor, target), "delta": direct_penalty})
 
-    # -15 with ALL other nations
+    # Penalty with ALL other nations (also halved with casus belli)
+    indirect_penalty = int(-15 * penalty_factor)
     all_nations = [world.player_nation] + list(getattr(world, 'enemy_nations', []))
     for nation in all_nations:
         if nation != aggressor and nation != target:
-            world.modify_nation_relation(aggressor, nation, -15)
-            relation_changes.append({"nations": (aggressor, nation), "delta": -15})
+            world.modify_nation_relation(aggressor, nation, indirect_penalty)
+            relation_changes.append({"nations": (aggressor, nation), "delta": indirect_penalty})
 
     # Coalition threat: +20 for France declaring war (§2a)
     if aggressor == world.player_nation:
@@ -867,8 +897,57 @@ def declare_war(world, aggressor: str, target: str) -> Dict:
         "previous_state": current_state,
     })
 
+    # ── R12: ALLIANCE PARADOX CHECK (must run BEFORE cascade) ──
+    # If both aggressor and target are allied with the player, the player
+    # faces a paradox: honoring one alliance means breaking the other.
+    # The cascade must skip the player so the player can choose.
+    has_paradox = False
+    player = world.player_nation
+    if aggressor != player and target != player:
+        aggressor_state = world.get_diplomatic_state(player, aggressor)
+        target_state = world.get_diplomatic_state(player, target)
+        alliance_states = ("ALLIANCE", "DEFENSIVE_ALLIANCE")
+        if aggressor_state in alliance_states and target_state in alliance_states:
+            has_paradox = True
+            paradox_msg = (
+                f"Sire, a crisis! {aggressor} has declared war on {target}. "
+                f"We are allied with both nations. We must choose a side."
+            )
+            world.alliance_paradox_popup = {
+                "attacker": aggressor,
+                "defender": target,
+                "attacker_alliance": aggressor_state,
+                "defender_alliance": target_state,
+                "message": paradox_msg,
+            }
+            # Set up dialogue for choice handling
+            world.pending_diplomatic_dialogue = {
+                "type": "alliance_paradox",
+                "target_nation": "",
+                "talleyrand_text": paradox_msg,
+                "options": [
+                    {
+                        "label": f"Honor alliance with {target}",
+                        "description": f"Go to war with {aggressor} in defense of {target}.",
+                        "action": "honor_defender",
+                        "terms": {"attacker": aggressor, "defender": target},
+                    },
+                    {
+                        "label": f"Side with {aggressor}",
+                        "description": f"Break our alliance with {target}.",
+                        "action": "break_defender_alliance",
+                        "terms": {"attacker": aggressor, "defender": target},
+                    },
+                ],
+                "context": {"attacker": aggressor, "defender": target},
+                "turn_created": int(world.current_turn),
+                "blocking": True,
+            }
+
     # ── DEFENSIVE_ALLIANCE CASCADE ──
-    cascade = _process_war_cascade(world, aggressor, target)
+    # If paradox detected, exclude the player from cascade (player must choose)
+    cascade_skip = {aggressor, target, player} if has_paradox else None
+    cascade = _process_war_cascade(world, aggressor, target, processed=cascade_skip)
 
     # Notification: war declared (Session 8C)
     from backend.notifications import (
@@ -887,6 +966,18 @@ def declare_war(world, aggressor: str, target: str) -> Dict:
     queue_dispatch_event(world, "diplomatic_war_declared",
                         {"nation": aggressor, "target": target},
                         "partial_on_nation")
+
+    # R29: Log to diplomatic history
+    diplomatic_history = getattr(world, 'diplomatic_history', [])
+    diplomatic_history.append({
+        "turn": int(world.current_turn),
+        "type": "war_declared",
+        "nation": aggressor,
+        "target": target,
+    })
+    if len(diplomatic_history) > 20:
+        diplomatic_history[:] = diplomatic_history[-20:]
+    world.diplomatic_history = diplomatic_history
 
     messages = [f"{aggressor} declares war on {target}!"]
     for c in cascade:
@@ -1234,6 +1325,10 @@ def process_diplomacy_turn(world) -> List[Dict]:
     # ── 1. DP regeneration ──
     _process_dp_regen(world)
 
+    # ── 1b. R90: Auto-cancel mission if target nation eliminated ──
+    mission_cancel_events = _check_mission_target_eliminated(world)
+    events.extend(mission_cancel_events)
+
     # ── 2. Mission DP deduction (Session 3) ──
     mission_events = _process_mission_dp(world)
     events.extend(mission_events)
@@ -1274,7 +1369,8 @@ def process_diplomacy_turn(world) -> List[Dict]:
     downgrade_events = check_auto_downgrade(world)
     events.extend(downgrade_events)
 
-    # TODO: 14. Proactive suggestion evaluation (Session 4)
+    # ── 14. Diplomatic reliability (R34) ──
+    _process_diplomatic_reliability(world)
 
     # ── Nation authority changes ──
     _process_nation_authority(world)
@@ -1552,10 +1648,61 @@ def _process_mission_effects(world) -> List[Dict]:
             "mission_type": mission_type,
             "message": f"Talleyrand has completed his intelligence gathering on {target}.",
         })
+        # R92: Dispatch event for mission completion
+        from backend.game_logic.dispatch import queue_dispatch_event
+        queue_dispatch_event(world, "diplomatic_mission_completed",
+                            {"nation": target}, "player_mission")
         # Stub: no intel revealed yet (Session 4+)
 
     # UNDERMINE_ALLIANCE: stub (requires intel system)
     # COURT_NATION undermine chance: stub
+
+    return events
+
+
+def _check_mission_target_eliminated(world) -> List[Dict]:
+    """R90: Auto-cancel active diplomatic mission if target nation is eliminated.
+
+    A nation is eliminated when it has 0 regions AND 0 living marshals.
+    Called early in process_diplomacy_turn before mission DP deduction.
+
+    Returns list of events (0 or 1 cancellation event).
+    """
+    events = []
+    mission = getattr(world, 'active_diplomatic_mission', None)
+    if not mission or mission.get("completed"):
+        return events
+
+    target = mission.get("target", "")
+    if not target:
+        return events
+
+    # Check if target nation has 0 regions
+    has_regions = any(
+        getattr(r, 'controller', '') == target
+        for r in world.regions.values()
+    )
+    # Check if target nation has 0 living marshals
+    has_marshals = any(
+        m.nation == target and m.strength > 0
+        for m in world.marshals.values()
+    )
+
+    if not has_regions and not has_marshals:
+        # Nation eliminated — cancel mission
+        world.active_diplomatic_mission = None
+        if getattr(world, 'talleyrand_state', '') == "ON_MISSION":
+            world.talleyrand_state = "IDLE"
+        events.append({
+            "type": "diplomatic_mission_cancelled",
+            "target": target,
+            "reason": "nation_eliminated",
+            "message": f"Talleyrand's mission to {target} cancelled — the nation no longer exists.",
+        })
+        world.log_event({
+            "type": "diplomatic_mission_cancelled_eliminated",
+            "target": target,
+        })
 
     return events
 
@@ -1651,11 +1798,30 @@ def break_treaty(pair_key: str, breaker_nation: str, world) -> Dict:
                         {"nation": breaker_nation, "treaty_type": treaty_type},
                         "partial_on_nation")
 
+    # R34: Decrease diplomatic reliability for breaker
+    reliability = getattr(world, 'diplomatic_reliability', {})
+    reliability[breaker_nation] = max(-100, reliability.get(breaker_nation, 0) - 10)
+    world.diplomatic_reliability = reliability
+
+    # R29: Log to diplomatic history
+    diplomatic_history = getattr(world, 'diplomatic_history', [])
+    diplomatic_history.append({
+        "turn": int(world.current_turn),
+        "type": "treaty_broken",
+        "nation": breaker_nation,
+        "target": other,
+        "treaty_type": treaty_type,
+    })
+    if len(diplomatic_history) > 20:
+        diplomatic_history[:] = diplomatic_history[-20:]
+    world.diplomatic_history = diplomatic_history
+
     return {
         "success": True,
         "message": f"{breaker_nation} has broken the {treaty_type} with {other}! Relations plummet.",
         "new_state": new_state,
         "relation_changes": relation_changes,
+        "treaty_broken_event": treaty_type,  # R23: signal for trust reactions
     }
 
 
@@ -1773,3 +1939,30 @@ def apply_continental_system(world) -> None:
             total_blocked += blocked
 
     world.continental_system_members = members
+
+
+# ═══════════════════════════════════════════════════════
+# DIPLOMATIC RELIABILITY (R34)
+# ═══════════════════════════════════════════════════════
+
+def _process_diplomatic_reliability(world) -> None:
+    """R34: Increase diplomatic reliability for nations honoring treaties for 10+ turns.
+
+    Each active treaty that has been honored for 10+ turns grants +5 reliability
+    to each nation in the treaty, capped at 100.
+    """
+    active_treaties = getattr(world, 'active_treaties', {})
+    reliability = getattr(world, 'diplomatic_reliability', {})
+
+    for pair_key, treaty in active_treaties.items():
+        turn_signed = treaty.get("turn_signed", 0)
+        turns_honored = world.current_turn - turn_signed
+
+        if turns_honored >= 10 and turns_honored % 10 == 0:
+            # Award reliability every 10 turns of honoring
+            nations = treaty.get("nations", [])
+            for nation in nations:
+                current = reliability.get(nation, 0)
+                reliability[nation] = min(100, current + 5)
+
+    world.diplomatic_reliability = reliability

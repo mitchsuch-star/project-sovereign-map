@@ -23,7 +23,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 - **Phase 8: Diplomacy — COMPLETE.** ALL 11 sessions done (1A through 8D). ~580 tests. Full diplomacy engine shipped. See `docs/SESSION_8_PLAN.md`.
 - **Diplomacy Audit — COMPLETE.** Parts 1-4 done (Sections 1-16 + playtest). 20 bugs fixed, 145 audit tests. See `docs/DIPLOMACY_AUDIT.md`.
 - **Diplomacy Creative Audit — COMPLETE.** 7.8/10 overall. 8 critical bugs, 10 balance issues, 18 gaps. 3 easy fixes applied. See `docs/DIPLOMACY_CREATIVE_AUDIT.md`.
-- **Diplomacy Refinement & Cleanup — Phase 3 COMPLETE.** 114 items (56 approved, 16 deferred, 55 done). Phase 1 Critical Wiring DONE (16 fixes, 37 tests). Phase 2A Diplomacy Core DONE (17 fixes, 69 tests). Phase 2B Vassal/AI-AI/War DONE (22 fixes, 50 tests). Phase 2B+ Confidence Fixes DONE (5 fixes, 26 tests). Phase 3 Balance DONE (13 items, 44 tests). Phase 4 Commands/QoL/Popups (NEXT) → UI Test Plan → Manual UI Test → Deferred Feature Design. See `docs/DIPLO_REFINEMENT.md`.
+- **Diplomacy Refinement & Cleanup — Phase 4 COMPLETE.** 114 items (56 approved, 16 deferred, 55 done). Phase 1 Critical Wiring DONE (16 fixes, 37 tests). Phase 2A Diplomacy Core DONE (17 fixes, 69 tests). Phase 2B Vassal/AI-AI/War DONE (22 fixes, 50 tests). Phase 2B+ Confidence Fixes DONE (5 fixes, 26 tests). Phase 3 Balance DONE (13 items, 44 tests). Phase 4 Commands/QoL/Popups DONE (27 items, 100 tests). UI Test Plan → Manual UI Test → Deferred Feature Design. See `docs/DIPLO_REFINEMENT.md`.
 
 ### Design Gates
 

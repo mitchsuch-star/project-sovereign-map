@@ -397,6 +397,31 @@ Geographic layout (approximate):
 If you can resolve a direction to a specific region, set the target to that region name (low ambiguity).
 If you cannot determine the specific region, set target to "generic" and ambiguity to 60+.
 
+## Diplomatic Commands (Talleyrand / Nation-Level Actions)
+Diplomatic commands target NATIONS, not marshals. They are routed to the diplomat (Talleyrand), NOT to military marshals.
+
+CRITICAL RULE: If the command mentions a NATION name (Prussia, Austria, Britain, Saxony) WITHOUT a marshal name,
+and uses diplomatic keywords (declare war, propose, ultimatum, treaty, alliance) → it is DIPLOMATIC, not military.
+
+Conversely, if the command names a MARSHAL (Ney, Davout, etc.) with a military verb (attack, move, defend) → it is MILITARY,
+even if the target happens to be a nation reference (e.g., "attack the Prussians").
+
+Diplomatic action types:
+- diplomatic_proposal: Propose treaty/alliance/peace to a nation
+- diplomatic_declare_war: Declare war on a nation (costs 1 DP)
+- diplomatic_ultimatum: Issue ultimatum to a nation (costs 2 DP)
+- diplomatic_break: Break an existing treaty
+- diplomatic_downgrade: Voluntarily reduce diplomatic state
+- diplomatic_mission: Send Talleyrand on a long-term mission
+
+Examples:
+- "Declare war on Prussia" → diplomatic_declare_war, target: Prussia
+- "Propose peace to Austria" → diplomatic_proposal, target: Austria
+- "Issue ultimatum to Britain" → diplomatic_ultimatum, target: Britain
+- "Ney, attack the Prussians" → MILITARY attack, marshal: Ney (NOT diplomatic!)
+- "How is the war going" → NOT diplomatic (no nation target, no diplomatic verb)
+- "March to war" → MILITARY move (no nation target)
+
 ## Cancel Command (Clears Strategic Orders)
 Cancel keywords: "halt", "stop", "cancel", "abort", "stand down", "belay that"
 When detected, set action="cancel". This clears the marshal's current strategic order.

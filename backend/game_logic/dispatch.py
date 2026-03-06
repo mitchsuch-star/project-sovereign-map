@@ -521,6 +521,16 @@ def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
         key = f"{nation}|{trigger_type}"
         cooldowns[key] = turns
 
+    # R91: Map current diplomatic state to the next upgrade proposal type
+    UPGRADE_MAP = {
+        "WAR": "peace",
+        "ARMISTICE": "peace",
+        "PEACE": "open_borders",
+        "OPEN_BORDERS": "non_aggression",
+        "NON_AGGRESSION": "defensive_alliance",
+        "DEFENSIVE_ALLIANCE": "alliance",
+    }
+
     known_nations = ["Britain", "Prussia", "Austria", "Saxony"]
 
     for nation in known_nations:
@@ -535,8 +545,9 @@ def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
         if not _on_cooldown(nation, "acceptance_crossed") and state != "WAR":
             try:
                 from backend.game_logic.diplomacy import calculate_acceptance
+                upgrade_type = UPGRADE_MAP.get(state, "non_aggression")
                 hypothetical = {
-                    "type": "peace" if state == "WAR" else "non_aggression",
+                    "type": upgrade_type,
                     "proposer_nation": player_nation,
                     "target_nation": nation,
                     "sweeteners": [],
@@ -847,6 +858,7 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_vassal_rebellion": "{nation} has rebelled!",
     "diplomatic_ai_proposal": "A {nation} envoy has arrived with a proposal.",
     "diplomatic_mission_progress": "Talleyrand's efforts in {nation} continue. Relations now at {value}.",
+    "diplomatic_mission_completed": "Talleyrand has completed his mission in {nation}.",
     "diplomatic_mission_paused": "Talleyrand's diplomatic efforts curtailed — insufficient resources.",
     "diplomatic_mission_cancelled": "Talleyrand's efforts in {nation} have collapsed.",
     "diplomatic_feasibility_report": "Talleyrand assesses: {difficulty_tier}. {hint}",
@@ -877,6 +889,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "diplomatic_vassal_rebellion": "HIGH",
     "diplomatic_ai_proposal": "HIGH",
     "diplomatic_mission_progress": "LOW",
+    "diplomatic_mission_completed": "MEDIUM",
     "diplomatic_mission_paused": "MEDIUM",
     "diplomatic_mission_cancelled": "HIGH",
     "diplomatic_feasibility_report": "LOW",

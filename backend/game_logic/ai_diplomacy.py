@@ -690,8 +690,13 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
     for s in terms.get("sweeteners", []):
         clauses.append(f"Offer: {s.get('type', 'unknown')} — {s.get('value', '')}")
 
-    # Find largest positive/negative factor
-    factors = acceptance.get("factors", [])
+    # Find largest positive/negative factor (R112: read "components" dict, convert to factor list)
+    components = acceptance.get("components", {})
+    factors = sorted(
+        [{"reason": k, "value": v} for k, v in components.items() if v != 0],
+        key=lambda f: abs(f.get("value", 0)),
+        reverse=True,
+    )
     positive_factors = [f for f in factors if f.get("value", 0) > 0]
     negative_factors = [f for f in factors if f.get("value", 0) < 0]
     acceptance_hint = positive_factors[0].get("reason", "No strong positives") if positive_factors else "No strong positives identified"

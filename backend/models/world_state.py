@@ -450,6 +450,14 @@ class WorldState:
         self.war_exhaustion: Dict[str, int] = {}         # nation -> int 0-200
 
         # ============================================================
+        # PHASE 4: War Declaration, Ultimatums, Diplomatic Memory
+        # ============================================================
+        self.casus_belli: Dict[str, bool] = {}           # diplo_key -> True (halves war declaration penalties)
+        self.diplomatic_reliability: Dict[str, int] = {} # nation -> reliability score (-100 to +100)
+        self.diplomatic_history: List[Dict] = []          # Last 20 diplomatic events
+        self.alliance_paradox_popup: Optional[Dict] = None  # R12 alliance paradox
+
+        # ============================================================
         # DISPATCH EVENT QUEUE (Phase 8 Session 8D)
         # Populated by backend systems, consumed by Morning Dispatch builder
         # Cleared at start of advance_turn() before systems populate new events
@@ -2890,6 +2898,12 @@ class WorldState:
             "coalition_cooldown": int(self.coalition_cooldown),
             "coalition_count": int(self.coalition_count),
             "war_exhaustion": {k: int(v) for k, v in self.war_exhaustion.items()},
+            # ═══════ PHASE 4: War Declaration, Ultimatums, Diplomatic Memory ═══════
+            "casus_belli": self.casus_belli.copy(),
+            "diplomatic_reliability": {k: int(v) for k, v in self.diplomatic_reliability.items()},
+            "diplomatic_history": [h.copy() for h in self.diplomatic_history],
+            "alliance_paradox_popup": self.alliance_paradox_popup,
+
             # Dispatch event queue (Session 8D)
             "pending_dispatch_events": [e.copy() for e in self.pending_dispatch_events],
 
@@ -3093,6 +3107,12 @@ class WorldState:
         world.coalition_cooldown = int(data.get("coalition_cooldown", 0))
         world.coalition_count = int(data.get("coalition_count", 0))
         world.war_exhaustion = {k: int(v) for k, v in data.get("war_exhaustion", {}).items()}
+
+        # ═══════ PHASE 4: War Declaration, Ultimatums, Diplomatic Memory ═══════
+        world.casus_belli = data.get("casus_belli", {}).copy()
+        world.diplomatic_reliability = {k: int(v) for k, v in data.get("diplomatic_reliability", {}).items()}
+        world.diplomatic_history = [h.copy() for h in data.get("diplomatic_history", [])]
+        world.alliance_paradox_popup = data.get("alliance_paradox_popup", None)
 
         # Dispatch event queue (Session 8D)
         world.pending_dispatch_events = [e.copy() for e in data.get("pending_dispatch_events", [])]

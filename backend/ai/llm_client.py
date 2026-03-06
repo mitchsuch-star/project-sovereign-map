@@ -463,6 +463,25 @@ class LLMClient:
         if any(kw in command_lower for kw in _break_keywords + _downgrade_keywords):
             return self._parse_diplomatic_command(command_text, command_lower)
 
+        # War declaration commands route to diplomacy (R10)
+        _war_keywords = [
+            "declare war on", "declare war against",
+            "go to war with", "go to war against",
+            "war on ", "war against ",  # trailing space prevents "warden"/"warning"
+            "open hostilities", "declare hostilities",
+        ]
+        if any(kw in command_lower for kw in _war_keywords):
+            return self._parse_diplomatic_command(command_text, command_lower)
+
+        # Ultimatum commands route to diplomacy (R21)
+        _ultimatum_keywords = [
+            "ultimatum to", "give ultimatum", "issue ultimatum",
+            "final offer to", "demand surrender",
+            "submit or face", "accept or face war",
+        ]
+        if any(kw in command_lower for kw in _ultimatum_keywords):
+            return self._parse_diplomatic_command(command_text, command_lower)
+
         # Extract marshal name - find the FIRST mentioned marshal
         marshal = None  # Start with None for general orders
 
@@ -916,7 +935,18 @@ class LLMClient:
             "lower relations", "cool relations",
         ]):
             action = "diplomatic_downgrade"
-        elif any(kw in command_lower for kw in ["demand", "insist", "require", "ultimatum"]):
+        # War declaration (R10) — must come before demand/ultimatum catch
+        elif any(kw in command_lower for kw in [
+            "declare war", "go to war", "war on ", "war against ",
+            "open hostilities", "declare hostilities",
+        ]):
+            action = "diplomatic_declare_war"
+        # Ultimatum (R21) — distinct from demand/proposal
+        elif any(kw in command_lower for kw in [
+            "ultimatum", "submit or", "final offer", "accept or face war",
+        ]):
+            action = "diplomatic_ultimatum"
+        elif any(kw in command_lower for kw in ["demand", "insist", "require"]):
             action = "diplomatic_proposal"
             tone = "demand"
         else:

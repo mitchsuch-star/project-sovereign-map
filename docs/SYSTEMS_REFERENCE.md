@@ -24,6 +24,11 @@ Consolidated reference for all game systems. Read when modifying related code.
 15. [Phase 7 UI Integration (Session 66)](#15-phase-7-ui-integration-session-66)
 16. [Diplomacy Data Layer](#16-diplomacy-data-layer)
 17. [Coalition System](#17-coalition-system)
+18. [War Declaration Command](#18-war-declaration-command)
+19. [Ultimatum Command](#19-ultimatum-command)
+20. [Diplomatic Trust Reactions](#20-diplomatic-trust-reactions)
+21. [Diplomatic Reliability](#21-diplomatic-reliability)
+22. [Popup Priority Queue](#22-popup-priority-queue)
 
 ---
 
@@ -3359,3 +3364,126 @@ When a coalition forms, any in-transit proposal to a joining nation is voided. T
 | `dispatch.py` | Coalition section in Morning Dispatch |
 | `diplomatic_templates.py` | T28-T34 templates |
 | `notifications.py` | 7 coalition notification types |
+
+---
+
+## 18. War Declaration Command
+
+**Phase 4 (R10).** Player can declare war via natural language: "declare war on Prussia", "go to war with Austria", etc.
+
+### Flow
+
+1. Mock parser (`llm_client.py`): War keywords matched BEFORE marshal detection to prevent "war on Prussia" → military attack
+2. `_parse_diplomatic_command()`: Routes to `action = "diplomatic_declare_war"`
+3. Executor: `_execute_diplomatic_declare_war()` — 1 DP cost
+
+### Keywords (trailing space prevents false matches)
+
+`"declare war on"`, `"declare war against"`, `"go to war with"`, `"go to war against"`, `"war on "`, `"war against "`, `"open hostilities"`, `"declare hostilities"`
+
+### Behavior
+
+- 1 DP cost
+- Validates target nation exists (via `get_known_nations(world)` — includes vassals)
+- Validates not already at WAR
+- Talleyrand STRONG objection if target is neutral and `world.threat_level > 50` → sets `world.diplomatic_objection_popup`
+- Calls `declare_war(world, player_nation, target_nation, casus_belli=has_casus_belli)`
+- Fires marshal trust reactions (see §20)
+- Logs to `diplomatic_history`
+
+### Casus Belli
+
+If `casus_belli[diplo_key]` is True (set by rejected ultimatum), war declaration relation penalties are halved in `diplomacy.py:declare_war()`.
+
+---
+
+## 19. Ultimatum Command
+
+**Phase 4 (R21).** Player issues ultimatums: "ultimatum to Britain", "final offer to Austria", etc.
+
+### Keywords
+
+`"ultimatum"`, `"submit or"`, `"final offer"`, `"accept or face war"`
+
+### Behavior
+
+- 2 DP cost
+- Military threat bonus: +15 if any French marshal adjacent to target's marshal, else +10
+- -10 relation regardless of outcome
+- Talleyrand STRONG objection if `threat_level > 50`
+- Acceptance roll via `calculate_acceptance()` with threat bonus
+- On acceptance: sets diplomatic state to PEACE (if at war)
+- On rejection: `world.casus_belli[diplo_key] = True` (halves future war declaration penalties)
+- Logs to `diplomatic_history`
+
+### Disambiguation from "demand"
+
+"demand"/"insist"/"require" WITHOUT ultimatum context → `diplomatic_proposal` with `tone="demand"`. Only explicit ultimatum keywords trigger the ultimatum command.
+
+---
+
+## 20. Diplomatic Trust Reactions
+
+**Phase 4 (R23).** Marshal trust changes in response to diplomatic events, varying by personality.
+
+### Reaction Table
+
+| Event | Aggressive | Cautious | Literal | Balanced |
+|-------|-----------|----------|---------|----------|
+| `war_declaration` | +3 | -3 | 0 | -1 |
+| `treaty_signed` | -2 | +3 | +1 | +2 |
+| `treaty_break` | +2 | -5 | -3 | -2 |
+| `ultimatum_issued` | +3 | -2 | 0 | 0 |
+| `vassal_created` | +2 | -1 | 0 | +1 |
+| `alliance_formed` | -1 | +3 | +1 | +2 |
+
+### Rules
+
+- Per-turn cap: +/-5 total trust change from diplomatic events
+- Applied via `_apply_diplomatic_trust_reactions()` in executor
+- Uses string personality keys (not PersonalityType enum)
+- Wired into: `_execute_diplomatic_declare_war()`, `_execute_diplomatic_break()`, `_execute_make_vassal()`
+
+---
+
+## 21. Diplomatic Reliability
+
+**Phase 4 (R34).** Long-term reputation tracking for treaty honoring.
+
+### Scoring
+
+- +5 per treaty honored for 10+ turns (checked in `_process_diplomatic_reliability()` at turn end)
+- -10 per treaty break (applied in `break_treaty()`)
+- Stored in `world.diplomatic_reliability` (keyed by diplo_key)
+
+### Acceptance Formula Impact
+
+- Component: `reliability_modifier` capped at +/-10
+- Formula: `min(10, max(-10, reliability_score))`
+- Added to `calculate_acceptance()` result
+
+---
+
+## 22. Popup Priority Queue
+
+**Phase 4 (R76).** Only the highest-priority popup is included per response cycle.
+
+### Priority Order (highest → lowest)
+
+1. `coalition_popup`
+2. `diplomatic_sabotage_popup`
+3. `vassal_rebellion_imminent_popup`
+4. `talleyrand_redemption_popup`
+5. `diplomatic_objection_popup`
+6. `incoming_proposal_popup`
+7. `alliance_paradox_popup`
+
+### Implementation
+
+`_include_popup_passthroughs()` in `main.py` iterates this priority list. Only the first non-None popup is added to the response dict with clear-after-read. Remaining popups stay on `world` for the next response cycle.
+
+### Pass-through Coverage (R87/R88)
+
+All early-return paths in `/command` and `/respond_to_objection` call `_include_popup_passthroughs()`:
+- Tactical objection, strategic objection, clarification, glorious charge, strategic interrupt, capture choice (R87)
+- Objection proceed/override/cancel responses (R88)

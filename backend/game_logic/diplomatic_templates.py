@@ -1116,9 +1116,14 @@ def resolve_template_text(text: str, world, target_nation: Optional[str] = None)
         # Numeric values
         diplo_key = world._make_diplo_key("France", target_nation)
         relation = int(world.nation_relations.get(diplo_key, 0))
-        slots["war_score"] = str(int(world.war_scores.get(diplo_key, 0)))
+        state = world.get_diplomatic_state("France", target_nation)
+        # R38: Only show war score when nations are at war
+        if state == "WAR":
+            slots["war_score"] = str(int(world.war_scores.get(diplo_key, 0)))
+        else:
+            slots["war_score"] = "N/A"
         slots["relation"] = str(relation)
-        slots["current_state"] = world.get_diplomatic_state("France", target_nation)
+        slots["current_state"] = state
         slots["dp_cost"] = "1"  # Default, overridden per-context
 
         # R82: rejection_reaction based on relation

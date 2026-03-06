@@ -170,17 +170,22 @@ class TestSection1PopupFlow:
         assert "incoming_proposal" in response
 
     def test_popup_passthrough_reads_and_clears(self):
-        """_include_popup_passthroughs reads popup data and clears world field."""
+        """_include_popup_passthroughs reads highest-priority popup and clears it.
+
+        R76 Priority Queue: Only one popup per response. Coalition is highest priority,
+        so incoming_proposal remains on world for the next cycle.
+        """
         from backend.main import _include_popup_passthroughs
         world = _make_world()
         world.coalition_popup = {"title": "Test Coalition"}
         world.incoming_proposal_popup = {"from_nation": "Prussia"}
         response = {}
         _include_popup_passthroughs(response, world)
+        # R76: Only highest-priority popup included
         assert response["coalition_popup"] == {"title": "Test Coalition"}
-        assert response["incoming_proposal"] == {"from_nation": "Prussia"}
-        assert world.coalition_popup is None
-        assert world.incoming_proposal_popup is None
+        assert response["incoming_proposal"] is None  # Lower priority — not included
+        assert world.coalition_popup is None  # Consumed
+        assert world.incoming_proposal_popup is not None  # Preserved for next cycle
 
     def test_popup_safety_valve_rederives_incoming_proposal(self):
         """Safety valve: re-derives incoming_proposal from pending dialogue if popup cleared."""

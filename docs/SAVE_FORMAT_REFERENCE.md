@@ -11,7 +11,7 @@ A future save/load system should use this as the specification.
 
 - **Format version:** 1.0
 - **Last updated:** 2026-03-06
-- **Compatible with:** Phase 2A Diplomacy Core Cleanup
+- **Compatible with:** Phase 4 Commands/QoL/Popups
 
 ## Top-Level Structure (WorldState)
 
@@ -96,6 +96,11 @@ A future save/load system should use this as the specification.
   "coalition_cooldown": 0,
   "coalition_count": 0,
   "war_exhaustion": {},
+
+  "casus_belli": {},
+  "diplomatic_reliability": {},
+  "diplomatic_history": [],
+  "alliance_paradox_popup": null,
 
   "active_battles": {},
   "battle_history": [],
@@ -201,6 +206,10 @@ A future save/load system should use this as the specification.
 | `coalition_cooldown` | int | 0 | **Session 7.** Post-dissolution cooldown (5 turns). Prevents new coalition formation while > 0. Decremented in process_coalition_turn(). |
 | `coalition_count` | int | 0 | **Session 7.** Total coalitions formed this game. Used for naming ("First Coalition", "Second Coalition", etc.). |
 | `war_exhaustion` | dict | {} | **Session 7.** War exhaustion per nation. Keys: nation name. Values: int 0-200. +casualties//1000 per battle (cap 20), +5/turn at war, -5/turn at peace. Affects coalition loyalty penalty. |
+| `casus_belli` | dict | {} | **Phase 4.** Casus belli flags per nation-pair. Keys: diplo_key ("Nation1\|Nation2"). Values: bool. Set true when ultimatum rejected — halves war declaration relation penalties. |
+| `diplomatic_reliability` | dict | {} | **Phase 4.** Diplomatic reliability score per nation-pair. Keys: diplo_key. Values: int. +5 per 10-turn honored treaty, -10 per treaty break. Affects acceptance formula (capped +/-10). |
+| `diplomatic_history` | list | [] | **Phase 4.** Diplomatic event log (max 20 entries). Each entry: `{type, from_nation, to_nation, turn, details?}`. Types: "proposal", "war_declaration", "treaty_break", "ultimatum_accepted", "ultimatum_rejected". Displayed in Talleyrand tab. |
+| `alliance_paradox_popup` | dict\|null | null | **Phase 4.** Pending alliance paradox popup. Set when AI attack creates allied-with-both conflict. Keys: aggressor, defender, ally. Cleared after read. |
 | `coalition_popup` | dict\|null | null | **Session 8A.** Pending coalition popup data for Godot frontend. Set by coalition formation, cleared after read in /command response. |
 | `diplomatic_sabotage_popup` | dict\|null | null | **Session 8A.** Pending Talleyrand sabotage popup data. Set by sabotage discovery, cleared after read in /command response. |
 | `vassal_rebellion_imminent_popup` | dict\|null | null | **Session 8A.** Pending vassal rebellion warning popup. Set by loyalty check, cleared after read in /command response. |

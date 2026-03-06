@@ -118,7 +118,7 @@ def _build_nations(world) -> List[Dict[str, Any]]:
     for nation in all_nations:
         diplo_key = world._make_diplo_key(player, nation)
         diplomatic_state = world.diplomatic_states.get(diplo_key, "PEACE")
-        relation = world.nation_relations.get(diplo_key, 0)
+        relation = world.nation_relations.get(diplo_key, 0) or 0
 
         # Diplomat info
         diplomats = getattr(world, 'diplomats', {})
@@ -128,7 +128,7 @@ def _build_nations(world) -> List[Dict[str, Any]]:
             diplomat_info = {
                 "name": diplomat.name,
                 "personality": diplomat.personality,
-                "skill": int(diplomat.skill),
+                "skill": int(diplomat.skill or 0),
             }
 
         # Army strength with fog
@@ -191,6 +191,32 @@ def _build_nations(world) -> List[Dict[str, Any]]:
                     "state": ai_state,
                 })
 
+        # R17a: War score component breakdown for AT_WAR nations
+        war_score_breakdown = None
+        if diplomatic_state == "WAR":
+            from backend.game_logic.diplomacy import calculate_war_score
+            war_score_breakdown = calculate_war_score(
+                player, nation, world, return_components=True
+            )
+            # int()-wrap all components for Godot
+            if war_score_breakdown:
+                war_score_breakdown = {
+                    k: int(v) for k, v in war_score_breakdown.items()
+                }
+
+        # R17b: Proposal cooldowns remaining for this nation
+        cooldowns = getattr(world, 'player_proposal_cooldowns', {})
+        proposal_cooldowns = {}
+        # Check nation-level cooldown (e.g. "Prussia": 3)
+        nation_cd = cooldowns.get(nation, 0)
+        if nation_cd > 0:
+            proposal_cooldowns["nation"] = int(nation_cd)
+        # Check per-type cooldowns (e.g. "Prussia_peace": 5)
+        for cd_key, cd_val in cooldowns.items():
+            if cd_key.startswith(f"{nation}_") and cd_val > 0:
+                ptype = cd_key[len(nation) + 1:]
+                proposal_cooldowns[ptype] = int(cd_val)
+
         nations.append({
             "name": nation,
             "diplomatic_state": diplomatic_state,
@@ -201,6 +227,8 @@ def _build_nations(world) -> List[Dict[str, Any]]:
             "active_treaties": active_treaties,
             "vassal_eligible": vassal_eligible,
             "ai_relations": ai_relations,
+            "war_score_breakdown": war_score_breakdown,
+            "proposal_cooldowns": proposal_cooldowns if proposal_cooldowns else None,
         })
 
     return nations
@@ -229,6 +257,16 @@ def _build_treaties(world) -> List[Dict[str, Any]]:
         if isinstance(duration, int):
             duration = int(duration)
 
+        # R17c: Calculate ongoing gold/turn costs from treaty clauses
+        gold_per_turn_costs = []
+        for clause in treaty.get("clauses", []):
+            if isinstance(clause, dict) and clause.get("type") == "gold_per_turn":
+                gold_per_turn_costs.append({
+                    "from": clause.get("from", ""),
+                    "to": clause.get("to", ""),
+                    "amount": int(clause.get("amount") or 0),
+                })
+
         treaties.append({
             "nation_a": nation_a,
             "nation_b": nation_b,
@@ -236,6 +274,7 @@ def _build_treaties(world) -> List[Dict[str, Any]]:
             "clauses": clauses,
             "duration": duration,
             "cancel_cost": 1,
+            "gold_per_turn": gold_per_turn_costs if gold_per_turn_costs else None,
         })
 
     return treaties
@@ -247,7 +286,7 @@ def _build_treaties(world) -> List[Dict[str, Any]]:
 
 def _build_threat_coalition(world) -> Dict[str, Any]:
     """Build threat & coalition tab."""
-    threat_level = int(getattr(world, 'threat_level', 0))
+    threat_level = int(getattr(world, 'threat_level', 0) or 0)
 
     # Threat tier
     if threat_level >= 80:
@@ -271,7 +310,7 @@ def _build_threat_coalition(world) -> Dict[str, Any]:
     coalition_brewing = brewing is not None
     brewing_turns_remaining = None
     if brewing:
-        brewing_turns_remaining = int(brewing.get("turns_remaining", 0))
+        brewing_turns_remaining = int(brewing.get("turns_remaining") or 0)
 
     # Active coalition
     active_coalition_data = None
@@ -290,7 +329,7 @@ def _build_threat_coalition(world) -> Dict[str, Any]:
             vis = _get_nation_visibility(member, world)
             strength_display = _format_army_strength(member_strength, vis)
 
-            we = world.war_exhaustion.get(member, 0)
+            we = world.war_exhaustion.get(member, 0) or 0
             members_data.append({
                 "nation": member,
                 "strength_display": strength_display,
@@ -339,8 +378,8 @@ def _build_talleyrand(world) -> Dict[str, Any]:
     diplomats = getattr(world, 'diplomats', {})
     talleyrand = diplomats.get(player)
 
-    trust = int(talleyrand.trust) if talleyrand else 0
-    skill = int(talleyrand.skill) if talleyrand else 0
+    trust = int(talleyrand.trust or 0) if talleyrand else 0
+    skill = int(talleyrand.skill or 0) if talleyrand else 0
 
     # Trust label
     if trust >= 80:
@@ -352,8 +391,8 @@ def _build_talleyrand(world) -> Dict[str, Any]:
     else:
         trust_label = "Treacherous"
 
-    dp_remaining = int(getattr(world, 'diplomatic_points', 0))
-    dp_max = int(getattr(world, 'max_diplomatic_points', 3))
+    dp_remaining = int(getattr(world, 'diplomatic_points', 0) or 0)
+    dp_max = int(getattr(world, 'max_diplomatic_points', 3) or 0)
 
     # Active mission
     active_mission = None
@@ -362,7 +401,7 @@ def _build_talleyrand(world) -> Dict[str, Any]:
         active_mission = {
             "type": mission.get("type", ""),
             "target": mission.get("target", ""),
-            "duration": int(mission.get("turns_active", 0)),
+            "duration": int(mission.get("turns_active") or 0),
             "progress": mission.get("paused", False),
         }
 
@@ -373,7 +412,7 @@ def _build_talleyrand(world) -> Dict[str, Any]:
         proposal_in_transit = {
             "target": pit.get("target", ""),
             "type": pit.get("type", pit.get("proposal", {}).get("type", "")),
-            "eta": int(pit.get("eta", pit.get("delivery_turn", 0))),
+            "eta": int(pit.get("eta") or pit.get("delivery_turn") or 0),
         }
 
     # Pending envoy count
@@ -387,10 +426,29 @@ def _build_talleyrand(world) -> Dict[str, Any]:
             sabotage_warnings.append({
                 "target": sab.get("target", ""),
                 "type": sab.get("type", ""),
-                "turn": int(sab.get("turn", 0)),
+                "turn": int(sab.get("turn") or 0),
             })
         else:
             sabotage_warnings.append(str(sab))
+
+    # R29: Diplomatic history (last 20 events)
+    diplomatic_history = []
+    raw_history = getattr(world, 'diplomatic_history', [])
+    for entry in raw_history:
+        if isinstance(entry, dict):
+            diplomatic_history.append({
+                "turn": int(entry.get("turn") or 0),
+                "type": entry.get("type", ""),
+                "target": entry.get("target", ""),
+                "nation": entry.get("nation", ""),
+                "detail": entry.get("proposal_type", entry.get("treaty_type", "")),
+            })
+        else:
+            diplomatic_history.append({"turn": 0, "type": str(entry), "target": "", "nation": "", "detail": ""})
+
+    # R34: Diplomatic reliability
+    reliability = getattr(world, 'diplomatic_reliability', {})
+    player_reliability = int(reliability.get(player, 0))
 
     return {
         "trust": trust,
@@ -402,4 +460,6 @@ def _build_talleyrand(world) -> Dict[str, Any]:
         "proposal_in_transit": proposal_in_transit,
         "pending_envoy_count": pending_envoy_count,
         "sabotage_warnings": sabotage_warnings,
+        "diplomatic_history": diplomatic_history,
+        "diplomatic_reliability": player_reliability,
     }

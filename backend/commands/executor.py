@@ -1469,7 +1469,7 @@ RETREAT RECOVERY (3 turns):
         # debug is FREE (for testing abilities)
         # economy/treasury/finances are FREE information commands (Phase 6.2.G)
         # R72: Vassal commands (invest_vassal, change_autonomy, make_vassal) are free — they cost DP/gold, not military AP
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "invest_vassal", "change_autonomy", "make_vassal"]
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "invest_vassal", "change_autonomy", "make_vassal"]
 
         # Check if action costs points
         action_costs_point = action not in free_actions
@@ -2236,7 +2236,8 @@ RETREAT RECOVERY (3 turns):
         elif action in ("diplomatic_proposal", "diplomatic_mission",
                         "diplomatic_feasibility", "diplomatic_advisory",
                         "diplomatic_error", "diplomatic_break",
-                        "diplomatic_downgrade"):
+                        "diplomatic_downgrade", "diplomatic_declare_war",
+                        "diplomatic_ultimatum"):
             result = self._execute_diplomatic(command, game_state)
         # ════════════════════════════════════════════════════════════
         # VASSAL COMMANDS (Phase 8 Session 5)
@@ -11183,13 +11184,16 @@ RETREAT RECOVERY (3 turns):
                 "message": "Talleyrand is currently en route to a foreign court. He cannot negotiate until he returns.",
             }
 
-        # Unknown nation error
+        # Unknown nation error (R93: include vassals)
         target_nation = diplomatic_data.get("target_nation")
-        if target_nation and target_nation not in ("Britain", "Prussia", "Austria", "Saxony"):
+        from backend.game_logic.diplomatic_dialogue import get_known_nations
+        known = get_known_nations(world)
+        if target_nation and target_nation not in known:
+            nations_list = ", ".join(sorted(known))
             return {
                 "success": False,
                 "message": f"Sire, I am not aware of a nation called '{target_nation}'. "
-                           f"Our diplomatic landscape includes Britain, Prussia, Austria, and Saxony.",
+                           f"Our diplomatic landscape includes {nations_list}.",
             }
 
         if action == "diplomatic_proposal":
@@ -11204,6 +11208,10 @@ RETREAT RECOVERY (3 turns):
             return self._execute_diplomatic_break(diplomatic_data, world)
         elif action == "diplomatic_downgrade":
             return self._execute_diplomatic_downgrade(diplomatic_data, world)
+        elif action == "diplomatic_declare_war":
+            return self._execute_diplomatic_declare_war(diplomatic_data, world)
+        elif action == "diplomatic_ultimatum":
+            return self._execute_diplomatic_ultimatum(diplomatic_data, world)
         else:
             return {"success": False, "message": f"Unknown diplomatic action: {action}"}
 
@@ -11286,6 +11294,8 @@ RETREAT RECOVERY (3 turns):
             return {
                 "success": False,
                 "message": f"Insufficient Diplomatic Points. This proposal costs {int(cost)} DP, but we only have {int(world.diplomatic_points)}.",
+                "diplomatic_dialogue": None,
+                "awaiting_diplomatic_response": False,
             }
 
         # Classify intent and generate dialogue
@@ -11346,6 +11356,8 @@ RETREAT RECOVERY (3 turns):
             return {
                 "success": False,
                 "message": f"Insufficient DP for this mission. Costs {int(cost)} DP per turn.",
+                "diplomatic_dialogue": None,
+                "awaiting_diplomatic_response": False,
             }
 
         # Generate mission confirmation dialogue
@@ -11358,24 +11370,50 @@ RETREAT RECOVERY (3 turns):
         }
 
     def _execute_diplomatic_feasibility(self, diplomatic_data: Dict, world) -> Dict:
-        """Handle a feasibility check (0 DP cost)."""
+        """Handle a feasibility check (0 DP cost).
+
+        R31: Enhanced with numerical component breakdown from calculate_acceptance().
+        """
         from backend.game_logic.diplomatic_dialogue import generate_feasibility_dialogue
+        from backend.game_logic.diplomacy import calculate_acceptance
 
         dialogue = generate_feasibility_dialogue(diplomatic_data, world)
         world.pending_diplomatic_dialogue = dialogue
 
+        # R31: Run acceptance formula to get component breakdown
+        target_nation = diplomatic_data.get("target_nation", "")
+        proposal_type = diplomatic_data.get("proposal_type", "peace")
+        acceptance_breakdown = None
+        if target_nation:
+            hypothetical = {
+                "type": proposal_type,
+                "proposer_nation": "France",
+                "target_nation": target_nation,
+                "sweeteners": [],
+                "demands": [],
+                "clauses": [],
+            }
+            acceptance_result = calculate_acceptance(hypothetical, world)
+            acceptance_breakdown = {
+                "score": int(acceptance_result.get("score", 0)),
+                "outcome": acceptance_result.get("outcome", "REJECT"),
+                "components": acceptance_result.get("components", {}),
+            }
+
         # Dispatch event (Session 8D)
         from backend.game_logic.dispatch import queue_dispatch_event
-        target = diplomatic_data.get("target_nation", "")
         queue_dispatch_event(world, "diplomatic_feasibility_report",
                             {"difficulty_tier": dialogue.get("context", {}).get("difficulty_tier", "unknown"),
-                             "hint": "", "nation": target}, "always")
+                             "hint": "", "nation": target_nation}, "always")
 
-        return {
+        result = {
             "success": True,
             "message": dialogue.get("talleyrand_text", ""),
             "diplomatic_dialogue": dialogue,
         }
+        if acceptance_breakdown:
+            result["acceptance_breakdown"] = acceptance_breakdown
+        return result
 
     def _execute_diplomatic_advisory(self, diplomatic_data: Dict, world) -> Dict:
         """Handle advisory questions via diplomatic_advisory.py."""
@@ -11415,6 +11453,11 @@ RETREAT RECOVERY (3 turns):
         pair_key = world._make_diplo_key(player, target_nation)
 
         result = break_treaty(pair_key, player, world)
+
+        # R23: Marshal trust reactions for treaty broken
+        if result.get("success"):
+            self._apply_diplomatic_trust_reactions(world, "treaty_broken", target_nation)
+
         return result
 
     def _execute_diplomatic_downgrade(self, diplomatic_data: Dict, world) -> Dict:
@@ -11436,6 +11479,8 @@ RETREAT RECOVERY (3 turns):
             return {
                 "success": False,
                 "message": f"Insufficient Diplomatic Points. Downgrade costs {dp_cost} DP, but we only have {int(world.diplomatic_points)}.",
+                "diplomatic_dialogue": None,
+                "awaiting_diplomatic_response": False,
             }
 
         result = execute_downgrade(world, player, target_nation)
@@ -11443,6 +11488,258 @@ RETREAT RECOVERY (3 turns):
             # Deduct DP (execute_downgrade returns dp_cost but doesn't deduct)
             world.diplomatic_points -= dp_cost
         return result
+
+    def _execute_diplomatic_declare_war(self, diplomatic_data: Dict, world) -> Dict:
+        """Handle war declaration command (R10). Costs 1 DP."""
+        from backend.game_logic.diplomacy import declare_war
+
+        target_nation = diplomatic_data.get("target_nation")
+        if not target_nation:
+            return {
+                "success": False,
+                "message": "Sire, against which nation shall we declare war? Specify: Britain, Prussia, Austria, or Saxony.",
+            }
+
+        player = world.player_nation
+
+        # Already at war?
+        current_state = world.get_diplomatic_state(player, target_nation)
+        if current_state == "WAR":
+            return {
+                "success": False,
+                "message": f"We are already at war with {target_nation}, Sire.",
+            }
+
+        # DP check (1 DP)
+        dp_cost = 1
+        if world.diplomatic_points < dp_cost:
+            return {
+                "success": False,
+                "message": f"Insufficient Diplomatic Points. War declaration costs {dp_cost} DP, but we have {int(world.diplomatic_points)}.",
+                "diplomatic_dialogue": None,
+                "awaiting_diplomatic_response": False,
+            }
+
+        # Talleyrand STRONG objection if target is neutral and threat is high
+        threat_level = getattr(world, 'threat_level', 0)
+        if current_state != "WAR" and threat_level > 50:
+            # Check if objection already pending (don't double-fire)
+            if not world.diplomatic_objection_popup:
+                world.diplomatic_objection_popup = {
+                    "type": "talleyrand_objection",
+                    "severity": "STRONG",
+                    "message": (f"Sire, I must strongly advise against declaring war on {target_nation}. "
+                                f"Our threat level stands at {int(threat_level)} — the courts of Europe "
+                                f"already whisper of coalition. Another war will only hasten their union against us."),
+                    "action": "diplomatic_declare_war",
+                    "target_nation": target_nation,
+                }
+                return {
+                    "success": True,
+                    "message": world.diplomatic_objection_popup["message"],
+                    "diplomatic_objection_popup": world.diplomatic_objection_popup,
+                }
+
+        # Execute war declaration
+        result = declare_war(world, player, target_nation,
+                             casus_belli=world.casus_belli.get(world._make_diplo_key(player, target_nation), False))
+
+        if result.get("success"):
+            world.diplomatic_points -= dp_cost
+            # R23: Marshal trust reactions for war declaration
+            self._apply_diplomatic_trust_reactions(world, "war_declaration", target_nation)
+
+        return result
+
+    def _execute_diplomatic_ultimatum(self, diplomatic_data: Dict, world) -> Dict:
+        """Handle ultimatum command (R21). Costs 2 DP."""
+        from backend.game_logic.diplomacy import calculate_acceptance
+
+        target_nation = diplomatic_data.get("target_nation")
+        if not target_nation:
+            return {
+                "success": False,
+                "message": "Sire, to which nation shall we deliver this ultimatum? Specify: Britain, Prussia, Austria, or Saxony.",
+            }
+
+        player = world.player_nation
+        current_state = world.get_diplomatic_state(player, target_nation)
+
+        if current_state == "WAR":
+            return {
+                "success": False,
+                "message": f"We are already at war with {target_nation}, Sire. An ultimatum is meaningless.",
+            }
+
+        # DP check (2 DP)
+        dp_cost = 2
+        if world.diplomatic_points < dp_cost:
+            return {
+                "success": False,
+                "message": f"Insufficient Diplomatic Points. Ultimatum costs {dp_cost} DP, but we have {int(world.diplomatic_points)}.",
+                "diplomatic_dialogue": None,
+                "awaiting_diplomatic_response": False,
+            }
+
+        # Talleyrand STRONG objection if threat is high
+        threat_level = getattr(world, 'threat_level', 0)
+        if threat_level > 50 and not world.diplomatic_objection_popup:
+            world.diplomatic_objection_popup = {
+                "type": "talleyrand_objection",
+                "severity": "STRONG",
+                "message": (f"Sire, an ultimatum to {target_nation} while our threat level stands at "
+                            f"{int(threat_level)} is most unwise. The other powers will see this as "
+                            f"further aggression."),
+                "action": "diplomatic_ultimatum",
+                "target_nation": target_nation,
+            }
+            return {
+                "success": True,
+                "message": world.diplomatic_objection_popup["message"],
+                "diplomatic_objection_popup": world.diplomatic_objection_popup,
+            }
+
+        # Calculate military threat bonus: +15 if French marshal adjacent to target's marshal, else +10
+        military_threat = 10
+        for m_name, m_obj in world.marshals.items():
+            if m_obj.nation == player and m_obj.strength > 0:
+                m_region = world.regions.get(m_obj.location)
+                if not m_region:
+                    continue
+                for e_name, e_obj in world.marshals.items():
+                    if e_obj.nation == target_nation and e_obj.location in getattr(m_region, 'connections', []):
+                        military_threat = 15
+                        break
+                if military_threat == 15:
+                    break
+
+        # -10 relation regardless of outcome
+        world.modify_nation_relation(player, target_nation, -10)
+
+        # Deduct DP
+        world.diplomatic_points -= dp_cost
+
+        # Determine acceptance (ultimatums get military_threat bonus)
+        acceptance_base = 0
+        try:
+            proposal = {
+                "type": "peace",
+                "proposer_nation": player,
+                "target_nation": target_nation,
+                "sweeteners": [],
+                "demands": [],
+                "clauses": [],
+            }
+            acceptance_result = calculate_acceptance(proposal, world)
+            acceptance_base = acceptance_result.get("score", 0) if isinstance(acceptance_result, dict) else 20
+        except Exception:
+            acceptance_base = 20
+
+        # Add military threat bonus
+        total_acceptance = acceptance_base + military_threat
+
+        import random
+        roll = random.randint(1, 100)
+        accepted = roll <= total_acceptance
+
+        diplo_key = world._make_diplo_key(player, target_nation)
+
+        if accepted:
+            # Ultimatum accepted — transition to peace or non-aggression
+            current = world.get_diplomatic_state(player, target_nation)
+            if current == "WAR":
+                world.diplomatic_states[diplo_key] = "PEACE"
+                outcome_msg = f"{target_nation} has accepted our ultimatum and sued for peace!"
+            else:
+                world.diplomatic_states[diplo_key] = "NON_AGGRESSION"
+                outcome_msg = f"{target_nation} has bowed to our ultimatum and agreed to non-aggression!"
+        else:
+            # Ultimatum rejected — casus belli granted
+            world.casus_belli[diplo_key] = True
+            outcome_msg = (f"{target_nation} has rejected our ultimatum! "
+                           f"We now have casus belli — war declaration penalties will be halved.")
+
+        # R23: Marshal trust reactions
+        self._apply_diplomatic_trust_reactions(world, "ultimatum_issued", target_nation)
+
+        # Log diplomatic history
+        diplomatic_history = getattr(world, 'diplomatic_history', [])
+        diplomatic_history.append({
+            "turn": int(world.current_turn),
+            "type": "ultimatum",
+            "target": target_nation,
+            "accepted": accepted,
+            "military_threat": military_threat,
+        })
+        # Cap at 20 entries
+        if len(diplomatic_history) > 20:
+            diplomatic_history[:] = diplomatic_history[-20:]
+        world.diplomatic_history = diplomatic_history
+
+        return {
+            "success": True,
+            "message": outcome_msg,
+            "accepted": accepted,
+            "military_threat": military_threat,
+            "dp_cost": dp_cost,
+        }
+
+    def _apply_diplomatic_trust_reactions(self, world, event_type: str, target_nation: str = None):
+        """Apply marshal trust reactions for diplomatic events (R23).
+
+        Event types: war_declaration, treaty_signed, treaty_broken,
+                     ultimatum_issued, vassal_created, alliance_formed
+        """
+        # Trust reaction table: event_type -> personality_string -> trust_delta
+        _DIPLOMATIC_TRUST_REACTIONS = {
+            "war_declaration": {
+                "aggressive": 3, "cautious": -3, "literal": 0, "balanced": 0,
+            },
+            "treaty_signed": {
+                "aggressive": -2, "cautious": 3, "literal": 1, "balanced": 1,
+            },
+            "treaty_broken": {
+                "aggressive": 1, "cautious": -3, "literal": -2, "balanced": -1,
+            },
+            "ultimatum_issued": {
+                "aggressive": 2, "cautious": -2, "literal": 0, "balanced": 0,
+            },
+            "vassal_created": {
+                "aggressive": 2, "cautious": -1, "literal": 1, "balanced": 1,
+            },
+            "alliance_formed": {
+                "aggressive": -1, "cautious": 2, "literal": 1, "balanced": 1,
+            },
+        }
+
+        reactions = _DIPLOMATIC_TRUST_REACTIONS.get(event_type, {})
+        if not reactions:
+            return
+
+        # Track per-turn cap (+/-5 per turn from diplomatic events)
+        diplo_trust_key = f"_diplomatic_trust_this_turn_{world.current_turn}"
+
+        for m_name, m_obj in world.marshals.items():
+            if m_obj.nation != world.player_nation:
+                continue
+
+            personality = getattr(m_obj, 'personality', None)
+            if not personality:
+                continue
+
+            delta = reactions.get(personality, 0)
+            if delta == 0:
+                continue
+
+            # Per-turn cap tracking
+            applied = getattr(m_obj, diplo_trust_key, 0)
+            remaining = 5 - abs(applied)
+            if remaining <= 0:
+                continue
+            clamped_delta = max(-remaining, min(remaining, delta))
+
+            m_obj.trust.modify(clamped_delta)
+            setattr(m_obj, diplo_trust_key, applied + clamped_delta)
 
     def handle_diplomatic_dialogue_response(self, choice, game_state: Dict) -> Dict:
         """Handle player's response to a diplomatic dialogue.
@@ -11566,6 +11863,8 @@ RETREAT RECOVERY (3 turns):
                 return {
                     "success": False,
                     "message": f"Insufficient Diplomatic Points. Need {int(cost)}, have {int(world.diplomatic_points)}.",
+                    "diplomatic_dialogue": None,
+                    "awaiting_diplomatic_response": False,
                 }
             world.diplomatic_points -= cost
 
@@ -11588,6 +11887,18 @@ RETREAT RECOVERY (3 turns):
                 "target": target_nation,
                 "proposal_type": proposal_type,
             })
+
+            # R29: Log to diplomatic history
+            diplomatic_history = getattr(world, 'diplomatic_history', [])
+            diplomatic_history.append({
+                "turn": int(world.current_turn),
+                "type": "proposal_sent",
+                "target": target_nation,
+                "proposal_type": proposal_type,
+            })
+            if len(diplomatic_history) > 20:
+                diplomatic_history[:] = diplomatic_history[-20:]
+            world.diplomatic_history = diplomatic_history
 
             # Dispatch event (Session 8D)
             from backend.game_logic.dispatch import queue_dispatch_event
@@ -11901,6 +12212,8 @@ RETREAT RECOVERY (3 turns):
                 return {
                     "success": False,
                     "message": f"Insufficient Diplomatic Points. Need {int(cost)}, have {int(world.diplomatic_points)}.",
+                    "diplomatic_dialogue": None,
+                    "awaiting_diplomatic_response": False,
                 }
             world.diplomatic_points -= cost
 
@@ -12042,6 +12355,58 @@ RETREAT RECOVERY (3 turns):
                 "message": (
                     f"You accept the risk. If {vassal_name}'s loyalty reaches zero, "
                     f"rebellion will follow."
+                ),
+            }
+
+        # ═══════════════════════════════════════════════════════
+        # R12: ALLIANCE PARADOX HANDLERS
+        # ═══════════════════════════════════════════════════════
+        elif action == "honor_defender":
+            terms = selected.get("terms", {})
+            attacker_nation = terms.get("attacker", "")
+            defender_nation = terms.get("defender", "")
+            if not attacker_nation or not defender_nation:
+                world.pending_diplomatic_dialogue = None
+                return {"success": False, "message": "Error: paradox data missing."}
+            from backend.game_logic.diplomacy import declare_war as _paradox_declare_war
+            # Honor alliance with defender: declare war on attacker
+            war_result = _paradox_declare_war(world, world.player_nation, attacker_nation)
+            world.pending_diplomatic_dialogue = None
+            world.alliance_paradox_popup = None
+            msg = (
+                f"France honors its alliance with {defender_nation} and declares war on {attacker_nation}!"
+            )
+            if war_result.get("message"):
+                msg += f" {war_result['message']}"
+            return {"success": True, "message": msg}
+
+        elif action == "break_defender_alliance":
+            terms = selected.get("terms", {})
+            attacker_nation = terms.get("attacker", "")
+            defender_nation = terms.get("defender", "")
+            if not attacker_nation or not defender_nation:
+                world.pending_diplomatic_dialogue = None
+                return {"success": False, "message": "Error: paradox data missing."}
+            from backend.game_logic.diplomacy import execute_downgrade as _paradox_downgrade
+            # Break alliance with defender: downgrade step by step to PEACE
+            player = world.player_nation
+            diplo_key = world._make_diplo_key(player, defender_nation)
+            current = world.diplomatic_states.get(diplo_key, "PEACE")
+            while current in ("ALLIANCE", "DEFENSIVE_ALLIANCE", "NON_AGGRESSION", "OPEN_BORDERS"):
+                dg_result = _paradox_downgrade(world, player, defender_nation)
+                if not dg_result.get("success"):
+                    break
+                current = dg_result.get("new_state", "PEACE")
+            # Also remove active treaty
+            active_treaties = getattr(world, 'active_treaties', {})
+            active_treaties.pop(diplo_key, None)
+            world.pending_diplomatic_dialogue = None
+            world.alliance_paradox_popup = None
+            return {
+                "success": True,
+                "message": (
+                    f"France abandons its alliance with {defender_nation}. "
+                    f"We side with {attacker_nation} in this conflict."
                 ),
             }
 
@@ -12655,7 +13020,7 @@ RETREAT RECOVERY (3 turns):
         # Check action economy
         # FIX: Added "retreat" - must match main execute() free_actions list
         # R72: Vassal commands are free (DP/gold cost, not military AP)
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "invest_vassal", "change_autonomy", "make_vassal"]
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "invest_vassal", "change_autonomy", "make_vassal"]
         action_costs_point = action not in free_actions
 
         if action_costs_point:
@@ -12962,6 +13327,9 @@ RETREAT RECOVERY (3 turns):
                         f" Marshals assimilated: {', '.join(assimilated)}."
                     )
             result["new_state"] = game_state
+
+            # R23: Marshal trust reactions for vassal creation
+            self._apply_diplomatic_trust_reactions(world, "vassal_created", target)
 
         return result
 

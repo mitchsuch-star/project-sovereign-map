@@ -35,6 +35,15 @@ NATION_ALIASES = {
 
 KNOWN_NATIONS = {"Britain", "Prussia", "Austria", "Saxony"}
 
+
+def get_known_nations(world=None) -> set:
+    """Return the set of known nations, including any vassals (R93)."""
+    nations = set(KNOWN_NATIONS)
+    if world:
+        vassals = getattr(world, 'vassals', {})
+        nations.update(vassals.keys())
+    return nations
+
 # ═══════ PROPOSAL TYPE KEYWORDS ═══════
 PROPOSAL_TYPE_KEYWORDS = {
     "peace": ["peace", "ceasefire", "end the war", "stop fighting", "end hostilities"],
