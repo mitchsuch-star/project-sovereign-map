@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 5, 2026 (Diplo Refinement Design Gate Complete)
+> **Last Updated:** March 5, 2026 (Deep Audit II Complete — 114 refinement items)
 
 ---
 
@@ -34,13 +34,14 @@
    - ~~Session 8D: Dispatch Integration + Polish~~ — **DONE** (20 diplomatic dispatch event types with fog-filtered visibility, queue_dispatch_event helper, campaign log 6 diplomacy event types with one-liner formatters, AI-AI diplomatic phase with 4 triggers + max 2 treaties/turn, special acceptance bonuses for 4 nations, 4 scenario test fixtures, Godot dispatch_view.gd diplomatic section + campaign_log.gd diplomacy category, 57 new tests)
 2. **Diplomacy Audit** — **COMPLETE.** 20 bugs fixed, 145 audit tests. See `docs/DIPLOMACY_AUDIT.md`.
 3. **Diplomacy Creative Audit** — **COMPLETE.** 5-agent deep analysis: balance, historical accuracy, fun, AI behavior, edge cases. Overall score 7.8/10. 8 critical/high bugs found, 10 balance issues, 18 design gaps, 6 AI behavior issues, 7 edge cases. 3 easy fixes applied (treaty cancel/downgrade commands, AI-AI ledger visibility). See `docs/DIPLOMACY_CREATIVE_AUDIT.md`.
-4. **Diplomacy Refinement & Cleanup** — **DESIGN GATE COMPLETE.** 60 items reviewed: 41 approved, 16 deferred, 3 done. 4-phase implementation plan. See `docs/DIPLO_REFINEMENT.md`.
-   - **Phase 1 (NEXT): Critical Wiring** — Sabotage/redemption popups (R37/R41), objection overrides (R42), coalition formula (R40), AI-AI cooldown (R43), counter-offer system (R2), keyword audit (R55). 6 fixes.
-   - **Phase 2: State Cleanup** — War score decay (R1a/b), treaty gold (R3), armistice (R5a/b), treaty cleanup on downgrade/rebellion (R45/R46), orders on peace (R47), 10+ minor state fixes. 18 fixes.
-   - **Phase 3: Balance Tuning** — Relation decay (R4a), COURT_NATION speed (R4b), trade diminishing returns (R6), military pressure (R8), battle threshold (R9), coalition stalemate (R11), threat per capture (R16), 4 more. 11 changes.
-   - **Phase 4: Commands & QoL** — War declaration (R10), ultimatums (R21), marshal morale (R23), acceptance preview (R31), AI memory (R34), ledger improvements (R17a-c), diplomatic history (R29), alliance paradox popup (R12). 11 items.
-   - **After Phase 4: UI Test** — Manual playtest in Godot. DP display investigation (R39). Verify all fixes.
-   - **Post-UI-Test: Feature Design Session** — Evaluate deferred features (marriages, secret treaties, conferences, ceremonies, etc). 16 items.
+4. **Diplomacy Refinement & Cleanup** — **DESIGN GATE COMPLETE.** 114 items total (95 approved, 16 deferred, 3 done). Bug fixes span multiple sessions. See `docs/DIPLO_REFINEMENT.md`.
+   - **Phase 1 (NEXT): Critical Wiring** — Sabotage/redemption popups, objection overrides, coalition formula, counter-offer system, serialization gaps, fog leaks, dead Continental System call, defensive_alliance tier skip. ~16 fixes.
+   - **Phase 2A: State Cleanup — Diplomacy Core** — War score decay, treaty gold, armistice, treaty cleanup, template slots, dispatch fog, coalition dispatch. ~19 fixes.
+   - **Phase 2B: State Cleanup — Vassal, AI-AI, War** — Rebellion cleanup, vassalizing coalition members, AI-AI ratification bypass, stalemate counter reset, alliance conflict check, declare_war treaty cleanup. ~23 fixes.
+   - **Phase 3: Balance Tuning** — Relation decay, COURT_NATION speed, trade diminishing returns, military pressure, battle threshold, coalition stalemate, P3 activation. ~13 changes.
+   - **Phase 4: Commands, QoL, Popup Architecture** — War declaration, ultimatums, acceptance preview, ledger improvements, popup early-return cascade fix, notification cleanup. ~27 fixes.
+   - **After Phase 4: UI Test Plan** — Claude generates comprehensive UI test plan. Manual playtest in Godot. DP display investigation (R39). Verify all fixes.
+   - **Post-UI-Test: Feature Design Session** — Evaluate deferred nice-to-have features (marriages, secret treaties, conferences, ceremonies, etc). 16 items.
 5. **Jealousy system** — NEEDS DESIGN GATE (separate track). See CLAUDE.md.
 6. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
 
@@ -66,6 +67,30 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 5 — Deep Audit II: 54 New Refinement Findings
+
+6-agent deep code audit targeting wiring gaps, state cleanup, cross-system interactions, and popup architecture. 1 file modified (DIPLO_REFINEMENT.md, +755 lines).
+
+**54 new findings (R61-R114):** 9 HIGH severity, 27 MEDIUM, 18 LOW. Phase 2 split into 2A (diplomacy core, 19 fixes) and 2B (vassal/AI-AI/war, 23 fixes).
+
+**6 systemic trends identified:**
+1. Vassal system most under-wired (11 findings) — rebellion cleanup, coalition membership, Continental System
+2. Popup early-return cascade (9 findings) — Godot `_on_command_result()` returns early on popup, drops all other data
+3. Continental System entirely dead — code exists but never called from turn loop
+4. State cleanup on war/peace transitions incomplete — treaties, battle records, stalemate counters persist
+5. AI-AI plays by different rules — bypasses `validate_transition()`, skips `active_treaties`, no armistice
+6. Fog of war has 2 leak points — advisory exact strength, dispatch wrong key
+
+**Most impactful findings:**
+- R61: `original_nation` not serialized (save/load data loss)
+- R96: VASSAL not in OPEN_MOVEMENT_STATES (lord can't traverse vassal territory)
+- R97: `declare_war` doesn't clean `active_treaties` (treaty clauses execute during war)
+- R109: `defensive_alliance` overwritten to `"alliance"` (entire tier unreachable)
+- R64: Continental System never called from turn loop
+- R65: Advisory leaks exact enemy strength through fog
+
+**Updated refinement plan:** 114 total items. 7-row phase table. All items design-gate approved.
 
 ### Mar 4 — Diplomacy Creative Audit + Refinement Doc
 
