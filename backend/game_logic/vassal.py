@@ -15,6 +15,7 @@ Single source of truth for vassal mechanics:
 
 import random
 from typing import List
+from backend.models.trust import Trust
 
 # ═══════ AUTONOMY LEVELS ═══════
 AUTONOMY_PUPPET = 0       # -4 drift/turn
@@ -286,6 +287,35 @@ def process_vassal_loyalty(world) -> List[dict]:
                 "garrison_effect": "Loyalty +10, AP -2 this turn",
                 "accept_effect": "Rebellion proceeds next turn if loyalty reaches 0",
             }
+            # R74: Set blocking dialogue for rebellion response
+            world.pending_diplomatic_dialogue = {
+                "type": "vassal_rebellion_imminent",
+                "target_nation": vassal_name,
+                "talleyrand_text": (
+                    f"Sire, {vassal_name} teeters on the brink of rebellion! "
+                    f"Their loyalty stands at {int(new_loyalty)} — action is required."
+                ),
+                "options": [
+                    {
+                        "label": "Invest",
+                        "description": "1 DP + 200g → Loyalty +15, relations +5.",
+                        "action": "invest_vassal_rebellion",
+                    },
+                    {
+                        "label": "Garrison",
+                        "description": "2 AP → Loyalty +10.",
+                        "action": "garrison_vassal_rebellion",
+                    },
+                    {
+                        "label": "Accept Risk",
+                        "description": "Let events unfold. Rebellion if loyalty reaches 0.",
+                        "action": "accept_vassal_rebellion",
+                    },
+                ],
+                "context": {"vassal_name": vassal_name, "loyalty": int(new_loyalty)},
+                "turn_created": int(world.current_turn),
+                "blocking": True,
+            }
             # Dispatch event (Session 8D)
             from backend.game_logic.dispatch import queue_dispatch_event as _qde_vassal
             _qde_vassal(world, "diplomatic_vassal_rebellion_imminent",
@@ -353,11 +383,15 @@ def check_vassal_rebellion(world) -> List[dict]:
         diplo_key = world._make_diplo_key(lord, vassal_name)
         world.diplomatic_states[diplo_key] = "WAR"
 
-        # Transfer vassal marshals back
+        # Transfer vassal marshals back and clean up stale state
         for marshal in list(world.marshals.values()):
             if (getattr(marshal, 'original_nation', None) == vassal_name
                     and getattr(marshal, 'nation', '') == lord):
                 marshal.nation = vassal_name
+                marshal.original_nation = None  # Clear stale pre-vassalage marker
+                marshal.trust = Trust()  # Reset trust for transferred marshal
+                if hasattr(marshal, 'relationship_with_lord'):
+                    delattr(marshal, 'relationship_with_lord')
 
         # Cascade: all other vassals -10 loyalty
         for other_vassal, other_state in world.vassals.items():
@@ -782,49 +816,6 @@ def decrement_vassal_cooldowns(world) -> None:
     for vassal_name in expired:
         del cooldowns[vassal_name]
     world.vassal_investment_cooldowns = cooldowns
-
-
-# ═══════════════════════════════════════════════════════
-# CONTINENTAL SYSTEM
-# ═══════════════════════════════════════════════════════
-
-def apply_continental_system(world) -> None:
-    """
-    Apply Continental System trade penalties during income phase.
-
-    Members: -75g/turn trade income cap with Britain.
-    Total cap: 200g/turn across all members.
-    PUPPET/SATELLITE auto-join if lord runs system.
-    """
-    members = getattr(world, 'continental_system_members', [])
-    if not members:
-        return
-
-    lord = getattr(world, 'player_nation', 'France')
-
-    # Auto-join PUPPET/SATELLITE vassals
-    for vassal_name, state in world.vassals.items():
-        if state["lord"] == lord:
-            autonomy = state.get("autonomy", AUTONOMY_SATELLITE)
-            if autonomy in (AUTONOMY_PUPPET, AUTONOMY_SATELLITE):
-                if vassal_name not in members:
-                    members.append(vassal_name)
-                    # Dispatch event (Session 8D)
-                    from backend.game_logic.dispatch import queue_dispatch_event
-                    queue_dispatch_event(world, "diplomatic_continental_system",
-                                        {"nation": vassal_name, "action": "joined"},
-                                        "partial_on_nation")
-
-    # Penalty: reduce British trade income from member nations
-    # This is applied by zeroing out trade income between Britain and members
-    for member in members:
-        trade_key_1 = world._make_diplo_key(member, "Britain")
-        # Mark that trade is blocked (processed in trade income phase)
-        if not hasattr(world, '_continental_system_blocked'):
-            world._continental_system_blocked = set()
-        world._continental_system_blocked.add(trade_key_1)
-
-    world.continental_system_members = members
 
 
 # ═══════════════════════════════════════════════════════

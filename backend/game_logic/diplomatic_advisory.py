@@ -594,20 +594,52 @@ def _get_nation_total_strength(nation: str, world) -> int:
     return int(total)
 
 
+def _get_nation_visibility(nation: str, world) -> str:
+    """Get fog visibility tier for a nation's forces (R65 fog fix).
+
+    Imports the canonical helper from diplomatic_ledger.
+    """
+    from backend.game_logic.diplomatic_ledger import _get_nation_visibility as _ledger_vis
+    return _ledger_vis(nation, world)
+
+
+def _get_fogged_strength_display(nation: str, world) -> str:
+    """Get fog-filtered strength display string for a nation (R65 fog fix)."""
+    from backend.game_logic.diplomatic_ledger import _format_army_strength
+    raw = _get_nation_total_strength(nation, world)
+    vis = _get_nation_visibility(nation, world)
+    return _format_army_strength(raw, vis)
+
+
 def _get_military_advantage(nation: str, world) -> str:
     """Compare a nation's total military strength to France's.
 
-    Returns: "overwhelming" / "significant" / "slight" / "even" / "disadvantage"
-    (from the perspective of the target nation vs France)
+    Returns fog-filtered qualitative assessment. FULL visibility gives
+    exact ratios; lower tiers give vaguer descriptions (R65 fog fix).
     """
     nation_strength = _get_nation_total_strength(nation, world)
     france_strength = _get_nation_total_strength("France", world)
+    vis = _get_nation_visibility(nation, world)
+
+    # With unknown visibility, we can't assess military strength
+    if vis == "unknown":
+        return "unknown"
 
     if france_strength == 0:
         return "overwhelming" if nation_strength > 0 else "even"
 
     ratio = nation_strength / france_strength
 
+    # Stale visibility: only broad bands (collapse slight/even/disadvantage)
+    if vis == "stale":
+        if ratio > 1.3:
+            return "considerable"
+        elif ratio > 0.7:
+            return "comparable"
+        else:
+            return "modest"
+
+    # PARTIAL or FULL: full detail
     if ratio > 1.5:
         return "overwhelming"
     elif ratio > 1.1:

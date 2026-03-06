@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 5, 2026 (Deep Audit II Complete — 114 refinement items)
+> **Last Updated:** March 5, 2026 (Phase 1 Critical Wiring COMPLETE — 16 fixes, 37 new tests)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **5290** (5290 passed, 3 skipped — verified Mar 4, Diplomacy Audit Part 4 Playtest) |
+| **Tests Passing** | **5327** (5327 passed, 3 skipped — verified Mar 5, Phase 1 Critical Wiring) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -67,6 +67,29 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 5 — Phase 1 Critical Wiring: 16 Fixes Implemented
+
+16 bug fixes across 7 batches. 37 new tests (`test_phase1_critical_wiring.py`). 5327 total tests passing.
+
+**Fixes implemented:**
+- R40: Coalition loyalty penalty formula inverted (`min` → `max`, WE subtracts)
+- R96: VASSAL added to OPEN_MOVEMENT_STATES (lord traversal fixed)
+- R109: defensive_alliance type no longer overwritten to "alliance"
+- R66: Dispatch fog rule reads correct `target` key (was `target_nation`)
+- R61: original_nation serialized on Marshal (to_dict/from_dict)
+- R62: Rebellion clears original_nation and resets Trust
+- R63: break_treaty() now adds coalition threat (+25 alliance, +15 other)
+- R64: Continental System called from turn loop (duplicate in vassal.py removed)
+- R65: Advisory uses fog-filtered strength (unknown/stale/partial/full tiers)
+- R43: AI-AI per-pair proposal cooldown (5 turns after ratification)
+- R37/R41: Sabotage confrontation & redemption dialogue handlers wired
+- R42: Pre-proposal objection send_override/send_suggested handlers with terms preservation
+- R55: "continue" keyword added to dialogue guard
+- R74/R75: Vassal rebellion imminent sets pending_diplomatic_dialogue with invest/garrison/accept
+- R2: Counter-offer system activated (COUNTER_OFFER generates terms, accept/reject handlers)
+
+**Files modified:** coalition.py, diplomacy.py, ai_diplomacy.py, dispatch.py, marshal.py, vassal.py, diplomatic_advisory.py, diplomatic_dialogue.py, executor.py, world_state.py, main.py
 
 ### Mar 5 — Deep Audit II: 54 New Refinement Findings
 

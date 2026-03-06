@@ -447,7 +447,7 @@ def get_coalition_loyalty_penalty(nation: str, world) -> int:
         return 0
 
     we = world.war_exhaustion.get(nation, 0)
-    penalty = min(COALITION_LOYALTY_BASE + we // 10, 0)
+    penalty = max(COALITION_LOYALTY_BASE - we // 10, -30)
 
     # §6c: Diplomatic wedge — halve penalty if target dislikes leader
     leader = coalition.get("leader", "")

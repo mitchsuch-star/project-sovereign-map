@@ -3723,6 +3723,13 @@ class WorldState:
         process_trade_income(self)
 
         # ════════════════════════════════════════════════════════════
+        # CONTINENTAL SYSTEM TRADE PENALTIES (Phase 8 §7f)
+        # Applied after trade income, before treaty clauses
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic.diplomacy import apply_continental_system
+        apply_continental_system(self)
+
+        # ════════════════════════════════════════════════════════════
         # TREATY PER-TURN CLAUSES (Phase 8 Session 3 §7f step 10)
         # Applied after trade income
         # ════════════════════════════════════════════════════════════
@@ -3853,18 +3860,74 @@ class WorldState:
             queue_dispatch_event(self, "diplomatic_proposal_returned",
                                 {"nation": target}, "always")
         elif outcome == "COUNTER_OFFER":
-            # Stub: treat as REJECT with hint (Session 4 adds full counter-offer)
-            events.append({
-                "type": "diplomatic_proposal_returned",
-                "target": target,
-                "outcome": "REJECT",
-                "message": f"Talleyrand returns from {target}. They were not entirely opposed, but could not agree to our terms. {feedback}",
-            })
-            # Set cooldowns
-            self.player_proposal_cooldowns[target] = 3
-            ptype = proposal.get("type", "")
-            if ptype:
-                self.player_proposal_cooldowns[f"{target}_{ptype}"] = 5
+            # R2: Generate counter-offer terms from AI
+            from backend.game_logic.ai_diplomacy import (
+                generate_counter_offer, _format_proposal_summary,
+            )
+            counter_terms = generate_counter_offer(proposal, self)
+            if counter_terms:
+                # AI has viable counter-terms — present to player
+                summary = _format_proposal_summary(counter_terms)
+                ptype = proposal.get("type", "unknown").replace("_", " ").title()
+                events.append({
+                    "type": "diplomatic_proposal_returned",
+                    "target": target,
+                    "outcome": "COUNTER_OFFER",
+                    "message": (
+                        f"Talleyrand returns from {target} with a counter-proposal. "
+                        f"They could not accept our terms, but offer an alternative:\n{summary}"
+                    ),
+                })
+                # Set up dialogue for player response (no cooldowns yet — pending decision)
+                self.pending_diplomatic_dialogue = {
+                    "type": "counter_offer_response",
+                    "target_nation": target,
+                    "talleyrand_text": (
+                        f"Sire, {target} has returned with modified terms. {feedback}\n\n"
+                        f"Their counter-proposal:\n{summary}\n\n"
+                        f"Shall we accept these revised terms?"
+                    ),
+                    "options": [
+                        {
+                            "label": "Accept counter-offer",
+                            "description": f"Ratify the {ptype} with {target}'s modified terms.",
+                            "action": "accept_counter_offer",
+                        },
+                        {
+                            "label": "Reject",
+                            "description": "Decline their counter-proposal.",
+                            "action": "reject_counter_offer",
+                        },
+                    ],
+                    "context": {
+                        "source_nation": target,
+                        "original_proposal": proposal,
+                        "counter_terms": counter_terms,
+                    },
+                    "turn_created": int(self.current_turn),
+                    "blocking": True,
+                }
+                # Set popup for Godot
+                self.incoming_proposal_popup = {
+                    "source_nation": target,
+                    "proposal_type": proposal.get("type", "unknown"),
+                    "is_counter_offer": True,
+                    "summary": summary,
+                }
+                # Talleyrand returns to IDLE for immediate response
+                self.talleyrand_state = "IDLE"
+            else:
+                # Counter failed — treat as rejection
+                events.append({
+                    "type": "diplomatic_proposal_returned",
+                    "target": target,
+                    "outcome": "REJECT",
+                    "message": f"Talleyrand returns from {target}. They were not entirely opposed, but could not agree to any terms. {feedback}",
+                })
+                self.player_proposal_cooldowns[target] = 3
+                ptype = proposal.get("type", "")
+                if ptype:
+                    self.player_proposal_cooldowns[f"{target}_{ptype}"] = 5
             queue_dispatch_event(self, "diplomatic_proposal_returned",
                                 {"nation": target}, "always")
         else:

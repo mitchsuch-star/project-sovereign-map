@@ -380,7 +380,7 @@ def _build_proposal_terms(
             terms["type"] = "open_borders"
             terms["clauses"].append("open_borders")
         elif proposal_type == "defensive_alliance":
-            terms["type"] = "alliance"  # Uses alliance base disposition
+            terms["type"] = "defensive_alliance"
             terms["clauses"].append("open_borders")
         elif proposal_type == "alliance":
             terms["type"] = "alliance"
@@ -1059,6 +1059,12 @@ def _evaluate_ai_ai_proposal(nation_a: str, nation_b: str, world) -> Optional[Di
     3. Both at PEACE with France AND relation > +40 → upgrade treaty one step
     4. One gold < 200 AND other gold > 400 → trade deal (open_borders)
     """
+    # R43: Per-pair cooldown for AI-AI proposals
+    diplo_key = world._make_diplo_key(nation_a, nation_b)
+    cooldowns = _get_cooldowns(world)
+    if cooldowns.get(f"ai_ai|{diplo_key}", 0) > 0:
+        return None
+
     player = getattr(world, 'player_nation', 'France')
 
     state_a_france = world.get_diplomatic_state(nation_a, player)
@@ -1193,6 +1199,11 @@ def _ratify_ai_ai_treaty(nation_a: str, nation_b: str, proposal: Dict, world) ->
         "treaty_type": treaty_type_display,
         "turn": int(world.current_turn),
     })
+
+    # R43: Set per-pair cooldown to prevent rapid AI-AI upgrades
+    cooldowns = _get_cooldowns(world)
+    cooldowns[f"ai_ai|{diplo_key}"] = 5
+    _set_cooldowns(world, cooldowns)
 
     return {
         "type": "ai_ai_treaty",

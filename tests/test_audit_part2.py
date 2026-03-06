@@ -253,26 +253,26 @@ class TestSection7CoalitionWarfare:
         assert get_coalition_friction("Prussia", "Austria", world) == 0.25
 
     def test_t6_loyalty_penalty_formula(self):
-        """T-6: Loyalty penalty = min(-15 + WE//10, 0)."""
+        """T-6: Loyalty penalty = max(-15 - WE//10, -30). WE weakens coalition (R40 fix)."""
         world = _make_world()
         world.active_coalition = {
             "members": ["Prussia", "Austria"],
             "leader": "Prussia",
         }
-        # 0 WE → penalty = min(-15, 0) = -15
+        # 0 WE → max(-15 - 0, -30) = -15
         world.war_exhaustion = {"Prussia": 0}
         penalty = get_coalition_loyalty_penalty("Prussia", world)
         assert penalty == -15
 
-        # 100 WE → penalty = min(-15 + 10, 0) = -5
+        # 100 WE → max(-15 - 10, -30) = -25
         world.war_exhaustion = {"Prussia": 100}
         penalty = get_coalition_loyalty_penalty("Prussia", world)
-        assert penalty == -5
+        assert penalty == -25
 
-        # 150+ WE → penalty = min(-15 + 15, 0) = 0
+        # 150+ WE → max(-15 - 15, -30) = -30 (floor)
         world.war_exhaustion = {"Prussia": 150}
         penalty = get_coalition_loyalty_penalty("Prussia", world)
-        assert penalty == 0
+        assert penalty == -30
 
     def test_t4_war_exhaustion_from_battle(self):
         """T-4: War exhaustion = casualties/1000, capped at 20."""

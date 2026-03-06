@@ -225,6 +225,7 @@ class Marshal:
         self.starting_strength = strength  # NEW: Track original strength
         self.personality = personality
         self.nation = nation
+        self.original_nation = None  # Track pre-vassalage nation for cleanup on rebellion
         # Spawn location: where marshal respawns when army is broken
         # For France: Paris (capital)
         # For enemies: their starting region (TODO: use actual capitals in future)
@@ -1019,6 +1020,7 @@ class Marshal:
             "starting_strength": int(self.starting_strength),
             "personality": self.personality,
             "nation": self.nation,
+            "original_nation": self.original_nation,
             "spawn_location": self.spawn_location,
             "movement_range": int(self.movement_range),
             "tactical_skill": int(self.tactical_skill),
@@ -1169,6 +1171,7 @@ class Marshal:
         # ═══════ CORE IDENTITY ═══════
         marshal.starting_strength = data.get("starting_strength", marshal.strength)
         marshal.biography = data.get("biography", "")
+        marshal.original_nation = data.get("original_nation", None)
 
         # ═══════ GAME STATE ═══════
         marshal.morale = data.get("morale", 70)

@@ -204,7 +204,7 @@ class TestDispatchDiplomaticEvents:
 
     def test_mission_progress_appears_in_dispatch(self):
         world = _make_world()
-        world.active_diplomatic_mission = {"target_nation": "Prussia", "type": "court_nation"}
+        world.active_diplomatic_mission = {"target": "Prussia", "type": "court_nation"}
         queue_dispatch_event(world, "diplomatic_mission_progress",
                             {"nation": "Prussia", "value": 25}, "player_mission")
         dispatch = build_morning_dispatch(world)
@@ -214,7 +214,7 @@ class TestDispatchDiplomaticEvents:
 
     def test_mission_paused_appears_in_dispatch(self):
         world = _make_world()
-        world.active_diplomatic_mission = {"target_nation": "Prussia", "type": "court_nation"}
+        world.active_diplomatic_mission = {"target": "Prussia", "type": "court_nation"}
         queue_dispatch_event(world, "diplomatic_mission_paused",
                             {"nation": "Prussia"}, "player_mission")
         dispatch = build_morning_dispatch(world)
@@ -337,7 +337,7 @@ class TestDispatchFogFiltering:
 
     def test_player_mission_visible_when_mission_matches(self):
         world = _make_world()
-        world.active_diplomatic_mission = {"target_nation": "Prussia"}
+        world.active_diplomatic_mission = {"target": "Prussia"}
         event = {"type": "diplomatic_mission_progress",
                  "template_vars": {"nation": "Prussia"}, "fog_rule": "player_mission"}
         assert _is_dispatch_event_visible(event, world, "France") is True

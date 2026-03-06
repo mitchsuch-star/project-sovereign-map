@@ -473,20 +473,20 @@ class TestCoalitionBreaking:
         assert penalty == -15
 
     def test_loyalty_penalty_with_exhaustion(self):
-        """Penalty reduces as war exhaustion rises: min(-15 + WE//10, 0)."""
+        """WE deepens penalty: max(-15 - WE//10, -30). R40 fix."""
         world = _make_world()
         form_coalition(["Austria"], world)
         world.war_exhaustion["Austria"] = 100
         penalty = get_coalition_loyalty_penalty("Austria", world)
-        assert penalty == -5  # -15 + 100//10 = -5
+        assert penalty == -25  # max(-15 - 10, -30) = -25
 
     def test_loyalty_penalty_at_high_exhaustion(self):
-        """At WE 150+, penalty reaches 0."""
+        """At WE 150+, penalty floors at -30. R40 fix."""
         world = _make_world()
         form_coalition(["Austria"], world)
         world.war_exhaustion["Austria"] = 150
         penalty = get_coalition_loyalty_penalty("Austria", world)
-        assert penalty == 0
+        assert penalty == -30
 
     def test_loyalty_penalty_wedge_halving(self):
         """If target dislikes leader (relation < 10), penalty halved (§6c)."""

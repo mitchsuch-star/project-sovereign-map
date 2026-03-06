@@ -540,7 +540,7 @@ def execute_command(request: CommandRequest):
             _DIALOGUE_RESPONSE_KEYWORDS = [
                 "accept", "reject", "decline", "counter",
                 "proceed", "cancel", "confront", "overlook",
-                "apologize", "replace", "invest", "garrison",
+                "apologize", "replace", "continue", "invest", "garrison",
                 "send", "execute", "reconsider", "modify",
             ]
             matched_keyword = None

@@ -11806,6 +11806,222 @@ RETREAT RECOVERY (3 turns):
                 "diplomatic_dialogue": new_dialogue,
             }
 
+        # ═══════════════════════════════════════════════════════
+        # R37: SABOTAGE CONFRONTATION HANDLERS
+        # ═══════════════════════════════════════════════════════
+        elif action in ("confront_sabotage", "overlook_sabotage"):
+            from backend.commands.diplomatic_defiance import resolve_confrontation
+            talleyrand = world.diplomats.get("France")
+            if not talleyrand:
+                world.pending_diplomatic_dialogue = None
+                return {"success": False, "message": "No diplomat available."}
+            try:
+                result = resolve_confrontation(action, talleyrand, world)
+            except Exception:
+                world.pending_diplomatic_dialogue = None
+                return {"success": True, "message": "The matter has been resolved."}
+            world.pending_diplomatic_dialogue = None
+            world.diplomatic_sabotage = None
+            return {
+                "success": True,
+                "message": result.get("message", "The matter has been resolved."),
+            }
+
+        # ═══════════════════════════════════════════════════════
+        # R41: TALLEYRAND REDEMPTION HANDLERS
+        # ═══════════════════════════════════════════════════════
+        elif action in ("redemption_apologize", "redemption_replace", "redemption_continue"):
+            from backend.commands.diplomatic_defiance import apply_redemption_choice
+            talleyrand = world.diplomats.get("France")
+            if not talleyrand:
+                world.pending_diplomatic_dialogue = None
+                return {"success": False, "message": "No diplomat available."}
+            try:
+                result = apply_redemption_choice(action, talleyrand, world)
+            except Exception:
+                world.pending_diplomatic_dialogue = None
+                return {"success": True, "message": "The matter has been settled."}
+            world.pending_diplomatic_dialogue = None
+            world.talleyrand_redemption = None
+            return {
+                "success": True,
+                "message": result.get("message", "The matter has been settled."),
+            }
+
+        # ═══════════════════════════════════════════════════════
+        # R42: PRE-PROPOSAL OBJECTION OVERRIDE HANDLERS
+        # ═══════════════════════════════════════════════════════
+        elif action in ("send_override", "send_suggested"):
+            terms = selected.get("terms", {})
+            if action == "send_suggested":
+                # Use Talleyrand's suggested terms from context
+                terms = terms or dialogue.get("context", {}).get("suggested_terms", {})
+            else:
+                # Use original terms from context
+                terms = terms or dialogue.get("context", {}).get("original_proposal", {})
+
+            proposal_type = terms.get("proposal_type", "peace")
+
+            # Build proposal and send (reuse execute_proposal path)
+            proposal = {
+                "type": proposal_type,
+                "proposer_nation": "France",
+                "target_nation": target_nation,
+                "sweeteners": terms.get("sweeteners", []),
+                "demands": terms.get("demands", []),
+                "clauses": terms.get("clauses", []),
+            }
+
+            # Deduct DP
+            talleyrand = world.diplomats.get("France")
+            skill = talleyrand.skill if talleyrand else 5
+            dp_action = f"propose_{proposal_type}"
+            cost = get_dp_cost(dp_action, skill)
+            if world.diplomatic_points < cost:
+                world.pending_diplomatic_dialogue = None
+                return {
+                    "success": False,
+                    "message": f"Insufficient Diplomatic Points. Need {int(cost)}, have {int(world.diplomatic_points)}.",
+                }
+            world.diplomatic_points -= cost
+
+            # Set Talleyrand in transit
+            mission = getattr(world, 'active_diplomatic_mission', None)
+            if mission and not mission.get("paused"):
+                mission["paused"] = True
+
+            world.talleyrand_state = "IN_TRANSIT"
+            world.proposal_in_transit = {
+                "target": target_nation,
+                "proposal": proposal,
+                "turn_sent": int(world.current_turn),
+            }
+
+            # Record override if player overrode Talleyrand's objection
+            if action == "send_override":
+                from backend.commands.diplomatic_defiance import record_override
+                record_override(world, proposal_type, "override")
+
+            world.log_event({
+                "type": "diplomatic_proposal_sent",
+                "target": target_nation,
+                "proposal_type": proposal_type,
+            })
+
+            from backend.game_logic.dispatch import queue_dispatch_event
+            queue_dispatch_event(world, "diplomatic_proposal_sent",
+                                {"nation": target_nation}, "always")
+
+            world.pending_diplomatic_dialogue = None
+            override_note = " despite Talleyrand's objections" if action == "send_override" else " with Talleyrand's suggested terms"
+            return {
+                "success": True,
+                "message": (
+                    f"Talleyrand departs for the {target_nation} court{override_note}. "
+                    f"Expect a response by next turn. ({int(cost)} DP spent)"
+                ),
+            }
+
+        # ═══════════════════════════════════════════════════════
+        # R2: COUNTER-OFFER RESPONSE HANDLERS
+        # ═══════════════════════════════════════════════════════
+        elif action == "accept_counter_offer":
+            context = dialogue.get("context", {})
+            counter_terms = context.get("counter_terms", {})
+            source_nation = context.get("source_nation", target_nation)
+            if not source_nation or not counter_terms:
+                world.pending_diplomatic_dialogue = None
+                return {"success": False, "message": "Error: counter-offer data missing."}
+            # Ratify treaty with counter terms (0 DP cost — already paid on original proposal)
+            treaty_event = world._ratify_treaty(source_nation, counter_terms)
+            world.pending_diplomatic_dialogue = None
+            world.incoming_proposal_popup = None
+            treaty_msg = treaty_event.get("message", "") if treaty_event else ""
+            world.log_event({
+                "type": "counter_offer_accepted",
+                "source": source_nation,
+                "proposal_type": counter_terms.get("type", "unknown"),
+            })
+            return {
+                "success": True,
+                "message": f"You have accepted {source_nation}'s counter-proposal. {treaty_msg}",
+            }
+
+        elif action == "reject_counter_offer":
+            context = dialogue.get("context", {})
+            source_nation = context.get("source_nation", target_nation)
+            original = context.get("original_proposal", {})
+            ptype = original.get("type", "unknown")
+            # Apply rejection cooldowns and relation penalty
+            if source_nation:
+                world.modify_nation_relation("France", source_nation, -5)
+                world.player_proposal_cooldowns[source_nation] = 3
+                if ptype:
+                    world.player_proposal_cooldowns[f"{source_nation}_{ptype}"] = 5
+            world.pending_diplomatic_dialogue = None
+            world.incoming_proposal_popup = None
+            world.log_event({
+                "type": "counter_offer_rejected",
+                "source": source_nation,
+                "proposal_type": ptype,
+            })
+            return {
+                "success": True,
+                "message": f"You have rejected {source_nation}'s counter-proposal. Relations cooled slightly.",
+            }
+
+        # ═══════════════════════════════════════════════════════
+        # R74: VASSAL REBELLION IMMINENT HANDLERS
+        # ═══════════════════════════════════════════════════════
+        elif action == "invest_vassal_rebellion":
+            context = dialogue.get("context", {})
+            vassal_name = context.get("vassal_name", "")
+            if not vassal_name:
+                world.pending_diplomatic_dialogue = None
+                return {"success": False, "message": "No vassal specified."}
+            from backend.game_logic.vassal import invest_in_vassal
+            result = invest_in_vassal(world, vassal_name)
+            world.pending_diplomatic_dialogue = None
+            return result
+
+        elif action == "garrison_vassal_rebellion":
+            context = dialogue.get("context", {})
+            vassal_name = context.get("vassal_name", "")
+            if not vassal_name:
+                world.pending_diplomatic_dialogue = None
+                return {"success": False, "message": "No vassal specified."}
+            # Deploy garrison: +10 loyalty, costs 2 AP
+            if world.actions_remaining < 2:
+                world.pending_diplomatic_dialogue = None
+                return {
+                    "success": False,
+                    "message": f"Insufficient AP. Garrison deployment costs 2 AP, you have {int(world.actions_remaining)}.",
+                }
+            world.actions_remaining -= 2
+            vassal_state = world.vassals.get(vassal_name, {})
+            old_loyalty = vassal_state.get("loyalty", 0)
+            vassal_state["loyalty"] = min(100, old_loyalty + 10)
+            world.pending_diplomatic_dialogue = None
+            return {
+                "success": True,
+                "message": (
+                    f"Imperial garrison deployed to {vassal_name}. "
+                    f"Loyalty: {int(old_loyalty)} → {int(vassal_state['loyalty'])}. (2 AP spent)"
+                ),
+            }
+
+        elif action == "accept_vassal_rebellion":
+            world.pending_diplomatic_dialogue = None
+            context = dialogue.get("context", {})
+            vassal_name = context.get("vassal_name", "")
+            return {
+                "success": True,
+                "message": (
+                    f"You accept the risk. If {vassal_name}'s loyalty reaches zero, "
+                    f"rebellion will follow."
+                ),
+            }
+
         else:
             world.pending_diplomatic_dialogue = None
             return {"success": False, "message": f"Unknown dialogue action: {action}"}

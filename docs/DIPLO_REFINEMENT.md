@@ -51,13 +51,14 @@ All 5290 tests pass after changes. 5 files modified, 106 lines added.
 
 ---
 
-# PHASE 1: CRITICAL WIRING (Highest ROI)
+# PHASE 1: CRITICAL WIRING (Highest ROI) — COMPLETE
 
+16 fixes implemented Mar 5, 2026. 37 new tests. 5327 total tests passing.
 Non-functional systems that have code but are never reached. Fixing these "turns on" sabotage, redemption, counter-offers, and objection overrides.
 
 ---
 
-### R37/R41: Sabotage Discovery & Redemption Popups + Executor Wiring — APPROVED
+### R37/R41: Sabotage Discovery & Redemption Popups + Executor Wiring — DONE
 
 **Problem:** Sabotage/redemption system entirely non-functional. 3-layer bug: (1) Godot doesn't trigger popup, (2) executor action_map missing entries, (3) no handler functions wired.
 
@@ -74,7 +75,7 @@ Non-functional systems that have code but are never reached. Fixing these "turns
 
 **Files:** `executor.py`, `main.gd`
 
-### R42: Pre-Proposal Objection Override Actions Unwired — APPROVED
+### R42: Pre-Proposal Objection Override Actions Unwired — DONE
 
 **Problem:** [Proceed Anyway] / [Modify Terms] / [Cancel] buttons on Talleyrand objection popup generate `send_override` / `send_suggested` — neither has a handler.
 
@@ -85,7 +86,7 @@ Non-functional systems that have code but are never reached. Fixing these "turns
 
 **File:** `executor.py` (`_process_dialogue_choice`)
 
-### R40: [NEW] Coalition Loyalty Penalty Formula Inverted — APPROVED
+### R40: [NEW] Coalition Loyalty Penalty Formula Inverted — DONE
 
 **Problem:** `min()` should be `max()`, WE component should subtract not add. Penalty vanishes when it should be strongest.
 
@@ -97,7 +98,7 @@ Non-functional systems that have code but are never reached. Fixing these "turns
 
 **File:** `coalition.py:449`
 
-### R43: [NEW] AI-AI Proposal Spam — No Per-Pair Cooldown — APPROVED (MODIFIED)
+### R43: [NEW] AI-AI Proposal Spam — No Per-Pair Cooldown — DONE
 
 **Problem:** Same AI pair can upgrade every turn: PEACE -> ALLIANCE in 4 turns.
 
@@ -105,7 +106,7 @@ Non-functional systems that have code but are never reached. Fixing these "turns
 
 **File:** `ai_diplomacy.py:1127-1203`
 
-### R2: Player Counter-Offer Treated as Rejection — APPROVED (Core only, stretch deferred)
+### R2: Player Counter-Offer Treated as Rejection — DONE (Core only, Renegotiate deferred)
 
 **Problem:** Acceptance scores 30-49 stubbed as REJECT. Negotiation completely broken.
 
@@ -116,7 +117,7 @@ Non-functional systems that have code but are never reached. Fixing these "turns
 
 **Files:** `diplomacy.py`, `executor.py`, `main.py`, Godot popup
 
-### R55: [NEW] Dialogue Guard Keyword List Incomplete — APPROVED
+### R55: [NEW] Dialogue Guard Keyword List Incomplete — DONE
 
 **Problem:** `_DIALOGUE_RESPONSE_KEYWORDS` in `main.py` missing entries for sabotage/redemption/counter-offer responses. Valid responses go to normal executor -> "Unknown command."
 
@@ -615,7 +616,7 @@ Adding R62, R68, R69, R70, R80 to the existing R45/R46/R47/R49/R50 brings the to
 
 ---
 
-### R61: [NEW] original_nation Not Serialized — Save/Load Data Loss — APPROVED
+### R61: [NEW] original_nation Not Serialized — Save/Load Data Loss — DONE
 
 **Problem:** `assimilate_vassal_marshals()` sets `marshal.original_nation` to track which marshals to transfer back on rebellion/release. This field is NOT in `Marshal.to_dict()` or `from_dict()`. After save/load, ALL assimilated marshals lose their origin — rebellion transfers nothing back.
 
@@ -629,7 +630,7 @@ Adding R62, R68, R69, R70, R80 to the existing R45/R46/R47/R49/R50 brings the to
 **Files:** `marshal.py`
 **Severity:** HIGH (serialization violation — data loss on save/load)
 
-### R62: [NEW] Rebellion Doesn't Clear original_nation or Reset Trust — APPROVED
+### R62: [NEW] Rebellion Doesn't Clear original_nation or Reset Trust — DONE
 
 **Problem:** When a vassal rebels, marshals are transferred back (nation changed) but:
 1. `original_nation` is NOT cleared (compare `release_vassal()` which does `delattr`)
@@ -646,7 +647,7 @@ If re-vassalized later, `assimilate_vassal_marshals()` finds marshals with stale
 **File:** `vassal.py:357-361`
 **Severity:** HIGH (state corruption — incomplete inverse of assimilation)
 
-### R63: [NEW] break_treaty() Never Adds Threat — TODO Never Wired — APPROVED
+### R63: [NEW] break_treaty() Never Adds Threat — TODO Never Wired — DONE
 
 **Problem:** `diplomacy.py:1332-1333` has `# TODO: wire threat system in Session 7` with a comment specifying +15/+25 threat for treaty breaking. The `add_threat()` call was never added. Breaking alliances is a significant aggressive action with zero coalition consequence.
 
@@ -655,7 +656,7 @@ If re-vassalized later, `assimilate_vassal_marshals()` finds marshals with stale
 **File:** `diplomacy.py:1332`
 **Severity:** HIGH (missing threat accumulation — exploit vector)
 
-### R64: [NEW] Continental System Never Called From Turn Loop — APPROVED
+### R64: [NEW] Continental System Never Called From Turn Loop — DONE
 
 **Problem:** `apply_continental_system()` exists in both `diplomacy.py:1429` and `vassal.py:791`, but NEITHER is called from `process_diplomacy_turn()` or `_advance_turn_internal()`. The TODO at `diplomacy.py:1092-1093` was never resolved. Tests call it directly, masking the problem. **The entire Continental System is non-functional during gameplay.**
 
@@ -668,7 +669,7 @@ If re-vassalized later, `assimilate_vassal_marshals()` finds marshals with stale
 **Files:** `diplomacy.py`, `world_state.py`
 **Severity:** HIGH (entire subsystem dead)
 
-### R65: [NEW] Advisory Leaks Exact Enemy Strength Through Fog — APPROVED
+### R65: [NEW] Advisory Leaks Exact Enemy Strength Through Fog — DONE
 
 **Problem:** `diplomatic_advisory.py:588-620` — `_get_nation_total_strength()` reads `marshal.strength` directly for all enemy marshals with NO fog filtering. Player can ask "Talleyrand, assess Prussia" to learn exact force ratios that the diplomatic ledger properly hides behind fog bands.
 
@@ -677,7 +678,7 @@ If re-vassalized later, `assimilate_vassal_marshals()` finds marshals with stale
 **File:** `diplomatic_advisory.py:588-620`
 **Severity:** HIGH (fog of war violation)
 
-### R66: [NEW] Dispatch Fog Rule "player_mission" Reads Wrong Key — APPROVED
+### R66: [NEW] Dispatch Fog Rule "player_mission" Reads Wrong Key — DONE
 
 **Problem:** `dispatch.py:957` reads `mission.get("target_nation", "")` but the mission dict stores the target as `"target"` (set in `executor.py:11735`). Key mismatch means `"target_nation"` always returns `""`, and the fog comparison fails. **All dispatch events using the `player_mission` fog rule are silently hidden** — mission progress, paused, and cancelled events never appear in Morning Dispatch.
 
@@ -686,7 +687,7 @@ If re-vassalized later, `assimilate_vassal_marshals()` finds marshals with stale
 **File:** `dispatch.py:957`
 **Severity:** HIGH (all mission dispatch events invisible)
 
-### R74: [NEW] Vassal Rebellion Popup Never Sets pending_diplomatic_dialogue — APPROVED
+### R74: [NEW] Vassal Rebellion Popup Never Sets pending_diplomatic_dialogue — DONE
 
 **Problem:** When vassal rebellion is imminent, `vassal.py:278-288` sets `world.vassal_rebellion_imminent_popup` but does NOT set `world.pending_diplomatic_dialogue`. When Godot sends back the popup choice (e.g., "Talleyrand, invest regarding Saxony rebellion"), the routing guard in `main.py:538` checks `pending_diplomatic_dialogue` — it's None, so the entire dialogue routing block is skipped. The command goes to normal parsing, which fails or produces unintended behavior.
 
@@ -699,7 +700,7 @@ Option A is consistent with existing popup patterns.
 **Files:** `vassal.py:278`, `executor.py` (add handlers)
 **Severity:** CRITICAL (vassal rebellion popup buttons completely non-functional)
 
-### R75: [NEW] Vassal Rebellion Popup Choices Intercepted by Dialogue Routing — APPROVED
+### R75: [NEW] Vassal Rebellion Popup Choices Intercepted by Dialogue Routing — DONE
 
 **Problem:** Even if R74 is fixed, the rebellion popup buttons send commands like "Talleyrand, invest regarding Saxony rebellion". The keyword "invest" is in `_DIALOGUE_RESPONSE_KEYWORDS`. If a DIFFERENT `pending_diplomatic_dialogue` exists simultaneously (AI proposal arrived same turn as rebellion warning), the keyword matching intercepts the command and routes it to the wrong dialogue handler.
 
@@ -1042,7 +1043,7 @@ Option A is consistent with existing popup patterns.
 
 # DEEP AUDIT II — LATE FINDINGS (diplomacy.py deep pass)
 
-### R96: [NEW] VASSAL Not in OPEN_MOVEMENT_STATES — Lord Can't Traverse Vassal Territory — APPROVED
+### R96: [NEW] VASSAL Not in OPEN_MOVEMENT_STATES — Lord Can't Traverse Vassal Territory — DONE
 
 **Problem:** `diplomacy.py:40` — `OPEN_MOVEMENT_STATES = {"OPEN_BORDERS", "DEFENSIVE_ALLIANCE", "ALLIANCE"}` does not include `"VASSAL"`. `can_enter_territory()` returns `False` for lord→vassal movement. Player marshals cannot move through vassal territory, and vassal marshals cannot move through lord territory. Fundamentally breaks vassal integration.
 
@@ -1203,7 +1204,7 @@ Option A recommended for consistency.
 **Severity:** MEDIUM (AI-AI treaties are stateless — no income, no breakability, invisible in ledger)
 **Phase:** 2
 
-### R109: [NEW] defensive_alliance Proposal Type Overwritten to "alliance" — Skips Tier — APPROVED
+### R109: [NEW] defensive_alliance Proposal Type Overwritten to "alliance" — Skips Tier — DONE
 
 **Problem:** `ai_diplomacy.py:383` — `_build_proposal_terms` sets `terms["type"] = "alliance"` when handling `"defensive_alliance"` proposals. This was meant to reuse the alliance acceptance formula, but it destroys the proposal type. When ratified, `_ratify_treaty` maps `"alliance"` → `"ALLIANCE"`, skipping DEFENSIVE_ALLIANCE entirely. P4's correct determination of `"defensive_alliance"` via `_determine_upgrade_type()` is silently overwritten.
 

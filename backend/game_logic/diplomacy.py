@@ -37,7 +37,7 @@ _DOWNGRADE_ORDER = [
 ]
 
 # States that allow movement through territory
-OPEN_MOVEMENT_STATES = {"OPEN_BORDERS", "DEFENSIVE_ALLIANCE", "ALLIANCE"}
+OPEN_MOVEMENT_STATES = {"OPEN_BORDERS", "DEFENSIVE_ALLIANCE", "ALLIANCE", "VASSAL"}
 
 # ═══════ TRADE INCOME TABLE (§7e) ═══════
 TRADE_INCOME = {
@@ -1330,7 +1330,9 @@ def break_treaty(pair_key: str, breaker_nation: str, world) -> Dict:
             relation_changes.append({"nations": (breaker_nation, nation), "delta": -10})
 
     # Threat: +15 (or +25 for alliance)
-    # TODO: wire threat system in Session 7
+    from backend.game_logic.coalition import add_threat
+    threat_amount = 25 if treaty_type in ("alliance", "defensive_alliance") else 15
+    add_threat(world, threat_amount, f"broke_{treaty_type}")
 
     # Post-break state: one level below broken treaty (E11)
     # IMPORTANT: Must include ALL diplomatic states. If you add a new

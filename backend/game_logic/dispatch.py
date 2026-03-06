@@ -954,7 +954,7 @@ def _is_dispatch_event_visible(event: dict, world, player_nation: str) -> bool:
     if fog_rule == "player_mission":
         mission = getattr(world, 'active_diplomatic_mission', None)
         if mission:
-            target = mission.get("target_nation", "")
+            target = mission.get("target", "")
             if target == template_vars.get("nation", ""):
                 return True
         return False

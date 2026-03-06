@@ -382,18 +382,39 @@ def _merge_pre_proposal_objection(dialogue: Dict, parsed_command: Dict, world) -
             "proposal_summary": proposal_summary,
         }
 
-        # Replace options with objection-aware choices
+        # R42: Preserve original terms for send_override/send_suggested handlers
+        # Find original proposal terms from the pre-objection options
         target_nation = parsed_command.get("target_nation", "")
+        original_terms = None
+        for opt in dialogue.get("options", []):
+            if opt.get("action") == "execute_proposal" and opt.get("terms"):
+                original_terms = opt["terms"]
+                break
+
+        # Generate Talleyrand's suggested (softer) terms
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        proposal_type = parsed_command.get("proposal_type", "peace")
+        suggested_terms = generate_suggested_terms(target_nation, proposal_type, world) if target_nation else {}
+        if suggested_terms:
+            suggested_terms["proposal_type"] = proposal_type
+
+        # Store in context for executor handlers
+        dialogue["context"]["original_proposal"] = original_terms or {"proposal_type": proposal_type}
+        dialogue["context"]["suggested_terms"] = suggested_terms
+
+        # Replace options with objection-aware choices
         dialogue["options"] = [
             {
                 "label": "Send my terms as ordered",
                 "description": "Insist on your original proposal. Defiance may trigger during transit.",
                 "action": "send_override",
+                "terms": original_terms or {"proposal_type": proposal_type},
             },
             {
                 "label": "Use Talleyrand's suggestion",
                 "description": "Trust his diplomatic judgment.",
                 "action": "send_suggested",
+                "terms": suggested_terms,
             },
             {
                 "label": "Modify terms",

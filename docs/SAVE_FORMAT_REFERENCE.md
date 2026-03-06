@@ -348,6 +348,7 @@ A future save/load system should use this as the specification.
 | `starting_strength` | int | Original army size |
 | `personality` | string | "aggressive", "cautious", "literal", "balanced" |
 | `nation` | string | "France", "Britain", "Prussia", "Austria", "Saxony" |
+| `original_nation` | string/null | Pre-vassalage nation. Cleared on rebellion. (Phase 1 R61) |
 | `spawn_location` | string | Capital/respawn region |
 | `movement_range` | int | 1 (infantry) or 2 (cavalry) |
 | `tactical_skill` | int | Legacy skill rating 0-12 |
