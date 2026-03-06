@@ -29,6 +29,7 @@ from typing import Dict, List, Optional
 
 from backend.game_logic.diplomacy import (
     calculate_acceptance,
+    get_war_score_for,
 )
 from backend.game_logic.diplomatic_dialogue import get_game_bucket
 
@@ -278,18 +279,10 @@ def _dequeue_best(world) -> Optional[Dict]:
 def _get_war_score_for_nation(nation: str, opponent: str, world) -> int:
     """Get war score from a specific nation's perspective.
 
-    Positive = nation is winning, negative = nation is losing.
-    The stored war_score is from alphabetically-first nation's perspective.
+    DEPRECATED: Use get_war_score_for(world, nation, opponent) from diplomacy.py.
+    Kept as thin wrapper for backward compatibility with existing callers.
     """
-    diplo_key = world._make_diplo_key(nation, opponent)
-    raw_score = getattr(world, 'war_scores', {}).get(diplo_key, 0)
-
-    # If nation is alphabetically second, flip the sign
-    parts = diplo_key.split("|")
-    if len(parts) == 2 and parts[0] != nation:
-        raw_score = -raw_score
-
-    return int(raw_score)
+    return get_war_score_for(world, nation, opponent)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -488,6 +481,11 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
         stalemate_turns = 0
 
     proposal = None
+
+    # R5b: Block proposals for pairs still on armistice cooldown
+    armistice_cooldowns = getattr(world, 'armistice_cooldowns', {})
+    if armistice_cooldowns.get(diplo_key, 0) > 0:
+        return None
 
     # ── P1: Losing badly (war_score < -40) ──
     if is_at_war and war_score < -40:
@@ -919,9 +917,10 @@ def _try_add_desired_clauses(
 
         # Add as a sweetener from the AI nation to France
         if dtype in ("gold_lump", "gold_per_turn", "territory"):
+            # R53: Floor sweetener value at 5 to prevent zero-value offers
             test_terms["sweeteners"].append({
                 "type": dtype,
-                "value": int(desire.get("value", 0)),
+                "value": max(5, int(desire.get("value", 0))),
             })
         elif dtype in ("open_borders", "protection"):
             clause_key = desire.get("clause", dtype)

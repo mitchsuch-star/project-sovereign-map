@@ -257,11 +257,10 @@ def calculate_coalition_war_score(world) -> int:
     for member in members:
         army_size = sum(m.strength for m in world.marshals.values()
                         if m.nation == member and m.strength > 0)
-        diplo_key = _get_diplo_key(france, member)
-        war_score = world.war_scores.get(diplo_key, 0)
-        # War score from France's perspective — coalition wants NEGATIVE France scores
-        # So invert: coalition war score = -france_war_score (positive = coalition winning)
-        weighted_sum += (-war_score) * army_size
+        from backend.game_logic.diplomacy import get_war_score_for
+        france_ws = get_war_score_for(world, france, member)
+        # Coalition wants NEGATIVE France scores (positive = coalition winning)
+        weighted_sum += (-france_ws) * army_size
         total_weight += army_size
 
     if total_weight == 0:
@@ -581,6 +580,13 @@ def form_coalition(qualifying_nations: List[str], world) -> Dict:
     # Clear brewing state
     world.coalition_brewing = None
 
+    # R51: Void pending diplomatic dialogue if target is a coalition member
+    pending_dialogue = getattr(world, 'pending_diplomatic_dialogue', None)
+    if pending_dialogue:
+        dialogue_target = pending_dialogue.get("target_nation", "")
+        if dialogue_target in all_members:
+            world.pending_diplomatic_dialogue = None
+
     # Update posture based on current war scores
     posture = get_coalition_posture(world)
     world.active_coalition["strategic_posture"] = posture
@@ -619,6 +625,12 @@ def form_coalition(qualifying_nations: List[str], world) -> Dict:
         "posture": posture,
         "threat_level": int(world.threat_level),
     })
+
+    # R83: Dispatch event for coalition formation
+    from backend.game_logic.dispatch import queue_dispatch_event
+    queue_dispatch_event(world, "diplomatic_coalition_formed", {
+        "member_list": ", ".join(sorted(all_members)),
+    }, "always")
 
     # EC-2: Log voided proposal
     if voided_proposal_nation:
@@ -733,6 +745,10 @@ def dissolve_coalition(world, reason: str) -> List[Dict]:
         "message": f"{name} has dissolved.",
         "reason": reason,
     })
+
+    # R83: Dispatch event for coalition dissolution
+    from backend.game_logic.dispatch import queue_dispatch_event
+    queue_dispatch_event(world, "diplomatic_coalition_dissolved", {}, "always")
 
     return events
 
@@ -1028,6 +1044,10 @@ def process_coalition_turn(world) -> List[Dict]:
                     "qualifying_nations": qualifying,
                     "turns_remaining": BREWING_COUNTDOWN,
                 })
+
+                # R83: Dispatch event for coalition brewing
+                from backend.game_logic.dispatch import queue_dispatch_event
+                queue_dispatch_event(world, "diplomatic_coalition_brewing", {}, "always")
 
         # Threat tier notifications (regardless of cooldown)
         _check_threat_notifications(world)

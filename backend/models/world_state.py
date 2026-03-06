@@ -9,6 +9,7 @@ Includes Disobedience System (Phase 2):
 - DisobedienceSystem: Handles marshal objections
 """
 
+import copy  # noqa: F401 - used in to_dict() for deepcopy
 import math
 from typing import Dict, List, Optional, Tuple, Any, Set
 from backend.models.region import Region, create_regions, CHARGE_BLOCKED_TERRAIN, TERRAIN_MOVEMENT_COST, NATION_CAPITALS, get_starting_controllers  # noqa: F401 - used in methods below
@@ -356,6 +357,9 @@ class WorldState:
             "Britain": 60, "Prussia": 60, "Austria": 60, "Saxony": 60,
         }
 
+        # AI Nation DP pools (regenerated each turn, consumed by AI diplomacy)
+        self.nation_dp: Dict[str, int] = {}
+
         # War scores per nation pair (recalculated each turn)
         self.war_scores: Dict[str, int] = {}
 
@@ -368,6 +372,9 @@ class WorldState:
 
         # Armistice cooldowns: 5-turn cooldown before same pair can re-armistice
         self.armistice_cooldowns: Dict[str, int] = {}
+
+        # Armistice turn tracking: tracks how many turns each pair has been in ARMISTICE
+        self.armistice_turns: Dict[str, int] = {}
 
         # Previous treaties (for escalating harshness check)
         self.previous_treaties: Dict[str, List] = {}
@@ -513,6 +520,8 @@ class WorldState:
 
     def modify_nation_relation(self, nation_a: str, nation_b: str, delta: int) -> int:
         """Modify relation between two nations. Clamped to [-100, 100]."""
+        if nation_a == nation_b:
+            return 0
         key = self._make_diplo_key(nation_a, nation_b)
         new_val = max(-100, min(100, self.nation_relations.get(key, 0) + delta))
         self.nation_relations[key] = new_val
@@ -2757,10 +2766,12 @@ class WorldState:
             "diplomatic_points": int(self.diplomatic_points),
             "max_diplomatic_points": int(self.max_diplomatic_points),
             "nation_authority": {k: int(v) for k, v in self.nation_authority.items()},
+            "nation_dp": {k: int(v) for k, v in self.nation_dp.items()},
             "war_scores": {k: int(v) for k, v in self.war_scores.items()},
             "battle_records": {k: [r.copy() for r in v] for k, v in self.battle_records.items()},
             "decisive_battles": {k: [r.copy() for r in v] for k, v in self.decisive_battles.items()},
             "armistice_cooldowns": {k: int(v) for k, v in self.armistice_cooldowns.items()},
+            "armistice_turns": {k: int(v) for k, v in self.armistice_turns.items()},
             "previous_treaties": {k: [t.copy() for t in v] for k, v in self.previous_treaties.items()},
             "turns_below_threshold": {k: int(v) for k, v in self.turns_below_threshold.items()},
 
@@ -2793,8 +2804,8 @@ class WorldState:
             # ═══════ COALITION SYSTEM (Session 7) ═══════
             "threat_level": int(self.threat_level),
             "threat_sources_this_turn": [s.copy() for s in self.threat_sources_this_turn],
-            "active_coalition": self.active_coalition.copy() if self.active_coalition else None,
-            "coalition_brewing": self.coalition_brewing.copy() if self.coalition_brewing else None,
+            "active_coalition": copy.deepcopy(self.active_coalition) if self.active_coalition else None,
+            "coalition_brewing": copy.deepcopy(self.coalition_brewing) if self.coalition_brewing else None,
             "coalition_cooldown": int(self.coalition_cooldown),
             "coalition_count": int(self.coalition_count),
             "war_exhaustion": {k: int(v) for k, v in self.war_exhaustion.items()},
@@ -2953,10 +2964,12 @@ class WorldState:
         world.diplomatic_points = int(data.get("diplomatic_points", 4))
         world.max_diplomatic_points = int(data.get("max_diplomatic_points", 5))
         world.nation_authority = {k: int(v) for k, v in data.get("nation_authority", {"Britain": 60, "Prussia": 60, "Austria": 60, "Saxony": 60}).items()}
+        world.nation_dp = {k: int(v) for k, v in data.get("nation_dp", {}).items()}
         world.war_scores = {k: int(v) for k, v in data.get("war_scores", {}).items()}
         world.battle_records = {k: [r.copy() for r in v] for k, v in data.get("battle_records", {}).items()}
         world.decisive_battles = {k: [r.copy() for r in v] for k, v in data.get("decisive_battles", {}).items()}
         world.armistice_cooldowns = {k: int(v) for k, v in data.get("armistice_cooldowns", {}).items()}
+        world.armistice_turns = {k: int(v) for k, v in data.get("armistice_turns", {}).items()}
         world.previous_treaties = {k: [t.copy() for t in v] for k, v in data.get("previous_treaties", {}).items()}
         world.turns_below_threshold = {k: int(v) for k, v in data.get("turns_below_threshold", {}).items()}
 
@@ -3982,6 +3995,10 @@ class WorldState:
         if current_state != target_state:
             self.diplomatic_states[diplo_key] = target_state
 
+        # R5b: Set armistice cooldown when entering ARMISTICE
+        if target_state == "ARMISTICE":
+            self.armistice_cooldowns[diplo_key] = 5
+
         # Build treaty record
         treaty_clauses = []
         # Process sweeteners as clauses
@@ -4108,6 +4125,13 @@ class WorldState:
             if is_coalition_member(target_nation, self):
                 remove_coalition_member(target_nation, self)
 
+        # War-end cleanup (AFTER coalition checks which read war_scores):
+        # clear battle records, decisive battles, war scores,
+        # war exhaustion, and cancel orders targeting the now-peaceful nation
+        if current_state == "WAR" and target_state != "WAR":
+            from backend.game_logic.diplomacy import cleanup_war_end
+            cleanup_war_end(self, diplo_key)
+
         return {
             "type": "diplomatic_treaty_signed",
             "target": target_nation,
@@ -4125,9 +4149,23 @@ class WorldState:
                 to_nation = clause.get("to", "")
 
                 if ctype == "gold_per_turn":
+                    # R3: Gold floor — transfer only what's available, never go negative
                     if from_nation in self.nation_gold:
-                        self.nation_gold[from_nation] -= int(amount)
-                    if to_nation in self.nation_gold:
+                        available = self.nation_gold[from_nation]
+                        transfer = min(int(amount), max(0, available))
+                        self.nation_gold[from_nation] = available - transfer
+                        if to_nation in self.nation_gold:
+                            self.nation_gold[to_nation] += transfer
+                        # Fire dispatch event if unable to pay full amount
+                        if transfer < int(amount):
+                            from backend.game_logic.dispatch import queue_dispatch_event
+                            queue_dispatch_event(self, "diplomatic_treaty_payment_failed", {
+                                "from_nation": from_nation,
+                                "to_nation": to_nation,
+                                "amount_due": str(int(amount)),
+                                "amount_paid": str(int(transfer)),
+                            }, "always")
+                    elif to_nation in self.nation_gold:
                         self.nation_gold[to_nation] += int(amount)
                 elif ctype == "manpower_per_turn":
                     # Transfer between manpower pools

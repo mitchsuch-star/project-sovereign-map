@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 5, 2026 (Phase 1 Critical Wiring COMPLETE — 16 fixes, 37 new tests)
+> **Last Updated:** March 6, 2026 (Phase 2A Diplomacy Core COMPLETE — 17 fixes, 69 new tests)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **5327** (5327 passed, 3 skipped — verified Mar 5, Phase 1 Critical Wiring) |
+| **Tests Passing** | **5396** (5396 passed, 3 skipped — verified Mar 6, Phase 2A Diplomacy Core) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -35,8 +35,9 @@
 2. **Diplomacy Audit** — **COMPLETE.** 20 bugs fixed, 145 audit tests. See `docs/DIPLOMACY_AUDIT.md`.
 3. **Diplomacy Creative Audit** — **COMPLETE.** 5-agent deep analysis: balance, historical accuracy, fun, AI behavior, edge cases. Overall score 7.8/10. 8 critical/high bugs found, 10 balance issues, 18 design gaps, 6 AI behavior issues, 7 edge cases. 3 easy fixes applied (treaty cancel/downgrade commands, AI-AI ledger visibility). See `docs/DIPLOMACY_CREATIVE_AUDIT.md`.
 4. **Diplomacy Refinement & Cleanup** — **DESIGN GATE COMPLETE.** 114 items total (95 approved, 16 deferred, 3 done). Bug fixes span multiple sessions. See `docs/DIPLO_REFINEMENT.md`.
-   - **Phase 1 (NEXT): Critical Wiring** — Sabotage/redemption popups, objection overrides, coalition formula, counter-offer system, serialization gaps, fog leaks, dead Continental System call, defensive_alliance tier skip. ~16 fixes.
-   - **Phase 2A: State Cleanup — Diplomacy Core** — War score decay, treaty gold, armistice, treaty cleanup, template slots, dispatch fog, coalition dispatch. ~19 fixes.
+   - ~~**Phase 1: Critical Wiring**~~ — **DONE** (16 fixes, 37 tests). Sabotage/redemption, objection overrides, coalition formula, counter-offer, fog leaks, Continental System, defensive_alliance.
+   - ~~**Phase 2A: State Cleanup — Diplomacy Core**~~ — **DONE** (17 fixes, 69 tests). War score canonical helper, armistice system, treaty gold floor, cleanup_war_end, dispatch events, template slots, vassal diplomacy reconciliation.
+   - **Phase 2B (NEXT): State Cleanup — Vassal, AI-AI, War** — Rebellion cleanup, vassalizing coalition members, AI-AI ratification bypass, stalemate counter reset, alliance conflict check, declare_war treaty cleanup. ~23 fixes.
    - **Phase 2B: State Cleanup — Vassal, AI-AI, War** — Rebellion cleanup, vassalizing coalition members, AI-AI ratification bypass, stalemate counter reset, alliance conflict check, declare_war treaty cleanup. ~23 fixes.
    - **Phase 3: Balance Tuning** — Relation decay, COURT_NATION speed, trade diminishing returns, military pressure, battle threshold, coalition stalemate, P3 activation. ~13 changes.
    - **Phase 4: Commands, QoL, Popup Architecture** — War declaration, ultimatums, acceptance preview, ledger improvements, popup early-return cascade fix, notification cleanup. ~27 fixes.
@@ -67,6 +68,33 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 6 — Phase 2A Diplomacy Core Cleanup: 17 Fixes Implemented
+
+17 bug fixes across 5 batches. 69 new tests (`test_phase2a_batch1-5.py`). 5396 total tests passing. 2 new serialized fields.
+
+**Fixes implemented:**
+- R54: Canonical `get_war_score_for()` helper — single source of truth, replaces 5 inline implementations
+- R7: `defensive_alliance: 25` added to BASE_DISPOSITION
+- R56: Self-relation guard in `modify_nation_relation()`
+- R44: `nation_dp` field — AI nation DP stored and serialized
+- R67: `copy.deepcopy()` for coalition serialization (prevents shared-reference corruption)
+- R1a: Battle records >10 turns old pruned in `apply_war_score_decay()`
+- R1b/R49/R47: `cleanup_war_end()` helper — clears battle_records, decisive_battles, war_scores, war_exhaustion, cancels PURSUE orders
+- R45: `active_treaties` removed on `execute_downgrade()`
+- R5a: Armistice expiration implemented (5 turns → PEACE or WAR based on relations)
+- R5b: Armistice cooldowns set on entry, block AI proposals
+- R3: Gold floor in treaty clauses (never negative, dispatch event on inability to pay)
+- R80: Auto-downgrade fires dispatch event + notification
+- R82: `{rejection_reaction}` template slot resolved (cold fury / displeasure / composure)
+- R83: Coalition dispatch templates + `queue_dispatch_event()` in form/dissolve/brewing
+- R51: Pending dialogue voided when target joins coalition
+- R50: Continental System membership cleared on vassal release
+- R48: Vassal diplomacy reconciled on vassalization (auto-armistice/peace with conflicting states)
+- R57: Threat level wired in diplomatic dialogue context (was hardcoded 0)
+- R53: Sweetener value floor (min 5) in `_try_add_desired_clauses()`
+
+**Files modified:** diplomacy.py, world_state.py, ai_diplomacy.py, diplomatic_advisory.py, vassal.py, coalition.py, dispatch.py, diplomatic_templates.py, diplomatic_dialogue.py, notifications.py
 
 ### Mar 5 — Phase 1 Critical Wiring: 16 Fixes Implemented
 

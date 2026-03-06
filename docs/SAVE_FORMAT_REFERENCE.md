@@ -10,8 +10,8 @@ A future save/load system should use this as the specification.
 ## Version
 
 - **Format version:** 1.0
-- **Last updated:** 2026-03-04
-- **Compatible with:** Phase 8 Session 7 (Coalition System)
+- **Last updated:** 2026-03-06
+- **Compatible with:** Phase 2A Diplomacy Core Cleanup
 
 ## Top-Level Structure (WorldState)
 
@@ -67,6 +67,8 @@ A future save/load system should use this as the specification.
   "battle_records": {},
   "decisive_battles": {},
   "armistice_cooldowns": {},
+  "armistice_turns": {},
+  "nation_dp": {},
   "previous_treaties": {},
   "turns_below_threshold": {},
 
@@ -169,6 +171,8 @@ A future save/load system should use this as the specification.
 | `battle_records` | dict | {} | Battle records per war for war score. Keys: diplo_key. Values: list of {turn, winner, attacker, defender, casualties}. |
 | `decisive_battles` | dict | {} | Decisive battle records (max 2 per war). Keys: diplo_key. Values: list of {turn, winner, total_casualties, ratio}. |
 | `armistice_cooldowns` | dict | {} | Turns remaining before same pair can re-enter armistice. Keys: diplo_key. Values: int (decrements each turn). |
+| `armistice_turns` | dict | {} | **Phase 2A.** Turns elapsed in current armistice per pair. Keys: diplo_key. Values: int (0-5). After 5 turns, armistice expires to PEACE (or WAR if relation < -60). Cleared on expiration or when pair leaves ARMISTICE state. |
+| `nation_dp` | dict | {} | **Phase 2A.** AI nation diplomatic points per turn. Keys: nation name. Values: int. Stored during DP regeneration. Player DP uses `diplomatic_points` field. |
 | `previous_treaties` | dict | {} | Past treaty records per pair for escalating harshness. Empty for now. |
 | `turns_below_threshold` | dict | {} | Auto-downgrade tracking: consecutive turns relation is 30+ below state threshold. |
 | `pending_diplomatic_dialogue` | dict/null | null | **Session 3.** Active Talleyrand dialogue awaiting player response. Contains type, target_nation, options, context. |

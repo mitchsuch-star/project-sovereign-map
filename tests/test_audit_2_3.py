@@ -2429,8 +2429,11 @@ class TestTreatyPerTurnClauses:
         france_end = world.nation_gold.get("France", 0)
         prussia_end = world.nation_gold.get("Prussia", 0)
 
-        assert france_end == france_start - 1000
-        assert prussia_end == prussia_start + 1000
+        # R3 gold floor: France starts at 800, pays 200/turn for 4 turns (800),
+        # then can't pay on turn 5. Total transferred = min(1000, france_start).
+        expected_transfer = min(1000, france_start)
+        assert france_end == france_start - expected_transfer
+        assert prussia_end == prussia_start + expected_transfer
 
     def test_gold_per_turn_via_advance_turn(self):
         """Verify clause fires once per advance_turn call."""

@@ -97,6 +97,7 @@ BASE_DISPOSITION = {
     "armistice_winning": 20,
     "peace": 30,
     "alliance": 20,
+    "defensive_alliance": 25,
     "vassalage": 10,
     "open_borders": 35,
     "non_aggression": 30,
@@ -333,10 +334,19 @@ def apply_war_score_decay(world) -> None:
     """Apply war score decay: -2/turn when no battles for 3+ turns.
 
     Decisive bonuses do NOT decay. Only the battle_score portion decays
-    by clearing old battle records.
+    by clearing old battle records. Also prunes battle records older than
+    10 turns (R1a).
     """
     war_scores = getattr(world, 'war_scores', {})
     battle_records = getattr(world, 'battle_records', {})
+
+    # R1a: Prune battle records older than 10 turns
+    for diplo_key in list(battle_records.keys()):
+        records = battle_records[diplo_key]
+        battle_records[diplo_key] = [
+            r for r in records
+            if world.current_turn - r.get("turn", 0) <= 10
+        ]
 
     for diplo_key in list(war_scores.keys()):
         records = battle_records.get(diplo_key, [])
@@ -370,6 +380,73 @@ def recalculate_war_scores(world) -> None:
                 score = calculate_war_score(parts[0], parts[1], world)
                 war_scores[diplo_key] = int(score)
     world.war_scores = war_scores
+
+
+def get_war_score_for(world, nation: str, opponent: str) -> int:
+    """Get war score from a specific nation's perspective.
+
+    Positive = nation is winning, negative = nation is losing.
+    The stored war_score is from alphabetically-first nation's perspective.
+    Canonical helper — all callers should use this instead of manual flipping.
+    """
+    diplo_key = world._make_diplo_key(nation, opponent)
+    raw_score = getattr(world, 'war_scores', {}).get(diplo_key, 0)
+
+    # If nation is alphabetically second, flip the sign
+    parts = diplo_key.split("|")
+    if len(parts) == 2 and parts[0] != nation:
+        raw_score = -raw_score
+
+    return int(raw_score)
+
+
+def cleanup_war_end(world, diplo_key: str) -> None:
+    """Clean up war-related data when a war ends (R1b, R49, R47/R30).
+
+    Called on WAR→ARMISTICE/PEACE transitions.
+    - Clears battle_records, decisive_battles, war_scores for the pair
+    - Resets war_exhaustion for both nations to 0
+    - Cancels PURSUE/MOVE_TO strategic orders targeting the now-peaceful nation's marshals
+    """
+    # R1b: Clear war data
+    battle_records = getattr(world, 'battle_records', {})
+    decisive_battles = getattr(world, 'decisive_battles', {})
+    war_scores = getattr(world, 'war_scores', {})
+
+    battle_records.pop(diplo_key, None)
+    decisive_battles.pop(diplo_key, None)
+    war_scores.pop(diplo_key, None)
+
+    # R49: Reset war_exhaustion for both nations
+    parts = diplo_key.split("|")
+    war_exhaustion = getattr(world, 'war_exhaustion', {})
+    if len(parts) == 2:
+        war_exhaustion.pop(parts[0], None)
+        war_exhaustion.pop(parts[1], None)
+
+    # R47/R30: Cancel PURSUE/MOVE_TO orders targeting the now-peaceful nation's marshals
+    if len(parts) == 2:
+        nation_a, nation_b = parts
+        # Collect marshal names for each nation
+        nation_a_marshals = {m.name for m in world.marshals.values() if m.nation == nation_a}
+        nation_b_marshals = {m.name for m in world.marshals.values() if m.nation == nation_b}
+
+        for marshal in world.marshals.values():
+            order = getattr(marshal, 'strategic_order', None)
+            if not order:
+                continue
+            cmd_type = getattr(order, 'command_type', '')
+            if cmd_type not in ("PURSUE", "MOVE_TO"):
+                continue
+            target_type = getattr(order, 'target_type', '')
+            if target_type != "marshal":
+                continue
+            target_name = getattr(order, 'target', '')
+            # Cancel if marshal belongs to nation_a and target to nation_b, or vice versa
+            if marshal.nation == nation_a and target_name in nation_b_marshals:
+                marshal.strategic_order = None
+            elif marshal.nation == nation_b and target_name in nation_a_marshals:
+                marshal.strategic_order = None
 
 
 # ═══════════════════════════════════════════════════════
@@ -853,6 +930,10 @@ def execute_downgrade(world, nation_a: str, nation_b: str) -> Dict:
     # Apply
     world.diplomatic_states[diplo_key] = new_state
 
+    # R45: Remove active treaty on downgrade (treaty was for the old state)
+    active_treaties = getattr(world, 'active_treaties', {})
+    active_treaties.pop(diplo_key, None)
+
     # Relation penalties
     world.modify_nation_relation(nation_a, nation_b, penalties["relation_target"])
     all_nations = [world.player_nation] + list(getattr(world, 'enemy_nations', []))
@@ -947,6 +1028,26 @@ def check_auto_downgrade(world) -> List[Dict]:
                             "nation_a": parts[0],
                             "nation_b": parts[1],
                         })
+
+                        # R80: Dispatch event + notification for auto-downgrade
+                        from backend.game_logic.dispatch import queue_dispatch_event
+                        queue_dispatch_event(world, "diplomatic_auto_downgrade", {
+                            "nation_a": parts[0],
+                            "nation_b": parts[1],
+                            "from_state": state,
+                            "to_state": new_state,
+                        }, "always")
+
+                        from backend.notifications import (
+                            create_notification, NotificationPriority, DIPLO_AUTO_DOWNGRADE,
+                        )
+                        world.notifications.add(create_notification(
+                            DIPLO_AUTO_DOWNGRADE,
+                            NotificationPriority.NORMAL,
+                            "Relations Deteriorated",
+                            f"{parts[0]}-{parts[1]}: {state} → {new_state}.",
+                            int(world.current_turn),
+                        ))
         else:
             # Above threshold or gap < 30 — reset counter
             turns_below.pop(diplo_key, None)
@@ -1127,8 +1228,11 @@ def _process_dp_regen(world) -> None:
 
         if nation == world.player_nation:
             world.diplomatic_points = int(dp)
-        # AI nations: store in nation_dp dict for future use
-        # (AI diplomatic actions handled in Session 4)
+        else:
+            # Store AI DP for AI diplomacy consumption
+            if not hasattr(world, 'nation_dp'):
+                world.nation_dp = {}
+            world.nation_dp[nation] = int(dp)
 
 
 def process_trade_income(world) -> Dict[str, int]:
@@ -1155,11 +1259,60 @@ def process_trade_income(world) -> Dict[str, int]:
 
 
 def _process_armistice_expiration(world) -> List[Dict]:
-    """Handle armistice expirations (minimum 3 turns tracked via armistice_turns)."""
-    # Armistice tracking not yet active — armistices haven't been created yet
-    # This will fire when Session 3 creates armistice transitions
-    # For now, just return empty
-    return []
+    """Handle armistice expirations (R5a).
+
+    Tracks turns in ARMISTICE state. After 5 turns:
+    - If relations >= -60: transition to PEACE, call cleanup_war_end
+    - If relations < -60: transition back to WAR
+
+    Returns list of dispatch events.
+    """
+    events = []
+    armistice_turns = getattr(world, 'armistice_turns', {})
+
+    for diplo_key, state in list(world.diplomatic_states.items()):
+        if state != "ARMISTICE":
+            # Not in armistice — remove tracking if present
+            armistice_turns.pop(diplo_key, None)
+            continue
+
+        # Increment turn counter
+        armistice_turns[diplo_key] = armistice_turns.get(diplo_key, 0) + 1
+        turns = armistice_turns[diplo_key]
+
+        if turns < 5:
+            continue
+
+        # Armistice expired — check relations to determine outcome
+        parts = diplo_key.split("|")
+        if len(parts) != 2:
+            continue
+        nation_a, nation_b = parts
+        relation = world.nation_relations.get(diplo_key, 0)
+
+        if relation >= -60:
+            # Transition to PEACE
+            world.diplomatic_states[diplo_key] = "PEACE"
+            cleanup_war_end(world, diplo_key)
+            events.append({
+                "type": "armistice_expired_peace",
+                "nations": [nation_a, nation_b],
+                "message": f"The armistice between {nation_a} and {nation_b} has concluded. Peace declared.",
+            })
+        else:
+            # Relations too hostile — back to WAR
+            world.diplomatic_states[diplo_key] = "WAR"
+            events.append({
+                "type": "armistice_expired_war",
+                "nations": [nation_a, nation_b],
+                "message": f"The armistice between {nation_a} and {nation_b} has collapsed. War resumes.",
+            })
+
+        # Clear tracking
+        armistice_turns.pop(diplo_key, None)
+
+    world.armistice_turns = armistice_turns
+    return events
 
 
 def _decrement_cooldowns(world) -> None:
@@ -1411,16 +1564,7 @@ def _process_nation_authority(world) -> None:
 def validate_ap_clause(world, target: str) -> bool:
     """Validate that AP/turn demand is allowed. Requires war_score > 80."""
     player = getattr(world, 'player_nation', 'France')
-    diplo_key = world._make_diplo_key(player, target)
-    raw_score = world.war_scores.get(diplo_key, 0)
-
-    # Adjust sign for player perspective
-    parts = diplo_key.split("|")
-    if len(parts) == 2 and parts[0] == player:
-        war_score = raw_score
-    else:
-        war_score = -raw_score
-
+    war_score = get_war_score_for(world, player, target)
     return war_score > 80
 
 

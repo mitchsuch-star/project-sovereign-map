@@ -14,6 +14,7 @@ Entry points:
 
 from typing import Dict, List, Optional
 
+from backend.game_logic.diplomacy import get_war_score_for
 from backend.game_logic.diplomatic_dialogue import (
     KNOWN_NATIONS,
 )
@@ -119,7 +120,6 @@ def _assess_nation(nation: str, world) -> Dict:
     diplo_key = world._make_diplo_key("France", nation)
     state = world.get_diplomatic_state("France", nation)
     relation = int(world.nation_relations.get(diplo_key, 0))
-    war_score = int(world.war_scores.get(diplo_key, 0))
     advantage = _get_military_advantage(nation, world)
     diplomat = world.diplomats.get(nation)
     diplomat_desc = ""
@@ -130,17 +130,7 @@ def _assess_nation(nation: str, world) -> Dict:
             f"skill {int(diplomat.skill)}, trust {int(diplomat.trust)}. "
         )
 
-    # Determine France's war_score perspective
-    # war_scores are stored for the alphabetically-sorted key
-    parts = diplo_key.split("|")
-    france_war_score = war_score
-    if len(parts) == 2 and parts[0] != "France":
-        france_war_score = war_score
-    elif len(parts) == 2 and parts[0] == "France":
-        france_war_score = war_score
-    # If France is second in the key, the score is from the first nation's POV
-    if len(parts) == 2 and parts[0] == nation:
-        france_war_score = -war_score
+    france_war_score = get_war_score_for(world, "France", nation)
 
     state_text = _STATE_DISPLAY.get(state, state.lower())
     summary = _get_nation_summary(nation, world)
@@ -357,12 +347,7 @@ def _recommend_action(target_nation: str, world) -> Dict:
     relation = int(world.nation_relations.get(diplo_key, 0))
     advantage = _get_military_advantage(target_nation, world)
 
-    # Determine France's war_score perspective
-    war_score_raw = int(world.war_scores.get(diplo_key, 0))
-    parts = diplo_key.split("|")
-    france_war_score = war_score_raw
-    if len(parts) == 2 and parts[0] == target_nation:
-        france_war_score = -war_score_raw
+    france_war_score = get_war_score_for(world, "France", target_nation)
 
     if state == "WAR":
         if france_war_score > 20:
@@ -518,11 +503,7 @@ def _diplomatic_overview(world) -> Dict:
 
         war_note = ""
         if state == "WAR":
-            war_score_raw = int(world.war_scores.get(diplo_key, 0))
-            parts = diplo_key.split("|")
-            france_ws = war_score_raw
-            if len(parts) == 2 and parts[0] == nation:
-                france_ws = -war_score_raw
+            france_ws = get_war_score_for(world, "France", nation)
             war_note = f" War score: {int(france_ws)}."
 
         lines.append(

@@ -857,6 +857,11 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_carved_vassal_dissolved": "The {carved_name} has ceased to exist.",
     "diplomatic_defection_cascade": "The empire trembles — multiple vassals are wavering!",
     "diplomatic_ai_ai_treaty": "Talleyrand reports: {nation_a} and {nation_b} have signed a {treaty_type}.",
+    "diplomatic_treaty_payment_failed": "{from_nation} cannot meet treaty obligations to {to_nation} ({amount_paid}/{amount_due} gold paid).",
+    "diplomatic_auto_downgrade": "Relations between {nation_a} and {nation_b} have collapsed: {from_state} → {to_state}.",
+    "diplomatic_coalition_formed": "A coalition has formed against France! Members: {member_list}.",
+    "diplomatic_coalition_dissolved": "The coalition against France has dissolved.",
+    "diplomatic_coalition_brewing": "Talleyrand warns: a coalition may be forming against France.",
 }
 
 # Priority mapping: LOW for progress/sent/feasibility; MEDIUM for treaty/system; HIGH for rest
@@ -882,6 +887,11 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "diplomatic_carved_vassal_dissolved": "HIGH",
     "diplomatic_defection_cascade": "HIGH",
     "diplomatic_ai_ai_treaty": "MEDIUM",
+    "diplomatic_treaty_payment_failed": "MEDIUM",
+    "diplomatic_auto_downgrade": "MEDIUM",
+    "diplomatic_coalition_formed": "HIGH",
+    "diplomatic_coalition_dissolved": "MEDIUM",
+    "diplomatic_coalition_brewing": "MEDIUM",
 }
 
 

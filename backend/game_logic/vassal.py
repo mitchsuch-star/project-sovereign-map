@@ -96,6 +96,9 @@ def create_vassal_treaty(world, lord: str, vassal: str, generosity_bonus: int = 
     from backend.game_logic.coalition import add_threat
     add_threat(world, 5, "treaty_vassalization")
 
+    # R48: Reconcile diplomatic conflicts
+    _reconcile_vassal_diplomacy(world, lord, vassal)
+
     # Dispatch event (Session 8D)
     from backend.game_logic.dispatch import queue_dispatch_event
     queue_dispatch_event(world, "diplomatic_carved_vassal_created",
@@ -145,6 +148,9 @@ def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0
     from backend.game_logic.coalition import add_threat
     add_threat(world, 25, "conquest_vassalization")
 
+    # R48: Reconcile diplomatic conflicts
+    _reconcile_vassal_diplomacy(world, lord, vassal)
+
     # Dispatch event (Session 8D)
     from backend.game_logic.dispatch import queue_dispatch_event
     queue_dispatch_event(world, "diplomatic_carved_vassal_created",
@@ -155,6 +161,32 @@ def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0
         "message": f"{vassal} has been subjugated as a {AUTONOMY_NAMES[AUTONOMY_PUPPET]} vassal of {lord} (loyalty: {int(loyalty)}).",
         "vassal_state": world.vassals[vassal].copy(),
     }
+
+
+def _reconcile_vassal_diplomacy(world, lord: str, vassal: str) -> None:
+    """R48: Reconcile diplomatic conflicts after vassalization.
+
+    - If vassal is at WAR with lord's allies → auto-armistice
+    - If vassal is allied with lord's enemies → auto-break to PEACE
+    """
+    all_nations = [world.player_nation] + list(getattr(world, 'enemy_nations', []))
+
+    for other in all_nations:
+        if other == lord or other == vassal:
+            continue
+
+        lord_state = world.get_diplomatic_state(lord, other)
+        vassal_state = world.get_diplomatic_state(vassal, other)
+
+        # Vassal at WAR with lord's ally → force ARMISTICE
+        if vassal_state == "WAR" and lord_state in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
+            vk = world._make_diplo_key(vassal, other)
+            world.diplomatic_states[vk] = "ARMISTICE"
+
+        # Vassal allied with lord's enemy → break to PEACE
+        if vassal_state in ("DEFENSIVE_ALLIANCE", "ALLIANCE") and lord_state == "WAR":
+            vk = world._make_diplo_key(vassal, other)
+            world.diplomatic_states[vk] = "PEACE"
 
 
 # ═══════════════════════════════════════════════════════
@@ -467,20 +499,14 @@ def check_defection_cascade(world) -> List[dict]:
             if war_state != "WAR":
                 continue
 
-            diplo_key = world._make_diplo_key(lord, enemy_nation)
-            raw_score = world.war_scores.get(diplo_key, 0)
-
-            # Adjust sign: negative means lord is losing
-            parts = diplo_key.split("|")
-            if len(parts) == 2 and parts[0] == lord:
-                war_score = raw_score
-            else:
-                war_score = -raw_score
+            from backend.game_logic.diplomacy import get_war_score_for
+            war_score = get_war_score_for(world, lord, enemy_nation)
 
             if war_score >= -30:
                 continue
 
             # Check if cascade already triggered for this war
+            diplo_key = world._make_diplo_key(lord, enemy_nation)
             cascade_key = f"{vassal_name}|{diplo_key}"
             if cascade_key in cascade_triggered:
                 continue
@@ -783,6 +809,13 @@ def release_vassal(world, vassal_name: str, rebellion: bool = False) -> dict:
 
     # Remove vassal state
     del world.vassals[vassal_name]
+
+    # R50: Remove from Continental System on release
+    cs_members = getattr(world, 'continental_system_members', [])
+    if isinstance(cs_members, set):
+        cs_members.discard(vassal_name)
+    elif isinstance(cs_members, list) and vassal_name in cs_members:
+        cs_members.remove(vassal_name)
 
     # Set diplomatic state to PEACE (or WAR if rebellion)
     diplo_key = world._make_diplo_key(lord, vassal_name)

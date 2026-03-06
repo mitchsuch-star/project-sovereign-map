@@ -11,7 +11,7 @@
 
 6 phases of bug fixes, cleanup, balance, and QoL. Phase 2 split into 2A (diplomacy core) and 2B (vassal + AI-AI + war transitions). After all phases + UI testing, a separate design session will evaluate deferred features.
 
-**114 total items.** 3 DONE, 95 APPROVED, 16 DEFERRED.
+**114 total items.** 20 DONE, 78 APPROVED, 16 DEFERRED.
 
 | Phase | Focus | Items | Scope |
 |-------|-------|-------|-------|
@@ -127,13 +127,14 @@ Non-functional systems that have code but are never reached. Fixing these "turns
 
 ---
 
-# PHASE 2: STATE CLEANUP SWEEP
+# PHASE 2A: DIPLOMACY CORE CLEANUP — COMPLETE
 
-Bugs where state isn't cleaned up properly — stale treaties, missing resets, formula errors. Mostly straightforward fixes with clear before/after behavior.
+17 fixes implemented Mar 6, 2026. 69 new tests (`test_phase2a_batch1-5.py`). 5396 total tests passing.
+2 new serialized fields: `nation_dp`, `armistice_turns`.
 
 ---
 
-### R1a: War Score Decay No-Op — APPROVED
+### R1a: War Score Decay No-Op — DONE
 
 **Problem:** `recalculate_war_scores()` overwrites decay. Old battles contribute forever.
 
@@ -141,7 +142,7 @@ Bugs where state isn't cleaned up properly — stale treaties, missing resets, f
 
 **File:** `diplomacy.py` (`apply_war_score_decay`)
 
-### R1b: Battle Records Persist Across Wars — APPROVED
+### R1b: Battle Records Persist Across Wars — DONE
 
 **Problem:** Peace -> re-declare -> old battle score banked.
 
@@ -149,7 +150,7 @@ Bugs where state isn't cleaned up properly — stale treaties, missing resets, f
 
 **File:** `diplomacy.py` (state transition code)
 
-### R3: Treaty Clause Gold/Turn Never Transfers — APPROVED
+### R3: Treaty Clause Gold/Turn Never Transfers — DONE
 
 **Problem:** `# TODO: Session 3` — gold-per-turn clauses stored but never enforced.
 
@@ -157,7 +158,7 @@ Bugs where state isn't cleaned up properly — stale treaties, missing resets, f
 
 **File:** `world_state.py` (`advance_turn`)
 
-### R5a: Armistice Expiration — APPROVED (MODIFIED)
+### R5a: Armistice Expiration — DONE
 
 **Problem:** `_process_armistice_expiration()` returns `[]`. Armistices never expire.
 
@@ -165,7 +166,7 @@ Bugs where state isn't cleaned up properly — stale treaties, missing resets, f
 
 **File:** `diplomacy.py:1157-1162`
 
-### R5b: Armistice Cooldowns — APPROVED
+### R5b: Armistice Cooldowns — DONE
 
 **Problem:** Cooldowns initialized but never set.
 
@@ -173,7 +174,7 @@ Bugs where state isn't cleaned up properly — stale treaties, missing resets, f
 
 **File:** `diplomacy.py`
 
-### R44: [NEW] AI Nation DP Never Stored — APPROVED
+### R44: [NEW] AI Nation DP Never Stored — DONE
 
 **Problem:** DP calculated for AI but only stored for player. AI diplomatic costs meaningless.
 
@@ -181,7 +182,7 @@ Bugs where state isn't cleaned up properly — stale treaties, missing resets, f
 
 **File:** `diplomacy.py:1128-1132`, `world_state.py`
 
-### R45: [NEW] Downgrade Doesn't Clean active_treaties — APPROVED
+### R45: [NEW] Downgrade Doesn't Clean active_treaties — DONE
 
 **Problem:** Downgrade changes state but old treaty persists. Clauses keep executing.
 
@@ -197,7 +198,7 @@ Bugs where state isn't cleaned up properly — stale treaties, missing resets, f
 
 **File:** `vassal.py:350`
 
-### R47/R30: Strategic Orders Not Cancelled on Peace — APPROVED (MERGED)
+### R47/R30: Strategic Orders Not Cancelled on Peace — DONE
 
 **Problem:** PURSUE orders targeting now-peaceful nation's marshals continue wasting turns. R30 described this as a feature request; R47 is the bug perspective.
 
@@ -205,7 +206,7 @@ Bugs where state isn't cleaned up properly — stale treaties, missing resets, f
 
 **File:** `world_state.py` or `diplomacy.py`
 
-### R48: [NEW] Vassal Relations With Non-Lord Nations Unhandled — APPROVED
+### R48: [NEW] Vassal Relations With Non-Lord Nations Unhandled — DONE
 
 **Problem:** Vassal at war with lord's ally = contradiction. No cascade, no forced peace.
 
@@ -213,7 +214,7 @@ Bugs where state isn't cleaned up properly — stale treaties, missing resets, f
 
 **File:** `vassal.py:92`
 
-### R49: [NEW] War Exhaustion Not Reset on Peace — APPROVED
+### R49: [NEW] War Exhaustion Not Reset on Peace — DONE
 
 **Problem:** WE accumulates across coalition wars. Second coalition starts with leftover WE.
 
@@ -221,7 +222,7 @@ Bugs where state isn't cleaned up properly — stale treaties, missing resets, f
 
 **File:** `coalition.py`
 
-### R50: [NEW] Continental System Membership Not Cleaned on Vassal Release — APPROVED
+### R50: [NEW] Continental System Membership Not Cleaned on Vassal Release — DONE
 
 **Problem:** Released vassal stays in CS, trade still blocked.
 
@@ -229,7 +230,7 @@ Bugs where state isn't cleaned up properly — stale treaties, missing resets, f
 
 **File:** `vassal.py`
 
-### R51: [NEW] Pending Dialogue Not Voided When Coalition Forms — APPROVED
+### R51: [NEW] Pending Dialogue Not Voided When Coalition Forms — DONE
 
 **Problem:** Mid-dialogue with a nation that just joined a coalition against you.
 
@@ -245,7 +246,7 @@ Bugs where state isn't cleaned up properly — stale treaties, missing resets, f
 
 **File:** `vassal.py`
 
-### R53: [NEW] Sweetener Values Round to 0 — APPROVED (MODIFIED)
+### R53: [NEW] Sweetener Values Round to 0 — DONE
 
 **Problem:** Small nation gold pools produce 0 sweetener. Counter-offer identical to original.
 
@@ -253,7 +254,7 @@ Bugs where state isn't cleaned up properly — stale treaties, missing resets, f
 
 **File:** `ai_diplomacy.py` (`generate_counter_offer`)
 
-### R54: [NEW] War Score Sign Convention Scattered — APPROVED
+### R54: [NEW] War Score Sign Convention Scattered — DONE
 
 **Problem:** Sign-flip logic independently implemented in 5 files. Edge cases for certain nation pairs.
 
@@ -261,7 +262,7 @@ Bugs where state isn't cleaned up properly — stale treaties, missing resets, f
 
 **File:** `diplomacy.py` (add helper), then update `ai_diplomacy.py`, `coalition.py`, `vassal.py`, `diplomatic_advisory.py`
 
-### R56: [NEW] modify_nation_relation Has No Self-Guard — APPROVED
+### R56: [NEW] modify_nation_relation Has No Self-Guard — DONE
 
 **Problem:** `modify_nation_relation("France", "France", -20)` creates self-entry.
 
@@ -269,7 +270,7 @@ Bugs where state isn't cleaned up properly — stale treaties, missing resets, f
 
 **File:** `world_state.py`
 
-### R57: [NEW] Threat Field in Dialogue Context Always 0 — APPROVED
+### R57: [NEW] Threat Field in Dialogue Context Always 0 — DONE
 
 **Problem:** Threat lookup key doesn't match storage convention. Talleyrand never mentions threat.
 
@@ -285,7 +286,7 @@ Bugs where state isn't cleaned up properly — stale treaties, missing resets, f
 
 **File:** `vassal.py` (`create_vassal`)
 
-### R7: Defensive Alliance Uses Alliance Base Disposition — APPROVED
+### R7: Defensive Alliance Uses Alliance Base Disposition — DONE
 
 **Problem:** No `"defensive_alliance"` entry in `BASE_DISPOSITION`. Defaults to 20.
 
@@ -485,14 +486,14 @@ These items are postponed. After Phases 1-4 are implemented and UI tested, a sep
 
 | Audit Bug | Severity | Refinement Item | Phase | Status |
 |-----------|----------|-----------------|-------|--------|
-| BUG-1: War score decay no-op | CRITICAL | R1a | 2 | APPROVED |
-| BUG-2: Battle records persist across wars | CRITICAL | R1b | 2 | APPROVED |
+| BUG-1: War score decay no-op | CRITICAL | R1a | 2A | DONE |
+| BUG-2: Battle records persist across wars | CRITICAL | R1b | 2A | DONE |
 | BUG-3: Counter-offer treated as rejection | CRITICAL | R2 | 1 | APPROVED |
-| BUG-4: Armistice expiration unimplemented | HIGH | R5a | 2 | APPROVED (MODIFIED) |
-| BUG-5: Armistice cooldowns never written | HIGH | R5b | 2 | APPROVED |
-| BUG-6: Treaty clause gold unenforced | HIGH | R3 | 2 | APPROVED |
-| BUG-7: Treaty clause gold no floor | MEDIUM | R3 (included) | 2 | APPROVED |
-| BUG-8: Defensive alliance base disposition | MEDIUM | R7 | 2 | APPROVED |
+| BUG-4: Armistice expiration unimplemented | HIGH | R5a | 2A | DONE |
+| BUG-5: Armistice cooldowns never written | HIGH | R5b | 2A | DONE |
+| BUG-6: Treaty clause gold unenforced | HIGH | R3 | 2A | DONE |
+| BUG-7: Treaty clause gold no floor | MEDIUM | R3 (included) | 2A | DONE |
+| BUG-8: Defensive alliance base disposition | MEDIUM | R7 | 2A | DONE |
 | BUG-9: Talleyrand sabotage/redemption popups unresolvable | CRITICAL | R37 | 1 | APPROVED |
 | BUG-10: Talleyrand proposal terms show "war score 0" | MEDIUM | R38 | 4 | APPROVED (MODIFIED) |
 | BUG-11: DP not visibly displayed in game | INVESTIGATION | R39 | UI Test | DEFERRED |
@@ -500,20 +501,20 @@ These items are postponed. After Phases 1-4 are implemented and UI tested, a sep
 | [NEW] BUG-13: Sabotage/redemption actions unwired in executor | CRITICAL | R41 | 1 | MERGED (R37) |
 | [NEW] BUG-14: Pre-proposal objection overrides unwired | CRITICAL | R42 | 1 | APPROVED |
 | [NEW] BUG-15: AI-AI proposal spam (no per-pair cooldown) | CRITICAL | R43 | 1 | APPROVED (MODIFIED) |
-| [NEW] BUG-16: AI nation DP never stored | HIGH | R44 | 2 | APPROVED |
-| [NEW] BUG-17: Downgrade doesn't clean active_treaties | HIGH | R45 | 2 | APPROVED |
+| [NEW] BUG-16: AI nation DP never stored | HIGH | R44 | 2A | DONE |
+| [NEW] BUG-17: Downgrade doesn't clean active_treaties | HIGH | R45 | 2A | DONE |
 | [NEW] BUG-18: Vassal rebellion doesn't clean active_treaties | HIGH | R46 | 2 | APPROVED |
-| [NEW] BUG-19: Strategic orders not cancelled on peace | HIGH | R47 | 2 | APPROVED (MERGED R30) |
-| [NEW] BUG-20: Vassal relations with non-lord nations unhandled | HIGH | R48 | 2 | APPROVED |
-| [NEW] BUG-21: War exhaustion not reset on peace | MEDIUM | R49 | 2 | APPROVED |
-| [NEW] BUG-22: Continental System membership not cleaned on vassal release | MEDIUM | R50 | 2 | APPROVED |
-| [NEW] BUG-23: Pending dialogue not voided when coalition forms | MEDIUM | R51 | 2 | APPROVED |
+| [NEW] BUG-19: Strategic orders not cancelled on peace | HIGH | R47 | 2A | DONE |
+| [NEW] BUG-20: Vassal relations with non-lord nations unhandled | HIGH | R48 | 2A | DONE |
+| [NEW] BUG-21: War exhaustion not reset on peace | MEDIUM | R49 | 2A | DONE |
+| [NEW] BUG-22: Continental System membership not cleaned on vassal release | MEDIUM | R50 | 2A | DONE |
+| [NEW] BUG-23: Pending dialogue not voided when coalition forms | MEDIUM | R51 | 2A | DONE |
 | [NEW] BUG-24: Duplicate Continental System implementations | MEDIUM | R52 | 2 | APPROVED |
-| [NEW] BUG-25: Sweetener values round to 0 for small amounts | MEDIUM | R53 | 2 | APPROVED (MODIFIED) |
-| [NEW] BUG-26: War score sign convention scattered across 5 files | MEDIUM | R54 | 2 | APPROVED |
+| [NEW] BUG-25: Sweetener values round to 0 for small amounts | MEDIUM | R53 | 2A | DONE |
+| [NEW] BUG-26: War score sign convention scattered across 5 files | MEDIUM | R54 | 2A | DONE |
 | [NEW] BUG-27: Dialogue guard keyword list incomplete | MEDIUM | R55 | 1 | APPROVED |
-| [NEW] BUG-28: modify_nation_relation has no self-guard | MEDIUM | R56 | 2 | APPROVED |
-| [NEW] BUG-29: Threat field in dialogue context always 0 | LOW | R57 | 2 | APPROVED |
+| [NEW] BUG-28: modify_nation_relation has no self-guard | MEDIUM | R56 | 2A | DONE |
+| [NEW] BUG-29: Threat field in dialogue context always 0 | LOW | R57 | 2A | DONE |
 | [NEW] BUG-30: Vindication tracker decay never implemented | LOW | R58 | — | DEFERRED |
 | [NEW] BUG-31: Literal personality triggers never fire | LOW | R59 | — | DEFERRED |
 | [NEW] BUG-32: Double-vassalization edge case | LOW | R60 | 2 | APPROVED |
@@ -715,7 +716,7 @@ Option A is consistent with existing popup patterns.
 
 ---
 
-### R67: [NEW] Shallow Copy of active_coalition/brewing Loses Nested Lists — APPROVED
+### R67: [NEW] Shallow Copy of active_coalition/brewing Loses Nested Lists — DONE
 
 **Problem:** `world_state.py:2796-2797` uses `.copy()` (shallow) for `active_coalition` and `coalition_brewing`. The `"members"` list is shared between serialized output and live state. `remove_coalition_member()` mutates the list in-place via `.remove()`, corrupting previously-captured serialization snapshots.
 
@@ -781,7 +782,7 @@ Option A is consistent with existing popup patterns.
 **File:** `main.py:1048-1083`
 **Severity:** MEDIUM (popup delivery delay — coalition popup after treaty acceptance)
 
-### R80: [NEW] Auto-Downgrade Has No Dispatch Event or Notification — APPROVED
+### R80: [NEW] Auto-Downgrade Has No Dispatch Event or Notification — DONE
 
 **Problem:** `check_auto_downgrade()` (diplomacy.py:886-949) fires `log_event()` but never calls `queue_dispatch_event()` and never creates a notification. Event type `"auto_downgrade"` absent from `_DISPATCH_EVENT_TYPES` and `_DIPLOMATIC_EVENT_TEMPLATES`. Alliance collapses happen with zero player visibility.
 
@@ -802,7 +803,7 @@ Option A is consistent with existing popup patterns.
 **Files:** `diplomacy.py`, `ai_diplomacy.py`
 **Severity:** MEDIUM (ghost nations accumulate gold/DP, propose treaties with 0 armies)
 
-### R82: [NEW] {rejection_reaction} Template Slot Never Resolved — APPROVED
+### R82: [NEW] {rejection_reaction} Template Slot Never Resolved — DONE
 
 **Problem:** T18 `proposal_rejected` templates use `{rejection_reaction}` which is never populated by `resolve_template_text()` or its callers. `_SafeFormatMap` returns the literal `{rejection_reaction}` string. Player sees: "Castlereagh receives your rejection with {rejection_reaction}."
 
@@ -811,7 +812,7 @@ Option A is consistent with existing popup patterns.
 **File:** `diplomatic_templates.py:554-575`, template resolver
 **Severity:** MEDIUM (visible placeholder text in player-facing dialogue)
 
-### R83: [NEW] Coalition Events Have Zero Dispatch Calls — APPROVED
+### R83: [NEW] Coalition Events Have Zero Dispatch Calls — DONE
 
 **Problem:** `coalition.py` has zero calls to `queue_dispatch_event()`. Coalition formation, dissolution, brewing-start, and cooldown-end never appear in Morning Dispatch. `dispatch.py` has `_build_coalition_section()` showing current STATE, but specific transition EVENTS are invisible.
 
@@ -990,7 +991,7 @@ Option A is consistent with existing popup patterns.
 | Continental System never called from turn loop | HIGH | R64 | 1 | APPROVED |
 | Advisory leaks exact enemy strength through fog | HIGH | R65 | 1 | APPROVED |
 | Dispatch fog rule reads wrong key | HIGH | R66 | 1 | APPROVED |
-| Shallow copy serialization for coalition | MEDIUM | R67 | 2 | APPROVED |
+| Shallow copy serialization for coalition | MEDIUM | R67 | 2A | DONE |
 | Vassalizing coalition member skips cleanup | MEDIUM | R68 | 2 | APPROVED |
 | cascade_triggered never cleared on peace | MEDIUM | R69 | 2 | APPROVED |
 | Autonomy change doesn't remove from CS | MEDIUM | R70 | 2 | APPROVED |
@@ -1003,10 +1004,10 @@ Option A is consistent with existing popup patterns.
 | Coalition popup skips state display update | MEDIUM | R77 | 4 | APPROVED |
 | Popup early returns skip top bar update | MEDIUM | R78 | 4 | APPROVED |
 | Sabotage popup drops morning dispatch | MEDIUM | R79 | 4 | APPROVED |
-| Auto-downgrade no dispatch/notification | MEDIUM | R80 | 2 | APPROVED |
+| Auto-downgrade no dispatch/notification | MEDIUM | R80 | 2A | DONE |
 | Ghost nation processes diplomacy | MEDIUM | R81 | 2 | APPROVED |
-| {rejection_reaction} never resolved | MEDIUM | R82 | 2 | APPROVED |
-| Coalition events zero dispatch calls | MEDIUM | R83 | 2 | APPROVED |
+| {rejection_reaction} never resolved | MEDIUM | R82 | 2A | DONE |
+| Coalition events zero dispatch calls | MEDIUM | R83 | 2A | DONE |
 | Threat notifications not dismissed | LOW | R84 | 4 | APPROVED |
 | Coalition leader never re-evaluated | LOW | R85 | UI | APPROVED |
 | relationship_with_lord dead code | LOW | R86 | UI | APPROVED |
@@ -1277,4 +1278,4 @@ Option A recommended for consistency.
 | Counter-offer gold not treasury-validated | MEDIUM | R113 | 2 | APPROVED |
 | Alliance conflict one-direction only | LOW | R114 | 2 | APPROVED |
 
-**Grand total:** 114 items (R1-R114). 3 DONE, 95 APPROVED, 16 DEFERRED.
+**Grand total:** 114 items (R1-R114). 20 DONE, 78 APPROVED, 16 DEFERRED.

@@ -373,10 +373,17 @@ class TestCoalitionStructure:
         """Aggressive posture when coalition war score > 10."""
         world = _make_world()
         form_coalition(["Austria"], world)
-        # Set all war scores negative for France (coalition winning)
+        # Set war scores so France is LOSING (coalition winning):
+        # War scores are stored from first-alphabetical nation's perspective.
+        # For "Austria|France": positive = Austria winning (France losing) ✓
+        # For "Britain|France": positive = Britain winning (France losing) ✓
+        # For "France|Prussia": positive = France winning → need NEGATIVE for France losing
         for m in world.active_coalition["members"]:
             key = "|".join(sorted(["France", m]))
-            world.war_scores[key] = -20
+            if key.startswith("France"):
+                world.war_scores[key] = -20  # France is first: negative = France losing
+            else:
+                world.war_scores[key] = 20   # Other is first: positive = other winning
         posture = get_coalition_posture(world)
         assert posture == "aggressive"
 

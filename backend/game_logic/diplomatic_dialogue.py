@@ -297,7 +297,7 @@ def generate_dialogue(intent_type: str, parsed_command: Dict, world) -> Dict:
         context = {
             "war_score": int(world.war_scores.get(diplo_key, 0)),
             "relation": int(world.nation_relations.get(diplo_key, 0)),
-            "threat": 0,  # TODO: wire threat system
+            "threat": int(getattr(world, 'threat_level', 0)),
             "current_state": world.get_diplomatic_state("France", target_nation),
         }
 
@@ -545,7 +545,7 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
         "context": {
             "war_score": int(world.war_scores.get(world._make_diplo_key("France", target_nation), 0)),
             "relation": int(world.nation_relations.get(world._make_diplo_key("France", target_nation), 0)),
-            "threat": 0,
+            "threat": int(getattr(world, 'threat_level', 0)),
             "acceptance_score": int(score),
             "acceptance_outcome": outcome,
             "largest_obstacle": largest_obstacle,
