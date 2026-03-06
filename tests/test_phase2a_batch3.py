@@ -100,8 +100,10 @@ class TestArmisticeCooldown:
         world = make_world()
         key = world._make_diplo_key("France", "Prussia")
         world.diplomatic_states[key] = "WAR"
-        world._ratify_treaty("Prussia", {
+        world._ratify_treaty({
             "type": "armistice_losing",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
             "sweeteners": [],
             "demands": [],
             "clauses": [],

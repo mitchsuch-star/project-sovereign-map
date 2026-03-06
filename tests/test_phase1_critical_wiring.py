@@ -12,7 +12,7 @@ from backend.game_logic.diplomacy import (
     OPEN_MOVEMENT_STATES,
 )
 from backend.game_logic.ai_diplomacy import (
-    _evaluate_ai_ai_proposal, _ratify_ai_ai_treaty,
+    _evaluate_ai_ai_proposal,
 )
 from backend.game_logic.dispatch import (
     _is_dispatch_event_visible,
@@ -45,6 +45,19 @@ def _make_marshal(name="Ney", location="Paris", strength=10000, nation="France",
 def _make_talleyrand(trust=65):
     from backend.models.diplomat import DiplomaticRepresentative
     return DiplomaticRepresentative("Talleyrand", "France", "schemer", skill=10, trust=trust)
+
+
+def _ratify_via_world(nation_a, nation_b, proposal, world):
+    """Helper: replace deleted _ratify_ai_ai_treaty with world._ratify_treaty."""
+    normalized = {
+        "type": proposal["type"],
+        "proposer_nation": proposal.get("proposer", nation_a),
+        "target_nation": proposal.get("target", nation_b),
+        "sweeteners": [],
+        "demands": [],
+        "clauses": [],
+    }
+    return world._ratify_treaty(normalized)
 
 
 # ═══════════════════════════════════════════════════════
@@ -322,7 +335,7 @@ class TestR43AIAICooldown:
         world.nation_relations[key] = 0
 
         proposal = {"type": "non_aggression", "proposer": "Prussia", "target": "Austria"}
-        _ratify_ai_ai_treaty("Prussia", "Austria", proposal, world)
+        _ratify_via_world("Prussia", "Austria", proposal, world)
 
         # Cooldown should be set
         assert world.ai_proposal_cooldowns.get(f"ai_ai|{key}", 0) == 5

@@ -487,7 +487,7 @@ class TestTreatyRatification:
             "demands": [],
             "clauses": [],
         }
-        event = world._ratify_treaty("Prussia", proposal)
+        event = world._ratify_treaty(proposal)
         assert event is not None
         # Should transition from WAR to PEACE
         state = world.get_diplomatic_state("France", "Prussia")
@@ -504,7 +504,7 @@ class TestTreatyRatification:
             "demands": [],
             "clauses": [],
         }
-        world._ratify_treaty("Prussia", proposal)
+        world._ratify_treaty(proposal)
         france_gold_after = world.nation_gold.get("France", 0)
         assert france_gold_after == france_gold_before - 200
 
@@ -518,7 +518,7 @@ class TestTreatyRatification:
             "demands": [],
             "clauses": [],
         }
-        world._ratify_treaty("Prussia", proposal)
+        world._ratify_treaty(proposal)
         key = world._make_diplo_key("France", "Prussia")
         assert key in world.active_treaties
 

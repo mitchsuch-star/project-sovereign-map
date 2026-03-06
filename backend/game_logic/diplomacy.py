@@ -60,6 +60,17 @@ TRANSITION_RULES = {
     ("DEFENSIVE_ALLIANCE", "ALLIANCE"): {"dp_cost": 2, "relation_req": 40},
 }
 
+# ═══════ STATE-LEVEL RELATION REQUIREMENTS (R98: jumps) ═══════
+# For non-adjacent upward jumps, the TARGET state's relation requirement applies.
+STATE_RELATION_REQUIREMENTS = {
+    "ARMISTICE": None,
+    "PEACE": -60,
+    "OPEN_BORDERS": -20,
+    "NON_AGGRESSION": 0,
+    "DEFENSIVE_ALLIANCE": 20,
+    "ALLIANCE": 40,
+}
+
 # Vassal: requires OPEN_BORDERS or above
 VASSAL_MIN_STATES = {"OPEN_BORDERS", "NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE"}
 VASSAL_DP_COST = 3
@@ -201,11 +212,11 @@ def validate_transition(current_state: str, target_state: str) -> bool:
     if current_state == "VASSAL":
         return target_state in ("WAR", "PEACE")
 
-    # Upgrade path: must be adjacent in _UPGRADE_ORDER
+    # Upgrade path: any upward jump allowed (R98 — cumulative DP cost)
     if current_state in _UPGRADE_ORDER and target_state in _UPGRADE_ORDER:
         curr_idx = _UPGRADE_ORDER.index(current_state)
         tgt_idx = _UPGRADE_ORDER.index(target_state)
-        if tgt_idx == curr_idx + 1:
+        if tgt_idx > curr_idx:
             return True
 
     # Downgrade path: must be adjacent in _DOWNGRADE_ORDER
@@ -221,26 +232,44 @@ def validate_transition(current_state: str, target_state: str) -> bool:
 def check_relation_requirement(current_state: str, target_state: str, relation: int) -> bool:
     """Check if relation meets the requirement for an upgrade transition.
 
+    R98: Uses target state's relation requirement (supports jumps).
     Returns True if requirement is met or no requirement exists.
     """
-    rule = TRANSITION_RULES.get((current_state, target_state))
-    if not rule:
-        return True  # No rule = no requirement
-    req = rule.get("relation_req")
+    req = STATE_RELATION_REQUIREMENTS.get(target_state)
     if req is None:
         return True
     return relation > req
 
 
 def get_transition_dp_cost(current_state: str, target_state: str) -> int:
-    """Get DP cost for a transition."""
+    """Get DP cost for a transition.
+
+    R98: For upward jumps, sums all intermediate step DP costs.
+    E.g. PEACE→ALLIANCE = 1+1+2+2 = 6 DP.
+    """
     if target_state == "WAR":
         return WAR_DP_COST
     if target_state == "VASSAL":
         return VASSAL_DP_COST
+
+    # Adjacent upgrade (exact match in TRANSITION_RULES)
     rule = TRANSITION_RULES.get((current_state, target_state))
     if rule:
         return rule["dp_cost"]
+
+    # Non-adjacent upward jump: sum intermediate costs
+    if current_state in _UPGRADE_ORDER and target_state in _UPGRADE_ORDER:
+        curr_idx = _UPGRADE_ORDER.index(current_state)
+        tgt_idx = _UPGRADE_ORDER.index(target_state)
+        if tgt_idx > curr_idx:
+            total = 0
+            for i in range(curr_idx, tgt_idx):
+                step_from = _UPGRADE_ORDER[i]
+                step_to = _UPGRADE_ORDER[i + 1]
+                step_rule = TRANSITION_RULES.get((step_from, step_to))
+                total += step_rule["dp_cost"] if step_rule else 1
+            return total
+
     # Downgrade
     penalty = DOWNGRADE_PENALTIES.get((current_state, target_state))
     if penalty:
@@ -423,6 +452,19 @@ def cleanup_war_end(world, diplo_key: str) -> None:
     if len(parts) == 2:
         war_exhaustion.pop(parts[0], None)
         war_exhaustion.pop(parts[1], None)
+
+    # R69: Clear cascade_triggered entries for this war pair
+    cascade_triggered = getattr(world, 'cascade_triggered', set())
+    to_remove = {key for key in cascade_triggered if diplo_key in key}
+    cascade_triggered -= to_remove
+    world.cascade_triggered = cascade_triggered
+
+    # R110: Clear stalemate counters for the war pair nations
+    stalemate_counters = getattr(world, 'ai_stalemate_counters', {})
+    if len(parts) == 2:
+        stalemate_counters.pop(parts[0], None)
+        stalemate_counters.pop(parts[1], None)
+    world.ai_stalemate_counters = stalemate_counters
 
     # R47/R30: Cancel PURSUE/MOVE_TO orders targeting the now-peaceful nation's marshals
     if len(parts) == 2:
@@ -708,10 +750,13 @@ def calculate_dp(diplomat, authority: int, controls_capital: bool) -> int:
     return max(1, min(5, base + skill_bonus + authority_bonus + capital_penalty))
 
 
-def get_dp_cost(action_type: str, diplomat_skill: int = 10) -> int:
+def get_dp_cost(action_type: str, diplomat_skill: int = 10, transition_base: int = 0) -> int:
     """Get DP cost for a diplomatic action, adjusted for skill.
 
     Base costs from §4b. Skill penalty: +1 if skill 4-6, +2 if skill < 4.
+    transition_base: if provided, use the higher of table cost and cumulative
+    jump cost (from get_transition_dp_cost). This ensures multi-step jumps
+    (e.g. PEACE→ALLIANCE) charge the full intermediate cost.
     """
     base_costs = {
         "propose_peace": 2,
@@ -726,7 +771,7 @@ def get_dp_cost(action_type: str, diplomat_skill: int = 10) -> int:
         "invest_vassal": 1,
         "declare_war": 1,
     }
-    base = base_costs.get(action_type, 1)
+    base = max(base_costs.get(action_type, 1), transition_base)
 
     # Skill penalty
     if diplomat_skill < 4:
@@ -767,8 +812,20 @@ def declare_war(world, aggressor: str, target: str) -> Dict:
     if current_state == "WAR":
         return {"success": False, "message": f"{aggressor} is already at war with {target}."}
 
+    # R99: Block war declaration during armistice cooldown
+    armistice_cooldown = getattr(world, 'armistice_cooldowns', {}).get(diplo_key, 0)
+    if armistice_cooldown > 0:
+        return {
+            "success": False,
+            "message": f"Armistice cooldown in effect with {target} ({armistice_cooldown} turns remaining). War cannot be declared."
+        }
+
     # Transition to WAR
     world.diplomatic_states[diplo_key] = "WAR"
+
+    # R97: Remove active treaty (alliance clauses must stop during war)
+    active_treaties = getattr(world, 'active_treaties', {})
+    active_treaties.pop(diplo_key, None)
 
     # Penalties
     relation_changes = []
@@ -862,6 +919,13 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
                 war_key = world._make_diplo_key(nation, aggressor)
                 world.diplomatic_states[war_key] = "WAR"
                 processed.add(nation)
+
+                # R97: Remove active treaty for the cascading pair
+                active_treaties = getattr(world, 'active_treaties', {})
+                active_treaties.pop(war_key, None)
+
+                # R100: Apply relation penalty for cascaded war
+                world.modify_nation_relation(aggressor, nation, -20)
 
                 cascade.append({
                     "defender": nation,
@@ -1205,6 +1269,17 @@ def process_diplomacy_turn(world) -> List[Dict]:
     return events
 
 
+def _is_nation_eliminated(world, nation: str) -> bool:
+    """R81: Check if a nation is eliminated (0 regions).
+
+    Marshals are guaranteed removed by _eliminate_nation(), so region check suffices.
+    """
+    return not any(
+        getattr(r, 'controller', '') == nation
+        for r in world.regions.values()
+    )
+
+
 def _process_dp_regen(world) -> None:
     """Regenerate DP for all nations. DP does NOT accumulate — reset each turn."""
     from backend.models.region import NATION_CAPITALS
@@ -1213,6 +1288,9 @@ def _process_dp_regen(world) -> None:
 
     all_nations = [world.player_nation] + list(getattr(world, 'enemy_nations', []))
     for nation in all_nations:
+        # R81: Skip eliminated nations (0 regions + 0 marshals)
+        if nation != world.player_nation and _is_nation_eliminated(world, nation):
+            continue
         diplomat = diplomats.get(nation)
         if nation == world.player_nation:
             authority = world.authority_tracker.authority if hasattr(world, 'authority_tracker') else 60
@@ -1402,8 +1480,9 @@ def _process_mission_effects(world) -> List[Dict]:
         return events
 
     # Get Talleyrand skill for bonus calculation
+    player_nation = getattr(world, 'player_nation', 'France')
     diplomats = getattr(world, 'diplomats', {})
-    talleyrand = diplomats.get("France")  # Player's diplomat
+    talleyrand = diplomats.get(player_nation)  # Player's diplomat
     skill = talleyrand.skill if talleyrand else 5
 
     # Skill multiplier: 10 → 1.5x, 4-6 → 0.75x, else → 1.0x
@@ -1418,9 +1497,9 @@ def _process_mission_effects(world) -> List[Dict]:
     relation_change = effects.get("relation_change", 0)
     if relation_change:
         scaled = int(round(relation_change * multiplier))
-        world.modify_nation_relation("France", target, scaled)
+        world.modify_nation_relation(player_nation, target, scaled)
         # Dispatch event (Session 8D)
-        diplo_key = world._make_diplo_key("France", target)
+        diplo_key = world._make_diplo_key(player_nation, target)
         current_relation = world.nation_relations.get(diplo_key, 0)
         from backend.game_logic.dispatch import queue_dispatch_event
         queue_dispatch_event(world, "diplomatic_mission_progress",
@@ -1456,6 +1535,11 @@ def break_treaty(pair_key: str, breaker_nation: str, world) -> Dict:
     treaty = active_treaties.get(pair_key)
     if not treaty:
         return {"success": False, "message": "No active treaty to break."}
+
+    # R101: Validate breaker is party to the treaty
+    treaty_nations = treaty.get("nations", [])
+    if treaty_nations and breaker_nation not in treaty_nations:
+        return {"success": False, "message": f"{breaker_nation} is not a party to this treaty."}
 
     # Cost: 1 DP
     if world.diplomatic_points < 1:

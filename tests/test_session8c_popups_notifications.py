@@ -188,8 +188,8 @@ class TestDiplomacyNotifications:
         """_ratify_treaty fires TREATY_SIGNED notification."""
         world = _make_world()
         _set_at_war(world, "France", "Prussia")
-        proposal = {"type": "peace", "demands": [], "sweeteners": []}
-        world._ratify_treaty("Prussia", proposal)
+        proposal = {"type": "peace", "proposer_nation": "France", "target_nation": "Prussia", "demands": [], "sweeteners": []}
+        world._ratify_treaty(proposal)
         notifs = _get_notifications_of_type(world, TREATY_SIGNED)
         assert len(notifs) >= 1
         assert "Prussia" in notifs[0]["message"]

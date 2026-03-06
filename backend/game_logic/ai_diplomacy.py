@@ -343,9 +343,14 @@ def _build_proposal_terms(
         nation_gold = world.nation_gold.get(nation, 0)
         if nation_gold > 200:
             offer_amount = min(300, int(nation_gold * 0.15))
-            terms["sweeteners"].append(
-                {"type": "gold_per_turn", "value": int(offer_amount)}
-            )
+            # R113: Cap gold_per_turn at 50% of region income
+            income_data = world.calculate_turn_income(nation)
+            max_per_turn = income_data["income"] // 2
+            offer_amount = min(offer_amount, max_per_turn)
+            if offer_amount > 0:
+                terms["sweeteners"].append(
+                    {"type": "gold_per_turn", "value": int(offer_amount)}
+                )
         terms["type"] = "armistice_losing"
 
     elif proposal_type == "armistice_stalemate":
@@ -358,6 +363,10 @@ def _build_proposal_terms(
             # Very desperate: offer gold + open borders
             nation_gold = world.nation_gold.get(nation, 0)
             offer_amount = min(200, int(nation_gold * 0.10))
+            # R113: Cap gold_per_turn at 50% of region income
+            income_data = world.calculate_turn_income(nation)
+            max_per_turn = income_data["income"] // 2
+            offer_amount = min(offer_amount, max_per_turn)
             if offer_amount > 0:
                 terms["sweeteners"].append(
                     {"type": "gold_per_turn", "value": int(offer_amount)}
@@ -452,6 +461,11 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     """
     player = getattr(world, 'player_nation', 'France')
     if nation == player:
+        return None
+
+    # R81: Skip eliminated nations (0 regions + 0 marshals)
+    from backend.game_logic.diplomacy import _is_nation_eliminated
+    if _is_nation_eliminated(world, nation):
         return None
 
     # ── Deduplication: skip if this nation already has a pending proposal ──
@@ -917,10 +931,22 @@ def _try_add_desired_clauses(
 
         # Add as a sweetener from the AI nation to France
         if dtype in ("gold_lump", "gold_per_turn", "territory"):
-            # R53: Floor sweetener value at 5 to prevent zero-value offers
+            sweetener_value = max(5, int(desire.get("value", 0)))
+            # R113: Validate gold sweetener against treasury (prevent negative gold)
+            if dtype == "gold_lump":
+                nation_gold = world.nation_gold.get(source_nation, 0)
+                if nation_gold < sweetener_value:
+                    continue  # Can't afford this sweetener
+            # R113: Validate gold_per_turn against income (prevent unsustainable offers)
+            if dtype == "gold_per_turn":
+                income_data = world.calculate_turn_income(source_nation)
+                max_per_turn = income_data["income"] // 2  # 50% of region income
+                if max_per_turn <= 0:
+                    continue
+                sweetener_value = min(sweetener_value, max_per_turn)
             test_terms["sweeteners"].append({
                 "type": dtype,
-                "value": max(5, int(desire.get("value", 0))),
+                "value": sweetener_value,
             })
         elif dtype in ("open_borders", "protection"):
             clause_key = desire.get("clause", dtype)
@@ -977,14 +1003,19 @@ def check_alliance_conflict(
         if other_nation == player or other_nation == nation:
             continue
 
-        # Check if 'nation' has an alliance with 'other_nation'
+        # Direction 1: Check if 'nation' has an alliance with 'other_nation' who France is at WAR with
         state_with_other = world.get_diplomatic_state(nation, other_nation)
-        if state_with_other not in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
-            continue
+        if state_with_other in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+            if world.is_at_war(player, other_nation):
+                if other_nation not in conflicting:
+                    conflicting.append(other_nation)
 
-        # Check if France is at WAR with that allied nation
-        if world.is_at_war(player, other_nation):
-            conflicting.append(other_nation)
+        # R114: Direction 2: Check if France's allies are at WAR with proposed nation
+        france_state = world.get_diplomatic_state(player, other_nation)
+        if france_state in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+            if world.is_at_war(other_nation, nation):
+                if other_nation not in conflicting:
+                    conflicting.append(other_nation)
 
     if not conflicting:
         return None
@@ -1023,11 +1054,15 @@ def process_ai_ai_diplomatic_phase(world) -> List[Dict]:
     treaties_this_turn = 0
     events = []
 
-    for i, initiator in enumerate(enemy_nations):
+    # R81: Filter out eliminated nations (0 regions + 0 marshals)
+    from backend.game_logic.diplomacy import _is_nation_eliminated
+    active_nations = [n for n in enemy_nations if not _is_nation_eliminated(world, n)]
+
+    for i, initiator in enumerate(active_nations):
         if treaties_this_turn >= _AI_AI_MAX_TREATIES_PER_TURN:
             break
 
-        for target in enemy_nations[i + 1:]:
+        for target in active_nations[i + 1:]:
             if treaties_this_turn >= _AI_AI_MAX_TREATIES_PER_TURN:
                 break
 
@@ -1040,8 +1075,16 @@ def process_ai_ai_diplomatic_phase(world) -> List[Dict]:
             acceptance_b = _ai_ai_acceptance(proposal, target, initiator, world)
 
             if acceptance_a >= 50 and acceptance_b >= 50:
-                # Ratify immediately (no transit delay for AI-AI)
-                event = _ratify_ai_ai_treaty(initiator, target, proposal, world)
+                # Ratify immediately via unified path (no transit delay for AI-AI)
+                normalized = {
+                    "type": proposal["type"],
+                    "proposer_nation": proposal.get("proposer", initiator),
+                    "target_nation": proposal.get("target", target),
+                    "sweeteners": [],
+                    "demands": [],
+                    "clauses": [],
+                }
+                event = world._ratify_treaty(normalized)
                 if event:
                     events.append(event)
                     treaties_this_turn += 1
@@ -1129,85 +1172,4 @@ def _ai_ai_acceptance(proposal: Dict, evaluator: str, other: str, world) -> int:
     return result["score"]
 
 
-def _ratify_ai_ai_treaty(nation_a: str, nation_b: str, proposal: Dict, world) -> Optional[Dict]:
-    """Ratify an AI-AI treaty. No transit delay — immediate.
-
-    Applies state transition and queues dispatch/campaign log events.
-    """
-    from backend.game_logic.diplomacy import _UPGRADE_ORDER
-
-    proposal_type = proposal["type"]
-    diplo_key = world._make_diplo_key(nation_a, nation_b)
-    current_state = world.get_diplomatic_state(nation_a, nation_b)
-
-    # Map proposal type to target state
-    state_map = {
-        "defensive_alliance": "DEFENSIVE_ALLIANCE",
-        "alliance": "ALLIANCE",
-        "non_aggression": "NON_AGGRESSION",
-        "open_borders": "OPEN_BORDERS",
-        "peace": "PEACE",
-    }
-    target_state = state_map.get(proposal_type)
-    if not target_state:
-        return None
-
-    # Don't downgrade
-    if target_state in _UPGRADE_ORDER and current_state in _UPGRADE_ORDER:
-        if _UPGRADE_ORDER.index(target_state) <= _UPGRADE_ORDER.index(current_state):
-            return None
-
-    # Alliance conflict check — don't create alliances that conflict with wars
-    if target_state in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
-        all_nations = [getattr(world, 'player_nation', 'France')] + list(
-            getattr(world, 'enemy_nations', []))
-        for other in all_nations:
-            if other == nation_a or other == nation_b:
-                continue
-            # A at war with B's ally?
-            if world.is_at_war(nation_a, other):
-                s = world.get_diplomatic_state(nation_b, other)
-                if s in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
-                    return None
-            # B at war with A's ally?
-            if world.is_at_war(nation_b, other):
-                s = world.get_diplomatic_state(nation_a, other)
-                if s in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
-                    return None
-
-    # Apply transition
-    world.diplomatic_states[diplo_key] = target_state
-
-    # Improve relations
-    world.modify_nation_relation(nation_a, nation_b, 10)
-
-    treaty_type_display = proposal_type.replace("_", " ").title()
-
-    # Queue dispatch event (fog-filtered)
-    from backend.game_logic.dispatch import queue_dispatch_event
-    queue_dispatch_event(world, "diplomatic_ai_ai_treaty",
-                        {"nation_a": nation_a, "nation_b": nation_b,
-                         "treaty_type": treaty_type_display},
-                        "partial_on_nation")
-
-    # Campaign log event
-    world.log_event({
-        "type": "diplomatic_ai_ai_treaty",
-        "nation_a": nation_a,
-        "nation_b": nation_b,
-        "treaty_type": treaty_type_display,
-        "turn": int(world.current_turn),
-    })
-
-    # R43: Set per-pair cooldown to prevent rapid AI-AI upgrades
-    cooldowns = _get_cooldowns(world)
-    cooldowns[f"ai_ai|{diplo_key}"] = 5
-    _set_cooldowns(world, cooldowns)
-
-    return {
-        "type": "ai_ai_treaty",
-        "nation_a": nation_a,
-        "nation_b": nation_b,
-        "treaty_type": treaty_type_display,
-        "message": f"{nation_a} and {nation_b} have signed a {treaty_type_display}.",
-    }
+    # _ratify_ai_ai_treaty removed (R107/R108) — unified into WorldState._ratify_treaty()

@@ -143,15 +143,17 @@ class TestTransitions:
     def test_upgrade_defensive_alliance_to_alliance(self):
         assert validate_transition("DEFENSIVE_ALLIANCE", "ALLIANCE") is True
 
-    def test_cannot_jump_war_to_alliance(self):
-        """Gate test: can't jump WAR→ALLIANCE."""
-        assert validate_transition("WAR", "ALLIANCE") is False
+    def test_jump_war_to_alliance_allowed(self):
+        """R98: upward jumps allowed — WAR→ALLIANCE valid with cumulative DP."""
+        assert validate_transition("WAR", "ALLIANCE") is True
 
-    def test_cannot_jump_peace_to_alliance(self):
-        assert validate_transition("PEACE", "ALLIANCE") is False
+    def test_jump_peace_to_alliance_allowed(self):
+        """R98: PEACE→ALLIANCE upward jump allowed."""
+        assert validate_transition("PEACE", "ALLIANCE") is True
 
-    def test_cannot_jump_war_to_peace(self):
-        assert validate_transition("WAR", "PEACE") is False
+    def test_jump_war_to_peace_allowed(self):
+        """R98: WAR→PEACE upward jump allowed."""
+        assert validate_transition("WAR", "PEACE") is True
 
     def test_any_to_war(self):
         """Any state can transition to WAR."""

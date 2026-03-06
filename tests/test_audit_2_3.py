@@ -510,59 +510,59 @@ from backend.game_logic.diplomacy import (
 class TestTransitionAdjacencyExhaustive:
     """3A: Test ALL invalid jumps and ALL valid jumps for state machine adjacency."""
 
-    # -- Invalid Jumps (must be BLOCKED) --
+    # -- Upward Jumps (R98: allowed with cumulative DP cost) --
 
-    def test_war_to_peace_blocked(self):
-        """WAR -> PEACE skips ARMISTICE - must be blocked."""
-        assert validate_transition("WAR", "PEACE") is False
+    def test_war_to_peace_jump_allowed(self):
+        """R98: WAR -> PEACE upward jump allowed."""
+        assert validate_transition("WAR", "PEACE") is True
 
-    def test_war_to_alliance_blocked(self):
-        """WAR -> ALLIANCE skips 5 steps - must be blocked."""
-        assert validate_transition("WAR", "ALLIANCE") is False
+    def test_war_to_alliance_jump_allowed(self):
+        """R98: WAR -> ALLIANCE upward jump allowed."""
+        assert validate_transition("WAR", "ALLIANCE") is True
 
-    def test_peace_to_alliance_blocked(self):
-        """PEACE -> ALLIANCE skips 3 steps - must be blocked."""
-        assert validate_transition("PEACE", "ALLIANCE") is False
+    def test_peace_to_alliance_jump_allowed(self):
+        """R98: PEACE -> ALLIANCE upward jump allowed."""
+        assert validate_transition("PEACE", "ALLIANCE") is True
 
     def test_peace_to_vassal_blocked(self):
         """PEACE -> VASSAL is below OPEN_BORDERS minimum - must be blocked."""
         assert validate_transition("PEACE", "VASSAL") is False
 
-    def test_armistice_to_open_borders_blocked(self):
-        """ARMISTICE -> OPEN_BORDERS skips PEACE - must be blocked."""
-        assert validate_transition("ARMISTICE", "OPEN_BORDERS") is False
+    def test_armistice_to_open_borders_jump_allowed(self):
+        """R98: ARMISTICE -> OPEN_BORDERS upward jump allowed."""
+        assert validate_transition("ARMISTICE", "OPEN_BORDERS") is True
 
-    def test_war_to_open_borders_blocked(self):
-        """WAR -> OPEN_BORDERS skips 3 steps - must be blocked."""
-        assert validate_transition("WAR", "OPEN_BORDERS") is False
+    def test_war_to_open_borders_jump_allowed(self):
+        """R98: WAR -> OPEN_BORDERS upward jump allowed."""
+        assert validate_transition("WAR", "OPEN_BORDERS") is True
 
-    def test_war_to_non_aggression_blocked(self):
-        """WAR -> NON_AGGRESSION skips 4 steps - must be blocked."""
-        assert validate_transition("WAR", "NON_AGGRESSION") is False
+    def test_war_to_non_aggression_jump_allowed(self):
+        """R98: WAR -> NON_AGGRESSION upward jump allowed."""
+        assert validate_transition("WAR", "NON_AGGRESSION") is True
 
-    def test_war_to_defensive_alliance_blocked(self):
-        """WAR -> DEFENSIVE_ALLIANCE skips 5 steps - must be blocked."""
-        assert validate_transition("WAR", "DEFENSIVE_ALLIANCE") is False
+    def test_war_to_defensive_alliance_jump_allowed(self):
+        """R98: WAR -> DEFENSIVE_ALLIANCE upward jump allowed."""
+        assert validate_transition("WAR", "DEFENSIVE_ALLIANCE") is True
 
-    def test_armistice_to_alliance_blocked(self):
-        """ARMISTICE -> ALLIANCE skips 4 steps - must be blocked."""
-        assert validate_transition("ARMISTICE", "ALLIANCE") is False
+    def test_armistice_to_alliance_jump_allowed(self):
+        """R98: ARMISTICE -> ALLIANCE upward jump allowed."""
+        assert validate_transition("ARMISTICE", "ALLIANCE") is True
 
-    def test_peace_to_non_aggression_blocked(self):
-        """PEACE -> NON_AGGRESSION skips OPEN_BORDERS - must be blocked."""
-        assert validate_transition("PEACE", "NON_AGGRESSION") is False
+    def test_peace_to_non_aggression_jump_allowed(self):
+        """R98: PEACE -> NON_AGGRESSION upward jump allowed."""
+        assert validate_transition("PEACE", "NON_AGGRESSION") is True
 
-    def test_peace_to_defensive_alliance_blocked(self):
-        """PEACE -> DEFENSIVE_ALLIANCE skips 3 steps - must be blocked."""
-        assert validate_transition("PEACE", "DEFENSIVE_ALLIANCE") is False
+    def test_peace_to_defensive_alliance_jump_allowed(self):
+        """R98: PEACE -> DEFENSIVE_ALLIANCE upward jump allowed."""
+        assert validate_transition("PEACE", "DEFENSIVE_ALLIANCE") is True
 
-    def test_open_borders_to_alliance_blocked(self):
-        """OPEN_BORDERS -> ALLIANCE skips 2 steps - must be blocked."""
-        assert validate_transition("OPEN_BORDERS", "ALLIANCE") is False
+    def test_open_borders_to_alliance_jump_allowed(self):
+        """R98: OPEN_BORDERS -> ALLIANCE upward jump allowed."""
+        assert validate_transition("OPEN_BORDERS", "ALLIANCE") is True
 
-    def test_open_borders_to_defensive_alliance_blocked(self):
-        """OPEN_BORDERS -> DEFENSIVE_ALLIANCE skips NON_AGGRESSION - must be blocked."""
-        assert validate_transition("OPEN_BORDERS", "DEFENSIVE_ALLIANCE") is False
+    def test_open_borders_to_defensive_alliance_jump_allowed(self):
+        """R98: OPEN_BORDERS -> DEFENSIVE_ALLIANCE upward jump allowed."""
+        assert validate_transition("OPEN_BORDERS", "DEFENSIVE_ALLIANCE") is True
 
     def test_armistice_to_vassal_blocked(self):
         """ARMISTICE -> VASSAL is below OPEN_BORDERS minimum - must be blocked."""
@@ -744,9 +744,11 @@ class TestRelationRequirements:
         assert check_relation_requirement("WAR", "ARMISTICE", 0) is True
         assert check_relation_requirement("WAR", "ARMISTICE", 100) is True
 
-    def test_unknown_transition_returns_true(self):
-        """Transition not in TRANSITION_RULES returns True (no requirement)."""
-        assert check_relation_requirement("WAR", "PEACE", -100) is True
+    def test_jump_transition_checks_target_state(self):
+        """R98: Jump transition checks target state's relation requirement."""
+        # PEACE requires relation > -60
+        assert check_relation_requirement("WAR", "PEACE", -50) is True
+        assert check_relation_requirement("WAR", "PEACE", -100) is False
 
 
 # ======================================================
@@ -2903,7 +2905,7 @@ class TestGetTransitionDpCost:
         # ALLIANCE -> DEFENSIVE_ALLIANCE downgrade costs 1
         assert get_transition_dp_cost("ALLIANCE", "DEFENSIVE_ALLIANCE") == 1
 
-    def test_unknown_transition_default(self):
+    def test_jump_transition_cumulative_cost(self):
         from backend.game_logic.diplomacy import get_transition_dp_cost
-        # Unknown transition returns default 1
-        assert get_transition_dp_cost("PEACE", "ALLIANCE") == 1
+        # R98: PEACE→ALLIANCE = 1+1+2+2 = 6 DP (cumulative)
+        assert get_transition_dp_cost("PEACE", "ALLIANCE") == 6

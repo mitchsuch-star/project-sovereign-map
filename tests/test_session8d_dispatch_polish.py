@@ -53,6 +53,19 @@ def _make_vassal(world, vassal_name, lord="France", loyalty=50, autonomy=1):
     }
 
 
+def _ratify_via_world(nation_a, nation_b, proposal, world):
+    """Helper: replace deleted _ratify_ai_ai_treaty with world._ratify_treaty."""
+    normalized = {
+        "type": proposal["type"],
+        "proposer_nation": proposal.get("proposer", nation_a),
+        "target_nation": proposal.get("target", nation_b),
+        "sweeteners": [],
+        "demands": [],
+        "clauses": [],
+    }
+    return world._ratify_treaty(normalized)
+
+
 # ═══════════════════════════════════════════════════════
 # SCENARIO FIXTURES (Part 5)
 # ═══════════════════════════════════════════════════════
@@ -485,11 +498,10 @@ class TestAIAIDiplomacy:
         assert len(events) <= 2
 
     def test_ai_ai_treaty_dispatch_event(self):
-        from backend.game_logic.ai_diplomacy import _ratify_ai_ai_treaty
         world = _make_world()
         _set_diplo_state(world, "Britain", "Prussia", "PEACE")
         proposal = {"type": "defensive_alliance", "proposer": "Britain", "target": "Prussia"}
-        event = _ratify_ai_ai_treaty("Britain", "Prussia", proposal, world)
+        event = _ratify_via_world("Britain", "Prussia", proposal, world)
         assert event is not None
         assert event["nation_a"] == "Britain"
         assert event["nation_b"] == "Prussia"
@@ -499,11 +511,10 @@ class TestAIAIDiplomacy:
 
     def test_ai_ai_treaty_appears_in_dispatch_at_partial(self):
         """AI-AI treaty visible when PARTIAL+ on either nation."""
-        from backend.game_logic.ai_diplomacy import _ratify_ai_ai_treaty
         world = _make_world()
         _set_diplo_state(world, "Britain", "Prussia", "PEACE")
         proposal = {"type": "defensive_alliance", "proposer": "Britain", "target": "Prussia"}
-        _ratify_ai_ai_treaty("Britain", "Prussia", proposal, world)
+        _ratify_via_world("Britain", "Prussia", proposal, world)
         dispatch = build_morning_dispatch(world)
         # Should be visible because at least some enemy marshals are in visible regions
         events = dispatch["diplomatic_events"]
@@ -511,39 +522,35 @@ class TestAIAIDiplomacy:
         assert len(world.pending_dispatch_events) >= 1
 
     def test_ai_ai_treaty_changes_diplomatic_state(self):
-        from backend.game_logic.ai_diplomacy import _ratify_ai_ai_treaty
         world = _make_world()
         _set_diplo_state(world, "Britain", "Prussia", "PEACE")
         proposal = {"type": "defensive_alliance", "proposer": "Britain", "target": "Prussia"}
-        _ratify_ai_ai_treaty("Britain", "Prussia", proposal, world)
+        _ratify_via_world("Britain", "Prussia", proposal, world)
         assert world.get_diplomatic_state("Britain", "Prussia") == "DEFENSIVE_ALLIANCE"
 
     def test_ai_ai_treaty_improves_relation(self):
-        from backend.game_logic.ai_diplomacy import _ratify_ai_ai_treaty
         world = _make_world()
         _set_diplo_state(world, "Britain", "Prussia", "PEACE")
         _set_relation(world, "Britain", "Prussia", 0)
         proposal = {"type": "defensive_alliance", "proposer": "Britain", "target": "Prussia"}
-        _ratify_ai_ai_treaty("Britain", "Prussia", proposal, world)
+        _ratify_via_world("Britain", "Prussia", proposal, world)
         diplo_key = world._make_diplo_key("Britain", "Prussia")
         assert world.nation_relations[diplo_key] == 10
 
     def test_ai_ai_no_downgrade(self):
         """AI-AI treaty should not downgrade existing state."""
-        from backend.game_logic.ai_diplomacy import _ratify_ai_ai_treaty
         world = _make_world()
         _set_diplo_state(world, "Britain", "Prussia", "ALLIANCE")
         proposal = {"type": "non_aggression", "proposer": "Britain", "target": "Prussia"}
-        event = _ratify_ai_ai_treaty("Britain", "Prussia", proposal, world)
+        event = _ratify_via_world("Britain", "Prussia", proposal, world)
         assert event is None  # Should not ratify a downgrade
         assert world.get_diplomatic_state("Britain", "Prussia") == "ALLIANCE"
 
     def test_ai_ai_campaign_log_entry(self):
-        from backend.game_logic.ai_diplomacy import _ratify_ai_ai_treaty
         world = _make_world()
         _set_diplo_state(world, "Britain", "Prussia", "PEACE")
         proposal = {"type": "defensive_alliance", "proposer": "Britain", "target": "Prussia"}
-        _ratify_ai_ai_treaty("Britain", "Prussia", proposal, world)
+        _ratify_via_world("Britain", "Prussia", proposal, world)
         # Check event_log has the entry
         ai_events = [e for e in world.event_log if e.get("type") == "diplomatic_ai_ai_treaty"]
         assert len(ai_events) == 1

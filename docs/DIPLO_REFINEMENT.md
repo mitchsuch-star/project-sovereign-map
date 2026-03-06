@@ -11,7 +11,7 @@
 
 6 phases of bug fixes, cleanup, balance, and QoL. Phase 2 split into 2A (diplomacy core) and 2B (vassal + AI-AI + war transitions). After all phases + UI testing, a separate design session will evaluate deferred features.
 
-**114 total items.** 20 DONE, 78 APPROVED, 16 DEFERRED.
+**114 total items.** 25 DONE (incl. 5 from Phase 2B+ and 4 confidence follow-up sub-fixes), 73 APPROVED, 16 DEFERRED.
 
 | Phase | Focus | Items | Scope |
 |-------|-------|-------|-------|
@@ -794,13 +794,15 @@ Option A is consistent with existing popup patterns.
 **Files:** `diplomacy.py:886-949`, `dispatch.py`
 **Severity:** MEDIUM (invisible state change — player has no warning)
 
-### R81: [NEW] Ghost Nation Still Processes Diplomacy — APPROVED
+### R81: [NEW] Ghost Nation Still Processes Diplomacy — DONE (Phase 2B+)
 
 **Problem:** Eliminated nations (0 regions, 0 armies) still get DP regenerated (diplomacy.py:1107-1132), receive trade income (diplomacy.py:1134-1155), and participate in AI-AI diplomacy (ai_diplomacy.py:1014). No eliminated check anywhere in the diplomacy loop.
 
 **Fix:** Add early-continue for nations with 0 regions + 0 marshals in `_process_dp_regen()`, `process_trade_income()`, and `process_ai_ai_diplomatic_phase()`.
 
-**Files:** `diplomacy.py`, `ai_diplomacy.py`
+**Confidence follow-up:** `_eliminate_nation()` now calls `remove_coalition_member()` to remove eliminated nations from active coalitions. 2 new tests.
+
+**Files:** `diplomacy.py`, `ai_diplomacy.py`, `world_state.py:_eliminate_nation`
 **Severity:** MEDIUM (ghost nations accumulate gold/DP, propose treaties with 0 armies)
 
 ### R82: [NEW] {rejection_reaction} Template Slot Never Resolved — DONE
@@ -1064,7 +1066,7 @@ Option A is consistent with existing popup patterns.
 **Severity:** HIGH (alliance clauses execute during war — gold/AP flow to enemy)
 **Phase:** 2
 
-### R98: [NEW] 4 Public Functions Never Called From Production Code — APPROVED
+### R98: [NEW] 4 Public Functions Never Called From Production Code — DONE (Phase 2B+, jump transitions)
 
 **Problem:** Four functions are defined with tests but never invoked during gameplay:
 1. `check_relation_requirement()` (line 220) — relation gate for upgrades never enforced
@@ -1076,7 +1078,9 @@ Items 1 and 4 represent missing validation that should be wired. Items 2 and 3 r
 
 **Fix:** Wire #1 into treaty ratification (upgrades require relation threshold). Wire #4 into proposal processing. Evaluate #2/#3 — either wire or remove.
 
-**File:** `diplomacy.py:220, 234, 667, 1409`
+**Confidence follow-up:** `get_transition_dp_cost()` now wired into executor at all 3 DP-check sites via `transition_base` param on `get_dp_cost()`. Jump transitions (e.g. PEACE→ALLIANCE) correctly charge cumulative 6 DP instead of flat 2 DP. 5 new tests.
+
+**File:** `diplomacy.py:220, 234, 667, 1409`, `executor.py` (3 DP-check sites)
 **Severity:** MEDIUM (missing validation — upgrades/demands not properly gated)
 **Phase:** 2
 
@@ -1177,7 +1181,7 @@ Items 1 and 4 represent missing validation that should be wired. Items 2 and 3 r
 **Severity:** MEDIUM (AI behavior gap — nations should react to rising threat)
 **Phase:** 3
 
-### R107: [NEW] AI-AI Diplomacy Skips Transition Validation — States Can Jump — APPROVED
+### R107: [NEW] AI-AI Diplomacy Skips Transition Validation — States Can Jump — DONE (Phase 2B+, unified ratification)
 
 **Problem:** `_ratify_ai_ai_treaty()` (ai_diplomacy.py:1174) sets `world.diplomatic_states[diplo_key] = target_state` directly without calling `validate_transition()`. AI-AI Trigger 1 proposes DEFENSIVE_ALLIANCE for nations at PEACE — jumping 3 intermediate states (OPEN_BORDERS, NON_AGGRESSION). Player diplomacy must follow step-by-step transitions, but AI-AI bypasses this entirely.
 
@@ -1187,11 +1191,13 @@ Items 1 and 4 represent missing validation that should be wired. Items 2 and 3 r
 
 Option A recommended for consistency.
 
-**File:** `ai_diplomacy.py:1127-1174`
+**Confidence follow-up (R107):** No-downgrade guard now returns error dict for player treaties (with message) instead of silent None. AI-AI path unchanged. Redundant ternary (sweetener_from/sweetener_to) simplified. 3 new tests.
+
+**File:** `ai_diplomacy.py:1127-1174`, `world_state.py:_ratify_treaty`
 **Severity:** MEDIUM (inconsistent rules — AI-AI gets shortcuts player doesn't)
 **Phase:** 2
 
-### R108: [NEW] AI-AI Ratification Doesn't Create active_treaties Entry — APPROVED
+### R108: [NEW] AI-AI Ratification Doesn't Create active_treaties Entry — DONE (Phase 2B+, unified ratification)
 
 **Problem:** `_ratify_ai_ai_treaty()` changes diplomatic state and improves relations, but never creates an `active_treaties[diplo_key]` entry. Consequences:
 1. AI-AI alliances produce no trade income (process_trade_income reads active_treaties)
@@ -1245,7 +1251,7 @@ Option A recommended for consistency.
 **Severity:** MEDIUM (player sees useless generic text instead of actual acceptance factors)
 **Phase:** 4
 
-### R113: [NEW] Counter-Offer Gold Sweetener Not Validated Against Treasury — APPROVED
+### R113: [NEW] Counter-Offer Gold Sweetener Not Validated Against Treasury — DONE (Phase 2B+, income validation)
 
 **Problem:** `ai_diplomacy.py:899-937` — `_try_add_desired_clauses` adds gold lump-sum sweeteners without checking whether the AI nation has enough gold. If accepted, `_ratify_treaty` subtracts the gold → nation treasury goes negative.
 

@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 6, 2026 (Phase 2A Diplomacy Core COMPLETE — 17 fixes, 69 new tests)
+> **Last Updated:** March 6, 2026 (Phase 2B+ Confidence Follow-up COMPLETE — 4 sub-fixes, 10 new tests: R98 jump DP wired, R107 downgrade error dict, R81 coalition cleanup, R107 ternary cleanup)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **5396** (5396 passed, 3 skipped — verified Mar 6, Phase 2A Diplomacy Core) |
+| **Tests Passing** | **5454** (5454 passed, 3 skipped — verified Mar 6, Phase 2B+ Confidence Follow-up) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -37,8 +37,8 @@
 4. **Diplomacy Refinement & Cleanup** — **DESIGN GATE COMPLETE.** 114 items total (95 approved, 16 deferred, 3 done). Bug fixes span multiple sessions. See `docs/DIPLO_REFINEMENT.md`.
    - ~~**Phase 1: Critical Wiring**~~ — **DONE** (16 fixes, 37 tests). Sabotage/redemption, objection overrides, coalition formula, counter-offer, fog leaks, Continental System, defensive_alliance.
    - ~~**Phase 2A: State Cleanup — Diplomacy Core**~~ — **DONE** (17 fixes, 69 tests). War score canonical helper, armistice system, treaty gold floor, cleanup_war_end, dispatch events, template slots, vassal diplomacy reconciliation.
-   - **Phase 2B (NEXT): State Cleanup — Vassal, AI-AI, War** — Rebellion cleanup, vassalizing coalition members, AI-AI ratification bypass, stalemate counter reset, alliance conflict check, declare_war treaty cleanup. ~23 fixes.
-   - **Phase 2B: State Cleanup — Vassal, AI-AI, War** — Rebellion cleanup, vassalizing coalition members, AI-AI ratification bypass, stalemate counter reset, alliance conflict check, declare_war treaty cleanup. ~23 fixes.
+   - ~~**Phase 2B: State Cleanup — Vassal, AI-AI, War**~~ — **DONE** (22 fixes, 50 tests). Rebellion cleanup, vassalizing coalition members, AI-AI ratification bypass, stalemate counter reset, alliance conflict check, declare_war treaty cleanup.
+   - ~~**Phase 2B+ Confidence Fixes**~~ — **DONE** (5 fixes, 16 tests + 4 follow-up sub-fixes, 10 tests). R113: gold_per_turn income validation. R98: diplomatic state jumps (cumulative DP) + jump DP wired to executor. R107/R108: unified _ratify_treaty (Building Blocks) + downgrade error dict for player + ternary cleanup. R81: nation elimination removes marshals + coalition member cleanup.
    - **Phase 3: Balance Tuning** — Relation decay, COURT_NATION speed, trade diminishing returns, military pressure, battle threshold, coalition stalemate, P3 activation. ~13 changes.
    - **Phase 4: Commands, QoL, Popup Architecture** — War declaration, ultimatums, acceptance preview, ledger improvements, popup early-return cascade fix, notification cleanup. ~27 fixes.
    - **After Phase 4: UI Test Plan** — Claude generates comprehensive UI test plan. Manual playtest in Godot. DP display investigation (R39). Verify all fixes.

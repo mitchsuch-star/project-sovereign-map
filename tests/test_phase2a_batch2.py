@@ -207,8 +207,10 @@ class TestRatifyTreatyCleanup:
         world.war_exhaustion["France"] = 20
         world.war_exhaustion["Prussia"] = 15
 
-        world._ratify_treaty("Prussia", {
+        world._ratify_treaty({
             "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
             "sweeteners": [],
             "demands": [],
             "clauses": [],

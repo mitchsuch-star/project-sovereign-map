@@ -1468,7 +1468,8 @@ RETREAT RECOVERY (3 turns):
         # retreat is FREE (costs 0 actions - strategic withdrawal)
         # debug is FREE (for testing abilities)
         # economy/treasury/finances are FREE information commands (Phase 6.2.G)
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade"]
+        # R72: Vassal commands (invest_vassal, change_autonomy, make_vassal) are free — they cost DP/gold, not military AP
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "invest_vassal", "change_autonomy", "make_vassal"]
 
         # Check if action costs points
         action_costs_point = action not in free_actions
@@ -11211,7 +11212,7 @@ RETREAT RECOVERY (3 turns):
         from backend.game_logic.diplomatic_dialogue import (
             classify_diplomatic_intent, generate_dialogue,
         )
-        from backend.game_logic.diplomacy import get_dp_cost
+        from backend.game_logic.diplomacy import get_dp_cost, get_transition_dp_cost
 
         target_nation = diplomatic_data.get("target_nation")
 
@@ -11259,11 +11260,17 @@ RETREAT RECOVERY (3 turns):
                     "message": f"Talleyrand advises patience, Sire. {target_nation} rejected our {_proposal_display_name(proposal_type)} proposal only {remaining} turns ago.",
                 }
 
-        # Check DP
+        # Check DP (with jump cost for multi-step transitions)
         dp_action = f"propose_{proposal_type}" if proposal_type else "propose_peace"
         talleyrand = world.diplomats.get("France")
         skill = talleyrand.skill if talleyrand else 5
-        cost = get_dp_cost(dp_action, skill)
+        # R98: Compute cumulative DP for jump transitions
+        _state_map = {"peace": "PEACE", "alliance": "ALLIANCE", "defensive_alliance": "DEFENSIVE_ALLIANCE",
+                      "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS", "armistice": "ARMISTICE"}
+        current_diplo = world.get_diplomatic_state("France", target_nation) if target_nation else "PEACE"
+        target_diplo = _state_map.get(proposal_type, "PEACE") if proposal_type else "PEACE"
+        jump_cost = get_transition_dp_cost(current_diplo, target_diplo)
+        cost = get_dp_cost(dp_action, skill, transition_base=jump_cost)
         if world.diplomatic_points < cost:
             # Notification: DP insufficient (Session 8C)
             from backend.notifications import (
@@ -11513,7 +11520,7 @@ RETREAT RECOVERY (3 turns):
     def _process_dialogue_choice(self, action: str, selected: Dict,
                                   dialogue: Dict, world) -> Dict:
         """Process a player's dialogue choice."""
-        from backend.game_logic.diplomacy import get_dp_cost
+        from backend.game_logic.diplomacy import get_dp_cost, get_transition_dp_cost
         from backend.game_logic.diplomatic_dialogue import (
             MISSION_DP_COSTS, MISSION_DESCRIPTIONS, generate_dialogue,
         )
@@ -11543,11 +11550,17 @@ RETREAT RECOVERY (3 turns):
                 "clauses": terms.get("clauses", []),
             }
 
-            # Deduct DP
+            # Deduct DP (with jump cost for multi-step transitions)
             talleyrand = world.diplomats.get("France")
             skill = talleyrand.skill if talleyrand else 5
             dp_action = f"propose_{proposal_type}"
-            cost = get_dp_cost(dp_action, skill)
+            # R98: Compute cumulative DP for jump transitions
+            _state_map = {"peace": "PEACE", "alliance": "ALLIANCE", "defensive_alliance": "DEFENSIVE_ALLIANCE",
+                          "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS", "armistice": "ARMISTICE"}
+            current_diplo = world.get_diplomatic_state("France", target_nation) if target_nation else "PEACE"
+            target_diplo = _state_map.get(proposal_type, "PEACE")
+            jump_cost = get_transition_dp_cost(current_diplo, target_diplo)
+            cost = get_dp_cost(dp_action, skill, transition_base=jump_cost)
             if world.diplomatic_points < cost:
                 world.pending_diplomatic_dialogue = None
                 return {
@@ -11872,11 +11885,17 @@ RETREAT RECOVERY (3 turns):
                 "clauses": terms.get("clauses", []),
             }
 
-            # Deduct DP
+            # Deduct DP (with jump cost for multi-step transitions)
             talleyrand = world.diplomats.get("France")
             skill = talleyrand.skill if talleyrand else 5
             dp_action = f"propose_{proposal_type}"
-            cost = get_dp_cost(dp_action, skill)
+            # R98: Compute cumulative DP for jump transitions
+            _state_map = {"peace": "PEACE", "alliance": "ALLIANCE", "defensive_alliance": "DEFENSIVE_ALLIANCE",
+                          "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS", "armistice": "ARMISTICE"}
+            current_diplo = world.get_diplomatic_state("France", target_nation) if target_nation else "PEACE"
+            target_diplo = _state_map.get(proposal_type, "PEACE")
+            jump_cost = get_transition_dp_cost(current_diplo, target_diplo)
+            cost = get_dp_cost(dp_action, skill, transition_base=jump_cost)
             if world.diplomatic_points < cost:
                 world.pending_diplomatic_dialogue = None
                 return {
@@ -11933,7 +11952,11 @@ RETREAT RECOVERY (3 turns):
                 world.pending_diplomatic_dialogue = None
                 return {"success": False, "message": "Error: counter-offer data missing."}
             # Ratify treaty with counter terms (0 DP cost — already paid on original proposal)
-            treaty_event = world._ratify_treaty(source_nation, counter_terms)
+            if "proposer_nation" not in counter_terms:
+                counter_terms["proposer_nation"] = source_nation
+            if "target_nation" not in counter_terms:
+                counter_terms["target_nation"] = world.player_nation
+            treaty_event = world._ratify_treaty(counter_terms)
             world.pending_diplomatic_dialogue = None
             world.incoming_proposal_popup = None
             treaty_msg = treaty_event.get("message", "") if treaty_event else ""
@@ -12079,7 +12102,11 @@ RETREAT RECOVERY (3 turns):
                 }
 
         # Execute acceptance via WorldState._ratify_treaty (same path as player proposals)
-        treaty_event = world._ratify_treaty(source_nation, terms)
+        if "proposer_nation" not in terms:
+            terms["proposer_nation"] = source_nation
+        if "target_nation" not in terms:
+            terms["target_nation"] = world.player_nation
+        treaty_event = world._ratify_treaty(terms)
         world.pending_diplomatic_dialogue = None
 
         # Apply acceptance cooldown to prevent immediate follow-up proposals
@@ -12627,7 +12654,8 @@ RETREAT RECOVERY (3 turns):
 
         # Check action economy
         # FIX: Added "retreat" - must match main execute() free_actions list
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade"]
+        # R72: Vassal commands are free (DP/gold cost, not military AP)
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "invest_vassal", "change_autonomy", "make_vassal"]
         action_costs_point = action not in free_actions
 
         if action_costs_point:

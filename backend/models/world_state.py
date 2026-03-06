@@ -1358,14 +1358,85 @@ class WorldState:
 
         Sets stability to 25 (Hostile/Secured baseline).
         TODO (6.2.E): Plunder (10) vs Secure (25) choice, reconquest bonus (60).
+        R81: Triggers nation elimination if last region captured.
         """
         region = self.get_region(region_name)
         if not region:
             return False
 
+        old_controller = region.controller
         region.controller = capturing_nation
         region.stability = 25  # Captured regions start at low stability
+
+        # R81: Check for elimination after capture
+        if (old_controller and old_controller != capturing_nation
+                and old_controller != self.player_nation):
+            if not self.get_nation_regions(old_controller):
+                self._eliminate_nation(old_controller)
+
         return True
+
+    def _eliminate_nation(self, nation: str) -> None:
+        """Remove all marshals and clean up state for an eliminated nation.
+
+        R81: 0 regions = eliminated. Removes marshals, treaties, vassal relationships.
+        Player elimination is game-over, handled elsewhere.
+        """
+        if nation == self.player_nation:
+            return  # Player elimination = game-over, handled elsewhere
+
+        # Remove all marshals
+        to_remove = [name for name, m in self.marshals.items() if m.nation == nation]
+        for name in to_remove:
+            self.marshals.pop(name, None)
+
+        # Cancel strategic orders targeting removed marshals
+        removed_set = set(to_remove)
+        for marshal in self.marshals.values():
+            order = getattr(marshal, 'strategic_order', None)
+            if order and getattr(order, 'target_type', '') == 'marshal':
+                if getattr(order, 'target', '') in removed_set:
+                    marshal.strategic_order = None
+
+        # Remove active treaties involving eliminated nation
+        for key in list(self.active_treaties.keys()):
+            if nation in self.active_treaties[key].get("nations", []):
+                del self.active_treaties[key]
+
+        # Set all diplomatic states to PEACE
+        for key in list(self.diplomatic_states.keys()):
+            if nation in key.split("|"):
+                self.diplomatic_states[key] = "PEACE"
+
+        # Clean up vassal relationships
+        self.vassals.pop(nation, None)
+        for vname in list(self.vassals.keys()):
+            if self.vassals[vname].get("lord") == nation:
+                del self.vassals[vname]
+
+        # Remove from coalition if member
+        from backend.game_logic.coalition import remove_coalition_member
+        remove_coalition_member(nation, self)
+
+        # Notification + dispatch + log
+        from backend.notifications import (
+            create_notification, NotificationPriority, NATION_ELIMINATED,
+        )
+        self.notifications.add(create_notification(
+            NATION_ELIMINATED, NotificationPriority.HIGH,
+            f"{nation} Eliminated!",
+            f"{nation} has been eliminated from the war.",
+            int(self.current_turn),
+        ))
+
+        from backend.game_logic.dispatch import queue_dispatch_event
+        queue_dispatch_event(self, "nation_eliminated",
+                            {"nation": nation}, "always")
+        self.log_event({
+            "type": "nation_eliminated",
+            "nation": nation,
+            "turn": int(self.current_turn),
+        })
 
     def _apply_occupation_capture_effects(self, marshal, region_name: str) -> str:
         """Apply capture effects when occupation completes. Used by turn processing.
@@ -3861,7 +3932,12 @@ class WorldState:
 
         if outcome == "ACCEPT":
             # Apply treaty
-            treaty_event = self._ratify_treaty(target, proposal)
+            # Ensure proposal has nation fields for unified _ratify_treaty
+            if "proposer_nation" not in proposal:
+                proposal["proposer_nation"] = self.player_nation
+            if "target_nation" not in proposal:
+                proposal["target_nation"] = target
+            treaty_event = self._ratify_treaty(proposal)
             events.append({
                 "type": "diplomatic_proposal_returned",
                 "target": target,
@@ -3969,13 +4045,25 @@ class WorldState:
         self.proposal_in_transit = None
         return events
 
-    def _ratify_treaty(self, target_nation: str, proposal: Dict) -> Optional[Dict]:
-        """Ratify a treaty: apply state transition and one-time clauses."""
+    def _ratify_treaty(self, proposal: Dict) -> Optional[Dict]:
+        """Ratify a treaty: apply state transition and one-time clauses.
+
+        R107/R108: Unified path for both player and AI-AI treaties.
+        Extracts nations from proposal fields (proposer_nation/target_nation).
+        """
         from backend.game_logic.diplomatic_templates import calculate_treaty_harshness
+        from backend.game_logic.diplomacy import _UPGRADE_ORDER
+
+        # Extract nations from proposal
+        proposer = proposal.get("proposer_nation") or proposal.get("proposer", "")
+        target_nation = proposal.get("target_nation") or proposal.get("target", "")
+        if not proposer or not target_nation:
+            return None
+        is_player_treaty = (proposer == self.player_nation or target_nation == self.player_nation)
 
         proposal_type = proposal.get("type", "peace")
-        diplo_key = self._make_diplo_key("France", target_nation)
-        current_state = self.get_diplomatic_state("France", target_nation)
+        diplo_key = self._make_diplo_key(proposer, target_nation)
+        current_state = self.get_diplomatic_state(proposer, target_nation)
 
         # Map proposal type to target state
         state_map = {
@@ -3984,14 +4072,61 @@ class WorldState:
             "armistice_losing": "ARMISTICE",
             "armistice_winning": "ARMISTICE",
             "alliance": "ALLIANCE",
+            "defensive_alliance": "DEFENSIVE_ALLIANCE",
             "open_borders": "OPEN_BORDERS",
             "non_aggression": "NON_AGGRESSION",
             "vassalage": "VASSAL",
         }
         target_state = state_map.get(proposal_type, "PEACE")
 
-        # For upgrades, we may need to jump multiple steps
-        # For now, just set the state directly if the proposal was accepted
+        # No-downgrade guard: can't propose a treaty at or below current level
+        if (current_state in _UPGRADE_ORDER and target_state in _UPGRADE_ORDER
+                and _UPGRADE_ORDER.index(target_state) <= _UPGRADE_ORDER.index(current_state)):
+            if is_player_treaty:
+                return {
+                    "type": "diplomatic_treaty_failed",
+                    "target": target_nation,
+                    "message": f"We already have {current_state} with {target_nation}. A {target_state} treaty would be a downgrade.",
+                }
+            return None  # AI-AI: silent skip
+
+        # Player-only: relation requirement check
+        if is_player_treaty:
+            from backend.game_logic.diplomacy import check_relation_requirement
+            relation = self.nation_relations.get(diplo_key, 0)
+            if not check_relation_requirement(current_state, target_state, relation):
+                return {
+                    "type": "diplomatic_treaty_failed",
+                    "target": target_nation,
+                    "message": f"Relations with {target_nation} are insufficient for {target_state}.",
+                }
+
+            # R98: Validate AP clause demands require war_score > 80
+            from backend.game_logic.diplomacy import validate_ap_clause
+            for d in proposal.get("demands", []):
+                if d.get("type") == "ap_per_turn" and not validate_ap_clause(self, target_nation):
+                    return {
+                        "type": "diplomatic_treaty_failed",
+                        "target": target_nation,
+                        "message": "AP demands require overwhelming military dominance (war score > 80).",
+                    }
+
+        # AI-AI only: alliance conflict check
+        if not is_player_treaty and target_state in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+            all_nations = [self.player_nation] + list(getattr(self, 'enemy_nations', []))
+            for other in all_nations:
+                if other == proposer or other == target_nation:
+                    continue
+                if self.is_at_war(proposer, other):
+                    s = self.get_diplomatic_state(target_nation, other)
+                    if s in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+                        return None
+                if self.is_at_war(target_nation, other):
+                    s = self.get_diplomatic_state(proposer, other)
+                    if s in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
+                        return None
+
+        # Apply state transition
         if current_state != target_state:
             self.diplomatic_states[diplo_key] = target_state
 
@@ -4002,27 +4137,37 @@ class WorldState:
         # Build treaty record
         treaty_clauses = []
         # Process sweeteners as clauses
+        # For player treaties: sweetener is from player, to target
+        # For AI-AI: typically no sweeteners/demands
+        sweetener_from = proposer
+        sweetener_to = target_nation
         for s in proposal.get("sweeteners", []):
-            treaty_clauses.append({
+            clause_entry = {
                 "type": s["type"],
-                "from": "France",
-                "to": target_nation,
+                "from": sweetener_from,
+                "to": sweetener_to,
                 "amount": int(s.get("value", 0)),
-            })
+            }
+            # Preserve territory_cede regions list
+            if s.get("type") == "territory_cede" and "regions" in s:
+                clause_entry["regions"] = s["regions"]
+            treaty_clauses.append(clause_entry)
         # Process demands as clauses
         for d in proposal.get("demands", []):
-            treaty_clauses.append({
+            clause_entry = {
                 "type": d["type"],
-                "from": target_nation,
-                "to": "France",
+                "from": sweetener_to,
+                "to": sweetener_from,
                 "amount": int(d.get("value", 0)),
-            })
+            }
+            # Preserve territory_cede regions list
+            if d.get("type") == "territory_cede" and "regions" in d:
+                clause_entry["regions"] = d["regions"]
+            treaty_clauses.append(clause_entry)
 
         # Handle open_borders clause
         if "open_borders" in proposal.get("clauses", []):
-            if self.get_diplomatic_state("France", target_nation) not in ("OPEN_BORDERS", "NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE"):
-                # Upgrade to at least OPEN_BORDERS
-                from backend.game_logic.diplomacy import _UPGRADE_ORDER
+            if self.get_diplomatic_state(proposer, target_nation) not in ("OPEN_BORDERS", "NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE"):
                 curr_state = self.diplomatic_states.get(diplo_key, "PEACE")
                 if curr_state in _UPGRADE_ORDER:
                     curr_idx = _UPGRADE_ORDER.index(curr_state)
@@ -4031,7 +4176,7 @@ class WorldState:
                         self.diplomatic_states[diplo_key] = "OPEN_BORDERS"
 
         treaty = {
-            "nations": ["France", target_nation],
+            "nations": [proposer, target_nation],
             "type": proposal_type,
             "state_transition": f"{current_state}_TO_{target_state}",
             "clauses": treaty_clauses,
@@ -4047,7 +4192,7 @@ class WorldState:
             self.previous_treaties[diplo_key] = []
         self.previous_treaties[diplo_key].append(treaty.copy())
 
-        # Apply one-time clauses
+        # Apply one-time clauses (shared)
         for clause in treaty_clauses:
             ctype = clause.get("type", "")
             amount = clause.get("amount", 0)
@@ -4074,69 +4219,109 @@ class WorldState:
                     from backend.game_logic.coalition import reduce_threat
                     reduce_threat(self, 5 * len(regions), "territory_return")
 
-        # Log event
-        self.log_event({
-            "type": "diplomatic_treaty_signed",
-            "nations": ["France", target_nation],
-            "treaty_type": proposal_type,
-            "state_transition": f"{current_state}_TO_{target_state}",
-        })
+        # R81: Check for elimination after territory cessions
+        ceded_from = set()
+        for clause in treaty_clauses:
+            if clause.get("type") == "territory_cede":
+                fn = clause.get("from", "")
+                if fn and fn != self.player_nation:
+                    ceded_from.add(fn)
+        for nation in ceded_from:
+            if not self.get_nation_regions(nation):
+                self._eliminate_nation(nation)
 
-        # Notification: treaty signed (Session 8C)
-        from backend.notifications import (
-            create_notification, NotificationPriority, TREATY_SIGNED,
-        )
-        self.notifications.add(create_notification(
-            TREATY_SIGNED,
-            NotificationPriority.NORMAL,
-            f"Treaty with {target_nation}",
-            f"France and {target_nation} have signed a {proposal_type.replace('_', ' ')}.",
-            int(self.current_turn),
-        ))
-
-        # Dispatch event (Session 8D)
-        from backend.game_logic.dispatch import queue_dispatch_event
-        queue_dispatch_event(self, "diplomatic_treaty_signed",
-                            {"nation_a": "France", "nation_b": target_nation,
-                             "treaty_type": proposal_type.replace('_', ' ')},
-                            "partial_on_nation")
-
-        # Coalition: generous peace threat reduction (COALITION_SPEC §2b)
-        # "Generous" = France offers peace while winning (war_score > 20)
-        # with sweeteners but no territory demands from the target.
-        if current_state == "WAR" and target_state != "WAR":
-            from backend.game_logic.diplomacy import calculate_war_score
-            from backend.game_logic.coalition import reduce_threat as _reduce_threat
-            france_war_score = calculate_war_score(self.player_nation, target_nation, self)
-            has_sweeteners = any(
-                c.get("from") == self.player_nation
-                for c in treaty_clauses
-            )
-            has_territory_demands = any(
-                c.get("type") == "territory_cede" and c.get("to") == self.player_nation
-                for c in treaty_clauses
-            )
-            if france_war_score > 20 and has_sweeteners and not has_territory_demands:
-                _reduce_threat(self, 3, "generous_peace")
-
-        # Coalition: remove member on separate peace (§6a)
-        if current_state == "WAR" and target_state != "WAR":
-            from backend.game_logic.coalition import is_coalition_member, remove_coalition_member
-            if is_coalition_member(target_nation, self):
-                remove_coalition_member(target_nation, self)
-
-        # War-end cleanup (AFTER coalition checks which read war_scores):
-        # clear battle records, decisive battles, war scores,
-        # war exhaustion, and cancel orders targeting the now-peaceful nation
+        # War-end cleanup (shared — for both player and AI-AI)
         if current_state == "WAR" and target_state != "WAR":
             from backend.game_logic.diplomacy import cleanup_war_end
             cleanup_war_end(self, diplo_key)
 
+        # ═══ Player-specific events ═══
+        if is_player_treaty:
+            self.log_event({
+                "type": "diplomatic_treaty_signed",
+                "nations": [proposer, target_nation],
+                "treaty_type": proposal_type,
+                "state_transition": f"{current_state}_TO_{target_state}",
+            })
+
+            from backend.notifications import (
+                create_notification, NotificationPriority, TREATY_SIGNED,
+            )
+            self.notifications.add(create_notification(
+                TREATY_SIGNED,
+                NotificationPriority.NORMAL,
+                f"Treaty with {target_nation}",
+                f"{proposer} and {target_nation} have signed a {proposal_type.replace('_', ' ')}.",
+                int(self.current_turn),
+            ))
+
+            from backend.game_logic.dispatch import queue_dispatch_event
+            queue_dispatch_event(self, "diplomatic_treaty_signed",
+                                {"nation_a": proposer, "nation_b": target_nation,
+                                 "treaty_type": proposal_type.replace('_', ' ')},
+                                "partial_on_nation")
+
+            # Coalition: generous peace threat reduction (COALITION_SPEC §2b)
+            if current_state == "WAR" and target_state != "WAR":
+                from backend.game_logic.diplomacy import calculate_war_score
+                from backend.game_logic.coalition import reduce_threat as _reduce_threat
+                france_war_score = calculate_war_score(self.player_nation, target_nation, self)
+                has_sweeteners = any(
+                    c.get("from") == self.player_nation
+                    for c in treaty_clauses
+                )
+                has_territory_demands = any(
+                    c.get("type") == "territory_cede" and c.get("to") == self.player_nation
+                    for c in treaty_clauses
+                )
+                if france_war_score > 20 and has_sweeteners and not has_territory_demands:
+                    _reduce_threat(self, 3, "generous_peace")
+
+            # Coalition: remove member on separate peace (§6a)
+            if current_state == "WAR" and target_state != "WAR":
+                from backend.game_logic.coalition import is_coalition_member, remove_coalition_member
+                if is_coalition_member(target_nation, self):
+                    remove_coalition_member(target_nation, self)
+
+            return {
+                "type": "diplomatic_treaty_signed",
+                "target": target_nation,
+                "treaty_type": proposal_type,
+                "message": f"Treaty signed: {current_state} → {target_state} with {target_nation}.",
+            }
+
+        # ═══ AI-AI-specific events ═══
+        # Improve relations
+        self.modify_nation_relation(proposer, target_nation, 10)
+
+        treaty_type_display = proposal_type.replace("_", " ").title()
+
+        from backend.game_logic.dispatch import queue_dispatch_event
+        queue_dispatch_event(self, "diplomatic_ai_ai_treaty",
+                            {"nation_a": proposer, "nation_b": target_nation,
+                             "treaty_type": treaty_type_display},
+                            "partial_on_nation")
+
+        self.log_event({
+            "type": "diplomatic_ai_ai_treaty",
+            "nation_a": proposer,
+            "nation_b": target_nation,
+            "treaty_type": treaty_type_display,
+            "turn": int(self.current_turn),
+        })
+
+        # R43: Set per-pair cooldown to prevent rapid AI-AI upgrades
+        from backend.game_logic.ai_diplomacy import _get_cooldowns, _set_cooldowns
+        cooldowns = _get_cooldowns(self)
+        cooldowns[f"ai_ai|{diplo_key}"] = 5
+        _set_cooldowns(self, cooldowns)
+
         return {
-            "type": "diplomatic_treaty_signed",
-            "target": target_nation,
-            "treaty_type": proposal_type,
-            "message": f"Treaty signed: {current_state} → {target_state} with {target_nation}.",
+            "type": "ai_ai_treaty",
+            "nation_a": proposer,
+            "nation_b": target_nation,
+            "treaty_type": treaty_type_display,
+            "message": f"{proposer} and {target_nation} have signed a {treaty_type_display}.",
         }
 
     def _process_treaty_clauses(self) -> None:

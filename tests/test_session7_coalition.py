@@ -872,10 +872,12 @@ class TestGapFixes:
         ]
         proposal = {
             "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Austria",
             "sweeteners": [{"type": "gold_lump", "value": 500}],
             "demands": [],
         }
-        world._ratify_treaty("Austria", proposal)
+        world._ratify_treaty(proposal)
         assert world.threat_level == 47  # 50 - 3
 
     def test_non_generous_peace_no_threat_reduction(self):
@@ -892,9 +894,12 @@ class TestGapFixes:
         vienna = world.get_region("Vienna")
         if vienna:
             vienna.controller = "Austria"
-        world._ratify_treaty("Austria", proposal)
-        # Should NOT get -3 because there are territory demands
-        assert world.threat_level == 50
+        proposal["proposer_nation"] = "France"
+        proposal["target_nation"] = "Austria"
+        world._ratify_treaty(proposal)
+        # Should NOT get -3 generous peace because there are territory demands
+        # But DOES get +8 from treaty_annex (1 region ceded to France)
+        assert world.threat_level == 58
 
     def test_generous_peace_low_war_score_no_reduction(self):
         """Low war score (<=20) means peace isn't 'generous' — no threat reduction."""
@@ -903,10 +908,12 @@ class TestGapFixes:
         world.war_scores = {world._make_diplo_key("France", "Austria"): 10}
         proposal = {
             "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Austria",
             "sweeteners": [{"type": "gold_lump", "value": 500}],
             "demands": [],
         }
-        world._ratify_treaty("Austria", proposal)
+        world._ratify_treaty(proposal)
         assert world.threat_level == 50
 
     # ── Gap 3: EC-2 void in-transit proposals on coalition formation ──

@@ -368,15 +368,15 @@ class TestSection5StateTransitions:
         # PEACE → OPEN_BORDERS = valid
         assert validate_transition("PEACE", "OPEN_BORDERS") is True
 
-    def test_validate_transition_skip_blocked(self):
-        """J-2: Skip transitions blocked."""
+    def test_validate_transition_skip_allowed(self):
+        """J-2: R98 — upward jumps now allowed with cumulative DP cost."""
         from backend.game_logic.diplomacy import validate_transition
-        # WAR → PEACE (skip) = invalid
-        assert validate_transition("WAR", "PEACE") is False
-        # PEACE → ALLIANCE (skip) = invalid
-        assert validate_transition("PEACE", "ALLIANCE") is False
-        # ARMISTICE → OPEN_BORDERS (skip) = invalid
-        assert validate_transition("ARMISTICE", "OPEN_BORDERS") is False
+        # WAR → PEACE (jump) = valid
+        assert validate_transition("WAR", "PEACE") is True
+        # PEACE → ALLIANCE (jump) = valid
+        assert validate_transition("PEACE", "ALLIANCE") is True
+        # ARMISTICE → OPEN_BORDERS (jump) = valid
+        assert validate_transition("ARMISTICE", "OPEN_BORDERS") is True
 
     def test_validate_transition_any_to_war(self):
         """J-1: Any state → WAR is always valid."""

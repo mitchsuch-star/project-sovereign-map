@@ -31,7 +31,7 @@ from backend.game_logic.vassal import (
     process_vassal_loyalty, check_vassal_rebellion,
 )
 from backend.game_logic.ai_diplomacy import (
-    _ratify_ai_ai_treaty, process_ai_ai_diplomatic_phase,
+    process_ai_ai_diplomatic_phase,
     check_alliance_conflict,
 )
 from backend.game_logic.diplomatic_ledger import build_diplomatic_ledger
@@ -74,6 +74,19 @@ def _set_relation(world, nation_a, nation_b, value):
     """Set nation relation."""
     key = world._make_diplo_key(nation_a, nation_b)
     world.nation_relations[key] = value
+
+
+def _ratify_via_world(nation_a, nation_b, proposal, world):
+    """Helper: replace deleted _ratify_ai_ai_treaty with world._ratify_treaty."""
+    normalized = {
+        "type": proposal["type"],
+        "proposer_nation": proposal.get("proposer", nation_a),
+        "target_nation": proposal.get("target", nation_b),
+        "sweeteners": [],
+        "demands": [],
+        "clauses": [],
+    }
+    return world._ratify_treaty(normalized)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -449,7 +462,7 @@ class TestSection9AllianceConflictAIAI:
         _set_at_war(world, "Britain", "Austria")
         # Britain tries to ally with Prussia — should be blocked
         proposal = {"type": "defensive_alliance", "proposer": "Britain", "target": "Prussia"}
-        result = _ratify_ai_ai_treaty("Britain", "Prussia", proposal, world)
+        result = _ratify_via_world("Britain", "Prussia", proposal, world)
         assert result is None  # Blocked by conflict check
 
     def test_aa5_ai_ai_alliance_allowed_no_conflict(self):
@@ -460,7 +473,7 @@ class TestSection9AllianceConflictAIAI:
         _set_diplo_state(world, "Britain", "Austria", "PEACE")
         _set_diplo_state(world, "Britain", "Prussia", "NON_AGGRESSION")
         proposal = {"type": "defensive_alliance", "proposer": "Britain", "target": "Prussia"}
-        result = _ratify_ai_ai_treaty("Britain", "Prussia", proposal, world)
+        result = _ratify_via_world("Britain", "Prussia", proposal, world)
         assert result is not None
 
     def test_aa5_reverse_conflict_also_blocked(self):
@@ -472,7 +485,7 @@ class TestSection9AllianceConflictAIAI:
         _set_at_war(world, "Prussia", "Austria")
         # Prussia tries to ally with Britain — should be blocked
         proposal = {"type": "alliance", "proposer": "Prussia", "target": "Britain"}
-        result = _ratify_ai_ai_treaty("Prussia", "Britain", proposal, world)
+        result = _ratify_via_world("Prussia", "Britain", proposal, world)
         assert result is None
 
     def test_aa5_non_alliance_states_not_affected(self):
@@ -483,7 +496,7 @@ class TestSection9AllianceConflictAIAI:
         _set_diplo_state(world, "Prussia", "Austria", "ALLIANCE")
         _set_diplo_state(world, "Britain", "Prussia", "PEACE")
         proposal = {"type": "non_aggression", "proposer": "Britain", "target": "Prussia"}
-        result = _ratify_ai_ai_treaty("Britain", "Prussia", proposal, world)
+        result = _ratify_via_world("Britain", "Prussia", proposal, world)
         assert result is not None
 
     def test_aa5_player_alliance_conflict_still_works(self):
