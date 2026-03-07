@@ -557,19 +557,19 @@ class TestDPEconomy:
         # France: skill 10, authority 100, controls capital
         diplomat = DiplomaticRepresentative("Talleyrand", "France", "schemer", 10)
         dp = calculate_dp(diplomat, 100, True)
-        assert dp == 4  # 2 base + 1 skill + 1 authority
+        assert dp == 5  # R139: 3 base + 1 skill(>=8) + 1 authority
 
     def test_dp_generation_low_authority(self):
         from backend.models.diplomat import DiplomaticRepresentative
         diplomat = DiplomaticRepresentative("Talleyrand", "France", "schemer", 10)
         dp = calculate_dp(diplomat, 20, True)
-        assert dp == 2  # 2 base + 1 skill - 1 low_authority
+        assert dp == 3  # R139: 3 base + 1 skill - 1 low_authority
 
     def test_dp_generation_lost_capital(self):
         from backend.models.diplomat import DiplomaticRepresentative
         diplomat = DiplomaticRepresentative("Talleyrand", "France", "schemer", 10)
         dp = calculate_dp(diplomat, 60, False)
-        assert dp == 3  # 2 base + 1 skill + 1 authority - 1 capital
+        assert dp == 4  # R139: 3 base + 1 skill + 1 authority - 1 capital
 
     def test_dp_floor_at_1(self):
         from backend.models.diplomat import DiplomaticRepresentative

@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 7, 2026 (Comprehensive Creative Audit COMPLETE — Phase 5 Design Depth approved, 41 new items)
+> **Last Updated:** March 8, 2026 (Phase 5 Wave 1 COMPLETE — 10 quick wins, 24 new tests)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **5648** (5648 passed, 3 skipped — verified Phase 4 Commands/QoL/Popups) |
+| **Tests Passing** | **5672** (5672 passed, 3 skipped — verified Phase 5 Wave 1) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -34,19 +34,18 @@
    - ~~Session 8D: Dispatch Integration + Polish~~ — **DONE** (20 diplomatic dispatch event types with fog-filtered visibility, queue_dispatch_event helper, campaign log 6 diplomacy event types with one-liner formatters, AI-AI diplomatic phase with 4 triggers + max 2 treaties/turn, special acceptance bonuses for 4 nations, 4 scenario test fixtures, Godot dispatch_view.gd diplomatic section + campaign_log.gd diplomacy category, 57 new tests)
 2. **Diplomacy Audit** — **COMPLETE.** 20 bugs fixed, 145 audit tests. See `docs/DIPLOMACY_AUDIT.md`.
 3. **Diplomacy Creative Audit** — **COMPLETE.** 5-agent deep analysis: balance, historical accuracy, fun, AI behavior, edge cases. Overall score 7.8/10. 8 critical/high bugs found, 10 balance issues, 18 design gaps, 6 AI behavior issues, 7 edge cases. 3 easy fixes applied (treaty cancel/downgrade commands, AI-AI ledger visibility). See `docs/DIPLOMACY_CREATIVE_AUDIT.md`.
-4. **Diplomacy Refinement & Cleanup** — **155 items total.** Phases 1-4 COMPLETE (55 items done, 326 tests). Phase 5 APPROVED. See `docs/DIPLO_REFINEMENT.md`.
+4. **Diplomacy Refinement & Cleanup** — **155 items total.** Phases 1-4 COMPLETE (55 items, 326 tests). Phase 5 IN PROGRESS. See `docs/DIPLO_REFINEMENT.md`.
    - ~~**Phase 1: Critical Wiring**~~ — **DONE** (16 fixes, 37 tests).
    - ~~**Phase 2A: State Cleanup — Diplomacy Core**~~ — **DONE** (17 fixes, 69 tests).
    - ~~**Phase 2B: State Cleanup — Vassal, AI-AI, War**~~ — **DONE** (22 fixes, 50 tests).
    - ~~**Phase 2B+ Confidence Fixes**~~ — **DONE** (5 fixes, 26 tests).
    - ~~**Phase 3: Balance Tuning**~~ — **DONE** (13 items, 44 tests).
    - ~~**Phase 4: Commands, QoL, Popup Architecture**~~ — **DONE** (27 items, 100 tests).
-   - **Phase 5: Design Depth** — **NEXT STEP.** 41 items from comprehensive creative audit (6.5/10 overall, March 7 2026). Design-first prioritization:
-     - **5A: Core Design Features** (8 items) — Marriage alliances, personality-driven AI proposals, aggressive dominance trigger (P8), advisory actionability, acceptance preview enhanced, nations remember betrayal, diplomatic help text, peace conferences.
-     - **5B: AI Intelligence** (6 items) — P2 stalemate fix, coalition posture → enemy AI, economic strategy AI (subsidy/pressure), diplomatic isolation AI, counter-offer personality, urgent re-proposal.
-     - **5C: Narrative & Presentation** (11 items) — Talleyrand voice bank (5-8 variants/situation), nation-specific intelligence, sabotage consequence feedback, override feedback, treaty ceremonies, confidence levels, cooldown pre-check, vassal loyalty transparency, "point of no return" at threat 40, vassal personality events, Continental System buff.
-     - **5D: Bug Fixes & Balance** (7 items) — DEBUG_MODE security, garrison loyalty cap, DP accumulation, parser ambiguity, counter-offer DP cost, AI DP cap, relation cap in acceptance.
-     - **5E: Promoted Deferred** (9 items) — Secret treaties, puppet rulers, player counter terms, personal summits, ledger enhancements (R17d-f), vindication decay, literal triggers.
+   - **Phase 5: Design Depth** — **IN PROGRESS.** 40 items (R136 KILLED). 4 waves.
+     - ~~**Wave 1: Quick Wins**~~ — **DONE** (10 items, 24 tests). R134 DEBUG_MODE, R121 P2 stalemate, R137 ally parser, R120 help text, R140 relation cap, R139 AI DP cap, R138 counter-offer DP, R135 garrison cap, R58 vindication decay, R130 confidence levels.
+     - **Wave 2: AI Intelligence** (5 items) — R122 coalition posture → AI, R115 personality proposals, R116 P8 trigger, R125 counter-offer thresholds, R126 urgent re-proposal.
+     - **Wave 3: Player Feedback** (8 items) — R118 acceptance preview, R119 betrayal memory, R131 cooldown warning, R129 override feedback, R128 sabotage feedback, R132 vassal transparency, R17d-f ledger.
+     - **Wave 4: Decide Gate** (17 items) — Marriage, conferences, voice bank, ceremonies, etc. Per-item approval needed.
    - **After Phase 5: UI Test Plan** — Manual playtest in Godot. DP display investigation (R39). Verify all fixes.
 5. **Comprehensive Creative Audit** — **COMPLETE.** 6-agent deep audit scored diplomacy 6.5/10. Key findings: war score decay bug (FIXED in Phase 2A), counter-offer broken (FIXED in Phase 1), Talleyrand voice monotone, AI proposals lack personality, diplomacy strategically optional vs military conquest, coalition posture not read by AI. All findings converted to Phase 5 items. See audit results in this session's history.
 6. **Jealousy system** — NEEDS DESIGN GATE (separate track). See CLAUDE.md.

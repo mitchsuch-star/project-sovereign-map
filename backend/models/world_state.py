@@ -4958,7 +4958,7 @@ class WorldState:
         return events
 
     def _process_vindication_decay(self) -> None:
-        """V2b: Vindication decay — -1 per 3 idle turns, symmetric toward 0.
+        """R58: Vindication decay — -1 per 5 idle turns, symmetric toward 0.
 
         Also clears stale defensive vindication entries (>5 turns old).
         Runs during advance_turn(), before turn counter increments.
@@ -4967,18 +4967,21 @@ class WorldState:
             if marshal.nation != self.player_nation or marshal.strength <= 0:
                 continue
 
-            # Vindication score decay
+            # Vindication score decay (R58: 5-turn interval, was 3)
             v_score = getattr(marshal, 'vindication_score', 0)
+            last_change = self.vindication_tracker.last_change_turn.get(marshal.name, 0)
             last_obj = getattr(marshal, 'last_objection_turn', 0)
-            turns_idle = self.current_turn - last_obj
+            # Use the more recent of last objection or last decay as reference
+            reference_turn = max(last_change, last_obj)
+            turns_idle = self.current_turn - reference_turn
 
-            if turns_idle >= 3 and v_score != 0:
+            if turns_idle >= 5 and v_score != 0:
                 if v_score > 0:
                     marshal.vindication_score -= 1
                 else:
                     marshal.vindication_score += 1
-                # Reset timer so next decay is 3 turns from now
-                marshal.last_objection_turn = self.current_turn
+                # Track decay in vindication tracker
+                self.vindication_tracker.last_change_turn[marshal.name] = self.current_turn
 
         # Clear stale defensive vindication entries (>5 turns old)
         if hasattr(self, 'vindication_tracker'):

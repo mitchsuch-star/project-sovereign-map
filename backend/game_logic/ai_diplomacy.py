@@ -513,8 +513,8 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
             terms = _build_proposal_terms(nation, ptype, war_score, world)
             proposal = _make_proposal(nation, ptype, 1, terms, world)
 
-    # ── P2: Stalemate (war_score -10..+10 for 5+ turns) ──
-    if proposal is None and is_at_war and stalemate_turns >= 5:
+    # ── P2: Stalemate (war_score -10..+10 for 5+ turns, only when losing/even) ──
+    if proposal is None and is_at_war and stalemate_turns >= 5 and war_score <= 0:
         ptype = "armistice_stalemate"
         if not _is_on_cooldown(nation, "armistice", world):
             terms = _build_proposal_terms(nation, ptype, war_score, world)
@@ -820,6 +820,16 @@ def generate_counter_offer(proposal: Dict, world) -> Optional[Dict]:
     import copy
     terms = copy.deepcopy(proposal)
     source_nation = terms.get("proposer_nation", "")
+
+    # R138: Counter-offers cost 1 DP for AI nations
+    if source_nation and source_nation != getattr(world, 'player_nation', 'France'):
+        nation_dp = getattr(world, 'nation_dp', {})
+        if source_nation in nation_dp:
+            current_dp = nation_dp[source_nation]
+            if current_dp < 1:
+                return None  # AI can't afford counter-offer — reject instead
+            nation_dp[source_nation] = current_dp - 1
+            world.nation_dp = nation_dp
 
     # ── Step 1: Calculate per-clause impact ──
     # We test removing each sweetener/demand/clause individually to see

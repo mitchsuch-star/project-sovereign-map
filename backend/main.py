@@ -24,7 +24,7 @@ from backend.save_manager import save_game, load_game, list_saves, delete_save
 # ════════════════════════════════════════════════════════════
 # DEBUG MODE: Set to True to enable debug endpoints
 # ════════════════════════════════════════════════════════════
-DEBUG_MODE = True  # Set to False for production
+DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
 
 # ════════════════════════════════════════════════════════════
 # STARTUP: Show LLM configuration

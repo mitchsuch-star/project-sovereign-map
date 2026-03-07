@@ -145,7 +145,7 @@ class TestLoyaltyTicks:
         assert world.vassals["Saxony"]["loyalty"] == 61  # 60 + 1
 
     def test_garrison_bonus(self):
-        """Garrison in vassal capital: +5 base + min(troops//5000, 3)."""
+        """R135: Garrison capped at +4. min(4, 2 + min(troops//5000, 3))."""
         world = make_world_with_vassal(autonomy=AUTONOMY_SATELLITE, loyalty=60)
         # Set garrison in Dresden (Saxony capital)
         region = world.regions.get("Dresden")
@@ -153,8 +153,8 @@ class TestLoyaltyTicks:
             region.garrison_troops = 10000
             region.controller = "France"
         process_vassal_loyalty(world)
-        # drift(-2) + garrison(5 + min(10000//5000, 3)) = -2 + 5 + 2 = +5
-        assert world.vassals["Saxony"]["loyalty"] == 65
+        # drift(-2) + garrison(min(4, 2+2)=4) = -2 + 4 = +2
+        assert world.vassals["Saxony"]["loyalty"] == 62
 
     def test_shared_enemy_bonus(self):
         """Shared enemy: +2 per shared war."""

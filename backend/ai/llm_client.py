@@ -482,6 +482,13 @@ class LLMClient:
         if any(kw in command_lower for kw in _ultimatum_keywords):
             return self._parse_diplomatic_command(command_text, command_lower)
 
+        # Alliance keywords route to diplomacy (R137)
+        _ally_keywords = [
+            "ally with", "ally against", "become allies", "form alliance",
+        ]
+        if any(kw in command_lower for kw in _ally_keywords):
+            return self._parse_diplomatic_command(command_text, command_lower)
+
         # Extract marshal name - find the FIRST mentioned marshal
         marshal = None  # Start with None for general orders
 
@@ -887,6 +894,7 @@ class LLMClient:
             "diplomacy", "diplomatic",
             "break treaty", "cancel treaty", "renounce treaty", "end treaty",
             "downgrade", "reduce commitment", "abrogate",
+            "ally with", "ally against", "become allies", "form alliance",
         ]
         has_diplomatic = any(kw in command_lower for kw in diplomatic_keywords)
 

@@ -560,8 +560,10 @@ class TestDebugEndpoints:
     @pytest.fixture(autouse=True)
     def setup_client(self):
         from fastapi.testclient import TestClient
-        from backend.main import app
-        self.client = TestClient(app)
+        import backend.main as main_module
+        main_module.DEBUG_MODE = True  # R134: Enable debug for tests
+        main_module.game_state["debug_mode"] = True
+        self.client = TestClient(main_module.app)
 
     def test_diplomatic_status(self):
         response = self.client.get("/debug/diplomatic_status")

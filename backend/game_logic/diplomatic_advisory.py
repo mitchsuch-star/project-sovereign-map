@@ -135,15 +135,40 @@ def _assess_nation(nation: str, world) -> Dict:
     state_text = _STATE_DISPLAY.get(state, state.lower())
     summary = _get_nation_summary(nation, world)
 
+    # R130: Confidence based on fog of war visibility of target nation's regions
+    target_regions = [r for r in world.regions.values() if getattr(r, 'controller', '') == nation]
+    if target_regions:
+        visible_count = sum(
+            1 for r in target_regions
+            if world.get_region_intel(r.name).visibility in ("full", "partial")
+        )
+        total_count = len(target_regions)
+        visibility_ratio = visible_count / total_count
+        if visibility_ratio >= 0.7:
+            confidence = "high"
+        elif visibility_ratio >= 0.3:
+            confidence = "medium"
+        else:
+            confidence = "low"
+    else:
+        confidence = "medium"
+
+    CONFIDENCE_PREAMBLES = {
+        "high": "I am confident in this assessment, Sire. My sources are reliable. ",
+        "medium": "Our intelligence is adequate, though gaps remain. ",
+        "low": "I must warn you — my information is incomplete. Proceed with caution. ",
+    }
+    confidence_preamble = CONFIDENCE_PREAMBLES.get(confidence, "")
+
     if state == "WAR":
         situation = (
+            f"{confidence_preamble}"
             f"We are {state_text} with {nation}, Sire. "
             f"War score stands at {int(france_war_score)} from our perspective. "
             f"Their military strength is {advantage} relative to ours. "
             f"{diplomat_desc}"
             f"{summary}"
         )
-        confidence = "high" if abs(france_war_score) > 20 else "medium"
         if france_war_score > 20:
             recommendation = "We hold the advantage. Press for favorable terms or continue fighting."
             hints = [f"Propose peace with {nation}", "Continue military pressure"]
@@ -155,6 +180,7 @@ def _assess_nation(nation: str, world) -> Dict:
             hints = ["Seek a decisive engagement", "Propose peace on equal terms"]
     else:
         situation = (
+            f"{confidence_preamble}"
             f"We are {state_text} with {nation}, Sire. "
             f"Relations stand at {relation}. "
             f"Their military strength is {advantage} relative to ours. "
@@ -162,19 +188,15 @@ def _assess_nation(nation: str, world) -> Dict:
             f"{summary}"
         )
         if relation > 30:
-            confidence = "high"
             recommendation = f"{nation} is well-disposed toward us. An alliance is within reach."
             hints = [f"Propose alliance with {nation}", "Strengthen relations further"]
         elif relation > 0:
-            confidence = "medium"
             recommendation = f"{nation} is cautiously favorable. Patience will yield dividends."
             hints = [f"Improve relations with {nation}", "Propose non-aggression pact"]
         elif relation > -30:
-            confidence = "medium"
             recommendation = f"{nation} is wary but not hostile. Courtship could sway them."
             hints = [f"Court {nation}", f"Improve relations with {nation}"]
         else:
-            confidence = "low"
             recommendation = f"{nation} harbors deep resentment. Diplomatic progress will be slow and costly."
             hints = [f"Improve relations with {nation}", "Consider whether confrontation is inevitable"]
 

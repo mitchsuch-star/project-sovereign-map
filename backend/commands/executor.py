@@ -1303,6 +1303,26 @@ FREE ACTIONS (cost 0):
   economy    - Show treasury, income, upkeep breakdown
                Also: "treasury" / "finances"
 
+DIPLOMACY (via Talleyrand):
+  propose    - Propose treaty to a nation (2 DP)
+               "Talleyrand, propose peace with Prussia"
+               "Talleyrand, propose alliance with Saxony"
+  assess     - Threat assessment (free, no DP cost)
+               "Talleyrand, assess Austria"
+  improve    - Start relations mission (1 DP/turn)
+               "Talleyrand, improve relations with Austria"
+  declare war - Declare war on a nation (1 DP)
+               "declare war on Prussia"
+  break treaty - Break existing treaty (1 DP)
+               "break treaty with Austria"
+  ultimatum  - Coercive demand (2 DP)
+               "ultimatum to Prussia"
+  ally with  - Propose alliance (2 DP)
+               "ally with Prussia"
+
+  Press D for Diplomatic Ledger.
+  Nations: Britain, Prussia, Austria, Saxony.
+
 MARSHAL ABILITIES:
 
   NEY (Aggressive, Cavalry):

@@ -553,7 +553,7 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
 
     # ── Relation Modifier ──
     relation = world.nation_relations.get(diplo_key, 0)
-    relation_mod = relation / 2
+    relation_mod = max(-30, min(30, relation / 2))
 
     # ── Threat Modifier (COALITION_SPEC §6a) ──
     threat = int(getattr(world, 'threat_level', 0))
@@ -770,8 +770,8 @@ def calculate_dp(diplomat, authority: int, controls_capital: bool) -> int:
     Returns:
         DP per turn (1-5)
     """
-    base = 2
-    skill_bonus = 1 if diplomat and diplomat.skill >= 10 else 0
+    base = 3
+    skill_bonus = 1 if diplomat and diplomat.skill >= 8 else 0
     authority_bonus = 1 if authority >= 60 else (-1 if authority < 30 else 0)
     capital_penalty = -1 if not controls_capital else 0
     return max(1, min(5, base + skill_bonus + authority_bonus + capital_penalty))

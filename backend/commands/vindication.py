@@ -31,13 +31,9 @@ class VindicationTracker:
         self.pending: Dict[str, Dict] = {}  # marshal_name -> pending vindication
         self.history: List[Dict] = []  # Historical vindication events
         # V2a: Track defensive vindication for successful defenses
-        # Format: {"Davout": {"order": {...}, "timestamp": turn_number}}
-        # TODO (V2b): Wire this into turn_manager.py enemy phase — when enemy attacks
-        # a marshal with pending defensive vindication and that marshal holds, resolve
-        # as vindication +1. If marshal loses, vindication -1. If no attack, unchanged.
         self.pending_defensive_vindication: Dict[str, Dict] = {}
-        # TODO (V2b): Implement vindication decay — spec says -1 per 3 turns of no
-        # objection activity from that marshal. Prevents permanent vindication escalation.
+        # R58: Track last change turn for decay calculation
+        self.last_change_turn: Dict[str, int] = {}  # marshal_name -> turn of last score change
 
     def record_choice(
         self,
@@ -175,6 +171,10 @@ class VindicationTracker:
             old_vindication = marshal.vindication_score
             marshal.vindication_score = max(-5, min(5, marshal.vindication_score + vindication_change))
             vindication_change = marshal.vindication_score - old_vindication
+            # R58: Track last change turn for decay
+            if vindication_change != 0:
+                turn = getattr(pending.get('original_order', {}), 'turn_recorded', None)
+                self.last_change_turn[marshal_name] = turn if turn else 0
 
         # Apply trust change (with authority modifier)
         if hasattr(marshal, 'trust'):
@@ -223,6 +223,34 @@ class VindicationTracker:
         self.history.append(vindication_result)
 
         return vindication_result
+
+    def apply_decay(self, current_turn: int, game_state=None) -> None:
+        """Decay vindication scores by 1 toward 0 every 5 turns of inactivity.
+
+        R58: Prevents permanent vindication from a single event.
+        Called from world_state.advance_turn().
+        """
+        # Get all marshal names with vindication scores
+        world = None
+        if hasattr(game_state, 'world'):
+            world = game_state.world
+        elif hasattr(game_state, 'marshals'):
+            world = game_state
+
+        if world is None:
+            return
+
+        for marshal_name, marshal in world.marshals.items():
+            score = getattr(marshal, 'vindication_score', 0)
+            if score == 0:
+                continue
+            last_change = self.last_change_turn.get(marshal_name, 0)
+            if current_turn - last_change >= 5:
+                if score > 0:
+                    marshal.vindication_score = score - 1
+                else:
+                    marshal.vindication_score = score + 1
+                self.last_change_turn[marshal_name] = current_turn
 
     def clear_pending(self, marshal_name: str) -> None:
         """Clear pending vindication for a marshal (e.g., if they don't fight)."""
@@ -290,6 +318,7 @@ class VindicationTracker:
             "pending_defensive_vindication": {
                 k: v.copy() for k, v in self.pending_defensive_vindication.items()
             },
+            "last_change_turn": dict(self.last_change_turn),
         }
 
     @classmethod
@@ -301,6 +330,7 @@ class VindicationTracker:
         tracker.pending_defensive_vindication = {
             k: v.copy() for k, v in data.get("pending_defensive_vindication", {}).items()
         }
+        tracker.last_change_turn = dict(data.get("last_change_turn", {}))
         return tracker
 
 

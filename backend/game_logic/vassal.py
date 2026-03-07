@@ -236,7 +236,7 @@ def process_vassal_loyalty(world) -> List[dict]:
             if region:
                 garrison_troops = getattr(region, 'garrison_troops', 0) or 0
                 if garrison_troops > 0 and getattr(region, 'controller', '') == lord:
-                    garrison_bonus = 5 + min(garrison_troops // 5000, 3)
+                    garrison_bonus = min(4, 2 + min(garrison_troops // 5000, 3))
                     delta += garrison_bonus
 
         # 3. Gold investment from treaty clauses
