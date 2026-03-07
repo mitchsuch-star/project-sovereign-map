@@ -18,12 +18,12 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
+- **Diplomacy Refinement Phase 5: Design Depth — CONTINUE WORKING ON THIS.** 41 items (R115-R140 + promoted deferred). 6-agent creative audit scored 6.5/10. Design-first: 5A core features (marriage, personality AI, peace conferences) → 5B AI intelligence → 5C narrative (Talleyrand voice bank, ceremonies) → 5D fixes → 5E promoted deferred. See `docs/DIPLO_REFINEMENT.md`.
 - **Phase 7b remaining:** V2b COMPLETE. Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Gates 5+6 PASSED. Jealousy (SPEC v3 DRAFTED — needs design gate approval). Coalition Trigger moved to Phase 8.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial Infrastructure deferred to Pre-EA.
-- **Phase 8: Diplomacy — COMPLETE.** ALL 11 sessions done (1A through 8D). ~580 tests. Full diplomacy engine shipped. See `docs/SESSION_8_PLAN.md`.
-- **Diplomacy Audit — COMPLETE.** Parts 1-4 done (Sections 1-16 + playtest). 20 bugs fixed, 145 audit tests. See `docs/DIPLOMACY_AUDIT.md`.
-- **Diplomacy Creative Audit — COMPLETE.** 7.8/10 overall. 8 critical bugs, 10 balance issues, 18 gaps. 3 easy fixes applied. See `docs/DIPLOMACY_CREATIVE_AUDIT.md`.
-- **Diplomacy Refinement & Cleanup — Phase 4 COMPLETE.** 114 items (56 approved, 16 deferred, 55 done). Phase 1 Critical Wiring DONE (16 fixes, 37 tests). Phase 2A Diplomacy Core DONE (17 fixes, 69 tests). Phase 2B Vassal/AI-AI/War DONE (22 fixes, 50 tests). Phase 2B+ Confidence Fixes DONE (5 fixes, 26 tests). Phase 3 Balance DONE (13 items, 44 tests). Phase 4 Commands/QoL/Popups DONE (27 items, 100 tests). UI Test Plan → Manual UI Test → Deferred Feature Design. See `docs/DIPLO_REFINEMENT.md`.
+- **Phase 8: Diplomacy — COMPLETE.** ALL 11 sessions done (1A through 8D). ~580 tests. See `docs/SESSION_8_PLAN.md`.
+- **Diplomacy Audits — ALL COMPLETE.** Code audit (20 bugs, 145 tests). Creative audit (7.8/10). Comprehensive creative audit (6.5/10, 41 new items → Phase 5).
+- **Diplomacy Refinement Phases 1-4 — COMPLETE.** 55 items done, 326 tests. See `docs/DIPLO_REFINEMENT.md`.
 
 ### Design Gates
 
