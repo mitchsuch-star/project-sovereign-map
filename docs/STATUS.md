@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 8, 2026 (Phase 5 Wave 1 COMPLETE — 10 quick wins, 24 new tests)
+> **Last Updated:** March 8, 2026 (Display name fix + diplomatic parser expansion — 85 new tests)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **5672** (5672 passed, 3 skipped — verified Phase 5 Wave 1) |
+| **Tests Passing** | **5757** (5757 passed, 3 skipped — verified Phase 5 Wave 1 + display/parser fixes) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |

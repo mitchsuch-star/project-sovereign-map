@@ -11,7 +11,7 @@
 
 7 phases of bug fixes, cleanup, balance, QoL, and design depth. Phase 2 split into 2A (diplomacy core) and 2B (vassal + AI-AI + war transitions). Phases 1-4 COMPLETE. Phase 5 adds design depth from comprehensive creative audit (March 7, 2026).
 
-**155 total items.** 55 DONE (Phases 1-4), 40 APPROVED (Phase 5), R136 KILLED.
+**155 total items.** 57 DONE (Phases 1-4 + R137/R120), 38 APPROVED (Phase 5), R136 KILLED.
 
 | Phase | Focus | Items | Scope |
 |-------|-------|-------|-------|
@@ -221,11 +221,11 @@ Bugs, balance tweaks, and small content additions. No design ambiguity. Each < 3
 ### R121: P2 Stalemate Trigger Fix — BUG
 `ai_diplomacy.py:517` — Add `and war_score <= 0` so winning AI doesn't propose stalemate armistice.
 
-### R137: "ally with" Parser Fix — BUG
-`llm_client.py` — Add "ally with", "ally against", "become allies", "form alliance" to diplomatic keywords (before military check).
+### R137: "ally with" Parser Fix — BUG ✅ DONE
+`llm_client.py` — Added "ally with/against", "become allies", "form alliance", plus 60+ additional diplomatic keywords for proposals, missions, war declarations, break treaties, ultimatums, and diplomat name alternatives. 85 tests in `test_diplo_parsing_expansion.py`.
 
-### R120: Diplomatic Help Text — CONTENT
-`executor.py (_execute_help)` — Add DIPLOMACY section with propose/assess/improve/declare war/break treaty/ultimatum commands + DP costs.
+### R120: Diplomatic Help Text — CONTENT ✅ DONE
+`executor.py (_execute_help)` — DIPLOMACY section present with propose/assess/improve/declare war/break treaty/ultimatum commands + DP costs.
 
 ### R140: Relation Cap in Acceptance Formula — BALANCE
 `diplomacy.py:556` — `relation_mod = max(-30, min(30, relation / 2))` (was ±50 uncapped).
@@ -328,4 +328,4 @@ Bugs, balance tweaks, and small content additions. No design ambiguity. Each < 3
 
 ---
 
-**Grand total (R1-R140 + GAP-3/5/6):** 155 items. 55 DONE (Phases 1-4), 40 APPROVED (Phase 5), R136 KILLED.
+**Grand total (R1-R140 + GAP-3/5/6):** 155 items. 57 DONE (Phases 1-4 + R137/R120), 38 APPROVED (Phase 5), R136 KILLED.

@@ -426,13 +426,15 @@ class LLMClient:
             templates = [
                 (f"Berthier clears his throat. \"Forgive me, Sire, but I cannot interpret "
                  f"that order. Our marshals ({', '.join(marshal_names[:3]) or first_marshal}) "
-                 f"await clear commands — perhaps 'attack', 'move', 'defend', or 'scout'?\""),
+                 f"await clear commands — perhaps 'attack', 'move', 'defend', or 'scout'? "
+                 f"For diplomacy, address Talleyrand — e.g. 'propose peace with Prussia'.\""),
                 (f"\"Sire, I must confess this order eludes me,\" Berthier admits. "
                  f"\"Shall I relay an order to {first_marshal}? Valid actions include: "
-                 f"{actions_sample}.\""),
+                 f"{actions_sample}. For diplomatic matters, try 'Talleyrand, propose alliance with Austria'.\""),
                 (f"Berthier peers at the dispatch with concern. \"I cannot make sense of "
                  f"this, Sire. A clear order might be: '{first_marshal}, attack "
-                 f"{first_enemy}' or 'end turn'.\""),
+                 f"{first_enemy}' or 'end turn'. For diplomacy: 'declare war on Prussia' "
+                 f"or 'propose peace with Austria'.\""),
             ]
 
         return random.choice(templates)
@@ -452,12 +454,19 @@ class LLMClient:
         # BEFORE marshal parsing. Diplomatic commands route to
         # _parse_diplomatic_command() and return early.
         # ════════════════════════════════════════════════════════════
-        if "talleyrand" in command_lower:
+        # Route to diplomacy if addressed to Talleyrand (or diplomat synonyms)
+        _diplomat_names = ["talleyrand", "diplomat", "envoy", "minister",
+                           "foreign minister", "ambassador"]
+        if any(name in command_lower for name in _diplomat_names):
             return self._parse_diplomatic_command(command_text, command_lower)
 
         # Break/downgrade treaty commands route to diplomacy even without "Talleyrand"
-        _break_keywords = ["cancel treaty", "break treaty", "renounce treaty", "end treaty",
-                           "tear up treaty", "abrogate"]
+        _break_keywords = [
+            "cancel treaty", "break treaty", "renounce treaty", "end treaty",
+            "tear up treaty", "abrogate", "dissolve treaty", "terminate treaty",
+            "nullify treaty", "revoke treaty", "cancel agreement",
+            "end agreement", "void treaty",
+        ]
         _downgrade_keywords = ["downgrade", "reduce commitment", "step down relations",
                                "lower relations", "cool relations"]
         if any(kw in command_lower for kw in _break_keywords + _downgrade_keywords):
@@ -469,6 +478,7 @@ class LLMClient:
             "go to war with", "go to war against",
             "war on ", "war against ",  # trailing space prevents "warden"/"warning"
             "open hostilities", "declare hostilities",
+            "invade ", "launch war",
         ]
         if any(kw in command_lower for kw in _war_keywords):
             return self._parse_diplomatic_command(command_text, command_lower)
@@ -478,6 +488,8 @@ class LLMClient:
             "ultimatum to", "give ultimatum", "issue ultimatum",
             "final offer to", "demand surrender",
             "submit or face", "accept or face war",
+            "send ultimatum", "deliver ultimatum",
+            "surrender or", "submit or",
         ]
         if any(kw in command_lower for kw in _ultimatum_keywords):
             return self._parse_diplomatic_command(command_text, command_lower)
@@ -485,8 +497,31 @@ class LLMClient:
         # Alliance keywords route to diplomacy (R137)
         _ally_keywords = [
             "ally with", "ally against", "become allies", "form alliance",
+            "form an alliance", "make alliance", "join forces with",
+            "unite with", "unite against",
         ]
         if any(kw in command_lower for kw in _ally_keywords):
+            return self._parse_diplomatic_command(command_text, command_lower)
+
+        # Proposal keywords route to diplomacy (without Talleyrand)
+        _proposal_keywords = [
+            "propose peace", "propose alliance", "propose armistice",
+            "propose treaty", "offer peace", "offer alliance", "offer armistice",
+            "negotiate peace", "negotiate alliance", "negotiate with",
+            "sue for peace", "seek peace", "make peace",
+            "sign treaty", "sign peace", "peace with",
+            "open borders with", "non-aggression with", "pact with",
+        ]
+        if any(kw in command_lower for kw in _proposal_keywords):
+            return self._parse_diplomatic_command(command_text, command_lower)
+
+        # Mission keywords route to diplomacy (without Talleyrand)
+        _mission_keywords = [
+            "improve relations with", "court ", "charm ",
+            "gather intel on", "spy on ", "undermine ",
+            "reassure ", "send envoy to", "send diplomat to",
+        ]
+        if any(kw in command_lower for kw in _mission_keywords):
             return self._parse_diplomatic_command(command_text, command_lower)
 
         # Extract marshal name - find the FIRST mentioned marshal
@@ -895,6 +930,14 @@ class LLMClient:
             "break treaty", "cancel treaty", "renounce treaty", "end treaty",
             "downgrade", "reduce commitment", "abrogate",
             "ally with", "ally against", "become allies", "form alliance",
+            "dissolve treaty", "terminate treaty", "nullify", "revoke",
+            "invade", "launch war", "declare war",
+            "send ultimatum", "deliver ultimatum", "surrender or",
+            "join forces", "unite with", "unite against",
+            "sue for peace", "make peace", "sign treaty", "sign peace",
+            "spy on", "investigate", "sow discord",
+            "pact with", "truce", "ceasefire",
+            "envoy", "ambassador", "minister",
         ]
         has_diplomatic = any(kw in command_lower for kw in diplomatic_keywords)
 
@@ -934,7 +977,9 @@ class LLMClient:
         # Break treaty (must come before general proposal fallback)
         elif any(kw in command_lower for kw in [
             "cancel treaty", "break treaty", "renounce treaty", "end treaty",
-            "tear up treaty", "abrogate",
+            "tear up treaty", "abrogate", "dissolve treaty", "terminate treaty",
+            "nullify treaty", "revoke treaty", "cancel agreement",
+            "end agreement", "void treaty",
         ]):
             action = "diplomatic_break"
         # Voluntary downgrade (must come before general proposal fallback)
@@ -947,11 +992,13 @@ class LLMClient:
         elif any(kw in command_lower for kw in [
             "declare war", "go to war", "war on ", "war against ",
             "open hostilities", "declare hostilities",
+            "invade ", "launch war",
         ]):
             action = "diplomatic_declare_war"
         # Ultimatum (R21) — distinct from demand/proposal
         elif any(kw in command_lower for kw in [
             "ultimatum", "submit or", "final offer", "accept or face war",
+            "send ultimatum", "deliver ultimatum", "surrender or",
         ]):
             action = "diplomatic_ultimatum"
         elif any(kw in command_lower for kw in ["demand", "insist", "require"]):

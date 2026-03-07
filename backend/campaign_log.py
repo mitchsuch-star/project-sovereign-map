@@ -14,6 +14,69 @@ from backend.models.intel import FULL, PARTIAL
 
 
 # ============================================================================
+# ACTION DISPLAY NAMES — translate raw internal names for campaign log
+# ============================================================================
+
+# Objection context: "Marshal objected to [action]"
+_OBJECTION_DISPLAY = {
+    "attack": "attacking",
+    "move": "moving",
+    "defend": "defending",
+    "fortify": "fortifying",
+    "unfortify": "abandoning fortification",
+    "form_square": "forming square",
+    "break_square": "breaking square",
+    "drill": "drilling",
+    "stance_change": "changing stance",
+    "retreat": "retreating",
+    "wait": "waiting",
+    "recruit": "recruiting",
+    "scout": "scouting",
+    "hold": "holding",
+    "build": "building",
+    "repair": "repairing",
+    "garrison": "garrisoning",
+    "bombardment": "bombarding",
+}
+
+# Defiance context: "Marshal defied orders and [action] instead"
+_DEFIANCE_DISPLAY = {
+    "attack": "attacked",
+    "move": "moved",
+    "defend": "defended",
+    "fortify": "fortified",
+    "unfortify": "abandoned fortification",
+    "form_square": "formed square",
+    "break_square": "broke square",
+    "drill": "drilled",
+    "stance_change": "changed stance",
+    "retreat": "retreated",
+    "wait": "waited",
+    "recruit": "recruited",
+    "scout": "scouted",
+    "hold": "held position",
+    "build": "built",
+    "repair": "repaired",
+    "garrison": "garrisoned",
+    "bombardment": "bombarded",
+}
+
+
+def _display_action(action: str) -> str:
+    """Translate raw action name for objection context (gerund form)."""
+    if not action:
+        return action
+    return _OBJECTION_DISPLAY.get(action, action.replace("_", " "))
+
+
+def _display_defiance_action(action: str) -> str:
+    """Translate raw action name for defiance context (past tense)."""
+    if not action:
+        return action
+    return _DEFIANCE_DISPLAY.get(action, action.replace("_", " "))
+
+
+# ============================================================================
 # EVENT TYPE WHITELIST — only these 14 types appear in the Campaign Log
 # ============================================================================
 
@@ -356,7 +419,7 @@ def format_event_oneliner(event: dict) -> str:
 
     if event_type == "objection":
         marshal = event.get("marshal", "Unknown")
-        action = event.get("action", "")
+        action = _display_action(event.get("action", ""))
         resolution = event.get("resolution", "")
         if action and resolution:
             return f"{marshal} objected to {action} ({resolution})"
@@ -379,7 +442,7 @@ def format_event_oneliner(event: dict) -> str:
 
     if event_type == "defiance":
         marshal = event.get("marshal", "Unknown")
-        defiance_action = event.get("defiance_action", "acted independently")
+        defiance_action = _display_defiance_action(event.get("defiance_action", "acted independently"))
         return f"{marshal} defied orders and {defiance_action} instead"
 
     # ── Diplomacy events (Session 8D) ──

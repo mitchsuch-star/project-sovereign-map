@@ -22,15 +22,26 @@ NATION_ALIASES = {
     "british": "Britain",
     "english": "Britain",
     "britain": "Britain",
+    "the british": "Britain",
+    "britian": "Britain",  # common typo
+    "britiain": "Britain",  # common typo
     "prussian": "Prussia",
     "prussia": "Prussia",
+    "the prussians": "Prussia",
+    "prussians": "Prussia",
+    "prusia": "Prussia",  # common typo
     "austrian": "Austria",
     "austria": "Austria",
+    "the austrians": "Austria",
+    "austrians": "Austria",
+    "autria": "Austria",  # common typo
     "saxon": "Saxony",
     "saxons": "Saxony",
     "saxony": "Saxony",
+    "the saxons": "Saxony",
     "france": "France",
     "french": "France",
+    "the french": "France",
 }
 
 KNOWN_NATIONS = {"Britain", "Prussia", "Austria", "Saxony"}
@@ -46,12 +57,22 @@ def get_known_nations(world=None) -> set:
 
 # ═══════ PROPOSAL TYPE KEYWORDS ═══════
 PROPOSAL_TYPE_KEYWORDS = {
-    "peace": ["peace", "ceasefire", "end the war", "stop fighting", "end hostilities"],
-    "alliance": ["alliance", "ally", "allies", "allied"],
-    "armistice": ["armistice", "truce", "temporary peace"],
-    "open_borders": ["open borders", "free passage", "passage rights", "border access"],
-    "non_aggression": ["non-aggression", "non aggression", "nonaggression", "pact"],
-    "vassalage": ["vassal", "vassalage", "subjugate", "submit", "submission", "puppet"],
+    "peace": ["peace", "ceasefire", "end the war", "stop fighting", "end hostilities",
+              "sue for peace", "make peace", "peace deal", "peace offer", "settle",
+              "end war", "stop the war", "peace agreement"],
+    "alliance": ["alliance", "ally", "allies", "allied", "form alliance",
+                 "full alliance", "military alliance", "join forces",
+                 "unite with", "unite against", "become allies"],
+    "armistice": ["armistice", "truce", "temporary peace", "temporary ceasefire",
+                  "pause hostilities", "halt fighting", "brief truce"],
+    "open_borders": ["open borders", "free passage", "passage rights", "border access",
+                     "right of passage", "cross borders", "border agreement",
+                     "transit rights", "march through"],
+    "non_aggression": ["non-aggression", "non aggression", "nonaggression", "pact",
+                       "non aggression pact", "neutrality", "neutrality pact",
+                       "mutual non-aggression", "agree not to attack"],
+    "vassalage": ["vassal", "vassalage", "subjugate", "submit", "submission", "puppet",
+                  "tributary", "client state", "protectorate", "subject"],
 }
 
 # ═══════ PROPOSAL TYPE DISPLAY NAMES ═══════
@@ -77,11 +98,22 @@ def _display_proposal_type(proposal_type: str) -> str:
 
 # ═══════ MISSION TYPE KEYWORDS ═══════
 MISSION_TYPE_KEYWORDS = {
-    "IMPROVE_RELATIONS": ["improve relations", "build relations", "warm relations", "befriend"],
-    "COURT_NATION": ["court", "charm", "woo", "seduce", "win over", "sway"],
-    "GATHER_INTEL": ["gather intel", "spy", "intelligence", "information"],
-    "UNDERMINE_ALLIANCE": ["undermine", "sabotage", "weaken alliance", "drive a wedge"],
-    "REASSURE_ALLY": ["reassure", "calm", "soothe", "appease"],
+    "IMPROVE_RELATIONS": ["improve relations", "build relations", "warm relations", "befriend",
+                          "better relations", "strengthen relations", "friendly",
+                          "build rapport", "diplomatic relations", "get closer to"],
+    "COURT_NATION": ["court", "charm", "woo", "seduce", "win over", "sway",
+                     "bring over", "convince", "persuade", "entice",
+                     "lure", "attract"],
+    "GATHER_INTEL": ["gather intel", "spy", "intelligence", "information",
+                     "spy on", "gather information", "reconnaissance on",
+                     "what are they doing", "what is happening in",
+                     "investigate", "learn about"],
+    "UNDERMINE_ALLIANCE": ["undermine", "sabotage", "weaken alliance", "drive a wedge",
+                           "break apart", "split", "divide", "sow discord",
+                           "turn against", "poison relations"],
+    "REASSURE_ALLY": ["reassure", "calm", "soothe", "appease",
+                      "strengthen alliance", "reaffirm", "shore up",
+                      "bolster alliance", "keep them happy"],
 }
 
 # ═══════ FEASIBILITY KEYWORDS ═══════
