@@ -88,14 +88,17 @@ class TestAIDiplomacyTriggers:
     """Test AI proposal generation triggers (P1/P2/P4/P7)."""
 
     def test_p1_trigger_war_score_below_negative_40(self):
-        """P1: nation at WAR with France, war_score < -40 from AI's perspective -> proposal."""
+        """P1: nation at WAR with France, war_score < effective threshold -> proposal.
+
+        R115: Prussia's hawk diplomat shifts P1 threshold from -40 to -60.
+        We set war_score to -65 to trigger P1 for hawk personality.
+        """
         world = make_war_world("Prussia")
-        # We need Prussia LOSING (< -40 from Prussia's perspective).
-        # France|Prussia stored = 50 => France at +50, Prussia at -50.
-        _set_war_score(world, "Prussia", 50)
-        assert _get_war_score_for_nation("Prussia", "France", world) < -40
+        # We need Prussia LOSING (< -60 for hawk threshold).
+        # France|Prussia stored = 65 => France at +65, Prussia at -65.
+        _set_war_score(world, "Prussia", 65)
+        assert _get_war_score_for_nation("Prussia", "France", world) < -60
         # Improve relations so acceptance score passes the >= 20 filter.
-        # calculate_acceptance: base(40) + war_score_mod(-15) + relation_mod(+5) = 30 >= 20
         key = world._make_diplo_key("France", "Prussia")
         world.nation_relations[key] = 10
         proposal = process_diplomatic_phase("Prussia", world)
@@ -215,7 +218,8 @@ class TestAIDiplomacyDelivery:
     def test_queue_proposal_when_blocking_dialogue(self):
         """Proposal queued when blocking dialogue exists."""
         world = make_war_world("Prussia")
-        _set_war_score(world, "Prussia", 50)
+        # R115: Hawk P1 threshold is -60, need war_score < -60
+        _set_war_score(world, "Prussia", 65)
         # Improve relations so acceptance score passes >= 20 filter
         key = world._make_diplo_key("France", "Prussia")
         world.nation_relations[key] = 10

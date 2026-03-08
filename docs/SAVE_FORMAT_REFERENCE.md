@@ -83,6 +83,7 @@ A future save/load system should use this as the specification.
   "diplomatic_queue": [],
   "proactive_suggestion_cooldowns": {},
   "ai_stalemate_counters": {},
+  "ai_proposal_metadata": {},
   "previous_war_scores": {},
 
   "talleyrand_defiance_cooldown": 0,
@@ -190,6 +191,7 @@ A future save/load system should use this as the specification.
 | `diplomatic_queue` | list | [] | **Session 4.** Queued AI proposals awaiting player response (max 3, 3-turn expiry). Each entry is a dict with proposal details. Expired entries removed at turn start. |
 | `proactive_suggestion_cooldowns` | dict | {} | **Session 4.** Proactive suggestion cooldowns. Keys: "nation\|trigger_type". Values: int (turns remaining). Prevents repeated advisory suggestions for the same diplomatic opportunity. |
 | `ai_stalemate_counters` | dict | {} | **Session 4.** Consecutive stalemate turns per nation. Keys: nation name. Values: int (turn count). Used by AI to detect prolonged wars and trigger peace proposals. |
+| `ai_proposal_metadata` | dict | {} | **R126.** Tracks war_score at time of last AI proposal per nation. Keys: nation name. Values: {war_score_at_proposal: int, turn: int}. Used for urgent re-proposal detection (bypasses nation cooldown when war score drops 20+). |
 | `previous_war_scores` | dict | {} | **Audit 4.** End-of-turn war score snapshot. Keys: diplo key ("Nation1\|Nation2"). Values: int. Used by Talleyrand Trigger 2 to compute per-turn delta. Snapshotted at end of advance_turn(). |
 | `vassals` | dict | {} | **Session 5.** Vassal state per nation. Keys: nation name. Values: {lord, loyalty, autonomy (0=puppet/1=satellite/2=autonomous), path (treaty/conquest), created_turn, tribute_rate, carved_from, regions}. |
 | `vassal_investment_cooldowns` | dict | {} | **Session 5.** Investment cooldown per vassal. Keys: nation name. Values: int (turns remaining). 3-turn cooldown after invest_in_vassal(). |

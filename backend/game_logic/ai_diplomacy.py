@@ -45,6 +45,9 @@ NATION_ACCEPTANCE_COOLDOWN = 2  # After acceptance, nation can't propose for N t
 QUEUE_MAX_SIZE = 3              # Maximum queued proposals
 QUEUE_EXPIRY_TURNS = 3          # Queued proposals expire after N turns
 
+# R126: Urgent re-proposal when situation changes drastically
+URGENT_REPROPO_DELTA = 20       # War score drop of 20+ bypasses nation cooldown
+
 # Per-nation desire table for counter-offers (§9b)
 # Ordered by preference (most desired first).
 #
@@ -86,6 +89,39 @@ NATION_DESIRES = {
          "description": "Gold per turn"},
     ],
 }
+
+# R115: Personality-driven AI proposal modifiers
+# hawk: demands more gold, stricter peace threshold (won't sue for peace easily)
+# schemer: patient (waits longer before stalemate proposals)
+# dove: demands less gold, sues for peace earlier
+# loyalist: baseline behavior (no modifiers)
+PERSONALITY_PROPOSAL_MODIFIERS = {
+    "hawk":     {"gold_demand_mult": 1.5, "peace_threshold_delta": -20, "patience_bonus": 0},
+    "schemer":  {"gold_demand_mult": 1.0, "peace_threshold_delta": 0,   "patience_bonus": 2},
+    "dove":     {"gold_demand_mult": 0.75, "peace_threshold_delta": 20, "patience_bonus": 0},
+    "loyalist": {"gold_demand_mult": 1.0, "peace_threshold_delta": 0,   "patience_bonus": 0},
+}
+
+
+def _get_personality_modifiers(nation: str, world) -> Dict:
+    """R115: Get proposal modifiers based on diplomat personality."""
+    diplomats = getattr(world, 'diplomats', {})
+    diplomat = diplomats.get(nation)
+    personality = getattr(diplomat, 'personality', 'loyalist') if diplomat else 'loyalist'
+    return PERSONALITY_PROPOSAL_MODIFIERS.get(personality, PERSONALITY_PROPOSAL_MODIFIERS["loyalist"])
+
+
+# R125: Personality-driven counter-offer acceptance/rejection thresholds
+# hawk: harder to please (accept at 60, reject below 35)
+# dove: easier to please (accept at 40, reject below 25)
+# schemer/loyalist: baseline (accept at 50, reject below 30)
+PERSONALITY_COUNTER_THRESHOLDS = {
+    "hawk":     {"accept": 60, "floor": 35},
+    "dove":     {"accept": 40, "floor": 25},
+    "schemer":  {"accept": 50, "floor": 30},
+    "loyalist": {"accept": 50, "floor": 30},
+}
+
 
 # Talleyrand's assessment strings keyed by (proposal_type_category, game_bucket_category)
 TALLEYRAND_ASSESSMENTS = {
@@ -169,14 +205,35 @@ def _set_queue(world, queue: List[Dict]) -> None:
     world.diplomatic_queue = queue
 
 
-def _is_on_cooldown(nation: str, proposal_type: str, world) -> bool:
-    """Check if a nation or proposal type is on cooldown."""
+def _is_situation_urgent(nation: str, war_score: int, world) -> bool:
+    """R126: Check if war situation has changed drastically since last proposal.
+
+    Returns True if war_score has dropped by URGENT_REPROPO_DELTA or more
+    since the nation's last proposal.
+    """
+    metadata = getattr(world, 'ai_proposal_metadata', {})
+    prev = metadata.get(nation)
+    if not prev:
+        return False
+    prev_war_score = prev.get("war_score_at_proposal", 0)
+    return (prev_war_score - war_score) >= URGENT_REPROPO_DELTA
+
+
+def _is_on_cooldown(nation: str, proposal_type: str, world, war_score: int = 0) -> bool:
+    """Check if a nation or proposal type is on cooldown.
+
+    R126: If war_score is provided and situation is urgent (war score dropped
+    by 20+ since last proposal), bypass the nation cooldown. Type cooldown
+    still applies.
+    """
     cooldowns = _get_cooldowns(world)
     nation_key = f"{nation}|nation"
     type_key = f"{nation}|{proposal_type}"
 
     if cooldowns.get(nation_key, 0) > 0:
-        return True
+        # R126: Bypass nation cooldown if situation is urgent
+        if not _is_situation_urgent(nation, war_score, world):
+            return True
     if cooldowns.get(type_key, 0) > 0:
         return True
     return False
@@ -318,6 +375,7 @@ def _build_proposal_terms(
     proposal_type: str,
     war_score: int,
     world,
+    gold_mult: float = 1.0,
 ) -> Dict:
     """Build proposal terms dict from AI nation's perspective.
 
@@ -326,6 +384,8 @@ def _build_proposal_terms(
     - target_nation = France (player)
     - sweeteners = things AI offers to France to sweeten the deal
     - demands = things AI wants from France
+
+    R115: gold_mult scales gold amounts by diplomat personality.
     """
     player = getattr(world, 'player_nation', 'France')
 
@@ -342,7 +402,7 @@ def _build_proposal_terms(
         # AI is losing: offer gold to stop the bleeding
         nation_gold = world.nation_gold.get(nation, 0)
         if nation_gold > 200:
-            offer_amount = min(300, int(nation_gold * 0.15))
+            offer_amount = min(300, int(nation_gold * 0.15 * gold_mult))
             # R113: Cap gold_per_turn at 50% of region income
             income_data = world.calculate_turn_income(nation)
             max_per_turn = income_data["income"] // 2
@@ -362,7 +422,7 @@ def _build_proposal_terms(
         if war_score < -30:
             # Very desperate: offer gold + open borders
             nation_gold = world.nation_gold.get(nation, 0)
-            offer_amount = min(200, int(nation_gold * 0.10))
+            offer_amount = min(200, int(nation_gold * 0.10 * gold_mult))
             # R113: Cap gold_per_turn at 50% of region income
             income_data = world.calculate_turn_income(nation)
             max_per_turn = income_data["income"] // 2
@@ -395,7 +455,13 @@ def _build_proposal_terms(
     elif proposal_type == "opportunistic":
         # Favorable terms for the AI: demand concessions
         terms["type"] = "non_aggression"  # Map to acceptance type
-        terms["demands"].append({"type": "gold_per_turn", "value": int(100)})
+        terms["demands"].append({"type": "gold_per_turn", "value": int(100 * gold_mult)})
+
+    elif proposal_type == "harsh_peace":
+        # R116: AI is winning badly — demand harsh terms
+        terms["type"] = "peace"  # Map to peace for acceptance formula
+        gold_demand = max(500, int(war_score * 8 * gold_mult))
+        terms["demands"].append({"type": "gold_lump", "value": int(gold_demand)})
 
     return terms
 
@@ -488,6 +554,12 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     relation = world.nation_relations.get(diplo_key, 0)
     war_score = _get_war_score_for_nation(nation, player, world) if is_at_war else 0
 
+    # R115: Get personality modifiers for this nation's diplomat
+    mods = _get_personality_modifiers(nation, world)
+    gold_mult = mods["gold_demand_mult"]
+    effective_p1_threshold = -40 + mods["peace_threshold_delta"]
+    effective_stalemate_turns = 5 + mods["patience_bonus"]
+
     # Update stalemate counter
     if is_at_war:
         stalemate_turns = _update_stalemate_counter(nation, war_score, world)
@@ -501,23 +573,23 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     if armistice_cooldowns.get(diplo_key, 0) > 0:
         return None
 
-    # ── P1: Losing badly (war_score < -40) ──
-    if is_at_war and war_score < -40:
+    # ── P1: Losing badly (war_score < effective threshold) ──
+    if is_at_war and war_score < effective_p1_threshold:
         # Decide: armistice if war_score > -70, peace if truly desperate
         if war_score < -70:
             ptype = "peace"
         else:
             ptype = "armistice_losing"
 
-        if not _is_on_cooldown(nation, ptype, world):
-            terms = _build_proposal_terms(nation, ptype, war_score, world)
+        if not _is_on_cooldown(nation, ptype, world, war_score):
+            terms = _build_proposal_terms(nation, ptype, war_score, world, gold_mult=gold_mult)
             proposal = _make_proposal(nation, ptype, 1, terms, world)
 
-    # ── P2: Stalemate (war_score -10..+10 for 5+ turns, only when losing/even) ──
-    if proposal is None and is_at_war and stalemate_turns >= 5 and war_score <= 0:
+    # ── P2: Stalemate (war_score -10..+10 for N+ turns, only when losing/even) ──
+    if proposal is None and is_at_war and stalemate_turns >= effective_stalemate_turns and war_score <= 0:
         ptype = "armistice_stalemate"
-        if not _is_on_cooldown(nation, "armistice", world):
-            terms = _build_proposal_terms(nation, ptype, war_score, world)
+        if not _is_on_cooldown(nation, "armistice", world, war_score):
+            terms = _build_proposal_terms(nation, ptype, war_score, world, gold_mult=gold_mult)
             proposal = _make_proposal(nation, "armistice", 2, terms, world)
 
     # ── P3: Threat > 60 AND not allied → seek alliance (R106) ──
@@ -531,15 +603,15 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
                     ptype = "non_aggression"
                 else:
                     ptype = None
-                if ptype and not _is_on_cooldown(nation, ptype, world):
-                    terms = _build_proposal_terms(nation, ptype, 0, world)
+                if ptype and not _is_on_cooldown(nation, ptype, world, war_score):
+                    terms = _build_proposal_terms(nation, ptype, 0, world, gold_mult=gold_mult)
                     proposal = _make_proposal(nation, ptype, 3, terms, world)
 
     # ── P4: Relation > +30 AND at peace → propose upgrade ──
     if proposal is None and not is_at_war and relation > 30:
         upgrade_type = _determine_upgrade_type(nation, world)
-        if upgrade_type and not _is_on_cooldown(nation, upgrade_type, world):
-            terms = _build_proposal_terms(nation, upgrade_type, 0, world)
+        if upgrade_type and not _is_on_cooldown(nation, upgrade_type, world, war_score):
+            terms = _build_proposal_terms(nation, upgrade_type, 0, world, gold_mult=gold_mult)
             proposal = _make_proposal(nation, upgrade_type, 4, terms, world)
 
     # ── P5: Gold < 200 and declining [DEFERRED] ──
@@ -553,9 +625,19 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
         wars_against_france = _count_nations_at_war_with_france(world)
         if wars_against_france >= 2 and diplo_state in ("PEACE", "OPEN_BORDERS"):
             ptype = "opportunistic"
-            if not _is_on_cooldown(nation, ptype, world):
-                terms = _build_proposal_terms(nation, ptype, 0, world)
+            if not _is_on_cooldown(nation, ptype, world, war_score):
+                terms = _build_proposal_terms(nation, ptype, 0, world, gold_mult=gold_mult)
                 proposal = _make_proposal(nation, ptype, 7, terms, world)
+
+    # ── P8: Aggressive Dominance — AI winning badly (war_score > 40) ──
+    # R116: When AI is dominating, demand harsh peace terms
+    if proposal is None and is_at_war and war_score > 40:
+        ptype = "harsh_peace"
+        if not _is_on_cooldown(nation, ptype, world, war_score):
+            terms = _build_proposal_terms(nation, ptype, war_score, world, gold_mult=gold_mult)
+            if war_score > 60:
+                terms["clauses"].append("ap_reduction")
+            proposal = _make_proposal(nation, ptype, 8, terms, world)
 
     if proposal is None:
         return None
@@ -588,6 +670,16 @@ def _make_proposal(
     # Get game bucket from France's perspective (for Talleyrand's assessment)
     game_bucket = get_game_bucket(nation, world)
     assessment = _get_talleyrand_assessment(proposal_type, game_bucket)
+
+    # R126: Record metadata for urgent re-proposal detection
+    player = getattr(world, 'player_nation', 'France')
+    is_at_war = world.get_diplomatic_state(player, nation) == "WAR"
+    metadata = getattr(world, 'ai_proposal_metadata', {})
+    metadata[nation] = {
+        "war_score_at_proposal": int(get_war_score_for(world, nation, player)) if is_at_war else 0,
+        "turn": int(world.current_turn),
+    }
+    world.ai_proposal_metadata = metadata
 
     return {
         "source": nation,
@@ -831,6 +923,14 @@ def generate_counter_offer(proposal: Dict, world) -> Optional[Dict]:
             nation_dp[source_nation] = current_dp - 1
             world.nation_dp = nation_dp
 
+    # R125: Look up personality-based acceptance/rejection thresholds
+    diplomats = getattr(world, 'diplomats', {})
+    diplomat = diplomats.get(source_nation)
+    diplomat_personality = getattr(diplomat, 'personality', 'loyalist') if diplomat else 'loyalist'
+    thresholds = PERSONALITY_COUNTER_THRESHOLDS.get(diplomat_personality, PERSONALITY_COUNTER_THRESHOLDS["loyalist"])
+    accept_threshold = thresholds["accept"]
+    floor_threshold = thresholds["floor"]
+
     # ── Step 1: Calculate per-clause impact ──
     # We test removing each sweetener/demand/clause individually to see
     # what impact it has on the acceptance score
@@ -838,7 +938,7 @@ def generate_counter_offer(proposal: Dict, world) -> Optional[Dict]:
     baseline_score = baseline["score"]
 
     # If already acceptable, no need to counter
-    if baseline_score >= 50:
+    if baseline_score >= accept_threshold:
         return terms
 
     # Track impact of each removable element
@@ -892,7 +992,7 @@ def generate_counter_offer(proposal: Dict, world) -> Optional[Dict]:
     #  highest positive impact value)
     if not clause_impacts:
         # Nothing to remove — try adding desired clauses directly
-        return _try_add_desired_clauses(terms, source_nation, world)
+        return _try_add_desired_clauses(terms, source_nation, world, accept_threshold=accept_threshold)
 
     # Sort by impact descending (removing the one with highest positive impact
     # improves the score the most — that's the one the AI hates most)
@@ -902,7 +1002,7 @@ def generate_counter_offer(proposal: Dict, world) -> Optional[Dict]:
     # Only remove if it actually improves the score
     if worst_clause["impact"] <= 0:
         # No single removal helps — try adding desired clauses
-        return _try_add_desired_clauses(terms, source_nation, world)
+        return _try_add_desired_clauses(terms, source_nation, world, accept_threshold=accept_threshold)
 
     # ── Step 3: Remove that clause ──
     category = worst_clause["category"]
@@ -918,32 +1018,34 @@ def generate_counter_offer(proposal: Dict, world) -> Optional[Dict]:
     new_result = calculate_acceptance(terms, world)
     new_score = new_result["score"]
 
-    if new_score >= 50:
+    if new_score >= accept_threshold:
         return terms
 
-    if 30 <= new_score < 50:
+    if floor_threshold <= new_score < accept_threshold:
         # Try adding cheapest desired clause from nation's desire table
-        improved = _try_add_desired_clauses(terms, source_nation, world)
+        improved = _try_add_desired_clauses(terms, source_nation, world, accept_threshold=accept_threshold)
         if improved is not None:
             return improved
 
-    # ── Step 5: If < 30, REJECT ──
-    if new_score < 30:
+    # ── Step 5: If below floor, REJECT ──
+    if new_score < floor_threshold:
         return None
 
-    # Between 30-49 but couldn't add desired clauses: still return as counter
+    # Between floor and accept but couldn't add desired clauses: still return as counter
     return terms
 
 
 def _try_add_desired_clauses(
-    terms: Dict, source_nation: str, world
+    terms: Dict, source_nation: str, world, accept_threshold: int = 50
 ) -> Optional[Dict]:
     """Try adding the cheapest desired clause from the nation's desire table.
 
     The AI nation adds additional sweeteners it offers TO France to bridge
-    the acceptance gap toward ≥50. See NATION_DESIRES design note above.
+    the acceptance gap toward >= accept_threshold. See NATION_DESIRES design note above.
 
-    Returns modified terms if score reaches >= 50, otherwise None.
+    R125: accept_threshold is personality-driven (hawk=60, dove=40, default=50).
+
+    Returns modified terms if score reaches >= accept_threshold, otherwise None.
     """
     import copy
 
@@ -983,7 +1085,7 @@ def _try_add_desired_clauses(
                 continue  # Already present, skip
 
         result = calculate_acceptance(test_terms, world)
-        if result["score"] >= 50:
+        if result["score"] >= accept_threshold:
             return test_terms
 
     return None

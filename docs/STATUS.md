@@ -43,7 +43,7 @@
    - ~~**Phase 4: Commands, QoL, Popup Architecture**~~ — **DONE** (27 items, 100 tests).
    - **Phase 5: Design Depth** — **IN PROGRESS.** 40 items (R136 KILLED). 4 waves.
      - ~~**Wave 1: Quick Wins**~~ — **DONE** (10 items, 24 tests). R134 DEBUG_MODE, R121 P2 stalemate, R137 ally parser, R120 help text, R140 relation cap, R139 AI DP cap, R138 counter-offer DP, R135 garrison cap, R58 vindication decay, R130 confidence levels.
-     - **Wave 2: AI Intelligence** (5 items) — R122 coalition posture → AI, R115 personality proposals, R116 P8 trigger, R125 counter-offer thresholds, R126 urgent re-proposal.
+     - ~~**Wave 2: AI Intelligence**~~ — **DONE** (5 items, 36 tests). R126 urgent re-proposal, R115 personality proposals, R116 P8 harsh peace, R125 counter-offer thresholds, R122 coalition posture → AI.
      - **Wave 3: Player Feedback** (8 items) — R118 acceptance preview, R119 betrayal memory, R131 cooldown warning, R129 override feedback, R128 sabotage feedback, R132 vassal transparency, R17d-f ledger.
      - **Wave 4: Decide Gate** (17 items) — Marriage, conferences, voice bank, ceremonies, etc. Per-item approval needed.
    - **After Phase 5: UI Test Plan** — Manual playtest in Godot. DP display investigation (R39). Verify all fixes.

@@ -1579,9 +1579,16 @@ class EnemyAI:
         ai_debug("  P4.8: No consolidation needed")
 
         # ════════════════════════════════════════════════════════════
-        # PRIORITY 5: FORTIFICATION (cautious marshals)
+        # PRIORITY 5: FORTIFICATION (cautious marshals, or any marshal
+        # when coalition is active with defensive/cautious posture — R122)
         # ════════════════════════════════════════════════════════════
-        if personality == "cautious":
+        from backend.game_logic.coalition import is_coalition_member, is_coalition_active
+        coalition_defensive = (
+            is_coalition_active(world)
+            and is_coalition_member(nation, world)
+            and world.active_coalition.get("strategic_posture", "defensive") in ("defensive", "cautious")
+        )
+        if personality == "cautious" or coalition_defensive:
             # Don't re-fortify if stagnation system just forced unfortify this turn
             # or if re-fortify cooldown is active (prevents fortify→unfortify oscillation)
             refortify_blocked = (
@@ -1596,10 +1603,16 @@ class EnemyAI:
         # ─── P6-P7: OFFENSIVE & POSITIONING PRIORITIES ─────────────────────────
 
         # ════════════════════════════════════════════════════════════
-        # PRIORITY 6: DRILLING (aggressive marshals, no threat)
+        # PRIORITY 6: DRILLING (aggressive marshals, or any marshal
+        # when coalition is active with aggressive posture — R122)
         # ════════════════════════════════════════════════════════════
-        if personality == "aggressive":
-            ai_debug("  P6: Checking drill (aggressive marshal)...")
+        coalition_aggressive = (
+            is_coalition_active(world)
+            and is_coalition_member(nation, world)
+            and world.active_coalition.get("strategic_posture", "defensive") == "aggressive"
+        )
+        if personality == "aggressive" or coalition_aggressive:
+            ai_debug("  P6: Checking drill (aggressive marshal or coalition aggressive posture)...")
             drill_action = self._consider_drill(marshal, world)
             if drill_action:
                 ai_debug(f"  -> P6 Drill: {drill_action}")
@@ -1967,7 +1980,14 @@ class EnemyAI:
 
         if strongest_enemy.strength > marshal.strength:
             # Stronger enemy adjacent
-            if personality == "cautious":
+            # R122: Coalition defensive/cautious posture allows any personality to fortify
+            from backend.game_logic.coalition import is_coalition_member, is_coalition_active
+            coalition_defensive = (
+                is_coalition_active(world)
+                and is_coalition_member(nation, world)
+                and world.active_coalition.get("strategic_posture", "defensive") in ("defensive", "cautious")
+            )
+            if personality == "cautious" or coalition_defensive:
                 # Switch to defensive
                 if current_stance != Stance.DEFENSIVE:
                     return {

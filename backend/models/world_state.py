@@ -419,6 +419,10 @@ class WorldState:
         # Stalemate tracking for AI P2 trigger: nation → consecutive stalemate turns
         self.ai_stalemate_counters: Dict[str, int] = {}
 
+        # R126: AI proposal metadata — tracks war_score at time of proposal for urgent re-proposal
+        # Format: {nation: {"war_score_at_proposal": int, "turn": int}}
+        self.ai_proposal_metadata: Dict[str, Dict] = {}
+
         # Previous turn's war scores snapshot for Talleyrand Trigger 2 delta detection
         self.previous_war_scores: Dict[str, int] = {}
 
@@ -2876,6 +2880,7 @@ class WorldState:
             "diplomatic_queue": [q.copy() for q in self.diplomatic_queue],
             "proactive_suggestion_cooldowns": {k: int(v) for k, v in self.proactive_suggestion_cooldowns.items()},
             "ai_stalemate_counters": {k: int(v) for k, v in self.ai_stalemate_counters.items()},
+            "ai_proposal_metadata": {k: v.copy() for k, v in self.ai_proposal_metadata.items()},
             "previous_war_scores": {k: int(v) for k, v in self.previous_war_scores.items()},
 
             # ═══════ VASSAL SYSTEM (Session 5) ═══════
@@ -3081,6 +3086,7 @@ class WorldState:
         world.diplomatic_queue = [q.copy() for q in data.get("diplomatic_queue", [])]
         world.proactive_suggestion_cooldowns = {k: int(v) for k, v in data.get("proactive_suggestion_cooldowns", {}).items()}
         world.ai_stalemate_counters = {k: int(v) for k, v in data.get("ai_stalemate_counters", {}).items()}
+        world.ai_proposal_metadata = {k: v.copy() for k, v in data.get("ai_proposal_metadata", {}).items()}
         world.previous_war_scores = {k: int(v) for k, v in data.get("previous_war_scores", {}).items()}
 
         # ═══════ VASSAL SYSTEM (Session 5) ═══════

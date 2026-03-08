@@ -249,20 +249,20 @@ Bugs, balance tweaks, and small content additions. No design ambiguity. Each < 3
 
 ## WAVE 2: AI INTELLIGENCE (5 items)
 
-### R122: Coalition Posture Drives Enemy AI — BUG/DESIGN
-`enemy_ai.py` — Coalition member priority modifier: Aggressive +10 attack, Defensive +10 defend (convergence halved), Cautious +5 defend (no convergence).
+### R122: Coalition Posture Drives Enemy AI — DONE
+`enemy_ai.py` — Coalition defensive/cautious posture enables fortify for any personality (P5 + _check_threats). Coalition aggressive posture enables drill for any personality (P6). 7 tests.
 
-### R115: Personality-Driven AI Proposals — DESIGN
-`ai_diplomacy.py` — PERSONALITY_PROPOSAL_MODIFIERS table: hawk (+50% gold demand, peace threshold -50), schemer (+2 patience), dove (-25% demand, threshold -20), loyalist (default).
+### R115: Personality-Driven AI Proposals — DONE
+`ai_diplomacy.py` — PERSONALITY_PROPOSAL_MODIFIERS table: hawk (+50% gold demand, peace threshold -20), schemer (+2 patience), dove (-25% demand, threshold +20), loyalist (default). gold_mult param on _build_proposal_terms. 9 tests.
 
-### R116: Aggressive Dominance P8 — DESIGN
-`ai_diplomacy.py` — P8 trigger: war_score > 40 → harsh peace with scaled gold (min 500, war_score*8). war_score > 60 → AP reduction clause.
+### R116: Aggressive Dominance P8 — DONE
+`ai_diplomacy.py` — P8 trigger: war_score > 40 → harsh_peace with scaled gold (min 500, war_score*8). war_score > 60 → AP reduction clause. 6 tests.
 
-### R125: Counter-Offer Personality Thresholds — DESIGN
-`ai_diplomacy.py (generate_counter_offer)` — Hawk accept 60/floor 35, Dove accept 40/floor 25, Schemer/Loyalist 50/30.
+### R125: Counter-Offer Personality Thresholds — DONE
+`ai_diplomacy.py (generate_counter_offer)` — PERSONALITY_COUNTER_THRESHOLDS table: Hawk accept 60/floor 35, Dove accept 40/floor 25, Schemer/Loyalist 50/30. _try_add_desired_clauses uses accept_threshold. 7 tests.
 
-### R126: Urgent Re-Proposal on Situation Change — DESIGN
-`ai_diplomacy.py (_is_on_cooldown)` — Bypass nation cooldown when war_score drops 20+ since last proposal. Track `ai_proposal_metadata` on world.
+### R126: Urgent Re-Proposal on Situation Change — DONE
+`ai_diplomacy.py (_is_on_cooldown)` — Bypass nation cooldown when war_score drops 20+ since last proposal. Track `ai_proposal_metadata` on WorldState (serialized). 7 tests.
 
 ---
 
