@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 8, 2026 (Diplomacy Button spec approved)
+> **Last Updated:** March 8, 2026 (Diplomacy Button Session A — backend complete)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **5757** (5757 passed, 3 skipped — verified Phase 5 Wave 1 + display/parser fixes) |
+| **Tests Passing** | **5886** (5886 passed, 3 skipped — verified Diplomacy Button Session A) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -19,7 +19,7 @@
 
 ## Next Steps
 
-1. **Diplomacy Button (UX Feature)** — **APPROVED.** Guided wizard: [Diplomacy] button + F1 hotkey → nation picker → action picker with Talleyrand assessment + likelihood words. Includes validation hardening (5 executor gaps). See `docs/DIPLOMACY_BUTTON_SPEC.md`.
+1. **Diplomacy Button (UX Feature)** — **SESSION A COMPLETE (backend).** Session B (Godot wizard UI) next. See `docs/DIPLOMACY_BUTTON_SPEC.md`.
 2. **Diplomacy Refinement Phase 5** — **IN PROGRESS.** 40 items (R136 KILLED). See `docs/DIPLO_REFINEMENT.md`.
    - ~~**Wave 1: Quick Wins**~~ — **DONE** (10 items, 24 tests).
    - ~~**Wave 2: AI Intelligence**~~ — **DONE** (5 items, 36 tests).
@@ -56,6 +56,34 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 8 — Diplomacy Button Session A: Backend Complete
+
+Full backend for the Diplomacy Button wizard. 93 new tests in `test_diplomacy_button.py`. 5886 total tests passing, 0 failures.
+
+**Deliverables:**
+- `GET /diplomatic_preview` endpoint in `main.py` — returns nation assessment, available actions with likelihood words, recommendation, vassal details
+- `get_available_diplomatic_actions()` — builds action list per §2b/2c tables with all §2d filters (DP, cooldowns, gold, autonomy extremes, relation requirements)
+- `get_likelihood_descriptor()` — 6-tier scale (Hopeless → Almost Certain) mapped from acceptance scores
+- `get_assessment_text()` — 17 templates keyed by diplomatic state + relation/war_score/loyalty ranges, plus fallback
+- `_build_recommendation()` — 4-tier logic: 0 DP → resource advice, low vassal loyalty → invest, favorable action → recommend, else strategic advice
+- §4a: Proposal-at-or-below-current-state pre-check (blocks proposing what you already have)
+- §4b: `ultimatum_cooldowns` on WorldState — 5-turn cooldown per nation, serialized, decremented in `advance_turn()`
+- §4c: Break-treaty-without-treaty Talleyrand-voiced rejection
+- §4d: Downgrade-at-minimum-state Talleyrand-voiced rejection
+- §4e: Declare-war-during-armistice shows remaining turns
+- Mock parser coverage for all 11 wizard command strings (4 had gaps — fixed)
+
+**Edge case fixes discovered during implementation:**
+- `release_vassal` had NO parser keyword or executor method anywhere — added both (new `_execute_release_vassal`)
+- `increase/decrease autonomy` had no parser keywords — added direction-based parsing
+- `propose vassalization` was routing to vassal section instead of diplomatic parser — reordered keywords
+- §4d downgrade pre-check now fires before DP check — updated 1 existing test in `test_phase4_batch5_popups.py`
+
+**Impact on future sessions:**
+- **Session B (Godot wizard):** Backend validates/blocks all invalid actions now. Godot wizard should display error messages from these validation responses. The `/diplomatic_preview` endpoint returns the full action list with likelihood — Godot just needs to render it.
+- **Wave 3 R118 (acceptance preview):** Now uses unified `get_likelihood_descriptor()` from this session. No separate implementation needed.
+- **Phase 5 items:** `release_vassal` executor and direction-based autonomy changes are now available — any Phase 5 items touching these won't need to add the plumbing.
 
 ### Mar 7 — Comprehensive Creative Audit: Phase 5 Design Depth Approved
 

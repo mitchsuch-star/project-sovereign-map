@@ -506,7 +506,8 @@ class LLMClient:
         # Proposal keywords route to diplomacy (without Talleyrand)
         _proposal_keywords = [
             "propose peace", "propose alliance", "propose armistice",
-            "propose treaty", "offer peace", "offer alliance", "offer armistice",
+            "propose treaty", "propose vassalization", "propose vassal",
+            "offer peace", "offer alliance", "offer armistice",
             "negotiate peace", "negotiate alliance", "negotiate with",
             "sue for peace", "seek peace", "make peace",
             "sign treaty", "sign peace", "peace with",
@@ -761,8 +762,13 @@ class LLMClient:
         elif any(kw in command_lower for kw in [
             "change autonomy", "set autonomy", "make puppet",
             "make satellite", "make autonomous",
+            "increase autonomy", "decrease autonomy",
         ]):
             action = "change_autonomy"
+        elif any(kw in command_lower for kw in [
+            "release vassal", "release ",
+        ]):
+            action = "release_vassal"
         elif any(kw in command_lower for kw in [
             "make vassal", "vassalize", "subjugate",
         ]):

@@ -1625,6 +1625,25 @@ def get_ledger():
 # DIPLOMATIC LEDGER ENDPOINT (Session 8A)
 # ════════════════════════════════════════════════════════════
 
+@app.get("/diplomatic_preview")
+def get_diplomatic_preview_endpoint(nation: str = ""):
+    """Get diplomatic preview for the diplomacy wizard (§3c).
+
+    Returns nation assessment, available actions with likelihood words,
+    dialogue_pending flag.
+    """
+    if not game_state.get("world"):
+        return {"success": False, "message": "No active game"}
+    if not nation:
+        return {"success": False, "message": "No nation specified. Use ?nation=Prussia"}
+    try:
+        from backend.game_logic.diplomacy import get_diplomatic_preview
+        preview = get_diplomatic_preview(world, nation)
+        return {"success": True, **preview}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
 @app.get("/diplomatic_ledger")
 def get_diplomatic_ledger():
     """Get the diplomatic ledger for the diplomatic ledger screen."""

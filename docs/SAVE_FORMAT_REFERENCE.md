@@ -10,8 +10,8 @@ A future save/load system should use this as the specification.
 ## Version
 
 - **Format version:** 1.0
-- **Last updated:** 2026-03-06
-- **Compatible with:** Phase 4 Commands/QoL/Popups
+- **Last updated:** 2026-03-08
+- **Compatible with:** Phase 4 Commands/QoL/Popups + Diplomacy Button Session A
 
 ## Top-Level Structure (WorldState)
 
@@ -99,6 +99,7 @@ A future save/load system should use this as the specification.
   "war_exhaustion": {},
 
   "casus_belli": {},
+  "ultimatum_cooldowns": {},
   "diplomatic_reliability": {},
   "diplomatic_history": [],
   "alliance_paradox_popup": null,
@@ -209,6 +210,7 @@ A future save/load system should use this as the specification.
 | `coalition_count` | int | 0 | **Session 7.** Total coalitions formed this game. Used for naming ("First Coalition", "Second Coalition", etc.). |
 | `war_exhaustion` | dict | {} | **Session 7.** War exhaustion per nation. Keys: nation name. Values: int 0-200. +casualties//1000 per battle (cap 20), +5/turn at war, -5/turn at peace. Affects coalition loyalty penalty. |
 | `casus_belli` | dict | {} | **Phase 4.** Casus belli flags per nation-pair. Keys: diplo_key ("Nation1\|Nation2"). Values: bool. Set true when ultimatum rejected — halves war declaration relation penalties. |
+| `ultimatum_cooldowns` | dict | {} | **Diplomacy Button.** Per-nation ultimatum cooldown. Keys: nation name. Values: int (turns remaining, starts at 5). Blocks re-ultimatum to same target while > 0. Decremented in `advance_turn()`. |
 | `diplomatic_reliability` | dict | {} | **Phase 4.** Diplomatic reliability score per nation-pair. Keys: diplo_key. Values: int. +5 per 10-turn honored treaty, -10 per treaty break. Affects acceptance formula (capped +/-10). |
 | `diplomatic_history` | list | [] | **Phase 4.** Diplomatic event log (max 20 entries). Each entry: `{type, from_nation, to_nation, turn, details?}`. Types: "proposal", "war_declaration", "treaty_break", "ultimatum_accepted", "ultimatum_rejected". Displayed in Talleyrand tab. |
 | `alliance_paradox_popup` | dict\|null | null | **Phase 4.** Pending alliance paradox popup. Set when AI attack creates allied-with-both conflict. Keys: aggressor, defender, ally. Cleared after read. |

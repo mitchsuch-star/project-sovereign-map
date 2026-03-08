@@ -287,8 +287,11 @@ class TestR89DPFailureDialogueState:
     def test_downgrade_dp_failure_includes_dialogue_fields(self, executor, world, game_state):
         """Downgrade DP failure includes dialogue state fields."""
         world.diplomatic_points = 0
+        # Use a nation at a downgradable state (ALLIANCE) so §4d pre-check doesn't fire first
+        key = world._make_diplo_key("France", "Austria")
+        world.diplomatic_states[key] = "ALLIANCE"
         result = executor._execute_diplomatic_downgrade(
-            {"target_nation": "Prussia"}, world
+            {"target_nation": "Austria"}, world
         )
         assert result["success"] is False
         assert "Insufficient" in result["message"]

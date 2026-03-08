@@ -457,6 +457,7 @@ class WorldState:
         # PHASE 4: War Declaration, Ultimatums, Diplomatic Memory
         # ============================================================
         self.casus_belli: Dict[str, bool] = {}           # diplo_key -> True (halves war declaration penalties)
+        self.ultimatum_cooldowns: Dict[str, int] = {}    # nation -> turns remaining (5-turn cooldown per target)
         self.diplomatic_reliability: Dict[str, int] = {} # nation -> reliability score (-100 to +100)
         self.diplomatic_history: List[Dict] = []          # Last 20 diplomatic events
         self.alliance_paradox_popup: Optional[Dict] = None  # R12 alliance paradox
@@ -2905,6 +2906,7 @@ class WorldState:
             "war_exhaustion": {k: int(v) for k, v in self.war_exhaustion.items()},
             # ═══════ PHASE 4: War Declaration, Ultimatums, Diplomatic Memory ═══════
             "casus_belli": self.casus_belli.copy(),
+            "ultimatum_cooldowns": {k: int(v) for k, v in self.ultimatum_cooldowns.items()},
             "diplomatic_reliability": {k: int(v) for k, v in self.diplomatic_reliability.items()},
             "diplomatic_history": [h.copy() for h in self.diplomatic_history],
             "alliance_paradox_popup": self.alliance_paradox_popup,
@@ -3116,6 +3118,7 @@ class WorldState:
 
         # ═══════ PHASE 4: War Declaration, Ultimatums, Diplomatic Memory ═══════
         world.casus_belli = data.get("casus_belli", {}).copy()
+        world.ultimatum_cooldowns = {k: int(v) for k, v in data.get("ultimatum_cooldowns", {}).items()}
         world.diplomatic_reliability = {k: int(v) for k, v in data.get("diplomatic_reliability", {}).items()}
         world.diplomatic_history = [h.copy() for h in data.get("diplomatic_history", [])]
         world.alliance_paradox_popup = data.get("alliance_paradox_popup", None)
@@ -3762,6 +3765,7 @@ class WorldState:
         # ════════════════════════════════════════════════════════════
         self._decrement_ai_proposal_cooldowns()
         self._decrement_proactive_cooldowns()
+        self._decrement_ultimatum_cooldowns()
 
         # ════════════════════════════════════════════════════════════
         # TALLEYRAND DEFIANCE COOLDOWN (Phase 8 Session 6)
@@ -4449,6 +4453,18 @@ class WorldState:
         for key in expired:
             del cooldowns[key]
         self.proactive_suggestion_cooldowns = cooldowns
+
+    def _decrement_ultimatum_cooldowns(self) -> None:
+        """Decrement ultimatum cooldowns by 1. Remove expired."""
+        cooldowns = getattr(self, 'ultimatum_cooldowns', {})
+        expired = []
+        for key in cooldowns:
+            cooldowns[key] -= 1
+            if cooldowns[key] <= 0:
+                expired.append(key)
+        for key in expired:
+            del cooldowns[key]
+        self.ultimatum_cooldowns = cooldowns
 
     def _update_co_location_tracking(self):
         """Update co-location turn counters for dedicated coordination bonus.

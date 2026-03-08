@@ -1489,7 +1489,7 @@ RETREAT RECOVERY (3 turns):
         # debug is FREE (for testing abilities)
         # economy/treasury/finances are FREE information commands (Phase 6.2.G)
         # R72: Vassal commands (invest_vassal, change_autonomy, make_vassal) are free — they cost DP/gold, not military AP
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "invest_vassal", "change_autonomy", "make_vassal"]
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal"]
 
         # Check if action costs points
         action_costs_point = action not in free_actions
@@ -2268,6 +2268,8 @@ RETREAT RECOVERY (3 turns):
             result = self._execute_change_autonomy(command, game_state)
         elif action == "make_vassal":
             result = self._execute_make_vassal(command, game_state)
+        elif action == "release_vassal":
+            result = self._execute_release_vassal(command, game_state)
         # Route to appropriate handler
         elif command_type == "specific":
             result = self._execute_specific(command, game_state)
@@ -11270,6 +11272,24 @@ RETREAT RECOVERY (3 turns):
                 "diplomatic_dialogue": world.pending_diplomatic_dialogue,
             }
 
+        # §4a: Proposal for current or lower state pre-check
+        from backend.game_logic.diplomacy import _UPGRADE_ORDER
+        current_diplo_state = world.get_diplomatic_state("France", target_nation) if target_nation else "PEACE"
+        _state_map_4a = {"peace": "PEACE", "alliance": "ALLIANCE", "defensive_alliance": "DEFENSIVE_ALLIANCE",
+                         "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS", "armistice": "ARMISTICE"}
+        proposal_type_raw = diplomatic_data.get("proposal_type")
+        if proposal_type_raw:
+            target_diplo_state = _state_map_4a.get(proposal_type_raw, "")
+            if target_diplo_state in _UPGRADE_ORDER and current_diplo_state in _UPGRADE_ORDER:
+                if _UPGRADE_ORDER.index(target_diplo_state) <= _UPGRADE_ORDER.index(current_diplo_state):
+                    from backend.game_logic.diplomacy import _STATE_DISPLAY_NAMES
+                    display = _STATE_DISPLAY_NAMES.get(current_diplo_state, current_diplo_state)
+                    return {
+                        "success": False,
+                        "message": f"We already have {display} with {target_nation}. "
+                                   f"Talleyrand sees no purpose in proposing what we already possess.",
+                    }
+
         # Check proposal cooldown
         cooldowns = getattr(world, 'player_proposal_cooldowns', {})
         if target_nation in cooldowns and cooldowns[target_nation] > 0:
@@ -11472,6 +11492,14 @@ RETREAT RECOVERY (3 turns):
         player = world.player_nation
         pair_key = world._make_diplo_key(player, target_nation)
 
+        # §4c: Pre-validate treaty exists with Talleyrand-voiced message
+        active_treaties = getattr(world, 'active_treaties', {})
+        if pair_key not in active_treaties:
+            return {
+                "success": False,
+                "message": f"There is no treaty with {target_nation} to break, Your Excellency.",
+            }
+
         result = break_treaty(pair_key, player, world)
 
         # R23: Marshal trust reactions for treaty broken
@@ -11492,6 +11520,21 @@ RETREAT RECOVERY (3 turns):
             }
 
         player = world.player_nation
+
+        # §4d: Pre-validate not already at minimum downgradable state
+        from backend.game_logic.diplomacy import _DOWNGRADE_ORDER
+        current_state = world.get_diplomatic_state(player, target_nation)
+        if current_state not in _DOWNGRADE_ORDER:
+            return {
+                "success": False,
+                "message": f"Our relations with {target_nation} are already at their most basic level.",
+            }
+        idx = _DOWNGRADE_ORDER.index(current_state)
+        if idx >= len(_DOWNGRADE_ORDER) - 1:
+            return {
+                "success": False,
+                "message": f"Our relations with {target_nation} are already at their most basic level.",
+            }
 
         # Check DP before calling (execute_downgrade doesn't check DP itself)
         dp_cost = 1
@@ -11528,6 +11571,16 @@ RETREAT RECOVERY (3 turns):
             return {
                 "success": False,
                 "message": f"We are already at war with {target_nation}, Sire.",
+            }
+
+        # §4e: Armistice cooldown — include remaining turns in message
+        diplo_key_war = world._make_diplo_key(player, target_nation)
+        arm_cd = getattr(world, 'armistice_cooldowns', {}).get(diplo_key_war, 0)
+        if arm_cd > 0:
+            return {
+                "success": False,
+                "message": f"The armistice with {target_nation} holds for {arm_cd} more turns. "
+                           f"We cannot declare war until it expires.",
             }
 
         # DP check (1 DP)
@@ -11589,6 +11642,16 @@ RETREAT RECOVERY (3 turns):
             return {
                 "success": False,
                 "message": f"We are already at war with {target_nation}, Sire. An ultimatum is meaningless.",
+            }
+
+        # §4b: Ultimatum cooldown check (5-turn per target)
+        ultimatum_cooldowns = getattr(world, 'ultimatum_cooldowns', {})
+        ult_cd = ultimatum_cooldowns.get(target_nation, 0)
+        if ult_cd > 0:
+            return {
+                "success": False,
+                "message": f"Talleyrand advises patience, Sire. Our last ultimatum to {target_nation} "
+                           f"was too recent — we must wait {ult_cd} more turns.",
             }
 
         # DP check (2 DP)
@@ -11678,6 +11741,11 @@ RETREAT RECOVERY (3 turns):
             world.casus_belli[diplo_key] = True
             outcome_msg = (f"{target_nation} has rejected our ultimatum! "
                            f"We now have casus belli — war declaration penalties will be halved.")
+
+        # §4b: Set ultimatum cooldown (5 turns per target)
+        ultimatum_cooldowns = getattr(world, 'ultimatum_cooldowns', {})
+        ultimatum_cooldowns[target_nation] = 5
+        world.ultimatum_cooldowns = ultimatum_cooldowns
 
         # R23: Marshal trust reactions
         self._apply_diplomatic_trust_reactions(world, "ultimatum_issued", target_nation)
@@ -13040,7 +13108,7 @@ RETREAT RECOVERY (3 turns):
         # Check action economy
         # FIX: Added "retreat" - must match main execute() free_actions list
         # R72: Vassal commands are free (DP/gold cost, not military AP)
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "invest_vassal", "change_autonomy", "make_vassal"]
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal"]
         action_costs_point = action not in free_actions
 
         if action_costs_point:
@@ -13301,6 +13369,22 @@ RETREAT RECOVERY (3 turns):
             new_level = AUTONOMY_SATELLITE
         elif "autonomous" in raw_text:
             new_level = AUTONOMY_AUTONOMOUS
+        elif "increase" in raw_text:
+            # Direction-based: increase by one level
+            vassals = getattr(world, 'vassals', {})
+            v = vassals.get(target, {})
+            current = v.get("autonomy", AUTONOMY_SATELLITE)
+            if current >= AUTONOMY_AUTONOMOUS:
+                return {"success": False, "message": f"{target} is already at maximum autonomy."}
+            new_level = current + 1
+        elif "decrease" in raw_text:
+            # Direction-based: decrease by one level
+            vassals = getattr(world, 'vassals', {})
+            v = vassals.get(target, {})
+            current = v.get("autonomy", AUTONOMY_SATELLITE)
+            if current <= AUTONOMY_PUPPET:
+                return {"success": False, "message": f"{target} is already at minimum autonomy."}
+            new_level = current - 1
         else:
             return {
                 "success": False,
@@ -13351,6 +13435,30 @@ RETREAT RECOVERY (3 turns):
             # R23: Marshal trust reactions for vassal creation
             self._apply_diplomatic_trust_reactions(world, "vassal_created", target)
 
+        return result
+
+    def _execute_release_vassal(self, command: Dict, game_state: Dict) -> Dict:
+        """Release a vassal nation. Costs 1 DP."""
+        world: WorldState = game_state.get("world")
+        if not world:
+            return {"success": False, "message": "No active game."}
+
+        target = (command.get("target") or "").strip()
+        if not target:
+            return {"success": False, "message": "Specify which vassal to release."}
+
+        vassals = getattr(world, 'vassals', {})
+        if target not in vassals:
+            return {"success": False, "message": f"{target} is not a vassal."}
+
+        if world.diplomatic_points < 1:
+            return {"success": False, "message": "Insufficient Diplomatic Points. Releasing a vassal costs 1 DP."}
+
+        from backend.game_logic.vassal import release_vassal
+        result = release_vassal(world, target)
+        if result.get("success"):
+            world.diplomatic_points -= 1
+            result["new_state"] = game_state
         return result
 
     # ========================================

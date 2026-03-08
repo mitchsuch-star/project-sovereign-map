@@ -1966,3 +1966,462 @@ def _process_diplomatic_reliability(world) -> None:
                 reliability[nation] = min(100, current + 5)
 
     world.diplomatic_reliability = reliability
+
+
+# ═══════════════════════════════════════════════════════
+# DIPLOMACY BUTTON — PREVIEW HELPERS (Phase 5)
+# ═══════════════════════════════════════════════════════
+
+def get_likelihood_descriptor(score: int) -> str:
+    """Map acceptance score to a thematic likelihood word (§3a).
+
+    Single source of truth for all likelihood displays:
+    wizard, R118 preview, any future acceptance display.
+    """
+    if score >= 70:
+        return "Almost Certain"
+    elif score >= 50:
+        return "Favorable"
+    elif score >= 40:
+        return "Uncertain — may counter"
+    elif score >= 30:
+        return "Doubtful — expect counter"
+    elif score >= 15:
+        return "Unlikely"
+    else:
+        return "Hopeless"
+
+
+def get_relation_descriptor(relation: int) -> str:
+    """Map relation score to descriptor word (§2a)."""
+    if relation >= 60:
+        return "Loyal"
+    elif relation >= 30:
+        return "Friendly"
+    elif relation >= 0:
+        return "Neutral"
+    elif relation >= -29:
+        return "Wary"
+    else:
+        return "Hostile"
+
+
+# ═══════ ASSESSMENT TEMPLATES (§3f) ═══════
+_ASSESSMENT_TEMPLATES = {
+    "war_winning": "{nation} falters, Your Excellency. Our armies press the advantage — an armistice now would be accepted from a position of strength.",
+    "war_losing": "The campaign goes poorly against {nation}. An armistice may be wise — though they will sense our weakness and demand terms.",
+    "war_stalemate": "The war with {nation} grinds on without decisive result. Both sides bleed. An armistice may find receptive ears.",
+    "armistice_wary": "The guns are silent, but the wound festers. Peace may be achievable with {nation}, though they will demand terms.",
+    "armistice_neutral": "The armistice holds. {nation} appears open to permanent peace — the moment may be favorable.",
+    "peace_hostile": "Relations with {nation} remain cold. They eye us with suspicion. Little can be achieved diplomatically until the temperature changes.",
+    "peace_wary": "{nation} maintains a cautious distance. Vienna watches our moves with calculating eyes. Open borders would test their appetite.",
+    "peace_neutral": "{nation} is neither friend nor foe. Opportunity exists for closer ties — open borders would be a natural first step.",
+    "peace_friendly": "{nation} is well-disposed toward us. The time is ripe for open borders, perhaps more.",
+    "open_borders_neutral": "Our borders with {nation} are open, but trust remains shallow. A non-aggression pact would formalize the thaw.",
+    "open_borders_friendly": "{nation} trades freely with us. The foundation is strong — a non-aggression pact or deeper ties are within reach.",
+    "non_aggression_to_alliance": "We have {nation}'s word they will not strike. A defensive alliance would bind us closer — if the relation bears it.",
+    "alliance_stable": "Our alliance with {nation} stands firm. There is little to gain from change, and much to lose.",
+    "alliance_strained": "Our alliance with {nation} holds, but the bond frays. Tread carefully — a break now would cost us dearly.",
+    "vassal_loyal": "{nation} serves faithfully. Tribute flows, the garrison keeps order. A reliable vassal.",
+    "vassal_restless": "Unrest simmers in {nation}. The burden of tribute grows heavy — investment would forestall rebellion.",
+    "vassal_rebellious": "{nation} teeters on the edge of rebellion, Your Excellency. Urgent investment or increased autonomy may be our only recourse.",
+}
+
+_ASSESSMENT_FALLBACK = "Talleyrand considers the situation with {nation}."
+
+
+def get_assessment_text(world, target_nation: str) -> str:
+    """Get Talleyrand's assessment template for a nation (§3f)."""
+    player = getattr(world, 'player_nation', 'France')
+    diplo_key = world._make_diplo_key(player, target_nation)
+    state = world.diplomatic_states.get(diplo_key, "PEACE")
+    relation = world.nation_relations.get(diplo_key, 0)
+
+    # Vassal check
+    vassals = getattr(world, 'vassals', {})
+    if target_nation in vassals:
+        loyalty = vassals[target_nation].get("loyalty", 50)
+        if loyalty >= 50:
+            key = "vassal_loyal"
+        elif loyalty >= 25:
+            key = "vassal_restless"
+        else:
+            key = "vassal_rebellious"
+        template = _ASSESSMENT_TEMPLATES.get(key, _ASSESSMENT_FALLBACK)
+        return template.format(nation=target_nation)
+
+    if state == "WAR":
+        war_score = get_war_score_for(world, player, target_nation)
+        if war_score > 20:
+            key = "war_winning"
+        elif war_score < -20:
+            key = "war_losing"
+        else:
+            key = "war_stalemate"
+    elif state == "ARMISTICE":
+        key = "armistice_wary" if relation < 0 else "armistice_neutral"
+    elif state == "PEACE":
+        if relation < -29:
+            key = "peace_hostile"
+        elif relation < 0:
+            key = "peace_wary"
+        elif relation < 30:
+            key = "peace_neutral"
+        else:
+            key = "peace_friendly"
+    elif state == "OPEN_BORDERS":
+        key = "open_borders_neutral" if relation < 30 else "open_borders_friendly"
+    elif state == "NON_AGGRESSION":
+        key = "non_aggression_to_alliance"
+    elif state in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
+        key = "alliance_stable" if relation >= 50 else "alliance_strained"
+    else:
+        key = None
+
+    if key and key in _ASSESSMENT_TEMPLATES:
+        return _ASSESSMENT_TEMPLATES[key].format(nation=target_nation)
+    return _ASSESSMENT_FALLBACK.format(nation=target_nation)
+
+
+# ═══════ DISPLAY STATE NAMES ═══════
+_STATE_DISPLAY_NAMES = {
+    "WAR": "At War",
+    "ARMISTICE": "Armistice",
+    "PEACE": "Peace",
+    "OPEN_BORDERS": "Open Borders",
+    "NON_AGGRESSION": "Non-Aggression",
+    "DEFENSIVE_ALLIANCE": "Defensive Alliance",
+    "ALLIANCE": "Alliance",
+    "VASSAL": "Vassal",
+}
+
+
+def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
+    """Build available action list for the diplomacy wizard (§2b/2c/2d).
+
+    Returns list of action dicts with dp_cost, available, disabled_reason,
+    likelihood (for proposals), likelihood_score.
+    """
+    player = getattr(world, 'player_nation', 'France')
+    diplo_key = world._make_diplo_key(player, target_nation)
+    state = world.diplomatic_states.get(diplo_key, "PEACE")
+    dp = int(getattr(world, 'diplomatic_points', 0))
+    gold = int(world.nation_gold.get(player, 0)) if hasattr(world, 'nation_gold') else 0
+    vassals = getattr(world, 'vassals', {})
+
+    actions = []
+
+    # ── VASSAL MANAGEMENT (§2c) ──
+    if target_nation in vassals:
+        vassal_state = vassals[target_nation]
+        autonomy = vassal_state.get("autonomy", 1)
+
+        # Invest in Vassal
+        invest_available = True
+        invest_reason = ""
+        invest_cooldowns = getattr(world, 'vassal_investment_cooldowns', {})
+        if target_nation in invest_cooldowns and invest_cooldowns[target_nation] > 0:
+            invest_available = False
+            invest_reason = f"Cooldown: {invest_cooldowns[target_nation]} turns"
+        elif dp < 1:
+            invest_available = False
+            invest_reason = "Insufficient DP"
+        elif gold < 200:
+            invest_available = False
+            invest_reason = "Insufficient Gold"
+        actions.append({
+            "action": "invest_vassal",
+            "display_name": "Invest in Vassal",
+            "dp_cost": 1,
+            "gold_cost": 200,
+            "available": invest_available,
+            "disabled_reason": invest_reason,
+        })
+
+        # Increase Autonomy
+        from backend.game_logic.vassal import AUTONOMY_AUTONOMOUS
+        inc_available = autonomy < AUTONOMY_AUTONOMOUS
+        inc_reason = "" if inc_available else "Already at maximum autonomy"
+        if inc_available and dp < 1:
+            inc_available = False
+            inc_reason = "Insufficient DP"
+        actions.append({
+            "action": "increase_autonomy",
+            "display_name": "Increase Autonomy",
+            "dp_cost": 1,
+            "available": inc_available,
+            "disabled_reason": inc_reason,
+        })
+
+        # Decrease Autonomy
+        from backend.game_logic.vassal import AUTONOMY_PUPPET
+        dec_available = autonomy > AUTONOMY_PUPPET
+        dec_reason = "" if dec_available else "Already at minimum autonomy"
+        if dec_available and dp < 1:
+            dec_available = False
+            dec_reason = "Insufficient DP"
+        actions.append({
+            "action": "decrease_autonomy",
+            "display_name": "Decrease Autonomy",
+            "dp_cost": 1,
+            "available": dec_available,
+            "disabled_reason": dec_reason,
+        })
+
+        # Release Vassal
+        release_available = True
+        release_reason = ""
+        if dp < 1:
+            release_available = False
+            release_reason = "Insufficient DP"
+        actions.append({
+            "action": "release_vassal",
+            "display_name": "Release Vassal",
+            "dp_cost": 1,
+            "available": release_available,
+            "disabled_reason": release_reason,
+        })
+
+        return actions
+
+    # ── FOREIGN AFFAIRS (§2b) ──
+    cooldowns = getattr(world, 'player_proposal_cooldowns', {})
+    armistice_cooldowns = getattr(world, 'armistice_cooldowns', {})
+    ultimatum_cooldowns = getattr(world, 'ultimatum_cooldowns', {})
+    relation = world.nation_relations.get(diplo_key, 0)
+
+    def _proposal_action(action_key: str, display: str, target_state: str):
+        cost = get_transition_dp_cost(state, target_state)
+        available = True
+        reason = ""
+
+        # Cooldown check
+        if target_nation in cooldowns and cooldowns[target_nation] > 0:
+            available = False
+            reason = f"Cooldown: {cooldowns[target_nation]} turns"
+        type_key = f"{target_nation}_{target_state.lower()}"
+        if type_key in cooldowns and cooldowns[type_key] > 0:
+            available = False
+            reason = f"Cooldown: {cooldowns[type_key]} turns"
+
+        # Relation requirement
+        req = STATE_RELATION_REQUIREMENTS.get(target_state)
+        if req is not None and relation <= req:
+            available = False
+            reason = "Relations too low"
+
+        # DP check
+        if available and dp < cost:
+            available = False
+            reason = "Insufficient DP"
+
+        # Calculate likelihood
+        likelihood_score = 0
+        likelihood = ""
+        if available or reason in ("Insufficient DP", "Relations too low"):
+            try:
+                _type_map = {
+                    "ARMISTICE": "armistice_winning",
+                    "PEACE": "peace",
+                    "OPEN_BORDERS": "open_borders",
+                    "NON_AGGRESSION": "non_aggression",
+                    "DEFENSIVE_ALLIANCE": "defensive_alliance",
+                    "ALLIANCE": "alliance",
+                    "VASSAL": "vassalage",
+                }
+                ptype = _type_map.get(target_state, "peace")
+                if target_state == "ARMISTICE":
+                    ws = get_war_score_for(world, player, target_nation)
+                    ptype = "armistice_winning" if ws > 0 else "armistice_losing"
+                proposal = {
+                    "type": ptype,
+                    "proposer_nation": player,
+                    "target_nation": target_nation,
+                    "sweeteners": [],
+                    "demands": [],
+                    "clauses": [],
+                }
+                result = calculate_acceptance(proposal, world)
+                likelihood_score = int(result.get("score", 0))
+                likelihood = get_likelihood_descriptor(likelihood_score)
+            except Exception:
+                likelihood_score = 0
+                likelihood = "Hopeless"
+
+        return {
+            "action": action_key,
+            "display_name": display,
+            "dp_cost": int(cost),
+            "available": available,
+            "disabled_reason": reason,
+            "likelihood": likelihood,
+            "likelihood_score": int(likelihood_score),
+        }
+
+    if state == "WAR":
+        actions.append(_proposal_action("propose_armistice", "Propose Armistice", "ARMISTICE"))
+        ult_available = True
+        ult_reason = ""
+        ult_cd = ultimatum_cooldowns.get(target_nation, 0)
+        if ult_cd > 0:
+            ult_available = False
+            ult_reason = f"Cooldown: {ult_cd} turns"
+        elif dp < 2:
+            ult_available = False
+            ult_reason = "Insufficient DP"
+        actions.append({"action": "send_ultimatum", "display_name": "Send Ultimatum", "dp_cost": 2, "available": ult_available, "disabled_reason": ult_reason})
+
+    elif state == "ARMISTICE":
+        actions.append(_proposal_action("propose_peace", "Propose Peace", "PEACE"))
+
+    elif state == "PEACE":
+        actions.append(_proposal_action("propose_open_borders", "Propose Open Borders", "OPEN_BORDERS"))
+        war_available = True
+        war_reason = ""
+        arm_cd = armistice_cooldowns.get(diplo_key, 0)
+        if arm_cd > 0:
+            war_available = False
+            war_reason = f"Armistice: {arm_cd} turns remaining"
+        elif dp < 1:
+            war_available = False
+            war_reason = "Insufficient DP"
+        actions.append({"action": "declare_war", "display_name": "Declare War", "dp_cost": 1, "available": war_available, "disabled_reason": war_reason})
+        ult_available = True
+        ult_reason = ""
+        ult_cd = ultimatum_cooldowns.get(target_nation, 0)
+        if ult_cd > 0:
+            ult_available = False
+            ult_reason = f"Cooldown: {ult_cd} turns"
+        elif dp < 2:
+            ult_available = False
+            ult_reason = "Insufficient DP"
+        actions.append({"action": "send_ultimatum", "display_name": "Send Ultimatum", "dp_cost": 2, "available": ult_available, "disabled_reason": ult_reason})
+
+    elif state == "OPEN_BORDERS":
+        actions.append(_proposal_action("propose_non_aggression", "Propose Non-Aggression", "NON_AGGRESSION"))
+        actions.append(_proposal_action("propose_vassal", "Propose Vassal", "VASSAL"))
+        actions.append({"action": "declare_war", "display_name": "Declare War", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
+        actions.append({"action": "break_treaty", "display_name": "Break Treaty", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
+        actions.append({"action": "downgrade", "display_name": "Downgrade", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
+        ult_available = True
+        ult_reason = ""
+        ult_cd = ultimatum_cooldowns.get(target_nation, 0)
+        if ult_cd > 0:
+            ult_available = False
+            ult_reason = f"Cooldown: {ult_cd} turns"
+        elif dp < 2:
+            ult_available = False
+            ult_reason = "Insufficient DP"
+        actions.append({"action": "send_ultimatum", "display_name": "Send Ultimatum", "dp_cost": 2, "available": ult_available, "disabled_reason": ult_reason})
+
+    elif state == "NON_AGGRESSION":
+        actions.append(_proposal_action("propose_defensive_alliance", "Propose Defensive Alliance", "DEFENSIVE_ALLIANCE"))
+        actions.append(_proposal_action("propose_vassal", "Propose Vassal", "VASSAL"))
+        actions.append({"action": "declare_war", "display_name": "Declare War", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
+        actions.append({"action": "break_treaty", "display_name": "Break Treaty", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
+        actions.append({"action": "downgrade", "display_name": "Downgrade", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
+        ult_available = True
+        ult_reason = ""
+        ult_cd = ultimatum_cooldowns.get(target_nation, 0)
+        if ult_cd > 0:
+            ult_available = False
+            ult_reason = f"Cooldown: {ult_cd} turns"
+        elif dp < 2:
+            ult_available = False
+            ult_reason = "Insufficient DP"
+        actions.append({"action": "send_ultimatum", "display_name": "Send Ultimatum", "dp_cost": 2, "available": ult_available, "disabled_reason": ult_reason})
+
+    elif state == "DEFENSIVE_ALLIANCE":
+        actions.append(_proposal_action("propose_alliance", "Propose Alliance", "ALLIANCE"))
+        actions.append(_proposal_action("propose_vassal", "Propose Vassal", "VASSAL"))
+        actions.append({"action": "declare_war", "display_name": "Declare War", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
+        actions.append({"action": "break_treaty", "display_name": "Break Treaty", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
+        actions.append({"action": "downgrade", "display_name": "Downgrade", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
+
+    elif state == "ALLIANCE":
+        actions.append({"action": "declare_war", "display_name": "Declare War", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
+        actions.append({"action": "break_treaty", "display_name": "Break Treaty", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
+        actions.append({"action": "downgrade", "display_name": "Downgrade", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
+
+    return actions
+
+
+def get_diplomatic_preview(world, target_nation: str) -> Dict:
+    """Build the full diplomatic preview response for a nation (§3c)."""
+    player = getattr(world, 'player_nation', 'France')
+    diplo_key = world._make_diplo_key(player, target_nation)
+    state = world.diplomatic_states.get(diplo_key, "PEACE")
+    relation = world.nation_relations.get(diplo_key, 0)
+    dp = int(getattr(world, 'diplomatic_points', 0))
+    vassals = getattr(world, 'vassals', {})
+    is_vassal = target_nation in vassals
+
+    dialogue_pending = getattr(world, 'pending_diplomatic_dialogue', None) is not None
+
+    response = {
+        "nation": target_nation,
+        "current_state": state,
+        "current_state_display": _STATE_DISPLAY_NAMES.get(state, state),
+        "relation": int(relation),
+        "relation_descriptor": get_relation_descriptor(relation),
+        "dp_available": int(dp),
+        "dialogue_pending": dialogue_pending,
+        "is_vassal": is_vassal,
+    }
+
+    if is_vassal:
+        from backend.game_logic.vassal import AUTONOMY_NAMES, AUTONOMY_DRIFT
+        v = vassals[target_nation]
+        loyalty = v.get("loyalty", 50)
+        autonomy = v.get("autonomy", 1)
+        drift = AUTONOMY_DRIFT.get(autonomy, 0)
+        if drift > 0:
+            trend = "rising"
+        elif drift < 0:
+            trend = "falling"
+        else:
+            trend = "stable"
+        response["vassal_loyalty"] = int(loyalty)
+        response["vassal_autonomy"] = AUTONOMY_NAMES.get(autonomy, "Satellite")
+        response["vassal_loyalty_trend"] = trend
+        response["vassal_tribute"] = int(v.get("tribute_income", 0))
+        response["section"] = "vassal_management"
+    else:
+        response["section"] = "foreign_affairs"
+
+    response["assessment"] = get_assessment_text(world, target_nation)
+    actions = get_available_diplomatic_actions(world, target_nation)
+    response["actions"] = actions
+    response["recommendation"] = _build_recommendation(world, target_nation, actions, dp, is_vassal, vassals)
+
+    return response
+
+
+def _build_recommendation(world, target_nation: str, actions: List[Dict],
+                          dp: int, is_vassal: bool, vassals: dict) -> str:
+    """Build Talleyrand's recommendation (§3f tiers)."""
+    if dp <= 0:
+        return "Our diplomatic reserves are spent. We must wait."
+
+    if is_vassal:
+        v = vassals.get(target_nation, {})
+        loyalty = v.get("loyalty", 50)
+        if loyalty < 25:
+            return "Talleyrand recommends: Invest to strengthen loyalty"
+        return "No urgent action needed"
+
+    best_proposal = None
+    best_score = -999
+    for a in actions:
+        if not a.get("available"):
+            continue
+        score = a.get("likelihood_score", 0)
+        if a["action"].startswith("propose_"):
+            if score > best_score:
+                best_score = score
+                best_proposal = a
+
+    if best_proposal and best_score >= 40:
+        return f"Talleyrand recommends: {best_proposal['display_name']}"
+
+    return "Relations must improve before proposals will find purchase. A battlefield victory would change their calculus."
