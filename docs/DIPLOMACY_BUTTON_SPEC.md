@@ -27,7 +27,7 @@ A **[Diplomacy]** button in the `InputSection` HBoxContainer, between `SendButto
 
 - Style: Same font/color as Execute and End Turn buttons
 - Text: `"Diplomacy"`
-- Disabled + tooltip when: Talleyrand IN_TRANSIT, or modal dialog open
+- Disabled + tooltip when: Talleyrand IN_TRANSIT, modal dialog open, or diplomatic dialogue pending (tooltip: "Talleyrand awaits your response")
 
 ### 1b. Hotkey
 
@@ -61,12 +61,24 @@ Three-step guided flow. Each step is a popup (CanvasLayer 100, modal).
 **Talleyrand says:**
 > "Your Excellency, which nation requires our diplomatic attention?"
 
-**Options:** Buttons for each known nation, filtered:
+**Options:** Buttons for each known nation, organized by diplomatic category inside a `ScrollContainer`:
+
+| Section | Contains | Header Color |
+|---------|----------|-------------|
+| At War | Nations at WAR | Red |
+| Treaties | ARMISTICE through ALLIANCE | Blue |
+| Vassals | Player's vassals | Gold |
+| Neutral | Nations at PEACE (no treaty) | Gray |
+
+- Empty sections are hidden. Each header shows count: `"At War (2)"`
 - Only nations with PARTIAL+ fog visibility (player has met them)
 - Exclude player's own nation
+- Nation is eliminated → not shown
 - Each button shows nation name + current diplomatic state as subtitle
 - Example: `[ Prussia — AT WAR ]` `[ Austria — Peace ]` `[ Saxony — Vassal ]`
 - **[Cancel]** button to dismiss
+
+This categorized layout handles 4 nations and 20+ nations identically — no redesign needed when nations are added via modding or future content.
 
 ### Step 2: Action Selection
 
@@ -151,10 +163,11 @@ With multiple vassals (up to 4 in current game), Step 1 shows all of them in the
 #### 2d. Action Filters
 
 Actions are hidden or grayed based on game state:
+- Diplomatic dialogue pending → entire wizard disabled (button grayed), tooltip: "Talleyrand awaits your response to the current matter"
+- Talleyrand IN_TRANSIT → entire wizard disabled (button grayed)
 - Armistice cooldown active → hide Declare War, tooltip shows remaining turns
 - DP insufficient → action grayed out with "(Insufficient DP)" label
 - Gold insufficient (Invest) → action grayed out with "(Insufficient Gold)" label
-- Talleyrand IN_TRANSIT → entire wizard disabled (button grayed)
 - Nation is eliminated → not shown in Step 1
 - Proposal cooldown active → hide that proposal type, tooltip shows "Cooldown: N turns"
 - Investment cooldown active → hide Invest, tooltip shows remaining turns
@@ -176,6 +189,8 @@ When the wizard opens but the player can't do much:
 **All proposals Hopeless/Unlikely:** No proposal has Favorable+ likelihood. Assessment panel recommendation changes from a specific proposal to strategic advice: *"Relations must improve before any proposal will find purchase. A battlefield victory or released vassal would change their calculus."*
 
 **Single nation remaining:** Step 1 shows one button. This is fine — click it, see options. No special handling needed.
+
+**Diplomatic dialogue pending:** Wizard refuses to open. Button tooltip shows: *"Talleyrand awaits your response to the current diplomatic matter."* Player must resolve the pending dialogue first (accept/reject/counter the current proposal).
 
 ### Step 3: Handoff to Existing System
 
@@ -235,6 +250,7 @@ Returns available actions with acceptance previews for proposal types:
   "relation": -45,
   "relation_descriptor": "Hostile",
   "dp_available": 2,
+  "dialogue_pending": false,
   "is_vassal": false,
   "assessment": "The war with Prussia grinds on without decisive result. Both sides bleed. An armistice may find receptive ears.",
   "recommendation": "Propose Armistice",
@@ -423,7 +439,7 @@ if target_state in _UPGRADE_ORDER and current_state in _UPGRADE_ORDER:
 | `GET /diplomatic_preview` endpoint | `main.py` | 30 min |
 | `get_available_diplomatic_actions()` helper | `diplomacy.py` | 45 min |
 | `get_likelihood_descriptor()` word mapper | `diplomacy.py` | 15 min |
-| Assessment template system (15 templates + fallback) | `diplomacy.py` or new `assessment_templates.py` | 30 min |
+| Assessment template system (15 templates + fallback) | `diplomacy.py` | 30 min |
 | §4a: Proposal state pre-check | `executor.py` | 15 min |
 | §4b: Ultimatum cooldown + serialization | `executor.py`, `world_state.py` | 30 min |
 | §4c-4e: Error message improvements | `executor.py` | 20 min |
@@ -435,30 +451,49 @@ if target_state in _UPGRADE_ORDER and current_state in _UPGRADE_ORDER:
 |------|------|------|
 | [Diplomacy] button in InputSection | `main.tscn`, `main.gd` | 20 min |
 | F1 hotkey wiring (both focus modes) | `main.gd` | 15 min |
-| Nation selection popup scene | `diplomacy_wizard.gd/.tscn` | 45 min |
-| Action selection popup (dynamic buttons + assessment panel) | `diplomacy_wizard.gd` | 60 min |
+| Wizard popup scene (CanvasLayer 100) | `diplomacy_wizard.gd/.tscn` | 30 min |
+| Nation selection with categorized sections + ScrollContainer | `diplomacy_wizard.gd` | 45 min |
+| Action selection (dynamic buttons + assessment panel) | `diplomacy_wizard.gd` | 60 min |
 | Vassal assessment panel (loyalty bar, trend, tribute) | `diplomacy_wizard.gd` | 20 min |
-| `get_diplomatic_preview()` in api_client | `api_client.gd` | 10 min |
+| Dedicated HTTPRequest for preview calls (see §9b) | `diplomacy_wizard.gd` | 15 min |
 | Likelihood color mapping | `diplomacy_wizard.gd` | 15 min |
-| Edge case displays (0 DP, all cooldowns) | `diplomacy_wizard.gd` | 15 min |
-| Integration with existing command flow | `main.gd` | 20 min |
+| Edge case displays (0 DP, all cooldowns, dialogue pending) | `diplomacy_wizard.gd` | 15 min |
+| Wiring: `_is_modal_dialog_open()`, command flow, screen close | `main.gd` | 25 min |
+| Mock parser keyword verification (all wizard commands) | `llm_client.py` | 15 min |
 
-### 5c. Scope
+### 5c. Session Split (Recommended)
 
-- **Backend:** ~4 hours (including tests + validation fixes + templates)
-- **Godot:** ~3.5 hours
-- **Total:** ~1 session (tight). If Godot popups run long, split: Session A = backend + validation + tests, Session B = Godot wizard UI.
+Two sessions. Godot depends on the backend's `/diplomatic_preview` endpoint.
+
+**Session A — Backend + Tests:**
+- `GET /diplomatic_preview` endpoint + `get_available_diplomatic_actions()` + `get_likelihood_descriptor()` + assessment templates in `diplomacy.py`
+- §4a-4e validation hardening in `executor.py` + `world_state.py`
+- `ultimatum_cooldowns` serialization
+- Mock parser keyword verification for all wizard-generated command strings
+- Tests: `test_diplomacy_button.py` (~40-60 tests)
+- Deliverable: fully curl-testable, all pytest green
+
+**Session B — Godot Wizard UI:**
+- `diplomacy_wizard.gd` + `diplomacy_wizard.tscn` (single file, ~250-280 lines)
+- [Diplomacy] button + F1 hotkey
+- Dedicated HTTPRequest in wizard for preview calls
+- Categorized nation list with ScrollContainer
+- All wiring items from §9
+- Manual testing against running backend from Session A
 
 ---
 
-## §6. Scalability Note
+## §6. Scalability
 
-Current game has 5 nations (4 non-player). The wizard handles this trivially — Step 1 shows 4 buttons max. If nations are added via modding or DLC:
+Built for growth from day one — no deferred redesign needed.
 
-- **6-8 nations:** Still fine as flat button list
-- **9+ nations:** Switch Step 1 to categorized sections: "At War (2)" / "Allied (1)" / "Vassals (3)" / "Neutral (4)" — each collapsible. Not needed now, but the popup layout should use a VBoxContainer that can accept section headers later.
+**Step 1 (Nation Picker):** Categorized sections (§2 Step 1) + `ScrollContainer` handle any nation count. Empty sections auto-hide, so 4 nations looks clean and 20 nations stays organized.
 
-Vassal management scales the same way — each vassal is one nation in the list, clicked individually. No bulk management needed.
+**Step 2 (Preview Endpoint):** `calculate_acceptance()` costs ~15-25ms per call. Worst case per nation: 2-3 proposal actions needing acceptance = 30-75ms total. Scales linearly — even 20 nations with complex states stay under 500ms per preview call. No caching needed.
+
+**Vassal Management:** Each vassal is one nation in the categorized list, clicked individually. No bulk management. Scales by the same ScrollContainer.
+
+**Mock parser:** All wizard-generated command strings (`"propose armistice with [nation]"`, `"declare war on [nation]"`, etc.) must match mock parser keywords in `llm_client.py`. Verify coverage for every action in §2 Step 3 — add missing keywords during Session A.
 
 ---
 
@@ -479,3 +514,85 @@ Vassal management scales the same way — each vassal is one nation in the list,
 2. **Assess Relations:** Not a separate action. Talleyrand's assessment is always visible at the top of the action popup (§2a) — free, always shown, no click needed.
 3. **Action sections:** Two sections in the popup — **Foreign Affairs** (proposals, war, treaties) and **Vassal Management** (invest, autonomy, release). Section shown depends on whether the nation is a vassal.
 4. **Likelihood words:** Unified across all systems. Same word scale in wizard, R118 acceptance preview, and any future likelihood display. Single source function in `diplomacy.py`.
+5. **Template placement:** Assessment templates live in `diplomacy.py` alongside `get_likelihood_descriptor()` and `calculate_acceptance()` — tightly coupled with diplomatic state logic. NOT in `diplomatic_templates.py` (which holds dialogue conversation templates, a different purpose).
+6. **Single wizard file:** `diplomacy_wizard.gd` as one file (~250-280 lines). Splitting into nation_picker + action_picker adds signal-routing overhead for no benefit since both steps share the same popup panel. Pattern after `diplomatic_ledger.gd` (takes `api_client` reference, makes its own API call).
+7. **Session split:** Two sessions (§5c). Backend first (fully testable with curl/pytest), Godot second (needs running backend for integration testing).
+
+---
+
+## §9. Implementation Wiring Checklist
+
+Critical wiring items identified by audit. Missing any one of these causes subtle bugs.
+
+### 9a. Modal Registration (MANDATORY)
+
+Add wizard to `_is_modal_dialog_open()` in `main.gd`:
+```gdscript
+if diplomacy_wizard and diplomacy_wizard.visible: return true
+```
+
+Without this:
+- F1 could open a second wizard on top of the first
+- Escape opens pause menu over the wizard
+- Other hotkeys (L/G/D) fire through the wizard
+- Diplomacy button doesn't self-disable
+
+### 9b. Dedicated HTTPRequest for Preview
+
+The wizard must NOT share `api_client.gd`'s single `HTTPRequest` node. If the diplomatic ledger is still fetching when F1 opens the wizard, the preview request would fail (`ERR_BUSY`).
+
+Create a private `HTTPRequest` inside `diplomacy_wizard.gd`:
+```gdscript
+var _preview_http: HTTPRequest
+
+func _ready():
+    _preview_http = HTTPRequest.new()
+    add_child(_preview_http)
+    _preview_http.request_completed.connect(_on_preview_completed)
+```
+
+The wizard also closes any open screens (`top_bar.close_all_screens()`) before opening, to avoid visual clutter and stale-fetch conflicts.
+
+### 9c. Dialogue Guard Check
+
+Before opening the wizard, check that no diplomatic dialogue is pending:
+```gdscript
+func _open_diplomacy_wizard():
+    if _is_modal_dialog_open():
+        return
+    # Wizard tracks dialogue_pending from last game state update
+    if _dialogue_pending:
+        # Button tooltip already shows reason — just refuse to open
+        return
+    diplomacy_wizard.open()
+```
+
+The `/diplomatic_preview` response includes `dialogue_pending: true/false` so the wizard can also detect this server-side. Both checks guard the same thing — belt and suspenders.
+
+### 9d. Screen Close on Wizard Open
+
+When the wizard opens, close any open CanvasLayer-50 screen (ledger, dispatch, campaign log, marshal management). These are non-modal and would be hidden behind the wizard anyway:
+```gdscript
+if top_bar and top_bar.is_screen_open():
+    top_bar.close_all_screens()
+```
+
+### 9e. Mock Parser Coverage
+
+Verify every wizard-generated command string (§2 Step 3) parses correctly in mock mode. Test during Session A:
+
+| Wizard Command | Mock Parser Keyword |
+|---------------|-------------------|
+| `"propose armistice with Prussia"` | `"propose"` |
+| `"propose peace with Prussia"` | `"propose"` |
+| `"declare war on Prussia"` | `"declare war"` |
+| `"break treaty with Prussia"` | `"break"` |
+| `"downgrade relations with Prussia"` | `"downgrade"` |
+| `"send ultimatum to Prussia"` | `"ultimatum"` |
+| `"propose vassalization to Saxony"` | `"propose"` |
+| `"invest in Saxony"` | `"invest"` |
+| `"increase autonomy Saxony"` | `"autonomy"` |
+| `"decrease autonomy Saxony"` | `"autonomy"` |
+| `"release Saxony"` | `"release"` |
+
+Add missing keywords to `llm_client.py` (~line 416).
