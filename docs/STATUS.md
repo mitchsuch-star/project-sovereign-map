@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 8, 2026 (Diplomacy Button Session A — backend complete)
+> **Last Updated:** March 8, 2026 (Diplomacy Button Session B — Godot wizard UI complete)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **5886** (5886 passed, 3 skipped — verified Diplomacy Button Session A) |
+| **Tests Passing** | **5886** (5886 passed, 3 skipped — verified Diplomacy Button Session B) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -19,7 +19,7 @@
 
 ## Next Steps
 
-1. **Diplomacy Button (UX Feature)** — **SESSION A COMPLETE (backend).** Session B (Godot wizard UI) next. See `docs/DIPLOMACY_BUTTON_SPEC.md`.
+1. ~~**Diplomacy Button (UX Feature)**~~ — **COMPLETE.** Session A (backend) + Session B (Godot wizard UI). See `docs/DIPLOMACY_BUTTON_SPEC.md`.
 2. **Diplomacy Refinement Phase 5** — **IN PROGRESS.** 40 items (R136 KILLED). See `docs/DIPLO_REFINEMENT.md`.
    - ~~**Wave 1: Quick Wins**~~ — **DONE** (10 items, 24 tests).
    - ~~**Wave 2: AI Intelligence**~~ — **DONE** (5 items, 36 tests).
@@ -56,6 +56,20 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 8 — Diplomacy Button Session B: Godot Wizard UI Complete
+
+Godot wizard UI for the Diplomacy Button. [Diplomacy] button + F1 hotkey opens guided 2-step wizard. 5886 total tests passing, 0 failures.
+
+**Deliverables:**
+- `diplomacy_wizard.gd` (427 lines) + `diplomacy_wizard.tscn` — CanvasLayer 100 modal, own HTTPRequest (§9b)
+- [Diplomacy] button in InputSection between Execute and End Turn
+- F1 hotkey wired in both `_on_command_input_gui_input` (text focus) and `_unhandled_input` (global)
+- Step 1: categorized nation list (at_war/treaties/vassals/neutral) from `/diplomatic_preview`
+- Step 2: Talleyrand's assessment panel + colored likelihood action buttons from `/diplomatic_preview?nation=X`
+- Step 3: command handoff — wizard builds command string, emits signal, main.gd sends via `/command`
+- All §9 wiring: modal registration (§9a), dedicated HTTPRequest (§9b), dialogue guard (§9c), screen close (§9d)
+- `/diplomatic_preview` endpoint extended: returns nation list when no `?nation` param
 
 ### Mar 8 — Diplomacy Button Session A: Backend Complete
 

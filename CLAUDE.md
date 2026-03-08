@@ -18,8 +18,8 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Diplomacy Button — SESSION A COMPLETE (backend).** Session B (Godot wizard UI) next. 93 tests, `GET /diplomatic_preview` endpoint, 5 validation fixes, `ultimatum_cooldowns` field. See `docs/DIPLOMACY_BUTTON_SPEC.md`.
-- **Diplomacy Refinement Phase 5: Design Depth.** Waves 1-2 DONE. Wave 3 (Player Feedback, 8 items) next after Diplomacy Button. See `docs/DIPLO_REFINEMENT.md`.
+- **Diplomacy Button — COMPLETE.** Session A (backend, 93 tests) + Session B (Godot wizard UI). See `docs/DIPLOMACY_BUTTON_SPEC.md`.
+- **Diplomacy Refinement Phase 5: Design Depth.** Waves 1-2 DONE. Wave 3 (Player Feedback, 8 items) next. See `docs/DIPLO_REFINEMENT.md`.
 - **Phase 7b remaining:** V2b COMPLETE. Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Gates 5+6 PASSED. Jealousy (SPEC v3 DRAFTED — needs design gate approval). Coalition Trigger moved to Phase 8.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial Infrastructure deferred to Pre-EA.
 - **Phase 8: Diplomacy — COMPLETE.** ALL 11 sessions done (1A through 8D). ~580 tests. See `docs/SESSION_8_PLAN.md`.
@@ -113,6 +113,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | `sabotage_discovery_popup.gd` | Sabotage discovery popup (Session 8C): [Confront][Overlook] |
 | `talleyrand_redemption_popup.gd` | Talleyrand redemption popup (Session 8C): [Apologize][Replace][Continue] |
 | `vassal_rebellion_popup.gd` | Vassal rebellion imminent popup (Session 8C): [Invest][Garrison][Accept] |
+| `diplomacy_wizard.gd` | Diplomacy Button wizard (Session B): F1 hotkey, 2-step nation→action flow, own HTTPRequest, command handoff |
 
 ---
 
@@ -150,6 +151,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | Square formation / Tactical Triangle | `docs/TACTICAL_TRIANGLE_SPEC.md`, `marshal.py` (square_formation, overwatch_penalty), `combat.py` (cavalry -40%, artillery +50%), `executor.py` (form_square, auto-bombardment, overwatch calc) |
 | Vassal system (Phase 8 S5) | `vassal.py` (all vassal mechanics), `world_state.py` (vassals dict, advance_turn steps 5-7, tribute), `diplomacy.py` (AP clause, Continental System), `turn_manager.py` (enemy courting), `dispatch.py` (Trigger 3 loyalty warnings) |
 | Diplomatic ledger | `diplomatic_ledger.py` (build_diplomatic_ledger, fog-filtered army strength), `main.py` (GET /diplomatic_ledger, debug endpoints), `world_state.py` (popup fields) |
+| Diplomacy wizard / button | `diplomacy_wizard.gd` (wizard UI), `main.gd` (F1 hotkey, button wiring, command handoff), `main.py` (GET /diplomatic_preview nation list mode), `docs/DIPLOMACY_BUTTON_SPEC.md` |
 | Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md` (v2.2), `docs/CONVERSATIONAL_DIPLOMACY_DESIGN.md` (v1.2), `docs/COALITION_SPEC.md` (v1.1), `diplomacy.py` (acceptance formula, state transitions, war score), `diplomat.py` (DiplomaticRepresentative), `diplomatic_dialogue.py` (conversation state machine), `diplomatic_templates.py` (37 mock templates + T28-T34 coalition, slot resolvers), `ai_diplomacy.py` (AI proposal generation, M3 counter-offer, alliance conflict), `diplomatic_advisory.py` (advisory conversations), `vassal.py` (loyalty, rebellion), `diplomatic_defiance.py` (Talleyrand sabotage), `coalition.py` (threat, formation, AI, breaking, dissolution) |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`
