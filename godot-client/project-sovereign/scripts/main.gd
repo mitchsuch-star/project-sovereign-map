@@ -21,6 +21,7 @@ extends Control
 @onready var output_display = $BottomLeftUI/MainMargin/MainLayout/OutputScroll/OutputDisplay
 @onready var command_input = $BottomLeftUI/MainMargin/MainLayout/InputSection/CommandInput
 @onready var send_button = $BottomLeftUI/MainMargin/MainLayout/InputSection/SendButton
+@onready var diplomacy_button = $BottomLeftUI/MainMargin/MainLayout/InputSection/DiplomacyButton
 @onready var end_turn_button = $BottomLeftUI/MainMargin/MainLayout/InputSection/EndTurnButton
 
 # UI References - Minimize/Restore
@@ -69,6 +70,9 @@ var talleyrand_objection_popup = null
 var sabotage_discovery_popup = null
 var talleyrand_redemption_popup = null
 var vassal_rebellion_popup = null
+
+# Diplomacy Wizard (Diplomacy Button Session B)
+var diplomacy_wizard = null
 
 # Pause Menu (Phase 6.5)
 var pause_menu = null
@@ -282,6 +286,14 @@ func _ready():
 		vassal_rebellion_popup.choice_made.connect(_on_vassal_rebellion_choice)
 		print("✓ VassalRebellionPopup ready!")
 
+	# ── Diplomacy Wizard (Session B) ──
+	var diplomacy_wizard_scene = load("res://scenes/diplomacy_wizard.tscn")
+	if diplomacy_wizard_scene:
+		diplomacy_wizard = diplomacy_wizard_scene.instantiate()
+		add_child(diplomacy_wizard)
+		diplomacy_wizard.command_selected.connect(_on_wizard_command_selected)
+		print("✓ DiplomacyWizard ready!")
+
 	# Load and setup Pause Menu (Phase 6.5)
 	var pause_menu_scene = load("res://scenes/pause_menu.tscn")
 	if pause_menu_scene:
@@ -368,6 +380,9 @@ func _ready():
 
 	if not end_turn_button.pressed.is_connected(_on_end_turn_pressed):
 		end_turn_button.pressed.connect(_on_end_turn_pressed)
+
+	if not diplomacy_button.pressed.is_connected(_on_diplomacy_button_pressed):
+		diplomacy_button.pressed.connect(_on_diplomacy_button_pressed)
 
 	if not command_input.gui_input.is_connected(_on_command_input_gui_input):
 		command_input.gui_input.connect(_on_command_input_gui_input)
@@ -459,7 +474,10 @@ func _on_command_submitted(_text: String):
 func _on_command_input_gui_input(event):
 	"""Handle special keys in command input."""
 	if event is InputEventKey and event.pressed:
-		if event.keycode == KEY_UP:
+		if event.keycode == KEY_F1:
+			_open_diplomacy_wizard()
+			command_input.accept_event()
+		elif event.keycode == KEY_UP:
 			_history_previous()
 			command_input.accept_event()  # Consume event, prevent camera movement
 		elif event.keycode == KEY_DOWN:
@@ -543,6 +561,13 @@ func _unhandled_input(event):
 
 		# Block all hotkeys while pause menu is open
 		if pause_menu and pause_menu.visible:
+			get_viewport().set_input_as_handled()
+			return
+
+		# ═══ F1: DIPLOMACY WIZARD — works even when input focused ═══
+		if event.keycode == KEY_F1:
+			if not _is_modal_dialog_open():
+				_open_diplomacy_wizard()
 			get_viewport().set_input_as_handled()
 			return
 
@@ -1717,6 +1742,7 @@ func set_input_enabled(enabled: bool):
 	command_input.editable = enabled
 	send_button.disabled = not enabled
 	end_turn_button.disabled = not enabled
+	diplomacy_button.disabled = not enabled
 
 	if enabled:
 		command_input.grab_focus()
@@ -2727,6 +2753,9 @@ func _is_modal_dialog_open() -> bool:
 		return true
 	if vassal_rebellion_popup and vassal_rebellion_popup.visible:
 		return true
+	# Diplomacy Wizard (Session B)
+	if diplomacy_wizard and diplomacy_wizard.visible:
+		return true
 	return false
 
 func _is_screen_open() -> bool:
@@ -2754,6 +2783,47 @@ func _on_envoy_clicked():
 	command_input.text = "Talleyrand, report on the waiting envoy"
 	command_input.grab_focus()
 	command_input.caret_column = command_input.text.length()
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# DIPLOMACY WIZARD (Session B)
+# ════════════════════════════════════════════════════════════════════════════
+
+func _on_diplomacy_button_pressed():
+	"""Handle Diplomacy button click."""
+	_open_diplomacy_wizard()
+
+
+func _open_diplomacy_wizard():
+	"""Open the diplomacy wizard (§9c, §9d)."""
+	if _is_modal_dialog_open():
+		return
+	if not diplomacy_wizard:
+		return
+	# Close any open top bar screens first (§9d)
+	if top_bar and top_bar.is_screen_open():
+		top_bar.close_all_screens()
+	diplomacy_wizard.open()
+
+
+func _on_wizard_command_selected(command: String):
+	"""Handle wizard action selection — execute constructed command (§2 Step 3)."""
+	if command.is_empty():
+		return
+
+	# Add to history
+	_add_to_history(command)
+
+	# Display the command in terminal
+	add_output("")
+	add_output("[color=#" + COLOR_COMMAND + "]► " + command + "[/color]")
+
+	# Disable input while processing
+	set_input_enabled(false)
+
+	# Send to backend via normal command flow
+	api_client.send_command(command, _on_command_result)
+
 
 func _on_pause_save_requested():
 	"""Handle Save Game from pause menu."""

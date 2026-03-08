@@ -213,6 +213,13 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 11
 text = "Execute"
 
+[node name="DiplomacyButton" type="Button" parent="BottomLeftUI/MainMargin/MainLayout/InputSection"]
+layout_mode = 2
+tooltip_text = "Diplomacy (F1)"
+theme_override_colors/font_color = Color(0.6, 0.7, 0.9, 1)
+theme_override_font_sizes/font_size = 11
+text = "Diplomacy"
+
 [node name="EndTurnButton" type="Button" parent="BottomLeftUI/MainMargin/MainLayout/InputSection"]
 layout_mode = 2
 tooltip_text = "End your turn and let enemies move"

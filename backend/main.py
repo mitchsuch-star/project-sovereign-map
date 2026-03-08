@@ -1629,13 +1629,66 @@ def get_ledger():
 def get_diplomatic_preview_endpoint(nation: str = ""):
     """Get diplomatic preview for the diplomacy wizard (§3c).
 
-    Returns nation assessment, available actions with likelihood words,
-    dialogue_pending flag.
+    Without ?nation: returns categorized nation list for Step 1.
+    With ?nation=X: returns full preview for Step 2.
     """
     if not game_state.get("world"):
         return {"success": False, "message": "No active game"}
     if not nation:
-        return {"success": False, "message": "No nation specified. Use ?nation=Prussia"}
+        # Step 1: Return categorized nation list for the wizard
+        try:
+            from backend.game_logic.diplomacy import _STATE_DISPLAY_NAMES
+            player = world.player_nation
+            enemy_nations = list(getattr(world, 'enemy_nations', []))
+            vassals = getattr(world, 'vassals', {})
+            dp = int(getattr(world, 'diplomatic_points', 0))
+            dialogue_pending = getattr(world, 'pending_diplomatic_dialogue', None) is not None
+
+            categories = {"at_war": [], "treaties": [], "vassals": [], "neutral": []}
+            treaty_states = {"ARMISTICE", "OPEN_BORDERS", "NON_AGGRESSION",
+                             "DEFENSIVE_ALLIANCE", "ALLIANCE"}
+
+            for n in enemy_nations:
+                # Skip eliminated nations (no marshals with strength, no regions)
+                has_forces = any(
+                    m.strength > 0 for m in world.marshals.values() if m.nation == n
+                )
+                has_regions = any(
+                    r.controller == n for r in world.regions.values()
+                )
+                if not has_forces and not has_regions:
+                    continue
+
+                diplo_key = world._make_diplo_key(player, n)
+                state = world.diplomatic_states.get(diplo_key, "PEACE")
+                is_vassal = n in vassals
+
+                entry = {
+                    "name": n,
+                    "state": state,
+                    "state_display": _STATE_DISPLAY_NAMES.get(state, state),
+                    "is_vassal": is_vassal,
+                }
+
+                if is_vassal:
+                    entry["state_display"] = "Vassal"
+                    categories["vassals"].append(entry)
+                elif state == "WAR":
+                    categories["at_war"].append(entry)
+                elif state in treaty_states:
+                    categories["treaties"].append(entry)
+                else:
+                    categories["neutral"].append(entry)
+
+            return {
+                "success": True,
+                "mode": "nations",
+                "dp_available": int(dp),
+                "dialogue_pending": dialogue_pending,
+                "categories": categories,
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
     try:
         from backend.game_logic.diplomacy import get_diplomatic_preview
         preview = get_diplomatic_preview(world, nation)
