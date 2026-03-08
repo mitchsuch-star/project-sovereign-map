@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 8, 2026 (Display name fix + diplomatic parser expansion — 85 new tests)
+> **Last Updated:** March 8, 2026 (Diplomacy Button spec approved)
 
 ---
 
@@ -19,37 +19,20 @@
 
 ## Next Steps
 
-1. **Phase 8: Diplomacy** — **Session 7 COMPLETE.** Unified 8-session plan:
-   - ~~Session 1A: Map Expansion (13→19 regions)~~ — **DONE** (19 regions, 5 nations, all adjacencies verified, FORMAT_VERSION 2)
-   - ~~Session 1B: Nations + Marshals + Economy~~ — **DONE** (Austria/Saxony activated, PrinceAugust removed, 4 new marshals, diplomatic_states/nation_relations data, British naval income, is_at_war() gating on all enemy AI paths, 56 new gate tests)
-   - ~~Session 2: Diplomatic States + Acceptance Formula + Diplomat class~~ — **DONE** (5 diplomats, acceptance formula with 7 components + military supremacy/battlefield diplomacy, DP economy, war score with 4 components, trade income matching §1d, movement restrictions, war declaration + DEFENSIVE_ALLIANCE cascade, 111 new tests)
-   - ~~Session 3: Talleyrand Commands + Conversational Dialogue Foundation~~ — **DONE** (diplomatic_dialogue.py, diplomatic_templates.py, llm_client/parser/executor/world_state/main routing, 7 new world_state fields, 76 new tests)
-   - ~~Session 4: AI Proposals + Counter-Offers + Advisory + Proactive Suggestions~~ — **DONE** (ai_diplomacy.py, diplomatic_advisory.py, P1-P7 trigger table, M3 counter-offer algorithm, Talleyrand's Report in dispatch, templates T11-T20, 43 new tests)
-   - ~~Session 5: Vassal System + Loyalty~~ — **DONE** (vassal.py core engine, loyalty ticks with 7 modifiers, rebellion+cascade, tribute, investment, autonomy levels, marshal assimilation, AP/turn clause, Continental System, enemy vassal courting, dispatch warnings, 51 new tests)
-   - ~~Session 6: Talleyrand Defiance + Diplomatic Objections~~ — **DONE** (diplomatic_defiance.py, defiance probability curve, 5 sabotage types, discovery+confrontation, redemption event, pre-proposal objections, enemy diplomat voices T21-T27, dispatch integration, 76 new tests)
-   - ~~Session 7: Coalition System~~ — **DONE** (coalition.py engine, threat accumulation/decay, coalition formation/brewing/instant, leader selection+posture, coalition AI friction+convergence, war exhaustion, British subsidy, loyalty penalty+wedge, dissolution+cooldown, dispatch integration, T28-T34 templates, 80 new tests)
-   - ~~Session 8A: Backend Ledger Builder + Debug Arsenal~~ — **DONE** (diplomatic_ledger.py with 4 tabs fog-filtered, GET /diplomatic_ledger endpoint, 7 top-bar fields, 3 popup pass-throughs with clear-after-read, 10 cheat commands with mock parser, calculate_war_score components extension, 8 debug endpoints, get_diplomatic_ledger() in api_client.gd, 82 new tests)
-   - ~~Session 8B: Diplomatic Ledger Godot UI + Top Bar~~ — **DONE** (diplomatic_ledger.gd/.tscn 4-tab screen, D key for diplomatic ledger, R key for dispatch re-read, top bar DP/threat/Talleyrand/envoy fields with pulse + click, diplomatic fields in /command response, 30 new tests)
-   - ~~Session 8C: Popups + Notifications~~ — **DONE** (11 new notification constants, 18 notification fire points wired across coalition/diplomacy/vassal/ai_diplomacy/defiance/dispatch, 6 popup data contracts with clear-after-read, 3 new world_state popup fields serialized, 6 Godot popup scenes with BBCode+signals, priority queue in main.gd, 31 new tests)
-   - ~~Session 8D: Dispatch Integration + Polish~~ — **DONE** (20 diplomatic dispatch event types with fog-filtered visibility, queue_dispatch_event helper, campaign log 6 diplomacy event types with one-liner formatters, AI-AI diplomatic phase with 4 triggers + max 2 treaties/turn, special acceptance bonuses for 4 nations, 4 scenario test fixtures, Godot dispatch_view.gd diplomatic section + campaign_log.gd diplomacy category, 57 new tests)
-2. **Diplomacy Audit** — **COMPLETE.** 20 bugs fixed, 145 audit tests. See `docs/DIPLOMACY_AUDIT.md`.
-3. **Diplomacy Creative Audit** — **COMPLETE.** 5-agent deep analysis: balance, historical accuracy, fun, AI behavior, edge cases. Overall score 7.8/10. 8 critical/high bugs found, 10 balance issues, 18 design gaps, 6 AI behavior issues, 7 edge cases. 3 easy fixes applied (treaty cancel/downgrade commands, AI-AI ledger visibility). See `docs/DIPLOMACY_CREATIVE_AUDIT.md`.
-4. **Diplomacy Refinement & Cleanup** — **155 items total.** Phases 1-4 COMPLETE (55 items, 326 tests). Phase 5 IN PROGRESS. See `docs/DIPLO_REFINEMENT.md`.
-   - ~~**Phase 1: Critical Wiring**~~ — **DONE** (16 fixes, 37 tests).
-   - ~~**Phase 2A: State Cleanup — Diplomacy Core**~~ — **DONE** (17 fixes, 69 tests).
-   - ~~**Phase 2B: State Cleanup — Vassal, AI-AI, War**~~ — **DONE** (22 fixes, 50 tests).
-   - ~~**Phase 2B+ Confidence Fixes**~~ — **DONE** (5 fixes, 26 tests).
-   - ~~**Phase 3: Balance Tuning**~~ — **DONE** (13 items, 44 tests).
-   - ~~**Phase 4: Commands, QoL, Popup Architecture**~~ — **DONE** (27 items, 100 tests).
-   - **Phase 5: Design Depth** — **IN PROGRESS.** 40 items (R136 KILLED). 4 waves.
-     - ~~**Wave 1: Quick Wins**~~ — **DONE** (10 items, 24 tests). R134 DEBUG_MODE, R121 P2 stalemate, R137 ally parser, R120 help text, R140 relation cap, R139 AI DP cap, R138 counter-offer DP, R135 garrison cap, R58 vindication decay, R130 confidence levels.
-     - ~~**Wave 2: AI Intelligence**~~ — **DONE** (5 items, 36 tests). R126 urgent re-proposal, R115 personality proposals, R116 P8 harsh peace, R125 counter-offer thresholds, R122 coalition posture → AI.
-     - **Wave 3: Player Feedback** (8 items) — R118 acceptance preview, R119 betrayal memory, R131 cooldown warning, R129 override feedback, R128 sabotage feedback, R132 vassal transparency, R17d-f ledger.
-     - **Wave 4: Decide Gate** (17 items) — Marriage, conferences, voice bank, ceremonies, etc. Per-item approval needed.
+1. **Diplomacy Button (UX Feature)** — **APPROVED.** Guided wizard: [Diplomacy] button + F1 hotkey → nation picker → action picker with Talleyrand assessment + likelihood words. Includes validation hardening (5 executor gaps). See `docs/DIPLOMACY_BUTTON_SPEC.md`.
+2. **Diplomacy Refinement Phase 5** — **IN PROGRESS.** 40 items (R136 KILLED). See `docs/DIPLO_REFINEMENT.md`.
+   - ~~**Wave 1: Quick Wins**~~ — **DONE** (10 items, 24 tests).
+   - ~~**Wave 2: AI Intelligence**~~ — **DONE** (5 items, 36 tests).
+   - **Wave 3: Player Feedback** (8 items) — R118 acceptance preview, R119 betrayal memory, R131 cooldown warning, R129 override feedback, R128 sabotage feedback, R132 vassal transparency, R17d-f ledger. Note: R118 now uses unified likelihood words from Diplomacy Button spec.
+   - **Wave 4: Decide Gate** (17 items) — Marriage, conferences, voice bank, ceremonies, etc. Per-item approval needed.
    - **After Phase 5: UI Test Plan** — Manual playtest in Godot. DP display investigation (R39). Verify all fixes.
-5. **Comprehensive Creative Audit** — **COMPLETE.** 6-agent deep audit scored diplomacy 6.5/10. Key findings: war score decay bug (FIXED in Phase 2A), counter-offer broken (FIXED in Phase 1), Talleyrand voice monotone, AI proposals lack personality, diplomacy strategically optional vs military conquest, coalition posture not read by AI. All findings converted to Phase 5 items. See audit results in this session's history.
-6. **Jealousy system** — NEEDS DESIGN GATE (separate track). See CLAUDE.md.
-7. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tooltips absorbed into Map Renderer. Tutorial deferred to Pre-EA.
+3. ~~**Phase 8: Diplomacy**~~ — **ALL SESSIONS COMPLETE** (1A through 8D). See `docs/SESSION_8_PLAN.md`.
+4. ~~**Diplomacy Audit**~~ — **COMPLETE.** 20 bugs fixed, 145 audit tests.
+5. ~~**Diplomacy Creative Audit**~~ — **COMPLETE.** 7.8/10 score.
+6. ~~**Comprehensive Creative Audit**~~ — **COMPLETE.** 6.5/10 score. All findings → Phase 5 items.
+7. ~~**Diplomacy Refinement Phases 1-4**~~ — **COMPLETE** (55 items, 326 tests).
+8. **Jealousy system** — NEEDS DESIGN GATE (separate track). See CLAUDE.md.
+9. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tutorial deferred to Pre-EA.
 
 ---
 
