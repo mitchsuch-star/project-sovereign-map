@@ -559,6 +559,9 @@ def execute_command(request: CommandRequest):
                 "apologize", "replace", "continue", "invest", "garrison",
                 "send", "execute", "reconsider", "modify",
                 "honor", "side", "dismiss",
+                "harsh", "generous", "adjust",  # Proposal confirm popup actions
+                "elaborate", "review", "consider",  # Template actions (GAP-1)
+                "begin", "trust",  # Mission start + send_suggested (GAP-4/6)
             ]
             matched_keyword = None
             for keyword in _DIALOGUE_RESPONSE_KEYWORDS:
@@ -570,7 +573,15 @@ def execute_command(request: CommandRequest):
                 result = executor.handle_diplomatic_dialogue_response(
                     matched_keyword, game_state)
             else:
-                result = executor.execute(parsed, game_state)
+                # Fallback: pass raw text to dialogue handler — label matching
+                # (e.g. nation names like "Prussia") will match option labels.
+                # Only fall through to executor if handler says "Please choose".
+                print(f"[DIPLOMATIC] Fallback label-match: {raw_lower}")
+                result = executor.handle_diplomatic_dialogue_response(
+                    request.command, game_state)
+                msg = (result or {}).get("message", "")
+                if "Please choose an option" in msg:
+                    result = executor.execute(parsed, game_state)
         else:
             # ════════════════════════════════════════════════════════════
             # BERTHIER PARSE RECOVERY: Replace generic "Unknown action"

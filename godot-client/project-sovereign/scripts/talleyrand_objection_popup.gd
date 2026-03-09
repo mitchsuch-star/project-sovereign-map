@@ -44,6 +44,26 @@ func show_objection(data: Dictionary):
 	bbcode += "[b]TALLEYRAND OBJECTS[/b]\n"
 	bbcode += "[color=#%s]%s[/color]\n\n" % [level_color, concern_level]
 	bbcode += "\"%s\"\n\n" % objection_text
+
+	# Show proposal terms if enriched
+	var terms = data.get("proposal_terms", [])
+	if not terms.is_empty():
+		bbcode += "[b]Proposed terms:[/b]\n"
+		for t in terms:
+			bbcode += "  [color=#e0c070]•[/color] %s\n" % str(t)
+		bbcode += "\n"
+
+	# Acceptance estimate with color coding
+	var acceptance = data.get("acceptance_estimate", -1)
+	var outcome = data.get("acceptance_outcome", "")
+	if acceptance >= 0:
+		var a_color = "#e04040"
+		if acceptance >= 50:
+			a_color = "#80c080"
+		elif acceptance >= 30:
+			a_color = "#e0e060"
+		bbcode += "Acceptance estimate: [color=%s]~%d%%[/color] (%s)\n" % [a_color, acceptance, outcome]
+
 	bbcode += "[b]Defiance Risk:[/b] %s\n" % defiance_risk
 	bbcode += "[b]Regarding:[/b] %s" % proposal_summary
 

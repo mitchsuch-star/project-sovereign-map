@@ -365,6 +365,13 @@ def generate_dialogue(intent_type: str, parsed_command: Dict, world) -> Dict:
         "blocking": False,
     }
 
+    # ═══════ PROPOSAL TERMS ENRICHMENT ═══════
+    # For proposal_confirm/proposal_execute, compute and attach terms summary,
+    # acceptance estimate, harshness, and DP cost so the frontend popup can
+    # display them to the player.
+    if intent_type in ("proposal_execute", "proposal_confirm") and target_nation and proposal_type:
+        dialogue = _enrich_proposal_summary(dialogue, target_nation, proposal_type, world)
+
     # ═══════ SESSION 6: Pre-proposal objection merge ═══════
     # When sending a proposal, evaluate Talleyrand's concern and merge
     # into the dialogue (not a separate popup per §10a).
@@ -372,6 +379,151 @@ def generate_dialogue(intent_type: str, parsed_command: Dict, world) -> Dict:
         dialogue = _merge_pre_proposal_objection(dialogue, parsed_command, world)
 
     return dialogue
+
+
+def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: str, world) -> Dict:
+    """Add proposal terms summary, acceptance estimate, harshness, and DP cost to dialogue.
+
+    These fields let the frontend popup display the mechanical content of the
+    proposal alongside Talleyrand's thematic commentary.
+    """
+    from backend.game_logic.diplomacy import calculate_acceptance, get_dp_cost, get_transition_dp_cost
+    from backend.game_logic.diplomatic_templates import generate_suggested_terms, calculate_treaty_harshness
+
+    # Find terms from the first execute_proposal option, or generate fresh
+    terms = None
+    for opt in dialogue.get("options", []):
+        if opt.get("action") == "execute_proposal" and opt.get("terms"):
+            terms = opt["terms"]
+            break
+    if not terms:
+        terms = generate_suggested_terms(target_nation, proposal_type, world)
+        terms["proposal_type"] = proposal_type
+
+    # Build human-readable clause descriptions
+    dialogue["proposal_terms_summary"] = _format_terms_for_display(terms, proposal_type, target_nation)
+
+    # Harshness — normalize string clauses to dicts for calculate_treaty_harshness
+    harshness_terms = dict(terms)
+    harshness_terms["clauses"] = [
+        c if isinstance(c, dict) else {"type": c}
+        for c in terms.get("clauses", [])
+    ]
+    harshness = calculate_treaty_harshness(harshness_terms)
+    dialogue["harshness"] = round(harshness, 2)
+    if harshness < 0.15:
+        dialogue["harshness_label"] = "Low"
+    elif harshness < 0.35:
+        dialogue["harshness_label"] = "Moderate"
+    elif harshness < 0.6:
+        dialogue["harshness_label"] = "High"
+    else:
+        dialogue["harshness_label"] = "Very High"
+
+    # Acceptance estimate
+    proposal_for_calc = {
+        "type": terms.get("type", proposal_type),
+        "proposer_nation": "France",
+        "target_nation": target_nation,
+        "sweeteners": terms.get("sweeteners", []),
+        "demands": terms.get("demands", []),
+        "clauses": terms.get("clauses", []),
+    }
+    try:
+        result = calculate_acceptance(proposal_for_calc, world)
+        score = int(result["score"])
+        dialogue["acceptance_estimate"] = max(0, min(100, score))
+        dialogue["acceptance_outcome"] = result.get("outcome", "Unknown")
+    except Exception:
+        dialogue["acceptance_estimate"] = -1
+        dialogue["acceptance_outcome"] = "Unable to estimate"
+
+    # DP cost
+    _state_map = {
+        "peace": "PEACE", "alliance": "ALLIANCE", "defensive_alliance": "DEFENSIVE_ALLIANCE",
+        "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS", "armistice": "ARMISTICE",
+    }
+    current_diplo = world.get_diplomatic_state("France", target_nation)
+    target_diplo = _state_map.get(proposal_type, "PEACE")
+    jump_cost = get_transition_dp_cost(current_diplo, target_diplo)
+    dp_action = f"propose_{proposal_type}"
+    talleyrand = world.diplomats.get("France")
+    skill = talleyrand.skill if talleyrand else 5
+    dialogue["dp_cost"] = int(get_dp_cost(dp_action, skill, transition_base=jump_cost))
+
+    # Display name
+    dialogue["proposal_type_display"] = _display_proposal_type(proposal_type)
+
+    return dialogue
+
+
+def _format_terms_for_display(terms: Dict, proposal_type: str, target_nation: str) -> list:
+    """Convert a terms dict into a list of human-readable clause strings."""
+    lines = []
+
+    # Base proposal type description
+    _base_descriptions = {
+        "armistice": "Armistice (cease hostilities temporarily)",
+        "armistice_losing": "Armistice (cease hostilities temporarily)",
+        "armistice_winning": "Armistice (cease hostilities temporarily)",
+        "peace": "Peace Treaty (end state of war)",
+        "non_aggression": "Non-Aggression Pact (agree not to attack)",
+        "open_borders": "Open Borders (free military passage)",
+        "alliance": "Full Alliance (mutual military cooperation)",
+        "defensive_alliance": "Defensive Alliance (mutual defense pact)",
+        "vassalage": f"Vassalage ({target_nation} becomes a subject state)",
+    }
+    base = _base_descriptions.get(terms.get("type", proposal_type),
+                                   proposal_type.replace("_", " ").title())
+    lines.append(base)
+
+    # Additional clauses
+    for clause in terms.get("clauses", []):
+        if isinstance(clause, str):
+            if clause == "open_borders":
+                lines.append("Open borders included")
+            else:
+                lines.append(clause.replace("_", " ").title())
+
+    # Demands (France asks of target)
+    for demand in terms.get("demands", []):
+        dtype = demand.get("type", "")
+        value = demand.get("value", 0)
+        if dtype == "gold_per_turn":
+            lines.append(f"{target_nation} pays {int(value)} gold/turn")
+        elif dtype == "territory_cede":
+            regions = demand.get("regions", [])
+            lines.append(f"{target_nation} cedes {', '.join(regions) if regions else 'territory'}")
+        elif dtype == "infantry_manpower":
+            lines.append(f"{target_nation} provides {int(value)} infantry manpower")
+        elif dtype == "ap_per_turn":
+            lines.append(f"{target_nation} loses {int(value)} AP/turn")
+        else:
+            lines.append(f"Demand: {dtype.replace('_', ' ')} ({int(value)})")
+
+    # Sweeteners (France offers to target)
+    for sweet in terms.get("sweeteners", []):
+        stype = sweet.get("type", "")
+        value = sweet.get("value", 0)
+        if stype == "gold_per_turn":
+            lines.append(f"France offers {int(value)} gold/turn")
+        elif stype == "gold_lump":
+            lines.append(f"France offers {int(value)} gold (lump sum)")
+        elif stype == "territory_cede":
+            regions = sweet.get("regions", [])
+            lines.append(f"France cedes {', '.join(regions) if regions else 'territory'}")
+        elif stype == "infantry_manpower":
+            lines.append(f"France provides {int(value)} infantry manpower")
+        elif stype == "ap_per_turn":
+            lines.append(f"France concedes {int(value)} AP/turn")
+        else:
+            lines.append(f"Offer: {stype.replace('_', ' ')} ({int(value)})")
+
+    # If no extra terms beyond the base
+    if len(lines) == 1 and proposal_type in ("non_aggression", "open_borders"):
+        lines.append("No additional terms")
+
+    return lines
 
 
 def _merge_pre_proposal_objection(dialogue: Dict, parsed_command: Dict, world) -> Dict:
@@ -428,12 +580,55 @@ def _merge_pre_proposal_objection(dialogue: Dict, parsed_command: Dict, world) -
         # Set diplomatic_objection_popup for Godot (Session 8C)
         concern_label = "STRONG" if concern >= ConcernLevel.STRONG else "MODERATE"
         defiance_risk = "High" if concern >= ConcernLevel.STRONG else "Medium"
+        target_nation_obj = parsed_command.get("target_nation", "")
+        proposal_type_obj = parsed_command.get("proposal_type", "peace")
         proposal_summary = f"{proposal.get('type', 'unknown')} with {proposal.get('target_nation', 'unknown')}"
+
+        # Enrich with proposal terms so objection popup can display them
+        terms_for_display = []
+        acceptance_estimate = -1
+        acceptance_outcome = ""
+        for opt in dialogue.get("options", []):
+            if opt.get("action") == "execute_proposal" and opt.get("terms"):
+                terms_for_display = _format_terms_for_display(
+                    opt["terms"], proposal_type_obj, target_nation_obj)
+                break
+        if target_nation_obj:
+            from backend.game_logic.diplomacy import calculate_acceptance
+            from backend.game_logic.diplomatic_templates import generate_suggested_terms as _gen_terms
+            calc_terms = None
+            for opt in dialogue.get("options", []):
+                if opt.get("action") == "execute_proposal" and opt.get("terms"):
+                    calc_terms = opt["terms"]
+                    break
+            if not calc_terms:
+                calc_terms = _gen_terms(target_nation_obj, proposal_type_obj, world)
+            calc_proposal = {
+                "type": proposal_type_obj,
+                "proposer_nation": "France",
+                "target_nation": target_nation_obj,
+                "sweeteners": calc_terms.get("sweeteners", []),
+                "demands": calc_terms.get("demands", []),
+                "clauses": calc_terms.get("clauses", []),
+            }
+            try:
+                acc_result = calculate_acceptance(calc_proposal, world)
+                acceptance_estimate = int(acc_result["score"])
+                acceptance_estimate = max(0, min(100, acceptance_estimate))
+                acceptance_outcome = acc_result.get("outcome", "Unknown")
+            except Exception:
+                acceptance_estimate = -1
+                acceptance_outcome = "Unable to estimate"
+
         world.diplomatic_objection_popup = {
             "concern_level": concern_label,
             "objection_text": objection_text,
             "defiance_risk": defiance_risk,
             "proposal_summary": proposal_summary,
+            "proposal_terms": terms_for_display,
+            "acceptance_estimate": int(acceptance_estimate),
+            "acceptance_outcome": acceptance_outcome,
+            "target_nation": target_nation_obj,
         }
 
         # R42: Preserve original terms for send_override/send_suggested handlers

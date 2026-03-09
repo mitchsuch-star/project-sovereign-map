@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 9, 2026 (Diplomatic Screen Update: 30 changes across 8 files, 35 new tests)
+> **Last Updated:** March 9, 2026 (Dialogue Gap Fix: 6 gaps closed, 19 new tests)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **6038** (6038 passed, 3 skipped — diplomatic screen update + 35 new tests) |
+| **Tests Passing** | **6091** (6091 passed, 3 skipped — dialogue gap fix + 19 new tests) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -58,6 +58,21 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 9 — Dialogue Gap Fix (6 gaps, 7 files, 19 tests)
+
+Fixed all remaining broken dialogue routing paths. 6 gaps closed:
+
+1. **GAP-1 (keyword routing):** 4 template actions (`elaborate`, `review_counter`, `accept_with_conflict`, `expand_to_proposal`) had no keyword routing. Added 5 keywords + 7 action_map entries + 3 handler branches.
+2. **GAP-2 (popup type filter):** Mission/Feasibility/Advisory/WarConfirm/ConflictAlert dialogue types were ignored by Godot popup router. Expanded type filter + added 5 type-aware content builders in proposal_confirm_popup.gd.
+3. **GAP-3 (nation picker):** Nation-picker popup always selected first option. Added fallback label-matching in main.py + index-based button binding in proposal_confirm_popup.gd.
+4. **GAP-4 (objection override):** `send_override`/`send_suggested` unreachable via keyword. Added `proceed→send_override`, `trust→send_suggested` routes.
+5. **GAP-5 (objection popup terms):** Objection popup didn't show proposal terms or acceptance estimate. Enriched popup dict with terms list + acceptance score + color-coded display.
+6. **GAP-6 (cancel_mission):** `cancel_mission` had no keyword routing, `begin` missing from keyword list. Fixed both. Objection cancel button now sends `dismiss` to clear backend state.
+
+**Files modified:** main.py, executor.py, diplomatic_dialogue.py, main.gd, proposal_confirm_popup.gd, talleyrand_objection_popup.gd
+**New tests:** `tests/test_dialogue_gaps.py` (19 tests across 6 sections)
+**6091 tests passing** (6091 passed, 3 skipped, 0 regressions).
 
 ### Mar 9 — Diplomatic Screen Update (30 changes, 35 tests)
 

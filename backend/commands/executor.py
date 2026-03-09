@@ -11903,17 +11903,24 @@ RETREAT RECOVERY (3 turns):
                     # Map keywords to action(s). List means try in order
                     # (e.g. "accept" tries AI proposal accept first, then player proposal send).
                     action_map = {
-                        "dismiss": ["dismiss"], "cancel": ["dismiss"], "never mind": ["dismiss"],
-                        "send": ["send", "execute_proposal"], "proceed": ["execute_proposal", "force_declare_war"],
+                        "dismiss": ["dismiss"], "cancel": ["cancel_mission", "dismiss"], "never mind": ["dismiss"],
+                        "send": ["send_override", "send", "execute_proposal"],
+                        "proceed": ["send_override", "execute_proposal", "force_declare_war"],
                         "yes": ["execute_proposal", "accept_ai_proposal", "force_declare_war"],
                         "reconsider": ["reconsider"], "no": ["reconsider"], "wait": ["reconsider"],
                         "harsh": ["modify_harsh"], "generous": ["modify_generous"],
+                        "adjust": ["expand_options"],
                         "begin": ["start_mission"], "start": ["start_mission"],
-                        "accept": ["accept_ai_proposal", "execute_proposal"],
-                        "agree": ["accept_ai_proposal", "execute_proposal"],
+                        "accept": ["accept_with_conflict", "accept_ai_proposal", "execute_proposal"],
+                        "agree": ["accept_with_conflict", "accept_ai_proposal", "execute_proposal"],
                         "reject": ["reject_ai_proposal"], "decline": ["reject_ai_proposal"],
                         "counter": ["counter_ai_proposal"],
                         "thank": ["dismiss"],
+                        "trust": ["send_suggested"],
+                        "elaborate": ["elaborate", "expand_to_proposal"],
+                        "more": ["elaborate", "expand_to_proposal"],
+                        "review": ["review_counter"],
+                        "consider": ["review_counter"],
                     }
                     for keyword, action_matches in action_map.items():
                         if keyword in choice_lower:
@@ -12280,6 +12287,58 @@ RETREAT RECOVERY (3 turns):
                 "message": new_dialogue.get("talleyrand_text", ""),
                 "diplomatic_dialogue": new_dialogue,
             }
+
+        # ═══════════════════════════════════════════════════════
+        # GAP-1: ELABORATE / REVIEW_COUNTER / ACCEPT_WITH_CONFLICT
+        # ═══════════════════════════════════════════════════════
+        elif action == "elaborate":
+            # Same behavior as expand_to_proposal — drill down to proposal for nation
+            return self._process_dialogue_choice("expand_to_proposal", selected, dialogue, world)
+
+        elif action == "review_counter":
+            # Show counter-offer terms from context for player review
+            context = dialogue.get("context", {})
+            counter_terms = context.get("counter_terms", {})
+            source_nation = context.get("source_nation", target_nation)
+            if not counter_terms:
+                world.pending_diplomatic_dialogue = None
+                return {"success": True, "message": "No counter-offer terms to review, Sire."}
+            # Build a new confirmation dialogue showing the counter terms
+            from backend.game_logic.diplomatic_dialogue import _format_terms_for_display
+            proposal_type = counter_terms.get("type", counter_terms.get("proposal_type", "peace"))
+            terms_display = _format_terms_for_display(counter_terms, proposal_type, source_nation)
+            new_dialogue = {
+                "type": "proposal_confirm",
+                "target_nation": source_nation,
+                "talleyrand_text": f"Here are the counter-terms from {source_nation}, Sire.",
+                "options": [
+                    {
+                        "label": "Accept counter-offer",
+                        "description": f"Ratify {source_nation}'s proposed terms.",
+                        "action": "accept_counter_offer",
+                    },
+                    {
+                        "label": "Reject counter-offer",
+                        "description": "Decline these terms.",
+                        "action": "reject_counter_offer",
+                    },
+                    {"label": "Dismiss", "description": "Set this aside.", "action": "dismiss"},
+                ],
+                "context": context,
+                "turn_created": int(world.current_turn),
+                "blocking": False,
+                "proposal_terms_summary": terms_display,
+            }
+            world.pending_diplomatic_dialogue = new_dialogue
+            return {
+                "success": True,
+                "message": new_dialogue["talleyrand_text"],
+                "diplomatic_dialogue": new_dialogue,
+            }
+
+        elif action == "accept_with_conflict":
+            # Accept AI proposal despite alliance conflict warning
+            return self._handle_accept_ai_proposal(dialogue, world)
 
         # ═══════════════════════════════════════════════════════
         # R37: SABOTAGE CONFRONTATION HANDLERS

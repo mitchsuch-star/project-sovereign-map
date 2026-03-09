@@ -70,6 +70,7 @@ var talleyrand_objection_popup = null
 var sabotage_discovery_popup = null
 var talleyrand_redemption_popup = null
 var vassal_rebellion_popup = null
+var proposal_confirm_popup = null
 
 # Diplomacy Wizard (Diplomacy Button Session B)
 var diplomacy_wizard = null
@@ -257,6 +258,13 @@ func _ready():
 		add_child(incoming_proposal_popup)
 		incoming_proposal_popup.choice_made.connect(_on_incoming_proposal_choice)
 		print("✓ IncomingProposalPopup ready!")
+
+	var proposal_confirm_scene = load("res://scenes/proposal_confirm_popup.tscn")
+	if proposal_confirm_scene:
+		proposal_confirm_popup = proposal_confirm_scene.instantiate()
+		add_child(proposal_confirm_popup)
+		proposal_confirm_popup.choice_made.connect(_on_proposal_confirm_choice)
+		print("✓ ProposalConfirmPopup ready!")
 
 	var talleyrand_obj_scene = load("res://scenes/talleyrand_objection_popup.tscn")
 	if talleyrand_obj_scene:
@@ -759,6 +767,18 @@ func _on_command_result(response):
 		if incoming_proposal_popup:
 			incoming_proposal_popup.show_proposal(response.incoming_proposal)
 			return
+
+	# Priority 6.5: Player-initiated Proposal Confirm Popup
+	# Catches diplomatic_dialogue returned by the outgoing proposal flow.
+	if response.has("diplomatic_dialogue") and response.diplomatic_dialogue != null:
+		var dialogue = response.diplomatic_dialogue
+		var dtype = dialogue.get("type", "")
+		if dtype in ["proposal_confirm", "proposal_execute", "proposal_options",
+			"mission", "feasibility", "advisory",
+			"force_declare_war_confirmation", "conflict_alert"]:
+			if proposal_confirm_popup:
+				proposal_confirm_popup.show_dialogue(dialogue)
+				return
 
 	# Check for clarification request (Grouchy/literal marshal)
 	if response.has("state") and response.state == "awaiting_clarification":
@@ -2668,6 +2688,45 @@ func _on_coalition_popup_dismissed():
 	set_input_enabled(true)
 	command_input.grab_focus()
 
+func _on_proposal_confirm_choice(action: String, data: Dictionary):
+	"""Handle player response to outgoing proposal confirmation popup."""
+	var target = data.get("target_nation", "Unknown")
+	# Map dialogue option actions to keywords that match
+	# _DIALOGUE_RESPONSE_KEYWORDS + action_map in the backend
+	var _ACTION_KEYWORD_MAP = {
+		"execute_proposal": "send",
+		"modify_harsh": "harsh",
+		"modify_generous": "generous",
+		"expand_options": "adjust",
+		"send_override": "proceed",
+		"send_suggested": "trust",
+		"start_mission": "begin",
+		"dismiss": "dismiss",
+		"reconsider": "reconsider",
+		"elaborate": "elaborate",
+		"expand_to_proposal": "elaborate",
+		"review_counter": "review",
+		"accept_with_conflict": "accept",
+		"cancel_mission": "cancel",
+		"force_declare_war": "proceed",
+		"accept_ai_proposal": "accept",
+		"reject_ai_proposal": "reject",
+		"accept_counter_offer": "accept",
+		"reject_counter_offer": "reject",
+	}
+	# Index-based selection for proposal_options (numeric actions from index binding)
+	if action.is_valid_int():
+		var command = "Talleyrand, %s" % action
+		add_output("[color=#d9c08c]Selecting option %s[/color]" % action)
+		set_input_enabled(false)
+		api_client.send_command(command, _on_command_result)
+		return
+	var keyword = _ACTION_KEYWORD_MAP.get(action, action)
+	var command = "Talleyrand, %s the %s proposal" % [keyword, target]
+	add_output("[color=#d9c08c]Directing Talleyrand: %s[/color]" % keyword)
+	set_input_enabled(false)
+	api_client.send_command(command, _on_command_result)
+
 func _on_incoming_proposal_choice(choice: String, data: Dictionary):
 	"""Handle player response to AI diplomatic proposal."""
 	var from_nation = data.get("from_nation", "Unknown")
@@ -2688,8 +2747,8 @@ func _on_talleyrand_objection_choice(choice: String, data: Dictionary):
 		command_input.grab_focus()
 	else:
 		add_output("[color=#" + COLOR_INFO + "]Proposal cancelled.[/color]")
-		set_input_enabled(true)
-		command_input.grab_focus()
+		set_input_enabled(false)
+		api_client.send_command("Talleyrand, dismiss", _on_command_result)
 
 func _on_sabotage_discovery_choice(choice: String, data: Dictionary):
 	"""Handle player response to sabotage discovery."""
@@ -2752,6 +2811,8 @@ func _is_modal_dialog_open() -> bool:
 	if talleyrand_redemption_popup and talleyrand_redemption_popup.visible:
 		return true
 	if vassal_rebellion_popup and vassal_rebellion_popup.visible:
+		return true
+	if proposal_confirm_popup and proposal_confirm_popup.visible:
 		return true
 	# Diplomacy Wizard (Session B)
 	if diplomacy_wizard and diplomacy_wizard.visible:
