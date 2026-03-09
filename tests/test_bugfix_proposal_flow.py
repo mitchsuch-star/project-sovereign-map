@@ -617,3 +617,187 @@ class TestAcceptanceHint:
         assert "acceptance_hint" in result
         # With -60 relation, there should be a hint about hostility or threat
         assert isinstance(result["acceptance_hint"], str)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# SECTION 11: MODIFY HARSH / GENEROUS / REVIEW_COUNTER ENRICHMENT
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _setup_proposal_dialogue(world, target_nation="Prussia", proposal_type="armistice"):
+    """Set up a proposal_confirm dialogue with modify options, as the initial path produces."""
+    from backend.game_logic.diplomatic_templates import generate_suggested_terms
+    suggested = generate_suggested_terms(target_nation, proposal_type, world)
+    world.pending_diplomatic_dialogue = {
+        "type": "proposal_confirm",
+        "target_nation": target_nation,
+        "talleyrand_text": "Test proposal dialogue.",
+        "options": [
+            {
+                "label": "Send these terms",
+                "description": "Dispatch.",
+                "action": "execute_proposal",
+                "terms": {**suggested, "proposal_type": proposal_type},
+            },
+            {
+                "label": "Harsher terms",
+                "description": "Push harder.",
+                "action": "modify_harsh",
+                "terms": {**suggested, "proposal_type": proposal_type},
+            },
+            {
+                "label": "More generous",
+                "description": "Offer more.",
+                "action": "modify_generous",
+                "terms": {**suggested, "proposal_type": proposal_type},
+            },
+            {"label": "Reconsider", "description": "Let me think.", "action": "reconsider"},
+        ],
+        "context": {},
+        "turn_created": int(world.current_turn),
+        "blocking": False,
+    }
+
+
+_ENRICHMENT_FIELDS = [
+    "proposal_terms_summary",
+    "acceptance_estimate",
+    "acceptance_hint",
+    "harshness",
+    "harshness_label",
+]
+
+
+class TestModifyHarshEnrichment:
+    """modify_harsh dialogue gets enriched with terms/acceptance/harshness."""
+
+    def test_modify_harsh_has_enrichment(self):
+        world = _make_world()
+        _setup_proposal_dialogue(world)
+        executor = _make_executor()
+        result = executor.handle_diplomatic_dialogue_response("harsh", {"world": world})
+        assert result["success"] is True
+        dialogue = result["diplomatic_dialogue"]
+        for field in _ENRICHMENT_FIELDS:
+            assert field in dialogue, f"modify_harsh missing '{field}'"
+
+    def test_modify_harsh_terms_include_demands(self):
+        """Harsh terms should have demands (sweeteners removed)."""
+        world = _make_world()
+        _setup_proposal_dialogue(world)
+        executor = _make_executor()
+        result = executor.handle_diplomatic_dialogue_response("harsh", {"world": world})
+        dialogue = result["diplomatic_dialogue"]
+        summary = dialogue["proposal_terms_summary"]
+        assert isinstance(summary, list)
+        assert len(summary) > 0, "Harsh terms should produce non-empty summary"
+        # The execute_proposal option should have demands
+        for opt in dialogue["options"]:
+            if opt.get("action") == "execute_proposal":
+                terms = opt["terms"]
+                assert len(terms.get("demands", [])) > 0, "Harsh path should have demands"
+                assert len(terms.get("sweeteners", [])) == 0, "Harsh path should have no sweeteners"
+                break
+
+    def test_modify_harsh_acceptance_estimate_is_int(self):
+        world = _make_world()
+        _setup_proposal_dialogue(world)
+        executor = _make_executor()
+        result = executor.handle_diplomatic_dialogue_response("harsh", {"world": world})
+        dialogue = result["diplomatic_dialogue"]
+        assert isinstance(dialogue["acceptance_estimate"], int)
+        assert 0 <= dialogue["acceptance_estimate"] <= 100
+
+
+class TestModifyGenerousEnrichment:
+    """modify_generous dialogue gets enriched with terms/acceptance/harshness."""
+
+    def test_modify_generous_has_enrichment(self):
+        world = _make_world()
+        _setup_proposal_dialogue(world)
+        executor = _make_executor()
+        result = executor.handle_diplomatic_dialogue_response("generous", {"world": world})
+        assert result["success"] is True
+        dialogue = result["diplomatic_dialogue"]
+        for field in _ENRICHMENT_FIELDS:
+            assert field in dialogue, f"modify_generous missing '{field}'"
+
+    def test_modify_generous_terms_include_sweeteners(self):
+        """Generous terms should have sweeteners (demands removed)."""
+        world = _make_world()
+        _setup_proposal_dialogue(world)
+        executor = _make_executor()
+        result = executor.handle_diplomatic_dialogue_response("generous", {"world": world})
+        dialogue = result["diplomatic_dialogue"]
+        summary = dialogue["proposal_terms_summary"]
+        assert isinstance(summary, list)
+        assert len(summary) > 0, "Generous terms should produce non-empty summary"
+        # The execute_proposal option should have sweeteners
+        for opt in dialogue["options"]:
+            if opt.get("action") == "execute_proposal":
+                terms = opt["terms"]
+                assert len(terms.get("sweeteners", [])) > 0, "Generous path should have sweeteners"
+                assert len(terms.get("demands", [])) == 0, "Generous path should have no demands"
+                break
+
+    def test_modify_generous_acceptance_estimate_is_int(self):
+        world = _make_world()
+        _setup_proposal_dialogue(world)
+        executor = _make_executor()
+        result = executor.handle_diplomatic_dialogue_response("generous", {"world": world})
+        dialogue = result["diplomatic_dialogue"]
+        assert isinstance(dialogue["acceptance_estimate"], int)
+        assert 0 <= dialogue["acceptance_estimate"] <= 100
+
+
+class TestReviewCounterEnrichment:
+    """review_counter dialogue gets enriched with acceptance/harshness."""
+
+    def _setup_counter_dialogue(self, world, source_nation="Prussia"):
+        """Set up a dialogue with review_counter option and counter_terms in context."""
+        counter_terms = {
+            "type": "armistice",
+            "proposal_type": "armistice",
+            "proposer_nation": source_nation,
+            "target_nation": "France",
+            "sweeteners": [{"type": "gold_lump", "value": 200}],
+            "demands": [{"type": "gold_per_turn", "value": 50}],
+            "clauses": [],
+        }
+        world.pending_diplomatic_dialogue = {
+            "type": "counter_offer_received",
+            "target_nation": source_nation,
+            "talleyrand_text": f"{source_nation} has proposed a counter-offer.",
+            "options": [
+                {
+                    "label": "Review terms",
+                    "description": "See details.",
+                    "action": "review_counter",
+                },
+                {"label": "Dismiss", "description": "Set aside.", "action": "dismiss"},
+            ],
+            "context": {
+                "counter_terms": counter_terms,
+                "source_nation": source_nation,
+            },
+            "turn_created": int(world.current_turn),
+            "blocking": False,
+        }
+
+    def test_review_counter_has_enrichment(self):
+        world = _make_world()
+        self._setup_counter_dialogue(world)
+        executor = _make_executor()
+        result = executor.handle_diplomatic_dialogue_response("review", {"world": world})
+        assert result["success"] is True
+        dialogue = result["diplomatic_dialogue"]
+        for field in _ENRICHMENT_FIELDS:
+            assert field in dialogue, f"review_counter missing '{field}'"
+
+    def test_review_counter_acceptance_estimate_is_int(self):
+        world = _make_world()
+        self._setup_counter_dialogue(world)
+        executor = _make_executor()
+        result = executor.handle_diplomatic_dialogue_response("review", {"world": world})
+        dialogue = result["diplomatic_dialogue"]
+        assert isinstance(dialogue["acceptance_estimate"], int)
+        assert 0 <= dialogue["acceptance_estimate"] <= 100

@@ -12105,6 +12105,8 @@ RETREAT RECOVERY (3 turns):
                 "turn_created": int(world.current_turn),
                 "blocking": False,
             }
+            from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
+            new_dialogue = _enrich_proposal_summary(new_dialogue, target_nation, proposal_type, world)
             world.pending_diplomatic_dialogue = new_dialogue
             return {
                 "success": True,
@@ -12153,6 +12155,8 @@ RETREAT RECOVERY (3 turns):
                 "turn_created": int(world.current_turn),
                 "blocking": False,
             }
+            from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
+            new_dialogue = _enrich_proposal_summary(new_dialogue, target_nation, proposal_type, world)
             world.pending_diplomatic_dialogue = new_dialogue
             return {
                 "success": True,
@@ -12329,6 +12333,8 @@ RETREAT RECOVERY (3 turns):
                 "blocking": False,
                 "proposal_terms_summary": terms_display,
             }
+            from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
+            new_dialogue = _enrich_proposal_summary(new_dialogue, source_nation, proposal_type, world)
             world.pending_diplomatic_dialogue = new_dialogue
             return {
                 "success": True,
