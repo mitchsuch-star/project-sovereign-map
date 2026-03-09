@@ -4040,12 +4040,26 @@ class WorldState:
                     "turn_created": int(self.current_turn),
                     "blocking": True,
                 }
-                # Set popup for Godot
+                # Set popup for Godot — must match incoming_proposal_popup.gd show_proposal() fields
+                diplomat = self.diplomats.get(target)
+                diplomat_name = diplomat.name if diplomat else f"{target} envoy"
+                diplomat_personality = getattr(diplomat, 'personality', 'pragmatic') if diplomat else "pragmatic"
+                # Build clause list matching ai_diplomacy.py format
+                clauses = []
+                for d in counter_terms.get("demands", []):
+                    clauses.append(f"Demand: {d.get('type', 'unknown')} — {d.get('value', '')}")
+                for s in counter_terms.get("sweeteners", []):
+                    clauses.append(f"Offer: {s.get('type', 'unknown')} — {s.get('value', '')}")
                 self.incoming_proposal_popup = {
-                    "source_nation": target,
+                    "from_nation": target,
+                    "diplomat_name": diplomat_name,
+                    "diplomat_personality": diplomat_personality,
                     "proposal_type": proposal.get("type", "unknown"),
+                    "clauses": clauses,
+                    "talleyrand_assessment": f"{feedback}\n\nThis is a counter-proposal to your original terms.",
+                    "acceptance_hint": "",
+                    "rejection_hint": "",
                     "is_counter_offer": True,
-                    "summary": summary,
                 }
                 # Talleyrand returns to IDLE for immediate response
                 self.talleyrand_state = "IDLE"

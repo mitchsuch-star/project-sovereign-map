@@ -55,9 +55,11 @@ func show_proposal(data: Dictionary):
 	content_label.text = ""
 	content_label.append_text(bbcode)
 
-	# Enable buttons
+	# Enable buttons — hide Counter for counter-offers (no counter-counter)
 	accept_btn.disabled = false
-	counter_btn.disabled = false
+	var is_counter = data.get("is_counter_offer", false)
+	counter_btn.visible = not is_counter
+	counter_btn.disabled = is_counter
 	reject_btn.disabled = false
 	show()
 

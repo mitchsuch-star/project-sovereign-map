@@ -572,7 +572,7 @@ def execute_command(request: CommandRequest):
                         "raw_input": parsed.get("raw_input", request.command),
                     },
                 )
-                return {
+                berthier_response = {
                     "success": False,
                     "message": berthier_msg,
                     "events": [],
@@ -585,6 +585,8 @@ def execute_command(request: CommandRequest):
                     "action_summary": world.get_action_summary(),
                     "game_state": world.get_filtered_game_state_summary(),
                 }
+                _include_popup_passthroughs(berthier_response, world)
+                return berthier_response
 
             # Execute command
             result = executor.execute(parsed, game_state)
@@ -604,7 +606,7 @@ def execute_command(request: CommandRequest):
                     "raw_input": request.command,
                 },
             )
-            return {
+            berthier_response = {
                 "success": False,
                 "message": berthier_msg,
                 "events": [],
@@ -617,6 +619,8 @@ def execute_command(request: CommandRequest):
                 "action_summary": world.get_action_summary(),
                 "game_state": world.get_filtered_game_state_summary(),
             }
+            _include_popup_passthroughs(berthier_response, world)
+            return berthier_response
 
         # ════════════════════════════════════════════════════════════
         # CHECK FOR OBJECTION: If awaiting player choice, return full result
@@ -1076,6 +1080,9 @@ async def respond_to_diplomatic_dialogue(request: dict):
         # Pass through diplomatic dialogue if a new one was generated
         if result.get("diplomatic_dialogue"):
             response["diplomatic_dialogue"] = result["diplomatic_dialogue"]
+
+        # Popup passthroughs — dialogue response may trigger popups
+        _include_popup_passthroughs(response, world)
 
         # Notifications
         if world.notifications.has_pending():

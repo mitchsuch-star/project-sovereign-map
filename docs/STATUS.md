@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 9, 2026 (Wave 2.5: Wartime Peace Rebalance + territory_cede bugfix)
+> **Last Updated:** March 9, 2026 (Popup chain bug fix: counter-offer popup + hardening)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **5933** (5933 passed, 3 skipped — Wave 2.5 wartime peace rebalance + territory_cede bugfix) |
+| **Tests Passing** | **5956** (5956 passed, 3 skipped — popup chain bug fix + 23 new tests) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -24,6 +24,7 @@
    - ~~**Wave 1: Quick Wins**~~ — **DONE** (10 items, 24 tests).
    - ~~**Wave 2: AI Intelligence**~~ — **DONE** (5 items, 36 tests).
    - ~~**Wave 2.5: Wartime Peace Rebalance**~~ — **DONE** (10 items R141-R150, 32 tests). Acceptance formula rebalance (relation dampening during WAR, war weariness, stalemate duration), sweetener value/cap increases, territory cession + AP/manpower in suggested terms, P2 trigger fix. Also fixed territory_cede acceptance value bug and ratification key mismatch.
+   - **Bug fix: Popup chain audit** — Counter-offer popup data shape mismatch (wrong field names, missing fields). Also: Counter button hidden for counter-offers, Berthier recovery + /respond_to_diplomatic_dialogue popup passthroughs added. 23 regression tests.
    - **Wave 3: Player Feedback** (8 items) — R118 acceptance preview, R119 betrayal memory, R131 cooldown warning, R129 override feedback, R128 sabotage feedback, R132 vassal transparency, R17d-f ledger. Note: R118 now uses unified likelihood words from Diplomacy Button spec.
    - **Wave 4: Decide Gate** (17 items) — Marriage, conferences, voice bank, ceremonies, etc. Per-item approval needed.
    - **After Phase 5: UI Test Plan** — Manual playtest in Godot. DP display investigation (R39). Verify all fixes.

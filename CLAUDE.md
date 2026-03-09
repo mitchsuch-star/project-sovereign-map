@@ -286,6 +286,7 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | "Talleyrand awaiting" stuck state | Executor dialogue guard blocks ALL commands. Dialogue keywords routed in main.py BEFORE executor — update `_DIALOGUE_RESPONSE_KEYWORDS` for new response types |
 | New diplomatic state missing | Add to `post_break_map` in diplomacy.py AND `validate_transition()` — both must cover all states |
 | Popup not showing after early return | All response paths must call `_include_popup_passthroughs()` — check diplomatic early return in main.py |
+| Counter-offer popup broken/empty | Popup data must match `incoming_proposal_popup.gd` fields: `from_nation`, `diplomat_name`, `diplomat_personality`, `clauses` (list), `talleyrand_assessment`, `is_counter_offer` |
 
 ---
 
