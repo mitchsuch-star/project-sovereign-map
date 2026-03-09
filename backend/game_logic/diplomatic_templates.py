@@ -195,6 +195,11 @@ DIPLOMATIC_TEMPLATES = {
                 "action": "modify_generous",
             },
             {
+                "label": "Adjust terms",
+                "description": "Build the offer step by step.",
+                "action": "adjust_terms",
+            },
+            {
                 "label": "Reconsider",
                 "description": "Let me think about this.",
                 "action": "reconsider",
@@ -220,7 +225,7 @@ DIPLOMATIC_TEMPLATES = {
             {
                 "label": "Adjust terms",
                 "description": "Let me see what else we could offer or demand.",
-                "action": "expand_options",
+                "action": "adjust_terms",
             },
             {
                 "label": "Reconsider",
@@ -1271,6 +1276,53 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
                 terms["sweeteners"].append({"type": "territory_cede", "value": 1, "regions": [france_capital]})
 
     return terms
+
+
+# ═══════ CONVERSATIONAL TERMS GUIDANCE ═══════
+
+def rank_cession_candidates(world, player_nation: str, target_nation: str) -> list:
+    """Rank player regions for cession, prioritizing border + empty + cheap.
+
+    Returns list of [region_name, reason_text] pairs, sorted best-to-cede first.
+    Excludes the player's capital.
+    """
+    from backend.models.region import NATION_CAPITALS, REGION_TYPE_INCOME
+
+    capital = NATION_CAPITALS.get(player_nation, "")
+    player_regions = world.get_nation_regions(player_nation)
+    target_regions = world.get_nation_regions(target_nation)
+
+    candidates = []
+    for region_name in player_regions:
+        if region_name == capital:
+            continue
+        region = world.regions.get(region_name)
+        if not region:
+            continue
+
+        # Score components
+        is_border = any(adj in target_regions for adj in region.adjacent_regions)
+        has_buildings = len(region.buildings) > 0
+        income = REGION_TYPE_INCOME.get(region.region_type, 100)
+
+        # Build reason text
+        building_types = ", ".join(b["type"].replace("_", " ") for b in region.buildings)
+        if is_border and not has_buildings:
+            reason = (f"{region_name} borders {target_nation} territory and has no "
+                      f"strategic improvements — an ideal concession.")
+        elif is_border and has_buildings:
+            reason = (f"{region_name} borders {target_nation} territory — a logical "
+                      f"concession, though we lose its {building_types}.")
+        elif not has_buildings:
+            reason = f"{region_name} has no strategic improvements — we lose little by offering it."
+        else:
+            reason = f"{region_name} is a {region.region_type} of modest strategic value."
+
+        # Sort key: border first (not is_border=False first), then empty, then cheap
+        candidates.append([region_name, reason, (not is_border, has_buildings, income)])
+
+    candidates.sort(key=lambda c: c[2])
+    return [[c[0], c[1]] for c in candidates]
 
 
 # ═══════ ENEMY DIPLOMAT VOICE RESOLUTION ═══════

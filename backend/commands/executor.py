@@ -11909,7 +11909,11 @@ RETREAT RECOVERY (3 turns):
                         "yes": ["execute_proposal", "accept_ai_proposal", "force_declare_war"],
                         "reconsider": ["reconsider"], "no": ["reconsider"], "wait": ["reconsider"],
                         "harsh": ["modify_harsh"], "generous": ["modify_generous"],
-                        "adjust": ["expand_options"],
+                        "adjust": ["adjust_terms", "expand_options"],
+                        "territory": ["territory_yes", "offer_region"],
+                        "enough": ["enough_territory"],
+                        "offer": ["offer_region", "offer_gold", "offer_ap"],
+                        "skip": ["skip_region", "skip_gold", "skip_ap"],
                         "begin": ["start_mission"], "start": ["start_mission"],
                         "accept": ["accept_with_conflict", "accept_ai_proposal", "execute_proposal"],
                         "agree": ["accept_with_conflict", "accept_ai_proposal", "execute_proposal"],
@@ -12196,6 +12200,271 @@ RETREAT RECOVERY (3 turns):
                 "message": new_dialogue.get("talleyrand_text", ""),
                 "diplomatic_dialogue": new_dialogue,
             }
+
+        elif action == "adjust_terms":
+            # Entry point for conversational terms guidance
+            from backend.game_logic.diplomatic_templates import rank_cession_candidates
+            from backend.game_logic.diplomacy import get_war_score_for
+
+            context = dict(dialogue.get("context", {}))
+            proposal_type = context.get("proposal_type") or dialogue.get("proposal_type", "")
+            # Get proposal_type from selected option if available
+            sel_terms = selected.get("terms", {})
+            if sel_terms.get("proposal_type"):
+                proposal_type = sel_terms["proposal_type"]
+            # Scan sibling options as fallback (T6 "Send as suggested" carries terms)
+            if not proposal_type:
+                for opt in dialogue.get("options", []):
+                    pt = (opt.get("terms") or {}).get("proposal_type")
+                    if pt:
+                        proposal_type = pt
+                        break
+            proposal_type = proposal_type or "peace"
+            context["proposal_type"] = proposal_type
+            context["target_nation"] = target_nation
+            context["approved_regions"] = []
+            context["approved_sweeteners"] = []
+            context["candidate_index"] = 0
+            context["gold_amount"] = 0
+
+            diplo_key = world._make_diplo_key(world.player_nation, target_nation)
+            relation = world.nation_relations.get(diplo_key, 0)
+            war_score = get_war_score_for(world, world.player_nation, target_nation)
+
+            # Determine if territory is relevant (losing or hostile)
+            needs_territory = war_score < 0 or relation < -50
+
+            if needs_territory:
+                ranked = rank_cession_candidates(world, world.player_nation, target_nation)
+                context["ranked_candidates"] = ranked
+
+                if not ranked:
+                    # No non-capital regions to offer
+                    context["guidance_state"] = "gold"
+                    return self._build_gold_step(context, world, dialogue,
+                                                 intro="We have nothing to offer but our capital, Sire. ")
+                else:
+                    max_cede = 1 if war_score >= -40 else 2
+                    context["regions_needed"] = max_cede
+                    context["guidance_state"] = "territory"
+                    new_dialogue = {
+                        "type": "terms_guidance",
+                        "target_nation": target_nation,
+                        "talleyrand_text": "Shall we discuss concessions, Sire?",
+                        "options": [
+                            {"label": "Yes, discuss territory", "description": "Let me suggest regions to offer.",
+                             "action": "territory_yes"},
+                            {"label": "No territory — offer gold", "description": "Skip territory, move to gold.",
+                             "action": "territory_no_gold"},
+                            {"label": "Offer Action Points", "description": "Skip to AP offering.",
+                             "action": "territory_no_ap"},
+                        ],
+                        "context": context,
+                        "turn_created": int(world.current_turn),
+                        "blocking": False,
+                    }
+                    world.pending_diplomatic_dialogue = new_dialogue
+                    return {
+                        "success": True,
+                        "message": new_dialogue["talleyrand_text"],
+                        "diplomatic_dialogue": new_dialogue,
+                    }
+            else:
+                # Winning — skip territory, go to gold
+                context["ranked_candidates"] = []
+                context["regions_needed"] = 0
+                context["guidance_state"] = "gold"
+                return self._build_gold_step(context, world, dialogue)
+
+        elif action == "territory_yes":
+            context = self._copy_guidance_context(dialogue)
+            ranked = context.get("ranked_candidates", [])
+            idx = context.get("candidate_index", 0)
+            if idx < len(ranked):
+                candidate_name, reason = ranked[idx]
+                context["guidance_state"] = "region_pick"
+                new_dialogue = {
+                    "type": "terms_guidance",
+                    "target_nation": context.get("target_nation", target_nation),
+                    "talleyrand_text": f"I suggest {candidate_name} — {reason}",
+                    "options": [
+                        {"label": "Offer this region", "description": f"Add {candidate_name} to the offer.",
+                         "action": "offer_region"},
+                        {"label": "Not this one", "description": "Show me the next candidate.",
+                         "action": "skip_region"},
+                        {"label": "That's enough territory", "description": "Move on to gold.",
+                         "action": "enough_territory"},
+                    ],
+                    "context": context,
+                    "turn_created": int(world.current_turn),
+                    "blocking": False,
+                }
+                world.pending_diplomatic_dialogue = new_dialogue
+                return {
+                    "success": True,
+                    "message": new_dialogue["talleyrand_text"],
+                    "diplomatic_dialogue": new_dialogue,
+                }
+            else:
+                # No candidates at all
+                context["guidance_state"] = "gold"
+                return self._build_gold_step(context, world, dialogue)
+
+        elif action == "offer_region":
+            context = self._copy_guidance_context(dialogue)
+            ranked = context.get("ranked_candidates", [])
+            idx = context.get("candidate_index", 0)
+            if idx < len(ranked):
+                region_name = ranked[idx][0]
+                context["approved_regions"].append(region_name)
+                context["approved_sweeteners"].append(
+                    {"type": "territory_cede", "value": 1, "regions": [region_name]}
+                )
+                context["candidate_index"] = idx + 1
+
+            regions_needed = context.get("regions_needed", 1)
+            approved_count = len(context.get("approved_regions", []))
+            next_idx = context.get("candidate_index", 0)
+
+            # More regions needed and candidates available?
+            if approved_count < regions_needed and next_idx < len(ranked):
+                candidate_name, reason = ranked[next_idx]
+                context["guidance_state"] = "region_pick"
+                new_dialogue = {
+                    "type": "terms_guidance",
+                    "target_nation": context.get("target_nation", target_nation),
+                    "talleyrand_text": f"Very good. I also suggest {candidate_name} — {reason}",
+                    "options": [
+                        {"label": "Offer this region", "description": f"Add {candidate_name} to the offer.",
+                         "action": "offer_region"},
+                        {"label": "Not this one", "description": "Show me the next candidate.",
+                         "action": "skip_region"},
+                        {"label": "That's enough territory", "description": "Move on to gold.",
+                         "action": "enough_territory"},
+                    ],
+                    "context": context,
+                    "turn_created": int(world.current_turn),
+                    "blocking": False,
+                }
+                world.pending_diplomatic_dialogue = new_dialogue
+                return {
+                    "success": True,
+                    "message": new_dialogue["talleyrand_text"],
+                    "diplomatic_dialogue": new_dialogue,
+                }
+            else:
+                # Enough regions or no more candidates — move to gold
+                context["guidance_state"] = "gold"
+                return self._build_gold_step(context, world, dialogue)
+
+        elif action == "skip_region":
+            context = self._copy_guidance_context(dialogue)
+            ranked = context.get("ranked_candidates", [])
+            context["candidate_index"] = context.get("candidate_index", 0) + 1
+            next_idx = context["candidate_index"]
+
+            if next_idx < len(ranked):
+                candidate_name, reason = ranked[next_idx]
+                context["guidance_state"] = "region_pick"
+                new_dialogue = {
+                    "type": "terms_guidance",
+                    "target_nation": context.get("target_nation", target_nation),
+                    "talleyrand_text": f"Very well. What about {candidate_name}? {reason}",
+                    "options": [
+                        {"label": "Offer this region", "description": f"Add {candidate_name} to the offer.",
+                         "action": "offer_region"},
+                        {"label": "Not this one", "description": "Show me the next candidate.",
+                         "action": "skip_region"},
+                        {"label": "That's enough territory", "description": "Move on to gold.",
+                         "action": "enough_territory"},
+                    ],
+                    "context": context,
+                    "turn_created": int(world.current_turn),
+                    "blocking": False,
+                }
+                world.pending_diplomatic_dialogue = new_dialogue
+                return {
+                    "success": True,
+                    "message": new_dialogue["talleyrand_text"],
+                    "diplomatic_dialogue": new_dialogue,
+                }
+            else:
+                # All candidates exhausted
+                context["guidance_state"] = "gold"
+                new_dialogue = {
+                    "type": "terms_guidance",
+                    "target_nation": context.get("target_nation", target_nation),
+                    "talleyrand_text": "There are no more suitable regions to offer, Sire.",
+                    "options": [
+                        {"label": "Offer gold", "description": "Move to gold terms.",
+                         "action": "territory_no_gold"},
+                        {"label": "Offer Action Points", "description": "Skip to AP offering.",
+                         "action": "territory_no_ap"},
+                        {"label": "Done", "description": "Proceed with what we have.",
+                         "action": "skip_ap"},
+                    ],
+                    "context": context,
+                    "turn_created": int(world.current_turn),
+                    "blocking": False,
+                }
+                world.pending_diplomatic_dialogue = new_dialogue
+                return {
+                    "success": True,
+                    "message": new_dialogue["talleyrand_text"],
+                    "diplomatic_dialogue": new_dialogue,
+                }
+
+        elif action == "enough_territory":
+            context = self._copy_guidance_context(dialogue)
+            context["guidance_state"] = "gold"
+            return self._build_gold_step(context, world, dialogue)
+
+        elif action == "territory_no_gold":
+            context = self._copy_guidance_context(dialogue)
+            context["guidance_state"] = "gold"
+            return self._build_gold_step(context, world, dialogue)
+
+        elif action == "territory_no_ap":
+            context = self._copy_guidance_context(dialogue)
+            context["guidance_state"] = "ap"
+            return self._build_ap_step(context, world, dialogue)
+
+        elif action == "offer_gold":
+            context = self._copy_guidance_context(dialogue)
+            gold = int(context.get("gold_amount", 50))
+            context["approved_sweeteners"].append({"type": "gold_per_turn", "value": int(gold)})
+            context["guidance_state"] = "ap"
+            return self._build_ap_step(context, world, dialogue)
+
+        elif action == "more_gold":
+            context = self._copy_guidance_context(dialogue)
+            gold = context.get("gold_amount", 50)
+            context["gold_amount"] = int(min(500, gold * 1.5))
+            context["guidance_state"] = "gold"
+            return self._build_gold_step(context, world, dialogue, rebuild=True)
+
+        elif action == "less_gold":
+            context = self._copy_guidance_context(dialogue)
+            gold = context.get("gold_amount", 50)
+            context["gold_amount"] = int(max(25, gold * 0.7))
+            context["guidance_state"] = "gold"
+            return self._build_gold_step(context, world, dialogue, rebuild=True)
+
+        elif action == "skip_gold":
+            context = self._copy_guidance_context(dialogue)
+            context["guidance_state"] = "ap"
+            return self._build_ap_step(context, world, dialogue)
+
+        elif action == "offer_ap":
+            context = self._copy_guidance_context(dialogue)
+            context["approved_sweeteners"].append({"type": "ap_per_turn", "value": 1})
+            context["guidance_state"] = "confirm"
+            return self._build_confirm_step(context, world, dialogue)
+
+        elif action == "skip_ap":
+            context = self._copy_guidance_context(dialogue)
+            context["guidance_state"] = "confirm"
+            return self._build_confirm_step(context, world, dialogue)
 
         elif action == "start_mission":
             terms = selected.get("terms", {})
@@ -12629,6 +12898,145 @@ RETREAT RECOVERY (3 turns):
         else:
             world.pending_diplomatic_dialogue = None
             return {"success": False, "message": f"Unknown dialogue action: {action}"}
+
+    # ═══════════════════════════════════════════════════════════
+    # CONVERSATIONAL TERMS GUIDANCE HELPERS
+    # ═══════════════════════════════════════════════════════════
+
+    @staticmethod
+    def _copy_guidance_context(dialogue: dict) -> dict:
+        """Deep-copy guidance context so list mutations don't leak to old dialogues."""
+        import copy
+        ctx = dialogue.get("context", {})
+        return copy.deepcopy(ctx)
+
+    def _build_gold_step(self, context: dict, world, dialogue: dict,
+                         intro: str = "", rebuild: bool = False) -> dict:
+        """Build the gold offering dialogue step."""
+        from backend.game_logic.diplomacy import get_war_score_for
+
+        target_nation = context.get("target_nation", "")
+        if not rebuild:
+            diplo_key = world._make_diplo_key(world.player_nation, target_nation)
+            relation = world.nation_relations.get(diplo_key, 0)
+            war_score = get_war_score_for(world, world.player_nation, target_nation)
+            gold = int(max(25, min(200, max(abs(war_score) * 3, abs(relation)))))
+            context["gold_amount"] = gold
+        gold = int(context.get("gold_amount", 50))
+
+        text = f"{intro}I suggest offering {int(gold)} gold per turn."
+        new_dialogue = {
+            "type": "terms_guidance",
+            "target_nation": target_nation,
+            "talleyrand_text": text,
+            "options": [
+                {"label": f"Offer {int(gold)} gold", "description": "Add this gold to the offer.",
+                 "action": "offer_gold"},
+                {"label": "Offer more", "description": "Increase the gold amount.",
+                 "action": "more_gold"},
+                {"label": "Offer less", "description": "Decrease the gold amount.",
+                 "action": "less_gold"},
+                {"label": "Skip gold", "description": "Move on without offering gold.",
+                 "action": "skip_gold"},
+            ],
+            "context": context,
+            "turn_created": int(world.current_turn),
+            "blocking": False,
+        }
+        world.pending_diplomatic_dialogue = new_dialogue
+        return {
+            "success": True,
+            "message": new_dialogue["talleyrand_text"],
+            "diplomatic_dialogue": new_dialogue,
+        }
+
+    def _build_ap_step(self, context: dict, world, dialogue: dict) -> dict:
+        """Build the AP offering dialogue step."""
+        target_nation = context.get("target_nation", "")
+        new_dialogue = {
+            "type": "terms_guidance",
+            "target_nation": target_nation,
+            "talleyrand_text": (
+                "Offering an Action Point is extraordinary — but worth 8 acceptance points."
+            ),
+            "options": [
+                {"label": "Offer the AP", "description": "Add 1 AP per turn to the offer.",
+                 "action": "offer_ap"},
+                {"label": "Too costly", "description": "Skip AP and finalize.",
+                 "action": "skip_ap"},
+            ],
+            "context": context,
+            "turn_created": int(world.current_turn),
+            "blocking": False,
+        }
+        world.pending_diplomatic_dialogue = new_dialogue
+        return {
+            "success": True,
+            "message": new_dialogue["talleyrand_text"],
+            "diplomatic_dialogue": new_dialogue,
+        }
+
+    def _build_confirm_step(self, context: dict, world, dialogue: dict) -> dict:
+        """Assemble final terms and show confirmation."""
+        from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
+
+        target_nation = context.get("target_nation", "")
+        proposal_type = context.get("proposal_type", "peace")
+        sweeteners = context.get("approved_sweeteners", [])
+
+        # Build terms dict for acceptance calculation
+        terms = {
+            "type": proposal_type,
+            "proposal_type": proposal_type,
+            "proposer_nation": world.player_nation,
+            "target_nation": target_nation,
+            "sweeteners": sweeteners,
+            "demands": [],
+            "clauses": [],
+        }
+        # Include open borders for peace if relation allows
+        diplo_key = world._make_diplo_key(world.player_nation, target_nation)
+        relation = world.nation_relations.get(diplo_key, 0)
+        if proposal_type == "peace" and relation > -20:
+            terms["clauses"].append("open_borders")
+
+        # Build summary text
+        parts = []
+        for s in sweeteners:
+            stype = s.get("type", "")
+            if stype == "territory_cede":
+                regions = s.get("regions", [])
+                parts.append(f"Cede {', '.join(regions)}")
+            elif stype == "gold_per_turn":
+                parts.append(f"Offer {int(s.get('value', 0))} gold/turn")
+            elif stype == "ap_per_turn":
+                parts.append(f"Offer {int(s.get('value', 0))} AP/turn")
+        summary = "; ".join(parts) if parts else "No concessions"
+
+        new_dialogue = {
+            "type": "terms_guidance",
+            "target_nation": target_nation,
+            "talleyrand_text": f"Here are the assembled terms: {summary}.",
+            "options": [
+                {"label": "Send", "description": "Dispatch this proposal.",
+                 "action": "execute_proposal",
+                 "terms": terms},
+                {"label": "Start over", "description": "Rebuild the offer from scratch.",
+                 "action": "adjust_terms"},
+                {"label": "Reconsider", "description": "Dismiss and think it over.",
+                 "action": "reconsider"},
+            ],
+            "context": context,
+            "turn_created": int(world.current_turn),
+            "blocking": False,
+        }
+        new_dialogue = _enrich_proposal_summary(new_dialogue, target_nation, proposal_type, world)
+        world.pending_diplomatic_dialogue = new_dialogue
+        return {
+            "success": True,
+            "message": new_dialogue["talleyrand_text"],
+            "diplomatic_dialogue": new_dialogue,
+        }
 
     # ═══════════════════════════════════════════════════════════
     # AI PROPOSAL RESPONSE HANDLERS (Phase 8 Session 4)
