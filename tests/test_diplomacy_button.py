@@ -747,6 +747,34 @@ class TestMockParserCoverage:
         assert result.matched
         assert result.action == "diplomatic_ultimatum"
 
+    def test_propose_open_borders(self):
+        result = self._parse("propose open borders with Saxony")
+        assert result.matched
+        assert result.action in ("diplomatic_proposal",)
+
+    def test_propose_non_aggression(self):
+        """Wizard sends 'non aggression' (no hyphen) — must route to diplomacy."""
+        result = self._parse("propose non aggression with Saxony")
+        assert result.matched
+        assert result.action in ("diplomatic_proposal",)
+
+    def test_propose_non_aggression_hyphenated(self):
+        """Typed 'non-aggression' (with hyphen) must also work."""
+        result = self._parse("propose non-aggression with Saxony")
+        assert result.matched
+        assert result.action in ("diplomatic_proposal",)
+
+    def test_propose_defensive_alliance(self):
+        """Wizard sends 'propose defensive alliance' — must route to diplomacy."""
+        result = self._parse("propose defensive alliance with Saxony")
+        assert result.matched
+        assert result.action in ("diplomatic_proposal",)
+
+    def test_propose_alliance(self):
+        result = self._parse("propose alliance with Saxony")
+        assert result.matched
+        assert result.action in ("diplomatic_proposal",)
+
     def test_propose_vassalization(self):
         result = self._parse("propose vassalization to Saxony")
         assert result.matched

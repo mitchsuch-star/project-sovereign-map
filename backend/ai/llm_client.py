@@ -511,7 +511,8 @@ class LLMClient:
             "negotiate peace", "negotiate alliance", "negotiate with",
             "sue for peace", "seek peace", "make peace",
             "sign treaty", "sign peace", "peace with",
-            "open borders with", "non-aggression with", "pact with",
+            "open borders with", "non-aggression with", "non aggression with",
+            "defensive alliance", "pact with",
         ]
         if any(kw in command_lower for kw in _proposal_keywords):
             return self._parse_diplomatic_command(command_text, command_lower)
