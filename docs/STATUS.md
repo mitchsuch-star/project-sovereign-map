@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 9, 2026 (Playtest bugfixes: game-over enforcement, empty command, LLM parse fields, treaty war warning)
+> **Last Updated:** March 9, 2026 (Diplomatic Screen Update: 30 changes across 8 files, 35 new tests)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **5984** (5984 passed, 3 skipped — playtest bugfixes + 12 new tests) |
+| **Tests Passing** | **6038** (6038 passed, 3 skipped — diplomatic screen update + 35 new tests) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -25,9 +25,9 @@
    - ~~**Wave 2: AI Intelligence**~~ — **DONE** (5 items, 36 tests).
    - ~~**Wave 2.5: Wartime Peace Rebalance**~~ — **DONE** (10 items R141-R150, 32 tests). Acceptance formula rebalance (relation dampening during WAR, war weariness, stalemate duration), sweetener value/cap increases, territory cession + AP/manpower in suggested terms, P2 trigger fix. Also fixed territory_cede acceptance value bug and ratification key mismatch.
    - **Bug fix: Popup chain audit** — Counter-offer popup data shape mismatch (wrong field names, missing fields). Also: Counter button hidden for counter-offers, Berthier recovery + /respond_to_diplomatic_dialogue popup passthroughs added. 23 regression tests.
-   - **Wave 3: Player Feedback** (8 items) — R118 acceptance preview, R119 betrayal memory, R131 cooldown warning, R129 override feedback, R128 sabotage feedback, R132 vassal transparency, R17d-f ledger. Note: R118 now uses unified likelihood words from Diplomacy Button spec.
+   - ~~**Wave 3: Player Feedback (partial)**~~ — **DONE** (R118 acceptance preview, R131 cooldown warning, R17d DP breakdown, R17e relation trends, R17f mission progress — 35 tests). Remaining Wave 3 items: R119 betrayal memory, R129 override feedback, R128 sabotage feedback, R132 vassal transparency.
    - **Wave 4: Decide Gate** (17 items) — Marriage, conferences, voice bank, ceremonies, etc. Per-item approval needed.
-   - **After Phase 5: UI Test Plan** — Manual playtest in Godot. DP display investigation (R39). Verify all fixes.
+   - **NEXT GATE: UI Testing** — Manual playtest in Godot to verify all diplomatic screen changes render correctly. DP display investigation (R39). Then remaining Wave 3 items.
 3. ~~**Phase 8: Diplomacy**~~ — **ALL SESSIONS COMPLETE** (1A through 8D). See `docs/SESSION_8_PLAN.md`.
 4. ~~**Diplomacy Audit**~~ — **COMPLETE.** 20 bugs fixed, 145 audit tests.
 5. ~~**Diplomacy Creative Audit**~~ — **COMPLETE.** 7.8/10 score.
@@ -58,6 +58,26 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 9 — Diplomatic Screen Update (30 changes, 35 tests)
+
+Major enrichment of the Diplomatic Ledger (D key) and Diplomacy Wizard (F1 key). Backend already computed many fields that the frontend silently ignored — now all rendered. Plus new backend fields for missing context.
+
+**Ledger Tab 1 — Nations (N1-N7):** AI-AI relations colored by state, war score breakdown, proposal cooldowns, vassal eligibility badge, trade income, relation descriptor, relation trend arrows (↑↓→ via new `relation_history` WorldState field).
+
+**Ledger Tab 2 — Treaties (T1-T4):** Gold flow per turn, treaty age (turn signed), player vs AI-AI distinction (dimmed grey), armistice countdown.
+
+**Ledger Tab 3 — Threat & Coalition (TH1-TH4):** Critical pulse animation (was empty `pass`), coalition cooldown display, human-readable threat source labels (18 keys), dissolution conditions text.
+
+**Ledger Tab 4 — Talleyrand (TA1-TA5):** Diplomatic history (last 10, colored by type), reliability with descriptor, DP breakdown (base/skill/authority/capital), mission effect text + cost, remaining turns for fixed-duration missions.
+
+**Wizard Step 1 (W1-W2):** Relation score + descriptor on nation buttons, [MISSION] indicator for active missions.
+
+**Wizard Step 2 (W3-W5):** KEY FACTORS section (top 3 positive/negative acceptance components), cooldown pre-check warning (Talleyrand quote), mission effect text on action buttons.
+
+**Edge case audit:** 4 bugs found and fixed — authority_tracker source for DP breakdown, `int(round(val or 0))` None guard, isinstance check on active_mission dict, variable shadow in Godot loop.
+
+**Files modified:** diplomatic_ledger.py, world_state.py, main.py, diplomacy.py, diplomatic_ledger.gd, diplomacy_wizard.gd, test_diplo_screen_update.py (35 tests), SAVE_FORMAT_REFERENCE.md. 6038 total tests passing.
 
 ### Mar 9 — Playtest Bugfixes (4 fixes, 12 tests)
 
