@@ -97,6 +97,7 @@ A future save/load system should use this as the specification.
   "coalition_cooldown": 0,
   "coalition_count": 0,
   "war_exhaustion": {},
+  "war_start_turns": {},
 
   "casus_belli": {},
   "ultimatum_cooldowns": {},
@@ -209,6 +210,7 @@ A future save/load system should use this as the specification.
 | `coalition_cooldown` | int | 0 | **Session 7.** Post-dissolution cooldown (5 turns). Prevents new coalition formation while > 0. Decremented in process_coalition_turn(). |
 | `coalition_count` | int | 0 | **Session 7.** Total coalitions formed this game. Used for naming ("First Coalition", "Second Coalition", etc.). |
 | `war_exhaustion` | dict | {} | **Session 7.** War exhaustion per nation. Keys: nation name. Values: int 0-200. +casualties//1000 per battle (cap 20), +5/turn at war, -5/turn at peace. Affects coalition loyalty penalty. |
+| `war_start_turns` | Dict[str, int] | {} | **R142.** diplo_key → turn war began (R142 war weariness tracking). Cleared by `cleanup_war_end()`. |
 | `casus_belli` | dict | {} | **Phase 4.** Casus belli flags per nation-pair. Keys: diplo_key ("Nation1\|Nation2"). Values: bool. Set true when ultimatum rejected — halves war declaration relation penalties. |
 | `ultimatum_cooldowns` | dict | {} | **Diplomacy Button.** Per-nation ultimatum cooldown. Keys: nation name. Values: int (turns remaining, starts at 5). Blocks re-ultimatum to same target while > 0. Decremented in `advance_turn()`. |
 | `diplomatic_reliability` | dict | {} | **Phase 4.** Diplomatic reliability score per nation-pair. Keys: diplo_key. Values: int. +5 per 10-turn honored treaty, -10 per treaty break. Affects acceptance formula (capped +/-10). |

@@ -452,6 +452,7 @@ class WorldState:
         self.coalition_cooldown: int = 0                 # 5-turn post-dissolution
         self.coalition_count: int = 0                    # For naming ("Second Coalition")
         self.war_exhaustion: Dict[str, int] = {}         # nation -> int 0-200
+        self.war_start_turns: Dict[str, int] = {}       # diplo_key -> turn war began (R142)
 
         # ============================================================
         # PHASE 4: War Declaration, Ultimatums, Diplomatic Memory
@@ -2904,6 +2905,7 @@ class WorldState:
             "coalition_cooldown": int(self.coalition_cooldown),
             "coalition_count": int(self.coalition_count),
             "war_exhaustion": {k: int(v) for k, v in self.war_exhaustion.items()},
+            "war_start_turns": {k: int(v) for k, v in self.war_start_turns.items()},
             # ═══════ PHASE 4: War Declaration, Ultimatums, Diplomatic Memory ═══════
             "casus_belli": self.casus_belli.copy(),
             "ultimatum_cooldowns": {k: int(v) for k, v in self.ultimatum_cooldowns.items()},
@@ -3115,6 +3117,7 @@ class WorldState:
         world.coalition_cooldown = int(data.get("coalition_cooldown", 0))
         world.coalition_count = int(data.get("coalition_count", 0))
         world.war_exhaustion = {k: int(v) for k, v in data.get("war_exhaustion", {}).items()}
+        world.war_start_turns = {k: int(v) for k, v in data.get("war_start_turns", {}).items()}
 
         # ═══════ PHASE 4: War Declaration, Ultimatums, Diplomatic Memory ═══════
         world.casus_belli = data.get("casus_belli", {}).copy()

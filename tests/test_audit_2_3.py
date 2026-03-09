@@ -69,7 +69,8 @@ class TestAcceptanceWorkedExample:
 
         assert c["base_disposition"] == 30
         assert c["war_score_modifier"] == 6.0
-        assert c["relation_modifier"] == -30.0
+        # R141: At WAR, relation dampened: -60/4 = -15, clamped to -10
+        assert c["relation_modifier"] == -10
         # DEVIATION: Threat is stubbed to 0 (wired in Coalition Session 7).
         # Spec expects -12 (40 * -0.3).
         assert c["threat_modifier"] == 0
@@ -80,10 +81,10 @@ class TestAcceptanceWorkedExample:
         assert c["military_pressure"] == 3  # R8: int(min(15, 20*0.15)) = 3
         assert c["deal_balance"] == 9.0
 
-        # Total: 30 + 6 - 30 + 0 + 9 + 8 - 5 + situational=3 = 21
+        # R141: Total: 30 + 6 - 10 + 0 + 9 + 8 - 5 + situational=3 = 41
         # R8: military_pressure=3 is max(0, 0, 3) = 3 situational
-        assert result["score"] == 21
-        assert result["outcome"] == "REJECT"
+        assert result["score"] == 41
+        assert result["outcome"] == "COUNTER_OFFER"
 
     def test_acceptance_individual_sweetener_values(self):
         assert SWEETENER_VALUES["open_borders"] == 3
@@ -113,9 +114,9 @@ class TestAcceptanceWorkedExample:
 class TestSweetenerCap:
 
     def test_sweetener_cap_constant(self):
-        assert SWEETENER_CAP == 30
+        assert SWEETENER_CAP == 40  # R146: raised from 30
 
-    def test_massive_sweeteners_capped_at_30(self):
+    def test_massive_sweeteners_capped_at_40(self):
         world = make_world()
         diplo_key = world._make_diplo_key("France", "Prussia")
         world.war_scores[diplo_key] = 0
@@ -138,9 +139,9 @@ class TestSweetenerCap:
         result = calculate_acceptance(proposal, world)
         c = result["components"]
 
-        # Raw: gold(1000*0.03=30) + territory(5*5=25) + open_borders(3) + protection(5) = 63
-        # Capped at 30
-        assert c["deal_balance"] == 30.0
+        # Raw: gold(1000*0.03=30) + territory(5*8=40) + open_borders(3) + protection(5) = 78
+        # Capped at 40
+        assert c["deal_balance"] == 40.0
 
     def test_sweeteners_below_cap_not_affected(self):
         world = make_world()

@@ -1201,6 +1201,26 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
             gold_offer = min(200, abs(war_score) * 3)
             terms["sweeteners"].append({"type": "gold_per_turn", "value": int(gold_offer)})
 
+            # R147: Offer territory cession when losing (non-capital only)
+            from backend.models.region import NATION_CAPITALS
+            france_capital = NATION_CAPITALS.get("France", "Paris")
+            france_regions = world.get_nation_regions("France")
+            cede_candidates = [r for r in france_regions if r != france_capital]
+            max_cede = 1 if war_score >= -40 else 2
+            for region in cede_candidates[:max_cede]:
+                terms["sweeteners"].append({"type": "territory_cede", "value": 1, "regions": [region]})
+
+            # R148: Offer manpower when losing badly
+            if war_score < -30:
+                france_pool = getattr(world, 'manpower_pools', {}).get("France", {}).get("infantry", 0)
+                offer_amount = min(5000, int(france_pool * 0.25))
+                if offer_amount >= 1000:
+                    terms["sweeteners"].append({"type": "infantry_manpower", "value": int(offer_amount)})
+
+            # R148: Offer AP when desperate
+            if war_score < -50:
+                terms["sweeteners"].append({"type": "ap_per_turn", "value": 1})
+
     elif proposal_type == "alliance":
         # Alliance: minimal terms, mutual defense
         terms["clauses"].append("open_borders")
@@ -1220,6 +1240,20 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
     elif proposal_type in ("armistice", "armistice_losing", "armistice_winning"):
         # Armistice is a temporary ceasefire
         terms["type"] = "armistice_losing" if war_score < 0 else "armistice_winning"
+
+        # R150: Sweeten armistice when losing
+        if war_score < -10:
+            gold_lump = min(2000, abs(war_score) * 20)
+            terms["sweeteners"].append({"type": "gold_lump", "value": int(gold_lump)})
+
+        if war_score < -30:
+            # Offer 1 territory as armistice sweetener
+            from backend.models.region import NATION_CAPITALS
+            france_capital = NATION_CAPITALS.get("France", "Paris")
+            france_regions = world.get_nation_regions("France")
+            cede_candidates = [r for r in france_regions if r != france_capital]
+            if cede_candidates:
+                terms["sweeteners"].append({"type": "territory_cede", "value": 1, "regions": [cede_candidates[0]]})
 
     return terms
 

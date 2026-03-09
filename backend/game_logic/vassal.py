@@ -422,6 +422,10 @@ def check_vassal_rebellion(world) -> List[dict]:
         # Set diplomatic state to WAR
         diplo_key = world._make_diplo_key(lord, vassal_name)
         world.diplomatic_states[diplo_key] = "WAR"
+        # R142: Record war start turn
+        reb_war_starts = getattr(world, 'war_start_turns', {})
+        reb_war_starts[diplo_key] = int(world.current_turn)
+        world.war_start_turns = reb_war_starts
 
         # Transfer vassal marshals back and clean up stale state
         for marshal in list(world.marshals.values()):
@@ -834,6 +838,10 @@ def release_vassal(world, vassal_name: str, rebellion: bool = False) -> dict:
     diplo_key = world._make_diplo_key(lord, vassal_name)
     if rebellion:
         world.diplomatic_states[diplo_key] = "WAR"
+        # R142: Record war start turn
+        rel_war_starts = getattr(world, 'war_start_turns', {})
+        rel_war_starts[diplo_key] = int(world.current_turn)
+        world.war_start_turns = rel_war_starts
     else:
         world.diplomatic_states[diplo_key] = "PEACE"
         # Coalition threat reduction: voluntary vassal release (COALITION_SPEC §2b)

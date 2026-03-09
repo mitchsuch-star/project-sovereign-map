@@ -75,12 +75,12 @@ class TestDebugModeSecurity:
 
 class TestP2StalemateFix:
     def test_p2_condition_blocks_winning_ai(self):
-        """The P2 condition should include war_score <= 0 check."""
+        """The P2 condition should include war_score <= 10 check (R149: raised from <= 0)."""
         import inspect
         from backend.game_logic import ai_diplomacy
         source = inspect.getsource(ai_diplomacy.process_diplomatic_phase)
-        # Verify the war_score <= 0 condition exists in P2
-        assert "war_score <= 0" in source
+        # R149: Verify the war_score <= 10 condition exists in P2
+        assert "war_score <= 10" in source
 
 
 # ═══════════════════════════════════════════════════════
@@ -135,10 +135,11 @@ class TestDiplomaticHelpText:
 
 class TestRelationCap:
     def test_positive_relation_capped_at_30(self):
-        """Relation +100 should yield relation_mod = 30, not 50."""
+        """Relation +100 should yield relation_mod = 30, not 50 (peacetime formula)."""
         world = make_world()
         key = world._make_diplo_key("France", "Prussia")
         world.nation_relations[key] = 100
+        world.diplomatic_states[key] = "PEACE"  # R141: must be PEACE for full-range cap test
         proposal = {
             "type": "non_aggression",
             "proposer_nation": "France",
@@ -151,10 +152,11 @@ class TestRelationCap:
         assert result["components"]["relation_modifier"] == 30
 
     def test_negative_relation_capped_at_minus_30(self):
-        """Relation -100 should yield relation_mod = -30, not -50."""
+        """Relation -100 should yield relation_mod = -30, not -50 (peacetime formula)."""
         world = make_world()
         key = world._make_diplo_key("France", "Prussia")
         world.nation_relations[key] = -100
+        world.diplomatic_states[key] = "PEACE"  # R141: must be PEACE for full-range cap test
         proposal = {
             "type": "non_aggression",
             "proposer_nation": "France",
@@ -167,10 +169,11 @@ class TestRelationCap:
         assert result["components"]["relation_modifier"] == -30
 
     def test_relation_within_cap_unchanged(self):
-        """Relation +40 should yield relation_mod = 20 (within cap)."""
+        """Relation +40 should yield relation_mod = 20 (within cap, peacetime)."""
         world = make_world()
         key = world._make_diplo_key("France", "Prussia")
         world.nation_relations[key] = 40
+        world.diplomatic_states[key] = "PEACE"  # R141: must be PEACE for full-range cap test
         proposal = {
             "type": "non_aggression",
             "proposer_nation": "France",

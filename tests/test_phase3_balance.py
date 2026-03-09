@@ -119,8 +119,8 @@ class TestR104SweetenerValueZero:
             "clauses": [],
         }
         result = calculate_acceptance(proposal, world)
-        # With None value for a flat-rate sweetener (territory=5), should use flat rate
-        assert result["components"]["deal_balance"] == 5
+        # With None value for a flat-rate sweetener (territory=8, R144), should use flat rate
+        assert result["components"]["deal_balance"] == 8
 
     def test_demand_value_zero_gives_zero(self):
         """Demand with value=0 should contribute 0, not fall back to rate."""

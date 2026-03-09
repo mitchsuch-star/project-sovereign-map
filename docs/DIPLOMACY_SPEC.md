@@ -921,6 +921,18 @@ Example: Relation +40 → +20 acceptance
          Relation -60 → -30 acceptance
 ```
 
+**R141 Wartime dampening:** During WAR, relation modifier is dampened: `max(-10, min(10, relation / 4))` instead of peacetime `max(-30, min(30, relation / 2))`. Prevents deep hatred from making wartime peace mathematically impossible.
+
+**R142 War weariness:** `+2 per turn at war, cap +20`. Uses `war_start_turns` dict (diplo_key → turn war began). Cleared by `cleanup_war_end()`.
+
+**R143 Stalemate duration:** `+1 per stalemate turn, cap +15`. Uses `ai_stalemate_counters`. Rewards patience in prolonged conflicts.
+
+**R144 Territory sweetener:** Value raised from +5 to +8 per region ceded (see Deal Sweetener table below).
+
+**R145 Gold lump sweetener:** Rate doubled from +1/200 to +1/100 gold offered.
+
+**R146 Sweetener cap:** Raised from +30 to +40 maximum from all sweetener clauses combined.
+
 **Threat Modifier (anti-France proposals only):**
 ```
 When France proposes TO a hostile/neutral nation:
@@ -932,7 +944,7 @@ When non-France nations propose AGAINST France:
 
 **Deal Sweetener (treaty clauses offered by proposer):**
 ```
-Gold lump sum:            +1 per 200 gold offered
+Gold lump sum:            +1 per 100 gold offered (R145: was 200)
 Gold per turn:            +3 per 100 gold/turn offered
 Manpower per turn (NEW):  +2 per 2000 infantry/turn offered (ongoing recruitment commitment)
 Infantry manpower:        +2 per 5000 troops offered (one-time)
@@ -940,13 +952,13 @@ Cavalry manpower:         +4 per 2500 cavalry offered (precious)
 Artillery manpower:       +5 per 1500 artillery offered (rare)
 Unit swap (offered):      +3 per unit trade favorable to target
 AP per turn (offered):    +8 per AP/turn offered (most valuable sweetener)
-Territory:                +5 per region ceded
+Territory:                +8 per region ceded (R144: was 5)
 Open borders:             +3
 Protection:               +5 (guarantee of defense — reduced to +3 when guarantor
                                already at war with all of target's enemies, per E8)
 ```
 
-**DEAL SWEETENER CAP: +30 maximum** from all sweetener clauses combined. Prevents gold-dumping exploits where a wealthy France overwhelms the formula with raw concessions. The cap forces the player to address the actual diplomatic obstacles (relations, threat, war score) rather than just throwing gold at the problem. Per-turn commitments count toward the cap at the listed values.
+**DEAL SWEETENER CAP: +40 maximum** (R146: was +30) from all sweetener clauses combined. Prevents gold-dumping exploits where a wealthy France overwhelms the formula with raw concessions. The cap forces the player to address the actual diplomatic obstacles (relations, threat, war score) rather than just throwing gold at the problem. Per-turn commitments count toward the cap at the listed values.
 
 **Per-turn commitments are more valuable:** Per-turn clauses (gold/turn, manpower/turn, AP/turn) represent ongoing commitments — reliable income streams for the recipient, ongoing drains for the giver. This makes them inherently more interesting tradeoffs than lump sums. Per-turn clauses can be broken (treaty-break mechanic applies — see §7d).
 
@@ -1570,7 +1582,7 @@ Queue visible in Diplomatic Ledger Tab 4:
 | Condition | Proposal | Priority |
 |-----------|----------|----------|
 | Losing badly (war score < -40) | Armistice/peace | P1 (survival) |
-| War stalemate (war score -10 to +10 for 5+ turns) | Armistice | P2 |
+| War stalemate (war score -10 to +10 for 5+ turns, R149: raised from <= 0 to <= 10) | Armistice | P2 |
 | Threat level > 60 AND not allied with France | Seek alliance with other anti-France nations | P3 |
 | Relation > +30 AND at peace | Propose non-aggression/alliance upgrade | P4 |
 | Economy struggling (gold < 200 and declining) | Trade deal / tribute offer | P5 |

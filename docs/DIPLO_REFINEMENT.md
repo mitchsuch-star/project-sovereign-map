@@ -11,7 +11,7 @@
 
 7 phases of bug fixes, cleanup, balance, QoL, and design depth. Phase 2 split into 2A (diplomacy core) and 2B (vassal + AI-AI + war transitions). Phases 1-4 COMPLETE. Phase 5 adds design depth from comprehensive creative audit (March 7, 2026).
 
-**155 total items.** 57 DONE (Phases 1-4 + R137/R120), 38 APPROVED (Phase 5), R136 KILLED.
+**165 total items.** 67 DONE (Phases 1-4 + R137/R120 + Wave 2.5), 38 APPROVED (Phase 5), R136 KILLED.
 
 | Phase | Focus | Items | Scope |
 |-------|-------|-------|-------|
@@ -20,7 +20,7 @@
 | **Phase 2B** | State cleanup — vassal, AI-AI, war | R46, R50, R60, R68-R73, R81, R97-R102, R105, R107-R108, R110-R111, R113-R114 | ~23 fixes |
 | **Phase 3** | Balance tuning | R4a/b, R6, R8, R9, R11, R14-R16, R18, R20, R104, R106 | 13 changes, 44 tests |
 | **Phase 4** | Commands, QoL, Popup architecture | R10, R21, R23, R29, R31, R34, R38, R17a-c, R12, R76-R79, R84, R87-R95, R103, R112 | ~27 fixes |
-| **Phase 5** | Design depth (4 waves) | R115-R140 (R136 killed) | 40 items |
+| **Phase 5** | Design depth (5 waves) | R115-R150 (R136 killed) | 50 items |
 | **UI Test** | Manual playtest in Godot | R39, R85, R86, verify all fixes | Godot session |
 
 ---
@@ -205,9 +205,9 @@ All 16 previously deferred items have been promoted to Phase 5 (Design Depth) fo
 
 > **Source:** 6-agent comprehensive creative audit (March 7, 2026). Scored 6.5/10.
 > **Decisions:** Design gates passed March 8, 2026.
-> **Process:** Wave 1 (quick wins) -> Wave 2 (AI intelligence) -> Wave 3 (player feedback) -> Wave 4 (decide gate features)
+> **Process:** Wave 1 (quick wins) -> Wave 2 (AI intelligence) -> Wave 2.5 (wartime peace) -> Wave 3 (player feedback) -> Wave 4 (decide gate features)
 
-**Item count:** 40 live items (R136 KILLED). 10 Wave 1, 5 Wave 2, 8 Wave 3, 17 Wave 4 (decide gate).
+**Item count:** 50 live items (R136 KILLED). 10 Wave 1, 5 Wave 2, 10 Wave 2.5, 8 Wave 3, 17 Wave 4 (decide gate).
 
 ---
 
@@ -218,8 +218,8 @@ Bugs, balance tweaks, and small content additions. No design ambiguity. Each < 3
 ### R134: DEBUG_MODE Security Fix — BUG
 `main.py:27` — `DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"` (was hardcoded True).
 
-### R121: P2 Stalemate Trigger Fix — BUG
-`ai_diplomacy.py:517` — Add `and war_score <= 0` so winning AI doesn't propose stalemate armistice.
+### R121: P2 Stalemate Trigger Fix — BUG (**SUPERSEDED by R149**)
+`ai_diplomacy.py:517` — Add `and war_score <= 0` so winning AI doesn't propose stalemate armistice. **Superseded by R149 (Wave 2.5): threshold raised to `war_score <= 10`.**
 
 ### R137: "ally with" Parser Fix — BUG ✅ DONE
 `llm_client.py` — Added "ally with/against", "become allies", "form alliance", plus 60+ additional diplomatic keywords for proposals, missions, war declarations, break treaties, ultimatums, and diplomat name alternatives. 85 tests in `test_diplo_parsing_expansion.py`.
@@ -263,6 +263,42 @@ Bugs, balance tweaks, and small content additions. No design ambiguity. Each < 3
 
 ### R126: Urgent Re-Proposal on Situation Change — DONE
 `ai_diplomacy.py (_is_on_cooldown)` — Bypass nation cooldown when war_score drops 20+ since last proposal. Track `ai_proposal_metadata` on WorldState (serialized). 7 tests.
+
+---
+
+## WAVE 2.5: WARTIME PEACE REBALANCE (10 items, 27 tests) — DONE
+
+Acceptance formula and AI proposal rebalance for wartime peace negotiations. Prevents mathematically impossible peace during prolonged wars.
+
+### R141: Dampen Relation Weight During WAR — DONE
+`diplomacy.py (_calculate_acceptance)` — During WAR: `max(-10, min(10, relation / 4))` instead of peacetime `max(-30, min(30, relation / 2))`. Prevents deep hatred from blocking all peace.
+
+### R142: War Weariness Modifier — DONE
+`diplomacy.py (_calculate_acceptance)` — `+2/turn at war, cap +20`. New `war_start_turns` dict on WorldState (diplo_key → turn war began). Cleared by `cleanup_war_end()`.
+
+### R143: Stalemate Duration Modifier — DONE
+`diplomacy.py (_calculate_acceptance)` — `+1/stalemate turn, cap +15`. Uses `ai_stalemate_counters`. Rewards patience in prolonged conflicts.
+
+### R144: Territory Sweetener Value 5 to 8 — DONE
+`diplomacy.py` — Territory cession sweetener raised from +5 to +8 per region. Makes territorial concessions more impactful.
+
+### R145: Gold Lump Rate Doubled (1/200 to 1/100) — DONE
+`diplomacy.py` — Gold lump sum sweetener rate doubled from +1 per 200 gold to +1 per 100 gold.
+
+### R146: Sweetener Cap 30 to 40 — DONE
+`diplomacy.py` — Sweetener cap raised from +30 to +40. Allows richer concession packages.
+
+### R147: Territory Cession in generate_suggested_terms() — DONE
+`diplomacy.py (generate_suggested_terms)` — AI considers territory cession when generating peace terms.
+
+### R148: AP and Manpower Sweeteners in generate_suggested_terms() — DONE
+`diplomacy.py (generate_suggested_terms)` — AI considers AP/turn and manpower sweeteners when building proposals.
+
+### R149: P2 Stalemate Trigger war_score <= 10 (supersedes R121) — DONE
+`ai_diplomacy.py` — P2 stalemate trigger raised from `war_score <= 0` to `war_score <= 10`. Slightly winning AI will still consider stalemate armistice. Supersedes R121.
+
+### R150: Armistice Sweeteners When Losing — DONE
+`ai_diplomacy.py` — AI adds sweeteners to armistice proposals when in a losing position.
 
 ---
 
@@ -323,9 +359,10 @@ Bugs, balance tweaks, and small content additions. No design ambiguity. Each < 3
 |------|-------|-----------|-------|
 | Wave 1 | 10 | ~22 | Quick wins: bugs, balance, content |
 | Wave 2 | 5 | ~19 | AI personality & intelligence |
+| Wave 2.5 | 10 | 27 | Wartime peace rebalance — DONE |
 | Wave 3 | 8 | ~21 | Player feedback & transparency |
 | Wave 4 | 17 | TBD | Decide gate — approved per-item |
 
 ---
 
-**Grand total (R1-R140 + GAP-3/5/6):** 155 items. 57 DONE (Phases 1-4 + R137/R120), 38 APPROVED (Phase 5), R136 KILLED.
+**Grand total (R1-R150 + GAP-3/5/6):** 165 items. 67 DONE (Phases 1-4 + R137/R120 + Wave 2.5), 38 APPROVED (Phase 5), R136 KILLED.

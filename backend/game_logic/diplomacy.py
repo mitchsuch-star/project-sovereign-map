@@ -178,11 +178,19 @@ FEEDBACK_STRINGS = {
         "negative": "France's reputation for breaking agreements",
         "positive": "France's record of honoring treaties",
     },
+    "war_weariness": {
+        "negative": "the war has dragged on too long",
+        "positive": "exhaustion from prolonged conflict",
+    },
+    "stalemate_duration": {
+        "negative": "the deadlock shows no sign of breaking",
+        "positive": "neither side can gain the upper hand",
+    },
 }
 
 # ═══════ SWEETENER / DEMAND VALUES ═══════
 SWEETENER_VALUES = {
-    "gold_lump": 1 / 200,         # +1 per 200g
+    "gold_lump": 1 / 100,         # +1 per 100g (R145: was 1/200)
     "gold_per_turn": 3 / 100,     # +3 per 100g/turn
     "manpower_per_turn": 2 / 2000, # +2 per 2000 infantry/turn
     "infantry_manpower": 2 / 5000, # +2 per 5000
@@ -190,11 +198,12 @@ SWEETENER_VALUES = {
     "artillery_manpower": 5 / 1500, # +5 per 1500
     "unit_swap": 3,                # +3 per favorable trade
     "ap_per_turn": 8,              # +8 per AP
-    "territory": 5,                # +5 per region
+    "territory": 8,                # +8 per region (R144: was 5)
+    "territory_cede": 8,           # +8 per region (alias for ratification path)
     "open_borders": 3,             # +3 flat
     "protection": 5,               # +5 flat
 }
-SWEETENER_CAP = 30
+SWEETENER_CAP = 40                 # R146: was 30
 
 DEMAND_VALUES = {
     "gold_per_turn": -2 / 100,     # -2 per 100g/turn demanded
@@ -465,6 +474,11 @@ def cleanup_war_end(world, diplo_key: str) -> None:
         war_exhaustion.pop(parts[0], None)
         war_exhaustion.pop(parts[1], None)
 
+    # R142: Clear war start turn
+    war_start_turns = getattr(world, 'war_start_turns', {})
+    war_start_turns.pop(diplo_key, None)
+    world.war_start_turns = war_start_turns
+
     # R69: Clear cascade_triggered entries for this war pair
     cascade_triggered = getattr(world, 'cascade_triggered', set())
     to_remove = {key for key in cascade_triggered if diplo_key in key}
@@ -551,9 +565,27 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         war_score = -war_score  # Flip: target is first in key, so proposer winning = negative in storage
     war_score_mod = war_score * 0.3
 
-    # ── Relation Modifier ──
+    # ── Relation Modifier (R141: dampened during WAR) ──
     relation = world.nation_relations.get(diplo_key, 0)
-    relation_mod = max(-30, min(30, relation / 2))
+    current_diplo_state = world.diplomatic_states.get(diplo_key, "PEACE")
+    if current_diplo_state == "WAR":
+        relation_mod = max(-10, min(10, relation / 4))  # -40 rel → -10 (was -20)
+    else:
+        relation_mod = max(-30, min(30, relation / 2))   # unchanged for peacetime
+
+    # ── War Weariness (R142: +2/turn at war, cap +20) ──
+    war_weariness_mod = 0
+    if current_diplo_state == "WAR":
+        war_start = getattr(world, 'war_start_turns', {}).get(diplo_key, world.current_turn)
+        turns_at_war = max(0, int(world.current_turn) - int(war_start))
+        war_weariness_mod = min(20, turns_at_war * 2)
+
+    # ── Stalemate Duration (R143: +1/stalemate turn, cap +15) ──
+    stalemate_duration_mod = 0
+    if current_diplo_state == "WAR":
+        stalemate_counters = getattr(world, 'ai_stalemate_counters', {})
+        target_stalemate = stalemate_counters.get(target, 0)
+        stalemate_duration_mod = min(15, target_stalemate)
 
     # ── Threat Modifier (COALITION_SPEC §6a) ──
     threat = int(getattr(world, 'threat_level', 0))
@@ -666,6 +698,8 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         base
         + war_score_mod
         + relation_mod
+        + war_weariness_mod
+        + stalemate_duration_mod
         + threat_mod
         + coalition_penalty
         + deal_balance
@@ -691,6 +725,8 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         "base_disposition": base,
         "war_score_modifier": round(war_score_mod, 1),
         "relation_modifier": round(relation_mod, 1),
+        "war_weariness": int(war_weariness_mod),
+        "stalemate_duration": int(stalemate_duration_mod),
         "threat_modifier": round(threat_mod, 1),
         "coalition_penalty": int(coalition_penalty),
         "deal_balance": round(deal_balance, 1),
@@ -720,6 +756,7 @@ def _generate_feedback(outcome: str, components: Dict) -> str:
     # Find largest positive and negative components
     trackable = {
         "base_disposition", "war_score_modifier", "relation_modifier",
+        "war_weariness", "stalemate_duration",
         "threat_modifier", "deal_balance", "diplomat_skill_bonus",
         "personality_modifier", "special_desire_bonus",
         "coalition_penalty", "harshness_bonus", "reliability_modifier",
@@ -855,6 +892,11 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
 
     # Transition to WAR
     world.diplomatic_states[diplo_key] = "WAR"
+
+    # R142: Record war start turn
+    war_start_turns = getattr(world, 'war_start_turns', {})
+    war_start_turns[diplo_key] = int(world.current_turn)
+    world.war_start_turns = war_start_turns
 
     # R97: Remove active treaty (alliance clauses must stop during war)
     active_treaties = getattr(world, 'active_treaties', {})
@@ -1015,6 +1057,10 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
                 # Force WAR — bypasses armistice cooldowns
                 war_key = world._make_diplo_key(nation, aggressor)
                 world.diplomatic_states[war_key] = "WAR"
+                # R142: Record war start turn
+                cascade_war_starts = getattr(world, 'war_start_turns', {})
+                cascade_war_starts[war_key] = int(world.current_turn)
+                world.war_start_turns = cascade_war_starts
                 processed.add(nation)
 
                 # R97: Remove active treaty for the cascading pair
@@ -1511,6 +1557,10 @@ def _process_armistice_expiration(world) -> List[Dict]:
         else:
             # Relations too hostile — back to WAR
             world.diplomatic_states[diplo_key] = "WAR"
+            # R142: Record war start turn
+            arm_war_starts = getattr(world, 'war_start_turns', {})
+            arm_war_starts[diplo_key] = int(world.current_turn)
+            world.war_start_turns = arm_war_starts
             events.append({
                 "type": "armistice_expired_war",
                 "nations": [nation_a, nation_b],

@@ -600,8 +600,8 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
             terms = _build_proposal_terms(nation, ptype, war_score, world, gold_mult=gold_mult)
             proposal = _make_proposal(nation, ptype, 1, terms, world)
 
-    # ── P2: Stalemate (war_score -10..+10 for N+ turns, only when losing/even) ──
-    if proposal is None and is_at_war and stalemate_turns >= effective_stalemate_turns and war_score <= 0:
+    # ── P2: Stalemate (war_score -10..+10 for N+ turns, R149: fire when not clearly winning) ──
+    if proposal is None and is_at_war and stalemate_turns >= effective_stalemate_turns and war_score <= 10:
         ptype = "armistice_stalemate"
         if not _is_on_cooldown(nation, "armistice", world, war_score):
             terms = _build_proposal_terms(nation, ptype, war_score, world, gold_mult=gold_mult)

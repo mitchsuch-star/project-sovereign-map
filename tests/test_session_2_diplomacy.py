@@ -326,17 +326,15 @@ class TestAcceptanceFormula:
         # Expected components (without threat which is stubbed at 0):
         # Base: 30
         # War score: 20 * 0.3 = 6
-        # Relation: -60 / 2 = -30
+        # R141: Relation at WAR: -60 / 4 = -15, clamped to -10 (was -30)
         # Threat: 0 (stubbed) — spec example has -12 but we stub at 0
         # Sweetener: open_borders=3, gold_per_turn=200/100*3=6 → total 9
         # Diplomat skill: (10-6)*2 = 8
         # Personality (hawk, peace): -5
-        # Total without threat: 30 + 6 - 30 + 0 + 9 + 8 - 5 = 18
-
-        # With threat=40*-0.3=-12 the spec gets 6
-        # Without threat we get 18 → still REJECT (<30)
-        assert result["outcome"] == "REJECT"
-        assert result["score"] < 30
+        # Total without threat: 30 + 6 - 10 + 0 + 9 + 8 - 5 = 38
+        # R141 raised score from REJECT to COUNTER_OFFER
+        assert result["outcome"] == "COUNTER_OFFER"
+        assert result["score"] >= 30
         assert "components" in result
         assert "feedback" in result
 
@@ -380,7 +378,7 @@ class TestAcceptanceFormula:
         # Total: 30 - 5 + 2 + 5 + 3 = 35 → COUNTER_OFFER
         assert result["outcome"] == "COUNTER_OFFER"
 
-    def test_sweetener_cap_at_30(self):
+    def test_sweetener_cap_at_40(self):
         world = make_world()
 
         proposal = {
@@ -388,15 +386,15 @@ class TestAcceptanceFormula:
             "proposer_nation": "France",
             "target_nation": "Prussia",
             "sweeteners": [
-                {"type": "territory", "value": 10},  # 10*5=50, but capped at 30
+                {"type": "territory", "value": 10},  # 10*8=80, but capped at 40
             ],
             "demands": [],
             "clauses": [],
         }
 
         result = calculate_acceptance(proposal, world)
-        # Sweetener should be capped at 30
-        assert result["components"]["deal_balance"] <= 30
+        # Sweetener should be capped at 40 (R146)
+        assert result["components"]["deal_balance"] <= 40
 
     def test_demands_uncapped(self):
         world = make_world()
