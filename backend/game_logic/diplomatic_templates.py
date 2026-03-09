@@ -23,7 +23,7 @@ DIPLOMATIC_TEMPLATES = {
     ("proposal_options", "WAR", "winning_comfortably"): {
         "text": (
             "Sire, we hold a commanding position against {target_nation}. "
-            "War score stands at {war_score}. I see several paths forward."
+            "Their armies falter and their courts grow anxious. I see several paths forward."
         ),
         "options": [
             {
@@ -53,7 +53,7 @@ DIPLOMATIC_TEMPLATES = {
     ("proposal_options", "WAR", "losing_badly"): {
         "text": (
             "Sire, our position against {target_nation} is... precarious. "
-            "War score: {war_score}. We must act before things deteriorate further."
+            "The battlefield has not favored us. We must act before things deteriorate further."
         ),
         "options": [
             {
@@ -84,7 +84,7 @@ DIPLOMATIC_TEMPLATES = {
     ("proposal_options", "WAR", "stalemate"): {
         "text": (
             "Sire, the war with {target_nation} is at a standstill. "
-            "War score: {war_score}. Neither side has a decisive advantage."
+            "Neither side has won a decisive advantage on the battlefield."
         ),
         "options": [
             {
@@ -113,7 +113,7 @@ DIPLOMATIC_TEMPLATES = {
     ("proposal_options", "PEACE", "hostile"): {
         "text": (
             "Sire, relations with {target_nation} are tense. "
-            "Current relation: {relation}. State: {current_state}. "
+            "There is deep mistrust between our courts. "
             "Tread carefully."
         ),
         "options": [
@@ -144,7 +144,7 @@ DIPLOMATIC_TEMPLATES = {
     ("proposal_options", "PEACE", "friendly"): {
         "text": (
             "Sire, {target_nation} views us favorably. "
-            "Relation: {relation}. State: {current_state}. "
+            "Their court speaks well of France. "
             "The time may be ripe to deepen our ties."
         ),
         "options": [
@@ -176,7 +176,7 @@ DIPLOMATIC_TEMPLATES = {
     ("proposal_confirm", "WAR", "any"): {
         "text": (
             "Sire, regarding the {proposal_type} proposal to {target_nation}, "
-            "I suggest the following terms. War score: {war_score}, relation: {relation}."
+            "I have prepared terms appropriate to the current military situation."
         ),
         "options": [
             {
@@ -209,7 +209,7 @@ DIPLOMATIC_TEMPLATES = {
     ("proposal_confirm", "PEACE", "any"): {
         "text": (
             "Sire, regarding the {proposal_type} proposal to {target_nation}, "
-            "I have prepared appropriate terms. Relation: {relation}, state: {current_state}."
+            "I have prepared terms that reflect the current diplomatic climate."
         ),
         "options": [
             {
@@ -384,7 +384,7 @@ DIPLOMATIC_TEMPLATES = {
         "text": (
             "You ask about {target_nation}, Sire? Let me assess the situation.\n\n"
             "{target_nation} is currently at war with France. "
-            "War score: {war_score}. Relation: {relation}.\n\n"
+            "The campaign continues and passions run deep.\n\n"
             "The Diplomatic Ledger (D key) has the precise figures."
         ),
         "options": [
@@ -406,7 +406,7 @@ DIPLOMATIC_TEMPLATES = {
         "text": (
             "You ask about {target_nation}, Sire?\n\n"
             "{target_nation} is at peace with France. "
-            "Relation: {relation}. State: {current_state}.\n\n"
+            "The diplomatic situation is as one might expect between our courts.\n\n"
             "The Diplomatic Ledger (D key) has the precise figures."
         ),
         "options": [
@@ -952,7 +952,7 @@ FALLBACK_TEMPLATES = {
     "proposal_options": {
         "text": (
             "Sire, how shall I approach {target_nation}? "
-            "Current state: {current_state}, relation: {relation}."
+            "I await your instructions."
         ),
         "options": [
             {
@@ -1197,9 +1197,10 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
         if war_score > 20:
             gold_demand = min(300, war_score * 5)
             terms["demands"].append({"type": "gold_per_turn", "value": int(gold_demand)})
-        elif war_score < -20:
-            # If losing, offer gold to sweeten
-            gold_offer = min(200, abs(war_score) * 3)
+        elif war_score < -20 or relation < -50:
+            # If losing or deeply hostile, offer gold to sweeten
+            gold_factor = max(abs(war_score) * 3, abs(relation))
+            gold_offer = min(200, max(50, int(gold_factor)))
             terms["sweeteners"].append({"type": "gold_per_turn", "value": int(gold_offer)})
 
             # R147: Offer territory cession when losing
@@ -1250,10 +1251,12 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
         # Armistice is a temporary ceasefire
         terms["type"] = "armistice_losing" if war_score < 0 else "armistice_winning"
 
-        # R150: Sweeten armistice when losing
-        if war_score < -10:
-            gold_lump = min(2000, abs(war_score) * 20)
-            terms["sweeteners"].append({"type": "gold_lump", "value": int(gold_lump)})
+        # R150: Sweeten armistice when losing OR when relation is very hostile
+        # Hostile nations won't accept bare armistice even at neutral war score
+        needs_sweetener = war_score < -10 or relation < -50
+        if needs_sweetener:
+            gold_amount = max(200, min(2000, max(abs(war_score), abs(relation)) * 20))
+            terms["sweeteners"].append({"type": "gold_lump", "value": int(gold_amount)})
 
         if war_score < -30:
             # Offer 1 territory as armistice sweetener (non-capital first)

@@ -426,3 +426,194 @@ class TestEnrichmentFunction:
         # Should include the gold lump sweetener in display
         terms_text = " ".join(result["proposal_terms_summary"])
         assert "500" in terms_text
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# SECTION 8: NO RAW DATA IN COMMENTARY
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestNoRawDataInCommentary:
+    """Talleyrand commentary must never contain raw numeric data dumps."""
+
+    _RAW_DATA_PATTERNS = [
+        "War score:",
+        "war_score:",
+        "Relation:",
+        "relation:",
+        "State: WAR",
+        "State: PEACE",
+        "State: ALLIANCE",
+        "State: NON_AGGRESSION",
+        "State: OPEN_BORDERS",
+        "State: ARMISTICE",
+        "state: WAR",
+        "state: PEACE",
+        "Current state:",
+        "current_state:",
+    ]
+
+    @pytest.mark.parametrize("proposal_type,target_nation", [
+        ("armistice", "Prussia"),
+        ("peace", "Prussia"),
+        ("alliance", "Austria"),
+        ("non_aggression", "Austria"),
+        ("open_borders", "Austria"),
+        ("vassalage", "Saxony"),
+    ])
+    def test_commentary_no_raw_data(self, proposal_type, target_nation):
+        """talleyrand_text must not contain raw backend data strings."""
+        world = _make_world()
+        if proposal_type in ("alliance", "non_aggression", "open_borders", "vassalage"):
+            diplo_key = world._make_diplo_key("France", target_nation)
+            world.diplomatic_states[diplo_key] = "PEACE"
+
+        executor = _make_executor()
+        data = _build_diplomatic_data(target_nation, proposal_type)
+        result = executor._execute_diplomatic_proposal(data, world)
+        dialogue = result["diplomatic_dialogue"]
+        text = dialogue["talleyrand_text"]
+
+        for pattern in self._RAW_DATA_PATTERNS:
+            assert pattern not in text, (
+                f"Raw data '{pattern}' found in talleyrand_text for "
+                f"{proposal_type} to {target_nation}: {text}"
+            )
+
+    def test_commentary_is_nonempty_string_all_types(self):
+        """Commentary is a non-empty string for all proposal types."""
+        for ptype, target in [
+            ("armistice", "Prussia"), ("peace", "Prussia"),
+            ("alliance", "Austria"), ("non_aggression", "Austria"),
+            ("open_borders", "Austria"), ("vassalage", "Saxony"),
+        ]:
+            world = _make_world()
+            if ptype in ("alliance", "non_aggression", "open_borders", "vassalage"):
+                diplo_key = world._make_diplo_key("France", target)
+                world.diplomatic_states[diplo_key] = "PEACE"
+            executor = _make_executor()
+            data = _build_diplomatic_data(target, ptype)
+            result = executor._execute_diplomatic_proposal(data, world)
+            dialogue = result["diplomatic_dialogue"]
+            assert isinstance(dialogue["talleyrand_text"], str)
+            assert len(dialogue["talleyrand_text"]) > 10, (
+                f"Commentary too short for {ptype}: '{dialogue['talleyrand_text']}'"
+            )
+
+    def test_proposal_options_no_raw_data(self):
+        """Vague proposal (no type) commentary has no raw data."""
+        world = _make_world()
+        executor = _make_executor()
+        # No proposal type → proposal_options dialogue
+        data = _build_diplomatic_data("Prussia", None)
+        result = executor._execute_diplomatic_proposal(data, world)
+        dialogue = result["diplomatic_dialogue"]
+        text = dialogue["talleyrand_text"]
+        for pattern in self._RAW_DATA_PATTERNS:
+            assert pattern not in text, (
+                f"Raw data '{pattern}' found in proposal_options text: {text}"
+            )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# SECTION 9: HOSTILE ARMISTICE INCLUDES SWEETENERS
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestHostileArmisticeSweeteners:
+    """Armistice to hostile nation must include sweetener clauses."""
+
+    def test_armistice_hostile_has_sweetener(self):
+        """Armistice to nation with relation < -50 includes at least 1 sweetener."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = _make_world()
+        # Set hostile relation
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        world.nation_relations[diplo_key] = -80
+        # War score neutral
+        world.war_scores[diplo_key] = 0
+
+        terms = generate_suggested_terms("Prussia", "armistice", world)
+        sweeteners = terms.get("sweeteners", [])
+        assert len(sweeteners) >= 1, (
+            f"Expected sweeteners for hostile armistice, got none. Terms: {terms}"
+        )
+
+    def test_armistice_neutral_relation_no_forced_sweetener(self):
+        """Armistice with neutral relation and positive war_score needs no sweeteners."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = _make_world()
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        world.nation_relations[diplo_key] = 0
+        world.war_scores[diplo_key] = 10
+
+        terms = generate_suggested_terms("Prussia", "armistice", world)
+        sweeteners = terms.get("sweeteners", [])
+        # No sweeteners needed when not hostile and not losing
+        assert len(sweeteners) == 0
+
+    def test_peace_hostile_has_sweetener(self):
+        """Peace proposal to nation with relation < -50 includes gold sweetener."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = _make_world()
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        world.nation_relations[diplo_key] = -80
+        world.war_scores[diplo_key] = 0
+
+        terms = generate_suggested_terms("Prussia", "peace", world)
+        sweeteners = terms.get("sweeteners", [])
+        gold_sweeteners = [s for s in sweeteners if "gold" in s.get("type", "")]
+        assert len(gold_sweeteners) >= 1, (
+            f"Expected gold sweetener for hostile peace, got: {sweeteners}"
+        )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# SECTION 10: ACCEPTANCE HINT
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestAcceptanceHint:
+    """Acceptance hint shows key obstacle from formula components."""
+
+    def test_acceptance_hint_present(self):
+        """Enriched dialogue includes acceptance_hint field."""
+        world = _make_world()
+        executor = _make_executor()
+        data = _build_diplomatic_data("Prussia", "armistice")
+        result = executor._execute_diplomatic_proposal(data, world)
+        dialogue = result["diplomatic_dialogue"]
+        assert "acceptance_hint" in dialogue, "acceptance_hint field missing"
+        assert isinstance(dialogue["acceptance_hint"], str)
+
+    def test_acceptance_hint_has_key_obstacle(self):
+        """For a difficult proposal, hint contains 'Key obstacle:'."""
+        world = _make_world()
+        # Make it hostile so there's a clear negative component
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        world.nation_relations[diplo_key] = -80
+        executor = _make_executor()
+        data = _build_diplomatic_data("Prussia", "armistice")
+        result = executor._execute_diplomatic_proposal(data, world)
+        dialogue = result["diplomatic_dialogue"]
+        hint = dialogue.get("acceptance_hint", "")
+        # Should have content when there's a negative component
+        assert len(hint) > 0, "Hint should be non-empty for hostile proposal"
+        assert "Key obstacle:" in hint
+
+    def test_acceptance_hint_enrichment_direct(self):
+        """Direct test of _enrich_proposal_summary acceptance_hint."""
+        from backend.game_logic.diplomatic_dialogue import _enrich_proposal_summary
+        world = _make_world()
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        world.nation_relations[diplo_key] = -60
+        dialogue = {
+            "type": "proposal_confirm",
+            "target_nation": "Prussia",
+            "talleyrand_text": "Test",
+            "options": [],
+            "context": {},
+            "turn_created": 5,
+            "blocking": False,
+        }
+        result = _enrich_proposal_summary(dialogue, "Prussia", "armistice", world)
+        assert "acceptance_hint" in result
+        # With -60 relation, there should be a hint about hostility or threat
+        assert isinstance(result["acceptance_hint"], str)

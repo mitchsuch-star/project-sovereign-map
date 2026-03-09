@@ -434,9 +434,27 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
         score = int(result["score"])
         dialogue["acceptance_estimate"] = max(0, min(100, score))
         dialogue["acceptance_outcome"] = result.get("outcome", "Unknown")
+
+        # Extract key obstacle from components for player hint
+        from backend.game_logic.diplomacy import FEEDBACK_STRINGS
+        components = result.get("components", {})
+        worst_key, worst_val = "", 0
+        for comp_key, comp_val in components.items():
+            if comp_val < worst_val:
+                worst_key = comp_key
+                worst_val = comp_val
+        if worst_key:
+            hint_phrase = FEEDBACK_STRINGS.get(worst_key, {}).get("negative", "")
+            if hint_phrase:
+                dialogue["acceptance_hint"] = f"Key obstacle: {hint_phrase}"
+            else:
+                dialogue["acceptance_hint"] = ""
+        else:
+            dialogue["acceptance_hint"] = ""
     except Exception:
         dialogue["acceptance_estimate"] = -1
         dialogue["acceptance_outcome"] = "Unable to estimate"
+        dialogue["acceptance_hint"] = ""
 
     # DP cost
     _state_map = {

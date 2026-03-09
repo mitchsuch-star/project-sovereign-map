@@ -63,6 +63,9 @@ func show_objection(data: Dictionary):
 		elif acceptance >= 30:
 			a_color = "#e0e060"
 		bbcode += "Acceptance estimate: [color=%s]~%d%%[/color] (%s)\n" % [a_color, acceptance, outcome]
+		var hint = data.get("acceptance_hint", "")
+		if hint:
+			bbcode += "[color=#a0a0a0]%s[/color]\n" % hint
 
 	bbcode += "[b]Defiance Risk:[/b] %s\n" % defiance_risk
 	bbcode += "[b]Regarding:[/b] %s" % proposal_summary
