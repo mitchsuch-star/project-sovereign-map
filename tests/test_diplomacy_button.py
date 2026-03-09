@@ -389,8 +389,8 @@ class TestAvailableActions:
         actions = get_available_diplomatic_actions(world, "Prussia")
         names = [a["action"] for a in actions]
         assert "propose_armistice" in names
-        assert "send_ultimatum" in names
-        assert len(actions) == 2
+        assert "send_ultimatum" not in names
+        assert len(actions) == 1
 
     def test_armistice_actions(self):
         world = _make_world()
@@ -504,7 +504,7 @@ class TestActionFilters:
         world = _make_world()
         world.diplomatic_points = 4
         world.ultimatum_cooldowns = {"Prussia": 3}
-        _set_diplo_state(world, "France", "Prussia", "WAR")
+        _set_diplo_state(world, "France", "Prussia", "PEACE")
         actions = get_available_diplomatic_actions(world, "Prussia")
         ult = [a for a in actions if a["action"] == "send_ultimatum"][0]
         assert ult["available"] is False
@@ -979,3 +979,57 @@ class TestAuditFixes:
         data = resp.json()
         assert data["success"] is True
         assert data.get("nation") == "Prussia"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 13. EDGE CASE FIXES (March 2026)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestEdgeCaseFixes:
+    """Tests for final edge case fixes found during deep-dive audit."""
+
+    def test_ultimatum_not_shown_in_war_state(self):
+        """WAR state actions must not include send_ultimatum (executor rejects it)."""
+        world = _make_world()
+        world.diplomatic_points = 10
+        _set_diplo_state(world, "France", "Prussia", "WAR")
+        actions = get_available_diplomatic_actions(world, "Prussia")
+        action_keys = [a["action"] for a in actions]
+        assert "send_ultimatum" not in action_keys
+        assert "propose_armistice" in action_keys
+
+    def test_proposal_cost_accounts_for_skill(self):
+        """With Talleyrand skill=6 (replaced), propose_peace should cost base+1."""
+        from backend.models.diplomat import DiplomaticRepresentative
+        world = _make_world()
+        world.diplomatic_points = 10
+        _set_diplo_state(world, "France", "Prussia", "ARMISTICE")
+        # Set Talleyrand skill to 6 (replaced diplomat — skill penalty +1)
+        rep = DiplomaticRepresentative("Talleyrand", "France", "schemer", 6)
+        world.diplomats = {"France": rep}
+        actions = get_available_diplomatic_actions(world, "Prussia")
+        peace = next(a for a in actions if a["action"] == "propose_peace")
+        # Base cost for ARMISTICE→PEACE = 2, skill 6 adds +1 = 3
+        assert peace["dp_cost"] == 3
+
+    def test_proposal_cost_default_skill(self):
+        """With default Talleyrand skill=10, propose_peace should cost base only."""
+        from backend.models.diplomat import DiplomaticRepresentative
+        world = _make_world()
+        world.diplomatic_points = 10
+        _set_diplo_state(world, "France", "Prussia", "ARMISTICE")
+        rep = DiplomaticRepresentative("Talleyrand", "France", "schemer", 10)
+        world.diplomats = {"France": rep}
+        actions = get_available_diplomatic_actions(world, "Prussia")
+        peace = next(a for a in actions if a["action"] == "propose_peace")
+        # Base cost for ARMISTICE→PEACE = 2, skill 10 = no penalty
+        assert peace["dp_cost"] == 2
+
+    def test_dialogue_pending_returns_empty_actions(self):
+        """When pending_diplomatic_dialogue is set, all actions should be empty."""
+        world = _make_world()
+        world.diplomatic_points = 10
+        world.pending_diplomatic_dialogue = {"type": "test_dialogue"}
+        _set_diplo_state(world, "France", "Prussia", "PEACE")
+        actions = get_available_diplomatic_actions(world, "Prussia")
+        assert actions == []

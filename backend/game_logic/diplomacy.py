@@ -2102,12 +2102,21 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
     Returns list of action dicts with dp_cost, available, disabled_reason,
     likelihood (for proposals), likelihood_score.
     """
+    # Block all actions while a diplomatic dialogue is pending
+    if getattr(world, 'pending_diplomatic_dialogue', None) is not None:
+        return []
+
     player = getattr(world, 'player_nation', 'France')
     diplo_key = world._make_diplo_key(player, target_nation)
     state = world.diplomatic_states.get(diplo_key, "PEACE")
     dp = int(getattr(world, 'diplomatic_points', 0))
     gold = int(world.nation_gold.get(player, 0)) if hasattr(world, 'nation_gold') else 0
     vassals = getattr(world, 'vassals', {})
+
+    # Talleyrand skill for DP cost adjustment
+    diplomats = getattr(world, 'diplomats', {})
+    talleyrand = diplomats.get(player)
+    tal_skill = talleyrand.skill if talleyrand else 5
 
     actions = []
     active_treaties = getattr(world, 'active_treaties', {})
@@ -2192,7 +2201,8 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
     relation = world.nation_relations.get(diplo_key, 0)
 
     def _proposal_action(action_key: str, display: str, target_state: str):
-        cost = get_transition_dp_cost(state, target_state)
+        base_cost = get_transition_dp_cost(state, target_state)
+        cost = get_dp_cost(action_key, tal_skill, transition_base=base_cost)
         available = True
         reason = ""
 
@@ -2261,16 +2271,6 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
 
     if state == "WAR":
         actions.append(_proposal_action("propose_armistice", "Propose Armistice", "ARMISTICE"))
-        ult_available = True
-        ult_reason = ""
-        ult_cd = ultimatum_cooldowns.get(target_nation, 0)
-        if ult_cd > 0:
-            ult_available = False
-            ult_reason = f"Cooldown: {ult_cd} turns"
-        elif dp < 2:
-            ult_available = False
-            ult_reason = "Insufficient DP"
-        actions.append({"action": "send_ultimatum", "display_name": "Send Ultimatum", "dp_cost": 2, "available": ult_available, "disabled_reason": ult_reason})
 
     elif state == "ARMISTICE":
         actions.append(_proposal_action("propose_peace", "Propose Peace", "PEACE"))

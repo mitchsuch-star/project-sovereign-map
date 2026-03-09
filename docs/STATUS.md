@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 8, 2026 (Diplomacy Button Session B — Godot wizard UI complete)
+> **Last Updated:** March 8, 2026 (Diplomacy Button — final edge case fixes, confidence 10/10)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **5886** (5886 passed, 3 skipped — verified Diplomacy Button Session B) |
+| **Tests Passing** | **5901** (5901 passed, 3 skipped — verified Diplomacy Button final edge case fixes) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -19,7 +19,7 @@
 
 ## Next Steps
 
-1. ~~**Diplomacy Button (UX Feature)**~~ — **COMPLETE.** Session A (backend) + Session B (Godot wizard UI). See `docs/DIPLOMACY_BUTTON_SPEC.md`.
+1. ~~**Diplomacy Button (UX Feature)**~~ — **COMPLETE.** Session A (backend) + Session B (Godot wizard UI) + final edge case fixes (2 bugs, 2 hardening). 108 button tests. See `docs/DIPLOMACY_BUTTON_SPEC.md`.
 2. **Diplomacy Refinement Phase 5** — **IN PROGRESS.** 40 items (R136 KILLED). See `docs/DIPLO_REFINEMENT.md`.
    - ~~**Wave 1: Quick Wins**~~ — **DONE** (10 items, 24 tests).
    - ~~**Wave 2: AI Intelligence**~~ — **DONE** (5 items, 36 tests).
@@ -56,6 +56,17 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 8 — Diplomacy Button: Final Edge Case Fixes (Confidence 10/10)
+
+Deep-dive audit found 5 remaining gaps after initial audit pass. 2 genuine bugs fixed, 2 hardening items applied, 1 confirmed no-op. 5901 total tests passing.
+
+**Fixes:**
+- **BUG:** Ultimatum shown in WAR state but executor rejects — removed from wizard action list
+- **BUG:** Proposal DP cost ignored Talleyrand skill penalty (+1/+2) — wizard now calls `get_dp_cost()` with skill
+- **HARDENING:** `dialogue_pending` not enforced in backend `get_available_diplomatic_actions()` — added early return
+- **POLISH:** HTTP timeout on wizard's HTTPRequest — set 30s timeout
+- **NO-OP:** Downgrade path validation — confirmed state routing already handles it
 
 ### Mar 8 — Diplomacy Button Session B: Godot Wizard UI Complete
 

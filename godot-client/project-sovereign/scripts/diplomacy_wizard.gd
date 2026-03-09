@@ -68,6 +68,7 @@ func _ready():
 	_http = HTTPRequest.new()
 	add_child(_http)
 	_http.request_completed.connect(_on_http_completed)
+	_http.timeout = 30.0
 
 
 func open():
