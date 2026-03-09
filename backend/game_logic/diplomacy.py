@@ -37,7 +37,7 @@ _DOWNGRADE_ORDER = [
 ]
 
 # States that allow movement through territory
-OPEN_MOVEMENT_STATES = {"OPEN_BORDERS", "DEFENSIVE_ALLIANCE", "ALLIANCE", "VASSAL"}
+OPEN_MOVEMENT_STATES = {"OPEN_BORDERS", "NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE", "VASSAL"}
 
 # ═══════ TRADE INCOME TABLE (§7e) ═══════
 TRADE_INCOME = {
@@ -1369,7 +1369,7 @@ def can_enter_territory(world, marshal_nation: str, region_controller: str) -> b
     if state in OPEN_MOVEMENT_STATES:
         return True
 
-    # PEACE, NON_AGGRESSION, ARMISTICE — cannot enter
+    # PEACE, ARMISTICE — cannot enter
     return False
 
 

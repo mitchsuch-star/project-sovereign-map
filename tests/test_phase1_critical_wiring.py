@@ -100,7 +100,7 @@ class TestR96VassalMovement:
         assert "VASSAL" in OPEN_MOVEMENT_STATES
 
     def test_all_expected_states_present(self):
-        expected = {"OPEN_BORDERS", "DEFENSIVE_ALLIANCE", "ALLIANCE", "VASSAL"}
+        expected = {"OPEN_BORDERS", "NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE", "VASSAL"}
         assert OPEN_MOVEMENT_STATES == expected
 
 

@@ -60,6 +60,8 @@ PROPOSAL_TYPE_KEYWORDS = {
     "peace": ["peace", "ceasefire", "end the war", "stop fighting", "end hostilities",
               "sue for peace", "make peace", "peace deal", "peace offer", "settle",
               "end war", "stop the war", "peace agreement"],
+    "defensive_alliance": ["defensive alliance", "defense alliance", "mutual defense",
+                           "defense pact", "defensive pact", "defend each other"],
     "alliance": ["alliance", "ally", "allies", "allied", "form alliance",
                  "full alliance", "military alliance", "join forces",
                  "unite with", "unite against", "become allies"],
@@ -331,6 +333,16 @@ def generate_dialogue(intent_type: str, parsed_command: Dict, world) -> Dict:
                     target_nation, ptype, world)
                 resolved_opt["terms"]["proposal_type"] = ptype
         options.append(resolved_opt)
+
+    # Context-aware option descriptions for war proposals
+    if target_nation and intent_type == "proposal_confirm":
+        from backend.game_logic.diplomacy import get_war_score_for
+        france_war_score = get_war_score_for(world, "France", target_nation)
+        for opt in options:
+            if opt["action"] == "modify_harsh" and france_war_score < -10:
+                opt["description"] = "Demand more — risky given our weak position."
+            elif opt["action"] == "modify_generous" and france_war_score > 20:
+                opt["description"] = "Offer concessions — unnecessary given our strong position."
 
     # Build context snapshot
     context = {}

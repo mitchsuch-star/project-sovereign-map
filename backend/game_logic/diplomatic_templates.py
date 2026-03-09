@@ -1174,9 +1174,10 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
 
     Returns a dict with proposal terms suitable for calculate_acceptance().
     """
+    from backend.game_logic.diplomacy import get_war_score_for
     diplo_key = world._make_diplo_key("France", target_nation)
     relation = world.nation_relations.get(diplo_key, 0)
-    war_score = world.war_scores.get(diplo_key, 0)
+    war_score = get_war_score_for(world, "France", target_nation)
 
     terms = {
         "type": proposal_type,
@@ -1224,6 +1225,10 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
             # R148: Offer AP when desperate
             if war_score < -50:
                 terms["sweeteners"].append({"type": "ap_per_turn", "value": 1})
+
+    elif proposal_type == "defensive_alliance":
+        # Defensive alliance: mutual defense, open borders
+        terms["clauses"].append("open_borders")
 
     elif proposal_type == "alliance":
         # Alliance: minimal terms, mutual defense

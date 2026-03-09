@@ -692,10 +692,10 @@ class TestMovementRestrictions:
         world = make_world()
         assert can_enter_territory(world, "France", None) is True
 
-    def test_non_aggression_blocks_entry(self):
+    def test_non_aggression_allows_entry(self):
         world = make_world()
-        # Austria-Britain is NON_AGGRESSION
-        assert can_enter_territory(world, "Britain", "Austria") is False
+        # Austria-Britain is NON_AGGRESSION — above OPEN_BORDERS, allows entry
+        assert can_enter_territory(world, "Britain", "Austria") is True
 
     def test_defensive_alliance_allows_entry(self):
         world = make_world()

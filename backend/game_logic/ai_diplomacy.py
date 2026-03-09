@@ -1209,14 +1209,27 @@ def _process_ai_ai_rivalry(world) -> List[Dict]:
 
     downgraded_this_turn: set = set()  # Track pairs already downgraded
 
+    # Build set of nations currently at war with the player
+    nations_at_war_with_player = set()
+    for diplo_key_check, state_check in world.diplomatic_states.items():
+        if state_check == "WAR" and player in diplo_key_check:
+            parts = diplo_key_check.split("|")
+            for p in parts:
+                if p != player:
+                    nations_at_war_with_player.add(p)
+
     for i, nation_a in enumerate(enemy_nations):
         for nation_b in enemy_nations[i + 1:]:
             diplo_key = world._make_diplo_key(nation_a, nation_b)
             relation = world.nation_relations.get(diplo_key, 0)
             state = world.diplomatic_states.get(diplo_key, "PEACE")
 
-            # Trigger 1: Adjacency Rivalry
-            if relation > 0:
+            # Skip rivalry when both nations share a common enemy (player)
+            both_at_war = (nation_a in nations_at_war_with_player and
+                           nation_b in nations_at_war_with_player)
+
+            # Trigger 1: Adjacency Rivalry — skip if fighting common enemy
+            if relation > 0 and not both_at_war:
                 regions_a = nation_regions.get(nation_a, set())
                 regions_b = nation_regions.get(nation_b, set())
                 adjacent = False
@@ -1244,8 +1257,8 @@ def _process_ai_ai_rivalry(world) -> List[Dict]:
                             "message": f"Territorial rivalry between {nation_a} and {nation_b} grows.",
                         })
 
-            # Trigger 2: Opportunistic Downgrade
-            if relation < 30 and state != "PEACE" and state != "WAR" and state != "ARMISTICE":
+            # Trigger 2: Opportunistic Downgrade — skip if fighting common enemy
+            if not both_at_war and relation < 30 and state != "PEACE" and state != "WAR" and state != "ARMISTICE":
                 pair_key = f"{nation_a}|{nation_b}"
                 if pair_key not in downgraded_this_turn:
                     troops_a = nation_troops.get(nation_a, 0)

@@ -12020,6 +12020,9 @@ RETREAT RECOVERY (3 turns):
             # Make harsher: increase demands
             for d in suggested.get("demands", []):
                 d["value"] = int(d.get("value", 0) * 1.5)
+            # Add a gold demand if none exist
+            if not suggested.get("demands"):
+                suggested["demands"] = [{"type": "gold_per_turn", "value": 100}]
             # Remove sweeteners
             suggested["sweeteners"] = []
 
@@ -12063,9 +12066,13 @@ RETREAT RECOVERY (3 turns):
             # Make more generous: increase sweeteners
             for s in suggested.get("sweeteners", []):
                 s["value"] = int(s.get("value", 0) * 1.5)
-            # Reduce demands
-            for d in suggested.get("demands", []):
-                d["value"] = int(d.get("value", 0) * 0.5)
+            # Add a gold sweetener if none exist
+            if not suggested.get("sweeteners"):
+                player_gold = getattr(world, 'gold', 500)
+                offer = max(100, min(500, int(player_gold * 0.1)))
+                suggested["sweeteners"] = [{"type": "gold_lump", "value": int(offer)}]
+            # Remove demands (generous = no demands)
+            suggested["demands"] = []
 
             new_dialogue = {
                 "type": "proposal_confirm",
