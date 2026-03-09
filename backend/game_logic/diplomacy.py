@@ -186,6 +186,21 @@ FEEDBACK_STRINGS = {
         "negative": "the deadlock shows no sign of breaking",
         "positive": "neither side can gain the upper hand",
     },
+    # BUGFIX: These 3 keys are returned by calculate_acceptance() components
+    # but were missing from FEEDBACK_STRINGS, causing empty hint fallback
+    # when they are the dominant factor. See BUGFIX_PLAN_PROPOSAL_FLOW.md.
+    "military_supremacy": {
+        "negative": "their overwhelming military advantage",
+        "positive": "our decisive military superiority",
+    },
+    "battlefield_diplomacy": {
+        "negative": "recent battlefield setbacks",
+        "positive": "our recent victories on the battlefield",
+    },
+    "military_pressure": {
+        "negative": "the military balance favors them",
+        "positive": "our military pressure on their borders",
+    },
 }
 
 # ═══════ SWEETENER / DEMAND VALUES ═══════

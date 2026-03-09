@@ -790,12 +790,32 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
 
     # Set incoming_proposal_popup for Godot (Session 8C)
     diplomat_personality = getattr(diplomat, 'personality', 'unknown') if diplomat else "unknown"
-    # Build human-readable clause list
-    clauses = []
+    # BUGFIX (Bug 1): Always include base proposal type as first clause.
+    # Without this, peace/non-aggression/armistice proposals show blank
+    # popup in Godot because they have no demands or sweeteners.
+    # See BUGFIX_PLAN_PROPOSAL_FLOW.md.
+    _CLAUSE_TYPE_DISPLAY = {
+        "gold_lump": "Gold payment",
+        "gold_per_turn": "Gold per turn",
+        "territory_cede": "Territory cession",
+        "territory_return": "Territory return",
+        "action_point": "Action point concession",
+        "unit_trade": "Military units",
+    }
+    from backend.game_logic.diplomatic_dialogue import PROPOSAL_TYPE_DISPLAY
+    proposal_type_key = terms.get("type", "unknown")
+    base_label = PROPOSAL_TYPE_DISPLAY.get(
+        proposal_type_key, proposal_type_key.replace("_", " ").title()
+    )
+    clauses = [f"Proposal: {base_label}"]
     for d in terms.get("demands", []):
-        clauses.append(f"Demand: {d.get('type', 'unknown')} — {d.get('value', '')}")
+        dtype = d.get("type", "unknown")
+        label = _CLAUSE_TYPE_DISPLAY.get(dtype, dtype.replace("_", " ").title())
+        clauses.append(f"Demand: {label} — {d.get('value', '')}")
     for s in terms.get("sweeteners", []):
-        clauses.append(f"Offer: {s.get('type', 'unknown')} — {s.get('value', '')}")
+        stype = s.get("type", "unknown")
+        label = _CLAUSE_TYPE_DISPLAY.get(stype, stype.replace("_", " ").title())
+        clauses.append(f"Offer: {label} — {s.get('value', '')}")
 
     # Find largest positive/negative factor (R112: read "components" dict, convert to factor list)
     components = acceptance.get("components", {})
@@ -806,8 +826,25 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
     )
     positive_factors = [f for f in factors if f.get("value", 0) > 0]
     negative_factors = [f for f in factors if f.get("value", 0) < 0]
-    acceptance_hint = positive_factors[0].get("reason", "No strong positives") if positive_factors else "No strong positives identified"
-    rejection_hint = negative_factors[0].get("reason", "No major obstacles") if negative_factors else "No major obstacles identified"
+    # BUGFIX (Bugs 2+3): Translate component keys to human-readable strings.
+    # Raw keys like "base_disposition" must never reach the Godot popup.
+    # Pattern: match _enrich_proposal_summary() in diplomatic_dialogue.py.
+    # See BUGFIX_PLAN_PROPOSAL_FLOW.md.
+    from backend.game_logic.diplomacy import FEEDBACK_STRINGS
+    if positive_factors:
+        best_key = positive_factors[0].get("reason", "")
+        acceptance_hint = FEEDBACK_STRINGS.get(best_key, {}).get(
+            "positive", "complex diplomatic factors"
+        )
+    else:
+        acceptance_hint = "No strong positives identified"
+    if negative_factors:
+        worst_key = negative_factors[0].get("reason", "")
+        rejection_hint = FEEDBACK_STRINGS.get(worst_key, {}).get(
+            "negative", "complex diplomatic factors"
+        )
+    else:
+        rejection_hint = "No major obstacles identified"
 
     world.incoming_proposal_popup = {
         "from_nation": nation,

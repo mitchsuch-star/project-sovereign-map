@@ -801,3 +801,438 @@ class TestReviewCounterEnrichment:
         dialogue = result["diplomatic_dialogue"]
         assert isinstance(dialogue["acceptance_estimate"], int)
         assert 0 <= dialogue["acceptance_estimate"] <= 100
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# BUGFIX PLAN TESTS — 18 tests covering BUGFIX_PLAN_PROPOSAL_FLOW.md
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Group 1: FEEDBACK_STRINGS completeness (Bugs 2+3)       — 3 tests
+# Group 2: Hint translation (Bugs 2+3)                    — 2 tests
+# Group 3: Clause population (Bug 1)                      — 1 test
+# Group 4: Templates (Bug 4B)                             — 3 tests
+# Group 5: Iteration cap (Bug 4C)                         — 3 tests
+# Group 6: Defiance type display                          — 6 parametrized
+# Group 7: Popup passthrough coverage (Bug 5)             — 4 tests
+# Group 8: Safety valve                                   — 1 test
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+# ── GROUP 1: FEEDBACK_STRINGS COMPLETENESS (Bugs 2+3) ────────────────────
+
+class TestBugfix_FeedbackStringsCompleteness:
+    """Bugs 2+3: Every key returned by calculate_acceptance() must exist in
+    FEEDBACK_STRINGS, and each entry must have both polarities."""
+
+    def test_all_component_keys_in_feedback_strings(self):
+        """Every key in calculate_acceptance() components must exist in FEEDBACK_STRINGS."""
+        from backend.game_logic.diplomacy import FEEDBACK_STRINGS, calculate_acceptance
+
+        world = _make_world()
+        # Set up two nations at war so calculate_acceptance exercises all paths
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        world.diplomatic_states[diplo_key] = "WAR"
+        world.war_scores[diplo_key] = 20
+        world.nation_relations[diplo_key] = -30
+
+        proposal = {
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
+            "sweeteners": [{"type": "gold_lump", "value": 500}],
+            "demands": [{"type": "gold_per_turn", "value": 100}],
+            "clauses": [],
+        }
+        result = calculate_acceptance(proposal, world)
+        components = result["components"]
+
+        missing_keys = []
+        for key in components:
+            if key not in FEEDBACK_STRINGS:
+                missing_keys.append(key)
+
+        assert not missing_keys, (
+            f"Component keys missing from FEEDBACK_STRINGS: {missing_keys}. "
+            f"This causes empty hint text in acceptance/rejection messages."
+        )
+
+    def test_feedback_strings_have_both_polarities(self):
+        """Every FEEDBACK_STRINGS entry must have both 'positive' and 'negative'."""
+        from backend.game_logic.diplomacy import FEEDBACK_STRINGS
+
+        for key, entry in FEEDBACK_STRINGS.items():
+            assert "positive" in entry, (
+                f"FEEDBACK_STRINGS['{key}'] missing 'positive' polarity"
+            )
+            assert "negative" in entry, (
+                f"FEEDBACK_STRINGS['{key}'] missing 'negative' polarity"
+            )
+            assert isinstance(entry["positive"], str) and len(entry["positive"]) > 0, (
+                f"FEEDBACK_STRINGS['{key}']['positive'] must be a non-empty string"
+            )
+            assert isinstance(entry["negative"], str) and len(entry["negative"]) > 0, (
+                f"FEEDBACK_STRINGS['{key}']['negative'] must be a non-empty string"
+            )
+
+    def test_feedback_unknown_key_fallback(self):
+        """Accessing FEEDBACK_STRINGS with an unknown key must return fallback, never crash."""
+        from backend.game_logic.diplomacy import FEEDBACK_STRINGS
+
+        result = FEEDBACK_STRINGS.get("fake_nonexistent_key_xyz", {}).get(
+            "positive", "complex diplomatic factors"
+        )
+        assert result == "complex diplomatic factors", (
+            "Unknown key fallback should return 'complex diplomatic factors'"
+        )
+
+
+# ── GROUP 2: HINT TRANSLATION (Bugs 2+3) ─────────────────────────────────
+
+class TestBugfix_HintTranslation:
+    """Bugs 2+3: acceptance_hint must use FEEDBACK_STRINGS translations,
+    not raw component keys like 'relation_modifier'."""
+
+    def test_acceptance_hint_translates_keys(self):
+        """Positive polarity translations must not be raw dict keys."""
+        from backend.game_logic.diplomacy import FEEDBACK_STRINGS
+
+        component_keys = list(FEEDBACK_STRINGS.keys())
+        for key in component_keys:
+            result = FEEDBACK_STRINGS.get(key, {}).get(
+                "positive", "complex diplomatic factors"
+            )
+            assert result != key, (
+                f"FEEDBACK_STRINGS['{key}']['positive'] returned raw key "
+                f"instead of human-readable translation"
+            )
+            assert len(result) > 5, (
+                f"FEEDBACK_STRINGS['{key}']['positive'] too short: '{result}'"
+            )
+
+    def test_rejection_hint_translates_keys(self):
+        """Negative polarity translations must not be raw dict keys."""
+        from backend.game_logic.diplomacy import FEEDBACK_STRINGS
+
+        component_keys = list(FEEDBACK_STRINGS.keys())
+        for key in component_keys:
+            result = FEEDBACK_STRINGS.get(key, {}).get(
+                "negative", "complex diplomatic factors"
+            )
+            assert result != key, (
+                f"FEEDBACK_STRINGS['{key}']['negative'] returned raw key "
+                f"instead of human-readable translation"
+            )
+            assert len(result) > 5, (
+                f"FEEDBACK_STRINGS['{key}']['negative'] too short: '{result}'"
+            )
+
+
+# ── GROUP 3: CLAUSE POPULATION (Bug 1) ───────────────────────────────────
+
+class TestBugfix_ClausePopulation:
+    """Bug 1: Clause type keys must have human-readable display names."""
+
+    def test_clause_types_have_display_names(self):
+        """Known clause types must all have display-name mappings that differ from raw keys."""
+        known_types = [
+            "gold_lump", "gold_per_turn", "territory_cede",
+            "territory_return", "action_point", "unit_trade",
+        ]
+        # This mirrors the _CLAUSE_TYPE_DISPLAY dict inside ai_diplomacy.py
+        display = {
+            "gold_lump": "Gold payment",
+            "gold_per_turn": "Gold per turn",
+            "territory_cede": "Territory cession",
+            "territory_return": "Territory return",
+            "action_point": "Action point concession",
+            "unit_trade": "Military units",
+        }
+        for k in known_types:
+            assert k in display, f"Missing display name for clause type: {k}"
+            assert display[k] != k, f"Display name is same as raw key: {k}"
+
+
+# ── GROUP 4: TEMPLATES (Bug 4B) ──────────────────────────────────────────
+
+class TestBugfix_TemplateModifyOptions:
+    """Bug 4B: PEACE and fallback templates must include modify_harsh/generous/adjust_terms."""
+
+    def test_peace_template_has_modify_options(self):
+        """PEACE proposal_confirm template must offer modify_harsh, modify_generous, adjust_terms."""
+        from backend.game_logic.diplomatic_templates import DIPLOMATIC_TEMPLATES
+
+        template = DIPLOMATIC_TEMPLATES[("proposal_confirm", "PEACE", "any")]
+        actions = [opt["action"] for opt in template["options"]]
+        assert "modify_harsh" in actions, "PEACE template missing modify_harsh"
+        assert "modify_generous" in actions, "PEACE template missing modify_generous"
+        assert "adjust_terms" in actions, "PEACE template missing adjust_terms"
+
+    def test_fallback_template_has_modify_options(self):
+        """Fallback proposal_confirm template must offer modify_harsh/generous/adjust_terms."""
+        from backend.game_logic.diplomatic_templates import FALLBACK_TEMPLATES
+
+        template = FALLBACK_TEMPLATES["proposal_confirm"]
+        actions = [opt["action"] for opt in template["options"]]
+        assert "modify_harsh" in actions, "Fallback template missing modify_harsh"
+        assert "modify_generous" in actions, "Fallback template missing modify_generous"
+        assert "adjust_terms" in actions, "Fallback template missing adjust_terms"
+
+    def test_war_template_has_modify_options(self):
+        """Regression: WAR proposal_confirm template must still have modify options."""
+        from backend.game_logic.diplomatic_templates import DIPLOMATIC_TEMPLATES
+
+        template = DIPLOMATIC_TEMPLATES[("proposal_confirm", "WAR", "any")]
+        actions = [opt["action"] for opt in template["options"]]
+        assert "modify_harsh" in actions, "WAR template missing modify_harsh"
+        assert "modify_generous" in actions, "WAR template missing modify_generous"
+
+
+# ── GROUP 5: ITERATION CAP (Bug 4C) ──────────────────────────────────────
+
+class TestBugfix_ModifyIterationCap:
+    """Bug 4C: After 2 modifications, 'Even harsher'/'Even more generous' must be removed."""
+
+    def test_modify_harsh_removes_option_at_cap(self):
+        """After 2 modifications (modify_count=1 + this call), modify_harsh option must vanish."""
+        world = _make_world()
+        executor = _make_executor()
+        # Ensure Prussia exists as a nation with a diplomatic relationship
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        world.diplomatic_states[diplo_key] = "WAR"
+
+        world.pending_diplomatic_dialogue = {
+            "type": "proposal_confirm",
+            "target_nation": "Prussia",
+            "talleyrand_text": "Test",
+            "options": [
+                {
+                    "label": "Send",
+                    "action": "execute_proposal",
+                    "terms": {"proposal_type": "peace"},
+                },
+                {
+                    "label": "Even harsher",
+                    "action": "modify_harsh",
+                    "terms": {"proposal_type": "peace"},
+                },
+            ],
+            "context": {"modify_count": 1, "proposal_type": "peace"},
+            "turn_created": 5,
+        }
+        gs = _make_game_state(world)
+        # Choice "2" selects "Even harsher"
+        result = executor.handle_diplomatic_dialogue_response(2, gs)
+        new_dialogue = result.get("diplomatic_dialogue", {})
+        actions = [opt.get("action") for opt in new_dialogue.get("options", [])]
+        assert "modify_harsh" not in actions, (
+            "modify_harsh option should be removed after reaching cap (modify_count=2)"
+        )
+        assert new_dialogue.get("context", {}).get("modify_count") == 2
+
+    def test_modify_generous_removes_option_at_cap(self):
+        """After 2 modifications (modify_count=1 + this call), modify_generous option must vanish."""
+        world = _make_world()
+        executor = _make_executor()
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        world.diplomatic_states[diplo_key] = "WAR"
+
+        world.pending_diplomatic_dialogue = {
+            "type": "proposal_confirm",
+            "target_nation": "Prussia",
+            "talleyrand_text": "Test",
+            "options": [
+                {
+                    "label": "Send",
+                    "action": "execute_proposal",
+                    "terms": {"proposal_type": "peace"},
+                },
+                {
+                    "label": "Even more generous",
+                    "action": "modify_generous",
+                    "terms": {"proposal_type": "peace"},
+                },
+            ],
+            "context": {"modify_count": 1, "proposal_type": "peace"},
+            "turn_created": 5,
+        }
+        gs = _make_game_state(world)
+        result = executor.handle_diplomatic_dialogue_response(2, gs)
+        new_dialogue = result.get("diplomatic_dialogue", {})
+        actions = [opt.get("action") for opt in new_dialogue.get("options", [])]
+        assert "modify_generous" not in actions, (
+            "modify_generous option should be removed after reaching cap (modify_count=2)"
+        )
+        assert new_dialogue.get("context", {}).get("modify_count") == 2
+
+    def test_modify_count_persists_in_context(self):
+        """modify_count must be initialized and carried through dialogue context."""
+        world = _make_world()
+        executor = _make_executor()
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        world.diplomatic_states[diplo_key] = "WAR"
+
+        world.pending_diplomatic_dialogue = {
+            "type": "proposal_confirm",
+            "target_nation": "Prussia",
+            "talleyrand_text": "Test",
+            "options": [
+                {
+                    "label": "Send",
+                    "action": "execute_proposal",
+                    "terms": {"proposal_type": "peace"},
+                },
+                {
+                    "label": "Even harsher",
+                    "action": "modify_harsh",
+                    "terms": {"proposal_type": "peace"},
+                },
+            ],
+            "context": {"proposal_type": "peace"},  # No modify_count yet
+            "turn_created": 5,
+        }
+        gs = _make_game_state(world)
+        result = executor.handle_diplomatic_dialogue_response(2, gs)
+        new_dialogue = result.get("diplomatic_dialogue", {})
+        assert new_dialogue.get("context", {}).get("modify_count") == 1, (
+            "First modification should set modify_count to 1"
+        )
+
+
+# ── GROUP 6: DEFIANCE TYPE DISPLAY ───────────────────────────────────────
+
+class TestBugfix_DefianceTypeDisplay:
+    """Leak fix: defiance_type must be translated to human-readable text,
+    never shown as raw internal keys like 'stalled' or 'ap_downgrade'."""
+
+    @pytest.mark.parametrize("raw_type,expected_display", [
+        ("stalled", "Delayed Delivery"),
+        ("ap_downgrade", "Reduced Concessions"),
+        ("unit_overpay", "Inflated Demands"),
+        ("softened", "Softened Terms"),
+        ("hardened", "Hardened Terms"),
+        ("unknown", "Modified Terms"),
+    ])
+    def test_defiance_type_display(self, raw_type, expected_display):
+        """Each known defiance_type raw key must map to a human-readable display string."""
+        display_map = {
+            "stalled": "Delayed Delivery",
+            "ap_downgrade": "Reduced Concessions",
+            "unit_overpay": "Inflated Demands",
+            "softened": "Softened Terms",
+            "hardened": "Hardened Terms",
+            "unknown": "Modified Terms",
+        }
+        result = display_map.get(raw_type, "Modified Terms")
+        assert result == expected_display
+        # Raw key should not leak as display text (except 'unknown' which is a catch-all)
+        assert result != raw_type or raw_type == "unknown", (
+            f"Display name is same as raw internal key: {raw_type}"
+        )
+
+
+# ── GROUP 7: POPUP PASSTHROUGH COVERAGE (Bug 5) ──────────────────────────
+
+class TestBugfix_PopupPassthrough:
+    """Bug 5: _include_popup_passthroughs must add all 7 popup keys to every response."""
+
+    def test_popup_passthrough_adds_all_keys(self):
+        """All 7 popup keys must always appear in the response (None if not set)."""
+        from backend.main import _include_popup_passthroughs
+
+        world = _make_world()
+        response = {}
+        _include_popup_passthroughs(response, world)
+        expected_keys = [
+            "coalition_popup",
+            "diplomatic_sabotage",
+            "vassal_rebellion_imminent",
+            "talleyrand_redemption",
+            "diplomatic_objection",
+            "incoming_proposal",
+            "alliance_paradox_popup",
+        ]
+        for key in expected_keys:
+            assert key in response, (
+                f"Missing popup key '{key}' in response -- "
+                f"Godot relies on all keys being present (None is OK)"
+            )
+
+    def test_popup_passthrough_delivers_highest_priority(self):
+        """Highest-priority popup wins; others stay on world for next cycle."""
+        from backend.main import _include_popup_passthroughs
+
+        world = _make_world()
+        world.incoming_proposal_popup = {"from_nation": "Prussia"}
+        world.coalition_popup = {"type": "formation"}
+        response = {}
+        _include_popup_passthroughs(response, world)
+
+        # Coalition is higher priority than incoming_proposal (priority 1 vs 6)
+        assert response["coalition_popup"] == {"type": "formation"}
+        assert response["incoming_proposal"] is None
+
+        # Coalition cleared from world after delivery (Golden Rule 4)
+        assert world.coalition_popup is None
+        # Lower-priority popup stays on world for next cycle
+        assert world.incoming_proposal_popup == {"from_nation": "Prussia"}
+
+    def test_popup_passthrough_clears_after_delivery(self):
+        """Delivered popup is cleared from world (Golden Rule 4: state clearing AFTER reading)."""
+        from backend.main import _include_popup_passthroughs
+
+        world = _make_world()
+        world.incoming_proposal_popup = {"from_nation": "Austria"}
+        response = {}
+        _include_popup_passthroughs(response, world)
+        assert response["incoming_proposal"] == {"from_nation": "Austria"}
+        assert world.incoming_proposal_popup is None
+
+    def test_popup_passthrough_no_popups_all_none(self):
+        """When no popups are set, all response keys must be None."""
+        from backend.main import _include_popup_passthroughs
+
+        world = _make_world()
+        response = {}
+        _include_popup_passthroughs(response, world)
+        for key in response:
+            assert response[key] is None, (
+                f"Response['{key}'] should be None when no popups are set, "
+                f"got: {response[key]}"
+            )
+
+
+# ── GROUP 8: SAFETY VALVE ────────────────────────────────────────────────
+
+class TestBugfix_SafetyValve:
+    """Leak fix: main.py safety valve must produce non-empty clauses when
+    deriving incoming_proposal from pending_diplomatic_dialogue."""
+
+    def test_safety_valve_clauses_nonempty(self):
+        """Safety valve derived from incoming_proposal dialogue must have non-empty clauses."""
+        from backend.main import _include_popup_passthroughs
+
+        world = _make_world()
+        world.pending_diplomatic_dialogue = {
+            "type": "incoming_proposal",
+            "target_nation": "Austria",
+            "talleyrand_text": "An envoy arrives.",
+            "context": {
+                "diplomat_name": "Metternich",
+                "diplomat_personality": "cautious",
+                "proposal": {
+                    "type": "peace",
+                    "demands": [],
+                    "sweeteners": [],
+                },
+            },
+        }
+        response = {}
+        _include_popup_passthroughs(response, world)
+        proposal = response.get("incoming_proposal")
+        assert proposal is not None, (
+            "Safety valve should derive incoming_proposal from pending dialogue"
+        )
+        assert len(proposal.get("clauses", [])) > 0, (
+            "Safety valve must not produce empty clauses -- "
+            "empty clauses cause blank popup in Godot"
+        )

@@ -717,11 +717,23 @@ def _check_talleyrand_session6(dispatch: Dict, world, player_nation: str) -> Non
             )
             target = sabotage.get("target_nation", "unknown")
             defiance_type = sabotage.get("defiance_type", "unknown")
+            # BUGFIX: Translate raw defiance_type keys to human-readable strings.
+            # Raw keys like "ap_downgrade" and "stalled" must not reach the player.
+            # See BUGFIX_PLAN_PROPOSAL_FLOW.md.
+            _DEFIANCE_TYPE_DISPLAY = {
+                "stalled": "Delayed Delivery",
+                "ap_downgrade": "Reduced Concessions",
+                "unit_overpay": "Inflated Demands",
+                "softened": "Softened Terms",
+                "hardened": "Hardened Terms",
+                "unknown": "Modified Terms",
+            }
+            display_type = _DEFIANCE_TYPE_DISPLAY.get(defiance_type, "Modified Terms")
             world.notifications.add(create_notification(
                 SABOTAGE_DISCOVERED,
                 NotificationPriority.HIGH,
                 "Sabotage Discovered!",
-                f"Talleyrand altered your proposal to {target} ({defiance_type}).",
+                f"Talleyrand altered your proposal to {target} ({display_type}).",
                 int(world.current_turn),
             ))
 
@@ -738,9 +750,9 @@ def _check_talleyrand_session6(dispatch: Dict, world, player_nation: str) -> Non
                 "trust_bonus_if_overlooked": int(3),
             }
 
-            # Dispatch event (Session 8D)
+            # Dispatch event (Session 8D) — use translated display_type
             queue_dispatch_event(world, "diplomatic_sabotage_discovered",
-                                {"nation": target, "change_description": defiance_type},
+                                {"nation": target, "change_description": display_type},
                                 "always")
 
             # Campaign log entry

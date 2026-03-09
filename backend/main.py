@@ -127,6 +127,12 @@ def _get_talleyrand_mission_summary(w) -> str:
 def _include_popup_passthroughs(response: dict, world) -> None:
     """Read the HIGHEST-PRIORITY popup from world, include in response, clear from world.
 
+    CRITICAL: Every response handler that returns a dict to Godot MUST call this
+    function before returning. Diplomatic popups can be set on world by ANY executor
+    call. Skipping this call silently loses popups — the recurring "popup not showing"
+    bug pattern. If you add a new POST endpoint, add _include_popup_passthroughs()
+    before the return. See BUGFIX_PLAN_PROPOSAL_FLOW.md Bug 5.
+
     R76 Priority Queue: Only one popup per response cycle. Lower-priority popups
     remain on world and are delivered in subsequent request cycles.
 
@@ -182,15 +188,32 @@ def _include_popup_passthroughs(response: dict, world) -> None:
                     and winner_attr is None
                     and world.pending_diplomatic_dialogue
                     and world.pending_diplomatic_dialogue.get("type") == "incoming_proposal"):
-                # No popup won, but there's a pending incoming proposal dialogue — safety valve
+                # BUGFIX: Safety valve — derive clauses from dialogue context
+                # instead of hardcoding []. Empty clauses cause blank popup
+                # in Godot. See BUGFIX_PLAN_PROPOSAL_FLOW.md.
                 dialogue = world.pending_diplomatic_dialogue
                 context = dialogue.get("context", {})
+                proposal = context.get("proposal", {})
+                sv_clauses = []
+                sv_proposal_type = proposal.get("type", "unknown")
+                if sv_proposal_type != "unknown":
+                    from backend.game_logic.diplomatic_dialogue import PROPOSAL_TYPE_DISPLAY
+                    sv_base = PROPOSAL_TYPE_DISPLAY.get(
+                        sv_proposal_type, sv_proposal_type.replace("_", " ").title()
+                    )
+                    sv_clauses.append(f"Proposal: {sv_base}")
+                for d in proposal.get("demands", []):
+                    sv_clauses.append(f"Demand: {d.get('type', 'unknown')} — {d.get('value', '')}")
+                for s in proposal.get("sweeteners", []):
+                    sv_clauses.append(f"Offer: {s.get('type', 'unknown')} — {s.get('value', '')}")
+                if not sv_clauses:
+                    sv_clauses = ["Diplomatic proposal"]  # Ultimate fallback — never empty
                 response["incoming_proposal"] = {
                     "from_nation": dialogue.get("target_nation", "Unknown"),
                     "diplomat_name": context.get("diplomat_name", "Unknown diplomat"),
                     "diplomat_personality": context.get("diplomat_personality", "unknown"),
-                    "proposal_type": context.get("proposal", {}).get("type", "unknown"),
-                    "clauses": [],
+                    "proposal_type": sv_proposal_type,
+                    "clauses": sv_clauses,
                     "talleyrand_assessment": dialogue.get("talleyrand_text", ""),
                     "acceptance_hint": "Review the proposal carefully.",
                     "rejection_hint": "",
@@ -522,6 +545,8 @@ def execute_command(request: CommandRequest):
                     cleaned["game_state"] = world.get_filtered_game_state_summary()
                     if world.notifications.has_pending():
                         cleaned["notifications"] = world.notifications.get_pending()
+                    # BUGFIX (Bug 5): Popup passthrough on interrupt route.
+                    _include_popup_passthroughs(cleaned, world)
                     return cleaned
 
         # Parse command
@@ -950,7 +975,8 @@ def execute_command(request: CommandRequest):
         import traceback
         traceback.print_exc()
 
-        return {
+        # BUGFIX (Bug 5): Popup passthrough on exception path.
+        err_response = {
             "success": False,
             "message": f"Error: {str(e)}",
             "events": [],
@@ -958,6 +984,8 @@ def execute_command(request: CommandRequest):
             "action_summary": world.get_action_summary(),
             "game_state": world.get_filtered_game_state_summary()
         }
+        _include_popup_passthroughs(err_response, world)
+        return err_response
 
 
 @app.get("/status")
@@ -1154,16 +1182,21 @@ def capture_choice(request: CaptureChoiceResponse):
             "action_summary": world.get_action_summary(),
             "game_state": world.get_filtered_game_state_summary(),
         }
+        # BUGFIX (Bug 5): Popup passthrough — diplomatic popups can be set
+        # by any executor call. See BUGFIX_PLAN_PROPOSAL_FLOW.md.
+        _include_popup_passthroughs(response, world)
         return response
     except Exception as e:
         print(f"ERROR handling capture choice: {e}")
         import traceback
         traceback.print_exc()
-        return {
+        err_response = {
             "success": False,
             "message": f"Error: {str(e)}",
             "game_state": world.get_filtered_game_state_summary()
         }
+        _include_popup_passthroughs(err_response, world)
+        return err_response
 
 
 @app.post("/respond_to_redemption")
@@ -1212,7 +1245,9 @@ def respond_to_redemption(request: RedemptionResponse):
         # Clear pending redemption
         world.pending_redemption = None
 
-        return {
+        # BUGFIX (Bug 5): Popup passthrough — diplomatic popups can be set
+        # by any executor call. See BUGFIX_PLAN_PROPOSAL_FLOW.md.
+        response = {
             "success": result.get("success", False),
             "message": result.get("message", "Redemption processed"),
             "choice": request.choice,
@@ -1226,15 +1261,19 @@ def respond_to_redemption(request: RedemptionResponse):
             "action_summary": world.get_action_summary(),
             "game_state": world.get_filtered_game_state_summary()
         }
+        _include_popup_passthroughs(response, world)
+        return response
     except Exception as e:
         print(f"[ERROR] handling redemption response: {e}")
         import traceback
         traceback.print_exc()
-        return {
+        err_response = {
             "success": False,
             "message": f"Error: {str(e)}",
             "game_state": world.get_filtered_game_state_summary()
         }
+        _include_popup_passthroughs(err_response, world)
+        return err_response
 
 
 @app.get("/pending_redemption")
@@ -1304,16 +1343,21 @@ def respond_to_glorious_charge(request: GloriousChargeResponse):
         # Notifications — charge combat can trigger counter-punch/drill-cancelled
         if world.notifications.has_pending():
             response["notifications"] = world.notifications.get_pending()
+        # BUGFIX (Bug 5): Popup passthrough — diplomatic popups can be set
+        # by any executor call. See BUGFIX_PLAN_PROPOSAL_FLOW.md.
+        _include_popup_passthroughs(response, world)
         return response
     except Exception as e:
         print(f"[ERROR] handling Glorious Charge response: {e}")
         import traceback
         traceback.print_exc()
-        return {
+        err_response = {
             "success": False,
             "message": f"Error: {str(e)}",
             "game_state": world.get_filtered_game_state_summary()
         }
+        _include_popup_passthroughs(err_response, world)
+        return err_response
 
 
 @app.post("/strategic_response")
@@ -1358,16 +1402,21 @@ def handle_strategic_response(request: StrategicInterruptResponse):
         # Notifications — interrupt responses can trigger actions
         if world.notifications.has_pending():
             response["notifications"] = world.notifications.get_pending()
+        # BUGFIX (Bug 5): Popup passthrough — diplomatic popups can be set
+        # by any executor call. See BUGFIX_PLAN_PROPOSAL_FLOW.md.
+        _include_popup_passthroughs(response, world)
         return response
     except Exception as e:
         print(f"[ERROR] handling strategic response: {e}")
         import traceback
         traceback.print_exc()
-        return {
+        err_response = {
             "success": False,
             "message": f"Error: {str(e)}",
             "game_state": world.get_filtered_game_state_summary()
         }
+        _include_popup_passthroughs(err_response, world)
+        return err_response
 
 
 @app.get("/authority_status")

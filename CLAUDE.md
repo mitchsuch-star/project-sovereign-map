@@ -192,6 +192,7 @@ Backend → Frontend data flow:
 2. `main.py`: Add early return to pass through the field (most common wiring gap!)
 3. `main.gd`: Check for field in `_on_command_result()`
 4. Create dialog scene (.tscn) and script (.gd)
+5. **CRITICAL:** Verify ALL POST response handlers in `main.py` call `_include_popup_passthroughs(response, world)` before returning — otherwise diplomatic popups are silently lost. See Bug 5 in `docs/BUGFIX_PLAN_PROPOSAL_FLOW.md`.
 
 **Test with curl BEFORE assuming Godot is broken:**
 ```bash
@@ -287,6 +288,8 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | "Talleyrand awaiting" stuck state | Executor dialogue guard blocks ALL commands. Dialogue keywords routed in main.py BEFORE executor — update `_DIALOGUE_RESPONSE_KEYWORDS` for new response types |
 | New diplomatic state missing | Add to `post_break_map` in diplomacy.py AND `validate_transition()` — both must cover all states |
 | Popup not showing after early return | All response paths must call `_include_popup_passthroughs()` — check diplomatic early return in main.py |
+| Popup not showing after endpoint | Every POST handler in `main.py` MUST call `_include_popup_passthroughs(response, world)` before returning — including error paths. See `docs/BUGFIX_PLAN_PROPOSAL_FLOW.md` Bug 5 |
+| Raw internal keys in popup text | Use display maps (FEEDBACK_STRINGS, DEFIANCE_TYPE_DISPLAY, PROPOSAL_TYPE_DISPLAY) — never expose raw component/enum keys to players |
 | Counter-offer popup broken/empty | Popup data must match `incoming_proposal_popup.gd` fields: `from_nation`, `diplomat_name`, `diplomat_personality`, `clauses` (list), `talleyrand_assessment`, `is_counter_offer` |
 
 ---

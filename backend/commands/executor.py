@@ -12086,26 +12086,42 @@ RETREAT RECOVERY (3 turns):
             # Remove sweeteners
             suggested["sweeteners"] = []
 
+            # BUGFIX (Bug 4C): §9b iteration cap — max 2 modifications.
+            # modify_count is carried in dialogue context across round-trips.
+            # See BUGFIX_PLAN_PROPOSAL_FLOW.md.
+            context = dict(dialogue.get("context", {}))
+            modify_count = context.get("modify_count", 0) + 1
+            context["modify_count"] = modify_count
+
+            options = [
+                {
+                    "label": "Send these terms",
+                    "description": "Dispatch with these demands.",
+                    "action": "execute_proposal",
+                    "terms": {**suggested, "proposal_type": proposal_type},
+                },
+            ]
+            if modify_count < 2:
+                options.append({
+                    "label": "Even harsher",
+                    "description": "Push harder.",
+                    "action": "modify_harsh",
+                    "terms": {**suggested, "proposal_type": proposal_type},
+                })
+            options.append({"label": "Reconsider", "description": "Let me think.", "action": "reconsider"})
+
+            cap_msg = ""
+            if modify_count >= 2:
+                cap_msg = " These are the harshest terms possible."
+
             new_dialogue = {
                 "type": "proposal_confirm",
                 "target_nation": target_nation,
-                "talleyrand_text": f"As you wish, Sire. I have drafted harsher terms for {target_nation}.",
-                "options": [
-                    {
-                        "label": "Send these terms",
-                        "description": "Dispatch with these demands.",
-                        "action": "execute_proposal",
-                        "terms": {**suggested, "proposal_type": proposal_type},
-                    },
-                    {
-                        "label": "Even harsher",
-                        "description": "Push harder.",
-                        "action": "modify_harsh",
-                        "terms": {**suggested, "proposal_type": proposal_type},
-                    },
-                    {"label": "Reconsider", "description": "Let me think.", "action": "reconsider"},
-                ],
-                "context": dialogue.get("context", {}),
+                "talleyrand_text": (
+                    f"As you wish, Sire. I have drafted harsher terms for {target_nation}.{cap_msg}"
+                ),
+                "options": options,
+                "context": context,
                 "turn_created": int(world.current_turn),
                 "blocking": False,
             }
@@ -12136,26 +12152,45 @@ RETREAT RECOVERY (3 turns):
             # Remove demands (generous = no demands)
             suggested["demands"] = []
 
+            # BUGFIX (Bug 4C): §9b iteration cap — max 2 modifications.
+            # modify_count is carried in dialogue context across round-trips.
+            # See BUGFIX_PLAN_PROPOSAL_FLOW.md.
+            context = dict(dialogue.get("context", {}))
+            modify_count = context.get("modify_count", 0) + 1
+            context["modify_count"] = modify_count
+
+            options = [
+                {
+                    "label": "Send these terms",
+                    "description": "Dispatch with these generous terms.",
+                    "action": "execute_proposal",
+                    "terms": {**suggested, "proposal_type": proposal_type},
+                },
+            ]
+            if modify_count < 2:
+                options.append({
+                    "label": "Even more generous",
+                    "description": "Offer even more.",
+                    "action": "modify_generous",
+                    "terms": {**suggested, "proposal_type": proposal_type},
+                })
+            options.append({"label": "Reconsider", "description": "Let me think.", "action": "reconsider"})
+
+            cap_msg = ""
+            if modify_count >= 2:
+                cap_msg = (
+                    " We are offering everything short of the crown itself. "
+                    "Any more and we negotiate from our knees."
+                )
+
             new_dialogue = {
                 "type": "proposal_confirm",
                 "target_nation": target_nation,
-                "talleyrand_text": f"A magnanimous approach, Sire. More generous terms for {target_nation}.",
-                "options": [
-                    {
-                        "label": "Send these terms",
-                        "description": "Dispatch with these generous terms.",
-                        "action": "execute_proposal",
-                        "terms": {**suggested, "proposal_type": proposal_type},
-                    },
-                    {
-                        "label": "Even more generous",
-                        "description": "Offer even more.",
-                        "action": "modify_generous",
-                        "terms": {**suggested, "proposal_type": proposal_type},
-                    },
-                    {"label": "Reconsider", "description": "Let me think.", "action": "reconsider"},
-                ],
-                "context": dialogue.get("context", {}),
+                "talleyrand_text": (
+                    f"A magnanimous approach, Sire. More generous terms for {target_nation}.{cap_msg}"
+                ),
+                "options": options,
+                "context": context,
                 "turn_created": int(world.current_turn),
                 "blocking": False,
             }

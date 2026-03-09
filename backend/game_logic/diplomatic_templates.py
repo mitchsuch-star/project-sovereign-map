@@ -222,9 +222,23 @@ DIPLOMATIC_TEMPLATES = {
                 "description": "Send the proposal with my recommended terms.",
                 "action": "execute_proposal",
             },
+            # BUGFIX (Bug 4B): These options were missing from PEACE template.
+            # Without them, peacetime proposals only offered "Adjust terms" which
+            # hit the terms_guidance dead-end in Godot. Must match WAR template (T6).
+            # See BUGFIX_PLAN_PROPOSAL_FLOW.md.
+            {
+                "label": "Harsher terms",
+                "description": "Demand more — press our advantage.",
+                "action": "modify_harsh",
+            },
+            {
+                "label": "More generous",
+                "description": "Sweeten the offer to improve chances of acceptance.",
+                "action": "modify_generous",
+            },
             {
                 "label": "Adjust terms",
-                "description": "Let me see what else we could offer or demand.",
+                "description": "Build the offer step by step.",
                 "action": "adjust_terms",
             },
             {
@@ -990,6 +1004,23 @@ FALLBACK_TEMPLATES = {
                 "label": "Proceed",
                 "description": "Send with suggested terms.",
                 "action": "execute_proposal",
+            },
+            # BUGFIX (Bug 4B): Modify options were missing from fallback template.
+            # See BUGFIX_PLAN_PROPOSAL_FLOW.md.
+            {
+                "label": "Harsher terms",
+                "description": "Demand more — press our advantage.",
+                "action": "modify_harsh",
+            },
+            {
+                "label": "More generous",
+                "description": "Sweeten the offer to improve chances of acceptance.",
+                "action": "modify_generous",
+            },
+            {
+                "label": "Adjust terms",
+                "description": "Build the offer step by step.",
+                "action": "adjust_terms",
             },
             {
                 "label": "Reconsider",
