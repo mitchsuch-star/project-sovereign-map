@@ -426,6 +426,9 @@ class WorldState:
         # Previous turn's war scores snapshot for Talleyrand Trigger 2 delta detection
         self.previous_war_scores: Dict[str, int] = {}
 
+        # N7: Relation history for trend arrows (last 3 snapshots per diplo key)
+        self.relation_history: Dict[str, List[int]] = {}
+
         # ============================================================
         # VASSAL SYSTEM (Phase 8 Session 5)
         # ============================================================
@@ -2885,6 +2888,9 @@ class WorldState:
             "ai_proposal_metadata": {k: v.copy() for k, v in self.ai_proposal_metadata.items()},
             "previous_war_scores": {k: int(v) for k, v in self.previous_war_scores.items()},
 
+            # N7: Relation history for trend arrows
+            "relation_history": {k: list(v) for k, v in self.relation_history.items()},
+
             # ═══════ VASSAL SYSTEM (Session 5) ═══════
             "vassals": {k: v.copy() for k, v in self.vassals.items()},
             "vassal_investment_cooldowns": {k: int(v) for k, v in self.vassal_investment_cooldowns.items()},
@@ -3092,6 +3098,9 @@ class WorldState:
         world.ai_stalemate_counters = {k: int(v) for k, v in data.get("ai_stalemate_counters", {}).items()}
         world.ai_proposal_metadata = {k: v.copy() for k, v in data.get("ai_proposal_metadata", {}).items()}
         world.previous_war_scores = {k: int(v) for k, v in data.get("previous_war_scores", {}).items()}
+
+        # N7: Relation history for trend arrows
+        world.relation_history = {k: list(v) for k, v in data.get("relation_history", {}).items()}
 
         # ═══════ VASSAL SYSTEM (Session 5) ═══════
         world.vassals = {k: v.copy() for k, v in data.get("vassals", {}).items()}
@@ -3656,6 +3665,15 @@ class WorldState:
             marshal.bombardments_this_turn = 0
             # Reinforcement - reset reinforced flag for new turn
             marshal.reinforced_this_turn = False
+
+        # N7: Snapshot relation values BEFORE diplomatic processing changes them
+        for dk, rel_val in self.nation_relations.items():
+            if dk not in self.relation_history:
+                self.relation_history[dk] = []
+            self.relation_history[dk].append(int(rel_val))
+            # Keep only last 3 snapshots
+            if len(self.relation_history[dk]) > 3:
+                self.relation_history[dk] = self.relation_history[dk][-3:]
 
         # V2a Objection System - clear per-turn tracking
         self.mild_concerns_this_turn = []

@@ -15,6 +15,28 @@ from backend.models.intel import (
     VISIBILITY_PRIORITY,
 )
 
+# TH3: Human-readable threat source labels (module-level to avoid re-creation per call)
+_THREAT_SOURCE_LABELS = {
+    "battle_win": "Won a battle",
+    "battle_loss": "Lost a battle",
+    "capital_capture": "Captured an enemy capital",
+    "region_capture": "Conquered territory",
+    "war_declaration": "Declared war",
+    "treaty_vassalization": "Vassalized via treaty",
+    "conquest_vassalization": "Vassalized by conquest",
+    "decisive_victory": "Won a decisive battle",
+    "decay": "Natural threat decay",
+    "treaty_annex": "Annexed territory via treaty",
+    "territory_return": "Returned territory",
+    "generous_peace": "Offered generous peace",
+    "diplomatic_downgrade": "Downgraded diplomatic relations",
+    "vassal_rebellion": "Vassal rebellion",
+    "voluntary_vassal_release": "Released vassal voluntarily",
+    "region_control_80": "Controls 80%+ of map",
+    "region_control_70": "Controls 70%+ of map",
+    "region_control_60": "Controls 60%+ of map",
+}
+
 
 def build_diplomatic_ledger(world) -> Dict[str, Any]:
     """
@@ -28,6 +50,7 @@ def build_diplomatic_ledger(world) -> Dict[str, Any]:
         All numeric values int()-wrapped.
     """
     return {
+        "current_turn": int(world.current_turn),
         "nations": _build_nations(world),
         "treaties": _build_treaties(world),
         "threat_coalition": _build_threat_coalition(world),
@@ -217,10 +240,31 @@ def _build_nations(world) -> List[Dict[str, Any]]:
                 ptype = cd_key[len(nation) + 1:]
                 proposal_cooldowns[ptype] = int(cd_val)
 
+        # N5: Trade income from diplomatic state
+        from backend.game_logic.diplomacy import TRADE_INCOME
+        trade_income = int(TRADE_INCOME.get(diplomatic_state, 0))
+
+        # N6: Relation descriptor
+        from backend.game_logic.diplomacy import get_relation_descriptor
+        relation_descriptor = get_relation_descriptor(relation)
+
+        # N7: Relation trend (rising/falling/stable from history)
+        relation_trend = "stable"
+        relation_history = getattr(world, 'relation_history', {})
+        history_list = relation_history.get(diplo_key, [])
+        if len(history_list) >= 2:
+            delta = relation - history_list[-1]
+            if delta > 3:
+                relation_trend = "rising"
+            elif delta < -3:
+                relation_trend = "falling"
+
         nations.append({
             "name": nation,
             "diplomatic_state": diplomatic_state,
             "relation": int(relation),
+            "relation_descriptor": relation_descriptor,
+            "relation_trend": relation_trend,
             "diplomat": diplomat_info,
             "army_strength": army_strength,
             "regions_controlled": int(regions_controlled),
@@ -229,6 +273,7 @@ def _build_nations(world) -> List[Dict[str, Any]]:
             "ai_relations": ai_relations,
             "war_score_breakdown": war_score_breakdown,
             "proposal_cooldowns": proposal_cooldowns if proposal_cooldowns else None,
+            "trade_income": trade_income,
         })
 
     return nations
@@ -240,6 +285,7 @@ def _build_nations(world) -> List[Dict[str, Any]]:
 
 def _build_treaties(world) -> List[Dict[str, Any]]:
     """Build treaties tab: per active treaty."""
+    player = world.player_nation
     treaties = []
     for pair_key, treaty in getattr(world, 'active_treaties', {}).items():
         nations = treaty.get("nations", [])
@@ -267,14 +313,31 @@ def _build_treaties(world) -> List[Dict[str, Any]]:
                     "amount": int(clause.get("amount") or 0),
                 })
 
+        # T2: Turn signed
+        turn_signed = int(treaty.get("turn_signed") or 0)
+
+        # T3: Player vs AI-AI distinction
+        involves_player = player in nations
+
+        # T4: Armistice countdown
+        armistice_remaining = None
+        treaty_type = treaty.get("type", "unknown")
+        if treaty_type == "armistice":
+            armistice_turns = getattr(world, 'armistice_turns', {})
+            pair_armistice = armistice_turns.get(pair_key, 0)
+            armistice_remaining = int(max(0, 5 - pair_armistice))
+
         treaties.append({
             "nation_a": nation_a,
             "nation_b": nation_b,
-            "treaty_type": treaty.get("type", "unknown"),
+            "treaty_type": treaty_type,
             "clauses": clauses,
             "duration": duration,
             "cancel_cost": 1,
             "gold_per_turn": gold_per_turn_costs if gold_per_turn_costs else None,
+            "turn_signed": turn_signed,
+            "involves_player": involves_player,
+            "armistice_remaining": armistice_remaining,
         })
 
     return treaties
@@ -298,8 +361,23 @@ def _build_threat_coalition(world) -> Dict[str, Any]:
     else:
         threat_tier = "LOW"
 
-    # Threat sources this turn
-    threat_sources = list(getattr(world, 'threat_sources_this_turn', []))
+    # Threat sources this turn — with human-readable labels (TH3)
+    raw_sources = list(getattr(world, 'threat_sources_this_turn', []))
+    threat_sources = []
+    for s in raw_sources:
+        if isinstance(s, dict):
+            source_key = s.get("source", "")
+            amount = int(s.get("amount") or 0)
+            label = _THREAT_SOURCE_LABELS.get(source_key, source_key.replace("_", " ").title())
+            sign = "+" if amount >= 0 else ""
+            threat_sources.append({
+                "source": source_key,
+                "label": label,
+                "amount": amount,
+                "display": f"{label} ({sign}{amount})",
+            })
+        else:
+            threat_sources.append({"source": str(s), "label": str(s), "amount": 0, "display": str(s)})
 
     # Qualifying nations
     from backend.game_logic.coalition import get_qualifying_nations
@@ -357,6 +435,9 @@ def _build_threat_coalition(world) -> Dict[str, Any]:
             "combined_strength_display": combined_strength_display,
         }
 
+    # TH2: Coalition cooldown
+    coalition_cooldown = int(getattr(world, 'coalition_cooldown', 0) or 0)
+
     return {
         "threat_level": threat_level,
         "threat_tier": threat_tier,
@@ -365,6 +446,10 @@ def _build_threat_coalition(world) -> Dict[str, Any]:
         "coalition_brewing": coalition_brewing,
         "brewing_turns_remaining": brewing_turns_remaining,
         "active_coalition": active_coalition_data,
+        "coalition_cooldown": coalition_cooldown,
+        # TH4: Dissolution conditions (static thresholds for display)
+        "dissolution_threat_threshold": 20,
+        "dissolution_war_exhaustion_limit": 80,
     }
 
 
@@ -394,15 +479,61 @@ def _build_talleyrand(world) -> Dict[str, Any]:
     dp_remaining = int(getattr(world, 'diplomatic_points', 0) or 0)
     dp_max = int(getattr(world, 'max_diplomatic_points', 3) or 0)
 
+    # TA3: DP breakdown
+    from backend.models.region import NATION_CAPITALS
+    player_capital = NATION_CAPITALS.get(player, "Paris")
+    controls_capital = False
+    cap_region = world.regions.get(player_capital)
+    if cap_region:
+        controls_capital = cap_region.controller == player
+    # Player uses authority_tracker, not nation_authority (matches calculate_dp caller in diplomacy.py)
+    authority = world.authority_tracker.authority if hasattr(world, 'authority_tracker') else 60
+    # Components
+    dp_base = 3
+    dp_skill_bonus = 1 if talleyrand and talleyrand.skill >= 8 else 0
+    dp_authority_bonus = 1 if authority >= 60 else (-1 if authority < 30 else 0)
+    dp_capital_penalty = -1 if not controls_capital else 0
+    dp_breakdown = {
+        "base": dp_base,
+        "skill_bonus": dp_skill_bonus,
+        "authority_bonus": dp_authority_bonus,
+        "capital_penalty": dp_capital_penalty,
+    }
+
     # Active mission
     active_mission = None
     mission = getattr(world, 'active_diplomatic_mission', None)
     if mission and not mission.get("completed"):
+        mission_type = mission.get("type", "")
+
+        # TA4: Mission effect descriptions
+        from backend.game_logic.diplomatic_dialogue import MISSION_EFFECTS, MISSION_DP_COSTS
+        _MISSION_EFFECT_TEXT = {
+            "IMPROVE_RELATIONS": "+5 relation per turn",
+            "COURT_NATION": "+5 relation per turn, 20% blowback risk",
+            "GATHER_INTEL": "Full intel for 3 turns",
+            "UNDERMINE_ALLIANCE": "-3 relation between targets per turn",
+            "REASSURE_ALLY": "+3 relation per turn",
+        }
+        effect_text = _MISSION_EFFECT_TEXT.get(mission_type, "")
+        dp_cost_per_turn = int(MISSION_DP_COSTS.get(mission_type, 1))
+
+        # TA5: Remaining turns for fixed-duration missions
+        remaining_turns = None
+        effects = MISSION_EFFECTS.get(mission_type, {})
+        if "duration" in effects:
+            total_duration = effects["duration"]
+            turns_active = int(mission.get("turns_active") or 0)
+            remaining_turns = int(max(0, total_duration - turns_active))
+
         active_mission = {
-            "type": mission.get("type", ""),
+            "type": mission_type,
             "target": mission.get("target", ""),
             "duration": int(mission.get("turns_active") or 0),
             "progress": mission.get("paused", False),
+            "effect_text": effect_text,
+            "dp_cost_per_turn": dp_cost_per_turn,
+            "remaining_turns": remaining_turns,
         }
 
     # Proposal in transit
@@ -456,6 +587,7 @@ def _build_talleyrand(world) -> Dict[str, Any]:
         "skill": skill,
         "dp_remaining": dp_remaining,
         "dp_max": dp_max,
+        "dp_breakdown": dp_breakdown,
         "active_mission": active_mission,
         "proposal_in_transit": proposal_in_transit,
         "pending_envoy_count": pending_envoy_count,

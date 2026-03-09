@@ -2348,6 +2348,15 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
     active_mission = getattr(world, 'active_diplomatic_mission', None)
     tal_state = getattr(world, 'talleyrand_state', 'IDLE')
 
+    # W5: Mission effect text mapping
+    _MISSION_EFFECT_SHORT = {
+        "IMPROVE_RELATIONS": "+5 relation/turn",
+        "COURT_NATION": "+5 relation/turn, 20% blowback",
+        "GATHER_INTEL": "3-turn full intel",
+        "UNDERMINE_ALLIANCE": "-3 relation between targets/turn",
+        "REASSURE_ALLY": "+3 relation/turn",
+    }
+
     def _mission_action(action_key: str, display: str, mission_type: str):
         cost = MISSION_DP_COSTS.get(mission_type, 1)
         available = True
@@ -2367,6 +2376,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             "dp_cost": int(cost),
             "available": available,
             "disabled_reason": reason,
+            "effect_text": _MISSION_EFFECT_SHORT.get(mission_type, ""),
         }
 
     if state == "WAR":
@@ -2534,6 +2544,83 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
     response["actions"] = actions
     response["recommendation"] = _build_recommendation(world, target_nation, actions, dp, is_vassal, vassals)
 
+    # W3: Acceptance preview — top 3 positive/negative factors for best proposal
+    acceptance_preview = None
+    best_proposal_action = None
+    best_score = -999
+    for a in actions:
+        if a.get("available") and a["action"].startswith("propose_"):
+            score = a.get("likelihood_score", 0)
+            if score > best_score:
+                best_score = score
+                best_proposal_action = a
+    if best_proposal_action:
+        try:
+            # Build a mock proposal to get components
+            action_to_type = {
+                "propose_armistice": "armistice_winning" if (getattr(world, 'war_scores', {}).get(diplo_key, 0) > 0) else "armistice_losing",
+                "propose_peace": "peace",
+                "propose_open_borders": "open_borders",
+                "propose_non_aggression": "non_aggression",
+                "propose_defensive_alliance": "defensive_alliance",
+                "propose_alliance": "alliance",
+                "propose_vassal": "vassalage",
+            }
+            ptype = action_to_type.get(best_proposal_action["action"], "peace")
+            mock_proposal = {
+                "type": ptype,
+                "proposer_nation": player,
+                "target_nation": target_nation,
+                "sweeteners": [],
+                "demands": [],
+                "clauses": [],
+            }
+            result = calculate_acceptance(mock_proposal, world)
+            components = result.get("components", {})
+
+            # Human-readable labels for components
+            _COMPONENT_LABELS = {
+                "base_disposition": "Base willingness",
+                "war_score_modifier": "Our military dominance",
+                "relation_modifier": "Current relations",
+                "war_weariness": "Exhaustion from prolonged conflict",
+                "stalemate_duration": "Stalemate weariness",
+                "threat_modifier": "Fear of French expansion",
+                "coalition_penalty": "Coalition loyalty binds them",
+                "deal_balance": "Deal terms",
+                "diplomat_skill_bonus": "Diplomatic skill advantage",
+                "personality_modifier": "Diplomat personality",
+                "military_supremacy": "Military supremacy",
+                "battlefield_diplomacy": "Battlefield diplomacy",
+                "military_pressure": "Military pressure",
+                "special_desire_bonus": "Appeals to core interests",
+                "harshness_bonus": "Previous treaty precedent",
+                "reliability_modifier": "Our diplomatic reputation",
+            }
+
+            positives = []
+            negatives = []
+            for key, val in components.items():
+                if not val:
+                    continue
+                label = _COMPONENT_LABELS.get(key, key.replace("_", " ").title())
+                entry = {"key": key, "label": label, "value": int(round(val or 0))}
+                if val > 0:
+                    positives.append(entry)
+                else:
+                    negatives.append(entry)
+
+            # Sort by magnitude, take top 3
+            positives.sort(key=lambda x: x["value"], reverse=True)
+            negatives.sort(key=lambda x: x["value"])
+            acceptance_preview = {
+                "positive": positives[:3],
+                "negative": negatives[:3],
+            }
+        except Exception:
+            acceptance_preview = None
+    response["acceptance_preview"] = acceptance_preview
+
     return response
 
 
@@ -2563,5 +2650,11 @@ def _build_recommendation(world, target_nation: str, actions: List[Dict],
 
     if best_proposal and best_score >= 40:
         return f"Talleyrand recommends: {best_proposal['display_name']}"
+
+    # W6: When all proposals are hopeless, suggest improve relations mission if available
+    if best_score < 40:
+        for a in actions:
+            if a.get("available") and a["action"] == "mission_improve_relations":
+                return "No proposal would find purchase now. Talleyrand recommends: Improve Relations mission to warm the diplomatic climate."
 
     return "Relations must improve before proposals will find purchase. A battlefield victory would change their calculus."

@@ -47,6 +47,7 @@ var _normal_tab_style: StyleBoxFlat = null
 # Threat pulse timer for CRITICAL tier
 var _critical_pulse_timer: Timer = null
 var _critical_pulsing: bool = false
+var _pulse_state: bool = false
 
 func _ready():
 	close_button.pressed.connect(close_view)
@@ -223,9 +224,30 @@ func _render_nations():
 
 		var rel_sign = "+" if relation > 0 else ""
 
+		# N6: Relation descriptor
+		var rel_desc = str(n.get("relation_descriptor", ""))
+		var rel_text = rel_sign + str(relation)
+		if rel_desc:
+			rel_text += " (" + rel_desc + ")"
+
+		# N7: Relation trend arrow
+		var trend = str(n.get("relation_trend", "stable"))
+		var trend_arrow = " →"
+		if trend == "rising":
+			trend_arrow = " ↑"
+		elif trend == "falling":
+			trend_arrow = " ↓"
+		rel_text += trend_arrow
+
 		bbcode += "[color=#" + COLOR_GOLD + "][b]" + name + "[/b][/color]"
 		bbcode += " — [color=#" + state_color + "]" + diplo_state + "[/color]"
-		bbcode += "  Relation: [color=#" + rel_color + "]" + rel_sign + str(relation) + "[/color]\n"
+		bbcode += "  Relation: [color=#" + rel_color + "]" + rel_text + "[/color]"
+
+		# N4: Vassal eligibility
+		var vassal_eligible = n.get("vassal_eligible", false)
+		if vassal_eligible:
+			bbcode += "  [color=#" + COLOR_GOLD + "]★ Vassalizable[/color]"
+		bbcode += "\n"
 
 		# Diplomat info
 		var diplomat = n.get("diplomat")
@@ -242,12 +264,59 @@ func _render_nations():
 		var army = str(n.get("army_strength", "Unknown"))
 		bbcode += "  Regions: " + str(regions) + "   Army: " + army + "\n"
 
+		# N5: Trade income
+		var trade_income = int(n.get("trade_income", 0))
+		if trade_income > 0:
+			bbcode += "  Trade: [color=#" + COLOR_GOLD + "]+" + str(trade_income) + "g/turn[/color]\n"
+
 		# Treaties
 		var treaties = n.get("active_treaties", [])
 		if treaties.size() > 0:
 			bbcode += "  Treaties: " + ", ".join(PackedStringArray(treaties)) + "\n"
 		else:
 			bbcode += "  Treaties: [color=#" + COLOR_GREY + "]None[/color]\n"
+
+		# N1: AI-AI Relations
+		var ai_relations = n.get("ai_relations", [])
+		if ai_relations.size() > 0:
+			var ai_parts = []
+			for ar in ai_relations:
+				var ar_nation = str(ar.get("nation", "?"))
+				var ar_state = str(ar.get("state", "PEACE"))
+				var ar_color = COLOR_GREY
+				match ar_state:
+					"WAR":
+						ar_color = COLOR_RED
+					"ALLIANCE", "DEFENSIVE_ALLIANCE":
+						ar_color = COLOR_GREEN
+					"NON_AGGRESSION", "OPEN_BORDERS":
+						ar_color = COLOR_BLUE
+				ai_parts.append(ar_nation + " [color=#" + ar_color + "][" + ar_state + "][/color]")
+			bbcode += "  AI Relations: " + ", ".join(PackedStringArray(ai_parts)) + "\n"
+
+		# N2: War Score Breakdown (WAR only)
+		var war_score = n.get("war_score_breakdown")
+		if war_score != null and war_score is Dictionary:
+			var total = int(war_score.get("total", 0))
+			var ws_color = COLOR_GREEN if total > 0 else (COLOR_RED if total < 0 else COLOR_GREY)
+			var ws_sign = "+" if total > 0 else ""
+			bbcode += "  War Score: [color=#" + ws_color + "][" + ws_sign + str(total) + "][/color]  ("
+			var ws_parts = []
+			for ws_key in ["territory", "battles", "decisive", "capital"]:
+				var ws_val = int(war_score.get(ws_key, 0))
+				var comp_sign = "+" if ws_val > 0 else ""
+				var comp_color = COLOR_GREEN if ws_val > 0 else (COLOR_RED if ws_val < 0 else COLOR_GREY)
+				ws_parts.append(ws_key.capitalize() + " [color=#" + comp_color + "]" + comp_sign + str(ws_val) + "[/color]")
+			bbcode += ", ".join(PackedStringArray(ws_parts)) + ")\n"
+
+		# N3: Proposal cooldowns
+		var cooldowns = n.get("proposal_cooldowns")
+		if cooldowns != null and cooldowns is Dictionary and cooldowns.size() > 0:
+			var cd_parts = []
+			for cd_key in cooldowns:
+				var cd_val = int(cooldowns[cd_key])
+				cd_parts.append(cd_key.capitalize() + ": " + str(cd_val) + " turns")
+			bbcode += "  Cooldowns: [color=#" + COLOR_AMBER + "][" + ", ".join(PackedStringArray(cd_parts)) + "][/color]\n"
 
 		bbcode += "\n"
 
@@ -260,6 +329,7 @@ func _render_nations():
 
 func _render_treaties():
 	var treaties = cached_data.get("treaties", [])
+	var current_turn = int(cached_data.get("current_turn", 0))
 	var bbcode = ""
 	bbcode += "[color=#" + COLOR_HEADER + "]═══ ACTIVE TREATIES ═══[/color]\n\n"
 
@@ -276,9 +346,13 @@ func _render_treaties():
 		var duration = t.get("duration", "permanent")
 		var cancel_cost = int(t.get("cancel_cost", 1))
 
-		bbcode += "[color=#" + COLOR_GOLD + "]" + nation_a + "[/color]"
+		# T3: Player vs AI-AI distinction
+		var involves_player = t.get("involves_player", true)
+		var header_color = COLOR_GOLD if involves_player else COLOR_GREY
+
+		bbcode += "[color=#" + header_color + "]" + nation_a + "[/color]"
 		bbcode += " [color=#" + COLOR_INFO + "]↔[/color] "
-		bbcode += "[color=#" + COLOR_GOLD + "]" + nation_b + "[/color]"
+		bbcode += "[color=#" + header_color + "]" + nation_b + "[/color]"
 		bbcode += ": [b]" + treaty_type.replace("_", " ").capitalize() + "[/b]\n"
 
 		# Clauses
@@ -290,13 +364,33 @@ func _render_treaties():
 		else:
 			bbcode += "  Clauses: [color=#" + COLOR_GREY + "]None[/color]\n"
 
-		# Duration
-		var dur_str = ""
-		if duration is int or duration is float:
-			dur_str = str(int(duration)) + " turns"
+		# T4: Armistice countdown
+		var armistice_remaining = t.get("armistice_remaining")
+		if armistice_remaining != null:
+			bbcode += "  Duration: [color=#" + COLOR_AMBER + "]Armistice — expires in " + str(int(armistice_remaining)) + " turns[/color]\n"
 		else:
-			dur_str = str(duration)
-		bbcode += "  Duration: " + dur_str + "   Cancel cost: " + str(cancel_cost) + " DP\n"
+			# Duration
+			var dur_str = ""
+			if duration is int or duration is float:
+				dur_str = str(int(duration)) + " turns"
+			else:
+				dur_str = str(duration)
+			bbcode += "  Duration: " + dur_str + "   Cancel cost: " + str(cancel_cost) + " DP\n"
+
+		# T2: Turn signed
+		var turn_signed = int(t.get("turn_signed", 0))
+		if turn_signed > 0 and current_turn > 0:
+			var turns_ago = current_turn - turn_signed
+			bbcode += "  Signed: Turn " + str(turn_signed) + " (" + str(turns_ago) + " turns ago)\n"
+
+		# T1: Gold per turn
+		var gold_per_turn = t.get("gold_per_turn")
+		if gold_per_turn != null and gold_per_turn is Array and gold_per_turn.size() > 0:
+			for gpt in gold_per_turn:
+				var gpt_from = str(gpt.get("from", "?"))
+				var gpt_to = str(gpt.get("to", "?"))
+				var gpt_amount = int(gpt.get("amount", 0))
+				bbcode += "  Gold Flow: [color=#" + COLOR_GOLD + "]" + gpt_from + " → " + gpt_to + ": " + str(gpt_amount) + "g/turn[/color]\n"
 
 		bbcode += "\n"
 
@@ -352,14 +446,20 @@ func _render_threat_coalition():
 	bar += "[/color]"
 	bbcode += bar + "\n\n"
 
-	# Threat sources this turn
+	# TH3: Threat sources this turn (with human-readable labels)
 	var sources = tc.get("threat_sources_this_turn", [])
 	bbcode += "[color=#" + COLOR_HEADER + "]This Turn's Sources:[/color]\n"
 	if sources.size() == 0:
 		bbcode += "  [color=#" + COLOR_GREY + "]No new threats[/color]\n"
 	else:
 		for s in sources:
-			bbcode += "  • " + str(s) + "\n"
+			if s is Dictionary:
+				var s_display = str(s.get("display", str(s)))
+				var s_amount = int(s.get("amount", 0))
+				var s_color = COLOR_RED if s_amount > 0 else (COLOR_GREEN if s_amount < 0 else COLOR_GREY)
+				bbcode += "  • [color=#" + s_color + "]" + s_display + "[/color]\n"
+			else:
+				bbcode += "  • " + str(s) + "\n"
 	bbcode += "\n"
 
 	# Qualifying nations
@@ -414,7 +514,19 @@ func _render_threat_coalition():
 			turns_str = "?"
 		bbcode += "  [color=#" + COLOR_AMBER + "]Brewing — " + turns_str + " turns until formation[/color]\n"
 	else:
-		bbcode += "  [color=#" + COLOR_GREY + "]No coalition active.[/color]\n"
+		# TH2: Show coalition cooldown if active
+		var coalition_cooldown = int(tc.get("coalition_cooldown", 0))
+		if coalition_cooldown > 0:
+			bbcode += "  [color=#" + COLOR_GREY + "]No coalition active. Post-dissolution cooldown: " + str(coalition_cooldown) + " turns.[/color]\n"
+		else:
+			bbcode += "  [color=#" + COLOR_GREY + "]No coalition active.[/color]\n"
+
+	# TH4: Dissolution conditions
+	bbcode += "\n[color=#" + COLOR_GREY + "]Coalition dissolves if threat falls below "
+	bbcode += str(int(tc.get("dissolution_threat_threshold", 20)))
+	bbcode += " or any member's war exhaustion exceeds "
+	bbcode += str(int(tc.get("dissolution_war_exhaustion_limit", 80)))
+	bbcode += ".[/color]\n"
 
 	content_area.text = bbcode
 
@@ -448,7 +560,26 @@ func _render_talleyrand():
 	bbcode += "[color=#" + COLOR_HEADER + "]TALLEYRAND[/color] — [color=#" + trust_color + "]" + trust_label + "[/color]\n"
 	bbcode += "Trust: [color=#" + trust_color + "]" + str(trust) + "[/color]/100"
 	bbcode += "   Skill: " + str(skill)
-	bbcode += "   DP: [color=#" + COLOR_GOLD + "]" + str(dp_remaining) + "/" + str(dp_max) + "[/color]\n\n"
+	bbcode += "   DP: [color=#" + COLOR_GOLD + "]" + str(dp_remaining) + "/" + str(dp_max) + "[/color]\n"
+
+	# TA3: DP Breakdown
+	var dp_breakdown = t.get("dp_breakdown")
+	if dp_breakdown != null and dp_breakdown is Dictionary:
+		var bp_base = int(dp_breakdown.get("base", 3))
+		var bp_skill = int(dp_breakdown.get("skill_bonus", 0))
+		var bp_auth = int(dp_breakdown.get("authority_bonus", 0))
+		var bp_cap = int(dp_breakdown.get("capital_penalty", 0))
+		bbcode += "  (Base " + str(bp_base)
+		if bp_skill != 0:
+			var sk_sign = "+" if bp_skill > 0 else ""
+			bbcode += " + Skill " + sk_sign + str(bp_skill)
+		if bp_auth != 0:
+			var au_sign = "+" if bp_auth > 0 else ""
+			bbcode += " + Authority " + au_sign + str(bp_auth)
+		if bp_cap != 0:
+			bbcode += " + Capital [color=#" + COLOR_RED + "]" + str(bp_cap) + "[/color]"
+		bbcode += ")\n"
+	bbcode += "\n"
 
 	# Current mission
 	bbcode += "[color=#" + COLOR_HEADER + "]CURRENT MISSION[/color]\n"
@@ -466,6 +597,22 @@ func _render_talleyrand():
 		bbcode += "  " + m_type.replace("_", " ").capitalize() + " → " + m_target
 		bbcode += ", Duration: " + str(m_duration) + " turns"
 		bbcode += ", Status: " + status + "\n"
+
+		# TA4: Mission effect text
+		var effect_text = str(mission.get("effect_text", ""))
+		var dp_cost = int(mission.get("dp_cost_per_turn", 0))
+		if effect_text:
+			bbcode += "  [color=#" + COLOR_GREY + "]Effect: " + effect_text
+			if dp_cost > 0:
+				bbcode += ". Cost: " + str(dp_cost) + " DP/turn"
+			bbcode += ".[/color]\n"
+
+		# TA5: Remaining turns
+		var remaining = mission.get("remaining_turns")
+		if remaining != null:
+			bbcode += "  [color=#" + COLOR_GOLD + "]Completes in " + str(int(remaining)) + " turn(s)[/color]\n"
+		else:
+			bbcode += "  [color=#" + COLOR_GREY + "]Ongoing[/color]\n"
 	bbcode += "\n"
 
 	# Proposal in transit
@@ -499,6 +646,59 @@ func _render_talleyrand():
 				bbcode += "  [color=#" + COLOR_ERROR + "]WARNING: " + w_type + " targeting " + w_target + "[/color]\n"
 			else:
 				bbcode += "  [color=#" + COLOR_ERROR + "]" + str(w) + "[/color]\n"
+	bbcode += "\n"
+
+	# TA2: Diplomatic reliability
+	var reliability = int(t.get("diplomatic_reliability", 0))
+	var rel_desc = ""
+	var rel_color = COLOR_GREY
+	if reliability >= 30:
+		rel_desc = "Honorable"
+		rel_color = COLOR_GREEN
+	elif reliability >= 0:
+		rel_desc = "Neutral"
+		rel_color = COLOR_GREY
+	elif reliability >= -30:
+		rel_desc = "Unreliable"
+		rel_color = COLOR_AMBER
+	else:
+		rel_desc = "Treacherous"
+		rel_color = COLOR_RED
+	var rel_sign = "+" if reliability > 0 else ""
+	bbcode += "[color=#" + COLOR_HEADER + "]DIPLOMATIC RELIABILITY[/color]\n"
+	bbcode += "  Reliability: [color=#" + rel_color + "]" + rel_sign + str(reliability) + " (" + rel_desc + ")[/color]\n\n"
+
+	# TA1: Diplomatic history
+	var history = t.get("diplomatic_history", [])
+	bbcode += "[color=#" + COLOR_HEADER + "]DIPLOMATIC HISTORY[/color]\n"
+	if history.size() == 0:
+		bbcode += "  [color=#" + COLOR_GREY + "]No diplomatic events recorded.[/color]\n"
+	else:
+		# Show last 10 entries
+		var start_idx = max(0, history.size() - 10)
+		for i in range(start_idx, history.size()):
+			var entry = history[i]
+			if entry is Dictionary:
+				var h_turn = int(entry.get("turn", 0))
+				var h_type = str(entry.get("type", "?"))
+				var h_target = str(entry.get("target", ""))
+				var h_nation = str(entry.get("nation", ""))
+				var h_detail = str(entry.get("detail", ""))
+				# Color by type
+				var h_color = COLOR_GREY
+				if "accept" in h_type.to_lower():
+					h_color = COLOR_GREEN
+				elif "war" in h_type.to_lower() or "break" in h_type.to_lower():
+					h_color = COLOR_RED
+				var h_text = "Turn " + str(h_turn) + ": "
+				h_text += h_type.replace("_", " ").capitalize()
+				if h_target:
+					h_text += " — " + h_target
+				if h_detail:
+					h_text += " (" + h_detail + ")"
+				bbcode += "  [color=#" + h_color + "]" + h_text + "[/color]\n"
+			else:
+				bbcode += "  " + str(entry) + "\n"
 
 	content_area.text = bbcode
 
@@ -510,6 +710,7 @@ func _render_talleyrand():
 func _start_critical_pulse():
 	if not _critical_pulsing:
 		_critical_pulsing = true
+		_pulse_state = false
 		_critical_pulse_timer.start()
 
 
@@ -517,12 +718,17 @@ func _stop_critical_pulse():
 	if _critical_pulsing:
 		_critical_pulsing = false
 		_critical_pulse_timer.stop()
+		# TH1: Reset modulate to white
+		content_area.modulate = Color(1.0, 1.0, 1.0, 1.0)
 
 
 func _on_critical_pulse():
-	# Pulse the threat section text — handled by re-rendering with alternating color
-	# For simplicity, just toggle content area modulate
-	pass
+	# TH1: Toggle between white and slight red tint
+	_pulse_state = not _pulse_state
+	if _pulse_state:
+		content_area.modulate = Color(1.0, 0.85, 0.85, 1.0)
+	else:
+		content_area.modulate = Color(1.0, 1.0, 1.0, 1.0)
 
 
 # =============================================================================

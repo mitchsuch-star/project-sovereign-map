@@ -1689,6 +1689,14 @@ def get_diplomatic_preview_endpoint(nation: str = ""):
             treaty_states = {"ARMISTICE", "OPEN_BORDERS", "NON_AGGRESSION",
                              "DEFENSIVE_ALLIANCE", "ALLIANCE"}
 
+            from backend.game_logic.diplomacy import get_relation_descriptor
+
+            # W2: Check for active mission target
+            active_mission = getattr(world, 'active_diplomatic_mission', None)
+            mission_target = None
+            if active_mission and isinstance(active_mission, dict) and not active_mission.get("completed"):
+                mission_target = active_mission.get("target")
+
             for n in enemy_nations:
                 # Skip eliminated nations (no marshals with strength, no regions)
                 has_forces = any(
@@ -1704,11 +1712,18 @@ def get_diplomatic_preview_endpoint(nation: str = ""):
                 state = world.diplomatic_states.get(diplo_key, "PEACE")
                 is_vassal = n in vassals
 
+                # W1: Relation score and descriptor
+                relation = int(world.nation_relations.get(diplo_key, 0) or 0)
+                relation_desc = get_relation_descriptor(relation)
+
                 entry = {
                     "name": n,
                     "state": state,
                     "state_display": _STATE_DISPLAY_NAMES.get(state, state),
                     "is_vassal": is_vassal,
+                    "relation": relation,
+                    "relation_descriptor": relation_desc,
+                    "has_active_mission": (mission_target == n),
                 }
 
                 if is_vassal:

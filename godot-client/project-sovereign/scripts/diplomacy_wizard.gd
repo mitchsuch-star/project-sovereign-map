@@ -243,7 +243,23 @@ func _add_nation_button(nation_data: Dictionary):
 	var btn = Button.new()
 	var nation_name = str(nation_data.get("name", "?"))
 	var state_display = str(nation_data.get("state_display", "?"))
-	btn.text = nation_name + "  —  " + state_display
+	var text = nation_name + "  —  " + state_display
+
+	# W1: Relation score and descriptor
+	var relation = nation_data.get("relation")
+	if relation != null:
+		var rel_sign = "+" if int(relation) > 0 else ""
+		var rel_desc = str(nation_data.get("relation_descriptor", ""))
+		text += "  |  " + rel_sign + str(int(relation))
+		if rel_desc:
+			text += " (" + rel_desc + ")"
+
+	# W2: Active mission indicator
+	var has_mission = nation_data.get("has_active_mission", false)
+	if has_mission:
+		text += "  [MISSION]"
+
+	btn.text = text
 	btn.custom_minimum_size = Vector2(0, 36)
 	btn.add_theme_font_size_override("font_size", 13)
 	btn.pressed.connect(_on_nation_selected.bind(nation_name))
@@ -332,7 +348,31 @@ func _render_preview(data: Dictionary):
 	if assessment_text:
 		bbcode += "\n[color=#" + COLOR_INFO + "]\"" + assessment_text + "\"[/color]\n"
 	if recommendation:
-		bbcode += "[color=#" + COLOR_GOLD + "]Recommendation: " + recommendation + "[/color]"
+		bbcode += "[color=#" + COLOR_GOLD + "]Recommendation: " + recommendation + "[/color]\n"
+
+	# W3: Acceptance preview — key factors
+	var acceptance_preview = data.get("acceptance_preview")
+	if acceptance_preview != null and acceptance_preview is Dictionary:
+		var positives = acceptance_preview.get("positive", [])
+		var negatives = acceptance_preview.get("negative", [])
+		if positives.size() > 0 or negatives.size() > 0:
+			bbcode += "\n[color=#" + COLOR_HEADER + "]KEY FACTORS[/color]\n"
+			for p in positives:
+				var p_label = str(p.get("label", "?"))
+				var p_val = int(p.get("value", 0))
+				bbcode += "  [color=#" + COLOR_GREEN + "]+ " + p_label + " (+" + str(p_val) + ")[/color]\n"
+			for neg in negatives:
+				var neg_label = str(neg.get("label", "?"))
+				var neg_val = int(neg.get("value", 0))
+				bbcode += "  [color=#" + COLOR_RED + "]- " + neg_label + " (" + str(neg_val) + ")[/color]\n"
+
+	# W4: Cooldown pre-check warning
+	var actions_list = data.get("actions", [])
+	for act in actions_list:
+		var disabled_reason = str(act.get("disabled_reason", ""))
+		if "cooldown" in disabled_reason.to_lower() or "Cooldown" in disabled_reason:
+			bbcode += "\n[color=#" + COLOR_AMBER + "]\"We must exercise patience, Sire. " + disabled_reason + " before we may approach them again.\"[/color]\n"
+			break
 
 	assessment_panel.text = bbcode
 
@@ -366,7 +406,11 @@ func _add_action_button(action: Dictionary):
 		text += " + " + str(gold_cost) + "g"
 	text += ")"
 
-	if likelihood and likelihood != "" and likelihood != "null":
+	# W5: Mission effect text
+	var effect_text = str(action.get("effect_text", ""))
+	if effect_text and effect_text != "" and effect_text != "null":
+		text += "  —  " + effect_text
+	elif likelihood and likelihood != "" and likelihood != "null":
 		text += "  —  " + likelihood
 
 	if not available and disabled_reason and disabled_reason != "" and disabled_reason != "null":
