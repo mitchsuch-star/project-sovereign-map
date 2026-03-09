@@ -390,7 +390,8 @@ class TestAvailableActions:
         names = [a["action"] for a in actions]
         assert "propose_armistice" in names
         assert "send_ultimatum" not in names
-        assert len(actions) == 1
+        assert "mission_gather_intel" in names
+        assert "mission_undermine" in names
 
     def test_armistice_actions(self):
         world = _make_world()
@@ -399,7 +400,8 @@ class TestAvailableActions:
         actions = get_available_diplomatic_actions(world, "Prussia")
         names = [a["action"] for a in actions]
         assert "propose_peace" in names
-        assert len(actions) == 1
+        assert "mission_improve_relations" in names
+        assert "mission_court" in names
 
     def test_peace_actions(self):
         world = _make_world()
@@ -433,7 +435,8 @@ class TestAvailableActions:
         assert "declare_war" in names
         assert "break_treaty" in names
         assert "downgrade" in names
-        assert len(actions) == 3
+        assert "mission_reassure" in names
+        assert "mission_gather_intel" in names
 
     def test_vassal_management_actions(self):
         world = _make_world()
@@ -800,9 +803,136 @@ class TestMockParserCoverage:
         assert result.matched
         assert result.action == "release_vassal"
 
+    # ── Mission wizard commands ──
+
+    def test_mission_improve_relations(self):
+        result = self._parse("improve relations with Austria")
+        assert result.matched
+        assert result.action == "diplomatic_mission"
+
+    def test_mission_court(self):
+        result = self._parse("court Austria")
+        assert result.matched
+        assert result.action == "diplomatic_mission"
+
+    def test_mission_gather_intel(self):
+        result = self._parse("gather intel on Prussia")
+        assert result.matched
+        assert result.action == "diplomatic_mission"
+
+    def test_mission_reassure(self):
+        result = self._parse("reassure Austria")
+        assert result.matched
+        assert result.action == "diplomatic_mission"
+
+    def test_mission_undermine(self):
+        result = self._parse("undermine Austria")
+        assert result.matched
+        assert result.action == "diplomatic_mission"
+
 
 # ═══════════════════════════════════════════════════════════════════════════
-# 11. EDGE CASES
+# 11. MISSION ACTIONS IN WIZARD
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestMissionActions:
+    """Verify missions appear in wizard action lists for each state."""
+
+    def test_war_has_gather_intel_and_undermine(self):
+        world = _make_world()
+        world.diplomatic_points = 4
+        _set_diplo_state(world, "France", "Prussia", "WAR")
+        actions = get_available_diplomatic_actions(world, "Prussia")
+        names = [a["action"] for a in actions]
+        assert "mission_gather_intel" in names
+        assert "mission_undermine" in names
+
+    def test_armistice_has_all_four_missions(self):
+        world = _make_world()
+        world.diplomatic_points = 4
+        _set_diplo_state(world, "France", "Prussia", "ARMISTICE")
+        actions = get_available_diplomatic_actions(world, "Prussia")
+        names = [a["action"] for a in actions]
+        assert "mission_improve_relations" in names
+        assert "mission_court" in names
+        assert "mission_gather_intel" in names
+        assert "mission_undermine" in names
+
+    def test_peace_has_all_four_missions(self):
+        world = _make_world()
+        world.diplomatic_points = 4
+        _set_diplo_state(world, "France", "Austria", "PEACE")
+        actions = get_available_diplomatic_actions(world, "Austria")
+        names = [a["action"] for a in actions]
+        assert "mission_improve_relations" in names
+        assert "mission_court" in names
+        assert "mission_gather_intel" in names
+        assert "mission_undermine" in names
+
+    def test_defensive_alliance_has_reassure(self):
+        world = _make_world()
+        world.diplomatic_points = 4
+        _set_diplo_state(world, "France", "Austria", "DEFENSIVE_ALLIANCE")
+        actions = get_available_diplomatic_actions(world, "Austria")
+        names = [a["action"] for a in actions]
+        assert "mission_reassure" in names
+        assert "mission_gather_intel" in names
+        assert "mission_improve_relations" in names
+
+    def test_alliance_has_reassure(self):
+        world = _make_world()
+        world.diplomatic_points = 4
+        _set_diplo_state(world, "France", "Austria", "ALLIANCE")
+        actions = get_available_diplomatic_actions(world, "Austria")
+        names = [a["action"] for a in actions]
+        assert "mission_reassure" in names
+        assert "mission_gather_intel" in names
+
+    def test_mission_disabled_when_already_active(self):
+        world = _make_world()
+        world.diplomatic_points = 4
+        world.active_diplomatic_mission = {"target": "Prussia", "type": "GATHER_INTEL"}
+        _set_diplo_state(world, "France", "Austria", "PEACE")
+        actions = get_available_diplomatic_actions(world, "Austria")
+        missions = [a for a in actions if a["action"].startswith("mission_")]
+        for m in missions:
+            assert not m["available"], f"{m['action']} should be disabled"
+            assert m["disabled_reason"] == "Mission already active"
+
+    def test_mission_disabled_when_talleyrand_in_transit(self):
+        world = _make_world()
+        world.diplomatic_points = 4
+        world.talleyrand_state = "IN_TRANSIT"
+        _set_diplo_state(world, "France", "Austria", "PEACE")
+        actions = get_available_diplomatic_actions(world, "Austria")
+        missions = [a for a in actions if a["action"].startswith("mission_")]
+        for m in missions:
+            assert not m["available"], f"{m['action']} should be disabled"
+            assert m["disabled_reason"] == "Talleyrand in transit"
+
+    def test_mission_disabled_when_insufficient_dp(self):
+        world = _make_world()
+        world.diplomatic_points = 0
+        _set_diplo_state(world, "France", "Austria", "PEACE")
+        actions = get_available_diplomatic_actions(world, "Austria")
+        missions = [a for a in actions if a["action"].startswith("mission_")]
+        for m in missions:
+            assert not m["available"], f"{m['action']} should be disabled"
+            assert m["disabled_reason"] == "Insufficient DP"
+
+    def test_mission_dp_costs_are_int(self):
+        """Godot requirement: all numeric values must be int."""
+        world = _make_world()
+        world.diplomatic_points = 4
+        _set_diplo_state(world, "France", "Austria", "PEACE")
+        actions = get_available_diplomatic_actions(world, "Austria")
+        missions = [a for a in actions if a["action"].startswith("mission_")]
+        for m in missions:
+            assert isinstance(m["dp_cost"], int), f"{m['action']} dp_cost not int"
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 12. EDGE CASES
 # ═══════════════════════════════════════════════════════════════════════════
 
 class TestEdgeCases:

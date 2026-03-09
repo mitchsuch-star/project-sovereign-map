@@ -432,6 +432,16 @@ func _build_command(action_id: String, nation: String) -> String:
 			return "decrease autonomy " + nation
 		"release_vassal":
 			return "release " + nation
+		"mission_improve_relations":
+			return "improve relations with " + nation
+		"mission_court":
+			return "court " + nation
+		"mission_gather_intel":
+			return "gather intel on " + nation
+		"mission_reassure":
+			return "reassure " + nation
+		"mission_undermine":
+			return "undermine " + nation
 	return ""
 
 

@@ -2343,11 +2343,43 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             "likelihood_score": int(likelihood_score),
         }
 
+    # ── MISSION HELPERS ──
+    from backend.game_logic.diplomatic_dialogue import MISSION_DP_COSTS
+    active_mission = getattr(world, 'active_diplomatic_mission', None)
+    tal_state = getattr(world, 'talleyrand_state', 'IDLE')
+
+    def _mission_action(action_key: str, display: str, mission_type: str):
+        cost = MISSION_DP_COSTS.get(mission_type, 1)
+        available = True
+        reason = ""
+        if tal_state == "IN_TRANSIT":
+            available = False
+            reason = "Talleyrand in transit"
+        elif active_mission is not None:
+            available = False
+            reason = "Mission already active"
+        elif dp < cost:
+            available = False
+            reason = "Insufficient DP"
+        return {
+            "action": action_key,
+            "display_name": display,
+            "dp_cost": int(cost),
+            "available": available,
+            "disabled_reason": reason,
+        }
+
     if state == "WAR":
         actions.append(_proposal_action("propose_armistice", "Propose Armistice", "ARMISTICE"))
+        actions.append(_mission_action("mission_gather_intel", "Gather Intel", "GATHER_INTEL"))
+        actions.append(_mission_action("mission_undermine", "Undermine Alliances", "UNDERMINE_ALLIANCE"))
 
     elif state == "ARMISTICE":
         actions.append(_proposal_action("propose_peace", "Propose Peace", "PEACE"))
+        actions.append(_mission_action("mission_improve_relations", "Improve Relations", "IMPROVE_RELATIONS"))
+        actions.append(_mission_action("mission_court", "Court Nation", "COURT_NATION"))
+        actions.append(_mission_action("mission_gather_intel", "Gather Intel", "GATHER_INTEL"))
+        actions.append(_mission_action("mission_undermine", "Undermine Alliances", "UNDERMINE_ALLIANCE"))
 
     elif state == "PEACE":
         actions.append(_proposal_action("propose_open_borders", "Propose Open Borders", "OPEN_BORDERS"))
@@ -2371,6 +2403,10 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             ult_available = False
             ult_reason = "Insufficient DP"
         actions.append({"action": "send_ultimatum", "display_name": "Send Ultimatum", "dp_cost": 2, "available": ult_available, "disabled_reason": ult_reason})
+        actions.append(_mission_action("mission_improve_relations", "Improve Relations", "IMPROVE_RELATIONS"))
+        actions.append(_mission_action("mission_court", "Court Nation", "COURT_NATION"))
+        actions.append(_mission_action("mission_gather_intel", "Gather Intel", "GATHER_INTEL"))
+        actions.append(_mission_action("mission_undermine", "Undermine Alliances", "UNDERMINE_ALLIANCE"))
 
     elif state == "OPEN_BORDERS":
         actions.append(_proposal_action("propose_non_aggression", "Propose Non-Aggression", "NON_AGGRESSION"))
@@ -2391,6 +2427,10 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             ult_available = False
             ult_reason = "Insufficient DP"
         actions.append({"action": "send_ultimatum", "display_name": "Send Ultimatum", "dp_cost": 2, "available": ult_available, "disabled_reason": ult_reason})
+        actions.append(_mission_action("mission_improve_relations", "Improve Relations", "IMPROVE_RELATIONS"))
+        actions.append(_mission_action("mission_court", "Court Nation", "COURT_NATION"))
+        actions.append(_mission_action("mission_gather_intel", "Gather Intel", "GATHER_INTEL"))
+        actions.append(_mission_action("mission_undermine", "Undermine Alliances", "UNDERMINE_ALLIANCE"))
 
     elif state == "NON_AGGRESSION":
         actions.append(_proposal_action("propose_defensive_alliance", "Propose Defensive Alliance", "DEFENSIVE_ALLIANCE"))
@@ -2411,6 +2451,10 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
             ult_available = False
             ult_reason = "Insufficient DP"
         actions.append({"action": "send_ultimatum", "display_name": "Send Ultimatum", "dp_cost": 2, "available": ult_available, "disabled_reason": ult_reason})
+        actions.append(_mission_action("mission_improve_relations", "Improve Relations", "IMPROVE_RELATIONS"))
+        actions.append(_mission_action("mission_court", "Court Nation", "COURT_NATION"))
+        actions.append(_mission_action("mission_gather_intel", "Gather Intel", "GATHER_INTEL"))
+        actions.append(_mission_action("mission_undermine", "Undermine Alliances", "UNDERMINE_ALLIANCE"))
 
     elif state == "DEFENSIVE_ALLIANCE":
         actions.append(_proposal_action("propose_alliance", "Propose Alliance", "ALLIANCE"))
@@ -2421,6 +2465,10 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         bt_reason = "" if bt_available else ("No active treaty" if not has_treaty else "Insufficient DP")
         actions.append({"action": "break_treaty", "display_name": "Break Treaty", "dp_cost": 1, "available": bt_available, "disabled_reason": bt_reason})
         actions.append({"action": "downgrade", "display_name": "Downgrade", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
+        actions.append(_mission_action("mission_improve_relations", "Improve Relations", "IMPROVE_RELATIONS"))
+        actions.append(_mission_action("mission_reassure", "Reassure Ally", "REASSURE_ALLY"))
+        actions.append(_mission_action("mission_gather_intel", "Gather Intel", "GATHER_INTEL"))
+        actions.append(_mission_action("mission_undermine", "Undermine Alliances", "UNDERMINE_ALLIANCE"))
 
     elif state == "ALLIANCE":
         actions.append({"action": "declare_war", "display_name": "Declare War", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
@@ -2429,6 +2477,9 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         bt_reason = "" if bt_available else ("No active treaty" if not has_treaty else "Insufficient DP")
         actions.append({"action": "break_treaty", "display_name": "Break Treaty", "dp_cost": 1, "available": bt_available, "disabled_reason": bt_reason})
         actions.append({"action": "downgrade", "display_name": "Downgrade", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
+        actions.append(_mission_action("mission_reassure", "Reassure Ally", "REASSURE_ALLY"))
+        actions.append(_mission_action("mission_gather_intel", "Gather Intel", "GATHER_INTEL"))
+        actions.append(_mission_action("mission_undermine", "Undermine Alliances", "UNDERMINE_ALLIANCE"))
 
     return actions
 
