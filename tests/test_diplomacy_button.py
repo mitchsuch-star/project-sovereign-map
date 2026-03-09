@@ -850,3 +850,132 @@ class TestEdgeCases:
         result = executor._execute_release_vassal({"target": "Saxony"}, gs)
         assert result["success"] is True
         assert world.diplomatic_points == 3  # 4 - 1
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 12. AUDIT FIXES (March 2026)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class TestAuditFixes:
+    """Tests for validation gaps found during diplomacy button audit."""
+
+    def test_preview_eliminated_nation_rejected(self):
+        """Step 2 preview should reject eliminated nations."""
+        from fastapi.testclient import TestClient
+        from backend.main import app, world as main_world
+        # Strip Austria of all regions and marshals to simulate elimination
+        saved_controllers = {}
+        for name, r in main_world.regions.items():
+            if r.controller == "Austria":
+                saved_controllers[name] = "Austria"
+                r.controller = "France"
+        removed_marshals = {k: v for k, v in main_world.marshals.items() if v.nation == "Austria"}
+        for k in removed_marshals:
+            del main_world.marshals[k]
+        client = TestClient(app)
+        resp = client.get("/diplomatic_preview?nation=Austria")
+        data = resp.json()
+        # Restore
+        for name, ctrl in saved_controllers.items():
+            main_world.regions[name].controller = ctrl
+        main_world.marshals.update(removed_marshals)
+        assert data["success"] is False
+        assert "eliminated" in data.get("error", "").lower()
+
+    def test_preview_whitespace_nation_returns_step1(self):
+        """Whitespace-only nation param should return Step 1 list."""
+        from fastapi.testclient import TestClient
+        from backend.main import app
+        client = TestClient(app)
+        resp = client.get("/diplomatic_preview?nation=%20%20")
+        data = resp.json()
+        # Should be treated as empty → return Step 1 (nations mode)
+        assert data["success"] is True
+        assert data.get("mode") == "nations"
+
+    def test_preview_self_proposal_rejected(self):
+        """Preview for player's own nation should be rejected."""
+        from fastapi.testclient import TestClient
+        from backend.main import app
+        client = TestClient(app)
+        resp = client.get("/diplomatic_preview?nation=France")
+        data = resp.json()
+        assert data["success"] is False
+        assert "ourselves" in data.get("error", "").lower()
+
+    def test_preview_includes_talleyrand_in_transit(self):
+        """Preview response should include talleyrand_in_transit flag."""
+        world = _make_world()
+        world.diplomatic_points = 3
+        preview = get_diplomatic_preview(world, "Prussia")
+        assert "talleyrand_in_transit" in preview
+        assert preview["talleyrand_in_transit"] is False
+
+    def test_preview_talleyrand_in_transit_true(self):
+        """talleyrand_in_transit should be True when Talleyrand is traveling."""
+        world = _make_world()
+        world.diplomatic_points = 3
+        world.talleyrand_state = "IN_TRANSIT"
+        preview = get_diplomatic_preview(world, "Prussia")
+        assert preview["talleyrand_in_transit"] is True
+
+    def test_break_treaty_without_active_treaties_grayed(self):
+        """Break Treaty should be unavailable when no active_treaties entry exists."""
+        world = _make_world()
+        world.diplomatic_points = 4
+        _set_diplo_state(world, "France", "Austria", "OPEN_BORDERS")
+        # active_treaties is empty — no treaty object registered
+        world.active_treaties = {}
+        actions = get_available_diplomatic_actions(world, "Austria")
+        bt = next(a for a in actions if a["action"] == "break_treaty")
+        assert bt["available"] is False
+        assert "No active treaty" in bt["disabled_reason"]
+
+    def test_break_treaty_with_active_treaties_available(self):
+        """Break Treaty should be available when active_treaties entry exists."""
+        world = _make_world()
+        world.diplomatic_points = 4
+        _set_diplo_state(world, "France", "Austria", "ALLIANCE")
+        key = world._make_diplo_key("France", "Austria")
+        world.active_treaties = {key: {"type": "ALLIANCE", "formed_turn": 3}}
+        actions = get_available_diplomatic_actions(world, "Austria")
+        bt = next(a for a in actions if a["action"] == "break_treaty")
+        assert bt["available"] is True
+        assert bt["disabled_reason"] == ""
+
+    def test_dialogue_pending_in_step2_preview(self):
+        """Step 2 preview should include dialogue_pending flag."""
+        world = _make_world()
+        world.diplomatic_points = 3
+        world.pending_diplomatic_dialogue = {"type": "test"}
+        preview = get_diplomatic_preview(world, "Prussia")
+        assert preview["dialogue_pending"] is True
+
+    def test_dialogue_not_pending_in_step2_preview(self):
+        """Step 2 preview should show dialogue_pending=False when no dialogue."""
+        world = _make_world()
+        world.diplomatic_points = 3
+        preview = get_diplomatic_preview(world, "Prussia")
+        assert preview["dialogue_pending"] is False
+
+    def test_break_treaty_grayed_all_treaty_states(self):
+        """Break Treaty should check active_treaties in all treaty states."""
+        world = _make_world()
+        world.diplomatic_points = 4
+        world.active_treaties = {}
+        for state in ["NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE"]:
+            _set_diplo_state(world, "France", "Austria", state)
+            actions = get_available_diplomatic_actions(world, "Austria")
+            bt = next(a for a in actions if a["action"] == "break_treaty")
+            assert bt["available"] is False, f"break_treaty should be unavailable for {state} without active_treaties"
+
+    def test_preview_valid_nation_with_regions(self):
+        """Preview should succeed for a nation that controls regions."""
+        from fastapi.testclient import TestClient
+        from backend.main import app
+        client = TestClient(app)
+        # Prussia has regions in default world
+        resp = client.get("/diplomatic_preview?nation=Prussia")
+        data = resp.json()
+        assert data["success"] is True
+        assert data.get("nation") == "Prussia"

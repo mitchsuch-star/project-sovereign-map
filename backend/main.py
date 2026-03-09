@@ -1634,7 +1634,7 @@ def get_diplomatic_preview_endpoint(nation: str = ""):
     """
     if not game_state.get("world"):
         return {"success": False, "message": "No active game"}
-    if not nation:
+    if not nation or not nation.strip():
         # Step 1: Return categorized nation list for the wizard
         try:
             from backend.game_logic.diplomacy import _STATE_DISPLAY_NAMES
@@ -1691,6 +1691,16 @@ def get_diplomatic_preview_endpoint(nation: str = ""):
             return {"success": False, "error": str(e)}
     try:
         from backend.game_logic.diplomacy import get_diplomatic_preview
+        nation = nation.strip()
+        # Reject self-proposal
+        if nation == world.player_nation:
+            return {"success": False, "error": "We cannot conduct diplomacy with ourselves, Your Excellency."}
+        # Reject eliminated nations
+        if nation in list(getattr(world, 'enemy_nations', [])):
+            has_forces = any(m.strength > 0 for m in world.marshals.values() if m.nation == nation)
+            has_regions = any(r.controller == nation for r in world.regions.values())
+            if not has_forces and not has_regions:
+                return {"success": False, "error": f"{nation} has been eliminated from the war."}
         preview = get_diplomatic_preview(world, nation)
         return {"success": True, **preview}
     except Exception as e:

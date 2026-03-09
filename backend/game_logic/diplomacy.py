@@ -2110,6 +2110,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
     vassals = getattr(world, 'vassals', {})
 
     actions = []
+    active_treaties = getattr(world, 'active_treaties', {})
 
     # ── VASSAL MANAGEMENT (§2c) ──
     if target_nation in vassals:
@@ -2301,7 +2302,10 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         actions.append(_proposal_action("propose_non_aggression", "Propose Non-Aggression", "NON_AGGRESSION"))
         actions.append(_proposal_action("propose_vassal", "Propose Vassal", "VASSAL"))
         actions.append({"action": "declare_war", "display_name": "Declare War", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
-        actions.append({"action": "break_treaty", "display_name": "Break Treaty", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
+        has_treaty = diplo_key in active_treaties
+        bt_available = dp >= 1 and has_treaty
+        bt_reason = "" if bt_available else ("No active treaty" if not has_treaty else "Insufficient DP")
+        actions.append({"action": "break_treaty", "display_name": "Break Treaty", "dp_cost": 1, "available": bt_available, "disabled_reason": bt_reason})
         actions.append({"action": "downgrade", "display_name": "Downgrade", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
         ult_available = True
         ult_reason = ""
@@ -2318,7 +2322,10 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         actions.append(_proposal_action("propose_defensive_alliance", "Propose Defensive Alliance", "DEFENSIVE_ALLIANCE"))
         actions.append(_proposal_action("propose_vassal", "Propose Vassal", "VASSAL"))
         actions.append({"action": "declare_war", "display_name": "Declare War", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
-        actions.append({"action": "break_treaty", "display_name": "Break Treaty", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
+        has_treaty = diplo_key in active_treaties
+        bt_available = dp >= 1 and has_treaty
+        bt_reason = "" if bt_available else ("No active treaty" if not has_treaty else "Insufficient DP")
+        actions.append({"action": "break_treaty", "display_name": "Break Treaty", "dp_cost": 1, "available": bt_available, "disabled_reason": bt_reason})
         actions.append({"action": "downgrade", "display_name": "Downgrade", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
         ult_available = True
         ult_reason = ""
@@ -2335,12 +2342,18 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         actions.append(_proposal_action("propose_alliance", "Propose Alliance", "ALLIANCE"))
         actions.append(_proposal_action("propose_vassal", "Propose Vassal", "VASSAL"))
         actions.append({"action": "declare_war", "display_name": "Declare War", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
-        actions.append({"action": "break_treaty", "display_name": "Break Treaty", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
+        has_treaty = diplo_key in active_treaties
+        bt_available = dp >= 1 and has_treaty
+        bt_reason = "" if bt_available else ("No active treaty" if not has_treaty else "Insufficient DP")
+        actions.append({"action": "break_treaty", "display_name": "Break Treaty", "dp_cost": 1, "available": bt_available, "disabled_reason": bt_reason})
         actions.append({"action": "downgrade", "display_name": "Downgrade", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
 
     elif state == "ALLIANCE":
         actions.append({"action": "declare_war", "display_name": "Declare War", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
-        actions.append({"action": "break_treaty", "display_name": "Break Treaty", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
+        has_treaty = diplo_key in active_treaties
+        bt_available = dp >= 1 and has_treaty
+        bt_reason = "" if bt_available else ("No active treaty" if not has_treaty else "Insufficient DP")
+        actions.append({"action": "break_treaty", "display_name": "Break Treaty", "dp_cost": 1, "available": bt_available, "disabled_reason": bt_reason})
         actions.append({"action": "downgrade", "display_name": "Downgrade", "dp_cost": 1, "available": dp >= 1, "disabled_reason": "" if dp >= 1 else "Insufficient DP"})
 
     return actions
@@ -2357,6 +2370,7 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
     is_vassal = target_nation in vassals
 
     dialogue_pending = getattr(world, 'pending_diplomatic_dialogue', None) is not None
+    talleyrand_state = getattr(world, 'talleyrand_state', 'IDLE')
 
     response = {
         "nation": target_nation,
@@ -2366,6 +2380,7 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
         "relation_descriptor": get_relation_descriptor(relation),
         "dp_available": int(dp),
         "dialogue_pending": dialogue_pending,
+        "talleyrand_in_transit": talleyrand_state == "IN_TRANSIT",
         "is_vassal": is_vassal,
     }
 

@@ -25,6 +25,7 @@ signal command_selected(command: String)
 # Dedicated HTTP request (§9b — must not share api_client's HTTPRequest)
 var _http: HTTPRequest
 var _pending_request: String = ""  # "nations" or "preview"
+var _request_id: int = 0  # Monotonic ID to discard stale responses
 
 # State
 var _current_step: int = 0  # 0=hidden, 1=nations, 2=actions
@@ -85,6 +86,8 @@ func open():
 func _close_wizard():
 	_current_step = 0
 	_selected_nation = ""
+	if _http:
+		_http.cancel_request()
 	hide()
 
 
@@ -114,6 +117,8 @@ const API_URL = "http://127.0.0.1:8005"
 
 func _fetch_nations():
 	"""Fetch categorized nation list for Step 1."""
+	_http.cancel_request()
+	_request_id += 1
 	_pending_request = "nations"
 	var error = _http.request(API_URL + "/diplomatic_preview")
 	if error != OK:
@@ -122,6 +127,8 @@ func _fetch_nations():
 
 func _fetch_preview(nation: String):
 	"""Fetch diplomatic preview for Step 2."""
+	_http.cancel_request()
+	_request_id += 1
 	_pending_request = "preview"
 	var url = API_URL + "/diplomatic_preview?nation=" + nation.uri_encode()
 	var error = _http.request(url)
@@ -132,6 +139,8 @@ func _fetch_preview(nation: String):
 func _on_http_completed(result, response_code, headers, body):
 	if not visible:
 		return
+	# Capture the request ID at response time to detect stale responses
+	var response_id = _request_id
 	if response_code != 200:
 		_show_error("Connection failed.")
 		return
@@ -144,6 +153,10 @@ func _on_http_completed(result, response_code, headers, body):
 	var data = json.data
 	if not data.get("success", false):
 		_show_error(str(data.get("message", data.get("error", "Unknown error"))))
+		return
+
+	# Discard stale responses (user navigated away before response arrived)
+	if response_id != _request_id:
 		return
 
 	if _pending_request == "nations":
@@ -168,6 +181,7 @@ func _show_error(msg: String):
 
 func _render_nations(data: Dictionary):
 	_clear_content_list()
+	scroll_container.scroll_vertical = 0
 	_dp_available = int(data.get("dp_available", 0))
 	dp_label.text = "DP: " + str(_dp_available)
 
@@ -252,8 +266,16 @@ func _on_nation_selected(nation: String):
 
 func _render_preview(data: Dictionary):
 	_clear_content_list()
+	scroll_container.scroll_vertical = 0
 	_dp_available = int(data.get("dp_available", 0))
 	dp_label.text = "DP: " + str(_dp_available)
+
+	# Check if dialogue became pending since we fetched
+	var dialogue_pending = data.get("dialogue_pending", false)
+	if dialogue_pending:
+		assessment_panel.text = "[color=#" + COLOR_AMBER + "]\"Talleyrand awaits your response to the current diplomatic matter.\"[/color]"
+		_close_wizard()
+		return
 
 	# Build assessment panel
 	var state_display = str(data.get("current_state_display", "?"))
@@ -372,6 +394,8 @@ func _on_action_selected(action_id: String):
 	if command:
 		_close_wizard()
 		command_selected.emit(command)
+	else:
+		_show_error("Unknown diplomatic action: " + action_id)
 
 
 func _build_command(action_id: String, nation: String) -> String:
