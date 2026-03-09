@@ -4265,9 +4265,14 @@ class WorldState:
             elif ctype == "territory_cede":
                 regions = clause.get("regions", [])
                 for region_name in regions:
-                    if region_name in self.regions:
-                        self.regions[region_name].controller = to_nation
-                        self.regions[region_name].stability = 50
+                    if region_name not in self.regions:
+                        continue
+                    region = self.regions[region_name]
+                    # Validate: from_nation must actually control the region
+                    if from_nation and region.controller != from_nation:
+                        continue
+                    region.controller = to_nation
+                    region.stability = 50
                 # Coalition threat: +8 per region annexed by France (§2a)
                 if to_nation == self.player_nation and regions:
                     from backend.game_logic.coalition import add_threat

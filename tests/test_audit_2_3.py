@@ -571,9 +571,9 @@ class TestTransitionAdjacencyExhaustive:
         """ARMISTICE -> VASSAL is below OPEN_BORDERS minimum - must be blocked."""
         assert validate_transition("ARMISTICE", "VASSAL") is False
 
-    def test_war_to_vassal_blocked(self):
-        """WAR -> VASSAL is below OPEN_BORDERS minimum - must be blocked."""
-        assert validate_transition("WAR", "VASSAL") is False
+    def test_war_to_vassal_allowed(self):
+        """WAR -> VASSAL is valid (dictated peace vassalage)."""
+        assert validate_transition("WAR", "VASSAL") is True
 
     def test_same_state_blocked(self):
         """Any state -> same state - must be blocked."""

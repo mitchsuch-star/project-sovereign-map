@@ -392,15 +392,15 @@ class TestSection5StateTransitions:
             assert validate_transition(state, "WAR") is True
 
     def test_validate_transition_vassal_reachability(self):
-        """J-3: VASSAL only from OPEN_BORDERS+."""
+        """J-3: VASSAL from WAR (dictated) or OPEN_BORDERS+."""
         from backend.game_logic.diplomacy import validate_transition
         # From eligible states
         assert validate_transition("ALLIANCE", "VASSAL") is True
         assert validate_transition("DEFENSIVE_ALLIANCE", "VASSAL") is True
         assert validate_transition("OPEN_BORDERS", "VASSAL") is True
+        assert validate_transition("WAR", "VASSAL") is True  # dictated peace
         # From ineligible states
         assert validate_transition("PEACE", "VASSAL") is False
-        assert validate_transition("WAR", "VASSAL") is False
         assert validate_transition("ARMISTICE", "VASSAL") is False
 
     def test_vassal_post_break_map(self):

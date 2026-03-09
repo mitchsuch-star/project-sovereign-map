@@ -63,7 +63,7 @@ def create_vassal_treaty(world, lord: str, vassal: str, generosity_bonus: int = 
     if current_state not in VASSAL_MIN_STATES:
         return {
             "success": False,
-            "message": f"Cannot create vassal via treaty: requires OPEN_BORDERS or above (current: {current_state})."
+            "message": f"Cannot create vassal via treaty: requires WAR or OPEN_BORDERS+ (current: {current_state})."
         }
 
     # Check not already a vassal

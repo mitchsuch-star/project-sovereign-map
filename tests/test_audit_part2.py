@@ -344,8 +344,8 @@ class TestSection7Dissolution:
 class TestSection8VassalCreation:
     """V-1 through V-5: Vassal creation paths."""
 
-    def test_v1_treaty_requires_open_borders(self):
-        """V-1: Treaty vassalization requires OPEN_BORDERS+ relationship."""
+    def test_v1_treaty_requires_war_or_open_borders(self):
+        """V-1: Treaty vassalization requires WAR or OPEN_BORDERS+."""
         world = _make_world()
         _set_diplo_state(world, "France", "Saxony", "PEACE")
         result = create_vassal_treaty(world, "France", "Saxony", 0)

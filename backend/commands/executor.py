@@ -13563,6 +13563,9 @@ RETREAT RECOVERY (3 turns):
             key = world._make_diplo_key(player, nation)
             old = world.diplomatic_states.get(key, "PEACE")
             world.diplomatic_states[key] = state
+            # Track war start turn for war weariness calculation
+            if state == "WAR" and key not in world.war_start_turns:
+                world.war_start_turns[key] = int(world.current_turn)
             return {"success": True, "message": f"Diplomatic state France↔{nation}: {old} → {state}"}
 
         # ── create_vassal <nation> ──

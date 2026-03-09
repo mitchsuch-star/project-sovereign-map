@@ -169,8 +169,9 @@ class TestTransitions:
         """PEACE → VASSAL invalid (E3 fix: requires minimum OPEN_BORDERS)."""
         assert validate_transition("PEACE", "VASSAL") is False
 
-    def test_war_to_vassal_invalid(self):
-        assert validate_transition("WAR", "VASSAL") is False
+    def test_war_to_vassal_valid(self):
+        """WAR -> VASSAL valid (dictated peace vassalage)."""
+        assert validate_transition("WAR", "VASSAL") is True
 
     def test_vassal_to_war(self):
         assert validate_transition("VASSAL", "WAR") is True

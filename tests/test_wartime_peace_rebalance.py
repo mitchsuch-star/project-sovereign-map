@@ -489,3 +489,312 @@ class TestTerritoryCedeBugfix:
         for s in cede_sweeteners:
             assert "regions" in s
             assert isinstance(s["regions"], list)
+
+
+# ═══════════════════════════════════════════════════════
+# Capital Territory Premium in Acceptance Formula
+# ═══════════════════════════════════════════════════════
+
+class TestCapitalPremium:
+    def test_capital_sweetener_worth_double(self):
+        """Capital region offered as sweetener should be worth 2x normal (+16 vs +8)."""
+        world = make_war_world()
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        world.war_scores[diplo_key] = 0
+
+        prop_capital = {
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
+            "sweeteners": [
+                {"type": "territory_cede", "value": 1, "regions": ["Paris"]},
+            ],
+            "demands": [], "clauses": [],
+        }
+        prop_normal = {
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
+            "sweeteners": [
+                {"type": "territory_cede", "value": 1, "regions": ["Lyon"]},
+            ],
+            "demands": [], "clauses": [],
+        }
+
+        result_cap = calculate_acceptance(prop_capital, world)
+        result_norm = calculate_acceptance(prop_normal, world)
+
+        # Capital = +16, normal = +8, difference = 8
+        assert result_cap["components"]["deal_balance"] > result_norm["components"]["deal_balance"]
+        assert result_cap["components"]["deal_balance"] == 16.0
+        assert result_norm["components"]["deal_balance"] == 8.0
+
+    def test_capital_demand_costs_double(self):
+        """Demanding a capital should cost 2x (-10 vs -5)."""
+        world = make_war_world()
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        world.war_scores[diplo_key] = 0
+
+        prop_capital = {
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
+            "sweeteners": [],
+            "demands": [
+                {"type": "territory_cede", "value": 1, "regions": ["Berlin"]},
+            ],
+            "clauses": [],
+        }
+        prop_normal = {
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
+            "sweeteners": [],
+            "demands": [
+                {"type": "territory_cede", "value": 1, "regions": ["Rhineland"]},
+            ],
+            "clauses": [],
+        }
+
+        result_cap = calculate_acceptance(prop_capital, world)
+        result_norm = calculate_acceptance(prop_normal, world)
+
+        # Capital demand = -10, normal = -5
+        assert result_cap["components"]["deal_balance"] < result_norm["components"]["deal_balance"]
+
+    def test_capital_can_be_ceded(self):
+        """Capital regions CAN be transferred in peace deals."""
+        world = make_war_world()
+
+        assert world.regions["Paris"].controller == "France"
+
+        proposal = {
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
+            "sweeteners": [
+                {"type": "territory_cede", "value": 1, "regions": ["Paris"]},
+            ],
+            "demands": [],
+            "clauses": [],
+        }
+
+        world._ratify_treaty(proposal)
+        assert world.regions["Paris"].controller == "Prussia", \
+            "Capital should be transferable in peace deals"
+
+    def test_non_capital_region_still_transfers(self):
+        """Non-capital regions should still transfer normally."""
+        world = make_war_world()
+
+        assert world.regions["Normandy"].controller == "France"
+
+        proposal = {
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
+            "sweeteners": [
+                {"type": "territory_cede", "value": 1, "regions": ["Normandy"]},
+            ],
+            "demands": [],
+            "clauses": [],
+        }
+
+        world._ratify_treaty(proposal)
+        assert world.regions["Normandy"].controller == "Prussia"
+
+    def test_suggested_terms_capital_last_resort(self):
+        """Capital only suggested when war_score < -60 and no other regions."""
+        world = make_war_world()
+        diplo_key = world._make_diplo_key("France", "Prussia")
+
+        # At war_score -25: no capital in suggestions
+        world.war_scores[diplo_key] = -25
+        terms = generate_suggested_terms("Prussia", "peace", world)
+        cede_regions = []
+        for s in terms["sweeteners"]:
+            if s.get("type") == "territory_cede":
+                cede_regions.extend(s.get("regions", []))
+        assert "Paris" not in cede_regions, "Capital should not be offered at war_score -25"
+
+
+# ═══════════════════════════════════════════════════════
+# Ownership Validation in Territory Cession
+# ═══════════════════════════════════════════════════════
+
+class TestOwnershipValidation:
+    def test_demand_only_transfers_targets_regions(self):
+        """Demanding Vienna from Prussia should not transfer it (Austria controls Vienna)."""
+        world = make_war_world()
+        diplo_key = world._make_diplo_key("France", "Prussia")
+
+        assert world.regions["Vienna"].controller == "Austria"
+
+        proposal = {
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
+            "sweeteners": [],
+            "demands": [
+                {"type": "territory_cede", "value": 1, "regions": ["Vienna"]},
+            ],
+            "clauses": [],
+        }
+
+        world._ratify_treaty(proposal)
+        assert world.regions["Vienna"].controller == "Austria", \
+            "Vienna should not transfer — Prussia doesn't control it"
+
+    def test_sweetener_only_transfers_proposers_regions(self):
+        """France offering Bavaria (Austrian) as sweetener should not transfer it."""
+        world = make_war_world()
+        diplo_key = world._make_diplo_key("France", "Prussia")
+
+        assert world.regions["Bavaria"].controller == "Austria"
+
+        proposal = {
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
+            "sweeteners": [
+                {"type": "territory_cede", "value": 1, "regions": ["Bavaria"]},
+            ],
+            "demands": [],
+            "clauses": [],
+        }
+
+        world._ratify_treaty(proposal)
+        assert world.regions["Bavaria"].controller == "Austria", \
+            "Bavaria should not transfer — France doesn't control it"
+
+    def test_valid_demand_still_works(self):
+        """Demanding Rhineland from Prussia should work (Prussia controls it)."""
+        world = make_war_world()
+        diplo_key = world._make_diplo_key("France", "Prussia")
+
+        assert world.regions["Rhineland"].controller == "Prussia"
+
+        proposal = {
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
+            "sweeteners": [],
+            "demands": [
+                {"type": "territory_cede", "value": 1, "regions": ["Rhineland"]},
+            ],
+            "clauses": [],
+        }
+
+        world._ratify_treaty(proposal)
+        assert world.regions["Rhineland"].controller == "France"
+
+    def test_invalid_region_name_ignored(self):
+        """Fake region names should be silently ignored."""
+        world = make_war_world()
+
+        proposal = {
+            "type": "peace",
+            "proposer_nation": "France",
+            "target_nation": "Prussia",
+            "sweeteners": [
+                {"type": "territory_cede", "value": 1, "regions": ["Atlantis"]},
+            ],
+            "demands": [],
+            "clauses": [],
+        }
+
+        world._ratify_treaty(proposal)  # Should not crash
+
+
+# ═══════════════════════════════════════════════════════
+# Cheat: set_diplo_state WAR tracks war_start_turns
+# ═══════════════════════════════════════════════════════
+
+class TestCheatWarStartTurns:
+    def test_cheat_set_war_sets_war_start_turns(self):
+        """cheat set_diplo_state WAR should set war_start_turns for weariness."""
+        from backend.commands.executor import CommandExecutor
+
+        world = WorldState(player_nation="France")
+        world.current_turn = 5
+        executor = CommandExecutor()
+        gs = {"world": world, "debug_mode": True}
+
+        command = {
+            "action": "cheat",
+            "cheat_type": "set_diplo_state",
+            "cheat_args": ["Prussia", "WAR"],
+        }
+
+        result = executor._execute_cheat(command, gs)
+        assert result["success"]
+
+        dk = world._make_diplo_key("France", "Prussia")
+        assert dk in world.war_start_turns, "war_start_turns not set by cheat"
+        assert world.war_start_turns[dk] == 5
+
+    def test_cheat_set_war_doesnt_overwrite_existing(self):
+        """If war_start_turns already set, cheat should not overwrite."""
+        from backend.commands.executor import CommandExecutor
+
+        world = WorldState(player_nation="France")
+        world.current_turn = 10
+        dk = world._make_diplo_key("France", "Prussia")
+        world.war_start_turns[dk] = 3  # Already set from earlier
+
+        executor = CommandExecutor()
+        gs = {"world": world, "debug_mode": True}
+
+        command = {
+            "action": "cheat",
+            "cheat_type": "set_diplo_state",
+            "cheat_args": ["Prussia", "WAR"],
+        }
+
+        executor._execute_cheat(command, gs)
+        assert world.war_start_turns[dk] == 3, "Should not overwrite existing war_start"
+
+
+# ═══════════════════════════════════════════════════════
+# Vassalage from WAR state
+# ═══════════════════════════════════════════════════════
+
+class TestVassalageFromWar:
+    def test_war_in_vassal_min_states(self):
+        """WAR should be in VASSAL_MIN_STATES."""
+        from backend.game_logic.diplomacy import VASSAL_MIN_STATES
+        assert "WAR" in VASSAL_MIN_STATES
+
+    def test_war_to_vassal_transition_valid(self):
+        """WAR -> VASSAL transition should be valid."""
+        from backend.game_logic.diplomacy import validate_transition
+        assert validate_transition("WAR", "VASSAL") is True
+
+    def test_create_vassal_from_war(self):
+        """Vassalization should succeed during WAR state."""
+        from backend.game_logic.vassal import create_vassal_treaty
+        world = make_war_world()
+        # Saxony at war with France
+        dk = world._make_diplo_key("France", "Saxony")
+        world.diplomatic_states[dk] = "WAR"
+        result = create_vassal_treaty(world, "France", "Saxony", 0)
+        assert result["success"] is True
+        assert "Saxony" in world.vassals
+
+    def test_peace_still_blocks_vassalage(self):
+        """PEACE state should still block vassalization."""
+        from backend.game_logic.vassal import create_vassal_treaty
+        world = make_world()
+        dk = world._make_diplo_key("France", "Saxony")
+        world.diplomatic_states[dk] = "PEACE"
+        result = create_vassal_treaty(world, "France", "Saxony", 0)
+        assert result["success"] is False
+
+    def test_armistice_blocks_vassalage(self):
+        """ARMISTICE state should block vassalization."""
+        from backend.game_logic.vassal import create_vassal_treaty
+        world = make_world()
+        dk = world._make_diplo_key("France", "Saxony")
+        world.diplomatic_states[dk] = "ARMISTICE"
+        result = create_vassal_treaty(world, "France", "Saxony", 0)
+        assert result["success"] is False

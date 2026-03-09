@@ -107,15 +107,15 @@ class TestVassagePaths:
         create_vassal_conquest(world, "France", "Saxony")
         assert world.threat_level == 35
 
-    def test_treaty_requires_open_borders(self):
-        """Treaty path requires OPEN_BORDERS or above."""
+    def test_treaty_requires_war_or_open_borders(self):
+        """Treaty path requires WAR or OPEN_BORDERS+."""
         world = make_world()
-        # Force to PEACE (France/Saxony starts at OPEN_BORDERS by default)
+        # PEACE is not sufficient for vassalization
         key = world._make_diplo_key("France", "Saxony")
         world.diplomatic_states[key] = "PEACE"
         result = create_vassal_treaty(world, "France", "Saxony")
         assert not result["success"]
-        assert "OPEN_BORDERS" in result["message"]
+        assert "WAR" in result["message"] or "OPEN_BORDERS" in result["message"]
 
 
 # ═══════════════════════════════════════════════════════

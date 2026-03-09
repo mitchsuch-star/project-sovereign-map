@@ -1201,14 +1201,18 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
             gold_offer = min(200, abs(war_score) * 3)
             terms["sweeteners"].append({"type": "gold_per_turn", "value": int(gold_offer)})
 
-            # R147: Offer territory cession when losing (non-capital only)
+            # R147: Offer territory cession when losing
+            # Non-capital regions first; capital only as desperate last resort
             from backend.models.region import NATION_CAPITALS
             france_capital = NATION_CAPITALS.get("France", "Paris")
             france_regions = world.get_nation_regions("France")
-            cede_candidates = [r for r in france_regions if r != france_capital]
+            non_capital = [r for r in france_regions if r != france_capital]
             max_cede = 1 if war_score >= -40 else 2
-            for region in cede_candidates[:max_cede]:
+            for region in non_capital[:max_cede]:
                 terms["sweeteners"].append({"type": "territory_cede", "value": 1, "regions": [region]})
+            # Capital offered only as desperate last resort (war_score < -60)
+            if war_score < -60 and len(non_capital) < max_cede:
+                terms["sweeteners"].append({"type": "territory_cede", "value": 1, "regions": [france_capital]})
 
             # R148: Offer manpower when losing badly
             if war_score < -30:
@@ -1247,13 +1251,16 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
             terms["sweeteners"].append({"type": "gold_lump", "value": int(gold_lump)})
 
         if war_score < -30:
-            # Offer 1 territory as armistice sweetener
+            # Offer 1 territory as armistice sweetener (non-capital first)
             from backend.models.region import NATION_CAPITALS
             france_capital = NATION_CAPITALS.get("France", "Paris")
             france_regions = world.get_nation_regions("France")
-            cede_candidates = [r for r in france_regions if r != france_capital]
-            if cede_candidates:
-                terms["sweeteners"].append({"type": "territory_cede", "value": 1, "regions": [cede_candidates[0]]})
+            non_capital = [r for r in france_regions if r != france_capital]
+            if non_capital:
+                terms["sweeteners"].append({"type": "territory_cede", "value": 1, "regions": [non_capital[0]]})
+            elif war_score < -60:
+                # Capital only as desperate last resort
+                terms["sweeteners"].append({"type": "territory_cede", "value": 1, "regions": [france_capital]})
 
     return terms
 

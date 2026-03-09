@@ -71,8 +71,8 @@ STATE_RELATION_REQUIREMENTS = {
     "ALLIANCE": 40,
 }
 
-# Vassal: requires OPEN_BORDERS or above
-VASSAL_MIN_STATES = {"OPEN_BORDERS", "NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE"}
+# Vassal: requires WAR (dictated peace) or OPEN_BORDERS+
+VASSAL_MIN_STATES = {"WAR", "OPEN_BORDERS", "NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE"}
 VASSAL_DP_COST = 3
 
 # War declaration
@@ -209,6 +209,7 @@ DEMAND_VALUES = {
     "gold_per_turn": -2 / 100,     # -2 per 100g/turn demanded
     "manpower_per_turn": -3 / 2000, # -3 per 2000 infantry/turn demanded
     "territory": -5,                # -5 per region demanded
+    "territory_cede": -5,           # alias for ratification path
     "ap_per_turn": -25,             # -25 per AP demanded (extreme)
     "unit_swap": -2,                # -2 per unfavorable trade
 }
@@ -600,12 +601,25 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     coalition_penalty = get_coalition_loyalty_penalty(target, world)
 
     # ── Deal Balance ──
+    from backend.models.region import NATION_CAPITALS
+    _all_capitals = set(NATION_CAPITALS.values())
+
     sweetener_total = 0.0
     for s in proposal.get("sweeteners", []):
         stype = s.get("type", "")
         svalue = s.get("value", 0)
         rate = SWEETENER_VALUES.get(stype, 0)
-        if isinstance(rate, (int, float)) and rate < 1:
+        if stype in ("territory_cede", "territory"):
+            # Capital regions worth double (+16 vs +8)
+            regions = s.get("regions", [])
+            if not regions and svalue is None:
+                # value=None with no regions — flat rate fallback (1 region implied)
+                sweetener_total += rate
+            else:
+                capital_count = sum(1 for r in regions if r in _all_capitals)
+                normal_count = max(0, (svalue or 0) - capital_count)
+                sweetener_total += rate * normal_count + rate * 2 * capital_count
+        elif isinstance(rate, (int, float)) and rate < 1:
             sweetener_total += (svalue * rate) if svalue is not None else 0
         else:
             sweetener_total += rate * svalue if svalue is not None else rate
@@ -616,7 +630,17 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
         dtype = d.get("type", "")
         dvalue = d.get("value", 0)
         rate = DEMAND_VALUES.get(dtype, 0)
-        if isinstance(rate, (int, float)) and abs(rate) < 1:
+        if dtype in ("territory_cede", "territory"):
+            # Capital demands worth double (-10 vs -5)
+            regions = d.get("regions", [])
+            if not regions and dvalue is None:
+                # value=None with no regions — flat rate fallback
+                demand_total += rate
+            else:
+                capital_count = sum(1 for r in regions if r in _all_capitals)
+                normal_count = max(0, (dvalue or 0) - capital_count)
+                demand_total += rate * normal_count + rate * 2 * capital_count
+        elif isinstance(rate, (int, float)) and abs(rate) < 1:
             demand_total += (dvalue * rate) if dvalue is not None else 0
         else:
             demand_total += rate * dvalue if dvalue is not None else rate
