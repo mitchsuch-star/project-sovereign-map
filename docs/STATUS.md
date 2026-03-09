@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 9, 2026 (Popup chain bug fix: counter-offer popup + hardening)
+> **Last Updated:** March 9, 2026 (Playtest bugfixes: game-over enforcement, empty command, LLM parse fields, treaty war warning)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **5956** (5956 passed, 3 skipped — popup chain bug fix + 23 new tests) |
+| **Tests Passing** | **5984** (5984 passed, 3 skipped — playtest bugfixes + 12 new tests) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -58,6 +58,15 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 9 — Playtest Bugfixes (4 fixes, 12 tests)
+
+Creative playtesting revealed 4 bugs:
+1. **Game-over enforcement:** Game continued after defeat. Added game-over guard to 8 action endpoints + blocked AI diplomacy after game over. Read-only endpoints still work.
+2. **Capital-loss defeat removed:** Capital loss no longer ends the game (land can be ceded via treaties). Remaining defeat: all marshals destroyed.
+3. **Empty command rejection:** Empty/whitespace commands no longer trigger the parser. Returns clean error.
+4. **LLM parse fields:** `requested_type`, `diplomatic_data`, `cheat_type`, `cheat_args` were missing from `json_to_parse_result()` in providers.py. Recruit type parsing now works in LLM mode.
+5. **Treaty war warning:** Declaring war on a treaty ally now shows a Talleyrand warning dialogue. Player must confirm via `force_declare_war` to proceed.
 
 ### Mar 9 — Wave 2.5: Wartime Peace Rebalance (R141-R150) + territory_cede Bugfix
 

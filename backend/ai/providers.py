@@ -184,6 +184,10 @@ def json_to_parse_result(json_data: Dict, raw_command: str, mode: str) -> ParseR
         confidence=0.85,  # LLM results get moderate confidence
         mode=mode,
         raw_command=raw_command,
+        requested_type=json_data.get("requested_type"),
+        diplomatic_data=json_data.get("diplomatic_data"),
+        cheat_type=json_data.get("cheat_type"),
+        cheat_args=json_data.get("cheat_args", []),
     )
 
 

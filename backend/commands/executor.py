@@ -11583,6 +11583,33 @@ RETREAT RECOVERY (3 turns):
                            f"We cannot declare war until it expires.",
             }
 
+        # Treaty warning — declaring war on an ally requires confirmation
+        diplo_key_treaty = world._make_diplo_key(player, target_nation)
+        existing_treaty = world.active_treaties.get(diplo_key_treaty)
+        if existing_treaty and not world.diplomatic_objection_popup:
+            treaty_type = existing_treaty.get("type", "treaty")
+            treaty_display = treaty_type.replace("_", " ").title()
+            world.pending_diplomatic_dialogue = {
+                "type": "force_declare_war_confirmation",
+                "target_nation": target_nation,
+                "message": (f"Sire! We have a {treaty_display} with {target_nation}. "
+                            f"Declaring war would break this treaty and mark us as oath-breakers "
+                            f"in the eyes of all Europe. Shall I proceed regardless?"),
+                "options": [
+                    {"label": "Proceed — break the treaty", "action": "force_declare_war",
+                     "target_nation": target_nation},
+                    {"label": "Reconsider", "action": "reconsider"},
+                ],
+                "turn_created": int(world.current_turn),
+                "blocking": True,
+            }
+            return {
+                "success": True,
+                "message": world.pending_diplomatic_dialogue["message"],
+                "diplomatic_dialogue": world.pending_diplomatic_dialogue,
+                "awaiting_diplomatic_response": True,
+            }
+
         # DP check (1 DP)
         dp_cost = 1
         if world.diplomatic_points < dp_cost:
@@ -11877,8 +11904,8 @@ RETREAT RECOVERY (3 turns):
                     # (e.g. "accept" tries AI proposal accept first, then player proposal send).
                     action_map = {
                         "dismiss": ["dismiss"], "cancel": ["dismiss"], "never mind": ["dismiss"],
-                        "send": ["send", "execute_proposal"], "proceed": ["execute_proposal"],
-                        "yes": ["execute_proposal", "accept_ai_proposal"],
+                        "send": ["send", "execute_proposal"], "proceed": ["execute_proposal", "force_declare_war"],
+                        "yes": ["execute_proposal", "accept_ai_proposal", "force_declare_war"],
                         "reconsider": ["reconsider"], "no": ["reconsider"], "wait": ["reconsider"],
                         "harsh": ["modify_harsh"], "generous": ["modify_generous"],
                         "begin": ["start_mission"], "start": ["start_mission"],
@@ -11927,6 +11954,28 @@ RETREAT RECOVERY (3 turns):
         elif action == "reconsider":
             world.pending_diplomatic_dialogue = None
             return {"success": True, "message": "Of course, Sire. Take your time."}
+
+        elif action == "force_declare_war":
+            # Player confirmed war declaration despite existing treaty
+            from backend.game_logic.diplomacy import declare_war
+            world.pending_diplomatic_dialogue = None
+            fw_target = selected.get("target_nation") or target_nation
+            if not fw_target:
+                return {"success": False, "message": "No target nation specified."}
+            # DP check (1 DP)
+            dp_cost = 1
+            if world.diplomatic_points < dp_cost:
+                return {
+                    "success": False,
+                    "message": f"Insufficient Diplomatic Points. War declaration costs {dp_cost} DP, but we have {int(world.diplomatic_points)}.",
+                }
+            result = declare_war(world, world.player_nation, fw_target,
+                                 casus_belli=world.casus_belli.get(
+                                     world._make_diplo_key(world.player_nation, fw_target), False))
+            if result.get("success"):
+                world.diplomatic_points -= dp_cost
+                self._apply_diplomatic_trust_reactions(world, "war_declaration", fw_target)
+            return result
 
         elif action in ("execute_proposal", "send"):
             terms = selected.get("terms", {})

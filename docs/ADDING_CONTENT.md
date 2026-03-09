@@ -2106,7 +2106,7 @@ Current thresholds (19-region map):
 |-----------|--------------|---------|
 | Total victory | 12 regions | `total_regions - 1` (allow 1 holdout) |
 | Time victory | 10 regions | `ceil(total_regions * 0.77)` (~77% control) |
-| Defeat | Lose "Paris" | Capital loss (unchanged by map size) |
+| Defeat | All marshals destroyed | All player marshals at 0 strength |
 
 **When expanding to N regions:**
 

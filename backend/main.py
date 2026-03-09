@@ -451,6 +451,22 @@ def execute_command(request: CommandRequest):
 
     try:
         # ════════════════════════════════════════════════════════════
+        # GAME-OVER GUARD — No actions after the war ends
+        # ════════════════════════════════════════════════════════════
+        if world.game_over:
+            return {"success": False, "message": "The war is over.", "game_over": True,
+                    "victory": world.victory, "game_state": world.get_filtered_game_state_summary()}
+
+        # ════════════════════════════════════════════════════════════
+        # EMPTY COMMAND CHECK — Reject blank input
+        # ════════════════════════════════════════════════════════════
+        if not request.command or not request.command.strip():
+            return {"success": False, "message": "No command given, Sire.", "events": [],
+                    "action_info": {"remaining": int(world.actions_remaining)},
+                    "action_summary": world.get_action_summary(),
+                    "game_state": world.get_filtered_game_state_summary()}
+
+        # ════════════════════════════════════════════════════════════
         # PENDING STRATEGIC INTERRUPT CHECK (Phase 5.2-D)
         # If a marshal has a pending interrupt (cannon fire, blocked path),
         # try to map the player's text input to a response choice.
@@ -992,6 +1008,9 @@ def respond_to_objection(request: ObjectionResponse):
     Returns execution result after choice is processed.
     """
     try:
+        if world.game_over:
+            return {"success": False, "message": "The war is over.", "game_over": True,
+                    "victory": world.victory, "game_state": world.get_filtered_game_state_summary()}
         # Handle the objection response through executor
         result = executor.handle_objection_response(request.choice, game_state)
 
@@ -1067,6 +1086,9 @@ async def respond_to_diplomatic_dialogue(request: dict):
         request: dict with 'choice' field (int 1-based index or str keyword)
     """
     try:
+        if world.game_over:
+            return {"success": False, "message": "The war is over.", "game_over": True,
+                    "victory": world.victory, "game_state": world.get_filtered_game_state_summary()}
         choice = request.get("choice")
         result = executor.handle_diplomatic_dialogue_response(choice, game_state)
 
@@ -1108,6 +1130,9 @@ def capture_choice(request: CaptureChoiceResponse):
         request: CaptureChoiceResponse with 'choice' field ('plunder' or 'secure')
     """
     try:
+        if world.game_over:
+            return {"success": False, "message": "The war is over.", "game_over": True,
+                    "victory": world.victory, "game_state": world.get_filtered_game_state_summary()}
         result = executor.handle_capture_choice(request.choice, game_state)
 
         response = {
@@ -1144,6 +1169,9 @@ def respond_to_redemption(request: RedemptionResponse):
     Returns result of the redemption choice.
     """
     try:
+        if world.game_over:
+            return {"success": False, "message": "The war is over.", "game_over": True,
+                    "victory": world.victory, "game_state": world.get_filtered_game_state_summary()}
         # Check for pending redemption
         if not hasattr(world, 'pending_redemption') or world.pending_redemption is None:
             return {
@@ -1237,6 +1265,9 @@ def respond_to_glorious_charge(request: GloriousChargeResponse):
     Returns result of the charge/restrain choice.
     """
     try:
+        if world.game_over:
+            return {"success": False, "message": "The war is over.", "game_over": True,
+                    "victory": world.victory, "game_state": world.get_filtered_game_state_summary()}
         # Validate choice
         valid_choices = ['charge', 'restrain']
         if request.choice not in valid_choices:
@@ -1288,6 +1319,9 @@ def handle_strategic_response(request: StrategicInterruptResponse):
     Returns execution result after choice is processed.
     """
     try:
+        if world.game_over:
+            return {"success": False, "message": "The war is over.", "game_over": True,
+                    "victory": world.victory, "game_state": world.get_filtered_game_state_summary()}
         from backend.commands.strategic import StrategicExecutor
         strategic_exec = StrategicExecutor(executor)
         result = strategic_exec.handle_response(
@@ -1730,6 +1764,9 @@ def get_diplomatic_ledger():
 @app.post("/cancel_order")
 async def cancel_order(request: Request):
     """Cancel a marshal's strategic order from the Orders tab."""
+    if world.game_over:
+        return {"success": False, "message": "The war is over.", "game_over": True,
+                "victory": world.victory, "game_state": world.get_filtered_game_state_summary()}
     data = await request.json()
     marshal_name = data.get("marshal")
     if not marshal_name:

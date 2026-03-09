@@ -140,7 +140,7 @@ class TurnManager:
         # Max 1 proposal delivered per turn (rest queued).
         # ════════════════════════════════════════════════════════════
         ai_proposal_delivered = None
-        if game_state:
+        if game_state and not self.world.game_over:
             ai_proposal_delivered = self._process_ai_diplomatic_phase()
 
         # ════════════════════════════════════════════════════════════
@@ -255,6 +255,9 @@ class TurnManager:
 
         Returns the delivered dialogue dict if one was created, None otherwise.
         """
+        if self.world.game_over:
+            return None
+
         from backend.game_logic.ai_diplomacy import (
             process_diplomatic_phase, deliver_ai_proposal,
             try_deliver_queued_proposal,
@@ -736,21 +739,12 @@ class TurnManager:
         - Survive 40 turns (time victory)
 
         Defeat conditions:
-        - Lose Paris (capital lost)
         - All marshals destroyed
         """
         player_regions = self.world.get_player_regions()
         player_marshals = self.world.get_player_marshals()
 
         # Check defeat conditions first
-        capital = self.world.player_capital
-        if capital and capital not in player_regions:
-            return {
-                "game_over": True,
-                "result": "defeat",
-                "reason": f"Capital ({capital}) has fallen!"
-            }
-
         if not player_marshals or all(m.strength <= 0 for m in player_marshals):
             return {
                 "game_over": True,
