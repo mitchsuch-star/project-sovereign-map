@@ -343,7 +343,7 @@ Acceptance formula and AI proposal rebalance for wartime peace negotiations. Pre
 | R127 | Nation-Specific Intelligence | Per-nation personality lines in advisory |
 | R24 | Treaty Signing Ceremonies | Talleyrand ceremony text on ratification |
 | R25 | Vassal Personality Events | 3-4 random loyalty-gated events per game |
-| R26 | Continental System Buff | Creative rethink on blowback balance |
+| R26 | Continental System Buff | Creative rethink on blowback balance. **NOTE:** Backend code already exists but is effectively dead — no player command to activate. Existing code: `apply_continental_system()` in diplomacy.py (trade penalty: -75g/turn per member, 200g total cap), `continental_system_members` on WorldState (serialized), vassal auto-join for PUPPET/SATELLITE, removal on vassal release (R50), +1 threat decay when ≥2 members (coalition.py §2b), Britain AI desire `continental_system_lifted`. **Missing:** VALID_ACTIONS entry, executor command, parser keywords, wizard action. Design this item before wiring the command. |
 | R27 | Secret Treaties | Hidden treaties, 10%/turn discovery chance |
 | R33 | Puppet Rulers | Named rulers with personality, events |
 | R35 | Player Counter-Offer Terms | Player specifies clauses (Godot popup) |
