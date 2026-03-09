@@ -175,7 +175,7 @@ DIPLOMATIC_TEMPLATES = {
     # ══════════════════════════════════════════════
     ("proposal_confirm", "WAR", "any"): {
         "text": (
-            "Sire, for a {proposal_type} proposal to {target_nation}, "
+            "Sire, regarding the {proposal_type} proposal to {target_nation}, "
             "I suggest the following terms. War score: {war_score}, relation: {relation}."
         ),
         "options": [
@@ -208,7 +208,7 @@ DIPLOMATIC_TEMPLATES = {
     # ══════════════════════════════════════════════
     ("proposal_confirm", "PEACE", "any"): {
         "text": (
-            "Sire, for a {proposal_type} proposal to {target_nation}, "
+            "Sire, regarding the {proposal_type} proposal to {target_nation}, "
             "I have prepared appropriate terms. Relation: {relation}, state: {current_state}."
         ),
         "options": [

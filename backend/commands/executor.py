@@ -11873,22 +11873,29 @@ RETREAT RECOVERY (3 turns):
                         break
                 # Try matching action keywords
                 if not selected:
+                    # Map keywords to action(s). List means try in order
+                    # (e.g. "accept" tries AI proposal accept first, then player proposal send).
                     action_map = {
-                        "dismiss": "dismiss", "cancel": "dismiss", "never mind": "dismiss",
-                        "send": "send", "proceed": "execute_proposal", "yes": "execute_proposal",
-                        "reconsider": "reconsider", "no": "reconsider", "wait": "reconsider",
-                        "harsh": "modify_harsh", "generous": "modify_generous",
-                        "begin": "start_mission", "start": "start_mission",
-                        "accept": "accept_ai_proposal", "agree": "accept_ai_proposal",
-                        "reject": "reject_ai_proposal", "decline": "reject_ai_proposal",
-                        "counter": "counter_ai_proposal",
-                        "thank": "dismiss",
+                        "dismiss": ["dismiss"], "cancel": ["dismiss"], "never mind": ["dismiss"],
+                        "send": ["send", "execute_proposal"], "proceed": ["execute_proposal"],
+                        "yes": ["execute_proposal", "accept_ai_proposal"],
+                        "reconsider": ["reconsider"], "no": ["reconsider"], "wait": ["reconsider"],
+                        "harsh": ["modify_harsh"], "generous": ["modify_generous"],
+                        "begin": ["start_mission"], "start": ["start_mission"],
+                        "accept": ["accept_ai_proposal", "execute_proposal"],
+                        "agree": ["accept_ai_proposal", "execute_proposal"],
+                        "reject": ["reject_ai_proposal"], "decline": ["reject_ai_proposal"],
+                        "counter": ["counter_ai_proposal"],
+                        "thank": ["dismiss"],
                     }
-                    for keyword, action_match in action_map.items():
+                    for keyword, action_matches in action_map.items():
                         if keyword in choice_lower:
-                            for opt in options:
-                                if opt.get("action") == action_match:
-                                    selected = opt
+                            for action_match in action_matches:
+                                for opt in options:
+                                    if opt.get("action") == action_match:
+                                        selected = opt
+                                        break
+                                if selected:
                                     break
                             if selected:
                                 break
@@ -13597,11 +13604,21 @@ RETREAT RECOVERY (3 turns):
                 return {"success": False, "message": "Usage: cheat queue_ai_proposal <nation> <type>"}
             nation = cheat_args[0]
             proposal_type = cheat_args[1]
+            player = world.player_nation
             proposal = {
-                "type": proposal_type,
-                "from_nation": nation,
-                "to_nation": "France",
-                "turn_queued": int(world.current_turn),
+                "source": nation,
+                "proposal_type": proposal_type,
+                "priority": 1,
+                "terms": {
+                    "type": proposal_type,
+                    "proposer_nation": nation,
+                    "target_nation": player,
+                    "sweeteners": [],
+                    "demands": [],
+                    "clauses": [],
+                },
+                "talleyrand_assessment": f"A {proposal_type} proposal from {nation} (debug-generated).",
+                "turn_generated": int(world.current_turn),
             }
             if not hasattr(world, 'diplomatic_queue'):
                 world.diplomatic_queue = []

@@ -469,20 +469,35 @@ def _build_proposal_terms(
 def _determine_upgrade_type(nation: str, world) -> Optional[str]:
     """Determine what upgrade the AI should propose based on current state.
 
-    Returns the next valid upgrade type or None if already at max.
+    Returns the next valid upgrade type or None if already at max or
+    relations are insufficient for the target state.
     """
+    from backend.game_logic.diplomacy import STATE_RELATION_REQUIREMENTS
     player = getattr(world, 'player_nation', 'France')
     current_state = world.get_diplomatic_state(player, nation)
 
     # Map current state to next upgrade in the path
     upgrade_map = {
-        "PEACE": "open_borders",
-        "OPEN_BORDERS": "non_aggression",
-        "NON_AGGRESSION": "defensive_alliance",
-        "DEFENSIVE_ALLIANCE": "alliance",
+        "PEACE": ("open_borders", "OPEN_BORDERS"),
+        "OPEN_BORDERS": ("non_aggression", "NON_AGGRESSION"),
+        "NON_AGGRESSION": ("defensive_alliance", "DEFENSIVE_ALLIANCE"),
+        "DEFENSIVE_ALLIANCE": ("alliance", "ALLIANCE"),
     }
 
-    return upgrade_map.get(current_state)
+    entry = upgrade_map.get(current_state)
+    if entry is None:
+        return None
+
+    proposal_type, target_state = entry
+
+    # Check relation requirement — don't propose if relations are too low
+    diplo_key = world._make_diplo_key(player, nation)
+    relation = world.nation_relations.get(diplo_key, 0)
+    req = STATE_RELATION_REQUIREMENTS.get(target_state)
+    if req is not None and relation < req:
+        return None
+
+    return proposal_type
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -1215,12 +1230,19 @@ def _process_ai_ai_rivalry(world) -> List[Dict]:
                     if adjacent:
                         break
                 if adjacent:
+                    old_relation = relation
                     world.modify_nation_relation(nation_a, nation_b, -3)
-                    events.append({
-                        "type": "ai_ai_rivalry",
-                        "nations": [nation_a, nation_b],
-                        "message": f"Territorial rivalry between {nation_a} and {nation_b} grows.",
-                    })
+                    new_relation = world.nation_relations.get(diplo_key, 0)
+                    # Only emit event when crossing a threshold (every 10 points)
+                    # to reduce spam — the relation change always happens silently
+                    old_bracket = old_relation // 10
+                    new_bracket = new_relation // 10
+                    if old_bracket != new_bracket:
+                        events.append({
+                            "type": "ai_ai_rivalry",
+                            "nations": [nation_a, nation_b],
+                            "message": f"Territorial rivalry between {nation_a} and {nation_b} grows.",
+                        })
 
             # Trigger 2: Opportunistic Downgrade
             if relation < 30 and state != "PEACE" and state != "WAR" and state != "ARMISTICE":

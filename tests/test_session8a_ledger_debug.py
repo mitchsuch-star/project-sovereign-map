@@ -523,7 +523,12 @@ class TestCheatCommands:
         result = self._run_cheat(world, "queue_ai_proposal", ["Austria", "peace"])
         assert result["success"] is True
         assert len(world.diplomatic_queue) == 1
-        assert world.diplomatic_queue[0]["from_nation"] == "Austria"
+        proposal = world.diplomatic_queue[0]
+        assert proposal["source"] == "Austria"
+        assert proposal["proposal_type"] == "peace"
+        assert "terms" in proposal
+        assert proposal["terms"]["proposer_nation"] == "Austria"
+        assert proposal["terms"]["target_nation"] == "France"
 
     def test_cheat_guard_rejects_non_mock(self):
         """Cheat should be rejected when not in mock/debug mode."""

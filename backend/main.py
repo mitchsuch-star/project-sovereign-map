@@ -542,7 +542,7 @@ def execute_command(request: CommandRequest):
                 "proceed", "cancel", "confront", "overlook",
                 "apologize", "replace", "continue", "invest", "garrison",
                 "send", "execute", "reconsider", "modify",
-                "honor", "side",
+                "honor", "side", "dismiss",
             ]
             matched_keyword = None
             for keyword in _DIALOGUE_RESPONSE_KEYWORDS:
