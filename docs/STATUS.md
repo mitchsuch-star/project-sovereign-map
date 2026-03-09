@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 8, 2026 (Diplomacy Button — final edge case fixes, confidence 10/10)
+> **Last Updated:** March 9, 2026 (Wave 2.5: Wartime Peace Rebalance + territory_cede bugfix)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **5901** (5901 passed, 3 skipped — verified Diplomacy Button final edge case fixes) |
+| **Tests Passing** | **5933** (5933 passed, 3 skipped — Wave 2.5 wartime peace rebalance + territory_cede bugfix) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -20,9 +20,10 @@
 ## Next Steps
 
 1. ~~**Diplomacy Button (UX Feature)**~~ — **COMPLETE.** Session A (backend) + Session B (Godot wizard UI) + final edge case fixes (2 bugs, 2 hardening). 108 button tests. See `docs/DIPLOMACY_BUTTON_SPEC.md`.
-2. **Diplomacy Refinement Phase 5** — **IN PROGRESS.** 40 items (R136 KILLED). See `docs/DIPLO_REFINEMENT.md`.
+2. **Diplomacy Refinement Phase 5** — **IN PROGRESS.** 50 items (R136 KILLED). See `docs/DIPLO_REFINEMENT.md`.
    - ~~**Wave 1: Quick Wins**~~ — **DONE** (10 items, 24 tests).
    - ~~**Wave 2: AI Intelligence**~~ — **DONE** (5 items, 36 tests).
+   - ~~**Wave 2.5: Wartime Peace Rebalance**~~ — **DONE** (10 items R141-R150, 32 tests). Acceptance formula rebalance (relation dampening during WAR, war weariness, stalemate duration), sweetener value/cap increases, territory cession + AP/manpower in suggested terms, P2 trigger fix. Also fixed territory_cede acceptance value bug and ratification key mismatch.
    - **Wave 3: Player Feedback** (8 items) — R118 acceptance preview, R119 betrayal memory, R131 cooldown warning, R129 override feedback, R128 sabotage feedback, R132 vassal transparency, R17d-f ledger. Note: R118 now uses unified likelihood words from Diplomacy Button spec.
    - **Wave 4: Decide Gate** (17 items) — Marriage, conferences, voice bank, ceremonies, etc. Per-item approval needed.
    - **After Phase 5: UI Test Plan** — Manual playtest in Godot. DP display investigation (R39). Verify all fixes.
@@ -56,6 +57,28 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 9 — Wave 2.5: Wartime Peace Rebalance (R141-R150) + territory_cede Bugfix
+
+Wartime peace deals were impossible — France proposing armistice to Prussia scored ~4 (REJECT). Root causes: relation weight dominated wartime acceptance, no war weariness modifier, sweetener values too low, territory cession never generated, P2 trigger too restrictive. 32 new tests. 5933 total tests passing.
+
+**R141-R150 implemented:**
+- R141: Relation dampened during WAR (div 4, cap +-10 vs peacetime div 2, cap +-30)
+- R142: War weariness modifier (+2/turn at war, cap +20) via new `war_start_turns` field on WorldState
+- R143: Stalemate duration modifier (+1/stalemate turn, cap +15)
+- R144-R146: Territory sweetener 5→8, gold lump rate doubled (1/200→1/100), sweetener cap 30→40
+- R147: Territory cession in `generate_suggested_terms()` when losing (non-capital only)
+- R148: AP sweetener when war_score < -50, manpower when < -30
+- R149: P2 stalemate trigger `war_score <= 10` (was `<= 0`, supersedes R121)
+- R150: Armistice sweeteners (gold lump + territory) when losing
+
+**Bugfixes found during investigation:**
+- `territory_cede` sweetener type missing from `SWEETENER_VALUES` — acceptance value was 0 (added at 8/region)
+- `generate_suggested_terms()` used `"region"` (singular) but `_ratify_treaty()` checks `"regions"` (plural) — territory cession silently did nothing. Fixed to `"regions": [region]`.
+
+**Worked example:** France→Prussia armistice (relation -40, 8 turns at war, stalemate 5, 1 territory offered): score went from 1 (REJECT) to ~40 (COUNTER_OFFER).
+
+**Files modified:** diplomacy.py, diplomatic_templates.py, ai_diplomacy.py, vassal.py, world_state.py, DIPLOMACY_SPEC.md, DIPLO_REFINEMENT.md, SAVE_FORMAT_REFERENCE.md + 4 updated test files
 
 ### Mar 8 — Diplomacy Button: Final Edge Case Fixes (Confidence 10/10)
 
