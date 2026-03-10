@@ -6,19 +6,24 @@ echo   Ink ^& Iron - Build Script
 echo ============================================================
 echo.
 
+:: Navigate to project root first (needed to find .venv)
+cd /d "%~dp0.."
+set "PYTHON=%cd%\.venv\Scripts\python.exe"
+set "PIP=%cd%\.venv\Scripts\pip.exe"
+
 :: Check Python
-python --version >nul 2>&1
+"%PYTHON%" --version >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] Python not found. Install Python 3.10+ and add to PATH.
+    echo [ERROR] .venv not found. Run from the project root with a venv set up.
     pause
     exit /b 1
 )
 
 :: Check PyInstaller
-python -m PyInstaller --version >nul 2>&1
+"%PYTHON%" -m PyInstaller --version >nul 2>&1
 if errorlevel 1 (
     echo [INFO] PyInstaller not found. Installing...
-    pip install pyinstaller
+    "%PIP%" install pyinstaller
     if errorlevel 1 (
         echo [ERROR] Failed to install PyInstaller.
         pause
@@ -26,15 +31,13 @@ if errorlevel 1 (
     )
 )
 
-:: Navigate to project root
-cd /d "%~dp0.."
 echo [INFO] Project root: %cd%
 echo.
 
 :: Run PyInstaller
 echo [INFO] Building server executable...
 echo.
-python -m PyInstaller deploy\ink_iron.spec --distpath deploy\dist --workpath deploy\build --clean
+"%PYTHON%" -m PyInstaller deploy\ink_iron.spec --distpath deploy\dist --workpath deploy\build --clean
 if errorlevel 1 (
     echo.
     echo [ERROR] Build failed. Check errors above.

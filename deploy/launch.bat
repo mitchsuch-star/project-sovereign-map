@@ -1,10 +1,10 @@
 @echo off
 setlocal enabledelayedexpansion
 
-title Ink ^& Iron Launcher
+title Ink and Iron Launcher
 
 echo ============================================================
-echo   Ink ^& Iron - Launcher
+echo   Ink and Iron - Launcher
 echo ============================================================
 echo.
 
@@ -22,12 +22,10 @@ if not exist "config.txt" (
     exit /b 1
 )
 
-:: Read API key from config.txt
+:: Read API key from config.txt using findstr
 set "API_KEY="
-for /f "usebackq tokens=1,* delims==" %%a in ("config.txt") do (
-    if /i "%%a"=="ANTHROPIC_API_KEY" (
-        set "API_KEY=%%b"
-    )
+for /f "tokens=1,* delims==" %%a in ('findstr /i "^ANTHROPIC_API_KEY=" config.txt') do (
+    set "API_KEY=%%b"
 )
 
 :: Validate key
@@ -45,15 +43,15 @@ if "!API_KEY!"=="your_key_here" (
     echo [ERROR] You need to set your API key in config.txt
     echo.
     echo Open config.txt and replace "your_key_here" with your
-    echo actual Anthropic API key (starts with sk-ant-).
+    echo actual Anthropic API key ^(starts with sk-ant-^).
     echo.
     pause
     exit /b 1
 )
 
 :: Check server executable exists
-if not exist "ink_iron_server\ink_iron_server.exe" (
-    echo [ERROR] ink_iron_server\ink_iron_server.exe not found!
+if not exist "ink_iron_server.exe" (
+    echo [ERROR] ink_iron_server.exe not found!
     echo The build may be incomplete.
     pause
     exit /b 1
@@ -73,7 +71,7 @@ set "LLM_MODE=anthropic"
 
 :: Start server in a minimized window
 echo [INFO] Starting server...
-start "Ink & Iron Server" /min ink_iron_server\ink_iron_server.exe
+start "Ink and Iron Server" /min ink_iron_server.exe
 
 :: Wait for server to start
 echo [INFO] Waiting for server to initialize...
@@ -95,7 +93,7 @@ if exist "InkAndIron.exe" (
     echo [INFO] Game closed. Shutting down server...
 
     :: Kill server by window title
-    taskkill /fi "WINDOWTITLE eq Ink & Iron Server" /f >nul 2>&1
+    taskkill /fi "WINDOWTITLE eq Ink and Iron Server" /f >nul 2>&1
 
     echo [INFO] Done.
     timeout /t 2 /nobreak >nul
@@ -104,7 +102,7 @@ if exist "InkAndIron.exe" (
     echo [INFO] Server running at http://127.0.0.1:8005
     echo [INFO] Press any key to stop the server.
     pause >nul
-    taskkill /fi "WINDOWTITLE eq Ink & Iron Server" /f >nul 2>&1
+    taskkill /fi "WINDOWTITLE eq Ink and Iron Server" /f >nul 2>&1
 )
 
 endlocal

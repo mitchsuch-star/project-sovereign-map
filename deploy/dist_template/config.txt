@@ -1,5 +1,5 @@
-Ink & Iron - Configuration
-Fill in your Anthropic API key below and save this file.
-Get a key at: https://console.anthropic.com/
-
+; Ink and Iron - Configuration
+; Fill in your Anthropic API key below and save this file.
+; Get a key at: https://console.anthropic.com/
+;
 ANTHROPIC_API_KEY=your_key_here
