@@ -153,7 +153,8 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | Vassal system (Phase 8 S5) | `vassal.py` (all vassal mechanics), `world_state.py` (vassals dict, advance_turn steps 5-7, tribute), `diplomacy.py` (AP clause, Continental System), `turn_manager.py` (enemy courting), `dispatch.py` (Trigger 3 loyalty warnings) |
 | Diplomatic ledger | `diplomatic_ledger.py` (build_diplomatic_ledger, fog-filtered army strength), `main.py` (GET /diplomatic_ledger, debug endpoints), `world_state.py` (popup fields) |
 | Diplomacy wizard / button | `diplomacy_wizard.gd` (wizard UI), `main.gd` (F1 hotkey, button wiring, command handoff), `main.py` (GET /diplomatic_preview nation list mode), `docs/DIPLOMACY_BUTTON_SPEC.md` |
-| Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md` (v2.2), `docs/CONVERSATIONAL_DIPLOMACY_DESIGN.md` (v1.2), `docs/COALITION_SPEC.md` (v1.1), `diplomacy.py` (acceptance formula, state transitions, war score), `diplomat.py` (DiplomaticRepresentative), `diplomatic_dialogue.py` (conversation state machine), `diplomatic_templates.py` (37 mock templates + T28-T34 coalition, slot resolvers), `ai_diplomacy.py` (AI proposal generation, M3 counter-offer, alliance conflict), `diplomatic_advisory.py` (advisory conversations), `vassal.py` (loyalty, rebellion), `commands/diplomatic_defiance.py` (Talleyrand sabotage), `coalition.py` (threat, formation, AI, breaking, dissolution) |
+| Suggested terms / smart suggestions | `diplomatic_templates.py` (NATION_DESIRE_PROFILES, TALLEYRAND_COMMENTARY, generate_suggested_terms 5-stage pipeline, _build_base_terms, _validate_economic_feasibility, _get_smart_commentary), `diplomatic_dialogue.py` (_enrich_proposal_summary commentary wiring), `docs/TALLEYRAND_SMART_SUGGESTIONS_SPEC.md` |
+| Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md` (v2.2), `docs/CONVERSATIONAL_DIPLOMACY_DESIGN.md` (v1.2), `docs/COALITION_SPEC.md` (v1.1), `diplomacy.py` (acceptance formula, state transitions, war score), `diplomat.py` (DiplomaticRepresentative), `diplomatic_dialogue.py` (conversation state machine), `diplomatic_templates.py` (37 mock templates + T28-T34 coalition, slot resolvers, NATION_DESIRE_PROFILES, TALLEYRAND_COMMENTARY, 5-stage suggestion pipeline), `ai_diplomacy.py` (AI proposal generation, M3 counter-offer, alliance conflict), `diplomatic_advisory.py` (advisory conversations), `vassal.py` (loyalty, rebellion), `commands/diplomatic_defiance.py` (Talleyrand sabotage), `coalition.py` (threat, formation, AI, breaking, dissolution) |
 
 For detailed system docs: `docs/SYSTEMS_REFERENCE.md`
 For Enemy AI details: `docs/ENEMY_AI_REFERENCE.md`
@@ -308,6 +309,7 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 - Show raw internal action names to players (use `_ACTION_DISPLAY_NAMES` translation)
 - Use `.get('key', default)` when value may be `None` — use `(d.get('key') or default)` instead
 - Skip AP check before objection evaluation — player should never see objection then AP failure
+- Add a new nation without updating `NATION_DESIRE_PROFILES` + `TALLEYRAND_COMMENTARY` in `diplomatic_templates.py` (falls back to defaults but loses nation-specific intelligence). See `docs/ADDING_CONTENT.md` validation checklist
 
 ---
 
@@ -352,6 +354,7 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md`, `diplomat.py`, `diplomacy.py` |
 | Diplomacy button wizard spec | `docs/DIPLOMACY_BUTTON_SPEC.md` |
 | Diplomacy refinement plan | `docs/DIPLO_REFINEMENT.md` |
+| Smart suggestions pipeline | `docs/TALLEYRAND_SMART_SUGGESTIONS_SPEC.md` |
 | Diplomacy creative audit | `docs/DIPLOMACY_CREATIVE_AUDIT.md` |
 | Coalition system (Phase 8) | `docs/COALITION_SPEC.md` |
 | Jealousy system (Phase 7b) | `docs/JEALOUSY_SPEC.md` |

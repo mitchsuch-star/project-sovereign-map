@@ -1075,6 +1075,10 @@ known_enemies = ["Wellington", "Uxbridge", "Blucher", "Gneisenau", "NewMarshal"]
 - [ ] Enemy AI handles new nation
 - [ ] Parser knows new nation's marshals
 - [ ] All new fields in `to_dict()` / `from_dict()`
+- [ ] `NATION_DESIRE_PROFILES` entry in `diplomatic_templates.py` (covets_regions, values_gold/territory/ap, diplomatic_lever, weakness)
+- [ ] `TALLEYRAND_COMMENTARY` entries in `diplomatic_templates.py` (~5 nation-specific + peacetime tags)
+- [ ] `NATION_DESIRES` entry in `ai_diplomacy.py` (AI counter-offer desires)
+- [ ] `SPECIAL_BONUSES` entry in `diplomacy.py` (if nation has territory/clause bonuses)
 - [ ] `pytest tests/test_serialization_enforcement.py -v` passes
 - [ ] Regions appear on Godot map (`map.gd` REGION_POSITIONS + REGION_CONNECTIONS)
 

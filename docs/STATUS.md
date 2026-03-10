@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 9, 2026 (Proposal Flow Bugfix: 5 bugs + 2 leaks fixed, 23 new tests, 10 popup gaps closed)
+> **Last Updated:** March 9, 2026 (Talleyrand Smart Suggestions: 5-stage pipeline, nation-aware terms, 22 new tests)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **6168** (6168 passed, 3 skipped — proposal flow bugfix + 23 new tests) |
+| **Tests Passing** | **6212** (6212 passed, 3 skipped — smart suggestions pipeline + 22 new tests) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -26,6 +26,7 @@
    - ~~**Wave 2.5: Wartime Peace Rebalance**~~ — **DONE** (10 items R141-R150, 32 tests). Acceptance formula rebalance (relation dampening during WAR, war weariness, stalemate duration), sweetener value/cap increases, territory cession + AP/manpower in suggested terms, P2 trigger fix. Also fixed territory_cede acceptance value bug and ratification key mismatch.
    - **Bug fix: Popup chain audit** — Counter-offer popup data shape mismatch (wrong field names, missing fields). Also: Counter button hidden for counter-offers, Berthier recovery + /respond_to_diplomatic_dialogue popup passthroughs added. 23 regression tests.
    - **Bug fix: Proposal Flow (5 bugs + 2 leaks)** — (1) Empty clauses on incoming proposals, (2-3) raw component keys in acceptance/rejection hints, (4A) terms_guidance dtype missing in Godot, (4B) PEACE+fallback templates missing modify options, (4C) no iteration cap on modify_harsh/generous, (5) 10 popup passthrough gaps across 4 POST endpoints + /command interrupt+exception paths, (leak) defiance_type raw keys in notifications, (leak) safety valve empty clauses. 3 missing FEEDBACK_STRINGS keys added. Defensive comments + CLAUDE.md troubleshooting entries. 23 new tests.
+   - **Talleyrand Smart Suggestions** — `generate_suggested_terms()` rewritten as 5-stage pipeline: base terms → nation-specific injection (coveted territory, gold calibration, protection, AP) → economic feasibility caps → Talleyrand commentary → return. `NATION_DESIRE_PROFILES` + `TALLEYRAND_COMMENTARY` (~45 strings). 1-line wiring in `_enrich_proposal_summary()`. 22 new tests. See `docs/TALLEYRAND_SMART_SUGGESTIONS_SPEC.md`.
    - ~~**Wave 3: Player Feedback (partial)**~~ — **DONE** (R118 acceptance preview, R131 cooldown warning, R17d DP breakdown, R17e relation trends, R17f mission progress — 35 tests). Remaining Wave 3 items: R119 betrayal memory, R129 override feedback, R128 sabotage feedback, R132 vassal transparency.
    - **Wave 4: Decide Gate** (17 items) — Marriage, conferences, voice bank, ceremonies, etc. Per-item approval needed.
    - **NEXT GATE: UI Testing** — Manual playtest in Godot to verify all diplomatic screen changes render correctly. DP display investigation (R39). Then remaining Wave 3 items.

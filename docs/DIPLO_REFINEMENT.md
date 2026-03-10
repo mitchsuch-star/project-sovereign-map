@@ -366,3 +366,6 @@ Acceptance formula and AI proposal rebalance for wartime peace negotiations. Pre
 ---
 
 **Grand total (R1-R150 + GAP-3/5/6):** 165 items. 67 DONE (Phases 1-4 + R137/R120 + Wave 2.5), 38 APPROVED (Phase 5), R136 KILLED.
+
+**Standalone implementations (not R-numbered):**
+- **Talleyrand Smart Suggestions** — 5-stage pipeline in `generate_suggested_terms()`. Nation-aware terms, economic caps, commentary. 22 tests. See `docs/TALLEYRAND_SMART_SUGGESTIONS_SPEC.md`.
