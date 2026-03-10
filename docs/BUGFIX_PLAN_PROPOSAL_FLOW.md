@@ -381,6 +381,30 @@ Add a step: `5. Verify ALL response handlers in main.py call _include_popup_pass
 
 ---
 
+## Bug 6: Terms guidance action routing — Belgium/AP mismatch (FIXED)
+
+**Root cause:** Godot popup (`_on_proposal_confirm_choice` in `main.gd`) sent actions via natural language through `/command`. When user clicked "Offer Action Points" (action=`territory_no_ap`):
+
+1. `_ACTION_KEYWORD_MAP` didn't have `territory_no_ap` → fell back to raw action string
+2. Command sent: `"Talleyrand, territory_no_ap the Prussia proposal"`
+3. Backend `action_map` keyword matching: `"territory"` is a substring of `"territory_no_ap"` → matched `territory_yes`
+4. **Resolved to Belgium suggestion instead of AP step**
+
+Same bug affected ALL terms_guidance actions not in keyword map: `territory_no_gold`, `territory_no_ap`, `offer_region`, `skip_region`, `enough_territory`, `offer_gold`, `more_gold`, `less_gold`, `skip_gold`, `offer_ap`, `skip_ap`.
+
+**Fix:** Direct action routing via `/respond_to_diplomatic_dialogue`:
+
+1. Added `send_dialogue_response()` to `api_client.gd` — POSTs to `/respond_to_diplomatic_dialogue`
+2. Rewrote `_on_proposal_confirm_choice` in `main.gd` to find the action's 1-based index in the options array and send it directly, bypassing all keyword matching
+3. Old keyword path preserved as fallback for actions not found in options
+
+**Files modified:**
+- `godot-client/.../api_client.gd` — added `send_dialogue_response()` method
+- `godot-client/.../main.gd` — rewrote `_on_proposal_confirm_choice` for direct routing
+- `tests/test_bugfix_proposal_flow.py` — added Section 12 with routing tests
+
+---
+
 ## What This Plan Does NOT Change
 
 - No changes to combat, trust, disobedience, or turn processing

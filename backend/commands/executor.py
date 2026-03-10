@@ -12070,20 +12070,37 @@ RETREAT RECOVERY (3 turns):
             }
 
         elif action == "modify_harsh":
-            # Generate new dialogue with harsher terms
+            # Build on PREVIOUS terms (not fresh) so each iteration escalates.
             terms = selected.get("terms", {})
             proposal_type = terms.get("proposal_type", dialogue.get("_proposal_type", "peace"))
             if not proposal_type:
                 proposal_type = "peace"
 
-            suggested = generate_suggested_terms(target_nation, proposal_type, world)
-            # Make harsher: increase demands
+            import copy
+            suggested = copy.deepcopy(terms) if terms.get("sweeteners") is not None or terms.get("demands") is not None else generate_suggested_terms(target_nation, proposal_type, world)
+            # Ensure proposal metadata
+            suggested["proposer_nation"] = suggested.get("proposer_nation", "France")
+            suggested["target_nation"] = suggested.get("target_nation", target_nation)
+            suggested["type"] = suggested.get("type", proposal_type)
+
+            # Escalate existing demands by 1.5x
             for d in suggested.get("demands", []):
-                d["value"] = int(d.get("value", 0) * 1.5)
+                if d.get("type") not in ("territory_cede",):
+                    d["value"] = int(d.get("value", 0) * 1.5)
+
             # Add a gold demand if none exist
             if not suggested.get("demands"):
                 suggested["demands"] = [{"type": "gold_per_turn", "value": 100}]
-            # Remove sweeteners
+
+            # Round 2 escalation: add territory demand if not already present
+            context_pre = dict(dialogue.get("context", {}))
+            round_num = context_pre.get("modify_count", 0) + 1
+            if round_num >= 2:
+                has_territory = any(d.get("type") in ("territory_cede", "territory") for d in suggested.get("demands", []))
+                if not has_territory:
+                    suggested["demands"].append({"type": "territory_cede", "value": 1})
+
+            # Remove sweeteners (harsh = no sweeteners)
             suggested["sweeteners"] = []
 
             # BUGFIX (Bug 4C): §9b iteration cap — max 2 modifications.
@@ -12140,15 +12157,40 @@ RETREAT RECOVERY (3 turns):
             if not proposal_type:
                 proposal_type = "peace"
 
-            suggested = generate_suggested_terms(target_nation, proposal_type, world)
-            # Make more generous: increase sweeteners
+            # Build on PREVIOUS terms (not fresh) so each iteration escalates.
+            # First click: terms come from the original suggested terms on the button.
+            # Second click: terms come from round 1's modified terms on the button.
+            import copy
+            suggested = copy.deepcopy(terms) if terms.get("sweeteners") is not None or terms.get("demands") is not None else generate_suggested_terms(target_nation, proposal_type, world)
+            # Ensure proposal metadata
+            suggested["proposer_nation"] = suggested.get("proposer_nation", "France")
+            suggested["target_nation"] = suggested.get("target_nation", target_nation)
+            suggested["type"] = suggested.get("type", proposal_type)
+
+            # Escalate existing sweeteners by 1.5x
             for s in suggested.get("sweeteners", []):
-                s["value"] = int(s.get("value", 0) * 1.5)
-            # Add a gold sweetener if none exist
-            if not suggested.get("sweeteners"):
+                if s.get("type") not in ("territory_cede", "ap_per_turn"):
+                    s["value"] = int(s.get("value", 0) * 1.5)
+
+            # Context-aware gold sweetener if none exist:
+            # Peace/armistice → gold_per_turn (ongoing commitment)
+            # Alliance/NAP/other → gold_lump (signing bonus)
+            if not [s for s in suggested.get("sweeteners", []) if "gold" in s.get("type", "")]:
                 player_gold = getattr(world, 'gold', 500)
                 offer = max(100, min(500, int(player_gold * 0.1)))
-                suggested["sweeteners"] = [{"type": "gold_lump", "value": int(offer)}]
+                if proposal_type in ("peace", "armistice", "armistice_losing", "armistice_winning"):
+                    suggested.setdefault("sweeteners", []).append({"type": "gold_per_turn", "value": int(offer)})
+                else:
+                    suggested.setdefault("sweeteners", []).append({"type": "gold_lump", "value": int(offer)})
+
+            # Round 2 escalation: add AP if not already present (creative variety)
+            context_pre = dict(dialogue.get("context", {}))
+            round_num = context_pre.get("modify_count", 0) + 1
+            if round_num >= 2:
+                has_ap = any(s.get("type") == "ap_per_turn" for s in suggested.get("sweeteners", []))
+                if not has_ap:
+                    suggested.setdefault("sweeteners", []).append({"type": "ap_per_turn", "value": 1})
+
             # Remove demands (generous = no demands)
             suggested["demands"] = []
 
@@ -12992,7 +13034,8 @@ RETREAT RECOVERY (3 turns):
             "type": "terms_guidance",
             "target_nation": target_nation,
             "talleyrand_text": (
-                "Offering an Action Point is extraordinary — but worth 8 acceptance points."
+                "Offering an Action Point is extraordinary — an entire extra action each turn. "
+                "Worth 18 acceptance points, more than ceding a province."
             ),
             "options": [
                 {"label": "Offer the AP", "description": "Add 1 AP per turn to the offer.",

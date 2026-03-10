@@ -177,6 +177,20 @@ func dismiss_notification(notification_id: String, callback: Callable):
 	if error != OK:
 		print("ERROR: HTTP request failed with code: ", error)
 
+func send_dialogue_response(choice, callback: Callable):
+	"""Send player's choice directly to /respond_to_diplomatic_dialogue.
+	CRITICAL: Use this instead of send_command for dialogue responses.
+	Keyword routing in /command misroutes terms_guidance actions
+	(e.g. 'territory_no_ap' contains 'territory' → wrong action).
+	See BUGFIX_PLAN_PROPOSAL_FLOW.md Bug 6."""
+	pending_callback = callback
+	var url = API_URL + "/respond_to_diplomatic_dialogue"
+	var headers = ["Content-Type: application/json"]
+	var body = JSON.stringify({"choice": choice})
+	var error = http_request.request(url, headers, HTTPClient.METHOD_POST, body)
+	if error != OK:
+		print("ERROR: HTTP request failed with code: ", error)
+
 func dismiss_all_notifications(callback: Callable):
 	"""Dismiss all pending notifications."""
 	pending_callback = callback

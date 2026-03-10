@@ -2694,43 +2694,52 @@ func _on_coalition_popup_dismissed():
 	command_input.grab_focus()
 
 func _on_proposal_confirm_choice(action: String, data: Dictionary):
-	"""Handle player response to outgoing proposal confirmation popup."""
-	var target = data.get("target_nation", "Unknown")
-	# Map dialogue option actions to keywords that match
-	# _DIALOGUE_RESPONSE_KEYWORDS + action_map in the backend
-	var _ACTION_KEYWORD_MAP = {
-		"execute_proposal": "send",
-		"modify_harsh": "harsh",
-		"modify_generous": "generous",
-		"expand_options": "adjust",
-		"send_override": "proceed",
-		"send_suggested": "trust",
-		"start_mission": "begin",
-		"dismiss": "dismiss",
-		"reconsider": "reconsider",
-		"elaborate": "elaborate",
-		"expand_to_proposal": "elaborate",
-		"review_counter": "review",
-		"accept_with_conflict": "accept",
-		"cancel_mission": "cancel",
-		"force_declare_war": "proceed",
-		"accept_ai_proposal": "accept",
-		"reject_ai_proposal": "reject",
-		"accept_counter_offer": "accept",
-		"reject_counter_offer": "reject",
-	}
-	# Index-based selection for proposal_options (numeric actions from index binding)
-	if action.is_valid_int():
-		var command = "Talleyrand, %s" % action
-		add_output("[color=#d9c08c]Selecting option %s[/color]" % action)
+	"""Handle player response to outgoing proposal confirmation popup.
+	CRITICAL: Use send_dialogue_response (direct action index), NOT send_command.
+	Keyword routing in /command misroutes terms_guidance actions:
+	'territory_no_ap' contains 'territory' → matches territory_yes → Belgium bug.
+	See BUGFIX_PLAN_PROPOSAL_FLOW.md Bug 6."""
+	# Send the raw action directly to dialogue endpoint via 1-based option index.
+	# DO NOT construct natural language — keyword routing causes mismatches.
+	var options = data.get("options", [])
+	var choice_index = -1
+	for i in range(options.size()):
+		if options[i].get("action", "") == action:
+			choice_index = i + 1  # 1-based
+			break
+	if choice_index > 0:
+		add_output("[color=#d9c08c]Directing Talleyrand: %s[/color]" % action.replace("_", " "))
+		set_input_enabled(false)
+		api_client.send_dialogue_response(choice_index, _on_command_result)
+	else:
+		# Fallback for unknown actions — use old keyword path
+		var target = data.get("target_nation", "Unknown")
+		var _ACTION_KEYWORD_MAP = {
+			"execute_proposal": "send",
+			"modify_harsh": "harsh",
+			"modify_generous": "generous",
+			"expand_options": "adjust",
+			"send_override": "proceed",
+			"send_suggested": "trust",
+			"start_mission": "begin",
+			"dismiss": "dismiss",
+			"reconsider": "reconsider",
+			"elaborate": "elaborate",
+			"expand_to_proposal": "elaborate",
+			"review_counter": "review",
+			"accept_with_conflict": "accept",
+			"cancel_mission": "cancel",
+			"force_declare_war": "proceed",
+			"accept_ai_proposal": "accept",
+			"reject_ai_proposal": "reject",
+			"accept_counter_offer": "accept",
+			"reject_counter_offer": "reject",
+		}
+		var keyword = _ACTION_KEYWORD_MAP.get(action, action)
+		var command = "Talleyrand, %s the %s proposal" % [keyword, target]
+		add_output("[color=#d9c08c]Directing Talleyrand: %s[/color]" % keyword)
 		set_input_enabled(false)
 		api_client.send_command(command, _on_command_result)
-		return
-	var keyword = _ACTION_KEYWORD_MAP.get(action, action)
-	var command = "Talleyrand, %s the %s proposal" % [keyword, target]
-	add_output("[color=#d9c08c]Directing Talleyrand: %s[/color]" % keyword)
-	set_input_enabled(false)
-	api_client.send_command(command, _on_command_result)
 
 func _on_incoming_proposal_choice(choice: String, data: Dictionary):
 	"""Handle player response to AI diplomatic proposal."""

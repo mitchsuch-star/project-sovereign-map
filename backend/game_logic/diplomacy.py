@@ -212,7 +212,7 @@ SWEETENER_VALUES = {
     "cavalry_manpower": 4 / 2500,  # +4 per 2500
     "artillery_manpower": 5 / 1500, # +5 per 1500
     "unit_swap": 3,                # +3 per favorable trade
-    "ap_per_turn": 8,              # +8 per AP
+    "ap_per_turn": 18,             # +18 per AP (1 AP/turn is an entire extra action — worth more than territory)
     "territory": 8,                # +8 per region (R144: was 5)
     "territory_cede": 8,           # +8 per region (alias for ratification path)
     "open_borders": 3,             # +3 flat
