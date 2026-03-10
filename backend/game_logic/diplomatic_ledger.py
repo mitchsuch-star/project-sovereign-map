@@ -308,6 +308,12 @@ def _build_treaties(world) -> List[Dict[str, Any]]:
                         "manpower_per_turn": "Manpower/turn",
                         "ap_per_turn": "AP/turn",
                         "territory_cede": "Territory cession",
+                        "infantry_manpower": "Infantry levy",
+                        "cavalry_manpower": "Cavalry levy",
+                        "artillery_manpower": "Artillery provision",
+                        "open_borders": "Open borders",
+                        "non_aggression": "Non-aggression",
+                        "protection_promised": "Military protection",
                     }
                     label = _CLAUSE_LABELS.get(ctype, ctype.replace("_", " ").title())
                     if amount and c_from:

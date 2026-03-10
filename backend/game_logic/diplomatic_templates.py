@@ -1295,6 +1295,17 @@ TALLEYRAND_COMMENTARY = {
     ("_default", "friendly_deal"): "They are well-disposed. I've proposed fair terms that reward the friendship.",
     ("_default", "cautious_deal"): "Relations are tepid. I've balanced the terms to avoid giving offense.",
     ("_default", "hostile_deal"): "Relations are poor. I've included extra incentives to overcome their reluctance.",
+    # --- Modified terms (harsh/generous iterations) ---
+    ("Prussia", "modified_harsh"): "Hardenberg's pride is wounded, but Prussia cannot refuse. Press the advantage, Sire.",
+    ("Prussia", "modified_generous"): "Generosity toward Prussia costs us little. Hardenberg will remember this kindness.",
+    ("Austria", "modified_harsh"): "Metternich will protest, but his options narrow with each demand. Hold firm.",
+    ("Austria", "modified_generous"): "Metternich appreciates magnanimity — it allows him to save face at court.",
+    ("Britain", "modified_harsh"): "Castlereagh's island gives him options we cannot eliminate. Harsh terms risk outright rejection.",
+    ("Britain", "modified_generous"): "Even Castlereagh may warm to terms this favorable. Britain values pragmatism.",
+    ("Saxony", "modified_harsh"): "Poor Einsiedel has little left to give. These demands may break Saxony entirely.",
+    ("Saxony", "modified_generous"): "Einsiedel will weep with gratitude. Such generosity buys a loyal vassal, Sire.",
+    ("_default", "modified_harsh"): "I have drafted more demanding terms, Sire. They will not accept lightly.",
+    ("_default", "modified_generous"): "I have drafted more generous terms, Sire. Such magnanimity should improve acceptance.",
 }
 
 

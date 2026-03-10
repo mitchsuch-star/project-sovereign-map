@@ -12103,19 +12103,9 @@ RETREAT RECOVERY (3 turns):
             # Remove sweeteners (harsh = no sweeteners)
             suggested["sweeteners"] = []
 
-            # Bug 5 fix: Regenerate commentary to match modified terms
-            has_territory_demand = any(
-                d.get("type") in ("territory_cede", "territory")
-                for d in suggested.get("demands", []))
-            if has_territory_demand:
-                suggested["talleyrand_commentary"] = (
-                    f"These terms demand territorial concessions from {target_nation}, Sire. "
-                    f"They will not accept lightly."
-                )
-            else:
-                suggested["talleyrand_commentary"] = (
-                    f"I have drafted more demanding terms for {target_nation}, Sire."
-                )
+            # Bug 5 fix: Use nation-specific smart commentary
+            from backend.game_logic.diplomatic_templates import _get_smart_commentary
+            suggested["talleyrand_commentary"] = _get_smart_commentary(target_nation, "modified_harsh")
 
             # BUGFIX (Bug 4C): §9b iteration cap — max 2 modifications.
             # modify_count is carried in dialogue context across round-trips.
@@ -12208,19 +12198,9 @@ RETREAT RECOVERY (3 turns):
             # Remove demands (generous = no demands)
             suggested["demands"] = []
 
-            # Bug 5 fix: Regenerate commentary to match modified terms
-            has_territory_sweetener = any(
-                s.get("type") == "territory_cede"
-                for s in suggested.get("sweeteners", []))
-            if has_territory_sweetener:
-                suggested["talleyrand_commentary"] = (
-                    f"These generous terms include territorial concessions to {target_nation}, Sire. "
-                    f"Such magnanimity should improve acceptance."
-                )
-            else:
-                suggested["talleyrand_commentary"] = (
-                    f"I have drafted more generous terms for {target_nation}, Sire."
-                )
+            # Bug 5 fix: Use nation-specific smart commentary
+            from backend.game_logic.diplomatic_templates import _get_smart_commentary
+            suggested["talleyrand_commentary"] = _get_smart_commentary(target_nation, "modified_generous")
 
             # BUGFIX (Bug 4C): §9b iteration cap — max 2 modifications.
             # modify_count is carried in dialogue context across round-trips.
@@ -12736,6 +12716,9 @@ RETREAT RECOVERY (3 turns):
                 return {"success": True, "message": "The matter has been resolved."}
             world.pending_diplomatic_dialogue = None
             world.diplomatic_sabotage = None
+            # Dismiss stale sabotage notification
+            from backend.notifications import SABOTAGE_DISCOVERED
+            world.notifications.dismiss_by_type(SABOTAGE_DISCOVERED)
             return {
                 "success": True,
                 "message": result.get("message", "The matter has been resolved."),
@@ -12862,6 +12845,9 @@ RETREAT RECOVERY (3 turns):
             treaty_event = world._ratify_treaty(counter_terms)
             world.pending_diplomatic_dialogue = None
             world.incoming_proposal_popup = None
+            # Dismiss stale proposal notification
+            from backend.notifications import DIPLOMATIC_PROPOSAL
+            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
             treaty_msg = treaty_event.get("message", "") if treaty_event else ""
             world.log_event({
                 "type": "counter_offer_accepted",
@@ -12886,6 +12872,9 @@ RETREAT RECOVERY (3 turns):
                     world.player_proposal_cooldowns[f"{source_nation}_{ptype}"] = 5
             world.pending_diplomatic_dialogue = None
             world.incoming_proposal_popup = None
+            # Dismiss stale proposal notification
+            from backend.notifications import DIPLOMATIC_PROPOSAL
+            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
             world.log_event({
                 "type": "counter_offer_rejected",
                 "source": source_nation,
@@ -12908,6 +12897,9 @@ RETREAT RECOVERY (3 turns):
             from backend.game_logic.vassal import invest_in_vassal
             result = invest_in_vassal(world, vassal_name)
             world.pending_diplomatic_dialogue = None
+            # Dismiss stale vassal rebellion notification
+            from backend.notifications import VASSAL_REBELLION_IMMINENT
+            world.notifications.dismiss_by_type(VASSAL_REBELLION_IMMINENT)
             return result
 
         elif action == "garrison_vassal_rebellion":
@@ -12928,6 +12920,9 @@ RETREAT RECOVERY (3 turns):
             old_loyalty = vassal_state.get("loyalty", 0)
             vassal_state["loyalty"] = min(100, old_loyalty + 10)
             world.pending_diplomatic_dialogue = None
+            # Dismiss stale vassal rebellion notification
+            from backend.notifications import VASSAL_REBELLION_IMMINENT
+            world.notifications.dismiss_by_type(VASSAL_REBELLION_IMMINENT)
             return {
                 "success": True,
                 "message": (
@@ -12938,6 +12933,9 @@ RETREAT RECOVERY (3 turns):
 
         elif action == "accept_vassal_rebellion":
             world.pending_diplomatic_dialogue = None
+            # Dismiss stale vassal rebellion notification
+            from backend.notifications import VASSAL_REBELLION_IMMINENT
+            world.notifications.dismiss_by_type(VASSAL_REBELLION_IMMINENT)
             context = dialogue.get("context", {})
             vassal_name = context.get("vassal_name", "")
             return {
@@ -12963,6 +12961,9 @@ RETREAT RECOVERY (3 turns):
             war_result = _paradox_declare_war(world, world.player_nation, attacker_nation)
             world.pending_diplomatic_dialogue = None
             world.alliance_paradox_popup = None
+            # Dismiss stale alliance cascade notification
+            from backend.notifications import ALLIANCE_CASCADE_WAR
+            world.notifications.dismiss_by_type(ALLIANCE_CASCADE_WAR)
             msg = (
                 f"France honors its alliance with {defender_nation} and declares war on {attacker_nation}!"
             )
@@ -12992,6 +12993,9 @@ RETREAT RECOVERY (3 turns):
             active_treaties.pop(diplo_key, None)
             world.pending_diplomatic_dialogue = None
             world.alliance_paradox_popup = None
+            # Dismiss stale alliance cascade notification
+            from backend.notifications import ALLIANCE_CASCADE_WAR
+            world.notifications.dismiss_by_type(ALLIANCE_CASCADE_WAR)
             return {
                 "success": True,
                 "message": (
@@ -13309,6 +13313,14 @@ RETREAT RECOVERY (3 turns):
 
         # Counter succeeded — present the modified terms
         counter_summary = _format_proposal_summary(counter_terms)
+
+        # Dismiss stale proposal notification (counter replaces original)
+        from backend.notifications import DIPLOMATIC_PROPOSAL
+        world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
+
+        # Fix 4: Mark popup as counter-offer so Godot hides Counter button
+        if world.incoming_proposal_popup:
+            world.incoming_proposal_popup["is_counter_offer"] = True
 
         world.pending_diplomatic_dialogue = {
             "type": "counter_offer",
