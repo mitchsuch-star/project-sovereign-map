@@ -1,4 +1,4 @@
-# TALLEYRAND_SMART_SUGGESTIONS_SPEC.md — v1.0
+# TALLEYRAND_SMART_SUGGESTIONS_SPEC.md — v1.1
 
 > **Purpose:** This is a standalone spec for review. After approval, save to `docs/TALLEYRAND_SMART_SUGGESTIONS_SPEC.md` and implement.
 
@@ -155,20 +155,25 @@ Extract existing `generate_suggested_terms()` body into `_build_base_terms()`. N
 
 After Stage 1, apply nation-aware modifications:
 
-**Territory sweeteners (when base terms include territory_cede):**
+**Territory sweeteners (when base terms include territory_cede, or injected when losing):**
+
+> **Format note:** `territory_cede` dicts use `{"type": "territory_cede", "value": 1, "regions": ["RegionName"]}` — matching the format from `_build_base_terms()`.
+
 - Check if target's `covets_regions` overlap with France's controlled regions
-- If yes → replace generic territory_cede with the coveted region (set context tag `"coveted_territory_offered"`)
+- If yes → replace generic territory_cede with the coveted region, AND wire `f"territory_{region.lower()}"` into `terms["clauses"]` so `calculate_acceptance()` triggers the SPECIAL_BONUS (+10/+8). Set context tag `"coveted_territory_offered"`
 - If no → call `rank_cession_candidates(world, "France", target_nation)` for smart selection (set context tag `"smart_cession"`)
 - Capital (Paris) excluded by both paths
+- **NEW: Territory injection without base terms.** If base terms have NO territory_cede but France controls coveted territory AND `war_score < 0` (losing), inject a territory sweetener + SPECIAL_BONUS clause as a deal-saver. Skip if target already controls their coveted regions (nothing to offer)
 
-**Territory demands (when base terms include territory demands):**
+**Territory demands (when base terms include territory demands, or injected when winning):**
 - Find target regions that border French territory (strategic buffer zones)
 - Exclude target's capital
 - Replace generic demand with specific border region (set context tag `"border_territory_demanded"`)
+- **NEW: Demand injection without base terms.** If base terms have NO territory demand but `war_score > 30` (winning comfortably) AND border regions exist, inject a territory demand
 
 **Gold calibration by `values_gold`:**
-- `"high"` → multiply gold sweetener values by 1.5; set tag `"gold_for_poor"` if no more significant tag
-- `"low"` → multiply gold sweetener values by 0.5; set tag `"gold_useless"` if gold removed/reduced
+- `"high"` → multiply gold sweetener values by 1.5; always append tag `"gold_for_poor"` (priority system selects best tag)
+- `"low"` → multiply gold sweetener values by 0.5; always append tag `"gold_useless"` (priority system selects best tag)
 
 **Protection clause:**
 - If `diplomatic_lever == "survival"` (Saxony) AND proposal_type is peace/alliance → add `"protection_promised"` clause
@@ -183,7 +188,7 @@ After Stage 1, apply nation-aware modifications:
 ### Stage 3: Economic Reality Check
 
 Validate terms against actual game economy:
-- Gold lump offers: capped at 25% of France's treasury (`world.nation_gold["France"]`)
+- Gold lump offers: capped at 25% of France's treasury — **relaxed to 50% when war_score < -30** (desperate situations need bigger offers to have any chance of acceptance)
 - Gold per turn offers: capped at 20% of France's region income (`world.calculate_turn_income("France")["income"]`)
 - Gold per turn demands: capped at 50% of target's region income
 - Territory offers: verify France controls the specified region
@@ -204,7 +209,10 @@ Select `talleyrand_commentary` string based on the context tags accumulated in S
 7. `"smart_cession"` — rank_cession_candidates chose optimal region
 8. `"desperate_terms"` — fallback when losing badly (war_score < -30)
 9. `"dominant_terms"` — fallback when winning comfortably (war_score > 30)
-10. `"neutral_deal"` — fallback, standard terms
+10. `"friendly_deal"` — peacetime fallback, friendly relations (relation > 20)
+11. `"cautious_deal"` — peacetime fallback, neutral relations
+12. `"hostile_deal"` — peacetime fallback, hostile relations (relation < -20)
+13. `"neutral_deal"` — final fallback, standard terms
 
 Lookup: `TALLEYRAND_COMMENTARY[(nation, tag)]` → `TALLEYRAND_COMMENTARY[("_default", tag)]` → hardcoded fallback.
 
@@ -216,7 +224,9 @@ Add `terms["talleyrand_commentary"] = commentary` and return. No other changes t
 
 ## 5. Commentary String Pool
 
-~50 strings: 5 per nation (4 nations = 20) + 10 defaults + extras. Stored as `TALLEYRAND_COMMENTARY` dict in `diplomatic_templates.py`.
+~45 strings: 5 per nation (4 nations = 20) + 10 defaults + 3 peacetime tags × 5 sources (4 nation-specific + 3 defaults) = 15 peacetime. Stored as `TALLEYRAND_COMMENTARY` dict in `diplomatic_templates.py`.
+
+> **Note:** Vassal nations (created via vassalage treaty) are out-of-scope. They fall through to base terms + default commentary pool.
 
 ### Prussia (hawk diplomat: Hardenberg)
 | Context Tag | Commentary |
@@ -232,7 +242,6 @@ Add `terms["talleyrand_commentary"] = commentary` and return. No other changes t
 |-------------|-----------|
 | `coveted_territory_offered` | "Bavaria is Austria's natural sphere. Returning it costs us little and buys Metternich's goodwill." |
 | `gold_for_poor` | "Vienna's treasury grows thin after years of war. Gold per turn steadies their hand — and their loyalty." |
-| `protection_offered` | "A guarantee of protection appeals to Austrian caution. Metternich values stability above all." |
 | `desperate_terms` | "Metternich is a schemer — even generous terms may not satisfy him. But we must try." |
 | `neutral_deal` | "Metternich will study every clause for hidden advantage. I've kept the terms clean." |
 
@@ -268,6 +277,24 @@ Add `terms["talleyrand_commentary"] = commentary` and return. No other changes t
 | `ap_for_weak` | "An extra action per turn is transformative for a smaller power. They will value this highly." |
 | `border_territory_demanded` | "Border territory provides strategic depth. A prudent demand." |
 
+### Peacetime Tags (at-peace proposals only)
+
+Applied when `get_game_bucket()` returns `friendly`, `neutral`, or `hostile` (peace-time buckets). These replace `neutral_deal` as the fallback tag.
+
+| Context Tag | Nation | Commentary |
+|-------------|--------|-----------|
+| `friendly_deal` | Prussia | "Hardenberg is well-disposed toward us. A generous arrangement cements the friendship." |
+| `friendly_deal` | Austria | "Metternich sees advantage in cooperation. Let us reward his pragmatism." |
+| `friendly_deal` | Saxony | "Einsiedel is a loyal friend. A gentle deal strengthens bonds cheaply." |
+| `friendly_deal` | Britain | "Castlereagh is amenable, for once. Best to lock in terms before his mood shifts." |
+| `hostile_deal` | Prussia | "Hardenberg bristles at our very name. Only substantial concessions will move him." |
+| `hostile_deal` | Austria | "Metternich is hostile but calculating. A sufficiently attractive offer may still tempt him." |
+| `hostile_deal` | Saxony | "Even gentle Einsiedel has turned cold. We must offer more than usual." |
+| `hostile_deal` | Britain | "Castlereagh despises us openly. Only overwhelming terms have any chance." |
+| `friendly_deal` | _default | "They are well-disposed. I've proposed fair terms that reward the friendship." |
+| `cautious_deal` | _default | "Relations are tepid. I've balanced the terms to avoid giving offense." |
+| `hostile_deal` | _default | "Relations are poor. I've included extra incentives to overcome their reluctance." |
+
 ---
 
 ## 6. Wiring: Commentary into Popup
@@ -293,9 +320,9 @@ In `proposal_confirm_popup.gd`, add a `RichTextLabel` for `talleyrand_commentary
 
 | # | File | Change | Risk |
 |---|------|--------|------|
-| 1 | `backend/game_logic/diplomatic_templates.py` | Add `NATION_DESIRE_PROFILES` dict, `TALLEYRAND_COMMENTARY` dict (~50 strings), rewrite `generate_suggested_terms()` as 5-stage pipeline, add 4 helper functions | MEDIUM — core suggestion function |
+| 1 | `backend/game_logic/diplomatic_templates.py` | Add `NATION_DESIRE_PROFILES` dict, `TALLEYRAND_COMMENTARY` dict (~45 strings), rewrite `generate_suggested_terms()` as 5-stage pipeline, add 4 helper functions | MEDIUM — core suggestion function |
 | 2 | `backend/game_logic/diplomatic_dialogue.py` | Add 1 line in `_enrich_proposal_summary()` to extract commentary | LOW |
-| 3 | `tests/test_bugfix_proposal_flow.py` | Add Section 14: ~18 smart suggestion tests | N/A |
+| 3 | `tests/test_bugfix_proposal_flow.py` | Add Section 14: 22 smart suggestion tests | N/A |
 
 ### Files NOT modified
 - `backend/game_logic/diplomacy.py` — acceptance formula, SWEETENER_VALUES, SPECIAL_BONUSES unchanged
@@ -333,16 +360,32 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
     profile = NATION_DESIRE_PROFILES.get(target_nation, {})
 
     # 2a. Territory sweeteners: prefer coveted regions
-    if any(s.get("type") == "territory_cede" for s in terms.get("sweeteners", [])):
-        coveted = [r for r in profile.get("covets_regions", [])
-                   if r in world.get_nation_regions("France")]
+    #   If base terms already include territory_cede → replace with coveted/smart choice
+    #   If base terms DON'T include territory_cede but France controls coveted land
+    #     AND war_score < 0 (losing) → INJECT territory sweetener as a deal-saver
+    #   Skip injection if target already controls their coveted regions (nothing to offer)
+    has_territory_sweetener = any(
+        s.get("type") == "territory_cede" for s in terms.get("sweeteners", []))
+    coveted = [r for r in profile.get("covets_regions", [])
+               if r in world.get_nation_regions("France")]
+    # Guard: skip if target already holds all their coveted regions
+    target_holds_all_coveted = all(
+        r in world.get_nation_regions(target_nation)
+        for r in profile.get("covets_regions", []))
+
+    if has_territory_sweetener or (coveted and war_score < 0 and not target_holds_all_coveted):
         if coveted:
-            terms["sweeteners"] = [s for s in terms["sweeteners"]
+            terms["sweeteners"] = [s for s in terms.get("sweeteners", [])
                                    if s.get("type") != "territory_cede"]
             terms["sweeteners"].append(
                 {"type": "territory_cede", "value": 1, "regions": [coveted[0]]})
+            # Wire SPECIAL_BONUS clause so calculate_acceptance() triggers the bonus
+            bonus_clause = f"territory_{coveted[0].lower()}"
+            terms.setdefault("clauses", [])
+            if bonus_clause not in terms["clauses"]:
+                terms["clauses"].append(bonus_clause)
             context_tags.append("coveted_territory_offered")
-        else:
+        elif has_territory_sweetener:
             candidates = rank_cession_candidates(world, "France", target_nation)
             if candidates:
                 terms["sweeteners"] = [s for s in terms["sweeteners"]
@@ -352,37 +395,43 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
                 context_tags.append("smart_cession")
 
     # 2b. Territory demands: prefer border regions
-    if any(d.get("type") in ("territory_cede", "territory")
-           for d in terms.get("demands", [])):
-        target_regions = world.get_nation_regions(target_nation)
-        france_regions = world.get_nation_regions("France")
-        border = []
-        for rname in target_regions:
-            region = world.regions.get(rname)
-            if region and any(adj in france_regions for adj in region.adjacent_regions):
-                if rname != NATION_CAPITALS.get(target_nation):
-                    border.append(rname)
+    #   If base terms already include territory demand → replace with border region
+    #   If base terms DON'T include territory demand but war_score > 30 (winning
+    #     comfortably) AND border regions exist → INJECT territory demand
+    has_territory_demand = any(
+        d.get("type") in ("territory_cede", "territory")
+        for d in terms.get("demands", []))
+    target_regions = world.get_nation_regions(target_nation)
+    france_regions = world.get_nation_regions("France")
+    border = []
+    for rname in target_regions:
+        region = world.regions.get(rname)
+        if region and any(adj in france_regions for adj in region.adjacent_regions):
+            if rname != NATION_CAPITALS.get(target_nation):
+                border.append(rname)
+
+    if has_territory_demand or (war_score > 30 and border):
         if border:
-            terms["demands"] = [d for d in terms["demands"]
+            terms["demands"] = [d for d in terms.get("demands", [])
                                 if d.get("type") not in ("territory_cede", "territory")]
             terms["demands"].append(
                 {"type": "territory_cede", "value": 1, "regions": [border[0]]})
             context_tags.append("border_territory_demanded")
 
     # 2c. Gold calibration
+    # Always append gold tags — the priority system in Stage 4 handles
+    # which commentary is selected (territory tags outrank gold tags).
     gold_pref = profile.get("values_gold", "medium")
     if gold_pref == "high":
         for s in terms.get("sweeteners", []):
             if "gold" in s.get("type", ""):
                 s["value"] = int(s["value"] * 1.5)
-        if not context_tags:
-            context_tags.append("gold_for_poor")
+        context_tags.append("gold_for_poor")
     elif gold_pref == "low":
         for s in terms.get("sweeteners", []):
             if "gold" in s.get("type", ""):
                 s["value"] = int(s["value"] * 0.5)
-        if not context_tags:
-            context_tags.append("gold_useless")
+        context_tags.append("gold_useless")
 
     # 2d. Protection clause for survival-driven nations
     if (profile.get("diplomatic_lever") == "survival"
@@ -400,16 +449,27 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
             context_tags.append("ap_for_weak")
 
     # --- Stage 3: Economic reality check ---
-    _validate_economic_feasibility(terms, target_nation, world)
+    _validate_economic_feasibility(terms, target_nation, world, war_score=war_score)
 
     # --- Stage 4: Commentary ---
     if not context_tags:
+        # Wartime fallbacks
         if war_score < -30:
             context_tags.append("desperate_terms")
         elif war_score > 30:
             context_tags.append("dominant_terms")
         else:
-            context_tags.append("neutral_deal")
+            # Peacetime: use relation-based tags instead of generic neutral_deal
+            from backend.game_logic.diplomatic_dialogue import get_game_bucket
+            bucket = get_game_bucket(target_nation, world)
+            if bucket == "friendly":
+                context_tags.append("friendly_deal")
+            elif bucket == "hostile":
+                context_tags.append("hostile_deal")
+            elif bucket == "neutral":
+                context_tags.append("cautious_deal")
+            else:
+                context_tags.append("neutral_deal")
 
     terms["talleyrand_commentary"] = _get_smart_commentary(
         target_nation, context_tags[0])
@@ -425,14 +485,17 @@ The current body of `generate_suggested_terms()` (`diplomatic_templates.py:1208-
 ### Helper: `_validate_economic_feasibility()`
 
 ```python
-def _validate_economic_feasibility(terms, target_nation, world):
+def _validate_economic_feasibility(terms, target_nation, world, war_score=0):
     player_gold = world.nation_gold.get("France", 0)
     player_income = world.calculate_turn_income("France").get("income", 0)
     target_income = world.calculate_turn_income(target_nation).get("income", 0)
+    # Desperate situations (war_score < -30): allow 50% treasury cap so offers
+    # aren't neutered below the acceptance threshold
+    gold_cap_pct = 0.50 if war_score < -30 else 0.25
 
     for s in terms.get("sweeteners", []):
         if s.get("type") == "gold_lump":
-            s["value"] = int(min(s["value"], max(50, int(player_gold * 0.25))))
+            s["value"] = int(min(s["value"], max(50, int(player_gold * gold_cap_pct))))
         elif s.get("type") == "gold_per_turn":
             s["value"] = int(min(s["value"], max(25, int(player_income * 0.2))))
     for d in terms.get("demands", []):
@@ -482,6 +545,10 @@ def _get_smart_commentary(target_nation, context_tag):
 | 16 | `test_gold_demand_capped_by_target` | Gold demand ≤ 50% of target's income |
 | 17 | `test_broke_france_offers_less` | France with 100g offers proportionally less gold |
 | 18 | `test_territory_ownership_validated` | Offered territory is actually French-controlled |
+| 19 | `test_coveted_territory_injected_without_base_territory` | France controls coveted region + war_score < 0 → territory sweetener injected even when base terms had none |
+| 20 | `test_special_bonus_clause_wired` | Offering Saxony to Prussia includes `territory_saxony` in clauses list |
+| 21 | `test_desperate_cap_relaxed` | Gold lump cap uses 50% treasury when war_score < -30 (vs 25% normally) |
+| 22 | `test_peacetime_commentary_not_neutral_deal` | Friendly/hostile nations at peace get specific commentary tag, not neutral_deal |
 
 ---
 
@@ -524,4 +591,4 @@ Modding support is a separate concern. The profiles are a static data dict — e
 When France has conquered Saxony/Dresden, offering them back is the most meaningful sweetener ("returning the homeland"). When France doesn't control those regions (Saxony still has them), the `rank_cession_candidates()` fallback activates — which is the right behavior. This is thematically perfect: Talleyrand knows Einsiedel's deepest desire is the survival of his nation.
 
 **D4. Commentary is generated once per suggestion, not updated by modify_generous/modify_harsh.**
-The modify handlers in `executor.py` call `generate_suggested_terms()` fresh on round 1 (gets commentary), then use `copy.deepcopy(terms)` on subsequent rounds (commentary preserved from round 1). This is correct: commentary explains Talleyrand's *initial* reasoning. When the player clicks "more generous" or "harsher", those are the player's decisions — Talleyrand's role is to suggest, not narrate every tweak.
+Both modify rounds use `copy.deepcopy(terms)` to avoid mutating the original. `generate_suggested_terms()` is only called as a fallback when no prior terms exist (bare entry into negotiation). In normal flow, commentary from the initial suggestion is preserved through all deepcopy rounds. This is correct: commentary explains Talleyrand's *initial* reasoning. When the player clicks "more generous" or "harsher", those are the player's decisions — Talleyrand's role is to suggest, not narrate every tweak.
