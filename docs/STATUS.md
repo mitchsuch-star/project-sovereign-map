@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **6212** (6212 passed, 3 skipped — smart suggestions pipeline + 22 new tests) |
+| **Tests Passing** | **6215** (6215 passed, 3 skipped — smart suggestions + coveted_unavailable fix) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |

@@ -1275,6 +1275,12 @@ TALLEYRAND_COMMENTARY = {
     ("Saxony", "neutral_deal"): "A small nation, easily satisfied. Einsiedel will accept any arrangement that preserves Saxony.",
     ("Saxony", "friendly_deal"): "Einsiedel is a loyal friend. A gentle deal strengthens bonds cheaply.",
     ("Saxony", "hostile_deal"): "Even gentle Einsiedel has turned cold. We must offer more than usual.",
+    # --- Coveted unavailable (France doesn't control what they want) ---
+    ("Prussia", "coveted_unavailable"): "Hardenberg dreams of Saxony, but it is not yet ours to offer. Conquer it first, Sire, and he will come to the table eagerly.",
+    ("Austria", "coveted_unavailable"): "Metternich yearns for Bavaria, but we do not hold it. Secure it first, and these negotiations transform entirely.",
+    ("Britain", "coveted_unavailable"): "Castlereagh values his continental footholds, but they are beyond our gift at present. We must work with what we have.",
+    ("Saxony", "coveted_unavailable"): "Einsiedel's homeland is not ours to return. Until we hold it, we cannot offer what matters most to him.",
+    ("_default", "coveted_unavailable"): "They desire territory we do not yet control. Conquer it first, Sire, and our bargaining position transforms.",
     # --- Defaults ---
     ("_default", "coveted_territory_offered"): "I've included territory they particularly desire. It should tip the balance in our favor.",
     ("_default", "gold_for_poor"): "Their treasury is strained. Gold speaks loudly to those who lack it.",
@@ -1326,6 +1332,12 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
         for r in profile.get("covets_regions", [])
     ) if profile.get("covets_regions") else True
 
+    # Check if target covets regions France doesn't control (hint to conquer first)
+    all_coveted = profile.get("covets_regions", [])
+    coveted_unavailable = [r for r in all_coveted
+                           if r not in world.get_nation_regions("France")
+                           and r not in world.get_nation_regions(target_nation)]
+
     if has_territory_sweetener or (coveted and war_score < 0 and not target_holds_all_coveted):
         if coveted:
             terms["sweeteners"] = [s for s in terms.get("sweeteners", [])
@@ -1345,6 +1357,9 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
                 terms["sweeteners"].append(
                     {"type": "territory_cede", "value": 1, "regions": [candidates[0][0]]})
                 context_tags.append("smart_cession")
+    elif coveted_unavailable and not coveted:
+        # France doesn't control what they want — hint to conquer it first
+        context_tags.append("coveted_unavailable")
 
     # 2b. Territory demands: prefer border regions
     has_territory_demand = any(
@@ -1367,18 +1382,21 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
                 {"type": "territory_cede", "value": 1, "regions": [border[0]]})
             context_tags.append("border_territory_demanded")
 
-    # 2c. Gold calibration
+    # 2c. Gold calibration — only tag when gold sweeteners actually exist
     gold_pref = profile.get("values_gold", "medium")
+    has_gold_sweetener = any("gold" in s.get("type", "") for s in terms.get("sweeteners", []))
     if gold_pref == "high":
         for s in terms.get("sweeteners", []):
             if "gold" in s.get("type", ""):
                 s["value"] = int(s["value"] * 1.5)
-        context_tags.append("gold_for_poor")
+        if has_gold_sweetener:
+            context_tags.append("gold_for_poor")
     elif gold_pref == "low":
         for s in terms.get("sweeteners", []):
             if "gold" in s.get("type", ""):
                 s["value"] = int(s["value"] * 0.5)
-        context_tags.append("gold_useless")
+        if has_gold_sweetener:
+            context_tags.append("gold_useless")
 
     # 2d. Protection clause for survival-driven nations
     if (profile.get("diplomatic_lever") == "survival"

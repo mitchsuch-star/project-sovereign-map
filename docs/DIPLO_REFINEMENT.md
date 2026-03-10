@@ -11,7 +11,7 @@
 
 7 phases of bug fixes, cleanup, balance, QoL, and design depth. Phase 2 split into 2A (diplomacy core) and 2B (vassal + AI-AI + war transitions). Phases 1-4 COMPLETE. Phase 5 adds design depth from comprehensive creative audit (March 7, 2026).
 
-**165 total items.** 67 DONE (Phases 1-4 + R137/R120 + Wave 2.5), 38 APPROVED (Phase 5), R136 KILLED.
+**166 total items.** 67 DONE (Phases 1-4 + R137/R120 + Wave 2.5), 39 APPROVED (Phase 5), R136 KILLED.
 
 | Phase | Focus | Items | Scope |
 |-------|-------|-------|-------|
@@ -207,7 +207,7 @@ All 16 previously deferred items have been promoted to Phase 5 (Design Depth) fo
 > **Decisions:** Design gates passed March 8, 2026.
 > **Process:** Wave 1 (quick wins) -> Wave 2 (AI intelligence) -> Wave 2.5 (wartime peace) -> Wave 3 (player feedback) -> Wave 4 (decide gate features)
 
-**Item count:** 50 live items (R136 KILLED). 10 Wave 1, 5 Wave 2, 10 Wave 2.5, 8 Wave 3, 17 Wave 4 (decide gate).
+**Item count:** 51 live items (R136 KILLED). 10 Wave 1, 5 Wave 2, 10 Wave 2.5, 9 Wave 3, 17 Wave 4 (decide gate).
 
 ---
 
@@ -325,6 +325,9 @@ Acceptance formula and AI proposal rebalance for wartime peace negotiations. Pre
 ### R17d-f: Ledger Enhancements (3 sub-items) — QOL
 `diplomatic_ledger.py` — R17d: DP breakdown. R17e: Relation trend arrows (3-turn history). R17f: Mission progress projection.
 
+### R151: Territorial Promise Clauses — DESIGN
+New clause type: "promise to conquer territory X and cede it to target nation." Historically accurate Napoleonic diplomacy — Napoleon promised territories to allies he'd help them conquer. Example: France promises to help Prussia take Saxony in exchange for peace/alliance. Implementation: new `territorial_promise` clause in `diplomacy.py`, acceptance bonus in `SPECIAL_BONUSES`, obligation tracking on WorldState (promise fulfilled when France conquers + cedes), reputation penalty if promise broken. Enables Talleyrand to offer Prussia "Saxony" even when France doesn't control it yet. Needs design gate: obligation mechanics, AI understanding of promises, betrayal consequences.
+
 ---
 
 ## WAVE 4: DECIDE GATE (17 items)
@@ -360,12 +363,12 @@ Acceptance formula and AI proposal rebalance for wartime peace negotiations. Pre
 | Wave 1 | 10 | ~22 | Quick wins: bugs, balance, content |
 | Wave 2 | 5 | ~19 | AI personality & intelligence |
 | Wave 2.5 | 10 | 27 | Wartime peace rebalance — DONE |
-| Wave 3 | 8 | ~21 | Player feedback & transparency |
+| Wave 3 | 9 | ~23 | Player feedback & transparency |
 | Wave 4 | 17 | TBD | Decide gate — approved per-item |
 
 ---
 
-**Grand total (R1-R150 + GAP-3/5/6):** 165 items. 67 DONE (Phases 1-4 + R137/R120 + Wave 2.5), 38 APPROVED (Phase 5), R136 KILLED.
+**Grand total (R1-R151 + GAP-3/5/6):** 166 items. 67 DONE (Phases 1-4 + R137/R120 + Wave 2.5), 39 APPROVED (Phase 5), R136 KILLED.
 
 **Standalone implementations (not R-numbered):**
 - **Talleyrand Smart Suggestions** — 5-stage pipeline in `generate_suggested_terms()`. Nation-aware terms, economic caps, commentary. 22 tests. See `docs/TALLEYRAND_SMART_SUGGESTIONS_SPEC.md`.

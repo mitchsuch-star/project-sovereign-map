@@ -2018,3 +2018,45 @@ class TestSmartSuggestionPipeline:
         assert commentary != neutral_commentary, (
             "Peacetime friendly should not use neutral_deal commentary"
         )
+
+    def test_gold_useless_tag_not_on_empty_sweeteners(self):
+        """gold_useless commentary should NOT fire when there are no gold sweeteners."""
+        from backend.game_logic.diplomatic_templates import (
+            generate_suggested_terms, TALLEYRAND_COMMENTARY)
+        # Prussia at peace, war_score=0 → base terms have no gold sweeteners
+        world = _make_smart_world()
+        terms = generate_suggested_terms("Prussia", "peace", world)
+        commentary = terms.get("talleyrand_commentary", "")
+        gold_useless_text = TALLEYRAND_COMMENTARY.get(
+            ("Prussia", "gold_useless"), "")
+        assert commentary != gold_useless_text, (
+            "gold_useless commentary should not fire on empty gold sweeteners"
+        )
+
+    def test_coveted_unavailable_commentary_fires(self):
+        """When Prussia covets Saxony but France doesn't control it, hint to conquer."""
+        from backend.game_logic.diplomatic_templates import (
+            generate_suggested_terms, TALLEYRAND_COMMENTARY)
+        # Standard game start: France doesn't control Saxony, Saxony nation does
+        world = _make_smart_world(war_target="Prussia", war_score=0)
+        terms = generate_suggested_terms("Prussia", "peace", world)
+        commentary = terms.get("talleyrand_commentary", "")
+        expected = TALLEYRAND_COMMENTARY.get(
+            ("Prussia", "coveted_unavailable"), "")
+        assert commentary == expected, (
+            f"Expected coveted_unavailable commentary, got: {commentary}"
+        )
+
+    def test_coveted_unavailable_not_when_target_holds(self):
+        """coveted_unavailable should NOT fire when target already holds coveted regions."""
+        from backend.game_logic.diplomatic_templates import (
+            generate_suggested_terms, TALLEYRAND_COMMENTARY)
+        # Saxony (nation) controls Saxony and Dresden — target holds all coveted
+        world = _make_smart_world(war_target="Saxony", war_score=0)
+        terms = generate_suggested_terms("Saxony", "peace", world)
+        commentary = terms.get("talleyrand_commentary", "")
+        unavailable = TALLEYRAND_COMMENTARY.get(
+            ("Saxony", "coveted_unavailable"), "")
+        assert commentary != unavailable, (
+            "coveted_unavailable should not fire when target already has the regions"
+        )
