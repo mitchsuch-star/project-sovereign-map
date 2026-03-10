@@ -11,7 +11,7 @@
 
 7 phases of bug fixes, cleanup, balance, QoL, and design depth. Phase 2 split into 2A (diplomacy core) and 2B (vassal + AI-AI + war transitions). Phases 1-4 COMPLETE. Phase 5 adds design depth from comprehensive creative audit (March 7, 2026).
 
-**166 total items.** 67 DONE (Phases 1-4 + R137/R120 + Wave 2.5), 39 APPROVED (Phase 5), R136 KILLED.
+**174 total items.** 67 DONE (Phases 1-4 + R137/R120 + Wave 2.5), 39 APPROVED (Phase 5), R136 KILLED.
 
 | Phase | Focus | Items | Scope |
 |-------|-------|-------|-------|
@@ -20,7 +20,7 @@
 | **Phase 2B** | State cleanup — vassal, AI-AI, war | R46, R50, R60, R68-R73, R81, R97-R102, R105, R107-R108, R110-R111, R113-R114 | ~23 fixes |
 | **Phase 3** | Balance tuning | R4a/b, R6, R8, R9, R11, R14-R16, R18, R20, R104, R106 | 13 changes, 44 tests |
 | **Phase 4** | Commands, QoL, Popup architecture | R10, R21, R23, R29, R31, R34, R38, R17a-c, R12, R76-R79, R84, R87-R95, R103, R112 | ~27 fixes |
-| **Phase 5** | Design depth (5 waves) | R115-R150 (R136 killed) | 50 items |
+| **Phase 5** | Design depth (6 waves) | R115-R159 (R136 killed) | 58 items |
 | **UI Test** | Manual playtest in Godot | R39, R85, R86, verify all fixes | Godot session |
 
 ---
@@ -207,7 +207,7 @@ All 16 previously deferred items have been promoted to Phase 5 (Design Depth) fo
 > **Decisions:** Design gates passed March 8, 2026.
 > **Process:** Wave 1 (quick wins) -> Wave 2 (AI intelligence) -> Wave 2.5 (wartime peace) -> Wave 3 (player feedback) -> Wave 4 (decide gate features)
 
-**Item count:** 51 live items (R136 KILLED). 10 Wave 1, 5 Wave 2, 10 Wave 2.5, 9 Wave 3, 17 Wave 4 (decide gate).
+**Item count:** 59 live items (R136 KILLED). 10 Wave 1, 5 Wave 2, 10 Wave 2.5, 9 Wave 3, 17 Wave 4 (decide gate), 8 Wave 5 (review findings).
 
 ---
 
@@ -356,6 +356,36 @@ New clause type: "promise to conquer territory X and cede it to target nation." 
 
 ---
 
+## WAVE 5: GAME REVIEW FINDINGS (cross-system)
+
+> **Source:** Full game review (March 9, 2026). Not all items are diplomacy — this is the active refinement tracker so non-diplo items live here with explicit labels. Items need design gate before coding.
+
+### R152: Authority System UI Visibility — UX (non-diplo)
+Authority (0-100) exists and affects defiance rates, but the player never sees it. **Problem:** A powerful system hidden from the player is wasted design. **Proposal:** Show authority in Morning Dispatch header, Marshal Management screen, and Strategic Ledger. Display threshold events (70/50/30) as notifications with Berthier commentary ("Your marshals sense leniency, Sire" / "Command wavers" / "Your authority has collapsed"). Show delta on authority changes (+5 after major victory, -5 after marshal proves right).
+
+### R153: Literal Personality Triggers — GAMEPLAY (non-diplo)
+Grouchy's objection triggers are marked TODO in `personality.py`. The Literal personality currently means "never objects" which is historically incomplete. **Problem:** Historical Grouchy wasn't just obedient — he was *unable to exercise initiative*. His subordinates begged him to march to the guns at Waterloo and he refused. **Proposal:** Add triggers: (1) Ambiguous orders → request clarification popup ("Marshal Grouchy requests more specific orders, Sire"), (2) Contradictory orders → confusion delay (1 turn wasted), (3) Adjacent battle + strategic order → subordinate plea event ("General Gérard urges Grouchy to march to the guns. Grouchy refuses."). This makes Literal a genuine trade-off: perfect obedience but zero initiative. Supersedes R59 for Grouchy specifically.
+
+### R154: Combat Morale Spiral — GAMEPLAY (non-diplo)
+Combat is solid but flat — 2d6 + modifiers with no momentum. **Problem:** Napoleonic battles had morale spirals: one flank breaks, panic spreads, the whole line collapses. Currently morale is a health bar that triggers forced retreat at 25%. **Proposal:** Add morale contagion: when a marshal in a region breaks (≤25%), adjacent friendly marshals in the same region take -10 morale. When 2+ marshals break in the same turn, trigger "rout" event with additional retreat penalties. Creates cascading defeats that feel historical without adding complexity to the base combat formula.
+
+### R155: AI Proposal Personality Voice — DIPLOMACY
+AI proposals and counter-offers are mechanically correct but lack diplomat personality. **Problem:** Creative audit scored this low — Castlereagh's rejection reads the same as Einsiedel's. **Proposal:** Extend `get_enemy_response_template()` with 3-4 variants per personality per outcome. Hawk rejections should be blunt and aggressive. Dove rejections should be apologetic. Schemer rejections should hint at what might change their mind. Reuse existing template infrastructure (T24-T27 already have personality keys). ~20 new template strings.
+
+### R156: Diplomacy Strategic Optionality — DESIGN
+Diplomacy is strategically optional — military conquest works without ever proposing peace. **Problem:** In real Napoleonic wars, diplomacy was essential because coalitions reformed endlessly. Pure military victory was impossible (Napoleon proved this). **Proposal:** Three escalating pressures: (1) Coalition threat grows faster when at war with 2+ nations simultaneously (already partially exists), (2) War weariness penalty to French manpower regen after turn 15 at war (-10%/turn, stacking), (3) Victory condition requires at least 2 nations at PEACE or better (not just territory control). Makes diplomacy mechanically necessary, not optional.
+
+### R157: Talleyrand Voice Depth — CONTENT
+Talleyrand's commentary is functional but monotone across situations. Smart suggestions added ~45 strings but advisory conversations, proposal dialogues, and sabotage events still use generic phrasing. **Problem:** Talleyrand should be the most memorable character in the game — historically he was witty, cynical, and brilliant. **Proposal:** Voice bank of 80-100 strings organized by situation type (victory, defeat, betrayal, coalition, desperation, triumph). Replace hardcoded strings in `diplomatic_dialogue.py`, `diplomatic_advisory.py`, and `diplomatic_defiance.py` with pool lookups that rotate to avoid repetition. Overlaps with R28 (Talleyrand Voice Bank) in Wave 4 — this item defines the scope R28 left vague.
+
+### R158: NL Parser Confidence Feedback — UX
+The natural language parser is the single point of failure for fun. **Problem:** When parsing feels unreliable even 5% of the time, the entire personality-driven command loop feels broken. Players don't know if a failed command was a parse error or a gameplay restriction. **Proposal:** When fast parser confidence < 0.7 but > 0.4, show Berthier saying "I believe you mean [parsed interpretation], Sire?" with a confirm/deny option before executing. Currently low-confidence parses silently fall through to LLM. This adds a human-readable checkpoint. Non-diplo but critical for core loop trust.
+
+### R159: Information Screen Teaching — UX (non-diplo)
+6 ledger tabs, morning dispatch, campaign log, notification bar, marshal management, diplomatic ledger — that's a lot of screens. **Problem:** New players won't know when to check each screen. The tutorial is deferred to Pre-EA but the screens exist now. **Proposal:** Add contextual hints as notifications: "You haven't read the dispatch in 3 turns" (one-time), "Press L to review your strategic orders" (after first strategic order), "Press D to check diplomatic options" (after first enemy proposal). 5-6 hint triggers, each fires once per game, dismissible. Complements deferred tutorial without building the full system.
+
+---
+
 ## Implementation Summary
 
 | Wave | Items | Est. Tests | Focus |
@@ -365,10 +395,11 @@ New clause type: "promise to conquer territory X and cede it to target nation." 
 | Wave 2.5 | 10 | 27 | Wartime peace rebalance — DONE |
 | Wave 3 | 9 | ~23 | Player feedback & transparency |
 | Wave 4 | 17 | TBD | Decide gate — approved per-item |
+| Wave 5 | 8 | TBD | Game review findings (cross-system, needs design gate) |
 
 ---
 
-**Grand total (R1-R151 + GAP-3/5/6):** 166 items. 67 DONE (Phases 1-4 + R137/R120 + Wave 2.5), 39 APPROVED (Phase 5), R136 KILLED.
+**Grand total (R1-R159 + GAP-3/5/6):** 174 items. 67 DONE (Phases 1-4 + R137/R120 + Wave 2.5), 39 APPROVED (Phase 5), R136 KILLED.
 
 **Standalone implementations (not R-numbered):**
 - **Talleyrand Smart Suggestions** — 5-stage pipeline in `generate_suggested_terms()`. Nation-aware terms, economic caps, commentary. 22 tests. See `docs/TALLEYRAND_SMART_SUGGESTIONS_SPEC.md`.
