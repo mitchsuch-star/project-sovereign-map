@@ -1392,11 +1392,20 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
         if has_gold_sweetener:
             context_tags.append("gold_for_poor")
     elif gold_pref == "low":
-        for s in terms.get("sweeteners", []):
-            if "gold" in s.get("type", ""):
-                s["value"] = int(s["value"] * 0.5)
-        if has_gold_sweetener:
+        # Bug 4 fix: Remove gold sweeteners when nation doesn't value gold
+        # AND alternative sweeteners (territory) exist. If gold is the only
+        # sweetener, keep it at 50% to avoid empty offers.
+        non_gold = [s for s in terms.get("sweeteners", [])
+                    if "gold" not in s.get("type", "")]
+        if has_gold_sweetener and non_gold:
+            # Alternative sweeteners exist — drop gold entirely
+            terms["sweeteners"] = non_gold
             context_tags.append("gold_useless")
+        elif has_gold_sweetener:
+            # Gold is the only sweetener — reduce but keep
+            for s in terms.get("sweeteners", []):
+                if "gold" in s.get("type", ""):
+                    s["value"] = int(s["value"] * 0.5)
 
     # 2d. Protection clause for survival-driven nations
     if (profile.get("diplomatic_lever") == "survival"

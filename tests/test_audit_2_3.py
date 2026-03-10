@@ -2764,13 +2764,14 @@ class TestGenerateSuggestedTerms:
         assert any(d["type"] == "gold_per_turn" for d in terms["demands"])
 
     def test_peace_losing(self):
-        """Peace proposal while losing includes gold sweetener."""
+        """Peace proposal while losing includes sweeteners (gold or territory)."""
         from backend.game_logic.diplomatic_templates import generate_suggested_terms
         world = make_world()
         diplo_key = world._make_diplo_key("France", "Prussia")
         world.war_scores[diplo_key] = -30
         terms = generate_suggested_terms("Prussia", "peace", world)
-        assert any(s["type"] == "gold_per_turn" for s in terms["sweeteners"])
+        # Bug 4 fix: Nations with gold_pref=low may get territory instead of gold
+        assert len(terms["sweeteners"]) >= 1, "Losing peace proposal should have sweeteners"
 
     def test_peace_neutral_open_borders(self):
         """Peace with neutral relation includes open_borders clause."""

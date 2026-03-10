@@ -942,13 +942,6 @@ def execute_command(request: CommandRequest):
             response["show_independent_command_report"] = True
             response["independent_command_report"] = result.get("independent_command_report", [])
 
-        # AI diplomatic proposal delivered this turn (Phase 8 Session 4)
-        if result.get("ai_proposal"):
-            response["ai_proposal"] = result["ai_proposal"]
-            # Also set diplomatic_dialogue so Godot shows the popup
-            if world.pending_diplomatic_dialogue:
-                response["diplomatic_dialogue"] = world.pending_diplomatic_dialogue
-
         # Morning Dispatch — Berthier's turn-start briefing (Phase 6.5)
         if result.get("morning_dispatch"):
             response["morning_dispatch"] = result["morning_dispatch"]
@@ -961,8 +954,19 @@ def execute_command(request: CommandRequest):
         # Popups have early returns in Godot that would block enemy_phase
         # display. Deferred popups persist on world and get delivered on
         # the next request (via diplomatic early return or normal path).
+        #
+        # Bug 1 fix: AI proposal dialogue is ALSO deferred when
+        # enemy_phase is present. Previously it was set unconditionally,
+        # causing incomplete popup data (incoming_proposal_popup deferred
+        # but diplomatic_dialogue not) and blocking enemy_phase display.
         # ════════════════════════════════════════════════════════════
         if not response.get("enemy_phase"):
+            # AI diplomatic proposal delivered this turn (Phase 8 Session 4)
+            if result.get("ai_proposal"):
+                response["ai_proposal"] = result["ai_proposal"]
+                # Also set diplomatic_dialogue so Godot shows the popup
+                if world.pending_diplomatic_dialogue:
+                    response["diplomatic_dialogue"] = world.pending_diplomatic_dialogue
             _include_popup_passthroughs(response, world)
 
         # Notifications — persistent alerts for Godot notification bar

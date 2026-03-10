@@ -450,6 +450,33 @@ class LLMClient:
         requested_type = None  # Phase 6: player-requested recruit type (for soft correction)
 
         # ════════════════════════════════════════════════════════════
+        # CHEAT/DEBUG COMMANDS: Check FIRST before any keyword routing
+        # (Bug 3 fix: "cheat set_talleyrand_trust" was caught by
+        # diplomat routing because "talleyrand" is in _diplomat_names)
+        # ════════════════════════════════════════════════════════════
+        if command_lower.startswith("cheat "):
+            cheat_parts = command_text[6:].strip().split()
+            cheat_type = cheat_parts[0] if cheat_parts else ""
+            cheat_args = cheat_parts[1:] if len(cheat_parts) > 1 else []
+            return ParseResult(
+                matched=True,
+                command_type="cheat",
+                marshals=[],
+                action="cheat",
+                target=cheat_type,
+                ambiguity=0,
+                strategic_score=0,
+                interpretation=f"Cheat command: {cheat_type} {' '.join(cheat_args)}",
+                confidence=1.0,
+                mode="mock",
+                key_source=self.key_source,
+                raw_command=command_text,
+                type="cheat",
+                cheat_type=cheat_type,
+                cheat_args=cheat_args,
+            )
+
+        # ════════════════════════════════════════════════════════════
         # DIPLOMAT ROUTING (Phase 8 Session 3): Check for Talleyrand
         # BEFORE marshal parsing. Diplomatic commands route to
         # _parse_diplomatic_command() and return early.
@@ -565,28 +592,7 @@ class LLMClient:
         # Extract action (ALWAYS set a value)
         action = "unknown"  # Default
 
-        # CHEAT COMMANDS (Session 8A): cheat <type> <args...>
-        if command_lower.startswith("cheat "):
-            cheat_parts = command_text[6:].strip().split()
-            cheat_type = cheat_parts[0] if cheat_parts else ""
-            cheat_args = cheat_parts[1:] if len(cheat_parts) > 1 else []
-            return ParseResult(
-                matched=True,
-                command_type="cheat",
-                marshals=[],
-                action="cheat",
-                target=cheat_type,
-                ambiguity=0,
-                strategic_score=0,
-                interpretation=f"Cheat command: {cheat_type} {' '.join(cheat_args)}",
-                confidence=1.0,
-                mode="mock",
-                key_source=self.key_source,
-                raw_command=command_text,
-                type="cheat",
-                cheat_type=cheat_type,
-                cheat_args=cheat_args,
-            )
+        # (Cheat commands handled at top of function — before diplomat routing)
 
         # DEBUG COMMANDS: /debug or debug at start of command
         if command_lower.startswith("/debug") or command_lower.startswith("debug "):

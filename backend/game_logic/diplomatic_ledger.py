@@ -295,7 +295,28 @@ def _build_treaties(world) -> List[Dict[str, Any]]:
         clauses = []
         for clause in treaty.get("clauses", []):
             if isinstance(clause, dict):
-                clauses.append(clause.get("description", str(clause)))
+                desc = clause.get("description")
+                if not desc:
+                    # Bug 6 fix: Generate human-readable description from clause fields
+                    ctype = clause.get("type", "unknown")
+                    amount = clause.get("amount", 0)
+                    c_from = clause.get("from", "")
+                    c_to = clause.get("to", "")
+                    _CLAUSE_LABELS = {
+                        "gold_lump": "Gold payment",
+                        "gold_per_turn": "Gold/turn",
+                        "manpower_per_turn": "Manpower/turn",
+                        "ap_per_turn": "AP/turn",
+                        "territory_cede": "Territory cession",
+                    }
+                    label = _CLAUSE_LABELS.get(ctype, ctype.replace("_", " ").title())
+                    if amount and c_from:
+                        desc = f"{label}: {int(amount)} ({c_from} -> {c_to})"
+                    elif amount:
+                        desc = f"{label}: {int(amount)}"
+                    else:
+                        desc = label
+                clauses.append(desc)
             else:
                 clauses.append(str(clause))
 

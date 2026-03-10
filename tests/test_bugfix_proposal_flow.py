@@ -560,9 +560,10 @@ class TestHostileArmisticeSweeteners:
 
         terms = generate_suggested_terms("Prussia", "peace", world)
         sweeteners = terms.get("sweeteners", [])
-        gold_sweeteners = [s for s in sweeteners if "gold" in s.get("type", "")]
-        assert len(gold_sweeteners) >= 1, (
-            f"Expected gold sweetener for hostile peace, got: {sweeteners}"
+        # Bug 4 fix: Nations with gold_pref=low get territory instead of gold
+        # when territory alternatives exist
+        assert len(sweeteners) >= 1, (
+            f"Expected sweeteners for hostile peace, got: {sweeteners}"
         )
 
 

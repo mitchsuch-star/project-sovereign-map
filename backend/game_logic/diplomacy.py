@@ -2524,6 +2524,7 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
 
     response = {
         "nation": target_nation,
+        "state": state,  # Bug 7 fix: alias for wizard consistency with Step 1
         "current_state": state,
         "current_state_display": _STATE_DISPLAY_NAMES.get(state, state),
         "relation": int(relation),

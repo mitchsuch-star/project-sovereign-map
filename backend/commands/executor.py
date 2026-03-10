@@ -12103,6 +12103,20 @@ RETREAT RECOVERY (3 turns):
             # Remove sweeteners (harsh = no sweeteners)
             suggested["sweeteners"] = []
 
+            # Bug 5 fix: Regenerate commentary to match modified terms
+            has_territory_demand = any(
+                d.get("type") in ("territory_cede", "territory")
+                for d in suggested.get("demands", []))
+            if has_territory_demand:
+                suggested["talleyrand_commentary"] = (
+                    f"These terms demand territorial concessions from {target_nation}, Sire. "
+                    f"They will not accept lightly."
+                )
+            else:
+                suggested["talleyrand_commentary"] = (
+                    f"I have drafted more demanding terms for {target_nation}, Sire."
+                )
+
             # BUGFIX (Bug 4C): §9b iteration cap — max 2 modifications.
             # modify_count is carried in dialogue context across round-trips.
             # See BUGFIX_PLAN_PROPOSAL_FLOW.md.
@@ -12193,6 +12207,20 @@ RETREAT RECOVERY (3 turns):
 
             # Remove demands (generous = no demands)
             suggested["demands"] = []
+
+            # Bug 5 fix: Regenerate commentary to match modified terms
+            has_territory_sweetener = any(
+                s.get("type") == "territory_cede"
+                for s in suggested.get("sweeteners", []))
+            if has_territory_sweetener:
+                suggested["talleyrand_commentary"] = (
+                    f"These generous terms include territorial concessions to {target_nation}, Sire. "
+                    f"Such magnanimity should improve acceptance."
+                )
+            else:
+                suggested["talleyrand_commentary"] = (
+                    f"I have drafted more generous terms for {target_nation}, Sire."
+                )
 
             # BUGFIX (Bug 4C): §9b iteration cap — max 2 modifications.
             # modify_count is carried in dialogue context across round-trips.
@@ -13175,6 +13203,9 @@ RETREAT RECOVERY (3 turns):
             terms["target_nation"] = world.player_nation
         treaty_event = world._ratify_treaty(terms)
         world.pending_diplomatic_dialogue = None
+        # Bug 2 fix: Dismiss stale DIPLOMATIC_PROPOSAL notification
+        from backend.notifications import DIPLOMATIC_PROPOSAL
+        world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
 
         # Apply acceptance cooldown to prevent immediate follow-up proposals
         from backend.game_logic.ai_diplomacy import apply_acceptance_cooldown
@@ -13210,6 +13241,9 @@ RETREAT RECOVERY (3 turns):
             apply_rejection_cooldowns(source_nation, proposal_type, world)
 
         world.pending_diplomatic_dialogue = None
+        # Bug 2 fix: Dismiss stale DIPLOMATIC_PROPOSAL notification
+        from backend.notifications import DIPLOMATIC_PROPOSAL
+        world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
 
         world.log_event({
             "type": "ai_proposal_rejected",
@@ -13255,6 +13289,9 @@ RETREAT RECOVERY (3 turns):
             # Counter failed (score < 30) — auto-reject
             apply_rejection_cooldowns(source_nation, terms.get("type", "unknown"), world)
             world.pending_diplomatic_dialogue = None
+            # Bug 2 fix: Dismiss stale DIPLOMATIC_PROPOSAL notification
+            from backend.notifications import DIPLOMATIC_PROPOSAL
+            world.notifications.dismiss_by_type(DIPLOMATIC_PROPOSAL)
 
             world.log_event({
                 "type": "ai_proposal_counter_failed",
