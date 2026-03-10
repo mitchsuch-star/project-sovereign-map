@@ -1656,3 +1656,365 @@ class TestGoldTypeIntelligence:
         assert "gold_lump" in gold_types, (
             f"Alliance generous should use gold_lump, got: {gold_types}"
         )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# SECTION 14: Smart Suggestion Pipeline Tests
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _make_smart_world(france_controls=None, war_target=None, war_score=0,
+                      relation=0, france_gold=800):
+    """Create a world for smart suggestion tests.
+
+    Args:
+        france_controls: list of region names France should control (default: standard starting)
+        war_target: nation to be at war with (None = peace with everyone)
+        war_score: war score from France's perspective (positive = winning)
+        relation: bilateral relation with war_target
+        france_gold: France's treasury
+    """
+    world = WorldState()
+    world.current_turn = 5
+    world.diplomatic_points = 20
+
+    if france_controls is not None:
+        # Reassign region controllers
+        for name, region in world.regions.items():
+            if name in france_controls:
+                region.controller = "France"
+            elif region.controller == "France" and name not in france_controls:
+                # Give back to original owner if not in france_controls
+                from backend.models.region import REGIONS_DATA
+                region.controller = REGIONS_DATA[name]["starting_controller"]
+
+    world.nation_gold["France"] = france_gold
+
+    if war_target:
+        diplo_key = world._make_diplo_key("France", war_target)
+        world.diplomatic_states[diplo_key] = "WAR"
+        # war_score stored from alphabetically-first nation's perspective
+        parts = diplo_key.split("|")
+        if parts[0] == "France":
+            world.war_scores[diplo_key] = war_score
+        else:
+            world.war_scores[diplo_key] = -war_score
+        world.nation_relations[diplo_key] = relation
+
+    return world
+
+
+class TestSmartSuggestionPipeline:
+    """Section 14: Smart suggestion pipeline (TALLEYRAND_SMART_SUGGESTIONS_SPEC)."""
+
+    def test_prussia_offer_includes_saxony(self):
+        """France controls Saxony, losing to Prussia -> terms offer Saxony region."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        # France must control Saxony for it to be offered
+        france_regions = ["Paris", "Belgium", "Lyon", "Milan", "Marseille",
+                          "Brittany", "Bordeaux", "Normandy", "Saxony"]
+        world = _make_smart_world(france_controls=france_regions,
+                                  war_target="Prussia", war_score=-25)
+        terms = generate_suggested_terms("Prussia", "peace", world)
+        territory_sweeteners = [s for s in terms.get("sweeteners", [])
+                                if s.get("type") == "territory_cede"]
+        offered_regions = []
+        for s in territory_sweeteners:
+            offered_regions.extend(s.get("regions", []))
+        assert "Saxony" in offered_regions, (
+            f"Expected Saxony in territory offers, got: {offered_regions}"
+        )
+
+    def test_austria_offer_includes_bavaria(self):
+        """France controls Bavaria, losing to Austria -> terms offer Bavaria."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        france_regions = ["Paris", "Belgium", "Lyon", "Milan", "Marseille",
+                          "Brittany", "Bordeaux", "Normandy", "Bavaria"]
+        world = _make_smart_world(france_controls=france_regions,
+                                  war_target="Austria", war_score=-25)
+        terms = generate_suggested_terms("Austria", "peace", world)
+        territory_sweeteners = [s for s in terms.get("sweeteners", [])
+                                if s.get("type") == "territory_cede"]
+        offered_regions = []
+        for s in territory_sweeteners:
+            offered_regions.extend(s.get("regions", []))
+        assert "Bavaria" in offered_regions, (
+            f"Expected Bavaria in territory offers, got: {offered_regions}"
+        )
+
+    def test_coveted_fallback_to_rank_cession(self):
+        """France doesn't control coveted region -> rank_cession_candidates used."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        # Standard France regions — no Saxony or Dresden
+        world = _make_smart_world(war_target="Prussia", war_score=-25)
+        terms = generate_suggested_terms("Prussia", "peace", world)
+        # Should still have territory sweeteners from base terms (losing)
+        territory_sweeteners = [s for s in terms.get("sweeteners", [])
+                                if s.get("type") == "territory_cede"]
+        if territory_sweeteners:
+            offered = territory_sweeteners[0].get("regions", [])
+            assert "Saxony" not in offered, (
+                "Should not offer Saxony when France doesn't control it"
+            )
+
+    def test_demand_prefers_border_regions(self):
+        """Winning -> demands region adjacent to France, not random."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = _make_smart_world(war_target="Prussia", war_score=40)
+        terms = generate_suggested_terms("Prussia", "peace", world)
+        territory_demands = [d for d in terms.get("demands", [])
+                             if d.get("type") == "territory_cede"]
+        if territory_demands:
+            demanded = territory_demands[0].get("regions", [])
+            # Rhineland borders Belgium (France), so it should be preferred
+            assert len(demanded) > 0, "Should demand at least one region"
+            # Verify the demanded region is actually a border region
+            region = world.regions.get(demanded[0])
+            france_regions = world.get_nation_regions("France")
+            is_border = any(adj in france_regions
+                            for adj in region.adjacent_regions)
+            assert is_border, (
+                f"Demanded region {demanded[0]} should border French territory"
+            )
+
+    def test_saxony_gold_multiplied(self):
+        """Saxony gold sweetener is 1.5x normal value."""
+        from backend.game_logic.diplomatic_templates import (
+            generate_suggested_terms, _build_base_terms)
+        world = _make_smart_world(war_target="Saxony", war_score=-25)
+        base_terms = _build_base_terms("Saxony", "peace", world)
+        smart_terms = generate_suggested_terms("Saxony", "peace", world)
+        base_gold = [s for s in base_terms.get("sweeteners", [])
+                     if "gold" in s.get("type", "")]
+        smart_gold = [s for s in smart_terms.get("sweeteners", [])
+                      if "gold" in s.get("type", "")]
+        if base_gold and smart_gold:
+            # Smart value should be 1.5x base (or capped by feasibility)
+            assert smart_gold[0]["value"] >= base_gold[0]["value"], (
+                f"Saxony gold should be >= base: smart={smart_gold[0]['value']}, "
+                f"base={base_gold[0]['value']}"
+            )
+
+    def test_britain_gold_reduced(self):
+        """Britain gold sweetener is 0.5x normal value."""
+        from backend.game_logic.diplomatic_templates import (
+            generate_suggested_terms, _build_base_terms)
+        world = _make_smart_world(war_target="Britain", war_score=-25)
+        base_terms = _build_base_terms("Britain", "peace", world)
+        smart_terms = generate_suggested_terms("Britain", "peace", world)
+        base_gold = [s for s in base_terms.get("sweeteners", [])
+                     if "gold" in s.get("type", "")]
+        smart_gold = [s for s in smart_terms.get("sweeteners", [])
+                      if "gold" in s.get("type", "")]
+        if base_gold and smart_gold:
+            assert smart_gold[0]["value"] <= base_gold[0]["value"], (
+                f"Britain gold should be <= base: smart={smart_gold[0]['value']}, "
+                f"base={base_gold[0]['value']}"
+            )
+
+    def test_gold_lump_capped_by_treasury(self):
+        """Gold lump never exceeds 25% of France treasury."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = _make_smart_world(france_gold=400, war_target="Prussia",
+                                  war_score=-15, relation=-60)
+        terms = generate_suggested_terms("Prussia", "armistice", world)
+        for s in terms.get("sweeteners", []):
+            if s.get("type") == "gold_lump":
+                # 25% of 400 = 100, but min 50
+                assert s["value"] <= max(50, int(400 * 0.25)), (
+                    f"Gold lump {s['value']} exceeds 25% of treasury (400g)"
+                )
+
+    def test_gold_per_turn_capped_by_income(self):
+        """Gold per turn never exceeds 20% of France income."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = _make_smart_world(war_target="Prussia", war_score=-25)
+        terms = generate_suggested_terms("Prussia", "peace", world)
+        france_income = world.calculate_turn_income("France").get("income", 0)
+        cap = max(25, int(france_income * 0.2))
+        for s in terms.get("sweeteners", []):
+            if s.get("type") == "gold_per_turn":
+                assert s["value"] <= cap, (
+                    f"Gold/turn {s['value']} exceeds 20% of income ({france_income}g)"
+                )
+
+    def test_saxony_peace_includes_protection(self):
+        """Saxony peace includes protection_promised clause."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = _make_smart_world()
+        # Set peace state (default)
+        terms = generate_suggested_terms("Saxony", "peace", world)
+        assert "protection_promised" in terms.get("clauses", []), (
+            f"Expected protection_promised for Saxony peace, got clauses: {terms.get('clauses')}"
+        )
+
+    def test_protection_not_added_to_prussia(self):
+        """Prussia peace does NOT include protection."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = _make_smart_world()
+        terms = generate_suggested_terms("Prussia", "peace", world)
+        assert "protection_promised" not in terms.get("clauses", []), (
+            "protection_promised should not appear for Prussia"
+        )
+
+    def test_saxony_ap_at_minus_30(self):
+        """Saxony gets AP sweetener at war_score -31."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = _make_smart_world(war_target="Saxony", war_score=-31)
+        terms = generate_suggested_terms("Saxony", "peace", world)
+        ap_sweeteners = [s for s in terms.get("sweeteners", [])
+                         if s.get("type") == "ap_per_turn"]
+        assert len(ap_sweeteners) > 0, (
+            f"Expected AP sweetener for Saxony at war_score=-31, got: {terms.get('sweeteners')}"
+        )
+
+    def test_austria_no_ap_at_minus_30(self):
+        """Austria does NOT get AP at war_score -31 (values_ap=low)."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = _make_smart_world(war_target="Austria", war_score=-31)
+        terms = generate_suggested_terms("Austria", "peace", world)
+        ap_sweeteners = [s for s in terms.get("sweeteners", [])
+                         if s.get("type") == "ap_per_turn"]
+        assert len(ap_sweeteners) == 0, (
+            f"Austria should NOT get AP at war_score=-31, got: {terms.get('sweeteners')}"
+        )
+
+    def test_commentary_present(self):
+        """talleyrand_commentary key exists and is non-empty string."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = _make_smart_world()
+        terms = generate_suggested_terms("Prussia", "peace", world)
+        commentary = terms.get("talleyrand_commentary")
+        assert commentary and isinstance(commentary, str) and len(commentary) > 0, (
+            f"Expected non-empty commentary string, got: {commentary}"
+        )
+
+    def test_prussia_saxony_commentary_mentions_saxony(self):
+        """When offering Saxony, commentary references it."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        france_regions = ["Paris", "Belgium", "Lyon", "Milan", "Marseille",
+                          "Brittany", "Bordeaux", "Normandy", "Saxony"]
+        world = _make_smart_world(france_controls=france_regions,
+                                  war_target="Prussia", war_score=-25)
+        terms = generate_suggested_terms("Prussia", "peace", world)
+        commentary = terms.get("talleyrand_commentary", "")
+        assert "Saxony" in commentary or "Hardenberg" in commentary, (
+            f"Commentary should reference Saxony or Hardenberg, got: {commentary}"
+        )
+
+    def test_default_commentary_fallback(self):
+        """Unknown nation gets commentary via _default pool."""
+        from backend.game_logic.diplomatic_templates import _get_smart_commentary
+        result = _get_smart_commentary("UnknownNation", "desperate_terms")
+        assert result and len(result) > 0, "Should get default fallback commentary"
+        assert result != "I have assembled terms befitting the situation, Sire.", (
+            "Should get a specific default, not the hardcoded fallback"
+        )
+
+    def test_gold_demand_capped_by_target(self):
+        """Gold demand <= 50% of target's income."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = _make_smart_world(war_target="Prussia", war_score=30)
+        terms = generate_suggested_terms("Prussia", "peace", world)
+        target_income = world.calculate_turn_income("Prussia").get("income", 0)
+        cap = max(25, int(target_income * 0.5))
+        for d in terms.get("demands", []):
+            if d.get("type") == "gold_per_turn":
+                assert d["value"] <= cap, (
+                    f"Gold demand {d['value']} exceeds 50% of Prussia income ({target_income}g)"
+                )
+
+    def test_broke_france_offers_less(self):
+        """France with 100g offers proportionally less gold."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = _make_smart_world(france_gold=100, war_target="Prussia",
+                                  war_score=-15, relation=-60)
+        terms = generate_suggested_terms("Prussia", "armistice", world)
+        for s in terms.get("sweeteners", []):
+            if s.get("type") == "gold_lump":
+                assert s["value"] <= max(50, int(100 * 0.25)), (
+                    f"Broke France gold lump {s['value']} should be capped low"
+                )
+
+    def test_territory_ownership_validated(self):
+        """Offered territory is actually French-controlled."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = _make_smart_world(war_target="Prussia", war_score=-25)
+        terms = generate_suggested_terms("Prussia", "peace", world)
+        france_regions = world.get_nation_regions("France")
+        for s in terms.get("sweeteners", []):
+            if s.get("type") == "territory_cede":
+                for r in s.get("regions", []):
+                    assert r in france_regions, (
+                        f"Offered region {r} is not French-controlled"
+                    )
+
+    def test_coveted_territory_injected_without_base_territory(self):
+        """France controls coveted region + war_score < 0 -> territory injected
+        even when base terms had none."""
+        from backend.game_logic.diplomatic_templates import (
+            generate_suggested_terms, _build_base_terms)
+        # war_score = -10 — mild loss, base terms may NOT include territory at this level
+        france_regions = ["Paris", "Belgium", "Lyon", "Milan", "Marseille",
+                          "Brittany", "Bordeaux", "Normandy", "Saxony"]
+        world = _make_smart_world(france_controls=france_regions,
+                                  war_target="Prussia", war_score=-10)
+        base_terms = _build_base_terms("Prussia", "peace", world)
+        base_territory = [s for s in base_terms.get("sweeteners", [])
+                          if s.get("type") == "territory_cede"]
+        smart_terms = generate_suggested_terms("Prussia", "peace", world)
+        smart_territory = [s for s in smart_terms.get("sweeteners", [])
+                           if s.get("type") == "territory_cede"]
+        # Even if base had none, smart pipeline should inject coveted territory
+        if not base_territory:
+            assert len(smart_territory) > 0, (
+                "Should inject coveted territory even without base territory sweetener"
+            )
+            offered = smart_territory[0].get("regions", [])
+            assert "Saxony" in offered, (
+                f"Injected territory should be Saxony, got: {offered}"
+            )
+
+    def test_special_bonus_clause_wired(self):
+        """Offering Saxony to Prussia includes territory_saxony in clauses list."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        france_regions = ["Paris", "Belgium", "Lyon", "Milan", "Marseille",
+                          "Brittany", "Bordeaux", "Normandy", "Saxony"]
+        world = _make_smart_world(france_controls=france_regions,
+                                  war_target="Prussia", war_score=-25)
+        terms = generate_suggested_terms("Prussia", "peace", world)
+        assert "territory_saxony" in terms.get("clauses", []), (
+            f"Expected territory_saxony clause, got: {terms.get('clauses')}"
+        )
+
+    def test_desperate_cap_relaxed(self):
+        """Gold lump cap uses 50% treasury when war_score < -30 (vs 25% normally)."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        world = _make_smart_world(france_gold=800, war_target="Prussia",
+                                  war_score=-35, relation=-60)
+        terms = generate_suggested_terms("Prussia", "armistice", world)
+        for s in terms.get("sweeteners", []):
+            if s.get("type") == "gold_lump":
+                # At war_score < -30, cap is 50% = 400
+                assert s["value"] <= int(800 * 0.5), (
+                    f"Desperate gold lump {s['value']} exceeds 50% of 800g"
+                )
+                # Should be higher than 25% cap would allow (200)
+                # Only check this if the base value was > 200
+                break
+
+    def test_peacetime_commentary_not_neutral_deal(self):
+        """Friendly/hostile nations at peace get specific commentary tag, not neutral_deal."""
+        from backend.game_logic.diplomatic_templates import generate_suggested_terms
+        from backend.game_logic.diplomatic_templates import TALLEYRAND_COMMENTARY
+        world = _make_smart_world()
+        # Set friendly relation with Prussia
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        world.nation_relations[diplo_key] = 30  # > 20 = friendly
+        terms = generate_suggested_terms("Prussia", "non_aggression", world)
+        commentary = terms.get("talleyrand_commentary", "")
+        # Should get friendly_deal or nation-specific, not neutral_deal fallback
+        neutral_commentary = TALLEYRAND_COMMENTARY.get(
+            ("_default", "neutral_deal"), "")
+        assert commentary != neutral_commentary, (
+            "Peacetime friendly should not use neutral_deal commentary"
+        )

@@ -400,6 +400,8 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
         terms = generate_suggested_terms(target_nation, proposal_type, world)
         terms["proposal_type"] = proposal_type
 
+    dialogue["talleyrand_commentary"] = terms.get("talleyrand_commentary", "")
+
     # Build human-readable clause descriptions
     dialogue["proposal_terms_summary"] = _format_terms_for_display(terms, proposal_type, target_nation)
 

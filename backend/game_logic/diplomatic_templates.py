@@ -1203,12 +1203,230 @@ def resolve_template_text_with_type(text: str, world, target_nation: Optional[st
     return result
 
 
+# ═══════ NATION DESIRE PROFILES ═══════
+
+NATION_DESIRE_PROFILES = {
+    "Prussia": {
+        "covets_regions": ["Saxony", "Dresden"],
+        "values_gold": "low",
+        "values_territory": "high",
+        "values_ap": "medium",
+        "diplomatic_lever": "ambition",
+        "weakness": "overextension",
+    },
+    "Austria": {
+        "covets_regions": ["Bavaria", "Tyrol", "Bohemia"],
+        "values_gold": "medium",
+        "values_territory": "high",
+        "values_ap": "low",
+        "diplomatic_lever": "stability",
+        "weakness": "pride",
+    },
+    "Britain": {
+        "covets_regions": ["Netherlands", "Hanover"],
+        "values_gold": "low",
+        "values_territory": "medium",
+        "values_ap": "medium",
+        "diplomatic_lever": "trade",
+        "weakness": "isolation",
+    },
+    "Saxony": {
+        "covets_regions": ["Saxony", "Dresden"],
+        "values_gold": "high",
+        "values_territory": "low",
+        "values_ap": "high",
+        "diplomatic_lever": "survival",
+        "weakness": "desperation",
+    },
+}
+
+
+# ═══════ TALLEYRAND COMMENTARY ═══════
+
+TALLEYRAND_COMMENTARY = {
+    # --- Prussia ---
+    ("Prussia", "coveted_territory_offered"): "Saxony is the prize Hardenberg dreams of. Offering it buys more than gold ever could.",
+    ("Prussia", "gold_useless"): "Prussia's treasury is adequate — they desire land, not coin. I've weighted the offer accordingly.",
+    ("Prussia", "border_territory_demanded"): "The Rhineland gives us a buffer against Prussian ambition. A wise demand.",
+    ("Prussia", "dominant_terms"): "Hardenberg will bristle, but Prussia is in no position to refuse. Press the advantage.",
+    ("Prussia", "neutral_deal"): "A straightforward arrangement. Hardenberg is practical — he'll weigh the terms honestly.",
+    ("Prussia", "friendly_deal"): "Hardenberg is well-disposed toward us. A generous arrangement cements the friendship.",
+    ("Prussia", "hostile_deal"): "Hardenberg bristles at our very name. Only substantial concessions will move him.",
+    # --- Austria ---
+    ("Austria", "coveted_territory_offered"): "Bavaria is Austria's natural sphere. Returning it costs us little and buys Metternich's goodwill.",
+    ("Austria", "gold_for_poor"): "Vienna's treasury grows thin after years of war. Gold per turn steadies their hand — and their loyalty.",
+    ("Austria", "desperate_terms"): "Metternich is a schemer — even generous terms may not satisfy him. But we must try.",
+    ("Austria", "neutral_deal"): "Metternich will study every clause for hidden advantage. I've kept the terms clean.",
+    ("Austria", "friendly_deal"): "Metternich sees advantage in cooperation. Let us reward his pragmatism.",
+    ("Austria", "hostile_deal"): "Metternich is hostile but calculating. A sufficiently attractive offer may still tempt him.",
+    # --- Britain ---
+    ("Britain", "gold_useless"): "Britain's coffers overflow — offering gold insults Castlereagh. Territory speaks louder.",
+    ("Britain", "coveted_territory_offered"): "The Netherlands secures Britain's continental foothold. Castlereagh values it above gold.",
+    ("Britain", "dominant_terms"): "Britain's continental army is small. Castlereagh knows his position — he'll accept reasonable terms.",
+    ("Britain", "desperate_terms"): "Castlereagh drives a hard bargain. I've included everything short of Paris itself.",
+    ("Britain", "neutral_deal"): "An island nation with continental ambitions. This arrangement serves both parties' interests.",
+    ("Britain", "friendly_deal"): "Castlereagh is amenable, for once. Best to lock in terms before his mood shifts.",
+    ("Britain", "hostile_deal"): "Castlereagh despises us openly. Only overwhelming terms have any chance.",
+    # --- Saxony ---
+    ("Saxony", "gold_for_poor"): "Saxony's treasury is nearly empty. Even modest gold buys Einsiedel's eternal gratitude.",
+    ("Saxony", "protection_offered"): "Saxony lives in fear of Prussian annexation. A French guarantee is worth more than gold to them.",
+    ("Saxony", "ap_for_weak"): "An extra action each turn transforms a small nation's capabilities. Einsiedel will understand this.",
+    ("Saxony", "coveted_territory_offered"): "Einsiedel cares only for the survival of his homeland. Territorial guarantees speak loudest.",
+    ("Saxony", "neutral_deal"): "A small nation, easily satisfied. Einsiedel will accept any arrangement that preserves Saxony.",
+    ("Saxony", "friendly_deal"): "Einsiedel is a loyal friend. A gentle deal strengthens bonds cheaply.",
+    ("Saxony", "hostile_deal"): "Even gentle Einsiedel has turned cold. We must offer more than usual.",
+    # --- Defaults ---
+    ("_default", "coveted_territory_offered"): "I've included territory they particularly desire. It should tip the balance in our favor.",
+    ("_default", "gold_for_poor"): "Their treasury is strained. Gold speaks loudly to those who lack it.",
+    ("_default", "gold_useless"): "Gold would be wasted here — I've substituted something they actually value.",
+    ("_default", "smart_cession"): "I've selected our least valuable border territory for cession. We lose little of strategic worth.",
+    ("_default", "desperate_terms"): "We are not in a position to be choosy, Sire. I've assembled the most persuasive package possible.",
+    ("_default", "dominant_terms"): "They have little choice but to accept. I've kept the demands firm but not humiliating.",
+    ("_default", "neutral_deal"): "Standard terms, Sire. Neither generous nor harsh — a foundation for negotiation.",
+    ("_default", "protection_offered"): "A guarantee of protection costs us nothing but obligation. For them, it means survival.",
+    ("_default", "ap_for_weak"): "An extra action per turn is transformative for a smaller power. They will value this highly.",
+    ("_default", "border_territory_demanded"): "Border territory provides strategic depth. A prudent demand.",
+    ("_default", "friendly_deal"): "They are well-disposed. I've proposed fair terms that reward the friendship.",
+    ("_default", "cautious_deal"): "Relations are tepid. I've balanced the terms to avoid giving offense.",
+    ("_default", "hostile_deal"): "Relations are poor. I've included extra incentives to overcome their reluctance.",
+}
+
+
 # ═══════ SUGGESTED TERMS GENERATION ═══════
 
 def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> Dict:
-    """Generate reasonable default treaty terms based on game state.
+    """Generate smart treaty terms based on game state AND nation-specific knowledge.
 
-    Returns a dict with proposal terms suitable for calculate_acceptance().
+    5-stage pipeline:
+      1. Base terms (war_score/relation thresholds)
+      2. Nation-specific clause injection (coveted territory, gold calibration, protection)
+      3. Economic reality check (cap offers/demands to feasible levels)
+      4. Talleyrand commentary (explain WHY these terms)
+      5. Return
+    """
+    from backend.game_logic.diplomacy import get_war_score_for, SPECIAL_BONUSES
+    from backend.models.region import NATION_CAPITALS
+
+    war_score = get_war_score_for(world, "France", target_nation)
+
+    # --- Stage 1: Base terms ---
+    terms = _build_base_terms(target_nation, proposal_type, world)
+
+    # --- Stage 2: Nation-specific injection ---
+    context_tags = []
+    profile = NATION_DESIRE_PROFILES.get(target_nation, {})
+
+    # 2a. Territory sweeteners: prefer coveted regions
+    has_territory_sweetener = any(
+        s.get("type") == "territory_cede" for s in terms.get("sweeteners", []))
+    coveted = [r for r in profile.get("covets_regions", [])
+               if r in world.get_nation_regions("France")]
+    target_holds_all_coveted = all(
+        r in world.get_nation_regions(target_nation)
+        for r in profile.get("covets_regions", [])
+    ) if profile.get("covets_regions") else True
+
+    if has_territory_sweetener or (coveted and war_score < 0 and not target_holds_all_coveted):
+        if coveted:
+            terms["sweeteners"] = [s for s in terms.get("sweeteners", [])
+                                   if s.get("type") != "territory_cede"]
+            terms["sweeteners"].append(
+                {"type": "territory_cede", "value": 1, "regions": [coveted[0]]})
+            bonus_clause = f"territory_{coveted[0].lower()}"
+            terms.setdefault("clauses", [])
+            if bonus_clause not in terms["clauses"]:
+                terms["clauses"].append(bonus_clause)
+            context_tags.append("coveted_territory_offered")
+        elif has_territory_sweetener:
+            candidates = rank_cession_candidates(world, "France", target_nation)
+            if candidates:
+                terms["sweeteners"] = [s for s in terms["sweeteners"]
+                                       if s.get("type") != "territory_cede"]
+                terms["sweeteners"].append(
+                    {"type": "territory_cede", "value": 1, "regions": [candidates[0][0]]})
+                context_tags.append("smart_cession")
+
+    # 2b. Territory demands: prefer border regions
+    has_territory_demand = any(
+        d.get("type") in ("territory_cede", "territory")
+        for d in terms.get("demands", []))
+    target_regions = world.get_nation_regions(target_nation)
+    france_regions = world.get_nation_regions("France")
+    border = []
+    for rname in target_regions:
+        region = world.regions.get(rname)
+        if region and any(adj in france_regions for adj in region.adjacent_regions):
+            if rname != NATION_CAPITALS.get(target_nation):
+                border.append(rname)
+
+    if has_territory_demand or (war_score > 30 and border):
+        if border:
+            terms["demands"] = [d for d in terms.get("demands", [])
+                                if d.get("type") not in ("territory_cede", "territory")]
+            terms["demands"].append(
+                {"type": "territory_cede", "value": 1, "regions": [border[0]]})
+            context_tags.append("border_territory_demanded")
+
+    # 2c. Gold calibration
+    gold_pref = profile.get("values_gold", "medium")
+    if gold_pref == "high":
+        for s in terms.get("sweeteners", []):
+            if "gold" in s.get("type", ""):
+                s["value"] = int(s["value"] * 1.5)
+        context_tags.append("gold_for_poor")
+    elif gold_pref == "low":
+        for s in terms.get("sweeteners", []):
+            if "gold" in s.get("type", ""):
+                s["value"] = int(s["value"] * 0.5)
+        context_tags.append("gold_useless")
+
+    # 2d. Protection clause for survival-driven nations
+    if (profile.get("diplomatic_lever") == "survival"
+            and proposal_type in ("peace", "defensive_alliance", "alliance")):
+        if "protection_promised" in SPECIAL_BONUSES.get(target_nation, {}):
+            if "protection_promised" not in terms.get("clauses", []):
+                terms.setdefault("clauses", []).append("protection_promised")
+                context_tags.append("protection_offered")
+
+    # 2e. AP for nations that value extra actions
+    ap_pref = profile.get("values_ap", "medium")
+    if ap_pref == "high" and war_score < -30:
+        if not any(s.get("type") == "ap_per_turn" for s in terms.get("sweeteners", [])):
+            terms["sweeteners"].append({"type": "ap_per_turn", "value": 1})
+            context_tags.append("ap_for_weak")
+
+    # --- Stage 3: Economic reality check ---
+    _validate_economic_feasibility(terms, target_nation, world, war_score=war_score)
+
+    # --- Stage 4: Commentary ---
+    if not context_tags:
+        if war_score < -30:
+            context_tags.append("desperate_terms")
+        elif war_score > 30:
+            context_tags.append("dominant_terms")
+        else:
+            from backend.game_logic.diplomatic_dialogue import get_game_bucket
+            bucket = get_game_bucket(target_nation, world)
+            if bucket == "friendly":
+                context_tags.append("friendly_deal")
+            elif bucket == "hostile":
+                context_tags.append("hostile_deal")
+            elif bucket == "neutral":
+                context_tags.append("cautious_deal")
+            else:
+                context_tags.append("neutral_deal")
+
+    terms["talleyrand_commentary"] = _get_smart_commentary(
+        target_nation, context_tags[0])
+
+    # --- Stage 5: Return ---
+    return terms
+
+
+def _build_base_terms(target_nation: str, proposal_type: str, world) -> Dict:
+    """Build base treaty terms using war_score/relation thresholds.
+
+    Extracted from the original generate_suggested_terms() — no logic changes.
     """
     from backend.game_logic.diplomacy import get_war_score_for
     diplo_key = world._make_diplo_key("France", target_nation)
@@ -1307,6 +1525,41 @@ def generate_suggested_terms(target_nation: str, proposal_type: str, world) -> D
                 terms["sweeteners"].append({"type": "territory_cede", "value": 1, "regions": [france_capital]})
 
     return terms
+
+
+def _validate_economic_feasibility(terms, target_nation, world, war_score=0):
+    """Cap gold/territory offers and demands to economically feasible levels."""
+    player_gold = world.nation_gold.get("France", 0)
+    player_income = world.calculate_turn_income("France").get("income", 0)
+    target_income = world.calculate_turn_income(target_nation).get("income", 0)
+    gold_cap_pct = 0.50 if war_score < -30 else 0.25
+
+    for s in terms.get("sweeteners", []):
+        if s.get("type") == "gold_lump":
+            s["value"] = int(min(s["value"], max(50, int(player_gold * gold_cap_pct))))
+        elif s.get("type") == "gold_per_turn":
+            s["value"] = int(min(s["value"], max(25, int(player_income * 0.2))))
+    for d in terms.get("demands", []):
+        if d.get("type") == "gold_per_turn":
+            d["value"] = int(min(d["value"], max(25, int(target_income * 0.5))))
+    # Force all values to int (Godot crashes on floats)
+    for s in terms.get("sweeteners", []):
+        if "value" in s:
+            s["value"] = int(s["value"])
+    for d in terms.get("demands", []):
+        if "value" in d:
+            d["value"] = int(d["value"])
+
+
+def _get_smart_commentary(target_nation, context_tag):
+    """Look up Talleyrand's commentary for a nation + context tag."""
+    key = (target_nation, context_tag)
+    if key in TALLEYRAND_COMMENTARY:
+        return TALLEYRAND_COMMENTARY[key]
+    default_key = ("_default", context_tag)
+    if default_key in TALLEYRAND_COMMENTARY:
+        return TALLEYRAND_COMMENTARY[default_key]
+    return "I have assembled terms befitting the situation, Sire."
 
 
 # ═══════ CONVERSATIONAL TERMS GUIDANCE ═══════
