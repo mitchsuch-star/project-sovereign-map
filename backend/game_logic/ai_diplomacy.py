@@ -465,10 +465,59 @@ def _build_proposal_terms(
     elif proposal_type == "harsh_peace":
         # R116: AI is winning badly — demand harsh terms
         terms["type"] = "peace"  # Map to peace for acceptance formula
-        gold_demand = max(500, int(war_score * 8 * gold_mult))
+        gold_demand = max(200, int(war_score * 5 * gold_mult))
         terms["demands"].append({"type": "gold_lump", "value": int(gold_demand)})
 
     return terms
+
+
+def _reduce_p8_demands(proposal: Dict, nation: str, war_score: int, world) -> Dict:
+    """A1: Iteratively reduce P8 harsh peace demands until proposal is viable.
+
+    Steps:
+    1. If acceptance score >= 20, return unchanged.
+    2. Retry 1: Halve gold_lump demand, re-check.
+    3. Retry 2: Drop weakest non-gold demand, re-check.
+    4. Fallback: Replace all terms with minimal peace + 200g, set _force_send.
+    """
+    import copy
+
+    terms = proposal["terms"]
+    acceptance = calculate_acceptance(terms, world)
+    if acceptance["score"] >= 20:
+        return proposal
+
+    # Retry 1: Halve gold_lump demands
+    modified = copy.deepcopy(proposal)
+    for d in modified["terms"].get("demands", []):
+        if d.get("type") == "gold_lump":
+            d["value"] = max(200, int(d["value"] // 2))
+    acceptance = calculate_acceptance(modified["terms"], world)
+    if acceptance["score"] >= 20:
+        return modified
+
+    # Retry 2: Drop weakest non-gold demand (lowest value)
+    non_gold = [d for d in modified["terms"].get("demands", []) if d.get("type") != "gold_lump"]
+    if non_gold:
+        weakest = min(non_gold, key=lambda d: d.get("value", 0))
+        modified["terms"]["demands"].remove(weakest)
+        acceptance = calculate_acceptance(modified["terms"], world)
+        if acceptance["score"] >= 20:
+            return modified
+
+    # Fallback: Minimal peace + 200g
+    player = getattr(world, 'player_nation', 'France')
+    fallback_terms = {
+        "type": "peace",
+        "proposer_nation": nation,
+        "target_nation": player,
+        "sweeteners": [],
+        "demands": [{"type": "gold_lump", "value": 200}],
+        "clauses": [],
+    }
+    modified["terms"] = fallback_terms
+    modified["_force_send"] = True
+    return modified
 
 
 def _determine_upgrade_type(nation: str, world) -> Optional[str]:
@@ -577,8 +626,9 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     # R115: Get personality modifiers for this nation's diplomat
     mods = _get_personality_modifiers(nation, world)
     gold_mult = mods["gold_demand_mult"]
-    effective_p1_threshold = -40 + mods["peace_threshold_delta"]
-    effective_stalemate_turns = 5 + mods["patience_bonus"]
+    we = world.war_exhaustion.get(nation, 0)
+    effective_p1_threshold = -40 + mods["peace_threshold_delta"] + we // 20
+    effective_stalemate_turns = max(2, 5 + mods["patience_bonus"] - we // 30)
 
     # Update stalemate counter
     if is_at_war:
@@ -595,15 +645,25 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
 
     # ── P1: Losing badly (war_score < effective threshold) ──
     if is_at_war and war_score < effective_p1_threshold:
-        # Decide: armistice if war_score > -70, peace if truly desperate
-        if war_score < -70:
-            ptype = "peace"
-        else:
-            ptype = "armistice_losing"
+        # A2: Coalition loyalty — members stay loyal unless desperate
+        from backend.game_logic.coalition import is_coalition_member
+        coalition_blocked = False
+        if is_coalition_member(nation, world):
+            war_duration = world.current_turn - world.war_start_turns.get(diplo_key, world.current_turn)
+            nation_we = world.war_exhaustion.get(nation, 0)
+            if not (war_score < -50 or nation_we > 80 or (war_duration >= 8 and war_score < -60)):
+                coalition_blocked = True
 
-        if not _is_on_cooldown(nation, ptype, world, war_score):
-            terms = _build_proposal_terms(nation, ptype, war_score, world, gold_mult=gold_mult)
-            proposal = _make_proposal(nation, ptype, 1, terms, world)
+        if not coalition_blocked:
+            # Decide: armistice if war_score > -70, peace if truly desperate
+            if war_score < -70:
+                ptype = "peace"
+            else:
+                ptype = "armistice_losing"
+
+            if not _is_on_cooldown(nation, ptype, world, war_score):
+                terms = _build_proposal_terms(nation, ptype, war_score, world, gold_mult=gold_mult)
+                proposal = _make_proposal(nation, ptype, 1, terms, world)
 
     # ── P2: Stalemate (war_score -10..+10 for N+ turns, R149: fire when not clearly winning) ──
     if proposal is None and is_at_war and stalemate_turns >= effective_stalemate_turns and war_score <= 10:
@@ -660,13 +720,17 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     if proposal is None:
         return None
 
+    # A1: Iterative demand reduction for P8 harsh peace proposals
+    if proposal.get("proposal_type") == "harsh_peace":
+        proposal = _reduce_p8_demands(proposal, nation, war_score, world)
+
     # ── Verify proposal is reasonable via calculate_acceptance ──
     acceptance = calculate_acceptance(proposal["terms"], world)
     score = acceptance["score"]
 
     # AI won't propose something that would be auto-rejected (score < 20)
-    # Score < 20 means even the AI knows it's unreasonable
-    if score < 20:
+    # A1: _force_send bypasses this filter for fallback proposals
+    if score < 20 and not proposal.get("_force_send"):
         return None
 
     # ── Delivery or queue ──
@@ -1447,6 +1511,24 @@ def _evaluate_ai_ai_proposal(nation_a: str, nation_b: str, world) -> Optional[Di
             return {"type": "open_borders", "proposer": nation_a, "target": nation_b}
         if gold_b < 200 and gold_a > 400 and state_ab == "PEACE":
             return {"type": "open_borders", "proposer": nation_b, "target": nation_a}
+
+    # Trigger 5: Preemptive alliance — both threatened by France (N1)
+    threat = int(getattr(world, 'threat_level', 0))
+    if threat > 40:
+        if (state_a_france != "WAR" and state_b_france != "WAR"
+                and state_ab not in ("DEFENSIVE_ALLIANCE", "ALLIANCE")):
+            # Both must have negative relation with France and not be friendly
+            rel_a_france = world.nation_relations.get(
+                world._make_diplo_key(nation_a, player), 0)
+            rel_b_france = world.nation_relations.get(
+                world._make_diplo_key(nation_b, player), 0)
+            # Neither has NON_AGGRESSION+ with France
+            has_pact_a = state_a_france in ("NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE")
+            has_pact_b = state_b_france in ("NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE")
+            if (rel_a_france < 0 and rel_b_france < 0
+                    and not has_pact_a and not has_pact_b
+                    and relation_ab > -10):
+                return {"type": "defensive_alliance", "proposer": nation_a, "target": nation_b}
 
     return None
 

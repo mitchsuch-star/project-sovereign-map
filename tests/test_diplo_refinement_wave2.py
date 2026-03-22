@@ -248,8 +248,8 @@ class TestAggressiveDominanceP8:
         terms_80 = _build_proposal_terms("Prussia", "harsh_peace", 80, world, gold_mult=1.0)
         gold_50 = terms_50["demands"][0]["value"]
         gold_80 = terms_80["demands"][0]["value"]
-        assert gold_50 == max(500, int(50 * 8))  # 500 (floor)
-        assert gold_80 == max(500, int(80 * 8))  # 640
+        assert gold_50 == max(200, int(50 * 5))  # 250
+        assert gold_80 == max(200, int(80 * 5))  # 400
         assert gold_80 > gold_50
 
     def test_ap_reduction_removed_dead_code(self):
