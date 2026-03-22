@@ -143,6 +143,23 @@ Nations above threshold (0.5) get LLM calls (max 5/turn). Below = decision tree 
 
 Nation personalities define aggression, courage, pragmatism, honor, opportunism (0.0-1.0). Betrayal calculation weighs war score, loyalty, weariness, enemy terms, personality.
 
+### AI-AI Strategic Intent (Building Blocks Prep)
+
+> **Status:** Infrastructure is 95% nation-agnostic (Mar 2026 audit). Missing: AI *decision-making* to proactively attack, vassalize, or exploit other AI nations.
+
+**What already works generically:**
+- Combat, territory conquest, war declaration (via downgrade), treaty upgrades, nation elimination, vassal creation mechanics, enemy AI targeting (`get_enemies_of_nation()`)
+
+**What's missing — 3 capabilities needed:**
+
+1. **Opportunistic War Declaration** — AI nations never proactively decide "Saxony is weak, let's attack." Wars only happen through the passive rivalry downgrade spiral (adjacency friction → relation decay → state downgrades to WAR). Need: threat/opportunity scoring that evaluates troop ratios, undefended regions, and diplomatic isolation, then triggers `declare_war()` when conditions favor aggression. Gate by personality (opportunism score from Decision Tree above).
+
+2. **AI Vassalization of Beaten Opponents** — When an AI nation conquers all regions of a smaller nation, that nation is simply eliminated. No AI code calls `create_vassal_conquest()`. Need: after conquest, AI evaluates whether to vassalize (keeps tribute flowing, buffer state) vs eliminate (cleaner, no rebellion risk). Decision factors: lord troop strength, distance to vassal, personality (pragmatic lords vassalize, aggressive lords annex).
+
+3. **Cross-AI Threat Assessment** — AI nations assess threats only when already at war. Need: peacetime threat scoring between AI pairs. Factors: troop ratio, border adjacency, alliance networks, historical grievances (relation < -20), target isolation (no allies). Feed into Decision Tree Priority 4 (Opportunism) to generate war declaration proposals or preemptive alliance-seeking.
+
+**Architecture note:** All three capabilities should use the same executor path as the player (Building Blocks). The enemy AI decision tree (`enemy_ai.py` P1-P8) already supports multi-nation targeting — these additions go in `ai_diplomacy.py` as new triggers in `_evaluate_ai_ai_proposal()` and `process_ai_ai_diplomatic_phase()`.
+
 ### Chaos Engine
 Random events (2-3% per nation per turn): succession crisis, popular uprising, secret alliance, key general dies, economic collapse, foreign gold, nationalist awakening. Each boosts relevance for 3 turns, making minor nations suddenly important.
 

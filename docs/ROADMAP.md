@@ -748,7 +748,7 @@ EA v1: Western + Central Europe (~80 regions). EA updates add Eastern Europe, ex
 | **Full Advisor System** | MEDIUM | Action gating, trust, dismissal (VISION Layer 1) |
 | **North Africa / Egypt** | MEDIUM | Expansion map art, Egyptian campaign scenario |
 | Weather System | MEDIUM | Russian winter, mud season |
-| Advanced AI | MEDIUM | Flanking coordination, capital defense |
+| Advanced AI | MEDIUM | Flanking coordination, capital defense, **AI-AI strategic intent** (opportunistic war declarations, vassalization of beaten AI, cross-AI threat assessment). See FUTURE_DESIGN.md "AI-AI Strategic Intent" section. Infrastructure is 95% nation-agnostic — missing decision-making layer only. |
 | Campaign Editor | MEDIUM | Player-made scenarios |
 | Steam Workshop | MEDIUM | Mod sharing |
 | **Multi-Nation Battle Reports** | LOW | Thread player_nation from world state through combat resolver. Currently hardcoded to France. Tests document exact wiring point. |
