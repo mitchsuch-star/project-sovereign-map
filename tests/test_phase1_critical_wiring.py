@@ -71,19 +71,19 @@ class TestR40CoalitionLoyaltyPenalty:
         world.war_exhaustion = {"Prussia": 0}
         assert get_coalition_loyalty_penalty("Prussia", world) == -15
 
-    def test_exhaustion_deepens_penalty(self):
+    def test_exhaustion_lessens_penalty(self):
         world = _make_world()
         world.active_coalition = {"members": ["Prussia"], "leader": "Prussia"}
         world.war_exhaustion = {"Prussia": 50}
-        # max(-15 - 5, -30) = -20
-        assert get_coalition_loyalty_penalty("Prussia", world) == -20
+        # min(-15 + 5, 0) = -10
+        assert get_coalition_loyalty_penalty("Prussia", world) == -10
 
-    def test_penalty_floors_at_minus_30(self):
+    def test_penalty_capped_at_zero(self):
         world = _make_world()
         world.active_coalition = {"members": ["Prussia"], "leader": "Prussia"}
         world.war_exhaustion = {"Prussia": 200}
-        # max(-15 - 20, -30) = -30
-        assert get_coalition_loyalty_penalty("Prussia", world) == -30
+        # min(-15 + 20, 0) = 0
+        assert get_coalition_loyalty_penalty("Prussia", world) == 0
 
     def test_non_member_zero(self):
         world = _make_world()

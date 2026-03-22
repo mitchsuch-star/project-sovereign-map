@@ -232,6 +232,8 @@ class TestCounterOfferEdgeCases:
         world.diplomatic_states[key] = "WAR"
         world.war_scores[key] = 40  # France winning strongly
         world.nation_relations[key] = 30
+        world.nation_dp = getattr(world, 'nation_dp', {})
+        world.nation_dp["Prussia"] = 5  # Ensure Prussia has DP for counter-offer
         proposal = {
             "type": "armistice_losing",
             "proposer_nation": "Prussia",

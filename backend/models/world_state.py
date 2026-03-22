@@ -444,6 +444,7 @@ class WorldState:
         self.talleyrand_defiance_cooldown: int = 0       # Turns until defiance can fire again
         self.pending_talleyrand_sabotage: Optional[Dict] = None  # Active sabotage record
         self.talleyrand_override_history: List[Dict] = []  # Last 5 overrides (proposal_type, result)
+        self.last_redemption_turn: int = 0               # Turn when last redemption event fired (5-turn cooldown)
 
         # ============================================================
         # COALITION SYSTEM (Phase 8 Session 7)
@@ -2902,6 +2903,7 @@ class WorldState:
             "talleyrand_defiance_cooldown": int(self.talleyrand_defiance_cooldown),
             "pending_talleyrand_sabotage": self.pending_talleyrand_sabotage.copy() if self.pending_talleyrand_sabotage else None,
             "talleyrand_override_history": [h.copy() for h in self.talleyrand_override_history],
+            "last_redemption_turn": int(self.last_redemption_turn),
 
             # ═══════ COALITION SYSTEM (Session 7) ═══════
             "threat_level": int(self.threat_level),
@@ -3115,6 +3117,7 @@ class WorldState:
         if world.pending_talleyrand_sabotage and isinstance(world.pending_talleyrand_sabotage, dict):
             world.pending_talleyrand_sabotage = world.pending_talleyrand_sabotage.copy()
         world.talleyrand_override_history = [h.copy() for h in data.get("talleyrand_override_history", [])]
+        world.last_redemption_turn = int(data.get("last_redemption_turn", 0))
 
         # ═══════ COALITION SYSTEM (Session 7) ═══════
         world.threat_level = int(data.get("threat_level", 0))

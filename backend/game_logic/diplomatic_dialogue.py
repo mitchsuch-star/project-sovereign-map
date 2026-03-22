@@ -155,6 +155,9 @@ MISSION_DESCRIPTIONS = {
 
 def resolve_nation_name(text: str) -> Optional[str]:
     """Fuzzy match a nation name from text. Returns canonical name or None."""
+    # NOTE: Uses substring matching which could theoretically false-positive
+    # on words containing nation name substrings. Acceptable for current game
+    # commands which are short and focused on diplomatic actions.
     text_lower = text.lower().strip()
 
     # Direct alias match
@@ -228,7 +231,7 @@ def classify_diplomatic_intent(parsed_command: Dict, world) -> str:
         return "not_diplomatic"
 
     # Check for unknown nation (mentioned but not recognized)
-    if target_nation and target_nation not in KNOWN_NATIONS:
+    if target_nation and target_nation not in get_known_nations(world):
         return "unknown_nation"
 
     # Mission commands
@@ -462,6 +465,7 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
     _state_map = {
         "peace": "PEACE", "alliance": "ALLIANCE", "defensive_alliance": "DEFENSIVE_ALLIANCE",
         "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS", "armistice": "ARMISTICE",
+        "vassalage": "VASSAL",
     }
     current_diplo = world.get_diplomatic_state("France", target_nation)
     target_diplo = _state_map.get(proposal_type, "PEACE")
@@ -516,6 +520,8 @@ def _format_terms_for_display(terms: Dict, proposal_type: str, target_nation: st
             lines.append(f"{target_nation} cedes {', '.join(regions) if regions else 'territory'}")
         elif dtype == "infantry_manpower":
             lines.append(f"{target_nation} provides {int(value)} infantry manpower")
+        elif dtype == "gold_lump":
+            lines.append(f"{target_nation} pays {int(demand.get('value', 0))} gold")
         elif dtype == "ap_per_turn":
             lines.append(f"{target_nation} loses {int(value)} AP/turn")
         else:
@@ -534,6 +540,10 @@ def _format_terms_for_display(terms: Dict, proposal_type: str, target_nation: st
             lines.append(f"France cedes {', '.join(regions) if regions else 'territory'}")
         elif stype == "infantry_manpower":
             lines.append(f"France provides {int(value)} infantry manpower")
+        elif stype == "cavalry_manpower":
+            lines.append(f"Provide {int(sweet.get('value', 0))} cavalry reserves")
+        elif stype == "artillery_manpower":
+            lines.append(f"Provide {int(sweet.get('value', 0))} artillery reserves")
         elif stype == "ap_per_turn":
             lines.append(f"France concedes {int(value)} AP/turn")
         else:

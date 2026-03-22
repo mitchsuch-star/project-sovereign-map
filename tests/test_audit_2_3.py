@@ -674,9 +674,9 @@ class TestRelationRequirements:
         assert req == -60, f"Expected req=-60, got {req}"
         assert check_relation_requirement("ARMISTICE", "PEACE", -65) is False
 
-    def test_armistice_to_peace_blocked_at_exactly_minus_60(self):
-        """ARMISTICE -> PEACE requires relation > -60. At exactly -60, blocked (strict >)."""
-        assert check_relation_requirement("ARMISTICE", "PEACE", -60) is False
+    def test_armistice_to_peace_allowed_at_exactly_minus_60(self):
+        """ARMISTICE -> PEACE requires relation >= -60. At exactly -60, allowed (D2 fix: >= not >)."""
+        assert check_relation_requirement("ARMISTICE", "PEACE", -60) is True
 
     def test_armistice_to_peace_allowed_at_minus_59(self):
         """ARMISTICE -> PEACE requires relation > -60. At -59, allowed."""
@@ -688,9 +688,9 @@ class TestRelationRequirements:
         assert req == -20, f"Expected req=-20, got {req}"
         assert check_relation_requirement("PEACE", "OPEN_BORDERS", -25) is False
 
-    def test_peace_to_open_borders_blocked_at_exactly_minus_20(self):
-        """PEACE -> OPEN_BORDERS requires relation > -20. At exactly -20, blocked (strict >)."""
-        assert check_relation_requirement("PEACE", "OPEN_BORDERS", -20) is False
+    def test_peace_to_open_borders_allowed_at_exactly_minus_20(self):
+        """PEACE -> OPEN_BORDERS requires relation >= -20. At exactly -20, allowed (D2 fix: >= not >)."""
+        assert check_relation_requirement("PEACE", "OPEN_BORDERS", -20) is True
 
     def test_peace_to_open_borders_allowed_at_minus_19(self):
         """PEACE -> OPEN_BORDERS at -19 - allowed."""
@@ -702,9 +702,9 @@ class TestRelationRequirements:
         assert req == 0, f"Expected req=0, got {req}"
         assert check_relation_requirement("OPEN_BORDERS", "NON_AGGRESSION", -5) is False
 
-    def test_open_borders_to_non_aggression_blocked_at_zero(self):
-        """OPEN_BORDERS -> NON_AGGRESSION requires relation > 0. At 0, blocked (strict >)."""
-        assert check_relation_requirement("OPEN_BORDERS", "NON_AGGRESSION", 0) is False
+    def test_open_borders_to_non_aggression_allowed_at_zero(self):
+        """OPEN_BORDERS -> NON_AGGRESSION requires relation >= 0. At 0, allowed (D2 fix: >= not >)."""
+        assert check_relation_requirement("OPEN_BORDERS", "NON_AGGRESSION", 0) is True
 
     def test_open_borders_to_non_aggression_allowed_at_plus_1(self):
         """OPEN_BORDERS -> NON_AGGRESSION at +1 - allowed."""
@@ -716,9 +716,9 @@ class TestRelationRequirements:
         assert req == 20, f"Expected req=20, got {req}"
         assert check_relation_requirement("NON_AGGRESSION", "DEFENSIVE_ALLIANCE", 15) is False
 
-    def test_non_aggression_to_defensive_alliance_blocked_at_exactly_20(self):
-        """NON_AGGRESSION -> DEFENSIVE_ALLIANCE at exactly 20 - blocked (strict >)."""
-        assert check_relation_requirement("NON_AGGRESSION", "DEFENSIVE_ALLIANCE", 20) is False
+    def test_non_aggression_to_defensive_alliance_allowed_at_exactly_20(self):
+        """NON_AGGRESSION -> DEFENSIVE_ALLIANCE at exactly 20 - allowed (D2 fix: >= not >)."""
+        assert check_relation_requirement("NON_AGGRESSION", "DEFENSIVE_ALLIANCE", 20) is True
 
     def test_non_aggression_to_defensive_alliance_allowed_at_21(self):
         """NON_AGGRESSION -> DEFENSIVE_ALLIANCE at 21 - allowed."""
@@ -730,9 +730,9 @@ class TestRelationRequirements:
         assert req == 40, f"Expected req=40, got {req}"
         assert check_relation_requirement("DEFENSIVE_ALLIANCE", "ALLIANCE", 35) is False
 
-    def test_defensive_alliance_to_alliance_blocked_at_exactly_40(self):
-        """DEFENSIVE_ALLIANCE -> ALLIANCE at exactly 40 - blocked (strict >)."""
-        assert check_relation_requirement("DEFENSIVE_ALLIANCE", "ALLIANCE", 40) is False
+    def test_defensive_alliance_to_alliance_allowed_at_exactly_40(self):
+        """DEFENSIVE_ALLIANCE -> ALLIANCE at exactly 40 - allowed (D2 fix: >= not >)."""
+        assert check_relation_requirement("DEFENSIVE_ALLIANCE", "ALLIANCE", 40) is True
 
     def test_defensive_alliance_to_alliance_allowed_at_41(self):
         """DEFENSIVE_ALLIANCE -> ALLIANCE at 41 - allowed."""

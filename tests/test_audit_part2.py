@@ -272,20 +272,20 @@ class TestSection7CoalitionWarfare:
             "members": ["Prussia", "Austria"],
             "leader": "Prussia",
         }
-        # 0 WE → max(-15 - 0, -30) = -15
+        # 0 WE → min(-15 + 0, 0) = -15
         world.war_exhaustion = {"Prussia": 0}
         penalty = get_coalition_loyalty_penalty("Prussia", world)
         assert penalty == -15
 
-        # 100 WE → max(-15 - 10, -30) = -25
+        # 100 WE → min(-15 + 10, 0) = -5
         world.war_exhaustion = {"Prussia": 100}
         penalty = get_coalition_loyalty_penalty("Prussia", world)
-        assert penalty == -25
+        assert penalty == -5
 
-        # 150+ WE → max(-15 - 15, -30) = -30 (floor)
+        # 150 WE → min(-15 + 15, 0) = 0 (ceiling)
         world.war_exhaustion = {"Prussia": 150}
         penalty = get_coalition_loyalty_penalty("Prussia", world)
-        assert penalty == -30
+        assert penalty == 0
 
     def test_t4_war_exhaustion_from_battle(self):
         """T-4: War exhaustion = casualties/1000, capped at 20."""

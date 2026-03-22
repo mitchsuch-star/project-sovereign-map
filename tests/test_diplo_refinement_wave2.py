@@ -252,18 +252,19 @@ class TestAggressiveDominanceP8:
         assert gold_80 == max(500, int(80 * 8))  # 640
         assert gold_80 > gold_50
 
-    def test_ap_reduction_at_60_plus(self):
-        """ap_reduction clause should be added when war_score > 60."""
+    def test_ap_reduction_removed_dead_code(self):
+        """ap_reduction clause was dead code (no handler) and has been removed.
+        Harsh peace proposals at war_score > 60 should NOT include ap_reduction."""
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")
         set_war_score(world, "Prussia", "France", 65)
         result = process_diplomatic_phase("Prussia", world)
         assert result is not None
-        assert "ap_reduction" in result["terms"]["clauses"]
+        assert "ap_reduction" not in result["terms"]["clauses"]
 
     def test_no_ap_reduction_below_60(self):
-        """ap_reduction clause should NOT be added when war_score <= 60."""
+        """ap_reduction clause should NOT be present at any war_score."""
         world = make_world()
         set_war(world, "France", "Prussia")
         set_diplomat_personality(world, "Prussia", "loyalist")

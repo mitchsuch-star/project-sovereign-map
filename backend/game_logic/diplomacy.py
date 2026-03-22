@@ -275,7 +275,7 @@ def check_relation_requirement(current_state: str, target_state: str, relation: 
     req = STATE_RELATION_REQUIREMENTS.get(target_state)
     if req is None:
         return True
-    return relation > req
+    return relation >= req
 
 
 def get_transition_dp_cost(current_state: str, target_state: str) -> int:
@@ -483,12 +483,20 @@ def cleanup_war_end(world, diplo_key: str) -> None:
     decisive_battles.pop(diplo_key, None)
     war_scores.pop(diplo_key, None)
 
-    # R49: Reset war_exhaustion for both nations
+    # R49: Reset war_exhaustion only for nations with no other active wars
     parts = diplo_key.split("|")
     war_exhaustion = getattr(world, 'war_exhaustion', {})
     if len(parts) == 2:
-        war_exhaustion.pop(parts[0], None)
-        war_exhaustion.pop(parts[1], None)
+        for nation in parts:
+            has_other_war = False
+            for other_key, other_state in world.diplomatic_states.items():
+                if other_key == diplo_key:
+                    continue
+                if other_state == "WAR" and nation in other_key.split("|"):
+                    has_other_war = True
+                    break
+            if not has_other_war:
+                war_exhaustion.pop(nation, None)
 
     # R142: Clear war start turn
     war_start_turns = getattr(world, 'war_start_turns', {})
@@ -799,6 +807,7 @@ def _generate_feedback(outcome: str, components: Dict) -> str:
         "threat_modifier", "deal_balance", "diplomat_skill_bonus",
         "personality_modifier", "special_desire_bonus",
         "coalition_penalty", "harshness_bonus", "reliability_modifier",
+        "military_supremacy", "battlefield_diplomacy", "military_pressure",
     }
 
     largest_positive = ("", 0)
@@ -1398,7 +1407,7 @@ def process_diplomacy_turn(world) -> List[Dict]:
     Implements §7f processing order (items this session covers):
     1. DP regeneration
     4. War score recalculation
-    8. Armistice expiration (minimum 3 turns)
+    8. Armistice expiration (minimum 5 turns)
     9. Cooldown decrements
     10. Trade income (handled separately in income phase)
     13. Automatic downgrade check
@@ -1812,10 +1821,18 @@ def break_treaty(pair_key: str, breaker_nation: str, world) -> Dict:
     if treaty_nations and breaker_nation not in treaty_nations:
         return {"success": False, "message": f"{breaker_nation} is not a party to this treaty."}
 
-    # Cost: 1 DP
-    if world.diplomatic_points < 1:
-        return {"success": False, "message": "Insufficient DP to break treaty (costs 1 DP)."}
-    world.diplomatic_points -= 1
+    # Cost: 1 DP — use player DP for player, nation_dp for AI
+    player_nation = getattr(world, 'player_nation', 'France')
+    if breaker_nation == player_nation:
+        if world.diplomatic_points < 1:
+            return {"success": False, "message": "Insufficient DP to break treaty (costs 1 DP)."}
+        world.diplomatic_points -= 1
+    else:
+        nation_dp = getattr(world, 'nation_dp', {})
+        if nation_dp.get(breaker_nation, 0) < 1:
+            return {"success": False, "message": f"{breaker_nation} has insufficient DP to break treaty."}
+        nation_dp[breaker_nation] = nation_dp.get(breaker_nation, 0) - 1
+        world.nation_dp = nation_dp
 
     treaty_type = treaty.get("type", "peace")
     nations = treaty.get("nations", [])
@@ -2022,9 +2039,9 @@ def apply_continental_system(world) -> None:
         if trade > 0:
             blocked = min(75, trade, max_total_cap - total_blocked)
             if member in world.nation_gold:
-                world.nation_gold[member] -= int(blocked)
+                world.nation_gold[member] = max(0, world.nation_gold[member] - int(blocked))
             if "Britain" in world.nation_gold:
-                world.nation_gold["Britain"] -= int(blocked)
+                world.nation_gold["Britain"] = max(0, world.nation_gold["Britain"] - int(blocked))
             total_blocked += blocked
 
     world.continental_system_members = members
@@ -2306,7 +2323,7 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
 
         # Relation requirement
         req = STATE_RELATION_REQUIREMENTS.get(target_state)
-        if req is not None and relation <= req:
+        if req is not None and relation < req:
             available = False
             reason = "Relations too low"
 

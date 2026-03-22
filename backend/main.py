@@ -155,7 +155,7 @@ def _include_popup_passthroughs(response: dict, world) -> None:
         ("talleyrand_redemption_popup", "talleyrand_redemption"),
         ("diplomatic_objection_popup", "diplomatic_objection"),
         ("incoming_proposal_popup", "incoming_proposal"),
-        ("alliance_paradox_popup", "alliance_paradox_popup"),
+        ("alliance_paradox_popup", "alliance_paradox_popup"),  # TODO: alliance_paradox_popup needs a Godot handler (M10)
     ]
 
     # Find highest-priority popup that is set on world
@@ -477,17 +477,21 @@ def execute_command(request: CommandRequest):
         # GAME-OVER GUARD — No actions after the war ends
         # ════════════════════════════════════════════════════════════
         if world.game_over:
-            return {"success": False, "message": "The war is over.", "game_over": True,
+            response = {"success": False, "message": "The war is over.", "game_over": True,
                     "victory": world.victory, "game_state": world.get_filtered_game_state_summary()}
+            _include_popup_passthroughs(response, world)
+            return response
 
         # ════════════════════════════════════════════════════════════
         # EMPTY COMMAND CHECK — Reject blank input
         # ════════════════════════════════════════════════════════════
         if not request.command or not request.command.strip():
-            return {"success": False, "message": "No command given, Sire.", "events": [],
+            response = {"success": False, "message": "No command given, Sire.", "events": [],
                     "action_info": {"remaining": int(world.actions_remaining)},
                     "action_summary": world.get_action_summary(),
                     "game_state": world.get_filtered_game_state_summary()}
+            _include_popup_passthroughs(response, world)
+            return response
 
         # ════════════════════════════════════════════════════════════
         # PENDING STRATEGIC INTERRUPT CHECK (Phase 5.2-D)
@@ -587,6 +591,7 @@ def execute_command(request: CommandRequest):
                 "harsh", "generous", "adjust",  # Proposal confirm popup actions
                 "elaborate", "review", "consider",  # Template actions (GAP-1)
                 "begin", "trust",  # Mission start + send_suggested (GAP-4/6)
+                "yes", "agree", "start", "more", "no", "never mind",
             ]
             matched_keyword = None
             for keyword in _DIALOGUE_RESPONSE_KEYWORDS:
@@ -1114,11 +1119,13 @@ def respond_to_objection(request: ObjectionResponse):
         print(f"[ERROR] handling objection response: {e}")
         import traceback
         traceback.print_exc()
-        return {
+        response = {
             "success": False,
             "message": f"Error: {str(e)}",
             "game_state": world.get_filtered_game_state_summary()
         }
+        _include_popup_passthroughs(response, world)
+        return response
 
 
 @app.post("/respond_to_diplomatic_dialogue")
@@ -1158,11 +1165,13 @@ async def respond_to_diplomatic_dialogue(request: dict):
         print(f"[ERROR] handling diplomatic dialogue response: {e}")
         import traceback
         traceback.print_exc()
-        return {
+        response = {
             "success": False,
             "message": f"Error: {str(e)}",
             "game_state": world.get_filtered_game_state_summary()
         }
+        _include_popup_passthroughs(response, world)
+        return response
 
 
 @app.post("/capture_choice")
@@ -1843,37 +1852,52 @@ def get_diplomatic_ledger():
 @app.post("/cancel_order")
 async def cancel_order(request: Request):
     """Cancel a marshal's strategic order from the Orders tab."""
-    if world.game_over:
-        return {"success": False, "message": "The war is over.", "game_over": True,
-                "victory": world.victory, "game_state": world.get_filtered_game_state_summary()}
-    data = await request.json()
-    marshal_name = data.get("marshal")
-    if not marshal_name:
-        return {"success": False, "message": "No marshal specified."}
+    try:
+        if world.game_over:
+            return {"success": False, "message": "The war is over.", "game_over": True,
+                    "victory": world.victory, "game_state": world.get_filtered_game_state_summary()}
+        data = await request.json()
+        marshal_name = data.get("marshal")
+        if not marshal_name:
+            return {"success": False, "message": "No marshal specified.",
+                    "game_state": world.get_filtered_game_state_summary()}
 
-    if not game_state.get("world"):
-        return {"success": False, "message": "No active game"}
+        if not game_state.get("world"):
+            return {"success": False, "message": "No active game",
+                    "game_state": world.get_filtered_game_state_summary()}
 
-    # AP pre-check (matches typed cancel command flow)
-    if world.actions_remaining <= 0:
-        return {
+        # AP pre-check (matches typed cancel command flow)
+        if world.actions_remaining <= 0:
+            return {
+                "success": False,
+                "message": "No actions remaining this turn.",
+                "action_summary": world.get_action_summary(),
+                "game_state": world.get_filtered_game_state_summary(),
+            }
+
+        command = {"action": "cancel", "marshal": marshal_name}
+        result = executor._execute_cancel(command, game_state)
+
+        # Deduct 1 AP for successful cancels (matches typed "cancel" command flow)
+        if result.get("success") and not result.get("no_action_cost"):
+            world.use_action("cancel")
+
+        cleaned = {k: v for k, v in result.items() if k != "new_state"}
+        cleaned["action_summary"] = world.get_action_summary()
+        cleaned["game_state"] = world.get_filtered_game_state_summary()
+        _include_popup_passthroughs(cleaned, world)
+        return cleaned
+    except Exception as e:
+        print(f"[ERROR] handling cancel_order: {e}")
+        import traceback
+        traceback.print_exc()
+        err_response = {
             "success": False,
-            "message": "No actions remaining this turn.",
-            "action_summary": world.get_action_summary(),
+            "message": f"Error: {str(e)}",
             "game_state": world.get_filtered_game_state_summary(),
         }
-
-    command = {"action": "cancel", "marshal": marshal_name}
-    result = executor._execute_cancel(command, game_state)
-
-    # Deduct 1 AP for successful cancels (matches typed "cancel" command flow)
-    if result.get("success") and not result.get("no_action_cost"):
-        world.use_action("cancel")
-
-    cleaned = {k: v for k, v in result.items() if k != "new_state"}
-    cleaned["action_summary"] = world.get_action_summary()
-    cleaned["game_state"] = world.get_filtered_game_state_summary()
-    return cleaned
+        _include_popup_passthroughs(err_response, world)
+        return err_response
 
 
 @app.get("/marshal_overview")
@@ -1940,6 +1964,8 @@ async def debug_set_trust(request: Request):
         return {"success": False, "message": f"Unknown marshal: {marshal_name}"}
 
     old_trust = int(marshal.trust.value)
+    # NOTE: Directly sets trust._value, bypassing Trust.modify().
+    # Acceptable for debug endpoints but would skip any side effects.
     marshal.trust._value = max(0, min(100, int(trust_value)))
 
     print(f"[DEBUG] Set {marshal_name} trust: {old_trust} -> {marshal.trust.value}")

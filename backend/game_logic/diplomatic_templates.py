@@ -1150,9 +1150,10 @@ def resolve_template_text(text: str, world, target_nation: Optional[str] = None)
         slots["target_diplomat"] = target_diplomat.name if target_diplomat else "their diplomat"
 
         # Numeric values
-        diplo_key = world._make_diplo_key("France", target_nation)
+        player_nation = getattr(world, 'player_nation', 'France')
+        diplo_key = world._make_diplo_key(player_nation, target_nation)
         relation = int(world.nation_relations.get(diplo_key, 0))
-        state = world.get_diplomatic_state("France", target_nation)
+        state = world.get_diplomatic_state(player_nation, target_nation)
         # R38: Only show war score when nations are at war
         if state == "WAR":
             slots["war_score"] = str(int(world.war_scores.get(diplo_key, 0)))

@@ -15,6 +15,8 @@ from backend.models.intel import (
     VISIBILITY_PRIORITY,
 )
 
+ARMISTICE_DURATION = 5  # Must match diplomacy.py
+
 # TH3: Human-readable threat source labels (module-level to avoid re-creation per call)
 _THREAT_SOURCE_LABELS = {
     "battle_win": "Won a battle",
@@ -161,7 +163,8 @@ def _build_nations(world) -> List[Dict[str, Any]]:
         )
 
         if nation == player:
-            # Player always knows own army
+            # Defensive guard: enemy_nations should never include the player, but
+            # if it does, show "Exact" for own army strength rather than fog-filtered.
             army_strength = f"{int(total_strength):,} men"
         else:
             visibility = _get_nation_visibility(nation, world)
@@ -254,9 +257,9 @@ def _build_nations(world) -> List[Dict[str, Any]]:
         history_list = relation_history.get(diplo_key, [])
         if len(history_list) >= 2:
             delta = relation - history_list[-1]
-            if delta > 3:
+            if delta > 2:
                 relation_trend = "rising"
-            elif delta < -3:
+            elif delta < -2:
                 relation_trend = "falling"
 
         nations.append({
@@ -352,7 +355,7 @@ def _build_treaties(world) -> List[Dict[str, Any]]:
         if treaty_type == "armistice":
             armistice_turns = getattr(world, 'armistice_turns', {})
             pair_armistice = armistice_turns.get(pair_key, 0)
-            armistice_remaining = int(max(0, 5 - pair_armistice))
+            armistice_remaining = int(max(0, ARMISTICE_DURATION - pair_armistice))
 
         treaties.append({
             "nation_a": nation_a,
@@ -557,7 +560,7 @@ def _build_talleyrand(world) -> Dict[str, Any]:
             "type": mission_type,
             "target": mission.get("target", ""),
             "duration": int(mission.get("turns_active") or 0),
-            "progress": mission.get("paused", False),
+            "paused": mission.get("paused", False),
             "effect_text": effect_text,
             "dp_cost_per_turn": dp_cost_per_turn,
             "remaining_turns": remaining_turns,
@@ -577,13 +580,21 @@ def _build_talleyrand(world) -> Dict[str, Any]:
     pending_envoy_count = int(len(getattr(world, 'diplomatic_queue', [])))
 
     # Sabotage warnings
+    SABOTAGE_TYPE_DISPLAY = {
+        "softened": "Terms Weakened",
+        "hardened": "Terms Hardened",
+        "stalled": "Proposal Delayed",
+        "ap_downgrade": "Authority Undermined",
+        "unit_overpay": "Resources Wasted",
+    }
     sabotage_warnings = []
     raw_sabotages = getattr(world, 'undetected_sabotages', [])
     for sab in raw_sabotages:
         if isinstance(sab, dict):
+            raw_type = sab.get("type", "")
             sabotage_warnings.append({
                 "target": sab.get("target", ""),
-                "type": sab.get("type", ""),
+                "type": SABOTAGE_TYPE_DISPLAY.get(raw_type, raw_type.replace("_", " ").title()),
                 "turn": int(sab.get("turn") or 0),
             })
         else:
@@ -592,7 +603,7 @@ def _build_talleyrand(world) -> Dict[str, Any]:
     # R29: Diplomatic history (last 20 events)
     diplomatic_history = []
     raw_history = getattr(world, 'diplomatic_history', [])
-    for entry in raw_history:
+    for entry in raw_history[-20:]:
         if isinstance(entry, dict):
             diplomatic_history.append({
                 "turn": int(entry.get("turn") or 0),

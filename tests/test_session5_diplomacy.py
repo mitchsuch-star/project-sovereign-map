@@ -423,10 +423,8 @@ class TestEnemyCourting:
     def test_courting_reduces_loyalty(self):
         """Successful courting reduces vassal loyalty."""
         world = make_world_with_vassal(loyalty=40)
-        # Set up diplomatic_points_nations
-        if not hasattr(world, 'diplomatic_points_nations'):
-            world.diplomatic_points_nations = {}
-        world.diplomatic_points_nations["Prussia"] = 5
+        # Set up nation_dp (C2 audit fix: was diplomatic_points_nations)
+        world.nation_dp["Prussia"] = 5
         # Set positive relation between Saxony and Prussia
         key = world._make_diplo_key("Saxony", "Prussia")
         world.nation_relations[key] = 20
@@ -439,9 +437,8 @@ class TestEnemyCourting:
     def test_courting_anti_spam(self):
         """Courting has 3-turn cooldown."""
         world = make_world_with_vassal(loyalty=40)
-        if not hasattr(world, 'diplomatic_points_nations'):
-            world.diplomatic_points_nations = {}
-        world.diplomatic_points_nations["Prussia"] = 10
+        # C2 audit fix: use nation_dp instead of diplomatic_points_nations
+        world.nation_dp["Prussia"] = 10
 
         events1 = attempt_vassal_courting(world, "Prussia")
         # Reset loyalty for second attempt
@@ -454,9 +451,8 @@ class TestEnemyCourting:
     def test_courting_fails_if_loyalty_high(self):
         """Courting fails if vassal loyalty >= 50."""
         world = make_world_with_vassal(loyalty=50)
-        if not hasattr(world, 'diplomatic_points_nations'):
-            world.diplomatic_points_nations = {}
-        world.diplomatic_points_nations["Prussia"] = 5
+        # C2 audit fix: use nation_dp instead of diplomatic_points_nations
+        world.nation_dp["Prussia"] = 5
 
         events = attempt_vassal_courting(world, "Prussia")
         assert len(events) == 0

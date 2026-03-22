@@ -17,6 +17,7 @@ from typing import Dict, List, Optional
 from backend.game_logic.diplomacy import get_war_score_for
 from backend.game_logic.diplomatic_dialogue import (
     KNOWN_NATIONS,
+    get_known_nations,
 )
 
 # ═══════ ADVISORY KEYWORD MAP ═══════
@@ -247,12 +248,12 @@ def _assess_nation(nation: str, world) -> Dict:
 def _compare_threats(world) -> Dict:
     """Compare all nations as threats to France. Deterministic ranking."""
     threat_entries: List[Dict] = []
-    for nation in sorted(KNOWN_NATIONS):
+    france_strength = _get_fogged_strength("France", world)
+    for nation in sorted(get_known_nations(world)):
         diplo_key = world._make_diplo_key("France", nation)
         state = world.get_diplomatic_state("France", nation)
         relation = int(world.nation_relations.get(diplo_key, 0))
-        strength = _get_nation_total_strength(nation, world)
-        france_strength = _get_nation_total_strength("France", world)
+        strength = _get_fogged_strength(nation, world)
 
         # Threat score: higher = more threatening
         # Hostile relations, large army, at war all increase threat
@@ -503,7 +504,7 @@ def _diplomatic_overview(world) -> Dict:
     most_urgent_nation = None
     most_urgent_score = -999
 
-    for nation in sorted(KNOWN_NATIONS):
+    for nation in sorted(get_known_nations(world)):
         diplo_key = world._make_diplo_key("France", nation)
         state = world.get_diplomatic_state("France", nation)
         relation = int(world.nation_relations.get(diplo_key, 0))
@@ -612,6 +613,38 @@ def _get_fogged_strength_display(nation: str, world) -> str:
     raw = _get_nation_total_strength(nation, world)
     vis = _get_nation_visibility(nation, world)
     return _format_army_strength(raw, vis)
+
+
+def _get_fogged_strength(nation: str, world) -> int:
+    """Get fog-filtered numeric strength estimate for threat scoring.
+
+    FULL/PARTIAL: exact raw strength.
+    STALE: mid-point of display band (rough estimate).
+    UNKNOWN: default estimate of 30000 (mid-range assumption).
+
+    This prevents fog-of-war leaks in threat scoring calculations.
+    """
+    raw = _get_nation_total_strength(nation, world)
+    vis = _get_nation_visibility(nation, world)
+
+    if vis in ("full", "partial"):
+        return raw
+
+    if vis == "stale":
+        # Return band mid-points matching _format_army_strength bands
+        if raw < 10000:
+            return 5000
+        elif raw < 30000:
+            return 20000
+        elif raw < 60000:
+            return 45000
+        elif raw < 100000:
+            return 80000
+        else:
+            return 120000
+
+    # UNKNOWN: use a default mid-range estimate
+    return 30000
 
 
 def _get_military_advantage(nation: str, world) -> str:

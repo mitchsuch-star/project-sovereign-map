@@ -13,6 +13,7 @@ Core functions:
 - apply_redemption_choice(): process player's redemption decision
 """
 
+import copy
 import random
 from typing import Dict, Optional
 
@@ -249,16 +250,8 @@ def apply_diplomatic_sabotage(original_proposal: Dict, talleyrand, world) -> Dic
 
 
 def _deep_copy_proposal(proposal: Dict) -> Dict:
-    """Deep copy a proposal dict."""
-    result = {}
-    for k, v in proposal.items():
-        if isinstance(v, list):
-            result[k] = [item.copy() if isinstance(item, dict) else item for item in v]
-        elif isinstance(v, dict):
-            result[k] = v.copy()
-        else:
-            result[k] = v
-    return result
+    """Deep copy a proposal dict (full depth via copy.deepcopy)."""
+    return copy.deepcopy(proposal)
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -387,7 +380,11 @@ def _summarize_proposal(proposal: Dict) -> str:
     """Generate a human-readable summary of proposal terms."""
     parts = []
     ptype = proposal.get("type", "peace")
-    parts.append(ptype.replace("_", " ").title())
+    # Strip internal state suffixes (e.g. "armistice_losing" → "armistice")
+    if ptype.startswith("armistice"):
+        ptype = "armistice"
+    display = ptype.replace("_", " ").title()
+    parts.append(display)
 
     for demand in proposal.get("demands", []):
         dtype = demand.get("type", "")
@@ -484,6 +481,12 @@ def check_talleyrand_redemption(talleyrand, world) -> bool:
     personality = getattr(talleyrand, 'personality', 'schemer')
     if personality == 'loyalist':
         return False  # Loyalist doesn't trigger diplomatic redemption
+
+    # Cooldown: skip if redemption fired within last 5 turns
+    last_redemption = getattr(world, 'last_redemption_turn', 0)
+    current_turn = getattr(world, 'turn_number', None) or getattr(world, 'current_turn', 1)
+    if last_redemption > 0 and current_turn - last_redemption < 5:
+        return False
 
     trust = talleyrand.trust if isinstance(talleyrand.trust, int) else int(talleyrand.trust)
     return trust <= 20
@@ -598,6 +601,10 @@ def apply_redemption_choice(choice: str, talleyrand, world) -> Dict:
             "You refuse to bend. Talleyrand says nothing — but the silence "
             "between you speaks volumes. The court notices."
         )
+
+    # Set redemption cooldown (5 turns before next redemption can fire)
+    current_turn = getattr(world, 'turn_number', None) or getattr(world, 'current_turn', 1)
+    world.last_redemption_turn = int(current_turn)
 
     return result
 

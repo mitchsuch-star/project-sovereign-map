@@ -309,6 +309,11 @@ def _enqueue_proposal(proposal: Dict, world) -> bool:
         all_items = queue + [proposal]
         all_items.sort(key=lambda x: x.get("priority", 99))
         # Drop the last (highest priority number = least urgent)
+        dropped = all_items[QUEUE_MAX_SIZE:]
+        for item in dropped:
+            print(f"[DIPLOMACY] Proposal dropped from queue: "
+                  f"{item.get('source', '?')} {item.get('proposal_type', '?')} "
+                  f"(priority {item.get('priority', '?')})")
         queue = all_items[:QUEUE_MAX_SIZE]
     else:
         queue.append(proposal)
@@ -650,8 +655,6 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
         ptype = "harsh_peace"
         if not _is_on_cooldown(nation, ptype, world, war_score):
             terms = _build_proposal_terms(nation, ptype, war_score, world, gold_mult=gold_mult)
-            if war_score > 60:
-                terms["clauses"].append("ap_reduction")
             proposal = _make_proposal(nation, ptype, 8, terms, world)
 
     if proposal is None:
@@ -906,7 +909,10 @@ def _format_proposal_summary(terms: Dict) -> str:
         "continental_system_lifted": "Continental System lifted",
     }
     for c in terms.get("clauses", []):
-        name = clause_names.get(c, c.replace("_", " ").title())
+        if isinstance(c, dict):
+            name = c.get("type", "clause").replace("_", " ").title()
+        else:
+            name = clause_names.get(c, c.replace("_", " ").title())
         parts.append(f"  - {name}")
 
     return "\n".join(parts)
@@ -968,12 +974,11 @@ def generate_counter_offer(proposal: Dict, world) -> Optional[Dict]:
     # R138: Counter-offers cost 1 DP for AI nations
     if source_nation and source_nation != getattr(world, 'player_nation', 'France'):
         nation_dp = getattr(world, 'nation_dp', {})
-        if source_nation in nation_dp:
-            current_dp = nation_dp[source_nation]
-            if current_dp < 1:
-                return None  # AI can't afford counter-offer — reject instead
-            nation_dp[source_nation] = current_dp - 1
-            world.nation_dp = nation_dp
+        current_dp = nation_dp.get(source_nation, 0)
+        if current_dp < 1:
+            return None  # AI can't afford counter-offer — reject instead
+        nation_dp[source_nation] = current_dp - 1
+        world.nation_dp = nation_dp
 
     # R125: Look up personality-based acceptance/rejection thresholds
     diplomats = getattr(world, 'diplomats', {})

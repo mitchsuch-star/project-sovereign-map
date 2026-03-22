@@ -207,7 +207,7 @@ def process_vassal_loyalty(world) -> List[dict]:
 
     Modifiers:
     - Autonomy drift: PUPPET -4, SATELLITE -2, AUTONOMOUS +1
-    - Garrison in vassal capital: +5 base + min(garrison_troops//5000, 3)
+    - Garrison in vassal capital: +2 base + min(garrison_troops//5000, 3), capped at 4
     - Gold investment treaty: +1 per 100g/turn from active treaty clause
     - Shared enemy: +2 per shared war (lord and vassal both at WAR with same)
     - Lord winning battles: +1 per battle won this turn (max +3)
@@ -249,7 +249,7 @@ def process_vassal_loyalty(world) -> List[dict]:
                     delta += int(gold_amount) // 100
 
         # 4. Shared enemy bonus
-        all_nations = ["France", "Britain", "Prussia", "Austria", "Saxony"]
+        all_nations = [getattr(world, 'player_nation', 'France')] + list(getattr(world, 'enemy_nations', []))
         for other_nation in all_nations:
             if other_nation == lord or other_nation == vassal_name:
                 continue
@@ -502,7 +502,7 @@ def check_defection_cascade(world) -> List[dict]:
             continue
 
         # Check if lord is in a war with war_score < -30
-        all_nations = ["France", "Britain", "Prussia", "Austria", "Saxony"]
+        all_nations = [getattr(world, 'player_nation', 'France')] + list(getattr(world, 'enemy_nations', []))
         for enemy_nation in all_nations:
             if enemy_nation == lord or enemy_nation == vassal_name:
                 continue
@@ -902,7 +902,7 @@ def attempt_vassal_courting(world, nation: str) -> List[dict]:
     events = []
     player = getattr(world, 'player_nation', 'France')
 
-    dp = getattr(world, 'diplomatic_points_nations', {}).get(nation, 0)
+    dp = getattr(world, 'nation_dp', {}).get(nation, 0)
     if dp < 2:
         return events
 
@@ -914,12 +914,12 @@ def attempt_vassal_courting(world, nation: str) -> List[dict]:
 
         # Anti-spam cooldown
         cooldown_key = f"court|{nation}|{vassal_name}"
-        cooldown = world.ai_proposal_cooldowns.get(cooldown_key, 0)
+        cooldown = getattr(world, 'ai_proposal_cooldowns', {}).get(cooldown_key, 0)
         if cooldown > 0:
             continue
 
         # Cost 2 DP
-        dp_nations = getattr(world, 'diplomatic_points_nations', {})
+        dp_nations = getattr(world, 'nation_dp', {})
         if dp_nations.get(nation, 0) < 2:
             continue
 
@@ -936,7 +936,9 @@ def attempt_vassal_courting(world, nation: str) -> List[dict]:
         state["loyalty"] = max(LOYALTY_MIN, state["loyalty"] - loyalty_reduction)
 
         # Set cooldown
-        world.ai_proposal_cooldowns[cooldown_key] = 3
+        cooldowns_dict = getattr(world, 'ai_proposal_cooldowns', {})
+        cooldowns_dict[cooldown_key] = 3
+        world.ai_proposal_cooldowns = cooldowns_dict
 
         # Notification: courting detected (Session 8C)
         from backend.notifications import (

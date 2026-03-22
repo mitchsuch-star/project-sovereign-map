@@ -94,12 +94,16 @@ class TestCleanupWarEnd:
         assert key not in world.war_scores
 
     def test_resets_war_exhaustion(self):
+        """D1 fix: Only reset exhaustion for nations with no other active wars."""
         world = make_world()
         world.war_exhaustion = {"France": 30, "Prussia": 20, "Austria": 10}
         key = world._make_diplo_key("France", "Prussia")
+        # Default world has Britain|France=WAR, so France has another war.
+        # End France-Prussia war: France keeps exhaustion (still at war with Britain),
+        # Prussia resets (no other wars).
         cleanup_war_end(world, key)
-        assert world.war_exhaustion.get("France") is None
-        assert world.war_exhaustion.get("Prussia") is None
+        assert world.war_exhaustion.get("France") == 30  # Still at war with Britain
+        assert world.war_exhaustion.get("Prussia") is None  # No other wars
         assert world.war_exhaustion.get("Austria") == 10  # Unrelated, kept
 
 
@@ -199,6 +203,7 @@ class TestRatifyTreatyCleanup:
     """Verify cleanup_war_end fires on treaty ratification for WAR→PEACE."""
 
     def test_war_data_cleared_on_peace_treaty(self):
+        """D1 fix: Only reset exhaustion for nations with no other active wars."""
         world = make_world()
         key = world._make_diplo_key("France", "Prussia")
         world.diplomatic_states[key] = "WAR"
@@ -218,5 +223,7 @@ class TestRatifyTreatyCleanup:
 
         assert key not in world.war_scores
         assert key not in world.battle_records
-        assert world.war_exhaustion.get("France") is None
+        # D1 fix: France still at war with Britain (default world state),
+        # so exhaustion is preserved. Prussia has no other wars, so reset.
+        assert world.war_exhaustion.get("France") == 20  # Still at war with Britain
         assert world.war_exhaustion.get("Prussia") is None
