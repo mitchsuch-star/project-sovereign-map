@@ -614,9 +614,10 @@ def calculate_acceptance(proposal: Dict, world) -> Dict:
     # ── Threat Modifier (COALITION_SPEC §6a) ──
     threat = int(getattr(world, 'threat_level', 0))
     threat_mod = 0
-    if proposer == "France":
+    player = getattr(world, 'player_nation', 'France')
+    if proposer == player:
         threat_mod = threat * -0.3
-    elif target != "France":
+    elif target != player:
         threat_mod = threat * 0.2
 
     # ── Coalition Loyalty Penalty (COALITION_SPEC §6a/§6c) ──

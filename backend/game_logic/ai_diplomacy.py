@@ -352,7 +352,7 @@ def _get_war_score_for_nation(nation: str, opponent: str, world) -> int:
 # ═══════════════════════════════════════════════════════════════
 
 def _get_stalemate_turns(nation: str, world) -> int:
-    """Get consecutive stalemate turns for a nation's war with France."""
+    """Get consecutive stalemate turns for a nation's current war."""
     counters = getattr(world, 'ai_stalemate_counters', {})
     return counters.get(nation, 0)
 
