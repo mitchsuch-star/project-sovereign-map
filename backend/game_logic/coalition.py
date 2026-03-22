@@ -475,6 +475,21 @@ def add_war_exhaustion_from_battle(nation: str, casualties: int, world) -> int:
     current = world.war_exhaustion.get(nation, 0)
     new_val = min(current + we_gain, WAR_EXHAUSTION_MAX)
     world.war_exhaustion[nation] = int(new_val)
+
+    # S4: Dispatch when WE crosses thresholds
+    _WE_THRESHOLDS = [20, 40, 60, 80]
+    dispatched = getattr(world, '_we_dispatched_thresholds', {})
+    last_threshold = dispatched.get(nation, 0)
+    for threshold in _WE_THRESHOLDS:
+        if new_val >= threshold > current and threshold > last_threshold:
+            from backend.game_logic.dispatch import queue_dispatch_event
+            queue_dispatch_event(world, "diplomatic_we_threshold",
+                                {"nation": nation, "we": int(new_val), "threshold": threshold},
+                                "always")
+            dispatched[nation] = threshold
+            world._we_dispatched_thresholds = dispatched
+            break
+
     return int(new_val)
 
 
@@ -724,6 +739,7 @@ def dissolve_coalition(world, reason: str) -> List[Dict]:
 
     # Clear coalition state
     world.active_coalition = None
+    world._we_dispatched_thresholds = {}
 
     # R84: Dismiss superseded COALITION_DECLARED notification on dissolution
     world.notifications.dismiss_by_type(COALITION_DECLARED)

@@ -544,6 +544,17 @@ class WorldState:
         key = self._make_diplo_key(nation_a, nation_b)
         new_val = max(-100, min(100, self.nation_relations.get(key, 0) + delta))
         self.nation_relations[key] = new_val
+
+        # S2: Track cumulative per-turn deltas for player-involved relations
+        player = getattr(self, 'player_nation', 'France')
+        if player in (nation_a, nation_b):
+            other = nation_b if nation_a == player else nation_a
+            if not hasattr(self, '_relation_deltas_this_turn'):
+                self._relation_deltas_this_turn = {}
+            self._relation_deltas_this_turn[other] = (
+                self._relation_deltas_this_turn.get(other, 0) + delta
+            )
+
         return new_val
 
     # ========================================
@@ -3687,6 +3698,12 @@ class WorldState:
 
         # Coalition - clear per-turn threat source tracking
         self.threat_sources_this_turn = []
+
+        # S4: Snapshot WE before changes this turn (for trend calculation)
+        self._prev_war_exhaustion = dict(self.war_exhaustion)
+
+        # S2: Clear per-turn relation delta tracker
+        self._relation_deltas_this_turn = {}
 
         # Dispatch events - clear before systems populate new events
         self.pending_dispatch_events = []

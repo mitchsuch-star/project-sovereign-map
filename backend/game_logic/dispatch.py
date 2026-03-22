@@ -78,7 +78,14 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None) -> Dic
     dispatch["coalition_status"] = _build_coalition_section(world, player_nation)
 
     # Diplomatic events (Session 8D)
-    dispatch["diplomatic_events"] = _build_diplomatic_events_section(world, player_nation)
+    diplomatic_events = _build_diplomatic_events_section(world, player_nation)
+
+    # S2: Merge significant relation change events
+    relation_events = _build_relation_change_events(world, player_nation)
+    if relation_events:
+        diplomatic_events.extend(relation_events)
+
+    dispatch["diplomatic_events"] = diplomatic_events
 
     # Store on world for dispatch re-read screen (Session A)
     world.last_morning_dispatch = dispatch
@@ -617,6 +624,18 @@ def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
                         "elaborate_type": "advisory",
                     })
                     _set_cooldown(nation, "vassal_loyalty", 3)
+                elif loyalty < 35:
+                    observations.append({
+                        "message": (
+                            f"Sire, Talleyrand notes growing discontent in {nation}. "
+                            f"Loyalty stands at {int(loyalty)}."
+                        ),
+                        "trigger_type": "vassal_loyalty",
+                        "target_nation": nation,
+                        "priority": 4,
+                        "elaborate_type": "advisory",
+                    })
+                    _set_cooldown(nation, "vassal_loyalty", 3)
 
         # ── Trigger 4: Relation threshold crossed ──
         thresholds = [-40, -20, 0, 20, 40]
@@ -886,6 +905,9 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_coalition_formed": "A coalition has formed against France! Members: {member_list}.",
     "diplomatic_coalition_dissolved": "The coalition against France has dissolved.",
     "diplomatic_coalition_brewing": "Talleyrand warns: a coalition may be forming against France.",
+    "diplomatic_dp_regen": "Talleyrand reports: {dp} diplomatic points available ({breakdown}).",
+    "diplomatic_we_threshold": "War exhaustion grows — {nation} nears breaking point (exhaustion: {we}).",
+    "diplomatic_relation_shift": "Relations with {nation} have {direction} significantly ({delta} this turn).",
 }
 
 # Priority mapping: LOW for progress/sent/feasibility; MEDIUM for treaty/system; HIGH for rest
@@ -917,6 +939,9 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "diplomatic_coalition_formed": "HIGH",
     "diplomatic_coalition_dissolved": "MEDIUM",
     "diplomatic_coalition_brewing": "MEDIUM",
+    "diplomatic_dp_regen": "LOW",
+    "diplomatic_we_threshold": "MEDIUM",
+    "diplomatic_relation_shift": "MEDIUM",
 }
 
 
@@ -1008,6 +1033,21 @@ def _format_dispatch_event_text(event_type: str, template_vars: dict) -> str:
     except (KeyError, IndexError):
         # Graceful fallback if template vars missing
         return template
+
+
+def _build_relation_change_events(world, player_nation: str) -> list:
+    """S2: Fire dispatch events for significant relation changes this turn."""
+    deltas = getattr(world, '_relation_deltas_this_turn', {})
+    events = []
+    for nation, delta in deltas.items():
+        if abs(delta) >= 10:
+            direction = "improved" if delta > 0 else "worsened"
+            events.append({
+                "type": "diplomatic_relation_shift",
+                "text": f"Relations with {nation} have {direction} significantly ({delta:+d} this turn).",
+                "priority": "MEDIUM",
+            })
+    return events
 
 
 def _build_diplomatic_events_section(world, player_nation: str) -> list:

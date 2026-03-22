@@ -715,4 +715,7 @@ class TestDispatchEventsSerialization:
                             "partial_on_nation")
         assert len(world.pending_dispatch_events) == 1
         world.advance_turn()
-        assert len(world.pending_dispatch_events) == 0
+        # Old events cleared; only DP regen event (S1) may be re-added during turn processing
+        war_events = [e for e in world.pending_dispatch_events
+                      if e["type"] == "diplomatic_war_declared"]
+        assert len(war_events) == 0

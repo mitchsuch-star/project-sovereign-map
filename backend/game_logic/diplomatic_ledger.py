@@ -438,10 +438,19 @@ def _build_threat_coalition(world) -> Dict[str, Any]:
             strength_display = _format_army_strength(member_strength, vis)
 
             we = world.war_exhaustion.get(member, 0) or 0
+            # S4a: WE trend
+            prev_we = getattr(world, '_prev_war_exhaustion', {}).get(member, 0)
+            if we > prev_we:
+                we_trend = "rising"
+            elif we < prev_we:
+                we_trend = "falling"
+            else:
+                we_trend = "stable"
             members_data.append({
                 "nation": member,
                 "strength_display": strength_display,
                 "war_exhaustion": int(we),
+                "war_exhaustion_trend": we_trend,
             })
 
         # Combined strength display — use best visibility across all members
@@ -468,6 +477,17 @@ def _build_threat_coalition(world) -> Dict[str, Any]:
     # TH2: Coalition cooldown
     coalition_cooldown = int(getattr(world, 'coalition_cooldown', 0) or 0)
 
+    # S5: Threat projection
+    next_war_projection = min(100, threat_level + 20)
+    threat_projection = {
+        "current": threat_level,
+        "after_next_war": next_war_projection,
+        "brewing_threshold": 60,
+        "instant_threshold": 80,
+        "wars_until_brewing": max(0, (60 - threat_level + 19) // 20) if threat_level < 60 else 0,
+        "wars_until_instant": max(0, (80 - threat_level + 19) // 20) if threat_level < 80 else 0,
+    }
+
     return {
         "threat_level": threat_level,
         "threat_tier": threat_tier,
@@ -480,6 +500,8 @@ def _build_threat_coalition(world) -> Dict[str, Any]:
         # TH4: Dissolution conditions (static thresholds for display)
         "dissolution_threat_threshold": 20,
         "dissolution_war_exhaustion_limit": 80,
+        # S5: Threat projection
+        "threat_projection": threat_projection,
     }
 
 

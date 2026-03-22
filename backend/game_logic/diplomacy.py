@@ -1510,6 +1510,20 @@ def _process_dp_regen(world) -> None:
 
         if nation == world.player_nation:
             world.diplomatic_points = int(dp)
+            # S1: Queue DP breakdown for morning dispatch
+            from backend.game_logic.dispatch import queue_dispatch_event
+            parts = ["base 3"]
+            if diplomat and diplomat.skill >= 8:
+                parts.append("+1 skill")
+            if authority >= 60:
+                parts.append("+1 authority")
+            elif authority < 30:
+                parts.append("-1 low authority")
+            if not controls_capital:
+                parts.append("-1 no capital")
+            breakdown_str = ", ".join(parts)
+            queue_dispatch_event(world, "diplomatic_dp_regen",
+                                {"dp": int(dp), "breakdown": breakdown_str}, "always")
         else:
             # Store AI DP for AI diplomacy consumption
             if not hasattr(world, 'nation_dp'):
@@ -2321,6 +2335,13 @@ def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:
         if type_key in cooldowns and cooldowns[type_key] > 0:
             available = False
             reason = f"Cooldown: {cooldowns[type_key]} turns"
+
+        # U2: Armistice cooldown check (prioritize over DP)
+        arm_cd = armistice_cooldowns.get(diplo_key, 0)
+        if arm_cd > 0 and target_state not in ("PEACE", "OPEN_BORDERS", "NON_AGGRESSION",
+                                                 "DEFENSIVE_ALLIANCE", "ALLIANCE"):
+            available = False
+            reason = f"Armistice: {arm_cd} turns remaining"
 
         # Relation requirement
         req = STATE_RELATION_REQUIREMENTS.get(target_state)
