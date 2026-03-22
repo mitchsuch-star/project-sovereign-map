@@ -5,7 +5,7 @@
 **Previous audit:** `DIPLOMACY_AUDIT_2026_03.md` (code bugs, 43 found/fixed, 112 tests).
 **This audit:** Design-level issues — AI behavior, UX feedback, missing features.
 
-> **Review outcome:** 30 original findings reviewed → 17 retracted (factually wrong, overstated, or intentional asymmetries). **12 confirmed issues + 4 new features** organized into 4 implementation sessions.
+> **Review outcome:** 30 original findings reviewed → 17 retracted (factually wrong, overstated, or intentional asymmetries). **14 confirmed items** (10 fixes + 4 new features) organized into 4 implementation sessions.
 
 ---
 
@@ -19,12 +19,13 @@ P8 (winning, war_score > 40) builds harsh peace with gold demands, checks accept
 
 **EU4 comparison:** EU4 AI aggressively demands provinces, gold, and vassalization when winning. Demands scale with war score — the AI always sends SOMETHING.
 
-**Fix:** When P8 acceptance < 20, enter iterative demand reduction:
+**Fix:** Insert iterative reduction **inside the P8 block** (after `_make_proposal` at line 658, before the proposal reaches the global score < 20 filter at line 669). The loop calls `calculate_acceptance()` locally on the P8 proposal:
 1. Halve gold demand, re-check acceptance
 2. If still < 20, drop weakest non-gold clause, re-check
 3. Up to 2 retries total
-4. If nothing scores > 20 after retries, fall back to minimal "white peace + 200g" demand
-5. The player should ALWAYS receive demands when losing badly
+4. If nothing scores > 20 after retries, fall back to minimal "white peace + 200g" demand and set `proposal["_force_send"] = True`
+5. The global score < 20 check (line 669) must respect the flag: `if score < 20 and not proposal.get("_force_send"): return None`
+6. The player should ALWAYS receive demands when losing badly — the `_force_send` flag guarantees this
 
 ### A2. AI Ignores Coalition Membership When Proposing Peace
 **PRIORITY: HIGH**
@@ -159,6 +160,10 @@ for nation in all_nations:
     if nation in getattr(world, 'vassals', {}):
         continue  # Vassal auto-join handled elsewhere
 
+    # Skip player if alliance paradox popup is pending (they choose manually)
+    if nation == world.player_nation and has_paradox:
+        continue
+
     state_with_aggressor = world.get_diplomatic_state(nation, aggressor)
     if state_with_aggressor == "ALLIANCE":
         if not world.is_at_war(nation, target):
@@ -201,7 +206,7 @@ for nation in all_nations:
             cascade.extend(sub_cascade)
 ```
 
-**Alliance paradox extension:** The existing paradox check (lines 990-1035) must be expanded. Currently it checks if the player is allied with both aggressor and target. Now it must also check: if the player has ALLIANCE with the aggressor but also DA/ALLIANCE with the target, a paradox occurs. The existing popup structure handles this — just expand the condition check.
+**Alliance paradox extension:** The existing paradox check (lines 990-1035) must be expanded. Currently it checks if the player is allied with both aggressor and target. Now it must also check: if the player has ALLIANCE with the aggressor but also DA/ALLIANCE with the target, a paradox occurs. The existing popup structure handles this — just expand the condition check. **Critical:** The offensive cascade loop must skip the player when `has_paradox` is true (see `has_paradox` guard in code sample above), identical to how the defensive cascade uses `cascade_skip`. Otherwise the player gets auto-pulled in AND receives a choice popup.
 
 **Relation penalties for offensive cascade:**
 - Cascaded nation → target: -20 relation (same as defensive cascade)
@@ -378,6 +383,26 @@ def get_active_wars():
             "opponent": opponent,
             "war_score": int(war_score),
             "duration": int(duration),
+            "status": "war",
+        })
+
+    # Also include ARMISTICE nations (grayed-out cards)
+    armistice_cooldowns = getattr(world, 'armistice_cooldowns', {})
+    for key, state in world.diplomatic_states.items():
+        if state != "ARMISTICE":
+            continue
+        nations = key.split("|")
+        if france not in nations:
+            continue
+        opponent = nations[0] if nations[1] == france else nations[1]
+        diplo_key = world._make_diplo_key(france, opponent)
+        remaining = int(armistice_cooldowns.get(diplo_key, 0))
+        wars.append({
+            "opponent": opponent,
+            "war_score": 0,
+            "duration": 0,
+            "status": "armistice",
+            "armistice_remaining": remaining,
         })
 
     return {"wars": wars}
@@ -452,9 +477,11 @@ DP resets every turn. No notification of how much was generated or what factors 
 
 Relations can shift from coalition penalties, reliability decay, or treaty-breaking cascades with zero player-facing explanation. Player sees nations become hostile with no context.
 
-**Fix:** After `modify_nation_relation()` calls that produce large swings (≥ ±10 cumulative in a turn), fire a dispatch event: "Relations with [nation] have [worsened/improved] due to [reason]."
+**Fix:** After `modify_nation_relation()` calls that produce large swings (≥ ±10 cumulative in a turn), fire a dispatch event: "Relations with [nation] have [worsened/improved] significantly."
 
-**Implementation:** Add a transient dict `_relation_deltas_this_turn: Dict[str, int]` on WorldState (no serialization — cleared at turn start in `advance_turn()`). In `modify_nation_relation()`, accumulate: `self._relation_deltas_this_turn[nation] += amount`. At end of turn processing (after all modifications), iterate the dict, fire dispatch for any nation with `abs(delta) >= 10`. Filter via existing fog rules (`partial_on_nation`).
+**Implementation:** Add a transient dict `_relation_deltas_this_turn: Dict[str, int]` on WorldState (no serialization — cleared at turn start in `advance_turn()`). In `modify_nation_relation()`, accumulate: `self._relation_deltas_this_turn[nation] = self._relation_deltas_this_turn.get(nation, 0) + amount`. At end of turn processing (after all modifications), iterate the dict, fire dispatch for any nation with `abs(delta) >= 10`. Filter via existing fog rules (`partial_on_nation`).
+
+**Note:** The dispatch does NOT attribute a specific reason — `modify_nation_relation()` only receives a delta, not a reason string. Adding reason tracking would require changing every callsite. The unattributed dispatch still tells the player *something changed* and they can check the diplomatic ledger for details.
 
 ### S4. War Exhaustion Not Displayed
 **PRIORITY: MODERATE**
