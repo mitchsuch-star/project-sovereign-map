@@ -6,6 +6,8 @@
 **This audit:** Design-level issues — AI behavior, UX feedback, missing features.
 
 > **Review outcome:** 30 original findings reviewed → 17 retracted (factually wrong, overstated, or intentional asymmetries). **14 confirmed items** (10 fixes + 4 new features) organized into 4 implementation sessions.
+>
+> **Progress:** DA-1 COMPLETE (5 items, 79 tests). DA-2 COMPLETE (6 items, 37 tests). **2 sessions remaining (DA-3, DA-4).**
 
 ---
 
@@ -524,8 +526,8 @@ Wizard shows "Insufficient DP" when armistice is the real blocker. Terminal corr
 
 ## IMPLEMENTATION PLAN
 
-### Session DA-1: AI Diplomatic Intelligence (Backend Only)
-**Scope:** 5 items, ~80-100 tests estimated
+### Session DA-1: AI Diplomatic Intelligence (Backend Only) — COMPLETE
+**Scope:** 5 items, 79 tests
 **Prerequisite:** None — all fixes are in existing code paths
 
 | # | Item | Files | Complexity |
@@ -536,8 +538,8 @@ Wizard shows "Insufficient DP" when armistice is the real blocker. Terminal corr
 | A3 | WE modifier on P1/P2 thresholds | `ai_diplomacy.py` | Small — ~5 lines |
 | N1 | AI-AI preemptive alliances (Trigger 5) | `ai_diplomacy.py` | Small — ~15 lines in `_evaluate_ai_ai_proposal` |
 
-### Session DA-2: Player Feedback & UX (Backend + Minor Godot)
-**Scope:** 6 items, ~30-40 tests estimated
+### Session DA-2: Player Feedback & UX (Backend Only) — COMPLETE
+**Scope:** 6 items, 37 tests
 **Prerequisite:** None
 
 | # | Item | Files | Complexity |
@@ -577,15 +579,15 @@ Wizard shows "Insufficient DP" when armistice is the real blocker. Terminal corr
 
 ## Summary
 
-| Category | Items | Sessions |
-|----------|-------|----------|
-| AI behavior fixes (A1-A4) | 4 | DA-1 |
-| New feature: preemptive alliances (N1) | 1 | DA-1 |
-| UX feedback (S1-S5, U2) | 6 | DA-2 |
-| New feature: offensive cascade (N2) | 1 | DA-3 |
-| Enhancement: friction in attacks (N3) | 1 | DA-3 |
-| New feature: war status panel (N4) | 1 | DA-4 |
-| **Total** | **14** | **4 sessions** |
+| Category | Items | Session | Status |
+|----------|-------|---------|--------|
+| AI behavior fixes (A1-A4) | 4 | DA-1 | DONE (79 tests) |
+| New feature: preemptive alliances (N1) | 1 | DA-1 | DONE |
+| UX feedback (S1-S5, U2) | 6 | DA-2 | DONE (37 tests) |
+| New feature: offensive cascade (N2) | 1 | DA-3 | — |
+| Enhancement: friction in attacks (N3) | 1 | DA-3 | — |
+| New feature: war status panel (N4) | 1 | DA-4 | — |
+| **Total** | **14** | **4 sessions** | **11/14 done, 2 sessions remaining** |
 
 ### Session Dependencies
 
