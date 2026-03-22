@@ -5,7 +5,7 @@
 **Previous audit:** `DIPLOMACY_AUDIT_2026_03.md` (code bugs, 43 found/fixed, 112 tests).
 **This audit:** Design-level issues — AI behavior, UX feedback, missing features.
 
-> **Review outcome:** 30 original findings reviewed → 17 retracted (factually wrong, overstated, or intentional asymmetries). **13 confirmed issues + 4 new features** organized into 4 implementation sessions.
+> **Review outcome:** 30 original findings reviewed → 17 retracted (factually wrong, overstated, or intentional asymmetries). **12 confirmed issues + 4 new features** organized into 4 implementation sessions.
 
 ---
 
@@ -35,11 +35,11 @@ P1 (losing badly, war_score < -40) proposes peace without checking coalition mem
 **EU4 comparison:** EU4 coalition members cannot sign separate peace — only the war leader can. Your system intentionally allows separate peace (§6a), which is more interesting, but AI should resist defection.
 
 **Fix:** In P1, before proposing peace, check `is_coalition_member(nation, world)`. If true, block peace proposals unless:
-- Own troops < 30% of war start strength, OR
+- War score < -50 (getting thoroughly beaten — correlates with heavy troop losses), OR
 - War exhaustion > 80, OR
 - War has lasted 8+ turns AND war_score < -60
 
-This makes coalition members fight until desperate rather than defecting at the first setback.
+War score is used as a proxy for troop losses since it directly reflects battle outcomes. No new tracking fields needed — `get_war_score_for()` and `war_exhaustion` already exist. This makes coalition members fight until desperate rather than defecting at the first setback.
 
 ### A4. Harsh Peace Gold Formula Produces Unreachable Demands
 **PRIORITY: MODERATE**
@@ -55,7 +55,7 @@ Formula: `gold_demand = max(500, int(war_score * 8 * gold_mult))`. The 500g floo
 
 War exhaustion accumulates and affects acceptance formula, but AI decision triggers (P1-P8) don't reference it. AI can't anticipate "my WE is high, peace proposals will be more acceptable."
 
-**Fix:** In P1, lower the war_score threshold by `WE // 20` (high exhaustion makes AI propose peace earlier). In P2, reduce stalemate patience by `WE // 30` turns. ~5 lines.
+**Fix:** In P1, lower the war_score threshold by `WE // 20` (high exhaustion makes AI propose peace earlier). In P2, reduce stalemate patience by `max(2, base_patience - WE // 30)` turns (floor of 2 prevents zero/negative patience at extreme WE). ~5 lines.
 
 ---
 
@@ -80,6 +80,7 @@ Trigger 5: Preemptive Alliance Against Threat
   Conditions (ALL must be true):
     - world.threat_level > 40 (Murmurs tier — France is visibly aggressive)
     - Neither nation is at war with France (peacetime alliance-building)
+    - Neither nation has a treaty with France (NON_AGGRESSION or higher)
     - Both nations have relation with France < 0 (both wary of France)
     - Mutual relation between the two nations > -10 (can work together)
     - Current state between them is not already DEFENSIVE_ALLIANCE or ALLIANCE
@@ -99,21 +100,26 @@ Trigger 5: Preemptive Alliance Against Threat
 
 ```python
 # Trigger 5: Preemptive alliance when French threat rising (N1)
+# Only nations without treaties with France should form anti-French alliances.
 threat = int(getattr(world, 'threat_level', 0))
 if threat > 40:
     player = getattr(world, 'player_nation', 'France')
     rel_a_france = world.nation_relations.get(world._make_diplo_key(nation_a, player), 0)
     rel_b_france = world.nation_relations.get(world._make_diplo_key(nation_b, player), 0)
+    # Block if either nation has a positive treaty with France (NON_AGGRESSION+)
+    _treaty_states = ("NON_AGGRESSION", "OPEN_BORDERS", "DEFENSIVE_ALLIANCE", "ALLIANCE")
     if (rel_a_france < 0 and rel_b_france < 0
             and relation_ab > -10
             and state_ab not in ("DEFENSIVE_ALLIANCE", "ALLIANCE")
-            and state_a_france != "WAR" and state_b_france != "WAR"):
+            and state_a_france not in ("WAR",) + _treaty_states
+            and state_b_france not in ("WAR",) + _treaty_states):
         return {"type": "defensive_alliance", "proposer": nation_a, "target": nation_b}
 ```
 
 **Test cases:**
 - Trigger fires at threat 41 with correct conditions → DEFENSIVE_ALLIANCE proposed
 - Trigger blocked when one nation has positive relation with France
+- Trigger blocked when either nation has a treaty with France (NON_AGGRESSION+)
 - Trigger blocked when nations already have DA/ALLIANCE
 - Trigger blocked when either at war with France (falls to Trigger 1 instead)
 - Trigger respects per-pair cooldown
@@ -146,16 +152,30 @@ Add a second pass after the existing defensive loop:
 ```python
 # ── OFFENSIVE CASCADE: Aggressor's ALLIANCE partners join against target ──
 # Only ALLIANCE (not DEFENSIVE_ALLIANCE) triggers offensive calling.
+# Skip vassals — they auto-join overlord's wars via separate path.
 for nation in all_nations:
     if nation in processed:
         continue
+    if nation in getattr(world, 'vassals', {}):
+        continue  # Vassal auto-join handled elsewhere
 
     state_with_aggressor = world.get_diplomatic_state(nation, aggressor)
     if state_with_aggressor == "ALLIANCE":
         if not world.is_at_war(nation, target):
             war_key = world._make_diplo_key(nation, target)
             world.diplomatic_states[war_key] = "WAR"
-            # Record war start, remove treaty, apply relation penalty
+
+            # Mirror defensive cascade post-processing (lines 1108-1150):
+            # 1. Record war start turn
+            cascade_war_starts = getattr(world, 'war_start_turns', {})
+            cascade_war_starts[war_key] = int(world.current_turn)
+            world.war_start_turns = cascade_war_starts
+            # 2. Remove active treaty between cascaded nation and target
+            active_treaties = getattr(world, 'active_treaties', {})
+            active_treaties.pop(war_key, None)
+            # 3. Relation penalty: cascaded nation → target
+            world.modify_nation_relation(nation, target, -20)
+
             processed.add(nation)
             cascade.append({
                 "attacker_ally": nation,
@@ -163,6 +183,19 @@ for nation in all_nations:
                 "target": target,
                 "cascade_type": "offensive",
             })
+
+            # 4. Notification
+            world.notifications.add(create_notification(
+                ALLIANCE_CASCADE_WAR, NotificationPriority.HIGH,
+                f"{nation} Joins Offensive!",
+                f"{nation} enters the war against {target}, honoring alliance with {aggressor}.",
+                int(world.current_turn),
+            ))
+            # 5. Dispatch event
+            queue_dispatch_event(world, "offensive_cascade",
+                                {"nation": nation, "aggressor": aggressor, "target": target},
+                                "partial_on_nation")
+
             # Recursive: nation's allies may also cascade
             sub_cascade = _process_war_cascade(world, nation, target, processed)
             cascade.extend(sub_cascade)
@@ -195,11 +228,11 @@ for nation in all_nations:
 **PRIORITY: LOW**
 `enemy_ai.py:2177-2180`, `coalition.py:409-426`
 
-**Current state:** Coalition friction (0.25-1.0 based on mutual relation) only affects the P4.75 ally-support movement bonus (`enemy_ai.py:5268-5272`). The P4 attack scoring has a separate coordination estimate (+8% per co-located ally, line 2177) that ignores friction entirely. Two coalition members with -30 relation get the same +8% attack bonus as two with +40.
+**Current state:** Coalition friction (0.25-1.0 based on mutual relation) only affects the P4.75 ally-support movement bonus (`enemy_ai.py:5268-5272`). The P4 attack scoring has a coordination estimate (+8% per co-located ally, line 2177) but the co-location check (`enemy_ai.py:2125-2130`) only counts **same-nation** allies (`a.nation == nation`). Cross-nation coalition allies in the same region contribute **zero** to the attack decision — they're excluded entirely, not just unmodulated.
 
 **EU4 comparison:** EU4 coalition members coordinate poorly in practice — they often occupy each other's war goals and fight separately. Your friction system is a better abstraction but needs wider application.
 
-**Design:** Modulate the P4 coordination estimate by friction. Cross-nation allies get `+8% * friction` instead of flat `+8%`.
+**Design:** Expand the co-location check to include cross-nation allies, then modulate their bonus by friction. Same-nation allies keep full `+8%`. Cross-nation allies get `+8% * friction`.
 
 **Implementation in `_find_attack_opportunity()` at line 2177:**
 
@@ -222,7 +255,9 @@ if co_located_ally_count > 0:
     effective_ratio += coord_bonus
 ```
 
-This requires collecting ally marshals (not just count) at the co-location check earlier in the function. The `co_located_ally_count` calculation (around lines 2130-2160) already iterates marshals — store them in a list instead of just incrementing a counter.
+This requires two changes at the co-location check (`enemy_ai.py:2125-2130`):
+1. **Expand filter:** Remove `a.nation == nation` to include cross-nation allies
+2. **Store list:** Replace `len([...])` with a stored list so we can iterate marshals for per-nation friction lookup
 
 **Effect on gameplay:**
 - Coalition members at relation +30: full +8% per ally (friction 1.0)
@@ -399,7 +434,7 @@ Armistice cards are grayed out, not clickable (no actions available during armis
 
 ---
 
-## UX FEEDBACK (7 findings)
+## UX FEEDBACK (6 findings, 1 retracted)
 
 ### S1. DP Regeneration Is Silent
 **PRIORITY: HIGH**
@@ -407,7 +442,9 @@ Armistice cards are grayed out, not clickable (no actions available during armis
 
 DP resets every turn. No notification of how much was generated or what factors contribute. If player loses capital (-1 DP/turn), they discover it by noticing the counter changed.
 
-**Fix:** Add morning dispatch line via `queue_dispatch_event()`: "Talleyrand reports: [X] diplomatic points available (base 3, +1 skill, +1 authority, -1 no capital)." Template vars from the existing DP calculation in `_process_dp_regen()`.
+**Fix:** Add morning dispatch line via `queue_dispatch_event()`: "Talleyrand reports: [X] diplomatic points available (base 3, +1 skill, +1 authority, -1 no capital)."
+
+**Implementation note:** `calculate_dp()` currently returns a single `int`. To produce the breakdown, replicate the component logic inline in `_process_dp_regen()` for the player nation only (base 3, skill_bonus, authority_bonus, capital_penalty are all computed there already before calling `calculate_dp()`). Pass the breakdown as template vars to the dispatch event. No need to refactor `calculate_dp()` itself — the 4-line calculation is simple enough to inline.
 
 ### S2. Significant Relation Changes Have No Dispatch Events
 **PRIORITY: HIGH**
@@ -415,7 +452,9 @@ DP resets every turn. No notification of how much was generated or what factors 
 
 Relations can shift from coalition penalties, reliability decay, or treaty-breaking cascades with zero player-facing explanation. Player sees nations become hostile with no context.
 
-**Fix:** After `modify_nation_relation()` calls that produce large swings (≥ ±10 cumulative in a turn), fire a dispatch event: "Relations with [nation] have [worsened/improved] due to [reason]." Track per-turn relation delta per nation, fire dispatch at end of turn processing. Filter via existing fog rules (`partial_on_nation`).
+**Fix:** After `modify_nation_relation()` calls that produce large swings (≥ ±10 cumulative in a turn), fire a dispatch event: "Relations with [nation] have [worsened/improved] due to [reason]."
+
+**Implementation:** Add a transient dict `_relation_deltas_this_turn: Dict[str, int]` on WorldState (no serialization — cleared at turn start in `advance_turn()`). In `modify_nation_relation()`, accumulate: `self._relation_deltas_this_turn[nation] += amount`. At end of turn processing (after all modifications), iterate the dict, fire dispatch for any nation with `abs(delta) >= 10`. Filter via existing fog rules (`partial_on_nation`).
 
 ### S4. War Exhaustion Not Displayed
 **PRIORITY: MODERATE**
@@ -425,6 +464,8 @@ War exhaustion affects acceptance formula but appears only as a per-member numbe
 
 **Fix:** (a) Add WE trend indicator to coalition tab (rising/stable/falling based on last turn delta). (b) Add dispatch line when WE crosses thresholds (20, 40, 60, 80): "War exhaustion grows among the coalition — [nation] grows weary of the fight."
 
+**Threshold dispatch cooldown:** Track `_last_we_dispatch_threshold: Dict[str, int]` (transient, no serialization). Only fire dispatch when a nation's WE crosses a threshold it hasn't dispatched for yet. Example: WE goes from 18→22 (crosses 20, dispatch fires, stores 20). Next turn WE is 25 (still above 20 but below 40, no new dispatch). WE reaches 41 (crosses 40, new dispatch). Reset tracking when coalition dissolves.
+
 ### S5. Threat Projection Missing
 **PRIORITY: MODERATE**
 `diplomatic_ledger.py:394-410`
@@ -433,13 +474,8 @@ Ledger shows current threat and this-turn sources but no projection. Player must
 
 **Fix:** Add to coalition tab: "Next war declaration: +20 threat (→ [projected]). Brewing at 60. Instant at 80." Simple arithmetic from current threat value. ~10 lines in `diplomatic_ledger.py`.
 
-### U1. Acceptance Component Labels Missing for Military Factors
-**PRIORITY: LOW**
-`diplomacy.py:2615-2632`
-
-`military_supremacy`, `battlefield_diplomacy`, `military_pressure` auto-generate display names. Should have thematic labels from `FEEDBACK_STRINGS`.
-
-**Fix:** Add 3 entries to `_COMPONENT_LABELS`. ~5 lines.
+### ~~U1. Acceptance Component Labels Missing for Military Factors~~
+**RETRACTED** — All three keys (`military_supremacy`, `battlefield_diplomacy`, `military_pressure`) already have entries in both `_COMPONENT_LABELS` (lines 2626-2628) and `FEEDBACK_STRINGS` (lines 192+). No change needed.
 
 ### U2. Wizard vs Terminal Show Different Blocking Reasons
 **PRIORITY: LOW**
@@ -453,9 +489,9 @@ Wizard shows "Insufficient DP" when armistice is the real blocker. Terminal corr
 **PRIORITY: LOW**
 `vassal.py:761-789`, `dispatch.py:601-619`
 
-Warnings fire at loyalty < 20 (dispatch) and < 10 (rebellion popup). A vassal at 45 losing -6/turn gets ~4 turns of silence before the first warning.
+`vassal.py` already fires warnings at <40 (warning), <20 (urgent), <10 (critical) — these appear in the strategic ledger. But the **morning dispatch** (`dispatch.py:607`) only triggers at loyalty < 20. A vassal at 45 losing -6/turn gets no dispatch warning until loyalty drops below 20.
 
-**Fix:** Add "concern" tier at loyalty < 35 in dispatch: "Talleyrand notes growing discontent in [vassal]." Severity: info (not warning).
+**Fix:** Add "concern" tier at loyalty < 35 in dispatch: "Talleyrand notes growing discontent in [vassal]." Severity: info (not warning). This bridges the gap between the ledger's <40 tier and the dispatch's current <20 tier.
 
 ---
 
@@ -474,7 +510,7 @@ Warnings fire at loyalty < 20 (dispatch) and < 10 (rebellion popup). A vassal at
 | N1 | AI-AI preemptive alliances (Trigger 5) | `ai_diplomacy.py` | Small — ~15 lines in `_evaluate_ai_ai_proposal` |
 
 ### Session DA-2: Player Feedback & UX (Backend + Minor Godot)
-**Scope:** 7 items, ~30-40 tests estimated
+**Scope:** 6 items, ~30-40 tests estimated
 **Prerequisite:** None
 
 | # | Item | Files | Complexity |
@@ -483,7 +519,6 @@ Warnings fire at loyalty < 20 (dispatch) and < 10 (rebellion popup). A vassal at
 | S2 | Significant relation change dispatch | `diplomacy.py`, `coalition.py`, `dispatch.py` | Medium |
 | S4 | War exhaustion display + dispatch | `diplomatic_ledger.py`, `dispatch.py` | Small |
 | S5 | Threat projection in ledger | `diplomatic_ledger.py` | Small |
-| U1 | Component label entries | `diplomacy.py` | Trivial |
 | U2 | Wizard armistice reason priority | `diplomacy.py` | Small |
 | S3 | Vassal loyalty warning at 35 | `dispatch.py` | Small |
 
@@ -496,7 +531,7 @@ Warnings fire at loyalty < 20 (dispatch) and < 10 (rebellion popup). A vassal at
 | N2 | Offensive alliance cascade in `_process_war_cascade` | `diplomacy.py`, `dispatch.py` | Medium — ~30 lines + paradox extension |
 | N3 | Friction in P4 attack coordination | `enemy_ai.py` | Small — ~15 lines, refactor co_located count to list |
 
-**Dependency:** N2 makes ALLIANCE strictly better than DEFENSIVE_ALLIANCE (defense + offense vs defense-only). N1 creates AI-AI defensive alliances before coalition. Together, the player faces: AI nations allying at threat 40, those alliances pulling nations into wars at ALLIANCE tier, and coordinated (or friction-impaired) coalition attacks.
+**Dependency:** N2 makes ALLIANCE strictly better than DEFENSIVE_ALLIANCE (defense + offense vs defense-only). N1 creates AI-AI **defensive** alliances at threat 40 — these don't trigger offensive cascade directly. However, existing Trigger 3 (relation > 40, both at peace) upgrades treaties one step, so DA→ALLIANCE upgrades happen naturally over time. Together: N1 seeds the alliance network, Trigger 3 upgrades some to full ALLIANCE, and N2 makes those full alliances pull nations into offensive wars. N2 is also independently valuable for any existing ALLIANCE relationships (e.g., player-created alliances that later break).
 
 ### Session DA-4: War Status Panel (Backend + Godot)
 **Scope:** 1 feature (N4), ~15-20 backend tests + manual Godot testing
@@ -519,11 +554,11 @@ Warnings fire at loyalty < 20 (dispatch) and < 10 (rebellion popup). A vassal at
 |----------|-------|----------|
 | AI behavior fixes (A1-A4) | 4 | DA-1 |
 | New feature: preemptive alliances (N1) | 1 | DA-1 |
-| UX feedback (S1-S5, U1-U2) | 7 | DA-2 |
+| UX feedback (S1-S5, U2) | 6 | DA-2 |
 | New feature: offensive cascade (N2) | 1 | DA-3 |
 | Enhancement: friction in attacks (N3) | 1 | DA-3 |
 | New feature: war status panel (N4) | 1 | DA-4 |
-| **Total** | **15** | **4 sessions** |
+| **Total** | **14** | **4 sessions** |
 
 ### Session Dependencies
 
@@ -543,4 +578,4 @@ DA-1 and DA-2 and DA-4 can all run in parallel. DA-3 depends on DA-1.
 4. **N4** (DA-4): Wars invisible without opening full screen. Core EU4-style UX gap.
 5. **S1 + S2 + S4** (DA-2): Silent systems cause player confusion.
 6. **N2** (DA-3): ALLIANCE has no offensive benefit over DEFENSIVE_ALLIANCE.
-7. **N3, S3, S5, U1, U2** (DA-2/3): Polish and enhancement.
+7. **N3, S3, S5, U2** (DA-2/3): Polish and enhancement.
