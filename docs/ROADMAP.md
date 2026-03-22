@@ -748,7 +748,6 @@ EA v1: Western + Central Europe (~80 regions). EA updates add Eastern Europe, ex
 | **Full Advisor System** | MEDIUM | Action gating, trust, dismissal (VISION Layer 1) |
 | **North Africa / Egypt** | MEDIUM | Expansion map art, Egyptian campaign scenario |
 | Weather System | MEDIUM | Russian winter, mud season |
-| Advanced AI | MEDIUM | Flanking coordination, capital defense |
 | Campaign Editor | MEDIUM | Player-made scenarios |
 | Steam Workshop | MEDIUM | Mod sharing |
 | **Multi-Nation Battle Reports** | LOW | Thread player_nation from world state through combat resolver. Currently hardcoded to France. Tests document exact wiring point. |
@@ -773,7 +772,7 @@ Lighter version of communication cutoff: orders to distant marshals take effect 
 7. Phase 7 Core: Multi-Marshal Coordination (Sessions 57-61a, 61b, 64 — 7 sessions, ~246 tests) — combined arms, coordination bonuses, Grouchy Rule, dynamic relationships
 7b. Phase 7b: Casualty Distribution (S62), AI Coordination (S63), Battle Reports + Reinforcement Reporting (S65), Godot UI (S66), Tactical Triangle (S67-68), V2b, Jealousy
 8. Phase 8: **Diplomacy** (11 sessions: Map Expansion, Nations, States+Formula, Talleyrand, AI Proposals, Vassals, Defiance, **Coalition**, Ledger Backend+Debug, Ledger UI+Top Bar, Popups+Notifications, Dispatch+Polish). ~525 tests. Session 8 expanded to 8A-8D per `SESSION_8_PLAN.md`.
-8b. **AI-AI Strategic Intent:** Opportunistic war declarations, vassalization of beaten AI opponents, cross-AI threat assessment. Infrastructure 95% nation-agnostic — needs decision-making layer only. See FUTURE_DESIGN.md "AI-AI Strategic Intent" section.
+8b. **AI Strategic Depth:** Flanking coordination, capital defense, **AI-AI strategic intent** (opportunistic war declarations, vassalization of beaten AI opponents, cross-AI threat assessment). Infrastructure 95% nation-agnostic — needs decision-making layer only. See FUTURE_DESIGN.md "AI-AI Strategic Intent" section.
 9. Phase 8.5: **Events, Gazette, Marshal Voice, Grouchy LLM, Intercepted Dispatches, Creative Commands, Napoleon Comparison**
 10. **STEAM PAGE + LLC** (marshal voice, gazette, audio, EU4 map all working)
 11. Phase 9: Advisors (minimal: stats + flavor + named voices)
