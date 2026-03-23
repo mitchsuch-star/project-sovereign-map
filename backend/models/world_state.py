@@ -4369,6 +4369,7 @@ class WorldState:
                         self.nation_gold[to_nation] += transfer
             elif ctype == "territory_cede":
                 regions = clause.get("regions", [])
+                transferred_count = 0
                 for region_name in regions:
                     if region_name not in self.regions:
                         continue
@@ -4378,14 +4379,15 @@ class WorldState:
                         continue
                     region.controller = to_nation
                     region.stability = 50
-                # Coalition threat: +8 per region annexed by France (§2a)
-                if to_nation == self.player_nation and regions:
+                    transferred_count += 1
+                # Coalition threat: +8 per region ACTUALLY annexed by France (§2a)
+                if to_nation == self.player_nation and transferred_count > 0:
                     from backend.game_logic.coalition import add_threat
-                    add_threat(self, 8 * len(regions), "treaty_annex")
-                # Threat reduction: -5 per region returned by France (§2b)
-                if from_nation == self.player_nation and regions:
+                    add_threat(self, 8 * transferred_count, "treaty_annex")
+                # Threat reduction: -5 per region ACTUALLY returned by France (§2b)
+                if from_nation == self.player_nation and transferred_count > 0:
                     from backend.game_logic.coalition import reduce_threat
-                    reduce_threat(self, 5 * len(regions), "territory_return")
+                    reduce_threat(self, 5 * transferred_count, "territory_return")
 
         # R81: Check for elimination after territory cessions
         ceded_from = set()

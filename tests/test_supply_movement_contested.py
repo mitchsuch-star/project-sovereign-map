@@ -72,11 +72,11 @@ class TestSupplyCapacity:
         assert belgium.supply_capacity == 25000
 
     def test_rural_supply_capacity(self):
-        """Rural supply capacity."""
+        """Rural supply capacity — use Waterloo (rural, hills)."""
         world = fresh_world()
-        netherlands = world.get_region("Netherlands")
-        # rural = 15000 * plains 1.0 = 15000
-        assert netherlands.supply_capacity == 15000
+        waterloo = world.get_region("Waterloo")
+        # rural = 15000 * hills 0.9 = 13500
+        assert waterloo.supply_capacity == 13500
 
     def test_mountains_reduce_supply(self):
         """Mountain terrain halves supply capacity."""

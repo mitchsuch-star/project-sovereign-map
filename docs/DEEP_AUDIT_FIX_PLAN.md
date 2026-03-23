@@ -198,7 +198,7 @@ Some audit findings re-classified after review:
 | 14 | **P39-2: Empty threat_entries IndexError** | diplomatic_advisory.py:282 | Add `if not threat_entries: return` guard |
 | 15 | **P65-1: Threat score double-counting military strength** | diplomatic_advisory.py:266-269 | Change `if` to `elif` |
 
-**Tests:** ~15 new tests.
+**Status:** ALL 15 fixes applied, 18 new tests (`test_deep_audit_session7.py`), 8 existing tests updated. 6686 total passing.
 
 ---
 

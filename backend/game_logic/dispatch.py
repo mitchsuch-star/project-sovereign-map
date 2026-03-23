@@ -538,7 +538,8 @@ def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
         "DEFENSIVE_ALLIANCE": "alliance",
     }
 
-    known_nations = ["Britain", "Prussia", "Austria", "Saxony"]
+    from backend.game_logic.diplomatic_dialogue import get_known_nations
+    known_nations = sorted(get_known_nations(world))
 
     for nation in known_nations:
         if len(observations) >= 2:
@@ -841,6 +842,7 @@ def _build_coalition_section(world, player_nation: str) -> Optional[Dict]:
 
     # Active coalition details
     if is_coalition_active(world):
+        from backend.game_logic.diplomatic_ledger import _get_nation_visibility, _format_army_strength
         coalition = world.active_coalition
         members_info = []
         for member in coalition.get("members", []):
@@ -848,11 +850,15 @@ def _build_coalition_section(world, player_nation: str) -> Optional[Dict]:
                 m.strength for m in world.marshals.values()
                 if m.nation == member and m.strength > 0
             )
+            vis = _get_nation_visibility(member, world)
+            strength_display = _format_army_strength(member_strength, vis)
+            partial_vis = vis in (FULL, PARTIAL)
             members_info.append({
                 "nation": member,
-                "war_exhaustion": int(world.war_exhaustion.get(member, 0)),
-                "strength": int(member_strength),
-                "gold": int(world.nation_gold.get(member, 0)),
+                "war_exhaustion": int(world.war_exhaustion.get(member, 0)) if partial_vis else 0,
+                "strength_display": strength_display,
+                "strength": int(member_strength) if vis == FULL else 0,
+                "gold": int(world.nation_gold.get(member, 0)) if vis == FULL else 0,
             })
 
         section["active_coalition"] = {
@@ -996,7 +1002,7 @@ def _is_dispatch_event_visible(event: dict, world, player_nation: str) -> bool:
     if fog_rule == "partial_on_nation":
         # Check PARTIAL+ on any nation mentioned in template_vars
         nations_to_check = []
-        for key in ("nation", "nation_a", "nation_b", "target"):
+        for key in ("nation", "nation_a", "nation_b", "target", "aggressor", "ally", "enemy", "vassal_capital"):
             val = template_vars.get(key)
             if val:
                 nations_to_check.append(val)

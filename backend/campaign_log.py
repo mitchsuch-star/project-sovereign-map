@@ -107,6 +107,12 @@ CAMPAIGN_LOG_TYPES = {
     "diplomatic_treaty_broken",
     "diplomatic_alliance_cascade",
     "diplomatic_ai_ai_treaty",
+    # Deep audit fix: missing event types
+    "war_declaration",
+    "defensive_cascade",
+    "offensive_cascade",
+    "coalition_declared",
+    "coalition_dissolved",
 }
 
 # ============================================================================
@@ -136,6 +142,12 @@ CATEGORY_MAP = {
     "diplomatic_treaty_broken": "diplomacy",
     "diplomatic_alliance_cascade": "diplomacy",
     "diplomatic_ai_ai_treaty": "diplomacy",
+    # Deep audit fix: missing event types
+    "war_declaration": "diplomacy",
+    "defensive_cascade": "diplomacy",
+    "offensive_cascade": "diplomacy",
+    "coalition_declared": "diplomacy",
+    "coalition_dissolved": "diplomacy",
 }
 
 
@@ -476,5 +488,28 @@ def format_event_oneliner(event: dict) -> str:
         nation_b = event.get("nation_b", "Unknown")
         treaty_type = (event.get("treaty_type") or "treaty").replace("_", " ")
         return f"AI-AI treaty: {nation_a} and {nation_b} ({treaty_type})"
+
+    # Deep audit fix: new event types
+    if event_type == "war_declaration":
+        aggressor = event.get("aggressor") or event.get("nation", "Unknown")
+        target = event.get("target", "Unknown")
+        return f"War declared: {aggressor} → {target}"
+
+    if event_type == "defensive_cascade":
+        nation = event.get("nation", "Unknown")
+        ally = event.get("ally", "Unknown")
+        return f"Defensive cascade: {nation} joins war via {ally}"
+
+    if event_type == "offensive_cascade":
+        nation = event.get("nation", "Unknown")
+        aggressor = event.get("aggressor", "Unknown")
+        return f"Offensive cascade: {nation} joins {aggressor}'s war"
+
+    if event_type == "coalition_declared":
+        members = event.get("members", [])
+        return f"Coalition formed against France! Members: {', '.join(members) if members else 'Unknown'}"
+
+    if event_type == "coalition_dissolved":
+        return "Coalition against France has dissolved."
 
     return f"Event: {event_type}"

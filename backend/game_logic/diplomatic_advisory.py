@@ -16,7 +16,6 @@ from typing import Dict, List, Optional
 
 from backend.game_logic.diplomacy import get_war_score_for
 from backend.game_logic.diplomatic_dialogue import (
-    KNOWN_NATIONS,
     get_known_nations,
 )
 
@@ -265,7 +264,7 @@ def _compare_threats(world) -> Dict:
             threat_score += 15
         if strength > france_strength * 0.5:
             threat_score += 20
-        if strength > france_strength:
+        elif strength > france_strength:
             threat_score += 20
 
         threat_entries.append({
@@ -278,6 +277,23 @@ def _compare_threats(world) -> Dict:
 
     # Sort by threat score descending
     threat_entries.sort(key=lambda e: -e["threat_score"])
+
+    if not threat_entries:
+        return {
+            "type": "advisory",
+            "target_nation": "",
+            "talleyrand_text": "No foreign nations detected, Sire.",
+            "options": [{"label": "Thank you", "description": "Dismiss.", "action": "dismiss"}],
+            "context": {
+                "situation_summary": "No foreign nations detected.",
+                "recommendation": "The situation is stable.",
+                "confidence_level": "low",
+                "action_hints": [],
+                "threat_ranking": [],
+            },
+            "turn_created": int(world.current_turn),
+            "blocking": False,
+        }
 
     top_threat = threat_entries[0]
     second_threat = threat_entries[1] if len(threat_entries) > 1 else None
@@ -697,7 +713,7 @@ def _get_nation_summary(nation: str, world) -> str:
 
     # Check for alliances with other nations (coalition risk)
     allied_with = []
-    for other in KNOWN_NATIONS:
+    for other in get_known_nations(world):
         if other == nation:
             continue
         other_state = world.get_diplomatic_state(nation, other)

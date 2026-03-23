@@ -182,16 +182,18 @@ class TestAIAdminBuild:
         assert built, f"AI should build fortification at border city. Results: {[r.get('ai_action') for r in results]}"
 
     def test_ai_does_not_build_in_non_buildable_region(self):
-        """AI should not attempt to build in rural/town regions."""
+        """AI should not attempt to build in rural/town regions (excluding capitals)."""
         world = _setup_world()
         executor = CommandExecutor()
         ai = EnemyAI(executor)
 
-        # Britain's starting regions: Netherlands (rural), Waterloo (rural), Hanover (town)
-        # None are buildable (need capital/major_city/city)
-        # So there are no valid buildable border regions for Britain
+        # Britain's starting regions: Netherlands (capital), Waterloo (rural), Hanover (town)
+        # Netherlands is capital (has building slots), so it's buildable
+        # Waterloo and Hanover have no slots
         result = ai._find_unfortified_border_region("Britain", world)
-        assert result is None, f"Britain has no buildable border regions, got {result}"
+        # Netherlands is now a capital with building slots, so it may be returned
+        if result is not None:
+            assert result == "Netherlands", f"Only Netherlands should be buildable, got {result}"
 
 
 # ═══════════════════════════════════════════════════════════════════

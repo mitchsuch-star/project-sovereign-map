@@ -208,8 +208,8 @@ def _build_nations(world) -> List[Dict[str, Any]]:
             other_vis = _get_nation_visibility(other_ai, world)
             other_vis_priority = VISIBILITY_PRIORITY.get(other_vis, 0)
 
-            # Show if player has PARTIAL+ on either nation in the pair
-            if nation_vis_priority >= partial_priority or other_vis_priority >= partial_priority:
+            # Show if player has PARTIAL+ on BOTH nations in the pair
+            if nation_vis_priority >= partial_priority and other_vis_priority >= partial_priority:
                 ai_diplo_key = world._make_diplo_key(nation, other_ai)
                 ai_state = world.diplomatic_states.get(ai_diplo_key, "PEACE")
                 ai_relations.append({
@@ -422,6 +422,7 @@ def _build_threat_coalition(world) -> Dict[str, Any]:
 
     # Active coalition
     active_coalition_data = None
+    partial_priority = VISIBILITY_PRIORITY.get(PARTIAL, 3)
     coalition = getattr(world, 'active_coalition', None)
     if coalition:
         members_data = []
@@ -437,7 +438,12 @@ def _build_threat_coalition(world) -> Dict[str, Any]:
             vis = _get_nation_visibility(member, world)
             strength_display = _format_army_strength(member_strength, vis)
 
-            we = world.war_exhaustion.get(member, 0) or 0
+            we_raw = world.war_exhaustion.get(member, 0) or 0
+            # Fix 13: Only show WE if PARTIAL+ visibility
+            if VISIBILITY_PRIORITY.get(vis, 0) < partial_priority:
+                we = 0
+            else:
+                we = we_raw
             # S4a: WE trend
             prev_we = getattr(world, '_prev_war_exhaustion', {}).get(member, 0)
             if we > prev_we:

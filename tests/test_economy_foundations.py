@@ -132,14 +132,14 @@ class TestRegionIncomeValues:
             assert REGIONS_DATA[name]["income"] == 150
 
     def test_towns_100(self):
-        """Belgium, Rhineland, Bavaria, Tyrol, Normandy, Hanover, Dresden are town with 100 income."""
-        for name in ["Belgium", "Rhineland", "Bavaria", "Tyrol", "Normandy", "Hanover", "Dresden"]:
+        """Belgium, Rhineland, Bavaria, Tyrol, Normandy, Hanover are town with 100 income."""
+        for name in ["Belgium", "Rhineland", "Bavaria", "Tyrol", "Normandy", "Hanover"]:
             assert REGIONS_DATA[name]["region_type"] == "town"
             assert REGIONS_DATA[name]["income"] == 100
 
     def test_rural_50(self):
-        """Netherlands, Waterloo, Brittany, Bordeaux are rural with 50 income."""
-        for name in ["Netherlands", "Waterloo", "Brittany", "Bordeaux"]:
+        """Waterloo, Brittany, Bordeaux are rural with 50 income."""
+        for name in ["Waterloo", "Brittany", "Bordeaux"]:
             assert REGIONS_DATA[name]["region_type"] == "rural"
             assert REGIONS_DATA[name]["income"] == 50
 
@@ -151,8 +151,15 @@ class TestRegionIncomeValues:
             assert data["region_type"] in VALID_REGION_TYPES, f"{name} has invalid type"
 
     def test_income_matches_region_type(self):
-        """Every region's income matches its region_type's expected income."""
+        """Every region's income matches its region_type's expected income.
+
+        Exceptions: Netherlands (proxy capital, 50g) and Dresden (minor capital, 100g)
+        retain their historical income values despite being typed as capitals.
+        """
+        INCOME_EXCEPTIONS = {"Netherlands", "Dresden"}
         for name, data in REGIONS_DATA.items():
+            if name in INCOME_EXCEPTIONS:
+                continue
             expected_income = REGION_TYPE_INCOME[data["region_type"]]
             assert data["income"] == expected_income, (
                 f"{name}: income {data['income']} != expected {expected_income} for type {data['region_type']}"
