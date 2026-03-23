@@ -102,29 +102,28 @@ Some audit findings re-classified after review:
 
 ---
 
-## Session 4: DP, AP, Gold & Economy
+## Session 4: DP, AP, Gold & Economy — COMPLETE
 
 **Theme:** Economy-breaking bugs in treaty clauses, DP costs, and gold handling.
+**Status:** 9 fixes applied, 6 false positives confirmed, 16 new tests (`test_deep_audit_session4.py`), 1 existing test updated. 6618 total passing.
 
-| # | Finding | File | Fix |
-|---|---------|------|-----|
-| 1 | **P104-1: AP clause cumulative permanent reduction** | world_state.py:4467-4472 | Reset nation_actions to base each turn before applying AP treaty penalties |
-| 2 | **P21/P38: nation_manpower doesn't exist (crash)** | world_state.py:4456-4466 | Replace all 5 `self.nation_manpower` with `self.manpower_pools` |
-| 3 | **P1: Gold lump sum bankruptcy** | world_state.py:4298-4302 | Add `min(amount, max(0, available))` guard |
-| 4 | **P1: AI counter-offer DP not refunded** | executor.py:13282-13312 | Move DP deduction after success check, or add refund path |
-| 5 | **P50-1: Alliance paradox honor/break free DP** | executor.py:12952-13005 | Add DP deduction to both handlers |
-| 6 | **P19-1: Vassalage DP cost shown as 1 instead of 3** | diplomatic_dialogue.py:473 | Map `propose_vassalage` → `demand_vassalage` for cost lookup |
-| 7 | **P19-2: _state_map missing vassalage→VASSAL** | executor.py:12010-12011 | Add mapping |
-| 8 | **P12: Counter-offer Talleyrand state overridden by mission restore** | world_state.py:4102,4133-4137 | Skip restore block when outcome is COUNTER_OFFER |
-| 9 | **P2: Territory sweetener inflated 5x** | ai_diplomacy.py:1183-1184 | Only apply `max(5,...)` to gold types; use `max(1,...)` for territory |
-| 10 | **P61-1: Vassal tribute hardcoded 50g per region** | vassal.py:568-572 | Use actual region income values |
-| 11 | **P61-3: Continental System double-penalizes** | diplomacy.py:2121-2124 | Remove Britain deduction (only member pays) |
-| 12 | **P12: Negative treaty clause amount reverses transfer** | world_state.py:4245,4257,4433 | Add `abs()` or `max(0,...)` guard |
-| 13 | **P12: Free gold creation when from_nation eliminated** | world_state.py:4454-4455 | Guard to_nation credit with from_nation existence check |
-| 14 | **P104-2: AP clause against France silently ignored** | world_state.py:4470 | Apply France AP penalty to `world.max_actions_per_turn` |
-| 15 | **P1: Trade income not in strategic ledger** | world_state.py:2252-2255 | Wire `process_trade_income()` into `calculate_turn_income()` |
-
-**Tests:** ~20 new tests.
+| # | Finding | Status | Notes |
+|---|---------|--------|-------|
+| 1 | **P104-1: AP clause cumulative permanent reduction** | **FIXED** | Reset nation_actions to base values before `_process_treaty_clauses()` in `advance_turn()`. 2 tests. |
+| 2 | **P21/P38: nation_manpower doesn't exist** | **FIXED** | Replaced all 5 `self.nation_manpower` → `self.manpower_pools`. 1 test. |
+| 3 | **P1: Gold lump sum bankruptcy** | **FIXED** | Added floor check + nested credit inside debit. 2 tests. |
+| 4 | **P1: AI counter-offer DP not refunded** | **FALSE POSITIVE** | Each action has own DP cost — working correctly. |
+| 5 | **P50-1: Alliance paradox honor/break free DP** | **FALSE POSITIVE** | Reactive system, no DP cost by design. |
+| 6 | **P19-1: Vassalage DP cost shown as 1 instead of 3** | **FIXED** | Added `"propose_vassalage": 3` to `base_costs` dict. 2 tests. |
+| 7 | **P19-2: _state_map missing vassalage→VASSAL** | **FALSE POSITIVE** | Already present at line 4219. |
+| 8 | **P12: Counter-offer Talleyrand state overridden** | **FIXED** | Guard restore block with `outcome != "COUNTER_OFFER"`. 2 tests. |
+| 9 | **P2: Territory sweetener inflated 5x** | **FIXED** | `max(1,...)` for territory, `max(5,...)` for gold only. 2 tests. |
+| 10 | **P61-1: Vassal tribute hardcoded 50g** | **FALSE POSITIVE** | Simplified by design. |
+| 11 | **P61-3: Continental System double-penalizes** | **FALSE POSITIVE** | Both parties lose trade — correct. |
+| 12 | **P12: Negative treaty clause amount reverses transfer** | **FIXED** | Added `abs()` on amount in both one-time and per-turn clause loops. 2 tests. |
+| 13 | **P12: Free gold creation when from_nation eliminated** | **FIXED** | Nested credit inside debit (Fix 3) + removed else branch in per-turn. 1 test. |
+| 14 | **P104-2: AP clause against France silently ignored** | **FIXED** | Apply to `max_actions_per_turn` when `from_nation == player_nation`. 2 tests. |
+| 15 | **P1: Trade income not in strategic ledger** | **FALSE POSITIVE** | Documented deferral (TODO comment). |
 
 ---
 

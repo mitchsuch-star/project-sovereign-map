@@ -25,7 +25,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial Infrastructure deferred to Pre-EA.
 - **Phase 8: Diplomacy — COMPLETE.** ALL 11 sessions done (1A through 8D). ~580 tests. See `docs/SESSION_8_PLAN.md`.
 - **Diplomacy Audits — ALL COMPLETE.** Code audit (20 bugs, 145 tests). Creative audit (7.8/10). Comprehensive creative audit (6.5/10, 41 new items → Phase 5). March 2026 deep audit (43 bugs, 112 tests). See `docs/DIPLOMACY_AUDIT_2026_03.md`.
-- **Deep Audit Fix Plan — Sessions 1-3 DONE.** Session 1: 9 combat/war score fixes, 21 tests. Session 2: 18 vassal fixes, 27 tests. Session 3: 13 diplomatic state machine fixes (war score sign, stale proposals, treaty cleanup, threat guards), 25 tests. Sessions 4-9 remaining. See `docs/DEEP_AUDIT_FIX_PLAN.md`.
+- **Deep Audit Fix Plan — Sessions 1-4 DONE.** Session 1: 9 combat/war score fixes, 21 tests. Session 2: 18 vassal fixes, 27 tests. Session 3: 13 diplomatic state machine fixes, 25 tests. Session 4: 9 economy fixes (AP reset, manpower_pools, gold floor, DP cost, counter-offer state, territory sweetener, negative amounts, free gold, France AP), 16 tests. Sessions 5-9 remaining. See `docs/DEEP_AUDIT_FIX_PLAN.md`.
 - **Diplomacy Refinement Phases 1-4 — COMPLETE.** 55 items done, 326 tests. See `docs/DIPLO_REFINEMENT.md`.
 
 ### Design Gates

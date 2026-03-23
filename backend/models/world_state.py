@@ -3899,6 +3899,16 @@ class WorldState:
         apply_continental_system(self)
 
         # ════════════════════════════════════════════════════════════
+        # RESET AI NATION ACTIONS (Deep Audit Session 4 Fix 1)
+        # Must happen BEFORE treaty clauses so AP clauses reduce from
+        # base, not from last turn's already-reduced value
+        # ════════════════════════════════════════════════════════════
+        _base_nation_actions = {"Britain": 4, "Prussia": 4, "Austria": 3, "Saxony": 2}
+        for nation, base in _base_nation_actions.items():
+            if nation in self.nation_actions:
+                self.nation_actions[nation] = base
+
+        # ════════════════════════════════════════════════════════════
         # TREATY PER-TURN CLAUSES (Phase 8 Session 3 §7f step 10)
         # Applied after trade income
         # ════════════════════════════════════════════════════════════
@@ -4175,13 +4185,14 @@ class WorldState:
             queue_dispatch_event(self, "diplomatic_proposal_returned",
                                 {"nation": target}, "always")
 
-        # Restore Talleyrand state
-        mission = getattr(self, 'active_diplomatic_mission', None)
-        if mission and not mission.get("completed"):
-            self.talleyrand_state = "ON_MISSION"
-            mission["paused"] = False
-        else:
-            self.talleyrand_state = "IDLE"
+        # Restore Talleyrand state (Fix 5: skip restore if counter-offer — state already set to IDLE)
+        if outcome != "COUNTER_OFFER":
+            mission = getattr(self, 'active_diplomatic_mission', None)
+            if mission and not mission.get("completed"):
+                self.talleyrand_state = "ON_MISSION"
+                mission["paused"] = False
+            else:
+                self.talleyrand_state = "IDLE"
 
         self.proposal_in_transit = None
         return events
@@ -4343,15 +4354,18 @@ class WorldState:
         # Apply one-time clauses (shared)
         for clause in treaty_clauses:
             ctype = clause.get("type", "")
-            amount = clause.get("amount", 0)
+            amount = abs(clause.get("amount", 0))  # Fix 7: prevent negative reversal
             from_nation = clause.get("from", "")
             to_nation = clause.get("to", "")
 
             if ctype == "gold_lump":
+                # Fix 3+8: Floor check + nest credit inside debit (no free gold creation)
                 if from_nation in self.nation_gold:
-                    self.nation_gold[from_nation] -= int(amount)
-                if to_nation in self.nation_gold:
-                    self.nation_gold[to_nation] += int(amount)
+                    available = self.nation_gold[from_nation]
+                    transfer = min(int(abs(amount)), max(0, available))
+                    self.nation_gold[from_nation] -= transfer
+                    if to_nation in self.nation_gold:
+                        self.nation_gold[to_nation] += transfer
             elif ctype == "territory_cede":
                 regions = clause.get("regions", [])
                 for region_name in regions:
@@ -4482,12 +4496,13 @@ class WorldState:
         for pair_key, treaty in self.active_treaties.items():
             for clause in treaty.get("clauses", []):
                 ctype = clause.get("type", "")
-                amount = clause.get("amount", 0)
+                amount = abs(clause.get("amount", 0))  # Fix 7: prevent negative reversal
                 from_nation = clause.get("from", "")
                 to_nation = clause.get("to", "")
 
                 if ctype == "gold_per_turn":
                     # R3: Gold floor — transfer only what's available, never go negative
+                    # Fix 8: removed else branch that credited without debiting
                     if from_nation in self.nation_gold:
                         available = self.nation_gold[from_nation]
                         transfer = min(int(amount), max(0, available))
@@ -4503,23 +4518,23 @@ class WorldState:
                                 "amount_due": str(int(amount)),
                                 "amount_paid": str(int(transfer)),
                             }, "always")
-                    elif to_nation in self.nation_gold:
-                        self.nation_gold[to_nation] += int(amount)
                 elif ctype == "manpower_per_turn":
-                    # Transfer between manpower pools
-                    from_pool = self.nation_manpower.get(from_nation, {})
-                    to_pool = self.nation_manpower.get(to_nation, {})
+                    # Transfer between manpower pools (Fix 2: was nation_manpower, correct is manpower_pools)
+                    from_pool = self.manpower_pools.get(from_nation, {})
+                    to_pool = self.manpower_pools.get(to_nation, {})
                     transfer = min(int(amount), from_pool.get("infantry", 0))
-                    if from_nation in self.nation_manpower:
-                        self.nation_manpower[from_nation]["infantry"] = max(
+                    if from_nation in self.manpower_pools:
+                        self.manpower_pools[from_nation]["infantry"] = max(
                             0, from_pool.get("infantry", 0) - transfer)
-                    if to_nation in self.nation_manpower:
-                        self.nation_manpower[to_nation]["infantry"] = (
+                    if to_nation in self.manpower_pools:
+                        self.manpower_pools[to_nation]["infantry"] = (
                             to_pool.get("infantry", 0) + transfer)
                 elif ctype == "ap_per_turn":
-                    # AP reduction clause (Phase 8 Session 5)
-                    # from_nation is the one losing AP (the penalized nation)
-                    if from_nation in self.nation_actions:
+                    # Fix 9: Handle France (player nation) AP reduction
+                    if from_nation == self.player_nation:
+                        self.max_actions_per_turn = max(1, self.max_actions_per_turn - int(amount))
+                        self.actions_remaining = min(self.actions_remaining, self.max_actions_per_turn)
+                    elif from_nation in self.nation_actions:
                         self.nation_actions[from_nation] = max(
                             1, self.nation_actions[from_nation] - int(amount))
 

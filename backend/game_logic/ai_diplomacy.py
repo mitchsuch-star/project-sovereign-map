@@ -1181,7 +1181,11 @@ def _try_add_desired_clauses(
 
         # Add as a sweetener from the AI nation to France
         if dtype in ("gold_lump", "gold_per_turn", "territory"):
-            sweetener_value = max(5, int(desire.get("value", 0)))
+            # Fix 6: Only apply max(5,...) for gold types; territory uses max(1,...)
+            if dtype in ("gold_lump", "gold_per_turn"):
+                sweetener_value = max(5, int(desire.get("value", 0)))
+            else:
+                sweetener_value = max(1, int(desire.get("value", 0)))
             # R113: Validate gold sweetener against treasury (prevent negative gold)
             if dtype == "gold_lump":
                 nation_gold = world.nation_gold.get(source_nation, 0)

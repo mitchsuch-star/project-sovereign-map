@@ -880,6 +880,7 @@ def get_dp_cost(action_type: str, diplomat_skill: int = 10, transition_base: int
         "propose_open_borders": 1,
         "propose_downgrade": 1,
         "demand_vassalage": 3,
+        "propose_vassalage": 3,  # Fix 4: dialogue builds this key, not demand_vassalage
         "offer_trade": 1,
         "respond": 0,
         "cancel_treaty": 1,
