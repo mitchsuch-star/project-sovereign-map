@@ -1072,7 +1072,16 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
 
     messages = [f"{aggressor} declares war on {target}!"]
     for c in cascade:
-        messages.append(f"{c['defender']} enters the war against {aggressor} in defense of {c['ally']}!")
+        if c.get("cascade_type") == "offensive":
+            messages.append(
+                f"{c['attacker_ally']} enters the war against {c['target']}, "
+                f"honoring alliance with {c['aggressor']}!"
+            )
+        else:
+            messages.append(
+                f"{c['defender']} enters the war against {aggressor} "
+                f"in defense of {c['ally']}!"
+            )
 
     return {
         "success": True,
@@ -1084,7 +1093,10 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
 
 
 def _process_war_cascade(world, aggressor: str, target: str, processed: set = None) -> List[Dict]:
-    """Process DEFENSIVE_ALLIANCE / ALLIANCE cascade when war is declared.
+    """Process defensive and offensive alliance cascade when war is declared.
+
+    Defensive: Nations with DA/ALLIANCE with the TARGET join against the aggressor.
+    Offensive: Nations with ALLIANCE (not DA) with the AGGRESSOR join against the target.
 
     Loop protection: max cascade depth = number of nations.
     """
@@ -1152,6 +1164,59 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
 
                 # Recursive cascade: nation's allies may also join
                 sub_cascade = _process_war_cascade(world, aggressor, nation, processed)
+                cascade.extend(sub_cascade)
+
+    # ── OFFENSIVE CASCADE: Aggressor's ALLIANCE partners join against target ──
+    for nation in all_nations:
+        if nation in processed:
+            continue
+        if nation in getattr(world, 'vassals', {}):
+            continue  # Vassals auto-join via separate path
+
+        state_with_aggressor = world.get_diplomatic_state(nation, aggressor)
+        if state_with_aggressor == "ALLIANCE":
+            if not world.is_at_war(nation, target):
+                war_key = world._make_diplo_key(nation, target)
+                world.diplomatic_states[war_key] = "WAR"
+                cascade_war_starts = getattr(world, 'war_start_turns', {})
+                cascade_war_starts[war_key] = int(world.current_turn)
+                world.war_start_turns = cascade_war_starts
+                processed.add(nation)
+                active_treaties = getattr(world, 'active_treaties', {})
+                active_treaties.pop(war_key, None)
+                world.modify_nation_relation(nation, target, -20)
+
+                cascade.append({
+                    "attacker_ally": nation,
+                    "aggressor": aggressor,
+                    "target": target,
+                    "cascade_type": "offensive",
+                })
+
+                world.log_event({
+                    "type": "offensive_cascade",
+                    "attacker_ally": nation,
+                    "aggressor": aggressor,
+                    "against": target,
+                })
+
+                from backend.notifications import (
+                    create_notification, NotificationPriority, ALLIANCE_CASCADE_WAR,
+                )
+                world.notifications.add(create_notification(
+                    ALLIANCE_CASCADE_WAR,
+                    NotificationPriority.HIGH,
+                    f"{nation} Joins Offensive!",
+                    f"{nation} enters the war against {target}, honoring alliance with {aggressor}.",
+                    int(world.current_turn),
+                ))
+
+                from backend.game_logic.dispatch import queue_dispatch_event
+                queue_dispatch_event(world, "diplomatic_offensive_cascade",
+                                    {"nation": nation, "aggressor": aggressor, "target": target},
+                                    "partial_on_nation")
+
+                sub_cascade = _process_war_cascade(world, nation, target, processed)
                 cascade.extend(sub_cascade)
 
     return cascade

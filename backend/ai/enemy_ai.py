@@ -2121,21 +2121,24 @@ class EnemyAI:
         if not marshal_region:
             return None
 
-        # Pre-compute co-located ally count for coordination estimate (+8% per ally)
-        co_located_ally_count = len([
-            a for a in world.marshals.values()
-            if a.nation == nation and a.name != marshal.name
-            and a.location == marshal.location and a.strength > 0
-            and not getattr(a, 'broken', False)
-        ])
-
-        # Find attackable targets with smart evaluation
-        valid_targets = []
-
         # EC-9: Filter out coalition allies from targets (COALITION_SPEC §11.9)
         from backend.game_logic.coalition import is_coalition_member, is_coalition_active
         _coalition_active = is_coalition_active(world)
         _is_member = _coalition_active and is_coalition_member(nation, world)
+
+        # Pre-compute co-located allies for coordination estimate (+8% per ally)
+        # Includes cross-nation coalition allies (friction applied later)
+        co_located_allies = [
+            a for a in world.marshals.values()
+            if a.name != marshal.name
+            and a.location == marshal.location and a.strength > 0
+            and not getattr(a, 'broken', False)
+            and (a.nation == nation
+                 or (_is_member and is_coalition_member(a.nation, world)))
+        ]
+
+        # Find attackable targets with smart evaluation
+        valid_targets = []
 
         for enemy in enemies:
             # EC-9: Skip coalition allies during coalition war
@@ -2175,9 +2178,18 @@ class EnemyAI:
                 effective_ratio = self._evaluate_target_ratio(base_ratio, enemy, world)
 
                 # +8% coordination estimate per co-located ally (inflate perceived ratio)
-                if co_located_ally_count > 0:
-                    effective_ratio += 0.08 * co_located_ally_count
-                    ai_debug(f"      Coordination estimate: +{co_located_ally_count * 8}% ({co_located_ally_count} allies)")
+                # Cross-nation coalition allies modulated by friction (§5c)
+                if co_located_allies:
+                    from backend.game_logic.coalition import get_coalition_friction
+                    coord_bonus = 0.0
+                    for ally in co_located_allies:
+                        if ally.nation != nation:
+                            friction = get_coalition_friction(ally.nation, nation, world)
+                            coord_bonus += 0.08 * friction
+                        else:
+                            coord_bonus += 0.08
+                    effective_ratio += coord_bonus
+                    ai_debug(f"      Coordination estimate: +{coord_bonus * 100:.0f}% ({len(co_located_allies)} allies)")
 
                 ai_debug(f"    Target in range: {enemy.name} at {enemy.location} (dist={distance})")
                 if combined_strength > marshal.strength:
