@@ -1956,6 +1956,7 @@ func _on_objection_response(response):
 			_show_redemption_dialog(response.redemption_event)
 			return
 
+		_update_war_panel_visibility()
 		set_input_enabled(true)
 		command_input.grab_focus()
 		return
@@ -1978,6 +1979,7 @@ func _on_objection_response(response):
 			_show_redemption_dialog(response.redemption_event)
 			return  # Don't re-enable input until redemption resolved
 
+		_update_war_panel_visibility()
 		set_input_enabled(true)
 		command_input.grab_focus()
 		return
@@ -2050,6 +2052,7 @@ func _on_objection_response(response):
 	else:
 		add_output("[color=#" + COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
 
+	_update_war_panel_visibility()
 	add_output("")
 	command_input.grab_focus()
 
@@ -2181,6 +2184,7 @@ func _on_redemption_response(response):
 		add_output("[color=#" + COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
 		add_output("")
 
+	_update_war_panel_visibility()
 	set_input_enabled(true)
 	command_input.grab_focus()
 
@@ -2341,6 +2345,7 @@ func _on_capture_choice_response(response):
 	else:
 		add_output("[color=#" + COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
 
+	_update_war_panel_visibility()
 	add_output("")
 	command_input.grab_focus()
 
@@ -2546,6 +2551,7 @@ func _on_glorious_charge_response(response):
 	else:
 		add_output("[color=#" + COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
 
+	_update_war_panel_visibility()
 	add_output("")
 	command_input.grab_focus()
 
@@ -2713,6 +2719,7 @@ func _process_next_interrupt():
 		# All interrupts processed
 		pending_strategic_response = null
 		pending_enemy_phase_response = null
+		_update_war_panel_visibility()
 		set_input_enabled(true)
 		command_input.grab_focus()
 
