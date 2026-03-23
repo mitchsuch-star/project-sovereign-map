@@ -202,27 +202,27 @@ Some audit findings re-classified after review:
 
 ---
 
-## Session 8: Godot Frontend Fixes
+## Session 8: Godot Frontend Fixes — COMPLETE
 
-**Theme:** Godot-side bugs. No Python tests (GDScript only). Manual test verification.
+**Theme:** Godot-side bugs. No Python tests (GDScript only). 14 fixes applied (Fix 14 skipped — already implemented). 6686 tests still passing.
 
-| # | Finding | File | Fix |
-|---|---------|------|-----|
-| 1 | **P25-1/P77-1: Popup early returns skip ALL state updates** | main.gd:786-841 | Call `_process_active_wars()` + state update before each early return |
-| 2 | **P25-6: Diplomatic ledger threat tier no default** | diplomatic_ledger.gd:415-424 | Add `_:` default with neutral color |
-| 3 | **P25-5: Float→Int in war status panels** | war_status_panel.gd, war_detail_popup.gd | Add defensive `int(float())` casts |
-| 4 | **P77-6: war_detail_popup missing from _is_modal_dialog_open()** | main.gd:2831-2870 | Add to modal check list |
-| 5 | **P77-7: Coalition popup dismissal no war panel refresh** | main.gd:2726-2730 | Call `_process_active_wars()` |
-| 6 | **P100-1/2: Bare response.message in ~12 error paths** | main.gd | Convert to `.get("message", "An error occurred")` |
-| 7 | **P25-7: Wizard error state back button broken** | diplomacy_wizard.gd:140-152 | Reset `_current_step` in error handler |
-| 8 | **P79-1: Wizard double-open during HTTP** | diplomacy_wizard.gd | Add `_request_in_flight` guard |
-| 9 | **P42-3: Talleyrand objection "Modify" input race** | main.gd:2794-2797 | Hide popup before re-enabling input |
-| 10 | **P25-4: War detail popup silent closure** | war_detail_popup.gd:105-106 | Show "This war has ended" message |
-| 11 | **P42-7: Diplomacy wizard ESC handling** | main.gd:587 | Add wizard to ESC close handler |
-| 12 | **P55-1: diplomatic_ledger.gd null crash on history type** | diplomatic_ledger.gd:689 | Null check before `.to_lower()` |
-| 13 | **P55-3: Coalition declaration popup type coercion** | coalition_declaration_popup.gd:41 | Cast to int before %d format |
-| 14 | **P79-2: Wizard doesn't check pending_diplomatic_dialogue** | diplomacy_wizard.gd | Check backend state before opening |
-| 15 | **P48-2: Alliance paradox popup no Godot handler** (deferred from S6) | main.gd + new .tscn | Create popup scene for `alliance_paradox_popup` data |
+| # | Finding | File | Status |
+|---|---------|------|--------|
+| 1 | **P25-1/P77-1: Popup early returns skip ALL state updates** | main.gd | **FIXED** — `_process_active_wars()` + `_last_command_response` cache before each early return |
+| 2 | **P25-6: Diplomatic ledger threat tier no default** | diplomatic_ledger.gd | **FIXED** — Added `_:` default with COLOR_INFO |
+| 3 | **P25-5: Float→Int in war status panels** | war_status_panel.gd, war_detail_popup.gd | **FIXED** — `int(float())` defensive casts on all numeric reads |
+| 4 | **P77-6: war_detail_popup missing from _is_modal_dialog_open()** | main.gd | **FIXED** — Added to modal check list |
+| 5 | **P77-7: Coalition popup dismissal no war panel refresh** | main.gd | **FIXED** — Calls `_process_active_wars(_last_command_response)` |
+| 6 | **P100-1/2: Bare response.message in ~12 error paths** | main.gd | **FIXED** — All 14 occurrences converted to `.get("message", ...)` |
+| 7 | **P25-7: Wizard error state back button broken** | diplomacy_wizard.gd | **FIXED** — Reset `_current_step = 1` in `_show_error()` |
+| 8 | **P79-1: Wizard double-open during HTTP** | diplomacy_wizard.gd | **FIXED** — HTTP status guard in `open()` and `open_for_nation()` |
+| 9 | **P42-3: Talleyrand objection "Modify" input race** | main.gd | **FIXED** — `hide()` before `set_input_enabled(true)` |
+| 10 | **P25-4: War detail popup silent closure** | war_detail_popup.gd | **FIXED** — `war_ended` signal emitted before close, connected in main.gd |
+| 11 | **P42-7: Diplomacy wizard ESC handling** | main.gd | **FIXED** — Wizard close check added before pause menu logic |
+| 12 | **P55-1: diplomatic_ledger.gd null crash on history type** | diplomatic_ledger.gd | **FIXED** — Null guard on h_type before `.to_lower()` |
+| 13 | **P55-3: Coalition declaration popup type coercion** | coalition_declaration_popup.gd | **FIXED** — `int(float())` before `%d` format |
+| 14 | **P79-2: Wizard pending_diplomatic_dialogue check** | diplomacy_wizard.gd | **SKIPPED** — Already implemented in response handler |
+| 15 | **P48-2: Alliance paradox popup no Godot handler** | main.gd + new scenes | **FIXED** — New `alliance_paradox_popup.gd` + `.tscn`, wired in main.gd |
 
 ---
 

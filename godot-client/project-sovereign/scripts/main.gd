@@ -72,6 +72,9 @@ var talleyrand_redemption_popup = null
 var vassal_rebellion_popup = null
 var proposal_confirm_popup = null
 
+# Alliance Paradox Popup (Deep Audit Session 8)
+var alliance_paradox_popup = null
+
 # Diplomacy Wizard (Diplomacy Button Session B)
 var diplomacy_wizard = null
 
@@ -81,6 +84,7 @@ var war_detail_popup = null
 var _cached_wars: Array = []
 var _cached_coalition_data = null
 var _has_active_wars: bool = false
+var _last_command_response: Dictionary = {}  # Cached for post-popup war panel refresh
 
 # Pause Menu (Phase 6.5)
 var pause_menu = null
@@ -301,6 +305,13 @@ func _ready():
 		vassal_rebellion_popup.choice_made.connect(_on_vassal_rebellion_choice)
 		print("✓ VassalRebellionPopup ready!")
 
+	var alliance_paradox_scene = load("res://scenes/alliance_paradox_popup.tscn")
+	if alliance_paradox_scene:
+		alliance_paradox_popup = alliance_paradox_scene.instantiate()
+		add_child(alliance_paradox_popup)
+		alliance_paradox_popup.choice_made.connect(_on_alliance_paradox_choice)
+		print("✓ AllianceParadoxPopup ready!")
+
 	# ── Diplomacy Wizard (Session B) ──
 	var diplomacy_wizard_scene = load("res://scenes/diplomacy_wizard.tscn")
 	if diplomacy_wizard_scene:
@@ -324,6 +335,7 @@ func _ready():
 		add_child(war_detail_popup)
 		war_detail_popup.negotiate_clicked.connect(_on_war_negotiate_clicked)
 		war_detail_popup.target_clicked.connect(_on_war_target_clicked)
+		war_detail_popup.war_ended.connect(_on_war_ended_notification)
 		print("War DetailPopup ready!")
 
 	# Load and setup Pause Menu (Phase 6.5)
@@ -582,6 +594,11 @@ func _unhandled_input(event):
 		# ═══ ESC KEY: Smart context-aware (Phase 6.5 + Session A) ═══
 		# Priority: 1) release focus (gui_input), 2) close screen, 3) close pause, 4) open pause
 		if event.keycode == KEY_ESCAPE:
+			# Close diplomacy wizard first (Fix 11)
+			if diplomacy_wizard and diplomacy_wizard.visible:
+				diplomacy_wizard._close_wizard()
+				get_viewport().set_input_as_handled()
+				return
 			if top_bar and top_bar.is_screen_open():
 				top_bar.close_all_screens()
 				get_viewport().set_input_as_handled()
@@ -735,6 +752,9 @@ func _on_command_result(response):
 	print("3c. response.success: ", response.get("success", false))
 	print("=".repeat(60) + "\n")
 
+	# Cache response for post-popup war panel refresh (Fix 1)
+	_last_command_response = response
+
 	# Check for marshal objection FIRST (before re-enabling input)
 	# Tactical objections: state == "awaiting_player_choice"
 	# Strategic objections (Phase M): pending_objection == true
@@ -749,6 +769,7 @@ func _on_command_result(response):
 		print("7. DIALOG IN TREE: ", objection_dialog.is_inside_tree() if objection_dialog else "NULL")
 		print("8. DIALOG VISIBLE BEFORE: ", objection_dialog.visible if objection_dialog else "NULL")
 		_show_objection_dialog(response)
+		_process_active_wars(response)
 		return  # Don't re-enable input or continue processing
 	else:
 		print("5. No objection - continuing normal flow")
@@ -765,17 +786,27 @@ func _on_command_result(response):
 		print(">>> glorious_charge_dialog is: ", glorious_charge_dialog)
 		print(">>> glorious_charge_dialog == null: ", glorious_charge_dialog == null)
 		_show_glorious_charge_dialog(response)
+		_process_active_wars(response)
 		return  # Don't re-enable input until choice made
 
 	# Priority 3: Coalition Declaration Popup (Session 8C)
 	if response.has("coalition_popup") and response.coalition_popup != null:
 		if coalition_declaration_popup:
 			coalition_declaration_popup.show_coalition(response.coalition_popup)
+			_process_active_wars(response)
 			return  # Don't re-enable input until dismissed
+
+	# Priority 3.5: Alliance Paradox Popup (Deep Audit Session 8)
+	if response.has("alliance_paradox_popup") and response.alliance_paradox_popup != null:
+		if alliance_paradox_popup:
+			alliance_paradox_popup.show_paradox(response.alliance_paradox_popup)
+			_process_active_wars(response)
+			return
 
 	# Check for capture choice (Phase 6.2.E: Plunder or Secure)
 	if response.has("pending_capture_choice") and response.pending_capture_choice:
 		_show_capture_choice_dialog(response)
+		_process_active_wars(response)
 		return  # Don't re-enable input until choice made
 
 	# Check for load dialog request (Phase 6: Save/Load)
@@ -787,12 +818,14 @@ func _on_command_result(response):
 	if response.has("diplomatic_objection") and response.diplomatic_objection != null:
 		if talleyrand_objection_popup:
 			talleyrand_objection_popup.show_objection(response.diplomatic_objection)
+			_process_active_wars(response)
 			return
 
 	# Priority 6: Incoming Proposal Popup (Session 8C)
 	if response.has("incoming_proposal") and response.incoming_proposal != null:
 		if incoming_proposal_popup:
 			incoming_proposal_popup.show_proposal(response.incoming_proposal)
+			_process_active_wars(response)
 			return
 
 	# Priority 6.5: Player-initiated Proposal Confirm Popup
@@ -810,34 +843,40 @@ func _on_command_result(response):
 			"terms_guidance"]:
 			if proposal_confirm_popup:
 				proposal_confirm_popup.show_dialogue(dialogue)
+				_process_active_wars(response)
 				return
 
 	# Check for clarification request (Grouchy/literal marshal)
 	if response.has("state") and response.state == "awaiting_clarification":
 		_show_clarification_popup(response)
+		_process_active_wars(response)
 		return  # Don't re-enable input until choice made
 
 	# Check for strategic interrupt (blocked path, cannon fire, etc.)
 	if response.has("pending_interrupt") and response.pending_interrupt:
 		_show_interrupt_popup(response.pending_interrupt)
+		_process_active_wars(response)
 		return  # Don't re-enable input until choice made
 
 	# Priority 8: Sabotage Discovery Popup (Session 8C)
 	if response.has("diplomatic_sabotage") and response.diplomatic_sabotage != null:
 		if sabotage_discovery_popup:
 			sabotage_discovery_popup.show_sabotage(response.diplomatic_sabotage)
+			_process_active_wars(response)
 			return
 
 	# Priority 9: Talleyrand Redemption Popup (Session 8C)
 	if response.has("talleyrand_redemption") and response.talleyrand_redemption != null:
 		if talleyrand_redemption_popup:
 			talleyrand_redemption_popup.show_redemption(response.talleyrand_redemption)
+			_process_active_wars(response)
 			return
 
 	# Priority 10: Vassal Rebellion Imminent Popup (Session 8C)
 	if response.has("vassal_rebellion_imminent") and response.vassal_rebellion_imminent != null:
 		if vassal_rebellion_popup:
 			vassal_rebellion_popup.show_rebellion(response.vassal_rebellion_imminent)
+			_process_active_wars(response)
 			return
 
 	# Check for redemption event (bombardment friendly fire, cavalry, etc.)
@@ -857,6 +896,7 @@ func _on_command_result(response):
 				notification_bar.update_notifications(response.notifications)
 			_display_result(response)
 		_show_redemption_dialog(response.redemption_event)
+		_process_active_wars(response)
 		return  # Don't re-enable input until redemption resolved
 
 	# Re-enable input
@@ -937,7 +977,7 @@ func _on_command_result(response):
 		_show_pending_dispatch()
 
 	else:
-		add_output("[color=#" + COLOR_ERROR + "]" + response.message + "[/color]")
+		add_output("[color=#" + COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
 
 	# N4i: Update war status HUD on every response
 	_process_active_wars(response)
@@ -949,7 +989,7 @@ func _on_command_result(response):
 
 func _display_result(response):
 	"""Display result with appropriate formatting based on event type."""
-	var message = response.message
+	var message = str(response.get("message", ""))
 	var events = response.get("events", [])
 	var action_info = response.get("action_info", {})
 	
@@ -1925,7 +1965,7 @@ func _on_objection_response(response):
 	# ════════════════════════════════════════════════════════════
 	if response.get("disobeyed", false):
 		add_output("[color=#" + COLOR_ERROR + "]⚠ DISOBEDIENCE![/color]")
-		add_output("[color=#" + COLOR_MARSHAL + "]" + response.message + "[/color]")
+		add_output("[color=#" + COLOR_MARSHAL + "]" + str(response.get("message", "The marshal refuses.")) + "[/color]")
 		add_output("")
 
 		# Update status even on disobey
@@ -1968,7 +2008,7 @@ func _on_objection_response(response):
 	# Check for strategic interrupt (post-objection command hit blocked path)
 	if response.has("pending_interrupt") and response.pending_interrupt:
 		# Show the command result message first
-		if response.has("message") and response.message:
+		if response.has("message") and response.get("message", ""):
 			_display_result(response)
 		_show_interrupt_popup(response.pending_interrupt)
 		return  # Don't re-enable input until interrupt resolved
@@ -2008,7 +2048,7 @@ func _on_objection_response(response):
 				_show_game_over_screen(response.game_state)
 				return
 	else:
-		add_output("[color=#" + COLOR_ERROR + "]" + response.message + "[/color]")
+		add_output("[color=#" + COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
 
 	add_output("")
 	command_input.grab_focus()
@@ -2111,11 +2151,12 @@ func _on_redemption_response(response):
 		var choice = response.get("choice", "")
 		add_output("")
 
+		var msg = str(response.get("message", ""))
 		if choice == "grant_autonomy":
 			add_output("[color=#" + COLOR_SUCCESS + "]═══════════════════════════════════════[/color]")
 			add_output("[color=#" + COLOR_SUCCESS + "]   AUTONOMY GRANTED[/color]")
 			add_output("[color=#" + COLOR_SUCCESS + "]═══════════════════════════════════════[/color]")
-			add_output("[color=#" + COLOR_MARSHAL + "]" + response.message + "[/color]")
+			add_output("[color=#" + COLOR_MARSHAL + "]" + msg + "[/color]")
 			var turns = int(response.get("autonomy_turns", 3))
 			add_output("[color=#" + COLOR_INFO + "]The marshal will act independently for " + str(turns) + " turns.[/color]")
 
@@ -2123,21 +2164,21 @@ func _on_redemption_response(response):
 			add_output("[color=#" + COLOR_ERROR + "]═══════════════════════════════════════[/color]")
 			add_output("[color=#" + COLOR_ERROR + "]   MARSHAL DISMISSED[/color]")
 			add_output("[color=#" + COLOR_ERROR + "]═══════════════════════════════════════[/color]")
-			add_output("[color=#" + COLOR_MARSHAL + "]" + response.message + "[/color]")
+			add_output("[color=#" + COLOR_MARSHAL + "]" + msg + "[/color]")
 
 		elif choice == "demand_obedience":
 			add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
 			add_output("[color=#" + COLOR_GOLD + "]   OBEDIENCE DEMANDED[/color]")
 			add_output("[color=#" + COLOR_GOLD + "]═══════════════════════════════════════[/color]")
-			add_output("[color=#" + COLOR_MARSHAL + "]" + response.message + "[/color]")
+			add_output("[color=#" + COLOR_MARSHAL + "]" + msg + "[/color]")
 			add_output("[color=#" + COLOR_INFO + "]Warning: High chance of future disobedience.[/color]")
 
 		else:
-			add_output("[color=#" + COLOR_SUCCESS + "]" + response.message + "[/color]")
+			add_output("[color=#" + COLOR_SUCCESS + "]" + msg + "[/color]")
 
 		add_output("")
 	else:
-		add_output("[color=#" + COLOR_ERROR + "]" + response.message + "[/color]")
+		add_output("[color=#" + COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
 		add_output("")
 
 	set_input_enabled(true)
@@ -2234,7 +2275,7 @@ func _show_capture_choice_dialog(response):
 
 	# Show the capture message in log first
 	if response.has("message"):
-		add_output("[color=#" + COLOR_CONQUEST + "]" + response.message + "[/color]")
+		add_output("[color=#" + COLOR_CONQUEST + "]" + str(response.get("message", "")) + "[/color]")
 
 	# Update status/map from the response
 	if response.has("action_summary"):
@@ -2291,14 +2332,14 @@ func _on_capture_choice_response(response):
 		if response.has("game_state") and response.game_state.has("map_data"):
 			map_area.update_all_regions(response.game_state.map_data)
 
-		add_output("[color=#" + COLOR_SUCCESS + "]" + response.message + "[/color]")
+		add_output("[color=#" + COLOR_SUCCESS + "]" + str(response.get("message", "")) + "[/color]")
 
 		if response.has("game_state") and response.game_state.has("game_over"):
 			if response.game_state.game_over:
 				_show_game_over_screen(response.game_state)
 				return
 	else:
-		add_output("[color=#" + COLOR_ERROR + "]" + response.message + "[/color]")
+		add_output("[color=#" + COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
 
 	add_output("")
 	command_input.grab_focus()
@@ -2503,7 +2544,7 @@ func _on_glorious_charge_response(response):
 				_show_game_over_screen(response.game_state)
 				return
 	else:
-		add_output("[color=#" + COLOR_ERROR + "]" + response.message + "[/color]")
+		add_output("[color=#" + COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
 
 	add_output("")
 	command_input.grab_focus()
@@ -2726,6 +2767,8 @@ func _on_clarification_cancelled():
 func _on_coalition_popup_dismissed():
 	"""Handle coalition declaration popup dismissed."""
 	add_output("[color=#e04040]The coalition has declared war on France.[/color]")
+	# Refresh war panel with cached response (Fix 5)
+	_process_active_wars(_last_command_response)
 	set_input_enabled(true)
 	command_input.grab_focus()
 
@@ -2799,6 +2842,7 @@ func _on_talleyrand_objection_choice(choice: String, data: Dictionary):
 			api_client.send_command("Talleyrand, proceed with the proposal", _on_command_result)
 	elif choice == "modify":
 		add_output("[color=#d9c08c]Reconsidering the proposal...[/color]")
+		talleyrand_objection_popup.hide()  # Hide before re-enabling input (Fix 9)
 		set_input_enabled(true)
 		command_input.grab_focus()
 	else:
@@ -2828,6 +2872,20 @@ func _on_vassal_rebellion_choice(choice: String, data: Dictionary):
 	add_output("[color=#d9c08c]Vassal %s: %s[/color]" % [nation, choice])
 	set_input_enabled(false)
 	api_client.send_command(command, _on_command_result)
+
+func _on_alliance_paradox_choice(choice: String, data: Dictionary):
+	"""Handle player response to alliance paradox popup (Fix 15).
+	Routes through dialogue response system (option index), not regular commands.
+	Backend pending_diplomatic_dialogue has options[0]=honor_defender, options[1]=break."""
+	var defender = str(data.get("defender", "unknown"))
+	var attacker = str(data.get("attacker", "unknown"))
+	set_input_enabled(false)
+	if choice == "honor_defender":
+		add_output("[color=#" + COLOR_GOLD + "]Honoring alliance with %s — declaring war on %s![/color]" % [defender, attacker])
+		api_client.send_dialogue_response(1, _on_command_result)  # Option 1: honor_defender
+	elif choice == "break_defender_alliance":
+		add_output("[color=#" + COLOR_ERROR + "]Breaking alliance with %s — siding with %s.[/color]" % [defender, attacker])
+		api_client.send_dialogue_response(2, _on_command_result)  # Option 2: break_defender_alliance
 
 
 # ════════════════════════════════════════════════════════════════════════════
@@ -2870,8 +2928,14 @@ func _is_modal_dialog_open() -> bool:
 		return true
 	if proposal_confirm_popup and proposal_confirm_popup.visible:
 		return true
+	# Alliance Paradox Popup (Session 8)
+	if alliance_paradox_popup and alliance_paradox_popup.visible:
+		return true
 	# Diplomacy Wizard (Session B)
 	if diplomacy_wizard and diplomacy_wizard.visible:
+		return true
+	# War Detail Popup (N4b)
+	if war_detail_popup and war_detail_popup.visible:
 		return true
 	return false
 
@@ -2992,6 +3056,11 @@ func _on_war_target_clicked(nation: String):
 	"""N4h: Handle [Target X] — open wizard for that nation."""
 	if diplomacy_wizard:
 		diplomacy_wizard.open_for_nation(nation)
+
+
+func _on_war_ended_notification(message: String):
+	"""Fix 10: Display feedback when war ends while detail popup is open."""
+	add_output("[color=#" + COLOR_INFO + "]" + message + "[/color]")
 
 
 func _find_war_data(nation: String):

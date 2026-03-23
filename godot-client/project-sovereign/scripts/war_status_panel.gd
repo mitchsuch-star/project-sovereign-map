@@ -87,7 +87,7 @@ func _add_coalition_header(coalition_name: String):
 
 func _add_coalition_member_row(war_data: Dictionary):
 	var opponent = str(war_data.get("opponent", "?"))
-	var score = int(war_data.get("war_score", 0))
+	var score = int(float(war_data.get("war_score", 0)))
 	var trend = str(war_data.get("trend", "stable"))
 
 	var trend_arrow = _get_trend_arrow(trend)
@@ -106,9 +106,9 @@ func _add_coalition_member_row(war_data: Dictionary):
 
 func _add_war_card(war_data: Dictionary):
 	var opponent = str(war_data.get("opponent", "?"))
-	var score = int(war_data.get("war_score", 0))
+	var score = int(float(war_data.get("war_score", 0)))
 	var trend = str(war_data.get("trend", "stable"))
-	var duration = int(war_data.get("duration", 0))
+	var duration = int(float(war_data.get("duration", 0)))
 
 	var trend_arrow = _get_trend_arrow(trend)
 	var score_sign = "+" if score > 0 else ""
@@ -130,7 +130,7 @@ func _add_war_card(war_data: Dictionary):
 
 func _add_armistice_card(war_data: Dictionary):
 	var opponent = str(war_data.get("opponent", "?"))
-	var remaining = int(war_data.get("armistice_remaining", 0))
+	var remaining = int(float(war_data.get("armistice_remaining", 0)))
 
 	var btn = Button.new()
 	btn.text = opponent + "  " + str(remaining) + " turns"

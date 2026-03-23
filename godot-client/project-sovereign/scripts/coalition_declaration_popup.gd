@@ -37,7 +37,7 @@ func show_coalition(data: Dictionary):
 	for member in members:
 		var nation = member.get("nation", "?")
 		var strength = member.get("strength_display", "?")
-		var we = member.get("war_exhaustion", 0)
+		var we = int(float(member.get("war_exhaustion", 0)))
 		bbcode += "  - %s: %s — War Exhaustion: %d/100\n" % [nation, strength, we]
 
 	bbcode += "\n[color=gray]Talleyrand: \"The courts of Europe have united against us, Sire.\"[/color]"

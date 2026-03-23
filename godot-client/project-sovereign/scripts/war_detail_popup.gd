@@ -10,6 +10,7 @@ extends CanvasLayer
 
 signal negotiate_clicked(nation: String)
 signal target_clicked(nation: String)
+signal war_ended(message: String)
 
 @onready var background_overlay = $BackgroundOverlay
 @onready var header_label = $PanelContainer/VBoxContainer/HeaderRow/HeaderLabel
@@ -115,17 +116,18 @@ func refresh_if_open(active_wars_data: Dictionary) -> void:
 			break
 
 	if not found:
-		# War ended entirely
+		# War ended entirely — notify before closing (Fix 10)
+		war_ended.emit("The war with " + _current_nation + " has ended.")
 		_close_popup()
 
 
 # ── RENDERING ──
 
 func _render_war_detail(w: Dictionary):
-	var score = int(w.get("war_score", 0))
+	var score = int(float(w.get("war_score", 0)))
 	var trend = str(w.get("trend", "stable"))
-	var duration = int(w.get("duration", 0))
-	var started = int(w.get("started_turn", 0))
+	var duration = int(float(w.get("duration", 0)))
+	var started = int(float(w.get("started_turn", 0)))
 	var we = w.get("war_exhaustion", null)
 	var breakdown = w.get("breakdown", null)
 
@@ -151,12 +153,13 @@ func _render_war_detail(w: Dictionary):
 
 	# War exhaustion
 	if we != null:
+		var we_int = int(float(we))
 		var we_color = COLOR_WHITE
-		if int(we) >= 80:
+		if we_int >= 80:
 			we_color = COLOR_RED
-		elif int(we) >= 40:
+		elif we_int >= 40:
 			we_color = COLOR_AMBER
-		bbcode += "Enemy War Exhaustion: [color=" + we_color + "]" + str(int(we)) + "[/color]\n"
+		bbcode += "Enemy War Exhaustion: [color=" + we_color + "]" + str(we_int) + "[/color]\n"
 	else:
 		bbcode += "Enemy War Exhaustion: [color=" + COLOR_DIMMED + "]Unknown[/color]\n"
 
@@ -187,7 +190,7 @@ func _render_coalition_detail(coalition_data: Dictionary, wars: Array):
 		if not w.get("in_coalition", false):
 			continue
 		var name = str(w.get("opponent", "?"))
-		var score = int(w.get("war_score", 0))
+		var score = int(float(w.get("war_score", 0)))
 		var trend = _trend_str(str(w.get("trend", "stable")))
 		var we = w.get("war_exhaustion", null)
 		var army = str(w.get("army_strength", "Unknown"))
@@ -195,7 +198,7 @@ func _render_coalition_detail(coalition_data: Dictionary, wars: Array):
 
 		var line = "[color=" + score_color + "]" + name + "  " + _signed(score) + " " + trend + "[/color]"
 		if we != null:
-			line += "  WE:" + str(int(we))
+			line += "  WE:" + str(int(float(we)))
 		line += "  " + army
 		if name == leader:
 			line = "[u]" + line + "[/u]"
@@ -219,8 +222,8 @@ func _render_coalition_detail(coalition_data: Dictionary, wars: Array):
 
 
 func _render_armistice_detail(w: Dictionary):
-	var remaining = int(w.get("armistice_remaining", 0))
-	var relation = int(w.get("relation", 0))
+	var remaining = int(float(w.get("armistice_remaining", 0)))
+	var relation = int(float(w.get("relation", 0)))
 	var rel_desc = str(w.get("relation_descriptor", "?"))
 	var rel_trend = str(w.get("relation_trend", "stable"))
 

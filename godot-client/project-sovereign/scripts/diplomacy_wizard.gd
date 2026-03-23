@@ -26,6 +26,7 @@ signal command_selected(command: String)
 var _http: HTTPRequest
 var _pending_request: String = ""  # "nations" or "preview"
 var _request_id: int = 0  # Monotonic ID to discard stale responses
+var _request_in_flight: bool = false  # Guard against double-open (Fix 8)
 
 # State
 var _current_step: int = 0  # 0=hidden, 1=nations, 2=actions
@@ -73,6 +74,9 @@ func _ready():
 
 func open():
 	"""Open wizard at Step 1 — fetch and show nation list."""
+	# Guard against double-open while HTTP request is in flight (Fix 8)
+	if _request_in_flight:
+		return
 	_current_step = 1
 	_selected_nation = ""
 	title_label.text = "DIPLOMACY"
@@ -87,6 +91,9 @@ func open():
 func open_for_nation(nation: String):
 	"""Open wizard directly at Step 2 for a specific nation (N4c).
 	Called from war detail popup [Negotiate Peace] and coalition [Target X] buttons."""
+	# Guard against double-open while HTTP request is in flight (Fix 8)
+	if _request_in_flight:
+		return
 	_current_step = 2
 	_selected_nation = nation
 	back_button.visible = true
@@ -101,6 +108,7 @@ func open_for_nation(nation: String):
 func _close_wizard():
 	_current_step = 0
 	_selected_nation = ""
+	_request_in_flight = false
 	if _http:
 		_http.cancel_request()
 	hide()
@@ -135,8 +143,10 @@ func _fetch_nations():
 	_http.cancel_request()
 	_request_id += 1
 	_pending_request = "nations"
+	_request_in_flight = true
 	var error = _http.request(API_URL + "/diplomatic_preview")
 	if error != OK:
+		_request_in_flight = false
 		_show_error("Failed to connect to headquarters.")
 
 
@@ -145,13 +155,16 @@ func _fetch_preview(nation: String):
 	_http.cancel_request()
 	_request_id += 1
 	_pending_request = "preview"
+	_request_in_flight = true
 	var url = API_URL + "/diplomatic_preview?nation=" + nation.uri_encode()
 	var error = _http.request(url)
 	if error != OK:
+		_request_in_flight = false
 		_show_error("Failed to fetch diplomatic preview.")
 
 
 func _on_http_completed(result, response_code, headers, body):
+	_request_in_flight = false
 	if not visible:
 		return
 	# Capture the request ID at response time to detect stale responses
@@ -181,6 +194,7 @@ func _on_http_completed(result, response_code, headers, body):
 
 
 func _show_error(msg: String):
+	_current_step = 1  # Reset step so back button works (Fix 7)
 	_clear_content_list()
 	var lbl = RichTextLabel.new()
 	lbl.bbcode_enabled = true

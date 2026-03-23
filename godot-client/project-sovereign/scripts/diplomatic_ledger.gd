@@ -422,6 +422,8 @@ func _render_threat_coalition():
 		"CRITICAL":
 			tier_color = COLOR_RED
 			_start_critical_pulse()
+		_:
+			tier_color = COLOR_INFO
 
 	bbcode += "Threat Level: [color=#" + tier_color + "]" + str(threat_level) + " / 100  [" + threat_tier + "][/color]\n"
 
@@ -680,15 +682,15 @@ func _render_talleyrand():
 			var entry = history[i]
 			if entry is Dictionary:
 				var h_turn = int(entry.get("turn", 0))
-				var h_type = str(entry.get("type", "?"))
+				var h_type = str(entry.get("type") if entry.get("type") != null else "?")
 				var h_target = str(entry.get("target", ""))
 				var h_nation = str(entry.get("nation", ""))
 				var h_detail = str(entry.get("detail", ""))
 				# Color by type
 				var h_color = COLOR_GREY
-				if "accept" in h_type.to_lower():
+				if h_type != "?" and "accept" in h_type.to_lower():
 					h_color = COLOR_GREEN
-				elif "war" in h_type.to_lower() or "break" in h_type.to_lower():
+				elif h_type != "?" and ("war" in h_type.to_lower() or "break" in h_type.to_lower()):
 					h_color = COLOR_RED
 				var h_text = "Turn " + str(h_turn) + ": "
 				h_text += h_type.replace("_", " ").capitalize()
