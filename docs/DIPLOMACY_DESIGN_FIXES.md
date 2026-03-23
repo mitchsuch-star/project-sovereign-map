@@ -1199,8 +1199,8 @@ Wizard shows "Insufficient DP" when armistice is the real blocker. Terminal corr
 | UX feedback (S1-S5, U2) | 6 | DA-2 | DONE (37 tests) |
 | New feature: offensive cascade (N2) | 1 | DA-3 | — |
 | Enhancement: friction in attacks (N3) | 1 | DA-3 | — |
-| New feature: war status panel (N4) | 1 | DA-4 | — |
-| **Total** | **14** | **4 sessions** | **11/14 done, 2 sessions remaining** |
+| New feature: war status panel (N4) | 1 | DA-4 | DONE (32 tests) |
+| **Total** | **14** | **4 sessions** | **12/14 done, 1 session remaining** |
 
 ### Session Dependencies
 

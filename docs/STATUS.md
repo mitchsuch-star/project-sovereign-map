@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 9, 2026 (Talleyrand Smart Suggestions: 5-stage pipeline, nation-aware terms, 22 new tests)
+> **Last Updated:** March 22, 2026 (N4 War Status Panel: 3-layer HUD system, 32 new tests)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **6215** (6215 passed, 3 skipped — smart suggestions + coveted_unavailable fix) |
+| **Tests Passing** | **6529** (6529 passed, 3 skipped — N4 war status panel) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -35,8 +35,9 @@
 5. ~~**Diplomacy Creative Audit**~~ — **COMPLETE.** 7.8/10 score.
 6. ~~**Comprehensive Creative Audit**~~ — **COMPLETE.** 6.5/10 score. All findings → Phase 5 items.
 7. ~~**Diplomacy Refinement Phases 1-4**~~ — **COMPLETE** (55 items, 326 tests).
-8. **Jealousy system** — NEEDS DESIGN GATE (separate track). See CLAUDE.md.
-9. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tutorial deferred to Pre-EA.
+8. **Diplomacy Design Fixes** — DA-1, DA-2, DA-4 DONE. DA-3 (offensive cascade + friction) remaining. See `docs/DIPLOMACY_DESIGN_FIXES.md`.
+9. **Jealousy system** — NEEDS DESIGN GATE (separate track). See CLAUDE.md.
+10. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tutorial deferred to Pre-EA.
 
 ---
 
@@ -60,6 +61,23 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 22 — N4 War Status Panel (DA-4: 3-layer HUD, 10 files, 32 tests)
+
+Three-layer EU4-style war status system. Always-visible HUD cards → click-to-inspect detail popup → diplomacy wizard handoff.
+
+**Backend:** `backend/game_logic/war_status.py` — `build_active_wars(world)` produces `{wars: [...], coalition: {...} | None}`. War score from France's perspective (sign-flipped), trend detection via `previous_war_scores`, fog-filtered WE/army strength, coalition coordination quality (friction → Good/Strained/Poor), weak link detection, armistice with relation/descriptor/trend. Embedded in every response via `_include_popup_passthroughs()` + GET `/test` + GET `/status`.
+
+**Godot Layer 1 — HUD Cards:** `war_status_panel.gd` (CanvasLayer 25). Bottom-right panel with coalition header, member rows, bilateral war cards (with score bars), armistice cards. Hides when no wars/armistices. Signals: `card_clicked(nation, status)`, `coalition_header_clicked()`.
+
+**Godot Layer 2 — Detail Popup:** `war_detail_popup.gd` (CanvasLayer 30). Three modes: `show_war()` (score breakdown, WE, recent battles), `show_coalition()` (members, coordination, weak link), `show_armistice()` (remaining turns, relations, trend). `refresh_if_open()` updates in-place without closing. Close via X/Escape/overlay click.
+
+**Godot Layer 3 — Wizard Handoff:** Added `open_for_nation(nation)` to `diplomacy_wizard.gd`. Negotiate/Target buttons emit signals → `main.gd` handlers → wizard opens pre-populated for that nation.
+
+**Wiring in main.gd:** `_process_active_wars(response)` called from `_on_command_result()`, `_on_enemy_phase_dismissed()`, and `_on_connection_test()`. War panel hidden when screens open via `_update_war_panel_visibility()`.
+
+**Files:** war_status.py (new), main.py, war_status_panel.tscn/.gd (new), war_detail_popup.tscn/.gd (new), diplomacy_wizard.gd, main.gd, test_war_status.py (new, 32 tests), test_bugfix_proposal_flow.py (1 test updated).
+**6529 tests passing** (6529 passed, 3 skipped, 0 regressions).
 
 ### Mar 9 — Dialogue Gap Fix (6 gaps, 7 files, 19 tests)
 

@@ -20,6 +20,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 - **Diplomacy Button — COMPLETE.** Session A (backend) + Session B (Godot wizard UI) + final edge case fixes (2 bugs, 2 hardening). 108 button tests. See `docs/DIPLOMACY_BUTTON_SPEC.md`.
 - **Diplomacy Refinement Phase 5: Design Depth.** Waves 1-2, 2.5 DONE. Wave 3 (Player Feedback, 8 items) next. See `docs/DIPLO_REFINEMENT.md`.
+- **Diplomacy Design Fixes (DA sessions).** DA-1, DA-2 DONE. DA-4 (N4 War Status Panel) DONE — 3-layer HUD system (war_status_panel + war_detail_popup + wizard handoff), 32 tests. DA-3 (offensive cascade + friction) remaining. See `docs/DIPLOMACY_DESIGN_FIXES.md`.
 - **Phase 7b remaining:** V2b COMPLETE. Tactical Triangle COMPLETE. Strategic Order UI COMPLETE. Gates 5+6 PASSED. Jealousy (SPEC v3 DRAFTED — needs design gate approval). Coalition Trigger moved to Phase 8.
 - **Phase 6.5 remaining:** Map Renderer only (art-blocked). Tutorial Infrastructure deferred to Pre-EA.
 - **Phase 8: Diplomacy — COMPLETE.** ALL 11 sessions done (1A through 8D). ~580 tests. See `docs/SESSION_8_PLAN.md`.
@@ -88,6 +89,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | `backend/game_logic/diplomatic_advisory.py` | Advisory conversations: threat assessment, nation analysis, action recommendations |
 | `backend/game_logic/coalition.py` | Coalition system: threat accumulation/decay, formation/brewing/instant, leader/posture, AI friction/convergence, war exhaustion, British subsidy, dissolution/cooldown |
 | `backend/game_logic/diplomatic_ledger.py` | Diplomatic Ledger builder (4 tabs: nations, treaties, threat_coalition, talleyrand) with fog-filtered army strength |
+| `backend/game_logic/war_status.py` | War Status Panel data builder: `build_active_wars()` produces war/coalition/armistice data for HUD, embedded in every response via `_include_popup_passthroughs()` |
 | `backend/game_logic/vassal.py` | Vassal system: creation, loyalty, rebellion, cascade, tribute, investment, autonomy, marshal assimilation, Continental System |
 | `backend/commands/diplomatic_defiance.py` | Talleyrand sabotage: defiance chance, sabotage types, discovery, confrontation, pre-proposal objection, redemption |
 | `backend/save_manager.py` | Save/load file I/O, autosave |
@@ -114,7 +116,9 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | `sabotage_discovery_popup.gd` | Sabotage discovery popup (Session 8C): [Confront][Overlook] |
 | `talleyrand_redemption_popup.gd` | Talleyrand redemption popup (Session 8C): [Apologize][Replace][Continue] |
 | `vassal_rebellion_popup.gd` | Vassal rebellion imminent popup (Session 8C): [Invest][Garrison][Accept] |
-| `diplomacy_wizard.gd` | Diplomacy Button wizard (Session B): F1 hotkey, 2-step nation→action flow, own HTTPRequest, command handoff |
+| `war_status_panel.gd` | War Status Panel HUD (N4a): CanvasLayer 25, bottom-right, coalition/war/armistice cards, click signals |
+| `war_detail_popup.gd` | War Detail Popup (N4b): CanvasLayer 30, war/coalition/armistice detail views, negotiate/target buttons, refresh-in-place |
+| `diplomacy_wizard.gd` | Diplomacy Button wizard (Session B): F1 hotkey, 2-step nation→action flow, own HTTPRequest, command handoff, `open_for_nation()` for war panel handoff |
 
 ---
 
@@ -152,7 +156,8 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | Square formation / Tactical Triangle | `docs/TACTICAL_TRIANGLE_SPEC.md`, `marshal.py` (square_formation, overwatch_penalty), `combat.py` (cavalry -40%, artillery +50%), `executor.py` (form_square, auto-bombardment, overwatch calc) |
 | Vassal system (Phase 8 S5) | `vassal.py` (all vassal mechanics), `world_state.py` (vassals dict, advance_turn steps 5-7, tribute), `diplomacy.py` (AP clause, Continental System), `turn_manager.py` (enemy courting), `dispatch.py` (Trigger 3 loyalty warnings) |
 | Diplomatic ledger | `diplomatic_ledger.py` (build_diplomatic_ledger, fog-filtered army strength), `main.py` (GET /diplomatic_ledger, debug endpoints), `world_state.py` (popup fields) |
-| Diplomacy wizard / button | `diplomacy_wizard.gd` (wizard UI), `main.gd` (F1 hotkey, button wiring, command handoff), `main.py` (GET /diplomatic_preview nation list mode), `docs/DIPLOMACY_BUTTON_SPEC.md` |
+| Diplomacy wizard / button | `diplomacy_wizard.gd` (wizard UI, `open_for_nation()`), `main.gd` (F1 hotkey, button wiring, command handoff), `main.py` (GET /diplomatic_preview nation list mode), `docs/DIPLOMACY_BUTTON_SPEC.md` |
+| War status panel (N4) | `war_status.py` (build_active_wars), `war_status_panel.gd` (HUD Layer 1), `war_detail_popup.gd` (detail Layer 2), `main.gd` (_process_active_wars, _on_war_card_clicked, _update_war_panel_visibility), `main.py` (_include_popup_passthroughs embeds active_wars), `docs/DIPLOMACY_DESIGN_FIXES.md` §N4 |
 | Suggested terms / smart suggestions | `diplomatic_templates.py` (NATION_DESIRE_PROFILES, TALLEYRAND_COMMENTARY, generate_suggested_terms 5-stage pipeline, _build_base_terms, _validate_economic_feasibility, _get_smart_commentary), `diplomatic_dialogue.py` (_enrich_proposal_summary commentary wiring), `docs/TALLEYRAND_SMART_SUGGESTIONS_SPEC.md` |
 | Diplomacy system (Phase 8) | `docs/DIPLOMACY_SPEC.md` (v2.2), `docs/CONVERSATIONAL_DIPLOMACY_DESIGN.md` (v1.2), `docs/COALITION_SPEC.md` (v1.1), `diplomacy.py` (acceptance formula, state transitions, war score), `diplomat.py` (DiplomaticRepresentative), `diplomatic_dialogue.py` (conversation state machine), `diplomatic_templates.py` (37 mock templates + T28-T34 coalition, slot resolvers, NATION_DESIRE_PROFILES, TALLEYRAND_COMMENTARY, 5-stage suggestion pipeline), `ai_diplomacy.py` (AI proposal generation, M3 counter-offer, alliance conflict), `diplomatic_advisory.py` (advisory conversations), `vassal.py` (loyalty, rebellion), `commands/diplomatic_defiance.py` (Talleyrand sabotage), `coalition.py` (threat, formation, AI, breaking, dissolution) |
 
@@ -356,6 +361,7 @@ ruff check backend/ --fix               # Auto-fix safe issues
 | Diplomacy refinement plan | `docs/DIPLO_REFINEMENT.md` |
 | Smart suggestions pipeline | `docs/TALLEYRAND_SMART_SUGGESTIONS_SPEC.md` |
 | Diplomacy creative audit | `docs/DIPLOMACY_CREATIVE_AUDIT.md` |
+| Diplomacy design fixes + war panel spec | `docs/DIPLOMACY_DESIGN_FIXES.md` (N4 spec, DA session plan) |
 | Coalition system (Phase 8) | `docs/COALITION_SPEC.md` |
 | Jealousy system (Phase 7b) | `docs/JEALOUSY_SPEC.md` |
 | Session 8A-8D plan (UI + debug) | `docs/SESSION_8_PLAN.md` |
