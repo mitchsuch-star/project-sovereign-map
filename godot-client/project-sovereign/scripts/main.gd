@@ -75,6 +75,13 @@ var proposal_confirm_popup = null
 # Diplomacy Wizard (Diplomacy Button Session B)
 var diplomacy_wizard = null
 
+# War Status Panel (N4: HUD Layer 1 + Detail Layer 2)
+var war_status_panel = null
+var war_detail_popup = null
+var _cached_wars: Array = []
+var _cached_coalition_data = null
+var _has_active_wars: bool = false
+
 # Pause Menu (Phase 6.5)
 var pause_menu = null
 
@@ -302,6 +309,23 @@ func _ready():
 		diplomacy_wizard.command_selected.connect(_on_wizard_command_selected)
 		print("✓ DiplomacyWizard ready!")
 
+	# ── War Status Panel (N4: HUD + Detail Popup) ──
+	var war_panel_scene = load("res://scenes/war_status_panel.tscn")
+	if war_panel_scene:
+		war_status_panel = war_panel_scene.instantiate()
+		add_child(war_status_panel)
+		war_status_panel.card_clicked.connect(_on_war_card_clicked)
+		war_status_panel.coalition_header_clicked.connect(_on_coalition_header_clicked)
+		print("War StatusPanel ready!")
+
+	var war_detail_scene = load("res://scenes/war_detail_popup.tscn")
+	if war_detail_scene:
+		war_detail_popup = war_detail_scene.instantiate()
+		add_child(war_detail_popup)
+		war_detail_popup.negotiate_clicked.connect(_on_war_negotiate_clicked)
+		war_detail_popup.target_clicked.connect(_on_war_target_clicked)
+		print("War DetailPopup ready!")
+
 	# Load and setup Pause Menu (Phase 6.5)
 	var pause_menu_scene = load("res://scenes/pause_menu.tscn")
 	if pause_menu_scene:
@@ -444,6 +468,9 @@ func _on_connection_test(response):
 
 		# Update diplomatic top bar fields (Session 8B)
 		_update_diplomatic_top_bar(response)
+
+		# N4i: Initialize war status HUD on game start
+		_process_active_wars(response)
 
 		# Update map with initial state
 		if response.has("game_state") and response.game_state.has("map_data"):
@@ -907,6 +934,9 @@ func _on_command_result(response):
 
 	else:
 		add_output("[color=#" + COLOR_ERROR + "]" + response.message + "[/color]")
+
+	# N4i: Update war status HUD on every response
+	_process_active_wars(response)
 
 	add_output("")
 
@@ -2177,6 +2207,8 @@ func _on_enemy_phase_dismissed():
 			_show_redemption_dialog(response.redemption_event)
 			return  # Don't re-enable input until redemption resolved
 
+		# N4i: Update war status HUD after enemy phase
+		_process_active_wars(response)
 		pending_enemy_phase_response = null
 
 	# Morning Dispatch — displayed last, right before player gets control
@@ -2851,6 +2883,8 @@ func _on_screen_changed(screen_name: String):
 		# All screens closed — restore map interaction
 		map_area.mouse_filter = Control.MOUSE_FILTER_STOP
 		map_area.panning_enabled = true
+	# N4i: Update war panel visibility when screens open/close
+	_update_war_panel_visibility()
 
 
 func _on_envoy_clicked():
@@ -2898,6 +2932,86 @@ func _on_wizard_command_selected(command: String):
 
 	# Send to backend via normal command flow
 	api_client.send_command(command, _on_command_result)
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# WAR STATUS PANEL (N4)
+# ════════════════════════════════════════════════════════════════════════════
+
+func _update_war_panel_visibility():
+	"""N4i: Hide HUD when screens/modals open, show when wars exist."""
+	var should_show = (
+		not _is_screen_open()
+		and not _is_modal_dialog_open()
+		and _has_active_wars
+	)
+	if war_status_panel:
+		war_status_panel.visible = should_show
+	if not should_show and war_detail_popup:
+		war_detail_popup.hide()
+
+
+func _on_war_card_clicked(nation: String, status: String):
+	"""N4h: Handle war card click — open detail popup."""
+	if war_detail_popup == null:
+		return
+	if status == "armistice":
+		var war_data = _find_war_data(nation)
+		if war_data != null:
+			war_detail_popup.show_armistice(war_data)
+	else:
+		var war_data = _find_war_data(nation)
+		if war_data != null:
+			war_detail_popup.show_war(war_data, _cached_coalition_data)
+
+
+func _on_coalition_header_clicked():
+	"""N4h: Handle coalition header click — open coalition detail."""
+	if war_detail_popup == null or _cached_coalition_data == null:
+		return
+	war_detail_popup.show_coalition(_cached_coalition_data, _cached_wars)
+
+
+func _on_war_negotiate_clicked(nation: String):
+	"""N4h: Handle [Negotiate Peace] / [Diplomatic Options] — open wizard for nation."""
+	if diplomacy_wizard:
+		diplomacy_wizard.open_for_nation(nation)
+
+
+func _on_war_target_clicked(nation: String):
+	"""N4h: Handle [Target X] — open wizard for that nation."""
+	if diplomacy_wizard:
+		diplomacy_wizard.open_for_nation(nation)
+
+
+func _find_war_data(nation: String):
+	"""Find war data for a specific nation from cached active_wars."""
+	for w in _cached_wars:
+		if str(w.get("opponent", "")) == nation:
+			return w
+	return null
+
+
+func _process_active_wars(response: Dictionary):
+	"""N4i: Parse active_wars from response and update HUD + detail popup."""
+	var active_wars_data = response.get("active_wars", null)
+	if active_wars_data == null:
+		return
+	if not active_wars_data is Dictionary:
+		return
+
+	if war_status_panel:
+		war_status_panel.update_wars(active_wars_data)
+
+	_cached_wars = active_wars_data.get("wars", [])
+	_cached_coalition_data = active_wars_data.get("coalition", null)
+	_has_active_wars = not _cached_wars.is_empty()
+
+	# Refresh detail popup if open (in-place update, don't close)
+	if war_detail_popup and war_detail_popup.visible:
+		war_detail_popup.refresh_if_open(active_wars_data)
+
+	_update_war_panel_visibility()
 
 
 func _on_pause_save_requested():

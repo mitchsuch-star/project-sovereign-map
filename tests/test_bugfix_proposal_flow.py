@@ -1189,13 +1189,15 @@ class TestBugfix_PopupPassthrough:
         assert world.incoming_proposal_popup is None
 
     def test_popup_passthrough_no_popups_all_none(self):
-        """When no popups are set, all response keys must be None."""
+        """When no popups are set, all popup response keys must be None."""
         from backend.main import _include_popup_passthroughs
 
         world = _make_world()
         response = {}
         _include_popup_passthroughs(response, world)
-        for key in response:
+        # active_wars is a data field (N4f), not a popup — exclude from None check
+        non_data_keys = {k for k in response if k != "active_wars"}
+        for key in non_data_keys:
             assert response[key] is None, (
                 f"Response['{key}'] should be None when no popups are set, "
                 f"got: {response[key]}"

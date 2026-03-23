@@ -221,6 +221,10 @@ def _include_popup_passthroughs(response: dict, world) -> None:
             else:
                 response[response_key] = None
 
+    # War status panel data — embedded in every response (N4f)
+    from backend.game_logic.war_status import build_active_wars
+    response["active_wars"] = build_active_wars(world)
+
 
 def _filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
     """
@@ -439,7 +443,8 @@ class DeleteSaveRequest(BaseModel):
 @app.get("/test")
 def test_connection():
     """Test endpoint for Godot connection."""
-    return {
+    from backend.game_logic.war_status import build_active_wars
+    response = {
         "status": "ok",
         "message": "Backend is running",
         "turn": int(world.current_turn),
@@ -461,6 +466,9 @@ def test_connection():
         "coalition_brewing_turns": int(world.coalition_brewing.get("turns_remaining", 0)) if getattr(world, 'coalition_brewing', None) else None,
         "pending_envoy_count": int(len(getattr(world, 'diplomatic_queue', []))),
     }
+    # War status panel data (N4f) — for HUD initialization on page load
+    response["active_wars"] = build_active_wars(world)
+    return response
 
 
 @app.post("/command")
@@ -1001,8 +1009,10 @@ def execute_command(request: CommandRequest):
 def get_status():
     """Get current game status — Berthier's Intelligence Report (Session 34A)."""
     from backend.intel_report import generate_intel_report
+    from backend.game_logic.war_status import build_active_wars
     report = generate_intel_report(world)
     report["game_state"] = world.get_filtered_game_state_summary()
+    report["active_wars"] = build_active_wars(world)
     return report
 
 

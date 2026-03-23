@@ -84,6 +84,20 @@ func open():
 	_fetch_nations()
 
 
+func open_for_nation(nation: String):
+	"""Open wizard directly at Step 2 for a specific nation (N4c).
+	Called from war detail popup [Negotiate Peace] and coalition [Target X] buttons."""
+	_current_step = 2
+	_selected_nation = nation
+	back_button.visible = true
+	title_label.text = "DIPLOMACY — " + nation
+	assessment_panel.text = "[color=#" + COLOR_INFO + "]Loading assessment...[/color]"
+	_clear_content_list()
+	_add_loading_label()
+	show()
+	_fetch_preview(nation)
+
+
 func _close_wizard():
 	_current_step = 0
 	_selected_nation = ""
