@@ -937,11 +937,6 @@ COALITION_TEMPLATES = {
 }
 
 
-def get_coalition_template(category: str) -> Optional[Dict]:
-    """Get a coalition template by category name."""
-    return COALITION_TEMPLATES.get(category)
-
-
 def resolve_coalition_template(category: str, world, **kwargs) -> Optional[str]:
     """Resolve a coalition template with slot variables.
 

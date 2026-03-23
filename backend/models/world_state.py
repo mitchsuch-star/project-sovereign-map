@@ -17,7 +17,6 @@ from backend.models.marshal import Marshal, create_starting_marshals, create_ene
 from backend.models.authority import AuthorityTracker
 from backend.commands.vindication import VindicationTracker
 from backend.commands.disobedience import DisobedienceSystem
-from backend.utils import ordinal
 from backend.utils.debug import debug_print
 from backend.models.intel import (
     RegionIntel, FULL, PARTIAL, STALE, VISIBILITY_PRIORITY, FRESH_TURNS,
@@ -1289,100 +1288,6 @@ class WorldState:
                 return marshal
         return None
 
-    # ========================================
-    # BATTLE TRACKING (for naming and history)
-    # ========================================
-
-    def start_or_continue_battle(self, region: str, attacker: Marshal, defender: Marshal) -> Dict:
-        """
-        Start a new battle or continue an existing one in a region.
-
-        Tracks engagements for battle naming ("2nd Engagement of the Battle of Waterloo").
-
-        Args:
-            region: Region where battle occurs
-            attacker: Attacking marshal
-            defender: Defending marshal
-
-        Returns:
-            Dict with battle info including name and engagement count
-        """
-        if region in self.active_battles:
-            # Continue existing battle
-            battle = self.active_battles[region]
-            battle["engagement_count"] += 1
-            if attacker.name not in battle["participants"]:
-                battle["participants"].append(attacker.name)
-            if defender.name not in battle["participants"]:
-                battle["participants"].append(defender.name)
-
-            # Generate engagement name
-            ord_str = ordinal(battle["engagement_count"])
-            engagement_name = f"{ord_str} Engagement of the {battle['name']}"
-
-            return {
-                "battle_name": battle["name"],
-                "engagement_name": engagement_name,
-                "engagement_count": battle["engagement_count"],
-                "is_new_battle": False
-            }
-        else:
-            # Start new battle
-            battle_name = f"Battle of {region}"
-            self.active_battles[region] = {
-                "name": battle_name,
-                "region": region,
-                "participants": [attacker.name, defender.name],
-                "engagement_count": 1,
-                "started_turn": self.current_turn
-            }
-
-            return {
-                "battle_name": battle_name,
-                "engagement_name": battle_name,  # First engagement is just the battle name
-                "engagement_count": 1,
-                "is_new_battle": True
-            }
-
-    def end_battle_if_needed(self, region: str) -> Optional[Dict]:
-        """
-        Check if a battle should end and archive it if so.
-
-        A battle ends when only one nation (or no nations) remains in the region.
-
-        Args:
-            region: Region to check
-
-        Returns:
-            Archived battle dict if battle ended, None otherwise
-        """
-        if region not in self.active_battles:
-            return None
-
-        # Get all marshals still in this region
-        marshals_in_region = [
-            m for m in self.marshals.values()
-            if m.location == region and m.strength > 0
-        ]
-
-        # Get unique nations present
-        nations_present = set(m.nation for m in marshals_in_region)
-
-        # Battle ends if only one nation (or none) remains
-        if len(nations_present) <= 1:
-            battle = self.active_battles.pop(region)
-            battle["ended_turn"] = self.current_turn
-            self.battle_history.append(battle)
-            return battle
-
-        return None
-
-    def get_battle_name(self, region: str) -> str:
-        """Get the name of an active battle in a region, or generate one."""
-        if region in self.active_battles:
-            return self.active_battles[region]["name"]
-        return f"Battle of {region}"
-
     def capture_region(self, region_name: str, capturing_nation: str) -> bool:
         """Capture a region (change controller).
 
@@ -1759,103 +1664,6 @@ class WorldState:
 
         debug_print(f"  [RETREAT RESULT] {marshal_name} is ENCIRCLED - no valid retreat!")
         return None  # ENCIRCLED - army breaks
-
-    def _get_regions_within_range(self, start: str, max_range: int) -> List[str]:
-        """
-        Get all regions within a certain distance from start.
-
-        Args:
-            start: Starting region name
-            max_range: Maximum distance (1 or 2)
-
-        Returns:
-            List of region names within range (excluding start)
-        """
-        regions = set()
-        start_region = self.get_region(start)
-        if not start_region:
-            return []
-
-        # Add all adjacent regions (distance 1)
-        for adj_name in start_region.adjacent_regions:
-            regions.add(adj_name)
-
-            # If range is 2, add regions adjacent to adjacent
-            if max_range >= 2:
-                adj_region = self.get_region(adj_name)
-                if adj_region:
-                    for adj2_name in adj_region.adjacent_regions:
-                        if adj2_name != start:  # Don't include starting region
-                            regions.add(adj2_name)
-
-        return list(regions)
-
-    def _has_valid_path(self, start: str, end: str) -> bool:
-        """
-        Check if there's a valid path from start to end (for 2-tile moves).
-
-        A valid path means there's an intermediate region that connects them.
-
-        Args:
-            start: Starting region name
-            end: Ending region name
-
-        Returns:
-            True if valid path exists, False otherwise
-        """
-        start_region = self.get_region(start)
-        end_region = self.get_region(end)
-
-        if not start_region or not end_region:
-            return False
-
-        # Check if any adjacent region of start is also adjacent to end
-        for adj_name in start_region.adjacent_regions:
-            adj_region = self.get_region(adj_name)
-            if adj_region and end in adj_region.adjacent_regions:
-                return True
-
-        return False
-
-    def _region_is_threatened(self, region_name: str) -> bool:
-        """
-        Check if a region is in an enemy's threat zone.
-
-        A region is threatened if:
-        - Any enemy marshal is IN the region, OR
-        - Any enemy marshal is adjacent to it (distance 1), OR
-        - Any CAVALRY enemy is within 2 regions (extended threat)
-
-        Args:
-            region_name: Name of the region to check
-
-        Returns:
-            True if region is threatened, False otherwise
-        """
-        region = self.get_region(region_name)
-        if not region:
-            return True  # Unknown region = unsafe
-
-        for enemy in self.get_enemy_marshals():
-            if enemy.strength <= 0:
-                continue
-
-            distance = self.get_distance(region_name, enemy.location)
-
-            # Enemy in the region = threatened
-            if distance == 0:
-                return True
-
-            # Enemy adjacent = threatened
-            if distance == 1:
-                return True
-
-            # Cavalry enemy within 2 regions = threatened (extended range)
-            enemy_range = getattr(enemy, 'movement_range', 1)
-            if distance == 2 and enemy_range >= 2:
-                return True
-
-        return False
 
     # ========================================
     # PROXIMITY / DISTANCE CALCULATIONS
@@ -3134,9 +2942,9 @@ class WorldState:
         world.threat_level = int(data.get("threat_level", 0))
         world.threat_sources_this_turn = [s.copy() for s in data.get("threat_sources_this_turn", [])]
         raw_coalition = data.get("active_coalition", None)
-        world.active_coalition = raw_coalition.copy() if isinstance(raw_coalition, dict) else None
+        world.active_coalition = copy.deepcopy(raw_coalition) if isinstance(raw_coalition, dict) else None
         raw_brewing = data.get("coalition_brewing", None)
-        world.coalition_brewing = raw_brewing.copy() if isinstance(raw_brewing, dict) else None
+        world.coalition_brewing = copy.deepcopy(raw_brewing) if isinstance(raw_brewing, dict) else None
         world.coalition_cooldown = int(data.get("coalition_cooldown", 0))
         world.coalition_count = int(data.get("coalition_count", 0))
         world.war_exhaustion = {k: int(v) for k, v in data.get("war_exhaustion", {}).items()}

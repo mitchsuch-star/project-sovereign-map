@@ -224,34 +224,6 @@ class VindicationTracker:
 
         return vindication_result
 
-    def apply_decay(self, current_turn: int, game_state=None) -> None:
-        """Decay vindication scores by 1 toward 0 every 5 turns of inactivity.
-
-        R58: Prevents permanent vindication from a single event.
-        Called from world_state.advance_turn().
-        """
-        # Get all marshal names with vindication scores
-        world = None
-        if hasattr(game_state, 'world'):
-            world = game_state.world
-        elif hasattr(game_state, 'marshals'):
-            world = game_state
-
-        if world is None:
-            return
-
-        for marshal_name, marshal in world.marshals.items():
-            score = getattr(marshal, 'vindication_score', 0)
-            if score == 0:
-                continue
-            last_change = self.last_change_turn.get(marshal_name, 0)
-            if current_turn - last_change >= 5:
-                if score > 0:
-                    marshal.vindication_score = score - 1
-                else:
-                    marshal.vindication_score = score + 1
-                self.last_change_turn[marshal_name] = current_turn
-
     def clear_pending(self, marshal_name: str) -> None:
         """Clear pending vindication for a marshal (e.g., if they don't fight)."""
         if marshal_name in self.pending:

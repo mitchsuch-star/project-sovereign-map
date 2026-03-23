@@ -1999,9 +1999,7 @@ async def debug_set_trust(request: Request):
         return {"success": False, "message": f"Unknown marshal: {marshal_name}"}
 
     old_trust = int(marshal.trust.value)
-    # NOTE: Directly sets trust._value, bypassing Trust.modify().
-    # Acceptable for debug endpoints but would skip any side effects.
-    marshal.trust._value = max(0, min(100, int(trust_value)))
+    marshal.trust.set(int(trust_value))
 
     print(f"[DEBUG] Set {marshal_name} trust: {old_trust} -> {marshal.trust.value}")
 
@@ -2088,7 +2086,7 @@ def debug_trigger_redemption(marshal_name: str):
         return {"success": False, "message": f"Unknown marshal: {marshal_name}"}
 
     old_trust = int(marshal.trust.value)
-    marshal.trust._value = 15  # Set to critical level
+    marshal.trust.set(15)  # Set to critical level
 
     # Create redemption event
     redemption_event = world.disobedience_system._create_redemption_event(marshal)

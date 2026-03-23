@@ -1055,43 +1055,6 @@ class EnemyAI:
         best = candidates[0]
         return best[0], best[1], best[2]  # marshal, action, action_priority
 
-    def _find_best_action(self, marshals: List[Marshal], nation: str, world: WorldState) -> Optional[Dict]:
-        """
-        Find the best action across all marshals for this nation.
-
-        Evaluates priorities in order:
-        1. Retreat recovery check (limited options)
-        2. Critical survival
-        3. Threat response
-        4. Attack opportunity
-        5. Fortification
-        6. Drilling
-        7. Strategic movement
-        8. Default (wait/defend)
-
-        Args:
-            marshals: List of this nation's marshals
-            nation: Nation name
-            world: Current world state
-
-        Returns:
-            Action dict or None if no valid action
-        """
-        best_action = None
-        best_priority = 999  # Lower is better
-
-        for marshal in marshals:
-            action, priority = self._evaluate_marshal(marshal, nation, world)
-            if action and priority < best_priority:
-                # Skip stance changes for marshals who already changed this turn
-                if action.get("action") == "stance_change":
-                    if self._should_skip_stance_change(action.get("marshal")):
-                        continue  # Skip this action, try next marshal
-                best_action = action
-                best_priority = priority
-
-        return best_action
-
     def _should_skip_stance_change(self, marshal_name: str) -> bool:
         """Check if a stance change should be skipped for this marshal."""
         # _stance_changed_this_turn is initialized per-turn in process_nation_turn()

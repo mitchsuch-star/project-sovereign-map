@@ -612,11 +612,11 @@ Diplomacy has its own action economy, separate from military AP. The player must
 ### 4a. DP Generation
 
 ```
-Base DP per turn: 2
+Base DP per turn: 3
 
 Talleyrand skill bonus:
-  Skill 10 (Talleyrand): +1 bonus DP
-  Skill 7-9:             +0
+  Skill >= 8 (Talleyrand): +1 bonus DP
+  Skill 7:                 +0
   Skill 4-6:             -0 (but actions cost more — see 4b)
 
 Authority modifier:
@@ -631,7 +631,7 @@ Maximum DP per turn: 5
 Minimum DP per turn: 1 (hard floor — always at least 1 diplomatic action)
 ```
 
-**France at game start: 2 base + 1 (Talleyrand skill 10) + 1 (authority ~100, well above ≥60 threshold) = 4 DP/turn.**
+**France at game start: 3 base + 1 (Talleyrand skill ≥8) + 1 (authority ~100, well above ≥60 threshold) = 5 DP/turn.**
 
 The authority threshold was lowered from 80 to 60 so France starts with meaningful diplomatic capacity (4 DP). Dropping below authority 60 costs 1 DP — creating real stakes for authority management. Maximum increased to 5 to leave room for authority 80+ bonus future expansion if needed.
 
@@ -692,7 +692,7 @@ States between each nation pair, from most hostile to most friendly. **Hostility
 | State | Movement | Combat | Economy | Other |
 |-------|----------|--------|---------|-------|
 | **WAR** | Cannot enter enemy territory without attacking | Full combat | Pillage/plunder enabled | Default hostile state |
-| **ARMISTICE** | Cannot enter enemy territory | No combat (ceasefire) | No trade | 3-turn minimum duration. Either side can end it (returns to WAR) |
+| **ARMISTICE** | Cannot enter enemy territory | No combat (ceasefire) | No trade | 5-turn minimum duration. Either side can end it (returns to WAR) |
 | **PEACE** | Cannot enter each other's territory | No combat | Trade (+50 gold/turn bilateral) | Stable state, breaking requires war declaration |
 | **OPEN_BORDERS** | Can move through each other's territory | No combat | Trade (+100 gold/turn bilateral) | No military access — can move THROUGH, not station troops |
 | **NON_AGGRESSION** | Cannot enter each other's territory | No combat | Trade (+150 gold/turn bilateral) | Breaking pact = severe relation hit (-40) and threat spike |
@@ -752,7 +752,7 @@ After an armistice expires or is broken, the same nation pair cannot enter anoth
 
 | From → To | DP Cost | Relation Requirement | Notes |
 |-----------|---------|---------------------|-------|
-| WAR → ARMISTICE | 1 | None (war exhaustion drives this) | 3-turn minimum |
+| WAR → ARMISTICE | 1 | None (war exhaustion drives this) | 5-turn minimum |
 | ARMISTICE → PEACE | 2 | Relation > -60 | May require treaty clauses |
 | PEACE → OPEN_BORDERS | 1 | Relation > -20 | |
 | OPEN_BORDERS → NON_AGGRESSION | 1 | Relation > 0 | |
@@ -804,7 +804,7 @@ Declaring war on a neutral/friendly nation:
 - If target has allies: all allies enter WAR with you (defensive alliance trigger)
 
 **Casus Belli (reduces penalties):**
-If the target broke a treaty, attacked your ally, or controls your core territory, the aggressor penalty is halved (-15 → -7 relation with others, threat +10 instead of +20). Casus belli is tracked automatically from treaty breaks and attacks.
+If the target broke a treaty, attacked your ally, or controls your core territory, the aggressor penalty is halved (-15 → -7 relation with others, but threat is always +20 — casus belli does not reduce threat). Casus belli is tracked automatically from treaty breaks and attacks.
 
 **Metternich's Armed Mediation (DD8 — Schemer-specific AI behavior):** When Metternich (Schemer personality) proposes peace to France and the proposal is REJECTED, Austria gains +5 to their next war declaration's coalition bonus (if they declare war within 5 turns). This captures Metternich's historical tactic of using failed peace talks as a casus belli — his "armed mediation" at Dresden (1813) presented deliberately harsh terms, and when Napoleon rejected them, Metternich used the rejection to justify joining the Sixth Coalition. This is an AI-only behavior — it does not apply to Talleyrand (who doesn't declare wars on France's behalf).
 
@@ -931,7 +931,7 @@ Example: Relation +40 → +20 acceptance
 
 **R145 Gold lump sweetener:** Rate doubled from +1/200 to +1/100 gold offered.
 
-**R146 Sweetener cap:** Raised from +30 to +40 maximum from all sweetener clauses combined.
+**R146 Sweetener cap:** Raised from +30 to +60 maximum from all sweetener clauses combined.
 
 **Threat Modifier (anti-France proposals only):**
 ```
@@ -1003,7 +1003,7 @@ Does NOT stack with Military Supremacy modifier (§6b.1) — use whichever is hi
 ```
 Base disposition (peace):        30
 War score (+20 * 0.3):          +6
-Relation (-60 / 2):            -30
+Relation (-60 / 4, cap ±10):   -10
 Threat (40 * -0.3):            -12
 Deal sweetener:
   Open borders:                 +3
@@ -1011,22 +1011,22 @@ Deal sweetener:
 Diplomat skill (10-6)*2:        +8
 Personality (Hawk, peace):      -5
 
-Total:                          6 → REJECT
+Total:                          26 → REJECT
 ```
 
-Prussia says no — too bitter, too much threat. France needs to sweeten the deal (territory concession? more gold?) or reduce threat level first.
+Prussia says no — not enough sweetener and too much threat. France needs to sweeten the deal (territory concession? more gold?) or reduce threat level first.
 
 **Same proposal but France also offers Saxony (territory):**
 ```
-Previous total:                  6
+Previous total:                  26
 + Territory (Saxony):           +5
 + Extra sweetener (Saxony is
   what Prussia wants):          +10 (special bonus — see §6d)
 
-Total:                          21 → still REJECT, but closer
+Total:                          41 → ACCEPT (just over threshold)
 ```
 
-Still rejected. France needs to either improve relations first, win more battles, or reduce threat. Diplomacy is hard.
+With the wartime relation dampening (relation/4, cap ±10), the relation penalty is much smaller. Adding territory Prussia desires tips the balance — diplomacy rewards understanding what the other side wants.
 
 ### 6c.1. Harshness Value Table (C2 Resolution)
 
@@ -1198,7 +1198,7 @@ def get_formula_feedback(components, outcome):
 | **Artillery for cavalry** | Either | Reverse unit swap — artillery pool → cavalry pool | Austria had great cavalry, France great artillery |
 | **Gold for manpower** | Either | Buy recruits from ally (gold → infantry/cav/art pool) | Rate: 200g per 5000 infantry, 300g per 2500 cavalry, 400g per 1500 artillery. Deal sweetener: use manpower value only (gold cost is implicit). |
 | **Manpower for gold** | Either | Sell recruits for treasury (pool → gold) | Reverse of above. Deal sweetener: use gold value (1 per 200g received). |
-| **AP/turn** | Either | Lose/gain AP each turn | WAR REPARATION TIER when demanded (§7c). Can also be OFFERED as a sweetener (+8 per AP/turn, most valuable). |
+| **AP/turn** | Either | Lose/gain AP each turn | WAR REPARATION TIER when demanded (§7c). Can also be OFFERED as a sweetener (+18 per AP/turn, most valuable). |
 | **Territory** | Either | Cede specific regions | Controller changes, stability drops to 50 |
 | **Open borders** | Mutual | Movement through territory | Cannot station troops (must keep moving) |
 | **Military access** | One-way | Their troops can enter your territory | Stronger than open borders |
@@ -1253,7 +1253,7 @@ AP is the most valuable resource in the game. Treaty AP reflects that:
 **Acceptance formula:** Massive negative modifier. AI nations treat AP demands as extreme:
 ```
 AP demand penalty in acceptance formula: -25 per AP/turn demanded
-(vs the +8 sweetener for OFFERING AP — asymmetric by design)
+(vs the +18 sweetener for OFFERING AP — asymmetric by design)
 
 Only achievable with: max war score + territory held + other concessions
 ```
@@ -1267,7 +1267,7 @@ This makes AP in treaties a late-game dominance move, not a routine negotiation 
 ### 7d. Treaty Duration & Breaking
 
 - Treaties have no expiration by default (permanent until broken or superseded)
-- Armistice: minimum 3 turns, then either side can end
+- Armistice: minimum 5 turns, then either side can end
 - Breaking a treaty:
   - Costs 1 DP
   - Relation with target: -30
@@ -1275,7 +1275,7 @@ This makes AP in treaties a late-game dominance move, not a routine negotiation 
   - Threat level: +15
   - Casus belli granted to victim
   - If breaking alliance/defensive alliance: more severe (-40 relation, +25 threat)
-  - **Post-break state (E11):** Breaking a treaty returns to the state one level below the broken treaty. Breaking ALLIANCE → DEFENSIVE_ALLIANCE. Breaking PEACE → WAR. Breaking ARMISTICE → WAR. Breaking NON_AGGRESSION → OPEN_BORDERS. This prevents exploits where breaking a high-level treaty drops you all the way to WAR.
+  - **Post-break state (E11):** Breaking a treaty drops **two levels** below the broken treaty (2-level drop per design). Breaking ALLIANCE → NON_AGGRESSION. Breaking DEFENSIVE_ALLIANCE → OPEN_BORDERS. Breaking NON_AGGRESSION → PEACE. Breaking PEACE → WAR. Breaking ARMISTICE → WAR. This creates meaningful consequences — breaking a high-level treaty loses significant diplomatic progress.
 
 ### 7e. Trade Income Integration
 

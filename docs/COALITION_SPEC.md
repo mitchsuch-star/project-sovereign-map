@@ -413,9 +413,9 @@ Individual coalition members can be peaced out through standard DIPLOMACY_SPEC b
 
 ### §6b. Decisive Victory Impact
 
-When France wins a **decisive battle** (casualty ratio > 2:1, total casualties > 5000) against a coalition member:
+When France wins a **decisive battle** (casualty ratio > 2:1, total casualties > 10000) against a coalition member:
 
-- That member's **war exhaustion** increases by +15 (standard) + **+5 coalition shock bonus**.
+- That member's **war exhaustion** increases by +15 (standard battle impact — no additional shock bonus for the defeated member; the defeat itself is the penalty).
 - All OTHER coalition members: +5 war exhaustion ("our allies are being crushed").
 - Coalition leader reassesses posture (§4c) — may shift from Aggressive to Defensive.
 
@@ -632,7 +632,7 @@ self.coalition_count: int = 0                  # Total coalitions formed this ga
 # War exhaustion per nation (used in §6a coalition loyalty penalty formula)
 # Key: nation name. Value: int 0-200 CLAMPED.
 # Increases: +casualties_taken // 1000 after each battle (capped at +20 per battle).
-# Increases: +5 per turn while at war with France.
+# Increases: +8 per turn while at war with France.
 # Decreases: -5 per turn while at peace with France (floor 0).
 # Historical basis: prolonged war weakens resolve — a battered Austria becomes willing to negotiate.
 self.war_exhaustion: Dict[str, int] = {}  # Default 0 for all nations

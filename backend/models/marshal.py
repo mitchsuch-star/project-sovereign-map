@@ -567,6 +567,8 @@ class Marshal:
         Returns:
             Actual change applied (may be less if clamped)
         """
+        if other_name == self.name:
+            return 0
         old_value = self.get_relationship(other_name)
         new_value = max(-2, min(2, old_value + int(delta)))
         self.relationships[other_name] = new_value
@@ -943,15 +945,6 @@ class Marshal:
             return min(8, base + 1)
         return base
 
-    def get_stance_display(self) -> str:
-        """Get display string for current stance with modifiers."""
-        if self.stance == Stance.AGGRESSIVE:
-            return "AGGRESSIVE (+15% atk, -10% def)"
-        elif self.stance == Stance.DEFENSIVE:
-            return "DEFENSIVE (-10% atk, +15% def)"
-        else:
-            return "NEUTRAL"
-
     def add_troops(self, amount: int) -> None:
         """Add troops to this marshal's army (recruitment)."""
         self.strength += amount
@@ -1243,7 +1236,10 @@ class Marshal:
         marshal.broken_recovery = data.get("broken_recovery", 0)
 
         # ═══════ STANCE ═══════
-        marshal.stance = Stance(data.get("stance", "neutral"))
+        try:
+            marshal.stance = Stance(data.get("stance", "neutral"))
+        except ValueError:
+            marshal.stance = Stance.NEUTRAL
 
         # ═══════ CAVALRY-SPECIFIC ═══════
         marshal.turns_in_defensive_stance = data.get("turns_in_defensive_stance", 0)

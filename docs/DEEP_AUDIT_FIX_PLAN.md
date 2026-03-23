@@ -226,9 +226,10 @@ Some audit findings re-classified after review:
 
 ---
 
-## Session 9: Spec Docs, Dead Code & Polish
+## Session 9: Spec Docs, Dead Code & Polish — COMPLETE
 
 **Theme:** Update spec docs to match code, remove dead code, minor hardening.
+**Result:** 12 spec doc updates, 6 hardening fixes (17 new tests), 10 dead code removals (~900 lines). 6703 tests pass.
 
 ### Spec Doc Updates (code is correct, update docs)
 
@@ -316,7 +317,7 @@ Per FOG_OF_WAR_SPEC §9.1: AI omniscience is by design at 19 regions. Toggle poi
 | 6 | ~14 | ~20 | Popups, passthroughs, security |
 | 7 | ~15 | ~15 | Fog leaks, dispatch, regions |
 | 8 | ~14 | 0 (Godot) | Frontend fixes |
-| 9 | ~30 | ~10 | Spec docs, dead code, polish |
+| 9 | 28 | 17 | Spec docs, dead code, polish |
 | **Total** | **~155** | **~180** | |
 
 Remaining ~145 findings are: duplicates across passes (~40), informational/architectural notes (~20), intentional deferrals (~20), LOW severity items (~35), or items implicitly fixed by related changes (~30).

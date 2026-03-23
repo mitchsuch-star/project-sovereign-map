@@ -21,6 +21,7 @@ from backend.models.intel import RegionIntel
 from backend.models.trust import Trust
 from backend.models.authority import AuthorityTracker
 from backend.commands.vindication import VindicationTracker
+from backend.models.diplomat import DiplomaticRepresentative  # noqa: F401 - used in SERIALIZABLE_CLASSES
 
 
 # ============================================================================
@@ -626,6 +627,7 @@ SERIALIZABLE_CLASSES: list[Type] = [
     Trust,
     AuthorityTracker,
     VindicationTracker,
+    DiplomaticRepresentative,
     # Future classes - uncomment when implemented:
     # Treaty,
     # Alliance,

@@ -21,6 +21,7 @@ with .get(key, default) for backward compatibility.
 """
 
 import json
+import os  # noqa: E402 - used in atomic save write
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, List, Dict
@@ -69,8 +70,17 @@ def save_game(world: WorldState, save_name: str = "Quicksave", filepath: Optiona
             safe_name = "".join(c if c.isalnum() or c in "- _" else "_" for c in save_name)
             filepath = SAVE_DIR / f"{safe_name}.json"
 
-        with open(filepath, 'w', encoding='utf-8') as f:
-            json.dump(save_data, f, indent=2)
+        # Atomic write: write to temp file, then rename
+        tmp_path = filepath.with_suffix('.tmp')
+        try:
+            with open(tmp_path, 'w', encoding='utf-8') as f:
+                json.dump(save_data, f, indent=2)
+            os.replace(str(tmp_path), str(filepath))
+        except Exception:
+            # Clean up temp file on failure
+            if tmp_path.exists():
+                tmp_path.unlink()
+            raise
 
         return {"success": True, "message": f"Game saved: {save_name}", "filepath": str(filepath)}
 

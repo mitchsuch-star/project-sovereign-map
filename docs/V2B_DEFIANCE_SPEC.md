@@ -155,7 +155,7 @@ Per-marshal integer. Existing field: `marshal.vindication_score` (range -5 to +5
 
 ### Vindication Decay
 
-**-1 per 3 turns of no objection activity** from that marshal.
+**-1 per 5 turns of no objection activity** from that marshal.
 
 New field: `marshal.last_objection_turn` (int, default 0). Updated whenever an objection fires for this marshal (any concern level, including MILD).
 

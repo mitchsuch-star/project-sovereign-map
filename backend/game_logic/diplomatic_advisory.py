@@ -623,14 +623,6 @@ def _get_nation_visibility(nation: str, world) -> str:
     return _ledger_vis(nation, world)
 
 
-def _get_fogged_strength_display(nation: str, world) -> str:
-    """Get fog-filtered strength display string for a nation (R65 fog fix)."""
-    from backend.game_logic.diplomatic_ledger import _format_army_strength
-    raw = _get_nation_total_strength(nation, world)
-    vis = _get_nation_visibility(nation, world)
-    return _format_army_strength(raw, vis)
-
-
 def _get_fogged_strength(nation: str, world) -> int:
     """Get fog-filtered numeric strength estimate for threat scoring.
 
