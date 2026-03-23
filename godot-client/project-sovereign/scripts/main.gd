@@ -2843,6 +2843,7 @@ func _on_talleyrand_objection_choice(choice: String, data: Dictionary):
 	elif choice == "modify":
 		add_output("[color=#d9c08c]Reconsidering the proposal...[/color]")
 		talleyrand_objection_popup.hide()  # Hide before re-enabling input (Fix 9)
+		_update_war_panel_visibility()
 		set_input_enabled(true)
 		command_input.grab_focus()
 	else:
@@ -3072,24 +3073,23 @@ func _find_war_data(nation: String):
 
 
 func _process_active_wars(response: Dictionary):
-	"""N4i: Parse active_wars from response and update HUD + detail popup."""
+	"""N4i: Parse active_wars from response and update HUD + detail popup.
+	ALWAYS refreshes panel visibility — even when response lacks active_wars.
+	This ensures the panel re-appears after modal popups close."""
 	var active_wars_data = response.get("active_wars", null)
-	if active_wars_data == null:
-		return
-	if not active_wars_data is Dictionary:
-		return
+	if active_wars_data != null and active_wars_data is Dictionary:
+		if war_status_panel:
+			war_status_panel.update_wars(active_wars_data)
 
-	if war_status_panel:
-		war_status_panel.update_wars(active_wars_data)
+		_cached_wars = active_wars_data.get("wars", [])
+		_cached_coalition_data = active_wars_data.get("coalition", null)
+		_has_active_wars = not _cached_wars.is_empty()
 
-	_cached_wars = active_wars_data.get("wars", [])
-	_cached_coalition_data = active_wars_data.get("coalition", null)
-	_has_active_wars = not _cached_wars.is_empty()
+		# Refresh detail popup if open (in-place update, don't close)
+		if war_detail_popup and war_detail_popup.visible:
+			war_detail_popup.refresh_if_open(active_wars_data)
 
-	# Refresh detail popup if open (in-place update, don't close)
-	if war_detail_popup and war_detail_popup.visible:
-		war_detail_popup.refresh_if_open(active_wars_data)
-
+	# Always refresh visibility — critical for re-showing after popup dismiss
 	_update_war_panel_visibility()
 
 

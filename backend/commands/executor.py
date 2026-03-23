@@ -2793,6 +2793,7 @@ RETREAT RECOVERY (3 turns):
                 winner_nation=marshal.nation,
                 attacker_casualties=int(attacker_losses),
                 defender_casualties=int(garrison_losses),
+                location=target_region.name,
             )
 
             # Move attacker into region
@@ -2880,6 +2881,7 @@ RETREAT RECOVERY (3 turns):
                 winner_nation=target_region.controller,
                 attacker_casualties=int(attacker_losses),
                 defender_casualties=int(garrison_losses),
+                location=target_region.name,
             )
 
             return {
@@ -4752,6 +4754,7 @@ RETREAT RECOVERY (3 turns):
                 winner_nation=diplo_winner,
                 attacker_casualties=int(battle_result.get("attacker", {}).get("casualties", 0)),
                 defender_casualties=int(battle_result.get("defender", {}).get("casualties", 0)),
+                location=target_location,
             )
 
         # Check if enemy was destroyed
@@ -10365,6 +10368,7 @@ RETREAT RECOVERY (3 turns):
                 winner_nation=diplo_winner,
                 attacker_casualties=int(combat_result.get("attacker", {}).get("casualties", 0)),
                 defender_casualties=int(combat_result.get("defender", {}).get("casualties", 0)),
+                location=target_marshal.location,
             )
 
         # ALWAYS reset recklessness after Glorious Charge

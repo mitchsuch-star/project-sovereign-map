@@ -689,3 +689,84 @@ class TestAllWarsEnd:
         result = build_active_wars(world)
         assert result["wars"] == []
         assert result["coalition"] is None
+
+
+# ======================================================
+# Test 25: record_battle stores location field
+# ======================================================
+
+class TestBattleRecordLocation:
+    def test_record_battle_stores_location(self):
+        """Bug fix: record_battle must store location in the battle record."""
+        from backend.game_logic.diplomacy import record_battle
+        world = make_world()
+        set_war(world, "Prussia")
+        record_battle(
+            world,
+            attacker_nation="France",
+            defender_nation="Prussia",
+            winner_nation="France",
+            attacker_casualties=2000,
+            defender_casualties=3000,
+            location="Saxony",
+        )
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        records = world.battle_records[diplo_key]
+        assert len(records) == 1
+        assert records[0]["location"] == "Saxony"
+
+    def test_record_battle_location_default_empty(self):
+        """Bug fix: location defaults to empty string when not provided."""
+        from backend.game_logic.diplomacy import record_battle
+        world = make_world()
+        set_war(world, "Prussia")
+        record_battle(
+            world,
+            attacker_nation="France",
+            defender_nation="Prussia",
+            winner_nation="France",
+            attacker_casualties=2000,
+            defender_casualties=3000,
+        )
+        diplo_key = world._make_diplo_key("France", "Prussia")
+        records = world.battle_records[diplo_key]
+        assert len(records) == 1
+        assert records[0]["location"] == ""
+
+    def test_location_appears_in_active_wars_recent_battles(self):
+        """Bug fix: location flows through to build_active_wars recent_battles."""
+        from backend.game_logic.diplomacy import record_battle
+        world = make_world()
+        set_war(world, "Prussia")
+        record_battle(
+            world,
+            attacker_nation="France",
+            defender_nation="Prussia",
+            winner_nation="France",
+            attacker_casualties=2000,
+            defender_casualties=3000,
+            location="Bavaria",
+        )
+        result = build_active_wars(world)
+        w = [w for w in result["wars"] if w["opponent"] == "Prussia"][0]
+        assert len(w["recent_battles"]) == 1
+        assert w["recent_battles"][0]["location"] == "Bavaria"
+
+    def test_location_not_unknown_when_provided(self):
+        """Bug fix: location must not be 'unknown' when location is provided."""
+        from backend.game_logic.diplomacy import record_battle
+        world = make_world()
+        set_war(world, "Prussia")
+        record_battle(
+            world,
+            attacker_nation="France",
+            defender_nation="Prussia",
+            winner_nation="France",
+            attacker_casualties=5000,
+            defender_casualties=6000,
+            location="Rhineland",
+        )
+        result = build_active_wars(world)
+        w = [w for w in result["wars"] if w["opponent"] == "Prussia"][0]
+        assert w["recent_battles"][0]["location"] != "unknown"
+        assert w["recent_battles"][0]["location"] == "Rhineland"

@@ -1426,7 +1426,7 @@ def check_auto_downgrade(world) -> List[Dict]:
 
 def record_battle(world, attacker_nation: str, defender_nation: str,
                   winner_nation: str, attacker_casualties: int,
-                  defender_casualties: int) -> None:
+                  defender_casualties: int, location: str = "") -> None:
     """Record a battle result for war score calculation.
 
     Also checks for decisive battle (casualty ratio > 2:1 AND total > 10,000).
@@ -1460,6 +1460,7 @@ def record_battle(world, attacker_nation: str, defender_nation: str,
         "defender": defender_nation,
         "attacker_casualties": int(attacker_casualties),
         "defender_casualties": int(defender_casualties),
+        "location": location,
     }
     world.battle_records[diplo_key].append(record)
 

@@ -63,6 +63,10 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 14
 text = "X"
 
+[node name="ScoreBarContainer" type="VBoxContainer" parent="PanelContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
 [node name="ContentLabel" type="RichTextLabel" parent="PanelContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
