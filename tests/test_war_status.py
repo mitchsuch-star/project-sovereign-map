@@ -100,9 +100,15 @@ class TestWarScorePerspective:
         world = make_world()
         set_war(world, "Britain")
         diplo_key = world._make_diplo_key("France", "Britain")
-        # diplo_key = "Britain|France" (alphabetical), stored from Britain's perspective
-        # France winning = Britain losing = negative stored score
-        world.war_scores[diplo_key] = -20
+        # Add battle records where France wins → positive battle score
+        world.battle_records[diplo_key] = [
+            {"turn": 1, "winner": "France", "attacker": "France",
+             "defender": "Britain", "attacker_casualties": 2000,
+             "defender_casualties": 3000, "location": "Belgium"},
+            {"turn": 2, "winner": "France", "attacker": "France",
+             "defender": "Britain", "attacker_casualties": 2000,
+             "defender_casualties": 3000, "location": "Netherlands"},
+        ]
 
         result = build_active_wars(world)
         w = [w for w in result["wars"] if w["opponent"] == "Britain"][0]
@@ -158,25 +164,28 @@ class TestBreakdown:
 
 class TestTrend:
     def test_trend_rising_when_score_increased(self):
-        """§N4j-6: trend is 'rising' when score increased >2."""
+        """§N4j-6: trend is 'rising' when live score > previous + 2."""
         world = make_world()
         set_war(world, "Prussia")
         diplo_key = world._make_diplo_key("France", "Prussia")
-        world.war_scores[diplo_key] = 20
-        # previous_war_scores stores canonical (alphabetical-first perspective)
-        # France|Prussia: France is first alphabetically, so stored score = France's perspective
-        world.previous_war_scores[diplo_key] = 10
+        # Add battle records so live score is positive (~6)
+        world.battle_records[diplo_key] = [
+            {"turn": 1, "winner": "France", "location": "Saxony"},
+            {"turn": 2, "winner": "France", "location": "Saxony"},
+        ]
+        # Previous score was 0 → current 6 > 0 + 2 → rising
+        world.previous_war_scores[diplo_key] = 0
 
         result = build_active_wars(world)
         w = [w for w in result["wars"] if w["opponent"] == "Prussia"][0]
         assert w["trend"] == "rising"
 
     def test_trend_falling_when_score_decreased(self):
-        """§N4j-6: trend is 'falling' when score decreased >2."""
+        """§N4j-6: trend is 'falling' when live score < previous - 2."""
         world = make_world()
         set_war(world, "Prussia")
         diplo_key = world._make_diplo_key("France", "Prussia")
-        world.war_scores[diplo_key] = 5
+        # No battle records → live score ~0. Previous was 20 → falling
         world.previous_war_scores[diplo_key] = 20
 
         result = build_active_wars(world)
@@ -188,8 +197,8 @@ class TestTrend:
         world = make_world()
         set_war(world, "Prussia")
         diplo_key = world._make_diplo_key("France", "Prussia")
-        world.war_scores[diplo_key] = 10
-        world.previous_war_scores[diplo_key] = 10
+        # No battle records → live score ~0. Previous was 0 → stable
+        world.previous_war_scores[diplo_key] = 0
 
         result = build_active_wars(world)
         w = [w for w in result["wars"] if w["opponent"] == "Prussia"][0]

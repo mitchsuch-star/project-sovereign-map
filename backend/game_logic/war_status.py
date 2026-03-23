@@ -14,7 +14,7 @@ def build_active_wars(world) -> Dict[str, Any]:
     All numbers int()-wrapped per Golden Rule #2.
     """
     from backend.game_logic.diplomacy import (
-        calculate_war_score, get_war_score_for,
+        calculate_war_score,
     )
     from backend.game_logic.diplomatic_ledger import (
         _get_nation_visibility, _format_army_strength,
@@ -52,11 +52,11 @@ def build_active_wars(world) -> Dict[str, Any]:
 
         diplo_key = world._make_diplo_key(france, opponent)
 
-        # War score + components
-        score = int(get_war_score_for(world, france, opponent))
+        # War score + components (always live-calculate, not cached war_scores)
         components = calculate_war_score(
             france, opponent, world, return_components=True
         )
+        score = int(components["total"])
         breakdown = {
             "territory": int(components["territory"]),
             "battles": int(components["battles"]),
