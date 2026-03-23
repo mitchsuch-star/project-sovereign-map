@@ -12092,6 +12092,20 @@ RETREAT RECOVERY (3 turns):
                 }
             world.diplomatic_points -= cost
 
+            # Fix 6: Diplomatic defiance check — Talleyrand may sabotage delivery
+            talleyrand = world.diplomats.get(world.player_nation)
+            if talleyrand and getattr(world, 'talleyrand_defiance_cooldown', 0) <= 0:
+                from backend.commands.diplomatic_defiance import (
+                    calculate_diplomatic_defiance_chance, apply_diplomatic_sabotage,
+                )
+                import random
+                defiance_chance = calculate_diplomatic_defiance_chance(talleyrand, world)
+                if random.random() < defiance_chance:
+                    sabotage_result = apply_diplomatic_sabotage(proposal, talleyrand, world)
+                    world.pending_talleyrand_sabotage = sabotage_result
+                    proposal = sabotage_result.get("modified_proposal", proposal)
+                    world.talleyrand_defiance_cooldown = 3
+
             # Set Talleyrand in transit
             # Pause mission if active
             mission = getattr(world, 'active_diplomatic_mission', None)

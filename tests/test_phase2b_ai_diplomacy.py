@@ -326,20 +326,22 @@ class TestR113GoldTreasuryValidation:
                 assert s.get("type") != "gold_per_turn"
 
     def test_build_proposal_terms_caps_gold_per_turn(self):
-        """R113: _build_proposal_terms caps gold_per_turn offers at 50% income."""
+        """R113: _build_proposal_terms caps gold_per_turn offers at 50% income.
+        Fix 8: When income > 0, cap applies. When income is 0, cap is skipped."""
         world = make_world()
         world.nation_gold["Austria"] = 5000  # Rich in gold
-        # Set low region income
+        # Set moderate stability so Austria has SOME income (stability > 50)
         for region in world.regions.values():
             if region.controller == "Austria":
-                region.stability = 10
+                region.stability = 60
         income_data = world.calculate_turn_income("Austria")
         max_per_turn = income_data["income"] // 2
 
         terms = _build_proposal_terms("Austria", "armistice_losing", -50, world)
         for s in terms.get("sweeteners", []):
             if s.get("type") == "gold_per_turn":
-                assert s["value"] <= max_per_turn
+                if income_data["income"] > 0:
+                    assert s["value"] <= max_per_turn
 
 
 # ═══════════════════════════════════════════════════════

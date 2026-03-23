@@ -1179,7 +1179,7 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
         if nation in processed:
             continue
         if nation in getattr(world, 'vassals', {}):
-            continue  # Vassals auto-join via separate path
+            continue  # Vassals handled in vassal auto-join block below
 
         state_with_aggressor = world.get_diplomatic_state(nation, aggressor)
         if state_with_aggressor == "ALLIANCE":
@@ -1226,6 +1226,38 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
 
                 sub_cascade = _process_war_cascade(world, nation, target, processed)
                 cascade.extend(sub_cascade)
+
+    # ── VASSAL AUTO-JOIN: Vassals follow their lord into war (Fix 12) ──
+    vassals = getattr(world, 'vassals', {})
+    for vassal_nation, vassal_data in vassals.items():
+        if vassal_nation in processed:
+            continue
+        lord = vassal_data.get("lord", "")
+        if lord in processed and lord != target:
+            # Lord joined as aggressor/ally — vassal follows
+            if not world.is_at_war(vassal_nation, target):
+                war_key = world._make_diplo_key(vassal_nation, target)
+                world.diplomatic_states[war_key] = "WAR"
+                cascade_war_starts = getattr(world, 'war_start_turns', {})
+                cascade_war_starts[war_key] = int(world.current_turn)
+                world.war_start_turns = cascade_war_starts
+                processed.add(vassal_nation)
+                active_treaties = getattr(world, 'active_treaties', {})
+                active_treaties.pop(war_key, None)
+
+                cascade.append({
+                    "vassal": vassal_nation,
+                    "lord": lord,
+                    "target": target,
+                    "cascade_type": "vassal_auto_join",
+                })
+
+                world.log_event({
+                    "type": "vassal_auto_join_war",
+                    "vassal": vassal_nation,
+                    "lord": lord,
+                    "against": target,
+                })
 
     return cascade
 

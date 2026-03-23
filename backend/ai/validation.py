@@ -59,6 +59,14 @@ VALID_ACTIONS: Set[str] = {
     # Diplomatic actions — Phase 4 (war declaration, ultimatum)
     "diplomatic_declare_war",  # Declare war on a nation
     "diplomatic_ultimatum",    # Issue ultimatum to a nation
+    # Vassal release (Phase 8 Session 5)
+    "release_vassal",          # Release a vassal nation
+    # Diplomatic actions — LLM-returned meta-actions (Phase 8 wiring)
+    "diplomatic_proposal",     # Start diplomatic proposal dialogue
+    "diplomatic_mission",      # Start diplomatic mission
+    "diplomatic_feasibility",  # Request feasibility check
+    "diplomatic_advisory",     # Request advisory conversation
+    "diplomatic_error",        # Diplomatic error fallback
     # ═══════ ADD NEW ACTIONS HERE ═══════
     # This is the SINGLE SOURCE OF TRUTH for valid LLM actions.
     # Also update: llm_client.py keywords, parser.py valid_actions,
@@ -82,6 +90,13 @@ META_ACTIONS: Set[str] = {
     "diplomatic_downgrade",
     "diplomatic_declare_war",
     "diplomatic_ultimatum",
+    # Diplomatic meta-actions (Phase 8 wiring)
+    "release_vassal",
+    "diplomatic_proposal",
+    "diplomatic_mission",
+    "diplomatic_feasibility",
+    "diplomatic_advisory",
+    "diplomatic_error",
 }
 
 # Valid stances for stance_change action

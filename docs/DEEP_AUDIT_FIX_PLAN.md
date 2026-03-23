@@ -127,33 +127,27 @@ Some audit findings re-classified after review:
 
 ---
 
-## Session 5: AI, Parser & Strategic Orders
+## Session 5: AI, Parser & Strategic Orders — COMPLETE
 
 **Theme:** AI decision-making bugs, missing VALID_ACTIONS, and strategic order persistence.
+**Status:** 13 fixes applied (6 false positives removed), 31 new tests (`test_deep_audit_session5.py`), 2 existing tests updated. 6649 total passing.
 
-| # | Finding | File | Fix |
-|---|---------|------|-----|
-| 1 | **P72-1: PURSUE path not persisted to order.path** | strategic.py:953 | Add `order.path = path` after recalculation |
-| 2 | **P72-2: SUPPORT path not persisted** | strategic.py:1609-1641 | Same fix |
-| 3 | **P72-3: HOLD path not persisted** | strategic.py:1194-1214 | Same fix |
-| 4 | **P15/P70-1: AI ally support treats non-enemies as threats** | enemy_ai.py:2788-2890 | Add `and world.is_at_war(nation, m.nation)` to 4 filters |
-| 5 | **P30-1: release_vassal missing from VALID_ACTIONS** | validation.py | Add to VALID_ACTIONS + parser.py |
-| 6 | **P30-2: 5 diplomatic actions missing from VALID_ACTIONS** | validation.py | Add diplomatic_proposal, _mission, _feasibility, _advisory, _error |
-| 7 | **P6/P9: Diplomatic defiance pipeline orphaned** | executor.py ~12032,12798 | Wire `calculate_diplomatic_defiance_chance()` + `apply_diplomatic_sabotage()` between DP deduction and proposal_in_transit |
-| 8 | **P2: AI stalemate counter persists across wars** | ai_diplomacy.py:360-371 | Clear counter on war end |
-| 9 | **P2: Zero-income nations can't sweeten** | ai_diplomacy.py:412-414 | Set minimum floor: `max(10, income // 2)` |
-| 10 | **P72-4: issued_turn vs started_turn inconsistency** | strategic.py | Standardize on one field |
-| 11 | **P72-5: last_contact_enemy/turn not serialized** | strategic.py/marshal.py | Add to StrategicOrder to_dict/from_dict |
-| 12 | **P54-5: PURSUE/SUPPORT don't re-validate war state** | strategic.py:859-938 | Add `is_at_war()` check before per-turn execution |
-| 13 | **P60-5: "stand down" keyword ambiguity** | llm_client.py:644,798 | Remove from cancel keywords or prioritize stance |
-| 14 | **P2: AI-AI alliance conflict bypass** | world_state.py:4210-4223 | Call `check_alliance_conflict()` for AI-AI treaties |
-| 15 | **P2: AI-AI relation requirements skipped** | world_state.py:4189-4198 | Move relation check outside `is_player_treaty` guard |
-| 16 | **P21: P7 rebuild cost ignores artillery** | enemy_ai.py:4494-4496 | Add artillery cost check |
-| 17 | **P2: AI proposal metadata updated for failed proposals** | ai_diplomacy.py:759-764 | Move metadata recording to after viability check |
-| 18 | **P50-4: Vassal auto-join in cascade never called** | diplomacy.py | Add vassal auto-join call after lord enters war |
-| 19 | **P59-1/2: Missing armistice_stalemate + opportunistic handlers** | diplomatic_templates.py:1543 | Add handlers to `_build_base_terms()` |
+**Fixes applied:**
+1. SUPPORT path persisted on `order.path` (strategic.py)
+2. HOLD path persisted on `order.path` (strategic.py)
+3. AI ally support only targets nations at war (enemy_ai.py)
+4. `release_vassal` added to VALID_ACTIONS + META_ACTIONS (validation.py)
+5. 5 diplomatic actions added to VALID_ACTIONS + META_ACTIONS (validation.py)
+6. Diplomatic defiance pipeline wired between DP deduction and transit (executor.py)
+7. Stalemate counter already cleared (verified — was in Session 4 fix R110)
+8. Zero-income nations skip income cap for sweeteners (ai_diplomacy.py)
+9. "stand down" routes to stance_change neutral, not cancel (llm_client.py)
+10. P7 artillery rebuild uses correct cost base (enemy_ai.py)
+11. AI proposal metadata only recorded after acceptance check passes (ai_diplomacy.py)
+12. Vassal auto-joins lord's offensive war in cascade (diplomacy.py)
+13. PURSUE breaks on peace, SUPPORT breaks on war with ally (strategic.py)
 
-**Tests:** ~25 new tests.
+**False positives (6):** P72-1 (PURSUE recalculates by design), P72-4 (issued_turn low priority), P72-5 (already serialized), P2-8/P2-9 (AI-AI bypass by design), P59 (handled in ai_diplomacy.py:421).
 
 ---
 

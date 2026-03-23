@@ -902,6 +902,11 @@ class StrategicExecutor:
                         "ratio_cancelled": True,
                     }
 
+        # Fix 13: Break PURSUE if peace signed with target's nation
+        if target and not world.is_at_war(marshal.nation, target.nation):
+            return self._break_order(marshal, world,
+                                     f"Peace with {target.nation} — pursuit cancelled")
+
         # Target destroyed?
         if not target or target.strength <= 0:
             return self._complete_order(marshal, world,
@@ -1194,6 +1199,7 @@ class StrategicExecutor:
             path = world.find_weighted_path(marshal.location, hold_position)
             if path:
                 path = [r for r in path if r != marshal.location]
+                order.path = path  # Fix 2: Persist path on order for UI/reroute
                 if path:
                     next_region = path[0]
                     enemies = world.get_enemies_in_region(next_region, marshal.nation)
@@ -1535,6 +1541,11 @@ class StrategicExecutor:
         personality = marshal.personality
         ally = world.get_marshal(order.target)
 
+        # Fix 13: Break SUPPORT if war declared with ally's nation
+        if ally and world.is_at_war(marshal.nation, ally.nation):
+            return self._break_order(marshal, world,
+                                     f"War with {ally.nation} — support cancelled")
+
         # Ally destroyed?
         if not ally or ally.strength <= 0:
             return self._break_order(marshal, world,
@@ -1611,6 +1622,7 @@ class StrategicExecutor:
             return self._break_order(marshal, world,
                                      f"Cannot reach {ally.name}")
 
+        order.path = path  # Fix 1: Persist path on order for UI/reroute
         regions_to_move = getattr(marshal, 'movement_range', 1)
         moves_made = []
 
@@ -1638,7 +1650,8 @@ class StrategicExecutor:
             )
 
             if result.get("success"):
-                path.pop(0)
+                order.path.pop(0)
+                path = order.path  # Keep local ref in sync
                 moves_made.append(next_region)
 
                 if marshal.location == ally.location:

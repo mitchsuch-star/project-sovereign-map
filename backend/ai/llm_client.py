@@ -638,10 +638,11 @@ class LLMClient:
         elif "end turn" in command_lower or "end_turn" in command_lower or "next turn" in command_lower:
             action = "end_turn"
         # Cancel strategic order keywords (Phase E) — must be before attack/stance
+        # Fix 9: Removed "stand down" — semantically a stance change, not cancel
         elif any(kw in command_lower for kw in [
             "cancel order", "cancel orders", "cancel ", "halt order", "halt orders",
             "abort order", "abort orders", "abort mission",
-            "stand down", "belay that", "belay",
+            "belay that", "belay",
             " halt", ", halt",
         ]):
             action = "cancel"
@@ -728,7 +729,7 @@ class LLMClient:
             action = "stance_change"
         elif any(kw in command_lower for kw in ["neutral stance", "stance neutral", "go neutral",
                                                   "adopt neutral", "return to neutral", "take neutral",
-                                                  "switch to neutral"]):
+                                                  "switch to neutral", "stand down"]):
             action = "stance_change"
         # Simple stance words - "Ney aggressive", "aggressive", "Davout defensive"
         # Must check these AFTER compound phrases to avoid partial matches

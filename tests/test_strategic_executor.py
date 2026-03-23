@@ -1873,11 +1873,11 @@ class TestCancelCommand:
         assert result.get("action") == "cancel"
 
     def test_cancel_keyword_stand_down(self, world, game_state):
-        """'stand down' parses to cancel, not neutral stance."""
+        """Fix 9: 'stand down' now parses as stance_change (neutral), not cancel."""
         from backend.ai.llm_client import LLMClient
         client = LLMClient()
         result = client.parse_command("Ney, stand down")
-        assert result.get("action") == "cancel"
+        assert result.get("action") == "stance_change"
 
     def test_cancel_keyword_cancel_order(self, world, game_state):
         """'cancel order' parses to cancel action."""

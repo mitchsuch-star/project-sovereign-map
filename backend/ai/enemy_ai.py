@@ -2785,10 +2785,12 @@ class EnemyAI:
                 continue
 
             # Check if ally is engaged in combat (enemy in same region)
+            # Fix 3: Only count nations actually at war, not allies/neutrals
             enemies_at_ally = [
                 m for m in world.marshals.values()
                 if m.location == ally.location
                 and m.nation != nation
+                and world.is_at_war(nation, m.nation)
                 and m.strength > 0
             ]
 
@@ -2797,6 +2799,7 @@ class EnemyAI:
                 m for m in world.marshals.values()
                 if m.location in ally_region.adjacent_regions
                 and m.nation != nation
+                and world.is_at_war(nation, m.nation)
                 and m.strength > 0
             ]
 
@@ -4492,8 +4495,15 @@ class EnemyAI:
         else:
             rebuild_target = None
         if rebuild_target:
+            # Fix 10: 3-way cost check matching P1 pattern (artillery/cavalry/infantry)
+            is_artillery = getattr(rebuild_target, 'artillery', False)
             is_cavalry = getattr(rebuild_target, 'cavalry', False)
-            base_cost = CAVALRY_RECRUIT_GOLD_COST_BASE if is_cavalry else INFANTRY_RECRUIT_GOLD_COST_BASE
+            if is_artillery:
+                base_cost = ARTILLERY_RECRUIT_GOLD_COST_BASE
+            elif is_cavalry:
+                base_cost = CAVALRY_RECRUIT_GOLD_COST_BASE
+            else:
+                base_cost = INFANTRY_RECRUIT_GOLD_COST_BASE
 
             region = world.get_region(rebuild_target.location)
             recruit_cost = base_cost

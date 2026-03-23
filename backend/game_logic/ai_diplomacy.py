@@ -409,9 +409,11 @@ def _build_proposal_terms(
         if nation_gold > 200:
             offer_amount = min(300, int(nation_gold * 0.15 * gold_mult))
             # R113: Cap gold_per_turn at 50% of region income
+            # Fix 8: Skip income cap when income is 0 (nation may have gold reserves)
             income_data = world.calculate_turn_income(nation)
-            max_per_turn = income_data["income"] // 2
-            offer_amount = min(offer_amount, max_per_turn)
+            if income_data["income"] > 0:
+                max_per_turn = income_data["income"] // 2
+                offer_amount = min(offer_amount, max_per_turn)
             if offer_amount > 0:
                 terms["sweeteners"].append(
                     {"type": "gold_per_turn", "value": int(offer_amount)}
@@ -429,9 +431,11 @@ def _build_proposal_terms(
             nation_gold = world.nation_gold.get(nation, 0)
             offer_amount = min(200, int(nation_gold * 0.10 * gold_mult))
             # R113: Cap gold_per_turn at 50% of region income
+            # Fix 8: Skip income cap when income is 0 (nation may have gold reserves)
             income_data = world.calculate_turn_income(nation)
-            max_per_turn = income_data["income"] // 2
-            offer_amount = min(offer_amount, max_per_turn)
+            if income_data["income"] > 0:
+                max_per_turn = income_data["income"] // 2
+                offer_amount = min(offer_amount, max_per_turn)
             if offer_amount > 0:
                 terms["sweeteners"].append(
                     {"type": "gold_per_turn", "value": int(offer_amount)}
@@ -733,6 +737,15 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     if score < 20 and not proposal.get("_force_send"):
         return None
 
+    # Fix 11 / R126: Record metadata AFTER acceptance check passes
+    # (previously in _make_proposal, which recorded even for rejected proposals)
+    metadata = getattr(world, 'ai_proposal_metadata', {})
+    metadata[nation] = {
+        "war_score_at_proposal": int(get_war_score_for(world, nation, player)) if is_at_war else 0,
+        "turn": int(world.current_turn),
+    }
+    world.ai_proposal_metadata = metadata
+
     # ── Delivery or queue ──
     if has_blocking_dialogue:
         _enqueue_proposal(proposal, world)
@@ -753,15 +766,8 @@ def _make_proposal(
     game_bucket = get_game_bucket(nation, world)
     assessment = _get_talleyrand_assessment(proposal_type, game_bucket)
 
-    # R126: Record metadata for urgent re-proposal detection
-    player = getattr(world, 'player_nation', 'France')
-    is_at_war = world.get_diplomatic_state(player, nation) == "WAR"
-    metadata = getattr(world, 'ai_proposal_metadata', {})
-    metadata[nation] = {
-        "war_score_at_proposal": int(get_war_score_for(world, nation, player)) if is_at_war else 0,
-        "turn": int(world.current_turn),
-    }
-    world.ai_proposal_metadata = metadata
+    # Fix 11: Metadata moved to generate_ai_proposal after acceptance check
+    # (was here before, but recorded even for rejected proposals)
 
     return {
         "source": nation,

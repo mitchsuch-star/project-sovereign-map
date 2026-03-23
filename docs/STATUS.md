@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 23, 2026 (Deep Audit Session 4: 9 economy fixes, 16 new tests)
+> **Last Updated:** March 23, 2026 (Deep Audit Session 5: 13 AI/parser/strategic fixes, 31 new tests)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **6618** (6618 passed, 3 skipped — deep audit session 4) |
+| **Tests Passing** | **6649** (6649 passed, 3 skipped — deep audit session 5) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -36,7 +36,7 @@
 6. ~~**Comprehensive Creative Audit**~~ — **COMPLETE.** 6.5/10 score. All findings → Phase 5 items.
 7. ~~**Diplomacy Refinement Phases 1-4**~~ — **COMPLETE** (55 items, 326 tests).
 8. **Diplomacy Design Fixes** — DA-1, DA-2, DA-4 DONE. DA-3 (offensive cascade + friction) remaining. See `docs/DIPLOMACY_DESIGN_FIXES.md`.
-11. **Deep Audit Fix Plan** — Sessions 1-4 DONE. Session 1: 9 combat/war score fixes, 21 tests. Session 2: 18 vassal fixes, 27 tests. Session 3: 13 diplomatic state machine fixes, 25 tests. Session 4: 9 economy fixes (AP clause reset, manpower_pools, gold floor, DP cost, counter-offer state, territory sweetener, negative amounts, free gold, France AP), 16 tests. Sessions 5-9 remaining. See `docs/DEEP_AUDIT_FIX_PLAN.md`.
+11. **Deep Audit Fix Plan** — Sessions 1-5 DONE. Session 1: 9 combat/war score fixes, 21 tests. Session 2: 18 vassal fixes, 27 tests. Session 3: 13 diplomatic state machine fixes, 25 tests. Session 4: 9 economy fixes, 16 tests. Session 5: 13 AI/parser/strategic fixes (SUPPORT/HOLD path persistence, VALID_ACTIONS gaps, diplomatic defiance pipeline, zero-income sweetener, "stand down" keyword, artillery rebuild cost, proposal metadata, vassal cascade, PURSUE/SUPPORT war-state revalidation), 31 tests. Sessions 6-9 remaining. See `docs/DEEP_AUDIT_FIX_PLAN.md`.
 9. **Jealousy system** — NEEDS DESIGN GATE (separate track). See CLAUDE.md.
 10. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tutorial deferred to Pre-EA.
 
