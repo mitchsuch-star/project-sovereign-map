@@ -261,7 +261,7 @@ class TestCounterOfferDPCost:
 
 class TestGarrisonCap:
     def test_small_garrison_bonus(self):
-        """5k garrison → +3 garrison bonus. Total includes relation modifier."""
+        """5k garrison → +6 garrison bonus (Fix 19: base 5). Total includes relation modifier."""
         world = make_world_with_vassal(loyalty=60)
         # Zero out relation to isolate garrison effect
         key = world._make_diplo_key("France", "Saxony")
@@ -271,11 +271,11 @@ class TestGarrisonCap:
             region.garrison_troops = 5000
             region.controller = "France"
         process_vassal_loyalty(world)
-        # drift(-2) + garrison(min(4, 2+1)=3) + relation(0//20=0) = +1
-        assert world.vassals["Saxony"]["loyalty"] == 61
+        # drift(-2) + garrison(min(8, 5+1)=6) + relation(0//20=0) = +4
+        assert world.vassals["Saxony"]["loyalty"] == 64
 
     def test_large_garrison_capped(self):
-        """15k garrison → +4 garrison bonus (capped, was +8)."""
+        """15k garrison → +8 garrison bonus (Fix 19: cap 8)."""
         world = make_world_with_vassal(loyalty=60)
         key = world._make_diplo_key("France", "Saxony")
         world.nation_relations[key] = 0
@@ -284,8 +284,8 @@ class TestGarrisonCap:
             region.garrison_troops = 15000
             region.controller = "France"
         process_vassal_loyalty(world)
-        # drift(-2) + garrison(min(4, 2+3)=4) + relation(0) = +2
-        assert world.vassals["Saxony"]["loyalty"] == 62
+        # drift(-2) + garrison(min(8, 5+3)=8) + relation(0) = +6
+        assert world.vassals["Saxony"]["loyalty"] == 66
 
 
 # ═══════════════════════════════════════════════════════

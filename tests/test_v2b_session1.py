@@ -221,18 +221,19 @@ class TestDefianceOutcome:
         assert defiance_succeeded(marshal, "wait", None, 30000) is None
 
     def test_attack_won_cleanly(self):
-        result = {"attacker": {"won": True, "casualties": 5000}}
+        # Fix 3 (deep audit): "attacker_won" is the correct top-level key from combat.py
+        result = {"attacker_won": True, "attacker": {"casualties": 5000}}
         marshal = MockMarshal()
         assert defiance_succeeded(marshal, "attack", result, 30000) is True
 
     def test_attack_pyrrhic(self):
         """Won but >50% casualties = wrong."""
-        result = {"attacker": {"won": True, "casualties": 20000}}
+        result = {"attacker_won": True, "attacker": {"casualties": 20000}}
         marshal = MockMarshal()
         assert defiance_succeeded(marshal, "attack", result, 30000) is False
 
     def test_attack_lost(self):
-        result = {"attacker": {"won": False, "casualties": 15000}}
+        result = {"attacker_won": False, "attacker": {"casualties": 15000}}
         marshal = MockMarshal()
         assert defiance_succeeded(marshal, "attack", result, 30000) is False
 

@@ -3667,7 +3667,7 @@ class WorldState:
         # ════════════════════════════════════════════════════════════
         # CLEAR PER-TURN FLAGS (at turn start)
         # ════════════════════════════════════════════════════════════
-        self.clear_turn_battles()  # Phase 5.2: Reset battle tracking
+        # NOTE: clear_turn_battles() moved AFTER vassal processing (Fix 3)
         for marshal in self.marshals.values():
             # Ally covering system - retreating marshals can be protected during enemy phase
             marshal.retreated_this_turn = False
@@ -3836,6 +3836,9 @@ class WorldState:
             tactical_events.extend(rebellion_events)
             decrement_vassal_cooldowns(self)
 
+        # Clear battle tracking AFTER vassal loyalty processing reads it (Fix 3)
+        self.clear_turn_battles()
+
         # ════════════════════════════════════════════════════════════
         # COALITION PROCESSING (Phase 8 Session 7)
         # Threat decay, brewing countdown, formation, dissolution
@@ -4001,9 +4004,42 @@ class WorldState:
         if turn_sent >= self.current_turn:
             return events  # Not yet — wait until next turn
 
-        from backend.game_logic.diplomacy import calculate_acceptance
+        from backend.game_logic.diplomacy import calculate_acceptance, _UPGRADE_ORDER
         target = pit.get("target", "")
         proposal = pit.get("proposal", {})
+
+        # Deep audit fix 2: Reject stale proposals where state changed to make them impossible
+        # (e.g., alliance proposal when war was declared, or upgrade proposal when already at higher state)
+        proposer = proposal.get("proposer_nation", self.player_nation)
+        current_state = self.get_diplomatic_state(proposer, target)
+        _proposal_to_state = {
+            "peace": "PEACE", "armistice": "ARMISTICE",
+            "armistice_losing": "ARMISTICE", "armistice_winning": "ARMISTICE",
+            "alliance": "ALLIANCE", "defensive_alliance": "DEFENSIVE_ALLIANCE",
+            "open_borders": "OPEN_BORDERS", "non_aggression": "NON_AGGRESSION",
+            "vassalage": "VASSAL",
+        }
+        target_state = _proposal_to_state.get(proposal.get("type", ""), "")
+        if target_state and current_state in _UPGRADE_ORDER and target_state in _UPGRADE_ORDER:
+            curr_idx = _UPGRADE_ORDER.index(current_state)
+            tgt_idx = _UPGRADE_ORDER.index(target_state)
+            if tgt_idx <= curr_idx:
+                # State already at or above proposed level — proposal is stale
+                events.append({
+                    "type": "diplomatic_proposal_returned",
+                    "target": target,
+                    "outcome": "REJECT",
+                    "message": f"Talleyrand returns from {target}: the diplomatic situation has changed — our proposal is no longer viable.",
+                })
+                self.proposal_in_transit = None
+                # Restore Talleyrand state (same logic as normal resolution path)
+                mission = getattr(self, 'active_diplomatic_mission', None)
+                if mission and not mission.get("completed"):
+                    self.talleyrand_state = "ON_MISSION"
+                    mission["paused"] = False
+                else:
+                    self.talleyrand_state = "IDLE"
+                return events
 
         # Run acceptance formula
         result = calculate_acceptance(proposal, self)
@@ -4020,14 +4056,23 @@ class WorldState:
             if "target_nation" not in proposal:
                 proposal["target_nation"] = target
             treaty_event = self._ratify_treaty(proposal)
-            events.append({
-                "type": "diplomatic_proposal_returned",
-                "target": target,
-                "outcome": "ACCEPT",
-                "message": f"Talleyrand returns from {target} with excellent news: they have accepted our proposal! {feedback}",
-            })
-            if treaty_event:
-                events.append(treaty_event)
+            # Deep audit fix 11: Check ratification result before showing success
+            if treaty_event and treaty_event.get("type") == "diplomatic_treaty_failed":
+                events.append({
+                    "type": "diplomatic_proposal_returned",
+                    "target": target,
+                    "outcome": "REJECT",
+                    "message": f"Talleyrand returns from {target}: they agreed in principle, but the diplomatic situation has changed.",
+                })
+            else:
+                events.append({
+                    "type": "diplomatic_proposal_returned",
+                    "target": target,
+                    "outcome": "ACCEPT",
+                    "message": f"Talleyrand returns from {target} with excellent news: they have accepted our proposal! {feedback}",
+                })
+                if treaty_event:
+                    events.append(treaty_event)
             queue_dispatch_event(self, "diplomatic_proposal_returned",
                                 {"nation": target}, "always")
         elif outcome == "COUNTER_OFFER":
@@ -4221,6 +4266,13 @@ class WorldState:
                     s = self.get_diplomatic_state(proposer, other)
                     if s in ("ALLIANCE", "DEFENSIVE_ALLIANCE"):
                         return None
+
+        # Vassal creation: when treaty ratifies VASSAL state, create vassal entry + assimilate
+        # Must run BEFORE state transition so create_vassal_treaty sees the pre-VASSAL state
+        if target_state == "VASSAL":
+            from backend.game_logic.vassal import create_vassal_treaty, assimilate_vassal_marshals
+            create_vassal_treaty(self, proposer, target_nation)
+            assimilate_vassal_marshals(self, target_nation)
 
         # Apply state transition
         if current_state != target_state:

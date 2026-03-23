@@ -374,8 +374,9 @@ class TestSection8VassalCreation:
         assert world.vassals["Saxony"]["loyalty"] == 80  # 60 + 2*10
 
     def test_v4_conquest_loyalty_starts_at_20(self):
-        """V-4: Conquest path loyalty starts at 20 + garrison/5k."""
+        """V-4: Conquest path loyalty starts at 20 + garrison/5k. Requires WAR state."""
         world = _make_world()
+        _set_diplo_state(world, "France", "Saxony", "WAR")
         create_vassal_conquest(world, "France", "Saxony", garrison_size=10000)
         assert world.vassals["Saxony"]["loyalty"] == 22  # 20 + 10000/5000
 
@@ -388,9 +389,10 @@ class TestSection8VassalCreation:
         assert world.threat_level == 5
 
     def test_v5_threat_conquest_25(self):
-        """V-5: Conquest vassalization adds +25 threat."""
+        """V-5: Conquest vassalization adds +25 threat. Requires WAR state."""
         world = _make_world()
         world.threat_level = 0
+        _set_diplo_state(world, "France", "Saxony", "WAR")
         create_vassal_conquest(world, "France", "Saxony", garrison_size=0)
         assert world.threat_level == 25
 

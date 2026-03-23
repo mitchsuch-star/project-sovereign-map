@@ -351,8 +351,8 @@ class TestSquareCoordination:
         # This is tested implicitly — Davout in square gives 0 atk, but def still works
         assert ctx is not None
 
-    def test_square_excludes_adjacent_support(self):
-        """Square marshal in adjacent region should not count for +2% adjacent support."""
+    def test_square_allows_adjacent_support(self):
+        """Square marshal in adjacent region SHOULD count for +2% adjacent support (Fix 4: deep audit)."""
         world = WorldState()
         executor = _make_executor()
         davout = world.get_marshal("Davout")
@@ -361,7 +361,7 @@ class TestSquareCoordination:
         ney.location = "Belgium"
         davout.square_formation = True
         count, names = executor._count_adjacent_allies("Belgium", "France", world)
-        assert davout.name not in names
+        assert davout.name in names
 
 
 # ════════════════════════════════════════════════════════════════════════

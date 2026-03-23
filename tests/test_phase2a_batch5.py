@@ -87,6 +87,9 @@ class TestReconcileVassalDiplomacy:
         world.diplomatic_states[fb_key] = "WAR"
         bs_key = world._make_diplo_key("Britain", "Saxony")
         world.diplomatic_states[bs_key] = "DEFENSIVE_ALLIANCE"
+        # Fix 13: Conquest requires WAR state
+        fs_key = world._make_diplo_key("France", "Saxony")
+        world.diplomatic_states[fs_key] = "WAR"
         create_vassal_conquest(world, "France", "Saxony")
         # Saxony-Britain should be broken to PEACE
         assert world.diplomatic_states[bs_key] == "PEACE"

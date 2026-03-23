@@ -1156,7 +1156,8 @@ def resolve_template_text(text: str, world, target_nation: Optional[str] = None)
         state = world.get_diplomatic_state(player_nation, target_nation)
         # R38: Only show war score when nations are at war
         if state == "WAR":
-            slots["war_score"] = str(int(world.war_scores.get(diplo_key, 0)))
+            from backend.game_logic.diplomacy import get_war_score_for
+            slots["war_score"] = str(int(get_war_score_for(world, player_nation, target_nation)))
         else:
             slots["war_score"] = "N/A"
         slots["relation"] = str(relation)

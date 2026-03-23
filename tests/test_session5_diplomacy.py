@@ -84,8 +84,11 @@ class TestVassagePaths:
         assert world.vassals["Saxony"]["autonomy"] == AUTONOMY_SATELLITE
 
     def test_conquest_path_loyalty(self):
-        """Conquest path: loyalty = 20 + garrison//5000."""
+        """Conquest path: loyalty = 20 + garrison//5000. Requires WAR state."""
         world = make_world()
+        # Fix 13: Conquest requires WAR state
+        key = world._make_diplo_key("France", "Saxony")
+        world.diplomatic_states[key] = "WAR"
         result = create_vassal_conquest(world, "France", "Saxony", garrison_size=15000)
         assert result["success"]
         assert world.vassals["Saxony"]["loyalty"] == 23  # 20 + 15000//5000
@@ -101,9 +104,12 @@ class TestVassagePaths:
         assert world.threat_level == 15
 
     def test_conquest_threat_delta(self):
-        """Conquest vassalage adds +25 threat."""
+        """Conquest vassalage adds +25 threat. Requires WAR state."""
         world = make_world()
         world.threat_level = 10
+        # Fix 13: Conquest requires WAR state
+        key = world._make_diplo_key("France", "Saxony")
+        world.diplomatic_states[key] = "WAR"
         create_vassal_conquest(world, "France", "Saxony")
         assert world.threat_level == 35
 
@@ -145,7 +151,7 @@ class TestLoyaltyTicks:
         assert world.vassals["Saxony"]["loyalty"] == 61  # 60 + 1
 
     def test_garrison_bonus(self):
-        """R135: Garrison capped at +4. min(4, 2 + min(troops//5000, 3))."""
+        """Fix 19: Garrison base 5, cap 8. min(8, 5 + min(troops//5000, 3))."""
         world = make_world_with_vassal(autonomy=AUTONOMY_SATELLITE, loyalty=60)
         # Set garrison in Dresden (Saxony capital)
         region = world.regions.get("Dresden")
@@ -153,8 +159,8 @@ class TestLoyaltyTicks:
             region.garrison_troops = 10000
             region.controller = "France"
         process_vassal_loyalty(world)
-        # drift(-2) + garrison(min(4, 2+2)=4) = -2 + 4 = +2
-        assert world.vassals["Saxony"]["loyalty"] == 62
+        # drift(-2) + garrison(min(8, 5+2)=7) = -2 + 7 = +5
+        assert world.vassals["Saxony"]["loyalty"] == 65
 
     def test_shared_enemy_bonus(self):
         """Shared enemy: +2 per shared war."""
@@ -171,15 +177,17 @@ class TestLoyaltyTicks:
     def test_lord_winning_battles(self):
         """Lord winning battles: +1 per win, max +3."""
         world = make_world_with_vassal(autonomy=AUTONOMY_SATELLITE, loyalty=60)
-        # Create a French marshal who won battles
+        # Create marshals for battles
         m = Marshal("Davout", "Berlin", 20000, "professional", nation="France")
+        m_enemy = Marshal("EnemyGen", "Berlin", 20000, "aggressive", nation="Prussia")
         world.marshals["Davout"] = m
-        # Simulate 4 battle wins (should cap at +3)
+        world.marshals["EnemyGen"] = m_enemy
+        # Simulate 4 battle wins using record_battle() format (should cap at +3)
         world.battles_this_turn = [
-            {"victor": "Davout", "attacker_nation": "France", "defender_nation": "Prussia"},
-            {"victor": "Davout", "attacker_nation": "France", "defender_nation": "Prussia"},
-            {"victor": "Davout", "attacker_nation": "France", "defender_nation": "Prussia"},
-            {"victor": "Davout", "attacker_nation": "France", "defender_nation": "Prussia"},
+            {"attacker": "Davout", "defender": "EnemyGen", "result": "Attacker victory", "location": "Berlin", "turn": 1},
+            {"attacker": "Davout", "defender": "EnemyGen", "result": "Attacker victory", "location": "Berlin", "turn": 1},
+            {"attacker": "Davout", "defender": "EnemyGen", "result": "Attacker victory", "location": "Berlin", "turn": 1},
+            {"attacker": "Davout", "defender": "EnemyGen", "result": "Attacker victory", "location": "Berlin", "turn": 1},
         ]
         process_vassal_loyalty(world)
         # drift(-2) + wins(+3 capped) = +1
@@ -188,15 +196,17 @@ class TestLoyaltyTicks:
     def test_lord_losing_battles(self):
         """Lord losing battles: -2 per loss, max -6."""
         world = make_world_with_vassal(autonomy=AUTONOMY_SATELLITE, loyalty=60)
-        # Create enemy marshal who won against France
+        # Create French and enemy marshals for battle records
+        m_french = Marshal("Ney", "Berlin", 20000, "aggressive", nation="France")
         m_enemy = Marshal("Blucher", "Berlin", 20000, "aggressive", nation="Prussia")
+        world.marshals["Ney"] = m_french
         world.marshals["Blucher"] = m_enemy
-        # Simulate 4 losses (should cap at -6)
+        # Simulate 4 losses using record_battle() format (should cap at -6)
         world.battles_this_turn = [
-            {"victor": "Blucher", "attacker_nation": "France", "defender_nation": "Prussia"},
-            {"victor": "Blucher", "attacker_nation": "France", "defender_nation": "Prussia"},
-            {"victor": "Blucher", "attacker_nation": "France", "defender_nation": "Prussia"},
-            {"victor": "Blucher", "attacker_nation": "Prussia", "defender_nation": "France"},
+            {"attacker": "Ney", "defender": "Blucher", "result": "Defender victory", "location": "Berlin", "turn": 1},
+            {"attacker": "Ney", "defender": "Blucher", "result": "Defender victory", "location": "Berlin", "turn": 1},
+            {"attacker": "Ney", "defender": "Blucher", "result": "Defender victory", "location": "Berlin", "turn": 1},
+            {"attacker": "Blucher", "defender": "Ney", "result": "Attacker victory", "location": "Berlin", "turn": 1},
         ]
         process_vassal_loyalty(world)
         # drift(-2) + losses(max -6) = -8

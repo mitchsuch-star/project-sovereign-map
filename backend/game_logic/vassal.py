@@ -135,6 +135,22 @@ def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0
             "message": f"{vassal} is already a vassal of {world.vassals[vassal]['lord']}."
         }
 
+    # Check release cooldown (blocks re-vassalization exploit)
+    cooldowns = getattr(world, 'vassal_release_cooldowns', {})
+    if cooldowns.get(vassal, 0) > 0:
+        return {
+            "success": False,
+            "message": f"Cannot vassalize {vassal}: recently released ({cooldowns[vassal]} turns remaining)."
+        }
+
+    # Require WAR state for conquest vassalization
+    current_state = world.get_diplomatic_state(lord, vassal)
+    if current_state != "WAR":
+        return {
+            "success": False,
+            "message": f"Cannot conquer {vassal}: must be at WAR (current: {current_state})."
+        }
+
     loyalty = min(LOYALTY_MAX, 20 + (garrison_size // 5000))
 
     world.vassals[vassal] = {
@@ -236,7 +252,7 @@ def process_vassal_loyalty(world) -> List[dict]:
             if region:
                 garrison_troops = getattr(region, 'garrison_troops', 0) or 0
                 if garrison_troops > 0 and getattr(region, 'controller', '') == lord:
-                    garrison_bonus = min(4, 2 + min(garrison_troops // 5000, 3))
+                    garrison_bonus = min(8, 5 + min(garrison_troops // 5000, 3))
                     delta += garrison_bonus
 
         # 3. Gold investment from treaty clauses
@@ -263,17 +279,27 @@ def process_vassal_loyalty(world) -> List[dict]:
         wins = 0
         losses = 0
         for battle in battles:
-            victor = battle.get("victor", "")
-            attacker_nation = battle.get("attacker_nation", "")
-            defender_nation = battle.get("defender_nation", "")
-            if attacker_nation == lord or defender_nation == lord:
-                if victor and victor != "draw":
-                    # Check if lord's marshal won
-                    victor_marshal = world.get_marshal(victor)
-                    if victor_marshal and getattr(victor_marshal, 'nation', '') == lord:
-                        wins += 1
-                    else:
-                        losses += 1
+            attacker_name = battle.get("attacker", "")
+            defender_name = battle.get("defender", "")
+            result = battle.get("result", "")
+            attacker_marshal = world.get_marshal(attacker_name)
+            defender_marshal = world.get_marshal(defender_name)
+            atk_nation = getattr(attacker_marshal, 'nation', '') if attacker_marshal else ''
+            def_nation = getattr(defender_marshal, 'nation', '') if defender_marshal else ''
+            # Lord involved?
+            if atk_nation != lord and def_nation != lord:
+                continue
+            # Lord won?
+            if "attacker" in result.lower() and "victory" in result.lower():
+                winner_nation = atk_nation
+            elif "defender" in result.lower() and "victory" in result.lower():
+                winner_nation = def_nation
+            else:
+                continue
+            if winner_nation == lord:
+                wins += 1
+            else:
+                losses += 1
         delta += min(wins, 3)       # +1 per win, max +3
         delta -= min(losses, 3) * 2  # -2 per loss, max -6
 
@@ -281,6 +307,11 @@ def process_vassal_loyalty(world) -> List[dict]:
         diplo_key = world._make_diplo_key(vassal_name, lord)
         relation = world.nation_relations.get(diplo_key, 0)
         delta += relation // 20
+
+        # 7. Coalition loyalty penalty
+        from backend.game_logic.coalition import get_coalition_loyalty_penalty
+        coalition_penalty = get_coalition_loyalty_penalty(vassal_name, world)
+        delta += coalition_penalty
 
         # Apply delta
         new_loyalty = max(LOYALTY_MIN, min(LOYALTY_MAX, old_loyalty + delta))
@@ -323,7 +354,7 @@ def process_vassal_loyalty(world) -> List[dict]:
                 "loyalty_max": int(100),
                 "invest_cost_dp": int(1),
                 "garrison_ap_cost": int(2),
-                "invest_effect": "Loyalty +15, relations +5",
+                "invest_effect": "Loyalty +10",
                 "garrison_effect": "Loyalty +10, AP -2 this turn",
                 "accept_effect": "Rebellion proceeds next turn if loyalty reaches 0",
             }
@@ -338,7 +369,7 @@ def process_vassal_loyalty(world) -> List[dict]:
                 "options": [
                     {
                         "label": "Invest",
-                        "description": "1 DP + 200g → Loyalty +15, relations +5.",
+                        "description": "1 DP + 200g → Loyalty +10.",
                         "action": "invest_vassal_rebellion",
                     },
                     {
@@ -426,6 +457,11 @@ def check_vassal_rebellion(world) -> List[dict]:
         reb_war_starts = getattr(world, 'war_start_turns', {})
         reb_war_starts[diplo_key] = int(world.current_turn)
         world.war_start_turns = reb_war_starts
+
+        # War cascade: allies pulled into the war
+        from backend.game_logic.diplomacy import _process_war_cascade
+        cascade_events = _process_war_cascade(world, vassal_name, lord)
+        events.extend(cascade_events)
 
         # Transfer vassal marshals back and clean up stale state
         for marshal in list(world.marshals.values()):
@@ -528,8 +564,8 @@ def check_defection_cascade(world) -> List[dict]:
             if random.random() < roll_chance:
                 cascade_triggered.add(cascade_key)
 
-                # Vassal defects — reduce loyalty drastically
-                state["loyalty"] = max(LOYALTY_MIN, loyalty - 20)
+                # Vassal defects — immediate rebellion (set to 0, triggers rebellion check)
+                state["loyalty"] = LOYALTY_MIN
 
                 events.append({
                     "type": "vassal_defection_cascade",
@@ -612,6 +648,11 @@ def invest_in_vassal(world, vassal_name: str) -> dict:
 
     state = world.vassals[vassal_name]
     lord = state["lord"]
+
+    # Validate caller is the lord
+    player = getattr(world, 'player_nation', 'France')
+    if lord != player:
+        return {"success": False, "message": f"Cannot invest in {vassal_name}: not your vassal."}
 
     # Check cooldown
     cooldowns = getattr(world, 'vassal_investment_cooldowns', {})
@@ -747,7 +788,7 @@ def assimilate_vassal_marshals(world, vassal_name: str) -> List[str]:
             marshal.nation = lord
             # Set trust to assimilation level
             if hasattr(marshal, 'trust') and hasattr(marshal.trust, 'value'):
-                marshal.trust._value = ASSIMILATION_TRUST
+                marshal.trust.modify(ASSIMILATION_TRUST - marshal.trust.value)
             # Set Professional relationship baseline
             marshal.relationship_with_lord = "Professional"
             assimilated.append(marshal.name)
@@ -818,9 +859,22 @@ def release_vassal(world, vassal_name: str, rebellion: bool = False) -> dict:
             marshal.nation = vassal_name
             if hasattr(marshal, 'original_nation'):
                 delattr(marshal, 'original_nation')
+            if hasattr(marshal, 'relationship_with_lord'):
+                delattr(marshal, 'relationship_with_lord')
 
     # Remove vassal state
     del world.vassals[vassal_name]
+
+    # Clear stale popup/dialogue referencing this vassal
+    if getattr(world, 'vassal_rebellion_imminent_popup', None):
+        popup_vassal = world.vassal_rebellion_imminent_popup.get("nation", "")
+        if popup_vassal == vassal_name:
+            world.vassal_rebellion_imminent_popup = None
+    if getattr(world, 'pending_diplomatic_dialogue', None):
+        dialogue = world.pending_diplomatic_dialogue
+        if (dialogue.get("type") == "vassal_rebellion_imminent"
+                and dialogue.get("context", {}).get("vassal_name") == vassal_name):
+            world.pending_diplomatic_dialogue = None
 
     # R14: Set release cooldown (blocks treaty re-vassalization for 5 turns)
     if not hasattr(world, 'vassal_release_cooldowns'):
@@ -873,10 +927,9 @@ def decrement_vassal_cooldowns(world) -> None:
 
     # R14: Release cooldowns
     release_cds = getattr(world, 'vassal_release_cooldowns', {})
-    expired_r = [n for n in release_cds if release_cds[n] <= 1]
-    for n in release_cds:
-        if n not in expired_r:
-            release_cds[n] -= 1
+    for n in list(release_cds):
+        release_cds[n] -= 1
+    expired_r = [n for n in release_cds if release_cds[n] <= 0]
     for n in expired_r:
         del release_cds[n]
     world.vassal_release_cooldowns = release_cds

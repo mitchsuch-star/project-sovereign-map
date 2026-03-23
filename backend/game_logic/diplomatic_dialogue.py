@@ -264,12 +264,8 @@ def get_game_bucket(target_nation: str, world) -> str:
     """
     state = world.get_diplomatic_state("France", target_nation)
     if state == "WAR":
-        war_score = world.war_scores.get(world._make_diplo_key("France", target_nation), 0)
-        # Adjust sign: war_score is for alphabetically-sorted key
-        diplo_key = world._make_diplo_key("France", target_nation)
-        parts = diplo_key.split("|")
-        if len(parts) == 2 and parts[0] == target_nation:
-            war_score = -war_score
+        from backend.game_logic.diplomacy import get_war_score_for
+        war_score = get_war_score_for(world, "France", target_nation)
 
         if war_score > 30:
             return "winning_comfortably"
@@ -350,9 +346,10 @@ def generate_dialogue(intent_type: str, parsed_command: Dict, world) -> Dict:
     # Build context snapshot
     context = {}
     if target_nation:
+        from backend.game_logic.diplomacy import get_war_score_for
         diplo_key = world._make_diplo_key("France", target_nation)
         context = {
-            "war_score": int(world.war_scores.get(diplo_key, 0)),
+            "war_score": int(get_war_score_for(world, "France", target_nation)),
             "relation": int(world.nation_relations.get(diplo_key, 0)),
             "threat": int(getattr(world, 'threat_level', 0)),
             "current_state": world.get_diplomatic_state("France", target_nation),
@@ -707,7 +704,7 @@ def _merge_pre_proposal_objection(dialogue: Dict, parsed_command: Dict, world) -
 
 def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
     """Generate a feasibility assessment dialogue (0 DP cost)."""
-    from backend.game_logic.diplomacy import calculate_acceptance, get_dp_cost
+    from backend.game_logic.diplomacy import calculate_acceptance, get_dp_cost, get_war_score_for
 
     target_nation = parsed_command.get("target_nation")
     proposal_type = parsed_command.get("proposal_type", "peace")
@@ -822,7 +819,7 @@ def generate_feasibility_dialogue(parsed_command: Dict, world) -> Dict:
             {"label": "Dismiss", "description": "Thank you, Talleyrand.", "action": "dismiss"},
         ],
         "context": {
-            "war_score": int(world.war_scores.get(world._make_diplo_key("France", target_nation), 0)),
+            "war_score": int(get_war_score_for(world, "France", target_nation)),
             "relation": int(world.nation_relations.get(world._make_diplo_key("France", target_nation), 0)),
             "threat": int(getattr(world, 'threat_level', 0)),
             "acceptance_score": int(score),

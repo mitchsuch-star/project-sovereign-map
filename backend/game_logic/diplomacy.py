@@ -31,6 +31,8 @@ _UPGRADE_ORDER = [
 ]
 
 # Downgrade adjacency
+# Note: ARMISTICE and VASSAL intentionally excluded — ARMISTICE auto-expires via
+# _process_armistice_turns(), VASSAL exits via release_vassal() or rebellion.
 _DOWNGRADE_ORDER = [
     "ALLIANCE", "DEFENSIVE_ALLIANCE", "NON_AGGRESSION",
     "OPEN_BORDERS", "PEACE"
@@ -247,7 +249,7 @@ def validate_transition(current_state: str, target_state: str) -> bool:
     if target_state == "VASSAL":
         return current_state in VASSAL_MIN_STATES
     if current_state == "VASSAL":
-        return target_state in ("WAR", "PEACE")
+        return target_state in ("WAR", "PEACE", "NON_AGGRESSION")  # Deep audit fix 14: post_break_map uses NON_AGGRESSION
 
     # Upgrade path: any upward jump allowed (R98 — cumulative DP cost)
     if current_state in _UPGRADE_ORDER and target_state in _UPGRADE_ORDER:
@@ -925,6 +927,10 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
         {"success": bool, "message": str, "cascade": list of cascade entries,
          "dp_cost": int, "relation_changes": list}
     """
+    # Deep audit fix 7: Prevent self-war
+    if aggressor == target:
+        return {"success": False, "message": "A nation cannot declare war on itself."}
+
     diplo_key = world._make_diplo_key(aggressor, target)
     current_state = world.diplomatic_states.get(diplo_key, "PEACE")
 
@@ -966,10 +972,11 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
             world.modify_nation_relation(aggressor, nation, indirect_penalty)
             relation_changes.append({"nations": (aggressor, nation), "delta": indirect_penalty})
 
-    # Coalition threat: +20 for France declaring war (§2a)
+    # Coalition threat: +20 for France declaring war, halved with casus belli (§2a, S5c)
     if aggressor == world.player_nation:
         from backend.game_logic.coalition import add_threat
-        add_threat(world, 20, "war_declaration")
+        threat = 10 if casus_belli else 20
+        add_threat(world, threat, "war_declaration")
 
     # Authority changes for AI nations
     nation_auth = getattr(world, 'nation_authority', {})
@@ -1328,6 +1335,9 @@ def check_auto_downgrade(world) -> List[Dict]:
                     penalties = DOWNGRADE_PENALTIES.get((state, new_state))
                     if penalties:
                         world.diplomatic_states[diplo_key] = new_state
+                        # Deep audit fix 5: Clear active treaty on auto-downgrade
+                        active_treaties = getattr(world, 'active_treaties', {})
+                        active_treaties.pop(diplo_key, None)
                         # Half penalties
                         world.modify_nation_relation(
                             parts[0], parts[1], penalties["relation_target"] // 2)
@@ -1689,6 +1699,9 @@ def _process_armistice_expiration(world) -> List[Dict]:
             arm_war_starts = getattr(world, 'war_start_turns', {})
             arm_war_starts[diplo_key] = int(world.current_turn)
             world.war_start_turns = arm_war_starts
+            # Deep audit fix 6: Clear active treaty on armistice→WAR
+            active_treaties = getattr(world, 'active_treaties', {})
+            active_treaties.pop(diplo_key, None)
             events.append({
                 "type": "armistice_expired_war",
                 "nations": [nation_a, nation_b],
@@ -1934,10 +1947,11 @@ def break_treaty(pair_key: str, breaker_nation: str, world) -> Dict:
             world.modify_nation_relation(breaker_nation, nation, -10)
             relation_changes.append({"nations": (breaker_nation, nation), "delta": -10})
 
-    # Threat: +15 (or +25 for alliance)
-    from backend.game_logic.coalition import add_threat
-    threat_amount = 25 if treaty_type in ("alliance", "defensive_alliance") else 15
-    add_threat(world, threat_amount, f"broke_{treaty_type}")
+    # Deep audit fix 9: Only add threat when PLAYER breaks treaty (threat tracks France's aggression)
+    if breaker_nation == world.player_nation:
+        from backend.game_logic.coalition import add_threat
+        threat_amount = 25 if treaty_type in ("alliance", "defensive_alliance") else 15
+        add_threat(world, threat_amount, f"broke_{treaty_type}")
 
     # Post-break state: one level below broken treaty (E11)
     # IMPORTANT: Must include ALL diplomatic states. If you add a new
@@ -1949,13 +1963,29 @@ def break_treaty(pair_key: str, breaker_nation: str, world) -> Dict:
         "OPEN_BORDERS": "PEACE",
         "PEACE": "PEACE",
         "VASSAL": "NON_AGGRESSION",  # Audit fix L-4
+        "WAR": "PEACE",  # Deep audit fix 3
+        "ARMISTICE": "PEACE",  # Deep audit fix 3
     }
     current_state = world.diplomatic_states.get(pair_key, "PEACE")
     new_state = post_break_map.get(current_state, "PEACE")
     world.diplomatic_states[pair_key] = new_state
 
+    # Deep audit fix 3: Clean up war data if breaking from WAR/ARMISTICE
+    if current_state in ("WAR", "ARMISTICE"):
+        cleanup_war_end(world, pair_key)
+
     # Remove treaty
     del active_treaties[pair_key]
+
+    # Deep audit fix 12: Void any proposal_in_transit for this nation pair
+    pit = getattr(world, 'proposal_in_transit', None)
+    if pit:
+        pit_target = pit.get("target", "")
+        pit_proposer = pit.get("proposal", {}).get("proposer_nation", "")
+        if pit_target and pit_proposer:
+            pit_key = world._make_diplo_key(pit_proposer, pit_target)
+            if pit_key == pair_key:
+                world.proposal_in_transit = None
 
     # Log
     world.log_event({
@@ -2047,8 +2077,10 @@ def _process_relation_decay(world) -> None:
 
     for i, nation_a in enumerate(all_nations):
         for nation_b in all_nations[i + 1:]:
-            # Skip vassal pairs
-            if nation_a in vassals or nation_b in vassals:
+            # Deep audit fix 15: Skip vassal-lord pairs only, not vassal-third-party
+            if nation_a in vassals and vassals[nation_a].get("lord") == nation_b:
+                continue
+            if nation_b in vassals and vassals[nation_b].get("lord") == nation_a:
                 continue
 
             diplo_key = world._make_diplo_key(nation_a, nation_b)
@@ -2654,7 +2686,9 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
         response["vassal_loyalty"] = int(loyalty)
         response["vassal_autonomy"] = AUTONOMY_NAMES.get(autonomy, "Satellite")
         response["vassal_loyalty_trend"] = trend
-        response["vassal_tribute"] = int(v.get("tribute_income", 0))
+        tribute_rate = v.get("tribute_rate", 0.5)
+        vassal_income = sum(50 for r in world.regions.values() if getattr(r, 'controller', '') == target_nation)
+        response["vassal_tribute"] = int(vassal_income * tribute_rate)
         response["section"] = "vassal_management"
     else:
         response["section"] = "foreign_affairs"
@@ -2678,7 +2712,7 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
         try:
             # Build a mock proposal to get components
             action_to_type = {
-                "propose_armistice": "armistice_winning" if (getattr(world, 'war_scores', {}).get(diplo_key, 0) > 0) else "armistice_losing",
+                "propose_armistice": "armistice_winning" if (get_war_score_for(world, player, target) > 0) else "armistice_losing",
                 "propose_peace": "peace",
                 "propose_open_borders": "open_borders",
                 "propose_non_aggression": "non_aggression",

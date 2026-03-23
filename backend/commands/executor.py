@@ -259,10 +259,8 @@ class CommandExecutor:
                 getattr(ally, 'fortified', False)
                 and not getattr(ally, 'artillery', False)
             )
-            is_in_square = getattr(ally, 'square_formation', False)
-
-            # Attack coordination: skip fortified non-artillery and square formation
-            if not is_fortified_non_artillery and not is_in_square:
+            # Attack coordination: skip fortified non-artillery
+            if not is_fortified_non_artillery:
                 total_atk += 0.03 * scale
 
             # Defense coordination: all eligible allies contribute
@@ -302,8 +300,7 @@ class CommandExecutor:
                     and m.strength > 0
                     and not getattr(m, 'broken', False)
                     and not getattr(m, 'retreated_this_turn', False)
-                    and getattr(m, 'retreat_recovery', 0) == 0
-                    and not getattr(m, 'square_formation', False)):
+                    and getattr(m, 'retreat_recovery', 0) == 0):
                 adjacent_allies.append(m.name)
 
         return (len(adjacent_allies), adjacent_allies)
@@ -1555,6 +1552,23 @@ RETREAT RECOVERY (3 turns):
                     }
 
         # ============================================================
+        # FORTIFIED CHECK (universal — applies to strategic execution too)
+        # A fortified marshal physically cannot move or attack.
+        # ============================================================
+        if is_strategic_execution and action in ['attack', 'move']:
+            strat_marshal_name = command.get("marshal")
+            if strat_marshal_name:
+                strat_marshal = world.get_marshal(strat_marshal_name)
+                if strat_marshal and getattr(strat_marshal, 'fortified', False):
+                    return {
+                        "success": False,
+                        "message": f"{strat_marshal_name} is fortified at {strat_marshal.location} and cannot {action}. "
+                                  f"Order 'unfortify' first to make the army mobile.",
+                        "fortified": True,
+                        "suggestion": f"Try: '{strat_marshal_name}, unfortify' to abandon fortified position"
+                    }
+
+        # ============================================================
         # DISOBEDIENCE SYSTEM: Check for marshal objection
         # ============================================================
 
@@ -1672,13 +1686,24 @@ RETREAT RECOVERY (3 turns):
                 # ═══════════════════════════════════════════════════════════
                 # FORTIFIED CHECK: Cannot move or attack while fortified
                 # ═══════════════════════════════════════════════════════════
-                if getattr(marshal, 'fortified', False) and action in ['attack', 'move'] and not is_strategic_execution:
+                if getattr(marshal, 'fortified', False) and action in ['attack', 'move']:
                     return {
                         "success": False,
                         "message": f"{marshal_name} is fortified at {marshal.location} and cannot {action}. "
                                   f"Order 'unfortify' first to make the army mobile.",
                         "fortified": True,
                         "suggestion": f"Try: '{marshal_name}, unfortify' to abandon fortified position"
+                    }
+
+                # ═══════════════════════════════════════════════════════════
+                # DEFEND NO-OP: Already defensive + fortified = no action needed
+                # Pre-validated here to avoid showing an objection then telling
+                # the player the action is pointless.
+                # ═══════════════════════════════════════════════════════════
+                if action == 'defend' and getattr(marshal, 'stance', None) == Stance.DEFENSIVE and getattr(marshal, 'fortified', False):
+                    return {
+                        "success": False,
+                        "message": f"{marshal_name} is already defending and fortified at {marshal.location}. No further defensive action needed.",
                     }
 
                 # ═══════════════════════════════════════════════════════════
@@ -2759,6 +2784,17 @@ RETREAT RECOVERY (3 turns):
             old_controller = target_region.controller
             old_location = marshal.location
 
+            # Record garrison fall for diplomacy war score
+            from backend.game_logic.diplomacy import record_battle as record_diplo_battle
+            record_diplo_battle(
+                world,
+                attacker_nation=marshal.nation,
+                defender_nation=old_controller,
+                winner_nation=marshal.nation,
+                attacker_casualties=int(attacker_losses),
+                defender_casualties=int(garrison_losses),
+            )
+
             # Move attacker into region
             marshal.move_to(target_region.name)
 
@@ -2834,6 +2870,17 @@ RETREAT RECOVERY (3 turns):
             )
             if target_region.has_building("fortification"):
                 msg += " Fortifications bolster the defense."
+
+            # Record garrison hold for diplomacy war score
+            from backend.game_logic.diplomacy import record_battle as record_diplo_battle
+            record_diplo_battle(
+                world,
+                attacker_nation=marshal.nation,
+                defender_nation=target_region.controller,
+                winner_nation=target_region.controller,
+                attacker_casualties=int(attacker_losses),
+                defender_casualties=int(garrison_losses),
+            )
 
             return {
                 "success": True,
@@ -4235,7 +4282,7 @@ RETREAT RECOVERY (3 turns):
             marshal, world,
             reinforcement_results=attacker_reinforcements,
             exclude_from_adjacent=arrived_names)
-        defender_coord = self._calculate_coordination_context(
+        self._calculate_coordination_context(
             enemy_marshal, world,
             reinforcement_results=defender_reinforcements,
             exclude_from_adjacent=arrived_names)
@@ -4703,8 +4750,8 @@ RETREAT RECOVERY (3 turns):
                 attacker_nation=marshal.nation,
                 defender_nation=enemy_marshal.nation,
                 winner_nation=diplo_winner,
-                attacker_casualties=int(battle_result.get("attacker_casualties", 0)),
-                defender_casualties=int(battle_result.get("defender_casualties", 0)),
+                attacker_casualties=int(battle_result.get("attacker", {}).get("casualties", 0)),
+                defender_casualties=int(battle_result.get("defender", {}).get("casualties", 0)),
             )
 
         # Check if enemy was destroyed
@@ -6746,7 +6793,7 @@ RETREAT RECOVERY (3 turns):
         # If enemy marshal in current region, can only retreat to friendly territory
         # ════════════════════════════════════════════════════════════
         marshals_here = world.get_marshals_in_region(marshal.location)
-        enemies_here = [m for m in marshals_here if m.nation != marshal.nation]
+        enemies_here = [m for m in marshals_here if m.nation != marshal.nation and world.is_at_war(marshal.nation, m.nation)]
 
         if enemies_here:
             # Engaged with enemy - can only move to regions controlled by marshal's nation
@@ -6765,7 +6812,7 @@ RETREAT RECOVERY (3 turns):
         # If fogged, marshal walks in blind and discovers engagement on arrival.
         # ════════════════════════════════════════════════════════════
         marshals_at_dest = world.get_marshals_in_region(target_name)
-        enemies_at_dest = [m for m in marshals_at_dest if m.nation != marshal.nation and m.strength > 0]
+        enemies_at_dest = [m for m in marshals_at_dest if m.nation != marshal.nation and m.strength > 0 and world.is_at_war(marshal.nation, m.nation)]
 
         if enemies_at_dest:
             # Fog check: player marshals only blocked if destination is visible
@@ -10304,6 +10351,22 @@ RETREAT RECOVERY (3 turns):
             world.record_battle(target_marshal.location, marshal.name, target_marshal.name,
                                 combat_result.get("outcome", "unknown"))
 
+        # Record battle for diplomacy war score
+        from backend.game_logic.diplomacy import record_battle as record_diplo_battle
+        outcome = combat_result.get("outcome", "")
+        atk_won = "attacker" in outcome and "victory" in outcome
+        def_won = "defender" in outcome and "victory" in outcome
+        diplo_winner = marshal.nation if atk_won else (target_marshal.nation if def_won else None)
+        if diplo_winner:
+            record_diplo_battle(
+                world,
+                attacker_nation=marshal.nation,
+                defender_nation=target_marshal.nation,
+                winner_nation=diplo_winner,
+                attacker_casualties=int(combat_result.get("attacker", {}).get("casualties", 0)),
+                defender_casualties=int(combat_result.get("defender", {}).get("casualties", 0)),
+            )
+
         # ALWAYS reset recklessness after Glorious Charge
         marshal.reset_recklessness()
 
@@ -11756,13 +11819,19 @@ RETREAT RECOVERY (3 turns):
 
         if accepted:
             # Ultimatum accepted — transition to peace or non-aggression
+            # Deep audit fix 4: Use cleanup_war_end for proper war data cleanup
             current = world.get_diplomatic_state(player, target_nation)
             if current == "WAR":
                 world.diplomatic_states[diplo_key] = "PEACE"
+                from backend.game_logic.diplomacy import cleanup_war_end
+                cleanup_war_end(world, diplo_key)
                 outcome_msg = f"{target_nation} has accepted our ultimatum and sued for peace!"
             else:
                 world.diplomatic_states[diplo_key] = "NON_AGGRESSION"
                 outcome_msg = f"{target_nation} has bowed to our ultimatum and agreed to non-aggression!"
+            # Deep audit fix 4: Clear active treaty
+            active_treaties = getattr(world, 'active_treaties', {})
+            active_treaties.pop(diplo_key, None)
         else:
             # Ultimatum rejected — casus belli granted
             world.casus_belli[diplo_key] = True
@@ -12897,6 +12966,7 @@ RETREAT RECOVERY (3 turns):
             from backend.game_logic.vassal import invest_in_vassal
             result = invest_in_vassal(world, vassal_name)
             world.pending_diplomatic_dialogue = None
+            world.vassal_rebellion_imminent_popup = None
             # Dismiss stale vassal rebellion notification
             from backend.notifications import VASSAL_REBELLION_IMMINENT
             world.notifications.dismiss_by_type(VASSAL_REBELLION_IMMINENT)
@@ -12908,6 +12978,11 @@ RETREAT RECOVERY (3 turns):
             if not vassal_name:
                 world.pending_diplomatic_dialogue = None
                 return {"success": False, "message": "No vassal specified."}
+            # Guard: vassal may have been removed between popup and response
+            if vassal_name not in world.vassals:
+                world.pending_diplomatic_dialogue = None
+                world.vassal_rebellion_imminent_popup = None
+                return {"success": False, "message": f"{vassal_name} is no longer a vassal."}
             # Deploy garrison: +10 loyalty, costs 2 AP
             if world.actions_remaining < 2:
                 world.pending_diplomatic_dialogue = None
@@ -12920,6 +12995,7 @@ RETREAT RECOVERY (3 turns):
             old_loyalty = vassal_state.get("loyalty", 0)
             vassal_state["loyalty"] = min(100, old_loyalty + 10)
             world.pending_diplomatic_dialogue = None
+            world.vassal_rebellion_imminent_popup = None
             # Dismiss stale vassal rebellion notification
             from backend.notifications import VASSAL_REBELLION_IMMINENT
             world.notifications.dismiss_by_type(VASSAL_REBELLION_IMMINENT)
@@ -12933,6 +13009,7 @@ RETREAT RECOVERY (3 turns):
 
         elif action == "accept_vassal_rebellion":
             world.pending_diplomatic_dialogue = None
+            world.vassal_rebellion_imminent_popup = None
             # Dismiss stale vassal rebellion notification
             from backend.notifications import VASSAL_REBELLION_IMMINENT
             world.notifications.dismiss_by_type(VASSAL_REBELLION_IMMINENT)

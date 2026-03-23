@@ -177,6 +177,9 @@ class TestCounterOfferPopupDataShape:
     def test_counter_offer_popup_clauses_are_list(self):
         """Clauses must be a list of strings (not a single string)."""
         world = _make_world()
+        # Set WAR state so peace proposal is a valid upgrade (PEACE proposal during PEACE is stale)
+        diplo_key = world._make_diplo_key("France", "Austria")
+        world.diplomatic_states[diplo_key] = "WAR"
         world.proposal_in_transit = {
             "target": "Austria",
             "proposal": {

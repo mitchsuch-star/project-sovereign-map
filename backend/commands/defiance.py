@@ -138,7 +138,7 @@ def defiance_succeeded(marshal, defiance_action: str, battle_result, pre_battle_
     if defiance_action == "attack":
         if battle_result is None:
             return None  # No battle happened (e.g., no enemy found)
-        won = battle_result.get("attacker", {}).get("won", False)
+        won = battle_result.get("attacker_won", False)
         casualties = battle_result.get("attacker", {}).get("casualties", 0)
         casualty_pct = casualties / pre_battle_strength if pre_battle_strength > 0 else 1.0
         return won and casualty_pct < 0.50  # Won AND not pyrrhic
