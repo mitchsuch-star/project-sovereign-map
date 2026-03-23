@@ -2790,7 +2790,13 @@ func _on_talleyrand_objection_choice(choice: String, data: Dictionary):
 	if choice == "proceed":
 		add_output("[color=#d9c08c]Overriding Talleyrand's objection...[/color]")
 		set_input_enabled(false)
-		api_client.send_command("Talleyrand, proceed with the proposal", _on_command_result)
+		# Fix 2: Send action-specific command instead of generic dialogue keyword
+		var action = data.get("action", "")
+		var target = data.get("target_nation", "")
+		if action == "diplomatic_declare_war" and target != "":
+			api_client.send_command("declare war on " + target, _on_command_result)
+		else:
+			api_client.send_command("Talleyrand, proceed with the proposal", _on_command_result)
 	elif choice == "modify":
 		add_output("[color=#d9c08c]Reconsidering the proposal...[/color]")
 		set_input_enabled(true)

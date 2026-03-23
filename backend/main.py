@@ -1513,6 +1513,8 @@ def debug_marshal(marshal_name: str):
     - Recent decision history
     - Last objection severity
     """
+    if not DEBUG_MODE:
+        return {"success": False, "message": "Debug endpoints disabled"}
     marshal = world.get_marshal(marshal_name)
     if not marshal:
         return {
@@ -1649,6 +1651,15 @@ def _get_fortify_state(marshal) -> dict:
 # SAVE/LOAD ENDPOINTS (Phase 6: Save/Load System)
 # ════════════════════════════════════════════════════════════
 
+def _validate_save_filename(filename: str) -> bool:
+    """Reject filenames with path traversal characters."""
+    if ".." in filename or "/" in filename or "\\" in filename:
+        return False
+    # Verify resolved path stays within saves dir
+    resolved = (Path("saves") / filename).resolve()
+    return str(resolved).startswith(str(Path("saves").resolve()))
+
+
 @app.post("/save")
 async def save_endpoint(request: SaveRequest):
     """Save current game state."""
@@ -1661,6 +1672,8 @@ async def save_endpoint(request: SaveRequest):
 async def load_endpoint(request: LoadRequest):
     """Load a saved game. Replaces current game state."""
     global world, game_state
+    if not _validate_save_filename(request.filename):
+        return {"success": False, "message": "Invalid save filename"}
     filepath = Path("saves") / request.filename
     result = load_game(filepath)
     if result["success"]:
@@ -1685,6 +1698,8 @@ async def list_saves_endpoint():
 @app.post("/delete_save")
 async def delete_save_endpoint(request: DeleteSaveRequest):
     """Delete a save file."""
+    if not _validate_save_filename(request.filename):
+        return {"success": False, "message": "Invalid save filename"}
     filepath = Path("saves") / request.filename
     return delete_save(filepath)
 
@@ -1939,9 +1954,13 @@ async def dismiss_notification(request: Request):
         return {"success": False, "message": "Missing notification id"}
     if notification_id == "all":
         count = world.notifications.dismiss_all()
-        return {"success": True, "dismissed": int(count)}
+        response = {"success": True, "dismissed": int(count)}
+        _include_popup_passthroughs(response, world)
+        return response
     dismissed = world.notifications.dismiss(notification_id)
-    return {"success": dismissed, "dismissed": 1 if dismissed else 0}
+    response = {"success": dismissed, "dismissed": 1 if dismissed else 0}
+    _include_popup_passthroughs(response, world)
+    return response
 
 
 @app.get("/notifications")

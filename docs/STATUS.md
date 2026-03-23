@@ -36,7 +36,7 @@
 6. ~~**Comprehensive Creative Audit**~~ — **COMPLETE.** 6.5/10 score. All findings → Phase 5 items.
 7. ~~**Diplomacy Refinement Phases 1-4**~~ — **COMPLETE** (55 items, 326 tests).
 8. **Diplomacy Design Fixes** — DA-1, DA-2, DA-4 DONE. DA-3 (offensive cascade + friction) remaining. See `docs/DIPLOMACY_DESIGN_FIXES.md`.
-11. **Deep Audit Fix Plan** — Sessions 1-5 DONE. Session 1: 9 combat/war score fixes, 21 tests. Session 2: 18 vassal fixes, 27 tests. Session 3: 13 diplomatic state machine fixes, 25 tests. Session 4: 9 economy fixes, 16 tests. Session 5: 13 AI/parser/strategic fixes (SUPPORT/HOLD path persistence, VALID_ACTIONS gaps, diplomatic defiance pipeline, zero-income sweetener, "stand down" keyword, artillery rebuild cost, proposal metadata, vassal cascade, PURSUE/SUPPORT war-state revalidation), 31 tests. Sessions 6-9 remaining. See `docs/DEEP_AUDIT_FIX_PLAN.md`.
+11. **Deep Audit Fix Plan** — Sessions 1-6 DONE. Session 1: 9 combat/war score fixes, 21 tests. Session 2: 18 vassal fixes, 27 tests. Session 3: 13 diplomatic state machine fixes, 25 tests. Session 4: 9 economy fixes, 16 tests. Session 5: 13 AI/parser/strategic fixes, 31 tests. Session 6: 10 popup/passthrough/security fixes (war declaration objection fields, path traversal, armistice notifications, stalled sabotage delay, debug guard), 19 tests. Sessions 7-9 remaining. 6,668 total tests. See `docs/DEEP_AUDIT_FIX_PLAN.md`.
 9. **Jealousy system** — NEEDS DESIGN GATE (separate track). See CLAUDE.md.
 10. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tutorial deferred to Pre-EA.
 

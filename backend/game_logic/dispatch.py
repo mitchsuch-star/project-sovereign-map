@@ -909,6 +909,8 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_dp_regen": "Talleyrand reports: {dp} diplomatic points available ({breakdown}).",
     "diplomatic_we_threshold": "War exhaustion grows — {nation} nears breaking point (exhaustion: {we}).",
     "diplomatic_relation_shift": "Relations with {nation} have {direction} significantly ({delta} this turn).",
+    "diplomatic_armistice_expired_peace": "The armistice between {nation_a} and {nation_b} has concluded. Peace declared.",
+    "diplomatic_armistice_expired_war": "The armistice between {nation_a} and {nation_b} has collapsed. War resumes!",
 }
 
 # Priority mapping: LOW for progress/sent/feasibility; MEDIUM for treaty/system; HIGH for rest
@@ -944,6 +946,8 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "diplomatic_dp_regen": "LOW",
     "diplomatic_we_threshold": "MEDIUM",
     "diplomatic_relation_shift": "MEDIUM",
+    "diplomatic_armistice_expired_peace": "HIGH",
+    "diplomatic_armistice_expired_war": "HIGH",
 }
 
 

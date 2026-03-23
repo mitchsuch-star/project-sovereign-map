@@ -10063,7 +10063,7 @@ RETREAT RECOVERY (3 turns):
         world: WorldState = game_state.get("world")
 
         if not world:
-            return {"success": False, "message": "Game state error"}
+            return {"success": False, "message": "Game state error in _execute_charge: world state unavailable"}
 
         # If no marshal specified, check for pending glorious charge
         if not marshal_name:
@@ -10123,7 +10123,7 @@ RETREAT RECOVERY (3 turns):
         world: WorldState = game_state.get("world")
 
         if not world:
-            return {"success": False, "message": "Game state error"}
+            return {"success": False, "message": "Game state error in _execute_restrain: world state unavailable"}
 
         # Look for marshal with pending charge
         for m in world.marshals.values():
@@ -10149,7 +10149,7 @@ RETREAT RECOVERY (3 turns):
         """
         world: WorldState = game_state.get("world")
         if not world:
-            return {"success": False, "message": "Game state error"}
+            return {"success": False, "message": "Game state error in _execute_cancel: world state unavailable"}
 
         marshal_name = command.get("marshal")
         if not marshal_name:
@@ -11619,6 +11619,11 @@ RETREAT RECOVERY (3 turns):
         """Handle war declaration command (R10). Costs 1 DP."""
         from backend.game_logic.diplomacy import declare_war
 
+        # Fix 3: Clear previous war declaration objection (it's been handled if we're here again)
+        if (world.diplomatic_objection_popup
+                and world.diplomatic_objection_popup.get("action") == "diplomatic_declare_war"):
+            world.diplomatic_objection_popup = None
+
         target_nation = diplomatic_data.get("target_nation")
         if not target_nation:
             return {
@@ -11690,16 +11695,18 @@ RETREAT RECOVERY (3 turns):
             if not world.diplomatic_objection_popup:
                 world.diplomatic_objection_popup = {
                     "type": "talleyrand_objection",
-                    "severity": "STRONG",
-                    "message": (f"Sire, I must strongly advise against declaring war on {target_nation}. "
-                                f"Our threat level stands at {int(threat_level)} — the courts of Europe "
-                                f"already whisper of coalition. Another war will only hasten their union against us."),
+                    "concern_level": "STRONG",
+                    "objection_text": (f"Sire, I must strongly advise against declaring war on {target_nation}. "
+                                       f"Our threat level stands at {int(threat_level)} — the courts of Europe "
+                                       f"already whisper of coalition. Another war will only hasten their union against us."),
+                    "defiance_risk": "High",
+                    "proposal_summary": f"Declare war on {target_nation}",
                     "action": "diplomatic_declare_war",
                     "target_nation": target_nation,
                 }
                 return {
                     "success": True,
-                    "message": world.diplomatic_objection_popup["message"],
+                    "message": world.diplomatic_objection_popup["objection_text"],
                     "diplomatic_objection_popup": world.diplomatic_objection_popup,
                 }
 
@@ -12113,10 +12120,15 @@ RETREAT RECOVERY (3 turns):
                 mission["paused"] = True
 
             world.talleyrand_state = "IN_TRANSIT"
+            turn_sent = int(world.current_turn)
+            # Fix 13: "stalled" sabotage adds delivery delay
+            sabotage = getattr(world, 'pending_talleyrand_sabotage', None)
+            if sabotage and sabotage.get("defiance_type") == "stalled":
+                turn_sent += 1
             world.proposal_in_transit = {
                 "target": target_nation,
                 "proposal": proposal,
-                "turn_sent": int(world.current_turn),
+                "turn_sent": turn_sent,
             }
 
             # Log event
@@ -12879,10 +12891,15 @@ RETREAT RECOVERY (3 turns):
                 mission["paused"] = True
 
             world.talleyrand_state = "IN_TRANSIT"
+            turn_sent = int(world.current_turn)
+            # Fix 13: "stalled" sabotage adds delivery delay
+            sabotage = getattr(world, 'pending_talleyrand_sabotage', None)
+            if sabotage and sabotage.get("defiance_type") == "stalled":
+                turn_sent += 1
             world.proposal_in_transit = {
                 "target": target_nation,
                 "proposal": proposal,
-                "turn_sent": int(world.current_turn),
+                "turn_sent": turn_sent,
             }
 
             # Record override if player overrode Talleyrand's objection

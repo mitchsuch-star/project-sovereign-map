@@ -208,10 +208,16 @@ def apply_diplomatic_sabotage(original_proposal: Dict, talleyrand, world) -> Dic
         defiance_type = "unit_overpay"
     elif territory_count >= 3:
         # Too many territory demands → reduce by 1
-        for demand in modified.get("demands", []):
-            if demand.get("type") == "territory_cede" and len(demand.get("regions", [])) > 0:
-                demand["regions"] = demand["regions"][:-1]  # Remove last region
-                break
+        for demand in list(modified.get("demands", [])):
+            if demand.get("type") == "territory_cede":
+                regions = demand.get("regions", [])
+                if len(regions) > 1:
+                    demand["regions"] = regions[:-1]  # Remove last region
+                    break
+                elif len(regions) == 1:
+                    # Fix 14: Single region — remove entire demand instead of leaving empty list
+                    modified["demands"].remove(demand)
+                    break
         defiance_type = "softened"
     elif harshness > 0.7:
         # Harsh terms → cut gold by 40%

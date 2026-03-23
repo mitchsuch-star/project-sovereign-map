@@ -151,28 +151,28 @@ Some audit findings re-classified after review:
 
 ---
 
-## Session 6: Popups, Passthroughs & Security
+## Session 6: Popups, Passthroughs & Security — COMPLETE
 
 **Theme:** Popup field mismatches, passthrough gaps, and the one real security issue.
 
-| # | Finding | File | Fix |
-|---|---------|------|-----|
-| 1 | **P3/P11/P48: War declaration Talleyrand objection wrong fields** | executor.py:11628-11636 | Rename to `concern_level`, `objection_text`, `defiance_risk`, `proposal_summary` |
-| 2 | **P3: War declaration objection "Proceed" misroutes** | main.gd:2793 | Send action-specific command, not generic "proceed with proposal" |
-| 3 | **P3: War declaration objection infinite re-trigger** | executor.py:11625-11641 | Add override flag or check pending_diplomatic_dialogue |
-| 4 | **P57-1: Sabotage handler field name typo** | executor.py:12718 | `world.diplomatic_sabotage_popup = None` (not `diplomatic_sabotage`) |
-| 5 | **P57-2: Redemption handler field name typo** | executor.py:12742 | `world.talleyrand_redemption_popup = None` (not `talleyrand_redemption`) |
-| 6 | **P48-2: Alliance paradox popup has no Godot handler** | main.gd | Implement popup scene or route through existing dialog |
-| 7 | **P1: Popup passthrough gaps (42+ missing returns)** | main.py | Add `_include_popup_passthroughs()` to all POST endpoint return paths |
-| 8 | **P43-3: Non-blocking dialogue doesn't clear popup** | world_state.py:3859-3862 | Add `self.incoming_proposal_popup = None` |
-| 9 | **P93-1: Path traversal in /load and /delete_save** | main.py:1664,1688 | Reject filenames containing `..`, `/`, `\`; verify resolved path starts with saves dir |
-| 10 | **P80-1: "Game state error" zero diagnostic value** | main.py | Include endpoint name and context in error messages |
-| 11 | **P52-2: /debug_marshal missing DEBUG_MODE guard** | main.py:1505-1557 | Add guard |
-| 12 | **P17: Armistice expiration no notification/dispatch** | diplomacy.py:1644-1702 | Add `notifications.add()` + `queue_dispatch_event()` for both paths |
-| 13 | **P2: "stalled" sabotage type has no effect** | diplomatic_defiance.py:235-237 | Implement delivery delay (add 1 turn) |
-| 14 | **P2: Territory sabotage leaves empty regions list** | diplomatic_defiance.py:211-214 | Remove demand if regions becomes empty |
+| # | Finding | File | Status |
+|---|---------|------|--------|
+| 1 | **War declaration objection wrong fields** | executor.py | FIXED — `concern_level`, `objection_text`, `defiance_risk`, `proposal_summary` |
+| 2 | **War declaration objection "Proceed" misroutes** | main.gd | FIXED — sends action-specific command |
+| 3 | **War declaration objection infinite re-trigger** | executor.py | FIXED — clears popup at function entry |
+| 4 | **Sabotage handler field name typo** | — | FALSE POSITIVE — system correct |
+| 5 | **Redemption handler field name typo** | — | FALSE POSITIVE — system correct |
+| 6 | **Alliance paradox popup no Godot handler** | — | DEFERRED to Session 8 (needs new .tscn) |
+| 7 | **Popup passthrough gap /notifications/dismiss** | main.py | FIXED — added `_include_popup_passthroughs()` |
+| 8 | **Non-blocking dialogue doesn't clear popup** | world_state.py | FIXED — clears `incoming_proposal_popup` |
+| 9 | **Path traversal in /load and /delete_save** | main.py | FIXED — `_validate_save_filename()` helper |
+| 10 | **"Game state error" zero diagnostic value** | executor.py | FIXED — function context in messages |
+| 11 | **/debug_marshal missing DEBUG_MODE guard** | main.py | FIXED — guard added |
+| 12 | **Armistice expiration no notification/dispatch** | diplomacy.py + dispatch.py | FIXED — notifications + dispatch events |
+| 13 | **"stalled" sabotage type has no effect** | executor.py | FIXED — +1 turn_sent delay |
+| 14 | **Territory sabotage leaves empty regions list** | diplomatic_defiance.py | FIXED — removes demand if single region |
 
-**Tests:** ~20 new tests.
+**Result:** 10 real bugs fixed, 2 false positives, 1 deferred. 19 new tests (test_deep_audit_session6.py).
 
 ---
 
@@ -222,6 +222,7 @@ Some audit findings re-classified after review:
 | 12 | **P55-1: diplomatic_ledger.gd null crash on history type** | diplomatic_ledger.gd:689 | Null check before `.to_lower()` |
 | 13 | **P55-3: Coalition declaration popup type coercion** | coalition_declaration_popup.gd:41 | Cast to int before %d format |
 | 14 | **P79-2: Wizard doesn't check pending_diplomatic_dialogue** | diplomacy_wizard.gd | Check backend state before opening |
+| 15 | **P48-2: Alliance paradox popup no Godot handler** (deferred from S6) | main.gd + new .tscn | Create popup scene for `alliance_paradox_popup` data |
 
 ---
 

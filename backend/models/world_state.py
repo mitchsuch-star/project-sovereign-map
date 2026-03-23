@@ -3863,6 +3863,7 @@ class WorldState:
                 and not self.pending_diplomatic_dialogue.get("blocking")
                 and self.pending_diplomatic_dialogue.get("turn_created", 0) < self.current_turn):
             self.pending_diplomatic_dialogue = None
+            self.incoming_proposal_popup = None  # Fix 8: Clear paired popup too
 
         # ════════════════════════════════════════════════════════════
         # BLOCKING DIALOGUE SAFETY VALVE (Audit fix C-1)

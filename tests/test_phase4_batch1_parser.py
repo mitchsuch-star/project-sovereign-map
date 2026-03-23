@@ -114,7 +114,7 @@ class TestWarDeclaration:
         # Should succeed but include objection popup
         assert result.get("success")
         assert world.diplomatic_objection_popup is not None
-        assert world.diplomatic_objection_popup["severity"] == "STRONG"
+        assert world.diplomatic_objection_popup["concern_level"] == "STRONG"
 
     def test_declare_war_trust_reactions(self, executor, world, game_state):
         """R23: Aggressive marshals gain trust, cautious lose trust."""

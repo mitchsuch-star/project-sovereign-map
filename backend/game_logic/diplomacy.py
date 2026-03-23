@@ -1725,6 +1725,17 @@ def _process_armistice_expiration(world) -> List[Dict]:
                 "nations": [nation_a, nation_b],
                 "message": f"The armistice between {nation_a} and {nation_b} has concluded. Peace declared.",
             })
+            # Fix 12: Notification + dispatch for armistice expiration (peace)
+            from backend.notifications import create_notification, NotificationPriority
+            world.notifications.add(create_notification(
+                "armistice_expired", NotificationPriority.HIGH,
+                "Armistice Concluded",
+                f"The armistice with {nation_b if nation_a == world.player_nation else nation_a} has concluded. Peace declared.",
+                int(world.current_turn),
+            ))
+            from backend.game_logic.dispatch import queue_dispatch_event
+            queue_dispatch_event(world, "diplomatic_armistice_expired_peace",
+                                {"nation_a": nation_a, "nation_b": nation_b}, "always")
         else:
             # Relations too hostile — back to WAR
             world.diplomatic_states[diplo_key] = "WAR"
@@ -1740,6 +1751,17 @@ def _process_armistice_expiration(world) -> List[Dict]:
                 "nations": [nation_a, nation_b],
                 "message": f"The armistice between {nation_a} and {nation_b} has collapsed. War resumes.",
             })
+            # Fix 12: Notification + dispatch for armistice expiration (war)
+            from backend.notifications import create_notification, NotificationPriority
+            world.notifications.add(create_notification(
+                "armistice_expired", NotificationPriority.CRITICAL,
+                "Armistice Collapsed",
+                f"The armistice with {nation_b if nation_a == world.player_nation else nation_a} has collapsed. War resumes!",
+                int(world.current_turn),
+            ))
+            from backend.game_logic.dispatch import queue_dispatch_event
+            queue_dispatch_event(world, "diplomatic_armistice_expired_war",
+                                {"nation_a": nation_a, "nation_b": nation_b}, "always")
 
         # Clear tracking
         armistice_turns.pop(diplo_key, None)
