@@ -218,7 +218,7 @@ SWEETENER_VALUES = {
     "open_borders": 3,             # +3 flat
     "protection": 5,               # +5 flat
 }
-SWEETENER_CAP = 40                 # R146: was 30
+SWEETENER_CAP = 60                 # R146: was 30, raised to 60 so escalated offers improve acceptance
 
 DEMAND_VALUES = {
     "gold_per_turn": -2 / 100,     # -2 per 100g/turn demanded
@@ -1279,7 +1279,7 @@ def execute_downgrade(world, nation_a: str, nation_b: str) -> Dict:
 
     return {
         "success": True,
-        "message": f"Diplomatic relations between {nation_a} and {nation_b} downgraded: {current_state} → {new_state}.",
+        "message": f"Diplomatic relations between {nation_a} and {nation_b} downgraded: {_STATE_DISPLAY_NAMES.get(current_state, current_state)} → {_STATE_DISPLAY_NAMES.get(new_state, new_state)}.",
         "new_state": new_state,
         "dp_cost": penalties["dp_cost"],
     }
@@ -1315,7 +1315,7 @@ def check_auto_downgrade(world) -> List[Dict]:
                     "state": state,
                     "turns_remaining": 2,
                     "message": f"Relations between {parts[0]} and {parts[1]} are deteriorating. "
-                               f"{state} may collapse in 2 turns.",
+                               f"{_STATE_DISPLAY_NAMES.get(state, state)} may collapse in 2 turns.",
                 })
 
             # Auto-downgrade at turn 5
@@ -1339,7 +1339,7 @@ def check_auto_downgrade(world) -> List[Dict]:
                             "from_state": state,
                             "to_state": new_state,
                             "message": f"Relations between {parts[0]} and {parts[1]} have collapsed: "
-                                       f"{state} → {new_state}.",
+                                       f"{_STATE_DISPLAY_NAMES.get(state, state)} → {_STATE_DISPLAY_NAMES.get(new_state, new_state)}.",
                         })
 
                         world.log_event({
@@ -1366,7 +1366,7 @@ def check_auto_downgrade(world) -> List[Dict]:
                             DIPLO_AUTO_DOWNGRADE,
                             NotificationPriority.NORMAL,
                             "Relations Deteriorated",
-                            f"{parts[0]}-{parts[1]}: {state} → {new_state}.",
+                            f"{parts[0]}-{parts[1]}: {_STATE_DISPLAY_NAMES.get(state, state)} → {_STATE_DISPLAY_NAMES.get(new_state, new_state)}.",
                             int(world.current_turn),
                         ))
         else:

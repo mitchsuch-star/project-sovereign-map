@@ -906,8 +906,12 @@ func _on_command_result(response):
 			if top_bar:
 				top_bar.close_all_screens()
 			set_input_enabled(false)  # Disable input until dismissed
+			# Use turn_ended (the turn enemy actually acted on) not action_summary.turn
+			# (which is already incremented by advance_turn)
 			var turn = current_turn
-			if response.has("action_summary"):
+			if response.has("turn_ended") and response.turn_ended != null:
+				turn = int(response.turn_ended)
+			elif response.has("action_summary"):
 				turn = int(response.action_summary.get("turn", current_turn))
 			pending_enemy_phase_response = response  # Store for post-enemy-phase flow
 			_show_enemy_phase_dialog(response.enemy_phase, turn)

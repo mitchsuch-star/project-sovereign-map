@@ -114,9 +114,9 @@ class TestAcceptanceWorkedExample:
 class TestSweetenerCap:
 
     def test_sweetener_cap_constant(self):
-        assert SWEETENER_CAP == 40  # R146: raised from 30
+        assert SWEETENER_CAP == 60  # raised from 40 so escalated offers improve acceptance
 
-    def test_massive_sweeteners_capped_at_40(self):
+    def test_massive_sweeteners_capped_at_60(self):
         world = make_world()
         diplo_key = world._make_diplo_key("France", "Prussia")
         world.war_scores[diplo_key] = 0
@@ -140,8 +140,8 @@ class TestSweetenerCap:
         c = result["components"]
 
         # Raw: gold(1000*0.03=30) + territory(5*8=40) + open_borders(3) + protection(5) = 78
-        # Capped at 40
-        assert c["deal_balance"] == 40.0
+        # Capped at 60
+        assert c["deal_balance"] == 60.0
 
     def test_sweeteners_below_cap_not_affected(self):
         world = make_world()

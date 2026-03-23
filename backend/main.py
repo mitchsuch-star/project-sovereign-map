@@ -829,6 +829,8 @@ def execute_command(request: CommandRequest):
             "events": result.get("events", []),
             "action_info": result.get("action_info", {}),
             "action_summary": action_summary,
+            # Turn the enemy phase actually happened on (before advance_turn increments)
+            "turn_ended": int(result["turn_ended"]) if "turn_ended" in result else None,
             "game_state": world.get_filtered_game_state_summary(),
             # Diplomatic top-bar fields (Session 8B) — piggyback on every command response
             "diplomatic_points": int(getattr(world, 'diplomatic_points', 0)),
@@ -923,7 +925,11 @@ def execute_command(request: CommandRequest):
             # FOG OF WAR (Session 34B): Filter enemy actions by visibility
             cleaned_phase = _filter_enemy_phase_by_visibility(cleaned_phase, world)
 
-            response["enemy_phase"] = cleaned_phase
+            # Only include enemy_phase if there are visible actions (or enemy victory).
+            # When fog hides all enemy actions, skip the dialog entirely rather than
+            # showing misleading "No enemy actions this turn."
+            if cleaned_phase.get("total_actions", 0) > 0 or cleaned_phase.get("enemy_victory"):
+                response["enemy_phase"] = cleaned_phase
 
             # DEBUG: Print final enemy_phase structure
             print("[ENEMY_PHASE_FINAL] Sending to Godot:")

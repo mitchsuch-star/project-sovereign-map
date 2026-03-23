@@ -394,8 +394,8 @@ class TestAcceptanceFormula:
         }
 
         result = calculate_acceptance(proposal, world)
-        # Sweetener should be capped at 40 (R146)
-        assert result["components"]["deal_balance"] <= 40
+        # Sweetener should be capped at 60
+        assert result["components"]["deal_balance"] <= 60
 
     def test_demands_uncapped(self):
         world = make_world()

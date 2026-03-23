@@ -209,9 +209,9 @@ class TestR144_R146SweetenerChanges:
         """R145: Gold lump rate is 1/100 (was 1/200)."""
         assert SWEETENER_VALUES["gold_lump"] == 1 / 100
 
-    def test_sweetener_cap_is_40(self):
-        """R146: Sweetener cap raised from 30 to 40."""
-        assert SWEETENER_CAP == 40
+    def test_sweetener_cap_is_60(self):
+        """Sweetener cap raised from 40 to 60 so escalated offers improve acceptance."""
+        assert SWEETENER_CAP == 60
 
 
 # ═══════════════════════════════════════════════════════
