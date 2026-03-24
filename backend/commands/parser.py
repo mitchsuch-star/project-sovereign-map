@@ -72,6 +72,18 @@ class CommandParser:
             "invest_vassal",    # Invest in vassal (+10 loyalty)
             "change_autonomy",  # Change vassal autonomy level
             "make_vassal",      # Create a vassal
+            "release_vassal",   # Release a vassal nation (P8-4 sync)
+            # Strategic actions (LLM may return these directly) — P8-4 sync
+            "pursue",           # Strategic PURSUE - chasing enemy marshal
+            "support",          # Strategic SUPPORT - marching to ally
+            "reinforce",        # Alias for support
+            "march",            # Strategic MOVE_TO - multi-turn movement
+            # Diplomatic meta-actions — P8-4 sync
+            "diplomatic_proposal",     # Start diplomatic proposal dialogue
+            "diplomatic_mission",      # Start diplomatic mission
+            "diplomatic_feasibility",  # Request feasibility check
+            "diplomatic_advisory",     # Request advisory conversation
+            "diplomatic_error",        # Diplomatic error fallback
             # Diplomatic actions — break/downgrade (Phase 8 wiring)
             "diplomatic_break",      # Break an active treaty
             "diplomatic_downgrade",  # Voluntarily downgrade diplomatic state
@@ -87,8 +99,13 @@ class CommandParser:
         from backend.models.region import REGIONS_DATA
         self.known_regions = list(REGIONS_DATA.keys())
 
-        # Known enemy marshals
-        self.known_enemies = ["Wellington", "Uxbridge", "Blucher", "Gneisenau"]
+        # Known enemy marshals (P8-5 FIX: added ArchdukeCharles, Schwarzenberg, Reynier)
+        self.known_enemies = [
+            "Wellington", "Uxbridge",              # Britain
+            "Blucher", "Gneisenau",                # Prussia
+            "ArchdukeCharles", "Schwarzenberg",    # Austria
+            "Reynier",                              # Saxony
+        ]
 
         # Show actual mode from LLMClient (which reads from env if use_real_llm=None)
         mode = self.llm.provider_name.upper()
@@ -484,7 +501,7 @@ class CommandParser:
         }
 
     # Bombardment keywords for auto-assign routing (checked against raw input)
-    BOMBARD_KEYWORDS = ["bombard", "barrage", "shell ", "cannonade"]
+    BOMBARD_KEYWORDS = ["bombard", "barrage", "shell", "cannonade"]
 
     def _classify_command(self, parsed_command: Dict, raw_input: str) -> str:
         """

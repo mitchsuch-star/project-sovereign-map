@@ -491,7 +491,7 @@ def _build_orders(world, player: str) -> list:
                 "path_remaining": int(len(order.path)),
                 "turns_active": int(world.current_turn - order.started_turn),
                 "condition": condition_text,
-                "issued_turn": int(order.started_turn),
+                "started_turn": int(order.started_turn),
                 "arrived_turn": int(order.arrived_turn) if order.arrived_turn is not None else -1,
                 "has_order": True,
             })
@@ -506,7 +506,7 @@ def _build_orders(world, player: str) -> list:
                 "path_remaining": 0,
                 "turns_active": 0,
                 "condition": "idle",
-                "issued_turn": 0,
+                "started_turn": 0,
                 "arrived_turn": -1,
                 "has_order": False,
             })

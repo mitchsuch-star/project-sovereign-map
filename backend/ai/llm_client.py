@@ -633,7 +633,8 @@ class LLMClient:
             )
 
         # BUG-002 FIX: Added "commands" and "what can i do" as help aliases
-        if "help" in command_lower or command_lower.strip() == "?" or "commands" in command_lower or "what can i do" in command_lower:
+        # P8-2 FIX: Use exact match whitelist — "help" in command_lower matched "help Davout"
+        if command_lower.strip() in ("help", "help me", "i need help") or command_lower.strip() == "?" or "commands" in command_lower or "what can i do" in command_lower:
             action = "help"
         elif "end turn" in command_lower or "end_turn" in command_lower or "next turn" in command_lower:
             action = "end_turn"
@@ -656,7 +657,7 @@ class LLMClient:
         elif "attack" in command_lower or re.search(r'\bcharge\b', command_lower) or re.search(r'\boccupy\b', command_lower):
             action = "attack"
         # Artillery keywords → attack action
-        elif any(kw in command_lower for kw in ["bombard", "barrage", "shell ", "cannonade"]):
+        elif any(kw in command_lower for kw in ["bombard", "barrage", "shell", "cannonade"]):
             action = "attack"
         # Strategic PURSUE keywords → base action "attack" (strategic parser upgrades)
         elif any(kw in command_lower for kw in [
@@ -677,10 +678,11 @@ class LLMClient:
             action = "hold"  # Alias for defend - will be converted in executor
         elif "defend" in command_lower:
             action = "defend"
-        elif "retreat" in command_lower or "fall back" in command_lower or "withdraw" in command_lower:
+        elif "retreat" in command_lower or "fall back" in command_lower or ("withdraw" in command_lower and " to " not in command_lower):
             action = "retreat"
         # Strategic MOVE_TO keywords → base action "move" (strategic parser upgrades)
         elif any(kw in command_lower for kw in [
+            "withdraw to",  # P8-3 FIX: "withdraw to Paris" is a move, not retreat
             "move ", "march", "advance towards", "advance toward", "advance to",
             "head towards", "head toward", "head to", "proceed to",
             "push towards", "push toward", "push to",
@@ -763,8 +765,11 @@ class LLMClient:
         ]):
             action = "break_square"
         # Vassal System (Phase 8 Session 5)
+        # P8-1 FIX: Nation-specific keywords instead of bare "invest in " / "release "
+        # which falsely matched "invest in defenses", "release prisoners", etc.
         elif any(kw in command_lower for kw in [
-            "invest in vassal", "invest vassal", "invest in ",
+            "invest in vassal", "invest vassal",
+            "invest in saxony", "invest in prussia", "invest in austria", "invest in britain",
         ]):
             action = "invest_vassal"
         elif any(kw in command_lower for kw in [
@@ -774,7 +779,8 @@ class LLMClient:
         ]):
             action = "change_autonomy"
         elif any(kw in command_lower for kw in [
-            "release vassal", "release ",
+            "release vassal",
+            "release saxony", "release prussia", "release austria", "release britain",
         ]):
             action = "release_vassal"
         elif any(kw in command_lower for kw in [
@@ -814,10 +820,9 @@ class LLMClient:
             target = "Reynier"
         elif "uxbridge" in command_lower:
             target = "Uxbridge"
-        elif "prussian" in command_lower:
-            target = "Prussians"
-        elif "british" in command_lower:
-            target = "British"
+        # P8-7 FIX: Nationality words ("Prussians", "British") deliberately omitted.
+        # They produced targets like "Prussians" that fuzzy matching couldn't resolve
+        # to a valid region/enemy. Leaving target=None lets executor auto-target correctly.
 
         # Regions
         elif "belgium" in command_lower:

@@ -956,6 +956,8 @@ class StrategicExecutor:
         # ═══════════════════════════════════════════════════════════
         pursue_destination = last_known[0] if last_known else target.location
         path = self._get_personality_aware_path(marshal, pursue_destination, world)
+        if path:
+            order.path = list(path)  # Persist for ledger display
         if not path:
             return self._break_order(marshal, world,
                                      f"Cannot reach {order.target}")
@@ -1199,45 +1201,62 @@ class StrategicExecutor:
             path = world.find_weighted_path(marshal.location, hold_position)
             if path:
                 path = [r for r in path if r != marshal.location]
-                order.path = path  # Fix 2: Persist path on order for UI/reroute
+                order.path = path  # Persist path on order for UI/reroute
                 if path:
-                    next_region = path[0]
-                    enemies = world.get_enemies_in_region(next_region, marshal.nation)
-                    if enemies:
-                        return self._handle_blocked_path(
-                            marshal, enemies, next_region, world, game_state)
+                    # Move up to movement_range (cavalry moves 2, infantry 1)
+                    regions_to_move = getattr(marshal, 'movement_range', 1)
+                    moves_made = []
 
-                    result = self.executor.execute(
-                        {"command": {
-                            "marshal": marshal.name,
-                            "action": "move",
-                            "target": next_region,
-                            "_strategic_execution": True
-                        }},
-                        game_state
-                    )
-
-                    if result.get("success"):
+                    for _ in range(regions_to_move):
+                        if not path:
+                            break
                         if marshal.location == hold_position:
-                            # Arrived, will execute hold behavior next turn
-                            return {
+                            break
+
+                        next_region = path[0]
+                        enemies = world.get_enemies_in_region(next_region, marshal.nation)
+                        if enemies:
+                            if not moves_made:
+                                return self._handle_blocked_path(
+                                    marshal, enemies, next_region, world, game_state)
+                            break
+
+                        result = self.executor.execute(
+                            {"command": {
                                 "marshal": marshal.name,
-                                "command": "HOLD",
-                                "action": "arriving",
-                                "location": marshal.location,
-                                "order_status": "continues",
-                                "message": f"{marshal.name} arrives at {hold_position} to hold."
-                            }
+                                "action": "move",
+                                "target": next_region,
+                                "_strategic_execution": True
+                            }},
+                            game_state
+                        )
+
+                        if result.get("success"):
+                            path.pop(0)
+                            moves_made.append(next_region)
                         else:
-                            distance = world.get_distance(marshal.location, hold_position)
-                            return {
-                                "marshal": marshal.name,
-                                "command": "HOLD",
-                                "action": "moving_to_position",
-                                "order_status": "continues",
-                                "message": f"{marshal.name} moves toward {hold_position}. "
-                                           f"{distance} region(s) away."
-                            }
+                            break
+
+                    if marshal.location == hold_position:
+                        # Arrived, will execute hold behavior next turn
+                        return {
+                            "marshal": marshal.name,
+                            "command": "HOLD",
+                            "action": "arriving",
+                            "location": marshal.location,
+                            "order_status": "continues",
+                            "message": f"{marshal.name} arrives at {hold_position} to hold."
+                        }
+                    elif moves_made:
+                        distance = world.get_distance(marshal.location, hold_position)
+                        return {
+                            "marshal": marshal.name,
+                            "command": "HOLD",
+                            "action": "moving_to_position",
+                            "order_status": "continues",
+                            "message": f"{marshal.name} moves toward {hold_position}. "
+                                       f"{distance} region(s) away."
+                        }
 
             return self._break_order(marshal, world,
                                      f"Cannot reach {hold_position}")

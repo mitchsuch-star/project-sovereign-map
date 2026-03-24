@@ -3038,7 +3038,8 @@ RETREAT RECOVERY (3 turns):
             survivors = max(1000, int(old_strength * survival_rate))  # Minimum 1000 survivors
 
             # Get spawn location (capital)
-            spawn_loc = getattr(marshal, 'spawn_location', 'Paris')
+            from backend.models.region import NATION_CAPITALS
+            spawn_loc = getattr(marshal, 'spawn_location', None) or NATION_CAPITALS.get(marshal.nation, 'Paris')
 
             # Apply broken state
             # NOTE: Broken armies do NOT set retreated_this_turn because:
@@ -7911,7 +7912,8 @@ RETREAT RECOVERY (3 turns):
             recruitment_location = location_specified
 
         else:
-            capital = world.player_capital or "Paris"
+            from backend.models.region import NATION_CAPITALS
+            capital = world.player_capital or NATION_CAPITALS.get(world.player_nation, "Paris")
             result = world.find_nearest_marshal_to_region(capital)
 
             if not result:
@@ -9804,7 +9806,8 @@ RETREAT RECOVERY (3 turns):
                 # Toggle off
                 marshal.administrative = False
                 strength = getattr(marshal, 'administrative_strength', 0)
-                location = getattr(marshal, 'administrative_location', 'Paris')
+                from backend.models.region import NATION_CAPITALS
+                location = getattr(marshal, 'administrative_location', None) or NATION_CAPITALS.get(marshal.nation, 'Paris')
                 marshal.strength = strength
                 marshal.location = location
                 world.bonus_actions = max(0, getattr(world, 'bonus_actions', 0) - 1)

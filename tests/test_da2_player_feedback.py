@@ -431,7 +431,7 @@ class TestS4WarExhaustion:
         """Crossing WE 40 fires after 20 was already dispatched."""
         world = _make_world()
         world.war_exhaustion = {"Prussia": 35}
-        world._we_dispatched_thresholds = {"Prussia": 20}
+        world.we_dispatched_thresholds = {"Prussia": 20}
         world.pending_dispatch_events = []
         from backend.game_logic.coalition import add_war_exhaustion_from_battle
         # 10000 → +10 WE, 35+10=45, crosses 40 (20 already dispatched)
@@ -445,7 +445,7 @@ class TestS4WarExhaustion:
         """Already dispatched threshold should not fire again."""
         world = _make_world()
         world.war_exhaustion = {"Prussia": 15}
-        world._we_dispatched_thresholds = {"Prussia": 20}
+        world.we_dispatched_thresholds = {"Prussia": 20}
         world.pending_dispatch_events = []
         from backend.game_logic.coalition import add_war_exhaustion_from_battle
         # 10000 → +10, 15+10=25, crosses 20 but 20 already dispatched
@@ -462,13 +462,13 @@ class TestS4WarExhaustion:
             "leader": "Prussia",
             "name": "First Coalition",
         }
-        world._we_dispatched_thresholds = {"Prussia": 40}
+        world.we_dispatched_thresholds = {"Prussia": 40}
         world.war_exhaustion = {"Prussia": 50}
         world.coalition_cooldown = 0
         world.coalition_count = 1
         from backend.game_logic.coalition import dissolve_coalition
         dissolve_coalition(world, "war_exhaustion")
-        assert world._we_dispatched_thresholds == {}
+        assert world.we_dispatched_thresholds == {}
 
     def test_all_values_int(self):
         """All WE values in ledger output should be int."""

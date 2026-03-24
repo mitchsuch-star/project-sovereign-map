@@ -159,43 +159,42 @@ This eliminates the "zero triggers" / "no evaluator" / "personality-dead" findin
 
 ---
 
-### Session 5: Strategic Commands + Serialization
+### Session 5: Strategic Commands + Serialization — COMPLETE
 
-**Theme:** Strategic order bugs + save/load gaps.
+**Theme:** Strategic order bugs + save/load gaps. 9 findings evaluated → 3 false positives, 6 fixed.
 
-| # | Finding | Evaluate | Risk |
-|---|---------|----------|------|
-| 1 | **P3-1: StrategicOrder missing last_contact serialization** | Verify fields are dynamic `setattr` not dataclass | Low |
-| 2 | **P3-2: HOLD march ignores cavalry movement_range** | Compare HOLD march code with MOVE_TO march code | Low |
-| 3 | **P3-3/P4-6/P8-10: Hardcoded "Paris" (3 locations)** | Verify all 3 use literal "Paris" | None |
-| 4 | **P3-4: PURSUE path never stored on order.path** | Verify ledger shows 0 turns for PURSUE | Low |
-| 5 | **P3-5: Triple HOLD expiry check** | Evaluate: consolidate or just document? | Low |
-| 6 | **P3-7: Substring vs regex inconsistency** | Check if edge cases exist in practice | Low |
-| 7 | **P3-8: issued_turn vs started_turn** | Verify which field is correct authority | Low |
-| 8 | **P20-01: Dynamic trust attrs leak memory** | Verify with `dir(marshal)` after 5 turns | Low — clean fix |
-| 9 | **P20-02: War exhaustion thresholds not serialized** | Verify `_we_dispatched_thresholds` is set on world | Low |
+| # | Finding | Status |
+|---|---------|--------|
+| 1 | **P3-1: StrategicOrder missing last_contact serialization** | **FIXED** — Added `last_contact_enemy`/`last_contact_turn` as dataclass fields with to_dict/from_dict. |
+| 2 | **P3-2: HOLD march ignores cavalry movement_range** | **FIXED** — Added movement_range loop matching MOVE_TO/PURSUE pattern. |
+| 3 | **P3-3/P4-6/P8-10: Hardcoded "Paris" (3 locations)** | **FIXED** — All 3 fallbacks now use `NATION_CAPITALS.get(marshal.nation, 'Paris')`. |
+| 4 | **P3-4: PURSUE path never stored on order.path** | **FIXED** — `order.path = list(path)` after path computation. |
+| 5 | **P3-5: Triple HOLD expiry check** | **SKIP** — False positive (intentional defensive cascade across different code paths). |
+| 6 | **P3-7: Substring vs regex inconsistency** | **SKIP** — False positive (by design: regex for word boundaries, substring for validated contexts). |
+| 7 | **P3-8: issued_turn vs started_turn** | **FIXED** — Ledger field renamed from "issued_turn" to "started_turn". Added docstring clarifying both fields' distinct purposes. |
+| 8 | **P20-01: Dynamic trust attrs leak memory** | **SKIP** — False positive (transient per-turn state, same pattern as overwatch_penalty). |
+| 9 | **P20-02: War exhaustion thresholds not serialized** | **FIXED** — Promoted to proper `we_dispatched_thresholds` field on WorldState with init/to_dict/from_dict. Updated coalition.py refs and existing tests. |
 
-**Tests:** ~12-15 new
+**Tests:** 15 new in `tests/test_systems_audit_session5.py` (6765 → 6780 total)
 
 ---
 
-### Session 6: Parser Fixes
+### Session 6: Parser Fixes — COMPLETE
 
-**Theme:** Command parsing bugs causing mis-routing.
+**Theme:** Command parsing bugs causing mis-routing. 7 fixes, 14 tests.
 
-| # | Finding | Evaluate | Risk |
-|---|---------|----------|------|
-| 1 | **P8-1: "invest in" / "release" too broad** | Test: does "invest in defenses" route to vassal? | Medium — tightening could break valid vassal commands |
-| 2 | **P8-2: "help" matches "help Davout"** | Test the collision | Low |
-| 3 | **P8-3: "withdraw to" parsed as retreat** | Test ordering | Low |
-| 4 | **P8-4: parser.py valid_actions out of sync** | Compare lists | None |
-| 5 | **P8-5: known_enemies hardcoded and incomplete** | Check if it affects fuzzy matching in practice | Low |
-| 6 | **P8-6: "shell" trailing space** | Test "Drouot, shell" | Low |
-| 7 | **P8-7: Nationality words cleared as invalid target** | Test "attack the Prussians" | Low |
+| # | Finding | Fix | Status |
+|---|---------|-----|--------|
+| 1 | **P8-1: "invest in" / "release" too broad** | Replaced bare "invest in " / "release " with nation-specific keywords | DONE |
+| 2 | **P8-2: "help" matches "help Davout"** | Replaced substring match with exact whitelist ("help", "help me", "i need help") | DONE |
+| 3 | **P8-3: "withdraw to" parsed as retreat** | Guarded retreat: `" to " not in command_lower`; added "withdraw to" to move keywords | DONE |
+| 4 | **P8-4: parser.py valid_actions out of sync** | Added 10 missing entries: release_vassal, pursue, support, reinforce, march, 5 diplomatic meta-actions | DONE |
+| 5 | **P8-5: known_enemies incomplete** | Added ArchdukeCharles, Schwarzenberg, Reynier (7 total) | DONE |
+| 6 | **P8-6: "shell" trailing space** | Removed trailing space from "shell " in llm_client.py and parser.py BOMBARD_KEYWORDS | DONE |
+| 7 | **P8-7: Nationality words cleared as invalid target** | Removed "Prussians"/"British" target mappings; auto-target handles correctly | DONE |
 
-**Evaluate P8-1 carefully:** What ARE the valid vassal commands? What keywords do they need? Remove only the bare "invest in " — keep "invest in vassal", "invest in [nation_name]".
-
-**Tests:** ~10-12 new
+**Files:** `llm_client.py` (F1,F2,F3,F6,F7), `parser.py` (F4,F5,F6), `test_systems_audit_session6.py` (14 tests)
+**Tests:** 14 new (6780 → 6794 total)
 
 ---
 

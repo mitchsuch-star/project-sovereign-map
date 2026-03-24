@@ -88,8 +88,11 @@ class StrategicOrder:
     command_type: str              # "MOVE_TO", "PURSUE", "HOLD", "SUPPORT"
     target: str                    # Region name, marshal name, or "generic"
     target_type: str               # "region", "marshal", "generic"
-    started_turn: int              # Turn when order was issued
+    started_turn: int              # Turn when order was issued (canonical timestamp)
     original_command: str          # Raw command text for reference
+    # Note: issued_turn (below) is a separate flag — it records the turn the order was
+    # created so strategic.py can skip re-processing on the same turn (first step already
+    # executed by executor). Both are typically set to the same value at creation time.
 
     # Path for movement orders
     path: List[str] = field(default_factory=list)
@@ -128,6 +131,10 @@ class StrategicOrder:
     # Used instead of started_turn for max_turns expiry so travel doesn't count
     arrived_turn: Optional[int] = None
 
+    # PURSUE contact tracking: last enemy contact info (for fog-of-war pursuit)
+    last_contact_enemy: Optional[str] = None
+    last_contact_turn: Optional[int] = None
+
     def to_dict(self) -> Dict:
         """Serialize for save/load."""
         return {
@@ -150,6 +157,8 @@ class StrategicOrder:
             "objection_resolved": self.objection_resolved,
             "bombardment_target": self.bombardment_target,
             "arrived_turn": self.arrived_turn,
+            "last_contact_enemy": self.last_contact_enemy,
+            "last_contact_turn": self.last_contact_turn,
         }
 
     @classmethod
@@ -178,6 +187,8 @@ class StrategicOrder:
             objection_resolved=data.get("objection_resolved", False),
             bombardment_target=data.get("bombardment_target"),
             arrived_turn=data.get("arrived_turn"),
+            last_contact_enemy=data.get("last_contact_enemy"),
+            last_contact_turn=data.get("last_contact_turn"),
         )
 
 
