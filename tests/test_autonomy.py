@@ -17,7 +17,6 @@ Run with: pytest tests/test_autonomy.py -v
 
 import pytest
 from backend.models.world_state import WorldState
-from backend.models.marshal import Marshal, Stance
 from backend.commands.executor import CommandExecutor
 from backend.commands.disobedience import DisobedienceSystem
 from backend.game_logic.turn_manager import TurnManager
@@ -260,13 +259,13 @@ class TestPerformanceEvaluation:
         ney.autonomous_battles_won = 2
         ney.autonomous_regions_captured = 0
         ney.trust.set(20)
-        self.world.authority = 50
+        self.world.authority_tracker.authority = 50
 
         result = self.turn_manager._end_autonomy(ney)
 
         assert result["tier"] == "spectacular"
         assert ney.trust.value == 60  # 20 + 40 (relative, not flat 70)
-        assert self.world.authority == 60  # +10
+        assert self.world.authority_tracker.authority == 60  # +10
         print(f"Spectacular: {result['message']}")
 
     def test_spectacular_region_capture(self):

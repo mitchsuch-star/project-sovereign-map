@@ -304,6 +304,32 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                 filtered.append(event)
             continue
 
+        # War/cascade events: player-involved or PARTIAL+ on any nation
+        if event_type in ("war_declaration", "defensive_cascade", "offensive_cascade"):
+            from backend.game_logic.diplomatic_ledger import _get_nation_visibility
+            nations_to_check = []
+            for key in ("aggressor", "target", "defender", "ally", "against", "attacker_ally"):
+                val = event.get(key)
+                if val:
+                    nations_to_check.append(val)
+            visible = False
+            for nation in nations_to_check:
+                if nation == player_nation:
+                    visible = True
+                    break
+                vis = _get_nation_visibility(nation, world_state)
+                if vis in (FULL, PARTIAL):
+                    visible = True
+                    break
+            if visible:
+                filtered.append(event)
+            continue
+
+        # Coalition events: always show (they target France)
+        if event_type in ("coalition_declared", "coalition_dissolved"):
+            filtered.append(event)
+            continue
+
         # Vassal rebellion: player vassal always shown
         if event_type == "diplomatic_vassal_rebellion":
             filtered.append(event)

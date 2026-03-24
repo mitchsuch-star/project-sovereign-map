@@ -3712,10 +3712,19 @@ class WorldState:
         # Must happen BEFORE treaty clauses so AP clauses reduce from
         # base, not from last turn's already-reduced value
         # ════════════════════════════════════════════════════════════
+        # ════════════════════════════════════════════════════════════
+        # RESET ALL NATION ACTIONS (Deep Audit Session 4 Fix 1)
+        # Must happen BEFORE treaty clauses so AP clauses reduce from
+        # base, not from last turn's already-reduced value
+        # ════════════════════════════════════════════════════════════
         _base_nation_actions = {"Britain": 4, "Prussia": 4, "Austria": 3, "Saxony": 2}
         for nation, base in _base_nation_actions.items():
             if nation in self.nation_actions:
                 self.nation_actions[nation] = base
+
+        # Reset player actions (before treaty clauses so AP penalty applies)
+        self.max_actions_per_turn = int(self.calculate_max_actions())
+        self.actions_remaining = int(self.max_actions_per_turn)
 
         # ════════════════════════════════════════════════════════════
         # TREATY PER-TURN CLAUSES (Phase 8 Session 3 §7f step 10)
@@ -3734,10 +3743,6 @@ class WorldState:
         # MANPOWER REGEN (Phase 6) — after income, before action resets
         # ════════════════════════════════════════════════════════════
         self._process_manpower_regen()
-
-        # Reset actions (recalculate in case bonuses changed)
-        self.max_actions_per_turn = int(self.calculate_max_actions())
-        self.actions_remaining = int(self.max_actions_per_turn)
 
         # Reset admin actions (Phase 6.2.B)
         self.admin_actions_remaining = int(self.max_admin_actions)
@@ -5100,6 +5105,18 @@ class WorldState:
             if recklessness < 4:
                 continue
 
+            # State guards: skip if marshal can't act
+            if marshal.strength <= 0:
+                continue
+            if getattr(marshal, 'broken', False):
+                continue
+            if getattr(marshal, 'retreating', False):
+                continue
+            if getattr(marshal, 'retreat_recovery', 0) > 0:
+                continue
+            if getattr(marshal, 'drilling', False):
+                continue
+
             # Find nearest enemy (based on marshal's nation)
             nearest = self._find_nearest_enemy_for_nation(marshal.location, marshal.nation)
             if not nearest:
@@ -5167,25 +5184,169 @@ class WorldState:
                 self.record_battle(enemy.location, marshal.name, enemy.name,
                                    combat_result.get("outcome", "unknown"))
 
+                # Record battle for diplomacy war score
+                from backend.game_logic.diplomacy import record_battle as record_diplo_battle
+                outcome = combat_result.get("outcome", "")
+                atk_won_diplo = "attacker" in outcome and "victory" in outcome
+                def_won_diplo = "defender" in outcome and "victory" in outcome
+                diplo_winner = marshal.nation if atk_won_diplo else (enemy.nation if def_won_diplo else None)
+                if diplo_winner:
+                    record_diplo_battle(
+                        self,
+                        attacker_nation=marshal.nation,
+                        defender_nation=enemy.nation,
+                        winner_nation=diplo_winner,
+                        attacker_casualties=int(combat_result.get("attacker", {}).get("casualties", 0)),
+                        defender_casualties=int(combat_result.get("defender", {}).get("casualties", 0)),
+                        location=auto_charge_battle_region,
+                    )
+
                 # Only reset recklessness when the charge actually executed.
                 # If terrain blocked the charge, recklessness should persist —
                 # the marshal is still fired up, they just couldn't charge HERE.
                 if not charge_blocked:
                     marshal.reset_recklessness()
 
+                # ── Forced retreat (simplified, no executor access) ──
+                # Check if defender needs forced retreat (morale <= 25%)
+                forced_retreat_msg = ""
+                if combat_result.get("defender", {}).get("forced_retreat") and enemy.strength > 0:
+                    retreat_to = self.get_safe_retreat_destination(enemy.name, marshal.location)
+                    if retreat_to:
+                        old_enemy_loc = enemy.location
+                        if enemy.strategic_order:
+                            enemy.strategic_order = None
+                        enemy.move_to(retreat_to)
+                        enemy.retreating = True
+                        enemy.retreat_recovery = 0
+                        enemy.retreated_this_turn = True
+                        forced_retreat_msg = f" {enemy.name}'s broken army flees to {retreat_to}!"
+                        self.log_event({"type": "retreat", "marshal": enemy.name,
+                                        "nation": getattr(enemy, "nation", ""),
+                                        "from": old_enemy_loc, "to": retreat_to})
+                    else:
+                        # Surrounded — broken army, survivors flee to capital
+                        import random as _rng
+                        old_enemy_loc = enemy.location
+                        survival_rate = _rng.uniform(0.03, 0.10)
+                        spawn_loc = getattr(enemy, 'spawn_location', 'Berlin')
+                        enemy.move_to(spawn_loc)
+                        enemy.strength = max(1000, int(enemy.strength * survival_rate))
+                        enemy.morale = 20
+                        enemy.broken = True
+                        enemy.broken_recovery = 0
+                        enemy.retreating = False
+                        if enemy.strategic_order:
+                            enemy.strategic_order = None
+                        forced_retreat_msg = f" {enemy.name}'s army is SHATTERED and flees to {spawn_loc}!"
+                        self.log_event({"type": "marshal_broken", "marshal": enemy.name,
+                                        "nation": getattr(enemy, "nation", ""),
+                                        "location": old_enemy_loc})
+
+                # Check if attacker needs forced retreat
+                if combat_result.get("attacker", {}).get("forced_retreat") and marshal.strength > 0:
+                    retreat_to = self.get_safe_retreat_destination(marshal.name, enemy.location)
+                    if retreat_to:
+                        old_atk_loc = marshal.location
+                        if marshal.strategic_order:
+                            marshal.strategic_order = None
+                        marshal.move_to(retreat_to)
+                        marshal.retreating = True
+                        marshal.retreat_recovery = 0
+                        marshal.retreated_this_turn = True
+                        forced_retreat_msg += f" {marshal.name}'s broken army flees to {retreat_to}!"
+                        self.log_event({"type": "retreat", "marshal": marshal.name,
+                                        "nation": getattr(marshal, "nation", ""),
+                                        "from": old_atk_loc, "to": retreat_to})
+
                 # Move attacker if victorious and still alive
                 attacker_won = combat_result.get("attacker_won", False)
                 movement_msg = ""
-                target_location = enemy.location
                 if attacker_won and marshal.strength > 0:
-                    if marshal.location != target_location:
-                        marshal.move_to(target_location)
-                        movement_msg = f" {marshal.name} advances into {target_location}."
+                    if marshal.location != auto_charge_battle_region:
+                        marshal.move_to(auto_charge_battle_region)
+                        movement_msg = f" {marshal.name} advances into {auto_charge_battle_region}."
 
-                # Check if enemy destroyed
+                # Check if enemy destroyed - remove from world
                 enemy_destroyed_msg = ""
                 if enemy.strength <= 0:
                     enemy_destroyed_msg = f" {enemy.name}'s army is destroyed!"
+                    self.marshals.pop(enemy.name, None)
+
+                # Check if attacker destroyed
+                if marshal.strength <= 0:
+                    self.marshals.pop(marshal.name, None)
+
+                # ── Territory capture (simplified, no fort occupation) ──
+                conquered = False
+                conquest_msg = ""
+                if attacker_won and marshal.strength > 0 and marshal.location == auto_charge_battle_region:
+                    cap_region = self.get_region(auto_charge_battle_region)
+                    if cap_region and cap_region.controller != marshal.nation:
+                        remaining = [
+                            m for m in self.marshals.values()
+                            if m.location == auto_charge_battle_region and m.strength > 0 and m.nation != marshal.nation
+                        ]
+                        if not remaining and not cap_region.has_building("fortification"):
+                            cap_region.controller = marshal.nation
+                            conquered = True
+                            conquest_msg = f" {auto_charge_battle_region} captured by {marshal.nation}!"
+
+                # ── Authority: Major victory / defeat ──
+                player_nation = self.player_nation
+                player_is_atk = marshal.nation == player_nation
+                player_is_def = enemy.nation == player_nation
+                if player_is_atk or player_is_def:
+                    auth_outcome = combat_result.get("raw_outcome", combat_result.get("outcome", ""))
+                    auth_atk_won = "attacker" in auth_outcome and "victory" in auth_outcome
+                    auth_def_won = "defender" in auth_outcome and "victory" in auth_outcome
+                    p_won = (player_is_atk and auth_atk_won) or (player_is_def and auth_def_won)
+                    p_lost = (player_is_atk and auth_def_won) or (player_is_def and auth_atk_won)
+                    if p_won:
+                        outnumbered = pre_battle_atk < pre_battle_def if player_is_atk else pre_battle_def < pre_battle_atk
+                        capital_captured = False
+                        if conquered:
+                            cr = self.get_region(auto_charge_battle_region)
+                            if cr and getattr(cr, 'is_capital', False):
+                                capital_captured = True
+                        if outnumbered or capital_captured:
+                            self.authority_tracker.modify_authority(+5)
+                    elif p_lost:
+                        outnumbering = pre_battle_atk > pre_battle_def if player_is_atk else pre_battle_def > pre_battle_atk
+                        if outnumbering:
+                            self.authority_tracker.modify_authority(-5)
+
+                # ── Coalition: Threat + war exhaustion ──
+                from backend.game_logic.coalition import (
+                    add_threat, add_war_exhaustion_from_battle, add_coalition_shock
+                )
+                ac_atk_cas = int(combat_result.get("attacker", {}).get("casualties", 0))
+                ac_def_cas = int(combat_result.get("defender", {}).get("casualties", 0))
+                ac_total_cas = ac_atk_cas + ac_def_cas
+                france = self.player_nation
+
+                if combat_result.get("victor") == marshal.name and marshal.nation == france:
+                    add_threat(self, 3, "battle_win")
+                    if ac_def_cas > 0 and ac_atk_cas > 0:
+                        ratio = ac_def_cas / ac_atk_cas
+                    elif ac_def_cas > 0:
+                        ratio = 999
+                    else:
+                        ratio = 0
+                    if ratio > 2 and ac_total_cas > 10000:
+                        add_threat(self, 5, "decisive_victory")
+                        add_coalition_shock(enemy.nation, self)
+                    if conquered:
+                        cr = self.get_region(auto_charge_battle_region)
+                        if cr and getattr(cr, 'is_capital', False):
+                            add_threat(self, 15, "capital_capture")
+                    add_war_exhaustion_from_battle(enemy.nation, ac_def_cas, self)
+                elif combat_result.get("victor") == enemy.name:
+                    if marshal.nation == france:
+                        add_war_exhaustion_from_battle(marshal.nation, ac_atk_cas, self)
+                    if enemy.nation == france:
+                        add_threat(self, 3, "battle_win")
+                        add_war_exhaustion_from_battle(marshal.nation, ac_atk_cas, self)
 
                 if charge_blocked:
                     terrain_name = auto_charge_terrain.replace("_", " ").title()
@@ -5200,7 +5361,8 @@ class WorldState:
                     reck_footer = "[color=#cd6b6b]FREE ACTION — Recklessness reset to 0[/color]"
                 event_msg = (f"{charge_header}"
                             f"{combat_result.get('description', 'Combat resolved.')}"
-                            f"{enemy_destroyed_msg}{movement_msg}\n\n"
+                            f"{enemy_destroyed_msg}{movement_msg}"
+                            f"{forced_retreat_msg}{conquest_msg}\n\n"
                             f"{reck_footer}")
                 debug_print(f"  [AUTO-CHARGE DEBUG] Event message: {event_msg[:100]}...")
                 # Strip combat_result from the tactical event sent to Godot.

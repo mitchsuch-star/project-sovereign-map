@@ -3730,7 +3730,7 @@ RETREAT RECOVERY (3 turns):
 
                     if best_next:
                         old_location = marshal.location
-                        marshal.location = best_next
+                        marshal.move_to(best_next)
                         return {
                             "success": True,
                             "message": f"{marshal.name} advances from {old_location} to {best_next}, moving toward {nearest_enemy.name} at {nearest_enemy.location}! (Now {best_distance} region{'s' if best_distance != 1 else ''} away)"
@@ -4992,8 +4992,8 @@ RETREAT RECOVERY (3 turns):
             add_threat, add_war_exhaustion_from_battle, add_coalition_shock
         )
         france = world.player_nation
-        atk_cas = int(battle_result.get("attacker_casualties", 0))
-        def_cas = int(battle_result.get("defender_casualties", 0))
+        atk_cas = int(battle_result.get("attacker", {}).get("casualties", 0))
+        def_cas = int(battle_result.get("defender", {}).get("casualties", 0))
         total_cas = atk_cas + def_cas
 
         if battle_result.get("victor") == marshal.name and marshal.nation == france:
@@ -7331,7 +7331,7 @@ RETREAT RECOVERY (3 turns):
 
                 # Execute the move
                 old_location = closest_marshal.location
-                closest_marshal.location = next_region
+                closest_marshal.move_to(next_region)
 
                 remaining_distance = distance - 1
 
@@ -10374,18 +10374,32 @@ RETREAT RECOVERY (3 turns):
         # ALWAYS reset recklessness after Glorious Charge
         marshal.reset_recklessness()
 
+        # Reset idle tracking (charge is an action)
+        marshal.idle_turns = 0
+        marshal._acted_this_turn = True
+
+        # ════════════════════════════════════════════════════════════
+        # FORCED RETREAT: Handle broken armies (morale <= 25%)
+        # Must happen BEFORE movement so retreating defenders clear
+        # the territory for capture.
+        # ════════════════════════════════════════════════════════════
+        forced_retreat_msg = self._handle_forced_retreat(
+            combat_result, marshal, target_marshal, world
+        )
+
         # Move attacker if victorious and still alive
+        # Use charge_battle_region (pre-battle location) since forced retreat
+        # may have moved the defender to a different location.
         attacker_won = combat_result.get("attacker_won", False)
         movement_msg = ""
         if attacker_won and marshal.strength > 0:
-            target_location = target_marshal.location
-            if marshal.location != target_location:
-                marshal.move_to(target_location)
+            if marshal.location != charge_battle_region:
+                marshal.move_to(charge_battle_region)
                 # Movement attrition on charge advance (Phase 6.2.F)
-                charge_attrition = self._calculate_movement_attrition(marshal, target_location, world)
+                charge_attrition = self._calculate_movement_attrition(marshal, charge_battle_region, world)
                 combat_result["attacker_moved"] = True
-                combat_result["attacker_new_location"] = target_location
-                movement_msg = f" {marshal.name} advances into {target_location}."
+                combat_result["attacker_new_location"] = charge_battle_region
+                movement_msg = f" {marshal.name} advances into {charge_battle_region}."
                 if charge_attrition["total_losses"] > 0:
                     charge_march_note = f" ({charge_attrition['total_losses']:,} lost to march"
                     if charge_attrition.get("depot_bonus"):
@@ -10393,15 +10407,152 @@ RETREAT RECOVERY (3 turns):
                     charge_march_note += ")"
                     movement_msg += charge_march_note
 
-        # Check if enemy was destroyed
+        # Check if enemy was destroyed - remove from world
         enemy_destroyed_msg = ""
         if target_marshal.strength <= 0:
             enemy_destroyed_msg = f" {target_marshal.name}'s army is destroyed!"
+            world.marshals.pop(target_marshal.name, None)
+
+        # Check if attacker was destroyed
+        if marshal.strength <= 0:
+            world.marshals.pop(marshal.name, None)
+
+        # ════════════════════════════════════════════════════════════
+        # TERRITORY CAPTURE: Check if charge won empty territory
+        # ════════════════════════════════════════════════════════════
+        conquered = False
+        conquest_msg = ""
+        if attacker_won and marshal.strength > 0 and marshal.location == charge_battle_region:
+            target_region = world.get_region(charge_battle_region)
+            if target_region and target_region.controller != marshal.nation:
+                remaining_defenders = [
+                    m for m in world.marshals.values()
+                    if m.location == charge_battle_region and m.strength > 0 and m.nation != marshal.nation
+                ]
+                if not remaining_defenders:
+                    capture_result = self._attempt_region_capture(
+                        marshal, charge_battle_region, world, game_state, had_garrison=True
+                    )
+                    if capture_result["captured"]:
+                        conquered = True
+                        conquest_msg = f" {charge_battle_region} has been captured by {marshal.nation}!"
+                    elif capture_result.get("occupation_started"):
+                        conquest_msg = f" {capture_result['message']}"
+
+        # ════════════════════════════════════════════════════════════
+        # VINDICATION SYSTEM: Resolve post-battle trust/authority
+        # ════════════════════════════════════════════════════════════
+        vindication_msg = ""
+        if world.vindication_tracker.has_pending(marshal.name):
+            if combat_result.get("victor") == marshal.name:
+                battle_outcome = "victory"
+            elif combat_result.get("victor") == target_marshal.name:
+                battle_outcome = "defeat"
+            else:
+                battle_outcome = "draw"
+            vindication_result = world.vindication_tracker.resolve_battle(
+                marshal_name=marshal.name,
+                result=battle_outcome,
+                game_state=world
+            )
+            if vindication_result:
+                vindication_msg = f"\n\n📜 {vindication_result['message']}"
+
+        # ════════════════════════════════════════════════════════════
+        # AUTHORITY: Major victory / defeat (+5 / -5)
+        # ════════════════════════════════════════════════════════════
+        player_nation = world.player_nation
+        player_is_attacker = marshal.nation == player_nation
+        player_is_defender = target_marshal.nation == player_nation
+
+        if player_is_attacker or player_is_defender:
+            outcome = combat_result.get("raw_outcome", combat_result.get("outcome", ""))
+            atk_won_auth = "attacker" in outcome and "victory" in outcome
+            def_won_auth = "defender" in outcome and "victory" in outcome
+            player_won = (player_is_attacker and atk_won_auth) or (player_is_defender and def_won_auth)
+            player_lost = (player_is_attacker and def_won_auth) or (player_is_defender and atk_won_auth)
+
+            if player_won:
+                outnumbered = pre_battle_atk < pre_battle_def
+                if player_is_defender:
+                    outnumbered = pre_battle_def < pre_battle_atk
+                capital_captured = False
+                if conquered:
+                    cap_reg = world.get_region(charge_battle_region)
+                    if cap_reg and getattr(cap_reg, 'is_capital', False):
+                        capital_captured = True
+                if outnumbered or capital_captured:
+                    world.authority_tracker.modify_authority(+5)
+            elif player_lost:
+                outnumbering = pre_battle_atk > pre_battle_def
+                if player_is_defender:
+                    outnumbering = pre_battle_def > pre_battle_atk
+                capital_lost = False
+                cap_reg = world.get_region(charge_battle_region)
+                if cap_reg and getattr(cap_reg, 'is_capital', False):
+                    if cap_reg.controller != player_nation:
+                        capital_lost = True
+                if outnumbering or capital_lost:
+                    world.authority_tracker.modify_authority(-5)
+
+        # ════════════════════════════════════════════════════════════
+        # COALITION: Threat + war exhaustion from battle
+        # Uses correct nested casualty keys (attacker.casualties).
+        # ════════════════════════════════════════════════════════════
+        from backend.game_logic.coalition import (
+            add_threat, add_war_exhaustion_from_battle, add_coalition_shock
+        )
+        france = world.player_nation
+        charge_atk_cas = int(combat_result.get("attacker", {}).get("casualties", 0))
+        charge_def_cas = int(combat_result.get("defender", {}).get("casualties", 0))
+        charge_total_cas = charge_atk_cas + charge_def_cas
+
+        if combat_result.get("victor") == marshal.name and marshal.nation == france:
+            add_threat(world, 3, "battle_win")
+            if charge_def_cas > 0 and charge_atk_cas > 0:
+                ratio = charge_def_cas / charge_atk_cas
+            elif charge_def_cas > 0:
+                ratio = 999
+            else:
+                ratio = 0
+            if ratio > 2 and charge_total_cas > 10000:
+                add_threat(world, 5, "decisive_victory")
+                add_coalition_shock(target_marshal.nation, world)
+            if conquered:
+                cap_reg = world.get_region(charge_battle_region)
+                if cap_reg and getattr(cap_reg, 'is_capital', False):
+                    add_threat(world, 15, "capital_capture")
+            add_war_exhaustion_from_battle(target_marshal.nation, charge_def_cas, world)
+        elif combat_result.get("victor") == target_marshal.name:
+            if marshal.nation == france:
+                add_war_exhaustion_from_battle(marshal.nation, charge_atk_cas, world)
+            if target_marshal.nation == france:
+                add_threat(world, 3, "battle_win")
+                if charge_atk_cas > 0 and charge_def_cas > 0:
+                    ratio = charge_atk_cas / charge_def_cas
+                elif charge_atk_cas > 0:
+                    ratio = 999
+                else:
+                    ratio = 0
+                if ratio > 2 and charge_total_cas > 10000:
+                    add_threat(world, 5, "decisive_victory")
+                    add_coalition_shock(marshal.nation, world)
+                add_war_exhaustion_from_battle(marshal.nation, charge_atk_cas, world)
+
+        # Exhaustion tracking (charge counts as an attack)
+        if marshal.strength > 0:
+            marshal.increment_attacks_this_turn()
 
         # Build charge message - use "description" key from combat resolver
         charge_message = f"🐴⚔️ GLORIOUS CHARGE! {marshal.name} leads a devastating cavalry assault!\n\n"
         charge_message += combat_result.get("description", "")
         charge_message += enemy_destroyed_msg + movement_msg
+        if forced_retreat_msg:
+            charge_message += forced_retreat_msg
+        if conquest_msg:
+            charge_message += conquest_msg
+        if vindication_msg:
+            charge_message += vindication_msg
         charge_message += f"\n\n[color=#cd6b6b]Recklessness reset: {recklessness_before} → 0[/color]"
 
         charge_result = {
@@ -10424,6 +10575,10 @@ RETREAT RECOVERY (3 turns):
         # Berthier's After-Action Report
         if combat_result.get("battle_report"):
             charge_result["battle_report"] = combat_result["battle_report"]
+        # Flag pending capture choice for popup
+        if world.pending_capture_choice:
+            charge_result["pending_capture_choice"] = True
+            charge_result["capture_data"] = world.pending_capture_choice
         return charge_result
 
     def respond_to_glorious_charge(self, response: str, world: WorldState) -> Dict:

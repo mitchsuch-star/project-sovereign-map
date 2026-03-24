@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Any
 
 from backend.models.intel import (
     FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN,
+    get_strength_band,
 )
 
 
@@ -191,8 +192,9 @@ def _estimate_enemy_strength_from_intel(world, player_nation: str) -> int:
             elif "band" in km:
                 total += BAND_MIDPOINTS.get(km["band"], 0)
             elif "strength" in km:
-                # Frozen STALE snapshot that was originally FULL
-                total += int(km["strength"])
+                # Frozen STALE snapshot — use band midpoint estimate
+                band = get_strength_band(int(km["strength"]))
+                total += BAND_MIDPOINTS.get(band, 0)
             else:
                 # No strength data at all — use region-level band
                 total += BAND_MIDPOINTS.get(intel.strength_band, 0)
@@ -331,8 +333,8 @@ def _build_intelligence(world, player_nation: str) -> List[Dict[str, Any]]:
             elif "band" in km:
                 strength_display = km["band"]
             elif "strength" in km:
-                # Frozen STALE that was originally FULL
-                strength_display = f"~{int(km['strength']):,}"
+                # Frozen STALE snapshot — use band, not exact number
+                strength_display = get_strength_band(int(km["strength"]))
             else:
                 strength_display = intel.strength_band
 

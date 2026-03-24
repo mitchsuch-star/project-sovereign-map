@@ -284,7 +284,7 @@ def _build_intel(world, player: str) -> dict:
                 strength_display = band
             elif intel.visibility == STALE:
                 frozen = km.get("strength", 0)
-                strength_display = f"last seen: {_format_strength_display(frozen)}"
+                strength_display = f"last seen: {get_strength_band(frozen)}"
             else:  # LAST_KNOWN
                 strength_display = "unknown"
 
@@ -333,12 +333,8 @@ def _build_intel(world, player: str) -> dict:
             band = enemy["strength_display"]
             nation_data[nation]["estimated_strength"] += BAND_MIDPOINTS.get(band, 0)
         elif vis == STALE:
-            # Parse "last seen: N" format
-            parts = enemy["strength_display"].replace("last seen: ", "").replace(",", "")
-            try:
-                nation_data[nation]["estimated_strength"] += int(parts)
-            except ValueError:
-                pass
+            band = enemy["strength_display"].replace("last seen: ", "")
+            nation_data[nation]["estimated_strength"] += BAND_MIDPOINTS.get(band, 0)
         # LAST_KNOWN: "unknown" — add 0
 
     # Count regions controlled per enemy nation

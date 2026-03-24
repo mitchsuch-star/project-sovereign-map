@@ -192,7 +192,7 @@ class TestFogFilteredStrength:
         assert estimated == 45000  # Only enemy, not Ney
 
     def test_stale_frozen_full_snapshot(self):
-        """STALE intel with frozen FULL data uses exact strength from snapshot."""
+        """STALE intel with frozen FULL data uses band midpoint (fog fix P21-06)."""
         world = _make_world()
         world.intel.clear()
         _inject_intel(world, "Waterloo", STALE, turn=1,
@@ -201,7 +201,11 @@ class TestFogFilteredStrength:
                       ],
                       total_strength=45000)
         estimated = _estimate_enemy_strength_from_intel(world, "France")
-        assert estimated == 45000
+        # STALE uses band midpoint, not exact: 45000 → "large force" → 55000
+        from backend.models.intel import get_strength_band
+        from backend.game_logic.dispatch import BAND_MIDPOINTS
+        expected_band = get_strength_band(45000)
+        assert estimated == BAND_MIDPOINTS[expected_band]
 
 
 # ════════════════════════════════════════════════════════════════════════════════

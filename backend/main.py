@@ -1490,6 +1490,13 @@ def get_marshal_trust(marshal_name: str):
             "message": f"Marshal '{marshal_name}' not found"
         }
 
+    # Fog guard: only return data for player marshals
+    if marshal.nation != world.player_nation:
+        return {
+            "success": False,
+            "message": f"No intelligence available on {marshal_name}"
+        }
+
     return {
         "success": True,
         "name": marshal.name,

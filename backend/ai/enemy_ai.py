@@ -578,10 +578,12 @@ class EnemyAI:
 
         # Execute through the same executor (Building Blocks principle)
         command = {
-            "command_type": "specific",
-            "marshal": action.get("marshal"),
-            "action": action.get("action"),
-            "target": action.get("target"),
+            "command": {
+                "type": "specific",
+                "marshal": action.get("marshal"),
+                "action": action.get("action"),
+                "target": action.get("target"),
+            }
         }
 
         result = self.executor.execute(command, game_state)

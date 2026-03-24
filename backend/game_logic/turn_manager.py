@@ -446,7 +446,7 @@ class TurnManager:
         # All RELATIVE gains (not flat values) to prevent exploit
         if spectacular:
             marshal.trust.modify(+40)  # 20 → 60 (Reliable, not fully Trusted)
-            self.world.authority = getattr(self.world, 'authority', 50) + 10
+            self.world.authority_tracker.modify_authority(+10)
             message = f"{marshal.name} has proven themselves spectacularly! Trust +40, Authority +10."
             tier = "spectacular"
         elif score > 0:
