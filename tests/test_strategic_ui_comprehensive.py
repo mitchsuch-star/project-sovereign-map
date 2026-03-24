@@ -834,9 +834,9 @@ class TestEdgeCases:
 
         assert ney.pending_interrupt is not None
 
-    def test_interrupt_stops_further_processing(self, world, strategic_executor, game_state):
-        """When a report requires_input, processing stops (no further marshals)."""
-        # Davout (alphabetically first) has interrupt → blocks others
+    def test_interrupt_defers_to_after_non_interrupting(self, world, strategic_executor, game_state):
+        """Non-interrupting marshals execute first; interrupt presented after."""
+        # Davout (alphabetically first) has interrupt, Ney has clean HOLD
         davout = world.get_marshal("Davout")
         davout.strategic_order = _make_order("MOVE_TO", "Berlin")
         davout.pending_interrupt = {
@@ -849,9 +849,15 @@ class TestEdgeCases:
 
         reports = strategic_executor.process_strategic_orders(world, game_state)
 
-        # Davout's awaiting_response should be returned, Ney skipped
-        assert len(reports) == 1
-        assert reports[0]["marshal"] == "Davout"
+        # Ney's HOLD executes first (no interrupt), then Davout's interrupt
+        assert len(reports) == 2
+        # Ney processed first (non-interrupting), Davout deferred
+        marshal_names = [r["marshal"] for r in reports]
+        assert "Ney" in marshal_names
+        assert "Davout" in marshal_names
+        # Davout should require input
+        davout_report = [r for r in reports if r["marshal"] == "Davout"][0]
+        assert davout_report.get("requires_input") is True
 
     # ─── State Transitions ────────────────────────────────────────────────
 

@@ -173,8 +173,13 @@ class VindicationTracker:
             vindication_change = marshal.vindication_score - old_vindication
             # R58: Track last change turn for decay
             if vindication_change != 0:
-                turn = getattr(pending.get('original_order', {}), 'turn_recorded', None)
-                self.last_change_turn[marshal_name] = turn if turn else 0
+                # Get current turn from game_state (WorldState or wrapper)
+                current_turn = 0
+                if hasattr(game_state, 'current_turn'):
+                    current_turn = game_state.current_turn
+                elif hasattr(game_state, 'world') and hasattr(game_state.world, 'current_turn'):
+                    current_turn = game_state.world.current_turn
+                self.last_change_turn[marshal_name] = current_turn
 
         # Apply trust change (with authority modifier)
         if hasattr(marshal, 'trust'):

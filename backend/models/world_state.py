@@ -5008,6 +5008,25 @@ class WorldState:
                     stale_names.append(name)
             for name in stale_names:
                 del self.vindication_tracker.pending_defensive_vindication[name]
+                # Narrative closure: Berthier notes the uneventful defense
+                marshal = self.marshals.get(name)
+                if marshal and marshal.strength > 0:
+                    source = entry.get("source", "objection")
+                    if source == "defiance":
+                        note = (f"Berthier notes: {name}'s defiant fortification was never tested. "
+                                f"The matter is quietly forgotten.")
+                    else:
+                        note = (f"Berthier notes: {name}'s defensive position went unchallenged. "
+                                f"The vindication window has passed.")
+                    from backend.notifications import (
+                        create_notification, NotificationPriority,
+                    )
+                    self.notifications.add(create_notification(
+                        "vindication_expired", NotificationPriority.NORMAL,
+                        f"{name} — Vindication Expired",
+                        note,
+                        int(self.current_turn),
+                    ))
 
     def get_last_tactical_events(self) -> list:
         """Get tactical events from the last turn advance."""

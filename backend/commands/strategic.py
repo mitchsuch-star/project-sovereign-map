@@ -79,6 +79,11 @@ class StrategicExecutor:
             key=lambda m: m.name
         )
 
+        # Two-pass processing to prevent alphabetical starvation:
+        # Pass 1: Execute all non-interrupting orders (movement, holds, etc.)
+        # Pass 2: Check for interrupts and present the first one
+        deferred_marshals = []
+
         for marshal in marshals_with_orders:
             order = marshal.strategic_order
 
@@ -123,14 +128,24 @@ class StrategicExecutor:
                 })
                 continue
 
+            # Check if this marshal would trigger an interrupt (new or pending)
+            has_pending = getattr(marshal, 'pending_interrupt', None)
+            new_interrupt = self._check_interrupts(marshal, world)
+            if has_pending or new_interrupt:
+                # Defer interrupt processing — execute non-interrupting marshals first
+                deferred_marshals.append(marshal)
+                continue
+
             report = self._execute_strategic_turn(marshal, world, game_state)
             if report:
                 reports.append(report)
 
-                # If requires player input, stop processing further marshals
-                # TODO (Phase 6): This starves later marshals' strategic orders if an
-                # early marshal (alphabetically) always has interrupts. Consider queuing
-                # interrupts and processing remaining marshals, or rotating order.
+        # Pass 2: Process deferred marshals with interrupts
+        for marshal in deferred_marshals:
+            report = self._execute_strategic_turn(marshal, world, game_state)
+            if report:
+                reports.append(report)
+                # Still break on first interrupt requiring input
                 if report.get("requires_input"):
                     break
 
@@ -1607,7 +1622,10 @@ class StrategicExecutor:
                     if world.get_enemies_in_region(ally.location, ally.nation):
                         ally_safe = False
 
-            if ally_safe:
+            # Only auto-complete on ally_safe if no explicit max_turns set.
+            # When player said "support for N turns", honor the full duration.
+            has_explicit_duration = (order.condition and order.condition.max_turns)
+            if ally_safe and not has_explicit_duration:
                 return self._complete_order(marshal, world,
                                             f"{ally.name} is secure")
 

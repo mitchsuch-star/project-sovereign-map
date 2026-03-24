@@ -7,6 +7,9 @@ extends Control
 # Color scheme: Dark blue background, gold accents, cream text
 # =============================================================================
 
+# Set to true for verbose debug logging in editor
+const DEBUG_VERBOSE := false
+
 # UI References - Header Status
 @onready var turn_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/TurnDisplay/TurnValue
 @onready var actions_value = $BottomLeftUI/MainMargin/MainLayout/Header/HeaderMargin/HeaderContent/StatusSection/ActionsDisplay/ActionsValue
@@ -486,13 +489,11 @@ func _on_connection_test(response):
 
 		# Update map with initial state
 		if response.has("game_state") and response.game_state.has("map_data"):
-			print("MAIN: Connection test - map_data found, updating map")
-			print("MAIN: map_data keys: ", response.game_state.map_data.keys())
+			if DEBUG_VERBOSE:
+				print("MAIN: Connection test - map_data found, updating map")
 			map_area.update_all_regions(response.game_state.map_data)
-		else:
+		elif DEBUG_VERBOSE:
 			print("⚠️  MAIN: Connection test - NO map_data in response!")
-			if response.has("game_state"):
-				print("     game_state keys: ", response.game_state.keys())
 
 		# Show instructions
 		add_output("[color=#" + COLOR_INFO + "]Your marshals await your orders, Sire.[/color]")
@@ -725,7 +726,8 @@ func _execute_command():
 	# ════════════════════════════════════════════════════════════
 	var redemption_choices = ["grant_autonomy", "dismiss", "demand_obedience"]
 	if command.to_lower() in redemption_choices:
-		print("REDEMPTION COMMAND DETECTED: ", command)
+		if DEBUG_VERBOSE:
+			print("REDEMPTION COMMAND DETECTED: ", command)
 		set_input_enabled(false)
 		api_client.send_redemption_response(command.to_lower(), _on_redemption_response)
 		return
@@ -741,16 +743,17 @@ func _on_command_result(response):
 	# ═══════════════════════════════════════════════════════════
 	# DEBUG TRACE: Exact step-by-step debugging
 	# ═══════════════════════════════════════════════════════════
-	print("\n" + "=".repeat(60))
-	print("1. GOT RESPONSE: ", response)
-	print("=".repeat(60))
-	print("2. HAS 'state' key: ", response.has("state"))
-	print("2b. HAS 'awaiting_player_choice' key: ", response.has("awaiting_player_choice"))
-	if response.has("state"):
-		print("3. STATE VALUE: ", response.state)
-		print("3b. STATE == 'awaiting_player_choice': ", response.state == "awaiting_player_choice")
-	print("3c. response.success: ", response.get("success", false))
-	print("=".repeat(60) + "\n")
+	if DEBUG_VERBOSE:
+		print("\n" + "=".repeat(60))
+		print("1. GOT RESPONSE: ", response)
+		print("=".repeat(60))
+		print("2. HAS 'state' key: ", response.has("state"))
+		print("2b. HAS 'awaiting_player_choice' key: ", response.has("awaiting_player_choice"))
+		if response.has("state"):
+			print("3. STATE VALUE: ", response.state)
+			print("3b. STATE == 'awaiting_player_choice': ", response.state == "awaiting_player_choice")
+		print("3c. response.success: ", response.get("success", false))
+		print("=".repeat(60) + "\n")
 
 	# Cache response for post-popup war panel refresh (Fix 1)
 	_last_command_response = response
@@ -761,30 +764,19 @@ func _on_command_result(response):
 	var is_tactical_objection = response.get("success", false) and response.has("state") and response.state == "awaiting_player_choice"
 	var is_strategic_objection = response.get("success", false) and response.has("pending_objection") and response.pending_objection == true
 	var is_objection = is_tactical_objection or is_strategic_objection
-	print("4. IS_OBJECTION CHECK: tactical=", is_tactical_objection, " strategic=", is_strategic_objection, " => ", is_objection)
+	if DEBUG_VERBOSE:
+		print("4. IS_OBJECTION CHECK: tactical=", is_tactical_objection, " strategic=", is_strategic_objection, " => ", is_objection)
 
 	if is_objection:
-		print("5. OBJECTION DETECTED - About to show dialog")
-		print("6. DIALOG NODE: ", objection_dialog)
-		print("7. DIALOG IN TREE: ", objection_dialog.is_inside_tree() if objection_dialog else "NULL")
-		print("8. DIALOG VISIBLE BEFORE: ", objection_dialog.visible if objection_dialog else "NULL")
+		if DEBUG_VERBOSE:
+			print("5. OBJECTION DETECTED - About to show dialog")
 		_show_objection_dialog(response)
 		_process_active_wars(response)
 		return  # Don't re-enable input or continue processing
-	else:
-		print("5. No objection - continuing normal flow")
-
-	# Check for Glorious Charge popup (Phase 3 Cavalry Recklessness)
-	# This happens when a reckless cavalry marshal at recklessness 3 tries to attack
-	print("GLORIOUS_CHARGE CHECK:")
-	print("  response.has('pending_glorious_charge'): ", response.has("pending_glorious_charge"))
-	if response.has("pending_glorious_charge"):
-		print("  response.pending_glorious_charge VALUE: ", response.pending_glorious_charge)
 
 	if response.has("pending_glorious_charge") and response.pending_glorious_charge:
-		print(">>> GLORIOUS CHARGE CONDITION MET - calling _show_glorious_charge_dialog()")
-		print(">>> glorious_charge_dialog is: ", glorious_charge_dialog)
-		print(">>> glorious_charge_dialog == null: ", glorious_charge_dialog == null)
+		if DEBUG_VERBOSE:
+			print("GLORIOUS CHARGE CONDITION MET")
 		_show_glorious_charge_dialog(response)
 		_process_active_wars(response)
 		return  # Don't re-enable input until choice made
@@ -918,13 +910,11 @@ func _on_command_result(response):
 
 		# Update map with latest state
 		if response.has("game_state") and response.game_state.has("map_data"):
-			print("MAIN: Command result - map_data found, updating map")
-			print("MAIN: Received map_data with ", response.game_state.map_data.keys().size(), " regions")
+			if DEBUG_VERBOSE:
+				print("MAIN: Command result - map_data with ", response.game_state.map_data.keys().size(), " regions")
 			map_area.update_all_regions(response.game_state.map_data)
-		else:
+		elif DEBUG_VERBOSE:
 			print("⚠️  MAIN: Command result - NO map_data in response!")
-			if response.has("game_state"):
-				print("     game_state keys: ", response.game_state.keys())
 
 		# Format and display result based on event type
 		_display_result(response)
@@ -941,7 +931,8 @@ func _on_command_result(response):
 		# (e.g. debug freeze_enemies). The dialog handles 0-action case with
 		# "No enemy actions this turn." message.
 		if response.has("enemy_phase"):
-			print("ENEMY PHASE DETECTED - showing dialog")
+			if DEBUG_VERBOSE:
+				print("ENEMY PHASE DETECTED - showing dialog")
 			# Close screens before showing modal (avoid stale screen behind dialog)
 			if top_bar:
 				top_bar.close_all_screens()
@@ -1821,19 +1812,19 @@ func _display_feedback(feedback: Dictionary):
 		add_output("[color=#" + COLOR_FEEDBACK + "][i]" + feedback.ambiguity + "[/i][/color]")
 
 func _trim_old_messages():
-	"""Remove oldest messages to prevent infinite growth."""
-	var current_text = output_display.get_parsed_text()
+	"""Remove oldest messages to prevent infinite growth.
+	Uses .text (preserves BBCode) instead of .get_parsed_text() (strips BBCode)."""
+	var current_text = output_display.text
 	var lines = current_text.split("\n")
-	
+
 	# Keep last 75% of messages
 	var keep_from = int(lines.size() * 0.25)
 	var new_lines = lines.slice(keep_from)
-	
+
 	output_display.clear()
 	output_display.append_text("[color=#" + COLOR_INFO + "][...earlier messages trimmed...][/color]\n\n")
-	for line in new_lines:
-		output_display.append_text(line + "\n")
-	
+	output_display.append_text("\n".join(new_lines))
+
 	message_count = new_lines.size()
 
 func set_input_enabled(enabled: bool):
@@ -1913,14 +1904,9 @@ func _on_objection_choice_made(choice: String):
 
 func _on_objection_response(response):
 	"""Handle backend response after player makes objection choice."""
-	print("\n" + "=".repeat(60))
-	print("OBJECTION RESPONSE RECEIVED:")
-	print("  success: ", response.get("success", false))
-	print("  disobeyed: ", response.get("disobeyed", false))
-	print("  defiance: ", response.get("defiance", false))
-	print("  has redemption_event: ", response.has("redemption_event"))
-	print("  state: ", response.get("state", "none"))
-	print("=".repeat(60) + "\n")
+	if DEBUG_VERBOSE:
+		print("OBJECTION RESPONSE: success=%s disobeyed=%s defiance=%s" % [
+			response.get("success", false), response.get("disobeyed", false), response.get("defiance", false)])
 
 	# ════════════════════════════════════════════════════════════
 	# CHECK FOR DEFIANCE (V2b): Marshal defied a direct order
@@ -1975,7 +1961,8 @@ func _on_objection_response(response):
 
 		# Check for redemption event triggered by disobey
 		if response.has("redemption_event"):
-			print("🚨 REDEMPTION EVENT after disobey - showing dialog")
+			if DEBUG_VERBOSE:
+				print("REDEMPTION EVENT after disobey - showing dialog")
 			_show_redemption_dialog(response.redemption_event)
 			return  # Don't re-enable input until redemption resolved
 
@@ -1988,7 +1975,8 @@ func _on_objection_response(response):
 	# CHECK FOR REDEMPTION EVENT: Trust at critical low
 	# ════════════════════════════════════════════════════════════
 	if response.has("redemption_event"):
-		print("🚨 REDEMPTION EVENT detected - showing dialog")
+		if DEBUG_VERBOSE:
+			print("REDEMPTION EVENT detected - showing dialog")
 
 		# First show the normal result
 		if response.success:
@@ -2101,7 +2089,8 @@ func _show_redemption_text_fallback(redemption_event: Dictionary):
 
 func _on_redemption_choice_made(choice: String):
 	"""Handle player's choice in redemption dialog."""
-	print("REDEMPTION CHOICE MADE: ", choice)
+	if DEBUG_VERBOSE:
+		print("REDEMPTION CHOICE MADE: ", choice)
 
 	# Disable input while processing
 	set_input_enabled(false)
@@ -2125,13 +2114,9 @@ func _on_redemption_choice_made(choice: String):
 
 func _on_redemption_response(response):
 	"""Handle backend response after player makes redemption choice."""
-	print("\n" + "=".repeat(60))
-	print("REDEMPTION RESPONSE RECEIVED:")
-	print("  success: ", response.get("success", false))
-	print("  choice: ", response.get("choice", "unknown"))
-	print("  autonomous: ", response.get("autonomous", false))
-	print("  dismissed: ", response.get("dismissed", false))
-	print("=".repeat(60) + "\n")
+	if DEBUG_VERBOSE:
+		print("REDEMPTION RESPONSE: success=%s choice=%s" % [
+			response.get("success", false), response.get("choice", "unknown")])
 
 	pending_redemption = false
 
@@ -2191,7 +2176,8 @@ func _on_redemption_response(response):
 
 func _show_enemy_phase_dialog(enemy_phase: Dictionary, turn: int):
 	"""Display enemy phase popup with full battle details."""
-	print("Showing enemy phase dialog for turn ", turn)
+	if DEBUG_VERBOSE:
+		print("Showing enemy phase dialog for turn ", turn)
 
 	# Check if dialog exists
 	if enemy_phase_dialog == null:
@@ -2338,6 +2324,9 @@ func _on_capture_choice_response(response):
 
 		add_output("[color=#" + COLOR_SUCCESS + "]" + str(response.get("message", "")) + "[/color]")
 
+		# Update diplomatic displays after capture choice (may change threat/territory)
+		_update_diplomatic_top_bar(response)
+
 		if response.has("game_state") and response.game_state.has("game_over"):
 			if response.game_state.game_over:
 				_show_game_over_screen(response.game_state)
@@ -2404,6 +2393,10 @@ func _on_load_result(response):
 			actions_value.text = "%d / %d" % [actions_remaining, max_actions]
 			admin_value.text = "%d / %d" % [admin_actions_remaining, max_admin_actions]
 
+		# Restore diplomatic top bar and war panel from loaded state
+		_update_diplomatic_top_bar(response)
+		_process_active_wars(response)
+
 		add_output("[color=#" + COLOR_SUCCESS + "]Game loaded successfully.[/color]")
 		add_output("[color=#" + COLOR_INFO + "]" + response.get("message", "") + "[/color]")
 	else:
@@ -2426,8 +2419,8 @@ var pending_charge_target: String = ""
 
 func _show_glorious_charge_dialog(response):
 	"""Display Glorious Charge popup when reckless cavalry is at recklessness 3."""
-	print("_show_glorious_charge_dialog() CALLED")
-	print("  Response: ", response)
+	if DEBUG_VERBOSE:
+		print("_show_glorious_charge_dialog() CALLED")
 
 	# Store pending info for sending back to server
 	# Handle null values (get() default doesn't work if key exists with null)
@@ -2441,7 +2434,8 @@ func _show_glorious_charge_dialog(response):
 	# Get recklessness - backend sends it in the response directly
 	var recklessness = int(reck_val) if reck_val != null else 3
 
-	print("  Parsed: marshal=%s, target=%s, recklessness=%d" % [pending_charge_marshal, pending_charge_target, recklessness])
+	if DEBUG_VERBOSE:
+		print("  Parsed: marshal=%s, target=%s, recklessness=%d" % [pending_charge_marshal, pending_charge_target, recklessness])
 
 	# Show notification in log
 	add_output("")
@@ -2488,9 +2482,8 @@ func _show_glorious_charge_text_fallback():
 
 func _on_glorious_charge_choice_made(choice: String):
 	"""Handle player's choice in Glorious Charge dialog."""
-	print("GLORIOUS CHARGE CHOICE MADE: ", choice)
-	print("  Marshal: ", pending_charge_marshal)
-	print("  Target: ", pending_charge_target)
+	if DEBUG_VERBOSE:
+		print("GLORIOUS CHARGE CHOICE: %s marshal=%s target=%s" % [choice, pending_charge_marshal, pending_charge_target])
 
 	# Disable input while processing
 	set_input_enabled(false)
@@ -2512,11 +2505,8 @@ func _on_glorious_charge_choice_made(choice: String):
 
 func _on_glorious_charge_response(response):
 	"""Handle backend response after player makes Glorious Charge choice."""
-	print("\n" + "=".repeat(60))
-	print("GLORIOUS CHARGE RESPONSE RECEIVED:")
-	print("  success: ", response.get("success", false))
-	print("  message: ", response.get("message", ""))
-	print("=".repeat(60) + "\n")
+	if DEBUG_VERBOSE:
+		print("GLORIOUS CHARGE RESPONSE: success=%s" % response.get("success", false))
 
 	# Clear pending state
 	pending_charge_marshal = ""
@@ -2599,7 +2589,8 @@ func _show_strategic_reports(response):
 
 func _on_strategic_report_dismissed():
 	"""Handle strategic report popup dismissed."""
-	print("Strategic report popup dismissed")
+	if DEBUG_VERBOSE:
+		print("Strategic report popup dismissed")
 
 	# Check if any reports have interrupts that need input
 	if pending_strategic_response != null:
@@ -2661,7 +2652,8 @@ func _show_interrupt_popup(interrupt_data: Dictionary):
 
 func _on_interrupt_choice_made(marshal_name: String, response_type: String, choice: String):
 	"""Handle player choosing an interrupt response."""
-	print("Interrupt choice: marshal=%s, type=%s, choice=%s" % [marshal_name, response_type, choice])
+	if DEBUG_VERBOSE:
+		print("Interrupt choice: marshal=%s, type=%s, choice=%s" % [marshal_name, response_type, choice])
 	set_input_enabled(false)
 
 	add_output("[color=#" + COLOR_COMMAND + "]> " + marshal_name + ": " + choice.replace("_", " ") + "[/color]")
@@ -2688,6 +2680,9 @@ func _on_interrupt_response(response):
 			map_area.update_all_regions(response.game_state.map_data)
 	else:
 		add_output("[color=#" + COLOR_ERROR + "]" + response.get("message", "Error processing response.") + "[/color]")
+
+	# Update diplomatic displays after interrupt resolution
+	_update_diplomatic_top_bar(response)
 
 	# Check for redemption event from strategic interrupt trust penalty
 	if response.has("redemption_event"):
@@ -2744,7 +2739,8 @@ func _show_clarification_popup(response):
 
 func _on_clarification_choice_made(marshal_name: String, chosen_target: String, strategic_type: String):
 	"""Handle player selecting a clarification target."""
-	print("Clarification choice: marshal=%s, target=%s, type=%s" % [marshal_name, chosen_target, strategic_type])
+	if DEBUG_VERBOSE:
+		print("Clarification choice: marshal=%s, target=%s, type=%s" % [marshal_name, chosen_target, strategic_type])
 	add_output("[color=#" + COLOR_COMMAND + "]> " + marshal_name + ", target " + chosen_target + "[/color]")
 
 	# Reissue with correct strategic keyword for the command type

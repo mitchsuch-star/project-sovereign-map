@@ -216,6 +216,15 @@ def snapshot_defender_modifiers(
     if getattr(defender, "square_formation", False):
         mods.append({"label": "Square formation", "value": 5, "type": "bonus"})
 
+    # --- Signature abilities (defense) ---
+    ability = getattr(defender, "ability", None)
+    if ability:
+        ability_name = ability.get("name", "") if isinstance(ability, dict) else ""
+        if ability_name == "Reverse Slope Defense":
+            mods.append({"label": "Reverse Slope Defense", "value": 5, "type": "bonus"})
+        elif ability_name == "Habsburg Resolve":
+            mods.append({"label": "Habsburg Resolve", "value": 3, "type": "bonus"})
+
     # --- Coordination bonuses (Phase 7, Sessions 57-65) ---
     # Intentionally omitted — see comment in snapshot_attacker_modifiers().
 
@@ -313,6 +322,11 @@ _OBSERVATIONS = {
         "{marshal}'s army has been badly mauled. {enemy} proved the stronger force today.",
         "The toll on {marshal}'s forces is heavy, Sire. This defeat will be felt.",
     ],
+    "won_flawless": [
+        "A flawless victory, Sire! {marshal} defeated {enemy} without a single loss.",
+        "Not a man lost! {marshal}'s handling of {enemy} was nothing short of masterful.",
+        "Perfection on the battlefield. {marshal} destroyed {enemy} while preserving every soldier.",
+    ],
     "won_decisively": [
         "A decisive victory for {marshal}! {enemy} was thoroughly outmatched.",
         "Complete dominance on the field. {enemy} crumbled before {marshal}.",
@@ -338,6 +352,11 @@ _OBSERVATIONS = {
         "{enemy}'s cavalry swept through {marshal}'s gun line. Unscreened artillery is cavalry's prey.",
         "The horsemen of {enemy} overran {marshal}'s guns before the crews could react.",
         "{marshal}'s artillery was defenseless against {enemy}'s cavalry charge. Infantry screens are essential, Sire.",
+    ],
+    "cavalry_overrun_attacker": [
+        "{marshal}'s cavalry thundered through {enemy}'s gun line! Unscreened artillery cannot withstand the charge.",
+        "The horsemen smashed {enemy}'s batteries. {marshal}'s cavalry overran the guns, Sire!",
+        "{marshal} exploited {enemy}'s exposed artillery. A textbook cavalry charge against unsupported guns.",
     ],
     "artillery_fort_degradation": [
         "{marshal}'s bombardment is systematically dismantling {enemy}'s fortifications. The walls cannot endure much more.",
@@ -666,13 +685,9 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
         if atk_nation == player_nation:
             return _fill(random.choice(_OBSERVATIONS["artillery_fort_degradation"]))
 
-    # Our artillery won decisively
-    if we_won and we_are_attacker:
-        atk_name = attacker_data.get("name", "")
-        # Check any artillery observations not already covered
-        if _has_mod(our_mods, "cavalry counter (vs artillery)", "bonus"):
-            # We used cavalry counter bonus against their artillery — already covered above
-            pass
+    # Our cavalry overran enemy artillery (attacker side)
+    if we_won and cavalry_counter and we_are_attacker:
+        return _fill(random.choice(_OBSERVATIONS["cavalry_overrun_attacker"]))
 
     # Priority 6e: Square formation interactions (Session 67)
     # Cavalry repulsed by square
@@ -713,10 +728,30 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     if we_lost and our_original > 0 and our_casualties > our_original * 0.30:
         return _fill(random.choice(_OBSERVATIONS["lost_costly"]))
 
+    # Priority 8.7: Flawless victory (we won with zero casualties)
+    if we_won and our_casualties == 0 and enemy_casualties > 0:
+        return _fill(random.choice(_OBSERVATIONS["won_flawless"]))
+
     # Priority 9: We won decisively (2:1+ casualty ratio in our favor)
     if we_won and enemy_casualties > 0 and our_casualties > 0:
         if enemy_casualties >= our_casualties * 2:
             return _fill(random.choice(_OBSERVATIONS["won_decisively"]))
+
+    # Priority 9.5 (coordination): Devoted ally synergy — more interesting than generic stalemate
+    devoted_allies = coordination.get("devoted_allies", [])
+    if devoted_allies:
+        return _fill(random.choice(_OBSERVATIONS["coordination_devoted_synergy"]),
+                     ally=devoted_allies[0])
+
+    # Priority 9.6 (coordination): Rival→Professional relationship improvement (A-I3)
+    player_rel_improvements = [
+        r for r in relationship_changes
+        if r.get("nation") == player_nation and r.get("direction") == "improved"
+    ]
+    if player_rel_improvements:
+        rc = player_rel_improvements[0]
+        return _fill(random.choice(_OBSERVATIONS["coordination_rival_improved"]),
+                     ally=rc.get("toward", ""))
 
     # Priority 10: Stalemate
     if outcome == "stalemate":
@@ -727,22 +762,6 @@ def _pick_observation(battle_result: Dict, player_nation: str = "France") -> str
     if hostile_refused:
         return _fill(random.choice(_OBSERVATIONS["coordination_hostile_refused"]),
                      ally=hostile_refused[0])
-
-    # Priority 13 (coordination): Devoted ally provided 150% coordination
-    devoted_allies = coordination.get("devoted_allies", [])
-    if devoted_allies:
-        return _fill(random.choice(_OBSERVATIONS["coordination_devoted_synergy"]),
-                     ally=devoted_allies[0])
-
-    # Priority 15 (coordination): Rival→Professional relationship improvement (A-I3)
-    player_rel_improvements = [
-        r for r in relationship_changes
-        if r.get("nation") == player_nation and r.get("direction") == "improved"
-    ]
-    if player_rel_improvements:
-        rc = player_rel_improvements[0]
-        return _fill(random.choice(_OBSERVATIONS["coordination_rival_improved"]),
-                     ally=rc.get("toward", ""))
 
     # Priority 16: Default
     return _fill(random.choice(_OBSERVATIONS["default"]))

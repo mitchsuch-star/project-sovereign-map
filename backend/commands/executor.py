@@ -10990,7 +10990,6 @@ RETREAT RECOVERY (3 turns):
                     world.use_action(defiant_action)
 
                 pre_battle_strength = marshal.strength
-                defiant_command = {"action": defiant_action, "marshal": marshal_name}
 
                 if defiant_action == "bombardment":
                     nearest = world.find_nearest_enemy(marshal.location)
@@ -13751,7 +13750,6 @@ RETREAT RECOVERY (3 turns):
 
                 # Execute defiant action
                 pre_battle_strength = marshal.strength
-                defiant_command = {"action": defiant_action, "marshal": marshal_name}
 
                 if defiant_action == "bombardment":
                     # m2 fix: call _execute_bombardment directly with the specific
@@ -14241,29 +14239,6 @@ RETREAT RECOVERY (3 turns):
                     result["tactical_events"] = tactical_events
 
         return result
-
-    def resolve_battle_vindication(self, marshal_name: str, result: str, game_state: Dict) -> Optional[Dict]:
-        """
-        Call vindication tracker after a battle to update trust/authority.
-
-        Args:
-            marshal_name: Name of marshal who fought
-            result: 'victory', 'defeat', or 'draw'
-            game_state: Current game state
-
-        Returns:
-            Vindication result dict or None if no pending vindication
-        """
-        world: WorldState = game_state.get("world")
-
-        if not world:
-            return None
-
-        return world.vindication_tracker.resolve_battle(
-            marshal_name=marshal_name,
-            result=result,
-            game_state=world
-        )
 
     # ════════════════════════════════════════════════════════════
     # VASSAL COMMANDS (Phase 8 Session 5)

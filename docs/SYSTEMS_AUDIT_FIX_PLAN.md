@@ -246,37 +246,40 @@ This eliminates the "zero triggers" / "no evaluator" / "personality-dead" findin
 
 ## Phase D: Polish (Sessions 9-11)
 
-### Session 9: Personality & Disobedience Bugs
+### Session 9: Personality & Disobedience Bugs — COMPLETE
 
-| # | Finding | Notes |
-|---|---------|-------|
-| 1 | **P4-3: Vindication last_change_turn always 0** | Dict `.get()` used with `getattr` — wrong accessor |
-| 2 | **P4-8: Defensive vindication no narrative closure** | Add Berthier observation on stale cleanup |
-| 3 | **P4-9: _is_fortified checks region name not marshal** | V1 path — may skip if V1 deprecated |
-| 4 | **P3-6: Alphabetical processing starvation** | Process all non-interrupting first, then present interrupts |
-| 5 | **P3-9: SUPPORT auto-completes with max_turns** | Don't auto-complete "ally safe" when max_turns set |
-| 6 | **P3-10: Cannon fire "continue" costs trust** | Evaluate: is -2 trust for exercising command intentional? |
+**Theme:** Vindication tracking bugs, strategic order processing fairness, SUPPORT duration.
+**Result:** 4 real bugs fixed, 1 false positive, 1 by-design. 10 new tests, 1 existing test updated. 0 regressions (6846 → 6856 total).
 
-**Tests:** ~8-10 new
+| # | Finding | Status |
+|---|---------|--------|
+| 1 | **P4-3: Vindication last_change_turn always 0** | **FIXED** — `getattr()` on dict replaced with `game_state.current_turn` |
+| 2 | **P4-8: Defensive vindication no narrative closure** | **FIXED** — Notification on stale cleanup (defiance/objection flavor) |
+| 3 | **P4-9: _is_fortified checks region name not marshal** | **FALSE POSITIVE** — Code reads `marshal.fortified`, not region |
+| 4 | **P3-6: Alphabetical processing starvation** | **FIXED** — Two-pass: non-interrupting first, then deferred interrupts |
+| 5 | **P3-9: SUPPORT auto-completes with max_turns** | **FIXED** — Skip ally_safe auto-complete when `condition.max_turns` set |
+| 6 | **P3-10: Cannon fire "continue" costs trust** | **BY DESIGN** — -2 trust matches insist pattern (override marshal's concern) |
+
+**Tests:** 10 new in `tests/test_systems_audit_session9.py`, 1 existing test updated in `test_strategic_ui_comprehensive.py`.
 
 ---
 
-### Session 10: Battle Report + Godot UX
+### Session 10: Battle Report + Godot UX — **COMPLETE**
 
-| # | Finding | Notes |
-|---|---------|-------|
-| 1 | **P1-7: Wellington/Habsburg abilities missing from snapshots** | Add snapshot blocks for Reverse Slope (+5%) and Habsburg Resolve (+3%) |
-| 2 | **P1-17: Flawless victory gets generic observation** | Add "won_flawless" template before "won_decisively" |
-| 3 | **P1-18: Relationship observations buried at priority 15** | Promote to ~4.5 or append as secondary |
-| 4 | **P1-19: Devoted ally synergy blocked by stalemate** | Move devoted check above stalemate (~9.5) |
-| 5 | **P1-20: Cavalry overrun no attacker observation** | Add attacker-side cavalry counter observation |
-| 6 | **P7-2: _trim_old_messages strips BBCode** | Use `output_display.text` instead of `get_parsed_text()` |
-| 7 | **P7-3: Diplomatic top bar not updated in 5+ handlers** | Add `_update_diplomatic_top_bar(response)` to all handlers |
-| 8 | **P7-4: Load doesn't restore war panel** | Add missing calls after load |
-| 9 | **P7-5: Tooltip off-screen** | Clamp against viewport rect |
-| 10 | **P7-7: Debug prints in production** | Remove or gate behind DEBUG flag |
+| # | Finding | Result |
+|---|---------|--------|
+| 1 | **P1-7: Wellington/Habsburg abilities missing from snapshots** | **FIXED** — Added Reverse Slope (+5%) and Habsburg Resolve (+3%) to `snapshot_defender_modifiers()` |
+| 2 | **P1-17: Flawless victory gets generic observation** | **FIXED** — Added "won_flawless" template at priority 8.7 (zero casualties + enemy losses) |
+| 3 | **P1-18: Relationship observations buried at priority 15** | **FIXED** — Promoted to priority 9.6 (above stalemate at 10) |
+| 4 | **P1-19: Devoted ally synergy blocked by stalemate** | **FIXED** — Promoted to priority 9.5 (above stalemate at 10) |
+| 5 | **P1-20: Cavalry overrun no attacker observation** | **FIXED** — Added "cavalry_overrun_attacker" template at priority 6d |
+| 6 | **P7-2: _trim_old_messages strips BBCode** | **FIXED** — Use `.text` instead of `.get_parsed_text()`, join lines |
+| 7 | **P7-3: Diplomatic top bar not updated in 5+ handlers** | **FIXED** — Added `_update_diplomatic_top_bar()` to capture_choice, interrupt, load handlers |
+| 8 | **P7-4: Load doesn't restore war panel** | **FIXED** — Added `_update_diplomatic_top_bar()` + `_process_active_wars()` to `_on_load_result` |
+| 9 | **P7-5: Tooltip off-screen** | **FALSE POSITIVE** — Godot 4 built-in `tooltip_text` auto-clamps to viewport |
+| 10 | **P7-7: Debug prints in production** | **FIXED** — Added `DEBUG_VERBOSE` const, gated ~30 verbose gameplay prints behind it |
 
-**Tests:** ~8-10 new
+**Tests:** 9 new in `tests/test_systems_audit_session10.py` (ability snapshots, flawless victory, observation priority, cavalry overrun).
 
 ---
 
