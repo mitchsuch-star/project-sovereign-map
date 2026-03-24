@@ -93,12 +93,14 @@ def get_personality_modifiers(personality: str) -> Dict[str, Any]:
         personality: Personality string (aggressive, cautious, literal, etc.)
 
     Returns:
-        Dict of modifier constants for that personality
+        Dict of modifier constants for that personality.
+        Returns empty dict for balanced/loyal — reserved for 1805 expansion, no marshals use them yet.
     """
     modifiers = {
         "aggressive": NEY_MODIFIERS,
         "cautious": DAVOUT_MODIFIERS,
         "literal": GROUCHY_MODIFIERS,
+        # balanced/loyal: reserved for 1805 expansion — no marshals use these yet
     }
     return modifiers.get(personality.lower(), {})
 

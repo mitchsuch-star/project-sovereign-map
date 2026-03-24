@@ -561,14 +561,10 @@ class LLMClient:
             ("ney", "Ney"),
             ("davout", "Davout"),
             ("grouchy", "Grouchy"),
-            ("murat", "Murat"),
-            ("soult", "Soult"),
-            ("lannes", "Lannes"),
             ("drouot", "Drouot"),
             ("archduke charles", "ArchdukeCharles"),
             ("archduke", "ArchdukeCharles"),
             ("schwarzenberg", "Schwarzenberg"),
-            ("reynier", "Reynier"),
             ("gneisenau", "Gneisenau"),
         ]
 
@@ -816,8 +812,6 @@ class LLMClient:
             target = "ArchdukeCharles"
         elif "schwarzenberg" in command_lower:
             target = "Schwarzenberg"
-        elif "reynier" in command_lower:
-            target = "Reynier"
         elif "uxbridge" in command_lower:
             target = "Uxbridge"
         # P8-7 FIX: Nationality words ("Prussians", "British") deliberately omitted.

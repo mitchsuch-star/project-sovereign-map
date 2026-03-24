@@ -69,8 +69,8 @@ class Personality(Enum):
     AGGRESSIVE = "aggressive"
     CAUTIOUS = "cautious"
     LITERAL = "literal"
-    BALANCED = "balanced"
-    LOYAL = "loyal"
+    BALANCED = "balanced"  # Reserved — no marshals use this yet (1805 expansion)
+    LOYAL = "loyal"  # Reserved — no marshals use this yet (1805 expansion)
 
 
 # Personality descriptions for UI/narrative
@@ -82,7 +82,7 @@ PERSONALITY_DESCRIPTIONS = {
                       'Will object to waiting, defending, or retreat commands.',
         'strengths': ['Devastating attacks', 'High morale in offense', 'Pursuit bonuses'],
         'weaknesses': ['Poor at defense', 'May refuse cautious orders', 'Reckless'],
-        'examples': ['Ney', 'Blucher', 'Murat'],
+        'examples': ['Ney', 'Blucher'],
     },
     Personality.CAUTIOUS: {
         'name': 'Cautious',
@@ -91,7 +91,7 @@ PERSONALITY_DESCRIPTIONS = {
                       'Will object to attacking when outnumbered or without intelligence.',
         'strengths': ['Solid defense', 'Good logistics', 'Preserves army'],
         'weaknesses': ['May refuse aggressive orders', 'Slow to exploit openings'],
-        'examples': ['Davout', 'Wellington', 'Kutuzov'],
+        'examples': ['Davout', 'Wellington'],
     },
     Personality.LITERAL: {
         'name': 'Literal',
@@ -102,6 +102,7 @@ PERSONALITY_DESCRIPTIONS = {
         'weaknesses': ['No initiative', 'May fail if orders become obsolete'],
         'examples': ['Grouchy'],
     },
+    # Reserved — no marshals use balanced/loyal yet (1805 expansion)
     Personality.BALANCED: {
         'name': 'Balanced',
         'summary': 'Adaptable and reasonable',
@@ -109,7 +110,7 @@ PERSONALITY_DESCRIPTIONS = {
                       'Will object to suicidal orders or exposing the capital.',
         'strengths': ['Flexible', 'Good judgment', 'Moderate in all areas'],
         'weaknesses': ['No exceptional strengths'],
-        'examples': ['Soult', 'Bernadotte'],
+        'examples': [],  # No marshals use this yet
     },
     Personality.LOYAL: {
         'name': 'Loyal',
@@ -118,7 +119,7 @@ PERSONALITY_DESCRIPTIONS = {
                       'Will follow dangerous orders with minimal objection.',
         'strengths': ['High obedience', 'Rarely objects', 'Morale bonus'],
         'weaknesses': ['May follow bad orders to ruin'],
-        'examples': ['Lannes', 'Duroc'],
+        'examples': [],  # No marshals use this yet
     },
 }
 
@@ -162,19 +163,20 @@ PERSONALITY_TRIGGERS: Dict[Personality, Dict[str, float]] = {
         'change_of_plans': 0.35,              # TODO Phase 3 (see ROADMAP.md): Requires order history to detect frequent changes
     },
 
+    # Reserved — no marshals use balanced/loyal yet (1805 expansion)
     Personality.BALANCED: {
-        'certain_death': 0.70,                # 5:1+ odds - strong objection
-        'expose_capital': 0.55,               # Objects to leaving capital undefended
-        'suicidal_order': 0.65,               # TODO Phase 3 (see ROADMAP.md): Currently uses 3:1+ ratio. Expand to other suicidal scenarios
-        'attack_outnumbered_3to1': 0.60,      # Objects to very bad odds
-        'abandon_allies': 0.50,               # TODO Phase 3 (see ROADMAP.md): Requires ally tracking system - detect when order leaves ally exposed
+        'certain_death': 0.70,
+        'expose_capital': 0.55,
+        'suicidal_order': 0.65,
+        'attack_outnumbered_3to1': 0.60,
+        'abandon_allies': 0.50,
     },
 
     Personality.LOYAL: {
-        'suicidal_order': 0.40,               # TODO Phase 3 (see ROADMAP.md): Same as balanced - expand suicidal definition
-        'certain_death': 0.55,                # Even loyal marshals object to impossible odds (5:1+)
-        'betray_emperor': 0.95,               # TODO Phase 3 (1805) (see ROADMAP.md): Political intrigue system - detect orders harming Napoleon's interests
-        'expose_capital': 0.35,               # Mild concern but trusts Emperor
+        'suicidal_order': 0.40,
+        'certain_death': 0.55,
+        'betray_emperor': 0.95,
+        'expose_capital': 0.35,
     },
 }
 

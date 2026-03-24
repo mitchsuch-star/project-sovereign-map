@@ -27,8 +27,8 @@ class CommandParser:
         self.llm = LLMClient(use_real_api=use_real_llm)
         self.fuzzy_matcher = FuzzyMatcher()
 
-        # Valid marshals — must include ALL player marshals (infantry, cavalry, artillery)
-        self.valid_marshals = ["Ney", "Davout", "Grouchy", "Drouot", "Murat"]
+        # Valid marshals — must match create_starting_marshals() in world_state.py
+        self.valid_marshals = ["Ney", "Davout", "Grouchy", "Drouot"]
 
         # Valid actions
         # NOTE: When adding new actions, update ALL of these locations:

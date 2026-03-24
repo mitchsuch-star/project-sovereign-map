@@ -19,7 +19,6 @@ Strategic orders process at START of player turn:
 Add _process_strategic_orders() method that calls StrategicExecutor.
 """
 
-import math
 from typing import Dict, Optional
 from backend.models.world_state import WorldState
 from backend.commands.strategic import StrategicExecutor
@@ -637,12 +636,12 @@ class TurnManager:
         """
         Check if any enemy nation has achieved victory conditions.
 
-        Enemy wins if they control 75% of regions (ceil).
+        Enemy wins if they control 14+ regions (same as player threshold).
 
         Returns:
             Dict with victory info, or None if no enemy victory
         """
-        victory_threshold = math.ceil(len(self.world.regions) * 0.75)
+        victory_threshold = 14  # Must match player threshold in world_state.py
         for nation in self.world.enemy_nations:
             regions = self.world.get_nation_regions(nation)
             if len(regions) >= victory_threshold:
