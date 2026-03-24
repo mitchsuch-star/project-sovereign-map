@@ -198,27 +198,24 @@ This eliminates the "zero triggers" / "no evaluator" / "personality-dead" findin
 
 ---
 
-### Session 7: Minor Combat Bugs
+### Session 7: Minor Combat Bugs — COMPLETE
 
 **Theme:** Combat edge cases and architectural cleanups.
+**Result:** 7 real bugs fixed, 2 code smells (docstring/comment only), 1 refactor, 1 by-design skip. 15 new tests, 0 regressions (6794 → 6809 total). 3 existing tests updated for float→int conversion.
 
-| # | Finding | Evaluate | Risk |
-|---|---------|----------|------|
-| 1 | **P1-5: Bombardment resurrects dead marshals (1000 troops)** | Verify the strength<=0 → retreat → 1000 path | Low |
-| 2 | **P1-8: Square double-dip artillery** | **Careful:** Is +50% melee AND +50% bombardment intentional? Check TACTICAL_TRIANGLE_SPEC. If spec says both, it's by design. | Could change balance |
-| 3 | **P1-9: Mutual destruction skips morale/counters** | Verify the path | Low |
-| 4 | **P1-10: Zero casualty stalemate (tiny armies)** | Verify `int(1 * 0.15) = 0` | Low |
-| 5 | **P1-11: FORCED_RETREAT_THRESHOLD duplicated** | Trivial | None |
-| 6 | **P1-12: Exhaustion message hardcoded map** | Verify maps align | None |
-| 7 | **P1-15: Form square missing retreat_recovery** | Verify missing guard | Low |
-| 8 | **P1-16: Bombardment return fire no minimum** | Verify no floor | Low |
-| 9 | **P1-22: Bombardment floats to Godot** | Verify unwrapped values | None |
-| 10 | **P1-6: get_*_modifier side effects** | **Careful:** Battle report snapshot already works around this. Is refactoring worth the risk? Likely: add prominent docstring + idempotency test instead of refactoring. | Medium if refactored |
-| 11 | **P1-13: Drill state cleared in combat.py** | **Evaluate:** Is this a pragmatic exception to Golden Rule #1? Likely: extract `clear_drill_state()` on Marshal, call from combat.py. Low risk, cleaner. | Low |
-
-**P1-8 is the key evaluation:** Read `TACTICAL_TRIANGLE_SPEC.md` to see if square's vulnerability to artillery is designed as total vulnerability (melee+bombardment) or just melee. If spec says both, skip the fix.
-
-**Tests:** ~12-15 new
+| # | Finding | Verdict | Fix |
+|---|---------|---------|-----|
+| P1-8 | Square double-dip artillery | **BY DESIGN** | Skipped — melee and bombardment are separate per spec |
+| P1-5 | Pursuit resurrects dead marshals | **FIXED** | Guard changed to `strength > 1000`; clear pursuit_damage when guard fails |
+| P1-9 | Mutual destruction skips morale | **FIXED** | Added morale loss + battles_lost for both sides |
+| P1-10 | Zero casualty stalemate | **FIXED** | `max(1, ...)` floor in `_calculate_casualties` |
+| P1-11 | FORCED_RETREAT_THRESHOLD local | **FIXED** | Moved to module-level constant |
+| P1-12 | Exhaustion message hardcoded map | **FIXED** | Uses `marshal.get_exhaustion_info()` now |
+| P1-15 | Form square missing retreat_recovery | **FIXED** | Added guard in `_execute_form_square` |
+| P1-16 | Bombardment return fire no minimum | **FIXED** | `max(1, ...)` floor |
+| P1-22 | Bombardment floats to Godot | **FIXED** | Wrapped `terrain_modifier`, `fort_old`, `fort_new` in `int(x * 100)` |
+| P1-6 | get_*_modifier side effects | **DOCSTRING** | Added WARNING docstrings |
+| P1-13 | Drill state cleared in combat.py | **COMMENT** | Added pragmatic-exception comment |
 
 ---
 

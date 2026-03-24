@@ -3172,7 +3172,7 @@ RETREAT RECOVERY (3 turns):
         # ════════════════════════════════════════════════════════════
         return_rate = 0.015  # 1.5% of own strength
         return_variance = random.uniform(0.80, 1.20)
-        attacker_casualties = int(marshal.strength * return_rate * return_variance)
+        attacker_casualties = max(1, int(marshal.strength * return_rate * return_variance))
 
         # ════════════════════════════════════════════════════════════
         # FORT DEGRADATION (§5)
@@ -3392,10 +3392,10 @@ RETREAT RECOVERY (3 turns):
             "attacker_casualties": int(attacker_casualties),
             "defender_casualties": int(defender_casualties),
             "terrain": terrain,
-            "terrain_modifier": terrain_mod,
+            "terrain_modifier": int(terrain_mod * 100),
             "fort_degraded": fortification_degraded,
-            "fort_old": fortification_old,
-            "fort_new": fortification_new,
+            "fort_old": int(fortification_old * 100),
+            "fort_new": int(fortification_new * 100),
             "collateral": collateral_results,
         }
         world.log_event(bombardment_event)
@@ -3445,10 +3445,10 @@ RETREAT RECOVERY (3 turns):
                     "morale": int(defender.morale),
                 },
                 "terrain": terrain,
-                "terrain_modifier": terrain_mod,
+                "terrain_modifier": int(terrain_mod * 100),
                 "fort_degraded": fortification_degraded,
-                "fort_old": fortification_old,
-                "fort_new": fortification_new,
+                "fort_old": int(fortification_old * 100),
+                "fort_new": int(fortification_new * 100),
                 "bombardments_remaining": int(bombardments_remaining),
                 "collateral": collateral_results,
                 "berthier_observation": str(berthier_observation),
@@ -8850,6 +8850,11 @@ RETREAT RECOVERY (3 turns):
             return {
                 "success": False,
                 "message": f"{marshal.name} is retreating and cannot form square."
+            }
+        if getattr(marshal, 'retreat_recovery', 0) > 0:
+            return {
+                "success": False,
+                "message": f"{marshal.name} is recovering from retreat and cannot form square."
             }
 
         # Mutual exclusion: square ↔ fortify — forming square auto-breaks fortification

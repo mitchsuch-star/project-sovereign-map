@@ -150,8 +150,8 @@ class TestCoreBombardment:
         assert result["success"]
         br = result["bombardment_result"]
         assert br["fort_degraded"]
-        assert br["fort_old"] == 0.20
-        assert br["fort_new"] == 0.10
+        assert br["fort_old"] == 20  # int percentage (P1-22 fix)
+        assert br["fort_new"] == 10  # int percentage (P1-22 fix)
         assert world.marshals["Wellington"].defense_bonus == 0.10
 
     def test_fort_degradation_floors_at_zero(self):
@@ -164,7 +164,7 @@ class TestCoreBombardment:
 
         assert result["success"]
         assert world.marshals["Wellington"].defense_bonus == 0.0
-        assert result["bombardment_result"]["fort_new"] == 0.0
+        assert result["bombardment_result"]["fort_new"] == 0  # int percentage (P1-22 fix)
 
     def test_no_counter_punch_from_bombardment(self):
         """No counter-punch triggered from bombardment."""
@@ -473,7 +473,7 @@ class TestTerrainBombardment:
 
         br = result["bombardment_result"]
         assert br["terrain"] == "hills"
-        assert br["terrain_modifier"] == 0.75
+        assert br["terrain_modifier"] == 75  # int percentage (P1-22 fix)
 
 
 # ════════════════════════════════════════════════════════════════════════════════

@@ -17,6 +17,10 @@ from backend.utils.debug import debug_print
 import random
 
 
+# Morale % at which armies are forced to retreat
+FORCED_RETREAT_THRESHOLD = 25
+
+
 class CombatResolver:
     """
     Resolves battles between armies.
@@ -224,13 +228,10 @@ class CombatResolver:
         # Artillery is EXEMPT: guns don't tire — sustained bombardment is their function
         # ════════════════════════════════════════════════════════════
         exhaustion_message = None
-        attacks_this_turn = getattr(attacker, 'attacks_this_turn', 0)
-        is_artillery_attacker = getattr(attacker, 'artillery', False)
-        if attacks_this_turn > 0 and not is_artillery_attacker:
-            # This is 2nd, 3rd, or 4th+ attack
-            penalty_map = {1: 10, 2: 20}  # 1 previous = 2nd attack = -10%, etc.
-            penalty = penalty_map.get(attacks_this_turn, 30)  # 3+ = -30%
-            attack_num = attacks_this_turn + 1
+        exhaustion_info = attacker.get_exhaustion_info()
+        if exhaustion_info["penalty"] > 0:
+            penalty = exhaustion_info["penalty_percent"]
+            attack_num = exhaustion_info["attacks_this_turn"] + 1
             exhaustion_message = f"{attacker.name}'s troops are exhausted from repeated attacks! ({ordinal(attack_num)} attack: -{penalty}%)"
 
         # ════════════════════════════════════════════════════════════
@@ -276,7 +277,12 @@ class CombatResolver:
                         if not attacker_personality_message:
                             attacker_personality_message = f"{attacker.name} is hesitant in aggressive posture. (Cautious: -5% attack)"
 
-        # Clear drill bonus AFTER modifier calculation (one-time use)
+        # Clear drill bonus AFTER modifier calculation (one-time use).
+        # NOTE: Drill state is cleared here in combat.py rather than in marshal.py's
+        # get_attack_modifier() because it requires resetting 4 interrelated fields
+        # atomically (shock_bonus, drilling, drilling_locked, drill_complete_turn).
+        # This is a pragmatic exception to Golden Rule #1 — the read-then-clear
+        # pattern is correct, just located here for atomicity with the combat flow.
         if attacker_drill_bonus > 0:
             attacker.shock_bonus = 0
             attacker.drilling = False
@@ -499,6 +505,10 @@ class CombatResolver:
         if attacker.strength <= 0 and defender.strength <= 0:
             victor = None
             outcome = "mutual_destruction"
+            attacker.adjust_morale(-_scaled_morale_loss(atk_casualty_rate, 20))
+            defender.adjust_morale(-_scaled_morale_loss(def_casualty_rate, 20))
+            attacker.battles_lost += 1
+            defender.battles_lost += 1
         elif attacker.strength <= 0:
             victor = defender
             outcome = "defender_victory"
@@ -609,9 +619,8 @@ class CombatResolver:
 
         # ════════════════════════════════════════════════════════════════
         # FORCED RETREAT CHECK: Armies with critically low morale must retreat
-        # Threshold: 25% morale triggers forced retreat
+        # Uses module-level FORCED_RETREAT_THRESHOLD (25%)
         # ════════════════════════════════════════════════════════════════
-        FORCED_RETREAT_THRESHOLD = 25
         attacker_forced_retreat = (
             attacker.strength > 0 and
             attacker.morale <= FORCED_RETREAT_THRESHOLD
@@ -653,7 +662,7 @@ class CombatResolver:
                 pursuit_damage = 3000
                 pursuit_message = f"⚔️ {attacker.name}'s '{attacker.ability['name']}' — relentless pursuit inflicts extra casualties! (+{pursuit_damage:,} pursuit casualties)"
 
-            if pursuit_damage > 0 and defender.strength > 0:
+            if pursuit_damage > 0 and defender.strength > 1000:
                 old_strength = defender.strength
                 defender.strength = max(1000, defender.strength - pursuit_damage)
                 actual_pursuit = old_strength - defender.strength
@@ -664,6 +673,10 @@ class CombatResolver:
                     # Defender already at or below floor
                     pursuit_damage = 0
                     pursuit_message = None
+            elif pursuit_damage > 0:
+                # Defender at/below 1000 — pursuit doesn't fire (P1-5 fix)
+                pursuit_damage = 0
+                pursuit_message = None
 
         # ════════════════════════════════════════════════════════════
         # CAVALRY RECKLESSNESS (Phase 3): Update attacker's recklessness
@@ -877,7 +890,7 @@ class CombatResolver:
         # Cap at 60% max casualties per battle
         casualty_rate = min(0.6, casualty_rate)
 
-        casualties = int(army_size * casualty_rate)
+        casualties = max(1, int(army_size * casualty_rate))
 
         return casualties
 

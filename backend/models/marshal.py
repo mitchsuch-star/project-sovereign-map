@@ -801,6 +801,11 @@ class Marshal:
         """
         Get attack modifier from stance, personality, and other sources.
 
+        WARNING: This method has SIDE EFFECTS. It consumes (zeroes out):
+        - strategic_combat_bonus (one-time inspiring command bonus)
+        - counter_punch_ready (Davout's +20% after defending)
+        These are read-then-clear by design — call only ONCE per combat.
+
         Args:
             strength_ratio: Our strength / enemy strength (for bad odds check)
 
@@ -870,6 +875,10 @@ class Marshal:
     def get_defense_modifier(self, is_outnumbered: bool = False) -> float:
         """
         Get defense modifier from stance, personality, fortify, and drill status.
+
+        WARNING: This method has SIDE EFFECTS. It consumes (zeroes out):
+        - strategic_defense_bonus (one-time clear-order defense bonus)
+        This is read-then-clear by design — call only ONCE per combat.
 
         Args:
             is_outnumbered: Whether marshal is outnumbered (for Davout bonus)

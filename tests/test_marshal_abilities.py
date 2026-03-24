@@ -668,7 +668,12 @@ class TestUxbridgePursuitMaster:
                 "Pursuit Master should not fire for infantry"
 
     def test_uxbridge_pursuit_floor_at_1000(self):
-        """Uxbridge pursuit damage cannot reduce defender below 1000."""
+        """Uxbridge pursuit damage cannot reduce defender below 1000.
+
+        P1-5 fix: pursuit only fires if defender.strength > 1000 after combat.
+        If combat already reduced defender below 1000, pursuit doesn't fire
+        (prevents resurrecting strength from e.g. 500 → 1000).
+        """
         enemies = create_enemy_marshals()
         uxbridge = enemies["Uxbridge"]
 
@@ -686,8 +691,16 @@ class TestUxbridgePursuitMaster:
             result = combat.resolve_battle(uxbridge, defender)
 
             if result["defender"]["forced_retreat"]:
-                assert result["defender"]["remaining"] >= 1000, \
-                    f"Defender should have >= 1000 after pursuit, got {result['defender']['remaining']}"
+                remaining = result["defender"]["remaining"]
+                # If combat left defender above 1000, pursuit floors at 1000
+                # If combat left defender at/below 1000, pursuit doesn't fire (no resurrect)
+                # Either way, remaining should be >= 0
+                assert remaining >= 0, \
+                    f"Defender remaining should be >= 0, got {remaining}"
+                # Pursuit should never INCREASE strength (the P1-5 bug)
+                if result.get("pursuit_damage", 0) > 0:
+                    assert remaining >= 1000, \
+                        f"When pursuit fires, defender should be >= 1000, got {remaining}"
 
     def test_uxbridge_wellington_relationship(self):
         """Verify Uxbridge and Wellington have bidirectional +1 relationship."""
