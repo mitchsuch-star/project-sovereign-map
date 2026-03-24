@@ -162,11 +162,11 @@ class TestProcessIncomePhase:
         assert world.gold == starting + expected_net
 
     def test_net_income_with_admin_bonus(self):
-        """Admin bonus = unused admin AP * 35 (reduced from 75 in Session 8)."""
+        """Admin bonus = unused admin AP * 25 (reduced from 35 in Session 12)."""
         world = fresh_world()
         world.admin_actions_remaining = 2  # Default
         result = world.process_income_phase()
-        assert result["admin_bonus"] == 70  # 2 * 35
+        assert result["admin_bonus"] == 50  # 2 * 25
 
     def test_net_income_no_admin_bonus_for_enemy(self):
         """Enemy nations don't get admin AP bonus."""
@@ -442,16 +442,16 @@ class TestAdminAP:
         assert summary["max_admin_actions"] == 2
 
     def test_unused_ap_bonus_2_unused(self):
-        """2 unused admin AP -> 70 gold bonus (35g each, Session 8)."""
+        """2 unused admin AP -> 50 gold bonus (25g each, Session 12)."""
         world = fresh_world()
         world.admin_actions_remaining = 2
-        assert world._calculate_admin_bonus("France") == 70
+        assert world._calculate_admin_bonus("France") == 50
 
     def test_unused_ap_bonus_1_unused(self):
-        """1 unused admin AP -> 35 gold bonus (Session 8)."""
+        """1 unused admin AP -> 25 gold bonus (Session 12)."""
         world = fresh_world()
         world.admin_actions_remaining = 1
-        assert world._calculate_admin_bonus("France") == 35
+        assert world._calculate_admin_bonus("France") == 25
 
     def test_unused_ap_bonus_0_unused(self):
         """0 unused admin AP -> 0 gold bonus."""

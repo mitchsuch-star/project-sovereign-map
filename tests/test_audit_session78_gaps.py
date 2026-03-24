@@ -143,14 +143,12 @@ class TestPhantomPersonalityCleanup:
         assert Personality.BALANCED.value == "balanced"
         assert Personality.LOYAL.value == "loyal"
 
-    def test_balanced_loyal_no_example_marshals(self):
-        """BALANCED and LOYAL personality descriptions have empty examples."""
-        balanced_desc = PERSONALITY_DESCRIPTIONS[Personality.BALANCED]
-        loyal_desc = PERSONALITY_DESCRIPTIONS[Personality.LOYAL]
-        assert balanced_desc['examples'] == [], \
-            f"BALANCED should have no example marshals, got {balanced_desc['examples']}"
-        assert loyal_desc['examples'] == [], \
-            f"LOYAL should have no example marshals, got {loyal_desc['examples']}"
+    def test_balanced_loyal_no_description_entries(self):
+        """BALANCED and LOYAL removed from PERSONALITY_DESCRIPTIONS (Session 11 cleanup)."""
+        assert Personality.BALANCED not in PERSONALITY_DESCRIPTIONS, \
+            "BALANCED should not have a description entry (reserved for 1805)"
+        assert Personality.LOYAL not in PERSONALITY_DESCRIPTIONS, \
+            "LOYAL should not have a description entry (reserved for 1805)"
 
     def test_active_personalities_have_real_marshals(self):
         """AGGRESSIVE/CAUTIOUS/LITERAL examples are all real marshals."""

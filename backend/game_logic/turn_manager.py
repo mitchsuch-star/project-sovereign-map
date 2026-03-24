@@ -641,7 +641,8 @@ class TurnManager:
         Returns:
             Dict with victory info, or None if no enemy victory
         """
-        victory_threshold = 14  # Must match player threshold in world_state.py
+        from backend.models.world_state import VICTORY_REGION_FRACTION
+        victory_threshold = max(1, int(len(self.world.regions) * VICTORY_REGION_FRACTION))
         for nation in self.world.enemy_nations:
             regions = self.world.get_nation_regions(nation)
             if len(regions) >= victory_threshold:

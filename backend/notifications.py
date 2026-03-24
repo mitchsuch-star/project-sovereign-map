@@ -81,19 +81,42 @@ def create_notification(
     }
 
 
+NOTIFICATION_CAP = 50  # Max notifications before auto-dismissing oldest NORMAL
+
+
 class NotificationCollector:
     """Collects and manages notifications attached to WorldState.
 
     Notifications persist across turns until the player dismisses them.
     Serialized with save/load via to_list() / from_list().
+    Auto-dismisses oldest NORMAL notifications when cap (50) is exceeded.
     """
 
     def __init__(self):
         self._pending: List[Dict[str, Any]] = []
 
     def add(self, notification: Dict[str, Any]) -> None:
-        """Add a notification to the pending list."""
+        """Add a notification to the pending list. Auto-trims oldest NORMAL if over cap."""
         self._pending.append(notification)
+        self._enforce_cap()
+
+    def _enforce_cap(self) -> None:
+        """Remove oldest NORMAL notifications if over NOTIFICATION_CAP."""
+        while len(self._pending) > NOTIFICATION_CAP:
+            # Find oldest NORMAL notification (lowest turn_created, NORMAL priority)
+            oldest_normal_idx = None
+            oldest_turn = float('inf')
+            for i, n in enumerate(self._pending):
+                if n.get("priority", 0) == int(NotificationPriority.NORMAL):
+                    turn = n.get("turn_created", 0)
+                    if turn < oldest_turn:
+                        oldest_turn = turn
+                        oldest_normal_idx = i
+            if oldest_normal_idx is not None:
+                self._pending.pop(oldest_normal_idx)
+            else:
+                # No NORMAL notifications to trim — allow overflow
+                break
 
     def get_pending(self) -> List[Dict[str, Any]]:
         """Return all pending notifications, sorted by priority (CRITICAL first).

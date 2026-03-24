@@ -102,25 +102,6 @@ PERSONALITY_DESCRIPTIONS = {
         'weaknesses': ['No initiative', 'May fail if orders become obsolete'],
         'examples': ['Grouchy'],
     },
-    # Reserved — no marshals use balanced/loyal yet (1805 expansion)
-    Personality.BALANCED: {
-        'name': 'Balanced',
-        'summary': 'Adaptable and reasonable',
-        'description': 'Adapts to situations and objects only to truly dangerous orders. '
-                      'Will object to suicidal orders or exposing the capital.',
-        'strengths': ['Flexible', 'Good judgment', 'Moderate in all areas'],
-        'weaknesses': ['No exceptional strengths'],
-        'examples': [],  # No marshals use this yet
-    },
-    Personality.LOYAL: {
-        'name': 'Loyal',
-        'summary': 'Devoted to the Emperor',
-        'description': 'Deeply loyal and trusts the Emperor\'s judgment. '
-                      'Will follow dangerous orders with minimal objection.',
-        'strengths': ['High obedience', 'Rarely objects', 'Morale bonus'],
-        'weaknesses': ['May follow bad orders to ruin'],
-        'examples': [],  # No marshals use this yet
-    },
 }
 
 
@@ -163,21 +144,8 @@ PERSONALITY_TRIGGERS: Dict[Personality, Dict[str, float]] = {
         'change_of_plans': 0.35,              # TODO Phase 3 (see ROADMAP.md): Requires order history to detect frequent changes
     },
 
-    # Reserved — no marshals use balanced/loyal yet (1805 expansion)
-    Personality.BALANCED: {
-        'certain_death': 0.70,
-        'expose_capital': 0.55,
-        'suicidal_order': 0.65,
-        'attack_outnumbered_3to1': 0.60,
-        'abandon_allies': 0.50,
-    },
-
-    Personality.LOYAL: {
-        'suicidal_order': 0.40,
-        'certain_death': 0.55,
-        'betray_emperor': 0.95,
-        'expose_capital': 0.35,
-    },
+    # BALANCED/LOYAL: Reserved for 1805 expansion. No current marshal uses these.
+    # Trigger entries removed in Systems Audit Session 11 — add back when marshals ship.
 }
 
 

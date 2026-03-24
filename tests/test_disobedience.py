@@ -13,7 +13,7 @@ import pytest
 from backend.models.trust import Trust, calculate_obedience_chance
 from backend.models.authority import AuthorityTracker
 from backend.models.personality import (
-    Personality, get_personality, get_base_severity, PERSONALITY_TRIGGERS
+    Personality, get_personality, PERSONALITY_TRIGGERS
 )
 from backend.commands.severity import (
     calculate_objection_severity, get_severity_breakdown,
@@ -163,12 +163,12 @@ class TestPersonalityTriggers:
         severity = PERSONALITY_TRIGGERS[Personality.LITERAL].get('ambiguous_order')
         assert severity is not None
 
-    def test_loyal_minimal_triggers(self):
-        """Loyal personality has few triggers."""
-        loyal_triggers = PERSONALITY_TRIGGERS[Personality.LOYAL]
-        # Loyal marshals only object to extreme situations
-        assert 'defend' not in loyal_triggers
-        assert 'attack' not in loyal_triggers
+    def test_loyal_no_triggers(self):
+        """Loyal personality has no triggers (reserved for 1805, removed in Session 11)."""
+        loyal_triggers = PERSONALITY_TRIGGERS.get(Personality.LOYAL, {})
+        # LOYAL removed from PERSONALITY_TRIGGERS in Session 11 cleanup
+        assert loyal_triggers == {}, \
+            f"LOYAL should have no triggers (reserved for 1805), got {loyal_triggers}"
 
     def test_get_personality_conversion(self):
         """String personality converts to enum correctly."""

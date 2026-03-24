@@ -271,15 +271,16 @@ class TestBritishNavalIncome:
     """Britain gets +300 naval income per turn."""
 
     def test_naval_income_in_breakdown(self, world):
+        """Naval income scales: 150 + 50*coastal_count (max 300). Britain starts with 1 coastal (Netherlands)."""
         result = world.calculate_turn_income("Britain")
-        assert result["breakdown"]["naval_income"] == 300
+        assert result["breakdown"]["naval_income"] == 200  # 150 + 50*1
 
     def test_naval_income_added_to_total(self, world):
         result = world.calculate_turn_income("Britain")
         region_income = sum(
             d["effective_income"] for d in result["breakdown"]["region_details"]
         )
-        assert result["income"] == region_income + 300
+        assert result["income"] == region_income + 200  # 150 + 50*1 coastal
 
     def test_france_no_naval_income(self, world):
         result = world.calculate_turn_income("France")

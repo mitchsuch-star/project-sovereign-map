@@ -13,6 +13,59 @@ from typing import Dict
 from backend.models.marshal import Marshal
 from backend.models.region import TERRAIN_DEFENSE_BONUS, TERRAIN_CAVALRY_EFFECTIVENESS
 from backend.utils import ordinal
+
+
+def _build_tactical_prefix(
+    attacker, defender,
+    attacker_stance_message="", attacker_personality_message="",
+    defender_stance_message="", defender_personality_message="",
+    drill_bonus_message="", fortify_bonus_message="",
+    drilling_penalty_message="", exhaustion_message="",
+    terrain_defense_message="", cavalry_terrain_message="",
+    cavalry_counter_message="", square_cavalry_message="",
+    square_artillery_message="", glorious_charge_message="",
+):
+    """Build tactical prefix string from combat modifier messages.
+
+    Single source — called from both resolve_battle() and the secondary
+    combat path to avoid duplication (Systems Audit Session 11, P1-21).
+    """
+    prefix = ""
+    _MESSAGES = [
+        (attacker_stance_message, "\n\u2694\ufe0f "),
+        (attacker_personality_message, "\n\U0001f525 "),
+        (defender_stance_message, "\n\U0001f6e1\ufe0f "),
+        (defender_personality_message, "\n\U0001f6e1\ufe0f "),
+        (drill_bonus_message, "\n\u2694\ufe0f "),
+        (fortify_bonus_message, "\n\U0001f3f0 "),
+        (drilling_penalty_message, "\n\u26a0\ufe0f "),
+        (exhaustion_message, "\n\U0001f613 "),
+        (terrain_defense_message, "\n\U0001f3d4\ufe0f "),
+        (cavalry_terrain_message, "\n\U0001f40e "),
+        (cavalry_counter_message, "\n\U0001f40e "),
+        (square_cavalry_message, "\n\U0001f6e1\ufe0f "),
+        (square_artillery_message, "\n\U0001f4a5 "),
+    ]
+    for msg, icon in _MESSAGES:
+        if msg:
+            prefix += f"{icon}{msg}"
+    if glorious_charge_message:
+        prefix += f"\n{glorious_charge_message}"
+
+    # Combined arms (Phase 7)
+    atk_ca = getattr(attacker, '_display_combined_arms_atk', 0.0)
+    def_ca = getattr(defender, '_display_combined_arms_def', 0.0)
+    if atk_ca > 0:
+        prefix += f"\n\u2694\ufe0f {attacker.name}'s combined arms coordination! (+{int(atk_ca * 100)}% attack)"
+    if def_ca > 0:
+        prefix += f"\n\U0001f6e1\ufe0f {defender.name}'s combined arms coordination! (+{int(def_ca * 100)}% defense)"
+    atk_adj = getattr(attacker, '_display_adjacent_atk', 0.0)
+    if atk_adj > 0:
+        prefix += f"\n\u2694\ufe0f Adjacent allies bolster {attacker.name}'s attack! (+{int(atk_adj * 100)}%)"
+
+    if prefix:
+        prefix += "\n"
+    return prefix
 from backend.utils.debug import debug_print
 import random
 
@@ -570,52 +623,24 @@ class CombatResolver:
             attacker, defender, outcome, attacker_casualties, defender_casualties, attacker_roll
         )
 
-        # Prepend tactical state messages if applicable
-        tactical_prefix = ""
-        if attacker_stance_message:
-            tactical_prefix += f"\n⚔️ {attacker_stance_message}"
-        if attacker_personality_message:
-            tactical_prefix += f"\n🔥 {attacker_personality_message}"
-        if defender_stance_message:
-            tactical_prefix += f"\n🛡️ {defender_stance_message}"
-        if defender_personality_message:
-            tactical_prefix += f"\n🛡️ {defender_personality_message}"
-        if drill_bonus_message:
-            tactical_prefix += f"\n⚔️ {drill_bonus_message}"
-        if fortify_bonus_message:
-            tactical_prefix += f"\n🏰 {fortify_bonus_message}"
-        if drilling_penalty_message:
-            tactical_prefix += f"\n⚠️ {drilling_penalty_message}"
-        if exhaustion_message:
-            tactical_prefix += f"\n😓 {exhaustion_message}"
-        if terrain_defense_message:
-            tactical_prefix += f"\n🏔️ {terrain_defense_message}"
-        if cavalry_terrain_message:
-            tactical_prefix += f"\n🐴 {cavalry_terrain_message}"
-        if cavalry_counter_message:
-            tactical_prefix += f"\n🐴 {cavalry_counter_message}"
-        if square_cavalry_message:
-            tactical_prefix += f"\n🛡️ {square_cavalry_message}"
-        if square_artillery_message:
-            tactical_prefix += f"\n💥 {square_artillery_message}"
-        if glorious_charge_message:
-            tactical_prefix += f"\n{glorious_charge_message}"
-
-        # Combined arms message (Phase 7, Session 57): Read-only from transient fields
-        atk_ca = getattr(attacker, '_display_combined_arms_atk', 0.0)
-        def_ca = getattr(defender, '_display_combined_arms_def', 0.0)
-        if atk_ca > 0:
-            tactical_prefix += f"\n⚔️ {attacker.name}'s combined arms coordination! (+{int(atk_ca * 100)}% attack)"
-        if def_ca > 0:
-            tactical_prefix += f"\n🛡️ {defender.name}'s combined arms coordination! (+{int(def_ca * 100)}% defense)"
-
-        # Adjacent support message (Phase 7, Session 60): Attack-only per A-M2
-        atk_adj = getattr(attacker, '_display_adjacent_atk', 0.0)
-        if atk_adj > 0:
-            tactical_prefix += f"\n⚔️ Adjacent allies bolster {attacker.name}'s attack! (+{int(atk_adj * 100)}%)"
-
-        if tactical_prefix:
-            tactical_prefix += "\n"
+        # Prepend tactical state messages (shared helper — P1-21 dedup)
+        tactical_prefix = _build_tactical_prefix(
+            attacker, defender,
+            attacker_stance_message=attacker_stance_message,
+            attacker_personality_message=attacker_personality_message,
+            defender_stance_message=defender_stance_message,
+            defender_personality_message=defender_personality_message,
+            drill_bonus_message=drill_bonus_message,
+            fortify_bonus_message=fortify_bonus_message,
+            drilling_penalty_message=drilling_penalty_message,
+            exhaustion_message=exhaustion_message,
+            terrain_defense_message=terrain_defense_message,
+            cavalry_terrain_message=cavalry_terrain_message,
+            cavalry_counter_message=cavalry_counter_message,
+            square_cavalry_message=square_cavalry_message,
+            square_artillery_message=square_artillery_message,
+            glorious_charge_message=glorious_charge_message,
+        )
 
         # ════════════════════════════════════════════════════════════════
         # FORCED RETREAT CHECK: Armies with critically low morale must retreat
@@ -1086,48 +1111,23 @@ class CombatResolver:
         base_description = self._generate_description(
             attacker, defender, outcome, attacker_casualties, defender_casualties, attacker_roll
         )
-        tactical_prefix = ""
-        if attacker_stance_message:
-            tactical_prefix += f"\n⚔️ {attacker_stance_message}"
-        if attacker_personality_message:
-            tactical_prefix += f"\n🔥 {attacker_personality_message}"
-        if defender_stance_message:
-            tactical_prefix += f"\n🛡️ {defender_stance_message}"
-        if defender_personality_message:
-            tactical_prefix += f"\n🛡️ {defender_personality_message}"
-        if drill_bonus_message:
-            tactical_prefix += f"\n⚔️ {drill_bonus_message}"
-        if fortify_bonus_message:
-            tactical_prefix += f"\n🏰 {fortify_bonus_message}"
-        if drilling_penalty_message:
-            tactical_prefix += f"\n⚠️ {drilling_penalty_message}"
-        if exhaustion_message:
-            tactical_prefix += f"\n😓 {exhaustion_message}"
-        if terrain_defense_message:
-            tactical_prefix += f"\n🏔️ {terrain_defense_message}"
-        if cavalry_terrain_message:
-            tactical_prefix += f"\n🐴 {cavalry_terrain_message}"
-        if cavalry_counter_message:
-            tactical_prefix += f"\n🐴 {cavalry_counter_message}"
-        if square_cavalry_message:
-            tactical_prefix += f"\n🛡️ {square_cavalry_message}"
-        if square_artillery_message:
-            tactical_prefix += f"\n💥 {square_artillery_message}"
-        if glorious_charge_message:
-            tactical_prefix += f"\n{glorious_charge_message}"
-
-        # Combined arms messages (Phase 7)
-        atk_ca = getattr(attacker, '_display_combined_arms_atk', 0.0)
-        def_ca = getattr(defender, '_display_combined_arms_def', 0.0)
-        if atk_ca > 0:
-            tactical_prefix += f"\n⚔️ {attacker.name}'s combined arms coordination! (+{int(atk_ca * 100)}% attack)"
-        if def_ca > 0:
-            tactical_prefix += f"\n🛡️ {defender.name}'s combined arms coordination! (+{int(def_ca * 100)}% defense)"
-        atk_adj = getattr(attacker, '_display_adjacent_atk', 0.0)
-        if atk_adj > 0:
-            tactical_prefix += f"\n⚔️ Adjacent allies bolster {attacker.name}'s attack! (+{int(atk_adj * 100)}%)"
-        if tactical_prefix:
-            tactical_prefix += "\n"
+        tactical_prefix = _build_tactical_prefix(
+            attacker, defender,
+            attacker_stance_message=attacker_stance_message,
+            attacker_personality_message=attacker_personality_message,
+            defender_stance_message=defender_stance_message,
+            defender_personality_message=defender_personality_message,
+            drill_bonus_message=drill_bonus_message,
+            fortify_bonus_message=fortify_bonus_message,
+            drilling_penalty_message=drilling_penalty_message,
+            exhaustion_message=exhaustion_message,
+            terrain_defense_message=terrain_defense_message,
+            cavalry_terrain_message=cavalry_terrain_message,
+            cavalry_counter_message=cavalry_counter_message,
+            square_cavalry_message=square_cavalry_message,
+            square_artillery_message=square_artillery_message,
+            glorious_charge_message=glorious_charge_message,
+        )
 
         from backend.game_logic.battle_report import generate_battle_report
 

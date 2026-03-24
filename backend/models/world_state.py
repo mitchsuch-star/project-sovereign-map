@@ -48,6 +48,7 @@ URBAN_ARTILLERY_REGEN = 200            # Bonus per urban region controlled (arse
 MAX_INFANTRY_POOL = 100000             # Pool cap
 MAX_CAVALRY_POOL = 30000               # Pool cap
 MAX_ARTILLERY_POOL = 20000             # Pool cap
+VICTORY_REGION_FRACTION = 0.75         # Fraction of regions needed for victory (Session 12)
 
 # Default starting pools (also used for backward compat)
 DEFAULT_MANPOWER_POOLS = {
@@ -2055,8 +2056,14 @@ class WorldState:
             })
 
         # British naval income — abstracted trade dominance / colonial revenue
-        # Requires at least 1 controlled region (dead nation gets nothing)
-        naval_income = 300 if nation == "Britain" and len(nation_regions) > 0 else 0
+        # Scales with coastal regions controlled: base 150 + 50 per coastal region, cap 300
+        # (Session 12 QoL: rewards Britain for maintaining a continental foothold)
+        COASTAL_REGIONS = {"Netherlands", "Normandy", "Brittany", "Bordeaux", "Marseille"}
+        if nation == "Britain" and len(nation_regions) > 0:
+            coastal_count = sum(1 for r in nation_regions if r in COASTAL_REGIONS)
+            naval_income = min(300, 150 + 50 * coastal_count)
+        else:
+            naval_income = 0
         total_income += naval_income
         # TODO: Trade income (deferred to Session 2)
 
@@ -2194,6 +2201,13 @@ class WorldState:
             if region.terrain == "urban":
                 art_regen += URBAN_ARTILLERY_REGEN
 
+        # War exhaustion penalty on infantry regen (Session 12 QoL)
+        # At 100 WE = halved, at 200 WE = zero. Cavalry/artillery not scaled (already bottlenecked).
+        we = getattr(self, 'war_exhaustion', {}).get(nation, 0)
+        if we > 0:
+            we_penalty = min(1.0, we / 200.0)  # 0.0 → 1.0
+            inf_regen = max(1000, int(inf_regen * (1.0 - we_penalty)))
+
         return {
             "infantry": int(inf_regen),
             "cavalry": int(cav_regen),
@@ -2252,7 +2266,7 @@ class WorldState:
             so return 0 here to avoid double-counting.
         """
         if nation == self.player_nation:
-            return int(getattr(self, 'admin_actions_remaining', 0) * 35)
+            return int(getattr(self, 'admin_actions_remaining', 0) * 25)
         # AI nations: bonus applied in enemy_ai.execute_admin_phase()
         return 0
 
@@ -3773,19 +3787,20 @@ class WorldState:
         self.reset_attack_tracking()
 
         # ════════════════════════════════════════════════════════════
-        # AI FUTILITY DECAY (Session 8 balance): -1 every 3 turns
-        # Also reset if defender dropped below 50% starting strength
+        # AI FUTILITY DECAY (Session 12 QoL): -1 every turn
+        # Allows AI to retry targets after situation changes (fort degrades,
+        # reinforcements arrive). Replaces Session 8's every-3-turn decay.
+        # Also reset if defender dropped below 50% starting strength.
         # ════════════════════════════════════════════════════════════
-        if self.current_turn % 3 == 0:
-            expired = []
-            for key, count in self.ai_attack_futility.items():
-                new_count = count - 1
-                if new_count <= 0:
-                    expired.append(key)
-                else:
-                    self.ai_attack_futility[key] = new_count
-            for key in expired:
-                self.ai_attack_futility.pop(key, None)
+        expired = []
+        for key, count in self.ai_attack_futility.items():
+            new_count = count - 1
+            if new_count <= 0:
+                expired.append(key)
+            else:
+                self.ai_attack_futility[key] = new_count
+        for key in expired:
+            self.ai_attack_futility.pop(key, None)
 
         # Reset futility if defender weakened (below 50% starting strength)
         reset_keys = []
@@ -3856,7 +3871,7 @@ class WorldState:
         if self.current_turn > self.max_turns:
             self.game_over = True
             player_regions = len(self.get_player_regions())
-            victory_threshold = 14  # Consolidated from inconsistent 14/15 (Session 8 balance)
+            victory_threshold = max(1, int(len(self.regions) * VICTORY_REGION_FRACTION))
             if player_regions >= victory_threshold:
                 self.victory = "victory"
             else:

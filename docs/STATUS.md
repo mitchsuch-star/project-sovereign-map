@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 24, 2026 (Systems Audit Session 10: battle report + Godot UX)
+> **Last Updated:** March 24, 2026 (Systems Audit Sessions 11-12: cleanup + QoL)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **6865** (6865 passed, 3 skipped — systems audit session 10) |
+| **Tests Passing** | **6904** (6904 passed, 3 skipped — systems audit sessions 11-12) |
 
 | **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
@@ -37,7 +37,7 @@
 7. ~~**Diplomacy Refinement Phases 1-4**~~ — **COMPLETE** (55 items, 326 tests).
 8. **Diplomacy Design Fixes** — DA-1, DA-2, DA-4 DONE. DA-3 (offensive cascade + friction) remaining. See `docs/DIPLOMACY_DESIGN_FIXES.md`.
 11. ~~**Deep Audit Fix Plan**~~ — **ALL 9 SESSIONS COMPLETE.** 43 bugs fixed, 129 new tests. See `docs/DEEP_AUDIT_FIX_PLAN.md`.
-12. **Systems Audit Fix Plan** — **IN PROGRESS.** Sessions 1-10 COMPLETE. Sessions 11-12 remaining (11: Cleanup/Placeholders/Docs, 12: QoL). Sessions 13-14 optional (architecture refactoring). See `docs/SYSTEMS_AUDIT_FIX_PLAN.md`.
+12. ~~**Systems Audit Fix Plan**~~ — **ALL 12 CORE SESSIONS COMPLETE.** ~148 findings fixed, 193 new tests (6904 total). Sessions 13-14 optional (architecture refactoring). See `docs/SYSTEMS_AUDIT_FIX_PLAN.md`.
 9. **Jealousy system** — NEEDS DESIGN GATE (separate track). See CLAUDE.md.
 10. **Phase 6.5 remaining** — Map Renderer only (art-blocked). Tutorial deferred to Pre-EA.
 
@@ -63,6 +63,15 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Mar 24 — Systems Audit Sessions 11-12: Cleanup + QoL (12 fixes, 39 new tests)
+
+**Session 11 (Cleanup/Placeholders/Docs):** Removed BALANCED/LOYAL personality descriptions and triggers (kept enum for serialization). Archived enemy AI bug fix history to `docs/archive/`. Added 50-notification cap with auto-dismiss of oldest NORMAL. Extracted `_build_tactical_prefix()` helper eliminating combat.py duplication. Added DiplomaticRepresentative roundtrip serialization tests. 19 new tests.
+
+**Session 12 (Quality of Life):** Futility filter now decays per-turn instead of every 3 turns. Victory threshold extracted to `VICTORY_REGION_FRACTION = 0.75` constant (shared between world_state.py and turn_manager.py). British naval income scales with coastal regions (150 + 50/coastal, max 300). Infantry manpower regen reduced by war exhaustion (halved at 100 WE, floor 1000). Admin AP gold reduced from 35g to 25g. AI stagnation fallback uses random.choice instead of deterministic first. 20 new tests, 9 existing updated.
+
+**Files modified:** personality.py, notifications.py, combat.py, world_state.py, turn_manager.py, enemy_ai.py + 2 new test files + 6 existing test files + 1 archived doc.
+**6904 tests passing** (6904 passed, 3 skipped, 0 regressions).
 
 ### Mar 22 — N4 War Status Panel (DA-4: 3-layer HUD, 10 files, 32 tests)
 

@@ -246,14 +246,14 @@ class TestSupplyStackingPenalty:
 # ═══════════════════════════════════════════════════════════════════
 
 class TestAdminAPGold:
-    """Admin AP conversion now 35g per unused AP (was 75g)."""
+    """Admin AP conversion now 25g per unused AP (was 35g in S8, 75g originally)."""
 
-    def test_admin_bonus_35g_per_ap(self):
-        """Each unused admin AP converts to 35g."""
+    def test_admin_bonus_25g_per_ap(self):
+        """Each unused admin AP converts to 25g (Session 12)."""
         world = _fresh_world()
         world.admin_actions_remaining = 3
         bonus = world._calculate_admin_bonus(world.player_nation)
-        assert bonus == 3 * 35  # 105g
+        assert bonus == 3 * 25  # 75g
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -261,14 +261,13 @@ class TestAdminAPGold:
 # ═══════════════════════════════════════════════════════════════════
 
 class TestVictoryThreshold:
-    """Victory requires 14 regions (consolidated from inconsistent 14/15)."""
+    """Victory requires 75% of regions (VICTORY_REGION_FRACTION), i.e. 14 of 19."""
 
-    def test_victory_threshold_is_14(self):
-        """Victory threshold is hardcoded to 14 in _advance_turn_internal."""
-        # Verify the constant is 14 by checking source code contains it
-        import inspect
-        source = inspect.getsource(WorldState._advance_turn_internal)
-        assert "victory_threshold = 14" in source
+    def test_victory_threshold_constant_exists(self):
+        """VICTORY_REGION_FRACTION is 0.75 and produces threshold of 14 for 19 regions."""
+        from backend.models.world_state import VICTORY_REGION_FRACTION
+        assert VICTORY_REGION_FRACTION == 0.75
+        assert int(19 * VICTORY_REGION_FRACTION) == 14
 
     def test_14_regions_less_than_total(self):
         """14 is achievable — less than total 19 regions."""
@@ -309,11 +308,11 @@ class TestBritishNavalIncome:
     """British naval income requires at least 1 controlled region."""
 
     def test_britain_with_regions_gets_naval_income(self):
-        """Britain with regions gets 300g naval income."""
+        """Britain with regions gets 200g naval income (150 + 50*1 coastal)."""
         world = _fresh_world()
         result = world.calculate_turn_income("Britain")
         naval = result["breakdown"]["naval_income"]
-        assert naval == 300
+        assert naval == 200  # 150 + 50*1 (Netherlands is the only coastal region)
 
     def test_britain_without_regions_no_naval_income(self):
         """Britain with 0 regions gets 0 naval income."""

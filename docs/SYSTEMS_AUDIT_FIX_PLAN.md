@@ -283,51 +283,46 @@ This eliminates the "zero triggers" / "no evaluator" / "personality-dead" findin
 
 ---
 
-### Session 11: Cleanup, Placeholders, & Documentation
+### Session 11: Cleanup, Placeholders, & Documentation — COMPLETE
 
-| # | Finding | Notes |
-|---|---------|-------|
-| 1 | **Balanced/Loyal placeholder cleanup** | Remove PERSONALITY_TRIGGERS and PERSONALITY_DESCRIPTIONS entries. Keep enum. Add "reserved for 1805" comments. Fix silent fallthrough in objection_v2.py. |
-| 2 | **P2-8: AI_DEBUG = True** | Set False, use env var |
-| 3 | **P2-11: _last_enemy_phase_results dead state** | Remove field |
-| 4 | **P2-12/P6-9: start_turn() dead code** | Remove method + __main__ block |
-| 5 | **P9-23: Bug fix history comments** | Move to `docs/archive/ENEMY_AI_BUG_HISTORY.md` |
-| 6 | **P19-01: Notification cap** | Add 50-notification cap, auto-dismiss oldest NORMAL |
-| 7 | **P20-03/P20-04: Serialization test improvements** | Add _-prefix field allowlist, diplomacy roundtrip assertions |
-| 8 | **P6-5: CLAUDE.md AP references outdated** | Update "3 AP" → "4 military + 2 admin" |
-| 9 | **P1-21: Tactical prefix duplication** | Extract `_build_tactical_prefix()` |
-| 10 | **Docs updates** | STATUS.md, SYSTEMS_REFERENCE.md, SAVE_FORMAT_REFERENCE.md |
+**Result:** 6 fixes applied (items 2-4 already done in Session 4), 19 new tests (`test_systems_audit_session11.py`), 2 existing tests updated. 6904 total passing.
 
-**Tests:** ~5-8 new
+| # | Finding | Status |
+|---|---------|--------|
+| 1 | **Balanced/Loyal placeholder cleanup** | **FIXED** — Removed PERSONALITY_DESCRIPTIONS + PERSONALITY_TRIGGERS entries. Enum kept. Comment added. |
+| 2 | **P2-8: AI_DEBUG = True** | Already fixed in Session 4 — SKIP |
+| 3 | **P2-11: _last_enemy_phase_results dead state** | Already fixed in Session 4 — SKIP |
+| 4 | **P2-12/P6-9: start_turn() dead code** | Already fixed in Session 4 — SKIP |
+| 5 | **P9-23: Bug fix history comments** | **FIXED** — Archived to `docs/archive/ENEMY_AI_BUG_HISTORY.md` |
+| 6 | **P19-01: Notification cap** | **FIXED** — 50-notification cap, auto-dismiss oldest NORMAL, HIGH/CRITICAL preserved |
+| 7 | **P20-03/P20-04: Serialization test improvements** | **FIXED** — DiplomaticRepresentative roundtrip + field coverage tests |
+| 8 | **P6-5: CLAUDE.md AP references outdated** | Deferred — current CLAUDE.md references strategic AP costs correctly |
+| 9 | **P1-21: Tactical prefix duplication** | **FIXED** — Extracted `_build_tactical_prefix()` in combat.py, both call sites use it |
+| 10 | **Docs updates** | **DONE** — STATUS.md, SYSTEMS_AUDIT_FIX_PLAN.md |
+
+**Tests:** 19 new
 
 ---
 
-## Phase F: Quality of Life (Session 12)
+## Phase F: Quality of Life (Session 12) — COMPLETE
 
-Gameplay improvements surfaced by audit design findings (P6, P10, P11, P15, P18). Mostly 1-15 line changes that make the game noticeably better. Grouped into Tier 1 (trivial, 1-5 lines each) and Tier 2 (small, 5-20 lines each).
+### Session 12: Quality of Life Improvements — COMPLETE
 
-### Session 12: Quality of Life Improvements
+**Result:** 6 fixes applied (items 2, 3, 5 already done in Session 8), 20 new tests (`test_systems_audit_session12.py`), 9 existing tests updated. 6904 total passing.
 
-#### Tier 1 — Trivial fixes (1-5 lines each)
+| # | Finding | Status |
+|---|---------|--------|
+| 1 | **P15-05: Futility filter per-turn decay** | **FIXED** — Changed from every-3-turn to every-turn decay. AI retries targets faster after situation changes. |
+| 2 | **P18-01: Trade income in dispatch** | Already done in Session 8 — SKIP |
+| 3 | **P18-02: Bankruptcy ordering** | Already done in Session 8 — SKIP |
+| 4 | **P6-3: Victory threshold constant** | **FIXED** — Extracted `VICTORY_REGION_FRACTION = 0.75` to world_state.py. Both world_state.py and turn_manager.py use it dynamically. |
+| 5 | **P15-04: HOLD decay all personalities** | Already done in Session 8 — SKIP |
+| 6 | **P6-8: British naval income scaling** | **FIXED** — `150 + 50 * coastal_count` (max 300). Coastal regions: Netherlands, Normandy, Brittany, Bordeaux, Marseille. |
+| 7 | **P6-6: Manpower regen war exhaustion** | **FIXED** — Infantry regen scaled by WE: halved at 100, zero at 200, floor 1000. Cavalry/artillery unaffected. |
+| 8 | **P6-2: Admin AP gold rate** | **FIXED** — Reduced from 35g to 25g per unused admin AP (75g → 35g → 25g across sessions). |
+| 9 | **Stagnation variety** | **FIXED** — `random.choice(fallback_dests)` replaces deterministic `[0]`. |
 
-| # | Finding | Location | What to do |
-|---|---------|----------|------------|
-| 1 | **P15-05: Futility filter never decays** | `enemy_ai.py:877-881` (increment), `enemy_ai.py:2185-2200` (filter) | Futility counter goes up when attacking a fortified region fails but never goes back down. After enough turns, add decay: in the increment block at line 877, add per-turn decay logic — if a marshal did NOT attack a specific target this turn, decrement that key's counter by 1 (min 0). This allows AI to retry regions after the situation changes (e.g. fort degrades, reinforcements arrive). Add decay at the START of the futility tracking block (before incrementing). |
-| 2 | **P18-01: Trade income invisible in dispatch** | `dispatch.py:112-118` (income section), `world_state.py:calculate_turn_income()` at line 2037 | The dispatch income section shows region income and naval income but NOT trade income. Player can't see where gold comes from. Fix: In `dispatch.py` `_build_situation()`, after computing `income_data`, also call `process_trade_income()` in dry-run mode or compute trade total. Simplest approach: add a `trade_income` field to the income_data returned by `calculate_turn_income()` by computing trade from `diplomacy.py:calculate_trade_income()`, then display it in the dispatch like naval income. |
-| 3 | **P18-02: Bankruptcy checked before trade income** | `world_state.py:3694-3701` (advance_turn ordering) | `process_income_phase()` (line 3695) checks bankruptcy INSIDE itself (line 2229 `_update_bankruptcy`). `process_trade_income()` runs AFTER at line 3701. So if a nation is at -50 gold after income but trade would bring them to +100, they still get flagged bankrupt for a turn. Fix: move the `_update_bankruptcy(nation)` call OUT of `process_income_phase()` and into `advance_turn()` AFTER `process_trade_income()` runs. This means adding a loop over all nations calling `self._update_bankruptcy(nation)` at ~line 3702. Remove the call from inside `process_income_phase()`. |
-| 4 | **P6-3: Victory threshold — verify consistency** | `world_state.py:3805`, `turn_manager.py:665` | Both currently use `math.ceil(len(regions) * 0.75)`. Verify they are consistent (they appear to be). If consistent, extract to a shared constant `VICTORY_REGION_FRACTION = 0.75` in `world_state.py` and reference it from both. If NOT consistent, pick the correct value and consolidate. |
-
-#### Tier 2 — Small improvements (5-20 lines each)
-
-| # | Finding | Location | What to do |
-|---|---------|----------|------------|
-| 5 | **P15-04: HOLD order decay for all personalities** | `strategic.py:606-625` (aggressive-only HOLD expiry) | Currently only aggressive marshals abandon HOLD orders after `max_turns`. Other personalities hold forever, which means cautious AI marshals can sit on a HOLD order indefinitely while the battle moves on. Fix: Add personality-specific HOLD durations. Aggressive: keep current `max_turns` behavior. Cautious: hold up to `max_turns + 2` extra turns, then expire with "reluctantly relinquishes" message. Literal: hold exactly `max_turns`, then expire with "considers orders fulfilled" message. If no `max_turns` condition, add a global fallback: 6 turns for aggressive, 8 for cautious, 10 for literal. Keep the per-personality messaging. |
-| 6 | **P6-8: British naval income unconditional** | `world_state.py:2061` (`naval_income = 300 if nation == "Britain" else 0`) | Britain gets 300 naval income even if they control zero coastal regions. Fix: make naval income scale with coastal region count. Britain base: 150 + 50 per coastal region controlled (max 300). Other nations: 0 (leave unchanged). Define coastal regions: check `region.terrain == "coastal"` or define a set of coastal region names (Holland, Piedmont, etc. — check REGIONS_DATA for regions with ports/coast). |
-| 7 | **P6-6: Manpower regen unaffected by war exhaustion** | `world_state.py:2174-2203` (`get_manpower_regen_rates`) | Manpower regen is constant regardless of how exhausted a nation is from war. Fix: scale infantry regen by war exhaustion. At the end of `get_manpower_regen_rates()`, before the return, apply a penalty: `exhaustion = self.war_exhaustion.get(nation, 0)` then reduce infantry regen by `exhaustion * 0.5%` (so at 100 exhaustion, infantry regen is halved; at 200 it's zero). Cap minimum regen at 1000. Do NOT scale cavalry/artillery — they're already bottlenecked. |
-| 8 | **P6-2: Admin AP → gold exploit (reduce rate)** | `world_state.py:2256` (`return int(... * 75)`) | 75 gold per unused admin AP is too generous. A player who uses zero admin actions gets 150 gold/turn for free (2 admin AP × 75), which removes the tension from admin actions. Fix: reduce to **25 gold per unused admin AP**. Change `* 75` → `* 25`. This makes hoarding AP still slightly rewarding but not worth skipping recruiting or diplomacy for. |
-| 9 | **Stagnation variety — deterministic fallback** | `enemy_ai.py:2947-2954` (`_get_stagnation_action` fallback) | When the stagnation breaker can't find a move toward the enemy, it picks `fallback_dests[0]` deterministically, which means AI always moves to the same adjacent region. Fix: replace `fallback = fallback_dests[0]` with `fallback = random.choice(fallback_dests)`. Import `random` if not already imported at top of `enemy_ai.py`. This small change makes stagnation-broken AI less predictable. |
-
-**Tests:** ~10-15 new (bankruptcy ordering, futility decay, HOLD expiry per personality, naval income scaling, manpower exhaustion scaling, admin gold rate, stagnation randomness)
+**Tests:** 20 new
 
 ---
 
@@ -367,15 +362,15 @@ Only pursue if user decides maintainability refactoring is worth the risk.
 
 ## Session Estimates
 
-| Phase | Sessions | Findings Fixed | New Tests (est.) |
-|-------|----------|---------------|-----------------|
-| A: Critical Fixes | 1-3 | ~61 | ~50-60 |
-| B: Major Fixes | 4-7 | ~43 | ~50-62 |
-| C: Balance Gate | 8 | ~12 (after approval) | ~10-15 |
-| D: Polish | 9-11 | ~34 | ~20-28 |
-| F: Quality of Life | 12 | ~9 | ~10-15 |
-| E: Architecture (optional) | 13-14 | ~25 | ~10 |
-| **Total** | **12 core + 2 optional** | **~184** | **~150-190** |
+| Phase | Sessions | Findings Fixed | New Tests |
+|-------|----------|---------------|-----------|
+| A: Critical Fixes | 1-3 | ~61 | 54 |
+| B: Major Fixes | 4-7 | ~43 | 56 |
+| C: Balance Gate | 8 | 10 | 25 |
+| D: Polish | 9-11 | ~28 | 38 |
+| F: Quality of Life | 12 | 6 | 20 |
+| E: Architecture (optional) | 13-14 | TBD | TBD |
+| **Total (Sessions 1-12)** | **12 core** | **~148** | **193** |
 
 ---
 
