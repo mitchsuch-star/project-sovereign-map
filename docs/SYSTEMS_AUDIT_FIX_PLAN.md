@@ -136,29 +136,26 @@ This eliminates the "zero triggers" / "no evaluator" / "personality-dead" findin
 
 ## Phase B: Major Bug Fixes (Sessions 4-7)
 
-### Session 4: AI System Bugs
+### Session 4: AI System Bugs — COMPLETE
 
 **Theme:** Enemy AI behavior bugs that affect gameplay quality.
+**Result:** 5 fixes, 6 false positives skipped, 12 new tests (6753 → 6765).
 
-| # | Finding | Evaluate | Risk |
-|---|---------|----------|------|
-| 1 | **P2-2: Missing is_at_war in 7+ locations** | Check each location — are neutrals actually causing problems in current diplomatic start? | Medium — could change AI behavior in diplomatic scenarios |
-| 2 | **P2-3: Zero error handling in enemy phase** | Check if crashes actually happen in testing | Medium — try/except could mask real bugs |
-| 3 | **P2-4: 2-AP stance transitions not budgeted** | Verify AP cost table for Def→Agg | Low |
-| 4 | **P2-5: Cooldowns decrement per-nation (3x fast)** | Verify per-nation vs per-turn loop structure | Low |
-| 5 | **P2-6: Overwatch self-counts target** | Verify missing name exclusion | Low |
-| 6 | **P2-7: Raw personality instead of effective** | Verify `_get_effective_personality` exists and differs | Low |
-| 7 | **P2-8: AI_DEBUG = True hardcoded** | Trivial | None |
-| 8 | **P2-9: Vassal courting events silently discarded** | Verify events generated but never stored | Low |
-| 9 | **P2-10: Capital proximity no dedup** | Verify repeated alerts | Low |
-| 10 | **P2-11: _last_enemy_phase_results dead state** | Verify never read | None |
-| 11 | **P2-12/P6-9: start_turn() dead code** | Verify never called in production | None |
+| # | Finding | Result |
+|---|---------|--------|
+| 1 | **P2-2: Missing is_at_war in 7+ locations** | **SKIP** — False positive. 30+ `is_at_war()` checks exist; `get_enemies_of_nation()` gatekeeps all targets. |
+| 2 | **P2-3: Zero error handling in enemy phase** | **FIXED** — try/except around nation processing in turn_manager.py. Crash in one nation logs traceback and continues. |
+| 3 | **P2-4: 2-AP stance transitions not budgeted** | **SKIP** — Executor enforces AP at execution time; failed-action tracking handles rejected attempts. |
+| 4 | **P2-5: Cooldowns decrement per-nation (3x fast)** | **SKIP** — False positive. `_decrement_cooldowns()` called once per nation turn, correct behavior. |
+| 5 | **P2-6: Overwatch self-counts target** | **SKIP** — False positive. Checks `m.nation != attacker.nation`, correctly excludes target. |
+| 6 | **P2-7: Raw personality instead of effective** | **SKIP** — False positive. AI uses `_get_effective_personality()` consistently. |
+| 7 | **P2-8: AI_DEBUG = True hardcoded** | **FIXED** — Now reads `AI_DEBUG` env var (default False). |
+| 8 | **P2-9: Vassal courting events silently discarded** | **SKIP** — Not a bug. Notifications + dispatch events already created. Confirmed with test. |
+| 9 | **P2-10: Capital proximity no dedup** | **FIXED** — Tracks `_capital_proximity_last_alert` per enemy; suppresses within 3 turns. |
+| 10 | **P2-11: _last_enemy_phase_results dead state** | **FIXED** — Removed field from WorldState and write from turn_manager.py. |
+| 11 | **P2-12/P6-9: start_turn() dead code** | **FIXED** — Removed `start_turn()` and `_generate_situation_report()` from TurnManager. Updated __main__ doctest. |
 
-**P2-2 needs most care:** At game start, France is at war with Britain+Prussia but not Austria/Saxony. If AI is already checking war status in attack decisions, adding is_at_war to defender/presence checks is correct. But verify: does Austria ever have marshals adjacent to French marshals at start? If not, the bug is dormant.
-
-**P2-3 approach:** Use try/except with `logging.error()` + continue, NOT silent pass. Log the full traceback so bugs surface in testing.
-
-**Tests:** ~15-20 new
+**Tests:** 12 new in `tests/test_systems_audit_session4.py`
 
 ---
 

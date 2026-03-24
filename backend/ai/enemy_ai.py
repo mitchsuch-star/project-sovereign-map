@@ -110,8 +110,9 @@ from backend.models.marshal import Marshal, Stance
 #   Fix: Cap at min(fortify_bonus, 0.20) in _evaluate_target_ratio()
 # ═══════════════════════════════════════════════════════════════════
 
-# Debug flag - set to True to enable detailed AI decision logging
-AI_DEBUG = True
+# Debug flag - enable with AI_DEBUG=1 env var for detailed AI decision logging
+import os as _os  # noqa: E402
+AI_DEBUG = _os.environ.get("AI_DEBUG", "").lower() in ("1", "true", "yes")
 
 # AI Scoring flag - enables strategic scoring for AI actions (Phase 5)
 # Set to False to disable for performance testing

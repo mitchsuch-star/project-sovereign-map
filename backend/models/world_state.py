@@ -260,9 +260,6 @@ class WorldState:
         # Completed battles for history/narrative
         self.battle_history: List[Dict] = []
 
-        # Store last enemy phase results for frontend display
-        self._last_enemy_phase_results: Optional[Dict] = None
-
         # ============================================================
         # COMMAND HISTORY (Phase 5) - For LLM repetition detection
         # ============================================================

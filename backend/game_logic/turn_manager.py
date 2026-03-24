@@ -42,30 +42,6 @@ class TurnManager:
         self.world = world
         self.executor = executor  # CommandExecutor for strategic orders (Phase 5.2)
 
-    def start_turn(self) -> Dict:
-        """
-        Start a new turn.
-
-        Returns:
-            Turn summary with income and events
-        """
-        # Apply income
-        income_data = self.world.apply_turn_income()
-
-        # Check for events (future: random events, reinforcements, etc.)
-        events = []
-
-        # Generate situation report
-        situation_report = self._generate_situation_report()
-
-        return {
-            "turn": self.world.current_turn,
-            "income": income_data,
-            "events": events,
-            "situation": situation_report,
-            "message": f"Turn {self.world.current_turn} begins"
-        }
-
     def end_turn(self, game_state: Optional[Dict] = None) -> Dict:
         """
         End turn and advance.
@@ -108,8 +84,6 @@ class TurnManager:
         enemy_phase_results = None
         if game_state:
             enemy_phase_results = self._process_enemy_turns(game_state)
-            # Store for later retrieval if needed
-            self.world._last_enemy_phase_results = enemy_phase_results
 
             # BUG #2 FIX: Check if enemy achieved victory during their turn
             if enemy_phase_results and enemy_phase_results.get("enemy_victory"):
@@ -545,15 +519,21 @@ class TurnManager:
 
                 continue
 
-            # Process this nation's turn
-            nation_results = ai.process_nation_turn(nation, self.world, game_state)
+            # Process this nation's turn (wrapped for resilience)
+            try:
+                nation_results = ai.process_nation_turn(nation, self.world, game_state)
 
-            # ════════════════════════════════════════════════════════════
-            # AI ADMIN PHASE (Phase 6.2.G): Economic actions after military
-            # ════════════════════════════════════════════════════════════
-            admin_results = ai.execute_admin_phase(nation, self.world, game_state)
-            if admin_results:
-                nation_results.extend(admin_results)
+                # ════════════════════════════════════════════════════════════
+                # AI ADMIN PHASE (Phase 6.2.G): Economic actions after military
+                # ════════════════════════════════════════════════════════════
+                admin_results = ai.execute_admin_phase(nation, self.world, game_state)
+                if admin_results:
+                    nation_results.extend(admin_results)
+            except Exception:
+                import traceback
+                debug_print(f"[ERROR] {nation} turn crashed: {traceback.format_exc()}")
+                nation_results = []
+                admin_results = []
 
             results["nations"][nation] = {
                 "actions": nation_results,
@@ -673,36 +653,18 @@ class TurnManager:
                 }
         return None
 
-    def _generate_situation_report(self) -> Dict:
-        """Generate situation report for player."""
-        player_regions = self.world.get_player_regions()
-        player_marshals = self.world.get_player_marshals()
-
-        # Calculate total military strength
-        total_strength = sum(m.strength for m in player_marshals)
-        avg_morale = sum(m.morale for m in player_marshals) / len(player_marshals) if player_marshals else 0
-
-        return {
-            "regions_controlled": len(player_regions),
-            "total_military_strength": total_strength,
-            "average_morale": int(avg_morale),
-            "marshals": [
-                {
-                    "name": m.name,
-                    "location": m.location,
-                    "strength": m.strength,
-                    "morale": m.morale
-                }
-                for m in player_marshals
-            ]
-        }
-
     def _check_capital_proximity(self) -> list:
         """
         Check if any enemy marshal is adjacent to the player's capital.
         Returns list of alert events.
+
+        Dedup: Only alerts if the enemy marshal hasn't triggered an alert
+        in the last 3 turns (prevents spam when enemy sits near capital).
         """
         alerts = []
+        last_alerts = getattr(self.world, '_capital_proximity_last_alert', {})
+        current_turn = self.world.current_turn
+
         for region in self.world.regions.values():
             if not region.is_capital:
                 continue
@@ -717,6 +679,11 @@ class TurnManager:
                     and m.strength > 0
                 ]
                 for enemy in enemies_adj:
+                    key = f"{enemy.name}|{region.name}"
+                    last_turn = last_alerts.get(key, -99)
+                    if current_turn - last_turn < 3:
+                        continue  # Suppress repeat within 3 turns
+                    last_alerts[key] = current_turn
                     alerts.append({
                         "type": "capital_proximity_alert",
                         "capital": region.name,
@@ -728,6 +695,8 @@ class TurnManager:
                             f"{enemy.name} ({enemy.strength:,} troops) at {adj_name}."
                         )
                     })
+
+        self.world._capital_proximity_last_alert = last_alerts
         return alerts
 
     def _check_victory_conditions(self) -> Dict:
@@ -812,19 +781,11 @@ if __name__ == "__main__":
     debug_print(f"\nStarting state: {world}")
     debug_print(f"Gold: {world.gold}")
 
-    # Test Turn 1
+    # Test Turn 1 — end turn directly (start_turn removed as dead code)
     debug_print("\n" + "=" * 70)
     debug_print("TURN 1")
     debug_print("=" * 70)
 
-    start = turn_manager.start_turn()
-    debug_print(f"\n{start['message']}")
-    debug_print(f"Income: {start['income']['income']} gold")
-    debug_print(f"Regions: {start['situation']['regions_controlled']}")
-    debug_print(f"Military: {start['situation']['total_military_strength']:,}")
-    debug_print(f"Morale: {start['situation']['average_morale']}%")
-
-    # End turn
     end = turn_manager.end_turn()
     debug_print(f"\n{end['message']}")
     debug_print(f"Next turn: {end['next_turn']}")
@@ -835,8 +796,8 @@ if __name__ == "__main__":
     debug_print("TURN 2")
     debug_print("=" * 70)
 
-    start = turn_manager.start_turn()
-    debug_print(f"\n{start['message']}")
+    end = turn_manager.end_turn()
+    debug_print(f"\n{end['message']}")
     debug_print(f"Gold: {world.gold}")
 
     # Test victory check by simulating loss of Paris
@@ -857,7 +818,5 @@ if __name__ == "__main__":
     debug_print("\n" + "=" * 70)
     debug_print("TURN MANAGER TEST COMPLETE!")
     debug_print("=" * 70)
-    debug_print("\n✓ Turn start working")
-    debug_print("✓ Income application working")
-    debug_print("✓ Turn advancement working")
+    debug_print("\n✓ Turn advancement working")
     debug_print("✓ Victory/defeat checking working")
