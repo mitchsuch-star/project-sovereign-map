@@ -172,8 +172,10 @@ class TestContinuousAttritionFormula:
         grouchy_ev = [e for e in belgium_events if e["marshal"] == "Grouchy"]
         assert len(ney_ev) == 1
         assert len(grouchy_ev) == 1
-        assert ney_ev[0]["losses"] == 1800  # Was 3600 at 5%
-        assert grouchy_ev[0]["losses"] == 700  # Was 1650 at 5%
+        # Session 8 stacking penalty: +1% per marshal beyond 1st
+        # attrition = min(0.03, 1.667*0.015) + 0.01 = 0.035
+        assert ney_ev[0]["losses"] == 2520  # int(72000 * 0.035)
+        assert grouchy_ev[0]["losses"] == 980  # int(28000 * 0.035)
 
 
 # ════════════════════════════════════════════════════════════

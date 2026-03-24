@@ -411,11 +411,11 @@ def test_territories_occupant_count():
 # ════════════════════════════════════════════════════════════════════════════════
 
 def test_economy_net_calculation():
-    """Net = income - upkeep."""
+    """Net = income + trade_income - upkeep (Session 8: trade income in net)."""
     world = _make_world()
     ledger = build_strategic_ledger(world)
     econ = ledger["economy"]
-    assert econ["net"] == econ["income"] - econ["upkeep"]
+    assert econ["net"] == econ["income"] + econ["trade_income"] - econ["upkeep"]
 
 
 def test_economy_bankruptcy():

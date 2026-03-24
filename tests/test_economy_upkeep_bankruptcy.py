@@ -162,11 +162,11 @@ class TestProcessIncomePhase:
         assert world.gold == starting + expected_net
 
     def test_net_income_with_admin_bonus(self):
-        """Admin bonus = unused admin AP * 75."""
+        """Admin bonus = unused admin AP * 35 (reduced from 75 in Session 8)."""
         world = fresh_world()
         world.admin_actions_remaining = 2  # Default
         result = world.process_income_phase()
-        assert result["admin_bonus"] == 150  # 2 * 75
+        assert result["admin_bonus"] == 70  # 2 * 35
 
     def test_net_income_no_admin_bonus_for_enemy(self):
         """Enemy nations don't get admin AP bonus."""
@@ -246,6 +246,9 @@ class TestBankruptcy:
                 m.strength = 200000  # Huge upkeep
         world.process_income_phase()
         assert world.nation_gold["France"] < 0
+        # Session 8: bankruptcy check moved to advance_turn (after all income sources)
+        # Manually call _update_bankruptcy to verify it works
+        world._update_bankruptcy("France")
         assert world.nation_bankruptcy_turns["France"] >= 1
 
     def test_recovery_resets_counter(self):
@@ -257,6 +260,8 @@ class TestBankruptcy:
         # With 5000 gold and normal income, should stay positive
         world.process_income_phase()
         assert world.nation_gold["France"] > 0
+        # Session 8: bankruptcy check moved to advance_turn (after all income sources)
+        world._update_bankruptcy("France")
         assert world.nation_bankruptcy_turns["France"] == 0
 
     def test_per_nation_isolation(self):
@@ -437,16 +442,16 @@ class TestAdminAP:
         assert summary["max_admin_actions"] == 2
 
     def test_unused_ap_bonus_2_unused(self):
-        """2 unused admin AP -> 150 gold bonus."""
+        """2 unused admin AP -> 70 gold bonus (35g each, Session 8)."""
         world = fresh_world()
         world.admin_actions_remaining = 2
-        assert world._calculate_admin_bonus("France") == 150
+        assert world._calculate_admin_bonus("France") == 70
 
     def test_unused_ap_bonus_1_unused(self):
-        """1 unused admin AP -> 75 gold bonus."""
+        """1 unused admin AP -> 35 gold bonus (Session 8)."""
         world = fresh_world()
         world.admin_actions_remaining = 1
-        assert world._calculate_admin_bonus("France") == 75
+        assert world._calculate_admin_bonus("France") == 35
 
     def test_unused_ap_bonus_0_unused(self):
         """0 unused admin AP -> 0 gold bonus."""

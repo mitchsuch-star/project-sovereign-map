@@ -950,6 +950,9 @@ class Marshal:
         # Coordination bonus (Phase 7: set by _calculate_coordination_context, capped)
         modifier *= (1.0 + getattr(self, 'total_coordination_defense_bonus', 0.0))
 
+        # Hard cap: no marshal can exceed 1.75x total defense (prevents invincible turtling)
+        modifier = min(modifier, 1.75)
+
         return modifier
 
     def get_effective_skill(self, skill_name: str) -> int:

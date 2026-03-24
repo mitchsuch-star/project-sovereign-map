@@ -10,7 +10,6 @@ Includes Disobedience System (Phase 2):
 """
 
 import copy  # noqa: F401 - used in to_dict() for deepcopy
-import math
 from typing import Dict, List, Optional, Tuple, Any, Set
 from backend.models.region import Region, create_regions, CHARGE_BLOCKED_TERRAIN, TERRAIN_MOVEMENT_COST, NATION_CAPITALS, get_starting_controllers  # noqa: F401 - used in methods below
 from backend.models.marshal import Marshal, create_starting_marshals, create_enemy_marshals
@@ -40,9 +39,9 @@ ARTILLERY_RECRUIT_AMOUNT = 3000        # Troops per artillery recruit (smallest 
 INFANTRY_RECRUIT_GOLD_COST_BASE = 200  # Gold cost for infantry recruit (existing behavior)
 CAVALRY_RECRUIT_GOLD_COST_BASE = 300   # Gold cost for cavalry recruit (vs 200 infantry)
 ARTILLERY_RECRUIT_GOLD_COST_BASE = 400 # Gold cost for artillery recruit (most expensive — guns + training)
-INFANTRY_BASE_REGEN = 5000             # Per nation per turn (fast — infantry isn't the bottleneck)
-CAVALRY_BASE_REGEN = 500               # Per nation per turn (slow — this IS the bottleneck)
-ARTILLERY_BASE_REGEN = 300             # Per nation per turn (slow — foundries)
+INFANTRY_BASE_REGEN = 2500             # Per nation per turn (halved S8 — manpower is precious)
+CAVALRY_BASE_REGEN = 250               # Per nation per turn (halved S8 — slow, this IS the bottleneck)
+ARTILLERY_BASE_REGEN = 150             # Per nation per turn (halved S8 — foundries are scarce)
 PLAINS_CAVALRY_REGEN = 500             # Bonus per plains region controlled
 STABLES_CAVALRY_REGEN = 750            # Bonus per stables building owned
 URBAN_ARTILLERY_REGEN = 200            # Bonus per urban region controlled (arsenals)
@@ -2056,7 +2055,8 @@ class WorldState:
             })
 
         # British naval income — abstracted trade dominance / colonial revenue
-        naval_income = 300 if nation == "Britain" else 0
+        # Requires at least 1 controlled region (dead nation gets nothing)
+        naval_income = 300 if nation == "Britain" and len(nation_regions) > 0 else 0
         total_income += naval_income
         # TODO: Trade income (deferred to Session 2)
 
@@ -2223,8 +2223,9 @@ class WorldState:
         net = income_data["income"] - upkeep_data["total"] + admin_bonus
         self.nation_gold[nation] = int(self.nation_gold.get(nation, 0) + net)
 
-        # Update bankruptcy counter
-        self._update_bankruptcy(nation)
+        # NOTE: Bankruptcy check moved to _advance_turn_internal() AFTER all
+        # income sources (trade, continental system, treaty clauses, tribute)
+        # so nations don't go bankrupt when trade income would cover costs.
 
         return {
             "nation": nation,
@@ -2251,7 +2252,7 @@ class WorldState:
             so return 0 here to avoid double-counting.
         """
         if nation == self.player_nation:
-            return int(getattr(self, 'admin_actions_remaining', 0) * 75)
+            return int(getattr(self, 'admin_actions_remaining', 0) * 35)
         # AI nations: bonus applied in enemy_ai.execute_admin_phase()
         return 0
 
@@ -2303,15 +2304,26 @@ class WorldState:
             base_cap = region.supply_capacity
 
             # Per-marshal attrition: home territory gets 1.5x supply capacity
+            # Death-ball penalty: +1% per marshal beyond the 1st in the region
+            num_marshals = len(marshals_here)
+            stacking_penalty = max(0, num_marshals - 1) * 0.01  # +1% per extra marshal
+
             for m in marshals_here:
                 is_home = (region.controller == m.nation)
                 cap = int(base_cap * 1.5) if is_home else base_cap
                 if cap <= 0 or total <= cap:
-                    continue
-                excess_ratio = (total - cap) / cap
-                # Balance patch: continuous formula replaces hard tiers
-                # Scales smoothly from 0% to 3% cap, avoids cliff effects
-                attrition = min(0.03, excess_ratio * 0.015)
+                    # Even under capacity, stacking penalty applies for death-balling
+                    if stacking_penalty > 0 and num_marshals >= 3:
+                        attrition = stacking_penalty
+                    else:
+                        continue
+                else:
+                    excess_ratio = (total - cap) / cap
+                    # Balance patch: continuous formula replaces hard tiers
+                    # Scales smoothly from 0% to 3% cap, avoids cliff effects
+                    attrition = min(0.03, excess_ratio * 0.015) + stacking_penalty
+                # Total attrition cap: 6% (3% base + stacking)
+                attrition = min(0.06, attrition)
                 losses = int(m.strength * attrition)
                 if losses > 0:
                     m.strength = max(0, m.strength - losses)
@@ -2391,8 +2403,9 @@ class WorldState:
     # ========================================
 
     def _update_bankruptcy(self, nation: str) -> None:
-        """Update bankruptcy counter after income phase.
-        Called at end of process_income_phase."""
+        """Update bankruptcy counter after ALL income sources processed.
+        Called in _advance_turn_internal() after trade, continental system,
+        treaty clauses, and tribute — NOT inside process_income_phase."""
         if self.nation_gold.get(nation, 0) < 0:
             self.nation_bankruptcy_turns[nation] = self.nation_bankruptcy_turns.get(nation, 0) + 1
         else:
@@ -3689,7 +3702,8 @@ class WorldState:
 
         # ════════════════════════════════════════════════════════════
         # INCOME PHASE (Phase 6.2.B) — ALL nations
-        # Calculates income - upkeep + admin bonus, updates gold & bankruptcy
+        # Calculates income - upkeep + admin bonus, updates gold
+        # (bankruptcy check deferred until after all income sources)
         # ════════════════════════════════════════════════════════════
         for nation in all_nations:
             self.process_income_phase(nation)
@@ -3740,6 +3754,14 @@ class WorldState:
             process_vassal_tribute(self)
 
         # ════════════════════════════════════════════════════════════
+        # BANKRUPTCY CHECK — AFTER all income sources
+        # (region income, trade, continental system, treaty clauses, tribute)
+        # so nations don't go bankrupt when trade income would cover costs
+        # ════════════════════════════════════════════════════════════
+        for nation in all_nations:
+            self._update_bankruptcy(nation)
+
+        # ════════════════════════════════════════════════════════════
         # MANPOWER REGEN (Phase 6) — after income, before action resets
         # ════════════════════════════════════════════════════════════
         self._process_manpower_regen()
@@ -3749,6 +3771,33 @@ class WorldState:
 
         # Reset attack tracking for flanking system (Phase 2.5)
         self.reset_attack_tracking()
+
+        # ════════════════════════════════════════════════════════════
+        # AI FUTILITY DECAY (Session 8 balance): -1 every 3 turns
+        # Also reset if defender dropped below 50% starting strength
+        # ════════════════════════════════════════════════════════════
+        if self.current_turn % 3 == 0:
+            expired = []
+            for key, count in self.ai_attack_futility.items():
+                new_count = count - 1
+                if new_count <= 0:
+                    expired.append(key)
+                else:
+                    self.ai_attack_futility[key] = new_count
+            for key in expired:
+                self.ai_attack_futility.pop(key, None)
+
+        # Reset futility if defender weakened (below 50% starting strength)
+        reset_keys = []
+        for key in self.ai_attack_futility:
+            parts = key.split(":")
+            if len(parts) == 2:
+                defender_name = parts[1]
+                defender = self.get_marshal(defender_name)
+                if defender and defender.strength < defender.starting_strength * 0.5:
+                    reset_keys.append(key)
+        for key in reset_keys:
+            self.ai_attack_futility.pop(key, None)
 
         # Reset disobedience system for new turn (Phase 2)
         self.disobedience_system.reset_turn()
@@ -3807,7 +3856,7 @@ class WorldState:
         if self.current_turn > self.max_turns:
             self.game_over = True
             player_regions = len(self.get_player_regions())
-            victory_threshold = math.ceil(len(self.regions) * 0.75)
+            victory_threshold = 14  # Consolidated from inconsistent 14/15 (Session 8 balance)
             if player_regions >= victory_threshold:
                 self.victory = "victory"
             else:
@@ -4598,24 +4647,26 @@ class WorldState:
                 decay_settings = FORTIFY_DECAY_CONFIG.get(personality, FORTIFY_DECAY_DEFAULT)
 
                 # Determine if growing or decaying
-                # Davout (cautious) with active HOLD order is immune to decay
+                # HOLD order slows decay: cautious 75% reduction, others 50% reduction
                 has_hold_order = (
                     getattr(marshal, 'strategic_order', None) and
                     marshal.strategic_order.command_type == "HOLD"
                 )
-                davout_hold_immunity = personality == "cautious" and has_hold_order
 
                 should_decay = (
                     not is_cavalry and  # Cavalry handled separately
-                    not davout_hold_immunity and  # Davout's HOLD = permanent fort
                     turns_fortified >= decay_settings["start"] and
                     current_bonus > decay_settings["floor"]
                 )
 
                 if should_decay:
                     # DECAY PHASE: Fortifications crumbling
+                    # HOLD order slows decay: cautious 75% reduction, others 50%
                     old_percent = int(current_bonus * 100)
                     decay_amount = decay_settings["rate"]
+                    if has_hold_order:
+                        hold_reduction = 0.75 if personality == "cautious" else 0.50
+                        decay_amount = decay_amount * (1.0 - hold_reduction)
                     new_bonus = max(current_bonus - decay_amount, decay_settings["floor"])
                     marshal.defense_bonus = new_bonus
                     new_percent = int(new_bonus * 100)

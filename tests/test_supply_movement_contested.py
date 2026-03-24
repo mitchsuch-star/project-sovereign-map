@@ -205,13 +205,15 @@ class TestSupplyAttrition:
         davout.strength = 25000
         # Total = 50000, home cap = 37500
         # excess_ratio = (50000-37500)/37500 = 0.3333...
-        # attrition = min(0.03, 0.3333 * 0.015) = 0.00499...
-        # Each: int(25000 * 0.00499...) = 124 (int truncation)
+        # base_attrition = min(0.03, 0.3333 * 0.015) = 0.005
+        # stacking_penalty = (2-1) * 0.01 = 0.01 (Session 8)
+        # attrition = 0.005 + 0.01 = 0.015
+        # Each: int(25000 * 0.015) = 375
         events = world.process_supply_attrition()
         belgium_events = [e for e in events if e["region"] == "Belgium"]
         assert len(belgium_events) == 2  # Both marshals affected
-        assert belgium_events[0]["losses"] == 124
-        assert belgium_events[1]["losses"] == 124
+        assert belgium_events[0]["losses"] == 375
+        assert belgium_events[1]["losses"] == 375
 
     def test_supply_attrition_runs_during_turn(self):
         """Supply attrition runs during turn resolution."""

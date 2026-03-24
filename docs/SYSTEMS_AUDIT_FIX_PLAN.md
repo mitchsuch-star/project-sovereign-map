@@ -221,28 +221,26 @@ This eliminates the "zero triggers" / "no evaluator" / "personality-dead" findin
 
 ## Phase C: Balance & Design Gate (Session 8)
 
-### Session 8: Balance Evaluation — REQUIRES USER APPROVAL
+### Session 8: Balance Evaluation — COMPLETE
 
-**Theme:** Gameplay balance changes. Each item presented for approval before coding.
+**Theme:** Gameplay balance changes. All 12 items evaluated with user, 10 implemented.
 
-**Evaluate-only items (present findings, user decides):**
+| # | Finding | Resolution |
+|---|---------|------------|
+| 1 | **P15-01: Davout Paris turtle** | FIXED: Defense modifier hard cap at 1.75x |
+| 2 | **P15-04: HOLD decay immunity cautious-only** | FIXED: HOLD slows decay for all (cautious 75%, others 50%) |
+| 3 | **P15-05: AI futility filter permanent** | FIXED: Decay -1 every 3 turns + reset when defender < 50% starting |
+| 4 | **P15-06: Supply attrition cap 3%** | FIXED: +1% stacking penalty per marshal beyond 1st (cap 6% total) |
+| 5 | **P15-03: No early defeat condition** | DEFERRED: Earmarked for roadmap before EA |
+| 6 | **P6-2: Admin AP → gold exploit** | FIXED: Reduced 75g → 35g per unused AP |
+| 7 | **P6-3: Victory threshold inconsistency** | FIXED: Consolidated to 14 regions |
+| 8 | **P6-6: Manpower regen trivializes losses** | FIXED: Halved all rates (infantry 5000→2500, cavalry 500→250, artillery 300→150) |
+| 9 | **P6-8: British naval income unconditional** | FIXED: Requires at least 1 controlled region |
+| 10 | **P18-01: Trade income invisible** | FIXED: Added to dispatch situation + ledger economy sections |
+| 11 | **P18-02: Bankruptcy check before trade income** | FIXED: Moved to after all income sources (trade, continental system, treaties, tribute) |
+| 12 | **P4-4/P4-7: Failed defiance vindication reset** | WAI: Working as intended (harsh but thematic) |
 
-| # | Finding | Question for user |
-|---|---------|-------------------|
-| 1 | **P15-01: Davout Paris turtle (110k effective defense)** | Is permanent invincibility a problem or Davout's identity? |
-| 2 | **P15-04: HOLD decay immunity cautious-only** | Should HOLD slow decay for all, or keep as cautious perk? |
-| 3 | **P15-05: AI futility filter permanent** | Add decay (reduce by 1 every 3 turns)? Reset on defender weakness? |
-| 4 | **P15-06: Supply attrition cap 3%** | Raise to 5-8%? Add per-marshal stacking penalty? |
-| 5 | **P15-03: No early defeat condition** | Add capital loss = defeat? Or capital loss = 3-turn countdown? |
-| 6 | **P6-2: Admin AP → gold exploit (150g/turn free)** | Reduce rate? Cap at 1 unused AP? Remove? |
-| 7 | **P6-3: Victory threshold inconsistency (15 vs 14)** | Which threshold is correct? Consolidate to one. |
-| 8 | **P6-6: Infantry manpower regen trivializes losses** | Reduce rate? Add war exhaustion modifier? |
-| 9 | **P6-8: British naval income unconditional** | Scale with regions? Require 1+ region? |
-| 10 | **P18-01: Trade income invisible** | Add trade line to income summary / dispatch? |
-| 11 | **P18-02: Bankruptcy check before trade income** | Move after all income sources? |
-| 12 | **P4-4/P4-7: Failed defiance vindication reset** | Is reset-on-obedience intentional harsh punishment, or unfair? |
-
-**Protocol:** Evaluate each finding with code evidence. Present to user. Only implement what's approved. Some may be deferred or marked "working as intended."
+**Tests:** 25 new in `test_systems_audit_session8.py`. 9 existing tests updated for new values. Total: 6834 passed.
 
 ---
 

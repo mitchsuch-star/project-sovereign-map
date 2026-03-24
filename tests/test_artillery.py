@@ -788,7 +788,7 @@ class TestManpowerPool:
         """Verify artillery recruit constants are correct."""
         assert ARTILLERY_RECRUIT_AMOUNT == 3000
         assert ARTILLERY_RECRUIT_GOLD_COST_BASE == 400
-        assert ARTILLERY_BASE_REGEN == 300
+        assert ARTILLERY_BASE_REGEN == 150  # Halved in Session 8 balance
         assert URBAN_ARTILLERY_REGEN == 200
         assert MAX_ARTILLERY_POOL == 20000
 

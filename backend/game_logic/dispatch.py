@@ -116,7 +116,13 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
     upkeep_data = world.calculate_turn_upkeep(player_nation)
     income = int(income_data["income"])
     upkeep = int(upkeep_data["total"])
-    treasury_delta = int(income - upkeep)
+
+    # Trade income from diplomatic states (read-only calculation)
+    from backend.game_logic.diplomacy import calculate_trade_income
+    trade_income_all = calculate_trade_income(world)
+    trade_income = int(trade_income_all.get(player_nation, 0))
+
+    treasury_delta = int(income + trade_income - upkeep)
 
     bankrupt = int(world.nation_bankruptcy_turns.get(player_nation, 0)) > 0
 
@@ -144,6 +150,7 @@ def _build_situation(world, player_nation: str) -> Dict[str, Any]:
         "enemy_regions": int(enemy_regions),
         "treasury": treasury,
         "treasury_delta": treasury_delta,
+        "trade_income": trade_income,
         "bankrupt": bankrupt,
         "strength_ratio_pct": strength_ratio_pct,
         "authority": int(authority),

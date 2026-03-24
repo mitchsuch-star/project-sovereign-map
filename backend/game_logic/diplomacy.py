@@ -1640,13 +1640,13 @@ def _process_dp_regen(world) -> None:
             world.nation_dp[nation] = int(dp)
 
 
-def process_trade_income(world) -> Dict[str, int]:
-    """Calculate and apply trade income from diplomatic states.
+def calculate_trade_income(world) -> Dict[str, int]:
+    """Calculate trade income from diplomatic states (read-only, no side effects).
 
     R6: Diminishing returns — partners sorted by state level (best first),
     rates [1.0, 0.75, 0.50, 0.25]. 5th+ partners get 0.25.
 
-    Returns dict of {nation: trade_income} for display.
+    Returns dict of {nation: trade_income}.
     """
     _DIMINISHING_RATES = [1.0, 0.75, 0.50, 0.25]
     _STATE_PRIORITY = {"ALLIANCE": 0, "DEFENSIVE_ALLIANCE": 1, "NON_AGGRESSION": 2,
@@ -1676,6 +1676,16 @@ def process_trade_income(world) -> Dict[str, int]:
             rate = _DIMINISHING_RATES[min(i, len(_DIMINISHING_RATES) - 1)]
             total += int(trade_amount * rate)
         trade_by_nation[nation] = total
+
+    return trade_by_nation
+
+
+def process_trade_income(world) -> Dict[str, int]:
+    """Calculate and apply trade income from diplomatic states.
+
+    Returns dict of {nation: trade_income} for display.
+    """
+    trade_by_nation = calculate_trade_income(world)
 
     # Apply to nation_gold
     for nation, income in trade_by_nation.items():

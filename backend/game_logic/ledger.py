@@ -207,7 +207,13 @@ def _build_economy(world, player: str) -> dict:
 
     income = int(income_data["income"])
     upkeep = int(upkeep_data["total"])
-    net = int(income - upkeep)
+
+    # Trade income from diplomatic states (read-only calculation)
+    from backend.game_logic.diplomacy import calculate_trade_income
+    trade_income_all = calculate_trade_income(world)
+    trade_income = int(trade_income_all.get(player, 0))
+
+    net = int(income + trade_income - upkeep)
 
     # Construction queue: iterate player regions with active builds
     construction_queue = []
@@ -236,6 +242,7 @@ def _build_economy(world, player: str) -> dict:
     return {
         "treasury": int(world.gold),
         "income": income,
+        "trade_income": trade_income,
         "upkeep": upkeep,
         "net": net,
         "bankruptcy_turns": int(world.bankruptcy_turns),
