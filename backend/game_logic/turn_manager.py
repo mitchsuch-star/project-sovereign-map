@@ -20,7 +20,7 @@ Add _process_strategic_orders() method that calls StrategicExecutor.
 """
 
 from typing import Dict, Optional
-from backend.models.world_state import WorldState
+from backend.models.world_state import WorldState, VICTORY_REGION_FRACTION
 from backend.commands.strategic import StrategicExecutor
 from backend.utils.debug import debug_print
 
@@ -72,13 +72,17 @@ class TurnManager:
             self.world.advance_turn()
             _advanced = True
             tactical_events = self.world.get_last_tactical_events()
-            return {
+            result = {
                 "turn_ended": old_turn,
                 "next_turn": self.world.current_turn,
                 "victory_check": pre_enemy_victory_check,
                 "message": f"Turn {old_turn} complete - {pre_enemy_victory_check['reason']}",
                 "tactical_events": tactical_events
             }
+            # V2-86: Include pending diplomatic popups so frontend can show
+            # them before the victory screen (dialogue, rebellion, sabotage)
+            self._flush_pending_popups_into(result)
+            return result
 
         # ════════════════════════════════════════════════════════════
         # ENEMY AI TURN PHASE: All enemy nations take their turns
@@ -98,7 +102,7 @@ class TurnManager:
                     self.world.advance_turn()
                     _advanced = True
                 tactical_events = self.world.get_last_tactical_events()
-                return {
+                result = {
                     "turn_ended": old_turn,
                     "next_turn": self.world.current_turn,
                     "victory_check": {
@@ -110,6 +114,9 @@ class TurnManager:
                     "tactical_events": tactical_events,
                     "enemy_phase": enemy_phase_results
                 }
+                # V2-86: Include pending diplomatic popups before victory screen
+                self._flush_pending_popups_into(result)
+                return result
 
         # ════════════════════════════════════════════════════════════
         # AI DIPLOMATIC PHASE (Phase 8 Session 4)
@@ -145,6 +152,12 @@ class TurnManager:
             _advanced = True
         else:
             debug_print(f"[WARNING] Double advance_turn prevented in end_turn! current_turn={self.world.current_turn}")
+
+        # ════════════════════════════════════════════════════════════
+        # V2-89: POP FIRST DIALOGUE FROM QUEUE → pending_diplomatic_dialogue
+        # Priority: alliance_paradox > vassal_rebellion > sabotage > ai_proposal
+        # ════════════════════════════════════════════════════════════
+        self._pop_dialogue_queue()
 
         # Get tactical events that were processed during advance
         tactical_events = self.world.get_last_tactical_events()
@@ -228,6 +241,55 @@ class TurnManager:
             result["events"] = all_events
 
         return result
+
+    # V2-89: Dialogue type priority (lower = higher priority)
+    _DIALOGUE_TYPE_PRIORITY = {
+        "alliance_paradox": 0,
+        "vassal_rebellion_imminent": 1,
+        "sabotage_confrontation": 2,
+        "talleyrand_redemption": 3,
+        "incoming_proposal": 4,
+    }
+
+    def _pop_dialogue_queue(self) -> None:
+        """V2-89: Pop highest-priority dialogue from queue into pending field.
+
+        Only pops if pending_diplomatic_dialogue is not already set.
+        Sorts queue by type priority before popping.
+        """
+        world = self.world
+        if world.pending_diplomatic_dialogue is not None:
+            return  # Already have an active dialogue
+        if not world.pending_dialogue_queue:
+            return
+
+        # Sort by priority (lowest number = highest priority)
+        world.pending_dialogue_queue.sort(
+            key=lambda d: self._DIALOGUE_TYPE_PRIORITY.get(d.get("type", ""), 99)
+        )
+        world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
+        debug_print(f"[V2-89] Popped dialogue from queue: {world.pending_diplomatic_dialogue.get('type')}, "
+                    f"{len(world.pending_dialogue_queue)} remaining")
+
+    def _flush_pending_popups_into(self, result: Dict) -> None:
+        """V2-86: Copy pending popup fields from world into result dict.
+
+        On victory, the turn manager returns early. Without this, any pending
+        diplomatic popups (dialogue, rebellion, sabotage) would be lost because
+        main.py's _include_popup_passthroughs never runs on the end_turn result.
+        """
+        popup_fields = [
+            "pending_diplomatic_dialogue",
+            "vassal_rebellion_imminent_popup",
+            "diplomatic_sabotage_popup",
+            "coalition_popup",
+            "talleyrand_redemption_popup",
+            "alliance_paradox_popup",
+        ]
+        for field in popup_fields:
+            value = getattr(self.world, field, None)
+            if value is not None:
+                result[field] = value
 
     def _process_ai_diplomatic_phase(self) -> Optional[Dict]:
         """Process AI diplomatic proposals for all enemy nations.
@@ -678,7 +740,6 @@ class TurnManager:
         Returns:
             Dict with victory info, or None if no enemy victory
         """
-        from backend.models.world_state import VICTORY_REGION_FRACTION
         victory_threshold = max(1, int(len(self.world.regions) * VICTORY_REGION_FRACTION))
         for nation in self.world.enemy_nations:
             regions = self.world.get_nation_regions(nation)
@@ -769,7 +830,7 @@ class TurnManager:
 
         if self.world.current_turn > self.world.max_turns:
             # Already handled in world.advance_turn(), but check here too
-            if len(player_regions) >= int(total * 0.77):  # Time victory (~77%)
+            if len(player_regions) >= int(total * VICTORY_REGION_FRACTION):  # Time victory
                 return {
                     "game_over": True,
                     "result": "victory",

@@ -347,8 +347,8 @@ def process_vassal_loyalty(world) -> List[dict]:
                 f"{vassal_name} loyalty critical ({int(new_loyalty)}) — rebellion imminent.",
                 int(world.current_turn),
             ))
-            # Set popup data for Godot
-            world.vassal_rebellion_imminent_popup = {
+            # V2-90: Append to popup list instead of overwriting (multiple vassals)
+            world.vassal_rebellion_imminent_popups.append({
                 "nation": vassal_name,
                 "loyalty": int(new_loyalty),
                 "loyalty_max": int(100),
@@ -357,9 +357,9 @@ def process_vassal_loyalty(world) -> List[dict]:
                 "invest_effect": "Loyalty +10",
                 "garrison_effect": "Loyalty +10, AP -2 this turn",
                 "accept_effect": "Rebellion proceeds next turn if loyalty reaches 0",
-            }
-            # R74: Set blocking dialogue for rebellion response
-            world.pending_diplomatic_dialogue = {
+            })
+            # V2-89: Append to queue instead of overwriting (multiple vassals can trigger)
+            world.pending_dialogue_queue.append({
                 "type": "vassal_rebellion_imminent",
                 "target_nation": vassal_name,
                 "talleyrand_text": (
@@ -386,7 +386,7 @@ def process_vassal_loyalty(world) -> List[dict]:
                 "context": {"vassal_name": vassal_name, "loyalty": int(new_loyalty)},
                 "turn_created": int(world.current_turn),
                 "blocking": True,
-            }
+            })
             # Dispatch event (Session 8D)
             from backend.game_logic.dispatch import queue_dispatch_event as _qde_vassal
             _qde_vassal(world, "diplomatic_vassal_rebellion_imminent",
@@ -870,11 +870,24 @@ def release_vassal(world, vassal_name: str, rebellion: bool = False) -> dict:
         popup_vassal = world.vassal_rebellion_imminent_popup.get("nation", "")
         if popup_vassal == vassal_name:
             world.vassal_rebellion_imminent_popup = None
+    # V2-90: Also clear from popups list
+    if hasattr(world, 'vassal_rebellion_imminent_popups'):
+        world.vassal_rebellion_imminent_popups = [
+            p for p in world.vassal_rebellion_imminent_popups
+            if p.get("nation") != vassal_name
+        ]
     if getattr(world, 'pending_diplomatic_dialogue', None):
         dialogue = world.pending_diplomatic_dialogue
         if (dialogue.get("type") == "vassal_rebellion_imminent"
                 and dialogue.get("context", {}).get("vassal_name") == vassal_name):
             world.pending_diplomatic_dialogue = None
+    # V2-89: Also clear from dialogue queue
+    if hasattr(world, 'pending_dialogue_queue'):
+        world.pending_dialogue_queue = [
+            d for d in world.pending_dialogue_queue
+            if not (d.get("type") == "vassal_rebellion_imminent"
+                    and d.get("context", {}).get("vassal_name") == vassal_name)
+        ]
 
     # R14: Set release cooldown (blocks treaty re-vassalization for 5 turns)
     if not hasattr(world, 'vassal_release_cooldowns'):

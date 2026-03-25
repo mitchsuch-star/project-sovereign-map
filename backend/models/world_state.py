@@ -383,6 +383,10 @@ class WorldState:
         # ============================================================
         # Pending diplomatic dialogue (like pending_objection but for Talleyrand)
         self.pending_diplomatic_dialogue: Optional[Dict] = None
+        # V2-89: Dialogue queue — multiple dialogues during advance_turn are queued
+        # After advance_turn, first item pops to pending_diplomatic_dialogue.
+        # When player clears a dialogue, next item auto-pops.
+        self.pending_dialogue_queue: List[Dict] = []
 
         # Active diplomatic mission (Talleyrand's ongoing assignment)
         self.active_diplomatic_mission: Optional[Dict] = None
@@ -477,11 +481,16 @@ class WorldState:
         # ============================================================
         self.coalition_popup: Optional[Dict] = None
         self.diplomatic_sabotage_popup: Optional[Dict] = None
-        self.vassal_rebellion_imminent_popup: Optional[Dict] = None
+        self.vassal_rebellion_imminent_popup: Optional[Dict] = None  # Current popup (popped from list)
+        self.vassal_rebellion_imminent_popups: List[Dict] = []     # V2-90: Queue of multiple rebellion popups
         # Session 8C popup fields
         self.talleyrand_redemption_popup: Optional[Dict] = None
         self.diplomatic_objection_popup: Optional[Dict] = None
         self.incoming_proposal_popup: Optional[Dict] = None
+
+        # V2-16: Per-turn diplomatic trust cap tracking (survives save/load)
+        # {marshal_name: amount_applied_this_turn} — cleared at start of each turn
+        self.diplomatic_trust_applied: Dict[str, int] = {}
 
         # Calculate initial visibility so turn 1 starts with correct fog state
         # (French regions FULL, adjacent PARTIAL, rest UNKNOWN)
@@ -1663,6 +1672,52 @@ class WorldState:
         debug_print(f"  [RETREAT RESULT] {marshal_name} is ENCIRCLED - no valid retreat!")
         return None  # ENCIRCLED - army breaks
 
+    def find_safe_spawn(self, marshal) -> str:
+        """V2-65: Find a safe spawn location for a broken marshal.
+
+        Checks spawn_location and nation capital — if enemy-occupied,
+        falls back to nearest friendly region via BFS.
+
+        Args:
+            marshal: Marshal object (needs .nation, .spawn_location)
+
+        Returns:
+            Region name controlled by marshal's nation (or capital as last resort)
+        """
+        nation = marshal.nation
+        spawn_loc = getattr(marshal, 'spawn_location', None) or NATION_CAPITALS.get(nation, 'Paris')
+
+        # 1. Check spawn_location
+        spawn_region = self.regions.get(spawn_loc)
+        if spawn_region and spawn_region.controller == nation:
+            return spawn_loc
+
+        # 2. Check nation capital
+        capital = NATION_CAPITALS.get(nation, spawn_loc)
+        capital_region = self.regions.get(capital)
+        if capital_region and capital_region.controller == nation:
+            return capital
+
+        # 3. BFS from capital to find nearest friendly region
+        from collections import deque
+        start = capital if capital in self.regions else spawn_loc
+        visited = {start}
+        queue = deque([start])
+        while queue:
+            current = queue.popleft()
+            region = self.regions.get(current)
+            if not region:
+                continue
+            if region.controller == nation:
+                return current
+            for adj in region.adjacent_regions:
+                if adj not in visited:
+                    visited.add(adj)
+                    queue.append(adj)
+
+        # 4. Last resort: use capital anyway (shouldn't happen in practice)
+        return capital
+
     # ========================================
     # PROXIMITY / DISTANCE CALCULATIONS
     # ========================================
@@ -2735,6 +2790,7 @@ class WorldState:
 
             # ═══════ DIPLOMACY Session 3 ═══════
             "pending_diplomatic_dialogue": self.pending_diplomatic_dialogue,
+            "pending_dialogue_queue": [d.copy() for d in self.pending_dialogue_queue],
             "active_diplomatic_mission": self.active_diplomatic_mission,
             "talleyrand_state": self.talleyrand_state,
             "proposal_in_transit": self.proposal_in_transit,
@@ -2789,9 +2845,13 @@ class WorldState:
             "coalition_popup": self.coalition_popup,
             "diplomatic_sabotage_popup": self.diplomatic_sabotage_popup,
             "vassal_rebellion_imminent_popup": self.vassal_rebellion_imminent_popup,
+            "vassal_rebellion_imminent_popups": [p.copy() for p in self.vassal_rebellion_imminent_popups],
             "talleyrand_redemption_popup": self.talleyrand_redemption_popup,
             "diplomatic_objection_popup": self.diplomatic_objection_popup,
             "incoming_proposal_popup": self.incoming_proposal_popup,
+
+            # V2-16: Diplomatic trust cap tracking
+            "diplomatic_trust_applied": {k: int(v) for k, v in self.diplomatic_trust_applied.items()},
         }
 
     @classmethod
@@ -2948,6 +3008,7 @@ class WorldState:
 
         # ═══════ DIPLOMACY Session 3 ═══════
         world.pending_diplomatic_dialogue = data.get("pending_diplomatic_dialogue", None)
+        world.pending_dialogue_queue = [d.copy() for d in data.get("pending_dialogue_queue", [])]
         world.active_diplomatic_mission = data.get("active_diplomatic_mission", None)
         world.talleyrand_state = data.get("talleyrand_state", "IDLE")
         world.proposal_in_transit = data.get("proposal_in_transit", None)
@@ -3007,9 +3068,13 @@ class WorldState:
         world.coalition_popup = data.get("coalition_popup", None)
         world.diplomatic_sabotage_popup = data.get("diplomatic_sabotage_popup", None)
         world.vassal_rebellion_imminent_popup = data.get("vassal_rebellion_imminent_popup", None)
+        world.vassal_rebellion_imminent_popups = [p.copy() for p in data.get("vassal_rebellion_imminent_popups", [])]
         world.talleyrand_redemption_popup = data.get("talleyrand_redemption_popup", None)
         world.diplomatic_objection_popup = data.get("diplomatic_objection_popup", None)
         world.incoming_proposal_popup = data.get("incoming_proposal_popup", None)
+
+        # V2-16: Diplomatic trust cap tracking
+        world.diplomatic_trust_applied = {k: int(v) for k, v in data.get("diplomatic_trust_applied", {}).items()}
 
         return world
 
@@ -3547,6 +3612,9 @@ class WorldState:
         # Economy - clear per-turn spending tracker
         self.gold_spent_this_turn = {}
 
+        # V2-16: Clear per-turn diplomatic trust cap tracking
+        self.diplomatic_trust_applied = {}
+
         # Coalition - clear per-turn threat source tracking
         self.threat_sources_this_turn = []
 
@@ -3883,15 +3951,9 @@ class WorldState:
         # ════════════════════════════════════════════════════════════
         self.previous_war_scores = {k: int(v) for k, v in self.war_scores.items()}
 
-        # Check for game over
-        if self.current_turn > self.max_turns:
-            self.game_over = True
-            player_regions = len(self.get_player_regions())
-            victory_threshold = max(1, int(len(self.regions) * VICTORY_REGION_FRACTION))
-            if player_regions >= victory_threshold:
-                self.victory = "victory"
-            else:
-                self.victory = "defeat"
+        # V2-64: Victory check removed from advance_turn().
+        # Turn manager is the single authority for victory/defeat decisions.
+        # See _check_victory_conditions() in turn_manager.py.
 
     # ════════════════════════════════════════════════════════════
     # DIPLOMATIC ADVANCE_TURN HELPERS (Phase 8 Session 3)
@@ -5335,11 +5397,11 @@ class WorldState:
                                         "nation": getattr(enemy, "nation", ""),
                                         "from": old_enemy_loc, "to": retreat_to})
                     else:
-                        # Surrounded — broken army, survivors flee to capital (V2-44)
+                        # Surrounded — broken army, survivors flee to safe spawn (V2-44, V2-65)
                         import random as _rng
                         old_enemy_loc = enemy.location
                         survival_rate = _rng.uniform(0.03, 0.10)
-                        spawn_loc = getattr(enemy, 'spawn_location', 'Berlin')
+                        spawn_loc = self.find_safe_spawn(enemy)
                         enemy.move_to(spawn_loc)
                         enemy.strength = max(1000, int(enemy.strength * survival_rate))
                         enemy.morale = 20
@@ -5373,10 +5435,11 @@ class WorldState:
                                         "from": old_atk_loc, "to": retreat_to})
                     else:
                         # V2-44: No valid retreat — marshal is broken (zombie prevention)
+                        # V2-65: Safe spawn — capital may be enemy-occupied
                         import random as _rng2
                         old_atk_loc = marshal.location
                         survival_rate = _rng2.uniform(0.03, 0.10)
-                        spawn_loc = getattr(marshal, 'spawn_location', 'Paris')
+                        spawn_loc = self.find_safe_spawn(marshal)
                         marshal.move_to(spawn_loc)
                         marshal.strength = max(1000, int(marshal.strength * survival_rate))
                         marshal.morale = 20

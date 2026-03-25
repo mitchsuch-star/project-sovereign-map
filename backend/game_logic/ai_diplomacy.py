@@ -836,7 +836,8 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
         "blocking": True,
     }
 
-    world.pending_diplomatic_dialogue = dialogue
+    # V2-89: Append to queue instead of overwriting (multiple writers during advance_turn)
+    world.pending_dialogue_queue.append(dialogue)
 
     # Dispatch event (Session 8D)
     from backend.game_logic.dispatch import queue_dispatch_event

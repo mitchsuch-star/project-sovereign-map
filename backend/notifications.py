@@ -56,6 +56,7 @@ VASSAL_COURTING_DETECTED = "vassal_courting_detected"          # MEDIUM: enemy c
 DP_INSUFFICIENT = "dp_insufficient"                            # MEDIUM: not enough DP
 DEFECTION_CASCADE = "defection_cascade"                        # HIGH: multiple vassals wavering
 DIPLO_AUTO_DOWNGRADE = "diplo_auto_downgrade"                  # NORMAL: relations deteriorated
+TURN_LIMIT_WARNING = "turn_limit_warning"                      # HIGH: campaign nearing end
 
 
 def create_notification(

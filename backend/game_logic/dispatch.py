@@ -63,6 +63,13 @@ def build_morning_dispatch(world, tactical_events: Optional[List] = None) -> Dic
         world, player_nation, dispatch["marshals"], dispatch["situation"]
     )
 
+    # ════════════════════════════════════════════════════════════
+    # V2-85: TURN-LIMIT WARNINGS — alert player as campaign nears end
+    # ════════════════════════════════════════════════════════════
+    turn_limit_warning = _build_turn_limit_warning(world, player_nation)
+    if turn_limit_warning:
+        dispatch["turn_limit_warning"] = turn_limit_warning
+
     # Talleyrand's Report — proactive diplomatic suggestions (Session 4)
     dispatch["talleyrand_report"] = _build_talleyrand_report(world, player_nation)
 
@@ -493,6 +500,78 @@ def _pick_berthier_note(
 
     # 6. Default
     return "Your orders, Sire."
+
+
+# ============================================================================
+# V2-85: TURN-LIMIT WARNINGS
+# ============================================================================
+
+def _build_turn_limit_warning(world, player_nation: str) -> Optional[Dict[str, Any]]:
+    """Build turn-limit warning for the Morning Dispatch.
+
+    Fires at turns 35 (5 left), 38 (2 left), and 39 (final turn).
+    Also creates a notification for the notification bar.
+
+    Returns warning dict or None.
+    """
+    from backend.models.world_state import VICTORY_REGION_FRACTION
+
+    current = int(world.current_turn)
+    max_turns = int(world.max_turns)
+    remaining = max_turns - current
+
+    # Only warn at specific remaining-turn thresholds
+    if remaining > 5:
+        return None
+
+    total_regions = len(world.regions)
+    threshold = max(1, int(total_regions * VICTORY_REGION_FRACTION))
+    player_regions = len(world.get_player_regions())
+
+    if remaining == 5:
+        message = "The campaign enters its final phase — 5 turns remain."
+        severity = "warning"
+    elif remaining == 2:
+        message = (
+            f"Only 2 turns remain. France must control {threshold} regions for victory. "
+            f"Current: {player_regions}/{threshold}."
+        )
+        severity = "warning"
+    elif remaining == 1:
+        message = (
+            f"FINAL TURN. France must control {threshold} regions for victory. "
+            f"Current: {player_regions}/{threshold}."
+        )
+        severity = "critical"
+    elif remaining <= 0:
+        message = (
+            f"The campaign has reached its conclusion. "
+            f"France controls {player_regions}/{threshold} required regions."
+        )
+        severity = "critical"
+    else:
+        # remaining is 3 or 4 — no warning at these turns
+        return None
+
+    # Fire notification
+    from backend.notifications import (
+        create_notification, NotificationPriority, TURN_LIMIT_WARNING,
+    )
+    world.notifications.add(create_notification(
+        TURN_LIMIT_WARNING,
+        NotificationPriority.HIGH,
+        f"{remaining} turns remain" if remaining > 0 else "Final turn",
+        message,
+        current,
+    ))
+
+    return {
+        "message": message,
+        "severity": severity,
+        "turns_remaining": int(remaining),
+        "player_regions": int(player_regions),
+        "victory_threshold": int(threshold),
+    }
 
 
 # ============================================================================

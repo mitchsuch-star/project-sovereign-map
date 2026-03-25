@@ -3042,9 +3042,8 @@ RETREAT RECOVERY (3 turns):
             survival_rate = random.uniform(0.03, 0.10)
             survivors = max(1000, int(old_strength * survival_rate))  # Minimum 1000 survivors
 
-            # Get spawn location (capital)
-            from backend.models.region import NATION_CAPITALS
-            spawn_loc = getattr(marshal, 'spawn_location', None) or NATION_CAPITALS.get(marshal.nation, 'Paris')
+            # V2-65: Find safe spawn (capital may be enemy-occupied)
+            spawn_loc = world.find_safe_spawn(marshal)
 
             # Apply broken state
             # NOTE: Broken armies do NOT set retreated_this_turn because:
@@ -12093,8 +12092,8 @@ RETREAT RECOVERY (3 turns):
         if not reactions:
             return
 
-        # Track per-turn cap (+/-5 per turn from diplomatic events)
-        diplo_trust_key = f"_diplomatic_trust_this_turn_{world.current_turn}"
+        # V2-16: Track per-turn cap (+/-5) via world-level dict (survives save/load)
+        trust_applied = world.diplomatic_trust_applied
 
         for m_name, m_obj in world.marshals.items():
             if m_obj.nation != world.player_nation:
@@ -12109,14 +12108,14 @@ RETREAT RECOVERY (3 turns):
                 continue
 
             # Per-turn cap tracking
-            applied = getattr(m_obj, diplo_trust_key, 0)
+            applied = trust_applied.get(m_name, 0)
             remaining = 5 - abs(applied)
             if remaining <= 0:
                 continue
             clamped_delta = max(-remaining, min(remaining, delta))
 
             m_obj.trust.modify(clamped_delta)
-            setattr(m_obj, diplo_trust_key, applied + clamped_delta)
+            trust_applied[m_name] = applied + clamped_delta
 
     def handle_diplomatic_dialogue_response(self, choice, game_state: Dict) -> Dict:
         """Handle player's response to a diplomatic dialogue.

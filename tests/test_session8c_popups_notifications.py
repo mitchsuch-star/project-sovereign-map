@@ -411,6 +411,9 @@ class TestPopupDataContracts:
             "Saxony": {"lord": "France", "loyalty": 8, "autonomy": 1},
         }
         process_vassal_loyalty(world)
+        # V2-90: vassal rebellion popup now appends to list; pop to singular field
+        if getattr(world, 'vassal_rebellion_imminent_popups', None) and not world.vassal_rebellion_imminent_popup:
+            world.vassal_rebellion_imminent_popup = world.vassal_rebellion_imminent_popups.pop(0)
         popup = world.vassal_rebellion_imminent_popup
         assert popup is not None
         assert isinstance(popup["nation"], str)

@@ -131,6 +131,9 @@ class TestAcceptanceCooldown:
             "turn_generated": 5,
         }
         deliver_ai_proposal(proposal, world)
+        # V2-89: deliver_ai_proposal now appends to queue; pop to active dialogue
+        if world.pending_dialogue_queue and not world.pending_diplomatic_dialogue:
+            world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
 
         # Accept via handle_diplomatic_dialogue_response (same path as main.py)
         game_state = _make_game_state(world)

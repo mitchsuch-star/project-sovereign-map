@@ -186,6 +186,7 @@ A future save/load system should use this as the specification.
 | `previous_treaties` | dict | {} | Past treaty records per pair for escalating harshness. Empty for now. |
 | `turns_below_threshold` | dict | {} | Auto-downgrade tracking: consecutive turns relation is 30+ below state threshold. |
 | `pending_diplomatic_dialogue` | dict/null | null | **Session 3.** Active Talleyrand dialogue awaiting player response. Contains type, target_nation, options, context. |
+| `pending_dialogue_queue` | list[dict] | [] | **V2-89.** Queue of dialogues generated during advance_turn. Popped to pending_diplomatic_dialogue by priority: alliance_paradox > vassal_rebellion > sabotage > ai_proposal. |
 | `active_diplomatic_mission` | dict/null | null | **Session 3.** Talleyrand's ongoing mission: {type, target, turns_active, paused, paused_turns}. |
 | `talleyrand_state` | str | "IDLE" | **Session 3.** "IDLE", "IN_TRANSIT", or "ON_MISSION". |
 | `proposal_in_transit` | dict/null | null | **Session 3.** Proposal sent and awaiting resolution next turn: {target, proposal, turn_sent}. |
@@ -222,10 +223,12 @@ A future save/load system should use this as the specification.
 | `alliance_paradox_popup` | dict\|null | null | **Phase 4.** Pending alliance paradox popup. Set when AI attack creates allied-with-both conflict. Keys: aggressor, defender, ally. Cleared after read. |
 | `coalition_popup` | dict\|null | null | **Session 8A.** Pending coalition popup data for Godot frontend. Set by coalition formation, cleared after read in /command response. |
 | `diplomatic_sabotage_popup` | dict\|null | null | **Session 8A.** Pending Talleyrand sabotage popup data. Set by sabotage discovery, cleared after read in /command response. |
-| `vassal_rebellion_imminent_popup` | dict\|null | null | **Session 8A.** Pending vassal rebellion warning popup. Set by loyalty check, cleared after read in /command response. |
+| `vassal_rebellion_imminent_popup` | dict\|null | null | **Session 8A.** Current vassal rebellion warning popup (popped from list). Set by loyalty check, cleared after read in /command response. |
+| `vassal_rebellion_imminent_popups` | list[dict] | [] | **V2-90.** Queue of vassal rebellion popups. Multiple vassals can trigger simultaneously. Auto-pops to singular field in _include_popup_passthroughs. |
 | `talleyrand_redemption_popup` | dict\|null | null | **Session 8C.** Pending Talleyrand redemption popup. Set by trust<=20 check, cleared after read in /command response. |
 | `diplomatic_objection_popup` | dict\|null | null | **Session 8C.** Pending diplomatic objection popup. Set by pre-proposal objection, cleared after read in /command response. |
 | `incoming_proposal_popup` | dict\|null | null | **Session 8C.** Pending AI proposal popup data. Set by deliver_ai_proposal, cleared after read in /command response. |
+| `diplomatic_trust_applied` | dict | {} | **V2-16.** Per-turn cap tracking for diplomatic trust changes. {marshal_name: amount_applied}. Cleared at start of each turn. Replaces dynamic attrs that didn't survive save/load. |
 | `active_battles` | dict | {} | Currently ongoing battles |
 | `battle_history` | list | [] | Completed battle records |
 | `battles_this_turn` | list | [] | Battles this turn (Phase 5.2) |

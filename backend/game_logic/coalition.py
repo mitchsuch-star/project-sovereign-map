@@ -601,6 +601,13 @@ def form_coalition(qualifying_nations: List[str], world) -> Dict:
         if dialogue_target in all_members:
             world.pending_diplomatic_dialogue = None
 
+    # V2-89: Also clear matching items from dialogue queue
+    if hasattr(world, 'pending_dialogue_queue'):
+        world.pending_dialogue_queue = [
+            d for d in world.pending_dialogue_queue
+            if d.get("target_nation", "") not in all_members
+        ]
+
     # Update posture based on current war scores
     posture = get_coalition_posture(world)
     world.active_coalition["strategic_posture"] = posture

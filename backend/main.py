@@ -164,6 +164,11 @@ def _include_popup_passthroughs(response: dict, world) -> None:
         ("alliance_paradox_popup", "alliance_paradox_popup"),  # TODO: alliance_paradox_popup needs a Godot handler (M10)
     ]
 
+    # V2-90: Auto-pop rebellion popup from list if single field is empty
+    if (getattr(world, 'vassal_rebellion_imminent_popup', None) is None
+            and getattr(world, 'vassal_rebellion_imminent_popups', None)):
+        world.vassal_rebellion_imminent_popup = world.vassal_rebellion_imminent_popups.pop(0)
+
     # Find highest-priority popup that is set on world
     winner_attr = None
     winner_key = None
@@ -226,6 +231,21 @@ def _include_popup_passthroughs(response: dict, world) -> None:
                 }
             else:
                 response[response_key] = None
+
+    # V2-89: Auto-pop next dialogue from queue when current is cleared
+    if (world.pending_diplomatic_dialogue is None
+            and hasattr(world, 'pending_dialogue_queue')
+            and world.pending_dialogue_queue):
+        # Sort by priority before popping
+        _DIALOGUE_PRIORITY = {
+            "alliance_paradox": 0, "vassal_rebellion_imminent": 1,
+            "sabotage_confrontation": 2, "talleyrand_redemption": 3,
+            "incoming_proposal": 4,
+        }
+        world.pending_dialogue_queue.sort(
+            key=lambda d: _DIALOGUE_PRIORITY.get(d.get("type", ""), 99)
+        )
+        world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
 
     # War status panel data — embedded in every response (N4f)
     from backend.game_logic.war_status import build_active_wars

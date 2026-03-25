@@ -197,6 +197,9 @@ class TestR12AllianceParadox:
         world.diplomatic_states[world._make_diplo_key(player, "Austria")] = "ALLIANCE"
         world.diplomatic_states[world._make_diplo_key("Austria", "Prussia")] = "PEACE"
         declare_war(world, "Prussia", "Austria")
+        # V2-89: alliance paradox now appends to queue; pop to active dialogue
+        if world.pending_dialogue_queue and not world.pending_diplomatic_dialogue:
+            world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
         dialogue = world.pending_diplomatic_dialogue
         assert dialogue is not None
         assert dialogue["type"] == "alliance_paradox"
@@ -212,6 +215,9 @@ class TestR12AllianceParadox:
         world.diplomatic_states[world._make_diplo_key(player, "Austria")] = "ALLIANCE"
         world.diplomatic_states[world._make_diplo_key("Austria", "Prussia")] = "PEACE"
         declare_war(world, "Prussia", "Austria")
+        # V2-89: alliance paradox now appends to queue; pop to active dialogue
+        if world.pending_dialogue_queue and not world.pending_diplomatic_dialogue:
+            world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
         # Now handle the dialogue choice
         assert world.pending_diplomatic_dialogue is not None
         result = executor.handle_diplomatic_dialogue_response("1", game_state)
@@ -230,6 +236,9 @@ class TestR12AllianceParadox:
         world.diplomatic_states[world._make_diplo_key(player, "Austria")] = "ALLIANCE"
         world.diplomatic_states[world._make_diplo_key("Austria", "Prussia")] = "PEACE"
         declare_war(world, "Prussia", "Austria")
+        # V2-89: alliance paradox now appends to queue; pop to active dialogue
+        if world.pending_dialogue_queue and not world.pending_diplomatic_dialogue:
+            world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
         assert world.pending_diplomatic_dialogue is not None
         # Choose option 2: break alliance with defender (Austria)
         result = executor.handle_diplomatic_dialogue_response("2", game_state)

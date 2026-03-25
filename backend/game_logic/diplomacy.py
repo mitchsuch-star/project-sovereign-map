@@ -1100,8 +1100,8 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
                 "defender_alliance": target_state,
                 "message": paradox_msg,
             }
-            # Set up dialogue for choice handling
-            world.pending_diplomatic_dialogue = {
+            # V2-89: Append to queue instead of overwriting
+            world.pending_dialogue_queue.append({
                 "type": "alliance_paradox",
                 "target_nation": "",
                 "talleyrand_text": paradox_msg,
@@ -1122,7 +1122,7 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
                 "context": {"attacker": aggressor, "defender": target},
                 "turn_created": int(world.current_turn),
                 "blocking": True,
-            }
+            })
 
     # ── DEFENSIVE_ALLIANCE CASCADE ──
     # If paradox detected, exclude the player from cascade (player must choose)

@@ -206,6 +206,9 @@ class TestAIDiplomacyDelivery:
         world = make_world()
         proposal = _make_test_proposal("Prussia", "armistice_losing")
         dialogue = deliver_ai_proposal(proposal, world)
+        # V2-89: deliver_ai_proposal now appends to queue; pop to active dialogue
+        if world.pending_dialogue_queue and not world.pending_diplomatic_dialogue:
+            world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
         assert world.pending_diplomatic_dialogue is not None
         assert dialogue["type"] == "incoming_proposal"
         assert dialogue["blocking"] is True
@@ -246,6 +249,9 @@ class TestAIDiplomacyDelivery:
         result = try_deliver_queued_proposal(world)
         assert result is not None
         assert result["type"] == "incoming_proposal"
+        # V2-89: deliver_ai_proposal (called by try_deliver) now appends to queue; pop to active dialogue
+        if world.pending_dialogue_queue and not world.pending_diplomatic_dialogue:
+            world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
         assert world.pending_diplomatic_dialogue is not None
 
     def test_try_deliver_queued_proposal_blocked(self):
@@ -648,6 +654,9 @@ class TestExecutorDiplomaticWiring:
         world.diplomatic_states[key] = "WAR"
         proposal = _make_test_proposal("Prussia", "armistice_losing")
         deliver_ai_proposal(proposal, world)
+        # V2-89: deliver_ai_proposal now appends to queue; pop to active dialogue
+        if world.pending_dialogue_queue and not world.pending_diplomatic_dialogue:
+            world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
         assert world.pending_diplomatic_dialogue is not None
         # Accept (option 1 = Accept)
         result = executor.handle_diplomatic_dialogue_response(1, game_state)
@@ -665,6 +674,9 @@ class TestExecutorDiplomaticWiring:
         world.diplomatic_states[key] = "WAR"
         proposal = _make_test_proposal("Prussia", "armistice_losing")
         deliver_ai_proposal(proposal, world)
+        # V2-89: deliver_ai_proposal now appends to queue; pop to active dialogue
+        if world.pending_dialogue_queue and not world.pending_diplomatic_dialogue:
+            world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
         # Reject (option 2 = Reject)
         result = executor.handle_diplomatic_dialogue_response(2, game_state)
         assert result["success"] is True
@@ -684,6 +696,9 @@ class TestExecutorDiplomaticWiring:
         world.war_scores[key] = 20  # France slightly ahead
         proposal = _make_test_proposal("Prussia", "armistice_losing")
         deliver_ai_proposal(proposal, world)
+        # V2-89: deliver_ai_proposal now appends to queue; pop to active dialogue
+        if world.pending_dialogue_queue and not world.pending_diplomatic_dialogue:
+            world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
         dp_before = world.diplomatic_points
         # Counter (option 3 = Counter-offer)
         result = executor.handle_diplomatic_dialogue_response(3, game_state)
