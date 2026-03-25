@@ -179,6 +179,9 @@ class CommandParser:
                     "support", "pursue", "chase", "hunt", "intercept",
                     "cancel", "halt", "abort", "stop",
                     "bombard", "barrage", "shell", "cannonade", "garrison",
+                    # Troop type keywords — not marshal names (M2 parse fix)
+                    "infantry", "cavalry", "artillery", "troops", "soldiers",
+                    "horsemen", "riders", "foot", "guns",
                 ]
                 if len(word) < 2 or word.lower() in skip_words:
                     continue

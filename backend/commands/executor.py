@@ -3676,7 +3676,8 @@ RETREAT RECOVERY (3 turns):
                     filter_fn=lambda e: world.get_region_intel(e.location).visibility in (_FULL, _PARTIAL)
                 )
             else:
-                result = world.find_nearest_enemy(marshal.location)
+                # C2 fix: Use nation-aware lookup for AI marshals to prevent same-nation targeting
+                result = world._find_nearest_enemy_for_nation(marshal.location, marshal.nation)
 
             if result:
                 nearest_enemy, distance = result
@@ -3888,7 +3889,7 @@ RETREAT RECOVERY (3 turns):
         # Same rule as movement - must deal with engaged enemies first
         # ════════════════════════════════════════════════════════════
         marshals_here = world.get_marshals_in_region(marshal.location)
-        enemies_here = [m for m in marshals_here if m.nation != marshal.nation and m.strength > 0]
+        enemies_here = [m for m in marshals_here if m.nation != marshal.nation and m.strength > 0 and world.is_at_war(marshal.nation, m.nation)]
 
         if enemies_here:
             # Check if target is in a DIFFERENT region
@@ -11822,11 +11823,12 @@ RETREAT RECOVERY (3 turns):
         existing_treaty = world.active_treaties.get(diplo_key_treaty)
         if existing_treaty and not world.diplomatic_objection_popup:
             treaty_type = existing_treaty.get("type", "treaty")
-            treaty_display = treaty_type.replace("_", " ").title()
+            from backend.game_logic.diplomatic_dialogue import _display_proposal_type
+            treaty_display = _display_proposal_type(treaty_type)
             world.pending_diplomatic_dialogue = {
                 "type": "force_declare_war_confirmation",
                 "target_nation": target_nation,
-                "message": (f"Sire! We have a {treaty_display} with {target_nation}. "
+                "message": (f"Sire! We have {'an' if treaty_display[0].lower() in 'aeiou' else 'a'} {treaty_display} with {target_nation}. "
                             f"Declaring war would break this treaty and mark us as oath-breakers "
                             f"in the eyes of all Europe. Shall I proceed regardless?"),
                 "options": [

@@ -173,9 +173,11 @@ class CombatResolver:
             fortification_bonus: Defense bonus from fortification building (Phase 6.2.E)
         """
 
-        #print(f"\n BATTLE: {attacker.name} vs {defender.name}")
-        #print(f"   Attacker: {attacker.strength:,} troops, {attacker.morale}% morale")
-        #print(f"   Defender: {defender.strength:,} troops, {defender.morale}% morale")
+        # C2 fix: Log warning for same-nation combat (defensive programming).
+        # Hard block is in executor target resolution; this is a safety net.
+        if attacker.nation == defender.nation:
+            print(f"[WARNING] Same-nation combat: {attacker.name} ({attacker.nation}) vs "
+                  f"{defender.name} ({defender.nation})")
 
         # Roll combat dice for attacker (flanking bonus adds to roll)
         attacker_roll = self.roll_combat_dice(attacker, flanking_bonus=int(flanking_bonus))

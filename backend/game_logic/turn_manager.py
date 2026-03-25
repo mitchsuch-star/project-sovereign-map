@@ -56,6 +56,8 @@ class TurnManager:
             game_state: Game state dict for executor (required for enemy AI)
         """
         old_turn = self.world.current_turn
+        # C3 fix: Track whether advance_turn has been called this cycle
+        _advanced = False
 
         # ════════════════════════════════════════════════════════════
         # BUG #2 FIX: CHECK VICTORY BEFORE ENEMY PHASE
@@ -68,6 +70,7 @@ class TurnManager:
             self.world.victory = pre_enemy_victory_check["result"]
             # Skip to turn advancement without enemy phase
             self.world.advance_turn()
+            _advanced = True
             tactical_events = self.world.get_last_tactical_events()
             return {
                 "turn_ended": old_turn,
@@ -91,7 +94,9 @@ class TurnManager:
                 self.world.game_over = True
                 self.world.victory = "defeat"
                 # Still advance turn but game is over
-                self.world.advance_turn()
+                if not _advanced:
+                    self.world.advance_turn()
+                    _advanced = True
                 tactical_events = self.world.get_last_tactical_events()
                 return {
                     "turn_ended": old_turn,
@@ -135,7 +140,11 @@ class TurnManager:
         # - Income application
         # - Action reset
         # ════════════════════════════════════════════════════════════
-        self.world.advance_turn()
+        if not _advanced:
+            self.world.advance_turn()
+            _advanced = True
+        else:
+            debug_print(f"[WARNING] Double advance_turn prevented in end_turn! current_turn={self.world.current_turn}")
 
         # Get tactical events that were processed during advance
         tactical_events = self.world.get_last_tactical_events()

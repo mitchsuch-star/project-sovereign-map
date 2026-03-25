@@ -468,6 +468,82 @@ def get_war_score_for(world, nation: str, opponent: str) -> int:
     return int(raw_score)
 
 
+def _force_retreat_displaced_marshals(world, nation_a: str, nation_b: str) -> None:
+    """Force-retreat marshals stranded in hostile territory after war ends.
+
+    When an armistice/peace is signed, any marshal from nation_a in nation_b's
+    territory (or vice versa) must be relocated to their nearest friendly region.
+    Without this, stranded marshals create engagement deadlocks (C1 bug).
+    """
+
+    for marshal in list(world.marshals.values()):
+        if marshal.strength <= 0:
+            continue
+
+        region = world.get_region(marshal.location)
+        if not region:
+            continue
+
+        # Check if marshal is in hostile territory of the now-peaceful nation
+        is_nation_a_in_b_territory = (
+            marshal.nation == nation_a and region.controller == nation_b
+        )
+        is_nation_b_in_a_territory = (
+            marshal.nation == nation_b and region.controller == nation_a
+        )
+
+        if not (is_nation_a_in_b_territory or is_nation_b_in_a_territory):
+            continue
+
+        # Find nearest friendly region via BFS
+        retreat_to = _find_friendly_retreat(world, marshal)
+        if retreat_to:
+            marshal.move_to(retreat_to)
+            # Cancel any strategic orders (they're now invalid)
+            if getattr(marshal, 'strategic_order', None):
+                marshal.strategic_order = None
+
+
+def _find_friendly_retreat(world, marshal) -> str:
+    """BFS to find nearest region controlled by marshal's nation."""
+    from collections import deque
+
+    start_region = world.get_region(marshal.location)
+    if not start_region:
+        return ""
+
+    visited = {marshal.location}
+    queue = deque()
+
+    # Seed with adjacent regions
+    for adj_name in start_region.adjacent_regions:
+        if adj_name not in visited:
+            visited.add(adj_name)
+            queue.append(adj_name)
+
+    while queue:
+        region_name = queue.popleft()
+        region = world.get_region(region_name)
+        if not region:
+            continue
+
+        if region.controller == marshal.nation:
+            return region_name
+
+        for adj_name in region.adjacent_regions:
+            if adj_name not in visited:
+                visited.add(adj_name)
+                queue.append(adj_name)
+
+    # Fallback: capital
+    from backend.models.region import NATION_CAPITALS
+    capital = NATION_CAPITALS.get(marshal.nation, "")
+    if capital and world.get_region(capital):
+        return capital
+
+    return ""
+
+
 def cleanup_war_end(world, diplo_key: str) -> None:
     """Clean up war-related data when a war ends (R1b, R49, R47/R30).
 
@@ -517,6 +593,11 @@ def cleanup_war_end(world, diplo_key: str) -> None:
         stalemate_counters.pop(parts[0], None)
         stalemate_counters.pop(parts[1], None)
     world.ai_stalemate_counters = stalemate_counters
+
+    # Force-retreat displaced marshals from hostile territory (C1 armistice deadlock fix)
+    if len(parts) == 2:
+        nation_a, nation_b = parts
+        _force_retreat_displaced_marshals(world, nation_a, nation_b)
 
     # R47/R30: Cancel PURSUE/MOVE_TO orders targeting the now-peaceful nation's marshals
     if len(parts) == 2:
