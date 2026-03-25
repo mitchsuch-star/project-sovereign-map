@@ -518,6 +518,34 @@ class Marshal:
         self.last_objection_turn: int = 0
         self.defiance_cooldown_until: int = 0
 
+    def clear_combat_transient_state(self):
+        """Clear all transient combat state. Single source of truth.
+
+        Called before/after combat in auto-charge (world_state.py) and
+        on army break in executor._apply_forced_retreat_or_break().
+        Any new combat-transient field MUST be added here.
+        """
+        self.drilling = False
+        self.drilling_locked = False
+        self.shock_bonus = 0
+        self.fortified = False
+        self.defense_bonus = 0
+        self.turns_fortified = 0
+        self.moved_this_turn = False
+        self.last_bombardment_target = None
+        self.bombardment_streak = 0
+        self.stance = Stance.NEUTRAL
+        self.occupation_region = None
+        self.occupation_turns_held = 0
+        self.occupation_turns_required = 0
+        self.turns_in_defensive_stance = 0
+        self.counter_punch_available = False
+        self.counter_punch_turns = 0
+        self.counter_punch_ready = False
+        self.holding_position = False
+        self.hold_region = ""
+        self.square_formation = False
+
     def move_to(self, new_location: str) -> None:
         """
         Move marshal to a new region.

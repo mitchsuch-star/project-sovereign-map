@@ -340,8 +340,12 @@ func _render_economy():
 	var net = int(econ.get("net", 0))
 	var bankruptcy = int(econ.get("bankruptcy_turns", 0))
 
+	var trade = int(econ.get("trade_income", 0))
+
 	bbcode += "  Treasury: " + _format_number(treasury) + "g\n"
 	bbcode += "  Income:   +" + str(income) + "g\n"
+	if trade > 0:
+		bbcode += "  Trade:    +" + str(trade) + "g\n"
 	bbcode += "  Upkeep:   -" + str(upkeep) + "g\n"
 
 	var net_color = COLOR_SUCCESS if net >= 0 else COLOR_ERROR

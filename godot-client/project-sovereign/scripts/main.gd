@@ -919,7 +919,14 @@ func _on_command_result(response):
 		# Format and display result based on event type
 		_display_result(response)
 
-		# Tactical events absorbed into Morning Dispatch (no separate display)
+		# Display tactical events (supply attrition, occupation updates)
+		if response.has("tactical_events"):
+			var events = response.tactical_events
+			if events is Array:
+				for event in events:
+					var msg = str(event.get("message", ""))
+					if msg != "":
+						add_output("[color=#" + COLOR_INFO + "]" + msg + "[/color]")
 
 		# Update notification bar with any pending notifications
 		# (must be before enemy_phase dialog check — that returns early)
@@ -1232,8 +1239,8 @@ func _display_bombardment_report(result: Dictionary):
 	# Fort degradation
 	var fort_degraded = result.get("fort_degraded", false)
 	if fort_degraded:
-		var fort_old = int(result.get("fort_old", 0) * 100)
-		var fort_new = int(result.get("fort_new", 0) * 100)
+		var fort_old = int(result.get("fort_old", 0))
+		var fort_new = int(result.get("fort_new", 0))
 		if fort_new <= 0:
 			add_output("[color=#" + COLOR_FORT + "]  Fortifications DESTROYED! (" + str(fort_old) + "% -> 0%)[/color]")
 		else:
@@ -1942,6 +1949,7 @@ func _on_objection_response(response):
 			_show_redemption_dialog(response.redemption_event)
 			return
 
+		_update_diplomatic_top_bar(response)
 		_update_war_panel_visibility()
 		set_input_enabled(true)
 		command_input.grab_focus()
@@ -1966,6 +1974,7 @@ func _on_objection_response(response):
 			_show_redemption_dialog(response.redemption_event)
 			return  # Don't re-enable input until redemption resolved
 
+		_update_diplomatic_top_bar(response)
 		_update_war_panel_visibility()
 		set_input_enabled(true)
 		command_input.grab_focus()
@@ -2169,6 +2178,7 @@ func _on_redemption_response(response):
 		add_output("[color=#" + COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
 		add_output("")
 
+	_update_diplomatic_top_bar(response)
 	_update_war_panel_visibility()
 	set_input_enabled(true)
 	command_input.grab_focus()
@@ -2368,6 +2378,14 @@ func _on_load_result(response):
 	"""Handle load result from backend."""
 	set_input_enabled(true)
 	if response.success:
+		# Clear pending state from previous game (V2-76)
+		pending_enemy_phase_response = null
+		pending_dispatch_data = null
+		pending_strategic_response = null
+		pending_redemption = false
+		pending_charge_marshal = ""
+		pending_charge_target = ""
+
 		# Refresh entire display from new game state
 		if response.has("game_state"):
 			var gs = response.game_state
@@ -2378,9 +2396,11 @@ func _on_load_result(response):
 				_update_gold_display()
 			if gs.has("manpower_pools"):
 				_apply_manpower(gs.manpower_pools)
+			if gs.has("max_turns"):
+				max_turns = int(gs.max_turns)
 			if gs.has("turn"):
 				current_turn = int(gs.turn)
-				turn_value.text = str(current_turn)
+				turn_value.text = str(int(current_turn)) + "/" + str(int(max_turns))
 			if gs.has("actions_remaining"):
 				actions_remaining = int(gs.actions_remaining)
 			if gs.has("max_actions"):
@@ -2541,6 +2561,7 @@ func _on_glorious_charge_response(response):
 	else:
 		add_output("[color=#" + COLOR_ERROR + "]" + str(response.get("message", "An error occurred")) + "[/color]")
 
+	_update_diplomatic_top_bar(response)
 	_update_war_panel_visibility()
 	add_output("")
 	command_input.grab_focus()

@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 24, 2026 (Systems Audit Sessions 11-12: cleanup + QoL)
+> **Last Updated:** March 25, 2026 (Systems Audit V2 Session 2 complete)
 
 ---
 
@@ -9,18 +9,32 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **6904** (6904 passed, 3 skipped — systems audit sessions 11-12) |
+| **Tests Passing** | **6947** (6947 passed, 3 skipped — +17 from V2 Session 1) |
 
-| **Current Phase** | Phase 8: Diplomacy. **ALL SESSIONS COMPLETE** (1A through 8D). Phase 8 DONE. See `docs/SESSION_8_PLAN.md`. |
-| **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). No blockers for Phase 8. |
+| **Current Phase** | Systems Audit V2 Fix Plan. Sessions 1-2 COMPLETE. **Session 3 UP NEXT.** See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`. |
+| **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
 ---
 
 ## Next Steps
 
-1. ~~**Diplomacy Button (UX Feature)**~~ — **COMPLETE.** Session A (backend) + Session B (Godot wizard UI) + final edge case fixes (2 bugs, 2 hardening). 108 button tests. See `docs/DIPLOMACY_BUTTON_SPEC.md`.
-2. **Diplomacy Refinement Phase 5** — **IN PROGRESS.** 50 items (R136 KILLED). See `docs/DIPLO_REFINEMENT.md`.
+1. **Systems Audit V2 Fix Plan** — Session 1 COMPLETE. **START WITH SESSION 2.** 56 confirmed bugs across 7 sessions. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.
+   - **Session 1 (P0 — CRITICAL): COMPLETE.** Auto-charge & glorious charge post-combat. 12 bugs fixed, 17 new tests. Added `clear_combat_transient_state()` to Marshal (single source of truth). Fixed: fortification_bonus (V2-45), retreat direction (V2-46), zombie prevention (V2-44), broken state (V2-47), state clearing (V2-48/49), engagement check (V2-2), flanking (V2-51), relationships (V2-50), targeting filters (V2-92). Files: `marshal.py`, `world_state.py`, `executor.py`.
+   - **Session 2 (P0 — CRITICAL): COMPLETE.** Godot frontend fixes. 10 bugs fixed, 0 new tests (GDScript — manual verification). Fixed: success=true override (V2-69), bombardment 8000% (V2-70), frozen input on connection failure (V2-72), HTTPRequest race/ERR_BUSY (V2-73), trade income missing (V2-30), load missing max_turns (V2-71), turn format "5" not "5/40" (V2-74), early returns skip diplomatic top bar (V2-75), load doesn't clear pending state (V2-76), tactical_events silently dropped (V2-77). Files: `api_client.gd`, `main.gd`, `strategic_ledger.gd`.
+   - **Session 3 (P1 — MAJOR):** AI + Economy + Turn Manager. V2-5 fog leak, V2-20/21 cooldown 4x tick, V2-19 error swallowing, V2-29 zombie marshals. Files: `main.py`, `prompt_builder.py`, `enemy_ai.py`, `turn_manager.py`, `world_state.py`.
+   - **Session 3 (P1):** AI + economy + turn manager. V2-5 fog leak, V2-20/21 cooldown 4x, V2-29 zombie marshals. Files: `enemy_ai.py`, `turn_manager.py`, `world_state.py`.
+   - **Session 4 (P1):** Diplomacy state + pacing. V2-89 dialogue queue, V2-65 broken teleport, V2-85 turn warnings. Files: `vassal.py`, `diplomacy.py`, `dispatch.py`.
+   - **Session 5 (P2):** Parser fixes. V2-55 "ney" substring, V2-56 "dig in" conflict. Files: `llm_client.py`, `strategic_parser.py`.
+   - **Session 6 (P2):** Hardcoded values + serialization + dead code (V2-58 hold). V2-27 Davout exploit, V2-78/79 hardcoded Paris. Files: `personality.py`, `executor.py`, docs.
+   - **Session 7 (P3 — optional):** Test quality hardening. 46 zero-assertion tests, conditional assertions, shared fixtures.
+   - **IMPORTANT: After each session, update this STATUS.md to mark it done and indicate which session is next.**
+2. **Playtest Bug Fixes (March 2026 Review)** — 16-turn playtest found 3 critical, 3 major, 4 minor bugs + 4 balance concerns. Fun rating 6.5/10. See `docs/PLAYTEST_REVIEW_2026_03.md`.
+   - **Session 1 (CRITICAL):** C1 armistice deadlock (Gneisenau stranded, blocks all combat), C2 same-nation self-combat (Wellington vs Wellington), C3 turn counter skip (Turn 2→4).
+   - **Session 2 (MAJOR):** M1 raw internal state names in UI, M2 "recruit infantry at Paris" parse failure, M3 no recruit type/amount control.
+   - **Session 3 (MINOR + BALANCE):** m1-m4 minor fixes, B1 Wellington defense cap (~85% stacking), B2 supply attrition death spiral, B3 enemy action count, B4 gold accumulation with no outlet.
+3. ~~**Diplomacy Button (UX Feature)**~~ — **COMPLETE.** Session A (backend) + Session B (Godot wizard UI) + final edge case fixes (2 bugs, 2 hardening). 108 button tests. See `docs/DIPLOMACY_BUTTON_SPEC.md`.
+4. **Diplomacy Refinement Phase 5** — **IN PROGRESS.** 50 items (R136 KILLED). See `docs/DIPLO_REFINEMENT.md`.
    - ~~**Wave 1: Quick Wins**~~ — **DONE** (10 items, 24 tests).
    - ~~**Wave 2: AI Intelligence**~~ — **DONE** (5 items, 36 tests).
    - ~~**Wave 2.5: Wartime Peace Rebalance**~~ — **DONE** (10 items R141-R150, 32 tests). Acceptance formula rebalance (relation dampening during WAR, war weariness, stalemate duration), sweetener value/cap increases, territory cession + AP/manpower in suggested terms, P2 trigger fix. Also fixed territory_cede acceptance value bug and ratification key mismatch.

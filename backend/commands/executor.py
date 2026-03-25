@@ -3051,31 +3051,10 @@ RETREAT RECOVERY (3 turns):
             marshal.broken = True
             marshal.broken_recovery = 0  # Start at stage 0 (4 turns to recover)
 
-            # Clear any other states
+            # Clear all combat transient state (single source of truth)
             marshal.retreating = False
             marshal.retreat_recovery = 0
-            marshal.drilling = False
-            marshal.drilling_locked = False
-            marshal.shock_bonus = 0
-            marshal.fortified = False
-            marshal.defense_bonus = 0
-            marshal.turns_fortified = 0  # Reset decay counter
-            marshal.moved_this_turn = False  # Symmetry: clear artillery movement flag
-            marshal.last_bombardment_target = None
-            marshal.bombardment_streak = 0
-            marshal.stance = Stance.NEUTRAL
-            # Clear occupation state (Phase 6.2.F)
-            marshal.occupation_region = None
-            marshal.occupation_turns_held = 0
-            marshal.occupation_turns_required = 0
-
-            # Clear personality ability states
-            marshal.turns_in_defensive_stance = 0
-            marshal.counter_punch_available = False
-            marshal.counter_punch_turns = 0
-            marshal.counter_punch_ready = False
-            marshal.holding_position = False
-            marshal.hold_region = ""
+            marshal.clear_combat_transient_state()
 
             # Clear strategic order (army shattered, all orders void)
             strategic_msg = ""
@@ -10324,6 +10303,18 @@ RETREAT RECOVERY (3 turns):
                         "blocked_by": blocking_enemy.name
                     }
 
+        # V2-2: Engagement check — skip if already fought this pair this turn
+        for battle in world.battles_this_turn:
+            pair = {battle.get("attacker"), battle.get("defender")}
+            if marshal.name in pair and target_marshal.name in pair:
+                return {
+                    "success": False,
+                    "message": f"{marshal.name} has already engaged {target_marshal.name} this turn!"
+                }
+
+        # V2-51: Record attack direction for flanking bonus
+        world.record_attack(marshal.name, marshal.location, target_marshal.location)
+
         # Execute combat with 2x damage multiplier
         recklessness_before = getattr(marshal, 'recklessness', 0)
 
@@ -10386,6 +10377,27 @@ RETREAT RECOVERY (3 turns):
         # Reset idle tracking (charge is an action)
         marshal.idle_turns = 0
         marshal._acted_this_turn = True
+
+        # Mark combat for cannon fire detection
+        marshal.in_combat_this_turn = True
+
+        # V2-50: Win/Loss Relationship processing (must run BEFORE destruction check)
+        from backend.game_logic.relationship import process_battle_relationships
+        relationship_changes = process_battle_relationships(
+            marshal, target_marshal, combat_result, charge_battle_region, world
+        )
+        for rc in relationship_changes:
+            world.log_event({
+                "type": "relationship_change",
+                "marshal": rc["marshal"],
+                "toward": rc["toward"],
+                "change": rc["change"],
+                "new_value": rc["new_value"],
+                "new_label": rc["new_label"],
+                "direction": rc["direction"],
+                "nation": rc["nation"],
+                "location": charge_battle_region,
+            })
 
         # ════════════════════════════════════════════════════════════
         # FORCED RETREAT: Handle broken armies (morale <= 25%)

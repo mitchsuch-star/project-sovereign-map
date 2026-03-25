@@ -2016,6 +2016,9 @@ class WorldState:
             # Skip destroyed marshals
             if marshal.strength <= 0:
                 continue
+            # V2-92: Skip broken or retreating marshals (not valid targets)
+            if getattr(marshal, 'broken', False) or getattr(marshal, 'retreating', False):
+                continue
             # Skip nations not at war (Phase 8 diplomacy)
             if not self.is_at_war(nation, marshal.nation):
                 continue
@@ -5218,6 +5221,8 @@ class WorldState:
 
             if distance <= marshal.movement_range:
                 # Can charge! Execute auto-charge
+                # V2-4: Auto-charge does NOT skip fortified defenders — reckless cavalry
+                # charges regardless. Fortification bonus is applied via resolve_battle.
                 debug_print(f"  [AUTO-CHARGE] {marshal.name} (recklessness {recklessness}) charges {enemy.name}!")
                 debug_print(f"  [AUTO-CHARGE DEBUG] marshal.location={marshal.location}, enemy.location={enemy.location}")
 
@@ -5236,12 +5241,19 @@ class WorldState:
                 pre_battle_def = enemy.strength
                 auto_charge_battle_region = enemy.location
 
+                # Clear attacker's combat transient state before combat (V2-48/V2-49)
+                marshal.clear_combat_transient_state()
+
+                # Region fortification bonus for defender (V2-45)
+                auto_charge_fort_bonus = 0.25 if enemy_region and enemy_region.has_building("fortification") else 0.0
+
                 # Execute combat (glorious_charge=False if terrain blocks it)
                 combat_result = combat_resolver.resolve_battle(
                     attacker=marshal,
                     defender=enemy,
                     terrain=auto_charge_terrain,
-                    glorious_charge=not charge_blocked
+                    glorious_charge=not charge_blocked,
+                    fortification_bonus=auto_charge_fort_bonus
                 )
                 debug_print(f"  [AUTO-CHARGE DEBUG] Combat result victor: {combat_result.get('victor')}")
 
@@ -5310,7 +5322,7 @@ class WorldState:
                                         "nation": getattr(enemy, "nation", ""),
                                         "from": old_enemy_loc, "to": retreat_to})
                     else:
-                        # Surrounded — broken army, survivors flee to capital
+                        # Surrounded — broken army, survivors flee to capital (V2-44)
                         import random as _rng
                         old_enemy_loc = enemy.location
                         survival_rate = _rng.uniform(0.03, 0.10)
@@ -5321,6 +5333,7 @@ class WorldState:
                         enemy.broken = True
                         enemy.broken_recovery = 0
                         enemy.retreating = False
+                        enemy.clear_combat_transient_state()
                         if enemy.strategic_order:
                             enemy.strategic_order = None
                         forced_retreat_msg = f" {enemy.name}'s army is SHATTERED and flees to {spawn_loc}!"
@@ -5329,8 +5342,9 @@ class WorldState:
                                         "location": old_enemy_loc})
 
                 # Check if attacker needs forced retreat
+                # V2-46: Use battle region (not enemy's post-retreat location) for retreat direction
                 if combat_result.get("attacker", {}).get("forced_retreat") and marshal.strength > 0:
-                    retreat_to = self.get_safe_retreat_destination(marshal.name, enemy.location)
+                    retreat_to = self.get_safe_retreat_destination(marshal.name, auto_charge_battle_region)
                     if retreat_to:
                         old_atk_loc = marshal.location
                         if marshal.strategic_order:
@@ -5339,10 +5353,30 @@ class WorldState:
                         marshal.retreating = True
                         marshal.retreat_recovery = 0
                         marshal.retreated_this_turn = True
+                        marshal.clear_combat_transient_state()
                         forced_retreat_msg += f" {marshal.name}'s broken army flees to {retreat_to}!"
                         self.log_event({"type": "retreat", "marshal": marshal.name,
                                         "nation": getattr(marshal, "nation", ""),
                                         "from": old_atk_loc, "to": retreat_to})
+                    else:
+                        # V2-44: No valid retreat — marshal is broken (zombie prevention)
+                        import random as _rng2
+                        old_atk_loc = marshal.location
+                        survival_rate = _rng2.uniform(0.03, 0.10)
+                        spawn_loc = getattr(marshal, 'spawn_location', 'Paris')
+                        marshal.move_to(spawn_loc)
+                        marshal.strength = max(1000, int(marshal.strength * survival_rate))
+                        marshal.morale = 20
+                        marshal.broken = True
+                        marshal.broken_recovery = 0
+                        marshal.retreating = False
+                        marshal.clear_combat_transient_state()
+                        if marshal.strategic_order:
+                            marshal.strategic_order = None
+                        forced_retreat_msg += f" {marshal.name}'s army is SHATTERED and flees to {spawn_loc}!"
+                        self.log_event({"type": "marshal_broken", "marshal": marshal.name,
+                                        "nation": getattr(marshal, "nation", ""),
+                                        "location": old_atk_loc})
 
                 # Move attacker if victorious and still alive
                 attacker_won = combat_result.get("attacker_won", False)
@@ -5351,6 +5385,16 @@ class WorldState:
                     if marshal.location != auto_charge_battle_region:
                         marshal.move_to(auto_charge_battle_region)
                         movement_msg = f" {marshal.name} advances into {auto_charge_battle_region}."
+
+                # V2-47: Ensure broken state for 0-strength marshals
+                if enemy.strength <= 0:
+                    enemy.broken = True
+                    enemy.strength = 0
+                    enemy.clear_combat_transient_state()
+                if marshal.strength <= 0:
+                    marshal.broken = True
+                    marshal.strength = 0
+                    marshal.clear_combat_transient_state()
 
                 # Check if enemy destroyed - remove from world
                 enemy_destroyed_msg = ""
@@ -5363,6 +5407,10 @@ class WorldState:
                     self.marshals.pop(marshal.name, None)
 
                 # ── Territory capture (simplified, no fort occupation) ──
+                # V2-53: Intentionally skips fortified region capture. Auto-charge is a
+                # FREE bonus action at turn start. Full region capture/occupation requires
+                # executor._attempt_region_capture() which is not callable from world_state.py
+                # (circular import constraint). Unfortified regions can still be captured.
                 conquered = False
                 conquest_msg = ""
                 if attacker_won and marshal.strength > 0 and marshal.location == auto_charge_battle_region:
