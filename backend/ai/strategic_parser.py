@@ -160,8 +160,10 @@ STRATEGIC_KEYWORDS = {
         "make for", "travel to", "withdraw to", "fall back to",
         "campaign to", "push to", "move toward",
         "journey to", "relocate to", "deploy to",
-        # Bare verbs for cardinal directions ("march north", "advance east")
-        "march", "advance", "push", "head", "fall back", "withdraw",
+        # Bare verbs for cardinal directions ("march north", "fall back north")
+        # V2-57: Removed "advance", "push", "head" — mock parser requires directional
+        # suffixes ("advance to", "push to", "head to") so bare forms are unreachable
+        "march", "fall back", "withdraw",
     ],
     "PURSUE": [
         # Multi-word phrases first
@@ -177,7 +179,8 @@ STRATEGIC_KEYWORDS = {
         "defend and hold", "secure and hold",
         "stand fast", "stand firm", "maintain position", "anchor at",
         "hold",
-        "dig in", "guard", "protect",
+        "guard", "protect",
+        # NOTE: "dig in" deliberately excluded — maps to tactical fortify, not strategic HOLD (V2-56)
     ],
     "SUPPORT": [
         # Multi-word phrases first
@@ -192,7 +195,8 @@ STRATEGIC_KEYWORDS = {
 # Strategic detection runs AFTER the mock parser, inspecting raw_command text
 # to decide if the parsed tactical action should be upgraded to strategic.
 #
-# "hold" → tactical hold (1 action). BUT "hold Belgium until Ney arrives" → strategic HOLD.
+# "hold" → always upgraded to strategic HOLD (2 AP). Players wanting 1 AP tactical
+#   defend should use "defend" instead (V2-58 documentation fix).
 # "support" → tactical reinforce. BUT "support Ney" → strategic SUPPORT.
 # The condition/target analysis disambiguates.
 

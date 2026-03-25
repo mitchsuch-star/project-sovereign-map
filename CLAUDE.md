@@ -29,7 +29,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 - **Diplomacy Audits — ALL COMPLETE.** Code audit (20 bugs, 145 tests). Creative audit (7.8/10). Comprehensive creative audit (6.5/10, 41 new items → Phase 5). March 2026 deep audit (43 bugs, 112 tests). See `docs/DIPLOMACY_AUDIT_2026_03.md`.
 - **Deep Audit Fix Plan — ALL 9 SESSIONS COMPLETE.** 43 bugs fixed, 129 new tests (6,703 total). Session 9: 12 spec doc updates, 6 hardening fixes, ~900 lines dead code removed. See `docs/DEEP_AUDIT_FIX_PLAN.md`.
 - **Systems Audit Fix Plan — ALL 12 CORE SESSIONS COMPLETE.** ~148 findings fixed, 193 new tests (6,904 total). Sessions 13-14 optional (architecture refactoring). See `docs/SYSTEMS_AUDIT_FIX_PLAN.md`.
-- **Systems Audit V2 Fix Plan — 7 SESSIONS PLANNED.** 56 confirmed bugs (3 CRITICAL, 21 MAJOR, 27 MINOR). Sessions 1-3 COMPLETE (31 bugs fixed, 6,967 tests). Session 4 (Diplomacy State/Pacing) is next. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.
+- **Systems Audit V2 Fix Plan — 7 SESSIONS PLANNED.** 56 confirmed bugs (3 CRITICAL, 21 MAJOR, 27 MINOR). Sessions 1-5 COMPLETE (47 bugs fixed, 7,018 tests). Session 6 (Cleanup/Dead Code) is next. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.
 - **Diplomacy Refinement Phases 1-4 — COMPLETE.** 55 items done, 326 tests. See `docs/DIPLO_REFINEMENT.md`.
 
 ### Design Gates

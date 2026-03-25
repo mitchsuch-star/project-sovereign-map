@@ -711,6 +711,20 @@ class EnemyAI:
                 print(f"  No valid actions remaining for {nation}")
                 break
 
+            # V2-22: Skip aggressive stance change on last AP — without follow-up
+            # budget, the stance change is wasted (aggressive only helps attacks).
+            # Defensive stance changes are fine — they provide immediate combat value.
+            if (actions_remaining == 1
+                    and selected_action.get("action") == "stance_change"
+                    and selected_action.get("target") == "aggressive"):
+                ai_debug(f"  [SKIP] {selected_marshal.name} - aggressive stance on last AP (no follow-up budget)")
+                failed_actions.add((selected_marshal.name, "stance_change"))
+                consecutive_skips += 1
+                if consecutive_skips >= max_consecutive_skips:
+                    print("  Stance budget skip + all skipped - ending turn")
+                    break
+                continue
+
             # Skip marshals with "nothing to do" (priority >= 900)
             if action_priority >= 900:
                 consecutive_skips += 1

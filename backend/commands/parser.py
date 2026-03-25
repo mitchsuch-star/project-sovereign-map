@@ -556,22 +556,65 @@ class CommandParser:
 
         Returns list of individual commands.
         """
-        # Simple implementation: check if "and" is in command
+
+        # V2-61: Only split on " and " when it appears between marshal names,
+        # not mid-phrase (e.g. "defend and hold" should NOT split).
+        all_marshal_names = set(n.lower() for n in (self.valid_marshals + self.known_enemies))
+
         if " and " in command_text.lower():
-            # Split into individual commands
-            # This is simplified - real version would be smarter
-            parts = command_text.lower().split(" and ")
+            # Find all " and " positions and check if both sides have marshal names
+            lower = command_text.lower()
+            split_pos = None
+            idx = 0
+            while True:
+                pos = lower.find(" and ", idx)
+                if pos == -1:
+                    break
+                # Check word before " and " — is it a marshal name?
+                before = lower[:pos].strip()
+                before_word = before.split()[-1] if before.split() else ""
+                # Check word after " and " — is it a marshal name?
+                after = lower[pos + 5:].strip()
+                after_word = after.split()[0].rstrip(",.!") if after.split() else ""
+                if before_word in all_marshal_names and after_word in all_marshal_names:
+                    split_pos = pos
+                    break
+                idx = pos + 1
 
-            results = []
-            for part in parts:
-                # Parse each part
-                result = self.parse(part.strip(), game_state, world=world)
-                results.append(result)
+            if split_pos is not None:
+                # Split at the marshal-and-marshal boundary
+                before_text = command_text[:split_pos].strip()
+                after_text = command_text[split_pos + 5:].strip()
 
-            return results
-        else:
-            # Single command
-            return [self.parse(command_text, game_state, world=world)]
+                # Extract the shared action/target from whichever part has it
+                # Typically: "Ney and Davout, attack Wellington"
+                # before = "Ney", after = "Davout, attack Wellington"
+                results = []
+                # If before is just a marshal name, apply after's action to both
+                before_lower = before_text.lower().strip().rstrip(",")
+                if before_lower in all_marshal_names:
+                    # "Ney" + "Davout, attack Wellington" → make "Ney, attack Wellington"
+                    # Extract action part from after_text (everything after the marshal name)
+                    after_parts = after_text.split(",", 1)
+                    if len(after_parts) > 1:
+                        action_part = after_parts[1].strip()
+                    else:
+                        # No comma — try splitting after first word
+                        after_words = after_text.split(None, 1)
+                        action_part = after_words[1] if len(after_words) > 1 else ""
+                    if action_part:
+                        results.append(self.parse(f"{before_text}, {action_part}", game_state, world=world))
+                    else:
+                        results.append(self.parse(before_text, game_state, world=world))
+                    results.append(self.parse(after_text, game_state, world=world))
+                else:
+                    # Both parts have their own actions
+                    results.append(self.parse(before_text, game_state, world=world))
+                    results.append(self.parse(after_text, game_state, world=world))
+                return results
+
+        # Single command (no marshal-and-marshal split found)
+        return [self.parse(command_text, game_state, world=world)]
 
     def get_help(self) -> str:
         """

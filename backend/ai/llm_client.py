@@ -545,12 +545,15 @@ class LLMClient:
             return self._parse_diplomatic_command(command_text, command_lower)
 
         # Mission keywords route to diplomacy (without Talleyrand)
+        # V2-62: "court" uses word boundary to prevent matching "court martial"
         _mission_keywords = [
-            "improve relations with", "court ", "charm ",
+            "improve relations with", "charm ",
             "gather intel on", "spy on ", "undermine ",
             "reassure ", "send envoy to", "send diplomat to",
         ]
         if any(kw in command_lower for kw in _mission_keywords):
+            return self._parse_diplomatic_command(command_text, command_lower)
+        if re.search(r'\bcourt\b(?!\s+martial)', command_lower):
             return self._parse_diplomatic_command(command_text, command_lower)
 
         # Extract marshal name - find the FIRST mentioned marshal
@@ -566,14 +569,18 @@ class LLMClient:
             ("archduke", "ArchdukeCharles"),
             ("schwarzenberg", "Schwarzenberg"),
             ("gneisenau", "Gneisenau"),
+            ("reynier", "Reynier"),
         ]
 
         # Find which marshal appears FIRST in the command
+        # V2-55: Use word-boundary regex to prevent substring matches
+        # (e.g. "ney" matching inside "journey", "money")
         first_position = len(command_lower) + 1
         for pattern, name in known_marshals:
-            pos = command_lower.find(pattern)
-            if pos != -1 and pos < first_position:
-                first_position = pos
+            # Multi-word patterns (e.g. "archduke charles") don't need \b between words
+            match = re.search(r'\b' + re.escape(pattern) + r'\b', command_lower)
+            if match and match.start() < first_position:
+                first_position = match.start()
                 marshal = name
 
         # Also check for "Marshal [Name]" pattern
@@ -630,7 +637,8 @@ class LLMClient:
 
         # BUG-002 FIX: Added "commands" and "what can i do" as help aliases
         # P8-2 FIX: Use exact match whitelist — "help" in command_lower matched "help Davout"
-        if command_lower.strip() in ("help", "help me", "i need help") or command_lower.strip() == "?" or "commands" in command_lower or "what can i do" in command_lower:
+        # V2-59: "commands" uses exact match to prevent false positives (e.g. "Ney commands his troops")
+        if command_lower.strip() in ("help", "help me", "i need help", "commands", "what can i do") or command_lower.strip() == "?":
             action = "help"
         elif "end turn" in command_lower or "end_turn" in command_lower or "next turn" in command_lower:
             action = "end_turn"

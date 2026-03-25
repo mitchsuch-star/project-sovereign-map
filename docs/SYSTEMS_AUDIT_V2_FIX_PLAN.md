@@ -153,23 +153,23 @@ Fields set by TurnManager on WorldState are not in `to_dict`/`from_dict`. Gracef
 
 ---
 
-### Session 4: Diplomacy State + Pacing [P1 — Before EA]
+### Session 4: Diplomacy State + Pacing [P1 — Before EA] ✅ COMPLETE
 
-**5 MAJOR + 3 MINOR. Includes state redesign for dialogue queue.**
+**7 MAJOR + 1 MINOR. 8 bugs fixed, 25 new tests (6,992 total).**
 
-| Bug | Sev | Description | Fix |
-|-----|-----|-------------|-----|
-| V2-89 | MAJ | `pending_diplomatic_dialogue` is single field — 6 writers overwrite | Convert to dialogue queue (list), process in priority order |
-| V2-90 | MAJ | Multiple vassal rebellions overwrite popup/dialogue | Accumulate in list; show sequentially |
-| V2-65 | MAJ | Broken marshals teleport to enemy-occupied capital | Check if capital friendly; find nearest friendly region if not |
-| V2-85 | MAJ | No turn-limit warning system | Add dispatch triggers at turns 35/38/39 + notification |
-| V2-86 | MAJ | Victory swallows pending diplomatic popups | Flush popup queue before game_over lock |
-| V2-63 | MAJ | Victory threshold mismatch (0.77 vs 0.75) | Unify to single `VICTORY_REGION_FRACTION` constant |
-| V2-64 | MAJ | Triple victory check can conflict | Consolidate to single authoritative check point |
-| V2-16 | MIN | Dynamic trust attrs bypass cap on save/load | Replace with single `diplomatic_trust_applied_this_turn` field, serialize |
+| Bug | Sev | Description | Status |
+|-----|-----|-------------|--------|
+| V2-89 | MAJ | `pending_diplomatic_dialogue` is single field — 6 writers overwrite | **FIXED** — Added `pending_dialogue_queue` list. Writers during advance_turn append to queue. Priority-based pop (alliance_paradox > vassal > sabotage > ai_proposal). Auto-pop in `_include_popup_passthroughs()`. |
+| V2-90 | MAJ | Multiple vassal rebellions overwrite popup/dialogue | **FIXED** — Added `vassal_rebellion_imminent_popups` list. Auto-pops to singular field. Release clears from both list and queue. |
+| V2-65 | MAJ | Broken marshals teleport to enemy-occupied capital | **FIXED** — Added `find_safe_spawn()` BFS helper. Applied at all 3 teleport sites (executor.py, world_state.py x2). |
+| V2-85 | MAJ | No turn-limit warning system | **FIXED** — `_build_turn_limit_warning()` in dispatch.py. Fires at turns 35 (5 left), 38 (2 left), 39 (final). Notification via TURN_LIMIT_WARNING type. |
+| V2-86 | MAJ | Victory swallows pending diplomatic popups | **FIXED** — `_flush_pending_popups_into()` on both pre-enemy and enemy victory return paths. |
+| V2-63 | MAJ | Victory threshold mismatch (0.77 vs 0.75) | **FIXED** — `_check_victory_conditions()` now uses `VICTORY_REGION_FRACTION` constant. |
+| V2-64 | MAJ | Triple victory check can conflict | **FIXED** — Removed victory check from `advance_turn()`. Turn manager is single authority. |
+| V2-16 | MIN | Dynamic trust attrs bypass cap on save/load | **FIXED** — Replaced `setattr(marshal, f"_diplomatic_trust_this_turn_{turn}", ...)` with `world.diplomatic_trust_applied` dict. Serialized + cleared per turn. |
 
-**Files:** `vassal.py`, `diplomacy.py`, `dispatch.py`, `world_state.py`, `turn_manager.py`, `executor.py`
-**Tests:** ~12-15 new tests
+**Files:** `turn_manager.py`, `world_state.py`, `executor.py`, `dispatch.py`, `ai_diplomacy.py`, `diplomacy.py`, `vassal.py`, `coalition.py`, `main.py`, `notifications.py`
+**Tests:** 25 new tests in `test_systems_audit_v2_session4.py`
 **Risk:** HIGH — dialogue queue is a structural change touching 6 writer sites + 3 reader sites. Needs careful serialization.
 
 **Dialogue Queue Design Notes:**
@@ -185,9 +185,9 @@ world.pending_dialogue_queue = []  # List of dicts, priority-ordered
 
 ---
 
-### Session 5: Parser Fixes [P2 — Quality of Life]
+### Session 5: Parser Fixes [P2 — Quality of Life] ✅ COMPLETE
 
-**2 MAJOR + 6 MINOR.**
+**2 MAJOR + 6 MINOR. All 8 bugs fixed, 26 new tests (7,018 total).**
 
 | Bug | Sev | Description | Fix |
 |-----|-----|-------------|-----|
@@ -312,9 +312,9 @@ Session 7 has no dependencies.
 |---------|--------|------|------------|-------------|
 | S1: Auto-Charge | **COMPLETE** | 2026-03-25 | 12 | 17 |
 | S2: Godot | **COMPLETE** | 2026-03-25 | 10 | 0 (GDScript) |
-| S3: AI/Economy | PENDING | — | — | — |
-| S4: Diplomacy/Pacing | PENDING | — | — | — |
-| S5: Parser | PENDING | — | — | — |
+| S3: AI/Economy | **COMPLETE** | 2026-03-25 | 9 | 20 |
+| S4: Diplomacy/Pacing | **COMPLETE** | 2026-03-25 | 8 | 25 |
+| S5: Parser | **COMPLETE** | 2026-03-25 | 8 | 26 |
 | S6: Cleanup/Dead Code | PENDING | — | — | — |
 | S7: Test Quality | PENDING (optional) | — | — | — |
 
