@@ -168,17 +168,19 @@ class TestRefortifyCooldown:
             pytest.fail("P8 default fortify should be blocked by re-fortify cooldown")
 
     def test_cooldown_decrements_each_turn(self):
-        """Cooldown should decrement by 1 each turn."""
+        """Cooldown should decrement by 1 each turn (via decrement_all_cooldowns)."""
         self.world.ai_refortify_cooldown["Wellington"] = 2
 
-        self.ai.process_nation_turn("Britain", self.world, self.game_state)
+        # V2-20/21: Cooldowns now decremented once per turn via decrement_all_cooldowns,
+        # not inside process_nation_turn.
+        self.ai.decrement_all_cooldowns(self.world)
         assert self.world.ai_refortify_cooldown.get("Wellington") == 1
 
     def test_cooldown_removed_at_zero(self):
         """Cooldown should be removed when it reaches 0."""
         self.world.ai_refortify_cooldown["Wellington"] = 1
 
-        self.ai.process_nation_turn("Britain", self.world, self.game_state)
+        self.ai.decrement_all_cooldowns(self.world)
         assert "Wellington" not in self.world.ai_refortify_cooldown
 
     def test_cooldown_serialization_roundtrip(self):

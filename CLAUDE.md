@@ -18,7 +18,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Systems Audit V2 Fix Plan — Sessions 1-2 COMPLETE.** 56 confirmed bugs across 7 sessions (6 required + 1 optional). Session 3 (AI/Economy) is next. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`. **After each session, update `docs/STATUS.md` to mark it done and indicate which session is next.**
+- **Systems Audit V2 Fix Plan — Sessions 1-3 COMPLETE.** 56 confirmed bugs across 7 sessions (6 required + 1 optional). Session 4 (Diplomacy State/Pacing) is next. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`. **After each session, update `docs/STATUS.md` to mark it done and indicate which session is next.**
 - **Playtest Bug Fixes (March 2026 Review).** 16-turn playtest found 3 critical + 3 major + 4 minor bugs + 4 balance concerns. Session 1: armistice deadlock, self-combat, turn skip. Session 2: raw state names, parse failures. Session 3: minor fixes + balance. See `docs/PLAYTEST_REVIEW_2026_03.md`.
 - **Diplomacy Button — COMPLETE.** Session A (backend) + Session B (Godot wizard UI) + final edge case fixes (2 bugs, 2 hardening). 108 button tests. See `docs/DIPLOMACY_BUTTON_SPEC.md`.
 - **Diplomacy Refinement Phase 5: Design Depth.** Waves 1-2, 2.5 DONE. Wave 3 (Player Feedback, 8 items) next. See `docs/DIPLO_REFINEMENT.md`.
@@ -29,7 +29,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 - **Diplomacy Audits — ALL COMPLETE.** Code audit (20 bugs, 145 tests). Creative audit (7.8/10). Comprehensive creative audit (6.5/10, 41 new items → Phase 5). March 2026 deep audit (43 bugs, 112 tests). See `docs/DIPLOMACY_AUDIT_2026_03.md`.
 - **Deep Audit Fix Plan — ALL 9 SESSIONS COMPLETE.** 43 bugs fixed, 129 new tests (6,703 total). Session 9: 12 spec doc updates, 6 hardening fixes, ~900 lines dead code removed. See `docs/DEEP_AUDIT_FIX_PLAN.md`.
 - **Systems Audit Fix Plan — ALL 12 CORE SESSIONS COMPLETE.** ~148 findings fixed, 193 new tests (6,904 total). Sessions 13-14 optional (architecture refactoring). See `docs/SYSTEMS_AUDIT_FIX_PLAN.md`.
-- **Systems Audit V2 Fix Plan — 7 SESSIONS PLANNED.** 56 confirmed bugs (3 CRITICAL, 21 MAJOR, 27 MINOR). Sessions 1-2 COMPLETE (22 bugs fixed). Session 3 (AI/Economy) is next. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.
+- **Systems Audit V2 Fix Plan — 7 SESSIONS PLANNED.** 56 confirmed bugs (3 CRITICAL, 21 MAJOR, 27 MINOR). Sessions 1-3 COMPLETE (31 bugs fixed, 6,967 tests). Session 4 (Diplomacy State/Pacing) is next. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.
 - **Diplomacy Refinement Phases 1-4 — COMPLETE.** 55 items done, 326 tests. See `docs/DIPLO_REFINEMENT.md`.
 
 ### Design Gates

@@ -469,8 +469,26 @@ class EnemyAI:
         cooldowns[marshal_name][action_type] = cooldown
         ai_debug(f"    [COOLDOWN SET] {marshal_name} '{action_type}' cooled down for {cooldown} turns")
 
+    def decrement_all_cooldowns(self, world: WorldState):
+        """Decrement ALL cooldowns once per turn (V2-20/21 fix).
+
+        Must be called ONCE in turn_manager before the per-nation loop,
+        NOT inside process_nation_turn (which runs per-nation → 4x tick bug).
+        """
+        self._decrement_cooldowns(world)
+
+        # Decrement re-fortify cooldowns (also once per turn)
+        expired = []
+        for m_name, turns in world.ai_refortify_cooldown.items():
+            world.ai_refortify_cooldown[m_name] = turns - 1
+            if world.ai_refortify_cooldown[m_name] <= 0:
+                expired.append(m_name)
+        for m_name in expired:
+            del world.ai_refortify_cooldown[m_name]
+            ai_debug(f"    [REFORTIFY COOLDOWN EXPIRED] {m_name} can fortify again")
+
     def _decrement_cooldowns(self, world: WorldState):
-        """Decrement all cooldowns by 1 turn. Called at start of each nation's turn.
+        """Decrement failed-action cooldowns by 1 turn (internal helper).
         Operates on WorldState.ai_failed_action_cooldowns (persists across turns)."""
         cooldowns = world.ai_failed_action_cooldowns
         expired_marshals = []
@@ -601,18 +619,8 @@ class EnemyAI:
         # Track marshals who have already changed stance this turn (prevent spam)
         self._stance_changed_this_turn: set = set()
 
-        # Decrement cross-turn cooldowns (stored on WorldState, persists across turns)
-        self._decrement_cooldowns(world)
-
-        # Decrement re-fortify cooldowns
-        expired = []
-        for m_name, turns in world.ai_refortify_cooldown.items():
-            world.ai_refortify_cooldown[m_name] = turns - 1
-            if world.ai_refortify_cooldown[m_name] <= 0:
-                expired.append(m_name)
-        for m_name in expired:
-            del world.ai_refortify_cooldown[m_name]
-            ai_debug(f"    [REFORTIFY COOLDOWN EXPIRED] {m_name} can fortify again")
+        # NOTE: Cooldown decrements moved to decrement_all_cooldowns() — called once
+        # per turn in turn_manager.py, NOT per-nation (V2-20/21 fix).
 
         # Clear pending intents at start of each nation's turn (safety)
         self._pending_intents = {}
@@ -712,6 +720,17 @@ class EnemyAI:
                     break
                 continue
 
+            # V2-81: Skip free-type actions when cap reached (only paid proceed)
+            if free_action_count >= max_free_actions:
+                is_candidate_free = not self._action_costs_point(selected_action["action"])
+                if is_candidate_free:
+                    failed_actions.add((selected_marshal.name, selected_action["action"]))
+                    consecutive_skips += 1
+                    if consecutive_skips >= max_consecutive_skips:
+                        print("  Free cap + all skipped - ending turn")
+                        break
+                    continue
+
             # Reset skip counter - we found something to do
             consecutive_skips = 0
 
@@ -800,8 +819,10 @@ class EnemyAI:
                 free_action_count += 1
                 if is_free_action_result:
                     print("    [FREE] Counter-punch or similar")
-                # NOTE: Don't break on free action limit - just skip free actions and keep trying
-                # This ensures we use all paid actions even if marshals prefer "wait"
+                # V2-81: Cap free actions to prevent infinite wait/retreat loops
+                if free_action_count >= max_free_actions:
+                    print(f"    [FREE CAP] {nation} hit free action limit ({max_free_actions})")
+                    # Don't break — only skip further free actions, paid actions still proceed
 
             # Consume action(s) based on actual cost
             if actual_cost > 0:
@@ -4270,7 +4291,7 @@ class EnemyAI:
         # Track unused AP for income bonus
         unused_ap = admin_ap
         if unused_ap > 0:
-            bonus = unused_ap * 75
+            bonus = unused_ap * 25  # V2-96: Aligned with player rate (was 75)
             world.nation_gold[nation] = world.nation_gold.get(nation, 0) + bonus
             debug_print(f"  [AI ADMIN] {nation} saved {unused_ap} admin AP -> +{bonus} gold bonus")
 

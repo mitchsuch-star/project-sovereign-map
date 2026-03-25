@@ -2352,6 +2352,19 @@ class WorldState:
                         "losses": int(losses),
                         "message": f"Supply shortage at {region.name}: {m.name} loses {losses:,} troops"
                     })
+
+        # V2-29: Eliminate marshals reduced to 0 strength by attrition
+        eliminated = [m_name for m_name, m in self.marshals.items() if m.strength <= 0]
+        for m_name in eliminated:
+            dead = self.marshals.pop(m_name)
+            events.append({
+                "type": "marshal_eliminated",
+                "marshal": dead.name,
+                "nation": dead.nation,
+                "region": dead.location,
+                "message": f"{dead.name} has been eliminated by supply attrition at {dead.location}"
+            })
+
         return events
 
     def process_construction_timers(self) -> list:

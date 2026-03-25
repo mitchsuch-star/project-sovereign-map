@@ -538,8 +538,13 @@ def _format_enemies(game_state: Dict[str, Any]) -> str:
     for name, data in enemies.items():
         location = data.get("location", "unknown")
         strength = data.get("strength", 0)
-        strength_k = f"{strength // 1000}K" if strength >= 1000 else str(strength)
         nation = data.get("nation", "Enemy")
+
+        # V2-5: strength may be "unknown" for PARTIAL visibility regions
+        if strength == "unknown":
+            strength_k = "unknown"
+        else:
+            strength_k = f"{strength // 1000}K" if strength >= 1000 else str(strength)
 
         lines.append(f"- {name} ({nation}) at {location}, {strength_k} troops")
 

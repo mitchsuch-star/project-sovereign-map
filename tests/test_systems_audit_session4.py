@@ -95,8 +95,8 @@ class TestEnemyPhaseErrorHandling:
         assert "nations" in results
         assert "total_actions" in results
 
-    def test_crash_returns_empty_for_failed_nation(self):
-        """A crashed nation should have 0 actions in results."""
+    def test_crash_returns_error_for_failed_nation(self):
+        """A crashed nation should have 1 error action in results (V2-19)."""
         world = WorldState(player_nation="France")
         tm = TurnManager(world)
 
@@ -118,9 +118,10 @@ class TestEnemyPhaseErrorHandling:
             game_state = {"world": world}
             results = tm._process_enemy_turns(game_state)
 
-        # Prussia crashed — should have 0 actions
+        # V2-19: Prussia crashed — should have 1 error action (not empty list)
         if "Prussia" in results["nations"]:
-            assert results["nations"]["Prussia"]["action_count"] == 0
+            assert results["nations"]["Prussia"]["action_count"] == 1
+            assert results["nations"]["Prussia"]["actions"][0]["action"] == "error"
 
 
 # ═══════════════════════════════════════════════════════════════════

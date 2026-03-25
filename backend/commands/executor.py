@@ -663,11 +663,15 @@ class CommandExecutor:
                     if hasattr(m, attr):
                         setattr(m, attr, 0.0)
 
-    def _calculate_overwatch(self, attacker, atk_participants, defender_region_name: str, world: WorldState) -> int:
+    def _calculate_overwatch(self, attacker, atk_participants, defender_region_name: str,
+                             world: WorldState, defender_name: str = None) -> int:
         """Count enemy artillery in defender's region, apply overwatch penalty to all attackers.
 
         Session 68: Artillery Overwatch — enemy artillery passively debuffs attackers
         by -3% per gun (capped at 3 guns = -9% max).
+
+        V2-24: defender_name excludes the defending marshal from counting as its own
+        overwatch (a marshal can't provide overwatch to itself when it IS the target).
 
         Sets transient `overwatch_penalty` on each attacking participant.
         Returns the count of eligible overwatch artillery (for reporting).
@@ -682,7 +686,8 @@ class CommandExecutor:
                     and not getattr(m, 'broken', False)
                     and not getattr(m, 'retreated_this_turn', False)
                     and getattr(m, 'retreat_recovery', 0) == 0
-                    and not getattr(m, 'moved_this_turn', False)):
+                    and not getattr(m, 'moved_this_turn', False)
+                    and (defender_name is None or m.name != defender_name)):
                 enemy_artillery_count += 1
                 overwatch_artillery_names.append(m.name)
 
@@ -4305,7 +4310,8 @@ RETREAT RECOVERY (3 turns):
         # Does NOT apply to bombardment (ranged fire, separate path).
         # ════════════════════════════════════════════════════════════
         overwatch_count = self._calculate_overwatch(
-            marshal, atk_participants, battle_region_name, world)
+            marshal, atk_participants, battle_region_name, world,
+            defender_name=enemy_marshal.name)
 
         # ════════════════════════════════════════════════════════════
         # SUPPORT AUTO-BOMBARDMENT (Session 68): Artillery on SUPPORT
@@ -7768,7 +7774,7 @@ RETREAT RECOVERY (3 turns):
 
         # Admin bonus
         if admin_bonus > 0:
-            lines.append(f"\n  Admin bonus: +{admin_bonus}g  ({world.admin_actions_remaining} unused AP x 75)")
+            lines.append(f"\n  Admin bonus: +{admin_bonus}g  ({world.admin_actions_remaining} unused AP x 25)")
         else:
             lines.append("\n  Admin bonus: 0g  (all AP used)")
 

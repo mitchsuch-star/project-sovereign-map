@@ -247,8 +247,8 @@ class TestSupplyEdgeCases:
             m.location = "Paris"
             m.strength = 5000
 
-    def test_zero_strength_marshal_no_attrition(self):
-        """Marshal with 0 strength should not generate events."""
+    def test_zero_strength_marshal_eliminated_by_attrition(self):
+        """Marshal with 0 strength should be eliminated (V2-29 zombie cleanup)."""
         belgium = self.world.get_region("Belgium")
         belgium.controller = "Britain"
 
@@ -257,8 +257,10 @@ class TestSupplyEdgeCases:
         ney.strength = 0
 
         events = self.world.process_supply_attrition()
-        ney_events = [e for e in events if e.get("marshal") == "Ney"]
-        assert len(ney_events) == 0
+        # V2-29: 0-strength marshals are now eliminated during attrition cleanup
+        assert "Ney" not in self.world.marshals
+        elim_events = [e for e in events if e.get("type") == "marshal_eliminated" and e["marshal"] == "Ney"]
+        assert len(elim_events) == 1
 
     def test_no_controller_region_skipped(self):
         """Regions with no controller should be skipped."""

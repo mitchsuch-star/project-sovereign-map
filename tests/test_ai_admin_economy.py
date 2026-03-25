@@ -272,15 +272,15 @@ class TestAIAdminSaveAP:
 
         results = ai.execute_admin_phase("Britain", world, game_state)
 
-        # Should have saved 2 AP = +150 gold bonus
-        expected_bonus = 2 * 75  # 150
+        # Should have saved 2 AP = +50 gold bonus (V2-96: aligned to 25g/AP)
+        expected_bonus = 2 * 25  # 50
         # Results should be empty (nothing to do)
         assert len(results) == 0, f"AI should take no actions. Got: {len(results)}"
         assert world.nation_gold["Britain"] == initial_gold + expected_bonus, \
             f"Expected {initial_gold + expected_bonus}, got {world.nation_gold['Britain']}"
 
     def test_ai_partial_save(self):
-        """AI uses 1 AP, saves 1 AP for 75 gold bonus."""
+        """AI uses 1 AP, saves 1 AP for 25 gold bonus (V2-96)."""
         world = _setup_world()
         executor = CommandExecutor()
         ai = EnemyAI(executor)

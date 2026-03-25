@@ -132,9 +132,9 @@ Fields set by TurnManager on WorldState are not in `to_dict`/`from_dict`. Gracef
 
 ---
 
-### Session 3: AI + Economy + Turn Manager [P1 — Before EA]
+### Session 3: AI + Economy + Turn Manager [P1 — Before EA] ✅ COMPLETE
 
-**5 MAJOR + 4 MINOR.**
+**5 MAJOR + 4 MINOR. All 9 bugs fixed, 20 new tests (6,967 total).**
 
 | Bug | Sev | Description | Fix |
 |-----|-----|-------------|-----|

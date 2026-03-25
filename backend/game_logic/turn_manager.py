@@ -332,54 +332,73 @@ class TurnManager:
         for marshal in autonomous_marshals:
             debug_print(f"\n--- {marshal.name} (Autonomous, {marshal.autonomy_turns} turns remaining) ---")
 
-            # Execute AI action for this marshal (aligned with player's nation)
-            action_result = ai.decide_single_action(
-                marshal=marshal,
-                nation=self.world.player_nation,  # France - only attacks enemies of France
-                world=self.world,
-                game_state=game_state
-            )
+            # V2-26: Wrap per-marshal body in try/except so one crash doesn't kill the turn
+            try:
+                # Execute AI action for this marshal (aligned with player's nation)
+                action_result = ai.decide_single_action(
+                    marshal=marshal,
+                    nation=self.world.player_nation,  # France - only attacks enemies of France
+                    world=self.world,
+                    game_state=game_state
+                )
 
-            # Track performance based on result
-            if action_result and action_result.get("result"):
-                result = action_result["result"]
+                # Track performance based on result
+                if action_result and action_result.get("result"):
+                    result = action_result["result"]
 
-                # Check for battle outcomes
-                if result.get("battle_won"):
-                    marshal.autonomous_battles_won += 1
-                    debug_print(f"  🏆 Battle won! (Total: {marshal.autonomous_battles_won})")
-                elif result.get("battle_lost"):
-                    marshal.autonomous_battles_lost += 1
-                    debug_print(f"  💀 Battle lost! (Total: {marshal.autonomous_battles_lost})")
+                    # Check for battle outcomes
+                    if result.get("battle_won"):
+                        marshal.autonomous_battles_won += 1
+                        debug_print(f"  Battle won! (Total: {marshal.autonomous_battles_won})")
+                    elif result.get("battle_lost"):
+                        marshal.autonomous_battles_lost += 1
+                        debug_print(f"  Battle lost! (Total: {marshal.autonomous_battles_lost})")
 
-                # Check for region capture
-                if result.get("region_captured"):
-                    marshal.autonomous_regions_captured += 1
-                    debug_print(f"  🏰 Region captured! (Total: {marshal.autonomous_regions_captured})")
+                    # Check for region capture
+                    if result.get("region_captured"):
+                        marshal.autonomous_regions_captured += 1
+                        debug_print(f"  Region captured! (Total: {marshal.autonomous_regions_captured})")
 
-            # Decrement autonomy turns
-            marshal.autonomy_turns -= 1
+                # Decrement autonomy turns
+                marshal.autonomy_turns -= 1
 
-            # Build report entry
-            report_entry = {
-                "marshal": marshal.name,
-                "action": action_result.get("action") if action_result else "wait",
-                "target": action_result.get("target") if action_result else None,
-                "result": action_result.get("result") if action_result else {"message": "No action taken"},
-                "turns_remaining": marshal.autonomy_turns,
-                "performance": {
-                    "battles_won": marshal.autonomous_battles_won,
-                    "battles_lost": marshal.autonomous_battles_lost,
-                    "regions_captured": marshal.autonomous_regions_captured
+                # Build report entry
+                report_entry = {
+                    "marshal": marshal.name,
+                    "action": action_result.get("action") if action_result else "wait",
+                    "target": action_result.get("target") if action_result else None,
+                    "result": action_result.get("result") if action_result else {"message": "No action taken"},
+                    "turns_remaining": marshal.autonomy_turns,
+                    "performance": {
+                        "battles_won": marshal.autonomous_battles_won,
+                        "battles_lost": marshal.autonomous_battles_lost,
+                        "regions_captured": marshal.autonomous_regions_captured
+                    }
                 }
-            }
 
-            # Check if autonomy is ending
-            if marshal.autonomy_turns <= 0:
-                end_result = self._end_autonomy(marshal)
-                report_entry["autonomy_ended"] = True
-                report_entry["end_result"] = end_result
-                debug_print(f"\n  ✅ AUTONOMY ENDED: {end_result['message']}")
+                # Check if autonomy is ending
+                if marshal.autonomy_turns <= 0:
+                    end_result = self._end_autonomy(marshal)
+                    report_entry["autonomy_ended"] = True
+                    report_entry["end_result"] = end_result
+                    debug_print(f"\n  AUTONOMY ENDED: {end_result['message']}")
+
+            except Exception:
+                import traceback
+                debug_print(f"[ERROR] Autonomous marshal {marshal.name} crashed: {traceback.format_exc()}")
+                marshal.autonomy_turns -= 1
+                report_entry = {
+                    "marshal": marshal.name,
+                    "action": "error",
+                    "target": None,
+                    "result": {"message": f"{marshal.name} encountered an error during independent command"},
+                    "turns_remaining": marshal.autonomy_turns,
+                    "performance": {
+                        "battles_won": marshal.autonomous_battles_won,
+                        "battles_lost": marshal.autonomous_battles_lost,
+                        "regions_captured": marshal.autonomous_regions_captured
+                    }
+                }
 
             report.append(report_entry)
 
@@ -495,6 +514,10 @@ class TurnManager:
             "summary": []
         }
 
+        # V2-20/21: Decrement cooldowns ONCE before processing all nations
+        # (was inside per-nation loop → 4x tick bug)
+        ai.decrement_all_cooldowns(self.world)
+
         # Process each enemy nation
         for nation in self.world.enemy_nations:
             # BUG #2 FIX: Check if victory already achieved before processing more nations
@@ -540,7 +563,12 @@ class TurnManager:
             except Exception:
                 import traceback
                 debug_print(f"[ERROR] {nation} turn crashed: {traceback.format_exc()}")
-                nation_results = []
+                # V2-19: Surface error to player instead of swallowing silently
+                nation_results = [{
+                    "action": "error",
+                    "message": f"{nation} encountered an error during their turn",
+                    "battle_message": ""
+                }]
                 admin_results = []
 
             results["nations"][nation] = {

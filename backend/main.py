@@ -67,15 +67,21 @@ def get_llm_game_state() -> dict:
                 "morale": int(m.morale),
             }
 
-    # Build enemies dict
+    # Build enemies dict — fog-filtered (V2-5)
+    # Only include enemies in regions with PARTIAL+ visibility.
+    # PARTIAL: show "unknown" strength. FULL: show exact.
+    from backend.models.intel import FULL, PARTIAL, VISIBILITY_PRIORITY
     enemies = {}
     for m in world.get_enemy_marshals():
         if m.strength > 0:  # Only alive marshals
-            enemies[m.name] = {
-                "location": m.location,
-                "strength": int(m.strength),
-                "nation": m.nation,
-            }
+            region_intel = world.get_region_intel(m.location)
+            vis = region_intel.visibility
+            if VISIBILITY_PRIORITY.get(vis, 0) >= VISIBILITY_PRIORITY[PARTIAL]:
+                enemies[m.name] = {
+                    "location": m.location,
+                    "strength": int(m.strength) if vis == FULL else "unknown",
+                    "nation": m.nation,
+                }
 
     # Build map_data dict
     map_data = {}
