@@ -102,8 +102,12 @@ def resolve_direction(from_region: str, direction: str, world, marshal_name: Opt
         return None
 
     if direction_lower in ("back", "rear", "the rear", "home"):
-        # "Back" = toward capital (Paris for France)
-        capital = "Paris"
+        # "Back" = toward capital
+        # V2-78: Use nation capital instead of hardcoded "Paris"
+        from backend.models.region import NATION_CAPITALS
+        marshal_obj = world.get_marshal(marshal_name) if marshal_name and world else None
+        nation = marshal_obj.nation if marshal_obj else (world.player_nation if world else "France")
+        capital = NATION_CAPITALS.get(nation, "Paris")
         if from_region == capital:
             return None  # Already at capital
         path = world.find_path(from_region, capital)

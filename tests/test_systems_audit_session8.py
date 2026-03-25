@@ -90,6 +90,7 @@ class TestHoldDecayReduction:
         davout.fortified = True  # Must be fortified for decay logic
         davout.is_fortifying = False
         davout.turns_fortified = 9  # Will be incremented to 10 (>= 8 start)
+        davout.cumulative_fortification_turns = 9  # V2-27: must match for decay calc
 
         # Give HOLD order
         from backend.models.marshal import StrategicOrder
@@ -104,6 +105,7 @@ class TestHoldDecayReduction:
         davout.defense_bonus = start_bonus
         davout.fortified = True
         davout.turns_fortified = 9
+        davout.cumulative_fortification_turns = 9  # V2-27: must match for decay calc
         davout.strategic_order = None
         with _suppress_output():
             world._process_tactical_states()
@@ -124,6 +126,7 @@ class TestHoldDecayReduction:
         grouchy.fortified = True
         grouchy.is_fortifying = False
         grouchy.turns_fortified = 7  # Will be incremented to 8 (>= 6 start for balanced)
+        grouchy.cumulative_fortification_turns = 7  # V2-27: must match for decay calc
 
         from backend.models.marshal import StrategicOrder
         grouchy.strategic_order = StrategicOrder("HOLD", grouchy.location, "generic", 1, "hold position")
@@ -136,6 +139,7 @@ class TestHoldDecayReduction:
         grouchy.defense_bonus = start_bonus
         grouchy.fortified = True
         grouchy.turns_fortified = 7
+        grouchy.cumulative_fortification_turns = 7  # V2-27: must match for decay calc
         grouchy.strategic_order = None
         with _suppress_output():
             world._process_tactical_states()

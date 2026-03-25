@@ -1629,9 +1629,7 @@ def process_diplomacy_turn(world) -> List[Dict]:
     # ── 4a. Relation decay (R4a) ──
     _process_relation_decay(world)
 
-    # TODO: 5. Defection cascade check (Session 5)
-    # TODO: 6. Vassal loyalty processing (Session 5)
-    # TODO: 7. Vassal rebellion check (Session 5)
+    # 5-7: Vassal processing (defection cascade, loyalty, rebellion) — implemented in vassal.py, wired in advance_turn()
 
     # ── 8. Armistice expiration ──
     armistice_events = _process_armistice_expiration(world)
@@ -1640,15 +1638,11 @@ def process_diplomacy_turn(world) -> List[Dict]:
     # ── 9. Cooldown decrements ──
     _decrement_cooldowns(world)
 
-    # TODO: 9a. War exhaustion update (Session 7 — Coalition)
-    # TODO: 9b. Threat accumulation (Session 7 — Coalition)
-    # TODO: 9c. Threat decay (Session 7 — Coalition)
-    # TODO: 9d. Coalition check (Session 7 — Coalition)
+    # 9a-9d: Coalition processing (war exhaustion, threat accumulation/decay, coalition check) — implemented in coalition.py, wired in advance_turn()
 
     # 10. Trade income — handled in process_trade_income() called from advance_turn income phase
 
-    # TODO: 11. Treaty obligation checks (Session 3)
-    # TODO: 12. Continental System check (Session 3)
+    # 11-12: Treaty obligations + Continental System — implemented in diplomacy.py (process_treaty_obligations, apply_continental_system), wired in advance_turn()
 
     # ── 13. Automatic downgrade check ──
     downgrade_events = check_auto_downgrade(world)

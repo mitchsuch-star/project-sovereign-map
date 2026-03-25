@@ -2529,8 +2529,9 @@ RETREAT RECOVERY (3 turns):
         elif action == "defend":
             return self._execute_defend(marshal, world, game_state)
         elif action == "hold":
-            # Hold is an alias for defend - same mechanics, different flavor
-            return self._execute_hold(marshal, world, game_state)
+            # V2-58: "hold" routes to defend (tactical). Strategic HOLD (2 AP)
+            # is handled by strategic parser. Grouchy Immovable is in strategic HOLD path.
+            return self._execute_defend(marshal, world, game_state)
         elif action == "wait":
             # Wait is a free action - marshal passes turn
             return self._execute_wait(marshal, world, game_state)
@@ -3043,7 +3044,8 @@ RETREAT RECOVERY (3 turns):
             survivors = max(1000, int(old_strength * survival_rate))  # Minimum 1000 survivors
 
             # V2-65: Find safe spawn (capital may be enemy-occupied)
-            spawn_loc = world.find_safe_spawn(marshal)
+            # V2-93: Exclude battle location so broken marshal doesn't stay in place
+            spawn_loc = world.find_safe_spawn(marshal, exclude=marshal.location)
 
             # Apply broken state
             # NOTE: Broken armies do NOT set retreated_this_turn because:
@@ -5323,60 +5325,9 @@ RETREAT RECOVERY (3 turns):
             "new_state": game_state
         }
 
-    def _execute_hold(self, marshal, world, game_state) -> Dict:
-        """
-        Execute a hold order - alias for defend with different flavor text.
-
-        "Hold" means the same thing as "defend" mechanically:
-        - Changes to defensive stance if not already
-        - Fortifies if already defensive
-        - Same action costs
-
-        GROUCHY IMMOVABLE (Phase 2.8):
-        - For literal marshals (Grouchy), hold also sets holding_position = True
-        - This grants +15% defense bonus when defending at that location
-        - The bonus persists as long as Grouchy stays at that position
-
-        The distinction is purely for player expression - some prefer
-        "hold the line" to "defend".
-        """
-        # ════════════════════════════════════════════════════════════
-        # GROUCHY IMMOVABLE (Phase 2.8): Set holding_position for literal marshals
-        # ════════════════════════════════════════════════════════════
-        immovable_message = ""
-        if getattr(marshal, 'personality', '') == 'literal':
-            marshal.holding_position = True
-            marshal.hold_region = marshal.location
-            immovable_message = f"\n🏰 {marshal.name} plants himself at {marshal.location}! (IMMOVABLE: +15% defense while holding)"
-            print(f"  [IMMOVABLE] {marshal.name} holding at {marshal.location}")
-
-        # Delegate to defend - hold IS defend, just different wording
-        result = self._execute_defend(marshal, world, game_state)
-
-        # Adjust message to use "hold" terminology if successful
-        if result.get("success") and result.get("message"):
-            # Replace "defend" terminology with "hold" in message
-            original_msg = result["message"]
-            # Keep the message mostly the same - the mechanics message is fine
-            # Just prepend a "holding" flavor if stance changed
-            if "shifts to DEFENSIVE stance" in original_msg:
-                result["message"] = original_msg.replace(
-                    "shifts to DEFENSIVE stance",
-                    "holds position, shifting to DEFENSIVE stance"
-                )
-            # Add Immovable message
-            if immovable_message:
-                result["message"] += immovable_message
-
-        # Update event type if present
-        if result.get("events"):
-            for event in result["events"]:
-                if event.get("type") == "stance_change":
-                    event["command"] = "hold"  # Mark that this came from hold command
-                    if getattr(marshal, 'personality', '') == 'literal':
-                        event["immovable"] = True
-
-        return result
+    # V2-58: _execute_hold() removed — was dead code. Bare "hold" is intercepted by
+    # strategic parser (upgrades to strategic HOLD, 2 AP). Tactical "hold" routes to
+    # _execute_defend(). Grouchy Immovable bonus is in strategic HOLD path (line ~6116).
 
     def _execute_wait(self, marshal, world, game_state) -> Dict:
         """
@@ -8964,7 +8915,9 @@ RETREAT RECOVERY (3 turns):
         # Remove fortification
         marshal.fortified = False
         marshal.defense_bonus = 0
-        marshal.turns_fortified = 0  # Reset decay counter
+        marshal.turns_fortified = 0  # Reset display counter
+        # V2-27: Do NOT reset cumulative_fortification_turns — it persists through
+        # unfortify/refortify cycles to prevent decay timer reset exploit
 
         # Build message with ability note
         if is_free_unfortify:

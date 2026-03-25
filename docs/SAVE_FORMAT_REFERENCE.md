@@ -229,6 +229,9 @@ A future save/load system should use this as the specification.
 | `diplomatic_objection_popup` | dict\|null | null | **Session 8C.** Pending diplomatic objection popup. Set by pre-proposal objection, cleared after read in /command response. |
 | `incoming_proposal_popup` | dict\|null | null | **Session 8C.** Pending AI proposal popup data. Set by deliver_ai_proposal, cleared after read in /command response. |
 | `diplomatic_trust_applied` | dict | {} | **V2-16.** Per-turn cap tracking for diplomatic trust changes. {marshal_name: amount_applied}. Cleared at start of each turn. Replaces dynamic attrs that didn't survive save/load. |
+| `ai_stagnation_turns` | dict | {} | **Enemy AI.** Per-marshal stagnation counter. Keys: marshal name. Values: int (consecutive turns with no action). At 2+, AI forces aggressive fallback. Decrements on action taken. |
+| `ai_attack_futility` | dict | {} | **Enemy AI.** Per-target-pair attack futility counter. Keys: "attacker\|defender". Values: int (consecutive failed attacks). At 2, AI avoids that target. Decays per turn. |
+| `last_redemption_turn` | int | 0 | **Diplomatic defiance.** Turn when last Talleyrand redemption event fired. 5-turn cooldown between redemption events. |
 | `active_battles` | dict | {} | Currently ongoing battles |
 | `battle_history` | list | [] | Completed battle records |
 | `battles_this_turn` | list | [] | Battles this turn (Phase 5.2) |
@@ -336,6 +339,7 @@ A future save/load system should use this as the specification.
   "moved_this_turn": false,
   "turns_in_defensive_stance": 0,
   "turns_fortified": 0,
+  "cumulative_fortification_turns": 0,
 
   "counter_punch_available": false,
   "counter_punch_turns": 0,
@@ -481,6 +485,7 @@ A future save/load system should use this as the specification.
 |-------|------|-------------|
 | `turns_in_defensive_stance` | int | Counter (triggers at 3) |
 | `turns_fortified` | int | Counter (triggers at 3) |
+| `cumulative_fortification_turns` | int | Total fortification turns across unfortify/refortify cycles. Used for decay calculation to prevent exploit. |
 
 #### Ability State
 | Field | Type | Description |

@@ -980,10 +980,9 @@ class TestCollateralTargetDestruction:
         assert result["success"]
         # WeakForce should be broken (strength 50 < collateral damage)
         assert world.marshals["WeakForce"].broken
-        # WeakForce moved to spawn (break system gives survivors)
-        spawn = getattr(weak, 'spawn_location', None)
-        if spawn:
-            assert weak.location == spawn
+        # WeakForce moved to safe spawn (V2-93: excludes battle location, falls to capital)
+        # With battle at Waterloo, spawn_location=Waterloo is excluded, so falls to capital (Netherlands)
+        assert weak.location != "Waterloo", "Broken marshal should not spawn at battle location (V2-93)"
         # Collateral entry should exist
         collateral_names = [c["name"] for c in result["bombardment_result"]["collateral"]]
         assert "WeakForce" in collateral_names

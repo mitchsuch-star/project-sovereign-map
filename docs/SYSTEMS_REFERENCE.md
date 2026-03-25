@@ -2193,7 +2193,7 @@ self.nation_gold = {
 
 **Bankruptcy:** `nation_bankruptcy_turns` tracks consecutive turns with negative gold. Turn 1-2: warnings + halved upkeep. Turn 3+: desertion (5% strength loss per marshal).
 
-**Admin AP:** 2/turn, recruit uses admin AP (not CP). Unused admin AP * 75 = gold bonus.
+**Admin AP:** 2/turn, recruit uses admin AP (not CP). Unused admin AP * 25 = gold bonus.
 
 ### Region Stability (Phase 6.2.C)
 
@@ -2442,7 +2442,7 @@ AI nations get an admin phase each turn, using the same executor as the player (
 | 2 | Build fortification | At border regions (adjacent to enemy) |
 | 3 | Repair building | Any damaged building in controlled region |
 | 4 | Repair war damage | Any region with war_damage > 0 |
-| 5 | Save AP | No valid action — unused AP converts to +75 gold each |
+| 5 | Save AP | No valid action — unused AP converts to +25 gold each |
 
 **Implementation:**
 - `enemy_ai.py::execute_admin_phase()` — main entry point (7 methods: main entry + 5 helpers + `_pick_admin_action`)
@@ -2465,6 +2465,17 @@ AI nations get an admin phase each turn, using the same executor as the player (
 When a nation has lost regions it originally controlled, the AI redirects the nearest available marshal to recapture. Evaluated between P3.5 (Fortification Opportunity) and P4 (Attack Opportunity). Tracks claimed targets in `_homeland_recapture_targets` to prevent multiple marshals converging on the same region. Uses `world.nation_starting_regions` to identify lost territory.
 
 **Key code:** `enemy_ai.py::_find_homeland_recapture()`, `world_state.py::nation_starting_regions`
+
+### Session 11-12 Balance Changes
+
+| Change | Detail | Code |
+|--------|--------|------|
+| **Victory threshold** | `VICTORY_REGION_FRACTION = 0.75` (was hardcoded 0.5). Both `world_state.py` and `turn_manager.py` use the constant. | `world_state.py` constant |
+| **British naval income** | `150 + 50 * coastal_count` (max 300). Coastal: Netherlands, Normandy, Brittany, Bordeaux, Marseille. | `world_state.py` |
+| **Admin AP gold rate** | 25g per unused admin AP (was 75g → 35g → 25g across sessions). | `world_state.py::_calculate_admin_bonus()` |
+| **Futility decay** | Per-turn decay (was every-3-turn). AI retries targets faster. | `world_state.py::_process_futility_decay()` |
+| **WE manpower penalty** | Infantry regen scaled by war exhaustion: halved at WE=100, zero at WE=200, floor 1000. Cavalry/artillery unaffected. | `world_state.py::_process_manpower_regen()` |
+| **Stagnation variety** | `random.choice(fallback_dests)` replaces deterministic `[0]` selection. | `enemy_ai.py` |
 
 ---
 

@@ -424,6 +424,9 @@ class Marshal:
         # Tracked separately so both can trigger (-6 total if both)
         self.turns_in_defensive_stance: int = 0  # Resets when leaving defensive stance
         self.turns_fortified: int = 0            # Resets when unfortifying
+        # V2-27: Cumulative fortification turns — persists through unfortify/refortify cycles.
+        # Used for decay calculation to prevent exploit: fortify max → free unfortify → refortify.
+        self.cumulative_fortification_turns: int = 0
 
         # DAVOUT (Cautious) - Counter-Punch tracking
         # Set to 1 after successfully defending against attack
@@ -1155,6 +1158,7 @@ class Marshal:
             "bombardments_this_turn": int(self.bombardments_this_turn),
             "turns_in_defensive_stance": int(self.turns_in_defensive_stance),
             "turns_fortified": int(self.turns_fortified),
+            "cumulative_fortification_turns": int(self.cumulative_fortification_turns),
 
             # ═══════ DAVOUT-SPECIFIC (COUNTER-PUNCH) ═══════
             "counter_punch_available": self.counter_punch_available,
@@ -1295,6 +1299,7 @@ class Marshal:
         # ═══════ CAVALRY-SPECIFIC ═══════
         marshal.turns_in_defensive_stance = data.get("turns_in_defensive_stance", 0)
         marshal.turns_fortified = data.get("turns_fortified", 0)
+        marshal.cumulative_fortification_turns = data.get("cumulative_fortification_turns", 0)
 
         # ═══════ ARTILLERY-SPECIFIC ═══════
         marshal.moved_this_turn = data.get("moved_this_turn", False)

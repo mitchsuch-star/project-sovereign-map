@@ -374,8 +374,9 @@ def _exposes_capital(marshal, target, game_state) -> bool:
 
     world = getattr(game_state, 'world', game_state)
 
-    # Check if marshal is currently defending capital
-    capital = "Paris"  # France's capital
+    # V2-79: Use nation capital instead of hardcoded "Paris"
+    from backend.models.region import NATION_CAPITALS
+    capital = NATION_CAPITALS.get(marshal.nation, "Paris")
     if marshal.location != capital:
         return False
 

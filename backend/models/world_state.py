@@ -1672,7 +1672,7 @@ class WorldState:
         debug_print(f"  [RETREAT RESULT] {marshal_name} is ENCIRCLED - no valid retreat!")
         return None  # ENCIRCLED - army breaks
 
-    def find_safe_spawn(self, marshal) -> str:
+    def find_safe_spawn(self, marshal, exclude: str = None) -> str:
         """V2-65: Find a safe spawn location for a broken marshal.
 
         Checks spawn_location and nation capital — if enemy-occupied,
@@ -1680,6 +1680,8 @@ class WorldState:
 
         Args:
             marshal: Marshal object (needs .nation, .spawn_location)
+            exclude: V2-93 — region to skip (e.g. battle location, so broken
+                     marshal doesn't "teleport" to the same place)
 
         Returns:
             Region name controlled by marshal's nation (or capital as last resort)
@@ -1687,16 +1689,18 @@ class WorldState:
         nation = marshal.nation
         spawn_loc = getattr(marshal, 'spawn_location', None) or NATION_CAPITALS.get(nation, 'Paris')
 
-        # 1. Check spawn_location
-        spawn_region = self.regions.get(spawn_loc)
-        if spawn_region and spawn_region.controller == nation:
-            return spawn_loc
+        # 1. Check spawn_location (V2-93: skip if it's the battle location)
+        if spawn_loc != exclude:
+            spawn_region = self.regions.get(spawn_loc)
+            if spawn_region and spawn_region.controller == nation:
+                return spawn_loc
 
-        # 2. Check nation capital
+        # 2. Check nation capital (V2-93: skip if it's the battle location)
         capital = NATION_CAPITALS.get(nation, spawn_loc)
-        capital_region = self.regions.get(capital)
-        if capital_region and capital_region.controller == nation:
-            return capital
+        if capital != exclude:
+            capital_region = self.regions.get(capital)
+            if capital_region and capital_region.controller == nation:
+                return capital
 
         # 3. BFS from capital to find nearest friendly region
         from collections import deque
@@ -2631,7 +2635,8 @@ class WorldState:
         personality = getattr(marshal, 'personality', 'unknown')
         is_cavalry = getattr(marshal, 'cavalry', False)
         current_bonus = getattr(marshal, 'defense_bonus', 0)
-        turns_fortified = getattr(marshal, 'turns_fortified', 0)
+        # V2-27: Use cumulative turns for decay prediction (matches _process_tactical_states)
+        turns_fortified = getattr(marshal, 'cumulative_fortification_turns', 0) or getattr(marshal, 'turns_fortified', 0)
 
         try:
             max_bonus = get_max_fortify_bonus(personality)
@@ -2852,6 +2857,11 @@ class WorldState:
 
             # V2-16: Diplomatic trust cap tracking
             "diplomatic_trust_applied": {k: int(v) for k, v in self.diplomatic_trust_applied.items()},
+
+            # V2-66/67/68: TurnManager transient state (survives save/load)
+            "_capital_proximity_last_alert": getattr(self, '_capital_proximity_last_alert', {}),
+            "_prev_war_exhaustion": {k: int(v) for k, v in getattr(self, '_prev_war_exhaustion', {}).items()},
+            "_relation_deltas_this_turn": {k: int(v) for k, v in getattr(self, '_relation_deltas_this_turn', {}).items()},
         }
 
     @classmethod
@@ -3075,6 +3085,11 @@ class WorldState:
 
         # V2-16: Diplomatic trust cap tracking
         world.diplomatic_trust_applied = {k: int(v) for k, v in data.get("diplomatic_trust_applied", {}).items()}
+
+        # V2-66/67/68: TurnManager transient state
+        world._capital_proximity_last_alert = data.get("_capital_proximity_last_alert", {})
+        world._prev_war_exhaustion = {k: int(v) for k, v in data.get("_prev_war_exhaustion", {}).items()}
+        world._relation_deltas_this_turn = {k: int(v) for k, v in data.get("_relation_deltas_this_turn", {}).items()}
 
         return world
 
@@ -4732,9 +4747,12 @@ class WorldState:
 
                 current_bonus = getattr(marshal, 'defense_bonus', 0.02)
 
-                # Increment turns_fortified for ALL marshals (used for decay calculation)
+                # Increment turns_fortified for ALL marshals (used for display)
                 marshal.turns_fortified = getattr(marshal, 'turns_fortified', 0) + 1
-                turns_fortified = marshal.turns_fortified
+                # V2-27: Increment cumulative counter (persists through unfortify cycles)
+                marshal.cumulative_fortification_turns = getattr(marshal, 'cumulative_fortification_turns', 0) + 1
+                # Use cumulative turns for decay — prevents exploit where unfortify resets timer
+                turns_fortified = marshal.cumulative_fortification_turns
 
                 # Decay thresholds and rates by personality
                 decay_settings = FORTIFY_DECAY_CONFIG.get(personality, FORTIFY_DECAY_DEFAULT)
@@ -5401,7 +5419,7 @@ class WorldState:
                         import random as _rng
                         old_enemy_loc = enemy.location
                         survival_rate = _rng.uniform(0.03, 0.10)
-                        spawn_loc = self.find_safe_spawn(enemy)
+                        spawn_loc = self.find_safe_spawn(enemy, exclude=old_enemy_loc)
                         enemy.move_to(spawn_loc)
                         enemy.strength = max(1000, int(enemy.strength * survival_rate))
                         enemy.morale = 20
@@ -5439,7 +5457,7 @@ class WorldState:
                         import random as _rng2
                         old_atk_loc = marshal.location
                         survival_rate = _rng2.uniform(0.03, 0.10)
-                        spawn_loc = self.find_safe_spawn(marshal)
+                        spawn_loc = self.find_safe_spawn(marshal, exclude=old_atk_loc)
                         marshal.move_to(spawn_loc)
                         marshal.strength = max(1000, int(marshal.strength * survival_rate))
                         marshal.morale = 20
