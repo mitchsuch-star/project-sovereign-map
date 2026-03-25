@@ -47,8 +47,9 @@ class TestCautiousAdvance:
         self.world.ai_stagnation_turns["Wellington"] = 2
 
         result = self.ai._consider_strategic_move(wellington, "Britain", self.world)
-        # Fortified marshal should not get the cautious advance path
-        # (stagnation >= 1 check requires not is_fortified)
+        # Fortified marshal should not get cautious advance
+        assert result is None or result.get("action") != "move", \
+            "Fortified marshal should not get cautious advance move"
 
     def test_cautious_does_not_advance_with_stagnation_0(self):
         """Cautious marshal should not advance with stagnation 0."""
@@ -61,6 +62,7 @@ class TestCautiousAdvance:
 
         result = self.ai._consider_strategic_move(wellington, "Britain", self.world)
         # At stagnation 0, cautious advance branch requires stagnation >= 1
+        assert result is None, "Stagnation 0 should not trigger cautious advance"
 
     def test_cautious_advance_moves_toward_enemy(self):
         """Advance should move toward nearest enemy, not away."""
@@ -77,13 +79,14 @@ class TestCautiousAdvance:
         self.world.ai_stagnation_turns["Wellington"] = 1
 
         result = self.ai._consider_strategic_move(wellington, "Britain", self.world)
-        if result and result["action"] == "move":
-            target = result["target"]
-            current_dist = self.world.get_distance("Tyrol", ney.location)
-            new_dist = self.world.get_distance(target, ney.location)
-            assert new_dist <= current_dist, (
-                f"Should move closer: {target} (dist {new_dist}) "
-                f"vs Tyrol (dist {current_dist})")
+        assert result is not None, "Wellington at stagnation 1 should get cautious advance"
+        assert result["action"] == "move"
+        target = result["target"]
+        current_dist = self.world.get_distance("Tyrol", ney.location)
+        new_dist = self.world.get_distance(target, ney.location)
+        assert new_dist <= current_dist, (
+            f"Should move closer: {target} (dist {new_dist}) "
+            f"vs Tyrol (dist {current_dist})")
 
     def test_cautious_wont_advance_into_enemy_region(self):
         """Cautious advance should not move into region with enemy marshal."""
@@ -100,12 +103,13 @@ class TestCautiousAdvance:
         self.world.ai_stagnation_turns["Wellington"] = 1
 
         result = self.ai._consider_strategic_move(wellington, "Britain", self.world)
-        if result and result["action"] == "move":
+        if result is not None and result.get("action") == "move":
             target = result["target"]
             enemies_there = [m for m in self.world.marshals.values()
                             if m.location == target and m.nation != "Britain" and m.strength > 0]
             assert len(enemies_there) == 0, (
                 f"Should not advance into enemy-occupied {target}")
+        # If result is None, that's also acceptable — cautious marshal correctly avoids danger
 
 
 class TestRefortifyCooldown:

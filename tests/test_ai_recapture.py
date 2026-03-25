@@ -565,9 +565,8 @@ class TestStagnationFixes:
 
         # High stagnation
         action = ai._get_stagnation_action(blucher, "Prussia", world, 5, "aggressive")
-        assert action is not None
-        # Should be wait or some action, never None
-        print(f"PASS: Stagnation breaker returns {action['action']} instead of None")
+        assert action is not None, "Stagnation breaker should never return None"
+        assert "action" in action, "Stagnation action must have 'action' key"
 
     def test_stagnation_3_unlocks_non_friendly_cautious_advance(self):
         """At stagnation >= 3, cautious advance should allow non-friendly territory."""
@@ -590,11 +589,11 @@ class TestStagnationFixes:
         ney.location = "Lyon"
 
         action = ai._consider_strategic_move(wellington, "Britain", world)
-        if action:
-            print(f"PASS: Cautious Wellington at stagnation 3 can move to non-friendly: {action}")
-        else:
-            # May still return None if other conditions prevent it
-            print("INFO: No move found (may be blocked by other conditions)")
+        # At stagnation 3, non-friendly advance should be unlocked
+        # May still return None if path blocked, but if action exists it should be a move
+        if action is not None:
+            assert action.get("action") == "move", \
+                f"Expected move action at stagnation 3, got {action.get('action')}"
 
     def test_stagnation_resets_on_recapture_move(self):
         """Stagnation should reset when marshal takes a meaningful move."""
@@ -803,7 +802,6 @@ class TestHelperMethods:
         # Second should fall through P3 (already have responder)
         action2, p2 = ai._evaluate_marshal(world.marshals["Gneisenau"], "Prussia", world)
 
-        print(f"Marshal 1: priority={p1}, action={action1}")
-        print(f"Marshal 2: priority={p2}, action={action2}")
-        # Not both should be P3 threat response with the same behavior
-        print("PASS: Threat responder limiting evaluated")
+        # Both marshals evaluated — at least one should have an action
+        assert action1 is not None or action2 is not None, \
+            "At least one marshal should get an action with 2 lost regions"

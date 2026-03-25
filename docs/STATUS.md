@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 25, 2026 (Systems Audit V2 Session 6 complete)
+> **Last Updated:** March 25, 2026 (Systems Audit V2 Session 7 complete — ALL 7 SESSIONS DONE)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **7032** (7032 passed, 3 skipped — +14 from V2 Session 6) |
+| **Tests Passing** | **7040** (7040 passed, 1 skipped — ALL V2 sessions complete) |
 
-| **Current Phase** | Systems Audit V2 Fix Plan. Sessions 1-6 COMPLETE. **Session 7 (optional test quality) UP NEXT.** See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`. |
+| **Current Phase** | Systems Audit V2 Fix Plan — **ALL 7 SESSIONS COMPLETE.** 56 bugs fixed, 7040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,14 +19,14 @@
 
 ## Next Steps
 
-1. **Systems Audit V2 Fix Plan** — Sessions 1-6 COMPLETE. **Session 7 (optional test quality) UP NEXT.** 56 confirmed bugs across 7 sessions. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.
+1. ~~**Systems Audit V2 Fix Plan**~~ — **ALL 7 SESSIONS COMPLETE.** 56 bugs fixed, 7040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.
    - **Session 1 (P0 — CRITICAL): COMPLETE.** Auto-charge & glorious charge post-combat. 12 bugs fixed, 17 new tests. Added `clear_combat_transient_state()` to Marshal (single source of truth). Fixed: fortification_bonus (V2-45), retreat direction (V2-46), zombie prevention (V2-44), broken state (V2-47), state clearing (V2-48/49), engagement check (V2-2), flanking (V2-51), relationships (V2-50), targeting filters (V2-92). Files: `marshal.py`, `world_state.py`, `executor.py`.
    - **Session 2 (P0 — CRITICAL): COMPLETE.** Godot frontend fixes. 10 bugs fixed, 0 new tests (GDScript — manual verification). Fixed: success=true override (V2-69), bombardment 8000% (V2-70), frozen input on connection failure (V2-72), HTTPRequest race/ERR_BUSY (V2-73), trade income missing (V2-30), load missing max_turns (V2-71), turn format "5" not "5/40" (V2-74), early returns skip diplomatic top bar (V2-75), load doesn't clear pending state (V2-76), tactical_events silently dropped (V2-77). Files: `api_client.gd`, `main.gd`, `strategic_ledger.gd`.
    - **Session 3 (P1 — MAJOR): COMPLETE.** AI + Economy + Turn Manager. 9 bugs fixed, 20 new tests. Fixed: fog leak to LLM (V2-5), cooldown 4x tick (V2-20/21), error swallowing (V2-19), autonomous phase crash (V2-26), zombie marshals (V2-29), overwatch self-count (V2-24), admin AP asymmetry (V2-96), free action cap (V2-81). Files: `main.py`, `prompt_builder.py`, `enemy_ai.py`, `turn_manager.py`, `world_state.py`, `executor.py`.
    - **Session 4 (P1 — MAJOR): COMPLETE.** Diplomacy state + pacing + victory fixes. 8 bugs fixed, 25 new tests. Fixed: victory threshold 0.77→VICTORY_REGION_FRACTION (V2-63), triple victory check conflict (V2-64), victory swallows popups (V2-86), broken marshal enemy-capital teleport (V2-65), turn-limit warnings (V2-85), diplomatic trust cap bypass (V2-16), dialogue queue for advance_turn writers (V2-89), vassal rebellion popup list (V2-90). Files: `turn_manager.py`, `world_state.py`, `executor.py`, `dispatch.py`, `ai_diplomacy.py`, `diplomacy.py`, `vassal.py`, `coalition.py`, `main.py`, `notifications.py`.
    - **Session 5 (P2 — QoL): COMPLETE.** Parser fixes. 8 bugs fixed, 26 new tests. Fixed: marshal name substring match (V2-55), "dig in" HOLD conflict (V2-56), "commands" false positive (V2-59), Reynier missing (V2-60), parse_multiple naive split (V2-61), "court martial" routed to diplomacy (V2-62), bare verb dead code (V2-57), AI aggressive stance on last AP (V2-22). Files: `llm_client.py`, `strategic_parser.py`, `parser.py`, `enemy_ai.py`.
    - **Session 6 (P2 — QoL): COMPLETE.** Cleanup + dead code. 12 bugs fixed, 14 new tests (+3 existing updated). Fixed: unfortify exploit (V2-27), hardcoded "Paris" in 2 locations (V2-78/79), 3 unserialized transient fields (V2-66/67/68), broken marshal spawn at battle location (V2-93), dead _execute_hold() removal (V2-58), SYSTEMS_REFERENCE 75g→25g (V2-80), SAVE_FORMAT 3 missing fields (V2-82), SYSTEMS_REFERENCE S11-12 changes (V2-83), 7 stale TODOs in diplomacy.py (V2-84). Files: `marshal.py`, `world_state.py`, `executor.py`, `personality.py`, `strategic_parser.py`, docs.
-   - **Session 7 (P3 — optional):** Test quality hardening. 46 zero-assertion tests, conditional assertions, shared fixtures.
+   - **Session 7 (P3 — optional): COMPLETE.** Test quality hardening. Deleted 5 pass-placeholder tests, added assertions to ~35 zero-assertion tests, rewrote 8 print-only tests, fixed 5 conditional assertions, wrote 8 new coverage tests (fog/trust save-load/multi-cavalry), loosened 3 fragile string assertions, removed docstring tests, rewrote futility tests to use production code. V2-41 (shared conftest) deferred. +8 net tests (7040 total).
    - **IMPORTANT: After each session, update this STATUS.md to mark it done and indicate which session is next.**
 2. **Playtest Bug Fixes (March 2026 Review)** — 16-turn playtest found 3 critical, 3 major, 4 minor bugs + 4 balance concerns. Fun rating 6.5/10. See `docs/PLAYTEST_REVIEW_2026_03.md`.
    - **Session 1 (CRITICAL):** C1 armistice deadlock (Gneisenau stranded, blocks all combat), C2 same-nation self-combat (Wellington vs Wellington), C3 turn counter skip (Turn 2→4).

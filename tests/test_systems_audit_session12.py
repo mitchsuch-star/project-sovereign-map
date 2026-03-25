@@ -21,7 +21,7 @@ from backend.models.world_state import WorldState, VICTORY_REGION_FRACTION
 # ============================================================================
 
 class TestFutilityFilterDecay:
-    """Verify futility counters decay -1 per turn."""
+    """Verify futility counters decay -1 per turn via production advance_turn."""
 
     def test_futility_decays_every_turn(self):
         """Futility counter should decrease by 1 each turn (not every 3)."""
@@ -29,17 +29,8 @@ class TestFutilityFilterDecay:
         world.ai_attack_futility = {"Wellington:Davout": 5}
         world.current_turn = 1
 
-        # Simulate advance_turn internal futility section
-        # Decay happens at the start of _advance_turn_internal
-        expired = []
-        for key, count in world.ai_attack_futility.items():
-            new_count = count - 1
-            if new_count <= 0:
-                expired.append(key)
-            else:
-                world.ai_attack_futility[key] = new_count
-        for key in expired:
-            world.ai_attack_futility.pop(key, None)
+        # Call production code — _advance_turn_internal processes futility decay
+        world._advance_turn_internal()
 
         assert world.ai_attack_futility.get("Wellington:Davout") == 4
 
@@ -48,42 +39,19 @@ class TestFutilityFilterDecay:
         world = WorldState(player_nation="France")
         world.ai_attack_futility = {"Wellington:Davout": 1}
 
-        expired = []
-        for key, count in world.ai_attack_futility.items():
-            new_count = count - 1
-            if new_count <= 0:
-                expired.append(key)
-            else:
-                world.ai_attack_futility[key] = new_count
-        for key in expired:
-            world.ai_attack_futility.pop(key, None)
+        world._advance_turn_internal()
 
         assert "Wellington:Davout" not in world.ai_attack_futility
 
     def test_futility_reset_on_weak_defender(self):
         """Futility resets if defender dropped below 50% starting strength."""
         world = WorldState(player_nation="France")
-        # Need a marshal to check
-        from backend.models.marshal import Marshal
-        defender = Marshal(
-            name="Wellington", location="Waterloo",
-            strength=10000, personality="cautious", nation="Britain",
-        )
-        defender.starting_strength = 40000  # 10k < 50% of 40k
-        world.marshals["Wellington"] = defender
+        wellington = world.get_marshal("Wellington")
+        wellington.starting_strength = 40000
+        wellington.strength = 10000  # 10k < 50% of 40k → should reset
         world.ai_attack_futility = {"Ney:Wellington": 8}
 
-        # Simulate reset check
-        reset_keys = []
-        for key in world.ai_attack_futility:
-            parts = key.split(":")
-            if len(parts) == 2:
-                defender_name = parts[1]
-                d = world.get_marshal(defender_name)
-                if d and d.strength < d.starting_strength * 0.5:
-                    reset_keys.append(key)
-        for key in reset_keys:
-            world.ai_attack_futility.pop(key, None)
+        world._advance_turn_internal()
 
         assert "Ney:Wellington" not in world.ai_attack_futility
 

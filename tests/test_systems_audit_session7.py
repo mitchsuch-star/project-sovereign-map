@@ -113,25 +113,8 @@ class TestMutualDestruction:
 
     def test_mutual_destruction_morale_loss(self):
         """Both attacker and defender lose morale on mutual destruction."""
-        # Create tiny armies that will destroy each other
-        attacker = _make_marshal("Attacker", strength=100, morale=80)
-        defender = _make_marshal("Defender", strength=100, morale=80, nation="Prussia")
-
-        resolver = CombatResolver()
-        # Force mutual destruction by setting strength very low
-        attacker.strength = 1
-        defender.strength = 1
-
-        with _suppress_output():
-            result = resolver.resolve_battle(attacker, defender, terrain="open")
-
-        if result["outcome"] == "mutual_destruction":
-            # Both should have lost morale from starting 80
-            assert attacker.morale < 80, "Attacker morale should decrease on mutual destruction"
-            assert defender.morale < 80, "Defender morale should decrease on mutual destruction"
-
-    def test_mutual_destruction_battle_stats(self):
-        """Both sides get battles_lost incremented on mutual destruction."""
+        import random
+        random.seed(999)  # Seed for deterministic combat
         attacker = _make_marshal("Attacker", strength=1, morale=80)
         defender = _make_marshal("Defender", strength=1, morale=80, nation="Prussia")
 
@@ -140,9 +123,28 @@ class TestMutualDestruction:
         with _suppress_output():
             result = resolver.resolve_battle(attacker, defender, terrain="open")
 
-        if result["outcome"] == "mutual_destruction":
-            assert attacker.battles_lost >= 1, "Attacker should have battles_lost >= 1"
-            assert defender.battles_lost >= 1, "Defender should have battles_lost >= 1"
+        # With strength=1, mutual destruction is the expected outcome
+        assert result["outcome"] == "mutual_destruction", \
+            f"Expected mutual_destruction with strength=1, got {result['outcome']}"
+        assert attacker.morale < 80, "Attacker morale should decrease on mutual destruction"
+        assert defender.morale < 80, "Defender morale should decrease on mutual destruction"
+
+    def test_mutual_destruction_battle_stats(self):
+        """Both sides get battles_lost incremented on mutual destruction."""
+        import random
+        random.seed(999)
+        attacker = _make_marshal("Attacker", strength=1, morale=80)
+        defender = _make_marshal("Defender", strength=1, morale=80, nation="Prussia")
+
+        resolver = CombatResolver()
+
+        with _suppress_output():
+            result = resolver.resolve_battle(attacker, defender, terrain="open")
+
+        assert result["outcome"] == "mutual_destruction", \
+            f"Expected mutual_destruction with strength=1, got {result['outcome']}"
+        assert attacker.battles_lost >= 1, "Attacker should have battles_lost >= 1"
+        assert defender.battles_lost >= 1, "Defender should have battles_lost >= 1"
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -289,14 +291,15 @@ class TestBombardmentInts:
         game_state = {"world": world}
         result = executor._execute_bombardment(attacker, defender, world, game_state)
 
-        if result.get("success") and result.get("bombardment_result"):
-            br = result["bombardment_result"]
-            assert isinstance(br["terrain_modifier"], int), \
-                f"terrain_modifier should be int, got {type(br['terrain_modifier'])}"
-            assert isinstance(br["fort_old"], int), \
-                f"fort_old should be int, got {type(br['fort_old'])}"
-            assert isinstance(br["fort_new"], int), \
-                f"fort_new should be int, got {type(br['fort_new'])}"
+        assert result.get("success"), f"Bombardment should succeed, got: {result.get('message')}"
+        br = result.get("bombardment_result")
+        assert br is not None, "Successful bombardment should have bombardment_result"
+        assert isinstance(br["terrain_modifier"], int), \
+            f"terrain_modifier should be int, got {type(br['terrain_modifier'])}"
+        assert isinstance(br["fort_old"], int), \
+            f"fort_old should be int, got {type(br['fort_old'])}"
+        assert isinstance(br["fort_new"], int), \
+            f"fort_new should be int, got {type(br['fort_new'])}"
 
     def test_bombardment_event_int_fields(self):
         """Event log fields must also be int percentages."""
@@ -321,31 +324,15 @@ class TestBombardmentInts:
         game_state = {"world": world}
         result = executor._execute_bombardment(attacker, defender, world, game_state)
 
-        if result.get("success") and result.get("events"):
-            evt = result["events"][0]
-            assert isinstance(evt["terrain_modifier"], int), \
-                f"Event terrain_modifier should be int, got {type(evt['terrain_modifier'])}"
-            assert isinstance(evt["fort_old"], int), \
-                f"Event fort_old should be int, got {type(evt['fort_old'])}"
-            assert isinstance(evt["fort_new"], int), \
-                f"Event fort_new should be int, got {type(evt['fort_new'])}"
+        assert result.get("success"), f"Bombardment should succeed, got: {result.get('message')}"
+        assert result.get("events"), "Successful bombardment should have events"
+        evt = result["events"][0]
+        assert isinstance(evt["terrain_modifier"], int), \
+            f"Event terrain_modifier should be int, got {type(evt['terrain_modifier'])}"
+        assert isinstance(evt["fort_old"], int), \
+            f"Event fort_old should be int, got {type(evt['fort_old'])}"
+        assert isinstance(evt["fort_new"], int), \
+            f"Event fort_new should be int, got {type(evt['fort_new'])}"
 
 
-# ═══════════════════════════════════════════════════════════════════
-# F9: get_*_modifier side effect docstrings (P1-6)
-# ═══════════════════════════════════════════════════════════════════
-
-class TestModifierDocstrings:
-    """get_attack_modifier and get_defense_modifier must document side effects."""
-
-    def test_attack_modifier_warning_docstring(self):
-        """get_attack_modifier docstring must contain WARNING about side effects."""
-        doc = Marshal.get_attack_modifier.__doc__
-        assert "WARNING" in doc, "get_attack_modifier missing WARNING in docstring"
-        assert "side effect" in doc.lower(), "get_attack_modifier should mention side effects"
-
-    def test_defense_modifier_warning_docstring(self):
-        """get_defense_modifier docstring must contain WARNING about side effects."""
-        doc = Marshal.get_defense_modifier.__doc__
-        assert "WARNING" in doc, "get_defense_modifier missing WARNING in docstring"
-        assert "side effect" in doc.lower(), "get_defense_modifier should mention side effects"
+# V2-43: TestModifierDocstrings removed — docstring content testing provides no value

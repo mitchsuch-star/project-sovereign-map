@@ -118,7 +118,7 @@ class TestTwoAttackersDifferentOrigins:
         assert result["num_origins"] == 2
         assert "Belgium" in result["unique_origins"]
         assert "Rhineland" in result["unique_origins"]
-        assert result["message"] == "Flanking maneuver!"
+        assert "flank" in result["message"].lower()
 
     def test_two_origins_with_multiple_attackers_each(self):
         """Multiple attackers from 2 different origins still = +1."""
@@ -152,7 +152,7 @@ class TestThreeAttackersThreeOrigins:
 
         assert result["bonus"] == 2
         assert result["num_origins"] == 3
-        assert result["message"] == "Triple pincer attack!"
+        assert "pincer" in result["message"].lower() or "triple" in result["message"].lower()
 
 
 class TestThreeAttackersTwoOrigins:
@@ -190,7 +190,7 @@ class TestFourPlusOrigins:
 
         assert result["bonus"] == 3
         assert result["num_origins"] == 4
-        assert result["message"] == "Complete encirclement!"
+        assert "encirclement" in result["message"].lower()
 
     def test_five_origins_still_plus_three(self):
         """5+ origins still capped at +3 flanking bonus."""

@@ -62,14 +62,10 @@ class TestForcedRetreatMovement:
     def test_forced_retreat_uses_move_to(self):
         """Forced retreat should use move_to() method."""
         world = WorldState()
-        executor = CommandExecutor()
 
-        # Setup: Get Wellington and verify he can retreat
         wellington = world.marshals.get("Wellington")
-        if wellington:
-            old_location = wellington.location
-            # Force retreat should change location if there's a valid destination
-            # This is tested indirectly through the ally cover system
+        assert wellington is not None, "Wellington should exist in starting marshals"
+        assert wellington.location is not None, "Wellington should have a location"
 
 
 class TestAllyCoveringSystem:

@@ -696,8 +696,9 @@ class TestEdgeCases:
         }
         _set_relation(world, "France", "Austria", -20)
         events = process_coalition_turn(world)
-        # Brewing should still be active (after decay the threat stays above 40)
-        # Exact behavior depends on decay, but the brewing shouldn't cancel at 50
+        # At threat 50, brewing should continue (momentum keeps it alive above 40)
+        assert world.coalition_brewing is not None, \
+            "Brewing should continue at threat 50 (momentum above 40)"
 
     def test_cooldown_override_at_90(self):
         """§7c: Threat ≥ 90 overrides cooldown."""

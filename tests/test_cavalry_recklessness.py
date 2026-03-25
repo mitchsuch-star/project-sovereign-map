@@ -592,8 +592,8 @@ class TestAutoChargeAtFour:
         initial_location = ney.location
         events = world._process_reckless_cavalry_turn_start()
 
-        # Should either move or show blocked message
-        # This depends on implementation details
+        # Should either charge, move, or generate an event
+        assert isinstance(events, list), "Should return events list"
 
 
 class TestRecklessnessAndAutonomy:

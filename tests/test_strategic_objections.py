@@ -824,11 +824,7 @@ class TestDavoutMoveToCompromise:
             assert "proceed" in option_types
             assert "preferred" in option_types
 
-    def test_davout_move_compromise_rejected_if_path_too_long(self, world_with_enemies, executor):
-        """Compromise rejected if safe path is > 2x original length."""
-        # This test requires specific map setup where safe path is very long
-        # Implementation should cap safe path length
-        pass  # TODO: Implement with specific map fixture
+    # test_davout_move_compromise_rejected_if_path_too_long — removed (V2-37: pass placeholder, no implementation)
 
 
 # =============================================================================
@@ -1235,8 +1231,9 @@ class TestObjectionBypass:
             "target": "Paris"
         }
 
-        # This tests internal state - objection check should see flag
-        # Actual behavior depends on implementation
+        result = executor.execute(make_strategic_command(command, "HOLD"), make_game_state(world))
+        assert result.get("pending_strategic_objection") is not True, \
+            "Already-resolved objection should not re-trigger"
 
     def test_tactical_objection_skipped_for_strategic(self, world_with_enemies, executor):
         """Tactical objection system should NOT fire on strategic commands."""
@@ -1394,10 +1391,7 @@ class TestObjectionTrustChanges:
 class TestEdgeCases:
     """Edge cases and race conditions."""
 
-    def test_preferred_target_moved_revalidates(self, world_with_enemies, executor):
-        """If preferred target moves before response, revalidate."""
-        # This tests that the system handles stale state
-        pass  # TODO: Implement with mock timing
+    # test_preferred_target_moved_revalidates — removed (V2-37: pass placeholder, no implementation)
 
     def test_marshal_dies_during_timed_hold(self, world_with_french_marshals):
         """Timed HOLD clears if marshal dies."""
@@ -1477,31 +1471,8 @@ class TestFutureRelationshipObjections:
         assert result.get("pending_objection") is True
         assert "rivalry" in result["objection"]["message"].lower()
 
-    @pytest.mark.skip(reason="Multi-marshal relationships not yet implemented")
-    def test_low_trust_between_marshals_increases_objection(self, world_with_french_marshals, executor):
-        """
-        FUTURE: Low trust between marshals increases objection probability.
-        """
-        world = world_with_french_marshals
-        # Set low trust between Davout and Ney
-        # world.set_marshal_relationship("Davout", "Ney", trust=20)
-
-        command = {
-            "marshal": "Davout",
-            "action": "support",
-            "target": "Ney"
-        }
-
-        # Low trust should increase objection chance
-        # Test would verify probability modifier
-
-    @pytest.mark.skip(reason="Multi-marshal relationships not yet implemented")
-    def test_coalition_marshal_objects_to_joint_operation(self, world_with_enemies, executor):
-        """
-        FUTURE: Coalition marshals may object to joint operations.
-        """
-        # Hypothetical: If Prussia and Austria are allies but have tensions
-        pass
+    # test_low_trust_between_marshals_increases_objection — removed (V2-37: future placeholder, not implemented)
+    # test_coalition_marshal_objects_to_joint_operation — removed (V2-37: future placeholder, not implemented)
 
 
 # =============================================================================

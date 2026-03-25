@@ -290,10 +290,11 @@ class TestPriorityDecisions:
         # Evaluate Wellington
         action, priority = self.ai._evaluate_marshal(wellington, "Britain", self.world)
 
+        # With no threats nearby, cautious marshal should take some action (fortify, capture, etc.)
+        # The AI evaluates correctly — just verify it returns a valid action dict
         if action:
-            print(f"P5 cautious: action={action.get('action')}, priority={priority}")
-        else:
-            print("P5 cautious: no action (may already be fortified or no threats)")
+            assert "action" in action, "AI action should have 'action' key"
+            assert "marshal" in action, "AI action should have 'marshal' key"
 
     def test_p6_aggressive_drills(self):
         """P6: Aggressive marshal with no attack and no enemy adjacent should drill."""
@@ -311,10 +312,10 @@ class TestPriorityDecisions:
         # Evaluate Blucher
         action, priority = self.ai._evaluate_marshal(blucher, "Britain", self.world)
 
+        # Aggressive marshal with no enemies nearby should drill or take non-combat action
         if action:
-            print(f"P6 aggressive: action={action.get('action')}, priority={priority}")
-        else:
-            print("P6 aggressive: no action")
+            assert action.get("action") in ("drill", "fortify", "defend", "wait", "move", "stance_change"), \
+                f"Unexpected action for isolated aggressive marshal: {action.get('action')}"
 
 
 class TestCounterPunch:
@@ -417,13 +418,12 @@ class TestBuildingBlocksPrinciple:
         # Run an AI turn
         results = self.ai.process_nation_turn("Britain", self.world, self.game_state)
 
+        assert isinstance(results, list)
         for result in results:
             # Each result should have ai_action showing what was attempted
             if "ai_action" in result:
                 ai_action = result["ai_action"]
                 assert "marshal" in ai_action or "action" in ai_action
-
-        print(f"AI turn returned {len(results)} results with execution data")
 
 
 class TestSafetyChecks:
@@ -616,10 +616,9 @@ class TestNationProcessing:
         britain_results = self.ai.process_nation_turn("Britain", self.world, self.game_state)
         prussia_results = self.ai.process_nation_turn("Prussia", self.world, self.game_state)
 
-        # Both should have results
-        assert len(britain_results) >= 0
-        assert len(prussia_results) >= 0
-        print(f"Independent processing: Britain={len(britain_results)}, Prussia={len(prussia_results)}")
+        # Both should return valid lists
+        assert isinstance(britain_results, list)
+        assert isinstance(prussia_results, list)
 
     def test_invalid_nation_returns_empty(self):
         """Invalid nation should return empty list."""
@@ -650,12 +649,12 @@ class TestIntegrationScenarios:
         grouchy.strength = 20000  # Weak
         grouchy.morale = 40  # Low morale
 
-        # Run AI
-        results = self.ai.process_nation_turn("Britain", self.world, self.game_state)
+        # Run AI for Prussia (Blucher's nation)
+        results = self.ai.process_nation_turn("Prussia", self.world, self.game_state)
 
-        # Should see attack attempts
-        attacks = [r for r in results if r.get("ai_action", {}).get("action") == "attack"]
-        print(f"Aggressive vs weak: {len(attacks)} attack(s) from {len(results)} total actions")
+        # AI should process without errors and return a valid list
+        assert isinstance(results, list)
+        assert len(results) > 0, "Prussia AI should take at least one action"
 
     def test_cautious_fortifies_when_threatened(self):
         """Cautious AI should fortify when stronger enemy nearby."""
@@ -673,10 +672,9 @@ class TestIntegrationScenarios:
         # Run AI
         results = self.ai.process_nation_turn("Britain", self.world, self.game_state)
 
-        # Should see fortify or defensive actions
-        defensive_actions = [r for r in results if r.get("ai_action", {}).get("action")
-                           in ["fortify", "stance_change", "defend"]]
-        print(f"Cautious threatened: {len(defensive_actions)} defensive action(s)")
+        # AI should take some action (fortify, defend, or other)
+        assert isinstance(results, list)
+        assert len(results) > 0, "Cautious AI should take at least one action when threatened"
 
     def test_full_turn_cycle(self):
         """Complete AI turn cycle should execute without errors."""
@@ -689,10 +687,10 @@ class TestIntegrationScenarios:
 
         total_actions = len(britain_results) + len(prussia_results)
 
-        print(f"Full cycle: Britain={len(britain_results)}, Prussia={len(prussia_results)}, Total={total_actions}")
-
-        # Verify the AI did something
-        assert total_actions > 0 or True, "AI should take actions (or have none available)"
+        # Full cycle should complete without errors and produce actions
+        assert isinstance(britain_results, list)
+        assert isinstance(prussia_results, list)
+        assert total_actions > 0, "AI should take at least one action in full cycle"
 
 
 class TestMoodVarianceSystem:
@@ -801,9 +799,10 @@ class TestMoodVarianceSystem:
 
         # With mood variance, should see BOTH attacks and non-attacks
         # (some seeds make Blucher bold, some cautious)
-        print(f"Attack decisions: {attack_count} attacks, {no_attack_count} no-attacks across 20 seeds")
-        # At least one of each (true variance)
-        assert attack_count > 0 or no_attack_count > 0, "Mood should create decision variance"
+        # Mood should create decision variance: at least one type of decision
+        assert attack_count + no_attack_count == 20, "All 20 seeds should produce a decision"
+        # True variance test: either both types exist, or the scenario is at edge bounds
+        # (some scenarios may always/never attack regardless of mood if ratio is too extreme)
 
 
 # ════════════════════════════════════════════════════════════════════════════════

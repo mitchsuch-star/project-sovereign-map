@@ -574,7 +574,8 @@ class TestBattleEffectsIntegration:
         executor = CommandExecutor()
         world = WorldState()
         executor._apply_battle_effects_to_region("Nonexistent", 30000, 30000, world)
-        # Should not raise
+        # Should not raise — verify no regions were damaged
+        assert all(r.war_damage == 0.0 for name, r in world.regions.items() if name != "Nonexistent")
 
     def test_two_battles_same_region_stacks(self):
         """Two battles in same region stack war damage."""

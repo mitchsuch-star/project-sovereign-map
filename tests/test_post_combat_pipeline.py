@@ -483,6 +483,9 @@ class TestAutoChargeTerritoryCapture:
 
     def test_auto_charge_skips_fortified_territory(self):
         """Auto-charge should NOT capture fortified territory (no occupation)."""
+        import random
+        random.seed(42)
+
         world = WorldState()
         ney = world.get_marshal("Ney")
         wellington = world.get_marshal("Wellington")
@@ -494,7 +497,7 @@ class TestAutoChargeTerritoryCapture:
 
         belgium = world.get_region("Belgium")
         belgium.controller = "Britain"
-        # Add fortification (buildings are dicts with "type" key)
+        # Add fortification
         if not hasattr(belgium, 'buildings'):
             belgium.buildings = []
         has_fort = any(b.get("type") == "fortification" for b in belgium.buildings if isinstance(b, dict))
@@ -503,10 +506,13 @@ class TestAutoChargeTerritoryCapture:
 
         events = world._process_reckless_cavalry_turn_start()
 
+        # Auto-charge should fire (recklessness 4 + adjacent enemy)
+        charge_events = [e for e in events if e.get("type") == "auto_glorious_charge"]
+        assert len(charge_events) > 0, "Recklessness 4 with adjacent enemy should auto-charge"
         # Even if won, fortified territory should NOT be captured
-        # (auto-charge can't start occupation process)
-        if any(e.get("attacker_won") for e in events if e.get("type") == "auto_glorious_charge"):
-            assert belgium.controller == "Britain"
+        if any(e.get("attacker_won") for e in charge_events):
+            assert belgium.controller == "Britain", \
+                "Fortified territory should NOT be captured by auto-charge"
 
 
 class TestAutoChargeAuthority:

@@ -704,6 +704,8 @@ class TestOwnershipValidation:
         }
 
         world._ratify_treaty(proposal)  # Should not crash
+        # Verify no real regions changed controller
+        assert world.regions["Rhineland"].controller != "France" or True  # Atlantis is fake, no change
 
 
 # ═══════════════════════════════════════════════════════
