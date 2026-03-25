@@ -326,9 +326,9 @@ This eliminates the "zero triggers" / "no evaluator" / "personality-dead" findin
 
 ---
 
-## Phase E: Architecture — OPTIONAL (Sessions 13-14)
+## Phase E: Architecture — DEFERRED TO 1805 MAP EXPANSION (Sessions 13-14)
 
-Only pursue if user decides maintainability refactoring is worth the risk.
+Deferred per user decision (March 24, 2026). Architecture refactoring makes more sense alongside the 80-region map rework that will restructure executor.py anyway. Added to `ROADMAP.md` EA 1805 section.
 
 ### Session 13: Executor Decomposition Part 1
 

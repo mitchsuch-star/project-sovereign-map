@@ -721,6 +721,15 @@ At 19 regions, AI omniscience is fine — too few regions for fog to matter stra
 
 The `get_visible_enemies_near()` helper added in Session 36 is the toggle point — currently returns actual data, switch to fog-filtered for AI fog. The 12 objection helper TODO markers (V2b) also apply here since AI nations' marshals would need fog-aware objection triggers.
 
+### Executor Refactoring for 1805
+
+Deferred from Systems Audit Sessions 13-14 (architecture refactoring). Do alongside 80-region map rework:
+- **Executor decomposition:** Extract `_execute_debug` (~867 lines) and `_process_dialogue_choice` (~1,098 lines) out of executor.py. Resolves 125 inline imports / circular deps.
+- **Shared helpers:** Extract duplicated recruit cost formula (3 locations), drill check helper (3 locations), auto-end-turn logic. Replace 43 hand-rolled AI enemy queries with helper methods.
+- **Risk:** HIGH for executor decomposition (circular deps), MEDIUM for helpers (behavioral equivalence). Strong test suite (6,904+) makes verification practical.
+
+See `docs/SYSTEMS_AUDIT_FIX_PLAN.md` Phase E for details.
+
 ### AP Scaling for 1805
 
 Nation AP reflects bureaucratic capacity (see Phase 7 table). Additional: free basic actions for idle marshals (stance, wait), AP only for offensive actions. Strategic order conflict detection required.
