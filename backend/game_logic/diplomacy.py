@@ -2285,6 +2285,14 @@ def apply_continental_system(world) -> None:
                     queue_dispatch_event(world, "diplomatic_continental_system",
                                          {"nation": vassal_name, "action": "joined"}, "always")
 
+    # Remove AUTONOMOUS vassals from CS (they are independent)
+    from backend.game_logic.vassal import AUTONOMY_AUTONOMOUS
+    for vassal_name, state in world.vassals.items():
+        if state["lord"] == lord:
+            autonomy = state.get("autonomy", AUTONOMY_SATELLITE)
+            if autonomy == AUTONOMY_AUTONOMOUS and vassal_name in members:
+                members.remove(vassal_name)
+
     # Cap trade income between Britain and members
     total_blocked = 0
     max_total_cap = 200
@@ -2378,7 +2386,7 @@ _ASSESSMENT_TEMPLATES = {
     "armistice_wary": "The guns are silent, but the wound festers. Peace may be achievable with {nation}, though they will demand terms.",
     "armistice_neutral": "The armistice holds. {nation} appears open to permanent peace — the moment may be favorable.",
     "peace_hostile": "Relations with {nation} remain cold. They eye us with suspicion. Little can be achieved diplomatically until the temperature changes.",
-    "peace_wary": "{nation} maintains a cautious distance. Vienna watches our moves with calculating eyes. Open borders would test their appetite.",
+    "peace_wary": "{nation} maintains a cautious distance. Their diplomats watch our moves with calculating eyes. Open borders would test their appetite.",
     "peace_neutral": "{nation} is neither friend nor foe. Opportunity exists for closer ties — open borders would be a natural first step.",
     "peace_friendly": "{nation} is well-disposed toward us. The time is ripe for open borders, perhaps more.",
     "open_borders_neutral": "Our borders with {nation} are open, but trust remains shallow. A non-aggression pact would formalize the thaw.",
@@ -2858,7 +2866,7 @@ def get_diplomatic_preview(world, target_nation: str) -> Dict:
         try:
             # Build a mock proposal to get components
             action_to_type = {
-                "propose_armistice": "armistice_winning" if (get_war_score_for(world, player, target) > 0) else "armistice_losing",
+                "propose_armistice": "armistice_winning" if (get_war_score_for(world, player, target_nation) > 0) else "armistice_losing",
                 "propose_peace": "peace",
                 "propose_open_borders": "open_borders",
                 "propose_non_aggression": "non_aggression",

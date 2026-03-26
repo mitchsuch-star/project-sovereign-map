@@ -8106,7 +8106,7 @@ RETREAT RECOVERY (3 turns):
             elif recruit_type == "cavalry":
                 regen_rate = world.get_cavalry_regen_rate(acting_nation)
             else:
-                regen_rate = INFANTRY_BASE_REGEN
+                regen_rate = world.get_manpower_regen_rates(acting_nation)["infantry"]
             turns_until = max(1, (NEW_TROOPS - available + regen_rate - 1) // regen_rate)
             plural = "s" if turns_until > 1 else ""
             return {
@@ -11663,7 +11663,7 @@ RETREAT RECOVERY (3 turns):
 
         # §4a: Proposal for current or lower state pre-check
         from backend.game_logic.diplomacy import _UPGRADE_ORDER
-        current_diplo_state = world.get_diplomatic_state("France", target_nation) if target_nation else "PEACE"
+        current_diplo_state = world.get_diplomatic_state(world.player_nation, target_nation) if target_nation else "PEACE"
         _state_map_4a = {"peace": "PEACE", "alliance": "ALLIANCE", "defensive_alliance": "DEFENSIVE_ALLIANCE",
                          "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS", "armistice": "ARMISTICE"}
         proposal_type_raw = diplomatic_data.get("proposal_type")
@@ -11704,7 +11704,7 @@ RETREAT RECOVERY (3 turns):
         # R98: Compute cumulative DP for jump transitions
         _state_map = {"peace": "PEACE", "alliance": "ALLIANCE", "defensive_alliance": "DEFENSIVE_ALLIANCE",
                       "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS", "armistice": "ARMISTICE"}
-        current_diplo = world.get_diplomatic_state("France", target_nation) if target_nation else "PEACE"
+        current_diplo = world.get_diplomatic_state(world.player_nation, target_nation) if target_nation else "PEACE"
         target_diplo = _state_map.get(proposal_type, "PEACE") if proposal_type else "PEACE"
         jump_cost = get_transition_dp_cost(current_diplo, target_diplo)
         cost = get_dp_cost(dp_action, skill, transition_base=jump_cost)
@@ -12412,7 +12412,7 @@ RETREAT RECOVERY (3 turns):
             # R98: Compute cumulative DP for jump transitions
             _state_map = {"peace": "PEACE", "alliance": "ALLIANCE", "defensive_alliance": "DEFENSIVE_ALLIANCE",
                           "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS", "armistice": "ARMISTICE"}
-            current_diplo = world.get_diplomatic_state("France", target_nation) if target_nation else "PEACE"
+            current_diplo = world.get_diplomatic_state(world.player_nation, target_nation) if target_nation else "PEACE"
             target_diplo = _state_map.get(proposal_type, "PEACE")
             jump_cost = get_transition_dp_cost(current_diplo, target_diplo)
             cost = get_dp_cost(dp_action, skill, transition_base=jump_cost)
@@ -13198,7 +13198,7 @@ RETREAT RECOVERY (3 turns):
             # R98: Compute cumulative DP for jump transitions
             _state_map = {"peace": "PEACE", "alliance": "ALLIANCE", "defensive_alliance": "DEFENSIVE_ALLIANCE",
                           "non_aggression": "NON_AGGRESSION", "open_borders": "OPEN_BORDERS", "armistice": "ARMISTICE"}
-            current_diplo = world.get_diplomatic_state("France", target_nation) if target_nation else "PEACE"
+            current_diplo = world.get_diplomatic_state(world.player_nation, target_nation) if target_nation else "PEACE"
             target_diplo = _state_map.get(proposal_type, "PEACE")
             jump_cost = get_transition_dp_cost(current_diplo, target_diplo)
             cost = get_dp_cost(dp_action, skill, transition_base=jump_cost)

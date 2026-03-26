@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 26, 2026 (Systems Audit V3 Session 6 COMPLETE)
+> **Last Updated:** March 26, 2026 (Systems Audit V3 Session 7 COMPLETE)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **7158** (7158 passed, 1 skipped) |
+| **Tests Passing** | **7192** (7192 passed, 1 skipped) |
 
-| **Current Phase** | **Systems Audit V3 Fix Plan — Session 7 is NEXT.** 158 bugs across 10 required sessions + 1 optional. Sessions 1-6 COMPLETE. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`. |
+| **Current Phase** | **Systems Audit V3 Fix Plan — Session 8 is NEXT.** 158 bugs across 10 required sessions + 1 optional. Sessions 1-7 COMPLETE. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -26,8 +26,9 @@
    - ~~**Session 4 (P0): COMPLETE.**~~ Auto-action bypasses. 15 bugs fixed, 26 new tests. Added missing post-combat processing to 4 auto-action paths: attack auto-move (square break, diplo check, artillery moved, fog, attrition), auto-bombardment kill (war damage, battle recording, diplo battle, authority, coalition threat/exhaustion, attacks counter), garrison combat (war damage, fog/intel, battle recording, authority, coalition threat/exhaustion — both collapsed and holds paths), auto-charge (relationship processing, attacks counter, advance attrition, fog refresh), reckless auto-move (diplomatic territory check, fog refresh, movement attrition). Files: `executor.py`, `world_state.py`.
    - ~~**Session 5 (P1): COMPLETE.**~~ Session 5: 12 bugs fixed (strategic order state leaks, combat formula errors, fog violations), 24 tests.
    - ~~**Session 6 (P1): COMPLETE.**~~ Session 6: 11 bugs fixed (fog leaks, dispatch, backend integration), 19 tests.
-   - **Session 7 (P1): NEXT.** Diplomacy/economy.
-   - Sessions 7-10: diplomacy/economy, save/modding, parsing/trust, Godot UI.
+   - ~~**Session 7 (P1): COMPLETE.**~~ Session 7: 13 bugs fixed (diplomacy wizard, dialogue system, economy), 15 tests. Fixed `target`→`target_nation` in acceptance_preview, ledger net income (added admin/treaty/tribute), vassal tribute `get_effective_income()`, dialogue queue preservation, hardcoded "France" in proposals, infantry regen with war exhaustion, CS autonomous vassal exclusion, Godot wizard UX (back button, stale response, dp_label reset, terminal message). Files: `diplomacy.py`, `ledger.py`, `vassal.py`, `dispatch.py`, `executor.py`, `world_state.py`, `diplomacy_wizard.gd`.
+   - **Session 8 (P2): NEXT.** Save/modding.
+   - Sessions 8-10: save/modding, parsing/trust, Godot UI.
    - Session 11 (P3, optional): NOTEs & polish.
    - **IMPORTANT: After each session, update this STATUS.md to mark it done and indicate which session is next.**
 2. ~~**Systems Audit V2 Fix Plan**~~ — **ALL 7 SESSIONS COMPLETE.** 56 bugs fixed, 7040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.

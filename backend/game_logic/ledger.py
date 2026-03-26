@@ -213,7 +213,29 @@ def _build_economy(world, player: str) -> dict:
     trade_income_all = calculate_trade_income(world)
     trade_income = int(trade_income_all.get(player, 0))
 
-    net = int(income + trade_income - upkeep)
+    # Admin bonus (unused AP → gold)
+    admin_bonus = int(world._calculate_admin_bonus(player))
+
+    # Treaty gold/turn income (clauses where we receive gold)
+    treaty_gold = 0
+    for pair_key, treaty in world.active_treaties.items():
+        for clause in treaty.get("clauses", []):
+            if clause.get("type") == "gold_per_turn" and clause.get("to") == player:
+                treaty_gold += abs(clause.get("amount", 0))
+            elif clause.get("type") == "gold_per_turn" and clause.get("from") == player:
+                treaty_gold -= abs(clause.get("amount", 0))
+    treaty_gold = int(treaty_gold)
+
+    # Vassal tribute income
+    vassal_tribute = 0
+    for vassal_name, state in world.vassals.items():
+        if state.get("lord") == player:
+            tribute_rate = state.get("tribute_rate", 0.5)
+            v_income = sum(r.get_effective_income() for r in world.regions.values()
+                           if getattr(r, 'controller', '') == vassal_name)
+            vassal_tribute += int(v_income * tribute_rate)
+
+    net = int(income + trade_income + admin_bonus + treaty_gold + vassal_tribute - upkeep)
 
     # Construction queue: iterate player regions with active builds
     construction_queue = []
@@ -243,6 +265,9 @@ def _build_economy(world, player: str) -> dict:
         "treasury": int(world.gold),
         "income": income,
         "trade_income": trade_income,
+        "admin_bonus": admin_bonus,
+        "treaty_gold": treaty_gold,
+        "vassal_tribute": vassal_tribute,
         "upkeep": upkeep,
         "net": net,
         "bankruptcy_turns": int(world.bankruptcy_turns),

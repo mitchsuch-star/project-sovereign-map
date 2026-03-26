@@ -411,11 +411,13 @@ def test_territories_occupant_count():
 # ════════════════════════════════════════════════════════════════════════════════
 
 def test_economy_net_calculation():
-    """Net = income + trade_income - upkeep (Session 8: trade income in net)."""
+    """Net = income + trade + admin + treaty + tribute - upkeep (6B-1: full net)."""
     world = _make_world()
     ledger = build_strategic_ledger(world)
     econ = ledger["economy"]
-    assert econ["net"] == econ["income"] + econ["trade_income"] - econ["upkeep"]
+    expected = (econ["income"] + econ["trade_income"] + econ["admin_bonus"]
+                + econ["treaty_gold"] + econ["vassal_tribute"] - econ["upkeep"])
+    assert econ["net"] == expected
 
 
 def test_economy_bankruptcy():

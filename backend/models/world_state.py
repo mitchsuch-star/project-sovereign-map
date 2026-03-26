@@ -2145,7 +2145,7 @@ class WorldState:
         else:
             naval_income = 0
         total_income += naval_income
-        # TODO: Trade income (deferred to Session 2)
+        # Trade income applied separately via diplomacy.calculate_trade_income()
 
         return {
             "income": total_income,

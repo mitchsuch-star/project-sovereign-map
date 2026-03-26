@@ -82,6 +82,7 @@ func open():
 	title_label.text = "DIPLOMACY"
 	assessment_panel.text = "[color=#" + COLOR_INFO + "]\"Your Excellency, which nation requires our diplomatic attention?\"[/color]"
 	back_button.visible = false
+	dp_label.text = ""
 	_clear_content_list()
 	_add_loading_label()
 	show()
@@ -169,6 +170,9 @@ func _on_http_completed(result, response_code, headers, body):
 		return
 	# Capture the request ID at response time to detect stale responses
 	var response_id = _request_id
+	# Discard stale responses (user navigated away before response arrived)
+	if response_id != _request_id:
+		return
 	if response_code != 200:
 		_show_error("Connection failed.")
 		return
@@ -183,10 +187,6 @@ func _on_http_completed(result, response_code, headers, body):
 		_show_error(str(data.get("message", data.get("error", "Unknown error"))))
 		return
 
-	# Discard stale responses (user navigated away before response arrived)
-	if response_id != _request_id:
-		return
-
 	if _pending_request == "nations":
 		_render_nations(data)
 	elif _pending_request == "preview":
@@ -195,6 +195,7 @@ func _on_http_completed(result, response_code, headers, body):
 
 func _show_error(msg: String):
 	_current_step = 1  # Reset step so back button works (Fix 7)
+	back_button.visible = false
 	_clear_content_list()
 	var lbl = RichTextLabel.new()
 	lbl.bbcode_enabled = true
@@ -216,8 +217,10 @@ func _render_nations(data: Dictionary):
 
 	var dialogue_pending = data.get("dialogue_pending", false)
 	if dialogue_pending:
-		assessment_panel.text = "[color=#" + COLOR_AMBER + "]\"Talleyrand awaits your response to the current diplomatic matter.\"[/color]"
 		_close_wizard()
+		# Show message in terminal so player sees it after wizard closes
+		get_node("/root/Main").add_output(
+			"[color=#" + COLOR_AMBER + "]Talleyrand awaits your response to the current diplomatic matter.[/color]")
 		return
 
 	var categories = data.get("categories", {})
@@ -318,8 +321,9 @@ func _render_preview(data: Dictionary):
 	# Check if dialogue became pending since we fetched
 	var dialogue_pending = data.get("dialogue_pending", false)
 	if dialogue_pending:
-		assessment_panel.text = "[color=#" + COLOR_AMBER + "]\"Talleyrand awaits your response to the current diplomatic matter.\"[/color]"
 		_close_wizard()
+		get_node("/root/Main").add_output(
+			"[color=#" + COLOR_AMBER + "]Talleyrand awaits your response to the current diplomatic matter.[/color]")
 		return
 
 	# Build assessment panel

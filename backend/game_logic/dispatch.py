@@ -821,7 +821,11 @@ def _check_talleyrand_session6(dispatch: Dict, world, player_nation: str) -> Non
             dispatch["talleyrand_discovery"] = confrontation
 
             # Also set on world for the dialogue system to pick up
-            world.pending_diplomatic_dialogue = confrontation
+            if world.pending_diplomatic_dialogue:
+                # Queue instead of overwriting existing dialogue
+                world.pending_dialogue_queue.append(confrontation)
+            else:
+                world.pending_diplomatic_dialogue = confrontation
 
             # Notification: sabotage discovered (Session 8C)
             from backend.notifications import (

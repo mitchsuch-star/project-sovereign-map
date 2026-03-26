@@ -601,11 +601,11 @@ def process_vassal_tribute(world) -> dict:
         lord = state["lord"]
         tribute_rate = state.get("tribute_rate", 0.5)
 
-        # Calculate vassal's base income (simplified: count controlled regions * 50)
+        # Calculate vassal's base income (respects stability and war damage)
         vassal_income = 0
         for region_name, region in world.regions.items():
             if getattr(region, 'controller', '') == vassal_name:
-                vassal_income += 50  # Base region income
+                vassal_income += region.get_effective_income()
 
         tribute_amount = int(vassal_income * tribute_rate)
         if tribute_amount <= 0:
