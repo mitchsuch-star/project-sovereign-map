@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 25, 2026 (Systems Audit V2 Session 7 complete — ALL 7 SESSIONS DONE)
+> **Last Updated:** March 25, 2026 (Systems Audit V3 Fix Plan created)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **7040** (7040 passed, 1 skipped — ALL V2 sessions complete) |
+| **Tests Passing** | **7040** (7040 passed, 1 skipped) |
 
-| **Current Phase** | Systems Audit V2 Fix Plan — **ALL 7 SESSIONS COMPLETE.** 56 bugs fixed, 7040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`. |
+| **Current Phase** | **Systems Audit V3 Fix Plan — Session 1 is NEXT.** 158 bugs across 10 required sessions + 1 optional. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,7 +19,14 @@
 
 ## Next Steps
 
-1. ~~**Systems Audit V2 Fix Plan**~~ — **ALL 7 SESSIONS COMPLETE.** 56 bugs fixed, 7040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.
+1. **Systems Audit V3 Fix Plan** — 158 bugs, 10 required sessions + 1 optional. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`.
+   - **Session 1 (P0): NEXT.** War-state foundation + critical AI bugs. 8 bugs: add `get_hostile_marshals()`/`get_hostile_by_name()` war-aware helpers, fix `find_nearest_enemy()` war filter, fortify engagement war check, enemy AI stance/defend/fortify AP checks, autonomous marshal tracking init. Files: `world_state.py`, `executor.py`, `enemy_ai.py`.
+   - Session 2 (P0): War-state cascade — executor (14 bugs, all `is_at_war` additions).
+   - Session 3 (P0): War-state cascade — other files (19 bugs across 6 files).
+   - Sessions 4-10: Auto-action bypasses, strategic orders, fog/dispatch, diplomacy/economy, save/modding, parsing/trust, Godot UI.
+   - Session 11 (P3, optional): NOTEs & polish.
+   - **IMPORTANT: After each session, update this STATUS.md to mark it done and indicate which session is next.**
+2. ~~**Systems Audit V2 Fix Plan**~~ — **ALL 7 SESSIONS COMPLETE.** 56 bugs fixed, 7040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.
    - **Session 1 (P0 — CRITICAL): COMPLETE.** Auto-charge & glorious charge post-combat. 12 bugs fixed, 17 new tests. Added `clear_combat_transient_state()` to Marshal (single source of truth). Fixed: fortification_bonus (V2-45), retreat direction (V2-46), zombie prevention (V2-44), broken state (V2-47), state clearing (V2-48/49), engagement check (V2-2), flanking (V2-51), relationships (V2-50), targeting filters (V2-92). Files: `marshal.py`, `world_state.py`, `executor.py`.
    - **Session 2 (P0 — CRITICAL): COMPLETE.** Godot frontend fixes. 10 bugs fixed, 0 new tests (GDScript — manual verification). Fixed: success=true override (V2-69), bombardment 8000% (V2-70), frozen input on connection failure (V2-72), HTTPRequest race/ERR_BUSY (V2-73), trade income missing (V2-30), load missing max_turns (V2-71), turn format "5" not "5/40" (V2-74), early returns skip diplomatic top bar (V2-75), load doesn't clear pending state (V2-76), tactical_events silently dropped (V2-77). Files: `api_client.gd`, `main.gd`, `strategic_ledger.gd`.
    - **Session 3 (P1 — MAJOR): COMPLETE.** AI + Economy + Turn Manager. 9 bugs fixed, 20 new tests. Fixed: fog leak to LLM (V2-5), cooldown 4x tick (V2-20/21), error swallowing (V2-19), autonomous phase crash (V2-26), zombie marshals (V2-29), overwatch self-count (V2-24), admin AP asymmetry (V2-96), free action cap (V2-81). Files: `main.py`, `prompt_builder.py`, `enemy_ai.py`, `turn_manager.py`, `world_state.py`, `executor.py`.
