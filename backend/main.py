@@ -498,6 +498,7 @@ def test_connection():
     """Test endpoint for Godot connection."""
     from backend.game_logic.war_status import build_active_wars
     response = {
+        "success": True,
         "status": "ok",
         "message": "Backend is running",
         "turn": int(world.current_turn),
