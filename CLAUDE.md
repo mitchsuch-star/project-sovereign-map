@@ -18,7 +18,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Systems Audit V3 Fix Plan — Sessions 1-4 COMPLETE, Session 5 is NEXT.** 158 bugs across 10 required + 1 optional sessions. Session 1: 8 bugs fixed, 26 tests. Session 2: 14 bugs fixed, 20 tests. Session 3: 17 bugs fixed, 22 tests. Session 4: 15 bugs fixed, 26 tests. Session 5: strategic order bypasses. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`. **After each session, update `docs/STATUS.md` to mark it done and indicate which session is next.**
+- **Systems Audit V3 Fix Plan — Sessions 1-5 COMPLETE, Session 6 is NEXT.** 158 bugs across 10 required + 1 optional sessions. Session 1: 8 bugs fixed, 26 tests. Session 2: 14 bugs fixed, 20 tests. Session 3: 17 bugs fixed, 22 tests. Session 4: 15 bugs fixed, 26 tests. Session 5: 12 bugs fixed, 24 tests. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`. **After each session, update `docs/STATUS.md` to mark it done and indicate which session is next.**
 - ~~**Systems Audit V2 Fix Plan — ALL 7 SESSIONS COMPLETE.**~~ 56 bugs fixed, 7,040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.
 - **Playtest Bug Fixes (March 2026 Review).** 16-turn playtest found 3 critical + 3 major + 4 minor bugs + 4 balance concerns. Session 1: armistice deadlock, self-combat, turn skip. Session 2: raw state names, parse failures. Session 3: minor fixes + balance. See `docs/PLAYTEST_REVIEW_2026_03.md`.
 - **Diplomacy Button — COMPLETE.** Session A (backend) + Session B (Godot wizard UI) + final edge case fixes (2 bugs, 2 hardening). 108 button tests. See `docs/DIPLOMACY_BUTTON_SPEC.md`.

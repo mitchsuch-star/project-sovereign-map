@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 26, 2026 (Systems Audit V3 Session 4 COMPLETE)
+> **Last Updated:** March 26, 2026 (Systems Audit V3 Session 5 COMPLETE)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **7134** (7134 passed, 1 skipped) |
+| **Tests Passing** | **7158** (7158 passed, 1 skipped) |
 
-| **Current Phase** | **Systems Audit V3 Fix Plan — Session 5 is NEXT.** 158 bugs across 10 required sessions + 1 optional. Sessions 1-4 COMPLETE. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`. |
+| **Current Phase** | **Systems Audit V3 Fix Plan — Session 6 is NEXT.** 158 bugs across 10 required sessions + 1 optional. Sessions 1-5 COMPLETE. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -24,8 +24,9 @@
    - ~~**Session 2 (P0): COMPLETE.**~~ War-state cascade — executor. 14 bugs fixed, 20 new tests. Added `is_at_war()` guards to all `m.nation != marshal.nation` checks: reinforcement engagement, overwatch artillery, bombardment targeting, undefended-region defenders, cavalry charge leapfrog (2), post-battle conquest (2), reckless charge alternatives, garrison validation, glorious charge target (2), move capture hints, scout enemy listing. Files: `executor.py`.
    - ~~**Session 3 (P0): COMPLETE.**~~ War-state cascade — other files. 17 bugs fixed (2 already done), 22 new tests. Added `is_at_war()` guards across 6 files: `is_enemy_nearby()`, `_find_retreat_destination()` (also fixed hardcoded `player_nation`), auto-charge conquest filter, move/drill validation (4 locations), aggressive fallback, strength ratio, visible enemies/engagement/path crossing (4 locations), personality adjacent enemy/strength ratio/nearest enemy (3 locations), strategic parser PURSUE target, capital proximity alert, AI cavalry threat/artillery scoring/fortification defenders/recapture defenders/capture opportunity/artillery density/supply hardcode. Files: `world_state.py`, `disobedience.py`, `objection_v2.py`, `personality.py`, `strategic_parser.py`, `turn_manager.py`, `enemy_ai.py`. Also added `is_at_war()` to MockWorld in 2 test files.
    - ~~**Session 4 (P0): COMPLETE.**~~ Auto-action bypasses. 15 bugs fixed, 26 new tests. Added missing post-combat processing to 4 auto-action paths: attack auto-move (square break, diplo check, artillery moved, fog, attrition), auto-bombardment kill (war damage, battle recording, diplo battle, authority, coalition threat/exhaustion, attacks counter), garrison combat (war damage, fog/intel, battle recording, authority, coalition threat/exhaustion — both collapsed and holds paths), auto-charge (relationship processing, attacks counter, advance attrition, fog refresh), reckless auto-move (diplomatic territory check, fog refresh, movement attrition). Files: `executor.py`, `world_state.py`.
-   - **Session 5 (P1): NEXT.** Strategic order bypasses.
-   - Sessions 6-10: Fog/dispatch, diplomacy/economy, save/modding, parsing/trust, Godot UI.
+   - ~~**Session 5 (P1): COMPLETE.**~~ Session 5: 12 bugs fixed (strategic order state leaks, combat formula errors, fog violations), 24 tests.
+   - **Session 6 (P1): NEXT.** Fog/dispatch leaks.
+   - Sessions 7-10: diplomacy/economy, save/modding, parsing/trust, Godot UI.
    - Session 11 (P3, optional): NOTEs & polish.
    - **IMPORTANT: After each session, update this STATUS.md to mark it done and indicate which session is next.**
 2. ~~**Systems Audit V2 Fix Plan**~~ — **ALL 7 SESSIONS COMPLETE.** 56 bugs fixed, 7040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.

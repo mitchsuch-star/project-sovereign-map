@@ -150,10 +150,15 @@ def get_battle_participants(primary, battle_region, nation, world):
 
 
 def process_battle_relationships(attacker_marshal, defender_marshal, battle_result,
-                                 battle_region, world):
+                                 battle_region, world,
+                                 attacker_artillery=None, defender_artillery=None):
     """Process relationship changes for all participants on both sides.
 
     Uses ordered pairs (permutations) per D4.
+
+    Args:
+        attacker_artillery: List of artillery marshals that reinforced from adjacent regions
+        defender_artillery: List of artillery marshals that reinforced from adjacent regions
 
     Returns:
         list of dicts with keys: marshal, toward, change, new_value, nation
@@ -167,6 +172,11 @@ def process_battle_relationships(attacker_marshal, defender_marshal, battle_resu
     # Attacker side
     attacker_participants = get_battle_participants(
         attacker_marshal, battle_region, attacker_marshal.nation, world)
+    # [7B-1] Include artillery that reinforced from adjacent regions
+    if attacker_artillery:
+        for art in attacker_artillery:
+            if art not in attacker_participants:
+                attacker_participants.append(art)
 
     if len(attacker_participants) >= 2:
         for a, b in permutations(attacker_participants, 2):
@@ -188,6 +198,11 @@ def process_battle_relationships(attacker_marshal, defender_marshal, battle_resu
     # Defender side
     defender_participants = get_battle_participants(
         defender_marshal, battle_region, defender_marshal.nation, world)
+    # [7B-1] Include artillery that reinforced from adjacent regions
+    if defender_artillery:
+        for art in defender_artillery:
+            if art not in defender_participants:
+                defender_participants.append(art)
 
     if len(defender_participants) >= 2:
         for a, b in permutations(defender_participants, 2):

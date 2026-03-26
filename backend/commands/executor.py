@@ -4703,7 +4703,7 @@ RETREAT RECOVERY (3 turns):
 
                 if pursuit_damage > 0 and enemy_marshal.strength > 0:
                     old_strength = enemy_marshal.strength
-                    enemy_marshal.strength = max(1000, enemy_marshal.strength - pursuit_damage)
+                    enemy_marshal.strength = max(0, enemy_marshal.strength - pursuit_damage)
                     actual_pursuit = old_strength - enemy_marshal.strength
                     if actual_pursuit > 0:
                         battle_result["pursuit_damage"] = int(actual_pursuit)
@@ -4787,8 +4787,12 @@ RETREAT RECOVERY (3 turns):
         # are still in world.marshals.
         # ════════════════════════════════════════════════════════════
         from backend.game_logic.relationship import process_battle_relationships
+        # [7B-1] Split artillery reinforcements by nation for relationship processing
+        atk_artillery = [a for a in artillery_reinforced_adjacent if a.nation == marshal.nation]
+        def_artillery = [a for a in artillery_reinforced_adjacent if a.nation == enemy_marshal.nation]
         relationship_changes = process_battle_relationships(
-            marshal, enemy_marshal, battle_result, battle_region_name, world
+            marshal, enemy_marshal, battle_result, battle_region_name, world,
+            attacker_artillery=atk_artillery, defender_artillery=def_artillery
         )
         for rc in relationship_changes:
             world.log_event({
@@ -4877,6 +4881,20 @@ RETREAT RECOVERY (3 turns):
                 defender_casualties=int(battle_result.get("defender", {}).get("casualties", 0)),
                 location=target_location,
             )
+
+        # [7A-3] Set last_combat_result for strategic condition checking (until_battle_won)
+        if atk_won:
+            marshal.last_combat_result = "victory"
+            enemy_marshal.last_combat_result = "defeat"
+        elif def_won:
+            marshal.last_combat_result = "defeat"
+            enemy_marshal.last_combat_result = "victory"
+        elif "mutual_destruction" in outcome:
+            marshal.last_combat_result = "defeat"
+            enemy_marshal.last_combat_result = "defeat"
+        else:
+            marshal.last_combat_result = "stalemate"
+            enemy_marshal.last_combat_result = "stalemate"
 
         # Check if enemy was destroyed
         enemy_destroyed = enemy_marshal.strength <= 0
@@ -5666,6 +5684,19 @@ RETREAT RECOVERY (3 turns):
         if not marshal:
             return None
 
+        # [7A-1] Broken/retreating marshals cannot accept strategic orders
+        if getattr(marshal, 'retreat_recovery', 0) > 0:
+            turns_left = marshal.retreat_recovery
+            return {
+                "success": False,
+                "message": f"{marshal.name} is recovering from retreat ({turns_left} turn(s) remaining) and cannot accept strategic orders."
+            }
+        if getattr(marshal, 'broken', False):
+            return {
+                "success": False,
+                "message": f"{marshal.name}'s army is broken and cannot accept strategic orders. Rally them first."
+            }
+
         strategic_type = parsed_command.get("strategic_type")
         target = command.get("target")
         target_type = command.get("target_type", "region")
@@ -5840,10 +5871,14 @@ RETREAT RECOVERY (3 turns):
                 pathfinder = world.find_weighted_path if use_weighted else world.find_path
                 personality = getattr(marshal, 'personality', 'balanced')
                 if personality == "cautious":
-                    enemy_regions = [
-                        rn for rn in world.regions
-                        if world.get_enemies_in_region(rn, marshal.nation)
-                    ]
+                    # [7A-4] Fog-aware pathfinding: only avoid visible enemies
+                    from backend.models.intel import FULL, PARTIAL
+                    enemy_regions = []
+                    for rn in world.regions:
+                        intel = world.get_region_intel(rn)
+                        if intel.visibility in (FULL, PARTIAL):
+                            if world.get_enemies_in_region(rn, marshal.nation):
+                                enemy_regions.append(rn)
                     path = pathfinder(marshal.location, dest,
                                       avoid_regions=enemy_regions)
                     if not path:
@@ -6568,10 +6603,14 @@ RETREAT RECOVERY (3 turns):
             if compromise_data.get("safe_path"):
                 # Recalculate path avoiding enemies
                 # MOVE_TO and HOLD use weighted pathfinding for terrain-aware routes
+                # [7A-4] Fog-aware: only avoid visible enemies
+                from backend.models.intel import FULL, PARTIAL
                 enemy_occupied = set()
                 for rn in world.regions:
-                    if world.get_enemies_in_region(rn, marshal.nation):
-                        enemy_occupied.add(rn)
+                    intel = world.get_region_intel(rn)
+                    if intel.visibility in (FULL, PARTIAL):
+                        if world.get_enemies_in_region(rn, marshal.nation):
+                            enemy_occupied.add(rn)
 
                 dest = path[-1] if path else target
                 use_weighted = (strategic_type in ("MOVE_TO", "HOLD"))
@@ -6723,6 +6762,10 @@ RETREAT RECOVERY (3 turns):
                 target_marshal = world.get_marshal(destination)
                 if target_marshal:
                     destination = target_marshal.location
+            # [7A-5] Note: literal reroute is REACTIVE (marshal already encountered
+            # enemy on their path). Rerouting around known contacts is legitimate
+            # even without fog visibility. The fog-aware fix applies to proactive
+            # avoidance (cautious initial path planning), not reactive rerouting.
             enemy_regions = [
                 rn for rn in world.regions
                 if world.get_enemies_in_region(rn, marshal.nation)
@@ -8870,6 +8913,9 @@ RETREAT RECOVERY (3 turns):
         # Cancel any strategic order (breaking formation to act)
         if getattr(marshal, 'strategic_order', None):
             marshal.strategic_order = None
+            # [7A-6] Clear holding state when square break cancels strategic order
+            marshal.holding_position = False
+            marshal.hold_region = ""
         display = _action_display_name(action_name) if action_name else "act"
         msg = f"\n[Square broken — {marshal.name} breaks formation to {display}]"
         # Store for execute() to prepend to result message
@@ -10423,6 +10469,10 @@ RETREAT RECOVERY (3 turns):
         pre_battle_atk = marshal.strength
         pre_battle_def = target_marshal.strength
         charge_battle_region = target_marshal.location
+
+        # [5D-3] Calculate coordination bonuses for both sides (fairness per spec)
+        self._calculate_coordination_context(marshal, world)
+        self._calculate_coordination_context(target_marshal, world)
 
         # Get combat result with glorious charge flag
         combat_result = self.combat_resolver.resolve_battle(

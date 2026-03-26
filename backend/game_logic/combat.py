@@ -1055,8 +1055,9 @@ class CombatResolver:
         if projected_atk <= 0 and projected_def <= 0:
             victor = None
             outcome = "mutual_destruction"
-            atk_morale_delta = 0
-            def_morale_delta = 0
+            # [5D-1] Apply morale penalty for mutual destruction (matches normal combat path)
+            atk_morale_delta = -_scaled_morale_loss(atk_casualty_rate, 20)
+            def_morale_delta = -_scaled_morale_loss(def_casualty_rate, 20)
         elif projected_atk <= 0:
             victor = defender
             outcome = "defender_victory"

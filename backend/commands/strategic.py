@@ -92,6 +92,11 @@ class StrategicExecutor:
             # ═══════════════════════════════════════════════════════════
             if marshal.strength <= 0:
                 marshal.strategic_order = None
+                # [7A-2] Clear holding state on dead marshal
+                marshal.holding_position = False
+                marshal.hold_region = ""
+                # [7A-8] Clear pending interrupt on dead marshal
+                marshal.pending_interrupt = None
                 print(f"[STRATEGIC] {marshal.name}: SKIP - marshal defeated, order cleared")
                 continue
 
@@ -220,6 +225,9 @@ class StrategicExecutor:
             cmd_flavor = _strategic_command_flavor(order.command_type)
             original_location = marshal.location
             marshal.strategic_order = None
+            # [7A-2] Clear holding state
+            marshal.holding_position = False
+            marshal.hold_region = ""
 
             # Distance-based: attack if adjacent with enemy, otherwise move
             is_cavalry = getattr(marshal, 'cavalry', False)
@@ -327,6 +335,9 @@ class StrategicExecutor:
             # Cancel order, stay put
             cmd_flavor = _strategic_command_flavor(order.command_type)
             marshal.strategic_order = None
+            # [7A-2] Clear holding state
+            marshal.holding_position = False
+            marshal.hold_region = ""
             trust_change = -3
             if hasattr(marshal, 'trust'):
                 marshal.trust.modify(trust_change)
@@ -386,6 +397,9 @@ class StrategicExecutor:
                 order.last_combat_enemy = enemy_name
                 order.last_combat_turn = world.current_turn
                 marshal.strategic_order = None
+                # [7A-2] Clear holding state
+                marshal.holding_position = False
+                marshal.hold_region = ""
                 return {
                     "success": True,
                     "message": f"{marshal.name} attacks {enemy_name}. {combat_msg} "
@@ -428,6 +442,9 @@ class StrategicExecutor:
             else:
                 # No safe path exists — break order
                 marshal.strategic_order = None
+                # [7A-2] Clear holding state
+                marshal.holding_position = False
+                marshal.hold_region = ""
                 return {
                     "success": True,
                     "message": f"No safe route around {blocked_region}. "
@@ -439,6 +456,9 @@ class StrategicExecutor:
 
         elif choice == "hold_position":
             marshal.strategic_order = None
+            # [7A-2] Clear holding state
+            marshal.holding_position = False
+            marshal.hold_region = ""
             # First-step cancel = 0 trust penalty (order never really started)
             is_first_step = pending.get("is_first_step", False)
             trust_change = 0 if is_first_step else -3
@@ -455,6 +475,9 @@ class StrategicExecutor:
 
         elif choice == "cancel_order":
             marshal.strategic_order = None
+            # [7A-2] Clear holding state
+            marshal.holding_position = False
+            marshal.hold_region = ""
             # First-step cancel = 0 trust penalty (order never really started)
             is_first_step = pending.get("is_first_step", False)
             trust_change = 0 if is_first_step else -3
@@ -518,6 +541,9 @@ class StrategicExecutor:
 
         elif choice == "cancel_support":
             marshal.strategic_order = None
+            # [7A-2] Clear holding state
+            marshal.holding_position = False
+            marshal.hold_region = ""
             trust_change = -3
             if hasattr(marshal, 'trust'):
                 marshal.trust.modify(trust_change)
@@ -540,6 +566,9 @@ class StrategicExecutor:
             # After failed combat, order breaks — marshal reverts to tactical
             # This prevents infinite free attacks from a single strategic order
             marshal.strategic_order = None
+            # [7A-2] Clear holding state
+            marshal.holding_position = False
+            marshal.hold_region = ""
             return {
                 "success": True,
                 "message": f"{marshal.name} cannot break through. "
@@ -551,6 +580,9 @@ class StrategicExecutor:
 
         elif choice == "hold_position":
             marshal.strategic_order = None
+            # [7A-2] Clear holding state
+            marshal.holding_position = False
+            marshal.hold_region = ""
             trust_change = -3
             if hasattr(marshal, 'trust'):
                 marshal.trust.modify(trust_change)
@@ -564,6 +596,9 @@ class StrategicExecutor:
 
         elif choice == "cancel_order":
             marshal.strategic_order = None
+            # [7A-2] Clear holding state
+            marshal.holding_position = False
+            marshal.hold_region = ""
             trust_change = -3
             if hasattr(marshal, 'trust'):
                 marshal.trust.modify(trust_change)
@@ -618,26 +653,8 @@ class StrategicExecutor:
                                f"({recovery} turn(s) remaining). Order paused."
                 }
 
-        # 1a. Phase M: Timed HOLD expiry for aggressive marshals (Ney compromise)
-        # Aggressive marshals with max_turns "grow restless" instead of completing normally
-        if order.condition and order.condition.max_turns:
-            personality = getattr(marshal, 'personality', 'balanced')
-            if personality == "aggressive" and order.command_type == "HOLD":
-                issued_turn = order.issued_turn or order.started_turn
-                turns_elapsed = world.current_turn - issued_turn
-                if turns_elapsed >= order.condition.max_turns:
-                    print(f"[STRATEGIC] {marshal.name}: ORDER EXPIRED - restless after {turns_elapsed} turns")
-                    hold_location = order.target or marshal.location
-                    marshal.strategic_order = None
-                    marshal.holding_position = False
-                    marshal.hold_region = ""
-                    return {
-                        "success": True,
-                        "marshal": marshal.name,
-                        "order_status": "expired",
-                        "message": f"{marshal.name} grows restless and abandons the position at {hold_location}.",
-                        "timed_expiry": True,
-                    }
+        # [7A-7] Removed dead code: aggressive HOLD expiry was duplicated here
+        # and in _execute_hold(). The _execute_hold handler handles all personalities.
 
         # 1b. Check conditions first (until_arrives, until_relieved, etc.)
         if order.condition:
@@ -909,6 +926,9 @@ class StrategicExecutor:
                 threshold = order.condition.auto_cancel_below_ratio
                 if ratio < threshold:
                     marshal.strategic_order = None
+                    # [7A-2] Clear holding state
+                    marshal.holding_position = False
+                    marshal.hold_region = ""
                     return {
                         "success": True,
                         "marshal": marshal.name,
@@ -1823,6 +1843,9 @@ class StrategicExecutor:
                 battle_loc = interrupt["battle_location"]
                 cmd_type = order.command_type if order else "unknown"
                 marshal.strategic_order = None
+                # [7A-2] Clear holding state
+                marshal.holding_position = False
+                marshal.hold_region = ""
 
                 # Distance-based response: attack if in range, otherwise move toward
                 is_cavalry = getattr(marshal, 'cavalry', False)
