@@ -548,6 +548,10 @@ class MockWorld:
         self.regions = regions or {}
         self._intel = {}  # {region_name: _MockRegionIntel}
 
+    def is_at_war(self, nation_a, nation_b):
+        """Default: different nations are always at war (preserves test behavior)."""
+        return nation_a != nation_b
+
     def find_path(self, start, end):
         """Simple mock pathfinding - returns direct path via regions."""
         if start == end:

@@ -470,6 +470,7 @@ class CommandExecutor:
             if m.location == marshal.location
             and m.nation != nation
             and m.strength > 0
+            and world.is_at_war(nation, m.nation)
         ]
         if marshal_region_enemies:
             return False
@@ -681,6 +682,7 @@ class CommandExecutor:
         for m in world.marshals.values():
             if (m.location == defender_region_name
                     and m.nation != attacker.nation
+                    and world.is_at_war(attacker.nation, m.nation)
                     and getattr(m, 'artillery', False)
                     and m.strength > 0
                     and not getattr(m, 'broken', False)
@@ -3570,6 +3572,8 @@ RETREAT RECOVERY (3 turns):
                         for m in world.marshals.values():
                             if m.nation == marshal.nation or m.strength <= 0:
                                 continue
+                            if not world.is_at_war(marshal.nation, m.nation):
+                                continue
                             if m.name == (charge_target_marshal.name if charge_target_marshal else ""):
                                 continue  # Skip the blocked target
                             dist = world.get_distance(marshal.location, m.location)
@@ -3934,6 +3938,7 @@ RETREAT RECOVERY (3 turns):
                 and m.nation != marshal.nation
                 and m.strength > 0
                 and not getattr(m, 'broken', False)
+                and world.is_at_war(marshal.nation, m.nation)
             ]
             if len(all_enemies_at_target) > 1:
                 enemy_marshal = max(all_enemies_at_target, key=lambda m: m.strength)
@@ -3962,7 +3967,8 @@ RETREAT RECOVERY (3 turns):
 
                 # Check for any defenders (marshals from nations other than attacker)
                 defenders = [m for m in world.marshals.values()
-                            if m.location == resolved_target and m.strength > 0 and m.nation != marshal.nation]
+                            if m.location == resolved_target and m.strength > 0 and m.nation != marshal.nation
+                            and world.is_at_war(marshal.nation, m.nation)]
 
                 if not defenders:
                     # ════════════════════════════════════════════════════════════
@@ -4178,6 +4184,7 @@ RETREAT RECOVERY (3 turns):
                     enemies_in_middle = [
                         m for m in world.get_marshals_in_region(middle)
                         if m.nation != marshal.nation and m.strength > 0
+                        and world.is_at_war(marshal.nation, m.nation)
                     ]
                     if enemies_in_middle:
                         blocking_enemy = enemies_in_middle[0]
@@ -4403,6 +4410,7 @@ RETREAT RECOVERY (3 turns):
                 remaining_defenders = [
                     m for m in world.marshals.values()
                     if m.location == battle_region_name and m.strength > 0 and m.nation != marshal.nation
+                    and world.is_at_war(marshal.nation, m.nation)
                 ]
                 if not remaining_defenders:
                     capture_result = self._attempt_region_capture(
@@ -4873,6 +4881,7 @@ RETREAT RECOVERY (3 turns):
             remaining_defenders = [
                 m for m in world.marshals.values()
                 if m.location == target_location and m.strength > 0 and m.nation != marshal.nation
+                and world.is_at_war(marshal.nation, m.nation)
             ]
 
             print(f"[CONQUEST CHECK] target_location={target_location}, controller={target_region.controller}")
@@ -5278,7 +5287,7 @@ RETREAT RECOVERY (3 turns):
         action_cost = self._get_stance_change_cost(current_stance, Stance.DEFENSIVE)
 
         # Check if player has enough actions
-        if action_cost > 0 and world.actions_remaining < action_cost:
+        if action_cost > 0 and marshal.nation == world.player_nation and world.actions_remaining < action_cost:
             return {
                 "success": False,
                 "message": f"Switching {marshal.name} to defensive stance requires {action_cost} action(s), "
@@ -7010,7 +7019,8 @@ RETREAT RECOVERY (3 turns):
                         continue
                     # Check if undefended: no enemy marshals AND no meaningful garrison
                     enemies_there = world.get_marshals_in_region(adj_name)
-                    enemy_marshals = [m for m in enemies_there if m.nation != marshal.nation and m.strength > 0]
+                    enemy_marshals = [m for m in enemies_there if m.nation != marshal.nation and m.strength > 0
+                                      and world.is_at_war(marshal.nation, m.nation)]
                     has_garrison = adj_region.garrison_strength >= 5000 or (
                         adj_region.garrison_detachment and adj_region.garrison_strength > 0
                     )
@@ -7095,7 +7105,7 @@ RETREAT RECOVERY (3 turns):
             # Detailed intel on enemies
             enemy_intel = []
             for m in marshals_there:
-                if m.nation != world.player_nation:
+                if m.nation != marshal.nation and world.is_at_war(marshal.nation, m.nation):
                     enemy_intel.append(f"{m.name} ({m.nation}): ~{m.strength:,} troops")
 
             intel_msg = f"Controlled by {controller}. {terrain_msg}. "
@@ -8129,7 +8139,8 @@ RETREAT RECOVERY (3 turns):
 
         # Validation: no enemy marshals present
         enemies_present = [m for m in world.marshals.values()
-                          if m.location == region_name and m.nation != marshal.nation and m.strength > 0]
+                          if m.location == region_name and m.nation != marshal.nation and m.strength > 0
+                          and world.is_at_war(marshal.nation, m.nation)]
         if enemies_present:
             return {
                 "success": False,
@@ -8604,6 +8615,7 @@ RETREAT RECOVERY (3 turns):
             if m.location == marshal.location
             and m.nation != marshal.nation
             and m.strength > 0
+            and world.is_at_war(marshal.nation, m.nation)
         ]
         if enemies_in_region:
             enemy_names = [e.name for e in enemies_in_region]
@@ -8636,7 +8648,7 @@ RETREAT RECOVERY (3 turns):
             total_cost = 1 + stance_transition_cost  # fortify + stance change
 
             # Check if player has enough actions
-            if world.actions_remaining < total_cost:
+            if marshal.nation == world.player_nation and world.actions_remaining < total_cost:
                 return {
                     "success": False,
                     "message": f"Fortifying from neutral stance requires {total_cost} actions "
@@ -9944,7 +9956,7 @@ RETREAT RECOVERY (3 turns):
         action_cost = self._get_stance_change_cost(current_stance, target_stance)
 
         # Check if player has enough actions (for non-free transitions)
-        if action_cost > 0 and world.actions_remaining < action_cost:
+        if action_cost > 0 and marshal.nation == world.player_nation and world.actions_remaining < action_cost:
             return {
                 "success": False,
                 "message": f"Stance change requires {action_cost} action(s), but only {world.actions_remaining} remaining."
@@ -10185,7 +10197,7 @@ RETREAT RECOVERY (3 turns):
 
         # Try exact name match first
         for m in world.marshals.values():
-            if m.name.lower() == target.lower() and m.nation != marshal.nation:
+            if m.name.lower() == target.lower() and m.nation != marshal.nation and world.is_at_war(marshal.nation, m.nation):
                 target_marshal = m
                 break
 
@@ -10195,7 +10207,7 @@ RETREAT RECOVERY (3 turns):
             if target_region:
                 # Find enemy in that region
                 for m in world.marshals.values():
-                    if m.location == target_region.name and m.nation != marshal.nation:
+                    if m.location == target_region.name and m.nation != marshal.nation and world.is_at_war(marshal.nation, m.nation):
                         target_marshal = m
                         break
 
@@ -10252,6 +10264,7 @@ RETREAT RECOVERY (3 turns):
                 enemies_in_middle = [
                     m for m in world.get_marshals_in_region(middle)
                     if m.nation != marshal.nation and m.strength > 0
+                    and world.is_at_war(marshal.nation, m.nation)
                 ]
                 if enemies_in_middle:
                     blocking_enemy = enemies_in_middle[0]
@@ -10407,6 +10420,7 @@ RETREAT RECOVERY (3 turns):
                 remaining_defenders = [
                     m for m in world.marshals.values()
                     if m.location == charge_battle_region and m.strength > 0 and m.nation != marshal.nation
+                    and world.is_at_war(marshal.nation, m.nation)
                 ]
                 if not remaining_defenders:
                     capture_result = self._attempt_region_capture(
@@ -10600,7 +10614,7 @@ RETREAT RECOVERY (3 turns):
         if not target_marshal:
             # Try to find by location
             for m in world.marshals.values():
-                if m.location == target and m.nation != pending_marshal.nation:
+                if m.location == target and m.nation != pending_marshal.nation and world.is_at_war(pending_marshal.nation, m.nation):
                     target_marshal = m
                     break
 

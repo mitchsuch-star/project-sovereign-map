@@ -96,7 +96,8 @@ def is_valid_move(marshal, target_region_name: str, game_state) -> Tuple[bool, s
     # If enemy in current region, can only move to friendly territory
     # ════════════════════════════════════════════════════════════
     marshals_here = world.get_marshals_in_region(marshal.location)
-    enemies_here = [m for m in marshals_here if m.nation != marshal_nation and m.strength > 0]
+    enemies_here = [m for m in marshals_here if m.nation != marshal_nation and m.strength > 0
+                    and world.is_at_war(marshal_nation, m.nation)]
 
     if enemies_here:
         # Engaged with enemy - check if destination is friendly
@@ -109,7 +110,8 @@ def is_valid_move(marshal, target_region_name: str, game_state) -> Tuple[bool, s
     # Cannot MOVE into region with enemy marshals (must use ATTACK)
     # ════════════════════════════════════════════════════════════
     marshals_at_dest = world.get_marshals_in_region(target_region_name)
-    enemies_at_dest = [m for m in marshals_at_dest if m.nation != marshal_nation and m.strength > 0]
+    enemies_at_dest = [m for m in marshals_at_dest if m.nation != marshal_nation and m.strength > 0
+                       and world.is_at_war(marshal_nation, m.nation)]
 
     if enemies_at_dest:
         return False, f"Enemy forces at {target_region_name} - must use ATTACK"
@@ -169,7 +171,8 @@ def can_drill(marshal, game_state) -> bool:
 
     marshal_nation = getattr(marshal, 'nation', 'France')
     marshals_here = world.get_marshals_in_region(marshal.location)
-    enemies_here = [m for m in marshals_here if m.nation != marshal_nation and m.strength > 0]
+    enemies_here = [m for m in marshals_here if m.nation != marshal_nation and m.strength > 0
+                    and world.is_at_war(marshal_nation, m.nation)]
 
     return len(enemies_here) == 0
 
@@ -329,7 +332,8 @@ def get_enemies_in_region(marshal, game_state) -> List:
 
     marshal_nation = getattr(marshal, 'nation', 'France')
     marshals_here = world.get_marshals_in_region(marshal.location)
-    return [m for m in marshals_here if m.nation != marshal_nation and m.strength > 0]
+    return [m for m in marshals_here if m.nation != marshal_nation and m.strength > 0
+            and world.is_at_war(marshal_nation, m.nation)]
 
 
 def get_valid_actions(marshal, game_state) -> List[Dict]:
@@ -1160,7 +1164,7 @@ class DisobedienceSystem:
         enemy = None
         for m in world.marshals.values():
             if m.name == target or m.location == target:
-                if m.nation != marshal.nation:
+                if m.nation != marshal.nation and world.is_at_war(marshal.nation, m.nation):
                     enemy = m
                     break
 
@@ -2194,7 +2198,7 @@ def _get_aggressive_preferred(marshal, world) -> Optional[Dict]:
     nearest_enemy = None
     nearest_dist = float('inf')
     for m in world.marshals.values():
-        if m.nation != marshal.nation and m.strength > 0:
+        if m.nation != marshal.nation and m.strength > 0 and world.is_at_war(marshal.nation, m.nation):
             dist = world.get_distance(marshal.location, m.location)
             if dist <= 3 and dist < nearest_dist:
                 nearest_enemy = m

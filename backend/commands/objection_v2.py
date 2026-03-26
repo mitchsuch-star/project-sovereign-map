@@ -527,7 +527,7 @@ def get_visible_enemies_near(region_name: str, nation: str, world) -> list:
             continue
 
         for m in world.marshals.values():
-            if (m.nation != nation and m.strength > 0
+            if (m.nation != nation and m.strength > 0 and world.is_at_war(nation, m.nation)
                     and m.location == rn and m.name not in seen_names):
                 if visibility == _FULL:
                     strength = m.strength
@@ -594,7 +594,7 @@ def _check_enemy_in_region(marshal, game_state) -> bool:
 
     if hasattr(world, 'marshals'):
         for enemy in world.marshals.values():
-            if enemy.nation != marshal_nation and enemy.strength > 0:
+            if enemy.nation != marshal_nation and enemy.strength > 0 and world.is_at_war(marshal_nation, enemy.nation):
                 if enemy.location == marshal.location:
                     return True
 
@@ -728,7 +728,7 @@ def _path_crosses_enemy(marshal, target, game_state) -> bool:
 
             if hasattr(world, 'marshals'):
                 for enemy in world.marshals.values():
-                    if enemy.nation != marshal_nation and enemy.strength > 0:
+                    if enemy.nation != marshal_nation and enemy.strength > 0 and world.is_at_war(marshal_nation, enemy.nation):
                         if enemy.location == region_name:
                             return True
 
@@ -1009,7 +1009,7 @@ def evaluate_cautious(marshal, action: str, order: Dict, game_state) -> ConcernL
                 if region:
                     for adj_name in region.adjacent_regions:
                         for m in world.marshals.values():
-                            if m.nation != getattr(marshal, 'nation', 'France') and m.location == adj_name:
+                            if m.nation != getattr(marshal, 'nation', 'France') and m.location == adj_name and world.is_at_war(getattr(marshal, 'nation', 'France'), m.nation):
                                 if getattr(m, 'defense_bonus', 0) > 0:
                                     return ConcernLevel.MODERATE  # "One more barrage and their walls crumble!"
 

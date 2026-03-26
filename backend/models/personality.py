@@ -321,7 +321,7 @@ def _enemy_nearby(marshal, game_state) -> bool:
 
     for adj_name in current_region.adjacent_regions:  # FIX: was .adjacent (wrong attribute)
         for m in world.marshals.values():
-            if m.location == adj_name and m.nation != marshal.nation:
+            if m.location == adj_name and m.nation != marshal.nation and world.is_at_war(marshal.nation, m.nation):
                 return True
     return False
 
@@ -339,7 +339,7 @@ def _get_strength_ratio(marshal, target, game_state) -> Optional[float]:
     enemy = None
     for m in world.marshals.values():
         if m.name == target or m.location == target:
-            if m.nation != marshal.nation:
+            if m.nation != marshal.nation and world.is_at_war(marshal.nation, m.nation):
                 enemy = m
                 break
 
@@ -408,7 +408,7 @@ def _get_enemy_strength_ratio(marshal, game_state) -> Optional[float]:
     min_distance = float('inf')
 
     for m in world.marshals.values():
-        if m.nation != marshal.nation and m.strength > 0:
+        if m.nation != marshal.nation and m.strength > 0 and world.is_at_war(marshal.nation, m.nation):
             dist = world.get_distance(marshal.location, m.location) if hasattr(world, 'get_distance') else 999
             if dist < min_distance:
                 min_distance = dist

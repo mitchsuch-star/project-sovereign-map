@@ -1130,6 +1130,20 @@ class WorldState:
             return marshal
         return None
 
+    def get_hostile_marshals(self, nation: str) -> List[Marshal]:
+        """Get all marshals from nations at war with the given nation.
+        Unlike get_enemies_of_nation(), does NOT filter by strength > 0.
+        """
+        return [m for m in self.marshals.values()
+                if m.nation != nation and self.is_at_war(nation, m.nation)]
+
+    def get_hostile_by_name(self, name: str, nation: str) -> Optional[Marshal]:
+        """Get hostile marshal by name (must be at war with nation)."""
+        marshal = self.marshals.get(name)
+        if marshal and marshal.nation != nation and self.is_at_war(nation, marshal.nation):
+            return marshal
+        return None
+
     # ════════════════════════════════════════════════════════════════════════════
     # ADMINISTRATIVE ROLE SYSTEM (Phase 3)
     # ════════════════════════════════════════════════════════════════════════════
@@ -1504,7 +1518,7 @@ class WorldState:
         marshal_region = marshal.location
         threatening = []
 
-        for enemy in self.get_enemy_marshals():
+        for enemy in self.get_hostile_marshals(marshal.nation):
             if enemy.strength <= 0:
                 continue  # Skip dead enemies
 
@@ -1579,7 +1593,8 @@ class WorldState:
             allied_marshals = [m for m in marshals_there
                              if m.nation == marshal_nation and m.name != marshal_name and m.strength > 0]
             enemy_marshals = [m for m in marshals_there
-                            if m.nation != marshal_nation and m.strength > 0]
+                            if m.nation != marshal_nation and m.strength > 0
+                            and self.is_at_war(marshal_nation, m.nation)]
 
             # Calculate distance from attacker (for sorting)
             dist_from_attacker = 0
@@ -1756,7 +1771,7 @@ class WorldState:
     def is_enemy_nearby(self, region_name: str, nation: str, max_distance: int = 2) -> bool:
         """Check if any enemy marshal is within max_distance of the given region."""
         for marshal in self.marshals.values():
-            if marshal.nation != nation and marshal.strength > 0:
+            if marshal.nation != nation and marshal.strength > 0 and self.is_at_war(nation, marshal.nation):
                 dist = self.get_distance(region_name, marshal.location)
                 if dist <= max_distance:
                     return True
@@ -2030,7 +2045,7 @@ class WorldState:
             filter_fn: Optional callable(marshal) -> bool to filter candidates
                        (e.g., fog visibility check).
         """
-        enemy_marshals = self.get_enemy_marshals()
+        enemy_marshals = self.get_hostile_marshals(self.player_nation)
 
         if not enemy_marshals:
             return None
@@ -5513,6 +5528,7 @@ class WorldState:
                         remaining = [
                             m for m in self.marshals.values()
                             if m.location == auto_charge_battle_region and m.strength > 0 and m.nation != marshal.nation
+                            and self.is_at_war(marshal.nation, m.nation)
                         ]
                         if not remaining and not cap_region.has_building("fortification"):
                             cap_region.controller = marshal.nation
@@ -5754,9 +5770,9 @@ class WorldState:
         safe_regions = []
         for adj_name in current_region.adjacent_regions:
             adj_region = self.get_region(adj_name)
-            if adj_region.controller == self.player_nation:
+            if adj_region.controller == marshal.nation:
                 # Check if enemies present
-                enemies_there = [e for e in self.get_enemy_marshals()
+                enemies_there = [e for e in self.get_hostile_marshals(marshal.nation)
                                  if e.location == adj_name and e.strength > 0]
                 if not enemies_there:
                     safe_regions.append(adj_name)
@@ -5765,7 +5781,8 @@ class WorldState:
             return None  # Surrounded! No retreat possible
 
         # Retreat toward capital
-        capital = self.player_capital or "Paris"
+        from backend.models.region import NATION_CAPITALS
+        capital = NATION_CAPITALS.get(marshal.nation, self.player_capital or "Paris")
         closest_to_capital = min(safe_regions,
                                  key=lambda r: self.get_distance(r, capital))
         return closest_to_capital

@@ -774,6 +774,7 @@ class TurnManager:
                     m for m in self.world.marshals.values()
                     if m.location == adj_name
                     and m.nation != self.world.player_nation
+                    and self.world.is_at_war(self.world.player_nation, m.nation)
                     and m.strength > 0
                 ]
                 for enemy in enemies_adj:

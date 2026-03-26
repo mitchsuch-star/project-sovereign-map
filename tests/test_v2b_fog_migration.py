@@ -91,6 +91,10 @@ class MockWorld:
         self.regions = regions or {}
         self._intel = {}  # {region_name: MockRegionIntel}
 
+    def is_at_war(self, nation_a, nation_b):
+        """Default: different nations are always at war (preserves test behavior)."""
+        return nation_a != nation_b
+
     def get_region_intel(self, region_name):
         if region_name not in self._intel:
             self._intel[region_name] = MockRegionIntel("full")

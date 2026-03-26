@@ -435,7 +435,7 @@ def _classify_target(
             issuing = world.get_marshal(issuing_marshal) if issuing_marshal else None
             is_enemy = False
             if issuing:
-                is_enemy = marshal.nation != issuing.nation
+                is_enemy = marshal.nation != issuing.nation and world.is_at_war(issuing.nation, marshal.nation)
             elif marshal.nation != world.player_nation:
                 # No issuing marshal known — assume player perspective
                 is_enemy = True

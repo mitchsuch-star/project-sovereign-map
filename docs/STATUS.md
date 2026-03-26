@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 25, 2026 (Systems Audit V3 Fix Plan created)
+> **Last Updated:** March 26, 2026 (Systems Audit V3 Session 3 COMPLETE)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **7040** (7040 passed, 1 skipped) |
+| **Tests Passing** | **7108** (7108 passed, 1 skipped) |
 
-| **Current Phase** | **Systems Audit V3 Fix Plan — Session 1 is NEXT.** 158 bugs across 10 required sessions + 1 optional. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`. |
+| **Current Phase** | **Systems Audit V3 Fix Plan — Session 4 is NEXT.** 158 bugs across 10 required sessions + 1 optional. Sessions 1-3 COMPLETE. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -20,10 +20,11 @@
 ## Next Steps
 
 1. **Systems Audit V3 Fix Plan** — 158 bugs, 10 required sessions + 1 optional. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`.
-   - **Session 1 (P0): NEXT.** War-state foundation + critical AI bugs. 8 bugs: add `get_hostile_marshals()`/`get_hostile_by_name()` war-aware helpers, fix `find_nearest_enemy()` war filter, fortify engagement war check, enemy AI stance/defend/fortify AP checks, autonomous marshal tracking init. Files: `world_state.py`, `executor.py`, `enemy_ai.py`.
-   - Session 2 (P0): War-state cascade — executor (14 bugs, all `is_at_war` additions).
-   - Session 3 (P0): War-state cascade — other files (19 bugs across 6 files).
-   - Sessions 4-10: Auto-action bypasses, strategic orders, fog/dispatch, diplomacy/economy, save/modding, parsing/trust, Godot UI.
+   - ~~**Session 1 (P0): COMPLETE.**~~ War-state foundation + critical AI. 8 bugs fixed, 26 new tests. Added `get_hostile_marshals()`/`get_hostile_by_name()` war-aware helpers. Fixed `find_nearest_enemy()`, fortify engagement, threatening enemies, retreat destination (all war-aware). Fixed enemy AP guards in stance_change/defend/fortify. Fixed `decide_single_action()` tracking set init. Files: `world_state.py`, `executor.py`, `enemy_ai.py`.
+   - ~~**Session 2 (P0): COMPLETE.**~~ War-state cascade — executor. 14 bugs fixed, 20 new tests. Added `is_at_war()` guards to all `m.nation != marshal.nation` checks: reinforcement engagement, overwatch artillery, bombardment targeting, undefended-region defenders, cavalry charge leapfrog (2), post-battle conquest (2), reckless charge alternatives, garrison validation, glorious charge target (2), move capture hints, scout enemy listing. Files: `executor.py`.
+   - ~~**Session 3 (P0): COMPLETE.**~~ War-state cascade — other files. 17 bugs fixed (2 already done), 22 new tests. Added `is_at_war()` guards across 6 files: `is_enemy_nearby()`, `_find_retreat_destination()` (also fixed hardcoded `player_nation`), auto-charge conquest filter, move/drill validation (4 locations), aggressive fallback, strength ratio, visible enemies/engagement/path crossing (4 locations), personality adjacent enemy/strength ratio/nearest enemy (3 locations), strategic parser PURSUE target, capital proximity alert, AI cavalry threat/artillery scoring/fortification defenders/recapture defenders/capture opportunity/artillery density/supply hardcode. Files: `world_state.py`, `disobedience.py`, `objection_v2.py`, `personality.py`, `strategic_parser.py`, `turn_manager.py`, `enemy_ai.py`. Also added `is_at_war()` to MockWorld in 2 test files.
+   - **Session 4 (P0): NEXT.** Auto-action bypasses.
+   - Sessions 5-10: Strategic orders, fog/dispatch, diplomacy/economy, save/modding, parsing/trust, Godot UI.
    - Session 11 (P3, optional): NOTEs & polish.
    - **IMPORTANT: After each session, update this STATUS.md to mark it done and indicate which session is next.**
 2. ~~**Systems Audit V2 Fix Plan**~~ — **ALL 7 SESSIONS COMPLETE.** 56 bugs fixed, 7040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.

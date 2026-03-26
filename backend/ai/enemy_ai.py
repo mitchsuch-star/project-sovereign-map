@@ -530,6 +530,39 @@ class EnemyAI:
         """
         ai_debug(f"=== AUTONOMOUS ACTION: {marshal.name} ({nation}) ===")
 
+        # Ensure tracking sets exist (normally initialized by process_nation_turn,
+        # but decide_single_action can be called standalone — Bug 4E-1)
+        if not hasattr(self, '_stance_changed_this_turn'):
+            self._stance_changed_this_turn = set()
+        if not hasattr(self, '_pending_intents'):
+            self._pending_intents = {}
+        if not hasattr(self, '_marshal_visited_locations'):
+            self._marshal_visited_locations = {}
+        if not hasattr(self, '_consecutive_waits'):
+            self._consecutive_waits = {}
+        if not hasattr(self, '_marshals_done_this_turn'):
+            self._marshals_done_this_turn = set()
+        if not hasattr(self, '_advanced_this_turn'):
+            self._advanced_this_turn = set()
+        if not hasattr(self, '_attacked_targets_this_turn'):
+            self._attacked_targets_this_turn = set()
+        if not hasattr(self, '_unfortified_this_turn'):
+            self._unfortified_this_turn = set()
+        if not hasattr(self, '_garrison_placed_this_turn'):
+            self._garrison_placed_this_turn = False
+        if not hasattr(self, '_recapture_targets_claimed'):
+            self._recapture_targets_claimed = set()
+        if not hasattr(self, '_recapture_marshal_assignments'):
+            self._recapture_marshal_assignments = {}
+        if not hasattr(self, '_threat_responder_assigned'):
+            self._threat_responder_assigned = set()
+        if not hasattr(self, '_current_world'):
+            self._current_world = world
+
+        # Record starting location if not already tracked
+        if marshal.name not in self._marshal_visited_locations:
+            self._marshal_visited_locations[marshal.name] = {marshal.location}
+
         # Use the same evaluation logic as enemy AI
         action, priority = self._evaluate_marshal(marshal, nation, world)
 
@@ -1597,8 +1630,6 @@ class EnemyAI:
                     adj_region = world.get_region(adj_name)
                     if not adj_region:
                         continue
-                    if adj_region.controller == world.player_nation:
-                        continue
                     if adj_region.controller and adj_region.controller != nation and adj_region.controller != "Neutral":
                         continue
 
@@ -2288,6 +2319,7 @@ class EnemyAI:
                         m for m in world.marshals.values()
                         if m.location == enemy.location
                         and m.nation != nation
+                        and world.is_at_war(nation, m.nation)
                         and m.strength > 0
                         and m.name != enemy.name
                     ])
@@ -2463,7 +2495,8 @@ class EnemyAI:
         if best_dist == 1:
             # Adjacent — check if defended
             defenders = [m for m in world.marshals.values()
-                        if m.location == best_target and m.strength > 0 and m.nation != nation]
+                        if m.location == best_target and m.strength > 0 and m.nation != nation
+                        and world.is_at_war(nation, m.nation)]
 
             if not defenders:
                 # Check garrison
@@ -2589,7 +2622,8 @@ class EnemyAI:
 
             # Check if undefended (no enemy marshals present AND no garrison)
             defenders = [m for m in world.marshals.values()
-                        if m.location == adj_name and m.strength > 0 and m.nation != nation]
+                        if m.location == adj_name and m.strength > 0 and m.nation != nation
+                        and world.is_at_war(nation, m.nation)]
 
             if defenders:
                 ai_debug(f"        -> Skip: defended by {[d.name for d in defenders]}")
@@ -4057,7 +4091,8 @@ class EnemyAI:
 
             # Check if undefended
             defenders = [m for m in world.marshals.values()
-                        if m.location == adj_name and m.strength > 0 and m.nation != nation]
+                        if m.location == adj_name and m.strength > 0 and m.nation != nation
+                        and world.is_at_war(nation, m.nation)]
 
             if not defenders:
                 # Undefended enemy region! Check safety before unfortifying
@@ -4758,7 +4793,7 @@ class EnemyAI:
         for depth in range(1, max_range + 1):
             for rname in frontier:
                 for m in world.marshals.values():
-                    if m.nation != nation and getattr(m, 'cavalry', False) and m.strength > 0 and m.location == rname:
+                    if m.nation != nation and getattr(m, 'cavalry', False) and m.strength > 0 and m.location == rname and world.is_at_war(nation, m.nation):
                         return True
                 checked.add(rname)
             if depth < max_range:
@@ -4822,7 +4857,7 @@ class EnemyAI:
         if not has_screen:
             for adj_name in region.adjacent_regions:
                 for m in world.marshals.values():
-                    if m.nation != nation and getattr(m, 'cavalry', False) and m.strength > 0 and m.location == adj_name:
+                    if m.nation != nation and getattr(m, 'cavalry', False) and m.strength > 0 and m.location == adj_name and world.is_at_war(nation, m.nation):
                         score -= 30
 
         # Own territory preferred (+10)
