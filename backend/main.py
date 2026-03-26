@@ -120,11 +120,22 @@ def _get_talleyrand_trust_label(w) -> str:
         return "Treacherous"
 
 
+_MISSION_TYPE_DISPLAY = {
+    "IMPROVE_RELATIONS": "Improving Relations",
+    "COURT_NATION": "Courting",
+    "GATHER_INTEL": "Gathering Intel",
+    "UNDERMINE_ALLIANCE": "Undermining Alliance",
+    "REASSURE_ALLY": "Reassuring Ally",
+    "CONTINENTAL_SYSTEM": "Continental System",
+}
+
+
 def _get_talleyrand_mission_summary(w) -> str:
     """Get Talleyrand mission summary for top bar."""
     mission = getattr(w, 'active_diplomatic_mission', None)
     if mission and not mission.get("completed"):
-        m_type = mission.get("type", "Unknown")
+        raw_type = mission.get("type", "Unknown")
+        m_type = _MISSION_TYPE_DISPLAY.get(raw_type, raw_type.replace("_", " ").title())
         m_target = mission.get("target", "Unknown")
         return f"{m_type} → {m_target}"
     return "None"
@@ -248,8 +259,9 @@ def _include_popup_passthroughs(response: dict, world) -> None:
         world.pending_diplomatic_dialogue = world.pending_dialogue_queue.pop(0)
 
     # War status panel data — embedded in every response (N4f)
-    from backend.game_logic.war_status import build_active_wars
-    response["active_wars"] = build_active_wars(world)
+    if "active_wars" not in response:
+        from backend.game_logic.war_status import build_active_wars
+        response["active_wars"] = build_active_wars(world)
 
 
 def _filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
@@ -273,7 +285,7 @@ def _filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
     filtered_phase = {
         "nations": {},
         "total_actions": 0,
-        "summary": enemy_phase.get("summary", [])
+        "summary": []
     }
 
     for nation, nation_data in enemy_phase.get("nations", {}).items():
@@ -344,6 +356,21 @@ def _filter_enemy_phase_by_visibility(enemy_phase: dict, world_state) -> dict:
                 "action_count": len(filtered_actions)
             }
             filtered_phase["total_actions"] += len(filtered_actions)
+
+    # 2A-1: Rebuild summary from filtered (visible) actions only
+    rebuilt_summary = []
+    for nation, nation_data in filtered_phase["nations"].items():
+        for action in nation_data.get("actions", []):
+            ai_action = action.get("ai_action", {})
+            if ai_action:
+                marshal_name = ai_action.get("marshal", "Unknown")
+                action_type = ai_action.get("action", "unknown")
+                target = ai_action.get("target", "")
+                entry = f"{marshal_name}: {action_type}"
+                if target:
+                    entry += f" → {target}"
+                rebuilt_summary.append(entry)
+    filtered_phase["summary"] = rebuilt_summary
 
     # Preserve enemy_victory if present
     if enemy_phase.get("enemy_victory"):
@@ -542,7 +569,7 @@ def execute_command(request: CommandRequest):
                 # "grouchy march to brittany" should NOT be routed as
                 # Davout's interrupt response just because "march to" matches.
                 known_marshal_names = [
-                    name.lower() for name in world.marshals.keys()
+                    pm.name.lower() for pm in world.get_player_marshals()
                 ]
                 addressed_other = any(
                     name in cmd_lower
@@ -925,7 +952,7 @@ def execute_command(request: CommandRequest):
             cleaned_phase = {
                 "nations": {},
                 "total_actions": enemy_phase.get("total_actions", 0),
-                "summary": enemy_phase.get("summary", [])
+                "summary": []
             }
             # Clean each nation's actions
             for nation, nation_data in enemy_phase.get("nations", {}).items():
@@ -934,12 +961,13 @@ def execute_command(request: CommandRequest):
                     # Remove new_state which has circular references
                     cleaned_action = {k: v for k, v in action.items() if k != "new_state"}
                     # DEBUG: Check if events are present
-                    if "events" in cleaned_action:
-                        print(f"[ENEMY_PHASE_DEBUG] {nation} action has events: {len(cleaned_action.get('events', []))} events")
-                        for evt in cleaned_action.get("events", []):
-                            print(f"  - Event type: {evt.get('type')}, keys: {list(evt.keys())}")
-                    else:
-                        print(f"[ENEMY_PHASE_DEBUG] {nation} action has NO events! Keys: {list(cleaned_action.keys())}")
+                    if DEBUG_MODE:
+                        if "events" in cleaned_action:
+                            print(f"[ENEMY_PHASE_DEBUG] {nation} action has events: {len(cleaned_action.get('events', []))} events")
+                            for evt in cleaned_action.get("events", []):
+                                print(f"  - Event type: {evt.get('type')}, keys: {list(evt.keys())}")
+                        else:
+                            print(f"[ENEMY_PHASE_DEBUG] {nation} action has NO events! Keys: {list(cleaned_action.keys())}")
                     cleaned_actions.append(cleaned_action)
                 cleaned_phase["nations"][nation] = {
                     "actions": cleaned_actions,
@@ -958,20 +986,22 @@ def execute_command(request: CommandRequest):
                 response["enemy_phase"] = cleaned_phase
 
             # DEBUG: Print final enemy_phase structure
-            print("[ENEMY_PHASE_FINAL] Sending to Godot:")
-            for nation, data in cleaned_phase.get("nations", {}).items():
-                print(f"  {nation}: {len(data.get('actions', []))} actions")
-                for i, act in enumerate(data.get("actions", [])):
-                    has_events = "events" in act and len(act.get("events", [])) > 0
-                    print(f"    [{i}] {act.get('ai_action', {}).get('action', '?')} - has_events: {has_events}")
+            if DEBUG_MODE:
+                print("[ENEMY_PHASE_FINAL] Sending to Godot:")
+                for nation, data in cleaned_phase.get("nations", {}).items():
+                    print(f"  {nation}: {len(data.get('actions', []))} actions")
+                    for i, act in enumerate(data.get("actions", [])):
+                        has_events = "events" in act and len(act.get("events", [])) > 0
+                        print(f"    [{i}] {act.get('ai_action', {}).get('action', '?')} - has_events: {has_events}")
 
         # Include strategic reports if present (Phase 5.2-C)
         if result.get("strategic_reports"):
             response["strategic_reports"] = result["strategic_reports"]
-            print(f"[STRATEGIC_REPORTS] Sending {len(result['strategic_reports'])} reports to Godot:")
-            for i, sr in enumerate(result["strategic_reports"]):
-                print(f"  [{i}] {sr.get('marshal')}: {sr.get('command')} -> {sr.get('action', 'N/A')}, status={sr.get('order_status')}, has_battle={bool(sr.get('battle_details'))}")
-        else:
+            if DEBUG_MODE:
+                print(f"[STRATEGIC_REPORTS] Sending {len(result['strategic_reports'])} reports to Godot:")
+                for i, sr in enumerate(result["strategic_reports"]):
+                    print(f"  [{i}] {sr.get('marshal')}: {sr.get('command')} -> {sr.get('action', 'N/A')}, status={sr.get('order_status')}, has_battle={bool(sr.get('battle_details'))}")
+        elif DEBUG_MODE:
             print(f"[STRATEGIC_REPORTS] No strategic reports in result (keys: {[k for k in result.keys() if 'strat' in k.lower()]})")
 
         # Include tactical events if present (from end_turn).
@@ -990,6 +1020,10 @@ def execute_command(request: CommandRequest):
         # Morning Dispatch — Berthier's turn-start briefing (Phase 6.5)
         if result.get("morning_dispatch"):
             response["morning_dispatch"] = result["morning_dispatch"]
+
+        # 2A-2: War status panel — include even when enemy_phase defers popups
+        from backend.game_logic.war_status import build_active_wars
+        response["active_wars"] = build_active_wars(world)
 
         # ════════════════════════════════════════════════════════════
         # PASS-THROUGH: Diplomatic popups (Session 8A + 8C)
@@ -1697,8 +1731,14 @@ def _validate_save_filename(filename: str) -> bool:
 async def save_endpoint(request: SaveRequest):
     """Save current game state."""
     global world
-    result = save_game(world, save_name=request.save_name)
-    return result
+    try:
+        result = save_game(world, save_name=request.save_name)
+        return result
+    except Exception as e:
+        print(f"[ERROR] handling save: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "message": f"Save failed: {str(e)}"}
 
 
 @app.post("/load")
@@ -1935,6 +1975,15 @@ async def cancel_order(request: Request):
             return {
                 "success": False,
                 "message": "No actions remaining this turn.",
+                "action_summary": world.get_action_summary(),
+                "game_state": world.get_filtered_game_state_summary(),
+            }
+
+        # 2A-4: Dialogue guard — block cancel during active diplomatic dialogue
+        if world.pending_diplomatic_dialogue is not None:
+            return {
+                "success": False,
+                "message": "Talleyrand awaits your response to a diplomatic matter.",
                 "action_summary": world.get_action_summary(),
                 "game_state": world.get_filtered_game_state_summary(),
             }

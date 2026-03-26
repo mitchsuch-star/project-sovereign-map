@@ -525,11 +525,11 @@ class TestTurnEvents:
         result = _build_turn_events(events, "France")
         assert len(result) == 0
 
-    def test_events_without_nation_included(self):
-        """Events without a nation field are included (backward compat)."""
+    def test_events_without_nation_excluded(self):
+        """Events without a nation field are excluded (6A-1 safety net)."""
         events = [{"type": "drill_complete", "message": "Ney drill complete"}]
         result = _build_turn_events(events, "France")
-        assert len(result) == 1
+        assert len(result) == 0
 
     def test_events_without_message_skipped(self):
         events = [{"type": "supply_attrition", "nation": "France"}]

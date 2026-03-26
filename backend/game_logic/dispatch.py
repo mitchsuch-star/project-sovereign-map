@@ -417,7 +417,9 @@ def _build_turn_events(
         # Filter: only show events relevant to player nation
         event_nation = event.get("nation")
         marshal_name = event.get("marshal", "")
-        if event_nation and event_nation != player_nation:
+        if not event_nation:
+            continue  # Skip events with no nation (safety net)
+        if event_nation != player_nation:
             continue  # Skip enemy attrition etc.
 
         severity = "info"
@@ -726,23 +728,25 @@ def _build_talleyrand_report(world, player_nation: str) -> List[Dict[str, str]]:
                     })
                     _set_cooldown(nation, "vassal_loyalty", 3)
 
-        # ── Trigger 4: Relation threshold crossed ──
+        # ── Trigger 4: Relation threshold CROSSED ──
         thresholds = [-40, -20, 0, 20, 40]
         if not _on_cooldown(nation, "relation_threshold"):
+            previous = world.previous_nation_relations.get(diplo_key, relation)
             for threshold in thresholds:
-                # Check if relation is near a threshold (within 3 points)
-                if abs(relation - threshold) <= 3:
-                    direction_word = "improved" if relation >= 0 else "deteriorated"
+                crossed_up = previous < threshold <= relation
+                crossed_down = previous >= threshold > relation
+                if crossed_up or crossed_down:
+                    direction_word = "improved" if crossed_up else "deteriorated"
                     observations.append({
                         "message": (
                             f"Relations with {nation} have {direction_word} "
-                            f"to approximately {int(relation)}. "
-                            f"{'This opens new diplomatic possibilities.' if relation >= 0 else 'Caution may be warranted.'}"
+                            f"past {threshold} to {int(relation)}. "
+                            f"{'This opens new diplomatic possibilities.' if crossed_up else 'Caution may be warranted.'}"
                         ),
                         "trigger_type": "relation_threshold",
                         "target_nation": nation,
                         "priority": 3,
-                        "elaborate_type": "advisory" if relation < 0 else "proposal_options",
+                        "elaborate_type": "advisory" if crossed_down else "proposal_options",
                     })
                     _set_cooldown(nation, "relation_threshold", 5)
                     break  # One threshold per nation per dispatch
@@ -1005,6 +1009,7 @@ _DIPLOMATIC_EVENT_TEMPLATES = {
     "diplomatic_relation_shift": "Relations with {nation} have {direction} significantly ({delta} this turn).",
     "diplomatic_armistice_expired_peace": "The armistice between {nation_a} and {nation_b} has concluded. Peace declared.",
     "diplomatic_armistice_expired_war": "The armistice between {nation_a} and {nation_b} has collapsed. War resumes!",
+    "nation_eliminated": "{nation} has been eliminated from the war.",
 }
 
 # Priority mapping: LOW for progress/sent/feasibility; MEDIUM for treaty/system; HIGH for rest
@@ -1042,6 +1047,7 @@ _DIPLOMATIC_EVENT_PRIORITY = {
     "diplomatic_relation_shift": "MEDIUM",
     "diplomatic_armistice_expired_peace": "HIGH",
     "diplomatic_armistice_expired_war": "HIGH",
+    "nation_eliminated": "HIGH",
 }
 
 

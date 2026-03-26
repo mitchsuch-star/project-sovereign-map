@@ -426,6 +426,9 @@ class WorldState:
         # Previous turn's war scores snapshot for Talleyrand Trigger 2 delta detection
         self.previous_war_scores: Dict[str, int] = {}
 
+        # Previous turn's nation relations snapshot for Trigger 4 threshold crossing detection
+        self.previous_nation_relations: Dict[str, int] = {}
+
         # N7: Relation history for trend arrows (last 3 snapshots per diplo key)
         self.relation_history: Dict[str, List[int]] = {}
 
@@ -2824,6 +2827,7 @@ class WorldState:
             "ai_stalemate_counters": {k: int(v) for k, v in self.ai_stalemate_counters.items()},
             "ai_proposal_metadata": {k: v.copy() for k, v in self.ai_proposal_metadata.items()},
             "previous_war_scores": {k: int(v) for k, v in self.previous_war_scores.items()},
+            "previous_nation_relations": {k: int(v) for k, v in self.previous_nation_relations.items()},
 
             # N7: Relation history for trend arrows
             "relation_history": {k: list(v) for k, v in self.relation_history.items()},
@@ -3047,6 +3051,7 @@ class WorldState:
         world.ai_stalemate_counters = {k: int(v) for k, v in data.get("ai_stalemate_counters", {}).items()}
         world.ai_proposal_metadata = {k: v.copy() for k, v in data.get("ai_proposal_metadata", {}).items()}
         world.previous_war_scores = {k: int(v) for k, v in data.get("previous_war_scores", {}).items()}
+        world.previous_nation_relations = {k: int(v) for k, v in data.get("previous_nation_relations", {}).items()}
 
         # N7: Relation history for trend arrows
         world.relation_history = {k: list(v) for k, v in data.get("relation_history", {}).items()}
@@ -3704,6 +3709,7 @@ class WorldState:
                     tactical_events.append({
                         "type": "garrison_regen",
                         "region": region.name,
+                        "nation": region.controller,
                         "old_strength": int(old),
                         "new_strength": int(region.garrison_strength),
                         "message": f"Garrison at {region.name} reinforced: {old:,} -> {region.garrison_strength:,}"
@@ -3980,6 +3986,7 @@ class WorldState:
         # per-turn delta instead of using absolute magnitude proxy.
         # ════════════════════════════════════════════════════════════
         self.previous_war_scores = {k: int(v) for k, v in self.war_scores.items()}
+        self.previous_nation_relations = {k: int(v) for k, v in self.nation_relations.items()}
 
         # V2-64: Victory check removed from advance_turn().
         # Turn manager is the single authority for victory/defeat decisions.
@@ -4684,6 +4691,7 @@ class WorldState:
                     events.append({
                         "type": "occupation_abandoned",
                         "marshal": marshal.name,
+                        "nation": marshal.nation,
                         "region": occ_region,
                         "message": f"{marshal.name} abandoned the siege of {occ_region}!"
                     })
@@ -4698,6 +4706,7 @@ class WorldState:
                         events.append({
                             "type": "occupation_complete",
                             "marshal": marshal.name,
+                            "nation": marshal.nation,
                             "region": occ_region,
                             "message": f"{marshal.name} has secured the fortress at {occ_region}!{capture_msg}"
                         })
@@ -4706,6 +4715,7 @@ class WorldState:
                         events.append({
                             "type": "occupation_continues",
                             "marshal": marshal.name,
+                            "nation": marshal.nation,
                             "region": occ_region,
                             "turns_left": turns_left,
                             "message": f"{marshal.name} continues securing {occ_region}... ({turns_left} turn(s) remaining)"
@@ -4723,6 +4733,7 @@ class WorldState:
                 events.append({
                     "type": "drill_locked",
                     "marshal": marshal.name,
+                    "nation": marshal.nation,
                     "message": f"{marshal.name} is now locked in intensive drill. Cannot receive orders until training completes.",
                     "complete_turn": int(marshal.drill_complete_turn)
                 })
@@ -4739,6 +4750,7 @@ class WorldState:
                     events.append({
                         "type": "drill_complete",
                         "marshal": marshal.name,
+                        "nation": marshal.nation,
                         "message": f"DRILL COMPLETE: {marshal.name}'s training is finished! +20% attack bonus ready for next battle.",
                         "shock_bonus": 2
                     })
@@ -4814,6 +4826,7 @@ class WorldState:
                     events.append({
                         "type": event_type,
                         "marshal": marshal.name,
+                        "nation": marshal.nation,
                         "defense_bonus": new_percent,
                         "floor": floor_percent,
                         "turns_fortified": turns_fortified,
@@ -4853,6 +4866,7 @@ class WorldState:
                     events.append({
                         "type": "fortify_strengthened",
                         "marshal": marshal.name,
+                        "nation": marshal.nation,
                         "defense_bonus": new_percent,
                         "front_loaded": front_loaded,
                         "message": f"{marshal.name}'s fortifications strengthen: +{new_percent}% defense" +
@@ -4886,6 +4900,7 @@ class WorldState:
                     events.append({
                         "type": "retreat_recovery",
                         "marshal": marshal.name,
+                        "nation": marshal.nation,
                         "stage": new_stage,
                         "penalty": penalties.get(new_stage, "0%"),
                         "message": f"{marshal.name}'s army is recovering. Effectiveness penalty: {penalties.get(new_stage, '0%')}"
@@ -4902,6 +4917,7 @@ class WorldState:
                         events.append({
                             "type": "retreat_recovered",
                             "marshal": marshal.name,
+                            "nation": marshal.nation,
                             "message": f"{marshal.name}'s army has fully recovered and is combat ready."
                         })
                         # Log marshal_recovered event
@@ -4929,6 +4945,7 @@ class WorldState:
                     events.append({
                         "type": "broken_recovery",
                         "marshal": marshal.name,
+                        "nation": marshal.nation,
                         "stage": new_stage,
                         "turns_left": turns_left,
                         "message": f"💀 {marshal.name}'s shattered army is rebuilding. {turns_left} turns until combat ready."
@@ -4942,6 +4959,7 @@ class WorldState:
                         events.append({
                             "type": "broken_recovered",
                             "marshal": marshal.name,
+                            "nation": marshal.nation,
                             "message": f"🎉 {marshal.name}'s army has been rebuilt and is combat ready!"
                         })
                         # Log marshal_recovered event
@@ -5031,6 +5049,7 @@ class WorldState:
                     events.append({
                         "type": "counter_punch_expired",
                         "marshal": marshal.name,
+                        "nation": marshal.nation,
                         "message": f"⚠️ {marshal.name}'s Counter-Punch opportunity has expired! (Must use immediately after defending)"
                     })
                 else:
@@ -5232,6 +5251,7 @@ class WorldState:
                 events.append({
                     "type": "cavalry_stance_forced",
                     "marshal": marshal.name,
+                    "nation": marshal.nation,
                     "action": "stance_change",
                     "from_stance": "defensive",
                     "to_stance": "aggressive",
@@ -5258,6 +5278,7 @@ class WorldState:
                 events.append({
                     "type": "cavalry_fortify_forced",
                     "marshal": marshal.name,
+                    "nation": marshal.nation,
                     "action": "unfortify",
                     "message": f"🐴 {marshal.name}'s cavalry abandons fortifications! Horses cannot dig trenches.\n"
                               f"(Auto-unfortified. Trust: -3 for misusing cavalry)"
@@ -5320,6 +5341,7 @@ class WorldState:
                 events.append({
                     "type": "reckless_no_target",
                     "marshal": marshal.name,
+                    "nation": marshal.nation,
                     "recklessness": recklessness,
                     "message": f"🐴🔥 {marshal.name} is UNCONTROLLABLE (Recklessness: {recklessness}) but finds no enemies to charge!"
                 })
@@ -5649,6 +5671,7 @@ class WorldState:
                 auto_charge_event = {
                     "type": "auto_glorious_charge",
                     "marshal": marshal.name,
+                    "nation": marshal.nation,
                     "target": enemy.name,
                     "recklessness": recklessness,
                     "attacker_won": attacker_won,
@@ -5721,6 +5744,7 @@ class WorldState:
                     events.append({
                         "type": "reckless_move",
                         "marshal": marshal.name,
+                        "nation": marshal.nation,
                         "from": old_location,
                         "to": next_region,
                         "target": enemy.name,

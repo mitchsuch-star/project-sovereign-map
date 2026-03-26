@@ -2273,12 +2273,17 @@ def apply_continental_system(world) -> None:
 
     # Auto-join PUPPET/SATELLITE vassals
     from backend.game_logic.vassal import AUTONOMY_PUPPET, AUTONOMY_SATELLITE
+    existing_members = list(members)
     for vassal_name, state in world.vassals.items():
         if state["lord"] == lord:
             autonomy = state.get("autonomy", AUTONOMY_SATELLITE)
             if autonomy in (AUTONOMY_PUPPET, AUTONOMY_SATELLITE):
                 if vassal_name not in members:
                     members.append(vassal_name)
+                    # 6A-8: Queue dispatch event for newly auto-joined vassals
+                    from backend.game_logic.dispatch import queue_dispatch_event
+                    queue_dispatch_event(world, "diplomatic_continental_system",
+                                         {"nation": vassal_name, "action": "joined"}, "always")
 
     # Cap trade income between Britain and members
     total_blocked = 0
