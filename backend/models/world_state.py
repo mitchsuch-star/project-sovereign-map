@@ -345,7 +345,7 @@ class WorldState:
         self.diplomats: Dict[str, Any] = create_starting_diplomats()
 
         # Diplomatic Points (non-accumulating — reset each turn)
-        self.diplomatic_points: int = 4   # France starting (2 base + 1 skill + 1 authority)
+        self.diplomatic_points: int = 5   # France starting (3 base + 1 skill + 1 authority)
         self.max_diplomatic_points: int = 5
 
         # AI Nation authority (0-100, affects DP generation)

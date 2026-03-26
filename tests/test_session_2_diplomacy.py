@@ -547,9 +547,9 @@ class TestFeedback:
 
 class TestDPEconomy:
     def test_france_starting_dp(self):
-        """France starts at 4 (2 base + 1 skill + 1 authority)."""
+        """France starts at 5 (3 base + 1 skill + 1 authority)."""
         world = make_world()
-        assert world.diplomatic_points == 4
+        assert world.diplomatic_points == 5
 
     def test_dp_generation_formula(self):
         from backend.models.diplomat import DiplomaticRepresentative
