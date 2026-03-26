@@ -3598,7 +3598,9 @@ RETREAT RECOVERY (3 turns):
                     blocked_terrain_name = None
                     charge_target_marshal = None
                     for m in world.marshals.values():
-                        if m.name.lower() == resolved_target.lower() and m.nation != marshal.nation:
+                        if (m.name.lower() == resolved_target.lower()
+                                and m.nation != marshal.nation
+                                and world.is_at_war(marshal.nation, m.nation)):
                             charge_target_marshal = m
                             break
                     if charge_target_marshal:
@@ -4551,6 +4553,31 @@ RETREAT RECOVERY (3 turns):
 
             # [5C-1] Exhaustion tracking
             marshal.increment_attacks_this_turn()
+
+            # [VER] Relationship processing for auto-bombardment kill
+            from backend.game_logic.relationship import process_battle_relationships
+            bombardment_kill_result = {
+                "outcome": "attacker_wins",
+                "victor": marshal.name,
+                "attacker_casualties": 0,
+                "defender_casualties": int(pre_battle_defender_strength),
+            }
+            bk_relationship_changes = process_battle_relationships(
+                marshal, enemy_marshal, bombardment_kill_result,
+                battle_region_name, world
+            )
+            for rc in bk_relationship_changes:
+                world.log_event({
+                    "type": "relationship_change",
+                    "marshal": rc["marshal"],
+                    "toward": rc["toward"],
+                    "change": rc["change"],
+                    "new_value": rc["new_value"],
+                    "new_label": rc["new_label"],
+                    "direction": rc["direction"],
+                    "nation": rc["nation"],
+                    "location": battle_region_name,
+                })
 
             result = {
                 "success": True,

@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 26, 2026 (Systems Audit V3 Session 8 COMPLETE)
+> **Last Updated:** March 26, 2026 (is_at_war + Auto-Action Verification COMPLETE)
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **7212** (7212 passed, 1 skipped) |
+| **Tests Passing** | **7232** (7232 passed, 1 skipped) |
 
 | **Current Phase** | **Systems Audit V3 Fix Plan — Session 9 is NEXT.** 158 bugs across 10 required sessions + 1 optional. Sessions 1-8 COMPLETE. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
@@ -28,6 +28,7 @@
    - ~~**Session 6 (P1): COMPLETE.**~~ Session 6: 11 bugs fixed (fog leaks, dispatch, backend integration), 19 tests.
    - ~~**Session 7 (P1): COMPLETE.**~~ Session 7: 13 bugs fixed (diplomacy wizard, dialogue system, economy), 15 tests. Fixed `target`→`target_nation` in acceptance_preview, ledger net income (added admin/treaty/tribute), vassal tribute `get_effective_income()`, dialogue queue preservation, hardcoded "France" in proposals, infantry regen with war exhaustion, CS autonomous vassal exclusion, Godot wizard UX (back button, stale response, dp_label reset, terminal message). Files: `diplomacy.py`, `ledger.py`, `vassal.py`, `dispatch.py`, `executor.py`, `world_state.py`, `diplomacy_wizard.gd`.
    - ~~**Session 8 (P2): COMPLETE.**~~ Session 8: 14 bugs fixed (save/load transient clearing, modding terrain/region_type/Saxony validation, scenario validation, event log cap, morale default, strength int cast, treaty deepcopy, battle report stripped from log, campaign log types), 20 tests. Files: `save_manager.py`, `validator.py`, `world_state.py`, `marshal.py`, `combat.py`, `campaign_log.py`.
+   - **Verification pass: COMPLETE.** 2 code gaps found by deep audit: reckless charge target missing `is_at_war()` (executor.py:3601), auto-bombardment kill missing `process_battle_relationships()`. Both fixed. 20 verification tests added in `test_war_action_verification.py` (12 is_at_war regression + 8 auto-action completeness). 7232 total tests.
    - **Session 9 (P2): NEXT.** Parsing/trust.
    - Sessions 9-10: parsing/trust, Godot UI.
    - Session 11 (P3, optional): NOTEs & polish.
