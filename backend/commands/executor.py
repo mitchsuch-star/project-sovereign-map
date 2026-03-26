@@ -2778,6 +2778,14 @@ RETREAT RECOVERY (3 turns):
         old_garrison = target_region.garrison_strength
         target_region.garrison_strength = max(0, target_region.garrison_strength - garrison_losses)
 
+        # [5C-11] War damage to battle region (pre-battle strengths)
+        pre_battle_atk_strength = marshal.strength + attacker_losses
+        self._apply_battle_effects_to_region(
+            target_region.name, pre_battle_atk_strength, old_garrison, world)
+
+        # [5C-6] Fog/intel update after garrison battle
+        world.update_intel_from_battle(target_region.name, world.current_turn)
+
         # Check if garrison collapsed
         # Capital garrisons collapse below 5k threshold; detachment garrisons fight to destruction
         if target_region.garrison_detachment:
@@ -2803,6 +2811,28 @@ RETREAT RECOVERY (3 turns):
                 defender_casualties=int(garrison_losses),
                 location=target_region.name,
             )
+
+            # [5C-8] Record battle for cannon fire detection
+            world.record_battle(target_region.name, marshal.name,
+                f"{target_region.name}_garrison", "attacker_victory")
+
+            # [5C-9] Authority: garrison victory
+            if marshal.nation == world.player_nation:
+                garrison_effective = int(old_garrison * (1.0 + TERRAIN_DEFENSE_BONUS.get(target_region.terrain, 0.0))
+                                         * (1.0 + (0.25 if target_region.has_building("fortification") else 0.0)))
+                if pre_battle_atk_strength < garrison_effective:
+                    world.authority_tracker.modify_authority(+5)
+                if getattr(target_region, 'is_capital', False):
+                    world.authority_tracker.modify_authority(+5)
+
+            # [5C-7] Coalition: threat + war exhaustion
+            from backend.game_logic.coalition import add_threat, add_war_exhaustion_from_battle
+            france = world.player_nation
+            if marshal.nation == france:
+                add_threat(world, 3, "battle_win")
+                if getattr(target_region, 'is_capital', False):
+                    add_threat(world, 15, "capital_capture")
+            add_war_exhaustion_from_battle(old_controller, int(garrison_losses), world)
 
             # Move attacker into region
             marshal.move_to(target_region.name)
@@ -2891,6 +2921,21 @@ RETREAT RECOVERY (3 turns):
                 defender_casualties=int(garrison_losses),
                 location=target_region.name,
             )
+
+            # [5C-8] Record battle for cannon fire detection
+            world.record_battle(target_region.name, marshal.name,
+                f"{target_region.name}_garrison", "defender_victory")
+
+            # [5C-9] Authority: garrison defeat (attacker failed while outnumbering)
+            if marshal.nation == world.player_nation:
+                garrison_effective = int(old_garrison * (1.0 + TERRAIN_DEFENSE_BONUS.get(target_region.terrain, 0.0))
+                                         * (1.0 + (0.25 if target_region.has_building("fortification") else 0.0)))
+                if pre_battle_atk_strength > garrison_effective:
+                    world.authority_tracker.modify_authority(-5)
+
+            # [5C-7] Coalition: war exhaustion (attacker took losses)
+            from backend.game_logic.coalition import add_war_exhaustion_from_battle
+            add_war_exhaustion_from_battle(marshal.nation, int(attacker_losses), world)
 
             return {
                 "success": True,
@@ -3720,11 +3765,43 @@ RETREAT RECOVERY (3 turns):
                             best_next = adjacent_name
 
                     if best_next:
+                        # [4A-1] Break square formation before auto-move
+                        self._auto_break_square(marshal, "attack")
+
+                        # [4A-1] Diplomatic territory check
+                        from backend.game_logic.diplomacy import can_enter_territory
+                        best_region = world.get_region(best_next)
+                        if best_region and best_region.controller and best_region.controller != marshal.nation:
+                            if not can_enter_territory(world, marshal.nation, best_region.controller):
+                                return {
+                                    "success": False,
+                                    "message": f"{marshal.name} cannot enter {best_next} — diplomatic restrictions."
+                                }
+
                         old_location = marshal.location
                         marshal.move_to(best_next)
+
+                        # [4A-1] Artillery: mark as moved (blocks attacking this turn)
+                        if getattr(marshal, 'artillery', False):
+                            marshal.moved_this_turn = True
+                            marshal.last_bombardment_target = None
+                            marshal.bombardment_streak = 0
+
+                        # [4A-1] Reset idle tracking
+                        marshal.idle_turns = 0
+                        marshal._acted_this_turn = True
+
+                        # [4A-1] Refresh fog of war
+                        if marshal.nation == world.player_nation:
+                            world.calculate_visibility()
+
+                        # [4A-1] Movement attrition
+                        attrition_info = self._calculate_movement_attrition(marshal, best_next, world)
+                        attrition_msg = f" ({attrition_info['total_losses']:,} lost to march)" if attrition_info["total_losses"] > 0 else ""
+
                         return {
                             "success": True,
-                            "message": f"{marshal.name} advances from {old_location} to {best_next}, moving toward {nearest_enemy.name} at {nearest_enemy.location}! (Now {best_distance} region{'s' if best_distance != 1 else ''} away)"
+                            "message": f"{marshal.name} advances from {old_location} to {best_next}, moving toward {nearest_enemy.name} at {nearest_enemy.location}! (Now {best_distance} region{'s' if best_distance != 1 else ''} away){attrition_msg}"
                         }
                     else:
                         return {
@@ -4426,6 +4503,54 @@ RETREAT RECOVERY (3 turns):
 
             # Fog of War: battle visibility
             world.update_intel_from_battle(battle_region_name, world.current_turn)
+
+            # [5C-10] War damage to battle region
+            self._apply_battle_effects_to_region(
+                battle_region_name, pre_battle_attacker_strength,
+                pre_battle_defender_strength, world)
+
+            # [5C-1] Record battle for cannon fire detection
+            world.record_battle(battle_region_name, marshal.name, enemy_marshal.name,
+                                "attacker_victory")
+
+            # [5C-1] Record for diplomacy war score
+            from backend.game_logic.diplomacy import record_battle as record_diplo_battle
+            record_diplo_battle(
+                world,
+                attacker_nation=marshal.nation,
+                defender_nation=enemy_marshal.nation,
+                winner_nation=marshal.nation,
+                attacker_casualties=0,
+                defender_casualties=int(pre_battle_defender_strength),
+                location=battle_region_name,
+            )
+
+            # [5C-1] Authority: bombardment kill
+            player_nation = world.player_nation
+            if marshal.nation == player_nation:
+                world.authority_tracker.modify_authority(+5)
+            elif enemy_marshal.nation == player_nation:
+                world.authority_tracker.modify_authority(-5)
+
+            # [5C-1] Coalition: threat + war exhaustion
+            from backend.game_logic.coalition import (
+                add_threat, add_war_exhaustion_from_battle, add_coalition_shock)
+            france = world.player_nation
+            if marshal.nation == france:
+                add_threat(world, 3, "battle_win")
+                add_threat(world, 5, "decisive_victory")
+                add_coalition_shock(enemy_marshal.nation, world)
+                if conquest_msg:
+                    target_reg = world.get_region(battle_region_name)
+                    if target_reg and getattr(target_reg, 'is_capital', False):
+                        add_threat(world, 15, "capital_capture")
+                add_war_exhaustion_from_battle(
+                    enemy_marshal.nation, int(pre_battle_defender_strength), world)
+            elif enemy_marshal.nation == france:
+                add_war_exhaustion_from_battle(france, 0, world)
+
+            # [5C-1] Exhaustion tracking
+            marshal.increment_attacks_this_turn()
 
             result = {
                 "success": True,

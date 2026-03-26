@@ -5487,6 +5487,22 @@ class WorldState:
                                         "nation": getattr(marshal, "nation", ""),
                                         "location": old_atk_loc})
 
+                # [4B-1] Process battle relationships (must run before destruction removes marshals)
+                from backend.game_logic.relationship import process_battle_relationships
+                ac_relationship_changes = process_battle_relationships(
+                    marshal, enemy, combat_result, auto_charge_battle_region, self)
+                for rc in ac_relationship_changes:
+                    self.log_event({
+                        "type": "relationship_change", "marshal": rc["marshal"],
+                        "toward": rc["toward"], "change": rc["change"],
+                        "new_value": rc["new_value"], "new_label": rc["new_label"],
+                        "direction": rc["direction"], "nation": rc["nation"],
+                        "location": auto_charge_battle_region,
+                    })
+
+                # [4B-3] Exhaustion tracking
+                marshal.increment_attacks_this_turn()
+
                 # Move attacker if victorious and still alive
                 attacker_won = combat_result.get("attacker_won", False)
                 movement_msg = ""
@@ -5494,6 +5510,23 @@ class WorldState:
                     if marshal.location != auto_charge_battle_region:
                         marshal.move_to(auto_charge_battle_region)
                         movement_msg = f" {marshal.name} advances into {auto_charge_battle_region}."
+
+                        # [5C-5] Movement attrition on advance (simplified — no depot bonus)
+                        adv_region = self.get_region(auto_charge_battle_region)
+                        if adv_region:
+                            base_rate = 0.01
+                            size_penalty = min(0.02, max(0, (marshal.strength - 20000) / 500000))
+                            rate = (base_rate + size_penalty) * getattr(adv_region, 'movement_cost', 1.0)
+                            is_friendly_stable = (adv_region.controller == marshal.nation
+                                                  and getattr(adv_region, 'stability', 0) >= 76)
+                            adv_march_losses = 0 if is_friendly_stable else int(marshal.strength * rate)
+                            if adv_march_losses > 0:
+                                marshal.strength = max(0, marshal.strength - adv_march_losses)
+                                movement_msg += f" ({adv_march_losses:,} lost to march)"
+
+                    # [5C-12] Fog refresh after advance
+                    if marshal.nation == self.player_nation:
+                        self.calculate_visibility()
 
                 # V2-47: Ensure broken state for 0-strength marshals
                 if enemy.strength <= 0:
@@ -5647,8 +5680,41 @@ class WorldState:
                 if path and len(path) > 1:
                     # Move one step toward enemy
                     next_region = path[1]  # First step after current location
+
+                    # [5C-3] Diplomatic territory entry check
+                    from backend.game_logic.diplomacy import can_enter_territory
+                    next_region_obj = self.get_region(next_region)
+                    if (next_region_obj and next_region_obj.controller
+                            and next_region_obj.controller != marshal.nation
+                            and not can_enter_territory(self, marshal.nation, next_region_obj.controller)):
+                        events.append({
+                            "type": "reckless_blocked",
+                            "marshal": marshal.name,
+                            "recklessness": recklessness,
+                            "message": f"🐴⚠️ {marshal.name} wants to ride toward {enemy.name} but "
+                                       f"{next_region} is controlled by {next_region_obj.controller} — "
+                                       f"diplomatic restrictions prevent entry!"
+                        })
+                        continue  # Skip to next marshal
+
                     old_location = marshal.location
                     marshal.move_to(next_region)
+
+                    # [5C-2] Fog refresh after reckless auto-move
+                    if marshal.nation == self.player_nation:
+                        self.calculate_visibility()
+
+                    # [5C-4] Movement attrition (simplified — no depot bonus from world_state.py)
+                    if next_region_obj:
+                        base_rate = 0.01
+                        size_penalty = min(0.02, max(0, (marshal.strength - 20000) / 500000))
+                        rate = (base_rate + size_penalty) * getattr(next_region_obj, 'movement_cost', 1.0)
+                        is_friendly_stable = (
+                            next_region_obj.controller == marshal.nation
+                            and getattr(next_region_obj, 'stability', 0) >= 76)
+                        reck_march_losses = 0 if is_friendly_stable else int(marshal.strength * rate)
+                        if reck_march_losses > 0:
+                            marshal.strength = max(0, marshal.strength - reck_march_losses)
 
                     remaining_distance = distance - 1
 
