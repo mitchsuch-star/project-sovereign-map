@@ -6,10 +6,9 @@ Tests cover:
 - Event logging at each insertion point
 """
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from backend.models.world_state import WorldState
-from backend.models.marshal import Marshal, Stance
+from backend.models.marshal import Marshal
 from backend.game_logic.combat import CombatResolver
 from backend.commands.executor import CommandExecutor
 
@@ -211,7 +210,8 @@ class TestBattleEventLogging:
         assert "outcome" in event
         assert "attacker_casualties" in event
         assert "defender_casualties" in event
-        assert "battle_report" in event
+        # battle_report stripped from log event (V3 Session 8, bug 2D-2)
+        assert "battle_report" not in event
 
     def test_battle_event_logged_on_attack(self):
         """Executing an attack should log a battle event to world.event_log."""

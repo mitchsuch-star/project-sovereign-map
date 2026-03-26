@@ -1203,7 +1203,7 @@ class Marshal:
         marshal = cls(
             name=data["name"],
             location=data["location"],
-            strength=data["strength"],
+            strength=int(data["strength"]),
             personality=data.get("personality", "balanced"),
             nation=data.get("nation", "France"),
             movement_range=data.get("movement_range", 1),
@@ -1222,7 +1222,7 @@ class Marshal:
         marshal.original_nation = data.get("original_nation", None)
 
         # ═══════ GAME STATE ═══════
-        marshal.morale = data.get("morale", 70)
+        marshal.morale = data.get("morale", 100)
         marshal.orders_overridden = data.get("orders_overridden", 0)
         marshal.battles_won = data.get("battles_won", 0)
         marshal.battles_lost = data.get("battles_lost", 0)

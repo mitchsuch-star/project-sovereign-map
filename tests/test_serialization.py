@@ -16,7 +16,6 @@ Key validation:
 """
 
 import pytest
-from typing import Dict, Any
 from backend.models.marshal import (
     Marshal, StrategicCondition, StrategicOrder, Stance,
     create_starting_marshals, create_enemy_marshals
@@ -985,7 +984,7 @@ class TestModdingWorkflow:
         assert marshal.personality == "balanced"
         assert marshal.nation == "France"
         assert marshal.movement_range == 1
-        assert marshal.morale == 70
+        assert marshal.morale == 100
         assert marshal.trust.value == 70
         assert marshal.stance == Stance.NEUTRAL
         assert marshal.cavalry is False
@@ -1046,7 +1045,7 @@ class TestModdingWorkflow:
         assert marshal.nation == "Austria"
         assert marshal.personality == "cautious"
         # Defaults still applied for unspecified fields
-        assert marshal.morale == 70
+        assert marshal.morale == 100
         assert marshal.cavalry is False
 
     def test_partial_marshal_with_skills(self):

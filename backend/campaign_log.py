@@ -113,6 +113,10 @@ CAMPAIGN_LOG_TYPES = {
     "offensive_cascade",
     "coalition_declared",
     "coalition_dissolved",
+    # V3 Session 8: missing event types
+    "nation_eliminated",
+    "vassal_auto_join_war",
+    "coalition_member_left",
 }
 
 # ============================================================================
@@ -148,6 +152,10 @@ CATEGORY_MAP = {
     "offensive_cascade": "diplomacy",
     "coalition_declared": "diplomacy",
     "coalition_dissolved": "diplomacy",
+    # V3 Session 8: missing event types
+    "nation_eliminated": "diplomacy",
+    "vassal_auto_join_war": "diplomacy",
+    "coalition_member_left": "diplomacy",
 }
 
 
@@ -326,13 +334,37 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             continue
 
         # Coalition events: always show (they target France)
-        if event_type in ("coalition_declared", "coalition_dissolved"):
+        if event_type in ("coalition_declared", "coalition_dissolved", "coalition_member_left"):
             filtered.append(event)
             continue
 
         # Vassal rebellion: player vassal always shown
         if event_type == "diplomatic_vassal_rebellion":
             filtered.append(event)
+            continue
+
+        # Nation eliminated: public knowledge
+        if event_type == "nation_eliminated":
+            filtered.append(event)
+            continue
+
+        # Vassal auto-joining war: show if player involved or PARTIAL+
+        if event_type == "vassal_auto_join_war":
+            from backend.game_logic.diplomatic_ledger import _get_nation_visibility
+            vassal = event.get("vassal") or event.get("nation", "")
+            overlord = event.get("overlord", "")
+            visible = False
+            for nation in (vassal, overlord):
+                if nation == player_nation:
+                    visible = True
+                    break
+                if nation:
+                    vis = _get_nation_visibility(nation, world_state)
+                    if vis in (FULL, PARTIAL):
+                        visible = True
+                        break
+            if visible:
+                filtered.append(event)
             continue
 
     return filtered
@@ -537,5 +569,19 @@ def format_event_oneliner(event: dict) -> str:
 
     if event_type == "coalition_dissolved":
         return "Coalition against France has dissolved."
+
+    # V3 Session 8: new event types
+    if event_type == "nation_eliminated":
+        nation = event.get("nation", "Unknown")
+        return f"{nation} has been eliminated from the war."
+
+    if event_type == "vassal_auto_join_war":
+        vassal = event.get("vassal") or event.get("nation", "Unknown")
+        overlord = event.get("overlord", "Unknown")
+        return f"Vassal {vassal} joined {overlord}'s war."
+
+    if event_type == "coalition_member_left":
+        nation = event.get("nation", "Unknown")
+        return f"{nation} has left the coalition."
 
     return f"Event: {event_type}"

@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 26, 2026 (Systems Audit V3 Session 7 COMPLETE)
+> **Last Updated:** March 26, 2026 (Systems Audit V3 Session 8 COMPLETE)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **7192** (7192 passed, 1 skipped) |
+| **Tests Passing** | **7212** (7212 passed, 1 skipped) |
 
-| **Current Phase** | **Systems Audit V3 Fix Plan — Session 8 is NEXT.** 158 bugs across 10 required sessions + 1 optional. Sessions 1-7 COMPLETE. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`. |
+| **Current Phase** | **Systems Audit V3 Fix Plan — Session 9 is NEXT.** 158 bugs across 10 required sessions + 1 optional. Sessions 1-8 COMPLETE. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -27,8 +27,9 @@
    - ~~**Session 5 (P1): COMPLETE.**~~ Session 5: 12 bugs fixed (strategic order state leaks, combat formula errors, fog violations), 24 tests.
    - ~~**Session 6 (P1): COMPLETE.**~~ Session 6: 11 bugs fixed (fog leaks, dispatch, backend integration), 19 tests.
    - ~~**Session 7 (P1): COMPLETE.**~~ Session 7: 13 bugs fixed (diplomacy wizard, dialogue system, economy), 15 tests. Fixed `target`→`target_nation` in acceptance_preview, ledger net income (added admin/treaty/tribute), vassal tribute `get_effective_income()`, dialogue queue preservation, hardcoded "France" in proposals, infantry regen with war exhaustion, CS autonomous vassal exclusion, Godot wizard UX (back button, stale response, dp_label reset, terminal message). Files: `diplomacy.py`, `ledger.py`, `vassal.py`, `dispatch.py`, `executor.py`, `world_state.py`, `diplomacy_wizard.gd`.
-   - **Session 8 (P2): NEXT.** Save/modding.
-   - Sessions 8-10: save/modding, parsing/trust, Godot UI.
+   - ~~**Session 8 (P2): COMPLETE.**~~ Session 8: 14 bugs fixed (save/load transient clearing, modding terrain/region_type/Saxony validation, scenario validation, event log cap, morale default, strength int cast, treaty deepcopy, battle report stripped from log, campaign log types), 20 tests. Files: `save_manager.py`, `validator.py`, `world_state.py`, `marshal.py`, `combat.py`, `campaign_log.py`.
+   - **Session 9 (P2): NEXT.** Parsing/trust.
+   - Sessions 9-10: parsing/trust, Godot UI.
    - Session 11 (P3, optional): NOTEs & polish.
    - **IMPORTANT: After each session, update this STATUS.md to mark it done and indicate which session is next.**
 2. ~~**Systems Audit V2 Fix Plan**~~ — **ALL 7 SESSIONS COMPLETE.** 56 bugs fixed, 7040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.

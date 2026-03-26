@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Set
 
 
+
 @dataclass
 class ValidationError:
     """A single validation error."""
@@ -65,7 +66,7 @@ class ValidationResult:
 
 VALID_PERSONALITIES = {"aggressive", "cautious", "literal", "balanced", "loyal"}
 VALID_STANCES = {"neutral", "defensive", "aggressive"}
-VALID_NATIONS = {"France", "Britain", "Prussia", "Austria", "Russia", "Spain"}
+VALID_NATIONS = {"France", "Britain", "Prussia", "Austria", "Russia", "Spain", "Saxony"}
 VALID_SKILLS = {"tactical", "shock", "defense", "logistics", "administration", "command"}
 
 MARSHAL_REQUIRED_FIELDS = {"name", "location", "strength"}
@@ -270,6 +271,24 @@ def validate_region(data: Dict[str, Any], path: str = "region") -> ValidationRes
             result.add_error(f"{path}.garrison_strength", f"Must be an integer, got {type(data['garrison_strength']).__name__}")
         elif data["garrison_strength"] < 0:
             result.add_error(f"{path}.garrison_strength", "Cannot be negative")
+
+    # Validate terrain (2C-1)
+    if "terrain" in data:
+        from backend.models.region import VALID_TERRAINS
+        if not isinstance(data["terrain"], str):
+            result.add_error(f"{path}.terrain", f"Must be a string, got {type(data['terrain']).__name__}")
+        elif data["terrain"] not in VALID_TERRAINS:
+            result.add_error(f"{path}.terrain",
+                f"Unknown terrain '{data['terrain']}'. Valid: {sorted(VALID_TERRAINS)}")
+
+    # Validate region_type (2C-2)
+    if "region_type" in data:
+        from backend.models.region import VALID_REGION_TYPES
+        if not isinstance(data["region_type"], str):
+            result.add_error(f"{path}.region_type", f"Must be a string, got {type(data['region_type']).__name__}")
+        elif data["region_type"] not in VALID_REGION_TYPES:
+            result.add_error(f"{path}.region_type",
+                f"Unknown region type '{data['region_type']}'. Valid: {sorted(VALID_REGION_TYPES)}")
 
     return result
 

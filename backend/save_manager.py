@@ -121,6 +121,12 @@ def load_game(filepath: Path) -> Dict:
         world.battles_this_turn = []
         for marshal in world.marshals.values():
             marshal.in_combat_this_turn = False
+        world.objection_popups_this_turn = set()
+        world.mild_concerns_this_turn = []
+        world.gold_spent_this_turn = {}
+        world.diplomatic_trust_applied = {}
+        world.threat_sources_this_turn = []
+        world.attacks_this_turn = {}
 
         # Fog of War: recalculate visibility after load (Phase 6 Session 33)
         # Handles backward compat for old saves that have no intel data —

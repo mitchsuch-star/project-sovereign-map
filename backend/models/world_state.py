@@ -570,14 +570,18 @@ class WorldState:
     # EVENT LOG HELPERS
     # ========================================
 
+    MAX_EVENT_LOG_SIZE = 500
+
     def log_event(self, event: dict) -> None:
         """Append a structured event to the game event log.
 
         Automatically stamps the event with the current turn number.
-        Events accumulate across the full game and are never cleared.
+        Rolling cap prevents unbounded growth.
         """
         event["turn"] = self.current_turn
         self.event_log.append(event)
+        if len(self.event_log) > self.MAX_EVENT_LOG_SIZE:
+            self.event_log = self.event_log[-self.MAX_EVENT_LOG_SIZE:]
 
     def get_events_for_turn(self, turn: int) -> List[Dict]:
         """Get all events from a specific turn."""
@@ -2808,7 +2812,7 @@ class WorldState:
             "decisive_battles": {k: [r.copy() for r in v] for k, v in self.decisive_battles.items()},
             "armistice_cooldowns": {k: int(v) for k, v in self.armistice_cooldowns.items()},
             "armistice_turns": {k: int(v) for k, v in self.armistice_turns.items()},
-            "previous_treaties": {k: [t.copy() for t in v] for k, v in self.previous_treaties.items()},
+            "previous_treaties": {k: [copy.deepcopy(t) for t in v] for k, v in self.previous_treaties.items()},
             "turns_below_threshold": {k: int(v) for k, v in self.turns_below_threshold.items()},
 
             # ═══════ DIPLOMACY Session 3 ═══════
@@ -2818,7 +2822,7 @@ class WorldState:
             "talleyrand_state": self.talleyrand_state,
             "proposal_in_transit": self.proposal_in_transit,
             "player_proposal_cooldowns": {k: int(v) for k, v in self.player_proposal_cooldowns.items()},
-            "active_treaties": {k: v.copy() if isinstance(v, dict) else v for k, v in self.active_treaties.items()},
+            "active_treaties": {k: copy.deepcopy(v) if isinstance(v, dict) else v for k, v in self.active_treaties.items()},
 
             # ═══════ DIPLOMACY Session 4 ═══════
             "ai_proposal_cooldowns": {k: int(v) for k, v in self.ai_proposal_cooldowns.items()},
@@ -3173,6 +3177,13 @@ class WorldState:
                 name: marshal.to_dict()
                 for name, marshal in default_marshals.items()
             }
+
+        # Validate scenario before loading
+        from backend.modding.validator import validate_scenario
+        validation = validate_scenario(scenario_data, check_adjacency=True)
+        if not validation.is_valid:
+            errors_str = "; ".join(f"{e.path}: {e.message}" for e in validation.errors[:3])
+            raise ValueError(f"Invalid scenario: {errors_str}")
 
         # Use from_dict for actual loading
         return cls.from_dict(scenario_data)
