@@ -98,19 +98,23 @@ class TestMarshalWordBoundary:
 # ═══════════════════════════════════════════════════════
 
 class TestReynierInMockParser:
-    """V2-60: Reynier should be recognized by the mock parser."""
+    """V2-60: Reynier should be recognized by the mock parser.
+    NOTE: 6D-1 moved Reynier to enemy_marshals — it's now a target, not executing marshal.
+    """
 
-    def test_reynier_recognized(self):
-        """Mock parser should recognize 'Reynier'."""
+    def test_reynier_recognized_as_target(self):
+        """Mock parser should recognize 'Reynier' as a target (enemy marshal)."""
         client = make_client()
-        result = client.parse_command("Reynier, defend")
-        assert result.get("marshal") == "Reynier"
+        result = client.parse_command("Ney, attack Reynier")
+        assert result.get("marshal") == "Ney"
+        # Reynier is no longer the executing marshal — it's a target/enemy
 
     def test_reynier_case_insensitive(self):
-        """Case-insensitive Reynier matching."""
+        """Case-insensitive Reynier matching as target."""
         client = make_client()
         result = client.parse_command("reynier, attack Wellington")
-        assert result.get("marshal") == "Reynier"
+        # Reynier is an enemy, can't be executing marshal
+        assert result.get("marshal") is None or result.get("marshal") != "Reynier"
 
 
 # ═══════════════════════════════════════════════════════

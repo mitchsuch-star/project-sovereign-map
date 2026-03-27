@@ -368,7 +368,8 @@ Set is_strategic=true and strategic_type to one of: MOVE_TO, PURSUE, HOLD, SUPPO
 Strategic keywords:
 - MOVE_TO: "march to", "advance to", "proceed to", "head to", "travel to", "withdraw to", "fall back to"
 - PURSUE: "pursue", "chase", "hunt down", "hunt", "go after", "intercept", "track"
-- HOLD: "hold position", "hold the line", "hold", "dig in", "guard", "protect"
+- HOLD: "hold position", "hold the line", "hold", "guard", "protect"
+Note: "dig in" is tactical fortify, NOT strategic HOLD.
 - SUPPORT: "link up with", "support", "reinforce", "assist", "aid", "join", "back up"
 
 Conditions (set in strategic_condition dict):

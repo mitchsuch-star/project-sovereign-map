@@ -559,12 +559,16 @@ class LLMClient:
         # Extract marshal name - find the FIRST mentioned marshal
         marshal = None  # Start with None for general orders
 
-        # Known marshals with their search patterns
-        known_marshals = [
+        # 6D-1: Split into player vs enemy marshals.
+        # Only player marshals can be the executing marshal.
+        # Enemy names are targets only.
+        player_marshals = [
             ("ney", "Ney"),
             ("davout", "Davout"),
             ("grouchy", "Grouchy"),
             ("drouot", "Drouot"),
+        ]
+        enemy_marshals = [
             ("archduke charles", "ArchdukeCharles"),
             ("archduke", "ArchdukeCharles"),
             ("schwarzenberg", "Schwarzenberg"),
@@ -572,12 +576,11 @@ class LLMClient:
             ("reynier", "Reynier"),
         ]
 
-        # Find which marshal appears FIRST in the command
+        # Find which PLAYER marshal appears FIRST in the command
         # V2-55: Use word-boundary regex to prevent substring matches
         # (e.g. "ney" matching inside "journey", "money")
         first_position = len(command_lower) + 1
-        for pattern, name in known_marshals:
-            # Multi-word patterns (e.g. "archduke charles") don't need \b between words
+        for pattern, name in player_marshals:
             match = re.search(r'\b' + re.escape(pattern) + r'\b', command_lower)
             if match and match.start() < first_position:
                 first_position = match.start()
@@ -682,10 +685,11 @@ class LLMClient:
             action = "hold"  # Alias for defend - will be converted in executor
         elif "defend" in command_lower:
             action = "defend"
-        elif "retreat" in command_lower or "fall back" in command_lower or ("withdraw" in command_lower and " to " not in command_lower):
+        elif "retreat" in command_lower or ("fall back" in command_lower and " to " not in command_lower) or ("withdraw" in command_lower and " to " not in command_lower):
             action = "retreat"
         # Strategic MOVE_TO keywords → base action "move" (strategic parser upgrades)
         elif any(kw in command_lower for kw in [
+            "fall back to",  # 6D-2: "fall back to Paris" is a move, not retreat
             "withdraw to",  # P8-3 FIX: "withdraw to Paris" is a move, not retreat
             "move ", "march", "advance towards", "advance toward", "advance to",
             "head towards", "head toward", "head to", "proceed to",

@@ -2662,7 +2662,7 @@ class WorldState:
 
         try:
             max_bonus = get_max_fortify_bonus(personality)
-        except:
+        except Exception:
             max_bonus = 0.15  # Default
 
         decay_settings = FORTIFY_DECAY_CONFIG.get(personality, FORTIFY_DECAY_DEFAULT)

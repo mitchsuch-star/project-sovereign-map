@@ -4,6 +4,7 @@ Connects Godot frontend to Python game logic
 """
 
 import os
+import threading  # noqa: E402 - 3A-1: needed for state_lock
 from dotenv import load_dotenv
 
 # Load .env BEFORE any imports that might read env vars
@@ -13,7 +14,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field  # noqa: F401
 
 from backend.commands.parser import CommandParser
 from backend.commands.executor import CommandExecutor
@@ -44,6 +45,7 @@ parser = CommandParser()  # Uses LLM_MODE from environment
 executor = CommandExecutor()
 world = WorldState(player_nation="France")
 game_state = {"world": world, "debug_mode": DEBUG_MODE}
+state_lock = threading.Lock()  # 3A-1: Protects state-mutating endpoints
 
 
 def get_llm_game_state() -> dict:
@@ -447,8 +449,19 @@ app.add_middleware(
 )
 
 
+# 3A-1: Serialize state-mutating requests to prevent concurrent corruption
+@app.middleware("http")
+async def serialize_state_mutations(request: Request, call_next):
+    """Acquire state_lock for all POST requests (state-mutating)."""
+    if request.method == "POST":
+        with state_lock:
+            response = await call_next(request)
+            return response
+    return await call_next(request)
+
+
 class CommandRequest(BaseModel):
-    command: str
+    command: str = Field(max_length=500)
 
 
 class ObjectionResponse(BaseModel):
@@ -1732,6 +1745,9 @@ def _validate_save_filename(filename: str) -> bool:
 async def save_endpoint(request: SaveRequest):
     """Save current game state."""
     global world
+    # 3D-2: Validate save filename before passing to save_game
+    if request.save_name and not _validate_save_filename(request.save_name):
+        return {"success": False, "message": "Invalid save name"}
     try:
         result = save_game(world, save_name=request.save_name)
         return result

@@ -269,6 +269,8 @@ def apply_defiance_outcome(marshal, outcome, world):
         result["vindication_change"] = marshal.vindication_score - old_v
         world.authority_tracker.modify_authority(-5)
         marshal.defiance_cooldown_until = world.current_turn + 3
+        # 6C-2: Reset vindication decay timer
+        world.vindication_tracker.last_change_turn[marshal.name] = world.current_turn
 
     elif outcome is False:
         # Marshal WRONG — defiance succeeded, proved incorrect
@@ -283,6 +285,8 @@ def apply_defiance_outcome(marshal, outcome, world):
         result["vindication_change"] = marshal.vindication_score - old_v
         world.authority_tracker.modify_authority(+3)
         marshal.defiance_cooldown_until = world.current_turn + 3
+        # 6C-2: Reset vindication decay timer
+        world.vindication_tracker.last_change_turn[marshal.name] = world.current_turn
 
     else:  # None — INCONCLUSIVE (sulk)
         result["trust_change"] = 0

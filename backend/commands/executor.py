@@ -1493,7 +1493,7 @@ RETREAT RECOVERY (3 turns):
         # debug is FREE (for testing abilities)
         # economy/treasury/finances are FREE information commands (Phase 6.2.G)
         # R72: Vassal commands (invest_vassal, change_autonomy, make_vassal) are free — they cost DP/gold, not military AP
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal"]
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "wait", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal"]
 
         # Check if action costs points
         action_costs_point = action not in free_actions
@@ -11129,12 +11129,12 @@ RETREAT RECOVERY (3 turns):
 
         # ════════════════════════════════════════════════════════════
         # C1 fix: V2b STRATEGIC DEFIANCE CHECK
-        # Mirror of tactical defiance (Step 17): after "insist" + STRONG/EXTREME
+        # Mirror of tactical defiance (Step 17): after "insist" + MODERATE+
         # ════════════════════════════════════════════════════════════
         concern_level_str = objection.get("concern_level", "NONE")
         concern_level_val = ConcernLevel[concern_level_str] if concern_level_str in ConcernLevel.__members__ else ConcernLevel.NONE
 
-        if choice == "insist" and marshal and concern_level_val >= ConcernLevel.STRONG:
+        if choice == "insist" and marshal and concern_level_val >= ConcernLevel.MODERATE:
             from backend.commands.defiance import (
                 calculate_defiance_chance, get_defiant_action,
                 defiance_succeeded, apply_defiance_outcome
@@ -13161,8 +13161,10 @@ RETREAT RECOVERY (3 turns):
             try:
                 result = resolve_confrontation(action, talleyrand, world)
             except Exception:
+                import logging
+                logging.getLogger(__name__).exception("Error in sabotage confrontation")
                 world.pending_diplomatic_dialogue = None
-                return {"success": True, "message": "The matter has been resolved."}
+                return {"success": False, "message": "An error occurred resolving the confrontation."}
             world.pending_diplomatic_dialogue = None
             world.diplomatic_sabotage = None
             # Dismiss stale sabotage notification
@@ -13185,8 +13187,10 @@ RETREAT RECOVERY (3 turns):
             try:
                 result = apply_redemption_choice(action, talleyrand, world)
             except Exception:
+                import logging
+                logging.getLogger(__name__).exception("Error in Talleyrand redemption")
                 world.pending_diplomatic_dialogue = None
-                return {"success": True, "message": "The matter has been settled."}
+                return {"success": False, "message": "An error occurred processing the redemption."}
             world.pending_diplomatic_dialogue = None
             world.talleyrand_redemption = None
             return {
@@ -13898,13 +13902,13 @@ RETREAT RECOVERY (3 turns):
 
         # ════════════════════════════════════════════════════════════
         # V2b DEFIANCE CHECK (Step 17 in bypass hierarchy)
-        # After "insist" + STRONG/EXTREME: defiance roll
+        # After "insist" + MODERATE+: defiance roll
         # ════════════════════════════════════════════════════════════
         concern_level_str = objection.get("concern_level", "NONE")
         concern_level_val = ConcernLevel[concern_level_str] if concern_level_str in ConcernLevel.__members__ else ConcernLevel.NONE
         marshal = world.get_marshal(marshal_name)
 
-        if choice == "insist" and marshal and concern_level_val >= ConcernLevel.STRONG:
+        if choice == "insist" and marshal and concern_level_val >= ConcernLevel.MODERATE:
             from backend.commands.defiance import (
                 calculate_defiance_chance, get_defiant_action,
                 defiance_succeeded, apply_defiance_outcome
@@ -14232,7 +14236,7 @@ RETREAT RECOVERY (3 turns):
         # Check action economy
         # FIX: Added "retreat" - must match main execute() free_actions list
         # R72: Vassal commands are free (DP/gold cost, not military AP)
-        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal"]
+        free_actions = ["status", "help", "end_turn", "unknown", "retreat", "wait", "debug", "economy", "treasury", "finances", "break_square", "diplomatic_proposal", "diplomatic_mission", "diplomatic_feasibility", "diplomatic_advisory", "diplomatic_error", "diplomatic_break", "diplomatic_downgrade", "diplomatic_declare_war", "diplomatic_ultimatum", "invest_vassal", "change_autonomy", "make_vassal", "release_vassal"]
         action_costs_point = action not in free_actions
 
         if action_costs_point:

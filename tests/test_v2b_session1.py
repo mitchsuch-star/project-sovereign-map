@@ -67,12 +67,14 @@ class MockMarshal:
 class MockWorld:
     """Minimal world for defiance tests."""
     def __init__(self, authority=100, current_turn=5):
+        from backend.commands.vindication import VindicationTracker
         self.authority_tracker = AuthorityTracker()
         self.authority_tracker.authority = authority
         self.current_turn = current_turn
         self.player_nation = "France"
         self.marshals = {}
         self.regions = {}
+        self.vindication_tracker = VindicationTracker()
 
     def get_marshal(self, name):
         return self.marshals.get(name)

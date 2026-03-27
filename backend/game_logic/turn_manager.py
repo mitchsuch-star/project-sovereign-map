@@ -726,6 +726,8 @@ class TurnManager:
                 else:
                     # Marshal held — vindication +1
                     marshal.vindication_score = min(5, marshal.vindication_score + 1)
+                # 6C-2: Reset vindication decay timer after defensive resolution
+                self.world.vindication_tracker.last_change_turn[marshal_name] = self.world.current_turn
                 resolved.append(marshal_name)
 
         for name in resolved:

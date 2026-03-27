@@ -96,7 +96,7 @@ class TestArtilleryCoreType:
         assert m.cavalry is True
 
     def test_mutual_exclusivity_raises(self):
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError):
             Marshal(name="Bad", location="Paris", strength=10000,
                     personality="cautious", cavalry=True, artillery=True)
 

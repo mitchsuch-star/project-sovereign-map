@@ -32,8 +32,8 @@
    - ~~**Session 7 (P1): COMPLETE.**~~ Session 7: 13 bugs fixed (diplomacy wizard, dialogue system, economy), 15 tests. Fixed `target`→`target_nation` in acceptance_preview, ledger net income (added admin/treaty/tribute), vassal tribute `get_effective_income()`, dialogue queue preservation, hardcoded "France" in proposals, infantry regen with war exhaustion, CS autonomous vassal exclusion, Godot wizard UX (back button, stale response, dp_label reset, terminal message). Files: `diplomacy.py`, `ledger.py`, `vassal.py`, `dispatch.py`, `executor.py`, `world_state.py`, `diplomacy_wizard.gd`.
    - ~~**Session 8 (P2): COMPLETE.**~~ Session 8: 14 bugs fixed (save/load transient clearing, modding terrain/region_type/Saxony validation, scenario validation, event log cap, morale default, strength int cast, treaty deepcopy, battle report stripped from log, campaign log types), 20 tests. Files: `save_manager.py`, `validator.py`, `world_state.py`, `marshal.py`, `combat.py`, `campaign_log.py`.
    - **Verification pass: COMPLETE.** 2 code gaps found by deep audit: reckless charge target missing `is_at_war()` (executor.py:3601), auto-bombardment kill missing `process_battle_relationships()`. Both fixed. 20 verification tests added in `test_war_action_verification.py` (12 is_at_war regression + 8 auto-action completeness). 7232 total tests.
-   - **Session 9 (P2): NEXT.** Parsing/trust.
-   - Sessions 9-10: parsing/trust, Godot UI.
+   - ~~**Session 9 (P2): COMPLETE.**~~ Session 9: 13 bugs fixed (parsing, trust, error handling, hardening), 20 tests.
+   - **Session 10 (P2): NEXT.** Godot UI + endgame flow.
    - Session 11 (P3, optional): NOTEs & polish.
    - **IMPORTANT: After each session, update this STATUS.md to mark it done and indicate which session is next.**
 2. ~~**Systems Audit V2 Fix Plan**~~ — **ALL 7 SESSIONS COMPLETE.** 56 bugs fixed, 7040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.

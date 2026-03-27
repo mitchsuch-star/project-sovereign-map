@@ -228,7 +228,8 @@ class Marshal:
     ):
         """Initialize a marshal."""
         # Mutual exclusivity: a marshal can be infantry, cavalry, OR artillery
-        assert not (cavalry and artillery), "A marshal cannot be both cavalry and artillery"
+        if cavalry and artillery:
+            raise ValueError("A marshal cannot be both cavalry and artillery")
 
         self.name = name
         self.location = location
