@@ -11,7 +11,7 @@
 |--------|-------|
 | **Tests Passing** | **7232** (7232 passed, 1 skipped) |
 
-| **Current Phase** | **Systems Audit V3 Fix Plan — Session 9 is NEXT.** 158 bugs across 10 required sessions + 1 optional. Sessions 1-8 COMPLETE. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`. |
+| **Current Phase** | **Final Audit Fix Plan — Session 1 is NEXT.** 13 confirmed bugs across 2 sessions. See `docs/FINAL_AUDIT_FIX_PLAN.md`. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,7 +19,10 @@
 
 ## Next Steps
 
-1. **Systems Audit V3 Fix Plan** — 158 bugs, 10 required sessions + 1 optional. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`.
+1. **Final Audit Fix Plan** — 13 confirmed bugs (8 false positives filtered), 2 sessions. Session 1: endgame + fog + contract (7 bugs). Session 2: diplomacy + AI + parser (6 bugs). See `docs/FINAL_AUDIT_FIX_PLAN.md`.
+   - **Session 1: NEXT.** Endgame defeat/victory conditions, fog leaks, float contract violation.
+   - Session 2: Diplomacy state bugs, AI armistice targeting, contract/parser fixes.
+2. **Systems Audit V3 Fix Plan** — 158 bugs, 10 required sessions + 1 optional. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`.
    - ~~**Session 1 (P0): COMPLETE.**~~ War-state foundation + critical AI. 8 bugs fixed, 26 new tests. Added `get_hostile_marshals()`/`get_hostile_by_name()` war-aware helpers. Fixed `find_nearest_enemy()`, fortify engagement, threatening enemies, retreat destination (all war-aware). Fixed enemy AP guards in stance_change/defend/fortify. Fixed `decide_single_action()` tracking set init. Files: `world_state.py`, `executor.py`, `enemy_ai.py`.
    - ~~**Session 2 (P0): COMPLETE.**~~ War-state cascade — executor. 14 bugs fixed, 20 new tests. Added `is_at_war()` guards to all `m.nation != marshal.nation` checks: reinforcement engagement, overwatch artillery, bombardment targeting, undefended-region defenders, cavalry charge leapfrog (2), post-battle conquest (2), reckless charge alternatives, garrison validation, glorious charge target (2), move capture hints, scout enemy listing. Files: `executor.py`.
    - ~~**Session 3 (P0): COMPLETE.**~~ War-state cascade — other files. 17 bugs fixed (2 already done), 22 new tests. Added `is_at_war()` guards across 6 files: `is_enemy_nearby()`, `_find_retreat_destination()` (also fixed hardcoded `player_nation`), auto-charge conquest filter, move/drill validation (4 locations), aggressive fallback, strength ratio, visible enemies/engagement/path crossing (4 locations), personality adjacent enemy/strength ratio/nearest enemy (3 locations), strategic parser PURSUE target, capital proximity alert, AI cavalry threat/artillery scoring/fortification defenders/recapture defenders/capture opportunity/artillery density/supply hardcode. Files: `world_state.py`, `disobedience.py`, `objection_v2.py`, `personality.py`, `strategic_parser.py`, `turn_manager.py`, `enemy_ai.py`. Also added `is_at_war()` to MockWorld in 2 test files.
