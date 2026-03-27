@@ -1,9 +1,10 @@
 # Architecture Audit Report
 
-**Date:** 2026-03-27
-**Scope:** 12-pass holistic architecture review of project-sovereign-map backend
-**Approach:** 11 parallel research agents reading actual code, producing file:line references
+**Date:** 2026-03-27 (initial), 2026-03-27 (extended)
+**Scope:** 12-pass holistic review + 35 extended deep dives across 5 domains
+**Approach:** 11 initial agents + 5 parallel deep-dive agents reading actual code, producing file:line references
 **Purpose:** Identify structural root causes of recurring bugs and propose refactoring roadmap
+**Total findings:** 34 (2 CRITICAL, 9 MAJOR, 13 MODERATE, 12 LOW)
 
 ---
 
@@ -603,6 +604,8 @@ These look messy but should be left alone:
 
 ## Deep Dives (Pass 12+)
 
+*First 6 deep dives from initial audit. Extended deep dives (13+) follow in the next section.*
+
 ### 12a: Dialogue State Machine Lifecycle
 
 **`pending_diplomatic_dialogue`** has **66 SET operations** and **44 CLEAR operations** across the backend.
@@ -616,6 +619,30 @@ These look messy but should be left alone:
 **Key risk:** No queue cap — queue can grow unbounded if events generate faster than player responds. No audit trail of dialogue transitions.
 
 **Recommendation:** Implement `DialogueManager` class centralizing all SET/CLEAR/QUEUE operations with audit trail, queue cap (10-20), and timeout for blocking dialogues. Reduces 66 scattered SET sites to 1 class.
+
+### 12b: Display Name Translation Consistency
+
+**7 display maps found** across the backend, translating internal names to UI-friendly text:
+
+| Map | File | Entries | Purpose |
+|-----|------|---------|---------|
+| `_ACTION_DISPLAY_NAMES` | executor.py:41 | 17 | Action verbs ("attack" → "attacks") |
+| `PROPOSAL_TYPE_DISPLAY` | diplomatic_dialogue.py:81 | 11 | Proposal labels ("peace" → "Peace Treaty") |
+| `_STATE_DISPLAY_NAMES` | diplomacy.py:2459 | 8 | Formal state names ("WAR" → "At War") |
+| `_STATE_DISPLAY` | diplomatic_advisory.py:50 | 8 | Narrative state ("WAR" → "at war") |
+| `_DEFIANCE_DISPLAY` | campaign_log.py:43 | 15 | Past tense ("attack" → "attacked") |
+| `_OBJECTION_DISPLAY` | campaign_log.py:21 | 17 | Gerunds ("attack" → "attacking") |
+| `FEEDBACK_STRINGS` | diplomacy.py:138 | 16 | Acceptance formula components |
+
+**5 gaps where raw internal names leak to frontend:**
+
+1. **`GET /diplomatic_states`** returns raw "WAR"/"PEACE" state strings — `_STATE_DISPLAY_NAMES` not applied (CRITICAL)
+2. **`GET /pending_objection`** returns raw `original_order.action` — `_ACTION_DISPLAY_NAMES` not applied (HIGH)
+3. **`POST /respond_to_objection`** returns raw defiance outcomes "failed_roll"/"right"/"wrong" — no display map exists (MEDIUM)
+4. **`POST /diplomatic_preview`** returns raw action names in actions list (HIGH)
+5. **Personality/Stance enums** returned as raw strings — no formal display maps (LOW)
+
+**3 missing display maps:** `_DEFIANCE_OUTCOME_DISPLAY`, `_PERSONALITY_DISPLAY`, `_STANCE_DISPLAY`.
 
 ### 12c: Notification Architecture
 
@@ -643,7 +670,7 @@ These look messy but should be left alone:
 
 **Root cause:** Triple-layer silent failure — whitelist drops unknown types, format function falls through to generic text, category map defaults to "unknown". No compile-time or test-time check catches the gap.
 
-**Recommendation:** Add test that compares all `world.log_event()` type strings against `CAMPAIGN_LOG_TYPES`. Add the 18 missing types with format strings and fog rules. Add to CLAUDE.md "Adding New Actions" checklist: "Add event type to CAMPAIGN_LOG_TYPES in campaign_log.py."
+**Recommendation:** Add test that compares all `world.log_event()` type strings against `CAMPAIGN_LOG_TYPES`. Add the 18 missing types with format strings and fog rules.
 
 ### 12e: Strategic Order Lifecycle
 
@@ -654,55 +681,13 @@ These look messy but should be left alone:
 - Personality-specific behavior (LITERAL: never interrupts, immovable HOLD)
 - 14 StrategicOrder fields fully serialized
 
-**All major edge cases handled correctly:**
-- Dead marshal mid-order (cleared)
-- Target dies/moves during PURSUE (completes/fog-aware redirect)
-- Peace signed during PURSUE/SUPPORT (auto-breaks)
-- SUPPORT timer counts from arrival, not issuance
-- Contact loop prevention (same enemy suppression)
+**All major edge cases handled correctly.** No refactoring needed. This is one of the best-architected subsystems.
 
-**Minor issues found:**
-1. `pending_interrupt` not cleared when new order replaces old (executor.py:6218) — could leave stale interrupt
-2. `cannon_fire_ignored_turn` not cleared on order completion — harmless due to 1-turn TTL
-
-**Assessment:** No refactoring needed. This is one of the best-architected subsystems.
-
-### 12b: Display Name Translation Consistency
-
-**7 display maps found** across the backend, translating internal names to UI-friendly text:
-
-| Map | File | Entries | Purpose |
-|-----|------|---------|---------|
-| `_ACTION_DISPLAY_NAMES` | executor.py:41 | 17 | Action verbs ("attack" → "attacks") |
-| `PROPOSAL_TYPE_DISPLAY` | diplomatic_dialogue.py:81 | 11 | Proposal labels ("peace" → "Peace Treaty") |
-| `_STATE_DISPLAY_NAMES` | diplomacy.py:2459 | 8 | Formal state names ("WAR" → "At War") |
-| `_STATE_DISPLAY` | diplomatic_advisory.py:50 | 8 | Narrative state ("WAR" → "at war") |
-| `_DEFIANCE_DISPLAY` | campaign_log.py:43 | 15 | Past tense ("attack" → "attacked") |
-| `_OBJECTION_DISPLAY` | campaign_log.py:21 | 17 | Gerunds ("attack" → "attacking") |
-| `FEEDBACK_STRINGS` | diplomacy.py:138 | 16 | Acceptance formula components |
-
-**5 gaps where raw internal names leak to frontend:**
-
-1. **`GET /diplomatic_states`** returns raw "WAR"/"PEACE" state strings — `_STATE_DISPLAY_NAMES` not applied (CRITICAL)
-2. **`GET /pending_objection`** returns raw `original_order.action` — `_ACTION_DISPLAY_NAMES` not applied (HIGH)
-3. **`POST /respond_to_objection`** returns raw defiance outcomes "failed_roll"/"right"/"wrong" — no display map exists (MEDIUM)
-4. **`POST /diplomatic_preview`** returns raw action names in actions list (HIGH)
-5. **Personality/Stance enums** returned as raw strings — no formal display maps (LOW)
-
-**3 missing display maps:** `_DEFIANCE_OUTCOME_DISPLAY`, `_PERSONALITY_DISPLAY`, `_STANCE_DISPLAY`.
-
-**Checklist for adding new actions** (must update 5 places):
-1. `_ACTION_DISPLAY_NAMES` (executor.py:41)
-2. `_DEFIANCE_DISPLAY` (campaign_log.py:43)
-3. `_OBJECTION_DISPLAY` (campaign_log.py:21)
-4. `VALID_ACTIONS` (validation.py)
-5. `_execute_*()` method (executor.py)
+**Minor issues:** `pending_interrupt` not cleared when new order replaces old (executor.py:6218). `cannon_fire_ignored_turn` not cleared on order completion — harmless due to 1-turn TTL.
 
 ### 12f: Modding System Security
 
-**Validator coverage is ~20% of settable fields.** The modding validator (`backend/modding/validator.py`) performs basic type checking, range warnings, and cross-validation (marshal locations must be real regions, adjacency must be bidirectional), but misses the vast majority of complex game state.
-
-**Coverage by model:**
+**Validator coverage is ~20% of settable fields.** The modding validator (`backend/modding/validator.py`) performs basic type checking, range warnings, and cross-validation, but misses the vast majority of complex game state.
 
 | Model | Total Fields | Validated | Coverage |
 |-------|-------------|-----------|----------|
@@ -710,36 +695,726 @@ These look messy but should be left alone:
 | Region | 8 core | 8 | ~100% |
 | WorldState | 150+ | 7 | ~5% |
 
-**CRITICAL gaps (game-breaking mods possible):**
+**CRITICAL gaps:** Diplomatic state corruption (12 fields), combat modifier stacking (9 fields), vassal/coalition loops (6 fields). **HIGH gaps:** Objection/trust bypass (5 fields), game flow corruption (5 fields). **MEDIUM gaps:** Region economics (6 fields), serialization safety (8 fields).
 
-1. **Diplomatic state corruption** (12 fields) — `diplomatic_states`, `nation_relations`, `war_scores`, `armistice_cooldowns`, `active_coalition`, `coalition_brewing`, `threat_level`, `active_treaties`, `diplomatic_reliability` completely unvalidated. A mod could set contradictory states (France at war with itself), force instant coalition via `threat_level: 1000`, or create diplomatic state cycles.
+**Severity:** MAJOR — modding is single-player, blast radius limited to modder's own game. Add validation incrementally: diplomatic graph coherence, combat flag mutual exclusivity, logical bounds, document untouchable fields.
 
-2. **Combat modifier stacking** (9 fields) — `artillery`, `cavalry`, `square_formation`, `recklessness`, `shock_bonus`, `defense_bonus`, `counter_punch_ready`, `holding_position`, `overwatch_penalty` all unvalidated. Mutually exclusive flags (cavalry + artillery + square_formation) can be set simultaneously, giving contradictory 80%+ attack bonuses.
+---
 
-3. **Vassal/coalition loops** (6 fields) — `vassals` dict, `continental_system_members`, `cascade_triggered`, `coalition_cooldown`, `war_exhaustion` all unvalidated. Mod could create infinite vassals, mark all cascades as triggered to block new coalitions, or set `war_exhaustion: 9999` to eliminate nations.
+## Extended Deep Dives (Pass 13+)
 
-**HIGH gaps:**
+*5-agent parallel code review. Each agent read 5-10 source files thoroughly, producing findings with file:line references. 35 additional deep dives across 5 domains.*
 
-4. **Objection/trust bypass** (5 fields) — `pending_objection`, `pending_redemption`, `authority_tracker`, `vindication_tracker` unvalidated. Setting `authority_tracker.authority: 1000` suppresses all marshal objections.
+---
 
-5. **Game flow corruption** (5 fields) — No logical coherence checks: `current_turn: 10000, max_turns: 5` breaks turn processing. `actions_remaining: 1000` gives infinite actions. No validation that `game_over=true` requires `victory` field.
+### 13: Combat Pipeline
 
-**MEDIUM gaps:**
+#### 13a: Combat Modifier Chain
 
-6. **Region economics** (6 fields) — `stability`, `war_damage`, `buildings`, `building_under_construction`, `watchtower` unvalidated. `stability: -999` or `war_damage: 10.5` possible.
+**Files analyzed:** marshal.py (lines 832-988), combat.py (lines 152-500), battle_report.py (lines 21-231)
 
-7. **Serialization safety** (8 fields) — Complex nested objects (StrategicOrder, Trust, Diplomat) not validated. Invalid objects crash during save/load.
+**Architecture assessment:** The modifier chain respects Golden Rule #1 (single source in marshal.py) but combat.py applies several target-type modifiers (cavalry counter, square formation, cavalry terrain) directly to `shock_multiplier` outside the single-source methods, creating a de facto secondary modifier layer.
 
-**What the validator DOES enforce well:**
-- Basic type checking (int/string/boolean) ✓
-- Required field presence (name, location, strength) ✓
-- Enum validation (personality, stance, terrain, region_type) ✓
-- Cross-validation: marshal locations and adjacency references ✓
+**Key findings:**
 
-**Severity:** MAJOR — modding is single-player and optional, so the blast radius is limited to the modder's own game. However, community mods shared without validation could cause confusing crashes or impossible states.
+1. **Golden Rule #1 partial violation** (combat.py:383-403). Cavalry-vs-artillery +30%, square formation -40%/+50%, and cavalry terrain adjustments applied directly in `resolve_battle()`, NOT in `get_attack_modifier()`. Code calling `get_attack_modifier()` outside of `resolve_battle()` (e.g., garrison combat at executor.py:2795) will NOT include these bonuses.
 
-**Recommendation:** Add validation layers incrementally:
-1. **Diplomatic graph coherence** — no self-wars, valid state values, nation existence in all dicts
-2. **Combat flag mutual exclusivity** — cavalry XOR artillery XOR neither; square only for non-cavalry
-3. **Logical bounds** — `current_turn <= max_turns`, `actions_remaining <= max_actions_per_turn`
-4. **Document untouchable fields** — warn modders away from `pending_*`, coalition, and objection state
+2. **Consume-on-read side effects** (marshal.py:867,889). `get_attack_modifier()` zeroes `strategic_combat_bonus` and `counter_punch_ready` on read. No guard prevents double-call — second call silently returns a lower modifier.
+
+3. **Drill state cleared in BOTH combat.py AND marshal.py** (combat.py:341-345 vs marshal.py:858-861). `combat.py` clears drill fields after reading; `get_attack_modifier()` reads but does NOT clear. Intentional but fragile.
+
+4. **Battle report snapshot duplicates modifier knowledge** (battle_report.py:21-231). `snapshot_attacker_modifiers` re-derives every modifier independently of `get_attack_modifier()`. If a new modifier is added to one but not the other, they drift.
+
+5. **Defense cap 1.75x not reflected in snapshot** (marshal.py:986 vs battle_report.py:143-231). Report shows uncapped total while combat uses capped value.
+
+6. **Exhaustion penalty accessed via getattr+lambda fallback** (battle_report.py:78). Would silently return 0 if method renamed.
+
+**Recommendation:** MAJOR. Create shared modifier registry/builder used by both `get_attack_modifier()` and snapshot functions. Add consumed flag to prevent double-read of strategic/counter-punch bonuses.
+
+#### 13b: Casualty Distribution in Multi-Marshal Battles
+
+**Files analyzed:** executor.py (lines 746-856, 4420-4812), combat.py (lines 1019-1212)
+
+**Key findings:**
+
+1. **Two entirely separate post-combat paths** (executor.py:4672-4810). Coordinated battles call `resolve_battle(apply_casualties=False)` then manually handle ~140 lines of post-combat effects. Solo battles handle everything inside `resolve_battle()`. This is ~140 lines of duplicated game logic.
+
+2. **Pursuit damage floor inconsistency** — Solo path floors at `max(1000, ...)` (combat.py:694). Coordinated path floors at `max(0, ...)` (executor.py:4788). **Coordinated pursuit can kill defenders; solo pursuit cannot.**
+
+3. **FORCED_RETREAT_THRESHOLD duplicated** — Defined as constant in combat.py:74 AND redefined as local variable in executor.py:4745.
+
+4. **`_get_casualty_participants` vs `get_battle_participants` near-duplicate** (executor.py:746-790 vs relationship.py:109-149). Nearly identical logic, could drift.
+
+5. **Morale applied uniformly in coordinated path** (executor.py:4699,4708). A 1000-troop reinforcer gets the same morale hit as the 30000-troop primary.
+
+**Recommendation:** MAJOR. Fix pursuit floor inconsistency. Extract shared post-combat helpers. Consolidate participant functions.
+
+#### 13c: Battle Report Generation
+
+**Key findings:**
+
+1. **Double observation generation** — combat.py:833 creates initial observation, executor.py:4913-4916 re-picks. Re-pick replaces but never augments — can lose relevant first-pass info.
+
+2. **Re-pick priorities favor coordination over combat-critical events** (battle_report.py:561-602). Combined arms triangle (P0.5) fires before mutual destruction (P1) or fortification loss (P2).
+
+3. **Bombardment path skips battle_report entirely** (executor.py:3191-3500). No Berthier observations for bombardment-heavy strategies.
+
+**Recommendation:** MINOR/MODERATE. Re-order priorities so mutual destruction fires before coordination.
+
+#### 13d: Forced Retreat and Movement After Combat
+
+**Key findings:**
+
+1. **Recklessness preserved through army break/respawn** (marshal.py:525-551). `clear_combat_transient_state()` does NOT clear recklessness. Broken cavalry keep momentum through the break cycle.
+
+2. **Reinforcer retreat bypasses `move_to()`** (executor.py:5028). Direct `p.location = origin` skips state clearing that `move_to()` handles (holding_position, cavalry defensive tracking).
+
+3. **Broken army teleportation has NO attrition** while normal retreat has halved attrition. Intentional (broken armies at 3-10% strength) but undocumented.
+
+**Recommendation:** MODERATE. Reset recklessness on army break. Use `move_to()` for reinforcer retreat.
+
+#### 13e: Combat → Diplomacy Interaction (CRITICAL)
+
+**Files analyzed:** executor.py (lines 4950-5258, 10585-10790, 4573-4607), diplomacy.py, coalition.py
+
+**Key findings:**
+
+1. **CRITICAL: Auto-bombardment kill adds decisive_victory threat unconditionally** (executor.py:4597-4598). Does `add_threat(world, 5, "decisive_victory")` without checking casualty ratio > 2:1 or total > 10k. Every bombardment kill inflates coalition threat by +5 extra.
+
+2. **CRITICAL: Auto-bombardment kill inflates war score** (executor.py:4581). Passes `defender_casualties=int(pre_battle_defender_strength)` (the entire army, not actual casualties) to `record_diplo_battle`.
+
+3. **MAJOR: Garrison combat has zero diplomacy wiring** (executor.py:2772+). `_resolve_garrison_combat` does NOT call `record_diplo_battle`, `add_threat`, or `add_war_exhaustion_from_battle`. Capturing a capital via garrison assault produces no war score or threat change.
+
+4. **Three separate implementations of post-combat diplomacy** across `_execute_attack`, `_execute_glorious_charge`, and auto-bombardment kill. Each reimplements war score, threat, and exhaustion independently.
+
+5. **Authority modification simplified in bombardment** (executor.py:4586-4590). Uses fixed +5/-5 without outnumbered/capital checks that the other paths apply.
+
+**Recommendation:** CRITICAL. Extract `_apply_post_combat_diplomacy()` shared function. Fix unconditional decisive victory. Fix inflated war score. Add diplomacy wiring to garrison combat.
+
+---
+
+### 14: Diplomacy Engine
+
+#### 14a: Diplomatic State Machine
+
+**Files analyzed:** diplomacy.py (lines 16-268, 1346-1501, 1773-1856, 2042-2182)
+
+**Key findings:**
+
+1. **Asymmetric upgrade vs downgrade** (diplomacy.py:28-39). Upgrades allow non-adjacent jumps (PEACE to ALLIANCE in one step); downgrades must be strictly adjacent. Building is fast, dismantling is slow.
+
+2. **ARMISTICE has no voluntary exit** (diplomacy.py:34-39). Only auto-expires after 5 turns. Player cannot voluntarily break armistice early.
+
+3. **War cascade bypasses relation penalties** (diplomacy.py:1209,1269). Cascade-joined wars skip the -30 direct relation penalty, -15 indirect penalty, and threat generation that `declare_war()` applies. Only a -20 relation penalty is applied.
+
+4. **5+ sites directly modify `diplomatic_states`** without centralized helper. Each site must independently handle war_start_turns, active treaty removal, and armistice cleanup.
+
+**Recommendation:** MODERATE. Extract `set_diplomatic_state()` helper for common bookkeeping across all state change sites.
+
+#### 14b: Acceptance Formula
+
+**Files analyzed:** diplomacy.py (lines 107-206, 631-882)
+
+**Key findings:**
+
+1. **War score sign handling** (diplomacy.py:666-672). Adjusts sign based on alphabetical key ordering. Correct but subtle — previously a bug source.
+
+2. **Relation modifier dampened during war** — from /2 to /4, capping at +/-10 instead of +/-30. Only documented in comments, no named constant.
+
+3. **Diplomat skill bonus uncapped upward** (diplomacy.py:758). `max(-8, (proposer_skill - target_skill) * 2)`. Talleyrand (skill 10) vs Einsiedel (skill 4) = +12 permanent advantage.
+
+4. **Sweetener cap at 60, demands uncapped** (diplomacy.py:223,733). Arbitrarily harsh demands always win.
+
+**Recommendation:** LOW. Formula is well-tested (145+ tests). Document effective ranges of each component.
+
+#### 14c: AI Diplomacy Decision-Making
+
+**Files analyzed:** ai_diplomacy.py (lines 573-757, 1300-1568)
+
+**Key findings:**
+
+1. **Exploitable priority order** (ai_diplomacy.py:652-724). P1 (losing) checked before all others. Keeping war score between -39 and -11 avoids P1 while still winning, preventing AI from suing for peace.
+
+2. **Stalemate counter easily reset** (ai_diplomacy.py:354-365). Win a single battle to push war_score above 10, resetting the counter. Repeat indefinitely.
+
+3. **Capital capture blocks ALL AI proposals** (ai_diplomacy.py:604-610). Defeated nations can't negotiate, creating diplomatic deadlocks.
+
+4. **AI-AI diplomacy simplified** (ai_diplomacy.py:1550-1565). Uses acceptance formula with empty sweeteners/demands/clauses. No AI-AI term negotiation.
+
+5. **P8 harsh demands self-defeating** (ai_diplomacy.py:720-731). Dominant AI generates harsh demands, then `_reduce_p8_demands()` iteratively weakens them when acceptance < 20. Fallback is "minimal peace + 200g" with `_force_send=True`.
+
+**Recommendation:** MODERATE. Allow capital-captured nations to propose at P1. Document stalemate counter as intentional or add minimum floor.
+
+#### 14d: Coalition Lifecycle
+
+**Files analyzed:** coalition.py (lines 95-1141)
+
+**Key findings:**
+
+1. **Brewing can be canceled and restarted indefinitely** (coalition.py:978-986). No "brewing cooldown" — player oscillating threat around 40-60 can perpetually prevent formation.
+
+2. **Instant override at 80+ during brewing** (coalition.py:993-994). Good design preventing cheese during 3-turn countdown.
+
+3. **War exhaustion +8/turn** (coalition.py:944). Max 200. Coalition loyalty penalty fully negated at WE=150 (~19 turns). Self-limiting design.
+
+4. **British subsidy goes to LOWEST-relation partner** (coalition.py:344-356). Counterintuitive but represents buying loyalty from most reluctant ally.
+
+5. **Member friction -2/turn per pair** (coalition.py:950-955). Post-coalition relations severely damaged, making repeat coalitions harder.
+
+**Recommendation:** LOW. Well-balanced system. Brewing oscillation exploit partially mitigated by BREWING_CANCEL_THRESHOLD.
+
+#### 14e: War Score Calculation
+
+**Files analyzed:** diplomacy.py (lines 319-468, 1506-1561)
+
+**Key findings:**
+
+1. **Territory score is position-based, not cumulative** (diplomacy.py:335-343). Reflects CURRENT control, not historical. Recapturing immediately resets score.
+
+2. **POTENTIAL DEAD CODE: War score decay value manipulation** (diplomacy.py:419-438). `apply_war_score_decay()` modifies `world.war_scores`, then `recalculate_war_scores()` overwrites with fresh calculation. The direct score value decay is effectively a no-op. However, the battle record pruning at 10 turns (lines 411-417) IS useful as the actual decay mechanism.
+
+3. **Decisive battle cap of 2 per war** — each adds +/-10 (cap 20 total). Requires > 10k casualties and > 2:1 ratio.
+
+4. **Minimum 1k casualty threshold** (diplomacy.py:1532-1534). Small skirmishes don't register for war score.
+
+**Recommendation:** MODERATE. Remove the dead score value manipulation (lines 419-438) or document why it exists. Keep battle record pruning.
+
+#### 14f: Talleyrand Sabotage System
+
+**Files analyzed:** diplomatic_defiance.py (lines 1-769)
+
+**Key findings:**
+
+1. **Cooldown fully suppresses defiance** (diplomatic_defiance.py:50-52). Returns 0.0 during cooldown, bypassing SCHEMER_FLOOR of 2%. Comment says "never fully tamed" but cooldown fully tames him temporarily.
+
+2. **Sabotage type selection is deterministic** (diplomatic_defiance.py:193-243). Priority-based with no randomness. Experienced players can predict and avoid specific sabotage types.
+
+3. **Discovery reaches 100% by turn 6** (diplomatic_defiance.py:283-290). 40% base + 10%/turn. Sabotage ALWAYS discovered eventually.
+
+4. **Replace-with-Loyalist is irreversible** (diplomatic_defiance.py:585-600). Skill drops from 10 to 6, permanently reducing acceptance formula bonus by 8 points.
+
+5. **Confront/overlook trust asymmetry** (-10 confront vs +3 overlook). Creates downward spiral toward redemption event (trust <= 20).
+
+6. **`turn_number` fallback at lines 493, 612** — references non-existent field, falls back to `current_turn`. Dead defensive code from early development.
+
+**Recommendation:** LOW. Well-designed system. Remove `turn_number` fallback. Consider adding randomness to sabotage type selection.
+
+---
+
+### 15: Turn Processing & World State
+
+#### 15a: Turn Processing Order (44 Steps)
+
+**Files analyzed:** world_state.py (lines 3622-4005), turn_manager.py (lines 44-243), executor.py (lines 1080-1104)
+
+**Complete step sequence of `_advance_turn_internal()`:**
+
+| # | Step | Key Ordering Dependency |
+|---|------|------------------------|
+| 1-9 | Clear per-turn flags, snapshot history | — |
+| 10 | Process tactical states (drill/fortify) | Sees OLD turn number |
+| 11-12 | Vindication decay, construction | — |
+| 13 | **INCREMENT TURN COUNTER** | Steps above see old turn, below see new |
+| 14-17 | Stability, supply attrition, garrison regen, bankruptcy | Bankruptcy uses PREVIOUS turn counter |
+| 18-19 | Diplomacy processing, proposal resolution | — |
+| 20 | Cooldown decrements | — |
+| 21-22 | Vassal processing, clear battle tracking | **Vassal reads battles_this_turn BEFORE clear** |
+| 23-24 | Coalition, AI-AI diplomacy | — |
+| 25-26 | Dialogue auto-dismiss | — |
+| 27-32 | Income, trade, continental system, reset AP, treaty clauses, tribute | **AP reset BEFORE treaty penalty** |
+| 33-36 | Bankruptcy check, manpower, admin reset, attack tracking | Bankruptcy AFTER all income |
+| 37-43 | AI futility, disobedience, cavalry, fog, snapshots | — |
+
+**Key findings:**
+
+1. **Turn counter increment splits pipeline** (world_state.py:3695). Steps 1-12 see old turn, steps 14+ see new turn. Only one comment documents this. Moving steps across boundary silently breaks behavior.
+
+2. **5+ ordering dependencies documented only by inline comments** — e.g., "Fix 3" at line 3805 (vassal reads battles before clear), "Deep Audit Session 4 Fix 1" at line 3877 (AP reset before treaty clauses).
+
+3. **Victory check in turn_manager runs BEFORE enemy phase** but `advance_turn()` still runs in game-over state, processing supply attrition, income, etc. for a game that's already over.
+
+4. **Strategic orders execute BEFORE advance_turn** (turn_manager.py:132-141). Required for cannon fire detection (advance_turn clears battles_this_turn at step 22).
+
+**Recommendation:** MEDIUM. Document ordering dependencies in a manifest at method top. Consider grouping related steps into sub-methods.
+
+#### 15b: Action Economy
+
+**Key findings:** Clean dual-pool design (combat AP 4 + admin AP 2). Treaty AP clauses correctly applied after reset. AI nations use single `nation_actions` dict. `_strategic_execution=True` correctly bypasses AP cost. No issues found.
+
+**Recommendation:** LOW. Well-designed, no changes needed.
+
+#### 15c: Enemy AI Turn Processing
+
+**Files analyzed:** turn_manager.py (lines 548-640), enemy_ai.py (lines 627-900)
+
+**Key findings:**
+
+1. **Fixed nation order** — `["Britain", "Prussia", "Austria", "Saxony"]`. Britain always acts first, getting first pick of undefended regions. Systematic first-mover advantage.
+
+2. **Cooldown decrement fixed at once-per-turn** (turn_manager.py:581). Previously was inside per-nation loop (4x tick bug), V2-20/21 fix.
+
+3. **New EnemyAI() created each turn** (turn_manager.py:570-571). All per-turn tracking fresh. Cross-turn state persists only through WorldState.
+
+4. **Three safety valves** in action loop: max_consecutive_skips, max_total_actions, max_free_actions. Prevents infinite loops.
+
+5. **Aggressive stance change skipped on last AP** (enemy_ai.py:750-758). Good design — no follow-up budget to use the stance.
+
+**Recommendation:** LOW-MEDIUM. Consider rotating nation processing order each turn for fairness.
+
+#### 15d: Strategic Order Execution
+
+**Key findings:** Clean two-pass system (non-interrupting first, then deferred). Only 1 interrupt per turn — reasonable UX limit. "Investigate" cannon fire cancels order and attacks with no AP cost. Trust penalty (-2) for "continue" after cannon fire.
+
+**Recommendation:** LOW. Well-designed. No changes needed.
+
+#### 15e: Supply Attrition
+
+**Key findings:**
+
+1. **Home territory 50% bonus** (world_state.py:2410-2411). French regions get 1.5x supply capacity.
+2. **Death-ball penalty** — +1% per marshal beyond first, triggers at 3+ marshals even under capacity.
+3. **6% hard cap** on total attrition.
+4. **0-strength elimination is permanent** (world_state.py:2437-2448). Unlike combat (broken state), attrition skips to death. Harsh for player marshals in remote regions.
+
+**Recommendation:** LOW. Clean formula. Consider warning players via dispatch when marshals are in high-attrition zones.
+
+#### 15f: Manpower Regeneration
+
+**Key findings:** Clean single-source in `get_manpower_regen_rates()`. Infantry 2500/turn (affected by war exhaustion), cavalry 250+terrain, artillery 150+urban. Pools capped at 100k/30k/20k. Nations missing from `DEFAULT_MANPOWER_POOLS` silently skipped (no warning).
+
+**Recommendation:** LOW. Add warning log for skipped nations.
+
+#### 15g: Cooldown Management (14 Dictionaries)
+
+**Complete catalog:**
+
+| # | Cooldown | Decremented By | Location |
+|---|----------|---------------|----------|
+| 1 | `ai_failed_action_cooldowns` | `ai.decrement_all_cooldowns()` | turn_manager |
+| 2 | `ai_refortify_cooldown` | `ai.decrement_all_cooldowns()` | turn_manager |
+| 3 | `ai_attack_futility` | Inline -1/turn + reset | advance_turn |
+| 4 | `armistice_cooldowns` | `process_diplomacy_turn()` | External |
+| 5 | `armistice_turns` | `process_diplomacy_turn()` | External |
+| 6 | `player_proposal_cooldowns` | `_decrement_proposal_cooldowns()` | advance_turn |
+| 7 | `ai_proposal_cooldowns` | `_decrement_ai_proposal_cooldowns()` | advance_turn |
+| 8 | `proactive_suggestion_cooldowns` | `_decrement_proactive_cooldowns()` | advance_turn |
+| 9 | `vassal_investment_cooldowns` | `decrement_vassal_cooldowns()` | advance_turn |
+| 10 | `vassal_release_cooldowns` | `decrement_vassal_cooldowns()` | advance_turn |
+| 11 | `talleyrand_defiance_cooldown` | Inline `-= 1` | advance_turn |
+| 12 | `coalition_cooldown` | `process_coalition_turn()` | External |
+| 13 | `ultimatum_cooldowns` | `_decrement_ultimatum_cooldowns()` | advance_turn |
+| 14 | `turns_below_threshold` | `process_diplomacy_turn()` | External |
+
+**Key findings:**
+
+1. **4 different decrement patterns:** inline, helper method, external module, AI module. Adding a new cooldown requires knowing which pattern to follow.
+2. **`_decrement_ai_proposal_cooldowns()` has side effect** — also expires queued proposals older than 3 turns (world_state.py:4573). Hidden in a method named "decrement cooldowns."
+3. **`talleyrand_defiance_cooldown` is the only inline decrement** — all 4 diplomatic cooldowns use dedicated helpers. Inconsistent.
+4. **No cooldown decremented twice per turn** — verified across all sites. V2-20/21 fix is correct.
+
+**Recommendation:** MEDIUM. Centralize at least the 5 advance_turn cooldown decrements into one method. Document the complete catalog in a comment.
+
+#### 15h: Morning Dispatch Generation
+
+**Key findings:**
+
+1. **Runs AFTER all processing** (executor.py:1095-1096). Sees fully processed new-turn state — correct timing.
+2. **`player_nation = "France"` HARDCODED** (dispatch.py:51). TODO comment for post-EA.
+3. **Dispatch event whitelist** (`_DISPATCH_EVENT_TYPES`, dispatch.py:378). Only 22 event types pass through. New types silently dropped.
+4. **Fog-filtered enemy strength estimation** — uses RegionIntel snapshots, not live data. Correct.
+
+**Recommendation:** LOW. Document the dispatch event whitelist more prominently. Add test for event type coverage.
+
+---
+
+### 16: Fog of War, Intel, LLM, Parsing
+
+#### 16a: Fog of War Consistency
+
+**Files analyzed:** intel.py, intel_report.py, campaign_log.py, main.py, strategic_parser.py, diplomatic_ledger.py
+
+**Key findings:**
+
+1. **MAJOR FOG LEAK: Strategic parser reveals enemy positions** (strategic_parser.py:88,577,610). `resolve_direction()` and `_add_interpretation()` call `world.get_enemies_of_nation()` which returns ALL enemies omnisciently. When player says "march to the front," the parser resolves using actual positions of fogged enemies. `interpreted_target` and `alternatives` list flow back via clarification popup, revealing enemy names/locations the player shouldn't know.
+
+2. **MINOR FOG LEAK: map_data in LLM game state** (main.py:88-98). Lists ALL marshals in every region with NO fog check. Only used for LLM prompt context, not displayed directly, but transmits data that shouldn't be available.
+
+3. **Fog filtering is CORRECT in:** intel_report.py (tiers by visibility), campaign_log.py (per-event fog checks), main.py:384-438 (tactical event filtering), main.py:72-86 (LLM enemies), diplomatic_ledger.py:67-98 (nation visibility aggregation).
+
+4. **Campaign log timing subtlety** (campaign_log.py:249-252). Uses CURRENT visibility, not event-time visibility. A battle at FULL visibility last turn could be invisible in the log after decay to PARTIAL.
+
+**Recommendation:** MAJOR. Filter `get_enemies_of_nation` through fog in strategic_parser.py functions resolving generic/directional targets. Filter map_data marshals in LLM game state.
+
+#### 16b: Intel System Architecture
+
+**Key findings:** Clean dual-path design (REFRESH only upgrades, DECAY only downgrades). 10 fields fully serialized. Intel source priority well-ordered. Strength band system works correctly.
+
+**Recommendation:** LOW. Solid architecture. No changes needed.
+
+#### 16c: Mock Parser vs Real LLM Coverage
+
+**Files analyzed:** llm_client.py (mock parser lines 442-919), prompt_builder.py, validation.py
+
+**Key findings:**
+
+1. **Mock handles but LLM doesn't teach:** cheat commands, save/load, debug, form_square/break_square. Harmless since these would never reach the LLM.
+
+2. **37 VALID_ACTIONS but mock handles ~30 paths.** 7 actions (diplomatic_feasibility, diplomatic_advisory, diplomatic_error, etc.) only reachable through the diplomatic sub-parser.
+
+3. **Confidence threshold prevents LLM help** (llm_client.py:48). Threshold is 0.7, but action-only matches score 0.8. Commands like "attack" (no marshal/target) never reach the LLM even though it could provide better interpretation.
+
+4. **Vassal keywords hardcoded to specific nations** (llm_client.py:778-797). New vassal nations from modding won't be recognized by mock parser, and the high confidence prevents LLM fallback.
+
+**Recommendation:** MEDIUM. Raise LLM fallback threshold to 0.85. Add diplomatic few-shot examples to LLM prompt.
+
+#### 16d: Command Parsing Edge Cases
+
+**Key findings:**
+
+1. **Keyword ordering fragile** (llm_client.py:650-800). ~150 lines of `elif` chain where order determines priority. Adding a keyword in the wrong position breaks existing parsing.
+
+2. **"hold" always becomes strategic** (strategic_parser.py:202-205). Always upgraded to 2 AP strategic HOLD. Players wanting 1AP hold must use "defend."
+
+3. **Possessive form breaks marshal matching** (llm_client.py:583-586). `\b` regex means "Davout's attack" won't match "Davout."
+
+4. **Region names use substring matching without word boundaries** (llm_client.py:834-871). "berlin" matches any word containing "berlin."
+
+**Recommendation:** MEDIUM. Add word-boundary matching for regions. Add integration tests verifying keyword ordering.
+
+#### 16e: Vassal System Architecture
+
+**Files analyzed:** vassal.py
+
+**Key findings:**
+
+1. **7-modifier loyalty formula** — autonomy drift, garrison, gold investment, shared enemy, battle wins/losses, relation modifier, coalition penalty. Clean and well-documented.
+2. **Rebellion cascade** (vassal.py:486-489). One rebellion costs all other vassals -10 loyalty.
+3. **Armistice-safe rebellion** (vassal.py:453-463). Rebels become independent without war if in ARMISTICE.
+4. **Garrison loyalty docstring mismatch** (vassal.py:228 vs 255). Docstring says "+2 base" but code is "+5 base." Code gives much higher bonuses than documented.
+5. **Battle result matching uses fragile string parsing** (vassal.py:293-298). Checks `"attacker" in result.lower() and "victory" in result.lower()`.
+
+**Recommendation:** MINOR. Fix docstring mismatch. String-based battle matching works but could benefit from structured result format.
+
+#### 16f: Campaign Log Event Lifecycle (Extended)
+
+**Key findings:**
+
+1. **40 event types logged, 24 whitelisted, 16 invisible.** Most important invisible types: `coalition_brewing_started`, `diplomatic_proposal_sent`, `ai_proposal_accepted/rejected`, `diplomatic_mission_started`.
+2. **Event log rolling cap** at 500 events (world_state.py:583). Sufficient for 60-turn games.
+3. **Duplicate event types:** `diplomatic_war_declared` and `war_declaration` both whitelisted with identical formatters. Consolidate.
+
+**Recommendation:** MEDIUM. Add 5 most important invisible types to whitelist with fog filtering and formatting.
+
+#### 16g: LLM Prompt Construction
+
+**Key findings:** Clean prompt builder with ~300 token input target. Enemy data fog-filtered correctly. Geographic layout hardcoded (won't work with modded regions). No diplomatic few-shot examples. Good Berthier recovery prompt design.
+
+**Recommendation:** LOW. Add 1-2 diplomatic examples. Filter map_data enemy marshals.
+
+---
+
+### 17: API Layer, Response Pipeline, Trust System
+
+#### 17a: API Endpoint Audit (35 Endpoints)
+
+**Files analyzed:** main.py (2,464 lines)
+
+**Key findings:**
+
+1. **13 POST endpoints, 22 GET endpoints.** Only POST endpoints consistently call `_include_popup_passthroughs`. GET endpoints never deliver pending popups.
+
+2. **`/test` GET endpoint builds active_wars manually** (main.py:509-538) but never calls `_include_popup_passthroughs`. If client uses `/test` for heartbeat and a popup is pending, it's never delivered.
+
+3. **No error handling on most GET endpoints.** `/status`, `/authority_status`, `/marshal_trust/{name}` would return 500 with stack trace on any error.
+
+4. **`/load` endpoint has no try/except** (main.py:1761-1781). Load success + subsequent processing failure is unhandled.
+
+5. **Mixed async/sync handlers.** `/respond_to_diplomatic_dialogue` is `async def` while peer handlers are `def`. FastAPI handles both, but inconsistency suggests copy-paste divergence.
+
+6. **Popup delivery blocked during enemy_phase** (main.py:1056). Deferred popup only delivered on NEXT POST request. If next request is GET, popup stays stuck.
+
+**Recommendation:** MODERATE. Add try/except to all GET endpoints. Standardize handler definitions.
+
+#### 17b: Trust / Authority / Vindication Interaction
+
+**Key findings:**
+
+1. **Death spiral potential.** Low trust + low authority become self-reinforcing. Trust gains are double-modified: `base * trust_tier_multiplier * authority.get_trust_gain_modifier()`. With both low, recovery is severely penalized.
+
+2. **Authority asymmetry** — drops -5 per right defiance, recovers +1/turn at best. A single defiance-right event takes 5+ turns of balanced play to recover.
+
+3. **Vindication score feeds defiance at +10% per point** (defiance.py:55-56) but is capped at 40% total defiance chance. Vindication above +3 has zero marginal impact in most scenarios.
+
+4. **`VindicationTracker.last_change_turn` tracked but decay never applied in vindication.py.** Decay logic may live in world_state.py advance_turn, but the tracker itself doesn't use the field.
+
+5. **Two separate authority modifier systems** — `AuthorityTracker.get_obedience_modifier()` (authority.py:155) and defiance.py:61-67 authority tier system. Low authority gets double-penalized: more severe objections AND higher defiance chance.
+
+**Recommendation:** MAJOR. Verify vindication decay is applied somewhere. Consider minimum trust gain floor to prevent permanent unrecoverable states.
+
+#### 17c: Objection Layers (V1 + V2a + V2b)
+
+**Key findings:**
+
+1. **V1 `CONCERN_TO_SEVERITY` map marked "will be removed in V2b"** (objection_v2.py:120-126). V2b is complete. This is dead code.
+
+2. **V1's `PERSONALITY_TRIGGERS` for literal are ALL empty/TODO** (personality.py:141-145). V2a's `evaluate_literal` has working triggers. The V1 path is dead for literal personality.
+
+3. **Per-turn objection caps exist in TWO systems** — V1: global count (disobedience.py:27). V2a: per-marshal set. Both can fire on the same turn.
+
+4. **Defiance uses hardcoded personality strings** (defiance.py:99-122). Checks `personality == 'aggressive'` rather than using Personality enum.
+
+**Recommendation:** MODERATE. Remove dead `CONCERN_TO_SEVERITY`. Remove empty V1 literal triggers. Use Personality enum in defiance.py.
+
+#### 17d: Personality System Architecture
+
+**Key findings:**
+
+1. **Personality stored as string, not enum.** Marshal objects store `self.personality = "aggressive"` but `personality.py` defines `Personality(Enum)`. Only `disobedience.py` uses the enum. All other systems use raw string comparisons.
+
+2. **BALANCED and LOYAL personalities have no implementation anywhere.** `personality_modifiers.py:99-104` returns `{}`. `objection_v2.py:1138-1141` returns `ConcernLevel.NONE`. Future marshals with these personalities would be completely inert.
+
+3. **Personality modifier lookup by name, not marshal** (personality_modifiers.py:88-105). Maps "aggressive" to `NEY_MODIFIERS`. A second aggressive marshal (e.g., Blucher) would get Ney-specific labels.
+
+4. **Inline personality descriptions in main.py:1617** diverge from canonical `PERSONALITY_DESCRIPTIONS` in personality.py.
+
+**Recommendation:** LOW-MODERATE. Use enum consistently. Reference canonical descriptions instead of inline duplicates.
+
+#### 17e: Save/Load Robustness
+
+**Key findings:**
+
+1. **No schema validation on load** (save_manager.py:91-141). Checks format_version and `world_state` presence only. Corrupted marshal data passes load check, crashes during gameplay.
+
+2. **Hard version break at v1→v2 only.** No migration path for future version 3.
+
+3. **Transient state clearing is hardcoded** (save_manager.py:121-129). 7 specific fields cleared manually. New transient fields not in the list persist across save/load.
+
+4. **`list_saves` reads ALL save files fully** (save_manager.py:153-180). No size limit protection.
+
+**Recommendation:** MODERATE. Add transient field registry for auto-detection. Consider reading only metadata in list_saves.
+
+#### 17f: Notification Lifecycle
+
+**Key findings:**
+
+1. **HIGH/CRITICAL notifications accumulate without limit.** Cap only evicts NORMAL priority. Long games can build up undismissable HIGH notifications.
+
+2. **No deduplication.** Same notification type on consecutive turns creates separate entries.
+
+3. **No expiry.** Turn 1 notifications persist at turn 100.
+
+4. **`from_list` bypasses cap enforcement** (notifications.py:177-182). Corrupted saves with 1000+ notifications all loaded.
+
+**Recommendation:** LOW-MODERATE. Add auto-expiry for NORMAL notifications. Add deduplication by type. Enforce cap in `from_list`.
+
+#### 17g: War Status Panel Pipeline
+
+**Key findings:**
+
+1. **`build_active_wars` called TWICE per `/command` response.** Once in `_include_popup_passthroughs` (main.py:264-266), once explicitly (main.py:1039-1040). Second overwrites first. Wasteful but not buggy.
+
+2. **`ARMISTICE_DURATION = 5` hardcoded** (war_status.py:5) with "must match diplomacy.py" comment. Cross-file constant that could drift.
+
+3. **War score sign convention depends on diplo key ordering** (war_status.py:73-74). Fragile but correct.
+
+**Recommendation:** MODERATE. Cache `build_active_wars` result. Extract shared ARMISTICE_DURATION constant.
+
+#### 17h: Response Shape Analysis (MAJOR)
+
+**Compared 5 POST endpoint responses:**
+
+| Key | `/command` | `/respond_to_objection` | `/capture_choice` | `/respond_to_redemption` | `/cancel_order` |
+|-----|:----------:|:-----------------------:|:------------------:|:------------------------:|:---------------:|
+| `success` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `message` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `game_state` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `events` | ✓ | ✓ | ✓ | ✗ | ✗ |
+| `action_summary` | ✓ | ✓ | ✓ | ✓ | ✓ |
+| `diplomatic_points` | ✓ | ✗ | ✗ | ✗ | ✗ |
+| `threat_level` | ✓ | ✗ | ✗ | ✗ | ✗ |
+| `notifications` | conditional | conditional | ✗ | ✗ | ✗ |
+| popup keys (7) | ✓ | ✓ | ✓ | ✓ | ✓ |
+
+**Key finding:** Diplomatic top-bar fields (`diplomatic_points`, `max_diplomatic_points`, `threat_level`, `coalition_brewing`, `pending_envoy_count`) are ONLY in `/command` response. During objection/popup interactions, the top bar goes stale.
+
+**Recommendation:** MAJOR. Define `build_base_response(world)` containing all universal keys. Each endpoint adds specific fields on top.
+
+---
+
+## Extended Severity Summary
+
+### All Findings by Severity
+
+#### CRITICAL (2)
+
+| # | Finding | Location |
+|---|---------|----------|
+| 1 | Auto-bombardment kill adds decisive_victory threat unconditionally (+5 every kill) | executor.py:4597-4598 |
+| 2 | Auto-bombardment kill inflates war score using full defender strength as casualties | executor.py:4581 |
+
+#### MAJOR (9)
+
+| # | Finding | Location |
+|---|---------|----------|
+| 3 | Garrison combat has zero diplomacy/war score/threat wiring | executor.py:2772+ |
+| 4 | Strategic parser leaks fogged enemy positions via direction resolution | strategic_parser.py:88,577,610 |
+| 5 | No base response type — diplomatic top-bar fields missing from popup endpoints | main.py (13 endpoints) |
+| 6 | Trust/authority death spiral — double-modified trust gains, asymmetric recovery | authority.py, defiance.py |
+| 7 | Combat modifier chain — snapshot drifts from actual calculation | battle_report.py vs marshal.py |
+| 8 | Three separate post-combat diplomacy implementations | executor.py (3 locations) |
+| 9 | ~140 lines duplicated post-combat logic (solo vs coordinated) | executor.py:4672-4810 |
+
+#### MEDIUM/MODERATE (13)
+
+| # | Finding | Location |
+|---|---------|----------|
+| 10 | Pursuit damage floor 0 (coordinated) vs 1000 (solo) | executor.py:4788 vs combat.py:694 |
+| 11 | 14 cooldown dicts across 4 decrement patterns, no centralized catalog | world_state.py |
+| 12 | 44-step turn pipeline with 5+ undocumented ordering dependencies | world_state.py:3622-4005 |
+| 13 | 16 campaign log event types invisible (including coalition brewing) | campaign_log.py:83-120 |
+| 14 | War score decay value manipulation is dead code | diplomacy.py:419-438 |
+| 15 | Capital capture blocks all AI proposals (diplomatic deadlock) | ai_diplomacy.py:604-610 |
+| 16 | Diplomatic state machine has 5+ direct modification sites | diplomacy.py |
+| 17 | Recklessness preserved through army break/respawn | marshal.py:525-551 |
+| 18 | Reinforcer retreat bypasses move_to() | executor.py:5028 |
+| 19 | Dead backward-compat code in objection system | objection_v2.py:120-126 |
+| 20 | Save/load no schema validation, manual transient field list | save_manager.py |
+| 21 | Mock parser keyword ordering fragile (~150-line elif chain) | llm_client.py:650-800 |
+| 22 | LLM fallback threshold prevents borderline commands from reaching LLM | llm_client.py:48 |
+
+#### LOW/MINOR (12)
+
+| # | Finding | Location |
+|---|---------|----------|
+| 23 | Fixed AI nation order (Britain first-mover advantage) | turn_manager.py:584 |
+| 24 | Notification lifecycle: no expiry, no dedup, unbounded HIGH | notifications.py |
+| 25 | build_active_wars double computation per request | main.py |
+| 26 | ARMISTICE_DURATION hardcoded cross-file | war_status.py:5 |
+| 27 | Vassal garrison loyalty docstring mismatch (+2 vs +5 base) | vassal.py:228 vs 255 |
+| 28 | Duplicate event types: diplomatic_war_declared + war_declaration | campaign_log.py |
+| 29 | BALANCED/LOYAL personalities unimplemented | personality_modifiers.py |
+| 30 | map_data fog leak in LLM game state | main.py:88-98 |
+| 31 | Dispatch hardcoded "France" player_nation | dispatch.py:51 |
+| 32 | Battle report re-pick priorities favor coordination over mutual destruction | battle_report.py:561-602 |
+| 33 | Region name substring matching without word boundaries | llm_client.py:834-871 |
+| 34 | Talleyrand turn_number fallback to non-existent field | diplomatic_defiance.py:493,612 |
+
+---
+
+## Updated Refactoring Roadmap
+
+*Original R1-R10 sessions preserved. New sessions R11-R16 added from extended deep dives.*
+
+#### Session R11: Post-Combat Diplomacy Unification (CRITICAL)
+- **What:** Extract `_apply_post_combat_diplomacy(marshal, enemy, battle_result, world, conquered, battle_region)` shared function
+- **Why:** Fixes 2 CRITICAL bugs (auto-bombardment threat inflation + war score inflation) and 1 MAJOR (garrison diplomacy gap). Eliminates triple-implementation drift.
+- **Effort:** ~200 new lines, refactor 3 combat paths + add garrison wiring. 1 session.
+- **Risk:** Low — each path already computes the values, just needs consolidation.
+- **Dependencies:** Benefits from R1 (post-combat pipeline) but can be done independently.
+- **Independent?** Yes
+
+#### Session R12: Strategic Parser Fog Fix (MAJOR)
+- **What:** Filter `get_enemies_of_nation` through fog in `resolve_direction()` and `_add_interpretation()`. Filter map_data marshals in `_build_game_state_for_llm()`.
+- **Why:** Fixes exploitable fog leak where players discover enemy positions through direction resolution.
+- **Effort:** ~30 new lines, modify 3 functions. Half session.
+- **Risk:** Low — may reduce parser usefulness for vague commands (fewer targets to resolve against).
+- **Dependencies:** None
+- **Independent?** Yes
+
+#### Session R13: Response Pipeline Standardization (MAJOR)
+- **What:** Create `build_base_response(world)` returning all universal keys (success, message, game_state, diplomatic_points, threat_level, notifications, popup keys). All 13 POST endpoints build on top of this base.
+- **Why:** Eliminates stale top-bar during popup interactions. Prevents response shape inconsistencies. Supersedes R4.
+- **Effort:** ~150 new lines, refactor 13 endpoints. 1 session.
+- **Risk:** Medium — must verify Godot handles consistent response shape.
+- **Dependencies:** None
+- **Independent?** Yes
+
+#### Session R14: Trust Recovery Floor (MAJOR)
+- **What:** Add minimum trust gain floor to prevent unrecoverable death spiral. Verify vindication decay is applied. Document authority modifier interaction.
+- **Why:** Low trust + low authority creates self-reinforcing death spiral with no recovery path.
+- **Effort:** ~50 new lines, modify 2-3 files. Half session.
+- **Risk:** Low — balance change only.
+- **Dependencies:** None
+- **Independent?** Yes
+
+#### Session R15: Combat Modifier Registry (MAJOR)
+- **What:** Create shared modifier registry used by both `get_attack_modifier()` and `snapshot_attacker_modifiers()`. Add consumed flags to prevent double-read.
+- **Why:** Eliminates drift between actual combat modifiers and battle report display.
+- **Effort:** ~100 new lines, refactor marshal.py + battle_report.py. 1 session.
+- **Risk:** Medium — must verify all 5 combat paths still produce correct modifiers.
+- **Dependencies:** Benefits from R1 but independent.
+- **Independent?** Yes
+
+#### Session R16: Campaign Log + Cleanup (MEDIUM)
+- **What:** Add 5 most important invisible event types to CAMPAIGN_LOG_TYPES. Remove dead code (war score decay, CONCERN_TO_SEVERITY, turn_number fallback). Fix vassal docstring. Consolidate duplicate war declaration events.
+- **Why:** Completes the campaign log narrative. Removes maintenance traps.
+- **Effort:** ~80 new lines, modify 4 files. Half session.
+- **Risk:** Low — additive changes + dead code removal.
+- **Dependencies:** None
+- **Independent?** Yes
+
+### Updated Dependency Graph
+
+```
+R1 (post-combat pipeline) ──→ R6 (executor split: combat)
+R2 (conftest.py)                         ↓
+R3 (cooldown/popup)          R7 (executor split: diplomatic)
+R4 → SUPERSEDED BY R13                   ↓
+R5 (scaling index) ──→ R8 (AI fog)      R9 (dialogue manager)
+                                          ↓
+R11 (combat→diplo unify) ←── R1         R10 (executor split: remaining)
+R12 (parser fog fix)
+R13 (response pipeline v2)
+R14 (trust recovery floor)
+R15 (modifier registry)
+R16 (campaign log + cleanup)
+```
+
+Sessions R1-R3, R5, R11-R16 are **fully independent** and can be done in any order or in parallel.
+
+### Priority Ordering (All 16 Sessions)
+
+| Priority | Session | Severity | Effort |
+|----------|---------|----------|--------|
+| 1 | **R11** Post-combat diplomacy unification | CRITICAL | 1 session |
+| 2 | **R1** Post-combat pipeline | CRITICAL | 1 session |
+| 3 | **R12** Strategic parser fog fix | MAJOR | ½ session |
+| 4 | **R2** Test conftest.py | CRITICAL | 2 hours |
+| 5 | **R13** Response pipeline standardization | MAJOR | 1 session |
+| 6 | **R14** Trust recovery floor | MAJOR | ½ session |
+| 7 | **R15** Combat modifier registry | MAJOR | 1 session |
+| 8 | **R5** Scaling index | CRITICAL (pre-80) | ½ session |
+| 9 | **R3** CooldownManager + PopupQueue | MAJOR | 1 session |
+| 10 | **R16** Campaign log + cleanup | MEDIUM | ½ session |
+| 11 | **R6** Executor split phase 1 | MAJOR | 1 session |
+| 12 | **R7** Executor split phase 2 | MAJOR | 1 session |
+| 13 | **R8** AI fog integration | CRITICAL (pre-80) | 4-6 days |
+| 14 | **R9** Dialogue manager | MAJOR | 1-2 sessions |
+| 15 | **R10** Executor split phase 3 | MINOR | 1 session |
+
+---
+
+## Extended Metrics Summary
+
+| Metric | Value |
+|--------|-------|
+| Backend Python files | 58 |
+| Total backend lines | ~45,000 |
+| Test files | 203 |
+| Total test lines | ~121,000 |
+| Total tests | ~7,281 |
+| Largest file | executor.py (14,797 lines) |
+| WorldState fields | 92 |
+| `_execute_*` methods | 50 |
+| Enemy AI methods | 74 |
+| Cooldown dictionaries | 14 |
+| API endpoints | 35 (13 POST, 22 GET) |
+| Display name translation maps | 7 |
+| Invisible campaign log event types | 16 |
+| Circular dependencies | 0 |
+| Layer violations | 1 (minor) |
+| Golden Rule compliance | 100% (with documented exceptions for target-type modifiers) |
+| Fog of war leaks found | 2 (strategic parser MAJOR, map_data MINOR) |
+| Dead code sites | 3 (war score decay, CONCERN_TO_SEVERITY, turn_number fallback) |
+| Code conventions score | 8.6/10 average |
+| **Total findings this audit** | **34** (2 CRITICAL, 9 MAJOR, 13 MODERATE, 12 LOW) |
