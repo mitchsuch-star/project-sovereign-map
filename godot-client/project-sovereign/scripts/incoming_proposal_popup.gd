@@ -15,6 +15,18 @@ signal choice_made(choice: String, data: Dictionary)
 @onready var counter_btn = $PanelContainer/VBoxContainer/ButtonContainer/CounterButton
 @onready var reject_btn = $PanelContainer/VBoxContainer/ButtonContainer/RejectButton
 
+# Display name mapping for proposal types
+const PROPOSAL_TYPE_DISPLAY = {
+	"PEACE_TREATY": "Peace Treaty",
+	"ALLIANCE": "Alliance",
+	"NON_AGGRESSION": "Non-Aggression Pact",
+	"OPEN_BORDERS": "Open Borders",
+	"TRADE_AGREEMENT": "Trade Agreement",
+	"VASSALAGE": "Vassalage",
+	"MILITARY_ACCESS": "Military Access",
+	"DEFENSIVE_ALLIANCE": "Defensive Alliance",
+}
+
 var current_data: Dictionary = {}
 
 func _ready():
@@ -37,8 +49,9 @@ func show_proposal(data: Dictionary):
 
 	var bbcode = ""
 	bbcode += "[b]DIPLOMATIC ENVOY[/b]\n"
-	bbcode += "%s (%s) of %s\n\n" % [diplomat_name, diplomat_personality, from_nation]
-	bbcode += "[b]Proposes:[/b] %s\n" % proposal_type.replace("_", " ").capitalize()
+	var pers_str = " (%s)" % diplomat_personality if diplomat_personality else ""
+	bbcode += "%s%s of %s\n\n" % [diplomat_name, pers_str, from_nation]
+	bbcode += "[b]Proposes:[/b] %s\n" % PROPOSAL_TYPE_DISPLAY.get(proposal_type, proposal_type.replace("_", " ").capitalize())
 	bbcode += "[b]Terms:[/b]\n"
 
 	for clause in clauses:

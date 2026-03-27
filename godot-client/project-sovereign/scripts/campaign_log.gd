@@ -50,6 +50,7 @@ func open_log(api_client):
 	# Show overlay immediately with loading state
 	empty_label.text = "Loading..."
 	empty_label.visible = true
+	scroll_container.scroll_vertical = 0
 	show()
 	api_client.get_campaign_log(_on_campaign_log_received)
 

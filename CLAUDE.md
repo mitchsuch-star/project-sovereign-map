@@ -18,7 +18,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Systems Audit V3 Fix Plan — Sessions 1-10 COMPLETE (backend).** 158 bugs across 10 required + 1 optional sessions. Session 10 backend bugs merged into Final Audit combined session. 19 Godot GDScript items deferred. Session 11 (optional polish) remaining. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`.
+- **Systems Audit V3 Fix Plan — Sessions 1-10 ALL COMPLETE.** 158 bugs across 10 required + 1 optional sessions. Session 10: 3 backend + 19 Godot GDScript bugs. Session 11 (optional polish) remaining. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`.
 - **Final Audit Fix Plan — ALL COMPLETE.** 13 confirmed bugs fixed in combined session with V3 Session 10 backend bugs (16 total). 29 new tests (7,281 total). See `docs/FINAL_AUDIT_FIX_PLAN.md`.
 - ~~**Systems Audit V2 Fix Plan — ALL 7 SESSIONS COMPLETE.**~~ 56 bugs fixed, 7,040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.
 - **Playtest Bug Fixes (March 2026 Review).** 16-turn playtest found 3 critical + 3 major + 4 minor bugs + 4 balance concerns. Session 1: armistice deadlock, self-combat, turn skip. Session 2: raw state names, parse failures. Session 3: minor fixes + balance. See `docs/PLAYTEST_REVIEW_2026_03.md`.

@@ -155,6 +155,7 @@ func _switch_tab(tab_index: int):
 	if tab_index == current_tab:
 		return
 	current_tab = tab_index
+	scroll_container.scroll_vertical = 0
 	_update_tab_highlights()
 	_render_current_tab()
 

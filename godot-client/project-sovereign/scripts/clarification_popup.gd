@@ -87,6 +87,8 @@ func _create_button(label: String, target_value: String) -> Button:
 
 func _on_option_pressed(target_value: String):
 	"""Handle player selecting a clarification option."""
+	for btn in button_container.get_children():
+		btn.disabled = true
 	hide()
 	if target_value == "":
 		cancelled.emit()

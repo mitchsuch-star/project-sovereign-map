@@ -125,6 +125,7 @@ func update_wars(data: Dictionary) -> void:
 	# Clear existing cards (keep header)
 	for child in vbox.get_children():
 		if child != header_label:
+			vbox.remove_child(child)
 			child.queue_free()
 
 	var wars = data.get("wars", [])

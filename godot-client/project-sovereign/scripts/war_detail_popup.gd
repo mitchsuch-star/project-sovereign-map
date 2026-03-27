@@ -154,6 +154,7 @@ func refresh_if_open(active_wars_data: Dictionary) -> void:
 
 func _clear_score_bars():
 	for child in score_bar_container.get_children():
+		score_bar_container.remove_child(child)
 		child.queue_free()
 
 
@@ -235,27 +236,26 @@ func _create_tug_of_war_bar(score: int, opponent: String, bar_width: int, bar_he
 	score_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	container.add_child(score_label)
 
-	# Side labels (France / Enemy)
-	var france_lbl = Label.new()
-	france_lbl.text = "FR"
-	france_lbl.add_theme_font_size_override("font_size", max(7, font_size - 3))
-	france_lbl.add_theme_color_override("font_color", Color(0.5, 0.6, 0.8, 0.6))
-	france_lbl.position = Vector2(3, 0)
-	france_lbl.size = Vector2(20, bar_height)
-	france_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	container.add_child(france_lbl)
-
+	# Side labels (Enemy on LEFT, France on RIGHT — matches fill direction)
 	var enemy_lbl = Label.new()
-	# Abbreviate enemy name to 2 chars
 	var abbr = opponent.left(2).to_upper() if opponent.length() >= 2 else opponent.to_upper()
 	enemy_lbl.text = abbr
 	enemy_lbl.add_theme_font_size_override("font_size", max(7, font_size - 3))
 	enemy_lbl.add_theme_color_override("font_color", Color(0.8, 0.5, 0.5, 0.6))
-	enemy_lbl.position = Vector2(bar_width - 22, 0)
+	enemy_lbl.position = Vector2(3, 0)
 	enemy_lbl.size = Vector2(20, bar_height)
-	enemy_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	enemy_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	container.add_child(enemy_lbl)
+
+	var france_lbl = Label.new()
+	france_lbl.text = "FR"
+	france_lbl.add_theme_font_size_override("font_size", max(7, font_size - 3))
+	france_lbl.add_theme_color_override("font_color", Color(0.5, 0.6, 0.8, 0.6))
+	france_lbl.position = Vector2(bar_width - 22, 0)
+	france_lbl.size = Vector2(20, bar_height)
+	france_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	france_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	container.add_child(france_lbl)
 
 	return container
 
@@ -369,6 +369,7 @@ func _render_armistice_detail(w: Dictionary):
 
 func _clear_buttons():
 	for child in button_row.get_children():
+		button_row.remove_child(child)
 		child.queue_free()
 
 

@@ -1560,6 +1560,46 @@ func _display_morning_dispatch(data: Dictionary):
 			add_output("[color=#" + evt_color + "]  " + evt_msg + "[/color]")
 		add_output("")
 
+	# ═══ TURN LIMIT WARNING ═══
+	var turn_limit_warning = data.get("turn_limit_warning", null)
+	if turn_limit_warning != null and turn_limit_warning is Dictionary:
+		var tlw_msg = str(turn_limit_warning.get("message", ""))
+		var tlw_sev = str(turn_limit_warning.get("severity", "warning"))
+		if tlw_msg != "":
+			var tlw_color = COLOR_ERROR if tlw_sev == "critical" else COLOR_BATTLE
+			add_output("[color=#" + tlw_color + "]  " + tlw_msg + "[/color]")
+			add_output("")
+
+	# ═══ TALLEYRAND REPORT ═══
+	var talleyrand_report = data.get("talleyrand_report", [])
+	if talleyrand_report is Array and talleyrand_report.size() > 0:
+		add_output("[color=#" + COLOR_BERTHIER + "]DIPLOMATIC STATUS[/color]")
+		for tal_entry in talleyrand_report:
+			var tal_msg = str(tal_entry.get("message", "")) if tal_entry is Dictionary else str(tal_entry)
+			if tal_msg != "":
+				add_output("[color=#" + COLOR_INFO + "]  " + tal_msg + "[/color]")
+		add_output("")
+
+	# ═══ COALITION STATUS ═══
+	var coalition_status = data.get("coalition_status", null)
+	if coalition_status != null and coalition_status is Dictionary:
+		var threat_level = int(coalition_status.get("threat_level", 0))
+		var tier = str(coalition_status.get("tier", ""))
+		if threat_level > 0:
+			add_output("[color=#" + COLOR_BERTHIER + "]COALITION THREAT[/color]")
+			var tier_color = COLOR_ERROR if tier == "CRITICAL" or tier == "HIGH" else COLOR_BATTLE
+			add_output("[color=#" + tier_color + "]  Threat: " + str(threat_level) + "/100 [" + tier + "][/color]")
+			var brewing = coalition_status.get("brewing", null)
+			if brewing != null and brewing is Dictionary:
+				var brew_turns = int(brewing.get("turns_remaining", 0))
+				add_output("[color=#" + COLOR_ERROR + "]  Coalition forming in " + str(brew_turns) + " turns![/color]")
+			var active_coal = coalition_status.get("active_coalition", null)
+			if active_coal != null and active_coal is Dictionary:
+				var coal_name = str(active_coal.get("name", "Coalition"))
+				var coal_leader = str(active_coal.get("leader", "?"))
+				add_output("[color=#" + COLOR_ERROR + "]  ACTIVE: " + coal_name + " — Leader: " + coal_leader + "[/color]")
+			add_output("")
+
 	# ═══ BERTHIER'S NOTE ═══
 	add_output("[color=#" + COLOR_OBSERVATION + "]  Berthier: \"" + berthier_note + "\"[/color]")
 	add_output("[color=#" + COLOR_BERTHIER + "]════════════════════════════════════[/color]")
@@ -1633,8 +1673,8 @@ func _show_game_over_screen(game_state: Dictionary):
 	add_output("[color=#" + COLOR_INFO + "]Imperial Treasury: " + _format_number(final_gold) + " gold[/color]")
 
 	# Marshal status if available
-	if game_state.has("player_marshals"):
-		var marshals = game_state.player_marshals
+	if game_state.has("marshals"):
+		var marshals = game_state.marshals
 		add_output("")
 		add_output("[color=#" + COLOR_MARSHAL + "]Marshal Status:[/color]")
 		for marshal_name in marshals:

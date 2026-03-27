@@ -333,38 +333,38 @@ New event types added to the event log but never added to the campaign log white
 
 ---
 
-### Session 10: Godot UI + Endgame Flow [P2]
+### Session 10: Godot UI + Endgame Flow [P2] — COMPLETE
 
-**22 bugs. Mostly GDScript (no pytest). Manual verification via curl + Godot.**
+**22 bugs. 3 backend (fixed in Final Audit) + 19 GDScript (fixed this session).**
 
-| Bug | Sev | File | Fix |
-|-----|-----|------|-----|
-| 1A-1 | MAJOR | war_detail_popup.gd:239 | Swap FR/enemy label positions to match fill direction |
-| 1A-2 | MAJOR | alliance_paradox_popup.gd:52 | Add `_disable_buttons()` on choice |
-| 1B-1 | MAJOR | map.gd:222 | Add all 5 capitals from NATION_CAPITALS, use explicit gold constant |
-| 1B-2 | MAJOR | map.gd:374,682,1018,1086 | Clamp tooltip position against viewport bounds |
-| 4C-1 | MAJOR | main.gd:1636 | Change `"player_marshals"` → `"marshals"` |
-| 4C-2 | MAJOR | dispatch.py:540 | Shift turn limit warning thresholds by one |
-| 1A-3 | MINOR | incoming_proposal_popup.gd:41 + main.py | Add `proposal_type_display` to backend popup data, use in popup |
-| 1A-4 | MINOR | coalition_declaration_popup.gd:49 | Disable Continue button before hide |
-| 1A-7 | MINOR | interrupt_popup.gd:84 | Disable all buttons before hiding |
-| 1A-8 | MINOR | clarification_popup.gd:88 | Disable all buttons before hiding |
-| 1B-3 | MINOR | map.gd:546 | Remove debug print statements |
-| 1B-5 | MINOR | map.gd:1282 | Remove dead `update_region()` method |
-| 1B-6 | MINOR | map.gd:504 | Remove debug print from click handler (keep handler for future use) |
-| 1B-7 | MINOR | map.gd | Add watchtower indicator to region tooltip |
-| 1C-2 | MINOR | strategic_ledger.gd:141 + diplomatic_ledger.gd:154 | Add `scroll_container.scroll_vertical = 0` on tab switch |
-| 1C-3 | MINOR | war_status_panel.gd:126 + war_detail_popup.gd:155,370 | Add `remove_child()` before `queue_free()` |
-| 4C-3 | MINOR | main.gd:1389 | Add rendering for `turn_limit_warning`, `talleyrand_report`, `coalition_status` dispatch sections |
-| 4C-5 | MINOR | executor.py:1018 | Add `game_over`/`victory` keys to explicit `_execute_end_turn` result |
-| 4D-4 | MINOR | executor.py:3654 | Add warning when intended target matched a friendly marshal |
-| 1A-5 | NOTE | incoming_proposal_popup.gd:40 | Guard personality parentheses for empty string |
-| 1A-6 | NOTE | coalition_declaration_popup.gd:35 | Guard empty members list |
-| 1C-5 | NOTE | campaign_log.gd:88 | Add `scroll_container.scroll_vertical = 0` on re-open |
+| Bug | Sev | File | Fix | Status |
+|-----|-----|------|-----|--------|
+| 1A-1 | MAJOR | war_detail_popup.gd:239 | Swap FR/enemy label positions to match fill direction | FIXED |
+| 1A-2 | MAJOR | alliance_paradox_popup.gd:52 | Add button disable before hide | FIXED |
+| 1B-1 | MAJOR | map.gd:222 | Add all 5 capitals (Paris, Berlin, Vienna, London, Madrid) | FIXED |
+| 1B-2 | MAJOR | map.gd:374,682,1018,1086 | Clamp tooltip position via `_clamp_tooltip_pos()` helper | FIXED |
+| 4C-1 | MAJOR | main.gd:1636 | Change `"player_marshals"` → `"marshals"` | FIXED |
+| 4C-2 | MAJOR | dispatch.py:540 | Shift turn limit warning thresholds by one | FIXED (Final Audit) |
+| 1A-3 | MINOR | incoming_proposal_popup.gd:41 | Add `PROPOSAL_TYPE_DISPLAY` dict with fallback | FIXED |
+| 1A-4 | MINOR | coalition_declaration_popup.gd:49 | Disable Continue button before hide | FIXED |
+| 1A-7 | MINOR | interrupt_popup.gd:84 | Disable all buttons before hiding | FIXED |
+| 1A-8 | MINOR | clarification_popup.gd:88 | Disable all buttons before hiding | FIXED |
+| 1B-3 | MINOR | map.gd:546 | Remove TOOLTIP_DEBUG and FORTIFY_DEBUG prints | FIXED |
+| 1B-5 | MINOR | map.gd:504 | Remove dead `_on_region_clicked()` method | FIXED |
+| 1B-6 | MINOR | map.gd:506 | Remove debug print (covered by 1B-5 removal) | FIXED |
+| 1B-7 | MINOR | map.gd | Add watchtower indicator (active/under_construction/damaged) | FIXED |
+| 1C-2 | MINOR | strategic_ledger.gd + diplomatic_ledger.gd | Add `scroll_container.scroll_vertical = 0` on tab switch | FIXED |
+| 1C-3 | MINOR | war_status_panel.gd + war_detail_popup.gd | Add `remove_child()` before `queue_free()` (3 sites) | FIXED |
+| 4C-3 | MINOR | main.gd:1389 | Add rendering for `turn_limit_warning`, `talleyrand_report`, `coalition_status` | FIXED |
+| 4C-5 | MINOR | executor.py:1018 | Add `game_over`/`victory` keys to explicit `_execute_end_turn` result | FIXED (Final Audit) |
+| 4D-4 | MINOR | executor.py:3654 | Add warning when intended target matched a friendly marshal | FIXED (Final Audit) |
+| 1A-5 | NOTE | incoming_proposal_popup.gd:40 | Guard personality parentheses for empty string | FIXED |
+| 1A-6 | NOTE | coalition_declaration_popup.gd:35 | Guard empty members list | FIXED |
+| 1C-5 | NOTE | campaign_log.gd:48 | Add `scroll_container.scroll_vertical = 0` on re-open | FIXED |
 
-**Tests:** Backend-side tests for 4C-2, 4C-5, 4D-4 (~8 tests). GDScript changes verified manually.
+**Tests:** Backend-side tests for 4C-2, 4C-5, 4D-4 in Final Audit session. GDScript changes verified manually.
 
-**Files touched:** Multiple .gd files, `executor.py`, `dispatch.py`, `main.py`
+**Files touched:** `war_detail_popup.gd`, `alliance_paradox_popup.gd`, `map.gd`, `main.gd`, `incoming_proposal_popup.gd`, `coalition_declaration_popup.gd`, `interrupt_popup.gd`, `clarification_popup.gd`, `strategic_ledger.gd`, `diplomatic_ledger.gd`, `war_status_panel.gd`, `campaign_log.gd`
 
 ---
 

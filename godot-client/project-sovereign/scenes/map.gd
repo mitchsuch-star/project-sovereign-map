@@ -218,10 +218,9 @@ func _draw_regions():
 		if fog_color.a > 0:
 			draw_circle(pos, 30, fog_color)
 
-		# Draw border
-		if region_name == "Paris":
-			# Capital gets gold border
-			draw_arc(pos, 30, 0, TAU, 32, COLORS["Austria"], 3.0)
+		# Draw border — all capitals get gold border
+		if region_name in ["Paris", "Berlin", "Vienna", "London", "Madrid"]:
+			draw_arc(pos, 30, 0, TAU, 32, Color(0.85, 0.75, 0.3), 3.0)
 		else:
 			# Border color dims with fog
 			var border_color = Color.BLACK
@@ -371,7 +370,7 @@ func _draw_fogged_tooltip():
 	# 4 lines: name, nation, strength band, intel quality
 	var tooltip_height = padding * 2 + (4 * line_spacing) + 8
 	var tooltip_size = Vector2(220, tooltip_height)
-	var tooltip_pos = mouse_position + Vector2(15, 15)
+	var tooltip_pos = _clamp_tooltip_pos(mouse_position + Vector2(15, 15), tooltip_size)
 
 	# Draw panel (slightly different tint for fogged tooltip)
 	var panel_color = Color(0.12, 0.1, 0.18, 0.95)
@@ -498,14 +497,7 @@ func _gui_input(event):
 			var distance = map_click_pos.distance_to(region_pos)
 
 			if distance <= 30:  # Within region circle
-				_on_region_clicked(region_name)
 				break
-
-func _on_region_clicked(region_name: String):
-	"""Handle region click."""
-	print("Clicked region: ", region_name)
-	# TODO: Emit signal to main script
-	# emit_signal("region_selected", region_name)
 
 func _zoom_at_point(point: Vector2, zoom_factor: float):
 	"""Zoom smoothly at a specific point (keeps point under cursor)."""
@@ -540,12 +532,18 @@ func _zoom_at_point(point: Vector2, zoom_factor: float):
 	# Clear zooming flag when finished
 	zoom_tween.finished.connect(func(): is_zooming = false)
 
+func _clamp_tooltip_pos(pos: Vector2, tooltip_size: Vector2) -> Vector2:
+	"""Clamp tooltip position to keep it within the viewport."""
+	var vp_size = get_viewport_rect().size
+	if pos.x + tooltip_size.x > vp_size.x:
+		pos.x = vp_size.x - tooltip_size.x
+	if pos.y + tooltip_size.y > vp_size.y:
+		pos.y = mouse_position.y - tooltip_size.y - 5
+	return pos
+
+
 func _draw_tooltip():
-	"""Draw tooltip panel showing marshal details with debug info."""
-	# DEBUG: Print fortify state to verify what we're receiving
-	if hovered_marshal.get("fortified", false):
-		print("TOOLTIP DEBUG: fortified=true, defense_bonus=", hovered_marshal.get("defense_bonus", 0))
-		print("TOOLTIP DEBUG: fortify_state = ", hovered_marshal.get("fortify_state", {}))
+	"""Draw tooltip panel showing marshal details."""
 
 	# Get marshal data
 	var marshal_name = hovered_marshal.get("name", "Unknown")
@@ -582,17 +580,10 @@ func _draw_tooltip():
 	var fortify_direction = "none"
 	var fortify_floor = 0
 	var fortify_turns_until_decay = -1
-	# DEBUG: Trace fortify state
-	if fortified:
-		print("[FORTIFY_DEBUG] ", marshal_name, " fortified=", fortified, " defense_bonus=", defense_bonus)
-		print("[FORTIFY_DEBUG]   fortify_state_raw=", fortify_state_raw)
-		print("[FORTIFY_DEBUG]   is Dictionary=", fortify_state_raw is Dictionary if fortify_state_raw != null else "null")
 	if fortify_state_raw != null and fortify_state_raw is Dictionary:
 		fortify_direction = fortify_state_raw.get("direction", "none")
 		fortify_floor = fortify_state_raw.get("floor", 0)
 		fortify_turns_until_decay = fortify_state_raw.get("turns_until_decay", -1)
-		if fortified:
-			print("[FORTIFY_DEBUG]   direction=", fortify_direction, " floor=", fortify_floor, " turns_until_decay=", fortify_turns_until_decay)
 	var retreating = tactical_state.get("retreating", false)
 	var retreat_recovery = tactical_state.get("retreat_recovery", 0)
 	# Broken army state (surrounded + forced retreat)
@@ -679,7 +670,7 @@ func _draw_tooltip():
 
 	# Tooltip dimensions
 	var tooltip_size = Vector2(240, tooltip_height)
-	var tooltip_pos = mouse_position + Vector2(15, 15)  # Offset from cursor
+	var tooltip_pos = _clamp_tooltip_pos(mouse_position + Vector2(15, 15), tooltip_size)
 
 	# Draw semi-transparent dark panel
 	var panel_color = Color(0.1, 0.1, 0.15, 0.95)
@@ -1015,7 +1006,7 @@ func _draw_region_tooltip():
 		var fog_line_count = 4  # name, controller, terrain, intel status
 		var tooltip_height = padding * 2 + (fog_line_count * line_spacing) + 12
 		var tooltip_size = Vector2(240, tooltip_height)
-		var tooltip_pos = mouse_position + Vector2(15, 15)
+		var tooltip_pos = _clamp_tooltip_pos(mouse_position + Vector2(15, 15), tooltip_size)
 
 		var panel_color = Color(0.08, 0.08, 0.12, 0.95)
 		draw_rect(Rect2(tooltip_pos, tooltip_size), panel_color)
@@ -1046,6 +1037,7 @@ func _draw_region_tooltip():
 	var buildings = data.get("buildings", [])
 	var construction = data.get("building_under_construction", null)
 	var max_slots = data.get("max_building_slots", 0)
+	var watchtower_status = data.get("watchtower", "none")
 
 	# Count lines for tooltip height
 	var line_count = 6  # name, controller, type+terrain, income, stability, supply
@@ -1055,6 +1047,8 @@ func _draw_region_tooltip():
 	if garrison_info != null:
 		line_count += 1
 	if war_damage > 0:
+		line_count += 1
+	if watchtower_status != "none":
 		line_count += 1
 	if max_slots > 0:
 		line_count += 1  # "Buildings (X/Y):" header
@@ -1083,7 +1077,7 @@ func _draw_region_tooltip():
 	if coord_lines > 0:
 		tooltip_height += extra_spacing  # Extra spacing before coordination section
 	var tooltip_size = Vector2(280 if coord_lines > 0 else 260, tooltip_height)
-	var tooltip_pos = mouse_position + Vector2(15, 15)
+	var tooltip_pos = _clamp_tooltip_pos(mouse_position + Vector2(15, 15), tooltip_size)
 
 	# Draw panel — slightly different tint for non-full visibility
 	var panel_color = Color(0.1, 0.1, 0.15, 0.95)
@@ -1169,6 +1163,23 @@ func _draw_region_tooltip():
 		var dmg_text = "War Damage: " + str(int(war_damage)) + "%"
 		var dmg_color = Color(0.85, 0.4, 0.4)  # Red
 		draw_string(font, Vector2(text_x, text_y + 11), dmg_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, dmg_color)
+		text_y += line_spacing
+
+	# Watchtower indicator
+	if watchtower_status != "none":
+		var wt_text = "Watchtower: "
+		var wt_color = Color(0.6, 0.8, 0.9)  # Light blue
+		if watchtower_status == "active":
+			wt_text += "ACTIVE [observes adjacent]"
+			wt_color = Color(0.5, 0.85, 0.5)  # Green
+		elif watchtower_status == "under_construction":
+			var wt_turns = int(data.get("watchtower_turns_remaining", 0))
+			wt_text += "Under Construction (" + str(wt_turns) + " turns)"
+			wt_color = Color(0.85, 0.75, 0.4)  # Yellow
+		elif watchtower_status == "damaged":
+			wt_text += "DAMAGED"
+			wt_color = Color(0.85, 0.5, 0.3)  # Orange
+		draw_string(font, Vector2(text_x, text_y + 11), wt_text, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, wt_color)
 		text_y += line_spacing
 
 	# Buildings section (only if region supports buildings)

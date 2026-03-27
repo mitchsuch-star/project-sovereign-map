@@ -83,5 +83,7 @@ func show_interrupt(interrupt_data: Dictionary):
 
 func _on_option_pressed(option_id: String):
 	"""Handle player selecting an interrupt response option."""
+	for btn in button_container.get_children():
+		btn.disabled = true
 	hide()
 	choice_made.emit(current_marshal, current_response_type, option_id)

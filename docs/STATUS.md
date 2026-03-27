@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 27, 2026 (Final Audit + V3 Session 10 backend COMPLETE)
+> **Last Updated:** March 27, 2026 (V3 Session 10 Godot UI bugs COMPLETE)
 
 ---
 
@@ -11,7 +11,7 @@
 |--------|-------|
 | **Tests Passing** | **7281** (7281 passed, 1 skipped) |
 
-| **Current Phase** | **Final Audit + V3 Session 10 backend — COMPLETE.** V3 Session 11 (optional polish) remaining. |
+| **Current Phase** | **V3 Sessions 1-10 — ALL COMPLETE.** V3 Session 11 (optional polish) remaining. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -31,7 +31,7 @@
    - ~~**Session 8 (P2): COMPLETE.**~~ Session 8: 14 bugs fixed (save/load transient clearing, modding terrain/region_type/Saxony validation, scenario validation, event log cap, morale default, strength int cast, treaty deepcopy, battle report stripped from log, campaign log types), 20 tests. Files: `save_manager.py`, `validator.py`, `world_state.py`, `marshal.py`, `combat.py`, `campaign_log.py`.
    - **Verification pass: COMPLETE.** 2 code gaps found by deep audit: reckless charge target missing `is_at_war()` (executor.py:3601), auto-bombardment kill missing `process_battle_relationships()`. Both fixed. 20 verification tests added in `test_war_action_verification.py` (12 is_at_war regression + 8 auto-action completeness). 7232 total tests.
    - ~~**Session 9 (P2): COMPLETE.**~~ Session 9: 13 bugs fixed (parsing, trust, error handling, hardening), 20 tests.
-   - ~~**Session 10 (P2): BACKEND COMPLETE.**~~ 3 backend bugs (4C-5, 4D-4, 4C-2) fixed in combined Final Audit session. 19 remaining items are Godot GDScript (deferred to Godot session).
+   - ~~**Session 10 (P2): COMPLETE.**~~ 22 bugs total: 3 backend bugs (4C-5, 4D-4, 4C-2) fixed in combined Final Audit session + 19 Godot GDScript bugs fixed. War score labels swapped, capital markers (5 nations), tooltip viewport clamp, double-click prevention (5 popups), marshal dict key fix, dispatch section rendering (turn_limit/talleyrand/coalition), watchtower tooltip, scroll resets, queue_free cleanup, proposal type display names, personality guard. Files: `war_detail_popup.gd`, `alliance_paradox_popup.gd`, `map.gd`, `main.gd`, `incoming_proposal_popup.gd`, `coalition_declaration_popup.gd`, `interrupt_popup.gd`, `clarification_popup.gd`, `strategic_ledger.gd`, `diplomatic_ledger.gd`, `war_status_panel.gd`, `campaign_log.gd`.
    - Session 11 (P3, optional): NOTEs & polish.
    - **IMPORTANT: After each session, update this STATUS.md to mark it done and indicate which session is next.**
 2. ~~**Systems Audit V2 Fix Plan**~~ — **ALL 7 SESSIONS COMPLETE.** 56 bugs fixed, 7040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.

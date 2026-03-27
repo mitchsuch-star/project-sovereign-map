@@ -50,10 +50,14 @@ func show_paradox(data: Dictionary):
 
 
 func _on_honor_pressed():
+	honor_button.disabled = true
+	break_button.disabled = true
 	hide()
 	choice_made.emit("honor_defender", _data)
 
 
 func _on_break_pressed():
+	honor_button.disabled = true
+	break_button.disabled = true
 	hide()
 	choice_made.emit("break_defender_alliance", _data)
