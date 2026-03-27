@@ -5,8 +5,7 @@ Every battle degrades the defender's defense_bonus by 0.05 (5 percentage points)
 regardless of who wins. Star fort buildings are NOT affected.
 """
 
-import pytest
-from backend.models.marshal import Marshal, Stance
+from backend.models.marshal import Marshal
 from backend.game_logic.combat import CombatResolver
 from backend.game_logic.battle_report import _pick_observation
 
@@ -50,8 +49,8 @@ class TestFortDegradation:
 
         assert defender.defense_bonus == 0.11  # 16% - 5% = 11%
         assert result["fortification_degraded"] is True
-        assert result["fortification_old"] == 0.16
-        assert result["fortification_new"] == 0.11
+        assert result["fortification_old"] == 16
+        assert result["fortification_new"] == 11
 
     def test_fort_degrades_on_attacker_win(self):
         """Fort degrades even when attacker wins decisively."""
@@ -101,7 +100,7 @@ class TestFortDegradation:
 
         assert defender.defense_bonus == 0.0
         assert result["fortification_degraded"] is True
-        assert result["fortification_new"] == 0.0
+        assert result["fortification_new"] == 0
 
     def test_fort_at_exactly_5_percent_goes_to_zero(self):
         """Defense bonus at exactly 5% goes to 0."""
@@ -194,8 +193,8 @@ class TestFortDegradation:
         assert "fortification_degraded" in result
         assert "fortification_old" in result
         assert "fortification_new" in result
-        assert result["fortification_old"] == 0.12
-        assert result["fortification_new"] == 0.07
+        assert result["fortification_old"] == 12
+        assert result["fortification_new"] == 7
 
     def test_serialization_roundtrip_preserves_degraded_value(self):
         """Save/load preserves the degraded defense_bonus value."""
@@ -219,7 +218,7 @@ class TestFortDegradation:
 class TestFortDegradationObservations:
     """Test that Berthier comments on fortification degradation."""
 
-    def _make_battle_result(self, degraded=True, fort_new=0.05,
+    def _make_battle_result(self, degraded=True, fort_new=5,
                             we_are_attacker=True, outcome="stalemate"):
         """Build a minimal battle result dict for observation testing."""
         attacker_won = outcome in ("attacker_victory", "attacker_tactical_victory")
@@ -234,13 +233,13 @@ class TestFortDegradationObservations:
             "defender_original_strength": 20000,
             "modifier_snapshot": {"attacker": [], "defender": []},
             "fortification_degraded": degraded,
-            "fortification_old": 0.10 if degraded else 0.0,
-            "fortification_new": fort_new if degraded else 0.0,
+            "fortification_old": 10 if degraded else 0,
+            "fortification_new": fort_new if degraded else 0,
         }
 
     def test_observation_fires_for_degradation_attacker_perspective(self):
         """When we (France) attack and damage enemy fort, observation fires."""
-        result = self._make_battle_result(degraded=True, fort_new=0.05,
+        result = self._make_battle_result(degraded=True, fort_new=5,
                                           we_are_attacker=True)
         obs = _pick_observation(result, "France")
         # Should match fort_degraded_attacker templates
@@ -250,7 +249,7 @@ class TestFortDegradationObservations:
 
     def test_observation_fires_for_degradation_defender_perspective(self):
         """When enemy attacks our fort and damages it, observation fires."""
-        result = self._make_battle_result(degraded=True, fort_new=0.05,
+        result = self._make_battle_result(degraded=True, fort_new=5,
                                           we_are_attacker=False)
         obs = _pick_observation(result, "France")
         # Should match fort_degraded_defender templates
@@ -260,7 +259,7 @@ class TestFortDegradationObservations:
 
     def test_observation_fires_for_destroyed_fort_attacker(self):
         """When we destroy enemy fort completely, observation fires."""
-        result = self._make_battle_result(degraded=True, fort_new=0.0,
+        result = self._make_battle_result(degraded=True, fort_new=0,
                                           we_are_attacker=True)
         obs = _pick_observation(result, "France")
         assert any(phrase in obs for phrase in [
@@ -269,7 +268,7 @@ class TestFortDegradationObservations:
 
     def test_observation_fires_for_destroyed_fort_defender(self):
         """When enemy destroys our fort, observation fires."""
-        result = self._make_battle_result(degraded=True, fort_new=0.0,
+        result = self._make_battle_result(degraded=True, fort_new=0,
                                           we_are_attacker=False)
         obs = _pick_observation(result, "France")
         assert any(phrase in obs for phrase in [
@@ -288,7 +287,7 @@ class TestFortDegradationObservations:
 
     def test_degradation_observation_lower_priority_than_mutual_destruction(self):
         """Mutual destruction (P1) should override fort degradation (P6c)."""
-        result = self._make_battle_result(degraded=True, fort_new=0.05)
+        result = self._make_battle_result(degraded=True, fort_new=5)
         result["outcome"] = "mutual_destruction"
         obs = _pick_observation(result, "France")
         assert any(phrase in obs for phrase in [
@@ -297,7 +296,7 @@ class TestFortDegradationObservations:
 
     def test_degradation_observation_lower_priority_than_lost_into_fort(self):
         """Lost into fortification (P2) should override degradation (P6c)."""
-        result = self._make_battle_result(degraded=True, fort_new=0.05,
+        result = self._make_battle_result(degraded=True, fort_new=5,
                                           we_are_attacker=True,
                                           outcome="defender_victory")
         # Add fort modifier to their (defender) mods so P2 fires

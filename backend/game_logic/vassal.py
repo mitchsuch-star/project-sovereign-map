@@ -450,18 +450,28 @@ def check_vassal_rebellion(world) -> List[dict]:
         # Remove vassal state
         del world.vassals[vassal_name]
 
-        # Set diplomatic state to WAR
+        # Set diplomatic state to WAR (FINAL-2: respect armistice — skip if in ceasefire)
         diplo_key = world._make_diplo_key(lord, vassal_name)
-        world.diplomatic_states[diplo_key] = "WAR"
-        # R142: Record war start turn
-        reb_war_starts = getattr(world, 'war_start_turns', {})
-        reb_war_starts[diplo_key] = int(world.current_turn)
-        world.war_start_turns = reb_war_starts
+        current_state = world.diplomatic_states.get(diplo_key, "PEACE")
+        if current_state == "ARMISTICE":
+            # Vassal becomes independent but armistice is respected — no war declaration
+            events.append({
+                "type": "vassal_rebellion_armistice",
+                "vassal": vassal_name,
+                "lord": lord,
+                "message": f"{vassal_name} breaks free but the armistice holds — no war declared."
+            })
+        else:
+            world.diplomatic_states[diplo_key] = "WAR"
+            # R142: Record war start turn
+            reb_war_starts = getattr(world, 'war_start_turns', {})
+            reb_war_starts[diplo_key] = int(world.current_turn)
+            world.war_start_turns = reb_war_starts
 
-        # War cascade: allies pulled into the war
-        from backend.game_logic.diplomacy import _process_war_cascade
-        cascade_events = _process_war_cascade(world, vassal_name, lord)
-        events.extend(cascade_events)
+            # War cascade: allies pulled into the war
+            from backend.game_logic.diplomacy import _process_war_cascade
+            cascade_events = _process_war_cascade(world, vassal_name, lord)
+            events.extend(cascade_events)
 
         # Transfer vassal marshals back and clean up stale state
         for marshal in list(world.marshals.values()):

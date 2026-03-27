@@ -74,6 +74,38 @@ def _proposal_display_name(proposal_type: str) -> str:
     return PROPOSAL_TYPE_DISPLAY.get(proposal_type, proposal_type.replace("_", " ").title())
 
 
+def _filter_tactical_events_by_fog(events: list, world) -> list:
+    """FINAL-7: Filter tactical events by fog of war.
+
+    Keep events where:
+    - The marshal belongs to the player, OR
+    - The event's region has PARTIAL+ visibility
+    """
+    from backend.models.intel import FULL, PARTIAL
+    filtered = []
+    player_nation = getattr(world, 'player_nation', 'France')
+    for event in events:
+        # Player marshal events always visible
+        marshal_nation = event.get("nation", "") or event.get("attacker_nation", "")
+        if marshal_nation == player_nation:
+            filtered.append(event)
+            continue
+        # Check defender nation too (player defending)
+        if event.get("defender_nation", "") == player_nation:
+            filtered.append(event)
+            continue
+        # Events with no marshal/location (e.g. intel events) — keep
+        location = event.get("location") or event.get("region") or event.get("from", "")
+        if not location:
+            filtered.append(event)
+            continue
+        # Check fog on event location
+        intel = world.get_region_intel(location)
+        if intel.visibility in (FULL, PARTIAL):
+            filtered.append(event)
+    return filtered
+
+
 class CommandExecutor:
     """
     Executes validated commands and returns results.
@@ -935,6 +967,9 @@ class CommandExecutor:
         enemy_phase = turn_result.get("enemy_phase")
         tactical_events = turn_result.get("tactical_events", [])
 
+        # FINAL-7: Filter tactical events by fog — only show events the player can see
+        tactical_events = _filter_tactical_events_by_fog(tactical_events, world)
+
         # Add Independent Command Report to message (Phase 2.5)
         # NOTE: Action names must be player-readable — never show raw internal names
         # like "stance_change" or "fortify". Use _action_display_name() to translate.
@@ -1030,6 +1065,11 @@ class CommandExecutor:
             result["battle_report"] = tactical_battle_report
         if tactical_redemption:
             result["redemption_event"] = tactical_redemption
+
+        # 4C-5: Include game_over/victory keys from victory_check (non-auto-advance path)
+        if turn_result.get("victory_check", {}).get("game_over"):
+            result["game_over"] = True
+            result["victory"] = turn_result["victory_check"].get("result")
 
         # Add Independent Command Report for autonomous marshals (Phase 2.5)
         if turn_result.get("show_independent_command_report"):
@@ -2430,6 +2470,8 @@ RETREAT RECOVERY (3 turns):
 
             # Tactical events — absorbed into Morning Dispatch's TURN EVENTS section
             tactical_events = turn_result.get("tactical_events", [])
+            # FINAL-7: Filter by fog (auto-advance path)
+            tactical_events = _filter_tactical_events_by_fog(tactical_events, world)
             if tactical_events:
                 result["tactical_events"] = tactical_events
                 # Hoist battle_report from tactical events (auto-charge) to result level
@@ -3826,6 +3868,19 @@ RETREAT RECOVERY (3 turns):
         resolved_target = target
 
         if not enemy_by_name:
+            # 4D-4: Check if target is a friendly marshal name
+            friendly_match = None
+            target_lower = target.lower()
+            for m in world.marshals.values():
+                if m.nation == marshal.nation and m.name.lower() == target_lower:
+                    friendly_match = m
+                    break
+            if friendly_match:
+                return {
+                    "success": False,
+                    "message": f"Cannot attack friendly marshal {friendly_match.name}!"
+                }
+
             # Not an enemy - try fuzzy matching for region names
             target_region_fuzzy, region_error = self._fuzzy_match_region(target, world)
 
@@ -12483,6 +12538,7 @@ RETREAT RECOVERY (3 turns):
                 "target": target_nation,
                 "proposal": proposal,
                 "turn_sent": turn_sent,
+                "dp_cost": cost,  # FINAL-1: Store dp_cost for coalition refund
             }
 
             # Log event
@@ -13258,6 +13314,7 @@ RETREAT RECOVERY (3 turns):
                 "target": target_nation,
                 "proposal": proposal,
                 "turn_sent": turn_sent,
+                "dp_cost": cost,  # FINAL-1: Store dp_cost for coalition refund
             }
 
             # Record override if player overrode Talleyrand's objection

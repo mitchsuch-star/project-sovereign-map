@@ -811,10 +811,10 @@ class CombatResolver:
                 "attacker": attacker_modifier_snapshot,
                 "defender": defender_modifier_snapshot,
             },
-            # Fortification degradation (Session 31)
+            # Fortification degradation (Session 31) — FINAL-8: int() for Godot
             "fortification_degraded": fortification_degraded,
-            "fortification_old": fortification_old,
-            "fortification_new": fortification_new,
+            "fortification_old": int(fortification_old * 100),
+            "fortification_new": int(fortification_new * 100),
             # Drouot ability (Phase 6.5: Marshal abilities wiring)
             "drouot_ability_triggered": drouot_ability_message,
             # Pursuit damage (Phase 6.5: Blucher/Uxbridge abilities)
@@ -849,10 +849,10 @@ class CombatResolver:
             "outcome": outcome,
             "attacker_casualties": int(attacker_casualties),
             "defender_casualties": int(defender_casualties),
-            # Fort degradation (for enemy phase dialog display)
+            # Fort degradation (for enemy phase dialog display) — FINAL-8: int() for Godot
             "fortification_degraded": fortification_degraded,
-            "fortification_old": fortification_old,
-            "fortification_new": fortification_new,
+            "fortification_old": int(fortification_old * 100),
+            "fortification_new": int(fortification_new * 100),
         }
         return result_dict
 
@@ -1176,9 +1176,10 @@ class CombatResolver:
                 "attacker": attacker_modifier_snapshot,
                 "defender": defender_modifier_snapshot,
             },
+            # FINAL-8: int() for Godot
             "fortification_degraded": fortification_degraded,
-            "fortification_old": fortification_old,
-            "fortification_new": fortification_new,
+            "fortification_old": int(fortification_old * 100),
+            "fortification_new": int(fortification_new * 100),
             "drouot_ability_triggered": drouot_ability_message,
             "pursuit_damage": 0,  # Deferred to caller
             "pursuit_message": None,
@@ -1203,9 +1204,10 @@ class CombatResolver:
             "outcome": outcome,
             "attacker_casualties": int(attacker_casualties),
             "defender_casualties": int(defender_casualties),
+            # FINAL-8: int() for Godot
             "fortification_degraded": fortification_degraded,
-            "fortification_old": fortification_old,
-            "fortification_new": fortification_new,
+            "fortification_old": int(fortification_old * 100),
+            "fortification_new": int(fortification_new * 100),
         }
         return result_dict
 

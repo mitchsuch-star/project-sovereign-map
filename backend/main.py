@@ -1770,11 +1770,14 @@ async def load_endpoint(request: LoadRequest):
         world = result["world"]
         game_state["world"] = world
         # Return game state summary so Godot can refresh
-        return {
+        response = {
             "success": True,
             "message": result["message"],
             "game_state": world.get_filtered_game_state_summary()
         }
+        # FINAL-6: Include popup passthroughs (war status panel, etc.)
+        _include_popup_passthroughs(response, world)
+        return response
     return {"success": False, "message": result["message"]}
 
 

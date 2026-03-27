@@ -259,6 +259,13 @@ def filter_campaign_log(event_log: list, world_state) -> list:
             if region:
                 intel = world_state.get_region_intel(region)
                 if intel.visibility in (FULL, PARTIAL):
+                    # FINAL-16: Strip retreat destination if destination region is fogged
+                    if event_type == "retreat" and event.get("to"):
+                        to_region = event.get("to")
+                        to_intel = world_state.get_region_intel(to_region)
+                        if to_intel.visibility not in (FULL, PARTIAL):
+                            event = dict(event)  # Copy to avoid mutating original
+                            del event["to"]
                     filtered.append(event)
             continue
 

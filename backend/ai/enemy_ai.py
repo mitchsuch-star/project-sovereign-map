@@ -2128,6 +2128,11 @@ class EnemyAI:
                 ai_debug(f"    P4: Skipping coalition ally {enemy.name} ({enemy.nation})")
                 continue
 
+            # FINAL-20: Skip nations in armistice
+            if world.get_diplomatic_state(nation, enemy.nation) == "ARMISTICE":
+                ai_debug(f"    P4: Skipping {enemy.name} ({enemy.nation}) — armistice")
+                continue
+
             # Check if in range
             distance = world.get_distance(marshal.location, enemy.location)
             movement_range = getattr(marshal, 'movement_range', 1)

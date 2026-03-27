@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 26, 2026 (is_at_war + Auto-Action Verification COMPLETE)
+> **Last Updated:** March 27, 2026 (Final Audit + V3 Session 10 backend COMPLETE)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **7232** (7232 passed, 1 skipped) |
+| **Tests Passing** | **7281** (7281 passed, 1 skipped) |
 
-| **Current Phase** | **Final Audit Fix Plan — Session 1 is NEXT.** 13 confirmed bugs across 2 sessions. See `docs/FINAL_AUDIT_FIX_PLAN.md`. |
+| **Current Phase** | **Final Audit + V3 Session 10 backend — COMPLETE.** V3 Session 11 (optional polish) remaining. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,9 +19,7 @@
 
 ## Next Steps
 
-1. **Final Audit Fix Plan** — 13 confirmed bugs (8 false positives filtered), 2 sessions. Session 1: endgame + fog + contract (7 bugs). Session 2: diplomacy + AI + parser (6 bugs). See `docs/FINAL_AUDIT_FIX_PLAN.md`.
-   - **Session 1: NEXT.** Endgame defeat/victory conditions, fog leaks, float contract violation.
-   - Session 2: Diplomacy state bugs, AI armistice targeting, contract/parser fixes.
+1. ~~**Final Audit Fix Plan**~~ — **ALL COMPLETE.** 13 confirmed bugs fixed in single combined session (merged with V3 Session 10 backend bugs). 29 new tests. See `docs/FINAL_AUDIT_FIX_PLAN.md`.
 2. **Systems Audit V3 Fix Plan** — 158 bugs, 10 required sessions + 1 optional. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`.
    - ~~**Session 1 (P0): COMPLETE.**~~ War-state foundation + critical AI. 8 bugs fixed, 26 new tests. Added `get_hostile_marshals()`/`get_hostile_by_name()` war-aware helpers. Fixed `find_nearest_enemy()`, fortify engagement, threatening enemies, retreat destination (all war-aware). Fixed enemy AP guards in stance_change/defend/fortify. Fixed `decide_single_action()` tracking set init. Files: `world_state.py`, `executor.py`, `enemy_ai.py`.
    - ~~**Session 2 (P0): COMPLETE.**~~ War-state cascade — executor. 14 bugs fixed, 20 new tests. Added `is_at_war()` guards to all `m.nation != marshal.nation` checks: reinforcement engagement, overwatch artillery, bombardment targeting, undefended-region defenders, cavalry charge leapfrog (2), post-battle conquest (2), reckless charge alternatives, garrison validation, glorious charge target (2), move capture hints, scout enemy listing. Files: `executor.py`.
@@ -33,7 +31,7 @@
    - ~~**Session 8 (P2): COMPLETE.**~~ Session 8: 14 bugs fixed (save/load transient clearing, modding terrain/region_type/Saxony validation, scenario validation, event log cap, morale default, strength int cast, treaty deepcopy, battle report stripped from log, campaign log types), 20 tests. Files: `save_manager.py`, `validator.py`, `world_state.py`, `marshal.py`, `combat.py`, `campaign_log.py`.
    - **Verification pass: COMPLETE.** 2 code gaps found by deep audit: reckless charge target missing `is_at_war()` (executor.py:3601), auto-bombardment kill missing `process_battle_relationships()`. Both fixed. 20 verification tests added in `test_war_action_verification.py` (12 is_at_war regression + 8 auto-action completeness). 7232 total tests.
    - ~~**Session 9 (P2): COMPLETE.**~~ Session 9: 13 bugs fixed (parsing, trust, error handling, hardening), 20 tests.
-   - **Session 10 (P2): NEXT.** Godot UI + endgame flow.
+   - ~~**Session 10 (P2): BACKEND COMPLETE.**~~ 3 backend bugs (4C-5, 4D-4, 4C-2) fixed in combined Final Audit session. 19 remaining items are Godot GDScript (deferred to Godot session).
    - Session 11 (P3, optional): NOTEs & polish.
    - **IMPORTANT: After each session, update this STATUS.md to mark it done and indicate which session is next.**
 2. ~~**Systems Audit V2 Fix Plan**~~ — **ALL 7 SESSIONS COMPLETE.** 56 bugs fixed, 7040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.

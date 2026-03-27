@@ -223,54 +223,54 @@ class TestV2_85_TurnLimitWarnings:
         assert result is None
 
     def test_warning_at_5_remaining(self):
-        """Warning fires when 5 turns remain."""
+        """Warning fires when 5 turns remain (post-advance: current_turn=36, remaining=4)."""
         world = _make_world()
-        world.current_turn = 35  # 5 remaining
+        world.current_turn = 36  # 4C-2: Post-advance, remaining=4 → "5 turns remain"
         world.max_turns = 40
 
         from backend.game_logic.dispatch import _build_turn_limit_warning
         result = _build_turn_limit_warning(world, "France")
         assert result is not None
-        assert result["turns_remaining"] == 5
+        assert result["turns_remaining"] == 4
         assert result["severity"] == "warning"
         assert "5 turns remain" in result["message"]
 
     def test_warning_at_2_remaining(self):
-        """Warning fires when 2 turns remain."""
+        """Warning fires when 2 turns remain (post-advance: current_turn=39, remaining=1)."""
         world = _make_world()
-        world.current_turn = 38
-        world.max_turns = 40
-
-        from backend.game_logic.dispatch import _build_turn_limit_warning
-        result = _build_turn_limit_warning(world, "France")
-        assert result is not None
-        assert result["turns_remaining"] == 2
-        assert "2 turns remain" in result["message"]
-
-    def test_final_turn_warning(self):
-        """Critical warning on final turn."""
-        world = _make_world()
-        world.current_turn = 39
+        world.current_turn = 39  # 4C-2: Post-advance, remaining=1 → "2 turns remain"
         world.max_turns = 40
 
         from backend.game_logic.dispatch import _build_turn_limit_warning
         result = _build_turn_limit_warning(world, "France")
         assert result is not None
         assert result["turns_remaining"] == 1
+        assert "2 turns remain" in result["message"]
+
+    def test_final_turn_warning(self):
+        """Critical warning on final turn (post-advance: current_turn=40, remaining=0)."""
+        world = _make_world()
+        world.current_turn = 40  # 4C-2: Post-advance, remaining=0 → "FINAL TURN"
+        world.max_turns = 40
+
+        from backend.game_logic.dispatch import _build_turn_limit_warning
+        result = _build_turn_limit_warning(world, "France")
+        assert result is not None
+        assert result["turns_remaining"] == 0
         assert result["severity"] == "critical"
         assert "FINAL TURN" in result["message"]
 
     def test_no_warning_at_3_or_4_remaining(self):
-        """No warning at 3 or 4 turns remaining (only 5, 2, 1)."""
+        """No warning at intermediate remaining turns (post-advance remaining=2,3)."""
         world = _make_world()
         world.max_turns = 40
 
         from backend.game_logic.dispatch import _build_turn_limit_warning
 
-        world.current_turn = 36  # 4 remaining
+        world.current_turn = 37  # remaining=3 → no warning
         assert _build_turn_limit_warning(world, "France") is None
 
-        world.current_turn = 37  # 3 remaining
+        world.current_turn = 38  # remaining=2 → no warning
         assert _build_turn_limit_warning(world, "France") is None
 
 

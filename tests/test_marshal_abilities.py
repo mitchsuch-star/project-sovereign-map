@@ -276,8 +276,8 @@ class TestDrouotSageOfTheGrandArmy:
 
         # Drouot's ability: 15% degradation instead of 10%
         assert result["fortification_degraded"] is True
-        assert result["fortification_old"] == 0.30
-        assert result["fortification_new"] == 0.15  # 0.30 - 0.15 = 0.15
+        assert result["fortification_old"] == 30
+        assert result["fortification_new"] == 15  # 30 - 15 = 15
 
     def test_drouot_ability_message_in_result(self):
         """Drouot's ability trigger message appears in result dict."""
@@ -329,8 +329,8 @@ class TestDrouotSageOfTheGrandArmy:
 
         # Base artillery: 10% degradation
         assert result["fortification_degraded"] is True
-        assert result["fortification_old"] == 0.30
-        assert result["fortification_new"] == 0.20  # 0.30 - 0.10 = 0.20
+        assert result["fortification_old"] == 30
+        assert result["fortification_new"] == 20  # 30 - 10 = 20
         assert result.get("drouot_ability_triggered") is None
 
     def test_infantry_degrades_5_percent(self):
@@ -347,8 +347,8 @@ class TestDrouotSageOfTheGrandArmy:
 
         # Base infantry: 5% degradation
         assert result["fortification_degraded"] is True
-        assert result["fortification_old"] == 0.30
-        assert result["fortification_new"] == 0.25  # 0.30 - 0.05 = 0.25
+        assert result["fortification_old"] == 30
+        assert result["fortification_new"] == 25  # 30 - 5 = 25
 
 
 # ════════════════════════════════════════════════════════════════
@@ -926,7 +926,7 @@ class TestAbilityIntegration:
 
         # Generic artillery → 10% base degradation, NOT 15% (Drouot only)
         assert result["fortification_degraded"] is True
-        assert result["fortification_new"] == 0.20  # 0.30 - 0.10
+        assert result["fortification_new"] == 20  # 30 - 10
         assert result.get("drouot_ability_triggered") is None
 
 

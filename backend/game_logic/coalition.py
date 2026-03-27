@@ -559,8 +559,8 @@ def form_coalition(qualifying_nations: List[str], world) -> Dict:
                     mission["paused"] = False
                 else:
                     world.talleyrand_state = "IDLE"
-            # Refund DP spent on the voided proposal
-            dp_cost = pit.get("proposal", {}).get("dp_cost", 0)
+            # FINAL-1: Refund DP spent on the voided proposal (dp_cost stored at top level)
+            dp_cost = pit.get("dp_cost", 0)
             if dp_cost > 0:
                 world.diplomatic_points = getattr(world, 'diplomatic_points', 0) + int(dp_cost)
 

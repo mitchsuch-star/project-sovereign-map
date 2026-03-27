@@ -992,6 +992,36 @@ class LLMClient:
                 },
             )
 
+        # FINAL-21: Commands requiring a target nation must specify one
+        _target_required_actions = {"propose", "offer", "suggest", "negotiate", "demand",
+                                     "insist", "require", "ultimatum", "peace", "alliance",
+                                     "treaty", "armistice", "vassalage", "open borders",
+                                     "non-aggression", "declare war", "invade", "launch war",
+                                     "break treaty", "cancel treaty", "downgrade"}
+        if not target_nation and not mission_type and not is_question:
+            has_target_required = any(kw in command_lower for kw in _target_required_actions)
+            if has_target_required:
+                return ParseResult(
+                    matched=True,
+                    command_type="diplomatic",
+                    marshals=[],
+                    action="error",
+                    target=None,
+                    ambiguity=0,
+                    strategic_score=0,
+                    interpretation="Diplomatic command missing target nation",
+                    confidence=1.0,
+                    mode="mock",
+                    key_source=self.key_source,
+                    raw_command=command_text,
+                    diplomatic_data={
+                        "action": "diplomatic_error",
+                        "diplomat": "Talleyrand",
+                        "error": "missing_target_nation",
+                        "message": "Sire, which nation should I direct this proposal to? Please specify a nation.",
+                    },
+                )
+
         # Determine diplomatic action type
         if mission_type:
             action = "diplomatic_mission"

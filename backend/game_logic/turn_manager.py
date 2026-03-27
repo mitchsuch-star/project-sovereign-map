@@ -806,10 +806,13 @@ class TurnManager:
 
         Victory conditions:
         - Control all regions (total victory)
+        - All enemy nations have 0 regions (total elimination)
         - Survive 40 turns (time victory)
 
         Defeat conditions:
         - All marshals destroyed
+        - All territory lost (0 regions)
+        - Capital captured
         """
         player_regions = self.world.get_player_regions()
         player_marshals = self.world.get_player_marshals()
@@ -822,6 +825,26 @@ class TurnManager:
                 "reason": "All armies destroyed!"
             }
 
+        # FINAL-9: Defeat on 0 regions
+        if len(player_regions) == 0:
+            return {
+                "game_over": True,
+                "result": "defeat",
+                "reason": "All territory lost!"
+            }
+
+        # FINAL-9: Defeat on capital captured
+        from backend.models.region import NATION_CAPITALS
+        capital = NATION_CAPITALS.get(self.world.player_nation)
+        if capital:
+            capital_region = self.world.get_region(capital)
+            if capital_region and capital_region.controller != self.world.player_nation:
+                return {
+                    "game_over": True,
+                    "result": "defeat",
+                    "reason": "Your capital has fallen!"
+                }
+
         # Check victory conditions — derived from total region count
         total = len(self.world.regions)
         if len(player_regions) >= total - 1:  # Total victory
@@ -831,7 +854,17 @@ class TurnManager:
                 "reason": "Total conquest of Western Europe!"
             }
 
-        if self.world.current_turn > self.world.max_turns:
+        # FINAL-11: Victory on total enemy elimination
+        all_nations = set(r.controller for r in self.world.regions.values() if r.controller)
+        enemy_nations_with_regions = all_nations - {self.world.player_nation}
+        if not enemy_nations_with_regions and len(player_regions) > 0:
+            return {
+                "game_over": True,
+                "result": "victory",
+                "reason": "All enemies defeated!"
+            }
+
+        if self.world.current_turn >= self.world.max_turns:
             # Already handled in world.advance_turn(), but check here too
             if len(player_regions) >= int(total * VICTORY_REGION_FRACTION):  # Time victory
                 return {

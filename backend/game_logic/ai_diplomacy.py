@@ -601,6 +601,14 @@ def process_diplomatic_phase(nation: str, world) -> Optional[Dict]:
     if _is_nation_eliminated(world, nation):
         return None
 
+    # FINAL-17: Skip nations whose capital is captured (effectively defeated)
+    from backend.models.region import NATION_CAPITALS
+    cap = NATION_CAPITALS.get(nation)
+    if cap:
+        cap_region = world.get_region(cap)
+        if cap_region and cap_region.controller != nation:
+            return None
+
     # ── Deduplication: skip if this nation already has a pending proposal ──
     if _has_pending_proposal_from(nation, world):
         return None
@@ -923,6 +931,7 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
         "talleyrand_assessment": assessment or "Talleyrand has no assessment.",
         "acceptance_hint": acceptance_hint,
         "rejection_hint": rejection_hint,
+        "is_counter_offer": False,  # FINAL-13: Always include for Godot
     }
 
     return dialogue

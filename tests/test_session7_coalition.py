@@ -958,8 +958,9 @@ class TestGapFixes:
         world.diplomatic_points = 5
         world.proposal_in_transit = {
             "target": "Austria",
-            "proposal": {"type": "peace", "dp_cost": 3},
+            "proposal": {"type": "peace"},
             "turn_sent": 1,
+            "dp_cost": 3,  # FINAL-1: dp_cost at top level, not nested
         }
         world.talleyrand_state = "IN_TRANSIT"
         _set_relation(world, "France", "Austria", -30)

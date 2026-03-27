@@ -511,7 +511,7 @@ def _pick_berthier_note(
 def _build_turn_limit_warning(world, player_nation: str) -> Optional[Dict[str, Any]]:
     """Build turn-limit warning for the Morning Dispatch.
 
-    Fires at turns 35 (5 left), 38 (2 left), and 39 (final turn).
+    Fires at 5/2/1 turns remaining (post-advance: remaining == 4/1/0).
     Also creates a notification for the notification bar.
 
     Returns warning dict or None.
@@ -522,47 +522,51 @@ def _build_turn_limit_warning(world, player_nation: str) -> Optional[Dict[str, A
     max_turns = int(world.max_turns)
     remaining = max_turns - current
 
-    # Only warn at specific remaining-turn thresholds
-    if remaining > 5:
+    # 4C-2: Thresholds adjusted for post-advance_turn timing.
+    # When dispatch builds, current_turn is already the NEW turn.
+    # "5 turns remain" means 5 playable turns left → remaining == 4 after advance.
+    if remaining > 4:
         return None
 
     total_regions = len(world.regions)
     threshold = max(1, int(total_regions * VICTORY_REGION_FRACTION))
     player_regions = len(world.get_player_regions())
 
-    if remaining == 5:
+    if remaining == 4:
         message = "The campaign enters its final phase — 5 turns remain."
         severity = "warning"
-    elif remaining == 2:
+    elif remaining == 1:
         message = (
             f"Only 2 turns remain. France must control {threshold} regions for victory. "
             f"Current: {player_regions}/{threshold}."
         )
         severity = "warning"
-    elif remaining == 1:
+    elif remaining == 0:
         message = (
             f"FINAL TURN. France must control {threshold} regions for victory. "
             f"Current: {player_regions}/{threshold}."
         )
         severity = "critical"
-    elif remaining <= 0:
+    elif remaining < 0:
         message = (
             f"The campaign has reached its conclusion. "
             f"France controls {player_regions}/{threshold} required regions."
         )
         severity = "critical"
     else:
-        # remaining is 3 or 4 — no warning at these turns
+        # remaining is 2 or 3 — no warning at these turns
         return None
 
     # Fire notification
     from backend.notifications import (
         create_notification, NotificationPriority, TURN_LIMIT_WARNING,
     )
+    # remaining is post-advance; actual playable turns = remaining + 1 (includes current)
+    actual_turns = remaining + 1 if remaining > 0 else 0
     world.notifications.add(create_notification(
         TURN_LIMIT_WARNING,
         NotificationPriority.HIGH,
-        f"{remaining} turns remain" if remaining > 0 else "Final turn",
+        f"{actual_turns} turns remain" if actual_turns > 0 else "Final turn",
         message,
         current,
     ))
