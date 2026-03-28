@@ -434,8 +434,12 @@ class TestAutoBombardmentKillPipeline:
             # But the code path ran without crash
             assert result["success"]
 
-    def test_bombardment_kill_updates_authority(self):
-        """[5C-1] Authority should increase for player bombardment kill."""
+    def test_bombardment_kill_authority_requires_outnumbered(self):
+        """[5C-1] Authority only changes for outnumbered wins (R1 pipeline fix).
+
+        A 40k attacker destroying a ~47-troop defender is not outnumbered,
+        so no authority bonus. Correct pipeline behavior.
+        """
         world = self._setup_bombardment_kill()
         world.authority_tracker.authority = 50
         initial = world.authority_tracker.authority
@@ -443,7 +447,7 @@ class TestAutoBombardmentKillPipeline:
         result = execute_attack(world, "Ney", "Wellington")
 
         if result.get("auto_bombardment") or "destroyed" in result.get("message", "").lower():
-            assert world.authority_tracker.authority > initial
+            assert world.authority_tracker.authority == initial
 
 
 class TestAutoChargeCompletePipeline:

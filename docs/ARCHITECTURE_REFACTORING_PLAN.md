@@ -212,9 +212,9 @@ R18 depends on R7+R8 (display/log maps needed for enforcement)
 
 ### Session 2: R1 — Post-Combat Pipeline Unification
 
-> **Session 2A (characterization tests) COMPLETE.** 25 tests pinning current behavior of all 5 combat paths in `tests/test_r1_characterization.py`. Tests cover: attack (solo), glorious charge, garrison combat, bombardment, auto-bombardment kill. Known bugs pinned as explicit test assertions. Session 2B (pipeline extraction + wiring + bug fixes) NEXT.
-
-> **NOTE: This session contains 2 live CRITICAL gameplay bugs** (auto-bombardment decisive_victory unconditional at executor.py:4598, war score inflation at executor.py:4581). These affect coalition/diplomatic balance in every game. Prioritize this session accordingly.
+> **Session 2A (characterization tests) COMPLETE.** 25 tests pinning current behavior of all 5 combat paths in `tests/test_r1_characterization.py`. Tests cover: attack (solo), glorious charge, garrison combat, bombardment, auto-bombardment kill. Known bugs pinned as explicit test assertions.
+>
+> **Session 2B (pipeline extraction + wiring + bug fixes) COMPLETE.** Created `_post_combat_pipeline()` (14-step centralized method at executor.py:2776). All 5 combat paths wired through pipeline with skip flags. All 7 bugs fixed: Bug 1 (decisive_victory now requires casualty ratio check), Bug 2 (auto-kill uses actual bombardment damage not full strength), Bug 3 (garrison+charge now get last_combat_result, idle reset, vindication via pipeline), Bug 4 (coordination fields cleared), Bug 5 (bombardment records diplo), Bug 6 (pursuit damage floor unified to max(1000,...)), Bug 7 (FORCED_RETREAT_THRESHOLD imported from combat.py). 30 new enforcement tests in `tests/test_r1_pipeline_enforcement.py`. 6 pin-bug characterization tests updated. 7,361 tests passing. **Session 3 (R2 war-state helpers) NEXT.**
 
 | Field | Value |
 |-------|-------|
@@ -2137,23 +2137,23 @@ These individual findings from the audit are acknowledged but NOT addressed by a
 
 | Finding # | Addressed By | Status |
 |-----------|-------------|--------|
-| 1-2 | R1 (Session 2) | Planned |
-| 3 | R1 (Session 2) | Planned |
+| 1-2 | R1 (Session 2) | **COMPLETE** |
+| 3 | R1 (Session 2) | **COMPLETE** |
 | 4 | R5 (Session 5) | Planned |
 | 5 | R4 (Session 4) | Planned |
 | 6 | — | Deferred (balance tuning) |
 | 7 | — | Deferred (display-only) |
-| 8 | R1 (Session 2) | Planned |
-| 9 | R1 (Session 2) | Planned |
-| 10 | R1 (Session 2) | Planned |
+| 8 | R1 (Session 2) | **COMPLETE** |
+| 9 | R1 (Session 2) | **COMPLETE** |
+| 10 | R1 (Session 2) | **COMPLETE** |
 | 11 | R6 (Session 7) | Planned |
-| 12 | R1 (Session 2) | Planned — advance_turn documentation |
+| 12 | R1 (Session 2) | **COMPLETE** |
 | 13 | R8 (Session 6) | Planned |
-| 14 | — | Dead code — remove during R1 |
+| 14 | R1 (Session 2) | **COMPLETE** — FORCED_RETREAT_THRESHOLD deduplication |
 | 15 | — | Deferred (intentional design) |
 | 16 | R2 (Session 3) | Planned |
 | 17 | — | Deferred (edge case) |
-| 18 | R1 (Session 2) | Planned |
+| 18 | R1 (Session 2) | **COMPLETE** |
 | 19 | — | Dead code — remove during R11 |
 | 20 | R19 (Session 21) | Planned |
 | 21 | — | Low priority, mock parser |

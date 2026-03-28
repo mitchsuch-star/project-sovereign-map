@@ -23,7 +23,7 @@ from backend.models.world_state import (
 )
 from backend.models.marshal import Stance, StrategicOrder
 from backend.models.region import CHARGE_BLOCKED_TERRAIN, TERRAIN_DEFENSE_BONUS
-from backend.game_logic.combat import CombatResolver
+from backend.game_logic.combat import CombatResolver, FORCED_RETREAT_THRESHOLD
 from backend.game_logic.turn_manager import TurnManager
 from backend.utils.fuzzy_matcher import FuzzyMatcher
 # V2a Objection System imports
@@ -2769,6 +2769,290 @@ RETREAT RECOVERY (3 turns):
                     return True
         return False
 
+    # ════════════════════════════════════════════════════════════════════
+    # R1: POST-COMBAT PIPELINE — Single source for post-combat recording
+    # ════════════════════════════════════════════════════════════════════
+
+    def _post_combat_pipeline(self, ctx: dict, world: 'WorldState') -> dict:
+        """
+        Centralized post-combat state recording and tracking.
+
+        Called by all 5 combat paths after path-specific resolution.
+        Ensures every combat path runs every recording step, preventing
+        the "path X missing step Y" bugs found in every audit.
+
+        Args:
+            ctx: Combat context with keys:
+                attacker (Marshal): attacking marshal
+                defender (Marshal or None): defending marshal (None for garrison)
+                defender_nation (str): nation of the defender
+                battle_region (str): region name where battle occurred
+                outcome (str): e.g. 'attacker_victory', 'defender_victory'
+                attacker_won (bool)
+                defender_won (bool)
+                attacker_casualties (int)
+                defender_casualties (int)
+                pre_battle_attacker_strength (int)
+                pre_battle_defender_strength (int)
+                battle_result (dict or None): from resolve_battle()
+                conquered (bool): whether territory was captured
+
+                # Path flags
+                is_bombardment (bool): ranged bombardment (limited recording)
+                is_garrison (bool): garrison assault (custom authority)
+                is_glorious_charge (bool): cavalry charge
+                is_auto_bombardment_kill (bool): defender killed by prep fire
+
+                # Optional
+                attacker_artillery (list): for relationship processing
+                defender_artillery (list): for relationship processing
+                skip_log_battle_event (bool): caller handles its own event log
+                skip_idle_reset (bool): caller already reset idle
+                skip_exhaustion (bool): caller handles exhaustion
+                skip_cannon_fire_record (bool): caller already recorded
+                skip_war_damage (bool): caller already applied war damage
+                skip_intel_update (bool): caller already updated intel
+                skip_coordination_clear (bool): caller already cleared
+
+        Returns:
+            dict with:
+                vindication_msg (str): vindication message for display
+                relationship_changes (list): relationship change records
+        """
+        attacker = ctx['attacker']
+        defender = ctx.get('defender')
+        defender_nation = ctx.get('defender_nation', defender.nation if defender else '')
+        battle_region = ctx['battle_region']
+        outcome = ctx.get('outcome', '')
+        attacker_won = ctx.get('attacker_won', False)
+        defender_won = ctx.get('defender_won', False)
+        atk_casualties = ctx.get('attacker_casualties', 0)
+        def_casualties = ctx.get('defender_casualties', 0)
+        pre_atk = ctx.get('pre_battle_attacker_strength', 0)
+        pre_def = ctx.get('pre_battle_defender_strength', 0)
+        battle_result = ctx.get('battle_result')
+        conquered = ctx.get('conquered', False)
+
+        is_bombardment = ctx.get('is_bombardment', False)
+        is_garrison = ctx.get('is_garrison', False)
+        is_glorious_charge = ctx.get('is_glorious_charge', False)
+        is_auto_kill = ctx.get('is_auto_bombardment_kill', False)
+
+        pipeline_out = {
+            'vindication_msg': '',
+            'relationship_changes': [],
+        }
+
+        # ── 1. Clear coordination fields ──
+        if not ctx.get('skip_coordination_clear'):
+            involved = {attacker.location, battle_region}
+            if defender and getattr(defender, 'strength', 0) > 0:
+                involved.add(defender.location)
+            self._clear_coordination_fields(involved, world)
+
+        # ── 2. Log battle event ──
+        if (battle_result and not is_bombardment and not is_garrison
+                and not is_auto_kill and not ctx.get('skip_log_battle_event')):
+            self._log_battle_event(battle_result, battle_region, world)
+
+        # ── 3. Combat notifications ──
+        if (battle_result and not is_bombardment and not is_garrison
+                and not is_auto_kill and not ctx.get('skip_combat_notifications')):
+            if defender:
+                self._process_combat_notifications(battle_result, attacker, defender, world)
+
+        # ── 4. Fog of War intel update ──
+        if not ctx.get('skip_intel_update'):
+            world.update_intel_from_battle(battle_region, world.current_turn)
+
+        # ── 5. War damage to region ──
+        if not is_bombardment and not ctx.get('skip_war_damage'):
+            self._apply_battle_effects_to_region(
+                battle_region, pre_atk, pre_def, world)
+
+        # ── 6. Idle reset ──
+        if not ctx.get('skip_idle_reset'):
+            attacker.idle_turns = 0
+            attacker._acted_this_turn = True
+
+        # ── 7. Record battle for cannon fire detection ──
+        if not ctx.get('skip_cannon_fire_record'):
+            def_name = defender.name if defender else f"{battle_region}_garrison"
+            world.record_battle(battle_region, attacker.name, def_name, outcome)
+
+        # ── 8. Record battle for diplomacy war score ──
+        if not ctx.get('skip_diplo_record'):
+            from backend.game_logic.diplomacy import record_battle as record_diplo_battle
+            diplo_winner = None
+            if attacker_won:
+                diplo_winner = attacker.nation
+            elif defender_won:
+                diplo_winner = defender_nation
+            if diplo_winner:
+                record_diplo_battle(
+                    world,
+                    attacker_nation=attacker.nation,
+                    defender_nation=defender_nation,
+                    winner_nation=diplo_winner,
+                    attacker_casualties=int(atk_casualties),
+                    defender_casualties=int(def_casualties),
+                    location=battle_region,
+                )
+
+        # ── 9. Set last_combat_result ──
+        if not is_bombardment and not ctx.get('skip_last_combat_result'):
+            if attacker_won:
+                attacker.last_combat_result = "victory"
+                if defender and defender.name in world.marshals:
+                    defender.last_combat_result = "defeat"
+            elif defender_won:
+                attacker.last_combat_result = "defeat"
+                if defender and defender.name in world.marshals:
+                    defender.last_combat_result = "victory"
+            elif 'mutual_destruction' in outcome:
+                attacker.last_combat_result = "defeat"
+                if defender and defender.name in world.marshals:
+                    defender.last_combat_result = "defeat"
+            else:
+                attacker.last_combat_result = "stalemate"
+                if defender and defender.name in world.marshals:
+                    defender.last_combat_result = "stalemate"
+
+        # ── 10. Win/Loss Relationships ──
+        if (not is_bombardment and not is_garrison and battle_result
+                and defender and not ctx.get('skip_relationships')):
+            from backend.game_logic.relationship import process_battle_relationships
+            kwargs = {}
+            if ctx.get('attacker_artillery'):
+                kwargs['attacker_artillery'] = ctx['attacker_artillery']
+            if ctx.get('defender_artillery'):
+                kwargs['defender_artillery'] = ctx['defender_artillery']
+            relationship_changes = process_battle_relationships(
+                attacker, defender, battle_result, battle_region, world, **kwargs
+            )
+            for rc in relationship_changes:
+                world.log_event({
+                    "type": "relationship_change",
+                    "marshal": rc["marshal"],
+                    "toward": rc["toward"],
+                    "change": rc["change"],
+                    "new_value": rc["new_value"],
+                    "new_label": rc["new_label"],
+                    "direction": rc["direction"],
+                    "nation": rc["nation"],
+                    "location": battle_region,
+                })
+            pipeline_out['relationship_changes'] = relationship_changes
+
+        # ── 11. Vindication ──
+        if not is_bombardment:
+            if world.vindication_tracker.has_pending(attacker.name):
+                if attacker_won:
+                    vind_outcome = "victory"
+                elif defender_won:
+                    vind_outcome = "defeat"
+                else:
+                    vind_outcome = "draw"
+                vindication_result = world.vindication_tracker.resolve_battle(
+                    marshal_name=attacker.name,
+                    result=vind_outcome,
+                    game_state=world
+                )
+                if vindication_result:
+                    pipeline_out['vindication_msg'] = f"\n\n📜 {vindication_result['message']}"
+                    pipeline_out['vindication_result'] = vindication_result
+
+        # ── 12. Authority: major victory / defeat ──
+        if not is_bombardment and not is_garrison:
+            player_nation = world.player_nation
+            player_is_attacker = attacker.nation == player_nation
+            player_is_defender = defender_nation == player_nation
+
+            if player_is_attacker or player_is_defender:
+                atk_won_auth = attacker_won
+                def_won_auth = defender_won
+                player_won = (player_is_attacker and atk_won_auth) or (player_is_defender and def_won_auth)
+                player_lost = (player_is_attacker and def_won_auth) or (player_is_defender and atk_won_auth)
+
+                if player_won:
+                    outnumbered = pre_atk < pre_def
+                    if player_is_defender:
+                        outnumbered = pre_def < pre_atk
+                    capital_captured = False
+                    if conquered:
+                        cap_reg = world.get_region(battle_region)
+                        if cap_reg and getattr(cap_reg, 'is_capital', False):
+                            capital_captured = True
+                    if outnumbered or capital_captured:
+                        world.authority_tracker.modify_authority(+5)
+                elif player_lost:
+                    outnumbering = pre_atk > pre_def
+                    if player_is_defender:
+                        outnumbering = pre_def > pre_atk
+                    capital_lost = False
+                    cap_reg = world.get_region(battle_region)
+                    if cap_reg and getattr(cap_reg, 'is_capital', False):
+                        if cap_reg.controller != player_nation:
+                            capital_lost = True
+                    if outnumbering or capital_lost:
+                        world.authority_tracker.modify_authority(-5)
+
+        # ── 13. Coalition: threat + war exhaustion ──
+        if not is_bombardment:
+            from backend.game_logic.coalition import (
+                add_threat, add_war_exhaustion_from_battle, add_coalition_shock
+            )
+            france = world.player_nation
+            total_cas = int(atk_casualties) + int(def_casualties)
+
+            if attacker_won and attacker.nation == france:
+                # France won as attacker
+                add_threat(world, 3, "battle_win")
+                # Decisive: ratio > 2:1 AND total > 10,000
+                if int(def_casualties) > 0 and int(atk_casualties) > 0:
+                    ratio = int(def_casualties) / int(atk_casualties)
+                elif int(def_casualties) > 0:
+                    ratio = 999
+                else:
+                    ratio = 0
+                if ratio > 2 and total_cas > 10000:
+                    add_threat(world, 5, "decisive_victory")
+                    if defender:
+                        add_coalition_shock(defender_nation, world)
+                if conquered:
+                    cap_reg = world.get_region(battle_region)
+                    if cap_reg and getattr(cap_reg, 'is_capital', False):
+                        add_threat(world, 15, "capital_capture")
+                add_war_exhaustion_from_battle(defender_nation, int(def_casualties), world)
+
+            elif defender_won:
+                if attacker.nation == france:
+                    add_war_exhaustion_from_battle(attacker.nation, int(atk_casualties), world)
+                if defender_nation == france:
+                    add_threat(world, 3, "battle_win")
+                    if int(atk_casualties) > 0 and int(def_casualties) > 0:
+                        ratio = int(atk_casualties) / int(def_casualties)
+                    elif int(atk_casualties) > 0:
+                        ratio = 999
+                    else:
+                        ratio = 0
+                    if ratio > 2 and total_cas > 10000:
+                        add_threat(world, 5, "decisive_victory")
+                        add_coalition_shock(attacker.nation, world)
+                    add_war_exhaustion_from_battle(
+                        attacker.nation, int(atk_casualties), world)
+
+            elif not attacker_won and not defender_won and is_garrison:
+                # Garrison hold — war exhaustion for attacking nation
+                from backend.game_logic.coalition import add_war_exhaustion_from_battle as add_we
+                add_we(attacker.nation, int(atk_casualties), world)
+
+        # ── 14. Exhaustion tracking ──
+        if not ctx.get('skip_exhaustion'):
+            attacker.increment_attacks_this_turn()
+
+        return pipeline_out
+
     def _resolve_garrison_combat(self, marshal, target_region, world, game_state) -> dict:
         """
         Resolve combat between an attacking marshal and a capital garrison.
@@ -2842,23 +3126,30 @@ RETREAT RECOVERY (3 turns):
             old_controller = target_region.controller
             old_location = marshal.location
 
-            # Record garrison fall for diplomacy war score
-            from backend.game_logic.diplomacy import record_battle as record_diplo_battle
-            record_diplo_battle(
-                world,
-                attacker_nation=marshal.nation,
-                defender_nation=old_controller,
-                winner_nation=marshal.nation,
-                attacker_casualties=int(attacker_losses),
-                defender_casualties=int(garrison_losses),
-                location=target_region.name,
-            )
+            # R1 Pipeline: centralized post-combat recording
+            pipeline_out = self._post_combat_pipeline({
+                'attacker': marshal,
+                'defender': None,
+                'defender_nation': old_controller,
+                'battle_region': target_region.name,
+                'outcome': 'attacker_victory',
+                'attacker_won': True,
+                'defender_won': False,
+                'attacker_casualties': int(attacker_losses),
+                'defender_casualties': int(garrison_losses),
+                'pre_battle_attacker_strength': pre_battle_atk_strength,
+                'pre_battle_defender_strength': old_garrison,
+                'battle_result': None,
+                'conquered': True,
+                'is_garrison': True,
+                'skip_coordination_clear': True,
+                'skip_log_battle_event': True,
+                'skip_intel_update': True,
+                'skip_war_damage': True,
+                'skip_exhaustion': True,
+            }, world)
 
-            # [5C-8] Record battle for cannon fire detection
-            world.record_battle(target_region.name, marshal.name,
-                f"{target_region.name}_garrison", "attacker_victory")
-
-            # [5C-9] Authority: garrison victory
+            # Custom garrison authority (uses garrison_effective, not standard outnumbered check)
             if marshal.nation == world.player_nation:
                 garrison_effective = int(old_garrison * (1.0 + TERRAIN_DEFENSE_BONUS.get(target_region.terrain, 0.0))
                                          * (1.0 + (0.25 if target_region.has_building("fortification") else 0.0)))
@@ -2866,15 +3157,6 @@ RETREAT RECOVERY (3 turns):
                     world.authority_tracker.modify_authority(+5)
                 if getattr(target_region, 'is_capital', False):
                     world.authority_tracker.modify_authority(+5)
-
-            # [5C-7] Coalition: threat + war exhaustion
-            from backend.game_logic.coalition import add_threat, add_war_exhaustion_from_battle
-            france = world.player_nation
-            if marshal.nation == france:
-                add_threat(world, 3, "battle_win")
-                if getattr(target_region, 'is_capital', False):
-                    add_threat(world, 15, "capital_capture")
-            add_war_exhaustion_from_battle(old_controller, int(garrison_losses), world)
 
             # Move attacker into region
             marshal.move_to(target_region.name)
@@ -2952,32 +3234,35 @@ RETREAT RECOVERY (3 turns):
             if target_region.has_building("fortification"):
                 msg += " Fortifications bolster the defense."
 
-            # Record garrison hold for diplomacy war score
-            from backend.game_logic.diplomacy import record_battle as record_diplo_battle
-            record_diplo_battle(
-                world,
-                attacker_nation=marshal.nation,
-                defender_nation=target_region.controller,
-                winner_nation=target_region.controller,
-                attacker_casualties=int(attacker_losses),
-                defender_casualties=int(garrison_losses),
-                location=target_region.name,
-            )
+            # R1 Pipeline: centralized post-combat recording
+            pipeline_out = self._post_combat_pipeline({
+                'attacker': marshal,
+                'defender': None,
+                'defender_nation': target_region.controller,
+                'battle_region': target_region.name,
+                'outcome': 'defender_victory',
+                'attacker_won': False,
+                'defender_won': True,
+                'attacker_casualties': int(attacker_losses),
+                'defender_casualties': int(garrison_losses),
+                'pre_battle_attacker_strength': pre_battle_atk_strength,
+                'pre_battle_defender_strength': old_garrison,
+                'battle_result': None,
+                'conquered': False,
+                'is_garrison': True,
+                'skip_coordination_clear': True,
+                'skip_log_battle_event': True,
+                'skip_intel_update': True,
+                'skip_war_damage': True,
+                'skip_exhaustion': True,
+            }, world)
 
-            # [5C-8] Record battle for cannon fire detection
-            world.record_battle(target_region.name, marshal.name,
-                f"{target_region.name}_garrison", "defender_victory")
-
-            # [5C-9] Authority: garrison defeat (attacker failed while outnumbering)
+            # Custom garrison authority (uses garrison_effective)
             if marshal.nation == world.player_nation:
                 garrison_effective = int(old_garrison * (1.0 + TERRAIN_DEFENSE_BONUS.get(target_region.terrain, 0.0))
                                          * (1.0 + (0.25 if target_region.has_building("fortification") else 0.0)))
                 if pre_battle_atk_strength > garrison_effective:
                     world.authority_tracker.modify_authority(-5)
-
-            # [5C-7] Coalition: war exhaustion (attacker took losses)
-            from backend.game_logic.coalition import add_war_exhaustion_from_battle
-            add_war_exhaustion_from_battle(marshal.nation, int(attacker_losses), world)
 
             return {
                 "success": True,
@@ -3380,6 +3665,30 @@ RETREAT RECOVERY (3 turns):
 
         # Record battle for cannon fire detection (hearing the guns)
         world.record_battle(target_location, marshal.name, defender.name, "bombardment")
+
+        # R1 Pipeline: centralized diplo recording (Bug 5 fix — bombardment was missing this)
+        self._post_combat_pipeline({
+            'attacker': marshal,
+            'defender': defender,
+            'battle_region': target_location,
+            'outcome': 'bombardment',
+            'attacker_won': True,
+            'defender_won': False,
+            'attacker_casualties': int(attacker_casualties),
+            'defender_casualties': int(defender_casualties),
+            'pre_battle_attacker_strength': int(marshal.strength + attacker_casualties),
+            'pre_battle_defender_strength': int(pre_defender_strength),
+            'battle_result': None,
+            'conquered': False,
+            'is_bombardment': True,
+            'skip_coordination_clear': True,
+            'skip_log_battle_event': True,
+            'skip_intel_update': True,
+            'skip_idle_reset': True,
+            'skip_exhaustion': True,
+            'skip_cannon_fire_record': True,
+            'skip_war_damage': True,
+        }, world)
 
         # ════════════════════════════════════════════════════════════
         # CHECK IF DEFENDER DESTROYED (§4.8)
@@ -4523,10 +4832,6 @@ RETREAT RECOVERY (3 turns):
         # skip resolve_battle entirely. Attacker wins with 0 casualties.
         # ════════════════════════════════════════════════════════════
         if enemy_marshal.strength <= 0 and auto_bombardment_results:
-            # Clear coordination + overwatch fields before returning
-            involved_regions = {marshal.location, battle_region_name}
-            self._clear_coordination_fields(involved_regions, world)
-
             # Remove destroyed defender
             world.marshals.pop(enemy_marshal.name, None)
 
@@ -4558,81 +4863,32 @@ RETREAT RECOVERY (3 turns):
                 f"{marshal.name} advances unopposed."
             )
 
-            # Fog of War: battle visibility
-            world.update_intel_from_battle(battle_region_name, world.current_turn)
-
-            # [5C-10] War damage to battle region
-            self._apply_battle_effects_to_region(
-                battle_region_name, pre_battle_attacker_strength,
-                pre_battle_defender_strength, world)
-
-            # [5C-1] Record battle for cannon fire detection
-            world.record_battle(battle_region_name, marshal.name, enemy_marshal.name,
-                                "attacker_victory")
-
-            # [5C-1] Record for diplomacy war score
-            from backend.game_logic.diplomacy import record_battle as record_diplo_battle
-            record_diplo_battle(
-                world,
-                attacker_nation=marshal.nation,
-                defender_nation=enemy_marshal.nation,
-                winner_nation=marshal.nation,
-                attacker_casualties=0,
-                defender_casualties=int(pre_battle_defender_strength),
-                location=battle_region_name,
-            )
-
-            # [5C-1] Authority: bombardment kill
-            player_nation = world.player_nation
-            if marshal.nation == player_nation:
-                world.authority_tracker.modify_authority(+5)
-            elif enemy_marshal.nation == player_nation:
-                world.authority_tracker.modify_authority(-5)
-
-            # [5C-1] Coalition: threat + war exhaustion
-            from backend.game_logic.coalition import (
-                add_threat, add_war_exhaustion_from_battle, add_coalition_shock)
-            france = world.player_nation
-            if marshal.nation == france:
-                add_threat(world, 3, "battle_win")
-                add_threat(world, 5, "decisive_victory")
-                add_coalition_shock(enemy_marshal.nation, world)
-                if conquest_msg:
-                    target_reg = world.get_region(battle_region_name)
-                    if target_reg and getattr(target_reg, 'is_capital', False):
-                        add_threat(world, 15, "capital_capture")
-                add_war_exhaustion_from_battle(
-                    enemy_marshal.nation, int(pre_battle_defender_strength), world)
-            elif enemy_marshal.nation == france:
-                add_war_exhaustion_from_battle(france, 0, world)
-
-            # [5C-1] Exhaustion tracking
-            marshal.increment_attacks_this_turn()
-
-            # [VER] Relationship processing for auto-bombardment kill
-            from backend.game_logic.relationship import process_battle_relationships
-            bombardment_kill_result = {
+            # R1 Pipeline: centralized post-combat recording
+            # Actual bombardment damage is the defender's pre-battle strength
+            # (they were destroyed), but we use support_bombardment_total_damage
+            # as the actual casualties for correct war score (Bug 2 fix).
+            auto_kill_battle_result = {
                 "outcome": "attacker_wins",
                 "victor": marshal.name,
                 "attacker_casualties": 0,
-                "defender_casualties": int(pre_battle_defender_strength),
+                "defender_casualties": int(support_bombardment_total_damage),
             }
-            bk_relationship_changes = process_battle_relationships(
-                marshal, enemy_marshal, bombardment_kill_result,
-                battle_region_name, world
-            )
-            for rc in bk_relationship_changes:
-                world.log_event({
-                    "type": "relationship_change",
-                    "marshal": rc["marshal"],
-                    "toward": rc["toward"],
-                    "change": rc["change"],
-                    "new_value": rc["new_value"],
-                    "new_label": rc["new_label"],
-                    "direction": rc["direction"],
-                    "nation": rc["nation"],
-                    "location": battle_region_name,
-                })
+            pipeline_out = self._post_combat_pipeline({
+                'attacker': marshal,
+                'defender': enemy_marshal,
+                'defender_nation': enemy_marshal.nation,
+                'battle_region': battle_region_name,
+                'outcome': 'attacker_victory',
+                'attacker_won': True,
+                'defender_won': False,
+                'attacker_casualties': 0,
+                'defender_casualties': int(support_bombardment_total_damage),
+                'pre_battle_attacker_strength': pre_battle_attacker_strength,
+                'pre_battle_defender_strength': pre_battle_defender_strength,
+                'battle_result': auto_kill_battle_result,
+                'conquered': bool(conquest_msg),
+                'is_auto_bombardment_kill': True,
+            }, world)
 
             result = {
                 "success": True,
@@ -4742,7 +4998,7 @@ RETREAT RECOVERY (3 turns):
             battle_result["defender"]["morale"] = int(enemy_marshal.morale)
 
             # Set forced_retreat flags per-primary for _handle_forced_retreat
-            FORCED_RETREAT_THRESHOLD = 25
+            # Uses module-level FORCED_RETREAT_THRESHOLD from combat.py (Bug 7 fix)
             battle_result["attacker"]["forced_retreat"] = (
                 marshal.strength > 0 and marshal.morale <= FORCED_RETREAT_THRESHOLD
             )
@@ -4785,7 +5041,7 @@ RETREAT RECOVERY (3 turns):
 
                 if pursuit_damage > 0 and enemy_marshal.strength > 0:
                     old_strength = enemy_marshal.strength
-                    enemy_marshal.strength = max(0, enemy_marshal.strength - pursuit_damage)
+                    enemy_marshal.strength = max(1000, enemy_marshal.strength - pursuit_damage)
                     actual_pursuit = old_strength - enemy_marshal.strength
                     if actual_pursuit > 0:
                         battle_result["pursuit_damage"] = int(actual_pursuit)
@@ -5127,135 +5383,43 @@ RETREAT RECOVERY (3 turns):
         if flanking_message:
             flanking_prefix = f"\n{flanking_message}\n"
 
-        # ============================================================
-        # VINDICATION SYSTEM: Resolve post-battle trust/authority
-        # ============================================================
-        vindication_msg = ""
-        vindication_result = None
+        # R1 Pipeline: centralized vindication + authority + coalition
+        atk_pip_outcome = battle_result.get("outcome", "")
+        atk_pip_won = "attacker" in atk_pip_outcome and "victory" in atk_pip_outcome
+        def_pip_won = "defender" in atk_pip_outcome and "victory" in atk_pip_outcome
+        atk_pip_cas = int(battle_result.get("attacker", {}).get("casualties", 0))
+        def_pip_cas = int(battle_result.get("defender", {}).get("casualties", 0))
 
-        # Determine battle outcome for vindication
-        if battle_result["victor"] == marshal.name:
-            battle_outcome = "victory"
-        elif battle_result["victor"] == enemy_marshal.name:
-            battle_outcome = "defeat"
-        else:
-            battle_outcome = "draw"
+        pipeline_out = self._post_combat_pipeline({
+            'attacker': marshal,
+            'defender': enemy_marshal,
+            'defender_nation': enemy_marshal.nation,
+            'battle_region': target_location,
+            'outcome': atk_pip_outcome,
+            'attacker_won': atk_pip_won,
+            'defender_won': def_pip_won,
+            'attacker_casualties': atk_pip_cas,
+            'defender_casualties': def_pip_cas,
+            'pre_battle_attacker_strength': pre_battle_attacker_strength,
+            'pre_battle_defender_strength': pre_battle_defender_strength,
+            'battle_result': battle_result,
+            'conquered': conquered,
+            # Skip steps already handled inline by _execute_attack
+            'skip_coordination_clear': True,
+            'skip_log_battle_event': True,
+            'skip_combat_notifications': True,
+            'skip_intel_update': True,
+            'skip_war_damage': True,
+            'skip_idle_reset': True,
+            'skip_cannon_fire_record': True,
+            'skip_diplo_record': True,
+            'skip_last_combat_result': True,
+            'skip_relationships': True,
+            'skip_exhaustion': True,
+        }, world)
 
-        # Call vindication tracker if there was a pending vindication for this marshal
-        if world.vindication_tracker.has_pending(marshal.name):
-            vindication_result = world.vindication_tracker.resolve_battle(
-                marshal_name=marshal.name,
-                result=battle_outcome,
-                game_state=world
-            )
-            if vindication_result:
-                vindication_msg = f"\n\n📜 {vindication_result['message']}"
-
-        # NOTE: Forced retreat was already handled above (before movement/conquest check)
-        # forced_retreat_msg is already set
-
-        # ════════════════════════════════════════════════════════════
-        # V2b: AUTHORITY MAJOR VICTORY / DEFEAT (+5 / -5)
-        # Fires ONCE per battle (multiple criteria don't stack).
-        # Runs after advance-after-win so territory capture is visible.
-        # Only for player-nation battles.
-        # ════════════════════════════════════════════════════════════
-        player_nation = world.player_nation
-        player_is_attacker = marshal.nation == player_nation
-        player_is_defender = enemy_marshal.nation == player_nation if enemy_marshal.strength > 0 or enemy_destroyed else False
-        # Also check original nation for destroyed marshals
-        if not player_is_defender and hasattr(enemy_marshal, 'nation'):
-            player_is_defender = enemy_marshal.nation == player_nation
-
-        if player_is_attacker or player_is_defender:
-            outcome = battle_result.get("raw_outcome", battle_result.get("outcome", ""))
-            atk_won = "attacker" in outcome and "victory" in outcome
-            def_won = "defender" in outcome and "victory" in outcome
-
-            # Determine if player won or lost
-            player_won = (player_is_attacker and atk_won) or (player_is_defender and def_won)
-            player_lost = (player_is_attacker and def_won) or (player_is_defender and atk_won)
-
-            if player_won:
-                # Major victory: outnumbered win OR captured enemy capital
-                outnumbered = pre_battle_attacker_strength < pre_battle_defender_strength
-                if player_is_defender:
-                    # Defender was outnumbered if attacker was larger
-                    outnumbered = pre_battle_defender_strength < pre_battle_attacker_strength
-                capital_captured = False
-                if conquered:
-                    target_reg = world.get_region(target_location)
-                    if target_reg and getattr(target_reg, 'is_capital', False):
-                        capital_captured = True
-                if outnumbered or capital_captured:
-                    world.authority_tracker.modify_authority(+5)
-
-            elif player_lost:
-                # Major defeat: outnumbering loss OR lost capital
-                outnumbering = pre_battle_attacker_strength > pre_battle_defender_strength
-                if player_is_defender:
-                    # Defender was outnumbering if defender was larger
-                    outnumbering = pre_battle_defender_strength > pre_battle_attacker_strength
-                capital_lost = False
-                target_reg = world.get_region(target_location)
-                if target_reg and getattr(target_reg, 'is_capital', False):
-                    if target_reg.controller != player_nation:
-                        capital_lost = True
-                if outnumbering or capital_lost:
-                    world.authority_tracker.modify_authority(-5)
-
-        # ════════════════════════════════════════════════════════════
-        # COALITION: Threat + war exhaustion from battle (Session 7)
-        # France wins: +3. Decisive: +5 additional. Capital: +15.
-        # War exhaustion: +casualties//1000 (cap 20) for losing nation.
-        # Coalition shock: +5 WE to other members on decisive defeat.
-        # ════════════════════════════════════════════════════════════
-        from backend.game_logic.coalition import (
-            add_threat, add_war_exhaustion_from_battle, add_coalition_shock
-        )
-        france = world.player_nation
-        atk_cas = int(battle_result.get("attacker", {}).get("casualties", 0))
-        def_cas = int(battle_result.get("defender", {}).get("casualties", 0))
-        total_cas = atk_cas + def_cas
-
-        if battle_result.get("victor") == marshal.name and marshal.nation == france:
-            # France won as attacker
-            add_threat(world, 3, "battle_win")
-            # Decisive: ratio > 2:1 AND total casualties > 10,000
-            if def_cas > 0 and atk_cas > 0:
-                ratio = def_cas / atk_cas if atk_cas > 0 else 999
-            elif def_cas > 0:
-                ratio = 999
-            else:
-                ratio = 0
-            if ratio > 2 and total_cas > 10000:
-                add_threat(world, 5, "decisive_victory")
-                add_coalition_shock(enemy_marshal.nation, world)
-            # Capital capture
-            if conquered:
-                cap_reg = world.get_region(target_location)
-                if cap_reg and getattr(cap_reg, 'is_capital', False):
-                    add_threat(world, 15, "capital_capture")
-            # War exhaustion for defender
-            add_war_exhaustion_from_battle(enemy_marshal.nation, def_cas, world)
-
-        elif battle_result.get("victor") == enemy_marshal.name:
-            # France lost (either as attacker or defender)
-            if marshal.nation == france:
-                add_war_exhaustion_from_battle(marshal.nation, atk_cas, world)
-            if enemy_marshal.nation == france:
-                # France won as defender
-                add_threat(world, 3, "battle_win")
-                if atk_cas > 0 and def_cas > 0:
-                    ratio = atk_cas / def_cas if def_cas > 0 else 999
-                elif atk_cas > 0:
-                    ratio = 999
-                else:
-                    ratio = 0
-                if ratio > 2 and total_cas > 10000:
-                    add_threat(world, 5, "decisive_victory")
-                    add_coalition_shock(marshal.nation, world)
-                add_war_exhaustion_from_battle(marshal.nation, atk_cas, world)
+        vindication_msg = pipeline_out.get('vindication_msg', '')
+        vindication_result = pipeline_out.get('vindication_result')
 
         # Build auto-bombardment preamble (Session 68) — prepended before combat description
         auto_bombard_preamble = ""
@@ -10565,67 +10729,9 @@ RETREAT RECOVERY (3 turns):
             fortification_bonus=charge_fort_bonus
         )
 
-        # Log battle event
-        self._log_battle_event(combat_result, charge_battle_region, world)
-
-        # Fog of War (Session 34A): Battle grants FULL visibility on battle region
-        world.update_intel_from_battle(charge_battle_region, world.current_turn)
-
-        # Apply war damage + stability hit to battle region (Phase 6.2.C)
-        self._apply_battle_effects_to_region(
-            charge_battle_region, pre_battle_atk, pre_battle_def, world
-        )
-
-        # Record battle for cannon fire detection
-        world = game_state.get("world")
-        if world:
-            world.record_battle(target_marshal.location, marshal.name, target_marshal.name,
-                                combat_result.get("outcome", "unknown"))
-
-        # Record battle for diplomacy war score
-        from backend.game_logic.diplomacy import record_battle as record_diplo_battle
-        outcome = combat_result.get("outcome", "")
-        atk_won = "attacker" in outcome and "victory" in outcome
-        def_won = "defender" in outcome and "victory" in outcome
-        diplo_winner = marshal.nation if atk_won else (target_marshal.nation if def_won else None)
-        if diplo_winner:
-            record_diplo_battle(
-                world,
-                attacker_nation=marshal.nation,
-                defender_nation=target_marshal.nation,
-                winner_nation=diplo_winner,
-                attacker_casualties=int(combat_result.get("attacker", {}).get("casualties", 0)),
-                defender_casualties=int(combat_result.get("defender", {}).get("casualties", 0)),
-                location=target_marshal.location,
-            )
-
         # ALWAYS reset recklessness after Glorious Charge
         marshal.reset_recklessness()
-
-        # Reset idle tracking (charge is an action)
-        marshal.idle_turns = 0
-        marshal._acted_this_turn = True
-
-        # Mark combat for cannon fire detection
         marshal.in_combat_this_turn = True
-
-        # V2-50: Win/Loss Relationship processing (must run BEFORE destruction check)
-        from backend.game_logic.relationship import process_battle_relationships
-        relationship_changes = process_battle_relationships(
-            marshal, target_marshal, combat_result, charge_battle_region, world
-        )
-        for rc in relationship_changes:
-            world.log_event({
-                "type": "relationship_change",
-                "marshal": rc["marshal"],
-                "toward": rc["toward"],
-                "change": rc["change"],
-                "new_value": rc["new_value"],
-                "new_label": rc["new_label"],
-                "direction": rc["direction"],
-                "nation": rc["nation"],
-                "location": charge_battle_region,
-            })
 
         # ════════════════════════════════════════════════════════════
         # FORCED RETREAT: Handle broken armies (morale <= 25%)
@@ -10637,14 +10743,11 @@ RETREAT RECOVERY (3 turns):
         )
 
         # Move attacker if victorious and still alive
-        # Use charge_battle_region (pre-battle location) since forced retreat
-        # may have moved the defender to a different location.
         attacker_won = combat_result.get("attacker_won", False)
         movement_msg = ""
         if attacker_won and marshal.strength > 0:
             if marshal.location != charge_battle_region:
                 marshal.move_to(charge_battle_region)
-                # Movement attrition on charge advance (Phase 6.2.F)
                 charge_attrition = self._calculate_movement_attrition(marshal, charge_battle_region, world)
                 combat_result["attacker_moved"] = True
                 combat_result["attacker_new_location"] = charge_battle_region
@@ -10689,109 +10792,30 @@ RETREAT RECOVERY (3 turns):
                     elif capture_result.get("occupation_started"):
                         conquest_msg = f" {capture_result['message']}"
 
-        # ════════════════════════════════════════════════════════════
-        # VINDICATION SYSTEM: Resolve post-battle trust/authority
-        # ════════════════════════════════════════════════════════════
-        vindication_msg = ""
-        if world.vindication_tracker.has_pending(marshal.name):
-            if combat_result.get("victor") == marshal.name:
-                battle_outcome = "victory"
-            elif combat_result.get("victor") == target_marshal.name:
-                battle_outcome = "defeat"
-            else:
-                battle_outcome = "draw"
-            vindication_result = world.vindication_tracker.resolve_battle(
-                marshal_name=marshal.name,
-                result=battle_outcome,
-                game_state=world
-            )
-            if vindication_result:
-                vindication_msg = f"\n\n📜 {vindication_result['message']}"
-
-        # ════════════════════════════════════════════════════════════
-        # AUTHORITY: Major victory / defeat (+5 / -5)
-        # ════════════════════════════════════════════════════════════
-        player_nation = world.player_nation
-        player_is_attacker = marshal.nation == player_nation
-        player_is_defender = target_marshal.nation == player_nation
-
-        if player_is_attacker or player_is_defender:
-            outcome = combat_result.get("raw_outcome", combat_result.get("outcome", ""))
-            atk_won_auth = "attacker" in outcome and "victory" in outcome
-            def_won_auth = "defender" in outcome and "victory" in outcome
-            player_won = (player_is_attacker and atk_won_auth) or (player_is_defender and def_won_auth)
-            player_lost = (player_is_attacker and def_won_auth) or (player_is_defender and atk_won_auth)
-
-            if player_won:
-                outnumbered = pre_battle_atk < pre_battle_def
-                if player_is_defender:
-                    outnumbered = pre_battle_def < pre_battle_atk
-                capital_captured = False
-                if conquered:
-                    cap_reg = world.get_region(charge_battle_region)
-                    if cap_reg and getattr(cap_reg, 'is_capital', False):
-                        capital_captured = True
-                if outnumbered or capital_captured:
-                    world.authority_tracker.modify_authority(+5)
-            elif player_lost:
-                outnumbering = pre_battle_atk > pre_battle_def
-                if player_is_defender:
-                    outnumbering = pre_battle_def > pre_battle_atk
-                capital_lost = False
-                cap_reg = world.get_region(charge_battle_region)
-                if cap_reg and getattr(cap_reg, 'is_capital', False):
-                    if cap_reg.controller != player_nation:
-                        capital_lost = True
-                if outnumbering or capital_lost:
-                    world.authority_tracker.modify_authority(-5)
-
-        # ════════════════════════════════════════════════════════════
-        # COALITION: Threat + war exhaustion from battle
-        # Uses correct nested casualty keys (attacker.casualties).
-        # ════════════════════════════════════════════════════════════
-        from backend.game_logic.coalition import (
-            add_threat, add_war_exhaustion_from_battle, add_coalition_shock
-        )
-        france = world.player_nation
+        # R1 Pipeline: centralized post-combat recording
+        charge_outcome = combat_result.get("outcome", "")
+        charge_atk_won = "attacker" in charge_outcome and "victory" in charge_outcome
+        charge_def_won = "defender" in charge_outcome and "victory" in charge_outcome
         charge_atk_cas = int(combat_result.get("attacker", {}).get("casualties", 0))
         charge_def_cas = int(combat_result.get("defender", {}).get("casualties", 0))
-        charge_total_cas = charge_atk_cas + charge_def_cas
 
-        if combat_result.get("victor") == marshal.name and marshal.nation == france:
-            add_threat(world, 3, "battle_win")
-            if charge_def_cas > 0 and charge_atk_cas > 0:
-                ratio = charge_def_cas / charge_atk_cas
-            elif charge_def_cas > 0:
-                ratio = 999
-            else:
-                ratio = 0
-            if ratio > 2 and charge_total_cas > 10000:
-                add_threat(world, 5, "decisive_victory")
-                add_coalition_shock(target_marshal.nation, world)
-            if conquered:
-                cap_reg = world.get_region(charge_battle_region)
-                if cap_reg and getattr(cap_reg, 'is_capital', False):
-                    add_threat(world, 15, "capital_capture")
-            add_war_exhaustion_from_battle(target_marshal.nation, charge_def_cas, world)
-        elif combat_result.get("victor") == target_marshal.name:
-            if marshal.nation == france:
-                add_war_exhaustion_from_battle(marshal.nation, charge_atk_cas, world)
-            if target_marshal.nation == france:
-                add_threat(world, 3, "battle_win")
-                if charge_atk_cas > 0 and charge_def_cas > 0:
-                    ratio = charge_atk_cas / charge_def_cas
-                elif charge_atk_cas > 0:
-                    ratio = 999
-                else:
-                    ratio = 0
-                if ratio > 2 and charge_total_cas > 10000:
-                    add_threat(world, 5, "decisive_victory")
-                    add_coalition_shock(marshal.nation, world)
-                add_war_exhaustion_from_battle(marshal.nation, charge_atk_cas, world)
+        pipeline_out = self._post_combat_pipeline({
+            'attacker': marshal,
+            'defender': target_marshal,
+            'battle_region': charge_battle_region,
+            'outcome': charge_outcome,
+            'attacker_won': charge_atk_won,
+            'defender_won': charge_def_won,
+            'attacker_casualties': charge_atk_cas,
+            'defender_casualties': charge_def_cas,
+            'pre_battle_attacker_strength': pre_battle_atk,
+            'pre_battle_defender_strength': pre_battle_def,
+            'battle_result': combat_result,
+            'conquered': conquered,
+            'is_glorious_charge': True,
+        }, world)
 
-        # Exhaustion tracking (charge counts as an attack)
-        if marshal.strength > 0:
-            marshal.increment_attacks_this_turn()
+        vindication_msg = pipeline_out.get('vindication_msg', '')
 
         # Build charge message - use "description" key from combat resolver
         charge_message = f"🐴⚔️ GLORIOUS CHARGE! {marshal.name} leads a devastating cavalry assault!\n\n"

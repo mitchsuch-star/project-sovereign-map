@@ -253,8 +253,8 @@ class TestGloriousChargePostCombat:
         assert result["success"]
         assert cav.idle_turns == 0
 
-    def test_charge_does_not_set_last_combat_result(self):
-        """Pin bug: glorious charge does NOT set last_combat_result."""
+    def test_charge_sets_last_combat_result(self):
+        """Bug 3 fixed: glorious charge NOW sets last_combat_result via pipeline."""
         cav, target, world = self._setup_charge()
         executor = CommandExecutor()
         game_state = {"world": world}
@@ -264,8 +264,7 @@ class TestGloriousChargePostCombat:
             result = executor._execute_glorious_charge(cav, "Bluecher", world, game_state)
 
         assert result["success"]
-        # Charge does NOT set this field — this is a known gap
-        assert getattr(cav, 'last_combat_result', None) is None
+        assert cav.last_combat_result == "victory"
 
     def test_charge_adds_coalition_threat(self):
         """Glorious charge adds coalition threat for France win."""
@@ -331,8 +330,8 @@ class TestGarrisonPostCombat:
         assert result["success"]
         assert _count_battle_records(world) > initial_records
 
-    def test_garrison_does_not_set_last_combat_result(self):
-        """Pin bug: garrison does NOT set last_combat_result."""
+    def test_garrison_sets_last_combat_result(self):
+        """Bug 3 fixed: garrison NOW sets last_combat_result via pipeline."""
         atk, world = self._setup_garrison_assault(60000, 8000)
         executor = CommandExecutor()
         berlin = world.get_region("Berlin")
@@ -340,10 +339,10 @@ class TestGarrisonPostCombat:
         result = executor._resolve_garrison_combat(atk, berlin, world, {"world": world})
 
         assert result["success"]
-        assert getattr(atk, 'last_combat_result', None) is None
+        assert atk.last_combat_result == "victory"
 
-    def test_garrison_does_not_reset_idle(self):
-        """Pin bug: garrison does NOT reset idle_turns."""
+    def test_garrison_resets_idle(self):
+        """Bug 3 fixed: garrison NOW resets idle_turns via pipeline."""
         atk, world = self._setup_garrison_assault(60000, 8000)
         atk.idle_turns = 5
         executor = CommandExecutor()
@@ -352,8 +351,7 @@ class TestGarrisonPostCombat:
         result = executor._resolve_garrison_combat(atk, berlin, world, {"world": world})
 
         assert result["success"]
-        # Garrison path does NOT reset idle_turns — known gap
-        assert atk.idle_turns == 5
+        assert atk.idle_turns == 0
 
     def test_garrison_collapse_adds_threat(self):
         """Garrison collapse adds coalition threat for France."""
@@ -418,8 +416,8 @@ class TestBombardmentPostCombat:
         assert result["success"]
         assert art.idle_turns == 0
 
-    def test_bombardment_does_not_record_diplo_battle(self):
-        """Pin Bug 5: bombardment does NOT record diplomacy battle."""
+    def test_bombardment_records_diplo_battle(self):
+        """Bug 5 fixed: bombardment NOW records diplomacy battle via pipeline."""
         art, target, world = self._setup_bombardment()
         executor = CommandExecutor()
         game_state = {"world": world}
@@ -428,8 +426,7 @@ class TestBombardmentPostCombat:
         result = executor._execute_bombardment(art, target, world, game_state)
 
         assert result["success"]
-        # Bombardment currently does NOT record diplo battle — this is Bug 5
-        assert _count_battle_records(world) == initial_records
+        assert _count_battle_records(world) > initial_records
 
     def test_bombardment_does_not_add_coalition_threat(self):
         """Pin: bombardment does NOT add coalition threat."""
@@ -522,30 +519,31 @@ class TestAutoBombardmentKillPostCombat:
         # Defender should be destroyed by auto-bombardment
         assert "Bluecher" not in world.marshals
 
-    def test_auto_kill_records_diplo_with_full_strength_as_casualties(self):
-        """Pin Bug 2: auto-kill records pre_battle_defender_strength as casualties.
+    def test_auto_kill_records_diplo_with_actual_casualties(self):
+        """Bug 2 fixed: auto-kill uses actual bombardment damage, not full pre-battle strength.
 
-        The bug is that record_diplo_battle uses full pre-battle strength (e.g. 20k)
-        instead of actual bombardment damage (e.g. 800). But with defender=50,
-        total casualties < 1000 so nothing is recorded. This test verifies Bug 2
-        by checking the code path directly — the fix will use actual_casualties.
+        With a 50-troop defender, actual casualties are ~50 (the bombardment damage),
+        well below the 1000 threshold, so no diplo record. This is CORRECT behavior —
+        Bug 2 was that larger battles would inflate war score with pre-battle strength.
         """
         atk, dfn, art, world = self._setup_auto_kill_scenario()
         executor = CommandExecutor()
         game_state = {"world": world}
 
-        # With 50-troop defender, total casualties < 1000, so diplo record is skipped.
-        # This is expected — Bug 2 only inflates war score for larger battles.
         initial_records = _count_battle_records(world)
         result = executor.execute(make_command("attack", "Ney", "Bluecher"), game_state)
 
         assert result["success"]
         assert "Bluecher" not in world.marshals
-        # Below 1000 casualty threshold — no record (this is correct behavior)
+        # Actual casualties ~50, below 1000 threshold — no record (correct)
         assert _count_battle_records(world) == initial_records
 
-    def test_auto_kill_adds_coalition_threat(self):
-        """Pin Bug 1: auto-kill adds decisive_victory threat unconditionally."""
+    def test_auto_kill_adds_coalition_threat_proportional(self):
+        """Bug 1 fixed: auto-kill threat is proportional, not unconditional decisive_victory.
+
+        With a 50-troop defender, casualties are tiny (<10000 total) so
+        decisive_victory bonus (+5) should NOT trigger. Only base +3 (battle_win).
+        """
         atk, dfn, art, world = self._setup_auto_kill_scenario()
         executor = CommandExecutor()
         game_state = {"world": world}
@@ -555,5 +553,6 @@ class TestAutoBombardmentKillPostCombat:
 
         assert result["success"]
         assert "Bluecher" not in world.marshals
-        # Bug 1: Gets +3 (battle_win) + 5 (decisive_victory) = +8 unconditionally
-        assert world.threat_level >= initial_threat + 8
+        # Pipeline properly checks casualty ratio — tiny battle gets +3 only, not +8
+        assert world.threat_level >= initial_threat + 3
+        assert world.threat_level < initial_threat + 8

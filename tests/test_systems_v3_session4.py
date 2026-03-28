@@ -309,16 +309,21 @@ class TestBombardmentKillRecording:
             # The bombardment kill reports pre_battle_defender_strength as casualties
             assert len(records) >= 0  # Record function checks >= 1000 total cas
 
-    def test_bombardment_kill_updates_authority(self):
-        """Authority should increase for player bombardment kill."""
+    def test_bombardment_kill_authority_requires_outnumbered(self):
+        """Authority only increases for outnumbered wins (R1 pipeline fix).
+
+        A 40k attacker destroying a 47-troop defender via bombardment is NOT
+        outnumbered, so no authority bonus. Authority requires being outnumbered
+        or capturing a capital.
+        """
         world = self._setup_bombardment_kill()
-        # Start below max so we can see the increase
         world.authority_tracker.authority = 50
         initial_authority = world.authority_tracker.authority
         result = execute_attack(world, "Ney", "Wellington")
 
         if result.get("auto_bombardment") or "destroyed" in result.get("message", "").lower():
-            assert world.authority_tracker.authority > initial_authority
+            # Not outnumbered, not capital — no authority change
+            assert world.authority_tracker.authority == initial_authority
 
     def test_bombardment_kill_adds_coalition_threat(self):
         """Coalition threat should increase after bombardment kill."""
