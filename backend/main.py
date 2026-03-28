@@ -85,16 +85,20 @@ def get_llm_game_state() -> dict:
                     "nation": m.nation,
                 }
 
-    # Build map_data dict
+    # Build map_data dict — R5: fog-filter enemy marshals
     map_data = {}
     for region_name, region in world.regions.items():
         marshals_here = world.get_marshals_in_region(region_name)
+        region_vis = world.get_region_intel(region_name).visibility_at_least(PARTIAL)
+        visible_marshals = [
+            {"name": m.name, "personality": getattr(m, 'personality', 'unknown')}
+            for m in marshals_here
+            if m.strength > 0
+            and (m.nation == world.player_nation or region_vis)
+        ]
         map_data[region_name] = {
             "controller": region.controller or "Neutral",
-            "marshals": [
-                {"name": m.name, "personality": getattr(m, 'personality', 'unknown')}
-                for m in marshals_here if m.strength > 0
-            ]
+            "marshals": visible_marshals,
         }
 
     return {

@@ -4075,12 +4075,11 @@ RETREAT RECOVERY (3 turns):
                 else:
                     # Out of range — literal marshals ask for clarification instead of guessing
                     if getattr(marshal, 'personality', '') == 'literal':
-                        enemies = [e for e in world.get_enemies_of_nation(marshal.nation) if e.strength > 0]
-                        # FOG-AWARE (Session 37): Only show visible enemies for player
-                        if marshal.nation == world.player_nation and hasattr(world, 'get_region_intel'):
-                            from backend.models.intel import FULL, PARTIAL
-                            enemies = [e for e in enemies
-                                       if world.get_region_intel(e.location).visibility in (FULL, PARTIAL)]
+                        # R5: Fog-filtered for player, omniscient for AI
+                        if marshal.nation == world.player_nation:
+                            enemies = [e for e in world.get_visible_enemies(marshal.nation) if e.strength > 0]
+                        else:
+                            enemies = [e for e in world.get_enemies_of_nation(marshal.nation) if e.strength > 0]
                         options = []
                         for e in enemies[:3]:
                             e_dist = world.get_distance(marshal.location, e.location)
@@ -4281,20 +4280,16 @@ RETREAT RECOVERY (3 turns):
                 marshal_type = "cavalry" if marshal.movement_range == 2 else "infantry"
 
                 # Find closer targets within range
-                # Use nation-aware enemy lookup (required for enemy AI)
-                # FOG-AWARE (Session 37): Only suggest visible enemies for player
+                # R5: Fog-filtered for player, omniscient for AI
                 nearby_targets = []
-                is_player = marshal.nation == world.player_nation
-                for enemy in world.get_enemies_of_nation(marshal.nation):
+                if marshal.nation == world.player_nation:
+                    candidate_enemies = world.get_visible_enemies(marshal.nation)
+                else:
+                    candidate_enemies = world.get_enemies_of_nation(marshal.nation)
+                for enemy in candidate_enemies:
                     if enemy.strength > 0:
                         enemy_distance = world.get_distance(marshal.location, enemy.location)
                         if enemy_distance <= marshal.movement_range:
-                            # Fog check: player only sees PARTIAL+ enemies
-                            if is_player and hasattr(world, 'get_region_intel'):
-                                from backend.models.intel import FULL, PARTIAL
-                                intel = world.get_region_intel(enemy.location)
-                                if intel.visibility not in (FULL, PARTIAL):
-                                    continue
                             nearby_targets.append(f"{enemy.name} at {enemy.location} ({enemy_distance} region{'s' if enemy_distance != 1 else ''} away)")
 
                 error_msg = f"{marshal.name} cannot reach {target} from {marshal.location}! "
@@ -5786,7 +5781,11 @@ RETREAT RECOVERY (3 turns):
 
         # ── PURSUE: nearest enemy marshal ────────────────────────────
         if strategic_type == "PURSUE":
-            enemies = world.get_enemies_of_nation(marshal.nation)
+            # R5: Fog-filtered for player, omniscient for AI
+            if marshal.nation == world.player_nation:
+                enemies = world.get_visible_enemies(marshal.nation)
+            else:
+                enemies = world.get_enemies_of_nation(marshal.nation)
             enemies = [e for e in enemies if e.strength > 0]
             nearest, alternatives = self._find_nearest_enemy(marshal, enemies, world)
 
@@ -5833,7 +5832,11 @@ RETREAT RECOVERY (3 turns):
 
         # ── MOVE_TO: nearest enemy region ────────────────────────────
         if strategic_type == "MOVE_TO":
-            enemies = world.get_enemies_of_nation(marshal.nation)
+            # R5: Fog-filtered for player, omniscient for AI
+            if marshal.nation == world.player_nation:
+                enemies = world.get_visible_enemies(marshal.nation)
+            else:
+                enemies = world.get_enemies_of_nation(marshal.nation)
             enemies = [e for e in enemies if e.strength > 0]
             nearest, _ = self._find_nearest_enemy(marshal, enemies, world)
 

@@ -1308,6 +1308,25 @@ class WorldState:
             and self.is_at_war(nation, marshal.nation)
         ]
 
+    def get_visible_enemies(self, nation: str) -> List[Marshal]:
+        """Get enemies visible through fog of war. PREFERRED for player-facing queries.
+
+        Only returns enemies in regions with PARTIAL or FULL visibility.
+        Use get_enemies_of_nation() for omniscient operations
+        (combat resolution, save/load, AI decisions — until R14).
+
+        Args:
+            nation: The nation whose visible enemies we want
+
+        Returns:
+            List of enemy Marshal objects in fog-visible regions
+        """
+        from backend.models.intel import PARTIAL
+        return [
+            m for m in self.get_enemies_of_nation(nation)
+            if self.get_region_intel(m.location).visibility_at_least(PARTIAL)
+        ]
+
     def get_enemy_by_name_for_nation(self, name: str, attacker_nation: str) -> Optional[Marshal]:
         """
         Get an enemy marshal by name from the perspective of a specific nation.

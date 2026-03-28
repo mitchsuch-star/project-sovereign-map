@@ -18,7 +18,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Architecture Refactoring — IN PROGRESS.** Audit complete. Now iterating through `docs/ARCHITECTURE_REFACTORING_PLAN.md` (20 R-items, 21 sessions). **Session 1 (R3 conftest) COMPLETE** — `tests/conftest.py` with MarshalFactory/WorldFactory, 25 validation tests, 5 files migrated (253 tests). **Session 2A (R1 characterization) COMPLETE** — 25 tests pinning all 5 combat paths' post-combat behavior. **Session 2B (R1 pipeline extraction) COMPLETE** — `_post_combat_pipeline()` (14 steps), all 5 paths wired, 7 bugs fixed, 30 enforcement tests. **Session 3 (R2 war-state helpers) COMPLETE** — 5 query helpers on WorldState, centralized `set_diplomatic_state()` in diplomacy.py, 23 write sites migrated, 47 tests. **Session 4 (R4 response pipeline) COMPLETE** — `build_base_response()` + `_build_result_response()` in main.py, 11 endpoints migrated, "Bug 5" pattern eliminated, 45 tests. **Session 5 (R5 fog-filtered data access) NEXT**. Methodology: Characterization Testing (pin behavior → restructure → fix bugs). Priority order: R3→R1→R2→R4→R5 (first 5 deliver ~80% of value).
+- **Architecture Refactoring — IN PROGRESS.** Audit complete. Now iterating through `docs/ARCHITECTURE_REFACTORING_PLAN.md` (20 R-items, 21 sessions). **Session 1 (R3 conftest) COMPLETE** — `tests/conftest.py` with MarshalFactory/WorldFactory, 25 validation tests, 5 files migrated (253 tests). **Session 2A (R1 characterization) COMPLETE** — 25 tests pinning all 5 combat paths' post-combat behavior. **Session 2B (R1 pipeline extraction) COMPLETE** — `_post_combat_pipeline()` (14 steps), all 5 paths wired, 7 bugs fixed, 30 enforcement tests. **Session 3 (R2 war-state helpers) COMPLETE** — 5 query helpers on WorldState, centralized `set_diplomatic_state()` in diplomacy.py, 23 write sites migrated, 47 tests. **Session 4 (R4 response pipeline) COMPLETE** — `build_base_response()` + `_build_result_response()` in main.py, 11 endpoints migrated, "Bug 5" pattern eliminated, 45 tests. **Session 5 (R5 fog-filtered data access) COMPLETE** — `get_visible_enemies()` + `visibility_at_least()`, 8 sites migrated, 26 callers audited, 42 tests. **Session 6 (R7+R8 display names + campaign log) NEXT**. Methodology: Characterization Testing (pin behavior → restructure → fix bugs). Priority order: R3→R1→R2→R4→R5 (first 5 deliver ~80% of value).
 - **Systems Audit V3 Fix Plan — Sessions 1-10 ALL COMPLETE.** 158 bugs across 10 required + 1 optional sessions. Session 10: 3 backend + 19 Godot GDScript bugs. Session 11 (optional polish) remaining. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`.
 - **Final Audit Fix Plan — ALL COMPLETE.** 13 confirmed bugs fixed in combined session with V3 Session 10 backend bugs (16 total). 29 new tests (7,306 total). See `docs/FINAL_AUDIT_FIX_PLAN.md`.
 - ~~**Systems Audit V2 Fix Plan — ALL 7 SESSIONS COMPLETE.**~~ 56 bugs fixed, 7,040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.
@@ -152,7 +152,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | Supply attrition | `world_state.py` (process_supply_attrition), `region.py` (supply_capacity) |
 | Strategic commands | `strategic.py`, `strategic_parser.py`, `executor.py` |
 | Objection V2 system | `objection_v2.py`, `docs/OBJECTION_V2.md`, `docs/V2B_DEFIANCE_SPEC.md` |
-| Fog of war | `docs/FOG_OF_WAR_SPEC.md`, `backend/models/intel.py`, `backend/intel_report.py`, `map.gd` (fog overlay + fogged icons) |
+| Fog of war | `docs/FOG_OF_WAR_SPEC.md`, `backend/models/intel.py`, `backend/intel_report.py`, `map.gd` (fog overlay + fogged icons). **R5:** Use `world.get_visible_enemies(nation)` for player-facing queries, `get_enemies_of_nation()` only for omniscient operations (combat, AI, mechanics) |
 | Strategic commands + fog | `docs/FOG_OF_WAR_SPEC.md` §5, `backend/commands/strategic.py` |
 | Manpower pools / recruitment | `world_state.py` (manpower constants, `_process_manpower_regen`), `executor.py` (`_execute_recruit`), `enemy_ai.py` (P1/P4.5/P7 pool checks) |
 | Artillery mechanics | `marshal.py` (artillery flag, moved_this_turn, defense modifier), `combat.py` (cavalry counter, fort degradation), `executor.py` (attack block, no advance, charge ban, `_execute_bombardment` collateral, `_distribute_casualties` 50% reduction with non-artillery), `enemy_ai.py` (`_score_artillery_position` frontline penalty + behind-screen bonus) |
@@ -309,6 +309,7 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | Popup not showing after endpoint | Use `build_base_response()` for ALL POST handlers. Only `/command` main path (enemy_phase deferral) calls `_include_popup_passthroughs()` directly |
 | Raw internal keys in popup text | Use display maps (FEEDBACK_STRINGS, DEFIANCE_TYPE_DISPLAY, PROPOSAL_TYPE_DISPLAY) — never expose raw component/enum keys to players |
 | Counter-offer popup broken/empty | Popup data must match `incoming_proposal_popup.gd` fields: `from_nation`, `diplomat_name`, `diplomat_personality`, `clauses` (list), `talleyrand_assessment`, `is_counter_offer` |
+| Fog leak — player sees fogged enemies | Use `world.get_visible_enemies(nation)` for player-facing queries (R5). Only use `get_enemies_of_nation()` for omniscient operations (combat, AI, game mechanics). For mixed player/AI callers: `if marshal.nation == world.player_nation: get_visible_enemies() else: get_enemies_of_nation()` |
 
 ---
 
@@ -326,6 +327,7 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 - Show raw internal action names to players (use `_ACTION_DISPLAY_NAMES` translation)
 - Use `.get('key', default)` when value may be `None` — use `(d.get('key') or default)` instead
 - Skip AP check before objection evaluation — player should never see objection then AP failure
+- Use `get_enemies_of_nation()` for player-facing queries — use `get_visible_enemies()` instead (R5). `get_enemies_of_nation()` is omniscient and leaks fog
 - Add a new nation without updating `NATION_DESIRE_PROFILES` + `TALLEYRAND_COMMENTARY` in `diplomatic_templates.py` (falls back to defaults but loses nation-specific intelligence). See `docs/ADDING_CONTENT.md` validation checklist
 
 ---

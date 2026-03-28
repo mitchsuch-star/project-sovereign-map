@@ -85,7 +85,11 @@ def resolve_direction(from_region: str, direction: str, world, marshal_name: Opt
         # "The front" = nearest region with enemy presence
         marshal = world.get_marshal(marshal_name) if marshal_name else None
         nation = marshal.nation if marshal else world.player_nation
-        enemies = world.get_enemies_of_nation(nation)
+        # R5: Fog-filtered for player, omniscient for AI (R14 handles AI fog)
+        if nation == world.player_nation:
+            enemies = world.get_visible_enemies(nation)
+        else:
+            enemies = world.get_enemies_of_nation(nation)
         enemies = [e for e in enemies if e.strength > 0]
         if enemies:
             nearest_enemy = min(enemies,
@@ -574,7 +578,11 @@ def _add_interpretation(result: Dict, marshal_name: Optional[str], world) -> Dic
     strategic_type = result.get("strategic_type")
 
     if strategic_type == "PURSUE":
-        enemies = world.get_enemies_of_nation(marshal.nation)
+        # R5: Fog-filtered for player, omniscient for AI
+        if marshal.nation == world.player_nation:
+            enemies = world.get_visible_enemies(marshal.nation)
+        else:
+            enemies = world.get_enemies_of_nation(marshal.nation)
         enemies = [e for e in enemies if e.strength > 0]
         if enemies:
             nearest = min(enemies,
@@ -607,7 +615,11 @@ def _add_interpretation(result: Dict, marshal_name: Optional[str], world) -> Dic
 
     elif strategic_type == "MOVE_TO":
         # Generic MOVE_TO ("march to the front") — pick nearest enemy region
-        enemies = world.get_enemies_of_nation(marshal.nation)
+        # R5: Fog-filtered for player, omniscient for AI
+        if marshal.nation == world.player_nation:
+            enemies = world.get_visible_enemies(marshal.nation)
+        else:
+            enemies = world.get_enemies_of_nation(marshal.nation)
         enemies = [e for e in enemies if e.strength > 0]
         if enemies:
             nearest = min(enemies,

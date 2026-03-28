@@ -2139,7 +2139,7 @@ These individual findings from the audit are acknowledged but NOT addressed by a
 |-----------|-------------|--------|
 | 1-2 | R1 (Session 2) | **COMPLETE** |
 | 3 | R1 (Session 2) | **COMPLETE** |
-| 4 | R5 (Session 5) | Planned |
+| 4 | R5 (Session 5) | **COMPLETE** — get_visible_enemies(), 8 sites migrated, 42 tests |
 | 5 | R4 (Session 4) | **COMPLETE** — build_base_response() structurally guarantees popups |
 | 6 | — | Deferred (balance tuning) |
 | 7 | — | Deferred (display-only) |
@@ -2165,7 +2165,7 @@ These individual findings from the audit are acknowledged but NOT addressed by a
 | 27 | — | Quick fix candidate (docstring) |
 | 28 | R8 (Session 6) | Planned |
 | 29 | — | Deferred (no marshals use it) |
-| 30 | R5 (Session 5) | Planned |
+| 30 | R5 (Session 5) | **COMPLETE** — map_data fog-filtered, strategic parser 3 leaks fixed |
 | 31 | — | Deferred (single-faction game) |
 | 32 | — | Low priority, cosmetic |
 | 33 | — | Deferred (80-region expansion) |

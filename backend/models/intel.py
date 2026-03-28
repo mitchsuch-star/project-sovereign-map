@@ -224,5 +224,16 @@ class RegionIntel:
         intel.intel_source = data.get("intel_source", "")
         return intel
 
+    def visibility_at_least(self, level: str) -> bool:
+        """Check if current visibility is at or above the given level.
+
+        Args:
+            level: Minimum visibility level (FULL, PARTIAL, STALE, LAST_KNOWN, UNKNOWN)
+
+        Returns:
+            True if current visibility >= level in priority order
+        """
+        return VISIBILITY_PRIORITY.get(self.visibility, 0) >= VISIBILITY_PRIORITY.get(level, 0)
+
     def __repr__(self) -> str:
         return f"RegionIntel({self.region_name}: {self.visibility}, src={self.intel_source}, updated=t{self.last_updated_turn})"
