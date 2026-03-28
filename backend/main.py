@@ -143,14 +143,67 @@ def _get_talleyrand_mission_summary(w) -> str:
     return "None"
 
 
+def build_base_response(world, success: bool = True, message: str = "",
+                        events: list = None, **extra) -> dict:
+    """Standard response builder. ALL POST endpoints must use this.
+
+    Structurally guarantees:
+    - Popup passthroughs (impossible to forget — called inside builder)
+    - Diplomatic top-bar fields (always present, never stale)
+    - Game state summary (always present)
+    - Notifications (always present when pending)
+
+    Endpoint-specific fields passed as **extra.
+    """
+    response = {
+        "success": success,
+        "message": message,
+        "events": events if events is not None else [],
+        "game_state": world.get_filtered_game_state_summary(),
+        "action_summary": world.get_action_summary(),
+        # Diplomatic top-bar fields — present in EVERY gameplay response
+        "diplomatic_points": int(getattr(world, 'diplomatic_points', 0)),
+        "max_diplomatic_points": int(getattr(world, 'max_diplomatic_points', 3)),
+        "talleyrand_state": _get_talleyrand_trust_label(world),
+        "talleyrand_mission_summary": _get_talleyrand_mission_summary(world),
+        "threat_level": int(getattr(world, 'threat_level', 0)),
+        "coalition_brewing": getattr(world, 'coalition_brewing', None) is not None,
+        "coalition_brewing_turns": int(
+            world.coalition_brewing.get("turns_remaining", 0)
+        ) if getattr(world, 'coalition_brewing', None) else None,
+        "pending_envoy_count": int(len(getattr(world, 'diplomatic_queue', []))),
+    }
+    response.update(extra)
+    _include_popup_passthroughs(response, world)
+    # Notifications — persistent alerts for Godot notification bar
+    if world.notifications.has_pending():
+        response["notifications"] = world.notifications.get_pending()
+    return response
+
+
+def _build_result_response(result: dict, world) -> dict:
+    """Build a standard response from an executor result dict.
+
+    Strips new_state (circular refs), adds base fields via build_base_response().
+    Used for /command early returns and endpoints that forward executor results.
+    """
+    extra = {k: v for k, v in result.items() if k != "new_state"}
+    return build_base_response(
+        world,
+        success=extra.pop("success", False),
+        message=extra.pop("message", ""),
+        events=extra.pop("events", []),
+        **extra
+    )
+
+
 def _include_popup_passthroughs(response: dict, world) -> None:
     """Read the HIGHEST-PRIORITY popup from world, include in response, clear from world.
 
-    CRITICAL: Every response handler that returns a dict to Godot MUST call this
-    function before returning. Diplomatic popups can be set on world by ANY executor
-    call. Skipping this call silently loses popups — the recurring "popup not showing"
-    bug pattern. If you add a new POST endpoint, add _include_popup_passthroughs()
-    before the return. See BUGFIX_PLAN_PROPOSAL_FLOW.md Bug 5.
+    R4: Called internally by build_base_response() — do NOT call directly.
+    Use build_base_response() or _build_result_response() instead, which
+    structurally guarantee popup inclusion. The only exception is the
+    /command main response path (enemy_phase popup deferral).
 
     R76 Priority Queue: Only one popup per response cycle. Lower-priority popups
     remain on world and are delivered in subsequent request cycles.
@@ -552,21 +605,17 @@ def execute_command(request: CommandRequest):
         # GAME-OVER GUARD — No actions after the war ends
         # ════════════════════════════════════════════════════════════
         if world.game_over:
-            response = {"success": False, "message": "The war is over.", "game_over": True,
-                    "victory": world.victory, "game_state": world.get_filtered_game_state_summary()}
-            _include_popup_passthroughs(response, world)
-            return response
+            return build_base_response(
+                world, success=False, message="The war is over.",
+                game_over=True, victory=world.victory)
 
         # ════════════════════════════════════════════════════════════
         # EMPTY COMMAND CHECK — Reject blank input
         # ════════════════════════════════════════════════════════════
         if not request.command or not request.command.strip():
-            response = {"success": False, "message": "No command given, Sire.", "events": [],
-                    "action_info": {"remaining": int(world.actions_remaining)},
-                    "action_summary": world.get_action_summary(),
-                    "game_state": world.get_filtered_game_state_summary()}
-            _include_popup_passthroughs(response, world)
-            return response
+            return build_base_response(
+                world, success=False, message="No command given, Sire.",
+                action_info={"remaining": int(world.actions_remaining)})
 
         # ════════════════════════════════════════════════════════════
         # PENDING STRATEGIC INTERRUPT CHECK (Phase 5.2-D)
@@ -619,14 +668,7 @@ def execute_command(request: CommandRequest):
                     strategic_exec = StrategicExecutor(executor)
                     result = strategic_exec.handle_response(
                         m.name, interrupt_type, choice, world, game_state)
-                    cleaned = {k: v for k, v in result.items() if k != "new_state"}
-                    cleaned["action_summary"] = world.get_action_summary()
-                    cleaned["game_state"] = world.get_filtered_game_state_summary()
-                    if world.notifications.has_pending():
-                        cleaned["notifications"] = world.notifications.get_pending()
-                    # BUGFIX (Bug 5): Popup passthrough on interrupt route.
-                    _include_popup_passthroughs(cleaned, world)
-                    return cleaned
+                    return _build_result_response(result, world)
 
         # Parse command
         # Build LLM-compatible game state for command parsing
@@ -704,21 +746,14 @@ def execute_command(request: CommandRequest):
                         "raw_input": parsed.get("raw_input", request.command),
                     },
                 )
-                berthier_response = {
-                    "success": False,
-                    "message": berthier_msg,
-                    "events": [],
-                    "action_info": {
+                return build_base_response(
+                    world, success=False, message=berthier_msg,
+                    action_info={
                         "cost": 0,
                         "remaining": int(world.actions_remaining),
                         "turn_advanced": False,
                         "new_turn": None,
-                    },
-                    "action_summary": world.get_action_summary(),
-                    "game_state": world.get_filtered_game_state_summary(),
-                }
-                _include_popup_passthroughs(berthier_response, world)
-                return berthier_response
+                    })
 
             # Execute command
             result = executor.execute(parsed, game_state)
@@ -738,21 +773,14 @@ def execute_command(request: CommandRequest):
                     "raw_input": request.command,
                 },
             )
-            berthier_response = {
-                "success": False,
-                "message": berthier_msg,
-                "events": [],
-                "action_info": {
+            return build_base_response(
+                world, success=False, message=berthier_msg,
+                action_info={
                     "cost": 0,
                     "remaining": int(world.actions_remaining),
                     "turn_advanced": False,
                     "new_turn": None,
-                },
-                "action_summary": world.get_action_summary(),
-                "game_state": world.get_filtered_game_state_summary(),
-            }
-            _include_popup_passthroughs(berthier_response, world)
-            return berthier_response
+                })
 
         # ════════════════════════════════════════════════════════════
         # CHECK FOR OBJECTION: If awaiting player choice, return full result
@@ -761,49 +789,25 @@ def execute_command(request: CommandRequest):
         # ════════════════════════════════════════════════════════════
         if result.get("state") == "awaiting_player_choice":
             print("[OBJECTION] TACTICAL OBJECTION - Returning full result to frontend")
-            cleaned = {k: v for k, v in result.items() if k != "new_state"}
-            cleaned["action_summary"] = world.get_action_summary()
-            cleaned["game_state"] = world.get_filtered_game_state_summary()
-            _include_popup_passthroughs(cleaned, world)
-            if world.notifications.has_pending():
-                cleaned["notifications"] = world.notifications.get_pending()
-            return cleaned
+            return _build_result_response(result, world)
 
         if result.get("pending_objection"):
             print("[OBJECTION] STRATEGIC OBJECTION (Phase M) - Returning full result to frontend")
-            cleaned = {k: v for k, v in result.items() if k != "new_state"}
-            cleaned["action_summary"] = world.get_action_summary()
-            cleaned["game_state"] = world.get_filtered_game_state_summary()
-            _include_popup_passthroughs(cleaned, world)
-            if world.notifications.has_pending():
-                cleaned["notifications"] = world.notifications.get_pending()
-            return cleaned
+            return _build_result_response(result, world)
 
         # ════════════════════════════════════════════════════════════
         # CHECK FOR CLARIFICATION: If awaiting clarification, return full result
         # ════════════════════════════════════════════════════════════
         if result.get("state") == "awaiting_clarification":
             print("[CLARIFICATION] Returning clarification popup to frontend")
-            cleaned = {k: v for k, v in result.items() if k != "new_state"}
-            cleaned["action_summary"] = world.get_action_summary()
-            cleaned["game_state"] = world.get_filtered_game_state_summary()
-            _include_popup_passthroughs(cleaned, world)
-            if world.notifications.has_pending():
-                cleaned["notifications"] = world.notifications.get_pending()
-            return cleaned
+            return _build_result_response(result, world)
 
         # ════════════════════════════════════════════════════════════
         # CHECK FOR GLORIOUS CHARGE: If pending, return full result for popup
         # ════════════════════════════════════════════════════════════
         if result.get("pending_glorious_charge"):
             print("GLORIOUS CHARGE PENDING - Returning full result to frontend")
-            cleaned = {k: v for k, v in result.items() if k != "new_state"}
-            cleaned["action_summary"] = world.get_action_summary()
-            cleaned["game_state"] = world.get_filtered_game_state_summary()
-            _include_popup_passthroughs(cleaned, world)
-            if world.notifications.has_pending():
-                cleaned["notifications"] = world.notifications.get_pending()
-            return cleaned
+            return _build_result_response(result, world)
 
         # ════════════════════════════════════════════════════════════
         # CHECK FOR STRATEGIC INTERRUPT: Blocked path, cannon fire popup
@@ -811,43 +815,21 @@ def execute_command(request: CommandRequest):
         # ════════════════════════════════════════════════════════════
         if result.get("pending_interrupt"):
             print("[INTERRUPT] STRATEGIC INTERRUPT - Returning full result to frontend")
-            cleaned = {k: v for k, v in result.items() if k != "new_state"}
-            cleaned["action_summary"] = world.get_action_summary()
-            cleaned["game_state"] = world.get_filtered_game_state_summary()
-            _include_popup_passthroughs(cleaned, world)
-            if world.notifications.has_pending():
-                cleaned["notifications"] = world.notifications.get_pending()
-            return cleaned
+            return _build_result_response(result, world)
 
         # ════════════════════════════════════════════════════════════
         # CHECK FOR CAPTURE CHOICE (Phase 6.2.E): Plunder or Secure popup
         # ════════════════════════════════════════════════════════════
         if result.get("pending_capture_choice"):
             print("[CAPTURE] PLUNDER/SECURE CHOICE PENDING - Returning full result to frontend")
-            cleaned = {k: v for k, v in result.items() if k != "new_state"}
-            cleaned["action_summary"] = world.get_action_summary()
-            cleaned["game_state"] = world.get_filtered_game_state_summary()
-            _include_popup_passthroughs(cleaned, world)
-            if world.notifications.has_pending():
-                cleaned["notifications"] = world.notifications.get_pending()
-            return cleaned
+            return _build_result_response(result, world)
 
         # ════════════════════════════════════════════════════════════
         # CHECK FOR DIPLOMATIC DIALOGUE (Phase 8 Session 3)
         # ════════════════════════════════════════════════════════════
         if result.get("diplomatic_dialogue") or result.get("awaiting_diplomatic_response"):
             print("[DIPLOMATIC] Diplomatic dialogue - Returning full result to frontend")
-            cleaned = {k: v for k, v in result.items() if k != "new_state"}
-            cleaned["action_summary"] = world.get_action_summary()
-            cleaned["game_state"] = world.get_filtered_game_state_summary()
-
-            # Audit fix: Include popup pass-throughs on early return
-            # (previously skipped — popups set during end_turn were lost)
-            _include_popup_passthroughs(cleaned, world)
-
-            if world.notifications.has_pending():
-                cleaned["notifications"] = world.notifications.get_pending()
-            return cleaned
+            return _build_result_response(result, world)
 
         # Get action summary
         action_summary = world.get_action_summary()
@@ -899,12 +881,16 @@ def execute_command(request: CommandRequest):
             # Turn the enemy phase actually happened on (before advance_turn increments)
             "turn_ended": int(result["turn_ended"]) if "turn_ended" in result else None,
             "game_state": world.get_filtered_game_state_summary(),
-            # Diplomatic top-bar fields (Session 8B) — piggyback on every command response
+            # Diplomatic top-bar fields — standard set (R4: matches build_base_response)
             "diplomatic_points": int(getattr(world, 'diplomatic_points', 0)),
             "max_diplomatic_points": int(getattr(world, 'max_diplomatic_points', 3)),
+            "talleyrand_state": _get_talleyrand_trust_label(world),
             "talleyrand_mission_summary": _get_talleyrand_mission_summary(world),
             "threat_level": int(getattr(world, 'threat_level', 0)),
             "coalition_brewing": getattr(world, 'coalition_brewing', None) is not None,
+            "coalition_brewing_turns": int(
+                world.coalition_brewing.get("turns_remaining", 0)
+            ) if getattr(world, 'coalition_brewing', None) else None,
             "pending_envoy_count": int(len(getattr(world, 'diplomatic_queue', []))),
         }
 
@@ -1071,18 +1057,9 @@ def execute_command(request: CommandRequest):
         print(f"[ERROR]: {e}")
         import traceback
         traceback.print_exc()
-
-        # BUGFIX (Bug 5): Popup passthrough on exception path.
-        err_response = {
-            "success": False,
-            "message": f"Error: {str(e)}",
-            "events": [],
-            "action_info": {"remaining": int(world.actions_remaining)},
-            "action_summary": world.get_action_summary(),
-            "game_state": world.get_filtered_game_state_summary()
-        }
-        _include_popup_passthroughs(err_response, world)
-        return err_response
+        return build_base_response(
+            world, success=False, message=f"Error: {str(e)}",
+            action_info={"remaining": int(world.actions_remaining)})
 
 
 @app.get("/status")
@@ -1147,25 +1124,25 @@ def respond_to_objection(request: ObjectionResponse):
     """
     try:
         if world.game_over:
-            return {"success": False, "message": "The war is over.", "game_over": True,
-                    "victory": world.victory, "game_state": world.get_filtered_game_state_summary()}
+            return build_base_response(
+                world, success=False, message="The war is over.",
+                game_over=True, victory=world.victory)
         # Handle the objection response through executor
         result = executor.handle_objection_response(request.choice, game_state)
 
-        response = {
-            "success": result.get("success", False),
-            "message": result.get("message", "Response processed"),
-            "objection_resolved": result.get("objection_resolved", True),
-            "choice": result.get("choice"),
-            "trust_change": result.get("trust_change", 0),
-            "authority_change": result.get("authority_change", 0),
-            "disobeyed": result.get("disobeyed", False),
-            "events": result.get("events", []),
-            "action_info": result.get("action_info", {}),
-            "action_summary": world.get_action_summary(),
-            "game_state": world.get_filtered_game_state_summary(),
-            "strategic_reports": result.get("strategic_reports", []),
-        }
+        response = build_base_response(
+            world,
+            success=result.get("success", False),
+            message=result.get("message", "Response processed"),
+            events=result.get("events", []),
+            objection_resolved=result.get("objection_resolved", True),
+            choice=result.get("choice"),
+            trust_change=result.get("trust_change", 0),
+            authority_change=result.get("authority_change", 0),
+            disobeyed=result.get("disobeyed", False),
+            action_info=result.get("action_info", {}),
+            strategic_reports=result.get("strategic_reports", []),
+        )
         if result.get("battle_report"):
             response["battle_report"] = result["battle_report"]
 
@@ -1179,43 +1156,25 @@ def respond_to_objection(request: ObjectionResponse):
         if result.get("authority_event"):
             response["authority_event"] = result["authority_event"]
 
-        # ════════════════════════════════════════════════════════════
-        # STRATEGIC INTERRUPT: Post-objection command may hit blocked path
-        # (Session 39: pending_interrupt was being dropped here)
-        # ════════════════════════════════════════════════════════════
+        # Strategic interrupt: post-objection command may hit blocked path
         if result.get("pending_interrupt"):
             response["pending_interrupt"] = result["pending_interrupt"]
             response["requires_input"] = True
 
-        # ════════════════════════════════════════════════════════════
-        # REDEMPTION EVENT: Check if trust dropped to critical level
-        # ════════════════════════════════════════════════════════════
+        # Redemption event: trust dropped to critical level
         if result.get("redemption_event"):
             response["state"] = "awaiting_redemption_choice"
             response["redemption_event"] = result["redemption_event"]
-            # Store pending redemption for the endpoint
             world.pending_redemption = result["redemption_event"]
             print(f"[ALERT] REDEMPTION TRIGGERED for {result['redemption_event']['marshal']}")
-
-        # R88: Include popup pass-throughs on objection response
-        _include_popup_passthroughs(response, world)
-
-        # Notifications — insist can cause battle → combat notifications
-        if world.notifications.has_pending():
-            response["notifications"] = world.notifications.get_pending()
 
         return response
     except Exception as e:
         print(f"[ERROR] handling objection response: {e}")
         import traceback
         traceback.print_exc()
-        response = {
-            "success": False,
-            "message": f"Error: {str(e)}",
-            "game_state": world.get_filtered_game_state_summary()
-        }
-        _include_popup_passthroughs(response, world)
-        return response
+        return build_base_response(
+            world, success=False, message=f"Error: {str(e)}")
 
 
 @app.post("/respond_to_diplomatic_dialogue")
@@ -1227,41 +1186,29 @@ async def respond_to_diplomatic_dialogue(request: dict):
     """
     try:
         if world.game_over:
-            return {"success": False, "message": "The war is over.", "game_over": True,
-                    "victory": world.victory, "game_state": world.get_filtered_game_state_summary()}
+            return build_base_response(
+                world, success=False, message="The war is over.",
+                game_over=True, victory=world.victory)
         choice = request.get("choice")
         result = executor.handle_diplomatic_dialogue_response(choice, game_state)
 
-        response = {
-            "success": result.get("success", False),
-            "message": result.get("message", "Response processed"),
-            "action_summary": world.get_action_summary(),
-            "game_state": world.get_filtered_game_state_summary(),
-        }
+        response = build_base_response(
+            world,
+            success=result.get("success", False),
+            message=result.get("message", "Response processed"),
+        )
 
         # Pass through diplomatic dialogue if a new one was generated
         if result.get("diplomatic_dialogue"):
             response["diplomatic_dialogue"] = result["diplomatic_dialogue"]
-
-        # Popup passthroughs — dialogue response may trigger popups
-        _include_popup_passthroughs(response, world)
-
-        # Notifications
-        if world.notifications.has_pending():
-            response["notifications"] = world.notifications.get_pending()
 
         return response
     except Exception as e:
         print(f"[ERROR] handling diplomatic dialogue response: {e}")
         import traceback
         traceback.print_exc()
-        response = {
-            "success": False,
-            "message": f"Error: {str(e)}",
-            "game_state": world.get_filtered_game_state_summary()
-        }
-        _include_popup_passthroughs(response, world)
-        return response
+        return build_base_response(
+            world, success=False, message=f"Error: {str(e)}")
 
 
 @app.post("/capture_choice")
@@ -1273,33 +1220,24 @@ def capture_choice(request: CaptureChoiceResponse):
     """
     try:
         if world.game_over:
-            return {"success": False, "message": "The war is over.", "game_over": True,
-                    "victory": world.victory, "game_state": world.get_filtered_game_state_summary()}
+            return build_base_response(
+                world, success=False, message="The war is over.",
+                game_over=True, victory=world.victory)
         result = executor.handle_capture_choice(request.choice, game_state)
 
-        response = {
-            "success": result.get("success", False),
-            "message": result.get("message", "Choice processed"),
-            "events": result.get("events", []),
-            "capture_choice": result.get("capture_choice"),
-            "action_summary": world.get_action_summary(),
-            "game_state": world.get_filtered_game_state_summary(),
-        }
-        # BUGFIX (Bug 5): Popup passthrough — diplomatic popups can be set
-        # by any executor call. See BUGFIX_PLAN_PROPOSAL_FLOW.md.
-        _include_popup_passthroughs(response, world)
-        return response
+        return build_base_response(
+            world,
+            success=result.get("success", False),
+            message=result.get("message", "Choice processed"),
+            events=result.get("events", []),
+            capture_choice=result.get("capture_choice"),
+        )
     except Exception as e:
         print(f"ERROR handling capture choice: {e}")
         import traceback
         traceback.print_exc()
-        err_response = {
-            "success": False,
-            "message": f"Error: {str(e)}",
-            "game_state": world.get_filtered_game_state_summary()
-        }
-        _include_popup_passthroughs(err_response, world)
-        return err_response
+        return build_base_response(
+            world, success=False, message=f"Error: {str(e)}")
 
 
 @app.post("/respond_to_redemption")
@@ -1317,26 +1255,22 @@ def respond_to_redemption(request: RedemptionResponse):
     """
     try:
         if world.game_over:
-            return {"success": False, "message": "The war is over.", "game_over": True,
-                    "victory": world.victory, "game_state": world.get_filtered_game_state_summary()}
+            return build_base_response(
+                world, success=False, message="The war is over.",
+                game_over=True, victory=world.victory)
         # Check for pending redemption
         if not hasattr(world, 'pending_redemption') or world.pending_redemption is None:
-            return {
-                "success": False,
-                "message": "No redemption event pending.",
-                "game_state": world.get_filtered_game_state_summary()
-            }
+            return build_base_response(
+                world, success=False, message="No redemption event pending.")
 
         redemption_event = world.pending_redemption
 
         # Validate choice (Phase 3: administrative_role replaces demand_obedience)
         valid_choices = ['grant_autonomy', 'administrative_role', 'dismiss']
         if request.choice not in valid_choices:
-            return {
-                "success": False,
-                "message": f"Invalid choice: '{request.choice}'. Valid: {', '.join(valid_choices)}",
-                "game_state": world.get_filtered_game_state_summary()
-            }
+            return build_base_response(
+                world, success=False,
+                message=f"Invalid choice: '{request.choice}'. Valid: {', '.join(valid_choices)}")
 
         # Process the redemption response
         result = world.disobedience_system.handle_redemption_response(
@@ -1348,35 +1282,25 @@ def respond_to_redemption(request: RedemptionResponse):
         # Clear pending redemption
         world.pending_redemption = None
 
-        # BUGFIX (Bug 5): Popup passthrough — diplomatic popups can be set
-        # by any executor call. See BUGFIX_PLAN_PROPOSAL_FLOW.md.
-        response = {
-            "success": result.get("success", False),
-            "message": result.get("message", "Redemption processed"),
-            "choice": request.choice,
-            "autonomous": result.get("autonomous", False),
-            "autonomy_turns": result.get("autonomy_turns", 0),
-            "dismissed": result.get("dismissed", False),
-            "administrative": result.get("administrative", False),
-            "new_max_actions": result.get("new_max_actions", 0),
-            "troops_frozen": result.get("troops_frozen", 0),
-            "authority_bonus": result.get("authority_bonus", 0),
-            "action_summary": world.get_action_summary(),
-            "game_state": world.get_filtered_game_state_summary()
-        }
-        _include_popup_passthroughs(response, world)
-        return response
+        return build_base_response(
+            world,
+            success=result.get("success", False),
+            message=result.get("message", "Redemption processed"),
+            choice=request.choice,
+            autonomous=result.get("autonomous", False),
+            autonomy_turns=result.get("autonomy_turns", 0),
+            dismissed=result.get("dismissed", False),
+            administrative=result.get("administrative", False),
+            new_max_actions=result.get("new_max_actions", 0),
+            troops_frozen=result.get("troops_frozen", 0),
+            authority_bonus=result.get("authority_bonus", 0),
+        )
     except Exception as e:
         print(f"[ERROR] handling redemption response: {e}")
         import traceback
         traceback.print_exc()
-        err_response = {
-            "success": False,
-            "message": f"Error: {str(e)}",
-            "game_state": world.get_filtered_game_state_summary()
-        }
-        _include_popup_passthroughs(err_response, world)
-        return err_response
+        return build_base_response(
+            world, success=False, message=f"Error: {str(e)}")
 
 
 @app.get("/pending_redemption")
@@ -1419,48 +1343,35 @@ def respond_to_glorious_charge(request: GloriousChargeResponse):
     """
     try:
         if world.game_over:
-            return {"success": False, "message": "The war is over.", "game_over": True,
-                    "victory": world.victory, "game_state": world.get_filtered_game_state_summary()}
+            return build_base_response(
+                world, success=False, message="The war is over.",
+                game_over=True, victory=world.victory)
         # Validate choice
         valid_choices = ['charge', 'restrain']
         if request.choice not in valid_choices:
-            return {
-                "success": False,
-                "message": f"Invalid choice: '{request.choice}'. Valid: {', '.join(valid_choices)}",
-                "game_state": world.get_filtered_game_state_summary()
-            }
+            return build_base_response(
+                world, success=False,
+                message=f"Invalid choice: '{request.choice}'. Valid: {', '.join(valid_choices)}")
 
         # Process the response through executor
         result = executor.respond_to_glorious_charge(request.choice, world)
 
-        response = {
-            "success": result.get("success", False),
-            "message": result.get("message", "Charge processed"),
-            "choice": request.choice,
-            "events": result.get("events", []),
-            "action_summary": world.get_action_summary(),
-            "game_state": world.get_filtered_game_state_summary()
-        }
+        response = build_base_response(
+            world,
+            success=result.get("success", False),
+            message=result.get("message", "Charge processed"),
+            events=result.get("events", []),
+            choice=request.choice,
+        )
         if result.get("battle_report"):
             response["battle_report"] = result["battle_report"]
-        # Notifications — charge combat can trigger counter-punch/drill-cancelled
-        if world.notifications.has_pending():
-            response["notifications"] = world.notifications.get_pending()
-        # BUGFIX (Bug 5): Popup passthrough — diplomatic popups can be set
-        # by any executor call. See BUGFIX_PLAN_PROPOSAL_FLOW.md.
-        _include_popup_passthroughs(response, world)
         return response
     except Exception as e:
         print(f"[ERROR] handling Glorious Charge response: {e}")
         import traceback
         traceback.print_exc()
-        err_response = {
-            "success": False,
-            "message": f"Error: {str(e)}",
-            "game_state": world.get_filtered_game_state_summary()
-        }
-        _include_popup_passthroughs(err_response, world)
-        return err_response
+        return build_base_response(
+            world, success=False, message=f"Error: {str(e)}")
 
 
 @app.post("/strategic_response")
@@ -1478,8 +1389,9 @@ def handle_strategic_response(request: StrategicInterruptResponse):
     """
     try:
         if world.game_over:
-            return {"success": False, "message": "The war is over.", "game_over": True,
-                    "victory": world.victory, "game_state": world.get_filtered_game_state_summary()}
+            return build_base_response(
+                world, success=False, message="The war is over.",
+                game_over=True, victory=world.victory)
         from backend.commands.strategic import StrategicExecutor
         strategic_exec = StrategicExecutor(executor)
         result = strategic_exec.handle_response(
@@ -1487,39 +1399,27 @@ def handle_strategic_response(request: StrategicInterruptResponse):
             request.choice, world, game_state
         )
 
-        response = {
-            "success": result.get("success", False),
-            "message": result.get("message", "Response processed"),
-            "order_cleared": result.get("order_cleared", False),
-            "trust_change": result.get("trust_change", 0),
-            "action_taken": result.get("action_taken"),
-            "action_summary": world.get_action_summary(),
-            "game_state": world.get_filtered_game_state_summary()
-        }
+        response = build_base_response(
+            world,
+            success=result.get("success", False),
+            message=result.get("message", "Response processed"),
+            order_cleared=result.get("order_cleared", False),
+            trust_change=result.get("trust_change", 0),
+            action_taken=result.get("action_taken"),
+        )
         # Redemption event from strategic trust penalty
         if result.get("redemption_event"):
             response["state"] = "awaiting_redemption_choice"
             response["redemption_event"] = result["redemption_event"]
             world.pending_redemption = result["redemption_event"]
             print(f"[ALERT] REDEMPTION TRIGGERED for {result['redemption_event']['marshal']}")
-        # Notifications — interrupt responses can trigger actions
-        if world.notifications.has_pending():
-            response["notifications"] = world.notifications.get_pending()
-        # BUGFIX (Bug 5): Popup passthrough — diplomatic popups can be set
-        # by any executor call. See BUGFIX_PLAN_PROPOSAL_FLOW.md.
-        _include_popup_passthroughs(response, world)
         return response
     except Exception as e:
         print(f"[ERROR] handling strategic response: {e}")
         import traceback
         traceback.print_exc()
-        err_response = {
-            "success": False,
-            "message": f"Error: {str(e)}",
-            "game_state": world.get_filtered_game_state_summary()
-        }
-        _include_popup_passthroughs(err_response, world)
-        return err_response
+        return build_base_response(
+            world, success=False, message=f"Error: {str(e)}")
 
 
 @app.get("/authority_status")
@@ -1769,15 +1669,7 @@ async def load_endpoint(request: LoadRequest):
     if result["success"]:
         world = result["world"]
         game_state["world"] = world
-        # Return game state summary so Godot can refresh
-        response = {
-            "success": True,
-            "message": result["message"],
-            "game_state": world.get_filtered_game_state_summary()
-        }
-        # FINAL-6: Include popup passthroughs (war status panel, etc.)
-        _include_popup_passthroughs(response, world)
-        return response
+        return build_base_response(world, message=result["message"])
     return {"success": False, "message": result["message"]}
 
 
@@ -1978,35 +1870,30 @@ async def cancel_order(request: Request):
     """Cancel a marshal's strategic order from the Orders tab."""
     try:
         if world.game_over:
-            return {"success": False, "message": "The war is over.", "game_over": True,
-                    "victory": world.victory, "game_state": world.get_filtered_game_state_summary()}
+            return build_base_response(
+                world, success=False, message="The war is over.",
+                game_over=True, victory=world.victory)
         data = await request.json()
         marshal_name = data.get("marshal")
         if not marshal_name:
-            return {"success": False, "message": "No marshal specified.",
-                    "game_state": world.get_filtered_game_state_summary()}
+            return build_base_response(
+                world, success=False, message="No marshal specified.")
 
         if not game_state.get("world"):
-            return {"success": False, "message": "No active game",
-                    "game_state": world.get_filtered_game_state_summary()}
+            return build_base_response(
+                world, success=False, message="No active game")
 
         # AP pre-check (matches typed cancel command flow)
         if world.actions_remaining <= 0:
-            return {
-                "success": False,
-                "message": "No actions remaining this turn.",
-                "action_summary": world.get_action_summary(),
-                "game_state": world.get_filtered_game_state_summary(),
-            }
+            return build_base_response(
+                world, success=False,
+                message="No actions remaining this turn.")
 
         # 2A-4: Dialogue guard — block cancel during active diplomatic dialogue
         if world.pending_diplomatic_dialogue is not None:
-            return {
-                "success": False,
-                "message": "Talleyrand awaits your response to a diplomatic matter.",
-                "action_summary": world.get_action_summary(),
-                "game_state": world.get_filtered_game_state_summary(),
-            }
+            return build_base_response(
+                world, success=False,
+                message="Talleyrand awaits your response to a diplomatic matter.")
 
         command = {"action": "cancel", "marshal": marshal_name}
         result = executor._execute_cancel(command, game_state)
@@ -2015,22 +1902,13 @@ async def cancel_order(request: Request):
         if result.get("success") and not result.get("no_action_cost"):
             world.use_action("cancel")
 
-        cleaned = {k: v for k, v in result.items() if k != "new_state"}
-        cleaned["action_summary"] = world.get_action_summary()
-        cleaned["game_state"] = world.get_filtered_game_state_summary()
-        _include_popup_passthroughs(cleaned, world)
-        return cleaned
+        return _build_result_response(result, world)
     except Exception as e:
         print(f"[ERROR] handling cancel_order: {e}")
         import traceback
         traceback.print_exc()
-        err_response = {
-            "success": False,
-            "message": f"Error: {str(e)}",
-            "game_state": world.get_filtered_game_state_summary(),
-        }
-        _include_popup_passthroughs(err_response, world)
-        return err_response
+        return build_base_response(
+            world, success=False, message=f"Error: {str(e)}")
 
 
 @app.get("/marshal_overview")
@@ -2056,13 +1934,10 @@ async def dismiss_notification(request: Request):
         return {"success": False, "message": "Missing notification id"}
     if notification_id == "all":
         count = world.notifications.dismiss_all()
-        response = {"success": True, "dismissed": int(count)}
-        _include_popup_passthroughs(response, world)
-        return response
+        return build_base_response(world, dismissed=int(count))
     dismissed = world.notifications.dismiss(notification_id)
-    response = {"success": dismissed, "dismissed": 1 if dismissed else 0}
-    _include_popup_passthroughs(response, world)
-    return response
+    return build_base_response(
+        world, success=dismissed, dismissed=1 if dismissed else 0)
 
 
 @app.get("/notifications")

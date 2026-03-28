@@ -118,15 +118,14 @@ class TestFix3ObjectionClearOnReentry:
 # ═══════════════════════════════════════════════════════════
 
 class TestFix7NotificationDismissPassthroughs:
-    """POST /notifications/dismiss must call _include_popup_passthroughs."""
+    """POST /notifications/dismiss must use build_base_response (structurally guarantees popups)."""
 
     def test_dismiss_includes_passthroughs(self):
-        """Verify _include_popup_passthroughs is called in dismiss endpoint source."""
-        # Structural test: verify the code has passthroughs
+        """Verify build_base_response is used in dismiss endpoint (R4: structural popup guarantee)."""
         import inspect
         from backend import main as main_module
         source = inspect.getsource(main_module.dismiss_notification)
-        assert "_include_popup_passthroughs" in source
+        assert "build_base_response" in source
 
 
 # ═══════════════════════════════════════════════════════════

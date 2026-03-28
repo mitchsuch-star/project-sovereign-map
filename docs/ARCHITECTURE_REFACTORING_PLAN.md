@@ -2091,7 +2091,7 @@ Full integration test session:
 | 1 | R3 | RC-5: No test fixtures | CRITICAL | 2h | ZERO | — | ~22 + maintenance × |
 | 2 | R1 | RC-1: Post-combat duplication | CRITICAL | 3h | MEDIUM | — | ~75 recurring |
 | 3 | R2 | RC-2: No war-state filtering | CRITICAL | 2-3h | LOW | — | ~49 recurring |
-| 4 | R4 | RC-4: Ad-hoc response pipeline | MAJOR | 2-3h | MEDIUM | — | ~9 + stale top-bar |
+| 4 | R4 | RC-4: Ad-hoc response pipeline | MAJOR | 2-3h | MEDIUM | — | ~9 + stale top-bar | **COMPLETE** |
 | 5 | R5 | RC-6: Fog filter scatter | MAJOR | 2h | LOW-MED | — | ~18 recurring |
 | 6 | R7+R8 | RC-9+RC-10: Display + log | MODERATE | 2-3h | LOW | — | ~12 + prevention |
 | 7 | R6 | RC-7: Cooldown/popup sprawl | MAJOR | 3h | MEDIUM | — | ~7 + popup leaks |
@@ -2140,7 +2140,7 @@ These individual findings from the audit are acknowledged but NOT addressed by a
 | 1-2 | R1 (Session 2) | **COMPLETE** |
 | 3 | R1 (Session 2) | **COMPLETE** |
 | 4 | R5 (Session 5) | Planned |
-| 5 | R4 (Session 4) | Planned |
+| 5 | R4 (Session 4) | **COMPLETE** — build_base_response() structurally guarantees popups |
 | 6 | — | Deferred (balance tuning) |
 | 7 | — | Deferred (display-only) |
 | 8 | R1 (Session 2) | **COMPLETE** |
@@ -2160,7 +2160,7 @@ These individual findings from the audit are acknowledged but NOT addressed by a
 | 22 | — | Deferred (LLM mode only) |
 | 23 | — | Deferred (80-region expansion) |
 | 24 | — | Deferred (no player reports) |
-| 25 | R4 (Session 4) | Planned |
+| 25 | R4 (Session 4) | **COMPLETE** — diplomatic top-bar in all responses |
 | 26 | — | Quick fix candidate |
 | 27 | — | Quick fix candidate (docstring) |
 | 28 | R8 (Session 6) | Planned |

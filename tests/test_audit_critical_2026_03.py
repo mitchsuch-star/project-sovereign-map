@@ -286,12 +286,12 @@ class TestC4CancelOrderEndpoint:
     """Tests for /cancel_order endpoint hardening."""
 
     def test_cancel_order_has_popup_passthrough(self):
-        """Source code must call _include_popup_passthroughs before return."""
+        """Source code must use build_base_response or _build_result_response (structurally guarantees popups)."""
         import inspect
         from backend.main import cancel_order
         source = inspect.getsource(cancel_order)
-        assert "_include_popup_passthroughs" in source, \
-            "/cancel_order must call _include_popup_passthroughs"
+        assert "build_base_response" in source or "_build_result_response" in source, \
+            "/cancel_order must use build_base_response or _build_result_response"
 
     def test_cancel_order_has_try_except(self):
         """Source code must have try/except wrapper."""
@@ -311,32 +311,31 @@ class TestC4CancelOrderEndpoint:
             "/cancel_order must include game_state in responses"
 
     def test_cancel_order_except_block_has_popup_passthrough(self):
-        """The except block must also call _include_popup_passthroughs."""
+        """The except block must use build_base_response (structurally guarantees popups)."""
         import inspect
         from backend.main import cancel_order
         source = inspect.getsource(cancel_order)
-        # Find the except block and verify it has popup passthrough
         lines = source.split('\n')
         in_except = False
-        found_popup_in_except = False
+        found_builder_in_except = False
         for line in lines:
             if 'except Exception' in line:
                 in_except = True
-            if in_except and '_include_popup_passthroughs' in line:
-                found_popup_in_except = True
+            if in_except and 'build_base_response' in line:
+                found_builder_in_except = True
                 break
-        assert found_popup_in_except, \
-            "/cancel_order except block must call _include_popup_passthroughs"
+        assert found_builder_in_except, \
+            "/cancel_order except block must use build_base_response"
 
     def test_cancel_order_success_has_popup_passthrough(self):
-        """The success path must call _include_popup_passthroughs before return."""
+        """The success path must use build_base_response or _build_result_response."""
         import inspect
         from backend.main import cancel_order
         source = inspect.getsource(cancel_order)
-        # Count occurrences — should be at least 2 (success path + except path)
-        count = source.count("_include_popup_passthroughs")
+        # R4: builder structurally guarantees popups — count builder calls
+        count = source.count("build_base_response") + source.count("_build_result_response")
         assert count >= 2, \
-            f"/cancel_order should call _include_popup_passthroughs at least 2 times, found {count}"
+            f"/cancel_order should use response builder at least 2 times, found {count}"
 
 
 # ═══════════════════════════════════════════════════════════════════════════

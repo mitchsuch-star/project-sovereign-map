@@ -18,7 +18,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Architecture Refactoring — IN PROGRESS.** Audit complete. Now iterating through `docs/ARCHITECTURE_REFACTORING_PLAN.md` (20 R-items, 21 sessions). **Session 1 (R3 conftest) COMPLETE** — `tests/conftest.py` with MarshalFactory/WorldFactory, 25 validation tests, 5 files migrated (253 tests). **Session 2A (R1 characterization) COMPLETE** — 25 tests pinning all 5 combat paths' post-combat behavior. **Session 2B (R1 pipeline extraction) COMPLETE** — `_post_combat_pipeline()` (14 steps), all 5 paths wired, 7 bugs fixed, 30 enforcement tests. **Session 3 (R2 war-state helpers) COMPLETE** — 5 query helpers on WorldState, centralized `set_diplomatic_state()` in diplomacy.py, 23 write sites migrated, 47 tests. **Session 4 (R4 response pipeline) NEXT**. Methodology: Characterization Testing (pin behavior → restructure → fix bugs). Priority order: R3→R1→R2→R4→R5 (first 5 deliver ~80% of value).
+- **Architecture Refactoring — IN PROGRESS.** Audit complete. Now iterating through `docs/ARCHITECTURE_REFACTORING_PLAN.md` (20 R-items, 21 sessions). **Session 1 (R3 conftest) COMPLETE** — `tests/conftest.py` with MarshalFactory/WorldFactory, 25 validation tests, 5 files migrated (253 tests). **Session 2A (R1 characterization) COMPLETE** — 25 tests pinning all 5 combat paths' post-combat behavior. **Session 2B (R1 pipeline extraction) COMPLETE** — `_post_combat_pipeline()` (14 steps), all 5 paths wired, 7 bugs fixed, 30 enforcement tests. **Session 3 (R2 war-state helpers) COMPLETE** — 5 query helpers on WorldState, centralized `set_diplomatic_state()` in diplomacy.py, 23 write sites migrated, 47 tests. **Session 4 (R4 response pipeline) COMPLETE** — `build_base_response()` + `_build_result_response()` in main.py, 11 endpoints migrated, "Bug 5" pattern eliminated, 45 tests. **Session 5 (R5 fog-filtered data access) NEXT**. Methodology: Characterization Testing (pin behavior → restructure → fix bugs). Priority order: R3→R1→R2→R4→R5 (first 5 deliver ~80% of value).
 - **Systems Audit V3 Fix Plan — Sessions 1-10 ALL COMPLETE.** 158 bugs across 10 required + 1 optional sessions. Session 10: 3 backend + 19 Godot GDScript bugs. Session 11 (optional polish) remaining. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`.
 - **Final Audit Fix Plan — ALL COMPLETE.** 13 confirmed bugs fixed in combined session with V3 Session 10 backend bugs (16 total). 29 new tests (7,306 total). See `docs/FINAL_AUDIT_FIX_PLAN.md`.
 - ~~**Systems Audit V2 Fix Plan — ALL 7 SESSIONS COMPLETE.**~~ 56 bugs fixed, 7,040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.
@@ -210,7 +210,7 @@ Backend → Frontend data flow:
 2. `main.py`: Add early return to pass through the field (most common wiring gap!)
 3. `main.gd`: Check for field in `_on_command_result()`
 4. Create dialog scene (.tscn) and script (.gd)
-5. **CRITICAL:** Verify ALL POST response handlers in `main.py` call `_include_popup_passthroughs(response, world)` before returning — otherwise diplomatic popups are silently lost. See Bug 5 in `docs/BUGFIX_PLAN_PROPOSAL_FLOW.md`.
+5. **R4:** All POST handlers use `build_base_response()` which structurally guarantees popup passthroughs. No manual `_include_popup_passthroughs()` calls needed.
 
 **Test with curl BEFORE assuming Godot is broken:**
 ```bash
@@ -305,8 +305,8 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | AP clause wrong nation | `from_nation` is the penalized nation (loses AP), not `to_nation` |
 | "Talleyrand awaiting" stuck state | Executor dialogue guard blocks ALL commands. Dialogue keywords routed in main.py BEFORE executor — update `_DIALOGUE_RESPONSE_KEYWORDS` for new response types |
 | New diplomatic state missing | Add to `post_break_map` in diplomacy.py AND `validate_transition()` — both must cover all states |
-| Popup not showing after early return | All response paths must call `_include_popup_passthroughs()` — check diplomatic early return in main.py |
-| Popup not showing after endpoint | Every POST handler in `main.py` MUST call `_include_popup_passthroughs(response, world)` before returning — including error paths. See `docs/BUGFIX_PLAN_PROPOSAL_FLOW.md` Bug 5 |
+| Popup not showing after early return | Use `build_base_response()` or `_build_result_response()` — they structurally guarantee popup passthroughs (R4) |
+| Popup not showing after endpoint | Use `build_base_response()` for ALL POST handlers. Only `/command` main path (enemy_phase deferral) calls `_include_popup_passthroughs()` directly |
 | Raw internal keys in popup text | Use display maps (FEEDBACK_STRINGS, DEFIANCE_TYPE_DISPLAY, PROPOSAL_TYPE_DISPLAY) — never expose raw component/enum keys to players |
 | Counter-offer popup broken/empty | Popup data must match `incoming_proposal_popup.gd` fields: `from_nation`, `diplomat_name`, `diplomat_personality`, `clauses` (list), `talleyrand_assessment`, `is_counter_offer` |
 

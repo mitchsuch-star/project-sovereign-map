@@ -248,13 +248,11 @@ class TestR88ObjectionResponsePopups:
     """R88: /respond_to_objection response includes popup pass-throughs."""
 
     def test_objection_endpoint_calls_popup_passthroughs(self, world):
-        """Verify the objection response path includes popup handling."""
-        # We test this by checking that the function is called in the source
-        # (integration test would require full server setup)
+        """Verify the objection response path uses build_base_response (R4: structural popup guarantee)."""
         import inspect
         from backend import main
         source = inspect.getsource(main.respond_to_objection)
-        assert "_include_popup_passthroughs" in source
+        assert "build_base_response" in source
 
 
 # ═══════ R89: DP FAILURE RETURNS INCLUDE DIALOGUE STATE FIELDS ═══════
