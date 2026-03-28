@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 28, 2026 (R1 Session 2B pipeline extraction + bug fixes COMPLETE)
+> **Last Updated:** March 28, 2026 (R2 Session 3 war-state helper layer COMPLETE)
 
 ---
 
@@ -9,9 +9,9 @@
 
 | Metric | Value |
 |--------|-------|
-| **Tests Passing** | **7361** (7361 passed, 1 skipped) |
+| **Tests Passing** | **7408** (7408 passed, 1 skipped) |
 
-| **Current Phase** | **Architecture Refactoring — Session 2B (R1 pipeline extraction + 7 bug fixes) COMPLETE. Session 3 (R2 war-state helpers) NEXT.** Iterating through `docs/ARCHITECTURE_REFACTORING_PLAN.md` sessions 1-21. |
+| **Current Phase** | **Architecture Refactoring — Session 3 (R2 war-state helper layer) COMPLETE. Session 4 (R4 response pipeline) NEXT.** Iterating through `docs/ARCHITECTURE_REFACTORING_PLAN.md` sessions 1-21. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,7 +19,7 @@
 
 ## Next Steps
 
-1. **Architecture Refactoring** — **IN PROGRESS.** 20 R-items, 21 sessions, 7 phases. Session 1 (R3 conftest) COMPLETE — created `tests/conftest.py` with MarshalFactory/WorldFactory + 25 validation tests, migrated 5 test files (253 tests). Session 2A (R1 characterization tests) COMPLETE — 25 tests pinning current post-combat behavior of all 5 combat paths. Session 2B (R1 pipeline extraction + 7 bug fixes) COMPLETE — created `_post_combat_pipeline()` (14-step centralized method), wired all 5 combat paths, fixed 7 bugs (decisive_victory casualty check, war score inflation, garrison/charge missing steps, coordination clear, bombardment diplo, pursuit floor, FORCED_RETREAT_THRESHOLD dedup), 30 enforcement tests, 6 characterization tests updated. Session 3 (R2 war-state helper layer) NEXT. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`.
+1. **Architecture Refactoring** — **IN PROGRESS.** 20 R-items, 21 sessions, 7 phases. Session 1 (R3 conftest) COMPLETE — created `tests/conftest.py` with MarshalFactory/WorldFactory + 25 validation tests, migrated 5 test files (253 tests). Session 2A (R1 characterization tests) COMPLETE — 25 tests pinning current post-combat behavior of all 5 combat paths. Session 2B (R1 pipeline extraction + 7 bug fixes) COMPLETE — created `_post_combat_pipeline()` (14-step centralized method), wired all 5 combat paths, fixed 7 bugs (decisive_victory casualty check, war score inflation, garrison/charge missing steps, coordination clear, bombardment diplo, pursuit floor, FORCED_RETREAT_THRESHOLD dedup), 30 enforcement tests, 6 characterization tests updated. Session 3 (R2 war-state helper layer) COMPLETE — added 5 helpers to WorldState (`are_allies`, `can_interact_diplomatically`, `get_hostile_marshals_in_region`, `get_friendly_marshals_in_region`, `get_nations_at_war_with`), created centralized `set_diplomatic_state()` in diplomacy.py with automatic bookkeeping (war_start_turns, armistice cleanup, treaty removal), migrated all 23 direct diplomatic_states[] writes across 5 files, 47 new tests. Session 4 (R4 response pipeline) NEXT. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`.
 1. ~~**Final Audit Fix Plan**~~ — **ALL COMPLETE.** 13 confirmed bugs fixed in single combined session (merged with V3 Session 10 backend bugs). 29 new tests. See `docs/FINAL_AUDIT_FIX_PLAN.md`.
 2. **Systems Audit V3 Fix Plan** — 158 bugs, 10 required sessions + 1 optional. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`.
    - ~~**Session 1 (P0): COMPLETE.**~~ War-state foundation + critical AI. 8 bugs fixed, 26 new tests. Added `get_hostile_marshals()`/`get_hostile_by_name()` war-aware helpers. Fixed `find_nearest_enemy()`, fortify engagement, threatening enemies, retreat destination (all war-aware). Fixed enemy AP guards in stance_change/defend/fortify. Fixed `decide_single_action()` tracking set init. Files: `world_state.py`, `executor.py`, `enemy_ai.py`.

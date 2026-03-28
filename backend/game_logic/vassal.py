@@ -96,9 +96,9 @@ def create_vassal_treaty(world, lord: str, vassal: str, generosity_bonus: int = 
         "regions": None,
     }
 
-    # Set diplomatic state to VASSAL
-    diplo_key = world._make_diplo_key(lord, vassal)
-    world.diplomatic_states[diplo_key] = "VASSAL"
+    # Set diplomatic state to VASSAL (R2: centralized setter)
+    from backend.game_logic.diplomacy import set_diplomatic_state
+    set_diplomatic_state(world, lord, vassal, "VASSAL", "treaty_vassalization")
 
     # Coalition threat: +5 for treaty vassalization (§2a)
     from backend.game_logic.coalition import add_threat
@@ -164,9 +164,9 @@ def create_vassal_conquest(world, lord: str, vassal: str, garrison_size: int = 0
         "regions": None,
     }
 
-    # Set diplomatic state to VASSAL
-    diplo_key = world._make_diplo_key(lord, vassal)
-    world.diplomatic_states[diplo_key] = "VASSAL"
+    # Set diplomatic state to VASSAL (R2: centralized setter)
+    from backend.game_logic.diplomacy import set_diplomatic_state
+    set_diplomatic_state(world, lord, vassal, "VASSAL", "conquest_vassalization")
 
     # Coalition threat: +25 for conquest vassalization (§2a)
     from backend.game_logic.coalition import add_threat
@@ -204,13 +204,13 @@ def _reconcile_vassal_diplomacy(world, lord: str, vassal: str) -> None:
 
         # Vassal at WAR with lord's ally → force ARMISTICE
         if vassal_state == "WAR" and lord_state in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
-            vk = world._make_diplo_key(vassal, other)
-            world.diplomatic_states[vk] = "ARMISTICE"
+            from backend.game_logic.diplomacy import set_diplomatic_state
+            set_diplomatic_state(world, vassal, other, "ARMISTICE", "vassal_reconcile")
 
         # Vassal allied with lord's enemy → break to PEACE
         if vassal_state in ("DEFENSIVE_ALLIANCE", "ALLIANCE") and lord_state == "WAR":
-            vk = world._make_diplo_key(vassal, other)
-            world.diplomatic_states[vk] = "PEACE"
+            from backend.game_logic.diplomacy import set_diplomatic_state
+            set_diplomatic_state(world, vassal, other, "PEACE", "vassal_reconcile")
 
 
 # ═══════════════════════════════════════════════════════
@@ -462,11 +462,8 @@ def check_vassal_rebellion(world) -> List[dict]:
                 "message": f"{vassal_name} breaks free but the armistice holds — no war declared."
             })
         else:
-            world.diplomatic_states[diplo_key] = "WAR"
-            # R142: Record war start turn
-            reb_war_starts = getattr(world, 'war_start_turns', {})
-            reb_war_starts[diplo_key] = int(world.current_turn)
-            world.war_start_turns = reb_war_starts
+            from backend.game_logic.diplomacy import set_diplomatic_state
+            set_diplomatic_state(world, vassal_name, lord, "WAR", "vassal_rebellion")
 
             # War cascade: allies pulled into the war
             from backend.game_logic.diplomacy import _process_war_cascade
@@ -911,16 +908,12 @@ def release_vassal(world, vassal_name: str, rebellion: bool = False) -> dict:
     elif isinstance(cs_members, list) and vassal_name in cs_members:
         cs_members.remove(vassal_name)
 
-    # Set diplomatic state to PEACE (or WAR if rebellion)
-    diplo_key = world._make_diplo_key(lord, vassal_name)
+    # Set diplomatic state to PEACE (or WAR if rebellion) — R2: centralized setter
+    from backend.game_logic.diplomacy import set_diplomatic_state
     if rebellion:
-        world.diplomatic_states[diplo_key] = "WAR"
-        # R142: Record war start turn
-        rel_war_starts = getattr(world, 'war_start_turns', {})
-        rel_war_starts[diplo_key] = int(world.current_turn)
-        world.war_start_turns = rel_war_starts
+        set_diplomatic_state(world, lord, vassal_name, "WAR", "vassal_release_rebellion")
     else:
-        world.diplomatic_states[diplo_key] = "PEACE"
+        set_diplomatic_state(world, lord, vassal_name, "PEACE", "vassal_release")
         # Coalition threat reduction: voluntary vassal release (COALITION_SPEC §2b)
         if lord == getattr(world, 'player_nation', 'France'):
             from backend.game_logic.coalition import reduce_threat

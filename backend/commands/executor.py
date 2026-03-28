@@ -12259,17 +12259,17 @@ RETREAT RECOVERY (3 turns):
 
         if accepted:
             # Ultimatum accepted — transition to peace or non-aggression
-            # Deep audit fix 4: Use cleanup_war_end for proper war data cleanup
+            # R2: centralized setter handles war_start_turns + treaty removal on WAR
+            from backend.game_logic.diplomacy import set_diplomatic_state, cleanup_war_end
             current = world.get_diplomatic_state(player, target_nation)
             if current == "WAR":
-                world.diplomatic_states[diplo_key] = "PEACE"
-                from backend.game_logic.diplomacy import cleanup_war_end
+                set_diplomatic_state(world, player, target_nation, "PEACE", "ultimatum_accepted")
                 cleanup_war_end(world, diplo_key)
                 outcome_msg = f"{target_nation} has accepted our ultimatum and sued for peace!"
             else:
-                world.diplomatic_states[diplo_key] = "NON_AGGRESSION"
+                set_diplomatic_state(world, player, target_nation, "NON_AGGRESSION", "ultimatum_accepted")
                 outcome_msg = f"{target_nation} has bowed to our ultimatum and agreed to non-aggression!"
-            # Deep audit fix 4: Clear active treaty
+            # Deep audit fix 4: Clear active treaty on ultimatum acceptance
             active_treaties = getattr(world, 'active_treaties', {})
             active_treaties.pop(diplo_key, None)
         else:
@@ -14739,12 +14739,8 @@ RETREAT RECOVERY (3 turns):
             nation = cheat_args[0]
             state = cheat_args[1].upper()
             player = world.player_nation
-            key = world._make_diplo_key(player, nation)
-            old = world.diplomatic_states.get(key, "PEACE")
-            world.diplomatic_states[key] = state
-            # Track war start turn for war weariness calculation
-            if state == "WAR" and key not in world.war_start_turns:
-                world.war_start_turns[key] = int(world.current_turn)
+            from backend.game_logic.diplomacy import set_diplomatic_state
+            old = set_diplomatic_state(world, player, nation, state, "cheat_command")
             return {"success": True, "message": f"Diplomatic state France↔{nation}: {old} → {state}"}
 
         # ── create_vassal <nation> ──

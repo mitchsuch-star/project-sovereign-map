@@ -1392,7 +1392,8 @@ def _process_ai_ai_rivalry(world) -> List[Dict]:
                             idx = _DOWNGRADE_ORDER.index(state)
                             if idx < len(_DOWNGRADE_ORDER) - 1:
                                 new_state = _DOWNGRADE_ORDER[idx + 1]
-                                world.diplomatic_states[diplo_key] = new_state
+                                from backend.game_logic.diplomacy import set_diplomatic_state
+                                set_diplomatic_state(world, nation_a, nation_b, new_state, "ai_ai_downgrade")
                                 # Apply relation penalty from DOWNGRADE_PENALTIES
                                 penalty_key = (state, new_state)
                                 penalty = DOWNGRADE_PENALTIES.get(penalty_key, {})

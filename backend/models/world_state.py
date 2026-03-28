@@ -542,6 +542,39 @@ class WorldState:
         """Get diplomatic state between two nations. Defaults to PEACE."""
         return self.diplomatic_states.get(self._make_diplo_key(nation_a, nation_b), "PEACE")
 
+    def are_allies(self, nation_a: str, nation_b: str) -> bool:
+        """Check ALLIANCE or DEFENSIVE_ALLIANCE between nations."""
+        return self.get_diplomatic_state(nation_a, nation_b) in ("ALLIANCE", "DEFENSIVE_ALLIANCE")
+
+    def can_interact_diplomatically(self, nation_a: str, nation_b: str) -> bool:
+        """Check if diplomatic proposals are permitted (blocked during WAR)."""
+        return self.get_diplomatic_state(nation_a, nation_b) != "WAR"
+
+    def get_hostile_marshals_in_region(self, region_name: str, nation: str) -> list:
+        """Marshals in region at war with nation, strength > 0."""
+        return [m for m in self.get_marshals_in_region(region_name)
+                if m.nation != nation and m.strength > 0
+                and self.is_at_war(nation, m.nation)]
+
+    def get_friendly_marshals_in_region(self, region_name: str, nation: str) -> list:
+        """Marshals in region belonging to nation or allied nations."""
+        return [m for m in self.get_marshals_in_region(region_name)
+                if m.nation == nation or self.are_allies(nation, m.nation)]
+
+    def get_nations_at_war_with(self, nation: str) -> list:
+        """All nations currently at war with the given nation."""
+        result = []
+        for key, state in self.diplomatic_states.items():
+            if state == "WAR":
+                parts = key.split("|")
+                if len(parts) == 2:
+                    n1, n2 = parts
+                    if n1 == nation:
+                        result.append(n2)
+                    elif n2 == nation:
+                        result.append(n1)
+        return result
+
     def get_known_nations(self) -> list:
         """Return list of all non-player nation names."""
         return [n for n in list(getattr(self, 'enemy_nations', [])) if n != self.player_nation]
@@ -1374,10 +1407,12 @@ class WorldState:
             if nation in self.active_treaties[key].get("nations", []):
                 del self.active_treaties[key]
 
-        # Set all diplomatic states to PEACE
+        # Set all diplomatic states to PEACE (R2: centralized setter)
+        from backend.game_logic.diplomacy import set_diplomatic_state
         for key in list(self.diplomatic_states.keys()):
-            if nation in key.split("|"):
-                self.diplomatic_states[key] = "PEACE"
+            parts = key.split("|")
+            if nation in parts and len(parts) == 2:
+                set_diplomatic_state(self, parts[0], parts[1], "PEACE", "nation_eliminated")
 
         # Clean up vassal relationships
         self.vassals.pop(nation, None)
@@ -4289,9 +4324,10 @@ class WorldState:
             create_vassal_treaty(self, proposer, target_nation)
             assimilate_vassal_marshals(self, target_nation)
 
-        # Apply state transition
+        # Apply state transition (R2: centralized setter)
         if current_state != target_state:
-            self.diplomatic_states[diplo_key] = target_state
+            from backend.game_logic.diplomacy import set_diplomatic_state
+            set_diplomatic_state(self, proposer, target_nation, target_state, "treaty_ratification")
 
         # R5b: Set armistice cooldown when entering ARMISTICE
         if target_state == "ARMISTICE":
@@ -4328,7 +4364,7 @@ class WorldState:
                 clause_entry["regions"] = d["regions"]
             treaty_clauses.append(clause_entry)
 
-        # Handle open_borders clause
+        # Handle open_borders clause (R2: centralized setter)
         if "open_borders" in proposal.get("clauses", []):
             if self.get_diplomatic_state(proposer, target_nation) not in ("OPEN_BORDERS", "NON_AGGRESSION", "DEFENSIVE_ALLIANCE", "ALLIANCE"):
                 curr_state = self.diplomatic_states.get(diplo_key, "PEACE")
@@ -4336,7 +4372,8 @@ class WorldState:
                     curr_idx = _UPGRADE_ORDER.index(curr_state)
                     ob_idx = _UPGRADE_ORDER.index("OPEN_BORDERS")
                     if ob_idx > curr_idx:
-                        self.diplomatic_states[diplo_key] = "OPEN_BORDERS"
+                        from backend.game_logic.diplomacy import set_diplomatic_state
+                        set_diplomatic_state(self, proposer, target_nation, "OPEN_BORDERS", "open_borders_clause")
 
         treaty = {
             "nations": [proposer, target_nation],

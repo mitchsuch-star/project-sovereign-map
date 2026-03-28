@@ -233,6 +233,69 @@ DEMAND_VALUES = {
 
 
 # ═══════════════════════════════════════════════════════
+# CENTRALIZED DIPLOMATIC STATE SETTER (R2)
+# ═══════════════════════════════════════════════════════
+
+def set_diplomatic_state(world, nation_a: str, nation_b: str,
+                         new_state: str, reason: str = "") -> str:
+    """Centralized diplomatic state change with automatic bookkeeping.
+
+    Handles:
+    - war_start_turns tracking (set on WAR entry, clear on WAR exit)
+    - armistice_turns / armistice_cooldowns cleanup (clear when leaving ARMISTICE)
+    - Active treaty removal on WAR declaration
+    - Debug logging of all state transitions
+
+    Does NOT handle domain-specific side effects (relation penalties,
+    coalition threat, cascades, notifications). Those stay at call sites.
+
+    Returns: previous state
+    """
+    from backend.utils.debug import debug_print
+
+    key = world._make_diplo_key(nation_a, nation_b)
+    old_state = world.diplomatic_states.get(key, "PEACE")
+
+    # Set new state
+    world.diplomatic_states[key] = new_state
+
+    # War start tracking
+    if new_state == "WAR" and old_state != "WAR":
+        war_start_turns = getattr(world, 'war_start_turns', {})
+        war_start_turns[key] = int(world.current_turn)
+        world.war_start_turns = war_start_turns
+    elif new_state == "WAR" and old_state == "WAR":
+        # Ensure war_start_turns is set even for redundant WAR→WAR (e.g. cheat fix-up)
+        war_start_turns = getattr(world, 'war_start_turns', {})
+        if key not in war_start_turns:
+            war_start_turns[key] = int(world.current_turn)
+            world.war_start_turns = war_start_turns
+    elif new_state != "WAR" and old_state == "WAR":
+        war_start_turns = getattr(world, 'war_start_turns', {})
+        war_start_turns.pop(key, None)
+        world.war_start_turns = war_start_turns
+
+    # Armistice cleanup when leaving ARMISTICE
+    if old_state == "ARMISTICE" and new_state != "ARMISTICE":
+        armistice_turns = getattr(world, 'armistice_turns', {})
+        armistice_turns.pop(key, None)
+        world.armistice_turns = armistice_turns
+        armistice_cooldowns = getattr(world, 'armistice_cooldowns', {})
+        armistice_cooldowns.pop(key, None)
+        world.armistice_cooldowns = armistice_cooldowns
+
+    # Active treaty removal on WAR declaration
+    if new_state == "WAR" and old_state != "WAR":
+        active_treaties = getattr(world, 'active_treaties', {})
+        active_treaties.pop(key, None)
+
+    debug_print(f"DIPLO STATE: {nation_a}-{nation_b}: {old_state} -> {new_state}"
+                f"{' (' + reason + ')' if reason else ''}")
+
+    return old_state
+
+
+# ═══════════════════════════════════════════════════════
 # STATE TRANSITION VALIDATION
 # ═══════════════════════════════════════════════════════
 
@@ -1027,17 +1090,8 @@ def declare_war(world, aggressor: str, target: str, casus_belli: bool = False) -
             "message": f"Armistice cooldown in effect with {target} ({armistice_cooldown} turns remaining). War cannot be declared."
         }
 
-    # Transition to WAR
-    world.diplomatic_states[diplo_key] = "WAR"
-
-    # R142: Record war start turn
-    war_start_turns = getattr(world, 'war_start_turns', {})
-    war_start_turns[diplo_key] = int(world.current_turn)
-    world.war_start_turns = war_start_turns
-
-    # R97: Remove active treaty (alliance clauses must stop during war)
-    active_treaties = getattr(world, 'active_treaties', {})
-    active_treaties.pop(diplo_key, None)
+    # Transition to WAR (R2: centralized setter handles war_start_turns + treaty removal)
+    set_diplomatic_state(world, aggressor, target, "WAR", "war_declaration")
 
     # Penalties (halved with casus belli from rejected ultimatum)
     penalty_factor = 0.5 if casus_belli else 1.0
@@ -1204,18 +1258,9 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
         if state in ("DEFENSIVE_ALLIANCE", "ALLIANCE"):
             # Check if already at war with aggressor
             if not world.is_at_war(nation, aggressor):
-                # Force WAR — bypasses armistice cooldowns
-                war_key = world._make_diplo_key(nation, aggressor)
-                world.diplomatic_states[war_key] = "WAR"
-                # R142: Record war start turn
-                cascade_war_starts = getattr(world, 'war_start_turns', {})
-                cascade_war_starts[war_key] = int(world.current_turn)
-                world.war_start_turns = cascade_war_starts
+                # Force WAR — bypasses armistice cooldowns (R2: centralized setter)
+                set_diplomatic_state(world, nation, aggressor, "WAR", "defensive_cascade")
                 processed.add(nation)
-
-                # R97: Remove active treaty for the cascading pair
-                active_treaties = getattr(world, 'active_treaties', {})
-                active_treaties.pop(war_key, None)
 
                 # R100: Apply relation penalty for cascaded war
                 world.modify_nation_relation(aggressor, nation, -20)
@@ -1265,14 +1310,8 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
         state_with_aggressor = world.get_diplomatic_state(nation, aggressor)
         if state_with_aggressor == "ALLIANCE":
             if not world.is_at_war(nation, target):
-                war_key = world._make_diplo_key(nation, target)
-                world.diplomatic_states[war_key] = "WAR"
-                cascade_war_starts = getattr(world, 'war_start_turns', {})
-                cascade_war_starts[war_key] = int(world.current_turn)
-                world.war_start_turns = cascade_war_starts
+                set_diplomatic_state(world, nation, target, "WAR", "offensive_cascade")
                 processed.add(nation)
-                active_treaties = getattr(world, 'active_treaties', {})
-                active_treaties.pop(war_key, None)
                 world.modify_nation_relation(nation, target, -20)
 
                 cascade.append({
@@ -1317,14 +1356,8 @@ def _process_war_cascade(world, aggressor: str, target: str, processed: set = No
         if lord in processed and lord != target:
             # Lord joined as aggressor/ally — vassal follows
             if not world.is_at_war(vassal_nation, target):
-                war_key = world._make_diplo_key(vassal_nation, target)
-                world.diplomatic_states[war_key] = "WAR"
-                cascade_war_starts = getattr(world, 'war_start_turns', {})
-                cascade_war_starts[war_key] = int(world.current_turn)
-                world.war_start_turns = cascade_war_starts
+                set_diplomatic_state(world, vassal_nation, target, "WAR", "vassal_auto_join")
                 processed.add(vassal_nation)
-                active_treaties = getattr(world, 'active_treaties', {})
-                active_treaties.pop(war_key, None)
 
                 cascade.append({
                     "vassal": vassal_nation,
@@ -1369,8 +1402,8 @@ def execute_downgrade(world, nation_a: str, nation_b: str) -> Dict:
     if not penalties:
         return {"success": False, "message": f"No downgrade path from {current_state} to {new_state}."}
 
-    # Apply
-    world.diplomatic_states[diplo_key] = new_state
+    # Apply (R2: centralized setter; treaty removal handled separately for non-WAR downgrades)
+    set_diplomatic_state(world, nation_a, nation_b, new_state, "diplomatic_downgrade")
 
     # R45: Remove active treaty on downgrade (treaty was for the old state)
     active_treaties = getattr(world, 'active_treaties', {})
@@ -1448,7 +1481,7 @@ def check_auto_downgrade(world) -> List[Dict]:
                     new_state = _DOWNGRADE_ORDER[idx + 1]
                     penalties = DOWNGRADE_PENALTIES.get((state, new_state))
                     if penalties:
-                        world.diplomatic_states[diplo_key] = new_state
+                        set_diplomatic_state(world, parts[0], parts[1], new_state, "auto_downgrade")
                         # Deep audit fix 5: Clear active treaty on auto-downgrade
                         active_treaties = getattr(world, 'active_treaties', {})
                         active_treaties.pop(diplo_key, None)
@@ -1803,8 +1836,8 @@ def _process_armistice_expiration(world) -> List[Dict]:
         relation = world.nation_relations.get(diplo_key, 0)
 
         if relation >= -60:
-            # Transition to PEACE
-            world.diplomatic_states[diplo_key] = "PEACE"
+            # Transition to PEACE (R2: setter handles armistice cleanup)
+            set_diplomatic_state(world, nation_a, nation_b, "PEACE", "armistice_expired_peace")
             cleanup_war_end(world, diplo_key)
             events.append({
                 "type": "armistice_expired_peace",
@@ -1823,15 +1856,8 @@ def _process_armistice_expiration(world) -> List[Dict]:
             queue_dispatch_event(world, "diplomatic_armistice_expired_peace",
                                 {"nation_a": nation_a, "nation_b": nation_b}, "always")
         else:
-            # Relations too hostile — back to WAR
-            world.diplomatic_states[diplo_key] = "WAR"
-            # R142: Record war start turn
-            arm_war_starts = getattr(world, 'war_start_turns', {})
-            arm_war_starts[diplo_key] = int(world.current_turn)
-            world.war_start_turns = arm_war_starts
-            # Deep audit fix 6: Clear active treaty on armistice→WAR
-            active_treaties = getattr(world, 'active_treaties', {})
-            active_treaties.pop(diplo_key, None)
+            # Relations too hostile — back to WAR (R2: setter handles war_start + armistice cleanup + treaty)
+            set_diplomatic_state(world, nation_a, nation_b, "WAR", "armistice_expired_war")
             events.append({
                 "type": "armistice_expired_war",
                 "nations": [nation_a, nation_b],
@@ -2109,7 +2135,12 @@ def break_treaty(pair_key: str, breaker_nation: str, world) -> Dict:
     }
     current_state = world.diplomatic_states.get(pair_key, "PEACE")
     new_state = post_break_map.get(current_state, "PEACE")
-    world.diplomatic_states[pair_key] = new_state
+    # Extract nations from pair_key when treaty has no nations list
+    if not other:
+        parts = pair_key.split("|")
+        if len(parts) == 2:
+            other = parts[1] if parts[0] == breaker_nation else parts[0]
+    set_diplomatic_state(world, breaker_nation, other, new_state, "treaty_break")
 
     # Deep audit fix 3: Clean up war data if breaking from WAR/ARMISTICE
     if current_state in ("WAR", "ARMISTICE"):

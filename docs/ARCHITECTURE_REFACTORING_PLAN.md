@@ -2151,7 +2151,7 @@ These individual findings from the audit are acknowledged but NOT addressed by a
 | 13 | R8 (Session 6) | Planned |
 | 14 | R1 (Session 2) | **COMPLETE** — FORCED_RETREAT_THRESHOLD deduplication |
 | 15 | — | Deferred (intentional design) |
-| 16 | R2 (Session 3) | Planned |
+| 16 | R2 (Session 3) | **COMPLETE** — 5 query helpers, set_diplomatic_state(), 23 writes migrated, 47 tests |
 | 17 | — | Deferred (edge case) |
 | 18 | R1 (Session 2) | **COMPLETE** |
 | 19 | — | Dead code — remove during R11 |
