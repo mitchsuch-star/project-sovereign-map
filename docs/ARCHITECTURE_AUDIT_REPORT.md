@@ -1,10 +1,10 @@
 # Architecture Audit Report
 
-**Date:** 2026-03-27
-**Scope:** 12-pass holistic review + 35 extended deep dives across 5 domains
-**Approach:** 11 initial agents + 5 parallel deep-dive agents reading actual code, producing file:line references
+**Date:** 2026-03-27 (initial), 2026-03-27 (extended)
+**Scope:** 12-pass holistic review + 35 deep dives + 6 extended audits (frontend, integration, game loop, error recovery, tests, modding)
+**Approach:** 11 initial agents + 5 deep-dive agents + 7 verification/extension agents reading actual code
 **Purpose:** Identify structural root causes of recurring bugs and propose refactoring roadmap that eliminates entire categories of audit findings
-**Total individual findings:** 34 (2 CRITICAL, 9 MAJOR, 13 MODERATE, 12 LOW)
+**Total individual findings:** 34 backend (2 CRITICAL, 9 MAJOR, 13 MODERATE, 12 LOW) + frontend/integration findings
 
 ---
 
@@ -37,6 +37,8 @@ The answer is **10 structural root causes** — architectural patterns that gene
 ### What's Working Well
 
 The codebase scores highly on: import organization (9.5/10), type hints (9.5/10), error handling (9.5/10), magic number extraction (9/10), Golden Rule compliance (verified), zero circular dependencies, strong serialization enforcement. The problems are structural duplication and missing centralization, not code quality.
+
+Extended audits cover 6 additional areas: Godot frontend architecture (main.gd god object, Layer 100 collision zone, signal inconsistency), backend↔frontend integration (no HTTP timeout, manual popup delivery), game loop (no crash recovery, non-atomic advance_turn), error recovery (8 try/except blocks in 14,797 lines), test infrastructure (2,460 lines duplicated factories, 5 missing enforcement tests), and modding system (~30% validator coverage, game-breaking mod scenarios unvalidated).
 
 ---
 
@@ -120,7 +122,7 @@ Three separate implementations of post-combat diplomacy exist (`_execute_attack`
 
 - **CRITICAL:** Auto-bombardment kill adds `decisive_victory` threat (+5) unconditionally — no casualty ratio check (executor.py:4597-4598)
 - **CRITICAL:** Auto-bombardment kill inflates war score using full defender strength as casualties (executor.py:4581)
-- **MAJOR:** Garrison combat has zero diplomacy wiring — capturing a capital via garrison assault produces no war score or threat change (executor.py:2772+)
+- **MAJOR:** Garrison combat has limited diplomacy wiring — calls `record_diplo_battle()` and coalition threat but missing vindication, relationship processing, idle reset, and several other post-combat steps (executor.py:2772+)
 
 Extract `_apply_post_combat_diplomacy(battle_result, world)` as a shared function inside the pipeline.
 
@@ -223,7 +225,7 @@ When a developer needs to modify combat behavior, they must navigate a 14,797-li
 
 ### The Problem
 
-13 POST endpoints return different response shapes. There's no shared response builder. `_include_popup_passthroughs()` must be manually called in every response path — **37 "Bug 5" comments** in main.py mark spots where it was nearly forgotten on early returns.
+15 POST endpoints return different response shapes. There's no shared response builder. `_include_popup_passthroughs()` must be manually called in every response path — **37 "Bug 5" comments** in main.py mark spots where it was nearly forgotten on early returns.
 
 Diplomatic top-bar fields (`diplomatic_points`, `max_diplomatic_points`, `threat_level`, `coalition_brewing`) only appear in the `/command` response. During objection/popup interactions, the top bar goes stale.
 
@@ -261,7 +263,7 @@ def build_base_response(world, success=True, message="", **extra):
     return response
 ```
 
-All 13 POST endpoints call `build_base_response()`. Endpoint-specific fields passed as `**extra`. The popup passthrough is **structurally guaranteed** — it's inside the builder, not a manual call site.
+All 15 POST endpoints call `build_base_response()`. Endpoint-specific fields passed as `**extra`. The popup passthrough is **structurally guaranteed** — it's inside the builder, not a manual call site.
 
 **Estimated effort:** 1 session. ~150 new lines, refactor 13 endpoints. Medium risk — must verify Godot handles consistent response shape.
 
@@ -375,7 +377,7 @@ Adding a new cooldown requires knowing which pattern to follow. `_decrement_ai_p
 
 7 popup fields with no unified queue. Each popup type cleared manually. Popup leak bugs recur when new popup types are added without matching clear logic.
 
-`pending_diplomatic_dialogue` alone has **66 SET operations** and **44 CLEAR operations** across the backend (see RC-8).
+`pending_diplomatic_dialogue` alone has **76 SET operations** and **57 CLEAR operations** across the backend (see RC-8).
 
 ### The Refactor: CooldownManager + PopupQueue
 
@@ -418,7 +420,7 @@ Both maintain save format compatibility via properties that map to the existing 
 
 ### The Problem
 
-`pending_diplomatic_dialogue` is a single-field overwrite with FIFO queue fallback. 66 scattered SET sites and 44 CLEAR sites make it impossible to verify that every SET has a matching CLEAR. The blocking guard (executor.py:1472) blocks ALL non-cheat commands while dialogue is pending. Dialogue responses are routed in main.py BEFORE the executor, bypassing the guard.
+`pending_diplomatic_dialogue` is a single-field overwrite with FIFO queue fallback. 66 scattered SET sites and 57 CLEAR sites make it impossible to verify that every SET has a matching CLEAR. The blocking guard (executor.py:1472) blocks ALL non-cheat commands while dialogue is pending. Dialogue responses are routed in main.py BEFORE the executor, bypassing the guard.
 
 Risks:
 - No queue cap — queue can grow unbounded
@@ -440,7 +442,7 @@ class DialogueManager:
     def get_pending(self): ...
 ```
 
-Reduces 66 SET sites to calls to `dialogue_manager.push()`. Reduces 44 CLEAR sites to calls to `dialogue_manager.pop()`. Adds queue cap, timeout, and audit trail.
+Reduces 76 SET sites to calls to `dialogue_manager.push()`. Reduces 57 CLEAR sites to calls to `dialogue_manager.pop()`. Adds queue cap, timeout, and audit trail.
 
 **Estimated effort:** 1-2 sessions. ~200 new lines, refactor 80 sites. High risk — touches many code paths. Should come after RC-3 Phase 2 (diplomatic executor split) to reduce blast radius.
 
@@ -502,7 +504,7 @@ All endpoints call `display()` before returning user-facing strings. The fallbac
 ## Root Cause 10: Campaign Log Silent Drop
 
 **Bug category:** Campaign log invisible (6 findings)
-**Scale:** 40 event types logged, 24 whitelisted, 16 invisible
+**Scale:** 40+ event types logged, 36 whitelisted (expanded from 24 during prior audits), remaining types invisible
 
 ### The Problem
 
@@ -642,6 +644,12 @@ Round-trip fidelity: EXCELLENT. Backward compatibility: STRONG. Enforcement test
 | 12 | **R12** DialogueManager | RC-8 | MAJOR | 1-2 sessions | stuck dialogue |
 | 13 | **R13** Executor split Phase 3 (remaining) | RC-3 | MINOR | 1 session | cognitive load |
 | 14 | **R14** AI fog integration | Scaling B | CRITICAL (pre-80) | 4-6 days | balance + perf |
+| 15 | **R15** Godot: Extract utils.gd + PopupBase class | Frontend | MAJOR | 1 session | signal consistency + 250 lines dedup |
+| 16 | **R16** Godot: Dialog manager + Layer 100 subdivision | Frontend | MAJOR | 1 session | collision zone + main.gd -280 lines |
+| 17 | **R17** Godot: HTTP timeout + api_client consolidation | Integration | CRITICAL | ½ session | infinite hang prevention |
+| 18 | **R18** Test enforcement suite (5 new enforcement tests) | Tests | MAJOR | ½ session | ~18 bugs prevented per category |
+| 19 | **R19** Modding validator extension (diplomatic/vassal/coalition) | Modding | MAJOR | 1 session | game-breaking mod scenarios |
+| 20 | **R20** advance_turn idempotency guard | Game Loop | MAJOR | ½ session | double-processing prevention |
 
 ### Dependency Graph
 
@@ -657,17 +665,21 @@ R8 (campaign log test)
 R9 (scaling index) ──→ R14 (AI fog)
 ```
 
-**R1-R9 are fully independent** — can be done in any order or in parallel.
+**R1-R9, R15-R20 are fully independent** — can be done in any order or in parallel.
 **R10-R13 are sequential** (each split phase depends on the previous).
 **R14 depends on R9** (scaling index needed for AI fog).
+**R15-R16** (Godot) are independent of all backend sessions.
+**R17** (HTTP timeout) should be done early — prevents hung client.
 
 ### Estimated Total Effort
 
 | Phase | Sessions | What |
 |-------|----------|------|
-| **Phase A** (independent, any order) | 6-7 sessions | R1-R9 |
-| **Phase B** (sequential) | 3-4 sessions | R10-R13 executor split |
-| **Phase C** (pre-80-region) | 4-6 days | R14 AI fog |
+| **Phase A** (independent, any order) | 6-7 sessions | R1-R9 (backend root causes) |
+| **Phase B** (sequential) | 3-4 sessions | R10-R13 (executor split) |
+| **Phase C** (pre-80-region) | 4-6 days | R14 (AI fog) |
+| **Phase D** (frontend, independent) | 2-3 sessions | R15-R17 (Godot + integration) |
+| **Phase E** (infrastructure, independent) | 1-2 sessions | R18-R20 (tests, modding, game loop) |
 
 ---
 
@@ -730,7 +742,7 @@ These look messy but should be left alone:
 
 | # | Finding | Location |
 |---|---------|----------|
-| 3 | Garrison combat has zero diplomacy/war score/threat wiring | executor.py:2772+ |
+| 3 | Garrison combat has limited diplomacy wiring (missing vindication, relationships, idle reset) | executor.py:2772+ |
 | 4 | Strategic parser leaks fogged enemy positions via direction resolution | strategic_parser.py:88,577,610 |
 | 5 | No base response type — diplomatic top-bar fields missing from popup endpoints | main.py (13 endpoints) |
 | 6 | Trust/authority death spiral — double-modified trust gains, asymmetric recovery | authority.py, defiance.py |
@@ -855,6 +867,368 @@ These look messy but should be left alone:
 
 ---
 
+## Extended Audit: Godot Frontend Architecture
+
+**Rating: NEEDS REFACTORING** — Playable but architecturally fragile. High coupling to main.gd; scattered responsibilities; implicit contracts.
+
+### File Inventory (30 GDScript files, ~10,140 LOC)
+
+| File | Lines | Category | Status |
+|------|-------|----------|--------|
+| main.gd | 3,175 | Core Controller | **GOD OBJECT** |
+| diplomatic_ledger.gd | 758 | Screen (Layer 50) | Growing |
+| strategic_ledger.gd | 588 | Screen (Layer 50) | Healthy |
+| diplomacy_wizard.gd | 538 | Modal Wizard (Layer 100) | Healthy |
+| war_detail_popup.gd | 427 | Popup (Layer 30) | Healthy |
+| enemy_phase_dialog.gd | 411 | Dialog (Layer 100) | Healthy |
+| marshal_management.gd | 379 | Screen (Layer 50) | Healthy |
+| api_client.gd | 347 | HTTP Client | **REPETITIVE** |
+| top_bar.gd | 307 | Controller (Layer 75) | Healthy |
+| war_status_panel.gd | 304 | HUD (Layer 25) | Healthy |
+| 16 small popups | 67-185 each | Modal Dialogs (Layer 100) | Healthy |
+
+### CanvasLayer Stacking — ARCHITECTURAL DEBT
+
+| Layer | Count | Scripts |
+|-------|-------|---------|
+| 25 | 1 | war_status_panel (HUD always-visible) |
+| 30 | 1 | war_detail_popup (above HUD) |
+| 50 | 5 | campaign_log, dispatch_view, strategic_ledger, marshal_management, diplomatic_ledger |
+| 75 | 1 | top_bar (button bar) |
+| **100** | **11** | **ALL modal popups — NO depth ordering, collision zone** |
+| 101 | 1 | pause_menu (top-level modal) |
+
+**11 popups at Layer 100 with no depth ordering.** If two fire simultaneously, last added to scene tree wins. Backend logic provides mutual exclusion (only one popup per response), but no rendering-level safety.
+
+### Signal Architecture — NEEDS WORK
+
+Inconsistent signal interfaces across popups:
+- `choice_made(String)` — objection, redemption, glorious_charge
+- `choice_made(String, Dictionary)` — incoming_proposal, sabotage, talleyrand, vassal_rebellion
+- `dismissed()` — coalition_declaration, strategic_report
+- `negotiate_clicked(nation)` / `target_clicked(nation)` — war_detail_popup
+
+No base popup class. 20+ manual `.connect()` calls in main.gd `_ready()`. No centralized signal registry.
+
+### Code Duplication
+
+- **Color palettes duplicated 5x** across main.gd, dispatch_view.gd, strategic_ledger.gd, marshal_management.gd, diplomatic_ledger.gd (~50 lines copy-paste, comments say "duplicated from main.gd")
+- **HTTP boilerplate duplicated 16x** in api_client.gd (identical request wrapper pattern)
+- **Tab switching boilerplate** duplicated between strategic_ledger and diplomatic_ledger
+- **Dialog instantiation** repeated 20x in main.gd `_ready()` (load scene, instantiate, add_child, connect signal)
+
+### Input Handling — NEEDS WORK
+
+Hotkeys scattered across 7 files with 3 different guard functions:
+- `_is_modal_dialog_open()` — checks objection/redemption/pause
+- `_is_hotkey_blocked()` — checks pause/text input (doesn't check wizards)
+- `_is_screen_open()` — checks top_bar state
+
+Guard logic is duplicated and inconsistent. No centralized hotkey registry or input map.
+
+### State Management — NEEDS WORK
+
+Game state exists in 4 places simultaneously:
+- main.gd local variables (turn, actions, gold)
+- Response dicts (stored in `pending_*` fields)
+- `_last_command_response` cache (workaround for war panel refresh)
+- Each screen's own `cached_data` dict
+
+No single source of truth. No refresh strategy when modals close. Implicit mutual exclusion for popups (backend guarantees only one is true per response; no rendering-time guard).
+
+### Frontend Refactoring Roadmap
+
+| Session | What | Impact |
+|---------|------|--------|
+| F1 | Extract `utils.gd` (shared colors, formatting) | 50+ duplicated lines removed |
+| F2 | Create base `PopupBase` class; standardize signal interface | Signal consistency across 18 popups |
+| F3 | Create `dialog_manager.gd`; factory + queue pattern | main.gd lines 140-420 removed |
+| F4 | Centralize input handling; unified guard function | Scatter reduced by 80% |
+| F5 | Sub-divide Layer 100 into 100-109 for popup depth | Collision zone eliminated |
+| F6 | Consolidate api_client.gd into 2-3 generic helpers | 200+ boilerplate lines removed |
+
+---
+
+## Extended Audit: Backend↔Frontend Integration
+
+**Rating: ADEQUATE** — Functional and reasonably defensive, but relies on developer discipline.
+
+### API Contract
+
+**Implicit — no formal documentation.** Contract is inferred from code patterns:
+- Godot expects response dict with `success` bool, optional popup keys, `game_state` with `map_data`
+- Backend `_include_popup_passthroughs()` ensures all popup keys are always present (None if not set)
+- All numeric values wrapped in `int()` (Golden Rule #2)
+- No schema validation on either side
+
+### Communication Model
+
+**Synchronous request-response with single-request-in-flight guard:**
+- api_client.gd: `_request_in_flight` flag prevents concurrent requests
+- No polling, no long-polling, no WebSocket
+- UI blocks on every network request (intentional — prevents double-taps)
+- Diplomacy wizard has its own dedicated HTTPRequest to avoid ERR_BUSY conflicts
+
+### Error Handling
+
+| Error | Detection | Recovery | Status |
+|-------|-----------|----------|--------|
+| 500 error | response_code != 200 | Display error, retry | WORKING |
+| Network down | HTTPRequest error | Display error, retry | WORKING |
+| Malformed JSON | JSON.parse fails | Error callback | WORKING |
+| **Server timeout** | **None — indefinite hang** | **Manual restart** | **BROKEN** |
+| Missing popup key | .has() check | Silent skip | WORKING |
+
+**CRITICAL: No timeout mechanism.** If server hangs, Godot hangs indefinitely. `_request_in_flight` never clears. All subsequent requests fail with "Request already in progress."
+
+### Popup Delivery Chain
+
+```
+executor.py sets popup on world
+  → main.py _include_popup_passthroughs() extracts ONE popup (priority-ordered)
+  → api_client.gd passes response to callback
+  → main.gd _on_command_result() checks 16+ popup keys in sequence
+  → popup script displays data
+```
+
+**Data loss points:**
+1. Endpoint missing `_include_popup_passthroughs()` call → popup silently lost (the "Bug 5" pattern, 37 references in main.py)
+2. Enemy phase modal blocks popup delivery → deferred until next request
+3. Multiple popups queued but only one delivered per response cycle (by design — others persist on world)
+
+### Reconnection
+
+**No reconnection support.** If server restarts mid-game:
+- Godot detects on next request attempt (passive detection)
+- No session tracking — can't detect which commands executed before crash
+- No heartbeat or background ping
+- Recovery: User manually reloads from autosave
+
+### Recommendations
+
+1. **CRITICAL:** Add HTTP request timeout (10s) with error callback
+2. **MAJOR:** Add `_include_popup_passthroughs()` enforcement (decorator or lint rule)
+3. **MAJOR:** Add `api_version` field to responses for frontend/backend version mismatch detection
+
+---
+
+## Extended Audit: Game Loop Architecture
+
+**Rating: HAS GAPS** — Sound in design but lacking crash recovery and atomicity.
+
+### Complete Turn Cycle
+
+```
+Player types "end turn"
+  → executor._execute_end_turn()
+    → turn_manager.end_turn()
+      → Pre-enemy VICTORY CHECK
+      → ENEMY PHASE: Each AI nation gets action budget via same executor
+      → AI DIPLOMATIC PHASE: P1-P7 proposal triggers, vassal courting
+      → STRATEGIC ORDER EXECUTION: Multi-turn orders, can trigger combat
+      → world.advance_turn() — 48 sequential steps:
+          [A] Clear per-turn flags
+          [B] Process tactical states (drill/fortify/retreat)
+          [C] Vindication decay
+          [D] Construction timers
+          [E] **TURN COUNTER INCREMENTS** (steps above see old turn, below see new)
+          [F-I] Stability, supply attrition, garrison regen, bankruptcy
+          [J-K] Diplomacy processing, proposal resolution
+          [L-M] Cooldown decrements, Talleyrand defiance
+          [N-O] Vassal processing, **clear battle tracking** (AFTER vassals read it)
+          [P-Q] Coalition processing, AI-AI diplomacy
+          [R-S] Dialogue auto-dismiss, blocking safety valve
+          [T-W] Income, trade, treaty clauses, vassal tribute
+          [X-Y] Bankruptcy check (after all income), manpower regen
+          [Z] **AP RESET** (after treaty clause penalties)
+          [AA-BB] Utility resets, **FOG RECALCULATION** (final step)
+      → Pop dialogue queue (priority-ordered)
+      → Post-advance VICTORY CHECK (3rd checkpoint)
+    → Filter tactical events by fog
+    → Build financial summary
+  → Response sent to Godot
+```
+
+### Critical Timing Dependencies
+
+1. **Turn counter increment at step E** splits the pipeline — steps A-D see old turn, steps F+ see new turn. Moving steps across this boundary silently breaks behavior.
+2. **Battle tracking cleared at step O** AFTER vassal processing reads it (documented dependency, one line comment).
+3. **AP reset at step Z** happens AFTER treaty clause penalties applied — ensures correct budget.
+4. **Fog recalculation at step BB** is the FINAL step — ensures all state changes reflected.
+5. **Strategic orders execute BEFORE advance_turn** — required for cannon fire detection (advance_turn clears `battles_this_turn`).
+
+### Atomicity — NOT GUARANTEED
+
+`advance_turn()` is a monolithic 383-line function. If crash at step 25 of 48:
+- Steps 1-24 already committed (turn counter advanced, income applied, etc.)
+- Steps 25-48 never execute (manpower, AP reset, fog recalc missing)
+- **No checkpoint/rollback mechanism**
+- Player retrying "end turn" would **double-process** steps 1-24 (double income, double treaty costs)
+- Recovery: Manual save/load only
+
+### Victory/Defeat Timing
+
+Checked THREE times: (1) before enemy phase, (2) after enemy phase, (3) after advance_turn. If any triggers, `game_over=True`. Pending dialogues flushed to result so frontend can show victory screen. Sound design.
+
+### Enemy Phase Architecture
+
+Each AI nation gets action budget, uses same executor as player (Golden Rule #5 verified). Actions affect shared world state immediately — no sandboxing between nations. Fixed nation order (Britain always first — systematic first-mover advantage).
+
+---
+
+## Extended Audit: Error Recovery
+
+**Rating: NO ROLLBACK** — Functions succeed or leave partial state. No crash recovery for multi-step operations.
+
+### Traced Failure Scenarios
+
+**Scenario 1: Attack succeeds, territory capture fails**
+- Combat result applied (strength reduced, enemy destroyed, marshal moved)
+- `capture_region()` silently returns False if region not found
+- State: Marshal at uncaptured region (visual inconsistency). Game continues.
+
+**Scenario 2: Treaty ratification partial failure**
+- `_ratify_treaty()` performs 15 sequential mutations: state transition → gold transfer → territory cession → vassal creation → coalition threat → nation elimination
+- If territory cession fails (region doesn't exist): state transition already applied, gold already transferred, but territory unchanged
+- Threat calculation wrong (based on `transferred_count` which is incomplete)
+- Game continues with inconsistent diplomatic/territorial state
+
+**Scenario 3: advance_turn crashes at step 25**
+- Turn counter already advanced (step E). Income already applied (step T).
+- Manpower, AP reset, fog recalc never execute
+- Retrying "end turn" double-processes income, treaty costs
+- No detection of partial advance
+
+### Error Handling Patterns in Executor
+
+**8 productive try/except blocks** in 14,797 lines. Almost no error handling in core business logic:
+- No try/except around `resolve_battle()`, `capture_region()`, `_ratify_treaty()`
+- No try/except around `_advance_turn_internal()`
+- Acceptance calculation catches ALL exceptions and silently defaults to 20 (too broad)
+- Sabotage/redemption handlers properly log exceptions and return gracefully
+
+### Recommendations
+
+1. **Pre-flight validation** before multi-step operations (validate all regions exist before treaty ratification)
+2. **Idempotency guards** in advance_turn (detect "already advanced this turn" to prevent double-processing)
+3. **Wrap advance_turn steps** in try/except with logging — graceful degradation over crash
+
+---
+
+## Extended Audit: Test Architecture
+
+**Rating: ADEQUATE** — Substantial coverage but structural weaknesses.
+
+### Test Suite Structure
+
+- **203 test files, ~121,290 lines, ~7,281 tests**
+- Flat directory structure (no subdirectories)
+- Session-based naming (test_session_2_diplomacy, test_audit_part1, etc.)
+- **NO conftest.py** (confirmed)
+
+### Duplication Analysis
+
+- **82 files** contain `_make_world()` or similar factory functions
+- **~2,460 lines** of duplicated factory code (estimated: `_make_world` ~10 lines × 82 + `_make_marshal` ~15 lines × 82)
+- 3 different factory patterns across files (inline construction, keyword overrides, constructor parameters)
+- Adding one Marshal field requires updating factories in ~184 files
+
+### Coverage by System
+
+| System | Test Files | Code Lines | Proportional? |
+|--------|-----------|------------|---------------|
+| Diplomacy | 17 | ~14,000 | Adequate |
+| AI | 9 | ~7,200 | Adequate |
+| Audit fixes | 10 | ~8,000 | Strong |
+| Serialization | 2 | ~1,100 | Strong (enforcement) |
+| Combat | 4 | ~3,200 | **WEAK for ~2,500-line combat engine** |
+| **world_state.py** | **0 dedicated** | — | **No standalone tests** |
+| **turn_manager.py** | **0 dedicated** | — | **No standalone tests** |
+| **main.py endpoints** | **0 dedicated** | — | **No endpoint tests** |
+
+### Enforcement Test Gaps
+
+**Enforced (CI gate):**
+- Serialization: all model fields must round-trip through to_dict/from_dict
+
+**NOT enforced:**
+- All actions in VALID_ACTIONS have AP costs in `_action_costs`
+- All actions have display names in `_ACTION_DISPLAY_NAMES`
+- All event types logged are in CAMPAIGN_LOG_TYPES whitelist
+- All proposal types have display strings in `PROPOSAL_TYPE_DISPLAY`
+- VALID_ACTIONS matches between parser, executor, and validation.py
+
+### Recommended Enforcement Tests
+
+```python
+def test_all_actions_have_costs():
+    """Every valid action must have an AP cost defined."""
+    for action in VALID_ACTIONS:
+        assert action in _action_costs, f"{action} missing AP cost"
+
+def test_all_actions_have_display_names():
+    """Every valid action must have a UI-friendly display name."""
+    for action in VALID_ACTIONS:
+        assert action in _ACTION_DISPLAY_NAMES, f"{action} missing display name"
+
+def test_all_event_types_whitelisted():
+    """Every log_event() type must be in CAMPAIGN_LOG_TYPES."""
+    # Grep all log_event("type") calls, compare against whitelist
+    ...
+```
+
+These 3 tests alone would have prevented ~18 bugs across prior audits.
+
+---
+
+## Extended Audit: Modding System
+
+**Rating: PROTOTYPE** — Acceptable for EA with documented limitations; needs hardening for 1.0.
+
+### Validator Coverage
+
+| Model | Total Fields | Validated | Coverage |
+|-------|-------------|-----------|----------|
+| Marshal | 45 | 12 | 27% |
+| Region | 8 core | 8 | ~100% |
+| WorldState | 150+ | 7 | **~5%** |
+
+**Critically unvalidated:** Diplomatic state graph (WAR with self possible), vassal circular dependencies, coalition state consistency, trust/authority bounds, combat modifier stacking.
+
+### Game-Breaking Mod Scenarios (Unvalidated)
+
+1. **WAR with self:** `diplomatic_states["France-France"] = "WAR"` → crashes is_at_war() checks
+2. **Vassal loop:** Saxony vassal to Austria, Austria vassal to Saxony → infinite recursion in cascade code
+3. **Invalid coalition:** Leader is non-existent nation → coalition code crashes
+4. **Negative authority:** `nation_authority["Britain"] = -200` → inverts diplomacy checks
+5. **Zombie marshals:** Strength 0 marshals allowed by validator (warns but permits) → treated as "destroyed" but not cleaned up
+
+### Loading Architecture
+
+```
+Modder writes JSON → Validator checks (~30% of fields) → from_scenario merges defaults → from_dict deserializes (NO re-validation) → Game runs → Runtime errors if state invalid
+```
+
+**Critical gap:** `from_dict()` accepts ANY values with no bounds checking. Validation is optional and occurs before default merging, not after.
+
+### Save Compatibility
+
+- **No mod metadata in save files** — saves don't track which mod was loaded
+- Loading a save from modded game without the mod: custom regions/marshals silently lost
+- No format versioning beyond FORMAT_VERSION=2
+
+### Recommendations
+
+| Priority | Fix | Effort |
+|----------|-----|--------|
+| CRITICAL | Validate diplomatic state graph (no self-WAR, valid enums) | 1-2 hours |
+| CRITICAL | Validate vassal system (no circular deps, loyalty 0-100) | 1-2 hours |
+| MAJOR | Add bounds checks to from_dict for authority, relations, war scores | 2-3 hours |
+| MAJOR | Add mod metadata to save format | 1 hour |
+| MAJOR | Document extensibility limits in MODDING_FORMAT.md | 30 min |
+
+---
+
 ## Metrics Summary
 
 | Metric | Value |
@@ -869,12 +1243,20 @@ These look messy but should be left alone:
 | `_execute_*` methods | 50 |
 | Enemy AI methods | 74 |
 | Cooldown dictionaries | 14 |
-| API endpoints | 35 (13 POST, 22 GET) |
+| API endpoints | 37 (15 POST, 22 GET) |
 | Display name translation maps | 7 |
-| Invisible campaign log event types | 16 |
+| Campaign log event types (whitelisted/total) | 36/40+ |
 | Circular dependencies | 0 |
 | Layer violations | 1 (minor) |
 | Golden Rule compliance | 100% (with documented exceptions for target-type modifiers) |
 | Code conventions score | 8.6/10 average |
 | **Total findings this audit** | **34** (2 CRITICAL, 9 MAJOR, 13 MODERATE, 12 LOW) |
 | **Cross-audit bugs traced to root causes** | **~240 of ~450** |
+| Godot .gd files | 30 (~10,140 lines) |
+| Largest Godot file | main.gd (3,175 lines) |
+| CanvasLayer 100 collisions | 11 popups at same layer |
+| Duplicated factory code in tests | ~2,460 lines |
+| Enforcement test coverage | Serialization only (5 more recommended) |
+| Modding validator coverage | ~30% of fields |
+| Error recovery (try/except in executor) | 8 blocks in 14,797 lines |
+| HTTP timeout handling | None (CRITICAL gap) |
