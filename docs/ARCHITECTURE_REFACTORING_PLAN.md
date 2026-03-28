@@ -212,6 +212,8 @@ R18 depends on R7+R8 (display/log maps needed for enforcement)
 
 ### Session 2: R1 — Post-Combat Pipeline Unification
 
+> **Session 2A (characterization tests) COMPLETE.** 25 tests pinning current behavior of all 5 combat paths in `tests/test_r1_characterization.py`. Tests cover: attack (solo), glorious charge, garrison combat, bombardment, auto-bombardment kill. Known bugs pinned as explicit test assertions. Session 2B (pipeline extraction + wiring + bug fixes) NEXT.
+
 > **NOTE: This session contains 2 live CRITICAL gameplay bugs** (auto-bombardment decisive_victory unconditional at executor.py:4598, war score inflation at executor.py:4581). These affect coalition/diplomatic balance in every game. Prioritize this session accordingly.
 
 | Field | Value |
