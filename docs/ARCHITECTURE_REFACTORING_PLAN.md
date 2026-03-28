@@ -28,21 +28,22 @@
 ## Dependency Graph
 
 ```
-R1 (post-combat pipeline) ──→ R10 (executor split: combat)
-R2 (war-state helpers)                    ↓
-R3 (conftest.py)             R11 (executor split: diplomatic+strategic)
-R4 (response pipeline)                    ↓
-R5 (fog-filtered access)    R12 (dialogue manager)
-R6 (cooldown/popup)                       ↓
-R7 (display registry)       R13 (executor split: remaining)
-R8 (campaign log test)
-R9 (scaling index) ──→ R14 (AI fog, 4 sessions)
+R1 (post-combat pipeline) ──→ R10A (executor split: combat core)
+R2 (war-state helpers)                     ↓
+R3 (conftest.py)             R10B (audit 10A + coordination/support)
+R4 (response pipeline)                     ↓
+R5 (fog-filtered access)    R11 (executor split: diplomatic+strategic)
+R6 (cooldown/popup)                        ↓
+R7 (display registry)       R12 (dialogue manager)
+R8 (campaign log test)                     ↓
+R9 (scaling index) ──→ R14   R13 (executor split: remaining)
+  (AI fog, 4 sessions)
 R15, R17, R19-R20 fully independent of each other and backend sessions
 R16 depends on R15 (popup base class needed first)
 R18 depends on R7+R8 (display/log maps needed for enforcement)
 ```
 
-**Parallelism:** Sessions 1-8, 14-15, 21 have no inter-dependencies and can be done in any order. Sessions 10-13 are strictly sequential. Sessions 17-20 are sequential and depend on Session 8.
+**Parallelism:** Sessions 1-9, 15-16, 22 have no inter-dependencies and can be done in any order. Sessions 10A-14 are strictly sequential (10B audits 10A before proceeding). Sessions 18-21 are sequential and depend on Session 9.
 
 ---
 
@@ -1339,7 +1340,7 @@ R18 depends on R7+R8 (display/log maps needed for enforcement)
 
 ## Phase D: Executor Split (Sessions 10-13)
 
-### Session 10: R10 — Executor Split Phase 1: Combat
+### Session 10A: R10A — Executor Split Phase 1a: Combat Core
 
 | Field | Value |
 |-------|-------|
@@ -1347,27 +1348,35 @@ R18 depends on R7+R8 (display/log maps needed for enforcement)
 | **Priority** | MAJOR |
 | **Effort** | ~3 hours |
 | **Risk** | MEDIUM — pure code movement, but import resolution needs care |
-| **Impact** | executor.py 14,797 → ~12,300 lines |
+| **Impact** | executor.py 14,797 → ~13,000 lines; combat_executor.py ~1,800 lines |
 | **Dependencies** | **Session 2 (R1) MUST be complete** — post-combat pipeline must be unified first |
 
+**Focus:** Extract the 3 combat action entry points + their direct helpers (forced retreat, casualties, garrison, region effects). Leave the coordination system for 10B.
+
 **Files to Create:**
-- `backend/commands/combat_executor.py` (~2,500 lines)
+- `backend/commands/combat_executor.py` (~1,800 lines)
 
 **Files to Modify:**
 - `backend/commands/executor.py` — extract methods, add delegation wiring
 
-**Methods to Extract:**
-- `_execute_attack` + all attack sub-helpers
-- `_execute_glorious_charge`
-- `_execute_bombardment` + bombardment helpers
-- `_resolve_garrison_combat`
-- `_post_combat_pipeline` (from Session 2)
-- `_handle_forced_retreat` + `_apply_forced_retreat_or_break`
-- `_distribute_casualties`
+**Methods to Extract (combat core):**
+- `_execute_attack` (~1,760 lines) + direct sub-helpers
+- `_execute_bombardment` (~375 lines) + bombardment helpers
+- `_execute_glorious_charge` (~337 lines)
+- `_execute_charge` (~73 lines)
+- `_resolve_garrison_combat` (~224 lines)
+- `_post_combat_pipeline` (from Session 2/R1)
+- `_handle_forced_retreat` + `_apply_forced_retreat_or_break` (~485 lines)
+- `_distribute_casualties` (~129 lines)
+- `_log_battle_event`, `_process_combat_notifications` (~40 lines)
+- `_apply_battle_effects_to_region` (~60 lines)
+- `_attempt_region_capture` (~63 lines)
+- Formation: `_execute_form_square`, `_execute_break_square` (~142 lines)
+
+**Methods NOT extracted (deferred to 10B):**
 - `_calculate_coordination_context` + 13 coordination helpers (~1,400 lines)
-- `_log_battle_event`, `_process_combat_notifications`
-- `_apply_battle_effects_to_region`
-- `_attempt_region_capture`
+- `_calculate_overwatch` (~97 lines)
+- Auto-dispatch methods (`_execute_general_attack`, etc.)
 
 **Steps:**
 
@@ -1407,11 +1416,57 @@ R18 depends on R7+R8 (display/log maps needed for enforcement)
    - `_execute_post_objection` must delegate to CombatExecutor for combat actions
    - AP accounting stays in main executor
 
+**Boundary rule:** Coordination helpers may still be called from CombatExecutor via `self._executor._calculate_coordination_context(...)`. This temporary cross-reference is cleaned up in 10B.
+
 **Verification:**
 - Run full test suite after EACH method move (not batch)
-- Run combat-specific tests: all `test_*attack*`, `test_*bombardment*`, `test_*garrison*`, `test_*coordination*`, `test_*glorious_charge*`
+- Run combat-specific tests: all `test_*attack*`, `test_*bombardment*`, `test_*garrison*`, `test_*glorious_charge*`
 - Verify no circular imports
 - Verify all test paths still work
+
+---
+
+### Session 10B: R10B — Audit 10A + Coordination & Support Extraction
+
+| Field | Value |
+|-------|-------|
+| **Root Cause** | RC-3: Executor God Object |
+| **Priority** | MAJOR |
+| **Effort** | ~3 hours |
+| **Risk** | MEDIUM |
+| **Impact** | executor.py ~13,000 → ~11,400 lines; combat_executor.py ~1,800 → ~3,400 lines |
+| **Dependencies** | **Session 10A (R10A) MUST be complete** |
+
+**Phase 1: Audit 10A extraction (~45 min)**
+
+Before extracting anything new, verify 10A left no loose ends:
+
+1. **Call-graph audit:** For every method in `combat_executor.py`, grep for all `self._executor.xxx` calls. Confirm each target still exists in executor.py and is intentionally shared (not an extraction miss).
+2. **Dead import check:** Verify executor.py has no orphaned imports that were only used by moved methods.
+3. **Delegation completeness:** Confirm every combat action in the main executor's dispatch method correctly routes to `self._combat.xxx`. Check `_execute_post_objection` routes combat actions through CombatExecutor.
+4. **Test coverage:** Run full suite. Then run combat-specific tests with `--tb=long` to verify no subtle assertion changes (e.g., error messages referencing wrong class).
+5. **Circular import check:** `python -c "from backend.commands.combat_executor import CombatExecutor"` must succeed without executor.py importing combat_executor at module level (only in `__init__`).
+
+**Fix any issues found before proceeding to Phase 2.**
+
+**Phase 2: Extract coordination system + support methods (~2 hours)**
+
+**Methods to Extract:**
+- `_calculate_coordination_context` + all 13 coordination helpers (~1,400 lines)
+- `_calculate_overwatch` (~97 lines)
+- Auto-dispatch combat methods: `_execute_general_attack`, `_execute_general_attack_combat`, `_execute_auto_assign_attack`, `_execute_auto_assign_bombardment`, `_execute_general_retreat`, `_execute_general_defensive` (~490 lines)
+
+**Steps:**
+1. Move coordination helpers as a group (they're tightly interdependent — moving one at a time would create constant broken states). Run tests after the batch.
+2. Move `_calculate_overwatch` (called by coordination, should be co-located). Run tests.
+3. Move auto-dispatch methods one at a time. Run tests after each.
+4. Clean up: remove all `self._executor._calculate_*` cross-references from CombatExecutor — these methods now live locally.
+
+**Final Verification:**
+- Full test suite green
+- No `self._executor._calculate_coordination` references remain in combat_executor.py
+- No `self._executor._execute_attack` (or similar combat methods) remain in executor.py
+- `grep -r "combat_executor" backend/` shows only: executor.py import + instantiation, combat_executor.py itself
 
 ---
 
@@ -1423,8 +1478,8 @@ R18 depends on R7+R8 (display/log maps needed for enforcement)
 | **Priority** | MAJOR |
 | **Effort** | ~3 hours |
 | **Risk** | MEDIUM |
-| **Impact** | executor.py ~12,300 → ~9,100 lines |
-| **Dependencies** | Session 10 (R10) complete |
+| **Impact** | executor.py ~11,400 → ~8,200 lines |
+| **Dependencies** | Session 10B (R10B) complete |
 
 **Files to Create:**
 - `backend/commands/diplomatic_executor.py` (~2,000 lines)
@@ -1434,7 +1489,7 @@ R18 depends on R7+R8 (display/log maps needed for enforcement)
 
 **Strategic methods to extract:** `_execute_strategic_order`, `_execute_cancel`, strategic pathfinding helpers, condition evaluation.
 
-**Same pattern as Session 10.** Create `DiplomaticExecutor(parent)` and `StrategicExecutor(parent)`. Wire through main executor delegation. Move one method at a time, test after each.
+**Same pattern as Session 10A.** Create `DiplomaticExecutor(parent)` and `StrategicExecutor(parent)`. Wire through main executor delegation. Move one method at a time, test after each.
 
 ---
 
@@ -1560,8 +1615,8 @@ R18 depends on R7+R8 (display/log maps needed for enforcement)
 | **Priority** | MINOR |
 | **Effort** | ~3 hours |
 | **Risk** | LOW-MEDIUM (pattern well-established by now) |
-| **Impact** | executor.py ~9,100 → ~1,500 lines (router + guards + AP) |
-| **Dependencies** | Session 11 (R11) complete |
+| **Impact** | executor.py ~8,200 → ~1,500 lines (router + guards + AP) |
+| **Dependencies** | Session 12 (R12) complete |
 
 **Files to Create:**
 - `backend/commands/movement_executor.py` (~1,000 lines): `_execute_move`, `_execute_scout`, retreat handling, attrition
@@ -2097,10 +2152,11 @@ Full integration test session:
 | 7 | R6 | RC-7: Cooldown/popup sprawl | MAJOR | 3h | MEDIUM | — | ~7 + popup leaks |
 | 8 | R9+R20 | Scaling + atomicity | CRIT/MAJ | 2h | LOW | — | perf + double-proc |
 | 9 | R18 | Missing enforcement tests | MAJOR | 1-2h | ZERO | S6 | ~18/category |
-| 10 | R10 | RC-3: Executor god object | MAJOR | 3h | MEDIUM | S2 | cognitive load |
-| 11 | R11 | RC-3: Executor god object | MAJOR | 3h | MEDIUM | S10 | cognitive load |
+| 10A | R10A | RC-3: Executor god object | MAJOR | 3h | MEDIUM | S2 | cognitive load |
+| 10B | R10B | RC-3: Audit 10A + coordination | MAJOR | 3h | MEDIUM | S10A | cognitive load |
+| 11 | R11 | RC-3: Executor god object | MAJOR | 3h | MEDIUM | S10B | cognitive load |
 | 12 | R12 | RC-8: Dialogue chaos | MAJOR | 3h | HIGH | S11 | stuck dialogue |
-| 13 | R13 | RC-3: Executor god object | MINOR | 3h | LOW-MED | S11 | cognitive load |
+| 13 | R13 | RC-3: Executor god object | MINOR | 3h | LOW-MED | S12 | cognitive load |
 | 14 | R17 | Integration: no timeout | CRITICAL | 1-2h | LOW | — | infinite hang |
 | 15 | R15 | Frontend: duplication | MAJOR | 2-3h | MEDIUM | — | signal consistency |
 | 16 | R16 | Frontend: Layer 100 collision | MAJOR | 2-3h | MED-HIGH | S15 | popup collision |
@@ -2110,7 +2166,7 @@ Full integration test session:
 | 20 | R14d | Scaling: AI omniscience | CRITICAL | 3h | HIGH | S19 | balance + perf |
 | 21 | R19 | Modding: low coverage | MAJOR | 3h | LOW | — | game-breaking mods |
 
-**Total: 21 sessions. ~55-65 hours. Prevents ~240 historical bugs + future recurrences.**
+**Total: 22 sessions (~55-68 hours). Prevents ~240 historical bugs + future recurrences.**
 
 ---
 
@@ -2226,7 +2282,7 @@ These sessions are **restructuring working code**, not building new features. Th
 | **7 (R6 — cooldowns)** | Extract Class | Mechanical: wrap 14 dicts into CooldownManager, verify round-trip |
 | **8 (R9+R20 — scaling + atomicity)** | **TDD** | Genuinely new code: marshal-by-region index with performance requirements. Write benchmark, build index, verify speedup. |
 | **9 (R18 — enforcement tests)** | TDD | New test infrastructure with clear pass/fail spec |
-| **10-13 (R10-R13 — executor split)** | Characterization Testing | Large-scale structural move across 14,797 lines |
+| **10A-13 (R10A-R13 — executor split)** | Characterization Testing | Large-scale structural move across 14,797 lines. 10B audits 10A before proceeding |
 | **14-16 (R15-R17 — Godot)** | Extract Class + manual smoke test | GDScript has no automated test runner; pin via manual test plan |
 | **17-20 (R14 — AI fog)** | Characterization Testing + playtesting | Changes AI behavior — needs both automated and manual verification |
 | **21 (R19 — modding)** | TDD | New validation rules with clear invalid-input specs |
@@ -2243,7 +2299,7 @@ Do R1-R5 first. They are all independent and deliver ~80% of total value.
 | 4th | **R4** (response builder) | Structurally eliminates the "Bug 5" pattern |
 | 5th | **R5** (fog access) | Completes the "correct by default" trio with R2 |
 
-After those 5, reassess. R6-R8 are moderate value. R9 is mandatory before 80-region expansion. R10-R13 (executor split) is high-effort/medium-value — only worth doing if planning 2+ years of maintenance.
+After those 5, reassess. R6-R8 are moderate value. R9 is mandatory before 80-region expansion. R10A-R13 (executor split) is high-effort/medium-value — only worth doing if planning 2+ years of maintenance.
 
 ### What NOT to Do
 
