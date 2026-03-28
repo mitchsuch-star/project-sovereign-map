@@ -89,6 +89,16 @@ class WorldState:
         self.marshals.update(create_starting_marshals())  # Add French marshals
         self.marshals.update(create_enemy_marshals())  # Add enemy marshals
 
+        # R9: Transient marshal-by-region index for O(1) region lookups.
+        # Rebuilt at turn start, after from_dict(), and after __init__.
+        # NOT serialized — always rebuilt from live marshal data.
+        self._marshals_by_region: Dict[str, List[Marshal]] = {}
+
+        # R20: Idempotency guard — tracks last turn that advance_turn ran.
+        # Prevents double-processing (double income, double treaty costs) on retry.
+        # Serialized to survive save/load.
+        self._last_advanced_turn: int = 0
+
         # Nation starting regions — tracks original territory for homeland defense AI
         # Populated by _setup_initial_control() below
         self.nation_starting_regions: Dict[str, list] = {}
@@ -491,6 +501,9 @@ class WorldState:
         # {marshal_name: amount_applied_this_turn} — cleared at start of each turn
         self.diplomatic_trust_applied: Dict[str, int] = {}
 
+        # R9: Build marshal-by-region index before visibility calc uses it
+        self._build_marshal_index()
+
         # Calculate initial visibility so turn 1 starts with correct fog state
         # (French regions FULL, adjacent PARTIAL, rest UNKNOWN)
         self._intel_events_this_turn = []  # Init before first calculate_visibility
@@ -764,6 +777,9 @@ class WorldState:
         and updates known_marshals snapshots. The decay path (decay_intel) does NOT query
         live data — it keeps snapshots frozen.
         """
+        # R9: Rebuild index to ensure freshness (O(N) cost, avoids O(R*N) linear scans)
+        self._build_marshal_index()
+
         turn = self.current_turn
 
         # Track which regions were refreshed this turn (so decay_intel skips them)
@@ -838,9 +854,9 @@ class WorldState:
             is_adjacent = (region_name in friendly_adjacent_regions)
             is_watchtower_adjacent = (region_name in watchtower_adjacent_regions)
 
-            # Get enemy military data for this region (REFRESH path: live query)
+            # R9: Use indexed lookup (index is fresh from _build_marshal_index)
             enemy_marshals = [
-                m for m in self.get_marshals_in_region(region_name)
+                m for m in self._get_marshals_in_region_indexed(region_name)
                 if m.nation != self.player_nation and m.strength > 0
             ]
 
@@ -1151,8 +1167,36 @@ class WorldState:
                 return m
         return None
 
+    def _build_marshal_index(self) -> None:
+        """R9: Build inverse index of marshals by region for O(1) lookups.
+
+        Called at:
+        - End of __init__ (before calculate_visibility)
+        - Start of _advance_turn_internal() (after per-turn flag clearing)
+        - End of from_dict() (before return)
+
+        NOT serialized — transient cache rebuilt from live data.
+        """
+        self._marshals_by_region = {}
+        for m in self.marshals.values():
+            self._marshals_by_region.setdefault(m.location, []).append(m)
+
+    def _get_marshals_in_region_indexed(self, region_name: str) -> List[Marshal]:
+        """R9: O(1) indexed lookup. Only for internal hot paths where
+        the index is guaranteed fresh (within _advance_turn_internal,
+        calculate_visibility, process_supply_attrition).
+
+        Returns a REFERENCE to the internal list — callers must not modify.
+        """
+        return self._marshals_by_region.get(region_name, [])
+
     def get_marshals_in_region(self, region_name: str) -> List[Marshal]:
-        """Get all marshals currently in a specific region."""
+        """Get all marshals currently in a specific region.
+
+        Uses linear scan for correctness — safe for all callers including
+        tests that modify marshals without rebuilding the index.
+        Internal hot paths use _get_marshals_in_region_indexed() instead.
+        """
         return [
             marshal for marshal in self.marshals.values()
             if marshal.location == region_name
@@ -2545,13 +2589,15 @@ class WorldState:
         get 1.5x effective supply capacity. Defenders on home turf are well-supplied;
         invaders in enemy territory suffer more from logistics strain.
         """
+        # R9: Rebuild index to ensure freshness (O(N) cost, avoids O(R*N) linear scans)
+        self._build_marshal_index()
         events = []
         for region in self.regions.values():
             if not region.controller:
                 continue
-            # Sum ALL marshals in region (any nation)
-            marshals_here = [m for m in self.marshals.values()
-                             if m.location == region.name and m.strength > 0]
+            # R9: Use indexed lookup instead of linear scan (index fresh from advance_turn)
+            marshals_here = [m for m in self._get_marshals_in_region_indexed(region.name)
+                             if m.strength > 0]
             total = sum(m.strength for m in marshals_here)
             base_cap = region.supply_capacity
 
@@ -3039,6 +3085,9 @@ class WorldState:
             "_capital_proximity_last_alert": getattr(self, '_capital_proximity_last_alert', {}),
             "_prev_war_exhaustion": {k: int(v) for k, v in getattr(self, '_prev_war_exhaustion', {}).items()},
             "_relation_deltas_this_turn": {k: int(v) for k, v in getattr(self, '_relation_deltas_this_turn', {}).items()},
+
+            # R20: Idempotency guard — last turn that advance_turn processed
+            "last_advanced_turn": int(self._last_advanced_turn),
         }
 
     @classmethod
@@ -3268,6 +3317,12 @@ class WorldState:
         world._capital_proximity_last_alert = data.get("_capital_proximity_last_alert", {})
         world._prev_war_exhaustion = {k: int(v) for k, v in data.get("_prev_war_exhaustion", {}).items()}
         world._relation_deltas_this_turn = {k: int(v) for k, v in data.get("_relation_deltas_this_turn", {}).items()}
+
+        # R20: Idempotency guard — restore last advanced turn
+        world._last_advanced_turn = data.get("last_advanced_turn", 0)
+
+        # R9: Rebuild transient marshal-by-region index from loaded data
+        world._build_marshal_index()
 
         return world
 
@@ -3779,7 +3834,18 @@ class WorldState:
         ALL values forced to integers.
 
         IMPORTANT: Processes tactical states BEFORE advancing turn counter.
+        R20: Idempotency guard prevents double-processing on retry.
         """
+        # R20: Idempotency guard — prevent double-processing on retry.
+        # Stamped at the START with current_turn (pre-increment = N).
+        # If called again with current_turn still N → guard catches it.
+        # After normal completion, current_turn increments to N+1.
+        # Next legitimate call: _last_advanced_turn=N, current_turn=N+1 → N >= N+1 is false → runs.
+        if self._last_advanced_turn >= self.current_turn:
+            debug_print(f"[WARNING] advance_turn already ran for turn {self.current_turn}, skipping")
+            return
+        self._last_advanced_turn = self.current_turn
+
         # ════════════════════════════════════════════════════════════
         # CLEAR PER-TURN FLAGS (at turn start)
         # ════════════════════════════════════════════════════════════
@@ -3826,6 +3892,9 @@ class WorldState:
 
         # Dispatch events - clear before systems populate new events
         self.pending_dispatch_events = []
+
+        # R9: Rebuild marshal-by-region index for this turn's processing
+        self._build_marshal_index()
 
         # ════════════════════════════════════════════════════════════
         # PROCESS TACTICAL STATES (before turn counter advances!)
@@ -4125,6 +4194,10 @@ class WorldState:
         debug_print(f"  [DEBUG] Storing {len(tactical_events)} total tactical events")
         self._last_tactical_events = tactical_events
 
+        # R9: Rebuild index before final visibility calc (marshals may have moved
+        # during tactical processing, retreats, auto-charges, reckless cavalry, etc.)
+        self._build_marshal_index()
+
         # ════════════════════════════════════════════════════════════
         # FOG OF WAR - Recalculate visibility (Phase 6 Session 33)
         # Runs LAST, after all processing (tactical states, broken retreats,
@@ -4149,6 +4222,9 @@ class WorldState:
         # V2-64: Victory check removed from advance_turn().
         # Turn manager is the single authority for victory/defeat decisions.
         # See _check_victory_conditions() in turn_manager.py.
+
+        # R20: _last_advanced_turn already stamped at the START of this method.
+        # No end-of-method stamp needed — early stamping catches crash retries.
 
     # ════════════════════════════════════════════════════════════
     # DIPLOMATIC ADVANCE_TURN HELPERS (Phase 8 Session 3)

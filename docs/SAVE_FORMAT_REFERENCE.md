@@ -230,6 +230,7 @@ A future save/load system should use this as the specification.
 | `diplomatic_objection_popup` | dict\|null | null | **Session 8C.** Pending diplomatic objection popup. Set by pre-proposal objection, cleared after read in /command response. |
 | `incoming_proposal_popup` | dict\|null | null | **Session 8C.** Pending AI proposal popup data. Set by deliver_ai_proposal, cleared after read in /command response. |
 | `diplomatic_trust_applied` | dict | {} | **V2-16.** Per-turn cap tracking for diplomatic trust changes. {marshal_name: amount_applied}. Cleared at start of each turn. Replaces dynamic attrs that didn't survive save/load. |
+| `last_advanced_turn` | int | 0 | **R20.** Idempotency guard for advance_turn(). Stores the pre-increment turn number of the last successful advance_turn call. Prevents double-processing (double income/attrition) on retry after crash. |
 | `ai_stagnation_turns` | dict | {} | **Enemy AI.** Per-marshal stagnation counter. Keys: marshal name. Values: int (consecutive turns with no action). At 2+, AI forces aggressive fallback. Decrements on action taken. |
 | `ai_attack_futility` | dict | {} | **Enemy AI.** Per-target-pair attack futility counter. Keys: "attacker\|defender". Values: int (consecutive failed attacks). At 2, AI avoids that target. Decays per turn. |
 | `last_redemption_turn` | int | 0 | **Diplomatic defiance.** Turn when last Talleyrand redemption event fired. 5-turn cooldown between redemption events. |
