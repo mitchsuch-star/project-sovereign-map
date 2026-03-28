@@ -11,7 +11,7 @@
 |--------|-------|
 | **Tests Passing** | **7281** (7281 passed, 1 skipped) |
 
-| **Current Phase** | **V3 Sessions 1-10 — ALL COMPLETE.** V3 Session 11 (optional polish) remaining. |
+| **Current Phase** | **Architecture Refactoring — Session 1 (R3 conftest) NEXT.** Iterating through `docs/ARCHITECTURE_REFACTORING_PLAN.md` sessions 1-21. |
 | **Blockers** | Jealousy NEEDS DESIGN GATE (separate track). |
 | **Code Coverage** | ~71% (backend/) |
 
@@ -19,6 +19,7 @@
 
 ## Next Steps
 
+1. **Architecture Refactoring** — **IN PROGRESS.** 20 R-items, 21 sessions, 7 phases. Session 1 (R3 conftest) next. Methodology: Characterization Testing for structural refactors, TDD for new infrastructure. See `docs/ARCHITECTURE_REFACTORING_PLAN.md`.
 1. ~~**Final Audit Fix Plan**~~ — **ALL COMPLETE.** 13 confirmed bugs fixed in single combined session (merged with V3 Session 10 backend bugs). 29 new tests. See `docs/FINAL_AUDIT_FIX_PLAN.md`.
 2. **Systems Audit V3 Fix Plan** — 158 bugs, 10 required sessions + 1 optional. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`.
    - ~~**Session 1 (P0): COMPLETE.**~~ War-state foundation + critical AI. 8 bugs fixed, 26 new tests. Added `get_hostile_marshals()`/`get_hostile_by_name()` war-aware helpers. Fixed `find_nearest_enemy()`, fortify engagement, threatening enemies, retreat destination (all war-aware). Fixed enemy AP guards in stance_change/defend/fortify. Fixed `decide_single_action()` tracking set init. Files: `world_state.py`, `executor.py`, `enemy_ai.py`.

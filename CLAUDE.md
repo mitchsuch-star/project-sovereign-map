@@ -18,7 +18,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Architecture Audit — COMPLETE.** 12-pass + 6 deep dives. Top findings: post-combat pipeline duplication (CRITICAL), no test conftest (CRITICAL), 16 invisible campaign log events, response pipeline ad-hoc, AI omniscience at scale. 20-item refactoring roadmap (R1-R20, 21 sessions across 7 phases). See `docs/ARCHITECTURE_REFACTORING_PLAN.md`.
+- **Architecture Refactoring — IN PROGRESS.** Audit complete. Now iterating through `docs/ARCHITECTURE_REFACTORING_PLAN.md` (20 R-items, 21 sessions). **Session 1 (R3 conftest) NEXT.** Methodology: Characterization Testing (pin behavior → restructure → fix bugs). Priority order: R3→R1→R2→R4→R5 (first 5 deliver ~80% of value).
 - **Systems Audit V3 Fix Plan — Sessions 1-10 ALL COMPLETE.** 158 bugs across 10 required + 1 optional sessions. Session 10: 3 backend + 19 Godot GDScript bugs. Session 11 (optional polish) remaining. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`.
 - **Final Audit Fix Plan — ALL COMPLETE.** 13 confirmed bugs fixed in combined session with V3 Session 10 backend bugs (16 total). 29 new tests (7,281 total). See `docs/FINAL_AUDIT_FIX_PLAN.md`.
 - ~~**Systems Audit V2 Fix Plan — ALL 7 SESSIONS COMPLETE.**~~ 56 bugs fixed, 7,040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.

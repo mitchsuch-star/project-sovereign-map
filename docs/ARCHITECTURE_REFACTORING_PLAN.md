@@ -18,8 +18,10 @@
 7. [Phase F: AI Fog Integration (Sessions 17-20)](#phase-f-ai-fog-integration-sessions-17-20)
 8. [Phase G: Modding (Session 21)](#phase-g-modding-session-21)
 9. [Summary Table](#summary-table)
-10. [Verification Strategy](#verification-strategy)
-11. [Documentation Updates](#documentation-updates)
+10. [Deferred Findings](#deferred-findings)
+11. [Verification Strategy](#verification-strategy)
+12. [Development Methodology](#development-methodology)
+13. [Documentation Updates](#documentation-updates)
 
 ---
 
@@ -2179,6 +2181,73 @@ These individual findings from the audit are acknowledged but NOT addressed by a
 4. **Godot smoke test:** Manual test in Godot when modifying .gd files
 5. **Pattern verification:** Grep for remaining raw patterns after migration (e.g., direct `diplomatic_states[` writes after R2, manual `_include_popup_passthroughs()` calls after R4)
 6. **New enforcement tests pass:** After R18, the enforcement suite catches future regressions
+
+---
+
+## Development Methodology
+
+### Core Approach: Characterization Testing
+
+These sessions are **restructuring working code**, not building new features. The methodology is from Michael Feathers' "Working Effectively with Legacy Code":
+
+1. **Pin existing behavior with tests before touching anything.** Write tests that capture what the code currently does — not what it *should* do, what it *actually* does. These become the safety net that proves the refactor didn't break anything.
+2. **Extract and inline incrementally.** Move one function/block at a time into the new structure. Run pinning tests after each move. Green = continue. Red = the diff is small enough to spot the break.
+3. **Fix bugs only after the structure is unified.** Behavior changes (bug fixes) come *after* structural changes are stable. Otherwise you're changing behavior and structure simultaneously and can't tell which one broke a test.
+
+### Why Not Other Approaches
+
+| Methodology | Why It Doesn't Fit |
+|---|---|
+| **TDD** | Assumes new code from a spec. Here the spec is the existing behavior of 5 combat paths — writing tests from the audit report would miss implicit undocumented behaviors. |
+| **Big bang rewrite** | Tempting for R1 but the 28-step post-combat pipeline has too many subtle interactions. You'd miss something. |
+| **Strangler fig** | Works for services with traffic routing, not for a single-process game backend where all paths share state. |
+
+### Per-Session Protocol
+
+1. **Read the session spec** in this doc — it lists every file to modify, every file to reference, and concrete implementation steps.
+2. **Write characterization tests** that pin current behavior of the code being restructured.
+3. **Refactor in a single session, don't split.** Each R-item was scoped to 2-3 hours to be atomic. A half-done pipeline is worse than duplication — you'd have two patterns instead of one.
+4. **Fix the flagged bugs** (e.g., Session 2's 2 CRITICAL auto-bombardment bugs) only after the structural refactor is green.
+5. **Run the full 7,281-test suite.** No exceptions. Plus the session-specific verification checklist.
+6. **Commit per R-item.** One commit = one completed refactor with passing tests.
+
+### Methodology Exceptions by Session
+
+| Session | Approach | Rationale |
+|---------|----------|-----------|
+| **1 (R3 — conftest)** | Purely additive — no methodology needed | Just write factories and commit. Zero risk. |
+| **2 (R1 — post-combat pipeline)** | Characterization Testing | Core use case: pin 5 combat paths, unify, then fix 2 CRITICAL bugs |
+| **3 (R2 — war-state helpers)** | Characterization Testing | Pin existing war-state checks, extract helpers, migrate callers |
+| **4 (R4 — response pipeline)** | Characterization Testing | Pin response shapes via curl snapshots, build builder, migrate endpoints |
+| **5 (R5 — fog access)** | Characterization Testing | Pin fog filter behavior, rename omniscient, add filtered default |
+| **6 (R7+R8 — display + log)** | Extract Class / Extract Module | Mechanical move: consolidate maps into display_names.py, add enforcement test |
+| **7 (R6 — cooldowns)** | Extract Class | Mechanical: wrap 14 dicts into CooldownManager, verify round-trip |
+| **8 (R9+R20 — scaling + atomicity)** | **TDD** | Genuinely new code: marshal-by-region index with performance requirements. Write benchmark, build index, verify speedup. |
+| **9 (R18 — enforcement tests)** | TDD | New test infrastructure with clear pass/fail spec |
+| **10-13 (R10-R13 — executor split)** | Characterization Testing | Large-scale structural move across 14,797 lines |
+| **14-16 (R15-R17 — Godot)** | Extract Class + manual smoke test | GDScript has no automated test runner; pin via manual test plan |
+| **17-20 (R14 — AI fog)** | Characterization Testing + playtesting | Changes AI behavior — needs both automated and manual verification |
+| **21 (R19 — modding)** | TDD | New validation rules with clear invalid-input specs |
+
+### Session Priority Order
+
+Do R1-R5 first. They are all independent and deliver ~80% of total value.
+
+| Order | Session | Why This Order |
+|-------|---------|---------------|
+| 1st | **R3** (conftest) | Zero risk, makes every subsequent session easier |
+| 2nd | **R1** (post-combat pipeline) | Fixes 2 live CRITICAL bugs + prevents 75 recurring |
+| 3rd | **R2** (war-state helpers) | 49 bugs prevented, builds on patterns from R1 |
+| 4th | **R4** (response builder) | Structurally eliminates the "Bug 5" pattern |
+| 5th | **R5** (fog access) | Completes the "correct by default" trio with R2 |
+
+After those 5, reassess. R6-R8 are moderate value. R9 is mandatory before 80-region expansion. R10-R13 (executor split) is high-effort/medium-value — only worth doing if planning 2+ years of maintenance.
+
+### What NOT to Do
+
+- **Don't parallelize R-items.** Each touches shared files (executor.py, world_state.py, main.py). Parallel work creates merge conflicts.
+- **Don't combine R-items into mega-sessions.** The scoping is intentional — fatigue on a 14,797-line file causes exactly the kind of bugs the audit found.
+- **Don't skip R3.** It's tempting because it's "just test infrastructure" but it's the multiplier that makes R1-R2 easier to implement and verify.
 
 ---
 
