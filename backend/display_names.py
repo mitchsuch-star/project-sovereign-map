@@ -30,6 +30,10 @@ ACTION_DISPLAY = {
     "repair": "repairs",
     "garrison": "garrisons",
     "bombardment": "bombards",
+    "charge": "charges",           # R18: cavalry charge
+    "restrain": "restrains",       # R18: restrain reckless cavalry
+    "cancel": "cancels order",     # R18: cancel strategic order
+    "economy": "reviews finances", # R18: economy info command
 }
 
 # ============================================================================
@@ -56,6 +60,10 @@ OBJECTION_DISPLAY = {
     "repair": "repairing",
     "garrison": "garrisoning",
     "bombardment": "bombarding",
+    "charge": "charging",           # R18
+    "restrain": "restraining",      # R18
+    "cancel": "cancelling order",   # R18
+    "economy": "reviewing finances",# R18
 }
 
 # ============================================================================
@@ -82,6 +90,10 @@ DEFIANCE_DISPLAY = {
     "repair": "repaired",
     "garrison": "garrisoned",
     "bombardment": "bombarded",
+    "charge": "charged",             # R18
+    "restrain": "restrained",        # R18
+    "cancel": "cancelled order",     # R18
+    "economy": "reviewed finances",  # R18
 }
 
 # ============================================================================
@@ -101,6 +113,7 @@ PROPOSAL_TYPE_DISPLAY = {
     "armistice_winning": "Armistice",
     "vassalage": "Vassalage",
     "opportunistic": "Non-Aggression Pact",
+    "harsh_peace": "Harsh Peace Treaty",  # R18: AI-generated harsh peace proposals
 }
 
 # ============================================================================

@@ -177,6 +177,12 @@ class WorldState:
             "build": 1,    # Phase 6.2.E
             "repair": 1,   # Phase 6.2.E
             "defend": 1,
+            "drill": 1,       # R18: previously implicit default
+            "fortify": 1,     # R18: previously implicit default
+            "unfortify": 1,   # R18: previously implicit default
+            "charge": 1,      # R18: cavalry charge (attack substitute)
+            "restrain": 1,    # R18: restrain reckless cavalry (attack substitute)
+            "cancel": 1,      # R18: cancel strategic order
             "end_turn": 0,  # Free action
             "economy": 0,  # Free action (Phase 6.2.G)
             "garrison": 2,  # Session 31: Detach troops (2 AP — real commitment)
