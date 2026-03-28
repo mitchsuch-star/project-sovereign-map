@@ -10,7 +10,7 @@ Tests:
 
 import json
 import pytest
-from backend.models.marshal import Marshal, Stance
+from backend.models.marshal import Stance
 from backend.game_logic.combat import CombatResolver
 from backend.game_logic.battle_report import (
     snapshot_attacker_modifiers,
@@ -18,6 +18,7 @@ from backend.game_logic.battle_report import (
     generate_battle_report,
     _pick_observation,
 )
+from tests.conftest import MarshalFactory
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -26,9 +27,17 @@ from backend.game_logic.battle_report import (
 
 def _make_marshal(name="Test", location="Paris", strength=50000,
                   personality="cautious", nation="France", **kwargs):
-    """Create a test marshal with sensible defaults."""
-    return Marshal(name=name, location=location, strength=strength,
-                   personality=personality, nation=nation, **kwargs)
+    """Create a test marshal via MarshalFactory."""
+    if kwargs.get("cavalry"):
+        kwargs.pop("cavalry")
+        return MarshalFactory.cavalry(name=name, location=location, strength=strength,
+                                      personality=personality, nation=nation, **kwargs)
+    if kwargs.get("artillery"):
+        kwargs.pop("artillery")
+        return MarshalFactory.artillery(name=name, location=location, strength=strength,
+                                        personality=personality, nation=nation, **kwargs)
+    return MarshalFactory.infantry(name=name, location=location, strength=strength,
+                                   personality=personality, nation=nation, **kwargs)
 
 
 def _find_mod(mods, label_fragment, mod_type=None):

@@ -10,46 +10,26 @@ Amendments: docs/PHASE7_SPEC_AMENDMENTS.md [M3, A-M2]
 """
 
 import pytest
-from backend.models.marshal import Marshal
-from backend.models.world_state import WorldState
 from backend.commands.executor import CommandExecutor
+from tests.conftest import MarshalFactory, WorldFactory
 
 
 # ════════════════════════════════════════════════════════════════════════════════
-# HELPERS
+# HELPERS (delegating to conftest factories)
 # ════════════════════════════════════════════════════════════════════════════════
 
 def _make_marshal(name="TestInf", location="Paris", strength=30000,
                   personality="cautious", nation="France",
                   cavalry=False, artillery=False, **kw):
-    """Create a marshal with sensible defaults for adjacent support tests."""
-    return Marshal(
-        name=name, location=location, strength=strength,
-        personality=personality, nation=nation,
-        movement_range=2 if cavalry else 1,
-        tactical_skill=7,
-        skills=kw.pop("skills", {
-            "tactical": 7, "shock": 7, "defense": 7,
-            "logistics": 7, "administration": 7, "command": 7,
-        }),
-        cavalry=cavalry, artillery=artillery,
-        spawn_location=kw.pop("spawn_location", location),
-        **kw,
-    )
-
-
-def _make_world_with_marshals(marshal_list, current_turn=1):
-    """Create a WorldState and replace marshals with the given list."""
-    world = WorldState()
-    world.marshals.clear()
-    for m in marshal_list:
-        world.marshals[m.name] = m
-    world.current_turn = current_turn
-    return world
-
-
-def _executor():
-    return CommandExecutor()
+    """Create a marshal via MarshalFactory."""
+    if cavalry:
+        return MarshalFactory.cavalry(name=name, location=location, strength=strength,
+                                      personality=personality, nation=nation, **kw)
+    if artillery:
+        return MarshalFactory.artillery(name=name, location=location, strength=strength,
+                                        personality=personality, nation=nation, **kw)
+    return MarshalFactory.infantry(name=name, location=location, strength=strength,
+                                   personality=personality, nation=nation, **kw)
 
 
 # Map reference: Paris adjacent to [Normandy, Belgium, Lyon, Bordeaux]
@@ -67,8 +47,8 @@ class TestAdjacentCount:
         """1 ally in adjacent region → +2% atk."""
         primary = _make_marshal(name="Ney", location="Paris")
         adjacent = _make_marshal(name="Davout", location="Belgium")  # adjacent to Paris
-        world = _make_world_with_marshals([primary, adjacent])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, adjacent])
+        ex = CommandExecutor()
 
         ctx = ex._calculate_coordination_context(primary, world)
 
@@ -81,8 +61,8 @@ class TestAdjacentCount:
         primary = _make_marshal(name="Ney", location="Paris")
         adj1 = _make_marshal(name="Davout", location="Belgium")
         adj2 = _make_marshal(name="Soult", location="Lyon")  # adjacent to Paris
-        world = _make_world_with_marshals([primary, adj1, adj2])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, adj1, adj2])
+        ex = CommandExecutor()
 
         ctx = ex._calculate_coordination_context(primary, world)
 
@@ -95,8 +75,8 @@ class TestAdjacentCount:
         adj1 = _make_marshal(name="Davout", location="Belgium")
         adj2 = _make_marshal(name="Soult", location="Lyon")
         adj3 = _make_marshal(name="Lannes", location="Bordeaux")  # adjacent to Paris
-        world = _make_world_with_marshals([primary, adj1, adj2, adj3])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, adj1, adj2, adj3])
+        ex = CommandExecutor()
 
         ctx = ex._calculate_coordination_context(primary, world)
 
@@ -108,8 +88,8 @@ class TestAdjacentCount:
         primary = _make_marshal(name="Ney", location="Paris")
         # Netherlands is NOT adjacent to Paris (Paris→Belgium→Netherlands)
         far_ally = _make_marshal(name="Davout", location="Netherlands")
-        world = _make_world_with_marshals([primary, far_ally])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, far_ally])
+        ex = CommandExecutor()
 
         ctx = ex._calculate_coordination_context(primary, world)
 
@@ -120,8 +100,8 @@ class TestAdjacentCount:
         """Co-located ally is in coordination, not adjacent count."""
         primary = _make_marshal(name="Ney", location="Paris")
         colocated = _make_marshal(name="Davout", location="Paris")
-        world = _make_world_with_marshals([primary, colocated])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, colocated])
+        ex = CommandExecutor()
 
         ctx = ex._calculate_coordination_context(primary, world)
 
@@ -142,8 +122,8 @@ class TestAdjacentEligibility:
         primary = _make_marshal(name="Ney", location="Paris")
         broken = _make_marshal(name="Davout", location="Belgium")
         broken.broken = True
-        world = _make_world_with_marshals([primary, broken])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, broken])
+        ex = CommandExecutor()
 
         count, names = ex._count_adjacent_allies("Paris", "France", world)
 
@@ -155,8 +135,8 @@ class TestAdjacentEligibility:
         primary = _make_marshal(name="Ney", location="Paris")
         retreating = _make_marshal(name="Davout", location="Belgium")
         retreating.retreated_this_turn = True
-        world = _make_world_with_marshals([primary, retreating])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, retreating])
+        ex = CommandExecutor()
 
         count, names = ex._count_adjacent_allies("Paris", "France", world)
 
@@ -167,8 +147,8 @@ class TestAdjacentEligibility:
         primary = _make_marshal(name="Ney", location="Paris")
         recovering = _make_marshal(name="Davout", location="Belgium")
         recovering.retreat_recovery = 1
-        world = _make_world_with_marshals([primary, recovering])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, recovering])
+        ex = CommandExecutor()
 
         count, names = ex._count_adjacent_allies("Paris", "France", world)
 
@@ -178,8 +158,8 @@ class TestAdjacentEligibility:
         """Dead ally excluded."""
         primary = _make_marshal(name="Ney", location="Paris")
         dead = _make_marshal(name="Davout", location="Belgium", strength=0)
-        world = _make_world_with_marshals([primary, dead])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, dead])
+        ex = CommandExecutor()
 
         count, names = ex._count_adjacent_allies("Paris", "France", world)
 
@@ -189,8 +169,8 @@ class TestAdjacentEligibility:
         """Different nation not counted."""
         primary = _make_marshal(name="Ney", location="Paris")
         enemy = _make_marshal(name="Wellington", location="Belgium", nation="Britain")
-        world = _make_world_with_marshals([primary, enemy])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, enemy])
+        ex = CommandExecutor()
 
         count, names = ex._count_adjacent_allies("Paris", "France", world)
 
@@ -202,8 +182,8 @@ class TestAdjacentEligibility:
         fortified = _make_marshal(name="Davout", location="Belgium")
         fortified.fortified = True
         fortified.defense_bonus = 0.10
-        world = _make_world_with_marshals([primary, fortified])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, fortified])
+        ex = CommandExecutor()
 
         count, names = ex._count_adjacent_allies("Paris", "France", world)
 
@@ -215,8 +195,8 @@ class TestAdjacentEligibility:
         primary = _make_marshal(name="Ney", location="Paris")
         holding = _make_marshal(name="Davout", location="Belgium")
         holding.holding_position = True
-        world = _make_world_with_marshals([primary, holding])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, holding])
+        ex = CommandExecutor()
 
         count, names = ex._count_adjacent_allies("Paris", "France", world)
 
@@ -235,8 +215,8 @@ class TestAttackOnly:
         """Adjacent bonus adds to atk, NOT def."""
         primary = _make_marshal(name="Ney", location="Paris")
         adjacent = _make_marshal(name="Davout", location="Belgium")
-        world = _make_world_with_marshals([primary, adjacent])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, adjacent])
+        ex = CommandExecutor()
 
         ex._calculate_coordination_context(primary, world)
 
@@ -251,8 +231,8 @@ class TestAttackOnly:
         should not increase from adjacent allies being present."""
         defender = _make_marshal(name="Wellington", location="Paris", nation="Britain")
         adj_ally = _make_marshal(name="Blucher", location="Belgium", nation="Britain")
-        world = _make_world_with_marshals([defender, adj_ally])
-        ex = _executor()
+        world = WorldFactory.with_marshals([defender, adj_ally])
+        ex = CommandExecutor()
 
         ex._calculate_coordination_context(defender, world)
 
@@ -275,8 +255,8 @@ class TestNotRelationshipScaled:
         hostile_adj = _make_marshal(name="Davout", location="Belgium")
         # Set hostile relationship — should not affect adjacent bonus
         primary.relationships = {"Davout": "Hostile"}
-        world = _make_world_with_marshals([primary, hostile_adj])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, hostile_adj])
+        ex = CommandExecutor()
 
         count, names = ex._count_adjacent_allies("Paris", "France", world)
 
@@ -298,8 +278,8 @@ class TestPipelineIntegration:
         cav = _make_marshal(name="Murat", location="Paris", cavalry=True)
         # Adjacent ally
         adj = _make_marshal(name="Davout", location="Belgium")
-        world = _make_world_with_marshals([inf, cav, adj])
-        ex = _executor()
+        world = WorldFactory.with_marshals([inf, cav, adj])
+        ex = CommandExecutor()
 
         ex._calculate_coordination_context(inf, world)
 
@@ -317,8 +297,8 @@ class TestPipelineIntegration:
         adj1 = _make_marshal(name="Davout", location="Belgium")
         adj2 = _make_marshal(name="Soult", location="Lyon")
         adj3 = _make_marshal(name="Lannes", location="Bordeaux")
-        world = _make_world_with_marshals([inf, cav, art, adj1, adj2, adj3])
-        ex = _executor()
+        world = WorldFactory.with_marshals([inf, cav, art, adj1, adj2, adj3])
+        ex = CommandExecutor()
 
         ex._calculate_coordination_context(inf, world)
 
@@ -330,8 +310,8 @@ class TestPipelineIntegration:
         m1 = _make_marshal(name="Ney", location="Paris")
         m2 = _make_marshal(name="Murat", location="Paris", cavalry=True)
         adj = _make_marshal(name="Davout", location="Belgium")
-        world = _make_world_with_marshals([m1, m2, adj])
-        ex = _executor()
+        world = WorldFactory.with_marshals([m1, m2, adj])
+        ex = CommandExecutor()
 
         ex._calculate_coordination_context(m1, world)
 
@@ -343,8 +323,8 @@ class TestPipelineIntegration:
         """Transient field cleared by _clear_coordination_fields."""
         m = _make_marshal(name="Ney", location="Paris")
         adj = _make_marshal(name="Davout", location="Belgium")
-        world = _make_world_with_marshals([m, adj])
-        ex = _executor()
+        world = WorldFactory.with_marshals([m, adj])
+        ex = CommandExecutor()
 
         ex._calculate_coordination_context(m, world)
         assert m._display_adjacent_atk == pytest.approx(0.02)
@@ -364,8 +344,8 @@ class TestEdgeCases:
     def test_no_adjacent_allies_zero_bonus(self):
         """Solo marshal with no adjacent allies → 0 bonus."""
         solo = _make_marshal(name="Ney", location="Paris")
-        world = _make_world_with_marshals([solo])
-        ex = _executor()
+        world = WorldFactory.with_marshals([solo])
+        ex = CommandExecutor()
 
         ctx = ex._calculate_coordination_context(solo, world)
 
@@ -378,8 +358,8 @@ class TestEdgeCases:
         m1 = _make_marshal(name="Ney", location="Paris")
         m2 = _make_marshal(name="Murat", location="Paris", cavalry=True)
         adj = _make_marshal(name="Davout", location="Belgium")
-        world = _make_world_with_marshals([m1, m2, adj])
-        ex = _executor()
+        world = WorldFactory.with_marshals([m1, m2, adj])
+        ex = CommandExecutor()
 
         ex._calculate_coordination_context(m1, world)
 
@@ -394,8 +374,8 @@ class TestEdgeCases:
         art = _make_marshal(name="Drouot", location="Paris", artillery=True)
         adj1 = _make_marshal(name="Davout", location="Belgium")
         adj2 = _make_marshal(name="Soult", location="Lyon")
-        world = _make_world_with_marshals([inf, cav, art, adj1, adj2])
-        ex = _executor()
+        world = WorldFactory.with_marshals([inf, cav, art, adj1, adj2])
+        ex = CommandExecutor()
 
         ex._calculate_coordination_context(inf, world)
 
@@ -410,8 +390,8 @@ class TestEdgeCases:
         primary = _make_marshal(name="Ney", location="Paris")
         adj1 = _make_marshal(name="Davout", location="Belgium")
         adj2 = _make_marshal(name="Soult", location="Lyon")
-        world = _make_world_with_marshals([primary, adj1, adj2])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, adj1, adj2])
+        ex = CommandExecutor()
 
         # Without exclusion: 2 adjacent
         count, names = ex._count_adjacent_allies("Paris", "France", world)

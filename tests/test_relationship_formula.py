@@ -16,14 +16,14 @@ Covers:
 
 from unittest.mock import patch
 
-from backend.models.marshal import Marshal
-from backend.models.world_state import WorldState
+from backend.models.marshal import Marshal, StrategicOrder
 from backend.game_logic.relationship import (
     calculate_battle_severity,
     check_shared_battle_relationship,
     get_battle_participants,
     process_battle_relationships,
 )
+from tests.conftest import MarshalFactory, WorldFactory
 
 
 # ════════════════════════════════════════════════════════════════
@@ -33,30 +33,15 @@ from backend.game_logic.relationship import (
 def _make_marshal(name="TestInf", location="Paris", strength=30000,
                   personality="cautious", nation="France",
                   cavalry=False, artillery=False, **kw):
-    """Create a marshal with sensible defaults."""
-    return Marshal(
-        name=name, location=location, strength=strength,
-        personality=personality, nation=nation,
-        movement_range=2 if cavalry else 1,
-        tactical_skill=7,
-        skills=kw.pop("skills", {
-            "tactical": 7, "shock": 7, "defense": 7,
-            "logistics": 7, "administration": 7, "command": 7,
-        }),
-        cavalry=cavalry, artillery=artillery,
-        spawn_location=kw.pop("spawn_location", location),
-        **kw,
-    )
-
-
-def _make_world_with_marshals(marshal_list, current_turn=1):
-    """Create a WorldState and replace marshals with the given list."""
-    world = WorldState()
-    world.marshals.clear()
-    for m in marshal_list:
-        world.marshals[m.name] = m
-    world.current_turn = current_turn
-    return world
+    """Create a marshal via MarshalFactory."""
+    if cavalry:
+        return MarshalFactory.cavalry(name=name, location=location, strength=strength,
+                                      personality=personality, nation=nation, **kw)
+    if artillery:
+        return MarshalFactory.artillery(name=name, location=location, strength=strength,
+                                        personality=personality, nation=nation, **kw)
+    return MarshalFactory.infantry(name=name, location=location, strength=strength,
+                                   personality=personality, nation=nation, **kw)
 
 
 def _make_battle_result(victor_name=None, attacker_name="Atk",
@@ -127,7 +112,7 @@ class TestWinFormula:
         a = _make_marshal(name="A", location="Waterloo")
         b = _make_marshal(name="B", location="Waterloo")
         a.set_relationship("B", -1)  # Rival
-        world = _make_world_with_marshals([a, b])
+        world = WorldFactory.with_marshals([a, b])
 
         # Decisive attacker victory (low attacker cas, high defender cas)
         br = _make_battle_result(victor_name="A", attacker_name="A",
@@ -143,7 +128,7 @@ class TestWinFormula:
         a = _make_marshal(name="A", location="Waterloo")
         b = _make_marshal(name="B", location="Waterloo")
         a.set_relationship("B", -2)  # Hostile
-        world = _make_world_with_marshals([a, b])
+        world = WorldFactory.with_marshals([a, b])
 
         br = _make_battle_result(victor_name="A", attacker_name="A",
                                  attacker_cas=1000, defender_cas=10000)
@@ -158,7 +143,7 @@ class TestWinFormula:
         a = _make_marshal(name="A", location="Waterloo")
         b = _make_marshal(name="B", location="Waterloo")
         a.set_relationship("B", 2)  # Devoted
-        world = _make_world_with_marshals([a, b])
+        world = WorldFactory.with_marshals([a, b])
 
         br = _make_battle_result(victor_name="A", attacker_name="A",
                                  attacker_cas=1000, defender_cas=10000)
@@ -173,7 +158,7 @@ class TestWinFormula:
         a = _make_marshal(name="A", location="Waterloo")
         b = _make_marshal(name="B", location="Waterloo")
         # Professional = 0 (default)
-        world = _make_world_with_marshals([a, b])
+        world = WorldFactory.with_marshals([a, b])
 
         br = _make_battle_result(victor_name="A", attacker_name="A",
                                  attacker_cas=6000, defender_cas=10000)
@@ -186,7 +171,7 @@ class TestWinFormula:
         """Professional narrow WIN: 30 - 10 + 0 + 10 = 30 < 50 → NEVER."""
         a = _make_marshal(name="A", location="Waterloo")
         b = _make_marshal(name="B", location="Waterloo")
-        world = _make_world_with_marshals([a, b])
+        world = WorldFactory.with_marshals([a, b])
 
         br = _make_battle_result(victor_name="A", attacker_name="A",
                                  attacker_cas=9000, defender_cas=10000)
@@ -208,7 +193,7 @@ class TestLossFormula:
         a = _make_marshal(name="A", location="Waterloo")
         b = _make_marshal(name="B", location="Waterloo")
         a.set_relationship("B", -2)  # Hostile
-        world = _make_world_with_marshals([a, b])
+        world = WorldFactory.with_marshals([a, b])
 
         # Decisive loss (defender won decisively)
         br = _make_battle_result(victor_name="Def", attacker_name="A",
@@ -226,7 +211,7 @@ class TestLossFormula:
         a = _make_marshal(name="A", location="Waterloo")
         b = _make_marshal(name="B", location="Waterloo")
         a.set_relationship("B", -1)  # Rival
-        world = _make_world_with_marshals([a, b])
+        world = WorldFactory.with_marshals([a, b])
 
         br = _make_battle_result(victor_name="Def", attacker_name="A",
                                  defender_name="Def",
@@ -241,7 +226,7 @@ class TestLossFormula:
         """Professional standard LOSS: 15 + 0 + 0 + 10 = 25 < 50 → NEVER."""
         a = _make_marshal(name="A", location="Waterloo")
         b = _make_marshal(name="B", location="Waterloo")
-        world = _make_world_with_marshals([a, b])
+        world = WorldFactory.with_marshals([a, b])
 
         br = _make_battle_result(victor_name="Def", attacker_name="A",
                                  defender_name="Def",
@@ -255,7 +240,7 @@ class TestLossFormula:
         """Professional narrow LOSS: 15 - 5 + 0 + 10 = 20 < 50 → NEVER."""
         a = _make_marshal(name="A", location="Waterloo")
         b = _make_marshal(name="B", location="Waterloo")
-        world = _make_world_with_marshals([a, b])
+        world = WorldFactory.with_marshals([a, b])
 
         br = _make_battle_result(victor_name="Def", attacker_name="A",
                                  defender_name="Def",
@@ -276,7 +261,7 @@ class TestThreshold:
         a = _make_marshal(name="A", location="Waterloo")
         b = _make_marshal(name="B", location="Waterloo")
         a.set_relationship("B", -1)  # Rival
-        world = _make_world_with_marshals([a, b])
+        world = WorldFactory.with_marshals([a, b])
 
         # Decisive WIN as Rival: base 30 + sev 15 + rel 0 + var = 45 + var
         # Need var = 5 → score = 50 exactly
@@ -293,7 +278,7 @@ class TestThreshold:
         a = _make_marshal(name="A", location="Waterloo")
         b = _make_marshal(name="B", location="Waterloo")
         a.set_relationship("B", -1)  # Rival
-        world = _make_world_with_marshals([a, b])
+        world = WorldFactory.with_marshals([a, b])
 
         # Decisive WIN as Rival: 30 + 15 + 0 + var
         # Need var = 6 → score = 51 > 50
@@ -317,7 +302,7 @@ class TestCooldown:
         b = _make_marshal(name="B", location="Waterloo")
         a.set_relationship("B", -1)  # Rival
         a.last_relationship_change_turn["B"] = 5
-        world = _make_world_with_marshals([a, b], current_turn=6)
+        world = WorldFactory.with_marshals([a, b], current_turn=6)
 
         br = _make_battle_result(victor_name="A", attacker_name="A",
                                  attacker_cas=1000, defender_cas=10000)
@@ -339,7 +324,7 @@ class TestCooldown:
         b = _make_marshal(name="B", location="Waterloo")
         a.set_relationship("B", -1)  # Rival
         a.last_relationship_change_turn["B"] = 5
-        world = _make_world_with_marshals([a, b], current_turn=8)
+        world = WorldFactory.with_marshals([a, b], current_turn=8)
 
         br = _make_battle_result(victor_name="A", attacker_name="A",
                                  attacker_cas=1000, defender_cas=10000)
@@ -358,7 +343,7 @@ class TestCooldown:
         # A→B changed recently
         a.last_relationship_change_turn["B"] = 5
         # B→A has no recent change
-        world = _make_world_with_marshals([a, b], current_turn=6)
+        world = WorldFactory.with_marshals([a, b], current_turn=6)
 
         br = _make_battle_result(victor_name="A", attacker_name="A",
                                  attacker_cas=1000, defender_cas=10000)
@@ -385,7 +370,7 @@ class TestOrderedPairs:
         b = _make_marshal(name="B", location="Waterloo")
         c = _make_marshal(name="C", location="Waterloo")
         enemy = _make_marshal(name="Enemy", location="Waterloo", nation="Britain")
-        world = _make_world_with_marshals([a, b, c, enemy])
+        world = WorldFactory.with_marshals([a, b, c, enemy])
 
         br = _make_battle_result(victor_name="A", attacker_name="A",
                                  defender_name="Enemy",
@@ -415,7 +400,7 @@ class TestOrderedPairs:
         a.set_relationship("B", -1)  # Rival → could improve on decisive win
         b.set_relationship("A", 1)   # Friendly → modifier -10, hard to improve
         enemy = _make_marshal(name="Enemy", location="Waterloo", nation="Britain")
-        world = _make_world_with_marshals([a, b, enemy])
+        world = WorldFactory.with_marshals([a, b, enemy])
 
         br = _make_battle_result(victor_name="A", attacker_name="A",
                                  defender_name="Enemy",
@@ -443,7 +428,7 @@ class TestRangeCaps:
         a = _make_marshal(name="A", location="Waterloo")
         b = _make_marshal(name="B", location="Waterloo")
         a.set_relationship("B", 2)  # Devoted
-        world = _make_world_with_marshals([a, b])
+        world = WorldFactory.with_marshals([a, b])
 
         br = _make_battle_result(victor_name="A", attacker_name="A",
                                  attacker_cas=1000, defender_cas=10000)
@@ -458,7 +443,7 @@ class TestRangeCaps:
         a = _make_marshal(name="A", location="Waterloo")
         b = _make_marshal(name="B", location="Waterloo")
         a.set_relationship("B", -2)  # Hostile
-        world = _make_world_with_marshals([a, b])
+        world = WorldFactory.with_marshals([a, b])
 
         br = _make_battle_result(victor_name="Def", attacker_name="A",
                                  defender_name="Def",
@@ -474,7 +459,7 @@ class TestRangeCaps:
         a = _make_marshal(name="A", location="Waterloo")
         b = _make_marshal(name="B", location="Waterloo")
         a.set_relationship("B", -1)  # Rival
-        world = _make_world_with_marshals([a, b])
+        world = WorldFactory.with_marshals([a, b])
 
         br = _make_battle_result(victor_name="A", attacker_name="A",
                                  attacker_cas=1000, defender_cas=10000)
@@ -498,7 +483,7 @@ class TestParticipants:
         primary = _make_marshal(name="Primary", location="Waterloo")
         hostile = _make_marshal(name="Hostile", location="Waterloo")
         hostile.set_relationship("Primary", -2)
-        world = _make_world_with_marshals([primary, hostile])
+        world = WorldFactory.with_marshals([primary, hostile])
 
         participants = get_battle_participants(primary, "Waterloo", "France", world)
         names = [p.name for p in participants]
@@ -507,7 +492,6 @@ class TestParticipants:
 
     def test_hostile_with_support_included(self):
         """Hostile marshal WITH SUPPORT targeting primary IS a participant."""
-        from backend.models.marshal import StrategicOrder
         primary = _make_marshal(name="Primary", location="Waterloo")
         hostile = _make_marshal(name="Hostile", location="Waterloo")
         hostile.set_relationship("Primary", -2)
@@ -518,7 +502,7 @@ class TestParticipants:
             started_turn=1,
             original_command="Support Primary",
         )
-        world = _make_world_with_marshals([primary, hostile])
+        world = WorldFactory.with_marshals([primary, hostile])
 
         participants = get_battle_participants(primary, "Waterloo", "France", world)
         names = [p.name for p in participants]
@@ -530,7 +514,7 @@ class TestParticipants:
         primary = _make_marshal(name="Primary", location="Waterloo")
         broken = _make_marshal(name="Broken", location="Waterloo")
         broken.broken = True
-        world = _make_world_with_marshals([primary, broken])
+        world = WorldFactory.with_marshals([primary, broken])
 
         participants = get_battle_participants(primary, "Waterloo", "France", world)
         names = [p.name for p in participants]
@@ -540,7 +524,7 @@ class TestParticipants:
         """Enemy marshal not included in same-nation participants."""
         primary = _make_marshal(name="Primary", location="Waterloo")
         enemy = _make_marshal(name="Enemy", location="Waterloo", nation="Britain")
-        world = _make_world_with_marshals([primary, enemy])
+        world = WorldFactory.with_marshals([primary, enemy])
 
         participants = get_battle_participants(primary, "Waterloo", "France", world)
         assert len(participants) == 1
@@ -561,7 +545,7 @@ class TestIntegration:
         atk1.set_relationship("Davout", -1)  # Rival
         atk2.set_relationship("Ney", -1)     # Rival
 
-        world = _make_world_with_marshals([atk1, atk2, defender])
+        world = WorldFactory.with_marshals([atk1, atk2, defender])
 
         # Decisive attacker victory
         br = _make_battle_result(victor_name="Ney", attacker_name="Ney",
@@ -583,7 +567,7 @@ class TestIntegration:
         atk = _make_marshal(name="Ney", location="Waterloo")
         defender = _make_marshal(name="Wellington", location="Waterloo", nation="Britain")
 
-        world = _make_world_with_marshals([atk, defender])
+        world = WorldFactory.with_marshals([atk, defender])
 
         br = _make_battle_result(victor_name="Ney", attacker_name="Ney",
                                  defender_name="Wellington",
@@ -600,7 +584,7 @@ class TestIntegration:
         atk2 = _make_marshal(name="Davout", location="Waterloo")
         defender = _make_marshal(name="Wellington", location="Waterloo", nation="Britain")
 
-        world = _make_world_with_marshals([atk1, atk2, defender])
+        world = WorldFactory.with_marshals([atk1, atk2, defender])
 
         # Stalemate — no victor, even casualties
         br = _make_battle_result(victor_name=None, attacker_name="Ney",
@@ -627,7 +611,7 @@ class TestIntegration:
         def1.set_relationship("Blucher", -1)
         def2.set_relationship("Wellington", -1)
 
-        world = _make_world_with_marshals([atk1, atk2, def1, def2])
+        world = WorldFactory.with_marshals([atk1, atk2, def1, def2])
 
         # Decisive attacker victory
         br = _make_battle_result(victor_name="Ney", attacker_name="Ney",
@@ -654,7 +638,7 @@ class TestIntegration:
         atk1.set_relationship("Davout", -1)
         atk2.set_relationship("Ney", -1)
 
-        world = _make_world_with_marshals([atk1, atk2, defender])
+        world = WorldFactory.with_marshals([atk1, atk2, defender])
 
         br = _make_battle_result(victor_name="Ney", attacker_name="Ney",
                                  defender_name="Wellington",

@@ -12,48 +12,29 @@ Amendments: docs/PHASE7_SPEC_AMENDMENTS.md [A-C1, A-C3]
 """
 
 import pytest
-from backend.models.marshal import Marshal
-from backend.models.world_state import WorldState
 from backend.commands.executor import CommandExecutor
 from backend.game_logic.battle_report import (
     snapshot_attacker_modifiers, snapshot_defender_modifiers,
 )
+from tests.conftest import MarshalFactory, WorldFactory
 
 
 # ════════════════════════════════════════════════════════════════════════════════
-# HELPERS
+# HELPERS (delegating to conftest factories)
 # ════════════════════════════════════════════════════════════════════════════════
 
 def _make_marshal(name="TestInf", location="Paris", strength=30000,
                   personality="cautious", nation="France",
                   cavalry=False, artillery=False, **kw):
-    """Create a marshal with sensible defaults for coordination tests."""
-    return Marshal(
-        name=name, location=location, strength=strength,
-        personality=personality, nation=nation,
-        movement_range=2 if cavalry else 1,
-        tactical_skill=7,
-        skills=kw.pop("skills", {
-            "tactical": 7, "shock": 7, "defense": 7,
-            "logistics": 7, "administration": 7, "command": 7,
-        }),
-        cavalry=cavalry, artillery=artillery,
-        spawn_location=kw.pop("spawn_location", location),
-        **kw,
-    )
-
-
-def _make_world_with_marshals(marshal_list):
-    """Create a WorldState and replace marshals with the given list."""
-    world = WorldState()
-    world.marshals.clear()
-    for m in marshal_list:
-        world.marshals[m.name] = m
-    return world
-
-
-def _executor():
-    return CommandExecutor()
+    """Create a marshal via MarshalFactory."""
+    if cavalry:
+        return MarshalFactory.cavalry(name=name, location=location, strength=strength,
+                                      personality=personality, nation=nation, **kw)
+    if artillery:
+        return MarshalFactory.artillery(name=name, location=location, strength=strength,
+                                        personality=personality, nation=nation, **kw)
+    return MarshalFactory.infantry(name=name, location=location, strength=strength,
+                                   personality=personality, nation=nation, **kw)
 
 
 # ════════════════════════════════════════════════════════════════════════════════
@@ -68,8 +49,8 @@ class TestRelationshipScaling:
         primary = _make_marshal(name="A", location="Paris")
         ally = _make_marshal(name="B", location="Paris", cavalry=True)
         primary.set_relationship("B", -2)
-        world = _make_world_with_marshals([primary, ally])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, ally])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(primary, world)
         # CA: 2 types → 10% atk, 5% def. Coordination: 0% from hostile ally.
         assert primary._display_coordination_atk == pytest.approx(0.0)
@@ -80,8 +61,8 @@ class TestRelationshipScaling:
         primary = _make_marshal(name="A", location="Paris")
         ally = _make_marshal(name="B", location="Paris", cavalry=True)
         primary.set_relationship("B", -1)
-        world = _make_world_with_marshals([primary, ally])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, ally])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(primary, world)
         assert primary._display_coordination_atk == pytest.approx(0.015)
         assert primary._display_coordination_def == pytest.approx(0.025)
@@ -91,8 +72,8 @@ class TestRelationshipScaling:
         primary = _make_marshal(name="A", location="Paris")
         ally = _make_marshal(name="B", location="Paris", cavalry=True)
         # Default relationship is 0 (professional)
-        world = _make_world_with_marshals([primary, ally])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, ally])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(primary, world)
         assert primary._display_coordination_atk == pytest.approx(0.03)
         assert primary._display_coordination_def == pytest.approx(0.05)
@@ -102,8 +83,8 @@ class TestRelationshipScaling:
         primary = _make_marshal(name="A", location="Paris")
         ally = _make_marshal(name="B", location="Paris", cavalry=True)
         primary.set_relationship("B", 1)
-        world = _make_world_with_marshals([primary, ally])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, ally])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(primary, world)
         assert primary._display_coordination_atk == pytest.approx(0.0375)
         assert primary._display_coordination_def == pytest.approx(0.0625)
@@ -113,8 +94,8 @@ class TestRelationshipScaling:
         primary = _make_marshal(name="A", location="Paris")
         ally = _make_marshal(name="B", location="Paris", cavalry=True)
         primary.set_relationship("B", 2)
-        world = _make_world_with_marshals([primary, ally])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, ally])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(primary, world)
         assert primary._display_coordination_atk == pytest.approx(0.045)
         assert primary._display_coordination_def == pytest.approx(0.075)
@@ -133,8 +114,8 @@ class TestAsymmetricRelationships:
         davout = _make_marshal(name="Davout", location="Paris")
         ney.set_relationship("Davout", -2)
         davout.set_relationship("Ney", -2)
-        world = _make_world_with_marshals([ney, davout])
-        ex = _executor()
+        world = WorldFactory.with_marshals([ney, davout])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(ney, world)
         assert ney._display_coordination_atk == pytest.approx(0.0)
         assert davout._display_coordination_atk == pytest.approx(0.0)
@@ -145,8 +126,8 @@ class TestAsymmetricRelationships:
         b = _make_marshal(name="B", location="Paris", cavalry=True)
         a.set_relationship("B", 1)   # A sees B as Friendly
         b.set_relationship("A", -1)  # B sees A as Rival
-        world = _make_world_with_marshals([a, b])
-        ex = _executor()
+        world = WorldFactory.with_marshals([a, b])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(a, world)
         # A gets Friendly scaling: +3.75% atk from B
         assert a._display_coordination_atk == pytest.approx(0.0375)
@@ -167,8 +148,8 @@ class TestAsymmetricRelationships:
         # C: Rival with A (-1), Professional with B (0)
         c.set_relationship("A", -1)
         c.set_relationship("B", 0)
-        world = _make_world_with_marshals([a, b, c])
-        ex = _executor()
+        world = WorldFactory.with_marshals([a, b, c])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(a, world)
         # A: B(professional 3%) + C(hostile 0%) = 3%
         assert a._display_coordination_atk == pytest.approx(0.03)
@@ -190,8 +171,8 @@ class TestFortificationRule:
         primary = _make_marshal(name="A", location="Paris")
         fort_ally = _make_marshal(name="B", location="Paris", cavalry=True)
         fort_ally.fortified = True
-        world = _make_world_with_marshals([primary, fort_ally])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, fort_ally])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(primary, world)
         assert primary._display_coordination_atk == pytest.approx(0.0)
 
@@ -200,8 +181,8 @@ class TestFortificationRule:
         primary = _make_marshal(name="A", location="Paris")
         fort_ally = _make_marshal(name="B", location="Paris", cavalry=True)
         fort_ally.fortified = True
-        world = _make_world_with_marshals([primary, fort_ally])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, fort_ally])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(primary, world)
         assert primary._display_coordination_def == pytest.approx(0.05)
 
@@ -210,8 +191,8 @@ class TestFortificationRule:
         primary = _make_marshal(name="A", location="Paris")
         fort_art = _make_marshal(name="B", location="Paris", artillery=True)
         fort_art.fortified = True
-        world = _make_world_with_marshals([primary, fort_art])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, fort_art])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(primary, world)
         assert primary._display_coordination_atk == pytest.approx(0.03)
         assert primary._display_coordination_def == pytest.approx(0.05)
@@ -220,8 +201,8 @@ class TestFortificationRule:
         """Normal (unfortified) ally gives both attack and defense coordination."""
         primary = _make_marshal(name="A", location="Paris")
         ally = _make_marshal(name="B", location="Paris", cavalry=True)
-        world = _make_world_with_marshals([primary, ally])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, ally])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(primary, world)
         assert primary._display_coordination_atk == pytest.approx(0.03)
         assert primary._display_coordination_def == pytest.approx(0.05)
@@ -239,8 +220,8 @@ class TestMultipleAlliesStacking:
         primary = _make_marshal(name="A", location="Paris")
         b = _make_marshal(name="B", location="Paris", cavalry=True)
         c = _make_marshal(name="C", location="Paris", artillery=True)
-        world = _make_world_with_marshals([primary, b, c])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, b, c])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(primary, world)
         assert primary._display_coordination_atk == pytest.approx(0.06)
         assert primary._display_coordination_def == pytest.approx(0.10)
@@ -254,16 +235,16 @@ class TestMultipleAlliesStacking:
         primary.set_relationship("B", -2)  # Hostile → 0%
         primary.set_relationship("C", 0)   # Professional → 3%
         primary.set_relationship("D", 2)   # Devoted → 4.5%
-        world = _make_world_with_marshals([primary, b, c, d])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, b, c, d])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(primary, world)
         assert primary._display_coordination_atk == pytest.approx(0.075)
 
     def test_solo_marshal_zero_coordination(self):
         """No allies = 0% coordination bonus."""
         solo = _make_marshal(name="Solo", location="Paris")
-        world = _make_world_with_marshals([solo])
-        ex = _executor()
+        world = WorldFactory.with_marshals([solo])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(solo, world)
         assert solo._display_coordination_atk == pytest.approx(0.0)
         assert solo._display_coordination_def == pytest.approx(0.0)
@@ -281,8 +262,8 @@ class TestHardCapEnforcement:
         inf = _make_marshal(name="Inf", location="Paris")
         cav = _make_marshal(name="Cav", location="Paris", cavalry=True)
         art = _make_marshal(name="Art", location="Paris", artillery=True)
-        world = _make_world_with_marshals([inf, cav, art])
-        ex = _executor()
+        world = WorldFactory.with_marshals([inf, cav, art])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(inf, world)
         assert inf.total_coordination_attack_bonus == pytest.approx(0.25)
 
@@ -294,8 +275,8 @@ class TestHardCapEnforcement:
         art = _make_marshal(name="Art", location="Paris", artillery=True)
         inf.set_relationship("Cav", 2)  # Devoted → 7.5% def
         inf.set_relationship("Art", 2)  # Devoted → 7.5% def
-        world = _make_world_with_marshals([inf, cav, art])
-        ex = _executor()
+        world = WorldFactory.with_marshals([inf, cav, art])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(inf, world)
         # CA 10% + Devoted×2 (15%) = 25% → capped at 20%
         assert inf.total_coordination_defense_bonus == pytest.approx(0.20)
@@ -305,8 +286,8 @@ class TestHardCapEnforcement:
         inf = _make_marshal(name="Inf", location="Paris")
         cav = _make_marshal(name="Cav", location="Paris", cavalry=True)
         art = _make_marshal(name="Art", location="Paris", artillery=True)
-        world = _make_world_with_marshals([inf, cav, art])
-        ex = _executor()
+        world = WorldFactory.with_marshals([inf, cav, art])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(inf, world)
         # Raw atk = CA(20%) + coord(6%) = 26%. Cap 25%. Not CA(capped 20%) + coord(capped 6%) = 26%.
         assert inf.total_coordination_attack_bonus == pytest.approx(0.25)
@@ -318,8 +299,8 @@ class TestHardCapEnforcement:
         """Values below cap pass through unchanged."""
         primary = _make_marshal(name="A", location="Paris")
         ally = _make_marshal(name="B", location="Paris", cavalry=True)
-        world = _make_world_with_marshals([primary, ally])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, ally])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(primary, world)
         # CA(10%) + coord(3%) = 13% → under 25% cap
         assert primary.total_coordination_attack_bonus == pytest.approx(0.13)
@@ -338,8 +319,8 @@ class TestCombinedArmsCoordinationIntegration:
         """2/3 CA (10%) + 1 Professional ally (3%) = 13% atk."""
         inf = _make_marshal(name="Inf", location="Paris")
         cav = _make_marshal(name="Cav", location="Paris", cavalry=True)
-        world = _make_world_with_marshals([inf, cav])
-        ex = _executor()
+        world = WorldFactory.with_marshals([inf, cav])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(inf, world)
         assert inf.total_coordination_attack_bonus == pytest.approx(0.13)
         assert inf.total_coordination_defense_bonus == pytest.approx(0.10)
@@ -351,8 +332,8 @@ class TestCombinedArmsCoordinationIntegration:
         art = _make_marshal(name="Art", location="Paris", artillery=True)
         inf.set_relationship("Cav", 2)
         inf.set_relationship("Art", 2)
-        world = _make_world_with_marshals([inf, cav, art])
-        ex = _executor()
+        world = WorldFactory.with_marshals([inf, cav, art])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(inf, world)
         # atk: CA(20%) + 2 Devoted (2 × 4.5% = 9%) = 29% → capped at 25%
         assert inf.total_coordination_attack_bonus == pytest.approx(0.25)
@@ -362,8 +343,8 @@ class TestCombinedArmsCoordinationIntegration:
         inf = _make_marshal(name="Inf", location="Paris")
         cav = _make_marshal(name="Cav", location="Paris", cavalry=True)
         inf.set_relationship("Cav", -2)
-        world = _make_world_with_marshals([inf, cav])
-        ex = _executor()
+        world = WorldFactory.with_marshals([inf, cav])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(inf, world)
         # CA(10%) + Hostile coord(0%) = 10%
         assert inf.total_coordination_attack_bonus == pytest.approx(0.10)
@@ -383,8 +364,8 @@ class TestBothSidesIndependent:
         atk2 = _make_marshal(name="AtkCav", location="Belgium", cavalry=True)
         atk3 = _make_marshal(name="AtkArt", location="Belgium", artillery=True)
         defender = _make_marshal(name="Def", location="Belgium", nation="Britain")
-        world = _make_world_with_marshals([atk1, atk2, atk3, defender])
-        ex = _executor()
+        world = WorldFactory.with_marshals([atk1, atk2, atk3, defender])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(atk1, world)
         ex._calculate_coordination_context(defender, world)
         # Attacker: 3/3 CA + 2 professional allies
@@ -398,8 +379,8 @@ class TestBothSidesIndependent:
         def1 = _make_marshal(name="DefInf", location="Belgium", nation="Britain")
         def2 = _make_marshal(name="DefCav", location="Belgium", nation="Britain", cavalry=True)
         def1.set_relationship("DefCav", 2)  # Devoted
-        world = _make_world_with_marshals([attacker, def1, def2])
-        ex = _executor()
+        world = WorldFactory.with_marshals([attacker, def1, def2])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(def1, world)
         # DefInf: 2/3 CA (10% atk, 5% def) + Devoted ally (4.5% atk, 7.5% def)
         assert def1._display_coordination_atk == pytest.approx(0.045)
@@ -411,8 +392,8 @@ class TestBothSidesIndependent:
         atk_cav = _make_marshal(name="AtkCav", location="Belgium", strength=30000, cavalry=True)
         def_inf = _make_marshal(name="DefInf", location="Belgium", strength=30000, nation="Britain")
         def_cav = _make_marshal(name="DefCav", location="Belgium", strength=30000, nation="Britain", cavalry=True)
-        world = _make_world_with_marshals([atk_inf, atk_cav, def_inf, def_cav])
-        ex = _executor()
+        world = WorldFactory.with_marshals([atk_inf, atk_cav, def_inf, def_cav])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(atk_inf, world)
         ex._calculate_coordination_context(def_inf, world)
         # Both sides: 2/3 CA + 1 professional ally
@@ -467,8 +448,8 @@ class TestEligibilityFilters:
         primary = _make_marshal(name="A", location="Paris")
         broken = _make_marshal(name="B", location="Paris", cavalry=True)
         broken.broken = True
-        world = _make_world_with_marshals([primary, broken])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, broken])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(primary, world)
         assert primary._display_coordination_atk == pytest.approx(0.0)
         assert primary._display_coordination_def == pytest.approx(0.0)
@@ -478,8 +459,8 @@ class TestEligibilityFilters:
         primary = _make_marshal(name="A", location="Paris")
         retreated = _make_marshal(name="B", location="Paris", cavalry=True)
         retreated.retreated_this_turn = True
-        world = _make_world_with_marshals([primary, retreated])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, retreated])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(primary, world)
         assert primary._display_coordination_atk == pytest.approx(0.0)
 
@@ -488,8 +469,8 @@ class TestEligibilityFilters:
         primary = _make_marshal(name="A", location="Paris")
         recovering = _make_marshal(name="B", location="Paris", cavalry=True)
         recovering.retreat_recovery = 2
-        world = _make_world_with_marshals([primary, recovering])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, recovering])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(primary, world)
         assert primary._display_coordination_atk == pytest.approx(0.0)
 
@@ -497,8 +478,8 @@ class TestEligibilityFilters:
         """Dead marshal (0 strength) not counted as ally."""
         primary = _make_marshal(name="A", location="Paris")
         dead = _make_marshal(name="B", location="Paris", cavalry=True, strength=0)
-        world = _make_world_with_marshals([primary, dead])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, dead])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(primary, world)
         assert primary._display_coordination_atk == pytest.approx(0.0)
 
@@ -506,8 +487,8 @@ class TestEligibilityFilters:
         """Different nation not counted as ally."""
         primary = _make_marshal(name="A", location="Paris", nation="France")
         enemy = _make_marshal(name="B", location="Paris", nation="Britain", cavalry=True)
-        world = _make_world_with_marshals([primary, enemy])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, enemy])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(primary, world)
         assert primary._display_coordination_atk == pytest.approx(0.0)
 
@@ -515,8 +496,8 @@ class TestEligibilityFilters:
         """Ally in different region not counted."""
         primary = _make_marshal(name="A", location="Paris")
         far = _make_marshal(name="B", location="Belgium", cavalry=True)
-        world = _make_world_with_marshals([primary, far])
-        ex = _executor()
+        world = WorldFactory.with_marshals([primary, far])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(primary, world)
         assert primary._display_coordination_atk == pytest.approx(0.0)
 
@@ -532,8 +513,8 @@ class TestTransientFieldManagement:
         """_display_coordination_atk/def are set on each marshal."""
         inf = _make_marshal(name="Inf", location="Paris")
         cav = _make_marshal(name="Cav", location="Paris", cavalry=True)
-        world = _make_world_with_marshals([inf, cav])
-        ex = _executor()
+        world = WorldFactory.with_marshals([inf, cav])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(inf, world)
         assert hasattr(inf, '_display_coordination_atk')
         assert hasattr(inf, '_display_coordination_def')
@@ -544,8 +525,8 @@ class TestTransientFieldManagement:
         """All coordination fields reset after _clear_coordination_fields."""
         inf = _make_marshal(name="Inf", location="Paris")
         cav = _make_marshal(name="Cav", location="Paris", cavalry=True)
-        world = _make_world_with_marshals([inf, cav])
-        ex = _executor()
+        world = WorldFactory.with_marshals([inf, cav])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(inf, world)
         assert inf._display_coordination_atk > 0
         ex._clear_coordination_fields({"Paris"}, world)
@@ -611,8 +592,8 @@ class TestEdgeCases:
         davout = _make_marshal(name="Davout", location="Paris")
         ney.set_relationship("Davout", -2)
         davout.set_relationship("Ney", -2)
-        world = _make_world_with_marshals([ney, davout])
-        ex = _executor()
+        world = WorldFactory.with_marshals([ney, davout])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(ney, world)
         # CA: 2 types → 10%. Coordination from Hostile: 0%.
         assert ney.total_coordination_attack_bonus == pytest.approx(0.10)
@@ -623,8 +604,8 @@ class TestEdgeCases:
         ney = _make_marshal(name="Ney", location="Paris", cavalry=True)
         davout = _make_marshal(name="Davout", location="Paris")
         drouot = _make_marshal(name="Drouot", location="Paris", artillery=True)
-        world = _make_world_with_marshals([ney, davout, drouot])
-        ex = _executor()
+        world = WorldFactory.with_marshals([ney, davout, drouot])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(ney, world)
         # Each: CA(20%) + 2 Professional allies (6%) = 26% → capped at 25%
         assert ney.total_coordination_attack_bonus == pytest.approx(0.25)
@@ -640,8 +621,8 @@ class TestEdgeCases:
         drouot = _make_marshal(name="Drouot", location="Paris", artillery=True)
         ney.set_relationship("Davout", 2)
         ney.set_relationship("Drouot", 2)
-        world = _make_world_with_marshals([ney, davout, drouot])
-        ex = _executor()
+        world = WorldFactory.with_marshals([ney, davout, drouot])
+        ex = CommandExecutor()
         ex._calculate_coordination_context(ney, world)
         # atk: CA(20%) + 2 Devoted (2 × 4.5% = 9%) = 29% → capped at 25%
         assert ney.total_coordination_attack_bonus == pytest.approx(0.25)
@@ -655,7 +636,7 @@ class TestEdgeCases:
         ally2 = _make_marshal(name="C", cavalry=True)
         primary.set_relationship("B", 0)   # Professional
         primary.set_relationship("C", 1)   # Friendly
-        ex = _executor()
+        ex = CommandExecutor()
         atk, defe = ex._calculate_per_ally_coordination(primary, [ally1, ally2])
         # Professional: 3% + Friendly: 3.75% = 6.75% atk
         assert atk == pytest.approx(0.0675)
@@ -664,5 +645,5 @@ class TestEdgeCases:
 
     def test_scaling_table_class_attribute(self):
         """Verify the scaling table is accessible and correct."""
-        ex = _executor()
+        ex = CommandExecutor()
         assert ex._RELATIONSHIP_SCALING == {-2: 0.0, -1: 0.50, 0: 1.0, 1: 1.25, 2: 1.50}

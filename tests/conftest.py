@@ -1,0 +1,185 @@
+"""
+Shared test factories and fixtures for Project Sovereign.
+
+MIGRATION GUIDE
+===============
+Replace local _make_marshal / _make_world helpers with these factories:
+
+  Old:  m = _make_marshal(name="Ney", location="Paris", strength=30000, ...)
+  New:  m = MarshalFactory.infantry(name="Ney", location="Paris", strength=30000, ...)
+
+  Old:  world = WorldState(); world.marshals.clear(); ...
+  New:  world = WorldFactory.with_marshals([m1, m2])
+
+  Old:  executor = CommandExecutor()
+  New:  Use the `executor` fixture (or call CommandExecutor() directly)
+
+  Old:  game_state = {"world": world}
+  New:  Use the `game_state` fixture, or WorldFactory + dict literal
+
+Fixtures inject ONLY when explicitly requested as function parameters.
+Existing tests that don't use these parameter names are unaffected.
+"""
+
+import pytest
+from backend.models.marshal import Marshal
+from backend.models.world_state import WorldState
+from backend.commands.executor import CommandExecutor
+from backend.game_logic.combat import CombatResolver
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# MARSHAL FACTORY
+# ════════════════════════════════════════════════════════════════════════════════
+
+class MarshalFactory:
+    """Create test marshals with sensible defaults.
+
+    Defaults match the most common test pattern (all skills=7,
+    spawn_location=location, movement_range derives from cavalry flag).
+    """
+
+    @staticmethod
+    def _create(name, location, strength, personality, nation,
+                cavalry=False, artillery=False, movement_range=None, **overrides):
+        """Internal helper — builds a Marshal with shared defaults."""
+        if movement_range is None:
+            movement_range = 2 if cavalry else 1
+        kwargs = {
+            "movement_range": movement_range,
+            "tactical_skill": 7,
+            "skills": {"tactical": 7, "shock": 7, "defense": 7,
+                       "logistics": 7, "administration": 7, "command": 7},
+            "cavalry": cavalry,
+            "artillery": artillery,
+            "spawn_location": location,
+        }
+        kwargs.update(overrides)
+        return Marshal(name=name, location=location, strength=strength,
+                       personality=personality, nation=nation, **kwargs)
+
+    @staticmethod
+    def infantry(name="TestInf", location="Paris", strength=30000,
+                 nation="France", personality="cautious", **overrides):
+        """Standard infantry marshal."""
+        return MarshalFactory._create(
+            name=name, location=location, strength=strength,
+            personality=personality, nation=nation,
+            cavalry=False, artillery=False, **overrides)
+
+    @staticmethod
+    def cavalry(name="TestCav", location="Paris", strength=8000,
+                nation="France", personality="aggressive", **overrides):
+        """Cavalry marshal (movement_range=2 by default)."""
+        return MarshalFactory._create(
+            name=name, location=location, strength=strength,
+            personality=personality, nation=nation,
+            cavalry=True, artillery=False, **overrides)
+
+    @staticmethod
+    def artillery(name="TestArt", location="Paris", strength=5000,
+                  nation="France", personality="cautious", **overrides):
+        """Artillery marshal."""
+        return MarshalFactory._create(
+            name=name, location=location, strength=strength,
+            personality=personality, nation=nation,
+            cavalry=False, artillery=True, **overrides)
+
+    @staticmethod
+    def enemy(name="TestEnemy", location="Berlin", strength=30000,
+              nation="Prussia", personality="cautious", **overrides):
+        """Enemy infantry marshal (Prussia by default)."""
+        return MarshalFactory._create(
+            name=name, location=location, strength=strength,
+            personality=personality, nation=nation,
+            cavalry=False, artillery=False, **overrides)
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# WORLD FACTORY
+# ════════════════════════════════════════════════════════════════════════════════
+
+class WorldFactory:
+    """Create WorldState instances for tests."""
+
+    @staticmethod
+    def basic(player_nation="France", **overrides):
+        """Full WorldState with default regions + marshals.
+
+        Keyword overrides are applied via setattr.
+        """
+        world = WorldState(player_nation=player_nation)
+        for k, v in overrides.items():
+            setattr(world, k, v)
+        return world
+
+    @staticmethod
+    def with_marshals(marshal_list, player_nation="France", current_turn=1, **overrides):
+        """WorldState with ONLY the provided marshals (clears defaults).
+
+        Args:
+            marshal_list: List of Marshal objects to register.
+            player_nation: Player nation (default France).
+            current_turn: Starting turn number.
+            **overrides: Additional attributes set via setattr.
+        """
+        world = WorldState(player_nation=player_nation)
+        world.marshals.clear()
+        for m in marshal_list:
+            world.marshals[m.name] = m
+        world.current_turn = current_turn
+        for k, v in overrides.items():
+            setattr(world, k, v)
+        return world
+
+    @staticmethod
+    def with_war(nation_a="France", nation_b="Prussia",
+                 player_nation="France", **overrides):
+        """WorldState with an active war between two nations.
+
+        Sets diplomatic_states and war_start_turns with correct key format.
+        """
+        world = WorldState(player_nation=player_nation)
+        key = "|".join(sorted([nation_a, nation_b]))
+        world.diplomatic_states[key] = "WAR"
+        world.war_start_turns[key] = world.current_turn
+        for k, v in overrides.items():
+            setattr(world, k, v)
+        return world
+
+    @staticmethod
+    def diplomatic(player_nation="France", **overrides):
+        """WorldState suitable for diplomacy tests.
+
+        Thin wrapper — WorldState already inits diplomacy subsystem.
+        Exists for documentation and future extension.
+        """
+        return WorldFactory.basic(player_nation=player_nation, **overrides)
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# STANDARD FIXTURES
+# ════════════════════════════════════════════════════════════════════════════════
+
+@pytest.fixture
+def world():
+    """A basic WorldState with default setup."""
+    return WorldFactory.basic()
+
+
+@pytest.fixture
+def executor():
+    """A fresh CommandExecutor."""
+    return CommandExecutor()
+
+
+@pytest.fixture
+def game_state(world):
+    """Standard game_state dict wrapping the world fixture."""
+    return {"world": world}
+
+
+@pytest.fixture
+def combat_resolver():
+    """A fresh CombatResolver."""
+    return CombatResolver()

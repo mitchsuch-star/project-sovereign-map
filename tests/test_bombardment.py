@@ -13,43 +13,30 @@ import pytest
 from unittest.mock import patch
 from fastapi.testclient import TestClient
 from backend.models.marshal import Marshal
-from backend.models.world_state import WorldState
 from backend.models.region import TERRAIN_BOMBARDMENT_MODIFIER
 from backend.commands.executor import CommandExecutor
+from tests.conftest import MarshalFactory, WorldFactory
 
 
 # ════════════════════════════════════════════════════════════════════════════════
-# HELPERS
+# HELPERS (delegating to conftest factories)
 # ════════════════════════════════════════════════════════════════════════════════
 
 def _make_world(**overrides):
-    """Create a WorldState with default game setup."""
-    world = WorldState()
-    for k, v in overrides.items():
-        setattr(world, k, v)
-    return world
+    """Create a WorldState with default game setup via WorldFactory."""
+    return WorldFactory.basic(**overrides)
 
 
 def _make_artillery(name="Drouot", location="Paris", strength=25000, nation="France", **kw):
-    """Create an artillery marshal."""
-    return Marshal(
-        name=name, location=location, strength=strength,
-        personality=kw.pop("personality", "cautious"),
-        nation=nation, movement_range=1, tactical_skill=7,
-        skills=kw.pop("skills", {"tactical": 8, "shock": 7, "defense": 6,
-                                  "logistics": 7, "administration": 6, "command": 7}),
-        artillery=True, spawn_location=location, **kw
-    )
+    """Create an artillery marshal via MarshalFactory."""
+    return MarshalFactory.artillery(name=name, location=location, strength=strength,
+                                    nation=nation, **kw)
 
 
 def _make_infantry(name="TestInf", location="Paris", strength=40000, nation="France", **kw):
-    """Create an infantry marshal."""
-    return Marshal(
-        name=name, location=location, strength=strength,
-        personality=kw.pop("personality", "cautious"),
-        nation=nation, movement_range=1, tactical_skill=7,
-        spawn_location=location, **kw
-    )
+    """Create an infantry marshal via MarshalFactory."""
+    return MarshalFactory.infantry(name=name, location=location, strength=strength,
+                                   nation=nation, **kw)
 
 
 def _setup_bombardment(art_loc="Belgium", def_loc="Waterloo", art_str=25000, def_str=68000):
