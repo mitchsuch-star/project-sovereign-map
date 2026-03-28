@@ -878,7 +878,7 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
         "action_point": "Action point concession",
         "unit_trade": "Military units",
     }
-    from backend.game_logic.diplomatic_dialogue import PROPOSAL_TYPE_DISPLAY
+    from backend.display_names import PROPOSAL_TYPE_DISPLAY
     proposal_type_key = terms.get("type", "unknown")
     base_label = PROPOSAL_TYPE_DISPLAY.get(
         proposal_type_key, proposal_type_key.replace("_", " ").title()
@@ -906,7 +906,7 @@ def deliver_ai_proposal(proposal: Dict, world) -> Dict:
     # Raw keys like "base_disposition" must never reach the Godot popup.
     # Pattern: match _enrich_proposal_summary() in diplomatic_dialogue.py.
     # See BUGFIX_PLAN_PROPOSAL_FLOW.md.
-    from backend.game_logic.diplomacy import FEEDBACK_STRINGS
+    from backend.display_names import FEEDBACK_STRINGS
     if positive_factors:
         best_key = positive_factors[0].get("reason", "")
         acceptance_hint = FEEDBACK_STRINGS.get(best_key, {}).get(
@@ -945,7 +945,7 @@ def _format_proposal_summary(terms: Dict) -> str:
     target = terms.get("target_nation", "France")
 
     # Type description
-    from backend.game_logic.diplomatic_dialogue import PROPOSAL_TYPE_DISPLAY
+    from backend.display_names import PROPOSAL_TYPE_DISPLAY
     parts.append(f"{PROPOSAL_TYPE_DISPLAY.get(proposal_type, proposal_type.replace('_', ' ').title())} "
                  f"between {proposer} and {target}")
 

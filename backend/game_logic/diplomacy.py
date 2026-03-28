@@ -134,76 +134,8 @@ SPECIAL_BONUSES = {
     "Saxony": {"protection_promised": 10},
 }
 
-# ═══════ FEEDBACK STRINGS (§6f) ═══════
-FEEDBACK_STRINGS = {
-    "relation_modifier": {
-        "negative": "deep-seated hostility",
-        "positive": "goodwill between our nations",
-    },
-    "threat_modifier": {
-        "negative": "fear of French expansion",
-        "positive": "France's measured approach",
-    },
-    "war_score_modifier": {
-        "negative": "our military position is weak",
-        "positive": "our military dominance",
-    },
-    "deal_balance": {
-        "negative": "insufficient concessions",
-        "positive": "generous terms",
-    },
-    "personality_modifier": {
-        "negative": "personal opposition from their diplomat",
-        "positive": "diplomatic rapport",
-    },
-    "diplomat_skill_bonus": {
-        "negative": "their diplomat outmaneuvered us",
-        "positive": "Talleyrand's superior skill",
-    },
-    "base_disposition": {
-        "negative": "fundamental resistance to this type of agreement",
-        "positive": "natural willingness to negotiate",
-    },
-    "special_desire_bonus": {
-        "negative": "their specific strategic interests were not addressed",
-        "positive": "we addressed their core strategic interest",
-    },
-    "coalition_penalty": {
-        "negative": "coalition loyalty binds them against us",
-        "positive": "coalition obligations have weakened",
-    },
-    "harshness_bonus": {
-        "negative": "memory of past harsh treaties",
-        "positive": "prior harsh terms make them more pliable",
-    },
-    "reliability_modifier": {
-        "negative": "France's reputation for breaking agreements",
-        "positive": "France's record of honoring treaties",
-    },
-    "war_weariness": {
-        "negative": "the war has dragged on too long",
-        "positive": "exhaustion from prolonged conflict",
-    },
-    "stalemate_duration": {
-        "negative": "the deadlock shows no sign of breaking",
-        "positive": "neither side can gain the upper hand",
-    },
-    # BUGFIX: These 3 keys are returned by calculate_acceptance() components
-    # but were missing from FEEDBACK_STRINGS, causing empty hint fallback
-    # when they are the dominant factor. See BUGFIX_PLAN_PROPOSAL_FLOW.md.
-    "military_supremacy": {
-        "negative": "their overwhelming military advantage",
-        "positive": "our decisive military superiority",
-    },
-    "battlefield_diplomacy": {
-        "negative": "recent battlefield setbacks",
-        "positive": "our recent victories on the battlefield",
-    },
-    "military_pressure": {
-        "negative": "the military balance favors them",
-        "positive": "our military pressure on their borders",
-    },
-}
+# Feedback strings — single source in display_names.py (R7)
+from backend.display_names import FEEDBACK_STRINGS
 
 # ═══════ SWEETENER / DEMAND VALUES ═══════
 SWEETENER_VALUES = {
@@ -2486,17 +2418,8 @@ def get_assessment_text(world, target_nation: str) -> str:
     return _ASSESSMENT_FALLBACK.format(nation=target_nation)
 
 
-# ═══════ DISPLAY STATE NAMES ═══════
-_STATE_DISPLAY_NAMES = {
-    "WAR": "At War",
-    "ARMISTICE": "Armistice",
-    "PEACE": "Peace",
-    "OPEN_BORDERS": "Open Borders",
-    "NON_AGGRESSION": "Non-Aggression",
-    "DEFENSIVE_ALLIANCE": "Defensive Alliance",
-    "ALLIANCE": "Alliance",
-    "VASSAL": "Vassal",
-}
+# State display names — single source in display_names.py (R7)
+from backend.display_names import STATE_DISPLAY as _STATE_DISPLAY_NAMES
 
 
 def get_available_diplomatic_actions(world, target_nation: str) -> List[Dict]:

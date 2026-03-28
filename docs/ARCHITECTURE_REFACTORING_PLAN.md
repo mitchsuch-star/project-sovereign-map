@@ -2093,7 +2093,7 @@ Full integration test session:
 | 3 | R2 | RC-2: No war-state filtering | CRITICAL | 2-3h | LOW | — | ~49 recurring |
 | 4 | R4 | RC-4: Ad-hoc response pipeline | MAJOR | 2-3h | MEDIUM | — | ~9 + stale top-bar | **COMPLETE** |
 | 5 | R5 | RC-6: Fog filter scatter | MAJOR | 2h | LOW-MED | — | ~18 recurring |
-| 6 | R7+R8 | RC-9+RC-10: Display + log | MODERATE | 2-3h | LOW | — | ~12 + prevention |
+| 6 | R7+R8 | RC-9+RC-10: Display + log | MODERATE | 2-3h | LOW | — | ~12 + prevention | **COMPLETE** |
 | 7 | R6 | RC-7: Cooldown/popup sprawl | MAJOR | 3h | MEDIUM | — | ~7 + popup leaks |
 | 8 | R9+R20 | Scaling + atomicity | CRIT/MAJ | 2h | LOW | — | perf + double-proc |
 | 9 | R18 | Missing enforcement tests | MAJOR | 1-2h | ZERO | S6 | ~18/category |
@@ -2148,7 +2148,7 @@ These individual findings from the audit are acknowledged but NOT addressed by a
 | 10 | R1 (Session 2) | **COMPLETE** |
 | 11 | R6 (Session 7) | Planned |
 | 12 | R1 (Session 2) | **COMPLETE** |
-| 13 | R8 (Session 6) | Planned |
+| 13 | R8 (Session 6) | **COMPLETE** — 16 event types added, enforcement tests |
 | 14 | R1 (Session 2) | **COMPLETE** — FORCED_RETREAT_THRESHOLD deduplication |
 | 15 | — | Deferred (intentional design) |
 | 16 | R2 (Session 3) | **COMPLETE** — 5 query helpers, set_diplomatic_state(), 23 writes migrated, 47 tests |
@@ -2163,7 +2163,7 @@ These individual findings from the audit are acknowledged but NOT addressed by a
 | 25 | R4 (Session 4) | **COMPLETE** — diplomatic top-bar in all responses |
 | 26 | — | Quick fix candidate |
 | 27 | — | Quick fix candidate (docstring) |
-| 28 | R8 (Session 6) | Planned |
+| 28 | R8 (Session 6) | **COMPLETE** — format strings + fog rules for all 45 types |
 | 29 | — | Deferred (no marshals use it) |
 | 30 | R5 (Session 5) | **COMPLETE** — map_data fog-filtered, strategic parser 3 leaks fixed |
 | 31 | — | Deferred (single-faction game) |

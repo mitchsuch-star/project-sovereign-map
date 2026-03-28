@@ -36,27 +36,8 @@ from backend.commands.objection_v2 import (
 )
 
 
-# Player-readable display names for internal action strings.
-# Internal action names must NEVER reach the frontend raw — always translate first.
-_ACTION_DISPLAY_NAMES = {
-    "attack": "attacks",
-    "move": "moves to",
-    "defend": "defends",
-    "fortify": "fortifies",
-    "unfortify": "abandons fortification",
-    "form_square": "forms square",
-    "break_square": "breaks square",
-    "drill": "drills",
-    "stance_change": "changes stance",
-    "retreat": "retreats to",
-    "wait": "holds position",
-    "recruit": "recruits",
-    "scout": "scouts",
-    "hold": "holds",
-    "build": "builds",
-    "repair": "repairs",
-    "garrison": "garrisons",
-}
+# Player-readable display names — single source in display_names.py (R7)
+from backend.display_names import ACTION_DISPLAY as _ACTION_DISPLAY_NAMES
 
 
 # Actions that consume Admin AP instead of CP (Phase 6.2.B)
@@ -70,7 +51,7 @@ def _action_display_name(action: str) -> str:
 
 def _proposal_display_name(proposal_type: str) -> str:
     """Translate internal proposal_type to player-readable text."""
-    from backend.game_logic.diplomatic_dialogue import PROPOSAL_TYPE_DISPLAY
+    from backend.display_names import PROPOSAL_TYPE_DISPLAY
     return PROPOSAL_TYPE_DISPLAY.get(proposal_type, proposal_type.replace("_", " ").title())
 
 
@@ -11780,7 +11761,7 @@ RETREAT RECOVERY (3 turns):
             target_diplo_state = _state_map_4a.get(proposal_type_raw, "")
             if target_diplo_state in _UPGRADE_ORDER and current_diplo_state in _UPGRADE_ORDER:
                 if _UPGRADE_ORDER.index(target_diplo_state) <= _UPGRADE_ORDER.index(current_diplo_state):
-                    from backend.game_logic.diplomacy import _STATE_DISPLAY_NAMES
+                    from backend.display_names import STATE_DISPLAY as _STATE_DISPLAY_NAMES
                     display = _STATE_DISPLAY_NAMES.get(current_diplo_state, current_diplo_state)
                     return {
                         "success": False,
@@ -12091,7 +12072,8 @@ RETREAT RECOVERY (3 turns):
         existing_treaty = world.active_treaties.get(diplo_key_treaty)
         if existing_treaty and not world.diplomatic_objection_popup:
             treaty_type = existing_treaty.get("type", "treaty")
-            from backend.game_logic.diplomatic_dialogue import _display_proposal_type
+            from backend.display_names import PROPOSAL_TYPE_DISPLAY
+            _display_proposal_type = lambda pt: PROPOSAL_TYPE_DISPLAY.get(pt, pt.replace("_", " ").title())
             treaty_display = _display_proposal_type(treaty_type)
             world.pending_diplomatic_dialogue = {
                 "type": "force_declare_war_confirmation",

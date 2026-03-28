@@ -38,7 +38,7 @@ _CLAUSE_TYPE_DISPLAY = {
     "action_point": "Action point concession",
     "unit_trade": "Military units",
 }
-from backend.game_logic.diplomatic_dialogue import PROPOSAL_TYPE_DISPLAY
+from backend.display_names import PROPOSAL_TYPE_DISPLAY
 base_label = PROPOSAL_TYPE_DISPLAY.get(proposal_type, proposal_type.replace("_", " ").title())
 clauses = [f"Proposal: {base_label}"]
 for d in terms.get("demands", []):
@@ -89,7 +89,7 @@ If any of these 3 is the best/worst factor, the hint silently falls back to empt
 # BUGFIX: Translate component keys to human-readable strings.
 # Raw keys like "base_disposition" must never reach the Godot popup.
 # Pattern: match _enrich_proposal_summary() in diplomatic_dialogue.py:447.
-from backend.game_logic.diplomacy import FEEDBACK_STRINGS
+from backend.display_names import FEEDBACK_STRINGS
 
 if positive_factors:
     best_key = positive_factors[0].get("reason", "")
@@ -241,7 +241,7 @@ proposal = context.get("proposal", {})
 clauses = []
 proposal_type = proposal.get("type", "unknown")
 if proposal_type != "unknown":
-    from backend.game_logic.diplomatic_dialogue import PROPOSAL_TYPE_DISPLAY
+    from backend.display_names import PROPOSAL_TYPE_DISPLAY
     base_label = PROPOSAL_TYPE_DISPLAY.get(proposal_type, proposal_type.replace("_", " ").title())
     clauses.append(f"Proposal: {base_label}")
 for d in proposal.get("demands", []):

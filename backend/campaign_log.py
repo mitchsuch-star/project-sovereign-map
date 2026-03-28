@@ -13,53 +13,9 @@ Design decisions:
 from backend.models.intel import FULL, PARTIAL
 
 
-# ============================================================================
-# ACTION DISPLAY NAMES — translate raw internal names for campaign log
-# ============================================================================
-
-# Objection context: "Marshal objected to [action]"
-_OBJECTION_DISPLAY = {
-    "attack": "attacking",
-    "move": "moving",
-    "defend": "defending",
-    "fortify": "fortifying",
-    "unfortify": "abandoning fortification",
-    "form_square": "forming square",
-    "break_square": "breaking square",
-    "drill": "drilling",
-    "stance_change": "changing stance",
-    "retreat": "retreating",
-    "wait": "waiting",
-    "recruit": "recruiting",
-    "scout": "scouting",
-    "hold": "holding",
-    "build": "building",
-    "repair": "repairing",
-    "garrison": "garrisoning",
-    "bombardment": "bombarding",
-}
-
-# Defiance context: "Marshal defied orders and [action] instead"
-_DEFIANCE_DISPLAY = {
-    "attack": "attacked",
-    "move": "moved",
-    "defend": "defended",
-    "fortify": "fortified",
-    "unfortify": "abandoned fortification",
-    "form_square": "formed square",
-    "break_square": "broke square",
-    "drill": "drilled",
-    "stance_change": "changed stance",
-    "retreat": "retreated",
-    "wait": "waited",
-    "recruit": "recruited",
-    "scout": "scouted",
-    "hold": "held position",
-    "build": "built",
-    "repair": "repaired",
-    "garrison": "garrisoned",
-    "bombardment": "bombarded",
-}
+# Action display names — single source in display_names.py (R7)
+from backend.display_names import OBJECTION_DISPLAY as _OBJECTION_DISPLAY
+from backend.display_names import DEFIANCE_DISPLAY as _DEFIANCE_DISPLAY
 
 
 def _display_action(action: str) -> str:
@@ -117,6 +73,23 @@ CAMPAIGN_LOG_TYPES = {
     "nation_eliminated",
     "vassal_auto_join_war",
     "coalition_member_left",
+    # R8 Session 6: 16 previously-silent event types
+    "ai_proposal_accepted",
+    "ai_proposal_counter_failed",
+    "ai_proposal_rejected",
+    "auto_downgrade",
+    "coalition_brewing_cancelled",
+    "coalition_brewing_started",
+    "counter_offer_accepted",
+    "counter_offer_rejected",
+    "diplomatic_discrepancy",
+    "diplomatic_downgrade",
+    "diplomatic_mission_cancelled_eliminated",
+    "diplomatic_mission_started",
+    "diplomatic_proposal_sent",
+    "garrison_placed",
+    "proposal_voided_by_coalition",
+    "relationship_change",
 }
 
 # ============================================================================
@@ -156,6 +129,23 @@ CATEGORY_MAP = {
     "nation_eliminated": "diplomacy",
     "vassal_auto_join_war": "diplomacy",
     "coalition_member_left": "diplomacy",
+    # R8 Session 6: 16 previously-silent event types
+    "ai_proposal_accepted": "diplomacy",
+    "ai_proposal_counter_failed": "diplomacy",
+    "ai_proposal_rejected": "diplomacy",
+    "auto_downgrade": "diplomacy",
+    "coalition_brewing_cancelled": "diplomacy",
+    "coalition_brewing_started": "diplomacy",
+    "counter_offer_accepted": "diplomacy",
+    "counter_offer_rejected": "diplomacy",
+    "diplomatic_discrepancy": "diplomacy",
+    "diplomatic_downgrade": "diplomacy",
+    "diplomatic_mission_cancelled_eliminated": "diplomacy",
+    "diplomatic_mission_started": "diplomacy",
+    "diplomatic_proposal_sent": "diplomacy",
+    "garrison_placed": "territory",
+    "proposal_voided_by_coalition": "diplomacy",
+    "relationship_change": "command",
 }
 
 
@@ -374,6 +364,67 @@ def filter_campaign_log(event_log: list, world_state) -> list:
                 filtered.append(event)
             continue
 
+        # ── R8 Session 6: fog rules for 16 previously-silent types ──
+
+        # Player-generated diplomacy events: always show
+        if event_type in ("diplomatic_proposal_sent", "diplomatic_mission_started",
+                          "diplomatic_discrepancy", "counter_offer_accepted",
+                          "counter_offer_rejected"):
+            filtered.append(event)
+            continue
+
+        # AI proposal responses to player: always show (player is target)
+        if event_type in ("ai_proposal_accepted", "ai_proposal_rejected",
+                          "ai_proposal_counter_failed"):
+            filtered.append(event)
+            continue
+
+        # Coalition brewing: always show (targets France)
+        if event_type in ("coalition_brewing_started", "coalition_brewing_cancelled",
+                          "proposal_voided_by_coalition"):
+            filtered.append(event)
+            continue
+
+        # Garrison placed: show if player or region PARTIAL+
+        if event_type == "garrison_placed":
+            garrison_region = event.get("region", "")
+            if garrison_region:
+                intel = world_state.get_region_intel(garrison_region)
+                if intel.visibility in (FULL, PARTIAL):
+                    filtered.append(event)
+            continue
+
+        # Relationship change: always show (player marshals only)
+        if event_type == "relationship_change":
+            filtered.append(event)
+            continue
+
+        # Diplomatic downgrade / auto_downgrade: PARTIAL+ on either nation
+        if event_type in ("diplomatic_downgrade", "auto_downgrade"):
+            from backend.game_logic.diplomatic_ledger import _get_nation_visibility
+            nations_to_check = []
+            for key in ("nation_a", "nation_b"):
+                val = event.get(key)
+                if val:
+                    nations_to_check.append(val)
+            visible = False
+            for nation in nations_to_check:
+                if nation == player_nation:
+                    visible = True
+                    break
+                vis = _get_nation_visibility(nation, world_state)
+                if vis in (FULL, PARTIAL):
+                    visible = True
+                    break
+            if visible:
+                filtered.append(event)
+            continue
+
+        # Mission cancelled (eliminated nation): always show
+        if event_type == "diplomatic_mission_cancelled_eliminated":
+            filtered.append(event)
+            continue
+
     return filtered
 
 
@@ -590,5 +641,92 @@ def format_event_oneliner(event: dict) -> str:
     if event_type == "coalition_member_left":
         nation = event.get("nation", "Unknown")
         return f"{nation} has left the coalition."
+
+    # ── R8 Session 6: format strings for 16 previously-silent types ──
+
+    if event_type == "ai_proposal_accepted":
+        source = event.get("source", "Unknown")
+        proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
+        return f"{source} accepted our {proposal_type} proposal"
+
+    if event_type == "ai_proposal_rejected":
+        source = event.get("source", "Unknown")
+        proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
+        return f"{source} rejected our {proposal_type} proposal"
+
+    if event_type == "ai_proposal_counter_failed":
+        source = event.get("source", "Unknown")
+        return f"{source} rejected our counter-offer"
+
+    if event_type == "auto_downgrade":
+        nation_a = event.get("nation_a", "Unknown")
+        nation_b = event.get("nation_b", "Unknown")
+        from_state = (event.get("from_state") or "treaty").replace("_", " ")
+        to_state = (event.get("to_state") or "peace").replace("_", " ")
+        return f"Relations auto-downgraded: {nation_a}–{nation_b} ({from_state} → {to_state})"
+
+    if event_type == "coalition_brewing_started":
+        threat = event.get("threat_level", 0)
+        qualifying = event.get("qualifying_nations", [])
+        nations_str = ", ".join(qualifying) if qualifying else "several nations"
+        return f"Coalition brewing — {nations_str} alarmed (threat: {threat})"
+
+    if event_type == "coalition_brewing_cancelled":
+        return "Coalition threat has subsided"
+
+    if event_type == "counter_offer_accepted":
+        source = event.get("source", "Unknown")
+        proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
+        return f"{source} accepted our counter-offer ({proposal_type})"
+
+    if event_type == "counter_offer_rejected":
+        source = event.get("source", "Unknown")
+        proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
+        return f"{source} rejected our counter-offer ({proposal_type})"
+
+    if event_type == "diplomatic_discrepancy":
+        message = event.get("message", "Talleyrand altered your proposal")
+        return message
+
+    if event_type == "diplomatic_downgrade":
+        nation_a = event.get("nation_a", "Unknown")
+        nation_b = event.get("nation_b", "Unknown")
+        from_state = (event.get("from_state") or "treaty").replace("_", " ")
+        to_state = (event.get("to_state") or "peace").replace("_", " ")
+        return f"Relations downgraded: {nation_a}–{nation_b} ({from_state} → {to_state})"
+
+    if event_type == "diplomatic_mission_cancelled_eliminated":
+        target = event.get("target", "Unknown")
+        return f"Diplomatic mission to {target} cancelled — nation eliminated"
+
+    if event_type == "diplomatic_mission_started":
+        target = event.get("target", "Unknown")
+        mission_type = (event.get("mission_type") or "diplomatic mission").replace("_", " ")
+        return f"Talleyrand dispatched on {mission_type} to {target}"
+
+    if event_type == "diplomatic_proposal_sent":
+        target = event.get("target", "Unknown")
+        proposal_type = (event.get("proposal_type") or "proposal").replace("_", " ")
+        return f"Proposal sent to {target} ({proposal_type})"
+
+    if event_type == "garrison_placed":
+        marshal = event.get("marshal", "Unknown")
+        region = event.get("region", "unknown region")
+        troops = event.get("troops", 0)
+        return f"{marshal} garrisoned {region} ({troops:,} troops)"
+
+    if event_type == "proposal_voided_by_coalition":
+        target = event.get("target", "Unknown")
+        return f"Envoy to {target} recalled — they joined the coalition"
+
+    if event_type == "relationship_change":
+        marshal = event.get("marshal", "Unknown")
+        toward = event.get("toward", "Unknown")
+        change = event.get("change", 0)
+        new_label = event.get("new_label", "")
+        direction = event.get("direction", "")
+        sign = "+" if change > 0 else ""
+        label_str = f" ({new_label})" if new_label else ""
+        return f"{marshal} → {toward}: {sign}{change}{label_str}"
 
     return f"Event: {event_type}"

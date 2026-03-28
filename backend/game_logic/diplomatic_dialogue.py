@@ -77,20 +77,8 @@ PROPOSAL_TYPE_KEYWORDS = {
                   "tributary", "client state", "protectorate", "subject"],
 }
 
-# ═══════ PROPOSAL TYPE DISPLAY NAMES ═══════
-PROPOSAL_TYPE_DISPLAY = {
-    "peace": "Peace Treaty",
-    "alliance": "Full Alliance",
-    "non_aggression": "Non-Aggression Pact",
-    "open_borders": "Open Borders Agreement",
-    "defensive_alliance": "Defensive Alliance",
-    "armistice": "Armistice",
-    "armistice_losing": "Armistice",
-    "armistice_stalemate": "Armistice",
-    "armistice_winning": "Armistice",
-    "vassalage": "Vassalage",
-    "opportunistic": "Non-Aggression Pact",
-}
+# Proposal type display — single source in display_names.py (R7)
+from backend.display_names import PROPOSAL_TYPE_DISPLAY
 
 
 def _display_proposal_type(proposal_type: str) -> str:
@@ -438,7 +426,7 @@ def _enrich_proposal_summary(dialogue: Dict, target_nation: str, proposal_type: 
         dialogue["acceptance_outcome"] = result.get("outcome", "Unknown")
 
         # Extract key obstacle from components for player hint
-        from backend.game_logic.diplomacy import FEEDBACK_STRINGS
+        from backend.display_names import FEEDBACK_STRINGS
         components = result.get("components", {})
         worst_key, worst_val = "", 0
         for comp_key, comp_val in components.items():

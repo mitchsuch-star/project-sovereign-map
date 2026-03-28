@@ -277,22 +277,25 @@ def _include_popup_passthroughs(response: dict, world) -> None:
                 proposal = context.get("proposal", {})
                 sv_clauses = []
                 sv_proposal_type = proposal.get("type", "unknown")
+                from backend.display_names import PROPOSAL_TYPE_DISPLAY, PERSONALITY_DISPLAY
                 if sv_proposal_type != "unknown":
-                    from backend.game_logic.diplomatic_dialogue import PROPOSAL_TYPE_DISPLAY
                     sv_base = PROPOSAL_TYPE_DISPLAY.get(
                         sv_proposal_type, sv_proposal_type.replace("_", " ").title()
                     )
                     sv_clauses.append(f"Proposal: {sv_base}")
                 for d in proposal.get("demands", []):
-                    sv_clauses.append(f"Demand: {d.get('type', 'unknown')} — {d.get('value', '')}")
+                    d_type = (d.get('type') or 'unknown').replace('_', ' ').title()
+                    sv_clauses.append(f"Demand: {d_type} — {d.get('value', '')}")
                 for s in proposal.get("sweeteners", []):
-                    sv_clauses.append(f"Offer: {s.get('type', 'unknown')} — {s.get('value', '')}")
+                    s_type = (s.get('type') or 'unknown').replace('_', ' ').title()
+                    sv_clauses.append(f"Offer: {s_type} — {s.get('value', '')}")
                 if not sv_clauses:
                     sv_clauses = ["Diplomatic proposal"]  # Ultimate fallback — never empty
                 response["incoming_proposal"] = {
                     "from_nation": dialogue.get("target_nation", "Unknown"),
                     "diplomat_name": context.get("diplomat_name", "Unknown diplomat"),
-                    "diplomat_personality": context.get("diplomat_personality", "unknown"),
+                    "diplomat_personality": PERSONALITY_DISPLAY.get(
+                        context.get("diplomat_personality", "unknown"), "Unknown"),
                     "proposal_type": sv_proposal_type,
                     "clauses": sv_clauses,
                     "talleyrand_assessment": dialogue.get("talleyrand_text", ""),
@@ -1100,13 +1103,16 @@ def get_pending_objection():
         }
 
     objection = world.pending_objection
+    from backend.display_names import ACTION_DISPLAY
+    trigger = objection.get("trigger")
     return {
         "has_pending": True,
         "marshal": objection.get("marshal"),
         "message": objection.get("message"),
         "severity": int(objection.get("severity", 0.5) * 100),  # int % for Godot — no raw floats
         "type": objection.get("type", "major"),
-        "trigger": objection.get("trigger"),
+        "trigger": trigger,
+        "trigger_display": ACTION_DISPLAY.get(trigger, (trigger or "").replace("_", " ")) if trigger else "",
         "choices": ["trust", "insist", "compromise"] if objection.get("alternative") else ["trust", "insist"],
         "alternative": objection.get("alternative"),
         "original_order": objection.get("original_order")
@@ -1155,6 +1161,12 @@ def respond_to_objection(request: ObjectionResponse):
             response["defiance"] = True
             response["defiance_action"] = result.get("defiance_action")
             response["defiance_outcome"] = result.get("defiance_outcome")
+            # R7: Display-friendly versions for UI
+            from backend.display_names import DEFIANCE_DISPLAY, DEFIANCE_OUTCOME_DISPLAY
+            da = result.get("defiance_action", "")
+            response["defiance_action_display"] = DEFIANCE_DISPLAY.get(da, da.replace("_", " ")) if da else ""
+            do = result.get("defiance_outcome", "")
+            response["defiance_outcome_display"] = DEFIANCE_OUTCOME_DISPLAY.get(do, do.replace("_", " ").title()) if do else ""
             response["berthier_text"] = result.get("berthier_text", "")
         # V2b: Authority event passthrough
         if result.get("authority_event"):
@@ -1771,7 +1783,7 @@ def get_diplomatic_preview_endpoint(nation: str = ""):
     if not nation or not nation.strip():
         # Step 1: Return categorized nation list for the wizard
         try:
-            from backend.game_logic.diplomacy import _STATE_DISPLAY_NAMES
+            from backend.display_names import STATE_DISPLAY as _STATE_DISPLAY_NAMES
             player = world.player_nation
             enemy_nations = list(getattr(world, 'enemy_nations', []))
             vassals = getattr(world, 'vassals', {})
@@ -2141,9 +2153,14 @@ def debug_diplomatic_status():
     for k, v in getattr(world, 'diplomats', {}).items():
         diplomats_data[k] = v.to_dict() if hasattr(v, 'to_dict') else str(v)
 
+    # R7: Add display-friendly state names
+    from backend.display_names import STATE_DISPLAY
+    diplomatic_states_display = {k: STATE_DISPLAY.get(v, v) for k, v in diplomatic_states.items()}
+
     return {
         "success": True,
         "diplomatic_states": diplomatic_states,
+        "diplomatic_states_display": diplomatic_states_display,
         "nation_relations": nation_relations,
         "active_treaties": active_treaties,
         "vassals": vassals,

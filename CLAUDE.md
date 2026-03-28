@@ -18,7 +18,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 
 ### Up Next
 
-- **Architecture Refactoring — IN PROGRESS.** Audit complete. Now iterating through `docs/ARCHITECTURE_REFACTORING_PLAN.md` (20 R-items, 21 sessions). **Session 1 (R3 conftest) COMPLETE** — `tests/conftest.py` with MarshalFactory/WorldFactory, 25 validation tests, 5 files migrated (253 tests). **Session 2A (R1 characterization) COMPLETE** — 25 tests pinning all 5 combat paths' post-combat behavior. **Session 2B (R1 pipeline extraction) COMPLETE** — `_post_combat_pipeline()` (14 steps), all 5 paths wired, 7 bugs fixed, 30 enforcement tests. **Session 3 (R2 war-state helpers) COMPLETE** — 5 query helpers on WorldState, centralized `set_diplomatic_state()` in diplomacy.py, 23 write sites migrated, 47 tests. **Session 4 (R4 response pipeline) COMPLETE** — `build_base_response()` + `_build_result_response()` in main.py, 11 endpoints migrated, "Bug 5" pattern eliminated, 45 tests. **Session 5 (R5 fog-filtered data access) COMPLETE** — `get_visible_enemies()` + `visibility_at_least()`, 8 sites migrated, 26 callers audited, 42 tests. **Session 6 (R7+R8 display names + campaign log) NEXT**. Methodology: Characterization Testing (pin behavior → restructure → fix bugs). Priority order: R3→R1→R2→R4→R5 (first 5 deliver ~80% of value).
+- **Architecture Refactoring — IN PROGRESS.** Audit complete. Now iterating through `docs/ARCHITECTURE_REFACTORING_PLAN.md` (20 R-items, 21 sessions). **Session 1 (R3 conftest) COMPLETE** — `tests/conftest.py` with MarshalFactory/WorldFactory, 25 validation tests, 5 files migrated (253 tests). **Session 2A (R1 characterization) COMPLETE** — 25 tests pinning all 5 combat paths' post-combat behavior. **Session 2B (R1 pipeline extraction) COMPLETE** — `_post_combat_pipeline()` (14 steps), all 5 paths wired, 7 bugs fixed, 30 enforcement tests. **Session 3 (R2 war-state helpers) COMPLETE** — 5 query helpers on WorldState, centralized `set_diplomatic_state()` in diplomacy.py, 23 write sites migrated, 47 tests. **Session 4 (R4 response pipeline) COMPLETE** — `build_base_response()` + `_build_result_response()` in main.py, 11 endpoints migrated, "Bug 5" pattern eliminated, 45 tests. **Session 5 (R5 fog-filtered data access) COMPLETE** — `get_visible_enemies()` + `visibility_at_least()`, 8 sites migrated, 26 callers audited, 42 tests. **Session 6 (R7+R8 display names + campaign log) COMPLETE** — `display_names.py` registry (11 maps consolidated + 4 new), 16 silent event types added to campaign log, 99 enforcement tests. **Session 7 (R6 CooldownManager + PopupQueue) NEXT**. Methodology: Characterization Testing (pin behavior → restructure → fix bugs). Priority order: R3→R1→R2→R4→R5 (first 5 deliver ~80% of value).
 - **Systems Audit V3 Fix Plan — Sessions 1-10 ALL COMPLETE.** 158 bugs across 10 required + 1 optional sessions. Session 10: 3 backend + 19 Godot GDScript bugs. Session 11 (optional polish) remaining. See `docs/SYSTEMS_AUDIT_V3_FIX_PLAN.md`.
 - **Final Audit Fix Plan — ALL COMPLETE.** 13 confirmed bugs fixed in combined session with V3 Session 10 backend bugs (16 total). 29 new tests (7,306 total). See `docs/FINAL_AUDIT_FIX_PLAN.md`.
 - ~~**Systems Audit V2 Fix Plan — ALL 7 SESSIONS COMPLETE.**~~ 56 bugs fixed, 7,040 tests. See `docs/SYSTEMS_AUDIT_V2_FIX_PLAN.md`.
@@ -76,6 +76,7 @@ Napoleonic strategy game. Players type commands ("Marshal Ney, attack Wellington
 | `backend/models/region.py` | 19 regions (REGIONS_DATA source of truth), terrain/region type constants, NATION_CAPITALS, starting_controller, grid_position |
 | `backend/models/personality.py` | PersonalityType enum |
 | `backend/models/personality_modifiers.py` | Combat bonuses by personality |
+| `backend/display_names.py` | Single source of truth for all internal→display name translations (R7) |
 | `backend/campaign_log.py` | Campaign log fog filter + one-liner formatter |
 | `backend/game_logic/combat.py` | Combat resolution, messages |
 | `backend/game_logic/battle_report.py` | Post-battle modifier snapshots, report generation, Berthier observations |
@@ -290,7 +291,7 @@ Strategic orders (MOVE_TO, PURSUE, HOLD, SUPPORT) cost 2 AP (1 for literal). Key
 | "No objection pending" | Strategic uses `pending_strategic_objection`, not `pending_objection` |
 | Post-objection "Unknown action" | `_execute_post_objection` must handle all actions + strategic routing |
 | Enemy AI crash | `game_state` must be dict `{"world": WorldState}`, not WorldState directly |
-| Internal names in frontend | Use `_ACTION_DISPLAY_NAMES` or `_action_display_name()` — never raw action strings |
+| Internal names in frontend | Use `display_names.py` maps (R7) — never raw action/state/personality strings. Import from `backend.display_names`, not original files |
 | Response key mismatch | curl test the endpoint to verify key names match what Godot reads |
 | None crash on parse field | Guard `.lower()`/`.strip()` — parser may return None for optional fields |
 | `.get('key', '')` returns None | Use `(d.get('key') or '')` — `.get()` default only applies for MISSING keys, not `None` values |

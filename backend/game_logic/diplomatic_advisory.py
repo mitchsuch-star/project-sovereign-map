@@ -46,17 +46,8 @@ _DIPLOMAT_DESCRIPTORS = {
     "loyalist": "steadfast",
 }
 
-# State display names for Talleyrand's voice
-_STATE_DISPLAY = {
-    "WAR": "at war",
-    "ARMISTICE": "under armistice",
-    "PEACE": "at peace",
-    "OPEN_BORDERS": "sharing open borders",
-    "NON_AGGRESSION": "bound by non-aggression",
-    "DEFENSIVE_ALLIANCE": "in defensive alliance",
-    "ALLIANCE": "allied",
-    "VASSAL": "our vassal",
-}
+# State display names — single source in display_names.py (R7)
+from backend.display_names import STATE_NARRATIVE_DISPLAY as _STATE_DISPLAY
 
 
 # ═══════════════════════════════════════════════════════
