@@ -1,7 +1,7 @@
 # Ink & Iron: Current Status
 
 > **Updated every session by Claude Code.**
-> **Last Updated:** March 27, 2026 (V3 Session 10 Godot UI bugs COMPLETE)
+> **Last Updated:** March 28, 2026 (Architecture Audit COMPLETE)
 
 ---
 
@@ -91,6 +91,19 @@ All major Phase 6 features shipped:
 ---
 
 ## Infrastructure Sessions
+
+### Architecture Audit (Mar 27-28, 2026)
+
+**Holistic architecture review:** 12-pass spec + 35 deep dives + 6 extended audits (frontend, integration, game loop, error recovery, tests, modding). 11 initial agents + 5 deep-dive agents + 7 verification agents.
+
+**Findings:** 34 individual findings (2 CRITICAL, 9 MAJOR, 13 MODERATE, 12 LOW). 10 structural root causes identified responsible for ~240 of ~450 historical bugs.
+
+**Deliverables:**
+- `docs/ARCHITECTURE_AUDIT_SPEC.md` — 12-pass audit methodology
+- `docs/ARCHITECTURE_AUDIT_REPORT.md` — complete findings + cross-audit analysis
+- `docs/ARCHITECTURE_REFACTORING_PLAN.md` — 20 R-items, 21 sessions, 7 phases, ~55-65h estimated
+
+**Top root causes:** Post-combat pipeline duplication (RC-1, 75 bugs), missing war-state filtering (RC-2, 49 bugs), no test conftest (RC-5, 22 bugs + maintenance multiplier), ad-hoc response pipeline (RC-4, 9 bugs), fog filter scatter (RC-6, 18 bugs).
 
 ### Mar 24 — Systems Audit Sessions 11-12: Cleanup + QoL (12 fixes, 39 new tests)
 

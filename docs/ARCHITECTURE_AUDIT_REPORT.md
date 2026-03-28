@@ -504,7 +504,7 @@ All endpoints call `display()` before returning user-facing strings. The fallbac
 ## Root Cause 10: Campaign Log Silent Drop
 
 **Bug category:** Campaign log invisible (6 findings)
-**Scale:** 40+ event types logged, 36 whitelisted (expanded from 24 during prior audits), remaining types invisible
+**Scale:** 29 types whitelisted in CAMPAIGN_LOG_TYPES (3 dead entries that use dispatch events instead), 41 types logged via log_event(), 16 invisible
 
 ### The Problem
 
@@ -567,7 +567,7 @@ for m in self.marshals.values():
 
 Enemy AI does NOT respect fog of war. `enemy_ai.py:3354` calls `world.get_enemies_of_nation(nation)` which returns ALL enemy marshals globally. At 80 regions this produces unfair all-knowing AI AND worse performance.
 
-**Estimated effort:** 4-6 days. Modify 10-12 methods. High risk — changes AI behavior significantly. Needs playtesting.
+**Estimated effort:** 4 sessions (~12-16 hours). Modify 10-12 methods. High risk — changes AI behavior significantly. Needs playtesting.
 
 ---
 
@@ -665,7 +665,7 @@ R8 (campaign log test)
 R9 (scaling index) ──→ R14 (AI fog)
 ```
 
-**R1-R9, R15-R20 are fully independent** — can be done in any order or in parallel.
+**R1-R9, R15, R17, R19-R20 are fully independent.** R16 depends on R15 (PopupBase needed). R18 depends on R7+R8 (display/log maps needed).
 **R10-R13 are sequential** (each split phase depends on the previous).
 **R14 depends on R9** (scaling index needed for AI fog).
 **R15-R16** (Godot) are independent of all backend sessions.
@@ -843,7 +843,7 @@ These look messy but should be left alone:
 
 **16e: Vassal System** — 7-modifier loyalty formula. Garrison loyalty docstring mismatch. Battle result matching uses fragile string parsing.
 
-**16f: Campaign Log Extended** — 40 logged, 24 whitelisted, 16 invisible. Duplicate `diplomatic_war_declared` + `war_declaration`.
+**16f: Campaign Log Extended** — 41 logged, 29 whitelisted (3 dead), 16 invisible. Duplicate `diplomatic_war_declared` + `war_declaration`.
 
 **16g: LLM Prompt** — Clean prompt builder. No diplomatic few-shot examples.
 
@@ -1245,7 +1245,7 @@ Modder writes JSON → Validator checks (~30% of fields) → from_scenario merge
 | Cooldown dictionaries | 14 |
 | API endpoints | 37 (15 POST, 22 GET) |
 | Display name translation maps | 7 |
-| Campaign log event types (whitelisted/total) | 36/40+ |
+| Campaign log event types (whitelisted/total) | 29 (3 dead)/41 |
 | Circular dependencies | 0 |
 | Layer violations | 1 (minor) |
 | Golden Rule compliance | 100% (with documented exceptions for target-type modifiers) |
