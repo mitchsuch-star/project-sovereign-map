@@ -175,11 +175,11 @@ class TestR76PriorityQueue:
             assert key in response, f"Missing key: {key}"
 
     def test_alliance_paradox_guarded_with_getattr(self, world):
-        """alliance_paradox_popup is guarded with getattr (may not exist on old saves)."""
+        """alliance_paradox_popup is guarded with getattr (R6: now a property, always exists)."""
         fn = _get_popup_passthrough_fn()
-        # Simulate old save without the attribute
-        if hasattr(world, 'alliance_paradox_popup'):
-            delattr(world, 'alliance_paradox_popup')
+        # R6: alliance_paradox_popup is now a property backed by PopupQueue,
+        # so it always exists. Verify it returns None when unset.
+        assert world.alliance_paradox_popup is None
         response = {}
         fn(response, world)
         # Should not crash, and key should be None

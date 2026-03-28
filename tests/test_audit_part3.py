@@ -101,7 +101,7 @@ class TestAcceptanceCooldown:
 
         # Decrement cooldown N times (simulating N turns)
         for _ in range(NATION_ACCEPTANCE_COOLDOWN):
-            world._decrement_ai_proposal_cooldowns()
+            world._cooldown_manager.decrement_all()
 
         # Now Saxony SHOULD be able to propose
         proposal = process_diplomatic_phase("Saxony", world)
@@ -345,7 +345,7 @@ class TestAntiSpamIntegration:
 
         # Expire cooldown
         for _ in range(NATION_ACCEPTANCE_COOLDOWN):
-            world._decrement_ai_proposal_cooldowns()
+            world._cooldown_manager.decrement_all()
 
         # Now next upgrade should be available
         proposal2 = process_diplomatic_phase("Saxony", world)

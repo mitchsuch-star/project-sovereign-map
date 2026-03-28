@@ -40,9 +40,9 @@ class TestM2AiProposalCooldownsGetattr:
         world.vassals = {
             "Saxony": {"lord": "France", "loyalty": 30, "autonomy": 1}
         }
-        # Ensure ai_proposal_cooldowns does NOT exist
-        if hasattr(world, 'ai_proposal_cooldowns'):
-            delattr(world, 'ai_proposal_cooldowns')
+        # R6: ai_proposal_cooldowns is now a property backed by CooldownManager,
+        # so it always exists. Clear it instead to simulate empty state.
+        world.ai_proposal_cooldowns = {}
 
         # Give Prussia DP to attempt courting
         world.nation_dp = {"Prussia": 5}

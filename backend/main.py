@@ -209,54 +209,28 @@ def _include_popup_passthroughs(response: dict, world) -> None:
     structurally guarantee popup inclusion. The only exception is the
     /command main response path (enemy_phase popup deferral).
 
-    R76 Priority Queue: Only one popup per response cycle. Lower-priority popups
-    remain on world and are delivered in subsequent request cycles.
-
-    Priority order (highest first):
-      1. coalition_popup
-      2. diplomatic_sabotage_popup
-      3. vassal_rebellion_imminent_popup
-      4. talleyrand_redemption_popup
-      5. diplomatic_objection_popup
-      6. incoming_proposal_popup
-      7. alliance_paradox_popup
+    R6+R76: Uses PopupQueue for priority resolution. Only one popup per response
+    cycle. Lower-priority popups remain queued for subsequent cycles.
 
     Keys are ALWAYS included (None if not set) so Godot can rely on their presence.
     """
-    # Priority-ordered list: (world_attr, response_key)
-    _POPUP_PRIORITY = [
-        ("coalition_popup", "coalition_popup"),
-        ("diplomatic_sabotage_popup", "diplomatic_sabotage"),
-        ("vassal_rebellion_imminent_popup", "vassal_rebellion_imminent"),
-        ("talleyrand_redemption_popup", "talleyrand_redemption"),
-        ("diplomatic_objection_popup", "diplomatic_objection"),
-        ("incoming_proposal_popup", "incoming_proposal"),
-        ("alliance_paradox_popup", "alliance_paradox_popup"),  # TODO: alliance_paradox_popup needs a Godot handler (M10)
-    ]
+    from backend.models.cooldown_manager import PopupQueue
+    # TODO: alliance_paradox_popup needs a Godot handler (M10)
 
     # V2-90: Auto-pop rebellion popup from list if single field is empty
-    if (getattr(world, 'vassal_rebellion_imminent_popup', None) is None
+    if (world.vassal_rebellion_imminent_popup is None
             and getattr(world, 'vassal_rebellion_imminent_popups', None)):
         world.vassal_rebellion_imminent_popup = world.vassal_rebellion_imminent_popups.pop(0)
 
-    # Find highest-priority popup that is set on world
-    winner_attr = None
-    winner_key = None
-    winner_value = None
-    for world_attr, response_key in _POPUP_PRIORITY:
-        value = getattr(world, world_attr, None)
-        if value is not None and winner_attr is None:
-            winner_attr = world_attr
-            winner_key = response_key
-            winner_value = value
+    # R6: Pop highest-priority popup from queue (clears from world automatically)
+    winner_attr, winner_key, winner_value = world._popup_queue.pop_highest()
 
-    # Include the winner in response and clear from world (Golden Rule 4)
-    if winner_attr is not None:
+    # Include the winner in response (Golden Rule 4: already cleared by pop)
+    if winner_key is not None:
         response[winner_key] = winner_value
-        setattr(world, winner_attr, None)
 
     # Set all non-winner response keys to None so Godot can rely on key presence
-    for world_attr, response_key in _POPUP_PRIORITY:
+    for response_key in PopupQueue.RESPONSE_KEYS.values():
         if response_key not in response:
             # Special case: incoming_proposal safety valve from pending dialogue
             if (response_key == "incoming_proposal"

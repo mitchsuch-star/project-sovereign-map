@@ -21,6 +21,7 @@ from backend.models.intel import (
     RegionIntel, FULL, PARTIAL, STALE, VISIBILITY_PRIORITY, FRESH_TURNS,
     get_strength_band
 )
+from backend.models.cooldown_manager import CooldownManager, PopupQueue
 
 # Fortify decay configuration by personality (single source of truth)
 # Used in both _get_fortify_state() and _process_tactical_states()
@@ -398,8 +399,16 @@ class WorldState:
         # Proposal in transit (awaiting response next turn)
         self.proposal_in_transit: Optional[Dict] = None
 
-        # Player proposal cooldowns: nation → turns remaining, type → turns remaining
-        self.player_proposal_cooldowns: Dict[str, int] = {}
+        # R6: CooldownManager for advance_turn-managed cooldowns
+        self._cooldown_manager = CooldownManager()
+        self._cooldown_manager.register_dict("player_proposal")
+        self._cooldown_manager.register_dict("ai_proposal")
+        self._cooldown_manager.register_dict("proactive_suggestion")
+        self._cooldown_manager.register_dict("ultimatum")
+        self._cooldown_manager.register_scalar("talleyrand_defiance")
+
+        # R6: PopupQueue for one-shot diplomatic popups
+        self._popup_queue = PopupQueue()
 
         # Active treaties keyed by diplo pair key
         self.active_treaties: Dict[str, Dict] = {}
@@ -407,14 +416,8 @@ class WorldState:
         # ============================================================
         # DIPLOMACY - Session 4: AI proposals, advisory, proactive suggestions
         # ============================================================
-        # AI proposal cooldowns: "nation|type" → turns remaining
-        self.ai_proposal_cooldowns: Dict[str, int] = {}
-
         # AI proposal queue: pending proposals waiting for delivery
         self.diplomatic_queue: List[Dict] = []
-
-        # Proactive suggestion cooldowns: "nation|trigger_type" → turns remaining
-        self.proactive_suggestion_cooldowns: Dict[str, int] = {}
 
         # Stalemate tracking for AI P2 trigger: nation → consecutive stalemate turns
         self.ai_stalemate_counters: Dict[str, int] = {}
@@ -444,7 +447,7 @@ class WorldState:
         # ============================================================
         # DIPLOMACY - Session 6: Talleyrand defiance, objections, override tracking
         # ============================================================
-        self.talleyrand_defiance_cooldown: int = 0       # Turns until defiance can fire again
+        # talleyrand_defiance_cooldown now managed by _cooldown_manager (R6)
         self.pending_talleyrand_sabotage: Optional[Dict] = None  # Active sabotage record
         self.talleyrand_override_history: List[Dict] = []  # Last 5 overrides (proposal_type, result)
         self.last_redemption_turn: int = 0               # Turn when last redemption event fired (5-turn cooldown)
@@ -466,7 +469,7 @@ class WorldState:
         # PHASE 4: War Declaration, Ultimatums, Diplomatic Memory
         # ============================================================
         self.casus_belli: Dict[str, bool] = {}           # diplo_key -> True (halves war declaration penalties)
-        self.ultimatum_cooldowns: Dict[str, int] = {}    # nation -> turns remaining (5-turn cooldown per target)
+        # ultimatum_cooldowns now managed by _cooldown_manager (R6)
         self.diplomatic_reliability: Dict[str, int] = {} # nation -> reliability score (-100 to +100)
         self.diplomatic_history: List[Dict] = []          # Last 20 diplomatic events
         self.alliance_paradox_popup: Optional[Dict] = None  # R12 alliance paradox
@@ -480,16 +483,9 @@ class WorldState:
 
         # ============================================================
         # DIPLOMATIC POPUP FIELDS (Phase 8 Session 8A)
-        # Read → include in response → clear per Golden Rule 4
+        # R6: Managed by PopupQueue — access via properties above
         # ============================================================
-        self.coalition_popup: Optional[Dict] = None
-        self.diplomatic_sabotage_popup: Optional[Dict] = None
-        self.vassal_rebellion_imminent_popup: Optional[Dict] = None  # Current popup (popped from list)
         self.vassal_rebellion_imminent_popups: List[Dict] = []     # V2-90: Queue of multiple rebellion popups
-        # Session 8C popup fields
-        self.talleyrand_redemption_popup: Optional[Dict] = None
-        self.diplomatic_objection_popup: Optional[Dict] = None
-        self.incoming_proposal_popup: Optional[Dict] = None
 
         # V2-16: Per-turn diplomatic trust cap tracking (survives save/load)
         # {marshal_name: amount_applied_this_turn} — cleared at start of each turn
@@ -525,6 +521,110 @@ class WorldState:
     @bankruptcy_turns.setter
     def bankruptcy_turns(self, value: int):
         self.nation_bankruptcy_turns[self.player_nation] = int(value)
+
+    # ========================================
+    # R6: COOLDOWN BACKWARD-COMPATIBLE PROPERTIES
+    # ========================================
+
+    @property
+    def player_proposal_cooldowns(self) -> Dict[str, int]:
+        return self._cooldown_manager.get_dict("player_proposal")
+
+    @player_proposal_cooldowns.setter
+    def player_proposal_cooldowns(self, value: Dict[str, int]):
+        self._cooldown_manager.set_dict("player_proposal", value)
+
+    @property
+    def ai_proposal_cooldowns(self) -> Dict[str, int]:
+        return self._cooldown_manager.get_dict("ai_proposal")
+
+    @ai_proposal_cooldowns.setter
+    def ai_proposal_cooldowns(self, value: Dict[str, int]):
+        self._cooldown_manager.set_dict("ai_proposal", value)
+
+    @property
+    def proactive_suggestion_cooldowns(self) -> Dict[str, int]:
+        return self._cooldown_manager.get_dict("proactive_suggestion")
+
+    @proactive_suggestion_cooldowns.setter
+    def proactive_suggestion_cooldowns(self, value: Dict[str, int]):
+        self._cooldown_manager.set_dict("proactive_suggestion", value)
+
+    @property
+    def ultimatum_cooldowns(self) -> Dict[str, int]:
+        return self._cooldown_manager.get_dict("ultimatum")
+
+    @ultimatum_cooldowns.setter
+    def ultimatum_cooldowns(self, value: Dict[str, int]):
+        self._cooldown_manager.set_dict("ultimatum", value)
+
+    @property
+    def talleyrand_defiance_cooldown(self) -> int:
+        return self._cooldown_manager.get_scalar("talleyrand_defiance")
+
+    @talleyrand_defiance_cooldown.setter
+    def talleyrand_defiance_cooldown(self, value: int):
+        self._cooldown_manager.set_scalar("talleyrand_defiance", int(value))
+
+    # ========================================
+    # R6: POPUP BACKWARD-COMPATIBLE PROPERTIES
+    # ========================================
+
+    @property
+    def coalition_popup(self) -> Optional[Dict]:
+        return self._popup_queue.get("coalition_popup")
+
+    @coalition_popup.setter
+    def coalition_popup(self, value: Optional[Dict]):
+        self._popup_queue.set("coalition_popup", value)
+
+    @property
+    def diplomatic_sabotage_popup(self) -> Optional[Dict]:
+        return self._popup_queue.get("diplomatic_sabotage_popup")
+
+    @diplomatic_sabotage_popup.setter
+    def diplomatic_sabotage_popup(self, value: Optional[Dict]):
+        self._popup_queue.set("diplomatic_sabotage_popup", value)
+
+    @property
+    def vassal_rebellion_imminent_popup(self) -> Optional[Dict]:
+        return self._popup_queue.get("vassal_rebellion_imminent_popup")
+
+    @vassal_rebellion_imminent_popup.setter
+    def vassal_rebellion_imminent_popup(self, value: Optional[Dict]):
+        self._popup_queue.set("vassal_rebellion_imminent_popup", value)
+
+    @property
+    def talleyrand_redemption_popup(self) -> Optional[Dict]:
+        return self._popup_queue.get("talleyrand_redemption_popup")
+
+    @talleyrand_redemption_popup.setter
+    def talleyrand_redemption_popup(self, value: Optional[Dict]):
+        self._popup_queue.set("talleyrand_redemption_popup", value)
+
+    @property
+    def diplomatic_objection_popup(self) -> Optional[Dict]:
+        return self._popup_queue.get("diplomatic_objection_popup")
+
+    @diplomatic_objection_popup.setter
+    def diplomatic_objection_popup(self, value: Optional[Dict]):
+        self._popup_queue.set("diplomatic_objection_popup", value)
+
+    @property
+    def incoming_proposal_popup(self) -> Optional[Dict]:
+        return self._popup_queue.get("incoming_proposal_popup")
+
+    @incoming_proposal_popup.setter
+    def incoming_proposal_popup(self, value: Optional[Dict]):
+        self._popup_queue.set("incoming_proposal_popup", value)
+
+    @property
+    def alliance_paradox_popup(self) -> Optional[Dict]:
+        return self._popup_queue.get("alliance_paradox_popup")
+
+    @alliance_paradox_popup.setter
+    def alliance_paradox_popup(self, value: Optional[Dict]):
+        self._popup_queue.set("alliance_paradox_popup", value)
 
     # ========================================
     # DIPLOMACY HELPERS (Phase 8 data layer)
@@ -3817,22 +3917,15 @@ class WorldState:
             tactical_events.extend(proposal_events)
 
         # ════════════════════════════════════════════════════════════
-        # DIPLOMATIC COOLDOWN DECREMENTS (Phase 8 Session 3)
+        # R6: CENTRALIZED COOLDOWN DECREMENTS
+        # Replaces 4 _decrement_* methods + inline talleyrand decrement
         # ════════════════════════════════════════════════════════════
-        self._decrement_proposal_cooldowns()
-
-        # ════════════════════════════════════════════════════════════
-        # AI DIPLOMATIC COOLDOWN DECREMENTS (Phase 8 Session 4)
-        # ════════════════════════════════════════════════════════════
-        self._decrement_ai_proposal_cooldowns()
-        self._decrement_proactive_cooldowns()
-        self._decrement_ultimatum_cooldowns()
-
-        # ════════════════════════════════════════════════════════════
-        # TALLEYRAND DEFIANCE COOLDOWN (Phase 8 Session 6)
-        # ════════════════════════════════════════════════════════════
-        if self.talleyrand_defiance_cooldown > 0:
-            self.talleyrand_defiance_cooldown -= 1
+        self._cooldown_manager.decrement_all()
+        # Preserve side effect: expire queued proposals older than 3 turns
+        self.diplomatic_queue = [
+            q for q in self.diplomatic_queue
+            if self.current_turn - q.get("turn_generated", 0) < 3
+        ]
         # Track turns hidden for pending sabotage
         if self.pending_talleyrand_sabotage and not self.pending_talleyrand_sabotage.get("discovered"):
             self.pending_talleyrand_sabotage["turns_hidden"] = self.pending_talleyrand_sabotage.get("turns_hidden", 0) + 1
@@ -4600,60 +4693,9 @@ class WorldState:
                         self.nation_actions[from_nation] = max(
                             1, self.nation_actions[from_nation] - int(amount))
 
-    def _decrement_proposal_cooldowns(self) -> None:
-        """Decrement player proposal cooldowns by 1. Remove expired."""
-        cooldowns = getattr(self, 'player_proposal_cooldowns', {})
-        expired = []
-        for key in cooldowns:
-            cooldowns[key] -= 1
-            if cooldowns[key] <= 0:
-                expired.append(key)
-        for key in expired:
-            del cooldowns[key]
-        self.player_proposal_cooldowns = cooldowns
-
-    def _decrement_ai_proposal_cooldowns(self) -> None:
-        """Decrement AI proposal cooldowns by 1. Remove expired. Also expire queued proposals."""
-        cooldowns = getattr(self, 'ai_proposal_cooldowns', {})
-        expired = []
-        for key in cooldowns:
-            cooldowns[key] -= 1
-            if cooldowns[key] <= 0:
-                expired.append(key)
-        for key in expired:
-            del cooldowns[key]
-        self.ai_proposal_cooldowns = cooldowns
-
-        # Expire queued proposals older than 3 turns
-        queue = getattr(self, 'diplomatic_queue', [])
-        self.diplomatic_queue = [
-            q for q in queue
-            if self.current_turn - q.get("turn_generated", 0) < 3
-        ]
-
-    def _decrement_proactive_cooldowns(self) -> None:
-        """Decrement proactive suggestion cooldowns by 1. Remove expired."""
-        cooldowns = getattr(self, 'proactive_suggestion_cooldowns', {})
-        expired = []
-        for key in cooldowns:
-            cooldowns[key] -= 1
-            if cooldowns[key] <= 0:
-                expired.append(key)
-        for key in expired:
-            del cooldowns[key]
-        self.proactive_suggestion_cooldowns = cooldowns
-
-    def _decrement_ultimatum_cooldowns(self) -> None:
-        """Decrement ultimatum cooldowns by 1. Remove expired."""
-        cooldowns = getattr(self, 'ultimatum_cooldowns', {})
-        expired = []
-        for key in cooldowns:
-            cooldowns[key] -= 1
-            if cooldowns[key] <= 0:
-                expired.append(key)
-        for key in expired:
-            del cooldowns[key]
-        self.ultimatum_cooldowns = cooldowns
+    # R6: _decrement_proposal_cooldowns, _decrement_ai_proposal_cooldowns,
+    # _decrement_proactive_cooldowns, _decrement_ultimatum_cooldowns REMOVED.
+    # Replaced by self._cooldown_manager.decrement_all() in advance_turn.
 
     def _update_co_location_tracking(self):
         """Update co-location turn counters for dedicated coordination bonus.

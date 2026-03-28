@@ -830,13 +830,13 @@ class TestCooldowns:
 
     def test_cooldown_decrements(self, world):
         world.player_proposal_cooldowns = {"Prussia": 3, "Prussia_peace": 5}
-        world._decrement_proposal_cooldowns()
+        world._cooldown_manager.decrement_all()
         assert world.player_proposal_cooldowns["Prussia"] == 2
         assert world.player_proposal_cooldowns["Prussia_peace"] == 4
 
     def test_cooldown_expires(self, world):
         world.player_proposal_cooldowns = {"Prussia": 1}
-        world._decrement_proposal_cooldowns()
+        world._cooldown_manager.decrement_all()
         assert "Prussia" not in world.player_proposal_cooldowns
 
 

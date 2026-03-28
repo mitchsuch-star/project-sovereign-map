@@ -1896,10 +1896,10 @@ class TestCooldownEnforcement:
     def test_cooldown_decrements_per_turn(self):
         world = make_world()
         world.player_proposal_cooldowns = {"Prussia": 3, "Prussia_peace": 5}
-        world._decrement_proposal_cooldowns()
+        world._cooldown_manager.decrement_all()
         assert world.player_proposal_cooldowns["Prussia"] == 2
         assert world.player_proposal_cooldowns["Prussia_peace"] == 4
-        world._decrement_proposal_cooldowns()
+        world._cooldown_manager.decrement_all()
         assert world.player_proposal_cooldowns["Prussia"] == 1
         assert world.player_proposal_cooldowns["Prussia_peace"] == 3
 
@@ -1908,7 +1908,7 @@ class TestCooldownEnforcement:
         executor = make_executor()
         world.player_proposal_cooldowns = {"Prussia": 1}
         world.diplomatic_points = 10
-        world._decrement_proposal_cooldowns()
+        world._cooldown_manager.decrement_all()
         assert "Prussia" not in world.player_proposal_cooldowns
         diplo_key = world._make_diplo_key("France", "Prussia")
         world.diplomatic_states[diplo_key] = "WAR"

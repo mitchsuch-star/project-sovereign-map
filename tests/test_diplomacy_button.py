@@ -602,14 +602,14 @@ class TestValidationHardening:
         """§4b: Cooldown should decrement each turn."""
         world = _make_world()
         world.ultimatum_cooldowns = {"Prussia": 3}
-        world._decrement_ultimatum_cooldowns()
+        world._cooldown_manager.decrement_all()
         assert world.ultimatum_cooldowns["Prussia"] == 2
 
     def test_4b_ultimatum_cooldown_expires(self):
         """§4b: Cooldown should be removed at 0."""
         world = _make_world()
         world.ultimatum_cooldowns = {"Prussia": 1}
-        world._decrement_ultimatum_cooldowns()
+        world._cooldown_manager.decrement_all()
         assert "Prussia" not in world.ultimatum_cooldowns
 
     def test_4c_break_treaty_without_treaty(self):
@@ -679,7 +679,7 @@ class TestUltimatumCooldownLifecycle:
         """Cooldowns decrement during advance_turn."""
         world = _make_world()
         world.ultimatum_cooldowns = {"Prussia": 3, "Austria": 1}
-        world._decrement_ultimatum_cooldowns()
+        world._cooldown_manager.decrement_all()
         assert world.ultimatum_cooldowns.get("Prussia") == 2
         assert "Austria" not in world.ultimatum_cooldowns  # expired
 
@@ -704,7 +704,7 @@ class TestUltimatumCooldownLifecycle:
 
         # Decrement 5 times
         for _ in range(5):
-            world._decrement_ultimatum_cooldowns()
+            world._cooldown_manager.decrement_all()
         assert "Prussia" not in world.ultimatum_cooldowns
 
 

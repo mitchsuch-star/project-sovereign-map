@@ -950,7 +950,7 @@ R18 depends on R7+R8 (display/log maps needed for enforcement)
 
 ## Phase C: Infrastructure (Sessions 7-9)
 
-### Session 7: R6 — CooldownManager + PopupQueue
+### Session 7: R6 — CooldownManager + PopupQueue ✓ COMPLETE
 
 | Field | Value |
 |-------|-------|
